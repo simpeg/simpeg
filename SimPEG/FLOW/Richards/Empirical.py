@@ -58,32 +58,46 @@ class RichardsMap(object):
         self._kModel = kModel
 
     def theta(self, u, m):
-        return self.thetaModel(u, m)
+        self.thetaModel.model = m
+        return self.thetaModel(u)
 
     def thetaDerivM(self, u, m):
-        return self.thetaModel.derivM(u, m)
+        self.thetaModel.model = m
+        return self.thetaModel.derivM(u)
 
     def thetaDerivU(self, u, m):
-        return self.thetaModel.derivU(u, m)
+        self.thetaModel.model = m
+        return self.thetaModel.derivU(u)
 
     def k(self, u, m):
-        return self.kModel(u, m)
+        self.kModel.model = m
+        return self.kModel(u)
 
     def kDerivM(self, u, m):
-        return self.kModel.derivM(u, m)
+        self.kModel.model = m
+        return self.kModel.derivM(u)
 
     def kDerivU(self, u, m):
-        return self.kModel.derivU(u, m)
+        self.kModel.model = m
+        return self.kModel.derivU(u)
 
-    def plot(self, m):
+    def plot(self):
         import matplotlib.pyplot as plt
 
-        m = m[0]
-        h = np.linspace(-100, 20, 1000)
+        self.kModel.validate()
+        self.thetaModel.validate()
+
+        h = -np.logspace(-2, 3, 1000)
         ax = plt.subplot(121)
-        ax.plot(self.theta(h, m), h)
+        ax.semilogy(self.thetaModel(h), -h)
+        ax.set_title('Water retention curve')
+        ax.set_ylabel('Soil water potential, $- \psi$')
+        ax.set_xlabel('Water content, $\\theta$')
         ax = plt.subplot(122)
-        ax.semilogx(self.k(h, m), h)
+        ax.loglog(self.kModel(h), -h)
+        ax.set_title('Hydraulic conductivity function')
+        ax.set_ylabel('Soil water potential, $- \psi$')
+        ax.set_xlabel('Hydraulic conductivity, $K$')
 
     def _assertMatchesPair(self, pair):
         assert isinstance(self, pair), (
@@ -140,11 +154,7 @@ class Haverkamp_theta(NonLinearMap):
     alpha = 0.036
     beta = 3.960
 
-    def setModel(self, m):
-        self._currentModel = m
-
-    def __call__(self, u, m):
-        self.setModel(m)
+    def __call__(self, u):
         f = (
             self.alpha *
             (self.theta_s - self.theta_r) /
@@ -158,11 +168,7 @@ class Haverkamp_theta(NonLinearMap):
             f[u >= 0] = self.theta_s[u >= 0]
         return f
 
-    def derivM(self, u, m):
-        self.setModel(m)
-
-    def derivU(self, u, m):
-        self.setModel(m)
+    def derivU(self, u):
         g = (
             self.alpha * (
                 (self.theta_s - self.theta_r) /
@@ -176,8 +182,6 @@ class Haverkamp_theta(NonLinearMap):
 
 
 class Haverkamp_k(NonLinearMap):
-
-    model = Props.Model("model")
 
     Ks, KsMap, KsDeriv = Props.Invertible(
         "Saturated hydraulic conductivity",
@@ -195,28 +199,22 @@ class Haverkamp_k(NonLinearMap):
     )
 
     def _get_params(self):
-        A = self.A
-        gamma = self.gamma
-        Ks = self.Ks
-        return Ks, A, gamma
+        return self.Ks, self.A, self.gamma
 
-    def __call__(self, u, model):
-        self.model = model
+    def __call__(self, u):
         Ks, A, gamma = self._get_params()
         P_p, P_n = get_projections(u)  # Compute the positive/negative domains
-        f_p = P_p * sp.eye(len(u)) * Ks  # identity ensures scalar Ks works
+        f_p = P_p * np.ones(len(u)) * Ks  # identity ensures scalar Ks works
         f_n = P_n * Ks * A / (A + abs(u)**gamma)
         return f_p + f_n
 
-    def derivU(self, u, model):
-        self.model = model
+    def derivU(self, u):
         Ks, A, gamma = self._get_params()
         g = -(Ks*A*gamma*abs(u)**(gamma-1)*np.sign(u))/((A+abs(u)**gamma)**2)
         g[u >= 0] = 0
         return Utils.sdiag(g)
 
-    def derivM(self, u, model):
-        self.model = model
+    def derivM(self, u):
         return self._derivKs(u) + self._derivA(u) + self._derivGamma(u)
 
     def _derivKs(self, u):
@@ -292,11 +290,7 @@ class Vangenuchten_theta(NonLinearMap):
     alpha = 0.036  # related to the inverse of the air entry suction [L-1], >0
     n = 1.560  # measure of the pore-size distribution, >1
 
-    def setModel(self, m):
-        self._currentModel = m
-
-    def __call__(self, u, m):
-        self.setModel(m)
+    def __call__(self, u):
         f = (
             (
                 self.theta_s - self.theta_r
@@ -313,10 +307,7 @@ class Vangenuchten_theta(NonLinearMap):
 
         return f
 
-    def derivM(self, u, m):
-        self.setModel(m)
-
-    def derivU(self, u, m):
+    def derivU(self, u):
         g = -self.alpha*self.n*abs(self.alpha*u)**(self.n - 1)*np.sign(self.alpha*u)*(1./self.n - 1)*(self.theta_r - self.theta_s)*(abs(self.alpha*u)**self.n + 1)**(1./self.n - 2)
         g[u >= 0] = 0
         g = Utils.sdiag(g)
@@ -328,8 +319,6 @@ class Vangenuchten_k(NonLinearMap):
     I = 0.500
     alpha = 0.036  # related to the inverse of the air entry suction [L-1], >0
     n = 1.560  # measure of the pore-size distribution, >1
-
-    model = Props.Model("model")
 
     Ks, KsMap, KsDeriv = Props.Invertible(
         "Saturated hydraulic conductivity",
@@ -344,20 +333,18 @@ class Vangenuchten_k(NonLinearMap):
         m = 1.0 - 1.0/n
         return Ks, alpha, I, n, m
 
-    def __call__(self, u, model):
-        self.model = model
+    def __call__(self, u):
         Ks, alpha, I, n, m = self._get_params()
 
         P_p, P_n = get_projections(u)  # Compute the positive/negative domains
         theta_e = 1.0 / ((1.0 + abs(alpha * u) ** n) ** m)
-        f_p = P_p * sp.eye(len(u)) * Ks  # identity ensures scalar Ks works
+        f_p = P_p * np.ones(len(u)) * Ks  # identity ensures scalar Ks works
         f_n = P_n * Ks * theta_e ** I * (
             (1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2
         )
         return f_p + f_n
 
-    def derivM(self, u, model):
-        self.model = model
+    def derivM(self, u):
         return self._derivKs(u)
 
     def _derivKs(self, u):
@@ -388,8 +375,7 @@ class Vangenuchten_k(NonLinearMap):
             return Utils.Zero()
         # dI = Ks*np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
 
-    def derivU(self, u, model):
-        self.model = model
+    def derivU(self, u):
         Ks, alpha, I, n, m = self._get_params()
 
         g = I*alpha*n*Ks*abs(alpha*u)**(n - 1.0)*np.sign(alpha*u)*(1.0/n - 1.0)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*alpha*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))
@@ -653,21 +639,3 @@ class VanGenuchtenParams(object):
     # def plainfieldSand_125to149(self):
     #     """Soil Index: 4104b"""
     #     return {"theta_r": 0.000, "theta_s": 0.342, "alpha": 0.0230, "n": 5.18}
-
-
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    M = Mesh.TensorMesh([10])
-    VGparams = VanGenuchtenParams()
-    leg = []
-    for p in dir(VGparams):
-        if p[0] == '_': continue
-        leg += [p]
-        params = getattr(VGparams, p)
-        model = VanGenuchten(M, **params)
-        ks = np.log(np.r_[params['Ks']])
-        model.plot(ks)
-
-    plt.legend(leg)
-
-    plt.show()

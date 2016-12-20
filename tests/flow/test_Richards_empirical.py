@@ -18,9 +18,8 @@ class TestModels(unittest.TestCase):
     def test_haverkamp_theta(self):
         mesh = Mesh.TensorMesh([50])
         hav = Richards.Empirical.Haverkamp_theta(mesh)
-        m = np.random.randn(50)
         passed = checkDerivative(
-            lambda u: (hav(u, m), hav.derivU(u, m)),
+            lambda u: (hav(u), hav.derivU(u)),
             np.random.randn(50),
             plotIt=False
         )
@@ -29,9 +28,8 @@ class TestModels(unittest.TestCase):
     def test_vangenuchten_theta(self):
         mesh = Mesh.TensorMesh([50])
         van = Richards.Empirical.Vangenuchten_theta(mesh)
-        m = np.random.randn(50)
         passed = checkDerivative(
-            lambda u: (van(u, m), van.derivU(u, m)),
+            lambda u: (van(u), van.derivU(u)),
             np.random.randn(50),
             plotIt=False
         )
@@ -48,10 +46,9 @@ class TestModels(unittest.TestCase):
 
         hav = Richards.Empirical.Haverkamp_k(mesh)
 
-        m = properties.utils.undefined
         print('Haverkamp_k test u deriv')
         passed = checkDerivative(
-            lambda u: (hav(u, m), hav.derivU(u, m)),
+            lambda u: (hav(u), hav.derivU(u)),
             np.random.randn(mesh.nC),
             plotIt=False
         )
@@ -76,14 +73,20 @@ class TestModels(unittest.TestCase):
                 gammaMap=expmap*wires3.three), 3),
         ]
 
+        u = np.random.randn(mesh.nC)
+
+        def fun(m):
+            hav.model = m
+            return hav(u), hav.derivM(u)
+
         for name, opt, nM in opts:
             np.random.seed(2)
             hav = Richards.Empirical.Haverkamp_k(mesh, **opt)
 
             print('Haverkamp_k test m deriv:  ', name)
-            u = np.random.randn(mesh.nC)
+
             passed = checkDerivative(
-                lambda m: (hav(u, m), hav.derivM(u, m)),
+                fun,
                 np.random.randn(mesh.nC * nM),
                 plotIt=False
             )
@@ -97,19 +100,26 @@ class TestModels(unittest.TestCase):
         m = np.random.randn(50)
         van.model = m
         passed = checkDerivative(
-            lambda u: (van(u, m), van.derivU(u, m)),
+            lambda u: (van(u), van.derivU(u)),
             np.random.randn(50),
             plotIt=False
         )
         self.assertTrue(passed, True)
 
         hav = Richards.Empirical.Vangenuchten_k(mesh, KsMap=expmap)
-        u = np.random.randn(50)
+
+        u = np.random.randn(mesh.nC)
+
+        def fun(m):
+            hav.model = m
+            return hav(u), hav.derivM(u)
+
         passed = checkDerivative(
-            lambda m: (hav(u, m), hav.derivM(u, m)),
+            fun,
             np.random.randn(50),
             plotIt=False
         )
+
         self.assertTrue(passed, True)
 
 if __name__ == '__main__':
