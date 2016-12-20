@@ -113,18 +113,14 @@ def _ModelProperty(name, models, doc=None, default=None):
 
 class HaverkampParams(object):
     """Holds some default parameterizations for the Haverkamp model."""
-    def __init__(self):
-        pass
 
     @property
     def celia1990(self):
-        """
-            Parameters used in:
+        """Parameters used in:
 
-                Celia, Michael A., Efthimios T. Bouloutas, and Rebecca L. Zarba.
-                "A general mass-conservative numerical solution for the unsaturated flow equation."
-                Water Resources Research 26.7 (1990): 1483-1496.
-
+            Celia, Michael A., Efthimios T. Bouloutas, and Rebecca L. Zarba.
+            "A general mass-conservative numerical solution for the unsaturated
+            flow equation." Water Resources Research 26.7 (1990): 1483-1496.
         """
         return {
             'alpha': 1.611e+06,
@@ -284,7 +280,7 @@ class Haverkamp(RichardsMap):
 class Vangenuchten_theta(NonLinearMap):
 
     theta_s = properties.Union(
-        "saturated water content",
+        "saturated water content [L3L-3]",
         props=(
             properties.Float(''),
             properties.Array('')
@@ -292,22 +288,21 @@ class Vangenuchten_theta(NonLinearMap):
         default=0.430
     )
 
-    theta_r = 0.078
-    alpha = 0.036
-    n = 1.560
+    theta_r = 0.078  # residual water content [L3L-3]
+    alpha = 0.036  # related to the inverse of the air entry suction [L-1], >0
+    n = 1.560  # measure of the pore-size distribution, >1
 
     def setModel(self, m):
         self._currentModel = m
 
     def __call__(self, u, m):
         self.setModel(m)
-        m = 1 - 1.0 / self.n
         f = (
             (
                 self.theta_s - self.theta_r
             ) /
             (
-                (1 + abs(self.alpha * u)**self.n)**m
+                (1 + abs(self.alpha * u)**self.n) ** (1 - 1.0 / self.n)
             ) +
             self.theta_r
         )
@@ -331,8 +326,8 @@ class Vangenuchten_theta(NonLinearMap):
 class Vangenuchten_k(NonLinearMap):
 
     I = 0.500
-    alpha = 0.036
-    n = 1.560
+    alpha = 0.036  # related to the inverse of the air entry suction [L-1], >0
+    n = 1.560  # measure of the pore-size distribution, >1
 
     model = Props.Model("model")
 
@@ -354,10 +349,10 @@ class Vangenuchten_k(NonLinearMap):
         Ks, alpha, I, n, m = self._get_params()
 
         P_p, P_n = get_projections(u)  # Compute the positive/negative domains
-        theta_e = 1.0/((1.0+abs(alpha*u)**n)**m)
+        theta_e = 1.0 / ((1.0 + abs(alpha * u) ** n) ** m)
         f_p = P_p * sp.eye(len(u)) * Ks  # identity ensures scalar Ks works
         f_n = P_n * Ks * theta_e ** I * (
-            (1.0 - (1.0 - theta_e**(1.0/m))**m)**2
+            (1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2
         )
         return f_p + f_n
 
@@ -371,10 +366,10 @@ class Vangenuchten_k(NonLinearMap):
 
         Ks, alpha, I, n, m = self._get_params()
         P_p, P_n = get_projections(u)  # Compute the positive/negative domains
-        theta_e = 1.0/((1.0+abs(alpha*u)**n)**m)
+        theta_e = 1.0 / ((1.0 + abs(alpha * u) ** n) ** m)
         dKs_dm_p = P_p * self.KsDeriv
         dKs_dm_n = P_n * self.KsDeriv * Utils.sdiag(
-            theta_e ** I * ((1.0 - (1.0 - theta_e**(1.0/m))**m)**2)
+            theta_e ** I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
         )
         return dKs_dm_p + dKs_dm_n
 
@@ -426,52 +421,94 @@ class VanGenuchten(RichardsMap):
 
 
 class VanGenuchtenParams(object):
-    """
-        The RETC code for quantifying the hydraulic functions of unsaturated
-        soils, Van Genuchten, M Th, Leij, F J, Yates, S R
+    """The RETC code for quantifying the hydraulic functions of unsaturated
+    soils, Van Genuchten, M Th, Leij, F J, Yates, S R
 
-        Table 3: Average values for selected soil water retention and hydraulic
-        conductivity parameters for 11 major soil textural groups
-        according to Rawls et al. [1982]
-
+    Table 3: Average values for selected soil water retention and hydraulic
+    conductivity parameters for 11 major soil textural groups
+    according to Rawls et al. [1982]
     """
-    def __init__(self): pass
+
     @property
     def sand(self):
-        return {"theta_r": 0.020, "theta_s": 0.417, "alpha": 0.138*100., "n": 1.592, "Ks": 504.0/100./24./60./60.}
+        return {
+            "theta_r": 0.020, "theta_s": 0.417, "alpha": 0.138*100.,
+            "n": 1.592, "Ks": 504.0/100./24./60./60.
+        }
+
     @property
-    def loamySand(self):
-        return {"theta_r": 0.035, "theta_s": 0.401, "alpha": 0.115*100., "n": 1.474, "Ks": 146.6/100./24./60./60.}
+    def loamy_sand(self):
+        return {
+            "theta_r": 0.035, "theta_s": 0.401, "alpha": 0.115*100.,
+            "n": 1.474, "Ks": 146.6/100./24./60./60.
+        }
+
     @property
-    def sandyLoam(self):
-        return {"theta_r": 0.041, "theta_s": 0.412, "alpha": 0.068*100., "n": 1.322, "Ks": 62.16/100./24./60./60.}
+    def sandy_loam(self):
+        return {
+            "theta_r": 0.041, "theta_s": 0.412, "alpha": 0.068*100.,
+            "n": 1.322, "Ks": 62.16/100./24./60./60.
+        }
+
     @property
     def loam(self):
-        return {"theta_r": 0.027, "theta_s": 0.434, "alpha": 0.090*100., "n": 1.220, "Ks": 16.32/100./24./60./60.}
+        return {
+            "theta_r": 0.027, "theta_s": 0.434, "alpha": 0.090*100.,
+            "n": 1.220, "Ks": 16.32/100./24./60./60.
+        }
+
     @property
-    def siltLoam(self):
-        return {"theta_r": 0.015, "theta_s": 0.486, "alpha": 0.048*100., "n": 1.211, "Ks": 31.68/100./24./60./60.}
+    def silt_loam(self):
+        return {
+            "theta_r": 0.015, "theta_s": 0.486, "alpha": 0.048*100.,
+            "n": 1.211, "Ks": 31.68/100./24./60./60.
+        }
+
     @property
-    def sandyClayLoam(self):
-        return {"theta_r": 0.068, "theta_s": 0.330, "alpha": 0.036*100., "n": 1.250, "Ks": 10.32/100./24./60./60.}
+    def sandy_clay_loam(self):
+        return {
+            "theta_r": 0.068, "theta_s": 0.330, "alpha": 0.036*100.,
+            "n": 1.250, "Ks": 10.32/100./24./60./60.
+        }
+
     @property
-    def clayLoam(self):
-        return {"theta_r": 0.075, "theta_s": 0.390, "alpha": 0.039*100., "n": 1.194, "Ks": 5.52/100./24./60./60.}
+    def clay_loam(self):
+        return {
+            "theta_r": 0.075, "theta_s": 0.390, "alpha": 0.039*100.,
+            "n": 1.194, "Ks": 5.52/100./24./60./60.
+        }
+
     @property
-    def siltyClayLoam(self):
-        return {"theta_r": 0.040, "theta_s": 0.432, "alpha": 0.031*100., "n": 1.151, "Ks": 3.60/100./24./60./60.}
+    def silty_clay_loam(self):
+        return {
+            "theta_r": 0.040, "theta_s": 0.432, "alpha": 0.031*100.,
+            "n": 1.151, "Ks": 3.60/100./24./60./60.
+        }
+
     @property
-    def sandyClay(self):
-        return {"theta_r": 0.109, "theta_s": 0.321, "alpha": 0.034*100., "n": 1.168, "Ks": 2.88/100./24./60./60.}
+    def sandy_clay(self):
+        return {
+            "theta_r": 0.109, "theta_s": 0.321, "alpha": 0.034*100.,
+            "n": 1.168, "Ks": 2.88/100./24./60./60.
+        }
+
     @property
-    def siltyClay(self):
-        return {"theta_r": 0.056, "theta_s": 0.423, "alpha": 0.029*100., "n": 1.127, "Ks": 2.16/100./24./60./60.}
+    def silty_clay(self):
+        return {
+            "theta_r": 0.056, "theta_s": 0.423, "alpha": 0.029*100.,
+            "n": 1.127, "Ks": 2.16/100./24./60./60.
+        }
+
     @property
     def clay(self):
-        return {"theta_r": 0.090, "theta_s": 0.385, "alpha": 0.027*100., "n": 1.131, "Ks": 1.44/100./24./60./60.}
+        return {
+            "theta_r": 0.090, "theta_s": 0.385, "alpha": 0.027*100.,
+            "n": 1.131, "Ks": 1.44/100./24./60./60.
+        }
 
-
-    # From: INDIRECT METHODS FOR ESTIMATING THE HYDRAULIC PROPERTIES OF UNSATURATED SOILS
+    # From:
+    #   INDIRECT METHODS FOR ESTIMATING THE HYDRAULIC
+    #   PROPERTIES OF UNSATURATED SOILS
     # @property
     # def siltLoamGE3(self):
     #     """Soil Index: 3310"""
