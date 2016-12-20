@@ -15,6 +15,24 @@ def _get_projections(u):
     return P_p, P_n
 
 
+def _partition_args(mesh, Hcond, Theta, hcond_args, theta_args, **kwargs):
+
+    hcond_params = {k: kwargs[k] for k in kwargs if k in hcond_args}
+    theta_params = {k: kwargs[k] for k in kwargs if k in theta_args}
+
+    other_params = {
+        k: kwargs[k] for k in kwargs if k not in hcond_args + theta_args
+    }
+
+    if len(other_params) > 0:
+        raise Exception('Unknown parameters: {}'.format(other_params))
+
+    hcond = Hcond(mesh, **hcond_params)
+    theta = Theta(mesh, **theta_params)
+
+    return hcond, theta
+
+
 class NonLinearModel(Props.HasModel):
     """A non linear model that has dependence on the fields and a model"""
 
@@ -99,24 +117,6 @@ class Haverkamp_theta(BaseWaterRetention):
         g[u >= 0] = 0
         g = Utils.sdiag(g)
         return g
-
-
-def _partition_args(mesh, Hcond, Theta, hcond_args, theta_args, **kwargs):
-
-    hcond_params = {k: kwargs[k] for k in kwargs if k in hcond_args}
-    theta_params = {k: kwargs[k] for k in kwargs if k in theta_args}
-
-    other_params = {
-        k: kwargs[k] for k in kwargs if k not in hcond_args + theta_args
-    }
-
-    if len(other_params) > 0:
-        raise Exception('Unknown parameters: {}'.format(other_params))
-
-    hcond = Hcond(mesh, **hcond_params)
-    theta = Theta(mesh, **theta_params)
-
-    return hcond, theta
 
 
 class Haverkamp_k(BaseHydraulicConductivity):
