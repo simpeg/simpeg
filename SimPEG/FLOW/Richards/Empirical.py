@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-from SimPEG import Mesh, Utils, Props
+from SimPEG import Utils, Props
 import properties
 
 
@@ -15,23 +15,56 @@ def get_projections(u):
     return P_p, P_n
 
 
-class NonLinearMap(Props.HasModel):
-    """SimPEG NonLinearMap"""
+class NonLinearModel(Props.HasModel):
+    """A non linear model that has dependence on the fields and a model"""
 
     counter = None   #: A SimPEG.Utils.Counter object
     mesh = None      #: A SimPEG Mesh
 
     def __init__(self, mesh, **kwargs):
         self.mesh = mesh
-        super(NonLinearMap, self).__init__(**kwargs)
+        super(NonLinearModel, self).__init__(**kwargs)
 
     @property
     def nP(self):
         """Number of parameters in the model."""
         return self.mesh.nC
 
-# BaseTheta
-# BaseK
+
+class BaseWaterRetention(NonLinearModel):
+
+    def plot(self, ax=None):
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            plt.figure()
+            ax = plt.subplot(111)
+
+        self.validate()
+
+        h = -np.logspace(-2, 3, 1000)
+        ax.semilogy(self(h), -h)
+        ax.set_title('Water retention curve')
+        ax.set_ylabel('Soil water potential, $- \psi$')
+        ax.set_xlabel('Water content, $\\theta$')
+
+
+class BaseHydraulicConductivity(NonLinearModel):
+
+    def plot(self, ax=None):
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            plt.figure()
+            ax = plt.subplot(111)
+
+        self.validate()
+
+        h = -np.logspace(-2, 3, 1000)
+        ax.loglog(self(h), -h)
+        ax.set_title('Hydraulic conductivity function')
+        ax.set_ylabel('Soil water potential, $- \psi$')
+        ax.set_xlabel('Hydraulic conductivity, $K$')
 
 
 class RichardsMap(object):
@@ -51,8 +84,8 @@ class RichardsMap(object):
 
     def __init__(self, mesh, thetaModel, kModel):
         self.mesh = mesh
-        assert isinstance(thetaModel, NonLinearMap)
-        assert isinstance(kModel, NonLinearMap)
+        assert isinstance(thetaModel, BaseWaterRetention)
+        assert isinstance(kModel, BaseHydraulicConductivity)
 
         self._thetaModel = thetaModel
         self._kModel = kModel
@@ -80,31 +113,6 @@ class RichardsMap(object):
     def kDerivU(self, u, m):
         self.kModel.model = m
         return self.kModel.derivU(u)
-
-    def plot(self):
-        import matplotlib.pyplot as plt
-
-        self.kModel.validate()
-        self.thetaModel.validate()
-
-        h = -np.logspace(-2, 3, 1000)
-        ax = plt.subplot(121)
-        ax.semilogy(self.thetaModel(h), -h)
-        ax.set_title('Water retention curve')
-        ax.set_ylabel('Soil water potential, $- \psi$')
-        ax.set_xlabel('Water content, $\\theta$')
-        ax = plt.subplot(122)
-        ax.loglog(self.kModel(h), -h)
-        ax.set_title('Hydraulic conductivity function')
-        ax.set_ylabel('Soil water potential, $- \psi$')
-        ax.set_xlabel('Hydraulic conductivity, $K$')
-
-    def _assertMatchesPair(self, pair):
-        assert isinstance(self, pair), (
-            "Mapping object must be an instance of a {0!s} class.".format(
-                pair.__name__
-            )
-        )
 
 
 def _ModelProperty(name, models, doc=None, default=None):
@@ -147,7 +155,7 @@ class HaverkampParams(object):
         }
 
 
-class Haverkamp_theta(NonLinearMap):
+class Haverkamp_theta(BaseWaterRetention):
 
     theta_s = 0.430
     theta_r = 0.078
@@ -181,7 +189,7 @@ class Haverkamp_theta(NonLinearMap):
         return g
 
 
-class Haverkamp_k(NonLinearMap):
+class Haverkamp_k(BaseHydraulicConductivity):
 
     Ks, KsMap, KsDeriv = Props.Invertible(
         "Saturated hydraulic conductivity",
@@ -275,7 +283,7 @@ class Haverkamp(RichardsMap):
         Utils.setKwargs(self, **kwargs)
 
 
-class Vangenuchten_theta(NonLinearMap):
+class Vangenuchten_theta(BaseWaterRetention):
 
     theta_s = properties.Union(
         "saturated water content [L3L-3]",
@@ -314,7 +322,7 @@ class Vangenuchten_theta(NonLinearMap):
         return g
 
 
-class Vangenuchten_k(NonLinearMap):
+class Vangenuchten_k(BaseHydraulicConductivity):
 
     I = 0.500
     alpha = 0.036  # related to the inverse of the air entry suction [L-1], >0

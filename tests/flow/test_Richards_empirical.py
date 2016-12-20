@@ -75,13 +75,13 @@ class TestModels(unittest.TestCase):
 
         u = np.random.randn(mesh.nC)
 
-        def fun(m):
-            hav.model = m
-            return hav(u), hav.derivM(u)
-
         for name, opt, nM in opts:
             np.random.seed(2)
             hav = Richards.Empirical.Haverkamp_k(mesh, **opt)
+
+            def fun(m):
+                hav.model = m
+                return hav(u), hav.derivM(u)
 
             print('Haverkamp_k test m deriv:  ', name)
 
