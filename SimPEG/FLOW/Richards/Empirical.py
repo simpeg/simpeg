@@ -168,26 +168,20 @@ class Haverkamp_k(BaseHydraulicConductivity):
     def _derivA(self, u):
         if self.AMap is None:
             return Utils.Zero()
-
         Ks, A, gamma = self._get_params()
-        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
-
-        dA_dm_n = P_n * Utils.sdiag(
-            Ks / (A + abs(u)**gamma) - Ks*A/(A + abs(u)**gamma)**2
-        ) * self.ADeriv
-        return dA_dm_n  # positive term is zero
+        ddm = Ks / (A + abs(u)**gamma) - Ks*A/(A + abs(u)**gamma)**2
+        ddm[u >= 0] = 0
+        dA_dm = Utils.sdiag(ddm) * self.ADeriv
+        return dA_dm
 
     def _derivGamma(self, u):
         if self.gammaMap is None:
             return Utils.Zero()
-
         Ks, A, gamma = self._get_params()
-        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
-
-        dGamma_dm_n = P_n * Utils.sdiag(
-            -(A*Ks*np.log(abs(u))*abs(u)**gamma)/(A + abs(u)**gamma)**2
-        ) * self.gammaDeriv
-        return dGamma_dm_n  # positive term is zero
+        ddm = -(A*Ks*np.log(abs(u))*abs(u)**gamma)/(A + abs(u)**gamma)**2
+        ddm[u >= 0] = 0
+        dGamma_dm = Utils.sdiag(ddm) * self.gammaDeriv
+        return dGamma_dm
 
 
 def haverkamp(mesh, **kwargs):
@@ -303,7 +297,7 @@ class Vangenuchten_theta(BaseWaterRetention):
         theta_r, theta_s, alpha, n = self._get_params()
         ddm = -(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n) + 1
         ddm[u >= 0] = 0
-        dT = self.theta_rDeriv * Utils.sdiag(ddm)
+        dT = Utils.sdiag(ddm) * self.theta_rDeriv
         return dT
 
     def _derivTheta_s(self, u):
@@ -312,7 +306,9 @@ class Vangenuchten_theta(BaseWaterRetention):
         theta_r, theta_s, alpha, n = self._get_params()
         P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
         dT_p = P_p * self.theta_sDeriv
-        dT_n = P_n * self.theta_sDeriv * Utils.sdiag((abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))
+        dT_n = P_n * Utils.sdiag(
+            (abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)
+        ) * self.theta_sDeriv
         return dT_p + dT_n
 
     def _derivN(self, u):
@@ -321,7 +317,7 @@ class Vangenuchten_theta(BaseWaterRetention):
         theta_r, theta_s, alpha, n = self._get_params()
         ddm = (-theta_r + theta_s)*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)
         ddm[u >= 0] = 0
-        dN = self.nDeriv * Utils.sdiag(ddm)
+        dN = Utils.sdiag(ddm) * self.nDeriv
         return dN
 
     def _derivAlpha(self, u):
@@ -330,7 +326,7 @@ class Vangenuchten_theta(BaseWaterRetention):
         theta_r, theta_s, alpha, n = self._get_params()
         ddm = n*u*(-1.0 + 1.0/n)*(-theta_r + theta_s)*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*abs(alpha*u)**n*np.sign(alpha*u)/((abs(alpha*u)**n + 1.0)*abs(alpha*u))
         ddm[u >= 0] = 0
-        dA = self.alphaDeriv * Utils.sdiag(ddm)
+        dA = Utils.sdiag(ddm) * self.alphaDeriv
         return dA
 
     def derivU(self, u):
