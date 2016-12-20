@@ -267,6 +267,29 @@ class Vangenuchten_theta(BaseWaterRetention):
         return f
 
     def derivM(self, u):
+        """derivative with respect to m
+
+        .. code::
+
+            import sympy as sy
+
+            alpha, u, n, I, Ks, theta_r, theta_s = sy.symbols(
+                'alpha u n I Ks theta_r theta_s', real=True
+            )
+
+            m = 1.0 - 1.0/n
+            theta_e = 1.0 / ((1.0 + sy.functions.Abs(alpha * u) ** n) ** m)
+
+            f_n = (
+                (
+                    theta_s - theta_r
+                ) /
+                (
+                    (1.0 + abs(alpha * u)**n) ** (1.0 - 1.0 / n)
+                ) +
+                theta_r
+            )
+        """
         return (
             self._derivTheta_r(u) +
             self._derivTheta_s(u) +
@@ -359,7 +382,33 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         )
         return f_p + f_n
 
+
     def derivM(self, u):
+        """derivative with respect to m
+
+        .. code::
+
+            import sympy as sy
+
+            alpha, u, n, I, Ks, theta_r, theta_s = sy.symbols('alpha u n I Ks theta_r theta_s', real=True)
+
+            m = 1.0 - 1.0/n
+            theta_e = 1.0 / ((1.0 + sy.functions.Abs(alpha * u) ** n) ** m)
+
+            f_n = Ks * theta_e ** I * (
+                (1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2
+            )
+
+            f_n = (
+                (
+                    theta_s - theta_r
+                ) /
+                (
+                    (1.0 + abs(alpha * u)**n) ** (1.0 - 1.0 / n)
+                ) +
+                theta_r
+            )
+        """
         return (
             self._derivKs(u) +
             self._derivI(u) +
