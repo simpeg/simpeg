@@ -226,38 +226,94 @@ class HaverkampParams(object):
 
 class Vangenuchten_theta(BaseWaterRetention):
 
-    theta_s = properties.Union(
+    theta_r, theta_rMap, theta_rDeriv = Props.Invertible(
+        "residual water content [L3L-3]",
+        default=0.078
+    )
+
+    theta_s, theta_sMap, theta_sDeriv = Props.Invertible(
         "saturated water content [L3L-3]",
-        props=(
-            properties.Float(''),
-            properties.Array('')
-        ),
         default=0.430
     )
 
-    theta_r = 0.078  # residual water content [L3L-3]
-    alpha = 0.036  # related to the inverse of the air entry suction [L-1], >0
-    n = 1.560  # measure of the pore-size distribution, >1
+    n, nMap, nDeriv = Props.Invertible(
+        "measure of the pore-size distribution, >1",
+        default=1.56
+    )
+
+    alpha, alphaMap, alphaDeriv = Props.Invertible(
+        "related to the inverse of the air entry suction [L-1], >0",
+        default=0.036
+    )
+
+    def _get_params(self):
+        return self.theta_r, self.theta_s, self.alpha, self.n
 
     def __call__(self, u):
+        theta_r, theta_s, alpha, n = self._get_params()
         f = (
             (
-                self.theta_s - self.theta_r
+                theta_s - theta_r
             ) /
             (
-                (1 + abs(self.alpha * u)**self.n) ** (1 - 1.0 / self.n)
+                (1.0 + abs(alpha * u)**n) ** (1.0 - 1.0 / n)
             ) +
-            self.theta_r
+            theta_r
         )
-        if Utils.isScalar(self.theta_s):
-            f[u >= 0] = self.theta_s
+        if Utils.isScalar(theta_s):
+            f[u >= 0] = theta_s
         else:
-            f[u >= 0] = self.theta_s[u >= 0]
+            f[u >= 0] = theta_s[u >= 0]
 
         return f
 
+    def derivM(self, u):
+        return (
+            self._derivTheta_r(u) +
+            self._derivTheta_s(u) +
+            self._derivN(u) +
+            self._derivAlpha(u)
+        )
+
+    def _derivTheta_r(self, u):
+        if self.theta_rMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, n = self._get_params()
+        ddm = -(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n) + 1
+        ddm[u >= 0] = 0
+        dT = self.theta_rDeriv * Utils.sdiag(ddm)
+        return dT
+
+    def _derivTheta_s(self, u):
+        if self.theta_sMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, n = self._get_params()
+        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
+        dT_p = P_p * self.theta_sDeriv
+        dT_n = P_n * self.theta_sDeriv * Utils.sdiag((abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))
+        return dT_p + dT_n
+
+    def _derivN(self, u):
+        if self.nMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, n = self._get_params()
+        ddm = (-theta_r + theta_s)*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)
+        ddm[u >= 0] = 0
+        dN = self.nDeriv * Utils.sdiag(ddm)
+        return dN
+
+    def _derivAlpha(self, u):
+        if self.alphaMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, n = self._get_params()
+        ddm = n*u*(-1.0 + 1.0/n)*(-theta_r + theta_s)*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*abs(alpha*u)**n*np.sign(alpha*u)/((abs(alpha*u)**n + 1.0)*abs(alpha*u))
+        ddm[u >= 0] = 0
+        dA = self.alphaDeriv * Utils.sdiag(ddm)
+        return dA
+
     def derivU(self, u):
-        g = -self.alpha*self.n*abs(self.alpha*u)**(self.n - 1)*np.sign(self.alpha*u)*(1./self.n - 1)*(self.theta_r - self.theta_s)*(abs(self.alpha*u)**self.n + 1)**(1./self.n - 2)
+        theta_r, theta_s, alpha, n = self._get_params()
+        g = -alpha*n*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1./n - 1)*(theta_r - theta_s)*(abs(alpha*u)**n + 1)**(1./n - 2)
         g[u >= 0] = 0
         g = Utils.sdiag(g)
         return g
@@ -329,32 +385,34 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         if self.alphaMap is None:
             return Utils.Zero()
         Ks, alpha, I, n, m = self._get_params()
-        dA = self.alphaDeriv * Utils.sdiag(I*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n)))
-        dA[u >= 0] = 0
+        ddm = I*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))
+        ddm[u >= 0] = 0
+        dA = self.alphaDeriv * Utils.sdiag(ddm)
         return dA
 
     def _derivN(self, u):
         if self.nMap is None:
             return Utils.Zero()
         Ks, alpha, I, n, m = self._get_params()
-        dn = self.nDeriv * Utils.sdiag(1.0*I*Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)**2*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*(abs(alpha*u)**n + 1.0)**(1.0 - 1.0/n) - 2*Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n)*(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n))*(1.0 - 1.0/n)*(1.0*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*(abs(alpha*u)**n + 1.0)**(1.0 - 1.0/n)/(1.0 - 1.0/n) - 1.0*np.log(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))/(n**2*(1.0 - 1.0/n)**2))/(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0) + 1.0*np.log(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)/n**2)*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0))
-        dn[u >= 0] = 0
+        ddm = 1.0*I*Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)**2*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*(abs(alpha*u)**n + 1.0)**(1.0 - 1.0/n) - 2*Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n)*(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n))*(1.0 - 1.0/n)*(1.0*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*(abs(alpha*u)**n + 1.0)**(1.0 - 1.0/n)/(1.0 - 1.0/n) - 1.0*np.log(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))/(n**2*(1.0 - 1.0/n)**2))/(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0) + 1.0*np.log(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)/n**2)*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)
+        ddm[u >= 0] = 0
+        dn = self.nDeriv * Utils.sdiag(ddm)
         return dn
 
     def _derivI(self, u):
         if self.IMap is None:
             return Utils.Zero()
         Ks, alpha, I, n, m = self._get_params()
-        dI = self.IDeriv * Utils.sdiag(Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)**2*np.log(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)))
-        dI[u >= 0] = 0
+        ddm = Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)**2*np.log(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))
+        ddm[u >= 0] = 0
+        dI = self.IDeriv * Utils.sdiag(ddm)
         return dI
 
     def derivU(self, u):
         Ks, alpha, I, n, m = self._get_params()
-
-        g = I*alpha*n*Ks*abs(alpha*u)**(n - 1.0)*np.sign(alpha*u)*(1.0/n - 1.0)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*alpha*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))
-        g[u >= 0] = 0
-        g = Utils.sdiag(g)
+        ddm = I*alpha*n*Ks*abs(alpha*u)**(n - 1.0)*np.sign(alpha*u)*(1.0/n - 1.0)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*alpha*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))
+        ddm[u >= 0] = 0
+        g = Utils.sdiag(ddm)
         return g
 
 

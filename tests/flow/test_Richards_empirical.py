@@ -35,6 +35,46 @@ class TestModels(unittest.TestCase):
         )
         self.assertTrue(passed, True)
 
+        idnmap = Maps.IdentityMap(nP=mesh.nC)
+
+        seeds = {
+            'theta_r': np.random.rand(mesh.nC),
+            'theta_s': np.random.rand(mesh.nC),
+            'n': np.random.rand(mesh.nC) + 1,
+            'alpha': np.random.rand(mesh.nC),
+        }
+
+        opts = [
+            ('theta_r',
+                dict(theta_rMap=idnmap), 1),
+            ('theta_s',
+                dict(theta_sMap=idnmap), 1),
+            ('n',
+                dict(nMap=idnmap), 1),
+            ('alpha',
+                dict(alphaMap=idnmap), 1),
+        ]
+
+        u = np.random.randn(mesh.nC)
+
+        for name, opt, nM in opts:
+            van = Richards.Empirical.Vangenuchten_theta(mesh, **opt)
+
+            x0 = np.concatenate([seeds[n] for n in name.split('-')])
+
+            def fun(m):
+                van.model = m
+                return van(u), van.derivM(u)
+
+            print('Vangenuchten_theta test m deriv:  ', name)
+
+            passed = checkDerivative(
+                fun,
+                x0,
+                plotIt=False
+            )
+            self.assertTrue(passed, True)
+
     def test_haverkamp_k(self):
 
         mesh = Mesh.TensorMesh([5])
