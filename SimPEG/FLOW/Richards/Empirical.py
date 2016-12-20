@@ -142,7 +142,7 @@ class Haverkamp_k(BaseHydraulicConductivity):
     def __call__(self, u):
         Ks, A, gamma = self._get_params()
         P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
-        f_p = P_p * np.ones(len(u)) * Ks  # identity ensures scalar Ks works
+        f_p = P_p * np.ones(len(u)) * Ks  # ensures scalar Ks works
         f_n = P_n * Ks * A / (A + abs(u)**gamma)
         return f_p + f_n
 
@@ -265,13 +265,24 @@ class Vangenuchten_theta(BaseWaterRetention):
 
 class Vangenuchten_k(BaseHydraulicConductivity):
 
-    I = 0.500
-    alpha = 0.036  # related to the inverse of the air entry suction [L-1], >0
-    n = 1.560  # measure of the pore-size distribution, >1
-
     Ks, KsMap, KsDeriv = Props.Invertible(
         "Saturated hydraulic conductivity",
         default=24.96
+    )
+
+    I, IMap, IDeriv = Props.Invertible(
+        "",
+        default=0.5
+    )
+
+    n, nMap, nDeriv = Props.Invertible(
+        "measure of the pore-size distribution, >1",
+        default=1.56
+    )
+
+    alpha, alphaMap, alphaDeriv = Props.Invertible(
+        "related to the inverse of the air entry suction [L-1], >0",
+        default=0.036
     )
 
     def _get_params(self):
@@ -287,14 +298,19 @@ class Vangenuchten_k(BaseHydraulicConductivity):
 
         P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
         theta_e = 1.0 / ((1.0 + abs(alpha * u) ** n) ** m)
-        f_p = P_p * np.ones(len(u)) * Ks  # identity ensures scalar Ks works
+        f_p = P_p * np.ones(len(u)) * Ks  # ensures scalar Ks works
         f_n = P_n * Ks * theta_e ** I * (
             (1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2
         )
         return f_p + f_n
 
     def derivM(self, u):
-        return self._derivKs(u)
+        return (
+            self._derivKs(u) +
+            self._derivI(u) +
+            self._derivN(u) +
+            self._derivAlpha(u)
+        )
 
     def _derivKs(self, u):
         if self.KsMap is None:
@@ -312,17 +328,26 @@ class Vangenuchten_k(BaseHydraulicConductivity):
     def _derivAlpha(self, u):
         if self.alphaMap is None:
             return Utils.Zero()
-        # dA = I*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n));
+        Ks, alpha, I, n, m = self._get_params()
+        dA = self.alphaDeriv * Utils.sdiag(I*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n)))
+        dA[u >= 0] = 0
+        return dA
 
     def _derivN(self, u):
         if self.nMap is None:
             return Utils.Zero()
-        # dn = 2*Ks*((np.log(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n))/n**2 + ((1.0/n - 1)*(((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/((1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)) - np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))/(n**2*(1.0/n - 1)**2*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))))/(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1) - I*Ks*((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
+        Ks, alpha, I, n, m = self._get_params()
+        dn = self.nDeriv * Utils.sdiag(1.0*I*Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)**2*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*(abs(alpha*u)**n + 1.0)**(1.0 - 1.0/n) - 2*Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n)*(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n))*(1.0 - 1.0/n)*(1.0*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*(abs(alpha*u)**n + 1.0)**(1.0 - 1.0/n)/(1.0 - 1.0/n) - 1.0*np.log(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))/(n**2*(1.0 - 1.0/n)**2))/(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0) + 1.0*np.log(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)/n**2)*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0))
+        dn[u >= 0] = 0
+        return dn
 
     def _derivI(self, u):
-        if self.iMap is None:
+        if self.IMap is None:
             return Utils.Zero()
-        # dI = Ks*np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
+        Ks, alpha, I, n, m = self._get_params()
+        dI = self.IDeriv * Utils.sdiag(Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)**2*np.log(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)))
+        dI[u >= 0] = 0
+        return dI
 
     def derivU(self, u):
         Ks, alpha, I, n, m = self._get_params()

@@ -107,6 +107,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
     hydraulic_conductivity = properties.Property("the mapping")
     water_retention = properties.Property("the mapping")
 
+    # TODO: This can also be a function(time, u_ii)
     boundary_conditions = properties.Array("boundary conditions")
     initial_conditions = properties.Array("initial conditions")
 
@@ -269,8 +270,9 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
     @Utils.timeIt
     def getResidual(self, m, hn, h, dt, bc, return_g=True):
-        """
-            Where h is the proposed value for the next time iterate (h_{n+1})
+        """Used by the root finder when going between timesteps
+
+        Where h is the proposed value for the next time iterate (h_{n+1})
         """
         DIV = self.mesh.faceDiv
         GRAD = self.mesh.cellGrad

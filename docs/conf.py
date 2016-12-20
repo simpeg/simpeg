@@ -291,6 +291,7 @@ def _supress_nonlocal_image_warn(self, msg, node, **kwargs):
 
 supress_nonlocal_image_warn()
 
+# http://stackoverflow.com/questions/11417221/sphinx-autodoc-gives-warning-pyclass-reference-target-not-found-type-warning
 
 nitpick_ignore = [
     ('py:class', 'IdentityMap'),

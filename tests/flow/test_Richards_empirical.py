@@ -93,34 +93,60 @@ class TestModels(unittest.TestCase):
             self.assertTrue(passed, True)
 
     def test_vangenuchten_k(self):
-        mesh = Mesh.TensorMesh([50])
-        expmap = Maps.ExpMap(nP=50)
-        van = Richards.Empirical.Vangenuchten_k(mesh, KsMap=expmap)
 
-        m = np.random.randn(50)
-        van.model = m
+        mesh = Mesh.TensorMesh([2])
+        expmap = Maps.ExpMap(nP=mesh.nC)
+        idnmap = Maps.IdentityMap(nP=mesh.nC)
+
+        hav = Richards.Empirical.Vangenuchten_k(mesh)
+
+        print('Vangenuchten_k test u deriv')
         passed = checkDerivative(
-            lambda u: (van(u), van.derivU(u)),
-            np.random.randn(50),
+            lambda u: (hav(u), hav.derivU(u)),
+            np.random.randn(mesh.nC),
             plotIt=False
         )
         self.assertTrue(passed, True)
 
-        hav = Richards.Empirical.Vangenuchten_k(mesh, KsMap=expmap)
+        seeds = {
+            'Ks': np.random.triangular(
+                np.log(1e-7), np.log(1e-6), np.log(1e-5), mesh.nC
+            ),
+            'I': np.random.rand(mesh.nC),
+            'n': np.random.rand(mesh.nC) + 1,
+            'alpha': np.random.rand(mesh.nC),
+        }
+
+        opts = [
+            ('Ks',
+                dict(KsMap=expmap), 1),
+            ('I',
+                dict(IMap=idnmap), 1),
+            ('n',
+                dict(nMap=idnmap), 1),
+            ('alpha',
+                dict(alphaMap=idnmap), 1),
+        ]
 
         u = np.random.randn(mesh.nC)
 
-        def fun(m):
-            hav.model = m
-            return hav(u), hav.derivM(u)
+        for name, opt, nM in opts:
+            van = Richards.Empirical.Vangenuchten_k(mesh, **opt)
 
-        passed = checkDerivative(
-            fun,
-            np.random.randn(50),
-            plotIt=False
-        )
+            x0 = np.concatenate([seeds[n] for n in name.split('-')])
 
-        self.assertTrue(passed, True)
+            def fun(m):
+                van.model = m
+                return van(u), van.derivM(u)
+
+            print('Vangenuchten_k test m deriv:  ', name)
+
+            passed = checkDerivative(
+                fun,
+                x0,
+                plotIt=False
+            )
+            self.assertTrue(passed, True)
 
 if __name__ == '__main__':
     unittest.main()
