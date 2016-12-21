@@ -38,11 +38,8 @@ class BaseRichardsTest(unittest.TestCase):
         prob.timeSteps = [(40, 3), (60, 3)]
         prob.Solver = Solver
 
-        locs = self.get_rx_locs()
-        times = prob.times[3:5]
-        rxSat = Richards.SaturationRx(locs, times)
-        rxPre = Richards.PressureRx(locs, times)
-        survey = Richards.RichardsSurvey([rxSat, rxPre])
+        rx_list = self.get_rx_list(prob)
+        survey = Richards.RichardsSurvey(rx_list)
 
         prob.pair(survey)
 
@@ -123,8 +120,12 @@ class RichardsTests1D(BaseRichardsTest):
         mesh.setCellGradBC('dirichlet')
         return mesh
 
-    def get_rx_locs(self):
-        return np.r_[5., 10, 15]
+    def get_rx_list(self, prob):
+        locs = np.r_[5., 10, 15]
+        times = prob.times[3:5]
+        rxSat = Richards.SaturationRx(locs, times)
+        rxPre = Richards.PressureRx(locs, times)
+        return [rxSat, rxPre]
 
     def get_conditions(self, mesh):
         bc = np.array([-61.5, -20.7])
@@ -180,8 +181,12 @@ class RichardsTests2D(BaseRichardsTest):
         mesh.setCellGradBC(['neumann', 'dirichlet'])
         return mesh
 
-    def get_rx_locs(self):
-        return Utils.ndgrid(np.array([5, 7.]), np.array([5, 15, 25.]))
+    def get_rx_list(self, prob):
+        locs = Utils.ndgrid(np.array([5, 7.]), np.array([5, 15, 25.]))
+        times = prob.times[3:5]
+        rxSat = Richards.SaturationRx(locs, times)
+        rxPre = Richards.PressureRx(locs, times)
+        return [rxSat, rxPre]
 
     def get_conditions(self, mesh):
         bc = np.array([-61.5, -20.7])
@@ -222,8 +227,12 @@ class RichardsTests3D(BaseRichardsTest):
         mesh.setCellGradBC(['neumann', 'neumann', 'dirichlet'])
         return mesh
 
-    def get_rx_locs(self):
-        return Utils.ndgrid(np.r_[5, 7.], np.r_[5, 15.], np.r_[6, 8.])
+    def get_rx_list(self, prob):
+        locs = Utils.ndgrid(np.r_[5, 7.], np.r_[5, 15.], np.r_[6, 8.])
+        times = prob.times[3:5]
+        rxSat = Richards.SaturationRx(locs, times)
+        rxPre = Richards.PressureRx(locs, times)
+        return [rxSat, rxPre]
 
     def get_conditions(self, mesh):
         bc = np.array([-61.5, -20.7])
