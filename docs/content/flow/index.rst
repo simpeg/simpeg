@@ -46,6 +46,14 @@ Richards Problem
     :members:
     :undoc-members:
 
+Richards Survey
+===============
+
+.. automodule:: SimPEG.FLOW.Richards.RichardsSurvey
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
 
 Vadose Zone Empirical Relationships
 ===================================

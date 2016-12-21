@@ -34,8 +34,6 @@ class RichardsProblem(Problem.BaseTimeProblem):
     boundary_conditions = properties.Array('boundary conditions')
     initial_conditions = properties.Array('initial conditions')
 
-    surveyPair = RichardsSurvey
-
     debug = properties.Bool('Show all messages', default=False)
 
     Solver = properties.Property('Numerical Solver', default=lambda: Solver)
