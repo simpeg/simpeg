@@ -15,7 +15,7 @@ np.random.seed(2)
 
 class TestModels(unittest.TestCase):
 
-    def test_haverkamp_theta(self):
+    def test_haverkamp_theta_u(self):
         mesh = Mesh.TensorMesh([50])
         hav = Richards.Empirical.Haverkamp_theta(mesh)
         passed = checkDerivative(
@@ -25,7 +25,49 @@ class TestModels(unittest.TestCase):
         )
         self.assertTrue(passed, True)
 
-    def test_vangenuchten_theta(self):
+    def test_haverkamp_theta_m(self):
+        mesh = Mesh.TensorMesh([50])
+        idnmap = Maps.IdentityMap(nP=mesh.nC)
+
+        seeds = {
+            'theta_r': np.random.rand(mesh.nC),
+            'theta_s': np.random.rand(mesh.nC),
+            'alpha': np.random.rand(mesh.nC),
+            'beta': np.random.rand(mesh.nC),
+        }
+
+        opts = [
+            ('theta_r',
+                dict(theta_rMap=idnmap), 1),
+            ('theta_s',
+                dict(theta_sMap=idnmap), 1),
+            ('alpha',
+                dict(alphaMap=idnmap), 1),
+            ('beta',
+                dict(betaMap=idnmap), 1),
+        ]
+
+        u = np.random.randn(mesh.nC)
+
+        for name, opt, nM in opts:
+            van = Richards.Empirical.Haverkamp_theta(mesh, **opt)
+
+            x0 = np.concatenate([seeds[n] for n in name.split('-')])
+
+            def fun(m):
+                van.model = m
+                return van(u), van.derivM(u)
+
+            print('Haverkamp_theta test m deriv:  ', name)
+
+            passed = checkDerivative(
+                fun,
+                x0,
+                plotIt=False
+            )
+            self.assertTrue(passed, True)
+
+    def test_vangenuchten_theta_u(self):
         mesh = Mesh.TensorMesh([50])
         van = Richards.Empirical.Vangenuchten_theta(mesh)
         passed = checkDerivative(
@@ -35,6 +77,8 @@ class TestModels(unittest.TestCase):
         )
         self.assertTrue(passed, True)
 
+    def test_vangenuchten_theta_m(self):
+        mesh = Mesh.TensorMesh([50])
         idnmap = Maps.IdentityMap(nP=mesh.nC)
 
         seeds = {
@@ -75,17 +119,11 @@ class TestModels(unittest.TestCase):
             )
             self.assertTrue(passed, True)
 
-    def test_haverkamp_k(self):
+    def test_haverkamp_k_u(self):
 
         mesh = Mesh.TensorMesh([5])
-        wires2 = Maps.Wires(('one', mesh.nC), ('two', mesh.nC))
-        wires3 = Maps.Wires(
-            ('one', mesh.nC), ('two', mesh.nC), ('three', mesh.nC)
-        )
-        expmap = Maps.IdentityMap(nP=mesh.nC)
 
         hav = Richards.Empirical.Haverkamp_k(mesh)
-
         print('Haverkamp_k test u deriv')
         passed = checkDerivative(
             lambda u: (hav(u), hav.derivU(u)),
@@ -93,6 +131,15 @@ class TestModels(unittest.TestCase):
             plotIt=False
         )
         self.assertTrue(passed, True)
+
+    def test_haverkamp_k_m(self):
+
+        mesh = Mesh.TensorMesh([5])
+        expmap = Maps.IdentityMap(nP=mesh.nC)
+        wires2 = Maps.Wires(('one', mesh.nC), ('two', mesh.nC))
+        wires3 = Maps.Wires(
+            ('one', mesh.nC), ('two', mesh.nC), ('three', mesh.nC)
+        )
 
         opts = [
             ('Ks',
@@ -132,21 +179,24 @@ class TestModels(unittest.TestCase):
             )
             self.assertTrue(passed, True)
 
-    def test_vangenuchten_k(self):
+    def test_vangenuchten_k_u(self):
+        mesh = Mesh.TensorMesh([50])
 
-        mesh = Mesh.TensorMesh([2])
-        expmap = Maps.ExpMap(nP=mesh.nC)
-        idnmap = Maps.IdentityMap(nP=mesh.nC)
-
-        hav = Richards.Empirical.Vangenuchten_k(mesh)
+        van = Richards.Empirical.Vangenuchten_k(mesh)
 
         print('Vangenuchten_k test u deriv')
         passed = checkDerivative(
-            lambda u: (hav(u), hav.derivU(u)),
+            lambda u: (van(u), van.derivU(u)),
             np.random.randn(mesh.nC),
             plotIt=False
         )
         self.assertTrue(passed, True)
+
+    def test_vangenuchten_k_m(self):
+        mesh = Mesh.TensorMesh([50])
+
+        expmap = Maps.ExpMap(nP=mesh.nC)
+        idnmap = Maps.IdentityMap(nP=mesh.nC)
 
         seeds = {
             'Ks': np.random.triangular(

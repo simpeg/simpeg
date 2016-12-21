@@ -86,32 +86,117 @@ class BaseHydraulicConductivity(NonLinearModel):
 
 class Haverkamp_theta(BaseWaterRetention):
 
-    theta_r = 0.075
-    theta_s = 0.287
-    alpha = 1.611e+06
-    beta = 3.96
+    theta_r, theta_rMap, theta_rDeriv = Props.Invertible(
+        "residual water content [L3L-3]",
+        default=0.075
+    )
+
+    theta_s, theta_sMap, theta_sDeriv = Props.Invertible(
+        "saturated water content [L3L-3]",
+        default=0.287
+    )
+
+    alpha, alphaMap, alphaDeriv = Props.Invertible(
+        "",
+        default=1.611e+06
+    )
+
+    beta, betaMap, betaDeriv = Props.Invertible(
+        "",
+        default=3.96
+    )
+
+    def _get_params(self):
+        return self.theta_r, self.theta_s, self.alpha, self.beta
 
     def __call__(self, u):
+        theta_r, theta_s, alpha, beta = self._get_params()
+
         f = (
-            self.alpha *
-            (self.theta_s - self.theta_r) /
-            (self.alpha + abs(u)**self.beta) +
-            self.theta_r
+            alpha *
+            (theta_s - theta_r) /
+            (alpha + abs(u)**beta) +
+            theta_r
         )
 
-        if Utils.isScalar(self.theta_s):
-            f[u >= 0] = self.theta_s
+        if Utils.isScalar(theta_s):
+            f[u >= 0] = theta_s
         else:
-            f[u >= 0] = self.theta_s[u >= 0]
+            f[u >= 0] = theta_s[u >= 0]
         return f
 
+    def derivM(self, u):
+        """derivative with respect to m
+
+        .. code::
+
+            import sympy as sy
+
+            alpha, u, beta, theta_r, theta_s = sy.symbols(
+                'alpha u beta theta_r theta_s', real=True
+            )
+
+            f_n = (
+                alpha *
+                (theta_s - theta_r) /
+                (alpha + abs(u)**beta) +
+                theta_r
+            )
+        """
+        return (
+            self._derivTheta_r(u) +
+            self._derivTheta_s(u) +
+            self._derivAlpha(u) +
+            self._derivBeta(u)
+        )
+
+    def _derivTheta_r(self, u):
+        if self.theta_rMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, beta = self._get_params()
+        ddm = -alpha/(alpha + abs(u)**beta) + 1
+        ddm[u >= 0] = 0
+        dT = Utils.sdiag(ddm) * self.theta_rDeriv
+        return dT
+
+    def _derivTheta_s(self, u):
+        if self.theta_sMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, beta = self._get_params()
+        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
+        dT_p = P_p * self.theta_sDeriv
+        dT_n = P_n * Utils.sdiag(
+            alpha/(alpha + abs(u)**beta)
+        ) * self.theta_sDeriv
+        return dT_p + dT_n
+
+    def _derivAlpha(self, u):
+        if self.alphaMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, beta = self._get_params()
+        ddm = -alpha*(-theta_r + theta_s)/(alpha + abs(u)**beta)**2 + (-theta_r + theta_s)/(alpha + abs(u)**beta)
+        ddm[u >= 0] = 0
+        dA = Utils.sdiag(ddm) * self.alphaDeriv
+        return dA
+
+    def _derivBeta(self, u):
+        if self.betaMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, beta = self._get_params()
+        ddm = -alpha*(-theta_r + theta_s)*np.log(abs(u))*abs(u)**beta/(alpha + abs(u)**beta)**2
+        ddm[u >= 0] = 0
+        dN = Utils.sdiag(ddm) * self.betaDeriv
+        return dN
+
     def derivU(self, u):
+        theta_r, theta_s, alpha, beta = self._get_params()
+
         g = (
-            self.alpha * (
-                (self.theta_s - self.theta_r) /
-                (self.alpha + abs(u)**self.beta)**2
+            alpha * (
+                (theta_s - theta_r) /
+                (alpha + abs(u)**beta)**2
             ) *
-            (-self.beta * abs(u)**(self.beta-1) * np.sign(u))
+            (-beta * abs(u)**(beta-1) * np.sign(u))
         )
         g[u >= 0] = 0
         g = Utils.sdiag(g)
