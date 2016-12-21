@@ -331,13 +331,23 @@ class HasModel(BaseSimPEG):
         """True if a model is necessary"""
         return len(self._act_map_names) > 0
 
+    @property
+    def _has_nested_models(self):
+        for k in self._props:
+            if (
+                    isinstance(self._props[k], properties.Instance) and
+                    issubclass(self._props[k].instance_class, HasModel)
+               ):
+                return True
+        return False
+
     @properties.validator('model')
-    def _check_model_length(self, change):
+    def _check_model_valid(self, change):
         """Checks the model length and necessity"""
         if change['value'] is properties.utils.undefined:
             return True
 
-        if len(self._act_map_names) == 0:
+        if not self.needs_model and not self._has_nested_models:
             warnings.warn(
                 "Cannot add model as there are no active mappings"
                 ", choose from: ['{}']".format(

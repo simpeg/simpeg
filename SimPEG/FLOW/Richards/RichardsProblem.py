@@ -1,4 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import numpy as np
 import scipy.sparse as sp
@@ -10,46 +13,70 @@ from SimPEG import Problem
 from SimPEG import Optimization
 from SimPEG import Solver
 
-from RichardsSurvey import RichardsSurvey
+from SimPEG.FLOW.Richards.RichardsSurvey import RichardsSurvey
+from SimPEG.FLOW.Richards.Empirical import BaseHydraulicConductivity
+from SimPEG.FLOW.Richards.Empirical import BaseWaterRetention
 
 
 class RichardsProblem(Problem.BaseTimeProblem):
     """RichardsProblem"""
 
-    hydraulic_conductivity = properties.Property("the mapping")
-    water_retention = properties.Property("the mapping")
+    hydraulic_conductivity = properties.Instance(
+        'hydraulic conductivity function',
+        BaseHydraulicConductivity
+    )
+    water_retention = properties.Instance(
+        'water retention curve',
+        BaseWaterRetention
+    )
 
     # TODO: This can also be a function(time, u_ii)
-    boundary_conditions = properties.Array("boundary conditions")
-    initial_conditions = properties.Array("initial conditions")
+    boundary_conditions = properties.Array('boundary conditions')
+    initial_conditions = properties.Array('initial conditions')
 
     surveyPair = RichardsSurvey
 
-    debug = properties.Bool("Show all messages", default=False)
+    debug = properties.Bool('Show all messages', default=False)
 
-    Solver = properties.Property("Numerical Solver", default=lambda: Solver)
+    Solver = properties.Property('Numerical Solver', default=lambda: Solver)
     solverOpts = {}
 
     method = properties.StringChoice(
-        "Formulation used, See notes in Celia et al., 1990",
+        'Formulation used, See notes in Celia et al., 1990',
         default='mixed',
         choices=['mixed', 'head']
     )
 
     do_newton = properties.Bool(
-        "Do a Newton iteration vs. a Picard iteration",
+        'Do a Newton iteration vs. a Picard iteration',
         default=False
     )
 
     root_finder_max_iter = properties.Integer(
-        "Maximum iterations for root_finder iteration",
+        'Maximum iterations for root_finder iteration',
         default=30
     )
 
     root_finder_tol = properties.Float(
-        "tolerance of the root_finder",
+        'tolerance of the root_finder',
         default=1e-4
     )
+
+    @properties.observer('model')
+    def _on_model_change(self, change):
+        """Update the nested model functions when the
+        model of the problem changes.
+
+        Specifically :code:`hydraulic_conductivity` and
+        :code:`water_retention` models are updated iff they have mappings.
+        """
+        model = change['value']
+
+        if self.hydraulic_conductivity.needs_model:
+            self.hydraulic_conductivity.model = model
+
+        if self.water_retention.needs_model:
+            self.water_retention.model = model
 
     def getBoundaryConditions(self, ii, u_ii):
         if type(self.boundary_conditions) is np.ndarray:
@@ -98,8 +125,8 @@ class RichardsProblem(Problem.BaseTimeProblem):
             )
             if self.debug:
                 print(
-                    "Solving Fields ({0:4d}/{1:d} - {2:3.1f}% Done) {3:d} "
-                    "Iterations, {4:4.2f} seconds".format(
+                    'Solving Fields ({0:4d}/{1:d} - {2:3.1f}% Done) {3:d} '
+                    'Iterations, {4:4.2f} seconds'.format(
                         ii+1,
                         self.nT,
                         100.0*(ii+1)/self.nT,
@@ -140,15 +167,13 @@ class RichardsProblem(Problem.BaseTimeProblem):
             |                         Asub    Adiag  | | hn |   | bn |
             '-                                      -' '-  -'   '-  -'
         """
+        self.model = m
 
         DIV = self.mesh.faceDiv
         GRAD = self.mesh.cellGrad
         BC = self.mesh.cellGradBC
         AV = self.mesh.aveF2CC.T
         Dz = self.Dz
-
-        self.water_retention.model = m
-        self.hydraulic_conductivity.model = m
 
         dT = self.water_retention.derivU(hn)
         dT1 = self.water_retention.derivU(hn1)
@@ -192,14 +217,13 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
         Where h is the proposed value for the next time iterate (h_{n+1})
         """
+        self.model = m
+
         DIV = self.mesh.faceDiv
         GRAD = self.mesh.cellGrad
         BC = self.mesh.cellGradBC
         AV = self.mesh.aveF2CC.T
         Dz = self.Dz
-
-        self.water_retention.model = m
-        self.hydraulic_conductivity.model = m
 
         T = self.water_retention(h)
         dT = self.water_retention.derivU(h)

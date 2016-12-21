@@ -17,7 +17,7 @@ Installing Python
 
 Python is available on all major operating systems, but if you are getting started with python
 it is best to use a package manager such as
-`Continuum Anaconda <https://store.continuum.io/cshop/anaconda/>`_ or
+`Continuum Anaconda <https://www.continuum.io/downloads>`_ or
 `Enthought Canopy <https://www.enthought.com/products/canopy/>`_.
 You can download the package manager and use it to install the dependencies above.
 
@@ -71,7 +71,7 @@ Python for scientific computing
 Numpy and Matlab
 ----------------
 
-* `NumPy for Matlab Users <http://docs.scipy.org/doc/numpy-dev/user/numpy-for-matlab-users.html>`_
+* `NumPy for Matlab Users <https://docs.scipy.org/doc/numpy-dev/user/numpy-for-matlab-users.html>`_
 * `Python vs Matlab <https://sites.google.com/site/pythonforscientists/python-vs-matlab>`_
 
 Lessons in Python
