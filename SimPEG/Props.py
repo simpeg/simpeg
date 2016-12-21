@@ -327,7 +327,7 @@ class HasModel(BaseSimPEG):
         ])
 
     @property
-    def _needs_model(self):
+    def needs_model(self):
         """True if a model is necessary"""
         return len(self._act_map_names) > 0
 
@@ -377,9 +377,9 @@ class HasModel(BaseSimPEG):
         errors = []
 
         # Check if the model is necessary
-        if self._needs_model and self.model is None:
+        if self.needs_model and self.model is None:
             errors += ['model must not be None']
-        if not self._needs_model and self.model is not None:
+        if not self.needs_model and self.model is not None:
             errors += ['there are no active maps, but a model is provided']
 
         # Check each map is the same size

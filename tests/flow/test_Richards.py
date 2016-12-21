@@ -167,10 +167,9 @@ class RichardsTests1D_Saturation(RichardsTests1D):
     def get_rx_list(self, prob):
         locs = np.r_[5., 10, 15]
         times = prob.times[3:5]
-        # rxSat = Richards.SaturationRx(locs, times)
-        rxPre1 = Richards.PressureRx(locs, times)
-        rxPre2 = Richards.PressureRx(locs, times)
-        return [rxPre1, rxPre2]
+        rxSat = Richards.SaturationRx(locs, times)
+        rxPre = Richards.PressureRx(locs, times)
+        return [rxSat, rxPre]
 
     def test_adjoint(self):
         self._dotest_adjoint()
@@ -185,12 +184,15 @@ class RichardsTests1D_Saturation(RichardsTests1D):
 class RichardsTests1D_Multi(RichardsTests1D):
 
     def setup_maps(self, mesh, k_fun, theta_fun):
-        wires = Maps.Wires(('Ks', mesh.nC), ('A', mesh.nC))
+        wires = Maps.Wires(
+            ('Ks', mesh.nC), ('A', mesh.nC), ('theta_s', mesh.nC)
+        )
         k_fun.KsMap = Maps.ExpMap(nP=mesh.nC) * wires.Ks
         k_fun.AMap = wires.A
+        k_fun.theta_sMap = wires.theta_s
 
     def setup_model(self):
-        self.mtrue = np.r_[np.log(self.Ks), self.A]
+        self.mtrue = np.r_[np.log(self.Ks), self.A, self.theta_s]
 
     def test_adjoint(self):
         self._dotest_adjoint()

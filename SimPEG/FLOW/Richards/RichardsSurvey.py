@@ -20,32 +20,48 @@ class PressureRx(BaseRichardsRx):
     """Richards Receiver Object"""
 
     def __call__(self, U, m, prob):
-        u = np.concatenate(U)
-        return self.getP(prob.mesh, prob.timeMesh) * u
-
-    def deriv(self, U, m, prob):
         P = self.getP(prob.mesh, prob.timeMesh)
-        return P
+        u = np.concatenate(U)
+        return P * u
+
+    def deriv(self, U, m, prob, du_dm_v=None, v=None, adjoint=False):
+        P = self.getP(prob.mesh, prob.timeMesh)
+        if not adjoint:
+            return P * du_dm_v  # + 0 for dRx_dm contribution
+        assert v is not None, 'v must be provided if computing adjoint'
+        return P.T * v, Utils.Zero()
 
 
 class SaturationRx(BaseRichardsRx):
     """Richards Receiver Object"""
 
     def __call__(self, U, m, prob):
-        prob.water_retention.model = m
-        u = np.concatenate([prob.water_retention(ui) for ui in U])
-        return self.getP(prob.mesh, prob.timeMesh) * u
+        # The water retention curve model should have been updated in the prob
+        P = self.getP(prob.mesh, prob.timeMesh)
+        usat = np.concatenate([prob.water_retention(ui) for ui in U])
+        return P * usat
 
-    def deriv(self, U, m, prob):
-
-        prob.water_retention.model = m
+    def deriv(self, U, m, prob, du_dm_v=None, v=None, adjoint=False):
+        # The water retention curve model should have been updated in the prob
 
         P = self.getP(prob.mesh, prob.timeMesh)
-        # TODO: if m is a parameter in the theta
-        #       distribution, we may need to do
-        #       some more chain rule here.
-        dT = sp.block_diag([prob.water_retention.derivU(ui) for ui in U])
-        return P*dT
+        dT_du = sp.block_diag([prob.water_retention.derivU(ui) for ui in U])
+
+        if prob.water_retention.needs_model:
+            dT_dm = sp.vstack([prob.water_retention.derivM(ui) for ui in U])
+        else:
+            dT_dm = Utils.Zero()
+
+        if v is None and not adjoint:
+            # this is called by the fullJ in the problem
+            return P * (dT_du * du_dm_v) + P * dT_dm
+        if not adjoint:
+            return P * (dT_du * du_dm_v) + P * (dT_dm * v)
+
+        # for the adjoint return both parts of the sum separately
+        assert v is not None, 'v must be provided if computing adjoint'
+        PTv = P.T * v
+        return dT_du.T * PTv, dT_dm.T * PTv
 
 
 class RichardsSurvey(Survey.BaseSurvey):
@@ -88,11 +104,23 @@ class RichardsSurvey(Survey.BaseSurvey):
         return np.concatenate(Ds)
 
     @Utils.requires('prob')
-    def deriv(self, U, m):
-        """The Derivative with respect to the fields."""
-        Ds = list(range(len(self.rxList)))
+    def deriv(self, U, m, du_dm_v=None, v=None):
+        """The Derivative with respect to the model."""
+        dd_dm = [
+            rx.deriv(U, m, self.prob, du_dm_v=du_dm_v, v=v, adjoint=False)
+            for rx in self.rxList
+        ]
+        return np.concatenate(dd_dm)
 
+    @Utils.requires('prob')
+    def derivAdjoint(self, U, m, v=None):
+        """The adjoint derivative with respect to the model."""
+        dd_du = range(len(self.rxList))
+        dd_dm = range(len(self.rxList))
+        cnt = 0
         for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx.deriv(U, m, self.prob)
-
-        return sp.vstack(Ds)
+            dd_du[ii], dd_dm[ii] = rx.deriv(
+                U, m, self.prob, v=v[cnt:cnt + rx.nD], adjoint=True
+            )
+            cnt += rx.nD
+        return np.sum(dd_du, axis=0), np.sum(dd_dm, axis=0)

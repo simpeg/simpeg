@@ -250,11 +250,10 @@ class RichardsProblem(Problem.BaseTimeProblem):
         B = np.array(sp.vstack(Bs).todense())
 
         Ainv = self.Solver(A, **self.solverOpts)
-        P = self.survey.deriv(f, m)
         AinvB = Ainv * B
         z = np.zeros((self.mesh.nC, B.shape[1]))
-        zAinvB = np.vstack((z, AinvB))
-        J = P * zAinvB
+        du_dm = np.vstack((z, AinvB))
+        J = self.survey.deriv(f, m, du_dm_v=du_dm)  # not multiplied by v
         return J
 
     @Utils.timeIt
@@ -280,16 +279,16 @@ class RichardsProblem(Problem.BaseTimeProblem):
             Adiaginv = self.Solver(Adiag, **self.solverOpts)
             JvC[ii] = Adiaginv * (B*v - Asub*JvC[ii-1])
 
-        P = self.survey.deriv(f, m)
-        return P * np.concatenate([np.zeros(self.mesh.nC)] + JvC)
+        du_dm_v = np.concatenate([np.zeros(self.mesh.nC)] + JvC)
+        Jv = self.survey.deriv(f, m, du_dm_v=du_dm_v, v=v)
+        return Jv
 
     @Utils.timeIt
     def Jtvec(self, m, v, f=None):
         if f is None:
             f = self.field(m)
 
-        P = self.survey.deriv(f, m)
-        PTv = P.T*v
+        PTv, PTdv = self.survey.derivAdjoint(f, m, v=v)
 
         # This is done via backward substitution.
         minus = 0
@@ -306,4 +305,4 @@ class RichardsProblem(Problem.BaseTimeProblem):
             minus = Asub.T*JTvC  # this is now the super diagonal.
             BJtv = BJtv + B.T*JTvC
 
-        return BJtv
+        return BJtv + PTdv
