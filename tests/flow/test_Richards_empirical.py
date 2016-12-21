@@ -1,7 +1,6 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-import properties
 from SimPEG import Mesh
 from SimPEG import Maps
 from SimPEG.Tests import checkDerivative

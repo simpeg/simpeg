@@ -463,7 +463,6 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         )
         return f_p + f_n
 
-
     def derivM(self, u):
         """derivative with respect to m
 
@@ -471,7 +470,9 @@ class Vangenuchten_k(BaseHydraulicConductivity):
 
             import sympy as sy
 
-            alpha, u, n, I, Ks, theta_r, theta_s = sy.symbols('alpha u n I Ks theta_r theta_s', real=True)
+            alpha, u, n, I, Ks, theta_r, theta_s = sy.symbols(
+                'alpha u n I Ks theta_r theta_s', real=True
+            )
 
             m = 1.0 - 1.0/n
             theta_e = 1.0 / ((1.0 + sy.functions.Abs(alpha * u) ** n) ** m)
