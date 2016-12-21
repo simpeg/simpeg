@@ -40,8 +40,8 @@ class BaseRichardsTest(unittest.TestCase):
 
         locs = self.get_rx_locs()
         times = prob.times[3:5]
-        rxSat = Richards.RichardsRx(locs, times, 'saturation')
-        rxPre = Richards.RichardsRx(locs, times, 'pressureHead')
+        rxSat = Richards.SaturationRx(locs, times)
+        rxPre = Richards.PressureRx(locs, times)
         survey = Richards.RichardsSurvey([rxSat, rxPre])
 
         prob.pair(survey)

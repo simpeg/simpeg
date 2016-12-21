@@ -12,35 +12,45 @@ from SimPEG import Optimization
 from SimPEG import Solver
 
 
-class RichardsRx(Survey.BaseTimeRx):
+class BaseRichardsRx(Survey.BaseTimeRx):
     """Richards Receiver Object"""
 
-    knownRxTypes = ['saturation', 'pressureHead']
+    def __init__(self, locs, times):
+        self.locs = locs
+        self.times = times
+        self._Ps = {}
 
-    def __call__(self, U, m, water_retention, mesh, timeMesh):
 
-        water_retention.model = m
+class PressureRx(BaseRichardsRx):
+    """Richards Receiver Object"""
 
-        if self.rxType == 'pressureHead':
-            u = np.concatenate(U)
-        elif self.rxType == 'saturation':
-            u = np.concatenate([water_retention(ui) for ui in U])
+    def __call__(self, U, m, prob):
+        u = np.concatenate(U)
+        return self.getP(prob.mesh, prob.timeMesh) * u
 
-        return self.getP(mesh, timeMesh) * u
+    def deriv(self, U, m, prob):
+        P = self.getP(prob.mesh, prob.timeMesh)
+        return P
 
-    def deriv(self, U, m, water_retention, mesh, timeMesh):
 
-        water_retention.model = m
+class SaturationRx(BaseRichardsRx):
+    """Richards Receiver Object"""
 
-        P = self.getP(mesh, timeMesh)
-        if self.rxType == 'pressureHead':
-            return P
-        elif self.rxType == 'saturation':
-            # TODO: if m is a parameter in the theta
-            #       distribution, we may need to do
-            #       some more chain rule here.
-            dT = sp.block_diag([water_retention.derivU(ui) for ui in U])
-            return P*dT
+    def __call__(self, U, m, prob):
+        prob.water_retention.model = m
+        u = np.concatenate([prob.water_retention(ui) for ui in U])
+        return self.getP(prob.mesh, prob.timeMesh) * u
+
+    def deriv(self, U, m, prob):
+
+        prob.water_retention.model = m
+
+        P = self.getP(prob.mesh, prob.timeMesh)
+        # TODO: if m is a parameter in the theta
+        #       distribution, we may need to do
+        #       some more chain rule here.
+        dT = sp.block_diag([prob.water_retention.derivU(ui) for ui in U])
+        return P*dT
 
 
 class RichardsSurvey(Survey.BaseSurvey):
@@ -76,13 +86,9 @@ class RichardsSurvey(Survey.BaseSurvey):
     @Utils.requires('prob')
     def __call__(self, U, m):
         Ds = list(range(len(self.rxList)))
+
         for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx(
-                U, m,
-                self.prob.water_retention,
-                self.prob.mesh,
-                self.prob.timeMesh
-            )
+            Ds[ii] = rx(U, m, self.prob)
 
         return np.concatenate(Ds)
 
@@ -90,13 +96,9 @@ class RichardsSurvey(Survey.BaseSurvey):
     def deriv(self, U, m):
         """The Derivative with respect to the fields."""
         Ds = list(range(len(self.rxList)))
+
         for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx.deriv(
-                U, m,
-                self.prob.water_retention,
-                self.prob.mesh,
-                self.prob.timeMesh
-            )
+            Ds[ii] = rx.deriv(U, m, self.prob)
 
         return sp.vstack(Ds)
 
