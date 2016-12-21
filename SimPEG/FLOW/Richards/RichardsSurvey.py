@@ -118,8 +118,8 @@ class RichardsSurvey(Survey.BaseSurvey):
     @Utils.requires('prob')
     def derivAdjoint(self, U, m, v=None):
         """The adjoint derivative with respect to the model."""
-        dd_du = range(len(self.rxList))
-        dd_dm = range(len(self.rxList))
+        dd_du = list(range(len(self.rxList)))
+        dd_dm = list(range(len(self.rxList)))
         cnt = 0
         for ii, rx in enumerate(self.rxList):
             dd_du[ii], dd_dm[ii] = rx.deriv(
