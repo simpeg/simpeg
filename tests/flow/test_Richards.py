@@ -47,6 +47,7 @@ class BaseRichardsTest(unittest.TestCase):
         self.mesh = mesh
         self.Ks = params['Ks'] * np.ones(self.mesh.nC)
         self.A = params['A'] * np.ones(self.mesh.nC)
+        self.theta_s = params['theta_s'] * np.ones(self.mesh.nC)
         self.prob = prob
         self.survey = survey
         self.setup_model()
@@ -143,6 +144,33 @@ class RichardsTests1D(BaseRichardsTest):
 
     def test_Richards_getResidual_Picard(self):
         self._dotest_getResidual(False)
+
+    def test_adjoint(self):
+        self._dotest_adjoint()
+
+    def test_sensitivity(self):
+        self._dotest_sensitivity()
+
+    def test_sensitivity_full(self):
+        self._dotest_sensitivity_full()
+
+
+class RichardsTests1D_Saturation(RichardsTests1D):
+
+    def setup_maps(self, mesh, k_fun, theta_fun):
+        theta_fun.theta_sMap = Maps.IdentityMap(nP=mesh.nC)
+
+    def setup_model(self):
+        self.prob.hydraulic_conductivity.Ks = self.Ks
+        self.mtrue = self.theta_s
+
+    def get_rx_list(self, prob):
+        locs = np.r_[5., 10, 15]
+        times = prob.times[3:5]
+        # rxSat = Richards.SaturationRx(locs, times)
+        rxPre1 = Richards.PressureRx(locs, times)
+        rxPre2 = Richards.PressureRx(locs, times)
+        return [rxPre1, rxPre2]
 
     def test_adjoint(self):
         self._dotest_adjoint()

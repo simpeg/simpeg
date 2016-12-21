@@ -242,6 +242,8 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
         dT = self.water_retention.derivU(hn)
         dT1 = self.water_retention.derivU(hn1)
+        dTm = self.water_retention.derivM(hn)
+        dTm1 = self.water_retention.derivM(hn1)
 
         K1 = self.hydraulic_conductivity(hn1)
         dK1 = self.hydraulic_conductivity.derivU(hn1)
@@ -266,7 +268,11 @@ class RichardsProblem(Problem.BaseTimeProblem):
             Dz*diagAVk2_AVdiagK2*dK1
         )
 
-        B = DdiagGh1*diagAVk2_AVdiagK2*dKm1 + Dz*diagAVk2_AVdiagK2*dKm1
+        B = (
+            DdiagGh1*diagAVk2_AVdiagK2*dKm1 +
+            Dz*diagAVk2_AVdiagK2*dKm1 +
+            (1.0/dt)*(dTm - dTm1)
+        )
 
         return Asub, Adiag, B
 
