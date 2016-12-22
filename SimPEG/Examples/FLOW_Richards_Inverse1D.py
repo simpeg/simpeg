@@ -88,7 +88,7 @@ def run(plotIt=True):
     survey.makeSyntheticData(mtrue, std=stdev, f=Hs, force=True)
 
     # Setup a pretty standard inversion
-    reg = Regularization.Tikhonov(M, alpha_s=1e-2)
+    reg = Regularization.Tikhonov(M, alpha_s=1e-1)
     dmis = DataMisfit.l2_DataMisfit(survey)
     opt = Optimization.InexactGaussNewton(maxIter=20, maxIterCG=10)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)

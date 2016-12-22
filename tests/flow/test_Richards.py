@@ -189,7 +189,7 @@ class RichardsTests1D_Multi(RichardsTests1D):
         )
         k_fun.KsMap = Maps.ExpMap(nP=mesh.nC) * wires.Ks
         k_fun.AMap = wires.A
-        k_fun.theta_sMap = wires.theta_s
+        theta_fun.theta_sMap = wires.theta_s
 
     def setup_model(self):
         self.mtrue = np.r_[np.log(self.Ks), self.A, self.theta_s]
