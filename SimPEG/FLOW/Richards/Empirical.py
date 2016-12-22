@@ -511,9 +511,9 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
         theta_e = 1.0 / ((1.0 + abs(alpha * u) ** n) ** m)
         dKs_dm_p = P_p * self.KsDeriv
-        dKs_dm_n = P_n * self.KsDeriv * Utils.sdiag(
+        dKs_dm_n = P_n * Utils.sdiag(
             theta_e ** I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
-        )
+        ) * self.KsDeriv
         return dKs_dm_p + dKs_dm_n
 
     def _derivAlpha(self, u):
@@ -522,7 +522,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         Ks, alpha, I, n, m = self._get_params()
         ddm = I*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))
         ddm[u >= 0] = 0
-        dA = self.alphaDeriv * Utils.sdiag(ddm)
+        dA = Utils.sdiag(ddm) * self.alphaDeriv
         return dA
 
     def _derivN(self, u):
@@ -531,7 +531,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         Ks, alpha, I, n, m = self._get_params()
         ddm = 1.0*I*Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)**2*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*(abs(alpha*u)**n + 1.0)**(1.0 - 1.0/n) - 2*Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n)*(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n))*(1.0 - 1.0/n)*(1.0*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*(abs(alpha*u)**n + 1.0)**(1.0 - 1.0/n)/(1.0 - 1.0/n) - 1.0*np.log(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))/(n**2*(1.0 - 1.0/n)**2))/(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0) + 1.0*np.log(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)/n**2)*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)
         ddm[u >= 0] = 0
-        dn = self.nDeriv * Utils.sdiag(ddm)
+        dn = Utils.sdiag(ddm) * self.nDeriv
         return dn
 
     def _derivI(self, u):
@@ -540,7 +540,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         Ks, alpha, I, n, m = self._get_params()
         ddm = Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)**2*np.log(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))
         ddm[u >= 0] = 0
-        dI = self.IDeriv * Utils.sdiag(ddm)
+        dI = Utils.sdiag(ddm) * self.IDeriv
         return dI
 
     def derivU(self, u):
