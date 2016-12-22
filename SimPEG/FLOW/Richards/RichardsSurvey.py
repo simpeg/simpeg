@@ -22,12 +22,12 @@ class BaseRichardsRx(Survey.BaseTimeRx):
 class PressureRx(BaseRichardsRx):
     """Richards Receiver Object"""
 
-    def __call__(self, U, m, prob):
+    def __call__(self, U, prob):
         P = self.getP(prob.mesh, prob.timeMesh)
         u = np.concatenate(U)
         return P * u
 
-    def deriv(self, U, m, prob, du_dm_v=None, v=None, adjoint=False):
+    def deriv(self, U, prob, du_dm_v=None, v=None, adjoint=False):
         P = self.getP(prob.mesh, prob.timeMesh)
         if not adjoint:
             return P * du_dm_v  # + 0 for dRx_dm contribution
@@ -38,13 +38,13 @@ class PressureRx(BaseRichardsRx):
 class SaturationRx(BaseRichardsRx):
     """Richards Receiver Object"""
 
-    def __call__(self, U, m, prob):
+    def __call__(self, U, prob):
         # The water retention curve model should have been updated in the prob
         P = self.getP(prob.mesh, prob.timeMesh)
         usat = np.concatenate([prob.water_retention(ui) for ui in U])
         return P * usat
 
-    def deriv(self, U, m, prob, du_dm_v=None, v=None, adjoint=False):
+    def deriv(self, U, prob, du_dm_v=None, v=None, adjoint=False):
         # The water retention curve model should have been updated in the prob
 
         P = self.getP(prob.mesh, prob.timeMesh)
@@ -95,35 +95,35 @@ class RichardsSurvey(Survey.BaseSurvey):
         if f is None:
             f = self.prob.fields(m)
 
-        return Utils.mkvc(self(f, m))
+        return Utils.mkvc(self(f))
 
     @Utils.requires('prob')
-    def __call__(self, U, m):
+    def __call__(self, U):
         Ds = list(range(len(self.rxList)))
 
         for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx(U, m, self.prob)
+            Ds[ii] = rx(U, self.prob)
 
         return np.concatenate(Ds)
 
     @Utils.requires('prob')
-    def deriv(self, U, m, du_dm_v=None, v=None):
+    def deriv(self, U, du_dm_v=None, v=None):
         """The Derivative with respect to the model."""
         dd_dm = [
-            rx.deriv(U, m, self.prob, du_dm_v=du_dm_v, v=v, adjoint=False)
+            rx.deriv(U, self.prob, du_dm_v=du_dm_v, v=v, adjoint=False)
             for rx in self.rxList
         ]
         return np.concatenate(dd_dm)
 
     @Utils.requires('prob')
-    def derivAdjoint(self, U, m, v=None):
+    def derivAdjoint(self, U, v=None):
         """The adjoint derivative with respect to the model."""
         dd_du = list(range(len(self.rxList)))
         dd_dm = list(range(len(self.rxList)))
         cnt = 0
         for ii, rx in enumerate(self.rxList):
             dd_du[ii], dd_dm[ii] = rx.deriv(
-                U, m, self.prob, v=v[cnt:cnt + rx.nD], adjoint=True
+                U, self.prob, v=v[cnt:cnt + rx.nD], adjoint=True
             )
             cnt += rx.nD
         return np.sum(dd_du, axis=0), np.sum(dd_dm, axis=0)

@@ -7,6 +7,7 @@ import numpy as np
 import scipy.sparse as sp
 import time
 import properties
+import warnings
 
 from SimPEG import Utils
 from SimPEG import Problem
@@ -68,6 +69,14 @@ class RichardsProblem(Problem.BaseTimeProblem):
         Specifically :code:`hydraulic_conductivity` and
         :code:`water_retention` models are updated iff they have mappings.
         """
+
+        if (
+                not self.hydraulic_conductivity.needs_model and
+                not self.water_retention.needs_model
+           ):
+            warnings.warn('There is no model to set.')
+            return
+
         model = change['value']
 
         if self.hydraulic_conductivity.needs_model:
@@ -109,7 +118,12 @@ class RichardsProblem(Problem.BaseTimeProblem):
         return self._root_finder
 
     @Utils.timeIt
-    def fields(self, m):
+    def fields(self, m=None):
+        if self.water_retention.needs_model or self.hydraulic_conductivity.needs_model:
+            assert m is not None
+        else:
+            assert m is None
+
         tic = time.time()
         u = list(range(self.nT+1))
         u[0] = self.initial_conditions
@@ -165,7 +179,8 @@ class RichardsProblem(Problem.BaseTimeProblem):
             |                         Asub    Adiag  | | hn |   | bn |
             '-                                      -' '-  -'   '-  -'
         """
-        self.model = m
+        if m is not None:
+            self.model = m
 
         DIV = self.mesh.faceDiv
         GRAD = self.mesh.cellGrad
@@ -215,7 +230,8 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
         Where h is the proposed value for the next time iterate (h_{n+1})
         """
-        self.model = m
+        if m is not None:
+            self.model = m
 
         DIV = self.mesh.faceDiv
         GRAD = self.mesh.cellGrad
@@ -248,7 +264,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         return r, J
 
     @Utils.timeIt
-    def Jfull(self, m, f=None):
+    def Jfull(self, m=None, f=None):
         if f is None:
             f = self.fields(m)
 
@@ -275,7 +291,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         AinvB = Ainv * B
         z = np.zeros((self.mesh.nC, B.shape[1]))
         du_dm = np.vstack((z, AinvB))
-        J = self.survey.deriv(f, m, du_dm_v=du_dm)  # not multiplied by v
+        J = self.survey.deriv(f, du_dm_v=du_dm)  # not multiplied by v
         return J
 
     @Utils.timeIt
@@ -302,7 +318,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
             JvC[ii] = Adiaginv * (B*v - Asub*JvC[ii-1])
 
         du_dm_v = np.concatenate([np.zeros(self.mesh.nC)] + JvC)
-        Jv = self.survey.deriv(f, m, du_dm_v=du_dm_v, v=v)
+        Jv = self.survey.deriv(f, du_dm_v=du_dm_v, v=v)
         return Jv
 
     @Utils.timeIt
@@ -310,7 +326,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         if f is None:
             f = self.field(m)
 
-        PTv, PTdv = self.survey.derivAdjoint(f, m, v=v)
+        PTv, PTdv = self.survey.derivAdjoint(f, v=v)
 
         # This is done via backward substitution.
         minus = 0
