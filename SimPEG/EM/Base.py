@@ -6,11 +6,8 @@ from __future__ import unicode_literals
 from SimPEG import Survey
 from SimPEG import Problem
 from SimPEG import Utils
-from SimPEG import Models
 from SimPEG import Maps
 from SimPEG import Props
-from SimPEG import np
-from SimPEG import sp
 from SimPEG import Solver as SimpegSolver
 from scipy.constants import mu_0
 
