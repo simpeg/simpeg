@@ -21,7 +21,9 @@ def GravSphereFreeSpace(x, y, z, R, xc, yc, zc, rho):
         print("Specify same size of x, y, z")
         return
 
-    unit_conv = 1e+8  # Unit conversion from SI to (mgal*g/cc)
+    unit_conv_g = 1e+8  # Unit conversion from SI to (mgal*g/cc)
+    unit_conv_gg = 1e+12  # Unit conversion from SI to (mgal*g/cc)
+
     x = mkvc(x)
     y = mkvc(y)
     z = mkvc(z)
@@ -34,20 +36,20 @@ def GravSphereFreeSpace(x, y, z, R, xc, yc, zc, rho):
 
     r = np.sqrt((dx)**2.+(dy)**2.+(dz)**2.)
 
-    g = -G*(1./r**2.)*M * unit_conv
+    g = -G*(1./r**2.)*M * unit_conv_g
 
     gx = g * (dx / r)
     gy = g * (dy / r)
     gz = -g * (dz / r)
 
-    gxx = g * ((1. / r) - 6.*dx**2./r**2.)
-    gxy = g * ((1. / r) - 6.*dx*dy/r**2.)
-    gxz = g * ((1. / r) - 6.*dx*dz/r**2.)
+    gxx = -G * M * unit_conv_gg * (r**2. - 3.*dx**2.)/r**5.
+    gxy = -G * M * unit_conv_gg * (-3.*dx*dy)/r**5.
+    gxz = -G * M * unit_conv_gg * (-3.*dx*dz)/r**5.
 
-    gyy = g * ((1. / r) - 6.*dy*dy/r**2.)
-    gyz = g * ((1. / r) - 6.*dy*dz/r**2.)
+    gyy = -G * M * unit_conv_gg * (r**2. - 3.*dy**2.)/r**5.
+    gyz = -G * M * unit_conv_gg * (-3.*dy*dz)/r**5.
 
-    gzz = g * ((1. / r) - 6.*dz*dz/r**2.)
+    gzz = -G * M * unit_conv_gg * (r**2. - 3.*dz**2.)/r**5.
 
     return {'gx': gx, 'gy': gy, 'gz': gz,
             'gxx': gxx, 'gxy': gxy, 'gxz': gxz,

@@ -69,14 +69,14 @@ class LinearSurvey(Survey.BaseSurvey):
         gfy = self.Qfy*u['G']
         gfz = -self.Qfz*u['G']
 
-        gxx = 1e+4*self.Qfx*u['ggx']
-        gxy = 1e+4*self.Qfy*u['ggx']
-        gxz = 1e+4*self.Qfz*u['ggx']
+        gxx = self.Qfx*u['ggx']
+        gxy = self.Qfy*u['ggx']
+        gxz = self.Qfz*u['ggx']
 
-        gyy = 1e+4*self.Qfy*u['ggy']
-        gyz = 1e+4*self.Qfz*u['ggy']
+        gyy = self.Qfy*u['ggy']
+        gyz = self.Qfz*u['ggy']
 
-        gzz = 1e+4*self.Qfz*u['ggz']
+        gzz = self.Qfz*u['ggz']
 
         fields = {'gx': gfx, 'gy': gfy, 'gz': gfz,
                   'gxx': gxx, 'gxy': gxy, 'gxz': gxz,

@@ -415,7 +415,7 @@ def plot_obs_2D(rxLoc, d=None, title='Gz Obs', vmin=None, vmax=None,
     return axs
 
 
-def readUBCgravObs(obs_file):
+def readUBCgravObs(obs_file, gravGrad=False):
 
     """
     Read UBC grav file format
@@ -430,15 +430,24 @@ def readUBCgravObs(obs_file):
 
     fid = open(obs_file, 'r')
 
+    if gravGrad:
+        line = fid.readline()
+        nComp = len(line.split(','))
+
     # First line has the number of rows
     line = fid.readline()
-    ndat = np.array(line.split(), dtype=int)
+    ndat = int(line.split()[0])
 
     # Pre-allocate space for obsx, obsy, obsz, data, uncert
     line = fid.readline()
     temp = np.array(line.split(), dtype=float)
 
-    d = np.zeros(ndat, dtype=float)
+    if gravGrad:
+        d = np.zeros((ndat, nComp), dtype=float)
+
+    else:
+        d = np.zeros(ndat, dtype=float)
+
     wd = np.zeros(ndat, dtype=float)
     locXYZ = np.zeros((ndat, 3), dtype=float)
 
@@ -446,8 +455,14 @@ def readUBCgravObs(obs_file):
 
         temp = np.array(line.split(), dtype=float)
         locXYZ[ii, :] = temp[:3]
-        d[ii] = temp[3]
-        wd[ii] = temp[4]
+
+        if gravGrad:
+            d[ii, :] = temp[3:]
+
+        else:
+            d[ii] = temp[3]
+            wd[ii] = temp[4]
+
         line = fid.readline()
 
     rxLoc = GRAV.RxObs(locXYZ)
@@ -554,8 +569,8 @@ class Problem3D_Diff(Problem.BaseProblem):
         aveF2CCgy = self.mesh.aveFy2CC * gField[nFx:(nFx+nFy)]
         aveF2CCgz = self.mesh.aveFz2CC * gField[(nFx+nFy):]
 
-        ggx = self.mesh.cellGrad * aveF2CCgx
-        ggy = self.mesh.cellGrad * aveF2CCgy
-        ggz = self.mesh.cellGrad * aveF2CCgz
+        ggx = 1e+4*self.mesh.cellGrad * aveF2CCgx
+        ggy = 1e+4*self.mesh.cellGrad * aveF2CCgy
+        ggz = 1e+4*self.mesh.cellGrad * aveF2CCgz
 
         return {'G': gField, 'ggx': ggx, 'ggy': ggy, 'ggz': ggz, 'u': u}
