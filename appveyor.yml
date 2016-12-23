@@ -15,10 +15,6 @@ environment:
 
   matrix:
     - TARGET_ARCH: "x64"
-      CONDA_PY: "2.7"
-      PY_CONDITION: "python >=2.7,<3"
-      CONDA_INSTALL_LOCN: "C:\\Miniconda-x64"
-    - TARGET_ARCH: "x64"
       CONDA_PY: "3.4"
       PY_CONDITION: "python >=3.4,<3.5"
       CONDA_INSTALL_LOCN: "C:\\Miniconda3-x64"
@@ -36,6 +32,7 @@ install:
   - "conda update -q --yes conda"
   # Install default dependencies
   - "conda install --yes pip python=%CONDA_PY% numpy scipy matplotlib cython ipython h5py nose sphinx sympy"
+  - "conda update --all"
   # additional dependencies
   - "pip install sphinx_rtd_theme"
   - "git clone https://github.com/jcapriot/pyMKL.git"
@@ -53,4 +50,4 @@ install:
   - "conda list"
 
 test_script:
-  - "nosetests tests"
+  - "nosetests tests/examples"
