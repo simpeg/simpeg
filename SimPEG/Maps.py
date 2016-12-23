@@ -1510,9 +1510,9 @@ class ParametrizedLayer(IdentityMap):
                 self.mesh.gridCC[self.indActive, 2]
             ][0]
 
-    # @property
-    # def nP(self):
-    #     return 4
+    @property
+    def nP(self):
+        return 4
 
     @property
     def shape(self):
