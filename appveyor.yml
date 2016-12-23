@@ -32,7 +32,7 @@ install:
   - "conda update -q --yes conda"
   # Install default dependencies
   - "conda install --yes pip python=%CONDA_PY% numpy scipy matplotlib cython ipython h5py nose sphinx sympy"
-  - "conda update --all -y"
+  - "conda update numpy scipy matplotlib cython ipython h5py nose sphinx sympy -y"
   # additional dependencies
   - "pip install sphinx_rtd_theme"
   - "git clone https://github.com/jcapriot/pyMKL.git"
