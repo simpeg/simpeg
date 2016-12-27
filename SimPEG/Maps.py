@@ -38,6 +38,8 @@ class IdentityMap(object):
                 .format(type(nP))
             )
             nP = int(nP)
+        elif mesh is not None:
+            nP = mesh.nC
         else:
             nP = '*'
 
@@ -66,8 +68,6 @@ class IdentityMap(object):
             :rtype: tuple
             :return: shape of the operator as a tuple (int,int)
         """
-        if self._nP is not None:
-            return (self.nP, self.nP)
         if self.mesh is None:
             return ('*', self.nP)
         return (self.mesh.nC, self.nP)
@@ -831,7 +831,6 @@ class InjectActiveCells(IdentityMap):
 
     indActive = None  #: Active Cells
     valInactive = None  #: Values of inactive Cells
-    nC = None  #: Number of cells in the full model
 
     def __init__(self, mesh, indActive, valInactive, nC=None):
         self.mesh = mesh
