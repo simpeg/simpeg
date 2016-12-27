@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
+import numpy as np
 import SimPEG as simpeg
-from SimPEG import np
 from SimPEG.EM import NSEM
 
 np.random.seed(1983)
@@ -129,7 +129,7 @@ def run(plotIt=True):
     if plotIt:
         fig = NSEM.Utils.dataUtils.plotMT1DModelData(problem, [mopt])
         fig.suptitle('Target - smooth true')
-        fig.axes[0].set_ylim([-10000,500])
+        fig.axes[0].set_ylim([-10000, 500])
 
 if __name__ == '__main__':
     run()

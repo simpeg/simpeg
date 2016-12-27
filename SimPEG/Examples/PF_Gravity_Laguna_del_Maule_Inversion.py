@@ -78,7 +78,7 @@ def run(plotIt=True):
     # %%
     # Now that we have a model and a survey we can build the linear system ...
     # Create the forward model operator
-    prob = PF.Gravity.GravityIntegral(mesh, mapping=staticCells,
+    prob = PF.Gravity.GravityIntegral(mesh, rhoMap=staticCells,
                                       actInd=active)
     prob.solverOpts['accuracyTol'] = 1e-4
 
@@ -198,8 +198,8 @@ def run(plotIt=True):
 
         plt.figure(figsize=(10, 7))
         plt.suptitle('Compact Inversion: Depth weight = ' + str(wgtexp) +
-                     ': $\epsilon_p$ = ' + str(round(reg.eps_p, 1)) +
-                     ': $\epsilon_q$ = ' + str(round(reg.eps_q, 2)))
+                     ': $\epsilon_p$ = ' + str(round(reg.eps_p[0], 1)) +
+                     ': $\epsilon_q$ = ' + str(round(reg.eps_q[0], 2)))
         ax = plt.subplot(221)
         dat = mesh.plotSlice(Lpout, ax=ax, normal='Z', ind=-16,
                              clim=(vmin, vmax), pcolorOpts={'cmap': 'bwr'})

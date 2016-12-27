@@ -83,7 +83,7 @@ def run(plotIt=True):
     idenMap = Maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
-    prob = PF.Magnetics.MagneticIntegral(mesh, mapping=idenMap, actInd=actv)
+    prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap, actInd=actv)
 
     # Pair the survey and problem
     survey.pair(prob)

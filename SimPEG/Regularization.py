@@ -1483,8 +1483,49 @@ class Sparse(BaseComboRegularization):
         for objfct in self.objfcts:
             if isinstance(objfct, BaseSparseDeriv):
                 objfct.epsilon = change['value']
+=======
+        # if getattr(self, 'model', None) is None:
+        #             self.model = np.ones(self.regmesh.nC)
+
+        # if self.regmesh.nC != len(self.model):
+
+        #     nmod = len(self.model)/self.regmesh.nC
+
+        #     assert np.mod(nmod, 1) > 1e-8, 'Mismatch between model and mesh'
+
+        #     self.nModels = int(nmod)
 
 
+    @property
+    def Wsmall(self):
+        """Regularization matrix Wsmall"""
+        if getattr(self, '_Wsmall', None) is None:
+
+            if getattr(self, 'model', None) is None:
+                m = np.ones(self.mapping.shape[0])
+
+            else:
+                m = self.mapping * (self.model)
+
+            mref = self.mapping * (self.reg.mref)
+            mats = []
+            for imodel in range(self.nModels):
+
+                indl, indu = imodel*self.regmesh.nC, (imodel+1)*self.regmesh.nC
+
+                # Grab the right model parameters
+                f_m = (m[indl:indu] - mref[indl:indu])
+                self.rs = self.R(f_m, self.eps_p[imodel], self.norms[0])
+
+                Ws = Utils.sdiag((self.alpha_s*self.gamma*self.cell_weights[indl:indu])**0.5*self.rs)
+
+                mats.append(Ws)
+
+            self._Wsmall = sp.block_diag(mats)
+>>>>>>> dev
+
+
+<<<<<<< HEAD
 # class Sparse(Simple):
 #     """
 #         The regularization is:
@@ -1492,17 +1533,73 @@ class Sparse(BaseComboRegularization):
 #         .. math::
 
 #             R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R W(m-m_\\text{ref})}
+=======
+    @property
+    def Wx(self):
+        """Regularization matrix Wx"""
+        if getattr(self, '_Wx', None) is None:
+
+            if getattr(self, 'model', None) is None:
+                m = np.ones(self.mapping.shape[0])
+
+            else:
+                m = self.mapping * (self.model)
+
+            mats = []
+            for imodel in range(self.nModels):
+
+                indl, indu = imodel*self.regmesh.nC, (imodel+1)*self.regmesh.nC
+
+                # Grab the right model parameters
+                f_m = self.regmesh.cellDiffxStencil * m[indl:indu]
+                self.rx = self.R( f_m , self.eps_q[imodel], self.norms[1])
+
+                Wx = Utils.sdiag((self.alpha_x*self.gamma*(self.regmesh.aveCC2Fx*self.cell_weights[indl:indu]))**0.5*self.rx)*self.regmesh.cellDiffxStencil
+
+                mats.append(Wx)
+
+            self._Wx = sp.block_diag(mats)
+>>>>>>> dev
 
 #         where the IRLS weight
 
+<<<<<<< HEAD
 #         .. math::
 
 #             R = \eta TO FINISH LATER!!!
 
 #         So the derivative is straight forward:
+=======
+    @property
+    def Wy(self):
+        """Regularization matrix Wy"""
+        if getattr(self, '_Wy', None) is None:
+
+            if getattr(self, 'model', None) is None:
+                m = np.ones(self.mapping.shape[0])
+
+            else:
+                m = self.mapping * (self.model)
+
+            mats = []
+            for imodel in range(self.nModels):
+
+                indl, indu = imodel*self.regmesh.nC, (imodel+1)*self.regmesh.nC
+
+                # Grab the right model parameters
+                f_m = self.regmesh.cellDiffyStencil * m[indl:indu]
+                self.ry = self.R( f_m , self.eps_q[imodel], self.norms[2])
+
+                Wy = Utils.sdiag((self.alpha_y*self.gamma*(self.regmesh.aveCC2Fy*self.cell_weights[indl:indu]))**0.5*self.ry)*self.regmesh.cellDiffyStencil
+
+                mats.append(Wy)
+
+            self._Wy = sp.block_diag(mats)
+>>>>>>> dev
 
 #         .. math::
 
+<<<<<<< HEAD
 #             R(m) = \mathbf{W^\\top R^\\top R W (m-m_\\text{ref})}
 
 #         The IRLS weights are recomputed after each beta solves.
@@ -1518,12 +1615,42 @@ class Sparse(BaseComboRegularization):
 #     gamma = 1.          # Model norm scaling to smooth out convergence
 #     norms = [0., 2., 2., 2.] # Values for norm on (m, dmdx, dmdy, dmdz)
 #     cell_weights = 1.        # Consider overwriting with sensitivity weights
+=======
+    @property
+    def Wz(self):
+        """Regularization matrix Wz"""
+        if getattr(self, '_Wz', None) is None:
+            if getattr(self, 'model', None) is None:
+                m = np.ones(self.mapping.shape[0])
+
+            else:
+                m = self.mapping * (self.model)
+            mats = []
+            for imodel in range(self.nModels):
+
+                indl, indu = imodel*self.regmesh.nC, (imodel+1)*self.regmesh.nC
+
+                # Grab the right model parameters
+                f_m = self.regmesh.cellDiffzStencil * m[indl:indu]
+                self.rz = self.R( f_m , self.eps_q[imodel], self.norms[3])
+
+                Wz = Utils.sdiag((self.alpha_z*self.gamma*(self.regmesh.aveCC2Fz*self.cell_weights[indl:indu]))**0.5*self.rz)*self.regmesh.cellDiffzStencil
+
+                mats.append(Wz)
+
+            self._Wz = sp.block_diag(mats)
+>>>>>>> dev
 
 #     def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
 #         Simple.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
 
+<<<<<<< HEAD
 #         if isinstance(self.cell_weights,float):
 #             self.cell_weights = np.ones(self.regmesh.nC) * self.cell_weights
+=======
+
+    def R(self, f_m , eps, exponent):
+>>>>>>> dev
 
 #     @property
 #     def Wsmall(self):

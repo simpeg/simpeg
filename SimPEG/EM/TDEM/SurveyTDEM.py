@@ -1,6 +1,6 @@
 from __future__ import division, print_function
 import SimPEG
-from SimPEG import np, Utils
+from SimPEG import Utils
 from SimPEG.Utils import Zero, Identity
 from scipy.constants import mu_0
 from SimPEG.EM.Utils import *
@@ -14,18 +14,18 @@ from . import SrcTDEM as Src
 class Rx(SimPEG.Survey.BaseTimeRx):
 
     knownRxTypes = {
-                    'ex': ['e', 'Ex', 'N'],
-                    'ey': ['e', 'Ey', 'N'],
-                    'ez': ['e', 'Ez', 'N'],
+        'ex': ['e', 'Ex', 'N'],
+        'ey': ['e', 'Ey', 'N'],
+        'ez': ['e', 'Ez', 'N'],
 
-                    'bx': ['b', 'Fx', 'N'],
-                    'by': ['b', 'Fy', 'N'],
-                    'bz': ['b', 'Fz', 'N'],
+        'bx': ['b', 'Fx', 'N'],
+        'by': ['b', 'Fy', 'N'],
+        'bz': ['b', 'Fz', 'N'],
 
-                    'dbxdt': ['b', 'Fx', 'CC'],
-                    'dbydt': ['b', 'Fy', 'CC'],
-                    'dbzdt': ['b', 'Fz', 'CC'],
-                   }
+        'dbxdt': ['b', 'Fx', 'CC'],
+        'dbydt': ['b', 'Fy', 'CC'],
+        'dbzdt': ['b', 'Fz', 'CC'],
+    }
 
     def __init__(self, locs, times, rxType):
         SimPEG.Survey.BaseTimeRx.__init__(self, locs, times, rxType)
@@ -100,5 +100,3 @@ class Survey(SimPEG.Survey.BaseSurvey):
 
     def evalDeriv(self, u, v=None, adjoint=False):
         raise Exception('Use Receivers to project fields deriv.')
-
-

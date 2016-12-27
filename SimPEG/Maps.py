@@ -19,6 +19,7 @@ from . import Utils
 from .Tests import checkDerivative
 
 
+
 class IdentityMap(object):
     """
         SimPEG Map
@@ -357,7 +358,6 @@ class Wires(object):
             )
 
         self._nP = int(np.sum([w[1] for w in args]))
-
         start = 0
         maps = []
         for arg in args:

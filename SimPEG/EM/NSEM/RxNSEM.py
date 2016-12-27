@@ -11,7 +11,6 @@ from scipy.constants import mu_0
 
 import SimPEG
 from SimPEG import mkvc
-# from SimPEG.EM.Utils.EMUtils import mu_0
 
 
 class BaseRxNSEM_Point(SimPEG.Survey.BaseRx):
