@@ -1,3 +1,8 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import numpy as np
 
 from SimPEG import Utils
@@ -77,9 +82,9 @@ class BaseSIPProblem(BaseEMProblem):
             f = self.fields(m)
 
         self.model = m
-        Jv = self.dataPair(self.survey)  # same size as the data
+        Jv = []
+
         # A = self.getA()
-        JvAll = []
         for tind in range(len(self.survey.times)):
             # Pseudo-chareability
             t = self.survey.times[tind]
@@ -94,14 +99,17 @@ class BaseSIPProblem(BaseEMProblem):
                     if timeindex[tind]:
                         df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                         df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                        Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+                        Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
+                        # Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
 
         # Conductivity (d u / d log sigma)
-        if self._formulation is 'EB':
-            return -Utils.mkvc(Jv)
+        if self._formulation == 'EB':
+            # return -Utils.mkvc(Jv)
+            return -np.hstack(Jv)
         # Resistivity (d u / d log rho)
-        if self._formulation is 'HJ':
-            return Utils.mkvc(Jv)
+        if self._formulation == 'HJ':
+            # return Utils.mkvc(Jv)
+            return np.hstack(Jv)
 
     def Jvec(self, m, v, f=None):
 
@@ -109,7 +117,7 @@ class BaseSIPProblem(BaseEMProblem):
             f = self.fields(m)
 
         self.model = m
-        Jv = self.dataPair(self.survey)  # same size as the data
+        Jv = []
         # A = self.getA()
         JvAll = []
 
@@ -131,14 +139,19 @@ class BaseSIPProblem(BaseEMProblem):
                         df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                         df_dm_v0 = df_dmFun(src, du_dm_v0, v0, adjoint=False)
                         df_dm_v1 = df_dmFun(src, du_dm_v1, v1, adjoint=False)
-                        Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v0)
-                        Jv[src, rx, t] += rx.evalDeriv(src, self.mesh, f, df_dm_v1)
+                        # Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v0)
+                        # Jv[src, rx, t] += rx.evalDeriv(src, self.mesh, f, df_dm_v1)
+                        Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v0) +
+                                  rx.evalDeriv(src, self.mesh, f, df_dm_v1))
+
         # Conductivity (d u / d log sigma)
-        if self._formulation is 'EB':
-            return -Jv.tovec()
+        if self._formulation == 'EB':
+            # return -Jv.tovec()
+            return -np.hstack(Jv)
         # Resistivity (d u / d log rho)
-        if self._formulation is 'HJ':
-            return Jv.tovec()
+        if self._formulation == 'HJ':
+            # return Jv.tovec()
+            return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
         if f is None:
@@ -151,6 +164,7 @@ class BaseSIPProblem(BaseEMProblem):
             v = self.dataPair(self.survey, v)
 
         Jtv = np.zeros(m.size)
+
         for tind in range(len(self.survey.times)):
             t = self.survey.times[tind]
             for src in self.survey.srcList:
@@ -168,10 +182,10 @@ class BaseSIPProblem(BaseEMProblem):
                         Jtv += self.EtaDeriv(self.survey.times[tind], du_dmT, adjoint=True) + self.TauiDeriv(self.survey.times[tind], du_dmT, adjoint=True)
 
         # Conductivity ((d u / d log sigma).T)
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             return -Jtv
         # Conductivity ((d u / d log rho).T)
-        if self._formulation is 'HJ':
+        if self._formulation == 'HJ':
             return Jtv
 
     def getSourceTerm(self):
@@ -187,11 +201,11 @@ class BaseSIPProblem(BaseEMProblem):
 
         Srcs = self.survey.srcList
 
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             n = self.mesh.nN
             # return NotImplementedError
 
-        elif self._formulation is 'HJ':
+        elif self._formulation == 'HJ':
             n = self.mesh.nC
 
         q = np.zeros((n, len(Srcs)))
