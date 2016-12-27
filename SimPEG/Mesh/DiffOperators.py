@@ -1,6 +1,7 @@
 from __future__ import print_function
 import numpy as np
 from scipy import sparse as sp
+from six import string_types
 from SimPEG.Utils import sdiag, speye, kron3, spzeros, ddx, av, avExtrap
 
 
@@ -12,13 +13,13 @@ def checkBC(bc):
         Each bc must be either 'dirichlet' or 'neumann'
 
     """
-    if(type(bc) is str):
+    if isinstance(bc, string_types):
         bc = [bc, bc]
-    assert type(bc) is list, 'bc must be a list'
+    assert isinstance(bc, list), 'bc must be a list'
     assert len(bc) == 2, 'bc must have two elements'
 
     for bc_i in bc:
-        assert type(bc_i) is str, "each bc must be a string"
+        assert isinstance(bc_i, string_types), "each bc must be a string"
         assert bc_i in ['dirichlet', 'neumann'], ("each bc must be either,"
                                                   "'dirichlet' or 'neumann'")
     return bc
@@ -104,7 +105,7 @@ def ddxCellGradBC(n, bc):
     """
     bc = checkBC(bc)
 
-    ij   = (np.array([0, n]), np.array([0, 1]))
+    ij = (np.array([0, n]), np.array([0, 1]))
     vals = np.zeros(2)
 
     # Set the first side
@@ -200,7 +201,7 @@ class DiffOperators(object):
     def faceDivz(self):
         """
         Construct divergence operator in the z component (face-stg to
-        cell-centres).
+        cell-centers).
         """
         if(self.dim < 3):
             return None
@@ -251,7 +252,7 @@ class DiffOperators(object):
             n = self.vnC
             # Compute divergence operator on faces
             if(self.dim == 1):
-                D1 = sdiag(1./self.hx) * ddx(mesh.nCx)
+                D1 = sdiag(1./self.hx) * ddx(self.nCx)
                 L = - D1.T*D1
             elif(self.dim == 2):
                 D1 = sdiag(1./self.hx) * ddx(n[0])
@@ -286,9 +287,9 @@ class DiffOperators(object):
             BC = [['neumann', 'dirichlet'], 'dirichlet', 'dirichlet']
         """
 
-        if(type(BC) is str):
+        if isinstance(BC, string_types):
             BC = [BC]*self.dim
-        if(type(BC) is list):
+        if isinstance(BC, list):
             assert len(BC) == self.dim, 'BC list must be the size of your mesh'
         else:
             raise Exception("BC must be a str or a list.")
@@ -297,8 +298,8 @@ class DiffOperators(object):
             BC[i] = checkBC(bc_i)
 
         # ensure we create a new gradient next time we call it
-        self._cellGrad        = None
-        self._cellGradBC      = None
+        self._cellGrad = None
+        self._cellGradBC = None
         self._cellGradBC_list = BC
         return BC
     _cellGradBC_list = 'neumann'
@@ -513,9 +514,9 @@ class DiffOperators(object):
             raise NotImplementedError('Boundary conditions only implemented'
                                       'for CC discretization.')
 
-        if(type(BC) is str):
+        if isinstance(BC, string_types):
             BC = [BC for _ in self.vnC]  # Repeat the str self.dim times
-        elif(type(BC) is list):
+        elif isinstance(BC, list):
             assert len(BC) == self.dim, 'BC list must be the size of your mesh'
         else:
             raise Exception("BC must be a str or a list.")
@@ -544,8 +545,8 @@ class DiffOperators(object):
 
         def projNeumannOut(n, bc):
             bc = checkBC(bc)
-            ij   = ([0, 1], [0, n])
-            vals = [0,0]
+            ij = ([0, 1], [0, n])
+            vals = [0, 0]
             if(bc[0] == 'neumann'):
                 vals[0] = 1
             if(bc[1] == 'neumann'):
@@ -583,8 +584,11 @@ class DiffOperators(object):
             Pbc2 = kron3(speye(n[2]), projDirichlet(n[1], BC[1]), speye(n[0]))
             Pbc3 = kron3(projDirichlet(n[2], BC[2]), speye(n[1]), speye(n[0]))
             Pbc = sp.block_diag((Pbc1, Pbc2, Pbc3), format="csr")
-            indF = np.r_[(indF[0] | indF[1]), (indF[2] | indF[3]), (indF[4] |
-                          indF[5])]
+            indF = np.r_[
+                (indF[0] | indF[1]),
+                (indF[2] | indF[3]),
+                (indF[4] | indF[5])
+            ]
             Pbc = Pbc*sdiag(self.area[indF])
 
             P1 = kron3(speye(n[2]), speye(n[1]), projNeumannIn(n[0], BC[0]))
@@ -656,7 +660,11 @@ class DiffOperators(object):
             B2 = kron3(speye(n[2]), projBC(n[1]), speye(n[0]))
             B3 = kron3(projBC(n[2]), speye(n[1]), speye(n[0]))
             B = sp.block_diag((B1, B2, B3), format="csr")
-            indF = np.r_[(indF[0] | indF[1]), (indF[2] | indF[3]), (indF[4] | indF[5])]
+            indF = np.r_[
+                (indF[0] | indF[1]),
+                (indF[2] | indF[3]),
+                (indF[4] | indF[5])
+            ]
             Pbc = Pbc*sdiag(self.area[indF])
 
         return Pbc, B.T
@@ -669,7 +677,7 @@ class DiffOperators(object):
             return self.aveFx2CC
         elif(self.dim == 2):
             return (0.5)*sp.hstack((self.aveFx2CC, self.aveFy2CC),
-                                    format="csr")
+                                   format="csr")
         elif(self.dim == 3):
             return (1./3.)*sp.hstack((self.aveFx2CC, self.aveFy2CC,
                                       self.aveFz2CC), format="csr")
@@ -724,13 +732,13 @@ class DiffOperators(object):
         Construct the averaging operator on cell faces in the z direction to
         cell centers.
         """
-        if self.dim < 3: return None
+        if self.dim < 3:
+            return None
         if getattr(self, '_aveFz2CC', None) is None:
             n = self.vnC
             if(self.dim == 3):
                 self._aveFz2CC = kron3(av(n[2]), speye(n[1]), speye(n[0]))
         return self._aveFz2CC
-
 
     @property
     def aveCC2F(self):
