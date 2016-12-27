@@ -14,7 +14,6 @@ from numpy.polynomial import polynomial
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy.interpolate import UnivariateSpline
-from scipy.spatial import cKDTree
 
 from . import Utils
 from .Tests import checkDerivative

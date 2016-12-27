@@ -87,6 +87,9 @@ class Dipole(BaseRx):
 
 
 class Dipole_ky(BaseRx):
+    """
+    Dipole receiver for 2.5D simulations
+    """
 
     def __init__(self, locsM, locsN, rxType='phi', **kwargs):
         assert locsM.shape == locsN.shape, ('locsM and locsN need to be the '
@@ -139,7 +142,6 @@ class Dipole_ky(BaseRx):
             phi0 = phi1.copy()
         return phi
 
-# DC.Rx.Pole(loc)
 class Pole(BaseRx):
     """
     Pole receiver
@@ -172,7 +174,7 @@ class Pole(BaseRx):
 
 class Pole_ky(BaseRx):
     """
-    Pole receiver
+    Pole receiver for 2.5D simulations
     """
 
     def __init__(self, locsM, rxType='phi', **kwargs):
