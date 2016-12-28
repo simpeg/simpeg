@@ -8,16 +8,14 @@ from SimPEG import SolverLU
 from SimPEG import EM
 from scipy.constants import mu_0
 
-plotIt = False
-tol_Transect = 2e-1
-tol_EBdipole = 1e-2
-
-plotIt = False
-
 import matplotlib
 matplotlib.use('Agg')
 
 import matplotlib.pylab as plt
+
+plotIt = False
+tol_Transect = 2e-1
+tol_EBdipole = 1e-2
 
 
 class FDEM_analyticTests(unittest.TestCase):

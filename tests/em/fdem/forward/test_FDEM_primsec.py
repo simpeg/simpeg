@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('Agg')
+
 from SimPEG import Mesh, Maps, Tests, Utils
 from SimPEG.EM import mu_0, FDEM, Analytics
 from SimPEG.EM.Utils import omega
