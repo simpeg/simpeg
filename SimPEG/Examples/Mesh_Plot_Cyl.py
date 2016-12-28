@@ -30,7 +30,7 @@ def run(plotIt=True):
     h = Utils.meshTensor([(cs, nc)])
 
     # define a mesh
-    mesh = Mesh.CylMesh([h, 1, h], x0 = np.r_[0., 0., -h.sum()/2.])
+    mesh = Mesh.CylMesh([h, 1, h], x0='00C')
 
     # Put the model on the mesh
     sigma = sig_air*np.ones(mesh.nC)  # start with air cells
