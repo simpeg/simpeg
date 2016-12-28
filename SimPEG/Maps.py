@@ -19,7 +19,6 @@ from . import Utils
 from .Tests import checkDerivative
 
 
-
 class IdentityMap(object):
     """
         SimPEG Map
@@ -29,7 +28,7 @@ class IdentityMap(object):
         Utils.setKwargs(self, **kwargs)
 
         if nP is not None:
-            if isinstance(nP, str):
+            if isinstance(nP, string):
                 assert nP == '*', (
                     "nP must be an integer or '*', not {}".format(nP)
                 )
