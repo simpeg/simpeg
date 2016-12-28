@@ -66,8 +66,8 @@ class NumpyBuild(build_ext):
 ext = '.pyx' if USE_CYTHON else '.c'
 
 cython_files = [
-    "SimPEG{sep}Utils{sep}interputils_cython".format(sep=os.path.sep),
-    "SimPEG{sep}Mesh{sep}TreeUtils".format(sep=os.path.sep)
+    os.path.join("SimPEG", "Utils", "interputils_cython"),
+    os.path.join("SimPEG", "Mesh", "TreeUtils")
 ]
 
 extensions = [Extension(f, [f+ext]) for f in cython_files]
