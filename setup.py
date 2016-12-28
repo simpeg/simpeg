@@ -10,10 +10,15 @@ import os
 import sys
 import subprocess
 
-from distutils.core import setup
+try:
+    from setuptools import setup
+    from setuptools import Extension
+except ImportError:
+    from distutils.core import setup
+    from distutils.extension import Extension
+
 from distutils.command.build_ext import build_ext
 from setuptools import find_packages
-from distutils.extension import Extension
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
