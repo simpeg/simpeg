@@ -7,7 +7,6 @@ except ImportError:
     import Solver as SolverLU
 from SimPEG.Utils.io_utils import remoteDownload
 
-import matplotlib.pyplot as plt
 import time
 import os
 import numpy as np

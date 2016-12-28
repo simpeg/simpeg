@@ -13,6 +13,7 @@ tol_Transect = 2e-1
 tol_EBdipole = 1e-2
 
 plotIt = False
+
 if plotIt is True:
     import matplotlib.pylab as plt
 
@@ -74,7 +75,7 @@ class FDEM_analyticTests(unittest.TestCase):
         print(' ... done')
         self.u = u
 
-    def test_Transect(self):
+    def test_Transect(self, plotIt=plotIt):
 
         for src in self.prb.survey.srcList:
             print(' --- testing {} --- '.format(src.__class__.__name__))
@@ -111,7 +112,7 @@ class FDEM_analyticTests(unittest.TestCase):
 
 class TestDipoles(unittest.TestCase):
 
-    def test_CylMeshEBDipoles(self):
+    def test_CylMeshEBDipoles(self, plotIt=plotIt):
         print ("Testing CylMesh Electric and Magnetic Dipoles in a wholespace-"
                " Analytic: J-formulation")
         sigmaback = 1.

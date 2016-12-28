@@ -514,11 +514,6 @@ class CylView(object):
         # Just create a TM and use its view.
         from SimPEG.Mesh import TensorMesh
 
-        # if mirroring about the x-axis
-
-        # v, vType='CC',
-        #           normal='Z', ind=None, grid=False, view='real',
-
         mirror = kwargs.pop('mirror', None)
         if mirror is True:
             if kwargs.get('vType', None) is not None:
@@ -535,11 +530,6 @@ class CylView(object):
 
             # mirror the data
             if len(args) > 0:
-                # if len(args) > 1:
-                #     raise NotImplementedError(
-                #         'More than one input argument is not supported when '
-                #         'mirroring'
-                #     )
                 tmp = args[0].reshape(self.vnC[0], self.vnC[2], order='F')
                 tmp = mkvc(np.vstack([np.flipud(tmp), tmp]))
                 args = (tmp,) + args[1:]
