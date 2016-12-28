@@ -8,8 +8,10 @@ import warnings
 TOL = 0.5 # relative tolerance (to norm of soln)
 plotIt = False
 
-if plotIt is True:
-    import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
+
+import matplotlib.pyplot as plt
 
 
 class TestSimpleSourcePropertiesTensor(unittest.TestCase):

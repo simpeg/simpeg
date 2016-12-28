@@ -14,8 +14,10 @@ tol_EBdipole = 1e-2
 
 plotIt = False
 
-if plotIt is True:
-    import matplotlib.pylab as plt
+import matplotlib
+matplotlib.use('Agg')
+
+import matplotlib.pylab as plt
 
 
 class FDEM_analyticTests(unittest.TestCase):
