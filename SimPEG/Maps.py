@@ -28,7 +28,7 @@ class IdentityMap(object):
         Utils.setKwargs(self, **kwargs)
 
         if nP is not None:
-            if isinstance(nP, string):
+            if isinstance(nP, string_types):
                 assert nP == '*', (
                     "nP must be an integer or '*', not {}".format(nP)
                 )
