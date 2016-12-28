@@ -44,8 +44,7 @@ install:
   # - "python setup.py install"
   # - "cd .."
   # install SimPEG
-  - "python setup.py install"
-  - "python setup.py build_ext --inplace"
+  - "pip install SimPEG"
   # list package versions
   - "conda list"
 
