@@ -227,7 +227,7 @@ class RawVec_e(BaseSrc):
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
-        if prob._formulation is 'EB' and self.integrate is True:
+        if prob._formulation == 'EB' and self.integrate is True:
             return prob.Me * self._s_e
         return self._s_e
 
@@ -256,7 +256,7 @@ class RawVec_m(BaseSrc):
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
-        if prob._formulation is 'HJ' and self.integrate is True:
+        if prob._formulation == 'HJ' and self.integrate is True:
             return prob.Me * self._s_m
         return self._s_m
 
@@ -285,7 +285,7 @@ class RawVec(BaseSrc):
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
-        if prob._formulation is 'HJ' and self.integrate is True:
+        if prob._formulation == 'HJ' and self.integrate is True:
             return prob.Me * self._s_m
         return self._s_m
 
@@ -297,7 +297,7 @@ class RawVec(BaseSrc):
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
-        if prob._formulation is 'EB' and self.integrate is True:
+        if prob._formulation == 'EB' and self.integrate is True:
             return prob.Me * self._s_e
         return self._s_e
 
@@ -408,19 +408,19 @@ class MagDipole(BaseSrc):
         """
         formulation = prob._formulation
 
-        if formulation is 'EB':
+        if formulation == 'EB':
             gridX = prob.mesh.gridEx
             gridY = prob.mesh.gridEy
             gridZ = prob.mesh.gridEz
             C = prob.mesh.edgeCurl
 
-        elif formulation is 'HJ':
+        elif formulation == 'HJ':
             gridX = prob.mesh.gridFx
             gridY = prob.mesh.gridFy
             gridZ = prob.mesh.gridFz
             C = prob.mesh.edgeCurl.T
 
-        if prob.mesh._meshType is 'CYL':
+        if prob.mesh._meshType == 'CYL':
             if not prob.mesh.isSymmetric:
                 # TODO ?
                 raise NotImplementedError('Non-symmetric cyl mesh not '
@@ -459,7 +459,7 @@ class MagDipole(BaseSrc):
         """
 
         b_p = self.bPrimary(prob)
-        if prob._formulation is 'HJ':
+        if prob._formulation == 'HJ':
             b_p = prob.Me * b_p
         return -1j*omega(self.freq)*b_p
 
@@ -477,11 +477,11 @@ class MagDipole(BaseSrc):
         else:
             formulation = prob._formulation
 
-            if formulation is 'EB':
+            if formulation == 'EB':
                 mui_s = prob.mui - 1./self.mu
                 MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
                 C = prob.mesh.edgeCurl
-            elif formulation is 'HJ':
+            elif formulation == 'HJ':
                 mu_s = prob.mu - self.mu
                 MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
                 C = prob.mesh.edgeCurl.T
@@ -494,7 +494,7 @@ class MagDipole(BaseSrc):
         else:
             formulation = prob._formulation
 
-            if formulation is 'EB':
+            if formulation == 'EB':
                 mui_s = prob.mui - 1./self.mu
                 MMui_sDeriv = prob.mesh.getFaceInnerProductDeriv(mui_s)(
                     self.bPrimary(prob)
@@ -506,7 +506,7 @@ class MagDipole(BaseSrc):
 
                 return -C.T * (MMui_sDeriv * v)
 
-            elif formulation is 'HJ':
+            elif formulation == 'HJ':
                 return Zero()
                 # raise NotImplementedError
                 mu_s = prob.mu - self.mu
@@ -558,18 +558,18 @@ class MagDipole_Bfield(MagDipole):
 
         formulation = prob._formulation
 
-        if formulation is 'EB':
+        if formulation == 'EB':
             gridX = prob.mesh.gridFx
             gridY = prob.mesh.gridFy
             gridZ = prob.mesh.gridFz
 
-        elif formulation is 'HJ':
+        elif formulation == 'HJ':
             gridX = prob.mesh.gridEx
             gridY = prob.mesh.gridEy
             gridZ = prob.mesh.gridEz
 
         srcfct = MagneticDipoleFields
-        if prob.mesh._meshType is 'CYL':
+        if prob.mesh._meshType == 'CYL':
             if not prob.mesh.isSymmetric:
                 # TODO ?
                 raise NotImplementedError(
@@ -738,7 +738,7 @@ class PrimSecMappedSigma(BaseSrc):
             )
             df_duTFun = getattr(
                 f, '_{0}Deriv'.format(
-                    'e' if self.primaryProblem._formulation is 'EB' else 'j'
+                    'e' if self.primaryProblem._formulation == 'EB' else 'j'
                 ),
                 None
             )
@@ -772,7 +772,7 @@ class PrimSecMappedSigma(BaseSrc):
         # if self.primaryProblem._formulation == 'EB':
         df_dmFun = getattr(
             f, '_{0}Deriv'.format(
-                'e' if self.primaryProblem._formulation is 'EB' else 'j'
+                'e' if self.primaryProblem._formulation == 'EB' else 'j'
             ),
             None
         )
