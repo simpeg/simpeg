@@ -393,7 +393,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         Utils.setKwargs(self, **kwargs)
 
     # Properties
-    mref = Props.SimPEGArray(
+    mref = Props.Array(
         "reference model", default=Utils.Zero()
     )
     indActive = properties.Array(
@@ -639,15 +639,15 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         Utils.setKwargs(self, **kwargs)
 
     # Properties
-    alpha_s = Props.SimPEGFloat("smallness weight")
-    alpha_x = Props.SimPEGFloat("weight for the first x-derivative")
-    alpha_y = Props.SimPEGFloat("weight for the first y-derivative")
-    alpha_z = Props.SimPEGFloat("weight for the first z-derivative")
-    alpha_xx = Props.SimPEGFloat("weight for the second x-derivative")
-    alpha_yy = Props.SimPEGFloat("weight for the second y-derivative")
-    alpha_zz = Props.SimPEGFloat("weight for the second z-derivative")
+    alpha_s = Props.Float("smallness weight")
+    alpha_x = Props.Float("weight for the first x-derivative")
+    alpha_y = Props.Float("weight for the first y-derivative")
+    alpha_z = Props.Float("weight for the first z-derivative")
+    alpha_xx = Props.Float("weight for the second x-derivative")
+    alpha_yy = Props.Float("weight for the second y-derivative")
+    alpha_zz = Props.Float("weight for the second z-derivative")
 
-    mref = Props.SimPEGArray(
+    mref = Props.Array(
         "reference model"
     )
     mrefInSmooth = properties.Bool(

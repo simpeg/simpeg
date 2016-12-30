@@ -11,24 +11,24 @@ from . import Maps
 from . import Utils
 
 
-class SimPEGArray(properties.Array):
+class Array(properties.Array):
 
     info_text = 'a numpy, Zero or Identity array'
 
     def validate(self, instance, value):
         if isinstance(value, (Utils.Zero, Utils.Identity)):
             return value
-        return super(SimPEGArray, self).validate(instance, value)
+        return super(Array, self).validate(instance, value)
 
 
-class SimPEGFloat(properties.Float):
+class Float(properties.Float):
 
     info_text = 'a float, Zero or Identity'
 
     def validate(self, instance, value):
         if isinstance(value, (Utils.Zero, Utils.Identity)):
             return value
-        return super(SimPEGFloat, self).validate(instance, value)
+        return super(Float, self).validate(instance, value)
 
 
 class Model(properties.Array):
