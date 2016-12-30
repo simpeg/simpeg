@@ -362,7 +362,7 @@ class RegularizationMesh(Props.BaseSimPEG):
 #                                                                             #
 ###############################################################################
 
-class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
+class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
     """
     Base class for regularization. Inherit this for building your own
     regularization. The base regularization assumes a weighted l2 style of
