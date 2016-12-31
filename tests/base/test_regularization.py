@@ -163,9 +163,14 @@ class RegularizationTests(unittest.TestCase):
         for regType in ['Tikhonov', 'Sparse', 'Simple']:
             reg = getattr(Regularization, regType)(mesh)
 
+            self.assertTrue(reg.nP == mesh.nC)
+
             # Test assignment of active indices
             indActive = mesh.gridCC[:, 2] < 0.6
             reg.indActive = indActive
+
+            self.assertTrue(reg.nP == int(indActive.sum()))
+
             [
                 self.assertTrue(np.all(fct.indActive == indActive))
                 for fct in reg.objfcts

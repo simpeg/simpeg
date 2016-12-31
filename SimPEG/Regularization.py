@@ -46,6 +46,16 @@ class RegularizationMesh(Props.BaseSimPEG):
 
     indActive = properties.Array("active indices in mesh", dtype=bool)
 
+    @properties.validator('indActive')
+    def _cast_to_bool(self, change):
+        value = change['value']
+        if value is not None:
+            if value.dtype != 'bool':  # cast it to a bool otherwise
+                tmp = value
+                value = np.zeros(self.mesh.nC, dtype=bool)
+                value[tmp] = True
+                change['value'] = value
+
     @property
     def vol(self):
         """
@@ -66,12 +76,10 @@ class RegularizationMesh(Props.BaseSimPEG):
         :rtype: int
         :return: number of cells being regularized
         """
-        if getattr(self, '_nC', None) is None:
-            if self.indActive is None:
-                self._nC = self.mesh.nC
-            else:
-                self._nC = int(sum(self.indActive))
-        return self._nC
+        if self.indActive is not None:
+            return int(self.indActive.sum())
+        return self.mesh.nC
+
 
     @property
     def dim(self):
@@ -381,8 +389,6 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
     """
 
     counter = None
-    mapPair = Maps.IdentityMap  #: Base class of expected maps
-    mapping = None  #: An IdentityMap instance.
 
     def __init__(
         self, mesh=None, **kwargs
@@ -415,8 +421,14 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
                 change['value'] = value
 
         # update regmesh indActive
-        if getattr(self, '_regmesh', None) is not None:
-            self._regmesh.indActive = Utils.mkvc(value)
+        if getattr(self, 'regmesh', None) is not None:
+            self.regmesh.indActive = Utils.mkvc(value)
+
+    @properties.observer('indActive')
+    def _update_regmesh_indActive(self, change):
+        # update regmesh indActive
+        if getattr(self, 'regmesh', None) is not None:
+            self.regmesh.indActive = change['value']
 
     @properties.validator('mref')
     def _validate_mref(self, change):
@@ -429,7 +441,9 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
     def _validate_cell_weights(self, change):
         if change['value'] is not None and self.nP != '*':
             assert len(change['value']) == self.nP, (
-                'cell_weights must be length {}'.format(self.nP)
+                'cell_weights must be length {} not {}'.format(
+                    self.nP, len(change['value'])
+                )
             )
 
     # Other properties and methods
@@ -621,20 +635,18 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
 
     def __init__(
         self, mesh, objfcts=[],
-        mapping=None, cell_weights=None, **kwargs
-        # mrefInSmooth=False, indActive=None,
-        # alpha_s=None, alpha_x=None, alpha_y=None, alpha_z=None,
-        # alpha_xx=None, alpha_yy=None, alpha_zz=None,
+        mapping=None, **kwargs
     ):
 
-        super(BaseComboRegularization, self).__init__(
-            objfcts=[], multipliers=None
-        )
 
         # self._cell_weights = cell_weights
         self._mesh = mesh
         self._mapping = mapping
-        self.objfcts = objfcts
+        # self.objfcts = objfcts
+
+        super(BaseComboRegularization, self).__init__(
+            objfcts=objfcts, multipliers=None
+        )
 
         Utils.setKwargs(self, **kwargs)
 
@@ -700,7 +712,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
             if getattr(fct, 'mrefInSmooth', None) is not None:
                 fct.mrefInSmooth = change['value']
 
-    @properties.validator('indActive')
+    @properties.observer('indActive')
     def _mirror_indActive_to_objfctlist(self, change):
         value = change['value']
         if value is not None:
@@ -709,11 +721,12 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
                 value = np.zeros(self.mesh.nC, dtype=bool)
                 value[tmp] = True
                 change['value'] = value
+
         if getattr(self, 'regmesh', None) is not None:
-            self._regmesh.indActive = value
+            self.regmesh.indActive = value
 
         for fct in self.objfcts:
-            fct.indActive = change['value']
+            fct.indActive = value
 
     @properties.observer('cell_weights')
     def _mirror_cell_weights_to_objfctlist(self, change):
@@ -759,7 +772,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
     def mapping(self):
         if getattr(self, '_mapping', None) is None:
             if getattr(self, 'regmesh', None) is not None:
-                self._mapping = self.mapPair(nP=self.regmesh.nC)
+                self._mapping = self.mapPair()
             else:
                 self._mapping = None
         return self._mapping
@@ -957,7 +970,6 @@ class Simple(BaseComboRegularization):
             objfcts=objfcts, **kwargs
         )
 
-        # self.objfcts = objfcts
         self.alpha_s = alpha_s
         self.alpha_x = alpha_x
         self.alpha_y = alpha_y

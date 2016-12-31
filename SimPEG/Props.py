@@ -201,7 +201,6 @@ class PhysicalProperty(properties.Property):
 
         return property(fget=fget, fset=fset, fdel=fdel, doc=scope.doc)
 
-
     def as_pickle(self, instance):
         return instance._get(self.name)
 

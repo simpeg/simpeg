@@ -22,8 +22,12 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
     counter = None
     debug = False
 
-    def __init__(self, nP=None, **kwargs):
-        self._nP = nP
+    mapPair = Maps.IdentityMap  #: Base class of expected maps
+    mapping = None  #: An IdentityMap instance.
+
+    _nP = None
+
+    def __init__(self, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
     def __call__(self, x, **kwargs):
@@ -31,9 +35,11 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
 
     @property
     def nP(self):
-        if getattr(self, '_nP', None) is None:
-            self._nP = '*'
-        return self._nP
+        if self._nP is not None:
+            return self._nP
+        if getattr(self, 'mapping', None) is not None:
+            return self.mapping.nP
+        return '*'
 
     @Utils.timeIt
     def _eval(self, x, **kwargs):
@@ -226,9 +232,9 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
 
-    def __init__(self, nP=None, W=None, **kwargs):
+    def __init__(self, W=None, **kwargs):
 
-        super(L2ObjectiveFunction, self).__init__(nP=nP, **kwargs)
+        super(L2ObjectiveFunction, self).__init__(**kwargs)
         if W is not None:
             if self.nP == '*':
                 self._nP = W.shape[0]
