@@ -13,10 +13,11 @@ from SimPEG import Regularization
 from SimPEG import InvProblem
 from SimPEG import Inversion
 
+
 def run(N=100, plotIt=True):
     """
         Inversion: Linear: Update_IRLS
-        =======================
+        ==============================
 
         Here we go over the basics of creating a linear problem and inversion.
     """
