@@ -1,6 +1,7 @@
 from __future__ import print_function
 from . import Utils
 from . import Regularization
+from . import Maps
 import numpy as np
 import warnings
 
@@ -448,14 +449,21 @@ class Update_lin_PreCond(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
     """
+
     onlyOnStart = False
+    mapPair = Maps.IdentityMap
+
+    def __init__(self, mapping=None):
+        if mapping is None:
+            mapping = self.mapPair()
+        self.mapping = mapping
 
     def initialize(self):
 
         if getattr(self.opt, 'approxHinv', None) is None:
             # Update the pre-conditioner
             diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() # * (self.reg.mapping * np.ones(self.reg.model.size))**2.
-            PC = Utils.sdiag((self.prob.mapping.deriv(None).T * diagA)**-1.)
+            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
     def endIter(self):
@@ -466,7 +474,7 @@ class Update_lin_PreCond(InversionDirective):
         if getattr(self.opt, 'approxHinv', None) is not None:
             # Update the pre-conditioner
             diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() # * (self.reg.mapping * np.ones(self.reg.model.size))**2.
-            PC = Utils.sdiag((self.prob.mapping.deriv(None).T * diagA)**-1.)
+            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
 

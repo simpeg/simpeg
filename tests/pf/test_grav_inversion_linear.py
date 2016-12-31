@@ -103,7 +103,6 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Create a regularization
         reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-        reg.cell_weights = wr
 
         # Data misfit function
         dmis = DataMisfit.l2_DataMisfit(survey)
@@ -119,7 +118,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),
                                       eps=(5e-2, 1e-2), f_min_change=1e-3,
                                       minGNiter=3)
-        update_Jacobi = Directives.Update_lin_PreCond()
+        update_Jacobi = Directives.Update_lin_PreCond(mapping=idenMap)
 
         self.inv = Inversion.BaseInversion(invProb,
                                            directiveList=[IRLS,
