@@ -4,9 +4,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from SimPEG import Utils, Maps, Mesh, sp, np
-from SimPEG.Regularization import BaseRegularization, Simple
+from SimPEG.Regularization import BaseRegularization
 
-class MultiRegularization(Simple):
+class MultiRegularization(BaseRegularization):
     """
     **MultiRegularization Class**
 
