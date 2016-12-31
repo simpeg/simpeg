@@ -44,7 +44,7 @@ class RegularizationMesh(Props.BaseSimPEG):
         self.mesh = mesh
         Utils.setKwargs(self, **kwargs)
 
-    indActive = properties.Array("active indices in mesh", dtype=bool)
+    indActive = properties.Array("active indices in mesh", dtype=[bool, int])
 
     @properties.validator('indActive')
     def _cast_to_bool(self, change):
