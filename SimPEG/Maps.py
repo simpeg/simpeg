@@ -1341,7 +1341,7 @@ class Vertical1DMap(SurjectVertical1D):
     def __init__(self, mesh, **kwargs):
         warnings.warn(
             "`Vertical1DMap` is deprecated and will be removed in future"
-            "versions. Use `SurjectVertical1D` instead",
+            " versions. Use `SurjectVertical1D` instead",
             FutureWarning)
         SurjectVertical1D.__init__(self, mesh, **kwargs)
 
