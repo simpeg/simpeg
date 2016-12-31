@@ -638,7 +638,6 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         mapping=None, **kwargs
     ):
 
-
         # self._cell_weights = cell_weights
         self._mesh = mesh
         self._mapping = mapping
@@ -696,10 +695,10 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
     # Mirror property changes down to objective functions in objective function
     # list
     @properties.observer('mref')
-    def _mirror__mref_to_objfctlist(self, change):
+    def _mirror_mref_to_objfctlist(self, change):
         for fct in self.objfcts:
             if getattr(fct, 'mrefInSmooth', None) is not None:
-                if fct.mrefInSmooth is False:
+                if self.mrefInSmooth is False:
                     fct.mref = Utils.Zero()
                 else:
                     fct.mref = change['value']
@@ -1325,6 +1324,10 @@ class BaseSparseDeriv(BaseSparse):
 
         self.orientation = orientation
         super(BaseSparseDeriv, self).__init__(mesh=mesh, **kwargs)
+
+    mrefInSmooth = properties.Bool(
+        "include mref in the smoothness calculation?", default=False
+    )
 
     @property
     def W(self):
