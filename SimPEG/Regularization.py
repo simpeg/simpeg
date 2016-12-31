@@ -966,14 +966,14 @@ class Simple(BaseComboRegularization):
             )
 
         super(Simple, self).__init__(
-            mesh=mesh,
-            objfcts=objfcts, **kwargs
+            mesh=mesh, objfcts=objfcts, alpha_s=alpha_s, alpha_x=alpha_x,
+            alpha_y=alpha_y, alpha_z=alpha_z, **kwargs
         )
 
-        self.alpha_s = alpha_s
-        self.alpha_x = alpha_x
-        self.alpha_y = alpha_y
-        self.alpha_z = alpha_z
+        # self.alpha_s = alpha_s
+        # self.alpha_x = alpha_x
+        # self.alpha_y = alpha_y
+        # self.alpha_z = alpha_z
 
 
 class BaseSmooth(BaseRegularization):
