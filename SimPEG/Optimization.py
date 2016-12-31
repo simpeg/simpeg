@@ -278,16 +278,19 @@ class Minimize(object):
                 self.xc, return_g=True, return_H=True
             )
             self.printIter()
-            if self.stoppingCriteria(): break
+            if self.stoppingCriteria():
+                break
             self.searchDirection = self.findSearchDirection()
             del self.H #: Doing this saves memory, as it is not needed in the rest of the computations.
             p = self.scaleSearchDirection(self.searchDirection)
             xt, passLS = self.modifySearchDirection(p)
             if not passLS:
                 xt, caught = self.modifySearchDirectionBreak(p)
-                if not caught: return self.xc
+                if not caught:
+                    return self.xc
             self.doEndIteration(xt)
-            if self.stopNextIteration: break
+            if self.stopNextIteration:
+                break
 
         self.printDone()
         self.finish()
@@ -499,14 +502,16 @@ class Minimize(object):
                 self._LS_xt, return_g=False, return_H=False
             )
             self._LS_descent = np.inner(self.g, self._LS_xt - self.xc)  # this takes into account multiplying by t, but is important for projection.
-            if self.stoppingCriteria(inLS=True): break
+            if self.stoppingCriteria(inLS=True):
+                break
             self.iterLS += 1
             self._LS_t = self.LSshorten*self._LS_t
             if self.debugLS:
                 if self.iterLS == 1: self.printInit(inLS=True)
                 self.printIter(inLS=True)
 
-        if self.debugLS and self.iterLS > 0: self.printDone(inLS=True)
+        if self.debugLS and self.iterLS > 0:
+            self.printDone(inLS=True)
 
         return self._LS_xt, self.iterLS < self.maxIterLS
 
@@ -552,7 +557,8 @@ class Minimize(object):
         self.f_last = self.f
         self.x_last, self.xc = self.xc, xt
         self.iter += 1
-        if self.debug: self.printDone()
+        if self.debug:
+            self.printDone()
 
         if self.callback is not None:
             self.callback(xt)
@@ -560,7 +566,7 @@ class Minimize(object):
     def save(self, group):
         group.setArray('searchDirection', self.searchDirection)
 
-        if getattr(self,'parent',None) is None:
+        if getattr(self, 'parent', None) is None:
             group.setArray('x', self.xc)
         else: # Assume inversion is the parent
             group.attrs['phi_d'] = self.parent.phi_d
