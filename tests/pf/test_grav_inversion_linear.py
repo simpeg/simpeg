@@ -103,6 +103,7 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Create a regularization
         reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+        reg.cell_weights = wr
 
         # Data misfit function
         dmis = DataMisfit.l2_DataMisfit(survey)
@@ -128,7 +129,6 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Run the inversion
         mrec = self.inv.run(self.model)
-
         residual = np.linalg.norm(mrec-self.model) / np.linalg.norm(self.model)
         print(residual)
         self.assertTrue(residual < 0.05)
