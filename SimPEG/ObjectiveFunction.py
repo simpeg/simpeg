@@ -144,6 +144,9 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
     def __div__(self, denominator):
         return self.__mul__(1./denominator)
 
+    def __truediv__(self, denominator):
+        return self.__mul__(1./denominator)
+
     def __rdiv__(self, denominator):
         return self.__mul__(1./denominator)
 
