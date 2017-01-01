@@ -367,6 +367,52 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
                                           'yet implemented')
         return self._aveF2CCV
 
+
+    def getInterpolationMat(self, loc, locType='CC', zerosOutside=False):
+        """ Produces interpolation matrix
+
+        :param numpy.ndarray loc: Location of points to interpolate to
+        :param str locType: What to interpolate (see below)
+        :rtype: scipy.sparse.csr_matrix
+        :return: M, the interpolation matrix
+
+        locType can be::
+
+            'Ex'    -> x-component of field defined on edges
+            'Ey'    -> y-component of field defined on edges
+            'Ez'    -> z-component of field defined on edges
+            'Fx'    -> x-component of field defined on faces
+            'Fy'    -> y-component of field defined on faces
+            'Fz'    -> z-component of field defined on faces
+            'N'     -> scalar field defined on nodes
+            'CC'    -> scalar field defined on cell centers
+            'CCVx'  -> x-component of vector field defined on cell centers
+            'CCVy'  -> y-component of vector field defined on cell centers
+            'CCVz'  -> z-component of vector field defined on cell centers
+        """
+        if self.isSymmetric and locType in ['Ex', 'Ez', 'Fy']:
+            raise Exception(
+                "Symmetric CylMesh does not support {0!s} interpolation, "
+                "as this variable does not exist.".format(locType)
+            )
+
+        if locType in ['CCVx', 'CCVy', 'CCVz']:
+            Q = Utils.interpmat(loc, *self.getTensor('CC'))
+            Z = Utils.spzeros(loc.shape[0], self.nC)
+            if locType == 'CCVx':
+                Q = sp.hstack([Q, Z])
+            elif locType == 'CCVy':
+                Q = sp.hstack([Q])
+            elif locType == 'CCVz':
+                Q = sp.hstack([Z, Q])
+
+            if zerosOutside:
+                Q[indZeros, :] = 0
+
+            return Q.tocsr()
+
+        return self._getInterpolationMat(loc, locType, zerosOutside)
+
     def getInterpolationMatCartMesh(self, Mrect, locType='CC', locTypeTo=None):
         """
             Takes a cartesian mesh and returns a projection to translate onto
