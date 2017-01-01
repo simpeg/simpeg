@@ -31,6 +31,19 @@ class Float(properties.Float):
         return super(Float, self).validate(instance, value)
 
 
+class Integer(properties.Integer):
+
+    info_text = 'an Integer of *'
+
+    def validate(self, instance, value):
+        if isinstance(value, str):
+            assert value == '*', 'value must be an integer or *, not {}'.format(
+                value
+            )
+            return value
+        return super(Integer, self).validate(instance, value)
+
+
 class Model(properties.Array):
 
     info_text = 'a numpy array'
