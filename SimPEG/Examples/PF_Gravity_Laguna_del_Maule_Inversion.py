@@ -137,7 +137,7 @@ def run(plotIt=True):
         # Write output model and data files and print misft stats.
 
         # reconstructing l2 model mesh with air cells and active dynamic cells
-        L2out = activeMap * reg.l2model
+        L2out = activeMap * IRLS.l2model
 
         # reconstructing lp model mesh with air cells and active dynamic cells
         Lpout = activeMap*mrec
@@ -198,8 +198,8 @@ def run(plotIt=True):
 
         plt.figure(figsize=(10, 7))
         plt.suptitle('Compact Inversion: Depth weight = ' + str(wgtexp) +
-                     ': $\epsilon_p$ = ' + str(round(reg.eps_p[0], 1)) +
-                     ': $\epsilon_q$ = ' + str(round(reg.eps_q[0], 2)))
+                     ': $\epsilon_p$ = ' + str(round(reg.eps_p, 1)) +
+                     ': $\epsilon_q$ = ' + str(round(reg.eps_q, 2)))
         ax = plt.subplot(221)
         dat = mesh.plotSlice(Lpout, ax=ax, normal='Z', ind=-16,
                              clim=(vmin, vmax), pcolorOpts={'cmap': 'bwr'})
