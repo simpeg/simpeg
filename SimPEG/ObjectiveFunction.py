@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
+from __future__ import division
 
 import numpy as np
 import scipy.sparse as sp
@@ -141,6 +142,9 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
         return self * multiplier
 
     def __div__(self, denominator):
+        return self.__mul__(1./denominator)
+
+    def __rdiv__(self, denominator):
         return self.__mul__(1./denominator)
 
 

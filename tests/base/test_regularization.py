@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division
 import numpy as np
 import unittest
 from SimPEG import Mesh, Maps, Regularization, Utils, Tests, ObjectiveFunction
