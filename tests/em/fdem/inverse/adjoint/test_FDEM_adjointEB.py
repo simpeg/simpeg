@@ -19,6 +19,7 @@ addrandoms = True
 
 SrcList = ['RawVec', 'MagDipole'] #or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'
 
+
 def adjointTest(fdemType, comp):
     prb = getFDEMProblem(fdemType, comp, SrcList, freq)
     # prb.solverOpts = dict(check_accuracy=True)
