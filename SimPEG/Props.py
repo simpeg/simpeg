@@ -33,7 +33,7 @@ class Float(properties.Float):
 
 class Integer(properties.Integer):
 
-    info_text = 'an Integer of *'
+    info_text = 'an Integer or *'
 
     def validate(self, instance, value):
         if isinstance(value, str):
