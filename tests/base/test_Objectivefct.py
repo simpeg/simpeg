@@ -89,6 +89,9 @@ class TestBaseObjFct(unittest.TestCase):
             phi.deriv2(x)
 
     def test_ZeroObjFct(self):
+        # This is not a combo objective function, it will just give back an
+        # L2 objective function. That might be ok? or should this be a combo
+        # objective function?
         phi = (
             ObjectiveFunction.L2ObjectiveFunction() +
             Utils.Zero()*ObjectiveFunction.L2ObjectiveFunction()
@@ -97,6 +100,27 @@ class TestBaseObjFct(unittest.TestCase):
 
         self.assertTrue(phi.test())
 
+    def test_updateMultipliers(self):
+        nP = 10
+
+        m = np.random.rand(nP)
+
+        W1 = Utils.sdiag(np.random.rand(nP))
+        W2 = Utils.sdiag(np.random.rand(nP))
+
+        phi1 = ObjectiveFunction.L2ObjectiveFunction(W=W1)
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(W=W2)
+
+        phi = phi1 + phi2
+
+        assert(phi(m) == phi1(m) + phi2(m))
+
+        phi.multipliers[0] = Utils.Zero()
+        assert(phi(m) == phi2(m))
+
+        phi.multipliers[0] = 1.
+        phi.multipliers[1] = Utils.Zero()
+        assert(phi(m) == phi1(m))
 
 if __name__ == '__main__':
     unittest.main()

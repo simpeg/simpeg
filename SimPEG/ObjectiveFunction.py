@@ -97,6 +97,8 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
         deriv2 = self._test_deriv2(x=x, num=num, plotIt=False, **kwargs)
         return (deriv & deriv2)
 
+    __numpy_ufunc__ = True
+
     def __add__(self, objfct2):
 
         if isinstance(objfct2, Utils.Zero):
@@ -205,13 +207,19 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     def _eval(self, x, **kwargs):
         f = 0.0
         for multpliter, objfct in zip(self.multipliers, self.objfcts):
-            f += multpliter * objfct(x, **kwargs)
+            if isinstance(multpliter, Utils.Zero):  # don't evaluate the fct
+                pass
+            else:
+                f += multpliter * objfct(x, **kwargs)
         return f
 
     def deriv(self, x, **kwargs):
         g = Utils.Zero()
         for multpliter, objfct in zip(self.multipliers, self.objfcts):
-            g += multpliter * objfct.deriv(x, **kwargs)
+            if isinstance(multpliter, Utils.Zero):  # don't evaluate the fct
+                pass
+            else:
+                g += multpliter * objfct.deriv(x, **kwargs)
         return g
 
     def deriv2(self, x, **kwargs):
