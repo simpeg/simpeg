@@ -75,7 +75,8 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
                 x = np.random.randn(self.nP)
 
         return checkDerivative(
-            lambda m: [self(m), self.deriv(m)], x, num=num, plotIt=plotIt
+            lambda m: [self(m), self.deriv(m)], x, num=num, plotIt=plotIt,
+            **kwargs
         )
 
     def _test_deriv2(self, x=None, num=4, plotIt=False, **kwargs):
@@ -88,7 +89,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
 
         return checkDerivative(
             lambda m: [self.deriv(m), self.deriv2(m)], x, num=num,
-            plotIt=plotIt
+            plotIt=plotIt, **kwargs
         )
 
     def test(self, x=None, num=4, plotIt=False, **kwargs):

@@ -90,16 +90,14 @@ class RegularizationTests(unittest.TestCase):
                     if mesh.dim == 1:
                         indActive = Utils.mkvc(mesh.gridCC <= 0.8)
                     elif mesh.dim == 2:
-                        indActive = (
-                            Utils.mkvc(mesh.gridCC[:, -1] <=
-                                2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5)
+                        indActive = Utils.mkvc(mesh.gridCC[:, -1] <= (
+                            2*np.sin(2*np.pi*mesh.gridCC[:, 0])+0.5)
                         )
                     elif mesh.dim == 3:
-                        indActive = (
-                            Utils.mkvc(mesh.gridCC[:, -1] <=
-                            2 * np.sin(2*np.pi*mesh.gridCC[:,0])+0.5 *
-                            2 * np.sin(2*np.pi*mesh.gridCC[:,1])+0.5)
-                        )
+                        indActive = Utils.mkvc(mesh.gridCC[:, -1] <= (
+                                2 * np.sin(2*np.pi*mesh.gridCC[:, 0])+0.5 *
+                                2 * np.sin(2*np.pi*mesh.gridCC[:, 1])+0.5)
+                            )
 
                     if mesh.dim < 3 and r.__name__[-1] == 'z':
                         continue
@@ -123,7 +121,7 @@ class RegularizationTests(unittest.TestCase):
                         passed = reg(mref) < TOL
                         self.assertTrue(passed)
 
-                        passed = reg.test(m)
+                        passed = reg.test(m, eps=TOL)
                         self.assertTrue(passed)
 
     if testRegMesh:
