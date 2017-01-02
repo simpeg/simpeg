@@ -33,7 +33,7 @@ class IdentityMap(object):
                 assert nP == '*', (
                     "nP must be an integer or '*', not {}".format(nP)
                 )
-            assert isinstance(nP, integer_types), (
+            assert isinstance(nP, integer_types + (np.int64,)), (
                 'Number of parameters must be an integer. Not `{}`.'
                 .format(type(nP))
             )
