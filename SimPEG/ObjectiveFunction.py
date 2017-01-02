@@ -203,7 +203,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         return self._multipliers
 
     def _eval(self, x, **kwargs):
-        f = Utils.Zero()
+        f = 0.0
         for multpliter, objfct in zip(self.multipliers, self.objfcts):
             f += multpliter * objfct(x, **kwargs)
         return f
