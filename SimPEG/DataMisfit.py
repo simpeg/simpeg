@@ -3,6 +3,7 @@ import numpy as np
 from . import Utils
 from . import Survey
 from . import ObjectiveFunction
+from .Tests import checkDerivative
 
 
 class BaseDataMisfit(ObjectiveFunction.L2ObjectiveFunction):
@@ -24,6 +25,21 @@ class BaseDataMisfit(ObjectiveFunction.L2ObjectiveFunction):
             self.survey = survey
             self.prob   = survey.prob
         super(BaseDataMisfit, self).__init__(**kwargs)
+
+    @property
+    def nP(self):
+        if self._mapping is not None:
+            return self.mapping.nP
+        elif self.prob.model is not None:
+            return len(self.prob.model)
+        else:
+            return '*'
+
+    @property
+    def Wd(self):
+        raise AttributeError(
+            'The `Wd` property been depreciated, please use: `W` instead'
+        )
 
 
 class l2_DataMisfit(BaseDataMisfit):
@@ -89,6 +105,13 @@ class l2_DataMisfit(BaseDataMisfit):
 
     @W.setter
     def W(self, value):
+        if len(value.shape) < 2:
+            value = Utils.sdiag(value)
+        assert value.shape == (self.survey.nD, self.survey.nD), (
+            'W must have shape ({nD},{nD}), not ({val0}, val{1})'.format(
+                nD=self.survey.nD, val0=value.shape[0], val1=value.shape[1]
+            )
+        )
         self._W = value
 
     @Utils.timeIt
@@ -137,4 +160,18 @@ class l2_DataMisfit(BaseDataMisfit):
             f = self.prob.fields(m)
         return self.prob.Jtvec_approx(
             m, self.W * (self.W * self.prob.Jvec_approx(m, v, f=f)), f=f
+        )
+
+    def _test_deriv2(self, x=None, num=4, plotIt=False, **kwargs):
+        print('Testing {0!s} Deriv2'.format(self.__class__.__name__))
+        if x is None:
+            if self.nP == '*':
+                x = np.random.randn(np.random.randint(1e2, high=1e3))
+            else:
+                x = np.random.randn(self.nP)
+
+        v = x + 0.001*np.random.rand(self.nP)
+        return checkDerivative(
+            lambda m: [self.deriv(m).dot(v), self.deriv2(m, v=v)], x, num=num,
+            plotIt=plotIt, expectedOrder=1, **kwargs
         )

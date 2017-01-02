@@ -24,7 +24,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
     debug = False
 
     mapPair = Maps.IdentityMap  #: Base class of expected maps
-    mapping = None  #: An IdentityMap instance.
+    _mapping = None  #: An IdentityMap instance.
 
     _nP = None
 
@@ -41,6 +41,22 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
         if getattr(self, 'mapping', None) is not None:
             return self.mapping.nP
         return '*'
+
+    @property
+    def mapping(self):
+        if getattr(self, '_mapping') is None:
+            if getattr(self, '_nP') is not None:
+                self._mapping = self.mapPair(nP=self.nP)
+            else:
+                self._mapping = self.mapPair()
+        return self._mapping
+
+    @mapping.setter
+    def mapping(self, value):
+        assert issubclass(value, self.mapPair), (
+            'mapping must be an instance of a {}, not a {}'
+        ).format(self.mapPair, value.__class__.__name__)
+
 
     @Utils.timeIt
     def _eval(self, x, **kwargs):
@@ -203,6 +219,11 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     @property
     def multipliers(self):
         return self._multipliers
+
+    @multipliers.setter
+    def multipliers(self, value):
+        self._multipliers = value
+
 
     def _eval(self, x, **kwargs):
         f = 0.0

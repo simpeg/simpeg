@@ -103,7 +103,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Data misfit function
         dmis = DataMisfit.l2_DataMisfit(survey)
-        dmis.Wd = 1/wd
+        dmis.W = 1/wd
 
         # Add directives to the inversion
         opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,

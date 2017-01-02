@@ -69,7 +69,7 @@ class IdentityMap(object):
             :return: shape of the operator as a tuple (int,int)
         """
         if self.mesh is None:
-            return ('*', self.nP)
+            return (self.nP, self.nP)
         return (self.mesh.nC, self.nP)
 
     def _transform(self, m):

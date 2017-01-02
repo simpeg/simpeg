@@ -9,7 +9,7 @@ from SimPEG import Mesh, Maps, Regularization, Utils, Tests, ObjectiveFunction
 from scipy.sparse.linalg import dsolve
 import inspect
 
-TOL = 1e-9
+TOL = 1e-8
 testReg = True
 testRegMesh = True
 
