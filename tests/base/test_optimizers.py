@@ -10,6 +10,7 @@ from SimPEG.Tests import getQuadratic, Rosenbrock
 
 TOL = 1e-2
 
+
 class TestOptimizers(unittest.TestCase):
 
     def setUp(self):
