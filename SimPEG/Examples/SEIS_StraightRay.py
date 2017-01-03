@@ -91,6 +91,18 @@ class StraightRaySurvey(Survey.LinearSurvey):
     def projectFields(self, u):
         return u
 
+    def plot(self, ax=None):
+        if ax is None:
+            ax = plt.subplot(111)
+        for tx in self.txList:
+            ax.plot(tx.loc[0], tx.loc[1], 'ws', ms=8)
+
+            for rx in tx.rxList:
+                for loc_i in range(rx.locs.shape[0]):
+                    ax.plot(rx.locs[loc_i, 0],rx.locs[loc_i, 1], 'w^', ms=8)
+                    ax.plot(np.r_[tx.loc[0], rx.locs[loc_i, 0]], np.r_[tx.loc[1], rx.locs[loc_i, 1]], 'w-', lw=0.5, alpha=0.8)
+
+
 
 class StraightRayProblem(Problem.LinearProblem):
 
@@ -159,9 +171,9 @@ if __name__ == '__main__':
     survey.std = 0.01
     plt.plot(survey.dobs)
     plt.plot(survey.dpred(s*0+1.5))
-    M.plotImage(s)
-
-    # plt.show()
+    ax = plt.subplot(111)
+    M.plotImage(s, ax=ax)
+    survey.plot(ax=ax)
 
     # Create an optimization program
     opt = Optimization.InexactGaussNewton(maxIter=10)
