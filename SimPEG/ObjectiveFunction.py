@@ -228,7 +228,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     def _eval(self, x, **kwargs):
         f = 0.0
         for multpliter, objfct in zip(self.multipliers, self.objfcts):
-            if isinstance(multpliter, Utils.Zero):  # don't evaluate the fct
+            if isinstance(multpliter, Utils.Zero): #or == 0. # don't evaluate the fct
                 pass
             else:
                 f += multpliter * objfct(x, **kwargs)
