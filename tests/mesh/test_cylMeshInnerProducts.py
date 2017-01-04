@@ -9,6 +9,7 @@ import scipy.sparse as sp
 TOL = 1e-1
 TOLD = 0.7  # tolerance on deriv checks
 
+np.random.seed(99)
 
 class FaceInnerProductFctsIsotropic(object):
     """ Some made up face functions to test the face inner product """

@@ -38,6 +38,7 @@ class BaseMagSurvey(Survey.BaseSurvey):
             self._Qfz = self.prob.mesh.getInterpolationMat(self.rxLoc, 'Fz')
         return self._Qfz
 
+
     def projectFields(self, u):
         """
             This function projects the fields onto the data space.

@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 
 def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
                ax=None, mask=None, level=None, figname=None,
-               ncontour=10, dataloc=False, contourOpts={}, clim=None):
+               ncontour=10, dataloc=False, contourOpts={},
+               scale="linear", clim=None):
     """
 
         Take unstructured xy points, interpolate, then plot in 2D
@@ -39,8 +40,12 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
         F = LinearNDInterpolator(xyz[:,:2], data)
         DATA = F(xy)
         DATA = DATA.reshape(X.shape)
+        if scale == "log":
+            DATA = np.log10(abs(DATA))
         cont = ax.contourf(X, Y, DATA, ncontour, **contourOpts)
         if level is not None:
+            if scale == "log":
+                level = np.log10(level)
             CS = ax.contour(X, Y, DATA, level, colors="k", linewidths=2)
 
     else:
@@ -54,6 +59,9 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
         DATA = np.sqrt(DATAx**2+DATAy**2).reshape(X.shape)
         DATAx = DATAx.reshape(X.shape)
         DATAy = DATAy.reshape(X.shape)
+        if scale == "log":
+            DATA = np.log10(abs(DATA))
+
         cont = ax.contourf(X, Y, DATA, ncontour, **contourOpts)
         ax.streamplot(X, Y, DATAx, DATAy, color="w")
         if level is not None:

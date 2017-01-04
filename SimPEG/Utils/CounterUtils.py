@@ -1,8 +1,9 @@
 from __future__ import print_function
-import types
+from six import string_types
 import time
 import numpy as np
 from functools import wraps
+
 
 class Counter(object):
     """
@@ -11,7 +12,8 @@ class Counter(object):
 
         Also has plotting functions that allow quick recalls of data.
 
-        If you want to use this, import *count* or *timeIt* and use them as decorators on class methods.
+        If you want to use this, import *count* or *timeIt* and use them as
+        decorators on class methods.
 
         ::
 
@@ -41,7 +43,7 @@ class Counter(object):
         """
             Increases the count of the property.
         """
-        assert type(prop) is str, 'The property must be a string.'
+        assert isinstance(prop, string_types), 'The property must be a string.'
         if prop not in self._countList:
             self._countList[prop] = 0
         self._countList[prop] += 1
@@ -50,7 +52,7 @@ class Counter(object):
         """
             Times a property call, this is the init call.
         """
-        assert type(prop) is str, 'The property must be a string.'
+        assert isinstance(prop, string_types), 'The property must be a string.'
         if prop not in self._timeList:
             self._timeList[prop] = []
         self._timeList[prop].append(-time.time())
@@ -59,7 +61,7 @@ class Counter(object):
         """
             Times a property call, this is the end call.
         """
-        assert type(prop) is str, 'The property must be a string.'
+        assert isinstance(prop, string_types), 'The property must be a string.'
         assert prop in self._timeList, 'The property must already be in the dictionary.'
         self._timeList[prop][-1] += time.time()
 
@@ -69,28 +71,33 @@ class Counter(object):
         """
         print('Counters:')
         for prop in sorted(self._countList):
-            print("  {0:<40}: {1:8d}".format(prop,self._countList[prop]))
+            print("  {0:<40}: {1:8d}".format(prop, self._countList[prop]))
         print('\nTimes:'+' '*40+'mean      sum')
         for prop in sorted(self._timeList):
             l = len(self._timeList[prop])
             a = np.array(self._timeList[prop])
-            print("  {0:<40}: {1:4.2e}, {2:4.2e}, {3:4d}x".format(prop,a.mean(),a.sum(),l))
+            print("  {0:<40}: {1:4.2e}, {2:4.2e}, {3:4d}x".format(prop, a.mean(), a.sum(), l))
+
 
 def count(f):
     @wraps(f)
-    def wrapper(self,*args,**kwargs):
-        counter = getattr(self,'counter',None)
-        if type(counter) is Counter: counter.count(self.__class__.__name__+'.'+f.__name__)
-        out = f(self,*args,**kwargs)
+    def wrapper(self, *args, **kwargs):
+        counter = getattr(self, 'counter', None)
+        if type(counter) is Counter:
+            counter.count(self.__class__.__name__+'.'+f.__name__)
+        out = f(self, *args, **kwargs)
         return out
     return wrapper
 
+
 def timeIt(f):
     @wraps(f)
-    def wrapper(self,*args,**kwargs):
-        counter = getattr(self,'counter',None)
-        if type(counter) is Counter: counter.countTic(self.__class__.__name__+'.'+f.__name__)
-        out = f(self,*args,**kwargs)
-        if type(counter) is Counter: counter.countToc(self.__class__.__name__+'.'+f.__name__)
+    def wrapper(self, *args, **kwargs):
+        counter = getattr(self, 'counter', None)
+        if type(counter) is Counter:
+            counter.countTic(self.__class__.__name__+'.'+f.__name__)
+        out = f(self, *args, **kwargs)
+        if type(counter) is Counter:
+            counter.countToc(self.__class__.__name__+'.'+f.__name__)
         return out
     return wrapper

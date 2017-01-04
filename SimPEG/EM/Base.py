@@ -6,11 +6,8 @@ from __future__ import unicode_literals
 from SimPEG import Survey
 from SimPEG import Problem
 from SimPEG import Utils
-from SimPEG import Models
 from SimPEG import Maps
 from SimPEG import Props
-from SimPEG import np
-from SimPEG import sp
 from SimPEG import Solver as SimpegSolver
 from scipy.constants import mu_0
 
@@ -115,7 +112,9 @@ class BaseEMProblem(Problem.BaseProblem):
             self._Vol = Utils.sdiag(self.mesh.vol)
         return self._Vol
 
-    # ----- Magnetic Permeability ----- #
+    ####################################################
+    # Magnetic Permeability
+    ####################################################
     @property
     def MfMui(self):
         """
@@ -126,6 +125,17 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MfMui = self.mesh.getFaceInnerProduct(self.mui)
         return self._MfMui
 
+    def MfMuiDeriv(self, u):
+        """
+        Derivative of :code:`MfMui` with respect to the model.
+        """
+        if self.muiMap is None:
+            return Utils.Zero()
+
+        return (
+            self.mesh.getFaceInnerProductDeriv(self.mui)(u) * self.muiDeriv
+        )
+
     @property
     def MfMuiI(self):
         """
@@ -134,6 +144,26 @@ class BaseEMProblem(Problem.BaseProblem):
         if getattr(self, '_MfMuiI', None) is None:
             self._MfMuiI = self.mesh.getFaceInnerProduct(self.mui, invMat=True)
         return self._MfMuiI
+
+    # TODO: This should take a vector
+    def MfMuiIDeriv(self, u):
+        """
+        Derivative of :code:`MfMui` with respect to the model
+        """
+
+        if self.muiMap is None:
+            return Utils.Zero()
+
+        if len(self.mui.shape) > 1:
+            if self.mui.shape[1] > self.mesh.dim:
+                raise NotImplementedError(
+                        "Full anisotropy is not implemented for MfMuiIDeriv."
+                )
+
+        dMfMuiI_dI = -self.MfMuiI**2
+        dMf_dmui = self.mesh.getEdgeInnerProductDeriv(self.mui)(u)
+        return dMfMuiI_dI * (dMf_dmui * self.muiDeriv)
+
 
     @property
     def MeMu(self):
@@ -145,6 +175,17 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MeMu = self.mesh.getEdgeInnerProduct(self.mu)
         return self._MeMu
 
+    def MeMuDeriv(self, u):
+        """
+        Derivative of :code:`MeMu` with respect to the model.
+        """
+        if self.muMap is None:
+            return Utils.Zero()
+
+        return (
+            self.mesh.getEdgeInnerProductDeriv(self.mu)(u) * self.muDeriv
+        )
+
     @property
     def MeMuI(self):
         """
@@ -154,7 +195,28 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MeMuI = self.mesh.getEdgeInnerProduct(self.mu, invMat=True)
         return self._MeMuI
 
-    # ----- Electrical Conductivity ----- #
+    # TODO: This should take a vector
+    def MeMuIDeriv(self, u):
+        """
+        Derivative of :code:`MeMuI` with respect to the model
+        """
+
+        if self.muMap is None:
+            return Utils.Zero()
+
+        if len(self.mu.shape) > 1:
+            if self.mu.shape[1] > self.mesh.dim:
+                raise NotImplementedError(
+                    "Full anisotropy is not implemented for MeMuIDeriv."
+                )
+
+        dMeMuI_dI = -self.MeMuI**2
+        dMe_dmu = self.mesh.getEdgeInnerProductDeriv(self.mu)(u)
+        return dMeMuI_dI * (dMe_dmu * self.muDeriv)
+
+    ####################################################
+    # Electrical Conductivity
+    ####################################################
     @property
     def MeSigma(self):
         """
@@ -170,7 +232,14 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of MeSigma with respect to the model
         """
-        return self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) * self.sigmaDeriv
+        if self.sigmaMap is None:
+            return Utils.Zero()
+
+        return (
+            self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) *
+            self.sigmaDeriv
+        )
+
 
     @property
     def MeSigmaI(self):
@@ -184,10 +253,16 @@ class BaseEMProblem(Problem.BaseProblem):
     # TODO: This should take a vector
     def MeSigmaIDeriv(self, u):
         """
-        Derivative of :code:`MeSigma` with respect to the model
+        Derivative of :code:`MeSigmaI` with respect to the model
         """
-        # TODO: only works for diagonal tensors. getEdgeInnerProductDeriv,
-        #       invMat=True should be implemented in SimPEG
+        if self.sigmaMap is None:
+            return Utils.Zero()
+
+        if len(self.sigma.shape) > 1:
+            if self.sigma.shape[1] > self.mesh.dim:
+                raise NotImplementedError(
+                    "Full anisotropy is not implemented for MeSigmaIDeriv."
+                )
 
         dMeSigmaI_dI = -self.MeSigmaI**2
         dMe_dsig = self.mesh.getEdgeInnerProductDeriv(self.sigma)(u)
@@ -196,7 +271,8 @@ class BaseEMProblem(Problem.BaseProblem):
     @property
     def MfRho(self):
         """
-            Face inner product matrix for \\(\\rho\\). Used in the H-J formulation
+        Face inner product matrix for \\(\\rho\\). Used in the H-J
+        formulation
         """
         if getattr(self, '_MfRho', None) is None:
             self._MfRho = self.mesh.getFaceInnerProduct(self.rho)
@@ -207,7 +283,12 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of :code:`MfRho` with respect to the model.
         """
-        return self.mesh.getFaceInnerProductDeriv(self.rho)(u) * self.rhoDeriv
+        if self.rhoMap is None:
+            return Utils.Zero()
+
+        return (
+            self.mesh.getFaceInnerProductDeriv(self.rho)(u) * self.rhoDeriv
+        )
 
     @property
     def MfRhoI(self):
@@ -218,12 +299,20 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MfRhoI = self.mesh.getFaceInnerProduct(self.rho, invMat=True)
         return self._MfRhoI
 
-    # TODO: This isn't going to work yet
     # TODO: This should take a vector
     def MfRhoIDeriv(self, u):
         """
             Derivative of :code:`MfRhoI` with respect to the model.
         """
+        if self.rhoMap is None:
+            return Utils.Zero()
+
+        if len(self.rho.shape) > 1:
+            if self.rho.shape[1] > self.mesh.dim:
+                raise NotImplementedError(
+                    "Full anisotropy is not implemented for MfRhoIDeriv."
+                )
+
         dMfRhoI_dI = -self.MfRhoI**2
         dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
         return dMfRhoI_dI * (dMf_drho * self.rhoDeriv)

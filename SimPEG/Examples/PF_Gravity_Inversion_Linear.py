@@ -16,7 +16,7 @@ from SimPEG import PF
 def run(plotIt=True):
     """
         PF: Gravity: Inversion Linear
-        ===============================
+        =============================
 
         Create a synthetic block model and invert
         with a compact norm
@@ -81,7 +81,7 @@ def run(plotIt=True):
     idenMap = Maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
-    prob = PF.Gravity.GravityIntegral(mesh, mapping=idenMap, actInd=actv)
+    prob = PF.Gravity.GravityIntegral(mesh, rhoMap=idenMap, actInd=actv)
 
     # Pair the survey and problem
     survey.pair(prob)

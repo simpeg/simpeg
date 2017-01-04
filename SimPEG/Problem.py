@@ -13,7 +13,7 @@ import properties
 Solver = Utils.SolverUtils.Solver
 
 
-class BaseProblem(Props.BaseSimPEG):
+class BaseProblem(Props.HasModel):
     """Problem is the base class for all geophysical forward problems
     in SimPEG.
     """
@@ -38,8 +38,6 @@ class BaseProblem(Props.BaseSimPEG):
 
     #: A SimPEG.Mesh instance.
     mesh = None
-
-    model = Props.Model("Inversion model.")
 
     def __init__(self, mesh, **kwargs):
         if 'mapping' in kwargs:
@@ -81,6 +79,23 @@ class BaseProblem(Props.BaseSimPEG):
         raise Exception(
             'Depreciate: use `SimPEG.Depreciate.use_old_mappings()`'
         )
+
+    @property
+    def curModel(self):
+        """
+        Setting the curModel is depreciated.
+
+        Use `SimPEG.Problem.model` instead.
+        """
+        raise AttributeError(
+            'curModel is depreciated. Use `SimPEG.Problem.model` instead'
+            )
+
+    @curModel.setter
+    def curModel(self, value):
+        raise AttributeError(
+            'curModel is depreciated. Use `SimPEG.Problem.model` instead'
+            )
 
     @property
     def survey(self):

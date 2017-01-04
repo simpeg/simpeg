@@ -78,7 +78,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         # Create the forward model operator
         prob = PF.Gravity.GravityIntegral(
             mesh,
-            mapping=idenMap,
+            rhoMap=idenMap,
             actInd=actv
         )
 
