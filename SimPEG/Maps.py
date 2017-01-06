@@ -14,6 +14,7 @@ from numpy.polynomial import polynomial
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy.interpolate import UnivariateSpline
+from scipy.constants import mu_0
 
 from . import Utils
 from .Tests import checkDerivative
@@ -519,6 +520,56 @@ class LogMap(IdentityMap):
         return np.exp(Utils.mkvc(m))
 
 
+class ChiMap(IdentityMap):
+    """Chi Map
+
+    Convert Magnetic Susceptibility to Magnetic Permeability.
+
+    .. math::
+
+        \mu(m) = \mu_0 (1 + \chi(m))
+
+    """
+
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(ChiMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+
+    def _transform(self, m):
+        return mu_0 * (1 + m)
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return mu_0 * v
+        return mu_0 * sp.eye(self.nP)
+
+    def inverse(self, m):
+        return m / mu_0 - 1
+
+
+class MuRelative(IdentityMap):
+    """
+    Invert for relative permeability
+
+    .. math::
+
+        \mu(m) = \mu_0 * \mathbf{m}
+    """
+
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(MuRelative, self).__init__(mesh=mesh, nP=nP, **kwargs)
+
+    def _transform(self, m):
+        return mu_0 * m
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return mu_0 * v
+        return mu_0 * sp.eye(self.nP)
+
+    def inverse(self, m):
+        return 1./mu_0 * m
+
+
 class Weighting(IdentityMap):
     """
         Model weight parameters.
@@ -604,7 +655,6 @@ class ComplexMap(IdentityMap):
 #                 Surjection, Injection and Interpolation Maps                #
 #                                                                             #
 ###############################################################################
-
 
 class SurjectFull(IdentityMap):
     """
@@ -1404,10 +1454,11 @@ class ParametrizedLayer(IdentityMap):
 
         .. code:: python
 
-            m = [val_background,
-                 val_layer,
-                 layer_center,
-                 layer_thickness
+            m = [
+                val_background,
+                val_layer,
+                layer_center,
+                layer_thickness
             ]
 
 
@@ -1442,16 +1493,22 @@ class ParametrizedLayer(IdentityMap):
         if self.slope is None:
             self.slope = self.slopeFact / np.hstack(self.mesh.h).min()
 
-        self.x = [self.mesh.gridCC[:, 0] if self.indActive is None else
-                  self.mesh.gridCC[self.indActive, 0]][0]
+        self.x = [
+            self.mesh.gridCC[:, 0] if self.indActive is None else
+            self.mesh.gridCC[self.indActive, 0]
+        ][0]
 
         if self.mesh.dim > 1:
-            self.y = [self.mesh.gridCC[:, 1] if self.indActive is None else
-                      self.mesh.gridCC[self.indActive, 1]][0]
+            self.y = [
+                self.mesh.gridCC[:, 1] if self.indActive is None else
+                self.mesh.gridCC[self.indActive, 1]
+            ][0]
 
         if self.mesh.dim > 2:
-            self.z = [self.mesh.gridCC[:, 2] if self.indActive is None else
-                      self.mesh.gridCC[self.indActive, 2]][0]
+            self.z = [
+                self.mesh.gridCC[:, 2] if self.indActive is None else
+                self.mesh.gridCC[self.indActive, 2]
+            ][0]
 
     @property
     def nP(self):
