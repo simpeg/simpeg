@@ -32,7 +32,7 @@ Variable Locations and Terminology
 
 We will go over the basics of using a TensorMesh, but these skills are transferable
 to the other meshes available in SimPEG. All of the mesh generation code is located
-in the Mesh package in SimPEG (i.e. SimPEG.Mesh).
+in the Mesh package in SimPEG (i.e. discretize).
 
 
 To create a TensorMesh we need to create mesh tensors, the widths of
@@ -189,6 +189,6 @@ other types of meshes in this SimPEG framework.
 The API
 =======
 
-.. autoclass:: SimPEG.Mesh.BaseMesh.BaseMesh
+.. autoclass:: discretize.BaseMesh.BaseMesh
     :members:
     :undoc-members:

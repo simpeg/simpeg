@@ -1,6 +1,4 @@
-from SimPEG import Maps, Survey, Utils, np, sp
-from scipy.constants import mu_0
-import re
+from SimPEG import Survey
 
 
 class LinearSurvey(Survey.BaseSurvey):

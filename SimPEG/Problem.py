@@ -36,7 +36,7 @@ class BaseProblem(Props.HasModel):
     #: Solver options as a kwarg dict
     solverOpts = {}
 
-    #: A SimPEG.Mesh instance.
+    #: A discretize instance.
     mesh = None
 
     def __init__(self, mesh, **kwargs):
@@ -60,7 +60,7 @@ class BaseProblem(Props.HasModel):
                     kwargs['{}Map'.format(name)] = propmap
         super(BaseProblem, self).__init__(**kwargs)
         assert isinstance(mesh, Mesh.BaseMesh), (
-            "mesh must be a SimPEG.Mesh object."
+            "mesh must be a discretize object."
         )
         self.mesh = mesh
 

@@ -1,4 +1,5 @@
-from SimPEG import Mesh, np, Utils
+import numpy as np
+from SimPEG import Mesh, Utils
 from scipy.special import ellipk, ellipe
 from scipy.constants import mu_0
 
@@ -15,7 +16,7 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1.,
         at given locations 'ref. <http://en.wikipedia.org/wiki/Dipole#Magnetic_vector_potential>'
 
         :param numpy.ndarray srcLoc: Location of the source(s) (x, y, z)
-        :param numpy.ndarray,SimPEG.Mesh obsLoc: Where the potentials will be
+        :param numpy.ndarray,discretize obsLoc: Where the potentials will be
                                                  calculated (x, y, z) or a
                                                  SimPEG Mesh
         :param str,list component: The component to calculate - 'x', 'y', or
@@ -201,7 +202,7 @@ def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, orientation='
         at given locations
 
         :param numpy.ndarray srcLoc: Location of the source(s) (x, y, z)
-        :param numpy.ndarray,SimPEG.Mesh obsLoc: Where the potentials will be calculated (x, y, z) or a SimPEG Mesh
+        :param numpy.ndarray,discretize obsLoc: Where the potentials will be calculated (x, y, z) or a SimPEG Mesh
         :param str,list component: The component to calculate - 'x', 'y', or 'z' if an array, or grid type if mesh, can be a list
         :param numpy.ndarray I: Input current of the loop
         :param numpy.ndarray radius: radius of the loop

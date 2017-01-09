@@ -1,6 +1,7 @@
 import SimPEG
 from SimPEG.EM.Base import BaseEMSurvey
-from SimPEG import np, sp, Survey, Utils
+from SimPEG import Survey, Utils
+import numpy as np
 from SimPEG.Utils import Zero, Identity
 from SimPEG.EM.Static.SIP.SrcSIP import BaseSrc
 from SimPEG.EM.Static.SIP.RxSIP import BaseRx

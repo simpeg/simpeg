@@ -1,4 +1,6 @@
-from SimPEG import Problem, Utils, np, sp, Solver as SimpegSolver
+from SimPEG import Problem, Utils, Solver as SimpegSolver
+import numpy as np
+import scipy.sparse as sp
 from scipy.constants import mu_0
 from .SurveyFDEM import Survey as SurveyFDEM
 from .FieldsFDEM import FieldsFDEM, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
@@ -195,7 +197,7 @@ class Problem3D_e(BaseFDEMProblem):
 
     which we solve for :math:`\mathbf{e}`.
 
-    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
+    :param discretize.BaseMesh.BaseMesh mesh: mesh
     """
 
     _solutionType = 'eSolution'
@@ -304,7 +306,7 @@ class Problem3D_b(BaseFDEMProblem):
     .. note ::
         The inverse problem will not work with full anisotropy
 
-    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
+    :param discretize.BaseMesh.BaseMesh mesh: mesh
     """
 
     _solutionType = 'bSolution'
@@ -451,7 +453,7 @@ class Problem3D_j(BaseFDEMProblem):
     .. note::
         This implementation does not yet work with full anisotropy!!
 
-    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
+    :param discretize.BaseMesh.BaseMesh mesh: mesh
     """
 
     _solutionType = 'jSolution'
@@ -585,7 +587,7 @@ class Problem3D_h(BaseFDEMProblem):
 
         \\left(\mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{s_e}
 
-    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
+    :param discretize.BaseMesh.BaseMesh mesh: mesh
     """
 
     _solutionType = 'hSolution'

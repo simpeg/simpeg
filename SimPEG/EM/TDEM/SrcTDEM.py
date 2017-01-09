@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 import SimPEG
-from SimPEG import np, Utils
+import numpy as np
+from SimPEG import Utils
 from SimPEG.Utils import Zero, Identity
 from scipy.constants import mu_0
 from SimPEG.EM.Utils import *

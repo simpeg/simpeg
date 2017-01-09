@@ -1,6 +1,7 @@
 from __future__ import print_function
-from SimPEG import np
 from SimPEG.EM.Static import DC, IP
+import numpy as np
+
 
 def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
     """
@@ -21,7 +22,7 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
         @author: dominiquef
 
     """
-    from SimPEG import np
+
     from scipy.interpolate import griddata
     import pylab as plt
 
@@ -148,9 +149,8 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
 
     plt.gca().set_aspect('equal', adjustable='box')
 
-
-
     return ph, LEG
+
 
 def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     """
@@ -175,9 +175,7 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
         !! Require clean up to deal with DCsurvey
     """
 
-    from SimPEG import np
-
-    def xy_2_r(x1,x2,y1,y2):
+    def xy_2_r(x1, x2, y1, y2):
         r = np.sqrt( np.sum((x2 - x1)**2 + (y2 - y1)**2) )
         return r
 
@@ -194,14 +192,14 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     stn_x = endl[0,0] + np.array(range(int(nstn)))*dl_x*a
     stn_y = endl[0,1] + np.array(range(int(nstn)))*dl_y*a
 
-    if mesh.dim==2:
+    if mesh.dim == 2:
         ztop = mesh.vectorNy[-1]
         # Create line of P1 locations
         M = np.c_[stn_x, np.ones(nstn).T*ztop]
         # Create line of P2 locations
         N = np.c_[stn_x+a*dl_x, np.ones(nstn).T*ztop]
 
-    elif mesh.dim==3:
+    elif mesh.dim == 3:
         ztop = mesh.vectorNz[-1]
         # Create line of P1 locations
         M = np.c_[stn_x, stn_y, np.ones(nstn).T*ztop]
@@ -213,7 +211,6 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     # Dipole-dipole: Moving tx with [a] spacing -> [AB a MN1 a MN2 ... a MNn]
     # Pole-dipole: Moving pole on one end -> [A a MN1 a MN2 ... MNn a B]
     SrcList = []
-
 
     if stype != 'gradient':
 
@@ -315,6 +312,4 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     else:
         print("""stype must be either 'pole-dipole', 'dipole-dipole' or 'gradient'. """)
 
-
     return SrcList
-

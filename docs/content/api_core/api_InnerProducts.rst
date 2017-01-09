@@ -296,6 +296,6 @@ and returned.
 The API
 -------
 
-.. autoclass:: SimPEG.Mesh.InnerProducts.InnerProducts
+.. autoclass:: discretize.InnerProducts.InnerProducts
     :members:
     :undoc-members:

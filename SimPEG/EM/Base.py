@@ -9,8 +9,8 @@ from SimPEG import Utils
 from SimPEG import Models
 from SimPEG import Maps
 from SimPEG import Props
-from SimPEG import np
-from SimPEG import sp
+import numpy as np
+import scipy.sparse as sp
 from SimPEG import Solver as SimpegSolver
 from scipy.constants import mu_0
 

@@ -305,12 +305,12 @@ class BaseRegularization(object):
     mapPair = Maps.IdentityMap    #: A SimPEG.Map Class
 
     mapping = None    #: A SimPEG.Map instance.
-    mesh    = None    #: A SimPEG.Mesh instance.
+    mesh    = None    #: A discretize instance.
     mref    = None    #: Reference model.
 
     def __init__(self, mesh=None, nP=None, mapping=None, indActive=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
-        assert isinstance(mesh, Mesh.BaseMesh), "mesh must be a SimPEG.Mesh object."
+        assert isinstance(mesh, Mesh.BaseMesh), "mesh must be a discretize object."
         if indActive is not None and indActive.dtype != 'bool':
             tmp = indActive
             indActive = np.zeros(mesh.nC, dtype=bool)

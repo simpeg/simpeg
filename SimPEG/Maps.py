@@ -1419,7 +1419,7 @@ class ParametrizedLayer(IdentityMap):
 
         **Required**
 
-        :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+        :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
         **Optional**
 
@@ -1947,7 +1947,7 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
 
         **Required**
 
-        :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+        :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
         **Optional**
 

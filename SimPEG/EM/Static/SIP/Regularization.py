@@ -1,5 +1,8 @@
-from SimPEG import Utils, Maps, Mesh, sp, np
+from SimPEG import Utils, Maps, Mesh
+import numpy as np
+import scipy.sparse as sp
 from SimPEG.Regularization import BaseRegularization, Simple
+
 
 class MultiRegularization(Simple):
     """

@@ -10,6 +10,7 @@ from __future__ import division
 from scipy.constants import mu_0
 
 import SimPEG
+import numpy as np
 from SimPEG import mkvc
 # from SimPEG.EM.Utils.EMUtils import mu_0
 
@@ -418,7 +419,7 @@ class Point_impedance1D(SimPEG.Survey.BaseRx):
         Project the fields to natural source data.
 
         :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
-        :param SimPEG.Mesh.TensorMesh mesh: Mesh defining the topology of the problem
+        :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
         :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param bool (optional) return_complex: Flag for return the complex evaluation
         :rtype: numpy.array
@@ -441,7 +442,7 @@ class Point_impedance1D(SimPEG.Survey.BaseRx):
         The derivative of the projection wrt u
 
         :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
-        :param SimPEG.Mesh.TensorMesh mesh: Mesh defining the topology of the problem
+        :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
         :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param numpy.ndarray v: vector of size (nU,) (adjoint=False)
             and size (nD,) (adjoint=True)
@@ -470,7 +471,7 @@ class Point_impedance1D(SimPEG.Survey.BaseRx):
             Z_D_uV = self._hx_u(v)
             # Evaluate
             rx_deriv = self._Hd * (Z_N_uV - self._sDiag(Z1d) * Z_D_uV)
-            rx_deriv_component = SimPEG.np.array(getattr(rx_deriv, self.component))
+            rx_deriv_component = np.array(getattr(rx_deriv, self.component))
         return rx_deriv_component
 
 
@@ -492,7 +493,7 @@ class Point_impedance3D(BaseRxNSEM_Point):
         Project the fields to natural source data.
 
             :param SrcNSEM src: The source of the fields to project
-            :param SimPEG.Mesh.TensorMesh mesh: topological mesh corresponding to the fields
+            :param discretize.TensorMesh mesh: topological mesh corresponding to the fields
             :param FieldsNSEM f: Natural source fields object to project
             :rtype: numpy.array
             :return: component of the impedance evaluation
@@ -523,7 +524,7 @@ class Point_impedance3D(BaseRxNSEM_Point):
         The derivative of the projection wrt u
 
         :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
-        :param SimPEG.Mesh.TensorMesh mesh: Mesh defining the topology of the problem
+        :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
         :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param numpy.ndarray v: vector of size (nU,) (adjoint=False)
             and size (nD,) (adjoint=True)
@@ -631,7 +632,7 @@ class Point_impedance3D(BaseRxNSEM_Point):
             Zij = self.eval(src, self.mesh, self.f, True)
             # Calculate the complex derivative
             rx_deriv_real = self._Hd * (ZijN_uV - self._sDiag(Zij) * self._Hd_uV(v))
-            rx_deriv_component = SimPEG.np.array(getattr(rx_deriv_real, self.component))
+            rx_deriv_component = np.array(getattr(rx_deriv_real, self.component))
 
         return rx_deriv_component
 
@@ -654,7 +655,7 @@ class Point_tipper3D(BaseRxNSEM_Point):
         Project the fields to natural source data.
 
         :param SrcNSEM src: The source of the fields to project
-        :param SimPEG.Mesh.TensorMesh mesh: Mesh defining the topology of the problem
+        :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
         :param FieldsNSEM f: Natural source fields object to project
         :rtype: numpy.array
         :return: Evaluated component of the impedance data
@@ -680,7 +681,7 @@ class Point_tipper3D(BaseRxNSEM_Point):
         The derivative of the projection wrt u
 
         :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
-        :param SimPEG.Mesh.TensorMesh mesh: Mesh defining the topology of the problem
+        :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
         :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param numpy.ndarray v: Random vector of size
         :rtype: numpy.array
@@ -750,6 +751,6 @@ class Point_tipper3D(BaseRxNSEM_Point):
             Tij = self.eval(src, mesh, f, True)
             # Calculate the complex derivative
             rx_deriv_complex = self._Hd * (TijN_uV - self._sDiag(Tij) * self._Hd_uV(v) )
-            rx_deriv_component = SimPEG.np.array(getattr(rx_deriv_complex, self.component))
+            rx_deriv_component = np.array(getattr(rx_deriv_complex, self.component))
 
         return rx_deriv_component

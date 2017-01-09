@@ -1,4 +1,5 @@
-from SimPEG import Survey, Problem, Utils, np, sp
+from SimPEG import Survey, Problem, Utils
+import numpy as np
 from scipy.constants import mu_0
 from SimPEG.EM.Utils import (omega, MagneticDipoleFields,
                              MagneticDipoleVectorPotential,

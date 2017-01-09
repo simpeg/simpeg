@@ -1,6 +1,7 @@
 import re
 import os
-from SimPEG import Mesh, np, Utils
+from SimPEG import Mesh, Utils
+import numpy as np
 from . import BaseMag
 from . import Magnetics
 

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 import SimPEG as simpeg
-from SimPEG import np
+import numpy as np
 from SimPEG.EM import NSEM
 
 np.random.seed(1983)

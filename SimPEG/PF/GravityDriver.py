@@ -1,5 +1,7 @@
-import re, os
-from SimPEG import Mesh, np, Utils
+import re
+import os
+from SimPEG import Mesh, Utils
+import numpy as np
 from . import BaseGrav, Gravity
 
 

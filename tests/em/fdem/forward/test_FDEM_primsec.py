@@ -4,7 +4,7 @@ from SimPEG.EM.Utils import omega
 try:
     from pymatsolver import PardisoSolver as Solver
 except ImportError:
-    import Solver as SolverLU
+    from SimPEG import Solver as SolverLU
 from SimPEG.Utils.io_utils import remoteDownload
 
 import matplotlib.pyplot as plt
