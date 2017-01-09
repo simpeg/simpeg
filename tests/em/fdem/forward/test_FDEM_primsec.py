@@ -2,14 +2,11 @@ from SimPEG import Mesh, Maps, Tests, Utils
 from SimPEG.EM import mu_0, FDEM, Analytics
 from SimPEG.EM.Utils import omega
 try:
-    from pymatsolver import PardisoSolver as Solver
+    from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import Solver as SolverLU
 from SimPEG.Utils.io_utils import remoteDownload
 
-import matplotlib.pyplot as plt
-import time
-import os
 import numpy as np
 import unittest
 

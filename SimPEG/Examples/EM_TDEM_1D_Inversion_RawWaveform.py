@@ -7,7 +7,7 @@ import SimPEG.EM as EM
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 try:
-    from pymatsolver import PardisoSolver as Solver
+    from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
 

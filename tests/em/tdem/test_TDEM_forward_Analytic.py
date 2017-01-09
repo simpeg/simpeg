@@ -7,8 +7,8 @@ from scipy.constants import mu_0
 import matplotlib.pyplot as plt
 
 try:
-    from pymatsolver import PardisoSolver
-    Solver = PardisoSolver
+    from pymatsolver import Pardiso
+    Solver = Pardiso
 except ImportError:
     Solver = SolverLU
 

@@ -7,7 +7,7 @@ from SimPEG import Utils
 from SimPEG.Tests import checkDerivative
 from SimPEG.FLOW import Richards
 try:
-    from pymatsolver import PardisoSolver as Solver
+    from pymatsolver import Pardiso as Solver
 except Exception:
     from SimPEG import Solver
 

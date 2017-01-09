@@ -6,7 +6,7 @@ from SimPEG.EM import FDEM
 import time
 
 try:
-    from pymatsolver import PardisoSolver as Solver
+    from pymatsolver import Pardiso as Solver
 except Exception:
     from SimPEG import SolverLU as Solver
 

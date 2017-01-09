@@ -6,8 +6,8 @@ from SimPEG import EM
 from scipy.interpolate import interp1d
 
 try:
-    from pymatsolver import PardisoSolver
-    Solver = PardisoSolver
+    from pymatsolver import Pardiso
+    Solver = Pardiso
 except ImportError:
     Solver = SolverLU
 

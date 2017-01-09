@@ -5,7 +5,7 @@ from SimPEG import EM
 import numpy as np
 
 try:
-    from pymatsolver import PardisoSolver as Solver
+    from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
 

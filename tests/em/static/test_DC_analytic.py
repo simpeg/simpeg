@@ -3,7 +3,7 @@ import unittest
 from SimPEG import Mesh, Utils, EM, np
 import SimPEG.EM.Static.DC as DC
 try:
-    from pymatsolver import PardisoSolver as Solver
+    from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
 
