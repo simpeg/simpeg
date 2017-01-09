@@ -1,6 +1,7 @@
 from __future__ import print_function
 import unittest
-from SimPEG import Mesh, Utils, EM, np, SolverLU
+from SimPEG import Mesh, Utils, EM, SolverLU
+import numpy as np
 import SimPEG.EM.Static.DC as DC
 
 

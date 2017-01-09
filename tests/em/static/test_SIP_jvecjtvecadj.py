@@ -1,7 +1,8 @@
 from __future__ import print_function
 import unittest
-from SimPEG import (Mesh, Utils, Maps, np, DataMisfit,
+from SimPEG import (Mesh, Utils, Maps, DataMisfit,
                     Regularization, Optimization, Inversion, InvProblem, Tests)
+import numpy as np
 from SimPEG.EM.Static import SIP
 try:
     from pymatsolver import Pardiso as Solver

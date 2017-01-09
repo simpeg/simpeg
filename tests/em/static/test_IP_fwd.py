@@ -1,6 +1,7 @@
 from __future__ import print_function
 import unittest
-from SimPEG import Mesh, Utils, Maps, np
+from SimPEG import Mesh, Utils, Maps
+import numpy as np
 import SimPEG.EM.Static.DC as DC
 import SimPEG.EM.Static.IP as IP
 try:
