@@ -1,11 +1,14 @@
 from __future__ import print_function
-from SimPEG import *
+from SimPEG import Problem
+from SimPEG import Utils
+import scipy.sparse as sp
 from . import BaseGrav as GRAV
 import re
+import numpy as np
 
 
 class GravityIntegral(Problem.LinearProblem):
-
+    """"""
     # surveyPair = Survey.LinearSurvey
     forwardOnly = False  # Is TRUE, forward matrix not stored to memory
     actInd = None  #: Active cell indices provided
@@ -51,9 +54,9 @@ class GravityIntegral(Problem.LinearProblem):
             yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
             yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
-            Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
-            Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
-            Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
+            Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+            Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+            Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
             rxLoc = self.survey.srcField.rxList[0].locs
             ndata = rxLoc.shape[0]
@@ -170,9 +173,9 @@ class GravityIntegral(Problem.LinearProblem):
         yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
         yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
-        Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
-        Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
-        Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
+        Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+        Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+        Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
         rxLoc = self.survey.srcField.rxList[0].locs
         ndata = rxLoc.shape[0]

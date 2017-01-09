@@ -1,5 +1,6 @@
 import unittest
-from SimPEG import Mesh, np, PF
+from SimPEG import Mesh, PF
+import numpy as np
 from scipy.constants import mu_0
 
 
@@ -35,7 +36,7 @@ class TestBoundaryConditionAnalytics(unittest.TestCase):
 
         if plotIt:
             import matplotlib.pyplot as plt
-            fig, ax = plt.subplots(1,1, figsize = (10, 10))
+            fig, ax = plt.subplots(1, 1, figsize = (10, 10))
             ax.plot(Bbc_ana)
             ax.plot(Bbc)
             plt.show()

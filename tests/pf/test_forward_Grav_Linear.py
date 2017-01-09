@@ -1,6 +1,6 @@
 import unittest
-from SimPEG import Mesh, Utils, np, PF, Maps, Problem, Survey, mkvc
-import matplotlib.pyplot as plt
+from SimPEG import Mesh, Utils, PF, Maps
+import numpy as np
 
 
 class GravFwdProblemTests(unittest.TestCase):

@@ -1,5 +1,6 @@
 import unittest
-from SimPEG import Mesh, Utils, np, PF, Maps, Problem, Survey, mkvc
+from SimPEG import Mesh, Utils, PF, Maps, Problem, Survey, mkvc
+import numpy as np
 import matplotlib.pyplot as plt
 
 
