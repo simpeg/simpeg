@@ -2,8 +2,6 @@ import numpy as np
 from scipy import sparse as sp
 from .matutils import mkvc, ndgrid, sub2ind, sdiag
 from .codeutils import asArray_N_x_Dim
-from .codeutils import isScalar
-import os
 
 def exampleLrmGrid(nC, exType):
     assert type(nC) == list, "nC must be a list containing the number of nodes"
@@ -63,7 +61,7 @@ def meshTensor(value):
 
     proposed = []
     for v in value:
-        if isScalar(v):
+        if np.isscalar(v):
             proposed += [float(v)]
         elif type(v) is tuple and len(v) == 2:
             proposed += [float(v[0])]*int(v[1])

@@ -245,7 +245,7 @@ class BaseTimeProblem(BaseProblem):
 
     @t0.setter
     def t0(self, value):
-        assert Utils.isScalar(value), 't0 must be a scalar'
+        assert np.isscalar(value), 't0 must be a scalar'
         del self.timeMesh
         self._t0 = float(value)
 

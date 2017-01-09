@@ -214,7 +214,7 @@ class TimeFields(Fields):
     def _setField(self, field, val, name, ind):
         srcInd, timeInd = ind
         shape = self._correctShape(name, ind)
-        if Utils.isScalar(val):
+        if np.isscalar(val):
             field[:,srcInd,timeInd] = val
             return
         if val.size != np.array(shape).prod():

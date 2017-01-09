@@ -1,7 +1,6 @@
 from __future__ import division
 import numpy as np
 import scipy.sparse as sp
-from .codeutils import isScalar
 
 
 def mkvc(x, numDims=1):
@@ -298,7 +297,7 @@ class TensorType(object):
         if tensor is None:  # default is ones
             self._tt = -1
             self._tts = 'none'
-        elif isScalar(tensor):
+        elif np.isscalar(tensor):
             self._tt = 0
             self._tts = 'scalar'
         elif tensor.size == M.nC:
@@ -344,7 +343,7 @@ def makePropertyTensor(M, tensor):
     if tensor is None:  # default is ones
         tensor = np.ones(M.nC)
 
-    if isScalar(tensor):
+    if np.isscalar(tensor):
         tensor = tensor * np.ones(M.nC)
 
     propType = TensorType(M, tensor)
@@ -379,7 +378,7 @@ def invPropertyTensor(M, tensor, returnMatrix=False):
 
     propType = TensorType(M, tensor)
 
-    if isScalar(tensor):
+    if np.isscalar(tensor):
         T = 1./tensor
     elif propType < 3:  # Isotropic or Diagonal
         T = 1./mkvc(tensor)  # ensure it is a vector.

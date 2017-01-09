@@ -834,7 +834,7 @@ class InjectActiveCells(IdentityMap):
             indActive = z
         self.indActive = indActive
         self.indInactive = np.logical_not(indActive)
-        if Utils.isScalar(valInactive):
+        if np.isscalar(valInactive):
             self.valInactive = np.ones(self.nC)*float(valInactive)
         else:
             self.valInactive = np.ones(self.nC)

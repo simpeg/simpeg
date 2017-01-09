@@ -19,7 +19,7 @@ class BaseTensorMesh(BaseMesh):
         assert len(h_in) in [1,2,3], 'h_in must be of dimension 1, 2, or 3'
         h = list(range(len(h_in)))
         for i, h_i in enumerate(h_in):
-            if Utils.isScalar(h_i) and type(h_i) is not np.ndarray:
+            if np.isscalar(h_i) and type(h_i) is not np.ndarray:
                 # This gives you something over the unit cube.
                 h_i = self._unitDimensions[i] * np.ones(int(h_i))/int(h_i)
             elif type(h_i) is list:
@@ -33,7 +33,7 @@ class BaseTensorMesh(BaseMesh):
             assert len(h) == len(x0_in), "Dimension mismatch. x0 != len(h)"
             for i in range(len(h)):
                 x_i, h_i = x0_in[i], h[i]
-                if Utils.isScalar(x_i):
+                if np.isscalar(x_i):
                     x0[i] = x_i
                 elif x_i == '0':
                     x0[i] = 0.0
@@ -302,7 +302,7 @@ class BaseTensorMesh(BaseMesh):
         if invProp:
             prop = 1./prop
 
-        if Utils.isScalar(prop):
+        if np.isscalar(prop):
             prop = prop*np.ones(self.nC)
 
         # number of elements we are averaging (equals dim for regular

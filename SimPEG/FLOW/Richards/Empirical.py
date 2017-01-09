@@ -124,7 +124,7 @@ class Haverkamp_theta(BaseWaterRetention):
             theta_r
         )
 
-        if Utils.isScalar(theta_s):
+        if np.isscalar(theta_s):
             f[u >= 0] = theta_s
         else:
             f[u >= 0] = theta_s[u >= 0]
@@ -343,7 +343,7 @@ class Vangenuchten_theta(BaseWaterRetention):
             ) +
             theta_r
         )
-        if Utils.isScalar(theta_s):
+        if np.isscalar(theta_s):
             f[u >= 0] = theta_s
         else:
             f[u >= 0] = theta_s[u >= 0]
