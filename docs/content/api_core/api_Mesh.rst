@@ -43,7 +43,8 @@ of the TensorMesh.
 .. plot::
     :include-source:
 
-    from SimPEG import Mesh, np
+    from SimPEG import Mesh
+    import numpy as np
     import matplotlib.pyplot as plt
     hx = np.r_[3,2,1,1,1,1,2,3]
     hy = np.r_[3,1,1,3]
@@ -65,7 +66,8 @@ plotted above as red circles. Other terminology for this mesh are:
 .. plot::
     :include-source:
 
-    from SimPEG import Mesh, np
+    from SimPEG import Mesh
+    import numpy as np
     import matplotlib.pyplot as plt
     hx = np.r_[3,2,1,1,1,1,2,3]
     hy = np.r_[3,1,1,3]

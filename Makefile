@@ -18,3 +18,7 @@ tests:
 
 docs:
 	cd docs;make html
+
+clean:
+	cd docs;make clean
+	find . -name "*.pyc" | xargs -I {} rm -v "{}"
