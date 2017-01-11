@@ -57,6 +57,8 @@ class Survey(BaseEMSurvey):
         :rtype: dictionary
         :return: sources at the sepcified frequency
         """
-        assert freq in self._freqDict, "The requested frequency is not in this survey."
+        assert freq in self._freqDict, (
+            "The requested frequency is not in this survey."
+        )
         return self._freqDict[freq]
 

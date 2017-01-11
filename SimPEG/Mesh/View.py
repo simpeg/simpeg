@@ -513,7 +513,28 @@ class CylView(object):
         # Hackity Hack:
         # Just create a TM and use its view.
         from SimPEG.Mesh import TensorMesh
-        M = TensorMesh([self.hx, self.hz], x0=[self.x0[0], self.x0[2]])
+
+        mirror = kwargs.pop('mirror', None)
+        if mirror is True:
+            if kwargs.get('vType', None) is not None:
+                if kwargs.get('vType', None) != 'CC':
+                    raise NotImplementedError(
+                        'Mirroring has not yet been implemented for non-cell '
+                        'centered values'
+                    )
+
+            # create a mirrored mesh
+            hx = np.hstack([np.flipud(self.hx), self.hx])
+            x00 = self.x0[0] - self.hx.sum()
+            M = TensorMesh([hx, self.hz], x0=[x00, self.x0[2]])
+
+            # mirror the data
+            if len(args) > 0:
+                tmp = args[0].reshape(self.vnC[0], self.vnC[2], order='F')
+                tmp = mkvc(np.vstack([np.flipud(tmp), tmp]))
+                args = (tmp,) + args[1:]
+        else:
+            M = TensorMesh([self.hx, self.hz], x0=[self.x0[0], self.x0[2]])
 
         ax = kwargs.get('ax', None)
         if ax is None:
@@ -533,7 +554,8 @@ class CylView(object):
         ax.set_xlabel('x')
         ax.set_ylabel('z')
 
-        if showIt: plt.show()
+        if showIt:
+            plt.show()
 
         return out
 
