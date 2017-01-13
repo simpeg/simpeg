@@ -137,8 +137,8 @@ def ExtractCoreMesh(xyzlim, mesh, meshType='tensor'):
         xmin, xmax = xyzlim[0,0], xyzlim[0,1]
         ymin, ymax = xyzlim[1,0], xyzlim[1,1]
 
+        xind = np.logical_and(mesh.vectorCCx>xmin, mesh.vectorCCx<xmax)
         yind = np.logical_and(mesh.vectorCCy>ymin, mesh.vectorCCy<ymax)
-        zind = np.logical_and(mesh.vectorCCz>zmin, mesh.vectorCCz<zmax)
 
         xc = mesh.vectorCCx[xind]
         yc = mesh.vectorCCy[yind]
