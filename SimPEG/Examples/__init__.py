@@ -3,6 +3,7 @@ from __future__ import print_function
 
 ##### AUTOIMPORTS #####
 from SimPEG.Examples import DC_Analytic_Dipole
+from SimPEG.Examples import DC_Forward_PseudoSection
 from SimPEG.Examples import EM_FDEM_1D_Inversion
 from SimPEG.Examples import EM_FDEM_Analytic_MagDipoleWholespace
 from SimPEG.Examples import EM_FDEM_Mu_Inversion
