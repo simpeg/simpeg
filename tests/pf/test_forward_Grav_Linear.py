@@ -67,17 +67,22 @@ class GravFwdProblemTests(unittest.TestCase):
         dz = self.prob_z.fields(self.model)
 
         # Compute analytical response from mass sphere
-        gxa, gya, gza = PF.GravAnalytics.GravSphereFreeSpace(self.locXyz[:, 0],
-                                                             self.locXyz[:, 1],
-                                                             self.locXyz[:, 2],
-                                                             self.rad, 0, 0, 0,
-                                                             self.rho)
+        AnaSphere = PF.GravAnalytics.GravSphereFreeSpace(self.locXyz[:, 0],
+                                                         self.locXyz[:, 1],
+                                                         self.locXyz[:, 2],
+                                                         self.rad, 0, 0, 0,
+                                                         self.rho)
 
         # Compute residual
-        err_xyz = (np.linalg.norm(d-np.r_[gxa, gya, gza]) /
-                   np.linalg.norm(np.r_[gxa, gya, gza]))
+        err_xyz = (np.linalg.norm(d-np.r_[AnaSphere['gx'],
+                                          AnaSphere['gy'],
+                                          AnaSphere['gz']]) /
+                   np.linalg.norm(np.r_[AnaSphere['gx'],
+                                        AnaSphere['gy'],
+                                        AnaSphere['gz']]))
 
-        err_tmi = np.linalg.norm(dz-gza)/np.linalg.norm(gza)
+        err_tmi = (np.linalg.norm(dz-AnaSphere['gz']) /
+                   np.linalg.norm(AnaSphere['gz']))
 
         self.assertTrue(err_xyz < 0.005 and err_tmi < 0.005)
 

@@ -77,7 +77,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         idenMap = Maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        prob = PF.Magnetics.MagneticIntegral(mesh, mapping=idenMap,
+        prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
                                              actInd=actv)
 
         # Pair the survey and problem

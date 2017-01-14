@@ -473,7 +473,7 @@ def readUBCgravObs(obs_file, gravGrad=False):
     return survey
 
 
-class Problem3D_Diff(Problem.BaseProblem):
+class Problem3D_PDE(Problem.BaseProblem):
     """
         Gravity in differential equations!
     """
