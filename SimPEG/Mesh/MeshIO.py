@@ -353,6 +353,10 @@ class TreeMeshIO(object):
         nCunderMesh = np.array(fileLines[0].
             split('!')[0].split(), dtype=float)
         # I think this is the case?
+        # Format of file changed... First 3 values are the # of cells in the
+        # underlying mesh and remaining 6 values are padding for the core region.
+        nCunderMesh  = nCunderMesh[0:3]
+
         if np.unique(nCunderMesh).size >1:
             raise Exception('SimPEG TreeMeshes have the same number of cell in all directions')
         tswCorn = np.array(fileLines[1].

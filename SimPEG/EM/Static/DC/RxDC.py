@@ -87,6 +87,9 @@ class Dipole(BaseRx):
 
 
 class Dipole_ky(BaseRx):
+    """
+    Dipole receiver for 2.5D simulations
+    """
 
     def __init__(self, locsM, locsN, rxType='phi', **kwargs):
         assert locsM.shape == locsN.shape, ('locsM and locsN need to be the '
@@ -139,7 +142,6 @@ class Dipole_ky(BaseRx):
             phi0 = phi1.copy()
         return phi
 
-# DC.Rx.Pole(loc)
 class Pole(BaseRx):
     """
     Pole receiver
@@ -147,7 +149,7 @@ class Pole(BaseRx):
 
     def __init__(self, locsM, rxType='phi', **kwargs):
 
-        locs = locsM
+        locs = np.atleast_2d(locsM)
         # We may not need this ...
         BaseRx.__init__(self, locs, rxType)
 
@@ -169,3 +171,58 @@ class Pole(BaseRx):
             self._Ps[mesh] = P
 
         return P
+
+class Pole_ky(BaseRx):
+    """
+    Pole receiver for 2.5D simulations
+    """
+
+    def __init__(self, locsM, rxType='phi', **kwargs):
+
+        locs = np.atleast_2d(locsM)
+        # We may not need this ...
+        BaseRx.__init__(self, locs, rxType)
+
+    @property
+    def nD(self):
+        """Number of data in the receiver."""
+        return self.locs.shape[0]
+
+
+    def getP(self, mesh, Gloc):
+        if mesh in self._Ps:
+            return self._Ps[mesh]
+
+        P = mesh.getInterpolationMat(self.locs, Gloc)
+        # P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
+        # P = P0 - P1
+
+        if self.storeProjections:
+            self._Ps[mesh] = P
+
+        return P
+
+    def eval(self, kys, src, mesh, f):
+        P = self.getP(mesh, self.projGLoc(f))
+        Pf = P*f[src, self.projField, :]
+        return self.IntTrapezoidal(kys, Pf, y=0.)
+
+    def evalDeriv(self, ky, src, mesh, f, v, adjoint=False):
+        P = self.getP(mesh, self.projGLoc(f))
+        if not adjoint:
+            return P*v
+        elif adjoint:
+            return P.T*v
+
+    def IntTrapezoidal(self, kys, Pf, y=0.):
+        phi = np.zeros(Pf.shape[0])
+        nky = kys.size
+        dky = np.diff(kys)
+        dky = np.r_[dky[0], dky]
+        phi0 = 1./np.pi*Pf[:, 0]
+        for iky in range(nky):
+            phi1 = 1./np.pi*Pf[:, iky]
+            phi += phi1*dky[iky]/2.*np.cos(kys[iky]*y)
+            phi += phi0*dky[iky]/2.*np.cos(kys[iky]*y)
+            phi0 = phi1.copy()
+        return phi

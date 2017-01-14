@@ -765,7 +765,6 @@ def readUBC_DC3Dobs(fileName):
 
             continue
 
-        
         temp = np.fromstring(obsfile[ii], dtype=float, sep=' ')
 
         if zflag:
@@ -786,7 +785,6 @@ def readUBC_DC3Dobs(fileName):
 
         count = count - 1
 
-        
         # Reach the end of transmitter block
         if count == 0:
             rx = np.asarray(rx)
@@ -937,59 +935,3 @@ def getSrc_locs(survey):
     srcMat = np.vstack(srcMat)
 
     return srcMat
-
-
-def gettopoCC(mesh, airind):
-    """
-        Get topography from active indices of mesh.
-    """
-
-    if mesh.dim == 3:
-
-        mesh2D = Mesh.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
-        zc = mesh.gridCC[:, 2]
-        AIRIND = airind.reshape((mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]), order='F')
-        ZC = zc.reshape((mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]), order='F')
-        topo = np.zeros(ZC.shape[0])
-        topoCC = np.zeros(ZC.shape[0])
-        for i in range(ZC.shape[0]):
-            ind  = np.argmax(ZC[i, :][~AIRIND[i, :]])
-            topo[i] = ZC[i, :][~AIRIND[i, :]].max() + mesh.hz[~AIRIND[i, :]][ind]*0.5
-            topoCC[i] = ZC[i, :][~AIRIND[i, :]].max()
-
-        return mesh2D, topoCC
-
-    elif mesh.dim == 2:
-
-        mesh1D = Mesh.TensorMesh([mesh.hx], [mesh.x0[0]])
-        yc = mesh.gridCC[:, 1]
-        AIRIND = airind.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
-        YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
-        topo = np.zeros(YC.shape[0])
-        topoCC = np.zeros(YC.shape[0])
-        for i in range(YC.shape[0]):
-            ind  = np.argmax(YC[i, :][~AIRIND[i, :]])
-            topo[i] = YC[i, :][~AIRIND[i, :]].max() + mesh.hy[~AIRIND[i, :]][ind]*0.5
-            topoCC[i] = YC[i, :][~AIRIND[i, :]].max()
-
-        return mesh1D, topoCC
-
-
-def drapeTopotoLoc(mesh, topo, pts, airind=None):
-    """
-        Drape
-    """
-    if mesh.dim == 2:
-        if pts.ndim > 1:
-            raise Exception("pts should be 1d array")
-    elif mesh.dim == 3:
-        if pts.shape[1] == 3:
-            raise Exception("shape of pts should be (x, 3)")
-    else:
-        raise NotImplementedError()
-    if airind is None:
-        airind = Utils.surface2ind_topo(mesh, topo)
-    meshtemp, topoCC = gettopoCC(mesh, ~airind)
-    inds = Utils.closestPoints(meshtemp, pts)
-
-    return np.c_[pts, topoCC[inds]]

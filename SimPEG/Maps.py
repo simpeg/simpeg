@@ -14,7 +14,7 @@ from numpy.polynomial import polynomial
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy.interpolate import UnivariateSpline
-from scipy.spatial import cKDTree
+from scipy.constants import mu_0
 
 from . import Utils
 from .Tests import checkDerivative
@@ -349,7 +349,6 @@ class Wires(object):
             )
 
         self._nP = int(np.sum([w[1] for w in args]))
-
         start = 0
         maps = []
         for arg in args:
@@ -521,6 +520,56 @@ class LogMap(IdentityMap):
         return np.exp(Utils.mkvc(m))
 
 
+class ChiMap(IdentityMap):
+    """Chi Map
+
+    Convert Magnetic Susceptibility to Magnetic Permeability.
+
+    .. math::
+
+        \mu(m) = \mu_0 (1 + \chi(m))
+
+    """
+
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(ChiMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+
+    def _transform(self, m):
+        return mu_0 * (1 + m)
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return mu_0 * v
+        return mu_0 * sp.eye(self.nP)
+
+    def inverse(self, m):
+        return m / mu_0 - 1
+
+
+class MuRelative(IdentityMap):
+    """
+    Invert for relative permeability
+
+    .. math::
+
+        \mu(m) = \mu_0 * \mathbf{m}
+    """
+
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(MuRelative, self).__init__(mesh=mesh, nP=nP, **kwargs)
+
+    def _transform(self, m):
+        return mu_0 * m
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return mu_0 * v
+        return mu_0 * sp.eye(self.nP)
+
+    def inverse(self, m):
+        return 1./mu_0 * m
+
+
 class Weighting(IdentityMap):
     """
         Model weight parameters.
@@ -606,7 +655,6 @@ class ComplexMap(IdentityMap):
 #                 Surjection, Injection and Interpolation Maps                #
 #                                                                             #
 ###############################################################################
-
 
 class SurjectFull(IdentityMap):
     """
@@ -814,89 +862,6 @@ class Mesh2Mesh(IdentityMap):
             return self.P * v
         return self.P
 
-class Mesh2MeshTopo(IdentityMap):
-    """
-        Takes a model on one mesh are translates it to another mesh
-        with consideration of topography
-
-    """
-    tree = None
-    nIterpPts = 6
-    P = None #: The CSR projection matrix.
-
-    def __init__(self, meshes, actinds, **kwargs):
-        Utils.setKwargs(self, **kwargs)
-
-        assert type(meshes) is list, "meshes must be a list of two meshes"
-        assert len(meshes) == 2, "meshes must be a list of two meshes"
-        assert type(actinds) is list, "actinds must be a list of two meshes"
-        assert len(actinds) == 2, "actinds must be a list of two meshes"
-        assert meshes[0].dim == meshes[1].dim, """The two meshes must be the same dimension"""
-
-        self.mesh  = meshes[0]
-        self.mesh2 = meshes[1]
-        self.actind = actinds[0]
-        self.actind2 = actinds[1]
-        self._createProjection()
-
-        # Old version using SimPEG interpolation
-        # self.P = self.mesh2.getInterpolationMat(self.mesh.gridCC,'CC',zerosOutside=True)
-
-    def genActiveindfromTopo(mesh, xyztopo):
-        #TODO: This possibly needs to be improved use vtk(?)
-        if mesh.dim==3:
-            nCxy = mesh.nCx*mesh.nCy
-            Zcc = mesh.gridCC[:,2].reshape((nCxy, mesh.nCz), order='F')
-            Ftopo = NearestNDInterpolator(xyztopo[:,:2], xyztopo[:,2])
-            XY = Utils.ndgrid(mesh.vectorCCx, mesh.vectorCCy)
-            XY.shape
-            topo = Ftopo(XY)
-            actind = []
-            for ixy in range(nCxy):
-                actind.append(topo[ixy] <= Zcc[ixy,:])
-        else:
-            raise NotImplementedError("Only 3D is working")
-
-        return Utils.mkvc(np.vstack(actind))
-
-    #Question .. is it only generated once?
-    def _createProjection(self):
-        """
-            KD Tree interpolation onto the active cells.
-        """
-        if self.tree==None:
-            self.tree = cKDTree(zip(self.mesh.gridCC[self.actind,0], self.mesh.gridCC[self.actind,1], self.mesh.gridCC[self.actind,2]))
-        d, inds = self.tree.query(zip(self.mesh2.gridCC[self.actind2,0],self.mesh2.gridCC[self.actind2,1],self.mesh2.gridCC[self.actind2,2]), k=self.nIterpPts)
-        # Not sure consideration of the volume ...
-        # vol = np.zeros((self.actind2.sum(), self.nIterpPts))
-        # for i in range(self.nIterpPts):
-        #     vol[:,i] = self.mesh.vol[inds[:,i]]
-        w = 1. / np.abs(d+1e-16)
-        w = Utils.sdiag(1./np.sum(w, axis=1)) * (w)
-        I = Utils.mkvc(np.arange(inds.shape[0]).reshape([-1,1]).repeat(self.nIterpPts, axis=1))
-        J = Utils.mkvc(inds)
-        print(inds.shape[0])
-        P = sp.coo_matrix( (Utils.mkvc(w),(I, J)), shape=(inds.shape[0], (self.actind).sum()) )
-        # self.P = Utils.sdiag(self.mesh2.vol[self.actind2])*P.tocsc()
-        self.P = P.tocsr()
-
-    @property
-    def shape(self):
-        """Number of parameters in the model."""
-        # return (self.mesh.nC, self.mesh2.nC)
-        return (self.actind2.sum(), self.actind.sum())
-
-    @property
-    def nP(self):
-        """Number of parameters in the model."""
-        # return self.mesh2.nC
-        return self.actind2.sum()
-
-    def _transform(self, m):
-        return self.P*m
-
-    def deriv(self, m):
-        return self.P
 
 class InjectActiveCells(IdentityMap):
     """
@@ -1489,10 +1454,11 @@ class ParametrizedLayer(IdentityMap):
 
         .. code:: python
 
-            m = [val_background,
-                 val_layer,
-                 layer_center,
-                 layer_thickness
+            m = [
+                val_background,
+                val_layer,
+                layer_center,
+                layer_thickness
             ]
 
 
@@ -1527,16 +1493,22 @@ class ParametrizedLayer(IdentityMap):
         if self.slope is None:
             self.slope = self.slopeFact / np.hstack(self.mesh.h).min()
 
-        self.x = [self.mesh.gridCC[:, 0] if self.indActive is None else
-                  self.mesh.gridCC[self.indActive, 0]][0]
+        self.x = [
+            self.mesh.gridCC[:, 0] if self.indActive is None else
+            self.mesh.gridCC[self.indActive, 0]
+        ][0]
 
         if self.mesh.dim > 1:
-            self.y = [self.mesh.gridCC[:, 1] if self.indActive is None else
-                      self.mesh.gridCC[self.indActive, 1]][0]
+            self.y = [
+                self.mesh.gridCC[:, 1] if self.indActive is None else
+                self.mesh.gridCC[self.indActive, 1]
+            ][0]
 
         if self.mesh.dim > 2:
-            self.z = [self.mesh.gridCC[:, 2] if self.indActive is None else
-                      self.mesh.gridCC[self.indActive, 2]][0]
+            self.z = [
+                self.mesh.gridCC[:, 2] if self.indActive is None else
+                self.mesh.gridCC[self.indActive, 2]
+            ][0]
 
     @property
     def nP(self):

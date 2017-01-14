@@ -856,7 +856,7 @@ class Tikhonov(Simple):
 
     @Utils.timeIt
     def eval(self, m):
-        return self._evalSmall(m) + self._evalSmooth(m) #+ self._evalSmooth2(m)
+        return self._evalSmall(m) + self._evalSmooth(m) + self._evalSmooth2(m)
 
     @Utils.timeIt
     def evalDeriv(self, m):
@@ -874,7 +874,7 @@ class Tikhonov(Simple):
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
 
         """
-        return self._evalSmallDeriv(m) + self._evalSmoothDeriv(m) #+ self._evalSmoothDeriv2(m)
+        return self._evalSmallDeriv(m) + self._evalSmoothDeriv(m) + self._evalSmoothDeriv2(m)
 
     def eval2Deriv(self, m, v=None):
         """

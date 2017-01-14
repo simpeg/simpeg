@@ -196,92 +196,102 @@ class Problem3D_CC(BaseDCProblem):
         return Zero()
 
     def setBC(self):
-        if self.mesh.dim == 3:
-            fxm, fxp, fym, fyp, fzm, fzp = self.mesh.faceBoundaryInd
-            gBFxm = self.mesh.gridFx[fxm, :]
-            gBFxp = self.mesh.gridFx[fxp, :]
-            gBFym = self.mesh.gridFy[fym, :]
-            gBFyp = self.mesh.gridFy[fyp, :]
-            gBFzm = self.mesh.gridFz[fzm, :]
-            gBFzp = self.mesh.gridFz[fzp, :]
-
-            # Setup Mixed B.C (alpha, beta, gamma)
-            temp_xm = np.ones_like(gBFxm[:, 0])
-            temp_xp = np.ones_like(gBFxp[:, 0])
-            temp_ym = np.ones_like(gBFym[:, 1])
-            temp_yp = np.ones_like(gBFyp[:, 1])
-            temp_zm = np.ones_like(gBFzm[:, 2])
-            temp_zp = np.ones_like(gBFzp[:, 2])
-
+        if self.mesh._meshType == "TREE":
             if(self.bc_type == 'Neumann'):
-                if self.verbose:
-                    print('Setting BC to Neumann.')
+                raise NotImplementedError()
+            elif(self.bc_type == 'Dirchlet'):
+                print('Homogeneous Dirchlet is the natural BC for this CC discretization.')
+                self.Div = Utils.sdiag(self.mesh.vol) * self.mesh.faceDiv
+                self.Grad = self.Div.T
+
+        else:
+
+            if self.mesh.dim == 3:
+                fxm, fxp, fym, fyp, fzm, fzp = self.mesh.faceBoundaryInd
+                gBFxm = self.mesh.gridFx[fxm, :]
+                gBFxp = self.mesh.gridFx[fxp, :]
+                gBFym = self.mesh.gridFy[fym, :]
+                gBFyp = self.mesh.gridFy[fyp, :]
+                gBFzm = self.mesh.gridFz[fzm, :]
+                gBFzp = self.mesh.gridFz[fzp, :]
+
+                # Setup Mixed B.C (alpha, beta, gamma)
+                temp_xm = np.ones_like(gBFxm[:, 0])
+                temp_xp = np.ones_like(gBFxp[:, 0])
+                temp_ym = np.ones_like(gBFym[:, 1])
+                temp_yp = np.ones_like(gBFyp[:, 1])
+                temp_zm = np.ones_like(gBFzm[:, 2])
+                temp_zp = np.ones_like(gBFzp[:, 2])
+
+                if(self.bc_type == 'Neumann'):
+                    if self.verbose:
+                        print('Setting BC to Neumann.')
+                    alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
+                    alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
+                    alpha_zm, alpha_zp = temp_zm*0., temp_zp*0.
+
+                    beta_xm, beta_xp = temp_xm, temp_xp
+                    beta_ym, beta_yp = temp_ym, temp_yp
+                    beta_zm, beta_zp = temp_zm, temp_zp
+
+                    gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+                    gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+                    gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
+
+                elif(self.bc_type == 'Dirchlet'):
+                    if self.verbose:
+                        print('Setting BC to Dirchlet.')
+                    alpha_xm, alpha_xp = temp_xm, temp_xp
+                    alpha_ym, alpha_yp = temp_ym, temp_yp
+                    alpha_zm, alpha_zp = temp_zm, temp_zp
+
+                    beta_xm, beta_xp = temp_xm*0, temp_xp*0
+                    beta_ym, beta_yp = temp_ym*0, temp_yp*0
+                    beta_zm, beta_zp = temp_zm*0, temp_zp*0
+
+                    gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+                    gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+                    gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
+
+                alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp, alpha_zm,
+                         alpha_zp]
+                beta = [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
+                gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm,
+                         gamma_zp]
+
+            elif self.mesh.dim == 2:
+
+                fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
+                gBFxm = self.mesh.gridFx[fxm, :]
+                gBFxp = self.mesh.gridFx[fxp, :]
+                gBFym = self.mesh.gridFy[fym, :]
+                gBFyp = self.mesh.gridFy[fyp, :]
+
+                # Setup Mixed B.C (alpha, beta, gamma)
+                temp_xm = np.ones_like(gBFxm[:, 0])
+                temp_xp = np.ones_like(gBFxp[:, 0])
+                temp_ym = np.ones_like(gBFym[:, 1])
+                temp_yp = np.ones_like(gBFyp[:, 1])
+
                 alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
                 alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
-                alpha_zm, alpha_zp = temp_zm*0., temp_zp*0.
 
                 beta_xm, beta_xp = temp_xm, temp_xp
                 beta_ym, beta_yp = temp_ym, temp_yp
-                beta_zm, beta_zp = temp_zm, temp_zp
 
                 gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
                 gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-                gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
 
-            elif(self.bc_type == 'Dirchlet'):
-                if self.verbose:
-                    print('Setting BC to Dirchlet.')
-                alpha_xm, alpha_xp = temp_xm, temp_xp
-                alpha_ym, alpha_yp = temp_ym, temp_yp
-                alpha_zm, alpha_zp = temp_zm, temp_zp
+                alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
+                beta = [beta_xm, beta_xp, beta_ym, beta_yp]
+                gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
 
-                beta_xm, beta_xp = temp_xm*0, temp_xp*0
-                beta_ym, beta_yp = temp_ym*0, temp_yp*0
-                beta_zm, beta_zp = temp_zm*0, temp_zp*0
-
-                gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-                gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-                gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
-
-            alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp, alpha_zm,
-                     alpha_zp]
-            beta = [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
-            gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm,
-                     gamma_zp]
-
-        elif self.mesh.dim == 2:
-
-            fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
-            gBFxm = self.mesh.gridFx[fxm, :]
-            gBFxp = self.mesh.gridFx[fxp, :]
-            gBFym = self.mesh.gridFy[fym, :]
-            gBFyp = self.mesh.gridFy[fyp, :]
-
-            # Setup Mixed B.C (alpha, beta, gamma)
-            temp_xm = np.ones_like(gBFxm[:, 0])
-            temp_xp = np.ones_like(gBFxp[:, 0])
-            temp_ym = np.ones_like(gBFym[:, 1])
-            temp_yp = np.ones_like(gBFyp[:, 1])
-
-            alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-            alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
-
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
-
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-
-            alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
-            beta = [beta_xm, beta_xp, beta_ym, beta_yp]
-            gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
-
-        x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
-        V = self.Vol
-        self.Div = V * self.mesh.faceDiv
-        P_BC, B = self.mesh.getBCProjWF_simple()
-        M = B*self.mesh.aveCC2F
-        self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
+            x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
+            V = self.Vol
+            self.Div = V * self.mesh.faceDiv
+            P_BC, B = self.mesh.getBCProjWF_simple()
+            M = B*self.mesh.aveCC2F
+            self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
 
 
 class Problem3D_N(BaseDCProblem):

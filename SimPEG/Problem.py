@@ -13,7 +13,7 @@ import properties
 Solver = Utils.SolverUtils.Solver
 
 
-class BaseProblem(Props.BaseSimPEG):
+class BaseProblem(Props.HasModel):
     """Problem is the base class for all geophysical forward problems
     in SimPEG.
     """
@@ -38,8 +38,6 @@ class BaseProblem(Props.BaseSimPEG):
 
     #: A SimPEG.Mesh instance.
     mesh = None
-
-    model = Props.Model("Inversion model.")
 
     def __init__(self, mesh, **kwargs):
         if 'mapping' in kwargs:

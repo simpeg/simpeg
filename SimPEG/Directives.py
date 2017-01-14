@@ -570,3 +570,4 @@ class Amplitude_Inv_Iter(InversionDirective):
             JtJdiag[ii] = np.sum((self.prob.dfdm*self.prob.G[:, ii])**2.)
 
         return JtJdiag
+
