@@ -26,7 +26,8 @@ install:
   - python setup.py install
 
 test_script:
-  - nosetests tests\examples -v -s
+  - cd tests
+  - nosetests examples -v -s
 
 
 # build:
