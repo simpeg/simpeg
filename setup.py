@@ -6,19 +6,36 @@ SimPEG is a python package for simulation and gradient based
 parameter estimation in the context of geophysical applications.
 """
 
+# import os
+# import sys
+# import subprocess
+
+# try:
+#     from setuptools import setup
+#     from setuptools import Extension
+# except ImportError:
+#     from distutils.core import setup
+#     from distutils.extension import Extension
+
+# from distutils.command.build_ext import build_ext
+# from setuptools import find_packages
+
+from setuptools import find_packages
+from distutils.core import setup
+
 import os
 import sys
-import subprocess
+import numpy
 
-try:
-    from setuptools import setup
-    from setuptools import Extension
-except ImportError:
-    from distutils.core import setup
+if 'cython' in sys.argv:
+    del sys.argv[sys.argv.index('cython')]  # delete the command
+    from Cython.Build import cythonize
+    from Cython.Distutils import build_ext
+    USE_CYTHON = True
+else:
+    from setuptools.command.build_ext import build_ext
     from distutils.extension import Extension
-
-from distutils.command.build_ext import build_ext
-from setuptools import find_packages
+    USE_CYTHON = False
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
@@ -53,12 +70,12 @@ if "cleanall" in args:
 if args.count("build_ext") > 0 and args.count("--inplace") == 0:
     sys.argv.insert(sys.argv.index("build_ext")+1, "--inplace")
 
-try:
-    from Cython.Build import cythonize
-    from Cython.Distutils import build_ext
-    USE_CYTHON = True
-except Exception as e:
-    USE_CYTHON = False
+# try:
+#     from Cython.Build import cythonize
+#     from Cython.Distutils import build_ext
+#     USE_CYTHON = True
+# except Exception as e:
+#     USE_CYTHON = False
 
 
 class NumpyBuild(build_ext):
@@ -75,12 +92,20 @@ cython_files = [
     os.path.join("SimPEG", "Mesh", "TreeUtils")
 ]
 
-extensions = [Extension(f, [f+ext]) for f in cython_files]
-scripts = [f+'.pyx' for f in cython_files]
+# extensions = [Extension(f, [f+ext]) for f in cython_files]
+# scripts = [f+'.pyx' for f in cython_files]
 
-if USE_CYTHON and "cleanall" not in args:
-    from Cython.Build import cythonize
-    extensions = cythonize(extensions)
+# if USE_CYTHON and "cleanall" not in args:
+#     from Cython.Build import cythonize
+#     extensions = cythonize(extensions)
+
+scripts = [s + '.pyx' for s in cython_files] + [s + '.c' for s in cython_files]
+
+if USE_CYTHON:
+    extensions = cythonize([s + '.pyx' for s in cython_files])
+else:
+    extensions = [Extension(cf, [cf+ext]) for cf in cython_files]
+
 
 with open("README.rst") as f:
     LONG_DESCRIPTION = ''.join(f.readlines())
