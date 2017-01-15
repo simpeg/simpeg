@@ -18,9 +18,6 @@ class BaseProblem(Props.HasModel):
     in SimPEG.
     """
 
-    _depreciate_maps = False
-    _depreciate_main_map = None
-
     #: A SimPEG.Utils.Counter object
     counter = None
 
@@ -50,14 +47,14 @@ class BaseProblem(Props.HasModel):
                 'To bring back old functionality.'
             )
 
-        if self._depreciate_maps:
-            mapping = kwargs.pop('mapping', None)
-            if isinstance(mapping, Maps.IdentityMap):
-                kwargs[self._depreciate_main_map] = mapping
-            elif isinstance(mapping, list):
-                # this is a prop map style
-                for name, propmap in mapping:
-                    kwargs['{}Map'.format(name)] = propmap
+        # if self._depreciate_maps:
+        #     mapping = kwargs.pop('mapping', None)
+        #     if isinstance(mapping, Maps.IdentityMap):
+        #         kwargs[self._depreciate_main_map] = mapping
+        #     elif isinstance(mapping, list):
+        #         # this is a prop map style
+        #         for name, propmap in mapping:
+        #             kwargs['{}Map'.format(name)] = propmap
         super(BaseProblem, self).__init__(**kwargs)
         assert isinstance(mesh, Mesh.BaseMesh), (
             "mesh must be a SimPEG.Mesh object."
@@ -77,7 +74,9 @@ class BaseProblem(Props.HasModel):
 
         """
         raise Exception(
-            'Depreciate: use `SimPEG.Depreciate.use_old_mappings()`'
+            'Depreciated (in 0.4.0): use one of {}'.format(
+                [p for p in self._props.keys() if 'Map' in p]
+            )
         )
 
     @property
@@ -88,13 +87,13 @@ class BaseProblem(Props.HasModel):
         Use `SimPEG.Problem.model` instead.
         """
         raise AttributeError(
-            'curModel is depreciated. Use `SimPEG.Problem.model` instead'
+            'curModel is depreciated (in 0.4.0). Use `SimPEG.Problem.model` instead'
             )
 
     @curModel.setter
     def curModel(self, value):
         raise AttributeError(
-            'curModel is depreciated. Use `SimPEG.Problem.model` instead'
+            'curModel is depreciated (in 0.4.0). Use `SimPEG.Problem.model` instead'
             )
 
     @property
