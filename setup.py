@@ -149,6 +149,6 @@ setup(
     # cmdclass={'build_ext': NumpyBuild},
     setup_requires=['numpy'],
     # ext_modules=extensions,
-    scripts=scripts,
+    # scripts=scripts,
     configuration=configuration,
 )
