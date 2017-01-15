@@ -14,8 +14,6 @@ from scipy.constants import mu_0
 
 class BaseEMProblem(Problem.BaseProblem):
 
-    _depreciate_main_map = 'sigmaMap'
-
     sigma, sigmaMap, sigmaDeriv = Props.Invertible(
         "Electrical conductivity (S/m)"
     )
