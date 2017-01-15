@@ -27,15 +27,15 @@ import os
 import sys
 import numpy
 
-if 'cython' in sys.argv:
-    del sys.argv[sys.argv.index('cython')]  # delete the command
-    from Cython.Build import cythonize
-    from Cython.Distutils import build_ext
-    USE_CYTHON = True
-else:
-    from setuptools.command.build_ext import build_ext
-    from distutils.extension import Extension
-    USE_CYTHON = False
+# if 'cython' in sys.argv:
+#     del sys.argv[sys.argv.index('cython')]  # delete the command
+#     from Cython.Build import cythonize
+#     from Cython.Distutils import build_ext
+#     USE_CYTHON = True
+# else:
+#     from setuptools.command.build_ext import build_ext
+#     from distutils.extension import Extension
+#     USE_CYTHON = False
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
@@ -78,18 +78,18 @@ CLASSIFIERS = [
 #     USE_CYTHON = False
 
 
-class NumpyBuild(build_ext):
-    def finalize_options(self):
-        build_ext.finalize_options(self)
-        __builtins__.__NUMPY_SETUP__ = False
-        self.include_dirs.append(numpy.get_include())
+# class NumpyBuild(build_ext):
+#     def finalize_options(self):
+#         build_ext.finalize_options(self)
+#         __builtins__.__NUMPY_SETUP__ = False
+#         self.include_dirs.append(numpy.get_include())
 
-ext = '.pyx' if USE_CYTHON else '.c'
+# ext = '.pyx' if USE_CYTHON else '.c'
 
-cython_files = [
-    "SimPEG/Utils/interputils_cython".replace('/', os.sep),
-    "SimPEG/Mesh/TreeUtils".replace('/', os.sep)
-]
+# cython_files = [
+#     "SimPEG/Utils/interputils_cython".replace('/', os.sep),
+#     "SimPEG/Mesh/TreeUtils".replace('/', os.sep)
+# ]
 
 # extensions = [Extension(f, [f+ext]) for f in cython_files]
 # scripts = [f+'.pyx' for f in cython_files]
@@ -98,16 +98,30 @@ cython_files = [
 #     from Cython.Build import cythonize
 #     extensions = cythonize(extensions)
 
-scripts = [s + '.pyx' for s in cython_files] + [s + '.c' for s in cython_files]
+# scripts = [s + '.pyx' for s in cython_files] + [s + '.c' for s in cython_files]
 
-if USE_CYTHON:
-    extensions = cythonize([s + '.pyx' for s in cython_files])
-else:
-    extensions = [Extension(cf, [cf+ext]) for cf in cython_files]
+# if USE_CYTHON:
+#     extensions = cythonize([s + '.pyx' for s in cython_files])
+# else:
+#     extensions = [Extension(cf, [cf+ext]) for cf in cython_files]
 
 
 with open("README.rst") as f:
     LONG_DESCRIPTION = ''.join(f.readlines())
+
+
+def configuration(parent_package='',top_path=None):
+    from numpy.distutils.misc_util import Configuration
+
+    config = Configuration(None, parent_package, top_path)
+    config.set_options(ignore_setup_xxx_py=True,
+                       assume_default_configuration=True,
+                       delegate_options_to_subpackages=True,
+                       quiet=True)
+
+    config.add_subpackage('SimPEG')
+
+    return config
 
 setup(
     name="SimPEG",

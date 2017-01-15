@@ -22,7 +22,8 @@ install:
   - "conda create -q -n test-environment python=%PYTHON% numpy scipy matplotlib cython ipython pillow sphinx h5py"
   - activate test-environment
   - pip install -r requirements.txt
-  - python setup.py install build_ext -i cython
+  - pip install pymatsolver
+  - python setup.py install
 
 test_script:
   - nosetests tests\examples -v -s
