@@ -146,8 +146,9 @@ setup(
     classifiers=CLASSIFIERS,
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     use_2to3=False,
-    cmdclass={'build_ext': NumpyBuild},
+    # cmdclass={'build_ext': NumpyBuild},
     setup_requires=['numpy'],
     ext_modules=extensions,
     scripts=scripts,
+    configuration=configuration,
 )
