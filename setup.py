@@ -148,7 +148,7 @@ setup(
     use_2to3=False,
     # cmdclass={'build_ext': NumpyBuild},
     setup_requires=['numpy'],
-    ext_modules=extensions,
+    # ext_modules=extensions,
     scripts=scripts,
     configuration=configuration,
 )
