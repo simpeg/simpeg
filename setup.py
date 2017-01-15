@@ -53,22 +53,22 @@ CLASSIFIERS = [
     'Natural Language :: English',
 ]
 
-args = sys.argv[1:]
+# args = sys.argv[1:]
 
 # Make a `cleanall` rule to get rid of intermediate and library files
-if "cleanall" in args:
-    print("Deleting cython files...")
-    # Just in case the build directory was created by accident,
-    # note that shell=True should be OK here because the command is constant.
-    subprocess.Popen("rm -rf build", shell=True, executable="/bin/bash")
-    subprocess.Popen("find . -name \*.c -type f -delete", shell=True, executable="/bin/bash")
-    subprocess.Popen("find . -name \*.so -type f -delete", shell=True, executable="/bin/bash")
-    # Now do a normal clean
-    sys.argv[sys.argv.index('cleanall')] = "clean"
+# if "cleanall" in args:
+#     print("Deleting cython files...")
+#     # Just in case the build directory was created by accident,
+#     # note that shell=True should be OK here because the command is constant.
+#     subprocess.Popen("rm -rf build", shell=True, executable="/bin/bash")
+#     subprocess.Popen("find . -name \*.c -type f -delete", shell=True, executable="/bin/bash")
+#     subprocess.Popen("find . -name \*.so -type f -delete", shell=True, executable="/bin/bash")
+#     # Now do a normal clean
+#     sys.argv[sys.argv.index('cleanall')] = "clean"
 
-# We want to always use build_ext --inplace
-if args.count("build_ext") > 0 and args.count("--inplace") == 0:
-    sys.argv.insert(sys.argv.index("build_ext")+1, "--inplace")
+# # We want to always use build_ext --inplace
+# if args.count("build_ext") > 0 and args.count("--inplace") == 0:
+#     sys.argv.insert(sys.argv.index("build_ext")+1, "--inplace")
 
 # try:
 #     from Cython.Build import cythonize
@@ -82,14 +82,13 @@ class NumpyBuild(build_ext):
     def finalize_options(self):
         build_ext.finalize_options(self)
         __builtins__.__NUMPY_SETUP__ = False
-        import numpy
         self.include_dirs.append(numpy.get_include())
 
 ext = '.pyx' if USE_CYTHON else '.c'
 
 cython_files = [
-    os.path.join("SimPEG", "Utils", "interputils_cython"),
-    os.path.join("SimPEG", "Mesh", "TreeUtils")
+    "SimPEG/Utils/interputils_cython".replace('/', os.sep),
+    "SimPEG/Mesh/TreeUtils".replace('/', os.sep)
 ]
 
 # extensions = [Extension(f, [f+ext]) for f in cython_files]
