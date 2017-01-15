@@ -54,15 +54,8 @@ class BaseProblem(Props.HasModel):
 
     @property
     def mapping(self):
-        """setting an unnamed mapping has been depreciated.
-
-        To use the old style Please use the Depreciate module.
-
-        .. code::
-
-            from SimPEG import Depreciate
-            Depreciate.use_old_mappings()
-
+        """Setting an unnamed mapping has been depreciated in
+        v0.4.0. Please see the release notes for more details.
         """
         raise Exception(
             'Depreciated (in 0.4.0): use one of {}'.format(
