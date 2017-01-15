@@ -6,14 +6,36 @@ SimPEG is a python package for simulation and gradient based
 parameter estimation in the context of geophysical applications.
 """
 
+# import os
+# import sys
+# import subprocess
+
+# try:
+#     from setuptools import setup
+#     from setuptools import Extension
+# except ImportError:
+#     from distutils.core import setup
+#     from distutils.extension import Extension
+
+# from distutils.command.build_ext import build_ext
+# from setuptools import find_packages
+
+from setuptools import find_packages
+from distutils.core import setup
+
 import os
 import sys
-import subprocess
+import numpy
 
-from distutils.core import setup
-from distutils.command.build_ext import build_ext
-from setuptools import find_packages
-from distutils.extension import Extension
+# if 'cython' in sys.argv:
+#     del sys.argv[sys.argv.index('cython')]  # delete the command
+#     from Cython.Build import cythonize
+#     from Cython.Distutils import build_ext
+#     USE_CYTHON = True
+# else:
+#     from setuptools.command.build_ext import build_ext
+#     from distutils.extension import Extension
+#     USE_CYTHON = False
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
@@ -31,54 +53,75 @@ CLASSIFIERS = [
     'Natural Language :: English',
 ]
 
-args = sys.argv[1:]
+# args = sys.argv[1:]
 
 # Make a `cleanall` rule to get rid of intermediate and library files
-if "cleanall" in args:
-    print("Deleting cython files...")
-    # Just in case the build directory was created by accident,
-    # note that shell=True should be OK here because the command is constant.
-    subprocess.Popen("rm -rf build", shell=True, executable="/bin/bash")
-    subprocess.Popen("find . -name \*.c -type f -delete", shell=True, executable="/bin/bash")
-    subprocess.Popen("find . -name \*.so -type f -delete", shell=True, executable="/bin/bash")
-    # Now do a normal clean
-    sys.argv[sys.argv.index('cleanall')] = "clean"
+# if "cleanall" in args:
+#     print("Deleting cython files...")
+#     # Just in case the build directory was created by accident,
+#     # note that shell=True should be OK here because the command is constant.
+#     subprocess.Popen("rm -rf build", shell=True, executable="/bin/bash")
+#     subprocess.Popen("find . -name \*.c -type f -delete", shell=True, executable="/bin/bash")
+#     subprocess.Popen("find . -name \*.so -type f -delete", shell=True, executable="/bin/bash")
+#     # Now do a normal clean
+#     sys.argv[sys.argv.index('cleanall')] = "clean"
 
-# We want to always use build_ext --inplace
-if args.count("build_ext") > 0 and args.count("--inplace") == 0:
-    sys.argv.insert(sys.argv.index("build_ext")+1, "--inplace")
+# # We want to always use build_ext --inplace
+# if args.count("build_ext") > 0 and args.count("--inplace") == 0:
+#     sys.argv.insert(sys.argv.index("build_ext")+1, "--inplace")
 
-try:
-    from Cython.Build import cythonize
-    from Cython.Distutils import build_ext
-    USE_CYTHON = True
-except Exception as e:
-    USE_CYTHON = False
+# try:
+#     from Cython.Build import cythonize
+#     from Cython.Distutils import build_ext
+#     USE_CYTHON = True
+# except Exception as e:
+#     USE_CYTHON = False
 
 
-class NumpyBuild(build_ext):
-    def finalize_options(self):
-        build_ext.finalize_options(self)
-        __builtins__.__NUMPY_SETUP__ = False
-        import numpy
-        self.include_dirs.append(numpy.get_include())
+# class NumpyBuild(build_ext):
+#     def finalize_options(self):
+#         build_ext.finalize_options(self)
+#         __builtins__.__NUMPY_SETUP__ = False
+#         self.include_dirs.append(numpy.get_include())
 
-ext = '.pyx' if USE_CYTHON else '.c'
+# ext = '.pyx' if USE_CYTHON else '.c'
 
-cython_files = [
-    "SimPEG{sep}Utils{sep}interputils_cython".format(sep=os.path.sep),
-    "SimPEG{sep}Mesh{sep}TreeUtils".format(sep=os.path.sep)
-]
+# cython_files = [
+#     "SimPEG/Utils/interputils_cython".replace('/', os.sep),
+#     "SimPEG/Mesh/TreeUtils".replace('/', os.sep)
+# ]
 
-extensions = [Extension(f, [f+ext]) for f in cython_files]
-scripts = [f+'.pyx' for f in cython_files]
+# extensions = [Extension(f, [f+ext]) for f in cython_files]
+# scripts = [f+'.pyx' for f in cython_files]
 
-if USE_CYTHON and "cleanall" not in args:
-    from Cython.Build import cythonize
-    extensions = cythonize(extensions)
+# if USE_CYTHON and "cleanall" not in args:
+#     from Cython.Build import cythonize
+#     extensions = cythonize(extensions)
+
+# scripts = [s + '.pyx' for s in cython_files] + [s + '.c' for s in cython_files]
+
+# if USE_CYTHON:
+#     extensions = cythonize([s + '.pyx' for s in cython_files])
+# else:
+#     extensions = [Extension(cf, [cf+ext]) for cf in cython_files]
+
 
 with open("README.rst") as f:
     LONG_DESCRIPTION = ''.join(f.readlines())
+
+
+def configuration(parent_package='',top_path=None):
+    from numpy.distutils.misc_util import Configuration
+
+    config = Configuration(None, parent_package, top_path)
+    config.set_options(ignore_setup_xxx_py=True,
+                       assume_default_configuration=True,
+                       delegate_options_to_subpackages=True,
+                       quiet=True)
+
+    config.add_subpackage('SimPEG')
+
+    return config
 
 setup(
     name="SimPEG",
@@ -103,8 +146,9 @@ setup(
     classifiers=CLASSIFIERS,
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     use_2to3=False,
-    cmdclass={'build_ext': NumpyBuild},
+    # cmdclass={'build_ext': NumpyBuild},
     setup_requires=['numpy'],
-    ext_modules=extensions,
-    scripts=scripts,
+    # ext_modules=extensions,
+    # scripts=scripts,
+    configuration=configuration,
 )
