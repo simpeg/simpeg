@@ -49,7 +49,7 @@ class TensorView(object):
         streamOpts=None,
         gridOpts=None,
         numbering=True, annotationColor='w',
-        range_x=None, range_y=None
+        range_x=None, range_y=None, sample_grid=None
     ):
         """
         Mesh.plotImage(v)
@@ -114,7 +114,8 @@ class TensorView(object):
                 v, vType=vType, grid=grid, view=view,
                 ax=ax, clim=clim, showIt=showIt,
                 pcolorOpts=pcolorOpts, streamOpts=streamOpts,
-                gridOpts=gridOpts, range_x=range_x, range_y=range_y
+                gridOpts=gridOpts, range_x=range_x, range_y=range_y,
+                sample_grid=sample_grid
             )
         elif self.dim == 3:
             # get copy of image and average to cell-centers is necessary
@@ -312,7 +313,8 @@ class TensorView(object):
         streamOpts=None,
         gridOpts=None,
         range_x=None,
-        range_y=None
+        range_y=None,
+        sample_grid=None
     ):
 
         if pcolorOpts is None:
@@ -371,23 +373,30 @@ class TensorView(object):
             # spaced vectors at the moment. So we will
             # Interpolate down to a regular mesh at the
             # smallest mesh size in this 2D slice.
+            if sample_grid is not None:
+                hxmin = sample_grid[0]
+                hymin = sample_grid[1]
+            else:
+                hxmin = self.hx.min()
+                hymin = self.hy.min()
+
             if range_x is not None:
                 dx = (range_x[1] - range_x[0])
-                nxi = int(dx/self.hx.min())
+                nxi = int(dx/hxmin)
                 hx = np.ones(nxi)*dx/nxi
                 x0_x = range_x[0]
             else:
-                nxi = int(self.hx.sum()/self.hx.min())
+                nxi = int(self.hx.sum()/hxmin)
                 hx = np.ones(nxi)*self.hx.sum()/nxi
                 x0_x = self.x0[0]
 
             if range_y is not None:
                 dy = (range_y[1] - range_y[0])
-                nyi = int(dy/self.hy.min())
+                nyi = int(dy/hymin)
                 hy = np.ones(nyi)*dy/nyi
                 x0_y = range_y[0]
             else:
-                nyi = int(self.hy.sum()/self.hy.min())
+                nyi = int(self.hy.sum()/hymin)
                 hy = np.ones(nyi)*self.hy.sum()/nyi
                 x0_y = self.x0[1]
 
