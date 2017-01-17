@@ -25,8 +25,8 @@ def run(N=100, plotIt=True):
 
     mesh = Mesh.TensorMesh([N])
 
-    nk = 10
-    jk = np.linspace(1., 20., nk)
+    nk = 20
+    jk = np.linspace(1., 60., nk)
     p = -0.25
     q = 0.25
 
@@ -53,13 +53,12 @@ def run(N=100, plotIt=True):
 
     M = prob.mesh
 
-    reg = Regularization.Tikhonov(mesh, alpha_s=0.1, alpha_x=0.5)
+    reg = Regularization.Tikhonov(mesh, alpha_s=1., alpha_x=1.)
     dmis = DataMisfit.l2_DataMisfit(survey)
     opt = Optimization.InexactGaussNewton(maxIter=60)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     directives = [
-        Directives.BetaSchedule(coolingFactor=2., coolingRate=2),
-        Directives.BetaEstimate_ByEig(),
+        Directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
         Directives.TargetMisfit()
     ]
     inv = Inversion.BaseInversion(invProb, directiveList=directives)
