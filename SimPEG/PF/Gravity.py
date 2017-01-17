@@ -7,8 +7,6 @@ import re
 
 class GravityIntegral(Problem.LinearProblem):
 
-    _depreciate_main_map = 'rhoMap'
-
     rho, rhoMap, rhoDeriv = Props.Invertible(
         "Specific density (g/cc)",
         default=1.

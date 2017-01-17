@@ -79,7 +79,8 @@ linkcheck_ignore = [
     'http://wiki.python.org/moin/NumericAndScientific',
     'http://wiki.python.org/moin/PythonEditors',
     'http://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html#numpy.array',
-    'http://dx.doi.org/10.1016/j.cageo.2015.09.015'
+    'http://dx.doi.org/10.1016/j.cageo.2015.09.015',
+    'http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf'
                    ]
 
 linkcheck_retries = 3

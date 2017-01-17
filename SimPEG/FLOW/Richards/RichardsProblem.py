@@ -77,7 +77,7 @@ class RichardsSurvey(Survey.BaseSurvey):
         for ii, rx in enumerate(self.rxList):
             Ds[ii] = rx.eval(
                 U, m,
-                self.prob.mapping,
+                self.prob.modelMap,
                 self.prob.mesh,
                 self.prob.timeMesh
             )
@@ -91,7 +91,7 @@ class RichardsSurvey(Survey.BaseSurvey):
         for ii, rx in enumerate(self.rxList):
             Ds[ii] = rx.evalDeriv(
                 U, m,
-                self.prob.mapping,
+                self.prob.modelMap,
                 self.prob.mesh,
                 self.prob.timeMesh
             )
@@ -102,7 +102,7 @@ class RichardsSurvey(Survey.BaseSurvey):
 class RichardsProblem(Problem.BaseTimeProblem):
     """docstring for RichardsProblem"""
 
-    mapping = properties.Property("the mapping")
+    modelMap = properties.Property("the mapping")
 
     boundaryConditions = properties.Array("boundary conditions.")
     initialConditions = properties.Array("boundary conditions.")
@@ -115,8 +115,16 @@ class RichardsProblem(Problem.BaseTimeProblem):
     Solver = Solver
     solverOpts = {}
 
-    def __init__(self, mesh, mapping=None, **kwargs):
-        Problem.BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
+    def __init__(self, mesh, modelMap=None, **kwargs):
+        assert(
+            isinstance(modelMap, self.mapPair)), (
+            'modelMap must be a {} class not {}'.format(
+                self.mapPair.__class__.__name__,
+                modelMap
+            )
+        )
+        self.modelMap = modelMap
+        Problem.BaseTimeProblem.__init__(self, mesh, **kwargs)
 
     def getBoundaryConditions(self, ii, u_ii):
         if type(self.boundaryConditions) is np.ndarray:
@@ -229,11 +237,11 @@ class RichardsProblem(Problem.BaseTimeProblem):
         AV = self.mesh.aveF2CC.T
         Dz = self.Dz
 
-        dT = self.mapping.thetaDerivU(hn, m)
-        dT1 = self.mapping.thetaDerivU(hn1, m)
-        K1 = self.mapping.k(hn1, m)
-        dK1 = self.mapping.kDerivU(hn1, m)
-        dKm1 = self.mapping.kDerivM(hn1, m)
+        dT = self.modelMap.thetaDerivU(hn, m)
+        dT1 = self.modelMap.thetaDerivU(hn1, m)
+        K1 = self.modelMap.k(hn1, m)
+        dK1 = self.modelMap.kDerivU(hn1, m)
+        dKm1 = self.modelMap.kDerivM(hn1, m)
 
         # Compute part of the derivative of:
         #
@@ -279,11 +287,11 @@ class RichardsProblem(Problem.BaseTimeProblem):
         AV = self.mesh.aveF2CC.T
         Dz = self.Dz
 
-        T = self.mapping.theta(h, m)
-        dT = self.mapping.thetaDerivU(h, m)
-        Tn = self.mapping.theta(hn, m)
-        K = self.mapping.k(h, m)
-        dK = self.mapping.kDerivU(h, m)
+        T = self.modelMap.theta(h, m)
+        dT = self.modelMap.thetaDerivU(h, m)
+        Tn = self.modelMap.theta(hn, m)
+        K = self.modelMap.k(h, m)
+        dK = self.modelMap.kDerivU(h, m)
 
         aveK = 1./(AV*(1./K))
 
