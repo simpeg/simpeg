@@ -66,7 +66,7 @@ def run(N=100, plotIt=True):
     dmis = DataMisfit.l2_DataMisfit(survey)
     dmis.Wd = 1./wd
 
-    betaest = Directives.BetaEstimate_ByEig()
+    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
 
     reg = Regularization.Sparse(mesh)
     reg.mref = mref
