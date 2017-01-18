@@ -147,12 +147,12 @@ class MagneticIntegral(Problem.LinearProblem):
         #     print('Magnetization vector must be Nc x 3')
         #     return
         if getattr(self, 'M', None) is None:
-            M = dipazm_2_xyz(np.ones(nC) * survey.srcField.param[1],
-                             np.ones(nC) * survey.srcField.param[2])
+            self.M = dipazm_2_xyz(np.ones(nC) * survey.srcField.param[1],
+                                  np.ones(nC) * survey.srcField.param[2])
 
-        Mx = Utils.sdiag(M[:, 0]*survey.srcField.param[0])
-        My = Utils.sdiag(M[:, 1]*survey.srcField.param[0])
-        Mz = Utils.sdiag(M[:, 2]*survey.srcField.param[0])
+        Mx = Utils.sdiag(self.M[:, 0]*survey.srcField.param[0])
+        My = Utils.sdiag(self.M[:, 1]*survey.srcField.param[0])
+        Mz = Utils.sdiag(self.M[:, 2]*survey.srcField.param[0])
 
         Mxyz = sp.vstack((Mx, My, Mz))
 
