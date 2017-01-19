@@ -1053,7 +1053,7 @@ def writeUBCobs(filename, survey, d):
 
 
 def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
-                vmin=None, vmax=None, levels=None, fig=None):
+                vmin=None, vmax=None, levels=None, fig=None, ax=None):
     """ Function plot_obs(rxLoc,d)
     Generate a 2d interpolated plot from scatter points of data
 
@@ -1077,7 +1077,10 @@ def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
     if fig is None:
         fig = plt.figure()
 
-    ax = plt.subplot()
+    if ax is None:
+        ax = plt.subplot()
+
+    plt.sca(ax)
     plt.scatter(rxLoc[:, 0], rxLoc[:, 1], c='k', s=10)
 
     if d is not None:

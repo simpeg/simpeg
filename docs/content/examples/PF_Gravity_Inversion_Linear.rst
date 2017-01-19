@@ -9,10 +9,10 @@
 .. --------------------------------- ..
 
 
-PF: Gravity: Inversion Linear
-=============================
+PF: Gravity Inversion Linear
+============================
 
-Create a synthetic block model and invert
+Create a synthetic density block model and invert
 with a compact norm
 
 
