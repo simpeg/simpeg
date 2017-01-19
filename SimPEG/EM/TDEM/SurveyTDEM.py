@@ -1,6 +1,6 @@
 from __future__ import division, print_function
 import SimPEG
-from SimPEG import np, Utils
+from SimPEG import Utils
 from SimPEG.Utils import Zero, Identity
 from scipy.constants import mu_0
 from SimPEG.EM.Utils import *
@@ -34,5 +34,3 @@ class Survey(SimPEG.Survey.BaseSurvey):
 
     def evalDeriv(self, u, v=None, adjoint=False):
         raise Exception('Use Receivers to project fields deriv.')
-
-

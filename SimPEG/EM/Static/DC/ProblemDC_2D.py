@@ -1,3 +1,8 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from SimPEG import Utils
 from SimPEG.EM.Base import BaseEMProblem
 from .SurveyDC import Survey_ky
@@ -45,6 +50,7 @@ class BaseDCProblem_2D(BaseEMProblem):
 
         self.model = m
 
+        # TODO: This is not a good idea !! should change that as a list
         Jv = self.dataPair(self.survey)  # same size as the data
         Jv0 = self.dataPair(self.survey)
 
@@ -146,11 +152,11 @@ class BaseDCProblem_2D(BaseEMProblem):
 
         Srcs = self.survey.srcList
 
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             n = self.mesh.nN
             # return NotImplementedError
 
-        elif self._formulation is 'HJ':
+        elif self._formulation == 'HJ':
             n = self.mesh.nC
 
         q = np.zeros((n, len(Srcs)))
@@ -200,9 +206,10 @@ class Problem2D_CC(BaseDCProblem_2D):
         rho = self.rho
         if adjoint:
             return((MfRhoIDeriv( G * u).T) * (D.T * v) +
-                   ky**2 * Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v)
+                   ky**2 * self.rhoDeriv.T*Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v)
+
         return (D * ((MfRhoIDeriv(G * u)) * v) + ky**2*
-                Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v)
+                Utils.sdiag(u.flatten()*vol*(-1./rho**2))*(self.rhoDeriv*v))
 
     def getRHS(self, ky):
         """

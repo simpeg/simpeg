@@ -13,13 +13,10 @@ import properties
 Solver = Utils.SolverUtils.Solver
 
 
-class BaseProblem(Props.BaseSimPEG):
+class BaseProblem(Props.HasModel):
     """Problem is the base class for all geophysical forward problems
     in SimPEG.
     """
-
-    _depreciate_maps = False
-    _depreciate_main_map = None
 
     #: A SimPEG.Utils.Counter object
     counter = None
@@ -39,27 +36,16 @@ class BaseProblem(Props.BaseSimPEG):
     #: A SimPEG.Mesh instance.
     mesh = None
 
-    model = Props.Model("Inversion model.")
-
     def __init__(self, mesh, **kwargs):
+
+        # raise exception if user tries to set "mapping"
         if 'mapping' in kwargs:
-            import warnings
-            warnings.warn(
-                'The `mapping` property has been depreciated, '
-                'please use:\n\n\n'
-                '\tfrom SimPEG import Depreciate\n'
-                '\tDepreciate.use_old_mappings()\n\n\n'
-                'To bring back old functionality.'
+            raise Exception(
+                'Depreciated (in 0.4.0): use one of {}'.format(
+                    [p for p in self._props.keys() if 'Map' in p]
+                )
             )
 
-        if self._depreciate_maps:
-            mapping = kwargs.pop('mapping', None)
-            if isinstance(mapping, Maps.IdentityMap):
-                kwargs[self._depreciate_main_map] = mapping
-            elif isinstance(mapping, list):
-                # this is a prop map style
-                for name, propmap in mapping:
-                    kwargs['{}Map'.format(name)] = propmap
         super(BaseProblem, self).__init__(**kwargs)
         assert isinstance(mesh, Mesh.BaseMesh), (
             "mesh must be a SimPEG.Mesh object."
@@ -68,18 +54,21 @@ class BaseProblem(Props.BaseSimPEG):
 
     @property
     def mapping(self):
-        """setting an unnamed mapping has been depreciated.
-
-        To use the old style Please use the Depreciate module.
-
-        .. code::
-
-            from SimPEG import Depreciate
-            Depreciate.use_old_mappings()
-
+        """Setting an unnamed mapping has been depreciated in
+        v0.4.0. Please see the release notes for more details.
         """
         raise Exception(
-            'Depreciate: use `SimPEG.Depreciate.use_old_mappings()`'
+            'Depreciated (in 0.4.0): use one of {}'.format(
+                [p for p in self._props.keys() if 'Map' in p]
+            )
+        )
+
+    @mapping.setter
+    def mapping(self, value):
+        raise Exception(
+            'Depreciated (in 0.4.0): use one of {}'.format(
+                [p for p in self._props.keys() if 'Map' in p]
+            )
         )
 
     @property
@@ -90,13 +79,15 @@ class BaseProblem(Props.BaseSimPEG):
         Use `SimPEG.Problem.model` instead.
         """
         raise AttributeError(
-            'curModel is depreciated. Use `SimPEG.Problem.model` instead'
+            'curModel is depreciated (in 0.4.0). Use '
+            '`SimPEG.Problem.model` instead'
             )
 
     @curModel.setter
     def curModel(self, value):
         raise AttributeError(
-            'curModel is depreciated. Use `SimPEG.Problem.model` instead'
+            'curModel is depreciated (in 0.4.0). Use '
+            '`SimPEG.Problem.model` instead'
             )
 
     @property
@@ -276,17 +267,17 @@ class LinearProblem(BaseProblem):
 
     def __init__(self, mesh, **kwargs):
         BaseProblem.__init__(self, mesh, **kwargs)
-        self.mapping = kwargs.pop('mapping', Maps.IdentityMap(mesh))
+        # self.mapping = kwargs.pop('mapping', Maps.IdentityMap(mesh))
 
     @property
-    def mapping(self):
+    def modelMap(self):
         "A SimPEG.Map instance."
-        return getattr(self, '_mapping', None)
+        return getattr(self, '_modelMap', None)
 
-    @mapping.setter
-    def mapping(self, val):
+    @modelMap.setter
+    def modelMap(self, val):
         val._assertMatchesPair(self.mapPair)
-        self._mapping = val
+        self._modelMap = val
 
     def fields(self, m):
         return self.G.dot(m)

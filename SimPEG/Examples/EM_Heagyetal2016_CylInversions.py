@@ -11,10 +11,10 @@ except ImportError:
 
 def run(plotIt=True):
     """
-    1D FDEM and TDEM inversions
-    ===========================
+        1D FDEM and TDEM inversions
+        ===========================
 
-    This example is used in the paper Heagy et al 2016 (in prep)
+        This example is used in the paper Heagy et al 2016 (in prep)
 
     """
 
