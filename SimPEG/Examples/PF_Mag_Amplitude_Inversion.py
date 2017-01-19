@@ -92,8 +92,9 @@ def run(plotIt=True):
     model = model[actv]
 
     # We create a magnetization model different than the inducing field
-    # to simulate remanent magnetization. Let's do something simple [0,90]
-    M = PF.Magnetics.dipazm_2_xyz(np.ones(nC) * 0., np.ones(nC) * 90.)
+    # to simulate remanent magnetization. Let's do something simple,
+    # reversely magnetized [-90,0]
+    M = PF.Magnetics.dipazm_2_xyz(np.ones(nC) * 45., np.ones(nC) * 90.)
 
     # Create active map to go from reduce set to full
     actvMap = Maps.InjectActiveCells(mesh, actv, -100)
@@ -101,7 +102,7 @@ def run(plotIt=True):
     # Create reduced identity map
     idenMap = Maps.IdentityMap(nP=nC)
 
-    # Create the forward model operator
+    # Create the forward problem (forwardOnly)
     prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap, actInd=actv,
                                          M=M)
 
@@ -119,6 +120,12 @@ def run(plotIt=True):
     survey.std = wd
 
     # For comparison, let's run the inversion assuming an induced response
+    M = PF.Magnetics.dipazm_2_xyz(np.ones(nC) * B[1], np.ones(nC) * B[2])
+
+    # Reset the magnetization
+    prob.M = M
+    prob._G = None
+
     # Create a regularization function, in this case l2l2
     wr = np.sum(prob.G**2., axis=0)**0.5
     wr = (wr/np.max(wr))
@@ -272,8 +279,8 @@ def run(plotIt=True):
 
     # Specify the sparse norms
     IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),
-                                  eps=None, f_min_change=1e-3,
-                                  minGNiter=3, coolingRate=2)
+                                  eps=(1e-3, 1e-3), f_min_change=1e-3,
+                                  minGNiter=3)
 
     # Special directive specific to the mag amplitude problem. The sensitivity
     # weights are update between each iteration.
@@ -289,8 +296,7 @@ def run(plotIt=True):
     if plotIt:
         # Here is the recovered susceptibility model
         ypanel = midx
-        vmin = model.min()
-        vmax = model.max() / 2.
+
         zpanel = -4
         m_l2 = actvMap * reg.l2model
         m_l2[m_l2 == -100] = np.nan
@@ -314,11 +320,12 @@ def run(plotIt=True):
         plt.figure()
 
         # Plot L2 model
+        vmin = model.min()
+        vmax = model.max() / 5.
+
         ax = plt.subplot(321)
         mesh.plotSlice(m_l2_susc, ax=ax, normal='Y', ind=midx,
                        grid=True, clim=(vmin, vmax))
-        plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('Susceptibility l2-model.')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
@@ -327,22 +334,24 @@ def run(plotIt=True):
 
         # Amplitude model section
         ax = plt.subplot(322)
-        mesh.plotSlice(m_l2, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(vmin, vmax))
-        plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
+        dat = mesh.plotSlice(m_l2, ax=ax, normal='Y', ind=midx,
+                             grid=True)
+        plt.colorbar(dat[0], orientation="vertical",
+                    ticks=np.linspace(vmin, vmax, 4))
         plt.title('Amplitude l2-model.')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
+        ax.yaxis.set_visible(False)
         plt.ylabel('z')
         plt.gca().set_aspect('equal', adjustable='box')
 
         # Plot Lp model
+        vmin = model.min()
+        vmax = model.max()
+
         ax = plt.subplot(323)
         mesh.plotSlice(m_lp_susc, ax=ax, normal='Y', ind=midx,
                        grid=True, clim=(vmin, vmax))
-        plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('Susceptibility lp-model.')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
@@ -351,22 +360,23 @@ def run(plotIt=True):
 
         # Vertical section
         ax = plt.subplot(324)
-        mesh.plotSlice(m_lp, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(vmin, vmax))
-        plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
+        dat = mesh.plotSlice(m_lp, ax=ax, normal='Y', ind=midx,
+                             grid=True, clim=(vmin, vmax))
+        plt.colorbar(dat[0], orientation="vertical",
+                    ticks=np.linspace(vmin, vmax, 4))
         plt.title('Amplitude lp-model')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
+        ax.yaxis.set_visible(False)
         plt.ylabel('z')
         plt.gca().set_aspect('equal', adjustable='box')
 
         # Plot True model
         ax = plt.subplot(326)
-        mesh.plotSlice(m_true, ax=ax, normal='Y', ind=midx,
+        dat = mesh.plotSlice(m_true, ax=ax, normal='Y', ind=midx,
                        grid=True, clim=(vmin, vmax))
-        plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
+        plt.colorbar(dat[0], orientation="vertical",
+                     ticks=np.linspace(vmin, vmax, 4))
         plt.title('True model')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
