@@ -49,16 +49,12 @@ class MagneticIntegral(Problem.LinearProblem):
     def fields(self, m, **kwargs):
         self.model = m
 
-        if self.rtype == 'tmi':
-            u = np.zeros(self.survey.nRx)
-        else:
-            u = np.zeros(3*self.survey.nRx)
+        # if self.rtype == 'tmi':
+        #     u = np.zeros(self.survey.nRx)
+        # else:
+        #     u = np.zeros(3*self.survey.nRx)
 
         u = self.fwr_ind(m=m)
-        # rem = self.rem
-
-        # if induced is not None:
-        #     total += induced
 
         return u
 
@@ -255,6 +251,7 @@ class MagneticVector(MagneticIntegral):
     actInd = None  #: Active cell indices provided
     M = None  #: Magnetization matrix provided, otherwise all induced
     rtype = 'tmi'  #: Receiver type either "tmi" | "xyz"
+    mode = 'Cartesian'  # Formulation either "Cartesian" | "Spherical"
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
@@ -284,6 +281,55 @@ class MagneticVector(MagneticIntegral):
 
         return self._G
 
+    def fields(self, chi, **kwargs):
+
+        if self.mode == 'Cartesian':
+            m = chi
+        else:
+            m = atp2xyz(chi)
+
+        # if self.rtype == 'tmi':
+        #     u = np.zeros(self.survey.nRx)
+        # else:
+        #     u = np.zeros(3*self.survey.nRx)
+
+        u = self.fwr_ind(m=m)
+
+        return u
+
+    def Jvec(self, chi, v, f=None):
+
+        if self.mode == 'Cartesian':
+            return self.G.dot(v)
+        else:
+            dmudm = self.chiMap.deriv(chi)
+            return self.dfdm*(self.G.dot(dmudm*v))
+
+    def Jtvec(self, chi, v, f=None):
+
+        if self.mode == 'Cartesian':
+            return self.G.T.dot(v)
+        else:
+            dmudm = self.chiMap.deriv(chi)
+            return dmudm.T * (self.G.T.dot(self.dfdm.T*v))
+
+    @property
+    def S(self, chi):
+
+
+    def atp2xyz(self, m):
+        """ Convert from amplitude, theta, phi to x,y,z """
+        nC = len(m)/3
+
+        a = m[:nC]
+        t = m[nC:2*nC]
+        p = m[2*nC:]
+
+        m_xyz = np.r_[a*np.cos(t)*np.cos(p),
+                      a*np.cos(t)*np.sin(p),
+                      a*sin(t)]
+
+        return m_xyz
 
 class MagneticAmplitude(MagneticIntegral):
 
