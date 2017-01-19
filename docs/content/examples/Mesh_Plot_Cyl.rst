@@ -1,4 +1,4 @@
-.. _examples_Inversion_IRLS:
+.. _examples_Mesh_Plot_Cyl:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -9,18 +9,18 @@
 .. --------------------------------- ..
 
 
-Inversion for compact models (IRLS)
-===================================
+Plot Mirrored Cylindrically Symmetric Model
+===========================================
 
-Here we go over the basics of creating a linear problem and inversion.
-
+Here, we demonstrate plotting a model on a cylindrically
+symmetric mesh with the plotting symmetric about x=0.
 
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.Inversion_IRLS.run()
+    Examples.Mesh_Plot_Cyl.run()
 
-.. literalinclude:: ../../../SimPEG/Examples/Inversion_IRLS.py
+.. literalinclude:: ../../../SimPEG/Examples/Mesh_Plot_Cyl.py
     :language: python
     :linenos:

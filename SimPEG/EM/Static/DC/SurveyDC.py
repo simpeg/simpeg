@@ -1,7 +1,10 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import SimPEG
 from SimPEG.EM.Base import BaseEMSurvey
-from SimPEG import sp, Survey
-from SimPEG.Utils import Zero, Identity
 from .RxDC import BaseRx
 from .SrcDC import BaseSrc
 
@@ -42,5 +45,3 @@ class Survey_ky(BaseEMSurvey):
             for rx in src.rxList:
                 data[src, rx] = rx.eval(kys, src, self.mesh, f)
         return data
-
-

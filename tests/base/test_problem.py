@@ -1,5 +1,5 @@
 import unittest
-from SimPEG import Mesh, Problem
+from SimPEG import Mesh, Problem, Maps
 import numpy as np
 
 
@@ -20,6 +20,18 @@ class TestTimeProblem(unittest.TestCase):
         self.assertTrue(self.prob.nT == 6)
 
         self.assertTrue(np.all(self.prob.times == np.r_[0, trueTS].cumsum()))
+
+    def test_curModelDepreciation(self):
+        with self.assertRaises(Exception):
+            self.prob.curModel
+        with self.assertRaises(Exception):
+            self.prob.curModel = np.random.rand(10)
+
+    def test_mappingDepreciation(self):
+        with self.assertRaises(Exception):
+            self.prob.mapping
+        with self.assertRaises(Exception):
+            self.prob.mapping = Maps.IdentityMap(self.mesh)
 
 
 if __name__ == '__main__':

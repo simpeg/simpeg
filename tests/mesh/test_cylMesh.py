@@ -4,6 +4,7 @@ import sys
 import numpy as np
 from SimPEG import Mesh, Tests, Utils
 
+np.random.seed(13)
 
 class TestCyl2DMesh(unittest.TestCase):
 

@@ -8,8 +8,10 @@ import warnings
 TOL = 0.5 # relative tolerance (to norm of soln)
 plotIt = False
 
-if plotIt is True:
-    import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
+
+import matplotlib.pyplot as plt
 
 
 class TestSimpleSourcePropertiesTensor(unittest.TestCase):
@@ -26,23 +28,24 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
         self.freq = 1.
 
-        self.prob_e = FDEM.Problem3D_e(self.mesh, mapping=mapping)
-        self.prob_b = FDEM.Problem3D_b(self.mesh, mapping=mapping)
-        self.prob_h = FDEM.Problem3D_h(self.mesh, mapping=mapping)
-        self.prob_j = FDEM.Problem3D_j(self.mesh, mapping=mapping)
+        self.prob_e = FDEM.Problem3D_e(self.mesh, sigmaMap=mapping)
+        self.prob_b = FDEM.Problem3D_b(self.mesh, sigmaMap=mapping)
+        self.prob_h = FDEM.Problem3D_h(self.mesh, sigmaMap=mapping)
+        self.prob_j = FDEM.Problem3D_j(self.mesh, sigmaMap=mapping)
 
         loc = np.r_[0., 0., 0.]
-        self.loc = Utils.mkvc(self.mesh.gridCC[Utils.closestPoints(self.mesh,
-                                                                   loc,
-                                                                   'CC'), :])
+        self.loc = Utils.mkvc(
+            self.mesh.gridCC[Utils.closestPoints(self.mesh, loc, 'CC'), :]
+        )
 
     def test_MagDipole(self):
 
         print('\ntesting MagDipole assignments')
 
         for orient in ['x', 'y', 'z', 'X', 'Y', 'Z']:
-            src = FDEM.Src.MagDipole([], freq=self.freq, loc=np.r_[0., 0., 0.],
-                                     orientation=orient)
+            src = FDEM.Src.MagDipole(
+                [], freq=self.freq, loc=np.r_[0., 0., 0.], orientation=orient
+            )
 
             # test assignments
             assert np.all(src.loc == np.r_[0., 0., 0.])
@@ -55,7 +58,11 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             elif orient.upper() == 'Z':
                 orient_vec = np.r_[0., 0., 1.]
 
-            print (' {0} component. src: {1}, expected: {2}'.format(orient, src.orientation, orient_vec))
+            print (
+                ' {0} component. src: {1}, expected: {2}'.format(
+                    orient, src.orientation, orient_vec
+                )
+            )
             assert np.all(src.orientation == orient_vec)
 
     def test_MagDipoleSimpleFail(self):
@@ -71,19 +78,20 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
     def bPrimaryTest(self, src, probType):
         passed = True
-        print('\ntesting bPrimary {}, problem {}, mu {}'.format(src.__class__.__name__,
-                                                                probType,
-                                                                src.mu / mu_0))
+        print(
+            '\ntesting bPrimary {}, problem {}, mu {}'.format(
+                src.__class__.__name__, probType, src.mu / mu_0
+            )
+        )
         prob = getattr(self, 'prob_{}'.format(probType))
 
         bPrimary = src.bPrimary(prob)
 
         def ana_sol(XYZ):
-            return Analytics.FDEM.MagneticDipoleWholeSpace(XYZ, src.loc,
-                                                           0., 0.,
-                                                           moment=1.,
-                                                           orientation=src.orientation,
-                                                           mu=src.mu)
+            return Analytics.FDEM.MagneticDipoleWholeSpace(
+                XYZ, src.loc, 0., 0., moment=1., orientation=src.orientation,
+                mu=src.mu
+            )
 
         if probType in ['e', 'b']:
             # TODO: clean up how we call analytics

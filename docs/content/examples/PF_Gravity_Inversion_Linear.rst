@@ -10,7 +10,7 @@
 
 
 PF: Gravity: Inversion Linear
-===============================
+=============================
 
 Create a synthetic block model and invert
 with a compact norm

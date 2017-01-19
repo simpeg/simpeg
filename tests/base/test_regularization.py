@@ -9,6 +9,7 @@ TOL = 1e-20
 testReg = True
 testRegMesh = True
 
+np.random.seed(653)
 
 class RegularizationTests(unittest.TestCase):
 

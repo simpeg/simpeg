@@ -1,7 +1,6 @@
 .. image:: https://raw.github.com/simpeg/simpeg/master/docs/images/simpeg-logo.png
     :alt: SimPEG Logo
 
-======
 SimPEG
 ======
 
@@ -9,17 +8,13 @@ SimPEG
     :target: https://pypi.python.org/pypi/SimPEG
     :alt: Latest PyPI version
 
-.. image:: https://img.shields.io/badge/license-MIT-blue.svg
+.. image:: https://img.shields.io/github/license/simpeg/simpeg.svg
     :target: https://github.com/simpeg/simpeg/blob/master/LICENSE
     :alt: MIT license
 
 .. image:: https://api.travis-ci.org/simpeg/simpeg.svg?branch=master
     :target: https://travis-ci.org/simpeg/simpeg
     :alt: Travis CI build status
-
-.. image:: http://img.shields.io/badge/GITTER-JOIN_CHAT-brightgreen.svg?style=flat-square
-    :alt: gitter chat room at https://gitter.im/simpeg/simpeg
-    :target: https://gitter.im/simpeg/simpeg
 
 .. image:: https://codecov.io/gh/simpeg/simpeg/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/simpeg/simpeg
@@ -49,11 +44,11 @@ Overview Video
 .. image:: https://img.youtube.com/vi/yUm01YsS9hQ/0.jpg
     :target: https://www.youtube.com/watch?v=yUm01YsS9hQ
     :alt: All of the Geophysics But Backwards
-    
+
 Working towards all the Geophysics, but Backwards - SciPy 2016
 
-Citing SimPEG:
---------------
+Citing SimPEG
+-------------
 
 There is a paper about SimPEG!
 
@@ -72,9 +67,15 @@ There is a paper about SimPEG!
       publisher={Elsevier}
     }
 
+Links
+-----
 
 Website:
 http://simpeg.xyz
+
+
+Slack (real time chat):
+http://slack.simpeg.xyz
 
 
 Documentation:
@@ -91,7 +92,3 @@ https://travis-ci.org/simpeg/simpeg
 
 Bugs & Issues:
 https://github.com/simpeg/simpeg/issues
-
-
-Code Snippets & Tutorials:
-http://simpeg.xyz/Journal

@@ -1,5 +1,6 @@
 from SimPEG import Mesh, np
 from SimPEG.FLOW import Richards
+import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
@@ -59,10 +60,11 @@ def run(plotIt=True):
     def getFields(timeStep, method):
         timeSteps = np.ones(360/timeStep)*timeStep
         prob = Richards.RichardsProblem(
-            M, mapping=E, timeSteps=timeSteps,
+            M, modelMap=E,
             boundaryConditions=bc, initialConditions=h,
             doNewton=False, method=method
         )
+        prob.timeSteps = timeSteps
         return prob.fields(params['Ks'])
 
     Hs_M010 = getFields(10., 'mixed')
@@ -74,7 +76,6 @@ def run(plotIt=True):
 
     if not plotIt:
         return
-    import matplotlib.pyplot as plt
     plt.figure(figsize=(13, 5))
     plt.subplot(121)
     plt.plot(40-M.gridCC, Hs_M010[-1], 'b-')
@@ -98,7 +99,7 @@ def run(plotIt=True):
     plt.legend((
         '$\Delta t$ = 10 sec', '$\Delta t$ = 30 sec', '$\Delta t$ = 120 sec'
     ))
-    plt.show()
 
 if __name__ == '__main__':
     run()
+    plt.show()

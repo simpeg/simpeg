@@ -1,11 +1,22 @@
-from SimPEG import *
-import SimPEG.PF as PF
+import numpy as np
+import matplotlib.pyplot as plt
+
+from SimPEG import Mesh
+from SimPEG import Utils
+from SimPEG import Maps
+from SimPEG import Regularization
+from SimPEG import DataMisfit
+from SimPEG import Optimization
+from SimPEG import InvProblem
+from SimPEG import Directives
+from SimPEG import Inversion
+from SimPEG import PF
 
 
 def run(plotIt=True):
     """
         PF: Gravity: Inversion Linear
-        ===============================
+        =============================
 
         Create a synthetic block model and invert
         with a compact norm
@@ -30,7 +41,7 @@ def run(plotIt=True):
     zz = -np.exp((xx**2 + yy**2) / 75**2) + mesh.vectorNz[-1]
 
     # We would usually load a topofile
-    topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
+    topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
 
     # Go from topo to actv cells
     actv = Utils.surface2ind_topo(mesh, topo, 'N')
@@ -38,7 +49,7 @@ def run(plotIt=True):
                       dtype=int) - 1
 
     # Create active map to go from reduce space to full
-    actvMap = Maps.ActiveCells(mesh, actv, -100)
+    actvMap = Maps.InjectActiveCells(mesh, actv, -100)
     nC = len(actv)
 
     # Create and array of observation points
@@ -60,17 +71,17 @@ def run(plotIt=True):
     model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
     model[(midx-5):(midx-1), (midy-2):(midy+2), -10:-6] = 0.5
     model[(midx+1):(midx+5), (midy-2):(midy+2), -10:-6] = -0.5
-    model = mkvc(model)
+    model = Utils.mkvc(model)
     model = model[actv]
 
     # Create active map to go from reduce set to full
     actvMap = Maps.InjectActiveCells(mesh, actv, -100)
 
-    # Creat reduced identity map
+    # Create reduced identity map
     idenMap = Maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
-    prob = PF.Gravity.GravityIntegral(mesh, mapping=idenMap, actInd=actv)
+    prob = PF.Gravity.GravityIntegral(mesh, rhoMap=idenMap, actInd=actv)
 
     # Pair the survey and problem
     survey.pair(prob)
@@ -122,7 +133,6 @@ def run(plotIt=True):
     mrec = inv.run(m0)
 
     if plotIt:
-        import matplotlib.pyplot as plt
         # Here is the recovered susceptibility model
         ypanel = midx
         zpanel = -7
@@ -211,7 +221,7 @@ def run(plotIt=True):
         plt.xlabel('x')
         plt.ylabel('z')
         plt.gca().set_aspect('equal', adjustable='box')
-        plt.show()
 
 if __name__ == '__main__':
     run()
+    plt.show()

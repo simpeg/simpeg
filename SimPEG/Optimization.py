@@ -2,6 +2,7 @@ from __future__ import print_function
 from . import Utils
 import numpy as np
 import scipy.sparse as sp
+from six import string_types
 from .Utils.SolverUtils import *
 norm = np.linalg.norm
 
@@ -487,21 +488,21 @@ class Remember(object):
     def _startupRemember(self, x0):
         self._rememberList = {}
         for param in self._rememberThese:
-            if type(param) is str:
+            if isinstance(param, string_types):
                 self._rememberList[param] = []
-            elif type(param) is tuple:
+            elif isinstance(param, tuple):
                 self._rememberList[param[0]] = []
 
     def _doEndIterationRemember(self, *args):
         for param in self._rememberThese:
-            if type(param) is str:
+            if isinstance(param, string_types):
                 if self.debug: print('Remember is remembering: ' + param)
                 val = getattr(self, param, None)
                 if val is None and getattr(self, 'parent', None) is not None:
                     # Look to the parent for the param if not found here.
                     val = getattr(self.parent, param, None)
                 self._rememberList[param].append( val )
-            elif type(param) is tuple:
+            elif isinstance(param, tuple):
                 if self.debug: print('Remember is remembering: ' + param[0])
                 self._rememberList[param[0]].append( param[1](self) )
 
