@@ -165,7 +165,43 @@ def run(plotIt=True):
     mstart = np.ones(3*nC)*1e-4
     mrec = inv.run(mstart)
 
+    # # STEP 3: Finish inversion with spherical formulation
+    prob.mode = 'Spherical'
 
+    # Create a block diagonal regularization
+    reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap,
+                                nModels=3)
+    reg.cell_weights = wr
+    reg.mref = np.zeros(3*nC)
+
+    # Data misfit function
+    dmis = DataMisfit.l2_DataMisfit(survey)
+    dmis.Wd = 1./survey.std
+
+    # Add directives to the inversion
+    opt = Optimization.ProjectedGNCG(maxIter=30, lower=-10., upper=10.,
+                                     maxIterCG=20, tolCG=1e-3)
+
+    IRLS = Directives.Update_IRLS(norms=([2, 2, 2, 2]),
+                                  eps=None, f_min_change=1e-4,
+                                  minGNiter=3, beta_tol=1e-2)
+
+    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+    betaest = Directives.BetaEstimate_ByEig()
+
+    # Here is where the norms are applied
+    IRLS = Directives.Update_IRLS(norms=([2, 2, 2, 2]),
+                                  eps=None, f_min_change=1e-4,
+                                  minGNiter=3, beta_tol=1e-2)
+
+    update_Jacobi = Directives.Update_lin_PreCond()
+
+    inv = Inversion.BaseInversion(invProb,
+                                  directiveList=[update_Jacobi, IRLS, betaest])
+
+    mstart = prob.xyz2pst(mrec)
+
+    mrec = inv.run(mstart)
 
     if plotIt:
         # Here is the recovered susceptibility model
