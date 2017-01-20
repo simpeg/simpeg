@@ -303,7 +303,8 @@ class MagneticVector(MagneticIntegral):
             return self.G.dot(v)
         else:
             dmudm = self.chiMap.deriv(chi)
-            return self.dfdm*(self.G.dot(dmudm*v))
+
+            return self.G.dot(self.S(chi).dot(dmudm*v))
 
     def Jtvec(self, chi, v, f=None):
 
@@ -311,11 +312,31 @@ class MagneticVector(MagneticIntegral):
             return self.G.T.dot(v)
         else:
             dmudm = self.chiMap.deriv(chi)
-            return dmudm.T * (self.G.T.dot(self.dfdm.T*v))
+            return dmudm.T * (self.S(chi).T).dot(self.G.T.dot(self.dfdm.T*v))
 
     @property
     def S(self, chi):
 
+        if getattr(self, '_S', None) is None:
+            a = m[:nC]
+            t = m[nC:2*nC]
+            p = m[2*nC:]
+
+            Sx = np.hstack(sp.diag(np.cos(t)*np.cos(p), 0),
+                           sp.diag(-a*np.sin(t)*np.cos(p), 0),
+                           sp.diag(-a*np.cos(t)*np.sin(p), 0))
+
+            Sy = np.hstack(sp.diag(np.cos(t)*np.sin(p), 0),
+                           sp.diag(-a*np.sin(t)*np.sin(p), 0),
+                           sp.diag(a*np.cos(t)*np.cos(p), 0))
+
+            Sz = np.hstack(sp.diag(np.sin(t), 0),
+                           sp.diag(np.cos(t), 0),
+                           0)
+
+            self._S = np.vstack(Sx, Sy, Sz)
+
+        return self._S
 
     def atp2xyz(self, m):
         """ Convert from amplitude, theta, phi to x,y,z """
