@@ -80,8 +80,11 @@ class TDEM_cross_check_EB(unittest.TestCase):
     def test_EB_ey(self):
         CrossCheck(prbtype1='b', prbtype2='e', rxcomp='ey')
 
-    # def test_EB_dbxdt(self):
-    #     CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbxdt')
+    def test_EB_dbdtx(self):
+        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbdtx')
+
+    def test_EB_dbdtz(self):
+        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbdtz')
 
     # def test_EB_bx(self):
     #     CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bx')

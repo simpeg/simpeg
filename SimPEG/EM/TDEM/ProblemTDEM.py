@@ -340,9 +340,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         Srcs = self.survey.srcList
 
-        if self._fieldType is 'b' or self._fieldType is 'j':
+        if self._fieldType in ['b', 'j']:
             ifields = np.zeros((self.mesh.nF, len(Srcs)))
-        elif self._fieldType is 'e' or self._fieldType is 'h':
+        elif self._fieldType in ['e', 'h']:
             ifields = np.zeros((self.mesh.nE, len(Srcs)))
 
         for i, src in enumerate(Srcs):
@@ -643,7 +643,7 @@ class Problem3D_e(BaseTDEMProblem):
 
 class Problem3D_h(BaseTDEMProblem):
 
-    _fieldType = ''
+    _fieldType = 'h'
     _eqLocs = 'EF'
     fieldsPair = Fields3D_h  #: Fields object pair
     surveyPair = SurveyTDEM

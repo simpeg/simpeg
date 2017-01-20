@@ -13,7 +13,7 @@ except ImportError:
 plotIt = False
 
 testDeriv = True
-testAdjoint = True
+testAdjoint = False
 
 TOL = 1e-5
 
@@ -181,6 +181,12 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_b_bz(self):
             self.JvecTest('b', 'bz')
 
+        def test_Jvec_b_dbdtx(self):
+            self.JvecTest('b', 'dbdtx')
+
+        def test_Jvec_b_dbdtz(self):
+            self.JvecTest('b', 'dbdtz')
+
         def test_Jvec_e_dbxdt(self):
             self.JvecTest('e', 'dbdtx')
 
@@ -193,8 +199,8 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_e_ey(self):
             self.JvecTest('e', 'ey')
 
-        # def test_Jvec_h_hy(self):
-        #     self.JvecTest('h', 'hy')
+        def test_Jvec_h_hy(self):
+            self.JvecTest('h', 'hy')
 
 
 
@@ -225,10 +231,10 @@ class TDEM_DerivTests(unittest.TestCase):
             self.JvecVsJtvecTest('b', 'bz')
 
         def test_Jvec_adjoint_b_dbxdt(self):
-            self.JvecVsJtvecTest('b', 'bx')
+            self.JvecVsJtvecTest('b', 'dbxdt')
 
         def test_Jvec_adjoint_b_dbzdt(self):
-            self.JvecVsJtvecTest('b', 'bz')
+            self.JvecVsJtvecTest('b', 'dbzdt')
 
         def test_Jvec_adjoint_b_ey(self):
             self.JvecVsJtvecTest('b', 'ey')

@@ -13,8 +13,11 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
     """
 
     def __init__(self, locs, times, orientation=None):
-        assert(orientation in ['x', 'y', 'z']), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'. Arbitrary orientations have not yet been implemented.".format(orientation)
-
+        assert(orientation in ['x', 'y', 'z']), (
+            "Orientation {0!s} not known. Orientation must be in "
+            "'x', 'y', 'z'. Arbitrary orientations have not yet been "
+            "implemented.".format(orientation)
+        )
         self.projComp = orientation
         SimPEG.Survey.BaseTimeRx.__init__(self, locs, times, rxType=None) #TODO: remove rxType from baseRx
 
@@ -76,12 +79,12 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
 
                 This is not stored in memory, but is created on demand.
         """
-        if self.projField == 'dbdt':
-            return timeMesh.getInterpolationMat(
-                self.times, self.projTLoc(f)
-            )*timeMesh.faceDiv
-        else:
-            return timeMesh.getInterpolationMat(self.times, self.projTLoc(f))
+        # if self.projField == 'dbdt':
+        #     return timeMesh.getInterpolationMat(
+        #         self.times, self.projTLoc(f)
+        #     )*timeMesh.faceDiv
+        # else:
+        return timeMesh.getInterpolationMat(self.times, self.projTLoc(f))
 
     def eval(self, src, mesh, timeMesh, f):
         """
@@ -174,7 +177,7 @@ class Point_dbdt(BaseRx):
         """Grid Location projection (e.g. Ex Fy ...)"""
         if f.aliasFields.has_key(self.projField):
             return super(Point_dbdt, self).projGLoc(f)
-        return f._GLoc('b') + self.projComp
+        return f._GLoc(self.projField) + self.projComp
 
     def getTimeP(self, timeMesh, f):
         """
