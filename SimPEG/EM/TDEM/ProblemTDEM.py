@@ -219,9 +219,13 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         df_duT_v = Fields_Derivs(self.mesh, self.survey)
 
         # same size as fields at a single timestep
-        ATinv_df_duT_v = np.zeros((len(self.survey.srcList),
-                                   len(f[self.survey.srcList[0], ftype, 0])),
-                                  dtype=float)
+        ATinv_df_duT_v = np.zeros(
+            (
+                len(self.survey.srcList),
+                len(f[self.survey.srcList[0], ftype, 0])
+            ),
+            dtype=float
+        )
         JTv = np.zeros(m.shape, dtype=float)
 
         # Loop over sources and receivers to create a fields object:
@@ -239,7 +243,8 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             for rx in src.rxList:
                 PT_v[src, '{}Deriv'.format(rx.projField), :] = rx.evalDeriv(
                     src, self.mesh, self.timeMesh, f, Utils.mkvc(v[src, rx]),
-                    adjoint=True) # this is +=
+                    adjoint=True
+                ) # this is +=
 
                 # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN,
                 # self.timeMesh.nN), order='F')
@@ -247,9 +252,12 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
                 for tInd in range(self.nT+1):
                     cur = df_duTFun(
-                        tInd, src, None, Utils.mkvc(PT_v[
-                            src, '{}Deriv'.format(rx.projField), tInd]),
-                        adjoint=True)
+                        tInd, src, None, Utils.mkvc(
+                            PT_v[src, '{}Deriv'.format(rx.projField), tInd]
+                        ),
+                        adjoint=True
+                    )
+
                     df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd] = (
                         df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd] +
                         Utils.mkvc(cur[0], 2))

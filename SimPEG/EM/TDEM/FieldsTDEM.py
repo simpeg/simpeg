@@ -152,12 +152,12 @@ class Fields3D_b(FieldsTDEM):
             return - self._eDeriv_u(
                 tInd, src, self._edgeCurl.T * dun_dm_v, adjoint
             )
-        return - self._edgeCurl * self._eDeriv_u(tInd, src, dun_dm_v)
+        return -(self._edgeCurl * self._eDeriv_u(tInd, src, dun_dm_v))
 
     def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
         if adjoint is True:
-            - self._eDeriv(tInd, src, self._edgeCurl.T * dun_dm_v, adjoint)
-        return - self._edgeCurl * self._eDeriv_m(tInd, src, v) #+ src.s_mDeriv() assuming src doesn't have derif for now
+            return -(self._eDeriv_m(tInd, src, self._edgeCurl.T * v, adjoint))
+        return -(self._edgeCurl * self._eDeriv_m(tInd, src, v)) #+ src.s_mDeriv() assuming src doesn't have deriv for now
 
     def _e(self, bSolution, srcList, tInd):
         e = self._MeSigmaI * (self._edgeCurl.T * (self._MfMui * bSolution))

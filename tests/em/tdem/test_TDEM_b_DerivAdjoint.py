@@ -13,7 +13,7 @@ except ImportError:
 plotIt = False
 
 testDeriv = True
-testAdjoint = False
+testAdjoint = True
 
 TOL = 1e-5
 
@@ -175,11 +175,11 @@ class TDEM_DerivTests(unittest.TestCase):
             )
             Tests.checkDerivative(derChk, m, plotIt=False, num=3, eps=1e-20)
 
-        def test_Jvec_b_bx(self):
-            self.JvecTest('b', 'bx')
+        # def test_Jvec_b_bx(self):
+        #     self.JvecTest('b', 'bx')
 
-        def test_Jvec_b_bz(self):
-            self.JvecTest('b', 'bz')
+        # def test_Jvec_b_bz(self):
+        #     self.JvecTest('b', 'bz')
 
         def test_Jvec_b_dbdtx(self):
             self.JvecTest('b', 'dbdtx')
@@ -193,14 +193,14 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_e_dbzdt(self):
             self.JvecTest('e', 'dbdtz')
 
-        def test_Jvec_b_ey(self):
-            self.JvecTest('b', 'ey')
+        # def test_Jvec_b_ey(self):
+        #     self.JvecTest('b', 'ey')
 
-        def test_Jvec_e_ey(self):
-            self.JvecTest('e', 'ey')
+        # def test_Jvec_e_ey(self):
+        #     self.JvecTest('e', 'ey')
 
-        def test_Jvec_h_hy(self):
-            self.JvecTest('h', 'hy')
+        # def test_Jvec_h_hy(self):
+        #     self.JvecTest('h', 'hy')
 
 
 
@@ -230,11 +230,11 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_adjoint_b_bz(self):
             self.JvecVsJtvecTest('b', 'bz')
 
-        def test_Jvec_adjoint_b_dbxdt(self):
-            self.JvecVsJtvecTest('b', 'dbxdt')
+        def test_Jvec_adjoint_b_dbdtz(self):
+            self.JvecVsJtvecTest('b', 'dbdtx')
 
-        def test_Jvec_adjoint_b_dbzdt(self):
-            self.JvecVsJtvecTest('b', 'dbzdt')
+        def test_Jvec_adjoint_b_dbdtx(self):
+            self.JvecVsJtvecTest('b', 'dbdtz')
 
         def test_Jvec_adjoint_b_ey(self):
             self.JvecVsJtvecTest('b', 'ey')
