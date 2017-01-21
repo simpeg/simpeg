@@ -1,5 +1,9 @@
 from __future__ import print_function
 import unittest
+
+import matplotlib
+matplotlib.use('Agg')
+
 from SimPEG.EM import FDEM, Analytics, mu_0
 import numpy as np
 from SimPEG import Mesh, Maps, Utils
@@ -7,9 +11,6 @@ import warnings
 
 TOL = 0.5 # relative tolerance (to norm of soln)
 plotIt = False
-
-import matplotlib
-matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 
@@ -69,12 +70,16 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
         print('\ntesting MagDipole error handling')
         with self.assertRaises(Exception):
-            FDEM.Src.MagDipole([], freq=self.freq, loc=np.r_[0., 0., 0.],
-                               orientation=np.r_[2., 3., 2.])
+            FDEM.Src.MagDipole(
+                [], freq=self.freq, loc=np.r_[0., 0., 0.],
+               orientation=np.r_[2., 3., 2.]
+            )
 
         with warnings.catch_warnings(record=True):
-            FDEM.Src.MagDipole([], freq=self.freq, loc=np.r_[0., 0., 0.],
-                               orientation=np.r_[1., 0., 0.])
+            FDEM.Src.MagDipole(
+                [], freq=self.freq, loc=np.r_[0., 0., 0.],
+                orientation=np.r_[1., 0., 0.]
+        )
 
     def bPrimaryTest(self, src, probType):
         passed = True
