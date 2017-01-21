@@ -69,11 +69,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
     def test_MagDipoleSimpleFail(self):
 
         print('\ntesting MagDipole error handling')
-        with self.assertRaises(Exception):
-            FDEM.Src.MagDipole(
-                [], freq=self.freq, loc=np.r_[0., 0., 0.],
-               orientation=np.r_[2., 3., 2.]
-            )
+
 
         with warnings.catch_warnings(record=True):
             FDEM.Src.MagDipole(

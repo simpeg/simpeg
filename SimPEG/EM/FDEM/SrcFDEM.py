@@ -290,6 +290,12 @@ class MagDipole(BaseFDEMSrc):
     orientation = properties.Vector3(
         "orientation of the source", default='Z', length=1., required=True
     )
+    freq = properties.Float(
+        "frequency of the source (Hz)", required=True
+    )
+    loc = properties.Vector3(
+        "location of the source", default=np.r_[0.,0.,0.]
+    )
 
     def __init__(
         self, rxList, freq, loc, **kwargs
@@ -301,6 +307,8 @@ class MagDipole(BaseFDEMSrc):
 
         self.freq = freq
         self.loc = loc
+
+
 
     def _srcFct(self, obsLoc, component):
         return MagneticDipoleVectorPotential(
@@ -446,12 +454,12 @@ class MagDipole_Bfield(MagDipole):
 
     def __init__(self, rxList, freq, loc, **kwargs):
         super(MagDipole_Bfield, self).__init__(
-            rxList, freq=freq, loc=loc
+            rxList, freq=freq, loc=loc, **kwargs
         )
 
     def _srcFct(self, obsLoc, component):
         return MagneticDipoleFields(
-            self.srcLoc, obsLoc, component, mu=self.mu, moment=self.moment,
+            self.loc, obsLoc, component, mu=self.mu, moment=self.moment,
             orientation=self.orientation
         )
 
@@ -518,7 +526,7 @@ class CircularLoop(MagDipole):
 
     def __init__(self, rxList, freq, loc, **kwargs):
         super(CircularLoop, self).__init__(
-            rxList, freq, loc
+            rxList, freq, loc, **kwargs
         )
 
     def _srcFct(self, obsLoc, component):
