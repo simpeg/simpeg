@@ -21,13 +21,20 @@ np.random.seed(42)
 
 
 def setUp_TDEM(prbtype='b', rxcomp='bz'):
-    cs = 5.
-    ncx = 20
-    ncy = 15
-    npad = 20
-    hx = [(cs, ncx), (cs, npad, 1.3)]
-    hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
-    mesh = Mesh.CylMesh([hx, 1, hy], '00C')
+    cs = 10.
+    ncx = 8
+    ncy = 8
+    ncz = 8
+    npad = 4
+    # hx = [(cs, ncx), (cs, npad, 1.3)]
+    # hz = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
+    mesh = Mesh.TensorMesh(
+        [
+            [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)],
+            [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)],
+            [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
+        ], 'CCC'
+    )
 #
     active = mesh.vectorCCz < 0.
     activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
@@ -92,9 +99,9 @@ class TDEM_DerivTests(unittest.TestCase):
 
         print('\n Testing A_adjoint')
         m = np.random.rand(prb.sigmaMap.nP)
-        if prbtype == 'b':
+        if prbtype in ['b', 'j']:
             nu = prb.mesh.nF
-        elif prbtype == 'e':
+        elif prbtype in ['e', 'h']:
             nu = prb.mesh.nE
 
         v = np.random.rand(nu)
@@ -175,11 +182,11 @@ class TDEM_DerivTests(unittest.TestCase):
             )
             Tests.checkDerivative(derChk, m, plotIt=False, num=3, eps=1e-20)
 
-        # def test_Jvec_b_bx(self):
-        #     self.JvecTest('b', 'bx')
+        def test_Jvec_b_bx(self):
+            self.JvecTest('b', 'bx')
 
-        # def test_Jvec_b_bz(self):
-        #     self.JvecTest('b', 'bz')
+        def test_Jvec_b_bz(self):
+            self.JvecTest('b', 'bz')
 
         def test_Jvec_b_dbdtx(self):
             self.JvecTest('b', 'dbdtx')
@@ -193,14 +200,17 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_e_dbzdt(self):
             self.JvecTest('e', 'dbdtz')
 
-        # def test_Jvec_b_ey(self):
-        #     self.JvecTest('b', 'ey')
+        def test_Jvec_b_ey(self):
+            self.JvecTest('b', 'ey')
 
-        # def test_Jvec_e_ey(self):
-        #     self.JvecTest('e', 'ey')
+        def test_Jvec_e_ey(self):
+            self.JvecTest('e', 'ey')
 
-        # def test_Jvec_h_hy(self):
-        #     self.JvecTest('h', 'hy')
+        def test_Jvec_h_hx(self):
+            self.JvecTest('h', 'hx')
+
+        def test_Jvec_h_hz(self):
+            self.JvecTest('h', 'hz')
 
 
 
@@ -241,6 +251,15 @@ class TDEM_DerivTests(unittest.TestCase):
 
         def test_Jvec_adjoint_e_ey(self):
             self.JvecVsJtvecTest('e', 'ey')
+
+        def test_Jvec_adjoint_h_hx(self):
+            self.JvecVsJtvecTest('h', 'hx')
+
+        def test_Jvec_adjoint_h_hz(self):
+            self.JvecVsJtvecTest('h', 'hz')
+
+        def test_Jvec_adjoint_h_jy(self):
+            self.JvecVsJtvecTest('h', 'jy')
 
 if __name__ == '__main__':
     unittest.main()

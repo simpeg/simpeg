@@ -271,9 +271,9 @@ class Fields3D_e(FieldsTDEM):
 
 class Fields3D_h(FieldsTDEM):
     """Fancy Field Storage for a TDEM survey."""
-    knownFields = {'hSolution': 'F'}
+    knownFields = {'hSolution': 'E'}
     aliasFields = {
-                    'h': ['hSolution', 'F', '_h'],
+                    'h': ['hSolution', 'E', '_h'],
                     'j': ['hSolution', 'F', '_j'],
                   }
 

@@ -333,13 +333,12 @@ class MagDipole(BaseFDEMSrc):
         if prob.mesh._meshType == 'CYL':
             if not prob.mesh.isSymmetric:
                 # TODO ?
-                raise NotImplementedError('Non-symmetric cyl mesh not '
-                                          'implemented yet!')
+                raise NotImplementedError(
+                    'Non-symmetric cyl mesh not implemented yet!')
             assert (np.linalg.norm(self.orientation - np.r_[0., 0., 1.]) <
                     1e-6), ('for cylindrical symmetry, the dipole must be '
                             'oriented in the Z direction')
             a = self._srcFct(gridY, 'y')
-
         else:
             ax = self._srcFct(gridX, 'x')
             ay = self._srcFct(gridY, 'y')

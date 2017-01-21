@@ -186,13 +186,13 @@ class MagDipole(BaseTDEMSrc):
         )
 
     def _bSrc(self, prob):
-        if prob._eqLocs is 'FE':
+        if prob._formulation == 'EB':
             gridX = prob.mesh.gridEx
             gridY = prob.mesh.gridEy
             gridZ = prob.mesh.gridEz
             C = prob.mesh.edgeCurl
 
-        elif prob._eqLocs is 'EF':
+        elif prob._formulation == 'HJ':
             gridX = prob.mesh.gridFx
             gridY = prob.mesh.gridFy
             gridZ = prob.mesh.gridFz
@@ -205,9 +205,9 @@ class MagDipole(BaseTDEMSrc):
             a = self._srcFct(gridY, 'y')
 
         else:
-            ax = self._srcfct(gridX, 'x')
-            ay = self._srcfct(gridY, 'y')
-            az = self._srcfct(gridZ, 'z')
+            ax = self._srcFct(gridX, 'x')
+            ay = self._srcFct(gridY, 'y')
+            az = self._srcFct(gridZ, 'z')
             a = np.concatenate((ax, ay, az))
 
         return C*a
@@ -218,6 +218,13 @@ class MagDipole(BaseTDEMSrc):
             return Zero()
 
         return self._bSrc(prob)
+
+    def hInitial(self, prob):
+
+        if self.waveform.hasInitialFields is False:
+            return Zero()
+
+        return 1./self.mu * self._bSrc(prob)
 
     def eInitial(self, prob):
         # when solving for e, it is easier to work with an initial source than
@@ -259,24 +266,42 @@ class MagDipole(BaseTDEMSrc):
         return Zero()
 
     def s_e(self, prob, time):
-        b = self._bSrc(prob)
-        MfMui = prob.MfMui
         C = prob.mesh.edgeCurl
+        b = self._bSrc(prob)
 
-        # print 'time ', time
+        if prob._formulation == 'EB':
 
-        if self.waveform.hasInitialFields is True and time < prob.timeSteps[1]:
-            # if time > 0.0:
-            #     return Zero()
-            if prob._fieldType == 'b':
-                return Zero()
-            elif prob._fieldType == 'e':
-                # Compute s_e from vector potential
-                return C.T * (MfMui * b)
-        else:
-            # b = self._bfromVectorPotential(prob)
-            return C.T * (MfMui * b) * self.waveform.eval(time)
+            MfMui = prob.MfMui
+
+            if self.waveform.hasInitialFields is True and time < prob.timeSteps[1]:
+                # if time > 0.0:
+                #     return Zero()
+                if prob._fieldType == 'b':
+                    return Zero()
+                elif prob._fieldType == 'e':
+                    # Compute s_e from vector potential
+                    return C.T * (MfMui * b)
+            else:
+                # b = self._bfromVectorPotential(prob)
+                return C.T * (MfMui * b) * self.waveform.eval(time)
         # return Zero()
+
+        elif prob._formulation == 'HJ':
+
+            h = 1./self.mu * b
+
+            if self.waveform.hasInitialFields is True and time < prob.timeSteps[1]:
+                # if time > 0.0:
+                #     return Zero()
+                if prob._fieldType == 'h':
+                    return Zero()
+                elif prob._fieldType == 'j':
+                    # Compute s_e from vector potential
+                    return C * h
+            else:
+                # b = self._bfromVectorPotential(prob)
+                return C * h * self.waveform.eval(time)
+
 
 
 class CircularLoop(MagDipole):

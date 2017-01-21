@@ -330,10 +330,10 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         Srcs = self.survey.srcList
 
-        if self._eqLocs is 'FE':
+        if self._formulation == 'EB':
             s_m = np.zeros((self.mesh.nF, len(Srcs)))
             s_e = np.zeros((self.mesh.nE, len(Srcs)))
-        elif self._eqLocs is 'EF':
+        elif self._formulation == 'HJ':
             s_m = np.zeros((self.mesh.nE, len(Srcs)))
             s_e = np.zeros((self.mesh.nF, len(Srcs)))
 
@@ -455,7 +455,7 @@ class Problem3D_b(BaseTDEMProblem):
     """
 
     _fieldType = 'b'
-    _eqLocs = 'FE'  # TODO: This should be 'formulation EB or HJ'
+    _formulation = 'EB'  # TODO: This should be 'formulation EB or HJ'
     fieldsPair = Fields3D_b  #: A SimPEG.EM.TDEM.Fields3D_b object
     surveyPair = SurveyTDEM
 
@@ -579,7 +579,7 @@ class Problem3D_b(BaseTDEMProblem):
 class Problem3D_e(BaseTDEMProblem):
 
     _fieldType = 'e'
-    _eqLocs = 'FE'
+    _formulation = 'EB'
     fieldsPair = Fields3D_e  #: A Fields3D_e
     surveyPair = SurveyTDEM
 
@@ -652,7 +652,7 @@ class Problem3D_e(BaseTDEMProblem):
 class Problem3D_h(BaseTDEMProblem):
 
     _fieldType = 'h'
-    _eqLocs = 'EF'
+    _formulation = 'HJ'
     fieldsPair = Fields3D_h  #: Fields object pair
     surveyPair = SurveyTDEM
 
@@ -678,7 +678,7 @@ class Problem3D_h(BaseTDEMProblem):
 
         dt = self.timeSteps[tInd]
         C = self.mesh.edgeCurl
-        MfRhoDeriv = self.MeRhoDeriv(C * u)
+        MfRhoDeriv = self.MfRhoDeriv(C * u)
 
         if adjoint:
             return MfRhoDeriv.T * C * v
@@ -706,4 +706,8 @@ class Problem3D_h(BaseTDEMProblem):
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         C = self.mesh.edgeCurl
         s_m, s_e = self.getSourceTerm(tInd)
-        MfRhoDeriv = self.MfRhoDeriv(u)
+        MfRhoDeriv = self.MfRhoDeriv(s_e)
+
+        if adjoint is True:
+            return MfRhoDeriv.T * (C * v)
+        return C.T * (MfRhoDeriv * v) # assumes no source derivs
