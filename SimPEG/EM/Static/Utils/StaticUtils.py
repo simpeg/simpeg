@@ -935,3 +935,22 @@ def getSrc_locs(survey):
     srcMat = np.vstack(srcMat)
 
     return srcMat
+
+def drapeTopotoLoc(mesh, topo, pts, airind=None):
+    """
+        Drape
+    """
+    if mesh.dim == 2:
+        if pts.ndim > 1:
+            raise Exception("pts should be 1d array")
+    elif mesh.dim == 3:
+        if pts.shape[1] == 3:
+            raise Exception("shape of pts should be (x, 3)")
+    else:
+        raise NotImplementedError()
+    if airind is None:
+        airind = Utils.surface2ind_topo(mesh, topo)
+    meshtemp, topoCC = gettopoCC(mesh, ~airind)
+    inds = Utils.closestPoints(meshtemp, pts)
+
+    return np.c_[pts, topoCC[inds]]

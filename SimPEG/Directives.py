@@ -516,6 +516,8 @@ class Amplitude_Inv_Iter(InversionDirective):
     the non-linear magnetic amplitude problem.
 
     """
+    problem = 'Amp'
+
     def initialize(self):
 
         JtJdiag = self.getJtJdiag()
@@ -550,7 +552,10 @@ class Amplitude_Inv_Iter(InversionDirective):
         if getattr(self.opt, 'approxHinv', None) is not None:
 
             # Re-initialize the field derivatives
-            self.prob._dfdm = None
+            if self.problem == 'Amp':
+                self.prob._dfdm = None
+            elif self.problem == 'MVI-S':
+                self.prob._S = None
 
             # Update the pre-conditioner
             diagA = JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
@@ -562,12 +567,19 @@ class Amplitude_Inv_Iter(InversionDirective):
             Compute explicitely the main diagonal of JtJ for linear problem
         """
         nC = self.prob.chiMap.shape[0]
+        nD = self.survey.nD
 
         JtJdiag = np.zeros(nC)
 
-        for ii in range(nC):
+        if self.problem == 'Amp':
+            for ii in range(nC):
 
-            JtJdiag[ii] = np.sum((self.prob.dfdm*self.prob.G[:, ii])**2.)
+                JtJdiag[ii] = np.sum((self.prob.dfdm*self.prob.G[:, ii])**2.)
+
+        elif self.problem == 'MVI-S':
+
+            for ii in range(nD):
+
+                JtJdiag += np.sum((self.prob.G[ii, :] * self.prob.S)**2.)
 
         return JtJdiag
-

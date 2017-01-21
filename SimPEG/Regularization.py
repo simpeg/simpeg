@@ -923,6 +923,11 @@ class Sparse(Simple):
     # set default values
     eps_p = [1e-1, 1e-1, 1e-1]        # Threshold value for the model norm
     eps_q = [1e-1, 1e-1, 1e-1]        # Threshold value for the model gradient norm
+    alpha_s = [1., 1., 1.]
+    alpha_x = [1., 1., 1.]
+    alpha_y = [1., 1., 1.]
+    alpha_z = [1., 1., 1.]
+
     model = None     # Requires model to compute the weights
 
     l2model = None
@@ -977,7 +982,7 @@ class Sparse(Simple):
                 f_m = (m[indl:indu] - mref[indl:indu])
                 self.rs = self.R(f_m, self.eps_p[imodel], self.norms[0])
 
-                Ws = Utils.sdiag((self.alpha_s*self.gamma*self.cell_weights[indl:indu])**0.5*self.rs)
+                Ws = Utils.sdiag((self.alpha_s[imodel]*self.gamma*self.cell_weights[indl:indu])**0.5*self.rs)
 
                 mats.append(Ws)
 
@@ -1005,7 +1010,7 @@ class Sparse(Simple):
                 f_m = self.regmesh.cellDiffxStencil * m[indl:indu]
                 self.rx = self.R( f_m , self.eps_q[imodel], self.norms[1])
 
-                Wx = Utils.sdiag((self.alpha_x*self.gamma*(self.regmesh.aveCC2Fx*self.cell_weights[indl:indu]))**0.5*self.rx)*self.regmesh.cellDiffxStencil
+                Wx = Utils.sdiag((self.alpha_x[imodel]*self.gamma*(self.regmesh.aveCC2Fx*self.cell_weights[indl:indu]))**0.5*self.rx)*self.regmesh.cellDiffxStencil
 
                 mats.append(Wx)
 
@@ -1033,7 +1038,7 @@ class Sparse(Simple):
                 f_m = self.regmesh.cellDiffyStencil * m[indl:indu]
                 self.ry = self.R( f_m , self.eps_q[imodel], self.norms[2])
 
-                Wy = Utils.sdiag((self.alpha_y*self.gamma*(self.regmesh.aveCC2Fy*self.cell_weights[indl:indu]))**0.5*self.ry)*self.regmesh.cellDiffyStencil
+                Wy = Utils.sdiag((self.alpha_y[imodel]*self.gamma*(self.regmesh.aveCC2Fy*self.cell_weights[indl:indu]))**0.5*self.ry)*self.regmesh.cellDiffyStencil
 
                 mats.append(Wy)
 
@@ -1059,7 +1064,7 @@ class Sparse(Simple):
                 f_m = self.regmesh.cellDiffzStencil * m[indl:indu]
                 self.rz = self.R( f_m , self.eps_q[imodel], self.norms[3])
 
-                Wz = Utils.sdiag((self.alpha_z*self.gamma*(self.regmesh.aveCC2Fz*self.cell_weights[indl:indu]))**0.5*self.rz)*self.regmesh.cellDiffzStencil
+                Wz = Utils.sdiag((self.alpha_z[imodel]*self.gamma*(self.regmesh.aveCC2Fz*self.cell_weights[indl:indu]))**0.5*self.rz)*self.regmesh.cellDiffzStencil
 
                 mats.append(Wz)
 

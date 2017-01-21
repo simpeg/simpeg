@@ -252,6 +252,7 @@ class MagneticVector(MagneticIntegral):
     M = None  #: Magnetization matrix provided, otherwise all induced
     rtype = 'tmi'  #: Receiver type either "tmi" | "xyz"
     mode = 'Cartesian'  # Formulation either "Cartesian" | "Spherical"
+    chi = None
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
@@ -302,55 +303,50 @@ class MagneticVector(MagneticIntegral):
         if self.mode == 'Cartesian':
             return self.G.dot(v)
         else:
-            dmudm = self.chiMap.deriv(chi)
+            dmudm = self.S * self.chiMap.deriv(chi)
 
-            return self.G.dot(self.S(chi).dot(dmudm*v))
+            return self.G.dot(dmudm.dot(v))
 
     def Jtvec(self, chi, v, f=None):
 
         if self.mode == 'Cartesian':
             return self.G.T.dot(v)
         else:
-            dmudm = self.chiMap.deriv(chi)
-            return dmudm.T * (self.S(chi).T).dot(self.G.T.dot(self.dfdm.T*v))
+
+            dmudm = self.S * self.chiMap.deriv(chi)
+
+            return (dmudm.T).dot(self.G.T.dot(v))
 
     @property
-    def S(self, chi):
+    def S(self):
 
         if getattr(self, '_S', None) is None:
-            a = m[:nC]
-            t = m[nC:2*nC]
-            p = m[2*nC:]
 
-            Sx = np.hstack(sp.diag(np.cos(t)*np.cos(p), 0),
-                           sp.diag(-a*np.sin(t)*np.cos(p), 0),
-                           sp.diag(-a*np.cos(t)*np.sin(p), 0))
+            if self.chi is None:
+                raise Exception('Requires a model')
 
-            Sy = np.hstack(sp.diag(np.cos(t)*np.sin(p), 0),
-                           sp.diag(-a*np.sin(t)*np.sin(p), 0),
-                           sp.diag(a*np.cos(t)*np.cos(p), 0))
+            nC = int(len(self.chi)/3)
 
-            Sz = np.hstack(sp.diag(np.sin(t), 0),
-                           sp.diag(np.cos(t), 0),
-                           0)
+            a = self.chi[:nC]
+            t = self.chi[nC:2*nC]
+            p = self.chi[2*nC:]
 
-            self._S = np.vstack(Sx, Sy, Sz)
+            Sx = sp.hstack([sp.diags(np.cos(t)*np.cos(p), 0),
+                           sp.diags(-a*np.sin(t)*np.cos(p), 0),
+                           sp.diags(-a*np.cos(t)*np.sin(p), 0)])
+
+            Sy = sp.hstack([sp.diags(np.cos(t)*np.sin(p), 0),
+                           sp.diags(-a*np.sin(t)*np.sin(p), 0),
+                           sp.diags(a*np.cos(t)*np.cos(p), 0)])
+
+            Sz = sp.hstack([sp.diags(np.sin(t), 0),
+                           sp.diags(np.cos(t), 0),
+                           sp.csr_matrix((nC, nC))])
+
+            self._S = sp.vstack([Sx, Sy, Sz])
 
         return self._S
 
-    def atp2xyz(self, m):
-        """ Convert from amplitude, theta, phi to x,y,z """
-        nC = len(m)/3
-
-        a = m[:nC]
-        t = m[nC:2*nC]
-        p = m[2*nC:]
-
-        m_xyz = np.r_[a*np.cos(t)*np.cos(p),
-                      a*np.cos(t)*np.sin(p),
-                      a*sin(t)]
-
-        return m_xyz
 
 class MagneticAmplitude(MagneticIntegral):
 
@@ -953,6 +949,44 @@ def progress(iter, prog, final):
         prog = arg
 
     return prog
+
+
+def atp2xyz(m):
+    """ Convert from Spherical to Cartesian """
+
+    nC = len(m)/3
+
+    a = m[:nC]
+    t = m[nC:2*nC]
+    p = m[2*nC:]
+
+    m_xyz = np.r_[a*np.cos(t)*np.cos(p),
+                  a*np.cos(t)*np.sin(p),
+                  a*np.sin(t)]
+
+    return m_xyz
+
+
+def xyz2atp(m):
+    """ Convert from Cartesian to Spherical """
+
+    nC = len(m)/3
+
+    x = m[:nC]
+    y = m[nC:2*nC]
+    z = m[2*nC:]
+
+    a = (x**2. + y**2. + z**2.)**0.5
+
+    t = np.zeros(nC)
+    t[a > 0] = np.arcsin(z[a > 0]/a[a > 0])
+
+    p = np.zeros(nC)
+    p[a > 0] = np.arctan2(y[a > 0], x[a > 0])
+
+    m_atp = np.r_[a, t, p]
+
+    return m_atp
 
 
 def dipazm_2_xyz(dip, azm_N):
