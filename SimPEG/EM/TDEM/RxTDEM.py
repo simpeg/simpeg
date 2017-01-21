@@ -166,7 +166,7 @@ class Point_dbdt(BaseRx):
 
     def eval(self, src, mesh, timeMesh, f):
 
-        if f.aliasFields.has_key(self.projField):
+        if self.projField in f.aliasFields:
             return super(Point_dbdt, self).eval(src, mesh, timeMesh, f)
 
         P = self.getP(mesh, timeMesh, f)
@@ -175,7 +175,7 @@ class Point_dbdt(BaseRx):
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
-        if f.aliasFields.has_key(self.projField):
+        if self.projField in f.aliasFields:
             return super(Point_dbdt, self).projGLoc(f)
         return f._GLoc(self.projField) + self.projComp
 
@@ -187,7 +187,7 @@ class Point_dbdt(BaseRx):
 
                 This is not stored in memory, but is created on demand.
         """
-        if f.aliasFields.has_key(self.projField):
+        if self.projField in f.aliasFields:
             return super(Point_dbdt, self).getTimeP(timeMesh, f)
 
         return timeMesh.getInterpolationMat(
