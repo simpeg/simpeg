@@ -200,8 +200,9 @@ class MagDipole(BaseTDEMSrc):
 
         if prob.mesh._meshType is 'CYL':
             if not prob.mesh.isSymmetric:
-                raise NotImplementedError('Non-symmetric cyl mesh '
-                                          'not implemented yet!')
+                raise NotImplementedError(
+                    'Non-symmetric cyl mesh not implemented yet!'
+                )
             a = self._srcFct(gridY, 'y')
 
         else:

@@ -14,7 +14,7 @@ except ImportError:
 plotIt = False
 
 testDeriv = True
-testAdjoint = True
+testAdjoint = False
 
 TOL = 1e-5
 EPS = 1e-20
@@ -60,7 +60,7 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
     wavefun = interp1d(prb.times, out)
     t0 = 0.006
     waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
-    timerx = np.logspace(-4, -3, 20)
+    timerx = t0 + np.logspace(-5, -3, 20)
     rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxcomp[:-1]))(
         np.array([[rxOffset, 0., 0.]]), timerx, rxcomp[-1])
     src = EM.TDEM.Src.MagDipole(
@@ -182,8 +182,11 @@ class TDEM_DerivTests(unittest.TestCase):
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
         passed = np.abs(V1-V2) < tol
 
-        print('     {v1}, {v2}, {diff}, {tol}, {passed}'.format(
-              v1=V1, v2=V2, diff=np.abs(V1-V2), tol=tol, passed=passed))
+        print(
+            '     {v1}, {v2}, {diff}, {tol}, {passed}'.format(
+                v1=V1, v2=V2, diff=np.abs(V1-V2), tol=tol, passed=passed
+            )
+        )
         self.assertTrue(passed)
 
 

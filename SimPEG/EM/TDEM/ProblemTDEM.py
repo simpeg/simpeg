@@ -568,7 +568,7 @@ class Problem3D_b(BaseTDEMProblem):
             MeSigmaIDeriv_v = MeSigmaIDeriv(s_e) * v
 
         RHSDeriv = (
-            C * MeSigmaIDeriv_v #+ C * MeSigmaI * s_eDeriv(v) + s_mDeriv(v)
+            C * MeSigmaIDeriv_v + C * MeSigmaI * s_eDeriv(v) + s_mDeriv(v)
         )
 
         if self._makeASymmetric is True:
