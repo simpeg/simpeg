@@ -182,7 +182,7 @@ class TDEM_DerivTests(unittest.TestCase):
             print('test_Jvec_{prbtype}_{rxcomp}'.format(
                 prbtype=prbtype, rxcomp=rxcomp)
             )
-            Tests.checkDerivative(derChk, m, plotIt=False, num=3, eps=1e-20)
+            Tests.checkDerivative(derChk, m, plotIt=False, num=2, eps=1e-20)
 
         def test_Jvec_b_bx(self):
             self.JvecTest('b', 'bx')
