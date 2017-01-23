@@ -83,6 +83,17 @@ class FieldsTDEM(SimPEG.Problem.TimeFields):
             self._hDeriv_m(tInd, src, v)
         )
 
+    def _dhdtDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
+        if adjoint is True:
+            return (
+                self._dhdtDeriv_u(tInd, src, v, adjoint),
+                self._dhdtDeriv_m(tInd, src, v, adjoint)
+            )
+        return (
+            self._dhdtDeriv_u(tInd, src, dun_dm_v) +
+            self._dhdtDeriv_m(tInd, src, v)
+        )
+
     def _jDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
         if adjoint is True:
             return (
@@ -104,7 +115,8 @@ class Fields_Derivs(FieldsTDEM):
                     'eDeriv': 'E',
                     'hDeriv': 'E',
                     'jDeriv': 'F',
-                    'dbdtDeriv': 'F'
+                    'dbdtDeriv': 'F',
+                    'dhdtDeriv': 'E'
                   }
 
 
@@ -134,7 +146,7 @@ class Fields3D_b(FieldsTDEM):
         return bSolution
 
     def _bDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        return Identity()*dun_dm_v
+        return dun_dm_v
 
     def _bDeriv_m(self, tInd, src, v, adjoint=False):
         return Zero()
@@ -255,18 +267,19 @@ class Fields3D_e(FieldsTDEM):
         """
         Integrate _db_dt using rectangles
         """
-        dbdt = self._dbdt(eSolution, srcList, tInd)
-        dt = self.survey.prob.timeMesh.hx
-        # assume widths of "ghost cells" same on either end
-        dtn = np.hstack([dt[0], 0.5*(dt[1:] + dt[:-1]), dt[-1]])
-        return dtn[tInd] * dbdt
-        # raise NotImplementedError
+        raise NotImplementedError('To obtain b-fields, please use Problem3D_b')
+        # dbdt = self._dbdt(eSolution, srcList, tInd)
+        # dt = self.survey.prob.timeMesh.hx
+        # # assume widths of "ghost cells" same on either end
+        # dtn = np.hstack([dt[0], 0.5*(dt[1:] + dt[:-1]), dt[-1]])
+        # return dtn[tInd] * dbdt
+        # # raise NotImplementedError
 
     def _bDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        raise NotImplementedError
+        raise NotImplementedError('To obtain b-fields, please use Problem3D_b')
 
     def _bDeriv_m(self, tInd, src, v, adjoint=False):
-        raise NotImplementedError
+        raise NotImplementedError('To obtain b-fields, please use Problem3D_b')
 
 
 class Fields3D_h(FieldsTDEM):
@@ -297,12 +310,9 @@ class Fields3D_h(FieldsTDEM):
         return Zero()
 
     def _j(self, hSolution, srcList, tInd):
-        """
-        Integrate _db_dt using rectangles
-        """
         s_e = np.zeros((self.mesh.nF, len(srcList)))
         for i, src in enumerate(srcList):
-            s_e_src, _ = src.s_e(
+            s_e_src = src.s_e(
                 self.survey.prob, self._times[tInd]
             )
             s_e[:, i] += s_e_src
@@ -316,3 +326,64 @@ class Fields3D_h(FieldsTDEM):
 
     def _jDeriv_m(self, tInd, src, v, adjoint=False):
         return Zero() # assumes the source doesn't depend on the model
+
+
+class Fields3D_j(FieldsTDEM):
+    """Fancy Field Storage for a TDEM survey."""
+    knownFields = {'jSolution': 'F'}
+    aliasFields = {
+                    'dhdt': ['jSolution', 'E', '_dhdt'],
+                    'j': ['jSolution', 'F', '_j'],
+                  }
+
+    def startup(self):
+        self._edgeCurl = self.survey.prob.mesh.edgeCurl
+        self._times = self.survey.prob.times
+        self._MeMuI = self.survey.prob.MeMuI
+        self._MfRho = self.survey.prob.MfRho
+        self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
+
+    def _TLoc(self, fieldType):
+        # if fieldType in ['h', 'j']:
+        return 'N'
+
+    def _j(self, jSolution, srcList, tInd):
+        return jSolution
+
+    def _jDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        return dun_dm_v
+
+    def _jDeriv_m(self, tInd, src, v, adjoint=False):
+        return Zero()
+
+
+    def _dhdt(self, jSolution, srcList, tInd):
+        C = self._edgeCurl
+        MfRho = self._MfRho
+        MeMuI = self._MeMuI
+
+        dhdt = - MeMuI * (C.T * (MfRho * jSolution))
+        for i, src in enumerate(srcList):
+            s_m = src.s_m(self.survey.prob, self.survey.prob.times[tInd])
+            dhdt[:,i] = dhdt[:,i] + MeMuI * s_m
+
+        return dhdt
+
+    def _dhdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        C = self._edgeCurl
+        MfRho = self._MfRho
+        MeMuI = self._MeMuI
+
+        if adjoint is True:
+            return -MfRho.T * (C * (MeMuI.T * dun_dm_v))
+        return -MeMuI * (C.T * (MfRho * dun_dm_v))
+
+    def _dhdtDeriv_m(self, tInd, src, v, adjoint=False):
+        jSolution = self[[src], 'jSolution', tInd].flatten()
+        MfRhoDeriv = self._MfRhoDeriv(jSolution)
+        C = self._edgeCurl
+        MeMuI = self._MeMuI
+
+        if adjoint is True:
+            return -MfRhoDeriv.T * (C * (MeMuI * v))
+        return -MeMuI * (C.T * (MfRhoDeriv * v))

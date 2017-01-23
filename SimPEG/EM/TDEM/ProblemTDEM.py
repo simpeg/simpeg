@@ -3,7 +3,7 @@ from SimPEG import Problem, Utils, np, sp, Solver as SimpegSolver
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.TDEM.SurveyTDEM import Survey as SurveyTDEM
 from SimPEG.EM.TDEM.FieldsTDEM import (
-    FieldsTDEM, Fields3D_b, Fields3D_e, Fields3D_h, Fields_Derivs
+    FieldsTDEM, Fields3D_b, Fields3D_e, Fields3D_h, Fields3D_j, Fields_Derivs
 )
 from scipy.constants import mu_0
 import time
@@ -165,15 +165,17 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 # on nodes of time mesh
                 dRHS_dm_v = self.getRHSDeriv(tInd+1, src, v)
 
-                dAsubdiag_dm_v = self.getAsubdiagDeriv(tInd, f[src, ftype,
-                                                               tInd], v)
+                dAsubdiag_dm_v = self.getAsubdiagDeriv(
+                    tInd, f[src, ftype, tInd], v
+                )
 
                 JRHS = dRHS_dm_v - dAsubdiag_dm_v - dA_dm_v
 
                 # step in time and overwrite
                 if tInd != len(self.timeSteps+1):
-                    dun_dm_v[:, i] = Adiaginv * (JRHS - Asubdiag *
-                                                 dun_dm_v[:, i])
+                    dun_dm_v[:, i] = Adiaginv * (
+                        JRHS - Asubdiag * dun_dm_v[:, i]
+                    )
 
         Jv = []
         for src in self.survey.srcList:
@@ -362,9 +364,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
     def getInitialFieldsDeriv(self, src, v, adjoint=False):
 
         if adjoint is False:
-            if self._fieldType is 'b' or self._fieldType is 'j':
+            if self._fieldType in ['b', 'j']:
                 ifieldsDeriv = np.zeros(self.mesh.nF)
-            elif self._fieldType is 'e' or self._fieldType is 'h':
+            elif self._fieldType in ['e', 'h']:
                 ifieldsDeriv = np.zeros(self.mesh.nE)
 
         elif adjoint is True:
@@ -541,8 +543,9 @@ class Problem3D_b(BaseTDEMProblem):
         MfMui = self.MfMui
 
         _, s_e = src.eval(self, self.times[tInd])
-        s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd],
-                                           adjoint=adjoint)
+        s_mDeriv, s_eDeriv = src.evalDeriv(
+            self, self.times[tInd], adjoint=adjoint
+        )
 
         if adjoint:
             if self._makeASymmetric is True:
@@ -552,8 +555,10 @@ class Problem3D_b(BaseTDEMProblem):
             else:
                 MeSigmaIDerivT_v = MeSigmaIDeriv(s_e).T * C.T * v
 
-            RHSDeriv = (MeSigmaIDerivT_v + s_eDeriv( MeSigmaI.T * (C.T * v)) +
-                        s_mDeriv(v))
+            RHSDeriv = (
+                MeSigmaIDerivT_v + s_eDeriv( MeSigmaI.T * (C.T * v)) +
+                s_mDeriv(v)
+            )
 
             return RHSDeriv
 
@@ -562,13 +567,9 @@ class Problem3D_b(BaseTDEMProblem):
         else:
             MeSigmaIDeriv_v = MeSigmaIDeriv(s_e) * v
 
-        temp = MeSigmaIDeriv_v + MeSigmaI * s_eDeriv(v) + s_mDeriv(v)
-
-        # TODO: this is because Zero class, which need to be modified
-        if isinstance(temp, Utils.Zero) is False:
-            RHSDeriv = C * temp.astype(float)
-        else:
-            RHSDeriv = C * temp
+        RHSDeriv = (
+            C * MeSigmaIDeriv_v #+ C * MeSigmaI * s_eDeriv(v) + s_mDeriv(v)
+        )
 
         if self._makeASymmetric is True:
             return self.MfMui.T * RHSDeriv
@@ -711,3 +712,88 @@ class Problem3D_h(BaseTDEMProblem):
         if adjoint is True:
             return MfRhoDeriv.T * (C * v)
         return C.T * (MfRhoDeriv * v) # assumes no source derivs
+
+
+# ------------------------------- Problem3D_j ------------------------------- #
+
+class Problem3D_j(BaseTDEMProblem):
+
+    _fieldType = 'j'
+    _formulation = 'HJ'
+    fieldsPair = Fields3D_j  #: Fields object pair
+    surveyPair = SurveyTDEM
+
+    def __init__(self, mesh, **kwargs):
+        BaseTDEMProblem.__init__(self, mesh, **kwargs)
+
+    def getAdiag(self, tInd):
+        """
+        System matrix at a given time index
+
+        """
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.timeSteps[tInd]
+        C = self.mesh.edgeCurl
+        MfRho = self.MfRho
+        MeMuI = self.MeMuI
+        eye = sp.eye(self.mesh.nF)
+
+        A = C * (MeMuI * (C.T * MfRho)) + 1./dt * eye
+
+        if self._makeASymmetric:
+            return MfRho.T * A
+
+        return A
+
+    def getAdiagDeriv(self, tInd, u, v, adjoint=False):
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.timeSteps[tInd]
+        C = self.mesh.edgeCurl
+        MfRho = self.MfRho
+        MfRhoDeriv = self.MfRhoDeriv(u)
+        MeMuI = self.MeMuI
+
+        if adjoint:
+            if self._makeASymmetric:
+                v = MfRho * v
+            return MfRhoDeriv.T * (C * (MeMuI.T * (C.T * v)))
+
+        ADeriv = C * (MeMuI * (C.T * MfRhoDeriv * v))
+        if self._makeASymmetric:
+            return MfRho.T * ADeriv
+        return ADeriv
+
+    def getAsubdiag(self, tInd):
+        assert tInd >= 0 and tInd < self.nT
+        eye = sp.eye(self.mesh.nF)
+
+        dt = self.timeSteps[tInd]
+
+        if self._makeASymmetric:
+            return -1./dt * self.MfRho.T
+        return -1./dt * eye
+
+    def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
+        return Utils.Zero()
+
+    def getRHS(self, tInd):
+
+        if tInd == len(self.timeSteps):
+            tInd = tInd - 1
+
+        C = self.mesh.edgeCurl
+        MeMuI = self.MeMuI
+        dt = self.timeSteps[tInd]
+        s_m, s_e = self.getSourceTerm(tInd)
+        _, s_en1 = self.getSourceTerm(tInd-1)
+
+        rhs = -1./dt * (s_e - s_en1) + C * MeMuI * s_m
+        if self._makeASymmetric:
+            return self.MfRho.T * rhs
+        return rhs
+
+    def getRHSDeriv(self, tInd, src, v, adjoint=False):
+        return Utils.Zero()  # assumes no derivs on sources
+

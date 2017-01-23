@@ -221,3 +221,9 @@ class Point_j(BaseRx):
     def __init__(self, locs, times, orientation=None):
         self.projField = 'j'
         super(Point_j, self).__init__(locs, times, orientation)
+
+class Point_dhdt(BaseRx):
+
+    def __init__(self, locs, times, orientation=None):
+        self.projField = 'dhdt'
+        super(Point_dhdt, self).__init__(locs, times, orientation)

@@ -23,24 +23,38 @@ np.random.seed(2)
 
 def setUp_TDEM(prbtype='b', rxcomp='bz'):
 
+    # cs = 5.
+    # ncx = 20
+    # ncy = 15
+    # npad = 20
+    # hx = [(cs, ncx), (cs, npad, 1.3)]
+    # hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
+    # mesh = Mesh.CylMesh([hx, 1, hy], '00C')
+
     cs = 5.
-    ncx = 20
-    ncy = 15
-    npad = 20
-    hx = [(cs, ncx), (cs, npad, 1.3)]
-    hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
-    mesh = Mesh.CylMesh([hx, 1, hy], '00C')
+    ncx = 8
+    ncy = 8
+    ncz = 8
+    npad = 4
+    # hx = [(cs, ncx), (cs, npad, 1.3)]
+    # hz = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
+    mesh = Mesh.TensorMesh(
+        [
+            [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)],
+            [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)],
+            [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
+        ], 'CCC'
+    )
+#
 #
     active = mesh.vectorCCz < 0.
     activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
 
-    rxOffset = 10.
+    rxOffset = 15.
 
-    if prbtype == 'b':
-        prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
-    elif prbtype == 'e':
-        prb = EM.TDEM.Problem3D_e(mesh, sigmaMap=mapping)
+    prb = getattr(EM.TDEM, 'Problem3D_{}'.format(prbtype))(mesh, sigmaMap=mapping)
+
     prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
     out = EM.Utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
     wavefun = interp1d(prb.times, out)
@@ -50,7 +64,7 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
     rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxcomp[:-1]))(
         np.array([[rxOffset, 0., 0.]]), timerx, rxcomp[-1])
     src = EM.TDEM.Src.MagDipole(
-        [rx], waveform= waveform, loc=np.array([0., 0., 0.])
+        [rx], waveform=waveform, loc=np.array([0., 0., 0.])
     )
 
     survey = EM.TDEM.Survey([src])
@@ -201,9 +215,26 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_b_ey(self):
             self.JvecTest(prbtype='b', rxcomp='ey')
 
-        # TODOs: problem_e is not working yet
         def test_Jvec_e_ey(self):
-            self.JvecTest('e','ey')
+            self.JvecTest(prbtype='e', rxcomp='ey')
+
+        def test_Jvec_e_dbdtx(self):
+            self.JvecTest(prbtype='e', rxcomp='dbdtx')
+
+        def test_Jvec_e_dbdtz(self):
+            self.JvecTest(prbtype='e', rxcomp='dbdtz')
+
+        def test_Jvec_h_hx(self):
+            self.JvecTest(prbtype='h', rxcomp='hx')
+
+        def test_Jvec_h_hz(self):
+            self.JvecTest(prbtype='h', rxcomp='hz')
+
+        def test_Jvec_h_jy(self):
+            self.JvecTest(prbtype='h', rxcomp='jy')
+
+        def test_Jvec_j_jy(self):
+            self.JvecTest(prbtype='j', rxcomp='jy')
 
 
 # ====== TEST Jtvec ========== #
@@ -212,7 +243,11 @@ class TDEM_DerivTests(unittest.TestCase):
 
         def JvecVsJtvecTest(self, prbtype='b', rxcomp='bz'):
 
-            print('\nAdjoint Testing Jvec, Jtvec {}'.format(rxcomp))
+            print(
+                '\nAdjoint Testing Jvec, Jtvec problem {}, data {}'.format(
+                    prbtype, rxcomp
+                )
+            )
 
             prb, m0, mesh = setUp_TDEM(prbtype, rxcomp)
             m = np.random.rand(prb.sigmaMap.nP)
@@ -233,17 +268,25 @@ class TDEM_DerivTests(unittest.TestCase):
             self.JvecVsJtvecTest(prbtype='b', rxcomp='bz')
 
         def test_Jvec_adjoint_b_dbxdt(self):
-            self.JvecVsJtvecTest(prbtype='b', rxcomp='bx')
+            self.JvecVsJtvecTest(prbtype='b', rxcomp='dbdtx')
 
         def test_Jvec_adjoint_b_dbzdt(self):
-            self.JvecVsJtvecTest(prbtype='b', rxcomp='bz')
+            self.JvecVsJtvecTest(prbtype='b', rxcomp='dbdtz')
 
         def test_Jvec_adjoint_b_ey(self):
             self.JvecVsJtvecTest(prbtype='b', rxcomp='ey')
 
-        # This is not working because Problem3D_e has not done
         def test_Jvec_adjoint_e_ey(self):
-            self.JvecVsJtvecTest('e', 'ey')
+            self.JvecVsJtvecTest(prbtype='e', rxcomp='ey')
+
+        def test_Jvec_adjoint_e_dbdtx(self):
+            self.JvecVsJtvecTest(prbtype='e', rxcomp='dbdtx')
+
+        def test_Jvec_adjoint_e_dbdtz(self):
+            self.JvecVsJtvecTest(prbtype='e', rxcomp='dbdtz')
+
+        def test_Jvec_adjoint_j_jy(self):
+            self.JvecVsJtvecTest(prbtype='j', rxcomp='jy')
 
 if __name__ == '__main__':
     unittest.main()
