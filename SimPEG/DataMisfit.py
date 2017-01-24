@@ -135,7 +135,7 @@ class l2_DataMisfit(BaseDataMisfit):
             (\mathbf{d} - \mathbf{d}^{obs})
 
         :param numpy.ndarray m: model
-        :param SimPEG.Fields f: fields object
+        :param SimPEG.Fields.Fields f: fields object
         """
         if f is None:
             f = self.prob.fields(m)
@@ -154,7 +154,7 @@ class l2_DataMisfit(BaseDataMisfit):
 
         :param numpy.ndarray m: model
         :param numpy.ndarray v: vector
-        :param SimPEG.Fields f: fields object
+        :param SimPEG.Fields.Fields f: fields object
         """
         if f is None:
             f = self.prob.fields(m)

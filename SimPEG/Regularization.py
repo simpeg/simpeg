@@ -585,13 +585,14 @@ class Smallness(BaseRegularization):
 
     .. math::
 
-        r(m) = \\frac{1}{2}(\mathbf{m} - \mathbf{m_ref})^\top \mathbf{W}^T
-        \mathbf{W} (\mathbf{m} - \mathbf{m_{ref}})
+        r(m) = \\frac{1}{2}(\\mathbf{m} - \\mathbf{m_ref})^\top \\mathbf{W}^T
+        \\mathbf{W} (\\mathbf{m} - \\mathbf{m_{ref}})
 
-    where :math:`\mathbf{m}` is the model, :math:`\mathbf{m_{ref}}` is a
-    reference model (default Zero) and :math:`\mathbf{W}` is a weighting
+    where :math:`\\mathbf{m}` is the model, :math:`\\mathbf{m_{ref}}` is a
+    reference model (default Zero) and :math:`\\mathbf{W}` is a weighting
     matrix (default Identity. If cell weights are provided, then it is
     :code:`diag(cell_weights)`)
+
 
     **Optional Inputs**
 
@@ -599,8 +600,7 @@ class Smallness(BaseRegularization):
     :param int nP: number of parameters
     :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
     :param numpy.ndarray mref: reference model
-    :param numpy.ndarray indActive: active cell indices for reducing the size
-    of differential operators in the definition of a regularization mesh
+    :param numpy.ndarray indActive: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
     :param numpy.ndarray cell_weights: cell weights
 
     """
