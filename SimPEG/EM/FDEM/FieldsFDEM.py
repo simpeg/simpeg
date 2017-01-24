@@ -158,7 +158,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{e}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`)
         for the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -195,7 +195,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
         the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -252,7 +252,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{h}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`)
         for the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -289,7 +289,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{j}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
         the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
