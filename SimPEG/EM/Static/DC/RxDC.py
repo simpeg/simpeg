@@ -149,7 +149,7 @@ class Pole(BaseRx):
 
     def __init__(self, locsM, rxType='phi', **kwargs):
 
-        locs = locsM
+        locs = np.atleast_2d(locsM)
         # We may not need this ...
         BaseRx.__init__(self, locs, rxType)
 
@@ -179,7 +179,7 @@ class Pole_ky(BaseRx):
 
     def __init__(self, locsM, rxType='phi', **kwargs):
 
-        locs = locsM
+        locs = np.atleast_2d(locsM)
         # We may not need this ...
         BaseRx.__init__(self, locs, rxType)
 

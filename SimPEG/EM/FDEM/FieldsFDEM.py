@@ -34,6 +34,10 @@ class FieldsFDEM(SimPEG.Problem.Fields):
     knownFields = {}
     dtype = complex
 
+    def _GLoc(self, fieldType):
+        """Grid location of the fieldType"""
+        return self.aliasFields[fieldType][1]
+
     def _e(self, solution, srcList):
         """
         Total electric field is sum of primary and secondary
@@ -154,7 +158,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{e}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`)
         for the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -191,7 +195,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
         the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -248,7 +252,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{h}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`)
         for the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -285,7 +289,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{j}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
         the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -830,8 +834,6 @@ class Fields3D_b(FieldsFDEM):
         :return: product of the derivative of the electric field with respect
             to the model with a vector
         """
-
-        # (self._edgeCurl.T * (self._MfMui * bSolution))
 
         bSolution = Utils.mkvc(self[src, 'bSolution'])
         s_e = src.s_e(self.prob)
