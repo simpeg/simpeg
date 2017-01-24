@@ -11,7 +11,9 @@ import time
 
 class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
     """
-    We start with the first order form of Maxwell's equations
+    We start with the first order form of Maxwell's equations, eliminate and
+    solve the second order form. For the time discretization, we use backward
+    Euler.
     """
     surveyPair = SurveyTDEM  #: A SimPEG.EM.TDEM.SurveyTDEM Class
     fieldsPair = FieldsTDEM  #: A SimPEG.EM.TDEM.FieldsTDEM Class
@@ -53,8 +55,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         for tInd, dt in enumerate(self.timeSteps):
             # keep factors if dt is the same as previous step b/c A will be the
             # same
-            if Ainv is not None and (tInd > 0 and dt !=
-                                     self.timeSteps[tInd - 1]):
+            if Ainv is not None and (
+                tInd > 0 and dt != self.timeSteps[tInd - 1]
+            ):
                 Ainv.clean()
                 Ainv = None
 
@@ -122,9 +125,12 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         #     ifields = np.zeros((self.mesh.nE, len(Srcs)))
 
         # for i, src in enumerate(self.survey.srcList):
-        dun_dm_v = np.hstack([Utils.mkvc(self.getInitialFieldsDeriv(src, v), 2)
-                              for src in self.survey.srcList]
-                             ) # can over-write this at each timestep
+        dun_dm_v = np.hstack([
+            Utils.mkvc(
+                self.getInitialFieldsDeriv(src, v), 2
+            )
+            for src in self.survey.srcList
+        ]) # can over-write this at each timestep
 
         # store the field derivs we need to project to calc full deriv
         df_dm_v = Fields_Derivs(self.mesh, self.survey)
@@ -180,9 +186,12 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         Jv = []
         for src in self.survey.srcList:
             for rx in src.rxList:
-                Jv.append(rx.evalDeriv(src, self.mesh, self.timeMesh, f,
-                          Utils.mkvc(df_dm_v[src, '%sDeriv' % rx.projField, :])
-                          ))
+                Jv.append(
+                    rx.evalDeriv(src, self.mesh, self.timeMesh, f, Utils.mkvc(
+                            df_dm_v[src, '%sDeriv' % rx.projField, :]
+                        )
+                    )
+                )
         Adiaginv.clean()
         # del df_dm_v, dun_dm_v, Asubdiag
         # return Utils.mkvc(Jv)
@@ -239,8 +248,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             # PT_v = Fields_Derivs(self.mesh, self.survey) # initialize storage
             # #for PT_v (don't need to preserve over sources)
             # initialize size
-            df_duT_v[src, '{}Deriv'.format(self._fieldType), :] = np.zeros_like(
-                f[src, self._fieldType, :])
+            df_duT_v[src, '{}Deriv'.format(self._fieldType), :] = (
+                np.zeros_like(f[src, self._fieldType, :])
+            )
 
             for rx in src.rxList:
                 PT_v[src, '{}Deriv'.format(rx.projField), :] = rx.evalDeriv(
@@ -298,9 +308,11 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                     ATinv_df_duT_v[isrc, :] = AdiagTinv * df_duT_v[
                         src, '{}Deriv'.format(self._fieldType), tInd+1]
                 elif tInd > -1:
-                    ATinv_df_duT_v[isrc, :] = AdiagTinv * (Utils.mkvc(df_duT_v[
-                        src, '{}Deriv'.format(self._fieldType), tInd+1]) -
-                        Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
+                    ATinv_df_duT_v[isrc, :] = AdiagTinv * (
+                        Utils.mkvc(df_duT_v[
+                            src, '{}Deriv'.format(self._fieldType), tInd+1
+                        ]
+                    ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
 
                 if tInd < self.nT:
                     dAsubdiagT_dm_v = self.getAsubdiagDeriv(
@@ -315,12 +327,13 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
                 un_src = f[src, ftype, tInd+1]
                 # cell centered on time mesh
-                dAT_dm_v = self.getAdiagDeriv(tInd, un_src,
-                                              ATinv_df_duT_v[isrc, :],
-                                              adjoint=True)
+                dAT_dm_v = self.getAdiagDeriv(
+                    tInd, un_src, ATinv_df_duT_v[isrc, :], adjoint=True
+                )
 
-                JTv = JTv + Utils.mkvc(-dAT_dm_v - dAsubdiagT_dm_v +
-                                       dRHST_dm_v)
+                JTv = JTv + Utils.mkvc(
+                    -dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v
+                )
 
         # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
         if AdiagTinv is not None:
@@ -329,6 +342,10 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         return Utils.mkvc(JTv).astype(float)
 
     def getSourceTerm(self, tInd):
+        """
+        Assemble the source term. This ensures that the RHS is a vector / array
+        of the correct size
+        """
 
         Srcs = self.survey.srcList
 
@@ -347,6 +364,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         return s_m, s_e
 
     def getInitialFields(self):
+        """
+        Ask the sources for initial fields
+        """
 
         Srcs = self.survey.srcList
 
@@ -356,8 +376,11 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             ifields = np.zeros((self.mesh.nE, len(Srcs)))
 
         for i, src in enumerate(Srcs):
-            ifields[:, i] = (ifields[:, i] + getattr(src,
-                             '{}Initial'.format(self._fieldType), None)(self))
+            ifields[:, i] = (
+                ifields[:, i] + getattr(
+                    src, '{}Initial'.format(self._fieldType), None
+                )(self)
+            )
 
         return ifields
 
@@ -450,14 +473,10 @@ class Problem3D_b(BaseTDEMProblem):
          \mathbf{b}^{n} + \mathbf{dt}(\mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
          \mathbf{s_e}^{n+1} + \mathbf{s_m}^{n+1})
 
-
-    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
-    :param SimPEG.Maps.IdentityMap mapping: mapping
-
     """
 
     _fieldType = 'b'
-    _formulation = 'EB'  # TODO: This should be 'formulation EB or HJ'
+    _formulation = 'EB'
     fieldsPair = Fields3D_b  #: A SimPEG.EM.TDEM.Fields3D_b object
     surveyPair = SurveyTDEM
 
@@ -481,13 +500,16 @@ class Problem3D_b(BaseTDEMProblem):
         MfMui = self.MfMui
         I = Utils.speye(self.mesh.nF)
 
-        A = 1./dt * I + ( C * ( MeSigmaI * (C.T * MfMui ) ) )
+        A = 1./dt * I + (C * (MeSigmaI * (C.T * MfMui)))
 
         if self._makeASymmetric is True:
             return MfMui.T * A
         return A
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
+        """
+        Derivative of ADiag
+        """
         C = self.mesh.edgeCurl
 
         def MeSigmaIDeriv(x):
@@ -507,6 +529,9 @@ class Problem3D_b(BaseTDEMProblem):
         return ADeriv
 
     def getAsubdiag(self, tInd):
+        """
+        Matrix below the diagonal
+        """
 
         dt = self.timeSteps[tInd]
         MfMui = self.MfMui
@@ -521,6 +546,9 @@ class Problem3D_b(BaseTDEMProblem):
         return Utils.Zero() * v
 
     def getRHS(self, tInd):
+        """
+        Assemble the RHS
+        """
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
         MfMui = self.MfMui
@@ -533,6 +561,9 @@ class Problem3D_b(BaseTDEMProblem):
         return rhs
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
+        """
+        Derivative of the RHS
+        """
 
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
@@ -578,6 +609,33 @@ class Problem3D_b(BaseTDEMProblem):
 
 # ------------------------------- Problem3D_e ------------------------------- #
 class Problem3D_e(BaseTDEMProblem):
+    """
+    Solve the EB-formulation of Maxwell's equations for the electric field, e.
+
+    Starting with
+
+    .. math::
+        \nabla \times \mathbf{e} + \frac{\partial \mathbf{b}}{\partial t} = \mathbf{s_m} \\
+        \nabla \times \mu^{-1} \mathbf{b} - \sigma \mathbf{e} = \mathbf{s_e}
+
+    we eliminate :math:`\frac{\partial b}{\partial t} using
+
+    .. math::
+        \frac{\partial \mathbf{b}}{\partial t} = - \nabla \times \mathbf{e} + \mathbf{s_m}
+
+    taking the time-derivative of Ampere's law, we see
+
+    .. math::
+        \frac{\partial}{\partial t}\left( \nabla \times \mu^{-1} \mathbf{b} - \sigma \mathbf{e} \right) = \frac{\partial \mathbf{s_e}}{\partial t} \\
+        \nabla \times \mu^{-1} \frac{\partial \mathbf{b}}{\partial t} - \sigma \frac{\partial\mathbf{e}}{\partial t} = \frac{\partial \mathbf{s_e}}{\partial t}
+
+    which gives us
+
+    .. math::
+        \nabla \times \mu^{-1} \nabla \times \mathbf{e} + \sigma \frac{\partial\mathbf{e}}{\partial t} = \nabla \times \mu^{-1} \mathbf{s_m} + \frac{\partial \mathbf{s_e}}{\partial t}
+
+
+    """
 
     _fieldType = 'e'
     _formulation = 'EB'
@@ -589,8 +647,7 @@ class Problem3D_e(BaseTDEMProblem):
 
     def getAdiag(self, tInd):
         """
-        System matrix at a given time index
-
+        Diagonal of the system matrix at a given time index
         """
         assert tInd >= 0 and tInd < self.nT
 
@@ -602,6 +659,9 @@ class Problem3D_e(BaseTDEMProblem):
         return C.T * ( MfMui * C ) + 1./dt * MeSigma
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
+        """
+        Deriv of ADiag with respect to electrical conductivity
+        """
         assert tInd >= 0 and tInd < self.nT
 
         dt = self.timeSteps[tInd]
@@ -613,6 +673,9 @@ class Problem3D_e(BaseTDEMProblem):
         return 1./dt * MeSigmaDeriv * v
 
     def getAsubdiag(self, tInd):
+        """
+        Matrix below the diagonal
+        """
         assert tInd >= 0 and tInd < self.nT
 
         dt = self.timeSteps[tInd]
@@ -620,6 +683,10 @@ class Problem3D_e(BaseTDEMProblem):
         return - 1./dt * self.MeSigma
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
+        """
+        Derivative of the matrix below the diagonal with respect to electrical
+        conductivity
+        """
         dt = self.timeSteps[tInd]
 
         if adjoint:
@@ -628,6 +695,9 @@ class Problem3D_e(BaseTDEMProblem):
         return - 1./dt * self.MeSigmaDeriv(u) * v
 
     def getRHS(self, tInd):
+        """
+        right hand side
+        """
         if tInd == len(self.timeSteps):
             tInd = tInd - 1
         dt = self.timeSteps[tInd]
@@ -651,6 +721,30 @@ class Problem3D_e(BaseTDEMProblem):
 # ------------------------------- Problem3D_h ------------------------------- #
 
 class Problem3D_h(BaseTDEMProblem):
+    """
+    Solve the H-J formulation of Maxwell's equations for the magnetic field h.
+
+    We start with Maxwell's equations in terms of the magnetic field and
+    current density
+
+    .. math::
+
+        \nabla \times \rho \mathbf{j} + \mu \frac{\partial h}{\partial t} = \mathbf{s_m} \\
+        \nabla \times \mathbf{h} - \mathbf{j} = \mathbf{s_e}
+
+    and eliminate :math:`\mathbf{j}` using
+
+    .. math::
+
+        \mathbf{j} = \nabla \times \mathbf{h} - \mathbf{s_e}
+
+    giving
+
+    .. math::
+
+        \nabla \times \rho \nabla \times \mathbf{h} + \mu \frac{\partial h}{\partial t} =  \nabla \times \rho \mathbf{s_e} + \mathbf{s_m}
+
+    """
 
     _fieldType = 'h'
     _formulation = 'HJ'
@@ -718,10 +812,18 @@ class Problem3D_h(BaseTDEMProblem):
 
 class Problem3D_j(BaseTDEMProblem):
 
+    """
+    Solve the H-J formulation for current density
+
+    In this case, we eliminate :math:`\partial \mathbf{h} / \partial t` and
+    solve for :math:`\mathbf{j}`
+
+    """
+
     _fieldType = 'j'
     _formulation = 'HJ'
     fieldsPair = Fields3D_j  #: Fields object pair
-    surveyPair = SurveyTDEM
+    surveyPair = SurveyTDEM  #: survey
 
     def __init__(self, mesh, **kwargs):
         BaseTDEMProblem.__init__(self, mesh, **kwargs)

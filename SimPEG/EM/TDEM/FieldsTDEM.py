@@ -275,12 +275,6 @@ class Fields3D_e(FieldsTDEM):
         # return dtn[tInd] * dbdt
         # # raise NotImplementedError
 
-    def _bDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        raise NotImplementedError('To obtain b-fields, please use Problem3D_b')
-
-    def _bDeriv_m(self, tInd, src, v, adjoint=False):
-        raise NotImplementedError('To obtain b-fields, please use Problem3D_b')
-
 
 class Fields3D_h(FieldsTDEM):
     """Fancy Field Storage for a TDEM survey."""
@@ -395,6 +389,9 @@ class Fields3D_j(FieldsTDEM):
 
     def _jDeriv_m(self, tInd, src, v, adjoint=False):
         return Zero()
+
+    def _h(self, jSolution, srcList, tInd):
+        raise NotImplementedError('Please use Problem3D_h to get h-fields')
 
     def _dhdt(self, jSolution, srcList, tInd):
         C = self._edgeCurl
