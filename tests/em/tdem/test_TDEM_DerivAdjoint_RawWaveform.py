@@ -23,21 +23,12 @@ np.random.seed(2)
 
 def setUp_TDEM(prbtype='b', rxcomp='bz'):
 
-    # cs = 5.
-    # ncx = 20
-    # ncy = 15
-    # npad = 20
-    # hx = [(cs, ncx), (cs, npad, 1.3)]
-    # hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
-    # mesh = Mesh.CylMesh([hx, 1, hy], '00C')
-
     cs = 5.
     ncx = 8
     ncy = 8
     ncz = 8
     npad = 4
-    # hx = [(cs, ncx), (cs, npad, 1.3)]
-    # hz = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
+
     mesh = Mesh.TensorMesh(
         [
             [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)],
@@ -45,8 +36,7 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
             [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
         ], 'CCC'
     )
-#
-#
+
     active = mesh.vectorCCz < 0.
     activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
@@ -233,11 +223,23 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_h_hz(self):
             self.JvecTest(prbtype='h', rxcomp='hz')
 
+        def test_Jvec_h_dhdtx(self):
+            self.JvecTest(prbtype='h', rxcomp='dhdtx')
+
+        def test_Jvec_h_dhdtz(self):
+            self.JvecTest(prbtype='h', rxcomp='dhdtz')
+
         def test_Jvec_h_jy(self):
             self.JvecTest(prbtype='h', rxcomp='jy')
 
         def test_Jvec_j_jy(self):
             self.JvecTest(prbtype='j', rxcomp='jy')
+
+        def test_Jvec_j_dhdtx(self):
+            self.JvecTest(prbtype='j', rxcomp='dhdtx')
+
+        def test_Jvec_j_dhdtz(self):
+            self.JvecTest(prbtype='j', rxcomp='dhdtz')
 
 
 # ====== TEST Jtvec ========== #
@@ -288,8 +290,29 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_adjoint_e_dbdtz(self):
             self.JvecVsJtvecTest(prbtype='e', rxcomp='dbdtz')
 
+        def test_Jvec_adjoint_h_jy(self):
+            self.JvecVsJtvecTest(prbtype='h', rxcomp='jy')
+
+        def test_Jvec_adjoint_h_dhdtx(self):
+            self.JvecVsJtvecTest(prbtype='h', rxcomp='dhdtx')
+
+        def test_Jvec_adjoint_h_dhdtz(self):
+            self.JvecVsJtvecTest(prbtype='h', rxcomp='dhdtz')
+
+        def test_Jvec_adjoint_h_hx(self):
+            self.JvecVsJtvecTest(prbtype='h', rxcomp='hx')
+
+        def test_Jvec_adjoint_h_hz(self):
+            self.JvecVsJtvecTest(prbtype='h', rxcomp='hz')
+
         def test_Jvec_adjoint_j_jy(self):
             self.JvecVsJtvecTest(prbtype='j', rxcomp='jy')
+
+        def test_Jvec_adjoint_j_dhdtx(self):
+            self.JvecVsJtvecTest(prbtype='j', rxcomp='dhdtx')
+
+        def test_Jvec_adjoint_j_dhdtz(self):
+            self.JvecVsJtvecTest(prbtype='j', rxcomp='dhdtz')
 
 if __name__ == '__main__':
     unittest.main()

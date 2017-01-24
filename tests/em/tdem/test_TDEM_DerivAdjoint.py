@@ -214,6 +214,12 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_h_hz(self):
             self.JvecTest('h', 'hz')
 
+        def test_Jvec_h_dhdtx(self):
+            self.JvecTest('h', 'dhdtx')
+
+        def test_Jvec_h_dhdtz(self):
+            self.JvecTest('h', 'dhdtz')
+
         def test_Jvec_j_jy(self):
             self.JvecTest('j', 'jy')
 
@@ -231,7 +237,11 @@ class TDEM_DerivTests(unittest.TestCase):
 
         def JvecVsJtvecTest(self, prbtype='b', rxcomp='bz'):
 
-            print('\nAdjoint Testing Jvec, Jtvec {}'.format(rxcomp))
+            print(
+                '\nAdjoint Testing Jvec, Jtvec prob {}, {}'.format(
+                    prbtype, rxcomp
+                )
+            )
 
             prb, m0, mesh = setUp_TDEM(prbtype, rxcomp)
             m = np.random.rand(prb.sigmaMap.nP)
@@ -268,6 +278,12 @@ class TDEM_DerivTests(unittest.TestCase):
 
         def test_Jvec_adjoint_h_hz(self):
             self.JvecVsJtvecTest('h', 'hz')
+
+        def test_Jvec_adjoint_h_dhdtx(self):
+            self.JvecVsJtvecTest('h', 'dhdtx')
+
+        def test_Jvec_adjoint_h_dhdtz(self):
+            self.JvecVsJtvecTest('h', 'dhdtz')
 
         def test_Jvec_adjoint_h_jy(self):
             self.JvecVsJtvecTest('h', 'jy')
