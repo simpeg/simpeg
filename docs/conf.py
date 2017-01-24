@@ -247,10 +247,13 @@ man_pages = [
 #man_show_urls = False
 
 # Intersphinx
-intersphinx_mapping = {'python': ('http://docs.python.org/2', None),
-                       'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-                       'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
-                       'matplotlib': ('http://matplotlib.sourceforge.net/', None)}
+intersphinx_mapping = {
+    'python': ('http://docs.python.org/2', None),
+    'properties': ('http://propertiespy.readthedocs.io/en/latest/', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
+    'matplotlib': ('http://matplotlib.sourceforge.net/', None)
+}
 
 
 # -- Options for Texinfo output ------------------------------------------------
@@ -321,4 +324,6 @@ nitpick_ignore = [
     ('py:class', 'Fields1D_eTotal'),
     ('py:class', 'Fields3D_ePrimSec'),
     ('py:class', 'BaseNSEMSrc'),
+    ('py:class', 'BaseFDEMSrc'),
+    ('py:class', 'BaseTDEMSrc')
 ]
