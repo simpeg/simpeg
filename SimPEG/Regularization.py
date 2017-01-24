@@ -1097,7 +1097,7 @@ class Sparse(Simple):
         blocks = []
         for Wx in self.Wx:
 
-            blocks.append(Wx * self.regmesh.cellDiffyStencil)
+            blocks.append(Wx * self.regmesh.cellDiffxStencil)
 
         return blocks
 
