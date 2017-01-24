@@ -706,7 +706,7 @@ class Problem3D_h(BaseTDEMProblem):
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         C = self.mesh.edgeCurl
-        s_m, s_e = self.getSourceTerm(tInd)
+        s_m, s_e = src.eval(self, self.times[tInd])
         MfRhoDeriv = self.MfRhoDeriv(s_e)
 
         if adjoint is True:

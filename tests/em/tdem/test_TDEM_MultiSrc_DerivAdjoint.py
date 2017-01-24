@@ -81,7 +81,7 @@ class TDEM_bDerivTests(unittest.TestCase):
                 return [prb.survey.dpred(m), lambda mx: prb.Jvec(m0, mx)]
 
             print('test_Deriv_J problem {}, {}'.format(prob, rxcomp))
-            Tests.checkDerivative(derChk, m0, plotIt=False, num=3, eps=1e-20)
+            Tests.checkDerivative(derChk, m0, plotIt=False, num=2, eps=1e-20)
 
         def test_Jvec_b_bx(self):
             self.Deriv_J(prob='b', rxcomp='bx')
@@ -108,10 +108,10 @@ class TDEM_bDerivTests(unittest.TestCase):
             self.Deriv_J(prob='h', rxcomp='jy')
 
         def test_Jvec_j_dhdtx(self):
-            self.Deriv_J(prob='e', rxcomp='dhdtx')
+            self.Deriv_J(prob='j', rxcomp='dhdtx')
 
         def test_Jvec_j_jy(self):
-            self.Deriv_J(prob='e', rxcomp='jy')
+            self.Deriv_J(prob='j', rxcomp='jy')
 
 
     if testAdjoint:

@@ -13,9 +13,11 @@ except ImportError:
     Solver = SolverLU
 
 
-def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole",
-                            sig_half=1e-2, rxOffset=50., bounds=None,
-                            plotIt=False, rxType='bz'):
+def halfSpaceProblemAnaDiff(
+    meshType, srctype="MagDipole",
+    sig_half=1e-2, rxOffset=50., bounds=None,
+    plotIt=False, rxType='bz'
+):
     if bounds is None:
         bounds = [1e-5, 1e-3]
     if meshType == 'CYL':
