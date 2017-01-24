@@ -217,7 +217,7 @@ def run(plotIt=True):
     zpanel = -4
     
     vmin = model.min()
-    vmax = model.max()/10.
+    vmax = model.max()/5.
     
     m_lpx = actvMap * mrec_C[0:nC]
     m_lpy = actvMap * mrec_C[nC:2*nC]

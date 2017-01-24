@@ -954,7 +954,7 @@ def progress(iter, prog, final):
 def atp2xyz(m):
     """ Convert from Spherical to Cartesian """
 
-    nC = len(m)/3
+    nC = int(len(m)/3)
 
     a = m[:nC]
     t = m[nC:2*nC]
@@ -970,7 +970,7 @@ def atp2xyz(m):
 def xyz2atp(m):
     """ Convert from Cartesian to Spherical """
 
-    nC = len(m)/3
+    nC = int(len(m)/3)
 
     x = m[:nC]
     y = m[nC:2*nC]

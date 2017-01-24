@@ -532,9 +532,9 @@ class Amplitude_Inv_Iter(InversionDirective):
         self.reg._W, self.reg._Wsmooth = None, None
 
         if self.ptype == 'MVI-S':
-            self.reg.alpha_x[1:] = [self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
-            self.reg.alpha_y[1:] = [self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
-            self.reg.alpha_z[1:] = [self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
+            self.reg.alpha_x[1:] = [(2-i)*self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
+            self.reg.alpha_y[1:] = [(2-i)*self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
+            self.reg.alpha_z[1:] = [(2-i)*self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
 
 
         if getattr(self.opt, 'approxHinv', None) is None:
@@ -556,9 +556,9 @@ class Amplitude_Inv_Iter(InversionDirective):
         # self.reg._W, self.reg._Wsmooth = None, None
 
         if self.ptype == 'MVI-S':
-            self.reg.alpha_x[1:] = [self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
-            self.reg.alpha_y[1:] = [self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
-            self.reg.alpha_z[1:] = [self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
+            self.reg.alpha_x[1:] = [(2-i)*self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
+            self.reg.alpha_y[1:] = [(2-i)*self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
+            self.reg.alpha_z[1:] = [(2-i)*self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
 
 
         if getattr(self.opt, 'approxHinv', None) is not None:
@@ -593,7 +593,7 @@ class Amplitude_Inv_Iter(InversionDirective):
             for ii in range(nD):
 
                 JtJdiag += (self.prob.G[ii, :] * self.prob.S)**2.
-                
+
             JtJdiag += 1e-10
 
         return JtJdiag
