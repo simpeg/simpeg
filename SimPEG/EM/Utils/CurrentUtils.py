@@ -115,7 +115,7 @@ def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
 
         if (ix < 0) or (iy < 0) or (iz < 0):
             msg = "Polygon vertex (%.1f, %.1f, %.1f) is outside the mesh"
-            print (msg) % (ax, ay, az)
+            print ((msg) % (ax, ay, az))
 
     # integrate each line segment
     for ip in range(nP):
@@ -209,7 +209,7 @@ if __name__ == '__main__':
     s_true = np.r_[sx_true, sy_true, sz_true]
     s = np.r_[sx, sy, sz]
     err = np.linalg.norm(s_true-s) / np.linalg.norm(s_true)
-    print "Test getStraightLineCurrentIntegral", err
+    print ("Test getStraightLineCurrentIntegral", err)
 
     hx = np.ones(10)*1.
     hy = np.ones(10)*2.
@@ -225,4 +225,4 @@ if __name__ == '__main__':
     fname = "currents.npy"
     out_true = np.load(fname)
     err = np.linalg.norm(out-out_true)
-    print "Test getSourceTermLineCurrentPolygon", err
+    print ("Test getSourceTermLineCurrentPolygon", err)
