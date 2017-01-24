@@ -343,7 +343,7 @@ class Update_IRLS(InversionDirective):
 
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
-            for imodel in range(self.reg.nModels):
+            for imodel in range(self.reg.nSpace):
 
                 indl, indu = imodel*self.reg.regmesh.nC, (imodel+1)*self.reg.regmesh.nC
 
@@ -516,7 +516,7 @@ class Amplitude_Inv_Iter(InversionDirective):
     the non-linear magnetic amplitude problem.
 
     """
-    problem = 'Amp'
+    ptype = 'Amp'
 
     def initialize(self):
 
@@ -530,6 +530,12 @@ class Amplitude_Inv_Iter(InversionDirective):
         self.reg._Wsmall, self.reg._Wx = None, None
         self.reg._Wy, self.reg._Wz, = None, None
         self.reg._W, self.reg._Wsmooth = None, None
+
+        if self.ptype == 'MVI-S':
+            self.reg.alpha_x[1:] = [self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
+            self.reg.alpha_y[1:] = [self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
+            self.reg.alpha_z[1:] = [self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
+
 
         if getattr(self.opt, 'approxHinv', None) is None:
             diagA = JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
@@ -549,12 +555,18 @@ class Amplitude_Inv_Iter(InversionDirective):
         self.reg._Wy, self.reg._Wz, = None, None
         # self.reg._W, self.reg._Wsmooth = None, None
 
+        if self.ptype == 'MVI-S':
+            self.reg.alpha_x[1:] = [self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
+            self.reg.alpha_y[1:] = [self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
+            self.reg.alpha_z[1:] = [self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
+
+
         if getattr(self.opt, 'approxHinv', None) is not None:
 
             # Re-initialize the field derivatives
-            if self.problem == 'Amp':
+            if self.ptype == 'Amp':
                 self.prob._dfdm = None
-            elif self.problem == 'MVI-S':
+            elif self.ptype == 'MVI-S':
                 self.prob._S = None
 
             # Update the pre-conditioner
@@ -571,15 +583,17 @@ class Amplitude_Inv_Iter(InversionDirective):
 
         JtJdiag = np.zeros(nC)
 
-        if self.problem == 'Amp':
+        if self.ptype == 'Amp':
             for ii in range(nC):
 
                 JtJdiag[ii] = np.sum((self.prob.dfdm*self.prob.G[:, ii])**2.)
 
-        elif self.problem == 'MVI-S':
+        elif self.ptype == 'MVI-S':
 
             for ii in range(nD):
 
-                JtJdiag += np.sum((self.prob.G[ii, :] * self.prob.S)**2.)
+                JtJdiag += (self.prob.G[ii, :] * self.prob.S)**2.
+                
+            JtJdiag += 1e-10
 
         return JtJdiag

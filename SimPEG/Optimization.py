@@ -1012,3 +1012,178 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
             delx[indx] = 0.
 
             return delx
+
+class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
+
+    def __init__(self, **kwargs):
+        Minimize.__init__(self, **kwargs)
+
+    name = 'Projected GNCG'
+    ptype = 'lin'
+    nSpace = 1
+    maxIterCG = 5
+    tolCG = 1e-1
+
+    stepOffBoundsFact = 0.1 # perturbation of the inactive set off the bounds
+
+    lower = -np.inf
+    upper = np.inf
+
+    def _startup(self, x0):
+        # ensure bound vectors are the same size as the model
+        if len(self.lower) != len(x0):
+
+            block = []
+            for ind in range(self.nSpace):
+                block.append(np.ones(len(x0)/self.nSpace)*self.lower[ind])
+
+            self.lower = block
+
+        if len(self.upper) != len(x0):
+
+            block = []
+            for ind in range(self.nSpace):
+                block.append(np.ones(len(x0)/self.nSpace)*self.upper[ind])
+
+            self.upper = block
+
+
+    @Utils.count
+    def projection(self, x):
+        """projection(x)
+
+            Make sure we are feasible.
+
+        """
+        block = []
+        nC = int(len(x)/self.nSpace)
+        for ind in range(self.nSpace):
+
+            m = x[(nC*ind):(nC*(ind+1))]
+
+            if self.ptype[ind] == 'sph':
+
+                indx = m < self.lower[ind]
+                m_low = m[indx]
+                m_low = np.mod(m_low, -2.*np.pi)
+                m_low[m_low < -np.pi] = 2.*np.pi + m_low[m_low < -np.pi]
+
+                m[indx] = m_low
+
+                indx = m > self.upper[ind]
+                m_high = m[indx]
+                m_high = np.mod(m_high, 2.*np.pi)
+                m_high[m_high > np.pi] = -2.*np.pi + m_high[m_high > np.pi]
+
+                m[indx] = m_high
+
+            block.append(np.median(np.c_[self.lower[ind], m, self.upper[ind]],axis=1))
+
+        return np.hstack(block)
+
+    @Utils.count
+    def activeSet(self, x):
+        """activeSet(x)
+
+            If we are on a bound
+
+        """
+        
+        actSet = np.logical_or(x <= np.hstack(self.lower), x >= np.hstack(self.upper))
+        
+        if self.ptype == 'sph':
+        
+            actSet[len(x)/3:] = False
+
+        return actSet
+
+    @property
+    def approxHinv(self):
+        """
+            The approximate Hessian inverse is used to precondition CG.
+
+            Default uses BFGS, with an initial H0 of *bfgsH0*.
+
+            Must be a scipy.sparse.linalg.LinearOperator
+        """
+        _approxHinv = getattr(self,'_approxHinv',None)
+        if _approxHinv is None:
+            M = sp.linalg.LinearOperator( (self.xc.size, self.xc.size), self.bfgs, dtype=self.xc.dtype )
+            return M
+        return _approxHinv
+
+    @approxHinv.setter
+    def approxHinv(self, value):
+        self._approxHinv = value
+
+    @Utils.timeIt
+    def findSearchDirection(self):
+
+        """
+            findSearchDirection()
+            Finds the search direction based on either CG or steepest descent.
+        """
+        Active = self.activeSet(self.xc)
+        temp = sum((np.ones_like(self.xc.size)-Active))
+        allBoundsAreActive =  temp == self.xc.size
+
+
+#        if allBoundsAreActive:
+#            Hinv = SolverICG(self.H, M=self.approxHinv, tol=self.tolCG, maxiter=self.maxIterCG)
+#            p = Hinv * (-self.g)
+#            return p
+#        else:
+
+
+        delx = np.zeros(self.g.size)
+        resid = -(1-Active) * self.g
+
+        # Begin CG iterations.
+        cgiter = 0
+        cgFlag = 0
+        normResid0 = norm(resid)
+
+        while cgFlag == 0:
+
+            cgiter = cgiter + 1
+            dc = (1-Active)*(self.approxHinv*resid)
+            rd = np.dot(resid, dc)
+
+            #  Compute conjugate direction pc.
+            if cgiter == 1:
+                pc = dc
+            else:
+                betak = rd / rdlast
+                pc = dc + betak * pc
+
+            #  Form product Hessian*pc.
+            Hp = self.H*pc
+            Hp = (1-Active)*Hp
+
+            #  Update delx and residual.
+            alphak = rd / np.dot(pc, Hp)
+            delx = delx + alphak*pc
+            resid = resid - alphak*Hp
+            rdlast = rd
+
+            if np.logical_or(norm(resid)/normResid0 <= self.tolCG, cgiter == self.maxIterCG):
+                cgFlag = 1
+            # End CG Iterations
+
+        # Take a gradient step on the active cells if exist
+        if temp != self.xc.size:
+
+            rhs_a = (Active) * -self.g
+
+            dm_i = max( abs( delx ) )
+            dm_a = max( abs(rhs_a) )
+
+            # perturb inactive set off of bounds so that they are included in the step
+            delx = delx + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
+
+
+        # Only keep gradients going in the right direction on the active set
+        indx = ((self.xc<=np.hstack(self.lower)) & (delx < 0)) | ((self.xc>=np.hstack(self.upper)) & (delx > 0))
+        delx[indx] = 0.
+
+        return delx

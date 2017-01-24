@@ -932,17 +932,21 @@ class Sparse(Simple):
 
     l2model = None
     gamma = 1.          # Model norm scaling to smooth out convergence
-    norms = [0., 2., 2., 2.] # Values for norm on (m, dmdx, dmdy, dmdz)
+    norms = [2., 2., 2., 2.] # Values for norm on (m, dmdx, dmdy, dmdz)
     cell_weights = 1.        # Consider overwriting with sensitivity weights
-    nModels = 1 # Number of models
+    nSpace = 1 # Number of models
+
+    # Switch for either "linear" | "spherical" space
+    mspace = ['lin', 'lin', 'lin']
+    # For spherical space, angles are reduced to coterminal [-pi < theta < pi]
 
     def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
         Simple.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
 
-        if isinstance(self.cell_weights,float):
+        if isinstance(self.cell_weights, float):
 
             cell_weights = []
-            for ii in range(nModels):
+            for ii in range(nSpace):
 
                 cell_weights.append(np.ones(self.regmesh.nC) * self.cell_weights)
 
@@ -958,7 +962,7 @@ class Sparse(Simple):
 
         #     assert np.mod(nmod, 1) > 1e-8, 'Mismatch between model and mesh'
 
-        #     self.nModels = int(nmod)
+        #     self.nSpace = int(nmod)
 
 
     @property
@@ -973,20 +977,21 @@ class Sparse(Simple):
                 m = self.mapping * (self.model)
 
             mref = self.mapping * (self.reg.mref)
-            mats = []
-            for imodel in range(self.nModels):
+            blocks = []
+            for im in range(self.nSpace):
 
-                indl, indu = imodel*self.regmesh.nC, (imodel+1)*self.regmesh.nC
+                indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
 
+                x = (m - self.mref)[indl:indu]
                 # Grab the right model parameters
                 f_m = (m[indl:indu] - mref[indl:indu])
-                self.rs = self.R(f_m, self.eps_p[imodel], self.norms[0])
+                self.rs = self.R(f_m, self.eps_p[im], self.norms[0])
 
-                Ws = Utils.sdiag((self.alpha_s[imodel]*self.gamma*self.cell_weights[indl:indu])**0.5*self.rs)
+                Ws = Utils.sdiag((self.alpha_s[im]*self.gamma*self.cell_weights[indl:indu])**0.5*self.rs)
 
-                mats.append(Ws)
+                blocks.append(Ws)
 
-            self._Wsmall = sp.block_diag(mats)
+            self._Wsmall = sp.block_diag(blocks)
 
         return self._Wsmall
 
@@ -1001,20 +1006,24 @@ class Sparse(Simple):
             else:
                 m = self.mapping * (self.model)
 
-            mats = []
-            for imodel in range(self.nModels):
+            blocks = []
+            for im in range(self.nSpace):
 
-                indl, indu = imodel*self.regmesh.nC, (imodel+1)*self.regmesh.nC
-
+                indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
+                x = m[indl:indu]
                 # Grab the right model parameters
-                f_m = self.regmesh.cellDiffxStencil * m[indl:indu]
-                self.rx = self.R( f_m , self.eps_q[imodel], self.norms[1])
+                f_m = self.regmesh.cellDiffxStencil * x
 
-                Wx = Utils.sdiag((self.alpha_x[imodel]*self.gamma*(self.regmesh.aveCC2Fx*self.cell_weights[indl:indu]))**0.5*self.rx)*self.regmesh.cellDiffxStencil
+                if self.mspace[im] == "sph":
+                    f_m = coterminal(f_m)
 
-                mats.append(Wx)
+                self.rx = self.R( f_m , self.eps_q[im], self.norms[1])
 
-            self._Wx = sp.block_diag(mats)
+                Wx = Utils.sdiag((self.alpha_x[im]*self.gamma*(self.regmesh.aveCC2Fx*self.cell_weights[indl:indu]))**0.5*self.rx)
+
+                blocks.append(Wx)
+
+            self._Wx = blocks
 
         return self._Wx
 
@@ -1029,20 +1038,26 @@ class Sparse(Simple):
             else:
                 m = self.mapping * (self.model)
 
-            mats = []
-            for imodel in range(self.nModels):
+            blocks = []
+            for im in range(self.nSpace):
 
-                indl, indu = imodel*self.regmesh.nC, (imodel+1)*self.regmesh.nC
-
+                indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
+                x = m[indl:indu]
                 # Grab the right model parameters
-                f_m = self.regmesh.cellDiffyStencil * m[indl:indu]
-                self.ry = self.R( f_m , self.eps_q[imodel], self.norms[2])
+                f_m = self.regmesh.cellDiffyStencil * x
 
-                Wy = Utils.sdiag((self.alpha_y[imodel]*self.gamma*(self.regmesh.aveCC2Fy*self.cell_weights[indl:indu]))**0.5*self.ry)*self.regmesh.cellDiffyStencil
+                if self.mspace[im] == "sph":
+                    f_m = coterminal(f_m)
 
-                mats.append(Wy)
+                self.ry = self.R(f_m, self.eps_q[im], self.norms[2])
 
-            self._Wy = sp.block_diag(mats)
+                Wy = Utils.sdiag((self.alpha_y[im] * self.gamma *
+                                 (self.regmesh.aveCC2Fy *
+                                  self.cell_weights[indl:indu]))**0.5*self.ry)
+
+                blocks.append(Wy)
+
+            self._Wy = blocks
 
         return self._Wy
 
@@ -1055,28 +1070,311 @@ class Sparse(Simple):
 
             else:
                 m = self.mapping * (self.model)
-            mats = []
-            for imodel in range(self.nModels):
+            blocks = []
+            for im in range(self.nSpace):
 
-                indl, indu = imodel*self.regmesh.nC, (imodel+1)*self.regmesh.nC
+                indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
+                x = m[indl:indu]
 
                 # Grab the right model parameters
-                f_m = self.regmesh.cellDiffzStencil * m[indl:indu]
-                self.rz = self.R( f_m , self.eps_q[imodel], self.norms[3])
+                f_m = self.regmesh.cellDiffzStencil * x
 
-                Wz = Utils.sdiag((self.alpha_z[imodel]*self.gamma*(self.regmesh.aveCC2Fz*self.cell_weights[indl:indu]))**0.5*self.rz)*self.regmesh.cellDiffzStencil
+                if self.mspace[im] == "sph":
+                    f_m = coterminal(f_m)
 
-                mats.append(Wz)
+                self.rz = self.R(f_m, self.eps_q[im], self.norms[3])
 
-            self._Wz = sp.block_diag(mats)
+                Wz = Utils.sdiag((self.alpha_z[im]*self.gamma*(self.regmesh.aveCC2Fz*self.cell_weights[indl:indu]))**0.5*self.rz)
+
+                blocks.append(Wz)
+
+            self._Wz = blocks
 
         return self._Wz
 
+    def Smoothx(self):
 
-    def R(self, f_m , eps, exponent):
+        blocks = []
+        for Wx in self.Wx:
+
+            blocks.append(Wx * self.regmesh.cellDiffyStencil)
+
+        return blocks
+
+    def Smoothy(self):
+
+        blocks = []
+        for Wy in self.Wy:
+
+            blocks.append(Wy * self.regmesh.cellDiffyStencil)
+
+        return blocks
+
+    def Smoothz(self):
+
+        blocks = []
+        for Wz in self.Wz:
+
+            blocks.append(Wz * self.regmesh.cellDiffzStencil)
+
+        return blocks
+
+    @Utils.timeIt
+    def _evalSmoothxDeriv(self, m):
+
+        if self.mrefInSmooth:
+            m = self.mapping * (m - self.mref)
+            dmm = self.mapping.deriv(m - self.mref)
+
+        else:
+            m = self.mapping * (m)
+            dmm = self.mapping.deriv(m)
+
+        rVec = []
+        for im in range(self.nSpace):
+
+            indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
+
+            x = m[indl:indu]
+
+            f_m = (self.regmesh.cellDiffxStencil * x)
+
+            if self.mspace[im] == "sph":
+                f_m = coterminal(f_m)
+
+            r = self.Wx[im] * f_m
+
+            rVec.append(r.T * (self.Wx[im] *
+                               (self.regmesh.cellDiffxStencil)))
+
+        return np.hstack(rVec) * dmm
+
+    @Utils.timeIt
+    def _evalSmoothx2Deriv(self, m, v=None):
+
+        if self.mrefInSmooth:
+            m = self.mapping * (m - self.mref)
+            dmm = self.mapping.deriv(m - self.mref)
+
+        else:
+            m = self.mapping * (m)
+            dmm = self.mapping.deriv(m)
+
+        blocks = []
+        for im in range(self.nSpace):
+
+            rDeriv = self.Wx[im]*self.regmesh.cellDiffxStencil
+
+            blocks.append(rDeriv.T * rDeriv)
+
+        if v is not None:
+            return dmm.T * sp.block_diag(blocks) * dmm * v
+
+        return dmm.T * sp.block_diag(blocks) * dmm
+
+    @Utils.timeIt
+    def _evalSmoothyDeriv(self, m):
+
+        if self.mrefInSmooth:
+            m = self.mapping * (m - self.mref)
+            dmm = self.mapping.deriv(m - self.mref)
+
+        else:
+            m = self.mapping * (m)
+            dmm = self.mapping.deriv(m)
+        rVec = []
+        for im in range(self.nSpace):
+            indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
+
+            x = m[indl:indu]
+
+            f_m = (self.regmesh.cellDiffyStencil * x)
+
+            if self.mspace[im] == "sph":
+                f_m = coterminal(f_m)
+
+            r = self.Wy[im] * f_m
+
+            rVec.append(r.T *
+                        (self.Wy[im] * (self.regmesh.cellDiffyStencil)))
+
+        return np.hstack(rVec) * dmm
+
+    @Utils.timeIt
+    def _evalSmoothy2Deriv(self, m, v=None):
+
+        if self.mrefInSmooth:
+            m = self.mapping * (m - self.mref)
+            dmm = self.mapping.deriv(m - self.mref)
+
+        else:
+            m = self.mapping * (m)
+            dmm = self.mapping.deriv(m)
+
+        blocks = []
+        for im in range(self.nSpace):
+
+            rDeriv = self.Wy[im] * self.regmesh.cellDiffyStencil
+
+            blocks.append(rDeriv.T * rDeriv)
+
+        if v is not None:
+            return dmm.T * sp.block_diag(blocks) * dmm * v
+
+        return dmm.T * sp.block_diag(blocks) * dmm
+
+    @Utils.timeIt
+    def _evalSmoothzDeriv(self, m):
+        if self.mrefInSmooth:
+            m = self.mapping * (m - self.mref)
+            dmm = self.mapping.deriv(m - self.mref)
+
+        else:
+            m = self.mapping * (m)
+            dmm = self.mapping.deriv(m)
+
+        rVec = []
+        for im in range(self.nSpace):
+
+            indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
+            x = m[indl:indu]
+
+            f_m = (self.regmesh.cellDiffzStencil * x)
+
+            if self.mspace[im] == "sph":
+                f_m = coterminal(f_m)
+
+            r = self.Wz[im] * f_m
+
+            rVec.append(r.T *
+                        (self.Wz[im] * (self.regmesh.cellDiffzStencil)))
+
+        return np.hstack(rVec) * dmm
+
+    @Utils.timeIt
+    def _evalSmoothz2Deriv(self, m, v=None):
+
+        if self.mrefInSmooth:
+            m = self.mapping * (m - self.mref)
+            dmm = self.mapping.deriv(m - self.mref)
+
+        else:
+            m = self.mapping * (m)
+            dmm = self.mapping.deriv(m)
+
+        blocks = []
+        for im in range(self.nSpace):
+            indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
+
+            rDeriv = self.Wz[im] * self.regmesh.cellDiffzStencil
+
+            blocks.append(rDeriv.T * rDeriv)
+
+        if v is not None:
+            return dmm.T * sp.block_diag(blocks) * dmm * v
+
+        return dmm.T * sp.block_diag(blocks) * dmm
+
+    @Utils.timeIt
+    def _evalSmoothx(self, m):
+        if self.mrefInSmooth:
+            m = self.mapping * (m - self.mref)
+
+        else:
+            m = self.mapping * (m)
+
+        phix = 0.
+        for im in range(self.nSpace):
+            indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
+            x = m[indl:indu]
+
+            f_m = self.regmesh.cellDiffxStencil * x
+
+            if self.mspace[im] == "sph":
+                f_m = coterminal(f_m)
+
+            r = self.Wx[im] * f_m
+
+            phix += 0.5 * r.dot(r)
+
+        return phix
+
+    @Utils.timeIt
+    def _evalSmoothy(self, m):
+        if self.mrefInSmooth:
+            m = self.mapping * (m - self.mref)
+
+        else:
+            m = self.mapping * (m)
+
+        phiy = 0.
+        for im in range(self.nSpace):
+            indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
+            x = m[indl:indu]
+
+            f_m = self.regmesh.cellDiffyStencil * x
+
+            if self.mspace[im] == "sph":
+                f_m = coterminal(f_m)
+
+            r = self.Wy[im] * f_m
+
+            phiy += 0.5 * r.dot(r)
+
+        return phiy
+
+    @Utils.timeIt
+    def _evalSmoothz(self, m):
+        if self.mrefInSmooth:
+            m = self.mapping * (m - self.mref)
+
+        else:
+            m = self.mapping * (m)
+
+        phiz = 0.
+        for im in range(self.nSpace):
+            indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
+            x = m[indl:indu]
+
+            f_m = self.regmesh.cellDiffzStencil * x
+
+            if self.mspace[im] == "sph":
+                f_m = coterminal(f_m)
+
+            r = self.Wz[im] * f_m
+
+            phiz += 0.5 * r.dot(r)
+
+        return phiz
+
+    @property
+    def Wsmooth(self):
+        """Full smoothness regularization matrix W"""
+        if getattr(self, '_Wsmooth', None) is None:
+
+            wlist = (sp.block_diag(self.Smoothx()),)
+            if self.regmesh.dim > 1:
+                wlist += (sp.block_diag(self.Smoothy()),)
+            if self.regmesh.dim > 2:
+                wlist += (sp.block_diag(self.Smoothz()),)
+            self._Wsmooth = sp.vstack(wlist)
+        return self._Wsmooth
+
+    def R(self, f_m, eps, exponent):
 
         # Eta scaling is important for mix-norms...do not mess with it
         eta = (eps**(1.-exponent/2.))**0.5
-        r = eta / (f_m**2.+ eps**2.)**((1.-exponent/2.)/2.)
+        r = eta / (f_m**2. + eps**2.)**((1.-exponent/2.)/2.)
 
         return r
+
+
+def coterminal(theta):
+    """ Compute coterminal angle so that [-pi < theta < pi]"""
+
+    sub = theta[np.abs(theta) > np.pi]
+    sub = -np.sign(sub) * (2*np.pi-np.abs(sub))
+
+    theta[np.abs(theta) > np.pi] = sub
+
+    return theta

@@ -251,7 +251,7 @@ class MagneticVector(MagneticIntegral):
     actInd = None  #: Active cell indices provided
     M = None  #: Magnetization matrix provided, otherwise all induced
     rtype = 'tmi'  #: Receiver type either "tmi" | "xyz"
-    mode = 'Cartesian'  # Formulation either "Cartesian" | "Spherical"
+    ptype = 'Cartesian'  # Formulation either "Cartesian" | "Spherical"
     chi = None
 
     def __init__(self, mesh, **kwargs):
@@ -284,7 +284,7 @@ class MagneticVector(MagneticIntegral):
 
     def fields(self, chi, **kwargs):
 
-        if self.mode == 'Cartesian':
+        if self.ptype == 'Cartesian':
             m = chi
         else:
             m = atp2xyz(chi)
@@ -300,7 +300,7 @@ class MagneticVector(MagneticIntegral):
 
     def Jvec(self, chi, v, f=None):
 
-        if self.mode == 'Cartesian':
+        if self.ptype == 'Cartesian':
             return self.G.dot(v)
         else:
             dmudm = self.S * self.chiMap.deriv(chi)
@@ -309,7 +309,7 @@ class MagneticVector(MagneticIntegral):
 
     def Jtvec(self, chi, v, f=None):
 
-        if self.mode == 'Cartesian':
+        if self.ptype == 'Cartesian':
             return self.G.T.dot(v)
         else:
 
@@ -340,7 +340,7 @@ class MagneticVector(MagneticIntegral):
                            sp.diags(a*np.cos(t)*np.cos(p), 0)])
 
             Sz = sp.hstack([sp.diags(np.sin(t), 0),
-                           sp.diags(np.cos(t), 0),
+                           sp.diags(a*np.cos(t), 0),
                            sp.csr_matrix((nC, nC))])
 
             self._S = sp.vstack([Sx, Sy, Sz])

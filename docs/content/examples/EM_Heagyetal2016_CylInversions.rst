@@ -9,10 +9,10 @@
 .. --------------------------------- ..
 
 
-DEM and TDEM inversions
-=======================
+1D FDEM and TDEM inversions
+===========================
 
- example is used in the paper Heagy et al 2016 (in prep)
+This example is used in the paper Heagy et al 2016 (in prep)
 
 
 

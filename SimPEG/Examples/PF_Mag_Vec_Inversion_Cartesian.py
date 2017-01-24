@@ -129,7 +129,7 @@ def run(plotIt=True):
 
     # Create a block diagonal regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap,
-                                nModels=3)
+                                nSpace=3)
     reg.cell_weights = wr
     reg.mref = np.zeros(3*nC)
 
@@ -138,7 +138,7 @@ def run(plotIt=True):
     dmis.Wd = 1./survey.std
 
     # Add directives to the inversion
-    opt = Optimization.ProjectedGNCG(maxIter=30, lower=-10., upper=10.,
+    opt = Optimization.ProjectedGNCG(maxIter=10, lower=-10., upper=10.,
                                      maxIterCG=20, tolCG=1e-3)
 
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
