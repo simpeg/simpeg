@@ -158,7 +158,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{e}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`)
         for the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
+        :param SimPEG.EM.FDEM.Src.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -195,7 +195,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
         the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
+        :param SimPEG.EM.FDEM.Src.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -233,7 +233,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
         the adjoint
 
-        :param Src src: sorce
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: sorce
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -252,7 +252,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{h}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`)
         for the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
+        :param SimPEG.EM.FDEM.Src.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -289,7 +289,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{j}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
         the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
+        :param SimPEG.EM.FDEM.Src.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -324,7 +324,7 @@ class Fields3D_e(FieldsFDEM):
     """
     Fields object for Problem3D_e.
 
-    :param BaseMesh mesh: mesh
+    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
@@ -393,7 +393,7 @@ class Fields3D_e(FieldsFDEM):
         Partial derivative of the total electric field with respect to the
         thing we solved for.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -410,7 +410,7 @@ class Fields3D_e(FieldsFDEM):
         the model. Note that this also includes derivative contributions from
         the sources.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: SimPEG.Utils.Zero
@@ -462,7 +462,7 @@ class Fields3D_e(FieldsFDEM):
         Derivative of the magnetic flux density with respect to the thing we
         solved for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -480,7 +480,7 @@ class Fields3D_e(FieldsFDEM):
         Derivative of the magnetic flux density with respect to the inversion
         model.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -517,7 +517,7 @@ class Fields3D_e(FieldsFDEM):
         Derivative of the current density with respect to the thing we solved
         for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -550,7 +550,7 @@ class Fields3D_e(FieldsFDEM):
         """
         Derivative of the current density with respect to the inversion model.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -599,7 +599,7 @@ class Fields3D_e(FieldsFDEM):
         Derivative of the magnetic field with respect to the thing we solved
         for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -639,7 +639,7 @@ class Fields3D_e(FieldsFDEM):
         """
         Derivative of the magnetic field with respect to the inversion model.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -666,7 +666,7 @@ class Fields3D_b(FieldsFDEM):
     """
     Fields object for Problem3D_b.
 
-    :param BaseMesh mesh: mesh
+    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
@@ -741,7 +741,7 @@ class Fields3D_b(FieldsFDEM):
         Partial derivative of the total magnetic flux density with respect to
         the thing we solved for.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -758,7 +758,7 @@ class Fields3D_b(FieldsFDEM):
         on the model. Note that this also includes derivative contributions
         from the sources.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: SimPEG.Utils.Zero
@@ -809,7 +809,7 @@ class Fields3D_b(FieldsFDEM):
         Derivative of the electric field with respect to the thing we solved
         for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -827,7 +827,7 @@ class Fields3D_b(FieldsFDEM):
         """
         Derivative of the electric field with respect to the inversion model
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -886,7 +886,7 @@ class Fields3D_b(FieldsFDEM):
         Partial derivative of the current density with respect to the thing we
         solved for.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -934,7 +934,7 @@ class Fields3D_b(FieldsFDEM):
         """
         Derivative of the current density with respect to the inversion model
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -966,7 +966,7 @@ class Fields3D_b(FieldsFDEM):
         Partial derivative of the magnetic field with respect to the thing we
         solved for.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -995,7 +995,7 @@ class Fields3D_b(FieldsFDEM):
         """
         Derivative of the magnetic field with respect to the inversion model
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1012,7 +1012,7 @@ class Fields3D_j(FieldsFDEM):
     """
     Fields object for Problem3D_j.
 
-    :param BaseMesh mesh: mesh
+    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
@@ -1100,7 +1100,7 @@ class Fields3D_j(FieldsFDEM):
         Partial derivative of the total current density with respect to the
         thing we solved for.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1117,7 +1117,7 @@ class Fields3D_j(FieldsFDEM):
         the model. Note that this also includes derivative contributions from
         the sources.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: SimPEG.Utils.Zero
@@ -1167,7 +1167,7 @@ class Fields3D_j(FieldsFDEM):
         Derivative of the magnetic field with respect to the thing we solved
         for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1189,7 +1189,7 @@ class Fields3D_j(FieldsFDEM):
         """
         Derivative of the magnetic field with respect to the inversion model
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1250,7 +1250,7 @@ class Fields3D_j(FieldsFDEM):
         Derivative of the electric field with respect to the thing we solved
         for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1267,7 +1267,7 @@ class Fields3D_j(FieldsFDEM):
         """
         Derivative of the electric field with respect to the inversion model
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1308,7 +1308,7 @@ class Fields3D_j(FieldsFDEM):
         Derivative of the magnetic flux density with respect to the thing we
         solved for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1340,7 +1340,7 @@ class Fields3D_j(FieldsFDEM):
         Derivative of the magnetic flux density with respect to the inversion
         model
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1379,7 +1379,7 @@ class Fields3D_h(FieldsFDEM):
     """
     Fields object for Problem3D_h.
 
-    :param BaseMesh mesh: mesh
+    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
@@ -1452,7 +1452,7 @@ class Fields3D_h(FieldsFDEM):
         Partial derivative of the total magnetic field with respect to the
         thing we solved for.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1469,7 +1469,7 @@ class Fields3D_h(FieldsFDEM):
             on the model. Note that this also includes derivative contributions
             from the sources.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: SimPEG.Utils.Zero
@@ -1518,7 +1518,7 @@ class Fields3D_h(FieldsFDEM):
         Derivative of the current density with respect to the thing we solved
         for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1535,7 +1535,7 @@ class Fields3D_h(FieldsFDEM):
         """
         Derivative of the current density with respect to the inversion model.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1570,7 +1570,7 @@ class Fields3D_h(FieldsFDEM):
         Derivative of the electric field with respect to the thing we solved
         for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1594,7 +1594,7 @@ class Fields3D_h(FieldsFDEM):
         """
         Derivative of the electric field with respect to the inversion model.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1646,7 +1646,7 @@ class Fields3D_h(FieldsFDEM):
         Derivative of the magnetic flux density with respect to the thing we
         solved for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1675,7 +1675,7 @@ class Fields3D_h(FieldsFDEM):
         Derivative of the magnetic flux density with respect to the inversion
         model.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
