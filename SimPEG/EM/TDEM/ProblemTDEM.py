@@ -615,23 +615,29 @@ class Problem3D_e(BaseTDEMProblem):
     Starting with
 
     .. math::
+
         \nabla \times \mathbf{e} + \frac{\partial \mathbf{b}}{\partial t} = \mathbf{s_m} \\
         \nabla \times \mu^{-1} \mathbf{b} - \sigma \mathbf{e} = \mathbf{s_e}
+
 
     we eliminate :math:`\frac{\partial b}{\partial t} using
 
     .. math::
+
         \frac{\partial \mathbf{b}}{\partial t} = - \nabla \times \mathbf{e} + \mathbf{s_m}
 
     taking the time-derivative of Ampere's law, we see
 
     .. math::
+
         \frac{\partial}{\partial t}\left( \nabla \times \mu^{-1} \mathbf{b} - \sigma \mathbf{e} \right) = \frac{\partial \mathbf{s_e}}{\partial t} \\
         \nabla \times \mu^{-1} \frac{\partial \mathbf{b}}{\partial t} - \sigma \frac{\partial\mathbf{e}}{\partial t} = \frac{\partial \mathbf{s_e}}{\partial t}
+
 
     which gives us
 
     .. math::
+
         \nabla \times \mu^{-1} \nabla \times \mathbf{e} + \sigma \frac{\partial\mathbf{e}}{\partial t} = \nabla \times \mu^{-1} \mathbf{s_m} + \frac{\partial \mathbf{s_e}}{\partial t}
 
 
@@ -732,17 +738,20 @@ class Problem3D_h(BaseTDEMProblem):
         \nabla \times \rho \mathbf{j} + \mu \frac{\partial h}{\partial t} = \mathbf{s_m} \\
         \nabla \times \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
+
     and eliminate :math:`\mathbf{j}` using
 
     .. math::
 
         \mathbf{j} = \nabla \times \mathbf{h} - \mathbf{s_e}
 
+
     giving
 
     .. math::
 
         \nabla \times \rho \nabla \times \mathbf{h} + \mu \frac{\partial h}{\partial t} =  \nabla \times \rho \mathbf{s_e} + \mathbf{s_m}
+
 
     """
 
