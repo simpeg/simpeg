@@ -163,9 +163,9 @@ class MagDipole(BaseSrc):
 
         else:
             srcfct = MagneticDipoleVectorPotential
-            ax = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment)
-            ay = srcfct(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
-            az = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment)
+            ax = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment, orientation=self.orientation)
+            ay = srcfct(self.loc, gridY, 'y', mu=self.mu, moment=self.moment, orientation=self.orientation)
+            az = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment, orientation=self.orientation)
             a = np.concatenate((ax, ay, az))
 
         return C*a
