@@ -60,7 +60,7 @@ def run(plotIt=True):
     def getFields(timeStep, method):
         timeSteps = np.ones(360/timeStep)*timeStep
         prob = Richards.RichardsProblem(
-            M, mapping=E,
+            M, modelMap=E,
             boundaryConditions=bc, initialConditions=h,
             doNewton=False, method=method
         )

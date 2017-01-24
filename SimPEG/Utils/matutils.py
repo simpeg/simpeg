@@ -431,19 +431,21 @@ def diagEst(matFun, n, k=None, approach='Probing'):
 
     if type(matFun).__name__ == 'ndarray':
         A = matFun
-        matFun = lambda v: A.dot(v)
+
+        def matFun(v):
+            return A.dot(v)
 
     if k is None:
         k = np.floor(n/10.)
 
-    if approach == 'Ones':
+    if approach.upper() == 'ONES':
         def getv(n, i=None):
             v = np.random.randn(n)
             v[v < 0] = -1.
             v[v >= 0] = 1.
             return v
 
-    elif approach == 'Random':
+    elif approach.upper() == 'RANDOM':
         def getv(n, i=None):
             return np.random.randn(n)
 
