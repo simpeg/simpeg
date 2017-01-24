@@ -330,7 +330,7 @@ class CircularLoop(MagDipole):
         )
 
 
-class LineCurrent(BaseSrc):
+class LineCurrent(BaseTDEMSrc):
     """
     RawVec electric source. It is defined by the user provided vector s_e
 
@@ -343,7 +343,7 @@ class LineCurrent(BaseSrc):
 
     def __init__(self, rxList, **kwargs):
         self.integrate = False
-        BaseSrc.__init__(self, rxList, **kwargs)
+        BaseEMSrc.__init__(self, rxList, **kwargs)
 
     def Mejs(self, prob):
         if getattr(self, '_Mejs', None) is None:
