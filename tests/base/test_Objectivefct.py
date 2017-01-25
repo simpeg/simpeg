@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from __future__ import division
 
 import numpy as np
+import scipy.sparse as sp
 import unittest
 
 from SimPEG import ObjectiveFunction
@@ -31,18 +32,25 @@ class TestBaseObjFct(unittest.TestCase):
         objfct_b = scalar * objfct_a
         m = np.random.rand(nP)
 
+        objfct_c = objfct_a + objfct_b
+
         self.assertTrue(scalar * objfct_a(m) == objfct_b(m))
         self.assertTrue(objfct_b.test())
 
+        print(objfct_c(m), objfct_a(m) + objfct_b(m) )
+
+        self.assertTrue(objfct_c(m) == objfct_a(m) + objfct_b(m))
+
     def test_sum(self):
         scalar = 10.
+        nP = 100.
         objfct = (
-            ObjectiveFunction.L2ObjectiveFunction() +
-            scalar * ObjectiveFunction.L2ObjectiveFunction()
+            ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP)) +
+            scalar * ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP))
         )
         self.assertTrue(objfct.test())
 
-    def test_3sum(self):
+    def test_2sum(self):
         nP = 80
         phi1 = (
             ObjectiveFunction.L2ObjectiveFunction(W=Utils.sdiag(np.random.rand(nP))) +
@@ -51,13 +59,14 @@ class TestBaseObjFct(unittest.TestCase):
         phi2 = ObjectiveFunction.L2ObjectiveFunction() + 200 * phi1
         self.assertTrue(phi2.test())
 
-    def test_2sum(self):
+    def test_3sum(self):
         nP = 90
-        phi1 = 0.3 * ObjectiveFunction.L2ObjectiveFunction()
-        phi2 = 0.6 * ObjectiveFunction.L2ObjectiveFunction()
-        phi3 = ObjectiveFunction.L2ObjectiveFunction() / 9.
+        phi1 = 0.3 * ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP))
+        phi2 = 0.6 * ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP))
+        phi3 = ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP)) / 9.
 
         phi = phi1 + phi2 + phi3
+        print(phi.multipliers)
 
         self.assertTrue(phi.test())
 

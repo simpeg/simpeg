@@ -128,24 +128,14 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
                 )
             )
 
-        if isinstance(self, ComboObjectiveFunction):
+        if not isinstance(self, ComboObjectiveFunction):
+            self = 1 * self
 
-            if isinstance(objfct2, ComboObjectiveFunction):
-                objfctlist = [self.objfcts, objfct2.objfcts]
-                multipliers = [self.multipliers, objfct2.multipliers]
+        if not isinstance(objfct2, ComboObjectiveFunction):
+            objfct2 = 1 * objfct2
 
-            elif isinstance(objfct2, ObjectiveFunction):
-                objfctlist = self.objfcts.append(objfct2)
-                multipliers = self.multipliers.append(1)
-
-        else:
-            if isinstance(objfct2, ComboObjectiveFunction):
-                objfctlist = [self] + objfct2.objfcts
-                multipliers = [1] + objfct2.multipliers
-
-            else:
-                objfctlist = [self, objfct2]
-                multipliers = None
+        objfctlist = self.objfcts + objfct2.objfcts
+        multipliers = self.multipliers + objfct2.multipliers
 
         return ComboObjectiveFunction(
             objfcts=objfctlist, multipliers=multipliers
@@ -184,7 +174,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         def validate_list(objfctlist, multipliers):
             for fct, mult in zip(objfctlist, multipliers):
                 if isinstance(fct, list):
-                    validate_list(fct, mult)
+                    validate_list(fct, multipliers)
                 else:
                     assert (
                         isinstance(fct, BaseObjectiveFunction)
@@ -202,8 +192,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                     )
 
                     if fct.nP != '*':
-                        if self._nP != '*':
-                            assert self._nP == fct.nP, (
+                        if self.nP != '*':
+                            assert self.nP == fct.nP, (
                                 "Objective Functions must all have the same "
                                 "nP, not {}".format([f.nP for f in objfcts])
                             )
@@ -227,34 +217,68 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
 
     def _eval(self, x, **kwargs):
-        f = 0.0
-        for multpliter, objfct in zip(self.multipliers, self.objfcts):
-            if isinstance(multpliter, Utils.Zero): #or == 0. # don't evaluate the fct
-                pass
-            else:
-                f += multpliter * objfct(x, **kwargs)
+
+        def eval_list(objfcts, multipliers, f):
+            for multiplier, objfct in zip(multipliers, objfcts):
+                if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
+                    pass
+                elif isinstance(objfct, list):
+                    f += eval_list(objfct, multiplier, f)
+                else:
+                    f += multiplier * objfct(x, **kwargs)
+            return f
+
+        f = eval_list(self.objfcts, self.multipliers, 0.0)
+
         return f
 
     def deriv(self, x, **kwargs):
-        g = Utils.Zero()
-        for multpliter, objfct in zip(self.multipliers, self.objfcts):
-            if isinstance(multpliter, Utils.Zero):  # don't evaluate the fct
-                pass
-            else:
-                g += multpliter * objfct.deriv(x, **kwargs)
+        def eval_listDerivs(objfcts, multipliers, g):
+            for multiplier, objfct in zip(multipliers, objfcts):
+                if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
+                    pass
+                elif isinstance(objfct, list):
+                    g += eval_listDerivs(objfct, multiplier, g)
+                else:
+                    g += multiplier * objfct.deriv(x, **kwargs)
+            return g
+
+        g = eval_listDerivs(self.objfcts, self.multipliers, Utils.Zero())
         return g
 
     def deriv2(self, x, **kwargs):
-        H = Utils.Zero()
-        for multpliter, objfct in zip(self.multipliers, self.objfcts):
-            objfct_H = objfct.deriv2(x, **kwargs)
-            if isinstance(objfct_H, Utils.Zero):
-                pass
-            elif isinstance(objfct_H, Utils.Identity) and self.nP != '*':
-                H += multpliter * sp.eye(self.nP)  # if we need a shape
-            else:
-                H += multpliter * objfct_H
+
+        def eval_list2Derivs(objfcts, multipliers, H):
+            for multiplier, objfct in zip(multipliers, objfcts):
+                if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
+                    pass
+                elif isinstance(objfct, list):
+                    H = H + eval_list2Derivs(objfct, multiplier, H)
+
+                else:
+                    objfct_H = objfct.deriv2(x, **kwargs)
+                    if isinstance(objfct_H, Utils.Identity):
+                        if self.nP != '*':
+                            objfct_H = sp.eye(self.nP)  # if we need a shape
+                        elif objfct.nP != '*':
+                            objfct_H = sp.eye(objfct.nP)  # if we need a shape
+                        else:
+                            raise Exception('need to set nP on objective functions to get H')
+                    H = H + multiplier * objfct_H
+            return H
+
+        H = eval_list2Derivs(self.objfcts, self.multipliers, Utils.Zero())
         return H
+
+        # H = Utils.Zero()
+        # for multpliter, objfct in zip(self.multipliers, self.objfcts):
+        #     objfct_H = objfct.deriv2(x, **kwargs)
+        #     if isinstance(objfct_H, Utils.Zero):
+        #         pass
+        #
+        #     else:
+        #         H += multpliter * objfct_H
+        # return H
 
     # This assumes all objective functions have a W.
     # The base class currently does not.
@@ -275,9 +299,9 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         super(L2ObjectiveFunction, self).__init__(**kwargs)
         if W is not None:
             if self.nP == '*':
-                self._nP = W.shape[0]
+                self._nP = W.shape[1]
             else:
-                assert(W.shape[0]) == self.nP, (
+                assert(W.shape[1]) == self.nP, (
                     'nP must be the same as W.shape[0], not {}'.format(self.nP)
                 )
         self._W = W
