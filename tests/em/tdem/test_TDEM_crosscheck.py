@@ -4,6 +4,8 @@ from SimPEG import Maps, Mesh
 from SimPEG import EM
 import numpy as np
 
+import warnings
+
 try:
     from pymatsolver import PardisoSolver as Solver
 except ImportError:
@@ -146,6 +148,16 @@ class TDEM_cross_check_EB(unittest.TestCase):
         CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='vtem')
 
 
+    def test_MagDipoleSimpleFail(self):
+
+        print('\ntesting MagDipole error handling')
+
+
+        with warnings.catch_warnings(record=True):
+            EM.TDEM.Src.MagDipole(
+                [], loc=np.r_[0., 0., 0.],
+                orientation=np.r_[1., 1., 0.]
+            )
 
 if __name__ == '__main__':
     unittest.main()

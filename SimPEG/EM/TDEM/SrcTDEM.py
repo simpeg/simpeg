@@ -3,6 +3,7 @@ from __future__ import division, print_function
 import numpy as np
 from scipy.constants import mu_0
 import properties
+import warnings
 
 from SimPEG import Utils
 from SimPEG.Utils import Zero, Identity
@@ -179,6 +180,19 @@ class MagDipole(BaseTDEMSrc):
         #     )
         # self.integrate = False
         BaseTDEMSrc.__init__(self, rxList, **kwargs)
+
+    @properties.validator('orientation')
+    def _warn_non_axis_aligned_sources(self, change):
+        value = change['value']
+        axaligned = [
+            True for vec in [np.r_[1.,0.,0.], np.r_[0.,1.,0.], np.r_[0.,0.,1.]]
+            if np.all(value == vec)
+        ]
+        if len(axaligned) != 1:
+            warnings.warn(
+                'non-axes aligned orientations {} are not rigorously'
+                ' tested'.format(value)
+            )
 
     def _srcFct(self, obsLoc, component):
         return MagneticDipoleVectorPotential(
