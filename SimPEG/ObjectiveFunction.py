@@ -131,8 +131,8 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
         if isinstance(self, ComboObjectiveFunction):
 
             if isinstance(objfct2, ComboObjectiveFunction):
-                objfctlist = self.objfcts + objfct2.objfcts
-                multipliers = self.multipliers + objfct2.multipliers
+                objfctlist = [self.objfcts, objfct2.objfcts]
+                multipliers = [self.multipliers, objfct2.multipliers]
 
             elif isinstance(objfct2, ObjectiveFunction):
                 objfctlist = self.objfcts.append(objfct2)
@@ -176,45 +176,46 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     def __init__(self, objfcts=[], multipliers=None, **kwargs):
 
-        self.objfcts = []
-        nP = '*'
-
-        for fct in objfcts:
-            assert isinstance(fct, BaseObjectiveFunction), (
-                "Unrecognized objective function type {} in objfcts. All "
-                "entries in objfcts must inherit from "
-                "ObjectiveFunction".format(fct.__class__.__name__)
-            )
-
-            # ensure all objective functions have the same nP
-            if fct.nP != '*':
-                if nP != '*':
-                    assert nP == fct.nP, (
-                        "Objective Functions must all have the same nP, not "
-                        "{}".format([f.nP for f in objfcts])
-                    )
-                else:
-                    nP = fct.nP
-            self.objfcts.append(fct)
+        self._nP = '*'
 
         if multipliers is None:
-            multipliers = len(self.objfcts)*[1]
-        else:
-            for mult in multipliers:
-                assert(type(mult) in self._multiplier_types), (
-                    "Objective Functions can only be multiplied by a float, or"
-                    " a properties.Float, not a {}, {}".format(
-                        type(mult), mult
+            multipliers = len(objfcts)*[1]
+
+        def validate_list(objfctlist, multipliers):
+            for fct, mult in zip(objfctlist, multipliers):
+                if isinstance(fct, list):
+                    validate_list(fct, mult)
+                else:
+                    assert (
+                        isinstance(fct, BaseObjectiveFunction)
+                    ) , (
+                        "Unrecognized objective function type {} in objfcts. "
+                        "All entries in objfcts must inherit from "
+                        "ObjectiveFunction".format(fct.__class__.__name__)
                     )
-                )
-            assert len(multipliers) == len(self.objfcts), (
-                "Length of multipliers ({}) must be the same as the length of "
-                "objfcts ({})".format(len(multipliers), len(self.objfcts))
-            )
+
+                    assert(type(mult) in self._multiplier_types), (
+                        "Objective Functions can only be multiplied by a "
+                        "float, or a properties.Float, not a {}, {}".format(
+                            type(mult), mult
+                        )
+                    )
+
+                    if fct.nP != '*':
+                        if self._nP != '*':
+                            assert self._nP == fct.nP, (
+                                "Objective Functions must all have the same "
+                                "nP, not {}".format([f.nP for f in objfcts])
+                            )
+                        else:
+                            self._nP = fct.nP
+
+        validate_list(objfcts, multipliers)
+
+        self.objfcts = objfcts
         self._multipliers = multipliers
 
         super(ComboObjectiveFunction, self).__init__(**kwargs)
-        self._nP = nP
 
     @property
     def multipliers(self):
