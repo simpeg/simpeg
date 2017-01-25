@@ -74,8 +74,8 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
         with warnings.catch_warnings(record=True):
             FDEM.Src.MagDipole(
                 [], freq=self.freq, loc=np.r_[0., 0., 0.],
-                orientation=np.r_[1., 0., 0.]
-        )
+                orientation=np.r_[1., 1., 0.]
+            )
 
     def bPrimaryTest(self, src, probType):
         passed = True
