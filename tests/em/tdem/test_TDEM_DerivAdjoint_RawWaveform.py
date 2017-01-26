@@ -18,7 +18,7 @@ testAdjoint = False
 
 TOL = 1e-5
 EPS = 1e-20
-np.random.seed(2)
+np.random.seed(4)
 
 
 def setUp_TDEM(prbtype='b', rxcomp='bz'):
