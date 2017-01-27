@@ -988,7 +988,6 @@ class Sparse(Simple):
                 self.rs = self.R(f_m, self.eps_p[im], self.norms[0])
 
                 Ws = Utils.sdiag((self.alpha_s[im] * self.gamma *
-                                  self.regmesh.vol *
                                   self.cell_weights[indl:indu])**0.5*self.rs)
 
                 blocks.append(Ws)
