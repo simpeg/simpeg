@@ -161,12 +161,12 @@ def run(plotIt=True):
     update_Jacobi = Directives.Update_lin_PreCond()
     
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[update_Jacobi, IRLS, betaest])
+                                  directiveList=[IRLS, update_Jacobi, betaest])
     
     mstart = np.ones(3*nC)*1e-4
     mrec_C = inv.run(mstart)
     
-    beta = invProb.beta*10.
+    beta = invProb.beta
     
     # # STEP 3: Finish inversion with spherical formulation
     mstart = PF.Magnetics.xyz2atp(mrec_C)
@@ -177,7 +177,7 @@ def run(plotIt=True):
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap,
                                 nSpace=3)
     reg.mref = np.zeros(3*nC)
-    reg.cell_weights = np.ones(3*nC)
+    reg.cell_weights = wr
     reg.alpha_s = [1., 0., 0.]
     reg.mspace = ['lin','lin','sph']
     
@@ -205,7 +205,7 @@ def run(plotIt=True):
     update_Jacobi.ptype = 'MVI-S'
     
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[update_Jacobi, IRLS])
+                                  directiveList=[IRLS,update_Jacobi, ])
     
     
     

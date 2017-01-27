@@ -1219,7 +1219,7 @@ def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
 
 def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
                       subFact=2, scale=1., xlim=None, ylim=None,
-                      title=None, axs=None, ndv=-100, contours=False):
+                      title=None, axs=None, ndv=-100, contours=None):
 
     """
     Plot section through a 3D tensor model
@@ -1289,8 +1289,8 @@ def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
                        10, vmin=vmin, vmax=vmax, clim=[vmin, vmax],
                        cmap='magma_r')
 
-    if contours:
-        axs.contour(xx, yy, model, 10, colors='k')
+    if contours is not None:
+        axs.contour(xx, yy, model, contours, colors='k')
 
     if len(m) == 3*nC:
         pos = mkvc(mx**2.+my**2.) > 0

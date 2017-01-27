@@ -987,7 +987,9 @@ class Sparse(Simple):
                 f_m = (m[indl:indu] - mref[indl:indu])
                 self.rs = self.R(f_m, self.eps_p[im], self.norms[0])
 
-                Ws = Utils.sdiag((self.alpha_s[im]*self.gamma*self.cell_weights[indl:indu])**0.5*self.rs)
+                Ws = Utils.sdiag((self.alpha_s[im] * self.gamma *
+                                  self.regmesh.vol *
+                                  self.cell_weights[indl:indu])**0.5*self.rs)
 
                 blocks.append(Ws)
 
@@ -1017,9 +1019,12 @@ class Sparse(Simple):
                 if self.mspace[im] == "sph":
                     f_m = coterminal(f_m)
 
-                self.rx = self.R( f_m , self.eps_q[im], self.norms[1])
+                self.rx = self.R(f_m, self.eps_q[im], self.norms[1])
 
-                Wx = Utils.sdiag((self.alpha_x[im]*self.gamma*(self.regmesh.aveCC2Fx*self.cell_weights[indl:indu]))**0.5*self.rx)
+                #Ave_x_vol = self.regmesh.aveCC2Fx * self.regmesh.vol
+                Wx = Utils.sdiag((self.alpha_x[im] * self.gamma *
+                                  (self.regmesh.aveCC2Fx *
+                                   self.cell_weights[indl:indu]))**0.5*self.rx)
 
                 blocks.append(Wx)
 
@@ -1051,6 +1056,7 @@ class Sparse(Simple):
 
                 self.ry = self.R(f_m, self.eps_q[im], self.norms[2])
 
+                #Ave_y_vol = self.regmesh.aveCC2Fy * self.regmesh.vol
                 Wy = Utils.sdiag((self.alpha_y[im] * self.gamma *
                                  (self.regmesh.aveCC2Fy *
                                   self.cell_weights[indl:indu]))**0.5*self.ry)
@@ -1084,7 +1090,10 @@ class Sparse(Simple):
 
                 self.rz = self.R(f_m, self.eps_q[im], self.norms[3])
 
-                Wz = Utils.sdiag((self.alpha_z[im]*self.gamma*(self.regmesh.aveCC2Fz*self.cell_weights[indl:indu]))**0.5*self.rz)
+                #Ave_z_vol = self.regmesh.aveCC2Fz * self.regmesh.vol
+                Wz = Utils.sdiag((self.alpha_z[im] * self.gamma *
+                                  (self.regmesh.aveCC2Fz *
+                                   self.cell_weights[indl:indu]))**0.5*self.rz)
 
                 blocks.append(Wz)
 

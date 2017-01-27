@@ -521,13 +521,21 @@ class Amplitude_Inv_Iter(InversionDirective):
 
     """
     ptype = 'Amp'
-
+    test = False
     def initialize(self):
 
         self.reg.JtJdiag = self.getJtJdiag()
 
-        wr = self.reg.JtJdiag**0.5
-        wr = wr / wr.max()
+        if self.test:
+
+            wr = np.sum(self.prob.G**2., axis=0)**0.5
+            wr = wr / wr.max()
+
+
+
+        else:
+            wr = self.reg.JtJdiag**0.5
+            wr = wr / wr.max()
 
         self.reg.cell_weights = wr
 
@@ -548,10 +556,24 @@ class Amplitude_Inv_Iter(InversionDirective):
 
     def endIter(self):
 
+        # Re-initialize the field derivatives
+        if self.ptype == 'Amp':
+            self.prob._dfdm = None
+        elif self.ptype == 'MVI-S':
+            self.prob._S = None
+
         self.reg.JtJdiag = self.getJtJdiag()
 
-        wr = self.reg.JtJdiag**0.5
-        wr = wr / wr.max()
+        if self.test:
+
+            wr = np.sum(self.prob.G**2., axis=0)**0.5
+            wr = wr / wr.max()
+
+
+
+        else:
+            wr = self.reg.JtJdiag**0.5
+            wr = wr / wr.max()
 
         self.reg.cell_weights = wr
 
@@ -566,12 +588,6 @@ class Amplitude_Inv_Iter(InversionDirective):
 
 
         if getattr(self.opt, 'approxHinv', None) is not None:
-
-            # Re-initialize the field derivatives
-            if self.ptype == 'Amp':
-                self.prob._dfdm = None
-            elif self.ptype == 'MVI-S':
-                self.prob._S = None
 
             # Update the pre-conditioner
             diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
