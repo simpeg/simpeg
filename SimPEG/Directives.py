@@ -302,6 +302,7 @@ class Update_IRLS(InversionDirective):
     f_min_change = 1e-2
     beta_tol = 5e-2
     prctile = 95
+    chifact = 1.
 
     # Solving parameter for IRLS (mode:2)
     IRLSiter = 0
@@ -341,6 +342,9 @@ class Update_IRLS(InversionDirective):
 
             mmap = self.reg.mapping * self.invProb.model
 
+            if getattr(self, 'f_old', None) is None:
+                self.f_old = self.reg.eval(self.invProb.model)#self.invProb.evalFunction(self.invProb.model, return_g=False, return_H=False)
+
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
             for imodel in range(self.reg.nSpace):
@@ -371,8 +375,6 @@ class Update_IRLS(InversionDirective):
             print("L[p qx qy qz]-norm : " + str(self.reg.norms))
             print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
 
-            if getattr(self, 'f_old', None) is None:
-                self.f_old = self.reg.eval(self.invProb.model)#self.invProb.evalFunction(self.invProb.model, return_g=False, return_H=False)
 
         # Beta Schedule
         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
@@ -447,8 +449,10 @@ class Update_IRLS(InversionDirective):
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / (self.survey.nD*0.5)
 
-            if np.abs(1.-val) > self.beta_tol:
-                self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
+            if self.chifact * np.abs(1.-val) > self.beta_tol:
+                self.invProb.beta = (self.invProb.beta *
+                                     (self.chifact * self.survey.nD*0.5 /
+                                      (self.invProb.phi_d)))
 
 
 class Update_lin_PreCond(InversionDirective):
@@ -520,9 +524,9 @@ class Amplitude_Inv_Iter(InversionDirective):
 
     def initialize(self):
 
-        JtJdiag = self.getJtJdiag()
+        self.reg.JtJdiag = self.getJtJdiag()
 
-        wr = JtJdiag**0.5
+        wr = self.reg.JtJdiag**0.5
         wr = wr / wr.max()
 
         self.reg.cell_weights = wr
@@ -538,15 +542,15 @@ class Amplitude_Inv_Iter(InversionDirective):
 
 
         if getattr(self.opt, 'approxHinv', None) is None:
-            diagA = JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+            diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
             PC = Utils.sdiag((self.prob.chiMap.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
     def endIter(self):
 
-        JtJdiag = self.getJtJdiag()
+        self.reg.JtJdiag = self.getJtJdiag()
 
-        wr = JtJdiag**0.5
+        wr = self.reg.JtJdiag**0.5
         wr = wr / wr.max()
 
         self.reg.cell_weights = wr
@@ -570,7 +574,7 @@ class Amplitude_Inv_Iter(InversionDirective):
                 self.prob._S = None
 
             # Update the pre-conditioner
-            diagA = JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+            diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
             PC = Utils.sdiag((self.prob.chiMap.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 

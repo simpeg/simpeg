@@ -67,4 +67,3 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', layer=False):
 
     return mkvc(actind)
 
-

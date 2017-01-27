@@ -211,147 +211,147 @@ def run(plotIt=True):
     
     mrec = inv.run(mstart)
     
-    #    if plotIt:
-    # Here is the recovered susceptibility model
-    ypanel = midx
-    zpanel = -4
-    
-    vmin = model.min()
-    vmax = model.max()/5.
-    
-    m_lpx = actvMap * mrec_C[0:nC]
-    m_lpy = actvMap * mrec_C[nC:2*nC]
-    m_lpz = actvMap * -mrec_C[2*nC:]
-    
-    m_lpx[m_lpx == -100] = np.nan
-    m_lpy[m_lpy == -100] = np.nan
-    m_lpz[m_lpz == -100] = np.nan
-    
-    amp = np.sqrt(m_lpx**2. + m_lpy**2. + m_lpz**2.)
-    
-    m_lpx = (m_lpx/amp).reshape(mesh.vnC, order='F')
-    m_lpy = (m_lpy/amp).reshape(mesh.vnC, order='F')
-    m_lpz = (m_lpz/amp).reshape(mesh.vnC, order='F')
-    amp = amp.reshape(mesh.vnC, order='F')
-    
-    sub = 2
-    
-    xx = mesh.gridCC[:, 0].reshape(mesh.vnC, order="F")
-    zz = mesh.gridCC[:, 2].reshape(mesh.vnC, order="F")
-    yy = mesh.gridCC[:, 1].reshape(mesh.vnC, order="F")
-    
-    fig = plt.figure(figsize=(8, 8))
-    ax2 = plt.subplot(312)
-    im2 = ax2.contourf(xx[:, ypanel, :].T, zz[:, ypanel, :].T,
-                       amp[:, ypanel, :].T, 40,
-                       vmin=vmin, vmax=vmax, clim=[vmin, vmax],
-                       cmap='magma_r')
-    
-    ax2.quiver(mkvc(xx[::sub, ypanel, ::sub].T),
-               mkvc(zz[::sub, ypanel, ::sub].T),
-               mkvc(m_lpx[::sub, ypanel, ::sub].T),
-               mkvc(m_lpz[::sub, ypanel, ::sub].T), pivot='mid',
-               units="xy", scale=0.2, linewidths=(1,), edgecolors=('k'),
-               headaxislength=0.1, headwidth=10, headlength=30)
-    plt.colorbar(im2, orientation="vertical", ax=ax2,
-                 ticks=np.linspace(im2.vmin, im2.vmax, 4),
-                 format="${%.3f}$")
-    
-    ax2.set_aspect('equal')
-    ax2.set_xlim(-50, 50)
-    ax2.set_ylim(mesh.vectorNz[3], mesh.vectorNz[-1]+dx)
-    ax2.set_title('EW - Recovered')
-    ax2.set_xlabel('Easting (m)', size=14)
-    ax2.set_ylabel('Elevation (m)', size=14)
-    
-    
-    mrec = PF.Magnetics.atp2xyz(mrec)
-    
-    m_lpx = actvMap * mrec[0:nC]
-    m_lpy = actvMap * mrec[nC:2*nC]
-    m_lpz = actvMap * -mrec[2*nC:]
-    
-    m_lpx[m_lpx == -100] = np.nan
-    m_lpy[m_lpy == -100] = np.nan
-    m_lpz[m_lpz == -100] = np.nan
-    
-    amp = np.sqrt(m_lpx**2. + m_lpy**2. + m_lpz**2.)+1e-8
-    
-    m_lpx = (m_lpx/amp).reshape(mesh.vnC, order='F')
-    m_lpy = (m_lpy/amp).reshape(mesh.vnC, order='F')
-    m_lpz = (m_lpz/amp).reshape(mesh.vnC, order='F')
-    amp = amp.reshape(mesh.vnC, order='F')
-    
-    sub = 2
-    
-    xx = mesh.gridCC[:, 0].reshape(mesh.vnC, order="F")
-    zz = mesh.gridCC[:, 2].reshape(mesh.vnC, order="F")
-    yy = mesh.gridCC[:, 1].reshape(mesh.vnC, order="F")
-    
-    
-    ax2 = plt.subplot(313)
-    im2 = ax2.contourf(xx[:, ypanel, :].T, zz[:, ypanel, :].T,
-                       amp[:, ypanel, :].T, 40,
-                       vmin=vmin, vmax=vmax, clim=[vmin, vmax],
-                       cmap='magma_r')
-    
-    ax2.quiver(mkvc(xx[::sub, ypanel, ::sub].T),
-               mkvc(zz[::sub, ypanel, ::sub].T),
-               mkvc(m_lpx[::sub, ypanel, ::sub].T),
-               mkvc(m_lpz[::sub, ypanel, ::sub].T), pivot='mid',
-               units="xy", scale=0.2, linewidths=(1,), edgecolors=('k'),
-               headaxislength=0.1, headwidth=10, headlength=30)
-    plt.colorbar(im2, orientation="vertical", ax=ax2,
-                 ticks=np.linspace(im2.vmin, im2.vmax, 4),
-                 format="${%.3f}$")
-    
-    ax2.set_aspect('equal')
-    ax2.set_xlim(-50, 50)
-    ax2.set_ylim(mesh.vectorNz[3], mesh.vectorNz[-1]+dx)
-    ax2.set_title('EW - Recovered Spherical')
-    ax2.set_xlabel('Easting (m)', size=14)
-    ax2.set_ylabel('Elevation (m)', size=14)
-    
-    # plot true model
-    vmin = model.min()
-    vmax = model.max()*1.5
-    
-    m_lpx = (M[:, 0]).reshape(mesh.vnC, order='F')
-    m_lpy = (M[:, 1]).reshape(mesh.vnC, order='F')
-    m_lpz = -(M[:, 2]).reshape(mesh.vnC, order='F')
-    amp = model.reshape(mesh.vnC, order='F')
-    
-    ax3 = plt.subplot(311)
-    im2 = ax3.contourf(xx[:, ypanel, :].T, zz[:, ypanel, :].T,
-                       amp[:, ypanel, :].T, 40,
-                       vmin=vmin, vmax=vmax, clim=[vmin, vmax],
-                       cmap='magma_r')
-    
-    ind = mkvc(amp[::sub, ypanel, ::sub].T) > 0
-    ax3.quiver(mkvc(xx[::sub, ypanel, ::sub].T)[ind],
-               mkvc(zz[::sub, ypanel, ::sub].T)[ind],
-               mkvc(m_lpx[::sub, ypanel, ::sub].T)[ind],
-               mkvc(m_lpz[::sub, ypanel, ::sub].T)[ind], pivot='mid',
-               units="xy", scale=0.2, linewidths=(1,), edgecolors=('k'),
-               headaxislength=0.1, headwidth=10, headlength=30)
-    plt.colorbar(im2, orientation="vertical", ax=ax3,
-                 ticks=np.linspace(im2.vmin, im2.vmax, 4),
-                 format="${%.3f}$")
-    ax3.set_aspect('equal')
-    ax3.set_xlim(-50, 50)
-    ax3.set_ylim(mesh.vectorNz[3], mesh.vectorNz[-1]+dx)
-    ax3.set_title('EW - True')
-    ax3.xaxis.set_visible(False)
-    ax3.set_ylabel('Elevation (m)', size=14)
-    
-    # Plot the data
-    fig = plt.figure(figsize=(8, 4))
-    ax1 = plt.subplot(121)
-    ax2 = plt.subplot(122)
-    PF.Magnetics.plot_obs_2D(rxLoc, d=d_TMI, fig=fig, ax=ax1,
-                             varstr='TMI Data')
-    PF.Magnetics.plot_obs_2D(rxLoc, d=invProb.dpred, fig=fig, ax=ax2,
-                             varstr='Predicted Data')
+    if plotIt:
+        # Here is the recovered susceptibility model
+        ypanel = midx
+        zpanel = -4
+        
+        vmin = model.min()
+        vmax = model.max()/5.
+        
+        m_lpx = actvMap * mrec_C[0:nC]
+        m_lpy = actvMap * mrec_C[nC:2*nC]
+        m_lpz = actvMap * -mrec_C[2*nC:]
+        
+        m_lpx[m_lpx == -100] = np.nan
+        m_lpy[m_lpy == -100] = np.nan
+        m_lpz[m_lpz == -100] = np.nan
+        
+        amp = np.sqrt(m_lpx**2. + m_lpy**2. + m_lpz**2.)
+        
+        m_lpx = (m_lpx/amp).reshape(mesh.vnC, order='F')
+        m_lpy = (m_lpy/amp).reshape(mesh.vnC, order='F')
+        m_lpz = (m_lpz/amp).reshape(mesh.vnC, order='F')
+        amp = amp.reshape(mesh.vnC, order='F')
+        
+        sub = 2
+        
+        xx = mesh.gridCC[:, 0].reshape(mesh.vnC, order="F")
+        zz = mesh.gridCC[:, 2].reshape(mesh.vnC, order="F")
+        yy = mesh.gridCC[:, 1].reshape(mesh.vnC, order="F")
+        
+        fig = plt.figure(figsize=(8, 8))
+        ax2 = plt.subplot(312)
+        im2 = ax2.contourf(xx[:, ypanel, :].T, zz[:, ypanel, :].T,
+                           amp[:, ypanel, :].T, 40,
+                           vmin=vmin, vmax=vmax, clim=[vmin, vmax],
+                           cmap='magma_r')
+        
+        ax2.quiver(mkvc(xx[::sub, ypanel, ::sub].T),
+                   mkvc(zz[::sub, ypanel, ::sub].T),
+                   mkvc(m_lpx[::sub, ypanel, ::sub].T),
+                   mkvc(m_lpz[::sub, ypanel, ::sub].T), pivot='mid',
+                   units="xy", scale=0.2, linewidths=(1,), edgecolors=('k'),
+                   headaxislength=0.1, headwidth=10, headlength=30)
+        plt.colorbar(im2, orientation="vertical", ax=ax2,
+                     ticks=np.linspace(im2.vmin, im2.vmax, 4),
+                     format="${%.3f}$")
+        
+        ax2.set_aspect('equal')
+        ax2.set_xlim(-50, 50)
+        ax2.set_ylim(mesh.vectorNz[3], mesh.vectorNz[-1]+dx)
+        ax2.set_title('EW - Recovered')
+        ax2.set_xlabel('Easting (m)', size=14)
+        ax2.set_ylabel('Elevation (m)', size=14)
+        
+        
+        mrec = PF.Magnetics.atp2xyz(mrec)
+        
+        m_lpx = actvMap * mrec[0:nC]
+        m_lpy = actvMap * mrec[nC:2*nC]
+        m_lpz = actvMap * -mrec[2*nC:]
+        
+        m_lpx[m_lpx == -100] = np.nan
+        m_lpy[m_lpy == -100] = np.nan
+        m_lpz[m_lpz == -100] = np.nan
+        
+        amp = np.sqrt(m_lpx**2. + m_lpy**2. + m_lpz**2.)+1e-8
+        
+        m_lpx = (m_lpx/amp).reshape(mesh.vnC, order='F')
+        m_lpy = (m_lpy/amp).reshape(mesh.vnC, order='F')
+        m_lpz = (m_lpz/amp).reshape(mesh.vnC, order='F')
+        amp = amp.reshape(mesh.vnC, order='F')
+        
+        sub = 2
+        
+        xx = mesh.gridCC[:, 0].reshape(mesh.vnC, order="F")
+        zz = mesh.gridCC[:, 2].reshape(mesh.vnC, order="F")
+        yy = mesh.gridCC[:, 1].reshape(mesh.vnC, order="F")
+        
+        
+        ax2 = plt.subplot(313)
+        im2 = ax2.contourf(xx[:, ypanel, :].T, zz[:, ypanel, :].T,
+                           amp[:, ypanel, :].T, 40,
+                           vmin=vmin, vmax=vmax, clim=[vmin, vmax],
+                           cmap='magma_r')
+        
+        ax2.quiver(mkvc(xx[::sub, ypanel, ::sub].T),
+                   mkvc(zz[::sub, ypanel, ::sub].T),
+                   mkvc(m_lpx[::sub, ypanel, ::sub].T),
+                   mkvc(m_lpz[::sub, ypanel, ::sub].T), pivot='mid',
+                   units="xy", scale=0.2, linewidths=(1,), edgecolors=('k'),
+                   headaxislength=0.1, headwidth=10, headlength=30)
+        plt.colorbar(im2, orientation="vertical", ax=ax2,
+                     ticks=np.linspace(im2.vmin, im2.vmax, 4),
+                     format="${%.3f}$")
+        
+        ax2.set_aspect('equal')
+        ax2.set_xlim(-50, 50)
+        ax2.set_ylim(mesh.vectorNz[3], mesh.vectorNz[-1]+dx)
+        ax2.set_title('EW - Recovered Spherical')
+        ax2.set_xlabel('Easting (m)', size=14)
+        ax2.set_ylabel('Elevation (m)', size=14)
+        
+        # plot true model
+        vmin = model.min()
+        vmax = model.max()*1.5
+        
+        m_lpx = (M[:, 0]).reshape(mesh.vnC, order='F')
+        m_lpy = (M[:, 1]).reshape(mesh.vnC, order='F')
+        m_lpz = -(M[:, 2]).reshape(mesh.vnC, order='F')
+        amp = model.reshape(mesh.vnC, order='F')
+        
+        ax3 = plt.subplot(311)
+        im2 = ax3.contourf(xx[:, ypanel, :].T, zz[:, ypanel, :].T,
+                           amp[:, ypanel, :].T, 40,
+                           vmin=vmin, vmax=vmax, clim=[vmin, vmax],
+                           cmap='magma_r')
+        
+        ind = mkvc(amp[::sub, ypanel, ::sub].T) > 0
+        ax3.quiver(mkvc(xx[::sub, ypanel, ::sub].T)[ind],
+                   mkvc(zz[::sub, ypanel, ::sub].T)[ind],
+                   mkvc(m_lpx[::sub, ypanel, ::sub].T)[ind],
+                   mkvc(m_lpz[::sub, ypanel, ::sub].T)[ind], pivot='mid',
+                   units="xy", scale=0.2, linewidths=(1,), edgecolors=('k'),
+                   headaxislength=0.1, headwidth=10, headlength=30)
+        plt.colorbar(im2, orientation="vertical", ax=ax3,
+                     ticks=np.linspace(im2.vmin, im2.vmax, 4),
+                     format="${%.3f}$")
+        ax3.set_aspect('equal')
+        ax3.set_xlim(-50, 50)
+        ax3.set_ylim(mesh.vectorNz[3], mesh.vectorNz[-1]+dx)
+        ax3.set_title('EW - True')
+        ax3.xaxis.set_visible(False)
+        ax3.set_ylabel('Elevation (m)', size=14)
+        
+        # Plot the data
+        fig = plt.figure(figsize=(8, 4))
+        ax1 = plt.subplot(121)
+        ax2 = plt.subplot(122)
+        PF.Magnetics.plot_obs_2D(rxLoc, d=d_TMI, fig=fig, ax=ax1,
+                                 varstr='TMI Data')
+        PF.Magnetics.plot_obs_2D(rxLoc, d=invProb.dpred, fig=fig, ax=ax2,
+                                 varstr='Predicted Data')
 if __name__ == '__main__':
     run()
     plt.show()

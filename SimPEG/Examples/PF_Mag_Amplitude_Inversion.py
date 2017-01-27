@@ -92,8 +92,7 @@ def run(plotIt=True):
     model = model[actv]
 
     # We create a magnetization model different than the inducing field
-    # to simulate remanent magnetization. Let's do something simple,
-    # reversely magnetized [-90,0]
+    # to simulate remanent magnetization. Let's do something simple [45,90]
     M = PF.Magnetics.dipazm_2_xyz(np.ones(nC) * 45., np.ones(nC) * 90.)
 
     # Create active map to go from reduce set to full
@@ -280,24 +279,22 @@ def run(plotIt=True):
     # Specify the sparse norms
     IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),
                                   eps=(1e-3, 1e-3), f_min_change=1e-3,
-                                  minGNiter=3)
+                                  minGNiter=3,
+                                  chifact = .25)
 
     # Special directive specific to the mag amplitude problem. The sensitivity
     # weights are update between each iteration.
     update_Jacobi = Directives.Amplitude_Inv_Iter()
-
+    
     # Put all together
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[update_Jacobi, IRLS, betaest])
+                                  directiveList=[IRLS, update_Jacobi, betaest])
 
     # Invert
     mrec = inv.run(mstart)
 
     if plotIt:
         # Here is the recovered susceptibility model
-        ypanel = midx
-
-        zpanel = -4
         m_l2 = actvMap * reg.l2model
         m_l2[m_l2 == -100] = np.nan
 
@@ -314,8 +311,13 @@ def run(plotIt=True):
         m_true[m_true == -100] = np.nan
 
         # Plot the data
-        PF.Magnetics.plot_obs_2D(rxLoc, d_TMI, varstr='TMI Data')
-        PF.Magnetics.plot_obs_2D(rxLoc, d_amp, varstr='Amplitude Data')
+        fig = plt.figure(figsize=(6, 6))
+        ax1 = plt.subplot(211)
+        ax2 = plt.subplot(212)
+        out = PF.Magnetics.plot_obs_2D(rxLoc, d=d_TMI, fig=fig, ax=ax1,
+                                 varstr='TMI Data')
+        out = PF.Magnetics.plot_obs_2D(rxLoc, d=d_amp, fig=fig, ax=ax2,
+                                 varstr='Amplitude Data')
 
         plt.figure()
 

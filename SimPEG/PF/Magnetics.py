@@ -8,6 +8,8 @@ from SimPEG import Utils
 from SimPEG import Problem
 from SimPEG import Solver
 from SimPEG import Props
+from SimPEG import mkvc
+import matplotlib.pyplot as plt
 
 from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
@@ -124,7 +126,6 @@ class MagneticIntegral(Problem.LinearProblem):
         # If equivalent source, use semi-infite prism
         if self.equiSourceLayer:
             zn1 -= 1000.
-            print(zn1.max(),zn2.max())
 
         Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
         Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
@@ -1214,3 +1215,105 @@ def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
     plt.gca().set_aspect('equal', adjustable='box')
 
     return fig
+
+
+def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
+                      subFact=2, scale=1., xlim=None, ylim=None,
+                      title=None, axs=None, ndv=-100, contours=False):
+
+    """
+    Plot section through a 3D tensor model
+    """
+    # plot recovered model
+    nC = mesh.nC
+
+    if vmin is None:
+        vmin = m.min()
+
+    if vmax is None:
+        vmax = m.max()
+
+    if len(m) == 3*nC:
+        m_lpx = m[0:nC]
+        m_lpy = m[nC:2*nC]
+        m_lpz = -m[2*nC:]
+
+        m_lpx[m_lpx == ndv] = np.nan
+        m_lpy[m_lpy == ndv] = np.nan
+        m_lpz[m_lpz == ndv] = np.nan
+
+        amp = np.sqrt(m_lpx**2. + m_lpy**2. + m_lpz**2.)
+
+        m_lpx = (m_lpx).reshape(mesh.vnC, order='F')
+        m_lpy = (m_lpy).reshape(mesh.vnC, order='F')
+        m_lpz = (m_lpz).reshape(mesh.vnC, order='F')
+        amp = amp.reshape(mesh.vnC, order='F')
+    else:
+        amp = m.reshape(mesh.vnC, order='F')
+
+    xx = mesh.gridCC[:, 0].reshape(mesh.vnC, order="F")
+    zz = mesh.gridCC[:, 2].reshape(mesh.vnC, order="F")
+    yy = mesh.gridCC[:, 1].reshape(mesh.vnC, order="F")
+
+    if axs is None:
+        fig, axs = plt.figure(), plt.subplot()
+
+    if normal == 'x':
+        xx = yy[ind, :, :].T
+        yy = zz[ind, :, :].T
+        model = amp[ind, :, :].T
+
+        if len(m) == 3*nC:
+            mx = m_lpy[ind, ::subFact, ::subFact].T
+            my = m_lpz[ind, ::subFact, ::subFact].T
+
+    elif normal == 'y':
+        xx = xx[:, ind, :].T
+        yy = zz[:, ind, :].T
+        model = amp[:, ind, :].T
+
+        if len(m) == 3*nC:
+            mx = m_lpx[::subFact, ind, ::subFact].T
+            my = m_lpz[::subFact, ind, ::subFact].T
+
+    elif normal == 'z':
+        xx = xx[:, :, ind].T
+        yy = yy[:, :, ind].T
+        model = amp[:, :, ind].T
+
+        if len(m) == 3*nC:
+            mx = m_lpx[::subFact, ::subFact, ind].T
+            my = m_lpy[::subFact, ::subFact, ind].T
+
+    im2 = axs.contourf(xx, yy, model,
+                       10, vmin=vmin, vmax=vmax, clim=[vmin, vmax],
+                       cmap='magma_r')
+
+    if contours:
+        axs.contour(xx, yy, model, 10, colors='k')
+
+    if len(m) == 3*nC:
+        pos = mkvc(mx**2.+my**2.) > 0
+        axs.quiver(mkvc(xx[::subFact, ::subFact])[pos],
+                   mkvc(yy[::subFact, ::subFact])[pos],
+                   mkvc(mx)[pos],
+                   mkvc(my)[pos],
+                   pivot='mid',
+                   scale_units="inches", scale=scale, linewidths=(1,),
+                   edgecolors=('k'),
+                   headaxislength=0.1, headwidth=10, headlength=30)
+    plt.colorbar(im2, orientation="vertical", ax=axs,
+                 ticks=np.linspace(im2.vmin, im2.vmax, 4),
+                 format="${%.3f}$")
+    axs.set_aspect('equal')
+
+    if xlim is not None:
+        axs.set_xlim(xlim[0], xlim[1])
+
+    if ylim is not None:
+        axs.set_ylim(ylim[0], ylim[1])
+
+    if title is not None:
+        axs.set_title(title)
+
+    return axs, im2

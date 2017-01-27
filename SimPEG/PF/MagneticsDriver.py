@@ -1,6 +1,6 @@
 import re
 import os
-from SimPEG import Mesh, np, Utils
+from SimPEG import Mesh, np, Utils, mkvc
 from . import BaseMag
 from . import Magnetics
 
@@ -180,7 +180,7 @@ class MagneticsDriver_Inv(object):
     @property
     def survey(self):
         if getattr(self, '_survey', None) is None:
-            self._survey = self.readMagneticsObservations(self.obsfile)
+            self._survey = readMagneticsObservations(self.basePath + self.obsfile)
         return self._survey
 
     @property
@@ -189,7 +189,6 @@ class MagneticsDriver_Inv(object):
             if getattr(self, 'topofile', None) is not None:
                 topo = np.genfromtxt(self.basePath + self.topofile,
                                      skip_header=1)
-
 
                 # Find the active cells
                 active = Utils.surface2ind_topo(self.mesh, topo, 'N')
@@ -201,11 +200,7 @@ class MagneticsDriver_Inv(object):
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
                 active = self.activeModel != 0
 
-            inds = np.asarray([inds for inds,
-                               elem in enumerate(active, 1)
-                               if elem], dtype=int) - 1
-
-            self._activeCells = inds
+            self._activeCells = np.asarray(np.where(mkvc(active))[0], dtype=int)
 
             # Reduce m0 to active space
             if len(self.m0) > len(self._activeCells):
@@ -329,56 +324,81 @@ class MagneticsDriver_Inv(object):
 
         return self._M
 
-    def readMagneticsObservations(self, obs_file):
-        """
-            Read and write UBC mag file format
 
-            INPUT:
-            :param fileName, path to the UBC obs mag file
+def readMagneticsObservations(obs_file):
+    """
+        Read and write UBC mag file format
 
-            OUTPUT:
-            :param survey
-            :param M, magnetization orentiaton (MI, MD)
-        """
+        INPUT:
+        :param fileName, path to the UBC obs mag file
 
-        fid = open(self.basePath + obs_file, 'r')
+        OUTPUT:
+        :param survey
+        :param M, magnetization orentiaton (MI, MD)
+    """
 
-        # First line has the inclination,declination and amplitude of B0
-        line = fid.readline()
-        B = np.array(line.split(), dtype=float)
+    fid = open(obs_file, 'r')
 
-        # Second line has the magnetization orientation and a flag
-        line = fid.readline()
-        M = np.array(line.split(), dtype=float)
+    # First line has the inclination,declination and amplitude of B0
+    line = fid.readline()
+    B = np.array(line.split(), dtype=float)
 
-        # Third line has the number of rows
-        line = fid.readline()
-        ndat = np.array(line.split(), dtype=int)
+    # Second line has the magnetization orientation and a flag
+    line = fid.readline()
+    M = np.array(line.split(), dtype=float)
 
-        # Pre-allocate space for obsx, obsy, obsz, data, uncert
-        line = fid.readline()
+    # Third line has the number of rows
+    line = fid.readline()
+    ndat = np.array(line.split(), dtype=int)
+
+    # Pre-allocate space for obsx, obsy, obsz, data, uncert
+    line = fid.readline()
+    temp = np.array(line.split(), dtype=float)
+
+    d = np.zeros(ndat, dtype=float)
+    wd = np.zeros(ndat, dtype=float)
+    locXYZ = np.zeros((ndat[0], 3), dtype=float)
+
+    for ii in range(ndat):
+
         temp = np.array(line.split(), dtype=float)
+        locXYZ[ii, :] = temp[:3]
 
-        d = np.zeros(ndat, dtype=float)
-        wd = np.zeros(ndat, dtype=float)
-        locXYZ = np.zeros((ndat[0], 3), dtype=float)
+        if len(temp) > 3:
+            d[ii] = temp[3]
 
-        for ii in range(ndat):
+            if len(temp) == 5:
+                wd[ii] = temp[4]
 
-            temp = np.array(line.split(), dtype=float)
-            locXYZ[ii, :] = temp[:3]
+        line = fid.readline()
 
-            if len(temp) > 3:
-                d[ii] = temp[3]
+    rxLoc = BaseMag.RxObs(locXYZ)
+    srcField = BaseMag.SrcField([rxLoc], param=(B[2], B[0], B[1]))
+    survey = BaseMag.LinearSurvey(srcField)
+    survey.dobs = d
+    survey.std = wd
+    return survey
 
-                if len(temp) == 5:
-                    wd[ii] = temp[4]
 
-            line = fid.readline()
+def actIndFull2layer(mesh, actInd):
+    """
+    Function to extract upper layer (topo) of an
+    active index vector
+    """
 
-        rxLoc = BaseMag.RxObs(locXYZ)
-        srcField = BaseMag.SrcField([rxLoc], param=(B[2], B[0], B[1]))
-        survey = BaseMag.LinearSurvey(srcField)
-        survey.dobs = d
-        survey.std = wd
-        return survey
+    # Convert the actind to bool
+    if not isinstance(actInd, bool):
+
+        actIndFull = np.zeros(mesh.nC, dtype=bool)
+        actIndFull[actInd] = True
+
+    actIndFull = actIndFull.reshape(mesh.vnC)
+
+    actIndLayer = np.zeros(mesh.vnC, dtype=bool)
+    for ii in range(mesh.nCx):
+        for jj in range(mesh.nCy):
+
+            zcol = actIndFull[ii, jj, :]
+            actIndLayer[ii, jj, np.where(zcol)[0][-1]] = True
+
+    return np.asarray(np.where(mkvc(actIndLayer))[0], dtype=int)
