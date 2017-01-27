@@ -91,7 +91,7 @@ def run(plotIt=True):
     times = np.logspace(-4, np.log10(2e-3), 10)
     print('min diffusion distance ', 1.28*np.sqrt(times.min()/(sig_half*mu_0)),
           'max diffusion distance ', 1.28*np.sqrt(times.max()/(sig_half*mu_0)))
-    rx = TDEM.Rx(rxlocs, times, 'bz')
+    rx = TDEM.Rx.Point_b(rxlocs, times, 'z')
     src = TDEM.Src.MagDipole(
         [rx],
         waveform=TDEM.Src.StepOffWaveform(),

@@ -14,7 +14,7 @@ class Survey(BaseEMSurvey):
     :param list srcList: list of FDEM sources used in the survey
     """
 
-    srcPair = Src.BaseSrc
+    srcPair = Src.BaseFDEMSrc
     rxPair = Rx.BaseRx
 
     def __init__(self, srcList, **kwargs):

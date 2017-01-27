@@ -31,10 +31,10 @@ def run(plotIt=True):
     mtrue = np.log(sigma[active])
 
     rxOffset = 1e-3
-    rx = EM.TDEM.Rx(
+    rx = EM.TDEM.Rx.Point_b(
         np.array([[rxOffset, 0., 30]]),
         np.logspace(-5, -3, 31),
-        'bz'
+        'z'
     )
     src = EM.TDEM.Src.MagDipole([rx], loc=np.array([0., 0., 80]))
     survey = EM.TDEM.Survey([src])
