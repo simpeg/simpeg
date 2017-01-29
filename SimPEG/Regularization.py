@@ -1229,18 +1229,21 @@ class SparseDeriv(BaseSparse):
 
     @property
     def f_m(self):
-        return cellDiffStencil * (self.mapping * self.model)
+        return self.cellDiffStencil * (self.mapping * self.model)
+
+    @property
+    def cellDiffStencil(self):
+        return cellDiffStencil = getattr(
+            self.regmesh, 'cellDiff{}Stencil'.format(self.orientation)
+        )
 
     @property
     def W(self):
 
-        cellDiffStencil = getattr(
-            self.regmesh, 'cellDiff{}Stencil'.format(self.orientation)
-        )
         Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
         if getattr(self, 'model', None) is None:
-            R = Utils.speye(cellDiffStencil.shape[0])
+            R = Utils.speye(self.cellDiffStencil.shape[0])
 
         else:
             r = self.R(self.f_m) # , self.eps_q, self.norm)
@@ -1251,9 +1254,9 @@ class SparseDeriv(BaseSparse):
                 Utils.sdiag(
                     (self.gamma*(Ave*self.cell_weights))**0.5
                 ) *
-                R * cellDiffStencil
+                R * self.cellDiffStencil
             )
-        return ( (self.gamma)**0.5) * R * cellDiffStencil
+        return ( (self.gamma)**0.5) * R * self.cellDiffStencil
 
 
 class Sparse(BaseComboRegularization):
