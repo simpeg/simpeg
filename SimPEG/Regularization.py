@@ -1351,6 +1351,6 @@ class Sparse(BaseComboRegularization):
     @properties.observer('eps_q')
     def _mirror_eps_q_to_derivs(self, change):
         for objfct in self.objfcts:
-            if isinstance(objfct, BaseSparseDeriv):
+            if isinstance(objfct, SparseDeriv):
                 objfct.epsilon = change['value']
 
