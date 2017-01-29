@@ -36,10 +36,10 @@ class TestBaseObjFct(unittest.TestCase):
 
         self.assertTrue(scalar * objfct_a(m) == objfct_b(m))
         self.assertTrue(objfct_b.test())
-
-        print(objfct_c(m), objfct_a(m) + objfct_b(m) )
-
         self.assertTrue(objfct_c(m) == objfct_a(m) + objfct_b(m))
+
+        self.assertTrue(len(objfct_c.objfcts) == 2)
+        self.assertTrue(len(objfct_c.multipliers )== 2)
 
     def test_sum(self):
         scalar = 10.
@@ -50,23 +50,54 @@ class TestBaseObjFct(unittest.TestCase):
         )
         self.assertTrue(objfct.test())
 
+        self.assertTrue(np.all(objfct.multipliers == np.r_[1., scalar]))
+
     def test_2sum(self):
         nP = 80
+        alpha1 = 100
+        alpha2 = 200
+
         phi1 = (
             ObjectiveFunction.L2ObjectiveFunction(W=Utils.sdiag(np.random.rand(nP))) +
-            100 * ObjectiveFunction.L2ObjectiveFunction()
+            alpha1 * ObjectiveFunction.L2ObjectiveFunction()
         )
-        phi2 = ObjectiveFunction.L2ObjectiveFunction() + 200 * phi1
+        phi2 = ObjectiveFunction.L2ObjectiveFunction() + alpha2 * phi1
         self.assertTrue(phi2.test())
+
+        self.assertTrue(len(phi1.multipliers) == 2)
+        self.assertTrue(len(phi2.multipliers) == 2)
+
+        self.assertTrue(len(phi1.objfcts) == 2)
+        self.assertTrue(len(phi2.objfcts) == 2)
+
+        self.assertTrue(np.all(phi1.multipliers == np.r_[1., alpha1]))
+        self.assertTrue(np.all(phi2.multipliers == np.r_[1., alpha2]))
+
 
     def test_3sum(self):
         nP = 90
-        phi1 = 0.3 * ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP))
-        phi2 = 0.6 * ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP))
-        phi3 = ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP)) / 9.
 
-        phi = phi1 + phi2 + phi3
-        print(phi.multipliers)
+        alpha1 = 0.3
+        alpha2 = 0.6
+        alpha3inv = 9
+
+        phi1 = ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP))
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP))
+        phi3 = ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP))
+
+        phi = alpha1 * phi1 + alpha2 * phi2 + phi3 / alpha3inv
+
+        m = np.random.rand(nP)
+
+        self.assertTrue(
+            np.all(phi.multipliers == np.r_[alpha1, alpha2, 1./alpha3inv])
+        )
+
+        self.assertTrue(
+            alpha1*phi1(m) + alpha2*phi2(m) + phi3(m)/alpha3inv == phi(m)
+        )
+
+        self.assertTrue(len(phi.objfcts) == 3)
 
         self.assertTrue(phi.test())
 
@@ -101,12 +132,15 @@ class TestBaseObjFct(unittest.TestCase):
         # This is not a combo objective function, it will just give back an
         # L2 objective function. That might be ok? or should this be a combo
         # objective function?
-        phi = (
-            ObjectiveFunction.L2ObjectiveFunction() +
+        nP = 20
+        alpha = 2.
+        phi = alpha*(
+            ObjectiveFunction.L2ObjectiveFunction(W = sp.eye(nP)) +
             Utils.Zero()*ObjectiveFunction.L2ObjectiveFunction()
         )
-        x = np.random.rand(20)
 
+
+        self.assertTrue(len(phi.objfcts) == 1)
         self.assertTrue(phi.test())
 
     def test_updateMultipliers(self):
@@ -122,14 +156,30 @@ class TestBaseObjFct(unittest.TestCase):
 
         phi = phi1 + phi2
 
-        assert(phi(m) == phi1(m) + phi2(m))
+        self.assertTrue(phi(m) == phi1(m) + phi2(m))
 
         phi.multipliers[0] = Utils.Zero()
-        assert(phi(m) == phi2(m))
+        self.assertTrue(phi(m) == phi2(m))
 
         phi.multipliers[0] = 1.
         phi.multipliers[1] = Utils.Zero()
-        assert(phi(m) == phi1(m))
+
+        self.assertTrue(len(phi.objfcts) == 2)
+        self.assertTrue(len(phi.multipliers) == 2)
+
+        self.assertTrue(phi(m) == phi1(m))
+
+    def test_nP_unknownFail(self):
+        alpha = 10.
+
+        phi1 = alpha * ObjectiveFunction.L2ObjectiveFunction()
+
+        self.assertTrue(phi1._test_deriv())
+
+        # nP needs to be set in order to get the hessian for combo obj fcts
+        with self.assertRaises(Exception):
+            phi1._test_deriv2()
+
 
 if __name__ == '__main__':
     unittest.main()

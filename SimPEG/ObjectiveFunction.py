@@ -28,7 +28,9 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
 
     _nP = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, nP=None, **kwargs):
+        if nP is not None:
+            self._nP = nP
         Utils.setKwargs(self, **kwargs)
 
     def __call__(self, x, **kwargs):
@@ -41,6 +43,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
         if getattr(self, 'mapping', None) is not None:
             return self.mapping.nP
         return '*'
+
 
     @property
     def mapping(self):
