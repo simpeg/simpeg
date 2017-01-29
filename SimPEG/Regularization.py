@@ -1233,7 +1233,7 @@ class SparseDeriv(BaseSparse):
 
     @property
     def cellDiffStencil(self):
-        return cellDiffStencil = getattr(
+        return getattr(
             self.regmesh, 'cellDiff{}Stencil'.format(self.orientation)
         )
 
