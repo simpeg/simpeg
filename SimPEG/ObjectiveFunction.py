@@ -166,10 +166,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     def __init__(self, objfcts=[], multipliers=None, **kwargs):
 
-        self._nP = '*'
-
         if multipliers is None:
             multipliers = len(objfcts)*[1]
+
+        self._nP = '*'
 
         def validate_list(objfctlist, multipliers):
             for fct, mult in zip(objfctlist, multipliers):
@@ -192,10 +192,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                     )
 
                     if fct.nP != '*':
-                        if self.nP != '*':
-                            assert self.nP == fct.nP, (
+                        if self._nP != '*':
+                            assert self._nP == fct.nP, (
                                 "Objective Functions must all have the same "
-                                "nP, not {}".format([f.nP for f in objfcts])
+                                "nP={}, not {}".format(self.nP, [f.nP for f in objfcts])
                             )
                         else:
                             self._nP = fct.nP
@@ -309,7 +309,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     @property
     def W(self):
         if getattr(self, '_W', None) is None:
-            if self._nP != '*' and self._nP is not None:
+            if self.nP != '*':
                 self._W = sp.eye(self.nP)
             else:
                 self._W = Utils.Identity()

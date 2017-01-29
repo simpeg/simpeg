@@ -16,8 +16,9 @@ testRegMesh = True
 np.random.seed(639)
 
 IGNORE_ME = [
-    'BaseRegularization', 'BaseSparse', 'BaseSimpleSmooth',
-    'BaseComboRegularization', 'BaseSmooth', 'BaseSmooth2'
+    'BaseRegularization',
+    'BaseComboRegularization',
+    'BaseSparse'
 ]
 
 
