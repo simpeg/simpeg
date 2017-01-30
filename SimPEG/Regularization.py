@@ -13,8 +13,8 @@ from . import Props
 
 __all__ = [
     'Small',
-    'Smooth', 'SmoothDeriv2',
-    'SimpleSmooth',
+    'SmoothDeriv', 'SmoothDeriv2',
+    'SimpleSmoothDeriv',
     'Simple', 'Tikhonov',
     'SparseSmall', 'SparseDeriv', 'Sparse'
 ]
