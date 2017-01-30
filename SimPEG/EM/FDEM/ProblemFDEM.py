@@ -499,7 +499,7 @@ class Problem3D_b(BaseFDEMProblem):
         Derivative of the right hand side with respect to the model
 
         :param float freq: frequency
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: FDEM source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: FDEM source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -687,7 +687,7 @@ class Problem3D_j(BaseFDEMProblem):
         Derivative of the right hand side with respect to the model
 
         :param float freq: frequency
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: FDEM source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: FDEM source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -842,7 +842,7 @@ class Problem3D_h(BaseFDEMProblem):
         Derivative of the right hand side with respect to the model
 
         :param float freq: frequency
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: FDEM source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: FDEM source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray

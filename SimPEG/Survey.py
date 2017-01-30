@@ -1,5 +1,6 @@
 from __future__ import print_function
 from . import Utils
+from . import Props
 import numpy as np
 import scipy.sparse as sp
 import uuid
@@ -120,7 +121,7 @@ class BaseTimeRx(BaseRx):
         return P
 
 
-class BaseSrc(object):
+class BaseSrc(Props.BaseSimPEG):
     """SimPEG Source Object"""
 
     loc    = None #: Location [x,y,z]
