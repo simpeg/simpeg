@@ -394,7 +394,7 @@ class Minimize(object):
 
         if self.debugLS and self.iterLS > 0: self.printDone(inLS=True)
 
-        return self._LS_xt, self.iterLS < self.maxIterLS
+        return self._LS_xt, True#self.iterLS < self.maxIterLS
 
     @Utils.count
     def modifySearchDirectionBreak(self, p):
@@ -1061,7 +1061,7 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
 
             m = x[(nC*ind):(nC*(ind+1))]
 
-            if self.ptype[ind] == 'sph':
+            if np.all([self.ptype[ind] == 'sph', self.iter%3 == 1]):
 
                 indx = m < self.lower[ind]
                 m_low = m[indx]
@@ -1077,6 +1077,51 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
 
                 m[indx] = m_high
 
+            elif np.all([self.ptype[ind] == 'sph', self.iter % 3 == 2]):
+
+                indx = np.where(m < self.lower[ind])[0]
+                m_low = m[indx]
+
+                # First case the angle goes around 2pi, take remainder
+                m_low = np.mod(m_low, -2.*np.pi)
+
+                # Second case the angle flipped to positive
+                m_low[m_low < -3.*np.pi/2.] = 2.*np.pi + m_low[m_low < -3.*np.pi/2.]
+
+                # Third case angle flips to positive and reverse phi orientation
+                ind2 = np.where(m_low < -np.pi)[0]
+                m_low[ind2] = 2.*np.pi + m_low[ind2]
+                m[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
+
+                # Forth case angle stays negative but also flip phi
+                ind2 = np.where(m_low < -np.pi/2.)[0]
+                m_low[ind2] = -np.pi - m_low[ind2]
+                m[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
+
+                m[indx] = m_low
+
+                # Repeat for positive
+                indx = np.where(m > self.upper[ind])[0]
+                m_high = m[indx]
+
+                # First case the angle goes around 2pi, take remainder
+                m_high = np.mod(m_high, 2.*np.pi)
+
+                # Second case the angle flipped to negative
+                m_high[m_high > 3.*np.pi/2.] = -2.*np.pi + m_high[m_high > 3.*np.pi/2.]
+
+                # Third case angle flips to negative and reverse phi orientation
+                ind2 = np.where(m_high > np.pi)[0]
+                m_high[ind2] = -2.*np.pi + m_high[ind2]
+                m[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
+
+                # Forth case angle stays positive but also flip phi
+                ind2 = np.where(m_high > np.pi/2.)[0]
+                m_high[ind2] = np.pi - m_high[ind2]
+                m[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
+
+                m[indx] = m_high
+
             block.append(np.median(np.c_[self.lower[ind], m, self.upper[ind]],axis=1))
 
         return np.hstack(block)
@@ -1088,12 +1133,27 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
             If we are on a bound
 
         """
-        
+
         actSet = np.logical_or(x <= np.hstack(self.lower), x >= np.hstack(self.upper))
-        
-        if self.ptype == 'sph':
-        
-            actSet[len(x)/3:] = False
+
+        if np.any(map(lambda ind: ind == 'sph', self.ptype)):
+
+            nC = len(x)/3
+            if (self.iter % 3) == 0:
+
+                actSet[nC:] = True
+
+            elif (self.iter % 2) == 1:
+
+                actSet[:nC] = True
+                actSet[2*nC:] = True
+                actSet[nC:2*nC] = False
+
+            else:
+
+                actSet[:2*nC] = True
+                actSet[2*nC:] = False
+            # actSet[nC:] = False
 
         return actSet
 
@@ -1127,7 +1187,7 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
         temp = sum((np.ones_like(self.xc.size)-Active))
         allBoundsAreActive =  temp == self.xc.size
 
-
+        nC = int(len(self.xc)/self.nSpace)
 #        if allBoundsAreActive:
 #            Hinv = SolverICG(self.H, M=self.approxHinv, tol=self.tolCG, maxiter=self.maxIterCG)
 #            p = Hinv * (-self.g)
@@ -1179,11 +1239,19 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
             dm_a = max( abs(rhs_a) )
 
             # perturb inactive set off of bounds so that they are included in the step
-            delx = delx + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
+            delx = delx + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)*1e-8
 
 
         # Only keep gradients going in the right direction on the active set
-        indx = ((self.xc<=np.hstack(self.lower)) & (delx < 0)) | ((self.xc>=np.hstack(self.upper)) & (delx > 0))
-        delx[indx] = 0.
+        # indx = ((self.xc<=np.hstack(self.lower)) & (delx < 0)) | ((self.xc>=np.hstack(self.upper)) & (delx > 0))
+        # delx[indx] = 0.
+
+        # if np.any(map(lambda ind: ind=='sph', self.ptype)):
+        #     temp = delx[nC:]
+        #     ind = np.abs(temp) > (2.*np.pi)
+
+        #     temp[ind] = np.sign(temp[ind]) * (np.abs(temp[ind]) % (2.*np.pi))
+
+        #     delx[nC:] = temp
 
         return delx

@@ -531,8 +531,6 @@ class Amplitude_Inv_Iter(InversionDirective):
             wr = np.sum(self.prob.G**2., axis=0)**0.5
             wr = wr / wr.max()
 
-
-
         else:
             wr = self.reg.JtJdiag**0.5
             wr = wr / wr.max()
@@ -544,10 +542,9 @@ class Amplitude_Inv_Iter(InversionDirective):
         self.reg._W, self.reg._Wsmooth = None, None
 
         if self.ptype == 'MVI-S':
-            self.reg.alpha_x[1:] = [(2-i)*self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
-            self.reg.alpha_y[1:] = [(2-i)*self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
-            self.reg.alpha_z[1:] = [(2-i)*self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
-
+            self.reg.alpha_x[1:] = [(self.invProb.model[:(len(wr)/3)].max()/np.pi) for i in range(2)]
+            self.reg.alpha_y[1:] = [(self.invProb.model[:(len(wr)/3)].max()/np.pi) for i in range(2)]
+            self.reg.alpha_z[1:] = [(self.invProb.model[:(len(wr)/3)].max()/np.pi) for i in range(2)]
 
         if getattr(self.opt, 'approxHinv', None) is None:
             diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
@@ -564,28 +561,21 @@ class Amplitude_Inv_Iter(InversionDirective):
 
         self.reg.JtJdiag = self.getJtJdiag()
 
-        if self.test:
-
-            wr = np.sum(self.prob.G**2., axis=0)**0.5
-            wr = wr / wr.max()
-
-
-
-        else:
+        if not self.test:
             wr = self.reg.JtJdiag**0.5
             wr = wr / wr.max()
 
-        self.reg.cell_weights = wr
+            self.reg.cell_weights = wr
 
         self.reg._Wsmall, self.reg._Wx = None, None
         self.reg._Wy, self.reg._Wz, = None, None
-        # self.reg._W, self.reg._Wsmooth = None, None
+        self.reg._W, self.reg._Wsmooth = None, None
 
         if self.ptype == 'MVI-S':
-            self.reg.alpha_x[1:] = [(2-i)*self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
-            self.reg.alpha_y[1:] = [(2-i)*self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
-            self.reg.alpha_z[1:] = [(2-i)*self.invProb.model[:(len(wr)/3)].max()/np.pi for i in range(2)]
 
+            self.reg.alpha_x[1:] = [(self.invProb.model[:(len(wr)/3)].max()/np.pi) for i in range(2)]
+            self.reg.alpha_y[1:] = [(self.invProb.model[:(len(wr)/3)].max()/np.pi) for i in range(2)]
+            self.reg.alpha_z[1:] = [(self.invProb.model[:(len(wr)/3)].max()/np.pi) for i in range(2)]
 
         if getattr(self.opt, 'approxHinv', None) is not None:
 
