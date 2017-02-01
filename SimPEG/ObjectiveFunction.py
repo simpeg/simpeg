@@ -131,10 +131,10 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
                 )
             )
 
-        if not isinstance(self, ComboObjectiveFunction):
+        if self.__class__.__name__ != 'ComboObjectiveFunction': #not isinstance(self, ComboObjectiveFunction):
             self = 1 * self
 
-        if not isinstance(objfct2, ComboObjectiveFunction):
+        if objfct2.__class__.__name__ != 'ComboObjectiveFunction': #not isinstance(objfct2, ComboObjectiveFunction):
             objfct2 = 1 * objfct2
 
         objfctlist = self.objfcts + objfct2.objfcts
@@ -221,67 +221,40 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     def _eval(self, x, **kwargs):
 
-        def eval_list(objfcts, multipliers, f):
-            for multiplier, objfct in zip(multipliers, objfcts):
-                if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
-                    pass
-                elif isinstance(objfct, list):
-                    f += eval_list(objfct, multiplier, f)
-                else:
-                    f += multiplier * objfct(x, **kwargs)
-            return f
-
-        f = eval_list(self.objfcts, self.multipliers, 0.0)
-
+        f = 0.
+        for multiplier, objfct in zip(self.multipliers, self.objfcts):
+            if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
+                pass
+            else:
+                f += multiplier * objfct(x, **kwargs)
         return f
 
     def deriv(self, x, **kwargs):
-        def eval_listDerivs(objfcts, multipliers, g):
-            for multiplier, objfct in zip(multipliers, objfcts):
-                if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
-                    pass
-                elif isinstance(objfct, list):
-                    g += eval_listDerivs(objfct, multiplier, g)
-                else:
-                    g += multiplier * objfct.deriv(x, **kwargs)
-            return g
-
-        g = eval_listDerivs(self.objfcts, self.multipliers, Utils.Zero())
+        g = Utils.Zero()
+        for multiplier, objfct in zip(self.multipliers, self.objfcts):
+            if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
+                pass
+            else:
+                g += multiplier * objfct.deriv(x, **kwargs)
         return g
 
     def deriv2(self, x, **kwargs):
 
-        def eval_list2Derivs(objfcts, multipliers, H):
-            for multiplier, objfct in zip(multipliers, objfcts):
-                if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
-                    pass
-                elif isinstance(objfct, list):
-                    H = H + eval_list2Derivs(objfct, multiplier, H)
-
-                else:
-                    objfct_H = objfct.deriv2(x, **kwargs)
-                    if isinstance(objfct_H, Utils.Identity):
-                        if self.nP != '*':
-                            objfct_H = sp.eye(self.nP)  # if we need a shape
-                        elif objfct.nP != '*':
-                            objfct_H = sp.eye(objfct.nP)  # if we need a shape
-                        else:
-                            raise Exception('need to set nP on objective functions to get H')
-                    H = H + multiplier * objfct_H
-            return H
-
-        H = eval_list2Derivs(self.objfcts, self.multipliers, Utils.Zero())
+        H = Utils.Zero()
+        for multiplier, objfct in zip(self.multipliers, self.objfcts):
+            if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
+                pass
+            else:
+                objfct_H = objfct.deriv2(x, **kwargs)
+                if isinstance(objfct_H, Utils.Identity):
+                    if self.nP != '*':
+                        objfct_H = sp.eye(self.nP)  # if we need a shape
+                    elif objfct.nP != '*':
+                        objfct_H = sp.eye(objfct.nP)  # if we need a shape
+                    else:
+                        raise Exception('need to set nP on objective functions to get H')
+                H = H + multiplier * objfct_H
         return H
-
-        # H = Utils.Zero()
-        # for multpliter, objfct in zip(self.multipliers, self.objfcts):
-        #     objfct_H = objfct.deriv2(x, **kwargs)
-        #     if isinstance(objfct_H, Utils.Zero):
-        #         pass
-        #
-        #     else:
-        #         H += multpliter * objfct_H
-        # return H
 
     # This assumes all objective functions have a W.
     # The base class currently does not.
