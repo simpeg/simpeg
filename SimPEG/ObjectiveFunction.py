@@ -34,7 +34,11 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
         Utils.setKwargs(self, **kwargs)
 
     def __call__(self, x, **kwargs):
-        return self._eval(x, **kwargs)
+        raise NotImplementedError(
+            '__call__ has not been implemented for {} yet'.format(
+                self.__class__.__name__
+            )
+        )
 
     @property
     def nP(self):
@@ -62,9 +66,9 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
 
 
     @Utils.timeIt
-    def _eval(self, x, **kwargs):
+    def __call__(self, x, **kwargs):
         raise NotImplementedError(
-            "The method _eval has not been implemented for {}".format(
+            "The method __call__ has not been implemented for {}".format(
                 self.__class__.__name__
             )
         )
@@ -211,6 +215,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         super(ComboObjectiveFunction, self).__init__(**kwargs)
 
     @property
+    def __len__(self):
+        return self.objfcts.__len__
+
+    @property
     def multipliers(self):
         return self._multipliers
 
@@ -219,7 +227,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         self._multipliers = value
 
 
-    def _eval(self, x, **kwargs):
+    def __call__(self, x, **kwargs):
 
         f = 0.
         for multiplier, objfct in zip(self.multipliers, self.objfcts):
@@ -291,7 +299,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
                 self._W = Utils.Identity()
         return self._W
 
-    def _eval(self, m):
+    def __call__(self, m):
         r = self.W * m
         return 0.5 * r.dot(r)
 

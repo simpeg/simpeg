@@ -374,7 +374,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
     Base class for regularization. Inherit this for building your own
     regularization. The base regularization assumes a weighted l2 style of
     regularization. However, if you wish to employ a different norm, the
-    methods :meth:`_eval`, :meth:`deriv` and :meth:`deriv2` can be over-written
+    methods :meth:`__call__`, :meth:`deriv` and :meth:`deriv2` can be over-written
 
     **Optional Inputs**
 
@@ -512,7 +512,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
 
 
     @Utils.timeIt
-    def _eval(self, m):
+    def __call__(self, m):
         """
         We use a weighted 2-norm objective function
 
