@@ -174,6 +174,11 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         self._nP = '*'
 
+        assert(len(objfcts)==len(multipliers)),(
+            "Must have the same number of Objective Functions and Multipliers "
+            "not {} and {}".format(len(objfcts),len(multipliers))
+            )
+
         def validate_list(objfctlist, multipliers):
             for fct, mult in zip(objfctlist, multipliers):
                 if isinstance(fct, list):
@@ -210,6 +215,12 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         super(ComboObjectiveFunction, self).__init__(**kwargs)
 
+    def __len__(self):
+        return len(self._multipliers)
+
+    def __getitem__(self,key):
+        return self.multipliers[key],self.objfcts[key]
+
     @property
     def multipliers(self):
         return self._multipliers
@@ -222,7 +233,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     def _eval(self, x, **kwargs):
 
         f = 0.
-        for multiplier, objfct in zip(self.multipliers, self.objfcts):
+        for multiplier, objfct in self:
             if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
                 pass
             else:
@@ -231,7 +242,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     def deriv(self, x, **kwargs):
         g = Utils.Zero()
-        for multiplier, objfct in zip(self.multipliers, self.objfcts):
+        for multiplier, objfct in self:
             if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
                 pass
             else:
@@ -241,7 +252,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     def deriv2(self, x, **kwargs):
 
         H = Utils.Zero()
-        for multiplier, objfct in zip(self.multipliers, self.objfcts):
+        for multiplier, objfct in self:
             if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
                 pass
             else:
@@ -261,7 +272,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     @property
     def W(self):
         W = []
-        for mult, fct in zip(self.multipliers, self.objfcts):
+        for mult, fct in self:
             curW = mult * fct.W
             if not isinstance(curW, Utils.Zero):
                 W.append(curW)

@@ -217,23 +217,19 @@ class RegularizationTests(unittest.TestCase):
         reg2 = Regularization.Simple(mesh)
 
         reg_a = reg1 + reg2
-        self.assertTrue(len(reg_a.objfcts) == 2)
-        self.assertTrue(len(reg_a.multipliers) == 2)
+        self.assertTrue(len(reg_a)==2)
         self.assertTrue(reg1(m) + reg2(m) == reg_a(m))
         reg_a.test()
 
         reg_b = 2*reg1 + reg2
-        self.assertTrue(len(reg_b.objfcts) == 2)
-        self.assertTrue(len(reg_b.multipliers) == 2)
+        self.assertTrue(len(reg_b)==2)
         self.assertTrue(2*reg1(m) + reg2(m) == reg_b(m))
         reg_b.test()
 
         reg_c = reg1 + reg2/2
-        self.assertTrue(len(reg_c.objfcts) == 2)
-        self.assertTrue(len(reg_c.multipliers) == 2)
+        self.assertTrue(len(reg_c)==2)
         self.assertTrue(reg1(m) + 0.5*reg2(m) == reg_c(m))
         reg_c.test()
-
 
 if __name__ == '__main__':
     unittest.main()
