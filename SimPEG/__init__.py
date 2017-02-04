@@ -4,7 +4,7 @@ from SimPEG import Utils
 from SimPEG.Utils import mkvc
 from SimPEG.Utils.SolverUtils import (
     _checkAccuracy, SolverWrapD, SolverWrapI,
-    Solver, SolverCG, SolverDiag, SolverLU
+    Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
 )
 
 import discretize as Mesh
@@ -20,7 +20,7 @@ from SimPEG import Directives
 from SimPEG import Inversion
 from SimPEG import Tests
 
-__version__   = '0.3.1'
+__version__   = '0.4.1'
 __author__    = 'Rowan Cockett'
 __license__   = 'MIT'
 __copyright__ = 'Copyright 2014 Rowan Cockett'

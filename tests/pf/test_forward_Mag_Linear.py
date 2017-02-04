@@ -44,12 +44,12 @@ class MagFwdProblemTests(unittest.TestCase):
         srcField = PF.BaseMag.SrcField([rxLoc], param=H0)
         self.survey = PF.BaseMag.LinearSurvey(srcField)
 
-        self.prob_xyz = PF.Magnetics.MagneticIntegral(mesh, mapping=idenMap,
+        self.prob_xyz = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
                                                       actInd=sph_ind,
                                                       forwardOnly=True,
                                                       rtype='xyz')
 
-        self.prob_tmi = PF.Magnetics.MagneticIntegral(mesh, mapping=idenMap,
+        self.prob_tmi = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
                                                       actInd=sph_ind,
                                                       forwardOnly=True,
                                                       rtype='tmi')

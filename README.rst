@@ -8,17 +8,13 @@ SimPEG
     :target: https://pypi.python.org/pypi/SimPEG
     :alt: Latest PyPI version
 
-.. image:: https://img.shields.io/badge/license-MIT-blue.svg
+.. image:: https://img.shields.io/github/license/simpeg/simpeg.svg
     :target: https://github.com/simpeg/simpeg/blob/master/LICENSE
     :alt: MIT license
 
 .. image:: https://api.travis-ci.org/simpeg/simpeg.svg?branch=master
     :target: https://travis-ci.org/simpeg/simpeg
     :alt: Travis CI build status
-
-.. image:: http://img.shields.io/badge/GITTER-JOIN_CHAT-brightgreen.svg?style=flat-square
-    :alt: gitter chat room at https://gitter.im/simpeg/simpeg
-    :target: https://gitter.im/simpeg/simpeg
 
 .. image:: https://codecov.io/gh/simpeg/simpeg/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/simpeg/simpeg
@@ -78,6 +74,10 @@ Website:
 http://simpeg.xyz
 
 
+Slack (real time chat):
+http://slack.simpeg.xyz
+
+
 Documentation:
 http://docs.simpeg.xyz
 
@@ -92,7 +92,3 @@ https://travis-ci.org/simpeg/simpeg
 
 Bugs & Issues:
 https://github.com/simpeg/simpeg/issues
-
-
-Code Snippets & Tutorials:
-http://simpeg.xyz/journal

@@ -136,7 +136,7 @@ from scipy.sparse import linalg
 Solver   = SolverWrapD(linalg.spsolve, factorize=False, name="Solver")
 SolverLU = SolverWrapD(linalg.splu, factorize=True, name="SolverLU")
 SolverCG = SolverWrapI(linalg.cg, name="SolverCG")
-
+SolverBiCG = SolverWrapI(linalg.bicgstab, name="SolverBiCG")
 
 class SolverDiag(object):
     """docstring for SolverDiag"""

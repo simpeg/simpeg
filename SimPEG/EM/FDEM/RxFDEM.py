@@ -1,6 +1,7 @@
 import SimPEG
 
 
+
 class BaseRx(SimPEG.Survey.BaseRx):
     """
     Frequency domain receiver base class
@@ -11,23 +12,33 @@ class BaseRx(SimPEG.Survey.BaseRx):
     """
 
     def __init__(self, locs, orientation=None, component=None):
-        assert(orientation in ['x','y','z']), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'. Arbitrary orientations have not yet been implemented.".format(orientation)
-        assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not {0!s}".format(component)
+        assert(
+            orientation in ['x', 'y', 'z']
+        ), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'."
+        " Arbitrary orientations have not yet been implemented.".format(
+            orientation
+        )
+        assert(
+            component in ['real', 'imag']
+            ), "'component' must be 'real' or 'imag', not {0!s}".format(
+                component
+            )
 
         self.projComp = orientation
         self.component = component
 
-        SimPEG.Survey.BaseRx.__init__(self, locs, rxType=None) #TODO: remove rxType from baseRx
+        # TODO: remove rxType from baseRx
+        SimPEG.Survey.BaseRx.__init__(self, locs, rxType=None)
 
-    def projGLoc(self, u):
+    def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
-        return u._GLoc(self.projField) + self.projComp
+        return f._GLoc(self.projField) + self.projComp
 
     def eval(self, src, mesh, f):
         """
         Project fields to receivers to get data.
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: FDEM source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: FDEM source
         :param BaseMesh mesh: mesh used
         :param Fields f: fields object
         :rtype: numpy.ndarray
@@ -36,7 +47,7 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
         P = self.getP(mesh, self.projGLoc(f))
         f_part_complex = f[src, self.projField]
-        f_part = getattr(f_part_complex, self.component) # get the real or imag component
+        f_part = getattr(f_part_complex, self.component) # real or imag component
 
         return P*f_part
 
@@ -44,7 +55,7 @@ class BaseRx(SimPEG.Survey.BaseRx):
         """
         Derivative of projected fields with respect to the inversion model times a vector.
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: FDEM source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: FDEM source
         :param BaseMesh mesh: mesh used
         :param Fields f: fields object
         :param numpy.ndarray v: vector to multiply
@@ -54,14 +65,15 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
         df_dmFun = getattr(f, '_{0}Deriv'.format(self.projField), None)
 
-        assert v is not None, ('v must be provided to compute the deriv or '
-                               'adjoint')
+        assert v is not None, (
+            'v must be provided to compute the deriv or adjoint'
+        )
 
         P = self.getP(mesh, self.projGLoc(f))
 
         if not adjoint:
-            assert du_dm_v is not None, ('du_dm_v must be provided to evaluate'
-                                         ' the receiver deriv')
+            assert du_dm_v is not None, (
+                'du_dm_v must be provided to evaluate the receiver deriv')
             df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
             Pv_complex = P * df_dm_v
             Pv = getattr(Pv_complex, self.component)
@@ -109,6 +121,7 @@ class Point_b(BaseRx):
     def __init__(self, locs, orientation=None, component=None):
         self.projField = 'b'
         super(Point_b, self).__init__(locs, orientation, component)
+
 
 class Point_bSecondary(BaseRx):
     """

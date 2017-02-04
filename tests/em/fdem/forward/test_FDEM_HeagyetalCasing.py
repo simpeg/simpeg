@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('Agg')
+
 from SimPEG.Examples import EM_Heagyetal2016_Casing as CasingExample
 import unittest
 

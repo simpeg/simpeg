@@ -15,7 +15,6 @@ srcloc = np.r_[0., 0., 0.]
 xobs = np.random.rand(n)+10.
 yobs = np.zeros(n)
 zobs = np.random.randn(n)
-plotit = False
 
 
 def CasingMagDipoleDeriv_r(x):

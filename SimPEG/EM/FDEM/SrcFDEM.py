@@ -1,66 +1,29 @@
-from SimPEG import Survey, Problem, Utils
+import properties
 import numpy as np
 from scipy.constants import mu_0
-from SimPEG.EM.Utils import (omega, MagneticDipoleFields,
-                             MagneticDipoleVectorPotential,
-                             MagneticLoopVectorPotential,
-                             orientationDict)
-from SimPEG.Utils import Zero
 import warnings
 
+from SimPEG.Utils import Zero
+from SimPEG import Survey, Problem, Utils
 
-class BaseSrc(Survey.BaseSrc):
+from .. import Utils as emutils
+from ..Base import BaseEMSrc
+
+
+class BaseFDEMSrc(BaseEMSrc):
     """
     Base source class for FDEM Survey
     """
 
-    freq = None
-    integrate = False
+    freq = properties.Float("frequency of the source", min=0, required=True)
+
     _ePrimary = None
     _bPrimary = None
     _hPrimary = None
     _jPrimary = None
 
     def __init__(self, rxList, **kwargs):
-        Survey.BaseSrc.__init__(self, rxList, **kwargs)
-
-    def eval(self, prob):
-        """
-        - :math:`s_m` : magnetic source term
-        - :math:`s_e` : electric source term
-
-        :param BaseFDEMProblem prob: FDEM Problem
-        :rtype: tuple
-        :return: tuple with magnetic source term and electric source term
-        """
-        s_m = self.s_m(prob)
-        s_e = self.s_e(prob)
-        return s_m, s_e
-
-    def evalDeriv(self, prob, v=None, adjoint=False):
-        """
-        Derivatives of the source terms with respect to the inversion model
-        - :code:`s_mDeriv` : derivative of the magnetic source term
-        - :code:`s_eDeriv` : derivative of the electric source term
-
-        :param BaseFDEMProblem prob: FDEM Problem
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: tuple
-        :return: tuple with magnetic source term and electric source term
-            derivatives times a vector
-
-        """
-        if v is not None:
-            return (
-                self.s_mDeriv(prob, v, adjoint),
-                self.s_eDeriv(prob, v, adjoint)
-            )
-        else:
-            return (
-                lambda v: self.s_mDeriv(prob, v, adjoint),
-                lambda v: self.s_eDeriv(prob, v, adjoint)
-            )
+        super(BaseFDEMSrc, self).__init__(rxList, **kwargs)
 
     def bPrimary(self, prob):
         """
@@ -158,53 +121,8 @@ class BaseSrc(Survey.BaseSrc):
         """
         return Zero()
 
-    def s_m(self, prob):
-        """
-        Magnetic source term
 
-        :param BaseFDEMProblem prob: FDEM Problem
-        :rtype: numpy.ndarray
-        :return: magnetic source term on mesh
-        """
-        return Zero()
-
-    def s_e(self, prob):
-        """
-        Electric source term
-
-        :param BaseFDEMProblem prob: FDEM Problem
-        :rtype: numpy.ndarray
-        :return: electric source term on mesh
-        """
-        return Zero()
-
-    def s_mDeriv(self, prob, v, adjoint = False):
-        """
-        Derivative of magnetic source term with respect to the inversion model
-
-        :param BaseFDEMProblem prob: FDEM Problem
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of magnetic source term derivative with a vector
-        """
-
-        return Zero()
-
-    def s_eDeriv(self, prob, v, adjoint = False):
-        """
-        Derivative of electric source term with respect to the inversion model
-
-        :param BaseFDEMProblem prob: FDEM Problem
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of electric source term derivative with a vector
-        """
-        return Zero()
-
-
-class RawVec_e(BaseSrc):
+class RawVec_e(BaseFDEMSrc):
     """
     RawVec electric source. It is defined by the user provided vector s_e
 
@@ -216,9 +134,9 @@ class RawVec_e(BaseSrc):
 
     def __init__(self, rxList, freq, s_e, **kwargs):
         self._s_e = np.array(s_e, dtype=complex)
-        self.freq = float(freq)
+        self.freq = freq
 
-        BaseSrc.__init__(self, rxList, **kwargs)
+        super(BaseFDEMSrc, self).__init__(rxList, **kwargs)
 
     def s_e(self, prob):
         """
@@ -228,12 +146,12 @@ class RawVec_e(BaseSrc):
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
-        if prob._formulation is 'EB' and self.integrate is True:
+        if prob._formulation == 'EB' and self.integrate is True:
             return prob.Me * self._s_e
         return self._s_e
 
 
-class RawVec_m(BaseSrc):
+class RawVec_m(BaseFDEMSrc):
     """
     RawVec magnetic source. It is defined by the user provided vector s_m
 
@@ -245,9 +163,8 @@ class RawVec_m(BaseSrc):
 
     def __init__(self, rxList, freq, s_m, **kwargs):
         self._s_m = np.array(s_m, dtype=complex)
-        self.freq = float(freq)
-
-        BaseSrc.__init__(self, rxList, **kwargs)
+        self.freq = float
+        super(RawVec_m, self).__init__(rxList, **kwargs)
 
     def s_m(self, prob):
         """
@@ -257,12 +174,12 @@ class RawVec_m(BaseSrc):
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
-        if prob._formulation is 'HJ' and self.integrate is True:
+        if prob._formulation == 'HJ' and self.integrate is True:
             return prob.Me * self._s_m
         return self._s_m
 
 
-class RawVec(BaseSrc):
+class RawVec(BaseFDEMSrc):
     """
     RawVec source. It is defined by the user provided vectors s_m, s_e
 
@@ -275,8 +192,8 @@ class RawVec(BaseSrc):
     def __init__(self, rxList, freq, s_m, s_e, **kwargs):
         self._s_m = np.array(s_m, dtype=complex)
         self._s_e = np.array(s_e, dtype=complex)
-        self.freq = float(freq)
-        BaseSrc.__init__(self, rxList, **kwargs)
+        self.freq = freq
+        super(RawVec, self).__init__(rxList, **kwargs)
 
     def s_m(self, prob):
         """
@@ -286,7 +203,7 @@ class RawVec(BaseSrc):
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
-        if prob._formulation is 'HJ' and self.integrate is True:
+        if prob._formulation == 'HJ' and self.integrate is True:
             return prob.Me * self._s_m
         return self._s_m
 
@@ -298,12 +215,12 @@ class RawVec(BaseSrc):
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
-        if prob._formulation is 'EB' and self.integrate is True:
+        if prob._formulation == 'EB' and self.integrate is True:
             return prob.Me * self._s_e
         return self._s_e
 
 
-class MagDipole(BaseSrc):
+class MagDipole(BaseFDEMSrc):
     """
     Point magnetic dipole source calculated by taking the curl of a magnetic
     vector potential. By taking the discrete curl, we ensure that the magnetic
@@ -362,39 +279,51 @@ class MagDipole(BaseSrc):
     :param float mu: background magnetic permeability
 
     """
+    moment = properties.Float(
+        "dipole moment of the transmitter", default=1., min=0.
+    )
+    mu = properties.Float(
+        "permeability of the background", default=mu_0, min=0.
+    )
+    orientation = properties.Vector3(
+        "orientation of the source", default='Z', length=1., required=True
+    )
+    freq = properties.Float(
+        "frequency of the source (Hz)", required=True
+    )
+    loc = properties.Vector3(
+        "location of the source", default=np.r_[0.,0.,0.]
+    )
 
-    def __init__(self, rxList, freq, loc, orientation='Z', moment=1., mu=mu_0,
-                 **kwargs):
-        self.freq = float(freq)
-        self.loc = loc
-        if isinstance(orientation, str):
-            assert orientation.upper() in ['X', 'Y', 'Z'], (
-                "orientation must be in 'X', 'Y', 'Z' not {}".format(
-                    orientation
-                )
-            )
-            orientation = orientationDict[orientation.upper()]
-        elif (np.linalg.norm(orientation - np.r_[1., 0., 0.]) > 1e-6 or
-              np.linalg.norm(orientation - np.r_[0., 1., 0.]) > 1e-6 or
-              np.linalg.norm(orientation - np.r_[0., 0., 1.]) > 1e-6):
-                warnings.warn(
-                    'Using orientations that are not in aligned with the mesh '
-                    'axes is not thoroughly tested. PR on a test??')
+    def __init__(
+        self, rxList, freq, loc, **kwargs
+    ):
 
-        assert np.linalg.norm(orientation) == 1., (
-            'Orientation must have unit length, not {}'.format(
-                np.linalg.norm(orientation)
-            )
+        super(MagDipole, self).__init__(
+            rxList, **kwargs
         )
 
-        self.orientation = orientation
-        self.moment = moment
-        self.mu = mu
-        Utils.setKwargs(self, **kwargs)
-        BaseSrc.__init__(self, rxList)
+        self.freq = freq
+        self.loc = loc
+
+
+    @properties.validator('orientation')
+    def _warn_non_axis_aligned_sources(self, change):
+        value = change['value']
+        axaligned = [
+            True for vec in [np.r_[1.,0.,0.], np.r_[0.,1.,0.], np.r_[0.,0.,1.]]
+            if np.all(value == vec)
+        ]
+        if len(axaligned) != 1:
+            warnings.warn(
+                'non-axes aligned orientations {} are not rigorously'
+                ' tested'.format(value)
+            )
+
+
 
     def _srcFct(self, obsLoc, component):
-        return MagneticDipoleVectorPotential(
+        return emutils.MagneticDipoleVectorPotential(
             self.loc, obsLoc, component, mu=self.mu, moment=self.moment,
             orientation=self.orientation
         )
@@ -409,28 +338,27 @@ class MagDipole(BaseSrc):
         """
         formulation = prob._formulation
 
-        if formulation is 'EB':
+        if formulation == 'EB':
             gridX = prob.mesh.gridEx
             gridY = prob.mesh.gridEy
             gridZ = prob.mesh.gridEz
             C = prob.mesh.edgeCurl
 
-        elif formulation is 'HJ':
+        elif formulation == 'HJ':
             gridX = prob.mesh.gridFx
             gridY = prob.mesh.gridFy
             gridZ = prob.mesh.gridFz
             C = prob.mesh.edgeCurl.T
 
-        if prob.mesh._meshType is 'CYL':
+        if prob.mesh._meshType == 'CYL':
             if not prob.mesh.isSymmetric:
                 # TODO ?
-                raise NotImplementedError('Non-symmetric cyl mesh not '
-                                          'implemented yet!')
+                raise NotImplementedError(
+                    'Non-symmetric cyl mesh not implemented yet!')
             assert (np.linalg.norm(self.orientation - np.r_[0., 0., 1.]) <
                     1e-6), ('for cylindrical symmetry, the dipole must be '
                             'oriented in the Z direction')
             a = self._srcFct(gridY, 'y')
-
         else:
             ax = self._srcFct(gridX, 'x')
             ay = self._srcFct(gridY, 'y')
@@ -460,9 +388,9 @@ class MagDipole(BaseSrc):
         """
 
         b_p = self.bPrimary(prob)
-        if prob._formulation is 'HJ':
+        if prob._formulation == 'HJ':
             b_p = prob.Me * b_p
-        return -1j*omega(self.freq)*b_p
+        return -1j*emutils.omega(self.freq)*b_p
 
     def s_e(self, prob):
         """
@@ -478,16 +406,43 @@ class MagDipole(BaseSrc):
         else:
             formulation = prob._formulation
 
-            if formulation is 'EB':
+            if formulation == 'EB':
                 mui_s = prob.mui - 1./self.mu
                 MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
                 C = prob.mesh.edgeCurl
-            elif formulation is 'HJ':
+            elif formulation == 'HJ':
                 mu_s = prob.mu - self.mu
                 MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
                 C = prob.mesh.edgeCurl.T
 
             return -C.T * (MMui_s * self.bPrimary(prob))
+
+    def s_eDeriv(self, prob, v, adjoint=False):
+        if not hasattr(prob, 'muMap') or not hasattr(prob, 'muiMap'):
+            return Zero()
+        else:
+            formulation = prob._formulation
+
+            if formulation == 'EB':
+                mui_s = prob.mui - 1./self.mu
+                MMui_sDeriv = prob.mesh.getFaceInnerProductDeriv(mui_s)(
+                    self.bPrimary(prob)
+                ) * prob.muiDeriv
+                C = prob.mesh.edgeCurl
+
+                if adjoint:
+                    return -MMui_sDeriv.T * (C * v)
+
+                return -C.T * (MMui_sDeriv * v)
+
+            elif formulation == 'HJ':
+                return Zero()
+                # raise NotImplementedError
+                mu_s = prob.mu - self.mu
+                MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
+                C = prob.mesh.edgeCurl.T
+
+                return -C.T * (MMui_s * self.bPrimary(prob))
 
 
 class MagDipole_Bfield(MagDipole):
@@ -509,14 +464,14 @@ class MagDipole_Bfield(MagDipole):
     :param float mu: background magnetic permeability
     """
 
-    def __init__(self, rxList, freq, loc, orientation='Z', moment=1., mu=mu_0):
+    def __init__(self, rxList, freq, loc, **kwargs):
         super(MagDipole_Bfield, self).__init__(
-            rxList, freq, loc, orientation=orientation, moment=moment, mu=mu
+            rxList, freq=freq, loc=loc, **kwargs
         )
 
     def _srcFct(self, obsLoc, component):
-        return MagneticDipoleFields(
-            self.srcLoc, obsLoc, component, mu=self.mu, moment=self.moment,
+        return emutils.MagneticDipoleFields(
+            self.loc, obsLoc, component, mu=self.mu, moment=self.moment,
             orientation=self.orientation
         )
 
@@ -532,18 +487,18 @@ class MagDipole_Bfield(MagDipole):
 
         formulation = prob._formulation
 
-        if formulation is 'EB':
+        if formulation == 'EB':
             gridX = prob.mesh.gridFx
             gridY = prob.mesh.gridFy
             gridZ = prob.mesh.gridFz
 
-        elif formulation is 'HJ':
+        elif formulation == 'HJ':
             gridX = prob.mesh.gridEx
             gridY = prob.mesh.gridEy
             gridZ = prob.mesh.gridEz
 
-        srcfct = MagneticDipoleFields
-        if prob.mesh._meshType is 'CYL':
+        srcfct = emutils.MagneticDipoleFields
+        if prob.mesh._meshType == 'CYL':
             if not prob.mesh.isSymmetric:
                 # TODO ?
                 raise NotImplementedError(
@@ -579,25 +534,28 @@ class CircularLoop(MagDipole):
     :param float mu: background magnetic permeability
     """
 
-    def __init__(self, rxList, freq, loc, orientation='Z', radius=1., mu=mu_0):
-        self.radius = radius
-        super(CircularLoop, self).__init__(rxList, freq, loc,
-                                           orientation=orientation,
-                                           mu=mu)
+    radius = properties.Float("radius of the loop", default=1., min=0.)
+
+    def __init__(self, rxList, freq, loc, **kwargs):
+        super(CircularLoop, self).__init__(
+            rxList, freq, loc, **kwargs
+        )
 
     def _srcFct(self, obsLoc, component):
-        return MagneticLoopVectorPotential(
+        return emutils.MagneticLoopVectorPotential(
             self.loc, obsLoc, component, mu=self.mu, radius=self.radius,
             orientation=self.orientation
-    )
+        )
 
 
-class PrimSecSigma(BaseSrc):
+class PrimSecSigma(BaseFDEMSrc):
 
     def __init__(self, rxList, freq, sigBack, ePrimary, **kwargs):
         self.sigBack = sigBack
 
-        BaseSrc.__init__(self, rxList, freq=freq, _ePrimary=ePrimary, **kwargs)
+        BaseFDEMSrc.__init__(
+            self, rxList, freq=freq, _ePrimary=ePrimary, **kwargs
+        )
 
     def s_e(self, prob):
         return (
@@ -610,7 +568,7 @@ class PrimSecSigma(BaseSrc):
         return prob.MeSigmaDeriv(self.ePrimary(prob)) * v
 
 
-class PrimSecMappedSigma(BaseSrc):
+class PrimSecMappedSigma(BaseFDEMSrc):
 
     """
     Primary-Secondary Source in which a mapping is provided to put the current
@@ -639,7 +597,7 @@ class PrimSecMappedSigma(BaseSrc):
 
         self.map2meshSecondary = map2meshSecondary
 
-        BaseSrc.__init__(self, rxList, freq=freq, **kwargs)
+        BaseFDEMSrc.__init__(self, rxList, freq=freq, **kwargs)
 
     def _ProjPrimary(self, prob, locType, locTypeTo):
         # TODO: if meshes have not changed, store the projection
@@ -712,7 +670,7 @@ class PrimSecMappedSigma(BaseSrc):
             )
             df_duTFun = getattr(
                 f, '_{0}Deriv'.format(
-                    'e' if self.primaryProblem._formulation is 'EB' else 'j'
+                    'e' if self.primaryProblem._formulation == 'EB' else 'j'
                 ),
                 None
             )
@@ -746,7 +704,7 @@ class PrimSecMappedSigma(BaseSrc):
         # if self.primaryProblem._formulation == 'EB':
         df_dmFun = getattr(
             f, '_{0}Deriv'.format(
-                'e' if self.primaryProblem._formulation is 'EB' else 'j'
+                'e' if self.primaryProblem._formulation == 'EB' else 'j'
             ),
             None
         )

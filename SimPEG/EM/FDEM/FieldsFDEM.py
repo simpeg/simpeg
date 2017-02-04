@@ -34,6 +34,10 @@ class FieldsFDEM(SimPEG.Problem.Fields):
     knownFields = {}
     dtype = complex
 
+    def _GLoc(self, fieldType):
+        """Grid location of the fieldType"""
+        return self.aliasFields[fieldType][1]
+
     def _e(self, solution, srcList):
         """
         Total electric field is sum of primary and secondary
@@ -154,7 +158,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{e}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`)
         for the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
+        :param SimPEG.EM.FDEM.Src.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -191,7 +195,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
         the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
+        :param SimPEG.EM.FDEM.Src.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -217,7 +221,8 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         return (
             np.array(
                 self._bDeriv_u(src, du_dm_v, adjoint) +
-                self._bDeriv_m(src, v, adjoint), dtype=complex
+                self._bDeriv_m(src, v, adjoint),
+                dtype=complex
             )
         )
 
@@ -228,7 +233,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
         the adjoint
 
-        :param Src src: sorce
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: sorce
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -247,7 +252,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{h}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`)
         for the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
+        :param SimPEG.EM.FDEM.Src.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -284,7 +289,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         (:math:`d\mathbf{j}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
         the adjoint
 
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
+        :param SimPEG.EM.FDEM.Src.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with
             respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
@@ -319,7 +324,7 @@ class Fields3D_e(FieldsFDEM):
     """
     Fields object for Problem3D_e.
 
-    :param BaseMesh mesh: mesh
+    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
@@ -344,11 +349,12 @@ class Fields3D_e(FieldsFDEM):
         self._MeSigma = self.survey.prob.MeSigma
         self._MeSigmaDeriv = self.survey.prob.MeSigmaDeriv
         self._MfMui = self.survey.prob.MfMui
+        self._MfMuiDeriv = self.survey.prob.MfMuiDeriv
 
     def _GLoc(self, fieldType):
-        if fieldType == 'e':
+        if fieldType in ['e', 'eSecondary', 'ePrimary']:
             return 'E'
-        elif fieldType == 'b':
+        elif fieldType in ['b', 'bSecondary', 'bPrimary']:
             return 'F'
         elif (fieldType == 'h') or (fieldType == 'j'):
             return 'CCV'
@@ -387,7 +393,7 @@ class Fields3D_e(FieldsFDEM):
         Partial derivative of the total electric field with respect to the
         thing we solved for.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -404,7 +410,7 @@ class Fields3D_e(FieldsFDEM):
         the model. Note that this also includes derivative contributions from
         the sources.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: SimPEG.Utils.Zero
@@ -426,7 +432,8 @@ class Fields3D_e(FieldsFDEM):
 
         bPrimary = np.zeros(
                 [self._edgeCurl.shape[0], eSolution.shape[1]], dtype=complex
-            )
+        )
+
         for i, src in enumerate(srcList):
             bp = src.bPrimary(self.prob)
             bPrimary[:, i] = bPrimary[:, i] + bp
@@ -445,7 +452,7 @@ class Fields3D_e(FieldsFDEM):
         C = self._edgeCurl
         b = (C * eSolution)
         for i, src in enumerate(srcList):
-            b[:, i] *= - 1./(1j*omega(src.freq))
+            b[:, i] *= - 1./(1j*omega(src.freq))  # freq depends on the source
             s_m = src.s_m(self.prob)
             b[:, i] = b[:, i] + 1./(1j*omega(src.freq)) * s_m
         return b
@@ -455,7 +462,7 @@ class Fields3D_e(FieldsFDEM):
         Derivative of the magnetic flux density with respect to the thing we
         solved for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -473,7 +480,7 @@ class Fields3D_e(FieldsFDEM):
         Derivative of the magnetic flux density with respect to the inversion
         model.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -481,6 +488,9 @@ class Fields3D_e(FieldsFDEM):
             to the inversion model with a vector
         """
 
+        return self._bDeriv_src(src, v, adjoint=adjoint)
+
+    def _bDeriv_src(self, src, v, adjoint=False):
         s_mDeriv = src.s_mDeriv(self.prob, v, adjoint)
         return (
             1./(1j * omega(src.freq)) * s_mDeriv +
@@ -507,7 +517,7 @@ class Fields3D_e(FieldsFDEM):
         Derivative of the current density with respect to the thing we solved
         for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -540,7 +550,7 @@ class Fields3D_e(FieldsFDEM):
         """
         Derivative of the current density with respect to the inversion model.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -582,14 +592,14 @@ class Fields3D_e(FieldsFDEM):
 
         return (
             VI * (self._aveF2CCV * (self._MfMui * self._b(eSolution, srcList)))
-            )
+        )
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
         """
         Derivative of the magnetic field with respect to the thing we solved
         for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -610,11 +620,26 @@ class Fields3D_e(FieldsFDEM):
             )
         )
 
+    def _hDeriv_mui(self, src, v, adjoint=False):
+        n = int(self._aveF2CCV.shape[0] / self._nC)  # Number of Components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+
+        if adjoint is True:
+            return (
+                self._MfMuiDeriv(self[src, 'b']).T * (
+                    self._aveF2CCV.T * (VI.T * v)
+                )
+            )
+
+        return (
+            VI * (self._aveF2CCV * (self._MfMuiDeriv(self[src, 'b']) * v))
+        )
+
     def _hDeriv_m(self, src, v, adjoint=False):
         """
         Derivative of the magnetic field with respect to the inversion model.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -624,22 +649,24 @@ class Fields3D_e(FieldsFDEM):
         n = int(self._aveF2CCV.shape[0] / self._nC)  # Number of Components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
         if adjoint:
-            v = self._MfMui.T * (self._aveF2CCV.T * (VI.T * v))
-            return self._bDeriv_m(src, v, adjoint=adjoint)
+            return (
+                self._bDeriv_m(src, self._MfMui.T * (self._aveF2CCV.T * (VI.T * v)), adjoint=adjoint) +
+                self._hDeriv_mui(src, v, adjoint=adjoint)
+            )
         return (
             VI * (
                 self._aveF2CCV * (
                     self._MfMui * self._bDeriv_m(src, v, adjoint=adjoint)
                 )
             )
-        )
+        ) + self._hDeriv_mui(src, v, adjoint=adjoint)
 
 
 class Fields3D_b(FieldsFDEM):
     """
     Fields object for Problem3D_b.
 
-    :param BaseMesh mesh: mesh
+    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
@@ -661,6 +688,7 @@ class Fields3D_b(FieldsFDEM):
         self._MeSigma = self.survey.prob.MeSigma
         self._MeSigmaI = self.survey.prob.MeSigmaI
         self._MfMui = self.survey.prob.MfMui
+        self._MfMuiDeriv = self.survey.prob.MfMuiDeriv
         self._MeSigmaDeriv = self.survey.prob.MeSigmaDeriv
         self._MeSigmaIDeriv = self.survey.prob.MeSigmaIDeriv
         self._Me = self.survey.prob.Me
@@ -671,11 +699,9 @@ class Fields3D_b(FieldsFDEM):
         self._nC = self.survey.prob.mesh.nC
 
     def _GLoc(self, fieldType):
-        if fieldType == 'e':
+        if fieldType in ['e', 'eSecondary', 'ePrimary']:
             return 'E'
-        elif fieldType == 'b':
-            return 'F'
-        elif fieldType == 'bSecondary':
+        elif fieldType in ['b', 'bSecondary', 'bPrimary']:
             return 'F'
         elif (fieldType == 'h') or (fieldType == 'j'):
             return'CCV'
@@ -715,7 +741,7 @@ class Fields3D_b(FieldsFDEM):
         Partial derivative of the total magnetic flux density with respect to
         the thing we solved for.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -732,7 +758,7 @@ class Fields3D_b(FieldsFDEM):
         on the model. Note that this also includes derivative contributions
         from the sources.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: SimPEG.Utils.Zero
@@ -783,7 +809,7 @@ class Fields3D_b(FieldsFDEM):
         Derivative of the electric field with respect to the thing we solved
         for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -801,7 +827,7 @@ class Fields3D_b(FieldsFDEM):
         """
         Derivative of the electric field with respect to the inversion model
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -817,12 +843,20 @@ class Fields3D_b(FieldsFDEM):
         if adjoint:
             s_eDeriv = src.s_eDeriv(self.prob, self._MeSigmaI.T * v, adjoint)
             return (
-                self._MeSigmaIDeriv(w).T * v - s_eDeriv +
+                self._MeSigmaIDeriv(w).T * v +
+                self._MfMuiDeriv(bSolution).T * (
+                    self._edgeCurl * (self._MeSigmaI.T * v)
+                    ) -
+                s_eDeriv +
                 src.ePrimaryDeriv(self.prob, v, adjoint)
             )
         s_eDeriv = src.s_eDeriv(self.prob, v, adjoint)
         return (
-            self._MeSigmaIDeriv(w) * v - self._MeSigmaI * s_eDeriv +
+            self._MeSigmaIDeriv(w) * v +
+            self._MeSigmaI * (
+                self._edgeCurl.T * (self._MfMuiDeriv(bSolution) * v)
+            ) -
+            self._MeSigmaI * s_eDeriv +
             src.ePrimaryDeriv(self.prob, v, adjoint)
         )
 
@@ -839,17 +873,20 @@ class Fields3D_b(FieldsFDEM):
         n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
-        return (
-            VI *
-            (self._aveE2CCV * (self._MeSigma * self._e(bSolution, srcList)))
-        )
+
+        j = (self._edgeCurl.T * (self._MfMui * bSolution))
+        for i, src in enumerate(srcList):
+            s_e = src.s_e(self.prob)
+            j[:, i] = j[:, i] - s_e
+
+        return VI * (self._aveE2CCV * j)
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
         """
         Partial derivative of the current density with respect to the thing we
         solved for.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -875,12 +912,29 @@ class Fields3D_b(FieldsFDEM):
                 )
             )
         )
+        # forgetting the source term here
+
+    def _jDeriv_mui(self, src, v, adjoint=False):
+        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        MfMuiDeriv = self._MfMuiDeriv(self[src, 'b'])
+
+        if adjoint:
+            return (
+                MfMuiDeriv.T * (
+                    self._edgeCurl * (self._aveE2CCV.T * (VI.T * v))
+                )
+            )
+
+        return (
+            VI * (self._aveE2CCV * (self._edgeCurl.T * (MfMuiDeriv * v)))
+        )
 
     def _jDeriv_m(self, src, v, adjoint=False):
         """
         Derivative of the current density with respect to the inversion model
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -888,7 +942,9 @@ class Fields3D_b(FieldsFDEM):
             to the model with a vector
         """
 
-        return src.jPrimaryDeriv(self.prob, v, adjoint)
+        return (
+            self._jDeriv_mui(src, v, adjoint)
+        )
 
     def _h(self, bSolution, srcList):
         """
@@ -910,7 +966,7 @@ class Fields3D_b(FieldsFDEM):
         Partial derivative of the magnetic field with respect to the thing we
         solved for.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -924,25 +980,39 @@ class Fields3D_b(FieldsFDEM):
             return self._MfMui.T * (self._aveF2CCV.T * (VI.T * du_dm_v))
         return VI * (self._aveF2CCV * (self._MfMui * du_dm_v))
 
+    def _hDeriv_mui(self, src, v, adjoint=False):
+        b = self[src, 'b']
+        n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+
+        if adjoint:
+            return (
+                self._MfMuiDeriv(b).T * (self._aveF2CCV.T * (VI * v))
+            )
+        return VI * (self._aveF2CCV * (self._MfMuiDeriv(b) * v))
+
     def _hDeriv_m(self, src, v, adjoint=False):
         """
         Derivative of the magnetic field with respect to the inversion model
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
         :return: product of the derivative of the magnetic field with respect
             to the model with a vector
         """
-        return src.hPrimaryDeriv(self.prob, v, adjoint)
+        return (
+            src.hPrimaryDeriv(self.prob, v, adjoint) +
+            self._hDeriv_mui(src, v, adjoint)
+        )
 
 
 class Fields3D_j(FieldsFDEM):
     """
     Fields object for Problem3D_j.
 
-    :param BaseMesh mesh: mesh
+    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
@@ -963,6 +1033,7 @@ class Fields3D_j(FieldsFDEM):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MeMu = self.survey.prob.MeMu
         self._MeMuI = self.survey.prob.MeMuI
+        self._MeMuIDeriv = self.survey.prob.MeMuIDeriv
         self._MfRho = self.survey.prob.MfRho
         self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
         self._rho = self.survey.prob.rho
@@ -972,9 +1043,9 @@ class Fields3D_j(FieldsFDEM):
         self._nC = self.survey.prob.mesh.nC
 
     def _GLoc(self, fieldType):
-        if fieldType == 'h':
+        if fieldType in ['h', 'hSecondary', 'hPrimary']:
             return 'E'
-        elif fieldType == 'j':
+        elif fieldType in ['j', 'jSecondary', 'jPrimary']:
             return 'F'
         elif (fieldType == 'e') or (fieldType == 'b'):
             return 'CCV'
@@ -1029,7 +1100,7 @@ class Fields3D_j(FieldsFDEM):
         Partial derivative of the total current density with respect to the
         thing we solved for.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1046,7 +1117,7 @@ class Fields3D_j(FieldsFDEM):
         the model. Note that this also includes derivative contributions from
         the sources.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: SimPEG.Utils.Zero
@@ -1096,7 +1167,7 @@ class Fields3D_j(FieldsFDEM):
         Derivative of the magnetic field with respect to the thing we solved
         for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1118,7 +1189,7 @@ class Fields3D_j(FieldsFDEM):
         """
         Derivative of the magnetic field with respect to the inversion model
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1128,26 +1199,34 @@ class Fields3D_j(FieldsFDEM):
 
         jSolution = Utils.mkvc(self[[src], 'jSolution'])
         MeMuI = self._MeMuI
+        MeMuIDeriv = self._MeMuIDeriv
         C = self._edgeCurl
         MfRho = self._MfRho
         MfRhoDeriv = self._MfRhoDeriv
+
+        s_m = src.s_m(self.prob)
 
         def s_mDeriv(v):
             return src.s_mDeriv(self.prob, v, adjoint=adjoint)
 
         if not adjoint:
-            hDeriv_m = (
-                -1./(1j*omega(src.freq)) *
-                MeMuI * (C.T * (MfRhoDeriv(jSolution)*v))
+            hDeriv_m = 1./(1j*omega(src.freq)) * (
+                -1. *  (
+                    MeMuI * (C.T * (MfRhoDeriv(jSolution)*v)) +
+                    MeMuIDeriv(C.T * (MfRho * jSolution)) *  v
+                ) +
+                MeMuI * s_mDeriv(v) + MeMuIDeriv(s_m) * v
             )
-            hDeriv_m = hDeriv_m + 1./(1j*omega(src.freq)) * MeMuI * s_mDeriv(v)
 
         elif adjoint:
-            hDeriv_m = (
-                -1./(1j*omega(src.freq)) *
-                MfRhoDeriv(jSolution).T * (C * (MeMuI.T * v))
+            hDeriv_m = 1./(1j*omega(src.freq)) * (
+                (
+                    -1. * (
+                        MfRhoDeriv(jSolution).T * (C * (MeMuI.T * v)) +
+                        MeMuIDeriv(C.T * (MfRho * jSolution)).T * v
+                    )
+                ) + s_mDeriv(MeMuI.T*v) + MeMuIDeriv(s_m).T * v
             )
-            hDeriv_m = hDeriv_m + 1./(1j*omega(src.freq)) * s_mDeriv(MeMuI.T*v)
 
         return hDeriv_m + src.hPrimaryDeriv(self.prob, v, adjoint)
 
@@ -1171,7 +1250,7 @@ class Fields3D_j(FieldsFDEM):
         Derivative of the electric field with respect to the thing we solved
         for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1188,7 +1267,7 @@ class Fields3D_j(FieldsFDEM):
         """
         Derivative of the electric field with respect to the inversion model
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1229,14 +1308,16 @@ class Fields3D_j(FieldsFDEM):
         Derivative of the magnetic flux density with respect to the thing we
         solved for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
         :return: product of the derivative of the magnetic flux density with
             respect to the field we solved for with a vector
         """
-        n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
+        # if self.prob.mesh._meshType == 'CYL':
+        #     self.
+        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
         if adjoint:
@@ -1248,6 +1329,7 @@ class Fields3D_j(FieldsFDEM):
                     )
                 )
             )
+
         return (
             -1./(1j*omega(src.freq)) * VI *
             (self._aveE2CCV * (self._edgeCurl.T * (self._MfRho * du_dm_v)))
@@ -1258,7 +1340,7 @@ class Fields3D_j(FieldsFDEM):
         Derivative of the magnetic flux density with respect to the inversion
         model
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1297,7 +1379,7 @@ class Fields3D_h(FieldsFDEM):
     """
     Fields object for Problem3D_h.
 
-    :param BaseMesh mesh: mesh
+    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
@@ -1317,7 +1399,8 @@ class Fields3D_h(FieldsFDEM):
         self.prob = self.survey.prob
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MeMu = self.survey.prob.MeMu
-        self._MeMuI = self.survey.prob.MeMuI
+        self._MeMuDeriv = self.survey.prob.MeMuDeriv
+        # self._MeMuI = self.survey.prob.MeMuI
         self._MfRho = self.survey.prob.MfRho
         self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
         self._rho = self.survey.prob.rho
@@ -1327,9 +1410,9 @@ class Fields3D_h(FieldsFDEM):
         self._nC = self.survey.prob.mesh.nC
 
     def _GLoc(self, fieldType):
-        if fieldType == 'h':
+        if fieldType in ['h', 'hSecondary', 'hPrimary']:
             return 'E'
-        elif fieldType == 'j':
+        elif fieldType in ['j', 'jSecondary', 'jPrimary']:
             return 'F'
         elif (fieldType == 'e') or (fieldType == 'b'):
             return 'CCV'
@@ -1369,7 +1452,7 @@ class Fields3D_h(FieldsFDEM):
         Partial derivative of the total magnetic field with respect to the
         thing we solved for.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1386,7 +1469,7 @@ class Fields3D_h(FieldsFDEM):
             on the model. Note that this also includes derivative contributions
             from the sources.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: SimPEG.Utils.Zero
@@ -1435,7 +1518,7 @@ class Fields3D_h(FieldsFDEM):
         Derivative of the current density with respect to the thing we solved
         for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1452,7 +1535,7 @@ class Fields3D_h(FieldsFDEM):
         """
         Derivative of the current density with respect to the inversion model.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1476,6 +1559,7 @@ class Fields3D_h(FieldsFDEM):
         """
         n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+
         return (
             VI *
             (self._aveF2CCV * (self._MfRho * self._j(hSolution, srcList)))
@@ -1486,7 +1570,7 @@ class Fields3D_h(FieldsFDEM):
         Derivative of the electric field with respect to the thing we solved
         for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1510,7 +1594,7 @@ class Fields3D_h(FieldsFDEM):
         """
         Derivative of the electric field with respect to the inversion model.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1520,17 +1604,24 @@ class Fields3D_h(FieldsFDEM):
         hSolution = Utils.mkvc(self[src, 'hSolution'])
         n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        s_e = src.s_e(self.prob)
+
         if adjoint:
+            w = self._aveF2CCV.T * (VI.T * v)
             return (
-                self._MfRhoDeriv(self._edgeCurl * hSolution).T *
-                (self._aveF2CCV.T * (VI.T * v)) +
+                self._MfRhoDeriv(self._edgeCurl * hSolution).T * w -
+                self._MfRhoDeriv(s_e).T * w +
                 src.ePrimaryDeriv(self.prob, v, adjoint)
             )
         return (
             VI *
             (
                 self._aveF2CCV *
-                (self._MfRhoDeriv(self._edgeCurl * hSolution) * v)
+                (
+                    self._MfRhoDeriv(self._edgeCurl * hSolution) * v -
+                    self._MfRhoDeriv(s_e) * v
+
+                )
             ) +
             src.ePrimaryDeriv(self.prob, v, adjoint)
         )
@@ -1555,7 +1646,7 @@ class Fields3D_h(FieldsFDEM):
         Derivative of the magnetic flux density with respect to the thing we
         solved for
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -1568,18 +1659,32 @@ class Fields3D_h(FieldsFDEM):
             return self._MeMu.T * (self._aveE2CCV.T * (VI.T * du_dm_v))
         return VI * (self._aveE2CCV * (self._MeMu * du_dm_v))
 
+    def _bDeriv_mu(self, src, v, adjoint=False):
+        h = self[src, 'h']
+        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        MeMuDeriv = self._MeMuDeriv(h)
+
+        if adjoint:
+            return MeMuDeriv.T * (self._aveE2CCV.T * (VI.T * v))
+        return VI * (self._aveE2CCV * (MeMuDeriv * v))
+        # return VI * (self._aveE2CCV * (self._MeMu * h))
+
     def _bDeriv_m(self, src, v, adjoint=False):
         """
         Derivative of the magnetic flux density with respect to the inversion
         model.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
         :return: product of the magnetic flux density derivative with respect
             to the inversion model with a vector
         """
-        return src.bPrimaryDeriv(self.prob, v, adjoint)
+        return (
+            src.bPrimaryDeriv(self.prob, v, adjoint) +
+            self._bDeriv_mu(src, v, adjoint)
+        )
 
 

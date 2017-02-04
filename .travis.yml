@@ -1,7 +1,7 @@
 language: python
 python:
   - 3.5
-  # - 2.7
+  - 2.7
 
 sudo: false
 
@@ -50,11 +50,7 @@ install:
     else
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py nose sphinx sympy;
     fi
-  - pip install nose-cov python-coveralls pymatsolver
-  - git clone https://github.com/simpeg/discretize.git;
-    cd discretize;
-    python setup.py install;
-    cd ..;
+  - pip install nose-cov python-coveralls pymatsolver discretize
   - python setup.py install
   - python setup.py build_ext --inplace
   - if [ ${TEST_DIR} = "tests/docs" ]; then

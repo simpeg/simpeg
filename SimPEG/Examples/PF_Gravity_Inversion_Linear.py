@@ -81,7 +81,7 @@ def run(plotIt=True):
     idenMap = Maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
-    prob = PF.Gravity.GravityIntegral(mesh, mapping=idenMap, actInd=actv)
+    prob = PF.Gravity.GravityIntegral(mesh, rhoMap=idenMap, actInd=actv)
 
     # Pair the survey and problem
     survey.pair(prob)

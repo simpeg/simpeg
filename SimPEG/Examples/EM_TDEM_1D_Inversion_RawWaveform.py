@@ -53,8 +53,7 @@ def run(plotIt=True):
     t0 = 0.006
     waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
 
-    rx = EM.TDEM.Rx(rxloc, np.logspace(-4, -2.5, 11)+t0,
-                    'dbzdt')
+    rx = EM.TDEM.Rx.Point_dbdt(rxloc, np.logspace(-4, -2.5, 11)+t0, 'z')
     src = EM.TDEM.Src.CircularLoop([rx], waveform=waveform,
                                    loc=np.array([0., 0., 0.]), radius=10.)
     survey = EM.TDEM.Survey([src])
