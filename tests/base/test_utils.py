@@ -2,11 +2,11 @@ from __future__ import print_function
 import unittest
 import numpy as np
 import scipy.sparse as sp
-from SimPEG.Utils import (sdiag, sub2ind, ndgrid, mkvc,
-                          inv2X2BlockDiagonal, inv3X3BlockDiagonal,
-                          invPropertyTensor, makePropertyTensor, indexCube,
-                          ind2sub, asArray_N_x_Dim, TensorType, diagEst, count,
-                          timeIt, Counter)
+from SimPEG.Utils import (
+    sdiag, sub2ind, ndgrid, mkvc, inv2X2BlockDiagonal,
+    inv3X3BlockDiagonal, invPropertyTensor, makePropertyTensor, indexCube,
+    ind2sub, asArray_N_x_Dim, TensorType, diagEst, count, timeIt, Counter
+)
 from SimPEG import Mesh
 from SimPEG.Tests import checkDerivative
 
@@ -24,7 +24,9 @@ class TestCheckDerivative(unittest.TestCase):
     def test_simpleFunction(self):
         def simpleFunction(x):
             return np.sin(x), lambda xi: sdiag(np.cos(x))*xi
-        passed = checkDerivative(simpleFunction, np.random.randn(5), plotIt=False)
+        passed = checkDerivative(
+            simpleFunction, np.random.randn(5), plotIt=False
+        )
         self.assertTrue(passed, True)
 
     def test_simpleFail(self):
@@ -49,10 +51,13 @@ class TestCounter(unittest.TestCase):
                 pass
 
         c = MyClass('blah')
-        for i in range(100): c.MyMethod()
-        for i in range(300): c.MySecondMethod()
+        for i in range(100):
+            c.MyMethod()
+        for i in range(300):
+            c.MySecondMethod()
         c.counter.summary()
         self.assertTrue(True)
+
 
 class TestSequenceFunctions(unittest.TestCase):
 
@@ -85,27 +90,44 @@ class TestSequenceFunctions(unittest.TestCase):
     def test_ndgrid_3D(self):
         XYZ = ndgrid([self.a, self.b, self.c])
 
-        X1_test = np.array([1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3])
-        X2_test = np.array([1, 1, 1, 2, 2, 2, 1, 1, 1, 2, 2, 2, 1, 1, 1, 2, 2, 2, 1, 1, 1, 2, 2, 2])
-        X3_test = np.array([1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4])
+        X1_test = np.array([
+            1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1,
+            2, 3
+        ])
+        X2_test = np.array([
+            1, 1, 1, 2, 2, 2, 1, 1, 1, 2, 2, 2, 1, 1, 1, 2, 2, 2, 1, 1, 1, 2,
+            2, 2
+        ])
+        X3_test = np.array([
+            1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4,
+            4, 4
+        ])
 
         self.assertTrue(np.all(XYZ[:, 0] == X1_test))
         self.assertTrue(np.all(XYZ[:, 1] == X2_test))
         self.assertTrue(np.all(XYZ[:, 2] == X3_test))
 
     def test_sub2ind(self):
-        x = np.ones((5,2))
-        self.assertTrue(np.all(sub2ind(x.shape, [0,0]) == [0]))
-        self.assertTrue(np.all(sub2ind(x.shape, [4,0]) == [4]))
-        self.assertTrue(np.all(sub2ind(x.shape, [0,1]) == [5]))
-        self.assertTrue(np.all(sub2ind(x.shape, [4,1]) == [9]))
-        self.assertTrue(np.all(sub2ind(x.shape, [[4,1]]) == [9]))
-        self.assertTrue(np.all(sub2ind(x.shape, [[0,0],[4,0],[0,1],[4,1]]) == [0,4,5,9]))
+        x = np.ones((5, 2))
+        self.assertTrue(np.all(sub2ind(x.shape, [0, 0]) == [0]))
+        self.assertTrue(np.all(sub2ind(x.shape, [4, 0]) == [4]))
+        self.assertTrue(np.all(sub2ind(x.shape, [0, 1]) == [5]))
+        self.assertTrue(np.all(sub2ind(x.shape, [4, 1]) == [9]))
+        self.assertTrue(np.all(sub2ind(x.shape, [[4, 1]]) == [9]))
+        self.assertTrue(
+            np.all(sub2ind(
+                x.shape, [[0, 0], [4, 0], [0, 1], [4, 1]]) == [0, 4, 5, 9]
+            )
+        )
 
     def test_ind2sub(self):
-        x = np.ones((5,2))
-        self.assertTrue(np.all(ind2sub(x.shape, [0,4,5,9])[0] == [0,4,0,4]))
-        self.assertTrue(np.all(ind2sub(x.shape, [0,4,5,9])[1] == [0,0,1,1]))
+        x = np.ones((5, 2))
+        self.assertTrue(
+            np.all(ind2sub(x.shape, [0, 4, 5, 9])[0] == [0, 4, 0, 4])
+        )
+        self.assertTrue(
+            np.all(ind2sub(x.shape, [0, 4, 5, 9])[1] == [0, 0, 1, 1])
+        )
 
     def test_indexCube_2D(self):
         nN = np.array([3, 3])
@@ -116,14 +138,30 @@ class TestSequenceFunctions(unittest.TestCase):
 
     def test_indexCube_3D(self):
         nN = np.array([3, 3, 3])
-        self.assertTrue(np.all(indexCube('A', nN) == np.array([0, 1, 3, 4, 9, 10, 12, 13])))
-        self.assertTrue(np.all(indexCube('B', nN) == np.array([3, 4, 6, 7, 12, 13, 15, 16])))
-        self.assertTrue(np.all(indexCube('C', nN) == np.array([4, 5, 7, 8, 13, 14, 16, 17])))
-        self.assertTrue(np.all(indexCube('D', nN) == np.array([1, 2, 4, 5, 10, 11, 13, 14])))
-        self.assertTrue(np.all(indexCube('E', nN) == np.array([9, 10, 12, 13, 18, 19, 21, 22])))
-        self.assertTrue(np.all(indexCube('F', nN) == np.array([12, 13, 15, 16, 21, 22, 24, 25])))
-        self.assertTrue(np.all(indexCube('G', nN) == np.array([13, 14, 16, 17, 22, 23, 25, 26])))
-        self.assertTrue(np.all(indexCube('H', nN) == np.array([10, 11, 13, 14, 19, 20, 22, 23])))
+        self.assertTrue(np.all(
+            indexCube('A', nN) == np.array([0, 1, 3, 4, 9, 10, 12, 13])
+        ))
+        self.assertTrue(np.all(
+            indexCube('B', nN) == np.array([3, 4, 6, 7, 12, 13, 15, 16])
+        ))
+        self.assertTrue(np.all(
+            indexCube('C', nN) == np.array([4, 5, 7, 8, 13, 14, 16, 17])
+        ))
+        self.assertTrue(np.all(
+            indexCube('D', nN) == np.array([1, 2, 4, 5, 10, 11, 13, 14])
+        ))
+        self.assertTrue(np.all(
+            indexCube('E', nN) == np.array([9, 10, 12, 13, 18, 19, 21, 22])
+        ))
+        self.assertTrue(np.all(
+            indexCube('F', nN) == np.array([12, 13, 15, 16, 21, 22, 24, 25])
+        ))
+        self.assertTrue(np.all(
+            indexCube('G', nN) == np.array([13, 14, 16, 17, 22, 23, 25, 26])
+        ))
+        self.assertTrue(np.all(
+            indexCube('H', nN) == np.array([10, 11, 13, 14, 19, 20, 22, 23])
+        ))
 
     def test_invXXXBlockDiagonal(self):
         a = [np.random.rand(5, 1) for i in range(4)]
@@ -146,7 +184,6 @@ class TestSequenceFunctions(unittest.TestCase):
         Z3 = B*A - sp.identity(15)
 
         self.assertTrue(np.linalg.norm(Z3.todense().ravel(), 2) < TOL)
-
 
     def test_invPropertyTensor2D(self):
         M = Mesh.TensorMesh([6, 6])
@@ -201,7 +238,6 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertRaises(Exception, TensorType, M, np.c_[a1, a2, a3, a3])
         self.assertTrue(TensorType(M, None) == -1)
 
-
     def test_invPropertyTensor3D(self):
         M = Mesh.TensorMesh([6, 6, 6])
         a1 = np.random.rand(M.nC)
@@ -227,37 +263,44 @@ class TestSequenceFunctions(unittest.TestCase):
 
     def test_asArray_N_x_Dim(self):
 
-        true = np.array([[1,2,3]])
+        true = np.array([[1, 2, 3]])
 
-        listArray = asArray_N_x_Dim([1,2,3],3)
+        listArray = asArray_N_x_Dim([1, 2, 3], 3)
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
 
-        listArray = asArray_N_x_Dim(np.r_[1,2,3],3)
+        listArray = asArray_N_x_Dim(np.r_[1, 2, 3], 3)
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
 
-        listArray = asArray_N_x_Dim(np.array([[1,2,3.]]),3)
+        listArray = asArray_N_x_Dim(np.array([[1, 2, 3.]]), 3)
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
 
-        true = np.array([[1,2],[4,5]])
+        true = np.array([[1, 2], [4, 5]])
 
-        listArray = asArray_N_x_Dim([[1,2],[4,5]],2)
+        listArray = asArray_N_x_Dim([[1, 2], [4, 5]], 2)
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
+
 
 class TestDiagEst(unittest.TestCase):
 
     def setUp(self):
-        self.n = 10
-        self.A = np.random.rand(self.n,self.n)
+        self.n = 1000
+        self.A = np.random.rand(self.n, self.n)
         self.Adiag = np.diagonal(self.A)
 
-    def testOnes(self):
-        Adiagtest = diagEst(self.A,self.n,self.n)
+    def getTest(self, testType):
+        Adiagtest = diagEst(self.A, self.n, self.n, testType)
         r = np.abs(Adiagtest-self.Adiag)
-        self.assertTrue(r.dot(r) < TOL)
+        err = r.dot(r)
+        return err
+
+    def testProbing(self):
+        err = self.getTest('probing')
+        print('Testing probing. {}'.format(err))
+        self.assertTrue(err < TOL)
 
 
 if __name__ == '__main__':
