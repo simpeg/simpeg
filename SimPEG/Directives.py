@@ -413,13 +413,6 @@ class Update_IRLS(InversionDirective):
             # Get phi_m at the end of current iteration
             self.phi_m_last = self.invProb.phi_m_last
 
-            # Reset the regularization matrices so that it is
-            # recalculated for current model
-            # self.reg._Wsmall = None
-            # self.reg._Wx = None
-            # self.reg._Wy = None
-            # self.reg._Wz = None
-
             # Update the model used for the IRLS weights
             self.reg.model = self.invProb.model
 
@@ -431,12 +424,6 @@ class Update_IRLS(InversionDirective):
 
             # Update gamma to scale the regularization between IRLS iterations
             self.reg.gamma = self.phi_m_last / phim_new
-
-            # Reset the regularization matrices again for new gamma
-            # self.reg._Wsmall = None
-            # self.reg._Wx = None
-            # self.reg._Wy = None
-            # self.reg._Wz = None
 
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / (self.survey.nD*0.5)
