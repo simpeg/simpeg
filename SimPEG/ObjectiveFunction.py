@@ -82,7 +82,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
         )
 
     @Utils.timeIt
-    def deriv2(self, x, **kwargs):
+    def deriv2(self, x, v=None, **kwargs):
         raise NotImplementedError(
             "The method _deriv2 has not been implemented for {}".format(
                 self.__class__.__name__
@@ -110,8 +110,9 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
             else:
                 x = np.random.randn(self.nP)
 
+        v = np.random.rand(len(x))
         return checkDerivative(
-            lambda m: [self.deriv(m), self.deriv2(m)], x, num=num,
+            lambda m: [self.deriv(m).dot(v), self.deriv2(m, v=v)], x, num=num,
             plotIt=plotIt, **kwargs
         )
 
@@ -185,32 +186,29 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         def validate_list(objfctlist, multipliers):
             for fct, mult in zip(objfctlist, multipliers):
-                if isinstance(fct, list):
-                    validate_list(fct, multipliers)
-                else:
-                    assert (
-                        isinstance(fct, BaseObjectiveFunction)
-                    ) , (
-                        "Unrecognized objective function type {} in objfcts. "
-                        "All entries in objfcts must inherit from "
-                        "ObjectiveFunction".format(fct.__class__.__name__)
-                    )
+                assert (
+                    isinstance(fct, BaseObjectiveFunction)
+                ) , (
+                    "Unrecognized objective function type {} in objfcts. "
+                    "All entries in objfcts must inherit from "
+                    "ObjectiveFunction".format(fct.__class__.__name__)
+                )
 
-                    assert(type(mult) in self._multiplier_types), (
-                        "Objective Functions can only be multiplied by a "
-                        "float, or a properties.Float, not a {}, {}".format(
-                            type(mult), mult
+                assert(type(mult) in self._multiplier_types), (
+                    "Objective Functions can only be multiplied by a "
+                    "float, or a properties.Float, not a {}, {}".format(
+                        type(mult), mult
+                    )
+                )
+
+                if fct.nP != '*':
+                    if self._nP != '*':
+                        assert self._nP == fct.nP, (
+                            "Objective Functions must all have the same "
+                            "nP={}, not {}".format(self.nP, [f.nP for f in objfcts])
                         )
-                    )
-
-                    if fct.nP != '*':
-                        if self._nP != '*':
-                            assert self._nP == fct.nP, (
-                                "Objective Functions must all have the same "
-                                "nP={}, not {}".format(self.nP, [f.nP for f in objfcts])
-                            )
-                        else:
-                            self._nP = fct.nP
+                    else:
+                        self._nP = fct.nP
 
         validate_list(objfcts, multipliers)
 
@@ -238,40 +236,33 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         self._multipliers = value
 
 
-    def __call__(self, x, **kwargs):
+    def __call__(self, m, **kwargs):
 
         f = 0.
         for multiplier, objfct in self:
             if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
                 pass
             else:
-                f += multiplier * objfct(x, **kwargs)
+                f += multiplier * objfct(m, **kwargs)
         return f
 
-    def deriv(self, x, **kwargs):
+    def deriv(self, m, **kwargs):
         g = Utils.Zero()
         for multiplier, objfct in self:
             if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
                 pass
             else:
-                g += multiplier * objfct.deriv(x, **kwargs)
+                g += multiplier * objfct.deriv(m, **kwargs)
         return g
 
-    def deriv2(self, x, **kwargs):
+    def deriv2(self, m, v=None, **kwargs):
 
         H = Utils.Zero()
         for multiplier, objfct in self:
             if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
                 pass
             else:
-                objfct_H = objfct.deriv2(x, **kwargs)
-                if isinstance(objfct_H, Utils.Identity):
-                    if self.nP != '*':
-                        objfct_H = sp.eye(self.nP)  # if we need a shape
-                    elif objfct.nP != '*':
-                        objfct_H = sp.eye(objfct.nP)  # if we need a shape
-                    else:
-                        raise Exception('need to set nP on objective functions to get H')
+                objfct_H = objfct.deriv2(m, v, **kwargs)
                 H = H + multiplier * objfct_H
         return H
 
@@ -317,5 +308,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     def deriv(self, m):
         return self.W.T * (self.W * m)
 
-    def deriv2(self, m):
+    def deriv2(self, m, v=None):
+        if v is not None:
+            return self.W.T * (self.W * v)
         return self.W.T * self.W
