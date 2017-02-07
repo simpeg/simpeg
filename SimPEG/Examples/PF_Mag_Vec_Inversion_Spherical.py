@@ -255,7 +255,6 @@ def run(plotIt=True):
                                        ylim=(mesh.vectorNz[3], mesh.vectorNz[-1]+dx),
                                        vmin=vmin, vmax=vmax)
 
-        ax3.set_ylim(mesh.vectorNz[3], mesh.vectorNz[-1]+dx)
         ax3.set_title('EW - True')
         ax3.xaxis.set_visible(False)
         ax3.set_ylabel('Elevation (m)', size=14)

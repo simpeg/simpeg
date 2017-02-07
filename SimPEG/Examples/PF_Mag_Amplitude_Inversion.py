@@ -285,7 +285,7 @@ def run(plotIt=True):
     # Special directive specific to the mag amplitude problem. The sensitivity
     # weights are update between each iteration.
     update_Jacobi = Directives.Amplitude_Inv_Iter()
-    
+
     # Put all together
     inv = Inversion.BaseInversion(invProb,
                                   directiveList=[IRLS, update_Jacobi, betaest])
@@ -328,7 +328,7 @@ def run(plotIt=True):
         ax = plt.subplot(321)
         mesh.plotSlice(m_l2_susc, ax=ax, normal='Y', ind=midx,
                        grid=True, clim=(vmin, vmax),
-                       pcolorOpts={'cmap': 'magma_r', })
+                       pcolorOpts={'cmap': 'pink_r', })
         plt.title('Susceptibility l2-model.')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
@@ -339,7 +339,7 @@ def run(plotIt=True):
         ax = plt.subplot(322)
         dat = mesh.plotSlice(m_l2, ax=ax, normal='Y', ind=midx,
                              grid=True, clim=(vmin, vmax),
-                             pcolorOpts={'cmap': 'magma_r', })
+                             pcolorOpts={'cmap': 'pink_r', })
         plt.colorbar(dat[0], orientation="vertical",
                     ticks=np.linspace(vmin, vmax, 4))
         plt.title('Amplitude l2-model.')
@@ -356,7 +356,7 @@ def run(plotIt=True):
         ax = plt.subplot(323)
         mesh.plotSlice(m_lp_susc, ax=ax, normal='Y', ind=midx,
                        grid=True, clim=(vmin, vmax),
-                       pcolorOpts={'cmap': 'magma_r', })
+                       pcolorOpts={'cmap': 'pink_r', })
         plt.title('Susceptibility lp-model.')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
@@ -367,7 +367,7 @@ def run(plotIt=True):
         ax = plt.subplot(324)
         dat = mesh.plotSlice(m_lp, ax=ax, normal='Y', ind=midx,
                              grid=True, clim=(vmin, vmax),
-                             pcolorOpts={'cmap': 'magma_r', })
+                             pcolorOpts={'cmap': 'pink_r', })
         plt.colorbar(dat[0], orientation="vertical",
                     ticks=np.linspace(vmin, vmax, 4))
         plt.title('Amplitude lp-model')
@@ -381,7 +381,7 @@ def run(plotIt=True):
         ax = plt.subplot(326)
         dat = mesh.plotSlice(m_true, ax=ax, normal='Y', ind=midx,
                              grid=True, clim=(vmin, vmax),
-                             pcolorOpts={'cmap': 'magma_r', })
+                             pcolorOpts={'cmap': 'pink_r', })
         plt.colorbar(dat[0], orientation="vertical",
                      ticks=np.linspace(vmin, vmax, 4))
         plt.title('True model')

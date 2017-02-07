@@ -335,7 +335,7 @@ class Update_IRLS(InversionDirective):
     def endIter(self):
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
-        if self.invProb.phi_d < self.target and self.mode == 1:
+        if np.all([self.invProb.phi_d < self.target, self.mode == 1]):
             print("Convergence with smooth l2-norm regularization: Start IRLS steps...")
 
             self.mode = 2
@@ -377,12 +377,12 @@ class Update_IRLS(InversionDirective):
 
 
         # Beta Schedule
-        if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
+        if np.all([self.opt.iter > 0, self.opt.iter % self.coolingRate == 0]):
             if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
             self.invProb.beta /= self.coolingFactor
 
         # Only update after GN iterations
-        if (self.opt.iter-self.iterStart) % self.minGNiter == 0 and self.mode == 2:
+        if np.all([(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode == 2]):
 
             self.IRLSiter += 1
 

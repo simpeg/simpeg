@@ -70,7 +70,7 @@ def run(plotIt=True):
     # Here a simple block in half-space
     model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
     model[(midx-5):(midx-1), (midy-2):(midy+2), -10:-6] = 0.5
-    model[(midx+1):(midx+5), (midy-2):(midy+2), -10:-6] = -0.5
+    model[(midx+2):(midx+6), (midy-2):(midy+2), -10:-6] = -0.5
     model = Utils.mkvc(model)
     model = model[actv]
 

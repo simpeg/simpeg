@@ -78,6 +78,25 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return self._G
 
+    @property
+    def ProjTMI(self):
+        if not self.ispaired:
+            raise Exception('Need to pair!')
+
+        if getattr(self, '_ProjTMI', None) is None:
+
+            # Convert Bdecination from north to cartesian
+            D = (450.-float(self.survey.srcField.param[2])) % 360.
+            I = self.survey.srcField.param[1]
+            # Projection matrix
+            self._ProjTMI = Utils.mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
+                              np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
+                              np.sin(np.deg2rad(I))], 2).T
+
+        return self._ProjTMI
+
+
+
     def Intrgl_Fwr_Op(self, m=None, Magnetization="ind"):
 
         """
@@ -153,16 +172,6 @@ class MagneticIntegral(Problem.LinearProblem):
 
         Mxyz = sp.vstack((Mx, My, Mz))
 
-        if survey.srcField.rxList[0].rxType == 'tmi':
-
-
-            # Convert Bdecination from north to cartesian
-            D = (450.-float(survey.srcField.param[2])) % 360.
-            I = survey.srcField.param[1]
-            # Projection matrix
-            Ptmi = Utils.mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
-                              np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
-                              np.sin(np.deg2rad(I))], 2).T
 
         if self.forwardOnly:
 
@@ -208,7 +217,7 @@ class MagneticIntegral(Problem.LinearProblem):
             if self.forwardOnly:
 
                 if self.rtype == 'tmi':
-                    fwr_out[ii] = (Ptmi.dot(np.vstack((tx, ty, tz)))*Mxyz).dot(m)
+                    fwr_out[ii] = (self.ProjTMI.dot(np.vstack((tx, ty, tz)))*Mxyz).dot(m)
 
                 elif self.rtype == 'xyz':
                     fwr_out[ii] = (tx*Mxyz).dot(m)
@@ -220,7 +229,7 @@ class MagneticIntegral(Problem.LinearProblem):
                 if Magnetization == 'ind':
 
                     if survey.srcField.rxList[0].rxType == 'tmi':
-                        fwr_out[ii, :] = Ptmi.dot(np.vstack((tx, ty, tz)))*Mxyz
+                        fwr_out[ii, :] = self.ProjTMI.dot(np.vstack((tx, ty, tz)))*Mxyz
 
                     elif survey.srcField.rxList[0].rxType == 'xyz':
                         fwr_out[ii, :] = tx*Mxyz
@@ -230,7 +239,7 @@ class MagneticIntegral(Problem.LinearProblem):
                 elif Magnetization == 'xyz':
 
                     if survey.srcField.rxList[0].rxType == 'tmi':
-                        fwr_out[ii, :] = Ptmi.dot(np.vstack((tx, ty, tz)) *
+                        fwr_out[ii, :] = self.ProjTMI.dot(np.vstack((tx, ty, tz)) *
                                                   survey.srcField.param[0])
 
                     elif survey.srcField.rxList[0].rxType == 'xyz':
@@ -1008,7 +1017,12 @@ def dipazm_2_xyz(dip, azm_N):
 
     @author: dominiquef
     """
-    nC = len(azm_N)
+
+    if isinstance(azm_N, float):
+        nC = 1
+
+    else:
+        nC = len(azm_N)
 
     M = np.zeros((nC, 3))
 
@@ -1155,7 +1169,8 @@ def writeUBCobs(filename, survey, d):
 
 
 def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
-                vmin=None, vmax=None, levels=None, fig=None, ax=None):
+                vmin=None, vmax=None, levels=None, fig=None, ax=None,
+                colorbar=True):
     """ Function plot_obs(rxLoc,d)
     Generate a 2d interpolated plot from scatter points of data
 
@@ -1201,25 +1216,28 @@ def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
 
         # Interpolate
         d_grid = griddata(rxLoc[:, 0:2], d, (X, Y), method='linear')
-        plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],
-                   origin='lower', vmin=vmin, vmax=vmax, cmap="plasma")
-        plt.colorbar(fraction=0.02)
+        im = plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],
+                   origin='lower', vmin=vmin, vmax=vmax, cmap="plasma_r")
+
+        if colorbar:
+            plt.colorbar(fraction=0.02)
 
         if levels is None:
-            plt.contour(X, Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma")
+            plt.contour(X, Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma_r")
         else:
             plt.contour(X, Y, d_grid, levels=levels, colors='r',
-                        vmin=vmin, vmax=vmax, cmap="plasma")
+                        vmin=vmin, vmax=vmax, cmap="plasma_r")
 
     plt.title(varstr)
     plt.gca().set_aspect('equal', adjustable='box')
 
-    return fig
+    return fig, im
 
 
 def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
-                      subFact=2, scale=1., xlim=None, ylim=None,
-                      title=None, axs=None, ndv=-100, contours=None):
+                      subFact=2, scale=1., xlim=None, ylim=None, vec='k',
+                      title=None, axs=None, ndv=-100, contours=None,
+                      orientation='vertical', cmap='pink_r'):
 
     """
     Plot section through a 3D tensor model
@@ -1287,7 +1305,7 @@ def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
 
     im2 = axs.contourf(xx, yy, model,
                        10, vmin=vmin, vmax=vmax, clim=[vmin, vmax],
-                       cmap='magma_r')
+                       cmap=cmap)
 
     if contours is not None:
         axs.contour(xx, yy, model, contours, colors='k')
@@ -1300,11 +1318,11 @@ def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
                    mkvc(my)[pos],
                    pivot='mid',
                    scale_units="inches", scale=scale, linewidths=(1,),
-                   edgecolors=('k'),
+                   edgecolors=(vec),
                    headaxislength=0.1, headwidth=10, headlength=30)
-    plt.colorbar(im2, orientation="vertical", ax=axs,
+    cbar = plt.colorbar(im2, orientation=orientation, ax=axs,
                  ticks=np.linspace(im2.vmin, im2.vmax, 4),
-                 format="${%.3f}$")
+                 format="${%.3f}$", shrink=0.5)
     axs.set_aspect('equal')
 
     if xlim is not None:
@@ -1316,4 +1334,4 @@ def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
     if title is not None:
         axs.set_title(title)
 
-    return axs, im2
+    return axs, im2, cbar
