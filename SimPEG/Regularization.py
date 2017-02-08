@@ -680,7 +680,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
             return '*'
 
     @property
-    def multipliers(self):
+    def _multipliers(self):
         """
         Factors that multiply the objective functions that are summed together
         to build to composite regularization

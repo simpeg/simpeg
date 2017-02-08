@@ -40,7 +40,7 @@ class TestBaseObjFct(unittest.TestCase):
         self.assertTrue(objfct_c(m) == objfct_a(m) + objfct_b(m))
 
         self.assertTrue(len(objfct_c.objfcts) == 2)
-        self.assertTrue(len(objfct_c.multipliers) == 2)
+        self.assertTrue(len(objfct_c._multipliers) == 2)
         self.assertTrue(len(objfct_c) == 2)
 
     def test_sum(self):
@@ -52,7 +52,7 @@ class TestBaseObjFct(unittest.TestCase):
         )
         self.assertTrue(objfct.test())
 
-        self.assertTrue(np.all(objfct.multipliers == np.r_[1., scalar]))
+        self.assertTrue(np.all(objfct._multipliers == np.r_[1., scalar]))
 
     def test_2sum(self):
         nP = 80
@@ -66,8 +66,8 @@ class TestBaseObjFct(unittest.TestCase):
         phi2 = ObjectiveFunction.L2ObjectiveFunction() + alpha2 * phi1
         self.assertTrue(phi2.test())
 
-        self.assertTrue(len(phi1.multipliers) == 2)
-        self.assertTrue(len(phi2.multipliers) == 2)
+        self.assertTrue(len(phi1._multipliers) == 2)
+        self.assertTrue(len(phi2._multipliers) == 2)
 
         self.assertTrue(len(phi1.objfcts) == 2)
         self.assertTrue(len(phi2.objfcts) == 2)
@@ -76,8 +76,8 @@ class TestBaseObjFct(unittest.TestCase):
         self.assertTrue(len(phi1) == 2)
         self.assertTrue(len(phi2) == 2)
 
-        self.assertTrue(np.all(phi1.multipliers == np.r_[1., alpha1]))
-        self.assertTrue(np.all(phi2.multipliers == np.r_[1., alpha2]))
+        self.assertTrue(np.all(phi1._multipliers == np.r_[1., alpha1]))
+        self.assertTrue(np.all(phi2._multipliers == np.r_[1., alpha2]))
 
 
     def test_3sum(self):
@@ -96,7 +96,7 @@ class TestBaseObjFct(unittest.TestCase):
         m = np.random.rand(nP)
 
         self.assertTrue(
-            np.all(phi.multipliers == np.r_[alpha1, alpha2, 1./alpha3inv])
+            np.all(phi._multipliers == np.r_[alpha1, alpha2, 1./alpha3inv])
         )
 
         self.assertTrue(
@@ -164,14 +164,14 @@ class TestBaseObjFct(unittest.TestCase):
 
         self.assertTrue(phi(m) == phi1(m) + phi2(m))
 
-        phi.multipliers[0] = Utils.Zero()
+        phi._multipliers[0] = Utils.Zero()
         self.assertTrue(phi(m) == phi2(m))
 
-        phi.multipliers[0] = 1.
-        phi.multipliers[1] = Utils.Zero()
+        phi._multipliers[0] = 1.
+        phi._multipliers[1] = Utils.Zero()
 
         self.assertTrue(len(phi.objfcts) == 2)
-        self.assertTrue(len(phi.multipliers) == 2)
+        self.assertTrue(len(phi._multipliers) == 2)
         self.assertTrue(len(phi) == 2)
 
         self.assertTrue(phi(m) == phi1(m))

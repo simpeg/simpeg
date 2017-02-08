@@ -143,7 +143,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
             objfct2 = 1 * objfct2
 
         objfctlist = self.objfcts + objfct2.objfcts
-        multipliers = self.multipliers + objfct2.multipliers
+        multipliers = self._multipliers + objfct2._multipliers
 
         return ComboObjectiveFunction(
             objfcts=objfctlist, multipliers=multipliers
@@ -213,7 +213,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         validate_list(objfcts, multipliers)
 
         self.objfcts = objfcts
-        self._multipliers = multipliers
+        self.__multipliers = multipliers
 
         super(ComboObjectiveFunction, self).__init__(**kwargs)
 
@@ -221,19 +221,19 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         return len(self._multipliers)
 
     def __getitem__(self,key):
-        return self.multipliers[key],self.objfcts[key]
+        return self._multipliers[key], self.objfcts[key]
 
     @property
     def __len__(self):
         return self.objfcts.__len__
 
     @property
-    def multipliers(self):
-        return self._multipliers
+    def _multipliers(self):
+        return self.__multipliers
 
-    @multipliers.setter
-    def multipliers(self, value):
-        self._multipliers = value
+    # @multipliers.setter
+    # def multipliers(self, value):
+    #     self._multipliers = value
 
 
     def __call__(self, m, **kwargs):
@@ -302,10 +302,13 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         return self._W
 
     def __call__(self, m):
+        # if getattr(self, 'mapping', None) is not None:
+            # apply mapping
         r = self.W * m
         return 0.5 * r.dot(r)
 
     def deriv(self, m):
+        # apply mapping
         return self.W.T * (self.W * m)
 
     def deriv2(self, m, v=None):
