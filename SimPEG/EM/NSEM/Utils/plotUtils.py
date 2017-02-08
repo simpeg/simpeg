@@ -650,7 +650,8 @@ class DataNSEM_plot_functions(object):
         return (fig, ax, plot_obj)
 
 # Hidden utils functions
-def _get_map_data(data, frequency, orientation, component, plot_error=False):
+def _get_map_data(
+    data, frequency, orientation, component, plot_error=False):
     """
     Function for getting frequency map data
     """
@@ -710,8 +711,8 @@ def _get_map_data(data, frequency, orientation, component, plot_error=False):
                 data, frequency, orientation, component, return_uncert=error)
     return (freqs, plot_data, errorbars)
 
-
-def _get_station_data(data, location, orientation, component, plot_error=False):
+def _get_station_data(
+    data, location, orientation, component, plot_error=False):
 
     # Get the components
     if component in ['app_res', 'phase', 'amplitude']:
@@ -798,8 +799,8 @@ def _get_plot_data(data, location, orientation, component):
             data, location, orientation, component)
     return (freqs, plot_data)
 
-def _extract_frequency_data(data, frequency,
-                            orientation, component, return_uncert=False):
+def _extract_frequency_data(
+    data, frequency, orientation, component, return_uncert=False):
     """
     Function to extract data at given frequency
     """
@@ -831,9 +832,8 @@ def _extract_frequency_data(data, frequency,
         return (loc_arr, data_arr, std_arr, floor_arr)
     return (loc_arr, data_arr)
 
-
-def _extract_location_data(data, location,
-                           orientation, component, return_uncert=False):
+def _extract_location_data(
+    data, location, orientation, component, return_uncert=False):
     """
     Function to extract data at given location
     """
@@ -865,7 +865,6 @@ def _extract_location_data(data, location,
         return (np.array(freq_list), np.concatenate(data_list),
                 np.concatenate(std_list), np.concatenate(floor_list))
     return (np.array(freq_list), np.concatenate(data_list))
-
 
 ## Hidden utility functions
 # Unique row function-should be moved to utils
