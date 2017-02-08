@@ -7,8 +7,7 @@ import numpy as np
 import scipy.sparse as sp
 import unittest
 
-from SimPEG import ObjectiveFunction
-from SimPEG import Utils
+from SimPEG import ObjectiveFunction, Utils, Maps
 
 np.random.seed(130)
 
@@ -217,6 +216,36 @@ class TestBaseObjFct(unittest.TestCase):
         self.assertTrue(objfct(m) == phi1(m))
         self.assertTrue(np.all(objfct.deriv(m) == phi1.deriv(m)))
         self.assertTrue(np.all(objfct.deriv2(m, v) == phi1.deriv2(m, v)))
+
+
+    def test_Maps(self):
+        nP = 10
+        m = np.random.rand(2*nP)
+
+        wires = Maps.Wires(('sigma', nP), ('mu', nP))
+
+        objfct1 = ObjectiveFunction.L2ObjectiveFunction(mapping=wires.sigma)
+        objfct2 = ObjectiveFunction.L2ObjectiveFunction(mapping=wires.mu)
+
+        objfct3 = objfct1 + objfct2
+
+        objfct4 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+
+        print(objfct1.mapping, objfct1.nP)
+
+        self.assertTrue(objfct1.nP == 2*nP)
+        self.assertTrue(objfct2.nP == 2*nP)
+        self.assertTrue(objfct3.nP == 2*nP)
+
+        self.assertTrue(objfct1(m) == objfct4(m[:nP]))
+        self.assertTrue(objfct2(m) == objfct4(m[nP:]))
+
+        self.assertTrue(objfct3(m) == objfct1(m) + objfct2(m))
+
+        objfct1.test()
+        objfct2.test()
+        objfct3.test()
+
 
 if __name__ == '__main__':
     unittest.main()

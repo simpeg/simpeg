@@ -60,9 +60,10 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
 
     @mapping.setter
     def mapping(self, value):
-        assert issubclass(value, self.mapPair), (
+        assert isinstance(value, self.mapPair), (
             'mapping must be an instance of a {}, not a {}'
         ).format(self.mapPair, value.__class__.__name__)
+        self._mapping = value
 
 
     @Utils.timeIt
@@ -295,23 +296,25 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
     @property
     def W(self):
         if getattr(self, '_W', None) is None:
-            if self.nP != '*':
-                self._W = sp.eye(self.nP)
-            else:
-                self._W = Utils.Identity()
+            self._W = Utils.Identity()
         return self._W
 
     def __call__(self, m):
-        # if getattr(self, 'mapping', None) is not None:
-            # apply mapping
-        r = self.W * m
+        r = self.W * (self.mapping * m)
         return 0.5 * r.dot(r)
 
     def deriv(self, m):
-        # apply mapping
-        return self.W.T * (self.W * m)
+        return (
+            self.mapping.deriv(m).T *
+            (self.W.T * (self.W * (self.mapping * m)))
+        )
 
     def deriv2(self, m, v=None):
         if v is not None:
-            return self.W.T * (self.W * v)
+            return (
+                self.mapping.deriv(m).T * (
+                    self.W.T * (self.W * (self.mapping.deriv(m) * v))
+                )
+            )
+        W = self.W * self.mapping.deriv(m)
         return self.W.T * self.W

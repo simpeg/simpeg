@@ -231,5 +231,28 @@ class RegularizationTests(unittest.TestCase):
         self.assertTrue(reg1(m) + 0.5*reg2(m) == reg_c(m))
         reg_c.test()
 
+    def test_mappings(self):
+        mesh = Mesh.TensorMesh([8, 7, 6])
+        m = np.random.rand(2*mesh.nC)
+
+        wires = Maps.Wires(('sigma', mesh.nC), ('mu', mesh.nC))
+
+        for regType in ['Tikhonov', 'Sparse', 'Simple']:
+            reg1 = getattr(Regularization, regType)(mesh, mapping=wires.sigma)
+            reg2 = getattr(Regularization, regType)(mesh, mapping=wires.mu)
+
+            reg3 = reg1 + reg2
+
+            self.assertTrue(reg1.nP == 2*mesh.nC)
+            self.assertTrue(reg2.nP == 2*mesh.nC)
+            self.assertTrue(reg3.nP == 2*mesh.nC)
+
+            print(m.shape, mesh.nC)
+            self.assertTrue(reg3(m) == reg1(m) + reg2(m))
+
+            reg1.test()
+            reg2.test()
+            reg3.test()
+
 if __name__ == '__main__':
     unittest.main()

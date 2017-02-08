@@ -617,9 +617,7 @@ class Small(BaseRegularization):
         if self.cell_weights is not None:
             return Utils.sdiag(self.cell_weights)
         else:
-            return (
-                sp.eye(self.nP) if self.nP != '*' else Utils.Identity()
-            )
+            return Utils.Identity()
 
 
 ###############################################################################
