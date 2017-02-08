@@ -315,9 +315,9 @@ def run(plotIt=True):
         ax1 = plt.subplot(211)
         ax2 = plt.subplot(212)
         out = PF.Magnetics.plot_obs_2D(rxLoc, d=d_TMI, fig=fig, ax=ax1,
-                                 varstr='TMI Data')
+                                       title='TMI Data')
         out = PF.Magnetics.plot_obs_2D(rxLoc, d=d_amp, fig=fig, ax=ax2,
-                                 varstr='Amplitude Data')
+                                       title='Amplitude Data')
 
         plt.figure()
 

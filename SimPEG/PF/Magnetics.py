@@ -1168,7 +1168,7 @@ def writeUBCobs(filename, survey, d):
     print("Observation file saved to: " + filename)
 
 
-def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
+def plot_obs_2D(rxLoc, d=None, title='TMI Obs',
                 vmin=None, vmax=None, levels=None, fig=None, ax=None,
                 colorbar=True):
     """ Function plot_obs(rxLoc,d)
@@ -1208,6 +1208,7 @@ def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
         if (vmax is None):
             vmax = d.max()
 
+
         # Create grid of points
         x = np.linspace(rxLoc[:, 0].min(), rxLoc[:, 0].max(), 100)
         y = np.linspace(rxLoc[:, 1].min(), rxLoc[:, 1].max(), 100)
@@ -1223,12 +1224,14 @@ def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
             plt.colorbar(fraction=0.02)
 
         if levels is None:
-            plt.contour(X, Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma_r")
+
+            if vmin != vmax:
+                plt.contour(X, Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma_r")
         else:
             plt.contour(X, Y, d_grid, levels=levels, colors='r',
                         vmin=vmin, vmax=vmax, cmap="plasma_r")
 
-    plt.title(varstr)
+    plt.title(title)
     plt.gca().set_aspect('equal', adjustable='box')
 
     return fig, im

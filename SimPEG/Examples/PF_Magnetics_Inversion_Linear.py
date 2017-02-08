@@ -150,9 +150,9 @@ def run(plotIt=True):
         ax1 = plt.subplot(121)
         ax2 = plt.subplot(122)
         PF.Magnetics.plot_obs_2D(rxLoc, d=d, fig=fig, ax=ax1,
-                                 varstr='TMI Data')
+                                 title='TMI Data')
         PF.Magnetics.plot_obs_2D(rxLoc, d=invProb.dpred, fig=fig, ax=ax2,
-                                 varstr='Predicted Data')
+                                 title='Predicted Data')
 
         plt.figure(figsize=(5, 8))
 
