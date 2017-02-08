@@ -18,6 +18,21 @@ class Empty_ObjFct(ObjectiveFunction.BaseObjectiveFunction):
         super(Empty_ObjFct, self).__init__()
 
 
+class Error_if_Hit_ObjFct(ObjectiveFunction.BaseObjectiveFunction):
+
+    def __init__(self):
+        super(Error_if_Hit_ObjFct, self).__init__()
+
+    def __call__(self, m):
+        raise Exception('entered __call__')
+
+    def deriv(self, m):
+        raise Exception('entered deriv')
+
+    def deriv2(self, m, v=None):
+        raise Exception('entered deriv2')
+
+
 class TestBaseObjFct(unittest.TestCase):
 
     def test_derivs(self):
@@ -176,17 +191,32 @@ class TestBaseObjFct(unittest.TestCase):
 
         self.assertTrue(phi(m) == phi1(m))
 
-    def test_nP_unknownFail(self):
-        alpha = 10.
+    def test_early_exits(self):
+        nP = 10
 
-        phi1 = alpha * ObjectiveFunction.L2ObjectiveFunction()
+        m = np.random.rand(nP)
+        v = np.random.rand(nP)
 
-        self.assertTrue(phi1._test_deriv())
+        W1 = Utils.sdiag(np.random.rand(nP))
+        phi1 = ObjectiveFunction.L2ObjectiveFunction(W=W1)
 
-        # nP needs to be set in order to get the hessian for combo obj fcts
-        # with self.assertRaises(Exception):
-        #     phi1._test_deriv2()
+        phi2 = Error_if_Hit_ObjFct()
 
+        objfct = phi1 + 0*phi2
+
+        self.assertTrue(len(objfct) == 2)
+        self.assertTrue(np.all(objfct._multipliers == np.r_[1, 0]))
+        self.assertTrue(objfct(m) == phi1(m))
+        self.assertTrue(np.all(objfct.deriv(m) == phi1.deriv(m)))
+        self.assertTrue(np.all(objfct.deriv2(m, v) == phi1.deriv2(m, v)))
+
+        objfct._multipliers[1] = Utils.Zero()
+
+        self.assertTrue(len(objfct) == 2)
+        self.assertTrue(np.all(objfct._multipliers == np.r_[1, 0]))
+        self.assertTrue(objfct(m) == phi1(m))
+        self.assertTrue(np.all(objfct.deriv(m) == phi1.deriv(m)))
+        self.assertTrue(np.all(objfct.deriv2(m, v) == phi1.deriv2(m, v)))
 
 if __name__ == '__main__':
     unittest.main()

@@ -240,8 +240,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         f = 0.
         for multiplier, objfct in self:
-            if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
-                pass
+            if multiplier == 0.: # don't evaluate the fct
+                continue
             else:
                 f += multiplier * objfct(m, **kwargs)
         return f
@@ -249,8 +249,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     def deriv(self, m, **kwargs):
         g = Utils.Zero()
         for multiplier, objfct in self:
-            if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
-                pass
+            if multiplier == 0.: # don't evaluate the fct
+                continue
             else:
                 g += multiplier * objfct.deriv(m, **kwargs)
         return g
@@ -259,8 +259,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         H = Utils.Zero()
         for multiplier, objfct in self:
-            if isinstance(multiplier, Utils.Zero) or multiplier == 0.: # don't evaluate the fct
-                pass
+            if multiplier == 0.: # don't evaluate the fct
+                continue
             else:
                 objfct_H = objfct.deriv2(m, v, **kwargs)
                 H = H + multiplier * objfct_H
