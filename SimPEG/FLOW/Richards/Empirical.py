@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import scipy.sparse as sp
+from scipy import constants
 from SimPEG import Utils, Props
 
 
@@ -575,77 +576,77 @@ class VanGenuchtenParams(object):
     def sand(self):
         return {
             "theta_r": 0.020, "theta_s": 0.417, "alpha": 0.138*100.,
-            "n": 1.592, "Ks": 504.0/100./24./60./60.
+            "n": 1.592, "Ks": 504.0*constants.centi/constants.day
         }
 
     @property
     def loamy_sand(self):
         return {
             "theta_r": 0.035, "theta_s": 0.401, "alpha": 0.115*100.,
-            "n": 1.474, "Ks": 146.6/100./24./60./60.
+            "n": 1.474, "Ks": 146.6*constants.centi/constants.day
         }
 
     @property
     def sandy_loam(self):
         return {
             "theta_r": 0.041, "theta_s": 0.412, "alpha": 0.068*100.,
-            "n": 1.322, "Ks": 62.16/100./24./60./60.
+            "n": 1.322, "Ks": 62.16*constants.centi/constants.day
         }
 
     @property
     def loam(self):
         return {
             "theta_r": 0.027, "theta_s": 0.434, "alpha": 0.090*100.,
-            "n": 1.220, "Ks": 16.32/100./24./60./60.
+            "n": 1.220, "Ks": 16.32*constants.centi/constants.day
         }
 
     @property
     def silt_loam(self):
         return {
             "theta_r": 0.015, "theta_s": 0.486, "alpha": 0.048*100.,
-            "n": 1.211, "Ks": 31.68/100./24./60./60.
+            "n": 1.211, "Ks": 31.68*constants.centi/constants.day
         }
 
     @property
     def sandy_clay_loam(self):
         return {
             "theta_r": 0.068, "theta_s": 0.330, "alpha": 0.036*100.,
-            "n": 1.250, "Ks": 10.32/100./24./60./60.
+            "n": 1.250, "Ks": 10.32*constants.centi/constants.day
         }
 
     @property
     def clay_loam(self):
         return {
             "theta_r": 0.075, "theta_s": 0.390, "alpha": 0.039*100.,
-            "n": 1.194, "Ks": 5.52/100./24./60./60.
+            "n": 1.194, "Ks": 5.52*constants.centi/constants.day
         }
 
     @property
     def silty_clay_loam(self):
         return {
             "theta_r": 0.040, "theta_s": 0.432, "alpha": 0.031*100.,
-            "n": 1.151, "Ks": 3.60/100./24./60./60.
+            "n": 1.151, "Ks": 3.60*constants.centi/constants.day
         }
 
     @property
     def sandy_clay(self):
         return {
             "theta_r": 0.109, "theta_s": 0.321, "alpha": 0.034*100.,
-            "n": 1.168, "Ks": 2.88/100./24./60./60.
+            "n": 1.168, "Ks": 2.88*constants.centi/constants.day
         }
 
     @property
     def silty_clay(self):
         return {
             "theta_r": 0.056, "theta_s": 0.423, "alpha": 0.029*100.,
-            "n": 1.127, "Ks": 2.16/100./24./60./60.
+            "n": 1.127, "Ks": 2.16*constants.centi/constants.day
         }
 
     @property
     def clay(self):
         return {
             "theta_r": 0.090, "theta_s": 0.385, "alpha": 0.027*100.,
-            "n": 1.131, "Ks": 1.44/100./24./60./60.
+            "n": 1.131, "Ks": 1.44*constants.centi/constants.day
         }
 
     # From:
