@@ -253,7 +253,8 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
         .. plot::
             :include-source:
 
-            from SimPEG import Tests, Utils, np
+            import numpy as np
+            from SimPEG import Tests, Utils
             def simplePass(x):
                 return np.sin(x), Utils.sdiag(np.cos(x))
             Tests.checkDerivative(simplePass, np.random.randn(5))
