@@ -203,7 +203,7 @@ class MapTests(unittest.TestCase):
     def test_map2Dto3D_x(self):
         M2 = Mesh.TensorMesh([2, 4])
         M3 = Mesh.TensorMesh([3, 2, 4])
-        m = np.random.rand(M2.nC)
+        m = np.random.rand(int(M2.nC))
 
         for m2to3 in [Maps.Surject2Dto3D(M3, normal='X'),
                       Maps.Map2Dto3D(M3, normal='X')]:
