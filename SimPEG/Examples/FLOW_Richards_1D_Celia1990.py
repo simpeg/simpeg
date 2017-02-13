@@ -58,7 +58,7 @@ def run(plotIt=True):
     h = np.zeros(M.nC) + bc[0]
 
     def getFields(timeStep, method):
-        timeSteps = np.ones(360/timeStep)*timeStep
+        timeSteps = np.ones(int(360/timeStep))*timeStep
         prob = Richards.RichardsProblem(
             M,
             hydraulic_conductivity=k_fun,
