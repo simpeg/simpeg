@@ -156,11 +156,11 @@ class MapTests(unittest.TestCase):
         self.assertRaises(ValueError, lambda: (combo * vertMap) * expMap)
         self.assertRaises(ValueError, lambda: vertMap * expMap)
         self.assertRaises(ValueError, lambda: expMap * np.ones(100))
-        self.assertRaises(ValueError, lambda: expMap * np.ones((100.0, 1)))
-        self.assertRaises(ValueError, lambda: expMap * np.ones((100.0, 5)))
+        self.assertRaises(ValueError, lambda: expMap * np.ones((100, 1)))
+        self.assertRaises(ValueError, lambda: expMap * np.ones((100, 5)))
         self.assertRaises(ValueError, lambda: combo * np.ones(100))
-        self.assertRaises(ValueError, lambda: combo * np.ones((100.0, 1)))
-        self.assertRaises(ValueError, lambda: combo * np.ones((100.0, 5)))
+        self.assertRaises(ValueError, lambda: combo * np.ones((100, 1)))
+        self.assertRaises(ValueError, lambda: combo * np.ones((100, 5)))
 
     def test_activeCells(self):
         M = Mesh.TensorMesh([2, 4], '0C')
