@@ -46,10 +46,10 @@ class IdentityMap(object):
             :return: number of parameters that the mapping accepts
         """
         if self._nP is not None:
-            return self._nP
+            return int(self._nP)
         if self.mesh is None:
             return '*'
-        return self.mesh.nC
+        return int(self.mesh.nC)
 
     @property
     def shape(self):
@@ -65,7 +65,7 @@ class IdentityMap(object):
             return (self.nP, self.nP)
         if self.mesh is None:
             return ('*', self.nP)
-        return (self.mesh.nC, self.nP)
+        return (int(self.mesh.nC), self.nP)
 
     def _transform(self, m):
         """
