@@ -921,8 +921,8 @@ class Sparse(Simple):
     """
 
     # set default values
-    eps_p = [1e-1, 1e-1, 1e-1]        # Threshold value for the model norm
-    eps_q = [1e-1, 1e-1, 1e-1]        # Threshold value for the model gradient norm
+    eps_p = [None, None, None]        # Threshold value for the model norm
+    eps_q = [None, None, None]        # Threshold value for the model gradient norm
     alpha_s = [1., 1., 1.]
     alpha_x = [1., 1., 1.]
     alpha_y = [1., 1., 1.]
@@ -1371,6 +1371,10 @@ class Sparse(Simple):
     def R(self, f_m, eps, exponent):
 
         # Eta scaling is important for mix-norms...do not mess with it
+
+        if eps is None:
+            eps = 1.
+
         eta = (eps**(1.-exponent/2.))**0.5
         r = eta / (f_m**2. + eps**2.)**((1.-exponent/2.)/2.)
 

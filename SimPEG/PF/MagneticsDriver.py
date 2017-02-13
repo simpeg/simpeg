@@ -151,8 +151,9 @@ class MagneticsDriver_Inv(object):
         line = fid.readline()
         l_input = re.split('[!\s]', line)
         if l_input[0] == 'VALUE':
-            val = np.array(l_input[1:3])
-            eps = val.astype(np.float)
+
+            eps = [float(i) for i in l_input[1:3]]
+
 
         elif l_input[0] == 'DEFAULT':
             eps = None

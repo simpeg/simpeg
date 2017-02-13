@@ -121,7 +121,7 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
     # model parameters
-    IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),  eps=None,
+    IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),
                                   f_min_change=1e-2, minGNiter=3)
     update_Jacobi = Directives.Update_lin_PreCond()
     inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,

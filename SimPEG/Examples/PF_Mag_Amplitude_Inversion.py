@@ -278,9 +278,10 @@ def run(plotIt=True):
 
     # Specify the sparse norms
     IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),
-                                  eps=(1e-3, 1e-3), f_min_change=1e-3,
-                                  minGNiter=3,
-                                  chifact = .25)
+                                  f_min_change=1e-3,
+                                  eps=[1e-3, 1e-3],
+                                  minGNiter=2,
+                                  chifact=0.25)
 
     # Special directive specific to the mag amplitude problem. The sensitivity
     # weights are update between each iteration.

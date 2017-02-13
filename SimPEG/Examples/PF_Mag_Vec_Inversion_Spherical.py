@@ -180,14 +180,14 @@ def run(plotIt=True):
     reg.cell_weights = np.ones(3*nC)
     reg.alpha_s = [1., 0., 0.]
     reg.mspace = ['lin', 'sph', 'sph']
-
+    reg.eps_p = [None, None, None]
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
     dmis.Wd = 1./survey.std
 
     # Add directives to the inversion
-    opt = Optimization.ProjectedGNCG_nSpace(maxIter=20, lower=[0., -pi/2.,-pi],
-                                            upper=[10., pi/2., pi], maxIterLS=10,
+    opt = Optimization.ProjectedGNCG_nSpace(maxIter=30, lower=[0., -pi/2.,-pi],
+                                            upper=[10., pi/2., pi], maxIterLS=1,
                                             LSreduction=1e-1,
                                             maxIterCG=40, tolCG=1e-3,
                                             ptype=['lin', 'sph', 'sph'], nSpace=3)
@@ -196,11 +196,12 @@ def run(plotIt=True):
     #betaest = Directives.BetaEstimate_ByEig()
 
     # Here is where the norms are applied
-    IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),
+    IRLS = Directives.Update_IRLS(norms=([2, 2, 2, 2]),
                                   eps=None, f_min_change=1e-4,
                                   minGNiter=3, beta_tol=1e-2,
                                   coolingRate=3)
 
+    #IRLS.eps = [[5e-4,5e-4],[1e-3,1e-2],[1e-4, 1e-2]]
     # Special directive specific to the mag amplitude problem. The sensitivity
     # weights are update between each iteration.
     update_Jacobi = Directives.Amplitude_Inv_Iter()
@@ -233,7 +234,7 @@ def run(plotIt=True):
         mrec = PF.Magnetics.atp2xyz(mrec)
 
         vmin = model.min()
-        vmax = model.max()
+        vmax = model.max()*0.1
         scl_vec = np.max(mrec)/np.max(m) * 0.25
         PF.Magnetics.plotModelSections(mesh, mrec, normal='y',
                                        ind=ypanel, axs=ax1,

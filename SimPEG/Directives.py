@@ -353,14 +353,23 @@ class Update_IRLS(InversionDirective):
 
                 if getattr(self, 'eps', None) is None:
                     self.reg.eps_p[imodel] = np.percentile(np.abs(mmap[indl:indu]),self.prctile)
-                else:
-                    self.reg.eps_p[imodel] = self.eps[0]
-
-                if getattr(self, 'eps', None) is None:
-
                     self.reg.eps_q[imodel] = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mmap[indl:indu]),self.prctile)
                 else:
-                    self.reg.eps_q[imodel] = self.eps[1]
+
+                    assert type(self.eps) is list, "eps_p must be a list"
+
+                    if self.reg.nSpace > 1:
+                        assert len(self.eps) == self.reg.nSpace, "eps must be a list of len=%i" % self.reg.nSpace
+                        eps_pq = self.eps[imodel]
+                    else:
+                        assert len(self.eps) == 2, "eps must be a list of len=2"
+                        eps_pq = self.eps
+
+                    assert len(eps_pq) == 2, "eps for model space %i must be a list of len=2" % imodel
+
+                    self.reg.eps_p[imodel] = eps_pq[0]
+                    self.reg.eps_q[imodel] = eps_pq[1]
+
 
             self.reg.norms = self.norms
             self.coolingFactor = 1.
@@ -385,6 +394,15 @@ class Update_IRLS(InversionDirective):
         if np.all([(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode == 2]):
 
             self.IRLSiter += 1
+
+            # Reset the regularization matrices so that it is
+            # recalculated for current model
+            self.reg._Wsmall = None
+            self.reg._Wx = None
+            self.reg._Wy = None
+            self.reg._Wz = None
+            self.reg._W = None
+            self.reg._Wsmooth = None
 
             phim_new = self.reg.eval(self.invProb.model)
             self.f_change = np.abs(self.f_old - phim_new) / self.f_old
@@ -417,14 +435,7 @@ class Update_IRLS(InversionDirective):
             # Get phi_m at the end of current iteration
             self.phi_m_last = self.invProb.phi_m_last
 
-            # Reset the regularization matrices so that it is
-            # recalculated for current model
-            self.reg._Wsmall = None
-            self.reg._Wx = None
-            self.reg._Wy = None
-            self.reg._Wz = None
-            self.reg._W = None
-            self.reg._Wsmooth = None
+
 
             # Update the model used for the IRLS weights
             self.reg.model = self.invProb.model
@@ -526,25 +537,26 @@ class Amplitude_Inv_Iter(InversionDirective):
 
         self.reg.JtJdiag = self.getJtJdiag()
 
-        if self.test:
+        # if self.test:
 
-            wr = np.sum(self.prob.G**2., axis=0)**0.5
-            wr = wr / wr.max()
+        #     wr = np.sum(self.prob.G**2., axis=0)**0.5
+        #     wr = wr / wr.max()
 
-        else:
-            wr = self.reg.JtJdiag**0.5
-            wr = wr / wr.max()
+        # else:
+        wr = self.reg.JtJdiag**0.5
+        wr = wr / wr.max()
 
         self.reg.cell_weights = wr
-
+        nC = len(self.reg.cell_weights)/3
         self.reg._Wsmall, self.reg._Wx = None, None
         self.reg._Wy, self.reg._Wz, = None, None
         self.reg._W, self.reg._Wsmooth = None, None
 
         if self.ptype == 'MVI-S':
-            self.reg.alpha_x[1:] = [(self.invProb.model[:(len(wr)/3)].max()/np.pi) for i in range(2)]
-            self.reg.alpha_y[1:] = [(self.invProb.model[:(len(wr)/3)].max()/np.pi) for i in range(2)]
-            self.reg.alpha_z[1:] = [(self.invProb.model[:(len(wr)/3)].max()/np.pi) for i in range(2)]
+            scl = np.max(self.invProb.model[:nC])/np.pi
+            self.reg.alpha_x[1:] = [scl for i in range(2)]
+            self.reg.alpha_y[1:] = [scl for i in range(2)]
+            self.reg.alpha_z[1:] = [scl for i in range(2)]
 
         if getattr(self.opt, 'approxHinv', None) is None:
             diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
@@ -567,15 +579,17 @@ class Amplitude_Inv_Iter(InversionDirective):
 
             self.reg.cell_weights = wr
 
+        nC = len(self.reg.cell_weights)/3
         self.reg._Wsmall, self.reg._Wx = None, None
         self.reg._Wy, self.reg._Wz, = None, None
         self.reg._W, self.reg._Wsmooth = None, None
 
-        if self.ptype == 'MVI-S':
+        if np.all([self.ptype == 'MVI-S', self.test is not True]):
 
-            self.reg.alpha_x[1:] = [(self.invProb.model[:(len(wr)/3)].max()/np.pi) for i in range(2)]
-            self.reg.alpha_y[1:] = [(self.invProb.model[:(len(wr)/3)].max()/np.pi) for i in range(2)]
-            self.reg.alpha_z[1:] = [(self.invProb.model[:(len(wr)/3)].max()/np.pi) for i in range(2)]
+            scl = np.max(self.invProb.model[:nC])/np.pi
+            self.reg.alpha_x[1:] = [scl for i in range(2)]
+            self.reg.alpha_y[1:] = [scl for i in range(2)]
+            self.reg.alpha_z[1:] = [scl for i in range(2)]
 
         if getattr(self.opt, 'approxHinv', None) is not None:
 

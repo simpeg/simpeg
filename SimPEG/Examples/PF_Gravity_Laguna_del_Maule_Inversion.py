@@ -116,7 +116,7 @@ def run(plotIt=True):
     # input file based on the distribution of model (DEFAULT = 95th %ile)
     IRLS = Directives.Update_IRLS(norms=driver.lpnorms, eps=driver.eps,
                                   f_min_change=1e-2, maxIRLSiter=20,
-                                  minGNiter=5)
+                                  minGNiter=3)
 
     # Preconditioning refreshing for each IRLS iteration
     update_Jacobi = Directives.Update_lin_PreCond()

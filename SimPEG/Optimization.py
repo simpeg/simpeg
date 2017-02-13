@@ -4,6 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 from six import string_types
 from .Utils.SolverUtils import *
+
 norm = np.linalg.norm
 
 
@@ -706,23 +707,23 @@ class BFGS(Minimize, Remember):
     def findSearchDirection(self):
         return self.bfgs(-self.g)
 
-    def _doEndIteration_BFGS(self, xt):
-        if self.iter is 0:
-            self.g_last = self.g
-            return
+    # def _doEndIteration_BFGS(self, xt):
+    #     if self.iter is 0:
+    #         self.g_last = self.g
+    #         return
 
-        yy = self.g - self.g_last;
-        ss = self.xc - xt;
-        self.g_last = self.g
+    #     yy = self.g - self.g_last;
+    #     ss = self.xc - xt;
+    #     self.g_last = self.g
 
-        if yy.dot(ss) > 0:
-            self._bfgscnt += 1
-            ktop = np.mod(self._bfgscnt,self.nbfgs)
-            self._bfgsY[:,ktop] = yy
-            self._bfgsS[:,ktop] = ss
-            self.comment = ''
-        else:
-            self.comment = 'Skip BFGS'
+    #     if yy.dot(ss) > 0:
+    #         self._bfgscnt += 1
+    #         ktop = np.mod(self._bfgscnt,self.nbfgs)
+    #         self._bfgsY[:,ktop] = yy
+    #         self._bfgsS[:,ktop] = ss
+    #         self.comment = ''
+    #     else:
+    #         self.comment = 'Skip BFGS'
 
 
 class GaussNewton(Minimize, Remember):
@@ -1037,7 +1038,7 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
             for ind in range(self.nSpace):
                 block.append(np.ones(len(x0)/self.nSpace)*self.lower[ind])
 
-            self.lower = block
+            self.lower = mkvc(np.c_[block].T)
 
         if len(self.upper) != len(x0):
 
@@ -1045,11 +1046,12 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
             for ind in range(self.nSpace):
                 block.append(np.ones(len(x0)/self.nSpace)*self.upper[ind])
 
-            self.upper = block
+            self.upper = mkvc(np.c_[block].T)
 
 
     @Utils.count
     def projection(self, x):
+        from SimPEG.PF import Magnetics
         """projection(x)
 
             Make sure we are feasible.
@@ -1057,74 +1059,86 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
         """
         block = []
         nC = int(len(x)/self.nSpace)
-        for ind in range(self.nSpace):
 
-            m = x[(nC*ind):(nC*(ind+1))]
+        # Convert to cartesian than back to avoid over rotation
+        xyz = Magnetics.atp2xyz(x)
+        m = Magnetics.xyz2atp(xyz)
+        # # TEMPORARY HACK
+        # m_phi = x[2*nC:]
+        # for ind in range(self.nSpace):
 
-            if np.all([self.ptype[ind] == 'sph', self.iter%3 == 1]):
+        #     m = x[(nC*ind):(nC*(ind+1))]
 
-                indx = m < self.lower[ind]
-                m_low = m[indx]
-                m_low = np.mod(m_low, -2.*np.pi)
-                m_low[m_low < -np.pi] = 2.*np.pi + m_low[m_low < -np.pi]
+        #     if np.all([self.ptype[ind] == 'sph', ind%3 == 2]):
 
-                m[indx] = m_low
+        #         indx = m < self.lower[ind]
+        #         m_low = m[indx]
+        #         m_low = np.mod(m_low, -2.*np.pi)
+        #         m_low[m_low < -np.pi] = 2.*np.pi + m_low[m_low < -np.pi]
 
-                indx = m > self.upper[ind]
-                m_high = m[indx]
-                m_high = np.mod(m_high, 2.*np.pi)
-                m_high[m_high > np.pi] = -2.*np.pi + m_high[m_high > np.pi]
+        #         m[indx] = m_low
 
-                m[indx] = m_high
+        #         indx = m > self.upper[ind]
+        #         m_high = m[indx]
+        #         m_high = np.mod(m_high, 2.*np.pi)
+        #         m_high[m_high > np.pi] = -2.*np.pi + m_high[m_high > np.pi]
 
-            elif np.all([self.ptype[ind] == 'sph', self.iter % 3 == 2]):
+        #         m[indx] = m_high
 
-                indx = np.where(m < self.lower[ind])[0]
-                m_low = m[indx]
+        #     elif np.all([self.ptype[ind] == 'sph', ind% 3 == 1]):
 
-                # First case the angle goes around 2pi, take remainder
-                m_low = np.mod(m_low, -2.*np.pi)
+        #         indx = np.where(m < self.lower[ind])[0]
+        #         m_low = m[indx]
 
-                # Second case the angle flipped to positive
-                m_low[m_low < -3.*np.pi/2.] = 2.*np.pi + m_low[m_low < -3.*np.pi/2.]
+        #         # First case the angle goes around 2pi, take remainder
+        #         m_low = np.mod(m_low, -2.*np.pi)
 
-                # Third case angle flips to positive and reverse phi orientation
-                ind2 = np.where(m_low < -np.pi)[0]
-                m_low[ind2] = 2.*np.pi + m_low[ind2]
-                m[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
+        #         # # Second case the angle flipped to positive
+        #         # m_low[m_low < -3.*np.pi/2.] = 2.*np.pi + m_low[m_low < -3.*np.pi/2.]
 
-                # Forth case angle stays negative but also flip phi
-                ind2 = np.where(m_low < -np.pi/2.)[0]
-                m_low[ind2] = -np.pi - m_low[ind2]
-                m[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
+        #         # # Third case angle flips to positive and reverse phi orientation
+        #         # ind2 = np.where(m_low < -np.pi)[0]
+        #         # m_low[ind2] = 2.*np.pi + m_low[ind2]
+        #         # m_phi[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
 
-                m[indx] = m_low
+        #         # # Forth case angle stays negative but also flip phi
+        #         ind2 = np.where(m_low < -np.pi/2.)[0]
+        #         m_low[ind2] = -np.pi - m_low[ind2]
+        #         # m_phi[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
 
-                # Repeat for positive
-                indx = np.where(m > self.upper[ind])[0]
-                m_high = m[indx]
+        #         m[indx] = m_low
 
-                # First case the angle goes around 2pi, take remainder
-                m_high = np.mod(m_high, 2.*np.pi)
+        #         # Repeat for positive
+        #         indx = np.where(m > self.upper[ind])[0]
+        #         m_high = m[indx]
 
-                # Second case the angle flipped to negative
-                m_high[m_high > 3.*np.pi/2.] = -2.*np.pi + m_high[m_high > 3.*np.pi/2.]
+        #         # First case the angle goes around 2pi, take remainder
+        #         m_high = np.mod(m_high, 2.*np.pi)
 
-                # Third case angle flips to negative and reverse phi orientation
-                ind2 = np.where(m_high > np.pi)[0]
-                m_high[ind2] = -2.*np.pi + m_high[ind2]
-                m[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
+        #         # # Second case the angle flipped to negative
+        #         # m_high[m_high > 3.*np.pi/2.] = -2.*np.pi + m_high[m_high > 3.*np.pi/2.]
 
-                # Forth case angle stays positive but also flip phi
-                ind2 = np.where(m_high > np.pi/2.)[0]
-                m_high[ind2] = np.pi - m_high[ind2]
-                m[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
+        #         # # Third case angle flips to negative and reverse phi orientation
+        #         # ind2 = np.where(m_high > np.pi)[0]
+        #         # m_high[ind2] = -2.*np.pi + m_high[ind2]
 
-                m[indx] = m_high
+        #         # m_phi[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
 
-            block.append(np.median(np.c_[self.lower[ind], m, self.upper[ind]],axis=1))
+        #         # # Forth case angle stays positive but also flip phi
+        #         ind2 = np.where(m_high > np.pi/2.)[0]
+        #         m_high[ind2] = np.pi - m_high[ind2]
 
-        return np.hstack(block)
+        #         # m_phi[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
+
+        #         m[indx] = m_high
+
+        #         # x[2*nC:] = m_phi
+
+            # block.append(np.median(np.c_[self.lower[ind], m, self.upper[ind]],axis=1))
+
+        proj = np.median(np.c_[self.lower, m , self.upper],axis=1)
+
+        return proj
 
     @Utils.count
     def activeSet(self, x):
@@ -1139,20 +1153,19 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
         if np.any(map(lambda ind: ind == 'sph', self.ptype)):
 
             nC = len(x)/3
-            if (self.iter % 3) == 0:
+            # if (self.iter % 3) == 0:
+            #     print(self.iter,'ActiveSet amp')
+            #     actSet[nC:] = True
 
-                actSet[nC:] = True
+            # elif (self.iter % 3) == 1:
 
-            elif (self.iter % 2) == 1:
+            #     actSet[:] = True
+            #     actSet[nC:2*nC] = False
+            #     print(self.iter,'ActiveSet theta')
 
-                actSet[:nC] = True
-                actSet[2*nC:] = True
-                actSet[nC:2*nC] = False
-
-            else:
-
-                actSet[:2*nC] = True
-                actSet[2*nC:] = False
+            # else:
+            #     print(self.iter,'ActiveSet phi')
+            #     actSet[:2*nC] = True
             # actSet[nC:] = False
 
         return actSet
@@ -1245,7 +1258,7 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
         # Only keep gradients going in the right direction on the active set
         # indx = ((self.xc<=np.hstack(self.lower)) & (delx < 0)) | ((self.xc>=np.hstack(self.upper)) & (delx > 0))
         # delx[indx] = 0.
-
+        # print(cgiter)
         # if np.any(map(lambda ind: ind=='sph', self.ptype)):
         #     temp = delx[nC:]
         #     ind = np.abs(temp) > (2.*np.pi)

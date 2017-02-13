@@ -1,0 +1,11 @@
+FILE LdM_mesh.mesh					! Mesh file
+FILE LdM_grav_obs.grv			! Obsfile
+TOPO LdM_topo.topo					! TOPO Topofilename !or! FILE Activecellfilename. ! 0 = air, inactive, 1 = dynamic, -1 = static.
+VALUE 1E-4			! Starting model | VALUE 1E-4
+VALUE 0.0			! Reference model
+DEFAULT				! Cell based weight file
+VALUE 1				! target chi factor | DEFAULT=1
+VALUE 1 1 1 1			! alpha s, x ,y ,z
+VALUE -0.6 0.3		! Lower and Upper Bounds for p-component in g/cc
+VALUE 0 1 1 1 2		! lp-norm for amplitude inversion FILE pqxqyqzr.dat  ! Norms VALUE p, qx, qy, qz, r | FILE m-by-5 matrix
+DEFAULT		! Threshold value for the norm on model and model gradient VALUE eps_p, eps_q | DEFAULT
