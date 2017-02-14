@@ -330,5 +330,6 @@ nitpick_ignore = [
     ('py:class', 'RichardsMap'),
     ('py:class', 'SimPEG.Props.HasModel'),
     ('py:class', 'BaseFDEMSrc'),
-    ('py:class', 'BaseTDEMSrc')
+    ('py:class', 'BaseTDEMSrc'),
+    ('py:func', 'discretize.utils.meshutils.meshTensor')
 ]
