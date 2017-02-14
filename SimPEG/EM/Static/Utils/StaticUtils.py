@@ -249,7 +249,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
             AB = xy_2_r(tx[0, 1], endl[1, 0], tx[1, 1], endl[1, 1])
 
             # Number of receivers to fit
-            nstn = np.min([np.floor((AB - b) / a), n])
+            nstn = int(np.min([np.floor((AB - b) / a), n]))
 
             # Check if there is enough space, else break the loop
             if nstn <= 0:
