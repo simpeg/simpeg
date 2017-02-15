@@ -89,7 +89,7 @@ def run(plotIt=True):
         # Plot the data
         # On and off diagonal (on left and right axis, respectively)
         fig, axes = plt.subplots(2, 1, figsize=(7, 5))
-        fig.tight_layout()
+        plt.subplots_adjust(right=0.8)
         [(ax.invert_xaxis(), ax.set_xscale('log')) for ax in axes]
         ax_r, ax_p = axes
         ax_r.set_yscale('log')
