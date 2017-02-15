@@ -1,16 +1,19 @@
 # Test script to use SimPEG.MT platform to forward model synthetic data.
 
 # Import
+from matplotlib import pyplot as plt
+
 import SimPEG as simpeg
 from SimPEG.EM import NSEM
 from SimPEG import np
+
 try:
     from pymatsolver import PardisoSolver as Solver
 except:
     from SimPEG import Solver
 
 
-def run(plotIt=True, nFreq=1):
+def run(plotIt=True):
     """
         MT: 3D: Forward
         ===============
@@ -22,39 +25,39 @@ def run(plotIt=True, nFreq=1):
     # Make a mesh
     M = simpeg.Mesh.TensorMesh(
         [
-            [(100, 5, -1.5), (100., 10), (100, 5, 1.5)],
-            [(100, 5, -1.5), (100., 10), (100, 5, 1.5)],
-            [(100, 5, +1.6), (100., 10), (100, 3, 2)]
-        ], x0=['C', 'C', -3529.5360]
+            [(100, 9, -1.5), (100., 13), (100, 9, 1.5)],
+            [(100, 9, -1.5), (100., 13), (100, 9, 1.5)],
+            [(50, 10, -1.6), (50., 10), (50, 6, 2)]
+        ], x0=['C', 'C', -14926.8217]
     )
     # Setup the model
-    conds = [1e-2, 1]
+    conds = [1,1e-2]
     sig = simpeg.Utils.ModelBuilder.defineBlock(
-        M.gridCC, [-1000, -1000, -400], [1000, 1000, -200], conds
+        M.gridCC, [-100, -100, -350], [100, 100, -150], conds
     )
     sig[M.gridCC[:, 2] > 0] = 1e-8
-    sig[M.gridCC[:, 2] < -600] = 1e-1
-    sigBG = np.zeros(M.nC) + conds[0]
+    sig[M.gridCC[:, 2] < -1000] = 1e-1
+    sigBG = np.zeros(M.nC) + conds[1]
     sigBG[M.gridCC[:, 2] > 0] = 1e-8
 
     # Setup the the survey object
     # Receiver locations
-    rx_x, rx_y = np.meshgrid(np.arange(-500, 501, 50), np.arange(-500, 501, 50))
+    rx_x, rx_y = np.meshgrid(np.arange(-600, 601, 100), np.arange(-600, 601, 100))
     rx_loc = np.hstack((simpeg.Utils.mkvc(rx_x, 2), simpeg.Utils.mkvc(rx_y, 2), np.zeros((np.prod(rx_x.shape), 1))))
+
     # Make a receiver list
     rxList = []
-    for loc in rx_loc:
-        # NOTE: loc has to be a (1, 3) np.ndarray otherwise errors accure
-        for rx_orientation in ['xx', 'xy', 'yx', 'yy']:
-            rxList.append(NSEM.Rx.Point_impedance3D(simpeg.mkvc(loc, 2).T, rx_orientation, 'real'))
-            rxList.append(NSEM.Rx.Point_impedance3D(simpeg.mkvc(loc, 2).T, rx_orientation, 'imag'))
-        for rx_orientation in ['zx', 'zy']:
-            rxList.append(NSEM.Rx.Point_tipper3D(simpeg.mkvc(loc, 2).T, rx_orientation, 'real'))
-            rxList.append(NSEM.Rx.Point_tipper3D(simpeg.mkvc(loc, 2).T, rx_orientation, 'imag'))
+    for rx_orientation in ['xx', 'xy', 'yx', 'yy']:
+        rxList.append(NSEM.Rx.Point_impedance3D(rx_loc, rx_orientation, 'real'))
+        rxList.append(NSEM.Rx.Point_impedance3D(rx_loc, rx_orientation, 'imag'))
+    for rx_orientation in ['zx', 'zy']:
+        rxList.append(NSEM.Rx.Point_tipper3D(rx_loc, rx_orientation, 'real'))
+        rxList.append(NSEM.Rx.Point_tipper3D(rx_loc, rx_orientation, 'imag'))
+
     # Source list
     srcList = [
         NSEM.Src.Planewave_xy_1Dprimary(rxList, freq)
-        for freq in np.logspace(3, -3, nFreq)
+        for freq in np.logspace(4, -2, 13)
     ]
     # Survey MT
     survey = NSEM.Survey(srcList)
@@ -69,12 +72,43 @@ def run(plotIt=True, nFreq=1):
     fields = problem.fields()
     dataVec = survey.eval(fields)
 
-    # Make the data
-    mtData = NSEM.Data(survey, dataVec)
+    # Add uncertainty to the data - 10% standard
+    # devation and 0 floor
+    dataVec.standard_deviation.fromvec(
+        np.ones_like(simpeg.mkvc(dataVec)) * 0.1
+    )
+    dataVec.floor.fromvec(
+        np.zeros_like(simpeg.mkvc(dataVec))
+    )
 
     # Add plots
     if plotIt:
-        pass
+        # Plot the data
+        # On and off diagonal (on left and right axis, respectively)
+        fig, axes = plt.subplots(2, 1, figsize=(7, 5))
+        fig.tight_layout()
+        [(ax.invert_xaxis(), ax.set_xscale('log')) for ax in axes]
+        ax_r, ax_p = axes
+        ax_r.set_yscale('log')
+        ax_r.set_ylabel('Apparent resistivity [xy-yx]')
+        ax_r_on = ax_r.twinx()
+        ax_r_on.set_yscale('log')
+        ax_r_on.set_ylabel('Apparent resistivity [xx-yy]')
+        ax_p.set_ylabel('Apparent phase')
+        ax_p.set_xlabel('Frequency [Hz]')
+        # Start plotting
+        ax_r = dataVec.plot_app_res(
+            np.array([-200, 0]),
+            components=['xy', 'yx'], ax=ax_r, errorbars=True)
+        ax_r_on = dataVec.plot_app_res(
+            np.array([-200, 0]),
+            components=['xx', 'yy'], ax=ax_r_on, errorbars=True)
+        ax_p = dataVec.plot_app_phs(
+            np.array([-200, 0]),
+            components=['xx', 'xy', 'yx', 'yy'], ax=ax_p, errorbars=True)
+        ax_p.legend(bbox_to_anchor=(1.05, 1), loc=2)
+
+        plt.show()
 
 if __name__ == '__main__':
     run()
