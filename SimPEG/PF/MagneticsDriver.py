@@ -393,7 +393,7 @@ def actIndFull2layer(mesh, actInd):
         actIndFull = np.zeros(mesh.nC, dtype=bool)
         actIndFull[actInd] = True
 
-    actIndFull = actIndFull.reshape(mesh.vnC)
+    actIndFull = actIndFull.reshape(mesh.vnC, order='F')
 
     actIndLayer = np.zeros(mesh.vnC, dtype=bool)
     for ii in range(mesh.nCx):

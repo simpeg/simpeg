@@ -586,10 +586,10 @@ class Amplitude_Inv_Iter(InversionDirective):
 
         if np.all([self.ptype == 'MVI-S', self.test is not True]):
 
-            scl = np.max(self.invProb.model[:nC])/np.pi
-            self.reg.alpha_x[1:] = [scl for i in range(2)]
-            self.reg.alpha_y[1:] = [scl for i in range(2)]
-            self.reg.alpha_z[1:] = [scl for i in range(2)]
+            scl = self.reg.eps_p[0]*np.pi
+            self.reg.alpha_x[1:] = [scl/self.reg.eps_q[i+1] for i in range(2)]
+            self.reg.alpha_y[1:] = [scl/self.reg.eps_q[i+1] for i in range(2)]
+            self.reg.alpha_z[1:] = [scl/self.reg.eps_q[i+1] for i in range(2)]
 
         if getattr(self.opt, 'approxHinv', None) is not None:
 
