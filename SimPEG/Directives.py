@@ -3,6 +3,7 @@ from . import Utils
 import numpy as np
 import warnings
 from . import Maps
+from .PF import Magnetics
 
 
 class InversionDirective(object):
@@ -319,7 +320,7 @@ class Update_IRLS(InversionDirective):
     @property
     def target(self):
         if getattr(self, '_target', None) is None:
-            self._target = self.survey.nD*0.5
+            self._target = self.survey.nD*0.5*self.chifact
         return self._target
 
     @target.setter
@@ -341,7 +342,7 @@ class Update_IRLS(InversionDirective):
             self.mode = 2
 
             mmap = self.reg.mapping * self.invProb.model
-
+            # print(' iter', self.opt.iter, 'beta',self.invProb.beta,'phid', self.invProb.phi_d)
             if getattr(self, 'f_old', None) is None:
                 self.f_old = self.reg.eval(self.invProb.model)#self.invProb.evalFunction(self.invProb.model, return_g=False, return_H=False)
 
@@ -393,7 +394,20 @@ class Update_IRLS(InversionDirective):
         # Only update after GN iterations
         if np.all([(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode == 2]):
 
-            self.IRLSiter += 1
+            # Check for maximum number of IRLS cycles
+            if self.IRLSiter == self.maxIRLSiter:
+                print("Reach maximum number of IRLS cycles: {0:d}".format(self.maxIRLSiter))
+                self.opt.stopNextIteration = True
+                return
+
+            else:
+                self.IRLSiter += 1
+
+            # Get phi_m at the end of current iteration
+            self.phi_m_last = self.reg.eval(self.invProb.model)
+
+            # f,g = self.invProb.evalFunction(self.invProb.model,return_g=True, return_H=False)
+            # print('MAX deriv',np.max(np.abs(g)))
 
             # Reset the regularization matrices so that it is
             # recalculated for current model
@@ -403,25 +417,11 @@ class Update_IRLS(InversionDirective):
             self.reg._Wz = None
             self.reg._W = None
             self.reg._Wsmooth = None
+            self.reg._Rs = None
+            self.reg._Rx = None
+            self.reg._Ry = None
+            self.reg._Rz = None
 
-            phim_new = self.reg.eval(self.invProb.model)
-            self.f_change = np.abs(self.f_old - phim_new) / self.f_old
-
-            print("Regularization decrease: {0:6.3e}".format((self.f_change)))
-
-            # Check for maximum number of IRLS cycles
-            if self.IRLSiter == self.maxIRLSiter:
-                print("Reach maximum number of IRLS cycles: {0:d}".format(self.maxIRLSiter))
-                self.opt.stopNextIteration = True
-                return
-
-            # Check if the function has changed enough
-            if self.f_change < self.f_min_change and self.IRLSiter > 1:
-                print("Minimum decrease in regularization. End of IRLS")
-                self.opt.stopNextIteration = True
-                return
-            else:
-                self.f_old = phim_new
 
 #            # Cool the threshold parameter if required
 #            if getattr(self, 'factor', None) is not None:
@@ -432,10 +432,6 @@ class Update_IRLS(InversionDirective):
 #                else:
 #                    self.reg.eps = eps
 
-            # Get phi_m at the end of current iteration
-            self.phi_m_last = self.invProb.phi_m_last
-
-
 
             # Update the model used for the IRLS weights
             self.reg.model = self.invProb.model
@@ -443,12 +439,26 @@ class Update_IRLS(InversionDirective):
             # Temporarely set gamma to 1. to get raw phi_m
             self.reg.gamma = 1.
 
+
             # Compute new model objective function value
             phim_new = self.reg.eval(self.invProb.model)
 
-            # Update gamma to scale the regularization between IRLS iterations
-            self.reg.gamma = self.phi_m_last / phim_new
+            # phim_new = self.reg.eval(self.invProb.model)
+            self.f_change = np.abs(self.f_old - phim_new) / self.f_old
 
+            print("Regularization decrease: {0:6.3e}".format((self.f_change)))
+                        # Check if the function has changed enough
+            if self.f_change < self.f_min_change and self.IRLSiter > 1:
+                print("Minimum decrease in regularization. End of IRLS")
+                self.opt.stopNextIteration = True
+                return
+            else:
+                self.f_old = phim_new
+
+            # Update gamma to scale the regularization between IRLS iterations
+            
+            self.reg.gamma = self.phi_m_last / phim_new
+            print(self.reg.gamma)
             # Reset the regularization matrices again for new gamma
             self.reg._Wsmall = None
             self.reg._Wx = None
@@ -456,14 +466,21 @@ class Update_IRLS(InversionDirective):
             self.reg._Wz = None
             self.reg._W = None
             self.reg._Wsmooth = None
+            self.reg._Rs = None
+            self.reg._Rx = None
+            self.reg._Ry = None
+            self.reg._Rz = None
 
+            #f,g = self.invProb.evalFunction(self.invProb.model,return_g=True, return_H=False)
+            #print('phim',self.reg.eval(self.invProb.model),'beta',self.invProb.beta, 'gamma:',self.reg.gamma)
+            #print('dphim MAX', np.max(self.reg.evalDeriv(self.invProb.model)))
+            #print('MAX deriv',np.max(np.abs(g)))
             # Check if misfit is within the tolerance, otherwise scale beta
-            val = self.invProb.phi_d / (self.survey.nD*0.5)
+            val = self.invProb.phi_d / self.target
 
-            if self.chifact * np.abs(1.-val) > self.beta_tol:
-                self.invProb.beta = (self.invProb.beta *
-                                     (self.chifact * self.survey.nD*0.5 /
-                                      (self.invProb.phi_d)))
+            if np.all([np.abs(1.-val) > self.beta_tol, self.IRLSiter>1]):
+                self.invProb.beta = (self.invProb.beta * self.target /
+                                     self.invProb.phi_d)
 
 
 class Update_lin_PreCond(InversionDirective):
@@ -553,10 +570,10 @@ class Amplitude_Inv_Iter(InversionDirective):
         self.reg._W, self.reg._Wsmooth = None, None
 
         if self.ptype == 'MVI-S':
-            scl = np.max(self.invProb.model[:nC])/np.pi
-            self.reg.alpha_x[1:] = [scl for i in range(2)]
-            self.reg.alpha_y[1:] = [scl for i in range(2)]
-            self.reg.alpha_z[1:] = [scl for i in range(2)]
+            scl = self.reg.eps_p[0]
+            self.reg.alpha_x[1:] = [(scl/self.reg.eps_q[i+1]) for i in range(2)]
+            self.reg.alpha_y[1:] = [(scl/self.reg.eps_q[i+1]) for i in range(2)]
+            self.reg.alpha_z[1:] = [(scl/self.reg.eps_q[i+1]) for i in range(2)]
 
         if getattr(self.opt, 'approxHinv', None) is None:
             diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
@@ -584,19 +601,24 @@ class Amplitude_Inv_Iter(InversionDirective):
         self.reg._Wy, self.reg._Wz, = None, None
         self.reg._W, self.reg._Wsmooth = None, None
 
-        if np.all([self.ptype == 'MVI-S', self.test is not True]):
+        # if np.all([self.ptype == 'MVI-S', self.test is not True]):
 
-            scl = np.max(self.invProb.model[:nC])/np.pi
-            self.reg.alpha_x[1:] = [scl for i in range(2)]
-            self.reg.alpha_y[1:] = [scl for i in range(2)]
-            self.reg.alpha_z[1:] = [scl for i in range(2)]
-
+        #     scl = self.reg.eps_p[0]
+        #     self.reg.alpha_x[1:] = [scl/self.reg.eps_q[i+1] for i in range(2)]
+        #     self.reg.alpha_y[1:] = [scl/self.reg.eps_q[i+1] for i in range(2)]
+        #     self.reg.alpha_z[1:] = [scl/self.reg.eps_q[i+1] for i in range(2)]
+            
         if getattr(self.opt, 'approxHinv', None) is not None:
 
             # Update the pre-conditioner
             diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+            # print('MAX pre-con diag',np.max(np.abs(diagA**-1.)))
             PC = Utils.sdiag((self.prob.chiMap.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
+
+        #f,g = self.invProb.evalFunction(self.invProb.model,return_g=True, return_H=False)
+        #print('dphim MAX after pre-con update', np.max(self.reg.evalDeriv(self.invProb.model)))
+        #print('MAX deriv after pre-con update',np.max(np.abs(g)))
 
     def getJtJdiag(self):
         """
@@ -621,3 +643,15 @@ class Amplitude_Inv_Iter(InversionDirective):
             JtJdiag += 1e-10
 
         return JtJdiag
+
+class ProjSpherical(InversionDirective):
+    
+    def endIter(self):
+
+        x = self.invProb.model
+        # Convert to cartesian than back to avoid over rotation
+        xyz = Magnetics.atp2xyz(x)
+        m = Magnetics.xyz2atp(xyz)
+        #print("Projected to feasible set")
+        self.invProb.model = m
+        
