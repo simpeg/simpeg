@@ -4,7 +4,7 @@ from . import Maps
 from . import Mesh
 import numpy as np
 import scipy.sparse as sp
-
+from SimPEG.Utils import sdiag, speye, kron3
 
 class RegularizationMesh(object):
     """
@@ -965,6 +965,31 @@ class Sparse(Simple):
         #     self.nSpace = int(nmod)
 
 
+
+    @property
+    def Gx(self):
+
+        n = [self.prob.mesh.nCx, self.prob.mesh.nCy, self.prob.mesh.nCz]
+        self._Gx = kron3(speye(n[2]), speye(n[1]), ddxCellGrad(n[0]))
+
+        return self._Gx
+
+    @property
+    def Gy(self):
+
+        n = [self.prob.mesh.nCx, self.prob.mesh.nCy, self.prob.mesh.nCz]
+        self._Gy = kron3(speye(n[2]), ddxCellGrad(n[1]), speye(n[0]))
+
+        return self._Gy
+
+    @property
+    def Gz(self):
+
+        n = [self.prob.mesh.nCx, self.prob.mesh.nCy, self.prob.mesh.nCz]
+        self._Gz = kron3(ddxCellGrad(n[2]), speye(n[1]), speye(n[0]))
+
+        return self._Gz
+
     @property
     def Wsmall(self):
         """Regularization matrix Wsmall"""
@@ -1013,7 +1038,7 @@ class Sparse(Simple):
                 indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
                 x = m[indl:indu]
                 # Grab the right model parameters
-                f_m = self.regmesh.cellDiffxStencil * x
+                f_m = self.Gx * x
 
                 if self.mspace[im] == "sph":
                     f_m = coterminal(f_m)
@@ -1022,8 +1047,7 @@ class Sparse(Simple):
 
                 #Ave_x_vol = self.regmesh.aveCC2Fx * self.regmesh.vol
                 Wx = Utils.sdiag((self.alpha_x[im] * self.gamma *
-                                  (self.regmesh.aveCC2Fx *
-                                   self.cell_weights[indl:indu]))**0.5*self.rx)
+                                  (self.cell_weights[indl:indu]))**0.5*self.rx)
 
                 blocks.append(Wx)
 
@@ -1048,7 +1072,7 @@ class Sparse(Simple):
                 indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
                 x = m[indl:indu]
                 # Grab the right model parameters
-                f_m = self.regmesh.cellDiffyStencil * x
+                f_m = self.Gy * x
 
                 if self.mspace[im] == "sph":
                     f_m = coterminal(f_m)
@@ -1057,8 +1081,7 @@ class Sparse(Simple):
 
                 #Ave_y_vol = self.regmesh.aveCC2Fy * self.regmesh.vol
                 Wy = Utils.sdiag((self.alpha_y[im] * self.gamma *
-                                 (self.regmesh.aveCC2Fy *
-                                  self.cell_weights[indl:indu]))**0.5*self.ry)
+                                 (self.cell_weights[indl:indu]))**0.5*self.ry)
 
                 blocks.append(Wy)
 
@@ -1082,7 +1105,7 @@ class Sparse(Simple):
                 x = m[indl:indu]
 
                 # Grab the right model parameters
-                f_m = self.regmesh.cellDiffzStencil * x
+                f_m = self.Gz * x
 
                 if self.mspace[im] == "sph":
                     f_m = coterminal(f_m)
@@ -1091,8 +1114,7 @@ class Sparse(Simple):
 
                 #Ave_z_vol = self.regmesh.aveCC2Fz * self.regmesh.vol
                 Wz = Utils.sdiag((self.alpha_z[im] * self.gamma *
-                                  (self.regmesh.aveCC2Fz *
-                                   self.cell_weights[indl:indu]))**0.5*self.rz)
+                                  (self.cell_weights[indl:indu]))**0.5*self.rz)
 
                 blocks.append(Wz)
 
@@ -1105,7 +1127,7 @@ class Sparse(Simple):
         blocks = []
         for Wx in self.Wx:
 
-            blocks.append(Wx * self.regmesh.cellDiffxStencil)
+            blocks.append(Wx * self.Gx)
 
         return blocks
 
@@ -1114,7 +1136,7 @@ class Sparse(Simple):
         blocks = []
         for Wy in self.Wy:
 
-            blocks.append(Wy * self.regmesh.cellDiffyStencil)
+            blocks.append(Wy * self.Gy)
 
         return blocks
 
@@ -1123,7 +1145,7 @@ class Sparse(Simple):
         blocks = []
         for Wz in self.Wz:
 
-            blocks.append(Wz * self.regmesh.cellDiffzStencil)
+            blocks.append(Wz * self.Gz)
 
         return blocks
 
@@ -1145,7 +1167,7 @@ class Sparse(Simple):
 
             x = m[indl:indu]
 
-            f_m = (self.regmesh.cellDiffxStencil * x)
+            f_m = (self.Gx * x)
 
             if self.mspace[im] == "sph":
                 f_m = coterminal(f_m)
@@ -1153,7 +1175,7 @@ class Sparse(Simple):
             r = self.Wx[im] * f_m
 
             rVec.append(r.T * (self.Wx[im] *
-                               (self.regmesh.cellDiffxStencil)))
+                               (self.Gx)))
 
         return np.hstack(rVec) * dmm
 
@@ -1171,7 +1193,7 @@ class Sparse(Simple):
         blocks = []
         for im in range(self.nSpace):
 
-            rDeriv = self.Wx[im]*self.regmesh.cellDiffxStencil
+            rDeriv = self.Wx[im]*self.Gx
 
             blocks.append(rDeriv.T * rDeriv)
 
@@ -1196,7 +1218,7 @@ class Sparse(Simple):
 
             x = m[indl:indu]
 
-            f_m = (self.regmesh.cellDiffyStencil * x)
+            f_m = (self.Gy * x)
 
             if self.mspace[im] == "sph":
                 f_m = coterminal(f_m)
@@ -1204,7 +1226,7 @@ class Sparse(Simple):
             r = self.Wy[im] * f_m
 
             rVec.append(r.T *
-                        (self.Wy[im] * (self.regmesh.cellDiffyStencil)))
+                        (self.Wy[im] * (self.Gy)))
 
         return np.hstack(rVec) * dmm
 
@@ -1222,7 +1244,7 @@ class Sparse(Simple):
         blocks = []
         for im in range(self.nSpace):
 
-            rDeriv = self.Wy[im] * self.regmesh.cellDiffyStencil
+            rDeriv = self.Wy[im] * self.Gy
 
             blocks.append(rDeriv.T * rDeriv)
 
@@ -1247,7 +1269,7 @@ class Sparse(Simple):
             indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
             x = m[indl:indu]
 
-            f_m = (self.regmesh.cellDiffzStencil * x)
+            f_m = (self.Gz * x)
 
             if self.mspace[im] == "sph":
                 f_m = coterminal(f_m)
@@ -1255,7 +1277,7 @@ class Sparse(Simple):
             r = self.Wz[im] * f_m
 
             rVec.append(r.T *
-                        (self.Wz[im] * (self.regmesh.cellDiffzStencil)))
+                        (self.Wz[im] * (self.Gz)))
 
         return np.hstack(rVec) * dmm
 
@@ -1274,7 +1296,7 @@ class Sparse(Simple):
         for im in range(self.nSpace):
             indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
 
-            rDeriv = self.Wz[im] * self.regmesh.cellDiffzStencil
+            rDeriv = self.Wz[im] * self.Gz
 
             blocks.append(rDeriv.T * rDeriv)
 
@@ -1296,7 +1318,7 @@ class Sparse(Simple):
             indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
             x = m[indl:indu]
 
-            f_m = self.regmesh.cellDiffxStencil * x
+            f_m = self.Gx * x
 
             if self.mspace[im] == "sph":
                 f_m = coterminal(f_m)
@@ -1320,7 +1342,7 @@ class Sparse(Simple):
             indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
             x = m[indl:indu]
 
-            f_m = self.regmesh.cellDiffyStencil * x
+            f_m = self.Gy * x
 
             if self.mspace[im] == "sph":
                 f_m = coterminal(f_m)
@@ -1344,7 +1366,7 @@ class Sparse(Simple):
             indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
             x = m[indl:indu]
 
-            f_m = self.regmesh.cellDiffzStencil * x
+            f_m = self.Gz * x
 
             if self.mspace[im] == "sph":
                 f_m = coterminal(f_m)
@@ -1390,3 +1412,12 @@ def coterminal(theta):
     theta[np.abs(theta) > np.pi] = sub
 
     return theta
+
+def ddxCellGrad(n):
+
+    D = sp.spdiags((np.ones((n+1, 1))*[-1, 1]).T, [-1, 0], n, n,
+               format="csr")
+
+    D[0, 1] = -1.
+
+    return D
