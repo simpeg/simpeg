@@ -994,7 +994,73 @@ class Sparse(Simple):
     def Wsmall(self):
         """Regularization matrix Wsmall"""
         if getattr(self, '_Wsmall', None) is None:
+            blocks = []
+            for im in range(self.nSpace):
+                indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
+                Ws = Utils.sdiag((self.alpha_s[im] * self.gamma *
+                                  self.cell_weights[indl:indu])**0.5*self.Rs[im])
 
+                blocks.append(Ws)
+
+            self._Wsmall = sp.block_diag(blocks)
+
+        return self._Wsmall
+
+    @property
+    def Wx(self):
+        """Regularization matrix Wx"""
+        if getattr(self, '_Wx', None) is None:
+            blocks = []
+            for im in range(self.nSpace):
+                indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
+
+                #Ave_x_vol = self.regmesh.aveCC2Fx * self.regmesh.vol
+                Wx = Utils.sdiag((self.alpha_x[im] * self.gamma *
+                                  (self.cell_weights[indl:indu]))**0.5*self.Rx[im])
+
+                blocks.append(Wx)
+
+            self._Wx = blocks
+
+        return self._Wx
+
+    @property
+    def Wy(self):
+        """Regularization matrix Wy"""
+        if getattr(self, '_Wy', None) is None:
+            blocks = []
+            for im in range(self.nSpace):
+                indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
+                #Ave_y_vol = self.regmesh.aveCC2Fy * self.regmesh.vol
+                Wy = Utils.sdiag((self.alpha_y[im] * self.gamma *
+                                 (self.cell_weights[indl:indu]))**0.5*self.Ry[im])
+
+                blocks.append(Wy)
+
+            self._Wy = blocks
+
+        return self._Wy
+
+    @property
+    def Wz(self):
+        """Regularization matrix Wz"""
+        if getattr(self, '_Wz', None) is None:
+            blocks = []
+            for im in range(self.nSpace):
+                indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
+                #Ave_z_vol = self.regmesh.aveCC2Fz * self.regmesh.vol
+                Wz = Utils.sdiag((self.alpha_z[im] * self.gamma *
+                                  (self.cell_weights[indl:indu]))**0.5*self.Rz[im])
+
+                blocks.append(Wz)
+
+            self._Wz = blocks
+
+        return self._Wz
+
+    @property
+    def Rs(self):
+        if getattr(self, '_Rs', None) is None:
             if getattr(self, 'model', None) is None:
                 m = np.ones(self.mapping.shape[0])
 
@@ -1007,25 +1073,18 @@ class Sparse(Simple):
 
                 indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
 
-                x = (m - self.mref)[indl:indu]
-                # Grab the right model parameters
                 f_m = (m[indl:indu] - mref[indl:indu])
-                self.rs = self.R(f_m, self.eps_p[im], self.norms[0])
+                Rs = self.R(f_m, self.eps_p[im], self.norms[0])
+                blocks.append(Rs)
 
-                Ws = Utils.sdiag((self.alpha_s[im] * self.gamma *
-                                  self.cell_weights[indl:indu])**0.5*self.rs)
+            self._Rs = blocks
 
-                blocks.append(Ws)
-
-            self._Wsmall = sp.block_diag(blocks)
-
-        return self._Wsmall
+            print('UPDATED RS')
+        return self._Rs
 
     @property
-    def Wx(self):
-        """Regularization matrix Wx"""
-        if getattr(self, '_Wx', None) is None:
-
+    def Rx(self):
+        if getattr(self, '_Rx', None) is None:
             if getattr(self, 'model', None) is None:
                 m = np.ones(self.mapping.shape[0])
 
@@ -1043,23 +1102,16 @@ class Sparse(Simple):
                 if self.mspace[im] == "sph":
                     f_m = coterminal(f_m)
 
-                self.rx = self.R(f_m, self.eps_q[im], self.norms[1])
+                Rx = self.R(f_m, self.eps_q[im], self.norms[2])
+                blocks.append(Rx)
 
-                #Ave_x_vol = self.regmesh.aveCC2Fx * self.regmesh.vol
-                Wx = Utils.sdiag((self.alpha_x[im] * self.gamma *
-                                  (self.cell_weights[indl:indu]))**0.5*self.rx)
+            self._Rx = blocks
 
-                blocks.append(Wx)
-
-            self._Wx = blocks
-
-        return self._Wx
+        return self._Rx
 
     @property
-    def Wy(self):
-        """Regularization matrix Wy"""
-        if getattr(self, '_Wy', None) is None:
-
+    def Ry(self):
+        if getattr(self, '_Ry', None) is None:
             if getattr(self, 'model', None) is None:
                 m = np.ones(self.mapping.shape[0])
 
@@ -1077,50 +1129,39 @@ class Sparse(Simple):
                 if self.mspace[im] == "sph":
                     f_m = coterminal(f_m)
 
-                self.ry = self.R(f_m, self.eps_q[im], self.norms[2])
+                Ry = self.R(f_m, self.eps_q[im], self.norms[2])
+                blocks.append(Ry)
 
-                #Ave_y_vol = self.regmesh.aveCC2Fy * self.regmesh.vol
-                Wy = Utils.sdiag((self.alpha_y[im] * self.gamma *
-                                 (self.cell_weights[indl:indu]))**0.5*self.ry)
+            self._Ry = blocks
 
-                blocks.append(Wy)
-
-            self._Wy = blocks
-
-        return self._Wy
+        return self._Ry
 
     @property
-    def Wz(self):
-        """Regularization matrix Wz"""
-        if getattr(self, '_Wz', None) is None:
+    def Rz(self):
+        if getattr(self, '_Rz', None) is None:
             if getattr(self, 'model', None) is None:
                 m = np.ones(self.mapping.shape[0])
 
             else:
                 m = self.mapping * (self.model)
+
             blocks = []
             for im in range(self.nSpace):
 
                 indl, indu = im*self.regmesh.nC, (im+1)*self.regmesh.nC
                 x = m[indl:indu]
-
                 # Grab the right model parameters
                 f_m = self.Gz * x
 
                 if self.mspace[im] == "sph":
                     f_m = coterminal(f_m)
 
-                self.rz = self.R(f_m, self.eps_q[im], self.norms[3])
+                Rz = self.R(f_m, self.eps_q[im], self.norms[2])
+                blocks.append(Rz)
 
-                #Ave_z_vol = self.regmesh.aveCC2Fz * self.regmesh.vol
-                Wz = Utils.sdiag((self.alpha_z[im] * self.gamma *
-                                  (self.cell_weights[indl:indu]))**0.5*self.rz)
+            self._Rz = blocks
 
-                blocks.append(Wz)
-
-            self._Wz = blocks
-
-        return self._Wz
+        return self._Rz
 
     def Smoothx(self):
 

@@ -93,7 +93,7 @@ def run(plotIt=True):
 
     # Add noise and uncertainties
     # We add some random Gaussian noise (1nT)
-    data = d + np.random.randn(len(d))
+    data = d #+ np.random.randn(len(d))
     wd = np.ones(len(data))*1.  # Assign flat uncertainties
 
     survey.dobs = data
@@ -116,17 +116,17 @@ def run(plotIt=True):
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
                                      maxIterLS=20, maxIterCG=10, tolCG=1e-3)
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    betaest = Directives.BetaEstimate_ByEig()
+    invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e+7)
+    #betaest = Directives.BetaEstimate_ByEig()
 
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
     #  model parameters
     IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),  eps=[1e-3, 1e-3],
-                                  f_min_change=1e-3, minGNiter=3)
+                                  f_min_change=1e-3, minGNiter=3, maxIRLSiter=10)
     update_Jacobi = Directives.Update_lin_PreCond()
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[IRLS, betaest, update_Jacobi])
+                                  directiveList=[IRLS, update_Jacobi])
 
     # Run the inversion
     m0 = np.ones(nC)*1e-4  # Starting model

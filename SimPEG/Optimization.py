@@ -1051,7 +1051,7 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
 
     @Utils.count
     def projection(self, x):
-        from SimPEG.PF import Magnetics
+        # from SimPEG.PF import Magnetics
         """projection(x)
 
             Make sure we are feasible.
@@ -1060,83 +1060,9 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
         block = []
         nC = int(len(x)/self.nSpace)
 
-        # Convert to cartesian than back to avoid over rotation
-        xyz = Magnetics.atp2xyz(x)
-        m = Magnetics.xyz2atp(xyz)
-        # # TEMPORARY HACK
-        # m_phi = x[2*nC:]
-        # for ind in range(self.nSpace):
 
-        #     m = x[(nC*ind):(nC*(ind+1))]
-
-        #     if np.all([self.ptype[ind] == 'sph', ind%3 == 2]):
-
-        #         indx = m < self.lower[ind]
-        #         m_low = m[indx]
-        #         m_low = np.mod(m_low, -2.*np.pi)
-        #         m_low[m_low < -np.pi] = 2.*np.pi + m_low[m_low < -np.pi]
-
-        #         m[indx] = m_low
-
-        #         indx = m > self.upper[ind]
-        #         m_high = m[indx]
-        #         m_high = np.mod(m_high, 2.*np.pi)
-        #         m_high[m_high > np.pi] = -2.*np.pi + m_high[m_high > np.pi]
-
-        #         m[indx] = m_high
-
-        #     elif np.all([self.ptype[ind] == 'sph', ind% 3 == 1]):
-
-        #         indx = np.where(m < self.lower[ind])[0]
-        #         m_low = m[indx]
-
-        #         # First case the angle goes around 2pi, take remainder
-        #         m_low = np.mod(m_low, -2.*np.pi)
-
-        #         # # Second case the angle flipped to positive
-        #         # m_low[m_low < -3.*np.pi/2.] = 2.*np.pi + m_low[m_low < -3.*np.pi/2.]
-
-        #         # # Third case angle flips to positive and reverse phi orientation
-        #         # ind2 = np.where(m_low < -np.pi)[0]
-        #         # m_low[ind2] = 2.*np.pi + m_low[ind2]
-        #         # m_phi[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
-
-        #         # # Forth case angle stays negative but also flip phi
-        #         ind2 = np.where(m_low < -np.pi/2.)[0]
-        #         m_low[ind2] = -np.pi - m_low[ind2]
-        #         # m_phi[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
-
-        #         m[indx] = m_low
-
-        #         # Repeat for positive
-        #         indx = np.where(m > self.upper[ind])[0]
-        #         m_high = m[indx]
-
-        #         # First case the angle goes around 2pi, take remainder
-        #         m_high = np.mod(m_high, 2.*np.pi)
-
-        #         # # Second case the angle flipped to negative
-        #         # m_high[m_high > 3.*np.pi/2.] = -2.*np.pi + m_high[m_high > 3.*np.pi/2.]
-
-        #         # # Third case angle flips to negative and reverse phi orientation
-        #         # ind2 = np.where(m_high > np.pi)[0]
-        #         # m_high[ind2] = -2.*np.pi + m_high[ind2]
-
-        #         # m_phi[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
-
-        #         # # Forth case angle stays positive but also flip phi
-        #         ind2 = np.where(m_high > np.pi/2.)[0]
-        #         m_high[ind2] = np.pi - m_high[ind2]
-
-        #         # m_phi[indx[ind2]] -= np.sign(m[indx[ind2]]) * np.pi
-
-        #         m[indx] = m_high
-
-        #         # x[2*nC:] = m_phi
-
-            # block.append(np.median(np.c_[self.lower[ind], m, self.upper[ind]],axis=1))
-
-        proj = np.median(np.c_[self.lower, m , self.upper],axis=1)
+        
+        proj = np.median(np.c_[self.lower, x , self.upper],axis=1)
 
         return proj
 
@@ -1155,7 +1081,7 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
             nC = len(x)/3
             # if (self.iter % 3) == 0:
             #     print(self.iter,'ActiveSet amp')
-            #     actSet[nC:] = True
+            actSet[nC:] = False
 
             # elif (self.iter % 3) == 1:
 
@@ -1170,24 +1096,24 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
 
         return actSet
 
-    @property
-    def approxHinv(self):
-        """
-            The approximate Hessian inverse is used to precondition CG.
+    # @property
+    # def approxHinv(self):
+    #     """
+    #         The approximate Hessian inverse is used to precondition CG.
 
-            Default uses BFGS, with an initial H0 of *bfgsH0*.
+    #         Default uses BFGS, with an initial H0 of *bfgsH0*.
 
-            Must be a scipy.sparse.linalg.LinearOperator
-        """
-        _approxHinv = getattr(self,'_approxHinv',None)
-        if _approxHinv is None:
-            M = sp.linalg.LinearOperator( (self.xc.size, self.xc.size), self.bfgs, dtype=self.xc.dtype )
-            return M
-        return _approxHinv
+    #         Must be a scipy.sparse.linalg.LinearOperator
+    #     """
+    #     _approxHinv = getattr(self,'_approxHinv',None)
+    #     if _approxHinv is None:
+    #         M = sp.linalg.LinearOperator( (self.xc.size, self.xc.size), self.bfgs, dtype=self.xc.dtype )
+    #         return M
+    #     return _approxHinv
 
-    @approxHinv.setter
-    def approxHinv(self, value):
-        self._approxHinv = value
+    # @approxHinv.setter
+    # def approxHinv(self, value):
+    #     self._approxHinv = value
 
     @Utils.timeIt
     def findSearchDirection(self):
@@ -1210,39 +1136,59 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
 
         delx = np.zeros(self.g.size)
         resid = -(1-Active) * self.g
+        #print('MAX deriv',np.max(np.abs(self.g)))
+        r = self.approxHinv*(resid - (1-Active)*(self.H* delx))
 
-        # Begin CG iterations.
-        cgiter = 0
-        cgFlag = 0
-        normResid0 = norm(resid)
+        ro = r
 
-        while cgFlag == 0:
+        rho_in = 1.
+        alpha = 1.
+        omega = 1.
+        v = 0.
+        p = 0.
 
-            cgiter = cgiter + 1
-            dc = (1-Active)*(self.approxHinv*resid)
-            rd = np.dot(resid, dc)
+        count = 1
 
-            #  Compute conjugate direction pc.
-            if cgiter == 1:
-                pc = dc
-            else:
-                betak = rd / rdlast
-                pc = dc + betak * pc
+        while np.all([np.linalg.norm(r) > self.tolCG , count < self.maxIterCG]):
 
-            #  Form product Hessian*pc.
-            Hp = self.H*pc
-            Hp = (1-Active)*Hp
+            rho_out = np.dot(ro, r)
 
-            #  Update delx and residual.
-            alphak = rd / np.dot(pc, Hp)
-            delx = delx + alphak*pc
-            resid = resid - alphak*Hp
-            rdlast = rd
+            beta = ( rho_out / rho_in ) * ( alpha / omega )
 
-            if np.logical_or(norm(resid)/normResid0 <= self.tolCG, cgiter == self.maxIterCG):
-                cgFlag = 1
+            p = r + beta * ( p - omega * v )
+
+            v = self.approxHinv*(1-Active)*(self.H * p)
+
+            alpha = rho_out / np.dot( ro, v )
+
+            s = (r - alpha * v)
+
+            t = self.approxHinv*(1-Active)*(self.H*s)
+
+            omega = np.dot( t, s ) / np.dot( t, t )
+
+            delx += alpha * p + omega * s
+
+            r = (s - omega*t)
+
+            rho_in = rho_out
+
+            count += 1
             # End CG Iterations
 
+        if np.any(map(lambda ind: ind=='sph', self.ptype)):
+            # temp = delx[nC:]
+            # ind = np.abs(temp) > (2.*np.pi)
+
+            # temp[ind] = np.sign(temp[ind]) * (np.abs(temp[ind]) % (2.*np.pi))
+
+            # delx[nC:] = temp
+
+            if np.max(np.abs(delx[nC:2*nC]))>np.pi/2:
+
+                delx = delx/np.max(np.abs(delx[nC:2*nC]))*np.pi/2.
+                print("re-scaled step for theta")
+        
         # Take a gradient step on the active cells if exist
         if temp != self.xc.size:
 
@@ -1259,12 +1205,47 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
         # indx = ((self.xc<=np.hstack(self.lower)) & (delx < 0)) | ((self.xc>=np.hstack(self.upper)) & (delx > 0))
         # delx[indx] = 0.
         # print(cgiter)
-        # if np.any(map(lambda ind: ind=='sph', self.ptype)):
-        #     temp = delx[nC:]
-        #     ind = np.abs(temp) > (2.*np.pi)
-
-        #     temp[ind] = np.sign(temp[ind]) * (np.abs(temp[ind]) % (2.*np.pi))
-
-        #     delx[nC:] = temp
-
         return delx
+
+
+# BICG-STAB
+# delx = np.zeros(self.g.size)
+# resid = -(1-Active) * self.g
+
+# r = self.approxHinv*(resid - (1-Active)*(self.H* delx))
+
+# ro = r
+
+# rho_in = 1.
+# alpha = 1.
+# omega = 1.
+# v = 0.
+# p = 0.
+
+# count = 1
+
+# while np.all([np.linalg.norm(r) > 1e-4 , count < 10]):
+   
+#     rho_out = np.dot(ro, r)
+   
+#     beta = ( rho_out / rho_in ) * ( alpha / omega )
+   
+#     p = r + beta * ( p - omega * v )
+   
+#     v = self.approxHinv*(1-Active)*(self.H * p)
+   
+#     alpha = rho_out / np.dot( ro, v )
+   
+#     s = (r - alpha * v)
+   
+#     t = self.approxHinv*(1-Active)*(self.H*s)
+   
+#     omega = np.dot( t, s ) / np.dot( t, t )
+   
+#     delx += alpha * p + omega * s
+   
+#     r = (s - omega*t)
+   
+#     rho_in = rho_out
+   
+#     count += 1
