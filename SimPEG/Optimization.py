@@ -1137,43 +1137,34 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
         delx = np.zeros(self.g.size)
         resid = -(1-Active) * self.g
         #print('MAX deriv',np.max(np.abs(self.g)))
-        r = self.approxHinv*(resid - (1-Active)*(self.H* delx))
+        r = (resid - (1-Active)*(self.H* delx))
 
-        ro = r
+        p = self.approxHinv*r
 
-        rho_in = 1.
-        alpha = 1.
-        omega = 1.
-        v = 0.
-        p = 0.
+        sold = np.dot(r, p)
+        s0 = sold
 
-        count = 1
+        count = 0
 
         while np.all([np.linalg.norm(r) > self.tolCG , count < self.maxIterCG]):
 
-            rho_out = np.dot(ro, r)
-
-            beta = ( rho_out / rho_in ) * ( alpha / omega )
-
-            p = r + beta * ( p - omega * v )
-
-            v = self.approxHinv*(1-Active)*(self.H * p)
-
-            alpha = rho_out / np.dot( ro, v )
-
-            s = (r - alpha * v)
-
-            t = self.approxHinv*(1-Active)*(self.H*s)
-
-            omega = np.dot( t, s ) / np.dot( t, t )
-
-            delx += alpha * p + omega * s
-
-            r = (s - omega*t)
-
-            rho_in = rho_out
-
             count += 1
+
+            q = (1-Active)*(self.H * p)
+            
+            alpha = sold / (np.dot(p, q))
+            
+            delx += alpha * p
+            
+            r -= alpha * q
+            
+            h = self.approxHinv * r
+            
+            snew = np.dot(r, h)
+            
+            p = h + (snew / sold * p)
+            
+            sold = snew
             # End CG Iterations
 
         if np.any(map(lambda ind: ind=='sph', self.ptype)):

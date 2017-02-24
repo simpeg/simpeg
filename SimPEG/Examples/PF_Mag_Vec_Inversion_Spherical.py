@@ -94,7 +94,7 @@ def run(plotIt=True):
     # We can now create a susceptibility model and generate data
     # Here a simple block in half-space
     model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
-    model[(midx-2):(midx+2), (midy-2):(midy+2), -6:-2] = 0.05
+    model[(midx-2):(midx+2), (midy-2):(midy+2), -7:-3] = 0.05
     model = Utils.mkvc(model)
     model = model[actv]
 
@@ -166,7 +166,7 @@ def run(plotIt=True):
     mstart = np.ones(3*nC)*1e-4
     mrec_C = inv.run(mstart)
 
-    beta = invProb.beta*2.
+    beta = invProb.beta/5.
 
     # # STEP 3: Finish inversion with spherical formulation
     mstart = PF.Magnetics.xyz2atp(mrec_C)
@@ -179,36 +179,38 @@ def run(plotIt=True):
     reg.mref = np.zeros(3*nC)
     reg.cell_weights = np.ones(3*nC)
     reg.alpha_s = [1., 0., 0.]
-    reg.mspace = ['lin', 'sph', 'sph']
-    reg.eps_p = [None, None, None]
+    reg.mspace = ['lin', 'lin', 'sph']
+    reg.eps_p = [1e-3, 1e-3, 1e-3]
+    reg.eps_q = [1e-3, 5e-2, 5e-2]
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
     dmis.Wd = 1./survey.std
 
     # Add directives to the inversion
-    opt = Optimization.ProjectedGNCG_nSpace(maxIter=30, lower=[0., -pi/2.,-pi],
-                                            upper=[10., pi/2., pi], maxIterLS=1,
-                                            LSreduction=1e-1,
-                                            maxIterCG=40, tolCG=1e-3,
+    opt = Optimization.ProjectedGNCG_nSpace(maxIter=30,
+                                            lower=[0., -np.inf, -np.inf],
+                                            upper=[10., np.inf, np.inf],
+                                            maxIterLS=10,
+                                            maxIterCG=20, tolCG=1e-3,
                                             ptype=['lin', 'sph', 'sph'], nSpace=3)
 
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta)
     #betaest = Directives.BetaEstimate_ByEig()
 
     # Here is where the norms are applied
-    IRLS = Directives.Update_IRLS(norms=([2, 2, 2, 2]),
+    IRLS = Directives.Update_IRLS(norms=([0, 2, 2, 2]),
                                   eps=None, f_min_change=1e-4,
                                   minGNiter=3, beta_tol=1e-2,
                                   coolingRate=3)
-
+    IRLS.eps = [[1e-3, 5e-2], [1e-3, 5e-2], [5e-4, 5e-2]]
     #IRLS.eps = [[5e-4,5e-4],[1e-3,1e-2],[1e-4, 1e-2]]
     # Special directive specific to the mag amplitude problem. The sensitivity
     # weights are update between each iteration.
     update_Jacobi = Directives.Amplitude_Inv_Iter()
     update_Jacobi.ptype = 'MVI-S'
-
+    ProjSpherical = Directives.ProjSpherical()
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[IRLS, update_Jacobi, ])
+                                  directiveList=[ProjSpherical, IRLS, update_Jacobi,])
 
     mrec = inv.run(mstart)
 

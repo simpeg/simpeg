@@ -323,9 +323,9 @@ class MagneticVector(MagneticIntegral):
             return self.G.T.dot(v)
         else:
 
-            dmudm = self.S * self.chiMap.deriv(chi)
+            dmudm = self.chiMap.deriv(chi).T * self.S.T
 
-            return (dmudm.T).dot(self.G.T.dot(v))
+            return (dmudm).dot(self.G.T.dot(v))
 
     @property
     def S(self):

@@ -1447,10 +1447,10 @@ class Sparse(Simple):
 def coterminal(theta):
     """ Compute coterminal angle so that [-pi < theta < pi]"""
 
-    sub = theta[np.abs(theta) > np.pi]
+    sub = theta[np.abs(theta) >= np.pi]
     sub = -np.sign(sub) * (2*np.pi-np.abs(sub))
 
-    theta[np.abs(theta) > np.pi] = sub
+    theta[np.abs(theta) >= np.pi] = sub
 
     return theta
 
