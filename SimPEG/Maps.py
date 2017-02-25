@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
 from __future__ import unicode_literals
 
 from six import integer_types
@@ -15,6 +14,8 @@ import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy.interpolate import UnivariateSpline
 from scipy.constants import mu_0
+
+import properties
 
 from . import Utils
 from .Tests import checkDerivative
@@ -379,6 +380,252 @@ class Wires(object):
     @property
     def nP(self):
         return self._nP
+
+
+class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
+    """
+        Two phase self-consistent effective medium theory mapping for
+        ellipsoidal inclusions. The model is the concentration
+        (volume fraction) of the phase 2 material.
+
+        The model is :math:`\varphi`. We solve for :math:`\sigma`
+        given :math:`\sigma_0`, :math:`\sigma_1` and :math:`\varphi`. Each of
+        the following are implicit expressions of the effective conductivity.
+        They are solved using a fixed point iteration.
+
+        ** Spherical Inclusions **
+
+        If the shape of the inclusions are spheres, we use
+
+        .. math::
+
+            \sum_{j=1}^N (\sigma^* - \sigma_j)R^{j} = 0
+
+        where :math:`j=[1,N]` is the each material phase, and N is the number
+        of phases. Currently, the implementation is only set up for 2 phase
+        materials, so we solve
+
+        .. math::
+
+            (1-\varphi)(\sigma - \sigma_0)R^{(0)} + \varphi(\sigma - \sigma_1)R^{(1)} = 0.
+
+        Where :math:`R^{(j)}` is given by
+
+        .. math::
+
+            R^{(j)} = \left[1 + \frac{1}{3}\frac{\sigma_j - \sigma}{\sigma} \right]^{-1}.
+
+        ** Ellipsoids **
+
+        .. todo::
+
+            Aligned Ellipsoids have not yet been implemented, only randomly
+            oriented ellipsoids
+
+        If the inclusions are aligned ellipsoids, we solve
+
+        .. math::
+
+            \sum_{j=1}^N \varphi_j (\Sigma^* - \sigma_j\mathbf{I}) \mathbf{R}^{j, *} = 0
+
+        where
+
+        .. math::
+
+            \mathbf{R}^{(j, *)} = \left[ \mathbf{I} + \mathbf{A}_j {\Sigma^{*}}^{-1}(\sigma_j \mathbf{I} - \Sigma^*) \right]^{-1}
+
+        and the depolarization tensor :math:`\mathbf{A}_j` is given by
+
+        .. math::
+
+            \mathbf{A}^* = \left[
+                Q & 0 & 0 \\
+                0 & Q & 0 \\
+                0 & 0 & 1-2Q
+            \right]
+
+        for a spheroid aligned along the z-axis. For an oblate spheroid
+        (:math:`alpha < 1`, pancake-like)
+
+        .. math::
+
+            Q = \frac{1}{2}\left{
+                1 + \frac{1}{\alpha^2 - 1} \left[
+                    1 - \frac{1}{\chi}\tan^{-1}(\chi
+                \right]
+            \right}
+
+        where
+
+        .. math::
+
+            \chi = \sqrt{\frac{1}{\alpha^2} - 1}
+
+        .. todo::
+
+            Prolate spheroids (\alpha > 1, needle-like) have not been
+            implemented yet
+
+        For reference, see
+        `Torquato (2002), Random Heterogeneous Materials <https://link.springer.com/book/10.1007/978-1-4757-6355-3>`_
+
+
+    """
+
+    sigma0 = properties.Float(
+        "physical property value for phase-0 material",
+        min=0., required=True
+    )
+
+    sigma1 = properties.Float(
+        "physical property value for phase-1 material",
+        min=0., required=True
+    )
+
+    sigstart = properties.Array(
+        "starting guess for the effective conductivity",
+    )
+
+    alpha0 = properties.Float(
+        "aspect ratio of the phase-0 ellipsoids", default=1.
+    )
+
+    alpha1 = properties.Float(
+        "aspect ratio of the phase-1 ellipsoids", default=1.
+    )
+
+    rel_tol = properties.Float(
+        "relative tolerance for convergence for the fixed-point iteration",
+        default = 1e-8
+    )
+
+    maxit = properties.Integer(
+        "maximum number of iterations for the fixed point iteration "
+        "calculation",
+        default = 50
+    )
+
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(SelfConsistentEffectiveMedium, self).__init__(mesh, nP, **kwargs)
+
+    @property
+    def tol(self):
+        """
+        absolute tolerance for the convergence of the fixed point iteration calc
+        """
+        if getattr(self, '_tol', None) is None:
+            self._tol = self.rel_tol*min(self.sigma0, self.sigma1)
+        return self._tol
+
+    def wennerBounds(self, phi1):
+        """Define Wenner Conductivity Bounds"""
+        # TODO: Add HS bounds (not needed for spherical particles, but for ellipsoidal ones)
+        phi0   = 1.0-phi1
+        sigWup = phi0*self.sigma0 + phi1*self.sigma1
+        sigWlo = 1.0/(phi0/self.sigma0 + phi1/self.sigma1)
+        W = np.array([sigWlo, sigWup])
+
+        return W
+
+    def getQ(self, alpha):
+        if alpha < 1.:
+            Chi = np.sqrt((1./alpha**2.) - 1.)
+            return 1./2.*(1. + 1./(alpha**2. - 1.)*(1. - np.arctan(Chi)/Chi))
+        elif alpha > 1.:
+            raise NotImplementedError(
+                'Aspect ratios > 1 have not been implemeted'
+            )
+        elif alpha == 1:
+            return 1./3.
+
+    def getR(self, sj, se, alpha):
+        if alpha == 1.:
+            return 3.0*se/(2.0*se+sj)
+        Q = self.getQ(alpha)
+        return se/3.*(2./(se + Q*(sj-se)) + 1./(sj - 2.*Q*(sj-se)))
+
+    def getdR(self, sj, se, alpha):
+        Q = self.getQ(alpha)
+        return (
+            sj/3. *
+            ( 2.*Q/(se + Q*(sj-se))**2 + (1. - 2.*Q)/(sj - 2.*Q*(sj-se))**2 )
+        )
+
+    def _sc2phaseEMTRandSpheroidstransform(self, phi1):
+        """
+        Self Consistent Effective Medium Theory Model Transform,
+        alpha = aspect ratio (c/a <= 1)
+
+        """
+
+        if self.sigstart is None:
+            sigstart = self.wennerBounds(phi1)[0]
+        else:
+            sigstart = self.sigstart
+
+        if not (np.all(0 <= phi1) and np.all(phi1 <= 1)):
+            warnings.warn('there are phis outside bounds of 0 and 1')
+            phi1 = np.median(np.c_[phi1*0, phi1, phi1*0+1.])
+
+        phi0 = 1.0-phi1
+
+        sige1 = sigstart
+
+        for i in range(self.maxit):
+            R0 = self.getR(self.sigma0, sige1, self.alpha0)
+            R1 = self.getR(self.sigma1, sige1, self.alpha1)
+
+            den = phi0*R0 + phi1*R1
+            num = phi0*self.sigma0*R0 + phi1*self.sigma1*R1
+
+            sige2 = num/den
+            relerr = np.abs(sige2-sige1)
+
+            if np.all(relerr <= self.tol):
+                if self.sigstart is None:
+                    self.sigstart = sige2  # store as a starting point for the next time around
+                return sige2
+
+            sige1 = sige2
+        # TODO: make this a proper warning, and output relevant info (sigma0, sigma1, phi, sigstart, and relerr)
+        warnings.warn('Maximum number of iterations reached')
+
+        return sige2
+
+    def _sc2phaseEMTRandSpheroidsinversetransform(self, sige):
+
+        R0 = getR(self.sigma0, sige, self.alp0)
+        R1 = getR(self.sigma1, sige, self.alp1)
+
+        num = -(sigma0 - sige)*R0
+        den = (sigma1-sige)*R1 - (sigma0-sige)*R0
+
+        return num/den
+
+    def _sc2phaseEMTRandSpheroidstransformDeriv(self, sige, phi1):
+
+        phi0 = 1.0-phi1
+
+        R0 = self.getR(self.sigma0, sige, self.alpha0)
+        R1 = self.getR(self.sigma1, sige, self.alpha1)
+
+        dR0 = self.getdR(self.sigma0, sige, self.alpha0)
+        dR1 = self.getdR(self.sigma1, sige, self.alpha1)
+
+        num = (sige-self.sigma0)*R0 - (sige-self.sigma1)*R1
+        den = phi0*(R0 + (sige-self.sigma0)*dR0) + phi1*(R1 + (sige-self.sigma1)*dR1)
+
+        return Utils.sdiag(num/den)
+
+    def _transform(self, m):
+        return self._sc2phaseEMTRandSpheroidstransform(m)
+
+    def deriv(self, m):
+        sige = self._transform(m)
+        return self._sc2phaseEMTRandSpheroidstransformDeriv(sige, m)
+
+    def inverse(self, sige):
+        return self._sc2phaseEMTRandSpheroidsinversetransform(sige)
 
 
 ###############################################################################
