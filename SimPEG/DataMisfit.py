@@ -115,8 +115,8 @@ class l2_DataMisfit(BaseDataMisfit):
         self._W = value
 
     @Utils.timeIt
-    def _eval(self, m, f=None):
-        "_eval(m, f=None)"
+    def __call__(self, m, f=None):
+        "__call__(m, f=None)"
         if f is None:
             f = self.prob.fields(m)
         R = self.W * self.survey.residual(m, f)
