@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from SimPEG import Problem
 from SimPEG import Utils
 from SimPEG import Mesh
+from SimPEG import Props
 
 
 def lengthInCell(O, D, x, y, plotIt=False):
@@ -72,6 +73,10 @@ def lineintegral(M, Tx, Rx):
 
 class StraightRayProblem(Problem.LinearProblem):
 
+    slowness, slownessMap, slownessDeriv = Props.Invertible(
+        "Slowness model (1/v)"
+    )
+
     @property
     def A(self):
         if getattr(self, '_A', None) is not None:
@@ -98,10 +103,10 @@ class StraightRayProblem(Problem.LinearProblem):
         self.model = m
         # mt = self.model.transformDeriv
         # return self.A * ( mt * v )
-        return self.A * v
+        return self.A * self.slownessDeriv * v
 
     def Jtvec(self, m, v, f=None):
         self.model = m
         # mt = self.model.transformDeriv
         # return mt.T * ( self.A.T * v )
-        return self.A.T * v
+        return self.slownessDeriv.T * self.A.T * v

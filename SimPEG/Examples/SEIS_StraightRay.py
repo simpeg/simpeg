@@ -1,6 +1,6 @@
-# from SimPEG import Problem
 from SimPEG import Utils
 from SimPEG import Mesh
+from SimPEG import Maps
 from SimPEG import Survey
 from SimPEG import Regularization
 from SimPEG import DataMisfit
@@ -21,6 +21,8 @@ def run(plotIt=False):
     """
         Seismic Straight Ray Tomography
         ===============================
+
+        Example of a straight ray tomography problem
 
     """
 
@@ -45,7 +47,7 @@ def run(plotIt=False):
     ]
 
     survey = StraightRaySurvey(srcList)
-    problem = StraightRayProblem(M)
+    problem = StraightRayProblem(M, slownessMap=Maps.IdentityMap(M))
     problem.pair(survey)
 
     s = Utils.mkvc(Utils.ModelBuilder.randomModel(M.vnC)) + 1.
