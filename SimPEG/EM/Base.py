@@ -3,18 +3,27 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import properties
+from scipy.constants import mu_0
+
 from SimPEG import Survey
 from SimPEG import Problem
 from SimPEG import Utils
 from SimPEG import Maps
 from SimPEG import Props
 from SimPEG import Solver as SimpegSolver
-from scipy.constants import mu_0
 
+
+__all__ = ['BaseEMProblem', 'BaseEMSurvey', 'BaseEMSrc']
+
+
+###############################################################################
+#                                                                             #
+#                             Base EM Problem                                 #
+#                                                                             #
+###############################################################################
 
 class BaseEMProblem(Problem.BaseProblem):
-
-    _depreciate_main_map = 'sigmaMap'
 
     sigma, sigmaMap, sigmaDeriv = Props.Invertible(
         "Electrical conductivity (S/m)"
@@ -39,10 +48,10 @@ class BaseEMProblem(Problem.BaseProblem):
     surveyPair = Survey.BaseSurvey  #: The survey to pair with.
     dataPair = Survey.Data  #: The data to pair with.
 
-    mapPair = Maps.IdentityMap
+    mapPair = Maps.IdentityMap  #: Type of mapping to pair with
 
-    Solver = SimpegSolver
-    solverOpts = {}
+    Solver = SimpegSolver  #: Type of solver to pair with
+    solverOpts = {}  #: Solver options
 
     verbose = False
 
@@ -318,6 +327,12 @@ class BaseEMProblem(Problem.BaseProblem):
         return dMfRhoI_dI * (dMf_drho * self.rhoDeriv)
 
 
+###############################################################################
+#                                                                             #
+#                             Base EM Survey                                  #
+#                                                                             #
+###############################################################################
+
 class BaseEMSurvey(Survey.BaseSurvey):
 
     def __init__(self, srcList, **kwargs):
@@ -340,3 +355,97 @@ class BaseEMSurvey(Survey.BaseSurvey):
 
     def evalDeriv(self, f):
         raise Exception('Use Receivers to project fields deriv.')
+
+
+###############################################################################
+#                                                                             #
+#                             Base EM Source                                  #
+#                                                                             #
+###############################################################################
+
+class BaseEMSrc(Survey.BaseSrc):
+
+    integrate = properties.Bool("integrate the source term?", default=False)
+
+    def eval(self, prob):
+        """
+        - :math:`s_m` : magnetic source term
+        - :math:`s_e` : electric source term
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :rtype: tuple
+        :return: tuple with magnetic source term and electric source term
+        """
+        s_m = self.s_m(prob)
+        s_e = self.s_e(prob)
+        return s_m, s_e
+
+    def evalDeriv(self, prob, v=None, adjoint=False):
+        """
+        Derivatives of the source terms with respect to the inversion model
+        - :code:`s_mDeriv` : derivative of the magnetic source term
+        - :code:`s_eDeriv` : derivative of the electric source term
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: tuple
+        :return: tuple with magnetic source term and electric source term
+            derivatives times a vector
+
+        """
+        if v is not None:
+            return (
+                self.s_mDeriv(prob, v, adjoint),
+                self.s_eDeriv(prob, v, adjoint)
+            )
+        else:
+            return (
+                lambda v: self.s_mDeriv(prob, v, adjoint),
+                lambda v: self.s_eDeriv(prob, v, adjoint)
+            )
+
+    def s_m(self, prob):
+        """
+        Magnetic source term
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :rtype: numpy.ndarray
+        :return: magnetic source term on mesh
+        """
+        return Utils.Zero()
+
+    def s_e(self, prob):
+        """
+        Electric source term
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :rtype: numpy.ndarray
+        :return: electric source term on mesh
+        """
+        return Utils.Zero()
+
+    def s_mDeriv(self, prob, v, adjoint = False):
+        """
+        Derivative of magnetic source term with respect to the inversion model
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of magnetic source term derivative with a vector
+        """
+
+        return Utils.Zero()
+
+    def s_eDeriv(self, prob, v, adjoint = False):
+        """
+        Derivative of electric source term with respect to the inversion model
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of electric source term derivative with a vector
+        """
+        return Utils.Zero()

@@ -109,7 +109,7 @@ def run(plotIt=True):
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.Wd = 1/wd
+    dmis.W = Utils.sdiag(1/wd)
 
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=100, lower=-1., upper=1.,
@@ -136,7 +136,7 @@ def run(plotIt=True):
         # Here is the recovered susceptibility model
         ypanel = midx
         zpanel = -7
-        m_l2 = actvMap * reg.l2model
+        m_l2 = actvMap * IRLS.l2model
         m_l2[m_l2 == -100] = np.nan
 
         m_lp = actvMap * mrec

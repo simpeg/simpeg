@@ -45,7 +45,7 @@ class MapTests(unittest.TestCase):
         self.mesh2 = Mesh.TensorMesh([a, b], x0=np.array([3, 5]))
         self.mesh3 = Mesh.TensorMesh([a, b, [3, 4]], x0=np.array([3, 5, 2]))
         self.mesh22 = Mesh.TensorMesh([b, a], x0=np.array([3, 5]))
-        self.meshCyl = Mesh.CylMesh([10.,1.,10.], x0='00C')
+        self.meshCyl = Mesh.CylMesh([10., 1., 10.], x0='00C')
 
     def test_transforms2D(self):
         for M in self.maps2test2D:

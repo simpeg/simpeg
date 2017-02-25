@@ -1,8 +1,9 @@
 from __future__ import print_function
 from . import Utils
+from . import Regularization
+from . import Maps
 import numpy as np
 import warnings
-from . import Maps
 
 
 class InversionDirective(object):
@@ -161,8 +162,8 @@ class BetaEstimate_ByEig(InversionDirective):
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
         x0 = np.random.rand(*m.shape)
-        t = x0.dot(self.dmisfit.eval2Deriv(m, x0, f=f))
-        b = x0.dot(self.reg.eval2Deriv(m, v=x0))
+        t = x0.dot(self.dmisfit.deriv2(m, x0, f=f))
+        b = x0.dot(self.reg.deriv2(m, v=x0))
         self.beta0 = self.beta0_ratio*(t/b)
 
         self.invProb.beta = self.beta0
@@ -313,6 +314,9 @@ class Update_IRLS(InversionDirective):
     coolingFactor = 2.
     coolingRate = 1
 
+    # store the l2model
+    l2model = None
+
     mode = 1
 
     @property
@@ -338,24 +342,18 @@ class Update_IRLS(InversionDirective):
 
             self.mode = 2
 
-            mmap = self.reg.mapping * self.invProb.model
-
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
-            for imodel in range(self.reg.nModels):
+            if getattr(self, 'eps', None) is None:
+                self.reg.eps_p = np.percentile(np.abs(self.invProb.model), self.prctile)
+            else:
+                self.reg.eps_p = self.eps[0]
 
-                indl, indu = imodel*self.reg.regmesh.nC, (imodel+1)*self.reg.regmesh.nC
-
-                if getattr(self, 'eps', None) is None:
-                    self.reg.eps_p[imodel] = np.percentile(np.abs(mmap[indl:indu]),self.prctile)
-                else:
-                    self.reg.eps_p[imodel] = self.eps[0]
-
-                if getattr(self, 'eps', None) is None:
-
-                    self.reg.eps_q[imodel] = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mmap[indl:indu]),self.prctile)
-                else:
-                    self.reg.eps_q[imodel] = self.eps[1]
+            if getattr(self, 'eps', None) is None:
+                print(self.reg.indActive)
+                self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*(self.reg.mapping * self.invProb.model)), self.prctile)
+            else:
+                self.reg.eps_q = self.eps[1]
 
             self.reg.norms = self.norms
             self.coolingFactor = 1.
@@ -364,18 +362,19 @@ class Update_IRLS(InversionDirective):
             self.phi_d_last = self.invProb.phi_d
             self.phi_m_last = self.invProb.phi_m_last
 
-            self.reg.l2model = self.invProb.model
+            self.l2model = self.invProb.model
             self.reg.model = self.invProb.model
 
             print("L[p qx qy qz]-norm : " + str(self.reg.norms))
             print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
 
             if getattr(self, 'f_old', None) is None:
-                self.f_old = self.reg.eval(self.invProb.model)#self.invProb.evalFunction(self.invProb.model, return_g=False, return_H=False)
+                self.f_old = self.reg(self.invProb.model)#self.invProb.evalFunction(self.invProb.model, return_g=False, return_H=False)
 
         # Beta Schedule
         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
-            if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
+            if self.debug:
+                print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
             self.invProb.beta /= self.coolingFactor
 
         # Only update after GN iterations
@@ -383,7 +382,7 @@ class Update_IRLS(InversionDirective):
 
             self.IRLSiter += 1
 
-            phim_new = self.reg.eval(self.invProb.model)
+            phim_new = self.reg(self.invProb.model)
             self.f_change = np.abs(self.f_old - phim_new) / self.f_old
 
             print("Regularization decrease: {0:6.3e}".format((self.f_change)))
@@ -414,15 +413,6 @@ class Update_IRLS(InversionDirective):
             # Get phi_m at the end of current iteration
             self.phi_m_last = self.invProb.phi_m_last
 
-            # Reset the regularization matrices so that it is
-            # recalculated for current model
-            self.reg._Wsmall = None
-            self.reg._Wx = None
-            self.reg._Wy = None
-            self.reg._Wz = None
-            self.reg._W = None
-            self.reg._Wsmooth = None
-
             # Update the model used for the IRLS weights
             self.reg.model = self.invProb.model
 
@@ -430,18 +420,10 @@ class Update_IRLS(InversionDirective):
             self.reg.gamma = 1.
 
             # Compute new model objective function value
-            phim_new = self.reg.eval(self.invProb.model)
+            phim_new = self.reg(self.invProb.model)
 
             # Update gamma to scale the regularization between IRLS iterations
             self.reg.gamma = self.phi_m_last / phim_new
-
-            # Reset the regularization matrices again for new gamma
-            self.reg._Wsmall = None
-            self.reg._Wx = None
-            self.reg._Wy = None
-            self.reg._Wz = None
-            self.reg._W = None
-            self.reg._Wsmooth = None
 
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / (self.survey.nD*0.5)
@@ -454,18 +436,20 @@ class Update_lin_PreCond(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
     """
+
     onlyOnStart = False
-    mapping = None
+    mapPair = Maps.IdentityMap
+
+    def __init__(self, mapping=None):
+        if mapping is None:
+            mapping = self.mapPair()
+        self.mapping = mapping
 
     def initialize(self):
 
-        if getattr(self, 'mapping', None) is None:
-            self.mapping = Maps.IdentityMap(nP=self.reg.mapping.nP)
-
         if getattr(self.opt, 'approxHinv', None) is None:
             # Update the pre-conditioner
-            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
-
+            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() # * (self.reg.mapping * np.ones(self.reg.model.size))**2.
             PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
@@ -476,8 +460,7 @@ class Update_lin_PreCond(InversionDirective):
 
         if getattr(self.opt, 'approxHinv', None) is not None:
             # Update the pre-conditioner
-            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
-
+            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() # * (self.reg.mapping * np.ones(self.reg.model.size))**2.
             PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 

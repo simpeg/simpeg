@@ -11,6 +11,39 @@ from . import Maps
 from . import Utils
 
 
+class Array(properties.Array):
+
+    info_text = 'a numpy, Zero or Identity array'
+
+    def validate(self, instance, value):
+        if isinstance(value, (Utils.Zero, Utils.Identity)):
+            return value
+        return super(Array, self).validate(instance, value)
+
+
+class Float(properties.Float):
+
+    info_text = 'a float, Zero or Identity'
+
+    def validate(self, instance, value):
+        if isinstance(value, (Utils.Zero, Utils.Identity)):
+            return value
+        return super(Float, self).validate(instance, value)
+
+
+class Integer(properties.Integer):
+
+    info_text = 'an Integer or *'
+
+    def validate(self, instance, value):
+        if isinstance(value, str):
+            assert value == '*', 'value must be an integer or *, not {}'.format(
+                value
+            )
+            return value
+        return super(Integer, self).validate(instance, value)
+
+
 class Model(properties.Array):
 
     info_text = 'a numpy array'

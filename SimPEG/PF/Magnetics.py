@@ -15,8 +15,6 @@ from .MagAnalytics import spheremodel, CongruousMagBC
 
 class MagneticIntegral(Problem.LinearProblem):
 
-    _depreciate_main_map = 'chiMap'
-
     chi, chiMap, chiDeriv = Props.Invertible(
         "Magnetic Susceptibility (SI)",
         default=1.
@@ -375,8 +373,6 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
 
     surveyPair = MAG.BaseMagSurvey
     modelPair = MAG.BaseMagMap
-
-    _depreciate_main_map = 'muMap'
 
     mu, muMap, muDeriv = Props.Invertible(
         "Magnetic Permeability (H/m)",

@@ -96,7 +96,7 @@ class RichardsTests1D(unittest.TestCase):
         h = np.zeros(M.nC) + bc[0]
 
         prob = Richards.RichardsProblem(
-            M, mapping=E, tolRootFinder=1e-6, debug=False,
+            M, modelMap=E, tolRootFinder=1e-6, debug=False,
             boundaryConditions=bc, initialConditions=h,
             doNewton=False, method='mixed'
         )
@@ -212,7 +212,7 @@ class RichardsTests2D(unittest.TestCase):
 
         prob = Richards.RichardsProblem(
             M,
-            mapping=E,
+            modelMap=E,
             timeSteps=[(40, 3), (60, 3)],
             Solver=Solver,
             boundaryConditions=bc,
@@ -329,7 +329,7 @@ class RichardsTests3D(unittest.TestCase):
         h = np.zeros(M.nC) + bc[0]
         prob = Richards.RichardsProblem(
             M,
-            mapping=E,
+            modelMap=E,
             timeSteps=[(40, 3), (60, 3)],
             Solver=Solver,
             boundaryConditions=bc,

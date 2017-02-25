@@ -77,7 +77,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         idenMap = Maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        prob = PF.Magnetics.MagneticIntegral(mesh, mapping=idenMap,
+        prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
                                              actInd=actv)
 
         # Pair the survey and problem
@@ -103,7 +103,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Data misfit function
         dmis = DataMisfit.l2_DataMisfit(survey)
-        dmis.Wd = 1/wd
+        dmis.W = 1/wd
 
         # Add directives to the inversion
         opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,

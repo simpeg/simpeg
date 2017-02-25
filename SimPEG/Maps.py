@@ -20,7 +20,6 @@ from . import Utils
 from .Tests import checkDerivative
 
 
-
 class IdentityMap(object):
     """
         SimPEG Map
@@ -30,11 +29,19 @@ class IdentityMap(object):
         Utils.setKwargs(self, **kwargs)
 
         if nP is not None:
-            assert isinstance(nP, integer_types), (
+            if isinstance(nP, string_types):
+                assert nP == '*', (
+                    "nP must be an integer or '*', not {}".format(nP)
+                )
+            assert isinstance(nP, integer_types + (np.int64,)), (
                 'Number of parameters must be an integer. Not `{}`.'
                 .format(type(nP))
             )
             nP = int(nP)
+        elif mesh is not None:
+            nP = mesh.nC
+        else:
+            nP = '*'
 
         self.mesh = mesh
         self._nP = nP
@@ -61,10 +68,8 @@ class IdentityMap(object):
             :rtype: tuple
             :return: shape of the operator as a tuple (int,int)
         """
-        if self._nP is not None:
-            return (self.nP, self.nP)
         if self.mesh is None:
-            return ('*', self.nP)
+            return (self.nP, self.nP)
         return (self.mesh.nC, self.nP)
 
     def _transform(self, m):
@@ -109,7 +114,7 @@ class IdentityMap(object):
         """
         if v is not None:
             return v
-        return sp.identity(self.nP)
+        return Utils.Identity()
 
     def test(self, m=None, num=4, **kwargs):
         """Test the derivative of the mapping.
@@ -184,6 +189,10 @@ class IdentityMap(object):
                     )
                 )
             return self._transform(val)
+
+        elif isinstance(val, Utils.Zero):
+            return Utils.Zero()
+
         raise Exception(
             'Unrecognized data type to multiply. Try a map or a numpy.ndarray!'
             'You used a {} of type {}'.format(
@@ -871,7 +880,6 @@ class InjectActiveCells(IdentityMap):
 
     indActive = None  #: Active Cells
     valInactive = None  #: Values of inactive Cells
-    nC = None  #: Number of cells in the full model
 
     def __init__(self, mesh, indActive, valInactive, nC=None):
         self.mesh = mesh
@@ -1383,7 +1391,7 @@ class Vertical1DMap(SurjectVertical1D):
     def __init__(self, mesh, **kwargs):
         warnings.warn(
             "`Vertical1DMap` is deprecated and will be removed in future"
-            "versions. Use `SurjectVertical1D` instead",
+            " versions. Use `SurjectVertical1D` instead",
             FutureWarning)
         SurjectVertical1D.__init__(self, mesh, **kwargs)
 

@@ -431,19 +431,21 @@ def diagEst(matFun, n, k=None, approach='Probing'):
 
     if type(matFun).__name__ == 'ndarray':
         A = matFun
-        matFun = lambda v: A.dot(v)
+
+        def matFun(v):
+            return A.dot(v)
 
     if k is None:
         k = np.floor(n/10.)
 
-    if approach == 'Ones':
+    if approach.upper() == 'ONES':
         def getv(n, i=None):
             v = np.random.randn(n)
             v[v < 0] = -1.
             v[v >= 0] = 1.
             return v
 
-    elif approach == 'Random':
+    elif approach.upper() == 'RANDOM':
         def getv(n, i=None):
             return np.random.randn(n)
 
@@ -534,10 +536,15 @@ class Zero(object):
         return 0 > v
 
     @property
-    def transpose(self): return Zero()
+    def transpose(self):
+        return Zero()
 
     @property
-    def T(self): return Zero()
+    def T(self):
+        return Zero()
+
+    def dot(self, v):
+        return self
 
 
 class Identity(object):
@@ -574,6 +581,13 @@ class Identity(object):
 
     def __mul__(self, v):
         return v if self._positive else -v
+
+    def dot(self, v):
+        return v if self._positive else -v
+
+    @property
+    def T(self):
+        return self
 
     def __rmul__(self, v):
         return v if self._positive else -v

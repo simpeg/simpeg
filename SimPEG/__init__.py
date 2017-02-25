@@ -21,7 +21,7 @@ from . import Directives
 from . import Inversion
 from . import Tests
 
-__version__   = '0.3.1'
+__version__   = '0.4.1'
 __author__    = 'Rowan Cockett'
 __license__   = 'MIT'
 __copyright__ = 'Copyright 2014 Rowan Cockett'
