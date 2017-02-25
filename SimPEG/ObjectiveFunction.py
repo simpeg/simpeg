@@ -221,7 +221,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     def __len__(self):
         return len(self._multipliers)
 
-    def __getitem__(self,key):
+    def __getitem__(self, key):
         return self._multipliers[key], self.objfcts[key]
 
     @property
@@ -231,11 +231,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     @property
     def _multipliers(self):
         return self.__multipliers
-
-    # @multipliers.setter
-    # def multipliers(self, value):
-    #     self._multipliers = value
-
 
     def __call__(self, m, **kwargs):
 
