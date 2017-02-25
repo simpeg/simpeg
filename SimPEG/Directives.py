@@ -458,7 +458,7 @@ class Update_IRLS(InversionDirective):
             # Update gamma to scale the regularization between IRLS iterations
             
             self.reg.gamma = self.phi_m_last / phim_new
-            print(self.reg.gamma)
+
             # Reset the regularization matrices again for new gamma
             self.reg._Wsmall = None
             self.reg._Wx = None
@@ -571,9 +571,9 @@ class Amplitude_Inv_Iter(InversionDirective):
 
         if self.ptype == 'MVI-S':
             scl = self.reg.eps_p[0]
-            self.reg.alpha_x[1:] = [(scl/self.reg.eps_q[i+1]) for i in range(2)]
-            self.reg.alpha_y[1:] = [(scl/self.reg.eps_q[i+1]) for i in range(2)]
-            self.reg.alpha_z[1:] = [(scl/self.reg.eps_q[i+1]) for i in range(2)]
+            self.reg.alpha_x[1:] = [(scl/self.reg.eps_q[i+1])/(2.-i) for i in range(2)]
+            self.reg.alpha_y[1:] = [(scl/self.reg.eps_q[i+1])/(2.-i) for i in range(2)]
+            self.reg.alpha_z[1:] = [(scl/self.reg.eps_q[i+1])/(2.-i) for i in range(2)]
 
         if getattr(self.opt, 'approxHinv', None) is None:
             diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
@@ -654,6 +654,7 @@ class ProjSpherical(InversionDirective):
         m = Magnetics.xyz2atp(xyz)
         #print("Projected to feasible set")
         self.invProb.model = m
+        self.prob.chi = m
         
     def endIter(self):
 
@@ -663,5 +664,5 @@ class ProjSpherical(InversionDirective):
         m = Magnetics.xyz2atp(xyz)
         #print("Projected to feasible set")
         self.invProb.model = m
-        self.opt.xc = m
+        self.prob.chi = m
         

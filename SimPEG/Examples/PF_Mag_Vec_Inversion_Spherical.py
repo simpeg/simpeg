@@ -198,7 +198,7 @@ def run(plotIt=True):
     #betaest = Directives.BetaEstimate_ByEig()
 
     # Here is where the norms are applied
-    IRLS = Directives.Update_IRLS(norms=([0, 2, 2, 2]),
+    IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),
                                   eps=None, f_min_change=1e-4,
                                   minGNiter=3, beta_tol=1e-2,
                                   coolingRate=3)

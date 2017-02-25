@@ -1061,7 +1061,7 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
         nC = int(len(x)/self.nSpace)
 
 
-        
+
         proj = np.median(np.c_[self.lower, x , self.upper],axis=1)
 
         return proj
@@ -1151,19 +1151,19 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
             count += 1
 
             q = (1-Active)*(self.H * p)
-            
+
             alpha = sold / (np.dot(p, q))
-            
+
             delx += alpha * p
-            
+
             r -= alpha * q
-            
+
             h = self.approxHinv * r
-            
+
             snew = np.dot(r, h)
-            
+
             p = h + (snew / sold * p)
-            
+
             sold = snew
             # End CG Iterations
 
@@ -1178,8 +1178,8 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
             if np.max(np.abs(delx[nC:2*nC]))>np.pi/2:
 
                 delx = delx/np.max(np.abs(delx[nC:2*nC]))*np.pi/2.
-                print("re-scaled step for theta")
-        
+
+
         # Take a gradient step on the active cells if exist
         if temp != self.xc.size:
 
@@ -1216,27 +1216,27 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
 # count = 1
 
 # while np.all([np.linalg.norm(r) > 1e-4 , count < 10]):
-   
+
 #     rho_out = np.dot(ro, r)
-   
+
 #     beta = ( rho_out / rho_in ) * ( alpha / omega )
-   
+
 #     p = r + beta * ( p - omega * v )
-   
+
 #     v = self.approxHinv*(1-Active)*(self.H * p)
-   
+
 #     alpha = rho_out / np.dot( ro, v )
-   
+
 #     s = (r - alpha * v)
-   
+
 #     t = self.approxHinv*(1-Active)*(self.H*s)
-   
+
 #     omega = np.dot( t, s ) / np.dot( t, t )
-   
+
 #     delx += alpha * p + omega * s
-   
+
 #     r = (s - omega*t)
-   
+
 #     rho_in = rho_out
-   
+
 #     count += 1
