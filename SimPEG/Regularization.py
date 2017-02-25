@@ -616,6 +616,8 @@ class Small(BaseRegularization):
     def W(self):
         if self.cell_weights is not None:
             return Utils.sdiag(self.cell_weights)
+        elif self.nP != '*':
+            return sp.eye(self.nP)
         else:
             return Utils.Identity()
 
@@ -819,7 +821,6 @@ class SimpleSmoothDeriv(BaseRegularization):
                 "z-direction"
             )
 
-
         super(SimpleSmoothDeriv, self).__init__(
             mesh=mesh, **kwargs
         )
@@ -852,7 +853,6 @@ class SimpleSmoothDeriv(BaseRegularization):
                 ) * W
             )
         return W
-
 
 
 class Simple(BaseComboRegularization):
