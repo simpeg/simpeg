@@ -1,5 +1,7 @@
 from __future__ import print_function
 import numpy as np
+import properties
+
 from . import Utils
 from . import Survey
 from . import ObjectiveFunction
@@ -18,6 +20,8 @@ class BaseDataMisfit(ObjectiveFunction.L2ObjectiveFunction):
 
     debug   = False  #: Print debugging information
     counter = None  #: Set this to a SimPEG.Utils.Counter() if you want to count things
+
+    _hasFields = True  #: Data Misfits take fields, handy to store them
 
     def __init__(self, survey, **kwargs):
         assert survey.ispaired, 'The survey must be paired to a problem.'
@@ -175,3 +179,6 @@ class l2_DataMisfit(BaseDataMisfit):
             lambda m: [self.deriv(m).dot(v), self.deriv2(m, v=v)], x, num=num,
             plotIt=plotIt, expectedOrder=1, **kwargs
         )
+
+
+
