@@ -1358,33 +1358,5 @@ class Sparse(BaseComboRegularization):
                 objfct.epsilon = change['value']
 
 
-class Volume(BaseRegularization):
-
-    """
-    A regularization on the volume integral of the model
-
-    .. math::
-
-        \phi_v = \frac{1}{2}|| \int_V m dV - \text{knownVolume} ||^2
-    """
-
-    knownVolume = properties.Float("known volume", default=0., min=0.)
-
-    def __init__(self, mesh, **kwargs):
-        super(Volume, self).__init__(mesh, **kwargs)
-
-    def __call__(self, m):
-        estVol = np.inner(self.regmesh.vol, m)
-        return 0.5*(estVol - self.knownVolume)**2
-
-    def deriv(self, m):
-        return (self.regmesh.vol * np.inner(self.regmesh.vol, m))
-
-    def deriv2(self, m, v=None):
-        if v is not None:
-            return self.regmesh.vol * np.inner(self.regmesh.vol , v)
-        else:
-            return np.outer(self.mesh.vol, self.mesh.vol)
-
 
 
