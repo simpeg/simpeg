@@ -9,7 +9,7 @@ from SimPEG import InvProblem
 from SimPEG import Directives
 from SimPEG import Inversion
 
-from SimPEG.SEIS.StraightRay import *
+from SimPEG.SEIS import StraightRay
 
 import numpy as np
 import scipy.sparse as sp
@@ -30,44 +30,36 @@ def run(plotIt=False):
     D = np.r_[10., 10.]
     x = np.r_[0., 1.]
     y = np.r_[0., 1.]
-    print 'length:', lengthInCell(O, D, x, y, plotIt=True)
+    print 'length:', StraightRay.lengthInCell(O, D, x, y, plotIt=plotIt)
     O = np.r_[0, -1.]
     D = np.r_[1., 1.]*1.5
-    print 'length:', lengthInCell(O, D, x*2, y*2, plotIt=True)
+    print 'length:', StraightRay.lengthInCell(O, D, x*2, y*2, plotIt=plotIt)
 
     nC = 20
     M = Mesh.TensorMesh([nC, nC])
     y = np.linspace(0., 1., nC/2)
     rlocs = np.c_[y*0+M.vectorCCx[-1], y]
-    rx = Survey.BaseRx(rlocs, None)
+    rx = StraightRay.Rx(rlocs, None)
 
     srcList = [
-        Survey.BaseSrc(loc=np.r_[M.vectorCCx[0], yi], rxList=[rx])
+        StraightRay.Src(loc=np.r_[M.vectorCCx[0], yi], rxList=[rx])
         for yi in y
     ]
 
-    survey = StraightRaySurvey(srcList)
-    problem = StraightRayProblem(M, slownessMap=Maps.IdentityMap(M))
+    survey = StraightRay.Survey(srcList)
+    problem = StraightRay.Problem(M, slownessMap=Maps.IdentityMap(M))
     problem.pair(survey)
 
     s = Utils.mkvc(Utils.ModelBuilder.randomModel(M.vnC)) + 1.
     survey.dobs = survey.dpred(s)
     survey.std = 0.01
-    plt.plot(survey.dobs)
-    plt.plot(survey.dpred(s*0+1.5))
-    ax = plt.subplot(111)
-    M.plotImage(s, ax=ax)
-    survey.plot(ax=ax)
 
     # Create an optimization program
-    opt = Optimization.InexactGaussNewton(maxIter=10)
-    opt.remember('xc')
-    # Create a regularization program
-    # regModel = Model.BaseModel(M)
 
     reg = Regularization.Tikhonov(M)
     dmis = DataMisfit.l2_DataMisfit(survey)
     opt = Optimization.InexactGaussNewton(maxIter=40)
+    opt.remember('xc')
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     beta = Directives.BetaSchedule()
     betaest = Directives.BetaEstimate_ByEig()
@@ -77,8 +69,29 @@ def run(plotIt=False):
     m0 = np.ones(M.nC)*1.5
     mopt = inv.run(m0)
 
-    plt.colorbar(M.plotImage(mopt)[0])
-    plt.colorbar(M.plotImage(s)[0])
+    if plotIt is True:
+        fig, ax = plt.subplots(1, 2, figsize=(8, 4))
+        ax[1].plot(survey.dobs)
+        ax[1].plot(survey.dpred(m0), 's')
+        ax[1].plot(survey.dpred(mopt), 'o')
+        ax[1].legend(['dobs', 'starting dpred', 'dpred'])
+        M.plotImage(s, ax=ax[0])
+        survey.plot(ax=ax[0])
+        ax[0].set_title('survey')
+
+        plt.tight_layout()
+
+    if plotIt is True:
+        fig, ax = plt.subplots(1, 3, figsize=(12, 4))
+        plt.colorbar(M.plotImage(m0, ax=ax[0])[0], ax=ax[0])
+        plt.colorbar(M.plotImage(mopt, ax=ax[1])[0], ax=ax[1])
+        plt.colorbar(M.plotImage(s, ax=ax[2])[0], ax=ax[2])
+
+        ax[0].set_title('Starting Model')
+        ax[1].set_title('Recovered Model')
+        ax[2].set_title('True Model')
+
+        plt.tight_layout()
 
 if __name__ == '__main__':
     run(plotIt=True)

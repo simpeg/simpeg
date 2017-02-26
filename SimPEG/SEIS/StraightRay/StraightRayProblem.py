@@ -95,9 +95,7 @@ class StraightRayProblem(Problem.LinearProblem):
 
     def fields(self, m):
         self.model = m
-        # logsig = self.model.transform
-        # return self.A * logsig
-        return self.A * self.model
+        return self.A * self.slowness
 
     def Jvec(self, m, v, f=None):
         self.model = m

@@ -17,6 +17,7 @@ class StraightRaySurvey(Survey.LinearSurvey):
         return u
 
     def plot(self, ax=None):
+        import matplotlib.pyplot as plt
         if ax is None:
             ax = plt.subplot(111)
         for tx in self.txList:
