@@ -32,204 +32,197 @@ class RegularizationTests(unittest.TestCase):
         mesh3 = Mesh.TensorMesh([hx, hy, hz])
         self.meshlist = [mesh1, mesh2, mesh3]
 
-    if testReg:
-        def test_regularization(self):
-            for R in dir(Regularization):
-                r = getattr(Regularization, R)
-                if not inspect.isclass(r):
-                    continue
-                if not issubclass(r, ObjectiveFunction.BaseObjectiveFunction):
-                    continue
-                if r.__name__ in IGNORE_ME:
-                    continue
+    # if testReg:
+    #     def test_regularization(self):
+    #         for R in dir(Regularization):
+    #             r = getattr(Regularization, R)
+    #             if not inspect.isclass(r):
+    #                 continue
+    #             if not issubclass(r, ObjectiveFunction.BaseObjectiveFunction):
+    #                 continue
+    #             if r.__name__ in IGNORE_ME:
+    #                 continue
 
-                for i, mesh in enumerate(self.meshlist):
+    #             for i, mesh in enumerate(self.meshlist):
 
-                    if mesh.dim < 3 and r.__name__[-1] == 'z':
-                        continue
-                    if mesh.dim < 2 and r.__name__[-1] == 'y':
-                        continue
+    #                 if mesh.dim < 3 and r.__name__[-1] == 'z':
+    #                     continue
+    #                 if mesh.dim < 2 and r.__name__[-1] == 'y':
+    #                     continue
 
-                    print('Testing {0:d}D'.format(mesh.dim))
+    #                 print('Testing {0:d}D'.format(mesh.dim))
 
-                    mapping = Maps.IdentityMap(mesh)
-                    reg = r(mesh=mesh, mapping=mapping)
+    #                 mapping = Maps.IdentityMap(mesh)
+    #                 reg = r(mesh=mesh, mapping=mapping)
 
-                    print(
-                        '--- Checking {} --- \n'.format(reg.__class__.__name__)
-                    )
+    #                 print(
+    #                     '--- Checking {} --- \n'.format(reg.__class__.__name__)
+    #                 )
 
-                    if mapping.nP != '*':
-                        m = np.random.rand(mapping.nP)
-                    else:
-                        m = np.random.rand(mesh.nC)
-                    mref = np.ones_like(m)*np.mean(m)
-                    reg.mref = mref
+    #                 if mapping.nP != '*':
+    #                     m = np.random.rand(mapping.nP)
+    #                 else:
+    #                     m = np.random.rand(mesh.nC)
+    #                 mref = np.ones_like(m)*np.mean(m)
+    #                 reg.mref = mref
 
-                    print('Check: phi_m (mref) = {0:f}'.format(reg(mref)))
-                    passed = reg(mref) < TOL
-                    self.assertTrue(passed)
+    #                 # test derivs
+    #                 passed = reg.test(m)
+    #                 self.assertTrue(passed)
 
-                    # test derivs
-                    passed = reg.test(m)
-                    self.assertTrue(passed)
 
-        def test_regularization_ActiveCells(self):
-            for R in dir(Regularization):
-                r = getattr(Regularization, R)
-                if not inspect.isclass(r):
-                    continue
-                if not issubclass(r, ObjectiveFunction.BaseObjectiveFunction):
-                    continue
-                if r.__name__ in IGNORE_ME:
-                    continue
 
-                for i, mesh in enumerate(self.meshlist):
+    #     def test_regularization_ActiveCells(self):
+    #         for R in dir(Regularization):
+    #             r = getattr(Regularization, R)
+    #             if not inspect.isclass(r):
+    #                 continue
+    #             if not issubclass(r, ObjectiveFunction.BaseObjectiveFunction):
+    #                 continue
+    #             if r.__name__ in IGNORE_ME:
+    #                 continue
 
-                    print('Testing Active Cells {0:d}D'.format((mesh.dim)))
+    #             for i, mesh in enumerate(self.meshlist):
 
-                    if mesh.dim == 1:
-                        indActive = Utils.mkvc(mesh.gridCC <= 0.8)
-                    elif mesh.dim == 2:
-                        indActive = Utils.mkvc(mesh.gridCC[:, -1] <= (
-                            2*np.sin(2*np.pi*mesh.gridCC[:, 0])+0.5)
-                        )
-                    elif mesh.dim == 3:
-                        indActive = Utils.mkvc(mesh.gridCC[:, -1] <= (
-                                2 * np.sin(2*np.pi*mesh.gridCC[:, 0])+0.5 *
-                                2 * np.sin(2*np.pi*mesh.gridCC[:, 1])+0.5)
-                            )
+    #                 print('Testing Active Cells {0:d}D'.format((mesh.dim)))
 
-                    if mesh.dim < 3 and r.__name__[-1] == 'z':
-                        continue
-                    if mesh.dim < 2 and r.__name__[-1] == 'y':
-                        continue
+    #                 if mesh.dim == 1:
+    #                     indActive = Utils.mkvc(mesh.gridCC <= 0.8)
+    #                 elif mesh.dim == 2:
+    #                     indActive = Utils.mkvc(mesh.gridCC[:, -1] <= (
+    #                         2*np.sin(2*np.pi*mesh.gridCC[:, 0])+0.5)
+    #                     )
+    #                 elif mesh.dim == 3:
+    #                     indActive = Utils.mkvc(mesh.gridCC[:, -1] <= (
+    #                             2 * np.sin(2*np.pi*mesh.gridCC[:, 0])+0.5 *
+    #                             2 * np.sin(2*np.pi*mesh.gridCC[:, 1])+0.5)
+    #                         )
 
-                    for indAct in [indActive, indActive.nonzero()[0]]: # test both bool and integers
-                        reg = r(mesh, indActive=indAct)
-                        m = np.random.rand(mesh.nC)[indAct]
-                        mref = np.ones_like(m)*np.mean(m)
-                        reg.mref = mref
+    #                 if mesh.dim < 3 and r.__name__[-1] == 'z':
+    #                     continue
+    #                 if mesh.dim < 2 and r.__name__[-1] == 'y':
+    #                     continue
 
-                        print(
-                                '--- Checking {} ---\n'.format(
-                                    reg.__class__.__name__
-                                )
-                            )
-                        print(
-                            'Check: phi_m (mref) = {0:f}'.format(reg(mref))
-                        )
-                        passed = reg(mref) < TOL
-                        self.assertTrue(passed)
+    #                 for indAct in [indActive, indActive.nonzero()[0]]: # test both bool and integers
+    #                     reg = r(mesh, indActive=indAct)
+    #                     m = np.random.rand(mesh.nC)[indAct]
+    #                     mref = np.ones_like(m)*np.mean(m)
+    #                     reg.mref = mref
 
-                        passed = reg.test(m, eps=TOL)
-                        self.assertTrue(passed)
+    #                     print(
+    #                             '--- Checking {} ---\n'.format(
+    #                                 reg.__class__.__name__
+    #                             )
+    #                         )
 
-    if testRegMesh:
-        def test_regularizationMesh(self):
+    #                     passed = reg.test(m, eps=TOL)
+    #                     self.assertTrue(passed)
 
-            for i, mesh in enumerate(self.meshlist):
+    # if testRegMesh:
+    #     def test_regularizationMesh(self):
 
-                print('Testing {0:d}D'.format(mesh.dim))
+    #         for i, mesh in enumerate(self.meshlist):
 
-                # mapping = r.mapPair(mesh)
-                # reg = r(mesh, mapping=mapping)
-                # m = np.random.rand(mapping.nP)
+    #             print('Testing {0:d}D'.format(mesh.dim))
 
-                if mesh.dim == 1:
-                    indAct = Utils.mkvc(mesh.gridCC <= 0.8)
-                elif mesh.dim == 2:
-                    indAct = (
-                        Utils.mkvc(
-                            mesh.gridCC[:,-1] <=
-                            2*np.sin(2*np.pi*mesh.gridCC[:, 0]) + 0.5
-                        )
-                    )
-                elif mesh.dim == 3:
-                    indAct = (
-                        Utils.mkvc(
-                            mesh.gridCC[:, -1] <=
-                            2*np.sin(2*np.pi*mesh.gridCC[:, 0]) +
-                            0.5 * 2*np.sin(2*np.pi*mesh.gridCC[:, 1]) + 0.5
-                        )
-                    )
+    #             # mapping = r.mapPair(mesh)
+    #             # reg = r(mesh, mapping=mapping)
+    #             # m = np.random.rand(mapping.nP)
 
-                regmesh = Regularization.RegularizationMesh(
-                    mesh, indActive=indAct
-                )
+    #             if mesh.dim == 1:
+    #                 indAct = Utils.mkvc(mesh.gridCC <= 0.8)
+    #             elif mesh.dim == 2:
+    #                 indAct = (
+    #                     Utils.mkvc(
+    #                         mesh.gridCC[:,-1] <=
+    #                         2*np.sin(2*np.pi*mesh.gridCC[:, 0]) + 0.5
+    #                     )
+    #                 )
+    #             elif mesh.dim == 3:
+    #                 indAct = (
+    #                     Utils.mkvc(
+    #                         mesh.gridCC[:, -1] <=
+    #                         2*np.sin(2*np.pi*mesh.gridCC[:, 0]) +
+    #                         0.5 * 2*np.sin(2*np.pi*mesh.gridCC[:, 1]) + 0.5
+    #                     )
+    #                 )
 
-                assert (regmesh.vol == mesh.vol[indAct]).all()
+    #             regmesh = Regularization.RegularizationMesh(
+    #                 mesh, indActive=indAct
+    #             )
 
-    def test_property_mirroring(self):
-        mesh = Mesh.TensorMesh([8, 7, 6])
+    #             assert (regmesh.vol == mesh.vol[indAct]).all()
 
-        for regType in ['Tikhonov', 'Sparse', 'Simple']:
-            reg = getattr(Regularization, regType)(mesh)
+    # def test_property_mirroring(self):
+    #     mesh = Mesh.TensorMesh([8, 7, 6])
 
-            self.assertTrue(reg.nP == mesh.nC)
+    #     for regType in ['Tikhonov', 'Sparse', 'Simple']:
+    #         reg = getattr(Regularization, regType)(mesh)
 
-            # Test assignment of active indices
-            indActive = mesh.gridCC[:, 2] < 0.6
-            reg.indActive = indActive
+    #         self.assertTrue(reg.nP == mesh.nC)
 
-            self.assertTrue(reg.nP == int(indActive.sum()))
+    #         # Test assignment of active indices
+    #         indActive = mesh.gridCC[:, 2] < 0.6
+    #         reg.indActive = indActive
 
-            [
-                self.assertTrue(np.all(fct.indActive == indActive))
-                for fct in reg.objfcts
-            ]
+    #         self.assertTrue(reg.nP == int(indActive.sum()))
 
-            # test assignment of cell weights
-            cell_weights = np.random.rand(indActive.sum())
-            reg.cell_weights = cell_weights
-            [
-                self.assertTrue(np.all(fct.cell_weights == cell_weights))
-                for fct in reg.objfcts
-            ]
+    #         [
+    #             self.assertTrue(np.all(fct.indActive == indActive))
+    #             for fct in reg.objfcts
+    #         ]
 
-            # test updated mappings
-            mapping = Maps.ExpMap(nP=indActive.sum())
-            reg.mapping = mapping
-            m = np.random.rand(mapping.nP)
-            [
-                self.assertTrue(np.all(fct.mapping * m == mapping * m))
-                for fct in reg.objfcts
-            ]
+    #         # test assignment of cell weights
+    #         cell_weights = np.random.rand(indActive.sum())
+    #         reg.cell_weights = cell_weights
+    #         [
+    #             self.assertTrue(np.all(fct.cell_weights == cell_weights))
+    #             for fct in reg.objfcts
+    #         ]
 
-            # test alphas
-            m = np.random.rand(reg.nP)
-            a = reg(m)
-            [
-                setattr(
-                    reg, '{}'.format(objfct._multiplier_pair),
-                    0.5*getattr(reg, '{}'.format(objfct._multiplier_pair))
-                )
-                for objfct in reg.objfcts
-            ]
-            b = reg(m)
-            self.assertTrue(0.5*a == b)
+    #         # test updated mappings
+    #         mapping = Maps.ExpMap(nP=indActive.sum())
+    #         reg.mapping = mapping
+    #         m = np.random.rand(mapping.nP)
+    #         [
+    #             self.assertTrue(np.all(fct.mapping * m == mapping * m))
+    #             for fct in reg.objfcts
+    #         ]
 
-    def test_addition(self):
-        mesh = Mesh.TensorMesh([8, 7, 6])
-        m = np.random.rand(mesh.nC)
+    #         # test alphas
+    #         m = np.random.rand(reg.nP)
+    #         a = reg(m)
+    #         [
+    #             setattr(
+    #                 reg, '{}'.format(objfct._multiplier_pair),
+    #                 0.5*getattr(reg, '{}'.format(objfct._multiplier_pair))
+    #             )
+    #             for objfct in reg.objfcts
+    #         ]
+    #         b = reg(m)
+    #         self.assertTrue(0.5*a == b)
 
-        reg1 = Regularization.Tikhonov(mesh)
-        reg2 = Regularization.Simple(mesh)
+    # def test_addition(self):
+    #     mesh = Mesh.TensorMesh([8, 7, 6])
+    #     m = np.random.rand(mesh.nC)
 
-        reg_a = reg1 + reg2
-        self.assertTrue(len(reg_a)==2)
-        self.assertTrue(reg1(m) + reg2(m) == reg_a(m))
-        reg_a.test()
+    #     reg1 = Regularization.Tikhonov(mesh)
+    #     reg2 = Regularization.Simple(mesh)
 
-        reg_b = 2*reg1 + reg2
-        self.assertTrue(len(reg_b)==2)
-        self.assertTrue(2*reg1(m) + reg2(m) == reg_b(m))
-        reg_b.test()
+    #     reg_a = reg1 + reg2
+    #     self.assertTrue(len(reg_a)==2)
+    #     self.assertTrue(reg1(m) + reg2(m) == reg_a(m))
+    #     reg_a.test()
 
-        reg_c = reg1 + reg2/2
-        self.assertTrue(len(reg_c)==2)
-        self.assertTrue(reg1(m) + 0.5*reg2(m) == reg_c(m))
-        reg_c.test()
+    #     reg_b = 2*reg1 + reg2
+    #     self.assertTrue(len(reg_b)==2)
+    #     self.assertTrue(2*reg1(m) + reg2(m) == reg_b(m))
+    #     reg_b.test()
+
+    #     reg_c = reg1 + reg2/2
+    #     self.assertTrue(len(reg_c)==2)
+    #     self.assertTrue(reg1(m) + 0.5*reg2(m) == reg_c(m))
+    #     reg_c.test()
 
     def test_mappings(self):
         mesh = Mesh.TensorMesh([8, 7, 6])
@@ -247,12 +240,24 @@ class RegularizationTests(unittest.TestCase):
             self.assertTrue(reg2.nP == 2*mesh.nC)
             self.assertTrue(reg3.nP == 2*mesh.nC)
 
-            print(m.shape, mesh.nC)
+            print(reg3(m), reg1(m), reg2(m))
             self.assertTrue(reg3(m) == reg1(m) + reg2(m))
 
             reg1.test()
             reg2.test()
             reg3.test()
+
+    def test_mref_is_zero(self):
+
+        mesh = Mesh.TensorMesh([10, 5, 8])
+        mref = np.ones(mesh.nC)
+
+        for regType in ['Tikhonov', 'Sparse', 'Simple']:
+            reg = getattr(Regularization, regType)(mesh, mref=mref)
+
+            print('Check: phi_m (mref) = {0:f}'.format(reg(mref)))
+            passed = reg(mref) < TOL
+            self.assertTrue(passed)
 
 if __name__ == '__main__':
     unittest.main()
