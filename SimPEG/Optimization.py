@@ -823,6 +823,10 @@ class BFGS(Minimize, Remember):
             Must be a SimPEG.Solver
         """
         if getattr(self, '_bfgsH0', None) is None:
+            print("""
+                Default solver: SolverDiag is being used in bfgsH0
+                """
+            )
             self._bfgsH0 = SolverDiag(sp.identity(self.xc.size))
         return self._bfgsH0
 
