@@ -482,10 +482,6 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         min=0., required=True
     )
 
-    sigstart = properties.Array(
-        "starting guess for the effective conductivity",
-    )
-
     alpha0 = properties.Float(
         "aspect ratio of the phase-0 ellipsoids", default=1.
     )
@@ -496,7 +492,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
     rel_tol = properties.Float(
         "relative tolerance for convergence for the fixed-point iteration",
-        default = 1e-8
+        default = 1e-4
     )
 
     maxit = properties.Integer(
@@ -505,7 +501,8 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         default = 50
     )
 
-    def __init__(self, mesh=None, nP=None, **kwargs):
+    def __init__(self, mesh=None, nP=None, sigstart=None, **kwargs):
+        self._sigstart = sigstart
         super(SelfConsistentEffectiveMedium, self).__init__(mesh, nP, **kwargs)
 
     @property
@@ -516,6 +513,13 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         if getattr(self, '_tol', None) is None:
             self._tol = self.rel_tol*min(self.sigma0, self.sigma1)
         return self._tol
+
+    @property
+    def sigstart(self):
+        """
+        first guess for sigma
+        """
+        return self._sigstart
 
     def wennerBounds(self, phi1):
         """Define Wenner Conductivity Bounds"""
@@ -559,9 +563,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         """
 
         if self.sigstart is None:
-            sigstart = self.wennerBounds(phi1)[0]
-        else:
-            sigstart = self.sigstart
+            self._sigstart = self.wennerBounds(phi1)[0]
 
         if not (np.all(0 <= phi1) and np.all(phi1 <= 1)):
             warnings.warn('there are phis outside bounds of 0 and 1')
@@ -569,7 +571,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
         phi0 = 1.0-phi1
 
-        sige1 = sigstart
+        sige1 = self.sigstart
 
         for i in range(self.maxit):
             R0 = self.getR(self.sigma0, sige1, self.alpha0)
