@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+import shutil
 import SimPEG.PF as PF
 from SimPEG import Maps, Regularization, Optimization, DataMisfit,\
                    InvProblem, Directives, Inversion
@@ -8,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def run(plotIt=True):
+def run(plotIt=True, cleanAfterRun=True):
     """
         PF: Gravity: Laguna del Maule Bouguer Gravity
         =============================================
@@ -128,6 +129,11 @@ def run(plotIt=True):
     # %%
     # Run L2 and Lp inversion
     mrec = inv.run(mstart)
+
+    # %%
+    if cleanAfterRun:
+        shutil.rmtree(basePath)
+
     # %%
     if plotIt:
         # Plot observed data
