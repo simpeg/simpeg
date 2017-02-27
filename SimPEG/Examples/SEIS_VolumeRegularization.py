@@ -44,7 +44,7 @@ class Volume(ObjectiveFunction.BaseObjectiveFunction):
             return sp.csc_matrix(np.outer(self.mesh.vol, self.mesh.vol))
 
 
-def run(plotIt=True, phi0=0, phi1=0.02):
+def run(plotIt=True):
     """
         Straight Ray with Volume Regularization
         =======================================
@@ -75,16 +75,12 @@ def run(plotIt=True, phi0=0, phi1=0.02):
     # phi model
     phi0 = 0
     phi1 = 0.8
-    phitrue = Utils.ModelBuilder.defineBlock(M.gridCC, [0.4, 0.6], [0.6, 0.4], [phi1, phi0])
+    phitrue = Utils.ModelBuilder.defineBlock(
+        M.gridCC, [0.4, 0.6], [0.6, 0.4], [phi1, phi0]
+    )
 
     knownVolume = np.sum(phitrue*M.vol)
     print('True Volume: {}'.format(knownVolume))
-
-    if plotIt:
-        fig, ax = plt.subplots(1, 1)
-        plt.colorbar(M.plotImage(phitrue, ax=ax)[0], ax=ax)
-        ax.set_title('True $\phi$ Model')
-        ax.set_ylabel('z')
 
     # Set up true conductivity model and plot the model transform
     sigma0 = np.exp(1)
@@ -100,6 +96,8 @@ def run(plotIt=True, phi0=0, phi1=0.02):
         sigetest = sigmaMapTest * testphis
         ax.semilogy(testphis, sigetest)
         ax.set_title('Model Transform')
+        ax.set_xlabel('$\\varphi$')
+        ax.set_ylabel('$\sigma$')
 
     sigmaMap = Maps.SelfConsistentEffectiveMedium(
         M, sigma0=sigma0, sigma1=sigma1
@@ -121,31 +119,26 @@ def run(plotIt=True, phi0=0, phi1=0.02):
 
     if plotIt:
         fig, ax = plt.subplots(1, 1)
-        cb = plt.colorbar(M.plotImage(slownesstrue, ax=ax)[0], ax=ax)
+        cb = plt.colorbar(M.plotImage(phitrue, ax=ax)[0], ax=ax)
         survey.plot(ax=ax)
-        cb.set_label('slowness')
+        cb.set_label('$\\varphi$')
 
     # get observed data
     dobs = survey.makeSyntheticData(phitrue, std=0.03, force=True)
     dpred = survey.dpred(np.zeros(M.nC))
 
-    if plotIt:
-        fig, ax = plt.subplots(1, 1)
-        ax.plot(dobs)
-        ax.plot(dpred)
-        ax.legend(['dobs', 'dpred0'])
 
     # objective function pieces
     reg = Regularization.Tikhonov(M)
     dmis = DataMisfit.l2_DataMisfit(survey)
     dmisVol = Volume(mesh=M, knownVolume=knownVolume)
-    beta = 4e-2
+    beta = 5e-2
+    maxIter = 10
 
     # without the volume regularization
-    opt = Optimization.ProjectedGNCG(maxIter=4, lower=0.0, upper=1.0)
+    opt = Optimization.ProjectedGNCG(maxIter=maxIter, lower=0.0, upper=1.0)
     opt.remember('xc')
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta)
-    # targetMisfit = Directives.TargetMisfit()
     inv = Inversion.BaseInversion(invProb)
 
     mopt1 = inv.run(np.zeros(M.nC)+1e-16)
@@ -156,13 +149,12 @@ def run(plotIt=True, phi0=0, phi1=0.02):
     )
 
     # with the volume regularization
-    vol_multiplier = 6e5
+    vol_multiplier = 1.5e5
     reg2 = reg
     dmis2 = dmis + vol_multiplier * dmisVol
-    opt2 = Optimization.ProjectedGNCG(maxIter=4, lower=0.0, upper=1.0)
+    opt2 = Optimization.ProjectedGNCG(maxIter=maxIter, lower=0.0, upper=1.0)
     opt2.remember('xc')
     invProb2 = InvProblem.BaseInvProblem(dmis2, reg2, opt2, beta=beta)
-    # targetMisfit = Directives.TargetMisfit()
     inv2 = Inversion.BaseInversion(invProb2)
 
     mopt2 = inv2.run(np.zeros(M.nC)+1e-16)
@@ -175,8 +167,15 @@ def run(plotIt=True, phi0=0, phi1=0.02):
     # plot results
 
     if plotIt:
-        fig, ax = plt.subplots(1, 3, figsize=(12, 4))
 
+        fig, ax = plt.subplots(1, 1)
+        ax.plot(dobs)
+        ax.plot(dpred)
+        ax.plot(survey.dpred(mopt1), 'o')
+        ax.plot(survey.dpred(mopt2), 's')
+        ax.legend(['dobs', 'dpred0', 'dpred w/o Vol', 'dpred with Vol'])
+
+        fig, ax = plt.subplots(1, 3, figsize=(12, 4))
         cb0 = plt.colorbar(M.plotImage(phitrue, ax=ax[0])[0], ax=ax[0])
         cb1 = plt.colorbar(M.plotImage(mopt1, ax=ax[1])[0], ax=ax[1])
         cb2 = plt.colorbar(M.plotImage(mopt2, ax=ax[2])[0], ax=ax[2])

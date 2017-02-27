@@ -53,7 +53,7 @@ class IdentityMap(object):
             :rtype: int
             :return: number of parameters that the mapping accepts
         """
-        if self._nP is not None:
+        if self._nP != '*':
             return int(self._nP)
         if self.mesh is None:
             return '*'
