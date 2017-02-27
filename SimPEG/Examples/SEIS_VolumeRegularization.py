@@ -127,7 +127,6 @@ def run(plotIt=True):
     dobs = survey.makeSyntheticData(phitrue, std=0.03, force=True)
     dpred = survey.dpred(np.zeros(M.nC))
 
-
     # objective function pieces
     reg = Regularization.Tikhonov(M)
     dmis = DataMisfit.l2_DataMisfit(survey)
