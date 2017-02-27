@@ -456,7 +456,7 @@ class Update_IRLS(InversionDirective):
                 self.f_old = phim_new
 
             # Update gamma to scale the regularization between IRLS iterations
-            
+
             self.reg.gamma = self.phi_m_last / phim_new
 
             # Reset the regularization matrices again for new gamma
@@ -471,10 +471,6 @@ class Update_IRLS(InversionDirective):
             self.reg._Ry = None
             self.reg._Rz = None
 
-            #f,g = self.invProb.evalFunction(self.invProb.model,return_g=True, return_H=False)
-            #print('phim',self.reg.eval(self.invProb.model),'beta',self.invProb.beta, 'gamma:',self.reg.gamma)
-            #print('dphim MAX', np.max(self.reg.evalDeriv(self.invProb.model)))
-            #print('MAX deriv',np.max(np.abs(g)))
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / self.target
 
@@ -585,6 +581,7 @@ class Amplitude_Inv_Iter(InversionDirective):
         # Re-initialize the field derivatives
         if self.ptype == 'Amp':
             self.prob._dfdm = None
+            self.prob.chi = self.invProb.model
         elif self.ptype == 'MVI-S':
             self.prob._S = None
 
@@ -607,7 +604,7 @@ class Amplitude_Inv_Iter(InversionDirective):
         #     self.reg.alpha_x[1:] = [scl/self.reg.eps_q[i+1] for i in range(2)]
         #     self.reg.alpha_y[1:] = [scl/self.reg.eps_q[i+1] for i in range(2)]
         #     self.reg.alpha_z[1:] = [scl/self.reg.eps_q[i+1] for i in range(2)]
-            
+
         if getattr(self.opt, 'approxHinv', None) is not None:
 
             # Update the pre-conditioner
@@ -645,7 +642,7 @@ class Amplitude_Inv_Iter(InversionDirective):
         return JtJdiag
 
 class ProjSpherical(InversionDirective):
-    
+
     def initialize(self):
 
         x = self.invProb.model
@@ -655,7 +652,7 @@ class ProjSpherical(InversionDirective):
         #print("Projected to feasible set")
         self.invProb.model = m
         self.prob.chi = m
-        
+
     def endIter(self):
 
         x = self.invProb.model
@@ -665,4 +662,4 @@ class ProjSpherical(InversionDirective):
         #print("Projected to feasible set")
         self.invProb.model = m
         self.prob.chi = m
-        
+
