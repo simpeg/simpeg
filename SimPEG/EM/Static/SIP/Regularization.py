@@ -3,10 +3,13 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from SimPEG import Utils, Maps, Mesh, sp, np
-from SimPEG.Regularization import BaseRegularization
+from SimPEG import Utils, Maps, Mesh
+import numpy as np
+import scipy.sparse as sp
+from SimPEG.Regularization import BaseRegularization, Simple
 
-class MultiRegularization(BaseRegularization):
+
+class MultiRegularization(Simple):
     """
     **MultiRegularization Class**
 

@@ -1,8 +1,9 @@
 from SimPEG import (
-    np, Mesh, Maps, Utils, DataMisfit, Regularization,
+    Mesh, Maps, Utils, DataMisfit, Regularization,
     Optimization, Inversion, InvProblem, Directives
 )
 from SimPEG.EM import FDEM, TDEM, mu_0
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 try:

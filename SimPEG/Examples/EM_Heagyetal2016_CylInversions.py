@@ -1,10 +1,11 @@
-from SimPEG import (np, Mesh, Maps, Utils, DataMisfit, Regularization,
+from SimPEG import (Mesh, Maps, Utils, DataMisfit, Regularization,
                     Optimization, Inversion, InvProblem, Directives)
+import numpy as np
 from SimPEG.EM import FDEM, TDEM, mu_0
 import matplotlib.pyplot as plt
 import matplotlib
 try:
-    from pymatsolver import PardisoSolver as Solver
+    from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
 

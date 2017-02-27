@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 import unittest
 import numpy as np
 import pickle
+import properties
 
 from SimPEG import Mesh
 from SimPEG import Maps
@@ -105,6 +106,13 @@ class ComplicatedInversion(Props.HasModel):
     gamma, gammaMap, gammaDeriv = Props.Invertible(
         "fitting parameter",
         default=4.74
+    )
+
+
+class NestedModels(Props.HasModel):
+    complicated = properties.Instance(
+        "Nested models",
+        ComplicatedInversion
     )
 
 
@@ -262,6 +270,10 @@ class TestPropMaps(unittest.TestCase):
         PM.summary()
         PM.validate()
         assert PM.KsDeriv == 0
+
+    def test_nested(self):
+        PM = NestedModels()
+        assert PM._has_nested_models is True
 
 
 if __name__ == '__main__':

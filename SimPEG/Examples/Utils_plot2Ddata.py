@@ -1,4 +1,5 @@
-from SimPEG import EM, np, Utils
+from SimPEG import EM, Utils
+import numpy as np
 import matplotlib.pyplot as plt
 
 

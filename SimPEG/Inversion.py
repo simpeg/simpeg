@@ -1,5 +1,7 @@
 from __future__ import print_function
-from SimPEG import Utils, sp, np
+import scipy.sparse as sp
+import numpy as np
+from SimPEG import Utils
 from .Optimization import Remember, IterationPrinters, StoppingCriteria
 from . import Directives
 

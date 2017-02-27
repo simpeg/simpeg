@@ -17,13 +17,11 @@ addons:
 
 env:
     - TEST_DIR=tests/examples
-    - TEST_DIR="tests/mesh tests/base tests/utils"
     - TEST_DIR=tests/em/fdem/inverse/derivs
-    - TEST_DIR=tests/em/tdem
+    - TEST_DIR="tests/em/tdem tests/base"
     - TEST_DIR=tests/em/static
     - TEST_DIR=tests/flow
-    - TEST_DIR=tests/em/nsem/forward
-    - TEST_DIR=tests/em/nsem/inversion
+    - TEST_DIR="tests/em/nsem/forward tests/em/nsem/inversion"
     - TEST_DIR=tests/em/fdem/inverse/adjoint
     - TEST_DIR=tests/em/fdem/forward
     - TEST_DIR=tests/pf
@@ -47,24 +45,12 @@ before_install:
   - conda update --yes conda
 
 install:
-
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py nose sphinx sympy vtk;
     else
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py nose sphinx sympy;
     fi
-  - pip install nose-cov python-coveralls
-
-#  - pip install pyMKL;
-  - git clone https://github.com/jcapriot/pyMKL.git;
-    cd pyMKL;
-    python setup.py install;
-    cd ..;
-    git clone https://github.com/rowanc1/pymatsolver.git;
-    cd pymatsolver;
-    python setup.py install;
-    cd ..;
-
+  - pip install nose-cov python-coveralls pymatsolver discretize
   - python setup.py install
   - python setup.py build_ext --inplace
   - if [ ${TEST_DIR} = "tests/docs" ]; then
