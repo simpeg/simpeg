@@ -1,7 +1,7 @@
 from __future__ import division
 import numpy as np
 import scipy.sparse as sp
-from .codeutils import isScalar
+from discretize.utils import Zero, Identity
 
 
 def mkvc(x, numDims=1):
@@ -298,7 +298,7 @@ class TensorType(object):
         if tensor is None:  # default is ones
             self._tt = -1
             self._tts = 'none'
-        elif isScalar(tensor):
+        elif np.isscalar(tensor):
             self._tt = 0
             self._tts = 'scalar'
         elif tensor.size == M.nC:
@@ -344,7 +344,7 @@ def makePropertyTensor(M, tensor):
     if tensor is None:  # default is ones
         tensor = np.ones(M.nC)
 
-    if isScalar(tensor):
+    if np.isscalar(tensor):
         tensor = tensor * np.ones(M.nC)
 
     propType = TensorType(M, tensor)
@@ -379,7 +379,7 @@ def invPropertyTensor(M, tensor, returnMatrix=False):
 
     propType = TensorType(M, tensor)
 
-    if isScalar(tensor):
+    if np.isscalar(tensor):
         T = 1./tensor
     elif propType < 3:  # Isotropic or Diagonal
         T = 1./mkvc(tensor)  # ensure it is a vector.
@@ -466,156 +466,3 @@ def diagEst(matFun, n, k=None, approach='Probing'):
     d = Mv/vv
 
     return d
-
-
-class Zero(object):
-
-    __numpy_ufunc__ = True
-
-    def __add__(self, v):
-        return v
-
-    def __radd__(self, v):
-        return v
-
-    def __iadd__(self, v):
-        return v
-
-    def __sub__(self, v):
-        return -v
-
-    def __rsub__(self, v):
-        return v
-
-    def __isub__(self, v):
-        return v
-
-    def __mul__(self, v):
-        return self
-
-    def __rmul__(self, v):
-        return self
-
-    def __div__(self, v):
-        return self
-
-    def __truediv__(self, v):
-        return self
-
-    def __rdiv__(self, v):
-        raise ZeroDivisionError('Cannot divide by zero.')
-
-    def __rtruediv__(self, v):
-        raise ZeroDivisionError('Cannot divide by zero.')
-
-    def __rfloordiv__(self, v):
-        raise ZeroDivisionError('Cannot divide by zero.')
-
-    def __pos__(self):
-        return self
-
-    def __neg__(self):
-        return self
-
-    def __lt__(self, v):
-        return 0 < v
-
-    def __le__(self, v):
-        return 0 <= v
-
-    def __eq__(self, v):
-        return v == 0
-
-    def __ne__(self, v):
-        return not (0 == v)
-
-    def __ge__(self, v):
-        return 0 >= v
-
-    def __gt__(self, v):
-        return 0 > v
-
-    @property
-    def transpose(self): return Zero()
-
-    @property
-    def T(self): return Zero()
-
-
-class Identity(object):
-
-    __numpy_ufunc__ = True
-
-    _positive = True
-
-    def __init__(self, positive=True):
-        self._positive = positive is True
-
-    def __pos__(self):
-        return self
-
-    def __neg__(self):
-        return Identity(not self._positive)
-
-    def __add__(self, v):
-        if sp.issparse(v):
-            return (
-                v + speye(v.shape[0]) if self._positive else
-                v - speye(v.shape[0])
-            )
-        return v + 1 if self._positive else v - 1
-
-    def __radd__(self, v):
-        return self.__add__(v)
-
-    def __sub__(self, v):
-        return self+-v
-
-    def __rsub__(self, v):
-        return -self+v
-
-    def __mul__(self, v):
-        return v if self._positive else -v
-
-    def __rmul__(self, v):
-        return v if self._positive else -v
-
-    def __div__(self, v):
-        if sp.issparse(v):
-            raise NotImplementedError('Sparse arrays not divisibile.')
-        return 1/v if self._positive else -1/v
-
-    def __truediv__(self, v):
-        if sp.issparse(v):
-            raise NotImplementedError('Sparse arrays not divisibile.')
-        return 1.0/v if self._positive else -1.0/v
-
-    def __rdiv__(self, v):
-        return v if self._positive else -v
-
-    def __rtruediv__(self, v):
-        return v if self._positive else -v
-
-    def __floordiv__(self, v):
-        return 1//v if self._positive else -1//v
-
-    def __rfloordiv__(self, v):
-        return 1//v if self._positivie else -1//v
-
-    def __lt__(self, v):
-        return 1 < v if self._positive else -1 < v
-
-    def __le__(self, v):
-        return 1 <= v if self._positive else -1 <= v
-
-    def __eq__(self, v):
-        return v == 1 if self._positive else v == -1
-
-    def __ne__(self, v):
-        return (not (1 == v))if self._positive else (not (-1 == v))
-
-    def __ge__(self, v):
-        return 1 >= v if self._positive else -1 >= v
-
-    def __gt__(self, v):
-        return 1 > v if self._positive else -1 > v

@@ -1,5 +1,6 @@
 import unittest
-from SimPEG import Mesh, Utils, np, PF
+from SimPEG import Mesh, Utils, PF
+import numpy as np
 
 
 class MagFwdProblemTests(unittest.TestCase):

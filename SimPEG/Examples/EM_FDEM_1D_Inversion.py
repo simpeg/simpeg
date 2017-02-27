@@ -4,7 +4,7 @@ from SimPEG import (Mesh, Maps, Utils, DataMisfit, Regularization,
 import SimPEG.EM as EM
 import matplotlib.pyplot as plt
 try:
-    from pymatsolver import PardisoSolver as Solver
+    from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
 

@@ -1,5 +1,7 @@
 from __future__ import division, print_function
-from SimPEG import Problem, Utils, np, sp, Solver as SimpegSolver
+import scipy.sparse as sp
+import numpy as np
+from SimPEG import Problem, Utils, Solver as SimpegSolver
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.TDEM.SurveyTDEM import Survey as SurveyTDEM
 from SimPEG.EM.TDEM.FieldsTDEM import (

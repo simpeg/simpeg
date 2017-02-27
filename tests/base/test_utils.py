@@ -3,13 +3,12 @@ import unittest
 import numpy as np
 import scipy.sparse as sp
 from SimPEG.Utils import (
-    sdiag, sub2ind, ndgrid, mkvc, isScalar, inv2X2BlockDiagonal,
+    sdiag, sub2ind, ndgrid, mkvc, inv2X2BlockDiagonal,
     inv3X3BlockDiagonal, invPropertyTensor, makePropertyTensor, indexCube,
     ind2sub, asArray_N_x_Dim, TensorType, diagEst, count, timeIt, Counter
 )
 from SimPEG import Mesh
 from SimPEG.Tests import checkDerivative
-import sys
 
 TOL = 1e-8
 
@@ -261,14 +260,6 @@ class TestSequenceFunctions(unittest.TestCase):
             self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
             Z = B2*A - sp.identity(M.nC*3)
             self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
-
-    def test_isScalar(self):
-        self.assertTrue(isScalar(1.))
-        self.assertTrue(isScalar(1))
-        if sys.version_info < (3,):
-            self.assertTrue(isScalar(long(1)))
-        self.assertTrue(isScalar(np.r_[1.]))
-        self.assertTrue(isScalar(np.r_[1]))
 
     def test_asArray_N_x_Dim(self):
 
