@@ -12,6 +12,8 @@
 Seismic Straight Ray Tomography
 ===============================
 
+Example of a straight ray tomography problem
+
 
 
 .. plot::

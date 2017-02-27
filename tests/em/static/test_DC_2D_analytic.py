@@ -1,6 +1,7 @@
 from __future__ import print_function
 import unittest
-from SimPEG import Mesh, Utils, EM, np, SolverLU
+from SimPEG import Mesh, Utils, EM, SolverLU
+import numpy as np
 import SimPEG.EM.Static.DC as DC
 import matplotlib.pyplot as plt
 
@@ -34,8 +35,8 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         self.data_anal = data_anal
 
         try:
-            from pymatsolver import PardisoSolver
-            self.Solver = PardisoSolver
+            from pymatsolver import Pardiso
+            self.Solver = Pardiso
         except ImportError:
             self.Solver = SolverLU
 

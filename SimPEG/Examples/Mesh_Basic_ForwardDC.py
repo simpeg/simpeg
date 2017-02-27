@@ -1,4 +1,5 @@
-from SimPEG import Mesh, Utils, np, SolverLU
+from SimPEG import Mesh, Utils, SolverLU
+import numpy as np
 import matplotlib.pyplot as plt
 
 

@@ -1,4 +1,5 @@
-from SimPEG import Mesh, Maps, np
+from SimPEG import Mesh, Maps
+import numpy as np
 import matplotlib.pyplot as plt
 
 

@@ -1,6 +1,8 @@
-from SimPEG import Mesh, np
-from SimPEG.FLOW import Richards
 import matplotlib.pyplot as plt
+import numpy as np
+
+from SimPEG import Mesh, Maps
+from SimPEG.FLOW import Richards
 
 
 def run(plotIt=True):
@@ -49,30 +51,30 @@ def run(plotIt=True):
     M = Mesh.TensorMesh([np.ones(40)])
     M.setCellGradBC('dirichlet')
     params = Richards.Empirical.HaverkampParams().celia1990
-    params['Ks'] = np.log(params['Ks'])
-    E = Richards.Empirical.Haverkamp(M, **params)
+    k_fun, theta_fun = Richards.Empirical.haverkamp(M, **params)
+    k_fun.KsMap = Maps.IdentityMap(nP=M.nC)
 
     bc = np.array([-61.5, -20.7])
     h = np.zeros(M.nC) + bc[0]
-    # bc = np.array([-20.7, -61.5])
-    # h = np.zeros(M.nC) + bc[1]
 
     def getFields(timeStep, method):
-        timeSteps = np.ones(360/timeStep)*timeStep
+        timeSteps = np.ones(int(360/timeStep))*timeStep
         prob = Richards.RichardsProblem(
-            M, modelMap=E,
-            boundaryConditions=bc, initialConditions=h,
-            doNewton=False, method=method
+            M,
+            hydraulic_conductivity=k_fun,
+            water_retention=theta_fun,
+            boundary_conditions=bc, initial_conditions=h,
+            do_newton=False, method=method
         )
         prob.timeSteps = timeSteps
-        return prob.fields(params['Ks'])
+        return prob.fields(params['Ks'] * np.ones(M.nC))
 
-    Hs_M010 = getFields(10., 'mixed')
-    Hs_M030 = getFields(30., 'mixed')
-    Hs_M120 = getFields(120., 'mixed')
-    Hs_H010 = getFields(10., 'head')
-    Hs_H030 = getFields(30., 'head')
-    Hs_H120 = getFields(120., 'head')
+    Hs_M010 = getFields(10, 'mixed')
+    Hs_M030 = getFields(30, 'mixed')
+    Hs_M120 = getFields(120, 'mixed')
+    Hs_H010 = getFields(10, 'head')
+    Hs_H030 = getFields(30, 'head')
+    Hs_H120 = getFields(120, 'head')
 
     if not plotIt:
         return

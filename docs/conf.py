@@ -248,10 +248,10 @@ man_pages = [
 
 # Intersphinx
 intersphinx_mapping = {
-    'python': ('http://docs.python.org/2', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
-    'matplotlib': ('http://matplotlib.sourceforge.net/', None),
+    'python': ('https://docs.python.org/2', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
+    'matplotlib': ('http://matplotlib.org/', None),
     'properties': ('http://propertiespy.readthedocs.io/en/latest/', None)
 }
 
@@ -278,9 +278,11 @@ texinfo_documents = [
 
 autodoc_member_order = 'bysource'
 
+
 def supress_nonlocal_image_warn():
     import sphinx.environment
     sphinx.environment.BuildEnvironment.warn_node = _supress_nonlocal_image_warn
+
 
 def _supress_nonlocal_image_warn(self, msg, node, **kwargs):
     from docutils.utils import get_source_line
@@ -290,6 +292,7 @@ def _supress_nonlocal_image_warn(self, msg, node, **kwargs):
 
 supress_nonlocal_image_warn()
 
+# http://stackoverflow.com/questions/11417221/sphinx-autodoc-gives-warning-pyclass-reference-target-not-found-type-warning
 
 nitpick_ignore = [
     ('py:class', 'IdentityMap'),
@@ -324,6 +327,9 @@ nitpick_ignore = [
     ('py:class', 'Fields1D_eTotal'),
     ('py:class', 'Fields3D_ePrimSec'),
     ('py:class', 'BaseNSEMSrc'),
+    ('py:class', 'RichardsMap'),
+    ('py:class', 'SimPEG.Props.HasModel'),
     ('py:class', 'BaseFDEMSrc'),
-    ('py:class', 'BaseTDEMSrc')
+    ('py:class', 'BaseTDEMSrc'),
+    ('py:func', 'discretize.utils.meshutils.meshTensor')
 ]

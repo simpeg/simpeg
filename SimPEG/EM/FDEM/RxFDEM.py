@@ -1,5 +1,5 @@
 import SimPEG
-from SimPEG import sp
+
 
 
 class BaseRx(SimPEG.Survey.BaseRx):
