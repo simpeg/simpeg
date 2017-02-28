@@ -496,7 +496,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         default = 1e-4
     )
 
-    maxit = properties.Integer(
+    maxIter = properties.Integer(
         "maximum number of iterations for the fixed point iteration "
         "calculation",
         default = 50
@@ -574,7 +574,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
         sige1 = self.sigstart
 
-        for i in range(self.maxit):
+        for i in range(self.maxIter):
             R0 = self.getR(self.sigma0, sige1, self.alpha0)
             R1 = self.getR(self.sigma1, sige1, self.alpha1)
 

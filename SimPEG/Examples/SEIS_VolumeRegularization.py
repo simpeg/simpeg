@@ -38,7 +38,7 @@ class Volume(ObjectiveFunction.BaseObjectiveFunction):
 
     def deriv2(self, m, v=None):
         if v is not None:
-            return Utils.mkvc(self.mesh.vol * np.inner(self.mesh.vol , v))
+            return Utils.mkvc(self.mesh.vol * np.inner(self.mesh.vol, v))
         else:
             # TODO: this is inefficent. It is a fully dense matrix
             return sp.csc_matrix(np.outer(self.mesh.vol, self.mesh.vol))
@@ -61,7 +61,7 @@ def run(plotIt=True):
     """
     nC = 40
     de = 1.
-    h  = np.ones(nC)*de/nC
+    h = np.ones(nC)*de/nC
     M = Mesh.TensorMesh([h, h])
 
     y = np.linspace(M.vectorCCy[0], M.vectorCCx[-1], int(np.floor(nC/4)))
@@ -74,7 +74,7 @@ def run(plotIt=True):
 
     # phi model
     phi0 = 0
-    phi1 = 0.8
+    phi1 = 0.75
     phitrue = Utils.ModelBuilder.defineBlock(
         M.gridCC, [0.4, 0.6], [0.6, 0.4], [phi1, phi0]
     )
@@ -84,12 +84,12 @@ def run(plotIt=True):
 
     # Set up true conductivity model and plot the model transform
     sigma0 = np.exp(1)
-    sigma1 = 1e3
+    sigma1 = 1e4
 
     if plotIt:
         fig, ax = plt.subplots(1, 1)
         sigmaMapTest = Maps.SelfConsistentEffectiveMedium(
-            nP=1000, sigma0=sigma0, sigma1=sigma1, rel_tol=1e-2
+            nP=1000, sigma0=sigma0, sigma1=sigma1, rel_tol=1e-1, maxIter=150
         )
         testphis = np.linspace(0., 1., 1000)
 
@@ -104,13 +104,13 @@ def run(plotIt=True):
     )
 
     # scale the slowness so it is on a ~linear scale
-    slownessMap = Maps.LogMap(M) *  sigmaMap
+    slownessMap = Maps.LogMap(M) * sigmaMap
 
     # set up the true sig model and log model dobs
     sigtrue = sigmaMap * phitrue
 
     # modt = Model.BaseModel(M);
-    slownesstrue   = slownessMap * phitrue # true model (m = log(sigma))
+    slownesstrue = slownessMap * phitrue # true model (m = log(sigma))
 
     # set up the problem and survey
     survey = StraightRay.Survey(srcList)
@@ -131,8 +131,8 @@ def run(plotIt=True):
     reg = Regularization.Tikhonov(M)
     dmis = DataMisfit.l2_DataMisfit(survey)
     dmisVol = Volume(mesh=M, knownVolume=knownVolume)
-    beta = 5e-2
-    maxIter = 10
+    beta = 0.2
+    maxIter = 8
 
     # without the volume regularization
     opt = Optimization.ProjectedGNCG(maxIter=maxIter, lower=0.0, upper=1.0)
@@ -142,13 +142,14 @@ def run(plotIt=True):
 
     mopt1 = inv.run(np.zeros(M.nC)+1e-16)
     print(
-        '\nTotal recovered volume (no vol misfit term in inversion): {}'.format(
+        '\nTotal recovered volume (no vol misfit term in inversion): '
+        '{}'.format(
             dmisVol(mopt1)
         )
     )
 
     # with the volume regularization
-    vol_multiplier = 1.5e5
+    vol_multiplier = 2e5
     reg2 = reg
     dmis2 = dmis + vol_multiplier * dmisVol
     opt2 = Optimization.ProjectedGNCG(maxIter=maxIter, lower=0.0, upper=1.0)
