@@ -1,4 +1,4 @@
-.. _examples_SEIS_StraightRa:
+.. _examples_SEIS_StraightRayTomo:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -19,8 +19,8 @@ Example of a straight ray tomography problem
 .. plot::
 
     from SimPEG import Examples
-    Examples.SEIS_StraightRa.run()
+    Examples.SEIS_StraightRayTomo.run()
 
-.. literalinclude:: ../../../SimPEG/Examples/SEIS_StraightRa.py
+.. literalinclude:: ../../../SimPEG/Examples/SEIS_StraightRayTomo.py
     :language: python
     :linenos:
