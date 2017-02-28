@@ -1,4 +1,4 @@
-.. _examples_SEIS_VolumeRegularization:
+.. _examples_SEIS_TomoJointWithVolume:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -9,10 +9,15 @@
 .. --------------------------------- ..
 
 
-Straight Ray with Volume Regularization
-=======================================
+Straight Ray with Volume Data Misfit Term
+=========================================
 
 Based on the SEG abstract Heagy, Cockett and Oldenburg, 2014.
+
+Heagy, L. J., Cockett, A. R., & Oldenburg, D. W. (2014, August 5).
+Parametrized Inversion Framework for Proppant Volume in a Hydraulically
+Fractured Reservoir. SEG Technical Program Expanded Abstracts 2014.
+Society of Exploration Geophysicists. doi:10.1190/segam2014-1639.1
 
 This example is a simple joint inversion that consists of a
 
@@ -26,8 +31,8 @@ This example is a simple joint inversion that consists of a
 .. plot::
 
     from SimPEG import Examples
-    Examples.SEIS_VolumeRegularization.run()
+    Examples.SEIS_TomoJointWithVolume.run()
 
-.. literalinclude:: ../../../SimPEG/Examples/SEIS_VolumeRegularization.py
+.. literalinclude:: ../../../SimPEG/Examples/SEIS_TomoJointWithVolume.py
     :language: python
     :linenos:
