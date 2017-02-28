@@ -59,7 +59,6 @@ class BaseInvProblem(Props.BaseSimPEG):
         self.dmisfit = dmisfit
         self.reg = reg
         self.opt = opt
-        # self.prob, self.survey = dmisfit.prob, dmisfit.survey
         # TODO: Remove: (and make iteration printers better!)
         self.opt.parent = self
         self.reg.parent = self
@@ -173,18 +172,6 @@ class BaseInvProblem(Props.BaseSimPEG):
         # if isinstance(self.dmisfit, DataMisfit.BaseDataMisfit):
         phi_d = self.dmisfit(m, f=f)
         self.dpred = self.get_dpred(m, f=f)
-        # else:
-        #     phi_d = 0.
-        #     dpred = []
-        #     for field, dmis in zip(f, self.dmisfit):
-        #         mult, objfct = dmis
-        #         if hasattr(dmis, 'survey'):
-        #             dpred += objfct.survey.dpred(m, f=field)
-        #             phi_d += mult*objfct(m, f=field)
-        #         else:
-        #             dpred += None
-        #             phi_d += mult*objfct(m)
-
 
         phi_m = self.reg(m)
 
