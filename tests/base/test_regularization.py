@@ -66,13 +66,11 @@ class RegularizationTests(unittest.TestCase):
                     mref = np.ones_like(m)*np.mean(m)
                     reg.mref = mref
 
-                    print('Check: phi_m (mref) = {0:f}'.format(reg(mref)))
-                    passed = reg(mref) < TOL
-                    self.assertTrue(passed)
-
                     # test derivs
                     passed = reg.test(m)
                     self.assertTrue(passed)
+
+
 
         def test_regularization_ActiveCells(self):
             for R in dir(Regularization):
@@ -116,11 +114,6 @@ class RegularizationTests(unittest.TestCase):
                                     reg.__class__.__name__
                                 )
                             )
-                        print(
-                            'Check: phi_m (mref) = {0:f}'.format(reg(mref))
-                        )
-                        passed = reg(mref) < TOL
-                        self.assertTrue(passed)
 
                         passed = reg.test(m, eps=TOL)
                         self.assertTrue(passed)
@@ -247,12 +240,24 @@ class RegularizationTests(unittest.TestCase):
             self.assertTrue(reg2.nP == 2*mesh.nC)
             self.assertTrue(reg3.nP == 2*mesh.nC)
 
-            print(m.shape, mesh.nC)
+            print(reg3(m), reg1(m), reg2(m))
             self.assertTrue(reg3(m) == reg1(m) + reg2(m))
 
             reg1.test()
             reg2.test()
             reg3.test()
+
+    def test_mref_is_zero(self):
+
+        mesh = Mesh.TensorMesh([10, 5, 8])
+        mref = np.ones(mesh.nC)
+
+        for regType in ['Tikhonov', 'Sparse', 'Simple']:
+            reg = getattr(Regularization, regType)(mesh, mref=mref)
+
+            print('Check: phi_m (mref) = {0:f}'.format(reg(mref)))
+            passed = reg(mref) < TOL
+            self.assertTrue(passed)
 
 if __name__ == '__main__':
     unittest.main()

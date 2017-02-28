@@ -25,6 +25,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
 
     mapPair = Maps.IdentityMap  #: Base class of expected maps
     _mapping = None  #: An IdentityMap instance.
+    _hasFields = False  #: should we have the option to store fields
 
     _nP = None
 
@@ -33,7 +34,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
             self._nP = nP
         Utils.setKwargs(self, **kwargs)
 
-    def __call__(self, x, **kwargs):
+    def __call__(self, x, f=None):
         raise NotImplementedError(
             '__call__ has not been implemented for {} yet'.format(
                 self.__class__.__name__
@@ -67,7 +68,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
 
 
     @Utils.timeIt
-    def __call__(self, x, **kwargs):
+    def __call__(self, x, f=None):
         raise NotImplementedError(
             "The method __call__ has not been implemented for {}".format(
                 self.__class__.__name__
@@ -232,33 +233,45 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     def _multipliers(self):
         return self.__multipliers
 
-    def __call__(self, m, **kwargs):
+    def __call__(self, m, f=None):
 
-        f = 0.
-        for multiplier, objfct in self:
+        fct = 0.
+        for i, phi in enumerate(self):
+            multiplier, objfct = phi
             if multiplier == 0.: # don't evaluate the fct
                 continue
             else:
-                f += multiplier * objfct(m, **kwargs)
-        return f
+                if f is not None and objfct._hasFields:
+                    fct += multiplier * objfct(m, f=f[i])
+                else:
+                    fct += multiplier * objfct(m)
+        return fct
 
-    def deriv(self, m, **kwargs):
+    def deriv(self, m, f=None):
         g = Utils.Zero()
-        for multiplier, objfct in self:
+        for i, phi in enumerate(self):
+            multiplier, objfct = phi
             if multiplier == 0.: # don't evaluate the fct
                 continue
             else:
-                g += multiplier * objfct.deriv(m, **kwargs)
+                if f is not None and objfct._hasFields:
+                    g += multiplier * objfct.deriv(m, f=f[i])
+                else:
+                    g += multiplier * objfct.deriv(m)
         return g
 
-    def deriv2(self, m, v=None, **kwargs):
+    def deriv2(self, m, v=None, f=None):
 
         H = Utils.Zero()
-        for multiplier, objfct in self:
+        for i, phi in enumerate(self):
+            multiplier, objfct = phi
             if multiplier == 0.: # don't evaluate the fct
                 continue
             else:
-                objfct_H = objfct.deriv2(m, v, **kwargs)
+                if f is not None and objfct._hasFields:
+                    objfct_H = objfct.deriv2(m, v, f=f[i])
+                else:
+                    objfct_H = objfct.deriv2(m, v)
                 H = H + multiplier * objfct_H
         return H
 

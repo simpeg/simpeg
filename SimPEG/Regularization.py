@@ -16,7 +16,8 @@ __all__ = [
     'SmoothDeriv', 'SmoothDeriv2',
     'SimpleSmoothDeriv',
     'Simple', 'Tikhonov',
-    'SparseSmall', 'SparseDeriv', 'Sparse'
+    'SparseSmall', 'SparseDeriv', 'Sparse',
+    'Volume'
 ]
 
 
@@ -510,7 +511,6 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
             value._assertMatchesPair(self.mapPair)
         self._mapping = value
 
-
     @Utils.timeIt
     def __call__(self, m):
         """
@@ -616,6 +616,8 @@ class Small(BaseRegularization):
     def W(self):
         if self.cell_weights is not None:
             return Utils.sdiag(self.cell_weights)
+        elif self.mapping.shape[0] != '*':
+            return sp.eye(self.mapping.shape[0])
         elif self.nP != '*':
             return sp.eye(self.nP)
         else:
@@ -1083,6 +1085,7 @@ class SmoothDeriv2(BaseRegularization):
         )
         return W
 
+
 class Tikhonov(BaseComboRegularization):
     """
     L2 Tikhonov regularization with both smallness and smoothness (first order
@@ -1171,7 +1174,6 @@ class BaseSparse(BaseRegularization):
         r = eta / (f_m**2. + eps**2.)**((1.-exponent/2.)/2.)
 
         return r
-
 
 
 class SparseSmall(BaseSparse):
@@ -1354,4 +1356,7 @@ class Sparse(BaseComboRegularization):
         for objfct in self.objfcts:
             if isinstance(objfct, SparseDeriv):
                 objfct.epsilon = change['value']
+
+
+
 
