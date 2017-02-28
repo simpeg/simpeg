@@ -389,12 +389,12 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         ellipsoidal inclusions. The model is the concentration
         (volume fraction) of the phase 2 material.
 
-        The model is :math:`\varphi`. We solve for :math:`\sigma`
-        given :math:`\sigma_0`, :math:`\sigma_1` and :math:`\varphi`. Each of
+        The model is :math:`\\varphi`. We solve for :math:`\sigma`
+        given :math:`\sigma_0`, :math:`\sigma_1` and :math:`\\varphi` . Each of
         the following are implicit expressions of the effective conductivity.
         They are solved using a fixed point iteration.
 
-        ** Spherical Inclusions **
+        **Spherical Inclusions**
 
         If the shape of the inclusions are spheres, we use
 
@@ -408,15 +408,15 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
         .. math::
 
-            (1-\varphi)(\sigma - \sigma_0)R^{(0)} + \varphi(\sigma - \sigma_1)R^{(1)} = 0.
+            (1-\\varphi)(\sigma - \sigma_0)R^{(0)} + \\varphi(\sigma - \sigma_1)R^{(1)} = 0.
 
         Where :math:`R^{(j)}` is given by
 
         .. math::
 
-            R^{(j)} = \left[1 + \frac{1}{3}\frac{\sigma_j - \sigma}{\sigma} \right]^{-1}.
+            R^{(j)} = \\left[1 + \\frac{1}{3}\\frac{\sigma_j - \sigma}{\sigma} \\right]^{-1}.
 
-        ** Ellipsoids **
+        **Ellipsoids**
 
         .. todo::
 
@@ -427,40 +427,40 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
         .. math::
 
-            \sum_{j=1}^N \varphi_j (\Sigma^* - \sigma_j\mathbf{I}) \mathbf{R}^{j, *} = 0
+            \sum_{j=1}^N \\varphi_j (\Sigma^* - \sigma_j\mathbf{I}) \mathbf{R}^{j, *} = 0
 
         where
 
         .. math::
 
-            \mathbf{R}^{(j, *)} = \left[ \mathbf{I} + \mathbf{A}_j {\Sigma^{*}}^{-1}(\sigma_j \mathbf{I} - \Sigma^*) \right]^{-1}
+            \mathbf{R}^{(j, *)} = \left[ \mathbf{I} + \mathbf{A}_j {\Sigma^{*}}^{-1}(\sigma_j \mathbf{I} - \Sigma^*) \\right]^{-1}
 
         and the depolarization tensor :math:`\mathbf{A}_j` is given by
 
         .. math::
 
-            \mathbf{A}^* = \left[
-                Q & 0 & 0 \\
-                0 & Q & 0 \\
+            \mathbf{A}^* = \\left[\\begin{array}{ccc}
+                Q & 0 & 0 \\\\
+                0 & Q & 0 \\\\
                 0 & 0 & 1-2Q
-            \right]
+            \end{array}\\right]
 
         for a spheroid aligned along the z-axis. For an oblate spheroid
-        (:math:`alpha < 1`, pancake-like)
+        (:math:`\\alpha < 1`, pancake-like)
 
         .. math::
 
-            Q = \frac{1}{2}\left{
-                1 + \frac{1}{\alpha^2 - 1} \left[
-                    1 - \frac{1}{\chi}\tan^{-1}(\chi
-                \right]
-            \right}
+            Q = \\frac{1}{2}\\left(
+                1 + \\frac{1}{\\alpha^2 - 1} \\left[
+                    1 - \\frac{1}{\chi}\\tan^{-1}(\chi)
+                \\right]
+            \\right)
 
         where
 
         .. math::
 
-            \chi = \sqrt{\frac{1}{\alpha^2} - 1}
+            \chi = \sqrt{\\frac{1}{\\alpha^2} - 1}
 
         .. todo::
 
