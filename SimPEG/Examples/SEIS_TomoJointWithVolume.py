@@ -46,8 +46,8 @@ class Volume(ObjectiveFunction.BaseObjectiveFunction):
 
 def run(plotIt=True):
     """
-        Straight Ray with Volume Regularization
-        =======================================
+        Straight Ray with Volume Data Misfit Term
+        =========================================
 
         Based on the SEG abstract Heagy, Cockett and Oldenburg, 2014.
 
@@ -79,7 +79,7 @@ def run(plotIt=True):
 
     # phi model
     phi0 = 0
-    phi1 = 0.75
+    phi1 = 0.65
     phitrue = Utils.ModelBuilder.defineBlock(
         M.gridCC, [0.4, 0.6], [0.6, 0.4], [phi1, phi0]
     )
@@ -136,8 +136,8 @@ def run(plotIt=True):
     reg = Regularization.Tikhonov(M)
     dmis = DataMisfit.l2_DataMisfit(survey)
     dmisVol = Volume(mesh=M, knownVolume=knownVolume)
-    beta = 0.2
-    maxIter = 8
+    beta = 0.25
+    maxIter = 15
 
     # without the volume regularization
     opt = Optimization.ProjectedGNCG(maxIter=maxIter, lower=0.0, upper=1.0)
@@ -154,7 +154,7 @@ def run(plotIt=True):
     )
 
     # with the volume regularization
-    vol_multiplier = 2e5
+    vol_multiplier = 9e4
     reg2 = reg
     dmis2 = dmis + vol_multiplier * dmisVol
     opt2 = Optimization.ProjectedGNCG(maxIter=maxIter, lower=0.0, upper=1.0)
@@ -180,7 +180,7 @@ def run(plotIt=True):
         ax.plot(survey.dpred(mopt2), 's')
         ax.legend(['dobs', 'dpred0', 'dpred w/o Vol', 'dpred with Vol'])
 
-        fig, ax = plt.subplots(1, 3, figsize=(12, 4))
+        fig, ax = plt.subplots(1, 3, figsize=(16, 4))
         cb0 = plt.colorbar(M.plotImage(phitrue, ax=ax[0])[0], ax=ax[0])
         cb1 = plt.colorbar(M.plotImage(mopt1, ax=ax[1])[0], ax=ax[1])
         cb2 = plt.colorbar(M.plotImage(mopt2, ax=ax[2])[0], ax=ax[2])
