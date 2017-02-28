@@ -30,10 +30,10 @@ def run(plotIt=False):
     D = np.r_[10., 10.]
     x = np.r_[0., 1.]
     y = np.r_[0., 1.]
-    print 'length:', StraightRay.lengthInCell(O, D, x, y, plotIt=plotIt)
+    print('length:', StraightRay.lengthInCell(O, D, x, y, plotIt=plotIt))
     O = np.r_[0, -1.]
     D = np.r_[1., 1.]*1.5
-    print 'length:', StraightRay.lengthInCell(O, D, x*2, y*2, plotIt=plotIt)
+    print('length:', StraightRay.lengthInCell(O, D, x*2, y*2, plotIt=plotIt))
 
     nC = 20
     M = Mesh.TensorMesh([nC, nC])
