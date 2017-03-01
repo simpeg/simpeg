@@ -7,7 +7,7 @@ from SimPEG.Utils.io_utils import remoteDownload
 #     print('using MumpsSolver')
 # except ImportError:
 try:
-    from pymatsolver import PardisoSolver as Solver
+    from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
 

@@ -1,6 +1,5 @@
 from __future__ import print_function
 import unittest
-import os
 import numpy as np
 from SimPEG import Utils
 
@@ -33,7 +32,11 @@ class coorUtilsTest(unittest.TestCase):
         v1 = np.random.rand(3)
         v1 *= 1./np.linalg.norm(v1)
 
-        v2 = Utils.mkvc(Utils.coordutils.rotatePointsFromNormals(Utils.mkvc(v0,2).T,v0,v1))
+        v2 = Utils.mkvc(
+            Utils.coordutils.rotatePointsFromNormals(
+                Utils.mkvc(v0, 2).T, v0, v1
+            )
+        )
 
         self.assertTrue(np.linalg.norm(v2-v1) < tol)
 
@@ -59,4 +62,3 @@ class coorUtilsTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

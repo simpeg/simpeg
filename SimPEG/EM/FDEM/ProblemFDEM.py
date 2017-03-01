@@ -232,7 +232,7 @@ class Problem3D_e(BaseFDEMProblem):
 
     which we solve for :math:`\mathbf{e}`.
 
-    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
+    :param discretize.BaseMesh.BaseMesh mesh: mesh
     """
 
     _solutionType = 'eSolution'
@@ -379,7 +379,7 @@ class Problem3D_b(BaseFDEMProblem):
     .. note ::
         The inverse problem will not work with full anisotropy
 
-    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
+    :param discretize.BaseMesh.BaseMesh mesh: mesh
     """
 
     _solutionType = 'bSolution'
@@ -557,7 +557,7 @@ class Problem3D_j(BaseFDEMProblem):
     .. note::
         This implementation does not yet work with full anisotropy!!
 
-    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
+    :param discretize.BaseMesh.BaseMesh mesh: mesh
     """
 
     _solutionType = 'jSolution'
@@ -743,7 +743,7 @@ class Problem3D_h(BaseFDEMProblem):
         i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{M^e}
         \mathbf{s_m} + \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{s_e}
 
-    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
+    :param discretize.BaseMesh.BaseMesh mesh: mesh
     """
 
     _solutionType = 'hSolution'

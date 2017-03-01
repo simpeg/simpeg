@@ -6,7 +6,7 @@ from .matutils import (mkvc, sdiag, sdInv, speye, kron3, spzeros, ddx, av,
                        Identity)
 from .codeutils import (memProfileWrapper, hook, setKwargs,
                         printTitles, printLine, checkStoppers, printStoppers,
-                        callHooks, dependentProperty, isScalar,
+                        callHooks, dependentProperty,
                         asArray_N_x_Dim, requires)
 from .meshutils import (exampleLrmGrid, meshTensor, closestPoints,
                         ExtractCoreMesh)

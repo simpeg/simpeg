@@ -61,8 +61,8 @@ class FDEM_analyticTests(unittest.TestCase):
         prb.pair(survey)
 
         try:
-            from pymatsolver import PardisoSolver
-            prb.Solver = PardisoSolver
+            from pymatsolver import Pardiso
+            prb.Solver = Pardiso
         except ImportError:
             prb.Solver = SolverLU
 

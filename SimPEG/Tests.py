@@ -3,8 +3,8 @@ import numpy as np
 from numpy.linalg import norm
 from SimPEG.Utils import mkvc, sdiag, diagEst
 from SimPEG import Utils
-from SimPEG.Mesh import TensorMesh, CurvilinearMesh, CylMesh
-from SimPEG.Mesh.TreeMesh import TreeMesh as Tree
+from discretize import TensorMesh, CurvilinearMesh, CylMesh
+from discretize.TreeMesh import TreeMesh as Tree
 import scipy.sparse as sp
 import unittest
 import inspect
@@ -253,7 +253,8 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
         .. plot::
             :include-source:
 
-            from SimPEG import Tests, Utils, np
+            import numpy as np
+            from SimPEG import Tests, Utils
             def simplePass(x):
                 return np.sin(x), Utils.sdiag(np.cos(x))
             Tests.checkDerivative(simplePass, np.random.randn(5))
