@@ -20,7 +20,6 @@ from . import Utils
 from .Tests import checkDerivative
 
 
-
 class IdentityMap(object):
     """
         SimPEG Map
