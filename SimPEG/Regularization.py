@@ -17,7 +17,6 @@ __all__ = [
     'SimpleSmoothDeriv',
     'Simple', 'Tikhonov',
     'SparseSmall', 'SparseDeriv', 'Sparse',
-    'Volume'
 ]
 
 
