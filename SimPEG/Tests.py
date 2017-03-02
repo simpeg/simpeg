@@ -312,6 +312,8 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
 
 
     if plotIt:
+        import matplotlib
+        matplotlib.use('Agg')
         import matplotlib.pyplot as plt
         ax = ax or plt.subplot(111)
         ax.loglog(h, E0, 'b')
