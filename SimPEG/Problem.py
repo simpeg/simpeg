@@ -33,7 +33,7 @@ class BaseProblem(Props.HasModel):
     #: Solver options as a kwarg dict
     solverOpts = {}
 
-    #: A SimPEG.Mesh instance.
+    #: A discretize instance.
     mesh = None
 
     def __init__(self, mesh, **kwargs):
@@ -48,7 +48,7 @@ class BaseProblem(Props.HasModel):
 
         super(BaseProblem, self).__init__(**kwargs)
         assert isinstance(mesh, Mesh.BaseMesh), (
-            "mesh must be a SimPEG.Mesh object."
+            "mesh must be a discretize object."
         )
         self.mesh = mesh
 
@@ -238,7 +238,7 @@ class BaseTimeProblem(BaseProblem):
 
     @t0.setter
     def t0(self, value):
-        assert Utils.isScalar(value), 't0 must be a scalar'
+        assert np.isscalar(value), 't0 must be a scalar'
         del self.timeMesh
         self._t0 = float(value)
 

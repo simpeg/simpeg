@@ -1,6 +1,6 @@
 import unittest
 from SimPEG import Mesh, Solver, SolverDiag, SolverCG, SolverLU, Utils
-from SimPEG.Mesh import TensorMesh
+from discretize import TensorMesh
 from SimPEG.Utils import sdiag
 import numpy as np
 import scipy.sparse as sparse
@@ -10,6 +10,7 @@ TOLI = 1e-3
 numRHS = 5
 
 np.random.seed(77)
+
 
 def dotest(MYSOLVER, multi=False, A=None, **solverOpts):
     if A is None:

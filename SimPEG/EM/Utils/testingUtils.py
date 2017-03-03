@@ -83,8 +83,8 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     prb.pair(survey)
 
     try:
-        from pymatsolver import PardisoSolver
-        prb.Solver = PardisoSolver
+        from pymatsolver import Pardiso
+        prb.Solver = Pardiso
     except ImportError:
         prb.Solver = SolverLU
     # prb.solverOpts = dict(check_accuracy=True)

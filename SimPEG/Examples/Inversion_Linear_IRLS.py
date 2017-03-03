@@ -16,8 +16,8 @@ from SimPEG import Inversion
 
 def run(N=100, plotIt=True):
     """
-        Inversion: Linear: IRLS
-        =======================
+        Inversion: Linear: Update_IRLS
+        ==============================
 
         Here we go over the basics of creating a linear problem and inversion.
     """
@@ -64,7 +64,7 @@ def run(N=100, plotIt=True):
     wr = wr/np.max(wr)
 
     dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.Wd = 1./wd
+    dmis.W = 1./wd
 
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
 
@@ -96,7 +96,7 @@ def run(N=100, plotIt=True):
     # Run inversion
     mrec = inv.run(m0)
 
-    print("Final misfit:" + str(invProb.dmisfit.eval(mrec)))
+    print("Final misfit:" + str(invProb.dmisfit(mrec)))
 
     if plotIt:
         fig, axes = plt.subplots(1, 2, figsize=(12*1.2, 4*1.2))
@@ -105,7 +105,7 @@ def run(N=100, plotIt=True):
         axes[0].set_title('Columns of matrix G')
 
         axes[1].plot(mesh.vectorCCx, mtrue, 'b-')
-        axes[1].plot(mesh.vectorCCx, reg.l2model, 'r-')
+        axes[1].plot(mesh.vectorCCx, IRLS.l2model, 'r-')
         # axes[1].legend(('True Model', 'Recovered Model'))
         axes[1].set_ylim(-1.0, 1.25)
 

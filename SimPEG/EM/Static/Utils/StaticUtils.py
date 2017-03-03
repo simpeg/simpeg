@@ -207,7 +207,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
     dl_x = (endl[1, 0] - endl[0, 0]) / dl_len
     dl_y = (endl[1, 1] - endl[0, 1]) / dl_len
 
-    nstn = np.floor(dl_len / a)
+    nstn = int(np.floor(dl_len / a))
 
     # Compute discrete pole location along line
     stn_x = endl[0, 0] + np.array(range(int(nstn)))*dl_x*a
@@ -249,7 +249,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
             AB = xy_2_r(tx[0, 1], endl[1, 0], tx[1, 1], endl[1, 1])
 
             # Number of receivers to fit
-            nstn = np.min([np.floor((AB - b) / a), n])
+            nstn = int(np.min([np.floor((AB - b) / a), n]))
 
             # Check if there is enough space, else break the loop
             if nstn <= 0:

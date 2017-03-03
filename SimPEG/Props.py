@@ -11,6 +11,39 @@ from . import Maps
 from . import Utils
 
 
+class Array(properties.Array):
+
+    info_text = 'a numpy, Zero or Identity array'
+
+    def validate(self, instance, value):
+        if isinstance(value, (Utils.Zero, Utils.Identity)):
+            return value
+        return super(Array, self).validate(instance, value)
+
+
+class Float(properties.Float):
+
+    info_text = 'a float, Zero or Identity'
+
+    def validate(self, instance, value):
+        if isinstance(value, (Utils.Zero, Utils.Identity)):
+            return value
+        return super(Float, self).validate(instance, value)
+
+
+class Integer(properties.Integer):
+
+    info_text = 'an Integer or *'
+
+    def validate(self, instance, value):
+        if isinstance(value, str):
+            assert value == '*', 'value must be an integer or *, not {}'.format(
+                value
+            )
+            return value
+        return super(Integer, self).validate(instance, value)
+
+
 class Model(properties.Array):
 
     info_text = 'a numpy array'
@@ -327,17 +360,27 @@ class HasModel(BaseSimPEG):
         ])
 
     @property
-    def _needs_model(self):
+    def needs_model(self):
         """True if a model is necessary"""
         return len(self._act_map_names) > 0
 
+    @property
+    def _has_nested_models(self):
+        for k in self._props:
+            if (
+                    isinstance(self._props[k], properties.Instance) and
+                    issubclass(self._props[k].instance_class, HasModel)
+               ):
+                return True
+        return False
+
     @properties.validator('model')
-    def _check_model_length(self, change):
+    def _check_model_valid(self, change):
         """Checks the model length and necessity"""
         if change['value'] is properties.utils.undefined:
             return True
 
-        if len(self._act_map_names) == 0:
+        if not self.needs_model and not self._has_nested_models:
             warnings.warn(
                 "Cannot add model as there are no active mappings"
                 ", choose from: ['{}']".format(
@@ -377,9 +420,9 @@ class HasModel(BaseSimPEG):
         errors = []
 
         # Check if the model is necessary
-        if self._needs_model and self.model is None:
+        if self.needs_model and self.model is None:
             errors += ['model must not be None']
-        if not self._needs_model and self.model is not None:
+        if not self.needs_model and self.model is not None:
             errors += ['there are no active maps, but a model is provided']
 
         # Check each map is the same size

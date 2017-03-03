@@ -1,4 +1,4 @@
-.. _examples_Mesh_Plot_Cyl:
+.. _examples_SEIS_StraightRayTomo:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -9,18 +9,18 @@
 .. --------------------------------- ..
 
 
-Plot Mirrored Cylindrically Symmetric Model
-===========================================
+Seismic Straight Ray Tomography
+===============================
 
-Here, we demonstrate plotting a model on a cylindrically
-symmetric mesh with the plotting symmetric about x=0.
+Example of a straight ray tomography problem
+
 
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.Mesh_Plot_Cyl.run()
+    Examples.SEIS_StraightRayTomo.run()
 
-.. literalinclude:: ../../../SimPEG/Examples/Mesh_Plot_Cyl.py
+.. literalinclude:: ../../../SimPEG/Examples/SEIS_StraightRayTomo.py
     :language: python
     :linenos:

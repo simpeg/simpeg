@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import SimPEG.EM.Static.DC as DC
 try:
-    from pymatsolver import PardisoSolver as Solver
+    from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
 

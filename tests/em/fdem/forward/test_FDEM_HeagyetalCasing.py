@@ -3,7 +3,6 @@ matplotlib.use('Agg')
 
 from SimPEG.Examples import EM_Heagyetal2016_Casing as CasingExample
 import unittest
-import numpy as np
 
 TOL = 1e-6
 
@@ -48,4 +47,3 @@ class CasingExampleTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

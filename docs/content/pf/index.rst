@@ -101,7 +101,7 @@ Since we compute secondary field based on the earth field, which can be differen
     from SimPEG import Examples
     Examples.PF_Magnetics_Analytics.run()
 
-Since we can measure total fields ( \\(\\vec{B}\\)), and usually have reasonably accurate earth field (\\(\\vec{B}_0\\)), we can compute anomalous fields, \\(\\vec{B}_s\\) from our observed data. If you want to download earth magnetic fields at specific location see this website (`noaa <http://www.ngdc.noaa.gov/geomag-web/>`_).
+Since we can measure total fields ( \\(\\vec{B}\\)), and usually have reasonably accurate earth field (\\(\\vec{B}_0\\)), we can compute anomalous fields, \\(\\vec{B}_s\\) from our observed data. If you want to download earth magnetic fields at specific location see this website (`noaa <https://www.ngdc.noaa.gov/geomag-web/>`_).
 
 What is our data?
 -----------------
