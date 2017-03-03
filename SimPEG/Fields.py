@@ -5,7 +5,8 @@ from __future__ import unicode_literals
 
 from six import string_types
 import numpy as np
-from . import Utils
+
+from SimPEG import Utils
 
 
 class Fields(object):

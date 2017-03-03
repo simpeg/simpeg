@@ -1,8 +1,8 @@
 from __future__ import print_function
-from . import Utils
-from . import Props
-from . import DataMisfit
-from . import Regularization
+from SimPEG import Utils
+from SimPEG import Props
+from SimPEG import DataMisfit
+from SimPEG import Regularization
 
 import properties
 import numpy as np

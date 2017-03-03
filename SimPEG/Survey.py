@@ -1,10 +1,13 @@
 from __future__ import print_function
-from . import Utils
-from . import Props
+
 import numpy as np
 import scipy.sparse as sp
 import uuid
 import gc
+
+from SimPEG import Utils
+from SimPEG import Props
+
 
 
 class BaseRx(object):

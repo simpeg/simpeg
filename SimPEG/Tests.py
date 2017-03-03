@@ -10,8 +10,8 @@ import inspect
 from discretize import TensorMesh, CurvilinearMesh, CylMesh
 from discretize.TreeMesh import TreeMesh as Tree
 
-from .Utils import mkvc, sdiag, diagEst
-from . import Utils
+from SimPEG.Utils import mkvc, sdiag, diagEst
+from SimPEG import Utils
 
 
 try:

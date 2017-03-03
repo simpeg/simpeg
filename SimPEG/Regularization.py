@@ -1,7 +1,7 @@
 from __future__ import print_function
-from . import Utils
-from . import Maps
-from . import Mesh
+from SimPEG import Utils
+from SimPEG import Maps
+from SimPEG import Mesh
 import numpy as np
 import scipy.sparse as sp
 

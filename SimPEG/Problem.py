@@ -1,13 +1,16 @@
 from __future__ import print_function
-from . import Utils
-from . import Survey
-from . import Models
+
 import numpy as np
-from . import Maps
-from .Fields import Fields, TimeFields
-from . import Mesh
-from . import Props
 import properties
+
+from SimPEG import Utils
+from SimPEG import Survey
+from SimPEG import Models
+from SimPEG import Maps
+from SimPEG.Fields import Fields, TimeFields
+from SimPEG import Mesh
+from SimPEG import Props
+
 
 
 Solver = Utils.SolverUtils.Solver

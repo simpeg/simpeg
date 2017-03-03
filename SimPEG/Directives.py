@@ -1,9 +1,10 @@
 from __future__ import print_function
-from . import Utils
+
 import numpy as np
 import warnings
-from . import Maps
 
+from SimPEG import Maps
+from SimPEG import Utils
 
 class InversionDirective(object):
     """InversionDirective"""

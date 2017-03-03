@@ -1,6 +1,7 @@
 from __future__ import print_function
 import numpy as np
-from .Maps import IdentityMap
+from SimPEG.Maps import IdentityMap
+
 
 class Model(np.ndarray):
 
