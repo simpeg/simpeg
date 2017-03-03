@@ -163,7 +163,7 @@ class BetaEstimate_ByEig(InversionDirective):
 
         x0 = np.random.rand(*m.shape)
         t = x0.dot(self.dmisfit.eval2Deriv(m, x0, f=f))
-        b = x0.dot(self.reg.eval2Deriv(m, v=x0))
+        b = x0.dot(self.reg2Deriv(m, v=x0))
         self.beta0 = self.beta0_ratio*(t/b)
 
         self.invProb.beta = self.beta0
@@ -344,7 +344,7 @@ class Update_IRLS(InversionDirective):
             mmap = self.reg.mapping * self.invProb.model
             # print(' iter', self.opt.iter, 'beta',self.invProb.beta,'phid', self.invProb.phi_d)
             if getattr(self, 'f_old', None) is None:
-                self.f_old = self.reg.eval(self.invProb.model)#self.invProb.evalFunction(self.invProb.model, return_g=False, return_H=False)
+                self.f_old = self.reg(self.invProb.model)#self.invProb.evalFunction(self.invProb.model, return_g=False, return_H=False)
 
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
@@ -404,7 +404,7 @@ class Update_IRLS(InversionDirective):
                 self.IRLSiter += 1
 
             # Get phi_m at the end of current iteration
-            self.phi_m_last = self.reg.eval(self.invProb.model)
+            self.phi_m_last = self.reg(self.invProb.model)
 
             # f,g = self.invProb.evalFunction(self.invProb.model,return_g=True, return_H=False)
             # print('MAX deriv',np.max(np.abs(g)))
@@ -441,9 +441,9 @@ class Update_IRLS(InversionDirective):
 
 
             # Compute new model objective function value
-            phim_new = self.reg.eval(self.invProb.model)
+            phim_new = self.reg(self.invProb.model)
 
-            # phim_new = self.reg.eval(self.invProb.model)
+            # phim_new = self.reg(self.invProb.model)
             self.f_change = np.abs(self.f_old - phim_new) / self.f_old
 
             print("Regularization decrease: {0:6.3e}".format((self.f_change)))
@@ -614,7 +614,7 @@ class Amplitude_Inv_Iter(InversionDirective):
             self.opt.approxHinv = PC
 
         #f,g = self.invProb.evalFunction(self.invProb.model,return_g=True, return_H=False)
-        #print('dphim MAX after pre-con update', np.max(self.reg.evalDeriv(self.invProb.model)))
+        #print('dphim MAX after pre-con update', np.max(self.regDeriv(self.invProb.model)))
         #print('MAX deriv after pre-con update',np.max(np.abs(g)))
 
     def getJtJdiag(self):
