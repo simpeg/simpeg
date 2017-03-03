@@ -1,7 +1,7 @@
 from __future__ import print_function
 import numpy as np
-from SimPEG import Utils
-from SimPEG import Survey
+from . import Utils
+from . import Survey
 
 
 class BaseDataMisfit(object):

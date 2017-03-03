@@ -7,8 +7,8 @@ import properties
 import numpy as np
 import warnings
 
-from SimPEG import Maps
-from SimPEG import Utils
+from . import Maps
+from . import Utils
 
 
 class Model(properties.Array):

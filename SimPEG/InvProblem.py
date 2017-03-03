@@ -1,13 +1,14 @@
 from __future__ import print_function
-from SimPEG import Utils
-from SimPEG import Props
-from SimPEG import DataMisfit
-from SimPEG import Regularization
 
 import properties
 import numpy as np
 import scipy.sparse as sp
 import gc
+
+from . import Utils
+from . import Props
+from . import DataMisfit
+from . import Regularization
 
 
 class BaseInvProblem(Props.BaseSimPEG):

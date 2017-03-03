@@ -5,8 +5,8 @@ import scipy.sparse as sp
 import uuid
 import gc
 
-from SimPEG import Utils
-from SimPEG import Props
+from . import Utils
+from . import Props
 
 
 

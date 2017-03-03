@@ -4,8 +4,8 @@ import numpy as np
 import scipy.sparse as sp
 from six import string_types
 
-from SimPEG.Utils.SolverUtils import *
-from SimPEG import Utils
+from .Utils.SolverUtils import *
+from . import Utils
 
 norm = np.linalg.norm
 

@@ -3,8 +3,8 @@ from __future__ import print_function
 import numpy as np
 import warnings
 
-from SimPEG import Maps
-from SimPEG import Utils
+from . import Maps
+from . import Utils
 
 class InversionDirective(object):
     """InversionDirective"""

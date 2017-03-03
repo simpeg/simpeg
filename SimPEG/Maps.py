@@ -16,8 +16,8 @@ from scipy.sparse.linalg import LinearOperator
 from scipy.interpolate import UnivariateSpline
 from scipy.constants import mu_0
 
-from SimPEG import Utils
-from SimPEG.Tests import checkDerivative
+from . import Utils
+from .Tests import checkDerivative
 
 
 class IdentityMap(object):

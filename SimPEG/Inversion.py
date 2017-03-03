@@ -1,9 +1,9 @@
 from __future__ import print_function
 import scipy.sparse as sp
 import numpy as np
-from SimPEG import Utils
-from SimPEG.Optimization import Remember, IterationPrinters, StoppingCriteria
-from SimPEG import Directives
+from . import Utils
+from .Optimization import Remember, IterationPrinters, StoppingCriteria
+from . import Directives
 
 
 class BaseInversion(object):

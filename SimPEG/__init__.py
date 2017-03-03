@@ -3,21 +3,21 @@ from __future__ import absolute_import
 
 import discretize as Mesh
 
-from SimPEG import Maps
-from SimPEG import Models
-from SimPEG import Problem
-from SimPEG import Survey
-from SimPEG import Regularization
-from SimPEG import DataMisfit
-from SimPEG import InvProblem
-from SimPEG import Optimization
-from SimPEG import Directives
-from SimPEG import Inversion
-from SimPEG import Tests
+from . import Maps
+from . import Models
+from . import Problem
+from . import Survey
+from . import Regularization
+from . import DataMisfit
+from . import InvProblem
+from . import Optimization
+from . import Directives
+from . import Inversion
+from . import Tests
 
-from SimPEG import Utils
-from SimPEG.Utils import mkvc
-from SimPEG.Utils.SolverUtils import (
+from . import Utils
+from .Utils import mkvc
+from .Utils.SolverUtils import (
     _checkAccuracy, SolverWrapD, SolverWrapI,
     Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
 )

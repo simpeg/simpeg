@@ -1,5 +1,6 @@
-from .matutils import mkvc, ndgrid
 import numpy as np
+from .matutils import mkvc, ndgrid
+
 
 def surface2ind_topo(mesh, topo, gridLoc='CC'):
 # def genActiveindfromTopo(mesh, topo):
