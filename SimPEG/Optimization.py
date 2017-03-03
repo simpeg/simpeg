@@ -1036,7 +1036,7 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
 
             block = []
             for ind in range(self.nSpace):
-                block.append(np.ones(len(x0)/self.nSpace)*self.lower[ind])
+                block.append(np.ones(int(len(x0)/self.nSpace))*self.lower[ind])
 
             self.lower = mkvc(np.c_[block].T)
 
@@ -1044,7 +1044,7 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
 
             block = []
             for ind in range(self.nSpace):
-                block.append(np.ones(len(x0)/self.nSpace)*self.upper[ind])
+                block.append(np.ones(int(len(x0)/self.nSpace))*self.upper[ind])
 
             self.upper = mkvc(np.c_[block].T)
 
@@ -1078,7 +1078,7 @@ class ProjectedGNCG_nSpace(BFGS, Minimize, Remember):
 
         if np.any(map(lambda ind: ind == 'sph', self.ptype)):
 
-            nC = len(x)/3
+            nC = int(len(x)/3)
             # if (self.iter % 3) == 0:
             #     print(self.iter,'ActiveSet amp')
             actSet[nC:] = False
