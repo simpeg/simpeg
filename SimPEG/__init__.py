@@ -3,13 +3,6 @@ from __future__ import absolute_import
 
 import discretize as Mesh
 
-from . import Utils
-from .Utils import mkvc
-from .Utils.SolverUtils import (
-    _checkAccuracy, SolverWrapD, SolverWrapI,
-    Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
-)
-
 from . import Maps
 from . import Models
 from . import Problem
@@ -21,6 +14,13 @@ from . import Optimization
 from . import Directives
 from . import Inversion
 from . import Tests
+
+from . import Utils
+from .Utils import mkvc
+from .Utils.SolverUtils import (
+    _checkAccuracy, SolverWrapD, SolverWrapI,
+    Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
+)
 
 __version__   = '0.5.0'
 __author__    = 'Rowan Cockett'
