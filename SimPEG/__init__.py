@@ -8,17 +8,17 @@ from SimPEG.Utils.SolverUtils import (
 )
 
 import discretize as Mesh
-from SimPEG import Maps
-from SimPEG import Models
-from SimPEG import Problem
-from SimPEG import Survey
-from SimPEG import Regularization
-from SimPEG import DataMisfit
-from SimPEG import InvProblem
-from SimPEG import Optimization
-from SimPEG import Directives
-from SimPEG import Inversion
-from SimPEG import Tests
+from . import Maps
+from . import Models
+from . import Problem
+from . import Survey
+from . import Regularization
+from . import DataMisfit
+from . import InvProblem
+from . import Optimization
+from . import Directives
+from . import Inversion
+from . import Tests
 
 __version__   = '0.5.0'
 __author__    = 'Rowan Cockett'
