@@ -16,8 +16,8 @@ except Exception as e:
 from discretize import TensorMesh, CurvilinearMesh, CylMesh
 from discretize.TreeMesh import TreeMesh as Tree
 
-from .Utils import mkvc, sdiag, diagEst
 from . import Utils
+from .Utils import mkvc, sdiag, diagEst
 
 
 happiness = ['The test be workin!', 'You get a gold star!', 'Yay passed!', 'Happy little convergence test!', 'That was easy!', 'Testing is important.', 'You are awesome.', 'Go Test Go!', 'Once upon a time, a happy little test passed.', 'And then everyone was happy.','Not just a pretty face '+name, 'You deserve a pat on the back!', 'Well done '+name+'!', 'Awesome, '+name+', just awesome.']
