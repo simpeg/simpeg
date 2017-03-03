@@ -1,13 +1,16 @@
 from __future__ import print_function
 import numpy as np
 from numpy.linalg import norm
-from .Utils import mkvc, sdiag, diagEst
-from . import Utils
-from discretize import TensorMesh, CurvilinearMesh, CylMesh
-from discretize.TreeMesh import TreeMesh as Tree
 import scipy.sparse as sp
 import unittest
 import inspect
+
+from discretize import TensorMesh, CurvilinearMesh, CylMesh
+from discretize.TreeMesh import TreeMesh as Tree
+
+from .Utils import mkvc, sdiag, diagEst
+from . import Utils
+
 
 try:
     import getpass
