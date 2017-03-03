@@ -1,13 +1,14 @@
 from __future__ import print_function
 
-from SimPEG import Utils
-from SimPEG.Utils import mkvc
-from SimPEG.Utils.SolverUtils import (
+import discretize as Mesh
+
+from . import Utils
+from .Utils import mkvc
+from .Utils.SolverUtils import (
     _checkAccuracy, SolverWrapD, SolverWrapI,
     Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
 )
 
-import discretize as Mesh
 from . import Maps
 from . import Models
 from . import Problem
