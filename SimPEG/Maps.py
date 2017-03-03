@@ -16,7 +16,7 @@ from scipy.sparse.linalg import LinearOperator
 from scipy.interpolate import UnivariateSpline
 from scipy.constants import mu_0
 
-from . import Utils
+import Utils
 from .Tests import checkDerivative
 
 
