@@ -1,6 +1,6 @@
 from __future__ import print_function
 import numpy as np
-from SimPEG import Mesh
+import discretize as Mesh
 import time as tm
 import re
 
