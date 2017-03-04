@@ -1150,6 +1150,7 @@ class BaseSparse(BaseRegularization):
     Base class for building up the components of the Sparse Regularization
     """
     def __init__(self, mesh, **kwargs):
+        self._stashedR = None
         super(BaseSparse, self).__init__(mesh=mesh, **kwargs)
 
     model = properties.Array(
@@ -1165,13 +1166,27 @@ class BaseSparse(BaseRegularization):
         "norm used", default=2
     )
 
+    @property
+    def stashedR(self):
+        return self._stashedR
+
+    @stashedR.setter
+    def stashedR(self, value):
+        self._stashedR = value
+
     def R(self, f_m):
-        # Eta scaling is important for mix-norms...do not mess with it
+        # if R is stashed, return that instead
+        if getattr(self, 'stashedR') is not None:
+            return self.stashedR
+
         eps = self.epsilon
         exponent = self.norm
+
+        # Eta scaling is important for mix-norms...do not mess with it
         eta = (eps**(1.-exponent/2.))**0.5
         r = eta / (f_m**2. + eps**2.)**((1.-exponent/2.)/2.)
 
+        self.stashedR = r  # stash on the first calculation
         return r
 
 
@@ -1245,7 +1260,7 @@ class SparseDeriv(BaseSparse):
             R = Utils.speye(self.cellDiffStencil.shape[0])
 
         else:
-            r = self.R(self.f_m) # , self.eps_q, self.norm)
+            r = self.R(self.f_m)
             R = Utils.sdiag(r)
 
         if self.cell_weights is not None:
@@ -1255,7 +1270,7 @@ class SparseDeriv(BaseSparse):
                 ) *
                 R * self.cellDiffStencil
             )
-        return ( (self.gamma)**0.5) * R * self.cellDiffStencil
+        return ((self.gamma)**0.5) * R * self.cellDiffStencil
 
 
 class Sparse(BaseComboRegularization):

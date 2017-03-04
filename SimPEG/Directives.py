@@ -4,7 +4,7 @@ import numpy as np
 import warnings
 from . import Maps
 from .PF import Magnetics
-
+from . import Regularization
 
 class InversionDirective(object):
     """InversionDirective"""
@@ -162,8 +162,8 @@ class BetaEstimate_ByEig(InversionDirective):
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
         x0 = np.random.rand(*m.shape)
-        t = x0.dot(self.dmisfit.eval2Deriv(m, x0, f=f))
-        b = x0.dot(self.reg2Deriv(m, v=x0))
+        t = x0.dot(self.dmisfit.deriv2(m, x0, f=f))
+        b = x0.dot(self.reg.deriv2(m, v=x0))
         self.beta0 = self.beta0_ratio*(t/b)
 
         self.invProb.beta = self.beta0
@@ -292,10 +292,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
 class Update_IRLS(InversionDirective):
 
-    eps_min = None
-    eps = None
     norms = [2., 2., 2., 2.]
-    factor = None
     gamma = None
     phi_m_last = None
     phi_d_last = None
@@ -314,7 +311,7 @@ class Update_IRLS(InversionDirective):
     # Beta schedule
     coolingFactor = 2.
     coolingRate = 1
-
+    nObjFun = 1
     mode = 1
 
     @property
@@ -329,9 +326,25 @@ class Update_IRLS(InversionDirective):
 
     def initialize(self):
 
-        self.reg.model = self.reg.mapping * self.invProb.model
+        # Check if it is a ComboObjective
+        if not isinstance(self.reg, Regularization.BaseComboRegularization):
+
+            # It is a Combo objective, so will have to loop
+            self.nObjFun = len(self.reg)
+
         if self.mode == 1:
-            self.reg.norms = [2., 2., 2., 2.]
+
+            if self.nObjFun > 1:
+
+                self.norms = []
+                for ii in range(self.nObjFun):
+                    self.norm.append(self.reg[ii].norms)
+                    self.reg[ii].norms = [2., 2., 2., 2.]
+
+            else:
+                # Store assigned norms for later use - start with l2
+                self.norms = self.reg.norms
+                self.reg.norms = [2., 2., 2., 2.]
 
     def endIter(self):
 
@@ -341,36 +354,68 @@ class Update_IRLS(InversionDirective):
 
             self.mode = 2
 
-            mmap = self.reg.mapping * self.invProb.model
             # print(' iter', self.opt.iter, 'beta',self.invProb.beta,'phid', self.invProb.phi_d)
             if getattr(self, 'f_old', None) is None:
                 self.f_old = self.reg(self.invProb.model)#self.invProb.evalFunction(self.invProb.model, return_g=False, return_H=False)
 
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
-            for imodel in range(self.reg.nSpace):
+            if self.nObjFun > 1:
 
-                indl, indu = imodel*self.reg.regmesh.nC, (imodel+1)*self.reg.regmesh.nC
+                for ii in range(self.nObjFun):
 
+                    #indl, indu = ii*self.reg.regmesh.nC, (ii+1)*self.reg.regmesh.nC
+
+                    if getattr(self, 'eps', None) is None:
+
+                        mtemp = self.reg[ii].mapping * self.invProb.model
+                        self.reg[ii].eps_p = np.percentile(np.abs(mtemp), self.prctile)
+                        self.reg[ii].eps_q = np.percentile(np.abs(self.reg[ii].regmesh.cellDiffxStencil*mtemp), self.prctile)
+                    else:
+
+                        assert type(self.eps) is list, "eps_p must be a list"
+
+                        if self.nObjFun > 1:
+                            assert len(self.eps) == self.nObjFun, "eps must be a list of len=%i" % self.nObjFun
+                            eps_pq = self.eps[ii]
+                        else:
+                            assert len(self.eps) == 2, "eps must be a list of len=2"
+                            eps_pq = self.eps
+
+                        assert len(eps_pq) == 2, "eps for model space %i must be a list of len=2" % ii
+
+                        self.reg[ii].eps_p = eps_pq[0]
+                        self.reg[ii].eps_q = eps_pq[1]
+            else:
                 if getattr(self, 'eps', None) is None:
-                    self.reg.eps_p[imodel] = np.percentile(np.abs(mmap[indl:indu]),self.prctile)
-                    self.reg.eps_q[imodel] = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mmap[indl:indu]),self.prctile)
+
+                    mtemp = self.reg.mapping * self.invProb.model
+                    self.reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
+                    self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
                 else:
 
                     assert type(self.eps) is list, "eps_p must be a list"
 
-                    if self.reg.nSpace > 1:
-                        assert len(self.eps) == self.reg.nSpace, "eps must be a list of len=%i" % self.reg.nSpace
-                        eps_pq = self.eps[imodel]
+                    if self.nObjFun > 1:
+                        assert len(self.eps) == self.nObjFun, "eps must be a list of len=%i" % self.nObjFun
+                        eps_pq = self.eps
                     else:
                         assert len(self.eps) == 2, "eps must be a list of len=2"
                         eps_pq = self.eps
 
-                    assert len(eps_pq) == 2, "eps for model space %i must be a list of len=2" % imodel
+                    assert len(eps_pq) == 2, "eps for model space %i must be a list of len=2" % ii
 
-                    self.reg.eps_p[imodel] = eps_pq[0]
-                    self.reg.eps_q[imodel] = eps_pq[1]
+                    self.reg.eps_p = eps_pq[0]
+                    self.reg.eps_q = eps_pq[1]
 
+
+            # Re-assign the norms
+            if self.nObjFun > 1:
+                for ii in range(self.nObjFun):
+                    self.reg[ii].norms = self.norms[ii]
+
+            else:
+                self.reg.norms = self.norms
 
             self.reg.norms = self.norms
             self.coolingFactor = 1.
@@ -379,9 +424,7 @@ class Update_IRLS(InversionDirective):
             self.phi_d_last = self.invProb.phi_d
             self.phi_m_last = self.invProb.phi_m_last
 
-            self.reg.l2model = self.invProb.model
             self.reg.model = self.invProb.model
-
             print("L[p qx qy qz]-norm : " + str(self.reg.norms))
             print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
 
@@ -410,35 +453,20 @@ class Update_IRLS(InversionDirective):
             # print('MAX deriv',np.max(np.abs(g)))
 
             # Reset the regularization matrices so that it is
-            # recalculated for current model
-            self.reg._Wsmall = None
-            self.reg._Wx = None
-            self.reg._Wy = None
-            self.reg._Wz = None
-            self.reg._W = None
-            self.reg._Wsmooth = None
-            self.reg._Rs = None
-            self.reg._Rx = None
-            self.reg._Ry = None
-            self.reg._Rz = None
+            # recalculated for current model. Do it to all levels of comboObj
+            for reg in self.reg.objfcts:
 
+                # If comboObj, go down one more level
+                if self.nObjFun > 1:
+                    for comp in reg.objfcts:
+                        comp.stashedR = None
+                        comp.gamma = 1.
+                else:
+                    reg.stashedR = None
+                    reg.gamma = 1.
 
-#            # Cool the threshold parameter if required
-#            if getattr(self, 'factor', None) is not None:
-#                eps = self.reg.eps / self.factor
-#
-#                if getattr(self, 'eps_min', None) is not None:
-#                    self.reg.eps = np.max([self.eps_min,eps])
-#                else:
-#                    self.reg.eps = eps
-
-
-            # Update the model used for the IRLS weights
             self.reg.model = self.invProb.model
-
-            # Temporarely set gamma to 1. to get raw phi_m
-            self.reg.gamma = 1.
-
+            self.reg.l2model = self.invProb.model
 
             # Compute new model objective function value
             phim_new = self.reg(self.invProb.model)
@@ -456,20 +484,16 @@ class Update_IRLS(InversionDirective):
                 self.f_old = phim_new
 
             # Update gamma to scale the regularization between IRLS iterations
+            for reg in self.reg.objfcts:
 
-            self.reg.gamma = self.phi_m_last / phim_new
-
-            # Reset the regularization matrices again for new gamma
-            self.reg._Wsmall = None
-            self.reg._Wx = None
-            self.reg._Wy = None
-            self.reg._Wz = None
-            self.reg._W = None
-            self.reg._Wsmooth = None
-            self.reg._Rs = None
-            self.reg._Rx = None
-            self.reg._Ry = None
-            self.reg._Rz = None
+                # If comboObj, go down one more level
+                if self.nObjFun > 1:
+                    for comp in reg.objfcts:
+                        comp.stashedR = None
+                        comp.gamma = self.phi_m_last / phim_new
+                else:
+                    reg.stashedR = None
+                    reg.gamma = self.phi_m_last / phim_new
 
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / self.target
