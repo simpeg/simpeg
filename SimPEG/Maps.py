@@ -820,12 +820,6 @@ class Surject2Dto3D(IdentityMap):
 class Mesh2Mesh(IdentityMap):
     """
         Takes a model on one mesh are translates it to another mesh.
-
-        .. plot::
-
-            from SimPEG.Examples import Maps_Mesh2Mesh
-            Maps_Mesh2Mesh.run()
-
     """
 
     def __init__(self, meshes, **kwargs):
@@ -1462,13 +1456,6 @@ class ParametrizedLayer(IdentityMap):
                 layer_thickness
             ]
 
-
-        .. plot::
-
-            from SimPEG.Examples import Maps_ParametrizedLayer
-            Maps_ParametrizedLayer.run()
-            plt.show()
-
         **Required**
 
         :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
@@ -1996,12 +1983,6 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
                  block_dx,
                  block_dy
             ]
-
-        .. plot::
-
-            from SimPEG.Examples import Maps_ParametrizedBlockInLayer
-            Maps_ParametrizedBlockInLayer.run()
-            plt.show()
 
         **Required**
 
