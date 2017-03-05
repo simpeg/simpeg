@@ -20,7 +20,6 @@ from . import Utils
 from .Tests import checkDerivative
 
 
-
 class IdentityMap(object):
     """
         SimPEG Map
@@ -2431,5 +2430,3 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
             return sp.csr_matrix(self._deriv2d(m))
         elif self.mesh.dim == 3:
             return sp.csr_matrix(self._deriv3d(m))
-
-
