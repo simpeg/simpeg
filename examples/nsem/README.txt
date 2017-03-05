@@ -1,2 +1,2 @@
-Electromagnetics
+Magnetotellurics
 ================
