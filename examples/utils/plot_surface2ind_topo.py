@@ -1,3 +1,10 @@
+"""
+Utils: surface2ind_topo
+=======================
+
+Here we show how to use :code:`Utils.surface2ind_topo` to identify
+cells below a topographic surface.
+"""
 import numpy as np
 from SimPEG import Mesh
 from SimPEG import Utils
@@ -7,15 +14,6 @@ from scipy.interpolate import interp1d
 
 
 def run(plotIt=True, nx=5, ny=5):
-    """
-
-        Utils: surface2ind_topo
-        =======================
-
-        Here we show how to use :code:`Utils.surface2ind_topo` to identify
-        cells below a topographic surface.
-
-    """
 
     # 2D mesh
     mesh = Mesh.TensorMesh([nx, ny], x0='CC')

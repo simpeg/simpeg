@@ -1,17 +1,17 @@
+"""
+EM: TDEM: 1D: Inversion
+=======================
+
+Here we will create and run a TDEM 1D inversion.
+"""
 import numpy as np
 from SimPEG import (Mesh, Maps, SolverLU, DataMisfit, Regularization,
                     Optimization, InvProblem, Inversion, Directives, Utils)
 import SimPEG.EM as EM
 import matplotlib.pyplot as plt
 
+
 def run(plotIt=True):
-    """
-        EM: TDEM: 1D: Inversion
-        =======================
-
-        Here we will create and run a TDEM 1D inversion.
-
-    """
 
     cs, ncx, ncz, npad = 5., 25, 15, 15
     hx = [(cs, ncx),  (cs, npad, 1.3)]

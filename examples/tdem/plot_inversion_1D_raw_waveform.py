@@ -1,3 +1,11 @@
+"""
+EM: TDEM: 1D: Inversion with VTEM waveform
+==========================================
+
+Here we will create and run a TDEM 1D inversion,
+with VTEM waveform of which initial condition
+is zero, but have some on- and off-time.
+"""
 import numpy as np
 from SimPEG import (
     Mesh, Maps, SolverLU, DataMisfit, Regularization,
@@ -12,14 +20,6 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 def run(plotIt=True):
-    """
-        EM: TDEM: 1D: Inversion with VTEM waveform
-        ==========================================
-
-        Here we will create and run a TDEM 1D inversion,
-        with VTEM waveform of which initial condition
-        is zero, but have some on- and off-time.
-    """
 
     cs, ncx, ncz, npad = 5., 25, 24, 15
     hx = [(cs, ncx),  (cs, npad, 1.3)]

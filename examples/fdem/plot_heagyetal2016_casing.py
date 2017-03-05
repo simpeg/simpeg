@@ -1,3 +1,9 @@
+"""
+Casing Example
+==============
+
+This example is used in the paper Heagy et al 2016 (in prep)
+"""
 from SimPEG import Mesh, Utils, Maps, Tests
 from SimPEG.EM import mu_0, FDEM, Analytics
 from SimPEG.EM.Utils import omega

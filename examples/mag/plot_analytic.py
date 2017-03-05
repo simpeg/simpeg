@@ -1,3 +1,10 @@
+"""
+PF: Magnetics: Analytics
+========================
+
+Comparing the magnetics field in Vancouver to Seoul
+
+"""
 import numpy as np
 from SimPEG import PF
 import matplotlib.pyplot as plt
@@ -5,13 +12,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def run(plotIt=True):
-    """
-        PF: Magnetics: Analytics
-        ========================
-
-        Comparing the magnetics field in Vancouver to Seoul
-
-    """
 
     xr = np.linspace(-300, 300, 41)
     yr = np.linspace(-300, 300, 41)

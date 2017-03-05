@@ -1,21 +1,19 @@
+"""
+Plotting 2D data
+================
+
+Often measured data is in 2D, but locations are not gridded.
+Data can be vectoral, hence we want to plot direction and
+amplitude of the vector. Following example use SimPEG's
+analytic function (electric dipole) to generate data
+at 2D plane.
+"""
 from SimPEG import EM, Utils
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
-    """
-
-        Plotting 2D data
-        ================
-
-        Often measured data is in 2D, but locations are not gridded.
-        Data can be vectoral, hence we want to plot direction and
-        amplitude of the vector. Following example use SimPEG's
-        analytic function (electric dipole) to generate data
-        at 2D plane.
-
-    """
     # Make un-gridded xyz points
 
     x = np.linspace(-50, 50, 30)

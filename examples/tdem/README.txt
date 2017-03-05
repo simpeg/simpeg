@@ -1,2 +1,2 @@
-Electromagnetics
-================
+Time Domain Electromagnetics
+============================

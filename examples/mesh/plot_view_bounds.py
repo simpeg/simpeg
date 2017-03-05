@@ -1,3 +1,13 @@
+"""
+Mesh: Plotting with defining range
+==================================
+
+When using a large Mesh with the cylindrical code, it is advantageous
+to define a :code:`range_x` and :code:`range_y` when plotting with
+vectors. In this case, only the region inside of the range is
+interpolated. In particular, you often want to ignore padding cells.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.constants import mu_0
@@ -5,29 +15,14 @@ from scipy.constants import mu_0
 from SimPEG import Mesh, Utils, Maps
 from SimPEG.EM import FDEM
 
-# Try importing PardisoSolver from pymatsolver
-# otherwise, use SolverLU from SimPEG
+# Try importing PardisoSolver from pymatsolver otherwise, use SimPEG.SolverLU
 try:
     from pymatsolver import PardisoSolver as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
 
-# Set a nice colormap!
-plt.set_cmap(plt.get_cmap('viridis'))
-
-
 
 def run(plotIt=True):
-    """
-        Mesh: Plotting with defining range
-        ==================================
-
-        When using a large Mesh with the cylindrical code, it is advantageous
-        to define a :code:`range_x` and :code:`range_y` when plotting with
-        vectors. In this case, only the region inside of the range is
-        interpolated. In particular, you often want to ignore padding cells.
-
-    """
 
     # ## Model Parameters
     #
@@ -42,12 +37,9 @@ def run(plotIt=True):
     sig_sphere = 1e0
     sig_air = 1e-8
 
-
-
     # depth to center, radius in m
     sphere_z = -50.
     sphere_radius = 30.
-
 
     # ## Survey Parameters
     #
@@ -127,7 +119,7 @@ def run(plotIt=True):
     xlim = np.r_[0., 2.5e6]
     zlim = np.r_[-2.5e6, 2.5e6]
 
-    fig, ax = plt.subplots(1,1)
+    fig, ax = plt.subplots(1, 1)
     mesh.plotGrid(ax=ax)
 
     ax.set_title('Simulation Mesh')
@@ -249,6 +241,7 @@ def run(plotIt=True):
     # log-scale the colorbar
     from matplotlib.colors import LogNorm
 
+    # sphinx_gallery_thumbnail_number = 3
     fig, ax = plt.subplots(1, 2, figsize=(12, 6))
 
     def plotMe(field, ax):

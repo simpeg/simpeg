@@ -1,3 +1,11 @@
+"""
+PF: Gravity: Inversion Linear
+=============================
+
+Create a synthetic block model and invert
+with a compact norm
+
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -14,14 +22,6 @@ from SimPEG import PF
 
 
 def run(plotIt=True):
-    """
-        PF: Gravity: Inversion Linear
-        =============================
-
-        Create a synthetic block model and invert
-        with a compact norm
-
-    """
 
     # Create a mesh
     dx = 5.

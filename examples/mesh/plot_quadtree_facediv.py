@@ -1,15 +1,14 @@
+"""
+Mesh: QuadTree: FaceDiv
+=======================
+
+Showing the face divergence on the quadtree with numbering.
+"""
 from SimPEG import Mesh
 import matplotlib.pyplot as plt
 
 
 def run(plotIt=True, n=60):
-    """
-        Mesh: QuadTree: FaceDiv
-        =======================
-
-
-
-    """
 
     M = Mesh.TreeMesh([[(1, 16)], [(1, 16)]], levels=4)
     M._refineCell([0, 0, 0])

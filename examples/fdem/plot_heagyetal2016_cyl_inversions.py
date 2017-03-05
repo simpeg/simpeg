@@ -1,3 +1,10 @@
+"""
+1D FDEM and TDEM inversions
+===========================
+
+This example is used in the paper Heagy et al 2016 (in prep)
+
+"""
 from SimPEG import (Mesh, Maps, Utils, DataMisfit, Regularization,
                     Optimization, Inversion, InvProblem, Directives)
 import numpy as np
@@ -11,13 +18,6 @@ except ImportError:
 
 
 def run(plotIt=True):
-    """
-        1D FDEM and TDEM inversions
-        ===========================
-
-        This example is used in the paper Heagy et al 2016 (in prep)
-
-    """
 
     # Set up cylindrically symmeric mesh
     cs, ncx, ncz, npad = 10., 15, 25, 13  # padded cyl mesh

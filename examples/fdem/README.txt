@@ -1,2 +1,2 @@
-Electromagnetics
-================
+Frequency Domain Electromagnetics
+=================================

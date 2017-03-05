@@ -1,3 +1,10 @@
+"""
+1D FDEM Mu Inversion
+====================
+
+1D inversion of Magnetic Susceptibility from FDEM data assuming a fixed
+electrical conductivity
+"""
 from SimPEG import (
     Mesh, Maps, Utils, DataMisfit, Regularization,
     Optimization, Inversion, InvProblem, Directives
@@ -13,13 +20,6 @@ except ImportError:
 
 
 def run(plotIt=True):
-    """
-        1D FDEM Mu Inversion
-        ====================
-
-        1D inversion of Magnetic Susceptibility from FDEM data assuming a fixed
-        electrical conductivity
-    """
 
     # Set up cylindrically symmetric mesh
     cs, ncx, ncz, npad = 10., 15, 25, 13  # padded cylindrical mesh

@@ -1,16 +1,14 @@
+"""
+Mesh: Basic: PlotImage
+======================
+
+You can use M.PlotImage to plot images on all of the Meshes.
+"""
 from SimPEG import Mesh, Utils
 import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
-    """
-        Mesh: Basic: PlotImage
-        ======================
-
-        You can use M.PlotImage to plot images on all of the Meshes.
-
-
-    """
     M = Mesh.TensorMesh([32, 32])
     v = Utils.ModelBuilder.randomModel(M.vnC, seed=789)
     v = Utils.mkvc(v)

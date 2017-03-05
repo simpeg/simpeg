@@ -1,3 +1,10 @@
+"""
+EM: Magnetic Dipole in a Whole-Space
+====================================
+
+Here we plot the magnetic flux density from a harmonic dipole in a
+wholespace.
+"""
 import numpy as np
 from SimPEG import Utils
 import SimPEG.EM as EM
@@ -8,14 +15,6 @@ from matplotlib.colors import LogNorm
 def run(XYZ=None, loc=np.r_[0., 0., 0.], sig=1.0, freq=1.0, orientation='Z',
         plotIt=True):
 
-    """
-        EM: Magnetic Dipole in a Whole-Space
-        ====================================
-
-        Here we plot the magnetic flux density from a harmonic dipole in a
-        wholespace.
-
-    """
 
     if XYZ is None:
         # avoid putting measurement points where source is

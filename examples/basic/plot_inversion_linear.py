@@ -1,3 +1,10 @@
+"""
+Inversion: Linear Problem
+=========================
+
+Here we go over the basics of creating a linear problem and inversion.
+
+"""
 from __future__ import print_function
 import numpy as np
 from SimPEG import Mesh
@@ -13,13 +20,6 @@ import matplotlib.pyplot as plt
 
 
 def run(N=100, plotIt=True):
-    """
-        Inversion: Linear Problem
-        =========================
-
-        Here we go over the basics of creating a linear problem and inversion.
-
-    """
 
     np.random.seed(1)
 

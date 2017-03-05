@@ -1,32 +1,32 @@
+"""
+Maps: Parametrized Block in a Layer
+===================================
+
+Parametrized description of a block confined to a layer in a
+wholespace. The mapping can be applied in 2D or 3D. Here we show a 2D
+example.
+
+The model is given by
+
+.. code::
+
+    m = np.r_[
+       'value of the background',
+       'value in the layer',
+       'value in the block',
+       'center of the layer (depth)',
+       'thickness of the layer',
+       'x-center of block',
+       'width of the block'
+    ]
+
+"""
 from SimPEG import Mesh, Maps
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
-    """
-        Maps: Parametrized Block in a Layer
-        ===================================
-
-        Parametrized description of a block confined to a layer in a
-        wholespace. The mapping can be applied in 2D or 3D. Here we show a 2D
-        example.
-
-        The model is given by
-
-        .. code::
-
-            m = np.r_[
-               'value of the background',
-               'value in the layer',
-               'value in the block',
-               'center of the layer (depth)',
-               'thickness of the layer',
-               'x-center of block',
-               'width of the block'
-            ]
-
-    """
 
     mesh = Mesh.TensorMesh([50, 50], x0='CC')  # 2D Tensor Mesh
     mapping = Maps.ParametrizedBlockInLayer(mesh)  # mapping

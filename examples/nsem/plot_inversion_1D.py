@@ -1,3 +1,10 @@
+"""
+MT: 1D: Inversion
+=================
+
+Forward model 1D MT data.
+Setup and run a MT 1D inversion.
+"""
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -8,14 +15,6 @@ np.random.seed(1983)
 
 
 def run(plotIt=True):
-    """
-        MT: 1D: Inversion
-        =================
-
-        Forward model 1D MT data.
-        Setup and run a MT 1D inversion.
-
-    """
 
     # Setup the forward modeling
     # Setting up 1D mesh and conductivity models to forward model data.

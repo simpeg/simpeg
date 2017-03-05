@@ -1,6 +1,11 @@
-# Test script to use SimPEG.MT platform to forward model synthetic data.
+"""
+MT: 3D: Forward
+===============
 
-# Import
+Forward model 3D MT data.
+
+Test script to use SimPEG.MT platform to forward model synthetic data.
+"""
 import SimPEG as simpeg
 from SimPEG.EM import NSEM
 import numpy as np
@@ -11,13 +16,6 @@ except:
 
 
 def run(plotIt=True, nFreq=1):
-    """
-        MT: 3D: Forward
-        ===============
-
-        Forward model 3D MT data.
-
-    """
 
     # Make a mesh
     M = simpeg.Mesh.TensorMesh(

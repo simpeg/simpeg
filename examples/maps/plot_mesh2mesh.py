@@ -1,16 +1,14 @@
+"""
+Maps: Mesh2Mesh
+===============
+
+This mapping allows you to go from one mesh to another.
+"""
 from SimPEG import Mesh, Maps, Utils
 import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
-    """
-
-        Maps: Mesh2Mesh
-        ===============
-
-        This mapping allows you to go from one mesh to another.
-
-    """
 
     M = Mesh.TensorMesh([100, 100])
     h1 = Utils.meshTensor([(6, 7, -1.5), (6, 10), (6, 7, 1.5)])

@@ -1,3 +1,11 @@
+"""
+PF: Magnetic: Inversion Linear
+===============================
+
+Create a synthetic block model and invert
+with a compact norm
+
+"""
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -14,14 +22,6 @@ from SimPEG import PF
 
 
 def run(plotIt=True):
-    """
-        PF: Magnetic: Inversion Linear
-        ===============================
-
-        Create a synthetic block model and invert
-        with a compact norm
-
-    """
 
     # Define the inducing field parameter
     H0 = (50000, 90, 0)

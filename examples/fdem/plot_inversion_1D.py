@@ -1,3 +1,10 @@
+"""
+EM: FDEM: 1D: Inversion
+=======================
+
+Here we will create and run a FDEM 1D inversion.
+
+"""
 import numpy as np
 from SimPEG import (Mesh, Maps, Utils, DataMisfit, Regularization,
                     Optimization, Inversion, InvProblem, Directives)
@@ -10,13 +17,6 @@ except ImportError:
 
 
 def run(plotIt=True):
-    """
-        EM: FDEM: 1D: Inversion
-        =======================
-
-        Here we will create and run a FDEM 1D inversion.
-
-    """
 
     cs, ncx, ncz, npad = 5., 25, 15, 15
     hx = [(cs, ncx), (cs, npad, 1.3)]
