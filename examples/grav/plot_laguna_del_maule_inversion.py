@@ -8,6 +8,7 @@ Refer to Miller et al 2016 EPSL for full details.
 
 We run the inversion in two steps.  Firstly creating a L2 model and
 then applying an Lp norm to produce a compact model.
+
 Craig Miller
 """
 import os
