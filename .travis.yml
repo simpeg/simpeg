@@ -16,7 +16,6 @@ addons:
     - liblapack-dev
 
 env:
-    - TEST_DIR=tests/examples
     - TEST_DIR=tests/em/fdem/inverse/derivs
     - TEST_DIR="tests/em/tdem tests/base"
     - TEST_DIR=tests/em/static
