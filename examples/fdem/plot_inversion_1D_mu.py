@@ -2,7 +2,7 @@ from SimPEG import (
     Mesh, Maps, Utils, DataMisfit, Regularization,
     Optimization, Inversion, InvProblem, Directives
 )
-from SimPEG.EM import FDEM, TDEM, mu_0
+from SimPEG.EM import FDEM
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -14,16 +14,15 @@ except ImportError:
 
 def run(plotIt=True):
     """
-    1D FDEM Mu Inversion
-    ====================
+        1D FDEM Mu Inversion
+        ====================
 
-    1D inversion of Magnetic Susceptibility from FDEM data assuming a fixed
-    electrical conductivity
-
+        1D inversion of Magnetic Susceptibility from FDEM data assuming a fixed
+        electrical conductivity
     """
 
-    # Set up cylindrically symmeric mesh
-    cs, ncx, ncz, npad = 10., 15, 25, 13  # padded cyl mesh
+    # Set up cylindrically symmetric mesh
+    cs, ncx, ncz, npad = 10., 15, 25, 13  # padded cylindrical mesh
     hx = [(cs, ncx), (cs, npad, 1.3)]
     hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
     mesh = Mesh.CylMesh([hx, 1, hz], '00C')
@@ -57,14 +56,14 @@ def run(plotIt=True):
     murMap = Maps.MuRelative(mesh)
 
     # Mapping
-    muMap =  murMap * surj1Dmap * actMap
+    muMap = murMap * surj1Dmap * actMap
 
     # ----- FDEM problem & survey -----
     rxlocs = Utils.ndgrid([np.r_[10.], np.r_[0], np.r_[30.]])
     bzr = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'real')
     # bzi = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'imag')
 
-    freqs = np.linspace(2000, 10000, 10)  #np.logspace(3, 4, 10)
+    freqs = np.linspace(2000, 10000, 10)  # np.logspace(3, 4, 10)
     srcLoc = np.array([0., 0., 30.])
 
     print(
@@ -98,7 +97,7 @@ def run(plotIt=True):
     opt = Optimization.InexactGaussNewton(maxIterCG=10)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
 
-    # Inversion Directives    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=2.)
+    # Inversion Directives
 
     beta = Directives.BetaSchedule(coolingFactor=4, coolingRate=3)
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=2.)
@@ -155,15 +154,12 @@ def run(plotIt=True):
         ax[2].loglog(freqs, -dpredFD, 'bo', ms=6)
         # ax[2].loglog(freqs, -dpredFD[1::2], 'b+', markeredgewidth=2., ms=10)
 
-
         # Labels, gridlines, etc
         ax[2].grid(which='both', alpha=0.5, linestyle='-', linewidth=0.2)
         ax[2].grid(which='both', alpha=0.5, linestyle='-', linewidth=0.2)
 
         ax[2].set_xlabel('Frequency (Hz)', fontsize=fs)
         ax[2].set_ylabel('Vertical magnetic field (-T)', fontsize=fs)
-
-        # ax[2].legend(("Obs", "Pred"), fontsize=fs)
         ax[2].legend(
             ("z-Obs (real)", "z-Pred (real)"),
             fontsize=fs
@@ -173,7 +169,6 @@ def run(plotIt=True):
         ax[0].set_title("(a) Conductivity Model", fontsize=fs)
         ax[1].set_title("(b) $\mu_r$ Model", fontsize=fs)
         ax[2].set_title("(c) FDEM observed vs. predicted", fontsize=fs)
-        # ax[2].set_title("(c) TDEM observed vs. predicted", fontsize=fs)
 
         plt.tight_layout(pad=1.5)
 
