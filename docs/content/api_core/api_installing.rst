@@ -6,7 +6,7 @@ Getting Started with SimPEG
 Dependencies
 ============
 
-- Python 2.7
+- Python 3.5 (or 2.7)
 - NumPy 1.8 (or greater)
 - SciPy 0.13 (or greater)
 - matplotlib 1.3 (or greater)
