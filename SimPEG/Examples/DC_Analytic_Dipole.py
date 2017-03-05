@@ -10,6 +10,13 @@ except ImportError:
 
 
 def run(plotIt=True):
+    """
+        DC Analytic Dipole
+        ==================
+
+        Comparison of the analytic and numerical solution for a direct current
+        resistivity dipole in 3D.
+    """
 
     cs = 25.
     hx = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
@@ -65,8 +72,8 @@ def run(plotIt=True):
         dat1 = ax[1].contourf(X, Y, Data, 60, vmin=vmin, vmax=vmax)
         plt.colorbar(dat0, orientation='horizontal', ax=ax[0])
         plt.colorbar(dat1, orientation='horizontal', ax=ax[1])
-        ax[1].set_title('Analytic')
-        ax[0].set_title('Computed')
+        ax[0].set_title('Analytic')
+        ax[1].set_title('Computed')
 
     return np.linalg.norm(data-data_ana)/np.linalg.norm(data_ana)
 
