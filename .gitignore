@@ -41,3 +41,4 @@ docs/_build/
 docs/warnings.txt
 .DS_Store
 docs/content/examples/*
+docs/modules/*
