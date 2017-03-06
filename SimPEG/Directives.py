@@ -309,7 +309,7 @@ class Update_IRLS(InversionDirective):
     # Beta schedule
     coolingFactor = 2.
     coolingRate = 1
-    nObjFun = 1
+    ComboObjFun = False
     mode = 1
 
     @property
@@ -328,15 +328,15 @@ class Update_IRLS(InversionDirective):
         if not isinstance(self.reg, Regularization.BaseComboRegularization):
 
             # It is a Combo objective, so will have to loop
-            self.nObjFun = len(self.reg)
+            self.ComboObjFun = True
 
         if self.mode == 1:
 
-            if self.nObjFun > 1:
+            if self.ComboObjFun:
 
                 self.norms = []
                 for reg in self.reg.objfcts:
-                    self.norm.append(reg.norms)
+                    self.norms.append(reg.norms)
                     reg.norms = [2., 2., 2., 2.]
 
             else:
@@ -358,7 +358,7 @@ class Update_IRLS(InversionDirective):
 
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
-            if self.nObjFun > 1:
+            if self.ComboObjFun:
 
                 for reg in self.reg.objfcts:
 
@@ -385,9 +385,9 @@ class Update_IRLS(InversionDirective):
 
 
             # Re-assign the norms
-            if self.nObjFun > 1:
-                for reg in self.reg.objfcts:
-                    reg.norms = self.norms[ii]
+            if self.ComboObjFun:
+                for reg, norms in zip(self.reg.objfcts, self.norms):
+                    reg.norms = norms
 
             else:
                 self.reg.norms = self.norms
@@ -401,7 +401,15 @@ class Update_IRLS(InversionDirective):
             self.reg.model = self.invProb.model
             self.reg.l2model = self.invProb.model.copy()
             print("L[p qx qy qz]-norm : " + str(self.reg.norms))
-            print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
+
+            # Re-assign the norms
+            if self.ComboObjFun:
+                for reg in self.reg.objfcts:
+                    print("eps_p: " + str(reg.eps_p) +
+                          " eps_q: " + str(reg.eps_q))
+
+            else:
+                print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
 
 
         # Beta Schedule
@@ -432,7 +440,7 @@ class Update_IRLS(InversionDirective):
             for reg in self.reg.objfcts:
 
                 # If comboObj, go down one more level
-                if self.nObjFun > 1:
+                if self.ComboObjFun:
                     for comp in reg.objfcts:
                         comp.stashedR = None
                         comp.gamma = 1.
@@ -459,7 +467,7 @@ class Update_IRLS(InversionDirective):
             for reg in self.reg.objfcts:
 
                 # If comboObj, go down one more level
-                if self.nObjFun > 1:
+                if self.ComboObjFun:
                     for comp in reg.objfcts:
                         comp.stashedR = None
                         comp.gamma = self.invProb.phi_m_last / phim_new
@@ -481,15 +489,32 @@ class Update_lin_PreCond(InversionDirective):
     """
     onlyOnStart = False
     mapping = None
+    ComboObjFun = False
 
     def initialize(self):
+
+        # Check if it is a ComboObjective
+        if not isinstance(self.reg, Regularization.BaseComboRegularization):
+
+            # It is a Combo objective, so will have to loop
+            self.ComboObjFun = True
 
         if getattr(self, 'mapping', None) is None:
             self.mapping = Maps.IdentityMap(nP=self.reg.mapping.nP)
 
         if getattr(self.opt, 'approxHinv', None) is None:
+
             # Update the pre-conditioner
-            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+            if self.ComboObjFun:
+
+                reg_diag = []
+                for reg in self.reg.objfcts:
+                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+
+                diagA = np.sum(self.prob.G**2., axis=0) + np.hstack(reg_diag)
+
+            else:
+                diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
 
             PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
@@ -501,7 +526,17 @@ class Update_lin_PreCond(InversionDirective):
 
         if getattr(self.opt, 'approxHinv', None) is not None:
             # Update the pre-conditioner
-            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+            # Update the pre-conditioner
+            if self.ComboObjFun:
+
+                reg_diag = []
+                for reg in self.reg.objfcts:
+                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+
+                diagA = np.sum(self.prob.G**2., axis=0) + np.hstack(reg_diag)
+
+            else:
+                diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
 
             PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC

@@ -1220,7 +1220,7 @@ class SparseSmall(BaseSparse):
 
         #print(self.gamma)
         if self.cell_weights is not None:
-            return Utils.sdiag((self.gamma*self.cell_weights)**0.5) * R
+            return Utils.sdiag((self.gamma*(self.mapping * self.cell_weights))**0.5) * R
         return (self.gamma)**0.5 * R
 
 
@@ -1267,7 +1267,7 @@ class SparseDeriv(BaseSparse):
         if self.cell_weights is not None:
             return (
                 Utils.sdiag(
-                    (self.gamma*(Ave*self.cell_weights))**0.5
+                    (self.gamma*(Ave*(self.mapping * self.cell_weights)))**0.5
                 ) *
                 R * self.cellDiffStencil
             )

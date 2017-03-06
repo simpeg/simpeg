@@ -128,14 +128,25 @@ def run(plotIt=True):
     wr = (wr/np.max(wr))
 
     # Create a block diagonal regularization
-    reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap,
-                                nSpace=3)
-    reg.cell_weights = wr
+    wires = Maps.Wires(('p', mesh.nC), ('s', mesh.nC), ('t', mesh.nC))
+
+    # Create a regularization
+    reg_p = Regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
+    reg_p.cell_weights = wr
+
+    reg_s = Regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
+    reg_s.cell_weights = wr
+
+    reg_t = Regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
+    reg_t.cell_weights = wr
+
+    reg = reg_p + reg_s + reg_t
+
     reg.mref = np.zeros(3*nC)
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.Wd = 1./survey.std
+    dmis.W = 1./survey.std
 
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=10, lower=-10., upper=10.,
@@ -145,8 +156,7 @@ def run(plotIt=True):
     betaest = Directives.BetaEstimate_ByEig()
 
     # Here is where the norms are applied
-    IRLS = Directives.Update_IRLS(norms=([2, 2, 2, 2]),
-                                  eps=None, f_min_change=1e-4,
+    IRLS = Directives.Update_IRLS(f_min_change=1e-4,
                                   minGNiter=3, beta_tol=1e-2)
 
     update_Jacobi = Directives.Update_lin_PreCond()
