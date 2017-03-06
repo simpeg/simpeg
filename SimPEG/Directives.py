@@ -672,6 +672,7 @@ class Amplitude_Inv_Iter(InversionDirective):
 
         return JtJdiag
 
+
 class ProjSpherical(InversionDirective):
 
     def initialize(self):
@@ -680,7 +681,7 @@ class ProjSpherical(InversionDirective):
         # Convert to cartesian than back to avoid over rotation
         xyz = Magnetics.atp2xyz(x)
         m = Magnetics.xyz2atp(xyz)
-        #print("Projected to feasible set")
+
         self.invProb.model = m
         self.prob.chi = m
 
@@ -690,7 +691,6 @@ class ProjSpherical(InversionDirective):
         # Convert to cartesian than back to avoid over rotation
         xyz = Magnetics.atp2xyz(x)
         m = Magnetics.xyz2atp(xyz)
-        #print("Projected to feasible set")
+
         self.invProb.model = m
         self.prob.chi = m
-

@@ -1165,6 +1165,9 @@ class BaseSparse(BaseRegularization):
     norm = properties.Float(
         "norm used", default=2
     )
+    space = properties.String(
+        "type of model", default='linear'
+    )
 
     @property
     def stashedR(self):
@@ -1244,7 +1247,15 @@ class SparseDeriv(BaseSparse):
 
     @property
     def f_m(self):
-        return self.cellDiffStencil * (self.mapping * self.model)
+        if self.space == 'spherical':
+            theta = self.cellDiffStencil * (self.mapping * self.model)
+            dmdx = coterminal(theta)
+
+        else:
+
+            dmdx = self.cellDiffStencil * (self.mapping * self.model)
+
+        return dmdx
 
     @property
     def cellDiffStencil(self):
@@ -1373,5 +1384,13 @@ class Sparse(BaseComboRegularization):
                 objfct.epsilon = change['value']
 
 
+def coterminal(theta):
+    """ Compute coterminal angle so that [-pi < theta < pi]"""
 
+    sub = theta[np.abs(theta) >= np.pi]
+    sub = -np.sign(sub) * (2*np.pi-np.abs(sub))
+
+    theta[np.abs(theta) >= np.pi] = sub
+
+    return theta
 
