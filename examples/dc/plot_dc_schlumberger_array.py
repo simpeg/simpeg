@@ -27,7 +27,7 @@ from SimPEG import (
 from SimPEG.Utils import plotLayer
 try:
     from pymatsolver import Pardiso as Solver
-except Exception, e:
+except ImportError:
     from SimPEG import SolverLU as Solver
 from SimPEG.EM.Static import DC
 import numpy as np
