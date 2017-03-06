@@ -1,2 +1,2 @@
-Dirict Current Resistivity
+Direct Current Resistivity
 ==========================
