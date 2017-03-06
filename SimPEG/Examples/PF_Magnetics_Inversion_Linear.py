@@ -108,10 +108,12 @@ def run(plotIt=True):
     # Create a regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.cell_weights = wr
+    reg.norms = ([0, 1, 1, 1])
+    reg.eps_p, reg.eps_q = 1e-3, 1e-3
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.W = 1/wd
+    dmis.W = 1./wd
 
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
@@ -122,8 +124,8 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
     #  model parameters
-    IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),  eps=[1e-3, 1e-3],
-                                  f_min_change=1e-3, minGNiter=3, maxIRLSiter=10)
+    IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=3,
+                                  maxIRLSiter=10)
     update_Jacobi = Directives.Update_lin_PreCond()
     inv = Inversion.BaseInversion(invProb,
                                   directiveList=[IRLS, update_Jacobi])
@@ -136,7 +138,7 @@ def run(plotIt=True):
         # Here is the recovered susceptibility model
         ypanel = midx
         zpanel = -5
-        m_l2 = actvMap * IRLS.l2model
+        m_l2 = actvMap * reg.l2model
         m_l2[m_l2 == -100] = np.nan
 
         m_lp = actvMap * mrec

@@ -292,9 +292,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
 class Update_IRLS(InversionDirective):
 
-    norms = [2., 2., 2., 2.]
     gamma = None
-    phi_m_last = None
     phi_d_last = None
     f_old = None
     f_min_change = 1e-2
@@ -337,9 +335,9 @@ class Update_IRLS(InversionDirective):
             if self.nObjFun > 1:
 
                 self.norms = []
-                for ii in range(self.nObjFun):
-                    self.norm.append(self.reg[ii].norms)
-                    self.reg[ii].norms = [2., 2., 2., 2.]
+                for reg in self.reg.objfcts:
+                    self.norm.append(reg.norms)
+                    reg.norms = [2., 2., 2., 2.]
 
             else:
                 # Store assigned norms for later use - start with l2
@@ -362,57 +360,34 @@ class Update_IRLS(InversionDirective):
             # model values
             if self.nObjFun > 1:
 
-                for ii in range(self.nObjFun):
+                for reg in self.reg.objfcts:
 
                     #indl, indu = ii*self.reg.regmesh.nC, (ii+1)*self.reg.regmesh.nC
 
-                    if getattr(self, 'eps', None) is None:
+                    if getattr(reg, 'eps_p', None) is None:
 
                         mtemp = self.reg[ii].mapping * self.invProb.model
-                        self.reg[ii].eps_p = np.percentile(np.abs(mtemp), self.prctile)
-                        self.reg[ii].eps_q = np.percentile(np.abs(self.reg[ii].regmesh.cellDiffxStencil*mtemp), self.prctile)
-                    else:
+                        reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
 
-                        assert type(self.eps) is list, "eps_p must be a list"
+                    elif getattr(reg, 'eps_q', None) is None:
+                        mtemp = self.reg[ii].mapping * self.invProb.model
+                        reg.eps_q = np.percentile(np.abs(reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
 
-                        if self.nObjFun > 1:
-                            assert len(self.eps) == self.nObjFun, "eps must be a list of len=%i" % self.nObjFun
-                            eps_pq = self.eps[ii]
-                        else:
-                            assert len(self.eps) == 2, "eps must be a list of len=2"
-                            eps_pq = self.eps
-
-                        assert len(eps_pq) == 2, "eps for model space %i must be a list of len=2" % ii
-
-                        self.reg[ii].eps_p = eps_pq[0]
-                        self.reg[ii].eps_q = eps_pq[1]
             else:
-                if getattr(self, 'eps', None) is None:
+                if getattr(self.reg, 'eps_p', None) is None:
 
                     mtemp = self.reg.mapping * self.invProb.model
                     self.reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
+
+                elif getattr(self.reg, 'eps_q', None) is None:
+                    mtemp = self.reg.mapping * self.invProb.model
                     self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
-                else:
-
-                    assert type(self.eps) is list, "eps_p must be a list"
-
-                    if self.nObjFun > 1:
-                        assert len(self.eps) == self.nObjFun, "eps must be a list of len=%i" % self.nObjFun
-                        eps_pq = self.eps
-                    else:
-                        assert len(self.eps) == 2, "eps must be a list of len=2"
-                        eps_pq = self.eps
-
-                    assert len(eps_pq) == 2, "eps for model space %i must be a list of len=2" % ii
-
-                    self.reg.eps_p = eps_pq[0]
-                    self.reg.eps_q = eps_pq[1]
 
 
             # Re-assign the norms
             if self.nObjFun > 1:
-                for ii in range(self.nObjFun):
-                    self.reg[ii].norms = self.norms[ii]
+                for reg in self.reg.objfcts:
+                    reg.norms = self.norms[ii]
 
             else:
                 self.reg.norms = self.norms
@@ -422,9 +397,9 @@ class Update_IRLS(InversionDirective):
             self.coolingRate = 1
             self.iterStart = self.opt.iter
             self.phi_d_last = self.invProb.phi_d
-            self.phi_m_last = self.invProb.phi_m_last
 
             self.reg.model = self.invProb.model
+            self.reg.l2model = self.invProb.model.copy()
             print("L[p qx qy qz]-norm : " + str(self.reg.norms))
             print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
 
@@ -444,10 +419,10 @@ class Update_IRLS(InversionDirective):
                 return
 
             else:
-                self.IRLSiter += 1
+                # Update the model used in the regularization
+                self.reg.model = self.invProb.model
 
-            # Get phi_m at the end of current iteration
-            self.phi_m_last = self.reg(self.invProb.model)
+                self.IRLSiter += 1
 
             # f,g = self.invProb.evalFunction(self.invProb.model,return_g=True, return_H=False)
             # print('MAX deriv',np.max(np.abs(g)))
@@ -465,9 +440,6 @@ class Update_IRLS(InversionDirective):
                     reg.stashedR = None
                     reg.gamma = 1.
 
-            self.reg.model = self.invProb.model
-            self.reg.l2model = self.invProb.model
-
             # Compute new model objective function value
             phim_new = self.reg(self.invProb.model)
 
@@ -475,7 +447,7 @@ class Update_IRLS(InversionDirective):
             self.f_change = np.abs(self.f_old - phim_new) / self.f_old
 
             print("Regularization decrease: {0:6.3e}".format((self.f_change)))
-                        # Check if the function has changed enough
+            # Check if the function has changed enough
             if self.f_change < self.f_min_change and self.IRLSiter > 1:
                 print("Minimum decrease in regularization. End of IRLS")
                 self.opt.stopNextIteration = True
@@ -490,11 +462,11 @@ class Update_IRLS(InversionDirective):
                 if self.nObjFun > 1:
                     for comp in reg.objfcts:
                         comp.stashedR = None
-                        comp.gamma = self.phi_m_last / phim_new
+                        comp.gamma = self.invProb.phi_m_last / phim_new
                 else:
                     reg.stashedR = None
-                    reg.gamma = self.phi_m_last / phim_new
-
+                    reg.gamma = self.invProb.phi_m_last / phim_new
+                    print('Update gamma', reg.gamma)
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / self.target
 
