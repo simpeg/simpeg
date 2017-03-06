@@ -5,7 +5,7 @@ import scipy.sparse as sp
 from six import string_types
 from .Utils.SolverUtils import *
 norm = np.linalg.norm
-
+from SimPEG import Regularization
 
 __all__ = [
     'Minimize', 'Remember', 'SteepestDescent', 'BFGS', 'GaussNewton',
@@ -1066,12 +1066,60 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
     lower = -np.inf
     upper = np.inf
 
+    ComboObjFun = False
+
+
     def _startup(self, x0):
+
+        # Check if it is a ComboObjective
+        if not isinstance(self.parent.reg, Regularization.BaseComboRegularization):
+
+            # It is a Combo objective, so will have to loop
+            self.ComboObjFun = True
+
         # ensure bound vectors are the same size as the model
         if type(self.lower) is not np.ndarray:
-            self.lower = np.ones_like(x0)*self.lower
+
+            if self.ComboObjFun:
+
+                # Create a list of bounds for Combo Objective if not alreary
+                lower = []
+                if not isinstance(self.lower, list):
+                    for reg in self.parent.reg:
+                        lower.append(self.lower)
+                    self.lower = lower
+
+                # Expand the list into a vector
+                temp_lower = np.zeros_like(x0)
+                for reg, lower in zip(self.parent.reg.objfcts, self.lower):
+                    print(reg.mapping.shape, x0.shape)
+                    temp_lower[reg.mapping.index] += np.ones(reg.mapping.shape[0])*lower
+
+                self.lower = temp_lower
+
+            else:
+                self.lower = np.ones_like(x0)*self.lower
+
         if type(self.upper) is not np.ndarray:
-            self.upper = np.ones_like(x0)*self.upper
+
+            if self.ComboObjFun:
+
+                # Create a list of bounds for Combo Objective if not alreary
+                upper = []
+                if not isinstance(self.upper, list):
+                    for reg in self.parent.reg:
+                        upper.append(self.upper)
+                    self.upper = upper
+
+                # Expand the list into a vector
+                temp_upper = np.zeros_like(x0)
+                for reg, upper in zip(self.parent.reg.objfcts, self.upper):
+                    temp_upper[reg.mapping.index] += np.ones(reg.mapping.shape[0])*upper
+
+                self.upper = temp_upper
+
+            else:
+                self.upper = np.ones_like(x0)*self.upper
 
     @Utils.count
     def projection(self, x):
@@ -1123,71 +1171,89 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         temp = sum((np.ones_like(self.xc.size)-Active))
         allBoundsAreActive = temp == self.xc.size
 
-        if allBoundsAreActive:
-            Hinv = SolverICG(
-                self.H, M=self.approxHinv, tol=self.tolCG,
-                maxiter=self.maxIterCG
-            )
-            p = Hinv * (-self.g)
-            return p
-        else:
-            delx = np.zeros(self.g.size)
-            resid = -(1-Active) * self.g
+        # if allBoundsAreActive:
+        #     Hinv = SolverICG(
+        #         self.H, M=self.approxHinv, tol=self.tolCG,
+        #         maxiter=self.maxIterCG
+        #     )
+        #     p = Hinv * (-self.g)
+        #     return p
+        # else:
+        delx = np.zeros(self.g.size)
+        resid = -(1-Active) * self.g
 
-            # Begin CG iterations.
-            cgiter = 0
-            cgFlag = 0
-            normResid0 = norm(resid)
+        # Begin CG iterations.
+        cgiter = 0
+        cgFlag = 0
+        normResid0 = norm(resid)
 
-            while cgFlag == 0:
+        while cgFlag == 0:
 
-                cgiter = cgiter + 1
-                dc = (1-Active)*(self.approxHinv*resid)
-                rd = np.dot(resid, dc)
+            cgiter = cgiter + 1
+            dc = (1-Active)*(self.approxHinv*resid)
+            rd = np.dot(resid, dc)
 
-                #  Compute conjugate direction pc.
-                if cgiter == 1:
-                    pc = dc
-                else:
-                    betak = rd / rdlast
-                    pc = dc + betak * pc
+            #  Compute conjugate direction pc.
+            if cgiter == 1:
+                pc = dc
+            else:
+                betak = rd / rdlast
+                pc = dc + betak * pc
 
-                #  Form product Hessian*pc.
-                Hp = self.H*pc
-                Hp = (1-Active)*Hp
+            #  Form product Hessian*pc.
+            Hp = self.H*pc
+            Hp = (1-Active)*Hp
 
-                #  Update delx and residual.
-                alphak = rd / np.dot(pc, Hp)
-                delx = delx + alphak*pc
-                resid = resid - alphak*Hp
-                rdlast = rd
+            #  Update delx and residual.
+            alphak = rd / np.dot(pc, Hp)
+            delx = delx + alphak*pc
+            resid = resid - alphak*Hp
+            rdlast = rd
 
-                if np.logical_or(
-                    norm(resid)/normResid0 <= self.tolCG,
-                    cgiter == self.maxIterCG
-                ):
-                    cgFlag = 1
-                # End CG Iterations
+            if np.logical_or(
+                norm(resid)/normResid0 <= self.tolCG,
+                cgiter == self.maxIterCG
+            ):
+                cgFlag = 1
+            # End CG Iterations
 
-            # Take a gradient step on the active cells if exist
-            if temp != self.xc.size:
+        if self.ComboObjFun:
 
-                rhs_a = (Active) * -self.g
+            for reg in self.parent.reg.objfcts:
+                if reg.objfcts[0].space == 'spherical':
 
-                dm_i = max( abs( delx ) )
-                dm_a = max( abs(rhs_a) )
+                    # Check if the angle update is larger than pi/2
+                    max_ang = np.max(np.abs(reg.mapping*delx))
+                    if max_ang > np.pi/2:
 
-                # perturb inactive set off of bounds so that they are included
-                # in the step
-                delx = delx + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
+                        delx = delx/max_ang*np.pi/2.
+
+        elif self.parent.reg.objfcts[0].space == 'spherical':
+            # Check if the angle update is larger than pi/2
+            max_ang = np.max(np.abs(self.parent.reg.mapping*delx))
+            if max_ang > np.pi/2:
+
+                delx = delx/max_ang*np.pi/2.
+
+        # Take a gradient step on the active cells if exist
+        if temp != self.xc.size:
+
+            rhs_a = (Active) * -self.g
+
+            dm_i = max(abs(delx))
+            dm_a = max(abs(rhs_a))
+
+            # perturb inactive set off of bounds so that they are included
+            # in the step
+            delx = delx + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
 
 
-            # Only keep gradients going in the right direction on the active
-            # set
-            indx = (
-                ((self.xc<=self.lower) & (delx < 0)) |
-                ((self.xc>=self.upper) & (delx > 0))
-            )
-            delx[indx] = 0.
+        # Only keep gradients going in the right direction on the active
+        # set
+        indx = (
+            ((self.xc <= self.lower) & (delx < 0)) |
+            ((self.xc >= self.upper) & (delx > 0))
+        )
+        delx[indx] = 0.
 
-            return delx
+        return delx

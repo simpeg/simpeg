@@ -577,7 +577,15 @@ class Amplitude_Inv_Iter(InversionDirective):
     """
     ptype = 'Amp'
     test = False
+    ComboObjFun = False
+
     def initialize(self):
+
+        # Check if it is a ComboObjective
+        if not isinstance(self.reg, Regularization.BaseComboRegularization):
+
+            # It is a Combo objective, so will have to loop
+            self.ComboObjFun = True
 
         self.reg.JtJdiag = self.getJtJdiag()
 
@@ -591,21 +599,36 @@ class Amplitude_Inv_Iter(InversionDirective):
         wr = wr / wr.max()
 
         self.reg.cell_weights = wr
-        nC = len(self.reg.cell_weights)/3
-        self.reg._Wsmall, self.reg._Wx = None, None
-        self.reg._Wy, self.reg._Wz, = None, None
-        self.reg._W, self.reg._Wsmooth = None, None
 
         if self.ptype == 'MVI-S':
-            scl = self.reg.eps_p[0]
-            self.reg.alpha_x[1:] = [(scl/self.reg.eps_q[i+1])/(2.-i) for i in range(2)]
-            self.reg.alpha_y[1:] = [(scl/self.reg.eps_q[i+1])/(2.-i) for i in range(2)]
-            self.reg.alpha_z[1:] = [(scl/self.reg.eps_q[i+1])/(2.-i) for i in range(2)]
 
-        if getattr(self.opt, 'approxHinv', None) is None:
-            diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
-            PC = Utils.sdiag((self.prob.chiMap.deriv(None).T * diagA)**-1.)
+            for reg in self.reg.objfcts[1:]:
+                scl = reg.eps_p
+                reg.alpha_x = scl/reg.eps_q
+                reg.alpha_y = scl/reg.eps_q
+                reg.alpha_z = scl/reg.eps_q
+
+        if getattr(self.opt, 'approxHinv', None) is not None:
+            # Update the pre-conditioner
+            # Update the pre-conditioner
+            if self.ComboObjFun:
+
+                reg_diag = []
+                for reg in self.reg.objfcts:
+                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+
+                diagA = self.reg.JtJdiag + np.hstack(reg_diag)
+
+            else:
+                diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+
+            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
+
+        # if getattr(self.opt, 'approxHinv', None) is None:
+        #     diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+        #     PC = Utils.sdiag((self.prob.chiMap.deriv(None).T * diagA)**-1.)
+        #     self.opt.approxHinv = PC
 
     def endIter(self):
 
@@ -624,10 +647,7 @@ class Amplitude_Inv_Iter(InversionDirective):
 
             self.reg.cell_weights = wr
 
-        nC = len(self.reg.cell_weights)/3
-        self.reg._Wsmall, self.reg._Wx = None, None
-        self.reg._Wy, self.reg._Wz, = None, None
-        self.reg._W, self.reg._Wsmooth = None, None
+
 
         # if np.all([self.ptype == 'MVI-S', self.test is not True]):
 
@@ -637,11 +657,20 @@ class Amplitude_Inv_Iter(InversionDirective):
         #     self.reg.alpha_z[1:] = [scl/self.reg.eps_q[i+1] for i in range(2)]
 
         if getattr(self.opt, 'approxHinv', None) is not None:
-
             # Update the pre-conditioner
-            diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
-            # print('MAX pre-con diag',np.max(np.abs(diagA**-1.)))
-            PC = Utils.sdiag((self.prob.chiMap.deriv(None).T * diagA)**-1.)
+            # Update the pre-conditioner
+            if self.ComboObjFun:
+
+                reg_diag = []
+                for reg in self.reg.objfcts:
+                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+
+                diagA = self.reg.JtJdiag + np.hstack(reg_diag)
+
+            else:
+                diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+
+            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
         #f,g = self.invProb.evalFunction(self.invProb.model,return_g=True, return_H=False)

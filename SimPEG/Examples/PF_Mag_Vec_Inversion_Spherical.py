@@ -192,10 +192,12 @@ def run(plotIt=True):
 
     reg_t = Regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
     reg_t.alpha_s = 0.
+    reg_t.space = 'spherical'
     reg_t.eps_q = 1e-1
 
     reg_p = Regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
     reg_p.alpha_s = 0.
+    reg_p.space = 'spherical'
     reg_p.eps_q = 1e-1
 
     reg = reg_a + reg_t + reg_p
@@ -206,19 +208,17 @@ def run(plotIt=True):
     dmis.W = 1./survey.std
 
     # Add directives to the inversion
-    opt = Optimization.ProjectedGNCG_nSpace(maxIter=30,
+    opt = Optimization.ProjectedGNCG(maxIter=30,
                                             lower=[0., -np.inf, -np.inf],
                                             upper=[10., np.inf, np.inf],
                                             maxIterLS=10,
-                                            maxIterCG=20, tolCG=1e-3,
-                                            ptype=['lin', 'sph', 'sph'], nSpace=3)
+                                            maxIterCG=20, tolCG=1e-3)
 
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta)
     #betaest = Directives.BetaEstimate_ByEig()
 
     # Here is where the norms are applied
-    IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),
-                                  eps=None, f_min_change=1e-4,
+    IRLS = Directives.Update_IRLS(f_min_change=1e-4,
                                   minGNiter=3, beta_tol=1e-2,
                                   coolingRate=3)
     IRLS.eps = [[1e-3, 5e-2], [1e-3, 5e-2], [5e-4, 5e-2]]
