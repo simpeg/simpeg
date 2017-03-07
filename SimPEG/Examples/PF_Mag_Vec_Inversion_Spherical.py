@@ -187,7 +187,7 @@ def run(plotIt=True):
 
     # Create a regularization
     reg_a = Regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
-    reg_a.alpha_s = 1.
+    reg_a.norms = [0, 1, 1, 1]
     reg_a.eps_p, reg_a.eps_q = 1e-3, 1e-3
 
     reg_t = Regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
@@ -212,7 +212,9 @@ def run(plotIt=True):
                                             lower=[0., -np.inf, -np.inf],
                                             upper=[10., np.inf, np.inf],
                                             maxIterLS=10,
-                                            maxIterCG=20, tolCG=1e-3)
+                                            maxIterCG=20, tolCG=1e-3,
+                                            alwaysPass = True,
+                                        stepOffBoundsFact = 1e-8)
 
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta)
     #betaest = Directives.BetaEstimate_ByEig()
