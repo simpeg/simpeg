@@ -1221,7 +1221,6 @@ class SparseSmall(BaseSparse):
             r = self.R(self.f_m) #, self.eps_p, self.norm)
             R = Utils.sdiag(r)
 
-        #print(self.gamma)
         if self.cell_weights is not None:
             return Utils.sdiag((self.gamma*(self.mapping * self.cell_weights))**0.5) * R
         return (self.gamma)**0.5 * R

@@ -1095,7 +1095,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
                 # Expand the list into a vector
                 temp_lower = np.zeros_like(x0)
                 for reg, lower in zip(self.parent.reg.objfcts, self.lower):
-                    print(reg.mapping.shape, x0.shape)
                     temp_lower[reg.mapping.index] += np.ones(reg.mapping.shape[0])*lower
 
                 self.lower = temp_lower
@@ -1231,12 +1230,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
                     delx = delx/max_ang*np.pi/2.
 
-        elif self.parent.reg.objfcts[0].space == 'spherical':
-            # Check if the angle update is larger than pi/2
-            max_ang = np.max(np.abs(self.parent.reg.mapping*delx))
-            if max_ang > np.pi/2:
-
-                delx = delx/max_ang*np.pi/2.
 
         # Take a gradient step on the active cells if exist
         if temp != self.xc.size:

@@ -352,6 +352,12 @@ class Update_IRLS(InversionDirective):
 
             self.mode = 2
 
+            self.coolingFactor = 1.
+            self.coolingRate = 1
+            self.iterStart = self.opt.iter
+            self.phi_d_last = self.invProb.phi_d
+            self.invProb.phi_m_last = self.reg(self.invProb.model)
+
             # print(' iter', self.opt.iter, 'beta',self.invProb.beta,'phid', self.invProb.phi_d)
             if getattr(self, 'f_old', None) is None:
                 self.f_old = self.reg(self.invProb.model)#self.invProb.evalFunction(self.invProb.model, return_g=False, return_H=False)
@@ -388,19 +394,25 @@ class Update_IRLS(InversionDirective):
             if self.ComboObjFun:
                 for reg, norms in zip(self.reg.objfcts, self.norms):
                     reg.norms = norms
+                    print("L[p qx qy qz]-norm : " + str(reg.norms))
 
             else:
                 self.reg.norms = self.norms
+                print("L[p qx qy qz]-norm : " + str(self.reg.norms))
 
-            self.reg.norms = self.norms
-            self.coolingFactor = 1.
-            self.coolingRate = 1
-            self.iterStart = self.opt.iter
-            self.phi_d_last = self.invProb.phi_d
 
-            self.reg.model = self.invProb.model
+
+            if self.ComboObjFun:
+                    for reg in self.reg.objfcts:
+                        reg.model = self.invProb.model
+
+
+            else:
+                self.reg.model = self.invProb.model
+
+
             self.reg.l2model = self.invProb.model.copy()
-            print("L[p qx qy qz]-norm : " + str(self.reg.norms))
+
 
             # Re-assign the norms
             if self.ComboObjFun:
@@ -420,6 +432,7 @@ class Update_IRLS(InversionDirective):
         # Only update after GN iterations
         if np.all([(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode == 2]):
 
+
             # Check for maximum number of IRLS cycles
             if self.IRLSiter == self.maxIRLSiter:
                 print("Reach maximum number of IRLS cycles: {0:d}".format(self.maxIRLSiter))
@@ -428,7 +441,12 @@ class Update_IRLS(InversionDirective):
 
             else:
                 # Update the model used in the regularization
-                self.reg.model = self.invProb.model
+                if self.ComboObjFun:
+                    for reg in self.reg.objfcts:
+                        reg.model = self.invProb.model
+
+                else:
+                    self.reg.model = self.invProb.model
 
                 self.IRLSiter += 1
 
@@ -464,16 +482,18 @@ class Update_IRLS(InversionDirective):
                 self.f_old = phim_new
 
             # Update gamma to scale the regularization between IRLS iterations
+            gamma = self.invProb.phi_m_last / phim_new
             for reg in self.reg.objfcts:
 
                 # If comboObj, go down one more level
                 if self.ComboObjFun:
                     for comp in reg.objfcts:
                         comp.stashedR = None
-                        comp.gamma = self.invProb.phi_m_last / phim_new
+                        comp.gamma = gamma
+                    print('Update gamma', gamma, self.invProb.phi_m_last, phim_new)
                 else:
                     reg.stashedR = None
-                    reg.gamma = self.invProb.phi_m_last / phim_new
+                    reg.gamma = gamma
                     print('Update gamma', reg.gamma)
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / self.target
@@ -609,26 +629,24 @@ class Amplitude_Inv_Iter(InversionDirective):
 
             for reg in self.reg.objfcts[1:]:
                 scl = self.reg.objfcts[0].eps_p
-                reg.alpha_x = scl/reg.eps_q
-                reg.alpha_y = scl/reg.eps_q
-                reg.alpha_z = scl/reg.eps_q
+                reg.alpha_x *= scl/reg.eps_q
+                reg.alpha_y *= scl/reg.eps_q
+                reg.alpha_z *= scl/reg.eps_q
 
-        if getattr(self.opt, 'approxHinv', None) is None:
-            # Update the pre-conditioner
-            # Update the pre-conditioner
-            if self.ComboObjFun:
+        # Update the pre-conditioner
+        if self.ComboObjFun:
 
-                reg_diag = []
-                for reg in self.reg.objfcts:
-                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+            reg_diag = []
+            for reg in self.reg.objfcts:
+                reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
 
-                diagA = self.reg.JtJdiag + np.hstack(reg_diag)
+            diagA = self.reg.JtJdiag + np.hstack(reg_diag)
 
-            else:
-                diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+        else:
+            diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
 
-            PC = Utils.sdiag((diagA)**-1.)
-            self.opt.approxHinv = PC
+        PC = Utils.sdiag((diagA)**-1.)
+        self.opt.approxHinv = PC
 
         # if getattr(self.opt, 'approxHinv', None) is None:
         #     diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
@@ -722,6 +740,7 @@ class ProjSpherical(InversionDirective):
 
         self.invProb.model = m
         self.prob.chi = m
+        self.opt.xc = m
 
     def endIter(self):
 
@@ -731,4 +750,6 @@ class ProjSpherical(InversionDirective):
         m = Magnetics.xyz2atp(xyz)
 
         self.invProb.model = m
+        self.invProb.phi_m_last = self.reg(m)
         self.prob.chi = m
+        self.opt.xc = m
