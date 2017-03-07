@@ -279,9 +279,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     # The base class currently does not.
     @property
     def W(self):
+        """
+        W matrix for the full objective function. Includes multiplying by the
+        square root of alpha.
+        """
         W = []
         for mult, fct in self:
-            curW = mult * fct.W
+            curW = np.sqrt(mult) * fct.W
             if not isinstance(curW, Utils.Zero):
                 W.append(curW)
         return sp.vstack(W)
