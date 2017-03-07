@@ -1,2 +1,2 @@
-Magnetotellurics
-================
+Natural Source Electromagnetics
+===============================
