@@ -577,6 +577,7 @@ class Amplitude_Inv_Iter(InversionDirective):
     """
     ptype = 'Amp'
     test = False
+    mapping = None
     ComboObjFun = False
 
     def initialize(self):
@@ -598,17 +599,21 @@ class Amplitude_Inv_Iter(InversionDirective):
         wr = self.reg.JtJdiag**0.5
         wr = wr / wr.max()
 
-        self.reg.cell_weights = wr
+        if self.ComboObjFun:
+            for reg in self.reg.objfcts:
+                reg.cell_weights = wr
+        else:
+            self.reg.cell_weights = wr
 
         if self.ptype == 'MVI-S':
 
             for reg in self.reg.objfcts[1:]:
-                scl = reg.eps_p
+                scl = self.reg.objfcts[0].eps_p
                 reg.alpha_x = scl/reg.eps_q
                 reg.alpha_y = scl/reg.eps_q
                 reg.alpha_z = scl/reg.eps_q
 
-        if getattr(self.opt, 'approxHinv', None) is not None:
+        if getattr(self.opt, 'approxHinv', None) is None:
             # Update the pre-conditioner
             # Update the pre-conditioner
             if self.ComboObjFun:
@@ -622,7 +627,7 @@ class Amplitude_Inv_Iter(InversionDirective):
             else:
                 diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
 
-            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
+            PC = Utils.sdiag((diagA)**-1.)
             self.opt.approxHinv = PC
 
         # if getattr(self.opt, 'approxHinv', None) is None:
@@ -645,7 +650,11 @@ class Amplitude_Inv_Iter(InversionDirective):
             wr = self.reg.JtJdiag**0.5
             wr = wr / wr.max()
 
-            self.reg.cell_weights = wr
+            if self.ComboObjFun:
+                for reg in self.reg.objfcts:
+                    reg.cell_weights = wr
+            else:
+                self.reg.cell_weights = wr
 
 
 
@@ -670,7 +679,7 @@ class Amplitude_Inv_Iter(InversionDirective):
             else:
                 diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
 
-            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
+            PC = Utils.sdiag(( diagA)**-1.)
             self.opt.approxHinv = PC
 
         #f,g = self.invProb.evalFunction(self.invProb.model,return_g=True, return_H=False)

@@ -513,7 +513,10 @@ class Minimize(object):
         if self.debugLS and self.iterLS > 0:
             self.printDone(inLS=True)
 
-        return self._LS_xt, self.iterLS < self.maxIterLS
+        if self.alwaysPass:
+            return self._LS_xt, True
+        else:
+            return self._LS_xt, self.iterLS < self.maxIterLS
 
     @Utils.count
     def modifySearchDirectionBreak(self, p):
@@ -1067,7 +1070,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
     upper = np.inf
 
     ComboObjFun = False
-
+    alwaysPass = True
 
     def _startup(self, x0):
 
@@ -1219,14 +1222,14 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
         if self.ComboObjFun:
 
-            for reg in self.parent.reg.objfcts:
-                if reg.objfcts[0].space == 'spherical':
+            reg = self.parent.reg.objfcts[1]
+            if reg.space == 'spherical':
 
-                    # Check if the angle update is larger than pi/2
-                    max_ang = np.max(np.abs(reg.mapping*delx))
-                    if max_ang > np.pi/2:
+                # Check if the angle update is larger than pi/2
+                max_ang = np.max(np.abs(reg.mapping*delx))
+                if max_ang > np.pi/2.:
 
-                        delx = delx/max_ang*np.pi/2.
+                    delx = delx/max_ang*np.pi/2.
 
         elif self.parent.reg.objfcts[0].space == 'spherical':
             # Check if the angle update is larger than pi/2

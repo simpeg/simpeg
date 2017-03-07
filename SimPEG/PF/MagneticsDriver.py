@@ -404,3 +404,24 @@ def actIndFull2layer(mesh, actInd):
             actIndLayer[ii, jj, np.where(zcol)[0][-1]] = True
 
     return np.asarray(np.where(mkvc(actIndLayer))[0], dtype=int)
+
+def writeVectorUBC(mesh, fileName, model):
+    """
+        Writes a vector model associated with a SimPEG TensorMesh
+        to a UBC-GIF format model file.
+
+        :param string fileName: File to write to
+        :param numpy.ndarray model: The model
+    """
+
+    modelMatTR = np.zeros_like(model)
+
+    for ii in range(3):
+        # Reshape model to a matrix
+        modelMat = mesh.r(model[:, ii], 'CC', 'CC', 'M')
+        # Transpose the axes
+        modelMatT = modelMat.transpose((2, 0, 1))
+        # Flip z to positive down
+        modelMatTR[:, ii] = Utils.mkvc(modelMatT[::-1, :, :])
+
+    np.savetxt(fileName, modelMatTR)
