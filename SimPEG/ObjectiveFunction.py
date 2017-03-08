@@ -19,6 +19,15 @@ __all__ = [
 
 
 class BaseObjectiveFunction(Props.BaseSimPEG):
+    """
+    Base Objective Function
+
+    Inherit this to build your own objective function. If building a
+    regularization, have a look at
+    :class:`SimPEG.Regularization.BaseRegularization` as there are additional
+    methods and properties tailored to regularization of a model. Similarly,
+    for building a data misfit, see :class:`SimPEG.DataMisfit.BaseDataMisfit`.
+    """
 
     counter = None
     debug = False
@@ -27,7 +36,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
     _mapping = None  #: An IdentityMap instance.
     _hasFields = False  #: should we have the option to store fields
 
-    _nP = None
+    _nP = None  #: number of parameters
 
     def __init__(self, nP=None, **kwargs):
         if nP is not None:
@@ -43,15 +52,20 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
 
     @property
     def nP(self):
+        """
+        Number of model parameters expected.
+        """
         if self._nP is not None:
             return self._nP
         if getattr(self, 'mapping', None) is not None:
             return self.mapping.nP
         return '*'
 
-
     @property
     def mapping(self):
+        """
+        A `SimPEG.Maps` instance
+        """
         if getattr(self, '_mapping') is None:
             if getattr(self, '_nP') is not None:
                 self._mapping = self.mapPair(nP=self.nP)
@@ -77,6 +91,9 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
 
     @Utils.timeIt
     def deriv(self, x, **kwargs):
+        """
+        First derivative of the objective function with respect to the model
+        """
         raise NotImplementedError(
             "The method deriv has not been implemented for {}".format(
                 self.__class__.__name__
@@ -85,6 +102,9 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
 
     @Utils.timeIt
     def deriv2(self, x, v=None, **kwargs):
+        """
+        Second derivative of the objective function with respect to the model
+        """
         raise NotImplementedError(
             "The method _deriv2 has not been implemented for {}".format(
                 self.__class__.__name__
@@ -119,6 +139,10 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
         )
 
     def test(self, x=None, num=4, plotIt=False, **kwargs):
+        """
+        Run a convergence test on both the first and second derivatives - they
+        should be second order!
+        """
         deriv = self._test_deriv(x=x, num=num, **kwargs)
         deriv2 = self._test_deriv2(x=x, num=num, plotIt=False, **kwargs)
         return (deriv & deriv2)
@@ -171,7 +195,32 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
 
 
 class ComboObjectiveFunction(BaseObjectiveFunction):
+    """
+    A composite objective function that consists of multiple objective
+    functions. Objective functions are stored in a list, and multipliers
+    are stored in a parallel list.
 
+    .. code::python
+
+        import SimPEG.ObjectiveFunction
+        phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=10)
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=10)
+
+        phi = 2*phi1 + 3*phi2
+
+    is equivalent to
+
+        .. code::python
+
+            import SimPEG.ObjectiveFunction
+            phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=10)
+            phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=10)
+
+            phi = ObjectiveFunction.ComboObjectiveFunction(
+                [phi1, phi2], [2, 3]
+            )
+
+    """
     _multiplier_types = (float, None, Utils.Zero) + integer_types # Directive
 
     def __init__(self, objfcts=[], multipliers=None, **kwargs):
@@ -187,6 +236,11 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             )
 
         def validate_list(objfctlist, multipliers):
+            """
+            ensure that the number of parameters expected by each objective
+            function is the same, ensure that if multpliers are supplied, that
+            list matches the length of the objective function list
+            """
             for fct, mult in zip(objfctlist, multipliers):
                 assert (
                     isinstance(fct, BaseObjectiveFunction)
@@ -248,6 +302,14 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         return fct
 
     def deriv(self, m, f=None):
+        """
+        First derivative of the composite objective function is the sum of the
+        derivatives of each objective function in the list, weighted by their
+        respective multplier.
+
+        :param numpy.ndarray m: model
+        :param SimPEG.Fields f: Fields object (if applicable)
+        """
         g = Utils.Zero()
         for i, phi in enumerate(self):
             multiplier, objfct = phi
@@ -261,7 +323,15 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         return g
 
     def deriv2(self, m, v=None, f=None):
+        """
+        Second derivative of the composite objective function is the sum of the
+        second derivatives of each objective function in the list, weighted by
+        their respective multplier.
 
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector we are multiplying by
+        :param SimPEG.Fields f: Fields object (if applicable)
+        """
         H = Utils.Zero()
         for i, phi in enumerate(self):
             multiplier, objfct = phi
@@ -292,7 +362,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
+    """
+    An L2-Objective Function
 
+    .. math::
+
+        \phi = \frac{1}{2}||\mathbf{W} \mathbf{m}||^2
+    """
     def __init__(self, W=None, **kwargs):
 
         super(L2ObjectiveFunction, self).__init__(**kwargs)
@@ -307,8 +383,14 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
 
     @property
     def W(self):
+        """
+        Weighting matrix. The default if not sepcified is an identity.
+        """
         if getattr(self, '_W', None) is None:
-            self._W = Utils.Identity()
+            if self.mapping.shape[0] != '*':
+                self._W = sp.eye(self.mapping.shape[0])
+            else:
+                self._W = Utils.Identity()
         return self._W
 
     def __call__(self, m):
@@ -316,12 +398,23 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         return 0.5 * r.dot(r)
 
     def deriv(self, m):
+        """
+        First derivative with respect to the model
+
+        :param numpy.ndarray m: model
+        """
         return (
             self.mapping.deriv(m).T *
             (self.W.T * (self.W * (self.mapping * m)))
         )
 
     def deriv2(self, m, v=None):
+        """
+        Second derivative with respect to the model
+
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply by
+        """
         if v is not None:
             return (
                 self.mapping.deriv(m).T * (
