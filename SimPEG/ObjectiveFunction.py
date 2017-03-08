@@ -62,6 +62,16 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
         return '*'
 
     @property
+    def _nC_residual(self):
+        """
+        Shape of the residual
+        """
+        if getattr(self, 'mapping', None) is not None:
+            return self.mapping.shape[0]
+        else:
+            return self.nP
+
+    @property
     def mapping(self):
         """
         A `SimPEG.Maps` instance
@@ -375,10 +385,6 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         if W is not None:
             if self.nP == '*':
                 self._nP = W.shape[1]
-            else:
-                assert(W.shape[1]) == self.nP, (
-                    'nP must be the same as W.shape[0], not {}'.format(self.nP)
-                )
         self._W = W
 
     @property
@@ -387,8 +393,8 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         Weighting matrix. The default if not sepcified is an identity.
         """
         if getattr(self, '_W', None) is None:
-            if self.mapping.shape[0] != '*':
-                self._W = sp.eye(self.mapping.shape[0])
+            if self._nC_residual != '*':
+                self._W = sp.eye(self._nC_residual)
             else:
                 self._W = Utils.Identity()
         return self._W

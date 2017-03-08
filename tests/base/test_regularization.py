@@ -259,5 +259,49 @@ class RegularizationTests(unittest.TestCase):
             passed = reg(mref) < TOL
             self.assertTrue(passed)
 
+    def test_mappings_and_cell_weights(self):
+        mesh = Mesh.TensorMesh([8, 7, 6])
+        m = np.random.rand(2*mesh.nC)
+        v = np.random.rand(2*mesh.nC)
+
+        cell_weights = np.random.rand(mesh.nC)
+
+        wires = Maps.Wires(('sigma', mesh.nC), ('mu', mesh.nC))
+
+        reg = Regularization.Small(
+            mesh, mapping=wires.sigma, cell_weights=cell_weights
+        )
+
+        objfct = ObjectiveFunction.L2ObjectiveFunction(
+            W=Utils.sdiag(cell_weights), mapping=wires.sigma
+        )
+
+        self.assertTrue(reg(m) == objfct(m))
+        self.assertTrue(np.all(reg.deriv(m) == objfct.deriv(m)))
+        self.assertTrue(np.all(reg.deriv2(m, v=v) == objfct.deriv2(m, v=v)))
+
+    def test_update_of_sparse_norms(self):
+        mesh = Mesh.TensorMesh([8, 7, 6])
+        m = np.random.rand(mesh.nC)
+        v = np.random.rand(mesh.nC)
+
+        cell_weights = np.random.rand(mesh.nC)
+
+        reg = Regularization.Sparse(
+            mesh, cell_weights=cell_weights
+        )
+        self.assertTrue(np.all(reg.norms == [0., 2., 2., 2.]))
+        self.assertTrue(reg.objfcts[0].norm == 0.)
+        self.assertTrue(reg.objfcts[1].norm == 2.)
+        self.assertTrue(reg.objfcts[2].norm == 2.)
+        self.assertTrue(reg.objfcts[3].norm == 2.)
+
+        reg.norms = [0., 1., 1., 1.]
+        self.assertTrue(np.all(reg.norms == [0., 1., 1., 1.]))
+        self.assertTrue(reg.objfcts[0].norm == 0.)
+        self.assertTrue(reg.objfcts[1].norm == 1.)
+        self.assertTrue(reg.objfcts[2].norm == 1.)
+        self.assertTrue(reg.objfcts[3].norm == 1.)
+
 if __name__ == '__main__':
     unittest.main()

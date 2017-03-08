@@ -159,8 +159,6 @@ class TestBaseObjFct(unittest.TestCase):
             ObjectiveFunction.L2ObjectiveFunction(W = sp.eye(nP)) +
             Utils.Zero()*ObjectiveFunction.L2ObjectiveFunction()
         )
-
-
         self.assertTrue(len(phi.objfcts) == 1)
         self.assertTrue(phi.test())
 
