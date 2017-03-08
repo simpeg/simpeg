@@ -1183,40 +1183,35 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         # else:
         delx = np.zeros(self.g.size)
         resid = -(1-Active) * self.g
+        #print('MAX deriv',np.max(np.abs(self.g)))
+        r = (resid - (1-Active)*(self.H* delx))
 
-        # Begin CG iterations.
-        cgiter = 0
-        cgFlag = 0
-        normResid0 = norm(resid)
+        p = self.approxHinv*r
 
-        while cgFlag == 0:
+        sold = np.dot(r, p)
+        s0 = sold
 
-            cgiter = cgiter + 1
-            dc = (1-Active)*(self.approxHinv*resid)
-            rd = np.dot(resid, dc)
+        count = 0
 
-            #  Compute conjugate direction pc.
-            if cgiter == 1:
-                pc = dc
-            else:
-                betak = rd / rdlast
-                pc = dc + betak * pc
+        while np.all([np.linalg.norm(r) > self.tolCG , count < self.maxIterCG]):
 
-            #  Form product Hessian*pc.
-            Hp = self.H*pc
-            Hp = (1-Active)*Hp
+            count += 1
 
-            #  Update delx and residual.
-            alphak = rd / np.dot(pc, Hp)
-            delx = delx + alphak*pc
-            resid = resid - alphak*Hp
-            rdlast = rd
+            q = (1-Active)*(self.H * p)
 
-            if np.logical_or(
-                norm(resid)/normResid0 <= self.tolCG,
-                cgiter == self.maxIterCG
-            ):
-                cgFlag = 1
+            alpha = sold / (np.dot(p, q))
+
+            delx += alpha * p
+
+            r -= alpha * q
+
+            h = self.approxHinv * r
+
+            snew = np.dot(r, h)
+
+            p = h + (snew / sold * p)
+
+            sold = snew
             # End CG Iterations
 
         if self.ComboObjFun:

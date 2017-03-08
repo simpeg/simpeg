@@ -281,7 +281,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     def W(self):
         W = []
         for mult, fct in self:
-            curW = mult * fct.W
+            curW = np.sqrt(mult) * fct.W
             if not isinstance(curW, Utils.Zero):
                 W.append(curW)
         return sp.vstack(W)

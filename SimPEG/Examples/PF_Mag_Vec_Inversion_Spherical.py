@@ -193,12 +193,14 @@ def run(plotIt=True):
     reg_t = Regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
     reg_t.alpha_s = 0.
     reg_t.space = 'spherical'
-    reg_t.eps_q = 1e-1
+    reg_t.norms = [2, 1, 1, 1]
+    reg_t.eps_q = 5e-2
 
     reg_p = Regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
     reg_p.alpha_s = 0.
     reg_p.space = 'spherical'
-    reg_p.eps_q = 1e-1
+    reg_p.norms = [2, 1, 1, 1]
+    reg_p.eps_q = 5e-2
 
     reg = reg_a + reg_t + reg_p
     reg.mref = np.zeros(3*nC)
@@ -223,8 +225,7 @@ def run(plotIt=True):
     IRLS = Directives.Update_IRLS(f_min_change=1e-4,
                                   minGNiter=3, beta_tol=1e-2,
                                   coolingRate=3)
-    IRLS.eps = [[1e-3, 5e-2], [1e-3, 5e-2], [5e-4, 5e-2]]
-    #IRLS.eps = [[5e-4,5e-4],[1e-3,1e-2],[1e-4, 1e-2]]
+
     # Special directive specific to the mag amplitude problem. The sensitivity
     # weights are update between each iteration.
     update_Jacobi = Directives.Amplitude_Inv_Iter()
@@ -257,7 +258,7 @@ def run(plotIt=True):
         mrec = PF.Magnetics.atp2xyz(mrec)
 
         vmin = model.min()
-        vmax = model.max()*0.1
+        vmax = model.max()*0.25
         scl_vec = np.max(mrec)/np.max(m) * 0.25
         PF.Magnetics.plotModelSections(mesh, mrec, normal='y',
                                        ind=ypanel, axs=ax1,

@@ -490,11 +490,10 @@ class Update_IRLS(InversionDirective):
                     for comp in reg.objfcts:
                         comp.stashedR = None
                         comp.gamma = gamma
-                    print('Update gamma', gamma, self.invProb.phi_m_last, phim_new)
                 else:
                     reg.stashedR = None
                     reg.gamma = gamma
-                    print('Update gamma', reg.gamma)
+
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / self.target
 
@@ -629,9 +628,8 @@ class Amplitude_Inv_Iter(InversionDirective):
 
             for reg in self.reg.objfcts[1:]:
                 scl = self.reg.objfcts[0].eps_p
-                reg.alpha_x *= scl/reg.eps_q
-                reg.alpha_y *= scl/reg.eps_q
-                reg.alpha_z *= scl/reg.eps_q
+                reg.scale = scl/reg.eps_q
+                reg.cell_weights *= reg.scale
 
         # Update the pre-conditioner
         if self.ComboObjFun:
@@ -670,9 +668,10 @@ class Amplitude_Inv_Iter(InversionDirective):
 
             if self.ComboObjFun:
                 for reg in self.reg.objfcts:
-                    reg.cell_weights = wr
+                    reg.cell_weights = wr * reg.scale
+
             else:
-                self.reg.cell_weights = wr
+                self.reg.cell_weights = wr * self.reg.scale
 
 
 

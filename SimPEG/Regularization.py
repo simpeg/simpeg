@@ -670,6 +670,9 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
     cell_weights = properties.Array(
         "regularization weights applied at cell centers", dtype=float
     )
+    scale = properties.Float(
+        "General nob for scaling", default=1.
+    )
 
     @property
     def nP(self):
