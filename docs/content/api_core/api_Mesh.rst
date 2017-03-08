@@ -22,8 +22,8 @@ tutorial, but the details, advantages and disadvantages differ between
 the implementations.
 
 
-.. image:: /content/examples/mesh/images/sphx_glr_plot_basic_types_001.png
-    :target: /content/examples/mesh/plot_basic_types.html
+.. image:: /content/examples/02-mesh/images/sphx_glr_plot_basic_types_001.png
+    :target: /content/examples/02-mesh/plot_basic_types.html
     :align: center
 
 

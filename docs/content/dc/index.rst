@@ -146,8 +146,8 @@ where
 Here \\(\\bm\\) indicates model parameters in discretized space.
 
 
-.. image:: /content/examples/dc/images/sphx_glr_plot_analytic_dipole_001.png
-    :target: /content/examples/dc/plot_analytic_dipole.html
+.. image:: /content/examples/06-dc/images/sphx_glr_plot_analytic_dipole_001.png
+    :target: /content/examples/06-dc/plot_analytic_dipole.html
     :align: center
 
 
