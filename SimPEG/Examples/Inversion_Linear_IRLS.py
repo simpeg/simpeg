@@ -12,6 +12,7 @@ from SimPEG import Optimization
 from SimPEG import Regularization
 from SimPEG import InvProblem
 from SimPEG import Inversion
+from SimPEG import Maps
 
 
 def run(N=100, plotIt=True):
@@ -68,10 +69,13 @@ def run(N=100, plotIt=True):
 
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
 
-    reg = Regularization.Sparse(mesh)
+    # Creat reduced identity map
+    idenMap = Maps.IdentityMap(nP=mesh.nC)
+
+    reg = Regularization.Sparse(mesh, mapping=idenMap)
     reg.mref = mref
     reg.cell_weights = wr
-
+    reg.norms = [0., 0., 2., 2.]
     reg.mref = np.zeros(mesh.nC)
 
     opt = Optimization.ProjectedGNCG(
@@ -83,10 +87,8 @@ def run(N=100, plotIt=True):
 
     # Set the IRLS directive, penalize the lowest 25 percentile of model values
     # Start with an l2-l2, then switch to lp-norms
-    norms = [0., 0., 2., 2.]
-    IRLS = Directives.Update_IRLS(
-        norms=norms, prctile=25, maxIRLSiter=15, minGNiter=3
-    )
+
+    IRLS = Directives.Update_IRLS(prctile=25, maxIRLSiter=15, minGNiter=3)
 
     inv = Inversion.BaseInversion(
         invProb,
