@@ -16,7 +16,6 @@ addons:
     - liblapack-dev
 
 env:
-    - TEST_DIR=tests/examples
     - TEST_DIR=tests/em/fdem/inverse/derivs
     - TEST_DIR="tests/em/tdem tests/base"
     - TEST_DIR=tests/em/static
@@ -46,11 +45,11 @@ before_install:
 
 install:
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py nose sphinx sympy vtk;
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py vtk;
     else
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py nose sphinx sympy;
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
     fi
-  - pip install nose-cov python-coveralls pymatsolver discretize
+  - pip install -r requirements_dev.txt
   - python setup.py install
   - python setup.py build_ext --inplace
   - if [ ${TEST_DIR} = "tests/docs" ]; then

@@ -328,7 +328,6 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
     return passTest
 
 
-
 def getQuadratic(A, b, c=0):
     """
         Given A, b and c, this returns a quadratic, Q
@@ -348,19 +347,3 @@ def getQuadratic(A, b, c=0):
             out += (H,)
         return out if len(out) > 1 else out[0]
     return Quadratic
-
-
-if __name__ == '__main__':
-
-    def simplePass(x):
-        return np.sin(x), sdiag(np.cos(x))
-
-    def simpleFunction(x):
-        return np.sin(x), lambda xi: sdiag(np.cos(x))*xi
-
-    def simpleFail(x):
-        return np.sin(x), -sdiag(np.cos(x))
-
-    checkDerivative(simplePass, np.random.randn(5), plotIt=True)
-    checkDerivative(simpleFunction, np.random.randn(5), plotIt=False)
-    checkDerivative(simpleFail, np.random.randn(5), plotIt=False)
