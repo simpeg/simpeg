@@ -132,10 +132,12 @@ def run(plotIt=True):
     # Create a regularization
     reg_Susc = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg_Susc.cell_weights = wr
+    reg_Susc.norms = ([0, 1, 1, 1])
+    reg_Susc.eps_p, reg_Susc.eps_q = 1e-3, 1e-3
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.Wd = 1/wd
+    dmis.W = 1/wd
 
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
@@ -146,8 +148,7 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
     #  model parameters
-    IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),
-                                  f_min_change=1e-3, minGNiter=3)
+    IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=3)
     update_Jacobi = Directives.Update_lin_PreCond()
     inv = Inversion.BaseInversion(invProb,
                                   directiveList=[IRLS, betaest, update_Jacobi])
@@ -187,7 +188,7 @@ def run(plotIt=True):
 
     # Define misfit function (obs-calc)
     dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.Wd = 1./survey.std
+    dmis.W = 1./survey.std
 
     # Create the default L2 inverse problem from the above objects
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
@@ -260,11 +261,12 @@ def run(plotIt=True):
 
     # Create a sparse regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-    reg.mref = mstart*0.
+    reg.norms = ([0, 1, 1, 1])
+    reg.eps_p, reg.eps_q = 1e-3, 1e-3
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.Wd = 1/survey.std
+    dmis.W = 1/survey.std
 
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
@@ -277,9 +279,7 @@ def run(plotIt=True):
     betaest = Directives.BetaEstimate_ByEig()
 
     # Specify the sparse norms
-    IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),
-                                  f_min_change=1e-3,
-                                  eps=[1e-3, 1e-3],
+    IRLS = Directives.Update_IRLS(f_min_change=1e-3,
                                   minGNiter=2,
                                   chifact=0.25)
 
