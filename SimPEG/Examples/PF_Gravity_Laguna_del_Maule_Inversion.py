@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+import shutil
 import SimPEG.PF as PF
 from SimPEG import Maps, Regularization, Optimization, DataMisfit,\
                    InvProblem, Directives, Inversion
@@ -8,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def run(plotIt=True):
+def run(plotIt=True, cleanAfterRun=True):
     """
         PF: Gravity: Laguna del Maule Bouguer Gravity
         =============================================
@@ -95,6 +96,7 @@ def run(plotIt=True):
                                 mapping=staticCells)
     reg.mref = driver.mref[dynamic]
     reg.cell_weights = wr * mesh.vol[active]
+    reg.norms = driver.lpnorms
 
     # Specify how the optimization will proceed
     opt = Optimization.ProjectedGNCG(maxIter=150, lower=driver.bounds[0],
@@ -114,8 +116,7 @@ def run(plotIt=True):
     # IRLS sets up the Lp inversion problem
     # Set the eps parameter parameter in Line 11 of the
     # input file based on the distribution of model (DEFAULT = 95th %ile)
-    IRLS = Directives.Update_IRLS(norms=driver.lpnorms, eps=driver.eps,
-                                  f_min_change=1e-2, maxIRLSiter=20,
+    IRLS = Directives.Update_IRLS(f_min_change=1e-2, maxIRLSiter=20,
                                   minGNiter=5)
 
     # Preconditioning refreshing for each IRLS iteration
@@ -128,6 +129,10 @@ def run(plotIt=True):
     # %%
     # Run L2 and Lp inversion
     mrec = inv.run(mstart)
+
+    if cleanAfterRun:
+        shutil.rmtree(basePath)
+
     # %%
     if plotIt:
         # Plot observed data

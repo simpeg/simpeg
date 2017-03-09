@@ -108,6 +108,8 @@ def run(plotIt=True):
     # Create a regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.cell_weights = wr
+    reg.norms = [0, 1, 1, 1]
+    reg.eps_p, reg.eps_q = 1e-3, 1e-3
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
@@ -122,8 +124,7 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
     #  model parameters
-    IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),  eps=(5e-4, 5e-4),
-                                  f_min_change=1e-3, minGNiter=3)
+    IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=3)
     update_Jacobi = Directives.Update_lin_PreCond()
     inv = Inversion.BaseInversion(invProb,
                                   directiveList=[IRLS, betaest, update_Jacobi])
