@@ -21,10 +21,10 @@ Each mesh code follows the guiding principles that are present in this
 tutorial, but the details, advantages and disadvantages differ between
 the implementations.
 
-.. plot::
 
-    from SimPEG import Examples
-    Examples.Mesh_Basic_Types.run()
+.. image:: /content/examples/02-mesh/images/sphx_glr_plot_basic_types_001.png
+    :target: /content/examples/02-mesh/plot_basic_types.html
+    :align: center
 
 
 Variable Locations and Terminology
