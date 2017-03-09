@@ -22,15 +22,12 @@ from SimPEG import Maps
 
 
 def run(N=100, plotIt=True):
-<<<<<<< HEAD:SimPEG/Examples/Inversion_Linear_IRLS.py
     """
         Inversion: Linear: Update_IRLS
         ==============================
 
         Here we go over the basics of creating a linear problem and inversion.
     """
-=======
->>>>>>> dev:examples/01-basic/plot_inversion_linear_irls.py
 
     np.random.seed(1)
 
