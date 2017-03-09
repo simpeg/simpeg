@@ -290,8 +290,8 @@ class RegularizationTests(unittest.TestCase):
         reg = Regularization.Sparse(
             mesh, cell_weights=cell_weights
         )
-        self.assertTrue(np.all(reg.norms == [0., 2., 2., 2.]))
-        self.assertTrue(reg.objfcts[0].norm == 0.)
+        self.assertTrue(np.all(reg.norms == [2., 2., 2., 2.]))
+        self.assertTrue(reg.objfcts[0].norm == 2.)
         self.assertTrue(reg.objfcts[1].norm == 2.)
         self.assertTrue(reg.objfcts[2].norm == 2.)
         self.assertTrue(reg.objfcts[3].norm == 2.)
