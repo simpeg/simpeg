@@ -4,6 +4,7 @@ Inversion: Linear: IRLS
 
 Here we go over the basics of creating a linear problem and inversion.
 """
+
 from __future__ import print_function
 
 import numpy as np
@@ -22,12 +23,6 @@ from SimPEG import Maps
 
 
 def run(N=100, plotIt=True):
-    """
-        Inversion: Linear: Update_IRLS
-        ==============================
-
-        Here we go over the basics of creating a linear problem and inversion.
-    """
 
     np.random.seed(1)
 

@@ -1,3 +1,11 @@
+"""
+Seismic Straight Ray Tomography
+===============================
+
+Example of a straight ray tomography inverse problem.
+
+"""
+
 from SimPEG import Utils
 from SimPEG import Mesh
 from SimPEG import Maps
@@ -17,14 +25,6 @@ import matplotlib.pyplot as plt
 
 
 def run(plotIt=False):
-
-    """
-        Seismic Straight Ray Tomography
-        ===============================
-
-        Example of a straight ray tomography problem
-
-    """
 
     O = np.r_[-1.2, -1.]
     D = np.r_[10., 10.]

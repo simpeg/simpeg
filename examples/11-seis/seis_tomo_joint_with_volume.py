@@ -1,3 +1,23 @@
+"""
+Straight Ray with Volume Data Misfit Term
+=========================================
+
+Based on the SEG abstract Heagy, Cockett and Oldenburg, 2014.
+
+Heagy, L. J., Cockett, A. R., & Oldenburg, D. W. (2014, August 5).
+Parametrized Inversion Framework for Proppant Volume in a Hydraulically
+Fractured Reservoir. SEG Technical Program Expanded Abstracts 2014.
+Society of Exploration Geophysicists. doi:10.1190/segam2014-1639.1
+
+This example is a simple joint inversion that consists of a
+
+    - data misfit for the tomography problem
+    - data misfit for the volume of the inclusions
+      (uses the effective medium theory mapping)
+    - model regularization
+
+"""
+
 import numpy as np
 import scipy.sparse as sp
 import properties
@@ -45,25 +65,7 @@ class Volume(ObjectiveFunction.BaseObjectiveFunction):
 
 
 def run(plotIt=True):
-    """
-        Straight Ray with Volume Data Misfit Term
-        =========================================
 
-        Based on the SEG abstract Heagy, Cockett and Oldenburg, 2014.
-
-        Heagy, L. J., Cockett, A. R., & Oldenburg, D. W. (2014, August 5).
-        Parametrized Inversion Framework for Proppant Volume in a Hydraulically
-        Fractured Reservoir. SEG Technical Program Expanded Abstracts 2014.
-        Society of Exploration Geophysicists. doi:10.1190/segam2014-1639.1
-
-        This example is a simple joint inversion that consists of a
-
-            - data misfit for the tomography problem
-            - data misfit for the volume of the inclusions
-              (uses the effective medium theory mapping)
-            - model regularization
-
-    """
     nC = 40
     de = 1.
     h = np.ones(nC)*de/nC
