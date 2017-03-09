@@ -1213,7 +1213,7 @@ class SparseSmall(BaseSparse):
 
     _multiplier_pair = 'alpha_s'
 
-    def __init__(self, mesh, norm=0, **kwargs):
+    def __init__(self, mesh, norm=2, **kwargs):
         super(SparseSmall, self).__init__(
             mesh=mesh, norm=norm, **kwargs
         )
@@ -1338,7 +1338,7 @@ class Sparse(BaseComboRegularization):
     # Properties
     norms = properties.Array(
         "Norms used to create the sparse regularization",
-        default=[0., 2., 2., 2.]
+        default=[2., 2., 2., 2.]
     )
 
     eps_p = properties.Float(
