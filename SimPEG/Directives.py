@@ -335,7 +335,6 @@ class Update_IRLS(InversionDirective):
     prctile = 95
     chifact = 1.
 
-    l2model = None
 
     # Solving parameter for IRLS (mode:2)
     IRLSiter = 0
@@ -458,7 +457,7 @@ class Update_IRLS(InversionDirective):
             else:
                 self.reg.model = self.invProb.model
 
-            self.l2model = self.invProb.model.copy()
+            self.reg.l2model = self.invProb.model.copy()
 
             # Re-assign the norms
             if self.ComboObjFun:

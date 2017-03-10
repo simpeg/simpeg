@@ -36,6 +36,12 @@ def run(plotIt=True):
 
         3- INVERSION: Invert for an effective susceptibility model.
 
+        For comparison, the same TMI data is first inverted with the usual
+        induced assumption, both with smooth and compact norms. Note that
+        the recovered susceptibility model is highly distorted due to the
+        incorrect magnetization assumption, compared to the reboust solution
+        using the amplitude data.
+
     """
 
     # # STEP 1: Setup and data simulation # #

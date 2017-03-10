@@ -443,7 +443,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
             if self._nC_residual != '*':
                 assert len(change['value']) == self._nC_residual, (
                     'cell_weights must be length {} not {}'.format(
-                        nP, len(change['value'])
+                        self.nP, len(change['value'])
                     )
                 )
 
@@ -1473,6 +1473,9 @@ class Sparse(BaseComboRegularization):
     space = properties.String(
         "type of model", default='linear'
     )
+
+    # Save the l2 result during the IRLS
+    l2model = None
 
     # Observers
     @properties.observer('norms')
