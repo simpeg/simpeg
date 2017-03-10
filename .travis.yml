@@ -18,7 +18,7 @@ addons:
 env:
     - TEST_DIR=tests/em/fdem/inverse/derivs
     - TEST_DIR="tests/em/tdem tests/base"
-    - TEST_DIR=tests/em/static
+    - TEST_DIR="tests/em/static tests/seis"
     - TEST_DIR=tests/flow
     - TEST_DIR="tests/em/nsem/forward tests/em/nsem/inversion"
     - TEST_DIR=tests/em/fdem/inverse/adjoint
