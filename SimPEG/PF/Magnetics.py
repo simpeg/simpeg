@@ -966,7 +966,7 @@ def atp2xyz(m):
 
     nC = int(len(m)/3)
 
-    a = m[:nC]
+    a = m[:nC] + 1e-8
     t = m[nC:2*nC]
     p = m[2*nC:]
 

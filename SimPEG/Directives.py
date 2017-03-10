@@ -3,8 +3,9 @@ from . import Utils
 import numpy as np
 import warnings
 from . import Maps
-from .PF import Magnetics
+from .PF import Magnetics, MagneticsDriver
 from . import Regularization
+from . import Mesh
 
 class InversionDirective(object):
     """InversionDirective"""
@@ -245,6 +246,40 @@ class SaveModelEveryIteration(SaveEveryIteration):
             self.opt.iter, self.fileName), self.opt.xc
         )
 
+class SaveUBCModelEveryIteration(SaveEveryIteration):
+    """SaveModelEveryIteration"""
+
+    def initialize(self):
+        print("SimPEG.SaveModelEveryIteration will save your models in UBC format as: '###-{0!s}.sus'".format(self.fileName))
+
+    def endIter(self):
+
+        Mesh.TensorMesh.writeModelUBC(self.reg.mesh, self.fileName + str(self.opt.iter) + '.sus', self.opt.xc)
+
+class SaveUBCVectorsEveryIteration(SaveEveryIteration):
+    """SaveModelEveryIteration"""
+
+    onlyLast = True
+    def initialize(self):
+        print("SimPEG.SaveModelEveryIteration will save your models in UBC format as: '###-{0!s}.sus'".format(self.fileName))
+
+    def endIter(self):
+
+        nC = self.prob.mesh.nC
+        vec_xyz = Magnetics.atp2xyz(self.opt.xc)
+        vec = vec_xyz.reshape(nC , 3, order='F')
+
+        if self.onlyLast:
+            MagneticsDriver.writeVectorUBC(self.prob.mesh, self.fileName + '.fld', vec)
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + '_amp.sus',self.opt.xc[:nC])
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + '_phi.sus',self.opt.xc[2*nC:])
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + '_theta.sus',self.opt.xc[nC:2*nC])
+
+        else:
+            MagneticsDriver.writeVectorUBC(self.prob.mesh,  self.fileName + str(self.opt.iter) + '.fld', vec)
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + str(self.opt.iter) + '_amp.sus',self.opt.xc[:nC])
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + str(self.opt.iter) + '_phi.sus',self.opt.xc[2*nC:])
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + str(self.opt.iter) + '_theta.sus',self.opt.xc[nC:2*nC])
 
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
@@ -310,6 +345,7 @@ class Update_IRLS(InversionDirective):
     coolingFactor = 2.
     coolingRate = 1
     ComboObjFun = False
+    updateBeta = True
     mode = 1
 
     @property
@@ -416,6 +452,10 @@ class Update_IRLS(InversionDirective):
 
             # Re-assign the norms
             if self.ComboObjFun:
+                # vec_xyz = Magnetics.atp2xyz(self.reg.l2model)
+                # vec = vec_xyz.reshape(self.prob.mesh.nC, 3, order='F')
+                # MagneticsDriver.writeVectorUBC(self.prob.mesh, 'MVI_l2norm.fld', vec)
+
                 for reg in self.reg.objfcts:
                     print("eps_p: " + str(reg.eps_p) +
                           " eps_q: " + str(reg.eps_q))
@@ -497,7 +537,7 @@ class Update_IRLS(InversionDirective):
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / self.target
 
-            if np.all([np.abs(1.-val) > self.beta_tol, self.IRLSiter>1]):
+            if np.all([np.abs(1.-val) > self.beta_tol, self.updateBeta]):
                 self.invProb.beta = (self.invProb.beta * self.target /
                                      self.invProb.phi_d)
 
@@ -627,8 +667,16 @@ class Amplitude_Inv_Iter(InversionDirective):
         if self.ptype == 'MVI-S':
 
             for reg in self.reg.objfcts[1:]:
-                scl = self.reg.objfcts[0].eps_p
-                reg.scale = scl/reg.eps_q
+                eps_a = self.reg.objfcts[0].eps_p
+                norm_a = self.reg.objfcts[0].norms[0]
+                max_a = eps_a**(norm_a/2.)
+
+                eps_tp = reg.eps_q
+                norm_tp = reg.norms[1]
+                max_tp = eps_tp**(norm_tp/2.)
+
+                reg.scale = max_a/max_tp
+                print(max_a,max_tp, reg.scale)
                 reg.cell_weights *= reg.scale
 
         # Update the pre-conditioner
@@ -673,7 +721,20 @@ class Amplitude_Inv_Iter(InversionDirective):
             else:
                 self.reg.cell_weights = wr * self.reg.scale
 
+        if self.ptype == 'MVI-S':
 
+            for reg in self.reg.objfcts[1:]:
+                eps_a = self.reg.objfcts[0].eps_p
+                norm_a = self.reg.objfcts[0].norms[0]
+                max_a = eps_a**(norm_a/2.)
+
+                eps_tp = reg.eps_q
+                norm_tp = reg.norms[1]
+                max_tp = eps_tp**(norm_tp/2.)
+
+                reg.scale = max_a/max_tp
+                print(max_a,max_tp,reg.scale)
+                reg.cell_weights *= reg.scale
 
         # if np.all([self.ptype == 'MVI-S', self.test is not True]):
 
