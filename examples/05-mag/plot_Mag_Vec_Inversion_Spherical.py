@@ -1,3 +1,32 @@
+"""
+    PF: Magnetics Vector Inversion - Spherical
+    ==========================================
+
+    In this example, we invert for the 3-component magnetization vector
+    with the Spherical formulation. The code is used to invert magnetic
+    data affected by remanent magnetization and makes no induced
+    assumption. The inverse problem is highly non-linear and has proven to
+    be challenging to solve. We introduce an iterative sensitivity
+    weighting to improve the solution. The spherical formulation allows for
+    compact norms to be applied on the magnitude and direction of
+    magnetization independantly, hence reducing the complexity over
+    the usual smooth MVI solution.
+
+    The algorithm builds upon the research done at UBC:
+
+    Lelievre, G.P., 2009, Integrating geological and geophysical data
+    through advanced constrained inversions. PhD Thesis, UBC-GIF
+
+    The steps are:
+    1- STEP 1: Create a synthetic model and calculate TMI data. This will
+    simulate the usual magnetic experiment.
+
+    2- STEP 2: Invert for a starting model with cartesian formulation as
+        a primer.
+
+    3- STEP 3: Invert for a compact mag model with spherical formulation.
+
+"""
 import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
@@ -15,35 +44,8 @@ from SimPEG import Inversion
 from SimPEG import PF
 from SimPEG import mkvc
 
+
 def run(plotIt=True):
-    """
-        PF: Magnetics Vector Inversion - Spherical
-        ==========================================
-
-        In this example, we invert for the 3-component magnetization vector
-        with the Spherical formulation. The code is used to invert magnetic
-        data affected by remanent magnetization and makes no induced
-        assumption. The inverse problem is highly non-linear and has proven to
-        be challenging to solve. We introduce an iterative sensitivity
-        weighting to improve the solution. The spherical formulation allows for
-        compact norms to be applied on the magnitude and direction of
-        magnetization independantly, hence reducing the complexity over
-        the usual smooth MVI solution.
-
-        The algorithm builds upon the research done at UBC:
-
-        Lelievre, G.P., 2009, Integrating geological and geophysical data
-        through advanced constrained inversions. PhD Thesis, UBC-GIF
-
-        The steps are:
-        1- STEP 1: Create a synthetic model and calculate TMI data. This will
-        simulate the usual magnetic experiment.
-
-        2- STEP 2: Invert for a starting model with cartesian formulation.
-
-        3- STEP 3: Invert for a compact mag model with spherical formulation.
-
-    """
 
     # # STEP 1: Setup and data simulation # #
 
@@ -136,8 +138,10 @@ def run(plotIt=True):
     wr = np.sum(prob.G**2., axis=0)**0.5
     wr = (wr/np.max(wr))
 
-    # Create a block diagonal regularization
-    wires = Maps.Wires(('prim', mesh.nC), ('second', mesh.nC), ('third', mesh.nC))
+    # Create wires to link the regularization to each model blocks
+    wires = Maps.Wires(('prim', mesh.nC),
+                       ('second', mesh.nC),
+                       ('third', mesh.nC))
 
     # Create a regularization
     reg_p = Regularization.Sparse(mesh, indActive=actv, mapping=wires.prim)
@@ -170,7 +174,8 @@ def run(plotIt=True):
     update_Jacobi = Directives.Update_lin_PreCond()
 
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[IRLS, update_Jacobi,betaest])
+                                  directiveList=[IRLS,
+                                                 update_Jacobi, betaest])
 
     mstart = np.ones(3*nC)*1e-4
     mrec_C = inv.run(mstart)
@@ -182,7 +187,7 @@ def run(plotIt=True):
     prob.ptype = 'Spherical'
     prob.chi = mstart
 
-    # Create a block diagonal regularization
+    # Create wires to link the regularization to each model blocks
     wires = Maps.Wires(('amp', mesh.nC), ('theta', mesh.nC), ('phi', mesh.nC))
 
     # Create a regularization
@@ -211,15 +216,13 @@ def run(plotIt=True):
 
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=30,
-                                            lower=[0., -np.inf, -np.inf],
-                                            upper=[10., np.inf, np.inf],
-                                            maxIterLS=10,
-                                            maxIterCG=20, tolCG=1e-3,
-                                            alwaysPass = True,
-                                        stepOffBoundsFact = 1e-8)
+                                     lower=[0., -np.inf, -np.inf],
+                                     upper=[10., np.inf, np.inf],
+                                     maxIterLS=10,
+                                     maxIterCG=20, tolCG=1e-3,
+                                     stepOffBoundsFact=1e-8)
 
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta)
-    #betaest = Directives.BetaEstimate_ByEig()
 
     # Here is where the norms are applied
     IRLS = Directives.Update_IRLS(f_min_change=1e-4,
@@ -232,7 +235,8 @@ def run(plotIt=True):
     update_Jacobi.ptype = 'MVI-S'
     ProjSpherical = Directives.ProjSpherical()
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[ProjSpherical, IRLS, update_Jacobi,])
+                                  directiveList=[ProjSpherical,
+                                                 IRLS, update_Jacobi])
 
     mrec = inv.run(mstart)
 
@@ -246,13 +250,15 @@ def run(plotIt=True):
         fig = plt.figure(figsize=(8, 8))
         ax2 = plt.subplot(312)
 
-        scl_vec = np.max(mrec_C)/np.max(m) * 0.25
-        PF.Magnetics.plotModelSections(mesh, mrec_C, normal='y',
+        mrec_l2 = PF.Magnetics.atp2xyz(reg.l2model)
+        scl_vec = np.max(mrec_l2)/np.max(m) * 0.25
+        PF.Magnetics.plotModelSections(mesh, mrec_l2, normal='y',
                                        ind=ypanel, axs=ax2,
                                        xlim=(-50, 50), scale=scl_vec,
-                                       ylim=(mesh.vectorNz[3], mesh.vectorNz[-1]+dx),
+                                       ylim=(mesh.vectorNz[3],
+                                             mesh.vectorNz[-1]+dx),
                                        vmin=vmin, vmax=vmax)
-
+        ax2.set_ylabel('Elevation (m)', size=14)
 
         ax1 = plt.subplot(313)
         mrec = PF.Magnetics.atp2xyz(mrec)
@@ -263,7 +269,8 @@ def run(plotIt=True):
         PF.Magnetics.plotModelSections(mesh, mrec, normal='y',
                                        ind=ypanel, axs=ax1,
                                        xlim=(-50, 50), scale=scl_vec,
-                                       ylim=(mesh.vectorNz[3], mesh.vectorNz[-1]+dx),
+                                       ylim=(mesh.vectorNz[3],
+                                             mesh.vectorNz[-1]+dx),
                                        vmin=vmin, vmax=vmax)
 
         ax1.set_xlabel('Easting (m)', size=14)
@@ -277,7 +284,8 @@ def run(plotIt=True):
         PF.Magnetics.plotModelSections(mesh, m, normal='y',
                                        ind=ypanel, axs=ax3,
                                        xlim=(-50, 50), scale=0.25,
-                                       ylim=(mesh.vectorNz[3], mesh.vectorNz[-1]+dx),
+                                       ylim=(mesh.vectorNz[3],
+                                             mesh.vectorNz[-1]+dx),
                                        vmin=vmin, vmax=vmax)
 
         ax3.set_title('EW - True')

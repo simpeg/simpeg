@@ -679,18 +679,16 @@ class Amplitude_Inv_Iter(InversionDirective):
                 eps_a = self.reg.objfcts[0].eps_p
                 norm_a = self.reg.objfcts[0].norms[0]
                 f_m = self.reg.objfcts[0].objfcts[0].f_m
-                max_a = np.max(eps_a**(1-norm_a/2.)*f_m/
-                                (f_m**2. + eps_a**2.)**(1-norm_a/2.))
+                max_a = np.max(eps_a**(1-norm_a/2.)*f_m /
+                               (f_m**2. + eps_a**2.)**(1-norm_a/2.))
 
                 eps_tp = reg.eps_q
                 f_m = reg.objfcts[1].f_m
                 norm_tp = reg.norms[1]
-                max_tp = np.max(eps_a**(1-norm_a/2.)*f_m/
+                max_tp = np.max(eps_a**(1-norm_a/2.)*f_m /
                                 (f_m**2. + eps_a**2.)**(1-norm_a/2.))
 
-
                 reg.scale = max_a/max_tp
-                print(max_a,max_tp, reg.scale)
                 reg.cell_weights *= reg.scale
 
         # Update the pre-conditioner
@@ -741,18 +739,16 @@ class Amplitude_Inv_Iter(InversionDirective):
                 eps_a = self.reg.objfcts[0].eps_p
                 norm_a = self.reg.objfcts[0].norms[0]
                 f_m = self.reg.objfcts[0].objfcts[0].f_m
-                max_a = np.max(eps_a**(1-norm_a/2.)*f_m/
-                                (f_m**2. + eps_a**2.)**(1-norm_a/2.))
+                max_a = np.max(eps_a**(1-norm_a/2.)*f_m /
+                               (f_m**2. + eps_a**2.)**(1-norm_a/2.))
 
                 eps_tp = reg.eps_q
                 f_m = reg.objfcts[1].f_m
                 norm_tp = reg.norms[1]
-                max_tp = np.max(eps_a**(1-norm_a/2.)*f_m/
+                max_tp = np.max(eps_a**(1-norm_a/2.)*f_m /
                                 (f_m**2. + eps_a**2.)**(1-norm_a/2.))
 
-
                 reg.scale = max_a/max_tp
-                print(max_a,max_tp, reg.scale)
                 reg.cell_weights *= reg.scale
 
         # if np.all([self.ptype == 'MVI-S', self.test is not True]):

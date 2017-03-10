@@ -108,7 +108,7 @@ def run(N=100, plotIt=True):
         axes[0].set_title('Columns of matrix G')
 
         axes[1].plot(mesh.vectorCCx, mtrue, 'b-')
-        axes[1].plot(mesh.vectorCCx, IRLS.l2model, 'r-')
+        axes[1].plot(mesh.vectorCCx, reg.l2model, 'r-')
         # axes[1].legend(('True Model', 'Recovered Model'))
         axes[1].set_ylim(-1.0, 1.25)
 

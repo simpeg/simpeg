@@ -513,10 +513,10 @@ class Minimize(object):
         if self.debugLS and self.iterLS > 0:
             self.printDone(inLS=True)
 
-        if self.alwaysPass:
-            return self._LS_xt, True
-        else:
-            return self._LS_xt, self.iterLS < self.maxIterLS
+        # if self.alwaysPass:
+        #     return self._LS_xt, True
+        # else:
+        return self._LS_xt, self.iterLS < self.maxIterLS
 
     @Utils.count
     def modifySearchDirectionBreak(self, p):

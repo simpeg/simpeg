@@ -1,3 +1,32 @@
+"""
+    PF: Magnetic Amplitude Inversion
+    ================================
+
+    In this example, we invert magnetic field data simulated
+    from a simple block model affected by remanent magnetization.
+    The algorithm builtds upon the research done at CSM:
+
+    Li, Y., S. E. Shearer, M. M. Haney, and N. Dannemiller, 2010,
+    Comprehensive approaches to 3D inversion of magnetic data affected by
+    remanent magnetization:  Geophysics, 75, no. 1, 1-11
+
+    The steps are:
+    1- SETUP: Create a synthetic model and calculate TMI data. This will
+    simulate the usual magnetic experiment.
+
+    2- PROCESSING: Invert for an equivalent source layer to extract
+    3-component magnetic field data. The components are then used to
+    calculate amplitude data.
+
+    3- INVERSION: Invert for an effective susceptibility model.
+
+    For comparison, the same TMI data are first inverted with the usual
+    induced assumption, both with smooth and compact norms. Note that
+    the recovered susceptibility model is highly distorted due to the
+    incorrect magnetization assumption, compared to the more reboust solution
+    using the amplitude data.
+
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -14,35 +43,6 @@ from SimPEG import PF
 
 
 def run(plotIt=True):
-    """
-        PF: Magnetic Amplitude Inversion
-        ================================
-
-        In this example, we invert magnetic field data simulated
-        from a simple block model affected by remanent magnetization.
-        The algorithm builtds upon the research done at CSM:
-
-        Li, Y., S. E. Shearer, M. M. Haney, and N. Dannemiller, 2010,
-        Comprehensive approaches to 3D inversion of magnetic data affected by
-        remanent magnetization:  Geophysics, 75, no. 1, 1-11
-
-        The steps are:
-        1- SETUP: Create a synthetic model and calculate TMI data. This will
-        simulate the usual magnetic experiment.
-
-        2- PROCESSING: Invert for an equivalent source layer to extract
-        3-component magnetic field data. The components are then used to
-        calculate amplitude data.
-
-        3- INVERSION: Invert for an effective susceptibility model.
-
-        For comparison, the same TMI data is first inverted with the usual
-        induced assumption, both with smooth and compact norms. Note that
-        the recovered susceptibility model is highly distorted due to the
-        incorrect magnetization assumption, compared to the reboust solution
-        using the amplitude data.
-
-    """
 
     # # STEP 1: Setup and data simulation # #
 

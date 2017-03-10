@@ -22,7 +22,7 @@ from SimPEG import PF
 
 
 def run(plotIt=True):
-<<<<<<< HEAD:SimPEG/Examples/PF_Gravity_Inversion_Linear.py
+
     """
         PF: Gravity Inversion Linear
         ============================
@@ -31,8 +31,7 @@ def run(plotIt=True):
         with a compact norm
 
     """
-=======
->>>>>>> ref/objectivefunctions:examples/04-grav/plot_inversion_linear.py
+
 
     # Create a mesh
     dx = 5.
@@ -133,12 +132,8 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
     # model parameters
-<<<<<<< HEAD:SimPEG/Examples/PF_Gravity_Inversion_Linear.py
-    IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),
-                                  f_min_change=1e-2, minGNiter=3)
-=======
     IRLS = Directives.Update_IRLS(f_min_change=1e-2, minGNiter=3)
->>>>>>> ref/objectivefunctions:examples/04-grav/plot_inversion_linear.py
+
     update_Jacobi = Directives.Update_lin_PreCond()
     inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,
                                                           betaest,
@@ -152,7 +147,7 @@ def run(plotIt=True):
         # Here is the recovered denisty model
         ypanel = midx
         zpanel = -7
-        m_l2 = actvMap * IRLS.l2model
+        m_l2 = actvMap * reg.l2model
         m_l2[m_l2 == -100] = np.nan
 
         m_lp = actvMap * mrec

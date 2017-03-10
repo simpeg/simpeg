@@ -22,7 +22,6 @@ import numpy as np
 
 
 def run(plotIt=True, cleanAfterRun=True):
-<<<<<<< HEAD:SimPEG/Examples/PF_Gravity_Laguna_del_Maule_Inversion.py
     """
         PF: Gravity: Laguna del Maule Bouguer Gravity
         =============================================
@@ -35,8 +34,6 @@ def run(plotIt=True, cleanAfterRun=True):
         then applying an Lp norm to produce a compact model.
         Craig Miller
     """
-=======
->>>>>>> ref/objectivefunctions:examples/04-grav/plot_laguna_del_maule_inversion.py
 
     # Start by downloading files from the remote repository
     url = "https://storage.googleapis.com/simpeg/Chile_GRAV_4_Miller/"
@@ -131,14 +128,9 @@ def run(plotIt=True, cleanAfterRun=True):
     # IRLS sets up the Lp inversion problem
     # Set the eps parameter parameter in Line 11 of the
     # input file based on the distribution of model (DEFAULT = 95th %ile)
-<<<<<<< HEAD:SimPEG/Examples/PF_Gravity_Laguna_del_Maule_Inversion.py
-    IRLS = Directives.Update_IRLS(norms=driver.lpnorms, eps=driver.eps,
-                                  f_min_change=1e-2, maxIRLSiter=20,
-                                  minGNiter=3)
-=======
     IRLS = Directives.Update_IRLS(f_min_change=1e-2, maxIRLSiter=20,
                                   minGNiter=5)
->>>>>>> ref/objectivefunctions:examples/04-grav/plot_laguna_del_maule_inversion.py
+
 
     # Preconditioning refreshing for each IRLS iteration
     update_Jacobi = Directives.Update_lin_PreCond()
@@ -151,10 +143,6 @@ def run(plotIt=True, cleanAfterRun=True):
     # Run L2 and Lp inversion
     mrec = inv.run(mstart)
 
-<<<<<<< HEAD:SimPEG/Examples/PF_Gravity_Laguna_del_Maule_Inversion.py
-    # %%
-=======
->>>>>>> ref/objectivefunctions:examples/04-grav/plot_laguna_del_maule_inversion.py
     if cleanAfterRun:
         shutil.rmtree(basePath)
 
@@ -167,7 +155,7 @@ def run(plotIt=True, cleanAfterRun=True):
         # Write output model and data files and print misft stats.
 
         # reconstructing l2 model mesh with air cells and active dynamic cells
-        L2out = activeMap * IRLS.l2model
+        L2out = activeMap * reg.l2model
 
         # reconstructing lp model mesh with air cells and active dynamic cells
         Lpout = activeMap*mrec
