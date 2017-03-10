@@ -193,14 +193,14 @@ def run(plotIt=True):
     reg_t = Regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
     reg_t.alpha_s = 0.
     reg_t.space = 'spherical'
-    reg_t.norms = [2, 1, 1, 1]
-    reg_t.eps_q = 5e-2
+    reg_t.norms = [2, 0, 0, 0]
+    reg_t.eps_q = 1e-2
 
     reg_p = Regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
     reg_p.alpha_s = 0.
     reg_p.space = 'spherical'
-    reg_p.norms = [2, 1, 1, 1]
-    reg_p.eps_q = 5e-2
+    reg_p.norms = [2, 0, 0, 0]
+    reg_p.eps_q = 1e-2
 
     reg = reg_a + reg_t + reg_p
     reg.mref = np.zeros(3*nC)
@@ -258,7 +258,7 @@ def run(plotIt=True):
         mrec = PF.Magnetics.atp2xyz(mrec)
 
         vmin = model.min()
-        vmax = model.max()*0.25
+        vmax = model.max()*1.05
         scl_vec = np.max(mrec)/np.max(m) * 0.25
         PF.Magnetics.plotModelSections(mesh, mrec, normal='y',
                                        ind=ypanel, axs=ax1,
@@ -271,7 +271,7 @@ def run(plotIt=True):
 
         # plot true model
         vmin = model.min()
-        vmax = model.max()*1.2
+        vmax = model.max()*1.05
 
         ax3 = plt.subplot(311)
         PF.Magnetics.plotModelSections(mesh, m, normal='y',
