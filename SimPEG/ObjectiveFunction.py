@@ -142,10 +142,10 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
             else:
                 x = np.random.randn(self.nP)
 
-        v = x + 0.001*np.random.rand(self.nP)
+        v = x + 0.01*np.random.rand(len(x))
         return checkDerivative(
             lambda m: [self.deriv(m).dot(v), self.deriv2(m, v=v)],
-                x, num=num, expectedOrder=1,
+                x, num=num, expectedOrder=1, eps=1e-9,
                 plotIt=plotIt, **kwargs
         )
 
