@@ -443,7 +443,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
             if self._nC_residual != '*':
                 assert len(change['value']) == self._nC_residual, (
                     'cell_weights must be length {} not {}'.format(
-                        nP, len(change['value'])
+                        self._nC_residual, len(change['value'])
                     )
                 )
 
@@ -1172,7 +1172,8 @@ class BaseSparse(BaseRegularization):
         "Model norm scaling to smooth out convergence", default=1.
     )
     epsilon = properties.Float(
-        "Threshold value for the model norm", default=1e-1
+        "Threshold value for the model norm", #, default=1e-1
+        required = True
     )
     norm = properties.Float(
         "norm used", default=2
