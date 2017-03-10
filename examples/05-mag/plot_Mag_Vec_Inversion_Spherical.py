@@ -137,17 +137,17 @@ def run(plotIt=True):
     wr = (wr/np.max(wr))
 
     # Create a block diagonal regularization
-    wires = Maps.Wires(('p', mesh.nC), ('s', mesh.nC), ('t', mesh.nC))
+    wires = Maps.Wires(('prim', mesh.nC), ('second', mesh.nC), ('third', mesh.nC))
 
     # Create a regularization
-    reg_p = Regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
-    reg_p.cell_weights = wr
+    reg_p = Regularization.Sparse(mesh, indActive=actv, mapping=wires.prim)
+    reg_p.cell_weights = wires.prim * wr
 
-    reg_s = Regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
-    reg_s.cell_weights = wr
+    reg_s = Regularization.Sparse(mesh, indActive=actv, mapping=wires.second)
+    reg_s.cell_weights = wires.second * wr
 
-    reg_t = Regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
-    reg_t.cell_weights = wr
+    reg_t = Regularization.Sparse(mesh, indActive=actv, mapping=wires.third)
+    reg_t.cell_weights = wires.third * wr
 
     reg = reg_p + reg_s + reg_t
     reg.mref = np.zeros(3*nC)
@@ -183,20 +183,20 @@ def run(plotIt=True):
     prob.chi = mstart
 
     # Create a block diagonal regularization
-    wires = Maps.Wires(('p', mesh.nC), ('s', mesh.nC), ('t', mesh.nC))
+    wires = Maps.Wires(('amp', mesh.nC), ('theta', mesh.nC), ('phi', mesh.nC))
 
     # Create a regularization
-    reg_a = Regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
+    reg_a = Regularization.Sparse(mesh, indActive=actv, mapping=wires.amp)
     reg_a.norms = [0, 1, 1, 1]
     reg_a.eps_p, reg_a.eps_q = 1e-3, 1e-3
 
-    reg_t = Regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
+    reg_t = Regularization.Sparse(mesh, indActive=actv, mapping=wires.theta)
     reg_t.alpha_s = 0.
     reg_t.space = 'spherical'
     reg_t.norms = [2, 0, 0, 0]
     reg_t.eps_q = 1e-2
 
-    reg_p = Regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
+    reg_p = Regularization.Sparse(mesh, indActive=actv, mapping=wires.phi)
     reg_p.alpha_s = 0.
     reg_p.space = 'spherical'
     reg_p.norms = [2, 0, 0, 0]

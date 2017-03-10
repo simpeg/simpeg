@@ -668,10 +668,10 @@ class Amplitude_Inv_Iter(InversionDirective):
 
         if self.ComboObjFun:
             for reg in self.reg.objfcts:
-                reg.cell_weights = wr
+                reg.cell_weights = reg.mapping * wr
                 reg.model = self.opt.xc
         else:
-            self.reg.cell_weights = wr
+            self.reg.cell_weights = reg.mapping * wr
 
         if self.ptype == 'MVI-S':
 
@@ -730,10 +730,10 @@ class Amplitude_Inv_Iter(InversionDirective):
 
             if self.ComboObjFun:
                 for reg in self.reg.objfcts:
-                    reg.cell_weights = wr * reg.scale
+                    reg.cell_weights = reg.mapping * wr
 
             else:
-                self.reg.cell_weights = wr * self.reg.scale
+                self.reg.cell_weights = self.reg.mapping * wr
 
         if self.ptype == 'MVI-S':
 
