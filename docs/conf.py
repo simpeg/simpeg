@@ -28,12 +28,15 @@ sys.path.append('../')
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.todo',
-              'sphinx.ext.mathjax',
-              'sphinx.ext.viewcode',
-              'sphinx.ext.autodoc',
-              'sphinx.ext.intersphinx',
-              'matplotlib.sphinxext.plot_directive']
+extensions = [
+    'sphinx.ext.todo',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
+    'matplotlib.sphinxext.plot_directive',
+    'sphinx_gallery.gen_gallery'
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -49,7 +52,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'SimPEG'
-copyright = u'2013 - 2016, SimPEG Developers'
+copyright = u'2013 - 2017, SimPEG Developers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -81,7 +84,7 @@ linkcheck_ignore = [
     'http://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html#numpy.array',
     'http://dx.doi.org/10.1016/j.cageo.2015.09.015',
     'http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf'
-                   ]
+]
 
 linkcheck_retries = 3
 linkcheck_timeout = 500
@@ -267,6 +270,15 @@ texinfo_documents = [
    'Miscellaneous'),
 ]
 
+
+# Sphinx Gallery
+sphinx_gallery_conf = {
+    # path to your examples scripts
+    'examples_dirs' : '../examples',
+    'gallery_dirs'  : 'content/examples'
+}
+
+
 # Documents to append as an appendix to all manuals.
 #texinfo_appendices = []
 
@@ -331,5 +343,7 @@ nitpick_ignore = [
     ('py:class', 'SimPEG.Props.HasModel'),
     ('py:class', 'BaseFDEMSrc'),
     ('py:class', 'BaseTDEMSrc'),
-    ('py:func', 'discretize.utils.meshutils.meshTensor')
+    ('py:class', 'SimPEG.Regularization.BaseRegularization'),
+    ('py:func', 'discretize.utils.meshutils.meshTensor'),
+    ('py:class', 'properties.base.HasProperties')
 ]

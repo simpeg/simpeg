@@ -11,6 +11,9 @@ from SimPEG import ObjectiveFunction, Utils, Maps
 
 np.random.seed(130)
 
+EPS = 1e-9
+
+
 class Empty_ObjFct(ObjectiveFunction.BaseObjectiveFunction):
 
     def __init__(self):
@@ -36,7 +39,7 @@ class TestBaseObjFct(unittest.TestCase):
 
     def test_derivs(self):
         objfct = ObjectiveFunction.L2ObjectiveFunction()
-        self.assertTrue(objfct.test())
+        self.assertTrue(objfct.test(eps=1e-9))
 
     def test_scalarmul(self):
         scalar = 10.
@@ -64,7 +67,7 @@ class TestBaseObjFct(unittest.TestCase):
             ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP)) +
             scalar * ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP))
         )
-        self.assertTrue(objfct.test())
+        self.assertTrue(objfct.test(eps=1e-9))
 
         self.assertTrue(np.all(objfct._multipliers == np.r_[1., scalar]))
 
@@ -78,7 +81,7 @@ class TestBaseObjFct(unittest.TestCase):
             alpha1 * ObjectiveFunction.L2ObjectiveFunction()
         )
         phi2 = ObjectiveFunction.L2ObjectiveFunction() + alpha2 * phi1
-        self.assertTrue(phi2.test())
+        self.assertTrue(phi2.test(eps=EPS))
 
         self.assertTrue(len(phi1._multipliers) == 2)
         self.assertTrue(len(phi2._multipliers) == 2)
@@ -158,8 +161,6 @@ class TestBaseObjFct(unittest.TestCase):
             ObjectiveFunction.L2ObjectiveFunction(W = sp.eye(nP)) +
             Utils.Zero()*ObjectiveFunction.L2ObjectiveFunction()
         )
-
-
         self.assertTrue(len(phi.objfcts) == 1)
         self.assertTrue(phi.test())
 
@@ -231,12 +232,11 @@ class TestBaseObjFct(unittest.TestCase):
 
         objfct4 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
 
-        print(objfct1.mapping, objfct1.nP)
-
         self.assertTrue(objfct1.nP == 2*nP)
         self.assertTrue(objfct2.nP == 2*nP)
         self.assertTrue(objfct3.nP == 2*nP)
 
+        # print(objfct1.nP, objfct4.nP, objfct4.W.shape, objfct1.W.shape, m[:nP].shape)
         self.assertTrue(objfct1(m) == objfct4(m[:nP]))
         self.assertTrue(objfct2(m) == objfct4(m[nP:]))
 
@@ -245,6 +245,48 @@ class TestBaseObjFct(unittest.TestCase):
         objfct1.test()
         objfct2.test()
         objfct3.test()
+
+    def test_ComboW(self):
+        nP = 15
+        m = np.random.rand(nP)
+
+        phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+
+        alpha1 = 2.
+        alpha2 = 0.5
+
+        phi = alpha1*phi1 + alpha2*phi2
+
+        r = phi.W * m
+
+        r1 = phi1.W * m
+        r2 = phi2.W * m
+
+        print(phi(m), 0.5*np.inner(r, r))
+
+        self.assertTrue(np.allclose(phi(m), 0.5*np.inner(r, r)))
+        self.assertTrue(np.allclose(phi(m), 0.5*(
+            alpha1*np.inner(r1, r1) + alpha2*np.inner(r2, r2))
+        ))
+
+    def test_ComboConstruction(self):
+        nP = 10
+        m = np.random.rand(nP)
+        v = np.random.rand(nP)
+
+        phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+
+        phi3 = 2*phi1 + 3*phi2
+
+        phi4 = ObjectiveFunction.ComboObjectiveFunction(
+            [phi1, phi2], [2, 3]
+        )
+
+        self.assertTrue(phi3(m) == phi4(m))
+        self.assertTrue(np.all(phi3.deriv(m) == phi4.deriv(m)))
+        self.assertTrue(np.all(phi3.deriv2(m, v) == phi4.deriv2(m, v)))
 
 
 if __name__ == '__main__':

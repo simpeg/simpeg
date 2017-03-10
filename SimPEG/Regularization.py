@@ -438,12 +438,14 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
 
     @properties.validator('cell_weights')
     def _validate_cell_weights(self, change):
-        if change['value'] is not None and self.nP != '*':
-            assert len(change['value']) == self.nP, (
-                'cell_weights must be length {} not {}'.format(
-                    self.nP, len(change['value'])
+        if change['value'] is not None:
+            # todo: residual size? we need to know the expected end shape
+            if self._nC_residual != '*':
+                assert len(change['value']) == self._nC_residual, (
+                    'cell_weights must be length {} not {}'.format(
+                        nP, len(change['value'])
+                    )
                 )
-            )
 
     # Other properties and methods
     @property
@@ -457,6 +459,18 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
             return self.regmesh.nC
         else:
             return '*'
+
+    @property
+    def _nC_residual(self):
+        """
+        Shape of the residual
+        """
+        if getattr(self.regmesh, 'nC', None) != '*':
+            return self.regmesh.nC
+        elif getattr(self, 'mapping', None) != '*':
+            return self.mapping.shape[0]
+        else:
+            return self.nP
 
     @property
     def mesh(self):
@@ -613,12 +627,13 @@ class Small(BaseRegularization):
 
     @property
     def W(self):
+        """
+        Weighting matrix
+        """
         if self.cell_weights is not None:
             return Utils.sdiag(self.cell_weights)
-        elif self.mapping.shape[0] != '*':
-            return sp.eye(self.mapping.shape[0])
-        elif self.nP != '*':
-            return sp.eye(self.nP)
+        elif self._nC_residual != '*':
+            return sp.eye(self._nC_residual)
         else:
             return Utils.Identity()
 
@@ -638,10 +653,8 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         mapping=None, **kwargs
     ):
 
-        # self._cell_weights = cell_weights
         self._mesh = mesh
         self._mapping = mapping
-        # self.objfcts = objfcts
 
         super(BaseComboRegularization, self).__init__(
             objfcts=objfcts, multipliers=None
@@ -990,7 +1003,6 @@ class SmoothDeriv(BaseRegularization):
     def _multiplier_pair(self):
         return 'alpha_{orientation}'.format(orientation=self.orientation)
 
-
     @property
     def W(self):
         """
@@ -1180,6 +1192,14 @@ class BaseSparse(BaseRegularization):
     def stashedR(self, value):
         self._stashedR = value
 
+    @property
+    def stashedR(self):
+        return self._stashedR
+
+    @stashedR.setter
+    def stashedR(self, value):
+        self._stashedR = value
+
     def R(self, f_m):
         # if R is stashed, return that instead
         if getattr(self, 'stashedR') is not None:
@@ -1207,7 +1227,7 @@ class SparseSmall(BaseSparse):
 
     _multiplier_pair = 'alpha_s'
 
-    def __init__(self, mesh, norm=0, **kwargs):
+    def __init__(self, mesh, norm=2, **kwargs):
         super(SparseSmall, self).__init__(
             mesh=mesh, norm=norm, **kwargs
         )
@@ -1433,7 +1453,7 @@ class Sparse(BaseComboRegularization):
     # Properties
     norms = properties.Array(
         "Norms used to create the sparse regularization",
-        default=[0., 2., 2., 2.]
+        default=[2., 2., 2., 2.]
     )
 
     eps_p = properties.Float(

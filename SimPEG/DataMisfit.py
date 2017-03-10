@@ -166,19 +166,5 @@ class l2_DataMisfit(BaseDataMisfit):
             m, self.W * (self.W * self.prob.Jvec_approx(m, v, f=f)), f=f
         )
 
-    def _test_deriv2(self, x=None, num=4, plotIt=False, **kwargs):
-        print('Testing {0!s} Deriv2'.format(self.__class__.__name__))
-        if x is None:
-            if self.nP == '*':
-                x = np.random.randn(np.random.randint(1e2, high=1e3))
-            else:
-                x = np.random.randn(self.nP)
-
-        v = x + 0.001*np.random.rand(self.nP)
-        return checkDerivative(
-            lambda m: [self.deriv(m).dot(v), self.deriv2(m, v=v)], x, num=num,
-            plotIt=plotIt, expectedOrder=1, **kwargs
-        )
-
 
 

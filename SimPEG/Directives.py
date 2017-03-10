@@ -335,6 +335,8 @@ class Update_IRLS(InversionDirective):
     prctile = 95
     chifact = 1.
 
+    l2model = None
+
     # Solving parameter for IRLS (mode:2)
     IRLSiter = 0
     minGNiter = 5
@@ -345,7 +347,9 @@ class Update_IRLS(InversionDirective):
     coolingFactor = 2.
     coolingRate = 1
     ComboObjFun = False
+
     updateBeta = True
+
     mode = 1
 
     @property
@@ -387,6 +391,14 @@ class Update_IRLS(InversionDirective):
             print("Convergence with smooth l2-norm regularization: Start IRLS steps...")
 
             self.mode = 2
+            self.coolingFactor = 1.
+            self.coolingRate = 1
+            self.iterStart = self.opt.iter
+            self.phi_d_last = self.invProb.phi_d
+            self.invProb.phi_m_last = self.reg(self.invProb.model)
+
+            if getattr(self, 'f_old', None) is None:
+                self.f_old = self.reg(self.invProb.model)
 
             self.coolingFactor = 1.
             self.coolingRate = 1
@@ -404,24 +416,26 @@ class Update_IRLS(InversionDirective):
 
                 for reg in self.reg.objfcts:
 
-                    #indl, indu = ii*self.reg.regmesh.nC, (ii+1)*self.reg.regmesh.nC
+                    ## NEED TO CHANGE THE DEFAULT VALUE TO SOMETHING ELSE
+                    ## @lheagy
+                    if reg.eps_p == 0.1:
 
-                    if getattr(reg, 'eps_p', None) is None:
-
-                        mtemp = self.reg[ii].mapping * self.invProb.model
+                        mtemp = reg.mapping * self.invProb.model
                         reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
 
-                    elif getattr(reg, 'eps_q', None) is None:
-                        mtemp = self.reg[ii].mapping * self.invProb.model
+                    if reg.eps_q == 0.1:
+                        mtemp = reg.mapping * self.invProb.model
                         reg.eps_q = np.percentile(np.abs(reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
 
             else:
-                if getattr(self.reg, 'eps_p', None) is None:
+                if self.reg.eps_p == 0.1:
+
 
                     mtemp = self.reg.mapping * self.invProb.model
                     self.reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
 
-                elif getattr(self.reg, 'eps_q', None) is None:
+                if self.reg.eps_q == 0.1:
+
                     mtemp = self.reg.mapping * self.invProb.model
                     self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
 
@@ -437,25 +451,17 @@ class Update_IRLS(InversionDirective):
                 print("L[p qx qy qz]-norm : " + str(self.reg.norms))
 
 
-
             if self.ComboObjFun:
                     for reg in self.reg.objfcts:
                         reg.model = self.invProb.model
 
-
             else:
                 self.reg.model = self.invProb.model
 
-
-            self.reg.l2model = self.invProb.model.copy()
-
+            self.l2model = self.invProb.model.copy()
 
             # Re-assign the norms
             if self.ComboObjFun:
-                # vec_xyz = Magnetics.atp2xyz(self.reg.l2model)
-                # vec = vec_xyz.reshape(self.prob.mesh.nC, 3, order='F')
-                # MagneticsDriver.writeVectorUBC(self.prob.mesh, 'MVI_l2norm.fld', vec)
-
                 for reg in self.reg.objfcts:
                     print("eps_p: " + str(reg.eps_p) +
                           " eps_q: " + str(reg.eps_q))
@@ -489,9 +495,6 @@ class Update_IRLS(InversionDirective):
                     self.reg.model = self.invProb.model
 
                 self.IRLSiter += 1
-
-            # f,g = self.invProb.evalFunction(self.invProb.model,return_g=True, return_H=False)
-            # print('MAX deriv',np.max(np.abs(g)))
 
             # Reset the regularization matrices so that it is
             # recalculated for current model. Do it to all levels of comboObj
@@ -538,6 +541,7 @@ class Update_IRLS(InversionDirective):
             val = self.invProb.phi_d / self.target
 
             if np.all([np.abs(1.-val) > self.beta_tol, self.updateBeta]):
+
                 self.invProb.beta = (self.invProb.beta * self.target /
                                      self.invProb.phi_d)
 
@@ -573,7 +577,9 @@ class Update_lin_PreCond(InversionDirective):
                 diagA = np.sum(self.prob.G**2., axis=0) + np.hstack(reg_diag)
 
             else:
-                diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+
+                diagA = (np.sum(self.prob.G**2., axis=0) +
+                         self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal())
 
             PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
@@ -595,7 +601,10 @@ class Update_lin_PreCond(InversionDirective):
                 diagA = np.sum(self.prob.G**2., axis=0) + np.hstack(reg_diag)
 
             else:
-                diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+
+                diagA = (np.sum(self.prob.G**2., axis=0) +
+                         self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal())
+
 
             PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
