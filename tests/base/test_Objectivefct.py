@@ -11,6 +11,8 @@ from SimPEG import ObjectiveFunction, Utils, Maps
 
 np.random.seed(130)
 
+EPS = 1e-9
+
 
 class Empty_ObjFct(ObjectiveFunction.BaseObjectiveFunction):
 
@@ -37,7 +39,7 @@ class TestBaseObjFct(unittest.TestCase):
 
     def test_derivs(self):
         objfct = ObjectiveFunction.L2ObjectiveFunction()
-        self.assertTrue(objfct.test())
+        self.assertTrue(objfct.test(eps=1e-9))
 
     def test_scalarmul(self):
         scalar = 10.
@@ -65,7 +67,7 @@ class TestBaseObjFct(unittest.TestCase):
             ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP)) +
             scalar * ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP))
         )
-        self.assertTrue(objfct.test())
+        self.assertTrue(objfct.test(eps=1e-9))
 
         self.assertTrue(np.all(objfct._multipliers == np.r_[1., scalar]))
 
@@ -79,7 +81,7 @@ class TestBaseObjFct(unittest.TestCase):
             alpha1 * ObjectiveFunction.L2ObjectiveFunction()
         )
         phi2 = ObjectiveFunction.L2ObjectiveFunction() + alpha2 * phi1
-        self.assertTrue(phi2.test())
+        self.assertTrue(phi2.test(eps=EPS))
 
         self.assertTrue(len(phi1._multipliers) == 2)
         self.assertTrue(len(phi2._multipliers) == 2)
