@@ -263,6 +263,7 @@ def run(plotIt=True):
                                        ylim=(mesh.vectorNz[3],
                                              mesh.vectorNz[-1]+dx),
                                        vmin=vmin, vmax=vmax)
+        ax2.set_title('Smooth l2 solution')
         ax2.set_ylabel('Elevation (m)', size=14)
 
         ax1 = plt.subplot(313)
@@ -277,7 +278,7 @@ def run(plotIt=True):
                                        ylim=(mesh.vectorNz[3],
                                              mesh.vectorNz[-1]+dx),
                                        vmin=vmin, vmax=vmax)
-
+        ax1.set_title('Compact lp solution')
         ax1.set_xlabel('Easting (m)', size=14)
         ax1.set_ylabel('Elevation (m)', size=14)
 
@@ -293,7 +294,7 @@ def run(plotIt=True):
                                              mesh.vectorNz[-1]+dx),
                                        vmin=vmin, vmax=vmax)
 
-        ax3.set_title('EW - True')
+        ax3.set_title('True Model')
         ax3.xaxis.set_visible(False)
         ax3.set_ylabel('Elevation (m)', size=14)
 

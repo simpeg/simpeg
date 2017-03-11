@@ -422,25 +422,23 @@ class Update_IRLS(InversionDirective):
 
                 for reg in self.reg.objfcts:
 
-                    ## NEED TO CHANGE THE DEFAULT VALUE TO SOMETHING ELSE
-                    ## @lheagy
-                    if reg.eps_p == 0.1:
+                    if getattr(reg, 'eps_p', None) is None:
 
                         mtemp = reg.mapping * self.invProb.model
                         reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
 
-                    if reg.eps_q == 0.1:
+                    if getattr(reg, 'eps_q', None) is None:
                         mtemp = reg.mapping * self.invProb.model
                         reg.eps_q = np.percentile(np.abs(reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
 
             else:
-                if self.reg.eps_p == 0.1:
+                if getattr(self.reg, 'eps_p', None) is None:
 
 
                     mtemp = self.reg.mapping * self.invProb.model
                     self.reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
 
-                if self.reg.eps_q == 0.1:
+                if getattr(self.reg, 'eps_q', None) is None:
 
                     mtemp = self.reg.mapping * self.invProb.model
                     self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
