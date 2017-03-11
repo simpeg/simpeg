@@ -13,13 +13,13 @@ from . import Utils
 
 class Model(properties.Array):
 
-    info_text = 'a numpy array'
+    class_info = 'a numpy array'
     _required = False
 
 
 class Mapping(properties.Property):
 
-    info_text = 'a SimPEG Map'
+    class_info = 'a SimPEG Map'
     _required = False
 
     @property
@@ -88,7 +88,7 @@ class Mapping(properties.Property):
 
 class PhysicalProperty(properties.Property):
 
-    info_text = 'a physical property'
+    class_info = 'a physical property'
     reciprocal = None
     _required = False
 
