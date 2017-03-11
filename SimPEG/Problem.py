@@ -263,7 +263,7 @@ class LinearProblem(BaseProblem):
 
     # surveyPair = Survey.LinearSurvey
 
-    G = None
+    F = None
 
     def __init__(self, mesh, **kwargs):
         BaseProblem.__init__(self, mesh, **kwargs)
@@ -280,10 +280,10 @@ class LinearProblem(BaseProblem):
         self._modelMap = val
 
     def fields(self, m):
-        return self.G.dot(m)
+        return self.F.dot(m)
 
     def Jvec(self, m, v, f=None):
-        return self.G.dot(v)
+        return self.F.dot(v)
 
     def Jtvec(self, m, v, f=None):
-        return self.G.T.dot(v)
+        return self.F.T.dot(v)

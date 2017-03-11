@@ -19,6 +19,9 @@
 
     2- INVERSION: Invert for the magnetization vector.
 
+    This is by far the best result we got so far with MVI. In this example,
+    both the amplitude and magnetization angles can be recovered sparse.
+
 """
 
 import numpy as np
@@ -84,7 +87,9 @@ def run(plotIt=True):
     rxLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
     rxObj = PF.BaseMag.RxObs(rxLoc)
     srcField = PF.BaseMag.SrcField([rxObj], param=(B[0], B[1], B[2]))
-    survey = PF.BaseMag.LinearSurvey(srcField)
+    survey_p = PF.BaseMag.LinearSurvey(srcField)
+    survey_s = PF.BaseMag.LinearSurvey(srcField)
+    survey_t = PF.BaseMag.LinearSurvey(srcField)
 
     # We can now create a susceptibility model and generate data
     # Here a simple block in half-space
@@ -108,12 +113,37 @@ def run(plotIt=True):
     # Create reduced identity map
     idenMap = Maps.IdentityMap(nP=3*nC)
 
+    # Create wires to link the regularization to each model blocks
+    wires = Maps.Wires(('prim', mesh.nC),
+                       ('second', mesh.nC),
+                       ('third', mesh.nC))
+
     # Create the forward model operator
-    prob = PF.Magnetics.MagneticVector(mesh, chiMap=idenMap,
-                                       actInd=actv)
+    prob_p = PF.Magnetics.MagneticVector(mesh, chiMap=wires.prim,
+                                       actInd=actv, magType='x')
+
+    prob_s = PF.Magnetics.MagneticVector(mesh, chiMap=wires.second,
+                                       actInd=actv, magType='y')
+
+    prob_t = PF.Magnetics.MagneticVector(mesh, chiMap=wires.third,
+                                       actInd=actv, magType='z')
 
     # Pair the survey and problem
-    survey.pair(prob)
+    survey_p.pair(prob_p)
+    survey_s.pair(prob_s)
+    survey_t.pair(prob_t)
+
+    # Data misfit function
+    dmis_p = DataMisfit.l2_DataMisfit(survey_p)
+    dmis_p.W = 1./survey.std
+
+    dmis_s = DataMisfit.l2_DataMisfit(survey_s)
+    dmis_s.W = 1./survey.std
+
+    dmis_t = DataMisfit.l2_DataMisfit(survey_t)
+    dmis_t.W = 1./survey.std
+
+    dmis = dmis_p + dmis_s + dmis_t
 
     # Compute forward model some data
     d = prob.fields(m)
@@ -129,11 +159,6 @@ def run(plotIt=True):
     wr = np.sum(prob.G**2., axis=0)**0.5
     wr = (wr/np.max(wr))
 
-    # Create wires to link the regularization to each model blocks
-    wires = Maps.Wires(('prim', mesh.nC),
-                       ('second', mesh.nC),
-                       ('third', mesh.nC))
-
     # Create a regularization
     reg_p = Regularization.Sparse(mesh, indActive=actv, mapping=wires.prim)
     reg_p.cell_weights = wires.prim * wr
@@ -147,10 +172,6 @@ def run(plotIt=True):
     reg = reg_p + reg_s + reg_t
 
     reg.mref = np.zeros(3*nC)
-
-    # Data misfit function
-    dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.W = 1./survey.std
 
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=10, lower=-10., upper=10.,

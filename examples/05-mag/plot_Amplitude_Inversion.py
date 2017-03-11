@@ -132,7 +132,7 @@ def run(plotIt=True):
     prob._G = None
 
     # Create a regularization function, in this case l2l2
-    wr = np.sum(prob.G**2., axis=0)**0.5
+    wr = np.sum(prob.F**2., axis=0)**0.5
     wr = (wr/np.max(wr))
 
     # Create a regularization

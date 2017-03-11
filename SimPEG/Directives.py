@@ -573,11 +573,11 @@ class Update_lin_PreCond(InversionDirective):
                 for reg in self.reg.objfcts:
                     reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
 
-                diagA = np.sum(self.prob.G**2., axis=0) + np.hstack(reg_diag)
+                diagA = np.sum(self.prob.F**2., axis=0) + np.hstack(reg_diag)
 
             else:
 
-                diagA = (np.sum(self.prob.G**2., axis=0) +
+                diagA = (np.sum(self.prob.F**2., axis=0) +
                          self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal())
 
             PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
@@ -597,11 +597,11 @@ class Update_lin_PreCond(InversionDirective):
                 for reg in self.reg.objfcts:
                     reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
 
-                diagA = np.sum(self.prob.G**2., axis=0) + np.hstack(reg_diag)
+                diagA = np.sum(self.prob.F**2., axis=0) + np.hstack(reg_diag)
 
             else:
 
-                diagA = (np.sum(self.prob.G**2., axis=0) +
+                diagA = (np.sum(self.prob.F**2., axis=0) +
                          self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal())
 
 
@@ -659,7 +659,7 @@ class Amplitude_Inv_Iter(InversionDirective):
 
         # if self.test:
 
-        #     wr = np.sum(self.prob.G**2., axis=0)**0.5
+        #     wr = np.sum(self.prob.F**2., axis=0)**0.5
         #     wr = wr / wr.max()
 
         # else:
@@ -671,7 +671,7 @@ class Amplitude_Inv_Iter(InversionDirective):
                 reg.cell_weights = reg.mapping * wr
                 reg.model = self.opt.xc
         else:
-            self.reg.cell_weights = reg.mapping * wr
+            self.reg.cell_weights = self.reg.mapping * wr
 
         if self.ptype == 'MVI-S':
 
@@ -751,13 +751,6 @@ class Amplitude_Inv_Iter(InversionDirective):
                 reg.scale = max_a/max_tp
                 reg.cell_weights *= reg.scale
 
-        # if np.all([self.ptype == 'MVI-S', self.test is not True]):
-
-        #     scl = self.reg.eps_p[0]
-        #     self.reg.alpha_x[1:] = [scl/self.reg.eps_q[i+1] for i in range(2)]
-        #     self.reg.alpha_y[1:] = [scl/self.reg.eps_q[i+1] for i in range(2)]
-        #     self.reg.alpha_z[1:] = [scl/self.reg.eps_q[i+1] for i in range(2)]
-
         if getattr(self.opt, 'approxHinv', None) is not None:
             # Update the pre-conditioner
             # Update the pre-conditioner
@@ -775,10 +768,6 @@ class Amplitude_Inv_Iter(InversionDirective):
             PC = Utils.sdiag(( diagA)**-1.)
             self.opt.approxHinv = PC
 
-        #f,g = self.invProb.evalFunction(self.invProb.model,return_g=True, return_H=False)
-        #print('dphim MAX after pre-con update', np.max(self.regDeriv(self.invProb.model)))
-        #print('MAX deriv after pre-con update',np.max(np.abs(g)))
-
     def getJtJdiag(self):
         """
             Compute explicitely the main diagonal of JtJ for linear problem
@@ -791,13 +780,13 @@ class Amplitude_Inv_Iter(InversionDirective):
         if self.ptype == 'Amp':
             for ii in range(nC):
 
-                JtJdiag[ii] = np.sum((self.prob.dfdm*self.prob.G[:, ii])**2.)
+                JtJdiag[ii] = np.sum((self.prob.dfdm*self.prob.F[:, ii])**2.)
 
         elif self.ptype == 'MVI-S':
 
             for ii in range(nD):
 
-                JtJdiag += (self.prob.G[ii, :] * self.prob.S)**2.
+                JtJdiag += (self.prob.F[ii, :] * self.prob.S)**2.
 
             JtJdiag += 1e-10
 
