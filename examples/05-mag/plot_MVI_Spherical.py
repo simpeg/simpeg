@@ -1,30 +1,35 @@
 """
-    PF: Magnetics Vector Inversion - Spherical
-    ==========================================
+PF: Magnetics Vector Inversion - Spherical
+==========================================
 
-    In this example, we invert for the 3-component magnetization vector
-    with the Spherical formulation. The code is used to invert magnetic
-    data affected by remanent magnetization and makes no induced
-    assumption. The inverse problem is highly non-linear and has proven to
-    be challenging to solve. We introduce an iterative sensitivity
-    weighting to improve the solution. The spherical formulation allows for
-    compact norms to be applied on the magnitude and direction of
-    magnetization independantly, hence reducing the complexity over
-    the usual smooth MVI solution.
+In this example, we invert for the 3-component magnetization vector
+with the Spherical formulation. The code is used to invert magnetic
+data affected by remanent magnetization and makes no induced
+assumption. The inverse problem is highly non-linear and has proven to
+be challenging to solve. We introduce an iterative sensitivity
+re-weighting to improve convergence. The spherical formulation allows for
+compact norms to be applied on the magnitude and direction of
+magnetization independantly, hence reducing the complexity over
+the usual smooth MVI-C solution.
 
-    The algorithm builds upon the research done at UBC:
+The algorithm builds upon the research done at UBC:
 
-    Lelievre, G.P., 2009, Integrating geological and geophysical data
-    through advanced constrained inversions. PhD Thesis, UBC-GIF
+Lelievre, G.P., 2009, Integrating geological and geophysical data
+through advanced constrained inversions. PhD Thesis, UBC-GIF
 
-    The steps are:
-    1- STEP 1: Create a synthetic model and calculate TMI data. This will
-    simulate the usual magnetic experiment.
+The steps are:
 
-    2- STEP 2: Invert for a starting model with cartesian formulation as
-        a primer.
+**STEP 1**: Create a synthetic model and calculate TMI data. This will
+simulate the usual magnetic experiment.
 
-    3- STEP 3: Invert for a compact mag model with spherical formulation.
+**STEP 2**: Invert for a starting model with cartesian formulation as
+    a primer.
+
+**STEP 3**: Invert for a compact MVI model with spherical formulation.
+
+This is by far the best result we got so far with MVI. In this example,
+both the amplitude and magnetization angles can be sparse, recovering
+a compact body with uniform magnetization direction.
 
 """
 import numpy as np
@@ -135,7 +140,7 @@ def run(plotIt=True):
     # # STEP 2: Invert for a magnetization model in Cartesian space # #
 
     # Create a static sensitivity weighting function
-    wr = np.sum(prob.G**2., axis=0)**0.5
+    wr = np.sum(prob.F**2., axis=0)**0.5
     wr = (wr/np.max(wr))
 
     # Create wires to link the regularization to each model blocks

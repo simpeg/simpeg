@@ -1,30 +1,30 @@
 """
-    PF: Magnetic Amplitude Inversion
-    ================================
+PF: Magnetic Amplitude Inversion
+================================
 
-    In this example, we invert magnetic field data simulated
-    from a simple block model affected by remanent magnetization.
-    The algorithm builtds upon the research done at CSM:
+In this example, we invert magnetic field data simulated
+from a simple block model affected by remanent magnetization.
+The algorithm builtds upon the research done at CSM:
 
-    Li, Y., S. E. Shearer, M. M. Haney, and N. Dannemiller, 2010,
-    Comprehensive approaches to 3D inversion of magnetic data affected by
-    remanent magnetization:  Geophysics, 75, no. 1, 1-11
+Li, Y., S. E. Shearer, M. M. Haney, and N. Dannemiller, 2010,
+Comprehensive approaches to 3D inversion of magnetic data affected by
+remanent magnetization:  Geophysics, 75, no. 1, 1-11
 
-    The steps are:
-    1- SETUP: Create a synthetic model and calculate TMI data. This will
-    simulate the usual magnetic experiment.
+The steps are:
+1- SETUP: Create a synthetic model and calculate TMI data. This will
+simulate the usual magnetic experiment.
 
-    2- PROCESSING: Invert for an equivalent source layer to extract
-    3-component magnetic field data. The components are then used to
-    calculate amplitude data.
+2- PROCESSING: Invert for an equivalent source layer to extract
+3-component magnetic field data. The components are then used to
+calculate amplitude data.
 
-    3- INVERSION: Invert for an effective susceptibility model.
+3- INVERSION: Invert for an effective susceptibility model.
 
-    For comparison, the same TMI data are first inverted with the usual
-    induced assumption, both with smooth and compact norms. Note that
-    the recovered susceptibility model is highly distorted due to the
-    incorrect magnetization assumption, compared to the more reboust solution
-    using the amplitude data.
+For comparison, the same TMI data are first inverted with the usual
+induced assumption, both with smooth and compact norms. Note that
+the recovered susceptibility model is highly distorted due to the
+incorrect magnetization assumption, compared to the more reboust solution
+using the amplitude data.
 
 """
 import numpy as np
@@ -129,7 +129,7 @@ def run(plotIt=True):
 
     # Reset the magnetization
     prob.M = M
-    prob._G = None
+    prob._F = None
 
     # Create a regularization function, in this case l2l2
     wr = np.sum(prob.F**2., axis=0)**0.5
@@ -224,14 +224,15 @@ def run(plotIt=True):
 
     # Won't store the sensitivity and output 'xyz' data.
     prob.forwardOnly = True
-    prob.rtype = 'xyz'
-    pred = prob.Intrgl_Fwr_Op(m=mrec)
+    pred_x = prob.Intrgl_Fwr_Op(m=mrec, recType='x')
+    pred_y = prob.Intrgl_Fwr_Op(m=mrec, recType='y')
+    pred_z = prob.Intrgl_Fwr_Op(m=mrec, recType='z')
 
     ndata = survey.nD
 
-    d_amp = np.sqrt(pred[:ndata]**2. +
-                    pred[ndata:2*ndata]**2. +
-                    pred[2*ndata:]**2.)
+    d_amp = np.sqrt(pred_x**2. +
+                    pred_y**2. +
+                    pred_z**2.)
 
     rxLoc = survey.srcField.rxList[0].locs
 
@@ -256,8 +257,8 @@ def run(plotIt=True):
     mstart = np.ones(len(actv))*1e-4
     prob.chi = mstart
 
-    # Change the survey to xyz components
-    survey.srcField.rxList[0].rxType = 'xyz'
+    # # Change the survey to xyz components
+    # survey.srcField.rxList[0].rxType = 'xyz'
 
     # Pair the survey and problem
     survey.pair(prob)

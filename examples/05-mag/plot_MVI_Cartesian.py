@@ -1,26 +1,30 @@
 """
-    PF: Magnetics Vector Inversion - Cartesian
-    ==========================================
+PF: Magnetics Vector Inversion - Cartesian
+==========================================
 
-    In this example, we invert for the 3-component magnetization vector
-    with the Cartesian formulation. The code is used to invert magnetic
-    data affected by remanent magnetization and makes no induced
-    assumption. The inverse problem is three times larger than the usual
-    susceptibility inversion and depends strongly on the regularization.
-    The algorithm builtds upon the research done at UBC:
+In this example, we invert for the 3-component magnetization vector
+with the Cartesian formulation (MVI-C). The code is used to invert magnetic
+data affected by remanent magnetization and makes no induced
+assumption. The inverse problem is three times larger than the usual
+susceptibility inversion and depends strongly on the regularization.
+The algorithm builds upon the research done at UBC:
 
-    Lelievre, G.P., D.W. Oldenburg, 2009, A 3D total magnetization
-    inversion applicable when significant, complicated remance is present.
-    Geophysics, 74, no.3: 21-30
+Lelievre, G.P., D.W. Oldenburg, 2009, A 3D total magnetization
+inversion applicable when significant, complicated remance is present.
+Geophysics, 74, no.3: 21-30
 
-    The steps are:
-    1- SETUP: Create a synthetic model and calculate TMI data. This will
-    simulate the usual magnetic experiment.
+The steps are:
 
-    2- INVERSION: Invert for the magnetization vector.
+1- **SETUP**: Create a synthetic model and calculate TMI data. This will
+ simulate the usual magnetic experiment.
 
-    This is by far the best result we got so far with MVI. In this example,
-    both the amplitude and magnetization angles can be recovered sparse.
+2- **INVERSION**: Invert for the magnetization vector.
+
+The MVI-C formulation is easy to solve and has been used by other commercial
+ codes such as VOXI.
+The MVI-C formulation suffers however being highly non-unique, resulting in an
+overly complex and smooth solution. Please visit the MVI-Spherical page for a
+neat improvement to this problem.
 
 """
 
@@ -87,9 +91,7 @@ def run(plotIt=True):
     rxLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
     rxObj = PF.BaseMag.RxObs(rxLoc)
     srcField = PF.BaseMag.SrcField([rxObj], param=(B[0], B[1], B[2]))
-    survey_p = PF.BaseMag.LinearSurvey(srcField)
-    survey_s = PF.BaseMag.LinearSurvey(srcField)
-    survey_t = PF.BaseMag.LinearSurvey(srcField)
+    survey = PF.BaseMag.LinearSurvey(srcField)
 
     # We can now create a susceptibility model and generate data
     # Here a simple block in half-space
@@ -118,32 +120,16 @@ def run(plotIt=True):
                        ('second', mesh.nC),
                        ('third', mesh.nC))
 
+    # Create identity map
+    idenMap = Maps.IdentityMap(nP=3*nC)
+
     # Create the forward model operator
-    prob_p = PF.Magnetics.MagneticVector(mesh, chiMap=wires.prim,
-                                       actInd=actv, magType='x')
-
-    prob_s = PF.Magnetics.MagneticVector(mesh, chiMap=wires.second,
-                                       actInd=actv, magType='y')
-
-    prob_t = PF.Magnetics.MagneticVector(mesh, chiMap=wires.third,
-                                       actInd=actv, magType='z')
-
+    prob = PF.Magnetics.MagneticVector(mesh, chiMap=idenMap,
+                                         actInd=actv)
     # Pair the survey and problem
-    survey_p.pair(prob_p)
-    survey_s.pair(prob_s)
-    survey_t.pair(prob_t)
+    survey.pair(prob)
 
-    # Data misfit function
-    dmis_p = DataMisfit.l2_DataMisfit(survey_p)
-    dmis_p.W = 1./survey.std
 
-    dmis_s = DataMisfit.l2_DataMisfit(survey_s)
-    dmis_s.W = 1./survey.std
-
-    dmis_t = DataMisfit.l2_DataMisfit(survey_t)
-    dmis_t.W = 1./survey.std
-
-    dmis = dmis_p + dmis_s + dmis_t
 
     # Compute forward model some data
     d = prob.fields(m)
@@ -156,7 +142,7 @@ def run(plotIt=True):
     survey.std = wd
 
     # Create a static sensitivity weighting function
-    wr = np.sum(prob.G**2., axis=0)**0.5
+    wr = np.sum(prob.F**2., axis=0)**0.5
     wr = (wr/np.max(wr))
 
     # Create a regularization
@@ -172,6 +158,10 @@ def run(plotIt=True):
     reg = reg_p + reg_s + reg_t
 
     reg.mref = np.zeros(3*nC)
+
+    # Data misfit function
+    dmis = DataMisfit.l2_DataMisfit(survey)
+    dmis.W = 1./survey.std
 
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=10, lower=-10., upper=10.,

@@ -6,6 +6,7 @@ from . import Maps
 from .PF import Magnetics, MagneticsDriver
 from . import Regularization
 from . import Mesh
+from . import ObjectiveFunction
 
 class InversionDirective(object):
     """InversionDirective"""
@@ -196,7 +197,13 @@ class TargetMisfit(InversionDirective):
         if getattr(self, '_target', None) is None:
             # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
             if self.phi_d_star is None:
-                self.phi_d_star = 0.5 * self.survey.nD
+
+                # Check if it is a ComboObjective
+                if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+                    self.phi_d_star = 0.5 * self.dmisfit.objfcts[0].survey.nD
+                else:
+                    self.phi_d_star = 0.5 * self.survey.nD
+
             self._target = self.chifact * self.phi_d_star
         return self._target
 
@@ -551,7 +558,8 @@ class Update_lin_PreCond(InversionDirective):
     """
     onlyOnStart = False
     mapping = None
-    ComboObjFun = False
+    ComboRegFun = False
+    ComboMisfitFun = False
 
     def initialize(self):
 
@@ -559,7 +567,13 @@ class Update_lin_PreCond(InversionDirective):
         if not isinstance(self.reg, Regularization.BaseComboRegularization):
 
             # It is a Combo objective, so will have to loop
-            self.ComboObjFun = True
+            self.ComboRegFun = True
+
+        # Check if it is a ComboObjective
+        if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+
+            # It is a Combo objective, so will have to loop
+            self.ComboMisfitFun = True
 
         if getattr(self, 'mapping', None) is None:
             self.mapping = Maps.IdentityMap(nP=self.reg.mapping.nP)
@@ -567,18 +581,30 @@ class Update_lin_PreCond(InversionDirective):
         if getattr(self.opt, 'approxHinv', None) is None:
 
             # Update the pre-conditioner
-            if self.ComboObjFun:
+            if self.ComboRegFun:
 
-                reg_diag = []
+                regDiag = []
                 for reg in self.reg.objfcts:
-                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+                    regDiag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
 
-                diagA = np.sum(self.prob.F**2., axis=0) + np.hstack(reg_diag)
+                regDiag = np.hstack(regDiag)
 
             else:
 
-                diagA = (np.sum(self.prob.F**2., axis=0) +
-                         self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal())
+                regDiag = self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+
+            if self.ComboMisfitFun:
+
+                misfitDiag = []
+                for misfit in self.dmisfit.objfcts:
+                    misfitDiag.append(np.sum(misfit.prob.F**2., axis=0))
+
+                misfitDiag = np.hstack(regDiag)
+
+            else:
+                misfitDiag = np.sum(self.dmisfit.prob.F**2., axis=0)
+
+            diagA = misfitDiag + regDiag
 
             PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
@@ -588,22 +614,33 @@ class Update_lin_PreCond(InversionDirective):
         if self.onlyOnStart is True:
             return
 
-        if getattr(self.opt, 'approxHinv', None) is not None:
-            # Update the pre-conditioner
-            # Update the pre-conditioner
-            if self.ComboObjFun:
+        if getattr(self.opt, 'approxHinv', None) is None:
 
-                reg_diag = []
+            # Update the pre-conditioner
+            if self.ComboRegFun:
+
+                regDiag = []
                 for reg in self.reg.objfcts:
-                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+                    regDiag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
 
-                diagA = np.sum(self.prob.F**2., axis=0) + np.hstack(reg_diag)
+                regDiag = np.hstack(regDiag)
 
             else:
 
-                diagA = (np.sum(self.prob.F**2., axis=0) +
-                         self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal())
+                regDiag = self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
 
+            if self.ComboMisfitFun:
+
+                misfitDiag = []
+                for misfit in self.dmisfit.objfcts:
+                    misfitDiag.append(np.sum(misfit.prob.F**2., axis=0))
+
+                misfitDiag = np.hstack(regDiag)
+
+            else:
+                misfitDiag = np.sum(self.dmisfit.prob.F**2., axis=0)
+
+            diagA = misfitDiag + regDiag
 
             PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC

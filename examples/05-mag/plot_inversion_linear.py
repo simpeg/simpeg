@@ -2,8 +2,19 @@
 PF: Magnetic: Inversion Linear
 ===============================
 
-Create a synthetic block model and invert
-with a compact norm
+In this example, we showcase the magnetic susceptibility
+inversion as introduced in the classic paper of:
+
+Li Y., and D. W. Oldenburg, 1996, 3-D inversion of magnetic data:
+Geophysics, 61, no. 2, 394-408.
+
+We first create a synthetic block model and invert
+with both smooth and compact norms for comparison.
+A solution to the compact norms is found using the Scaled-IRLS
+method presented in:
+
+Fournier, D. 2015, A cooperative magnetic inversion method with Lp-norm
+regularization. MSc. Thesis, UBC - EOAS Department
 
 """
 import matplotlib.pyplot as plt

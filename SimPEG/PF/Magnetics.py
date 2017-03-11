@@ -98,13 +98,14 @@ class MagneticIntegral(Problem.LinearProblem):
 
 
 
-    def Intrgl_Fwr_Op(self, m=None, magType="vec"):
+    def Intrgl_Fwr_Op(self, m=None, magType="vec", recType='tmi'):
 
         """
 
         Magnetic forward operator in integral form
 
         magType  = 'vec' | 'x' | 'y' | 'z'
+        recType  = 'tmi' | 'x' | 'y' | 'z'
 
         Return
         _F = Linear forward operator | (forwardOnly)=data
@@ -153,7 +154,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         # Pre-allocate space and create Magnetization matrix if required
         # If assumes uniform Magnetization direction
-        if self.magType == 'vec':
+        if magType == 'vec':
             if getattr(self, 'M', None) is None:
                 self.M = dipazm_2_xyz(np.ones(nC) * survey.srcField.param[1],
                                       np.ones(nC) * survey.srcField.param[2])
@@ -164,19 +165,19 @@ class MagneticIntegral(Problem.LinearProblem):
 
             Mxyz = sp.vstack((Mx, My, Mz))
 
-        elif self.magType == 'x':
+        elif magType == 'x':
 
             Mxyz = sp.vstack((sp.identity(nC)*survey.srcField.param[0],
                               sp.csr_matrix((nC, nC)),
                               sp.csr_matrix((nC, nC))))
 
-        elif self.magType == 'y':
+        elif magType == 'y':
 
             Mxyz = sp.vstack((sp.csr_matrix((nC, nC)),
                               sp.identity(nC)*survey.srcField.param[0],
                               sp.csr_matrix((nC, nC))))
 
-        elif self.magType == 'z':
+        elif magType == 'z':
 
             Mxyz = sp.vstack((sp.csr_matrix((nC, nC)),
                               sp.csr_matrix((nC, nC)),
@@ -188,20 +189,14 @@ class MagneticIntegral(Problem.LinearProblem):
         # Check if we need to store the forward operator and pre-allocate memory
         if self.forwardOnly:
 
-            if self.recType == 'tmi':
-
-                F = np.zeros(self.survey.nRx)
-
-            else:
-
-                F = np.zeros(3*self.survey.nRx)
+            F = np.zeros(self.survey.nRx)
 
         else:
 
             F = np.zeros((ndata, nC))
 
             # Loop through all observations and create forward operator (nD-by-nC)
-            print("Begin calculation of forward operator: " + self.magType)
+            print("Begin calculation of forward operator: " + magType)
 
         # Add counter to dsiplay progress. Good for large problems
         count = -1
@@ -211,31 +206,33 @@ class MagneticIntegral(Problem.LinearProblem):
 
             if self.forwardOnly:
 
-                if self.recType == 'tmi':
+                if recType == 'tmi':
                     F[ii] = (self.ProjTMI.dot(np.vstack((tx, ty, tz)))*Mxyz).dot(m)
 
-                elif self.recType == 'x':
+                elif recType == 'x':
                     F[ii] = (tx*Mxyz).dot(m)
-                elif self.recType == 'y':
-                    F[ndata] = (ty*Mxyz).dot(m)
-                elif self.recType == 'z':
-                    F[ndata] = (tz*Mxyz).dot(m)
+                elif recType == 'y':
+                    F[ii] = (ty*Mxyz).dot(m)
+                elif recType == 'z':
+                    F[ii] = (tz*Mxyz).dot(m)
+                else:
+                    raise Exception('recType must be: "tmi", "x", "y" or "z"')
 
             else:
 
-
-                if self.recType == 'tmi':
+                if recType == 'tmi':
                     F[ii, :] = self.ProjTMI.dot(np.vstack((tx, ty, tz)))*Mxyz
 
-                elif self.recType == 'x':
+                elif recType == 'x':
                     F[ii, :] = tx*Mxyz
 
-                elif self.recType == 'y':
+                elif recType == 'y':
                     F[ii, :] = ty*Mxyz
 
-                elif self.recType == 'z':
+                elif recType == 'z':
                     F[ii, :] = tz*Mxyz
-
+                else:
+                    raise Exception('recType must be: "tmi", "x", "y" or "z"')
                 # else:
 
                 #     if self.recType == 'tmi':
@@ -265,7 +262,7 @@ class MagneticVector(MagneticIntegral):
     actInd = None  #: Active cell indices provided
     M = None  #: magType matrix provided, otherwise all induced
     ptype = 'Cartesian'  # Formulation either "Cartesian" | "Spherical"
-    magType = 'x' # magType component
+    magType = 'vec' # magType component
     chi = None
 
     def __init__(self, mesh, **kwargs):
@@ -276,7 +273,7 @@ class MagneticVector(MagneticIntegral):
         if self.forwardOnly:
 
             # Compute the linear operation without forming the full dense G
-            fwr_d = Intrgl_Fwr_Op(m=m, magType=magType)
+            fwr_d = Intrgl_Fwr_Op(m=m, magType=self.magType)
 
             return fwr_d
 
@@ -292,8 +289,13 @@ class MagneticVector(MagneticIntegral):
             raise Exception('Need to pair!')
 
         if getattr(self, '_F', None) is None:
-            self._F = self.Intrgl_Fwr_Op(magType=self.magType)
 
+            self._F = []
+            for mtype in ['x', 'y', 'z']:
+
+                self._F.append(self.Intrgl_Fwr_Op(magType=mtype))
+
+            self._F = np.hstack(self._F)
         return self._F
 
     def fields(self, chi, **kwargs):
@@ -315,16 +317,20 @@ class MagneticVector(MagneticIntegral):
     def Jvec(self, chi, v, f=None):
 
         if self.ptype == 'Cartesian':
-            return self.F.dot(self.chiMap.deriv(v))
+
+            return self.F.dot(self.chiMap.deriv(chi)*v)
+
         else:
-            dmudm = self.S * self.chiMap.deriv(chi)
+            dmudm = self.S*self.chiMap.deriv(chi)
 
             return self.F.dot(dmudm.dot(v))
 
     def Jtvec(self, chi, v, f=None):
 
         if self.ptype == 'Cartesian':
-            return self.F.T.dot(v)
+
+            return self.chiMap.deriv(chi).T*(self.F.T.dot(v))
+
         else:
 
             dmudm = self.chiMap.deriv(chi).T * self.S.T
@@ -345,23 +351,23 @@ class MagneticVector(MagneticIntegral):
             t = self.chi[nC:2*nC]
             p = self.chi[2*nC:]
 
-            if self.magType == 'x':
-                self._S = sp.hstack([sp.diags(np.cos(t)*np.cos(p), 0),
-                                     sp.diags(-a*np.sin(t)*np.cos(p), 0),
-                                     sp.diags(-a*np.cos(t)*np.sin(p), 0)])
 
-            elif self.magType == 'y':
+            Sx = sp.hstack([sp.diags(np.cos(t)*np.cos(p), 0),
+                            sp.diags(-a*np.sin(t)*np.cos(p), 0),
+                            sp.diags(-a*np.cos(t)*np.sin(p), 0)])
 
-                self._S = sp.hstack([sp.diags(np.cos(t)*np.sin(p), 0),
-                                     sp.diags(-a*np.sin(t)*np.sin(p), 0),
-                                     sp.diags(a*np.cos(t)*np.cos(p), 0)])
 
-            elif self.magType == 'z':
-                self._S = sp.hstack([sp.diags(np.sin(t), 0),
-                                     sp.diags(a*np.cos(t), 0),
-                                     sp.csr_matrix((nC, nC))])
 
-            #self._S = sp.vstack([Sx, Sy, Sz])
+            Sy = sp.hstack([sp.diags(np.cos(t)*np.sin(p), 0),
+                            sp.diags(-a*np.sin(t)*np.sin(p), 0),
+                            sp.diags(a*np.cos(t)*np.cos(p), 0)])
+
+
+            Sz = sp.hstack([sp.diags(np.sin(t), 0),
+                            sp.diags(a*np.cos(t), 0),
+                            sp.csr_matrix((nC, nC))])
+
+            self._S = sp.vstack([Sx, Sy, Sz])
 
         return self._S
 
@@ -371,7 +377,7 @@ class MagneticAmplitude(MagneticIntegral):
     forwardOnly = False  # If false, matric is store to memory (watch your RAM)
     actInd = None  #: Active cell indices provided
     M = None  #: magType matrix provided, otherwise all induced
-    recType = 'xyz'  #: Receivers must be "xyz"
+    magType = 'vec'  #: Receivers must be "xyz"
     chi = None
 
     def __init__(self, mesh, **kwargs):
@@ -437,9 +443,15 @@ class MagneticAmplitude(MagneticIntegral):
             raise Exception('Need to pair!')
 
         if getattr(self, '_F', None) is None:
-            self._F = self.Intrgl_Fwr_Op()
+            self._F = []
+            for rectype in ['x', 'y', 'z']:
+
+                self._F.append(self.Intrgl_Fwr_Op(recType=rectype))
+
+            self._F = np.vstack(self._F)
 
         return self._F
+
 
     @property
     def dfdm(self):
