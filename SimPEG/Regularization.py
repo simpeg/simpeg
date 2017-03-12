@@ -1207,6 +1207,10 @@ class BaseSparse(BaseRegularization):
             return self.stashedR
 
         eps = self.epsilon
+
+        if eps is None:
+            eps = 1e-8
+
         exponent = self.norm
 
         # Eta scaling is important for mix-norms...do not mess with it

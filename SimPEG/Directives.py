@@ -264,15 +264,21 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
 
         if getattr(self, 'mapping', None) is None:
             return self.mapPair()
-        print("SimPEG.SaveModelEveryIteration will save your models in UBC format as: '###-{0!s}.sus'".format(self.fileName))
+        print("SimPEG.SaveModelEveryIteration will save your models" +
+              " in UBC format as: '###-{0!s}.sus'".format(self.fileName))
 
     def endIter(self):
 
-        if self.replace:
-            Mesh.TensorMesh.writeModelUBC(self.reg.mesh, self.fileName + '.sus', self.mapping*self.opt.xc)
-
+        # Overwrite the file or add interation number
+        if not self.replace:
+            fileName = self.fileName + str(self.opt.iter)
         else:
-            Mesh.TensorMesh.writeModelUBC(self.reg.mesh, self.fileName + str(self.opt.iter) + '.sus', self.mapping*self.opt.xc)
+            fileName = self.fileName
+
+        Mesh.TensorMesh.writeModelUBC(self.reg.mesh,
+                                      fileName + '.sus',
+                                      self.mapping*self.opt.xc)
+
 
 
 class SaveUBCVectorsEveryIteration(SaveEveryIteration):
@@ -280,27 +286,46 @@ class SaveUBCVectorsEveryIteration(SaveEveryIteration):
 
     mapping = None
     replace = True
+    saveComp = False
+    spherical = False
 
     def initialize(self):
-        print("SimPEG.SaveModelEveryIteration will save your models in UBC format as: '###-{0!s}.sus'".format(self.fileName))
+        print("SimPEG.SaveModelEveryIteration will save your models" +
+              " in UBC format as: '###-{0!s}.sus'".format(self.fileName))
 
     def endIter(self):
 
-        nC = self.prob.mesh.nC
-        vec_xyz = Magnetics.atp2xyz(self.opt.xc)
-        vec = vec_xyz.reshape(nC , 3, order='F')
+        nC = self.mapping.shape[1]
 
-        if self.replace:
-            MagneticsDriver.writeVectorUBC(self.prob.mesh, self.fileName + '.fld', vec)
-            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + '_amp.sus',self.mapping*self.opt.xc[:nC])
-            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + '_phi.sus',self.mapping*self.opt.xc[2*nC:])
-            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + '_theta.sus',self.mapping*self.opt.xc[nC:2*nC])
-
+        if self.spherical:
+            vec_pst = Magnetics.atp2xyz(self.opt.xc)
         else:
-            MagneticsDriver.writeVectorUBC(self.prob.mesh,  self.fileName + str(self.opt.iter) + '.fld', vec)
-            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + str(self.opt.iter) + '_amp.sus',self.mapping*self.opt.xc[:nC])
-            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + str(self.opt.iter) + '_phi.sus',self.mapping*self.opt.xc[2*nC:])
-            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + str(self.opt.iter) + '_theta.sus',self.mapping*self.opt.xc[nC:2*nC])
+            vec_pst = self.opt.xc
+
+        vec_p = self.mapping*vec_pst[:nC]
+        vec_s = self.mapping*vec_pst[nC:2*nC]
+        vec_t = self.mapping*vec_pst[2*nC:]
+
+        vec = np.c_[vec_p, vec_s, vec_t]
+
+        # Overwrite the file or add interation number
+        if not self.replace:
+            fileName = self.fileName + str(self.opt.iter)
+        else:
+            fileName = self.fileName
+
+        MagneticsDriver.writeVectorUBC(self.prob.mesh, fileName + '.fld', vec)
+
+        if self.saveComp:
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh,
+                                          fileName + '_amp.sus',
+                                          vec_p)
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh,
+                                          fileName + '_phi.sus',
+                                          vec_s)
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh,
+                                          fileName + '_theta.sus',
+                                          vec_t)
 
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
@@ -428,7 +453,7 @@ class Update_IRLS(InversionDirective):
 
             # print(' iter', self.opt.iter, 'beta',self.invProb.beta,'phid', self.invProb.phi_d)
             if getattr(self, 'f_old', None) is None:
-                self.f_old = self.reg(self.invProb.model)#self.invProb.evalFunction(self.invProb.model, return_g=False, return_H=False)
+                self.f_old = self.reg(self.invProb.model)
 
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
@@ -447,7 +472,6 @@ class Update_IRLS(InversionDirective):
 
             else:
                 if getattr(self.reg, 'eps_p', None) is None:
-
 
                     mtemp = self.reg.mapping * self.invProb.model
                     self.reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
