@@ -111,7 +111,13 @@ def run(plotIt=True):
             components=['xx', 'xy', 'yx', 'yy'], ax=ax_p, errorbars=True)
         ax_p.legend(bbox_to_anchor=(1.05, 1), loc=2)
 
-        plt.show()
+
 
 if __name__ == '__main__':
-    run()
+
+    do_plots = True
+    run(do_plots)
+    if do_plots:
+        plt.show()
+
+
