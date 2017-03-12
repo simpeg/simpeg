@@ -319,13 +319,13 @@ class SaveUBCVectorsEveryIteration(SaveEveryIteration):
         if self.saveComp:
             Mesh.TensorMesh.writeModelUBC(self.prob.mesh,
                                           fileName + '_amp.sus',
-                                          vec_p)
+                                          self.mapping*self.opt.xc[:nC])
             Mesh.TensorMesh.writeModelUBC(self.prob.mesh,
                                           fileName + '_phi.sus',
-                                          vec_s)
+                                          self.mapping*self.opt.xc[nC:2*nC])
             Mesh.TensorMesh.writeModelUBC(self.prob.mesh,
                                           fileName + '_theta.sus',
-                                          vec_t)
+                                          self.mapping*self.opt.xc[2*nC:])
 
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
