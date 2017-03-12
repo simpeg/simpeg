@@ -109,6 +109,9 @@ def run(plotIt=True, cleanAfterRun=True):
     reg.mref = driver.mref[dynamic]
     reg.cell_weights = wr * mesh.vol[active]
     reg.norms = driver.lpnorms
+    if driver.eps is not None:
+        reg.eps_p = driver.eps[0]
+        reg.eps_q = driver.eps[1]
 
     # Specify how the optimization will proceed
     opt = Optimization.ProjectedGNCG(maxIter=150, lower=driver.bounds[0],

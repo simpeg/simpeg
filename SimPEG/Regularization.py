@@ -1175,8 +1175,8 @@ class BaseSparse(BaseRegularization):
         "Model norm scaling to smooth out convergence", default=1.
     )
     epsilon = properties.Float(
-        "Threshold value for the model norm", default=1e-1
-        #required = True
+        "Threshold value for the model norm", #default=1e-1
+        required=True
     )
     norm = properties.Float(
         "norm used", default=2
@@ -1458,11 +1458,11 @@ class Sparse(BaseComboRegularization):
     )
 
     eps_p = properties.Float(
-        "Threshold value for the model norm", default=1e-1
+        "Threshold value for the model norm", required=True
         )
 
     eps_q = properties.Float(
-        "Threshold value for the model gradient norm", default=1e-1
+        "Threshold value for the model gradient norm", required=True
         )
 
     model = properties.Array("current model", dtype=float)

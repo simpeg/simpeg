@@ -253,20 +253,34 @@ class SaveModelEveryIteration(SaveEveryIteration):
             self.opt.iter, self.fileName), self.opt.xc
         )
 
+
 class SaveUBCModelEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
 
+    mapping = None
+    replace = True
+
     def initialize(self):
+
+        if getattr(self, 'mapping', None) is None:
+            return self.mapPair()
         print("SimPEG.SaveModelEveryIteration will save your models in UBC format as: '###-{0!s}.sus'".format(self.fileName))
 
     def endIter(self):
 
-        Mesh.TensorMesh.writeModelUBC(self.reg.mesh, self.fileName + str(self.opt.iter) + '.sus', self.opt.xc)
+        if self.replace:
+            Mesh.TensorMesh.writeModelUBC(self.reg.mesh, self.fileName + '.sus', self.mapping*self.opt.xc)
+
+        else:
+            Mesh.TensorMesh.writeModelUBC(self.reg.mesh, self.fileName + str(self.opt.iter) + '.sus', self.mapping*self.opt.xc)
+
 
 class SaveUBCVectorsEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
 
-    onlyLast = True
+    mapping = None
+    replace = True
+
     def initialize(self):
         print("SimPEG.SaveModelEveryIteration will save your models in UBC format as: '###-{0!s}.sus'".format(self.fileName))
 
@@ -276,17 +290,17 @@ class SaveUBCVectorsEveryIteration(SaveEveryIteration):
         vec_xyz = Magnetics.atp2xyz(self.opt.xc)
         vec = vec_xyz.reshape(nC , 3, order='F')
 
-        if self.onlyLast:
+        if self.replace:
             MagneticsDriver.writeVectorUBC(self.prob.mesh, self.fileName + '.fld', vec)
-            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + '_amp.sus',self.opt.xc[:nC])
-            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + '_phi.sus',self.opt.xc[2*nC:])
-            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + '_theta.sus',self.opt.xc[nC:2*nC])
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + '_amp.sus',self.mapping*self.opt.xc[:nC])
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + '_phi.sus',self.mapping*self.opt.xc[2*nC:])
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + '_theta.sus',self.mapping*self.opt.xc[nC:2*nC])
 
         else:
             MagneticsDriver.writeVectorUBC(self.prob.mesh,  self.fileName + str(self.opt.iter) + '.fld', vec)
-            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + str(self.opt.iter) + '_amp.sus',self.opt.xc[:nC])
-            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + str(self.opt.iter) + '_phi.sus',self.opt.xc[2*nC:])
-            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + str(self.opt.iter) + '_theta.sus',self.opt.xc[nC:2*nC])
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + str(self.opt.iter) + '_amp.sus',self.mapping*self.opt.xc[:nC])
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + str(self.opt.iter) + '_phi.sus',self.mapping*self.opt.xc[2*nC:])
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh, self.fileName + str(self.opt.iter) + '_theta.sus',self.mapping*self.opt.xc[nC:2*nC])
 
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
