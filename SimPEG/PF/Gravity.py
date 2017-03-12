@@ -105,7 +105,7 @@ class GravityIntegral(Problem.LinearProblem):
             return fwr_d
 
         else:
-            return self.G.dot(rho)
+            return self.F.dot(rho)
 
     def fields(self, m):
         self.model = self.rhoMap*m
@@ -116,21 +116,21 @@ class GravityIntegral(Problem.LinearProblem):
 
     def Jvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
-        return self.G.dot(dmudm*v)
+        return self.F.dot(dmudm*v)
 
     def Jtvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
-        return dmudm.T * (self.G.T.dot(v))
+        return dmudm.T * (self.F.T.dot(v))
 
     @property
-    def G(self):
+    def F(self):
         if not self.ispaired:
             raise Exception('Need to pair!')
 
-        if getattr(self, '_G', None) is None:
-            self._G = self.Intrgl_Fwr_Op('z')
+        if getattr(self, '_F', None) is None:
+            self._F = self.Intrgl_Fwr_Op('z')
 
-        return self._G
+        return self._F
 
     def Intrgl_Fwr_Op(self, flag):
 
@@ -191,11 +191,11 @@ class GravityIntegral(Problem.LinearProblem):
         # Pre-allocate space
         if flag == 'z':
 
-            G = np.zeros((ndata, nC))
+            F = np.zeros((ndata, nC))
 
         elif flag == 'xyz':
 
-            G = np.zeros((int(3*ndata), nC))
+            F = np.zeros((int(3*ndata), nC))
 
         else:
 
@@ -213,19 +213,19 @@ class GravityIntegral(Problem.LinearProblem):
 
             if flag == 'z':
 
-                G[ii, :] = tz
+                F[ii, :] = tz
 
             elif flag == 'xyz':
-                G[ii, :] = tx
-                G[ii+ndata, :] = ty
-                G[ii+2*ndata, :] = tz
+                F[ii, :] = tx
+                F[ii+ndata, :] = ty
+                F[ii+2*ndata, :] = tz
 
             # Display progress
             count = progress(ii, count, ndata)
 
         print("Done 100% ...forward operator completed!!\n")
 
-        return G
+        return F
 
 
 def get_T_mat(Xn, Yn, Zn, rxLoc):

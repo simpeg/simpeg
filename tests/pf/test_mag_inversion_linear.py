@@ -94,7 +94,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         survey.std = wd
 
         # Create sensitivity weights from our linear forward operator
-        wr = np.sum(prob.G**2., axis=0)**0.5
+        wr = np.sum(prob.F**2., axis=0)**0.5
         wr = (wr/np.max(wr))
 
         # Create a regularization
