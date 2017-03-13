@@ -21,13 +21,12 @@ The steps are:
 2- **INVERSION**: Invert for the magnetization vector.
 
 The MVI-C formulation is easy to solve and has been used by other commercial
- codes such as VOXI.
+codes such as VOXI.
 The MVI-C formulation suffers however being highly non-unique, resulting in an
 overly complex and smooth solution. Please visit the MVI-Spherical page for a
 neat improvement to this problem.
 
 """
-
 import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
@@ -125,11 +124,9 @@ def run(plotIt=True):
 
     # Create the forward model operator
     prob = PF.Magnetics.MagneticVector(mesh, chiMap=idenMap,
-                                         actInd=actv)
+                                       actInd=actv)
     # Pair the survey and problem
     survey.pair(prob)
-
-
 
     # Compute forward model some data
     d = prob.fields(m)
