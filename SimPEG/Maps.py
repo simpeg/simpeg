@@ -20,7 +20,6 @@ from . import Utils
 from .Tests import checkDerivative
 
 
-
 class IdentityMap(object):
     """
         SimPEG Map
@@ -46,10 +45,10 @@ class IdentityMap(object):
             :return: number of parameters that the mapping accepts
         """
         if self._nP is not None:
-            return self._nP
+            return int(self._nP)
         if self.mesh is None:
             return '*'
-        return self.mesh.nC
+        return int(self.mesh.nC)
 
     @property
     def shape(self):
@@ -150,8 +149,9 @@ class IdentityMap(object):
             m = abs(np.random.rand(self.nP))
         if 'plotIt' not in kwargs:
             kwargs['plotIt'] = False
-        return checkDerivative(lambda m: [self*m, lambda x: self.deriv(m, x)],
-                               m, num=4, **kwargs)
+        return checkDerivative(
+            lambda m: [self*m, lambda x: self.deriv(m, x)], m, num=4, **kwargs
+        )
 
     def _assertMatchesPair(self, pair):
         assert (
@@ -620,7 +620,7 @@ class ComplexMap(IdentityMap):
         super(ComplexMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
         if nP is not None:
             assert nP % 2 == 0, 'nP must be even.'
-        self._nP = nP or (self.mesh.nC * 2)
+        self._nP = nP or int(self.mesh.nC * 2)
 
     @property
     def nP(self):
@@ -628,14 +628,14 @@ class ComplexMap(IdentityMap):
 
     @property
     def shape(self):
-        return (self.nP/2, self.nP)
+        return (int(self.nP/2), self.nP)
 
     def _transform(self, m):
         nC = self.mesh.nC
         return m[:nC] + m[nC:]*1j
 
     def deriv(self, m, v=None):
-        nC = self.nP/2
+        nC = self.shape[0]
         shp = (nC, nC*2)
 
         def fwd(v):
@@ -819,12 +819,6 @@ class Surject2Dto3D(IdentityMap):
 class Mesh2Mesh(IdentityMap):
     """
         Takes a model on one mesh are translates it to another mesh.
-
-        .. plot::
-
-            from SimPEG.Examples import Maps_Mesh2Mesh
-            Maps_Mesh2Mesh.run()
-
     """
 
     def __init__(self, meshes, **kwargs):
@@ -884,7 +878,7 @@ class InjectActiveCells(IdentityMap):
             indActive = z
         self.indActive = indActive
         self.indInactive = np.logical_not(indActive)
-        if Utils.isScalar(valInactive):
+        if np.isscalar(valInactive):
             self.valInactive = np.ones(self.nC)*float(valInactive)
         else:
             self.valInactive = np.ones(self.nC)
@@ -1461,16 +1455,9 @@ class ParametrizedLayer(IdentityMap):
                 layer_thickness
             ]
 
-
-        .. plot::
-
-            from SimPEG.Examples import Maps_ParametrizedLayer
-            Maps_ParametrizedLayer.run()
-            plt.show()
-
         **Required**
 
-        :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+        :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
         **Optional**
 
@@ -1996,15 +1983,9 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
                  block_dy
             ]
 
-        .. plot::
-
-            from SimPEG.Examples import Maps_ParametrizedBlockInLayer
-            Maps_ParametrizedBlockInLayer.run()
-            plt.show()
-
         **Required**
 
-        :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+        :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
         **Optional**
 
@@ -2449,5 +2430,3 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
             return sp.csr_matrix(self._deriv2d(m))
         elif self.mesh.dim == 3:
             return sp.csr_matrix(self._deriv3d(m))
-
-

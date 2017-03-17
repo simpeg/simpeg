@@ -1,14 +1,12 @@
 import properties
+import numpy as np
 from scipy.constants import mu_0
 import warnings
 
 from SimPEG.Utils import Zero
-from SimPEG import Survey, Problem, Utils, np, sp
-from SimPEG.EM.Utils import (
-    omega, MagneticDipoleFields, MagneticDipoleVectorPotential,
-    MagneticLoopVectorPotential, orientationDict
-)
+from SimPEG import Survey, Problem, Utils
 
+from .. import Utils as emutils
 from ..Base import BaseEMSrc
 
 
@@ -286,7 +284,7 @@ class MagDipole(BaseFDEMSrc):
     )
     mu = properties.Float(
         "permeability of the background", default=mu_0, min=0.
-        )
+    )
     orientation = properties.Vector3(
         "orientation of the source", default='Z', length=1., required=True
     )
@@ -309,9 +307,23 @@ class MagDipole(BaseFDEMSrc):
         self.loc = loc
 
 
+    @properties.validator('orientation')
+    def _warn_non_axis_aligned_sources(self, change):
+        value = change['value']
+        axaligned = [
+            True for vec in [np.r_[1.,0.,0.], np.r_[0.,1.,0.], np.r_[0.,0.,1.]]
+            if np.all(value == vec)
+        ]
+        if len(axaligned) != 1:
+            warnings.warn(
+                'non-axes aligned orientations {} are not rigorously'
+                ' tested'.format(value)
+            )
+
+
 
     def _srcFct(self, obsLoc, component):
-        return MagneticDipoleVectorPotential(
+        return emutils.MagneticDipoleVectorPotential(
             self.loc, obsLoc, component, mu=self.mu, moment=self.moment,
             orientation=self.orientation
         )
@@ -378,7 +390,7 @@ class MagDipole(BaseFDEMSrc):
         b_p = self.bPrimary(prob)
         if prob._formulation == 'HJ':
             b_p = prob.Me * b_p
-        return -1j*omega(self.freq)*b_p
+        return -1j*emutils.omega(self.freq)*b_p
 
     def s_e(self, prob):
         """
@@ -458,7 +470,7 @@ class MagDipole_Bfield(MagDipole):
         )
 
     def _srcFct(self, obsLoc, component):
-        return MagneticDipoleFields(
+        return emutils.MagneticDipoleFields(
             self.loc, obsLoc, component, mu=self.mu, moment=self.moment,
             orientation=self.orientation
         )
@@ -485,7 +497,7 @@ class MagDipole_Bfield(MagDipole):
             gridY = prob.mesh.gridEy
             gridZ = prob.mesh.gridEz
 
-        srcfct = MagneticDipoleFields
+        srcfct = emutils.MagneticDipoleFields
         if prob.mesh._meshType == 'CYL':
             if not prob.mesh.isSymmetric:
                 # TODO ?
@@ -530,7 +542,7 @@ class CircularLoop(MagDipole):
         )
 
     def _srcFct(self, obsLoc, component):
-        return MagneticLoopVectorPotential(
+        return emutils.MagneticLoopVectorPotential(
             self.loc, obsLoc, component, mu=self.mu, radius=self.radius,
             orientation=self.orientation
         )

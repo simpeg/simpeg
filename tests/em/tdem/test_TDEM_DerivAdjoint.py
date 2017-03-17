@@ -15,9 +15,9 @@ plotIt = False
 testDeriv = True
 testAdjoint = True
 
-TOL = 1e-5
+TOL = 1e-4
 
-np.random.seed(42)
+np.random.seed(10)
 
 
 def setUp_TDEM(prbtype='b', rxcomp='bz'):

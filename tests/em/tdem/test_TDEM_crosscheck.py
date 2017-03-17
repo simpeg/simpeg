@@ -4,8 +4,10 @@ from SimPEG import Maps, Mesh
 from SimPEG import EM
 import numpy as np
 
+import warnings
+
 try:
-    from pymatsolver import PardisoSolver as Solver
+    from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
 
@@ -13,7 +15,7 @@ TOL = 1e-4
 FLR = 1e-20
 
 # set a seed so that the same conductivity model is used for all runs
-np.random.seed(seed=25)
+np.random.seed(25)
 
 
 def setUp_TDEM(prbtype='b', rxcomp='bz', waveform='stepoff'):
@@ -146,6 +148,16 @@ class TDEM_cross_check_EB(unittest.TestCase):
         CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='vtem')
 
 
+    def test_MagDipoleSimpleFail(self):
+
+        print('\ntesting MagDipole error handling')
+
+
+        with warnings.catch_warnings(record=True):
+            EM.TDEM.Src.MagDipole(
+                [], loc=np.r_[0., 0., 0.],
+                orientation=np.r_[1., 1., 0.]
+            )
 
 if __name__ == '__main__':
     unittest.main()

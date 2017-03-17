@@ -367,9 +367,6 @@ class BaseEMSrc(Survey.BaseSrc):
 
     integrate = properties.Bool("integrate the source term?", default=False)
 
-    def __init__(self, rxList, **kwargs):
-        super(BaseEMSrc, self).__init__(rxList, **kwargs)
-
     def eval(self, prob):
         """
         - :math:`s_m` : magnetic source term
