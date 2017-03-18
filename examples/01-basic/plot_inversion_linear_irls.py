@@ -93,7 +93,7 @@ def run(N=100, plotIt=True):
 
     inv = Inversion.BaseInversion(
         invProb,
-        directiveList=[IRLS, betaest, update_Jacobi]
+        directiveList=[betaest, IRLS, update_Jacobi]
     )
 
     # Run inversion

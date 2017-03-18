@@ -14,6 +14,7 @@ the usual smooth MVI-C solution.
 
 The algorithm builds upon the research done at UBC:
 
+
 Lelievre, G.P., 2009, Integrating geological and geophysical data
 through advanced constrained inversions. PhD Thesis, UBC-GIF
 
@@ -179,8 +180,8 @@ def run(plotIt=True):
     update_Jacobi = Directives.Update_lin_PreCond()
 
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[IRLS,
-                                                 update_Jacobi, betaest])
+                                  directiveList=[betaest, IRLS,
+                                                 update_Jacobi,])
 
     mstart = np.ones(3*nC)*1e-4
     mrec_C = inv.run(mstart)

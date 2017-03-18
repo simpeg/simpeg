@@ -10,7 +10,7 @@ from SimPEG import Solver
 from SimPEG import Props
 from SimPEG import mkvc
 import matplotlib.pyplot as plt
-
+import gc
 from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
 
@@ -26,7 +26,7 @@ class MagneticIntegral(Problem.LinearProblem):
     actInd = None  #: Active cell indices provided
     M = None  #: Magnetization matrix provided, otherwise all induced
     recType = 'tmi'  #: Receiver type either "tmi" | "xyz"
-    magType = 'vec'
+    magType = 'H0'
     equiSourceLayer = False
 
     def __init__(self, mesh, **kwargs):
@@ -43,11 +43,15 @@ class MagneticIntegral(Problem.LinearProblem):
 
         else:
 
-            return self.F.dot(m)
+            vec = np.empty(self.F.shape[0])
+            for ii in range(self.F.shape[0]):
+                vec[ii] = self.F[ii, :].dot(self.chiMap*(m))
 
-    def fwr_rem(self):
-        # TODO check if we are inverting for M
-        return self.F.dot(self.chiMap(m))
+            return vec
+
+    # def fwr_rem(self):
+    #     # TODO check if we are inverting for M
+    #     return self.F.dot(self.chiMap(m))
 
     def fields(self, m, **kwargs):
         self.model = m
@@ -61,21 +65,13 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return u
 
-    # def Jvec(self, m, v, f=None):
-    #     dmudm = self.chiMap.deriv(m)
-    #     return self.F.dot(dmudm*v)
-
-    # def Jtvec(self, m, v, f=None):
-    #     dmudm = self.chiMap.deriv(m)
-    #     return dmudm.T * (self.F.T.dot(v))
-
     @property
     def F(self):
         if not self.ispaired:
             raise Exception('Need to pair!')
 
         if getattr(self, '_F', None) is None:
-            self._F = self.Intrgl_Fwr_Op()
+            self._F = self.Intrgl_Fwr_Op(magType = self.magType)
 
         return self._F
 
@@ -98,13 +94,13 @@ class MagneticIntegral(Problem.LinearProblem):
 
 
 
-    def Intrgl_Fwr_Op(self, m=None, magType="vec", recType='tmi'):
+    def Intrgl_Fwr_Op(self, m=None, magType="H0", recType='tmi'):
 
         """
 
         Magnetic forward operator in integral form
 
-        magType  = 'vec' | 'x' | 'y' | 'z'
+        magType  = 'H0' | 'x' | 'y' | 'z'
         recType  = 'tmi' | 'x' | 'y' | 'z'
 
         Return
@@ -154,7 +150,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         # Pre-allocate space and create Magnetization matrix if required
         # If assumes uniform Magnetization direction
-        if magType == 'vec':
+        if magType == 'H0':
             if getattr(self, 'M', None) is None:
                 self.M = dipazm_2_xyz(np.ones(nC) * survey.srcField.param[1],
                                       np.ones(nC) * survey.srcField.param[2])
@@ -183,17 +179,22 @@ class MagneticIntegral(Problem.LinearProblem):
                               sp.csr_matrix((nC, nC)),
                               sp.identity(nC)*survey.srcField.param[0]))
 
+        elif magType == 'full':
+
+            Mxyz = sp.identity(3*nC)*survey.srcField.param[0]
+
         else:
-            raise Exception('magType must be: "vec", "x", "y" or "z"')
+            raise Exception('magType must be: "H0", "x", "y", "z" or "full"')
 
         # Check if we need to store the forward operator and pre-allocate memory
+        gc.collect()
         if self.forwardOnly:
 
-            F = np.zeros(self.survey.nRx)
+            F = np.empty(self.survey.nRx, dtype='float64')
 
         else:
 
-            F = np.zeros((ndata, nC))
+            F = np.empty((ndata, Mxyz.shape[1]), dtype='float32')
 
             # Loop through all observations and create forward operator (nD-by-nC)
             print("Begin calculation of forward operator: " + magType)
@@ -202,7 +203,7 @@ class MagneticIntegral(Problem.LinearProblem):
         count = -1
         for ii in range(ndata):
 
-            tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
+            tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :], self.mesh)
 
             if self.forwardOnly:
 
@@ -233,6 +234,7 @@ class MagneticIntegral(Problem.LinearProblem):
                     F[ii, :] = tz*Mxyz
                 else:
                     raise Exception('recType must be: "tmi", "x", "y" or "z"')
+
                 # else:
 
                 #     if self.recType == 'tmi':
@@ -262,7 +264,7 @@ class MagneticVector(MagneticIntegral):
     actInd = None  #: Active cell indices provided
     M = None  #: magType matrix provided, otherwise all induced
     ptype = 'Cartesian'  # Formulation either "Cartesian" | "Spherical"
-    magType = 'vec' # magType component
+    magType = 'full' # magType component
     chi = None
 
     def __init__(self, mesh, **kwargs):
@@ -281,7 +283,11 @@ class MagneticVector(MagneticIntegral):
 
             # m = np.hstack([m, mii])
 
-            return self.F.dot(m)
+            vec = np.empty(self.F.shape[0])
+            for ii in range(self.F.shape[0]):
+                vec[ii] = self.F[ii, :].dot(self.chiMap*(m))
+
+            return vec
 
     @property
     def F(self):
@@ -290,12 +296,8 @@ class MagneticVector(MagneticIntegral):
 
         if getattr(self, '_F', None) is None:
 
-            self._F = []
-            for mtype in ['x', 'y', 'z']:
+            self._F = self.Intrgl_Fwr_Op(magType=self.magType)
 
-                self._F.append(self.Intrgl_Fwr_Op(magType=mtype))
-
-            self._F = np.hstack(self._F)
         return self._F
 
     def fields(self, chi, **kwargs):
@@ -318,24 +320,35 @@ class MagneticVector(MagneticIntegral):
 
         if self.ptype == 'Cartesian':
 
-            return self.F.dot(self.chiMap.deriv(chi)*v)
+            vec = np.empty(self.F.shape[0])
+            for ii in range(self.F.shape[0]):
+                vec[ii] = self.F[ii, :].dot(self.chiMap.deriv(chi)*v)
+
+            return vec
 
         else:
             dmudm = self.S*self.chiMap.deriv(chi)
+            vec = np.empty(self.F.shape[0])
+            for ii in range(self.F.shape[0]):
+                vec[ii] = self.F[ii, :].dot(dmudm.dot(v))
 
-            return self.F.dot(dmudm.dot(v))
+            return vec
 
     def Jtvec(self, chi, v, f=None):
 
+        vec = np.empty(self.F.shape[1])
+        for ii in range(self.F.shape[1]):
+            vec[ii] = self.F[:, ii].dot(v)
+
         if self.ptype == 'Cartesian':
 
-            return self.chiMap.deriv(chi).T*(self.F.T.dot(v))
+            return self.chiMap.deriv(chi).T*(vec)
 
         else:
 
             dmudm = self.chiMap.deriv(chi).T * self.S.T
 
-            return (dmudm).dot(self.F.T.dot(v))
+            return (dmudm).dot(vec)
 
     @property
     def S(self):
@@ -377,7 +390,7 @@ class MagneticAmplitude(MagneticIntegral):
     forwardOnly = False  # If false, matric is store to memory (watch your RAM)
     actInd = None  #: Active cell indices provided
     M = None  #: magType matrix provided, otherwise all induced
-    magType = 'vec'  #: Receivers must be "xyz"
+    magType = 'H0'  #: Receivers must be "xyz"
     chi = None
 
     def __init__(self, mesh, **kwargs):
@@ -409,7 +422,9 @@ class MagneticAmplitude(MagneticIntegral):
                 self.chi = chi
                 m = self.chiMap*self.chi
 
-            Bxyz = self.F.dot(m)
+            Bxyz = np.empty(self.F.shape[0])
+            for ii in range(self.F.shape[0]):
+                Bxyz[ii] = self.F[ii, :].dot(self.chiMap(m))
 
             return self.calcAmpData(Bxyz)
 
@@ -431,11 +446,20 @@ class MagneticAmplitude(MagneticIntegral):
 
     def Jvec(self, chi, v, f=None):
         dmudm = self.chiMap.deriv(chi)
-        return self.dfdm*(self.F.dot(dmudm*v))
+
+        vec = np.empty(self.F.shape[0])
+        for ii in range(self.F.shape[0]):
+            vec[ii] = self.F[ii, :].dot(dmudm*v)
+        return self.dfdm*vec
 
     def Jtvec(self, chi, v, f=None):
         dmudm = self.chiMap.deriv(chi)
-        return dmudm.T * (self.F.T.dot(self.dfdm.T*v))
+
+        vec = np.empty(self.F.shape[1])
+        for ii in range(self.F.shape[1]):
+            vec[ii] = self.F[:, ii].dot(self.dfdm.T*v)
+        return dmudm.T * vec
+
 
     @property
     def F(self):
@@ -443,15 +467,10 @@ class MagneticAmplitude(MagneticIntegral):
             raise Exception('Need to pair!')
 
         if getattr(self, '_F', None) is None:
-            self._F = []
-            for rectype in ['x', 'y', 'z']:
 
-                self._F.append(self.Intrgl_Fwr_Op(recType=rectype))
-
-            self._F = np.vstack(self._F)
+            self._F = self.Intrgl_Fwr_Op(magType=self.magType)
 
         return self._F
-
 
     @property
     def dfdm(self):
@@ -466,7 +485,9 @@ class MagneticAmplitude(MagneticIntegral):
             # Get field data
             m = self.chiMap*self.chi
 
-            Bxyz = self.F.dot(m)
+            Bxyz = np.empty(self.F.shape[0])
+            for ii in range(self.F.shape[0]):
+                Bxyz[ii] = self.F[ii, :].dot(self.chiMap(m))
 
             Bamp = self.calcAmpData(Bxyz)
 
@@ -846,7 +867,7 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     return inv, reg
 
 
-def get_T_mat(Xn, Yn, Zn, rxLoc):
+def get_T_mat(Xn, Yn, Zn, rxLoc, mesh):
     """
     Load in the active nodes of a tensor mesh and computes the magnetic tensor
     for a given observation location rxLoc[obsx, obsy, obsz]
@@ -871,7 +892,7 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
 
      """
 
-    eps = 1e-10  # add a small value to the locations to avoid /0
+    eps = 1e-8  # add a small value to the locations to avoid /0
 
     nC = Xn.shape[0]
 
@@ -1185,7 +1206,7 @@ def writeUBCobs(filename, survey, d):
               '%i' % len(d))
     np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n',header=head,comments='')
 
-    print("Observation file saved to: " + filename)
+    #print("Observation file saved to: " + filename)
 
 
 def plot_obs_2D(rxLoc, d=None, title='TMI Obs',

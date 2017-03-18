@@ -115,12 +115,24 @@ class GravityIntegral(Problem.LinearProblem):
         return fields
 
     def Jvec(self, m, v, f=None):
+
         dmudm = self.rhoMap.deriv(m)
-        return self.F.dot(dmudm*v)
+
+        vec = np.empty(self.F.shape[0])
+        for ii in range(self.F.shape[0]):
+            vec[ii] = self.F[ii, :].dot(dmudm*v)
+
+        return vec
+
 
     def Jtvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
-        return dmudm.T * (self.F.T.dot(v))
+
+        vec = np.empty(self.F.shape[1])
+        for ii in range(self.F.shape[1]):
+            vec[ii] = self.F[:, ii].dot(v)
+
+        return dmudm.T * vec
 
     @property
     def F(self):

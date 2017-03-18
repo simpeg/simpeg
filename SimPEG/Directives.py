@@ -279,6 +279,7 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                                       fileName + '.sus',
                                       self.mapping*self.opt.xc)
 
+        Magnetics.writeUBCobs(fileName + '.pre', self.survey, self.invProb.dpred)
 
 
 class SaveUBCVectorsEveryIteration(SaveEveryIteration):
@@ -596,6 +597,7 @@ class Update_lin_PreCond(InversionDirective):
     mapping = None
     ComboRegFun = False
     ComboMisfitFun = False
+    misfitDiag = None
 
     def initialize(self):
 
@@ -621,28 +623,38 @@ class Update_lin_PreCond(InversionDirective):
 
                 regDiag = []
                 for reg in self.reg.objfcts:
-                    regDiag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+                    regDiag.append((reg.W.T*reg.W).diagonal())
 
                 regDiag = np.hstack(regDiag)
 
             else:
 
-                regDiag = self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+                regDiag = (self.reg.W.T*self.reg.W).diagonal()
 
             if self.ComboMisfitFun:
 
-                misfitDiag = []
-                for misfit in self.dmisfit.objfcts:
-                    misfitDiag.append(np.sum(misfit.prob.F**2., axis=0))
+                if getattr(self, 'misfitDiag', None) is None:
+                    misfitDiag = np.zeros(self.prob.F.shape[1])
+                    for misfit in self.dmisfit.objfcts:
+                        wd = misfit.W.diagonal()
+                        misfitDiag = np.zeros(misfit.prob.F.shape[1])
+                        for ii in range(misfit.prob.F.shape[0]):
+                            misfitDiag += (wd[ii] * misfit.prob.F[ii, :])**2.
 
-                misfitDiag = np.hstack(regDiag)
+                self.misfitDiag = np.hstack(misfitDiag)
 
             else:
-                misfitDiag = np.sum(self.dmisfit.prob.F**2., axis=0)
 
-            diagA = misfitDiag + regDiag
+                if getattr(self, 'misfitDiag', None) is None:
+                    wd = self.dmisfit.W.diagonal()
+                    self.misfitDiag = np.zeros(self.prob.F.shape[1])
+                    for ii in range(self.prob.F.shape[0]):
+                        self.misfitDiag += (wd[ii] * self.prob.F[ii, :])**2.
 
-            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
+
+            diagA = self.misfitDiag + self.invProb.beta*regDiag
+
+            PC = Utils.sdiag((diagA)**-1.)
             self.opt.approxHinv = PC
 
     def endIter(self):
@@ -657,26 +669,26 @@ class Update_lin_PreCond(InversionDirective):
 
                 regDiag = []
                 for reg in self.reg.objfcts:
-                    regDiag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+                    regDiag.append((reg.W.T*reg.W).diagonal())
 
                 regDiag = np.hstack(regDiag)
 
             else:
 
-                regDiag = self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+                regDiag = (self.reg.W.T*self.reg.W).diagonal()
 
-            if self.ComboMisfitFun:
+#            if self.ComboMisfitFun:
+#
+#                misfitDiag = []
+#                for misfit in self.dmisfit.objfcts:
+#                    misfitDiag.append(np.sum(misfit.prob.F**2., axis=0))
+#
+#                misfitDiag = np.hstack(regDiag)
+#
+#            else:
+#                misfitDiag = np.sum(self.dmisfit.prob.F**2., axis=0)
 
-                misfitDiag = []
-                for misfit in self.dmisfit.objfcts:
-                    misfitDiag.append(np.sum(misfit.prob.F**2., axis=0))
-
-                misfitDiag = np.hstack(regDiag)
-
-            else:
-                misfitDiag = np.sum(self.dmisfit.prob.F**2., axis=0)
-
-            diagA = misfitDiag + regDiag
+            diagA = self.misfitDiag + self.invProb.beta*regDiag
 
             PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC

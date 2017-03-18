@@ -140,7 +140,7 @@ def run(plotIt=True, cleanAfterRun=True):
 
     # Create combined the L2 and Lp problem
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[IRLS, update_Jacobi, betaest])
+                                  directiveList=[ IRLS, update_Jacobi,betaest, ])
 
     # %%
     # Run L2 and Lp inversion

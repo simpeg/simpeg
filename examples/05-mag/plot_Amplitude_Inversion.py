@@ -157,7 +157,7 @@ def run(plotIt=True):
     IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=3)
     update_Jacobi = Directives.Update_lin_PreCond()
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[IRLS, betaest, update_Jacobi])
+                                  directiveList=[betaest, IRLS, update_Jacobi])
 
     # Run the inversion
     m0 = np.ones(nC)*1e-4  # Starting model

@@ -280,10 +280,19 @@ class LinearProblem(BaseProblem):
         self._modelMap = val
 
     def fields(self, m):
-        return self.F.dot(m)
+        vec = np.empty(self.F.shape[0])
+        for ii in range(self.F.shape[0]):
+            vec[ii] = self.F[ii, :].dot(m)
+        return vec
 
     def Jvec(self, m, v, f=None):
-        return self.F.dot(v)
+        vec = np.empty(self.F.shape[0])
+        for ii in range(self.F.shape[0]):
+            vec[ii] = self.F[ii, :].dot(v)
+        return vec
 
     def Jtvec(self, m, v, f=None):
-        return self.F.T.dot(v)
+        vec = np.empty(self.F.shape[1])
+        for ii in range(self.F.shape[1]):
+            vec[ii] = self.F[:, ii].dot(v)
+        return vec

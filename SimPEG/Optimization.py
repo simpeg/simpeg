@@ -1054,7 +1054,7 @@ class NewtonRoot(object):
         return x
 
 
-class ProjectedGNCG(BFGS, Minimize, Remember):
+class ProjectedGNCG(Minimize, Remember):
 
     def __init__(self, **kwargs):
         Minimize.__init__(self, **kwargs)
@@ -1064,13 +1064,14 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
     maxIterCG = 5
     tolCG = 1e-1
 
-    stepOffBoundsFact = 0.1 # perturbation of the inactive set off the bounds
+    stepOffBoundsFact = 1e-8 # perturbation of the inactive set off the bounds
 
     lower = -np.inf
     upper = np.inf
 
     ComboObjFun = False
     alwaysPass = True
+
 
     def _startup(self, x0):
 
