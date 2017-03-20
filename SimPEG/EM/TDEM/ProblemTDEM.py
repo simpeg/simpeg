@@ -707,9 +707,11 @@ class Problem3D_e(BaseTDEMProblem):
         """
         right hand side
         """
-        if tInd == len(self.timeSteps):
-            tInd = tInd - 1
-        dt = self.timeSteps[tInd]
+        # Omit this: Note input was tInd+1
+        # if tInd == len(self.timeSteps):
+        #     tInd = tInd - 1
+
+        dt = self.timeSteps[tInd-1]
         s_m, s_e = self.getSourceTerm(tInd)
         _, s_en1 = self.getSourceTerm(tInd-1)
         return (-1./dt * (s_e - s_en1) +
@@ -720,6 +722,26 @@ class Problem3D_e(BaseTDEMProblem):
         return Utils.Zero()
 
 
+    def getInitialFields(self):
+        """
+        Ask the sources for initial fields
+        """
+
+        Srcs = self.survey.srcList
+
+        if self._fieldType in ['b', 'j']:
+            ifields = np.zeros((self.mesh.nF, len(Srcs)))
+        elif self._fieldType in ['e', 'h']:
+            ifields = np.zeros((self.mesh.nE, len(Srcs)))
+
+        for i, src in enumerate(Srcs):
+            ifields[:, i] = (
+                ifields[:, i] + getattr(
+                    src, '{}Initial'.format(self._fieldType), None
+                )(self)
+            )
+
+        return ifields
 
 ###############################################################################
 #                                                                             #

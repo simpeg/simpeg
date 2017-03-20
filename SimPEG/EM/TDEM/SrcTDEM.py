@@ -384,7 +384,6 @@ class LineCurrent(BaseTDEMSrc):
     #     Grad = self.prob.nodalGrad
     #     return Grad.T*self.Mejs
 
-
 #     def _getInitialFields(self, prob):
 #         # TODO: Be careful about what to store, and we delete stuff
 #         # Because it is expensive to compute ...
