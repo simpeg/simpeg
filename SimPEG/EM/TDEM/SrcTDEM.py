@@ -46,11 +46,16 @@ class BaseWaveform(object):
 
 class StepOffWaveform(BaseWaveform):
 
+    eps = 1e-9
+
     def __init__(self, offTime=0.):
         BaseWaveform.__init__(self, offTime=offTime, hasInitialFields=True)
 
     def eval(self, time):
-        return 0.
+        if abs(time-0.) < self.eps:
+            return 1.
+        else:
+            return 0.
 
 
 class RawWaveform(BaseWaveform):
@@ -372,17 +377,9 @@ class LineCurrent(BaseTDEMSrc):
                                                          px, py, pz)
         return self._Mejs
 
-# Deprecate at the moment (Use for non-zero initial condition)
-    # def getAdc(self, prob):
-    #     MeSigma = self.prob.MeSigma
-    #     Grad = self.prob.mesh.nodalGrad
-    #     Adc = Grad.T * MeSigma * Grad
-    #     # Handling Null space of A
-    #     Adc[0, 0] = Adc[0, 0] + 1.
-    #     return Adc
-    # def getRHSdc(self, prob):
-    #     Grad = self.prob.nodalGrad
-    #     return Grad.T*self.Mejs
+    def getRHSdc(self, prob):
+        Grad = prob.mesh.nodalGrad
+        return Grad.T*self.Mejs(prob)
 
 #     def _getInitialFields(self, prob):
 #         # TODO: Be careful about what to store, and we delete stuff
@@ -424,13 +421,12 @@ class LineCurrent(BaseTDEMSrc):
 
 
     def eInitial(self, prob):
-        # when solving for e, it is easier to work with an initial source than
-        # initial fields
-        # if self.waveform.hasInitialFields is False or prob._fieldType is 'e':
-        # if self.waveform.hasInitialFields is False:
-        #     return Zero()
-        # return self._getInitialFields(prob)
-        return Zero()
+        if self.waveform.hasInitialFields is True:
+            RHSdc = self.getRHSdc(prob)
+            soldc = prob.Adcinv * RHSdc
+            return - prob.mesh.nodalGrad * soldc
+        else:
+            return Zero()
 
     def eInitialDeriv(self, prob, v=None, adjoint=False):
         # if self.waveform.hasInitialFields is False:

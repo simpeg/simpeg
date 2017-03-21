@@ -650,6 +650,7 @@ class Problem3D_e(BaseTDEMProblem):
     _formulation = 'EB'
     fieldsPair = Fields3D_e  #: A Fields3D_e
     surveyPair = SurveyTDEM
+    Adcinv = None
 
     def __init__(self, mesh, **kwargs):
         BaseTDEMProblem.__init__(self, mesh, **kwargs)
@@ -733,8 +734,21 @@ class Problem3D_e(BaseTDEMProblem):
             ifields = np.zeros((self.mesh.nF, len(Srcs)))
         elif self._fieldType in ['e', 'h']:
             ifields = np.zeros((self.mesh.nE, len(Srcs)))
+        if self.verbose:
+            print ("Calculating Initial fields")
 
         for i, src in enumerate(Srcs):
+            # Check if the source is grounded
+            if src.Mejs is not None and src.waveform.hasInitialFields:
+                # Check self.Adcinv and clean
+                if self.Adcinv is not None:
+                    self.Adcinv.clean()
+                # Factorize Adc matrix
+                if self.verbose:
+                    print ("Factorize system matrix for DC problem")
+                Adc = self.getAdc()
+                self.Adcinv = self.Solver(Adc)
+
             ifields[:, i] = (
                 ifields[:, i] + getattr(
                     src, '{}Initial'.format(self._fieldType), None
@@ -742,6 +756,14 @@ class Problem3D_e(BaseTDEMProblem):
             )
 
         return ifields
+
+    def getAdc(self):
+        MeSigma = self.MeSigma
+        Grad = self.mesh.nodalGrad
+        Adc = Grad.T * MeSigma * Grad
+        # Handling Null space of A
+        Adc[0, 0] = Adc[0, 0] + 1.
+        return Adc
 
 ###############################################################################
 #                                                                             #
