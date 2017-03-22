@@ -129,11 +129,10 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         # for i, src in enumerate(self.survey.srcList):
         dun_dm_v = np.hstack([
             Utils.mkvc(
-                self.getInitialFieldsDeriv(src, v), 2
+                self.getInitialFieldsDeriv(src, v, f=f), 2
             )
             for src in self.survey.srcList
         ]) # can over-write this at each timestep
-
         # store the field derivs we need to project to calc full deriv
         df_dm_v = Fields_Derivs(self.mesh, self.survey)
 
@@ -203,16 +202,13 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         """
         Jvec computes the adjoint of the sensitivity times a vector
-
         .. math::
             \mathbf{J}^\\top \mathbf{v} =  \left(
             \\frac{d\mathbf{u}}{d\mathbf{m}} ^ \\top
             \\frac{d\mathbf{F}}{d\mathbf{u}} ^ \\top  +
             \\frac{\partial\mathbf{F}}{\partial\mathbf{m}} ^ \\top \\right)
             \\frac{d\mathbf{P}}{d\mathbf{F}} ^ \\top \mathbf{v}
-
         where
-
         .. math::
             \\frac{d\mathbf{u}}{d\mathbf{m}} ^\\top \mathbf{A}^\\top  +
             \\frac{d\mathbf{A}(\mathbf{u})}{d\mathbf{m}} ^ \\top =
@@ -386,8 +382,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         return ifields
 
-    def getInitialFieldsDeriv(self, src, v, adjoint=False):
-
+    def getInitialFieldsDeriv(self, src, v, adjoint=False, f=None):
         if adjoint is False:
             if self._fieldType in ['b', 'j']:
                 ifieldsDeriv = np.zeros(self.mesh.nF)
@@ -399,11 +394,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         ifieldsDeriv = (Utils.mkvc(
             getattr(src, '{}InitialDeriv'.format(self._fieldType),
-                    None)(self, v, adjoint)) + ifieldsDeriv
+                    None)(self, v, adjoint, f)) + ifieldsDeriv
             )
-
         return ifieldsDeriv
-
 
 ###############################################################################
 #                                                                             #
@@ -655,6 +648,171 @@ class Problem3D_e(BaseTDEMProblem):
     def __init__(self, mesh, **kwargs):
         BaseTDEMProblem.__init__(self, mesh, **kwargs)
 
+    def Jtvec(self, m, v, f=None):
+
+        """
+        Jvec computes the adjoint of the sensitivity times a vector
+        .. math::
+            \mathbf{J}^\\top \mathbf{v} =  \left(
+            \\frac{d\mathbf{u}}{d\mathbf{m}} ^ \\top
+            \\frac{d\mathbf{F}}{d\mathbf{u}} ^ \\top  +
+            \\frac{\partial\mathbf{F}}{\partial\mathbf{m}} ^ \\top \\right)
+            \\frac{d\mathbf{P}}{d\mathbf{F}} ^ \\top \mathbf{v}
+        where
+        .. math::
+            \\frac{d\mathbf{u}}{d\mathbf{m}} ^\\top \mathbf{A}^\\top  +
+            \\frac{d\mathbf{A}(\mathbf{u})}{d\mathbf{m}} ^ \\top =
+            \\frac{d \mathbf{RHS}}{d \mathbf{m}} ^ \\top
+        """
+
+        if f is None:
+            f = self.fields(m)
+
+        self.model = m
+        ftype = self._fieldType + 'Solution'  # the thing we solved for
+
+        # Ensure v is a data object.
+        if not isinstance(v, self.dataPair):
+            v = self.dataPair(self.survey, v)
+
+        df_duT_v = Fields_Derivs(self.mesh, self.survey)
+
+        # same size as fields at a single timestep
+        ATinv_df_duT_v = np.zeros(
+            (
+                len(self.survey.srcList),
+                len(f[self.survey.srcList[0], ftype, 0])
+            ),
+            dtype=float
+        )
+        JTv = np.zeros(m.shape, dtype=float)
+
+        # Loop over sources and receivers to create a fields object:
+        # PT_v, df_duT_v, df_dmT_v
+        # initialize storage for PT_v (don't need to preserve over sources)
+        PT_v = Fields_Derivs(self.mesh, self.survey)
+        for src in self.survey.srcList:
+            # Looping over initializing field class is appending memory!
+            # PT_v = Fields_Derivs(self.mesh, self.survey) # initialize storage
+            # #for PT_v (don't need to preserve over sources)
+            # initialize size
+            df_duT_v[src, '{}Deriv'.format(self._fieldType), :] = (
+                np.zeros_like(f[src, self._fieldType, :])
+            )
+
+            for rx in src.rxList:
+                PT_v[src, '{}Deriv'.format(rx.projField), :] = rx.evalDeriv(
+                    src, self.mesh, self.timeMesh, f, Utils.mkvc(v[src, rx]),
+                    adjoint=True
+                ) # this is +=
+
+                # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN,
+                # self.timeMesh.nN), order='F')
+                df_duTFun = getattr(f, '_{}Deriv'.format(rx.projField), None)
+
+                for tInd in range(self.nT+1):
+                    cur = df_duTFun(
+                        tInd, src, None, Utils.mkvc(
+                            PT_v[src, '{}Deriv'.format(rx.projField), tInd]
+                        ),
+                        adjoint=True
+                    )
+
+                    df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd] = (
+                        df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd] +
+                        Utils.mkvc(cur[0], 2))
+                    JTv = cur[1] + JTv
+
+        del PT_v # no longer need this
+
+        AdiagTinv = None
+
+        # Do the back-solve through time
+        # if the previous timestep is the same: no need to refactor the matrix
+        # for tInd, dt in zip(range(self.nT), self.timeSteps):
+
+        for tInd in reversed(range(self.nT)):
+            # tInd = tIndP - 1
+            if AdiagTinv is not None and (
+                tInd <= self.nT and
+                self.timeSteps[tInd] != self.timeSteps[tInd+1]
+            ):
+                AdiagTinv.clean()
+                AdiagTinv = None
+
+            # refactor if we need to
+            if AdiagTinv is None:  # and tInd > -1:
+                Adiag = self.getAdiag(tInd)
+                AdiagTinv = self.Solver(Adiag.T, **self.solverOpts)
+
+            if tInd < self.nT - 1:
+                Asubdiag = self.getAsubdiag(tInd+1)
+
+            for isrc, src in enumerate(self.survey.srcList):
+
+                # solve against df_duT_v
+                if tInd >= self.nT-1:
+                    # last timestep (first to be solved)
+                    ATinv_df_duT_v[isrc, :] = AdiagTinv * df_duT_v[
+                        src, '{}Deriv'.format(self._fieldType), tInd+1]
+                elif tInd > -1:
+                    ATinv_df_duT_v[isrc, :] = AdiagTinv * (
+                        Utils.mkvc(df_duT_v[
+                            src, '{}Deriv'.format(self._fieldType), tInd+1
+                        ]
+                    ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
+
+                dAsubdiagT_dm_v = self.getAsubdiagDeriv(
+                    tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
+                    adjoint=True)
+
+                dRHST_dm_v = self.getRHSDeriv(
+                        tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
+                        )  # on nodes of time mesh
+
+                un_src = f[src, ftype, tInd+1]
+                # cell centered on time mesh
+                dAT_dm_v = self.getAdiagDeriv(
+                    tInd, un_src, ATinv_df_duT_v[isrc, :], adjoint=True
+                )
+
+                JTv = JTv + Utils.mkvc(
+                    -dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v
+                )
+
+        # Treating initial condition when a galvanic source is included
+        tInd = -1
+        Grad = self.mesh.nodalGrad
+
+        for isrc, src in enumerate(self.survey.srcList):
+            if src.SrcType == "Galvanic":
+
+                ATinv_df_duT_v[isrc, :] =  Grad * ( self.Adcinv * ( Grad.T * (
+                    Utils.mkvc(df_duT_v[
+                        src, '{}Deriv'.format(self._fieldType), tInd+1
+                    ]
+                ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
+                ))
+
+                dRHST_dm_v = self.getRHSDeriv(
+                        tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
+                        )  # on nodes of time mesh
+
+                un_src = f[src, ftype, tInd+1]
+                # cell centered on time mesh
+                dAT_dm_v = self.MeSigmaDeriv(un_src).T * ATinv_df_duT_v[isrc, :]
+
+                JTv = JTv + Utils.mkvc(
+                    -dAT_dm_v  + dRHST_dm_v
+                )
+
+        # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
+        if AdiagTinv is not None:
+            AdiagTinv.clean()
+
+        return Utils.mkvc(JTv).astype(float)
+
+
     def getAdiag(self, tInd):
         """
         Diagonal of the system matrix at a given time index
@@ -739,7 +897,7 @@ class Problem3D_e(BaseTDEMProblem):
 
         for i, src in enumerate(Srcs):
             # Check if the source is grounded
-            if src.Mejs is not None and src.waveform.hasInitialFields:
+            if src.SrcType == "Galvanic" and src.waveform.hasInitialFields:
                 # Check self.Adcinv and clean
                 if self.Adcinv is not None:
                     self.Adcinv.clean()
@@ -764,6 +922,21 @@ class Problem3D_e(BaseTDEMProblem):
         # Handling Null space of A
         Adc[0, 0] = Adc[0, 0] + 1.
         return Adc
+
+    def getAdcDeriv(self, u, v, adjoint=False):
+        Grad = self.mesh.nodalGrad
+        if not adjoint:
+            return Grad.T*(self.MeSigmaDeriv(-u)*v)
+        elif adjoint:
+            return self.MeSigmaDeriv(-u).T * (Grad*v)
+        return Adc
+
+    def clean(self):
+        """
+        Clean factors
+        """
+        if self.Adcinv is not None:
+            self.Adcinv.clean()
 
 ###############################################################################
 #                                                                             #

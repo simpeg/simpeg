@@ -91,6 +91,7 @@ class BaseTDEMSrc(BaseEMSrc):
 
     waveformPair = BaseWaveform  #: type of waveform to pair with
     waveform = None  #: source waveform
+    SrcType = "Inductive"
 
     def __init__(self, rxList, **kwargs):
         super(BaseTDEMSrc, self).__init__(rxList, **kwargs)
@@ -115,25 +116,25 @@ class BaseTDEMSrc(BaseEMSrc):
     def bInitial(self, prob):
         return Zero()
 
-    def bInitialDeriv(self, prob, v=None, adjoint=False):
+    def bInitialDeriv(self, prob, v=None, adjoint=False, f=None):
         return Zero()
 
     def eInitial(self, prob):
         return Zero()
 
-    def eInitialDeriv(self, prob, v=None, adjoint=False):
+    def eInitialDeriv(self, prob, v=None, adjoint=False, f=None):
         return Zero()
 
     def hInitial(self, prob):
         return Zero()
 
-    def hInitialDeriv(self, prob, v=None, adjoint=False):
+    def hInitialDeriv(self, prob, v=None, adjoint=False, f=None):
         return Zero()
 
     def jInitial(self, prob):
         return Zero()
 
-    def jInitialDeriv(self, prob, v=None, adjoint=False):
+    def jInitialDeriv(self, prob, v=None, adjoint=False, f=None):
         return Zero()
 
     def eval(self, prob, time):
@@ -246,38 +247,6 @@ class MagDipole(BaseTDEMSrc):
 
         return 1./self.mu * self._bSrc(prob)
 
-    def eInitial(self, prob):
-        # when solving for e, it is easier to work with an initial source than
-        # initial fields
-        # if self.waveform.hasInitialFields is False or prob._fieldType is 'e':
-        return Zero()
-
-        # b = self.bInitial(prob)
-        # MeSigmaI = prob.MeSigmaI
-        # MfMui = prob.MfMui
-        # C = prob.mesh.edgeCurl
-
-        # return MeSigmaI * (C.T * (MfMui * b))
-
-    def eInitialDeriv(self, prob, v=None, adjoint=False):
-
-        return Zero()
-
-        # if self.waveform.hasInitialFields is False:
-        #     return Zero()
-
-        # b = self.bInitial(prob)
-        # MeSigmaIDeriv = prob.MeSigmaIDeriv
-        # MfMui = prob.MfMui
-        # C = prob.mesh.edgeCurl
-        # s_e = self.s_e(prob, prob.t0)
-
-        # # s_e doesn't depend on the model
-
-        # if adjoint:
-        #     return MeSigmaIDeriv( -s_e + C.T * ( MfMui * b ) ).T * v
-
-        # return MeSigmaIDeriv( -s_e + C.T * ( MfMui * b ) ) * v
 
     def s_m(self, prob, time):
         if self.waveform.hasInitialFields is False:
@@ -359,6 +328,7 @@ class LineCurrent(BaseTDEMSrc):
     waveform = None
     loc = None
     mu = mu_0
+    SrcType = "Galvanic"
 
     def __init__(self, rxList, **kwargs):
         self.integrate = False
@@ -414,37 +384,30 @@ class LineCurrent(BaseTDEMSrc):
 #             raise NotImplementedError("We only have EB formulation!")
 
     def bInitial(self, prob):
-        # if self.waveform.hasInitialFields is False:
-        #     return Zero()
-        # return self._getInitialFields(prob)
         return Zero()
 
-
     def eInitial(self, prob):
-        if self.waveform.hasInitialFields is True:
+        if self.waveform.hasInitialFields:
             RHSdc = self.getRHSdc(prob)
             soldc = prob.Adcinv * RHSdc
             return - prob.mesh.nodalGrad * soldc
         else:
             return Zero()
 
-    def eInitialDeriv(self, prob, v=None, adjoint=False):
-        # if self.waveform.hasInitialFields is False:
-        #     return Zero()
-        # pass
-        # b = self.bInitial(prob)
-        # MeSigmaIDeriv = prob.MeSigmaIDeriv
-        # MfMui = prob.MfMui
-        # C = prob.mesh.edgeCurl
-        # s_e = self.s_e(prob, prob.t0)
-
-        # # s_e doesn't depend on the model
-
-        # if adjoint:
-        #     return MeSigmaIDeriv( -s_e + C.T * ( MfMui * b ) ).T * v
-
-        # return MeSigmaIDeriv( -s_e + C.T * ( MfMui * b ) ) * v
-        return Zero()
+    def eInitialDeriv(self, prob, v=None, adjoint=False, f=None):
+        if self.waveform.hasInitialFields:
+            edc = f[self, 'e', 0]
+            Grad = prob.mesh.nodalGrad
+            if adjoint is False:
+                AdcDeriv_v = prob.getAdcDeriv(edc, v, adjoint=adjoint)
+                edcDeriv =  Grad * (prob.Adcinv * AdcDeriv_v)
+                return edcDeriv
+            elif adjoint is True:
+                vec = prob.Adcinv * (Grad.T * v)
+                edcDerivT = prob.getAdcDeriv(edc, vec, adjoint=adjoint)
+                return edcDerivT
+        else:
+            return Zero()
 
     def s_m(self, prob, time):
         return Zero()
