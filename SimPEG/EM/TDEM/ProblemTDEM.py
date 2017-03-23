@@ -132,7 +132,8 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 self.getInitialFieldsDeriv(src, v, f=f), 2
             )
             for src in self.survey.srcList
-        ]) # can over-write this at each timestep
+        ])
+        # can over-write this at each timestep
         # store the field derivs we need to project to calc full deriv
         df_dm_v = Fields_Derivs(self.mesh, self.survey)
 
@@ -202,13 +203,16 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         """
         Jvec computes the adjoint of the sensitivity times a vector
+
         .. math::
             \mathbf{J}^\\top \mathbf{v} =  \left(
             \\frac{d\mathbf{u}}{d\mathbf{m}} ^ \\top
             \\frac{d\mathbf{F}}{d\mathbf{u}} ^ \\top  +
             \\frac{\partial\mathbf{F}}{\partial\mathbf{m}} ^ \\top \\right)
             \\frac{d\mathbf{P}}{d\mathbf{F}} ^ \\top \mathbf{v}
+
         where
+
         .. math::
             \\frac{d\mathbf{u}}{d\mathbf{m}} ^\\top \mathbf{A}^\\top  +
             \\frac{d\mathbf{A}(\mathbf{u})}{d\mathbf{m}} ^ \\top =
@@ -310,7 +314,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                         Utils.mkvc(df_duT_v[
                             src, '{}Deriv'.format(self._fieldType), tInd+1
                         ]
-                    ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
+                        ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
 
                 if tInd < self.nT:
                     dAsubdiagT_dm_v = self.getAsubdiagDeriv(
@@ -704,7 +708,8 @@ class Problem3D_e(BaseTDEMProblem):
                 PT_v[src, '{}Deriv'.format(rx.projField), :] = rx.evalDeriv(
                     src, self.mesh, self.timeMesh, f, Utils.mkvc(v[src, rx]),
                     adjoint=True
-                ) # this is +=
+                )
+                # this is +=
 
                 # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN,
                 # self.timeMesh.nN), order='F')
@@ -719,11 +724,12 @@ class Problem3D_e(BaseTDEMProblem):
                     )
 
                     df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd] = (
-                        df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd] +
-                        Utils.mkvc(cur[0], 2))
+                        df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd]
+                        + Utils.mkvc(cur[0], 2))
                     JTv = cur[1] + JTv
 
-        del PT_v # no longer need this
+        # no longer need this
+        del PT_v
 
         AdiagTinv = None
 
@@ -760,7 +766,7 @@ class Problem3D_e(BaseTDEMProblem):
                         Utils.mkvc(df_duT_v[
                             src, '{}Deriv'.format(self._fieldType), tInd+1
                         ]
-                    ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
+                        ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
 
                 dAsubdiagT_dm_v = self.getAsubdiagDeriv(
                     tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
@@ -787,11 +793,11 @@ class Problem3D_e(BaseTDEMProblem):
         for isrc, src in enumerate(self.survey.srcList):
             if src.SrcType == "Galvanic":
 
-                ATinv_df_duT_v[isrc, :] =  Grad * ( self.Adcinv * ( Grad.T * (
+                ATinv_df_duT_v[isrc, :] = Grad*(self.Adcinv*(Grad.T*(
                     Utils.mkvc(df_duT_v[
                         src, '{}Deriv'.format(self._fieldType), tInd+1
                     ]
-                ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
+                    ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
                 ))
 
                 dRHST_dm_v = self.getRHSDeriv(
@@ -800,10 +806,12 @@ class Problem3D_e(BaseTDEMProblem):
 
                 un_src = f[src, ftype, tInd+1]
                 # cell centered on time mesh
-                dAT_dm_v = self.MeSigmaDeriv(un_src).T * ATinv_df_duT_v[isrc, :]
+                dAT_dm_v = (
+                    self.MeSigmaDeriv(un_src).T * ATinv_df_duT_v[isrc, :]
+                    )
 
                 JTv = JTv + Utils.mkvc(
-                    -dAT_dm_v  + dRHST_dm_v
+                    -dAT_dm_v + dRHST_dm_v
                 )
 
         # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
@@ -811,7 +819,6 @@ class Problem3D_e(BaseTDEMProblem):
             AdiagTinv.clean()
 
         return Utils.mkvc(JTv).astype(float)
-
 
     def getAdiag(self, tInd):
         """
@@ -824,7 +831,7 @@ class Problem3D_e(BaseTDEMProblem):
         MfMui = self.MfMui
         MeSigma = self.MeSigma
 
-        return C.T * ( MfMui * C ) + 1./dt * MeSigma
+        return C.T * (MfMui * C)+1./dt * MeSigma
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         """
@@ -879,7 +886,6 @@ class Problem3D_e(BaseTDEMProblem):
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         # right now, we are assuming that s_e, s_m do not depend on the model.
         return Utils.Zero()
-
 
     def getInitialFields(self):
         """
@@ -1034,7 +1040,8 @@ class Problem3D_h(BaseTDEMProblem):
 
         if adjoint is True:
             return MfRhoDeriv.T * (C * v)
-        return C.T * (MfRhoDeriv * v) # assumes no source derivs
+        # assumes no source derivs
+        return C.T * (MfRhoDeriv * v)
 
 
 # ------------------------------- Problem3D_j ------------------------------- #
