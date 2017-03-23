@@ -13,7 +13,7 @@ from . import Utils
 
 class Array(properties.Array):
 
-    info_text = 'a numpy, Zero or Identity array'
+    class_info = 'a numpy, Zero or Identity array'
 
     def validate(self, instance, value):
         if isinstance(value, (Utils.Zero, Utils.Identity)):
@@ -23,7 +23,7 @@ class Array(properties.Array):
 
 class Float(properties.Float):
 
-    info_text = 'a float, Zero or Identity'
+    class_info = 'a float, Zero or Identity'
 
     def validate(self, instance, value):
         if isinstance(value, (Utils.Zero, Utils.Identity)):
@@ -33,7 +33,7 @@ class Float(properties.Float):
 
 class Integer(properties.Integer):
 
-    info_text = 'an Integer or *'
+    class_info = 'an Integer or *'
 
     def validate(self, instance, value):
         if isinstance(value, str):
