@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import gc
 from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
-
+from discretize.utils import prodAvec, prodAtvec
 
 class MagneticIntegral(Problem.LinearProblem):
 
@@ -43,10 +43,11 @@ class MagneticIntegral(Problem.LinearProblem):
 
         else:
 
-            vec = np.empty(self.F.shape[0])
-            for ii in range(self.F.shape[0]):
-                vec[ii] = self.F[ii, :].dot(self.chiMap*(m))
+            # vec = np.empty(self.F.shape[0])
+            # for ii in range(self.F.shape[0]):
+            #     vec[ii] = self.F[ii, :].dot(self.chiMap*(m))
 
+            vec = np.asarray(prodAvec(self.F, self.chiMap*(m)))
             return vec
 
     # def fwr_rem(self):
@@ -194,7 +195,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         else:
 
-            F = np.empty((ndata, Mxyz.shape[1]), dtype='float32')
+            F = np.empty((ndata, Mxyz.shape[1]), dtype=np.float32)
 
             # Loop through all observations and create forward operator (nD-by-nC)
             print("Begin calculation of forward operator: " + magType)
@@ -283,10 +284,10 @@ class MagneticVector(MagneticIntegral):
 
             # m = np.hstack([m, mii])
 
-            vec = np.empty(self.F.shape[0])
-            for ii in range(self.F.shape[0]):
-                vec[ii] = self.F[ii, :].dot(self.chiMap*(m))
-
+            # vec = np.empty(self.F.shape[0])
+            # for ii in range(self.F.shape[0]):
+            #     vec[ii] = self.F[ii, :].dot(self.chiMap*(m))
+            vec = np.asarray(prodAvec(self.F, self.chiMap*(m)))
             return vec
 
     @property
@@ -320,25 +321,27 @@ class MagneticVector(MagneticIntegral):
 
         if self.ptype == 'Cartesian':
 
-            vec = np.empty(self.F.shape[0])
-            for ii in range(self.F.shape[0]):
-                vec[ii] = self.F[ii, :].dot(self.chiMap.deriv(chi)*v)
-
+            # vec = np.empty(self.F.shape[0])
+            # for ii in range(self.F.shape[0]):
+            #     vec[ii] = self.F[ii, :].dot(self.chiMap.deriv(chi)*v)
+            vec = np.asarray(prodAvec(self.F, self.chiMap.deriv(chi)*v))
             return vec
 
         else:
             dmudm = self.S*self.chiMap.deriv(chi)
-            vec = np.empty(self.F.shape[0])
-            for ii in range(self.F.shape[0]):
-                vec[ii] = self.F[ii, :].dot(dmudm.dot(v))
-
+            # vec = np.empty(self.F.shape[0])
+            # for ii in range(self.F.shape[0]):
+            #     vec[ii] = self.F[ii, :].dot(dmudm.dot(v))
+            vec = np.asarray(prodAvec(self.F, dmudm.dot(v)))
             return vec
 
     def Jtvec(self, chi, v, f=None):
 
-        vec = np.empty(self.F.shape[1])
-        for ii in range(self.F.shape[1]):
-            vec[ii] = self.F[:, ii].dot(v)
+        # vec = np.empty(self.F.shape[1])
+        # for ii in range(self.F.shape[1]):
+        #     vec[ii] = self.F[:, ii].dot(v)
+
+        vec = prodAtvec(self.F, v)
 
         if self.ptype == 'Cartesian':
 
@@ -422,10 +425,10 @@ class MagneticAmplitude(MagneticIntegral):
                 self.chi = chi
                 m = self.chiMap*self.chi
 
-            Bxyz = np.empty(self.F.shape[0])
-            for ii in range(self.F.shape[0]):
-                Bxyz[ii] = self.F[ii, :].dot(self.chiMap(m))
-
+            # Bxyz = np.empty(self.F.shape[0])
+            # for ii in range(self.F.shape[0]):
+            #     Bxyz[ii] = self.F[ii, :].dot(self.chiMap*m)
+            Bxyz = np.asarray(prodAvec(self.F, self.chiMap*m))
             return self.calcAmpData(Bxyz)
 
     def calcAmpData(self, Bxyz):
@@ -447,17 +450,19 @@ class MagneticAmplitude(MagneticIntegral):
     def Jvec(self, chi, v, f=None):
         dmudm = self.chiMap.deriv(chi)
 
-        vec = np.empty(self.F.shape[0])
-        for ii in range(self.F.shape[0]):
-            vec[ii] = self.F[ii, :].dot(dmudm*v)
+        # vec = np.empty(self.F.shape[0])
+        # for ii in range(self.F.shape[0]):
+        #     vec[ii] = self.F[ii, :].dot(dmudm*v)
+        vec = np.asarray(prodAvec(self.F, dmudm*v))
         return self.dfdm*vec
 
     def Jtvec(self, chi, v, f=None):
         dmudm = self.chiMap.deriv(chi)
 
-        vec = np.empty(self.F.shape[1])
-        for ii in range(self.F.shape[1]):
-            vec[ii] = self.F[:, ii].dot(self.dfdm.T*v)
+        # vec = np.empty(self.F.shape[1])
+        # for ii in range(self.F.shape[1]):
+        #     vec[ii] = self.F[:, ii].dot(self.dfdm.T*v)
+        vec = prodAtvec(self.F, self.dfdm.T*v)
         return dmudm.T * vec
 
 
@@ -466,10 +471,13 @@ class MagneticAmplitude(MagneticIntegral):
         if not self.ispaired:
             raise Exception('Need to pair!')
 
+
         if getattr(self, '_F', None) is None:
+            self._F = []
+            for rtype in ['x','y','z']:
+                self._F.append(self.Intrgl_Fwr_Op(magType=self.magType, recType=rtype))
 
-            self._F = self.Intrgl_Fwr_Op(magType=self.magType)
-
+            self._F = np.vstack(self._F)
         return self._F
 
     @property
@@ -485,10 +493,10 @@ class MagneticAmplitude(MagneticIntegral):
             # Get field data
             m = self.chiMap*self.chi
 
-            Bxyz = np.empty(self.F.shape[0])
-            for ii in range(self.F.shape[0]):
-                Bxyz[ii] = self.F[ii, :].dot(self.chiMap(m))
-
+            # Bxyz = np.empty(self.F.shape[0])
+            # for ii in range(self.F.shape[0]):
+            #     Bxyz[ii] = self.F[ii, :].dot(self.chiMap*m)
+            Bxyz = np.asarray(prodAvec(self.F, self.chiMap*m))
             Bamp = self.calcAmpData(Bxyz)
 
             Bx = sp.spdiags(Bxyz[:ndata]/Bamp, 0, ndata, ndata)
@@ -1209,7 +1217,7 @@ def writeUBCobs(filename, survey, d):
     #print("Observation file saved to: " + filename)
 
 
-def plot_obs_2D(rxLoc, d=None, title='TMI Obs',
+def plot_obs_2D(rxLoc, d=None, title=None,
                 vmin=None, vmax=None, levels=None, fig=None, ax=None,
                 colorbar=True):
     """ Function plot_obs(rxLoc,d)
@@ -1272,7 +1280,8 @@ def plot_obs_2D(rxLoc, d=None, title='TMI Obs',
             plt.contour(X, Y, d_grid, levels=levels, colors='r',
                         vmin=vmin, vmax=vmax, cmap="plasma_r")
 
-    plt.title(title)
+    if title is not None:
+        plt.title(title)
     plt.gca().set_aspect('equal', adjustable='box')
 
     return fig, im

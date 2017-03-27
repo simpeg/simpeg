@@ -8,8 +8,8 @@ from .Fields import Fields, TimeFields
 from . import Mesh
 from . import Props
 import properties
-
-
+from discretize.utils import prodAvec, prodAtvec
+import time
 Solver = Utils.SolverUtils.Solver
 
 
@@ -286,13 +286,19 @@ class LinearProblem(BaseProblem):
         return vec
 
     def Jvec(self, m, v, f=None):
-        vec = np.empty(self.F.shape[0])
-        for ii in range(self.F.shape[0]):
-            vec[ii] = self.F[ii, :].dot(v)
-        return vec
+
+        return prodAvec(self.F, v)
 
     def Jtvec(self, m, v, f=None):
-        vec = np.empty(self.F.shape[1])
-        for ii in range(self.F.shape[1]):
-            vec[ii] = self.F[:, ii].dot(v)
-        return vec
+        # strt = time.time()
+        y = prodAtvec(self.F, v)
+        # print('C time: ' + str(time.time()-strt))
+
+        # strt = time.time()
+        # y = np.zeros(self.F.shape[1])
+        # for ii in range(self.F.shape[1]):
+        #     vec = self.F[:, ii]
+        #     y[ii] = np.dot(vec, v)
+        # print('Python time: ' + str(time.time()-strt))
+
+        return y

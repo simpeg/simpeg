@@ -466,3 +466,4 @@ def diagEst(matFun, n, k=None, approach='Probing'):
     d = Mv/vv
 
     return d
+

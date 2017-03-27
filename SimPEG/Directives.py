@@ -163,7 +163,7 @@ class BetaEstimate_ByEig(InversionDirective):
         m = self.invProb.model
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
-        x0 = np.random.rand(*m.shape)
+        x0 = np.random.rand(m.shape[0])
         t = x0.dot(self.dmisfit.deriv2(m, x0, f=f))
         b = x0.dot(self.reg.deriv2(m, v=x0))
         self.beta0 = self.beta0_ratio*(t/b)
@@ -613,8 +613,8 @@ class Update_lin_PreCond(InversionDirective):
             # It is a Combo objective, so will have to loop
             self.ComboMisfitFun = True
 
-        if getattr(self, 'mapping', None) is None:
-            self.mapping = Maps.IdentityMap(nP=self.reg.mapping.nP)
+        # if getattr(self, 'mapping', None) is None:
+        #     self.mapping = Maps.IdentityMap(nP=self.reg.mapping.nP)
 
         if getattr(self.opt, 'approxHinv', None) is None:
 
@@ -690,7 +690,7 @@ class Update_lin_PreCond(InversionDirective):
 
             diagA = self.misfitDiag + self.invProb.beta*regDiag
 
-            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
+            PC = Utils.sdiag((diagA)**-1.)
             self.opt.approxHinv = PC
 
 
@@ -742,14 +742,14 @@ class Amplitude_Inv_Iter(InversionDirective):
 
         self.reg.JtJdiag = self.getJtJdiag()
 
-        # if self.test:
+        if self.test:
 
-        #     wr = np.sum(self.prob.F**2., axis=0)**0.5
-        #     wr = wr / wr.max()
+            wr = np.sum(self.prob.F**2., axis=0)**0.5
+            wr = wr / wr.max()
 
-        # else:
-        wr = self.reg.JtJdiag**0.5
-        wr = wr / wr.max()
+        else:
+            wr = self.reg.JtJdiag**0.5
+            wr = wr / wr.max()
 
         if self.ComboObjFun:
             for reg in self.reg.objfcts:
@@ -770,8 +770,8 @@ class Amplitude_Inv_Iter(InversionDirective):
                 eps_tp = reg.eps_q
                 f_m = reg.objfcts[1].f_m
                 norm_tp = reg.norms[1]
-                max_tp = np.max(eps_a**(1-norm_a/2.)*f_m /
-                                (f_m**2. + eps_a**2.)**(1-norm_a/2.))
+                max_tp = np.max(eps_tp**(1-norm_tp/2.)*f_m /
+                                (f_m**2. + eps_tp**2.)**(1-norm_tp/2.))
 
                 reg.scale = max_a/max_tp
                 reg.cell_weights *= reg.scale
@@ -830,8 +830,8 @@ class Amplitude_Inv_Iter(InversionDirective):
                 eps_tp = reg.eps_q
                 f_m = reg.objfcts[1].f_m
                 norm_tp = reg.norms[1]
-                max_tp = np.max(eps_a**(1-norm_a/2.)*f_m /
-                                (f_m**2. + eps_a**2.)**(1-norm_a/2.))
+                max_tp = np.max(eps_tp**(1-norm_tp/2.)*f_m /
+                                (f_m**2. + eps_tp**2.)**(1-norm_tp/2.))
 
                 reg.scale = max_a/max_tp
                 reg.cell_weights *= reg.scale

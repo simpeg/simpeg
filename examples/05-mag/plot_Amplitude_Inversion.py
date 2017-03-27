@@ -207,11 +207,11 @@ def run(plotIt=True):
 
     # Target misfit to stop the inversion
     targetMisfit = Directives.TargetMisfit()
-
+    update_Jacobi = Directives.Update_lin_PreCond()
     # Put all the parts together
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[betaest, betaSchedule,
-                                                 targetMisfit])
+                                  directiveList=[betaest, betaSchedule, 
+                                                 update_Jacobi, targetMisfit])
 
     # Run the equivalent source inversion
     mstart = np.zeros(nC)

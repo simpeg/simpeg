@@ -133,6 +133,7 @@ def run(plotIt=True):
     #betaest = Directives.BetaEstimate_ByEig()
 
     # Here is where the norms are applied
+    
     # Use pick a treshold parameter empirically based on the distribution of
     #  model parameters
 
