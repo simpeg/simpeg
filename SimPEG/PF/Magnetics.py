@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 import gc
 from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
-from discretize.utils import prodAvec, prodAtvec
 
 class MagneticIntegral(Problem.LinearProblem):
 
@@ -47,8 +46,8 @@ class MagneticIntegral(Problem.LinearProblem):
             # for ii in range(self.F.shape[0]):
             #     vec[ii] = self.F[ii, :].dot(self.chiMap*(m))
 
-            vec = np.asarray(prodAvec(self.F, self.chiMap*(m)))
-            return vec
+            vec = np.dot(self.F, (self.chiMap*(m)).astype(np.float32))
+            return vec.astype(np.float64)
 
     # def fwr_rem(self):
     #     # TODO check if we are inverting for M
@@ -287,8 +286,9 @@ class MagneticVector(MagneticIntegral):
             # vec = np.empty(self.F.shape[0])
             # for ii in range(self.F.shape[0]):
             #     vec[ii] = self.F[ii, :].dot(self.chiMap*(m))
-            vec = np.asarray(prodAvec(self.F, self.chiMap*(m)))
-            return vec
+
+            vec = np.dot(self.F, (self.chiMap*(m)).astype(np.float32))
+            return vec.astype(np.float64)
 
     @property
     def F(self):
@@ -324,16 +324,16 @@ class MagneticVector(MagneticIntegral):
             # vec = np.empty(self.F.shape[0])
             # for ii in range(self.F.shape[0]):
             #     vec[ii] = self.F[ii, :].dot(self.chiMap.deriv(chi)*v)
-            vec = np.asarray(prodAvec(self.F, self.chiMap.deriv(chi)*v))
-            return vec
+            vec = np.dot(self.F, (self.chiMap.deriv(chi)*v).astype(np.float32))
+            return vec.astype(np.float64)
 
         else:
             dmudm = self.S*self.chiMap.deriv(chi)
             # vec = np.empty(self.F.shape[0])
             # for ii in range(self.F.shape[0]):
             #     vec[ii] = self.F[ii, :].dot(dmudm.dot(v))
-            vec = np.asarray(prodAvec(self.F, dmudm.dot(v)))
-            return vec
+            vec = np.dot(self.F, (dmudm.dot(v)).astype(np.float32))
+            return vec.astype(np.float64)
 
     def Jtvec(self, chi, v, f=None):
 
@@ -341,8 +341,9 @@ class MagneticVector(MagneticIntegral):
         # for ii in range(self.F.shape[1]):
         #     vec[ii] = self.F[:, ii].dot(v)
 
-        vec = prodAtvec(self.F, v)
+        vec = np.dot(self.F.T, v.astype(np.float32))
 
+        vec = vec.astype(np.float64)
         if self.ptype == 'Cartesian':
 
             return self.chiMap.deriv(chi).T*(vec)
@@ -428,8 +429,8 @@ class MagneticAmplitude(MagneticIntegral):
             # Bxyz = np.empty(self.F.shape[0])
             # for ii in range(self.F.shape[0]):
             #     Bxyz[ii] = self.F[ii, :].dot(self.chiMap*m)
-            Bxyz = np.asarray(prodAvec(self.F, self.chiMap*m))
-            return self.calcAmpData(Bxyz)
+            Bxyz = np.dot(self.F, (self.chiMap*m).astype(np.float32))
+            return self.calcAmpData(Bxyz.astype(np.float64))
 
     def calcAmpData(self, Bxyz):
 
@@ -453,8 +454,8 @@ class MagneticAmplitude(MagneticIntegral):
         # vec = np.empty(self.F.shape[0])
         # for ii in range(self.F.shape[0]):
         #     vec[ii] = self.F[ii, :].dot(dmudm*v)
-        vec = np.asarray(prodAvec(self.F, dmudm*v))
-        return self.dfdm*vec
+        vec = np.dot(self.F, (dmudm*v).astype(np.float32))
+        return self.dfdm*vec.astype(np.float64)
 
     def Jtvec(self, chi, v, f=None):
         dmudm = self.chiMap.deriv(chi)
@@ -462,8 +463,8 @@ class MagneticAmplitude(MagneticIntegral):
         # vec = np.empty(self.F.shape[1])
         # for ii in range(self.F.shape[1]):
         #     vec[ii] = self.F[:, ii].dot(self.dfdm.T*v)
-        vec = prodAtvec(self.F, self.dfdm.T*v)
-        return dmudm.T * vec
+        vec = np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32))
+        return dmudm.T * vec.astype(np.float64)
 
 
     @property
@@ -496,8 +497,8 @@ class MagneticAmplitude(MagneticIntegral):
             # Bxyz = np.empty(self.F.shape[0])
             # for ii in range(self.F.shape[0]):
             #     Bxyz[ii] = self.F[ii, :].dot(self.chiMap*m)
-            Bxyz = np.asarray(prodAvec(self.F, self.chiMap*m))
-            Bamp = self.calcAmpData(Bxyz)
+            Bxyz = np.dot(self.F, (self.chiMap*m).astype(np.float32))
+            Bamp = self.calcAmpData(Bxyz.astype(np.float64))
 
             Bx = sp.spdiags(Bxyz[:ndata]/Bamp, 0, ndata, ndata)
             By = sp.spdiags(Bxyz[ndata:2*ndata]/Bamp, 0, ndata, ndata)

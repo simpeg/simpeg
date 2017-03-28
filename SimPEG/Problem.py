@@ -287,11 +287,12 @@ class LinearProblem(BaseProblem):
 
     def Jvec(self, m, v, f=None):
 
-        return prodAvec(self.F, v)
+        vec = np.dot(self.F, v.astype(np.float32))
+        return vec.astype(np.float64)
 
     def Jtvec(self, m, v, f=None):
         # strt = time.time()
-        y = prodAtvec(self.F, v)
+        y = np.dot(self.F.T, v.astype(np.float32))
         # print('C time: ' + str(time.time()-strt))
 
         # strt = time.time()
@@ -301,4 +302,4 @@ class LinearProblem(BaseProblem):
         #     y[ii] = np.dot(vec, v)
         # print('Python time: ' + str(time.time()-strt))
 
-        return y
+        return y.astype(np.float64)
