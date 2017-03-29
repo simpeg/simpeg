@@ -11,13 +11,57 @@ from . import Maps
 from . import Utils
 
 
-class Model(properties.Array):
+class SphinxProp(object):
+    """
+    Update the auto-documenter from properties
+    https://github.com/3ptscience/properties/issues/153
+    """
+    def sphinx_class(self):
+        return ':class:`{cls} <{ref}>`'.format(
+            cls='Model', ref='SimPEG.Props.Model'
+        )
+
+
+class Array(properties.Array, SphinxProp):
+
+    class_info = 'a numpy, Zero or Identity array'
+
+    def validate(self, instance, value):
+        if isinstance(value, (Utils.Zero, Utils.Identity)):
+            return value
+        return super(Array, self).validate(instance, value)
+
+
+class Float(properties.Float, SphinxProp):
+
+    class_info = 'a float, Zero or Identity'
+
+    def validate(self, instance, value):
+        if isinstance(value, (Utils.Zero, Utils.Identity)):
+            return value
+        return super(Float, self).validate(instance, value)
+
+
+class Integer(properties.Integer, SphinxProp):
+
+    class_info = 'an Integer or *'
+
+    def validate(self, instance, value):
+        if isinstance(value, str):
+            assert value == '*', 'value must be an integer or *, not {}'.format(
+                value
+            )
+            return value
+        return super(Integer, self).validate(instance, value)
+
+
+class Model(properties.Array, SphinxProp):
 
     class_info = 'a numpy array'
     _required = False
 
 
-class Mapping(properties.Property):
+class Mapping(properties.Property, SphinxProp):
 
     class_info = 'a SimPEG Map'
     _required = False
@@ -86,7 +130,7 @@ class Mapping(properties.Property):
         return instance._get(self.name)
 
 
-class PhysicalProperty(properties.Property):
+class PhysicalProperty(properties.Property, SphinxProp):
 
     class_info = 'a physical property'
     reciprocal = None
@@ -245,7 +289,7 @@ class PhysicalProperty(properties.Property):
         )
 
 
-class Derivative(properties.GettableProperty):
+class Derivative(properties.GettableProperty, SphinxProp):
 
     physical_property = None
 
