@@ -68,7 +68,7 @@ after_success:
 
   - if [ "$TRAVIS_BRANCH" = "master" -o "$TRAVIS_BRANCH" = "dev" ]; then
       if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then
-        if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "3.6" ]; then
+        if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7" ]; then
           python scripts/fetch_gae_sdk.py $(dirname "${GAE_PYTHONPATH}");
           if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi ;
           if [ "$TRAVIS_BRANCH" = "master" ]; then
