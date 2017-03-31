@@ -992,5 +992,4 @@ def drapeTopotoLoc(mesh, topo, pts, actind=None):
     meshtemp, topoCC = gettopoCC(mesh, ~actind)
     inds = Utils.closestPoints(meshtemp, pts)
     out = np.c_[pts, topoCC[inds]]
-    # out = out[np.argsort(out[:,0]), :]
     return out
