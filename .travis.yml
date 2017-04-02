@@ -76,16 +76,16 @@ after_success:
 
   # early exit if not on a deplotment branch
   - if [ ! "$TRAVIS_BRANCH" = "$MASTER_BRANCH" -o ! "$TRAVIS_BRANCH" = "$DEV_BRANCH" ]; then
-      echo "Not deploying (because this is not a deployment branch)"
-      exit 0
+      echo "Not deploying (because this is not a deployment branch)" ;
+      exit 0 ;
     fi
   - if [ ! "$TEST_DIR" = "DEPLOY_DIR" ]; then
-      echo "Not deploying (because this is not a deployment directory)"
-      exit 0
+      echo "Not deploying (because this is not a deployment directory)" ;
+      exit 0 ;
     fi
   - if [ "$TRAVIS_PULL_REQUEST" = "true" ]; then
-      echo "Not deploying (because this is a pull request)"
-      exit 0
+      echo "Not deploying (because this is a pull request)" ;
+      exit 0 ;
     fi
 
   # deploy docs
