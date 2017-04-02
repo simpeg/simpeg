@@ -19,7 +19,7 @@ env:
   global:
     - DEPLOY_DIR=tests/docs
     - MASTER_BRANCH=master
-    - DEV_BRANCH=dev
+    - DEV_BRANCH=ref/travis
     - DOCS_PY=2.7  # deploy docs from 2.7
     - PYPI_PY=3.6  # deploy to pypi from python 3.6
   matrix:
