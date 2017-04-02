@@ -77,6 +77,10 @@ def run(N=100, plotIt=True):
     reg.mref = mref
     reg.cell_weights = wr
     reg.norms = [0., 0., 2., 2.]
+
+    # The treshold for lq-norm is hardwired here, the
+    # autopicker needs to be improved.
+    reg.eps_q = 2e-2
     reg.mref = np.zeros(mesh.nC)
 
     opt = Optimization.ProjectedGNCG(

@@ -1054,10 +1054,11 @@ class NewtonRoot(object):
         return x
 
 
-class ProjectedGNCG(Minimize, Remember):
+class ProjectedGNCG(BFGS, Minimize, Remember):
 
     def __init__(self, **kwargs):
         Minimize.__init__(self, **kwargs)
+        BFGS.__init__(self, **kwargs)
 
     name = 'Projected GNCG'
 
