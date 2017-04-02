@@ -1,6 +1,6 @@
 language: python
 python:
-  - 3.5
+  - 3.6
   - 2.7
 
 sudo: false
@@ -84,7 +84,7 @@ after_success:
       fi;
      fi
   - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
-      if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7" ]; then
+      if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "3.6" ]; then
         mv credentials/.pypirc ~/.pypirc ;
         python setup.py register -r pypi ;
         travis_wait 20 python setup.py sdist upload -r pypi ;
