@@ -75,11 +75,11 @@ after_success:
   - tar -xvzf credentials.tar.gz
 
   # early exit if not on a deplotment branch
-  - if [ ! "$TRAVIS_BRANCH" = "$MASTER_BRANCH" -o ! "$TRAVIS_BRANCH" = "$DEV_BRANCH" ]; then
+  - if [ ! "$TRAVIS_BRANCH" = $MASTER_BRANCH -o ! "$TRAVIS_BRANCH" = $DEV_BRANCH ]; then
       echo "Not deploying (because this is not a deployment branch)" ;
       exit 0 ;
     fi
-  - if [ ! "$TEST_DIR" = "DEPLOY_DIR" ]; then
+  - if [ ! "$TEST_DIR" = $DEPLOY_DIR ]; then
       echo "Not deploying (because this is not a deployment directory)" ;
       exit 0 ;
     fi
@@ -89,12 +89,12 @@ after_success:
     fi
 
   # deploy docs
-  - if [ ${TEST_DIR} = "$DEPLOY_DIR" -a $TRAVIS_PYTHON_VERSION == "$DOCS_PY" ]; then
+  - if [ ${TEST_DIR} = $DEPLOY_DIR -a $TRAVIS_PYTHON_VERSION == $DOCS_PY ]; then
       if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi ;
-        if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" ]; then
+        if [ "$TRAVIS_BRANCH" == $MASTER_BRANCH ]; then
           gcloud auth activate-service-account --key-file credentials/client-secret.json ;
           export GAE_PROJECT=simpegdocs;
-        elif [ "$TRAVIS_BRANCH" = "$DEV_BRANCH" ]; then
+        elif [ "$TRAVIS_BRANCH" == $DEV_BRANCH ]; then
           gcloud auth activate-service-account --key-file credentials/client-secret-dev.json ;
           export GAE_PROJECT=simpeg-dev-docs;
         fi;
@@ -104,8 +104,8 @@ after_success:
     fi;
 
   #deploy to pypi
-  - if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" ]; then
-      if [ ${TEST_DIR} = "$DEPLOY_DIR" -a $TRAVIS_PYTHON_VERSION == "$PYPI_PY" ]; then
+  - if [ "$TRAVIS_BRANCH" = $MASTER_BRANCH ]; then
+      if [ ${TEST_DIR} = $DEPLOY_DIR -a $TRAVIS_PYTHON_VERSION == $PYPI_PY ]; then
         mv credentials/.pypirc ~/.pypirc ;
         python setup.py register -r pypi ;
         travis_wait 20 python setup.py sdist upload -r pypi ;
