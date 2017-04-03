@@ -19,9 +19,8 @@ import os
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
 
-sys.path.append('../')
-sys.path.append('./_ext')
-
+sys.path.append(os.path.abspath('../'))
+sys.path.append(os.path.abspath('./_ext'))
 
 # -- General configuration -----------------------------------------------------
 
