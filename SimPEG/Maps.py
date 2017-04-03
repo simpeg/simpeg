@@ -116,6 +116,8 @@ class IdentityMap(object):
         """
         if v is not None:
             return v
+        if isinstance(self.nP, integer_types):
+            return sp.identity(self.nP)
         return Utils.Identity()
 
     def test(self, m=None, num=4, **kwargs):
