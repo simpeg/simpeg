@@ -1,3 +1,8 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from SimPEG import Utils
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
@@ -51,8 +56,7 @@ class BaseIPProblem(BaseEMProblem):
 
         self.model = m
 
-        Jv = self.dataPair(self.survey)  # same size as the data
-
+        Jv = []
         A = self.getA()
 
         for src in self.survey.srcList:
@@ -64,13 +68,16 @@ class BaseIPProblem(BaseEMProblem):
             for rx in src.rxList:
                 df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                 df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+                # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+                Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
         # Conductivity (d u / d log sigma)
-        if self._formulation is 'EB':
-            return -Utils.mkvc(Jv)
+        if self._formulation == 'EB':
+            # return -Utils.mkvc(Jv)
+            return -np.hstack(Jv)
         # Conductivity (d u / d log rho)
-        if self._formulation is 'HJ':
-            return Utils.mkvc(Jv)
+        if self._formulation == 'HJ':
+            # return Utils.mkvc(Jv)
+            return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
         if f is None:
@@ -97,10 +104,10 @@ class BaseIPProblem(BaseEMProblem):
                 du_dmT = -dA_dmT + dRHS_dmT
                 Jtv += (df_dmT + du_dmT).astype(float)
         # Conductivity ((d u / d log sigma).T)
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             return -Utils.mkvc(Jtv)
         # Conductivity ((d u / d log rho).T)
-        if self._formulation is 'HJ':
+        if self._formulation == 'HJ':
             return Utils.mkvc(Jtv)
 
     def getSourceTerm(self):
@@ -116,11 +123,11 @@ class BaseIPProblem(BaseEMProblem):
 
         Srcs = self.survey.srcList
 
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             n = self.mesh.nN
             # return NotImplementedError
 
-        elif self._formulation is 'HJ':
+        elif self._formulation == 'HJ':
             n = self.mesh.nC
 
         q = np.zeros((n, len(Srcs)))

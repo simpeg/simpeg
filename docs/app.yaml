@@ -34,10 +34,20 @@ handlers:
   static_files: _build/html/\1
   upload: _build/html/(.*\.txt)
 
-  # python source files
+# python source files
 - url: /(.*\.py)
   static_files: _build/html/\1
   upload: _build/html/(.*\.py)
+
+# ipynbotebooks
+- url: /(.*\.ipynb)
+  static_files: _build/html/\1
+  upload: _build/html/(.*\.ipynb)
+
+# example zip files
+- url: /(.*\.zip)
+  static_files: _build/html/\1
+  upload: _build/html/(.*\.zip)
 
 # images
 - url: /_images/(.*\.(gif|png|jpg|ico))

@@ -21,10 +21,10 @@ Each mesh code follows the guiding principles that are present in this
 tutorial, but the details, advantages and disadvantages differ between
 the implementations.
 
-.. plot::
 
-    from SimPEG import Examples
-    Examples.Mesh_Basic_Types.run()
+.. image:: /content/examples/02-mesh/images/sphx_glr_plot_basic_types_001.png
+    :target: /content/examples/02-mesh/plot_basic_types.html
+    :align: center
 
 
 Variable Locations and Terminology
@@ -32,7 +32,7 @@ Variable Locations and Terminology
 
 We will go over the basics of using a TensorMesh, but these skills are transferable
 to the other meshes available in SimPEG. All of the mesh generation code is located
-in the Mesh package in SimPEG (i.e. SimPEG.Mesh).
+in the Mesh package in SimPEG (i.e. discretize).
 
 
 To create a TensorMesh we need to create mesh tensors, the widths of
@@ -43,7 +43,8 @@ of the TensorMesh.
 .. plot::
     :include-source:
 
-    from SimPEG import Mesh, np
+    from SimPEG import Mesh
+    import numpy as np
     import matplotlib.pyplot as plt
     hx = np.r_[3,2,1,1,1,1,2,3]
     hy = np.r_[3,1,1,3]
@@ -65,7 +66,8 @@ plotted above as red circles. Other terminology for this mesh are:
 .. plot::
     :include-source:
 
-    from SimPEG import Mesh, np
+    from SimPEG import Mesh
+    import numpy as np
     import matplotlib.pyplot as plt
     hx = np.r_[3,2,1,1,1,1,2,3]
     hy = np.r_[3,1,1,3]
@@ -189,6 +191,6 @@ other types of meshes in this SimPEG framework.
 The API
 =======
 
-.. autoclass:: SimPEG.Mesh.BaseMesh.BaseMesh
+.. autoclass:: discretize.BaseMesh.BaseMesh
     :members:
     :undoc-members:

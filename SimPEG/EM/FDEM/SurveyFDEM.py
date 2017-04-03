@@ -5,7 +5,7 @@ from scipy.constants import mu_0
 from SimPEG.Utils import Zero, Identity
 from . import SrcFDEM as Src
 from . import RxFDEM as Rx
-from SimPEG import sp
+
 
 class Survey(BaseEMSurvey):
     """
@@ -14,7 +14,7 @@ class Survey(BaseEMSurvey):
     :param list srcList: list of FDEM sources used in the survey
     """
 
-    srcPair = Src.BaseSrc
+    srcPair = Src.BaseFDEMSrc
     rxPair = Rx.BaseRx
 
     def __init__(self, srcList, **kwargs):
@@ -57,6 +57,8 @@ class Survey(BaseEMSurvey):
         :rtype: dictionary
         :return: sources at the sepcified frequency
         """
-        assert freq in self._freqDict, "The requested frequency is not in this survey."
+        assert freq in self._freqDict, (
+            "The requested frequency is not in this survey."
+        )
         return self._freqDict[freq]
 

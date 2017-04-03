@@ -1,3 +1,8 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import SimPEG
 from SimPEG.Utils import Identity, Zero
 import numpy as np
@@ -71,8 +76,14 @@ class Fields_CC(FieldsDC):
 
     def __init__(self, mesh, survey, **kwargs):
         FieldsDC.__init__(self, mesh, survey, **kwargs)
-        mesh.setCellGradBC("neumann")
-        cellGrad = mesh.cellGrad
+        if self.mesh._meshType == "TREE":
+            if(self.prob.bc_type == 'Neumann'):
+                raise NotImplementedError()
+            elif(self.prob.bc_type == 'Dirchlet'):
+                self.cellGrad = -mesh.faceDiv.T
+        else:
+            mesh.setCellGradBC("neumann")
+            self.cellGrad = mesh.cellGrad
 
     def startup(self):
         self.prob = self.survey.prob
@@ -107,7 +118,7 @@ class Fields_CC(FieldsDC):
             .. math::
                 \vec{e} = -\nabla \phi
         """
-        return -self.mesh.cellGrad*phiSolution
+        return -self.cellGrad*phiSolution
 
     def _charge(self, phiSolution, srcList):
         """
@@ -158,7 +169,7 @@ class Fields_N(FieldsDC):
             .. math::
                 \mathbf{j} = - \mathbf{M}^{e}_{\sigma} \mathbf{G} \phi
         """
-        return self.prob.MeSigma * self._e(phiSolution, srcList)
+        return self.prob.MeI * self.prob.MeSigma * self._e(phiSolution, srcList)
 
     def _e(self, phiSolution, srcList):
         """
