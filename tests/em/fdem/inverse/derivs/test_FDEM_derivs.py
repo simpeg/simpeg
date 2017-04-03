@@ -5,7 +5,6 @@ from SimPEG import Tests
 from scipy.constants import mu_0
 from SimPEG.EM.Utils.testingUtils import getFDEMProblem
 
-
 testE = True
 testB = True
 testH = True

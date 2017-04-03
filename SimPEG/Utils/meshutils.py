@@ -2,8 +2,6 @@ import numpy as np
 from scipy import sparse as sp
 from .matutils import mkvc, ndgrid, sub2ind, sdiag
 from .codeutils import asArray_N_x_Dim
-from .codeutils import isScalar
-import os
 
 def exampleLrmGrid(nC, exType):
     assert type(nC) == list, "nC must be a list containing the number of nodes"
@@ -63,7 +61,7 @@ def meshTensor(value):
 
     proposed = []
     for v in value:
-        if isScalar(v):
+        if np.isscalar(v):
             proposed += [float(v)]
         elif type(v) is tuple and len(v) == 2:
             proposed += [float(v[0])]*int(v[1])
@@ -113,8 +111,6 @@ def ExtractCoreMesh(xyzlim, mesh, meshType='tensor'):
 
         - actind: corresponding boolean index from global to core
         - meshcore: core SimPEG mesh
-
-    Warning: 1D and 2D has not been tested
     """
     from SimPEG import Mesh
     if mesh.dim == 1:
@@ -127,18 +123,18 @@ def ExtractCoreMesh(xyzlim, mesh, meshType='tensor'):
 
         hx = mesh.hx[xind]
 
-        x0 = [xc[0]-hx[0]*0.5, yc[0]-hy[0]*0.5]
+        x0 = [xc[0]-hx[0]*0.5]
 
-        meshCore = Mesh.TensorMesh([hx, hy], x0=x0)
+        meshCore = Mesh.TensorMesh([hx], x0=x0)
 
-        actind = (mesh.gridCC[:,0]>xmin) & (mesh.gridCC[:,0]<xmax)
+        actind = (mesh.gridCC>xmin) & (mesh.gridCC<xmax)
 
     elif mesh.dim == 2:
         xmin, xmax = xyzlim[0,0], xyzlim[0,1]
         ymin, ymax = xyzlim[1,0], xyzlim[1,1]
 
+        xind = np.logical_and(mesh.vectorCCx>xmin, mesh.vectorCCx<xmax)
         yind = np.logical_and(mesh.vectorCCy>ymin, mesh.vectorCCy<ymax)
-        zind = np.logical_and(mesh.vectorCCz>zmin, mesh.vectorCCz<zmax)
 
         xc = mesh.vectorCCx[xind]
         yc = mesh.vectorCCy[yind]

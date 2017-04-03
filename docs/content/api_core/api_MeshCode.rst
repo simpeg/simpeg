@@ -3,7 +3,7 @@
 Tensor Mesh
 ===========
 
-.. autoclass:: SimPEG.Mesh.TensorMesh
+.. autoclass:: discretize.TensorMesh
     :members:
     :undoc-members:
     :show-inheritance:
@@ -11,7 +11,7 @@ Tensor Mesh
 Cylindrical Mesh
 ================
 
-.. autoclass:: SimPEG.Mesh.CylMesh
+.. autoclass:: discretize.CylMesh
     :members:
     :undoc-members:
     :show-inheritance:
@@ -19,7 +19,7 @@ Cylindrical Mesh
 Tree Mesh
 =========
 
-.. autoclass:: SimPEG.Mesh.TreeMesh
+.. autoclass:: discretize.TreeMesh
     :members:
     :undoc-members:
     :show-inheritance:
@@ -27,7 +27,7 @@ Tree Mesh
 Curvilinear Mesh
 ================
 
-.. autoclass:: SimPEG.Mesh.CurvilinearMesh
+.. autoclass:: discretize.CurvilinearMesh
     :members:
     :undoc-members:
     :show-inheritance:
@@ -36,7 +36,7 @@ Curvilinear Mesh
 Base Rectangular Mesh
 =====================
 
-.. autoclass:: SimPEG.Mesh.BaseMesh.BaseRectangularMesh
+.. autoclass:: discretize.BaseMesh.BaseRectangularMesh
     :members:
     :undoc-members:
     :show-inheritance:
@@ -44,7 +44,7 @@ Base Rectangular Mesh
 Base Tensor Mesh
 ================
 
-.. autoclass:: SimPEG.Mesh.TensorMesh.BaseTensorMesh
+.. autoclass:: discretize.TensorMesh.BaseTensorMesh
     :members:
     :undoc-members:
     :show-inheritance:
@@ -53,7 +53,7 @@ Base Tensor Mesh
 Mesh IO
 =======
 
-.. automodule:: SimPEG.Mesh.MeshIO
+.. automodule:: discretize.MeshIO
     :members:
     :undoc-members:
     :show-inheritance:
@@ -62,7 +62,7 @@ Mesh IO
 Mesh Viewing
 ============
 
-.. automodule:: SimPEG.Mesh.View
+.. automodule:: discretize.View
     :members:
     :undoc-members:
     :show-inheritance:
