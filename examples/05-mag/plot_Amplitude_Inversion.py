@@ -210,7 +210,7 @@ def run(plotIt=True):
     update_Jacobi = Directives.Update_lin_PreCond()
     # Put all the parts together
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[betaest, betaSchedule, 
+                                  directiveList=[betaest, betaSchedule,
                                                  update_Jacobi, targetMisfit])
 
     # Run the equivalent source inversion
@@ -296,7 +296,7 @@ def run(plotIt=True):
 
     # Put all together
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[IRLS, update_Jacobi, betaest])
+                                  directiveList=[betaest, IRLS, update_Jacobi])
 
     # Invert
     mrec = inv.run(mstart)
