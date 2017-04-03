@@ -11,7 +11,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import sys
+import os
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -19,6 +20,7 @@ import sys, os
 #sys.path.insert(0, os.path.abspath('.'))
 
 sys.path.append('../')
+sys.path.append('../_ext')
 
 
 # -- General configuration -----------------------------------------------------
@@ -35,7 +37,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
     'matplotlib.sphinxext.plot_directive',
-    'sphinx_gallery.gen_gallery'
+    'sphinx_gallery.gen_gallery',
+    'edit_on_github',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -109,6 +112,11 @@ pygments_style = 'sphinx'
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
 
+# -- Edit on Github Extension ---------------------------------------------
+
+edit_on_github_project = 'simpeg/simpeg'
+edit_on_github_branch = 'master'
+check_meta = False
 
 # -- Options for HTML output ---------------------------------------------------
 
