@@ -97,7 +97,8 @@ skip_files:
   - \.gitignore
   - ^\.git/.*
   - \.*\.lint$
-  - ^(.*/)?.*\.doctree$
+  - ^(.*/)?.*\.doctree
+  - ^(.*/)?.*\.pickle\
 
 libraries:
 - name: webapp2
