@@ -115,7 +115,9 @@ class IdentityMap(object):
         """
         if v is not None:
             return v
-        return Utils.Identity()
+        if isinstance(self.nP, str) and self.nP == '*':
+            return Utils.Identity()
+        return sp.identity(self.nP)
 
     def test(self, m=None, num=4, **kwargs):
         """Test the derivative of the mapping.
