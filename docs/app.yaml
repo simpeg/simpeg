@@ -1,5 +1,5 @@
-# application: simpegdocs
-# version: 1
+# application: simpeg-dev-docs
+# version: 001
 runtime: python27
 api_version: 1
 threadsafe: yes
@@ -54,6 +54,11 @@ handlers:
   static_files: _build/html/_images/\1
   upload: _build/html/_images/(.*\.(gif|png|jpg|ico))
 
+# plot directive images
+- url: /(.*\.(gif|png|jpg|ico|pdf))
+  static_files: _build/html/\1
+  upload: _build/html/(.*\.(gif|png|jpg|ico|pdf))
+
 # redirect en/latest traffic
 - url: /en/latest/(.*\.html)
   script: simpegdocs.app
@@ -99,6 +104,12 @@ skip_files:
   - \.*\.lint$
   - ^(.*/)?.*\.doctree
   - ^(.*/)?.*\.pickle
+  - ^(.*/)?.*\.examples
+  - ^(.*/)?.*\.inv
+  - ^(.*/)?.*\.rst
+  - ^(.*/)?.*/doctrees/.*$
+  - ^(.*/)?.*/_modules/.*$
+  - ^(.*/)?.*/_sources/.*$
 
 
 libraries:
