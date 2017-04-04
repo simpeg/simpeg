@@ -791,7 +791,7 @@ class Problem3D_e(BaseTDEMProblem):
         Grad = self.mesh.nodalGrad
 
         for isrc, src in enumerate(self.survey.srcList):
-            if src.SrcType == "Galvanic":
+            if src.srcType == "Galvanic":
 
                 ATinv_df_duT_v[isrc, :] = Grad*(self.Adcinv*(Grad.T*(
                     Utils.mkvc(df_duT_v[
@@ -903,7 +903,7 @@ class Problem3D_e(BaseTDEMProblem):
 
         for i, src in enumerate(Srcs):
             # Check if the source is grounded
-            if src.SrcType == "Galvanic" and src.waveform.hasInitialFields:
+            if src.srcType == "Galvanic" and src.waveform.hasInitialFields:
                 # Check self.Adcinv and clean
                 if self.Adcinv is not None:
                     self.Adcinv.clean()

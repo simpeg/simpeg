@@ -91,7 +91,7 @@ class BaseTDEMSrc(BaseEMSrc):
 
     waveformPair = BaseWaveform  #: type of waveform to pair with
     waveform = None  #: source waveform
-    SrcType = "Inductive"
+    srcType = None
 
     def __init__(self, rxList, **kwargs):
         super(BaseTDEMSrc, self).__init__(rxList, **kwargs)
@@ -178,6 +178,7 @@ class MagDipole(BaseTDEMSrc):
     orientation = properties.Vector3(
         "orientation of the source", default='Z', length=1., required=True
     )
+    srcType = "Inductive"
 
     def __init__(self, rxList, **kwargs):
         # assert(self.orientation in ['X', 'Y', 'Z']), (
@@ -247,7 +248,6 @@ class MagDipole(BaseTDEMSrc):
 
         return 1./self.mu * self._bSrc(prob)
 
-
     def s_m(self, prob, time):
         if self.waveform.hasInitialFields is False:
             # raise NotImplementedError
@@ -292,7 +292,6 @@ class MagDipole(BaseTDEMSrc):
                 return C * h * self.waveform.eval(time)
 
 
-
 class CircularLoop(MagDipole):
 
     radius = properties.Float(
@@ -328,7 +327,7 @@ class LineCurrent(BaseTDEMSrc):
     waveform = None
     loc = None
     mu = mu_0
-    SrcType = "Galvanic"
+    srcType = "Galvanic"
 
     def __init__(self, rxList, **kwargs):
         self.integrate = False
@@ -351,40 +350,13 @@ class LineCurrent(BaseTDEMSrc):
         Grad = prob.mesh.nodalGrad
         return Grad.T*self.Mejs(prob)
 
-#     def _getInitialFields(self, prob):
-#         # TODO: Be careful about what to store, and we delete stuff
-#         # Because it is expensive to compute ...
-#         # e.g. we only need to update initial field when "m" is changed
-# `
-#         # Solve DCR problem
-#         Adc = getAdc(prob)
-#         # TODO: Ainvdc may need to be stored in problem class
-#         # "We have multiple src"
-#         Ainvdc = prob.Solver(Adc, **prob.solverOpts)
-#         rhsdc = self.getRHSdc(prob)
-#         phidc = Ainvdc*rhsdc
-#         Grad = self.prob.nodalGrad
-#         edc = -Grad*phidc
-#         if prob._fieldType == 'e':
-#             return edc
-#         # Solve MMR problem
-#         elif prob._fieldType == 'b':
-#             C = prob.edgeCurl
-#             MfMui = prob.MfMui
-#             MeSigma = self.prob.MeSigma
-#             # Second term on rhs handles null space
-#             Ammr = C.T*MfMui*C + 1./mu_0 * prob.Me * Grad * Grad.T
-#             rhsmmr = self.MeSigma*edc + self.Mejs
-#             # TODO: Ainvmmr may need to be stored in problem class
-#             # "We have multiple src"
-#             Ainvmmr = prob.Solver(Ammr, **prob.solverOpts)
-#             bmmr = Ainvmmr*rhsmmr
-#             return bmmr
-#         else:
-#             raise NotImplementedError("We only have EB formulation!")
-
+    # TODO: Need to implement solving MMR for this when
+    # StepOffwaveforme is used.
     def bInitial(self, prob):
-        return Zero()
+        if self.waveform.eval(0) == 1.:
+            raise Exception("Not implemetned for computing b!")
+        else:
+            return Zero()
 
     def eInitial(self, prob):
         if self.waveform.hasInitialFields:
@@ -400,7 +372,7 @@ class LineCurrent(BaseTDEMSrc):
             Grad = prob.mesh.nodalGrad
             if adjoint is False:
                 AdcDeriv_v = prob.getAdcDeriv(edc, v, adjoint=adjoint)
-                edcDeriv =  Grad * (prob.Adcinv * AdcDeriv_v)
+                edcDeriv = Grad * (prob.Adcinv * AdcDeriv_v)
                 return edcDeriv
             elif adjoint is True:
                 vec = prob.Adcinv * (Grad.T * v)

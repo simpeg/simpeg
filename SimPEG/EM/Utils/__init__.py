@@ -3,4 +3,6 @@ from .AnalyticUtils import (
     MagneticDipoleFields, MagneticDipoleVectorPotential,
     MagneticLoopVectorPotential, orientationDict
     )
-from .CurrentUtils import getSourceTermLineCurrentPolygon
+from .CurrentUtils import (
+    getSourceTermLineCurrentPolygon, getStraightLineCurrentIntegral
+    )
