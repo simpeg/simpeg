@@ -14,6 +14,7 @@ from numpy.polynomial import polynomial
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy.interpolate import UnivariateSpline
+from scipy.constants import mu_0
 
 from . import Utils
 from .Tests import checkDerivative
@@ -44,10 +45,10 @@ class IdentityMap(object):
             :return: number of parameters that the mapping accepts
         """
         if self._nP is not None:
-            return self._nP
+            return int(self._nP)
         if self.mesh is None:
             return '*'
-        return self.mesh.nC
+        return int(self.mesh.nC)
 
     @property
     def shape(self):
@@ -148,8 +149,9 @@ class IdentityMap(object):
             m = abs(np.random.rand(self.nP))
         if 'plotIt' not in kwargs:
             kwargs['plotIt'] = False
-        return checkDerivative(lambda m: [self*m, lambda x: self.deriv(m, x)],
-                               m, num=4, **kwargs)
+        return checkDerivative(
+            lambda m: [self*m, lambda x: self.deriv(m, x)], m, num=4, **kwargs
+        )
 
     def _assertMatchesPair(self, pair):
         assert (
@@ -347,7 +349,6 @@ class Wires(object):
             )
 
         self._nP = int(np.sum([w[1] for w in args]))
-
         start = 0
         maps = []
         for arg in args:
@@ -519,6 +520,56 @@ class LogMap(IdentityMap):
         return np.exp(Utils.mkvc(m))
 
 
+class ChiMap(IdentityMap):
+    """Chi Map
+
+    Convert Magnetic Susceptibility to Magnetic Permeability.
+
+    .. math::
+
+        \mu(m) = \mu_0 (1 + \chi(m))
+
+    """
+
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(ChiMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+
+    def _transform(self, m):
+        return mu_0 * (1 + m)
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return mu_0 * v
+        return mu_0 * sp.eye(self.nP)
+
+    def inverse(self, m):
+        return m / mu_0 - 1
+
+
+class MuRelative(IdentityMap):
+    """
+    Invert for relative permeability
+
+    .. math::
+
+        \mu(m) = \mu_0 * \mathbf{m}
+    """
+
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(MuRelative, self).__init__(mesh=mesh, nP=nP, **kwargs)
+
+    def _transform(self, m):
+        return mu_0 * m
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return mu_0 * v
+        return mu_0 * sp.eye(self.nP)
+
+    def inverse(self, m):
+        return 1./mu_0 * m
+
+
 class Weighting(IdentityMap):
     """
         Model weight parameters.
@@ -569,7 +620,7 @@ class ComplexMap(IdentityMap):
         super(ComplexMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
         if nP is not None:
             assert nP % 2 == 0, 'nP must be even.'
-        self._nP = nP or (self.mesh.nC * 2)
+        self._nP = nP or int(self.mesh.nC * 2)
 
     @property
     def nP(self):
@@ -577,14 +628,14 @@ class ComplexMap(IdentityMap):
 
     @property
     def shape(self):
-        return (self.nP/2, self.nP)
+        return (int(self.nP/2), self.nP)
 
     def _transform(self, m):
         nC = self.mesh.nC
         return m[:nC] + m[nC:]*1j
 
     def deriv(self, m, v=None):
-        nC = self.nP/2
+        nC = self.shape[0]
         shp = (nC, nC*2)
 
         def fwd(v):
@@ -604,7 +655,6 @@ class ComplexMap(IdentityMap):
 #                 Surjection, Injection and Interpolation Maps                #
 #                                                                             #
 ###############################################################################
-
 
 class SurjectFull(IdentityMap):
     """
@@ -769,12 +819,6 @@ class Surject2Dto3D(IdentityMap):
 class Mesh2Mesh(IdentityMap):
     """
         Takes a model on one mesh are translates it to another mesh.
-
-        .. plot::
-
-            from SimPEG.Examples import Maps_Mesh2Mesh
-            Maps_Mesh2Mesh.run()
-
     """
 
     def __init__(self, meshes, **kwargs):
@@ -834,7 +878,7 @@ class InjectActiveCells(IdentityMap):
             indActive = z
         self.indActive = indActive
         self.indInactive = np.logical_not(indActive)
-        if Utils.isScalar(valInactive):
+        if np.isscalar(valInactive):
             self.valInactive = np.ones(self.nC)*float(valInactive)
         else:
             self.valInactive = np.ones(self.nC)
@@ -1404,22 +1448,16 @@ class ParametrizedLayer(IdentityMap):
 
         .. code:: python
 
-            m = [val_background,
-                 val_layer,
-                 layer_center,
-                 layer_thickness
+            m = [
+                val_background,
+                val_layer,
+                layer_center,
+                layer_thickness
             ]
-
-
-        .. plot::
-
-            from SimPEG.Examples import Maps_ParametrizedLayer
-            Maps_ParametrizedLayer.run()
-            plt.show()
 
         **Required**
 
-        :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+        :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
         **Optional**
 
@@ -1442,16 +1480,22 @@ class ParametrizedLayer(IdentityMap):
         if self.slope is None:
             self.slope = self.slopeFact / np.hstack(self.mesh.h).min()
 
-        self.x = [self.mesh.gridCC[:, 0] if self.indActive is None else
-                  self.mesh.gridCC[self.indActive, 0]][0]
+        self.x = [
+            self.mesh.gridCC[:, 0] if self.indActive is None else
+            self.mesh.gridCC[self.indActive, 0]
+        ][0]
 
         if self.mesh.dim > 1:
-            self.y = [self.mesh.gridCC[:, 1] if self.indActive is None else
-                      self.mesh.gridCC[self.indActive, 1]][0]
+            self.y = [
+                self.mesh.gridCC[:, 1] if self.indActive is None else
+                self.mesh.gridCC[self.indActive, 1]
+            ][0]
 
         if self.mesh.dim > 2:
-            self.z = [self.mesh.gridCC[:, 2] if self.indActive is None else
-                      self.mesh.gridCC[self.indActive, 2]][0]
+            self.z = [
+                self.mesh.gridCC[:, 2] if self.indActive is None else
+                self.mesh.gridCC[self.indActive, 2]
+            ][0]
 
     @property
     def nP(self):
@@ -1939,15 +1983,9 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
                  block_dy
             ]
 
-        .. plot::
-
-            from SimPEG.Examples import Maps_ParametrizedBlockInLayer
-            Maps_ParametrizedBlockInLayer.run()
-            plt.show()
-
         **Required**
 
-        :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+        :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
         **Optional**
 
@@ -2392,5 +2430,3 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
             return sp.csr_matrix(self._deriv2d(m))
         elif self.mesh.dim == 3:
             return sp.csr_matrix(self._deriv3d(m))
-
-

@@ -1,180 +1,135 @@
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import numpy as np
 import scipy.sparse as sp
 import time
 import properties
+import warnings
 
-from SimPEG import Survey
 from SimPEG import Utils
 from SimPEG import Problem
 from SimPEG import Optimization
 from SimPEG import Solver
-from SimPEG.FLOW.Richards.Empirical import RichardsMap
 
-
-class RichardsRx(Survey.BaseTimeRx):
-    """Richards Receiver Object"""
-
-    knownRxTypes = ['saturation', 'pressureHead']
-
-    def eval(self, U, m, mapping, mesh, timeMesh):
-
-        if self.rxType == 'pressureHead':
-            u = np.concatenate(U)
-        elif self.rxType == 'saturation':
-            u = np.concatenate([mapping.theta(ui, m) for ui in U])
-
-        return self.getP(mesh, timeMesh) * u
-
-    def evalDeriv(self, U, m, mapping, mesh, timeMesh):
-
-        P = self.getP(mesh, timeMesh)
-        if self.rxType == 'pressureHead':
-            return P
-        elif self.rxType == 'saturation':
-            # TODO: if m is a parameter in the theta
-            #       distribution, we may need to do
-            #       some more chain rule here.
-            dT = sp.block_diag([mapping.thetaDerivU(ui, m) for ui in U])
-            return P*dT
-
-
-class RichardsSurvey(Survey.BaseSurvey):
-    """docstring for RichardsSurvey"""
-
-    rxList = None
-
-    def __init__(self, rxList, **kwargs):
-        self.rxList = rxList
-        Survey.BaseSurvey.__init__(self, **kwargs)
-
-    @property
-    def nD(self):
-        return np.array([rx.nD for rx in self.rxList]).sum()
-
-    @Utils.count
-    @Utils.requires('prob')
-    def dpred(self, m, f=None):
-        """
-            Create the projected data from a model.
-            The field, f, (if provided) will be used for the predicted data
-            instead of recalculating the fields (which may be expensive!).
-
-            .. math::
-                d_\\text{pred} = P(f(m), m)
-
-            Where P is a projection of the fields onto the data space.
-        """
-        if f is None:
-            f = self.prob.fields(m)
-
-        return Utils.mkvc(self.eval(f, m))
-
-    @Utils.requires('prob')
-    def eval(self, U, m):
-        Ds = list(range(len(self.rxList)))
-        for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx.eval(
-                U, m,
-                self.prob.mapping,
-                self.prob.mesh,
-                self.prob.timeMesh
-            )
-
-        return np.concatenate(Ds)
-
-    @Utils.requires('prob')
-    def evalDeriv(self, U, m):
-        """The Derivative with respect to the fields."""
-        Ds = list(range(len(self.rxList)))
-        for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx.evalDeriv(
-                U, m,
-                self.prob.mapping,
-                self.prob.mesh,
-                self.prob.timeMesh
-            )
-
-        return sp.vstack(Ds)
+from SimPEG.FLOW.Richards.RichardsSurvey import RichardsSurvey
+from SimPEG.FLOW.Richards.Empirical import BaseHydraulicConductivity
+from SimPEG.FLOW.Richards.Empirical import BaseWaterRetention
 
 
 class RichardsProblem(Problem.BaseTimeProblem):
-    """docstring for RichardsProblem"""
+    """RichardsProblem"""
 
-    mapping = properties.Property("the mapping")
+    hydraulic_conductivity = properties.Instance(
+        'hydraulic conductivity function',
+        BaseHydraulicConductivity
+    )
+    water_retention = properties.Instance(
+        'water retention curve',
+        BaseWaterRetention
+    )
 
-    boundaryConditions = properties.Array("boundary conditions.")
-    initialConditions = properties.Array("boundary conditions.")
+    # TODO: This can also be a function(time, u_ii)
+    boundary_conditions = properties.Array('boundary conditions')
+    initial_conditions = properties.Array('initial conditions')
 
-    surveyPair = RichardsSurvey
-    mapPair = RichardsMap
+    debug = properties.Bool('Show all messages', default=False)
 
-    debug = properties.Bool("Show all messages")
-
-    Solver = Solver
+    Solver = properties.Property('Numerical Solver', default=lambda: Solver)
     solverOpts = {}
 
-    def __init__(self, mesh, mapping=None, **kwargs):
-        Problem.BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
-
-    def getBoundaryConditions(self, ii, u_ii):
-        if type(self.boundaryConditions) is np.ndarray:
-            return self.boundaryConditions
-
-        time = self.timeMesh.vectorCCx[ii]
-
-        return self.boundaryConditions(time, u_ii)
-
     method = properties.StringChoice(
-        "Formulation used, See notes in Celia et al., 1990.",
+        'Formulation used, See notes in Celia et al., 1990',
+        default='mixed',
         choices=['mixed', 'head']
     )
 
-    doNewton = properties.Bool(
-        "Do a Newton iteration vs. a Picard iteration ",
+    do_newton = properties.Bool(
+        'Do a Newton iteration vs. a Picard iteration',
         default=False
     )
 
-    maxIterRootFinder = properties.Integer(
-        "Maximum iterations for rootFinder iteration.",
+    root_finder_max_iter = properties.Integer(
+        'Maximum iterations for root_finder iteration',
         default=30
     )
 
-    tolRootFinder = properties.Float(
-        "Maximum iterations for rootFinder iteration.",
+    root_finder_tol = properties.Float(
+        'tolerance of the root_finder',
         default=1e-4
     )
 
-    @properties.observer(['doNewton', 'maxIterRootFinder', 'tolRootFinder'])
+    @properties.observer('model')
+    def _on_model_change(self, change):
+        """Update the nested model functions when the
+        model of the problem changes.
+
+        Specifically :code:`hydraulic_conductivity` and
+        :code:`water_retention` models are updated iff they have mappings.
+        """
+
+        if (
+                not self.hydraulic_conductivity.needs_model and
+                not self.water_retention.needs_model
+           ):
+            warnings.warn('There is no model to set.')
+            return
+
+        model = change['value']
+
+        if self.hydraulic_conductivity.needs_model:
+            self.hydraulic_conductivity.model = model
+
+        if self.water_retention.needs_model:
+            self.water_retention.model = model
+
+    def getBoundaryConditions(self, ii, u_ii):
+        if type(self.boundary_conditions) is np.ndarray:
+            return self.boundary_conditions
+
+        time = self.timeMesh.vectorCCx[ii]
+
+        return self.boundary_conditions(time, u_ii)
+
+    @properties.observer([
+                          'do_newton',
+                          'root_finder_max_iter',
+                          'root_finder_tol'
+                        ])
     def _on_root_finder_update(self, change):
+        """Setting do_newton etc. will clear the root_finder,
+        which will be reinitialized when called
         """
-            Setting doNewton will clear the rootFinder,
-            which will be reinitialized when called
-        """
-        if hasattr(self, '_rootFinder'):
-            del self._rootFinder
+        if hasattr(self, '_root_finder'):
+            del self._root_finder
 
     @property
-    def rootFinder(self):
+    def root_finder(self):
         """Root-finding Algorithm"""
-        if getattr(self, '_rootFinder', None) is None:
-            self._rootFinder = Optimization.NewtonRoot(
-                doLS=self.doNewton,
-                maxIter=self.maxIterRootFinder,
-                tol=self.tolRootFinder,
+        if getattr(self, '_root_finder', None) is None:
+            self._root_finder = Optimization.NewtonRoot(
+                doLS=self.do_newton,
+                maxIter=self.root_finder_max_iter,
+                tol=self.root_finder_tol,
                 Solver=self.Solver
             )
-        return self._rootFinder
+        return self._root_finder
 
     @Utils.timeIt
-    def fields(self, m):
+    def fields(self, m=None):
+        if self.water_retention.needs_model or self.hydraulic_conductivity.needs_model:
+            assert m is not None
+        else:
+            assert m is None
+
         tic = time.time()
         u = list(range(self.nT+1))
-        u[0] = self.initialConditions
+        u[0] = self.initial_conditions
         for ii, dt in enumerate(self.timeSteps):
             bc = self.getBoundaryConditions(ii, u[ii])
-            u[ii+1] = self.rootFinder.root(
+            u[ii+1] = self.root_finder.root(
                 lambda hn1m, return_g=True: self.getResidual(
                     m, u[ii], hn1m, dt, bc, return_g=return_g
                 ),
@@ -182,12 +137,12 @@ class RichardsProblem(Problem.BaseTimeProblem):
             )
             if self.debug:
                 print(
-                    "Solving Fields ({0:4d}/{1:d} - {2:3.1f}% Done) {3:d} "
-                    "Iterations, {4:4.2f} seconds".format(
+                    'Solving Fields ({0:4d}/{1:d} - {2:3.1f}% Done) {3:d} '
+                    'Iterations, {4:4.2f} seconds'.format(
                         ii+1,
                         self.nT,
                         100.0*(ii+1)/self.nT,
-                        self.rootFinder.iter,
+                        self.root_finder.iter,
                         time.time() - tic
                     )
                 )
@@ -196,32 +151,36 @@ class RichardsProblem(Problem.BaseTimeProblem):
     @property
     def Dz(self):
         if self.mesh.dim == 1:
-            Dz = self.mesh.faceDivx
-        elif self.mesh.dim == 2:
-            Dz = sp.hstack(
-                (
-                    Utils.spzeros(
-                        self.mesh.nC, self.mesh.vnF[0]
-                    ),
-                    self.mesh.faceDivy
-                ),
-                format='csr'
+            return self.mesh.faceDivx
+
+        if self.mesh.dim == 2:
+            mats = (
+                Utils.spzeros(self.mesh.nC, self.mesh.vnF[0]),
+                self.mesh.faceDivy
             )
         elif self.mesh.dim == 3:
-            Dz = sp.hstack(
-                (
-                    Utils.spzeros(
-                        self.mesh.nC,
-                        self.mesh.vnF[0]+self.mesh.vnF[1]
-                    ),
-                    self.mesh.faceDivz
-                ),
-                format='csr'
+            mats = (
+                Utils.spzeros(self.mesh.nC, self.mesh.vnF[0]+self.mesh.vnF[1]),
+                self.mesh.faceDivz
             )
-        return Dz
+        return sp.hstack(mats, format='csr')
 
     @Utils.timeIt
     def diagsJacobian(self, m, hn, hn1, dt, bc):
+        """Diagonals and rhs of the jacobian system
+
+        The matrix that we are computing has the form::
+
+            .-                                      -. .-  -.   .-  -.
+            |  Adiag                                 | | h1 |   | b1 |
+            |   Asub    Adiag                        | | h2 |   | b2 |
+            |            Asub    Adiag               | | h3 | = | b3 |
+            |                 ...     ...            | | .. |   | .. |
+            |                         Asub    Adiag  | | hn |   | bn |
+            '-                                      -' '-  -'   '-  -'
+        """
+        if m is not None:
+            self.model = m
 
         DIV = self.mesh.faceDiv
         GRAD = self.mesh.cellGrad
@@ -229,11 +188,14 @@ class RichardsProblem(Problem.BaseTimeProblem):
         AV = self.mesh.aveF2CC.T
         Dz = self.Dz
 
-        dT = self.mapping.thetaDerivU(hn, m)
-        dT1 = self.mapping.thetaDerivU(hn1, m)
-        K1 = self.mapping.k(hn1, m)
-        dK1 = self.mapping.kDerivU(hn1, m)
-        dKm1 = self.mapping.kDerivM(hn1, m)
+        dT = self.water_retention.derivU(hn)
+        dT1 = self.water_retention.derivU(hn1)
+        dTm = self.water_retention.derivM(hn)
+        dTm1 = self.water_retention.derivM(hn1)
+
+        K1 = self.hydraulic_conductivity(hn1)
+        dK1 = self.hydraulic_conductivity.derivU(hn1)
+        dKm1 = self.hydraulic_conductivity.derivM(hn1)
 
         # Compute part of the derivative of:
         #
@@ -245,16 +207,6 @@ class RichardsProblem(Problem.BaseTimeProblem):
             AV*Utils.sdiag(K1**(-2))
         )
 
-        # The matrix that we are computing has the form:
-        #
-        #   -                                      -   -  -     -  -
-        #  |  Adiag                                 | | h1 |   | b1 |
-        #  |   Asub    Adiag                        | | h2 |   | b2 |
-        #  |            Asub    Adiag               | | h3 | = | b3 |
-        #  |                 ...     ...            | | .. |   | .. |
-        #  |                         Asub    Adiag  | | hn |   | bn |
-        #   -                                      -   -  -     -  -
-
         Asub = (-1.0/dt)*dT
 
         Adiag = (
@@ -264,26 +216,34 @@ class RichardsProblem(Problem.BaseTimeProblem):
             Dz*diagAVk2_AVdiagK2*dK1
         )
 
-        B = DdiagGh1*diagAVk2_AVdiagK2*dKm1 + Dz*diagAVk2_AVdiagK2*dKm1
+        B = (
+            DdiagGh1*diagAVk2_AVdiagK2*dKm1 +
+            Dz*diagAVk2_AVdiagK2*dKm1 +
+            (1.0/dt)*(dTm - dTm1)
+        )
 
         return Asub, Adiag, B
 
     @Utils.timeIt
     def getResidual(self, m, hn, h, dt, bc, return_g=True):
+        """Used by the root finder when going between timesteps
+
+        Where h is the proposed value for the next time iterate (h_{n+1})
         """
-            Where h is the proposed value for the next time iterate (h_{n+1})
-        """
+        if m is not None:
+            self.model = m
+
         DIV = self.mesh.faceDiv
         GRAD = self.mesh.cellGrad
         BC = self.mesh.cellGradBC
         AV = self.mesh.aveF2CC.T
         Dz = self.Dz
 
-        T = self.mapping.theta(h, m)
-        dT = self.mapping.thetaDerivU(h, m)
-        Tn = self.mapping.theta(hn, m)
-        K = self.mapping.k(h, m)
-        dK = self.mapping.kDerivU(h, m)
+        T = self.water_retention(h)
+        dT = self.water_retention.derivU(h)
+        Tn = self.water_retention(hn)
+        K = self.hydraulic_conductivity(h)
+        dK = self.hydraulic_conductivity.derivU(h)
 
         aveK = 1./(AV*(1./K))
 
@@ -297,14 +257,14 @@ class RichardsProblem(Problem.BaseTimeProblem):
             return r
 
         J = dT/dt - DIV*Utils.sdiag(aveK)*GRAD
-        if self.doNewton:
+        if self.do_newton:
             DDharmAve = Utils.sdiag(aveK**2)*AV*Utils.sdiag(K**(-2)) * dK
             J = J - DIV*Utils.sdiag(GRAD*h + BC*bc)*DDharmAve - Dz*DDharmAve
 
         return r, J
 
     @Utils.timeIt
-    def Jfull(self, m, f=None):
+    def Jfull(self, m=None, f=None):
         if f is None:
             f = self.fields(m)
 
@@ -328,11 +288,10 @@ class RichardsProblem(Problem.BaseTimeProblem):
         B = np.array(sp.vstack(Bs).todense())
 
         Ainv = self.Solver(A, **self.solverOpts)
-        P = self.survey.evalDeriv(f, m)
         AinvB = Ainv * B
         z = np.zeros((self.mesh.nC, B.shape[1]))
-        zAinvB = np.vstack((z, AinvB))
-        J = P * zAinvB
+        du_dm = np.vstack((z, AinvB))
+        J = self.survey.deriv(f, du_dm_v=du_dm)  # not multiplied by v
         return J
 
     @Utils.timeIt
@@ -358,16 +317,16 @@ class RichardsProblem(Problem.BaseTimeProblem):
             Adiaginv = self.Solver(Adiag, **self.solverOpts)
             JvC[ii] = Adiaginv * (B*v - Asub*JvC[ii-1])
 
-        P = self.survey.evalDeriv(f, m)
-        return P * np.concatenate([np.zeros(self.mesh.nC)] + JvC)
+        du_dm_v = np.concatenate([np.zeros(self.mesh.nC)] + JvC)
+        Jv = self.survey.deriv(f, du_dm_v=du_dm_v, v=v)
+        return Jv
 
     @Utils.timeIt
     def Jtvec(self, m, v, f=None):
         if f is None:
             f = self.field(m)
 
-        P = self.survey.evalDeriv(f, m)
-        PTv = P.T*v
+        PTv, PTdv = self.survey.derivAdjoint(f, v=v)
 
         # This is done via backward substitution.
         minus = 0
@@ -384,4 +343,4 @@ class RichardsProblem(Problem.BaseTimeProblem):
             minus = Asub.T*JTvC  # this is now the super diagonal.
             BJtv = BJtv + B.T*JTvC
 
-        return BJtv
+        return BJtv + PTdv

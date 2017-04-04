@@ -16,7 +16,7 @@ Examples
 .. toctree::
    :maxdepth: 2
 
-   content/api_core/api_Examples
+   content/examples/index
 
 Packages
 ********

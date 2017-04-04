@@ -1,10 +1,8 @@
 from __future__ import print_function
 import unittest
-from SimPEG import Mesh, np, PF
+from SimPEG import Mesh, PF
 from SimPEG.Utils import io_utils
 from scipy.constants import mu_0
-import os
-import urllib
 import shutil
 
 

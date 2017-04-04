@@ -1,6 +1,6 @@
 import unittest
-from SimPEG import Mesh, Utils, np, PF, Maps, Problem, Survey, mkvc
-import matplotlib.pyplot as plt
+from SimPEG import Mesh, Utils, PF, Maps
+import numpy as np
 
 
 class GravFwdProblemTests(unittest.TestCase):
@@ -41,12 +41,12 @@ class GravFwdProblemTests(unittest.TestCase):
         srcField = PF.BaseGrav.SrcField([rxLoc])
         self.survey = PF.BaseGrav.LinearSurvey(srcField)
 
-        self.prob_xyz = PF.Gravity.GravityIntegral(mesh, mapping=idenMap,
+        self.prob_xyz = PF.Gravity.GravityIntegral(mesh, rhoMap=idenMap,
                                                    actInd=sph_ind,
                                                    forwardOnly=True,
                                                    rtype='xyz')
 
-        self.prob_z = PF.Gravity.GravityIntegral(mesh, mapping=idenMap,
+        self.prob_z = PF.Gravity.GravityIntegral(mesh, rhoMap=idenMap,
                                                  actInd=sph_ind,
                                                  forwardOnly=True,
                                                  rtype='z')
