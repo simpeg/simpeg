@@ -114,7 +114,7 @@ pygments_style = 'sphinx'
 # -- Edit on Github Extension ---------------------------------------------
 
 edit_on_github_project = 'simpeg/simpeg'
-edit_on_github_branch = 'master'
+edit_on_github_branch = 'master/docs'
 check_meta = False
 
 # -- Options for HTML output ---------------------------------------------------
