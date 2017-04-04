@@ -11,6 +11,8 @@ impedance and tipper synthetic data.
 import SimPEG as simpeg
 from SimPEG.EM import NSEM
 import numpy as np
+import matplotlib.pyplot as plt
+
 try:
     from pymatsolver import Pardiso as Solver
 except:
