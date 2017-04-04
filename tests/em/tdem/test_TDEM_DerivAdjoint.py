@@ -118,56 +118,56 @@ class TDEM_DerivTests(unittest.TestCase):
             prbtype=prbtype, v1=V1, v2=V2, passed=passed))
         self.assertTrue(passed)
 
-    # def test_Aderiv_b(self):
-    #     self.AderivTest(prbtype='b')
+    def test_Aderiv_b(self):
+        self.AderivTest(prbtype='b')
 
-    # def test_Aderiv_e(self):
-    #     self.AderivTest(prbtype='e')
+    def test_Aderiv_e(self):
+        self.AderivTest(prbtype='e')
 
-    # def test_Aadjoint_b(self):
-    #     self.A_adjointTest(prbtype='b')
+    def test_Aadjoint_b(self):
+        self.A_adjointTest(prbtype='b')
 
-    # def test_Aadjoint_e(self):
-    #     self.A_adjointTest(prbtype='e')
+    def test_Aadjoint_e(self):
+        self.A_adjointTest(prbtype='e')
 
 # ====== TEST Fields Deriv Pieces ========== #
 
-    # def test_eDeriv_m_adjoint(self):
-    #     prb, m0, mesh = setUp_TDEM()
-    #     tInd = 0
+    def test_eDeriv_m_adjoint(self):
+        prb, m0, mesh = setUp_TDEM()
+        tInd = 0
 
-    #     v = np.random.rand(mesh.nF)
+        v = np.random.rand(mesh.nF)
 
-    #     print '\n Testing eDeriv_m Adjoint'
+        print ('\n Testing eDeriv_m Adjoint')
 
-    #     prb, m0, mesh = setUp_TDEM()
-    #     f = prb.fields(m0)
+        prb, m0, mesh = setUp_TDEM()
+        f = prb.fields(m0)
 
-    #     m = np.random.rand(prb.mapping.nP)
-    #     e = np.random.randn(prb.mesh.nE)
-    #     V1 = e.dot(f._eDeriv_m(1, prb.survey.srcList[0], m))
-    #     V2 = m.dot(f._eDeriv_m(1, prb.survey.srcList[0], e, adjoint=True))
-    #     tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
-    #     passed = np.abs(V1-V2) < tol
+        m = np.random.rand(prb.mapping.nP)
+        e = np.random.randn(prb.mesh.nE)
+        V1 = e.dot(f._eDeriv_m(1, prb.survey.srcList[0], m))
+        V2 = m.dot(f._eDeriv_m(1, prb.survey.srcList[0], e, adjoint=True))
+        tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
+        passed = np.abs(V1-V2) < tol
 
-    #     print '    ', V1, V2, np.abs(V1-V2), tol, passed
-    #     self.assertTrue(passed)
+        print ('    ', V1, V2, np.abs(V1-V2), tol, passed)
+        self.assertTrue(passed)
 
-    # def test_eDeriv_u_adjoint(self):
-    #     print '\n Testing eDeriv_u Adjoint'
+    def test_eDeriv_u_adjoint(self):
+        print ('\n Testing eDeriv_u Adjoint')
 
-    #     prb, m0, mesh = setUp_TDEM()
-    #     f = prb.fields(m0)
+        prb, m0, mesh = setUp_TDEM()
+        f = prb.fields(m0)
 
-    #     b = np.random.rand(prb.mesh.nF)
-    #     e = np.random.randn(prb.mesh.nE)
-    #     V1 = e.dot(f._eDeriv_u(1, prb.survey.srcList[0], b))
-    #     V2 = b.dot(f._eDeriv_u(1, prb.survey.srcList[0], e, adjoint=True))
-    #     tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
-    #     passed = np.abs(V1-V2) < tol
+        b = np.random.rand(prb.mesh.nF)
+        e = np.random.randn(prb.mesh.nE)
+        V1 = e.dot(f._eDeriv_u(1, prb.survey.srcList[0], b))
+        V2 = b.dot(f._eDeriv_u(1, prb.survey.srcList[0], e, adjoint=True))
+        tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
+        passed = np.abs(V1-V2) < tol
 
-    #     print '    ', V1, V2, np.abs(V1-V2), tol, passed
-    #     self.assertTrue(passed)
+        print ('    ', V1, V2, np.abs(V1-V2), tol, passed)
+        self.assertTrue(passed)
 
 
 # ====== TEST Jvec ========== #
