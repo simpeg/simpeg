@@ -143,7 +143,7 @@ class TDEM_DerivTests(unittest.TestCase):
         prb, m0, mesh = setUp_TDEM()
         f = prb.fields(m0)
 
-        m = np.random.rand(prb.mapping.nP)
+        m = np.random.rand(prb.sigmaMap.nP)
         e = np.random.randn(prb.mesh.nE)
         V1 = e.dot(f._eDeriv_m(1, prb.survey.srcList[0], m))
         V2 = m.dot(f._eDeriv_m(1, prb.survey.srcList[0], e, adjoint=True))
