@@ -76,11 +76,10 @@ class GravInvLinProblemTest(unittest.TestCase):
         idenMap = Maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        prob = PF.Gravity.GravityIntegral(
-            mesh,
-            rhoMap=idenMap,
-            actInd=actv
-        )
+        prob = PF.Gravity.GravityIntegral(mesh,
+                                          rhoMap=idenMap,
+                                          actInd=actv,
+                                          silent=True)
 
         # Pair the survey and problem
         survey.pair(prob)

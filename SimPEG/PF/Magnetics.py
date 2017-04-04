@@ -27,6 +27,7 @@ class MagneticIntegral(Problem.LinearProblem):
     recType = 'tmi'  #: Receiver type either "tmi" | "xyz"
     magType = 'H0'
     equiSourceLayer = False
+    silent = False  # Don't display progress on screen
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
@@ -192,8 +193,8 @@ class MagneticIntegral(Problem.LinearProblem):
 
             F = np.empty((ndata, Mxyz.shape[1]), dtype=np.float32)
 
-            # Loop through all observations and create forward operator (nD-by-nC)
-            print("Begin calculation of forward operator: " + magType)
+        # Loop through all observations and create forward operator (nD-by-nC)
+        print("Begin forward: M=" + magType + ", Rx type= " + recType)
 
         # Add counter to dsiplay progress. Good for large problems
         count = -1
@@ -246,8 +247,9 @@ class MagneticIntegral(Problem.LinearProblem):
                 #     elif self.recType == 'z':
                 #         F[ii, :] = tz * survey.srcField.param[0]
 
-            # Display progress
-            count = progress(ii, count, ndata)
+            if not self.silent:
+                # Display progress
+                count = progress(ii, count, ndata)
 
         print("Done 100% ...forward operator completed!!\n")
 
@@ -260,8 +262,9 @@ class MagneticVector(MagneticIntegral):
     actInd = None  #: Active cell indices provided
     M = None  #: magType matrix provided, otherwise all induced
     ptype = 'Cartesian'  # Formulation either "Cartesian" | "Spherical"
-    magType = 'full' # magType component
+    magType = 'full'  # magType component
     chi = None
+    silent = False  # Don't display progress on screen
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
@@ -392,6 +395,7 @@ class MagneticAmplitude(MagneticIntegral):
     M = None  #: magType matrix provided, otherwise all induced
     magType = 'H0'  #: Receivers must be "xyz"
     chi = None
+    silent = False  # Don't display progress on screen
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)

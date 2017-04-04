@@ -94,7 +94,8 @@ def run(plotIt=True):
     idenMap = Maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
-    prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap, actInd=actv)
+    prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap, actInd=actv,
+                                         silent=True)
 
     # Pair the survey and problem
     survey.pair(prob)
@@ -133,7 +134,7 @@ def run(plotIt=True):
     #betaest = Directives.BetaEstimate_ByEig()
 
     # Here is where the norms are applied
-    
+
     # Use pick a treshold parameter empirically based on the distribution of
     #  model parameters
 

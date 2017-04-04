@@ -123,7 +123,7 @@ def run(plotIt=True):
 
     # Create the forward model operator
     prob = PF.Magnetics.MagneticVector(mesh, chiMap=idenMap,
-                                       actInd=actv)
+                                       actInd=actv, silent=True)
 
     # Pair the survey and problem
     survey.pair(prob)

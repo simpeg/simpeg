@@ -46,11 +46,9 @@ class MagFwdProblemTests(unittest.TestCase):
 
         self.prob_xyz = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
                                                       actInd=sph_ind,
-                                                      forwardOnly=True)
+                                                      forwardOnly=True,
+                                                      silent=True)
 
-        self.prob_tmi = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
-                                                      actInd=sph_ind,
-                                                      forwardOnly=True)
 
     def test_ana_forward(self):
 
@@ -60,10 +58,7 @@ class MagFwdProblemTests(unittest.TestCase):
         dbx = self.prob_xyz.Intrgl_Fwr_Op(self.model, recType='x')
         dby = self.prob_xyz.Intrgl_Fwr_Op(self.model, recType='y')
         dbz = self.prob_xyz.Intrgl_Fwr_Op(self.model, recType='z')
-
-        # Compute tmi mag data
-        self.survey.pair(self.prob_tmi)
-        dtmi = self.prob_tmi.fields(self.model)
+        dtmi = self.prob_xyz.Intrgl_Fwr_Op(self.model, recType='tmi')
 
         # Compute analytical response from a magnetized sphere
         bxa, bya, bza = PF.MagAnalytics.MagSphereFreeSpace(self.locXyz[:, 0],

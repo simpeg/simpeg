@@ -20,6 +20,7 @@ class GravityIntegral(Problem.LinearProblem):
     forwardOnly = False  # Is TRUE, forward matrix not stored to memory
     actInd = None  #: Active cell indices provided
     rType = 'z'
+    silent = False
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
@@ -49,7 +50,7 @@ class GravityIntegral(Problem.LinearProblem):
 
         return self._F
 
-    def Intrgl_Fwr_Op(self, flag):
+    def Intrgl_Fwr_Op(self, m=None, rType='z'):
 
         """
 
@@ -129,13 +130,13 @@ class GravityIntegral(Problem.LinearProblem):
                 tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
 
                 if self.rType == 'x':
-                    F[ii] = tz.dot(rho)
+                    F[ii] = tx.dot(m)
 
                 elif self.rType == 'y':
-                    F[ii] = tz.dot(rho)
+                    F[ii] = ty.dot(m)
 
                 elif self.rType == 'z':
-                    F[ii] = tz.dot(rho)
+                    F[ii] = tz.dot(m)
 
             else:
                 if self.rType == 'x':
@@ -150,8 +151,9 @@ class GravityIntegral(Problem.LinearProblem):
                 else:
                     raise Exception('rType must be: "x", "y" or "z"')
 
-            # Display progress
-            count = progress(ii, count, ndata)
+            if not self.silent:
+                # Display progress
+                count = progress(ii, count, ndata)
 
         print("Done 100% ...forward operator completed!!\n")
 

@@ -109,7 +109,7 @@ def run(plotIt=True):
 
     # Create the forward problem (forwardOnly)
     prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap, actInd=actv,
-                                         M=M)
+                                         M=M, silent=True)
 
     # Pair the survey and problem
     survey.pair(prob)
@@ -177,7 +177,7 @@ def run(plotIt=True):
 
     # Create MAG equivalent layer problem
     prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap, actInd=surf,
-                                         equiSourceLayer=True)
+                                         equiSourceLayer=True, silent=True)
     prob.solverOpts['accuracyTol'] = 1e-4
 
     # Pair the survey and problem
@@ -251,7 +251,7 @@ def run(plotIt=True):
 
     # Create the forward model operator
     prob = PF.Magnetics.MagneticAmplitude(mesh, chiMap=idenMap,
-                                          actInd=actv)
+                                          actInd=actv, silent=True)
 
     # Define starting model
     mstart = np.ones(len(actv))*1e-4
