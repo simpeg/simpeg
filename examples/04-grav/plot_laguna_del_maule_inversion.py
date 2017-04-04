@@ -134,13 +134,12 @@ def run(plotIt=True, cleanAfterRun=True):
     IRLS = Directives.Update_IRLS(f_min_change=1e-2, maxIRLSiter=20,
                                   minGNiter=5)
 
-
     # Preconditioning refreshing for each IRLS iteration
     update_Jacobi = Directives.Update_lin_PreCond()
 
     # Create combined the L2 and Lp problem
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[ IRLS, update_Jacobi,betaest, ])
+                                  directiveList=[betaest, IRLS, update_Jacobi])
 
     # %%
     # Run L2 and Lp inversion

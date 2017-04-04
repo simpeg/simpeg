@@ -279,26 +279,41 @@ class LinearProblem(BaseProblem):
         self._modelMap = val
 
     def fields(self, m):
-        vec = np.empty(self.F.shape[0])
-        for ii in range(self.F.shape[0]):
-            vec[ii] = self.F[ii, :].dot(m)
-        return vec
+
+        # Check possible dtype for linear operator
+        # Important to avoid memory copies of dense matrix
+        if self.F.dtype is np.dtype('float32'):
+            y = np.dot(self.F, m.astype(np.float32))
+            y.astype(np.float64)
+
+        else:
+            y = np.dot(self.F, m)
+
+        return y
 
     def Jvec(self, m, v, f=None):
 
-        vec = np.dot(self.F, v.astype(np.float32))
-        return vec.astype(np.float64)
+        # Check possible dtype for linear operator
+        # Important to avoid memory copies of dense matrix
+        if self.F.dtype is np.dtype('float32'):
+            y = np.dot(self.F, v.astype(np.float32))
+            y.astype(np.float64)
+
+        else:
+            y = np.dot(self.F, v)
+
+        return y
 
     def Jtvec(self, m, v, f=None):
-        # strt = time.time()
-        y = np.dot(self.F.T, v.astype(np.float32))
-        # print('C time: ' + str(time.time()-strt))
 
-        # strt = time.time()
-        # y = np.zeros(self.F.shape[1])
-        # for ii in range(self.F.shape[1]):
-        #     vec = self.F[:, ii]
-        #     y[ii] = np.dot(vec, v)
-        # print('Python time: ' + str(time.time()-strt))
+        # Check possible dtype for linear operator
+        # Important to avoid memory copies of dense matrix
+        if self.F.dtype is np.dtype('float32'):
 
-        return y.astype(np.float64)
+            y = np.dot(self.F.T, v.astype(np.float32))
+            y.astype(np.float64)
+
+        else:
+            y = np.dot(self.F.T, v)
+
+        return y

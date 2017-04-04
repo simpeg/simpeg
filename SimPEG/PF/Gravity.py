@@ -19,120 +19,25 @@ class GravityIntegral(Problem.LinearProblem):
     # surveyPair = Survey.LinearSurvey
     forwardOnly = False  # Is TRUE, forward matrix not stored to memory
     actInd = None  #: Active cell indices provided
-    rtype = 'z'
+    rType = 'z'
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
-    def fwr_op(self):
-        # Add forward function
-        # kappa = self.model.kappa TODO
-        rho = self.rhoMap*self.model
-
-        if self.forwardOnly:
-
-            if getattr(self, 'actInd', None) is not None:
-
-                if self.actInd.dtype == 'bool':
-                    inds = np.asarray([inds for inds,
-                                      elem in enumerate(self.actInd, 1)
-                                      if elem], dtype=int) - 1
-                else:
-                    inds = self.actInd
-
-            else:
-
-                inds = np.asarray(range(self.mesh.nC))
-
-            nC = len(inds)
-
-            # Create active cell projector
-            P = sp.csr_matrix(
-                (np.ones(nC), (inds, range(nC))),
-                shape=(self.mesh.nC, nC)
-            )
-
-            # Create vectors of nodal location
-            # (lower and upper corners for each cell)
-            xn = self.mesh.vectorNx
-            yn = self.mesh.vectorNy
-            zn = self.mesh.vectorNz
-
-            yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
-            yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
-
-            Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
-            Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
-            Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
-
-            rxLoc = self.survey.srcField.rxList[0].locs
-            ndata = rxLoc.shape[0]
-
-            # Pre-allocate space and create magnetization matrix if required
-            # Pre-allocate space
-            if self.rtype == 'z':
-
-                fwr_d = np.zeros(self.survey.nRx)
-
-            elif self.rtype == 'xyz':
-
-                fwr_d = np.zeros(3*self.survey.nRx)
-
-            else:
-
-                print("""Flag must be either 'z' | 'xyz', please revised""")
-                return
-
-            # Add counter to dsiplay progress. Good for large problems
-            count = -1
-            for ii in range(ndata):
-
-                tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
-
-                if self.rtype == 'z':
-                    fwr_d[ii] = tz.dot(rho)
-
-                elif self.rtype == 'xyz':
-                    fwr_d[ii] = tx.dot(rho)
-                    fwr_d[ii+ndata] = ty.dot(rho)
-                    fwr_d[ii+2*ndata] = tz.dot(rho)
-
-            # Display progress
-                count = progress(ii, count, ndata)
-
-            print("Done 100% ...forward operator completed!!\n")
-
-            return fwr_d
-
-        else:
-            return self.F.dot(rho)
-
     def fields(self, m):
         self.model = self.rhoMap*m
 
-        fields = self.fwr_op()
+        if self.forwardOnly:
 
-        return fields
+            # Compute the linear operation without forming the full dense G
+            fields = self.Intrgl_Fwr_Op(m=m)
 
-    def Jvec(self, m, v, f=None):
+            return fields
 
-        dmudm = self.rhoMap.deriv(m)
+        else:
+            vec = np.dot(self.F, (self.rhoMap*(m)).astype(np.float32))
 
-        vec = np.empty(self.F.shape[0])
-        for ii in range(self.F.shape[0]):
-            vec[ii] = self.F[ii, :].dot(dmudm*v)
-
-        return vec
-
-
-    def Jtvec(self, m, v, f=None):
-        dmudm = self.rhoMap.deriv(m)
-
-        vec = np.empty(self.F.shape[1])
-        for ii in range(self.F.shape[1]):
-            vec[ii] = self.F[:, ii].dot(v)
-
-        return dmudm.T * vec
+            return vec.astype(np.float64)
 
     @property
     def F(self):
@@ -153,7 +58,7 @@ class GravityIntegral(Problem.LinearProblem):
         flag        = 'z' | 'xyz'
 
         Return
-        _G        = Linear forward modeling operation
+        _F        = Linear forward modeling operation
 
         Created on March, 15th 2016
 
@@ -197,25 +102,20 @@ class GravityIntegral(Problem.LinearProblem):
         Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
         rxLoc = self.survey.srcField.rxList[0].locs
-        ndata = rxLoc.shape[0]
+        ndata = int(rxLoc.shape[0])
 
         # Pre-allocate space and create magnetization matrix if required
         # Pre-allocate space
-        if flag == 'z':
+        if self.forwardOnly:
 
-            F = np.zeros((ndata, nC))
-
-        elif flag == 'xyz':
-
-            F = np.zeros((int(3*ndata), nC))
+            F = np.empty(ndata, dtype='float64')
 
         else:
 
-            print("""Flag must be either 'z' | 'xyz', please revised""")
-            return
+            F = np.zeros((ndata, nC), dtype=np.float32)
 
         # Loop through all observations
-        print("Begin calculation of forward operator: " + flag)
+        print("Begin linear forward calculation: " + self.rType)
 
         # Add counter to dsiplay progress. Good for large problems
         count = -1
@@ -223,14 +123,32 @@ class GravityIntegral(Problem.LinearProblem):
 
             tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
 
-            if flag == 'z':
+                        # Add counter to dsiplay progress. Good for large problems
 
-                F[ii, :] = tz
+            if self.forwardOnly:
+                tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
 
-            elif flag == 'xyz':
-                F[ii, :] = tx
-                F[ii+ndata, :] = ty
-                F[ii+2*ndata, :] = tz
+                if self.rType == 'x':
+                    F[ii] = tz.dot(rho)
+
+                elif self.rType == 'y':
+                    F[ii] = tz.dot(rho)
+
+                elif self.rType == 'z':
+                    F[ii] = tz.dot(rho)
+
+            else:
+                if self.rType == 'x':
+                    F[ii, :] = tx
+
+                elif self.rType == 'y':
+                    F[ii, :] = ty
+
+                elif self.rType == 'z':
+                    F[ii, :] = tz
+
+                else:
+                    raise Exception('rType must be: "x", "y" or "z"')
 
             # Display progress
             count = progress(ii, count, ndata)
