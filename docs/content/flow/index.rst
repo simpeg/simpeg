@@ -33,13 +33,29 @@ However, it can be shown that this does not conserve mass in the discrete formul
 
 Here we reproduce the results from Celia et al. (1990):
 
-.. plot::
+.. image:: /content/examples/10-flow/images/sphx_glr_plot_richards_celia1990_001.png
+    :target: /content/examples/10-flow/plot_richards_celia1990.html
+    :align: center
 
-    from SimPEG import Examples
-    Examples.FLOW_Richards_1D_Celia1990.run()
+Richards Problem
+================
 
-Richards
-========
+.. automodule:: SimPEG.FLOW.Richards.RichardsProblem
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+Richards Survey
+===============
+
+.. automodule:: SimPEG.FLOW.Richards.RichardsSurvey
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+
+Vadose Zone Empirical Relationships
+===================================
 
 .. automodule:: SimPEG.FLOW.Richards.Empirical
     :show-inheritance:

@@ -11,8 +11,8 @@ from . import Utils
 class Fields(object):
     """Fancy Field Storage
 
-        u[:,'phi'] = phi
-        print(u[src0,'phi'])
+    u[:,'phi'] = phi
+    print(u[src0,'phi'])
 
     """
 
@@ -170,7 +170,6 @@ class Fields(object):
                     'exist in the Fields class.'
                 )
                 func = getattr(self, func)
-            self._fields[alias]
             out = func(self._fields[alias][:, ind], srcII)
         if out.shape[0] == out.size or out.ndim == 1:
             out = Utils.mkvc(out, 2)
@@ -235,7 +234,9 @@ class TimeFields(Fields):
     def _setField(self, field, val, name, ind):
         srcInd, timeInd = ind
         shape = self._correctShape(name, ind)
-        if Utils.isScalar(val):
+        if isinstance(val, np.ndarray) and val.size == 1:
+            val = val[0]
+        if np.isscalar(val):
             field[:, srcInd, timeInd] = val
             return
         if val.size != np.array(shape).prod():

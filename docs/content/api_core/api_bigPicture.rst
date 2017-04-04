@@ -32,8 +32,21 @@ lot of work to do!
 The Big Picture
 ---------------
 
-Defining a well-posed inverse problem and solving it is a complex task that requires many components that must interact. It is helpful
-to view this task as a workflow in which various elements are explicitly identified and integrated. The figure below outlines the inversion components that consists of inputs, implementation, and evaluation. The inputs are composed of the geophysical data, the equations which are a mathematical description of the governing physics, and prior knowledge or assumptions about the setting. The implementation consists of two broad categories: the forward simulation and the inversion. The **forward simulation** is the means by which we solve the governing equations given a model and the **inversion components** evaluate and update this model. We are considering a gradient based approach, which updates the model through an optimization routine. The output of this implementation is a model, which, prior to interpretation, must be evaluated. This requires considering, and often re-assessing, the choices and assumptions made in both the input and implementation stages.
+Defining a well-posed inverse problem and solving it is a complex task that
+requires many components that must interact. It is helpful to view this task
+as a workflow in which various elements are explicitly identified and
+integrated. The figure below outlines the inversion components that consists
+of inputs, implementation, and evaluation. The inputs are composed of the
+geophysical data, the equations which are a mathematical description of the
+governing physics, and prior knowledge or assumptions about the setting. The
+implementation consists of two broad categories: the forward simulation and
+the inversion. The **forward simulation** is the means by which we solve the
+governing equations given a model and the **inversion components** evaluate
+and update this model. We are considering a gradient based approach, which
+updates the model through an optimization routine. The output of this
+implementation is a model, which, prior to interpretation, must be evaluated.
+This requires considering, and often re-assessing, the choices and assumptions
+made in both the input and implementation stages.
 
 .. image:: ../../images/InversionWorkflow-PreSimPEG.png
    :width: 400 px
@@ -44,16 +57,67 @@ to view this task as a workflow in which various elements are explicitly identif
 A Comprehensive Framework
 -------------------------
 
-There are an overwhelming amount of choices to be made as one works through the forward modeling and inversion process (see figure above). As a result, software implementations of this workflow often become complex and highly interdependent, making it difficult to interact with and to ask other scientists to pick up and change. Our approach to handling this complexity is to propose a framework, (see below), that compartmentalizes the implementation of inversions into various units. We present it in this specific modular style, as each unit contains a targeted subset of choices crucial to the inversion process.
+There are an overwhelming amount of choices to be made as one works through
+the forward modeling and inversion process (see figure above). As a result,
+software implementations of this workflow often become complex and highly
+interdependent, making it difficult to interact with and to ask other
+scientists to pick up and change. Our approach to handling this complexity is
+to propose a framework, (see below), that compartmentalizes the implementation
+of inversions into various units. We present it in this specific modular
+style, as each unit contains a targeted subset of choices crucial to the
+inversion process.
 
 .. image:: ../../images/InversionWorkflow.png
    :width: 400 px
    :alt: Framework
    :align: center
 
-The process of obtaining an acceptable model from an inversion generally requires the geophysicist to perform several iterations of the inversion workflow, rethinking and redesigning each piece of the framework to ensure it is appropriate in the current context. Inversions are experimental and empirical by nature and our software package is designed to facilitate this iterative process. To accomplish this, we have divided the inversion methodology into eight major components (See figure above). The :class:`SimPEG.Mesh.BaseMesh.BaseMesh` class handles the discretization of the earth and also provides numerical operators. The forward simulation is split into two classes, the :class:`SimPEG.Survey.BaseSurvey` and the :class:`SimPEG.Problem.BaseProblem`. The :class:`SimPEG.Survey.BaseSurvey` class handles the geometry of a geophysical problem as well as sources. The :class:`SimPEG.Problem.BaseProblem` class handles the simulation of the physics for the geophysical problem of interest. Although created independently, these two classes must be paired to form all of the components necessary for a geophysical forward simulation and calculation of the sensitivity. The :class:`SimPEG.Problem.BaseProblem` creates geophysical fields given a source from the :class:`SimPEG.Survey.BaseSurvey`. The :class:`SimPEG.Survey.BaseSurvey` interpolates these fields to the receiver locations and converts them to the appropriate data type, for example, by selecting only the measured components of the field. Each of these operations may have associated derivatives with respect to the model and the computed field; these are included in the calculation of the sensitivity. For the inversion, a :class:`SimPEG.DataMisfit.BaseDataMisfit` is chosen to capture the goodness of fit of the predicted data and a :class:`SimPEG.Regularization.BaseRegularization` is chosen to handle the non-uniqueness. These inversion elements and an Optimization routine are combined into an inverse problem class :class:`SimPEG.InvProblem.BaseInvProblem`. :class:`SimPEG.InvProblem.BaseInvProblem` is the mathematical statement that will be numerically solved by running an Inversion. The :class:`SimPEG.Inversion.BaseInversion` class handles organization and dispatch of directives between all of the various pieces of the framework.
+The process of obtaining an acceptable model from an inversion generally
+requires the geophysicist to perform several iterations of the inversion
+workflow, rethinking and redesigning each piece of the framework to ensure it
+is appropriate in the current context. Inversions are experimental and
+empirical by nature and our software package is designed to facilitate this
+iterative process. To accomplish this, we have divided the inversion
+methodology into eight major components (See figure above). The
+:class:`discretize.BaseMesh.BaseMesh` class handles the discretization of the
+earth and also provides numerical operators. The forward simulation is split
+into two classes, the :class:`SimPEG.Survey.BaseSurvey` and the
+:class:`SimPEG.Problem.BaseProblem`. The :class:`SimPEG.Survey.BaseSurvey`
+class handles the geometry of a geophysical problem as well as sources. The
+:class:`SimPEG.Problem.BaseProblem` class handles the simulation of the
+physics for the geophysical problem of interest. Although created
+independently, these two classes must be paired to form all of the components
+necessary for a geophysical forward simulation and calculation of the
+sensitivity. The :class:`SimPEG.Problem.BaseProblem` creates geophysical
+fields given a source from the :class:`SimPEG.Survey.BaseSurvey`. The
+:class:`SimPEG.Survey.BaseSurvey` interpolates these fields to the receiver
+locations and converts them to the appropriate data type, for example, by
+selecting only the measured components of the field. Each of these operations
+may have associated derivatives with respect to the model and the computed
+field; these are included in the calculation of the sensitivity. For the
+inversion, a :class:`SimPEG.DataMisfit.BaseDataMisfit` is chosen to capture
+the goodness of fit of the predicted data and a
+:class:`SimPEG.Regularization.BaseRegularization` is chosen to handle the non-
+uniqueness. These inversion elements and an Optimization routine are combined
+into an inverse problem class :class:`SimPEG.InvProblem.BaseInvProblem`.
+:class:`SimPEG.InvProblem.BaseInvProblem` is the mathematical statement that
+will be numerically solved by running an Inversion. The
+:class:`SimPEG.Inversion.BaseInversion` class handles organization and
+dispatch of directives between all of the various pieces of the framework.
 
-The arrows in the figure above indicate what each class takes as a primary argument. For example, both the :class:`SimPEG.Problem.BaseProblem` and :class:`SimPEG.Regularization.BaseRegularization` classes take a :class:`SimPEG.Mesh.BaseMesh.BaseMesh` class as an argument. The diagram does not show class inheritance, as each of the base classes outlined have many subtypes that can be interchanged. The :class:`SimPEG.Mesh.BaseMesh.BaseMesh` class, for example, could be a regular Cartesian mesh :class:`SimPEG.Mesh.TensorMesh` or a cylindrical coordinate mesh :class:`SimPEG.Mesh.CylMesh`, which have many properties in common. These common features, such as both meshes being created from tensor products, can be exploited through inheritance of base classes, and differences can be expressed through subtype polymorphism. Please look at the documentation here for more in-depth information.
+The arrows in the figure above indicate what each class takes as a primary
+argument. For example, both the :class:`SimPEG.Problem.BaseProblem` and
+:class:`SimPEG.Regularization.BaseRegularization` classes take a
+:class:`discretize.BaseMesh.BaseMesh` class as an argument. The diagram does
+not show class inheritance, as each of the base classes outlined have many
+subtypes that can be interchanged. The :class:`discretize.BaseMesh.BaseMesh`
+class, for example, could be a regular Cartesian mesh
+:class:`discretize.TensorMesh` or a cylindrical coordinate mesh
+:class:`discretize.CylMesh`, which have many properties in common. These
+common features, such as both meshes being created from tensor products, can
+be exploited through inheritance of base classes, and differences can be
+expressed through subtype polymorphism. Please look at the documentation here
+for more in-depth information.
 
 
 .. include:: ../../../CITATION.rst

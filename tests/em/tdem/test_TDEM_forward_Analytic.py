@@ -7,15 +7,17 @@ from scipy.constants import mu_0
 import matplotlib.pyplot as plt
 
 try:
-    from pymatsolver import PardisoSolver
-    Solver = PardisoSolver
+    from pymatsolver import Pardiso
+    Solver = Pardiso
 except ImportError:
     Solver = SolverLU
 
 
-def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole",
-                            sig_half=1e-2, rxOffset=50., bounds=None,
-                            plotIt=False):
+def halfSpaceProblemAnaDiff(
+    meshType, srctype="MagDipole",
+    sig_half=1e-2, rxOffset=50., bounds=None,
+    plotIt=False, rxType='bz'
+):
     if bounds is None:
         bounds = [1e-5, 1e-3]
     if meshType == 'CYL':
@@ -35,17 +37,20 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole",
     actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
 
-    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]), np.logspace(-5, -4, 21),
-                    'bz')
+    rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxType[:-1]))(
+        np.array([[rxOffset, 0., 0.]]), np.logspace(-5, -4, 21), rxType[-1]
+    )
 
     if srctype == "MagDipole":
-        src = EM.TDEM.Src.MagDipole([rx],
-                                    waveform=EM.TDEM.Src.StepOffWaveform(),
-                                    loc=np.array([0., 0., 0.]))
+        src = EM.TDEM.Src.MagDipole(
+            [rx], waveform=EM.TDEM.Src.StepOffWaveform(),
+            loc=np.array([0., 0., 0.])
+        )
     elif srctype == "CircularLoop":
-        src = EM.TDEM.Src.CircularLoop([rx],
-                                       waveform=EM.TDEM.Src.StepOffWaveform(),
-                                       loc=np.array([0., 0., 0.]), radius=0.1)
+        src = EM.TDEM.Src.CircularLoop(
+            [rx], waveform=EM.TDEM.Src.StepOffWaveform(),
+            loc=np.array([0., 0., 0.]), radius=0.1
+        )
 
     survey = EM.TDEM.Survey([src])
     prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)

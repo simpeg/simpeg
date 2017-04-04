@@ -1,6 +1,7 @@
-from SimPEG import Maps, Survey, Utils, np, sp
+from SimPEG import Maps, Survey, Utils
+import numpy as np
+import scipy.sparse as sp
 from scipy.constants import mu_0
-import re
 
 
 class BaseMagSurvey(Survey.BaseSurvey):
@@ -8,7 +9,6 @@ class BaseMagSurvey(Survey.BaseSurvey):
 
     rxLoc = None   #: receiver locations
     rxType = None   #: receiver type
-    srcField = None
 
     def __init__(self, **kwargs):
         Survey.BaseSurvey.__init__(self, **kwargs)

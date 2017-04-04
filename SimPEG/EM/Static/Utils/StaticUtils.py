@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-# from __future__ import unicode_literals
+from __future__ import unicode_literals
 
 import numpy as np
 
@@ -207,7 +207,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
     dl_x = (endl[1, 0] - endl[0, 0]) / dl_len
     dl_y = (endl[1, 1] - endl[0, 1]) / dl_len
 
-    nstn = np.floor(dl_len / a)
+    nstn = int(np.floor(dl_len / a))
 
     # Compute discrete pole location along line
     stn_x = endl[0, 0] + np.array(range(int(nstn)))*dl_x*a
@@ -249,7 +249,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
             AB = xy_2_r(tx[0, 1], endl[1, 0], tx[1, 1], endl[1, 1])
 
             # Number of receivers to fit
-            nstn = np.min([np.floor((AB - b) / a), n])
+            nstn = int(np.min([np.floor((AB - b) / a), n]))
 
             # Check if there is enough space, else break the loop
             if nstn <= 0:
@@ -341,7 +341,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
     return survey
 
 
-def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0, dataType = 'obs'):
+def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
     """
         Write UBC GIF DCIP 2D or 3D observation file
 
@@ -349,7 +349,6 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0, dataType = 'ob
         :param Survey DCsurvey: DC survey class object
         :param string dim:  either '2D' | '3D'
         :param string surveyType:  either 'SURFACE' | 'GENERAL'
-        :param string dataType: either "obs" | "loc"
         :rtype: file
         :return: UBC2D-Data file
     """
@@ -393,25 +392,21 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0, dataType = 'ob
             if formatType == 'SIMPLE':
 
                 # fid.writelines("%e " % ii for ii in Utils.mkvc(tx[0, :]))
-                A = np.repeat(tx[0], M.shape[0], axis=0)
+                A = np.repeat(tx[0,0], M.shape[0], axis=0)
 
                 if surveyType == 'pole-dipole':
-                    B = np.repeat(tx[0], M.shape[0], axis=0)
+                    B = np.repeat(tx[0,0], M.shape[0], axis=0)
 
                 else:
-                    B = np.repeat(tx[3], M.shape[0], axis=0)
+                    B = np.repeat(tx[1,0], M.shape[0], axis=0)
 
                 M = M[:, 0]
                 N = N[:, 0]
 
-                if dataType == 'obs':
-                    np.savetxt(fid, np.c_[A, B, M, N,
-                                          DCsurvey.dobs[count:count+nD],
-                                          DCsurvey.std[count:count+nD]],
-                               fmt='%e', delimiter=' ', newline='\n')
-                elif dataType == 'loc':
-                    np.savetxt(fid, np.c_[A, B, M, N],
-                               fmt='%e', delimiter=' ', newline='\n')
+                np.savetxt(fid, np.c_[A, B, M, N,
+                                      DCsurvey.dobs[count:count+nD],
+                                      DCsurvey.std[count:count+nD]],
+                                      delimiter=' ', newline='\n')
 
             else:
 
@@ -435,10 +430,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0, dataType = 'ob
                     N[:, 1::2] = -N[:, 1::2]
 
                 fid.write('%i\n'% nD)
-                if dataType == 'obs':
-                    np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%f', delimiter=' ', newline='\n')
-                elif dataType == 'loc':
-                    np.savetxt(fid, np.c_[M, N], fmt='%f', delimiter=' ', newline='\n')
+                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], delimiter=' ', newline='\n')
 
         if dim == '3D':
 
@@ -453,10 +445,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0, dataType = 'ob
                 fid.writelines("%e " % ii for ii in Utils.mkvc(tx.T))
 
             fid.write('%i\n'% nD)
-            if dataType == 'obs':
-                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
-            elif dataType == 'loc':
-                np.savetxt(fid, np.c_[M, N], fmt='%e', delimiter=' ', newline='\n')
+            np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
             fid.write('\n')
 
         count += nD
@@ -762,7 +751,7 @@ def readUBC_DC3Dobs(fileName):
 
         # First line is transmitter with number of receivers
         if count == 0:
-
+            rx = []
             temp = (np.fromstring(obsfile[ii], dtype=float, sep=' ').T)
             count = int(temp[-1])
 
@@ -776,7 +765,7 @@ def readUBC_DC3Dobs(fileName):
 
             continue
 
-        rx = []
+
         temp = np.fromstring(obsfile[ii], dtype=float, sep=' ')
 
         if zflag:
@@ -797,9 +786,10 @@ def readUBC_DC3Dobs(fileName):
 
         count = count - 1
 
-        rx = np.asarray(rx)
+
         # Reach the end of transmitter block
         if count == 0:
+            rx = np.asarray(rx)
             Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
             srcLists.append(DC.Src.Dipole([Rx], tx[:3], tx[3:]))
 
@@ -947,59 +937,3 @@ def getSrc_locs(survey):
     srcMat = np.vstack(srcMat)
 
     return srcMat
-
-
-def gettopoCC(mesh, airind):
-    """
-        Get topography from active indices of mesh.
-    """
-
-    if mesh.dim == 3:
-
-        mesh2D = Mesh.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
-        zc = mesh.gridCC[:, 2]
-        AIRIND = airind.reshape((mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]), order='F')
-        ZC = zc.reshape((mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]), order='F')
-        topo = np.zeros(ZC.shape[0])
-        topoCC = np.zeros(ZC.shape[0])
-        for i in range(ZC.shape[0]):
-            ind  = np.argmax(ZC[i, :][~AIRIND[i, :]])
-            topo[i] = ZC[i, :][~AIRIND[i, :]].max() + mesh.hz[~AIRIND[i, :]][ind]*0.5
-            topoCC[i] = ZC[i, :][~AIRIND[i, :]].max()
-
-        return mesh2D, topoCC
-
-    elif mesh.dim == 2:
-
-        mesh1D = Mesh.TensorMesh([mesh.hx], [mesh.x0[0]])
-        yc = mesh.gridCC[:, 1]
-        AIRIND = airind.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
-        YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
-        topo = np.zeros(YC.shape[0])
-        topoCC = np.zeros(YC.shape[0])
-        for i in range(YC.shape[0]):
-            ind  = np.argmax(YC[i, :][~AIRIND[i, :]])
-            topo[i] = YC[i, :][~AIRIND[i, :]].max() + mesh.hy[~AIRIND[i, :]][ind]*0.5
-            topoCC[i] = YC[i, :][~AIRIND[i, :]].max()
-
-        return mesh1D, topoCC
-
-
-def drapeTopotoLoc(mesh, topo, pts, airind=None):
-    """
-        Drape
-    """
-    if mesh.dim == 2:
-        if pts.ndim > 1:
-            raise Exception("pts should be 1d array")
-    elif mesh.dim == 3:
-        if pts.shape[1] == 3:
-            raise Exception("shape of pts should be (x, 3)")
-    else:
-        raise NotImplementedError()
-    if airind is None:
-        airind = Utils.surface2ind_topo(mesh, topo)
-    meshtemp, topoCC = gettopoCC(mesh, ~airind)
-    inds = Utils.closestPoints(meshtemp, pts)
-
-    return np.c_[pts, topoCC[inds]]

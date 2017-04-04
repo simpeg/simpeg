@@ -8,13 +8,15 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
 try:
-    from pymatsolver import PardisoSolver as Solver
+    from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
 
 
-def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2,
-                            rxOffset=50., bounds=None, plotIt=False):
+def halfSpaceProblemAnaDiff(
+    meshType, srctype="MagDipole", sig_half=1e-2, rxOffset=50., bounds=None,
+    plotIt=False, rxType='bz'
+):
 
     if bounds is None:
         bounds = [1e-5, 1e-3]
@@ -43,17 +45,18 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2,
     t0 = 0.006
     waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
 
-    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]), np.logspace(-4, -3, 31)+t0,
-                    'bz')
+    rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxType[:-1]))(
+        np.array([[rxOffset, 0., 0.]]), np.logspace(-4, -3, 31)+t0, rxType[-1]
+    )
 
     if srctype == "MagDipole":
         src = EM.TDEM.Src.MagDipole(
-            [rx], waveform=waveform,
-            loc=np.array([0, 0., 0.])
+            [rx], waveform=waveform, loc=np.array([0, 0., 0.])
         )
     elif srctype == "CircularLoop":
-        src = EM.TDEM.Src.CircularLoop([rx], waveform=waveform,
-                                       loc=np.array([0., 0., 0.]), radius=13.)
+        src = EM.TDEM.Src.CircularLoop(
+            [rx], waveform=waveform, loc=np.array([0., 0., 0.]), radius=13.
+        )
 
     survey = EM.TDEM.Survey([src])
     prb.pair(survey)
