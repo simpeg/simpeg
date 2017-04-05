@@ -26,8 +26,7 @@ class BaseDCProblem_2D(BaseEMProblem):
 
     def fields(self, m):
         if m is not None:
-            self.model = m
-
+            self.model = m        
         if self.Ainv[0] is not None:
             for i in range(self.nky):
                 self.Ainv[i].clean()
@@ -77,7 +76,10 @@ class BaseDCProblem_2D(BaseEMProblem):
 
                     dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT,
                                             adjoint=True)
-                    Jtv_temp1 = 1./np.pi*(-dA_dmT).astype(float)
+                    Jtv_temp1 = 1./np.pi*(-dA_dmT)
+                    if rx.nD == 1:
+                        Jtv_temp1 = Jtv_temp1.reshape([-1,1])
+
                     # Trapezoidal intergration
                     if iky == 0:
                         # First assigment

@@ -25,3 +25,4 @@ class Survey(BaseEMSurvey):
                 d_\\text{pred} = Pf(m)
         """
         return self.prob.Jvec(m, m, f=f)
+

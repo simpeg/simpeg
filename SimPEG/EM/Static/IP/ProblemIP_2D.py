@@ -36,10 +36,84 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
     fswitch = False
     sign = None
 
+    def fieldsdc(self, m):
+        if m is not None:
+            self.model = m        
+        if self.Ainv[0] is not None:
+            for i in range(self.nky):
+                self.Ainv[i].clean()
+
+        f = self.fieldsPair(self.mesh, self.survey)
+        Srcs = self.survey.srcList
+        for iky in range(self.nky):
+            ky = self.kys[iky]
+            A = self.getA(ky)
+            self.Ainv[iky] = self.Solver(A, **self.solverOpts)
+            RHS = self.getRHS(ky)
+            u = self.Ainv[iky] * RHS
+            f[Srcs, self._solutionType, iky] = u
+        return f
+
+    def fields(self, m):
+        # This is stupid..., but not sure how I can change InvProblem
+        # where calling self.fields        
+        return None
+
+    def getJ(self, m, f=None):
+        """
+            Generate Full sensitivity matrix
+        """
+        if f is None:
+            f = self.fieldsdc(m)
+
+        self.model = m
+
+        Jt = []
+
+        # Assume y=0.
+        # This needs some thoughts to implement in general when src is dipole
+        dky = np.diff(self.kys)
+        dky = np.r_[dky[0], dky]
+        y = 0.
+        for src in self.survey.srcList:
+            for rx in src.rxList:
+                Jtv_temp1 = np.zeros((m.size, rx.nD), dtype=float)
+                Jtv_temp0 = np.zeros((m.size, rx.nD), dtype=float)
+                Jtv = np.zeros((m.size, rx.nD), dtype=float)
+                # TODO: this loop is pretty slow .. (Parellize)
+                for iky in range(self.nky):
+                    u_src = f[src, self._solutionType, iky]
+                    ky = self.kys[iky]
+                    AT = self.getA(ky)
+
+                    # wrt f, need possibility wrt m
+                    P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
+
+                    ATinvdf_duT = self.Ainv[iky] * (P.T)
+
+                    dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT,
+                                            adjoint=True)
+                    Jtv_temp1 = 1./np.pi*(-dA_dmT)
+                    if rx.nD == 1:
+                        Jtv_temp1 = Jtv_temp1.reshape([-1,1])
+
+                    # Trapezoidal intergration
+                    if iky == 0:
+                        # First assigment
+                        Jtv += Jtv_temp1*dky[iky]*np.cos(ky*y)
+                    else:
+                        Jtv += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
+                        Jtv += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
+                    Jtv_temp0 = Jtv_temp1.copy()
+
+                Jt.append(Jtv)
+
+        return np.hstack(Jt).T
+
     def Jvec(self, m, v, f=None):
         self.model = m
         if self.fswitch == False:
-            f = self.fields(m)
+            f = self.fieldsdc(m)
             self.J = self.getJ(m, f=f)
             self.fswitch = True
         return self.sign * self.J.dot(v)
@@ -47,7 +121,7 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
     def Jtvec(self, m, v, f=None):
         self.model = m
         if self.fswitch == False:
-            f = self.fields(m)
+            f = self.fieldsdc(m)
             self.J = self.getJ(m, f=f)
             self.fswitch = True
         Jtvec = self.J.T.dot(v)
