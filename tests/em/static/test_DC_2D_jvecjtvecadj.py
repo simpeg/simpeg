@@ -82,6 +82,30 @@ class DCProblem_2DTestsCC(unittest.TestCase):
         )
         self.assertTrue(passed)
 
+    def test_misfit_fullJ(self):
+        passed = Tests.checkDerivative(
+            lambda m: (
+                self.survey.dpred(m),
+                lambda mx: self.p.getJ(self.m0).dot(mx)
+            ),
+            self.m0,
+            plotIt=False,
+            num=3
+        )
+        self.assertTrue(passed)
+
+    def test_adjoint_fullJ(self):
+        # Adjoint Test
+        # u = np.random.rand(self.mesh.nC * self.survey.nSrc)
+        v = np.random.rand(self.mesh.nC)
+        w = np.random.rand(self.survey.dobs.shape[0])
+        J = self.p.getJ(self.m0)
+        wtJv = w.dot(J.dot(v))
+        vtJtw = v.dot(J.T.dot(w))
+        passed = np.abs(wtJv - vtJtw) < 1e-10
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
+        self.assertTrue(passed)
+
 
 class DCProblemTestsN(unittest.TestCase):
 
@@ -156,6 +180,30 @@ class DCProblemTestsN(unittest.TestCase):
             plotIt=False,
             num=3
         )
+        self.assertTrue(passed)
+
+    def test_misfit_fullJ(self):
+        passed = Tests.checkDerivative(
+            lambda m: (
+                self.survey.dpred(m),
+                lambda mx: self.p.getJ(self.m0).dot(mx)
+            ),
+            self.m0,
+            plotIt=False,
+            num=3
+        )
+        self.assertTrue(passed)
+
+    def test_adjoint_fullJ(self):
+        # Adjoint Test
+        # u = np.random.rand(self.mesh.nC * self.survey.nSrc)
+        v = np.random.rand(self.mesh.nC)
+        w = np.random.rand(self.survey.dobs.shape[0])
+        J = self.p.getJ(self.m0)
+        wtJv = w.dot(J.dot(v))
+        vtJtw = v.dot(J.T.dot(w))
+        passed = np.abs(wtJv - vtJtw) < 1e-10
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
 if __name__ == '__main__':

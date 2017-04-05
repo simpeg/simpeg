@@ -44,56 +44,53 @@ class BaseDCProblem_2D(BaseEMProblem):
             f[Srcs, self._solutionType, iky] = u
         return f
 
-    @property
-    def J(self, m, f=None):
+    def getJ(self, m, f=None):
         """
             Generate Full sensitivity matrix
         """
-        if getattr(self, '_J', None) is None:
-            if f is None:
-                f = self.fields(m)
+        if f is None:
+            f = self.fields(m)
 
-            self.model = m
+        self.model = m
 
-            Jt = []
+        Jt = []
 
-            # Assume y=0.
-            # This needs some thoughts to implement in general when src is dipole
-            dky = np.diff(self.kys)
-            dky = np.r_[dky[0], dky]
-            y = 0.
+        # Assume y=0.
+        # This needs some thoughts to implement in general when src is dipole
+        dky = np.diff(self.kys)
+        dky = np.r_[dky[0], dky]
+        y = 0.
+        for src in self.survey.srcList:
+            for rx in src.rxList:
+                Jtv_temp1 = np.zeros((m.size, rx.nD), dtype=float)
+                Jtv_temp0 = np.zeros((m.size, rx.nD), dtype=float)
+                Jtv = np.zeros((m.size, rx.nD), dtype=float)
+                # TODO: this loop is pretty slow .. (Parellize)
+                for iky in range(self.nky):
+                    u_src = f[src, self._solutionType, iky]
+                    ky = self.kys[iky]
+                    AT = self.getA(ky)
 
-            for src in self.survey.srcList:
-                for rx in src.rxList:
-                    Jtv_temp1 = np.zeros((rx.nD, m.size), dtype=float)
-                    Jtv_temp0 = np.zeros((rx.nD, m.size), dtype=float)
+                    # wrt f, need possibility wrt m
+                    P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
 
-                    # TODO: this loop is pretty slow .. (Parellize)
-                    for iky in range(self.nky):
-                        u_src = f[src, self._solutionType, iky]
-                        ky = self.kys[iky]
-                        AT = self.getA(ky)
+                    ATinvdf_duT = self.Ainv[iky] * (P.T)
 
-                        # wrt f, need possibility wrt m
-                        P = rx.getP(self.mesh, rx.projGLoc(f))
+                    dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT,
+                                            adjoint=True)
+                    Jtv_temp1 = 1./np.pi*(-dA_dmT).astype(float)
+                    # Trapezoidal intergration
+                    if iky == 0:
+                        # First assigment
+                        Jtv += Jtv_temp1*dky[iky]*np.cos(ky*y)
+                    else:
+                        Jtv += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
+                        Jtv += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
+                    Jtv_temp0 = Jtv_temp1.copy()
 
-                        ATinvdf_duT = self.Ainv[iky] * P.T
+                Jt.append(Jtv)
 
-                        dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT,
-                                                adjoint=True)
-                        Jtv_temp1 = 1./np.pi*(-dA_dmT).astype(float)
-                        # Trapezoidal intergration
-                        if iky == 0:
-                            # First assigment
-                            Jtv += Jtv_temp1*dky[iky]*np.cos(ky*y)
-                        else:
-                            Jtv += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
-                            Jtv += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
-                        Jtv_temp0 = Jtv_temp1.copy()
-
-                    Jt.append(Jtv)
-            self._J = p.hstack(Jt).T
-        return self._J
+        return np.hstack(Jt).T
 
     def Jvec(self, m, v, f=None):
 
