@@ -23,6 +23,7 @@ class BaseDCProblem_2D(BaseEMProblem):
     kys = np.logspace(-4, 1, nky)
     Ainv = [None for i in range(nky)]
     nT = nky  # Only for using TimeFields
+    J = None
 
     def fields(self, m):
         if m is not None:
@@ -42,6 +43,57 @@ class BaseDCProblem_2D(BaseEMProblem):
             u = self.Ainv[iky] * RHS
             f[Srcs, self._solutionType, iky] = u
         return f
+
+    @property
+    def J(self, m, f=None):
+        """
+            Generate Full sensitivity matrix
+        """
+        if getattr(self, '_J', None) is None:
+            if f is None:
+                f = self.fields(m)
+
+            self.model = m
+
+            Jt = []
+
+            # Assume y=0.
+            # This needs some thoughts to implement in general when src is dipole
+            dky = np.diff(self.kys)
+            dky = np.r_[dky[0], dky]
+            y = 0.
+
+            for src in self.survey.srcList:
+                for rx in src.rxList:
+                    Jtv_temp1 = np.zeros((rx.nD, m.size), dtype=float)
+                    Jtv_temp0 = np.zeros((rx.nD, m.size), dtype=float)
+
+                    # TODO: this loop is pretty slow .. (Parellize)
+                    for iky in range(self.nky):
+                        u_src = f[src, self._solutionType, iky]
+                        ky = self.kys[iky]
+                        AT = self.getA(ky)
+
+                        # wrt f, need possibility wrt m
+                        P = rx.getP(self.mesh, rx.projGLoc(f))
+
+                        ATinvdf_duT = self.Ainv[iky] * P.T
+
+                        dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT,
+                                                adjoint=True)
+                        Jtv_temp1 = 1./np.pi*(-dA_dmT).astype(float)
+                        # Trapezoidal intergration
+                        if iky == 0:
+                            # First assigment
+                            Jtv += Jtv_temp1*dky[iky]*np.cos(ky*y)
+                        else:
+                            Jtv += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
+                            Jtv += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
+                        Jtv_temp0 = Jtv_temp1.copy()
+
+                    Jt.append(Jtv)
+            self._J = p.hstack(Jt).T
+        return self._J
 
     def Jvec(self, m, v, f=None):
 
