@@ -344,5 +344,6 @@ nitpick_ignore = [
     ('py:class', 'SimPEG.Props.HasModel'),
     ('py:class', 'BaseFDEMSrc'),
     ('py:class', 'BaseTDEMSrc'),
+    ('py:class', 'properties.Model'),
     ('py:func', 'discretize.utils.meshutils.meshTensor')
 ]
