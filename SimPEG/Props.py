@@ -11,13 +11,58 @@ from . import Maps
 from . import Utils
 
 
-class Model(properties.Array):
+class SphinxProp(object):
+    """
+    Update the auto-documenter from properties
+    https://github.com/3ptscience/properties/issues/153
+    """
+    def sphinx_class(self):
+        return ':class:`{cls} <{ref}>`'.format(
+            cls=self.__class__.__name__,
+            ref='SimPEG.Props.{}'.format(self.__class__.__name__)
+        )
+
+
+class Array(SphinxProp, properties.Array):
+
+    class_info = 'a numpy, Zero or Identity array'
+
+    def validate(self, instance, value):
+        if isinstance(value, (Utils.Zero, Utils.Identity)):
+            return value
+        return super(Array, self).validate(instance, value)
+
+
+class Float(SphinxProp, properties.Float):
+
+    class_info = 'a float, Zero or Identity'
+
+    def validate(self, instance, value):
+        if isinstance(value, (Utils.Zero, Utils.Identity)):
+            return value
+        return super(Float, self).validate(instance, value)
+
+
+class Integer(SphinxProp, properties.Integer):
+
+    class_info = 'an Integer or *'
+
+    def validate(self, instance, value):
+        if isinstance(value, str):
+            assert value == '*', 'value must be an integer or *, not {}'.format(
+                value
+            )
+            return value
+        return super(Integer, self).validate(instance, value)
+
+
+class Model(SphinxProp, properties.Array):
 
     class_info = 'a numpy array'
     _required = False
 
 
-class Mapping(properties.Property):
+class Mapping(SphinxProp, properties.Property):
 
     class_info = 'a SimPEG Map'
     _required = False
@@ -86,7 +131,7 @@ class Mapping(properties.Property):
         return instance._get(self.name)
 
 
-class PhysicalProperty(properties.Property):
+class PhysicalProperty(SphinxProp, properties.Property):
 
     class_info = 'a physical property'
     reciprocal = None
@@ -245,7 +290,7 @@ class PhysicalProperty(properties.Property):
         )
 
 
-class Derivative(properties.GettableProperty):
+class Derivative(SphinxProp, properties.GettableProperty):
 
     physical_property = None
 
