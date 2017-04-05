@@ -35,6 +35,11 @@ class BaseIPProblem(BaseEMProblem):
     f = None
 
     def fields(self, m):
+        return None
+
+    def fieldsdc(self, m):
+        if self.verbose:
+            print (">> Compute fields")
         if m is not None:
             self.model = m
         if self.f is None:
@@ -46,12 +51,11 @@ class BaseIPProblem(BaseEMProblem):
             u = self.Ainv * RHS
             Srcs = self.survey.srcList
             self.f[Srcs, self._solutionType] = u
-        return self.f
 
     def Jvec(self, m, v, f=None):
 
-        if f is None:
-            f = self.fields(m)
+        if self.f is None:
+            self.fieldsdc(m)
 
         self.model = m
 
@@ -59,16 +63,16 @@ class BaseIPProblem(BaseEMProblem):
         A = self.getA()
 
         for src in self.survey.srcList:
-            u_src = f[src, self._solutionType] # solution vector
+            u_src = self.f[src, self._solutionType] # solution vector
             dA_dm_v = self.getADeriv(u_src, v)
             dRHS_dm_v = self.getRHSDeriv(src, v)
             du_dm_v = self.Ainv * ( - dA_dm_v + dRHS_dm_v )
 
             for rx in src.rxList:
-                df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
+                df_dmFun = getattr(self.f, '_{0!s}Deriv'.format(rx.projField), None)
                 df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
                 # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
-                Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
+                Jv.append(rx.evalDeriv(src, self.mesh, self.f, df_dm_v))
         # Conductivity (d u / d log sigma)
         if self._formulation == 'EB':
             # return -Utils.mkvc(Jv)
@@ -79,8 +83,8 @@ class BaseIPProblem(BaseEMProblem):
             return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
-        if f is None:
-            f = self.fields(m)
+        if self.f is None:
+            self.fieldsdc(m)
 
         self.model = m
 
@@ -92,10 +96,10 @@ class BaseIPProblem(BaseEMProblem):
         AT = self.getA()
 
         for src in self.survey.srcList:
-            u_src = f[src, self._solutionType]
+            u_src = self.f[src, self._solutionType]
             for rx in src.rxList:
-                PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx], adjoint=True)  # wrt f, need possibility wrt m
-                df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
+                PTv = rx.evalDeriv(src, self.mesh, self.f, v[src, rx], adjoint=True)  # wrt f, need possibility wrt m
+                df_duTFun = getattr(self.f, '_{0!s}Deriv'.format(rx.projField), None)
                 df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
                 ATinvdf_duT = self.Ainv * df_duT
                 dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
