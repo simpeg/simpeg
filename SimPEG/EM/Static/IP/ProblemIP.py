@@ -33,7 +33,6 @@ class BaseIPProblem(BaseEMProblem):
     fieldsPair = FieldsDC
     Ainv = None
     f = None
-    Ainv = None
 
     def fields(self, m):
         if m is not None:

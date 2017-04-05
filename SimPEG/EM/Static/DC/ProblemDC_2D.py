@@ -23,7 +23,6 @@ class BaseDCProblem_2D(BaseEMProblem):
     kys = np.logspace(-4, 1, nky)
     Ainv = [None for i in range(nky)]
     nT = nky  # Only for using TimeFields
-    J = None
 
     def fields(self, m):
         if m is not None:
@@ -214,6 +213,51 @@ class BaseDCProblem_2D(BaseEMProblem):
             q[:, i] = src.eval(self)
         return q
 
+    @property
+    def MnSigma(self):
+        """
+            Node inner product matrix for \\(\\sigma\\). Used in the E-B
+            formulation
+        """
+        # TODO: only works isotropic sigma
+        sigma = self.sigma
+        vol = self.mesh.vol
+        MnSigma = Utils.sdiag(self.mesh.aveN2CC.T*(Utils.sdiag(vol)*sigma))
+
+        return MnSigma
+
+    def MnSigmaDeriv(self, u):
+        """
+            Derivative of MnSigma with respect to the model
+        """
+        sigma = self.sigma
+        sigmaderiv = self.sigmaDeriv
+        vol = self.mesh.vol
+        return (Utils.sdiag(u)*self.mesh.aveN2CC.T*Utils.sdiag(vol) *
+                self.sigmaDeriv)
+
+    @property
+    def MccRhoI(self):
+        """
+            Cell inner product matrix for \\(\\sigma\\). Used in the H-J
+            formulation
+        """
+        # TODO: only works isotropic sigma
+        rho = self.rho
+        vol = self.mesh.vol
+        MccRhoI = Utils.sdiag(1./(Utils.sdiag(vol)*rho))
+        return MccRhoI
+
+    def MccRhoIDeriv(self, u):
+        """
+            Derivative of MccRhoI with respect to the model
+        """
+        rho = self.rho
+        vol = self.mesh.vol
+        return (
+            Utils.sdiag(u.flatten()*vol*(-1./rho**2))*self.rhoDeriv
+            )
+
 
 class Problem2D_CC(BaseDCProblem_2D):
     """
@@ -252,13 +296,14 @@ class Problem2D_CC(BaseDCProblem_2D):
         G = self.Grad
         vol = self.mesh.vol
         MfRhoIDeriv = self.MfRhoIDeriv
+        MccRhoIDeriv = self.MccRhoIDeriv
         rho = self.rho
         if adjoint:
-            return((MfRhoIDeriv( G * u).T) * (D.T * v) +
-                   ky**2 * self.rhoDeriv.T*Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v)
-
-        return (D * ((MfRhoIDeriv(G * u)) * v) + ky**2*
-                Utils.sdiag(u.flatten()*vol*(-1./rho**2))*(self.rhoDeriv*v))
+            return (
+                (MfRhoIDeriv(G * u).T) * (D.T * v) +
+                ky**2 * MccRhoIDeriv(u).T * v
+                   )
+        return (D * ((MfRhoIDeriv(G * u)) * v) + ky**2*MccRhoIDeriv(u)*v)
 
     def getRHS(self, ky):
         """
@@ -362,29 +407,6 @@ class Problem2D_N(BaseDCProblem_2D):
     def __init__(self, mesh, **kwargs):
         BaseDCProblem_2D.__init__(self, mesh, **kwargs)
         # self.setBC()
-
-    @property
-    def MnSigma(self):
-        """
-            Node inner product matrix for \\(\\sigma\\). Used in the E-B
-            formulation
-        """
-        # TODO: only works isotropic sigma
-        sigma = self.sigma
-        vol = self.mesh.vol
-        MnSigma = Utils.sdiag(self.mesh.aveN2CC.T*(Utils.sdiag(vol)*sigma))
-
-        return MnSigma
-
-    def MnSigmaDeriv(self, u):
-        """
-            Derivative of MnSigma with respect to the model
-        """
-        sigma = self.sigma
-        sigmaderiv = self.sigmaDeriv
-        vol = self.mesh.vol
-        return (Utils.sdiag(u)*self.mesh.aveN2CC.T*Utils.sdiag(vol) *
-                self.sigmaDeriv)
 
     def getA(self, ky):
         """
