@@ -657,21 +657,6 @@ class Problem3D_e(BaseTDEMProblem):
         """
             Jvec computes the adjoint of the sensitivity times a vector
 
-            .. math::
-
-                \mathbf{J}^\\top \mathbf{v} =  \left(
-                \\frac{d\mathbf{u}}{d\mathbf{m}} ^ \\top
-                \\frac{d\mathbf{F}}{d\mathbf{u}} ^ \\top  +
-                \\frac{\partial\mathbf{F}}{\partial\mathbf{m}} ^ \\top \\right)
-                \\frac{d\mathbf{P}}{d\mathbf{F}} ^ \\top \mathbf{v}
-
-            where
-
-            .. math::
-
-                \\frac{d\mathbf{u}}{d\mathbf{m}} ^\\top \mathbf{A}^\\top  +
-                \\frac{d\mathbf{A}(\mathbf{u})}{d\mathbf{m}} ^ \\top =
-                \\frac{d \mathbf{RHS}}{d \mathbf{m}} ^ \\top
         """
 
         if f is None:
