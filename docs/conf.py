@@ -345,5 +345,6 @@ nitpick_ignore = [
     ('py:class', 'BaseFDEMSrc'),
     ('py:class', 'BaseTDEMSrc'),
     ('py:class', 'properties.Model'),
+    ('py:class', 'properties.PhysicalProperty'),
     ('py:func', 'discretize.utils.meshutils.meshTensor')
 ]
