@@ -1,5 +1,13 @@
-from SimPEG import Utils, Maps, Mesh, sp, np
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+from SimPEG import Utils, Maps, Mesh
+import numpy as np
+import scipy.sparse as sp
 from SimPEG.Regularization import BaseRegularization, Simple
+
 
 class MultiRegularization(Simple):
     """
@@ -18,6 +26,7 @@ class MultiRegularization(Simple):
     wx = []
     wy = []
     wz = []
+    cell_weights = None
 
     def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
         BaseRegularization.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
@@ -32,7 +41,7 @@ class MultiRegularization(Simple):
         if getattr(self,'_Wsmall', None) is None:
             vecs = []
             for imodel in range(self.nModels):
-                vecs.append((self.regmesh.vol*self.alpha_s*self.wght*self.ratios[imodel])**0.5)
+                vecs.append((self.regmesh.vol*self.alpha_s*self.cell_weights*self.ratios[imodel])**0.5)
             self._Wsmall = Utils.sdiag(np.hstack(vecs))
         return self._Wsmall
 
@@ -42,7 +51,7 @@ class MultiRegularization(Simple):
         if getattr(self, '_Wx', None) is None:
             mats = []
             for imodel in range(self.nModels):
-                self.wx.append(Utils.sdiag((self.regmesh.aveCC2Fx * self.regmesh.vol*self.alpha_x*self.ratios[imodel]*(self.regmesh.aveCC2Fx*self.wght))**0.5))
+                self.wx.append(Utils.sdiag((self.regmesh.aveCC2Fx * self.regmesh.vol*self.alpha_x*self.ratios[imodel]*(self.regmesh.aveCC2Fx*self.cell_weights))**0.5))
                 mats.append(self.wx[imodel]*self.regmesh.cellDiffxStencil)
             self._Wx = sp.block_diag(mats)
         return self._Wx
@@ -53,7 +62,7 @@ class MultiRegularization(Simple):
         if getattr(self, '_Wy', None) is None:
             mats = []
             for imodel in range(self.nModels):
-                self.wy.append(Utils.sdiag((self.regmesh.aveCC2Fy * self.regmesh.vol*self.alpha_y*self.ratios[imodel]*(self.regmesh.aveCC2Fy*self.wght))**0.5))
+                self.wy.append(Utils.sdiag((self.regmesh.aveCC2Fy * self.regmesh.vol*self.alpha_y*self.ratios[imodel]*(self.regmesh.aveCC2Fy*self.cell_weights))**0.5))
                 mats.append(self.wy[imodel]*self.regmesh.cellDiffyStencil)
             self._Wy = sp.block_diag(mats)
         return self._Wy
@@ -64,7 +73,7 @@ class MultiRegularization(Simple):
         if getattr(self, '_Wz', None) is None:
             mats = []
             for imodel in range(self.nModels):
-                self.wz.append(Utils.sdiag((self.regmesh.aveCC2Fz * self.regmesh.vol*self.alpha_z*self.ratios[imodel]*(self.regmesh.aveCC2Fz*self.wght))**0.5))
+                self.wz.append(Utils.sdiag((self.regmesh.aveCC2Fz * self.regmesh.vol*self.alpha_z*self.ratios[imodel]*(self.regmesh.aveCC2Fz*self.cell_weights))**0.5))
                 mats.append(self.wz[imodel]*self.regmesh.cellDiffzStencil)
             self._Wz = sp.block_diag(mats)
         return self._Wz

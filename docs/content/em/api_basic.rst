@@ -23,4 +23,10 @@ Survey
     :members:
     :undoc-members:
 
+Sources
+-------
 
+.. autoclass:: SimPEG.EM.Base.BaseEMSrc
+    :show-inheritance:
+    :members:
+    :undoc-members:

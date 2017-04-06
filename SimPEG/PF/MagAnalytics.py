@@ -1,6 +1,9 @@
 from __future__ import print_function
 from scipy.constants import mu_0
 from SimPEG import *
+from SimPEG import Utils
+from SimPEG import Mesh
+import numpy as np
 from SimPEG.Utils import kron3, speye, sdiag
 import matplotlib.pyplot as plt
 
@@ -12,7 +15,7 @@ def spheremodel(mesh, x0, y0, z0, r):
         - r: is the radius of the sphere
         - it returns logical indicies of cell-center model
     """
-    ind = np.sqrt( (mesh.gridCC[:,0]-x0)**2+(mesh.gridCC[:,1]-y0)**2+(mesh.gridCC[:,2]-z0)**2 ) < r
+    ind = np.sqrt( (mesh.gridCC[:, 0]-x0)**2+(mesh.gridCC[:, 1]-y0)**2+(mesh.gridCC[:, 2]-z0)**2 ) < r
     return ind
 
 
@@ -22,7 +25,7 @@ def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag='total'):
         Analytic function for Magnetics problem. The set up here is
         magnetic sphere in whole-space assuming that the inducing field is oriented in the x-direction.
 
-        * (x0,y0,z0)
+        * (x0, y0, z0)
         * (x0, y0, z0 ): is the center location of sphere
         * r: is the radius of the sphere
 
@@ -41,8 +44,8 @@ def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag='total'):
     y = Utils.mkvc(y)
     z = Utils.mkvc(z)
 
-    ind = np.sqrt((x-x0)**2+(y-y0)**2+(z-z0)**2 ) < R
-    r = Utils.mkvc(np.sqrt((x-x0)**2+(y-y0)**2+(z-z0)**2 ))
+    ind = np.sqrt((x-x0)**2+(y-y0)**2+(z-z0)**2) < R
+    r = Utils.mkvc(np.sqrt((x-x0)**2+(y-y0)**2+(z-z0)**2))
     Bx = np.zeros(x.size)
     By = np.zeros(x.size)
     Bz = np.zeros(x.size)
@@ -69,26 +72,25 @@ def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag='total'):
 
 
 def CongruousMagBC(mesh, Bo, chi):
-    """
-        Computing boundary condition using Congrous sphere method.
-        This is designed for secondary field formulation.
+    """Computing boundary condition using Congrous sphere method.
+    This is designed for secondary field formulation.
 
-        >> Input
+    >> Input
 
-        * mesh:   Mesh class
-        * Bo:     np.array([Box, Boy, Boz]): Primary magnetic flux
-        * chi:    susceptibility at cell volume
+    * mesh:   Mesh class
+    * Bo:     np.array([Box, Boy, Boz]): Primary magnetic flux
+    * chi:    susceptibility at cell volume
 
-        .. math::
+    .. math::
 
-            \\vec{B}(r) = \\frac{\mu_0}{4\pi} \\frac{m}{ \| \\vec{r} - \\vec{r}_0\|^3}[3\hat{m}\cdot\hat{r}-\hat{m}]
+        \\vec{B}(r) = \\frac{\mu_0}{4\pi} \\frac{m}{ \| \\vec{r} - \\vec{r}_0\|^3}[3\hat{m}\cdot\hat{r}-\hat{m}]
 
     """
 
     ind = chi > 0.
     V = mesh.vol[ind].sum()
 
-    gamma = 1/V*(chi*mesh.vol).sum() # like a mass!
+    gamma = 1/V*(chi*mesh.vol).sum()  # like a mass!
 
     Bot = np.sqrt(sum(Bo**2))
     mx = Bo[0]/Bot
@@ -96,48 +98,47 @@ def CongruousMagBC(mesh, Bo, chi):
     mz = Bo[2]/Bot
 
     mom = 1/mu_0*Bot*gamma*V/(1+gamma/3)
-    xc = sum(chi[ind]*mesh.gridCC[:,0][ind])/sum(chi[ind])
-    yc = sum(chi[ind]*mesh.gridCC[:,1][ind])/sum(chi[ind])
-    zc = sum(chi[ind]*mesh.gridCC[:,2][ind])/sum(chi[ind])
+    xc = sum(chi[ind]*mesh.gridCC[:, 0][ind])/sum(chi[ind])
+    yc = sum(chi[ind]*mesh.gridCC[:, 1][ind])/sum(chi[ind])
+    zc = sum(chi[ind]*mesh.gridCC[:, 2][ind])/sum(chi[ind])
 
     indxd, indxu, indyd, indyu, indzd, indzu =  mesh.faceBoundaryInd
 
     const = mu_0/(4*np.pi)*mom
-    rfun = lambda x: np.sqrt((x[:,0]-xc)**2 + (x[:,1]-yc)**2 + (x[:,2]-zc)**2)
+    rfun = lambda x: np.sqrt((x[:, 0]-xc)**2 + (x[:, 1]-yc)**2 + (x[:, 2]-zc)**2)
 
-    mdotrx = (mx*(mesh.gridFx[(indxd|indxu),0]-xc)/rfun(mesh.gridFx[(indxd|indxu),:]) +
-              my*(mesh.gridFx[(indxd|indxu),1]-yc)/rfun(mesh.gridFx[(indxd|indxu),:]) +
-              mz*(mesh.gridFx[(indxd|indxu),2]-zc)/rfun(mesh.gridFx[(indxd|indxu),:]))
+    mdotrx = (mx*(mesh.gridFx[(indxd|indxu), 0]-xc)/rfun(mesh.gridFx[(indxd|indxu), :]) +
+              my*(mesh.gridFx[(indxd|indxu), 1]-yc)/rfun(mesh.gridFx[(indxd|indxu), :]) +
+              mz*(mesh.gridFx[(indxd|indxu), 2]-zc)/rfun(mesh.gridFx[(indxd|indxu), :]))
 
-    Bbcx = const/(rfun(mesh.gridFx[(indxd|indxu),:])**3)*(3*mdotrx*(mesh.gridFx[(indxd|indxu),0]-xc)/rfun(mesh.gridFx[(indxd|indxu),:])-mx)
+    Bbcx = const/(rfun(mesh.gridFx[(indxd|indxu), :])**3)*(3*mdotrx*(mesh.gridFx[(indxd|indxu), 0]-xc)/rfun(mesh.gridFx[(indxd|indxu), :])-mx)
 
-    mdotry = (mx*(mesh.gridFy[(indyd|indyu),0]-xc)/rfun(mesh.gridFy[(indyd|indyu),:]) +
-              my*(mesh.gridFy[(indyd|indyu),1]-yc)/rfun(mesh.gridFy[(indyd|indyu),:]) +
-              mz*(mesh.gridFy[(indyd|indyu),2]-zc)/rfun(mesh.gridFy[(indyd|indyu),:]))
+    mdotry = (mx*(mesh.gridFy[(indyd|indyu), 0]-xc)/rfun(mesh.gridFy[(indyd|indyu), :]) +
+              my*(mesh.gridFy[(indyd|indyu), 1]-yc)/rfun(mesh.gridFy[(indyd|indyu), :]) +
+              mz*(mesh.gridFy[(indyd|indyu), 2]-zc)/rfun(mesh.gridFy[(indyd|indyu), :]))
 
-    Bbcy = const/(rfun(mesh.gridFy[(indyd|indyu),:])**3)*(3*mdotry*(mesh.gridFy[(indyd|indyu),1]-yc)/rfun(mesh.gridFy[(indyd|indyu),:])-my)
+    Bbcy = const/(rfun(mesh.gridFy[(indyd|indyu), :])**3)*(3*mdotry*(mesh.gridFy[(indyd|indyu), 1]-yc)/rfun(mesh.gridFy[(indyd|indyu), :])-my)
 
-    mdotrz = (mx*(mesh.gridFz[(indzd|indzu),0]-xc)/rfun(mesh.gridFz[(indzd|indzu),:])  +
-              my*(mesh.gridFz[(indzd|indzu),1]-yc)/rfun(mesh.gridFz[(indzd|indzu),:]) +
-              mz*(mesh.gridFz[(indzd|indzu),2]-zc)/rfun(mesh.gridFz[(indzd|indzu),:]))
+    mdotrz = (mx*(mesh.gridFz[(indzd|indzu), 0]-xc)/rfun(mesh.gridFz[(indzd|indzu), :])  +
+              my*(mesh.gridFz[(indzd|indzu), 1]-yc)/rfun(mesh.gridFz[(indzd|indzu), :]) +
+              mz*(mesh.gridFz[(indzd|indzu), 2]-zc)/rfun(mesh.gridFz[(indzd|indzu), :]))
 
-    Bbcz = const/(rfun(mesh.gridFz[(indzd|indzu),:])**3)*(3*mdotrz*(mesh.gridFz[(indzd|indzu),2]-zc)/rfun(mesh.gridFz[(indzd|indzu),:])-mz)
+    Bbcz = const/(rfun(mesh.gridFz[(indzd|indzu), :])**3)*(3*mdotrz*(mesh.gridFz[(indzd|indzu), 2]-zc)/rfun(mesh.gridFz[(indzd|indzu), :])-mz)
 
     return np.r_[Bbcx, Bbcy, Bbcz], (1/gamma-1/(3+gamma))*1/V
 
 
 def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
-    """
-        Computing boundary condition using Congrous sphere method.
-        This is designed for secondary field formulation.
-        >> Input
-        mesh:   Mesh class
-        Bo:     np.array([Box, Boy, Boz]): Primary magnetic flux
-        Chi:    susceptibility at cell volume
+    """Computing boundary condition using Congrous sphere method.
+    This is designed for secondary field formulation.
+    >> Input
+    mesh:   Mesh class
+    Bo:     np.array([Box, Boy, Boz]): Primary magnetic flux
+    Chi:    susceptibility at cell volume
 
-        .. math::
+    .. math::
 
-            \\vec{B}(r) = \\frac{\mu_0}{4\pi}\\frac{m}{\| \\vec{r}-\\vec{r}_0\|^3}[3\hat{m}\cdot\hat{r}-\hat{m}]
+        \\vec{B}(r) = \\frac{\mu_0}{4\pi}\\frac{m}{\| \\vec{r}-\\vec{r}_0\|^3}[3\hat{m}\cdot\hat{r}-\hat{m}]
 
     """
     if (~np.size(x)==np.size(y)==np.size(z)):
@@ -179,13 +180,12 @@ def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
     By[~ind] = const/(r[~ind]**3)*(3*mdotr*(y[~ind]-yc)/r[~ind]-my)
     Bz[~ind] = const/(r[~ind]**3)*(3*mdotr*(z[~ind]-zc)/r[~ind]-mz)
 
-
     return Bx, By, Bz
 
 
 def IDTtoxyz(Inc, Dec, Btot):
-    """
-        Convert from Inclination, Declination, Total  intensity of earth field to x, y, z
+    """Convert from Inclination, Declination,
+    Total intensity of earth field to x, y, z
     """
     Bx = Btot*np.cos(Inc/180.*np.pi)*np.sin(Dec/180.*np.pi)
     By = Btot*np.cos(Inc/180.*np.pi)*np.cos(Dec/180.*np.pi)
@@ -195,15 +195,14 @@ def IDTtoxyz(Inc, Dec, Btot):
 
 
 def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
-    """
-        Computing the induced response of magnetic sphere in free-space.
-        >> Input
-        x, y, z:   Observation locations
-        R:     radius of the sphere
-        xc, yc, zc: Location of the sphere
-        chi: Susceptibility of sphere
-        Bo: Inducing field components [bx, by, bz]*|H0|
+    """Computing the induced response of magnetic sphere in free-space.
 
+    >> Input
+    x, y, z:   Observation locations
+    R:     radius of the sphere
+    xc, yc, zc: Location of the sphere
+    chi: Susceptibility of sphere
+    Bo: Inducing field components [bx, by, bz]*|H0|
     """
     if (~np.size(x) == np.size(y) == np.size(z)):
         print("Specify same size of x, y, z")
@@ -238,40 +237,3 @@ def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
     Bz = B[:, 2]
 
     return Bx, By, Bz
-
-if __name__ == '__main__':
-
-    hxind = [(0,25,1.3),(21, 12.5),(0,25,1.3)]
-    hyind = [(0,25,1.3),(21, 12.5),(0,25,1.3)]
-    hzind = [(0,25,1.3),(20, 12.5),(0,25,1.3)]
-    # hx, hy, hz = Utils.meshTensors(hxind, hyind, hzind)
-    M3 = Mesh.TensorMesh([hxind, hyind, hzind], "CCC")
-    indxd, indxu, indyd, indyu, indzd, indzu = M3.faceBoundaryInd
-    mu0 = 4*np.pi*1e-7
-    chibkg = 0.
-    chiblk = 0.01
-    chi = np.ones(M3.nC)*chibkg
-    sph_ind = spheremodel(M3, 0, 0, 0, 100)
-    chi[sph_ind] = chiblk
-    mu = (1.+chi)*mu0
-    Bbc, const = CongruousMagBC(M3, np.array([1., 0., 0.]), chi)
-
-    flag = 'secondary'
-    Box = 1.
-    H0 = Box/mu_0
-    Bbcxx, Bbcxy, Bbcxz  = MagSphereAnaFun(M3.gridFx[(indxd|indxu),0], M3.gridFx[(indxd|indxu),1], M3.gridFx[(indxd|indxu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
-    Bbcyx, Bbcyy, Bbcyz  = MagSphereAnaFun(M3.gridFy[(indyd|indyu),0], M3.gridFy[(indyd|indyu),1], M3.gridFy[(indyd|indyu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
-    Bbczx, Bbczy, Bbczz  = MagSphereAnaFun(M3.gridFz[(indzd|indzu),0], M3.gridFz[(indzd|indzu),1], M3.gridFz[(indzd|indzu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
-    Bbc_ana = np.r_[Bbcxx, Bbcyy, Bbczz]
-
-    # fig, ax = plt.subplots(1,1, figsize = (10, 10))
-    # ax.plot(Bbc_ana)
-    # ax.plot(Bbc)
-    # plt.show()
-    err = np.linalg.norm(Bbc-Bbc_ana)/np.linalg.norm(Bbc_ana)
-
-    if err < 0.1:
-        print('Mag Boundary computation is valid, err = ', err)
-    else:
-        print('Mag Boundary computation is wrong!!, err = ', err)
-    pass

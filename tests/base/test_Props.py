@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 import unittest
 import numpy as np
 import pickle
+import properties
 
 from SimPEG import Mesh
 from SimPEG import Maps
@@ -13,11 +14,7 @@ from SimPEG import Utils
 from SimPEG import Props
 
 
-class HasModel(Props.BaseSimPEG):
-    model = Props.Model("Inversion model.")
-
-
-class SimpleExample(HasModel):
+class SimpleExample(Props.HasModel):
 
     sigmaMap = Props.Mapping(
         "Mapping to the inversion model."
@@ -34,14 +31,14 @@ class SimpleExample(HasModel):
     )
 
 
-class ShortcutExample(HasModel):
+class ShortcutExample(Props.HasModel):
 
     sigma, sigmaMap, sigmaDeriv = Props.Invertible(
         "Electrical conductivity (S/m)"
     )
 
 
-class ReciprocalMappingExample(HasModel):
+class ReciprocalMappingExample(Props.HasModel):
 
     sigma, sigmaMap, sigmaDeriv = Props.Invertible(
         "Electrical conductivity (S/m)"
@@ -54,7 +51,7 @@ class ReciprocalMappingExample(HasModel):
     Props.Reciprocal(sigma, rho)
 
 
-class ReciprocalExample(HasModel):
+class ReciprocalExample(Props.HasModel):
 
     sigma, sigmaMap, sigmaDeriv = Props.Invertible(
         "Electrical conductivity (S/m)"
@@ -67,7 +64,7 @@ class ReciprocalExample(HasModel):
     Props.Reciprocal(sigma, rho)
 
 
-class ReciprocalPropExample(HasModel):
+class ReciprocalPropExample(Props.HasModel):
 
     sigma = Props.PhysicalProperty(
         "Electrical conductivity (S/m)"
@@ -80,11 +77,11 @@ class ReciprocalPropExample(HasModel):
     Props.Reciprocal(sigma, rho)
 
 
-class ReciprocalPropExampleDefaults(HasModel):
+class ReciprocalPropExampleDefaults(Props.HasModel):
 
     sigma = Props.PhysicalProperty(
         "Electrical conductivity (S/m)",
-        default = np.r_[1., 2., 3.]
+        default=np.r_[1., 2., 3.]
     )
 
     rho = Props.PhysicalProperty(
@@ -92,6 +89,31 @@ class ReciprocalPropExampleDefaults(HasModel):
     )
 
     Props.Reciprocal(sigma, rho)
+
+
+class ComplicatedInversion(Props.HasModel):
+
+    Ks, KsMap, KsDeriv = Props.Invertible(
+        "Saturated hydraulic conductivity",
+        default=24.96
+    )
+
+    A, AMap, ADeriv = Props.Invertible(
+        "fitting parameter",
+        default=1.175e+06
+    )
+
+    gamma, gammaMap, gammaDeriv = Props.Invertible(
+        "fitting parameter",
+        default=4.74
+    )
+
+
+class NestedModels(Props.HasModel):
+    complicated = properties.Instance(
+        "Nested models",
+        ComplicatedInversion
+    )
 
 
 class TestPropMaps(unittest.TestCase):
@@ -136,9 +158,9 @@ class TestPropMaps(unittest.TestCase):
 
         PM = ReciprocalMappingExample()
 
-        PM.model = np.r_[1., 2., 3.]
         self.assertRaises(AttributeError, getattr, PM, 'sigma')
         PM.sigmaMap = expMap
+        PM.model = np.r_[1., 2., 3.]
         assert np.all(PM.sigma == np.exp(np.r_[1., 2., 3.]))
         assert np.all(PM.rho == 1.0 / np.exp(np.r_[1., 2., 3.]))
 
@@ -206,12 +228,52 @@ class TestPropMaps(unittest.TestCase):
 
         PM = ReciprocalPropExampleDefaults()
         assert np.all(PM.sigma == np.r_[1., 2., 3.])
-        assert np.all(PM.rho == 1.0/ np.r_[1., 2., 3.])
+        assert np.all(PM.rho == 1.0 / np.r_[1., 2., 3.])
 
         rho = np.r_[2., 4., 6.]
         PM.rho = rho
         assert np.all(PM.rho == rho)
         assert np.all(PM.sigma == 1./rho)
+
+    def test_multi_parameter_inversion(self):
+        """The setup of the defaults should not invalidated the
+        mappings or other defaults.
+        """
+        PM = ComplicatedInversion()
+
+        assert PM.Ks == PM._props['Ks'].default
+        assert PM.gamma == PM._props['gamma'].default
+        assert PM.A == PM._props['A'].default
+
+    def test_summary_validate(self):
+
+        PM = ComplicatedInversion()
+        PM.summary()
+        PM.validate()
+        with self.assertRaises(ValueError):
+            PM.model = np.ones(2)
+            PM.summary()
+            PM.validate()
+        PM.AMap = Maps.ExpMap(nP=3)
+        with self.assertRaises(ValueError):
+            PM.model = np.ones(2)
+            PM.summary()
+            PM.validate()
+        PM.gammaMap = Maps.ExpMap(nP=2)
+        with self.assertRaises(ValueError):
+            # maps are mismatching sizes
+            PM.model = np.ones(2)
+            PM.summary()
+            PM.validate()
+        PM.AMap = Maps.ExpMap(nP=2)
+        PM.model = np.ones(2)
+        PM.summary()
+        PM.validate()
+        assert PM.KsDeriv == 0
+
+    def test_nested(self):
+        PM = NestedModels()
+        assert PM._has_nested_models is True
 
 
 if __name__ == '__main__':

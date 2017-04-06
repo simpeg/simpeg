@@ -2,11 +2,6 @@ from __future__ import print_function, division
 import types
 import numpy as np
 from functools import wraps
-import sys
-if sys.version_info < (3,):
-    scalarTypes = [float, int, long, np.float_, np.int_]
-else:
-    scalarTypes = [float, int, np.float_, np.int_]
 
 
 def memProfileWrapper(towrap, *funNames):
@@ -174,21 +169,13 @@ def dependentProperty(name, value, children, doc):
     def fget(self): return getattr(self, name, value)
 
     def fset(self, val):
-        if (isScalar(val) and getattr(self, name, value) == val) or val is getattr(self, name, value):
+        if (np.isscalar(val) and getattr(self, name, value) == val) or val is getattr(self, name, value):
             return # it is the same!
         for child in children:
             if hasattr(self, child):
                 delattr(self, child)
         setattr(self, name, val)
     return property(fget=fget, fset=fset, doc=doc)
-
-
-def isScalar(f):
-    if type(f) in scalarTypes:
-        return True
-    elif isinstance(f, np.ndarray) and f.size == 1 and type(f[0]) in scalarTypes:
-        return True
-    return False
 
 
 def asArray_N_x_Dim(pts, dim):

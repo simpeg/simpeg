@@ -96,12 +96,11 @@ Since most materials in the earth  have lower permeability than \\(\\mu_0\\), us
 
 Since we compute secondary field based on the earth field, which can be different from different locations in the world, we can expect different anomalous responses in different locations in the earth. For instance, assume we have two susceptible spheres, which are exactly same. However, anomalous responses in Seoul and Vancouver are going to be different.
 
-.. plot::
+.. image:: /content/examples/05-mag/images/sphx_glr_plot_analytic_001.png
+    :target: /content/examples/05-mag/plot_analytic.html
+    :align: center
 
-    from SimPEG import Examples
-    Examples.PF_Magnetics_Analytics.run()
-
-Since we can measure total fields ( \\(\\vec{B}\\)), and usually have reasonably accurate earth field (\\(\\vec{B}_0\\)), we can compute anomalous fields, \\(\\vec{B}_s\\) from our observed data. If you want to download earth magnetic fields at specific location see this website (`noaa <http://www.ngdc.noaa.gov/geomag-web/>`_).
+Since we can measure total fields ( \\(\\vec{B}\\)), and usually have reasonably accurate earth field (\\(\\vec{B}_0\\)), we can compute anomalous fields, \\(\\vec{B}_s\\) from our observed data. If you want to download earth magnetic fields at specific location see this website (`noaa <https://www.ngdc.noaa.gov/geomag-web/>`_).
 
 What is our data?
 -----------------

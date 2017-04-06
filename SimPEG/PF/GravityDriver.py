@@ -1,5 +1,7 @@
-import re, os
-from SimPEG import Mesh, np, Utils
+import re
+import os
+from SimPEG import Mesh, Utils
+import numpy as np
 from . import BaseGrav, Gravity
 
 
@@ -275,7 +277,7 @@ class GravityDriver_Inv(object):
 
         # First line has the number of rows
         line = fid.readline()
-        ndat = np.array(line.split(), dtype=int)
+        ndat = int(line.strip())
 
         # Pre-allocate space for obsx, obsy, obsz, data, uncert
         line = fid.readline()
@@ -283,7 +285,7 @@ class GravityDriver_Inv(object):
 
         d = np.zeros(ndat, dtype=float)
         wd = np.zeros(ndat, dtype=float)
-        locXYZ = np.zeros((ndat[0], 3), dtype=float)
+        locXYZ = np.zeros((ndat, 3), dtype=float)
 
         for ii in range(ndat):
 

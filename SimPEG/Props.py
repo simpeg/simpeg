@@ -5,19 +5,67 @@ from __future__ import unicode_literals
 
 import properties
 import numpy as np
+import warnings
 
 from . import Maps
 from . import Utils
 
 
-class Model(properties.Array):
+class SphinxProp(object):
+    """
+    Update the auto-documenter from properties
+    https://github.com/3ptscience/properties/issues/153
+    """
+    def sphinx_class(self):
+        return ':class:`{cls} <{ref}>`'.format(
+            cls=self.__class__.__name__,
+            ref='SimPEG.Props.{}'.format(self.__class__.__name__)
+        )
 
-    info_text = 'a numpy array'
+
+class Array(SphinxProp, properties.Array):
+
+    class_info = 'a numpy, Zero or Identity array'
+
+    def validate(self, instance, value):
+        if isinstance(value, (Utils.Zero, Utils.Identity)):
+            return value
+        return super(Array, self).validate(instance, value)
 
 
-class Mapping(properties.Property):
+class Float(SphinxProp, properties.Float):
 
-    info_text = 'a SimPEG Map'
+    class_info = 'a float, Zero or Identity'
+
+    def validate(self, instance, value):
+        if isinstance(value, (Utils.Zero, Utils.Identity)):
+            return value
+        return super(Float, self).validate(instance, value)
+
+
+class Integer(SphinxProp, properties.Integer):
+
+    class_info = 'an Integer or *'
+
+    def validate(self, instance, value):
+        if isinstance(value, str):
+            assert value == '*', 'value must be an integer or *, not {}'.format(
+                value
+            )
+            return value
+        return super(Integer, self).validate(instance, value)
+
+
+class Model(SphinxProp, properties.Array):
+
+    class_info = 'a numpy array'
+    _required = False
+
+
+class Mapping(SphinxProp, properties.Property):
+
+    class_info = 'a SimPEG Map'
+    _required = False
 
     @property
     def prop(self):
@@ -71,7 +119,8 @@ class Mapping(properties.Property):
             if value is not properties.utils.undefined:
                 value = scope.validate(self, value)
             self._set(scope.name, value)
-            scope.clear_props(self)
+            if value is not properties.utils.undefined:
+                scope.clear_props(self)
 
         def fdel(self):
             self._set(scope.name, properties.utils.undefined)
@@ -82,10 +131,11 @@ class Mapping(properties.Property):
         return instance._get(self.name)
 
 
-class PhysicalProperty(properties.Property):
+class PhysicalProperty(SphinxProp, properties.Property):
 
-    info_text = 'a physical property'
+    class_info = 'a physical property'
     reciprocal = None
+    _required = False
 
     @property
     def mapping(self):
@@ -121,12 +171,14 @@ class PhysicalProperty(properties.Property):
         scope = self
 
         def fget(self):
+
             default = self._get(scope.name)
             if default is not None:
                 return default
             if scope.reciprocal:
                 default = self._get(scope.reciprocal.name)
                 if default is not None:
+                    # set by default reciprocal
                     return 1.0 / default
             if scope.mapping is None and scope.reciprocal is None:
                 return None
@@ -141,6 +193,7 @@ class PhysicalProperty(properties.Property):
                                 scope.name, scope.reciprocal.name
                             )
                         )
+                # Set by mapped reciprocal
                 return 1.0 / getattr(self, scope.reciprocal.name)
 
             mapping = getattr(self, scope.mapping.name)
@@ -165,7 +218,8 @@ class PhysicalProperty(properties.Property):
                 if scope.reciprocal:
                     delattr(self, scope.reciprocal.name)
             self._set(scope.name, value)
-            scope.clear_mappings(self)
+            if value is not properties.utils.undefined:
+                scope.clear_mappings(self)
 
         def fdel(self):
             self._set(scope.name, properties.utils.undefined)
@@ -175,8 +229,68 @@ class PhysicalProperty(properties.Property):
     def as_pickle(self, instance):
         return instance._get(self.name)
 
+    def summary(self, instance):
+        default = instance._get(self.name)
+        if default is not None:
+            return '[*] {}: set by default value'.format(
+                self.name
+            )
+        if self.reciprocal:
+            default = instance._get(self.reciprocal.name)
+            if default is not None:
+                return '[*] {}: set by default reciprocal: 1.0 / {}'.format(
+                    self.name,
+                    self.reciprocal.name
+                )
+        if self.mapping is None and self.reciprocal is None:
+            return '[ ] {}: property not set'.format(
+                self.name,
+                self.reciprocal.name
+            )
+        if self.mapping is None:
+            if self.reciprocal.mapping is None:
+                # there is no reciprocal mapping
+                reciprocal_val = instance._get(self.reciprocal.name)
+                if reciprocal_val is None:
+                    return '[ ] {}: default for {}/{} not set'.format(
+                        self.name, self.name, self.reciprocal.name
+                    )
+            return '[*] {}: set by mapped reciprocal 1.0 / ({} * {})'.format(
+                self.name, self.reciprocal.mapping.name, self.reciprocal.name
+            )
 
-class Derivative(properties.GettableProperty):
+        mapping = getattr(instance, self.mapping.name)
+
+        if mapping is None:
+            return '[ ] {}: default `{}` or mapping `{}` not set'.format(
+                self.name, self.name, self.mapping.name
+            )
+        if instance.model is None:
+            return (
+                '[ ] {}: model({}) required, from active `{}` mapping: {}'
+            ).format(
+                self.name,
+                mapping.shape[1],
+                self.mapping.name,
+                str(mapping)
+            )
+
+        correct_shape = (
+            mapping.shape[1] == '*' or
+            mapping.shape[1] == len(instance.model)
+        )
+
+        if correct_shape:
+            return '[*] {}: set by the `{}` mapping: {} * model({})'.format(
+                self.name, self.mapping.name, str(mapping), len(instance.model)
+            )
+
+        return '[ ] {}: incorrect mapping/model shape: {} * model({})'.format(
+            self.name, str(mapping), len(instance.model)
+        )
+
+
+class Derivative(SphinxProp, properties.GettableProperty):
 
     physical_property = None
 
@@ -198,6 +312,8 @@ class Derivative(properties.GettableProperty):
                 return Utils.Zero()
             mapping = getattr(self, scope.mapping.name)
             if mapping is None:
+                return Utils.Zero()
+            if self.model is None:
                 return Utils.Zero()
 
             return mapping.deriv(self.model)
@@ -232,4 +348,146 @@ def Reciprocal(prop1, prop2):
 
 
 class BaseSimPEG(properties.HasProperties):
-    pass
+    """"""
+
+
+class HasModel(BaseSimPEG):
+
+    model = Model("Inversion model.")
+
+    @property
+    def _all_map_names(self):
+        """Returns all Mapping properties"""
+        return sorted([
+            k for k in self._props
+            if isinstance(self._props[k], Mapping)
+        ])
+
+    @property
+    def _act_map_names(self):
+        """Returns all active Mapping properties"""
+        return sorted([
+            k for k in self._all_map_names
+            if getattr(self, k) is not None
+        ])
+
+    @property
+    def needs_model(self):
+        """True if a model is necessary"""
+        return len(self._act_map_names) > 0
+
+    @property
+    def _has_nested_models(self):
+        for k in self._props:
+            if (
+                    isinstance(self._props[k], properties.Instance) and
+                    issubclass(self._props[k].instance_class, HasModel)
+               ):
+                return True
+        return False
+
+    @properties.validator('model')
+    def _check_model_valid(self, change):
+        """Checks the model length and necessity"""
+        if change['value'] is properties.utils.undefined:
+            return True
+
+        if not self.needs_model and not self._has_nested_models:
+            warnings.warn(
+                "Cannot add model as there are no active mappings"
+                ", choose from: ['{}']".format(
+                    "', '".join(self._all_map_names)
+                )
+            )
+            return
+
+        errors = []
+
+        for name in self._act_map_names:
+            mapping = getattr(self, name)
+            correct_shape = (
+                mapping.shape[1] == '*' or
+                mapping.shape[1] == len(change['value'])
+            )
+            if not correct_shape:
+                errors += [
+                    '{}: expected model of len({}) for {}'.format(
+                        name,
+                        mapping.shape[1],
+                        str(mapping)
+                    )
+                ]
+        if len(errors) == 0:
+            return True
+
+        warnings.warn(
+            'Model of len({}) incorrect shape for mappings: \n    {}'.format(
+                len(change['value']),
+                '\n    '.join(errors)
+            )
+        )
+
+    @properties.validator
+    def _check_valid(self):
+        errors = []
+
+        # Check if the model is necessary
+        if self.needs_model and self.model is None:
+            errors += ['model must not be None']
+        if not self.needs_model and self.model is not None:
+            errors += ['there are no active maps, but a model is provided']
+
+        # Check each map is the same size
+        shapes = []
+        for name in self._act_map_names:
+            shape = getattr(self, name).shape[1]
+            if shape == '*':
+                continue
+            shapes += [shape]
+        if not all(x == shapes[0] for x in shapes):
+            errors += ['the mappings are not the same shape']
+
+        # Check that the model is the same size as the mappings
+        if len(shapes) > 0 and self.model is not None:
+            if not len(self.model) == shapes[0]:
+                errors += ['the model must be len({})'.format(shapes[0])]
+
+        # Check each physical property
+        check_boxes = sorted([
+            self._props[k].summary(self) for k in self._props
+            if isinstance(self._props[k], PhysicalProperty)
+        ])
+        for line in check_boxes:
+            if line[:3] == '[ ]':
+                errors += [line[4:]]
+
+        if len(errors) == 0:
+            return True
+
+        raise ValueError(
+            'The {} instance has the following errors: \n - {}'.format(
+                self.__class__.__name__,
+                '\n - '.join(errors)
+            )
+        )
+
+    def summary(self):
+        prop_names = sorted([
+            k for k in self._props
+            if isinstance(self._props[k], PhysicalProperty)
+        ])
+
+        out = ['Physical Properties:']
+
+        # Grab the physical property summaries
+        for prop in prop_names:
+            out += [' ' + self._props[prop].summary(self)]
+
+        # Grab the validation errors
+        try:
+            self.validate()
+            out += ['', 'All checks pass!']
+        except ValueError as e:
+            out += ['', str(e)]
+
+        return '\n'.join(out)
