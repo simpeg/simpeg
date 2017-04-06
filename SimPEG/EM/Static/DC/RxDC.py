@@ -103,9 +103,6 @@ class Dipole_ky(BaseRx):
         """Number of data in the receiver."""
         return self.locs[0].shape[0]
 
-        # Not sure why ...
-        # return int(self.locs[0].size / 2)
-
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:
             return self._Ps[mesh]
@@ -142,6 +139,7 @@ class Dipole_ky(BaseRx):
             phi0 = phi1.copy()
         return phi
 
+
 class Pole(BaseRx):
     """
     Pole receiver
@@ -157,7 +155,6 @@ class Pole(BaseRx):
     def nD(self):
         """Number of data in the receiver."""
         return self.locs.shape[0]
-
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:
@@ -187,7 +184,6 @@ class Pole_ky(BaseRx):
     def nD(self):
         """Number of data in the receiver."""
         return self.locs.shape[0]
-
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:

@@ -25,7 +25,8 @@ class IPProblemTestsCC(unittest.TestCase):
         hy = [(cs, 7, -1.3), (cs, 20)]
         mesh = Mesh.TensorMesh([hx, hy], x0="CN")
 
-        x = np.linspace(-200, 200., 20)
+        # x = np.linspace(-200, 200., 20)
+        x = np.linspace(-200, 200., 2)
         M = Utils.ndgrid(x-12.5, np.r_[0.])
         N = Utils.ndgrid(x+12.5, np.r_[0.])
 
@@ -41,7 +42,8 @@ class IPProblemTestsCC(unittest.TestCase):
 
         sigma = np.ones(mesh.nC) * 1.
         problem = IP.Problem2D_CC(
-            mesh, sigma=sigma, etaMap=Maps.IdentityMap(mesh)
+            mesh, sigma=sigma, etaMap=Maps.IdentityMap(mesh),
+            verbose=True
         )
         problem.pair(survey)
 
@@ -106,7 +108,8 @@ class IPProblemTestsN(unittest.TestCase):
         hy = [(cs, 7, -1.3), (cs, 20)]
         mesh = Mesh.TensorMesh([hx, hy], x0="CN")
 
-        x = np.linspace(-200, 200., 20)
+        # x = np.linspace(-200, 200., 20)
+        x = np.linspace(-200, 200., 2)
         M = Utils.ndgrid(x-12.5, np.r_[0.])
         N = Utils.ndgrid(x+12.5, np.r_[0.])
 
@@ -122,7 +125,8 @@ class IPProblemTestsN(unittest.TestCase):
 
         sigma = np.ones(mesh.nC) * 1.
         problem = IP.Problem2D_N(
-            mesh, rho=1./sigma, etaMap=Maps.IdentityMap(mesh)
+            mesh, rho=1./sigma, etaMap=Maps.IdentityMap(mesh),
+            verbose=True
         )
         problem.pair(survey)
 

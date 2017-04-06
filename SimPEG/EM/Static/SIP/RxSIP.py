@@ -7,18 +7,19 @@ import SimPEG
 import numpy as np
 from SimPEG.Utils import Zero, closestPoints
 
+
 class BaseRx(SimPEG.Survey.BaseTimeRx):
     locs = None
     rxType = None
 
     knownRxTypes = {
-                    'phi':['phi',None],
-                    'ex':['e','x'],
-                    'ey':['e','y'],
-                    'ez':['e','z'],
-                    'jx':['j','x'],
-                    'jy':['j','y'],
-                    'jz':['j','z'],
+                    'phi': ['phi' , None],
+                    'ex': ['e' , 'x'],
+                    'ey': ['e' , 'y'],
+                    'ez': ['e' , 'z'],
+                    'jx': ['j' , 'x'],
+                    'jy': ['j' , 'y'],
+                    'jz': ['j' , 'z'],
                     }
 
     def __init__(self, locs, times, rxType, **kwargs):
@@ -60,7 +61,7 @@ class Dipole(BaseRx):
 
     rxgeom = "dipole"
 
-    def __init__(self, locsM, locsN, times, rxType = 'phi', **kwargs):
+    def __init__(self, locsM, locsN, times, rxType='phi', **kwargs):
         assert locsM.shape == locsN.shape, 'locsM and locsN need to be the same size'
         if np.array_equal(locsM, locsN):
             self.rxgeom = "pole"
@@ -83,7 +84,6 @@ class Dipole(BaseRx):
 
         # Not sure why ...
         # return int(self.locs[0].size / 2)
-
 
     def getP(self, mesh, Gloc):
 

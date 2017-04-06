@@ -16,6 +16,16 @@ from .SurveySIP import Survey, Data
 
 class BaseSIPProblem(BaseEMProblem):
 
+    sigma = Props.PhysicalProperty(
+        "Electrical conductivity (S/m)"
+    )
+
+    rho = Props.PhysicalProperty(
+        "Electrical resistivity (Ohm m)"
+    )
+
+    Props.Reciprocal(sigma, rho)
+
     eta, etaMap, etaDeriv = Props.Invertible(
         "Electrical Chargeability (V/V)"
     )
@@ -40,8 +50,6 @@ class BaseSIPProblem(BaseEMProblem):
     fieldsPair = FieldsDC
     dataPair = Data
     Ainv = None
-    sigma = None
-    rho = None
     f = None
     Ainv = None
 
@@ -142,8 +150,6 @@ class BaseSIPProblem(BaseEMProblem):
 
         self.model = m
         Jv = []
-        # A = self.getA()
-        JvAll = []
 
         for tind in range(len(self.survey.times)):
 

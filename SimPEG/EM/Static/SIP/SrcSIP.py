@@ -34,6 +34,9 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
 
 
 class Dipole(BaseSrc):
+    """
+    Dipole source
+    """
 
     def __init__(self, rxList, locA, locB, **kwargs):
         assert locA.shape == locB.shape, 'Shape of locA and locB should be the same'
@@ -53,6 +56,9 @@ class Dipole(BaseSrc):
 
 
 class Pole(BaseSrc):
+    """
+    Pole source
+    """
 
     def __init__(self, rxList, loc, **kwargs):
         BaseSrc.__init__(self, rxList, loc=loc, **kwargs)
