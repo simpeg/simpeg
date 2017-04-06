@@ -38,7 +38,7 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
 
     def fieldsdc(self, m):
         if m is not None:
-            self.model = m        
+            self.model = m
         if self.Ainv[0] is not None:
             for i in range(self.nky):
                 self.Ainv[i].clean()
@@ -56,7 +56,7 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
 
     def fields(self, m):
         # This is stupid..., but not sure how I can change InvProblem
-        # where calling self.fields        
+        # where calling self.fields
         return None
 
     def getJ(self, m, f=None):
@@ -366,7 +366,7 @@ class Problem2D_N(BaseIPProblem_2D):
     sign = -1.
 
     def __init__(self, mesh, **kwargs):
-        BaseDCProblem_2D.__init__(self, mesh, **kwargs)
+        BaseIPProblem_2D.__init__(self, mesh, **kwargs)
         # self.setBC()
 
     def getA(self, ky):

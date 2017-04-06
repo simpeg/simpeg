@@ -13,23 +13,25 @@ from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
 from SimPEG.EM.Static.DC import getxBCyBC_CC
 from .SurveySIP import Survey, Data
 
+
 class BaseSIPProblem(BaseEMProblem):
 
     eta, etaMap, etaDeriv = Props.Invertible(
-        "Electrical Chargeability"
+        "Electrical Chargeability (V/V)"
     )
 
     tau, tauMap, tauDeriv = Props.Invertible(
-        "time constant",
+        "Time constant (s)",
         default=0.1
     )
 
     taui, tauiMap, tauiDeriv = Props.Invertible(
-        "inverse time constant"
+        "Inverse of time constant (1/s)"
     )
 
     c, cMap, cDeriv = Props.Invertible(
-        "frequency dependency"
+        "Frequency dependency",
+        default=0.5
     )
 
     Props.Reciprocal(tau, taui)
@@ -43,11 +45,11 @@ class BaseSIPProblem(BaseEMProblem):
     f = None
     Ainv = None
 
-    def StretchedExponential(self, t):
+    def getPeta(self, t):
         peta = self.eta*np.exp(-(self.taui*t)**self.c)
         return peta
 
-    def EtaDeriv(self, t, v, adjoint=False):
+    def PetaEtaDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
         taui_t_c = (self.taui*t)**self.c
         dpetadeta = np.exp(-taui_t_c)
@@ -56,19 +58,23 @@ class BaseSIPProblem(BaseEMProblem):
         else:
             return dpetadeta * (self.etaDeriv*v)
 
-    def TauiDeriv(self, t, v, adjoint=False):
+    def PetaTauiDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
-        taui_t_c = (self.taui*t)**self.c        
-        dpetadtaui = -self.eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(self.taui*t)
+        taui_t_c = (self.taui*t)**self.c
+        dpetadtaui = (
+            -self.eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(self.taui*t)
+            )
         if adjoint:
             return self.tauiDeriv.T * (dpetadtaui*v)
         else:
             return dpetadtaui * (self.tauiDeriv*v)
 
-    def cDeriv(self, t, v, adjoint=False):
+    def PetaCDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
         taui_t_c = (self.taui*t)**self.c
-        dpetadc = - self.c * self.eta / self.taui * taui_t_c * np.exp(-taui_t_c)
+        dpetadc = (
+            - self.c * self.eta / self.taui * taui_t_c * np.exp(-taui_t_c)
+            )
         if adjoint:
             return self.cDeriv.T * (dpetadc*v)
         else:
@@ -86,7 +92,7 @@ class BaseSIPProblem(BaseEMProblem):
             RHS = self.getRHS()
             u = self.Ainv * RHS
             Srcs = self.survey.srcList
-            self.f[Srcs, self._solutionType] = u    
+            self.f[Srcs, self._solutionType] = u
 
     def fields(self, m):
         return None
@@ -103,7 +109,7 @@ class BaseSIPProblem(BaseEMProblem):
         for tind in range(len(self.survey.times)):
             # Pseudo-chareability
             t = self.survey.times[tind]
-            v = self.StretchedExponential(t)
+            v = self.getPeta(t)
             for src in self.survey.srcList:
                 u_src = self.f[src, self._solutionType]  # solution vector
                 dA_dm_v = self.getADeriv(u_src, v)
@@ -112,10 +118,13 @@ class BaseSIPProblem(BaseEMProblem):
                 for rx in src.rxList:
                     timeindex = rx.getTimeP(self.survey.times)
                     if timeindex[tind]:
-                        df_dmFun = getattr(self.f, '_{0!s}Deriv'.format(rx.projField), None)
+                        df_dmFun = getattr(
+                            self.f, '_{0!s}Deriv'.format(rx.projField), None
+                            )
                         df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                        Jv.append(rx.evalDeriv(src, self.mesh, self.f, df_dm_v))
-                        # Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+                        Jv.append(
+                            rx.evalDeriv(src, self.mesh, self.f, df_dm_v)
+                            )
 
         # Conductivity (d u / d log sigma)
         if self._formulation == 'EB':
@@ -139,45 +148,29 @@ class BaseSIPProblem(BaseEMProblem):
         for tind in range(len(self.survey.times)):
 
             t = self.survey.times[tind]
-            v0 = self.EtaDeriv(t, v)
-            v1 = self.TauiDeriv(t, v)
-            v2 = self.cDeriv(t, v)
+            v0 = self.PetaEtaDeriv(t, v)
+            v1 = self.PetaTauiDeriv(t, v)
+            v2 = self.PetaCDeriv(t, v)
 
             for src in self.survey.srcList:
                 u_src = self.f[src, self._solutionType]  # solution vector
-                
-                if self.etaMap is None:
-                    du_dm_v0 = Utils.Zero()
-                else:
-                    dA_dm_v0 = self.getADeriv(u_src, v0)
-                    dRHS_dm_v0 = self.getRHSDeriv(src, v0)                                    
-                    du_dm_v0 = self.Ainv * (- dA_dm_v0 + dRHS_dm_v0)      
-                
-                if self.tauiMap is None:               
-                    du_dm_v1 = Utils.Zero()
-                else:               
-                    dA_dm_v1 = self.getADeriv(u_src, v1)
-                    dRHS_dm_v1 = self.getRHSDeriv(src, v1)                
-                    du_dm_v1 = self.Ainv * (- dA_dm_v1 + dRHS_dm_v1)
-
-                if self.cMap is None:               
-                    du_dm_v2 = Utils.Zero()
-                else:               
-                    dA_dm_v2 = self.getADeriv(u_src, v2)
-                    dRHS_dm_v2 = self.getRHSDeriv(src, v2)
-                    du_dm_v2 = self.Ainv * (- dA_dm_v2 + dRHS_dm_v2)
+                dA_dm_v = self.getADeriv(u_src, v0+v1+v2)
+                dRHS_dm_v = self.getRHSDeriv(src, v0+v1+v2)
+                du_dm_v = self.Ainv * (
+                    - dA_dm_v + dRHS_dm_v
+                    )
 
                 for rx in src.rxList:
                     timeindex = rx.getTimeP(self.survey.times)
                     if timeindex[tind]:
-                        df_dmFun = getattr(self.f, '_{0!s}Deriv'.format(rx.projField), None)
-                        df_dm_v0 = df_dmFun(src, du_dm_v0, v0, adjoint=False)
-                        df_dm_v1 = df_dmFun(src, du_dm_v1, v1, adjoint=False)
-                        df_dm_v2 = df_dmFun(src, du_dm_v2, v2, adjoint=False)
+                        df_dmFun = getattr(
+                            self.f, '_{0!s}Deriv'.format(rx.projField), None
+                            )
+                        df_dm_v = df_dmFun(
+                            src, du_dm_v, v0+v1+v2, adjoint=False
+                            )
                         Jv.append(
-                            rx.evalDeriv(src, self.mesh, self.f, df_dm_v0) + 
-                            rx.evalDeriv(src, self.mesh, self.f, df_dm_v1) + 
-                            rx.evalDeriv(src, self.mesh, self.f, df_dm_v2)
+                            rx.evalDeriv(src, self.mesh, self.f, du_dm_v)
                             )
 
         # Conductivity (d u / d log sigma)
@@ -208,17 +201,34 @@ class BaseSIPProblem(BaseEMProblem):
                 for rx in src.rxList:
                     timeindex = rx.getTimeP(self.survey.times)
                     if timeindex[tind]:
-                        PTv = rx.evalDeriv(src, self.mesh, self.f, v[src, rx, t], adjoint=True)  # wrt f, need possibility wrt m
-                        df_duTFun = getattr(self.f, '_{0!s}Deriv'.format(rx.projField), None)
-                        df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+                        # wrt f, need possibility wrt m
+                        PTv = rx.evalDeriv(
+                            src, self.mesh, self.f, v[src, rx, t], adjoint=True
+                        )
+                        df_duTFun = getattr(
+                            self.f, '_{0!s}Deriv'.format(rx.projField), None
+                            )
+                        df_duT, df_dmT = df_duTFun(
+                            src, None, PTv, adjoint=True
+                            )
                         ATinvdf_duT = self.Ainv * df_duT
-                        dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
-                        dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
+                        dA_dmT = self.getADeriv(
+                            u_src, ATinvdf_duT, adjoint=True
+                            )
+                        dRHS_dmT = self.getRHSDeriv(
+                            src, ATinvdf_duT, adjoint=True
+                            )
                         du_dmT = -dA_dmT + dRHS_dmT
                         Jtv += (
-                            self.EtaDeriv(self.survey.times[tind], du_dmT, adjoint=True) + 
-                            self.TauiDeriv(self.survey.times[tind], du_dmT, adjoint=True) +
-                            self.cDeriv(self.survey.times[tind], du_dmT, adjoint=True)
+                            self.PetaEtaDeriv(
+                                self.survey.times[tind], du_dmT, adjoint=True
+                                ) +
+                            self.PetaTauiDeriv(
+                                self.survey.times[tind], du_dmT, adjoint=True
+                                ) +
+                            self.PetaCDeriv(
+                                self.survey.times[tind], du_dmT, adjoint=True
+                                )
                             )
 
         # Conductivity ((d u / d log sigma).T)
@@ -379,9 +389,15 @@ class Problem3D_CC(BaseSIPProblem):
             gBFzp = self.mesh.gridFz[fzp, :]
 
             # Setup Mixed B.C (alpha, beta, gamma)
-            temp_xm, temp_xp = np.ones_like(gBFxm[:, 0]), np.ones_like(gBFxp[:, 0])
-            temp_ym, temp_yp = np.ones_like(gBFym[:, 1]), np.ones_like(gBFyp[:, 1])
-            temp_zm, temp_zp = np.ones_like(gBFzm[:, 2]), np.ones_like(gBFzp[:, 2])
+            temp_xm, temp_xp = (
+                np.ones_like(gBFxm[:, 0]), np.ones_like(gBFxp[:, 0])
+                )
+            temp_ym, temp_yp = (
+                np.ones_like(gBFym[:, 1]), np.ones_like(gBFyp[:, 1])
+                )
+            temp_zm, temp_zp = (
+                np.ones_like(gBFzm[:, 2]), np.ones_like(gBFzp[:, 2])
+                )
 
             alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
             alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
@@ -395,9 +411,15 @@ class Problem3D_CC(BaseSIPProblem):
             gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
             gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
 
-            alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp, alpha_zm, alpha_zp]
-            beta = [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
-            gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm, gamma_zp]
+            alpha = (
+                [alpha_xm, alpha_xp, alpha_ym, alpha_yp, alpha_zm, alpha_zp]
+                )
+            beta = (
+                [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
+                )
+            gamma = (
+                [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm, gamma_zp]
+                )
 
         elif self.mesh.dim == 2:
 
@@ -408,8 +430,12 @@ class Problem3D_CC(BaseSIPProblem):
             gBFyp = self.mesh.gridFy[fyp, :]
 
             # Setup Mixed B.C (alpha, beta, gamma)
-            temp_xm, temp_xp = np.ones_like(gBFxm[:, 0]), np.ones_like(gBFxp[:, 0])
-            temp_ym, temp_yp = np.ones_like(gBFym[:, 1]), np.ones_like(gBFyp[:, 1])
+            temp_xm, temp_xp = (
+                np.ones_like(gBFxm[:, 0]), np.ones_like(gBFxp[:, 0])
+                )
+            temp_ym, temp_yp = (
+                np.ones_like(gBFym[:, 1]), np.ones_like(gBFyp[:, 1])
+                )
 
             alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
             alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
