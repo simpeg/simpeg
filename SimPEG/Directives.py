@@ -60,6 +60,9 @@ class InversionDirective(object):
     def finish(self):
         pass
 
+    def validate(self, directiveList=None):
+        pass
+
 
 class DirectiveList(object):
 
@@ -116,6 +119,10 @@ class DirectiveList(object):
         )
         for r in self.dList:
             getattr(r, ruleType)()
+
+    def validate(self):
+        [directive.validate(self) for directive in self.dList]
+        return True
 
 
 class BetaEstimate_ByEig(InversionDirective):
