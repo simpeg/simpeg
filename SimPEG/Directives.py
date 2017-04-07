@@ -613,7 +613,9 @@ class Update_IRLS(InversionDirective):
             )
         else:
             warnings.warn(
-                "Without a Linear preconditioner, convergence may be slow."
+                "Without a Linear preconditioner, convergence may be slow. "
+                "Consider adding `Directives.Update_lin_PreCond` to your "
+                "directives list"
             )
         return True
 
