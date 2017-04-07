@@ -76,11 +76,10 @@ class GravInvLinProblemTest(unittest.TestCase):
         idenMap = Maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        prob = PF.Gravity.GravityIntegral(
-            mesh,
-            rhoMap=idenMap,
-            actInd=actv
-        )
+        prob = PF.Gravity.GravityIntegral(mesh,
+                                          rhoMap=idenMap,
+                                          actInd=actv,
+                                          silent=True)
 
         # Pair the survey and problem
         survey.pair(prob)
@@ -104,10 +103,12 @@ class GravInvLinProblemTest(unittest.TestCase):
         # Create a regularization
         reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
         reg.cell_weights = wr
+        reg.norms = [0, 1, 1, 1]
+        reg.eps_p, reg.eps_q = 5e-2, 1e-2
 
         # Data misfit function
         dmis = DataMisfit.l2_DataMisfit(survey)
-        dmis.Wd = 1/wd
+        dmis.W = 1/wd
 
         # Add directives to the inversion
         opt = Optimization.ProjectedGNCG(maxIter=100, lower=-1., upper=1.,
@@ -116,10 +117,9 @@ class GravInvLinProblemTest(unittest.TestCase):
         invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e+8)
 
         # Here is where the norms are applied
-        IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),
-                                      eps=(5e-2, 1e-2), f_min_change=1e-3,
+        IRLS = Directives.Update_IRLS(f_min_change=1e-3,
                                       minGNiter=3)
-        update_Jacobi = Directives.Update_lin_PreCond()
+        update_Jacobi = Directives.Update_lin_PreCond(mapping=idenMap)
 
         self.inv = Inversion.BaseInversion(invProb,
                                            directiveList=[IRLS,
@@ -129,7 +129,6 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Run the inversion
         mrec = self.inv.run(self.model)
-
         residual = np.linalg.norm(mrec-self.model) / np.linalg.norm(self.model)
         print(residual)
         self.assertTrue(residual < 0.05)

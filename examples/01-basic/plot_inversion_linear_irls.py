@@ -4,6 +4,7 @@ Inversion: Linear: IRLS
 
 Here we go over the basics of creating a linear problem and inversion.
 """
+
 from __future__ import print_function
 
 import numpy as np
@@ -18,6 +19,7 @@ from SimPEG import Optimization
 from SimPEG import Regularization
 from SimPEG import InvProblem
 from SimPEG import Inversion
+from SimPEG import Maps
 
 
 def run(N=100, plotIt=True):
@@ -42,17 +44,17 @@ def run(N=100, plotIt=True):
             np.cos(np.pi*q*jk[k]*mesh.vectorCCx)
         )
 
-    G = np.empty((nk, mesh.nC))
+    F = np.empty((nk, mesh.nC))
 
     for i in range(nk):
-        G[i, :] = g(i)
+        F[i, :] = g(i)
 
     mtrue = np.zeros(mesh.nC)
     mtrue[mesh.vectorCCx > 0.3] = 1.
     mtrue[mesh.vectorCCx > 0.45] = -0.5
     mtrue[mesh.vectorCCx > 0.6] = 0
 
-    prob = Problem.LinearProblem(mesh, G=G)
+    prob = Problem.LinearProblem(mesh, F=F)
     survey = Survey.LinearSurvey()
     survey.pair(prob)
     survey.dobs = prob.fields(mtrue) + std_noise * np.random.randn(nk)
@@ -60,18 +62,25 @@ def run(N=100, plotIt=True):
     wd = np.ones(nk) * std_noise
 
     # Distance weighting
-    wr = np.sum(prob.G**2., axis=0)**0.5
+    wr = np.sum(prob.F**2., axis=0)**0.5
     wr = wr/np.max(wr)
 
     dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.Wd = 1./wd
+    dmis.W = 1./wd
 
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
 
-    reg = Regularization.Sparse(mesh)
+    # Creat reduced identity map
+    idenMap = Maps.IdentityMap(nP=mesh.nC)
+
+    reg = Regularization.Sparse(mesh, mapping=idenMap)
     reg.mref = mref
     reg.cell_weights = wr
+    reg.norms = [0., 0., 2., 2.]
 
+    # The treshold for lq-norm is hardwired here, the
+    # autopicker needs to be improved.
+    reg.eps_q = 2e-2
     reg.mref = np.zeros(mesh.nC)
 
     opt = Optimization.ProjectedGNCG(
@@ -83,26 +92,24 @@ def run(N=100, plotIt=True):
 
     # Set the IRLS directive, penalize the lowest 25 percentile of model values
     # Start with an l2-l2, then switch to lp-norms
-    norms = [0., 0., 2., 2.]
-    IRLS = Directives.Update_IRLS(
-        norms=norms, prctile=25, maxIRLSiter=15, minGNiter=3
-    )
+
+    IRLS = Directives.Update_IRLS(prctile=25, maxIRLSiter=15, minGNiter=3)
 
     inv = Inversion.BaseInversion(
         invProb,
-        directiveList=[IRLS, betaest, update_Jacobi]
+        directiveList=[betaest, IRLS, update_Jacobi]
     )
 
     # Run inversion
     mrec = inv.run(m0)
 
-    print("Final misfit:" + str(invProb.dmisfit.eval(mrec)))
+    print("Final misfit:" + str(invProb.dmisfit(mrec)))
 
     if plotIt:
         fig, axes = plt.subplots(1, 2, figsize=(12*1.2, 4*1.2))
-        for i in range(prob.G.shape[0]):
-            axes[0].plot(prob.G[i, :])
-        axes[0].set_title('Columns of matrix G')
+        for i in range(prob.F.shape[0]):
+            axes[0].plot(prob.F[i, :])
+        axes[0].set_title('Columns of matrix F')
 
         axes[1].plot(mesh.vectorCCx, mtrue, 'b-')
         axes[1].plot(mesh.vectorCCx, reg.l2model, 'r-')

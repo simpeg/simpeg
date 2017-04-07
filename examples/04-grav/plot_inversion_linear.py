@@ -23,6 +23,16 @@ from SimPEG import PF
 
 def run(plotIt=True):
 
+    """
+        PF: Gravity Inversion Linear
+        ============================
+
+        Create a synthetic density block model and invert
+        with a compact norm
+
+    """
+
+
     # Create a mesh
     dx = 5.
 
@@ -70,7 +80,7 @@ def run(plotIt=True):
     # Here a simple block in half-space
     model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
     model[(midx-5):(midx-1), (midy-2):(midy+2), -10:-6] = 0.5
-    model[(midx+1):(midx+5), (midy-2):(midy+2), -10:-6] = -0.5
+    model[(midx+2):(midx+6), (midy-2):(midy+2), -10:-6] = -0.5
     model = Utils.mkvc(model)
     model = model[actv]
 
@@ -81,7 +91,8 @@ def run(plotIt=True):
     idenMap = Maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
-    prob = PF.Gravity.GravityIntegral(mesh, rhoMap=idenMap, actInd=actv)
+    prob = PF.Gravity.GravityIntegral(mesh, rhoMap=idenMap, actInd=actv,
+                                      silent=True)
 
     # Pair the survey and problem
     survey.pair(prob)
@@ -100,16 +111,17 @@ def run(plotIt=True):
 
     # Create sensitivity weights from our linear forward operator
     rxLoc = survey.srcField.rxList[0].locs
-    wr = np.sum(prob.G**2., axis=0)**0.5
+    wr = np.sum(prob.F**2., axis=0)**0.5
     wr = (wr/np.max(wr))
 
     # Create a regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.cell_weights = wr
+    reg.norms = [0, 1, 1, 1]
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.Wd = 1/wd
+    dmis.W = Utils.sdiag(1/wd)
 
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=100, lower=-1., upper=1.,
@@ -121,11 +133,10 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
     # model parameters
-    IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),  eps=None,
-                                  f_min_change=1e-2, minGNiter=3)
+    IRLS = Directives.Update_IRLS(f_min_change=1e-2, minGNiter=3)
+
     update_Jacobi = Directives.Update_lin_PreCond()
-    inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,
-                                                          betaest,
+    inv = Inversion.BaseInversion(invProb, directiveList=[betaest, IRLS,
                                                           update_Jacobi])
 
     # Run the inversion
@@ -133,7 +144,7 @@ def run(plotIt=True):
     mrec = inv.run(m0)
 
     if plotIt:
-        # Here is the recovered susceptibility model
+        # Here is the recovered denisty model
         ypanel = midx
         zpanel = -7
         m_l2 = actvMap * reg.l2model
@@ -146,14 +157,22 @@ def run(plotIt=True):
         m_true[m_true == -100] = np.nan
 
         # Plot the data
-        PF.Gravity.plot_obs_2D(rxLoc, d=data)
+        fig = plt.figure(figsize=(8, 4))
+        ax1 = plt.subplot(121)
+        ax2 = plt.subplot(122)
 
-        plt.figure()
+        PF.Gravity.plot_obs_2D(rxLoc, d=data, axs=ax1,
+                               title='TMI Data')
+        PF.Gravity.plot_obs_2D(rxLoc, d=invProb.dpred, axs=ax2,
+                               title='Predicted Data')
+
+        plt.figure(figsize=(5, 8))
 
         # Plot L2 model
         ax = plt.subplot(321)
         mesh.plotSlice(m_l2, ax=ax, normal='Z', ind=zpanel,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True,
+                       clim=(model.min(), model.max()), pcolorOpts={'cmap': 'magma_r', })
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan l2-model.')
@@ -165,7 +184,8 @@ def run(plotIt=True):
         # Vertica section
         ax = plt.subplot(322)
         mesh.plotSlice(m_l2, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True,
+                       clim=(model.min(), model.max()), pcolorOpts={'cmap': 'magma_r', })
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W l2-model.')
@@ -177,7 +197,8 @@ def run(plotIt=True):
         # Plot Lp model
         ax = plt.subplot(323)
         mesh.plotSlice(m_lp, ax=ax, normal='Z', ind=zpanel,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True,
+                       clim=(model.min(), model.max()), pcolorOpts={'cmap': 'magma_r', })
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan lp-model.')
@@ -189,7 +210,8 @@ def run(plotIt=True):
         # Vertical section
         ax = plt.subplot(324)
         mesh.plotSlice(m_lp, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True,
+                       clim=(model.min(), model.max()), pcolorOpts={'cmap': 'magma_r', })
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W lp-model.')
@@ -201,7 +223,8 @@ def run(plotIt=True):
         # Plot True model
         ax = plt.subplot(325)
         mesh.plotSlice(m_true, ax=ax, normal='Z', ind=zpanel,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True,
+                       clim=(model.min(), model.max()), pcolorOpts={'cmap': 'magma_r', })
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan true model.')
@@ -213,7 +236,8 @@ def run(plotIt=True):
         # Vertical section
         ax = plt.subplot(326)
         mesh.plotSlice(m_true, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True,
+                       clim=(model.min(), model.max()), pcolorOpts={'cmap': 'magma_r', })
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W true model.')

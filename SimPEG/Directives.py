@@ -3,7 +3,10 @@ from . import Utils
 import numpy as np
 import warnings
 from . import Maps
-
+from .PF import Magnetics, MagneticsDriver
+from . import Regularization
+from . import Mesh
+from . import ObjectiveFunction
 
 class InversionDirective(object):
     """InversionDirective"""
@@ -167,9 +170,9 @@ class BetaEstimate_ByEig(InversionDirective):
         m = self.invProb.model
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
-        x0 = np.random.rand(*m.shape)
-        t = x0.dot(self.dmisfit.eval2Deriv(m, x0, f=f))
-        b = x0.dot(self.reg.eval2Deriv(m, v=x0))
+        x0 = np.random.rand(m.shape[0])
+        t = x0.dot(self.dmisfit.deriv2(m, x0, f=f))
+        b = x0.dot(self.reg.deriv2(m, v=x0))
         self.beta0 = self.beta0_ratio*(t/b)
 
         self.invProb.beta = self.beta0
@@ -201,7 +204,13 @@ class TargetMisfit(InversionDirective):
         if getattr(self, '_target', None) is None:
             # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
             if self.phi_d_star is None:
-                self.phi_d_star = 0.5 * self.survey.nD
+
+                # Check if it is a ComboObjective
+                if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+                    self.phi_d_star = 0.5 * self.dmisfit.objfcts[0].survey.nD
+                else:
+                    self.phi_d_star = 0.5 * self.survey.nD
+
             self._target = self.chifact * self.phi_d_star
         return self._target
 
@@ -252,6 +261,80 @@ class SaveModelEveryIteration(SaveEveryIteration):
         )
 
 
+class SaveUBCModelEveryIteration(SaveEveryIteration):
+    """SaveModelEveryIteration"""
+
+    mapping = None
+    replace = True
+
+    def initialize(self):
+
+        if getattr(self, 'mapping', None) is None:
+            return self.mapPair()
+        print("SimPEG.SaveModelEveryIteration will save your models" +
+              " in UBC format as: '###-{0!s}.sus'".format(self.fileName))
+
+    def endIter(self):
+
+        # Overwrite the file or add interation number
+        if not self.replace:
+            fileName = self.fileName + str(self.opt.iter)
+        else:
+            fileName = self.fileName
+
+        Mesh.TensorMesh.writeModelUBC(self.reg.mesh,
+                                      fileName + '.sus',
+                                      self.mapping*self.opt.xc)
+
+        Magnetics.writeUBCobs(fileName + '.pre', self.survey, self.invProb.dpred)
+
+
+class SaveUBCVectorsEveryIteration(SaveEveryIteration):
+    """SaveModelEveryIteration"""
+
+    mapping = None
+    replace = True
+    saveComp = False
+    spherical = False
+
+    def initialize(self):
+        print("SimPEG.SaveModelEveryIteration will save your models" +
+              " in UBC format as: '###-{0!s}.sus'".format(self.fileName))
+
+    def endIter(self):
+
+        nC = self.mapping.shape[1]
+
+        if self.spherical:
+            vec_pst = Magnetics.atp2xyz(self.opt.xc)
+        else:
+            vec_pst = self.opt.xc
+
+        vec_p = self.mapping*vec_pst[:nC]
+        vec_s = self.mapping*vec_pst[nC:2*nC]
+        vec_t = self.mapping*vec_pst[2*nC:]
+
+        vec = np.c_[vec_p, vec_s, vec_t]
+
+        # Overwrite the file or add interation number
+        if not self.replace:
+            fileName = self.fileName + str(self.opt.iter)
+        else:
+            fileName = self.fileName
+
+        MagneticsDriver.writeVectorUBC(self.prob.mesh, fileName + '.fld', vec)
+
+        if self.saveComp:
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh,
+                                          fileName + '_amp.sus',
+                                          self.mapping*self.opt.xc[:nC])
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh,
+                                          fileName + '_phi.sus',
+                                          self.mapping*self.opt.xc[nC:2*nC])
+            Mesh.TensorMesh.writeModelUBC(self.prob.mesh,
+                                          fileName + '_theta.sus',
+                                          self.mapping*self.opt.xc[2*nC:])
+
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
 
@@ -298,17 +381,14 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
 class Update_IRLS(InversionDirective):
 
-    eps_min = None
-    eps = None
-    norms = [2., 2., 2., 2.]
-    factor = None
     gamma = None
-    phi_m_last = None
     phi_d_last = None
     f_old = None
     f_min_change = 1e-2
     beta_tol = 5e-2
     prctile = 95
+    chifact = 1.
+
 
     # Solving parameter for IRLS (mode:2)
     IRLSiter = 0
@@ -319,13 +399,16 @@ class Update_IRLS(InversionDirective):
     # Beta schedule
     coolingFactor = 2.
     coolingRate = 1
+    ComboObjFun = False
+
+    updateBeta = True
 
     mode = 1
 
     @property
     def target(self):
         if getattr(self, '_target', None) is None:
-            self._target = self.survey.nD*0.5
+            self._target = self.survey.nD*0.5*self.chifact
         return self._target
 
     @target.setter
@@ -334,66 +417,117 @@ class Update_IRLS(InversionDirective):
 
     def initialize(self):
 
+        # Check if it is a ComboObjective
+        if not isinstance(self.reg, Regularization.BaseComboRegularization):
+
+            # It is a Combo objective, so will have to loop
+            self.ComboObjFun = True
+
         if self.mode == 1:
-            self.reg.norms = [2., 2., 2., 2.]
+
+            if self.ComboObjFun:
+
+                self.norms = []
+                for reg in self.reg.objfcts:
+                    self.norms.append(reg.norms)
+                    reg.norms = [2., 2., 2., 2.]
+
+            else:
+                # Store assigned norms for later use - start with l2
+                self.norms = self.reg.norms
+                self.reg.norms = [2., 2., 2., 2.]
 
     def endIter(self):
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
-        if self.invProb.phi_d < self.target and self.mode == 1:
+        if np.all([self.invProb.phi_d < self.target, self.mode == 1]):
             print("Convergence with smooth l2-norm regularization: Start IRLS steps...")
 
             self.mode = 2
-
-            mmap = self.reg.mapping * self.invProb.model
-
-            # Either use the supplied epsilon, or fix base on distribution of
-            # model values
-            for imodel in range(self.reg.nModels):
-
-                indl, indu = imodel*self.reg.regmesh.nC, (imodel+1)*self.reg.regmesh.nC
-
-                if getattr(self, 'eps', None) is None:
-                    self.reg.eps_p[imodel] = np.percentile(np.abs(mmap[indl:indu]),self.prctile)
-                else:
-                    self.reg.eps_p[imodel] = self.eps[0]
-
-                if getattr(self, 'eps', None) is None:
-
-                    self.reg.eps_q[imodel] = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mmap[indl:indu]),self.prctile)
-                else:
-                    self.reg.eps_q[imodel] = self.eps[1]
-
-            self.reg.norms = self.norms
             self.coolingFactor = 1.
             self.coolingRate = 1
             self.iterStart = self.opt.iter
             self.phi_d_last = self.invProb.phi_d
-            self.phi_m_last = self.invProb.phi_m_last
-
-            self.reg.l2model = self.invProb.model
-            self.reg.model = self.invProb.model
-
-            print("L[p qx qy qz]-norm : " + str(self.reg.norms))
-            print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
+            self.invProb.phi_m_last = self.reg(self.invProb.model)
 
             if getattr(self, 'f_old', None) is None:
-                self.f_old = self.reg.eval(self.invProb.model)#self.invProb.evalFunction(self.invProb.model, return_g=False, return_H=False)
+                self.f_old = self.reg(self.invProb.model)
+
+            self.coolingFactor = 1.
+            self.coolingRate = 1
+            self.iterStart = self.opt.iter
+            self.phi_d_last = self.invProb.phi_d
+            self.invProb.phi_m_last = self.reg(self.invProb.model)
+
+            # print(' iter', self.opt.iter, 'beta',self.invProb.beta,'phid', self.invProb.phi_d)
+            if getattr(self, 'f_old', None) is None:
+                self.f_old = self.reg(self.invProb.model)
+
+            # Either use the supplied epsilon, or fix base on distribution of
+            # model values
+            if self.ComboObjFun:
+
+                for reg in self.reg.objfcts:
+
+                    if getattr(reg, 'eps_p', None) is None:
+
+                        mtemp = reg.mapping * self.invProb.model
+                        reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
+
+                    if getattr(reg, 'eps_q', None) is None:
+                        mtemp = reg.mapping * self.invProb.model
+                        reg.eps_q = np.percentile(np.abs(reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
+
+            else:
+                if getattr(self.reg, 'eps_p', None) is None:
+
+                    mtemp = self.reg.mapping * self.invProb.model
+                    self.reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
+
+                if getattr(self.reg, 'eps_q', None) is None:
+
+                    mtemp = self.reg.mapping * self.invProb.model
+                    self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
+
+
+            # Re-assign the norms
+            if self.ComboObjFun:
+                for reg, norms in zip(self.reg.objfcts, self.norms):
+                    reg.norms = norms
+                    print("L[p qx qy qz]-norm : " + str(reg.norms))
+
+            else:
+                self.reg.norms = self.norms
+                print("L[p qx qy qz]-norm : " + str(self.reg.norms))
+
+
+            if self.ComboObjFun:
+                    for reg in self.reg.objfcts:
+                        reg.model = self.invProb.model
+
+            else:
+                self.reg.model = self.invProb.model
+
+            self.reg.l2model = self.invProb.model.copy()
+
+            # Re-assign the norms
+            if self.ComboObjFun:
+                for reg in self.reg.objfcts:
+                    print("eps_p: " + str(reg.eps_p) +
+                          " eps_q: " + str(reg.eps_q))
+
+            else:
+                print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
+
 
         # Beta Schedule
-        if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
+        if np.all([self.opt.iter > 0, self.opt.iter % self.coolingRate == 0]):
             if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
             self.invProb.beta /= self.coolingFactor
 
         # Only update after GN iterations
-        if (self.opt.iter-self.iterStart) % self.minGNiter == 0 and self.mode == 2:
+        if np.all([(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode == 2]):
 
-            self.IRLSiter += 1
-
-            phim_new = self.reg.eval(self.invProb.model)
-            self.f_change = np.abs(self.f_old - phim_new) / self.f_old
-
-            print("Regularization decrease: {0:6.3e}".format((self.f_change)))
 
             # Check for maximum number of IRLS cycles
             if self.IRLSiter == self.maxIRLSiter:
@@ -401,6 +535,37 @@ class Update_IRLS(InversionDirective):
                 self.opt.stopNextIteration = True
                 return
 
+            else:
+                # Update the model used in the regularization
+                if self.ComboObjFun:
+                    for reg in self.reg.objfcts:
+                        reg.model = self.invProb.model
+
+                else:
+                    self.reg.model = self.invProb.model
+
+                self.IRLSiter += 1
+
+            # Reset the regularization matrices so that it is
+            # recalculated for current model. Do it to all levels of comboObj
+            for reg in self.reg.objfcts:
+
+                # If comboObj, go down one more level
+                if self.ComboObjFun:
+                    for comp in reg.objfcts:
+                        comp.stashedR = None
+                        comp.gamma = 1.
+                else:
+                    reg.stashedR = None
+                    reg.gamma = 1.
+
+            # Compute new model objective function value
+            phim_new = self.reg(self.invProb.model)
+
+            # phim_new = self.reg(self.invProb.model)
+            self.f_change = np.abs(self.f_old - phim_new) / self.f_old
+
+            print("Regularization decrease: {0:6.3e}".format((self.f_change)))
             # Check if the function has changed enough
             if self.f_change < self.f_min_change and self.IRLSiter > 1:
                 print("Minimum decrease in regularization. End of IRLS")
@@ -409,52 +574,26 @@ class Update_IRLS(InversionDirective):
             else:
                 self.f_old = phim_new
 
-#            # Cool the threshold parameter if required
-#            if getattr(self, 'factor', None) is not None:
-#                eps = self.reg.eps / self.factor
-#
-#                if getattr(self, 'eps_min', None) is not None:
-#                    self.reg.eps = np.max([self.eps_min,eps])
-#                else:
-#                    self.reg.eps = eps
-
-            # Get phi_m at the end of current iteration
-            self.phi_m_last = self.invProb.phi_m_last
-
-            # Reset the regularization matrices so that it is
-            # recalculated for current model
-            self.reg._Wsmall = None
-            self.reg._Wx = None
-            self.reg._Wy = None
-            self.reg._Wz = None
-            self.reg._W = None
-            self.reg._Wsmooth = None
-
-            # Update the model used for the IRLS weights
-            self.reg.model = self.invProb.model
-
-            # Temporarely set gamma to 1. to get raw phi_m
-            self.reg.gamma = 1.
-
-            # Compute new model objective function value
-            phim_new = self.reg.eval(self.invProb.model)
-
             # Update gamma to scale the regularization between IRLS iterations
-            self.reg.gamma = self.phi_m_last / phim_new
+            gamma = self.invProb.phi_m_last / phim_new
+            for reg in self.reg.objfcts:
 
-            # Reset the regularization matrices again for new gamma
-            self.reg._Wsmall = None
-            self.reg._Wx = None
-            self.reg._Wy = None
-            self.reg._Wz = None
-            self.reg._W = None
-            self.reg._Wsmooth = None
+                # If comboObj, go down one more level
+                if self.ComboObjFun:
+                    for comp in reg.objfcts:
+                        comp.stashedR = None
+                        comp.gamma = gamma
+                else:
+                    reg.stashedR = None
+                    reg.gamma = gamma
 
             # Check if misfit is within the tolerance, otherwise scale beta
-            val = self.invProb.phi_d / (self.survey.nD*0.5)
+            val = self.invProb.phi_d / self.target
 
-            if np.abs(1.-val) > self.beta_tol:
-                self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
+            if np.all([np.abs(1.-val) > self.beta_tol, self.updateBeta]):
+
+                self.invProb.beta = (self.invProb.beta * self.target /
+                                     self.invProb.phi_d)
 
 
 class Update_lin_PreCond(InversionDirective):
@@ -463,17 +602,66 @@ class Update_lin_PreCond(InversionDirective):
     """
     onlyOnStart = False
     mapping = None
+    ComboRegFun = False
+    ComboMisfitFun = False
+    misfitDiag = None
 
     def initialize(self):
 
-        if getattr(self, 'mapping', None) is None:
-            self.mapping = Maps.IdentityMap(nP=self.reg.mapping.nP)
+        # Check if it is a ComboObjective
+        if not isinstance(self.reg, Regularization.BaseComboRegularization):
+
+            # It is a Combo objective, so will have to loop
+            self.ComboRegFun = True
+
+        # Check if it is a ComboObjective
+        if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+
+            # It is a Combo objective, so will have to loop
+            self.ComboMisfitFun = True
+
+        # if getattr(self, 'mapping', None) is None:
+        #     self.mapping = Maps.IdentityMap(nP=self.reg.mapping.nP)
 
         if getattr(self.opt, 'approxHinv', None) is None:
-            # Update the pre-conditioner
-            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
 
-            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
+            # Update the pre-conditioner
+            if self.ComboRegFun:
+
+                regDiag = []
+                for reg in self.reg.objfcts:
+                    regDiag.append((reg.W.T*reg.W).diagonal())
+
+                regDiag = np.hstack(regDiag)
+
+            else:
+
+                regDiag = (self.reg.W.T*self.reg.W).diagonal()
+
+            if self.ComboMisfitFun:
+
+                if getattr(self, 'misfitDiag', None) is None:
+                    misfitDiag = np.zeros(self.prob.F.shape[1])
+                    for misfit in self.dmisfit.objfcts:
+                        wd = misfit.W.diagonal()
+                        misfitDiag = np.zeros(misfit.prob.F.shape[1])
+                        for ii in range(misfit.prob.F.shape[0]):
+                            misfitDiag += (wd[ii] * misfit.prob.F[ii, :])**2.
+
+                self.misfitDiag = np.hstack(misfitDiag)
+
+            else:
+
+                if getattr(self, 'misfitDiag', None) is None:
+                    wd = self.dmisfit.W.diagonal()
+                    self.misfitDiag = np.zeros(self.prob.F.shape[1])
+                    for ii in range(self.prob.F.shape[0]):
+                        self.misfitDiag += (wd[ii] * self.prob.F[ii, :])**2.
+
+
+            diagA = self.misfitDiag + self.invProb.beta*regDiag
+
+            PC = Utils.sdiag((diagA)**-1.)
             self.opt.approxHinv = PC
 
     def endIter(self):
@@ -481,11 +669,35 @@ class Update_lin_PreCond(InversionDirective):
         if self.onlyOnStart is True:
             return
 
-        if getattr(self.opt, 'approxHinv', None) is not None:
-            # Update the pre-conditioner
-            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+        if getattr(self.opt, 'approxHinv', None) is None:
 
-            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
+            # Update the pre-conditioner
+            if self.ComboRegFun:
+
+                regDiag = []
+                for reg in self.reg.objfcts:
+                    regDiag.append((reg.W.T*reg.W).diagonal())
+
+                regDiag = np.hstack(regDiag)
+
+            else:
+
+                regDiag = (self.reg.W.T*self.reg.W).diagonal()
+
+#            if self.ComboMisfitFun:
+#
+#                misfitDiag = []
+#                for misfit in self.dmisfit.objfcts:
+#                    misfitDiag.append(np.sum(misfit.prob.F**2., axis=0))
+#
+#                misfitDiag = np.hstack(regDiag)
+#
+#            else:
+#                misfitDiag = np.sum(self.dmisfit.prob.F**2., axis=0)
+
+            diagA = self.misfitDiag + self.invProb.beta*regDiag
+
+            PC = Utils.sdiag((diagA)**-1.)
             self.opt.approxHinv = PC
 
 
@@ -514,3 +726,186 @@ class Update_Wj(InversionDirective):
             JtJdiag = JtJdiag / max(JtJdiag)
 
             self.reg.wght = JtJdiag
+
+
+class Amplitude_Inv_Iter(InversionDirective):
+    """
+    Directive to take care of re-weighting and pre-conditioning of
+    the non-linear magnetic amplitude problem.
+
+    """
+    ptype = 'Amp'
+    test = False
+    mapping = None
+    ComboObjFun = False
+
+    def initialize(self):
+
+        # Check if it is a ComboObjective
+        if not isinstance(self.reg, Regularization.BaseComboRegularization):
+
+            # It is a Combo objective, so will have to loop
+            self.ComboObjFun = True
+
+        self.reg.JtJdiag = self.getJtJdiag()
+
+        if self.test:
+
+            wr = np.sum(self.prob.F**2., axis=0)**0.5
+            wr = wr / wr.max()
+
+        else:
+            wr = self.reg.JtJdiag**0.5
+            wr = wr / wr.max()
+
+        if self.ComboObjFun:
+            for reg in self.reg.objfcts:
+                reg.cell_weights = reg.mapping * wr
+                reg.model = self.opt.xc
+        else:
+            self.reg.cell_weights = self.reg.mapping * wr
+
+        if self.ptype == 'MVI-S':
+
+            for reg in self.reg.objfcts[1:]:
+                eps_a = self.reg.objfcts[0].eps_p
+                norm_a = self.reg.objfcts[0].norms[0]
+                f_m = self.reg.objfcts[0].objfcts[0].f_m
+                max_a = np.max(eps_a**(1-norm_a/2.)*f_m /
+                               (f_m**2. + eps_a**2.)**(1-norm_a/2.))
+
+                eps_tp = reg.eps_q
+                f_m = reg.objfcts[1].f_m
+                norm_tp = reg.norms[1]
+                max_tp = np.max(eps_tp**(1-norm_tp/2.)*f_m /
+                                (f_m**2. + eps_tp**2.)**(1-norm_tp/2.))
+
+                reg.scale = max_a/max_tp
+                reg.cell_weights *= reg.scale
+
+        # Update the pre-conditioner
+        if self.ComboObjFun:
+
+            reg_diag = []
+            for reg in self.reg.objfcts:
+                reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+
+            diagA = self.reg.JtJdiag + np.hstack(reg_diag)
+
+        else:
+            diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+
+        PC = Utils.sdiag((diagA)**-1.)
+        self.opt.approxHinv = PC
+
+        # if getattr(self.opt, 'approxHinv', None) is None:
+        #     diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+        #     PC = Utils.sdiag((self.prob.chiMap.deriv(None).T * diagA)**-1.)
+        #     self.opt.approxHinv = PC
+
+    def endIter(self):
+
+        # Re-initialize the field derivatives
+        if self.ptype == 'Amp':
+            self.prob._dfdm = None
+            self.prob.chi = self.invProb.model
+        elif self.ptype == 'MVI-S':
+            self.prob._S = None
+
+        self.reg.JtJdiag = self.getJtJdiag()
+
+        if not self.test:
+            wr = self.reg.JtJdiag**0.5
+            wr = wr / wr.max()
+
+            if self.ComboObjFun:
+                for reg in self.reg.objfcts:
+                    reg.cell_weights = reg.mapping * wr
+
+            else:
+                self.reg.cell_weights = self.reg.mapping * wr
+
+        if self.ptype == 'MVI-S':
+
+            for reg in self.reg.objfcts[1:]:
+                eps_a = self.reg.objfcts[0].eps_p
+                norm_a = self.reg.objfcts[0].norms[0]
+                f_m = self.reg.objfcts[0].objfcts[0].f_m
+                max_a = np.max(eps_a**(1-norm_a/2.)*f_m /
+                               (f_m**2. + eps_a**2.)**(1-norm_a/2.))
+
+                eps_tp = reg.eps_q
+                f_m = reg.objfcts[1].f_m
+                norm_tp = reg.norms[1]
+                max_tp = np.max(eps_tp**(1-norm_tp/2.)*f_m /
+                                (f_m**2. + eps_tp**2.)**(1-norm_tp/2.))
+
+                reg.scale = max_a/max_tp
+                reg.cell_weights *= reg.scale
+
+        if getattr(self.opt, 'approxHinv', None) is not None:
+            # Update the pre-conditioner
+            # Update the pre-conditioner
+            if self.ComboObjFun:
+
+                reg_diag = []
+                for reg in self.reg.objfcts:
+                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+
+                diagA = self.reg.JtJdiag + np.hstack(reg_diag)
+
+            else:
+                diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+
+            PC = Utils.sdiag(( diagA)**-1.)
+            self.opt.approxHinv = PC
+
+    def getJtJdiag(self):
+        """
+            Compute explicitely the main diagonal of JtJ for linear problem
+        """
+        nC = self.prob.chiMap.shape[0]
+        nD = self.survey.nD
+
+        JtJdiag = np.zeros(nC)
+
+        if self.ptype == 'Amp':
+            for ii in range(nC):
+
+                JtJdiag[ii] = np.sum((self.prob.dfdm*self.prob.F[:, ii])**2.)
+
+        elif self.ptype == 'MVI-S':
+
+            for ii in range(nD):
+
+                JtJdiag += (self.prob.F[ii, :] * self.prob.S)**2.
+
+            JtJdiag += 1e-10
+
+        return JtJdiag
+
+
+class ProjSpherical(InversionDirective):
+
+    def initialize(self):
+
+        x = self.invProb.model
+        # Convert to cartesian than back to avoid over rotation
+        xyz = Magnetics.atp2xyz(x)
+        m = Magnetics.xyz2atp(xyz)
+
+        self.invProb.model = m
+        self.prob.chi = m
+        self.opt.xc = m
+
+    def endIter(self):
+
+        x = self.invProb.model
+        # Convert to cartesian than back to avoid over rotation
+        xyz = Magnetics.atp2xyz(x)
+        m = Magnetics.xyz2atp(xyz)
+
+        self.invProb.model = m
+        self.invProb.phi_m_last = self.reg(m)
+        self.prob.chi = m
+        self.opt.xc = m

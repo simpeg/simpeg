@@ -36,17 +36,17 @@ def run(N=100, plotIt=True):
             np.cos(np.pi*q*jk[k]*mesh.vectorCCx)
         )
 
-    G = np.empty((nk, mesh.nC))
+    F = np.empty((nk, mesh.nC))
 
     for i in range(nk):
-        G[i, :] = g(i)
+        F[i, :] = g(i)
 
     mtrue = np.zeros(mesh.nC)
     mtrue[mesh.vectorCCx > 0.3] = 1.
     mtrue[mesh.vectorCCx > 0.45] = -0.5
     mtrue[mesh.vectorCCx > 0.6] = 0
 
-    prob = Problem.LinearProblem(mesh, G=G)
+    prob = Problem.LinearProblem(mesh, F=F)
     survey = Survey.LinearSurvey()
     survey.pair(prob)
     survey.makeSyntheticData(mtrue, std=0.01)
@@ -68,9 +68,9 @@ def run(N=100, plotIt=True):
 
     if plotIt:
         fig, axes = plt.subplots(1, 2, figsize=(12*1.2, 4*1.2))
-        for i in range(prob.G.shape[0]):
-            axes[0].plot(prob.G[i, :])
-        axes[0].set_title('Columns of matrix G')
+        for i in range(prob.F.shape[0]):
+            axes[0].plot(prob.F[i, :])
+        axes[0].set_title('Columns of matrix F')
 
         axes[1].plot(M.vectorCCx, survey.mtrue, 'b-')
         axes[1].plot(M.vectorCCx, mrec, 'r-')

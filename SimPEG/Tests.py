@@ -14,8 +14,25 @@ try:
     name = getpass.getuser()[0].upper() + getpass.getuser()[1:]
 except Exception as e:
     name = 'You'
-happiness = ['The test be workin!', 'You get a gold star!', 'Yay passed!', 'Happy little convergence test!', 'That was easy!', 'Testing is important.', 'You are awesome.', 'Go Test Go!', 'Once upon a time, a happy little test passed.', 'And then everyone was happy.','Not just a pretty face '+name, 'You deserve a pat on the back!', 'Well done '+name+'!', 'Awesome, '+name+', just awesome.']
-sadness = ['No gold star for you.', 'Try again soon.', 'Thankfully,  persistence is a great substitute for talent.', 'It might be easier to call this a feature...', 'Coffee break?',  'Boooooooo  :(',  'Testing is important. Do it again.', "Did you put your clever trousers on today?", 'Just think about a dancing dinosaur and life will get better!', 'You had so much promise '+name+', oh well...', name.upper()+' ERROR!', 'Get on it '+name+'!', 'You break it, you fix it.']
+happiness = [
+    'The test be workin!', 'You get a gold star!', 'Yay passed!',
+    'Happy little convergence test!', 'That was easy!',
+    'Testing is important.', 'You are awesome.', 'Go Test Go!',
+    'Once upon a time, a happy little test passed.',
+    'And then everyone was happy.',
+    'Not just a pretty face '+name, 'You deserve a pat on the back!',
+    'Well done '+name+'!', 'Awesome, '+name+', just awesome.'
+]
+sadness = [
+    'No gold star for you.', 'Try again soon.',
+    'Thankfully,  persistence is a great substitute for talent.',
+    'It might be easier to call this a feature...', 'Coffee break?',
+    'Boooooooo  :(',  'Testing is important. Do it again.',
+    "Did you put your clever trousers on today?",
+    'Just think about a dancing dinosaur and life will get better!',
+    'You had so much promise '+name+', oh well...', name.upper()+' ERROR!',
+    'Get on it '+name+'!', 'You break it, you fix it.'
+]
 
 
 class OrderTest(unittest.TestCase):
@@ -231,7 +248,11 @@ def Rosenbrock(x, return_g=True, return_H=True):
         out += (H,)
     return out if len(out) > 1 else out[0]
 
-def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tolerance=0.85, eps=1e-10, ax=None):
+
+def checkDerivative(
+    fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tolerance=0.85,
+    eps=1e-10, ax=None
+):
     """
         Basic derivative check
 
@@ -286,6 +307,8 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
         # 1st order Taylor
         if inspect.isfunction(J0):
             E1[i] = l2norm( ft - f0 - h[i]*J0(dx) )
+        elif not isinstance(J0, np.ndarray):
+            E1[i] = l2norm( ft - f0 - h[i]*(J0*dx) )
         else:
             # We assume it is a numpy.ndarray
             E1[i] = l2norm( ft - f0 - h[i]*J0.dot(dx) )

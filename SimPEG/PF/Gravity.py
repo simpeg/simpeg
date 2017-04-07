@@ -19,120 +19,38 @@ class GravityIntegral(Problem.LinearProblem):
     # surveyPair = Survey.LinearSurvey
     forwardOnly = False  # Is TRUE, forward matrix not stored to memory
     actInd = None  #: Active cell indices provided
-    rtype = 'z'
+    rType = 'z'
+    silent = False
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
-    def fwr_op(self):
-        # Add forward function
-        # kappa = self.model.kappa TODO
-        rho = self.rhoMap*self.model
+    def fields(self, m):
+        self.model = self.rhoMap*m
 
         if self.forwardOnly:
 
-            if getattr(self, 'actInd', None) is not None:
+            # Compute the linear operation without forming the full dense G
+            fields = self.Intrgl_Fwr_Op(m=m)
 
-                if self.actInd.dtype == 'bool':
-                    inds = np.asarray([inds for inds,
-                                      elem in enumerate(self.actInd, 1)
-                                      if elem], dtype=int) - 1
-                else:
-                    inds = self.actInd
-
-            else:
-
-                inds = np.asarray(range(self.mesh.nC))
-
-            nC = len(inds)
-
-            # Create active cell projector
-            P = sp.csr_matrix(
-                (np.ones(nC), (inds, range(nC))),
-                shape=(self.mesh.nC, nC)
-            )
-
-            # Create vectors of nodal location
-            # (lower and upper corners for each cell)
-            xn = self.mesh.vectorNx
-            yn = self.mesh.vectorNy
-            zn = self.mesh.vectorNz
-
-            yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
-            yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
-
-            Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
-            Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
-            Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
-
-            rxLoc = self.survey.srcField.rxList[0].locs
-            ndata = rxLoc.shape[0]
-
-            # Pre-allocate space and create magnetization matrix if required
-            # Pre-allocate space
-            if self.rtype == 'z':
-
-                fwr_d = np.zeros(self.survey.nRx)
-
-            elif self.rtype == 'xyz':
-
-                fwr_d = np.zeros(3*self.survey.nRx)
-
-            else:
-
-                print("""Flag must be either 'z' | 'xyz', please revised""")
-                return
-
-            # Add counter to dsiplay progress. Good for large problems
-            count = -1
-            for ii in range(ndata):
-
-                tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
-
-                if self.rtype == 'z':
-                    fwr_d[ii] = tz.dot(rho)
-
-                elif self.rtype == 'xyz':
-                    fwr_d[ii] = tx.dot(rho)
-                    fwr_d[ii+ndata] = ty.dot(rho)
-                    fwr_d[ii+2*ndata] = tz.dot(rho)
-
-            # Display progress
-                count = progress(ii, count, ndata)
-
-            print("Done 100% ...forward operator completed!!\n")
-
-            return fwr_d
+            return fields
 
         else:
-            return self.G.dot(rho)
+            vec = np.dot(self.F, (self.rhoMap*(m)).astype(np.float32))
 
-    def fields(self, m):
-        self.model = m
-
-        fields = self.fwr_op()
-
-        return fields
-
-    def Jvec(self, m, v, f=None):
-        dmudm = self.rhoMap.deriv(m)
-        return self.G.dot(dmudm*v)
-
-    def Jtvec(self, m, v, f=None):
-        dmudm = self.rhoMap.deriv(m)
-        return dmudm.T * (self.G.T.dot(v))
+            return vec.astype(np.float64)
 
     @property
-    def G(self):
+    def F(self):
         if not self.ispaired:
             raise Exception('Need to pair!')
 
-        if getattr(self, '_G', None) is None:
-            self._G = self.Intrgl_Fwr_Op('z')
+        if getattr(self, '_F', None) is None:
+            self._F = self.Intrgl_Fwr_Op('z')
 
-        return self._G
+        return self._F
 
-    def Intrgl_Fwr_Op(self, flag):
+    def Intrgl_Fwr_Op(self, m=None, rType='z'):
 
         """
 
@@ -141,7 +59,7 @@ class GravityIntegral(Problem.LinearProblem):
         flag        = 'z' | 'xyz'
 
         Return
-        _G        = Linear forward modeling operation
+        _F        = Linear forward modeling operation
 
         Created on March, 15th 2016
 
@@ -185,25 +103,20 @@ class GravityIntegral(Problem.LinearProblem):
         Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
         rxLoc = self.survey.srcField.rxList[0].locs
-        ndata = rxLoc.shape[0]
+        ndata = int(rxLoc.shape[0])
 
         # Pre-allocate space and create magnetization matrix if required
         # Pre-allocate space
-        if flag == 'z':
+        if self.forwardOnly:
 
-            G = np.zeros((ndata, nC))
-
-        elif flag == 'xyz':
-
-            G = np.zeros((int(3*ndata), nC))
+            F = np.empty(ndata, dtype='float64')
 
         else:
 
-            print("""Flag must be either 'z' | 'xyz', please revised""")
-            return
+            F = np.zeros((ndata, nC), dtype=np.float32)
 
         # Loop through all observations
-        print("Begin calculation of forward operator: " + flag)
+        print("Begin linear forward calculation: " + self.rType)
 
         # Add counter to dsiplay progress. Good for large problems
         count = -1
@@ -211,21 +124,40 @@ class GravityIntegral(Problem.LinearProblem):
 
             tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
 
-            if flag == 'z':
+                        # Add counter to dsiplay progress. Good for large problems
 
-                G[ii, :] = tz
+            if self.forwardOnly:
+                tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
 
-            elif flag == 'xyz':
-                G[ii, :] = tx
-                G[ii+ndata, :] = ty
-                G[ii+2*ndata, :] = tz
+                if self.rType == 'x':
+                    F[ii] = tx.dot(m)
 
-            # Display progress
-            count = progress(ii, count, ndata)
+                elif self.rType == 'y':
+                    F[ii] = ty.dot(m)
+
+                elif self.rType == 'z':
+                    F[ii] = tz.dot(m)
+
+            else:
+                if self.rType == 'x':
+                    F[ii, :] = tx
+
+                elif self.rType == 'y':
+                    F[ii, :] = ty
+
+                elif self.rType == 'z':
+                    F[ii, :] = tz
+
+                else:
+                    raise Exception('rType must be: "x", "y" or "z"')
+
+            if not self.silent:
+                # Display progress
+                count = progress(ii, count, ndata)
 
         print("Done 100% ...forward operator completed!!\n")
 
-        return G
+        return F
 
 
 def get_T_mat(Xn, Yn, Zn, rxLoc):
@@ -342,14 +274,14 @@ def writeUBCobs(filename, survey, d):
 
     data = np.c_[rxLoc, d, wd]
 
-    head = '%i\n'%len(d)
+    head = '%i' % len(d)
     np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n', header=head,comments='')
 
     print("Observation file saved to: " + filename)
 
 
-def plot_obs_2D(rxLoc, d=None, varstr='Gz Obs', vmin=None, vmax=None,
-                levels=None, fig=None):
+def plot_obs_2D(rxLoc, d=None, title='Gz Obs', vmin=None, vmax=None,
+                levels=None, axs=None):
     """ Function plot_obs(rxLoc,d,wd)
     Generate a 2d interpolated plot from scatter points of data
 
@@ -380,10 +312,10 @@ def plot_obs_2D(rxLoc, d=None, varstr='Gz Obs', vmin=None, vmax=None,
     d_grid = griddata(rxLoc[:, 0:2], d, (X, Y), method='linear')
 
     # Plot result
-    if fig is None:
-        fig = plt.figure()
+    if axs is None:
+        fig, axs = plt.figure(), plt.subplot()
 
-    plt.scatter(rxLoc[:, 0], rxLoc[:, 1], c='k', s=10)
+    axs.scatter(rxLoc[:, 0], rxLoc[:, 1], c='k', s=10)
 
     if d is not None:
 
@@ -401,23 +333,23 @@ def plot_obs_2D(rxLoc, d=None, varstr='Gz Obs', vmin=None, vmax=None,
 
         # Interpolate
         d_grid = griddata(rxLoc[:, 0:2], d, (X, Y), method='linear')
-        plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],
+        im = axs.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],
                    origin='lower', vmin=vmin, vmax=vmax, cmap="plasma")
-        plt.colorbar(fraction=0.02)
+        plt.colorbar(im,fraction=0.02, ax=axs)
 
         if levels is None:
-            plt.contour(X, Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma")
+            axs.contour(X, Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma")
         else:
-            plt.contour(X, Y, d_grid, levels=levels, colors='r',
+            axs.contour(X, Y, d_grid, levels=levels, colors='r',
                         vmin=vmin, vmax=vmax, cmap="plasma")
 
-    plt.title(varstr)
+    axs.set_title(title)
     plt.gca().set_aspect('equal', adjustable='box')
 
-    return fig
+    return axs
 
 
-def readUBCgravObs(obs_file):
+def readUBCgravObs(obs_file, gravGrad=False):
 
     """
     Read UBC grav file format
@@ -432,15 +364,24 @@ def readUBCgravObs(obs_file):
 
     fid = open(obs_file, 'r')
 
+    if gravGrad:
+        line = fid.readline()
+        nComp = len(line.split(','))
+
     # First line has the number of rows
     line = fid.readline()
-    ndat = np.array(line.split(), dtype=int)
+    ndat = int(line.split()[0])
 
     # Pre-allocate space for obsx, obsy, obsz, data, uncert
     line = fid.readline()
     temp = np.array(line.split(), dtype=float)
 
-    d = np.zeros(ndat, dtype=float)
+    if gravGrad:
+        d = np.zeros((ndat, nComp), dtype=float)
+
+    else:
+        d = np.zeros(ndat, dtype=float)
+
     wd = np.zeros(ndat, dtype=float)
     locXYZ = np.zeros((ndat, 3), dtype=float)
 
@@ -448,8 +389,14 @@ def readUBCgravObs(obs_file):
 
         temp = np.array(line.split(), dtype=float)
         locXYZ[ii, :] = temp[:3]
-        d[ii] = temp[3]
-        wd[ii] = temp[4]
+
+        if gravGrad:
+            d[ii, :] = temp[3:]
+
+        else:
+            d[ii] = temp[3]
+            wd[ii] = temp[4]
+
         line = fid.readline()
 
     rxLoc = GRAV.RxObs(locXYZ)
@@ -460,7 +407,7 @@ def readUBCgravObs(obs_file):
     return survey
 
 
-class Problem3D_Diff(Problem.BaseProblem):
+class Problem3D_PDE(Problem.BaseProblem):
     """
         Gravity in differential equations!
     """
@@ -489,7 +436,7 @@ class Problem3D_Diff(Problem.BaseProblem):
     def Mfi(self): return self._Mfi
 
     def makeMassMatrices(self, m):
-        rho = self.rhoMap*m
+        #rho = self.rhoMap*m
         self._Mfi = self.mesh.getFaceInnerProduct()
         self._MfI = Utils.sdiag(1./self._Mfi.diagonal())
 
@@ -501,8 +448,8 @@ class Problem3D_Diff(Problem.BaseProblem):
 
         Mc = Utils.sdiag(self.mesh.vol)
 
-        rho = self.rhoMap*m
-
+#        rho = self.rhoMap*m
+        rho = m
         return Mc*rho
 
     def getA(self, m):
@@ -516,19 +463,19 @@ class Problem3D_Diff(Problem.BaseProblem):
             \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
 
         """
-        return -self._Div.T*self.Mfi*self._Div
+        return self._Div.T*self.Mfi*self._Div
 
     def fields(self, m):
         """
-            Return magnetic potential (u) and flux (B)
+            Return gravity potential (u) and field (G)
             u: defined on the cell nodes [nC x 1]
             gField: defined on the cell faces [nF x 1]
 
-            After we compute u, then we update B.
+            After we compute u, then we update G.
 
             .. math ::
 
-                \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
+                \mathbf{G}_s =
 
         """
         from scipy.constants import G as NewtG
@@ -548,4 +495,16 @@ class Problem3D_Diff(Problem.BaseProblem):
 
         gField = 4.*np.pi*NewtG*1e+8*self._Div*u
 
-        return {'G': gField, 'u': u}
+        nFx = self.mesh.nFx
+        nFy = self.mesh.nFy
+        nFz = self.mesh.nFz
+
+        aveF2CCgx = self.mesh.aveFx2CC * gField[0:nFx]
+        aveF2CCgy = self.mesh.aveFy2CC * gField[nFx:(nFx+nFy)]
+        aveF2CCgz = self.mesh.aveFz2CC * gField[(nFx+nFy):]
+
+        ggx = 1e+4*self.mesh.cellGrad * aveF2CCgx
+        ggy = 1e+4*self.mesh.cellGrad * aveF2CCgy
+        ggz = 1e+4*self.mesh.cellGrad * aveF2CCgz
+
+        return {'G': gField, 'ggx': ggx, 'ggy': ggy, 'ggz': ggz, 'u': u}

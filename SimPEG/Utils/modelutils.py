@@ -1,7 +1,7 @@
 from .matutils import mkvc, ndgrid
 import numpy as np
 
-def surface2ind_topo(mesh, topo, gridLoc='CC'):
+def surface2ind_topo(mesh, topo, gridLoc='CC', layer=False):
 # def genActiveindfromTopo(mesh, topo):
     """
     Get active indices from topography
@@ -32,7 +32,15 @@ def surface2ind_topo(mesh, topo, gridLoc='CC'):
 
             for ii in range(mesh.nCx):
                 for jj in range(mesh.nCy):
-                     actind[ii,jj,:] = [np.all(gridTopo[ii:ii+2, jj:jj+2] >= Nz[kk]) for kk in range(len(Nz)) ]
+
+                    # If only requesting top layer
+                    if layer:
+                        zcol = [np.all(gridTopo[ii:ii+2, jj:jj+2] >= Nz[kk]) for kk in range(len(Nz)) ]
+                        actind[ii,jj,np.where(zcol)[0][-1]] = True
+
+                    else:
+                        actind[ii,jj,:] = [np.all(gridTopo[ii:ii+2, jj:jj+2] >= Nz[kk]) for kk in range(len(Nz)) ]
+
 
     elif mesh.dim == 2:
         from scipy.interpolate import interp1d
@@ -58,5 +66,4 @@ def surface2ind_topo(mesh, topo, gridLoc='CC'):
         raise NotImplementedError('surface2ind_topo not implemented for 1D mesh')
 
     return mkvc(actind)
-
 
