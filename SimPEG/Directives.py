@@ -8,6 +8,7 @@ from . import Regularization
 from . import Mesh
 from . import ObjectiveFunction
 
+
 class InversionDirective(object):
     """InversionDirective"""
 
@@ -64,7 +65,7 @@ class InversionDirective(object):
         pass
 
     def validate(self, directiveList=None):
-        pass
+        return True
 
 
 class DirectiveList(object):
@@ -73,6 +74,7 @@ class DirectiveList(object):
 
     def __init__(self, *directives, **kwargs):
         self.dList = []
+        print(directives)
         for d in directives:
             assert isinstance(d, InversionDirective), (
                 'All directives must be InversionDirectives not {}'
@@ -335,6 +337,7 @@ class SaveUBCVectorsEveryIteration(SaveEveryIteration):
                                           fileName + '_theta.sus',
                                           self.mapping*self.opt.xc[2*nC:])
 
+
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
 
@@ -594,6 +597,24 @@ class Update_IRLS(InversionDirective):
 
                 self.invProb.beta = (self.invProb.beta * self.target /
                                      self.invProb.phi_d)
+
+    def validate(self, directiveList):
+        # check if a linear preconditioner is in the list, if not warn else
+        # assert that it is listed after the IRLS directive
+        self_ind = directiveList.index(self)
+        lin_precond_ind = [
+            isinstance(d, Update_lin_PreCond) for d in directiveList.dList
+        ]
+
+        if any(lin_precond_ind):
+            assert(lin_precond_ind.index(True) > self_ind), (
+                "The directive 'Update_lin_PreCond' must be after Update_IRLS "
+                "in the directiveList"
+            )
+        else:
+            pass
+            # warnings.warn
+
 
 
 class Update_lin_PreCond(InversionDirective):
