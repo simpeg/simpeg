@@ -74,7 +74,6 @@ class DirectiveList(object):
 
     def __init__(self, *directives, **kwargs):
         self.dList = []
-        print(directives)
         for d in directives:
             assert isinstance(d, InversionDirective), (
                 'All directives must be InversionDirectives not {}'
@@ -601,9 +600,10 @@ class Update_IRLS(InversionDirective):
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
         # assert that it is listed after the IRLS directive
-        self_ind = directiveList.index(self)
+        dList = directiveList.dList
+        self_ind = dList.index(self)
         lin_precond_ind = [
-            isinstance(d, Update_lin_PreCond) for d in directiveList.dList
+            isinstance(d, Update_lin_PreCond) for d in dList
         ]
 
         if any(lin_precond_ind):
@@ -612,9 +612,10 @@ class Update_IRLS(InversionDirective):
                 "in the directiveList"
             )
         else:
-            pass
-            # warnings.warn
-
+            warnings.warn(
+                "Without a Linear preconditioner, convergence may be slow."
+            )
+        return True
 
 
 class Update_lin_PreCond(InversionDirective):
