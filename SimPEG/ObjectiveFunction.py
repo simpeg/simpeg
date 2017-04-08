@@ -220,9 +220,9 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         self._nP = '*'
 
-        assert(len(objfcts)==len(multipliers)),(
+        assert(len(objfcts)==len(multipliers)), (
             "Must have the same number of Objective Functions and Multipliers "
-            "not {} and {}".format(len(objfcts),len(multipliers))
+            "not {} and {}".format(len(objfcts), len(multipliers))
             )
 
         def validate_list(objfctlist, multipliers):
@@ -354,23 +354,22 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     _exposed = {}
 
     def expose(self, properties):
-
         # if 'all', exposes all top level properties in the objective function
         # list
-        if isinstance(properties, str) and properties.lower() == 'all':
+        if isinstance(properties, string_types) and properties.lower() == 'all':
             prop_set = []
             for objfct in self.objfcts:
                 prop_set += [
                     prop for prop in dir(objfct)
                     if prop[0] != '_' and  # only expose top level properties
                     isinstance(
-                        getattr(type(objfct), prop), property
-                    ) and not
+                        getattr(type(objfct), prop, None), property
+                    ) and
                     (
                         # don't try and over-write things like nP
                         # which are properties on this class
-                        getattr(self, prop, None) is not None and
-                        prop not in self._exposed.keys()
+                        getattr(type(self), prop, None) is None or
+                        prop in self._exposed.keys()
                     )
                 ]
             properties = list(set(prop_set))
@@ -386,7 +385,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         # go through the properties list and expose them
         for prop, val in properties.iteritems(): # skip if already in self._exposed
             # if prop not in self._exposed:
-            if getattr(self, prop, None) is not None and prop not in self._exposed.keys():
+            if getattr(type(self), prop, None) is not None:
                 raise Exception(
                     "can't expose {} as it is a property on the combo "
                     "objective function".format(prop)
