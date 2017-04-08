@@ -18,7 +18,9 @@ class InversionDirective(properties.HasProperties):
 
     debug = properties.Bool("Print debugging information", default=False)
 
-    def __init__(self, **kwargs):
+    def __init__(self, dmisfit=None, reg=None, **kwargs):
+        self._dmisfit = dmisfit
+        self._reg = reg
         Utils.setKwargs(self, **kwargs)
 
     @property
@@ -43,21 +45,25 @@ class InversionDirective(properties.HasProperties):
     def opt(self):
         return self.invProb.opt
 
-    # @property
-    # def reg(self):
-    #     return self.invProb.reg
+    @property
+    def reg(self):
+        if getattr(self, '_reg', None) is None:
+            self._reg = self.invProb.reg
+        return self._reg
 
-    # @property
-    # def dmisfit(self):
-    #     return self.invProb.dmisfit
+    @property
+    def dmisfit(self):
+        if getattr(self, '_dmisfit', None) is None:
+            self._dmisfit = self.invProb.dmisfit
+        return self._dmisfit
 
-    # @property
-    # def survey(self):
-    #     return self.dmisfit.survey
+    @property
+    def survey(self):
+        return self.dmisfit.survey
 
-    # @property
-    # def prob(self):
-    #     return self.dmisfit.prob
+    @property
+    def prob(self):
+        return self.dmisfit.prob
 
     @property
     def stopping_criteria_satisfied(self):
@@ -160,22 +166,7 @@ class BetaEstimate_ByEig(InversionDirective):
     )
 
     def __init__(self, dmisfit=None, reg=None, **kwargs):
-        self._dmisfit = dmisfit
-        self._reg = reg
-
-        super(BetaEstimate_ByEig, self).__init__(**kwargs)
-
-    @property
-    def dmisfit(self):
-        if self._dmisfit is None:
-            self._dmisfit = self.invProb.dmisfit
-        return self._dmisfit
-
-    @property
-    def reg(self):
-        if self._reg is None:
-            self._reg = self.invProb.reg
-        return self._reg
+        super(BetaEstimate_ByEig, self).__init__(dmisfit, reg, **kwargs)
 
     def initialize(self):
         """
@@ -263,7 +254,7 @@ class TargetMisfit(InversionDirective):
         self._dmisfit = dmisfit
         self._phi_d_star = phi_d_star
 
-        super(TargetMisfit, self).__init__(**kwargs)
+        super(TargetMisfit, self).__init__(dmisfit=dmisfit, **kwargs)
 
     @property
     def dmisfit(self):
@@ -477,9 +468,10 @@ class Update_IRLS(InversionDirective):
     iterStart = 0
 
     # Beta schedule
+    # comment: I think this should be included as a separate directive
     coolingFactor = 2.
     coolingRate = 1
-    ComboObjFun = False
+    # ComboObjFun = False
 
     updateBeta = True
 
@@ -505,17 +497,17 @@ class Update_IRLS(InversionDirective):
 
         if self.mode == 1:
 
-            if self.ComboObjFun:
+            # if self.ComboObjFun:
 
-                self.norms = []
-                for reg in self.reg.objfcts:
-                    self.norms.append(reg.norms)
-                    reg.norms = [2., 2., 2., 2.]
+            #     self.norms = []
+            #     for reg in self.reg.objfcts:
+            #         self.norms.append(reg.norms)
+            #         reg.norms = [2., 2., 2., 2.]
 
-            else:
-                # Store assigned norms for later use - start with l2
-                self.norms = self.reg.norms
-                self.reg.norms = [2., 2., 2., 2.]
+            # else:
+            # Store assigned norms for later use - start with l2
+            self.norms = self.reg.norms
+            self.reg.norms = [2., 2., 2., 2.]
 
     def endIter(self):
 
