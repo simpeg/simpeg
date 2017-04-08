@@ -40,7 +40,12 @@ class BaseDataMisfit(ObjectiveFunction.L2ObjectiveFunction):
             return '*'
 
     @property
+    def nD(self):
+        return self.survey.nD
+
+    @property
     def Wd(self):
+        # TODO: add a version number prior to merging.
         raise AttributeError(
             'The `Wd` property been depreciated, please use: `W` instead'
         )
