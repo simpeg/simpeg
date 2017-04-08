@@ -20,6 +20,35 @@ class Empty_ObjFct(ObjectiveFunction.BaseObjectiveFunction):
         super(Empty_ObjFct, self).__init__()
 
 
+class Props_ObjFct(ObjectiveFunction.BaseObjectiveFunction):
+
+    def __init__(self, **kwargs):
+        super(Props_ObjFct, self).__init__(**kwargs)
+
+    @property
+    def x(self):
+        return getattr(self, '_x', None)
+
+    @x.setter
+    def x(self, val):
+        self._x = val
+
+    @property
+    def y(self):
+        return getattr(self, '_y', None)
+
+    @y.setter
+    def y(self, val):
+        self._y = val
+
+    @property
+    def z(self):
+        return getattr(self, '_z', None)
+
+    @z.setter
+    def z(self, val):
+        self._z = val
+
 class Error_if_Hit_ObjFct(ObjectiveFunction.BaseObjectiveFunction):
 
     def __init__(self):
@@ -367,6 +396,44 @@ class ExposeTest(unittest.TestCase):
             phi3.objfcts[1].mapping.__class__.__name__ == 'ExpMap'
         )
 
+    def test_not_allowed(self):
+        nP = 10
+        m = np.random.rand(nP)
+
+        phi1 = Props_ObjFct(nP=nP)
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+
+        phi1.x = 10.
+
+        phi3 = 2*phi1 + 3*phi2
+
+        with self.assertRaises(Exception):
+            phi3.expose('W')
+            phi3.expose('nP')
+
+    def test_expose_all(self):
+        nP = 10
+        m = np.random.rand(nP)
+
+        phi1 = Props_ObjFct(nP=nP)
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+
+        phi1.x = 10.
+
+        phi3 = 2*phi1 + 3*phi2
+
+        phi3.expose('all')
+        self.assertTrue(
+            len(
+                set(phi3._exposed).difference(
+                    set(['x', 'y', 'z', 'mapping'])
+                )
+            ) == 0
+        )
+
+        # check that it is being propagated
+        phi3.x = 40.
+        self.assertTrue(phi1.x == 40.)
 
 if __name__ == '__main__':
     unittest.main()
