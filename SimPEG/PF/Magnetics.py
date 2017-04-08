@@ -200,7 +200,7 @@ class MagneticIntegral(Problem.LinearProblem):
         count = -1
         for ii in range(ndata):
 
-            tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :], self.mesh)
+            tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
 
             if self.forwardOnly:
 
@@ -876,7 +876,7 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     return inv, reg
 
 
-def get_T_mat(Xn, Yn, Zn, rxLoc, mesh):
+def get_T_mat(Xn, Yn, Zn, rxLoc):
     """
     Load in the active nodes of a tensor mesh and computes the magnetic tensor
     for a given observation location rxLoc[obsx, obsy, obsz]
