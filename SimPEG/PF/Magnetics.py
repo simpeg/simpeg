@@ -429,7 +429,7 @@ class MagneticAmplitude(MagneticIntegral):
             # Bxyz = np.empty(self.F.shape[0])
             # for ii in range(self.F.shape[0]):
             #     Bxyz[ii] = self.F[ii, :].dot(self.chiMap*m)
-            Bxyz = np.dot(self.F, (self.chiMap*m).astype(np.float32))
+            Bxyz = np.dot(self.F, m.astype(np.float32))
             return self.calcAmpData(Bxyz.astype(np.float64))
 
     def calcAmpData(self, Bxyz):
@@ -497,7 +497,7 @@ class MagneticAmplitude(MagneticIntegral):
             # Bxyz = np.empty(self.F.shape[0])
             # for ii in range(self.F.shape[0]):
             #     Bxyz[ii] = self.F[ii, :].dot(self.chiMap*m)
-            Bxyz = np.dot(self.F, (self.chiMap*m).astype(np.float32))
+            Bxyz = np.dot(self.F, m.astype(np.float32))
             Bamp = self.calcAmpData(Bxyz.astype(np.float64))
 
             Bx = sp.spdiags(Bxyz[:ndata]/Bamp, 0, ndata, ndata)
@@ -1389,3 +1389,58 @@ def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
         axs.set_title(title)
 
     return axs, im2, cbar
+
+
+def readMagneticsObservations(obs_file):
+        """
+            Read and write UBC mag file format
+
+            INPUT:
+            :param fileName, path to the UBC obs mag file
+
+            OUTPUT:
+            :param survey
+            :param M, magnetization orentiaton (MI, MD)
+        """
+
+        fid = open(obs_file, 'r')
+
+        # First line has the inclination,declination and amplitude of B0
+        line = fid.readline()
+        B = np.array(line.split(), dtype=float)
+
+        # Second line has the magnetization orientation and a flag
+        line = fid.readline()
+        M = np.array(line.split(), dtype=float)
+
+        # Third line has the number of rows
+        line = fid.readline()
+        ndat = int(line.strip())
+
+        # Pre-allocate space for obsx, obsy, obsz, data, uncert
+        line = fid.readline()
+        temp = np.array(line.split(), dtype=float)
+
+        d = np.zeros(ndat, dtype=float)
+        wd = np.zeros(ndat, dtype=float)
+        locXYZ = np.zeros((ndat, 3), dtype=float)
+
+        for ii in range(ndat):
+
+            temp = np.array(line.split(), dtype=float)
+            locXYZ[ii, :] = temp[:3]
+
+            if len(temp) > 3:
+                d[ii] = temp[3]
+
+                if len(temp) == 5:
+                    wd[ii] = temp[4]
+
+            line = fid.readline()
+
+        rxLoc = MAG.RxObs(locXYZ)
+        srcField = MAG.SrcField([rxLoc], param=(B[2], B[0], B[1]))
+        survey = MAG.LinearSurvey(srcField)
+        survey.dobs = d
+        survey.std = wd
+        return survey

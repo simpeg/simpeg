@@ -44,15 +44,27 @@ class InversionDirective(object):
 
     @property
     def dmisfit(self):
-        return self.invProb.dmisfit
+        if isinstance(self.invProb.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+            return [objfcts for objfcts in self.invProb.dmisfit.objfcts]
+
+        else:
+            return self.invProb.dmisfit
 
     @property
     def survey(self):
-        return self.dmisfit.survey
+        if isinstance(self.dmisfit, list):
+            return [objfcts.survey for objfcts in self.dmisfit]
+
+        else:
+            return self.dmisfit.survey
 
     @property
     def prob(self):
-        return self.dmisfit.prob
+        if isinstance(self.dmisfit, list):
+            return [objfcts.prob for objfcts in self.dmisfit]
+
+        else:
+            return self.dmisfit.prob
 
     def initialize(self):
         pass
@@ -888,7 +900,10 @@ class ProjSpherical(InversionDirective):
         m = Magnetics.xyz2atp(xyz)
 
         self.invProb.model = m
-        self.prob.chi = m
+        if isinstance(self.prob, list):
+            for prob in self.prob: prob.chi = m
+        else:
+            self.prob.chi = m
         self.opt.xc = m
 
     def endIter(self):
@@ -900,5 +915,8 @@ class ProjSpherical(InversionDirective):
 
         self.invProb.model = m
         self.invProb.phi_m_last = self.reg(m)
-        self.prob.chi = m
+        if isinstance(self.prob, list):
+            for prob in self.prob: prob.chi = m
+        else:
+            self.prob.chi = m
         self.opt.xc = m
