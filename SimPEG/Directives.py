@@ -1,18 +1,22 @@
 from __future__ import print_function
-from . import Utils
+
 import numpy as np
 import warnings
+import properties
+
+from . import Utils
 from . import Maps
 from .PF import Magnetics, MagneticsDriver
 from . import Regularization
 from . import Mesh
 from . import ObjectiveFunction
+from . import DataMisfit
 
 
-class InversionDirective(object):
+class InversionDirective(properties.HasProperties):
     """InversionDirective"""
 
-    debug = False    #: Print debugging information
+    debug = properties.Bool("Print debugging information", default=False)
 
     def __init__(self, **kwargs):
         Utils.setKwargs(self, **kwargs)
@@ -39,21 +43,25 @@ class InversionDirective(object):
     def opt(self):
         return self.invProb.opt
 
-    @property
-    def reg(self):
-        return self.invProb.reg
+    # @property
+    # def reg(self):
+    #     return self.invProb.reg
+
+    # @property
+    # def dmisfit(self):
+    #     return self.invProb.dmisfit
+
+    # @property
+    # def survey(self):
+    #     return self.dmisfit.survey
+
+    # @property
+    # def prob(self):
+    #     return self.dmisfit.prob
 
     @property
-    def dmisfit(self):
-        return self.invProb.dmisfit
-
-    @property
-    def survey(self):
-        return self.dmisfit.survey
-
-    @property
-    def prob(self):
-        return self.dmisfit.prob
+    def stopping_criteria_satisfied(self):
+        pass
 
     def initialize(self):
         pass
@@ -124,6 +132,18 @@ class DirectiveList(object):
         for r in self.dList:
             getattr(r, ruleType)()
 
+        # exit if all stopping criteria satisfied
+        if ruleType == 'endIter' and self.stopping_criteria_satisfied:
+            self.inversion.opt.stopNextIteration = True
+
+    @property
+    def stopping_criteria_satisfied(self):
+        stopping_criteria = [
+            d.stopping_criteria_satisfied for d in self.dList
+            if d.stopping_criteria_satisfied is not None
+        ]
+        return False if len(stopping_criteria) == 0 else all(stopping_criteria)
+
     def validate(self):
         [directive.validate(self) for directive in self.dList]
         return True
@@ -132,8 +152,30 @@ class DirectiveList(object):
 class BetaEstimate_ByEig(InversionDirective):
     """BetaEstimate"""
 
-    beta0 = None       #: The initial Beta (regularization parameter)
-    beta0_ratio = 1e2  #: estimateBeta0 is used with this ratio
+    beta0 = properties.Float(
+        "The initial Beta (regularization parameter)"
+    )
+    beta0_ratio = properties.Float(
+        "estimateBeta0 is used with this ratio", default=1e2
+    )
+
+    def __init__(self, dmisfit=None, reg=None, **kwargs):
+        self._dmisfit = dmisfit
+        self._reg = reg
+
+        super(BetaEstimate_ByEig, self).__init__(**kwargs)
+
+    @property
+    def dmisfit(self):
+        if self._dmisfit is None:
+            self._dmisfit = self.invProb.dmisfit
+        return self._dmisfit
+
+    @property
+    def reg(self):
+        if self._reg is None:
+            self._reg = self.invProb.reg
+        return self._reg
 
     def initialize(self):
         """
@@ -169,7 +211,13 @@ class BetaEstimate_ByEig(InversionDirective):
             print('Calculating the beta0 parameter.')
 
         m = self.invProb.model
-        f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
+
+        # if dmisfit is the same as the invprob store the fields
+        # TODO: move fields storage to dmisfit instead of invProb
+        if self.dmisfit == self.invProb.dmisfit:
+            f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
+        else:
+            f = None
 
         x0 = np.random.rand(m.shape[0])
         t = x0.dot(self.dmisfit.deriv2(m, x0, f=f))
@@ -196,32 +244,62 @@ class BetaSchedule(InversionDirective):
 
 
 class TargetMisfit(InversionDirective):
+    """
+    Use a target misfit as a stopping criteria for the inversion.
+    """
+    chifact = properties.Float(
+        "multiple of $\phi_d^*$ at which to stop, $\phi_d \leq \chi\phi_d^*$",
+        default=1.
+    )
 
-    chifact = 1.
-    phi_d_star = None
+    stopping_criteria_satisfied = properties.Bool(
+        "has the stopping criteria been satisfied", default=False
+    )
+    # phi_d_star = properties.Float(
+    #     "target data misfit value. $\phi_d \leq \chi\phi_d^*$"
+    # )
+
+    def __init__(self, dmisfit=None, phi_d_star=None, **kwargs):
+        self._dmisfit = dmisfit
+        self._phi_d_star = phi_d_star
+
+        super(TargetMisfit, self).__init__(**kwargs)
+
+    @property
+    def dmisfit(self):
+        if self._dmisfit is None:
+            self._dmisfit = self.invProb.dmisfit
+        return self._dmisfit
+
+    @property
+    def phi_d_star(self):
+        if self._phi_d_star is None:
+            assert(isinstance(self.dmisfit, DataMisfit.BaseDataMisfit)), (
+                "dmisfit must be a BaseDataMisfit instance or `phi_d_star` "
+                "needs to be provided"
+            )
+            self._phi_d_star = 0.5 * self.dmisfit.nD
+        return self._phi_d_star
+
+    @phi_d_star.setter
+    def phi_d_star(self, val):
+        self._phi_d_star = val
 
     @property
     def target(self):
         if getattr(self, '_target', None) is None:
             # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
-            if self.phi_d_star is None:
-
-                # Check if it is a ComboObjective
-                if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
-                    self.phi_d_star = 0.5 * self.dmisfit.objfcts[0].survey.nD
-                else:
-                    self.phi_d_star = 0.5 * self.survey.nD
-
             self._target = self.chifact * self.phi_d_star
         return self._target
 
     @target.setter
     def target(self, val):
+        # in case we want to overwrite the target
         self._target = val
 
-    def endIter(self):
-        if self.invProb.phi_d < self.target:
-            self.opt.stopNextIteration = True
+    @property
+    def stopping_criteria_satisfied(self):
+        return self.invProb.phi_d <= self.target
 
 
 class SaveEveryIteration(InversionDirective):
@@ -911,6 +989,22 @@ class Amplitude_Inv_Iter(InversionDirective):
 
 class ProjSpherical(InversionDirective):
 
+    def __init__(self, dmisfit=None, reg=None):
+        self._dmisfit = dmisfit
+        self._reg = reg
+
+    @property
+    def dmisfit(self):
+        if self._dmisfit is None:
+            self._dmisfit = self.invProb.dmisfit
+        return self._dmisfit
+
+    @property
+    def reg(self):
+        if self._reg is None:
+            self._reg = self.invProb.reg
+        return self._reg
+
     def initialize(self):
 
         x = self.invProb.model
@@ -919,7 +1013,7 @@ class ProjSpherical(InversionDirective):
         m = Magnetics.xyz2atp(xyz)
 
         self.invProb.model = m
-        self.prob.chi = m
+        self.dmisfit.prob.chi = m
         self.opt.xc = m
 
     def endIter(self):
@@ -931,5 +1025,5 @@ class ProjSpherical(InversionDirective):
 
         self.invProb.model = m
         self.invProb.phi_m_last = self.reg(m)
-        self.prob.chi = m
+        self.dmisfit.prob.chi = m
         self.opt.xc = m

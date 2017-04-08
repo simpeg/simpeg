@@ -4,8 +4,8 @@ import numpy as np
 import scipy.sparse as sp
 from six import string_types
 from .Utils.SolverUtils import *
-norm = np.linalg.norm
 from SimPEG import Regularization
+
 
 __all__ = [
     'Minimize', 'Remember', 'SteepestDescent', 'BFGS', 'GaussNewton',
@@ -13,6 +13,7 @@ __all__ = [
     'StoppingCriteria', 'IterationPrinters'
 ]
 
+norm = np.linalg.norm
 SolverICG = SolverWrapI(sp.linalg.cg, checkAccuracy=False)
 
 
