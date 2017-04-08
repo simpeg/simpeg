@@ -5,7 +5,7 @@ from __future__ import division
 
 import numpy as np
 import scipy.sparse as sp
-from six import integer_types
+from six import integer_types, string_types
 import warnings
 
 from . import Utils
@@ -32,7 +32,6 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
     counter = None
     debug = False
 
-    mapPair = Maps.IdentityMap  #: Base class of expected maps
     _mapping = None  #: An IdentityMap instance.
     _hasFields = False  #: should we have the option to store fields
 
@@ -70,26 +69,6 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
             return self.mapping.shape[0]
         else:
             return self.nP
-
-    @property
-    def mapping(self):
-        """
-        A `SimPEG.Maps` instance
-        """
-        if getattr(self, '_mapping') is None:
-            if getattr(self, '_nP') is not None:
-                self._mapping = self.mapPair(nP=self.nP)
-            else:
-                self._mapping = self.mapPair()
-        return self._mapping
-
-    @mapping.setter
-    def mapping(self, value):
-        assert isinstance(value, self.mapPair), (
-            'mapping must be an instance of a {}, not a {}'
-        ).format(self.mapPair, value.__class__.__name__)
-        self._mapping = value
-
 
     @Utils.timeIt
     def __call__(self, x, f=None):
@@ -371,6 +350,92 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                 W.append(curW)
         return sp.vstack(W)
 
+    # Properties of lower objective functions that are exposed
+    _exposed = {}
+
+    def expose(self, properties):
+
+        # if 'all', exposes all top level properties in the objective function
+        # list
+        if isinstance(properties, str) and properties.lower() == 'all':
+            prop_set = []
+            for objfct in self.objfcts:
+                prop_set += [
+                    prop for prop in dir(objfct)
+                    if prop[0] != '_' and  # only expose top level properties
+                    isinstance(
+                        getattr(type(objfct), prop), property
+                    ) and not
+                    (
+                        # don't try and over-write things like nP
+                        # which are properties on this class
+                        getattr(self, prop, None) is not None and
+                        prop not in self._exposed.keys()
+                    )
+                ]
+            properties = list(set(prop_set))
+
+        # if a single string provided, turn it into a list
+        if isinstance(properties, string_types):
+            properties = [properties]
+
+        # work with dicts if a list provided
+        if isinstance(properties, list):
+            properties = dict(zip(properties, len(properties)*[None]))
+
+        # go through the properties list and expose them
+        for prop, val in properties.iteritems(): # skip if already in self._exposed
+            # if prop not in self._exposed:
+            if getattr(self, prop, None) is not None and prop not in self._exposed.keys():
+                raise Exception(
+                    "can't expose {} as it is a property on the combo "
+                    "objective function".format(prop)
+                )
+            else:
+                new_prop = ExposedProperty(self.objfcts, prop, val=val)
+                self._exposed[prop] = new_prop
+
+    # This allows properties to be exposed
+    def __setattr__(self, name, val):
+        if name in self._exposed.keys():
+            return self._exposed[name].__set__(self.__class__, val)
+        return object.__setattr__(self, name, val)
+
+    # def __getattr__(self, )
+    def __getattribute__(self, name):
+        if name in object.__getattribute__(self, '_exposed').keys():
+            return self._exposed[name].__get__(self, self.__class__)
+        return object.__getattribute__(self, name)
+
+
+class ExposedProperty(object):
+
+    def __init__(self, objfcts, prop, val=None):
+        # only add functions with that property
+        fctlist = [
+            fct for fct in objfcts if getattr(fct, prop, None) is not None
+        ]
+        print(
+            'exposing {prop} for {fcts}'.format(
+                prop=prop, fcts=[fct.__class__.__name__ for fct in objfcts]
+            )
+        )
+
+        self.prop = prop
+        self.objfcts = fctlist
+
+        if val is not None:
+            self.__set__(None, val=val)  # go through setter
+        else:
+            self.val = val  # skip setter
+
+    def __get__(self, obj, objtype=None):
+        return self.val
+
+    def __set__(self, obj, val):
+        [setattr(fct, self.prop, val) for fct in self.objfcts] # propagate change
+        self.val = val
+
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
     """
@@ -380,6 +445,9 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
 
         \phi = \frac{1}{2}||\mathbf{W} \mathbf{m}||^2
     """
+
+    mapPair = Maps.IdentityMap  #: Base class of expected maps
+
     def __init__(self, W=None, **kwargs):
 
         super(L2ObjectiveFunction, self).__init__(**kwargs)
@@ -387,6 +455,25 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
             if self.nP == '*':
                 self._nP = W.shape[1]
         self._W = W
+
+    @property
+    def mapping(self):
+        """
+        A `SimPEG.Maps` instance
+        """
+        if getattr(self, '_mapping') is None:
+            if getattr(self, '_nP') is not None:
+                self._mapping = self.mapPair(nP=self.nP)
+            else:
+                self._mapping = self.mapPair()
+        return self._mapping
+
+    @mapping.setter
+    def mapping(self, value):
+        assert isinstance(value, self.mapPair), (
+            'mapping must be an instance of a {}, not a {}'
+        ).format(self.mapPair, value.__class__.__name__)
+        self._mapping = value
 
     @property
     def W(self):

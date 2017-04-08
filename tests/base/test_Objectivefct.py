@@ -289,6 +289,85 @@ class TestBaseObjFct(unittest.TestCase):
         self.assertTrue(np.all(phi3.deriv2(m, v) == phi4.deriv2(m, v)))
 
 
+class ExposeTest(unittest.TestCase):
+
+    def test_expose_mapping_string(self):
+        nP = 10
+        m = np.random.rand(nP)
+
+        phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+
+        phi3 = 2*phi1 + 3*phi2
+
+        phi3.expose('mapping')
+
+        phi3.mapping = Maps.ExpMap(nP=10)
+
+        # check that it is being propagated
+        self.assertTrue(all([
+            isinstance(objfct.mapping, Maps.ExpMap) for objfct in phi3.objfcts
+        ]))
+
+        phi1.mapping = Maps.IdentityMap(nP=10)
+        self.assertTrue(
+            phi3.objfcts[0].mapping.__class__.__name__ == 'IdentityMap'
+        )
+        self.assertTrue(
+            phi3.objfcts[1].mapping.__class__.__name__ == 'ExpMap'
+        )
+
+    def test_expose_mapping_list(self):
+        nP = 10
+        m = np.random.rand(nP)
+
+        phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+
+        phi3 = 2*phi1 + 3*phi2
+
+        phi3.expose(['mapping'])
+
+        phi3.mapping = Maps.LogMap(nP=10)
+
+        # check that it is being propagated
+        self.assertTrue(all([
+            isinstance(objfct.mapping, Maps.LogMap) for objfct in phi3.objfcts
+        ]))
+
+        phi1.mapping = Maps.IdentityMap(nP=10)
+        self.assertTrue(
+            phi3.objfcts[0].mapping.__class__.__name__ == 'IdentityMap'
+        )
+        self.assertTrue(
+            phi3.objfcts[1].mapping.__class__.__name__ == 'LogMap'
+        )
+
+    def test_expose_mapping_dict(self):
+        nP = 10
+        m = np.random.rand(nP)
+
+        phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+
+        phi3 = 2*phi1 + 3*phi2
+
+        phi3.expose({'mapping': Maps.ExpMap(nP=10)})
+
+        # check that it is being propagated
+        self.assertTrue(all([
+            isinstance(objfct.mapping, Maps.ExpMap) for objfct in phi3.objfcts
+        ]))
+
+        phi1.mapping = Maps.IdentityMap(nP=10)
+        self.assertTrue(
+            phi3.objfcts[0].mapping.__class__.__name__ == 'IdentityMap'
+        )
+        self.assertTrue(
+            phi3.objfcts[1].mapping.__class__.__name__ == 'ExpMap'
+        )
+
+
 if __name__ == '__main__':
     unittest.main()
 
