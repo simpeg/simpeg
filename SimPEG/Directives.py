@@ -14,7 +14,15 @@ from . import DataMisfit
 
 
 class InversionDirective(properties.HasProperties):
-    """InversionDirective"""
+    """
+    Inversion Directive: This is the base class for directives. It doesn't
+    do anything on its own, it should be inherited and instructions for the
+    directive specified.
+
+    **Optional Inputs**
+    :param SimPEG.DataMisfit.BaseDataMisfit dmisfit: the data misfit
+    :param SimPEG.Regularization.BaseRegularization reg: regularization
+    """
 
     debug = properties.Bool("Print debugging information", default=False)
 
@@ -84,10 +92,9 @@ class InversionDirective(properties.HasProperties):
 
 class DirectiveList(object):
 
-    dList = None   #: The list of Directives
+    dList = []   #: The list of Directives
 
     def __init__(self, *directives, **kwargs):
-        self.dList = []
         for d in directives:
             assert isinstance(d, InversionDirective), (
                 'All directives must be InversionDirectives not {}'
@@ -144,6 +151,10 @@ class DirectiveList(object):
 
     @property
     def stopping_criteria_satisfied(self):
+        """
+        Looks through the directives and checks for any stopping criteria that
+        should terminate the inversion
+        """
         stopping_criteria = [
             d.stopping_criteria_satisfied for d in self.dList
             if d.stopping_criteria_satisfied is not None
@@ -215,14 +226,22 @@ class BetaEstimate_ByEig(InversionDirective):
         b = x0.dot(self.reg.deriv2(m, v=x0))
         self.beta0 = self.beta0_ratio*(t/b)
 
-        self.invProb.beta = self.beta0
+        self.invProb.beta = self.beta0  # todo: this should talk to objective function, not invProb
 
 
 class BetaSchedule(InversionDirective):
-    """BetaSchedule"""
+    """
+    BetaSchedule
+    """
 
-    coolingFactor = 8.
-    coolingRate = 3
+    coolingFactor = properties.Float(
+        "Factor to divide beta by (eg. beta_i+1 = beta_i / coolingFactor)",
+        default=8.
+    )
+    coolingRate = properties.Integer(
+        "number of iterations taken at each beta value",
+        default=3
+    )
 
     def endIter(self):
         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
@@ -231,7 +250,7 @@ class BetaSchedule(InversionDirective):
                     'BetaSchedule is cooling Beta. Iteration: {0:d}'
                     .format(self.opt.iter)
                 )
-            self.invProb.beta /= self.coolingFactor
+            self.invProb.beta /= self.coolingFactor  # TODO: this should talk to the objective function
 
 
 class TargetMisfit(InversionDirective):
@@ -246,21 +265,12 @@ class TargetMisfit(InversionDirective):
     stopping_criteria_satisfied = properties.Bool(
         "has the stopping criteria been satisfied", default=False
     )
-    # phi_d_star = properties.Float(
-    #     "target data misfit value. $\phi_d \leq \chi\phi_d^*$"
-    # )
 
     def __init__(self, dmisfit=None, phi_d_star=None, **kwargs):
         self._dmisfit = dmisfit
         self._phi_d_star = phi_d_star
 
         super(TargetMisfit, self).__init__(dmisfit=dmisfit, **kwargs)
-
-    @property
-    def dmisfit(self):
-        if self._dmisfit is None:
-            self._dmisfit = self.invProb.dmisfit
-        return self._dmisfit
 
     @property
     def phi_d_star(self):
@@ -452,20 +462,22 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
 class Update_IRLS(InversionDirective):
 
+    regPair = [Regularization.BaseSparse, Regularization.Sparse]
     gamma = None
     phi_d_last = None
     f_old = None
     f_min_change = 1e-2
     beta_tol = 5e-2
     prctile = 95
-    chifact = 1.
-
+    chifact = 1.  # It would be nice to have this taken care of by the TargetMisfit Directive
 
     # Solving parameter for IRLS (mode:2)
     IRLSiter = 0
     minGNiter = 5
     maxIRLSiter = 10
     iterStart = 0
+
+    l2model = None
 
     # Beta schedule
     # comment: I think this should be included as a separate directive
@@ -489,11 +501,22 @@ class Update_IRLS(InversionDirective):
 
     def initialize(self):
 
-        # Check if it is a ComboObjective
-        if not isinstance(self.reg, Regularization.BaseComboRegularization):
+        # Check that the provided regularizations are sparse
+        assert (
+            type(self.reg) in self.regPair +
+            [ObjectiveFunction.ComboObjectiveFunction]
+        ), "Regularization must be Sparse not {}".format(type(self.reg))
 
-            # It is a Combo objective, so will have to loop
-            self.ComboObjFun = True
+        if (
+            type(self.reg) not in self.regPair and
+            isinstance(self.reg, ObjectiveFunction.ComboObjectiveFunction)
+        ):
+            assert all([
+                type(objfct) in self.regPair for
+                objfct in self.reg.objfcts
+            ]), "Regularization must be composed of Sparse Regularizations"
+
+            self.reg.expose('all')
 
         if self.mode == 1:
 
@@ -506,6 +529,7 @@ class Update_IRLS(InversionDirective):
 
             # else:
             # Store assigned norms for later use - start with l2
+
             self.norms = self.reg.norms
             self.reg.norms = [2., 2., 2., 2.]
 
@@ -537,59 +561,58 @@ class Update_IRLS(InversionDirective):
 
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
-            if self.ComboObjFun:
+            # if self.ComboObjFun:
 
-                for reg in self.reg.objfcts:
+            #     for reg in self.reg.objfcts:
 
-                    if getattr(reg, 'eps_p', None) is None:
+            #         if getattr(reg, 'eps_p', None) is None:
 
-                        mtemp = reg.mapping * self.invProb.model
-                        reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
+            #             mtemp = reg.mapping * self.invProb.model
+            #             reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
 
-                    if getattr(reg, 'eps_q', None) is None:
-                        mtemp = reg.mapping * self.invProb.model
-                        reg.eps_q = np.percentile(np.abs(reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
+            #         if getattr(reg, 'eps_q', None) is None:
+            #             mtemp = reg.mapping * self.invProb.model
+            #             reg.eps_q = np.percentile(np.abs(reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
 
-            else:
-                if getattr(self.reg, 'eps_p', None) is None:
+            # else:
+            if getattr(self.reg, 'eps_p', None) is None:
 
-                    mtemp = self.reg.mapping * self.invProb.model
-                    self.reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
+                mtemp = self.reg.mapping * self.invProb.model
+                self.reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
 
-                if getattr(self.reg, 'eps_q', None) is None:
+            if getattr(self.reg, 'eps_q', None) is None:
 
-                    mtemp = self.reg.mapping * self.invProb.model
-                    self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
+                mtemp = self.reg.mapping * self.invProb.model
+                self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
 
 
             # Re-assign the norms
-            if self.ComboObjFun:
-                for reg, norms in zip(self.reg.objfcts, self.norms):
-                    reg.norms = norms
-                    print("L[p qx qy qz]-norm : " + str(reg.norms))
+            # if self.ComboObjFun:
+            #     for reg, norms in zip(self.reg.objfcts, self.norms):
+            #         reg.norms = norms
+            #         print("L[p qx qy qz]-norm : " + str(reg.norms))
 
-            else:
-                self.reg.norms = self.norms
-                print("L[p qx qy qz]-norm : " + str(self.reg.norms))
+            # else:
+            self.reg.norms = self.norms
+            print("L[p qx qy qz]-norm : " + str(self.reg.norms))
 
 
-            if self.ComboObjFun:
-                    for reg in self.reg.objfcts:
-                        reg.model = self.invProb.model
+            # if self.ComboObjFun:
+            #         for reg in self.reg.objfcts:
+            #             reg.model = self.invProb.model
 
-            else:
-                self.reg.model = self.invProb.model
-
-            self.reg.l2model = self.invProb.model.copy()
+            # else:
+            self.reg.model = self.invProb.model
+            self.l2model = self.invProb.model.copy()
 
             # Re-assign the norms
-            if self.ComboObjFun:
-                for reg in self.reg.objfcts:
-                    print("eps_p: " + str(reg.eps_p) +
-                          " eps_q: " + str(reg.eps_q))
+            # if self.ComboObjFun:
+            #     for reg in self.reg.objfcts:
+            #         print("eps_p: " + str(reg.eps_p) +
+            #               " eps_q: " + str(reg.eps_q))
 
-            else:
-                print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
+            # else:
+            print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
 
 
         # Beta Schedule
@@ -609,12 +632,12 @@ class Update_IRLS(InversionDirective):
 
             else:
                 # Update the model used in the regularization
-                if self.ComboObjFun:
-                    for reg in self.reg.objfcts:
-                        reg.model = self.invProb.model
+                # if self.ComboObjFun:
+                #     for reg in self.reg.objfcts:
+                #         reg.model = self.invProb.model
 
-                else:
-                    self.reg.model = self.invProb.model
+                # else:
+                self.reg.model = self.invProb.model
 
                 self.IRLSiter += 1
 
@@ -623,13 +646,13 @@ class Update_IRLS(InversionDirective):
             for reg in self.reg.objfcts:
 
                 # If comboObj, go down one more level
-                if self.ComboObjFun:
-                    for comp in reg.objfcts:
-                        comp.stashedR = None
-                        comp.gamma = 1.
-                else:
-                    reg.stashedR = None
-                    reg.gamma = 1.
+                # if self.ComboObjFun:
+                #     for comp in reg.objfcts:
+                #         comp.stashedR = None
+                #         comp.gamma = 1.
+                # else:
+                reg.stashedR = None
+                reg.gamma = 1.
 
             # Compute new model objective function value
             phim_new = self.reg(self.invProb.model)
@@ -651,13 +674,13 @@ class Update_IRLS(InversionDirective):
             for reg in self.reg.objfcts:
 
                 # If comboObj, go down one more level
-                if self.ComboObjFun:
-                    for comp in reg.objfcts:
-                        comp.stashedR = None
-                        comp.gamma = gamma
-                else:
-                    reg.stashedR = None
-                    reg.gamma = gamma
+                # if self.ComboObjFun:
+                #     for comp in reg.objfcts:
+                #         comp.stashedR = None
+                #         comp.gamma = gamma
+                # else:
+                reg.stashedR = None
+                reg.gamma = gamma
 
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / self.target
@@ -696,23 +719,23 @@ class Update_lin_PreCond(InversionDirective):
     """
     onlyOnStart = False
     mapping = None
-    ComboRegFun = False
-    ComboMisfitFun = False
+    # ComboRegFun = False
+    # ComboMisfitFun = False
     misfitDiag = None
 
     def initialize(self):
 
         # Check if it is a ComboObjective
-        if not isinstance(self.reg, Regularization.BaseComboRegularization):
+        # if not isinstance(self.reg, Regularization.BaseComboRegularization):
 
-            # It is a Combo objective, so will have to loop
-            self.ComboRegFun = True
+        #     # It is a Combo objective, so will have to loop
+        #     self.ComboRegFun = True
 
         # Check if it is a ComboObjective
-        if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+        # if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
 
-            # It is a Combo objective, so will have to loop
-            self.ComboMisfitFun = True
+        #     # It is a Combo objective, so will have to loop
+        #     self.ComboMisfitFun = True
 
         # if getattr(self, 'mapping', None) is None:
         #     self.mapping = Maps.IdentityMap(nP=self.reg.mapping.nP)
@@ -720,38 +743,37 @@ class Update_lin_PreCond(InversionDirective):
         if getattr(self.opt, 'approxHinv', None) is None:
 
             # Update the pre-conditioner
-            if self.ComboRegFun:
+            # if self.ComboRegFun:
 
-                regDiag = []
-                for reg in self.reg.objfcts:
-                    regDiag.append((reg.W.T*reg.W).diagonal())
+            #     regDiag = []
+            #     for reg in self.reg.objfcts:
+            #         regDiag.append((reg.W.T*reg.W).diagonal())
 
-                regDiag = np.hstack(regDiag)
+            #     regDiag = np.hstack(regDiag)
 
-            else:
+            # else:
 
-                regDiag = (self.reg.W.T*self.reg.W).diagonal()
+            regDiag = (self.reg.W.T*self.reg.W).diagonal()
 
-            if self.ComboMisfitFun:
+            # if self.ComboMisfitFun:
 
-                if getattr(self, 'misfitDiag', None) is None:
-                    misfitDiag = np.zeros(self.prob.F.shape[1])
-                    for misfit in self.dmisfit.objfcts:
-                        wd = misfit.W.diagonal()
-                        misfitDiag = np.zeros(misfit.prob.F.shape[1])
-                        for ii in range(misfit.prob.F.shape[0]):
-                            misfitDiag += (wd[ii] * misfit.prob.F[ii, :])**2.
+            #     if getattr(self, 'misfitDiag', None) is None:
+            #         misfitDiag = np.zeros(self.prob.F.shape[1])
+            #         for misfit in self.dmisfit.objfcts:
+            #             wd = misfit.W.diagonal()
+            #             misfitDiag = np.zeros(misfit.prob.F.shape[1])
+            #             for ii in range(misfit.prob.F.shape[0]):
+            #                 misfitDiag += (wd[ii] * misfit.prob.F[ii, :])**2.
 
-                self.misfitDiag = np.hstack(misfitDiag)
+            #     self.misfitDiag = np.hstack(misfitDiag)
 
-            else:
+            # else:
 
-                if getattr(self, 'misfitDiag', None) is None:
-                    wd = self.dmisfit.W.diagonal()
-                    self.misfitDiag = np.zeros(self.prob.F.shape[1])
-                    for ii in range(self.prob.F.shape[0]):
-                        self.misfitDiag += (wd[ii] * self.prob.F[ii, :])**2.
-
+            if getattr(self, 'misfitDiag', None) is None:
+                wd = self.dmisfit.W.diagonal()
+                self.misfitDiag = np.zeros(self.prob.F.shape[1])
+                for ii in range(self.prob.F.shape[0]):
+                    self.misfitDiag += (wd[ii] * self.prob.F[ii, :])**2.
 
             diagA = self.misfitDiag + self.invProb.beta*regDiag
 
