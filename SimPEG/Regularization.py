@@ -658,6 +658,11 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
             objfcts=objfcts, multipliers=None
         )
 
+        # self.expose([
+        #     'mref', 'mrefInSmooth', 'indActive', 'cell_weights', 'scale',
+        #     'mesh', 'regmesh', 'mapping'
+
+        # ])
         Utils.setKwargs(self, **kwargs)
 
     # Properties
@@ -687,9 +692,12 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
 
     @property
     def nP(self):
-        if getattr(self.mapping, 'nP') != '*':
+        if (
+            getattr(self.mapping, 'nP', None) is not None and
+            getattr(self.mapping, 'nP', None) != '*'
+        ):
             return self.mapping.nP
-        elif getattr(self.regmesh, 'nC') != '*':
+        elif getattr(self.regmesh, 'nC', None) != '*':
             return self.regmesh.nC
         else:
             return '*'

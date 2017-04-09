@@ -256,7 +256,7 @@ def run(plotIt=True):
         fig = plt.figure(figsize=(8, 8))
         ax2 = plt.subplot(312)
 
-        mrec_l2 = PF.Magnetics.atp2xyz(reg.l2model)
+        mrec_l2 = PF.Magnetics.atp2xyz(IRLS.l2model)
         scl_vec = np.max(mrec_l2)/np.max(m) * 0.25
         PF.Magnetics.plotModelSections(mesh, mrec_l2, normal='y',
                                        ind=ypanel, axs=ax2,

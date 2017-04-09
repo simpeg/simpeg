@@ -154,6 +154,7 @@ def run(plotIt=True):
 
     reg = reg_p + reg_s + reg_t
 
+    reg.expose('mref')
     reg.mref = np.zeros(3*nC)
 
     # Data misfit function

@@ -435,6 +435,42 @@ class ExposeTest(unittest.TestCase):
         phi3.x = 40.
         self.assertTrue(phi1.x == 40.)
 
+    def test_nested_objfcts(self):
+        nP = 10
+        m = np.random.rand(nP)
+
+        phi1 = Props_ObjFct(nP=nP)
+        phi2 = Props_ObjFct(nP=nP)
+
+        phi1.x = 10.
+
+        phi3 = 2*phi1 + 3*phi2
+        phi3.x=10
+        phi3.expose('all')
+
+        phi4 = phi1 + 2*phi3
+        phi4.expose('all')
+        phi4.x = 20
+        print(phi2.x)
+
+        getattr(phi4, 'x')
+        setattr(phi4, 'x', 10)
+
+    def test_reg(self):
+        from SimPEG import Regularization, Mesh
+
+        mesh = Mesh.TensorMesh([10, 10, 10])
+        reg1 = Regularization.Tikhonov(mesh=mesh)
+        reg2 = Regularization.Tikhonov(mesh=mesh)
+
+        reg3 = reg1 + reg2
+
+        reg3.expose('all')
+        reg3.mapping = Maps.ExpMap(mesh)
+
+        for objfct in reg3.objfcts:
+            assert isinstance(objfct.mapping, Maps.ExpMap)
+
 if __name__ == '__main__':
     unittest.main()
 

@@ -184,6 +184,54 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
         return self.__mul__(1./denominator)
 
 
+# class DynamicDescriptorMixin(object):
+
+#     def __getattribute__(self, name):
+#         value = object.__getattribute__(self, name)
+#         if hasattr(value, '__get__'):
+#             value = value.__get__(self, self.__class__)
+#         return value
+
+#     def __setattr__(self, name, value):
+#         try:
+#             obj = object.__getattribute__(self, name)
+#         except AttributeError:
+#             pass
+#         else:
+#             if hasattr(obj, '__set__'):
+#                 return obj.__set__(self, value)
+#         return object.__setattr__(self, name, value)
+
+
+class ExposedProperty(object):
+
+    def __init__(self, objfcts, prop, val=None, **kwargs):
+        # only add functions with that property
+        fctlist = [
+            fct for fct in objfcts if getattr(fct, prop, None) is not None
+        ]
+        # print(
+        #     'exposing {prop} for {fcts}'.format(
+        #         prop=prop, fcts=[fct.__class__.__name__ for fct in objfcts]
+        #     )
+        # )
+
+        self.prop = prop
+        self.objfcts = fctlist
+
+        if val is not None:
+            self.__set__(None, val=val)  # go through setter
+        else:
+            self.val = val  # skip setter
+
+    def __get__(self, obj, objtype=None):
+        return self.val
+
+    def __set__(self, obj, val):
+        [setattr(fct, self.prop, val) for fct in self.objfcts] # propagate change
+        self.val = val
+
+
 class ComboObjectiveFunction(BaseObjectiveFunction):
     """
     A composite objective function that consists of multiple objective
@@ -211,7 +259,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             )
 
     """
-    _multiplier_types = (float, None, Utils.Zero) + integer_types # Directive
+    _multiplier_types = (float, None, Utils.Zero) + integer_types  # Directive
+    _exposed = {}  # Properties of lower objective functions that are exposed
 
     def __init__(self, objfcts=[], multipliers=None, **kwargs):
 
@@ -350,9 +399,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                 W.append(curW)
         return sp.vstack(W)
 
-    # Properties of lower objective functions that are exposed
-    _exposed = {}
-
     def expose(self, properties):
         # if 'all', exposes all top level properties in the objective function
         # list
@@ -393,47 +439,22 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             else:
                 new_prop = ExposedProperty(self.objfcts, prop, val=val)
                 self._exposed[prop] = new_prop
+                setattr(self, prop, new_prop)
 
-    # This allows properties to be exposed
-    def __setattr__(self, name, val):
-        if name in self._exposed.keys():
-            return self._exposed[name].__set__(self.__class__, val)
-        return object.__setattr__(self, name, val)
+    def __setattr__(self, name, value):
+        try:
+            obj = object.__getattribute__(self, name)
+        except AttributeError:
+            pass
+        else:
+            if hasattr(obj, '__set__'):
+                return obj.__set__(self, value)
+        return object.__setattr__(self, name, value)
 
-    # def __getattr__(self, )
     def __getattribute__(self, name):
         if name in object.__getattribute__(self, '_exposed').keys():
             return self._exposed[name].__get__(self, self.__class__)
         return object.__getattribute__(self, name)
-
-
-class ExposedProperty(object):
-
-    def __init__(self, objfcts, prop, val=None):
-        # only add functions with that property
-        fctlist = [
-            fct for fct in objfcts if getattr(fct, prop, None) is not None
-        ]
-        print(
-            'exposing {prop} for {fcts}'.format(
-                prop=prop, fcts=[fct.__class__.__name__ for fct in objfcts]
-            )
-        )
-
-        self.prop = prop
-        self.objfcts = fctlist
-
-        if val is not None:
-            self.__set__(None, val=val)  # go through setter
-        else:
-            self.val = val  # skip setter
-
-    def __get__(self, obj, objtype=None):
-        return self.val
-
-    def __set__(self, obj, val):
-        [setattr(fct, self.prop, val) for fct in self.objfcts] # propagate change
-        self.val = val
 
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
