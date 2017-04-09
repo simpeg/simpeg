@@ -678,27 +678,23 @@ class Update_lin_PreCond(InversionDirective):
     """
     onlyOnStart = False
     mapping = None
-    # ComboRegFun = False
-    # ComboMisfitFun = False
+    ComboRegFun = False
+    ComboMisfitFun = False
     misfitDiag = None
-    regPair = [
-        Regularization.BaseRegularization,
-        Regularization.BaseComboRegularization
-    ]
 
     def initialize(self):
 
         # Check if it is a ComboObjective
-        # if not isinstance(self.reg, Regularization.BaseComboRegularization):
+        if not isinstance(self.reg, Regularization.BaseComboRegularization):
 
-        #     # It is a Combo objective, so will have to loop
-        #     self.ComboRegFun = True
+            # It is a Combo objective, so will have to loop
+            self.ComboRegFun = True
 
         # Check if it is a ComboObjective
-        # if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+        if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
 
-        #     # It is a Combo objective, so will have to loop
-        #     self.ComboMisfitFun = True
+            # It is a Combo objective, so will have to loop
+            self.ComboMisfitFun = True
 
         # if getattr(self, 'mapping', None) is None:
         #     self.mapping = Maps.IdentityMap(nP=self.reg.mapping.nP)
@@ -706,7 +702,7 @@ class Update_lin_PreCond(InversionDirective):
         if getattr(self.opt, 'approxHinv', None) is None:
 
             # Update the pre-conditioner
-            if type(self.reg) not in self.regPair:
+            if self.ComboRegFun:
 
                 regDiag = []
                 for reg in self.reg.objfcts:
@@ -715,27 +711,29 @@ class Update_lin_PreCond(InversionDirective):
                 regDiag = np.hstack(regDiag)
 
             else:
+
                 regDiag = (self.reg.W.T*self.reg.W).diagonal()
 
-            # if self.ComboMisfitFun:
+            if self.ComboMisfitFun:
 
-            #     if getattr(self, 'misfitDiag', None) is None:
-            #         misfitDiag = np.zeros(self.prob.F.shape[1])
-            #         for misfit in self.dmisfit.objfcts:
-            #             wd = misfit.W.diagonal()
-            #             misfitDiag = np.zeros(misfit.prob.F.shape[1])
-            #             for ii in range(misfit.prob.F.shape[0]):
-            #                 misfitDiag += (wd[ii] * misfit.prob.F[ii, :])**2.
+                if getattr(self, 'misfitDiag', None) is None:
+                    misfitDiag = np.zeros(self.prob.F.shape[1])
+                    for misfit in self.dmisfit.objfcts:
+                        wd = misfit.W.diagonal()
+                        misfitDiag = np.zeros(misfit.prob.F.shape[1])
+                        for ii in range(misfit.prob.F.shape[0]):
+                            misfitDiag += (wd[ii] * misfit.prob.F[ii, :])**2.
 
-            #     self.misfitDiag = np.hstack(misfitDiag)
+                self.misfitDiag = np.hstack(misfitDiag)
 
-            # else:
+            else:
 
-            if getattr(self, 'misfitDiag', None) is None:
-                wd = self.dmisfit.W.diagonal()
-                self.misfitDiag = np.zeros(self.prob.F.shape[1])
-                for ii in range(self.prob.F.shape[0]):
-                    self.misfitDiag += (wd[ii] * self.prob.F[ii, :])**2.
+                if getattr(self, 'misfitDiag', None) is None:
+                    wd = self.dmisfit.W.diagonal()
+                    self.misfitDiag = np.zeros(self.prob.F.shape[1])
+                    for ii in range(self.prob.F.shape[0]):
+                        self.misfitDiag += (wd[ii] * self.prob.F[ii, :])**2.
+
 
             diagA = self.misfitDiag + self.invProb.beta*regDiag
 

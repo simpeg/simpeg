@@ -147,7 +147,7 @@ def run(plotIt=True):
         # Here is the recovered denisty model
         ypanel = midx
         zpanel = -7
-        m_l2 = actvMap * reg.l2model
+        m_l2 = actvMap * IRLS.l2model
         m_l2[m_l2 == -100] = np.nan
 
         m_lp = actvMap * mrec
