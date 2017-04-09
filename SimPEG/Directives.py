@@ -92,9 +92,10 @@ class InversionDirective(properties.HasProperties):
 
 class DirectiveList(object):
 
-    dList = []   #: The list of Directives
+    dList = None   #: The list of Directives
 
     def __init__(self, *directives, **kwargs):
+        self.dList = []
         for d in directives:
             assert isinstance(d, InversionDirective), (
                 'All directives must be InversionDirectives not {}'
@@ -603,6 +604,7 @@ class Update_IRLS(InversionDirective):
 
             # else:
             self.reg.model = self.invProb.model
+            self.model = self.invProb.model.copy()
             self.l2model = self.invProb.model.copy()
 
             # Re-assign the norms
@@ -638,7 +640,7 @@ class Update_IRLS(InversionDirective):
 
                 # else:
                 self.reg.model = self.invProb.model
-
+                self.model = self.invProb.model.copy()
                 self.IRLSiter += 1
 
             # Reset the regularization matrices so that it is

@@ -14,6 +14,7 @@ import gc
 from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
 
+
 class MagneticIntegral(Problem.LinearProblem):
 
     chi, chiMap, chiDeriv = Props.Invertible(
@@ -30,7 +31,7 @@ class MagneticIntegral(Problem.LinearProblem):
     silent = False  # Don't display progress on screen
 
     def __init__(self, mesh, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, **kwargs)
+        super(Problem.LinearProblem, self).__init__(mesh, **kwargs)
 
     def fwr_ind(self, m):
 
@@ -88,8 +89,6 @@ class MagneticIntegral(Problem.LinearProblem):
                               np.sin(np.deg2rad(I))], 2).T
 
         return self._ProjTMI
-
-
 
     def Intrgl_Fwr_Op(self, m=None, magType="H0", recType='tmi'):
 

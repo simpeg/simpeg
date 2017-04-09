@@ -4,14 +4,14 @@ import scipy.sparse as sp
 from scipy.constants import mu_0
 
 
-class BaseMagSurvey(Survey.BaseSurvey):
+class BaseMagSurvey(Survey.LinearSurvey):
     """Base Magnetics Survey"""
 
     rxLoc = None   #: receiver locations
     rxType = None   #: receiver type
 
     def __init__(self, **kwargs):
-        Survey.BaseSurvey.__init__(self, **kwargs)
+        super(BaseMagSurvey, self).__init__(**kwargs)
 
     def setBackgroundField(self, Inc, Dec, Btot):
 
@@ -106,7 +106,7 @@ class BaseMagSurvey(Survey.BaseSurvey):
         return np.r_[bfx, bfy, bfz]
 
 
-class LinearSurvey(Survey.BaseSurvey):
+class LinearSurvey(Survey.LinearSurvey):
     """Base Magnetics Survey"""
 
     rxLoc = None  #: receiver locations
@@ -114,10 +114,10 @@ class LinearSurvey(Survey.BaseSurvey):
 
     def __init__(self, srcField, **kwargs):
         self.srcField = srcField
-        Survey.BaseSurvey.__init__(self, **kwargs)
+        super(LinearSurvey, self).__init__(**kwargs)
 
-    def eval(self, u):
-        return u
+    # def eval(self, u):
+    #     return u
 
     @property
     def nD(self):

@@ -154,10 +154,10 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
     #  model parameters
-    IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=3)
+    IRLS_Susc = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=3)
     update_Jacobi = Directives.Update_lin_PreCond()
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[betaest, IRLS, update_Jacobi])
+                                  directiveList=[betaest, IRLS_Susc, update_Jacobi])
 
     # Run the inversion
     m0 = np.ones(nC)*1e-4  # Starting model
@@ -181,7 +181,9 @@ def run(plotIt=True):
     prob.solverOpts['accuracyTol'] = 1e-4
 
     # Pair the survey and problem
-    survey.pair(prob)
+    survey.unpair()  # unpair from the previous problem
+    # survey.pair(prob)
+    prob.pair(survey)
 
     # Create a regularization function, in this case l2l2
     reg = Regularization.Simple(mesh, indActive=surf)
@@ -212,7 +214,6 @@ def run(plotIt=True):
     inv = Inversion.BaseInversion(invProb,
                                   directiveList=[betaest, betaSchedule,
                                                  update_Jacobi, targetMisfit])
-
     # Run the equivalent source inversion
     mstart = np.zeros(nC)
     mrec = inv.run(mstart)
@@ -261,6 +262,7 @@ def run(plotIt=True):
     # survey.srcField.rxList[0].rxType = 'xyz'
 
     # Pair the survey and problem
+    survey.unpair()
     survey.pair(prob)
 
     # Re-set the observations to |B|
@@ -303,16 +305,16 @@ def run(plotIt=True):
 
     if plotIt:
         # Here is the recovered susceptibility model
-        m_l2 = actvMap * reg.l2model
+        m_l2 = actvMap * IRLS.l2model
         m_l2[m_l2 == -100] = np.nan
 
         m_lp = actvMap * mrec
         m_lp[m_lp == -100] = np.nan
 
-        m_l2_susc = actvMap * reg_Susc.l2model
+        m_l2_susc = actvMap * IRLS_Susc.l2model
         m_l2[m_l2 == -100] = np.nan
 
-        m_lp_susc = actvMap * reg_Susc.model
+        m_lp_susc = actvMap * IRLS_Susc.model
         m_lp[m_lp == -100] = np.nan
 
         m_true = actvMap * model
