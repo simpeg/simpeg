@@ -1,7 +1,7 @@
 from SimPEG import Survey, Maps
 
 
-class LinearSurvey(Survey.BaseSurvey):
+class LinearSurvey(Survey.LinearSurvey):
     """Base Magnetics Survey"""
 
     rxLoc = None  #: receiver locations
@@ -9,10 +9,10 @@ class LinearSurvey(Survey.BaseSurvey):
 
     def __init__(self, srcField, **kwargs):
         self.srcField = srcField
-        Survey.BaseSurvey.__init__(self, **kwargs)
+        Survey.LinearSurvey.__init__(self, **kwargs)
 
-    def eval(self, u):
-        return u
+    # def eval(self, u):
+    #     return u
 
     @property
     def nD(self):
