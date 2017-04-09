@@ -388,6 +388,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
     """
 
     counter = None
+    mapPair = Maps.IdentityMap
 
     def __init__(
         self, mesh=None, **kwargs
@@ -649,13 +650,10 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
     mapPair = Maps.IdentityMap
 
     def __init__(
-        self, mesh, objfcts=[],
-        mapping=None, **kwargs
+        self, mesh, objfcts=[], **kwargs
     ):
 
         self._mesh = mesh
-        self._mapping = mapping
-
         super(BaseComboRegularization, self).__init__(
             objfcts=objfcts, multipliers=None
         )
@@ -1298,14 +1296,12 @@ class SparseDeriv(BaseSparse):
             else:
                 W = ((self.gamma)**0.5) * R
 
-
             theta = self.cellDiffStencil * (self.mapping * m)
             dmdx = coterminal(theta)
             r = W * dmdx
 
         else:
             r = self.W * (self.mapping * (m - self.mref))
-
 
         return 0.5 * r.dot(r)
 
@@ -1351,9 +1347,7 @@ class SparseDeriv(BaseSparse):
             theta = self.cellDiffStencil * (self.mapping * m)
             dmdx = coterminal(theta)
 
-
             r = W * dmdx
-
 
         else:
             r = self.W * (self.mapping * (m - self.mref))
@@ -1514,6 +1508,7 @@ class Sparse(BaseComboRegularization):
     def _mirror_space_to_objfcts(self, change):
         for objfct in self.objfcts:
             objfct.space = change['value']
+
 
 def coterminal(theta):
     """ Compute coterminal angle so that [-pi < theta < pi]"""
