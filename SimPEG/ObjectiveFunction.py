@@ -429,7 +429,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             properties = dict(zip(properties, len(properties)*[None]))
 
         # go through the properties list and expose them
-        for prop, val in properties.iteritems(): # skip if already in self._exposed
+        for prop, val in properties.items(): # skip if already in self._exposed
             # if prop not in self._exposed:
             if getattr(type(self), prop, None) is not None:
                 raise Exception(
