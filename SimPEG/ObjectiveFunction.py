@@ -220,7 +220,7 @@ class ExposedProperty(object):
         self.objfcts = fctlist
 
         if val is not None:
-            self.__set__(None, val=val)  # go through setter
+            self.val = self.__set__(None, val=val)  # go through setter
         else:
             self.val = val  # skip setter
 
@@ -260,14 +260,15 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     """
     _multiplier_types = (float, None, Utils.Zero) + integer_types  # Directive
-    _exposed = {}  # Properties of lower objective functions that are exposed
+    _exposed = None  # Properties of lower objective functions that are exposed
 
     def __init__(self, objfcts=[], multipliers=None, **kwargs):
 
+        self._nP = '*'
+        self._exposed = {}
+
         if multipliers is None:
             multipliers = len(objfcts)*[1]
-
-        self._nP = '*'
 
         assert(len(objfcts)==len(multipliers)), (
             "Must have the same number of Objective Functions and Multipliers "
@@ -430,7 +431,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         # go through the properties list and expose them
         for prop, val in properties.items(): # skip if already in self._exposed
-            # if prop not in self._exposed:
             if getattr(type(self), prop, None) is not None:
                 raise Exception(
                     "can't expose {} as it is a property on the combo "
@@ -447,13 +447,15 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         except AttributeError:
             pass
         else:
-            if hasattr(obj, '__set__'):
-                return obj.__set__(self, value)
+            exposed = object.__getattribute__(self, '_exposed')
+            if exposed is not None and name in exposed.keys():
+                return exposed[name].__set__(self, value)
         return object.__setattr__(self, name, value)
 
     def __getattribute__(self, name):
-        if name in object.__getattribute__(self, '_exposed').keys():
-            return self._exposed[name].__get__(self, self.__class__)
+        exposed = object.__getattribute__(self, '_exposed')
+        if exposed is not None and name in exposed.keys():
+            return exposed[name].__get__(self, self.__class__)
         return object.__getattribute__(self, name)
 
 

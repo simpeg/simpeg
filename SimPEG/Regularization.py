@@ -92,7 +92,6 @@ class RegularizationMesh(Props.BaseSimPEG):
             self._dim = self.mesh.dim
         return self._dim
 
-
     @property
     def Pac(self):
         """
