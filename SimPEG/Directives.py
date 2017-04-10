@@ -587,7 +587,6 @@ class Update_IRLS(InversionDirective):
                 self.reg.norms = self.norms
                 print("L[p qx qy qz]-norm : " + str(self.reg.norms))
 
-
             if self.ComboObjFun:
                     for reg in self.reg.objfcts:
                         reg.model = self.invProb.model
@@ -595,6 +594,7 @@ class Update_IRLS(InversionDirective):
             else:
                 self.reg.model = self.invProb.model
 
+            self.model = self.invProb.model.copy()
             self.l2model = self.invProb.model.copy()
 
             # Re-assign the norms
@@ -624,13 +624,15 @@ class Update_IRLS(InversionDirective):
 
             else:
                 # Update the model used in the regularization
-                if self.ComboObjFun:
-                    for reg in self.reg.objfcts:
-                        reg.model = self.invProb.model
+                # if self.ComboObjFun:
+                #     for reg in self.reg.objfcts:
+                #         reg.model = self.invProb.model
 
-                else:
-                    self.reg.model = self.invProb.model
+                # else:
+                #     self.reg.model = self.invProb.model
 
+                self.reg.model = self.invProb.model
+                self.model = self.invProb.model.copy()
                 self.IRLSiter += 1
 
             # Reset the regularization matrices so that it is
