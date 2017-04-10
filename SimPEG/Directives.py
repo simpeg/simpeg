@@ -463,7 +463,9 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
 class Update_IRLS(InversionDirective):
 
+    # works with these regularizations
     regPair = [Regularization.BaseSparse, Regularization.Sparse]
+
     gamma = None
     phi_d_last = None
     f_old = None
@@ -502,28 +504,25 @@ class Update_IRLS(InversionDirective):
 
     def initialize(self):
 
-        # Check that the provided regularizations are sparse
-        assert (
-            type(self.reg) in self.regPair +
-            [ObjectiveFunction.ComboObjectiveFunction]
-        ), "Regularization must be Sparse not {}".format(type(self.reg))
+        # Check if it is a ComboObjective
+        if not isinstance(self.reg, Regularization.BaseComboRegularization):
 
-        if (
-            type(self.reg) not in self.regPair and
-            isinstance(self.reg, ObjectiveFunction.ComboObjectiveFunction)
-        ):
-            assert all([
-                type(objfct) in self.regPair for
-                objfct in self.reg.objfcts
-            ]), "Regularization must be composed of Sparse Regularizations"
-
+            # It is a Combo objective, so will have to loop
             self.ComboObjFun = True
-            self.reg.expose(['norms', 'model', 'stashedR', 'gamma'])
 
         if self.mode == 1:
 
-            self.reg.norms = [2., 2., 2., 2.]
-            self.norms = self.reg.norms
+            if self.ComboObjFun:
+
+                self.norms = []
+                for reg in self.reg.objfcts:
+                    self.norms.append(reg.norms)
+                    reg.norms = [2., 2., 2., 2.]
+
+            else:
+                # Store assigned norms for later use - start with l2
+                self.norms = self.reg.norms
+                self.reg.norms = [2., 2., 2., 2.]
 
     def endIter(self):
 
@@ -577,12 +576,25 @@ class Update_IRLS(InversionDirective):
                     mtemp = self.reg.mapping * self.invProb.model
                     self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
 
-            # Re-assign the norms
-            self.reg.norms = self.norms
-            print("L[p qx qy qz]-norm : " + str(self.reg.norms))
 
-            self.reg.model = self.invProb.model
-            self.model = self.invProb.model.copy()
+            # Re-assign the norms
+            if self.ComboObjFun:
+                for reg, norms in zip(self.reg.objfcts, self.norms):
+                    reg.norms = norms
+                    print("L[p qx qy qz]-norm : " + str(reg.norms))
+
+            else:
+                self.reg.norms = self.norms
+                print("L[p qx qy qz]-norm : " + str(self.reg.norms))
+
+
+            if self.ComboObjFun:
+                    for reg in self.reg.objfcts:
+                        reg.model = self.invProb.model
+
+            else:
+                self.reg.model = self.invProb.model
+
             self.l2model = self.invProb.model.copy()
 
             # Re-assign the norms
@@ -612,14 +624,27 @@ class Update_IRLS(InversionDirective):
 
             else:
                 # Update the model used in the regularization
-                self.reg.model = self.invProb.model
-                # self.model = self.invProb.model.copy()
+                if self.ComboObjFun:
+                    for reg in self.reg.objfcts:
+                        reg.model = self.invProb.model
+
+                else:
+                    self.reg.model = self.invProb.model
+
                 self.IRLSiter += 1
 
             # Reset the regularization matrices so that it is
-            # recalculated for current model.
-                self.reg.stashedR = None
-                self.reg.gamma = 1.
+            # recalculated for current model. Do it to all levels of comboObj
+            for reg in self.reg.objfcts:
+
+                # If comboObj, go down one more level
+                if self.ComboObjFun:
+                    for comp in reg.objfcts:
+                        comp.stashedR = None
+                        comp.gamma = 1.
+                else:
+                    reg.stashedR = None
+                    reg.gamma = 1.
 
             # Compute new model objective function value
             phim_new = self.reg(self.invProb.model)
@@ -638,8 +663,16 @@ class Update_IRLS(InversionDirective):
 
             # Update gamma to scale the regularization between IRLS iterations
             gamma = self.invProb.phi_m_last / phim_new
-            self.reg.stashedR = None
-            self.reg.gamma = gamma
+            for reg in self.reg.objfcts:
+
+                # If comboObj, go down one more level
+                if self.ComboObjFun:
+                    for comp in reg.objfcts:
+                        comp.stashedR = None
+                        comp.gamma = gamma
+                else:
+                    reg.stashedR = None
+                    reg.gamma = gamma
 
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / self.target
