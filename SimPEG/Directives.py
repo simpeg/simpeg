@@ -44,24 +44,24 @@ class InversionDirective(object):
 
     @property
     def dmisfit(self):
-        if isinstance(self.invProb.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
-            return [objfcts for objfcts in self.invProb.dmisfit.objfcts]
+        # if isinstance(self.invProb.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+        #     return [objfcts for objfcts in self.invProb.dmisfit.objfcts]
 
-        else:
-            return self.invProb.dmisfit
+        # else:
+        return self.invProb.dmisfit
 
     @property
     def survey(self):
-        if isinstance(self.dmisfit, list):
-            return [objfcts.survey for objfcts in self.dmisfit]
+        if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+            return [objfcts.survey for objfcts in self.dmisfit.objfcts]
 
         else:
             return self.dmisfit.survey
 
     @property
     def prob(self):
-        if isinstance(self.dmisfit, list):
-            return [objfcts.prob for objfcts in self.dmisfit]
+        if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+            return [objfcts.prob for objfcts in self.dmisfit.objfcts]
 
         else:
             return self.dmisfit.prob
@@ -733,14 +733,14 @@ class Update_Wj(InversionDirective):
             self.reg.wght = JtJdiag
 
 
-class Amplitude_Inv_Iter(InversionDirective):
+class Sensitivity_Weighting(InversionDirective):
     """
     Directive to take care of re-weighting and pre-conditioning of
     the non-linear magnetic amplitude problem.
 
     """
-    ptype = 'Amp'
-    test = False
+    # ptype = 'Amp'
+    # test = False
     mapping = None
     ComboObjFun = False
 
@@ -754,14 +754,14 @@ class Amplitude_Inv_Iter(InversionDirective):
 
         self.reg.JtJdiag = self.getJtJdiag()
 
-        if self.test:
+        # if self.test:
 
-            wr = np.sum(self.prob.F**2., axis=0)**0.5
-            wr = wr / wr.max()
+        #     wr = np.sum(self.prob.F**2., axis=0)**0.5
+        #     wr = wr / wr.max()
 
-        else:
-            wr = self.reg.JtJdiag**0.5
-            wr = wr / wr.max()
+        # else:
+        wr = self.reg.JtJdiag**0.5
+        wr = wr / wr.max()
 
         if self.ComboObjFun:
             for reg in self.reg.objfcts:
@@ -770,25 +770,147 @@ class Amplitude_Inv_Iter(InversionDirective):
         else:
             self.reg.cell_weights = self.reg.mapping * wr
 
-        if self.ptype == 'MVI-S':
+        if isinstance(self.prob, list):
+            for prob in self.prob:
+                if isinstance(prob, Magnetics.MagneticVector):
+                    self.regScale()
 
-            for reg in self.reg.objfcts[1:]:
-                eps_a = self.reg.objfcts[0].eps_p
-                norm_a = self.reg.objfcts[0].norms[0]
-                f_m = self.reg.objfcts[0].objfcts[0].f_m
-                max_a = np.max(eps_a**(1-norm_a/2.)*f_m /
-                               (f_m**2. + eps_a**2.)**(1-norm_a/2.))
+        elif isinstance(self.prob, Magnetics.MagneticVector):
+            self.regScale()
 
-                eps_tp = reg.eps_q
-                f_m = reg.objfcts[1].f_m
-                norm_tp = reg.norms[1]
-                max_tp = np.max(eps_tp**(1-norm_tp/2.)*f_m /
-                                (f_m**2. + eps_tp**2.)**(1-norm_tp/2.))
+        self.updatePreCond()
 
-                reg.scale = max_a/max_tp
-                reg.cell_weights *= reg.scale
+        # if getattr(self.opt, 'approxHinv', None) is None:
+        #     diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+        #     PC = Utils.sdiag((self.prob.chiMap.deriv(None).T * diagA)**-1.)
+        #     self.opt.approxHinv = PC
 
-        # Update the pre-conditioner
+    def endIter(self):
+
+        # Re-initialize the field derivatives
+        if isinstance(self.prob, list):
+            for prob in self.prob:
+                if isinstance(prob, Magnetics.MagneticVector):
+                    prob._S = None
+
+                if isinstance(prob, Magnetics.MagneticAmplitude):
+                    prob._dfdm = None
+                    prob.chi = self.invProb.model
+
+        elif isinstance(self.prob, Magnetics.MagneticVector):
+            self.prob._S = None
+
+        elif isinstance(self.prob, Magnetics.MagneticAmplitude):
+            self.prob._dfdm = None
+            self.prob.chi = self.invProb.model
+
+        # if self.ptype == 'Amp':
+        #     self.prob._dfdm = None
+        #     self.prob.chi = self.invProb.model
+        # elif self.ptype == 'MVI-S':
+        #     self.prob._S = None
+
+        self.reg.JtJdiag = self.getJtJdiag()
+
+        # if not self.test:
+        wr = self.reg.JtJdiag**0.5
+        wr = wr / wr.max()
+
+        if self.ComboObjFun:
+            for reg in self.reg.objfcts:
+                reg.cell_weights = reg.mapping * wr
+
+        else:
+            self.reg.cell_weights = self.reg.mapping * wr
+
+        if isinstance(self.prob, list):
+            for prob in self.prob:
+                if isinstance(prob, Magnetics.MagneticVector):
+                    self.regScale()
+
+        elif isinstance(self.prob, Magnetics.MagneticVector):
+            self.regScale()
+
+        if getattr(self.opt, 'approxHinv', None) is not None:
+            self.updatePreCond()
+
+    def getJtJdiag(self):
+        """
+            Compute explicitely the main diagonal of JtJ for linear problem
+        """
+
+        if isinstance(self.prob, list):
+
+            nC = prob.chiMap.shape[1]
+            JtJdiag = np.zeros(nC)
+            for prob, survey in zip(self.prob, self.survey):
+                nD = survey.nD
+                if isinstance(prob, Magnetics.MagneticVector):
+
+                    for ii in range(nD):
+
+                        JtJdiag[prob.chiMap.index] += (prob.F[ii, :] * prob.S)**2.
+
+                    JtJdiag[prob.chiMap.index] += 1e-10
+
+                if isinstance(prob, Magnetics.MagneticAmplitude):
+                    nC = prob.chiMap.shape[0]
+                    jtjdiag = np.zeros(nC)
+                    for ii in range(nC):
+
+                        jtjdiag[ii] = np.sum((prob.dfdm*prob.F[:, ii])**2.)
+
+                    JtJdiag[prob.chiMap.index] += jtjdiag
+
+        else:
+
+            nC = self.prob.chiMap.shape[1]
+            nD = self.survey.nD
+            JtJdiag = np.zeros(nC)
+
+            if isinstance(self.prob, Magnetics.MagneticAmplitude):
+
+                for ii in range(nC):
+
+                    JtJdiag[ii] = np.sum((self.prob.dfdm*self.prob.F[:, ii])**2.)
+
+            if isinstance(self.prob, Magnetics.MagneticVector):
+
+                for ii in range(nD):
+
+                    JtJdiag += (self.prob.F[ii, :] * self.prob.S)**2.
+
+                JtJdiag += 1e-10
+
+        return JtJdiag
+
+    def regScale(self):
+        """
+            Update the scales used by regularization
+        """
+        # Currently implemented specifically for MVI-S
+        # Need to be generalized if used by others
+        for reg in self.reg.objfcts[1:]:
+            eps_a = self.reg.objfcts[0].eps_p
+            norm_a = self.reg.objfcts[0].norms[0]
+            f_m = self.reg.objfcts[0].objfcts[0].f_m
+            max_a = np.max(eps_a**(1-norm_a/2.)*f_m /
+                           (f_m**2. + eps_a**2.)**(1-norm_a/2.))
+
+            eps_tp = reg.eps_q
+            f_m = reg.objfcts[1].f_m
+            norm_tp = reg.norms[1]
+            max_tp = np.max(eps_tp**(1-norm_tp/2.)*f_m /
+                            (f_m**2. + eps_tp**2.)**(1-norm_tp/2.))
+
+            reg.scale = max_a/max_tp
+            print(reg.scale)
+            # reg.cell_weights *= reg.scale
+
+    def updatePreCond(self):
+        """
+            Update the pre-conditioner
+        """
         if self.ComboObjFun:
 
             reg_diag = []
@@ -802,93 +924,6 @@ class Amplitude_Inv_Iter(InversionDirective):
 
         PC = Utils.sdiag((diagA)**-1.)
         self.opt.approxHinv = PC
-
-        # if getattr(self.opt, 'approxHinv', None) is None:
-        #     diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
-        #     PC = Utils.sdiag((self.prob.chiMap.deriv(None).T * diagA)**-1.)
-        #     self.opt.approxHinv = PC
-
-    def endIter(self):
-
-        # Re-initialize the field derivatives
-        if self.ptype == 'Amp':
-            self.prob._dfdm = None
-            self.prob.chi = self.invProb.model
-        elif self.ptype == 'MVI-S':
-            self.prob._S = None
-
-        self.reg.JtJdiag = self.getJtJdiag()
-
-        if not self.test:
-            wr = self.reg.JtJdiag**0.5
-            wr = wr / wr.max()
-
-            if self.ComboObjFun:
-                for reg in self.reg.objfcts:
-                    reg.cell_weights = reg.mapping * wr
-
-            else:
-                self.reg.cell_weights = self.reg.mapping * wr
-
-        if self.ptype == 'MVI-S':
-
-            for reg in self.reg.objfcts[1:]:
-                eps_a = self.reg.objfcts[0].eps_p
-                norm_a = self.reg.objfcts[0].norms[0]
-                f_m = self.reg.objfcts[0].objfcts[0].f_m
-                max_a = np.max(eps_a**(1-norm_a/2.)*f_m /
-                               (f_m**2. + eps_a**2.)**(1-norm_a/2.))
-
-                eps_tp = reg.eps_q
-                f_m = reg.objfcts[1].f_m
-                norm_tp = reg.norms[1]
-                max_tp = np.max(eps_tp**(1-norm_tp/2.)*f_m /
-                                (f_m**2. + eps_tp**2.)**(1-norm_tp/2.))
-
-                reg.scale = max_a/max_tp
-                reg.cell_weights *= reg.scale
-
-        if getattr(self.opt, 'approxHinv', None) is not None:
-            # Update the pre-conditioner
-            # Update the pre-conditioner
-            if self.ComboObjFun:
-
-                reg_diag = []
-                for reg in self.reg.objfcts:
-                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
-
-                diagA = self.reg.JtJdiag + np.hstack(reg_diag)
-
-            else:
-                diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
-
-            PC = Utils.sdiag(( diagA)**-1.)
-            self.opt.approxHinv = PC
-
-    def getJtJdiag(self):
-        """
-            Compute explicitely the main diagonal of JtJ for linear problem
-        """
-        nC = self.prob.chiMap.shape[0]
-        nD = self.survey.nD
-
-        JtJdiag = np.zeros(nC)
-
-        if self.ptype == 'Amp':
-            for ii in range(nC):
-
-                JtJdiag[ii] = np.sum((self.prob.dfdm*self.prob.F[:, ii])**2.)
-
-        elif self.ptype == 'MVI-S':
-
-            for ii in range(nD):
-
-                JtJdiag += (self.prob.F[ii, :] * self.prob.S)**2.
-
-            JtJdiag += 1e-10
-
-        return JtJdiag
-
 
 class ProjSpherical(InversionDirective):
 

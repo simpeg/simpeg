@@ -237,7 +237,7 @@ def run(plotIt=True):
 
     # Special directive specific to the mag amplitude problem. The sensitivity
     # weights are update between each iteration.
-    update_Jacobi = Directives.Amplitude_Inv_Iter()
+    update_Jacobi = Directives.Sensitivity_Weighting()
     update_Jacobi.ptype = 'MVI-S'
     ProjSpherical = Directives.ProjSpherical()
     inv = Inversion.BaseInversion(invProb,
