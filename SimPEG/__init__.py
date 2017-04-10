@@ -22,7 +22,7 @@ from .Utils.SolverUtils import (
     Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
 )
 
-__version__   = '0.5.0'
+__version__   = '0.5.1'
 __author__    = 'Rowan Cockett'
 __license__   = 'MIT'
 __copyright__ = 'Copyright 2014 Rowan Cockett'
