@@ -136,7 +136,20 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         return np.hstack(Jt).T
 
     def forward(self, m, f=None):
-        return self.Jvec(m, m, f=f)
+        if self.fswitch == False:
+            f = self.fieldsdc(m)
+            self.J = self.getJ(m, f=f)
+            self.fswitch = True
+
+        ntime = len(self.survey.times)
+        Jv = []
+        self.model = m
+        for tind in range(ntime):
+            Jv.append(
+                self.J.dot(
+                    self.actMap.P.T*self.getPeta(self.survey.times[tind]))
+                )
+        return self.sign * np.hstack(Jv)
 
     def Jvec(self, m, v, f=None):
 
