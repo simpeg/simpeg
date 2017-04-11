@@ -413,7 +413,14 @@ class Update_IRLS(InversionDirective):
     @property
     def target(self):
         if getattr(self, '_target', None) is None:
-            self._target = self.survey.nD*0.5*self.chifact
+            if isinstance(self.survey, list):
+                self._target = 0
+                for survey in self.survey:
+                    self._target += survey.nD*0.5*self.chifact
+
+            else:
+
+                self._target = self.survey.nD*0.5*self.chifact
         return self._target
 
     @target.setter
@@ -841,7 +848,7 @@ class Sensitivity_Weighting(InversionDirective):
 
         if isinstance(self.prob, list):
 
-            nC = prob.chiMap.shape[1]
+            nC = self.prob[0].chiMap.shape[1]
             JtJdiag = np.zeros(nC)
             for prob, survey in zip(self.prob, self.survey):
                 nD = survey.nD
@@ -849,9 +856,9 @@ class Sensitivity_Weighting(InversionDirective):
 
                     for ii in range(nD):
 
-                        JtJdiag[prob.chiMap.index] += (prob.F[ii, :] * prob.S)**2.
+                        JtJdiag += (prob.F[ii, :] * prob.S)**2.
 
-                    JtJdiag[prob.chiMap.index] += 1e-10
+                    JtJdiag += 1e-10
 
                 if isinstance(prob, Magnetics.MagneticAmplitude):
                     nC = prob.chiMap.shape[0]
@@ -903,8 +910,8 @@ class Sensitivity_Weighting(InversionDirective):
             max_tp = np.max(eps_tp**(1-norm_tp/2.)*f_m /
                             (f_m**2. + eps_tp**2.)**(1-norm_tp/2.))
 
-            reg.scale = max_a/max_tp
-            print(reg.scale)
+            reg.alpha_x, reg.alpha_y, reg.alpha_z = max_a/max_tp, max_a/max_tp, max_a/max_tp
+
             # reg.cell_weights *= reg.scale
 
     def updatePreCond(self):
