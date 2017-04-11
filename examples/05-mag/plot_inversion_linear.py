@@ -152,7 +152,7 @@ def run(plotIt=True):
         # Here is the recovered susceptibility model
         ypanel = midx
         zpanel = -5
-        m_l2 = actvMap * reg.l2model
+        m_l2 = actvMap * IRLS.l2model
         m_l2[m_l2 == -100] = np.nan
 
         m_lp = actvMap * mrec

@@ -267,10 +267,25 @@ class BaseSurvey(object):
 
     def pair(self, p):
         """Bind a problem to this survey instance using pointers"""
-        assert hasattr(p, 'surveyPair'), "Problem must have an attribute 'surveyPair'."
-        assert isinstance(self, p.surveyPair), "Problem requires survey object must be an instance of a {0!s} class.".format((p.surveyPair.__name__))
+        assert hasattr(p, 'surveyPair'), (
+            "Problem must have an attribute 'surveyPair'."
+        )
+        assert isinstance(self, p.surveyPair), (
+            "Problem requires survey object must be an instance of a {0!s} "
+            "class, not a {0!s}".format(
+                p.surveyPair.__name__, self.__class__.__name__
+            )
+        )
         if p.ispaired:
-            raise Exception("The problem object is already paired to a survey. Use prob.unpair()")
+            raise Exception(
+                "The problem object is already paired to a survey. "
+                "Use prob.unpair()"
+            )
+        elif self.ispaired:
+            raise Exception(
+                "The survey object is already paired to a problem. "
+                "Use survey.unpair()"
+            )
         self._prob = p
         p._survey = self
 
@@ -382,6 +397,7 @@ class BaseSurvey(object):
         self.dobs = self.dtrue+noise
         self.std = self.dobs*0 + std
         return self.dobs
+
 
 class LinearSurvey(BaseSurvey):
     def eval(self, f):

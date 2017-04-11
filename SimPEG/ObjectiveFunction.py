@@ -5,7 +5,7 @@ from __future__ import division
 
 import numpy as np
 import scipy.sparse as sp
-from six import integer_types
+from six import integer_types, string_types
 import warnings
 
 from . import Utils
@@ -32,7 +32,6 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
     counter = None
     debug = False
 
-    mapPair = Maps.IdentityMap  #: Base class of expected maps
     _mapping = None  #: An IdentityMap instance.
     _hasFields = False  #: should we have the option to store fields
 
@@ -70,26 +69,6 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
             return self.mapping.shape[0]
         else:
             return self.nP
-
-    @property
-    def mapping(self):
-        """
-        A `SimPEG.Maps` instance
-        """
-        if getattr(self, '_mapping') is None:
-            if getattr(self, '_nP') is not None:
-                self._mapping = self.mapPair(nP=self.nP)
-            else:
-                self._mapping = self.mapPair()
-        return self._mapping
-
-    @mapping.setter
-    def mapping(self, value):
-        assert isinstance(value, self.mapPair), (
-            'mapping must be an instance of a {}, not a {}'
-        ).format(self.mapPair, value.__class__.__name__)
-        self._mapping = value
-
 
     @Utils.timeIt
     def __call__(self, x, f=None):
@@ -205,6 +184,54 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
         return self.__mul__(1./denominator)
 
 
+# class DynamicDescriptorMixin(object):
+
+#     def __getattribute__(self, name):
+#         value = object.__getattribute__(self, name)
+#         if hasattr(value, '__get__'):
+#             value = value.__get__(self, self.__class__)
+#         return value
+
+#     def __setattr__(self, name, value):
+#         try:
+#             obj = object.__getattribute__(self, name)
+#         except AttributeError:
+#             pass
+#         else:
+#             if hasattr(obj, '__set__'):
+#                 return obj.__set__(self, value)
+#         return object.__setattr__(self, name, value)
+
+
+class ExposedProperty(object):
+
+    def __init__(self, objfcts, prop, val=None, **kwargs):
+        # only add functions with that property
+        fctlist = [
+            fct for fct in objfcts if getattr(fct, prop, None) is not None
+        ]
+        # print(
+        #     'exposing {prop} for {fcts}'.format(
+        #         prop=prop, fcts=[fct.__class__.__name__ for fct in objfcts]
+        #     )
+        # )
+
+        self.prop = prop
+        self.objfcts = fctlist
+
+        if val is not None:
+            self.val = self.__set__(None, val=val)  # go through setter
+        else:
+            self.val = val  # skip setter
+
+    def __get__(self, obj, objtype=None):
+        return self.val
+
+    def __set__(self, obj, val):
+        [setattr(fct, self.prop, val) for fct in self.objfcts] # propagate change
+        self.val = val
+
+
 class ComboObjectiveFunction(BaseObjectiveFunction):
     """
     A composite objective function that consists of multiple objective
@@ -232,18 +259,20 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             )
 
     """
-    _multiplier_types = (float, None, Utils.Zero) + integer_types # Directive
+    _multiplier_types = (float, None, Utils.Zero) + integer_types  # Directive
+    _exposed = None  # Properties of lower objective functions that are exposed
 
     def __init__(self, objfcts=[], multipliers=None, **kwargs):
+
+        self._nP = '*'
+        self._exposed = {}
 
         if multipliers is None:
             multipliers = len(objfcts)*[1]
 
-        self._nP = '*'
-
-        assert(len(objfcts)==len(multipliers)),(
+        assert(len(objfcts)==len(multipliers)), (
             "Must have the same number of Objective Functions and Multipliers "
-            "not {} and {}".format(len(objfcts),len(multipliers))
+            "not {} and {}".format(len(objfcts), len(multipliers))
             )
 
         def validate_list(objfctlist, multipliers):
@@ -371,6 +400,64 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                 W.append(curW)
         return sp.vstack(W)
 
+    def expose(self, properties):
+        # if 'all', exposes all top level properties in the objective function
+        # list
+        if isinstance(properties, string_types) and properties.lower() == 'all':
+            prop_set = []
+            for objfct in self.objfcts:
+                prop_set += [
+                    prop for prop in dir(objfct)
+                    if prop[0] != '_' and  # only expose top level properties
+                    isinstance(
+                        getattr(type(objfct), prop, None), property
+                    ) and
+                    (
+                        # don't try and over-write things like nP
+                        # which are properties on this class
+                        getattr(type(self), prop, None) is None or
+                        prop in self._exposed.keys()
+                    )
+                ]
+            properties = list(set(prop_set))
+
+        # if a single string provided, turn it into a list
+        if isinstance(properties, string_types):
+            properties = [properties]
+
+        # work with dicts if a list provided
+        if isinstance(properties, list):
+            properties = dict(zip(properties, len(properties)*[None]))
+
+        # go through the properties list and expose them
+        for prop, val in properties.items(): # skip if already in self._exposed
+            if getattr(type(self), prop, None) is not None:
+                raise Exception(
+                    "can't expose {} as it is a property on the combo "
+                    "objective function".format(prop)
+                )
+            else:
+                new_prop = ExposedProperty(self.objfcts, prop, val=val)
+                self._exposed[prop] = new_prop
+                setattr(self, prop, new_prop)
+
+    def __setattr__(self, name, value):
+        try:
+            obj = object.__getattribute__(self, name)
+        except AttributeError:
+            pass
+        else:
+            exposed = object.__getattribute__(self, '_exposed')
+            if exposed is not None and name in exposed.keys():
+                return exposed[name].__set__(self, value)
+        return object.__setattr__(self, name, value)
+
+    def __getattribute__(self, name):
+        exposed = object.__getattribute__(self, '_exposed')
+        if exposed is not None and name in exposed.keys():
+            return exposed[name].__get__(self, self.__class__)
+        return object.__getattribute__(self, name)
+
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
     """
@@ -380,6 +467,9 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
 
         \phi = \frac{1}{2}||\mathbf{W} \mathbf{m}||^2
     """
+
+    mapPair = Maps.IdentityMap  #: Base class of expected maps
+
     def __init__(self, W=None, **kwargs):
 
         super(L2ObjectiveFunction, self).__init__(**kwargs)
@@ -387,6 +477,25 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
             if self.nP == '*':
                 self._nP = W.shape[1]
         self._W = W
+
+    @property
+    def mapping(self):
+        """
+        A `SimPEG.Maps` instance
+        """
+        if getattr(self, '_mapping') is None:
+            if getattr(self, '_nP') is not None:
+                self._mapping = self.mapPair(nP=self.nP)
+            else:
+                self._mapping = self.mapPair()
+        return self._mapping
+
+    @mapping.setter
+    def mapping(self, value):
+        assert isinstance(value, self.mapPair), (
+            'mapping must be an instance of a {}, not a {}'
+        ).format(self.mapPair, value.__class__.__name__)
+        self._mapping = value
 
     @property
     def W(self):

@@ -20,6 +20,35 @@ class Empty_ObjFct(ObjectiveFunction.BaseObjectiveFunction):
         super(Empty_ObjFct, self).__init__()
 
 
+class Props_ObjFct(ObjectiveFunction.BaseObjectiveFunction):
+
+    def __init__(self, **kwargs):
+        super(Props_ObjFct, self).__init__(**kwargs)
+
+    @property
+    def x(self):
+        return getattr(self, '_x', None)
+
+    @x.setter
+    def x(self, val):
+        self._x = val
+
+    @property
+    def y(self):
+        return getattr(self, '_y', None)
+
+    @y.setter
+    def y(self, val):
+        self._y = val
+
+    @property
+    def z(self):
+        return getattr(self, '_z', None)
+
+    @z.setter
+    def z(self, val):
+        self._z = val
+
 class Error_if_Hit_ObjFct(ObjectiveFunction.BaseObjectiveFunction):
 
     def __init__(self):
@@ -288,6 +317,159 @@ class TestBaseObjFct(unittest.TestCase):
         self.assertTrue(np.all(phi3.deriv(m) == phi4.deriv(m)))
         self.assertTrue(np.all(phi3.deriv2(m, v) == phi4.deriv2(m, v)))
 
+
+class ExposeTest(unittest.TestCase):
+
+    def test_expose_mapping_string(self):
+        nP = 10
+        m = np.random.rand(nP)
+
+        phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+
+        phi3 = 2*phi1 + 3*phi2
+
+        phi3.expose('mapping')
+
+        phi3.mapping = Maps.ExpMap(nP=10)
+
+        # check that it is being propagated
+        self.assertTrue(all([
+            isinstance(objfct.mapping, Maps.ExpMap) for objfct in phi3.objfcts
+        ]))
+
+        phi1.mapping = Maps.IdentityMap(nP=10)
+        self.assertTrue(
+            phi3.objfcts[0].mapping.__class__.__name__ == 'IdentityMap'
+        )
+        self.assertTrue(
+            phi3.objfcts[1].mapping.__class__.__name__ == 'ExpMap'
+        )
+
+    def test_expose_mapping_list(self):
+        nP = 10
+        m = np.random.rand(nP)
+
+        phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+
+        phi3 = 2*phi1 + 3*phi2
+
+        phi3.expose(['mapping'])
+
+        phi3.mapping = Maps.LogMap(nP=10)
+
+        # check that it is being propagated
+        self.assertTrue(all([
+            isinstance(objfct.mapping, Maps.LogMap) for objfct in phi3.objfcts
+        ]))
+
+        phi1.mapping = Maps.IdentityMap(nP=10)
+        self.assertTrue(
+            phi3.objfcts[0].mapping.__class__.__name__ == 'IdentityMap'
+        )
+        self.assertTrue(
+            phi3.objfcts[1].mapping.__class__.__name__ == 'LogMap'
+        )
+
+    def test_expose_mapping_dict(self):
+        nP = 10
+        m = np.random.rand(nP)
+
+        phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+
+        phi3 = 2*phi1 + 3*phi2
+
+        phi3.expose({'mapping': Maps.ExpMap(nP=10)})
+
+        # check that it is being propagated
+        self.assertTrue(all([
+            isinstance(objfct.mapping, Maps.ExpMap) for objfct in phi3.objfcts
+        ]))
+
+        phi1.mapping = Maps.IdentityMap(nP=10)
+        self.assertTrue(
+            phi3.objfcts[0].mapping.__class__.__name__ == 'IdentityMap'
+        )
+        self.assertTrue(
+            phi3.objfcts[1].mapping.__class__.__name__ == 'ExpMap'
+        )
+
+    def test_not_allowed(self):
+        nP = 10
+        m = np.random.rand(nP)
+
+        phi1 = Props_ObjFct(nP=nP)
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+
+        phi1.x = 10.
+
+        phi3 = 2*phi1 + 3*phi2
+
+        with self.assertRaises(Exception):
+            phi3.expose('W')
+            phi3.expose('nP')
+
+    def test_expose_all(self):
+        nP = 10
+        m = np.random.rand(nP)
+
+        phi1 = Props_ObjFct(nP=nP)
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+
+        phi1.x = 10.
+
+        phi3 = 2*phi1 + 3*phi2
+
+        phi3.expose('all')
+        self.assertTrue(
+            len(
+                set(phi3._exposed).difference(
+                    set(['x', 'y', 'z', 'mapping'])
+                )
+            ) == 0
+        )
+
+        # check that it is being propagated
+        phi3.x = 40.
+        self.assertTrue(phi1.x == 40.)
+
+    def test_nested_objfcts(self):
+        nP = 10
+        m = np.random.rand(nP)
+
+        phi1 = Props_ObjFct(nP=nP)
+        phi2 = Props_ObjFct(nP=nP)
+
+        phi1.x = 10.
+
+        phi3 = 2*phi1 + 3*phi2
+        phi3.x=10
+        phi3.expose('all')
+
+        phi4 = phi1 + 2*phi3
+        phi4.expose('all')
+        phi4.x = 20
+        print(phi2.x)
+
+        getattr(phi4, 'x')
+        setattr(phi4, 'x', 10)
+
+    def test_reg(self):
+        from SimPEG import Regularization, Mesh
+
+        mesh = Mesh.TensorMesh([10, 10, 10])
+        reg1 = Regularization.Tikhonov(mesh=mesh)
+        reg2 = Regularization.Tikhonov(mesh=mesh)
+
+        reg3 = reg1 + reg2
+
+        reg3.expose('all')
+        reg3.mapping = Maps.ExpMap(mesh)
+
+        for objfct in reg3.objfcts:
+            assert isinstance(objfct.mapping, Maps.ExpMap)
 
 if __name__ == '__main__':
     unittest.main()

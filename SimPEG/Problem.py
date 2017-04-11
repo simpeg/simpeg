@@ -108,6 +108,11 @@ class BaseProblem(Props.HasModel):
                 "The survey object is already paired to a problem. "
                 "Use survey.unpair()"
             )
+        elif self.ispaired:
+            raise Exception(
+                "The problem is already paired to a survey. "
+                "Use problem.unpair()"
+            )
         self._survey = d
         d._prob = self
 
@@ -260,7 +265,7 @@ class BaseTimeProblem(BaseProblem):
 
 class LinearProblem(BaseProblem):
 
-    # surveyPair = Survey.LinearSurvey
+    surveyPair = Survey.LinearSurvey
 
     F = None
 
