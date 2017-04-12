@@ -265,6 +265,7 @@ class MagneticVector(MagneticIntegral):
     magType = 'full'  # magType component
     chi = None
     silent = False  # Don't display progress on screen
+    scale = 1.
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
@@ -345,11 +346,11 @@ class MagneticVector(MagneticIntegral):
         vec = vec.astype(np.float64)
         if self.ptype == 'Cartesian':
 
-            return self.chiMap.deriv(chi).T*(vec)
+            return self.scale * self.chiMap.deriv(chi).T*(vec)
 
         else:
 
-            dmudm = self.chiMap.deriv(chi).T * self.S.T
+            dmudm = self.scale * self.chiMap.deriv(chi).T * self.S.T
 
             return (dmudm).dot(vec)
 
@@ -393,9 +394,10 @@ class MagneticAmplitude(MagneticIntegral):
     forwardOnly = False  # If false, matric is store to memory (watch your RAM)
     actInd = None  #: Active cell indices provided
     M = None  #: magType matrix provided, otherwise all induced
-    magType = 'H0'  #: Receivers must be "xyz"
+    magType = 'H0'  #: Option "H0", "x", "y", "z", "full" (for Joint)
     chi = None
     silent = False  # Don't display progress on screen
+    scale = 1.
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
@@ -406,11 +408,15 @@ class MagneticAmplitude(MagneticIntegral):
         if self.forwardOnly:
 
             self.chi = chi
+
             # Compute the linear operation without forming the full dense G
             m = self.chiMap*self.chi
-            Bxyz = Intrgl_Fwr_Op(m=m)
 
-            return self.calcAmpData(Bxyz)
+            Bxyz = []
+            for rtype in ['x','y','z']:
+                Bxyz += [Intrgl_Fwr_Op(m=m, recType=rtype)]
+
+            return self.calcAmpData(np.r_[Bxyz])
 
         else:
             if chi is None:
@@ -429,7 +435,13 @@ class MagneticAmplitude(MagneticIntegral):
             # Bxyz = np.empty(self.F.shape[0])
             # for ii in range(self.F.shape[0]):
             #     Bxyz[ii] = self.F[ii, :].dot(self.chiMap*m)
-            Bxyz = np.dot(self.F, m.astype(np.float32))
+
+            if self.magType != 'full':
+                Bxyz = np.dot(self.F, m.astype(np.float32))
+
+            else:
+                Bxyz = np.dot(self.F, (self.M*m).astype(np.float32))
+
             return self.calcAmpData(Bxyz.astype(np.float64))
 
     def calcAmpData(self, Bxyz):
@@ -454,7 +466,13 @@ class MagneticAmplitude(MagneticIntegral):
         # vec = np.empty(self.F.shape[0])
         # for ii in range(self.F.shape[0]):
         #     vec[ii] = self.F[ii, :].dot(dmudm*v)
-        vec = np.dot(self.F, (dmudm*v).astype(np.float32))
+
+        if self.magType != 'full':
+            vec = np.dot(self.F, (dmudm*v).astype(np.float32))
+
+        else:
+            vec = np.dot(self.F, (self.M*(dmudm*v)).astype(np.float32))
+
         return self.dfdm*vec.astype(np.float64)
 
     def Jtvec(self, chi, v, f=None):
@@ -463,8 +481,12 @@ class MagneticAmplitude(MagneticIntegral):
         # vec = np.empty(self.F.shape[1])
         # for ii in range(self.F.shape[1]):
         #     vec[ii] = self.F[:, ii].dot(self.dfdm.T*v)
-        vec = np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32))
-        return dmudm.T * vec.astype(np.float64)
+        if self.magType != 'full':
+            vec = np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32))
+        else:
+            vec = self.M.T*np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32))
+
+        return self.scale * dmudm.T * vec.astype(np.float64)
 
 
     @property
@@ -497,7 +519,11 @@ class MagneticAmplitude(MagneticIntegral):
             # Bxyz = np.empty(self.F.shape[0])
             # for ii in range(self.F.shape[0]):
             #     Bxyz[ii] = self.F[ii, :].dot(self.chiMap*m)
-            Bxyz = np.dot(self.F, m.astype(np.float32))
+            if self.magType != 'full':
+                Bxyz = np.dot(self.F, m.astype(np.float32))
+            else:
+                Bxyz = np.dot(self.F, (self.M*m).astype(np.float32))
+
             Bamp = self.calcAmpData(Bxyz.astype(np.float64))
 
             Bx = sp.spdiags(Bxyz[:ndata]/Bamp, 0, ndata, ndata)

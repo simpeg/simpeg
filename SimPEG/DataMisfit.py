@@ -62,7 +62,7 @@ class l2_DataMisfit(BaseDataMisfit):
     std = 0.05  #: default standard deviation if not provided by survey
     eps = None  #: default floor
     eps_factor = 1e-5  #: factor to multiply by the norm of the data to create floor
-
+    scale = 1.
     def __init__(self, survey, **kwargs):
         BaseDataMisfit.__init__(self, survey, **kwargs)
 
@@ -143,7 +143,8 @@ class l2_DataMisfit(BaseDataMisfit):
         """
         if f is None:
             f = self.prob.fields(m)
-        return self.prob.Jtvec(
+
+        return self.scale *self.prob.Jtvec(
             m, self.W.T * (self.W * self.survey.residual(m, f=f)), f=f
         )
 
@@ -162,8 +163,8 @@ class l2_DataMisfit(BaseDataMisfit):
         """
         if f is None:
             f = self.prob.fields(m)
-        return self.prob.Jtvec_approx(
-            m, self.W * (self.W * self.prob.Jvec_approx(m, v, f=f)), f=f
+        return self.scale *self.prob.Jtvec_approx(
+            m, self.W * (self.W * self.scale *self.prob.Jvec_approx(m, v, f=f)), f=f
         )
 
 

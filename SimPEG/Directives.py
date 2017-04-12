@@ -1,6 +1,7 @@
 from __future__ import print_function
 from . import Utils
 import numpy as np
+import scipy.sparse as sp
 import warnings
 from . import Maps
 from .PF import Magnetics, MagneticsDriver
@@ -404,7 +405,7 @@ class Update_IRLS(InversionDirective):
     # Beta schedule
     coolingFactor = 2.
     coolingRate = 1
-    ComboObjFun = False
+    ComboRegFun = False
 
     updateBeta = True
 
@@ -432,12 +433,12 @@ class Update_IRLS(InversionDirective):
         # Check if it is a ComboObjective
         if not isinstance(self.reg, Regularization.BaseComboRegularization):
 
-            # It is a Combo objective, so will have to loop
-            self.ComboObjFun = True
+            # It is a Combo objective, we will have to loop through a list
+            self.ComboRegFun = True
 
         if self.mode == 1:
 
-            if self.ComboObjFun:
+            if self.ComboRegFun:
 
                 self.norms = []
                 for reg in self.reg.objfcts:
@@ -477,7 +478,7 @@ class Update_IRLS(InversionDirective):
 
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
-            if self.ComboObjFun:
+            if self.ComboRegFun:
 
                 for reg in self.reg.objfcts:
 
@@ -503,7 +504,7 @@ class Update_IRLS(InversionDirective):
 
 
             # Re-assign the norms
-            if self.ComboObjFun:
+            if self.ComboRegFun:
                 for reg, norms in zip(self.reg.objfcts, self.norms):
                     reg.norms = norms
                     print("L[p qx qy qz]-norm : " + str(reg.norms))
@@ -513,7 +514,7 @@ class Update_IRLS(InversionDirective):
                 print("L[p qx qy qz]-norm : " + str(self.reg.norms))
 
 
-            if self.ComboObjFun:
+            if self.ComboRegFun:
                     for reg in self.reg.objfcts:
                         reg.model = self.invProb.model
 
@@ -523,7 +524,7 @@ class Update_IRLS(InversionDirective):
             self.reg.l2model = self.invProb.model.copy()
 
             # Re-assign the norms
-            if self.ComboObjFun:
+            if self.ComboRegFun:
                 for reg in self.reg.objfcts:
                     print("eps_p: " + str(reg.eps_p) +
                           " eps_q: " + str(reg.eps_q))
@@ -549,7 +550,7 @@ class Update_IRLS(InversionDirective):
 
             else:
                 # Update the model used in the regularization
-                if self.ComboObjFun:
+                if self.ComboRegFun:
                     for reg in self.reg.objfcts:
                         reg.model = self.invProb.model
 
@@ -563,7 +564,7 @@ class Update_IRLS(InversionDirective):
             for reg in self.reg.objfcts:
 
                 # If comboObj, go down one more level
-                if self.ComboObjFun:
+                if self.ComboRegFun:
                     for comp in reg.objfcts:
                         comp.stashedR = None
                         comp.gamma = 1.
@@ -591,7 +592,7 @@ class Update_IRLS(InversionDirective):
             for reg in self.reg.objfcts:
 
                 # If comboObj, go down one more level
-                if self.ComboObjFun:
+                if self.ComboRegFun:
                     for comp in reg.objfcts:
                         comp.stashedR = None
                         comp.gamma = gamma
@@ -608,7 +609,7 @@ class Update_IRLS(InversionDirective):
                                      self.invProb.phi_d)
 
 
-class Update_lin_PreCond(InversionDirective):
+class UpdatePreCond(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
     """
@@ -623,21 +624,18 @@ class Update_lin_PreCond(InversionDirective):
         # Check if it is a ComboObjective
         if not isinstance(self.reg, Regularization.BaseComboRegularization):
 
-            # It is a Combo objective, so will have to loop
+            # It is a Combo objective, we will have to loop through a list
             self.ComboRegFun = True
 
         # Check if it is a ComboObjective
         if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
 
-            # It is a Combo objective, so will have to loop
+            # It is a Combo objective, we will have to loop through a list
             self.ComboMisfitFun = True
-
-        # if getattr(self, 'mapping', None) is None:
-        #     self.mapping = Maps.IdentityMap(nP=self.reg.mapping.nP)
 
         if getattr(self.opt, 'approxHinv', None) is None:
 
-            # Update the pre-conditioner
+            # Create the pre-conditioner
             if self.ComboRegFun:
 
                 regDiag = []
@@ -713,69 +711,46 @@ class Update_lin_PreCond(InversionDirective):
             self.opt.approxHinv = PC
 
 
-class Update_Wj(InversionDirective):
+class updateSensWeighting(InversionDirective):
     """
-        Create approx-sensitivity base weighting using the probing method
-    """
-    k = None  # Number of probing cycles
-    itr = None  # Iteration number to update Wj, or always update if None
-
-    def endIter(self):
-
-        if self.itr is None or self.itr == self.opt.iter:
-
-            m = self.invProb.model
-            if self.k is None:
-                self.k = int(self.survey.nD/10)
-
-            def JtJv(v):
-
-                Jv = self.prob.Jvec(m, v)
-
-                return self.prob.Jtvec(m, Jv)
-
-            JtJdiag = Utils.diagEst(JtJv, len(m), k=self.k)
-            JtJdiag = JtJdiag / max(JtJdiag)
-
-            self.reg.wght = JtJdiag
-
-
-class Sensitivity_Weighting(InversionDirective):
-    """
-    Directive to take care of re-weighting and pre-conditioning of
-    the non-linear magnetic amplitude problem.
+    Directive to take care of re-weighting
+    the non-linear magnetic problems.
 
     """
     # ptype = 'Amp'
     # test = False
     mapping = None
-    ComboObjFun = False
+    ComboRegFun = False
+    ComboMisfitFun = False
+    JtJdiag = None
 
     def initialize(self):
 
-        # Check if it is a ComboObjective
+        # Check if the Regularization is a ComboObjective
         if not isinstance(self.reg, Regularization.BaseComboRegularization):
 
-            # It is a Combo objective, so will have to loop
-            self.ComboObjFun = True
+            # It is a Combo objective, we will have to loop through a list
+            self.ComboRegFun = True
 
-        self.reg.JtJdiag = self.getJtJdiag()
+        # Check if the Misfit is a ComboObjective
+        if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
 
-        # if self.test:
+            # It is a Combo objective, we will have to loop through a list
+            self.ComboMisfitFun = True
 
-        #     wr = np.sum(self.prob.F**2., axis=0)**0.5
-        #     wr = wr / wr.max()
+        if getattr(self, 'JtJdiag', None) is None:
 
-        # else:
-        wr = self.reg.JtJdiag**0.5
-        wr = wr / wr.max()
+            # Get sum square of columns of J
+            self.JtJdiag = self.getJtJdiag()
 
-        if self.ComboObjFun:
-            for reg in self.reg.objfcts:
-                reg.cell_weights = reg.mapping * wr
-                reg.model = self.opt.xc
-        else:
-            self.reg.cell_weights = self.reg.mapping * wr
+        # Compute normalized weights
+        wr = self.getWr(self.JtJdiag)
+
+        # Update the regularization
+        self.updateReg()
+
+        # Send a copy of JtJdiag for the preconditioner
+        self.updateOpt()
 
         if isinstance(self.prob, list):
             for prob in self.prob:
@@ -784,13 +759,6 @@ class Sensitivity_Weighting(InversionDirective):
 
         elif isinstance(self.prob, Magnetics.MagneticVector):
             self.regScale()
-
-        self.updatePreCond()
-
-        # if getattr(self.opt, 'approxHinv', None) is None:
-        #     diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
-        #     PC = Utils.sdiag((self.prob.chiMap.deriv(None).T * diagA)**-1.)
-        #     self.opt.approxHinv = PC
 
     def endIter(self):
 
@@ -811,24 +779,32 @@ class Sensitivity_Weighting(InversionDirective):
             self.prob._dfdm = None
             self.prob.chi = self.invProb.model
 
-        # if self.ptype == 'Amp':
-        #     self.prob._dfdm = None
-        #     self.prob.chi = self.invProb.model
-        # elif self.ptype == 'MVI-S':
-        #     self.prob._S = None
+        # Get sum square of columns of J
+        JtJdiag = self.getJtJdiag()
 
-        self.reg.JtJdiag = self.getJtJdiag()
+        # Compute normalized weights
+        wr = self.getWr(JtJdiag)
 
-        # if not self.test:
-        wr = self.reg.JtJdiag**0.5
-        wr = wr / wr.max()
+        # Update the regularization
+        self.updateReg()
 
-        if self.ComboObjFun:
-            for reg in self.reg.objfcts:
-                reg.cell_weights = reg.mapping * wr
+        # Send a copy of JtJdiag for the preconditioner update
+        if self.ComboMisfitFun:
+            approxHdiag = np.zeros_like(self.invProb.model)
+            for prob, JtJ in zip(self.prob, JtJdiag):
+                # dmisfit.scale = Jmax[1] / jmax
+
+                # Check if he has a wire
+                if getattr(prob.chiMap, 'index', None) is None:
+                    approxHdiag += JtJ
+                else:
+                    # He is a snitch!
+                    approxHdiag[prob.chiMap.index] += JtJ
+
+            self.opt.JtJdiag = approxH
 
         else:
-            self.reg.cell_weights = self.reg.mapping * wr
+            self.opt.JtJdiag = JtJdiag[0]
 
         if isinstance(self.prob, list):
             for prob in self.prob:
@@ -838,56 +814,55 @@ class Sensitivity_Weighting(InversionDirective):
         elif isinstance(self.prob, Magnetics.MagneticVector):
             self.regScale()
 
-        if getattr(self.opt, 'approxHinv', None) is not None:
-            self.updatePreCond()
-
     def getJtJdiag(self):
         """
             Compute explicitely the main diagonal of JtJ for linear problem
         """
-
+        JtJdiag = []
         if isinstance(self.prob, list):
 
-            nC = self.prob[0].chiMap.shape[1]
-            JtJdiag = np.zeros(nC)
             for prob, survey in zip(self.prob, self.survey):
+
                 nD = survey.nD
+                nC = prob.chiMap.shape[0]
+                jtjdiag = np.zeros(nC)
                 if isinstance(prob, Magnetics.MagneticVector):
 
                     for ii in range(nD):
 
-                        JtJdiag += (prob.F[ii, :] * prob.S)**2.
+                        jtjdiag += (prob.F[ii, :] * prob.S)**2.
 
-                    JtJdiag += 1e-10
+                    jtjdiag += 1e-10
 
                 if isinstance(prob, Magnetics.MagneticAmplitude):
-                    nC = prob.chiMap.shape[0]
                     jtjdiag = np.zeros(nC)
                     for ii in range(nC):
 
                         jtjdiag[ii] = np.sum((prob.dfdm*prob.F[:, ii])**2.)
 
-                    JtJdiag[prob.chiMap.index] += jtjdiag
+                JtJdiag += [jtjdiag]
 
         else:
 
             nC = self.prob.chiMap.shape[1]
             nD = self.survey.nD
-            JtJdiag = np.zeros(nC)
+            jtjdiag = np.zeros(nC)
 
             if isinstance(self.prob, Magnetics.MagneticAmplitude):
 
                 for ii in range(nC):
 
-                    JtJdiag[ii] = np.sum((self.prob.dfdm*self.prob.F[:, ii])**2.)
+                    jtjdiag[ii] = np.sum((self.prob.dfdm*self.prob.F[:, ii])**2.)
 
             if isinstance(self.prob, Magnetics.MagneticVector):
 
                 for ii in range(nD):
 
-                    JtJdiag += (self.prob.F[ii, :] * self.prob.S)**2.
+                    jtjdiag += (self.prob.F[ii, :] * self.prob.S)**2.
 
-                JtJdiag += 1e-10
+                jtjdiag += 1e-10
+
+            JtJdiag += [jtjdiag]
 
         return JtJdiag
 
@@ -895,6 +870,7 @@ class Sensitivity_Weighting(InversionDirective):
         """
             Update the scales used by regularization
         """
+
         # Currently implemented specifically for MVI-S
         # Need to be generalized if used by others
         for reg in self.reg.objfcts[1:]:
@@ -914,23 +890,108 @@ class Sensitivity_Weighting(InversionDirective):
 
             # reg.cell_weights *= reg.scale
 
-    def updatePreCond(self):
+    def getWr(self, JtJdiag):
+        """
+            Take the diagonal of JtJ and return
+            a normalized sensitivty weighting vector
+        """
+
+        wr = np.zeros_like(self.invProb.model)
+
+        if isinstance(self.prob, list):
+
+            for JtJ, prob in zip(JtJdiag, self.prob):
+
+                prob_JtJ = JtJ**0.5
+
+                if getattr(prob.chiMap, 'index', None) is None:
+                    wr += prob_JtJ
+                else:
+                    wr[prob.chiMap.index] += prob_JtJ
+
+            wr /= wr.max()
+
+        else:
+            wr = JtJdiag[0]**0.5
+            wr = wr / wr.max()
+
+        return wr
+
+    def updateReg(self):
+        """
+            Update the cell weights
+        """
+        if self.ComboRegFun:
+            for reg in self.reg.objfcts:
+                reg.cell_weights = reg.mapping * wr
+                reg.model = self.invProb.model
+        else:
+            self.reg.cell_weights = self.reg.mapping * wr
+
+    def updateOpt(self):
+
+        if self.ComboMisfitFun:
+        approxHdiag = np.zeros_like(self.invProb.model)
+        for prob, JtJ in zip(self.prob, JtJdiag):
+
+            # Check if he has wire
+            if getattr(prob.chiMap, 'index', None) is None:
+                approxHdiag += JtJ
+            else:
+                # He is a snitch!
+                approxHdiag[prob.chiMap.index] += JtJ
+
+        self.opt.JtJdiag = approxH
+
+        else:
+            self.opt.JtJdiag = JtJdiag[0]
+
+class updatePreCond(InversionDirective):
         """
             Update the pre-conditioner
         """
-        if self.ComboObjFun:
 
-            reg_diag = []
-            for reg in self.reg.objfcts:
-                reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+        ComboRegFun = False
 
-            diagA = self.reg.JtJdiag + np.hstack(reg_diag)
+        def initialize(self):
 
-        else:
-            diagA = self.reg.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+            # Check if it is a ComboObjective
+            if not isinstance(self.reg, Regularization.BaseComboRegularization):
 
-        PC = Utils.sdiag((diagA)**-1.)
-        self.opt.approxHinv = PC
+                # It is a Combo objective, we will have to loop through a list
+                self.ComboRegFun = True
+
+
+            if self.ComboRegFun:
+
+                reg_diag = []
+                for reg in self.reg.objfcts:
+                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+
+                diagA = self.opt.JtJdiag + np.hstack(reg_diag)
+
+            else:
+                diagA = self.opt.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+
+            PC = Utils.sdiag((diagA)**-1.)
+            self.opt.approxHinv = PC
+
+        def endIter(self):
+
+            if self.ComboRegFun:
+
+                reg_diag = []
+                for reg in self.reg.objfcts:
+                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+
+                diagA = self.opt.JtJdiag + np.hstack(reg_diag)
+
+            else:
+                diagA = self.opt.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+
+            PC = Utils.sdiag((diagA)**-1.)
+            self.opt.approxHinv = PC
+
 
 class ProjSpherical(InversionDirective):
 
@@ -962,3 +1023,95 @@ class ProjSpherical(InversionDirective):
         else:
             self.prob.chi = m
         self.opt.xc = m
+
+
+class JointAmpMVI(InversionDirective):
+    """
+        Directive controlling the joint inversion of
+        magnetic amplitude data and MVI-S.
+
+    """
+
+    def initialize(self):
+        # Get current MVI model and update MAI sensitivity
+
+        if isinstance(self.prob, list):
+            # maxJtvec = []
+            for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
+                # dmisfit.scale = 1.
+                # maxJtvec += [np.abs(dmisfit.deriv(self.invProb.model)).max()]
+                if isinstance(prob, Magnetics.MagneticAmplitude):
+                    nC = prob.chiMap.shape[0]
+                    m = self.invProb.model
+
+                    xyz = Magnetics.atp2xyz(m)
+
+                    mcol = xyz.reshape((nC, 3), order='F')
+                    amp = np.sum(mcol**2., axis=1)**0.5
+                    Mx = Utils.sdiag(mcol[:, 0]/amp)
+                    My = Utils.sdiag(mcol[:, 1]/amp)
+                    Mz = Utils.sdiag(mcol[:, 2]/amp)
+
+                    M = sp.vstack((Mx, My, Mz))
+
+                    prob.M = M
+
+                    if prob.chi is None:
+                        prob.chi = m
+
+        else:
+            assert("This directive needs to used on a ComboObjective")
+
+
+    def endIter(self):
+
+        # Get current MVI model and update MAI sensitivity
+        maxJtvec = []
+        for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
+            # dmisfit.scale = 1.
+            # maxJtvec += [np.abs(dmisfit.deriv(self.invProb.model)).max()]
+            if isinstance(prob, Magnetics.MagneticAmplitude):
+                nC = prob.chiMap.shape[0]
+                m = self.invProb.model
+
+                xyz = Magnetics.atp2xyz(m)
+
+                mcol = xyz.reshape((nC, 3), order='F')
+                amp = np.sum(mcol**2., axis=1)**0.5
+                Mx = Utils.sdiag(mcol[:, 0]/amp)
+                My = Utils.sdiag(mcol[:, 1]/amp)
+                Mz = Utils.sdiag(mcol[:, 2]/amp)
+
+                M = sp.vstack((Mx, My, Mz))
+                prob.M = M
+
+        # for prob, dmisfit, value in zip(self.prob, self.dmisfit.objfcts, maxJtvec):
+
+
+        #         dmisfit.scale = maxJtvec[1]/value
+
+class UpdateApproxJtJ(InversionDirective):
+    """
+        Create approx-sensitivity base weighting using the probing method
+    """
+    k = None  # Number of probing cycles
+    itr = None  # Iteration number to update Wj, or always update if None
+
+    def endIter(self):
+
+        if self.itr is None or self.itr == self.opt.iter:
+
+            m = self.invProb.model
+            if self.k is None:
+                self.k = int(self.survey.nD/10)
+
+            def JtJv(v):
+
+                Jv = self.prob.Jvec(m, v)
+
+                return self.prob.Jtvec(m, Jv)
+
+            JtJdiag = Utils.diagEst(JtJv, len(m), k=self.k)
+            JtJdiag = JtJdiag / max(JtJdiag)
+
+            self.reg.wght = JtJdiag
