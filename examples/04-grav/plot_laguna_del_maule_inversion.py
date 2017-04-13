@@ -12,6 +12,7 @@ then applying an Lp norm to produce a compact model.
 Craig Miller
 """
 import os
+import shutil
 import SimPEG.PF as PF
 from SimPEG import Maps, Regularization, Optimization, DataMisfit,\
                    InvProblem, Directives, Inversion
@@ -20,7 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def run(plotIt=True):
+def run(plotIt=True, cleanAfterRun=True):
 
     # Start by downloading files from the remote repository
     url = "https://storage.googleapis.com/simpeg/Chile_GRAV_4_Miller/"
@@ -95,6 +96,7 @@ def run(plotIt=True):
                                 mapping=staticCells)
     reg.mref = driver.mref[dynamic]
     reg.cell_weights = wr * mesh.vol[active]
+    reg.norms = driver.lpnorms
 
     # Specify how the optimization will proceed
     opt = Optimization.ProjectedGNCG(maxIter=150, lower=driver.bounds[0],
@@ -103,7 +105,7 @@ def run(plotIt=True):
 
     # Define misfit function (obs-calc)
     dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.Wd = 1./wd
+    dmis.W = 1./wd
 
     # create the default L2 inverse problem from the above objects
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
@@ -114,8 +116,7 @@ def run(plotIt=True):
     # IRLS sets up the Lp inversion problem
     # Set the eps parameter parameter in Line 11 of the
     # input file based on the distribution of model (DEFAULT = 95th %ile)
-    IRLS = Directives.Update_IRLS(norms=driver.lpnorms, eps=driver.eps,
-                                  f_min_change=1e-2, maxIRLSiter=20,
+    IRLS = Directives.Update_IRLS(f_min_change=1e-2, maxIRLSiter=20,
                                   minGNiter=5)
 
     # Preconditioning refreshing for each IRLS iteration
@@ -128,6 +129,10 @@ def run(plotIt=True):
     # %%
     # Run L2 and Lp inversion
     mrec = inv.run(mstart)
+
+    if cleanAfterRun:
+        shutil.rmtree(basePath)
+
     # %%
     if plotIt:
         # Plot observed data
@@ -137,7 +142,7 @@ def run(plotIt=True):
         # Write output model and data files and print misft stats.
 
         # reconstructing l2 model mesh with air cells and active dynamic cells
-        L2out = activeMap * reg.l2model
+        L2out = activeMap * IRLS.l2model
 
         # reconstructing lp model mesh with air cells and active dynamic cells
         Lpout = activeMap*mrec
@@ -198,8 +203,8 @@ def run(plotIt=True):
 
         plt.figure(figsize=(10, 7))
         plt.suptitle('Compact Inversion: Depth weight = ' + str(wgtexp) +
-                     ': $\epsilon_p$ = ' + str(round(reg.eps_p[0], 1)) +
-                     ': $\epsilon_q$ = ' + str(round(reg.eps_q[0], 2)))
+                     ': $\epsilon_p$ = ' + str(round(reg.eps_p, 1)) +
+                     ': $\epsilon_q$ = ' + str(round(reg.eps_q, 2)))
         ax = plt.subplot(221)
         dat = mesh.plotSlice(Lpout, ax=ax, normal='Z', ind=-16,
                              clim=(vmin, vmax), pcolorOpts={'cmap': 'bwr'})

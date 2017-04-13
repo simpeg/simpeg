@@ -9,7 +9,7 @@ import scipy.sparse as sp
 from SimPEG.Regularization import BaseRegularization, Simple
 
 
-class MultiRegularization(Simple):
+class MultiRegularization(BaseRegularization):
     """
     **MultiRegularization Class**
 
