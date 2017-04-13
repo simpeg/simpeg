@@ -177,7 +177,7 @@ def run(plotIt=True):
     IRLS = Directives.Update_IRLS(f_min_change=1e-4,
                                   minGNiter=3, beta_tol=1e-2)
 
-    update_Jacobi = Directives.Update_lin_PreCond()
+    update_Jacobi = Directives.UpdatePreCond()
 
     inv = Inversion.BaseInversion(invProb,
                                   directiveList=[betaest, IRLS,
@@ -237,12 +237,15 @@ def run(plotIt=True):
 
     # Special directive specific to the mag amplitude problem. The sensitivity
     # weights are update between each iteration.
-    update_Jacobi = Directives.Sensitivity_Weighting()
-    update_Jacobi.ptype = 'MVI-S'
+    update_SensWeight = Directives.UpdateSensWeighting()
+    update_Jacobi = Directives.UpdatePreCond()
     ProjSpherical = Directives.ProjSpherical()
+    betaest = Directives.BetaEstimate_ByEig()
+    
+    
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[ProjSpherical,
-                                                 IRLS, update_Jacobi])
+                                  directiveList=[ProjSpherical, IRLS, update_SensWeight,  
+                                                 update_Jacobi])
 
     mrec = inv.run(mstart)
 

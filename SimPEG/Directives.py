@@ -406,6 +406,7 @@ class Update_IRLS(InversionDirective):
     coolingFactor = 2.
     coolingRate = 1
     ComboRegFun = False
+    ComboMisfitFun = False
 
     updateBeta = True
 
@@ -436,6 +437,12 @@ class Update_IRLS(InversionDirective):
             # It is a Combo objective, we will have to loop through a list
             self.ComboRegFun = True
 
+        # Check if it is a ComboObjective
+        if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+
+            # It is a Combo objective, we will have to loop through a list
+            self.ComboMisfitFun = True
+
         if self.mode == 1:
 
             if self.ComboRegFun:
@@ -444,13 +451,52 @@ class Update_IRLS(InversionDirective):
                 for reg in self.reg.objfcts:
                     self.norms.append(reg.norms)
                     reg.norms = [2., 2., 2., 2.]
-
+                    reg.model = self.invProb.model
             else:
                 # Store assigned norms for later use - start with l2
                 self.norms = self.reg.norms
                 self.reg.norms = [2., 2., 2., 2.]
+                self.reg.model = self.invProb.model
+
+        # Update the model used by the regularization
+        if self.ComboRegFun:
+                for reg in self.reg.objfcts:
+                    reg.model = self.invProb.model
+
+        else:
+            self.reg.model = self.invProb.model
+
+        # Adjust scales for MVI-S
+        if self.ComboMisfitFun:
+            for prob in self.prob:
+                if isinstance(prob, Magnetics.MagneticVector):
+                    if prob.ptype == 'Spherical':
+                        self.regScale()
+
+        elif isinstance(self.prob, Magnetics.MagneticVector):
+            if self.prob.ptype == 'Spherical':
+                self.regScale()
 
     def endIter(self):
+
+        # Update the model used by the regularization
+        if self.ComboRegFun:
+                for reg in self.reg.objfcts:
+                    reg.model = self.invProb.model
+
+        else:
+            self.reg.model = self.invProb.model
+
+        # Adjust scales for MVI-S
+        if self.ComboMisfitFun:
+            for prob in self.prob:
+                if isinstance(prob, Magnetics.MagneticVector):
+                    if prob.ptype == 'Spherical':
+                        self.regScale()
+
+        elif isinstance(self.prob, Magnetics.MagneticVector):
+            if self.prob.ptype == 'Spherical':
+                self.regScale()
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if np.all([self.invProb.phi_d < self.target, self.mode == 1]):
@@ -462,19 +508,6 @@ class Update_IRLS(InversionDirective):
             self.iterStart = self.opt.iter
             self.phi_d_last = self.invProb.phi_d
             self.invProb.phi_m_last = self.reg(self.invProb.model)
-
-            if getattr(self, 'f_old', None) is None:
-                self.f_old = self.reg(self.invProb.model)
-
-            self.coolingFactor = 1.
-            self.coolingRate = 1
-            self.iterStart = self.opt.iter
-            self.phi_d_last = self.invProb.phi_d
-            self.invProb.phi_m_last = self.reg(self.invProb.model)
-
-            # print(' iter', self.opt.iter, 'beta',self.invProb.beta,'phid', self.invProb.phi_d)
-            if getattr(self, 'f_old', None) is None:
-                self.f_old = self.reg(self.invProb.model)
 
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
@@ -502,8 +535,7 @@ class Update_IRLS(InversionDirective):
                     mtemp = self.reg.mapping * self.invProb.model
                     self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
 
-
-            # Re-assign the norms
+            # Re-assign the norms supplied by user l2 -> lp
             if self.ComboRegFun:
                 for reg, norms in zip(self.reg.objfcts, self.norms):
                     reg.norms = norms
@@ -513,25 +545,16 @@ class Update_IRLS(InversionDirective):
                 self.reg.norms = self.norms
                 print("L[p qx qy qz]-norm : " + str(self.reg.norms))
 
-
-            if self.ComboRegFun:
-                    for reg in self.reg.objfcts:
-                        reg.model = self.invProb.model
-
-            else:
-                self.reg.model = self.invProb.model
-
+            # Save l2-model
             self.reg.l2model = self.invProb.model.copy()
 
-            # Re-assign the norms
+            # Print to screen
             if self.ComboRegFun:
                 for reg in self.reg.objfcts:
                     print("eps_p: " + str(reg.eps_p) +
                           " eps_q: " + str(reg.eps_q))
-
             else:
                 print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
-
 
         # Beta Schedule
         if np.all([self.opt.iter > 0, self.opt.iter % self.coolingRate == 0]):
@@ -548,16 +571,19 @@ class Update_IRLS(InversionDirective):
                 self.opt.stopNextIteration = True
                 return
 
-            else:
-                # Update the model used in the regularization
+            for reg in self.reg.objfcts:
+
+                # Reset gamma scale
                 if self.ComboRegFun:
-                    for reg in self.reg.objfcts:
-                        reg.model = self.invProb.model
-
+                    for comp in reg.objfcts:
+                        comp.gamma = 1.
                 else:
-                    self.reg.model = self.invProb.model
+                    reg.gamma = 1.
 
-                self.IRLSiter += 1
+            # Remember the value of the norm from previous R matrices
+            self.f_old = self.reg(self.invProb.model)
+
+            self.IRLSiter += 1
 
             # Reset the regularization matrices so that it is
             # recalculated for current model. Do it to all levels of comboObj
@@ -567,10 +593,8 @@ class Update_IRLS(InversionDirective):
                 if self.ComboRegFun:
                     for comp in reg.objfcts:
                         comp.stashedR = None
-                        comp.gamma = 1.
                 else:
                     reg.stashedR = None
-                    reg.gamma = 1.
 
             # Compute new model objective function value
             phim_new = self.reg(self.invProb.model)
@@ -594,10 +618,8 @@ class Update_IRLS(InversionDirective):
                 # If comboObj, go down one more level
                 if self.ComboRegFun:
                     for comp in reg.objfcts:
-                        comp.stashedR = None
                         comp.gamma = gamma
                 else:
-                    reg.stashedR = None
                     reg.gamma = gamma
 
             # Check if misfit is within the tolerance, otherwise scale beta
@@ -608,7 +630,30 @@ class Update_IRLS(InversionDirective):
                 self.invProb.beta = (self.invProb.beta * self.target /
                                      self.invProb.phi_d)
 
+    def regScale(self):
+        """
+            Update the scales used by regularization
+        """
 
+        # Currently implemented specifically for MVI-S
+        # Need to be generalized if used by others
+        for reg in self.reg.objfcts[1:]:
+
+            eps_a = self.reg.objfcts[0].eps_p
+            norm_a = self.reg.objfcts[0].norms[0]
+            f_m = self.reg.objfcts[0].objfcts[0].f_m
+            max_a = np.max(eps_a**(1-norm_a/2.)*f_m /
+                           (f_m**2. + eps_a**2.)**(1-norm_a/2.))
+
+            eps_tp = reg.eps_q
+            f_m = reg.objfcts[1].f_m
+            norm_tp = reg.norms[1]
+            max_tp = np.max(eps_tp**(1-norm_tp/2.)*f_m /
+                            (f_m**2. + eps_tp**2.)**(1-norm_tp/2.))
+
+            reg.alpha_x, reg.alpha_y, reg.alpha_z = max_a/max_tp, max_a/max_tp, max_a/max_tp
+
+            # reg.cell_weights *= reg.scale
 class UpdatePreCond(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
@@ -684,7 +729,6 @@ class UpdatePreCond(InversionDirective):
 
             regDiag = (self.reg.W.T*self.reg.W).diagonal()
 
-        print(self.opt.JtJdiag.max())
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
         PC = Utils.sdiag((diagA)**-1.)
@@ -732,14 +776,6 @@ class UpdateSensWeighting(InversionDirective):
         # Send a copy of JtJdiag for the preconditioner
         self.updateOpt()
 
-        if self.ComboMisfitFun:
-            for prob in self.prob:
-                if isinstance(prob, Magnetics.MagneticVector):
-                    self.regScale()
-
-        elif isinstance(self.prob, Magnetics.MagneticVector):
-            self.regScale()
-
     def endIter(self):
 
         # Re-initialize the field derivatives
@@ -774,13 +810,6 @@ class UpdateSensWeighting(InversionDirective):
         # Send a copy of JtJdiag for the preconditioner
         self.updateOpt()
 
-        if self.ComboMisfitFun:
-            for prob in self.prob:
-                if isinstance(prob, Magnetics.MagneticVector):
-                    self.regScale()
-
-        elif isinstance(self.prob, Magnetics.MagneticVector):
-            self.regScale()
 
     def getJtJdiag(self):
         """
@@ -834,30 +863,6 @@ class UpdateSensWeighting(InversionDirective):
 
         return JtJdiag
 
-    def regScale(self):
-        """
-            Update the scales used by regularization
-        """
-
-        # Currently implemented specifically for MVI-S
-        # Need to be generalized if used by others
-        for reg in self.reg.objfcts[1:]:
-            reg.model = self.opt.xc
-            eps_a = self.reg.objfcts[0].eps_p
-            norm_a = self.reg.objfcts[0].norms[0]
-            f_m = self.reg.objfcts[0].objfcts[0].f_m
-            max_a = np.max(eps_a**(1-norm_a/2.)*f_m /
-                           (f_m**2. + eps_a**2.)**(1-norm_a/2.))
-
-            eps_tp = reg.eps_q
-            f_m = reg.objfcts[1].f_m
-            norm_tp = reg.norms[1]
-            max_tp = np.max(eps_tp**(1-norm_tp/2.)*f_m /
-                            (f_m**2. + eps_tp**2.)**(1-norm_tp/2.))
-
-            reg.alpha_x, reg.alpha_y, reg.alpha_z = max_a/max_tp, max_a/max_tp, max_a/max_tp
-
-            # reg.cell_weights *= reg.scale
 
     def getWr(self):
         """
@@ -894,7 +899,7 @@ class UpdateSensWeighting(InversionDirective):
         if self.ComboRegFun:
             for reg in self.reg.objfcts:
                 reg.cell_weights = reg.mapping * self.wr
-                reg.model = self.opt.xc
+
         else:
             self.reg.cell_weights = self.reg.mapping * self.wr
 

@@ -155,7 +155,7 @@ def run(plotIt=True):
     # Use pick a treshold parameter empirically based on the distribution of
     #  model parameters
     IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=3)
-    update_Jacobi = Directives.Update_lin_PreCond()
+    update_Jacobi = Directives.UpdatePreCond()
     inv = Inversion.BaseInversion(invProb,
                                   directiveList=[betaest, IRLS, update_Jacobi])
 
@@ -207,7 +207,7 @@ def run(plotIt=True):
 
     # Target misfit to stop the inversion
     targetMisfit = Directives.TargetMisfit()
-    update_Jacobi = Directives.Update_lin_PreCond()
+    update_Jacobi = Directives.UpdatePreCond()
     # Put all the parts together
     inv = Inversion.BaseInversion(invProb,
                                   directiveList=[betaest, betaSchedule,
@@ -292,11 +292,12 @@ def run(plotIt=True):
 
     # Special directive specific to the mag amplitude problem. The sensitivity
     # weights are update between each iteration.
-    update_Jacobi = Directives.Sensitivity_Weighting()
+    update_SensWeight = Directives.UpdateSensWeighting()
+    update_Jacobi = Directives.UpdatePreCond()
 
     # Put all together
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[betaest, IRLS, update_Jacobi])
+                                  directiveList=[betaest, IRLS, update_SensWeight, update_Jacobi])
 
     # Invert
     mrec = inv.run(mstart)
