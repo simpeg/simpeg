@@ -3,8 +3,14 @@ from SimPEG.EM.Utils.CurrentUtils import (
     getStraightLineCurrentIntegral, getSourceTermLineCurrentPolygon
     )
 import unittest
+from SimPEG.Utils import io_utils
 
 class LineCurrentTests(unittest.TestCase):
+
+    def setUp(self):
+        url = 'https://storage.googleapis.com/simpeg/tests/em_utils/'
+        cloudfiles = ['currents.npy']
+        self.basePath = io_utils.remoteDownload(url, cloudfiles)
 
     def test(self):
 
@@ -43,7 +49,7 @@ class LineCurrentTests(unittest.TestCase):
         xorig = np.r_[0., 0., 0.]
 
         out = getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz)
-        fname = "currents.npy"
+        fname = self.basePath + "currents.npy"
         out_true = np.load(fname)
         err = np.linalg.norm(out-out_true)
         print (">> Test getSourceTermLineCurrentPolygon")

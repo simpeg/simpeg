@@ -255,8 +255,8 @@ class TDEM_DerivTests(unittest.TestCase):
                 prbtype=prbtype, v1=V1, v2=V2, passed=passed))
             self.assertTrue(passed)
 
-        # def test_Jvec_adjoint_b_bx(self):
-        #     self.JvecVsJtvecTest('b', 'bx')
+        def test_Jvec_adjoint_b_bx(self):
+            self.JvecVsJtvecTest('b', 'bx')
 
         def test_Jvec_adjoint_b_bz(self):
             self.JvecVsJtvecTest('b', 'bz')

@@ -103,19 +103,19 @@ class TDEM_bTests(unittest.TestCase):
 
     def test_analytic_p0_CYL_1m_MagDipole(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0,
-                        sig_half=1e+0) < 0.02)
+                        sig_half=1e+0) < 0.01)
 
     def test_analytic_m1_CYL_1m_MagDipole(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0,
-                        sig_half=1e-1) < 0.02)
+                        sig_half=1e-1) < 0.01)
 
     def test_analytic_m2_CYL_1m_MagDipole(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0,
-                        sig_half=1e-2) < 0.02)
+                        sig_half=1e-2) < 0.01)
 
     def test_analytic_m3_CYL_1m_MagDipole(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0,
-                        sig_half=1e-3) < 0.02)
+                        sig_half=1e-3) < 0.01)
 
     def test_analytic_p0_CYL_0m_CircularLoop(self):
         self.assertTrue(halfSpaceProblemAnaDiff(
@@ -123,15 +123,15 @@ class TDEM_bTests(unittest.TestCase):
 
     def test_analytic_m1_CYL_0m_CircularLoop(self):
         self.assertTrue(halfSpaceProblemAnaDiff(
-            'CYL', srctype="CircularLoop", rxOffset=.0, sig_half=1e-1) < 0.02)
+            'CYL', srctype="CircularLoop", rxOffset=.0, sig_half=1e-1) < 0.01)
 
     def test_analytic_m2_CYL_0m_CircularLoop(self):
         self.assertTrue(halfSpaceProblemAnaDiff(
-            'CYL', srctype="CircularLoop", rxOffset=.0, sig_half=1e-2) < 0.02)
+            'CYL', srctype="CircularLoop", rxOffset=.0, sig_half=1e-2) < 0.01)
 
     def test_analytic_m3_CYL_0m_CircularLoop(self):
         self.assertTrue(halfSpaceProblemAnaDiff(
-            'CYL', srctype="CircularLoop", rxOffset=.0, sig_half=1e-3) < 0.02)
+            'CYL', srctype="CircularLoop", rxOffset=.0, sig_half=1e-3) < 0.01)
 
 
 if __name__ == '__main__':

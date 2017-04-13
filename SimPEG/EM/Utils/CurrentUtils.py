@@ -192,6 +192,3 @@ def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
 
     return np.r_[Utils.mkvc(sx), Utils.mkvc(sy), Utils.mkvc(sz)]
 
-
-if __name__ == '__main__':
-    pass

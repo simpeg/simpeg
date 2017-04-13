@@ -5,8 +5,7 @@ from SimPEG import Mesh, Maps, SolverLU, Tests
 from SimPEG import EM
 
 try:
-    from pymatsolver import PardisoSolver
-    Solver = PardisoSolver
+    from pymatsolver import Pardiso as Solver
 except ImportError:
     Solver = SolverLU
 
