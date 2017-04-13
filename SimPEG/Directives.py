@@ -633,85 +633,64 @@ class UpdatePreCond(InversionDirective):
             # It is a Combo objective, we will have to loop through a list
             self.ComboMisfitFun = True
 
-        if getattr(self.opt, 'approxHinv', None) is None:
+        # Create the pre-conditioner
+        if self.ComboRegFun:
 
-            # Create the pre-conditioner
-            if self.ComboRegFun:
+            regDiag = []
+            for reg in self.reg.objfcts:
+                regDiag.append((reg.W.T*reg.W).diagonal())
 
-                regDiag = []
-                for reg in self.reg.objfcts:
-                    regDiag.append((reg.W.T*reg.W).diagonal())
+            regDiag = np.hstack(regDiag)
 
-                regDiag = np.hstack(regDiag)
+        else:
 
-            else:
+            regDiag = (self.reg.W.T*self.reg.W).diagonal()
 
-                regDiag = (self.reg.W.T*self.reg.W).diagonal()
+        # Deal with the linear case
+        if getattr(self.opt, 'JtJdiag', None) is None:
 
             if self.ComboMisfitFun:
 
-                if getattr(self, 'misfitDiag', None) is None:
-                    misfitDiag = np.zeros(self.prob.F.shape[1])
-                    for misfit in self.dmisfit.objfcts:
-                        wd = misfit.W.diagonal()
-                        misfitDiag = np.zeros(misfit.prob.F.shape[1])
-                        for ii in range(misfit.prob.F.shape[0]):
-                            misfitDiag += (wd[ii] * misfit.prob.F[ii, :])**2.
-
-                self.misfitDiag = np.hstack(misfitDiag)
+                assert("Approximated diag(JtJ) for ComboMisfitFun not yet implemented")
 
             else:
+                print("Approximated diag(JtJ) with linear operator")
+                wd = self.dmisfit.W.diagonal()
+                JtJdiag = np.zeros(self.prob.F.shape[1])
+                for ii in range(self.prob.F.shape[0]):
+                    JtJdiag += (wd[ii] * self.prob.F[ii, :])**2.
+                self.opt.JtJdiag = JtJdiag
 
-                if getattr(self, 'misfitDiag', None) is None:
-                    wd = self.dmisfit.W.diagonal()
-                    self.misfitDiag = np.zeros(self.prob.F.shape[1])
-                    for ii in range(self.prob.F.shape[0]):
-                        self.misfitDiag += (wd[ii] * self.prob.F[ii, :])**2.
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
-
-            diagA = self.misfitDiag + self.invProb.beta*regDiag
-
-            PC = Utils.sdiag((diagA)**-1.)
-            self.opt.approxHinv = PC
+        PC = Utils.sdiag((diagA)**-1.)
+        self.opt.approxHinv = PC
 
     def endIter(self):
         # Cool the threshold parameter
         if self.onlyOnStart is True:
             return
 
-        if getattr(self.opt, 'approxHinv', None) is None:
+        # Update the pre-conditioner
+        if self.ComboRegFun:
 
-            # Update the pre-conditioner
-            if self.ComboRegFun:
+            regDiag = []
+            for reg in self.reg.objfcts:
+                regDiag.append((reg.W.T*reg.W).diagonal())
 
-                regDiag = []
-                for reg in self.reg.objfcts:
-                    regDiag.append((reg.W.T*reg.W).diagonal())
+            regDiag = np.hstack(regDiag)
 
-                regDiag = np.hstack(regDiag)
+        else:
 
-            else:
+            regDiag = (self.reg.W.T*self.reg.W).diagonal()
 
-                regDiag = (self.reg.W.T*self.reg.W).diagonal()
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
-#            if self.ComboMisfitFun:
-#
-#                misfitDiag = []
-#                for misfit in self.dmisfit.objfcts:
-#                    misfitDiag.append(np.sum(misfit.prob.F**2., axis=0))
-#
-#                misfitDiag = np.hstack(regDiag)
-#
-#            else:
-#                misfitDiag = np.sum(self.dmisfit.prob.F**2., axis=0)
-
-            diagA = self.misfitDiag + self.invProb.beta*regDiag
-
-            PC = Utils.sdiag((diagA)**-1.)
-            self.opt.approxHinv = PC
+        PC = Utils.sdiag((diagA)**-1.)
+        self.opt.approxHinv = PC
 
 
-class updateSensWeighting(InversionDirective):
+class UpdateSensWeighting(InversionDirective):
     """
     Directive to take care of re-weighting
     the non-linear magnetic problems.
@@ -744,7 +723,7 @@ class updateSensWeighting(InversionDirective):
             self.JtJdiag = self.getJtJdiag()
 
         # Compute normalized weights
-        wr = self.getWr(self.JtJdiag)
+        self.wr = self.getWr(self.JtJdiag)
 
         # Update the regularization
         self.updateReg()
@@ -752,7 +731,7 @@ class updateSensWeighting(InversionDirective):
         # Send a copy of JtJdiag for the preconditioner
         self.updateOpt()
 
-        if isinstance(self.prob, list):
+        if self.ComboMisfitFun:
             for prob in self.prob:
                 if isinstance(prob, Magnetics.MagneticVector):
                     self.regScale()
@@ -763,7 +742,7 @@ class updateSensWeighting(InversionDirective):
     def endIter(self):
 
         # Re-initialize the field derivatives
-        if isinstance(self.prob, list):
+        if self.ComboMisfitFun:
             for prob in self.prob:
                 if isinstance(prob, Magnetics.MagneticVector):
                     prob._S = None
@@ -783,30 +762,15 @@ class updateSensWeighting(InversionDirective):
         JtJdiag = self.getJtJdiag()
 
         # Compute normalized weights
-        wr = self.getWr(JtJdiag)
+        self.wr = self.getWr(JtJdiag)
 
         # Update the regularization
         self.updateReg()
 
-        # Send a copy of JtJdiag for the preconditioner update
+        # Send a copy of JtJdiag for the preconditioner
+        self.updateOpt()
+
         if self.ComboMisfitFun:
-            approxHdiag = np.zeros_like(self.invProb.model)
-            for prob, JtJ in zip(self.prob, JtJdiag):
-                # dmisfit.scale = Jmax[1] / jmax
-
-                # Check if he has a wire
-                if getattr(prob.chiMap, 'index', None) is None:
-                    approxHdiag += JtJ
-                else:
-                    # He is a snitch!
-                    approxHdiag[prob.chiMap.index] += JtJ
-
-            self.opt.JtJdiag = approxH
-
-        else:
-            self.opt.JtJdiag = JtJdiag[0]
-
-        if isinstance(self.prob, list):
             for prob in self.prob:
                 if isinstance(prob, Magnetics.MagneticVector):
                     self.regScale()
@@ -819,7 +783,7 @@ class updateSensWeighting(InversionDirective):
             Compute explicitely the main diagonal of JtJ for linear problem
         """
         JtJdiag = []
-        if isinstance(self.prob, list):
+        if self.ComboMisfitFun:
 
             for prob, survey in zip(self.prob, self.survey):
 
@@ -898,7 +862,7 @@ class updateSensWeighting(InversionDirective):
 
         wr = np.zeros_like(self.invProb.model)
 
-        if isinstance(self.prob, list):
+        if self.ComboMisfitFun:
 
             for JtJ, prob in zip(JtJdiag, self.prob):
 
@@ -923,74 +887,77 @@ class updateSensWeighting(InversionDirective):
         """
         if self.ComboRegFun:
             for reg in self.reg.objfcts:
-                reg.cell_weights = reg.mapping * wr
+                reg.cell_weights = reg.mapping * self.wr
                 reg.model = self.invProb.model
         else:
-            self.reg.cell_weights = self.reg.mapping * wr
+            self.reg.cell_weights = self.reg.mapping * self.wr
 
     def updateOpt(self):
-
+        """
+            Add up the list of JtJdiag for combo problem
+        """
         if self.ComboMisfitFun:
-        approxHdiag = np.zeros_like(self.invProb.model)
-        for prob, JtJ in zip(self.prob, JtJdiag):
+            JtJdiag = np.zeros_like(self.invProb.model)
+            for prob, JtJ in zip(self.prob, self.JtJdiag):
 
-            # Check if he has wire
-            if getattr(prob.chiMap, 'index', None) is None:
-                approxHdiag += JtJ
-            else:
-                # He is a snitch!
-                approxHdiag[prob.chiMap.index] += JtJ
+                # Check if he has wire
+                if getattr(prob.chiMap, 'index', None) is None:
+                    JtJdiag += JtJ
+                else:
+                    # He is a snitch!
+                    JtJdiag[prob.chiMap.index] += JtJ
 
-        self.opt.JtJdiag = approxH
+            self.opt.JtJdiag = JtJdiag
 
         else:
-            self.opt.JtJdiag = JtJdiag[0]
-
-class updatePreCond(InversionDirective):
-        """
-            Update the pre-conditioner
-        """
-
-        ComboRegFun = False
-
-        def initialize(self):
-
-            # Check if it is a ComboObjective
-            if not isinstance(self.reg, Regularization.BaseComboRegularization):
-
-                # It is a Combo objective, we will have to loop through a list
-                self.ComboRegFun = True
+            self.opt.JtJdiag = self.JtJdiag[0]
 
 
-            if self.ComboRegFun:
+# class updatePreCond(InversionDirective):
+#         """
+#             Update the pre-conditioner
+#         """
 
-                reg_diag = []
-                for reg in self.reg.objfcts:
-                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+#         ComboRegFun = False
 
-                diagA = self.opt.JtJdiag + np.hstack(reg_diag)
+#         def initialize(self):
 
-            else:
-                diagA = self.opt.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+#             # Check if it is a ComboObjective
+#             if not isinstance(self.reg, Regularization.BaseComboRegularization):
 
-            PC = Utils.sdiag((diagA)**-1.)
-            self.opt.approxHinv = PC
+#                 # It is a Combo objective, we will have to loop through a list
+#                 self.ComboRegFun = True
 
-        def endIter(self):
 
-            if self.ComboRegFun:
+#             if self.ComboRegFun:
 
-                reg_diag = []
-                for reg in self.reg.objfcts:
-                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+#                 reg_diag = []
+#                 for reg in self.reg.objfcts:
+#                     reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
 
-                diagA = self.opt.JtJdiag + np.hstack(reg_diag)
+#                 diagA = self.opt.JtJdiag + np.hstack(reg_diag)
 
-            else:
-                diagA = self.opt.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+#             else:
+#                 diagA = self.opt.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
 
-            PC = Utils.sdiag((diagA)**-1.)
-            self.opt.approxHinv = PC
+#             PC = Utils.sdiag((diagA)**-1.)
+#             self.opt.approxHinv = PC
+
+#         def endIter(self):
+
+#             if self.ComboRegFun:
+
+#                 reg_diag = []
+#                 for reg in self.reg.objfcts:
+#                     reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+
+#                 diagA = self.opt.JtJdiag + np.hstack(reg_diag)
+
+#             else:
+#                 diagA = self.opt.JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+
+#             PC = Utils.sdiag((diagA)**-1.)
+#             self.opt.approxHinv = PC
 
 
 class ProjSpherical(InversionDirective):
