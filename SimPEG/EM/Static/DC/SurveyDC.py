@@ -17,7 +17,6 @@ class Survey(BaseEMSurvey):
     srcPair = BaseSrc
 
     def __init__(self, srcList, **kwargs):
-        self.srcList = srcList
         BaseEMSurvey.__init__(self, srcList, **kwargs)
 
 
@@ -29,7 +28,6 @@ class Survey_ky(BaseEMSurvey):
     srcPair = BaseSrc
 
     def __init__(self, srcList, **kwargs):
-        self.srcList = srcList
         BaseEMSurvey.__init__(self, srcList, **kwargs)
 
     def eval(self, f):
