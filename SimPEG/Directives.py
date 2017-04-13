@@ -684,6 +684,7 @@ class UpdatePreCond(InversionDirective):
 
             regDiag = (self.reg.W.T*self.reg.W).diagonal()
 
+        print(self.opt.JtJdiag.max())
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
         PC = Utils.sdiag((diagA)**-1.)
@@ -723,7 +724,7 @@ class UpdateSensWeighting(InversionDirective):
             self.JtJdiag = self.getJtJdiag()
 
         # Compute normalized weights
-        self.wr = self.getWr(self.JtJdiag)
+        self.wr = self.getWr()
 
         # Update the regularization
         self.updateReg()
@@ -744,25 +745,28 @@ class UpdateSensWeighting(InversionDirective):
         # Re-initialize the field derivatives
         if self.ComboMisfitFun:
             for prob in self.prob:
+
+                prob.chi = self.invProb.model
+
                 if isinstance(prob, Magnetics.MagneticVector):
                     prob._S = None
 
                 if isinstance(prob, Magnetics.MagneticAmplitude):
                     prob._dfdm = None
-                    prob.chi = self.invProb.model
 
         elif isinstance(self.prob, Magnetics.MagneticVector):
             self.prob._S = None
+            self.prob.chi = self.invProb.model
 
         elif isinstance(self.prob, Magnetics.MagneticAmplitude):
             self.prob._dfdm = None
             self.prob.chi = self.invProb.model
 
         # Get sum square of columns of J
-        JtJdiag = self.getJtJdiag()
+        self.JtJdiag = self.getJtJdiag()
 
         # Compute normalized weights
-        self.wr = self.getWr(JtJdiag)
+        self.wr = self.getWr()
 
         # Update the regularization
         self.updateReg()
@@ -838,6 +842,7 @@ class UpdateSensWeighting(InversionDirective):
         # Currently implemented specifically for MVI-S
         # Need to be generalized if used by others
         for reg in self.reg.objfcts[1:]:
+            reg.model = self.opt.xc
             eps_a = self.reg.objfcts[0].eps_p
             norm_a = self.reg.objfcts[0].norms[0]
             f_m = self.reg.objfcts[0].objfcts[0].f_m
@@ -854,7 +859,7 @@ class UpdateSensWeighting(InversionDirective):
 
             # reg.cell_weights *= reg.scale
 
-    def getWr(self, JtJdiag):
+    def getWr(self):
         """
             Take the diagonal of JtJ and return
             a normalized sensitivty weighting vector
@@ -864,20 +869,21 @@ class UpdateSensWeighting(InversionDirective):
 
         if self.ComboMisfitFun:
 
-            for JtJ, prob in zip(JtJdiag, self.prob):
+            for JtJ, prob in zip(self.JtJdiag, self.prob):
 
-                prob_JtJ = JtJ**0.5
+                prob_JtJ = JtJ
 
                 if getattr(prob.chiMap, 'index', None) is None:
                     wr += prob_JtJ
                 else:
                     wr[prob.chiMap.index] += prob_JtJ
 
+            wr = wr**0.5
             wr /= wr.max()
 
         else:
-            wr = JtJdiag[0]**0.5
-            wr = wr / wr.max()
+            wr = self.JtJdiag[0]**0.5
+            wr /= wr.max()
 
         return wr
 
@@ -888,7 +894,7 @@ class UpdateSensWeighting(InversionDirective):
         if self.ComboRegFun:
             for reg in self.reg.objfcts:
                 reg.cell_weights = reg.mapping * self.wr
-                reg.model = self.invProb.model
+                reg.model = self.opt.xc
         else:
             self.reg.cell_weights = self.reg.mapping * self.wr
 
