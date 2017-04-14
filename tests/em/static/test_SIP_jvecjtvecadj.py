@@ -83,7 +83,7 @@ class IPProblemTestsCC(unittest.TestCase):
             ],
             self.m0,
             plotIt=False,
-            num=2
+            num=3
         )
         self.assertTrue(passed)
 
@@ -178,7 +178,7 @@ class IPProblemTestsN(unittest.TestCase):
             ],
             self.m0,
             plotIt=False,
-            num=2
+            num=3
         )
         self.assertTrue(passed)
 
@@ -197,7 +197,7 @@ class IPProblemTestsN(unittest.TestCase):
             lambda m: [self.dmis(m), self.dmis.deriv(m)],
             self.m0,
             plotIt=False,
-            num=2
+            num=3
         )
         self.assertTrue(passed)
 

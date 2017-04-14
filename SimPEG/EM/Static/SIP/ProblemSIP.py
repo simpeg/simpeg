@@ -70,7 +70,7 @@ class BaseSIPProblem(BaseEMProblem):
         v = np.array(v, dtype=float)
         taui_t_c = (self.taui*t)**self.c
         dpetadtaui = (
-            -self.eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(self.taui*t)
+            - self.c * self.eta / self.taui * taui_t_c * np.exp(-taui_t_c)
             )
         if adjoint:
             return self.tauiDeriv.T * (dpetadtaui*v)
@@ -81,7 +81,7 @@ class BaseSIPProblem(BaseEMProblem):
         v = np.array(v, dtype=float)
         taui_t_c = (self.taui*t)**self.c
         dpetadc = (
-            - self.c * self.eta / self.taui * taui_t_c * np.exp(-taui_t_c)
+            -self.eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(self.taui*t)
             )
         if adjoint:
             return self.cDeriv.T * (dpetadc*v)
