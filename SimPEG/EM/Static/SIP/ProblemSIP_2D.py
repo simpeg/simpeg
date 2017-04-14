@@ -51,33 +51,33 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         return peta
 
     def PetaEtaDeriv(self, t, v, adjoint=False):
-        v = np.array(v, dtype=float)
+        # v = np.array(v, dtype=float)
         taui_t_c = (self.taui*t)**self.c
         dpetadeta = np.exp(-taui_t_c)
         if adjoint:
-            return self.etaDeriv.T * (dpetadeta * v)
+            return self.etaDeriv.T * (Utils.sdiag(dpetadeta) * v)
         else:
             return dpetadeta * (self.etaDeriv*v)
 
     def PetaTauiDeriv(self, t, v, adjoint=False):
-        v = np.array(v, dtype=float)
+        # v = np.array(v, dtype=float)
         taui_t_c = (self.taui*t)**self.c
         dpetadtaui = (
-            -self.eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(self.taui*t)
+            - self.c * self.eta / self.taui * taui_t_c * np.exp(-taui_t_c)
             )
         if adjoint:
-            return self.tauiDeriv.T * (dpetadtaui*v)
+            return self.tauiDeriv.T * (Utils.sdiag(dpetadtaui)*v)
         else:
             return dpetadtaui * (self.tauiDeriv*v)
 
     def PetaCDeriv(self, t, v, adjoint=False):
-        v = np.array(v, dtype=float)
+        # v = np.array(v, dtype=float)
         taui_t_c = (self.taui*t)**self.c
         dpetadc = (
-            - self.c * self.eta / self.taui * taui_t_c * np.exp(-taui_t_c)
+            -self.eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(self.taui*t)
             )
         if adjoint:
-            return self.cDeriv.T * (dpetadc*v)
+            return self.cDeriv.T * (Utils.sdiag(dpetadc)*v)
         else:
             return dpetadc * (self.cDeriv*v)
 
@@ -195,6 +195,23 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
                 )
 
         return self.sign * Jtvec
+
+    def getJtJdiag(self):
+        """
+        Compute JtJ using adjoint problem. Still we never form
+        JtJ
+        """
+        ntime = len(self.survey.times)
+        JtJdiag = np.zeros_like(self.model)
+        for tind in range(ntime):
+            t = self.survey.times[tind]
+            Jtv = self.actMap.P*Utils.sdiag(1./self.mesh.vol)*self.J.T
+            JtJdiag += (
+                (self.PetaEtaDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
+                (self.PetaTauiDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
+                (self.PetaCDeriv(t, Jtv, adjoint=True)**2).sum(axis=1)
+                )
+        return JtJdiag
 
     def MfRhoIDeriv(self, u):
         """

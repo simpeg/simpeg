@@ -4,3 +4,4 @@ from .SurveySIP import Survey, Data
 from . import SrcSIP as Src #Pole
 from . import RxSIP as Rx
 from .Regularization import MultiRegularization
+from .Directives import UpdateSensWeighting
