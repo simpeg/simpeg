@@ -791,7 +791,7 @@ class UpdateSensWeighting(InversionDirective):
                     prob.chi = self.invProb.model
 
         elif isinstance(self.prob, Magnetics.MagneticVector):
-            if prob.ptype == 'Spherical':
+            if self.prob.ptype == 'Spherical':
                 self.prob._S = None
                 self.prob.chi = self.invProb.model
 
@@ -857,14 +857,14 @@ class UpdateSensWeighting(InversionDirective):
                     jtjdiag[ii] = np.sum((self.prob.dfdm*self.prob.F[:, ii])**2.)
 
             if isinstance(self.prob, Magnetics.MagneticVector):
-                if prob.ptype == 'Spherical':
+                if self.prob.ptype == 'Spherical':
                     for ii in range(nD):
 
                         jtjdiag += (self.prob.F[ii, :] * self.prob.S)**2.
 
                     jtjdiag += 1e-10
 
-                elif prob.ptype == 'Cartesian':
+                elif self.prob.ptype == 'Cartesian':
                         jtjdiag = prob.JtJdiag
 
             JtJdiag += [jtjdiag]
