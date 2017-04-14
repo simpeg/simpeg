@@ -28,7 +28,7 @@ class MagneticIntegral(Problem.LinearProblem):
     magType = 'H0'
     equiSourceLayer = False
     silent = False  # Don't display progress on screen
-
+    W = None
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
@@ -232,21 +232,6 @@ class MagneticIntegral(Problem.LinearProblem):
                 else:
                     raise Exception('recType must be: "tmi", "x", "y" or "z"')
 
-                # else:
-
-                #     if self.recType == 'tmi':
-                #         F[ii, :] = self.ProjTMI.dot(np.vstack((tx, ty, tz)) *
-                #                                     survey.srcField.param[0])
-
-                #     elif self.recType == 'x':
-                #         F[ii, :] = tx * survey.srcField.param[0]
-
-                #     elif self.recType == 'y':
-                #         F[ii, :] = ty * survey.srcField.param[0]
-
-                #     elif self.recType == 'z':
-                #         F[ii, :] = tz * survey.srcField.param[0]
-
             if not self.silent:
                 # Display progress
                 count = progress(ii, count, ndata)
@@ -266,7 +251,7 @@ class MagneticVector(MagneticIntegral):
     chi = None
     silent = False  # Don't display progress on screen
     scale = 1.
-
+    W = None
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
@@ -398,7 +383,7 @@ class MagneticAmplitude(MagneticIntegral):
     chi = None
     silent = False  # Don't display progress on screen
     scale = 1.
-
+    W = None
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
