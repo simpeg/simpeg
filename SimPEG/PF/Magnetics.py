@@ -287,7 +287,7 @@ class MagneticVector(MagneticIntegral):
             # for ii in range(self.F.shape[0]):
             #     vec[ii] = self.F[ii, :].dot(self.chiMap*(m))
 
-            vec = np.dot(self.F, (self.chiMap*(m)).astype(np.float32))
+            vec = np.dot(self.F, ((m)).astype(np.float32))
             return vec.astype(np.float64)
 
     @property
