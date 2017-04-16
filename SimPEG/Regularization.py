@@ -1071,7 +1071,6 @@ class SmoothDeriv2(BaseRegularization):
             orientation=self.orientation
         )
 
-
     @property
     def W(self):
         """
@@ -1171,22 +1170,28 @@ class BaseSparse(BaseRegularization):
     model = properties.Array(
         "current model", dtype=float
     )
+
     gamma = properties.Float(
         "Model norm scaling to smooth out convergence", default=1.
     )
+
     epsilon = properties.Float(
-        "Threshold value for the model norm", #default=1e-1
+        "Threshold value for the model norm", default=1e-3,
         required=True
     )
+
     norm = properties.Float(
         "norm used", default=2
     )
+
     space = properties.String(
         "By default inherit the objctive", default='linear'
     )
+
     scale = properties.Float(
         "General nob for scaling", default=1.
     )
+
     @property
     def stashedR(self):
         return self._stashedR
@@ -1208,16 +1213,9 @@ class BaseSparse(BaseRegularization):
         if getattr(self, 'stashedR') is not None:
             return self.stashedR
 
-        eps = self.epsilon
-
-        if eps is None:
-            eps = 1e-8
-
-        exponent = self.norm
-
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = (eps**(1.-exponent/2.))**0.5
-        r = eta / (f_m**2. + eps**2.)**((1.-exponent/2.)/2.)
+        eta = (self.epsilon**(1.-self.norm/2.))**0.5
+        r = eta / (f_m**2. + self.epsilon**2.)**((1.-self.norm/2.)/2.)
 
         self.stashedR = r  # stash on the first calculation
         return r
@@ -1252,9 +1250,9 @@ class SparseSmall(BaseSparse):
             R = Utils.sdiag(r)
 
         if self.cell_weights is not None:
-            return Utils.sdiag((self.gamma *
+            return Utils.sdiag((self.scale * self.gamma *
                                 self.cell_weights)**0.5) * R
-        return (self.gamma)**0.5 * R
+        return (self.scale * self.gamma)**0.5 * R
 
 
 class SparseDeriv(BaseSparse):
@@ -1293,13 +1291,13 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 W = (
                     Utils.sdiag(
-                        (self.gamma * (Ave*(self.cell_weights)))**0.5
+                        (self.scale * self.gamma * (Ave*(self.cell_weights)))**0.5
                     ) *
                     R
                 )
 
             else:
-                W = ((self.gamma)**0.5) * R
+                W = ((self.scale * self.gamma)**0.5) * R
 
 
             theta = self.cellDiffStencil * (self.mapping * m)
@@ -1343,13 +1341,13 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 W = (
                     Utils.sdiag(
-                        (self.gamma * (Ave*(self.cell_weights)))**0.5
+                        (self.scale * self.gamma * (Ave*(self.cell_weights)))**0.5
                     ) *
                     R
                 )
 
             else:
-                W = ((self.gamma)**0.5) * R
+                W = ((self.scale * self.gamma)**0.5) * R
 
             theta = self.cellDiffStencil * (self.mapping * m)
             dmdx = coterminal(theta)
@@ -1399,11 +1397,11 @@ class SparseDeriv(BaseSparse):
         if self.cell_weights is not None:
             return (
                 Utils.sdiag(
-                    (self.gamma * (Ave*(self.cell_weights)))**0.5
+                    (self.scale * self.gamma * (Ave*(self.cell_weights)))**0.5
                 ) *
                 R * self.cellDiffStencil
             )
-        return ((self.gamma)**0.5) * R * self.cellDiffStencil
+        return ((self.scale * self.gamma)**0.5) * R * self.cellDiffStencil
 
 
 class Sparse(BaseComboRegularization):
@@ -1480,6 +1478,9 @@ class Sparse(BaseComboRegularization):
         "type of model", default='linear'
     )
 
+    scale = properties.Float(
+        "General nob for scaling", default=1.
+    )
     # Save the l2 result during the IRLS
     l2model = None
 
@@ -1515,6 +1516,12 @@ class Sparse(BaseComboRegularization):
     def _mirror_space_to_objfcts(self, change):
         for objfct in self.objfcts:
             objfct.space = change['value']
+
+    @properties.observer('scale')
+    def _mirror_scale_to_objfcts(self, change):
+        for objfct in self.objfcts:
+            objfct.scale = change['value']
+
 
 def coterminal(theta):
     """ Compute coterminal angle so that [-pi < theta < pi]"""

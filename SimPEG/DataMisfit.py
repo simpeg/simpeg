@@ -144,7 +144,7 @@ class l2_DataMisfit(BaseDataMisfit):
         if f is None:
             f = self.prob.fields(m)
 
-        return self.scale *self.prob.Jtvec(
+        return self.scale * self.prob.Jtvec(
             m, self.W.T * (self.W * self.survey.residual(m, f=f)), f=f
         )
 

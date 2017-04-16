@@ -425,7 +425,8 @@ class MagneticAmplitude(MagneticIntegral):
                 Bxyz = np.dot(self.F, m.astype(np.float32))
 
             else:
-                Bxyz = np.dot(self.F, (self.M*m).astype(np.float32))
+
+                Bxyz = np.dot(self.F, (self.Mxyz*m).astype(np.float32))
 
             return self.calcAmpData(Bxyz.astype(np.float64))
 
@@ -456,7 +457,7 @@ class MagneticAmplitude(MagneticIntegral):
             vec = np.dot(self.F, (dmudm*v).astype(np.float32))
 
         else:
-            vec = np.dot(self.F, (self.M*(dmudm*v)).astype(np.float32))
+            vec = np.dot(self.F, (self.Mxyz*(dmudm*v)).astype(np.float32))
 
         return self.dfdm*vec.astype(np.float64)
 
@@ -469,7 +470,8 @@ class MagneticAmplitude(MagneticIntegral):
         if self.magType != 'full':
             vec = np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32))
         else:
-            vec = self.M.T*np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32))
+
+            vec = self.Mxyz.T*np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
 
         return self.scale * dmudm.T * vec.astype(np.float64)
 
@@ -507,7 +509,8 @@ class MagneticAmplitude(MagneticIntegral):
             if self.magType != 'full':
                 Bxyz = np.dot(self.F, m.astype(np.float32))
             else:
-                Bxyz = np.dot(self.F, (self.M*m).astype(np.float32))
+
+                Bxyz = np.dot(self.F, (self.Mxyz*m).astype(np.float32))
 
             Bamp = self.calcAmpData(Bxyz.astype(np.float64))
 
@@ -518,6 +521,18 @@ class MagneticAmplitude(MagneticIntegral):
 
         return self._dfdm
 
+    @property
+    def Mxyz(self):
+
+        if getattr(self, '_M', None) is None:
+
+            Mx = Utils.sdiag(self.M[:, 0])
+            My = Utils.sdiag(self.M[:, 1])
+            Mz = Utils.sdiag(self.M[:, 2])
+
+            self._Mxyz = sp.vstack((Mx, My, Mz))
+
+        return self._Mxyz
 
 class Problem3D_DiffSecondary(Problem.BaseProblem):
     """

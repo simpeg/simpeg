@@ -134,10 +134,9 @@ def run(plotIt=True):
     # Create a regularization function, in this case l2l2
     wr = np.sum(prob.F**2., axis=0)**0.5
     wr = (wr/np.max(wr))
-
+    prob.JtJdiag = wr
     # Create a regularization
     reg_Susc = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-    reg_Susc.cell_weights = wr
     reg_Susc.norms = ([0, 1, 1, 1])
     reg_Susc.eps_p, reg_Susc.eps_q = 1e-3, 1e-3
 
@@ -155,9 +154,10 @@ def run(plotIt=True):
     # Use pick a treshold parameter empirically based on the distribution of
     #  model parameters
     IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=3)
+    update_SensWeight = Directives.UpdateSensWeighting()
     update_Jacobi = Directives.UpdatePreCond()
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[betaest, IRLS, update_Jacobi])
+                                  directiveList=[betaest, IRLS,update_SensWeight, update_Jacobi])
 
     # Run the inversion
     m0 = np.ones(nC)*1e-4  # Starting model
@@ -182,6 +182,7 @@ def run(plotIt=True):
 
     # Pair the survey and problem
     survey.pair(prob)
+    prob.JtJdiag = wr
 
     # Create a regularization function, in this case l2l2
     reg = Regularization.Simple(mesh, indActive=surf)
