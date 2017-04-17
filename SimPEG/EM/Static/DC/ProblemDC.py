@@ -196,15 +196,14 @@ class Problem3D_CC(BaseDCProblem):
         return Zero()
 
     def setBC(self):
-        if self.mesh._meshType == "TREE":
-            if(self.bc_type == 'Neumann'):
-                raise NotImplementedError()
-            elif(self.bc_type == 'Dirchlet'):
-                print('Homogeneous Dirchlet is the natural BC for this CC discretization.')
-                self.Div = Utils.sdiag(self.mesh.vol) * self.mesh.faceDiv
-                self.Grad = self.Div.T
+        if self.bc_type == 'Dirichlet':
+            print('Homogeneous Dirichlet is the natural BC for this CC discretization.')
+            self.Div = Utils.sdiag(self.mesh.vol) * self.mesh.faceDiv
+            self.Grad = self.Div.T
 
         else:
+            if self.mesh._meshType == "TREE" and self.bc_type == 'Neumann':
+                raise NotImplementedError()
 
             if self.mesh.dim == 3:
                 fxm, fxp, fym, fyp, fzm, fzp = self.mesh.faceBoundaryInd
