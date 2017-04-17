@@ -168,7 +168,7 @@ def run(plotIt=True):
 
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=10, lower=-10., upper=10.,
-                                     maxIterCG=20, tolCG=1e-3)
+                                     maxIterCG=20, tolCG=1e-3, maxIterLS=20)
 
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     betaest = Directives.BetaEstimate_ByEig()
@@ -186,11 +186,11 @@ def run(plotIt=True):
     mstart = np.ones(3*nC)*1e-4
     mrec_C = inv.run(mstart)
 
-    beta = invProb.beta/5.
+    beta = invProb.beta
 
     # # STEP 3: Finish inversion with spherical formulation
     mstart = PF.Magnetics.xyz2atp(mrec_C)
-    prob.ptype = 'Spherical'
+    prob.coordinate_system = 'spherical'
     prob.chi = mstart
 
     # Create wires to link the regularization to each model blocks
@@ -221,19 +221,20 @@ def run(plotIt=True):
     dmis.W = 1./survey.std
 
     # Add directives to the inversion
-    opt = Optimization.ProjectedGNCG(maxIter=30,
-                                     lower=[0., -np.inf, -np.inf],
-                                     upper=[10., np.inf, np.inf],
-                                     maxIterLS=10,
-                                     maxIterCG=20, tolCG=1e-3,
-                                     stepOffBoundsFact=1e-8)
+    opt = Optimization.ProjectedGNCG(maxIter=25,
+                                 lower=[0., -np.inf, -np.inf],
+                                 upper=[10., np.inf, np.inf],
+                                 maxIterLS=10,
+                                 maxIterCG=20, tolCG=1e-3,
+                                 stepOffBoundsFact=1e-8)
 
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta)
-
+    #  betaest = Directives.BetaEstimate_ByEig()
+    
     # Here is where the norms are applied
     IRLS = Directives.Update_IRLS(f_min_change=1e-4,
-                                  minGNiter=3, beta_tol=1e-2,
-                                  coolingRate=3)
+                                  minGNiter=2, beta_tol=1e-2,
+                                  coolingRate=2)
 
     # Special directive specific to the mag amplitude problem. The sensitivity
     # weights are update between each iteration.
@@ -248,7 +249,7 @@ def run(plotIt=True):
                                                  update_Jacobi])
 
     mrec = inv.run(mstart)
-
+    
     if plotIt:
         # Here is the recovered susceptibility model
         ypanel = midx
@@ -259,12 +260,12 @@ def run(plotIt=True):
         fig = plt.figure(figsize=(8, 8))
         ax2 = plt.subplot(312)
 
-        mrec_l2 = PF.Magnetics.atp2xyz(reg.l2model)
+        mrec_l2 = PF.Magnetics.atp2xyz(invProb.l2model)
         scl_vec = np.max(mrec_l2)/np.max(m) * 0.25
         PF.Magnetics.plotModelSections(mesh, mrec_l2, normal='y',
                                        ind=ypanel, axs=ax2,
-                                       xlim=(-50, 50), scale=scl_vec,
-                                       ylim=(mesh.vectorNz[3],
+                                       xlim=(-50, 50), scale=scl_vec, vec ='w',
+                                       ylim=(mesh.vectorNz[3], 
                                              mesh.vectorNz[-1]+dx),
                                        vmin=vmin, vmax=vmax)
         ax2.set_title('Smooth l2 solution')
@@ -272,13 +273,13 @@ def run(plotIt=True):
 
         ax1 = plt.subplot(313)
         mrec = PF.Magnetics.atp2xyz(mrec)
-
+        
         vmin = model.min()
-        vmax = model.max()*1.05
+        vmax = None#model.max()*1.05
         scl_vec = np.max(mrec)/np.max(m) * 0.25
         PF.Magnetics.plotModelSections(mesh, mrec, normal='y',
                                        ind=ypanel, axs=ax1,
-                                       xlim=(-50, 50), scale=scl_vec,
+                                       xlim=(-50, 50), scale=scl_vec, vec ='w',
                                        ylim=(mesh.vectorNz[3],
                                              mesh.vectorNz[-1]+dx),
                                        vmin=vmin, vmax=vmax)
@@ -288,12 +289,12 @@ def run(plotIt=True):
 
         # plot true model
         vmin = model.min()
-        vmax = model.max()*1.05
+        vmax = model.max()*.95
 
         ax3 = plt.subplot(311)
         PF.Magnetics.plotModelSections(mesh, m, normal='y',
                                        ind=ypanel, axs=ax3,
-                                       xlim=(-50, 50), scale=0.25,
+                                       xlim=(-50, 50), scale=0.25, vec ='w',
                                        ylim=(mesh.vectorNz[3],
                                              mesh.vectorNz[-1]+dx),
                                        vmin=vmin, vmax=vmax)

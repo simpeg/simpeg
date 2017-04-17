@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import gc
 from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
+import properties
 
 class MagneticIntegral(Problem.LinearProblem):
 
@@ -36,28 +37,19 @@ class MagneticIntegral(Problem.LinearProblem):
 
         if self.forwardOnly:
 
-            # Compute the linear operation without forming the full dense G
+            # Compute the linear operation without forming the full dense F
             fwr_d = self.Intrgl_Fwr_Op(m=m)
 
             return fwr_d
 
         else:
 
-            vec = np.dot(self.F, (self.chiMap*(m)).astype(np.float32))
+            vec = np.dot(self.F, m.astype(np.float32))
             return vec.astype(np.float64)
 
-    # def fwr_rem(self):
-    #     # TODO check if we are inverting for M
-    #     return self.F.dot(self.chiMap(m))
+    def fields(self, chi, **kwargs):
 
-    def fields(self, m, **kwargs):
-        self.model = m
-
-        # if self.recType == 'tmi':
-        #     u = np.zeros(self.survey.nRx)
-        # else:
-        #     u = np.zeros(3*self.survey.nRx)
-
+        m = self.chiMap*(chi)
         u = self.fwr_ind(m=m)
 
         return u
@@ -68,7 +60,7 @@ class MagneticIntegral(Problem.LinearProblem):
             raise Exception('Need to pair!')
 
         if getattr(self, '_F', None) is None:
-            self._F = self.Intrgl_Fwr_Op(magType = self.magType)
+            self._F = self.Intrgl_Fwr_Op(magType=self.magType)
 
         return self._F
 
@@ -88,8 +80,6 @@ class MagneticIntegral(Problem.LinearProblem):
                               np.sin(np.deg2rad(I))], 2).T
 
         return self._ProjTMI
-
-
 
     def Intrgl_Fwr_Op(self, m=None, magType="H0", recType='tmi'):
 
@@ -246,12 +236,18 @@ class MagneticVector(MagneticIntegral):
     forwardOnly = False  # If false, matric is store to memory (watch your RAM)
     actInd = None  #: Active cell indices provided
     M = None  #: magType matrix provided, otherwise all induced
-    ptype = 'Cartesian'  # Formulation either "Cartesian" | "Spherical"
+    # coordinate_system = 'cartesian'  # Formulation either "cartesian" | "spherical"
     magType = 'full'  # magType component
     chi = None
     silent = False  # Don't display progress on screen
     scale = 1.
     W = None
+
+    coordinate_system = properties.StringChoice(
+    "Type of coordinate system we are regularizing in",
+    choices=['cartesian', 'spherical'],
+    default='cartesian' )
+
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
@@ -272,7 +268,7 @@ class MagneticVector(MagneticIntegral):
             # for ii in range(self.F.shape[0]):
             #     vec[ii] = self.F[ii, :].dot(self.chiMap*(m))
 
-            vec = np.dot(self.F, ((m)).astype(np.float32))
+            vec = np.dot(self.F, m.astype(np.float32))
             return vec.astype(np.float64)
 
     @property
@@ -288,7 +284,7 @@ class MagneticVector(MagneticIntegral):
 
     def fields(self, chi, **kwargs):
 
-        if self.ptype == 'Cartesian':
+        if self.coordinate_system == 'cartesian':
             m = self.chiMap*(chi)
         else:
             m = self.chiMap*(atp2xyz(chi))
@@ -304,7 +300,7 @@ class MagneticVector(MagneticIntegral):
 
     def Jvec(self, chi, v, f=None):
 
-        if self.ptype == 'Cartesian':
+        if self.coordinate_system == 'cartesian':
 
             # vec = np.empty(self.F.shape[0])
             # for ii in range(self.F.shape[0]):
@@ -329,13 +325,13 @@ class MagneticVector(MagneticIntegral):
         vec = np.dot(self.F.T, v.astype(np.float32))
 
         vec = vec.astype(np.float64)
-        if self.ptype == 'Cartesian':
+        if self.coordinate_system == 'cartesian':
 
-            return self.scale * self.chiMap.deriv(chi).T*(vec)
+            return self.chiMap.deriv(chi).T*(vec)
 
         else:
 
-            dmudm = self.scale * self.chiMap.deriv(chi).T * self.S.T
+            dmudm = self.chiMap.deriv(chi).T * self.S.T
 
             return (dmudm).dot(vec)
 
@@ -345,7 +341,7 @@ class MagneticVector(MagneticIntegral):
         if getattr(self, '_S', None) is None:
 
             if self.chi is None:
-                raise Exception('Requires a model')
+                raise Exception('Requires a chi')
 
             nC = int(len(self.chi)/3)
 
@@ -353,17 +349,13 @@ class MagneticVector(MagneticIntegral):
             t = self.chi[nC:2*nC]
             p = self.chi[2*nC:]
 
-
             Sx = sp.hstack([sp.diags(np.cos(t)*np.cos(p), 0),
                             sp.diags(-a*np.sin(t)*np.cos(p), 0),
                             sp.diags(-a*np.cos(t)*np.sin(p), 0)])
 
-
-
             Sy = sp.hstack([sp.diags(np.cos(t)*np.sin(p), 0),
                             sp.diags(-a*np.sin(t)*np.sin(p), 0),
                             sp.diags(a*np.cos(t)*np.cos(p), 0)])
-
 
             Sz = sp.hstack([sp.diags(np.sin(t), 0),
                             sp.diags(a*np.cos(t), 0),
@@ -395,10 +387,10 @@ class MagneticAmplitude(MagneticIntegral):
             self.chi = chi
 
             # Compute the linear operation without forming the full dense G
-            m = self.chiMap*self.chi
+            m = self.chiMap * self.chi
 
             Bxyz = []
-            for rtype in ['x','y','z']:
+            for rtype in ['x', 'y', 'z']:
                 Bxyz += [Intrgl_Fwr_Op(m=m, recType=rtype)]
 
             return self.calcAmpData(np.r_[Bxyz])
@@ -407,15 +399,15 @@ class MagneticAmplitude(MagneticIntegral):
             if chi is None:
 
                 if self.chi is None:
-                    raise Exception('Problem needs a chi model')
+                    raise Exception('Problem needs a chi chi')
 
                 else:
-                    m = self.chiMap*self.chi
+                    m = self.chiMap * self.chi
 
             else:
 
                 self.chi = chi
-                m = self.chiMap*self.chi
+                m = self.chiMap * self.chi
 
             # Bxyz = np.empty(self.F.shape[0])
             # for ii in range(self.F.shape[0]):
@@ -473,7 +465,7 @@ class MagneticAmplitude(MagneticIntegral):
 
             vec = self.Mxyz.T*np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
 
-        return self.scale * dmudm.T * vec.astype(np.float64)
+        return dmudm.T * vec.astype(np.float64)
 
 
     @property
@@ -494,14 +486,14 @@ class MagneticAmplitude(MagneticIntegral):
     def dfdm(self):
 
         if self.chi is None:
-            raise Exception('Problem needs a chi model')
+            raise Exception('Problem needs a chi chi')
 
         if getattr(self, '_dfdm', None) is None:
 
             ndata = self.survey.srcField.rxList[0].locs.shape[0]
 
             # Get field data
-            m = self.chiMap*self.chi
+            m = self.chiMap * self.chi
 
             # Bxyz = np.empty(self.F.shape[0])
             # for ii in range(self.F.shape[0]):
@@ -1038,7 +1030,7 @@ def progress(iter, prog, final):
 
 
 def atp2xyz(m):
-    """ Convert from Spherical to Cartesian """
+    """ Convert from spherical to cartesian """
 
     nC = int(len(m)/3)
 
@@ -1054,7 +1046,7 @@ def atp2xyz(m):
 
 
 def xyz2atp(m):
-    """ Convert from Cartesian to Spherical """
+    """ Convert from cartesian to spherical """
 
     nC = int(len(m)/3)
 
@@ -1102,7 +1094,7 @@ def dipazm_2_xyz(dip, azm_N):
 
     M = np.zeros((nC, 3))
 
-    # Modify azimuth from North to Cartesian-X
+    # Modify azimuth from North to cartesian-X
     azm_X = (450. - np.asarray(azm_N)) % 360.
 
     D = np.deg2rad(np.asarray(dip))
@@ -1384,7 +1376,7 @@ def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
             my = m_lpy[::subFact, ::subFact, ind].T
 
     im2 = axs.contourf(xx, yy, model,
-                       10, vmin=vmin, vmax=vmax, clim=[vmin, vmax],
+                       15, vmin=vmin, vmax=vmax, clim=[vmin, vmax],
                        cmap=cmap)
 
     if contours is not None:

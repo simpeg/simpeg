@@ -442,72 +442,37 @@ class Update_IRLS(InversionDirective):
 
     def initialize(self):
 
-        # Check if it is a ComboObjective
-        if not isinstance(self.reg, Regularization.BaseComboRegularization):
-
-            # It is a Combo objective, we will have to loop through a list
-            self.ComboRegFun = True
-
-        # Check if it is a ComboObjective
-        if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
-
-            # It is a Combo objective, we will have to loop through a list
-            self.ComboMisfitFun = True
-
         if self.mode == 1:
 
-            if self.ComboRegFun:
-
-                self.norms = []
-                for reg in self.reg.objfcts:
-                    self.norms.append(reg.norms)
-                    reg.norms = [2., 2., 2., 2.]
-                    reg.model = self.invProb.model
-            else:
-                # Store assigned norms for later use - start with l2
-                self.norms = self.reg.norms
-                self.reg.norms = [2., 2., 2., 2.]
-                self.reg.model = self.invProb.model
+            self.norms = []
+            for reg in self.reg.objfcts:
+                self.norms.append(reg.norms)
+                reg.norms = [2., 2., 2., 2.]
+                reg.model = self.invProb.model
 
         # Update the model used by the regularization
-        if self.ComboRegFun:
-                for reg in self.reg.objfcts:
-                    reg.model = self.invProb.model
-
-        else:
-            self.reg.model = self.invProb.model
+        for reg in self.reg.objfcts:
+            reg.model = self.invProb.model
 
         # Adjust scales for MVI-S
         # if self.ComboMisfitFun:
         for prob in self.prob:
             if isinstance(prob, Magnetics.MagneticVector):
-                if prob.ptype == 'Spherical':
+                if prob.coordinate_system == 'spherical':
                     self.regScale()
-
-        # elif isinstance(self.prob, Magnetics.MagneticVector):
-        #     if self.prob.ptype == 'Spherical':
-        #         self.regScale()
 
     def endIter(self):
 
         # Update the model used by the regularization
-        if self.ComboRegFun:
-                for reg in self.reg.objfcts:
-                    reg.model = self.invProb.model
-
-        else:
-            self.reg.model = self.invProb.model
+        for reg in self.reg.objfcts:
+            reg.model = self.invProb.model
 
         # Adjust scales for MVI-S
         # if self.ComboMisfitFun:
         for prob in self.prob:
             if isinstance(prob, Magnetics.MagneticVector):
-                if prob.ptype == 'Spherical':
+                if prob.coordinate_system == 'spherical':
                     self.regScale()
-
-        # elif isinstance(self.prob, Magnetics.MagneticVector):
-        #     if self.prob.ptype == 'Spherical':
-        #         self.regScale()
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if np.all([self.invProb.phi_d < self.target, self.mode == 1]):
@@ -522,7 +487,6 @@ class Update_IRLS(InversionDirective):
 
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
-            # if self.ComboRegFun:
 
             for reg in self.reg.objfcts:
 
@@ -535,37 +499,18 @@ class Update_IRLS(InversionDirective):
                     mtemp = reg.mapping * self.invProb.model
                     reg.eps_q = np.percentile(np.abs(reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
 
-            # else:
-            #     if getattr(self.reg, 'eps_p', None) is None:
-
-            #         mtemp = self.reg.mapping * self.invProb.model
-            #         self.reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
-
-            #     if getattr(self.reg, 'eps_q', None) is None:
-
-            #         mtemp = self.reg.mapping * self.invProb.model
-            #         self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
-
             # Re-assign the norms supplied by user l2 -> lp
-            # if self.ComboRegFun:
             for reg, norms in zip(self.reg.objfcts, self.norms):
                 reg.norms = norms
                 print("L[p qx qy qz]-norm : " + str(reg.norms))
 
-            # else:
-            #     self.reg.norms = self.norms
-            #     print("L[p qx qy qz]-norm : " + str(self.reg.norms))
-
             # Save l2-model
-            self.reg.l2model = self.invProb.model.copy()
+            self.invProb.l2model = self.invProb.model.copy()
 
             # Print to screen
-            # if self.ComboRegFun:
             for reg in self.reg.objfcts:
                 print("eps_p: " + str(reg.eps_p) +
                       " eps_q: " + str(reg.eps_q))
-            # else:
-            #     print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
 
         # Beta Schedule
         if np.all([self.opt.iter > 0, self.opt.iter % self.coolingRate == 0]):
@@ -585,11 +530,10 @@ class Update_IRLS(InversionDirective):
             for reg in self.reg.objfcts:
 
                 # Reset gamma scale
-                if self.ComboRegFun:
-                    for comp in reg.objfcts:
-                        comp.gamma = 1.
-                else:
-                    reg.gamma = 1.
+
+                for comp in reg.objfcts:
+                    comp.gamma = 1.
+
 
             # Remember the value of the norm from previous R matrices
             self.f_old = self.reg(self.invProb.model)
@@ -601,11 +545,8 @@ class Update_IRLS(InversionDirective):
             for reg in self.reg.objfcts:
 
                 # If comboObj, go down one more level
-                if self.ComboRegFun:
-                    for comp in reg.objfcts:
-                        comp.stashedR = None
-                else:
-                    reg.stashedR = None
+                for comp in reg.objfcts:
+                    comp.stashedR = None
 
             # Compute new model objective function value
             phim_new = self.reg(self.invProb.model)
@@ -627,11 +568,9 @@ class Update_IRLS(InversionDirective):
             for reg in self.reg.objfcts:
 
                 # If comboObj, go down one more level
-                if self.ComboRegFun:
-                    for comp in reg.objfcts:
-                        comp.gamma = gamma
-                else:
-                    reg.gamma = gamma
+                for comp in reg.objfcts:
+                    comp.gamma = gamma
+
 
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / self.target
@@ -671,53 +610,29 @@ class UpdatePreCond(InversionDirective):
     """
     onlyOnStart = False
     mapping = None
-    ComboRegFun = False
-    ComboMisfitFun = False
     misfitDiag = None
 
     def initialize(self):
 
-        # Check if it is a ComboObjective
-        if not isinstance(self.reg, Regularization.BaseComboRegularization):
-
-            # It is a Combo objective, we will have to loop through a list
-            self.ComboRegFun = True
-
-        # Check if it is a ComboObjective
-        if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
-
-            # It is a Combo objective, we will have to loop through a list
-            self.ComboMisfitFun = True
-
         # Create the pre-conditioner
-        # if self.ComboRegFun:
-
         regDiag = []
         for reg in self.reg.objfcts:
             regDiag.append((reg.W.T*reg.W).diagonal())
 
         regDiag = np.hstack(regDiag)
 
-        # else:
-
-        #     regDiag = (self.reg.W.T*self.reg.W).diagonal()
-
         # Deal with the linear case
         if getattr(self.opt, 'JtJdiag', None) is None:
 
-            if self.ComboMisfitFun:
+            print("Approximated diag(JtJ) with linear operator")
+            wd = self.dmisfit.W.diagonal()
+            JtJdiag = np.zeros_like(self.invProb.model)
 
-                assert("Approximated diag(JtJ) for ComboMisfitFun not yet implemented")
+            for prob in self.prob:
+                for ii in range(prob.F.shape[0]):
+                    JtJdiag += (wd[ii] * prob.F[ii, :])**2.
 
-            else:
-                print("Approximated diag(JtJ) with linear operator")
-                wd = self.dmisfit.W.diagonal()
-                JtJdiag = np.zeros(self.prob.F.shape[1])
-
-                for ii in range(self.prob.F.shape[0]):
-                    JtJdiag += (wd[ii] * self.prob.F[ii, :])**2.
-
-                self.opt.JtJdiag = JtJdiag
+            self.opt.JtJdiag = JtJdiag
 
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
@@ -730,17 +645,11 @@ class UpdatePreCond(InversionDirective):
             return
 
         # Update the pre-conditioner
-        # if self.ComboRegFun:
-
         regDiag = []
         for reg in self.reg.objfcts:
             regDiag.append((reg.W.T*reg.W).diagonal())
 
         regDiag = np.hstack(regDiag)
-
-        # else:
-
-        #     regDiag = (self.reg.W.T*self.reg.W).diagonal()
 
         # Assumes that opt.JtJdiag has been updated or static
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
@@ -755,7 +664,7 @@ class UpdateSensWeighting(InversionDirective):
     the non-linear magnetic problems.
 
     """
-    # ptype = 'Amp'
+    # coordinate_system = 'Amp'
     # test = False
     mapping = None
     ComboRegFun = False
@@ -764,18 +673,6 @@ class UpdateSensWeighting(InversionDirective):
     everyIter = True
 
     def initialize(self):
-
-        # Check if the Regularization is a ComboObjective
-        if not isinstance(self.reg, Regularization.BaseComboRegularization):
-
-            # It is a Combo objective, we will have to loop through a list
-            self.ComboRegFun = True
-
-        # Check if the Misfit is a ComboObjective
-        if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
-
-            # It is a Combo objective, we will have to loop through a list
-            self.ComboMisfitFun = True
 
         # Update inverse problem
         self.update()
@@ -790,24 +687,13 @@ class UpdateSensWeighting(InversionDirective):
         # if self.ComboMisfitFun:
         for prob in self.prob:
 
-            prob.chi = self.invProb.model
-
             if isinstance(prob, Magnetics.MagneticVector):
-                if prob.ptype == 'Spherical':
+                if prob.coordinate_system == 'spherical':
                     prob._S = None
                     prob.chi = self.invProb.model
             if isinstance(prob, Magnetics.MagneticAmplitude):
                 prob._dfdm = None
                 prob.chi = self.invProb.model
-
-        # elif isinstance(self.prob, Magnetics.MagneticVector):
-        #     if self.prob.ptype == 'Spherical':
-        #         self.prob._S = None
-        #         self.prob.chi = self.invProb.model
-
-        # elif isinstance(self.prob, Magnetics.MagneticAmplitude):
-        #     self.prob._dfdm = None
-        #     self.prob.chi = self.invProb.model
 
         # Update inverse problem
         self.update()
@@ -819,7 +705,7 @@ class UpdateSensWeighting(InversionDirective):
     def update(self):
 
         # Get sum square of columns of J
-        self.JtJdiag = self.getJtJdiag()
+        self.getJtJdiag()
 
         # Compute normalized weights
         self.wr = self.getWr()
@@ -832,7 +718,7 @@ class UpdateSensWeighting(InversionDirective):
             Compute explicitely the main diagonal of JtJ
             Good for any problem where J is formed explicitely
         """
-        JtJdiag = []
+        self.JtJdiag = []
         # if self.ComboMisfitFun:
         Phid = []
         Jmax = []
@@ -856,26 +742,30 @@ class UpdateSensWeighting(InversionDirective):
 
             if isinstance(prob, Magnetics.MagneticVector):
 
-                if prob.ptype == 'Spherical':
+                if prob.coordinate_system == 'spherical':
                     for ii in range(nD):
 
                         jtjdiag += (wd[ii] * prob.F[ii, :] * prob.S)**2.
 
                     jtjdiag += 1e-10
 
-                elif prob.ptype == 'Cartesian':
+                elif prob.coordinate_system == 'cartesian':
+
+                    if getattr(prob, 'JtJdiag', None) is None:
+                        prob.JtJdiag = np.sum(prob.F**2., axis=0)
+
                     jtjdiag = prob.JtJdiag * scale**2.
 
-                    # Hard wire which regularizations get a change of scaling
-                    # Need to figure out a way to know which reg belong to which
-                    # misfit functions
-                    print(str(prob) + 'scale' + str(scale))
+                    # Apply scale to the deriv and deriv2
                     dmisfit.scale = scale
-                    # for reg in self.reg.objfcts[1:]:
-                    #     reg.scale = 3**0.5
+
+            if isinstance(prob, Magnetics.MagneticIntegral):
+
+                if getattr(prob, 'JtJdiag', None) is None:
+                    prob.JtJdiag = np.sum(prob.F**2., axis=0)
+                    jtjdiag = prob.JtJdiag
 
             if isinstance(prob, Magnetics.MagneticAmplitude):
-                jtjdiag = np.zeros(nC)
 
                 if prob.magType == 'full':
                     for ii in range(nC):
@@ -887,41 +777,9 @@ class UpdateSensWeighting(InversionDirective):
 
                         jtjdiag[ii] = np.sum((wd*(prob.dfdm*prob.F[:, ii]))**2.)
 
-            JtJdiag += [jtjdiag]
+            self.JtJdiag += [jtjdiag]
 
-        # else:
-
-        #     nC = self.prob.chiMap.shape[1]
-        #     nD = self.survey.nD
-        #     jtjdiag = np.zeros(nC)
-        #     wd = self.dmisfit.W.diagonal()
-        #     if isinstance(self.prob, Magnetics.MagneticAmplitude):
-
-        #         if self.prob.magType == 'full':
-        #             for ii in range(nC):
-        #                 row = np.dot(self.prob.F[:, ii::nC], self.prob.M[ii, :].reshape(3, 1))
-        #                 jtjdiag[ii] = np.sum((wd*(self.prob.dfdm*row)**2.))
-
-        #         else:
-        #             for ii in range(nC):
-
-        #                 jtjdiag[ii] = np.sum((wd*(self.prob.dfdm*self.prob.F[:, ii]))**2.)
-
-        #     if isinstance(self.prob, Magnetics.MagneticVector):
-        #         if self.prob.ptype == 'Spherical':
-        #             for ii in range(nD):
-
-        #                 jtjdiag += (wd[ii] * self.prob.F[ii, :] *
-        #                             self.prob.S)**2.
-
-        #             jtjdiag += 1e-10
-
-        #         elif self.prob.ptype == 'Cartesian':
-        #                 jtjdiag = self.prob.JtJdiag
-
-        #     JtJdiag += [jtjdiag]
-
-        return JtJdiag
+        return self.JtJdiag
 
     def getWr(self):
         """
@@ -936,8 +794,6 @@ class UpdateSensWeighting(InversionDirective):
         for JtJ, prob in zip(self.JtJdiag, self.prob):
 
             prob_JtJ = JtJ
-            # prob_JtJ = prob_JtJ**0.5
-            # prob_JtJ /= prob_JtJ.max()
 
             if prob.W is not None:
                 prob_JtJ *= prob.W
@@ -951,22 +807,16 @@ class UpdateSensWeighting(InversionDirective):
         wr = wr**0.5
         wr /= wr.max()
 
-        # else:
-        #     wr = self.JtJdiag[0]**0.5
-        #     wr /= wr.max()
-
         return wr
 
     def updateReg(self):
         """
             Update the cell weights with the approximated sensitivity
         """
-        if self.ComboRegFun:
-            for reg in self.reg.objfcts:
-                reg.cell_weights = reg.mapping * self.wr
 
-        else:
-            self.reg.cell_weights = self.reg.mapping * self.wr
+        for reg in self.reg.objfcts:
+            reg.cell_weights = reg.mapping * self.wr
+
 
     def updateOpt(self):
         """
@@ -994,7 +844,7 @@ class ProjSpherical(InversionDirective):
         Trick for spherical coordinate system.
         Project \theta and \phi angles back to [-\pi,\pi] using
         back and forth conversion.
-        Spherical->Cartesian->Spherical
+        spherical->cartesian->spherical
     """
     def initialize(self):
 
@@ -1004,10 +854,10 @@ class ProjSpherical(InversionDirective):
         m = Magnetics.xyz2atp(xyz)
 
         self.invProb.model = m
-        if isinstance(self.prob, list):
-            for prob in self.prob: prob.chi = m
-        else:
-            self.prob.chi = m
+
+        for prob in self.prob:
+            prob.chi = m
+
         self.opt.xc = m
 
     def endIter(self):
@@ -1019,10 +869,10 @@ class ProjSpherical(InversionDirective):
 
         self.invProb.model = m
         self.invProb.phi_m_last = self.reg(m)
-        if isinstance(self.prob, list):
-            for prob in self.prob: prob.chi = m
-        else:
-            self.prob.chi = m
+
+        for prob in self.prob:
+            prob.chi = m
+
         self.opt.xc = m
 
 
@@ -1046,10 +896,10 @@ class JointAmpMVI(InversionDirective):
         for prob in self.prob:
 
             if isinstance(prob, Magnetics.MagneticVector):
-                if prob.ptype == 'Spherical':
+                if prob.coordinate_system == 'spherical':
                     xyz = Magnetics.atp2xyz(prob.chiMap * m)
 
-                elif prob.ptype == 'Cartesian':
+                elif prob.coordinate_system == 'cartesian':
                     xyz = prob.chiMap * m
 
             if isinstance(prob, Magnetics.MagneticAmplitude):
@@ -1063,20 +913,20 @@ class JointAmpMVI(InversionDirective):
                 mcol = xyz.reshape((nC, 3), order='F')
                 amp = np.sum(mcol**2., axis=1)**0.5
                 M = Utils.sdiag(1./amp) * mcol
-                # prob.M = M
+                prob.M = M
 
                 if prob.chi is None:
                     prob.chi = prob.chiMap * m
 
-                    # ampW = (amp/amp.max() + 1e-2)**-1.
-                    # prob.W = ampW
+                    ampW = (amp/amp.max() + 1e-2)**-1.
+                    prob.W = ampW
 
-                # if isinstance(prob, Magnetics.MagneticVector):
+                if isinstance(prob, Magnetics.MagneticVector):
 
-                #     if (prob.ptype == 'Cartesian') and (self.amp is not None):
+                    if (prob.coordinate_system == 'cartesian') and (self.amp is not None):
 
-                #         ampW = (self.amp/self.amp.max() + 1e-2)**-1.
-                #         prob.W = np.r_[ampW, ampW, ampW]
+                        ampW = (self.amp/self.amp.max() + 1e-2)**-1.
+                        prob.W = np.r_[ampW, ampW, ampW]
 
         else:
             assert("This directive needs to used on a ComboObjective")
@@ -1091,10 +941,10 @@ class JointAmpMVI(InversionDirective):
             for prob in self.prob:
 
                 if isinstance(prob, Magnetics.MagneticVector):
-                    if prob.ptype == 'Spherical':
+                    if prob.coordinate_system == 'spherical':
                         xyz = Magnetics.atp2xyz(prob.chiMap * m)
 
-                    elif prob.ptype == 'Cartesian':
+                    elif prob.coordinate_system == 'cartesian':
                         xyz = prob.chiMap * m
 
                 if isinstance(prob, Magnetics.MagneticAmplitude):
@@ -1121,7 +971,7 @@ class JointAmpMVI(InversionDirective):
 
                 if isinstance(prob, Magnetics.MagneticVector):
 
-                    if (prob.ptype == 'Cartesian') and (self.amp is not None):
+                    if (prob.coordinate_system == 'cartesian') and (self.amp is not None):
 
                         ampW = (self.amp/self.amp.max() + 1e-2)**-1.
                         prob.W = np.r_[ampW, ampW, ampW]
