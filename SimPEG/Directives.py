@@ -596,12 +596,12 @@ class Update_IRLS(InversionDirective):
                            (f_m**2. + eps_a**2.)**(1-norm_a/2.))
 
             eps_tp = reg.eps_q
-            f_m = abs(reg.objfcts[1].f_m)
+            f_m = abs(reg.objfcts[0].f_m)
             norm_tp = reg.norms[1]
             max_tp = np.max(eps_tp**(1-norm_tp/2.)*f_m /
                             (f_m**2. + eps_tp**2.)**(1-norm_tp/2.))
 
-            reg.alpha_x, reg.alpha_y, reg.alpha_z = max_a/max_tp, max_a/max_tp, max_a/max_tp
+            reg.scale = max_a/max_tp
 
 
 class UpdatePreCond(InversionDirective):
@@ -757,25 +757,38 @@ class UpdateSensWeighting(InversionDirective):
                     jtjdiag = prob.JtJdiag * scale**2.
 
                     # Apply scale to the deriv and deriv2
+                    print('Scale: ' + str(scale))
                     dmisfit.scale = scale
 
-            if isinstance(prob, Magnetics.MagneticIntegral):
+            elif isinstance(prob, Magnetics.MagneticAmplitude):
+
+                Bxyz_a = prob.Bxyz_a(prob.chiMap * self.invProb.model)
+
+                if prob.magType == 'full':
+
+                    Mx = Utils.sdiag(prob.M[:, 0])
+                    My = Utils.sdiag(prob.M[:, 1])
+                    Mz = Utils.sdiag(prob.M[:, 2])
+
+                    Mxyz = sp.vstack((Mx, My, Mz))
+
+                    for ii in range(nD):
+
+                        rows = prob.F[ii::nD, :]
+                        jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii,:], rows * Mxyz)))**2.
+
+                else:
+                    for ii in range(nD):
+
+                        jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii,:],
+                                                   prob.F[ii::nD, :])))**2.
+
+            elif isinstance(prob, Magnetics.MagneticIntegral):
 
                 if getattr(prob, 'JtJdiag', None) is None:
                     prob.JtJdiag = np.sum(prob.F**2., axis=0)
-                    jtjdiag = prob.JtJdiag
 
-            if isinstance(prob, Magnetics.MagneticAmplitude):
-
-                if prob.magType == 'full':
-                    for ii in range(nC):
-                        row = np.dot(prob.F[:, ii::nC], prob.M[ii, :].reshape(3, 1))
-                        jtjdiag[ii] = np.sum((wd*(prob.dfdm*row))**2.)
-
-                else:
-                    for ii in range(nC):
-
-                        jtjdiag[ii] = np.sum((wd*(prob.dfdm*prob.F[:, ii]))**2.)
+                jtjdiag = prob.JtJdiag
 
             self.JtJdiag += [jtjdiag]
 
@@ -918,14 +931,14 @@ class JointAmpMVI(InversionDirective):
                 if prob.chi is None:
                     prob.chi = prob.chiMap * m
 
-                    ampW = (amp/amp.max() + 1e-2)**-1.
+                    ampW = (amp/amp.max() + 1e-1)**-1.
                     prob.W = ampW
 
                 if isinstance(prob, Magnetics.MagneticVector):
 
                     if (prob.coordinate_system == 'cartesian') and (self.amp is not None):
 
-                        ampW = (self.amp/self.amp.max() + 1e-2)**-1.
+                        ampW = (self.amp/self.amp.max() + 1e-1)**-1.
                         prob.W = np.r_[ampW, ampW, ampW]
 
         else:

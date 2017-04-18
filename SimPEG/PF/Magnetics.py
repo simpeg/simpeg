@@ -65,6 +65,15 @@ class MagneticIntegral(Problem.LinearProblem):
         return self._F
 
     @property
+    def nD(self):
+        """
+            Number of data
+        """
+        self._nD = self.survey.srcField.rxList[0].locs.shape[0]
+
+        return self._nD
+
+    @property
     def ProjTMI(self):
         if not self.ispaired:
             raise Exception('Need to pair!')
@@ -133,7 +142,6 @@ class MagneticIntegral(Problem.LinearProblem):
 
         survey = self.survey
         rxLoc = survey.srcField.rxList[0].locs
-        ndata = rxLoc.shape[0]
 
         # Pre-allocate space and create Magnetization matrix if required
         # If assumes uniform Magnetization direction
@@ -181,14 +189,14 @@ class MagneticIntegral(Problem.LinearProblem):
 
         else:
 
-            F = np.empty((ndata, Mxyz.shape[1]), dtype=np.float32)
+            F = np.empty((self.nD, Mxyz.shape[1]), dtype=np.float32)
 
         # Loop through all observations and create forward operator (nD-by-nC)
         print("Begin forward: M=" + magType + ", Rx type= " + recType)
 
         # Add counter to dsiplay progress. Good for large problems
         count = -1
-        for ii in range(ndata):
+        for ii in range(self.nD):
 
             tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
 
@@ -224,7 +232,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
             if not self.silent:
                 # Display progress
-                count = progress(ii, count, ndata)
+                count = progress(ii, count, self.nD)
 
         print("Done 100% ...forward operator completed!!\n")
 
@@ -423,12 +431,11 @@ class MagneticAmplitude(MagneticIntegral):
             return self.calcAmpData(Bxyz.astype(np.float64))
 
     def calcAmpData(self, Bxyz):
+        """
+            Compute amplitude of the field
+        """
 
-        ndata = self.survey.srcField.rxList[0].locs.shape[0]
-
-        Bamp = np.sqrt(Bxyz[:ndata]**2. +
-                       Bxyz[ndata:2*ndata]**2. +
-                       Bxyz[2*ndata:]**2.)
+        Bamp = np.sum(Bxyz.reshape((self.nD, 3), order='F')**2., axis=1)**0.5
 
         return Bamp
 
@@ -490,28 +497,34 @@ class MagneticAmplitude(MagneticIntegral):
 
         if getattr(self, '_dfdm', None) is None:
 
-            ndata = self.survey.srcField.rxList[0].locs.shape[0]
-
             # Get field data
             m = self.chiMap * self.chi
 
-            # Bxyz = np.empty(self.F.shape[0])
-            # for ii in range(self.F.shape[0]):
-            #     Bxyz[ii] = self.F[ii, :].dot(self.chiMap*m)
-            if self.magType != 'full':
-                Bxyz = np.dot(self.F, m.astype(np.float32))
-            else:
+            Bxyz = self.Bxyz_a(m)
 
-                Bxyz = np.dot(self.F, (self.Mxyz*m).astype(np.float32))
+            Bx = sp.spdiags(Bxyz[:, 0], 0, self.nD, self.nD)
+            By = sp.spdiags(Bxyz[:, 1], 0, self.nD, self.nD)
+            Bz = sp.spdiags(Bxyz[:, 2], 0, self.nD, self.nD)
 
-            Bamp = self.calcAmpData(Bxyz.astype(np.float64))
-
-            Bx = sp.spdiags(Bxyz[:ndata]/Bamp, 0, ndata, ndata)
-            By = sp.spdiags(Bxyz[ndata:2*ndata]/Bamp, 0, ndata, ndata)
-            Bz = sp.spdiags(Bxyz[2*ndata:]/Bamp, 0, ndata, ndata)
             self._dfdm = sp.hstack((Bx, By, Bz))
 
         return self._dfdm
+
+    def Bxyz_a(self, m):
+        """
+            Return the normalized B fields
+        """
+
+        if self.magType != 'full':
+            Bxyz = np.dot(self.F, m.astype(np.float32))
+        else:
+
+            Bxyz = np.dot(self.F, (self.Mxyz*m).astype(np.float32))
+
+        amp = self.calcAmpData(Bxyz.astype(np.float64))
+        Bamp = sp.spdiags(1./amp, 0, self.nD, self.nD)
+
+        return Bamp*Bxyz.reshape((self.nD, 3), order='F')
 
     @property
     def Mxyz(self):
