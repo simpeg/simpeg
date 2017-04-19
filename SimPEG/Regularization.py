@@ -399,7 +399,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
 
     # Properties
     mref = Props.Array(
-        "reference model", default=Utils.Zero()
+        "reference model"
     )
     indActive = properties.Array(
         "indices of active cells in the mesh", dtype=(bool, int)
@@ -525,6 +525,8 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         self._mapping = value
 
     def _delta_m(self, m):
+        if self.mref is None:
+            return m
         return (-self.mref + m)  # in case self.mref is Zero, returns type m
 
     @Utils.timeIt
