@@ -1058,6 +1058,85 @@ def atp2xyz(m):
     return m_xyz
 
 
+def xyz2pst(m, param):
+    """
+    Rotates from cartesian to pst
+    pst coordinates along the primary field H0
+
+    INPUT:
+        m : nC-by-3 array for [x,y,z] components
+        param: List of parameters [A, I, D] as given by survey.SrcList.param
+    """
+
+    nC = int(len(m)/3)
+
+    Rz = np.vstack((np.r_[np.cos(np.deg2rad(-param[2])),
+                          -np.sin(np.deg2rad(-param[2])), 0],
+                   np.r_[np.sin(np.deg2rad(-param[2])),
+                         np.cos(np.deg2rad(-param[2])), 0],
+                   np.r_[0, 0, 1]))
+
+    Rx = np.vstack((np.r_[1, 0, 0],
+                   np.r_[0, np.cos(np.deg2rad(-param[1])),
+                         -np.sin(np.deg2rad(-param[1]))],
+                   np.r_[0, np.sin(np.deg2rad(-param[1])),
+                         np.cos(np.deg2rad(-param[1]))]))
+
+    yvec = np.c_[0, 1, 0]
+    pvec = np.dot(Rz, np.dot(Rx, yvec.T))
+
+    xvec = np.c_[1, 0, 0]
+    svec = np.dot(Rz, np.dot(Rx, xvec.T))
+
+    zvec = np.c_[0, 0, 1]
+    tvec = np.dot(Rz, np.dot(Rx, zvec.T))
+
+    m_pst = np.r_[np.dot(pvec.T, m.T),
+                  np.dot(svec.T, m.T),
+                  np.dot(tvec.T, m.T)].T
+
+    return m_pst
+
+
+def pst2xyz(m, param):
+    """
+    Rotates from pst to cartesian
+    pst coordinates along the primary field H0
+
+    INPUT:
+        m : nC-by-3 array for [x,y,z] components
+        param: List of parameters [A, I, D] as given by survey.SrcList.param
+    """
+
+    nC = int(len(m)/3)
+
+    Rz = np.vstack((np.r_[np.cos(np.deg2rad(-param[2])),
+                          -np.sin(np.deg2rad(-param[2])), 0],
+                   np.r_[np.sin(np.deg2rad(-param[2])),
+                         np.cos(np.deg2rad(-param[2])), 0],
+                   np.r_[0, 0, 1]))
+
+    Rx = np.vstack((np.r_[1, 0, 0],
+                   np.r_[0, np.cos(np.deg2rad(-param[1])),
+                         -np.sin(np.deg2rad(-param[1]))],
+                   np.r_[0, np.sin(np.deg2rad(-param[1])),
+                         np.cos(np.deg2rad(-param[1]))]))
+
+    yvec = np.c_[0, 1, 0]
+    pvec = np.dot(Rz, np.dot(Rx, yvec.T))
+
+    xvec = np.c_[1, 0, 0]
+    svec = np.dot(Rz, np.dot(Rx, xvec.T))
+
+    zvec = np.c_[0, 0, 1]
+    tvec = np.dot(Rz, np.dot(Rx, zvec.T))
+
+    pst_mat = np.c_[pvec, svec, tvec]
+
+    m_xyz = np.dot(m, pst_mat.T)
+
+    return m_xyz
+
 def xyz2atp(m):
     """ Convert from cartesian to spherical """
 

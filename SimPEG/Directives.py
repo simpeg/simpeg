@@ -282,8 +282,9 @@ class SaveModelEveryIteration(SaveEveryIteration):
 class SaveUBCModelEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
 
-    mapping = None
     replace = True
+    saveComp = True
+    mapping = None
 
     def initialize(self):
 
@@ -294,64 +295,60 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
 
     def endIter(self):
 
-        # Overwrite the file or add interation number
         if not self.replace:
-            fileName = self.fileName + str(self.opt.iter)
+            fileName = self.fileName + "Iter" + str(self.opt.iter)
         else:
             fileName = self.fileName
 
-        Mesh.TensorMesh.writeModelUBC(self.reg.mesh,
-                                      fileName + '.sus',
-                                      self.mapping*self.opt.xc)
+        count = -1
+        for prob, survey, reg in zip(self.prob, self.survey, self.reg.objfcts):
 
-        Magnetics.writeUBCobs(fileName + '.pre', self.survey, self.invProb.dpred)
+            count += 1
 
+            xc = prob.mapPair() * self.opt.xc
 
-class SaveUBCVectorsEveryIteration(SaveEveryIteration):
-    """SaveModelEveryIteration"""
+            # Save predicted data
+            if len(self.prob) > 1:
+                Magnetics.writeUBCobs(fileName + "Prob" + str(count) + '.pre', survey, survey.dpred(m=xc))
 
-    mapping = None
-    replace = True
-    saveComp = False
-    spherical = False
+            else:
+                Magnetics.writeUBCobs(fileName + '.pre', survey, survey.dpred(m=xc))
 
-    def initialize(self):
-        print("SimPEG.SaveModelEveryIteration will save your models" +
-              " in UBC format as: '###-{0!s}.sus'".format(self.fileName))
+            # Save model
+            if not isinstance(prob, Magnetics.MagneticVector):
 
-    def endIter(self):
+                Mesh.TensorMesh.writeModelUBC(reg.mesh,
+                                              fileName + '.sus', self.mapping * xc)
+            else:
 
-        nC = self.mapping.shape[1]
+                if prob.coordinate_system == 'spherical':
+                    vec_xyz = Magnetics.atp2xyz(xc)
+                else:
+                    vec_xyz = xc
 
-        if self.spherical:
-            vec_pst = Magnetics.atp2xyz(self.opt.xc)
-        else:
-            vec_pst = self.opt.xc
+                nC = self.mapping.shape[1]
 
-        vec_p = self.mapping*vec_pst[:nC]
-        vec_s = self.mapping*vec_pst[nC:2*nC]
-        vec_t = self.mapping*vec_pst[2*nC:]
+                vec_x = self.mapping * vec_xyz[:nC]
+                vec_y = self.mapping * vec_xyz[nC:2*nC]
+                vec_z = self.mapping * vec_xyz[2*nC:]
 
-        vec = np.c_[vec_p, vec_s, vec_t]
+                vec = np.c_[vec_x, vec_y, vec_z]
 
-        # Overwrite the file or add interation number
-        if not self.replace:
-            fileName = self.fileName + str(self.opt.iter)
-        else:
-            fileName = self.fileName
+                m_pst = Magnetics.xyz2pst(vec, self.survey[0].srcField.param)
+                m_ind = m_pst.copy()
+                m_ind[:, 1:] = 0.
+                m_ind = Magnetics.pst2xyz(m_ind, self.survey[0].srcField.param)
 
-        MagneticsDriver.writeVectorUBC(self.prob.mesh, fileName + '.fld', vec)
+                m_rem = m_pst.copy()
+                m_rem[:, 0] = 0.
+                m_rem = Magnetics.pst2xyz(m_rem, self.survey[0].srcField.param)
 
-        if self.saveComp:
-            Mesh.TensorMesh.writeModelUBC(self.prob.mesh,
-                                          fileName + '_amp.sus',
-                                          self.mapping*self.opt.xc[:nC])
-            Mesh.TensorMesh.writeModelUBC(self.prob.mesh,
-                                          fileName + '_phi.sus',
-                                          self.mapping*self.opt.xc[nC:2*nC])
-            Mesh.TensorMesh.writeModelUBC(self.prob.mesh,
-                                          fileName + '_theta.sus',
-                                          self.mapping*self.opt.xc[2*nC:])
+                MagneticsDriver.writeVectorUBC(self.prob[0].mesh, fileName + '_VEC.fld', vec)
+
+                if self.saveComp:
+                    MagneticsDriver.writeVectorUBC(self.prob[0].mesh, fileName + '_IND.fld', m_ind)
+                    MagneticsDriver.writeVectorUBC(self.prob[0].mesh, fileName + '_REM.fld', m_rem)
+
 
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
@@ -757,8 +754,7 @@ class UpdateSensWeighting(InversionDirective):
                     jtjdiag = prob.JtJdiag * scale**2.
 
                     # Apply scale to the deriv and deriv2
-                    print('Scale: ' + str(scale))
-                    dmisfit.scale = scale
+                    dmisfit.scale = scale * (3**-0.5)
 
             elif isinstance(prob, Magnetics.MagneticAmplitude):
 
@@ -808,9 +804,6 @@ class UpdateSensWeighting(InversionDirective):
 
             prob_JtJ = JtJ
 
-            if prob.W is not None:
-                prob_JtJ *= prob.W
-
             if getattr(prob.chiMap, 'index', None) is None:
                 wr += prob_JtJ
             else:
@@ -819,6 +812,16 @@ class UpdateSensWeighting(InversionDirective):
 
         wr = wr**0.5
         wr /= wr.max()
+
+        # Apply extra weighting
+        for prob in self.prob:
+            if prob.W is not None:
+
+                if getattr(prob.chiMap, 'index', None) is None:
+                    wr *= prob.W
+                else:
+
+                    wr[prob.chiMap.index] *= prob.W
 
         return wr
 
@@ -928,18 +931,18 @@ class JointAmpMVI(InversionDirective):
                 M = Utils.sdiag(1./amp) * mcol
                 prob.M = M
 
-                if prob.chi is None:
-                    prob.chi = prob.chiMap * m
+                # if prob.chi is None:
+                #     prob.chi = prob.chiMap * m
 
-                    ampW = (amp/amp.max() + 1e-1)**-1.
-                    prob.W = ampW
+                #     ampW = (amp/amp.max() + 1e-1)**-1.
+                #     prob.W = ampW
 
-                if isinstance(prob, Magnetics.MagneticVector):
+                # if isinstance(prob, Magnetics.MagneticVector):
 
-                    if (prob.coordinate_system == 'cartesian') and (self.amp is not None):
+                #     if (prob.coordinate_system == 'cartesian') and (self.amp is not None):
 
-                        ampW = (self.amp/self.amp.max() + 1e-1)**-1.
-                        prob.W = np.r_[ampW, ampW, ampW]
+                #         ampW = (self.amp/self.amp.max() + 1e-1)**-1.
+                #         prob.W = np.r_[ampW, ampW, ampW]
 
         else:
             assert("This directive needs to used on a ComboObjective")
@@ -976,11 +979,11 @@ class JointAmpMVI(InversionDirective):
                     prob.M = M
                     prob._Mxyz = None
 
-                    if prob.chi is None:
-                        prob.chi = prob.chiMap * m
+                    # if prob.chi is None:
+                    #     prob.chi = prob.chiMap * m
 
-                    ampW = (amp/amp.max() + 1e-2)**-1.
-                    prob.W = ampW
+                    # ampW = (amp/amp.max() + 1e-2)**-1.
+                    # prob.W = ampW
 
                 if isinstance(prob, Magnetics.MagneticVector):
 
