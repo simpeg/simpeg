@@ -419,6 +419,7 @@ class Update_IRLS(InversionDirective):
     updateBeta = True
 
     mode = 1
+    scale_m = False
 
     @property
     def target(self):
@@ -451,12 +452,18 @@ class Update_IRLS(InversionDirective):
         for reg in self.reg.objfcts:
             reg.model = self.invProb.model
 
-        # Adjust scales for MVI-S
-        # if self.ComboMisfitFun:
+        # Look for cases where the block models in to be scaled
         for prob in self.prob:
+
             if isinstance(prob, Magnetics.MagneticVector):
                 if prob.coordinate_system == 'spherical':
-                    self.regScale()
+                    self.scale_m = True
+
+                if np.all([prob.coordinate_system == 'cartesian', len(self.prob) > 1]):
+                    self.scale_m = True
+
+        if self.scale_m:
+            self.regScale()
 
     def endIter(self):
 
@@ -466,10 +473,8 @@ class Update_IRLS(InversionDirective):
 
         # Adjust scales for MVI-S
         # if self.ComboMisfitFun:
-        for prob in self.prob:
-            if isinstance(prob, Magnetics.MagneticVector):
-                if prob.coordinate_system == 'spherical':
-                    self.regScale()
+        if self.scale_m:
+            self.regScale()
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if np.all([self.invProb.phi_d < self.target, self.mode == 1]):
@@ -736,7 +741,7 @@ class UpdateSensWeighting(InversionDirective):
             wd = dmisfit.W.diagonal()
 
             scale = (Phid[0] / phid)**-0.5
-
+            print(scale)
             if isinstance(prob, Magnetics.MagneticVector):
 
                 if prob.coordinate_system == 'spherical':
@@ -751,7 +756,7 @@ class UpdateSensWeighting(InversionDirective):
                     if getattr(prob, 'JtJdiag', None) is None:
                         prob.JtJdiag = np.sum(prob.F**2., axis=0)
 
-                    jtjdiag = prob.JtJdiag * scale**2.
+                    jtjdiag = prob.JtJdiag.copy()
 
                     # Apply scale to the deriv and deriv2
                     dmisfit.scale = scale * (3**-0.5)
@@ -989,7 +994,7 @@ class JointAmpMVI(InversionDirective):
 
                     if (prob.coordinate_system == 'cartesian') and (self.amp is not None):
 
-                        ampW = (self.amp/self.amp.max() + 1e-2)**-1.
+                        ampW = (self.amp/self.amp.max() + 1e-1)**-1.
                         prob.W = np.r_[ampW, ampW, ampW]
 
 
