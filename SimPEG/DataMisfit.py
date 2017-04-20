@@ -163,7 +163,7 @@ class l2_DataMisfit(BaseDataMisfit):
         if f is None:
             f = self.prob.fields(m)
         return self.scale *self.prob.Jtvec_approx(
-            m, self.W * (self.W * self.scale * self.prob.Jvec_approx(m, v, f=f)), f=f
+            m, self.W * (self.scale * self.W * self.prob.Jvec_approx(m, v, f=f)), f=f
         )
 
 

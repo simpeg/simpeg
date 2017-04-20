@@ -187,6 +187,8 @@ class Minimize(object):
     counter = None  #: Set this to a SimPEG.Utils.Counter() if you want to count things
     parent = None  #: This is the parent of the optimization routine.
 
+    LSalwaysPass = False
+
     def __init__(self, **kwargs):
         self.stoppers = [
             StoppingCriteria.tolerance_f, StoppingCriteria.moving_x,
@@ -513,10 +515,11 @@ class Minimize(object):
         if self.debugLS and self.iterLS > 0:
             self.printDone(inLS=True)
 
-        # if self.alwaysPass:
-        #     return self._LS_xt, True
-        # else:
-        return self._LS_xt, self.iterLS < self.maxIterLS
+        if np.all([self.LSalwaysPass, self.iterLS >= self.maxIterLS]):
+            print("LS forced to continue")
+            return self._LS_xt, True
+        else:
+            return self._LS_xt, self.iterLS < self.maxIterLS
 
     @Utils.count
     def modifySearchDirectionBreak(self, p):
@@ -1071,7 +1074,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
     upper = np.inf
 
     ComboObjFun = False
-    alwaysPass = True
+    LSalwaysPass = False
 
 
     def _startup(self, x0):

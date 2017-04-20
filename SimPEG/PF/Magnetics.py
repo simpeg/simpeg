@@ -529,7 +529,7 @@ class MagneticAmplitude(MagneticIntegral):
     @property
     def Mxyz(self):
 
-        if getattr(self, '_M', None) is None:
+        if getattr(self, '_Mxyz', None) is None:
 
             Mx = Utils.sdiag(self.M[:, 0])
             My = Utils.sdiag(self.M[:, 1])
