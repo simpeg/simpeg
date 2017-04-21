@@ -11,6 +11,7 @@ from SimPEG.Utils import Zero
 from SimPEG.EM.Static.DC import getxBCyBC_CC
 from .SurveyIP import Survey
 from SimPEG import Props
+import sys
 
 
 class BaseIPProblem(BaseEMProblem):
@@ -33,15 +34,19 @@ class BaseIPProblem(BaseEMProblem):
     fieldsPair = FieldsDC
     Ainv = None
     f = None
+    storeJ = False
+    J = None
+    fswitch = False
+    sign = None
 
     def fields(self, m):
         return None
 
-    def fieldsdc(self, m):
-        if self.verbose:
+    def fieldsdc(self):
+        if self.verbose == True:
             print (">> Compute fields")
-        if m is not None:
-            self.model = m
+        # if m is not None:
+        #     self.model = m
         if self.f is None:
             self.f = self.fieldsPair(self.mesh, self.survey)
             if self.Ainv is None:
@@ -52,66 +57,111 @@ class BaseIPProblem(BaseEMProblem):
             Srcs = self.survey.srcList
             self.f[Srcs, self._solutionType] = u
 
-    def Jvec(self, m, v, f=None):
+    def getJ(self, f=None):
+        """
+            Generate Full sensitivity matrix
+        """
+
+        print (">> Compute Sensitivity matrix")
 
         if self.f is None:
-            self.fieldsdc(m)
+            self.fieldsdc()
 
-        self.model = m
+        # self.model = m
+        Jt = []
 
-        Jv = []
-        A = self.getA()
-
-        for src in self.survey.srcList:
-            u_src = self.f[src, self._solutionType] # solution vector
-            dA_dm_v = self.getADeriv(u_src, v)
-            dRHS_dm_v = self.getRHSDeriv(src, v)
-            du_dm_v = self.Ainv * ( - dA_dm_v + dRHS_dm_v )
-
-            for rx in src.rxList:
-                df_dmFun = getattr(self.f, '_{0!s}Deriv'.format(rx.projField), None)
-                df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
-                Jv.append(rx.evalDeriv(src, self.mesh, self.f, df_dm_v))
-        # Conductivity (d u / d log sigma)
-        if self._formulation == 'EB':
-            # return -Utils.mkvc(Jv)
-            return -np.hstack(Jv)
-        # Conductivity (d u / d log rho)
-        if self._formulation == 'HJ':
-            # return Utils.mkvc(Jv)
-            return np.hstack(Jv)
-
-    def Jtvec(self, m, v, f=None):
-        if self.f is None:
-            self.fieldsdc(m)
-
-        self.model = m
-
-        # Ensure v is a data object.
-        if not isinstance(v, self.dataPair):
-            v = self.dataPair(self.survey, v)
-
-        Jtv = np.zeros(m.size)
+        # Jtv = np.zeros((m.size, rx.nD), dtype=float)
         AT = self.getA()
 
-        for src in self.survey.srcList:
+        for isrc, src in enumerate(self.survey.srcList):
+            sys.stdout.write(("\r %d / %d")%(isrc, self.survey.nSrc))
+            sys.stdout.flush()
             u_src = self.f[src, self._solutionType]
             for rx in src.rxList:
-                PTv = rx.evalDeriv(src, self.mesh, self.f, v[src, rx], adjoint=True)  # wrt f, need possibility wrt m
-                df_duTFun = getattr(self.f, '_{0!s}Deriv'.format(rx.projField), None)
-                df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
-                ATinvdf_duT = self.Ainv * df_duT
+                P = rx.getP(self.mesh, rx.projGLoc(self.f)).toarray()
+                ATinvdf_duT = self.Ainv * (P.T)
                 dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
-                dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
-                du_dmT = -dA_dmT + dRHS_dmT
-                Jtv += (df_dmT + du_dmT).astype(float)
-        # Conductivity ((d u / d log sigma).T)
-        if self._formulation == 'EB':
-            return -Utils.mkvc(Jtv)
-        # Conductivity ((d u / d log rho).T)
-        if self._formulation == 'HJ':
-            return Utils.mkvc(Jtv)
+                if rx.nD == 1:
+                    Jt.append(-dA_dmT.reshape([-1,1]))
+                else:
+                    Jt.append(-dA_dmT)
+        return np.hstack(Jt).T
+
+    def Jvec(self, m, v, f=None):
+
+        self.model = m
+
+        # When sensitivity matrix J is stored
+        if self.storeJ:
+            if self.fswitch == False:
+                self.fieldsdc()
+                self.J = self.getJ(f=f)
+                self.fswitch = True
+            return self.sign * self.J.dot(v)
+
+        else:
+
+            if self.f is None:
+                self.fieldsdc()
+
+            Jv = []
+            A = self.getA()
+
+            for src in self.survey.srcList:
+                u_src = self.f[src, self._solutionType] # solution vector
+                dA_dm_v = self.getADeriv(u_src, v)
+                dRHS_dm_v = self.getRHSDeriv(src, v)
+                du_dm_v = self.Ainv * ( - dA_dm_v + dRHS_dm_v )
+
+                for rx in src.rxList:
+                    df_dmFun = getattr(self.f, '_{0!s}Deriv'.format(rx.projField), None)
+                    df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
+                    # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+                    Jv.append(rx.evalDeriv(src, self.mesh, self.f, df_dm_v))
+
+            # Conductivity (d u / d log sigma) - EB form
+            # Resistivity (d u / d log rho) - HJ form
+            return self.sign*np.hstack(Jv)
+
+    def Jtvec(self, m, v, f=None):
+
+        self.model = m
+
+        # When sensitivity matrix J is stored
+        if self.storeJ:
+            if self.fswitch == False:
+                self.fieldsdc()
+                self.J = self.getJ(f=f)
+                self.fswitch = True
+            Jtvec = self.J.T.dot(v)
+            return self.sign * Jtvec
+
+        else:
+            if self.f is None:
+                self.fieldsdc(m)
+
+            # Ensure v is a data object.
+            if not isinstance(v, self.dataPair):
+                v = self.dataPair(self.survey, v)
+
+            Jtv = np.zeros(m.size)
+            AT = self.getA()
+
+            for src in self.survey.srcList:
+                u_src = self.f[src, self._solutionType]
+                for rx in src.rxList:
+                    PTv = rx.evalDeriv(src, self.mesh, self.f, v[src, rx], adjoint=True)  # wrt f, need possibility wrt m
+                    df_duTFun = getattr(self.f, '_{0!s}Deriv'.format(rx.projField), None)
+                    df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+                    ATinvdf_duT = self.Ainv * df_duT
+                    dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
+                    du_dmT = -dA_dmT + dRHS_dmT
+                    Jtv += (df_dmT + du_dmT).astype(float)
+
+            # Conductivity ((d u / d log sigma).T) - EB form
+            # Resistivity ((d u / d log rho).T) - HJ form
+            return self.sign*Utils.mkvc(Jtv)
 
     def getSourceTerm(self):
         """
@@ -188,10 +238,14 @@ class Problem3D_CC(BaseIPProblem):
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_CC
+    sign = 1.
 
     def __init__(self, mesh, **kwargs):
         BaseIPProblem.__init__(self, mesh, **kwargs)
         self.setBC()
+        if self.storeJ:
+            self.getJ()
+            self.fswitch = True
 
     def getA(self):
         """
@@ -321,6 +375,7 @@ class Problem3D_N(BaseIPProblem):
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # N potentials means B is on faces
     fieldsPair = Fields_N
+    sign = -1.
 
     def __init__(self, mesh, **kwargs):
         BaseIPProblem.__init__(self, mesh, **kwargs)
@@ -372,3 +427,5 @@ class Problem3D_N(BaseIPProblem):
         # qDeriv = src.evalDeriv(self, adjoint=adjoint)
         # return qDeriv
         return Zero()
+
+

@@ -112,7 +112,6 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
                         Jtv += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
                         Jtv += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
                     Jtv_temp0 = Jtv_temp1.copy()
-
                 Jt.append(Jtv)
 
         return np.hstack(Jt).T
@@ -396,6 +395,8 @@ class Problem2D_N(BaseIPProblem_2D):
         A[0, 0] = A[0, 0] + 1.
         return A
 
+    @Utils.count
+    @Utils.timeIt
     def getADeriv(self, ky, u, v, adjoint=False):
 
         MeSigma = self.MeSigma
