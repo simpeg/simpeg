@@ -96,7 +96,6 @@ class TestBaseObjFct(unittest.TestCase):
         self.assertTrue(np.all(phi1.multipliers == np.r_[1., alpha1]))
         self.assertTrue(np.all(phi2.multipliers == np.r_[1., alpha2]))
 
-
     def test_3sum(self):
         nP = 90
 

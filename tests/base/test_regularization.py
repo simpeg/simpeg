@@ -71,7 +71,6 @@ class RegularizationTests(unittest.TestCase):
                     self.assertTrue(passed)
 
 
-
         def test_regularization_ActiveCells(self):
             for R in dir(Regularization):
                 r = getattr(Regularization, R)
