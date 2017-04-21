@@ -242,10 +242,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         self._nP = '*'
 
-        assert(len(objfcts)==len(multipliers)),(
+        assert(len(objfcts)==len(multipliers)), (
             "Must have the same number of Objective Functions and Multipliers "
-            "not {} and {}".format(len(objfcts),len(multipliers))
-            )
+            "not {} and {}".format(len(objfcts), len(multipliers))
+        )
 
         def validate_list(objfctlist, multipliers):
             """

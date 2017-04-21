@@ -117,7 +117,7 @@ class TestBaseObjFct(unittest.TestCase):
         )
 
         self.assertTrue(
-            alpha1*phi1(m) + alpha2*phi2(m) + phi3(m)/alpha3inv == phi(m)
+           np.allclose((alpha1*phi1(m) + alpha2*phi2(m) + phi3(m)/alpha3inv), phi(m))
         )
 
         self.assertTrue(len(phi.objfcts) == 3)
