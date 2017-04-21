@@ -39,11 +39,9 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
     sign = None
     f = None
 
-    def fieldsdc(self, m):
+    def fieldsdc(self):
         if self.verbose:
             print (">> Compute DC fields")
-        if m is not None:
-            self.model = m
         if self.Ainv[0] is not None:
             for i in range(self.nky):
                 self.Ainv[i].clean()
@@ -63,7 +61,7 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
         # where calling self.fields
         return None
 
-    def getJ(self, m, f=None):
+    def getJ(self, f=None):
         """
             Generate Full sensitivity matrix
         """
@@ -72,8 +70,7 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
             print (">> Compute Sensitivity matrix")
 
         if self.f is None:
-            self.fieldsdc(m)
-        self.model = m
+            self.fieldsdc()
 
         Jt = []
 
@@ -119,16 +116,16 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
     def Jvec(self, m, v, f=None):
         self.model = m
         if self.fswitch == False:
-            f = self.fieldsdc(m)
-            self.J = self.getJ(m, f=f)
+            f = self.fieldsdc()
+            self.J = self.getJ(f=f)
             self.fswitch = True
         return self.sign * self.J.dot(v)
 
     def Jtvec(self, m, v, f=None):
         self.model = m
         if self.fswitch == False:
-            f = self.fieldsdc(m)
-            self.J = self.getJ(m, f=f)
+            f = self.fieldsdc()
+            self.J = self.getJ(f=f)
             self.fswitch = True
         Jtvec = self.J.T.dot(v)
         return self.sign * Jtvec
@@ -373,7 +370,6 @@ class Problem2D_N(BaseIPProblem_2D):
 
     def __init__(self, mesh, **kwargs):
         BaseIPProblem_2D.__init__(self, mesh, **kwargs)
-        # self.setBC()
 
     def getA(self, ky):
         """

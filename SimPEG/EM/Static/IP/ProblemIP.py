@@ -45,8 +45,6 @@ class BaseIPProblem(BaseEMProblem):
     def fieldsdc(self):
         if self.verbose == True:
             print (">> Compute fields")
-        # if m is not None:
-        #     self.model = m
         if self.f is None:
             self.f = self.fieldsPair(self.mesh, self.survey)
             if self.Ainv is None:
@@ -67,10 +65,8 @@ class BaseIPProblem(BaseEMProblem):
         if self.f is None:
             self.fieldsdc()
 
-        # self.model = m
         Jt = []
 
-        # Jtv = np.zeros((m.size, rx.nD), dtype=float)
         AT = self.getA()
 
         for isrc, src in enumerate(self.survey.srcList):
@@ -82,7 +78,8 @@ class BaseIPProblem(BaseEMProblem):
                 ATinvdf_duT = self.Ainv * (P.T)
                 dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
                 if rx.nD == 1:
-                    Jt.append(-dA_dmT.reshape([-1,1]))
+                    # Consider when rx has one location
+                    Jt.append(-dA_dmT.reshape([-1, 1]))
                 else:
                     Jt.append(-dA_dmT)
         return np.hstack(Jt).T

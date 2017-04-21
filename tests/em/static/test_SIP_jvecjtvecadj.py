@@ -50,7 +50,8 @@ class IPProblemTestsCC(unittest.TestCase):
             mesh,
             rho=1./sigma,
             etaMap=wires.eta,
-            tauiMap=wires.taui
+            tauiMap=wires.taui,
+            storeJ = True
         )
         problem.Solver = Solver
         problem.pair(survey)
@@ -147,7 +148,8 @@ class IPProblemTestsN(unittest.TestCase):
             mesh,
             sigma=sigma,
             etaMap=wires.eta,
-            tauiMap=wires.taui
+            tauiMap=wires.taui,
+            storeJ = True,
         )
         problem.Solver = Solver
         problem.pair(survey)
@@ -251,7 +253,8 @@ class IPProblemTestsN_air(unittest.TestCase):
             sigma=sigma,
             etaMap=actmapeta*wires.eta,
             tauiMap=actmaptau*wires.taui,
-            cMap=actmapc*wires.c
+            cMap=actmapc*wires.c,
+            storeJ = True
         )
 
         problem.Solver = Solver

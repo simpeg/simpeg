@@ -81,7 +81,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         else:
             return dpetadc * (self.cDeriv*v)
 
-    def getJ(self, m, f=None):
+    def getJ(self, f=None):
         """
             Generate Full sensitivity matrix
         """
@@ -90,9 +90,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
             print (">> Compute Sensitivity matrix")
 
         if self.f is None:
-            self.fieldsdc(m)
-        self.model = m
-
+            self.fieldsdc()
         Jt = []
 
         # Assume y=0.
@@ -137,8 +135,8 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
 
     def forward(self, m, f=None):
         if self.fswitch == False:
-            f = self.fieldsdc(m)
-            self.J = self.getJ(m, f=f)
+            f = self.fieldsdc()
+            self.J = self.getJ(f=f)
             self.fswitch = True
 
         ntime = len(self.survey.times)
@@ -155,8 +153,8 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
 
         self.model = m
         if self.fswitch == False:
-            f = self.fieldsdc(m)
-            self.J = self.getJ(m, f=f)
+            f = self.fieldsdc()
+            self.J = self.getJ(f=f)
             self.fswitch = True
 
         ntime = len(self.survey.times)
@@ -177,8 +175,8 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
 
         self.model = m
         if self.fswitch == False:
-            f = self.fieldsdc(m)
-            self.J = self.getJ(m, f=f)
+            f = self.fieldsdc()
+            self.J = self.getJ(f=f)
             self.fswitch = True
 
         ntime = len(self.survey.times)
@@ -229,7 +227,10 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
             Derivative of MeSigma with respect to the model
         """
         dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.actMap.P
-        return self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) * dsigma_dlogsigma
+        return (
+            self.mesh.getEdgeInnerProductDeriv(self.sigma)(u)
+            * dsigma_dlogsigma
+            )
 
     def MnSigmaDeriv(self, u):
         """

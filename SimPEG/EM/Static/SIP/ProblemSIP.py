@@ -4,9 +4,11 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import numpy as np
+import sys
 
 from SimPEG import Utils
 from SimPEG import Props
+from SimPEG import Maps
 
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
@@ -51,7 +53,11 @@ class BaseSIPProblem(BaseEMProblem):
     dataPair = Data
     Ainv = None
     f = None
-    Ainv = None
+    actinds = None
+    storeJ = False
+    J = None
+    fswitch = False
+    actMap = None    # Surje
 
     def getPeta(self, t):
         peta = self.eta*np.exp(-(self.taui*t)**self.c)
@@ -88,10 +94,9 @@ class BaseSIPProblem(BaseEMProblem):
         else:
             return dpetadc * (self.cDeriv*v)
 
-    def fieldsdc(self, m):
+    def fieldsdc(self):
         if self.verbose:
             print (">> Compute DC fields")
-        self.model = m
         if self.f is None:
             self.f = self.fieldsPair(self.mesh, self.survey)
             if self.Ainv is None:
@@ -105,144 +110,229 @@ class BaseSIPProblem(BaseEMProblem):
     def fields(self, m):
         return None
 
-    def forward(self, m, f=None):
+    def getJ(self, f=None):
+        """
+            Generate Full sensitivity matrix
+        """
+
+        print (">> Compute Sensitivity matrix")
 
         if self.f is None:
-            self.fieldsdc(m)
+            self.fieldsdc()
+
+        Jt = []
+
+        AT = self.getA()
+
+        for isrc, src in enumerate(self.survey.srcList):
+            sys.stdout.write(("\r %d / %d")%(isrc, self.survey.nSrc))
+            sys.stdout.flush()
+            u_src = self.f[src, self._solutionType]
+            for rx in src.rxList:
+                P = rx.getP(self.mesh, rx.projGLoc(self.f)).toarray()
+                ATinvdf_duT = self.Ainv * (P.T)
+                dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
+                if rx.nD == 1:
+                    # Consider when rx has one location
+                    Jt.append(-dA_dmT.reshape([-1, 1]))
+                else:
+                    Jt.append(-dA_dmT)
+        return np.hstack(Jt).T
+
+    def forward(self, m, f=None):
 
         self.model = m
         Jv = []
 
-        # A = self.getA()
-        for tind in range(len(self.survey.times)):
-            # Pseudo-chareability
-            t = self.survey.times[tind]
-            v = self.getPeta(t)
-            for src in self.survey.srcList:
-                u_src = self.f[src, self._solutionType]  # solution vector
-                dA_dm_v = self.getADeriv(u_src, v)
-                dRHS_dm_v = self.getRHSDeriv(src, v)
-                du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
-                for rx in src.rxList:
-                    timeindex = rx.getTimeP(self.survey.times)
-                    if timeindex[tind]:
-                        df_dmFun = getattr(
-                            self.f, '_{0!s}Deriv'.format(rx.projField), None
-                            )
-                        df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                        Jv.append(
-                            rx.evalDeriv(src, self.mesh, self.f, df_dm_v)
-                            )
+        # When sensitivity matrix is stored
+        if self.storeJ:
+            if self.fswitch == False:
+                f = self.fieldsdc()
+                self.J = self.getJ(f=f)
+                self.fswitch = True
 
-        # Conductivity (d u / d log sigma)
-        if self._formulation == 'EB':
-            # return -Utils.mkvc(Jv)
-            return -np.hstack(Jv)
-        # Resistivity (d u / d log rho)
-        if self._formulation == 'HJ':
-            # return Utils.mkvc(Jv)
-            return np.hstack(Jv)
+            ntime = len(self.survey.times)
+
+            self.model = m
+            for tind in range(ntime):
+                Jv.append(
+                    self.J.dot(
+                        self.actMap.P.T*self.getPeta(self.survey.times[tind]))
+                    )
+            return self.sign * np.hstack(Jv)
+
+        # Do not store sensitivity matrix (memory-wise efficient)
+        else:
+
+            if self.f is None:
+                self.fieldsdc()
+
+            # A = self.getA()
+            for tind in range(len(self.survey.times)):
+                # Pseudo-chareability
+                t = self.survey.times[tind]
+                v = self.getPeta(t)
+                for src in self.survey.srcList:
+                    u_src = self.f[src, self._solutionType]  # solution vector
+                    dA_dm_v = self.getADeriv(u_src, v)
+                    dRHS_dm_v = self.getRHSDeriv(src, v)
+                    du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
+                    for rx in src.rxList:
+                        timeindex = rx.getTimeP(self.survey.times)
+                        if timeindex[tind]:
+                            df_dmFun = getattr(
+                                self.f, '_{0!s}Deriv'.format(rx.projField), None
+                                )
+                            df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
+                            Jv.append(
+                                rx.evalDeriv(src, self.mesh, self.f, df_dm_v)
+                                )
+
+            return self.sign*np.hstack(Jv)
 
     def Jvec(self, m, v, f=None):
 
-        if self.f is None:
-            self.fieldsdc(m)
-
         self.model = m
+
         Jv = []
 
-        for tind in range(len(self.survey.times)):
+        # When sensitivity matrix is stored
+        if self.storeJ:
+            if self.fswitch == False:
+                self.fieldsdc()
+                self.J = self.getJ(f=f)
+                self.fswitch = True
 
-            t = self.survey.times[tind]
-            v0 = self.PetaEtaDeriv(t, v)
-            v1 = self.PetaTauiDeriv(t, v)
-            v2 = self.PetaCDeriv(t, v)
+            ntime = len(self.survey.times)
 
-            for src in self.survey.srcList:
-                u_src = self.f[src, self._solutionType]  # solution vector
-                dA_dm_v = self.getADeriv(u_src, v0+v1+v2)
-                dRHS_dm_v = self.getRHSDeriv(src, v0+v1+v2)
-                du_dm_v = self.Ainv * (
-                    - dA_dm_v + dRHS_dm_v
-                    )
+            for tind in range(ntime):
 
-                for rx in src.rxList:
-                    timeindex = rx.getTimeP(self.survey.times)
-                    if timeindex[tind]:
-                        df_dmFun = getattr(
-                            self.f, '_{0!s}Deriv'.format(rx.projField), None
-                            )
-                        df_dm_v = df_dmFun(
-                            src, du_dm_v, v0+v1+v2, adjoint=False
-                            )
-                        Jv.append(
-                            rx.evalDeriv(src, self.mesh, self.f, du_dm_v)
-                            )
+                t = self.survey.times[tind]
+                v0 = self.PetaEtaDeriv(t, v)
+                v1 = self.PetaTauiDeriv(t, v)
+                v2 = self.PetaCDeriv(t, v)
+                PTv = self.actMap.P.T*(v0+v1+v2)
+                Jv.append(self.J.dot(PTv))
 
-        # Conductivity (d u / d log sigma)
-        if self._formulation == 'EB':
-            # return -Jv.tovec()
-            return -np.hstack(Jv)
-        # Resistivity (d u / d log rho)
-        if self._formulation == 'HJ':
-            # return Jv.tovec()
-            return np.hstack(Jv)
+            return self.sign * np.hstack(Jv)
+
+        # Do not store sensitivity matrix (memory-wise efficient)
+        else:
+
+            if self.f is None:
+                self.fieldsdc()
+
+            for tind in range(len(self.survey.times)):
+
+                t = self.survey.times[tind]
+                v0 = self.PetaEtaDeriv(t, v)
+                v1 = self.PetaTauiDeriv(t, v)
+                v2 = self.PetaCDeriv(t, v)
+
+                for src in self.survey.srcList:
+                    u_src = self.f[src, self._solutionType]  # solution vector
+                    dA_dm_v = self.getADeriv(u_src, v0+v1+v2)
+                    dRHS_dm_v = self.getRHSDeriv(src, v0+v1+v2)
+                    du_dm_v = self.Ainv * (
+                        - dA_dm_v + dRHS_dm_v
+                        )
+
+                    for rx in src.rxList:
+                        timeindex = rx.getTimeP(self.survey.times)
+                        if timeindex[tind]:
+                            df_dmFun = getattr(
+                                self.f, '_{0!s}Deriv'.format(rx.projField), None
+                                )
+                            df_dm_v = df_dmFun(
+                                src, du_dm_v, v0+v1+v2, adjoint=False
+                                )
+
+                            Jv_temp = (
+                                rx.evalDeriv(src, self.mesh, self.f, du_dm_v)
+                                )
+                            if rx.nD == 1:
+                                Jv_temp = Jv_temp.reshape([-1, 1])
+
+                            Jv.append(Jv_temp)
+
+            return self.sign*np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
-        if self.f is None:
-            self.fieldsdc(m)
 
         self.model = m
 
-        # Ensure v is a data object.
-        if not isinstance(v, self.dataPair):
-            v = self.dataPair(self.survey, v)
+        # When sensitivity matrix is stored
+        if self.storeJ:
+            if self.fswitch == False:
+                f = self.fieldsdc()
+                self.J = self.getJ(f=f)
+                self.fswitch = True
 
-        Jtv = np.zeros(m.size)
+            ntime = len(self.survey.times)
+            Jtvec = np.zeros(m.size)
+            v = v.reshape((int(self.survey.nD/ntime), ntime), order="F")
 
-        for tind in range(len(self.survey.times)):
-            t = self.survey.times[tind]
-            for src in self.survey.srcList:
-                u_src = self.f[src, self._solutionType]
-                for rx in src.rxList:
-                    timeindex = rx.getTimeP(self.survey.times)
-                    if timeindex[tind]:
-                        # wrt f, need possibility wrt m
-                        PTv = rx.evalDeriv(
-                            src, self.mesh, self.f, v[src, rx, t], adjoint=True
-                        )
-                        df_duTFun = getattr(
-                            self.f, '_{0!s}Deriv'.format(rx.projField), None
+            for tind in range(ntime):
+                t = self.survey.times[tind]
+                Jtv = self.actMap.P*self.J.T.dot(v[:, tind])
+                Jtvec += (
+                    self.PetaEtaDeriv(t, Jtv, adjoint=True) +
+                    self.PetaTauiDeriv(t, Jtv, adjoint=True) +
+                    self.PetaCDeriv(t, Jtv, adjoint=True)
+                    )
+
+            return self.sign * Jtvec
+
+        # Do not store sensitivity matrix (memory-wise efficient)
+        else:
+
+            if self.f is None:
+                self.fieldsdc()
+
+            # Ensure v is a data object.
+            if not isinstance(v, self.dataPair):
+                v = self.dataPair(self.survey, v)
+
+            Jtv = np.zeros(m.size)
+
+            for tind in range(len(self.survey.times)):
+                t = self.survey.times[tind]
+                for src in self.survey.srcList:
+                    u_src = self.f[src, self._solutionType]
+                    for rx in src.rxList:
+                        timeindex = rx.getTimeP(self.survey.times)
+                        if timeindex[tind]:
+                            # wrt f, need possibility wrt m
+                            PTv = rx.evalDeriv(
+                                src, self.mesh, self.f, v[src, rx, t], adjoint=True
                             )
-                        df_duT, df_dmT = df_duTFun(
-                            src, None, PTv, adjoint=True
-                            )
-                        ATinvdf_duT = self.Ainv * df_duT
-                        dA_dmT = self.getADeriv(
-                            u_src, ATinvdf_duT, adjoint=True
-                            )
-                        dRHS_dmT = self.getRHSDeriv(
-                            src, ATinvdf_duT, adjoint=True
-                            )
-                        du_dmT = -dA_dmT + dRHS_dmT
-                        Jtv += (
-                            self.PetaEtaDeriv(
-                                self.survey.times[tind], du_dmT, adjoint=True
-                                ) +
-                            self.PetaTauiDeriv(
-                                self.survey.times[tind], du_dmT, adjoint=True
-                                ) +
-                            self.PetaCDeriv(
-                                self.survey.times[tind], du_dmT, adjoint=True
+                            df_duTFun = getattr(
+                                self.f, '_{0!s}Deriv'.format(rx.projField), None
                                 )
-                            )
+                            df_duT, df_dmT = df_duTFun(
+                                src, None, PTv, adjoint=True
+                                )
+                            ATinvdf_duT = self.Ainv * df_duT
+                            dA_dmT = self.getADeriv(
+                                u_src, ATinvdf_duT, adjoint=True
+                                )
+                            dRHS_dmT = self.getRHSDeriv(
+                                src, ATinvdf_duT, adjoint=True
+                                )
+                            du_dmT = -dA_dmT + dRHS_dmT
+                            Jtv += (
+                                self.PetaEtaDeriv(
+                                    self.survey.times[tind], du_dmT, adjoint=True
+                                    ) +
+                                self.PetaTauiDeriv(
+                                    self.survey.times[tind], du_dmT, adjoint=True
+                                    ) +
+                                self.PetaCDeriv(
+                                    self.survey.times[tind], du_dmT, adjoint=True
+                                    )
+                                )
 
-        # Conductivity ((d u / d log sigma).T)
-        if self._formulation == 'EB':
-            return -Jtv
-        # Conductivity ((d u / d log rho).T)
-        if self._formulation == 'HJ':
-            return Jtv
+            return self.sign*Jtv
 
     def getSourceTerm(self):
         """
@@ -275,26 +365,6 @@ class BaseSIPProblem(BaseEMProblem):
         toDelete = []
         return toDelete
 
-    # assume log rho or log cond
-    @property
-    def MeSigma(self):
-        """
-            Edge inner product matrix for \\(\\sigma\\).
-            Used in the E-B formulation
-        """
-        if getattr(self, '_MeSigma', None) is None:
-            self._MeSigma = self.mesh.getEdgeInnerProduct(self.sigma)
-        return self._MeSigma
-
-    @property
-    def MfRhoI(self):
-        """
-            Inverse of :code:`MfRho`
-        """
-        if getattr(self, '_MfRhoI', None) is None:
-            self._MfRhoI = self.mesh.getFaceInnerProduct(self.rho, invMat=True)
-        return self._MfRhoI
-
     def MfRhoIDeriv(self, u):
         """
             Derivative of :code:`MfRhoI` with respect to the model.
@@ -302,7 +372,10 @@ class BaseSIPProblem(BaseEMProblem):
 
         dMfRhoI_dI = -self.MfRhoI**2
         dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
-        drho_dlogrho = Utils.sdiag(self.rho)
+        if self.storeJ:
+            drho_dlogrho = Utils.sdiag(self.rho)*self.actMap.P
+        else:
+            drho_dlogrho = Utils.sdiag(self.rho)
         return dMfRhoI_dI * (dMf_drho * drho_dlogrho)
 
     # TODO: This should take a vector
@@ -310,8 +383,14 @@ class BaseSIPProblem(BaseEMProblem):
         """
             Derivative of MeSigma with respect to the model
         """
-        dsigma_dlogsigma = Utils.sdiag(self.sigma)
-        return self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) * dsigma_dlogsigma
+        if self.storeJ:
+            dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.actMap.P
+        else:
+            dsigma_dlogsigma = Utils.sdiag(self.sigma)
+        return (
+            self.mesh.getEdgeInnerProductDeriv(self.sigma)(u)
+            * dsigma_dlogsigma
+            )
 
 
 class Problem3D_CC(BaseSIPProblem):
@@ -319,10 +398,19 @@ class Problem3D_CC(BaseSIPProblem):
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_CC
+    sign = 1.
 
     def __init__(self, mesh, **kwargs):
         BaseSIPProblem.__init__(self, mesh, **kwargs)
         self.setBC()
+
+        if self.storeJ:
+            if self.actinds is None:
+                print ("You did not put Active indices")
+                print ("So, set actMap = IdentityMap(mesh)")
+                self.actinds = np.ones(mesh.nC, dtype=bool)
+
+            self.actMap = Maps.InjectActiveCells(mesh, self.actinds, 0.)
 
     def getA(self):
         """
@@ -469,9 +557,18 @@ class Problem3D_N(BaseSIPProblem):
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # N potentials means B is on faces
     fieldsPair = Fields_N
+    sign = -1.
 
     def __init__(self, mesh, **kwargs):
         BaseSIPProblem.__init__(self, mesh, **kwargs)
+
+        if self.storeJ:
+            if self.actinds is None:
+                print ("You did not put Active indices")
+                print ("So, set actMap = IdentityMap(mesh)")
+                self.actinds = np.ones(mesh.nC, dtype=bool)
+
+            self.actMap = Maps.InjectActiveCells(mesh, self.actinds, 0.)
 
     def getA(self):
         """
