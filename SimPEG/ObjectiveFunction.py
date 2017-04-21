@@ -233,6 +233,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     """
     _multiplier_types = (float, None, Utils.Zero, np.float64) + integer_types # Directive
+    _multipliers = None
 
     def __init__(self, objfcts=[], multipliers=None, **kwargs):
 
