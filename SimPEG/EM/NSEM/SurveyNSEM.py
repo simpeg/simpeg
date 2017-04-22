@@ -1,3 +1,14 @@
+""" SurveyNSEM
+
+Module for Survey information of NSEM.
+This includes
+Sources
+Receivers
+Locations
+
+And relates to Data
+
+"""
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
@@ -7,12 +18,13 @@ import numpy as np
 from numpy.lib import recfunctions as recFunc
 
 from SimPEG import Survey as SimPEGsurvey, mkvc
-from .RxNSEM import Point_impedance3D, Point_tipper3D
 from .SrcNSEM import BaseNSEMSrc, Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
+from .RxNSEM import Point_impedance3D, Point_tipper3D
+from .Utils.plotUtils import DataNSEM_plot_functions
 
-#################
-###  Survey   ###
-#################
+#########
+# Survey
+#########
 
 
 class Survey(SimPEGsurvey.BaseSurvey):
@@ -54,6 +66,13 @@ class Survey(SimPEGsurvey.BaseSurvey):
         return self._freqDict[freq]
 
     def eval(self, f):
+        """
+        Evalute and return Data given calculated fields
+
+        :param SimPEG.EM.NSEM.FieldsNSEM f: A NSEM fileds object to evaluate data from
+        :retype: SimPEG.EM.NSEM.Data
+        :return: NSEM Data object
+        """
         data = Data(self)
         for src in self.srcList:
             sys.stdout.flush()
@@ -64,27 +83,31 @@ class Survey(SimPEGsurvey.BaseSurvey):
     def evalDeriv(self, f):
         raise Exception('Use Sources to project fields deriv.')
 
-#################
+#########
 # Data
-#################
+#########
 
 
-class Data(SimPEGsurvey.Data):
-    '''
+class Data(SimPEGsurvey.Data, DataNSEM_plot_functions):
+    """
     Data class for NSEMdata. Stores the data vector indexed by the survey.
 
     :param SimPEG.EM.NSEM.SurveyNSEM survey: NSEM survey object
     :param numpy.ndarray v: Vector of the data in order matching of the survey
+    :param numpy.ndarray standard_deviation: Vector of the standard_deviation
+        of data in order matching of the survey
+    :param numpy.ndarray floor: Vector of the noise floor of the data in
+        order matching of the survey
 
-    '''
-    def __init__(self, survey, v=None):
+    """
+    def __init__(self, survey, v=None, standard_deviation=None, floor=None):
         # Pass the variables to the "parent" method
-        SimPEGsurvey.Data.__init__(self, survey, v)
+        SimPEGsurvey.Data.__init__(self, survey, v, standard_deviation, floor)
 
 
-    def toRecArray(self,returnType='RealImag'):
+    def toRecArray(self, returnType='RealImag'):
         '''
-        Function that returns a numpy.recarray for a SimpegNSEM impedance data object.
+        Returns a numpy.recarray for a SimpegNSEM impedance data object.
 
         :param str returnType: Switches between returning a rec array where the impedance
             is split to real and imaginary ('RealImag') or is a complex ('Complex')
@@ -111,8 +134,9 @@ class Data(SimPEGsurvey.Data):
             # Get the type and the value for the DataNSEM object as a list
             typeList = [[rx.orientation,rx.component,self[src,rx]] for rx in src.rxList]
             # Insert the values to the temp array
-            for k,c,val in typeList:
-                key = 'z' + k + c[0]
+            for nr,(k, c, val) in enumerate(typeList):
+                zt_type = 't' if 'z' in k else 'z'
+                key = zt_type + k + c[0]
                 tArrRec[key] = mkvc(val,2)
             # Masked array
             # mArrRec = np.ma.MaskedArray(_rec_to_ndarr(tArrRec),mask=np.isnan(_rec_to_ndarr(tArrRec))).view(dtype=tArrRec.dtype)
@@ -126,7 +150,7 @@ class Data(SimPEGsurvey.Data):
                 outArr = outTemp.copy()
             elif 'Complex' in returnType:
                 # Add the real and imaginary to a complex number
-                outArr = np.empty(outTemp.shape,dtype=dtCP)
+                outArr = np.empty(outTemp.shape, dtype=dtCP)
                 for comp in ['freq','x','y','z']:
                     outArr[comp] = outTemp[comp].copy()
                 for comp in ['zxx','zxy','zyx','zyy','tzx','tzy']:
@@ -171,15 +195,15 @@ class Data(SimPEGsurvey.Data):
                 if np.any(notNaNind): # Make sure that there is any data to add.
                     locs = _rec_to_ndarr(dFreq[['x','y','z']][notNaNind].copy())
                     if dFreq[rxType].dtype.name in 'complex128':
-                        if 'z' in rxType:
-                            rxList.append(Point_impedance3D(locs,rxType[1:3],'real'))
-                            dataList.append(dFreq[rxType][notNaNind].real.copy())
-                            rxList.append(Point_impedance3D(locs,rxType[1:3],'imag'))
-                            dataList.append(dFreq[rxType][notNaNind].imag.copy())
-                        elif 't' in rxType:
+                        if 't' in rxType:
                             rxList.append(Point_tipper3D(locs,rxType[1:3],'real'))
                             dataList.append(dFreq[rxType][notNaNind].real.copy())
                             rxList.append(Point_tipper3D(locs,rxType[1:3],'imag'))
+                            dataList.append(dFreq[rxType][notNaNind].imag.copy())
+                        elif 'z' in rxType:
+                            rxList.append(Point_impedance3D(locs,rxType[1:3],'real'))
+                            dataList.append(dFreq[rxType][notNaNind].real.copy())
+                            rxList.append(Point_impedance3D(locs,rxType[1:3],'imag'))
                             dataList.append(dFreq[rxType][notNaNind].imag.copy())
                     else:
                         component = 'real' if 'r' in rxType else 'imag'
@@ -194,8 +218,8 @@ class Data(SimPEGsurvey.Data):
             srcList.append(src(rxList, freq))
 
         # Make a survey
-        survey=Survey(srcList)
-        dataVec=np.hstack(dataList)
+        survey = Survey(srcList)
+        dataVec = np.hstack(dataList)
         return cls(survey, dataVec)
 
 

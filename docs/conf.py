@@ -347,9 +347,12 @@ nitpick_ignore = [
     ('py:class', 'Fields1D_eTotal'),
     ('py:class', 'Fields3D_ePrimSec'),
     ('py:class', 'BaseNSEMSrc'),
+    ('py:class', 'DataNSEM_plot_functions'),
     ('py:class', 'RichardsMap'),
     ('py:class', 'SimPEG.Props.HasModel'),
     ('py:class', 'BaseFDEMSrc'),
     ('py:class', 'BaseTDEMSrc'),
+    ('py:class', 'properties.Model'),
+    ('py:class', 'properties.PhysicalProperty'),
     ('py:func', 'discretize.utils.meshutils.meshTensor')
 ]

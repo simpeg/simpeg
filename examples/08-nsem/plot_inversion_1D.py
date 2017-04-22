@@ -24,7 +24,9 @@ def run(plotIt=True):
     # Set mesh parameters
     ct = 10
     air = simpeg.Utils.meshTensor([(ct, 25, 1.4)])
-    core = np.concatenate((np.kron(simpeg.Utils.meshTensor([(ct, 10, -1.3)]), np.ones((5, ))) , simpeg.Utils.meshTensor([(ct,5)]) ) )
+    core = np.concatenate((
+        np.kron(simpeg.Utils.meshTensor([(ct, 10, -1.3)]), np.ones((5, ))),
+        simpeg.Utils.meshTensor([(ct, 5)])))
     bot = simpeg.Utils.meshTensor([(core[0], 25, -1.4)])
     x0 = -np.array([np.sum(np.concatenate((core, bot)))])
     # Make the model
@@ -40,52 +42,59 @@ def run(plotIt=True):
     sig_layer1 = .2
     sig_layer2 = .2
     # Make the true model
-    sigma_true = np.ones(m1d.nCx)*sig_air
+    sigma_true = np.ones(m1d.nCx) * sig_air
     sigma_true[active] = sig_half
     sigma_true[layer1] = sig_layer1
     sigma_true[layer2] = sig_layer2
     # Extract the model
     m_true = np.log(sigma_true[active])
     # Make the background model
-    sigma_0 = np.ones(m1d.nCx)*sig_air
+    sigma_0 = np.ones(m1d.nCx) * sig_air
     sigma_0[active] = sig_half
     m_0 = np.log(sigma_0[active])
 
     # Set the mapping
-    actMap = simpeg.Maps.InjectActiveCells(m1d, active, np.log(1e-8), nC=m1d.nCx)
+    actMap = simpeg.Maps.InjectActiveCells(
+        m1d, active, np.log(1e-8), nC=m1d.nCx)
     mappingExpAct = simpeg.Maps.ExpMap(m1d) * actMap
 
     # Setup the layout of the survey, set the sources and the connected receivers
     # Receivers
     rxList = []
-    rxList.append(NSEM.Rx.Point_impedance1D(simpeg.mkvc(np.array([-0.5]), 2).T, 'real'))
-    rxList.append(NSEM.Rx.Point_impedance1D(simpeg.mkvc(np.array([-0.5]), 2).T, 'imag'))
+    rxList.append(
+        NSEM.Rx.Point_impedance1D(simpeg.mkvc(np.array([-0.5]), 2).T, 'real'))
+    rxList.append(
+        NSEM.Rx.Point_impedance1D(simpeg.mkvc(np.array([-0.5]), 2).T, 'imag'))
     # Source list
-    srcList =[]
+    srcList = []
     for freq in freqs:
-            srcList.append(NSEM.Src.Planewave_xy_1Dprimary(rxList,freq))
+            srcList.append(NSEM.Src.Planewave_xy_1Dprimary(rxList, freq))
     # Make the survey
     survey = NSEM.Survey(srcList)
     survey.mtrue = m_true
 
     # Set the problem
-    problem = NSEM.Problem1D_ePrimSec(m1d, sigmaPrimary=sigma_0, sigmaMap=mappingExpAct)
+    problem = NSEM.Problem1D_ePrimSec(
+        m1d, sigmaPrimary=sigma_0, sigmaMap=mappingExpAct)
     problem.pair(survey)
 
     # Forward model data
     # Project the data
     survey.dtrue = survey.dpred(m_true)
-    survey.dobs = survey.dtrue + 0.01*abs(survey.dtrue)*np.random.randn(*survey.dtrue.shape)
+    survey.dobs = (
+        survey.dtrue + 0.01 *
+        abs(survey.dtrue) *
+        np.random.randn(*survey.dtrue.shape))
 
     if plotIt:
         fig = NSEM.Utils.dataUtils.plotMT1DModelData(problem, [])
         fig.suptitle('Target - smooth true')
 
     # Assign uncertainties
-    std = 0.05 # 5% std
-    survey.std = np.abs(survey.dobs*std)
+    std = 0.05  # 5% std
+    survey.std = np.abs(survey.dobs * std)
     # Assign the data weight
-    Wd = 1./survey.std
+    Wd = 1. / survey.std
 
     # Setup the inversion proceedure
     # Define a counter
@@ -106,7 +115,8 @@ def run(plotIt=True):
     reg.mrefInSmooth = True
     reg.alpha_s = 1e-1
     reg.alpha_x = 1.
-
+    reg.alpha_xx = .1
+    reg.mrefInSmooth = True
     # Inversion problem
     invProb = simpeg.InvProblem.BaseInvProblem(dmis, reg, opt)
     invProb.counter = C

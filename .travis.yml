@@ -56,6 +56,7 @@ install:
     else
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
     fi
+
   - pip install -r requirements_dev.txt
   - python setup.py install
   - python setup.py build_ext --inplace
