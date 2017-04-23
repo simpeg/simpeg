@@ -399,7 +399,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
 
     # Properties
     mref = Props.Array(
-        "reference model", default=Utils.Zero()
+        "reference model"
     )
     indActive = properties.Array(
         "indices of active cells in the mesh", dtype=(bool, int)
@@ -524,6 +524,11 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
             value._assertMatchesPair(self.mapPair)
         self._mapping = value
 
+    def _delta_m(self, m):
+        if self.mref is None:
+            return m
+        return (-self.mref + m)  # in case self.mref is Zero, returns type m
+
     @Utils.timeIt
     def __call__(self, m):
         """
@@ -533,7 +538,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
 
             r(m) = \\frac{1}{2}
         """
-        r = self.W * (self.mapping * (m - self.mref))
+        r = self.W * (self.mapping * (self._delta_m(m)))
         return 0.5 * r.dot(r)
 
     @Utils.timeIt
@@ -555,8 +560,8 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
 
         """
 
-        mD = self.mapping.deriv(m - self.mref)
-        r = self.W * (self.mapping * (m - self.mref))
+        mD = self.mapping.deriv(self._delta_m(m))
+        r = self.W * (self.mapping * (self._delta_m(m)))
         return mD.T * (self.W.T * r)
 
     @Utils.timeIt
@@ -583,7 +588,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
             R(m) = \mathbf{W^\\top W}
 
         """
-        mD = self.mapping.deriv(m - self.mref)
+        mD = self.mapping.deriv(self._delta_m(m))
         if v is None:
             return mD.T * self.W.T * self.W * mD
 

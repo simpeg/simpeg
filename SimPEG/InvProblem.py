@@ -77,6 +77,15 @@ class BaseInvProblem(Props.BaseSimPEG):
             print('SimPEG.InvProblem will set Regularization.mref to m0.')
             self.reg.mref = m0
 
+        if (
+            isinstance(self.reg, ObjectiveFunction.ComboObjectiveFunction) and
+            not isinstance(self.reg, Regularization.BaseComboRegularization)
+        ):
+            for fct in self.reg.objfcts:
+                if hasattr(fct, 'mref') and getattr(fct, 'mref', None) is None:
+                    print('SimPEG.InvProblem will set Regularization.mref to m0.')
+                    fct.mref = m0
+
         self.phi_d = np.nan
         self.phi_m = np.nan
 

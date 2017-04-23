@@ -78,6 +78,22 @@ class DataMisfitTest(unittest.TestCase):
 
         mrec = inv.run(m0)
 
+    def test_inv_mref_setting(self):
+        reg1 = Regularization.Tikhonov(self.mesh)
+        reg2 = Regularization.Tikhonov(self.mesh)
+        reg = reg1+reg2
+        opt = Optimization.InexactGaussNewton(maxIter=10)
+        invProb = InvProblem.BaseInvProblem(self.dmiscobmo, reg, opt)
+        directives = [
+            Directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
+        ]
+        inv = Inversion.BaseInversion(invProb, directiveList=directives)
+        m0 = self.model.mean() * np.ones_like(self.model)
+
+        mrec = inv.run(m0)
+
+        self.assertTrue(np.all(reg1.mref == m0))
+        self.assertTrue(np.all(reg2.mref == m0))
 
 if __name__ == '__main__':
     unittest.main()
