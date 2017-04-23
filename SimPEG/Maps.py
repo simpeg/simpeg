@@ -15,6 +15,8 @@ import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy.interpolate import UnivariateSpline
 from scipy.constants import mu_0
+from scipy.spatial import cKDTree
+
 
 from . import Utils
 from .Tests import checkDerivative
@@ -910,7 +912,6 @@ class InjectActiveCells(IdentityMap):
         if v is not None:
             return self.P * v
         return self.P
-
 
 ###############################################################################
 #                                                                             #

@@ -895,7 +895,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
     tolCG = 1e-1
 
     stepOffBoundsFact = 0.1 # perturbation of the inactive set off the bounds
-
+    stepActiveset = True
     lower = -np.inf
     upper = np.inf
 
@@ -999,15 +999,16 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
                 # End CG Iterations
 
             # Take a gradient step on the active cells if exist
-            if temp != self.xc.size:
+            if self.stepActiveset:
+                if temp != self.xc.size:
 
-                rhs_a = (Active) * -self.g
+                    rhs_a = (Active) * -self.g
 
-                dm_i = max( abs( delx ) )
-                dm_a = max( abs(rhs_a) )
+                    dm_i = max( abs( delx ) )
+                    dm_a = max( abs(rhs_a) )
 
-                # perturb inactive set off of bounds so that they are included in the step
-                delx = delx + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
+                    # perturb inactive set off of bounds so that they are included in the step
+                    delx = delx + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
 
 
             # Only keep gradients going in the right direction on the active set
