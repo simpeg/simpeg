@@ -39,20 +39,21 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         :param numpy.array m: inversion model (nP,)
         :rtype: SimPEG.EM.TDEM.FieldsTDEM
-        :return F: fields object
+        :return f: fields object
         """
 
         tic = time.time()
         self.model = m
 
-        F = self.fieldsPair(self.mesh, self.survey)
+        f = self.fieldsPair(self.mesh, self.survey)
 
         # set initial fields
-        F[:, self._fieldType+'Solution', 0] = self.getInitialFields()
+        f[:, self._fieldType+'Solution', 0] = self.getInitialFields()
 
-        # timestep to solve forward
         if self.verbose:
             print('{}\nCalculating fields(m)\n{}'.format('*'*50, '*'*50))
+
+        # timestep to solve forward
         Ainv = None
         for tInd, dt in enumerate(self.timeSteps):
             # keep factors if dt is the same as previous step b/c A will be the
@@ -76,20 +77,25 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
             if self.verbose:
                 print('    Solving...   (tInd = {:d})'.format(tInd+1))
+
             # taking a step
-            sol = Ainv * (rhs - Asubdiag * F[:, (self._fieldType + 'Solution'),
-                                             tInd])
+            sol = Ainv * (
+                rhs - Asubdiag * f[:, (self._fieldType + 'Solution'), tInd]
+            )
 
             if self.verbose:
                 print('    Done...')
 
             if sol.ndim == 1:
                 sol.shape = (sol.size, 1)
-            F[:, self._fieldType+'Solution', tInd+1] = sol
+            f[:, self._fieldType+'Solution', tInd+1] = sol
+
         if self.verbose:
             print('{}\nDone calculating fields(m)\n{}'.format('*'*50, '*'*50))
+
+        # clean factors and return
         Ainv.clean()
-        return F
+        return f
 
     def Jvec(self, m, v, f=None):
         """
@@ -316,12 +322,12 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                         ]
                         ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
 
-                if tInd < self.nT:
-                    dAsubdiagT_dm_v = self.getAsubdiagDeriv(
-                        tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
-                        adjoint=True)
-                else:
-                    dAsubdiagT_dm_v = Utils.Zero()
+                # if tInd < self.nT:
+                dAsubdiagT_dm_v = self.getAsubdiagDeriv(
+                    tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
+                    adjoint=True)
+                # else:
+                #     dAsubdiagT_dm_v = Utils.Zero()
 
                 dRHST_dm_v = self.getRHSDeriv(
                         tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
@@ -377,7 +383,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         elif self._fieldType in ['e', 'h']:
             ifields = np.zeros((self.mesh.nE, len(Srcs)))
 
-        for i, src in enumerate(Srcs):
+        if self.verbose:
+            print ("Calculating Initial fields")
+
             ifields[:, i] = (
                 ifields[:, i] + getattr(
                     src, '{}Initial'.format(self._fieldType), None
@@ -401,6 +409,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                     None)(self, v, adjoint, f)) + ifieldsDeriv
             )
         return ifieldsDeriv
+
 
 ###############################################################################
 #                                                                             #
@@ -656,7 +665,6 @@ class Problem3D_e(BaseTDEMProblem):
 
         """
             Jvec computes the adjoint of the sensitivity times a vector
-
         """
 
         if f is None:
@@ -878,39 +886,40 @@ class Problem3D_e(BaseTDEMProblem):
         # right now, we are assuming that s_e, s_m do not depend on the model.
         return Utils.Zero()
 
-    def getInitialFields(self):
-        """
-        Ask the sources for initial fields
-        """
+    # def getInitialFields(self):
+    #     """
+    #     Ask the sources for initial fields
+    #     """
 
-        Srcs = self.survey.srcList
+    #     Srcs = self.survey.srcList
 
-        if self._fieldType in ['b', 'j']:
-            ifields = np.zeros((self.mesh.nF, len(Srcs)))
-        elif self._fieldType in ['e', 'h']:
-            ifields = np.zeros((self.mesh.nE, len(Srcs)))
-        if self.verbose:
-            print ("Calculating Initial fields")
+    #     if self._fieldType in ['b', 'j']:
+    #         ifields = np.zeros((self.mesh.nF, len(Srcs)))
+    #     elif self._fieldType in ['e', 'h']:
+    #         ifields = np.zeros((self.mesh.nE, len(Srcs)))
+    #     if self.verbose:
+    #         print ("Calculating Initial fields")
 
-        for i, src in enumerate(Srcs):
-            # Check if the source is grounded
-            if src.srcType == "Galvanic" and src.waveform.hasInitialFields:
-                # Check self.Adcinv and clean
-                if self.Adcinv is not None:
-                    self.Adcinv.clean()
-                # Factorize Adc matrix
-                if self.verbose:
-                    print ("Factorize system matrix for DC problem")
-                Adc = self.getAdc()
-                self.Adcinv = self.Solver(Adc)
+    #     for i, src in enumerate(Srcs):
+    #         # Check if the source is grounded
+    #         # if src.srcType == "Galvanic" and src.waveform.hasInitialFields:
+    #             # # Check self.Adcinv and clean
+    #             # if self.Adcinv is not None:
+    #             #     self.Adcinv.clean()
+    #             # # Factorize Adc matrix
+    #             # if getattr(self, 'Adcinv', None) is None:
+    #             #     if self.verbose:
+    #             #         print ("Factorize system matrix for DC problem")
+    #             #     Adc = self.getAdc()
+    #             #     self.Adcinv = self.Solver(Adc)
 
-            ifields[:, i] = (
-                ifields[:, i] + getattr(
-                    src, '{}Initial'.format(self._fieldType), None
-                )(self)
-            )
+    #         ifields[:, i] = (
+    #             ifields[:, i] + getattr(
+    #                 src, '{}Initial'.format(self._fieldType), None
+    #             )(self)
+    #         )
 
-        return ifields
+    #     return ifields
 
     def getAdc(self):
         MeSigma = self.MeSigma
@@ -928,12 +937,22 @@ class Problem3D_e(BaseTDEMProblem):
             return self.MeSigmaDeriv(-u).T * (Grad*v)
         return Adc
 
+    @property
+    def Adcinv(self):
+        if getattr(self, '_Adcinv', None) is None:
+            if self.verbose:
+                print ("Factoring the system matrix for the DC problem")
+            Adc = self.getAdc()
+            self._Adcinv = self.Solver(Adc)
+        return self._Adcinv
+
     def clean(self):
         """
         Clean factors
         """
         if self.Adcinv is not None:
             self.Adcinv.clean()
+
 
 ###############################################################################
 #                                                                             #
