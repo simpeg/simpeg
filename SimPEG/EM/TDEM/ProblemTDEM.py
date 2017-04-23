@@ -322,12 +322,12 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                         ]
                         ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
 
-                # if tInd < self.nT:
-                dAsubdiagT_dm_v = self.getAsubdiagDeriv(
-                    tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
-                    adjoint=True)
-                # else:
-                #     dAsubdiagT_dm_v = Utils.Zero()
+                if tInd < self.nT:
+                    dAsubdiagT_dm_v = self.getAsubdiagDeriv(
+                        tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
+                        adjoint=True)
+                else:
+                    dAsubdiagT_dm_v = Utils.Zero()
 
                 dRHST_dm_v = self.getRHSDeriv(
                         tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
@@ -386,6 +386,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         if self.verbose:
             print ("Calculating Initial fields")
 
+        for i, src in enumerate(Srcs):
             ifields[:, i] = (
                 ifields[:, i] + getattr(
                     src, '{}Initial'.format(self._fieldType), None
@@ -654,6 +655,7 @@ class Problem3D_e(BaseTDEMProblem):
 
     _fieldType = 'e'
     _formulation = 'EB'
+    clean_on_model_update = ['Adcinv']
     fieldsPair = Fields3D_e  #: A Fields3D_e
     surveyPair = SurveyTDEM
     Adcinv = None
@@ -946,12 +948,12 @@ class Problem3D_e(BaseTDEMProblem):
             self._Adcinv = self.Solver(Adc)
         return self._Adcinv
 
-    def clean(self):
-        """
-        Clean factors
-        """
-        if self.Adcinv is not None:
-            self.Adcinv.clean()
+    # def clean(self):
+    #     """
+    #     Clean factors
+    #     """
+    #     if self.Adcinv is not None:
+    #         self.Adcinv.clean()
 
 
 ###############################################################################

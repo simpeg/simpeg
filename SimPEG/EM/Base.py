@@ -67,7 +67,6 @@ class BaseEMProblem(Problem.BaseProblem):
     ####################################################
     # Mass Matrices
     ####################################################
-
     @property
     def deleteTheseOnModelUpdate(self):
         toDelete = []
@@ -77,9 +76,6 @@ class BaseEMProblem(Problem.BaseProblem):
         if hasattr(self, 'muMap') or hasattr(self, 'muiMap'):
             if self.muMap is not None or self.muiMap is not None:
                 toDelete += ['_MeMu', '_MeMuI', '_MfMui', '_MfMuiI']
-
-        if hasattr(self, '_Adcinv'):
-            toDelete += ['_Adcinv']
 
         return toDelete
 
