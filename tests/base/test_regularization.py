@@ -9,7 +9,7 @@ from SimPEG import Mesh, Maps, Regularization, Utils, Tests, ObjectiveFunction
 from scipy.sparse.linalg import dsolve
 import inspect
 
-TOL = 1e-8
+TOL = 1e-7
 testReg = True
 testRegMesh = True
 
@@ -67,7 +67,7 @@ class RegularizationTests(unittest.TestCase):
                     reg.mref = mref
 
                     # test derivs
-                    passed = reg.test(m)
+                    passed = reg.test(m, eps=TOL)
                     self.assertTrue(passed)
 
 
@@ -211,17 +211,17 @@ class RegularizationTests(unittest.TestCase):
         reg_a = reg1 + reg2
         self.assertTrue(len(reg_a)==2)
         self.assertTrue(reg1(m) + reg2(m) == reg_a(m))
-        reg_a.test()
+        reg_a.test(eps=TOL)
 
         reg_b = 2*reg1 + reg2
         self.assertTrue(len(reg_b)==2)
         self.assertTrue(2*reg1(m) + reg2(m) == reg_b(m))
-        reg_b.test()
+        reg_b.test(eps=TOL)
 
         reg_c = reg1 + reg2/2
         self.assertTrue(len(reg_c)==2)
         self.assertTrue(reg1(m) + 0.5*reg2(m) == reg_c(m))
-        reg_c.test()
+        reg_c.test(eps=TOL)
 
     def test_mappings(self):
         mesh = Mesh.TensorMesh([8, 7, 6])
@@ -242,9 +242,9 @@ class RegularizationTests(unittest.TestCase):
             print(reg3(m), reg1(m), reg2(m))
             self.assertTrue(reg3(m) == reg1(m) + reg2(m))
 
-            reg1.test()
-            reg2.test()
-            reg3.test()
+            reg1.test(eps=TOL)
+            reg2.test(eps=TOL)
+            reg3.test(eps=TOL)
 
     def test_mref_is_zero(self):
 
