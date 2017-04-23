@@ -134,9 +134,9 @@ class BaseProblem(Props.HasModel):
                 delattr(self, prop)
         # matrix factors to clear
         for mat in self.clean_on_model_update:
-            if hasattr(self, mat):
-                Ainv = getattr(self, mat)
-                Ainv.clean()
+            if getattr(self, mat, None) is not None:
+                getattr(self, mat).clean()  # clean factors
+                setattr(self, mat, None)  # set to none
 
     @property
     def ispaired(self):
