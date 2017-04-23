@@ -322,12 +322,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                         ]
                         ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
 
-                if tInd < self.nT:
-                    dAsubdiagT_dm_v = self.getAsubdiagDeriv(
-                        tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
-                        adjoint=True)
-                else:
-                    dAsubdiagT_dm_v = Utils.Zero()
+                dAsubdiagT_dm_v = self.getAsubdiagDeriv(
+                    tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
+                    adjoint=True)
 
                 dRHST_dm_v = self.getRHSDeriv(
                         tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
