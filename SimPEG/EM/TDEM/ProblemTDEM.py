@@ -19,6 +19,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
     """
     surveyPair = SurveyTDEM  #: A SimPEG.EM.TDEM.SurveyTDEM Class
     fieldsPair = FieldsTDEM  #: A SimPEG.EM.TDEM.FieldsTDEM Class
+    clean_on_model_update = ['_Adcinv']  #: clear DC matrix factors on any model updates
 
     def __init__(self, mesh, **kwargs):
         BaseEMProblem.__init__(self, mesh, **kwargs)
@@ -314,21 +315,21 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 if tInd >= self.nT-1:
                     # last timestep (first to be solved)
                     ATinv_df_duT_v[isrc, :] = AdiagTinv * df_duT_v[
-                        src, '{}Deriv'.format(self._fieldType), tInd+1]
+                        src, '{}Deriv'.format(self._fieldType), tInd+1
+                    ]
                 elif tInd > -1:
                     ATinv_df_duT_v[isrc, :] = AdiagTinv * (
                         Utils.mkvc(df_duT_v[
                             src, '{}Deriv'.format(self._fieldType), tInd+1
-                        ]
-                        ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
+                        ]) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
 
                 dAsubdiagT_dm_v = self.getAsubdiagDeriv(
                     tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
                     adjoint=True)
 
                 dRHST_dm_v = self.getRHSDeriv(
-                        tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
-                        )  # on nodes of time mesh
+                    tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
+                )  # on nodes of time mesh
 
                 un_src = f[src, ftype, tInd+1]
                 # cell centered on time mesh
@@ -339,6 +340,8 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 JTv = JTv + Utils.mkvc(
                     -dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v
                 )
+
+        # Treat the initial condition
 
         # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
         if AdiagTinv is not None:
@@ -393,20 +396,43 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         return ifields
 
     def getInitialFieldsDeriv(self, src, v, adjoint=False, f=None):
+
+        ifieldsDeriv = Utils.mkvc(
+            getattr(
+                src, '{}InitialDeriv'.format(self._fieldType), None
+            )(self, v, adjoint, f)
+        )
+
+        # take care of any utils.zero cases
         if adjoint is False:
             if self._fieldType in ['b', 'j']:
-                ifieldsDeriv = np.zeros(self.mesh.nF)
+                ifieldsDeriv += np.zeros(self.mesh.nF)
             elif self._fieldType in ['e', 'h']:
-                ifieldsDeriv = np.zeros(self.mesh.nE)
+                ifieldsDeriv += np.zeros(self.mesh.nE)
 
         elif adjoint is True:
-            ifieldsDeriv = np.zeros(self.mapping.nP)
+            if self._fieldType in ['b', 'j']:
+                ifieldsDeriv += np.zeros(self.mesh.nF)
+            elif self._fieldType in ['e', 'h']:
+                ifieldsDeriv[0] += np.zeros(self.mesh.nE)
+            ifieldsDeriv[1] += np.zeros_like(self.model) # take care of a Utils.Zero() case
 
-        ifieldsDeriv = (Utils.mkvc(
-            getattr(src, '{}InitialDeriv'.format(self._fieldType),
-                    None)(self, v, adjoint, f)) + ifieldsDeriv
-            )
         return ifieldsDeriv
+
+    # Store matrix factors if we need to solve the DC problem to get the initial condition
+    @property
+    def Adcinv(self):
+        if not hasattr(self, 'getAdc'):
+            raise NotImplementedError(
+                "Support for galvanic sources has not been implemented for "
+                "{}-formulation".format(self._fieldType)
+            )
+        if getattr(self, '_Adcinv', None) is None:
+            if self.verbose:
+                print("Factoring the system matrix for the DC problem")
+            Adc = self.getAdc()
+            self._Adcinv = self.Solver(Adc)
+        return self._Adcinv
 
 
 ###############################################################################
@@ -652,7 +678,6 @@ class Problem3D_e(BaseTDEMProblem):
 
     _fieldType = 'e'
     _formulation = 'EB'
-    clean_on_model_update = ['Adcinv']
     fieldsPair = Fields3D_e  #: A Fields3D_e
     surveyPair = SurveyTDEM
     Adcinv = None
@@ -789,7 +814,7 @@ class Problem3D_e(BaseTDEMProblem):
         Grad = self.mesh.nodalGrad
 
         for isrc, src in enumerate(self.survey.srcList):
-            if src.srcType == "Galvanic":
+            if src.srcType == "galvanic":
 
                 ATinv_df_duT_v[isrc, :] = Grad*(self.Adcinv*(Grad.T*(
                     Utils.mkvc(df_duT_v[
@@ -797,20 +822,47 @@ class Problem3D_e(BaseTDEMProblem):
                     ]
                     ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
                 ))
+            # print(
+            #     self.getInitialFieldsDeriv(
+            #         src,
+            #         Utils.mkvc(
+            #             df_duT_v[
+            #                 src, '{}Deriv'.format(self._fieldType), tInd+1
+            #             ]
+            #         ),
+            #         adjoint=True,
+            #         f=f
+            #     ).shape
+            # )
+            # print(Asubdiag.T.shape, Utils.mkvc(ATinv_df_duT_v[isrc, :]).shape)
+            # print(
+            #     Asubdiag.T*Utils.mkvc(ATinv_df_duT_v[isrc, :]).shape
+            # )
 
-                dRHST_dm_v = self.getRHSDeriv(
-                        tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
-                        )  # on nodes of time mesh
+            # ATinv_df_duT_v[isrc, :] = self.getInitialFieldsDeriv(
+            #     src,
+            #     Utils.mkvc(
+            #         df_duT_v[
+            #             src, '{}Deriv'.format(self._fieldType), tInd+1
+            #         ]
+            #     ),
+            #     adjoint=True,
+            #     f=f
+            # ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :])
 
-                un_src = f[src, ftype, tInd+1]
-                # cell centered on time mesh
-                dAT_dm_v = (
-                    self.MeSigmaDeriv(un_src).T * ATinv_df_duT_v[isrc, :]
-                    )
+            dRHST_dm_v = self.getRHSDeriv(
+                tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
+            )  # on nodes of time mesh
 
-                JTv = JTv + Utils.mkvc(
-                    -dAT_dm_v + dRHST_dm_v
-                )
+            un_src = f[src, ftype, tInd+1]
+            # cell centered on time mesh
+            dAT_dm_v = (
+                self.MeSigmaDeriv(un_src).T * ATinv_df_duT_v[isrc, :]
+            )
+
+            JTv = JTv + Utils.mkvc(
+                -dAT_dm_v #+ dRHST_dm_v
+            )
 
         # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
         if AdiagTinv is not None:
@@ -901,7 +953,7 @@ class Problem3D_e(BaseTDEMProblem):
 
     #     for i, src in enumerate(Srcs):
     #         # Check if the source is grounded
-    #         # if src.srcType == "Galvanic" and src.waveform.hasInitialFields:
+    #         # if src.srcType == "galvanic" and src.waveform.hasInitialFields:
     #             # # Check self.Adcinv and clean
     #             # if self.Adcinv is not None:
     #             #     self.Adcinv.clean()
@@ -935,15 +987,6 @@ class Problem3D_e(BaseTDEMProblem):
         elif adjoint:
             return self.MeSigmaDeriv(-u).T * (Grad*v)
         return Adc
-
-    @property
-    def Adcinv(self):
-        if getattr(self, '_Adcinv', None) is None:
-            if self.verbose:
-                print ("Factoring the system matrix for the DC problem")
-            Adc = self.getAdc()
-            self._Adcinv = self.Solver(Adc)
-        return self._Adcinv
 
     # def clean(self):
     #     """
@@ -1143,4 +1186,11 @@ class Problem3D_j(BaseTDEMProblem):
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         return Utils.Zero()  # assumes no derivs on sources
+
+    def getAdc(self):
+        D = self.mesh.faceDiv
+        G = D.T
+        MfRhoI = self.MfRhoI
+        return D * MfRhoI * G
+
 
