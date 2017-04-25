@@ -81,9 +81,9 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
         y = 0.
         for src in self.survey.srcList:
             for rx in src.rxList:
-                Jtv_temp1 = np.zeros((m.size, rx.nD), dtype=float)
-                Jtv_temp0 = np.zeros((m.size, rx.nD), dtype=float)
-                Jtv = np.zeros((m.size, rx.nD), dtype=float)
+                Jtv_temp1 = np.zeros((self.model.size, rx.nD), dtype=float)
+                Jtv_temp0 = np.zeros((self.model.size, rx.nD), dtype=float)
+                Jtv = np.zeros((self.model.size, rx.nD), dtype=float)
                 # TODO: this loop is pretty slow .. (Parellize)
                 for iky in range(self.nky):
                     u_src = self.f[src, self._solutionType, iky]
