@@ -770,9 +770,9 @@ class SimpleSmall(BaseRegularization):
         \\mathbf{W} (\\mathbf{m} - \\mathbf{m_{ref}})
 
     where :math:`\\mathbf{m}` is the model, :math:`\\mathbf{m_{ref}}` is a
-    reference model (default Zero) and :math:`\\mathbf{W}` is a weighting
-    matrix (default Identity. If cell weights are provided, then it is
-    :code:`diag(cell_weights)`)
+    reference model and :math:`\\mathbf{W}` is a weighting
+    matrix (default Identity). If cell weights are provided, then it is
+    :code:`diag(np.sqrt(cell_weights))`)
 
 
     **Optional Inputs**
@@ -965,9 +965,9 @@ class Simple(BaseComboRegularization):
 
 class Small(BaseRegularization):
     """
-    Simple Small regularization - L2 regularization on the difference between a
-    model and a reference model. Cell weights may be included. This does not
-    include a volume contribution.
+    Small regularization - L2 regularization on the difference between a
+    model and a reference model. Cell weights may be included. A volume
+    contribution is included
 
     .. math::
 
@@ -975,9 +975,9 @@ class Small(BaseRegularization):
         \\mathbf{W} (\\mathbf{m} - \\mathbf{m_{ref}})
 
     where :math:`\\mathbf{m}` is the model, :math:`\\mathbf{m_{ref}}` is a
-    reference model (default Zero) and :math:`\\mathbf{W}` is a weighting
-    matrix (default Identity. If cell weights are provided, then it is
-    :code:`diag(cell_weights)`)
+    reference model and :math:`\\mathbf{W}` is a weighting
+    matrix (default :code:`diag(np.sqrt(vol))`. If cell weights are provided, then it is
+    :code:`diag(np.sqrt(vol * cell_weights))`)
 
 
     **Optional Inputs**
