@@ -267,12 +267,12 @@ class RegularizationTests(unittest.TestCase):
 
         wires = Maps.Wires(('sigma', mesh.nC), ('mu', mesh.nC))
 
-        reg = Regularization.Small(
+        reg = Regularization.SimpleSmall(
             mesh, mapping=wires.sigma, cell_weights=cell_weights
         )
 
         objfct = ObjectiveFunction.L2ObjectiveFunction(
-            W=Utils.sdiag(cell_weights), mapping=wires.sigma
+            W=Utils.sdiag(np.sqrt(cell_weights)), mapping=wires.sigma
         )
 
         self.assertTrue(reg(m) == objfct(m))
