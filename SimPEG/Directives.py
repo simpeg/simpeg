@@ -247,14 +247,6 @@ class TargetMisfit(InversionDirective):
         if self.invProb.phi_d < self.target:
             self.opt.stopNextIteration = True
 
-    def validate(self, directiveList=None):
-        assert isinstance(self.dmisfit, DataMisfit.BaseDataMisfit), (
-            "Only a single data misfit can be single used for the "
-            "TargetMisfit directive. {} was provided".format(
-                type(self.dmisfit)
-            )
-        )
-
 
 class SaveEveryIteration(InversionDirective):
 
