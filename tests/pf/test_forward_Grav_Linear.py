@@ -62,9 +62,12 @@ class GravFwdProblemTests(unittest.TestCase):
         self.survey.pair(self.prob_x)
         dgx = self.prob_x.fields(self.model)
 
+        self.survey.unpair()
         self.survey.pair(self.prob_y)
         dgy = self.prob_y.fields(self.model)
 
+        # Compute gz data only
+        self.survey.unpair()
         self.survey.pair(self.prob_z)
         dgz = self.prob_z.fields(self.model)
 

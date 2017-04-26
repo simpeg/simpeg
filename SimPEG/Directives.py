@@ -9,6 +9,7 @@ from . import Regularization
 from . import Mesh
 from . import ObjectiveFunction
 
+
 class InversionDirective(object):
     """InversionDirective"""
 
@@ -88,6 +89,9 @@ class InversionDirective(object):
     def finish(self):
         pass
 
+    def validate(self, directiveList=None):
+        return True
+
 
 class DirectiveList(object):
 
@@ -144,6 +148,10 @@ class DirectiveList(object):
         )
         for r in self.dList:
             getattr(r, ruleType)()
+
+    def validate(self):
+        [directive.validate(self) for directive in self.dList]
+        return True
 
 
 class BetaEstimate_ByEig(InversionDirective):
@@ -436,6 +444,28 @@ class Update_IRLS(InversionDirective):
     @target.setter
     def target(self, val):
         self._target = val
+
+    def validate(self, directiveList):
+        # check if a linear preconditioner is in the list, if not warn else
+        # assert that it is listed after the IRLS directive
+        dList = directiveList.dList
+        self_ind = dList.index(self)
+        lin_precond_ind = [
+            isinstance(d, UpdatePreCond) for d in dList
+        ]
+
+        if any(lin_precond_ind):
+            assert(lin_precond_ind.index(True) > self_ind), (
+                "The directive 'Update_lin_PreCond' must be after Update_IRLS "
+                "in the directiveList"
+            )
+        else:
+            warnings.warn(
+                "Without a Linear preconditioner, convergence may be slow. "
+                "Consider adding `Directives.Update_lin_PreCond` to your "
+                "directives list"
+            )
+        return True
 
     def initialize(self):
 

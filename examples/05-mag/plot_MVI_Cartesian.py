@@ -174,7 +174,7 @@ def run(plotIt=True):
     update_Jacobi = Directives.UpdatePreCond()
 
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[betaest, IRLS, update_Jacobi, ])
+                                  directiveList=[betaest, IRLS, update_Jacobi])
 
     mstart = np.ones(3*nC)*1e-4
     mrec = inv.run(mstart)
