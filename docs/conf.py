@@ -282,7 +282,8 @@ texinfo_documents = [
 sphinx_gallery_conf = {
     # path to your examples scripts
     'examples_dirs' : '../examples',
-    'gallery_dirs'  : 'content/examples'
+    'gallery_dirs'  : 'content/examples',
+    'backreferences_dir' : False
 }
 
 
