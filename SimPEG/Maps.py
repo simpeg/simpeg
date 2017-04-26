@@ -1711,13 +1711,18 @@ class AmplitudeMap(IdentityMap):
         self._nP = int(mesh.dim*mesh.nC)
 
         start = 0
-        P = []
+        Proj = []
+        P = sp.csr_matrix((mesh.nC, mesh.dim*mesh.nC))
         for arg in range(mesh.dim):
-            P += [Projection(self.nP, slice(start, start + mesh.nC))]
+            Proj += [Projection(self.nP, slice(start, start + mesh.nC))]
+            P += Projection(self.nP, slice(start, start + mesh.nC)).P
+
             start += mesh.nC
 
-        self.P = sp.hstack(P)
+        self.Plist = Proj
+        self.P = P
 
+        print(self.P.shape)
     @property
     def nP(self):
         return self._nP
@@ -1726,10 +1731,11 @@ class AmplitudeMap(IdentityMap):
 
         nC = self.mesh.nC
 
-        lml = self.P * m**2.
+        lml = np.zeros(nC)
+        for P in self.Plist:
+            lml += (P * m)**2.
 
         return lml**0.5
-
 
     def deriv(self, m, v=None):
         """
@@ -1743,33 +1749,16 @@ class AmplitudeMap(IdentityMap):
         """
         A = Utils.sdiag(self._transform(m)**-1.)
 
-        deriv = self.P.T * A * self.P
+        deriv = sp.csr_matrix(self.Plist[0].shape)
+
+        for P in self.Plist:
+
+            deriv += (A * (Utils.sdiag(P*m)*P.P))
 
         if v is not None:
             return deriv * v
         return deriv
 
-    def deriv2(self, m, v=None):
-        """
-            :param numpy.array m: model
-            :rtype: scipy.sparse.csr_matrix
-            :return: derivative of transformed model
-
-            The *transform* changes the model into the physical property.
-            The *transformDeriv* provides the derivative of the *transform*.
-
-        """
-        A = Utils.sdiag(self._transform(m)**-1.)
-        A2 = Utils.sdiag(self._transform(m)**-3.)
-
-        deriv2 = sp.csr_matrix((self._nP, self._nP))
-        for P in self.P:
-            deriv2 += P.P.T*(A*P.P)
-            deriv2 -= P.P.T*(Utils.sdiag(P.P*m)*A2)*P.P
-
-        if v is not None:
-            return deriv2 * v
-        return deriv2
 ###############################################################################
 #                                                                             #
 #                              Depreciated Maps                               #

@@ -681,12 +681,16 @@ class UpdatePreCond(InversionDirective):
         if self.onlyOnStart is True:
             return
 
-        # Update the pre-conditioner
-        regDiag = []
-        for reg in self.reg.objfcts:
-            regDiag.append((reg.W.T*reg.W).diagonal())
+        # Create the pre-conditioner
+        regDiag = np.zeros_like(self.invProb.model)
 
-        regDiag = np.hstack(regDiag)
+        for reg in self.reg.objfcts:
+            # Check if he has wire
+            if getattr(reg.mapping, 'P', None) is None:
+                regDiag += (reg.W.T*reg.W).diagonal()
+            else:
+                # He is a snitch!
+                regDiag += reg.mapping.P.T*(reg.W.T*reg.W).diagonal()
 
         # Assumes that opt.JtJdiag has been updated or static
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
