@@ -53,8 +53,7 @@ class InversionDirective(object):
 
     @reg.setter
     def reg(self, value):
-        assert(
-            any([isinstance(value, regtype) for regtype in self._regPair]),
+        assert any([isinstance(value, regtype) for regtype in self._regPair]),(
             "Regularization must be in {}, not {}".format(
                 self._regPair, type(value)
             )
