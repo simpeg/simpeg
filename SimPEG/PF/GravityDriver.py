@@ -131,7 +131,7 @@ class GravityDriver_Inv(object):
         line = fid.readline()
         l_input = re.split('[!\s]', line)
         if l_input[0] == 'VALUE':
-            val = np.array(l_input[1:6])
+            val = np.array(l_input[1:5])
             lpnorms = val.astype(np.float)
 
         elif l_input[0] == 'FILE':
@@ -163,6 +163,7 @@ class GravityDriver_Inv(object):
     @property
     def mesh(self):
         if getattr(self, '_mesh', None) is None:
+            print(self.basePath + self.mshfile)
             self._mesh = Mesh.TensorMesh.readUBC(self.basePath + self.mshfile)
         return self._mesh
 

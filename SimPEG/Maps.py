@@ -1698,6 +1698,78 @@ class ParametricSplineMap(IdentityMap):
         return sp.csr_matrix(np.c_[g1, g2, g3])
 
 
+class AmplitudeMap(IdentityMap):
+    """
+        Amplitude Map for the Magnetic Amplitude problem.
+        Takes three components vector model and transforms it
+        into an amplitude
+    """
+
+    def __init__(self, mesh):
+        IdentityMap.__init__(self, mesh)
+
+        self._nP = int(mesh.dim*mesh.nC)
+
+        start = 0
+        P = []
+        for arg in range(mesh.dim):
+            P += [Projection(self.nP, slice(start, start + mesh.nC))]
+            start += mesh.nC
+
+        self.P = sp.hstack(P)
+
+    @property
+    def nP(self):
+        return self._nP
+
+    def _transform(self, m):
+
+        nC = self.mesh.nC
+
+        lml = self.P * m**2.
+
+        return lml**0.5
+
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+
+            The *transform* changes the model into the physical property.
+            The *transformDeriv* provides the derivative of the *transform*.
+
+        """
+        A = Utils.sdiag(self._transform(m)**-1.)
+
+        deriv = self.P.T * A * self.P
+
+        if v is not None:
+            return deriv * v
+        return deriv
+
+    def deriv2(self, m, v=None):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+
+            The *transform* changes the model into the physical property.
+            The *transformDeriv* provides the derivative of the *transform*.
+
+        """
+        A = Utils.sdiag(self._transform(m)**-1.)
+        A2 = Utils.sdiag(self._transform(m)**-3.)
+
+        deriv2 = sp.csr_matrix((self._nP, self._nP))
+        for P in self.P:
+            deriv2 += P.P.T*(A*P.P)
+            deriv2 -= P.P.T*(Utils.sdiag(P.P*m)*A2)*P.P
+
+        if v is not None:
+            return deriv2 * v
+        return deriv2
 ###############################################################################
 #                                                                             #
 #                              Depreciated Maps                               #

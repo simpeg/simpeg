@@ -40,6 +40,12 @@ class GravityIntegral(Problem.LinearProblem):
 
             return vec.astype(np.float64)
 
+    def mapping(self):
+        """
+            Return rhoMap
+        """
+        return self.rhoMap
+
     @property
     def F(self):
         if not self.ispaired:

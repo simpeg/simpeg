@@ -73,6 +73,12 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return self._nD
 
+    def mapping(self):
+        """
+            Return chiMap
+        """
+        return self.chiMap
+
     @property
     def ProjTMI(self):
         if not self.ispaired:
@@ -246,7 +252,6 @@ class MagneticVector(MagneticIntegral):
     M = None  #: magType matrix provided, otherwise all induced
     # coordinate_system = 'cartesian'  # Formulation either "cartesian" | "spherical"
     magType = 'full'  # magType component
-    chi = None
     silent = False  # Don't display progress on screen
     scale = 1.
     W = None
@@ -348,14 +353,14 @@ class MagneticVector(MagneticIntegral):
 
         if getattr(self, '_S', None) is None:
 
-            if self.chi is None:
+            if self.model is None:
                 raise Exception('Requires a chi')
 
-            nC = int(len(self.chi)/3)
+            nC = int(len(self.model)/3)
 
-            a = self.chi[:nC]
-            t = self.chi[nC:2*nC]
-            p = self.chi[2*nC:]
+            a = self.model[:nC]
+            t = self.model[nC:2*nC]
+            p = self.model[2*nC:]
 
             Sx = sp.hstack([sp.diags(np.cos(t)*np.cos(p), 0),
                             sp.diags(-a*np.sin(t)*np.cos(p), 0),
@@ -380,7 +385,6 @@ class MagneticAmplitude(MagneticIntegral):
     actInd = None  #: Active cell indices provided
     M = None  #: magType matrix provided, otherwise all induced
     magType = 'H0'  #: Option "H0", "x", "y", "z", "full" (for Joint)
-    chi = None
     silent = False  # Don't display progress on screen
     scale = 1.
     W = None
@@ -392,10 +396,10 @@ class MagneticAmplitude(MagneticIntegral):
         # Switch to avoid forming the dense matrix
         if self.forwardOnly:
 
-            self.chi = chi
+            self.model = chi
 
             # Compute the linear operation without forming the full dense G
-            m = self.chiMap * self.chi
+            m = self.chiMap * self.model
 
             Bxyz = []
             for rtype in ['x', 'y', 'z']:
@@ -406,27 +410,32 @@ class MagneticAmplitude(MagneticIntegral):
         else:
             if chi is None:
 
-                if self.chi is None:
+                if self.model is None:
                     raise Exception('Problem needs a chi chi')
 
                 else:
-                    m = self.chiMap * self.chi
+                    m = self.chiMap * self.model
 
             else:
 
-                self.chi = chi
-                m = self.chiMap * self.chi
+                self.model = chi
+                m = self.chiMap * self.model
 
             # Bxyz = np.empty(self.F.shape[0])
             # for ii in range(self.F.shape[0]):
             #     Bxyz[ii] = self.F[ii, :].dot(self.chiMap*m)
 
-            if self.magType != 'full':
-                Bxyz = np.dot(self.F, m.astype(np.float32))
+            if self.magType == 'full':
+
+
+                if self.chiMap.shape[0] == self.model.shape[0]:
+                    Bxyz = np.dot(self.F, m.astype(np.float32))
+                else:
+
+                    Bxyz = np.dot(self.F, (self.Mxyz*m).astype(np.float32))
 
             else:
-
-                Bxyz = np.dot(self.F, (self.Mxyz*m).astype(np.float32))
+                Bxyz = np.dot(self.F, m.astype(np.float32))
 
             return self.calcAmpData(Bxyz.astype(np.float64))
 
@@ -452,11 +461,16 @@ class MagneticAmplitude(MagneticIntegral):
         # for ii in range(self.F.shape[0]):
         #     vec[ii] = self.F[ii, :].dot(dmudm*v)
 
-        if self.magType != 'full':
-            vec = np.dot(self.F, (dmudm*v).astype(np.float32))
+        if self.magType == 'full':
+
+            if self.chiMap.shape[0] == chi.shape[0]:
+                vec = np.dot(self.F, ((dmudm*v)).astype(np.float32))
+            else:
+                vec = np.dot(self.F, (self.Mxyz*(dmudm*v)).astype(np.float32))
 
         else:
-            vec = np.dot(self.F, (self.Mxyz*(dmudm*v)).astype(np.float32))
+            vec = np.dot(self.F, (dmudm*v).astype(np.float32))
+
 
         return self.dfdm*vec.astype(np.float64)
 
@@ -466,11 +480,16 @@ class MagneticAmplitude(MagneticIntegral):
         # vec = np.empty(self.F.shape[1])
         # for ii in range(self.F.shape[1]):
         #     vec[ii] = self.F[:, ii].dot(self.dfdm.T*v)
-        if self.magType != 'full':
-            vec = np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32))
-        else:
+        if self.magType == 'full':
 
-            vec = self.Mxyz.T*np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
+            if self.chiMap.shape[0] == chi.shape[0]:
+                vec = np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
+
+            else:
+                vec = self.Mxyz.T*np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
+
+        else:
+            vec = np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32))
 
         return dmudm.T * vec.astype(np.float64)
 
@@ -492,13 +511,13 @@ class MagneticAmplitude(MagneticIntegral):
     @property
     def dfdm(self):
 
-        if self.chi is None:
+        if self.model is None:
             raise Exception('Problem needs a chi chi')
 
         if getattr(self, '_dfdm', None) is None:
 
             # Get field data
-            m = self.chiMap * self.chi
+            m = self.chiMap * self.model
 
             Bxyz = self.Bxyz_a(m)
 
@@ -515,11 +534,18 @@ class MagneticAmplitude(MagneticIntegral):
             Return the normalized B fields
         """
 
-        if self.magType != 'full':
-            Bxyz = np.dot(self.F, m.astype(np.float32))
+        if self.magType == 'full':
+
+            if self.chiMap.shape[0] == self.model.shape[0]:
+                Bxyz = np.dot(self.F, m.astype(np.float32))
+
+            else:
+
+                Bxyz = np.dot(self.F, (self.Mxyz*m).astype(np.float32))
+
         else:
 
-            Bxyz = np.dot(self.F, (self.Mxyz*m).astype(np.float32))
+            Bxyz = np.dot(self.F, m.astype(np.float32))
 
         amp = self.calcAmpData(Bxyz.astype(np.float64))
         Bamp = sp.spdiags(1./amp, 0, self.nD, self.nD)

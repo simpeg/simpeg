@@ -274,6 +274,21 @@ class MagneticsDriver_Inv(object):
         return self._mref
 
     @property
+    def cell_weights(self):
+        if getattr(self, '_cell_weights', None) is None:
+            if isinstance(self.wgtfile, float):
+                self._cell_weights = np.ones(self.nC) * self.wgtfile
+            else:
+                self._cell_weights = Mesh.TensorMesh.readModelUBC(self.mesh,
+                                                          self.basePath +
+                                                          self.wgtfile)
+
+                # Reduce to active space
+                self._cell_weights = self._cell_weights[self._activeCells]
+
+        return self._cell_weights
+
+    @property
     def activeModel(self):
         if getattr(self, '_activeModel', None) is None:
             if self._staticInput == 'FILE':

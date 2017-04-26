@@ -631,11 +631,11 @@ class Small(BaseRegularization):
         Weighting matrix
         """
         if self.cell_weights is not None:
-            return Utils.sdiag(self.cell_weights)
-        elif self._nC_residual != '*':
-            return sp.eye(self._nC_residual)
+            return Utils.sdiag((self.regmesh.vol*self.cell_weights)**0.5)
+        # elif self._nC_residual != '*':
+        #     return sp.eye(self._nC_residual)
         else:
-            return Utils.Identity()
+            return Utils.sdiag(self.regmesh.vol**0.5)
 
 
 ###############################################################################
@@ -799,6 +799,53 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         self._mapping = val
 
 
+class SimpleSmall(BaseRegularization):
+    """
+    Small regularization - L2 regularization on the difference between a
+    model and a reference model. Cell weights may be included.
+
+    .. math::
+
+        r(m) = \\frac{1}{2}(\\mathbf{m} - \\mathbf{m_ref})^\top \\mathbf{W}^T
+        \\mathbf{W} (\\mathbf{m} - \\mathbf{m_{ref}})
+
+    where :math:`\\mathbf{m}` is the model, :math:`\\mathbf{m_{ref}}` is a
+    reference model (default Zero) and :math:`\\mathbf{W}` is a weighting
+    matrix (default Identity. If cell weights are provided, then it is
+    :code:`diag(cell_weights)`)
+
+
+    **Optional Inputs**
+
+    :param BaseMesh mesh: SimPEG mesh
+    :param int nP: number of parameters
+    :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
+    :param numpy.ndarray mref: reference model
+    :param numpy.ndarray indActive: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
+    :param numpy.ndarray cell_weights: cell weights
+
+    """
+
+    _multiplier_pair = 'alpha_s'
+
+    def __init__(self, mesh=None, **kwargs):
+
+        super(SimpleSmall, self).__init__(
+            mesh=mesh, **kwargs
+        )
+
+    @property
+    def W(self):
+        """
+        Weighting matrix
+        """
+        if self.cell_weights is not None:
+            return Utils.sdiag(self.cell_weights**0.5)
+        elif self._nC_residual != '*':
+            return sp.eye(self._nC_residual)
+        else:
+            return Utils.Identity()
+
 class SimpleSmoothDeriv(BaseRegularization):
     """
     Base Simple Smooth Regularization. This base class regularizes on the first
@@ -920,7 +967,7 @@ class Simple(BaseComboRegularization):
     ):
 
         objfcts = [
-            Small(mesh=mesh, **kwargs),
+            SimpleSmall(mesh=mesh, **kwargs),
             SimpleSmoothDeriv(
                 mesh=mesh, orientation='x',
                 **kwargs
@@ -1009,14 +1056,22 @@ class SmoothDeriv(BaseRegularization):
         Weighting matrix that constructs the first spatial derivative stencil
         in the specified orientation
         """
+        Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
         W = getattr(
             self.regmesh,
             "cellDiff{orientation}".format(
                 orientation=self.orientation
             )
         )
+
+        W = (
+                Utils.sdiag(
+                    (Ave*self.regmesh.vol)**0.5
+                ) * W
+            )
+
         if self.cell_weights is not None:
-            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
             W = (
                 Utils.sdiag(
                     (Ave*self.cell_weights)**0.5
@@ -1136,19 +1191,19 @@ class Tikhonov(BaseComboRegularization):
         objfcts = [
             Small(mesh=mesh, **kwargs),
             SmoothDeriv(mesh=mesh, orientation='x', **kwargs),
-            SmoothDeriv2(mesh=mesh, orientation='x', **kwargs)
+            # SmoothDeriv2(mesh=mesh, orientation='x', **kwargs)
         ]
 
         if mesh.dim > 1:
             objfcts += [
                     SmoothDeriv(mesh=mesh, orientation='y', **kwargs),
-                    SmoothDeriv2(mesh=mesh, orientation='y', **kwargs)
+                    # SmoothDeriv2(mesh=mesh, orientation='y', **kwargs)
             ]
 
         if mesh.dim > 2:
             objfcts += [
                     SmoothDeriv(mesh=mesh, orientation='z', **kwargs),
-                    SmoothDeriv2(mesh=mesh, orientation='z', **kwargs)
+                    # SmoothDeriv2(mesh=mesh, orientation='z', **kwargs)
             ]
 
         super(Tikhonov, self).__init__(
