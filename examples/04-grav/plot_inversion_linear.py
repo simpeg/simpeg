@@ -135,7 +135,7 @@ def run(plotIt=True):
     # model parameters
     IRLS = Directives.Update_IRLS(f_min_change=1e-2, minGNiter=3)
 
-    update_Jacobi = Directives.Update_lin_PreCond()
+    update_Jacobi = Directives.UpdatePreCond()
     inv = Inversion.BaseInversion(invProb, directiveList=[betaest, IRLS,
                                                           update_Jacobi])
 
@@ -147,7 +147,7 @@ def run(plotIt=True):
         # Here is the recovered denisty model
         ypanel = midx
         zpanel = -7
-        m_l2 = actvMap * reg.l2model
+        m_l2 = actvMap * invProb.l2model
         m_l2[m_l2 == -100] = np.nan
 
         m_lp = actvMap * mrec

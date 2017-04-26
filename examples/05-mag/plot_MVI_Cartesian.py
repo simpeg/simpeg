@@ -171,7 +171,7 @@ def run(plotIt=True):
     IRLS = Directives.Update_IRLS(f_min_change=1e-4,
                                   minGNiter=3, beta_tol=1e-2)
 
-    update_Jacobi = Directives.Update_lin_PreCond()
+    update_Jacobi = Directives.UpdatePreCond()
 
     inv = Inversion.BaseInversion(invProb,
                                   directiveList=[betaest, IRLS, update_Jacobi])
@@ -186,84 +186,33 @@ def run(plotIt=True):
 
         vmin = model.min()
         vmax = model.max()/10.
-
-        m_lpx = actvMap * mrec[0:nC]
-        m_lpy = actvMap * mrec[nC:2*nC]
-        m_lpz = actvMap * -mrec[2*nC:]
-
-        m_lpx[m_lpx == -100] = np.nan
-        m_lpy[m_lpy == -100] = np.nan
-        m_lpz[m_lpz == -100] = np.nan
-
-        amp = np.sqrt(m_lpx**2. + m_lpy**2. + m_lpz**2.)
-
-        m_lpx = (m_lpx/amp).reshape(mesh.vnC, order='F')
-        m_lpy = (m_lpy/amp).reshape(mesh.vnC, order='F')
-        m_lpz = (m_lpz/amp).reshape(mesh.vnC, order='F')
-        amp = amp.reshape(mesh.vnC, order='F')
-
-        sub = 2
-
-        xx = mesh.gridCC[:, 0].reshape(mesh.vnC, order="F")
-        zz = mesh.gridCC[:, 2].reshape(mesh.vnC, order="F")
-        yy = mesh.gridCC[:, 1].reshape(mesh.vnC, order="F")
-
         fig = plt.figure(figsize=(8, 8))
         ax2 = plt.subplot(212)
-        im2 = ax2.contourf(xx[:, ypanel, :].T, zz[:, ypanel, :].T,
-                           amp[:, ypanel, :].T, 40,
-                           vmin=vmin, vmax=vmax, clim=[vmin, vmax],
-                           cmap='magma_r')
-
-        ax2.quiver(mkvc(xx[::sub, ypanel, ::sub].T),
-                   mkvc(zz[::sub, ypanel, ::sub].T),
-                   mkvc(m_lpx[::sub, ypanel, ::sub].T),
-                   mkvc(m_lpz[::sub, ypanel, ::sub].T), pivot='mid',
-                   units="xy", scale=0.2, linewidths=(1,), edgecolors=('k'),
-                   headaxislength=0.1, headwidth=10, headlength=30)
-        plt.colorbar(im2, orientation="vertical", ax=ax2,
-                     ticks=np.linspace(im2.vmin, im2.vmax, 4),
-                     format="${%.3f}$")
-
-        ax2.set_aspect('equal')
-        ax2.set_xlim(-50, 50)
-        ax2.set_ylim(mesh.vectorNz[3], mesh.vectorNz[-1]+dx)
-        ax2.set_title('EW - Recovered')
-        ax2.set_xlabel('Easting (m)', size=14)
+        
+        scl_vec = np.max(mrec)/np.max(m) * 0.25
+        PF.Magnetics.plotModelSections(mesh, mrec, normal='y',
+                                       ind=ypanel, axs=ax2,
+                                       xlim=(-50, 50), scale=scl_vec, vec ='w',
+                                       ylim=(mesh.vectorNz[3], 
+                                             mesh.vectorNz[-1]+dx),
+                                       vmin=vmin, vmax=vmax)
+        ax2.set_title('Smooth l2 solution')
         ax2.set_ylabel('Elevation (m)', size=14)
 
-        # plot true model
         vmin = model.min()
-        vmax = model.max()*1.5
-
-        m_lpx = (M[:, 0]).reshape(mesh.vnC, order='F')
-        m_lpy = (M[:, 1]).reshape(mesh.vnC, order='F')
-        m_lpz = -(M[:, 2]).reshape(mesh.vnC, order='F')
-        amp = model.reshape(mesh.vnC, order='F')
+        vmax = model.max()*.9
 
         ax3 = plt.subplot(211)
-        im2 = ax3.contourf(xx[:, ypanel, :].T, zz[:, ypanel, :].T,
-                           amp[:, ypanel, :].T, 40,
-                           vmin=vmin, vmax=vmax, clim=[vmin, vmax],
-                           cmap='magma_r')
+        PF.Magnetics.plotModelSections(mesh, m, normal='y',
+                                       ind=ypanel, axs=ax3,
+                                       xlim=(-50, 50), scale=0.25, vec ='w',
+                                       ylim=(mesh.vectorNz[3],
+                                             mesh.vectorNz[-1]+dx),
+                                       vmin=vmin, vmax=vmax)
 
-        ind = mkvc(amp[::sub, ypanel, ::sub].T) > 0
-        ax3.quiver(mkvc(xx[::sub, ypanel, ::sub].T)[ind],
-                   mkvc(zz[::sub, ypanel, ::sub].T)[ind],
-                   mkvc(m_lpx[::sub, ypanel, ::sub].T)[ind],
-                   mkvc(m_lpz[::sub, ypanel, ::sub].T)[ind], pivot='mid',
-                   units="xy", scale=0.2, linewidths=(1,), edgecolors=('k'),
-                   headaxislength=0.1, headwidth=10, headlength=30)
-        plt.colorbar(im2, orientation="vertical", ax=ax3,
-                     ticks=np.linspace(im2.vmin, im2.vmax, 4),
-                     format="${%.3f}$")
-        ax3.set_aspect('equal')
-        ax3.set_xlim(-50, 50)
-        ax3.set_ylim(mesh.vectorNz[3], mesh.vectorNz[-1]+dx)
-        ax3.set_title('EW - True')
+        ax3.set_title('True Model')
         ax3.xaxis.set_visible(False)
         ax3.set_ylabel('Elevation (m)', size=14)
-
         # Plot the data
         fig = plt.figure(figsize=(8, 4))
         ax1 = plt.subplot(121)

@@ -100,6 +100,10 @@ def run(plotIt=True):
     # Pair the survey and problem
     survey.pair(prob)
 
+    # Create a static sensitivity weighting function
+    wr = np.sum(prob.F**2., axis=0)**0.5
+    wr = (wr/np.max(wr))
+    
     # Compute linear forward operator and compute some data
     d = prob.fields(model)
 
@@ -114,14 +118,12 @@ def run(plotIt=True):
 
     # Create sensitivity weights from our linear forward operator
     rxLoc = survey.srcField.rxList[0].locs
-    wr = np.sum(prob.F**2., axis=0)**0.5
-    wr = (wr/np.max(wr))
 
     # Create a regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-    reg.cell_weights = wr
     reg.norms = [0, 1, 1, 1]
     reg.eps_p, reg.eps_q = 1e-3, 1e-3
+    reg.cell_weights = wr
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
@@ -130,8 +132,8 @@ def run(plotIt=True):
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
                                      maxIterLS=20, maxIterCG=10, tolCG=1e-3)
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e+7)
-    #betaest = Directives.BetaEstimate_ByEig()
+    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+    betaest = Directives.BetaEstimate_ByEig()
 
     # Here is where the norms are applied
 
@@ -140,9 +142,10 @@ def run(plotIt=True):
 
     IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=3)
 
-    update_Jacobi = Directives.Update_lin_PreCond()
+    update_Jacobi = Directives.UpdatePreCond()
+    update_SensWeight = Directives.UpdateSensWeighting()
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[IRLS, update_Jacobi])
+                                  directiveList=[betaest, IRLS, update_Jacobi])
 
     # Run the inversion
     m0 = np.ones(nC)*1e-4  # Starting model
@@ -152,7 +155,8 @@ def run(plotIt=True):
         # Here is the recovered susceptibility model
         ypanel = midx
         zpanel = -5
-        m_l2 = actvMap * reg.l2model
+        
+        m_l2 = actvMap * invProb.l2model
         m_l2[m_l2 == -100] = np.nan
 
         m_lp = actvMap * mrec

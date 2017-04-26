@@ -134,12 +134,12 @@ def run(plotIt=True):
     # Create a regularization function, in this case l2l2
     wr = np.sum(prob.F**2., axis=0)**0.5
     wr = (wr/np.max(wr))
-
+#    prob.JtJdiag = wr
     # Create a regularization
     reg_Susc = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-    reg_Susc.cell_weights = wr
     reg_Susc.norms = ([0, 1, 1, 1])
     reg_Susc.eps_p, reg_Susc.eps_q = 1e-3, 1e-3
+    reg_Susc.cell_weights = wr
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
@@ -148,15 +148,15 @@ def run(plotIt=True):
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
                                      maxIterLS=20, maxIterCG=10, tolCG=1e-3)
-    invProb = InvProblem.BaseInvProblem(dmis, reg_Susc, opt)
+    invProb_Susc = InvProblem.BaseInvProblem(dmis, reg_Susc, opt)
     betaest = Directives.BetaEstimate_ByEig()
 
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
     #  model parameters
     IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=3)
-    update_Jacobi = Directives.Update_lin_PreCond()
-    inv = Inversion.BaseInversion(invProb,
+    update_Jacobi = Directives.UpdatePreCond()
+    inv = Inversion.BaseInversion(invProb_Susc,
                                   directiveList=[betaest, IRLS, update_Jacobi])
 
     # Run the inversion
@@ -186,6 +186,7 @@ def run(plotIt=True):
     # Create a regularization function, in this case l2l2
     reg = Regularization.Simple(mesh, indActive=surf)
     reg.mref = np.zeros(nC)
+    reg.cell_weights = wr[surf]
 
     # Specify how the optimization will proceed
     opt = Optimization.ProjectedGNCG(maxIter=150, lower=-np.inf,
@@ -207,7 +208,8 @@ def run(plotIt=True):
 
     # Target misfit to stop the inversion
     targetMisfit = Directives.TargetMisfit()
-    update_Jacobi = Directives.Update_lin_PreCond()
+    update_SensWeight = Directives.UpdateSensWeighting()
+    update_Jacobi = Directives.UpdatePreCond()
     # Put all the parts together
     inv = Inversion.BaseInversion(invProb,
                                   directiveList=[betaest, betaSchedule,
@@ -269,7 +271,7 @@ def run(plotIt=True):
     # Create a sparse regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.norms = ([0, 1, 1, 1])
-    reg.eps_p, reg.eps_q = 1e-3, 1e-3
+    reg.eps_p, reg.eps_q = 5e-3, 1e-3
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
@@ -292,27 +294,28 @@ def run(plotIt=True):
 
     # Special directive specific to the mag amplitude problem. The sensitivity
     # weights are update between each iteration.
-    update_Jacobi = Directives.Amplitude_Inv_Iter()
+    update_SensWeight = Directives.UpdateSensWeighting()
+    update_Jacobi = Directives.UpdatePreCond()
 
     # Put all together
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[betaest, IRLS, update_Jacobi])
+                                  directiveList=[betaest, IRLS, update_SensWeight, update_Jacobi])
 
     # Invert
     mrec = inv.run(mstart)
 
     if plotIt:
         # Here is the recovered susceptibility model
-        m_l2 = actvMap * reg.l2model
+        m_l2 = actvMap * invProb.l2model
         m_l2[m_l2 == -100] = np.nan
 
         m_lp = actvMap * mrec
         m_lp[m_lp == -100] = np.nan
 
-        m_l2_susc = actvMap * reg_Susc.l2model
+        m_l2_susc = actvMap * invProb_Susc.l2model
         m_l2[m_l2 == -100] = np.nan
 
-        m_lp_susc = actvMap * reg_Susc.model
+        m_lp_susc = actvMap * invProb_Susc.model
         m_lp[m_lp == -100] = np.nan
 
         m_true = actvMap * model
