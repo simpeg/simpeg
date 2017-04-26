@@ -181,6 +181,7 @@ def run(plotIt=True):
     prob.solverOpts['accuracyTol'] = 1e-4
 
     # Pair the survey and problem
+    survey.unpair()
     survey.pair(prob)
 
     # Create a regularization function, in this case l2l2
@@ -263,6 +264,7 @@ def run(plotIt=True):
     # survey.srcField.rxList[0].rxType = 'xyz'
 
     # Pair the survey and problem
+    survey.unpair()
     survey.pair(prob)
 
     # Re-set the observations to |B|
