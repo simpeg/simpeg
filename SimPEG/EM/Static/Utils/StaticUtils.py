@@ -343,21 +343,21 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
 
 def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
     """
-        Write UBC GIF DCIP 2D or 3D observation file
+       Write UBC GIF DCIP 2D or 3D observation file
 
-        :param string fileName: including path where the file is written out
-        :param Survey DCsurvey: DC survey class object
-        :param string dim:  either '2D' | '3D'
-        :param string surveyType:  either 'SURFACE' | 'GENERAL'
-        :rtype: file
-        :return: UBC2D-Data file
+       :param string fileName: including path where the file is written out
+       :param Survey DCsurvey: DC survey class object
+       :param string dim:  either '2D' | '3D'
+       :param string surveyType:  either 'SURFACE' | 'GENERAL'
+       :rtype: file
+       :return: UBC2D-Data file
     """
 
     assert (dim == '2D') | (dim == '3D'), "Data must be either '2D' | '3D'"
 
     assert ((formatType == 'SURFACE') |
-            (formatType == 'GENERAL') |
-            (formatType == 'SIMPLE')), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
+           (formatType == 'GENERAL') |
+           (formatType == 'SIMPLE')), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
 
     fid = open(fileName, 'w')
 
@@ -367,11 +367,13 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
     else:
         fid.write('! ' + formatType + ' FORMAT\n')
 
+    fid.close()
+
     count = 0
 
     for ii in range(DCsurvey.nSrc):
 
-        tx = np.c_[DCsurvey.srcList[ii].loc]
+        tx = np.c_[DCsurvey.srcList[ii].loc.copy()]
 
         if np.shape(tx)[0] == 3:
             surveyType = 'pole-dipole'
@@ -383,8 +385,9 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
 
         nD = DCsurvey.srcList[ii].nD
 
-        M = rx[0]
-        N = rx[1]
+        M = rx[0].copy()
+        N = rx[1].copy()
+
 
         # Adapt source-receiver location for dim and surveyType
         if dim == '2D':
@@ -403,13 +406,15 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
                 M = M[:, 0]
                 N = N[:, 0]
 
+                fid = open(fileName, 'ab')
                 np.savetxt(fid, np.c_[A, B, M, N,
-                                      DCsurvey.dobs[count:count+nD],
-                                      DCsurvey.std[count:count+nD]],
-                                      delimiter=' ', newline='\n')
+                                     DCsurvey.dobs[count:count+nD],
+                                     DCsurvey.std[count:count+nD]],
+                                     delimiter=' ', newline='\n')
+                fid.close()
 
             else:
-
+                fid = open(fileName, 'a')
                 if formatType == 'SURFACE':
 
                     fid.writelines("%f " % ii for ii in Utils.mkvc(tx[0, :]))
@@ -430,9 +435,20 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
                     N[:, 1::2] = -N[:, 1::2]
 
                 fid.write('%i\n'% nD)
+                fid.close()
+
+                fid = open(fileName, 'ab')
                 np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], delimiter=' ', newline='\n')
 
         if dim == '3D':
+            fid = open(fileName, 'a')
+            # Flip sign of z value for UBC DCoctree code
+            tx[:,2] = -tx[:, 2]
+            # print(tx)
+
+            # Flip sign of z value for UBC DCoctree code
+            M[:, 2] = -M[:, 2]
+            N[:, 2] = -N[:, 2]
 
             if formatType == 'SURFACE':
 
@@ -445,8 +461,22 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
                 fid.writelines("%e " % ii for ii in Utils.mkvc(tx.T))
 
             fid.write('%i\n'% nD)
-            np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
+
+            fid.close()
+
+            fid = open(fileName, 'ab')
+            if isinstance(DCsurvey.std, np.ndarray):
+#                 print('array')
+                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
+            elif (isinstance(DCsurvey.std, float)):
+                print('survey.std was a float computing uncertainty vector (survey.std*survey.dobs + survey.eps)')
+                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std*DCsurvey.dobs[count:count+nD] + DCsurvey.eps ], fmt='%e', delimiter=' ', newline='\n')
+
+            fid.close()
+
+            fid = open(fileName, 'a')
             fid.write('\n')
+            fid.close()
 
         count += nD
 
@@ -761,7 +791,11 @@ def readUBC_DC3Dobs(fileName):
                 zflag = False
 
             else:
+                # Flip z values
+                temp[2] = -temp[2]
+                temp[5] = -temp[5]
                 tx = temp[:-1]
+
 
             continue
 
@@ -769,6 +803,9 @@ def readUBC_DC3Dobs(fileName):
         temp = np.fromstring(obsfile[ii], dtype=float, sep=' ')
 
         if zflag:
+            # Flip z values
+            temp[2] = -temp[2]
+            temp[5] = -temp[5]
 
             rx.append(temp[:-2])
             # Check if there is data with the location
