@@ -1188,7 +1188,7 @@ class Problem3D_j(BaseTDEMProblem):
         return Utils.Zero()  # assumes no derivs on sources
 
     def getAdc(self):
-        D = self.mesh.faceDiv
+        D = Utils.sdiag(self.mesh.vol) * self.mesh.faceDiv
         G = D.T
         MfRhoI = self.MfRhoI
         return D * MfRhoI * G

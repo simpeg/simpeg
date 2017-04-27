@@ -415,7 +415,7 @@ class RawVec_Grounded(BaseTDEMSrc):
         )
 
     def getRHSdc(self, prob):
-        return prob.mesh.faceDiv * self._s_e
+        return Utils.sdiag(prob.mesh.vol) * prob.mesh.faceDiv * self._s_e
 
     def phiInitial(self, prob):
         if self.waveform.hasInitialFields:
@@ -430,7 +430,8 @@ class RawVec_Grounded(BaseTDEMSrc):
 
         if self.waveform.hasInitialFields:
             phi = self.phiInitial(prob)
-            return - prob.MfRhoI * (prob.mesh.faceDiv.T * phi)
+            Div = Utils.sdiag(prob.mesh.vol) * prob.mesh.faceDiv
+            return - prob.MfRhoI * (Div.T * phi)
 
         else:
             return Zero()
