@@ -66,6 +66,7 @@ class MagFwdProblemTests(unittest.TestCase):
         dbz = d[2*ndata:]
 
         # Compute tmi mag data
+        self.survey.unpair()
         self.survey.pair(self.prob_tmi)
         dtmi = self.prob_tmi.fields(self.model)
 
