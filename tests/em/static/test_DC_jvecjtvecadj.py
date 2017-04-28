@@ -74,7 +74,7 @@ class DCProblemTestsCC(unittest.TestCase):
 
     def test_dataObj(self):
         passed = Tests.checkDerivative(
-            lambda m: [self.dmis.eval(m), self.dmis.evalDeriv(m)],
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
             self.m0,
             plotIt=False,
             num=3
@@ -147,7 +147,7 @@ class DCProblemTestsN(unittest.TestCase):
 
     def test_dataObj(self):
         passed = Tests.checkDerivative(
-            lambda m: [self.dmis.eval(m), self.dmis.evalDeriv(m)],
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
             self.m0,
             plotIt=False
         )

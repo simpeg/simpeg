@@ -4,6 +4,7 @@ Inversion: Linear: IRLS
 
 Here we go over the basics of creating a linear problem and inversion.
 """
+
 from __future__ import print_function
 
 import numpy as np
@@ -18,6 +19,7 @@ from SimPEG import Optimization
 from SimPEG import Regularization
 from SimPEG import InvProblem
 from SimPEG import Inversion
+from SimPEG import Maps
 
 
 def run(N=100, plotIt=True):
@@ -64,14 +66,17 @@ def run(N=100, plotIt=True):
     wr = wr/np.max(wr)
 
     dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.Wd = 1./wd
+    dmis.W = 1./wd
 
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
 
-    reg = Regularization.Sparse(mesh)
+    # Creat reduced identity map
+    idenMap = Maps.IdentityMap(nP=mesh.nC)
+
+    reg = Regularization.Sparse(mesh, mapping=idenMap)
     reg.mref = mref
     reg.cell_weights = wr
-
+    reg.norms = [0., 0., 2., 2.]
     reg.mref = np.zeros(mesh.nC)
 
     opt = Optimization.ProjectedGNCG(
@@ -83,10 +88,8 @@ def run(N=100, plotIt=True):
 
     # Set the IRLS directive, penalize the lowest 25 percentile of model values
     # Start with an l2-l2, then switch to lp-norms
-    norms = [0., 0., 2., 2.]
-    IRLS = Directives.Update_IRLS(
-        norms=norms, prctile=25, maxIRLSiter=15, minGNiter=3
-    )
+
+    IRLS = Directives.Update_IRLS(prctile=25, maxIRLSiter=15, minGNiter=3)
 
     inv = Inversion.BaseInversion(
         invProb,
@@ -96,7 +99,7 @@ def run(N=100, plotIt=True):
     # Run inversion
     mrec = inv.run(m0)
 
-    print("Final misfit:" + str(invProb.dmisfit.eval(mrec)))
+    print("Final misfit:" + str(invProb.dmisfit(mrec)))
 
     if plotIt:
         fig, axes = plt.subplots(1, 2, figsize=(12*1.2, 4*1.2))
@@ -105,7 +108,7 @@ def run(N=100, plotIt=True):
         axes[0].set_title('Columns of matrix G')
 
         axes[1].plot(mesh.vectorCCx, mtrue, 'b-')
-        axes[1].plot(mesh.vectorCCx, reg.l2model, 'r-')
+        axes[1].plot(mesh.vectorCCx, IRLS.l2model, 'r-')
         # axes[1].legend(('True Model', 'Recovered Model'))
         axes[1].set_ylim(-1.0, 1.25)
 
