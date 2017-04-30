@@ -101,7 +101,7 @@ class IPProblemTestsCC(unittest.TestCase):
 
     def test_dataObj(self):
         passed = Tests.checkDerivative(
-            lambda m: [self.dmis.eval(m), self.dmis.evalDeriv(m)],
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
             self.m0,
             plotIt=False,
             num=3
@@ -196,7 +196,7 @@ class IPProblemTestsN(unittest.TestCase):
 
     def test_dataObj(self):
         passed = Tests.checkDerivative(
-            lambda m: [self.dmis.eval(m), self.dmis.evalDeriv(m)],
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
             self.m0,
             plotIt=False,
             num=3
@@ -258,22 +258,22 @@ class IPProblemTestsN_air(unittest.TestCase):
         survey.makeSyntheticData(mSynth)
         # Now set up the problem to do some minimization
         dmis = DataMisfit.l2_DataMisfit(survey)
-        regmap = Maps.IdentityMap(nP=int(mSynth[~airind].size*2))
-        reg = SIP.MultiRegularization(
-            mesh,
-            mapping=regmap,
-            nModels=2,
-            indActive=~airind
-        )
-        opt = Optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6,
-            tolX=1e-6, tolG=1e-6, maxIterCG=6
-        )
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e4)
-        inv = Inversion.BaseInversion(invProb)
+        # regmap = Maps.IdentityMap(nP=int(mSynth[~airind].size*2))
+        # reg = SIP.MultiRegularization(
+        #     mesh,
+        #     mapping=regmap,
+        #     nModels=2,
+        #     indActive=~airind
+        # )
+        # opt = Optimization.InexactGaussNewton(
+        #     maxIterLS=20, maxIter=10, tolF=1e-6,
+        #     tolX=1e-6, tolG=1e-6, maxIterCG=6
+        # )
+        # invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e4)
+        # inv = Inversion.BaseInversion(invProb)
 
-        self.inv = inv
-        self.reg = reg
+        # self.inv = inv
+        # self.reg = reg
         self.p = problem
         self.mesh = mesh
         self.m0 = mSynth
@@ -305,7 +305,7 @@ class IPProblemTestsN_air(unittest.TestCase):
 
     def test_dataObj(self):
         passed = Tests.checkDerivative(
-            lambda m: [self.dmis.eval(m), self.dmis.evalDeriv(m)],
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
             self.m0,
             plotIt=False,
             num=3
