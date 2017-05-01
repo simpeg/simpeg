@@ -57,6 +57,42 @@ class StepOffWaveform(BaseWaveform):
         else:
             return 0.
 
+class RampOffWaveform(BaseWaveform):
+
+    eps = 1e-9
+    offTime = 0.
+
+    def __init__(self, offTime=0.):
+        BaseWaveform.__init__(self, offTime=offTime, hasInitialFields=True)
+
+    def eval(self, time):
+        if abs(time-0.) < self.eps:
+            return 1.
+        elif time < self.offTime:
+            return -1. / self.offTime * (time - self.offTime)
+        else:
+            return 0.
+
+class VTEMWaveform(BaseWaveform):
+
+    eps = 1e-9
+    offTime = 4.2e-3
+    peakTime = 2.73e-3
+    a = 3.
+
+    def __init__(self, offTime=4.2e-3, peakTime=2.73e-3, a=3.):
+        BaseWaveform.__init__(
+            self, offTime=offTime, peakTime=peakTime, a=a, hasInitialFields=False
+            )
+
+    def eval(self, time):
+        if time < self.peakTime:
+            return (1. - np.exp(-self.a*time/self.peakTime)) / (1.-np.exp(-self.a))
+        elif (time < self.offTime) and (time > self.peakTime):
+            return -1. / (self.offTime-self.peakTime) * (time - self.offTime)
+        else:
+            return 0.
+
 
 class RawWaveform(BaseWaveform):
 
@@ -206,18 +242,16 @@ class MagDipole(BaseTDEMSrc):
             self.loc, obsLoc, component, mu=self.mu, moment=self.moment
         )
 
-    def _bSrc(self, prob):
+    def _aSrc(self, prob):
         if prob._formulation == 'EB':
             gridX = prob.mesh.gridEx
             gridY = prob.mesh.gridEy
             gridZ = prob.mesh.gridEz
-            C = prob.mesh.edgeCurl
 
         elif prob._formulation == 'HJ':
             gridX = prob.mesh.gridFx
             gridY = prob.mesh.gridFy
             gridZ = prob.mesh.gridFz
-            C = prob.mesh.edgeCurl.T
 
         if prob.mesh._meshType is 'CYL':
             if not prob.mesh.isSymmetric:
@@ -232,7 +266,16 @@ class MagDipole(BaseTDEMSrc):
             az = self._srcFct(gridZ, 'z')
             a = np.concatenate((ax, ay, az))
 
-        return C*a
+        return a
+
+    def _bSrc(self, prob):
+        if prob._formulation == 'EB':
+            C = prob.mesh.edgeCurl
+
+        elif prob._formulation == 'HJ':
+            C = prob.mesh.edgeCurl.T
+
+        return C*self._aSrc(prob)
 
     def bInitial(self, prob):
 
