@@ -55,7 +55,7 @@ or (2) using a desktop client such as SourceTree_.
 
 .. _SourceTree: https://www.sourcetreeapp.com/
 
-.. image:: ../images/sourceTreeSimPEG.png
+.. image:: ../../images/sourceTreeSimPEG.png
     :align: center
     :width: 400
     :target: https://www.sourcetreeapp.com/
@@ -64,7 +64,7 @@ If this is your first time managing a github_ repository through SourceTree_,
 it is also handy to set up the remote account so it remembers your github_
 user name and password
 
-.. image:: ../images/sourceTreeRemote.png
+.. image:: ../../images/sourceTreeRemote.png
     :align: center
     :width: 400
 
@@ -82,7 +82,7 @@ So that you can access SimPEG from anywhere on your computer, you need to add
 it to your path. This can be done using symlinks. In your :code:`git` directory,
 create a directory called :code:`python_symlinks`.
 
-.. image:: ../images/gitfolders.png
+.. image:: ../../images/gitfolders.png
     :align: center
     :width: 40%
 
@@ -127,7 +127,7 @@ build (Tools / Build) to run Python_ code.
 
 Open your user settings
 
-.. image:: ../images/sublimeSettings.png
+.. image:: ../../images/sublimeSettings.png
     :align: center
     :width: 400
 
