@@ -46,11 +46,52 @@ class BaseWaveform(object):
 
 class StepOffWaveform(BaseWaveform):
 
+    eps = 1e-9
+
     def __init__(self, offTime=0.):
         BaseWaveform.__init__(self, offTime=offTime, hasInitialFields=True)
 
     def eval(self, time):
-        return 0.
+        if abs(time-0.) < self.eps:
+            return 1.
+        else:
+            return 0.
+
+class RampOffWaveform(BaseWaveform):
+
+    eps = 1e-9
+    offTime = 0.
+
+    def __init__(self, offTime=0.):
+        BaseWaveform.__init__(self, offTime=offTime, hasInitialFields=True)
+
+    def eval(self, time):
+        if abs(time-0.) < self.eps:
+            return 1.
+        elif time < self.offTime:
+            return -1. / self.offTime * (time - self.offTime)
+        else:
+            return 0.
+
+class VTEMWaveform(BaseWaveform):
+
+    eps = 1e-9
+    offTime = 4.2e-3
+    peakTime = 2.73e-3
+    a = 3.
+
+    def __init__(self, offTime=4.2e-3, peakTime=2.73e-3, a=3.):
+        BaseWaveform.__init__(
+            self, offTime=offTime, peakTime=peakTime, a=a, hasInitialFields=False
+            )
+
+    def eval(self, time):
+        if time < self.peakTime:
+            return (1. - np.exp(-self.a*time/self.peakTime)) / (1.-np.exp(-self.a))
+        elif (time < self.offTime) and (time > self.peakTime):
+            return -1. / (self.offTime-self.peakTime) * (time - self.offTime)
+        else:
+            return 0.
 
 
 class RawWaveform(BaseWaveform):
@@ -86,6 +127,7 @@ class BaseTDEMSrc(BaseEMSrc):
 
     waveformPair = BaseWaveform  #: type of waveform to pair with
     waveform = None  #: source waveform
+    srcType = None
 
     def __init__(self, rxList, **kwargs):
         super(BaseTDEMSrc, self).__init__(rxList, **kwargs)
@@ -110,25 +152,25 @@ class BaseTDEMSrc(BaseEMSrc):
     def bInitial(self, prob):
         return Zero()
 
-    def bInitialDeriv(self, prob, v=None, adjoint=False):
+    def bInitialDeriv(self, prob, v=None, adjoint=False, f=None):
         return Zero()
 
     def eInitial(self, prob):
         return Zero()
 
-    def eInitialDeriv(self, prob, v=None, adjoint=False):
+    def eInitialDeriv(self, prob, v=None, adjoint=False, f=None):
         return Zero()
 
     def hInitial(self, prob):
         return Zero()
 
-    def hInitialDeriv(self, prob, v=None, adjoint=False):
+    def hInitialDeriv(self, prob, v=None, adjoint=False, f=None):
         return Zero()
 
     def jInitial(self, prob):
         return Zero()
 
-    def jInitialDeriv(self, prob, v=None, adjoint=False):
+    def jInitialDeriv(self, prob, v=None, adjoint=False, f=None):
         return Zero()
 
     def eval(self, prob, time):
@@ -172,6 +214,7 @@ class MagDipole(BaseTDEMSrc):
     orientation = properties.Vector3(
         "orientation of the source", default='Z', length=1., required=True
     )
+    srcType = "Inductive"
 
     def __init__(self, rxList, **kwargs):
         # assert(self.orientation in ['X', 'Y', 'Z']), (
@@ -199,18 +242,16 @@ class MagDipole(BaseTDEMSrc):
             self.loc, obsLoc, component, mu=self.mu, moment=self.moment
         )
 
-    def _bSrc(self, prob):
+    def _aSrc(self, prob):
         if prob._formulation == 'EB':
             gridX = prob.mesh.gridEx
             gridY = prob.mesh.gridEy
             gridZ = prob.mesh.gridEz
-            C = prob.mesh.edgeCurl
 
         elif prob._formulation == 'HJ':
             gridX = prob.mesh.gridFx
             gridY = prob.mesh.gridFy
             gridZ = prob.mesh.gridFz
-            C = prob.mesh.edgeCurl.T
 
         if prob.mesh._meshType is 'CYL':
             if not prob.mesh.isSymmetric:
@@ -225,7 +266,16 @@ class MagDipole(BaseTDEMSrc):
             az = self._srcFct(gridZ, 'z')
             a = np.concatenate((ax, ay, az))
 
-        return C*a
+        return a
+
+    def _bSrc(self, prob):
+        if prob._formulation == 'EB':
+            C = prob.mesh.edgeCurl
+
+        elif prob._formulation == 'HJ':
+            C = prob.mesh.edgeCurl.T
+
+        return C*self._aSrc(prob)
 
     def bInitial(self, prob):
 
@@ -240,39 +290,6 @@ class MagDipole(BaseTDEMSrc):
             return Zero()
 
         return 1./self.mu * self._bSrc(prob)
-
-    def eInitial(self, prob):
-        # when solving for e, it is easier to work with an initial source than
-        # initial fields
-        # if self.waveform.hasInitialFields is False or prob._fieldType is 'e':
-        return Zero()
-
-        # b = self.bInitial(prob)
-        # MeSigmaI = prob.MeSigmaI
-        # MfMui = prob.MfMui
-        # C = prob.mesh.edgeCurl
-
-        # return MeSigmaI * (C.T * (MfMui * b))
-
-    def eInitialDeriv(self, prob, v=None, adjoint=False):
-
-        return Zero()
-
-        # if self.waveform.hasInitialFields is False:
-        #     return Zero()
-
-        # b = self.bInitial(prob)
-        # MeSigmaIDeriv = prob.MeSigmaIDeriv
-        # MfMui = prob.MfMui
-        # C = prob.mesh.edgeCurl
-        # s_e = self.s_e(prob, prob.t0)
-
-        # # s_e doesn't depend on the model
-
-        # if adjoint:
-        #     return MeSigmaIDeriv( -s_e + C.T * ( MfMui * b ) ).T * v
-
-        # return MeSigmaIDeriv( -s_e + C.T * ( MfMui * b ) ) * v
 
     def s_m(self, prob, time):
         if self.waveform.hasInitialFields is False:
@@ -318,7 +335,6 @@ class MagDipole(BaseTDEMSrc):
                 return C * h * self.waveform.eval(time)
 
 
-
 class CircularLoop(MagDipole):
 
     radius = properties.Float(
@@ -342,4 +358,76 @@ class CircularLoop(MagDipole):
         return MagneticLoopVectorPotential(
             self.loc, obsLoc, component, mu=self.mu, radius=self.radius
         )
+
+
+class LineCurrent(BaseTDEMSrc):
+    """
+    RawVec electric source. It is defined by the user provided vector s_e
+
+    :param list rxList: receiver list
+    :param bool integrate: Integrate the source term (multiply by Me) [False]
+    """
+    waveform = None
+    loc = None
+    mu = mu_0
+    srcType = "Galvanic"
+
+    def __init__(self, rxList, **kwargs):
+        self.integrate = False
+        BaseEMSrc.__init__(self, rxList, **kwargs)
+
+    def Mejs(self, prob):
+        if getattr(self, '_Mejs', None) is None:
+            x0 = prob.mesh.x0
+            hx = prob.mesh.hx
+            hy = prob.mesh.hy
+            hz = prob.mesh.hz
+            px = self.loc[:, 0]
+            py = self.loc[:, 1]
+            pz = self.loc[:, 2]
+            self._Mejs = getSourceTermLineCurrentPolygon(x0, hx, hy, hz,
+                                                         px, py, pz)
+        return self._Mejs
+
+    def getRHSdc(self, prob):
+        Grad = prob.mesh.nodalGrad
+        return Grad.T*self.Mejs(prob)
+
+    # TODO: Need to implement solving MMR for this when
+    # StepOffwaveforme is used.
+    def bInitial(self, prob):
+        if self.waveform.eval(0) == 1.:
+            raise Exception("Not implemetned for computing b!")
+        else:
+            return Zero()
+
+    def eInitial(self, prob):
+        if self.waveform.hasInitialFields:
+            RHSdc = self.getRHSdc(prob)
+            soldc = prob.Adcinv * RHSdc
+            return - prob.mesh.nodalGrad * soldc
+        else:
+            return Zero()
+
+    def eInitialDeriv(self, prob, v=None, adjoint=False, f=None):
+        if self.waveform.hasInitialFields:
+            edc = f[self, 'e', 0]
+            Grad = prob.mesh.nodalGrad
+            if adjoint is False:
+                AdcDeriv_v = prob.getAdcDeriv(edc, v, adjoint=adjoint)
+                edcDeriv = Grad * (prob.Adcinv * AdcDeriv_v)
+                return edcDeriv
+            elif adjoint is True:
+                vec = prob.Adcinv * (Grad.T * v)
+                edcDerivT = prob.getAdcDeriv(edc, vec, adjoint=adjoint)
+                return edcDerivT
+        else:
+            return Zero()
+
+    def s_m(self, prob, time):
+        return Zero()
+
+    def s_e(self, prob, time):
+        return self.Mejs(prob) * self.waveform.eval(time)
+
 
