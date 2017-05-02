@@ -195,11 +195,13 @@ You are now set up to SimPEG!
 If all is not well ...
 ----------------------
 
-Submit an issue_ and `change this file`_!
+Submit an issue_
+
+.. and `change this file`_!
 
 .. _issue: https://github.com/simpeg/simpeg/issues
 
-.. _change this file: https://github.com/simpeg/simpeg/edit/master/docs/content/api_getting_started_developers.rst
+..  .. _change this file: https://github.com/simpeg/simpeg/edit/master/docs/content/api_getting_started_developers.rst
 
 
 Advanced: Installing Solvers
