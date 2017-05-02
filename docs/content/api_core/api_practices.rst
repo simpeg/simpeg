@@ -200,7 +200,7 @@ install package and search for SublimeLinter-pep8. Installation instructions are
 
 This highlights and gives you tips on how to correct the code.
 
-.. image:: ../images/pep8sublime.png
+.. image:: ../../images/pep8sublime.png
     :width: 95%
 
 
