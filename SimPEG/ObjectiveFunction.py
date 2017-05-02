@@ -142,11 +142,10 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
             else:
                 x = np.random.randn(self.nP)
 
-        v = x + 0.01*np.random.rand(len(x))
+        v = x + 0.1*np.random.rand(len(x))
         return checkDerivative(
             lambda m: [self.deriv(m).dot(v), self.deriv2(m, v=v)],
-                x, num=num, expectedOrder=1,
-                plotIt=plotIt, **kwargs
+            x, num=num, expectedOrder=1, plotIt=plotIt, **kwargs
         )
 
     def test(self, x=None, num=4, plotIt=False, **kwargs):
@@ -233,6 +232,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     """
     _multiplier_types = (float, None, Utils.Zero, np.float64) + integer_types # Directive
+    _multipliers = None
 
     def __init__(self, objfcts=[], multipliers=None, **kwargs):
 
@@ -241,10 +241,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         self._nP = '*'
 
-        assert(len(objfcts)==len(multipliers)),(
+        assert(len(objfcts)==len(multipliers)), (
             "Must have the same number of Objective Functions and Multipliers "
-            "not {} and {}".format(len(objfcts),len(multipliers))
-            )
+            "not {} and {}".format(len(objfcts), len(multipliers))
+        )
 
         def validate_list(objfctlist, multipliers):
             """
