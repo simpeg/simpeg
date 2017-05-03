@@ -113,7 +113,7 @@ Order and Derivative Tests
 `Order tests <http://docs.simpeg.xyz/content/api_core/api_Tests.html>`_ can be
 used when you are testing differential operators (we are using a second-order,
 staggered grid discretization for our operators). For example, testing a 2D
-curl operator in `test_operators.py <https://github.com/simpeg/simpeg/blob/master/tests/mesh/test_operators.py>`_
+curl operator in `test_operators.py <https://github.com/simpeg/discretize/blob/master/tests/base/test_operators.py>`_
 
 .. code:: python
 
