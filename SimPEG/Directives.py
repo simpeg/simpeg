@@ -603,7 +603,7 @@ class Update_IRLS(InversionDirective):
             different block of models
         """
 
-        # Currently implemented
+        # Currently implemented for MVI-S only
         max_p = []
         for reg in self.reg.objfcts[0].objfcts:
             eps_p = reg.epsilon
@@ -808,7 +808,7 @@ class UpdateSensWeighting(InversionDirective):
                     for ii in range(nD):
 
                         rows = prob.F[ii::nD, :]
-                        jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii,:], rows * prob.Mxyz)))**2.
+                        jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii, :], rows * prob.Mxyz)))**2.
 
                 else:
                     for ii in range(nD):
