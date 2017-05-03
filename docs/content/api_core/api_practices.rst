@@ -56,7 +56,7 @@ Compare with known values
 In a simple case, you might now the exact value of what the output should be
 and you can :code:`assert` that this is in fact the case. For example, in
 `test_basemesh.py
-<https://github.com/simpeg/simpeg/blob/master/tests/mesh/test_basemesh.py>`_,
+<https://github.com/simpeg/discretize/blob/master/tests/base/test_basemesh.py>`_,
 we setup a 3D :code:`BaseRectangularMesh` and assert that it has 3 dimensions.
 
 .. code:: python
