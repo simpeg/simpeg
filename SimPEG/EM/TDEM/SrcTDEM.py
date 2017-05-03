@@ -47,6 +47,7 @@ class BaseWaveform(object):
 class StepOffWaveform(BaseWaveform):
 
     eps = 1e-9
+    offTime = 0.
 
     def __init__(self, offTime=0.):
         BaseWaveform.__init__(self, offTime=offTime, hasInitialFields=True)
