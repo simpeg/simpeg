@@ -1255,7 +1255,7 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
 
         return os.path.abspath(
             remoteDownload(
-                self.url, [self.cloudfile], basePath=self.filepath+os.path.sep
+                self.url, [self.cloudfile], path=self.filepath
             )
         )
 

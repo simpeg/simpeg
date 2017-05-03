@@ -25,14 +25,18 @@ def run(plotIt=True, cleanAfterRun=True):
 
     # Start by downloading files from the remote repository
     url = "https://storage.googleapis.com/simpeg/Chile_GRAV_4_Miller/"
-    cloudfiles = ['LdM_grav_obs.grv', 'LdM_mesh.mesh',
-                  'LdM_topo.topo', 'LdM_input_file.inp']
+    cloudfiles = [
+        'LdM_grav_obs.grv', 'LdM_mesh.mesh',
+        'LdM_topo.topo', 'LdM_input_file.inp'
+    ]
 
-    basePath = os.path.sep.join(os.path.abspath(os.getenv('HOME')).split
-                                (os.path.sep)+['Downloads']+['SimPEGtemp'])
-    basePath = os.path.abspath(remoteDownload(url,
-                                              cloudfiles,
-                                              basePath=basePath+os.path.sep))
+    # Download to Downloads/SimPEGtemp
+    basePath = remoteDownload(
+        url, cloudfiles,
+        path=os.path.sep.join([os.getenv('HOME'), 'Downloads']),
+        rm_previous=True
+    )
+
     input_file = basePath + os.path.sep + 'LdM_input_file.inp'
     # %% User input
     # Plotting parameters, max and min densities in g/cc

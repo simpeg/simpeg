@@ -3,6 +3,7 @@ import numpy as np
 from SimPEG import Mesh
 import time as tm
 import re
+import warnings
 
 
 def read_GOCAD_ts(tsfile):
@@ -146,11 +147,17 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     return insideGrid
 
 
-def remoteDownload(url, remoteFiles, basePath=None):
+def remoteDownload(
+    url, remoteFiles, path='.', directory='SimPEGtemp', rm_previous=False
+):
     """
     Function to download all files stored in a cloud directory
-    var:    url ("http:\\...")
-    list:   List of file names to download
+
+    :param str url: url of the storage bucket ("http://...")
+    :param list remoteFiles: List of file names to download from the storate bucket
+    :param str path: path to where the directory is created and files downloaded (default is the current directory)
+    :param str directory: name of the directory to be created and have content downloaded to
+    :param bool rm_previous: remove file and contents if a directory with the specified name already exists
     """
 
     # Download from cloud
@@ -158,23 +165,54 @@ def remoteDownload(url, remoteFiles, basePath=None):
     import shutil
     import os
     import sys
+
+    def rename_path(downloadpath):
+        splitfullpath = downloadpath.split(os.path.sep)
+        curdir = splitfullpath[-1]
+        splitdir = curdir.split('(')
+        rootdir = splitdir[0]
+
+        # add (num) to the end of the filename
+        if len(splitdir) == 1:
+            num = 1
+        else:
+            num = int(splitdir[-1][:-1])
+            num += 1
+
+        return os.path.sep.join(
+            splitfullpath[:-1] + [rootdir + '({})'.format(num)]
+        )
+
+    # grab the correct url retriever
     if sys.version_info < (3,):
         urlretrieve = urllib.urlretrieve
     else:
         urlretrieve = urllib.request.urlretrieve
 
-    if basePath is None:
-        basePath = os.curdir+os.path.sep+'SimPEGtemp'+os.path.sep
+    # ensure we are working with absolute paths
+    path = os.path.abspath(path)
+    downloadpath = os.path.sep.join([path]+[directory])
+    # check if the directory already exists
+    while os.path.exists(downloadpath):
+        if rm_previous is True:
+            print("removing previous contents of {}".format(downloadpath))
+            shutil.rmtree(downloadpath)
+        elif rm_previous is False:
+            downloadpath = rename_path(downloadpath)
+            print(
+                "directory already exists, new downloads will be in {}".format(
+                    downloadpath
+                )
+            )
 
-    if os.path.exists(basePath):
-        shutil.rmtree(basePath)
+    # create the directory
+    os.makedirs(downloadpath+os.path.sep)
 
-    os.makedirs(basePath)
-
-    print("Download files from URL...")
+    # download files
+    print("Download files from {}...".format(url))
     for file in remoteFiles:
-        print("Retrieving: " + file)
-        urlretrieve(url + file, basePath+file)
+        print("   Retrieving: " + file)
+        urlretrieve(url + file, os.path.sep.join([downloadpath]+[file]))
 
     print("Download completed!")
-    return basePath
+    return downloadpath

@@ -4,6 +4,7 @@ from SimPEG import Mesh, PF
 from SimPEG.Utils import io_utils
 from scipy.constants import mu_0
 import shutil
+import os
 
 
 class MagSensProblemTests(unittest.TestCase):
@@ -17,7 +18,7 @@ class MagSensProblemTests(unittest.TestCase):
 
     def test_magnetics_inversion(self):
 
-        inp_file = self.basePath + 'SimPEG_Mag_Input.inp'
+        inp_file = os.path.sep.join([self.basePath, 'SimPEG_Mag_Input.inp'])
 
         driver = PF.MagneticsDriver.MagneticsDriver_Inv(inp_file)
 
@@ -36,8 +37,10 @@ class MagSensProblemTests(unittest.TestCase):
         print(driver.eps)
 
         # Write obs to file
-        PF.Magnetics.writeUBCobs(self.basePath + 'FWR_data.dat',
-                                 driver.survey, driver.survey.dobs)
+        PF.Magnetics.writeUBCobs(
+            os.path.sep.join([self.basePath, 'FWR_data.dat']),
+            driver.survey, driver.survey.dobs
+        )
 
         # Clean up the working directory
         shutil.rmtree(self.basePath)
