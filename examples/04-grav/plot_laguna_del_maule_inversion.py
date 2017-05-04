@@ -31,11 +31,8 @@ def run(plotIt=True, cleanAfterRun=True):
     ]
 
     # Download to Downloads/SimPEGtemp
-    basePath = download(
-        [url+f for f in cloudfiles],
-        path='~/Downloads/simpegtemp',
-        overwrite=True
-    )
+    basePath = os.path.expanduser('~/Downloads/simpegtemp')
+    download([url+f for f in cloudfiles], path=basePath, overwrite=True)
 
     input_file = basePath + os.path.sep + 'LdM_input_file.inp'
     # %% User input
@@ -74,8 +71,9 @@ def run(plotIt=True, cleanAfterRun=True):
     static = driver.staticCells
     dynamic = driver.dynamicCells
 
-    staticCells = Maps.InjectActiveCells(None,
-                                         dynamic, driver.m0[static], nC=nC)
+    staticCells = Maps.InjectActiveCells(
+        None, dynamic, driver.m0[static], nC=nC
+    )
     mstart = driver.m0[dynamic]
 
     # Get index of the center

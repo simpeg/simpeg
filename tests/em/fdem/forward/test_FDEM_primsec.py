@@ -8,7 +8,6 @@ try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import Solver as SolverLU
-from SimPEG.Utils.io_utils import remoteDownload
 
 import time
 import os
