@@ -5,7 +5,8 @@ import scipy.sparse as sp
 from SimPEG.Utils import (
     sdiag, sub2ind, ndgrid, mkvc, inv2X2BlockDiagonal,
     inv3X3BlockDiagonal, invPropertyTensor, makePropertyTensor, indexCube,
-    ind2sub, asArray_N_x_Dim, TensorType, diagEst, count, timeIt, Counter
+    ind2sub, asArray_N_x_Dim, TensorType, diagEst, count, timeIt, Counter,
+    download
 )
 from SimPEG import Mesh
 from SimPEG.Tests import checkDerivative
@@ -302,6 +303,27 @@ class TestDiagEst(unittest.TestCase):
         print('Testing probing. {}'.format(err))
         self.assertTrue(err < TOL)
 
+
+class TestDownload(unittest.TestCase):
+    def test_downloads(self):
+        url = "https://storage.googleapis.com/simpeg/Chile_GRAV_4_Miller/"
+        cloudfiles = [
+            'LdM_grav_obs.grv', 'LdM_mesh.mesh',
+            'LdM_topo.topo', 'LdM_input_file.inp'
+        ]
+
+        url1 = url + cloudfiles[0]
+        url2 = url + cloudfiles[1]
+
+        file_names = download(
+            [url1, url2], path='~/Downloads/mag_stuff', overwrite=True
+        )
+        # or
+        file_name = download(url1)
+        # where
+        assert isinstance(file_names, list)
+        assert len(file_names) == 2
+        assert isinstance(file_name, str)
 
 if __name__ == '__main__':
     unittest.main()

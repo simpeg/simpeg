@@ -14,8 +14,11 @@ class MagSensProblemTests(unittest.TestCase):
         cloudfiles = ['GravData.obs', 'Gaussian.topo', 'Mesh_10m.msh',
                       'ModelStart.sus', 'SimPEG_Grav_Input.inp']
 
-        self.basePath = io_utils.remoteDownload(
-            url, cloudfiles, rm_previous=True
+        self.basePath = os.path.expanduser('~/Downloads/simpegtemp')
+        self.files = io_utils.download(
+            [url + f for f in cloudfiles],
+            path=self.basePath,
+            overwrite=True
         )
 
     def test_magnetics_inversion(self):

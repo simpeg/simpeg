@@ -16,7 +16,7 @@ import shutil
 import SimPEG.PF as PF
 from SimPEG import Maps, Regularization, Optimization, DataMisfit,\
                    InvProblem, Directives, Inversion
-from SimPEG.Utils.io_utils import remoteDownload
+from SimPEG.Utils.io_utils import download
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -31,10 +31,10 @@ def run(plotIt=True, cleanAfterRun=True):
     ]
 
     # Download to Downloads/SimPEGtemp
-    basePath = remoteDownload(
-        url, cloudfiles,
-        path=os.path.sep.join([os.getenv('HOME'), 'Downloads']),
-        rm_previous=True
+    basePath = download(
+        [url+f for f in cloudfiles],
+        path='~/Downloads/simpegtemp',
+        overwrite=True
     )
 
     input_file = basePath + os.path.sep + 'LdM_input_file.inp'

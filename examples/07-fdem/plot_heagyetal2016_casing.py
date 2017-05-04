@@ -7,7 +7,7 @@ This example is used in the paper Heagy et al 2016 (in prep)
 from SimPEG import Mesh, Utils, Maps, Tests
 from SimPEG.EM import mu_0, FDEM, Analytics
 from SimPEG.EM.Utils import omega
-from SimPEG.Utils.io_utils import remoteDownload
+from SimPEG.Utils.io_utils import download
 # try:
 #     from pymatsolver import MumpsSolver as Solver
 #     print('using MumpsSolver')
@@ -1243,23 +1243,6 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         'J_PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody',
     ]
 
-    @property
-    def filepath(self):
-        return os.path.sep.join(
-            [os.path.abspath(os.getenv('HOME')), 'Downloads', 'SimPEGtemp']
-        )
-
-    def downloadStoredResults(self):
-        # download the results from where they are stored on google app engine
-
-        return os.path.abspath(
-            remoteDownload(
-                self.url, [self.cloudfile], path=os.path.sep.join(
-                    [os.path.abspath(os.getenv('HOME')), 'Downloads']
-                ), rm_previous=True
-            )
-        )
-
     def removeStoredResults(self):
         import shutil
         print('Removing {}'.format(self.filepath))
@@ -1267,19 +1250,18 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
 
     def run(self, plotIt=False, runTests=False, saveFig=False):
 
-        self.downloadStoredResults()
+        filepath = download(
+            self.url + self.cloudfile, path='~/Downloads/simpegtemp',
+            overwrite=True
+        )
+        self.filepath = os.path.sep.join(filepath.split(os.path.sep)[:-1])
 
         # resultsFiles = ['{filepath}{slash}{file}'.format(
         #     filepath=self.filepath, slash=os.path.sep, file=file)
         #     for file in self.cloudfiles]
         # results = [np.load(file, encoding='bytes') for file in resultsFiles]
 
-        h5f = h5py.File(
-            '{filepath}{slash}{file}'.format(
-                filepath=self.filepath, slash=os.path.sep, file=self.cloudfile
-                ), 'r'
-            )
-
+        h5f = h5py.File(filepath, 'r')
         results = [h5f[entry_name][:] for entry_name in self.entry_names]
         results = dict(zip(['primfields', 'dpredback', 'dpred', 'J'], results))
 

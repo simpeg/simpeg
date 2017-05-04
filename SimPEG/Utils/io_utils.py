@@ -1,6 +1,5 @@
 from __future__ import print_function
 import numpy as np
-from SimPEG import Mesh
 import time as tm
 import re
 import warnings
@@ -147,40 +146,44 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     return insideGrid
 
 
-def remoteDownload(
-    url, remoteFiles, path='.', directory='SimPEGtemp', rm_previous=False
+def download(
+    url, path='.', overwrite=False, verbose=True
 ):
     """
     Function to download all files stored in a cloud directory
 
-    :param str url: url of the storage bucket ("http://...")
-    :param list remoteFiles: List of file names to download from the storate bucket
+    :param str url: url or list of urls for the file(s) to be downloaded ("https://...")
     :param str path: path to where the directory is created and files downloaded (default is the current directory)
-    :param str directory: name of the directory to be created and have content downloaded to
-    :param bool rm_previous: remove file and contents if a directory with the specified name already exists
+    :param bool overwrite: overwrite if a file with the specified name already exists
+    :param bool verbose: print out progress
     """
 
     # Download from cloud
     import urllib
-    import shutil
     import os
     import sys
 
     def rename_path(downloadpath):
         splitfullpath = downloadpath.split(os.path.sep)
-        curdir = splitfullpath[-1]
-        splitdir = curdir.split('(')
-        rootdir = splitdir[0]
+
+        # grab just the filename
+        fname = splitfullpath[-1]
+        fnamesplit = fname.split('.')
+        newname = fnamesplit[0]
+
+        # check if we have already re-numbered
+        newnamesplit = newname.split('(')
 
         # add (num) to the end of the filename
-        if len(splitdir) == 1:
+        if len(newnamesplit) == 1:
             num = 1
         else:
-            num = int(splitdir[-1][:-1])
+            num = int(newnamesplit[-1][:-1])
             num += 1
 
+        newname = '{}({}).{}'.format(newnamesplit[0], num, fnamesplit[-1])
         return os.path.sep.join(
-            splitfullpath[:-1] + [rootdir + '({})'.format(num)]
+            splitfullpath[:-1] + newnamesplit[:-1] + [newname]
         )
 
     # grab the correct url retriever
@@ -189,30 +192,44 @@ def remoteDownload(
     else:
         urlretrieve = urllib.request.urlretrieve
 
-    # ensure we are working with absolute paths
-    path = os.path.abspath(path)
-    downloadpath = os.path.sep.join([path]+[directory])
-    # check if the directory already exists
-    while os.path.exists(downloadpath):
-        if rm_previous is True:
-            print("removing previous contents of {}".format(downloadpath))
-            shutil.rmtree(downloadpath)
-        elif rm_previous is False:
-            downloadpath = rename_path(downloadpath)
-            print(
-                "directory already exists, new downloads will be in {}".format(
-                    downloadpath
-                )
-            )
+    # ensure we are working with absolute paths and home directories dealt with
+    path = os.path.abspath(os.path.expanduser(path))
 
-    # create the directory
-    os.makedirs(downloadpath+os.path.sep)
+    # make the directory if it doesn't currently exist
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    if isinstance(url, str):
+        filenames = [url.split('/')[-1]]
+    elif isinstance(url, list):
+        filenames = [u.split('/')[-1] for u in url]
+
+    downloadpath = [os.path.sep.join([path, f]) for f in filenames]
+
+    # check if the directory already exists
+    for i, download in enumerate(downloadpath):
+        if os.path.exists(download):
+            if overwrite is True:
+                if verbose is True:
+                    print("overwriting {}".format(download))
+            elif overwrite is False:
+                while os.path.exists is True:
+                    download = rename_path(download)
+
+                if verbose is True:
+                    print(
+                        "file already exists, new file is called {}".format(
+                            download
+                        )
+                    )
+                downloadpath[i] = download
 
     # download files
-    print("Download files from {}...".format(url))
-    for file in remoteFiles:
-        print("   Retrieving: " + file)
-        urlretrieve(url + file, os.path.sep.join([downloadpath]+[file]))
+    urllist = url if isinstance(url, list) else [url]
+    for u, f in zip(urllist, downloadpath):
+        print("Downloading {}...".format(u))
+        urlretrieve(u, f)
+        print("   saved to: " + f)
 
     print("Download completed!")
-    return downloadpath
+    return downloadpath if isinstance(url, list) else downloadpath[0]
