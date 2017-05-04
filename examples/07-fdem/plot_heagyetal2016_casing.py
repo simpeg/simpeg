@@ -1246,8 +1246,7 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
     @property
     def filepath(self):
         return os.path.sep.join(
-            os.path.abspath(os.getenv('HOME')).split(os.path.sep) +
-            ['Downloads'] + ['SimPEGtemp']
+            [os.path.abspath(os.getenv('HOME')), 'Downloads', 'SimPEGtemp']
         )
 
     def downloadStoredResults(self):
@@ -1255,7 +1254,9 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
 
         return os.path.abspath(
             remoteDownload(
-                self.url, [self.cloudfile], path=self.filepath
+                self.url, [self.cloudfile], path=os.path.sep.join(
+                    [os.path.abspath(os.getenv('HOME')), 'Downloads']
+                ), rm_previous=True
             )
         )
 
