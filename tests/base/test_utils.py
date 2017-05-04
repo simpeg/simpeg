@@ -2,6 +2,8 @@ from __future__ import print_function
 import unittest
 import numpy as np
 import scipy.sparse as sp
+import os
+import shutil
 from SimPEG.Utils import (
     sdiag, sub2ind, ndgrid, mkvc, inv2X2BlockDiagonal,
     inv3X3BlockDiagonal, invPropertyTensor, makePropertyTensor, indexCube,
@@ -10,6 +12,7 @@ from SimPEG.Utils import (
 )
 from SimPEG import Mesh
 from SimPEG.Tests import checkDerivative
+
 
 TOL = 1e-8
 
@@ -316,14 +319,18 @@ class TestDownload(unittest.TestCase):
         url2 = url + cloudfiles[1]
 
         file_names = download(
-            [url1, url2], path='~/Downloads/mag_stuff', overwrite=True
+            [url1, url2], path='./test_urls', overwrite=True
         )
         # or
-        file_name = download(url1)
+        file_name = download(url1, path='./test_url', overwrite=True)
         # where
         assert isinstance(file_names, list)
         assert len(file_names) == 2
         assert isinstance(file_name, str)
+
+        # clean up
+        shutil.rmtree(os.path.expanduser('./test_urls'))
+        shutil.rmtree(os.path.expanduser('./test_url'))
 
 if __name__ == '__main__':
     unittest.main()
