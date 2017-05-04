@@ -87,7 +87,7 @@ class VTEMWaveform(BaseWaveform):
             )
 
     def eval(self, time):
-        if time < self.peakTime:
+        if time <= self.peakTime:
             return (1. - np.exp(-self.a*time/self.peakTime)) / (1.-np.exp(-self.a))
         elif (time < self.offTime) and (time > self.peakTime):
             return -1. / (self.offTime-self.peakTime) * (time - self.offTime)
