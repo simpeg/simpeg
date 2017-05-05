@@ -227,7 +227,7 @@ def download(
     # download files
     urllist = url if isinstance(url, list) else [url]
     for u, f in zip(urllist, downloadpath):
-        print("Downloading {}...".format(u))
+        print("Downloading {}".format(u))
         urlretrieve(u, f)
         print("   saved to: " + f)
 
