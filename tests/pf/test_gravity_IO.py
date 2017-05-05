@@ -17,7 +17,7 @@ class MagSensProblemTests(unittest.TestCase):
         self.basePath = os.path.expanduser('~/Downloads/simpegtemp')
         self.files = io_utils.download(
             [url + f for f in cloudfiles],
-            path=self.basePath,
+            folder=self.basePath,
             overwrite=True
         )
 

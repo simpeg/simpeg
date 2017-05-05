@@ -319,10 +319,10 @@ class TestDownload(unittest.TestCase):
         url2 = url + cloudfiles[1]
 
         file_names = download(
-            [url1, url2], path='./test_urls', overwrite=True
+            [url1, url2], folder='./test_urls', overwrite=True
         )
         # or
-        file_name = download(url1, path='./test_url', overwrite=True)
+        file_name = download(url1, folder='./test_url', overwrite=True)
         # where
         assert isinstance(file_names, list)
         assert len(file_names) == 2

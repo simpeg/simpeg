@@ -16,7 +16,7 @@ class MagSensProblemTests(unittest.TestCase):
 
         self.basePath = os.path.expanduser('~/Downloads/simpegtemp')
         self.files = io_utils.download(
-            [url+f for f in cloudfiles], path=self.basePath, overwrite=True
+            [url+f for f in cloudfiles], folder=self.basePath, overwrite=True
         )
 
     def test_magnetics_inversion(self):

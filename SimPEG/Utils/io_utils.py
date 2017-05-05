@@ -147,13 +147,13 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
 
 
 def download(
-    url, path='.', overwrite=False, verbose=True
+    url, folder='.', overwrite=False, verbose=True
 ):
     """
     Function to download all files stored in a cloud directory
 
     :param str url: url or list of urls for the file(s) to be downloaded ("https://...")
-    :param str path: path to where the directory is created and files downloaded (default is the current directory)
+    :param str folder: folder to where the directory is created and files downloaded (default is the current directory)
     :param bool overwrite: overwrite if a file with the specified name already exists
     :param bool verbose: print out progress
     """
@@ -193,18 +193,18 @@ def download(
         urlretrieve = urllib.request.urlretrieve
 
     # ensure we are working with absolute paths and home directories dealt with
-    path = os.path.abspath(os.path.expanduser(path))
+    folder = os.path.abspath(os.path.expanduser(folder))
 
     # make the directory if it doesn't currently exist
-    if not os.path.exists(path):
-        os.makedirs(path)
+    if not os.path.exists(folder):
+        os.makedirs(folder)
 
     if isinstance(url, str):
         filenames = [url.split('/')[-1]]
     elif isinstance(url, list):
         filenames = [u.split('/')[-1] for u in url]
 
-    downloadpath = [os.path.sep.join([path, f]) for f in filenames]
+    downloadpath = [os.path.sep.join([folder, f]) for f in filenames]
 
     # check if the directory already exists
     for i, download in enumerate(downloadpath):

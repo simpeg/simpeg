@@ -32,7 +32,7 @@ def run(plotIt=True, cleanAfterRun=True):
 
     # Download to Downloads/SimPEGtemp
     basePath = os.path.expanduser('~/Downloads/simpegtemp')
-    download([url+f for f in cloudfiles], path=basePath, overwrite=True)
+    download([url+f for f in cloudfiles], folder=basePath, overwrite=True)
 
     input_file = basePath + os.path.sep + 'LdM_input_file.inp'
     # %% User input

@@ -1251,7 +1251,7 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
     def run(self, plotIt=False, runTests=False, saveFig=False):
 
         filepath = download(
-            self.url + self.cloudfile, path='~/Downloads/simpegtemp',
+            self.url + self.cloudfile, folder='~/Downloads/simpegtemp',
             overwrite=True
         )
         self.filepath = os.path.sep.join(filepath.split(os.path.sep)[:-1])
