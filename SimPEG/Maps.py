@@ -1173,6 +1173,88 @@ class InjectActiveCells(IdentityMap):
             return self.P * v
         return self.P
 
+
+class Mesh2MeshTopo(IdentityMap):
+    """
+        Takes a model on one mesh are translates it to another mesh
+        with consideration of topography
+
+    """
+    tree = None
+    nIterpPts = 6
+    P = None
+
+    def __init__(self, meshes, actinds, **kwargs):
+        Utils.setKwargs(self, **kwargs)
+
+        assert type(meshes) is list, "meshes must be a list of two meshes"
+        assert len(meshes) == 2, "meshes must be a list of two meshes"
+        assert type(actinds) is list, "actinds must be a list of two meshes"
+        assert len(actinds) == 2, "actinds must be a list of two meshes"
+        assert meshes[0].dim == meshes[1].dim, (
+            """The two meshes must be the same dimension""")
+
+        self.mesh = meshes[0]
+        self.mesh2 = meshes[1]
+        self.actind = actinds[0]
+        self.actind2 = actinds[1]
+        self._createProjection()
+
+    def _createProjection(self):
+        """
+            KD Tree interpolation onto the active cells.
+        """
+        if self.tree is None:
+            self.tree = cKDTree(
+                zip(
+                    self.mesh.gridCC[self.actind, 0],
+                    self.mesh.gridCC[self.actind, 1],
+                    self.mesh.gridCC[self.actind, 2])
+                )
+        d, inds = self.tree.query(
+            zip(
+                self.mesh2.gridCC[self.actind2, 0],
+                self.mesh2.gridCC[self.actind2, 1],
+                self.mesh2.gridCC[self.actind2, 2]
+                ),
+            k=self.nIterpPts
+            )
+
+        # Not sure consideration of the volume ...
+        # vol = np.zeros((self.actind2.sum(), self.nIterpPts))
+        # for i in range(self.nIterpPts):
+        #     vol[:,i] = self.mesh.vol[inds[:,i]]
+        w = 1. / d**2
+        w = Utils.sdiag(1./np.sum(w, axis=1)) * (w)
+        I = Utils.mkvc(
+            np.arange(
+                inds.shape[0]).reshape([-1, 1]).repeat(self.nIterpPts, axis=1)
+            )
+        J = Utils.mkvc(inds)
+        P = sp.coo_matrix(
+         (Utils.mkvc(w), (I, J)), shape=(inds.shape[0], (self.actind).sum())
+         )
+        # self.P = Utils.sdiag(self.mesh2.vol[self.actind2])*P.tocsc()
+        self.P = P.tocsr()
+
+    @property
+    def shape(self):
+        """Number of parameters in the model."""
+        # return (self.mesh.nC, self.mesh2.nC)
+        return (self.actind2.sum(), self.actind.sum())
+
+    @property
+    def nP(self):
+        """Number of parameters in the model."""
+        # return self.mesh2.nC
+        return self.actind2.sum()
+
+    def _transform(self, m):
+        return self.P*m
+
+    def deriv(self, m):
+        return self.P
+
 ###############################################################################
 #                                                                             #
 #                             Parametric Maps                                 #

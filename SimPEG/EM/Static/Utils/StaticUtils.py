@@ -957,9 +957,9 @@ def gettopoCC(mesh, actind):
         topo = np.zeros(ZC.shape[0])
         topoCC = np.zeros(ZC.shape[0])
         for i in range(ZC.shape[0]):
-            ind = np.argmax(ZC[i, :][~ACTIND[i, :]])
-            topo[i] = ZC[i, :][~ACTIND[i, :]].max() + mesh.hz[~ACTIND[i, :]][ind]*0.5
-            topoCC[i] = ZC[i, :][~ACTIND[i, :]].max()
+            ind = np.argmax(ZC[i, :][ACTIND[i, :]])
+            topo[i] = ZC[i, :][ACTIND[i, :]].max() + mesh.hz[ACTIND[i, :]][ind]*0.5
+            topoCC[i] = ZC[i, :][ACTIND[i, :]].max()
 
         return mesh2D, topoCC
 
@@ -972,9 +972,9 @@ def gettopoCC(mesh, actind):
         topo = np.zeros(YC.shape[0])
         topoCC = np.zeros(YC.shape[0])
         for i in range(YC.shape[0]):
-            ind = np.argmax(YC[i, :][~ACTIND[i, :]])
-            topo[i] = YC[i, :][~ACTIND[i, :]].max() + mesh.hy[~ACTIND[i, :]][ind]*0.5
-            topoCC[i] = YC[i, :][~ACTIND[i, :]].max()
+            ind = np.argmax(YC[i, :][ACTIND[i, :]])
+            topo[i] = YC[i, :][ACTIND[i, :]].max() + mesh.hy[ACTIND[i, :]][ind]*0.5
+            topoCC[i] = YC[i, :][ACTIND[i, :]].max()
 
         return mesh1D, topoCC
 
@@ -994,7 +994,7 @@ def drapeTopotoLoc(mesh, topo, pts, actind=None):
     if actind is None:
         actind = Utils.surface2ind_topo(mesh, topo)
 
-    meshtemp, topoCC = gettopoCC(mesh, ~actind)
+    meshtemp, topoCC = gettopoCC(mesh, actind)
     inds = Utils.closestPoints(meshtemp, pts)
     out = np.c_[pts, topoCC[inds]]
     return out
