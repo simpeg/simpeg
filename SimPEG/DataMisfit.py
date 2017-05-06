@@ -143,8 +143,8 @@ class l2_DataMisfit(BaseDataMisfit):
         """
         if f is None:
             f = self.prob.fields(m)
-        return self.scale * self.prob.Jtvec(
-            m, self.W.T * (self.W * self.survey.residual(m, f=f)), f=f
+        return self.prob.Jtvec(
+            m, self.W.T * (self.scale * self.W * self.survey.residual(m, f=f)), f=f
         )
 
     @Utils.timeIt
@@ -162,7 +162,7 @@ class l2_DataMisfit(BaseDataMisfit):
         """
         if f is None:
             f = self.prob.fields(m)
-        return self.scale *self.prob.Jtvec_approx(
+        return self.prob.Jtvec_approx(
             m, self.W * (self.scale * self.W * self.prob.Jvec_approx(m, v, f=f)), f=f
         )
 

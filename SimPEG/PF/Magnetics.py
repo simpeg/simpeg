@@ -275,12 +275,6 @@ class MagneticVector(MagneticIntegral):
 
         else:
 
-            # m = np.hstack([m, mii])
-
-            # vec = np.empty(self.F.shape[0])
-            # for ii in range(self.F.shape[0]):
-            #     vec[ii] = self.F[ii, :].dot(self.chiMap*(m))
-
             vec = np.dot(self.F, m.astype(np.float32))
             return vec.astype(np.float64)
 
@@ -302,11 +296,6 @@ class MagneticVector(MagneticIntegral):
         else:
             m = self.chiMap*(atp2xyz(chi))
 
-        # if self.recType == 'tmi':
-        #     u = np.zeros(self.survey.nRx)
-        # else:
-        #     u = np.zeros(3*self.survey.nRx)
-
         u = self.fwr_ind(m=m)
 
         return u
@@ -315,25 +304,15 @@ class MagneticVector(MagneticIntegral):
 
         if self.coordinate_system == 'cartesian':
 
-            # vec = np.empty(self.F.shape[0])
-            # for ii in range(self.F.shape[0]):
-            #     vec[ii] = self.F[ii, :].dot(self.chiMap.deriv(chi)*v)
             vec = np.dot(self.F, (self.chiMap.deriv(chi)*v).astype(np.float32))
             return vec.astype(np.float64)
 
         else:
             dmudm = self.S*self.chiMap.deriv(chi)
-            # vec = np.empty(self.F.shape[0])
-            # for ii in range(self.F.shape[0]):
-            #     vec[ii] = self.F[ii, :].dot(dmudm.dot(v))
             vec = np.dot(self.F, (dmudm.dot(v)).astype(np.float32))
             return vec.astype(np.float64)
 
     def Jtvec(self, chi, v, f=None):
-
-        # vec = np.empty(self.F.shape[1])
-        # for ii in range(self.F.shape[1]):
-        #     vec[ii] = self.F[:, ii].dot(v)
 
         vec = np.dot(self.F.T, v.astype(np.float32))
 
@@ -388,6 +367,8 @@ class MagneticAmplitude(MagneticIntegral):
     silent = False  # Don't display progress on screen
     scale = 1.
     W = None
+    coordinate_system = 'suscEffective'
+
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
@@ -396,14 +377,21 @@ class MagneticAmplitude(MagneticIntegral):
         # Switch to avoid forming the dense matrix
         if self.forwardOnly:
 
-            self.model = chi
+            if self.coordinate_system == 'spherical':
+                self.model = atp2xyz(chi)
+            else:
+                self.model = chi
 
             # Compute the linear operation without forming the full dense G
             m = self.chiMap * self.model
 
+            if self.coordinate_system != 'suscEffective':
+                self.magType = 'full'
+
             Bxyz = []
             for rtype in ['x', 'y', 'z']:
-                Bxyz += [Intrgl_Fwr_Op(m=m, recType=rtype)]
+                Bxyz += [Intrgl_Fwr_Op(m=m, magType=self.magType,
+                                       recType=rtype)]
 
             return self.calcAmpData(np.r_[Bxyz])
 
@@ -421,21 +409,22 @@ class MagneticAmplitude(MagneticIntegral):
                 self.model = chi
                 m = self.chiMap * self.model
 
-            # Bxyz = np.empty(self.F.shape[0])
-            # for ii in range(self.F.shape[0]):
-            #     Bxyz[ii] = self.F[ii, :].dot(self.chiMap*m)
-
-            if self.magType == 'full':
-
-
-                if self.chiMap.shape[0] == self.model.shape[0]:
-                    Bxyz = np.dot(self.F, m.astype(np.float32))
-                else:
-
-                    Bxyz = np.dot(self.F, (self.Mxyz*m).astype(np.float32))
-
+            if self.coordinate_system == 'spherical':
+                m = atp2xyz(m)
             else:
-                Bxyz = np.dot(self.F, m.astype(np.float32))
+                m = m
+
+
+            # if self.magType == 'full':
+
+            #     if self.chiMap.shape[0] == self.model.shape[0]:
+            #         Bxyz = np.dot(self.F, m.astype(np.float32))
+            #     else:
+
+            #         Bxyz = np.dot(self.F, (self.Mxyz*m).astype(np.float32))
+
+            # else:
+            Bxyz = np.dot(self.F, m.astype(np.float32))
 
             return self.calcAmpData(Bxyz.astype(np.float64))
 
@@ -455,54 +444,61 @@ class MagneticAmplitude(MagneticIntegral):
         return ampB
 
     def Jvec(self, chi, v, f=None):
-        dmudm = self.chiMap.deriv(chi)
+
+        if self.coordinate_system == 'spherical':
+            dmudm = self.S * self.chiMap.deriv(chi)
+        else:
+            dmudm = self.chiMap.deriv(chi)
 
         # vec = np.empty(self.F.shape[0])
         # for ii in range(self.F.shape[0]):
         #     vec[ii] = self.F[ii, :].dot(dmudm*v)
 
-        if self.magType == 'full':
+        # if self.magType == 'full':
 
-            if self.chiMap.shape[0] == chi.shape[0]:
-                vec = np.dot(self.F, ((dmudm*v)).astype(np.float32))
-            else:
-                vec = np.dot(self.F, (self.Mxyz*(dmudm*v)).astype(np.float32))
+        #     if self.chiMap.shape[0] == chi.shape[0]:
+        #         vec = np.dot(self.F, ((dmudm*v)).astype(np.float32))
+        #     else:
+        #         vec = np.dot(self.F, (self.Mxyz*(dmudm*v)).astype(np.float32))
 
-        else:
-            vec = np.dot(self.F, (dmudm*v).astype(np.float32))
-
+        # else:
+        vec = np.dot(self.F, (dmudm*v).astype(np.float32))
 
         return self.dfdm*vec.astype(np.float64)
 
     def Jtvec(self, chi, v, f=None):
-        dmudm = self.chiMap.deriv(chi)
+        if self.coordinate_system == 'spherical':
+            dmudm = self.S * self.chiMap.deriv(chi)
+        else:
+            dmudm = self.chiMap.deriv(chi)
 
         # vec = np.empty(self.F.shape[1])
         # for ii in range(self.F.shape[1]):
         #     vec[ii] = self.F[:, ii].dot(self.dfdm.T*v)
-        if self.magType == 'full':
+        # if self.magType == 'full':
 
-            if self.chiMap.shape[0] == chi.shape[0]:
-                vec = np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
+        #     if self.chiMap.shape[0] == chi.shape[0]:
+        #         vec = np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
 
-            else:
-                vec = self.Mxyz.T*np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
+        #     else:
+        #         vec = self.Mxyz.T*np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
 
-        else:
-            vec = np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32))
+        # else:
+        vec = np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32))
 
         return dmudm.T * vec.astype(np.float64)
-
 
     @property
     def F(self):
         if not self.ispaired:
             raise Exception('Need to pair!')
 
-
         if getattr(self, '_F', None) is None:
+            if self.coordinate_system != 'suscEffective':
+                self.magType = 'full'
+
             self._F = []
-            for rtype in ['x','y','z']:
+            for rtype in ['x', 'y', 'z']:
                 self._F.append(self.Intrgl_Fwr_Op(magType=self.magType, recType=rtype))
 
             self._F = np.vstack(self._F)
@@ -516,10 +512,7 @@ class MagneticAmplitude(MagneticIntegral):
 
         if getattr(self, '_dfdm', None) is None:
 
-            # Get field data
-            m = self.chiMap * self.model
-
-            Bxyz = self.Bxyz_a(m)
+            Bxyz = self.Bxyz_a(self.chiMap * self.model)
 
             Bx = sp.spdiags(Bxyz[:, 0], 0, self.nD, self.nD)
             By = sp.spdiags(Bxyz[:, 1], 0, self.nD, self.nD)
@@ -534,36 +527,60 @@ class MagneticAmplitude(MagneticIntegral):
             Return the normalized B fields
         """
 
-        if self.magType == 'full':
+        # Get field data
+        if self.coordinate_system == 'spherical':
+            m = atp2xyz(m)
 
-            if self.chiMap.shape[0] == self.model.shape[0]:
-                Bxyz = np.dot(self.F, m.astype(np.float32))
-
-            else:
-
-                Bxyz = np.dot(self.F, (self.Mxyz*m).astype(np.float32))
-
-        else:
-
-            Bxyz = np.dot(self.F, m.astype(np.float32))
+        Bxyz = np.dot(self.F, m.astype(np.float32))
 
         amp = self.calcAmpData(Bxyz.astype(np.float64))
         Bamp = sp.spdiags(1./amp, 0, self.nD, self.nD)
 
         return Bamp*Bxyz.reshape((self.nD, 3), order='F')
 
+    # @property
+    # def Mxyz(self):
+
+    #     if getattr(self, '_Mxyz', None) is None:
+
+    #         Mx = Utils.sdiag(self.M[:, 0])
+    #         My = Utils.sdiag(self.M[:, 1])
+    #         Mz = Utils.sdiag(self.M[:, 2])
+
+    #         self._Mxyz = sp.vstack((Mx, My, Mz))
+
+    #     return self._Mxyz
+
     @property
-    def Mxyz(self):
+    def S(self):
 
-        if getattr(self, '_Mxyz', None) is None:
+        if getattr(self, '_S', None) is None:
 
-            Mx = Utils.sdiag(self.M[:, 0])
-            My = Utils.sdiag(self.M[:, 1])
-            Mz = Utils.sdiag(self.M[:, 2])
+            if self.model is None:
+                raise Exception('Requires a chi')
 
-            self._Mxyz = sp.vstack((Mx, My, Mz))
+            nC = int(len(self.model)/3)
 
-        return self._Mxyz
+            a = self.model[:nC]
+            t = self.model[nC:2*nC]
+            p = self.model[2*nC:]
+
+            Sx = sp.hstack([sp.diags(np.cos(t)*np.cos(p), 0),
+                            sp.diags(-a*np.sin(t)*np.cos(p), 0),
+                            sp.diags(-a*np.cos(t)*np.sin(p), 0)])
+
+            Sy = sp.hstack([sp.diags(np.cos(t)*np.sin(p), 0),
+                            sp.diags(-a*np.sin(t)*np.sin(p), 0),
+                            sp.diags(a*np.cos(t)*np.cos(p), 0)])
+
+            Sz = sp.hstack([sp.diags(np.sin(t), 0),
+                            sp.diags(a*np.cos(t), 0),
+                            sp.csr_matrix((nC, nC))])
+
+            self._S = sp.vstack([Sx, Sy, Sz])
+
+        return self._S
+
 
 class Problem3D_DiffSecondary(Problem.BaseProblem):
     """

@@ -615,7 +615,7 @@ class Update_IRLS(InversionDirective):
         max_p = np.asarray(max_p)
 
         max_s = [np.pi, np.pi]
-        for obj, var in zip(self.reg.objfcts[1:],max_s):
+        for obj, var in zip(self.reg.objfcts[1:], max_s):
 
 
             # for reg in obj.objfcts[1:]:
@@ -734,6 +734,7 @@ class UpdateSensWeighting(InversionDirective):
                     prob.model = self.invProb.model
             if isinstance(prob, Magnetics.MagneticAmplitude):
                 prob._dfdm = None
+                prob._S = None
                 prob.model = self.invProb.model
 
         # Update inverse problem
@@ -766,7 +767,10 @@ class UpdateSensWeighting(InversionDirective):
 
         for dmisfit in self.dmisfit.objfcts:
             # dmisfit.scale=1.
-            Phid += [dmisfit(self.invProb.model)]
+            dynRange = np.abs(dmisfit.survey.dobs.max() -
+                              dmisfit.survey.dobs.min())**2.
+
+            Phid += [dmisfit(self.invProb.model)/dynRange]
             # dmisfit.scale = 1.
             Jmax += [(np.abs(dmisfit.deriv(self.invProb.model)).max())]
 
@@ -781,8 +785,8 @@ class UpdateSensWeighting(InversionDirective):
             jtjdiag = np.zeros(nC)
             wd = dmisfit.W.diagonal()
 
-            scale = (phid/minPhid)**0.5
-            print('Phid: ' + str(phid) + 'Scale: '+ str(scale))
+            scale = (phid/minPhid)
+            print('Phid: ' + str(dmisfit(self.invProb.model)) + 'Scale: '+ str(scale))
             if isinstance(prob, Magnetics.MagneticVector):
 
                 if prob.coordinate_system == 'spherical':
@@ -803,17 +807,18 @@ class UpdateSensWeighting(InversionDirective):
 
                 Bxyz_a = prob.Bxyz_a(prob.chiMap * self.invProb.model)
 
-                if np.all([prob.magType == 'full', prob.mapping().shape[0] != self.invProb.model.shape[0]]):
+                if prob.coordinate_system == 'spherical':
 
                     for ii in range(nD):
 
                         rows = prob.F[ii::nD, :]
-                        jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii, :], rows * prob.Mxyz)))**2.
+                        jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii, :],
+                                    rows * prob.S)))**2.
 
                 else:
                     for ii in range(nD):
 
-                        jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii,:],
+                        jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii, :],
                                                    prob.F[ii::nD, :])))**2.
 
             elif isinstance(prob, Magnetics.MagneticIntegral):
@@ -830,7 +835,7 @@ class UpdateSensWeighting(InversionDirective):
 
             #     jtjdiag *= prob.W
 
-            self.JtJdiag += [jtjdiag*scale**2.]
+            self.JtJdiag += [jtjdiag*scale]
 
         return self.JtJdiag
 
@@ -954,6 +959,7 @@ class JointAmpMVI(InversionDirective):
 
     amp = None
     minGNiter = 1
+    jointMVIS = False
 
     def initialize(self):
 
@@ -966,7 +972,7 @@ class JointAmpMVI(InversionDirective):
             if isinstance(prob, Magnetics.MagneticVector):
                 if prob.coordinate_system == 'spherical':
                     xyz = Magnetics.atp2xyz(prob.chiMap * m)
-
+                    self.jointMVIS = True
                 elif prob.coordinate_system == 'cartesian':
                     xyz = prob.chiMap * m
 
@@ -975,8 +981,10 @@ class JointAmpMVI(InversionDirective):
 
         for prob in self.prob:
             if isinstance(prob, Magnetics.MagneticAmplitude):
+                if self.jointMVIS:
+                    prob.jointMVIS = True
 
-                nC = prob.chiMap.shape[0]
+                nC = int(prob.chiMap.shape[0]/3)
 
                 mcol = xyz.reshape((nC, 3), order='F')
                 amp = np.sum(mcol**2., axis=1)**0.5
@@ -1000,20 +1008,28 @@ class JointAmpMVI(InversionDirective):
                         xyz = prob.chiMap * m
 
                 if isinstance(prob, Magnetics.MagneticAmplitude):
-                    self.amp = prob.chiMap * m
+                    if prob.coordinate_system != 'suscEffective':
+
+                        nC = int(prob.chiMap.shape[0]/3)
+
+                        mcol = (prob.chiMap * m).reshape((nC, 3), order='F')
+                        self.amp = np.sum(mcol**2., axis=1)**0.5
+                    else:
+
+                        self.amp = prob.chiMap * m
 
             for prob in self.prob:
-                if isinstance(prob, Magnetics.MagneticAmplitude):
+                # if isinstance(prob, Magnetics.MagneticAmplitude):
 
-                    nC = prob.chiMap.shape[0]
+                #     nC = int(prob.chiMap.shape[0]/3)
 
-                    mcol = xyz.reshape((nC, 3), order='F')
-                    amp = np.sum(mcol**2., axis=1)**0.5
+                #     mcol = xyz.reshape((nC, 3), order='F')
+                #     amp = np.sum(mcol**2., axis=1)**0.5
 
-                    M = Utils.sdiag(1./amp) * mcol
+                #     M = Utils.sdiag(1./amp) * mcol
 
-                    prob.M = M
-                    prob._Mxyz = None
+                #     prob.M = M
+                #     prob._Mxyz = None
 
                     # if prob.model is None:
                     #     prob.model = prob.chiMap * m
