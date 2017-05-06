@@ -2,13 +2,17 @@ from __future__ import print_function
 import unittest
 import numpy as np
 import scipy.sparse as sp
+import os
+import shutil
 from SimPEG.Utils import (
     sdiag, sub2ind, ndgrid, mkvc, inv2X2BlockDiagonal,
     inv3X3BlockDiagonal, invPropertyTensor, makePropertyTensor, indexCube,
-    ind2sub, asArray_N_x_Dim, TensorType, diagEst, count, timeIt, Counter
+    ind2sub, asArray_N_x_Dim, TensorType, diagEst, count, timeIt, Counter,
+    download
 )
 from SimPEG import Mesh
 from SimPEG.Tests import checkDerivative
+
 
 TOL = 1e-8
 
@@ -302,6 +306,31 @@ class TestDiagEst(unittest.TestCase):
         print('Testing probing. {}'.format(err))
         self.assertTrue(err < TOL)
 
+
+class TestDownload(unittest.TestCase):
+    def test_downloads(self):
+        url = "https://storage.googleapis.com/simpeg/Chile_GRAV_4_Miller/"
+        cloudfiles = [
+            'LdM_grav_obs.grv', 'LdM_mesh.mesh',
+            'LdM_topo.topo', 'LdM_input_file.inp'
+        ]
+
+        url1 = url + cloudfiles[0]
+        url2 = url + cloudfiles[1]
+
+        file_names = download(
+            [url1, url2], folder='./test_urls', overwrite=True
+        )
+        # or
+        file_name = download(url1, folder='./test_url', overwrite=True)
+        # where
+        assert isinstance(file_names, list)
+        assert len(file_names) == 2
+        assert isinstance(file_name, str)
+
+        # clean up
+        shutil.rmtree(os.path.expanduser('./test_urls'))
+        shutil.rmtree(os.path.expanduser('./test_url'))
 
 if __name__ == '__main__':
     unittest.main()
