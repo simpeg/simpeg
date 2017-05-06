@@ -65,14 +65,11 @@ class InversionDirective(object):
 
     @dmisfit.setter
     def dmisfit(self, value):
-        assert(
-            any([
+        assert any([
                 isinstance(value, dmisfittype) for dmisfittype in
                 self._dmisfitPair
-            ]),
-            "Regularization must be in {}, not {}".format(
+        ]), "Regularization must be in {}, not {}".format(
                 self._dmisfitPair, type(value)
-            )
         )
         self._dmisfit = dmisfit
 

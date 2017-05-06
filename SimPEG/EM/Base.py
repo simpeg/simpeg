@@ -256,7 +256,9 @@ class BaseEMProblem(Problem.BaseProblem):
         Inverse of the edge inner product matrix for \\(\\sigma\\).
         """
         if getattr(self, '_MeSigmaI', None) is None:
-            self._MeSigmaI = self.mesh.getEdgeInnerProduct(self.sigma, invMat=True)
+            self._MeSigmaI = self.mesh.getEdgeInnerProduct(
+                self.sigma, invMat=True
+            )
         return self._MeSigmaI
 
     # TODO: This should take a vector
@@ -425,7 +427,7 @@ class BaseEMSrc(Survey.BaseSrc):
         """
         return Utils.Zero()
 
-    def s_mDeriv(self, prob, v, adjoint = False):
+    def s_mDeriv(self, prob, v, adjoint=False):
         """
         Derivative of magnetic source term with respect to the inversion model
 
@@ -438,7 +440,7 @@ class BaseEMSrc(Survey.BaseSrc):
 
         return Utils.Zero()
 
-    def s_eDeriv(self, prob, v, adjoint = False):
+    def s_eDeriv(self, prob, v, adjoint=False):
         """
         Derivative of electric source term with respect to the inversion model
 

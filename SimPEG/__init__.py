@@ -23,6 +23,6 @@ from .Utils.SolverUtils import (
 )
 
 __version__   = '0.5.1'
-__author__    = 'Rowan Cockett'
+__author__    = 'SimPEG Team'
 __license__   = 'MIT'
-__copyright__ = 'Copyright 2014 Rowan Cockett'
+__copyright__ = '2013 - 2017, SimPEG Team, http://simpeg.xyz'
