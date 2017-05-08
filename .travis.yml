@@ -21,11 +21,11 @@ env:
     - MASTER_BRANCH=master
     - DEV_BRANCH=dev
     - DOCS_PY=2.7  # deploy docs from 2.7
-    - PYPI_PY=3.6  # deploy to pypi from python 3.6
+    - PYPI_PY=3.6 # deploy to pypi from python 3.6
   matrix:
     - TEST_DIR=tests/em/fdem/inverse/derivs
     - TEST_DIR="tests/em/tdem tests/base"
-    - TEST_DIR=tests/em/static
+    - TEST_DIR="tests/em/static tests/seis"
     - TEST_DIR=tests/flow
     - TEST_DIR="tests/em/nsem/forward tests/em/nsem/inversion"
     - TEST_DIR=tests/em/fdem/inverse/adjoint
@@ -73,7 +73,7 @@ after_success:
   - bash <(curl -s https://codecov.io/bash)
 
   # early exit if not on a deplotment branch
-  - if ! [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" -o "$TRAVIS_BRANCH" = "$DEV_BRANCH" ]; then
+  - if ! [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" -o "$TRAVIS_BRANCH" = "$DEV_BRANCH" -o "$TRAVIS_TAG" = "true" ]; then
       echo "Not deploying (because this is not a deployment branch)" ;
       exit 0 ;
     fi
@@ -105,10 +105,10 @@ after_success:
     fi;
 
   #deploy to pypi
-  - if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" -a $TRAVIS_PYTHON_VERSION == $PYPI_PY ]; then
+  - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY" -a $TRAVIS_TAG" = "true" ]; then
       mv credentials/.pypirc ~/.pypirc ;
-      python setup.py register -r pypi ;
-      travis_wait 20 python setup.py sdist upload -r pypi ;
+      python setup.py bdist_wheel --universal ;
+      travis_wait 20 twine upload -r pypi --skip-existing dist/* ;
     fi
 
 notifications:

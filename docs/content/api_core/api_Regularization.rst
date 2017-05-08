@@ -103,25 +103,10 @@ Then we can write
 The API
 -------
 
-.. autoclass:: SimPEG.Regularization.BaseRegularization
+.. automodule:: SimPEG.Regularization
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Regularization.Simple
-    :show-inheritance:
-    :members:
-
-.. autoclass:: SimPEG.Regularization.Tikhonov
-    :show-inheritance:
-    :members:
-
-.. autoclass:: SimPEG.Regularization.Sparse
-    :show-inheritance:
-    :members:
-
-.. autoclass:: SimPEG.Regularization.RegularizationMesh
-    :show-inheritance:
-    :members:
 
 
 

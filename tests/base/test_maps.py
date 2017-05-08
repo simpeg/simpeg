@@ -14,14 +14,14 @@ MAPS_TO_EXCLUDE_2D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
                       "SplineMap", "ParametrizedCasingAndLayer",
                       "ParametrizedLayer", "ParametrizedBlockInLayer",
-                      "Projection"]
+                      "Projection", "SelfConsistentEffectiveMedium"]
 MAPS_TO_EXCLUDE_3D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "CircleMap", "ParametricCircleMap", "Mesh2Mesh",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
                       "SplineMap", "ParametrizedCasingAndLayer",
                       "ParametrizedLayer", "ParametrizedBlockInLayer",
-                      "Projection"]
+                      "Projection", "SelfConsistentEffectiveMedium"]
 
 
 class MapTests(unittest.TestCase):
@@ -45,7 +45,7 @@ class MapTests(unittest.TestCase):
         self.mesh2 = Mesh.TensorMesh([a, b], x0=np.array([3, 5]))
         self.mesh3 = Mesh.TensorMesh([a, b, [3, 4]], x0=np.array([3, 5, 2]))
         self.mesh22 = Mesh.TensorMesh([b, a], x0=np.array([3, 5]))
-        self.meshCyl = Mesh.CylMesh([10.,1.,10.], x0='00C')
+        self.meshCyl = Mesh.CylMesh([10., 1., 10.], x0='00C')
 
     def test_transforms2D(self):
         for M in self.maps2test2D:
@@ -300,6 +300,24 @@ class TestWires(unittest.TestCase):
 
         named_model.sigma == model[:mesh.nCz]
         assert named_model.mu_casing == 10
+
+
+class TestSCEMT(unittest.TestCase):
+    def test_sphericalInclusions(self):
+        mesh = Mesh.TensorMesh([4,  5, 3])
+        mapping = Maps.SelfConsistentEffectiveMedium(
+            mesh, sigma0=1e-1, sigma1=1.
+        )
+        m = np.abs(np.random.rand(mesh.nC))
+        mapping.test(m=m, dx=0.05, num=3)
+
+    def test_spheroidalInclusions(self):
+        mesh = Mesh.TensorMesh([4,  3, 2])
+        mapping = Maps.SelfConsistentEffectiveMedium(
+            mesh, sigma0=1e-1, sigma1=1., alpha0=0.8, alpha1=0.9, rel_tol=1e-8
+        )
+        m = np.abs(np.random.rand(mesh.nC))
+        mapping.test(m=m, dx=0.05, num=3)
 
 if __name__ == '__main__':
     unittest.main()

@@ -108,7 +108,7 @@ def run(plotIt=True):
     opt.remember('xc')
     # Data misfit
     dmis = simpeg.DataMisfit.l2_DataMisfit(survey)
-    dmis.Wd = Wd
+    dmis.W = Wd
     # Regularization - with a regularization mesh
     regMesh = simpeg.Mesh.TensorMesh([m1d.hx[active]], m1d.x0)
     reg = simpeg.Regularization.Tikhonov(regMesh)
