@@ -9,6 +9,9 @@ About SimPEG
 
    content/api_core/api_bigPicture
    content/api_core/api_installing
+   content/api_core/api_getting_started_developers
+   content/api_core/api_practices
+
 
 Examples
 ********

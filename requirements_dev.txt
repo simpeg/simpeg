@@ -14,3 +14,4 @@ ipython
 matplotlib
 properties[math]
 wheel
+pytest
