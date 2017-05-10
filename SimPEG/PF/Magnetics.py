@@ -415,16 +415,12 @@ class MagneticAmplitude(MagneticIntegral):
                 m = m
 
 
-            # if self.magType == 'full':
+            if getattr(self, '_Mxyz', None) is not None:
 
-            #     if self.chiMap.shape[0] == self.model.shape[0]:
-            #         Bxyz = np.dot(self.F, m.astype(np.float32))
-            #     else:
+                Bxyz = np.dot(self.F, (self.Mxyz*m).astype(np.float32))
 
-            #         Bxyz = np.dot(self.F, (self.Mxyz*m).astype(np.float32))
-
-            # else:
-            Bxyz = np.dot(self.F, m.astype(np.float32))
+            else:
+                Bxyz = np.dot(self.F, m.astype(np.float32))
 
             return self.calcAmpData(Bxyz.astype(np.float64))
 
@@ -454,15 +450,12 @@ class MagneticAmplitude(MagneticIntegral):
         # for ii in range(self.F.shape[0]):
         #     vec[ii] = self.F[ii, :].dot(dmudm*v)
 
-        # if self.magType == 'full':
+        if getattr(self, '_Mxyz', None) is not None:
 
-        #     if self.chiMap.shape[0] == chi.shape[0]:
-        #         vec = np.dot(self.F, ((dmudm*v)).astype(np.float32))
-        #     else:
-        #         vec = np.dot(self.F, (self.Mxyz*(dmudm*v)).astype(np.float32))
+            vec = np.dot(self.F, (self.Mxyz*(dmudm*v)).astype(np.float32))
 
-        # else:
-        vec = np.dot(self.F, (dmudm*v).astype(np.float32))
+        else:
+            vec = np.dot(self.F, (dmudm*v).astype(np.float32))
 
         return self.dfdm*vec.astype(np.float64)
 
@@ -475,16 +468,12 @@ class MagneticAmplitude(MagneticIntegral):
         # vec = np.empty(self.F.shape[1])
         # for ii in range(self.F.shape[1]):
         #     vec[ii] = self.F[:, ii].dot(self.dfdm.T*v)
-        # if self.magType == 'full':
+        if getattr(self, '_Mxyz', None) is not None:
 
-        #     if self.chiMap.shape[0] == chi.shape[0]:
-        #         vec = np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
+            vec = self.Mxyz.T*np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
 
-        #     else:
-        #         vec = self.Mxyz.T*np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
-
-        # else:
-        vec = np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32))
+        else:
+            vec = np.dot(self.F.T, (self.dfdm.T*v).astype(np.float32))
 
         return dmudm.T * vec.astype(np.float64)
 
@@ -531,31 +520,34 @@ class MagneticAmplitude(MagneticIntegral):
         if self.coordinate_system == 'spherical':
             m = atp2xyz(m)
 
-        Bxyz = np.dot(self.F, m.astype(np.float32))
+        if getattr(self, '_Mxyz', None) is not None:
+            Bxyz = np.dot(self.F, (self.Mxyz*m).astype(np.float32))
+        else:
+            Bxyz = np.dot(self.F, m.astype(np.float32))
 
         amp = self.calcAmpData(Bxyz.astype(np.float64))
         Bamp = sp.spdiags(1./amp, 0, self.nD, self.nD)
 
         return Bamp*Bxyz.reshape((self.nD, 3), order='F')
 
-    # @property
-    # def Mxyz(self):
+    @property
+    def Mxyz(self):
 
-    #     if getattr(self, '_Mxyz', None) is None:
+        if getattr(self, '_Mxyz', None) is None:
 
-    #         Mx = Utils.sdiag(self.M[:, 0])
-    #         My = Utils.sdiag(self.M[:, 1])
-    #         Mz = Utils.sdiag(self.M[:, 2])
+            Mx = Utils.sdiag(self.M[:, 0])
+            My = Utils.sdiag(self.M[:, 1])
+            Mz = Utils.sdiag(self.M[:, 2])
 
-    #         self._Mxyz = sp.vstack((Mx, My, Mz))
+            self._Mxyz = sp.vstack((Mx, My, Mz))
 
-    #     return self._Mxyz
+        return self._Mxyz
 
     @property
     def S(self):
 
         if getattr(self, '_S', None) is None:
-
+            print('Updated S')
             if self.model is None:
                 raise Exception('Requires a chi')
 

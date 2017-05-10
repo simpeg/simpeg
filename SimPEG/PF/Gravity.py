@@ -287,7 +287,7 @@ def writeUBCobs(filename, survey, d):
 
 
 def plot_obs_2D(rxLoc, d=None, title='Gz Obs', vmin=None, vmax=None,
-                levels=None, axs=None):
+                levels=None, axs=None, marker=True, cmap='plasma'):
     """ Function plot_obs(rxLoc,d,wd)
     Generate a 2d interpolated plot from scatter points of data
 
@@ -321,7 +321,8 @@ def plot_obs_2D(rxLoc, d=None, title='Gz Obs', vmin=None, vmax=None,
     if axs is None:
         fig, axs = plt.figure(), plt.subplot()
 
-    axs.scatter(rxLoc[:, 0], rxLoc[:, 1], c='k', s=10)
+    if marker:
+        axs.scatter(rxLoc[:, 0], rxLoc[:, 1], c='k', s=10)
 
     if d is not None:
 
@@ -340,14 +341,14 @@ def plot_obs_2D(rxLoc, d=None, title='Gz Obs', vmin=None, vmax=None,
         # Interpolate
         d_grid = griddata(rxLoc[:, 0:2], d, (X, Y), method='linear')
         im = axs.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],
-                   origin='lower', vmin=vmin, vmax=vmax, cmap="plasma")
+                   origin='lower', vmin=vmin, vmax=vmax, cmap=cmap)
         plt.colorbar(im,fraction=0.02, ax=axs)
 
         if levels is None:
-            axs.contour(X, Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma")
+            axs.contour(X, Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap=cmap)
         else:
-            axs.contour(X, Y, d_grid, levels=levels, colors='r',
-                        vmin=vmin, vmax=vmax, cmap="plasma")
+            axs.contour(X, Y, d_grid, levels=levels, colors='k',
+                        vmin=vmin, vmax=vmax)
 
     axs.set_title(title)
     plt.gca().set_aspect('equal', adjustable='box')

@@ -322,8 +322,9 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
             # Save model
             if not isinstance(prob, Magnetics.MagneticVector):
 
-                Mesh.TensorMesh.writeModelUBC(reg.mesh,
-                                              fileName + '.sus', self.mapping * xc)
+                print()
+                # Mesh.TensorMesh.writeModelUBC(reg.mesh,
+                #                               fileName + '.sus', self.mapping * xc)
             else:
 
                 if prob.coordinate_system == 'spherical':
@@ -494,7 +495,7 @@ class Update_IRLS(InversionDirective):
             self.iterStart = self.opt.iter
             self.phi_d_last = self.invProb.phi_d
             self.invProb.phi_m_last = self.reg(self.invProb.model)
-            print(self.invProb.phi_m_last)
+
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
 
@@ -732,6 +733,7 @@ class UpdateSensWeighting(InversionDirective):
                 if prob.coordinate_system == 'spherical':
                     prob._S = None
                     prob.model = self.invProb.model
+
             if isinstance(prob, Magnetics.MagneticAmplitude):
                 prob._dfdm = None
                 prob._S = None
@@ -770,7 +772,7 @@ class UpdateSensWeighting(InversionDirective):
             dynRange = np.abs(dmisfit.survey.dobs.max() -
                               dmisfit.survey.dobs.min())**2.
 
-            Phid += [dmisfit(self.invProb.model)/dynRange]
+            Phid += [dmisfit(self.invProb.model)]
             # dmisfit.scale = 1.
             Jmax += [(np.abs(dmisfit.deriv(self.invProb.model)).max())]
 
@@ -815,6 +817,12 @@ class UpdateSensWeighting(InversionDirective):
                         jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii, :],
                                     rows * prob.S)))**2.
 
+                elif getattr(prob, '_Mxyz', None) is not None:
+                    for ii in range(nD):
+
+                        jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii, :],
+                                                   prob.F[ii::nD, :]*prob.Mxyz)))**2.
+
                 else:
                     for ii in range(nD):
 
@@ -858,6 +866,8 @@ class UpdateSensWeighting(InversionDirective):
 
             prob_JtJ = prob_JtJ**0.5
             prob_JtJ /= prob_JtJ.max()
+
+
 
             if getattr(prob.chiMap, 'index', None) is None:
 
@@ -984,7 +994,7 @@ class JointAmpMVI(InversionDirective):
                 if self.jointMVIS:
                     prob.jointMVIS = True
 
-                nC = int(prob.chiMap.shape[0]/3)
+                nC = int(prob.chiMap.shape[0])
 
                 mcol = xyz.reshape((nC, 3), order='F')
                 amp = np.sum(mcol**2., axis=1)**0.5
@@ -995,56 +1005,59 @@ class JointAmpMVI(InversionDirective):
 
     def endIter(self):
 
-        if self.opt.iter % self.minGNiter == 0:
-            # Get current MVI model and update magnetization model for MAI
-            m = self.invProb.model.copy()
-            for prob in self.prob:
+        # if self.opt.iter % self.minGNiter == 0:
+        # Get current MVI model and update magnetization model for MAI
+        m = self.invProb.model.copy()
+        for prob in self.prob:
 
-                if isinstance(prob, Magnetics.MagneticVector):
-                    if prob.coordinate_system == 'spherical':
-                        xyz = Magnetics.atp2xyz(prob.chiMap * m)
+            if isinstance(prob, Magnetics.MagneticVector):
+                if prob.coordinate_system == 'spherical':
+                    xyz = Magnetics.atp2xyz(prob.chiMap * m)
 
-                    elif prob.coordinate_system == 'cartesian':
-                        xyz = prob.chiMap * m
+                elif prob.coordinate_system == 'cartesian':
+                    xyz = prob.chiMap * m
 
-                if isinstance(prob, Magnetics.MagneticAmplitude):
-                    if prob.coordinate_system != 'suscEffective':
+            if isinstance(prob, Magnetics.MagneticAmplitude):
+                if prob.chiMap.shape[0] == 3*prob.mesh.nC:
 
-                        nC = int(prob.chiMap.shape[0]/3)
+                    nC = prob.mesh.nC
 
-                        mcol = (prob.chiMap * m).reshape((nC, 3), order='F')
-                        self.amp = np.sum(mcol**2., axis=1)**0.5
-                    else:
+                    mcol = (prob.chiMap * m).reshape((nC, 3), order='F')
+                    self.amp = np.sum(mcol**2., axis=1)**0.5
+                else:
 
-                        self.amp = prob.chiMap * m
+                    self.amp = prob.chiMap * m
 
-            for prob in self.prob:
-                # if isinstance(prob, Magnetics.MagneticAmplitude):
+        for prob in self.prob:
+            if isinstance(prob, Magnetics.MagneticAmplitude):
 
-                #     nC = int(prob.chiMap.shape[0]/3)
+                nC = prob.mesh.nC
 
-                #     mcol = xyz.reshape((nC, 3), order='F')
-                #     amp = np.sum(mcol**2., axis=1)**0.5
+                mcol = xyz.reshape((nC, 3), order='F')
+                amp = np.sum(mcol**2., axis=1)**0.5
 
-                #     M = Utils.sdiag(1./amp) * mcol
+                M = Utils.sdiag(1./amp) * mcol
 
-                #     prob.M = M
-                #     prob._Mxyz = None
+                prob.M = M
+                prob._Mxyz = None
+                prob.Mxyz
+                # if prob.model is None:
+                #     prob.model = prob.chiMap * m
 
-                    # if prob.model is None:
-                    #     prob.model = prob.chiMap * m
+                # ampW = (amp/amp.max() + 1e-2)**-1.
+                # prob.W = ampW
 
-                    # ampW = (amp/amp.max() + 1e-2)**-1.
-                    # prob.W = ampW
+            if isinstance(prob, Magnetics.MagneticVector):
 
-                if isinstance(prob, Magnetics.MagneticVector):
+                if (prob.coordinate_system == 'cartesian') and (self.amp is not None):
 
-                    if (prob.coordinate_system == 'cartesian') and (self.amp is not None):
+                    ampW = (self.amp/self.amp.max()+1e-2)**-1.
+                    ampW = np.r_[ampW, ampW, ampW]
 
-                        ampW = (self.amp/self.amp.max()+1e-2)**-1.
-                        ampW = np.r_[ampW, ampW, ampW]
-
-                        prob.W = ampW
+                    # Scale max values
+                    scale = np.abs(xyz).max()/self.amp.max()
+                    # print('Scale: '+str(scale))
+                    prob.W = ampW
 
 
 class UpdateApproxJtJ(InversionDirective):

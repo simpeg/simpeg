@@ -1411,6 +1411,7 @@ class SparseDeriv(BaseSparse):
 
         else:
             r = self.W * (self.mapping * (m - self.mref))
+
         mD = self.mapping.deriv(m - self.mref)
         return mD.T * (self.W.T * r)
 
