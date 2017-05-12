@@ -1,28 +1,29 @@
 from .matutils import mkvc, ndgrid
 import numpy as np
 
-def surface2ind_topo(mesh, topo, gridLoc='CC'):
+def surface2ind_topo(mesh, topo, gridLoc='CC',method ='nearest',fill_value = np.nan):
 # def genActiveindfromTopo(mesh, topo):
     """
     Get active indices from topography
     """
-
-
+    from scipy.interpolate import griddata
+   
     if mesh.dim == 3:
-        from scipy.interpolate import NearestNDInterpolator
-        Ftopo = NearestNDInterpolator(topo[:,:2], topo[:,2])
+        
 
         if gridLoc == 'CC':
             XY = ndgrid(mesh.vectorCCx, mesh.vectorCCy)
             Zcc = mesh.gridCC[:, 2].reshape((np.prod(mesh.vnC[:2]), mesh.nCz), order = 'F')
-            gridTopo = Ftopo(XY)
-            actind = [gridTopo[ixy] <= Zcc[ixy,:] for ixy in range(np.prod(mesh.vnC[0]))]
+            #gridTopo = Ftopo(XY)
+            gridTopo = griddata(topo[:,:2], topo[:,2],XY,method=method,fill_value=fill_value)
+            actind = [gridTopo >= Zcc[:,ixy] for ixy in range(np.prod(mesh.vnC[2]))]
             actind = np.hstack(actind)
 
         elif gridLoc == 'N':
 
             XY = ndgrid(mesh.vectorNx, mesh.vectorNy)
-            gridTopo = Ftopo(XY).reshape(mesh.vnN[:2], order='F')
+            gridTopo = griddata(topo[:,:2], topo[:,2],XY,method=method,fill_value=fill_value)
+            gridTopo = gridTopo.reshape(mesh.vnN[:2], order='F')
 
             if mesh._meshType not in ['TENSOR', 'CYL', 'BASETENSOR']:
                 raise NotImplementedError('Nodal surface2ind_topo not implemented for {0!s} mesh'.format(mesh._meshType))
@@ -36,7 +37,7 @@ def surface2ind_topo(mesh, topo, gridLoc='CC'):
 
     elif mesh.dim == 2:
         from scipy.interpolate import interp1d
-        Ftopo = interp1d(topo[:,0], topo[:,1], fill_value="extrapolate")
+        Ftopo = interp1d(topo[:,0], topo[:,1], fill_value=fill_value,kind=method)
 
         if gridLoc == 'CC':
             gridTopo = Ftopo(mesh.gridCC[:,0])
