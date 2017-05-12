@@ -787,7 +787,7 @@ class UpdateSensWeighting(InversionDirective):
             jtjdiag = np.zeros(nC)
             wd = dmisfit.W.diagonal()
 
-            scale = (phid/minPhid)
+            scale = 1#(phid/minPhid)
             print('Phid: ' + str(dmisfit(self.invProb.model)) + 'Scale: '+ str(scale))
             if isinstance(prob, Magnetics.MagneticVector):
 
@@ -864,8 +864,8 @@ class UpdateSensWeighting(InversionDirective):
 
                 prob_JtJ *= prob.W
 
-            prob_JtJ = prob_JtJ**0.5
-            prob_JtJ /= prob_JtJ.max()
+            # prob_JtJ = prob_JtJ**0.5
+            # prob_JtJ /= prob_JtJ.max()
 
 
 
@@ -876,8 +876,8 @@ class UpdateSensWeighting(InversionDirective):
 
                 wr[prob.chiMap.index] += prob_JtJ
 
-        # wr = wr**0.5
-        # wr /= wr.max()
+        wr = wr**0.5
+        wr /= wr.max()
 
         # # Apply extra weighting
         # for prob in self.prob:
@@ -970,7 +970,7 @@ class JointAmpMVI(InversionDirective):
     amp = None
     minGNiter = 1
     jointMVIS = False
-
+    updateM = False
     def initialize(self):
 
         # Get current MVI model and update MAI sensitivity
@@ -994,7 +994,7 @@ class JointAmpMVI(InversionDirective):
                 if self.jointMVIS:
                     prob.jointMVIS = True
 
-                nC = int(prob.chiMap.shape[0])
+                nC = prob.mesh.nC
 
                 mcol = xyz.reshape((nC, 3), order='F')
                 amp = np.sum(mcol**2., axis=1)**0.5
@@ -1029,7 +1029,7 @@ class JointAmpMVI(InversionDirective):
                     self.amp = prob.chiMap * m
 
         for prob in self.prob:
-            if isinstance(prob, Magnetics.MagneticAmplitude):
+            if np.all([isinstance(prob, Magnetics.MagneticAmplitude), self.updateM]):
 
                 nC = prob.mesh.nC
 
