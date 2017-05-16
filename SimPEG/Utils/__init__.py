@@ -19,7 +19,6 @@ from .meshutils import (
     exampleLrmGrid, meshTensor, closestPoints, ExtractCoreMesh
 )
 from .curvutils import volTetra, faceInfo, indexCube
-# from .interputils import interpmat
 from .CounterUtils import Counter, count, timeIt
 from . import ModelBuilder
 from . import SolverUtils
