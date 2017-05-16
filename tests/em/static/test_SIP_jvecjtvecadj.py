@@ -263,13 +263,11 @@ class IPProblemTestsN_air(unittest.TestCase):
         survey.makeSyntheticData(mSynth)
         # Now set up the problem to do some minimization
         dmis = DataMisfit.l2_DataMisfit(survey)
-        regmap = Maps.IdentityMap(nP=int(mSynth[~airind].size*3))
-        reg = SIP.MultiRegularization(
-            mesh,
-            mapping=regmap,
-            nModels=3,
-            indActive=~airind
-        )
+        dmis = DataMisfit.l2_DataMisfit(survey)
+        reg_eta = Regularization.Simple(mesh, mapping=wires.eta, indActive=~airind)
+        reg_taui = Regularization.Simple(mesh, mapping=wires.taui, indActive=~airind)
+        reg_c = Regularization.Simple(mesh, mapping=wires.c, indActive=~airind)
+        reg = reg_eta + reg_taui + reg_c
         opt = Optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
             tolX=1e-6, tolG=1e-6, maxIterCG=6
