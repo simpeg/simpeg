@@ -979,7 +979,7 @@ def gettopoCC(mesh, actind):
         return mesh1D, topoCC
 
 
-def drapeTopotoLoc(mesh, topo, pts, actind=None):
+def drapeTopotoLoc(mesh, pts, actind=None, topo=None):
     """
         Drape location right below (cell center) the topography
     """
