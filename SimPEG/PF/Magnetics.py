@@ -1590,3 +1590,32 @@ def readMagneticsObservations(obs_file):
         survey.dobs = d
         survey.std = wd
         return survey
+
+def readVectorModel(mesh, modelFile):
+    """
+    Read UBC vector model
+    """
+
+    with open(modelFile) as f:
+                magmodel = f.read()
+
+    magmodel = magmodel.splitlines()
+    M = []
+
+    for line in magmodel:
+        M.append([float(x) for x in line.split()])
+
+    # Convert list to 2d array
+    M = np.vstack(M)
+
+    # Cycle through three components and permute from UBC to SimPEG
+    for ii in range(3):
+        m = np.reshape(M[:, ii],
+                       (mesh.nCz, mesh.nCx, mesh.nCy),
+                       order='F')
+
+        m = m[::-1, :, :]
+        m = np.transpose(m, (1, 2, 0))
+        M[:, ii] = Utils.mkvc(m)
+
+    return M
