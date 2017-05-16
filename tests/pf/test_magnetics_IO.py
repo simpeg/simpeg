@@ -4,6 +4,7 @@ from SimPEG import Mesh, PF
 from SimPEG.Utils import io_utils
 from scipy.constants import mu_0
 import shutil
+import os
 
 
 class MagSensProblemTests(unittest.TestCase):
@@ -11,13 +12,16 @@ class MagSensProblemTests(unittest.TestCase):
     def setUp(self):
         url = 'https://storage.googleapis.com/simpeg/tests/potential_fields/'
         cloudfiles = ['MagData.obs', 'Gaussian.topo', 'Mesh_10m.msh',
-                      'ModelStart.sus', 'SimPEG_Mag_Input_v2.inp']
+                      'ModelStart.sus', 'SimPEG_Mag_Input.inp']
 
-        self.basePath = io_utils.remoteDownload(url, cloudfiles)
+        self.basePath = os.path.expanduser('~/Downloads/simpegtemp')
+        self.files = io_utils.download(
+            [url+f for f in cloudfiles], folder=self.basePath, overwrite=True
+        )
 
     def test_magnetics_inversion(self):
 
-        inp_file = self.basePath + 'SimPEG_Mag_Input_v2.inp'
+        inp_file = os.path.sep.join([self.basePath, 'SimPEG_Mag_Input.inp'])
 
         driver = PF.MagneticsDriver.MagneticsDriver_Inv(inp_file)
 
@@ -36,8 +40,10 @@ class MagSensProblemTests(unittest.TestCase):
         print(driver.eps)
 
         # Write obs to file
-        PF.Magnetics.writeUBCobs(self.basePath + 'FWR_data.dat',
-                                 driver.survey, driver.survey.dobs)
+        PF.Magnetics.writeUBCobs(
+            os.path.sep.join([self.basePath, 'FWR_data.dat']),
+            driver.survey, driver.survey.dobs
+        )
 
         # Clean up the working directory
         shutil.rmtree(self.basePath)

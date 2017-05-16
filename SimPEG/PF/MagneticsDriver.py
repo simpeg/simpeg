@@ -11,8 +11,9 @@ class MagneticsDriver_Inv(object):
 
     def __init__(self, input_file=None):
         if input_file is not None:
-            self.basePath = os.path.sep.join(input_file.split(
-                                             os.path.sep)[:-1])
+            self.basePath = os.path.sep.join(
+                input_file.split(os.path.sep)[:-1]
+            )
             if len(self.basePath) > 0:
                 self.basePath += os.path.sep
             self.readDriverFile(input_file.split(os.path.sep)[-1])

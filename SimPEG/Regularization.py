@@ -12,10 +12,8 @@ from . import ObjectiveFunction
 from . import Props
 
 __all__ = [
-    'Small',
-    'SmoothDeriv', 'SmoothDeriv2',
-    'SimpleSmoothDeriv',
-    'Simple', 'Tikhonov',
+    'SimpleSmall', 'SimpleSmoothDeriv', 'Simple',
+    'Small', 'SmoothDeriv', 'SmoothDeriv2', 'Tikhonov',
     'SparseSmall', 'SparseDeriv', 'Sparse',
 ]
 
@@ -365,7 +363,7 @@ class RegularizationMesh(Props.BaseSimPEG):
 
 ###############################################################################
 #                                                                             #
-#                          Single Regularization                              #
+#                          Base Regularization                                #
 #                                                                             #
 ###############################################################################
 
@@ -399,7 +397,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
 
     # Properties
     mref = Props.Array(
-        "reference model", default=Utils.Zero()
+        "reference model"
     )
     indActive = properties.Array(
         "indices of active cells in the mesh", dtype=(bool, int)
@@ -524,6 +522,11 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
             value._assertMatchesPair(self.mapPair)
         self._mapping = value
 
+    def _delta_m(self, m):
+        if self.mref is None:
+            return m
+        return (-self.mref + m)  # in case self.mref is Zero, returns type m
+
     @Utils.timeIt
     def __call__(self, m):
         """
@@ -533,7 +536,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
 
             r(m) = \\frac{1}{2}
         """
-        r = self.W * (self.mapping * (m - self.mref))
+        r = self.W * (self.mapping * (self._delta_m(m)))
         return 0.5 * r.dot(r)
 
     @Utils.timeIt
@@ -555,8 +558,8 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
 
         """
 
-        mD = self.mapping.deriv(m - self.mref)
-        r = self.W * (self.mapping * (m - self.mref))
+        mD = self.mapping.deriv(self._delta_m(m))
+        r = self.W * (self.mapping * (self._delta_m(m)))
         return mD.T * (self.W.T * r)
 
     @Utils.timeIt
@@ -583,64 +586,16 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
             R(m) = \mathbf{W^\\top W}
 
         """
-        mD = self.mapping.deriv(m - self.mref)
+        mD = self.mapping.deriv(self._delta_m(m))
         if v is None:
             return mD.T * self.W.T * self.W * mD
 
         return mD.T * ( self.W.T * ( self.W * ( mD * v) ) )
 
 
-class Small(BaseRegularization):
-    """
-    Small regularization - L2 regularization on the difference between a
-    model and a reference model. Cell weights may be included.
-
-    .. math::
-
-        r(m) = \\frac{1}{2}(\\mathbf{m} - \\mathbf{m_ref})^\top \\mathbf{W}^T
-        \\mathbf{W} (\\mathbf{m} - \\mathbf{m_{ref}})
-
-    where :math:`\\mathbf{m}` is the model, :math:`\\mathbf{m_{ref}}` is a
-    reference model (default Zero) and :math:`\\mathbf{W}` is a weighting
-    matrix (default Identity. If cell weights are provided, then it is
-    :code:`diag(cell_weights)`)
-
-
-    **Optional Inputs**
-
-    :param BaseMesh mesh: SimPEG mesh
-    :param int nP: number of parameters
-    :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
-    :param numpy.ndarray mref: reference model
-    :param numpy.ndarray indActive: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
-    :param numpy.ndarray cell_weights: cell weights
-
-    """
-
-    _multiplier_pair = 'alpha_s'
-
-    def __init__(self, mesh=None, **kwargs):
-
-        super(Small, self).__init__(
-            mesh=mesh, **kwargs
-        )
-
-    @property
-    def W(self):
-        """
-        Weighting matrix
-        """
-        if self.cell_weights is not None:
-            return Utils.sdiag(self.cell_weights)
-        elif self._nC_residual != '*':
-            return sp.eye(self._nC_residual)
-        else:
-            return Utils.Identity()
-
-
 ###############################################################################
 #                                                                             #
-#                           Combo Regularization                              #
+#                        Base Combo Regularization                            #
 #                                                                             #
 ###############################################################################
 
@@ -697,7 +652,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
             return '*'
 
     @property
-    def _multipliers(self):
+    def multipliers(self):
         """
         Factors that multiply the objective functions that are summed together
         to build to composite regularization
@@ -797,6 +752,62 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         for fct in self.objfcts:
             fct.mapping = val
         self._mapping = val
+
+
+###############################################################################
+#                                                                             #
+#              Simple Regularization (no volume contribution)                 #
+#                                                                             #
+###############################################################################
+
+
+class SimpleSmall(BaseRegularization):
+    """
+    Simple Small regularization - L2 regularization on the difference between a
+    model and a reference model. Cell weights may be included. This does not
+    include a volume contribution.
+
+    .. math::
+
+        r(m) = \\frac{1}{2}(\\mathbf{m} - \\mathbf{m_ref})^\top \\mathbf{W}^T
+        \\mathbf{W} (\\mathbf{m} - \\mathbf{m_{ref}})
+
+    where :math:`\\mathbf{m}` is the model, :math:`\\mathbf{m_{ref}}` is a
+    reference model and :math:`\\mathbf{W}` is a weighting
+    matrix (default Identity). If cell weights are provided, then it is
+    :code:`diag(np.sqrt(cell_weights))`)
+
+
+    **Optional Inputs**
+
+    :param BaseMesh mesh: SimPEG mesh
+    :param int nP: number of parameters
+    :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
+    :param numpy.ndarray mref: reference model
+    :param numpy.ndarray indActive: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
+    :param numpy.ndarray cell_weights: cell weights
+
+    """
+
+    _multiplier_pair = 'alpha_s'
+
+    def __init__(self, mesh=None, **kwargs):
+
+        super(SimpleSmall, self).__init__(
+            mesh=mesh, **kwargs
+        )
+
+    @property
+    def W(self):
+        """
+        Weighting matrix
+        """
+        if self.cell_weights is not None:
+            return Utils.sdiag(np.sqrt(self.cell_weights))
+        elif self._nC_residual != '*':
+            return sp.eye(self._nC_residual)
+        else:
+            return Utils.Identity()
 
 
 class SimpleSmoothDeriv(BaseRegularization):
@@ -920,7 +931,7 @@ class Simple(BaseComboRegularization):
     ):
 
         objfcts = [
-            Small(mesh=mesh, **kwargs),
+            SimpleSmall(mesh=mesh, **kwargs),
             SimpleSmoothDeriv(
                 mesh=mesh, orientation='x',
                 **kwargs
@@ -947,6 +958,58 @@ class Simple(BaseComboRegularization):
             mesh=mesh, objfcts=objfcts, alpha_s=alpha_s, alpha_x=alpha_x,
             alpha_y=alpha_y, alpha_z=alpha_z, **kwargs
         )
+
+
+###############################################################################
+#                                                                             #
+#         Tikhonov-Style Regularization (includes volume contribution)        #
+#                                                                             #
+###############################################################################
+
+class Small(BaseRegularization):
+    """
+    Small regularization - L2 regularization on the difference between a
+    model and a reference model. Cell weights may be included. A volume
+    contribution is included
+
+    .. math::
+
+        r(m) = \\frac{1}{2}(\\mathbf{m} - \\mathbf{m_ref})^\top \\mathbf{W}^T
+        \\mathbf{W} (\\mathbf{m} - \\mathbf{m_{ref}})
+
+    where :math:`\\mathbf{m}` is the model, :math:`\\mathbf{m_{ref}}` is a
+    reference model and :math:`\\mathbf{W}` is a weighting
+    matrix (default :code:`diag(np.sqrt(vol))`. If cell weights are provided, then it is
+    :code:`diag(np.sqrt(vol * cell_weights))`)
+
+
+    **Optional Inputs**
+
+    :param BaseMesh mesh: SimPEG mesh
+    :param int nP: number of parameters
+    :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
+    :param numpy.ndarray mref: reference model
+    :param numpy.ndarray indActive: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
+    :param numpy.ndarray cell_weights: cell weights
+
+    """
+
+    _multiplier_pair = 'alpha_s'
+
+    def __init__(self, mesh=None, **kwargs):
+
+        super(Small, self).__init__(
+            mesh=mesh, **kwargs
+        )
+
+    @property
+    def W(self):
+        """
+        Weighting matrix
+        """
+        if self.cell_weights is not None:
+            return Utils.sdiag(np.sqrt(self.regmesh.vol * self.cell_weights))
+        return Utils.sdiag(np.sqrt(self.regmesh.vol))
 
 
 class SmoothDeriv(BaseRegularization):
@@ -1009,20 +1072,20 @@ class SmoothDeriv(BaseRegularization):
         Weighting matrix that constructs the first spatial derivative stencil
         in the specified orientation
         """
-        W = getattr(
+        vol = self.regmesh.vol.copy()
+        if self.cell_weights is not None:
+            vol *= self.cell_weights
+
+        D = getattr(
             self.regmesh,
             "cellDiff{orientation}".format(
                 orientation=self.orientation
             )
         )
-        if self.cell_weights is not None:
-            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
-            W = (
-                Utils.sdiag(
-                    (Ave*self.cell_weights)**0.5
-                ) * W
-            )
-        return W
+
+        Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
+        return Utils.sdiag(np.sqrt(Ave * vol)) * D
 
 
 class SmoothDeriv2(BaseRegularization):
@@ -1077,7 +1140,7 @@ class SmoothDeriv2(BaseRegularization):
         Weighting matrix that takes the second spatial derivative in the
         specified orientation
         """
-        vol = self.regmesh.vol
+        vol = self.regmesh.vol.copy()
         if self.cell_weights is not None:
             vol *= self.cell_weights
 
@@ -1141,14 +1204,14 @@ class Tikhonov(BaseComboRegularization):
 
         if mesh.dim > 1:
             objfcts += [
-                    SmoothDeriv(mesh=mesh, orientation='y', **kwargs),
-                    SmoothDeriv2(mesh=mesh, orientation='y', **kwargs)
+                SmoothDeriv(mesh=mesh, orientation='y', **kwargs),
+                SmoothDeriv2(mesh=mesh, orientation='y', **kwargs)
             ]
 
         if mesh.dim > 2:
             objfcts += [
-                    SmoothDeriv(mesh=mesh, orientation='z', **kwargs),
-                    SmoothDeriv2(mesh=mesh, orientation='z', **kwargs)
+                SmoothDeriv(mesh=mesh, orientation='z', **kwargs),
+                SmoothDeriv2(mesh=mesh, orientation='z', **kwargs)
             ]
 
         super(Tikhonov, self).__init__(

@@ -1,5 +1,7 @@
 from __future__ import print_function
 from . import Utils
+from . import Regularization, DataMisfit, ObjectiveFunction
+from . import Maps
 import numpy as np
 import scipy.sparse as sp
 import warnings
@@ -13,6 +15,15 @@ class InversionDirective(object):
     """InversionDirective"""
 
     debug = False    #: Print debugging information
+    _regPair = [
+        Regularization.BaseComboRegularization,
+        Regularization.BaseRegularization,
+        ObjectiveFunction.ComboObjectiveFunction
+    ]
+    _dmisfitPair = [
+        DataMisfit.BaseDataMisfit,
+        ObjectiveFunction.ComboObjectiveFunction
+    ]
 
     def __init__(self, **kwargs):
         Utils.setKwargs(self, **kwargs)
@@ -42,14 +53,23 @@ class InversionDirective(object):
     @property
     def reg(self):
         if getattr(self, '_reg', None) is None:
-            self.reg = self.invProb.reg  # go through the setter
+            self._reg = self.invProb.reg
+
         return self._reg
 
     @reg.setter
     def reg(self, value):
+
         if isinstance(value, Regularization.BaseComboRegularization):
             value = 1*value  # turn it into a combo objective function
         self._reg = value
+
+        assert any([isinstance(value, regtype) for regtype in self._regPair]), (
+            "Regularization must be in {}, not {}".format(
+                self._regPair, type(value)
+            )
+        )
+        self._reg = reg
 
     @property
     def dmisfit(self):
@@ -62,6 +82,16 @@ class InversionDirective(object):
         if not isinstance(value, ObjectiveFunction.ComboObjectiveFunction):
             value = 1*value  # turn it into a combo objective function
         self._dmisfit = value
+
+    @dmisfit.setter
+    def dmisfit(self, value):
+        assert any([
+                isinstance(value, dmisfittype) for dmisfittype in
+                self._dmisfitPair
+        ]), "Regularization must be in {}, not {}".format(
+                self._dmisfitPair, type(value)
+        )
+        self._dmisfit = dmisfit
 
     @property
     def survey(self):
@@ -87,6 +117,9 @@ class InversionDirective(object):
 
     def finish(self):
         pass
+
+    def validate(self, directiveList=None):
+        return True
 
 
 class DirectiveList(object):
@@ -144,6 +177,10 @@ class DirectiveList(object):
         )
         for r in self.dList:
             getattr(r, ruleType)()
+
+    def validate(self):
+        [directive.validate(self) for directive in self.dList]
+        return True
 
 
 class BetaEstimate_ByEig(InversionDirective):
@@ -577,6 +614,7 @@ class Update_IRLS(InversionDirective):
                 self.invProb.beta = (self.invProb.beta * self.target /
                                      self.invProb.phi_d)
 
+
     def regScale(self):
         """
             Update the scales used by regularization
@@ -599,6 +637,28 @@ class Update_IRLS(InversionDirective):
                             (f_m**2. + eps_tp**2.)**(1-norm_tp/2.))
 
             reg.scale = max_a/max_tp
+
+    def validate(self, directiveList):
+        # check if a linear preconditioner is in the list, if not warn else
+        # assert that it is listed after the IRLS directive
+        dList = directiveList.dList
+        self_ind = dList.index(self)
+        lin_precond_ind = [
+            isinstance(d, Update_lin_PreCond) for d in dList
+        ]
+
+        if any(lin_precond_ind):
+            assert(lin_precond_ind.index(True) > self_ind), (
+                "The directive 'Update_lin_PreCond' must be after Update_IRLS "
+                "in the directiveList"
+            )
+        else:
+            warnings.warn(
+                "Without a Linear preconditioner, convergence may be slow. "
+                "Consider adding `Directives.Update_lin_PreCond` to your "
+                "directives list"
+            )
+        return True
 
 
 class UpdatePreCond(InversionDirective):
@@ -833,7 +893,6 @@ class UpdateSensWeighting(InversionDirective):
         for reg in self.reg.objfcts:
             reg.cell_weights = reg.mapping * self.wr
 
-
     def updateOpt(self):
         """
             Update a copy of JtJdiag to optimization for preconditioner
@@ -850,9 +909,6 @@ class UpdateSensWeighting(InversionDirective):
                 JtJdiag[prob.chiMap.index] += JtJ
 
         self.opt.JtJdiag = JtJdiag
-
-        # else:
-        #     self.opt.JtJdiag = self.JtJdiag[0]
 
 
 class ProjSpherical(InversionDirective):
@@ -890,107 +946,6 @@ class ProjSpherical(InversionDirective):
             prob.chi = m
 
         self.opt.xc = m
-
-
-class JointAmpMVI(InversionDirective):
-    """
-        Directive controlling the joint inversion of
-        magnetic amplitude data and MVI. Use the vector
-        magnetization model (M) to update the linear amplitude
-        operator.
-
-    """
-
-    amp = None
-
-    def initialize(self):
-
-        # Get current MVI model and update MAI sensitivity
-        # if isinstance(self.prob, list):
-
-        m = self.invProb.model
-        for prob in self.prob:
-
-            if isinstance(prob, Magnetics.MagneticVector):
-                if prob.coordinate_system == 'spherical':
-                    xyz = Magnetics.atp2xyz(prob.chiMap * m)
-
-                elif prob.coordinate_system == 'cartesian':
-                    xyz = prob.chiMap * m
-
-            if isinstance(prob, Magnetics.MagneticAmplitude):
-                self.amp = prob.chiMap * m
-
-        for prob in self.prob:
-            if isinstance(prob, Magnetics.MagneticAmplitude):
-
-                nC = prob.chiMap.shape[0]
-
-                mcol = xyz.reshape((nC, 3), order='F')
-                amp = np.sum(mcol**2., axis=1)**0.5
-                M = Utils.sdiag(1./amp) * mcol
-                prob.M = M
-
-                # if prob.chi is None:
-                #     prob.chi = prob.chiMap * m
-
-                #     ampW = (amp/amp.max() + 1e-1)**-1.
-                #     prob.W = ampW
-
-                # if isinstance(prob, Magnetics.MagneticVector):
-
-                #     if (prob.coordinate_system == 'cartesian') and (self.amp is not None):
-
-                #         ampW = (self.amp/self.amp.max() + 1e-1)**-1.
-                #         prob.W = np.r_[ampW, ampW, ampW]
-
-        else:
-            assert("This directive needs to used on a ComboObjective")
-
-    def endIter(self):
-
-        # Get current MVI model and update magnetization model for MAI
-        if isinstance(self.prob, list):
-            # maxJtvec = []
-
-            m = self.invProb.model
-            for prob in self.prob:
-
-                if isinstance(prob, Magnetics.MagneticVector):
-                    if prob.coordinate_system == 'spherical':
-                        xyz = Magnetics.atp2xyz(prob.chiMap * m)
-
-                    elif prob.coordinate_system == 'cartesian':
-                        xyz = prob.chiMap * m
-
-                if isinstance(prob, Magnetics.MagneticAmplitude):
-                    self.amp = prob.chiMap * m
-
-            for prob in self.prob:
-                if isinstance(prob, Magnetics.MagneticAmplitude):
-
-                    nC = prob.chiMap.shape[0]
-
-                    mcol = xyz.reshape((nC, 3), order='F')
-                    amp = np.sum(mcol**2., axis=1)**0.5
-
-                    M = Utils.sdiag(1./amp) * mcol
-
-                    prob.M = M
-                    prob._Mxyz = None
-
-                    # if prob.chi is None:
-                    #     prob.chi = prob.chiMap * m
-
-                    # ampW = (amp/amp.max() + 1e-2)**-1.
-                    # prob.W = ampW
-
-                if isinstance(prob, Magnetics.MagneticVector):
-
-                    if (prob.coordinate_system == 'cartesian') and (self.amp is not None):
-
-                        ampW = (self.amp/self.amp.max() + 1e-2)**-1.
-                        prob.W = np.r_[ampW, ampW, ampW]
 
 
 class UpdateApproxJtJ(InversionDirective):

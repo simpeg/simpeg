@@ -21,6 +21,7 @@ class BaseInversion(object):
     def directiveList(self):
         if getattr(self, '_directiveList', None) is None:
             self._directiveList = Directives.DirectiveList(inversion=self)
+            self._directiveList.validate()  # validate if we skip setter
         return self._directiveList
 
     @directiveList.setter
@@ -30,6 +31,7 @@ class BaseInversion(object):
         assert isinstance(value, Directives.DirectiveList), (
             'Must be a DirectiveList'
         )
+        value.validate()  # validate before setting
         self._directiveList = value
         self._directiveList.inversion = self
 

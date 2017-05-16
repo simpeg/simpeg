@@ -61,9 +61,13 @@ class GravFwdProblemTests(unittest.TestCase):
         # Compute 3-component grav data
         self.survey.pair(self.prob_x)
         dgx = self.prob_x.fields(self.model)
+        self.survey.unpair()
 
         self.survey.pair(self.prob_y)
         dgy = self.prob_y.fields(self.model)
+        self.survey.unpair()
+
+        # Compute gz data only
 
         self.survey.pair(self.prob_z)
         dgz = self.prob_z.fields(self.model)
