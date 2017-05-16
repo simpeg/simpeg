@@ -1,6 +1,6 @@
 from __future__ import print_function
 from . import Utils
-from . import Regularization
+from . import Regularization, DataMisfit, ObjectiveFunction
 from . import Maps
 import numpy as np
 import warnings
@@ -10,6 +10,15 @@ class InversionDirective(object):
     """InversionDirective"""
 
     debug = False    #: Print debugging information
+    _regPair = [
+        Regularization.BaseComboRegularization,
+        Regularization.BaseRegularization,
+        ObjectiveFunction.ComboObjectiveFunction
+    ]
+    _dmisfitPair = [
+        DataMisfit.BaseDataMisfit,
+        ObjectiveFunction.ComboObjectiveFunction
+    ]
 
     def __init__(self, **kwargs):
         Utils.setKwargs(self, **kwargs)
@@ -38,11 +47,32 @@ class InversionDirective(object):
 
     @property
     def reg(self):
-        return self.invProb.reg
+        if getattr(self, '_reg', None) is None:
+            self._reg = self.invProb.reg
+        return self._reg
+
+    @reg.setter
+    def reg(self, value):
+        assert any([isinstance(value, regtype) for regtype in self._regPair]),(
+            "Regularization must be in {}, not {}".format(
+                self._regPair, type(value)
+            )
+        )
+        self._reg = reg
 
     @property
     def dmisfit(self):
         return self.invProb.dmisfit
+
+    @dmisfit.setter
+    def dmisfit(self, value):
+        assert any([
+                isinstance(value, dmisfittype) for dmisfittype in
+                self._dmisfitPair
+        ]), "Regularization must be in {}, not {}".format(
+                self._dmisfitPair, type(value)
+        )
+        self._dmisfit = dmisfit
 
     @property
     def survey(self):
@@ -60,6 +90,9 @@ class InversionDirective(object):
 
     def finish(self):
         pass
+
+    def validate(self, directiveList=None):
+        return True
 
 
 class DirectiveList(object):
@@ -117,6 +150,10 @@ class DirectiveList(object):
         )
         for r in self.dList:
             getattr(r, ruleType)()
+
+    def validate(self):
+        [directive.validate(self) for directive in self.dList]
+        return True
 
 
 class BetaEstimate_ByEig(InversionDirective):
@@ -490,6 +527,28 @@ class Update_IRLS(InversionDirective):
             if np.all([np.abs(1.-val) > self.beta_tol, self.IRLSiter > 1]):
                 self.invProb.beta = (self.invProb.beta * self.target /
                                      self.invProb.phi_d)
+
+    def validate(self, directiveList):
+        # check if a linear preconditioner is in the list, if not warn else
+        # assert that it is listed after the IRLS directive
+        dList = directiveList.dList
+        self_ind = dList.index(self)
+        lin_precond_ind = [
+            isinstance(d, Update_lin_PreCond) for d in dList
+        ]
+
+        if any(lin_precond_ind):
+            assert(lin_precond_ind.index(True) > self_ind), (
+                "The directive 'Update_lin_PreCond' must be after Update_IRLS "
+                "in the directiveList"
+            )
+        else:
+            warnings.warn(
+                "Without a Linear preconditioner, convergence may be slow. "
+                "Consider adding `Directives.Update_lin_PreCond` to your "
+                "directives list"
+            )
+        return True
 
 
 class Update_lin_PreCond(InversionDirective):

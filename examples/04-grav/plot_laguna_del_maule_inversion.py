@@ -16,7 +16,7 @@ import shutil
 import SimPEG.PF as PF
 from SimPEG import Maps, Regularization, Optimization, DataMisfit,\
                    InvProblem, Directives, Inversion
-from SimPEG.Utils.io_utils import remoteDownload
+from SimPEG.Utils.io_utils import download
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -25,14 +25,15 @@ def run(plotIt=True, cleanAfterRun=True):
 
     # Start by downloading files from the remote repository
     url = "https://storage.googleapis.com/simpeg/Chile_GRAV_4_Miller/"
-    cloudfiles = ['LdM_grav_obs.grv', 'LdM_mesh.mesh',
-                  'LdM_topo.topo', 'LdM_input_file.inp']
+    cloudfiles = [
+        'LdM_grav_obs.grv', 'LdM_mesh.mesh',
+        'LdM_topo.topo', 'LdM_input_file.inp'
+    ]
 
-    basePath = os.path.sep.join(os.path.abspath(os.getenv('HOME')).split
-                                (os.path.sep)+['Downloads']+['SimPEGtemp'])
-    basePath = os.path.abspath(remoteDownload(url,
-                                              cloudfiles,
-                                              basePath=basePath+os.path.sep))
+    # Download to Downloads/SimPEGtemp
+    basePath = os.path.expanduser('~/Downloads/simpegtemp')
+    download([url+f for f in cloudfiles], folder=basePath, overwrite=True)
+
     input_file = basePath + os.path.sep + 'LdM_input_file.inp'
     # %% User input
     # Plotting parameters, max and min densities in g/cc
@@ -70,8 +71,9 @@ def run(plotIt=True, cleanAfterRun=True):
     static = driver.staticCells
     dynamic = driver.dynamicCells
 
-    staticCells = Maps.InjectActiveCells(None,
-                                         dynamic, driver.m0[static], nC=nC)
+    staticCells = Maps.InjectActiveCells(
+        None, dynamic, driver.m0[static], nC=nC
+    )
     mstart = driver.m0[dynamic]
 
     # Get index of the center

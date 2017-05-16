@@ -96,7 +96,6 @@ class TestBaseObjFct(unittest.TestCase):
         self.assertTrue(np.all(phi1.multipliers == np.r_[1., alpha1]))
         self.assertTrue(np.all(phi2.multipliers == np.r_[1., alpha2]))
 
-
     def test_3sum(self):
         nP = 90
 
@@ -117,7 +116,7 @@ class TestBaseObjFct(unittest.TestCase):
         )
 
         self.assertTrue(
-            alpha1*phi1(m) + alpha2*phi2(m) + phi3(m)/alpha3inv == phi(m)
+           np.allclose((alpha1*phi1(m) + alpha2*phi2(m) + phi3(m)/alpha3inv), phi(m))
         )
 
         self.assertTrue(len(phi.objfcts) == 3)
