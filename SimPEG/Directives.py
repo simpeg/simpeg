@@ -62,14 +62,13 @@ class InversionDirective(object):
 
         if isinstance(value, Regularization.BaseComboRegularization):
             value = 1*value  # turn it into a combo objective function
-        self._reg = value
 
         assert any([isinstance(value, regtype) for regtype in self._regPair]), (
             "Regularization must be in {}, not {}".format(
                 self._regPair, type(value)
             )
         )
-        self._reg = reg
+        self._reg = value
 
     @property
     def dmisfit(self):
@@ -91,7 +90,7 @@ class InversionDirective(object):
         ]), "Regularization must be in {}, not {}".format(
                 self._dmisfitPair, type(value)
         )
-        self._dmisfit = dmisfit
+        self._dmisfit = value
 
     @property
     def survey(self):
@@ -343,13 +342,6 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
             count += 1
 
             xc = prob.mapPair() * self.opt.xc
-
-            # Save predicted data
-            if len(self.prob) > 1:
-                Magnetics.writeUBCobs(fileName + "Prob" + str(count) + '.pre', survey, survey.dpred(m=xc))
-
-            else:
-                Magnetics.writeUBCobs(fileName + '.pre', survey, survey.dpred(m=xc))
 
             # Save model
             if not isinstance(prob, Magnetics.MagneticVector):
@@ -641,7 +633,7 @@ class Update_IRLS(InversionDirective):
         dList = directiveList.dList
         self_ind = dList.index(self)
         lin_precond_ind = [
-            isinstance(d, Update_lin_PreCond) for d in dList
+            isinstance(d, UpdatePreCond) for d in dList
         ]
 
         if any(lin_precond_ind):
