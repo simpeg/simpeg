@@ -74,6 +74,30 @@ class TriangularWaveform(BaseWaveform):
         )
 
 
+class VTEMWaveform(BaseWaveform):
+
+    eps = 1e-9
+    offTime = 4.2e-3
+    peakTime = 2.73e-3
+    a = 3.
+
+    def __init__(self, offTime=4.2e-3, peakTime=2.73e-3, a=3.):
+        BaseWaveform.__init__(
+            self, offTime=offTime,
+            peakTime=peakTime,
+            a=a,
+            hasInitialFields=False
+            )
+
+    def eval(self, time):
+        if time <= self.peakTime:
+            return (1. - np.exp(-self.a*time/self.peakTime)) / (1.-np.exp(-self.a))
+        elif (time < self.offTime) and (time > self.peakTime):
+            return -1. / (self.offTime-self.peakTime) * (time - self.offTime)
+        else:
+            return 0.
+
+
 ###############################################################################
 #                                                                             #
 #                                    Sources                                  #

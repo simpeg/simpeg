@@ -4,7 +4,7 @@ from .matutils import (
     avExtrap, ndgrid, ind2sub, sub2ind, getSubArray,
     inv3X3BlockDiagonal, inv2X2BlockDiagonal, TensorType,
     makePropertyTensor, invPropertyTensor, diagEst, Zero,
-    Identity
+    Identity, uniqueRows
 )
 from .codeutils import (
     memProfileWrapper, hook, setKwargs,
