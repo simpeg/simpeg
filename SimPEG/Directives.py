@@ -552,12 +552,13 @@ class Update_IRLS(InversionDirective):
             self.invProb.beta /= self.coolingFactor
 
         # Only update after GN iterations
-        if np.all([(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode == 2]):
-
+        if np.all([(self.opt.iter-self.iterStart) % self.minGNiter == 0,
+                   self.mode == 2]):
 
             # Check for maximum number of IRLS cycles
             if self.IRLSiter == self.maxIRLSiter:
-                print("Reach maximum number of IRLS cycles: {0:d}".format(self.maxIRLSiter))
+                print("Reach maximum number of IRLS cycles: {0:d}"
+                      .format(self.maxIRLSiter))
                 self.opt.stopNextIteration = True
                 return
 
@@ -567,7 +568,6 @@ class Update_IRLS(InversionDirective):
 
                 for comp in reg.objfcts:
                     comp.gamma = 1.
-
 
             # Remember the value of the norm from previous R matrices
             self.f_old = self.reg(self.invProb.model)
@@ -605,7 +605,6 @@ class Update_IRLS(InversionDirective):
                 for comp in reg.objfcts:
                     comp.gamma = gamma
 
-
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / self.target
 
@@ -614,7 +613,6 @@ class Update_IRLS(InversionDirective):
                 self.invProb.beta = (self.invProb.beta * self.target /
                                      self.invProb.phi_d)
 
-
     def regScale(self):
         """
             Update the scales used by regularization
@@ -622,21 +620,20 @@ class Update_IRLS(InversionDirective):
 
         # Currently implemented specifically for MVI-S
         # Need to be generalized if used by others
-        for reg in self.reg.objfcts[1:]:
+        # Currently implemented for MVI-S only
+        max_p = []
+        for reg in self.reg.objfcts[0].objfcts:
+            eps_p = reg.epsilon
+            norm_p = 2#self.reg.objfcts[0].norms[0]
+            f_m = abs(reg.f_m)
+            max_p += [np.max(eps_p**(1-norm_p/2.)*f_m /
+                           (f_m**2. + eps_p**2.)**(1-norm_p/2.))]
 
-            eps_a = self.reg.objfcts[0].eps_p
-            norm_a = self.reg.objfcts[0].norms[0]
-            f_m = abs(self.reg.objfcts[0].objfcts[0].f_m)
-            max_a = np.max(eps_a**(1-norm_a/2.)*f_m /
-                           (f_m**2. + eps_a**2.)**(1-norm_a/2.))
+        max_p = np.asarray(max_p)
 
-            eps_tp = reg.eps_q
-            f_m = abs(reg.objfcts[0].f_m)
-            norm_tp = reg.norms[1]
-            max_tp = np.max(eps_tp**(1-norm_tp/2.)*f_m /
-                            (f_m**2. + eps_tp**2.)**(1-norm_tp/2.))
-
-            reg.scale = max_a/max_tp
+        max_s = [np.pi, np.pi]
+        for obj, var in zip(self.reg.objfcts[1:], max_s):
+            obj.scale = max_p.max()/var
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
