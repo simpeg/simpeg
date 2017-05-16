@@ -53,7 +53,7 @@ class InversionDirective(object):
     @property
     def reg(self):
         if getattr(self, '_reg', None) is None:
-            self._reg = self.invProb.reg
+            self.reg = self.invProb.reg
 
         return self._reg
 
@@ -80,14 +80,11 @@ class InversionDirective(object):
     def dmisfit(self, value):
         if not isinstance(value, ObjectiveFunction.ComboObjectiveFunction):
             value = 1*value  # turn it into a combo objective function
-        self._dmisfit = value
 
-    @dmisfit.setter
-    def dmisfit(self, value):
         assert any([
                 isinstance(value, dmisfittype) for dmisfittype in
                 self._dmisfitPair
-        ]), "Regularization must be in {}, not {}".format(
+        ]), "Misfit must be in {}, not {}".format(
                 self._dmisfitPair, type(value)
         )
         self._dmisfit = value
