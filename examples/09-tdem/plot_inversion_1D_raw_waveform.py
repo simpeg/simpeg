@@ -51,7 +51,7 @@ def run(plotIt=True):
     # Forming function handle for waveform using 1D linear interpolation
     wavefun = interp1d(prb.times, out)
     t0 = 0.006
-    waveform = EM.TDEM.Src.RawWaveform(offTimjsue=t0, waveFct=wavefun)
+    waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
 
     rx = EM.TDEM.Rx.Point_dbdt(rxloc, np.logspace(-4, -2.5, 11)+t0, 'z')
     src = EM.TDEM.Src.CircularLoop([rx], waveform=waveform,
