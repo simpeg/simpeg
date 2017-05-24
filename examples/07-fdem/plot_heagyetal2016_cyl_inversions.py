@@ -1,6 +1,6 @@
 """
-1D FDEM and TDEM inversions
-===========================
+Heagy et al., 2017 1D FDEM and TDEM inversions
+==============================================
 
 Here, we perform a 1D inversion using both the frequency and time domain
 codes. The forward simulations are conducted on a cylindrically symmetric

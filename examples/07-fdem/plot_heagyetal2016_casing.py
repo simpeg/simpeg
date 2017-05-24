@@ -1,6 +1,6 @@
 """
-Casing Example
-==============
+Heagy et al., 2017 Casing Example
+=================================
 
 Here, we use a primary-secondary approach to compute the sensitivity of an EM
 survey with respect to a parametric model of a block in a layered space.
