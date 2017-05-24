@@ -27,6 +27,9 @@ Computers & Geosciences
 The paper is available at:
 https://arxiv.org/abs/1610.00804
 
+This example is available on figshare:
+https://figshare.com/articles/Heagy_et_al_2017_-_EM_sensitivity_calculation_for_a_parametric_model_including_steel_casing_and_using_a_primary_secondary_approach/5036123
+
 """
 from SimPEG import Mesh, Utils, Maps, Tests
 from SimPEG.EM import mu_0, FDEM, Analytics
