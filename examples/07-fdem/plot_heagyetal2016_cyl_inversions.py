@@ -16,7 +16,7 @@ The paper is available at:
 https://arxiv.org/abs/1610.00804
 
 This example is on figshare:
-https://figshare.com/articles/Heagy_et_al_2017_-_1D_FDEM_and_TDEM_Inversions/5035175
+https://doi.org/10.6084/m9.figshare.5035175
 
 """
 from SimPEG import (
