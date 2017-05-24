@@ -871,7 +871,7 @@ class PrimSecCasingExample(object):
                     cmap=plt.get_cmap('viridis'), vmin=vlim[0], vmax=vlim[1],
                 )
                 cb = plt.colorbar(f, ax=ax, label=cblabel)
-                # cb.set_clim(vlim)
+                cb.set_clim(vlim)
                 cb.formatter.set_powerlimits((0, 0))
                 cb.update_ticks()
 
@@ -1301,7 +1301,7 @@ def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
     dataDict = casingExample.run(runTests=runTests)
 
     # plot some things
-    if plotIt is True:
+    if plotIt is True or saveFig is True:
         casingExample.plotPrimaryFields(
             dataDict['primfields'], saveFig=saveFig
         )
@@ -1314,6 +1314,8 @@ def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
         casingExample.plotSensitivities(
             dataDict['J'], saveFig=saveFig
         )
+
+    if plotIt is True:
         plt.show()
 
     # remove the downloaded results
