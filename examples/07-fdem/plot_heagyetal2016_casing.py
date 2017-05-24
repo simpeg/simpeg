@@ -2,7 +2,31 @@
 Casing Example
 ==============
 
-This example is used in the paper Heagy et al 2016 (in prep)
+Here, we use a primary-secondary approach to compute the sensitivity of an EM
+survey with respect to a parametric model of a block in a layered space.
+
+If you run this example with :code:`reRun=False`, stored results for the
+sensitivity will be downloaded and plotted. Otherwise, if `reRun=True`, the
+example will be re-run. Note that you will need modest computational resources
+to re-compute the sensitivity (it is a 3D EM problem!).
+
+There are 6 plots that are produced. Figure 1 shows the primary current density
+(the current density due to the source, casing and layered background), Figure
+2 shows the secondary source - the source current density due to the 3D
+conductivity structure present only in the secondary problem. Figure 3 shows
+the predicted data. Figures 4-6 show the sensitivity with respect to each of
+the 9 model parameters (the conductivity of the background, layer and block,
+the thickness of the layer and the x and y extents of the block).
+
+This example is used in the paper
+
+Heagy, L.J., R. Cockett, S. Kang, G.K. Rosenkjaer, D.W. Oldenburg,
+2017 (in review), A framework for simulation and inversion in electromagnetics.
+Computers & Geosciences
+
+The paper is available at:
+https://arxiv.org/abs/1610.00804
+
 """
 from SimPEG import Mesh, Utils, Maps, Tests
 from SimPEG.EM import mu_0, FDEM, Analytics
@@ -873,6 +897,12 @@ class PrimSecCasingExample(object):
                 cb = plt.colorbar(f, ax=ax, label=cblabel)
                 cb.set_clim(vlim)
                 cb.formatter.set_powerlimits((0, 0))
+                ticks = [
+                    "{0:1.1e}".format(a) for a in
+                    np.linspace(0.95*cb.get_clim()[0], 0.95*cb.get_clim()[1], 5)
+                ]
+                ticks = [float(t) for t in ticks]
+                cb.set_ticks(ticks)
                 cb.update_ticks()
 
             elif norm.lower() == 'lognorm':
@@ -897,10 +927,6 @@ class PrimSecCasingExample(object):
 
             if ylim is not None:
                 ax.set_ylim(ylim)
-
-            # if climCenter is True:
-            #     maxabs = np.absolute(Jv).max()
-            #     cb.set_clim(maxabs*np.r_[-1., 1.])
 
             if plotBlock is True:
                 ax.plot(
@@ -1324,4 +1350,4 @@ def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
 
 
 if __name__ == '__main__':
-    run(plotIt=True, runTests=False, reRun=False, saveFig=True)
+    run(plotIt=True, runTests=False, reRun=False, saveFig=False)
