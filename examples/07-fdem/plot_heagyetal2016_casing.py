@@ -350,8 +350,10 @@ class PrimSecCasingExample(object):
                 # vertically directed wire in borehole
                 # go through the center of the well
                 dgv_indx = (meshp.gridFz[:, 0] < meshp.hx.min())
-                dgv_indz = ((meshp.gridFz[:, 2] >= src_a[2])
-                            & (meshp.gridFz[:, 2] <= src_b[2]))
+                dgv_indz = (
+                    (meshp.gridFz[:, 2] >= src_a[2]) &
+                    (meshp.gridFz[:, 2] <= src_b[2])
+                )
                 dgv_ind = dgv_indx & dgv_indz
                 dg_z[dgv_ind] = -1.
 
@@ -359,15 +361,19 @@ class PrimSecCasingExample(object):
                 dgh_indx = meshp.gridFx[:, 0] <= casing_a + meshp.hx.min()*2
 
                 # couple to the casing downhole - bottom part
-                dgh_indz2 = ((meshp.gridFx[:, 2] <= src_a[2]) &
-                             (meshp.gridFx[:, 2] > src_a[2] - meshp.hz.min()))
+                dgh_indz2 = (
+                    (meshp.gridFx[:, 2] <= src_a[2]) &
+                    (meshp.gridFx[:, 2] > src_a[2] - meshp.hz.min())
+                )
                 dgh_ind2 = dgh_indx & dgh_indz2
                 dg_x[dgh_ind2] = 1.
 
                 # horizontally directed wire
                 sgh_indx = (meshp.gridFx[:, 0] <= src_b[0])
-                sgh_indz = ((meshp.gridFx[:, 2] > meshp.hz.min())
-                            & (meshp.gridFx[:, 2] < 2*meshp.hz.min()))
+                sgh_indz = (
+                    (meshp.gridFx[:, 2] > meshp.hz.min()) &
+                    (meshp.gridFx[:, 2] < 2*meshp.hz.min())
+                )
                 sgh_ind = sgh_indx & sgh_indz
                 dg_x[sgh_ind] = -1.
 
@@ -622,24 +628,14 @@ class PrimSecCasingExample(object):
         jcart = projF*primaryFields[:, 'j']
 
         fig, ax = plt.subplots(1, 1, figsize=(6, 7.75))
-        if saveFig is True:
-            # this looks obnoxious inline, but nice in the saved png
-            f = meshcart.plotSlice(
-                jcart.real, normal='Y', vType='F', view='vec',
-                pcolorOpts={
-                    'norm': LogNorm(), 'cmap': plt.get_cmap('viridis')
-                },
-                streamOpts={'arrowsize': 8, 'color': 'k'},
-                ax=ax
-            )
-        elif saveFig is False:
-            f = meshcart.plotSlice(
-                jcart.real, normal='Y', vType='F', view='vec',
-                pcolorOpts={
-                    'norm': LogNorm(), 'cmap': plt.get_cmap('viridis')
-                },
-                ax=ax
-            )
+        f = meshcart.plotSlice(
+            jcart.real, normal='Y', vType='F', view='vec',
+            pcolorOpts={
+                'norm': LogNorm(), 'cmap': plt.get_cmap('viridis')
+            },
+            streamOpts={'color': 'k', 'arrowsize': 2},
+            ax=ax
+        )
         plt.colorbar(f[0], label='real current density (A/m$^2$)')
 
         ax.axis('equal', adjustable='box')
@@ -747,23 +743,13 @@ class PrimSecCasingExample(object):
                 cmap=plt.get_cmap('viridis')
         )
 
-        if saveFig is True:
-            ax.streamplot(
-                meshs_plt.vectorCCx, meshs_plt.vectorCCy,
-                s_e_stream_cc[:meshs_plt.nC].reshape(meshs_plt.vnC[:2]),
-                s_e_stream_cc[meshs_plt.nC:meshs_plt.nC*2].reshape(
-                    meshs_plt.vnC[:2]),
-                density=1.5, color='k', arrowsize=8
-            )
-        elif saveFig is False:
-            ax.streamplot(
-                meshs_plt.vectorCCx, meshs_plt.vectorCCy,
-                s_e_stream_cc[:meshs_plt.nC].reshape(meshs_plt.vnC[:2]),
-                s_e_stream_cc[meshs_plt.nC:meshs_plt.nC*2].reshape(
-                    meshs_plt.vnC[:2]
-                ),
-                color='k', density=1.5
-            )
+        ax.streamplot(
+            meshs_plt.vectorCCx, meshs_plt.vectorCCy,
+            s_e_stream_cc[:meshs_plt.nC].reshape(meshs_plt.vnC[:2]),
+            s_e_stream_cc[meshs_plt.nC:meshs_plt.nC*2].reshape(
+                meshs_plt.vnC[:2]),
+            density=1.5, color='k', arrowsize=2
+        )
 
         ax.set_xlabel('x (m)', fontsize=fontsize)
         ax.set_ylabel('y (m)', fontsize=fontsize)
@@ -799,6 +785,9 @@ class PrimSecCasingExample(object):
                         xlabel='x (m)', ylabel='y (m)', title=None):
             if clim is None:
                 clim = np.absolute(plotme).max()*np.r_[-1., 1.]
+            elif clim is not None:
+                clim = clim
+
             f = ax.contourf(
                 self.rx_x, self.rx_y, plotme, num,
                 cmap=plt.get_cmap('viridis'), vmin=clim[0], vmax=clim[1]
@@ -871,23 +860,27 @@ class PrimSecCasingExample(object):
             num=30, norm=None, cblabel=''
         ):
 
+            eps = 1e-3 # just so we don't get white-spaces in the colormap
             ax.axis('equal')
-            vlim = np.absolute(Jv).max() * np.r_[-1., 1.]
+            vlim = np.absolute(Jv).max()*np.r_[-1., 1.]
 
             if norm is None:
                 f = ax.contourf(
-                    self.rx_x, self.rx_y, Jv, num,
-                    cmap=plt.get_cmap('viridis'), vmin= vlim[0], vmax=vlim[1]
-                               )
+                    self.rx_x, self.rx_y, Jv,
+                    levels=np.linspace(vlim[0], vlim[1], num),
+                    cmap=plt.get_cmap('viridis'), vmin=vlim[0], vmax=vlim[1],
+                )
                 cb = plt.colorbar(f, ax=ax, label=cblabel)
+                # cb.set_clim(vlim)
                 cb.formatter.set_powerlimits((0, 0))
                 cb.update_ticks()
+
             elif norm.lower() == 'lognorm':
                 from matplotlib.colors import LogNorm
                 f = ax.contourf(
                         rx_x, rx_y, np.absolute(Jv),
                         num, cmap=plt.get_cmap('viridis'), norm=LogNorm()
-                               )
+                    )
                 cb = plt.colorbar(f, ax=ax)
 
             ax.set_title(title)
@@ -895,8 +888,9 @@ class PrimSecCasingExample(object):
             ax.set_ylabel(ylabel)
 
             if plotGrid:
-                self.meshs.plotSlice(np.nan*np.ones(mesh.nC), normal='Z',
-                                     grid=True, ax=ax)
+                self.meshs.plotSlice(
+                    np.nan*np.ones(mesh.nC), normal='Z', grid=True, ax=ax
+                )
 
             if xlim is not None:
                 ax.set_xlim(xlim)
@@ -904,9 +898,9 @@ class PrimSecCasingExample(object):
             if ylim is not None:
                 ax.set_ylim(ylim)
 
-            if climCenter is True:
-                maxabs = np.absolute(Jv).max()
-                cb.set_clim(np.r_[-maxabs, maxabs])
+            # if climCenter is True:
+            #     maxabs = np.absolute(Jv).max()
+            #     cb.set_clim(maxabs*np.r_[-1., 1.])
 
             if plotBlock is True:
                 ax.plot(
@@ -926,7 +920,7 @@ class PrimSecCasingExample(object):
         # Plot Conductivity contribution
         plotGrid = False
         plotBlock = True
-        ncontours = 50
+        ncontours = 30
 
         xlim = np.r_[-1500, 1500]
         ylim = np.r_[-1500, 1500]
@@ -1280,6 +1274,7 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         return results
 
 
+
 def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
 
     """
@@ -1327,4 +1322,4 @@ def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
 
 
 if __name__ == '__main__':
-    run(plotIt=True, runTests=False, reRun=False, saveFig=False)
+    run(plotIt=True, runTests=False, reRun=False, saveFig=True)
