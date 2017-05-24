@@ -1107,7 +1107,7 @@ class PrimSecCasingExample(object):
     # ---------------------------------------------------------------------- #
 
     def run(
-        self, plotIt=False, runTests=False, verbose=True, saveFields=False,
+        self, plotIt=False, runTests=False, verbose=True, saveFields=True,
         saveFig=False
     ):
 
