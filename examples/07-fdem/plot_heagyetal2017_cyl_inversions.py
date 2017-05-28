@@ -146,6 +146,7 @@ def run(plotIt=True, saveFig=False):
     opt.remember('xc')
     moptTD = inv.run(m0)
 
+    # Plot the results
     if plotIt:
         plt.figure(figsize=(10, 8))
         ax0 = plt.subplot2grid((2, 2), (0, 0), rowspan=2)
@@ -156,43 +157,47 @@ def run(plotIt=True, saveFig=False):
         matplotlib.rcParams['font.size'] = fs
 
         # Plot the model
-        ax0.semilogx(sigma[active], mesh.vectorCCz[active], 'k-', lw=2)
+        ax0.semilogx(
+            sigma[active], mesh.vectorCCz[active], 'k-', lw=2, label="True"
+        )
         ax0.semilogx(
             np.exp(moptFD), mesh.vectorCCz[active], 'bo', ms=6,
-            markeredgecolor='k', markeredgewidth=0.5
+            markeredgecolor='k', markeredgewidth=0.5, label="FDEM"
         )
         ax0.semilogx(
             np.exp(moptTD), mesh.vectorCCz[active], 'r*', ms=10,
-            markeredgecolor='k', markeredgewidth=0.5
+            markeredgecolor='k', markeredgewidth=0.5, label="TDEM"
         )
         ax0.set_ylim(-700, 0)
         ax0.set_xlim(5e-3, 1e-1)
 
         ax0.set_xlabel('Conductivity (S/m)', fontsize=fs)
         ax0.set_ylabel('Depth (m)', fontsize=fs)
-        ax0.grid(which='both', color='k', alpha=0.5, linestyle='-',
-                 linewidth=0.2)
-        ax0.legend(['True', 'FDEM', 'TDEM'], fontsize=fs, loc=4)
+        ax0.grid(
+            which='both', color='k', alpha=0.5, linestyle='-', linewidth=0.2
+        )
+        ax0.legend(fontsize=fs, loc=4)
 
         # plot the data misfits - negative b/c we choose positive to be in the
         # direction of primary
 
-        ax1.plot(freqs, -surveyFD.dobs[::2], 'k-', lw=2)
-        ax1.plot(freqs, -surveyFD.dobs[1::2], 'k--', lw=2)
+        ax1.plot(freqs, -surveyFD.dobs[::2], 'k-', lw=2, label="Obs (real)")
+        ax1.plot(freqs, -surveyFD.dobs[1::2], 'k--', lw=2, label="Obs (imag)")
 
         dpredFD = surveyFD.dpred(moptTD)
         ax1.loglog(
             freqs, -dpredFD[::2], 'bo', ms=6, markeredgecolor='k',
-            markeredgewidth=0.5
+            markeredgewidth=0.5, label="Pred (real)"
         )
         ax1.loglog(
-            freqs, -dpredFD[1::2], 'b+', ms=10, markeredgewidth=2.
+            freqs, -dpredFD[1::2], 'b+', ms=10, markeredgewidth=2.,
+            label="Pred (imag)"
         )
 
-        ax2.loglog(times, surveyTD.dobs, 'k-', lw=2)
+        ax2.loglog(times, surveyTD.dobs, 'k-', lw=2, label='Obs')
         ax2.loglog(
             times, surveyTD.dpred(moptTD), 'r*', ms=10, markeredgecolor='k',
-            markeredgewidth=0.5
+            markeredgewidth=0.5, label='Pred'
         )
         ax2.set_xlim(times.min() - 1e-5, times.max() + 1e-4)
 
@@ -204,14 +209,10 @@ def run(plotIt=True, saveFig=False):
         ax1.set_ylabel('Vertical magnetic field (-T)', fontsize=fs)
 
         ax2.set_xlabel('Time (s)', fontsize=fs)
-        ax2.set_ylabel('Vertical magnetic field (-T)', fontsize=fs)
+        ax2.set_ylabel('Vertical magnetic field (T)', fontsize=fs)
 
-        ax2.legend(("Obs", "Pred"), fontsize=fs, loc=3)
-        ax1.legend(
-            ("Obs (real)", "Obs (imag)", "Pred (real)", "Pred (imag)"),
-            fontsize=fs,
-            loc=3
-        )
+        ax2.legend(fontsize=fs, loc=3)
+        ax1.legend(fontsize=fs, loc=3)
         ax1.set_xlim(freqs.max() + 1e2, freqs.min() - 1e1)
 
         ax0.set_title("(a) Recovered Models", fontsize=fs)
@@ -224,5 +225,5 @@ def run(plotIt=True, saveFig=False):
             plt.savefig('example1.png', dpi=600)
 
 if __name__ == '__main__':
-    run(plotIt=True, saveFig=False)
+    run(plotIt=True, saveFig=True)
     plt.show()
