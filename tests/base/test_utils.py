@@ -8,7 +8,7 @@ from SimPEG.Utils import (
     sdiag, sub2ind, ndgrid, mkvc, inv2X2BlockDiagonal,
     inv3X3BlockDiagonal, invPropertyTensor, makePropertyTensor, indexCube,
     ind2sub, asArray_N_x_Dim, TensorType, diagEst, count, timeIt, Counter,
-    download
+    download, surface2ind_topo
 )
 from SimPEG import Mesh
 from SimPEG.Tests import checkDerivative
@@ -286,6 +286,21 @@ class TestSequenceFunctions(unittest.TestCase):
         listArray = asArray_N_x_Dim([[1, 2], [4, 5]], 2)
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
+
+    def test_surface2ind_topo(self):
+
+        vancouver_topo = np.loadtxt('./vancouver_topo.xyz')
+        mesh_topo = Mesh.TensorMesh([
+            [(500., 24)],
+            [(500., 20)],
+            [(10., 30)]
+            ],x0='CCC')
+
+        indtopoCC = surface2ind_topo(mesh_topo, vancouver_topo, gridLoc='CC')
+        indtopoN = surface2ind_topo(mesh_topo, vancouver_topo, gridLoc='N')
+
+        assert len(np.where(indtopoCC)[0]) == 8729
+        assert len(np.where(indtopoN)[0]) == 8212
 
 
 class TestDiagEst(unittest.TestCase):
