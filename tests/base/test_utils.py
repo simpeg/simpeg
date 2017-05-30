@@ -289,8 +289,8 @@ class TestSequenceFunctions(unittest.TestCase):
 
     def test_surface2ind_topo(self):
 
-        dirname, _ = os.path.split(os.path.abspath(__file__))
-        file2load = os.path.sep.join([dirname, 'vancouver_topo.xyz'])
+        file_url = "https://storage.googleapis.com/simpeg/tests/utils/vancouver_topo.xyz"
+        file2load = download(file_url)
         vancouver_topo = np.loadtxt(file2load)
         mesh_topo = Mesh.TensorMesh([
             [(500., 24)],
