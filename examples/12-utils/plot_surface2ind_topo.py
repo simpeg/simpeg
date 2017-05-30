@@ -40,14 +40,14 @@ def run(plotIt=True, nx=5, ny=5):
         ax = mkvc(ax)
         xinterpolate = np.linspace(mesh.gridN[:, 0].min(), mesh.gridN[:, 0].max(),100)
         listindex = [indtopoCC_near,indtopoN_near,indtopoCC_linear,indtopoN_linear,indtopoCC_cubic,indtopoN_cubic]
-        listmethod = ['nearest', 'linear', 'cubic']
+        listmethod = ['nearest','nearest', 'linear', 'linear', 'cubic', 'cubic']
         for i in range(6):
             mesh.plotGrid(ax=ax[i], nodes=True, centers=True)
             mesh.plotImage(listindex[i], ax=ax[i], pcolorOpts = {"alpha":0.5, "cmap":plt.cm.gray})
             ax[i].scatter(Topo[:,0], Topo[:,1], color = 'black', marker = 'o',s = 50)
             ax[i].plot(
                 xinterpolate,
-                interp1d(Topo[:, 0], Topo[:, 1], kind=listmethod[i/2])(xinterpolate),
+                interp1d(Topo[:, 0], Topo[:, 1], kind=listmethod[i])(xinterpolate),
                 '--k',
                 linewidth=3
                 )
