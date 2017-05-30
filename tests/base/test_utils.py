@@ -289,12 +289,15 @@ class TestSequenceFunctions(unittest.TestCase):
 
     def test_surface2ind_topo(self):
 
-        vancouver_topo = np.loadtxt('./vancouver_topo.xyz')
+        dirname, _ = os.path.split(os.path.abspath(__file__))
+        file2load = os.path.sep.join([dirname, 'vancouver_topo.xyz'])
+        vancouver_topo = np.loadtxt(file2load)
         mesh_topo = Mesh.TensorMesh([
             [(500., 24)],
             [(500., 20)],
             [(10., 30)]
-            ],x0='CCC')
+            ],
+            x0='CCC')
 
         indtopoCC = surface2ind_topo(mesh_topo, vancouver_topo, gridLoc='CC')
         indtopoN = surface2ind_topo(mesh_topo, vancouver_topo, gridLoc='N')
