@@ -288,7 +288,6 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(true.shape == listArray.shape)
 
     def test_surface2ind_topo(self):
-
         file_url = "https://storage.googleapis.com/simpeg/tests/utils/vancouver_topo.xyz"
         file2load = download(file_url)
         vancouver_topo = np.loadtxt(file2load)
