@@ -1,6 +1,6 @@
 from .matutils import mkvc, ndgrid
 import numpy as np
-from scipy.interpolate import griddata
+from scipy.interpolate import griddata, interp1d
 
 def surface2ind_topo(mesh, topo, gridLoc='CC', method='cubic', fill_value=np.nan):
     """
@@ -35,7 +35,7 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='cubic', fill_value=np.nan
                      actind[ii, jj, :] = [np.all(gridTopo[ii:ii+2, jj:jj+2] >= Nz[kk]) for kk in range(len(Nz))]
 
     elif mesh.dim == 2:
-        from scipy.interpolate import interp1d
+
         Ftopo = interp1d(topo[:, 0], topo[:, 1], fill_value=fill_value, kind=method)
 
         if gridLoc == 'CC':
