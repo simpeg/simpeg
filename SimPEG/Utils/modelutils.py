@@ -1,7 +1,7 @@
 from .matutils import mkvc, ndgrid
 import numpy as np
 
-def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest',fill_value=np.nan):
+def surface2ind_topo(mesh, topo, gridLoc='CC', method='cubic',fill_value=np.nan):
     """
     Get active indices from topography
     """

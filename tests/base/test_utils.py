@@ -298,8 +298,8 @@ class TestSequenceFunctions(unittest.TestCase):
             ],
             x0='CCC')
 
-        indtopoCC = surface2ind_topo(mesh_topo, vancouver_topo, gridLoc='CC')
-        indtopoN = surface2ind_topo(mesh_topo, vancouver_topo, gridLoc='N')
+        indtopoCC = surface2ind_topo(mesh_topo, vancouver_topo, gridLoc='CC', method='nearest')
+        indtopoN = surface2ind_topo(mesh_topo, vancouver_topo, gridLoc='N', method='nearest')
 
         assert len(np.where(indtopoCC)[0]) == 8729
         assert len(np.where(indtopoN)[0]) == 8212
