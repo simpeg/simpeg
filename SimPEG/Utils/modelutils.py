@@ -1,11 +1,11 @@
 from .matutils import mkvc, ndgrid
 import numpy as np
+from scipy.interpolate import griddata
 
-def surface2ind_topo(mesh, topo, gridLoc='CC', method='cubic',fill_value=np.nan):
+def surface2ind_topo(mesh, topo, gridLoc='CC', method='cubic', fill_value=np.nan):
     """
     Get active indices from topography
     """
-    from scipy.interpolate import griddata
 
     if mesh.dim == 3:
 
