@@ -1,13 +1,40 @@
 """
-Casing Example
-==============
+Heagy et al., 2017 Casing Example
+=================================
 
-This example is used in the paper Heagy et al 2016 (in prep)
+Here, we use a primary-secondary approach to compute the sensitivity of an EM
+survey with respect to a parametric model of a block in a layered space.
+
+If you run this example with :code:`reRun=False`, stored results for the
+sensitivity will be downloaded and plotted. Otherwise, if `reRun=True`, the
+example will be re-run. Note that you will need modest computational resources
+to re-compute the sensitivity (it is a 3D EM problem!).
+
+There are 6 plots that are produced. Figure 1 shows the primary current density
+(the current density due to the source, casing and layered background), Figure
+2 shows the secondary source - the source current density due to the 3D
+conductivity structure present only in the secondary problem. Figure 3 shows
+the predicted data. Figures 4-6 show the sensitivity with respect to each of
+the 9 model parameters (the conductivity of the background, layer and block,
+the thickness of the layer and the x and y extents of the block).
+
+This example is used in the paper
+
+Heagy, L.J., R. Cockett, S. Kang, G.K. Rosenkjaer, D.W. Oldenburg,
+2017 (in review), A framework for simulation and inversion in electromagnetics.
+Computers & Geosciences
+
+The paper is available at:
+https://arxiv.org/abs/1610.00804
+
+This example is available on figshare:
+https://doi.org/10.6084/m9.figshare.5036123
+
 """
 from SimPEG import Mesh, Utils, Maps, Tests
 from SimPEG.EM import mu_0, FDEM, Analytics
 from SimPEG.EM.Utils import omega
-from SimPEG.Utils.io_utils import remoteDownload
+from SimPEG.Utils.io_utils import download
 # try:
 #     from pymatsolver import MumpsSolver as Solver
 #     print('using MumpsSolver')
@@ -350,8 +377,10 @@ class PrimSecCasingExample(object):
                 # vertically directed wire in borehole
                 # go through the center of the well
                 dgv_indx = (meshp.gridFz[:, 0] < meshp.hx.min())
-                dgv_indz = ((meshp.gridFz[:, 2] >= src_a[2])
-                            & (meshp.gridFz[:, 2] <= src_b[2]))
+                dgv_indz = (
+                    (meshp.gridFz[:, 2] >= src_a[2]) &
+                    (meshp.gridFz[:, 2] <= src_b[2])
+                )
                 dgv_ind = dgv_indx & dgv_indz
                 dg_z[dgv_ind] = -1.
 
@@ -359,15 +388,19 @@ class PrimSecCasingExample(object):
                 dgh_indx = meshp.gridFx[:, 0] <= casing_a + meshp.hx.min()*2
 
                 # couple to the casing downhole - bottom part
-                dgh_indz2 = ((meshp.gridFx[:, 2] <= src_a[2]) &
-                             (meshp.gridFx[:, 2] > src_a[2] - meshp.hz.min()))
+                dgh_indz2 = (
+                    (meshp.gridFx[:, 2] <= src_a[2]) &
+                    (meshp.gridFx[:, 2] > src_a[2] - meshp.hz.min())
+                )
                 dgh_ind2 = dgh_indx & dgh_indz2
                 dg_x[dgh_ind2] = 1.
 
                 # horizontally directed wire
                 sgh_indx = (meshp.gridFx[:, 0] <= src_b[0])
-                sgh_indz = ((meshp.gridFx[:, 2] > meshp.hz.min())
-                            & (meshp.gridFx[:, 2] < 2*meshp.hz.min()))
+                sgh_indz = (
+                    (meshp.gridFx[:, 2] > meshp.hz.min()) &
+                    (meshp.gridFx[:, 2] < 2*meshp.hz.min())
+                )
                 sgh_ind = sgh_indx & sgh_indz
                 dg_x[sgh_ind] = -1.
 
@@ -622,24 +655,14 @@ class PrimSecCasingExample(object):
         jcart = projF*primaryFields[:, 'j']
 
         fig, ax = plt.subplots(1, 1, figsize=(6, 7.75))
-        if saveFig is True:
-            # this looks obnoxious inline, but nice in the saved png
-            f = meshcart.plotSlice(
-                jcart.real, normal='Y', vType='F', view='vec',
-                pcolorOpts={
-                    'norm': LogNorm(), 'cmap': plt.get_cmap('viridis')
-                },
-                streamOpts={'arrowsize': 8, 'color': 'k'},
-                ax=ax
-            )
-        elif saveFig is False:
-            f = meshcart.plotSlice(
-                jcart.real, normal='Y', vType='F', view='vec',
-                pcolorOpts={
-                    'norm': LogNorm(), 'cmap': plt.get_cmap('viridis')
-                },
-                ax=ax
-            )
+        f = meshcart.plotSlice(
+            jcart.real, normal='Y', vType='F', view='vec',
+            pcolorOpts={
+                'norm': LogNorm(), 'cmap': plt.get_cmap('viridis')
+            },
+            streamOpts={'color': 'k', 'arrowsize': 2},
+            ax=ax
+        )
         plt.colorbar(f[0], label='real current density (A/m$^2$)')
 
         ax.axis('equal', adjustable='box')
@@ -747,23 +770,13 @@ class PrimSecCasingExample(object):
                 cmap=plt.get_cmap('viridis')
         )
 
-        if saveFig is True:
-            ax.streamplot(
-                meshs_plt.vectorCCx, meshs_plt.vectorCCy,
-                s_e_stream_cc[:meshs_plt.nC].reshape(meshs_plt.vnC[:2]),
-                s_e_stream_cc[meshs_plt.nC:meshs_plt.nC*2].reshape(
-                    meshs_plt.vnC[:2]),
-                density=1.5, color='k', arrowsize=8
-            )
-        elif saveFig is False:
-            ax.streamplot(
-                meshs_plt.vectorCCx, meshs_plt.vectorCCy,
-                s_e_stream_cc[:meshs_plt.nC].reshape(meshs_plt.vnC[:2]),
-                s_e_stream_cc[meshs_plt.nC:meshs_plt.nC*2].reshape(
-                    meshs_plt.vnC[:2]
-                ),
-                color='k', density=1.5
-            )
+        ax.streamplot(
+            meshs_plt.vectorCCx, meshs_plt.vectorCCy,
+            s_e_stream_cc[:meshs_plt.nC].reshape(meshs_plt.vnC[:2]),
+            s_e_stream_cc[meshs_plt.nC:meshs_plt.nC*2].reshape(
+                meshs_plt.vnC[:2]),
+            density=1.5, color='k', arrowsize=2
+        )
 
         ax.set_xlabel('x (m)', fontsize=fontsize)
         ax.set_ylabel('y (m)', fontsize=fontsize)
@@ -799,6 +812,9 @@ class PrimSecCasingExample(object):
                         xlabel='x (m)', ylabel='y (m)', title=None):
             if clim is None:
                 clim = np.absolute(plotme).max()*np.r_[-1., 1.]
+            elif clim is not None:
+                clim = clim
+
             f = ax.contourf(
                 self.rx_x, self.rx_y, plotme, num,
                 cmap=plt.get_cmap('viridis'), vmin=clim[0], vmax=clim[1]
@@ -871,23 +887,33 @@ class PrimSecCasingExample(object):
             num=30, norm=None, cblabel=''
         ):
 
+            eps = 1e-3 # just so we don't get white-spaces in the colormap
             ax.axis('equal')
-            vlim = np.absolute(Jv).max() * np.r_[-1., 1.]
+            vlim = np.absolute(Jv).max()*np.r_[-1., 1.]
 
             if norm is None:
                 f = ax.contourf(
-                    self.rx_x, self.rx_y, Jv, num,
-                    cmap=plt.get_cmap('viridis'), vmin= vlim[0], vmax=vlim[1]
-                               )
+                    self.rx_x, self.rx_y, Jv,
+                    levels=np.linspace(vlim[0], vlim[1], num),
+                    cmap=plt.get_cmap('viridis'), vmin=vlim[0], vmax=vlim[1],
+                )
                 cb = plt.colorbar(f, ax=ax, label=cblabel)
+                cb.set_clim(vlim)
                 cb.formatter.set_powerlimits((0, 0))
+                ticks = [
+                    "{0:1.1e}".format(a) for a in
+                    np.linspace(0.95*cb.get_clim()[0], 0.95*cb.get_clim()[1], 5)
+                ]
+                ticks = [float(t) for t in ticks]
+                cb.set_ticks(ticks)
                 cb.update_ticks()
+
             elif norm.lower() == 'lognorm':
                 from matplotlib.colors import LogNorm
                 f = ax.contourf(
                         rx_x, rx_y, np.absolute(Jv),
                         num, cmap=plt.get_cmap('viridis'), norm=LogNorm()
-                               )
+                    )
                 cb = plt.colorbar(f, ax=ax)
 
             ax.set_title(title)
@@ -895,18 +921,15 @@ class PrimSecCasingExample(object):
             ax.set_ylabel(ylabel)
 
             if plotGrid:
-                self.meshs.plotSlice(np.nan*np.ones(mesh.nC), normal='Z',
-                                     grid=True, ax=ax)
+                self.meshs.plotSlice(
+                    np.nan*np.ones(mesh.nC), normal='Z', grid=True, ax=ax
+                )
 
             if xlim is not None:
                 ax.set_xlim(xlim)
 
             if ylim is not None:
                 ax.set_ylim(ylim)
-
-            if climCenter is True:
-                maxabs = np.absolute(Jv).max()
-                cb.set_clim(np.r_[-maxabs, maxabs])
 
             if plotBlock is True:
                 ax.plot(
@@ -926,7 +949,7 @@ class PrimSecCasingExample(object):
         # Plot Conductivity contribution
         plotGrid = False
         plotBlock = True
-        ncontours = 50
+        ncontours = 30
 
         xlim = np.r_[-1500, 1500]
         ylim = np.r_[-1500, 1500]
@@ -1113,7 +1136,7 @@ class PrimSecCasingExample(object):
     # ---------------------------------------------------------------------- #
 
     def run(
-        self, plotIt=False, runTests=False, verbose=True, saveFields=False,
+        self, plotIt=False, runTests=False, verbose=True, saveFields=True,
         saveFig=False
     ):
 
@@ -1243,22 +1266,6 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         'J_PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody',
     ]
 
-    @property
-    def filepath(self):
-        return os.path.sep.join(
-            os.path.abspath(os.getenv('HOME')).split(os.path.sep) +
-            ['Downloads'] + ['SimPEGtemp']
-        )
-
-    def downloadStoredResults(self):
-        # download the results from where they are stored on google app engine
-
-        return os.path.abspath(
-            remoteDownload(
-                self.url, [self.cloudfile], basePath=self.filepath+os.path.sep
-            )
-        )
-
     def removeStoredResults(self):
         import shutil
         print('Removing {}'.format(self.filepath))
@@ -1266,19 +1273,18 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
 
     def run(self, plotIt=False, runTests=False, saveFig=False):
 
-        self.downloadStoredResults()
+        filepath = download(
+            self.url + self.cloudfile, folder='~/Downloads/simpegtemp',
+            overwrite=True
+        )
+        self.filepath = os.path.sep.join(filepath.split(os.path.sep)[:-1])
 
         # resultsFiles = ['{filepath}{slash}{file}'.format(
         #     filepath=self.filepath, slash=os.path.sep, file=file)
         #     for file in self.cloudfiles]
         # results = [np.load(file, encoding='bytes') for file in resultsFiles]
 
-        h5f = h5py.File(
-            '{filepath}{slash}{file}'.format(
-                filepath=self.filepath, slash=os.path.sep, file=self.cloudfile
-                ), 'r'
-            )
-
+        h5f = h5py.File(filepath, 'r')
         results = [h5f[entry_name][:] for entry_name in self.entry_names]
         results = dict(zip(['primfields', 'dpredback', 'dpred', 'J'], results))
 
@@ -1295,6 +1301,7 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         results['primfields'] = primaryFields
 
         return results
+
 
 
 def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
@@ -1323,7 +1330,7 @@ def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
     dataDict = casingExample.run(runTests=runTests)
 
     # plot some things
-    if plotIt is True:
+    if plotIt is True or saveFig is True:
         casingExample.plotPrimaryFields(
             dataDict['primfields'], saveFig=saveFig
         )
@@ -1336,6 +1343,8 @@ def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
         casingExample.plotSensitivities(
             dataDict['J'], saveFig=saveFig
         )
+
+    if plotIt is True:
         plt.show()
 
     # remove the downloaded results

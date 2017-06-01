@@ -11,8 +11,9 @@ class MagneticsDriver_Inv(object):
 
     def __init__(self, input_file=None):
         if input_file is not None:
-            self.basePath = os.path.sep.join(input_file.split(
-                                             os.path.sep)[:-1])
+            self.basePath = os.path.sep.join(
+                input_file.split(os.path.sep)[:-1]
+            )
             if len(self.basePath) > 0:
                 self.basePath += os.path.sep
             self.readDriverFile(input_file.split(os.path.sep)[-1])
@@ -217,7 +218,7 @@ class MagneticsDriver_Inv(object):
         if getattr(self, '_staticCells', None) is None:
 
             # Cells with value 1 in active model are dynamic
-            staticCells = self.activeModel[self._activeCells] == -1
+            staticCells = self.activeModel[self.activeCells] == -1
 
             inds = np.asarray([inds for inds,
                                elem in enumerate(staticCells, 1)
@@ -232,7 +233,7 @@ class MagneticsDriver_Inv(object):
         if getattr(self, '_dynamicCells', None) is None:
 
             # Cells with value 1 in active model are dynamic
-            dynamicCells = self.activeModel[self._activeCells] == 1
+            dynamicCells = self.activeModel[self.activeCells] == 1
 
             inds = np.asarray([inds for inds,
                                elem in enumerate(dynamicCells, 1)
@@ -271,7 +272,7 @@ class MagneticsDriver_Inv(object):
                                                           self._mrefInput)
 
                 # Reduce to active space
-                self._mref = self._mref[self._activeCells]
+                self._mref = self._mref[self.activeCells]
 
         return self._mref
 

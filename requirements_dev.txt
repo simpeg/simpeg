@@ -1,4 +1,4 @@
-sphinx
+sphinx==1.5.6
 sphinx_rtd_theme
 sphinx-gallery
 nose
@@ -14,3 +14,4 @@ ipython
 matplotlib
 properties[math]
 wheel
+pytest
