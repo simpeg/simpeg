@@ -44,7 +44,7 @@ Model Builder Utilities
 Interpolation Utilities
 =======================
 
-.. automodule:: SimPEG.Utils.interputils
+.. automodule:: discretize.utils.interputils
     :members:
     :undoc-members:
 
