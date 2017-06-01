@@ -466,3 +466,13 @@ def diagEst(matFun, n, k=None, approach='Probing'):
     d = Mv/vv
 
     return d
+
+
+def uniqueRows(M):
+    b = np.ascontiguousarray(M).view(np.dtype(
+        (np.void, M.dtype.itemsize * M.shape[1]))
+    )
+    _, unqInd = np.unique(b, return_index=True)
+    _, invInd = np.unique(b, return_inverse=True)
+    unqM = M[unqInd]
+    return unqM, unqInd, invInd
