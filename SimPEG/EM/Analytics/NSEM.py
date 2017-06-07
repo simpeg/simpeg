@@ -8,7 +8,7 @@ from SimPEG.EM.Utils.EMUtils import omega as _omega
 _ImpZ = lambda f, mu, k: _omega(f)*mu/k
 
 # Complex Cole-Cole Conductivity - EM utils
-_PCC= lambda siginf, m, t, c, f: siginf*(1.-(m/(1.+(1j*_omega(f)*t)**c)))
+_PCC = lambda siginf, m, t, c, f: siginf*(1.-(m/(1.+(1j*_omega(f)*t)**c)))
 
 # matrix P relating Up and Down components with E and H fields
 _P = lambda z: _np.matrix([[1., 1, ], [-1./z, 1./z]], dtype='complex_')
@@ -21,17 +21,17 @@ _Tinv = lambda h, k: _np.matrix([[_np.exp(-1j*k*h), 0.], [0., _np.exp(1j*k*h)]],
 # Propagate Up and Down component for a certain frequency & evaluate E and H field
 def _Propagate(f, thickness, sig, chg, taux, c, mu_r, eps_r, n):
 
-    if isinstance(sig,float):
+    if isinstance(sig, float):
         sigmodel = _np.r_[sig]
     else:
         sigmodel = sig
 
-    if isinstance(eps_r,float):
+    if isinstance(eps_r, float):
         epsmodel = _np.ones_like(sigmodel)*eps_r
     else:
         epsmodel = eps_r
 
-    if isinstance(mu_r,float):
+    if isinstance(mu_r, float):
         mumodel = _np.ones_like(sigmodel)*mu_r
     else:
         epsmodel = mu_r
@@ -41,18 +41,18 @@ def _Propagate(f, thickness, sig, chg, taux, c, mu_r, eps_r, n):
         sigcm = sigmodel
     else:
         for j in range(1, len(sigcm)):
-            sigcm[j]=_PCC(sigmodel[j], chg[j], taux[j], c[j], f)
-    
-    sigcm = _np.append(_np.r_[0.],sigcm)
-    mu = _np.append(_np.r_[1.],mumodel)*_mu_0
-    eps = _np.append(_np.r_[1.],epsmodel)*_epsilon_0
-    H = _np.append(_np.r_[1.2*(1e5)],thickness)
+            sigcm[j] = _PCC(sigmodel[j], chg[j], taux[j], c[j], f)
 
-    K = _k(f,sigcm,mu,eps)
+    sigcm = _np.append(_np.r_[0.], sigcm)
+    mu = _np.append(_np.r_[1.], mumodel)*_mu_0
+    eps = _np.append(_np.r_[1.], epsmodel)*_epsilon_0
+    H = _np.append(_np.r_[1.2*(1e5)], thickness)
+
+    K = _k(f, sigcm, mu, eps)
     Z = _ImpZ(f, mu, K)
 
-    EH = _np.matrix(_np.zeros((2, n+1), dtype = 'complex_'), dtype = 'complex_')
-    UD = _np.matrix(_np.zeros((2, n+1), dtype = 'complex_'), dtype = 'complex_')
+    EH = _np.matrix(_np.zeros((2, n+1), dtype='complex_'), dtype='complex_')
+    UD = _np.matrix(_np.zeros((2, n+1), dtype='complex_'), dtype='complex_')
 
     UD[1, -1] = 1.
 
@@ -64,7 +64,7 @@ def _Propagate(f, thickness, sig, chg, taux, c, mu_r, eps_r, n):
     for j in range(0, n+1):
         EH[:, j] = _np.matrix([[1., 1, ], [-1./Z[j], 1./Z[j]]])*UD[:, j]
 
-    return UD, EH, Z , K
+    return UD, EH, Z, K
 
 # Utils to compute the apparent impedance over a layered Earth Model
 def AppImpedance_LayeredEarth(freq, thickness, sig, nlayer, format='Res-Phase', chg=0., tau=0., c=0., mu_r=1., eps_r=1.):
@@ -89,7 +89,7 @@ def AppImpedance_LayeredEarth(freq, thickness, sig, nlayer, format='Res-Phase', 
 
     Res = _np.zeros_like(F)
     Phase = _np.zeros_like(F)
-    App_ImpZ= _np.zeros_like(F, dtype='complex_')
+    App_ImpZ = _np.zeros_like(F, dtype='complex_')
 
     for i in range(0, len(F)):
         _, EH, _, _ = _Propagate(F[i], thickness, sig, chg, tau, c, mu_r, eps_r, nlayer)
@@ -97,7 +97,7 @@ def AppImpedance_LayeredEarth(freq, thickness, sig, nlayer, format='Res-Phase', 
         App_ImpZ[i] = EH[0, 1]/EH[1, 1]
 
         Res[i] = _np.abs(App_ImpZ[i])**2./(_mu_0*_omega(F[i]))
-        Phase[i] = _np.angle(App_ImpZ[i], deg = True)
+        Phase[i] = _np.angle(App_ImpZ[i], deg=True)
 
     if format == 'Res-Phase':
         return Res, Phase
@@ -109,19 +109,19 @@ def AppImpedance_LayeredEarth(freq, thickness, sig, nlayer, format='Res-Phase', 
 def _run():
 
     nlayer = 2
-    F = _np.r_[1e-5,1e3]
+    F = _np.r_[1e-5, 1e3]
     H = 200.
-    sign = _np.r_[0.1,1.]
+    sign = _np.r_[0.1, 1.]
 
     nlayer1 = 3
     F1 = 1e-3
-    H1 = _np.r_[200.,50.]
-    sign1 = _np.r_[0.01,1.,0.1]
+    H1 = _np.r_[200., 50.]
+    sign1 = _np.r_[0.01, 1., 0.1]
     fm = 'Complex'
 
     Res, Phase = AppImpedance_LayeredEarth(F, H, sign, nlayer)
     print(Res, Phase)
-    appimp = AppImpedance_LayeredEarth(F1, H1, sign1, nlayer1, format = fm)
+    appimp = AppImpedance_LayeredEarth(F1, H1, sign1, nlayer1, format=fm)
     print(appimp)
 
 if __name__ == '__main__':
