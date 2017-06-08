@@ -2,13 +2,17 @@ from __future__ import print_function
 import unittest
 import numpy as np
 import scipy.sparse as sp
+import os
+import shutil
 from SimPEG.Utils import (
     sdiag, sub2ind, ndgrid, mkvc, inv2X2BlockDiagonal,
     inv3X3BlockDiagonal, invPropertyTensor, makePropertyTensor, indexCube,
-    ind2sub, asArray_N_x_Dim, TensorType, diagEst, count, timeIt, Counter
+    ind2sub, asArray_N_x_Dim, TensorType, diagEst, count, timeIt, Counter,
+    download, surface2ind_topo
 )
 from SimPEG import Mesh
 from SimPEG.Tests import checkDerivative
+
 
 TOL = 1e-8
 
@@ -283,6 +287,23 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
 
+    def test_surface2ind_topo(self):
+        file_url = "https://storage.googleapis.com/simpeg/tests/utils/vancouver_topo.xyz"
+        file2load = download(file_url)
+        vancouver_topo = np.loadtxt(file2load)
+        mesh_topo = Mesh.TensorMesh([
+            [(500., 24)],
+            [(500., 20)],
+            [(10., 30)]
+            ],
+            x0='CCC')
+
+        indtopoCC = surface2ind_topo(mesh_topo, vancouver_topo, gridLoc='CC', method='nearest')
+        indtopoN = surface2ind_topo(mesh_topo, vancouver_topo, gridLoc='N', method='nearest')
+
+        assert len(np.where(indtopoCC)[0]) == 8729
+        assert len(np.where(indtopoN)[0]) == 8212
+
 
 class TestDiagEst(unittest.TestCase):
 
@@ -302,6 +323,31 @@ class TestDiagEst(unittest.TestCase):
         print('Testing probing. {}'.format(err))
         self.assertTrue(err < TOL)
 
+
+class TestDownload(unittest.TestCase):
+    def test_downloads(self):
+        url = "https://storage.googleapis.com/simpeg/Chile_GRAV_4_Miller/"
+        cloudfiles = [
+            'LdM_grav_obs.grv', 'LdM_mesh.mesh',
+            'LdM_topo.topo', 'LdM_input_file.inp'
+        ]
+
+        url1 = url + cloudfiles[0]
+        url2 = url + cloudfiles[1]
+
+        file_names = download(
+            [url1, url2], folder='./test_urls', overwrite=True
+        )
+        # or
+        file_name = download(url1, folder='./test_url', overwrite=True)
+        # where
+        assert isinstance(file_names, list)
+        assert len(file_names) == 2
+        assert isinstance(file_name, str)
+
+        # clean up
+        shutil.rmtree(os.path.expanduser('./test_urls'))
+        shutil.rmtree(os.path.expanduser('./test_url'))
 
 if __name__ == '__main__':
     unittest.main()
