@@ -4,7 +4,7 @@ from . import Regularization, DataMisfit, ObjectiveFunction
 from . import Maps
 import numpy as np
 import warnings
-
+import matplotlib.pyplot as plt
 
 class InversionDirective(object):
     """InversionDirective"""
@@ -286,17 +286,69 @@ class SaveModelEveryIteration(SaveEveryIteration):
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
 
+    header = None
+
     def initialize(self):
         print("SimPEG.SaveOutputEveryIteration will save your inversion progress as: '###-{0!s}.txt'".format(self.fileName))
         f = open(self.fileName+'.txt', 'w')
-        f.write("  #     beta     phi_d     phi_m       f\n")
+        self.header = "  #     beta     phi_d     phi_m   phi_m_small     phi_m_smoomth_x     phi_m_smoomth_y     phi_m_smoomth_z      f\n"
+        f.write(self.header)
         f.close()
 
     def endIter(self):
         f = open(self.fileName+'.txt', 'a')
-        f.write(' {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e}\n'.format(self.opt.iter, self.invProb.beta, self.invProb.phi_d, self.invProb.phi_m, self.opt.f))
+        phi_m_small = self.reg.objfcts[0](self.invProb.model)
+        phi_m_smoomth_x = self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
+        phi_m_smoomth_y = np.nan
+        phi_m_smoomth_z = np.nan
+
+        if self.reg.regmesh.dim == 2:
+            phi_m_smoomth_y = reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
+        elif self.reg.regmesh.dim == 3:
+            phi_m_smoomth_y = self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
+            phi_m_smoomth_z = self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
+
+        f.write(' {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e} {5:1.4e} {6:1.4e}  {7:1.4e}  {8:1.4e}\n'.format(
+            self.opt.iter,
+            self.invProb.beta,
+            self.invProb.phi_d,
+            self.invProb.phi_m,
+            phi_m_small,
+            phi_m_smoomth_x,
+            phi_m_smoomth_y,
+            phi_m_smoomth_z,
+            self.opt.f))
         f.close()
 
+    def load_results(self):
+        results = np.loadtxt(self.fileName+str(".txt"), comments="#")
+        self.iterations = results[:, 0]
+        self.beta = results[:, 1]
+        self.phi_d = results[:, 2]
+        self.phi_m = results[:, 3]
+        self.phi_m_smooth_x = results[:, 4]
+        self.phi_m_smooth_y = results[:, 5]
+        self.phi_m_smooth_z = results[:, 6]
+        self.f = results[:, 7]
+
+        self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
+
+        if self.invProb.phi_d < self.target_misfit:
+            i_target = 0
+            while self.phi_d[i_target] > target_misfit:
+                i_target += 1
+            self.i_target = i_target
+
+    def plot_misfit_curves(self):
+        fig = plt.figure(figsize=(5, 2))
+        ax = plt.subplot(111)
+        ax_1 = ax.twinx()
+        ax.semilogy(self.iterations, self.phi_d, 'k-', lw=2)
+        ax_1.semilogy(self.iterations, self.phi_m, 'r', lw=2)
+        ax.set_xlabel("Iteration")
+        ax.set_ylabel("Data misfit")
+        ax_1.set_ylabel("Regularization")
+        plt.show()
 
 class SaveOutputDictEveryIteration(SaveEveryIteration):
     """

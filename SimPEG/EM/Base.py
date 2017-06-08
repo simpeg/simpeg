@@ -249,7 +249,6 @@ class BaseEMProblem(Problem.BaseProblem):
             self.sigmaDeriv
         )
 
-
     @property
     def MeSigmaI(self):
         """
