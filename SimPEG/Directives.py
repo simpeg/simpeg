@@ -332,14 +332,15 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.f = results[:, 7]
 
         self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
+        self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
             i_target = 0
-            while self.phi_d[i_target] > target_misfit:
+            while self.phi_d[i_target] > self.target_misfit:
                 i_target += 1
             self.i_target = i_target
 
-    def plot_misfit_curves(self):
+    def plot_misfit_curves(self, fname=None):
         fig = plt.figure(figsize=(5, 2))
         ax = plt.subplot(111)
         ax_1 = ax.twinx()
@@ -349,6 +350,42 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         ax.set_ylabel("Data misfit")
         ax_1.set_ylabel("Regularization")
         plt.show()
+
+    def plot_tikhonov_curves(self, fname=None, dpi=200):
+
+        fig = plt.figure(figsize = (5, 8))
+        ax1 = plt.subplot(311)
+        ax2 = plt.subplot(312)
+        ax3 = plt.subplot(313)
+
+        ax1.plot(self.beta, self.phi_d, 'k-', lw=2, ms=4)
+        ax1.set_xlim(self.beta.min(), self.beta.max())
+        ax1.set_xlabel("$\\beta$", fontsize = 14)
+        ax1.set_ylabel("$\phi_d$", fontsize = 14)
+
+        ax2.plot(self.beta, self.phi_m, 'k-', lw=2)
+        ax2.set_xlim(self.beta.min(), self.beta.max())
+        ax2.set_xlabel("$\\beta$", fontsize = 14)
+        ax2.set_ylabel("$\phi_m$", fontsize = 14)
+
+        ax3.plot(self.phi_m, self.phi_d, 'k-', lw=2)
+        ax3.set_xlim(self.phi_m.min(), self.phi_m.max())
+        ax3.set_xlabel("$\phi_m$", fontsize = 14)
+        ax3.set_ylabel("$\phi_d$", fontsize = 14)
+
+        if self.i_target is not None:
+            ax1.plot(self.beta[self.i_target], self.phi_d[self.i_target], 'k*', ms=10)
+            ax2.plot(self.beta[self.i_target], self.phi_m[self.i_target], 'k*', ms=10)
+            ax3.plot(self.phi_m[self.i_target], self.phi_d[self.i_target], 'k*', ms=10)
+
+        for ax in [ax1, ax2, ax3]:
+            ax.set_xscale("log")
+            ax.set_yscale("log")
+        plt.tight_layout()
+        plt.show()
+        if fname is not None:
+            fig.savefig(fname, dpi=dpi)
+
 
 class SaveOutputDictEveryIteration(SaveEveryIteration):
     """
