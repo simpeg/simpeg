@@ -73,7 +73,7 @@ def _Propagate(f, thickness, sig, chg, taux, c, mu_r, eps_r, n):
 
 # Utils to compute the apparent impedance over a layered Earth Model
 def MT_LayeredEarth(freq, thickness, sig, nlayer, return_type='Res-Phase', chg=0., tau=0., c=0., mu_r=1., eps_r=1.):
-    '''
+    """
     This code compute the analytic response of a n-layered Earth to a plane wave (Magnetotellurics).
     The solution is first developed in Ward and Hohmann 1988.
     See also http://em.geosci.xyz/content/maxwell3_fdem/natural_sources/MT_N_layered_Earth.html
@@ -93,7 +93,8 @@ def MT_LayeredEarth(freq, thickness, sig, nlayer, return_type='Res-Phase', chg=0
     :type mu_r: float or numpy.array
     :param eps_r: relative dielectric permittivity
     :type eps_r: float or numpy.array
-    '''
+    """
+
     if isinstance(freq, float):
         F = np.r_[freq]
     else:
