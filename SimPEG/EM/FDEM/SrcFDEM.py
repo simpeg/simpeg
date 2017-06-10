@@ -51,12 +51,15 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
-        if prob._formulation == 'EB':
-            return np.zeros(prob.mesh.nF)
-        elif prob._formulation == 'HJ':
-            return np.zeros(
-                np.count_nonzero(prob.mesh.vnE) * prob.mesh.nC
-            )
+        if adjoint is True:
+            return np.zeros_like(prob.model)
+        else:
+            if prob._formulation == 'EB':
+                return np.zeros(prob.mesh.nF)
+            elif prob._formulation == 'HJ':
+                return np.zeros(
+                    np.count_nonzero(prob.mesh.vnE) * prob.mesh.nC
+                )
 
     def hPrimary(self, prob):
         """
@@ -85,6 +88,9 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
+        if adjoint is True:
+            return np.zeros_like(prob.model)
+
         if prob._formulation == 'EB':
             return np.zeros(
                 np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
@@ -100,6 +106,7 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary electric field
         """
+
         if self._ePrimary is None:
             if prob._formulation == 'EB':
                 self._ePrimary = np.zeros(prob.mesh.nE)
@@ -119,6 +126,9 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
+        if adjoint is True:
+            return np.zeros_like(prob.model)
+
         if prob._formulation == 'EB':
             return np.zeros(prob.mesh.nE)
         elif prob._formulation == 'HJ':
@@ -153,6 +163,9 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
+        if adjoint is True:
+            return np.zeros_like(prob.model)
+
         if prob._formulation == 'EB':
             return np.zeros(
                 np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
