@@ -3,7 +3,7 @@ import scipy.sparse as sp
 import SimPEG
 from SimPEG import Utils
 from SimPEG.EM.Utils import omega
-from SimPEG.Utils import Zero, Identity, sdiag
+from SimPEG.Utils import sdiag #, Zero, Identity
 
 
 class FieldsFDEM(SimPEG.Problem.Fields):
@@ -351,16 +351,6 @@ class Fields3D_e(FieldsFDEM):
         self._MfMui = self.survey.prob.MfMui
         self._MfMuiDeriv = self.survey.prob.MfMuiDeriv
 
-    def _GLoc(self, fieldType):
-        if fieldType in ['e', 'eSecondary', 'ePrimary']:
-            return 'E'
-        elif fieldType in ['b', 'bSecondary', 'bPrimary']:
-            return 'F'
-        elif (fieldType == 'h') or (fieldType == 'j'):
-            return 'CCV'
-        else:
-            raise Exception('Field type must be e, b, h, j')
-
     def _ePrimary(self, eSolution, srcList):
         """
         Primary electric field from source
@@ -401,7 +391,7 @@ class Fields3D_e(FieldsFDEM):
             to the field we solved for with a vector
         """
 
-        return Identity()*v
+        return v
 
     def _eDeriv_m(self, src, v, adjoint=False):
         """
@@ -698,16 +688,6 @@ class Fields3D_b(FieldsFDEM):
         self._mui = self.survey.prob.mui
         self._nC = self.survey.prob.mesh.nC
 
-    def _GLoc(self, fieldType):
-        if fieldType in ['e', 'eSecondary', 'ePrimary']:
-            return 'E'
-        elif fieldType in ['b', 'bSecondary', 'bPrimary']:
-            return 'F'
-        elif (fieldType == 'h') or (fieldType == 'j'):
-            return'CCV'
-        else:
-            raise Exception('Field type must be e, b, h, j')
-
     def _bPrimary(self, bSolution, srcList):
         """
         Primary magnetic flux density from source
@@ -749,7 +729,7 @@ class Fields3D_b(FieldsFDEM):
             respect to the field we solved for with a vector
         """
 
-        return Identity()*du_dm_v
+        return du_dm_v
 
     def _bDeriv_m(self, src, v, adjoint=False):
         """
@@ -767,7 +747,7 @@ class Fields3D_b(FieldsFDEM):
         """
 
         # assuming primary does not depend on the model
-        return Zero()
+        return np.zeros(self.prob.mesh.nF)
 
     def _ePrimary(self, bSolution, srcList):
         """
@@ -1042,16 +1022,6 @@ class Fields3D_j(FieldsFDEM):
         self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
         self._nC = self.survey.prob.mesh.nC
 
-    def _GLoc(self, fieldType):
-        if fieldType in ['h', 'hSecondary', 'hPrimary']:
-            return 'E'
-        elif fieldType in ['j', 'jSecondary', 'jPrimary']:
-            return 'F'
-        elif (fieldType == 'e') or (fieldType == 'b'):
-            return 'CCV'
-        else:
-            raise Exception('Field type must be e, b, h, j')
-
     def _jPrimary(self, jSolution, srcList):
         """
         Primary current density from source
@@ -1108,7 +1078,7 @@ class Fields3D_j(FieldsFDEM):
             to the field we solved for with a vector
         """
 
-        return Identity()*du_dm_v
+        return du_dm_v
 
     def _jDeriv_m(self, src, v, adjoint=False):
         """
@@ -1409,16 +1379,6 @@ class Fields3D_h(FieldsFDEM):
         self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
         self._nC = self.survey.prob.mesh.nC
 
-    def _GLoc(self, fieldType):
-        if fieldType in ['h', 'hSecondary', 'hPrimary']:
-            return 'E'
-        elif fieldType in ['j', 'jSecondary', 'jPrimary']:
-            return 'F'
-        elif (fieldType == 'e') or (fieldType == 'b'):
-            return 'CCV'
-        else:
-            raise Exception('Field type must be e, b, h, j')
-
     def _hPrimary(self, hSolution, srcList):
         """
         Primary magnetic field from source
@@ -1460,7 +1420,7 @@ class Fields3D_h(FieldsFDEM):
             to the field we solved for with a vector
         """
 
-        return Identity()*du_dm_v
+        return du_dm_v
 
     def _hDeriv_m(self, src, v, adjoint=False):
         """
