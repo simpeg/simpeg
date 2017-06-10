@@ -3,7 +3,7 @@ import scipy.sparse as sp
 import SimPEG
 from SimPEG import Utils
 from SimPEG.EM.Utils import omega
-from SimPEG.Utils import sdiag #, Zero, Identity
+from SimPEG.Utils import sdiag
 
 
 class FieldsFDEM(SimPEG.Problem.Fields):
@@ -403,7 +403,7 @@ class Fields3D_e(FieldsFDEM):
         :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: SimPEG.Utils.Zero
+        :rtype: numpy.ndarray
         :return: product of the electric field derivative with respect to the
             inversion model with a vector
         """
@@ -741,7 +741,7 @@ class Fields3D_b(FieldsFDEM):
         :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: SimPEG.Utils.Zero
+        :rtype: numpy.ndarray
         :return: product of the magnetic flux density derivative with respect
             to the inversion model with a vector
         """
@@ -852,7 +852,6 @@ class Fields3D_b(FieldsFDEM):
 
         n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
-
 
         j = (self._edgeCurl.T * (self._MfMui * bSolution))
         for i, src in enumerate(srcList):
@@ -1090,7 +1089,7 @@ class Fields3D_j(FieldsFDEM):
         :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: SimPEG.Utils.Zero
+        :rtype: numpy.ndarray
         :return: product of the current density derivative with respect to the
             inversion model with a vector
         """
@@ -1432,7 +1431,7 @@ class Fields3D_h(FieldsFDEM):
         :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: SimPEG.Utils.Zero
+        :rtype: numpy.ndarray
         :return: product of the magnetic field derivative with respect to the
             inversion model with a vector
         """

@@ -3,7 +3,6 @@ import numpy as np
 from scipy.constants import mu_0
 import warnings
 
-from SimPEG.Utils import Zero
 from SimPEG import Survey, Problem, Utils
 
 from .. import Utils as emutils
@@ -34,7 +33,12 @@ class BaseFDEMSrc(BaseEMSrc):
         :return: primary magnetic flux density
         """
         if self._bPrimary is None:
-            return Zero()
+            if prob._formulation == 'EB':
+                self._bPrimary = np.zeros(prob.mesh.nF)
+            elif prob._formulation == 'HJ':
+                self._bPrimary = np.zeros(
+                    np.count_nonzero(prob.mesh.vnE) * prob.mesh.nC
+                )
         return self._bPrimary
 
     def bPrimaryDeriv(self, prob, v, adjoint=False):
@@ -47,7 +51,12 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
-        return Zero()
+        if prob._formulation == 'EB':
+            return np.zeros(prob.mesh.nF)
+        elif prob._formulation == 'HJ':
+            return np.zeros(
+                np.count_nonzero(prob.mesh.vnE) * prob.mesh.nC
+            )
 
     def hPrimary(self, prob):
         """
@@ -58,7 +67,12 @@ class BaseFDEMSrc(BaseEMSrc):
         :return: primary magnetic field
         """
         if self._hPrimary is None:
-            return Zero()
+            if prob._formulation == 'EB':
+                self._hPrimary = np.zeros(
+                    np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+                )
+            elif prob._formulation == 'HJ':
+                self._hPrimary = np.zeros(prob.mesh.nE)
         return self._hPrimary
 
     def hPrimaryDeriv(self, prob, v, adjoint=False):
@@ -71,7 +85,12 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
-        return Zero()
+        if prob._formulation == 'EB':
+            return np.zeros(
+                np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+            )
+        elif prob._formulation == 'HJ':
+            return np.zeros(prob.mesh.nE)
 
     def ePrimary(self, prob):
         """
@@ -82,7 +101,12 @@ class BaseFDEMSrc(BaseEMSrc):
         :return: primary electric field
         """
         if self._ePrimary is None:
-            return Zero()
+            if prob._formulation == 'EB':
+                self._ePrimary = np.zeros(prob.mesh.nE)
+            elif prob._formulation == 'HJ':
+                self._ePrimary = np.zeros(
+                    np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+                )
         return self._ePrimary
 
     def ePrimaryDeriv(self, prob, v, adjoint=False):
@@ -95,7 +119,12 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
-        return Zero()
+        if prob._formulation == 'EB':
+            return np.zeros(prob.mesh.nE)
+        elif prob._formulation == 'HJ':
+            return np.zeros(
+                np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+            )
 
     def jPrimary(self, prob):
         """
@@ -106,7 +135,12 @@ class BaseFDEMSrc(BaseEMSrc):
         :return: primary current density
         """
         if self._jPrimary is None:
-            return Zero()
+            if prob._formulation == 'EB':
+                self._jPrimary = np.zeros(
+                    np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+                )
+            elif prob._formulation == 'HJ':
+                self._jPrimary = np.zeros(prob.mesh.nF)
         return self._jPrimary
 
     def jPrimaryDeriv(self, prob, v, adjoint=False):
@@ -119,7 +153,12 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
-        return Zero()
+        if prob._formulation == 'EB':
+            return np.zeros(
+                np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+            )
+        elif prob._formulation == 'HJ':
+            return np.zeros(prob.mesh.nF)
 
 
 class RawVec_e(BaseFDEMSrc):
@@ -320,8 +359,6 @@ class MagDipole(BaseFDEMSrc):
                 ' tested'.format(value)
             )
 
-
-
     def _srcFct(self, obsLoc, component):
         return emutils.MagneticDipoleVectorPotential(
             self.loc, obsLoc, component, mu=self.mu, moment=self.moment,
@@ -402,7 +439,10 @@ class MagDipole(BaseFDEMSrc):
         """
 
         if all(np.r_[self.mu] == np.r_[prob.mu]):
-            return Zero()
+            if prob._formulation == 'EB':
+                return np.zeros(prob.mesh.nE)
+            elif prob._formulation == 'HJ':
+                return np.zeros(prob.mesh.nF)
         else:
             formulation = prob._formulation
 
@@ -419,7 +459,10 @@ class MagDipole(BaseFDEMSrc):
 
     def s_eDeriv(self, prob, v, adjoint=False):
         if not hasattr(prob, 'muMap') or not hasattr(prob, 'muiMap'):
-            return Zero()
+            if prob._formulation == 'EB':
+                return np.zeros(prob.mesh.nE)
+            elif prob._formulation == 'HJ':
+                return np.zeros(prob.mesh.nF)
         else:
             formulation = prob._formulation
 
@@ -436,7 +479,7 @@ class MagDipole(BaseFDEMSrc):
                 return -C.T * (MMui_sDeriv * v)
 
             elif formulation == 'HJ':
-                return Zero()
+                return np.zeros(prob.mesh.nF)
                 # raise NotImplementedError
                 mu_s = prob.mu - self.mu
                 MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)

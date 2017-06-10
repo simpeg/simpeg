@@ -4,7 +4,7 @@ import scipy.sparse as sp
 import SimPEG
 from SimPEG import Utils
 from SimPEG.EM.Utils import omega
-from SimPEG.Utils import Zero, Identity
+# from SimPEG.Utils import Zero, Identity
 
 
 class FieldsTDEM(SimPEG.Problem.TimeFields):
