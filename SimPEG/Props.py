@@ -307,14 +307,14 @@ class Derivative(SphinxProp, properties.GettableProperty):
 
         def fget(self):
             if scope.physical_property is None:
-                return Utils.Zero()
+                return None
             if scope.mapping is None:
-                return Utils.Zero()
+                return None
             mapping = getattr(self, scope.mapping.name)
             if mapping is None:
-                return Utils.Zero()
+                return None
             if self.model is None:
-                return Utils.Zero()
+                return None
 
             return mapping.deriv(self.model)
 

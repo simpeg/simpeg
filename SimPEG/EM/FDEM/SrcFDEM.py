@@ -344,7 +344,7 @@ class MagDipole(BaseFDEMSrc):
         "frequency of the source (Hz)", required=True
     )
     loc = properties.Vector3(
-        "location of the source", default=np.r_[0.,0.,0.]
+        "location of the source", default=np.r_[0., 0., 0.]
     )
 
     def __init__(
@@ -363,7 +363,9 @@ class MagDipole(BaseFDEMSrc):
     def _warn_non_axis_aligned_sources(self, change):
         value = change['value']
         axaligned = [
-            True for vec in [np.r_[1.,0.,0.], np.r_[0.,1.,0.], np.r_[0.,0.,1.]]
+            True for vec in [
+                np.r_[1., 0., 0.], np.r_[0., 1., 0.], np.r_[0., 0., 1.]
+            ]
             if np.all(value == vec)
         ]
         if len(axaligned) != 1:
@@ -471,7 +473,8 @@ class MagDipole(BaseFDEMSrc):
             return -C.T * (MMui_s * self.bPrimary(prob))
 
     def s_eDeriv(self, prob, v, adjoint=False):
-        if not hasattr(prob, 'muMap') or not hasattr(prob, 'muiMap'):
+        # if not hasattr(prob, 'muMap') or not hasattr(prob, 'muiMap'):
+        if prob.muMap is None or prob.muiMap is None:
             if adjoint is True:
                 return np.zeros_like(prob.model)
 
