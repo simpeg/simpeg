@@ -321,8 +321,6 @@ class MagDipole(BaseTDEMSrc):
                 return np.zeros(
                     np.count_nonzero(prob.mesh.vnE) * prob.mesh.nC
                 )
-            # return super(MagDipole, self).bInitial(prob)
-
         return self._bSrc(prob)
 
     def hInitial(self, prob):
@@ -335,7 +333,6 @@ class MagDipole(BaseTDEMSrc):
                 )
             elif prob._formulation == 'HJ':
                 self._hInitial = np.zeros(prob.mesh.nE)
-            # return super(MagDipole, self).hInitial(prob)
 
         return 1./self.mu * self._bSrc(prob)
 
