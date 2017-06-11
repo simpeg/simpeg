@@ -336,12 +336,6 @@ class MagDipole(BaseTDEMSrc):
 
         return 1./self.mu * self._bSrc(prob)
 
-    # def s_m(self, prob, time):
-    #     if self.waveform.hasInitialFields is False:
-    #         # raise NotImplementedError
-    #         return Zero()
-    #     return Zero()
-
     def s_e(self, prob, time):
         C = prob.mesh.edgeCurl
         b = self._bSrc(prob)
@@ -361,7 +355,6 @@ class MagDipole(BaseTDEMSrc):
             else:
                 # b = self._bfromVectorPotential(prob)
                 return C.T * (MfMui * b) * self.waveform.eval(time)
-        # return Zero()
 
         elif prob._formulation == 'HJ':
 
