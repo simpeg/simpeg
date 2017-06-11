@@ -321,7 +321,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                         tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
                         adjoint=True)
                 else:
-                    dAsubdiagT_dm_v = Utils.Zero()
+                    dAsubdiagT_dm_v = Utils.spzeros(len(m), len(u))
 
                 dRHST_dm_v = self.getRHSDeriv(
                         tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
@@ -542,7 +542,9 @@ class Problem3D_b(BaseTDEMProblem):
         return Asubdiag
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
-        return Utils.Zero() * v
+        if adjoint is True:
+            return Utils.mkvc(np.zeros_like(self.model))
+        return Utils.mkvc(np.zeros_like(u))
 
     def getRHS(self, tInd):
         """
@@ -580,10 +582,10 @@ class Problem3D_b(BaseTDEMProblem):
         if adjoint:
             if self._makeASymmetric is True:
                 v = self.MfMui * v
-            if isinstance(s_e, Utils.Zero):
-                MeSigmaIDerivT_v = Utils.Zero()
-            else:
-                MeSigmaIDerivT_v = MeSigmaIDeriv(s_e).T * C.T * v
+            # if isinstance(s_e, Utils.Zero):
+            #     MeSigmaIDerivT_v = Utils.Zero()
+            # else:
+            MeSigmaIDerivT_v = MeSigmaIDeriv(s_e).T * C.T * v
 
             RHSDeriv = (
                 MeSigmaIDerivT_v + s_eDeriv( MeSigmaI.T * (C.T * v)) +
@@ -592,10 +594,10 @@ class Problem3D_b(BaseTDEMProblem):
 
             return RHSDeriv
 
-        if isinstance(s_e, Utils.Zero):
-            MeSigmaIDeriv_v = Utils.Zero()
-        else:
-            MeSigmaIDeriv_v = MeSigmaIDeriv(s_e) * v
+        # if isinstance(s_e, Utils.Zero):
+        #     MeSigmaIDeriv_v = Utils.Zero()
+        # else:
+        MeSigmaIDeriv_v = MeSigmaIDeriv(s_e) * v
 
         RHSDeriv = (
             C * MeSigmaIDeriv_v + C * MeSigmaI * s_eDeriv(v) + s_mDeriv(v)
@@ -876,7 +878,7 @@ class Problem3D_e(BaseTDEMProblem):
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         # right now, we are assuming that s_e, s_m do not depend on the model.
-        return Utils.Zero()
+        return Utils.mkvc(np.zeros(self.mesh.nE))
 
     def getInitialFields(self):
         """
@@ -1014,7 +1016,9 @@ class Problem3D_h(BaseTDEMProblem):
         return - 1./dt * self.MeMu
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
-        return Utils.Zero()
+        if adjoint is True:
+            return Utils.mkvc(np.zeros_like(self.model))
+        return Utils.mkvc(np.zeros_like(u))
 
     def getRHS(self, tInd):
 
@@ -1105,7 +1109,9 @@ class Problem3D_j(BaseTDEMProblem):
         return -1./dt * eye
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
-        return Utils.Zero()
+        if adjoint is True:
+            return Utils.mkvc(np.zeros_like(self.model))
+        return Utils.mkvc(np.zeros_like(u))
 
     def getRHS(self, tInd):
 
@@ -1124,5 +1130,5 @@ class Problem3D_j(BaseTDEMProblem):
         return rhs
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
-        return Utils.Zero()  # assumes no derivs on sources
+        return Utils.mkvc(np.zeros(self.mesh.nF))  # assumes no derivs on sources
 
