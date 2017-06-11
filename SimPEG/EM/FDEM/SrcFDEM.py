@@ -472,14 +472,16 @@ class MagDipole(BaseFDEMSrc):
 
     def s_eDeriv(self, prob, v, adjoint=False):
         if not hasattr(prob, 'muMap') or not hasattr(prob, 'muiMap'):
+            if adjoint is True:
+                return np.zeros_like(prob.model)
+
             if prob._formulation == 'EB':
                 return np.zeros(prob.mesh.nE)
             elif prob._formulation == 'HJ':
                 return np.zeros(prob.mesh.nF)
         else:
-            formulation = prob._formulation
 
-            if formulation == 'EB':
+            if prob._formulation == 'EB':
                 mui_s = prob.mui - 1./self.mu
                 MMui_sDeriv = prob.mesh.getFaceInnerProductDeriv(mui_s)(
                     self.bPrimary(prob)
@@ -491,14 +493,16 @@ class MagDipole(BaseFDEMSrc):
 
                 return -C.T * (MMui_sDeriv * v)
 
-            elif formulation == 'HJ':
+            elif prob._formulation == 'HJ':
+                if adjoint is True:
+                    return np.zeros_like(prob.model)
                 return np.zeros(prob.mesh.nF)
                 # raise NotImplementedError
-                mu_s = prob.mu - self.mu
-                MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
-                C = prob.mesh.edgeCurl.T
+                # mu_s = prob.mu - self.mu
+                # MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
+                # C = prob.mesh.edgeCurl.T
 
-                return -C.T * (MMui_s * self.bPrimary(prob))
+                # return -C.T * (MMui_s * self.bPrimary(prob))
 
 
 class MagDipole_Bfield(MagDipole):
@@ -615,7 +619,7 @@ class PrimSecSigma(BaseFDEMSrc):
 
     def s_e(self, prob):
         return (
-            prob.MeSigma -  prob.mesh.getEdgeInnerProduct(self.sigBack)
+            prob.MeSigma - prob.mesh.getEdgeInnerProduct(self.sigBack)
         ) * self.ePrimary(prob)
 
     def s_eDeriv(self, prob, v, adjoint=False):

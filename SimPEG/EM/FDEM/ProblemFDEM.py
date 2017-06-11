@@ -849,16 +849,18 @@ class Problem3D_h(BaseFDEMProblem):
         :return: product of rhs deriv with a vector
         """
 
-        _, s_e = src.eval(self)
+        s_e = src.s_e(self)
         C = self.mesh.edgeCurl
         MfRho = self.MfRho
 
         MfRhoDeriv = self.MfRhoDeriv(s_e)
         if not adjoint:
             RHSDeriv = C.T * (MfRhoDeriv * v)
+            s_eDeriv = C.T * (MfRho * src.s_eDeriv(self, v))
         elif adjoint:
             RHSDeriv = MfRhoDeriv.T * (C * v)
+            s_eDeriv = src.s_eDeriv(self, MfRho.T * (C * v), adjoint)
 
-        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
-
-        return RHSDeriv + s_mDeriv(v) + C.T * (MfRho * s_eDeriv(v))
+        return (
+            RHSDeriv + src.s_mDeriv(self, v, adjoint) + s_eDeriv
+        )
