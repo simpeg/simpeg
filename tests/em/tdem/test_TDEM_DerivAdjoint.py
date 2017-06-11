@@ -1,21 +1,20 @@
 from __future__ import division, print_function
 import unittest
 import numpy as np
-from SimPEG import Mesh, Maps, SolverLU, Tests
+from SimPEG import Mesh, Maps, Tests
 from SimPEG import EM
 
 try:
-    from pymatsolver import PardisoSolver
-    Solver = PardisoSolver
+    from pymatsolver import PardisoSolver as Solver
 except ImportError:
-    Solver = SolverLU
+    from SimPEG import SolverLU as Solver
 
 plotIt = False
 
 testDeriv = True
 testAdjoint = True
 
-TOL = 1e-4
+TOL_Adjoint = 1e-4
 
 np.random.seed(10)
 
@@ -113,7 +112,7 @@ class TDEM_DerivTests(unittest.TestCase):
         tInd = 2  # not actually used
         V1 = v.dot(prb.getAdiagDeriv(tInd, u, m))
         V2 = m.dot(prb.getAdiagDeriv(tInd, u, v, adjoint=True))
-        passed = np.abs(V1-V2) < TOL * (np.abs(V1) + np.abs(V2))/2.
+        passed = np.abs(V1-V2) < TOL_Adjoint * (np.abs(V1) + np.abs(V2))/2.
         print('AdjointTest {prbtype} {v1} {v2} {passed}'.format(
             prbtype=prbtype, v1=V1, v2=V2, passed=passed))
         self.assertTrue(passed)
@@ -147,7 +146,7 @@ class TDEM_DerivTests(unittest.TestCase):
         e = np.random.randn(prb.mesh.nE)
         V1 = e.dot(f._eDeriv_m(1, prb.survey.srcList[0], m))
         V2 = m.dot(f._eDeriv_m(1, prb.survey.srcList[0], e, adjoint=True))
-        tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
+        tol = TOL_Adjoint * (np.abs(V1) + np.abs(V2)) / 2.
         passed = np.abs(V1-V2) < tol
 
         print ('    ', V1, V2, np.abs(V1-V2), tol, passed)
@@ -163,7 +162,7 @@ class TDEM_DerivTests(unittest.TestCase):
         e = np.random.randn(prb.mesh.nE)
         V1 = e.dot(f._eDeriv_u(1, prb.survey.srcList[0], b))
         V2 = b.dot(f._eDeriv_u(1, prb.survey.srcList[0], e, adjoint=True))
-        tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
+        tol = TOL_Adjoint * (np.abs(V1) + np.abs(V2)) / 2.
         passed = np.abs(V1-V2) < tol
 
         print ('    ', V1, V2, np.abs(V1-V2), tol, passed)
@@ -231,7 +230,7 @@ class TDEM_DerivTests(unittest.TestCase):
 
 
 
-# ====== TEST Jtvec ========== #
+# # ====== TEST Jtvec ========== #
 
     if testAdjoint:
 
@@ -248,7 +247,7 @@ class TDEM_DerivTests(unittest.TestCase):
             d = np.random.randn(prb.survey.nD)
             V1 = d.dot(prb.Jvec(m0, m))
             V2 = m.dot(prb.Jtvec(m0, d))
-            tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
+            tol = TOL_Adjoint * (np.abs(V1) + np.abs(V2)) / 2.
             passed = np.abs(V1-V2) < tol
 
             print('AdjointTest {prbtype} {v1} {v2} {passed}'.format(

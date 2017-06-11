@@ -4,7 +4,6 @@ import scipy.sparse as sp
 import SimPEG
 from SimPEG import Utils
 from SimPEG.EM.Utils import omega
-# from SimPEG.Utils import Zero, Identity
 
 
 class FieldsTDEM(SimPEG.Problem.TimeFields):
@@ -149,7 +148,9 @@ class Fields3D_b(FieldsTDEM):
         return dun_dm_v
 
     def _bDeriv_m(self, tInd, src, v, adjoint=False):
-        return Zero()
+        if adjoint is True:
+            return np.zeros_like(self.survey.prob.model)
+        return np.zeros(self.survey.prob.mesh.nF)
 
     def _dbdt(self, bSolution, srcList, tInd):
         # self._timeMesh.faceDiv
@@ -188,25 +189,28 @@ class Fields3D_b(FieldsTDEM):
         )
 
     def _eDeriv_m(self, tInd, src, v, adjoint=False):
-        _, s_e = src.eval(self.survey.prob, self.survey.prob.times[tInd])
+        s_e = src.s_e(self.survey.prob, self.survey.prob.times[tInd])
         bSolution = self[[src], 'bSolution', tInd].flatten()
-
-        _, s_eDeriv = src.evalDeriv(
-            self.survey.prob.times[tInd], self, adjoint=adjoint
-        )
 
         if adjoint is True:
             return (
                 self._MeSigmaIDeriv(
                     -s_e + self._edgeCurl.T * (self._MfMui * bSolution)
                 ).T * v -
-                s_eDeriv(self._MeSigmaI.T * v)
+                src.s_eDeriv(
+                    self.survey.prob,
+                    self.survey.prob.times[tInd],
+                    self._MeSigmaI.T * v,
+                    adjoint=adjoint
+                )
             )
 
         return (
             self._MeSigmaIDeriv(-s_e + self._edgeCurl.T * (
                 self._MfMui * bSolution)
-            ) * v - self._MeSigmaI * s_eDeriv(v)
+            ) * v - self._MeSigmaI * src.s_eDeriv(
+                self.survey.prob, self.survey.prob.times[tInd], v
+            )
         )
 
 
@@ -241,7 +245,9 @@ class Fields3D_e(FieldsTDEM):
         return dun_dm_v
 
     def _eDeriv_m(self, tInd, src, v, adjoint=False):
-        return Zero()
+        if adjoint is True:
+            return np.zeros_like(self.survey.prob.model)
+        return np.zeros(self.survey.prob.mesh.nE)
 
     def _dbdt(self, eSolution, srcList, tInd):
         s_m = np.zeros((self.mesh.nF, len(srcList)))
@@ -261,7 +267,9 @@ class Fields3D_e(FieldsTDEM):
         # s_mDeriv = src.s_mDeriv(
         #     self._times[tInd], self, adjoint=adjoint
         # )
-        return Utils.Zero()  # assumes source doesn't depend on model
+        if adjoint is True:
+            return np.zeros_like(self.survey.prob.model)
+        return np.zeros(self.survey.prob.mesh.nF)  # assumes source doesn't depend on model
 
     def _b(self, eSolution, srcList, tInd):
         """
@@ -305,7 +313,9 @@ class Fields3D_h(FieldsTDEM):
         return dun_dm_v
 
     def _hDeriv_m(self, tInd, src, v, adjoint=False):
-        return Zero()
+        if adjoint is True:
+            return np.zeros_like(self.survey.prob.model)
+        return np.zeros(self.survey.prob.mesh.nE)
 
     def _dhdt(self, hSolution, srcList, tInd):
         C = self._edgeCurl
@@ -341,8 +351,6 @@ class Fields3D_h(FieldsTDEM):
             return - MfRhoDeriv(C * hSolution - s_e).T * (C * (MeMuI * v))
         return - MeMuI * (C.T * (MfRhoDeriv(C * hSolution - s_e) * v))
 
-
-
     def _j(self, hSolution, srcList, tInd):
         s_e = np.zeros((self.mesh.nF, len(srcList)))
         for i, src in enumerate(srcList):
@@ -359,7 +367,9 @@ class Fields3D_h(FieldsTDEM):
         return self._edgeCurl * dun_dm_v
 
     def _jDeriv_m(self, tInd, src, v, adjoint=False):
-        return Zero() # assumes the source doesn't depend on the model
+        if adjoint is True:
+            return np.zeros_like(self.survey.prob.model)
+        return np.zeros(self.survey.prob.mesh.nF) # assumes the source doesn't depend on the model
 
 
 class Fields3D_j(FieldsTDEM):
@@ -388,7 +398,9 @@ class Fields3D_j(FieldsTDEM):
         return dun_dm_v
 
     def _jDeriv_m(self, tInd, src, v, adjoint=False):
-        return Zero()
+        if adjoint is True:
+            return np.zeros_like(self.survey.prob.model)
+        return np.zeros(self.survey.prob.mesh.nF)
 
     def _h(self, jSolution, srcList, tInd):
         raise NotImplementedError('Please use Problem3D_h to get h-fields')
@@ -401,7 +413,7 @@ class Fields3D_j(FieldsTDEM):
         dhdt = - MeMuI * (C.T * (MfRho * jSolution))
         for i, src in enumerate(srcList):
             s_m = src.s_m(self.survey.prob, self.survey.prob.times[tInd])
-            dhdt[:,i] = MeMuI * s_m + dhdt[:, i]
+            dhdt[:, i] = MeMuI * s_m + dhdt[:, i]
 
         return dhdt
 
