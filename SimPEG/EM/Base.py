@@ -140,7 +140,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of :code:`MfMui` with respect to the model.
         """
         if self.muiMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nF, len(self.model))
 
         return (
             self.mesh.getFaceInnerProductDeriv(self.mui)(u) * self.muiDeriv
@@ -162,7 +162,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
 
         if self.muiMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nF, len(self.model))
 
         if len(self.mui.shape) > 1:
             if self.mui.shape[1] > self.mesh.dim:
@@ -173,7 +173,6 @@ class BaseEMProblem(Problem.BaseProblem):
         dMfMuiI_dI = -self.MfMuiI**2
         dMf_dmui = self.mesh.getEdgeInnerProductDeriv(self.mui)(u)
         return dMfMuiI_dI * (dMf_dmui * self.muiDeriv)
-
 
     @property
     def MeMu(self):
@@ -190,7 +189,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of :code:`MeMu` with respect to the model.
         """
         if self.muMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nE, len(self.model))
 
         return (
             self.mesh.getEdgeInnerProductDeriv(self.mu)(u) * self.muDeriv
@@ -212,7 +211,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
 
         if self.muMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nE, len(self.model))
 
         if len(self.mu.shape) > 1:
             if self.mu.shape[1] > self.mesh.dim:
@@ -243,13 +242,12 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of MeSigma with respect to the model
         """
         if self.sigmaMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nE, len(self.model))
 
         return (
             self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) *
             self.sigmaDeriv
         )
-
 
     @property
     def MeSigmaI(self):
@@ -268,7 +266,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of :code:`MeSigmaI` with respect to the model
         """
         if self.sigmaMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nE, len(self.model))
 
         if len(self.sigma.shape) > 1:
             if self.sigma.shape[1] > self.mesh.dim:
@@ -296,7 +294,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of :code:`MfRho` with respect to the model.
         """
         if self.rhoMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nF, len(self.model))
 
         return (
             self.mesh.getFaceInnerProductDeriv(self.rho)(u) * self.rhoDeriv
@@ -317,7 +315,7 @@ class BaseEMProblem(Problem.BaseProblem):
             Derivative of :code:`MfRhoI` with respect to the model.
         """
         if self.rhoMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nF, len(self.model))
 
         if len(self.rho.shape) > 1:
             if self.rho.shape[1] > self.mesh.dim:
