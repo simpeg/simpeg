@@ -335,6 +335,8 @@ class MagDipole(BaseFDEMSrc):
         "location of the source", default=np.r_[0., 0., 0.]
     )
 
+    _bPrimary = None
+
     def __init__(
         self, rxList, freq, loc, **kwargs
     ):
@@ -375,38 +377,34 @@ class MagDipole(BaseFDEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
-        if getattr(self, '_bPrimary', None) is None:
-            formulation = prob._formulation
+        if prob._formulation == 'EB':
+            gridX = prob.mesh.gridEx
+            gridY = prob.mesh.gridEy
+            gridZ = prob.mesh.gridEz
+            C = prob.mesh.edgeCurl
 
-            if formulation == 'EB':
-                gridX = prob.mesh.gridEx
-                gridY = prob.mesh.gridEy
-                gridZ = prob.mesh.gridEz
-                C = prob.mesh.edgeCurl
+        elif prob._formulation == 'HJ':
+            gridX = prob.mesh.gridFx
+            gridY = prob.mesh.gridFy
+            gridZ = prob.mesh.gridFz
+            C = prob.mesh.edgeCurl.T
 
-            elif formulation == 'HJ':
-                gridX = prob.mesh.gridFx
-                gridY = prob.mesh.gridFy
-                gridZ = prob.mesh.gridFz
-                C = prob.mesh.edgeCurl.T
+        if prob.mesh._meshType == 'CYL':
+            if not prob.mesh.isSymmetric:
+                # TODO ?
+                raise NotImplementedError(
+                    'Non-symmetric cyl mesh not implemented yet!')
+            assert (np.linalg.norm(self.orientation - np.r_[0., 0., 1.]) <
+                    1e-6), ('for cylindrical symmetry, the dipole must be '
+                            'oriented in the Z direction')
+            a = self._srcFct(gridY, 'y')
+        else:
+            ax = self._srcFct(gridX, 'x')
+            ay = self._srcFct(gridY, 'y')
+            az = self._srcFct(gridZ, 'z')
+            a = np.concatenate((ax, ay, az))
 
-            if prob.mesh._meshType == 'CYL':
-                if not prob.mesh.isSymmetric:
-                    # TODO ?
-                    raise NotImplementedError(
-                        'Non-symmetric cyl mesh not implemented yet!')
-                assert (np.linalg.norm(self.orientation - np.r_[0., 0., 1.]) <
-                        1e-6), ('for cylindrical symmetry, the dipole must be '
-                                'oriented in the Z direction')
-                a = self._srcFct(gridY, 'y')
-            else:
-                ax = self._srcFct(gridX, 'x')
-                ay = self._srcFct(gridY, 'y')
-                az = self._srcFct(gridZ, 'z')
-                a = np.concatenate((ax, ay, az))
-
-            self._bPrimary = C*a
-        return self._bPrimary
+        return C*a
 
     def hPrimary(self, prob):
         """
@@ -537,47 +535,43 @@ class MagDipole_Bfield(MagDipole):
         :return: primary magnetic field
         """
 
-        if getattr(self, '_bPrimary', None) is None:
-            formulation = prob._formulation
+        if prob._formulation == 'EB':
+            gridX = prob.mesh.gridFx
+            gridY = prob.mesh.gridFy
+            gridZ = prob.mesh.gridFz
 
-            if formulation == 'EB':
-                gridX = prob.mesh.gridFx
-                gridY = prob.mesh.gridFy
-                gridZ = prob.mesh.gridFz
+        elif prob._formulation == 'HJ':
+            gridX = prob.mesh.gridEx
+            gridY = prob.mesh.gridEy
+            gridZ = prob.mesh.gridEz
 
-            elif formulation == 'HJ':
-                gridX = prob.mesh.gridEx
-                gridY = prob.mesh.gridEy
-                gridZ = prob.mesh.gridEz
+        srcfct = emutils.MagneticDipoleFields
+        if prob.mesh._meshType == 'CYL':
+            if not prob.mesh.isSymmetric:
+                # TODO ?
+                raise NotImplementedError(
+                    'Non-symmetric cyl mesh not implemented yet!'
+                )
+            bx = srcfct(
+                self.loc, gridX, 'x', mu=self.mu, moment=self.moment
+            )
+            bz = srcfct(
+                self.loc, gridZ, 'z', mu=self.mu, moment=self.moment
+            )
+            b = np.concatenate((bx, bz))
+        else:
+            bx = srcfct(
+                self.loc, gridX, 'x', mu=self.mu, moment=self.moment
+            )
+            by = srcfct(
+                self.loc, gridY, 'y', mu=self.mu, moment=self.moment
+            )
+            bz = srcfct(
+                self.loc, gridZ, 'z', mu=self.mu, moment=self.moment
+            )
+            b = np.concatenate((bx, by, bz))
 
-            srcfct = emutils.MagneticDipoleFields
-            if prob.mesh._meshType == 'CYL':
-                if not prob.mesh.isSymmetric:
-                    # TODO ?
-                    raise NotImplementedError(
-                        'Non-symmetric cyl mesh not implemented yet!'
-                    )
-                bx = srcfct(
-                    self.loc, gridX, 'x', mu=self.mu, moment=self.moment
-                )
-                bz = srcfct(
-                    self.loc, gridZ, 'z', mu=self.mu, moment=self.moment
-                )
-                b = np.concatenate((bx, bz))
-            else:
-                bx = srcfct(
-                    self.loc, gridX, 'x', mu=self.mu, moment=self.moment
-                )
-                by = srcfct(
-                    self.loc, gridY, 'y', mu=self.mu, moment=self.moment
-                )
-                bz = srcfct(
-                    self.loc, gridZ, 'z', mu=self.mu, moment=self.moment
-                )
-                b = np.concatenate((bx, by, bz))
-
-            self._bPrimary = Utils.mkvc(b)
-        return self._bPrimary
+        return Utils.mkvc(b)
 
 
 class CircularLoop(MagDipole):
@@ -650,8 +644,10 @@ class PrimSecMappedSigma(BaseFDEMSrc):
     model on the secondary mesh
     """
 
-    def __init__(self, rxList, freq, primaryProblem, primarySurvey,
-                 map2meshSecondary=None, **kwargs):
+    def __init__(
+        self, rxList, freq, primaryProblem, primarySurvey,
+        map2meshSecondary=None, **kwargs
+    ):
 
         self.primaryProblem = primaryProblem
         self.primarySurvey = primarySurvey
@@ -681,7 +677,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         assert prob.mesh._meshType in ['TENSOR'], (
             'PrimSecMappedSigma source has not been implemented for {}'.format(
                 prob.mesh._meshType)
-            )
+        )
 
         # if EB formulation, interpolate E, elif HJ interpolate J
         # if self.primaryProblem._formulation == 'EB':

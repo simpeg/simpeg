@@ -377,9 +377,7 @@ class BaseEMSrc(Survey.BaseSrc):
         :rtype: tuple
         :return: tuple with magnetic source term and electric source term
         """
-        s_m = self.s_m(prob)
-        s_e = self.s_e(prob)
-        return s_m, s_e
+        return self.s_m(prob), self.s_e(prob)
 
     def evalDeriv(self, prob, v=None, adjoint=False):
         """
@@ -414,9 +412,9 @@ class BaseEMSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
-        if prob._formulation == 'EB':
+        if prob._formulation == "EB":
             return np.zeros(prob.mesh.nF)
-        elif prob._formulation == 'HJ':
+        elif prob._formulation == "HJ":
             return np.zeros(prob.mesh.nE)
 
     def s_e(self, prob):
@@ -427,9 +425,9 @@ class BaseEMSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
-        if prob._formulation == 'EB':
+        if prob._formulation == "EB":
             return np.zeros(prob.mesh.nE)
-        elif prob._formulation == 'HJ':
+        elif prob._formulation == "HJ":
             return np.zeros(prob.mesh.nF)
 
     def s_mDeriv(self, prob, v, adjoint=False):
@@ -445,9 +443,9 @@ class BaseEMSrc(Survey.BaseSrc):
         if adjoint is True:
             return np.zeros_like(prob.model)
 
-        if prob._formulation == 'EB':
+        if prob._formulation == "EB":
             return np.zeros(prob.mesh.nF)
-        elif prob._formulation == 'HJ':
+        elif prob._formulation == "HJ":
             return np.zeros(prob.mesh.nE)
 
     def s_eDeriv(self, prob, v, adjoint=False):
@@ -463,7 +461,7 @@ class BaseEMSrc(Survey.BaseSrc):
         if adjoint is True:
             return np.zeros_like(prob.model)
 
-        if prob._formulation == 'EB':
+        if prob._formulation == "EB":
             return np.zeros(prob.mesh.nE)
-        elif prob._formulation == 'HJ':
+        elif prob._formulation == "HJ":
             return np.zeros(prob.mesh.nF)
