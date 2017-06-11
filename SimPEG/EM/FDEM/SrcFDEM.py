@@ -335,8 +335,6 @@ class MagDipole(BaseFDEMSrc):
         "location of the source", default=np.r_[0., 0., 0.]
     )
 
-    _bPrimary = None
-
     def __init__(
         self, rxList, freq, loc, **kwargs
     ):
