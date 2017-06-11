@@ -378,7 +378,6 @@ class CircularLoop(MagDipole):
     radius = properties.Float(
         "radius of the loop source", default=1., min=0.
     )
-    # waveform = None
     # loc = None
     # orientation = 'Z'
     # radius = None
