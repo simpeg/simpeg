@@ -719,7 +719,7 @@ class Problem3D_e(BaseTDEMProblem):
                     df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd] = (
                         df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd]
                         + Utils.mkvc(cur[0], 2)
-                        )
+                    )
                     JTv = cur[1] + JTv
 
         # no longer need this
@@ -764,11 +764,12 @@ class Problem3D_e(BaseTDEMProblem):
 
                 dAsubdiagT_dm_v = self.getAsubdiagDeriv(
                     tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
-                    adjoint=True)
+                    adjoint=True
+                )
 
                 dRHST_dm_v = self.getRHSDeriv(
-                        tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
-                        )  # on nodes of time mesh
+                    tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
+                )  # on nodes of time mesh
 
                 un_src = f[src, ftype, tInd+1]
                 # cell centered on time mesh
@@ -795,14 +796,14 @@ class Problem3D_e(BaseTDEMProblem):
                 ))
 
                 dRHST_dm_v = self.getRHSDeriv(
-                        tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
-                        )  # on nodes of time mesh
+                    tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
+                )  # on nodes of time mesh
 
                 un_src = f[src, ftype, tInd+1]
                 # cell centered on time mesh
                 dAT_dm_v = (
                     self.MeSigmaDeriv(un_src).T * ATinv_df_duT_v[isrc, :]
-                    )
+                )
 
                 JTv = JTv + Utils.mkvc(
                     -dAT_dm_v + dRHST_dm_v
@@ -879,6 +880,8 @@ class Problem3D_e(BaseTDEMProblem):
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         # right now, we are assuming that s_e, s_m do not depend on the model.
+        if adjoint is True:
+            return Utils.mkvc(np.zeros_like(self.model))
         return Utils.mkvc(np.zeros(self.mesh.nE))
 
     def getInitialFields(self):
@@ -937,6 +940,7 @@ class Problem3D_e(BaseTDEMProblem):
         """
         if self.Adcinv is not None:
             self.Adcinv.clean()
+
 
 ###############################################################################
 #                                                                             #
@@ -1131,5 +1135,7 @@ class Problem3D_j(BaseTDEMProblem):
         return rhs
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
+        if adjoint is True:
+            return Utils.mkvc(np.zeros_like(self.model))
         return Utils.mkvc(np.zeros(self.mesh.nF))  # assumes no derivs on sources
 
