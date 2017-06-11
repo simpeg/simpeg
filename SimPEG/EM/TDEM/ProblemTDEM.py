@@ -583,9 +583,6 @@ class Problem3D_b(BaseTDEMProblem):
         if adjoint:
             if self._makeASymmetric is True:
                 v = self.MfMui * v
-            # if isinstance(s_e, Utils.Zero):
-            #     MeSigmaIDerivT_v = Utils.Zero()
-            # else:
             MeSigmaIDerivT_v = MeSigmaIDeriv(s_e).T * C.T * v
 
             RHSDeriv = (
@@ -595,9 +592,6 @@ class Problem3D_b(BaseTDEMProblem):
 
             return RHSDeriv
 
-        # if isinstance(s_e, Utils.Zero):
-        #     MeSigmaIDeriv_v = Utils.Zero()
-        # else:
         MeSigmaIDeriv_v = MeSigmaIDeriv(s_e) * v
 
         RHSDeriv = (
