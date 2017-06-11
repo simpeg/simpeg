@@ -747,7 +747,9 @@ class Fields3D_b(FieldsFDEM):
         """
 
         # assuming primary does not depend on the model
-        return np.zeros(self.prob.mesh.nF)
+        if adjoint is True:
+            return np.zeros_like(self.prob.model, dtype=complex)
+        return np.zeros(self.prob.mesh.nF, dtype=complex)
 
     def _ePrimary(self, bSolution, srcList):
         """
