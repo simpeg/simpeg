@@ -321,7 +321,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                         tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
                         adjoint=True)
                 else:
-                    dAsubdiagT_dm_v = Utils.spzeros(len(m), len(u))
+                    dAsubdiagT_dm_v = Utils.mkvc(np.zeros_like(m))
 
                 dRHST_dm_v = self.getRHSDeriv(
                         tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
@@ -401,6 +401,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                     None)(self, v, adjoint, f)) + ifieldsDeriv
             )
         return ifieldsDeriv
+
 
 ###############################################################################
 #                                                                             #
