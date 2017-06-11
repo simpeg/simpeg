@@ -64,11 +64,11 @@ class BaseFDEMSrc(BaseEMSrc):
         :return: primary magnetic field
         """
         if prob._formulation == 'EB':
-            return = np.zeros(
+            return np.zeros(
                 np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
             )
         elif prob._formulation == 'HJ':
-            return = np.zeros(prob.mesh.nE)
+            return np.zeros(prob.mesh.nE)
 
     def hPrimaryDeriv(self, prob, v, adjoint=False):
         """
