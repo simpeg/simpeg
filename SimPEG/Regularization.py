@@ -429,7 +429,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
 
     @properties.validator('mref')
     def _validate_mref(self, change):
-        if not isinstance(change['value'], Utils.Zero) and self.nP != '*':
+        if change['value'] is not None and self.nP != '*':
             assert len(change['value']) == self.nP, (
                 'mref must be length {}'.format(self.nP)
             )
@@ -667,7 +667,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         for fct in self.objfcts:
             if getattr(fct, 'mrefInSmooth', None) is not None:
                 if self.mrefInSmooth is False:
-                    fct.mref = np.zeros((self.nP,))
+                    fct.mref = None
                 else:
                     fct.mref = change['value']
             else:
@@ -1057,7 +1057,7 @@ class SmoothDeriv(BaseRegularization):
         )
 
         if self.mrefInSmooth is False:
-            self.mref = Utils.Zero()
+            self.mref = None
 
     @property
     def _multiplier_pair(self):
@@ -1190,7 +1190,7 @@ class Tikhonov(BaseComboRegularization):
     def __init__(
         self, mesh,
         alpha_s=1e-6, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
-        alpha_xx=Utils.Zero(), alpha_yy=Utils.Zero(), alpha_zz=Utils.Zero(),
+        alpha_xx=0., alpha_yy=0., alpha_zz=0.,
         **kwargs
     ):
 

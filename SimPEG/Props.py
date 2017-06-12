@@ -28,7 +28,7 @@ class Array(SphinxProp, properties.Array):
     class_info = 'a numpy, Zero or Identity array'
 
     def validate(self, instance, value):
-        if isinstance(value, (Utils.Zero, Utils.Identity)):
+        if isinstance(value, (Utils.Zero, Utils.Identity)) or value is None:
             return value
         return super(Array, self).validate(instance, value)
 
