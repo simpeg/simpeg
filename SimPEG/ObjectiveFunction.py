@@ -339,7 +339,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         :param numpy.ndarray m: model
         :param SimPEG.Fields f: Fields object (if applicable)
         """
-        g = np.zeros_like(m)
+        g = Utils.mkvc(np.zeros_like(m))
         for i, phi in enumerate(self):
             multiplier, objfct = phi
             if multiplier == 0.: # don't evaluate the fct
