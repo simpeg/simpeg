@@ -80,7 +80,6 @@ def MT_LayeredEarth(freq, thickness, sig, return_type='Res-Phase', chg=0., tau=0
     :type thickness: float or numpy.array
     :param sig: electric conductivity of the Earth layers in S/m
     :type sig: float or numpy.array
-    :param int nlayer: number of Earth layer
     :param str return_type: Output return_type. 'Res-Phase' returns apparent resisitivity and Phase. 'Impedance' returns the complex Impedance
     :param numpy.array chg: Cole-Cole Parameters for chargeable layers: chargeability
     :param numpy.array tau: Cole-Cole Parameters for chargeable layers: time decay constant
