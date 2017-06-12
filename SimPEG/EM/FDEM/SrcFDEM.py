@@ -3,7 +3,6 @@ import numpy as np
 from scipy.constants import mu_0
 import warnings
 
-from SimPEG.Utils import Zero
 from SimPEG import Survey, Problem, Utils
 
 from .. import Utils as emutils
@@ -17,11 +16,6 @@ class BaseFDEMSrc(BaseEMSrc):
 
     freq = properties.Float("frequency of the source", min=0, required=True)
 
-    _ePrimary = None
-    _bPrimary = None
-    _hPrimary = None
-    _jPrimary = None
-
     def __init__(self, rxList, **kwargs):
         super(BaseFDEMSrc, self).__init__(rxList, **kwargs)
 
@@ -33,9 +27,13 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
-        if self._bPrimary is None:
-            return Zero()
-        return self._bPrimary
+
+        if prob._formulation == 'EB':
+            return np.zeros(prob.mesh.nF)
+        elif prob._formulation == 'HJ':
+            return np.zeros(
+                np.count_nonzero(prob.mesh.vnE) * prob.mesh.nC
+            )
 
     def bPrimaryDeriv(self, prob, v, adjoint=False):
         """
@@ -47,7 +45,15 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
-        return Zero()
+        if adjoint is True:
+            return np.zeros_like(prob.model)
+        else:
+            if prob._formulation == 'EB':
+                return np.zeros(prob.mesh.nF)
+            elif prob._formulation == 'HJ':
+                return np.zeros(
+                    np.count_nonzero(prob.mesh.vnE) * prob.mesh.nC
+                )
 
     def hPrimary(self, prob):
         """
@@ -57,9 +63,12 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
-        if self._hPrimary is None:
-            return Zero()
-        return self._hPrimary
+        if prob._formulation == 'EB':
+            return np.zeros(
+                np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+            )
+        elif prob._formulation == 'HJ':
+            return np.zeros(prob.mesh.nE)
 
     def hPrimaryDeriv(self, prob, v, adjoint=False):
         """
@@ -71,7 +80,15 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
-        return Zero()
+        if adjoint is True:
+            return np.zeros_like(prob.model)
+
+        if prob._formulation == 'EB':
+            return np.zeros(
+                np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+            )
+        elif prob._formulation == 'HJ':
+            return np.zeros(prob.mesh.nE)
 
     def ePrimary(self, prob):
         """
@@ -81,9 +98,12 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary electric field
         """
-        if self._ePrimary is None:
-            return Zero()
-        return self._ePrimary
+        if prob._formulation == 'EB':
+            return np.zeros(prob.mesh.nE)
+        elif prob._formulation == 'HJ':
+            return np.zeros(
+                np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+            )
 
     def ePrimaryDeriv(self, prob, v, adjoint=False):
         """
@@ -95,7 +115,15 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
-        return Zero()
+        if adjoint is True:
+            return np.zeros_like(prob.model)
+
+        if prob._formulation == 'EB':
+            return np.zeros(prob.mesh.nE)
+        elif prob._formulation == 'HJ':
+            return np.zeros(
+                np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+            )
 
     def jPrimary(self, prob):
         """
@@ -105,8 +133,12 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary current density
         """
-        if self._jPrimary is None:
-            return Zero()
+        if prob._formulation == 'EB':
+            return np.zeros(
+                np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+            )
+        elif prob._formulation == 'HJ':
+            return np.zeros(prob.mesh.nF)
         return self._jPrimary
 
     def jPrimaryDeriv(self, prob, v, adjoint=False):
@@ -119,7 +151,15 @@ class BaseFDEMSrc(BaseEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
-        return Zero()
+        if adjoint is True:
+            return np.zeros_like(prob.model)
+
+        if prob._formulation == 'EB':
+            return np.zeros(
+                np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+            )
+        elif prob._formulation == 'HJ':
+            return np.zeros(prob.mesh.nF)
 
 
 class RawVec_e(BaseFDEMSrc):
@@ -292,7 +332,7 @@ class MagDipole(BaseFDEMSrc):
         "frequency of the source (Hz)", required=True
     )
     loc = properties.Vector3(
-        "location of the source", default=np.r_[0.,0.,0.]
+        "location of the source", default=np.r_[0., 0., 0.]
     )
 
     def __init__(
@@ -306,12 +346,13 @@ class MagDipole(BaseFDEMSrc):
         self.freq = freq
         self.loc = loc
 
-
     @properties.validator('orientation')
     def _warn_non_axis_aligned_sources(self, change):
         value = change['value']
         axaligned = [
-            True for vec in [np.r_[1.,0.,0.], np.r_[0.,1.,0.], np.r_[0.,0.,1.]]
+            True for vec in [
+                np.r_[1., 0., 0.], np.r_[0., 1., 0.], np.r_[0., 0., 1.]
+            ]
             if np.all(value == vec)
         ]
         if len(axaligned) != 1:
@@ -319,8 +360,6 @@ class MagDipole(BaseFDEMSrc):
                 'non-axes aligned orientations {} are not rigorously'
                 ' tested'.format(value)
             )
-
-
 
     def _srcFct(self, obsLoc, component):
         return emutils.MagneticDipoleVectorPotential(
@@ -336,15 +375,13 @@ class MagDipole(BaseFDEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
-        formulation = prob._formulation
-
-        if formulation == 'EB':
+        if prob._formulation == 'EB':
             gridX = prob.mesh.gridEx
             gridY = prob.mesh.gridEy
             gridZ = prob.mesh.gridEz
             C = prob.mesh.edgeCurl
 
-        elif formulation == 'HJ':
+        elif prob._formulation == 'HJ':
             gridX = prob.mesh.gridFx
             gridY = prob.mesh.gridFy
             gridZ = prob.mesh.gridFz
@@ -402,7 +439,10 @@ class MagDipole(BaseFDEMSrc):
         """
 
         if all(np.r_[self.mu] == np.r_[prob.mu]):
-            return Zero()
+            if prob._formulation == 'EB':
+                return np.zeros(prob.mesh.nE)
+            elif prob._formulation == 'HJ':
+                return np.zeros(prob.mesh.nF)
         else:
             formulation = prob._formulation
 
@@ -418,12 +458,18 @@ class MagDipole(BaseFDEMSrc):
             return -C.T * (MMui_s * self.bPrimary(prob))
 
     def s_eDeriv(self, prob, v, adjoint=False):
-        if not hasattr(prob, 'muMap') or not hasattr(prob, 'muiMap'):
-            return Zero()
-        else:
-            formulation = prob._formulation
+        # if not hasattr(prob, 'muMap') or not hasattr(prob, 'muiMap'):
+        if prob.muMap is None or prob.muiMap is None:
+            if adjoint is True:
+                return np.zeros_like(prob.model)
 
-            if formulation == 'EB':
+            if prob._formulation == 'EB':
+                return np.zeros(prob.mesh.nE)
+            elif prob._formulation == 'HJ':
+                return np.zeros(prob.mesh.nF)
+        else:
+
+            if prob._formulation == 'EB':
                 mui_s = prob.mui - 1./self.mu
                 MMui_sDeriv = prob.mesh.getFaceInnerProductDeriv(mui_s)(
                     self.bPrimary(prob)
@@ -435,14 +481,16 @@ class MagDipole(BaseFDEMSrc):
 
                 return -C.T * (MMui_sDeriv * v)
 
-            elif formulation == 'HJ':
-                return Zero()
+            elif prob._formulation == 'HJ':
+                if adjoint is True:
+                    return np.zeros_like(prob.model)
+                return np.zeros(prob.mesh.nF)
                 # raise NotImplementedError
-                mu_s = prob.mu - self.mu
-                MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
-                C = prob.mesh.edgeCurl.T
+                # mu_s = prob.mu - self.mu
+                # MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
+                # C = prob.mesh.edgeCurl.T
 
-                return -C.T * (MMui_s * self.bPrimary(prob))
+                # return -C.T * (MMui_s * self.bPrimary(prob))
 
 
 class MagDipole_Bfield(MagDipole):
@@ -485,14 +533,12 @@ class MagDipole_Bfield(MagDipole):
         :return: primary magnetic field
         """
 
-        formulation = prob._formulation
-
-        if formulation == 'EB':
+        if prob._formulation == 'EB':
             gridX = prob.mesh.gridFx
             gridY = prob.mesh.gridFy
             gridZ = prob.mesh.gridFz
 
-        elif formulation == 'HJ':
+        elif prob._formulation == 'HJ':
             gridX = prob.mesh.gridEx
             gridY = prob.mesh.gridEy
             gridZ = prob.mesh.gridEz
@@ -504,13 +550,23 @@ class MagDipole_Bfield(MagDipole):
                 raise NotImplementedError(
                     'Non-symmetric cyl mesh not implemented yet!'
                 )
-            bx = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment)
-            bz = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment)
+            bx = srcfct(
+                self.loc, gridX, 'x', mu=self.mu, moment=self.moment
+            )
+            bz = srcfct(
+                self.loc, gridZ, 'z', mu=self.mu, moment=self.moment
+            )
             b = np.concatenate((bx, bz))
         else:
-            bx = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment)
-            by = srcfct(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
-            bz = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment)
+            bx = srcfct(
+                self.loc, gridX, 'x', mu=self.mu, moment=self.moment
+            )
+            by = srcfct(
+                self.loc, gridY, 'y', mu=self.mu, moment=self.moment
+            )
+            bz = srcfct(
+                self.loc, gridZ, 'z', mu=self.mu, moment=self.moment
+            )
             b = np.concatenate((bx, by, bz))
 
         return Utils.mkvc(b)
@@ -559,7 +615,7 @@ class PrimSecSigma(BaseFDEMSrc):
 
     def s_e(self, prob):
         return (
-            prob.MeSigma -  prob.mesh.getEdgeInnerProduct(self.sigBack)
+            prob.MeSigma - prob.mesh.getEdgeInnerProduct(self.sigBack)
         ) * self.ePrimary(prob)
 
     def s_eDeriv(self, prob, v, adjoint=False):
@@ -586,8 +642,10 @@ class PrimSecMappedSigma(BaseFDEMSrc):
     model on the secondary mesh
     """
 
-    def __init__(self, rxList, freq, primaryProblem, primarySurvey,
-                 map2meshSecondary=None, **kwargs):
+    def __init__(
+        self, rxList, freq, primaryProblem, primarySurvey,
+        map2meshSecondary=None, **kwargs
+    ):
 
         self.primaryProblem = primaryProblem
         self.primarySurvey = primarySurvey
@@ -617,7 +675,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         assert prob.mesh._meshType in ['TENSOR'], (
             'PrimSecMappedSigma source has not been implemented for {}'.format(
                 prob.mesh._meshType)
-            )
+        )
 
         # if EB formulation, interpolate E, elif HJ interpolate J
         # if self.primaryProblem._formulation == 'EB':

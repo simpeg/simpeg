@@ -2,7 +2,6 @@ import SimPEG
 from SimPEG.EM.Utils import omega
 from SimPEG.EM.Base import BaseEMSurvey
 from scipy.constants import mu_0
-from SimPEG.Utils import Zero, Identity
 from . import SrcFDEM as Src
 from . import RxFDEM as Rx
 

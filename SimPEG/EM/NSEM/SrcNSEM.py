@@ -24,7 +24,8 @@ class BaseNSEMSrc(FDEMBaseSrc):
     '''
 
     freq = None #: Frequency (float)
-
+    _ePrimary = None  #: Primary electric field
+    _bPrimary = None  #: Primary magnetic field
 
     def __init__(self, rxList, freq):
 

@@ -3,15 +3,16 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import numpy as np
 import properties
 from scipy.constants import mu_0
 
-from SimPEG import Survey
-from SimPEG import Problem
-from SimPEG import Utils
-from SimPEG import Maps
-from SimPEG import Props
-from SimPEG import Solver as SimpegSolver
+from .. import Survey
+from .. import Problem
+from .. import Utils
+from .. import Maps
+from .. import Props
+from .. import Solver as SimpegSolver
 
 
 __all__ = ['BaseEMProblem', 'BaseEMSurvey', 'BaseEMSrc']
@@ -139,7 +140,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of :code:`MfMui` with respect to the model.
         """
         if self.muiMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nF, len(self.model))
 
         return (
             self.mesh.getFaceInnerProductDeriv(self.mui)(u) * self.muiDeriv
@@ -161,7 +162,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
 
         if self.muiMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nF, len(self.model))
 
         if len(self.mui.shape) > 1:
             if self.mui.shape[1] > self.mesh.dim:
@@ -172,7 +173,6 @@ class BaseEMProblem(Problem.BaseProblem):
         dMfMuiI_dI = -self.MfMuiI**2
         dMf_dmui = self.mesh.getEdgeInnerProductDeriv(self.mui)(u)
         return dMfMuiI_dI * (dMf_dmui * self.muiDeriv)
-
 
     @property
     def MeMu(self):
@@ -189,7 +189,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of :code:`MeMu` with respect to the model.
         """
         if self.muMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nE, len(self.model))
 
         return (
             self.mesh.getEdgeInnerProductDeriv(self.mu)(u) * self.muDeriv
@@ -211,7 +211,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
 
         if self.muMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nE, len(self.model))
 
         if len(self.mu.shape) > 1:
             if self.mu.shape[1] > self.mesh.dim:
@@ -242,13 +242,12 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of MeSigma with respect to the model
         """
         if self.sigmaMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nE, len(self.model))
 
         return (
             self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) *
             self.sigmaDeriv
         )
-
 
     @property
     def MeSigmaI(self):
@@ -267,7 +266,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of :code:`MeSigmaI` with respect to the model
         """
         if self.sigmaMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nE, len(self.model))
 
         if len(self.sigma.shape) > 1:
             if self.sigma.shape[1] > self.mesh.dim:
@@ -295,7 +294,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of :code:`MfRho` with respect to the model.
         """
         if self.rhoMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nF, len(self.model))
 
         return (
             self.mesh.getFaceInnerProductDeriv(self.rho)(u) * self.rhoDeriv
@@ -316,7 +315,7 @@ class BaseEMProblem(Problem.BaseProblem):
             Derivative of :code:`MfRhoI` with respect to the model.
         """
         if self.rhoMap is None:
-            return Utils.Zero()
+            return Utils.spzeros(self.mesh.nF, len(self.model))
 
         if len(self.rho.shape) > 1:
             if self.rho.shape[1] > self.mesh.dim:
@@ -378,9 +377,7 @@ class BaseEMSrc(Survey.BaseSrc):
         :rtype: tuple
         :return: tuple with magnetic source term and electric source term
         """
-        s_m = self.s_m(prob)
-        s_e = self.s_e(prob)
-        return s_m, s_e
+        return self.s_m(prob), self.s_e(prob)
 
     def evalDeriv(self, prob, v=None, adjoint=False):
         """
@@ -415,7 +412,10 @@ class BaseEMSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
-        return Utils.Zero()
+        if prob._formulation == "EB":
+            return np.zeros(prob.mesh.nF)
+        elif prob._formulation == "HJ":
+            return np.zeros(prob.mesh.nE)
 
     def s_e(self, prob):
         """
@@ -425,7 +425,10 @@ class BaseEMSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
-        return Utils.Zero()
+        if prob._formulation == "EB":
+            return np.zeros(prob.mesh.nE)
+        elif prob._formulation == "HJ":
+            return np.zeros(prob.mesh.nF)
 
     def s_mDeriv(self, prob, v, adjoint=False):
         """
@@ -437,8 +440,13 @@ class BaseEMSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: product of magnetic source term derivative with a vector
         """
+        if adjoint is True:
+            return np.zeros(len(prob.model))
 
-        return Utils.Zero()
+        if prob._formulation == "EB":
+            return np.zeros(prob.mesh.nF)
+        elif prob._formulation == "HJ":
+            return np.zeros(prob.mesh.nE)
 
     def s_eDeriv(self, prob, v, adjoint=False):
         """
@@ -450,4 +458,10 @@ class BaseEMSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: product of electric source term derivative with a vector
         """
-        return Utils.Zero()
+        if adjoint is True:
+            return np.zeros(len(prob.model))
+
+        if prob._formulation == "EB":
+            return np.zeros(prob.mesh.nE)
+        elif prob._formulation == "HJ":
+            return np.zeros(prob.mesh.nF)

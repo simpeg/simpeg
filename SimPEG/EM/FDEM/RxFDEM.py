@@ -1,7 +1,6 @@
 import SimPEG
 
 
-
 class BaseRx(SimPEG.Survey.BaseRx):
     """
     Frequency domain receiver base class

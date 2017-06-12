@@ -339,7 +339,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         :param numpy.ndarray m: model
         :param SimPEG.Fields f: Fields object (if applicable)
         """
-        g = Utils.Zero()
+        g = np.zeros_like(m)
         for i, phi in enumerate(self):
             multiplier, objfct = phi
             if multiplier == 0.: # don't evaluate the fct
@@ -349,7 +349,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                     g += multiplier * objfct.deriv(m, f=f[i])
                 else:
                     g += multiplier * objfct.deriv(m)
-        return g
+        return Utils.mkvc(g)
 
     def deriv2(self, m, v=None, f=None):
         """
@@ -361,7 +361,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         :param numpy.ndarray v: vector we are multiplying by
         :param SimPEG.Fields f: Fields object (if applicable)
         """
-        H = Utils.Zero()
+        if v is None:
+            H = Utils.spzeros(len(m), len(m))
+        else:
+            H = np.zeros_like(m)
         for i, phi in enumerate(self):
             multiplier, objfct = phi
             if multiplier == 0.: # don't evaluate the fct

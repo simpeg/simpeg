@@ -1,16 +1,18 @@
 import numpy as np
+import os
 from SimPEG.EM.Utils.CurrentUtils import (
     getStraightLineCurrentIntegral, getSourceTermLineCurrentPolygon
     )
 import unittest
 from SimPEG.Utils import io_utils
 
+
 class LineCurrentTests(unittest.TestCase):
 
     def setUp(self):
         url = 'https://storage.googleapis.com/simpeg/tests/em_utils/'
-        cloudfiles = ['currents.npy']
-        self.basePath = io_utils.remoteDownload(url, cloudfiles)
+        cloudfile = 'currents.npy'
+        self.basePath = io_utils.download(url + cloudfile)
 
     def test(self):
 
@@ -22,8 +24,9 @@ class LineCurrentTests(unittest.TestCase):
         sy_true = np.r_[0.265625, 0.096875, 0.096875, 0.040625]
         sz_true = np.r_[0.1605, 0.057, 0.057, 0.0255]
 
-        sx, sy, sz = getStraightLineCurrentIntegral(hx, hy, hz,
-                                                    ax, ay, az, bx, by, bz)
+        sx, sy, sz = getStraightLineCurrentIntegral(
+            hx, hy, hz, ax, ay, az, bx, by, bz
+        )
 
         s_true = np.r_[sx_true, sy_true, sz_true]
         s = np.r_[sx, sy, sz]
@@ -49,8 +52,7 @@ class LineCurrentTests(unittest.TestCase):
         xorig = np.r_[0., 0., 0.]
 
         out = getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz)
-        fname = self.basePath + "currents.npy"
-        out_true = np.load(fname)
+        out_true = np.load(self.basePath)
         err = np.linalg.norm(out-out_true)
         print (">> Test getSourceTermLineCurrentPolygon")
 
@@ -61,6 +63,8 @@ class LineCurrentTests(unittest.TestCase):
             print (("Failed, Error = %d") % (err))
 
         self.assertTrue(passed)
+
+        os.remove(self.basePath)
 
 if __name__ == '__main__':
     unittest.main()

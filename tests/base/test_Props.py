@@ -147,7 +147,7 @@ class TestPropMaps(unittest.TestCase):
             assert np.all(PM.sigma == np.r_[1., 2., 3.])
             PM = pickle.loads(pickle.dumps(PM))
             assert PM.sigmaMap is None
-            assert PM.sigmaDeriv == 0
+            assert PM.sigmaDeriv is None
 
             del PM.model
             # sigma is not changed
@@ -167,8 +167,8 @@ class TestPropMaps(unittest.TestCase):
         PM.rho = np.r_[1., 2., 3.]
         assert PM.rhoMap is None
         assert PM.sigmaMap is None
-        assert PM.rhoDeriv == 0
-        assert PM.sigmaDeriv == 0
+        assert PM.rhoDeriv is None
+        assert PM.sigmaDeriv is None
         assert np.all(PM.sigma == 1.0 / np.r_[1., 2., 3.])
 
         PM.sigmaMap = expMap
@@ -198,7 +198,7 @@ class TestPropMaps(unittest.TestCase):
 
         PM.rho = np.r_[1., 2., 3.]
         assert PM.sigmaMap is None
-        assert PM.sigmaDeriv == 0
+        assert PM.sigmaDeriv is None
         assert np.all(PM.sigma == 1.0 / np.r_[1., 2., 3.])
 
         PM.sigmaMap = expMap
@@ -269,7 +269,7 @@ class TestPropMaps(unittest.TestCase):
         PM.model = np.ones(2)
         PM.summary()
         PM.validate()
-        assert PM.KsDeriv == 0
+        assert PM.KsDeriv is None
 
     def test_nested(self):
         PM = NestedModels()

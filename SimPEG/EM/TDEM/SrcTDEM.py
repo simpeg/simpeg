@@ -18,7 +18,7 @@ from ..Base import BaseEMSrc
 ###############################################################################
 
 
-class BaseWaveform(object):
+class BaseWaveform(properties.HasProperties):
 
     hasInitialFields = properties.Bool(
         "Does the waveform have initial fields?", default=False
@@ -26,6 +26,10 @@ class BaseWaveform(object):
 
     offTime = properties.Float(
         "off-time of the source", default=0.
+    )
+
+    eps = properties.Float(
+        "times before this considered zero", default=1e-9
     )
 
     def __init__(self, **kwargs):
@@ -45,8 +49,6 @@ class BaseWaveform(object):
 
 
 class StepOffWaveform(BaseWaveform):
-
-    eps = 1e-9
 
     def __init__(self, offTime=0.):
         BaseWaveform.__init__(self, offTime=offTime, hasInitialFields=True)
@@ -81,20 +83,24 @@ class TriangularWaveform(BaseWaveform):
 
 class VTEMWaveform(BaseWaveform):
 
-    eps = 1e-9
-    offTime = 4.2e-3
-    peakTime = 2.73e-3
-    a = 3.
-    hasInitialFields = False
+    offTime = properties.Float(
+        "Time at which the transmitter is shuf off", default=4.2e-3
+    )
+    peakTime = properties.Float(
+        "Time at which the VTEM waveform is at its peak", default=2.73e-3
+    )
+    a = properties.Float(
+        "parameter controlling how quickly the waveform ramps on", default=3.
+    )
 
     def __init__(self, **kwargs):
-        BaseWaveform.__init__(self, **kwargs)
+        BaseWaveform.__init__(self, hasInitialFields=False, **kwargs)
 
     def eval(self, time):
         if time <= self.peakTime:
             return (
                 (1. - np.exp(-self.a*time/self.peakTime))/(1.-np.exp(-self.a))
-                )
+            )
         elif (time < self.offTime) and (time > self.peakTime):
             return -1. / (self.offTime-self.peakTime) * (time - self.offTime)
         else:
@@ -111,53 +117,100 @@ class BaseTDEMSrc(BaseEMSrc):
 
     # rxPair = Rx
 
-    waveformPair = BaseWaveform  #: type of waveform to pair with
-    waveform = None  #: source waveform
+    waveform = properties.Instance(
+        "Waveform of the source", BaseWaveform, default=StepOffWaveform()
+    )
+
+    # waveformPair = StepOffWaveform  #: type of waveform to pair with
     srcType = None
 
     def __init__(self, rxList, **kwargs):
-        super(BaseTDEMSrc, self).__init__(rxList, **kwargs)
-
-    @property
-    def waveform(self):
-        "A waveform instance is not None"
-        return getattr(self, '_waveform', None)
-
-    @waveform.setter
-    def waveform(self, val):
-        if self.waveform is None:
-            val._assertMatchesPair(self.waveformPair)
-            self._waveform = val
-        else:
-            self._waveform = self.StepOffWaveform(val)
-
-    def __init__(self, rxList, waveform = StepOffWaveform(), **kwargs):
-        self.waveform = waveform
+        # self.waveform = waveform
         BaseEMSrc.__init__(self, rxList, **kwargs)
 
     def bInitial(self, prob):
-        return Zero()
+        if getattr(self, '_bInitial', None) is None:
+            if prob._formulation == 'EB':
+                self._bInitial = np.zeros(prob.mesh.nF)
+            elif prob._formulation == 'HJ':
+                self._bInitial = np.zeros(
+                    np.count_nonzero(prob.mesh.vnE) * prob.mesh.nC
+                )
+        return self._bInitial
 
     def bInitialDeriv(self, prob, v=None, adjoint=False, f=None):
-        return Zero()
+        if adjoint is True:
+            return np.zeros_like(prob.model)
+
+        if prob._formulation == 'EB':
+            return np.zeros(prob.mesh.nF)
+        elif prob._formulation == 'HJ':
+            return np.zeros(
+                np.count_nonzero(prob.mesh.vnE) * prob.mesh.nC
+            )
 
     def eInitial(self, prob):
-        return Zero()
+        if getattr(self, '_eInitial', None) is None:
+            if prob._formulation == 'EB':
+                self._eInitial = np.zeros(prob.mesh.nE)
+            elif prob._formulation == 'HJ':
+                self._eInitial = np.zeros(
+                    np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+                )
+        return self._eInitial
 
     def eInitialDeriv(self, prob, v=None, adjoint=False, f=None):
-        return Zero()
+        if adjoint is True:
+            return np.zeros_like(prob.model)
+
+        if prob._formulation == 'EB':
+            return np.zeros(prob.mesh.nE)
+        elif prob._formulation == 'HJ':
+            return np.zeros(
+                np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+            )
 
     def hInitial(self, prob):
-        return Zero()
+        if getattr(self, '_hInitial', None) is None:
+            if prob._formulation == 'EB':
+                self._hInitial = np.zeros(
+                    np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+                )
+            elif prob._formulation == 'HJ':
+                self._hInitial = np.zeros(prob.mesh.nE)
+        return self._hInitial
 
     def hInitialDeriv(self, prob, v=None, adjoint=False, f=None):
-        return Zero()
+        if adjoint is True:
+            return np.zeros_like(prob.model)
+
+        if prob._formulation == 'EB':
+            return np.zeros(
+                np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+            )
+        elif prob._formulation == 'HJ':
+            return np.zeros(prob.mesh.nE)
 
     def jInitial(self, prob):
-        return Zero()
+        if getattr(self, '_jInitial', None) is None:
+            if prob._formulation == 'EB':
+                self._jInitial = np.zeros(
+                    np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+                )
+            elif prob._formulation == 'HJ':
+                self._jInitial = np.zeros(prob.mesh.nF)
+        return self._jInitial
 
     def jInitialDeriv(self, prob, v=None, adjoint=False, f=None):
-        return Zero()
+        if adjoint is True:
+            return np.zeros_like(prob.model)
+
+        if prob._formulation == 'EB':
+            return np.zeros(
+                np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+            )
+        elif prob._formulation == 'HJ':
+            return np.zeros(prob.mesh.nF)
 
     def eval(self, prob, time):
         s_m = self.s_m(prob, time)
@@ -177,16 +230,16 @@ class BaseTDEMSrc(BaseEMSrc):
             )
 
     def s_m(self, prob, time):
-        return Zero()
+        return super(BaseTDEMSrc, self).s_m(prob)  # base knows the size
 
     def s_e(self, prob, time):
-        return Zero()
+        return super(BaseTDEMSrc, self).s_e(prob)  # base knows the size
 
     def s_mDeriv(self, prob, time, v=None, adjoint=False):
-        return Zero()
+        return super(BaseTDEMSrc, self).s_mDeriv(prob, v, adjoint)
 
     def s_eDeriv(self, prob, time, v=None, adjoint=False):
-        return Zero()
+        return super(BaseTDEMSrc, self).s_eDeriv(prob, v, adjoint)
 
 
 class MagDipole(BaseTDEMSrc):
@@ -214,7 +267,9 @@ class MagDipole(BaseTDEMSrc):
     def _warn_non_axis_aligned_sources(self, change):
         value = change['value']
         axaligned = [
-            True for vec in [np.r_[1.,0.,0.], np.r_[0.,1.,0.], np.r_[0.,0.,1.]]
+            True for vec in [
+                np.r_[1., 0., 0.], np.r_[0., 1., 0.], np.r_[0., 0., 1.]
+            ]
             if np.all(value == vec)
         ]
         if len(axaligned) != 1:
@@ -260,21 +315,26 @@ class MagDipole(BaseTDEMSrc):
 
         if self.waveform.hasInitialFields is False:
             return Zero()
-
+            if prob._formulation == 'EB':
+                return np.zeros(prob.mesh.nF)
+            elif prob._formulation == 'HJ':
+                return np.zeros(
+                    np.count_nonzero(prob.mesh.vnE) * prob.mesh.nC
+                )
         return self._bSrc(prob)
 
     def hInitial(self, prob):
 
         if self.waveform.hasInitialFields is False:
             return Zero()
+            if prob._formulation == 'EB':
+                self._hInitial = np.zeros(
+                    np.count_nonzero(prob.mesh.vnF) * prob.mesh.nC
+                )
+            elif prob._formulation == 'HJ':
+                self._hInitial = np.zeros(prob.mesh.nE)
 
         return 1./self.mu * self._bSrc(prob)
-
-    def s_m(self, prob, time):
-        if self.waveform.hasInitialFields is False:
-            # raise NotImplementedError
-            return Zero()
-        return Zero()
 
     def s_e(self, prob, time):
         C = prob.mesh.edgeCurl
@@ -288,14 +348,13 @@ class MagDipole(BaseTDEMSrc):
                 # if time > 0.0:
                 #     return Zero()
                 if prob._fieldType == 'b':
-                    return Zero()
+                    return np.zeros(prob.mesh.nE)
                 elif prob._fieldType == 'e':
                     # Compute s_e from vector potential
                     return C.T * (MfMui * b)
             else:
                 # b = self._bfromVectorPotential(prob)
                 return C.T * (MfMui * b) * self.waveform.eval(time)
-        # return Zero()
 
         elif prob._formulation == 'HJ':
 
@@ -305,7 +364,7 @@ class MagDipole(BaseTDEMSrc):
                 # if time > 0.0:
                 #     return Zero()
                 if prob._fieldType == 'h':
-                    return Zero()
+                    return np.zeros(prob.mesh.nF)
                 elif prob._fieldType == 'j':
                     # Compute s_e from vector potential
                     return C * h
@@ -319,7 +378,6 @@ class CircularLoop(MagDipole):
     radius = properties.Float(
         "radius of the loop source", default=1., min=0.
     )
-    # waveform = None
     # loc = None
     # orientation = 'Z'
     # radius = None
@@ -346,14 +404,14 @@ class LineCurrent(BaseTDEMSrc):
     :param list rxList: receiver list
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
-    waveform = None
+    # waveform = None
     loc = None
     mu = mu_0
     srcType = "Galvanic"
 
     def __init__(self, rxList, **kwargs):
         self.integrate = False
-        BaseEMSrc.__init__(self, rxList, **kwargs)
+        BaseTDEMSrc.__init__(self, rxList, **kwargs)
 
     def Mejs(self, prob):
         if getattr(self, '_Mejs', None) is None:
@@ -364,8 +422,9 @@ class LineCurrent(BaseTDEMSrc):
             px = self.loc[:, 0]
             py = self.loc[:, 1]
             pz = self.loc[:, 2]
-            self._Mejs = getSourceTermLineCurrentPolygon(x0, hx, hy, hz,
-                                                         px, py, pz)
+            self._Mejs = getSourceTermLineCurrentPolygon(
+                x0, hx, hy, hz, px, py, pz
+            )
         return self._Mejs
 
     def getRHSdc(self, prob):
@@ -378,7 +437,7 @@ class LineCurrent(BaseTDEMSrc):
         if self.waveform.eval(0) == 1.:
             raise Exception("Not implemetned for computing b!")
         else:
-            return Zero()
+            return super(LineCurrent, self).bInitial(prob)
 
     def eInitial(self, prob):
         if self.waveform.hasInitialFields:
@@ -386,7 +445,7 @@ class LineCurrent(BaseTDEMSrc):
             soldc = prob.Adcinv * RHSdc
             return - prob.mesh.nodalGrad * soldc
         else:
-            return Zero()
+            return super(LineCurrent, self).eInitial(prob)
 
     def eInitialDeriv(self, prob, v=None, adjoint=False, f=None):
         if self.waveform.hasInitialFields:
@@ -401,10 +460,7 @@ class LineCurrent(BaseTDEMSrc):
                 edcDerivT = prob.getAdcDeriv(edc, vec, adjoint=adjoint)
                 return edcDerivT
         else:
-            return Zero()
-
-    def s_m(self, prob, time):
-        return Zero()
+            return super(LineCurrent, self).eInitialDeriv(prob, v, adjoint, f)
 
     def s_e(self, prob, time):
         return self.Mejs(prob) * self.waveform.eval(time)
