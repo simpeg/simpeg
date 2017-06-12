@@ -53,9 +53,9 @@ before_install:
 
 install:
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py vtk;
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy==0.12.1 scipy matplotlib cython ipython h5py vtk;
     else
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy==0.12.1 scipy matplotlib cython ipython h5py;
     fi
   - pip install -r requirements_dev.txt
   - python setup.py install
@@ -105,10 +105,12 @@ after_success:
     fi;
 
   #deploy to pypi
-  - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY -n "$TRAVIS_TAG"]; then
-      mv credentials/.pypirc ~/.pypirc ;
-      python setup.py bdist_wheel --universal ;
-      travis_wait 20 twine upload -r pypi --skip-existing dist/* ;
+  - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY ]; then
+      if [ "$TRAVIS_TAG" ]; then
+        mv credentials/.pypirc ~/.pypirc ;
+        python setup.py bdist_wheel --universal ;
+        travis_wait 20 twine upload -r pypi --skip-existing dist/* ;
+      fi
     fi
 
 notifications:

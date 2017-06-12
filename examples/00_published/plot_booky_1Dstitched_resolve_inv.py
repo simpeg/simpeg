@@ -123,8 +123,7 @@ def resolve_1Dinversions(
 
     # Inversion directives and parameters
     target = Directives.TargetMisfit()
-    beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=2)
-    inv = Inversion.BaseInversion(invProb, directiveList=[beta, target])
+    inv = Inversion.BaseInversion(invProb, directiveList=[target])
 
     invProb.beta = 2.   # Fix beta in the nonlinear iterations
     reg.alpha_s = 1e-3
