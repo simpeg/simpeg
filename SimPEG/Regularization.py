@@ -525,7 +525,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
     def _delta_m(self, m):
         if self.mref is None:
             return m
-        return (-self.mref + m)  # in case self.mref is Zero, returns type m
+        return (m - self.mref)  # in case self.mref is Zero, returns type m
 
     @Utils.timeIt
     def __call__(self, m):
@@ -667,7 +667,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         for fct in self.objfcts:
             if getattr(fct, 'mrefInSmooth', None) is not None:
                 if self.mrefInSmooth is False:
-                    fct.mref = Utils.Zero()
+                    fct.mref = np.zeros((self.nP,))
                 else:
                     fct.mref = change['value']
             else:
