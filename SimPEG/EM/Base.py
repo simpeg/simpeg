@@ -441,7 +441,7 @@ class BaseEMSrc(Survey.BaseSrc):
         :return: product of magnetic source term derivative with a vector
         """
         if adjoint is True:
-            return np.zeros_like(prob.model)
+            return np.zeros(len(prob.model))
 
         if prob._formulation == "EB":
             return np.zeros(prob.mesh.nF)
@@ -459,7 +459,7 @@ class BaseEMSrc(Survey.BaseSrc):
         :return: product of electric source term derivative with a vector
         """
         if adjoint is True:
-            return np.zeros_like(prob.model)
+            return np.zeros(len(prob.model))
 
         if prob._formulation == "EB":
             return np.zeros(prob.mesh.nE)
