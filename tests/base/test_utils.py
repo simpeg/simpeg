@@ -304,6 +304,8 @@ class TestSequenceFunctions(unittest.TestCase):
         assert len(np.where(indtopoCC)[0]) == 8729
         assert len(np.where(indtopoN)[0]) == 8212
 
+        os.remove(file2load)
+
 
 class TestDiagEst(unittest.TestCase):
 
