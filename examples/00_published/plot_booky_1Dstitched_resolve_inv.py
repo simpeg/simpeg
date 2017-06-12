@@ -1,7 +1,9 @@
 import numpy as np
 import cPickle as pickle
-from SimPEG import (Mesh, Maps, Utils, DataMisfit, Regularization,
-                    Optimization, Inversion, InvProblem, Directives)
+from SimPEG import (
+    Mesh, Maps, Utils, DataMisfit, Regularization,
+    Optimization, Inversion, InvProblem, Directives
+)
 import SimPEG.EM as EM
 import matplotlib.pyplot as plt
 from pymatsolver import PardisoSolver
@@ -9,13 +11,50 @@ from scipy.constants import mu_0
 import h5py
 from scipy.spatial import cKDTree
 
+"""
+Heagy et al., 2017 1D RESOLVE Bookpurnong Inversion
+===================================================
+
+In this example, perform a stitched 1D inversion of the Bookpurnong RESOLVE
+data. The original data can be downloaded from:
+`https://storage.googleapis.com/simpeg/bookpurnong/bookpurnong.tar.gz <https://storage.googleapis.com/simpeg/bookpurnong/bookpurnong.tar.gz>`_
+
+The forward simulation is performed on the cylindrically symmetric mesh using
+:code:`SimPEG.EM.FDEM`.
+
+Heagy, L.J., R. Cockett, S. Kang, G.K. Rosenkjaer, D.W. Oldenburg,
+2017 (in review), A framework for simulation and inversion in electromagnetics.
+Computers & Geosciences
+
+The paper is available at:
+https://arxiv.org/abs/1610.00804
+
+"""
+
 
 def resolve_1Dinversions(
     mesh, dobs, src_height, freqs, m0, mref, mapping,
     std=0.08, floor=1e-14, rxOffset=7.86
 ):
+    """
+    Perform a single 1D inversion for a RESOLVE sounding for Horizontal
+    Coplanar Coil data (both real and imaginary).
 
-    bzr = bzr = EM.FDEM.Rx.Point_bSecondary(
+    :param discretize.CylMesh mesh: mesh used for the forward simulation
+    :param numpy.array dobs: observed data
+    :param float src_height: height of the source above the ground
+    :param numpy.array freqs: frequencies
+    :param numpy.array m0: starting model
+    :param numpy.array mref: reference model
+    :param Maps.IdentityMap mapping: mapping that maps the model to electrical conductivity
+    :param float std: percent error used to construct the data misfit term
+    :param float floor: noise floor used to construct the data misfit term
+    :param float rxOffset: offset between source and receiver.
+    """
+
+    # ------------------- Forward Simulation ------------------- #
+    # set up the receivers
+    bzr = EM.FDEM.Rx.Point_bSecondary(
         np.array([[rxOffset, 0., src_height]]),
         orientation='z',
         component='real'
@@ -27,32 +66,49 @@ def resolve_1Dinversions(
         component='imag'
     )
 
+    # source location
     srcLoc = np.array([0., 0., src_height])
-    srcList = [EM.FDEM.Src.MagDipole([bzr, bzi], freq, srcLoc, orientation='Z')
-               for freq in freqs]
+    srcList = [
+        EM.FDEM.Src.MagDipole([bzr, bzi], freq, srcLoc, orientation='Z')
+        for freq in freqs
+    ]
 
+    # construct a forward simulation
     survey = EM.FDEM.Survey(srcList)
     prb = EM.FDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=PardisoSolver)
     prb.pair(survey)
+
+    # ------------------- Inversion ------------------- #
+    # data misfit term
     survey.dobs = dobs
     dmisfit = DataMisfit.l2_DataMisfit(survey)
     uncert = abs(dobs) * std + floor
     dmisfit.W = 1./uncert
+
+    # regularization
     regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
     reg = Regularization.Simple(regMesh)
     reg.mref = mref
+
+    # optimization
     opt = Optimization.InexactGaussNewton(maxIter=10)
+
+    # statement of the inverse problem
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
-    # Create an inversion object
+
+    # Inversion directives and parameters
     target = Directives.TargetMisfit()
     beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=2)
     inv = Inversion.BaseInversion(invProb, directiveList=[beta, target])
+
     invProb.beta = 2.   # Fix beta in the nonlinear iterations
     reg.alpha_s = 1e-3
     reg.alpha_x = 1.
     prb.counter = opt.counter = Utils.Counter()
     opt.LSshorten = 0.5
     opt.remember('xc')
+
+    # run the inversion
     mopt = inv.run(m0)
     return mopt, invProb.dpred, survey.dobs
 

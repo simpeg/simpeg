@@ -26,6 +26,27 @@ https://arxiv.org/abs/1610.00804
 """
 
 
+def download_and_unzip_data(
+    url = "https://storage.googleapis.com/simpeg/bookpurnong/bookpurnong_inversion.tar.gz"
+):
+    """
+    Download the data from the storage bucket, unzip the tar file, return
+    the directory where the data are
+    """
+    # download the data
+    downloads = Utils.download(url)
+
+    # directory where the downloaded files are
+    directory = downloads.split(".")[0]
+
+    # unzip the tarfile
+    tar = tarfile.open(downloads, "r")
+    tar.extractall()
+    tar.close()
+
+    return downloads, directory
+
+
 def save_dict_to_hdf5(fname, dictionary):
     """
     Save a dictionary to hdf5
@@ -48,17 +69,7 @@ def run(plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     :param bool cleanUp: remove the downloaded and saved data?
     """
 
-    # download the data
-    url = "https://storage.googleapis.com/simpeg/bookpurnong/bookpurnong_inversion.tar.gz"
-    downloads = Utils.download(url)
-
-    # directory where the downloaded files are
-    directory = downloads.split(".")[0]
-
-    # unzip the tarfile
-    tar = tarfile.open(downloads, "r")
-    tar.extractall()
-    tar.close()
+    downloads, directory = download_and_unzip_data()
 
     # data are in a directory inside bookpurnong_inversion
     data_directory = os.path.sep.join([directory, "bookpurnong_data"])
@@ -159,7 +170,7 @@ def run(plotIt=True, saveIt=False, saveFig=False, cleanup=True):
         plt.show()
 
     if saveFig:
-        fig.saveFig("bookpurnong_data.png")
+        fig.savefig("bookpurnong_data.png")
 
     cs, ncx, ncz, npad = 1., 10., 10., 20
     hx = [(cs, ncx), (cs, npad, 1.3)]
@@ -226,4 +237,4 @@ def run(plotIt=True, saveIt=False, saveFig=False, cleanup=True):
 
 
 if __name__ == '__main__':
-    run(plotIt=False, saveIt=True, cleanup=True)
+    run(plotIt=False, saveIt=True, cleanup=False)
