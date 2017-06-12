@@ -1,12 +1,3 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import h5py
-import tarfile
-import os
-import shutil
-from SimPEG import Utils, Mesh
-
-
 """
 Heagy et al., 2017 Load and Plot Bookpurnong Data
 =================================================
@@ -24,6 +15,14 @@ The paper is available at:
 https://arxiv.org/abs/1610.00804
 
 """
+
+import numpy as np
+import matplotlib.pyplot as plt
+import h5py
+import tarfile
+import os
+import shutil
+from SimPEG import Utils, Mesh
 
 
 def download_and_unzip_data(

@@ -1,18 +1,3 @@
-import numpy as np
-import h5py
-import tarfile
-import os
-import shutil
-import matplotlib.pyplot as plt
-from SimPEG import (
-    Mesh, Maps, Utils, DataMisfit, Regularization,
-    Optimization, Inversion, InvProblem, Directives
-)
-import SimPEG.EM as EM
-from pymatsolver import Pardiso as Solver
-from scipy.constants import mu_0
-import matplotlib
-
 """
 Heagy et al., 2017 1D RESOLVE and SkyTEM Bookpurnong Inversions
 ===============================================================
@@ -37,6 +22,22 @@ The paper is available at:
 https://arxiv.org/abs/1610.00804
 
 """
+
+import numpy as np
+import h5py
+import tarfile
+import os
+import shutil
+import matplotlib
+import matplotlib.pyplot as plt
+from scipy.constants import mu_0
+from pymatsolver import Pardiso as Solver
+
+from SimPEG import (
+    Mesh, Maps, Utils, DataMisfit, Regularization, Optimization, Inversion,
+    InvProblem, Directives
+)
+import SimPEG.EM as EM
 
 
 def download_and_unzip_data(

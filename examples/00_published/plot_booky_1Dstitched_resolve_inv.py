@@ -1,20 +1,3 @@
-import numpy as np
-import cPickle as pickle
-import matplotlib.pyplot as plt
-from pymatsolver import PardisoSolver
-from scipy.constants import mu_0
-import h5py
-import tarfile
-import os
-import shutil
-from scipy.spatial import cKDTree
-
-from SimPEG import (
-    Mesh, Maps, Utils, DataMisfit, Regularization,
-    Optimization, Inversion, InvProblem, Directives
-)
-import SimPEG.EM as EM
-
 """
 Heagy et al., 2017 1D RESOLVE Bookpurnong Inversion
 ===================================================
@@ -34,6 +17,24 @@ The paper is available at:
 https://arxiv.org/abs/1610.00804
 
 """
+
+import h5py
+import tarfile
+import os
+import shutil
+import numpy as np
+import cPickle as pickle
+import matplotlib.pyplot as plt
+
+from pymatsolver import PardisoSolver
+from scipy.constants import mu_0
+from scipy.spatial import cKDTree
+
+from SimPEG import (
+    Mesh, Maps, Utils, DataMisfit, Regularization,
+    Optimization, Inversion, InvProblem, Directives
+)
+import SimPEG.EM as EM
 
 
 def download_and_unzip_data(
