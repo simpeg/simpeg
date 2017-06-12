@@ -26,27 +26,22 @@ _Tinv = lambda h, k: np.matrix([[np.exp(-1j*k*h), 0.], [0., np.exp(1j*k*h)]], dt
 # Propagate Up and Down component for a certain frequency & evaluate E and H field
 def _Propagate(f, thickness, sig, chg, taux, c, mu_r, eps_r, n):
 
-    if isinstance(sig, float):
-        sigmodel = np.r_[sig]
-    else:
-        sigmodel = sig
-
     if isinstance(eps_r, float):
-        epsmodel = np.ones_like(sigmodel)*eps_r
+        epsmodel = np.ones_like(sig)*eps_r
     else:
         epsmodel = eps_r
 
     if isinstance(mu_r, float):
-        mumodel = np.ones_like(sigmodel)*mu_r
+        mumodel = np.ones_like(sig)*mu_r
     else:
         epsmodel = mu_r
 
-    sigcm = np.zeros_like(sigmodel, dtype='complex_')
+    sigcm = np.zeros_like(sig, dtype='complex_')
     if chg == 0. or taux == 0. or c == 0.:
-        sigcm = sigmodel
+        sigcm = sig
     else:
         for j in range(1, len(sigcm)):
-            sigcm[j] = _PCC(sigmodel[j], chg[j], taux[j], c[j], f)
+            sigcm[j] = _PCC(sig[j], chg[j], taux[j], c[j], f)
 
     sigcm = np.append(np.r_[0.], sigcm)
     mu = np.append(np.r_[1.], mumodel)*mu_0
@@ -72,7 +67,7 @@ def _Propagate(f, thickness, sig, chg, taux, c, mu_r, eps_r, n):
     return UD, EH, Z, K
 
 # Utils to compute the apparent impedance over a layered Earth Model
-def MT_LayeredEarth(freq, thickness, sig, nlayer, return_type='Res-Phase', chg=0., tau=0., c=0., mu_r=1., eps_r=1.):
+def MT_LayeredEarth(freq, thickness, sig, return_type='Res-Phase', chg=0., tau=0., c=0., mu_r=1., eps_r=1.):
     """
     This code compute the analytic response of a n-layered Earth to a plane wave (Magnetotellurics).
     The solution is first developed in Ward and Hohmann 1988.
@@ -80,7 +75,7 @@ def MT_LayeredEarth(freq, thickness, sig, nlayer, return_type='Res-Phase', chg=0
 
     :param freq: the frequency at which we take the measurements
     :type freq: float or numpy.array
-    :param thickness: thickness of the Earth layers in meters
+    :param thickness: thickness of the Earth layers in meters, size is len(sig)-1. The last one is already considered infinite. For 1-layer Earth, thickness = None or 0.
     :type thickness: float or numpy.array
     :param sig: electric conductivity of the Earth layers in S/m
     :type sig: float or numpy.array
@@ -100,12 +95,30 @@ def MT_LayeredEarth(freq, thickness, sig, nlayer, return_type='Res-Phase', chg=0
     else:
         F = freq
 
+    if isinstance(sig, float):
+        sigmodel = np.r_[sig]
+    else:
+        sigmodel = sig
+
+    if isinstance(thickness, float):
+        if thickness == 0.:
+            thickmodel = np.empty(0)
+        else:
+            thickmodel = np.r_[thickness]
+    elif thickness is None:
+        thickmodel = np.empty(0)
+    else:
+        thickmodel = thickness
+
+    # Count the number of layers
+    nlayer = len(sigmodel)
+
     Res = np.zeros_like(F)
     Phase = np.zeros_like(F)
     App_ImpZ = np.zeros_like(F, dtype='complex_')
 
     for i in range(0, len(F)):
-        _, EH, _, _ = _Propagate(F[i], thickness, sig, chg, tau, c, mu_r, eps_r, nlayer)
+        _, EH, _, _ = _Propagate(F[i], thickmodel, sigmodel, chg, tau, c, mu_r, eps_r, nlayer)
 
         App_ImpZ[i] = EH[0, 1]/EH[1, 1]
 
@@ -121,20 +134,30 @@ def MT_LayeredEarth(freq, thickness, sig, nlayer, return_type='Res-Phase', chg=0
 
 def _run():
 
-    nlayer = 2
-    F = np.r_[1e-5, 1e3]
-    H = 200.
-    sign = np.r_[0.1, 1.]
+    #nlayer=1
+    F0= 1.
+    H0 = None
+    H01 = 0.
+    sign0 = 0.1
 
-    nlayer1 = 3
-    F1 = 1e-3
-    H1 = np.r_[200., 50.]
-    sign1 = np.r_[0.01, 1., 0.1]
+    #nlayer = 2
+    F1 = np.r_[1e-5, 1e3]
+    H1 = 200.
+    sign1 = np.r_[0.1, 1.]
+
+    #nlayer1 = 3
+    F2 = 1e-3
+    H2 = np.r_[200., 50.]
+    sign2 = np.r_[0.01, 1., 0.1]
     fm = 'Impedance'
 
-    Res, Phase = AppImpedance_LayeredEarth(F, H, sign, nlayer)
+    Res, Phase = MT_LayeredEarth(F0, H0, sign0)
     print(Res, Phase)
-    appimp = AppImpedance_LayeredEarth(F1, H1, sign1, nlayer1, return_type=fm)
+    Res, Phase = MT_LayeredEarth(F0, H01, sign0)
+    print(Res, Phase)
+    Res, Phase = MT_LayeredEarth(F1, H1, sign1)
+    print(Res, Phase)
+    appimp = MT_LayeredEarth(F2, H2, sign2, return_type=fm)
     print(appimp)
 
 if __name__ == '__main__':
