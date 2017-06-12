@@ -70,6 +70,7 @@ def _Propagate(f, thickness, sig, chg, taux, c, mu_r, eps_r, n):
 def MT_LayeredEarth(freq, thickness, sig, return_type='Res-Phase', chg=0., tau=0., c=0., mu_r=1., eps_r=1.):
     """
     This code compute the analytic response of a n-layered Earth to a plane wave (Magnetotellurics).
+    All physical properties arrays convention describe the layers parameters from the top layer to the bottom layer.
     The solution is first developed in Ward and Hohmann 1988.
     See also http://em.geosci.xyz/content/maxwell3_fdem/natural_sources/MT_N_layered_Earth.html
 
