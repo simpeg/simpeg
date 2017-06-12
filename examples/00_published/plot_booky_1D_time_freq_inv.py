@@ -459,4 +459,4 @@ def run(plotIt=True, saveFig=False, cleanup=True):
         shutil.rmtree(directory)
 
 if __name__ == '__main__':
-    run(plotIt=False, saveFig=False, cleanup=True)
+    run(plotIt=True, saveFig=False, cleanup=True)
