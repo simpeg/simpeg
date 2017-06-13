@@ -286,17 +286,127 @@ class SaveModelEveryIteration(SaveEveryIteration):
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
 
+    header = None
+
     def initialize(self):
         print("SimPEG.SaveOutputEveryIteration will save your inversion progress as: '###-{0!s}.txt'".format(self.fileName))
         f = open(self.fileName+'.txt', 'w')
-        f.write("  #     beta     phi_d     phi_m       f\n")
+        self.header = "  #     beta     phi_d     phi_m   phi_m_small     phi_m_smoomth_x     phi_m_smoomth_y     phi_m_smoomth_z      f\n"
+        f.write(self.header)
         f.close()
 
     def endIter(self):
         f = open(self.fileName+'.txt', 'a')
-        f.write(' {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e}\n'.format(self.opt.iter, self.invProb.beta, self.invProb.phi_d, self.invProb.phi_m, self.opt.f))
+        phi_m_small = self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
+        phi_m_smoomth_x = self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
+        phi_m_smoomth_y = np.nan
+        phi_m_smoomth_z = np.nan
+
+        if self.reg.regmesh.dim == 2:
+            phi_m_smoomth_y = reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
+        elif self.reg.regmesh.dim == 3:
+            phi_m_smoomth_y = self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
+            phi_m_smoomth_z = self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
+
+        f.write(' {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e} {5:1.4e} {6:1.4e}  {7:1.4e}  {8:1.4e}\n'.format(
+            self.opt.iter,
+            self.invProb.beta,
+            self.invProb.phi_d,
+            self.invProb.phi_m,
+            phi_m_small,
+            phi_m_smoomth_x,
+            phi_m_smoomth_y,
+            phi_m_smoomth_z,
+            self.opt.f))
         f.close()
 
+    def load_results(self):
+        results = np.loadtxt(self.fileName+str(".txt"), comments="#")
+        self.iterations = results[:, 0]
+        self.beta = results[:, 1]
+        self.phi_d = results[:, 2]
+        self.phi_m = results[:, 3]
+        self.phi_m_small = results[:, 4]
+        self.phi_m_smooth_x = results[:, 5]
+        self.phi_m_smooth_y = results[:, 6]
+        self.phi_m_smooth_z = results[:, 7]
+
+        if self.reg.regmesh.dim == 1:
+            self.phi_m_smooth = self.phi_m_smooth_x.copy()
+        elif self.reg.regmesh.dim == 2:
+            self.phi_m_smooth = self.phi_m_smooth_x + self.phi_m_smooth_y
+        elif self.reg.regmesh.dim == 3:
+            self.phi_m_smooth = (
+                self.phi_m_smooth_x + self.phi_m_smooth_y + self.phi_m_smooth_z
+                )
+
+        self.f = results[:, 7]
+
+        self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
+        self.i_target = None
+
+        if self.invProb.phi_d < self.target_misfit:
+            i_target = 0
+            while self.phi_d[i_target] > self.target_misfit:
+                i_target += 1
+            self.i_target = i_target
+
+    def plot_misfit_curves(self, fname=None, plot_small_smooth=False):
+        fig = plt.figure(figsize=(5, 2))
+        ax = plt.subplot(111)
+        ax_1 = ax.twinx()
+        ax.semilogy(self.iterations, self.phi_d, 'k-', lw=2)
+        ax_1.semilogy(self.iterations, self.phi_m, 'r', lw=2)
+        if plot_small_smooth:
+            ax_1.semilogy(self.iterations, self.phi_m_small, 'ro')
+            ax_1.semilogy(self.iterations, self.phi_m_smooth, 'rx')
+            ax_1.legend(
+                ("$\phi_m$", "small", "smooth"), bbox_to_anchor=(1.5, 1.)
+                )
+
+        ax.plot(np.r_[ax.get_xlim()[0], ax.get_xlim()[1]], np.ones(2)*self.target_misfit, 'k:')
+        ax.set_xlabel("Iteration")
+        ax.set_ylabel("$\phi_d$")
+        ax_1.set_ylabel("$\phi_m$", color='r')
+        for tl in ax_1.get_yticklabels():
+            tl.set_color('r')
+        plt.show()
+
+
+    def plot_tikhonov_curves(self, fname=None, dpi=200):
+
+        fig = plt.figure(figsize = (5, 8))
+        ax1 = plt.subplot(311)
+        ax2 = plt.subplot(312)
+        ax3 = plt.subplot(313)
+
+        ax1.plot(self.beta, self.phi_d, 'k-', lw=2, ms=4)
+        ax1.set_xlim(self.beta.min(), self.beta.max())
+        ax1.set_xlabel("$\\beta$", fontsize = 14)
+        ax1.set_ylabel("$\phi_d$", fontsize = 14)
+
+        ax2.plot(self.beta, self.phi_m, 'k-', lw=2)
+        ax2.set_xlim(self.beta.min(), self.beta.max())
+        ax2.set_xlabel("$\\beta$", fontsize = 14)
+        ax2.set_ylabel("$\phi_m$", fontsize = 14)
+
+        ax3.plot(self.phi_m, self.phi_d, 'k-', lw=2)
+        ax3.set_xlim(self.phi_m.min(), self.phi_m.max())
+        ax3.set_xlabel("$\phi_m$", fontsize = 14)
+        ax3.set_ylabel("$\phi_d$", fontsize = 14)
+
+        if self.i_target is not None:
+            ax1.plot(self.beta[self.i_target], self.phi_d[self.i_target], 'k*', ms=10)
+            ax2.plot(self.beta[self.i_target], self.phi_m[self.i_target], 'k*', ms=10)
+            ax3.plot(self.phi_m[self.i_target], self.phi_d[self.i_target], 'k*', ms=10)
+
+        for ax in [ax1, ax2, ax3]:
+            ax.set_xscale("log")
+            ax.set_yscale("log")
+        plt.tight_layout()
+        plt.show()
+        if fname is not None:
+            fig.savefig(fname, dpi=dpi)
 
 class SaveOutputDictEveryIteration(SaveEveryIteration):
     """
