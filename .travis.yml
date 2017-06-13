@@ -22,6 +22,7 @@ env:
     - DEV_BRANCH=dev
     - DOCS_PY=2.7  # deploy docs from 2.7
     - PYPI_PY=3.6 # deploy to pypi from python 3.6
+
   matrix:
     - TEST_DIR=tests/em/fdem/inverse/derivs
     - TEST_DIR="tests/em/tdem tests/base"
@@ -72,7 +73,7 @@ after_success:
   - bash <(curl -s https://codecov.io/bash)
 
   # early exit if not on a deplotment branch
-  - if ! [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" -o "$TRAVIS_BRANCH" = "$DEV_BRANCH" -o "$TRAVIS_TAG" = "true" ]; then
+  - if ! [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" -o "$TRAVIS_BRANCH" = "$DEV_BRANCH" -n "$TRAVIS_TAG" ]; then
       echo "Not deploying (because this is not a deployment branch)" ;
       exit 0 ;
     fi
@@ -104,7 +105,7 @@ after_success:
     fi;
 
   #deploy to pypi
-  - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY -a "$TRAVIS_TAG" = "true" ]; then
+  - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY -n "$TRAVIS_TAG"]; then
       mv credentials/.pypirc ~/.pypirc ;
       python setup.py bdist_wheel --universal ;
       travis_wait 20 twine upload -r pypi --skip-existing dist/* ;
