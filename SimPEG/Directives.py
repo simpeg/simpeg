@@ -297,7 +297,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
     def endIter(self):
         f = open(self.fileName+'.txt', 'a')
-        phi_m_small = self.reg.objfcts[0](self.invProb.model)
+        phi_m_small = self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
         phi_m_smoomth_x = self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
         phi_m_smoomth_y = np.nan
         phi_m_smoomth_z = np.nan
@@ -326,9 +326,20 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.beta = results[:, 1]
         self.phi_d = results[:, 2]
         self.phi_m = results[:, 3]
-        self.phi_m_smooth_x = results[:, 4]
-        self.phi_m_smooth_y = results[:, 5]
-        self.phi_m_smooth_z = results[:, 6]
+        self.phi_m_small = results[:, 4]
+        self.phi_m_smooth_x = results[:, 5]
+        self.phi_m_smooth_y = results[:, 6]
+        self.phi_m_smooth_z = results[:, 7]
+
+        if self.reg.regmesh.dim == 1:
+            self.phi_m_smooth = self.phi_m_smooth_x.copy()
+        elif self.reg.regmesh.dim == 2:
+            self.phi_m_smooth = self.phi_m_smooth_x + self.phi_m_smooth_y
+        elif self.reg.regmesh.dim == 3:
+            self.phi_m_smooth = (
+                self.phi_m_smooth_x + self.phi_m_smooth_y + self.phi_m_smooth_z
+                )
+
         self.f = results[:, 7]
 
         self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
@@ -340,16 +351,27 @@ class SaveOutputEveryIteration(SaveEveryIteration):
                 i_target += 1
             self.i_target = i_target
 
-    def plot_misfit_curves(self, fname=None):
+    def plot_misfit_curves(self, fname=None, plot_small_smooth=False):
         fig = plt.figure(figsize=(5, 2))
         ax = plt.subplot(111)
         ax_1 = ax.twinx()
         ax.semilogy(self.iterations, self.phi_d, 'k-', lw=2)
         ax_1.semilogy(self.iterations, self.phi_m, 'r', lw=2)
+        if plot_small_smooth:
+            ax_1.semilogy(self.iterations, self.phi_m_small, 'ro')
+            ax_1.semilogy(self.iterations, self.phi_m_smooth, 'rx')
+            ax_1.legend(
+                ("$\phi_m$", "small", "smooth"), bbox_to_anchor=(1.5, 1.)
+                )
+
+        ax.plot(np.r_[ax.get_xlim()[0], ax.get_xlim()[1]], np.ones(2)*self.target_misfit, 'k:')
         ax.set_xlabel("Iteration")
-        ax.set_ylabel("Data misfit")
-        ax_1.set_ylabel("Regularization")
+        ax.set_ylabel("$\phi_d$")
+        ax_1.set_ylabel("$\phi_m$", color='r')
+        for tl in ax_1.get_yticklabels():
+            tl.set_color('r')
         plt.show()
+
 
     def plot_tikhonov_curves(self, fname=None, dpi=200):
 
