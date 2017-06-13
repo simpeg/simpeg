@@ -3,6 +3,7 @@ from . import Utils
 from . import Regularization, DataMisfit, ObjectiveFunction
 from . import Maps
 import numpy as np
+import matplotlib.pyplot as plt
 import warnings
 
 
