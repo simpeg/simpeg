@@ -236,4 +236,4 @@ def run(plotIt=True, saveIt=False, saveFig=False, cleanup=True):
 
 
 if __name__ == '__main__':
-    run(plotIt=False, saveIt=True, cleanup=False)
+    run(plotIt=True, saveIt=False, cleanup=False)
