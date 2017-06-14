@@ -14,6 +14,7 @@ import gc
 from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
 import properties
+from scipy.interpolate import griddata
 
 class MagneticIntegral(Problem.LinearProblem):
 
@@ -195,7 +196,10 @@ class MagneticIntegral(Problem.LinearProblem):
 
         else:
 
-            F = np.empty((self.nD, Mxyz.shape[1]), dtype=np.float32)
+            if recType != 'xyz':
+                F = np.empty((self.nD, Mxyz.shape[1]), dtype=np.float32)
+            else:
+                F = np.empty((3*self.nD, Mxyz.shape[1]), dtype=np.float32)
 
         # Loop through all observations and create forward operator (nD-by-nC)
         print("Begin forward: M=" + magType + ", Rx type= " + recType)
@@ -233,6 +237,11 @@ class MagneticIntegral(Problem.LinearProblem):
 
                 elif recType == 'z':
                     F[ii, :] = tz*Mxyz
+
+                elif recType == 'xyz':
+                    F[ii, :] = tx*Mxyz
+                    F[ii+self.nD, :] = ty*Mxyz
+                    F[ii+2*self.nD, :] = tz*Mxyz
                 else:
                     raise Exception('recType must be: "tmi", "x", "y" or "z"')
 
@@ -364,6 +373,7 @@ class MagneticAmplitude(MagneticIntegral):
     actInd = None  #: Active cell indices provided
     M = None  #: magType matrix provided, otherwise all induced
     magType = 'H0'  #: Option "H0", "x", "y", "z", "full" (for Joint)
+    recType = 'xyz'
     silent = False  # Don't display progress on screen
     scale = 1.
     W = None
@@ -486,11 +496,12 @@ class MagneticAmplitude(MagneticIntegral):
             if self.coordinate_system != 'suscEffective':
                 self.magType = 'full'
 
-            self._F = []
-            for rtype in ['x', 'y', 'z']:
-                self._F.append(self.Intrgl_Fwr_Op(magType=self.magType, recType=rtype))
+            # self._F = []
+            # for rtype in ['x', 'y', 'z']:
+            #     self._F.append(self.Intrgl_Fwr_Op(magType=self.magType, recType=rtype))
 
-            self._F = np.vstack(self._F)
+            # self._F = np.vstack(self._F)
+            self._F = self.Intrgl_Fwr_Op(magType=self.magType, recType=self.recType)
         return self._F
 
     @property
@@ -1365,7 +1376,7 @@ def writeUBCobs(filename, survey, d):
 
 def plot_obs_2D(rxLoc, d=None, title=None,
                 vmin=None, vmax=None, levels=None, fig=None, ax=None,
-                colorbar=True, marker=True, cmap="plasma_r"):
+                colorbar=True, marker=True, cmap="plasma_r", npts=100):
     """ Function plot_obs(rxLoc,d)
     Generate a 2d interpolated plot from scatter points of data
 
@@ -1406,8 +1417,8 @@ def plot_obs_2D(rxLoc, d=None, title=None,
 
 
         # Create grid of points
-        x = np.linspace(rxLoc[:, 0].min(), rxLoc[:, 0].max(), 100)
-        y = np.linspace(rxLoc[:, 1].min(), rxLoc[:, 1].max(), 100)
+        x = np.linspace(rxLoc[:, 0].min(), rxLoc[:, 0].max(), npts)
+        y = np.linspace(rxLoc[:, 1].min(), rxLoc[:, 1].max(), npts)
 
         X, Y = np.meshgrid(x, y)
 
@@ -1536,6 +1547,63 @@ def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
 
     return axs, im2, cbar
 
+
+def plotProfile(xyzd, a, b, npts, data=None,
+                fig=None, ax=None, plotStr='b.-',
+                coordinate_system='local'):
+    """
+    Plot the data and line profile inside the spcified limits
+    """
+    def linefun(x1, x2, y1, y2, nx, tol=1e-3):
+        dx = x2-x1
+        dy = y2-y1
+
+        if np.abs(dx) <= tol:
+            y = np.linspace(y1, y2, nx)
+            x = np.ones_like(y)*x1
+        elif np.abs(dy) <= tol:
+            x = np.linspace(x1, x2, nx)
+            y = np.ones_like(x)*y1
+        else:
+            x = np.linspace(x1, x2, nx)
+            slope = (y2-y1)/(x2-x1)
+            y = slope*(x-x1)+y1
+        return x, y
+
+    if fig is None:
+        fig = plt.figure(figsize=(6, 9))
+
+        plt.rcParams.update({'font.size': 14})
+
+    if ax is None:
+        ax = plt.subplot()
+
+    x, y = linefun(a[0], b[0], a[1], b[1], npts)
+    distance = np.sqrt((x-a[0])**2.+(y-a[1])**2.)
+    dline = griddata(xyzd[:, :2], xyzd[:, -1], (x, y), method='linear')
+
+    if coordinate_system == 'xProfile':
+        distance += a[0]
+    elif coordinate_system == 'yProfile':
+        distance += a[1]
+
+    ax.plot(distance, dline, plotStr)
+
+    if data is not None:
+        dline = griddata(xyzd[:, :2], data, (x, y), method='linear')
+        ax.plot(distance, dline, 'r.-')
+
+    ax.set_xlim(distance.min(), distance.max())
+
+    # ax.set_xlabel("Distance (m)")
+    # ax.set_ylabel("Magnetic field (nT)")
+
+    #ax.text(distance.min(), dline.max()*0.8, 'A', fontsize = 16)
+    # ax.text(distance.max()*0.97, out_linei.max()*0.8, 'B', fontsize = 16)
+    # ax.legend(("Observed", "Simulated"), bbox_to_anchor=(0.5, -0.3))
+    # ax.grid(True)
+
+    return ax
 
 def readMagneticsObservations(obs_file):
         """

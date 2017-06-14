@@ -322,9 +322,8 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
             # Save model
             if not isinstance(prob, Magnetics.MagneticVector):
 
-                print()
-                # Mesh.TensorMesh.writeModelUBC(reg.mesh,
-                #                               fileName + '.sus', self.mapping * xc)
+                Mesh.TensorMesh.writeModelUBC(reg.mesh,
+                                              fileName + '.sus', self.mapping * xc)
             else:
 
                 if prob.coordinate_system == 'spherical':
@@ -408,7 +407,8 @@ class Update_IRLS(InversionDirective):
     f_min_change = 1e-2
     beta_tol = 5e-2
     prctile = 95
-    chifact = 1.
+    chifact_start = 1.
+    chifact_target = 1.
 
     # Solving parameter for IRLS (mode:2)
     IRLSiter = 0
@@ -433,16 +433,33 @@ class Update_IRLS(InversionDirective):
             if isinstance(self.survey, list):
                 self._target = 0
                 for survey in self.survey:
-                    self._target += survey.nD*0.5*self.chifact
+                    self._target += survey.nD*0.5*self.chifact_target
 
             else:
 
-                self._target = self.survey.nD*0.5*self.chifact
+                self._target = self.survey.nD*0.5*self.chifact_target
         return self._target
 
     @target.setter
     def target(self, val):
         self._target = val
+
+    @property
+    def start(self):
+        if getattr(self, '_start', None) is None:
+            if isinstance(self.survey, list):
+                self._start = 0
+                for survey in self.survey:
+                    self._start += survey.nD*0.5*self.chifact_start
+
+            else:
+
+                self._start = self.survey.nD*0.5*self.chifact_start
+        return self._start
+
+    @start.setter
+    def start(self, val):
+        self._start = val
 
     def initialize(self):
 
@@ -483,15 +500,12 @@ class Update_IRLS(InversionDirective):
             reg.model = self.invProb.model
             phi_m_last += [reg(self.invProb.model)]
 
-
-
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
-        if np.all([self.invProb.phi_d < self.target, self.mode == 1]):
-            print("Convergence with smooth l2-norm regularization: Start IRLS steps...")
+        if np.all([self.invProb.phi_d < self.start,
+                   self.mode == 1]):
+            print("Reached starting chifact with l2-norm regularization: Start IRLS steps...")
 
             self.mode = 2
-            self.coolingFactor = 1.
-            self.coolingRate = 1
             self.iterStart = self.opt.iter
             self.phi_d_last = self.invProb.phi_d
             self.invProb.phi_m_last = self.reg(self.invProb.model)
@@ -523,13 +537,8 @@ class Update_IRLS(InversionDirective):
                 print("eps_p: " + str(reg.eps_p) +
                       " eps_q: " + str(reg.eps_q))
 
-        # Beta Schedule
-        if np.all([self.opt.iter > 0, self.opt.iter % self.coolingRate == 0]):
-            if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
-            self.invProb.beta /= self.coolingFactor
-
         # Only update after GN iterations
-        if np.all([(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode == 2]):
+        if np.all([(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode != 1]):
 
 
             # Check for maximum number of IRLS cycles
@@ -589,14 +598,25 @@ class Update_IRLS(InversionDirective):
                 for comp in reg.objfcts:
                     comp.gamma = gamma
 
+        # Beta Schedule
+        if np.all([self.invProb.phi_d < self.target,
+                   self.mode == 2]):
+            print("Target chifact overshooted, adjusting beta ...")
+            self.mode = 3
 
-            # Check if misfit is within the tolerance, otherwise scale beta
-            val = self.invProb.phi_d / self.target
+        if np.all([self.opt.iter > 0, self.opt.iter % self.coolingRate == 0,
+                   self.mode != 3]):
 
-            if np.all([np.abs(1.-val) > self.beta_tol, self.updateBeta]):
+            if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
+            self.invProb.beta /= self.coolingFactor
 
-                self.invProb.beta = (self.invProb.beta * self.target /
-                                     self.invProb.phi_d)
+        # Check if misfit is within the tolerance, otherwise scale beta
+        if np.all([np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol,
+                   self.updateBeta,
+                   self.mode == 3]):
+
+            self.invProb.beta = (self.invProb.beta * self.target /
+                                 self.invProb.phi_d)
 
     def regScale(self):
         """

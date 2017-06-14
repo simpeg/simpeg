@@ -35,40 +35,42 @@ def read_GOCAD_ts(tsfile):
     line = fid.readline()
 
     # Skip all the lines until the vertices
-    while re.match('TFACE', line) == None:
+    VRTX, TRGL = [], []
+    while re.match('END', line) == True:
         line = fid.readline()
 
-    line = fid.readline()
-    vrtx = []
-
-    # Run down all the vertices and save in array
-    while re.match('VRTX', line):
-        l_input = re.split('[\s*]', line)
-        temp = np.array(l_input[2:5])
-        vrtx.append(temp.astype(np.float))
-
-        # Read next line
+        if re.match('END', line) == True:
         line = fid.readline()
+        vrtx = []
 
-    vrtx = np.asarray(vrtx)
+        # Run down all the vertices and save in array
+        while re.match('VRTX', line):
+            l_input = re.split('[\s*]', line)
+            temp = np.array(l_input[2:5])
+            vrtx.append(temp.astype(np.float))
 
-    # Skip lines to the triangles
-    while re.match('TRGL', line) == None:
-        line = fid.readline()
+            # Read next line
+            line = fid.readline()
 
-    # Run down the list of triangles
-    trgl = []
+        vrtx = np.asarray(vrtx)
 
-    # Run down all the vertices and save in array
-    while re.match('TRGL', line):
-        l_input = re.split('[\s*]', line)
-        temp = np.array(l_input[1:4])
-        trgl.append(temp.astype(np.int))
+        # Skip lines to the triangles
+        while re.match('TRGL', line) == None:
+            line = fid.readline()
 
-        # Read next line
-        line = fid.readline()
+        # Run down the list of triangles
+        trgl = []
 
-    trgl = np.asarray(trgl)
+        # Run down all the vertices and save in array
+        while re.match('TRGL', line):
+            l_input = re.split('[\s*]', line)
+            temp = np.array(l_input[1:4])
+            trgl.append(temp.astype(np.int))
+
+            # Read next line
+            line = fid.readline()
+
+        trgl = np.asarray(trgl)
 
     return vrtx, trgl
 
