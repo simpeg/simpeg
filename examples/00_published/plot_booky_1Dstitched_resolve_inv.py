@@ -277,9 +277,9 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     ]
 
     temp = sigma[:, indz]
-    tree = cKDTree(zip(resolve["xy"][:, 0], resolve["xy"][:, 1]))
+    tree = cKDTree(list(zip(resolve["xy"][:, 0], resolve["xy"][:, 1])))
     d, d_inds = tree.query(
-        zip(resolve["xy"][:, 0], resolve["xy"][:, 1]), k=20
+        list(zip(resolve["xy"][:, 0], resolve["xy"][:, 1])), k=20
     )
     w = 1. / (d+100.)**2.
     w = Utils.sdiag(1./np.sum(w, axis=1)) * (w)
