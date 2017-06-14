@@ -21,6 +21,9 @@ Computers & Geosciences
 The paper is available at:
 https://arxiv.org/abs/1610.00804
 
+The script and figures are also on figshare:
+https://doi.org/10.6084/m9.figshare.5107711
+
 """
 
 import numpy as np
