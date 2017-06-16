@@ -6,10 +6,7 @@ python:
 
 sudo: false
 
-cache:
-  directories:
-    - $HOME/.cache/pip
-    - $HOME/tests/docs/_build
+cache: pip
 
 addons:
   apt:
@@ -31,8 +28,8 @@ env:
 
   matrix:
     - TEST_DIR=tests/em/fdem/inverse/derivs
-    - TEST_DIR="tests/em/tdem tests/base"
-    - TEST_DIR="tests/em/static tests/seis"
+    - TEST_DIR=tests/em/tdem
+    - TEST_DIR="tests/em/static tests/seis tests/base"
     - TEST_DIR=tests/flow
     - TEST_DIR="tests/em/nsem/forward tests/em/nsem/inversion"
     - TEST_DIR=tests/em/fdem/inverse/adjoint
