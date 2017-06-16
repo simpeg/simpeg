@@ -5,11 +5,7 @@ from SimPEG import EM
 import numpy as np
 
 import warnings
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
+from pymatsolver import Pardiso as Solver
 
 TOL = 1e-4
 FLR = 1e-20

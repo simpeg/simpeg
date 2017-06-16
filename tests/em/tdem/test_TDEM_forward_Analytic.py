@@ -5,12 +5,7 @@ from SimPEG import Mesh, Maps, SolverLU
 from SimPEG import EM
 from scipy.constants import mu_0
 import matplotlib.pyplot as plt
-
-try:
-    from pymatsolver import Pardiso
-    Solver = Pardiso
-except ImportError:
-    Solver = SolverLU
+from pymatsolver import Pardiso as Solver
 
 
 def halfSpaceProblemAnaDiff(
