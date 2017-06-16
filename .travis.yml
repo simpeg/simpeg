@@ -1,15 +1,15 @@
 language: python
 
-cache:
-  pip: true
-  directories:
-    - $HOME/tests/docs/_build
-
 python:
   - 3.6
   - 2.7
 
 sudo: false
+
+cache:
+  directories:
+    - $HOME/.cache/pip
+    - $HOME/tests/docs/_build
 
 addons:
   apt:
