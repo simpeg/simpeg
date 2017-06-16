@@ -1,7 +1,9 @@
 language: python
+cache: pip
 python:
   - 3.6
   - 2.7
+
 
 sudo: false
 
@@ -37,6 +39,9 @@ env:
       PATH=$PATH:${HOME}/google-cloud-sdk/bin;
       PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH};
       CLOUDSDK_CORE_DISABLE_PROMPTS=1
+
+cache:
+
 
 # Setup anaconda
 before_install:
