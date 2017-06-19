@@ -23,19 +23,20 @@ env:
     - PYPI_PY=3.6 # deploy to pypi from python 3.6
 
   matrix:
-    - TEST_DIR=tests/em/fdem/inverse/derivs
-    - TEST_DIR=tests/em/tdem
-    - TEST_DIR="tests/em/static tests/seis tests/base"
-    - TEST_DIR=tests/flow
-    - TEST_DIR="tests/em/nsem/forward tests/em/nsem/inversion"
-    - TEST_DIR=tests/em/fdem/inverse/adjoint
-    - TEST_DIR=tests/em/fdem/forward
-    - TEST_DIR=tests/pf
     - TEST_DIR=tests/docs;
       GAE_PYTHONPATH=${HOME}/.cache/google_appengine;
       PATH=$PATH:${HOME}/google-cloud-sdk/bin;
       PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH};
       CLOUDSDK_CORE_DISABLE_PROMPTS=1
+
+    # - TEST_DIR=tests/em/fdem/inverse/derivs
+    # - TEST_DIR=tests/em/tdem
+    # - TEST_DIR="tests/em/static tests/seis tests/base"
+    # - TEST_DIR=tests/flow
+    # - TEST_DIR="tests/em/nsem/forward tests/em/nsem/inversion"
+    # - TEST_DIR=tests/em/fdem/inverse/adjoint
+    # - TEST_DIR=tests/em/fdem/forward
+    # - TEST_DIR=tests/pf
 
 
 # Setup anaconda
@@ -59,6 +60,13 @@ install:
     fi
   - pip install -r requirements_dev.txt
   - python setup.py install
+  - if [ "$TEST_DIR" = "$DEPLOY_DIR" ]; then
+      openssl aes-256-cbc -K $encrypted_7e0a8632ac3f_key -iv $encrypted_7e0a8632ac3f_iv -in credentials.tar.gz.enc -out credentials.tar.gz -d ;
+      tar -xvzf credentials.tar.gz ;
+      gcloud auth activate-service-account --key-file credentials/client-secret-docs.json ;
+      gsutil cp gs://simpeg/_build.tar.gz ./docs/ ;
+      tar -xvzf ./docs/_build.tar.gz ;
+    fi
 
 # Run test
 script:
@@ -82,9 +90,6 @@ after_success:
       exit 0 ;
     fi
 
-  # unpack credentials
-  - openssl aes-256-cbc -K $encrypted_7e0a8632ac3f_key -iv $encrypted_7e0a8632ac3f_iv -in credentials.tar.gz.enc -out credentials.tar.gz -d
-  - tar -xvzf credentials.tar.gz
 
   # deploy docs
   - if [ $TRAVIS_PYTHON_VERSION == $DOCS_PY ]; then
@@ -93,6 +98,7 @@ after_success:
         gcloud auth activate-service-account --key-file credentials/client-secret.json ;
         export GAE_PROJECT=simpegdocs ;
       elif [ "$TRAVIS_BRANCH" = "$DEV_BRANCH" ]; then
+        gsutil cp docs/_build.tar.gz gs://simpeg ;
         gcloud auth activate-service-account --key-file credentials/client-secret-dev.json ;
         export GAE_PROJECT=simpeg-dev-docs ;
       fi ;
