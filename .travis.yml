@@ -68,6 +68,7 @@ install:
       gsutil cp gs://simpeg/_build.tar.gz ./docs/ ;
       mkdir ./docs/_build ;
       tar -xzf ./docs/_build.tar.gz -C ./docs/_build ;
+      ls ./docs/_build/ ;
     fi
 
 # Run test
