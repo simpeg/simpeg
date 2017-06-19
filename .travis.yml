@@ -67,7 +67,7 @@ install:
       gcloud auth activate-service-account --key-file credentials/client-secret-docs.json ;
       gsutil cp gs://simpeg/_build.tar.gz ../docs/ ;
       mkdir ../docs/_build ;
-      tar -xzf $PWD/docs/_build.tar.gz -C ../docs/_build ;
+      tar -xzf ../docs/_build.tar.gz -C ../docs/_build ;
       ls ../docs/_build/ ;
     fi
 
