@@ -1,7 +1,7 @@
 language: python
 
 python:
-  - 3.6
+  # - 3.6
   - 2.7
 
 sudo: false
@@ -66,7 +66,7 @@ install:
       tar -xvzf credentials.tar.gz ;
       gcloud auth activate-service-account --key-file credentials/client-secret-docs.json ;
       gsutil cp gs://simpeg/_build.tar.gz ./docs/ ;
-      tar -xvzf ./docs/_build.tar.gz ;
+      tar -xvzf ./docs/_build.tar.gz ./docs/;
     fi
 
 # Run test
