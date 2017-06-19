@@ -6,15 +6,11 @@ python:
 
 sudo: false
 
-cache: pip
-
 addons:
   apt:
     packages:
     - gcc
     - gfortran
-    - libopenmpi-dev
-    - libmumps-seq-dev
     - libblas-dev
     - liblapack-dev
 
@@ -63,10 +59,6 @@ install:
     fi
   - pip install -r requirements_dev.txt
   - python setup.py install
-  - python setup.py build_ext --inplace
-  - if [ ${TEST_DIR} = "tests/docs" ]; then
-      pip install sphinx_rtd_theme ;
-    fi
 
 # Run test
 script:
