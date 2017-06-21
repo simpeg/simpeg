@@ -289,36 +289,64 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
     header = None
 
+    beta = None
+    phi_d = None
+    phi_m = None
+    phi_m_small = None
+    phi_m_smooth_x = None
+    phi_m_smooth_y = None
+    phi_m_smooth_z = None
+    phi = None
+
     def initialize(self):
         print("SimPEG.SaveOutputEveryIteration will save your inversion progress as: '###-{0!s}.txt'".format(self.fileName))
         f = open(self.fileName+'.txt', 'w')
-        self.header = "  #     beta     phi_d     phi_m   phi_m_small     phi_m_smoomth_x     phi_m_smoomth_y     phi_m_smoomth_z      f\n"
+        self.header = "  #     beta     phi_d     phi_m   phi_m_small     phi_m_smoomth_x     phi_m_smoomth_y     phi_m_smoomth_z      phi\n"
         f.write(self.header)
         f.close()
+
+        self.beta = []
+        self.phi_d = []
+        self.phi_m = []
+        self.phi_m_small = []
+        self.phi_m_smooth_x = []
+        self.phi_m_smooth_y = []
+        self.phi_m_smooth_z = []
+        self.phi = []
 
     def endIter(self):
         f = open(self.fileName+'.txt', 'a')
         phi_m_small = self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
-        phi_m_smoomth_x = self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
-        phi_m_smoomth_y = np.nan
-        phi_m_smoomth_z = np.nan
+        phi_m_smooth_x = self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
+        phi_m_smooth_y = np.nan
+        phi_m_smooth_z = np.nan
 
         if self.reg.regmesh.dim == 2:
-            phi_m_smoomth_y = reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
+            phi_m_smooth_y = reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
         elif self.reg.regmesh.dim == 3:
-            phi_m_smoomth_y = self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
-            phi_m_smoomth_z = self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
+            phi_m_smooth_y = self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
+            phi_m_smooth_z = self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
+
+        self.beta.append(self.invProb.beta)
+        self.phi_d.append(self.invProb.phi_d)
+        self.phi_m.append(self.invProb.phi_m)
+        self.phi_m_small.append(phi_m_small)
+        self.phi_m_smooth_x.append(phi_m_smooth_x)
+        self.phi_m_smooth_y.append(phi_m_smooth_y)
+        self.phi_m_smooth_z.append(phi_m_smooth_z)
+        self.phi.append(self.opt.f)
 
         f.write(' {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e} {5:1.4e} {6:1.4e}  {7:1.4e}  {8:1.4e}\n'.format(
             self.opt.iter,
-            self.invProb.beta,
-            self.invProb.phi_d,
-            self.invProb.phi_m,
-            phi_m_small,
-            phi_m_smoomth_x,
-            phi_m_smoomth_y,
-            phi_m_smoomth_z,
-            self.opt.f))
+            self.beta[self.opt.iter-1],
+            self.phi_d[self.opt.iter-1],
+            self.phi_m[self.opt.iter-1],
+            self.phi_m_small[self.opt.iter-1],
+            self.phi_m_smooth_x[self.opt.iter-1],
+            self.phi_m_smooth_y[self.opt.iter-1],
+            self.phi_m_smooth_z[self.opt.iter-1],
+            self.phi[self.opt.iter-1]
+        ))
         f.close()
 
     def load_results(self):
