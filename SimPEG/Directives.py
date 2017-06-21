@@ -288,7 +288,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
 
     header = None
-    save_txt = False
+    save_txt = True
 
     beta = None
     phi_d = None
