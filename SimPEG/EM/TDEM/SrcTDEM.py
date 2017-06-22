@@ -136,7 +136,10 @@ class BaseTDEMSrc(BaseEMSrc):
 
     waveformPair = BaseWaveform  #: type of waveform to pair with
     waveform = None  #: source waveform
-    srcType = None
+    srcType = properties.StringChoice(
+        "is the source a galvanic of inductive source",
+        choices=["inductive", "galvanic"],
+    )
 
     def __init__(self, rxList, **kwargs):
         super(BaseTDEMSrc, self).__init__(rxList, **kwargs)
@@ -219,11 +222,10 @@ class MagDipole(BaseTDEMSrc):
     )
     mu = properties.Float(
         "permeability of the background", default=mu_0, min=0.
-        )
+    )
     orientation = properties.Vector3(
         "orientation of the source", default='Z', length=1., required=True
     )
-    srcType = "Inductive"
 
     def __init__(self, rxList, **kwargs):
         # assert(self.orientation in ['X', 'Y', 'Z']), (
@@ -231,13 +233,15 @@ class MagDipole(BaseTDEMSrc):
         #     " in SrcUtils should take care of this..."
         #     )
         # self.integrate = False
-        BaseTDEMSrc.__init__(self, rxList, **kwargs)
+        BaseTDEMSrc.__init__(self, rxList, srcType="inductive", **kwargs)
 
     @properties.validator('orientation')
     def _warn_non_axis_aligned_sources(self, change):
         value = change['value']
         axaligned = [
-            True for vec in [np.r_[1.,0.,0.], np.r_[0.,1.,0.], np.r_[0.,0.,1.]]
+            True for vec in [
+                np.r_[1., 0., 0.], np.r_[0., 1., 0.], np.r_[0., 0., 1.]
+            ]
             if np.all(value == vec)
         ]
         if len(axaligned) != 1:
@@ -361,7 +365,7 @@ class CircularLoop(MagDipole):
         #     " in SrcUtils should take care of this..."
         #     )
         # self.integrate = False
-        BaseTDEMSrc.__init__(self, rxList, **kwargs)
+        super(CircularLoop, self).__init__(rxList, **kwargs)
 
     def _srcFct(self, obsLoc, component):
         return MagneticLoopVectorPotential(
@@ -379,11 +383,11 @@ class LineCurrent(BaseTDEMSrc):
     waveform = None
     loc = None
     mu = mu_0
-    srcType = "Galvanic"
+    # srcType = "Galvanic"
 
     def __init__(self, rxList, **kwargs):
         self.integrate = False
-        BaseEMSrc.__init__(self, rxList, **kwargs)
+        super(LineCurrent, self).__init__(rxList, srcType="galvanic", **kwargs)
 
     def Mejs(self, prob):
         if getattr(self, '_Mejs', None) is None:
@@ -394,8 +398,9 @@ class LineCurrent(BaseTDEMSrc):
             px = self.loc[:, 0]
             py = self.loc[:, 1]
             pz = self.loc[:, 2]
-            self._Mejs = getSourceTermLineCurrentPolygon(x0, hx, hy, hz,
-                                                         px, py, pz)
+            self._Mejs = getSourceTermLineCurrentPolygon(
+                x0, hx, hy, hz, px, py, pz
+            )
         return self._Mejs
 
     def getRHSdc(self, prob):
@@ -403,7 +408,7 @@ class LineCurrent(BaseTDEMSrc):
         return Grad.T*self.Mejs(prob)
 
     # TODO: Need to implement solving MMR for this when
-    # StepOffwaveforme is used.
+    # StepOffwaveform is used.
     def bInitial(self, prob):
         if self.waveform.eval(0) == 1.:
             raise Exception("Not implemetned for computing b!")
@@ -417,6 +422,12 @@ class LineCurrent(BaseTDEMSrc):
             return - prob.mesh.nodalGrad * soldc
         else:
             return Zero()
+
+    def jInitial(self, prob):
+        raise NotImplementedError
+
+    def hInitial(self, prob):
+        raise NotImplementedError
 
     def eInitialDeriv(self, prob, v=None, adjoint=False, f=None):
         if self.waveform.hasInitialFields:
@@ -438,3 +449,51 @@ class LineCurrent(BaseTDEMSrc):
 
     def s_e(self, prob, time):
         return self.Mejs(prob) * self.waveform.eval(time)
+
+
+# TODO: this should be generalized and plugged into getting the Line current
+# on faces
+class RawVec_Grounded(BaseTDEMSrc):
+
+    mu = properties.Float(
+        "permeability of the background", default=mu_0, min=0.
+    )
+
+    def __init__(self, rxList, s_e, **kwargs):
+        self.integrate = False
+        self._s_e = s_e
+        super(RawVec_Grounded, self).__init__(
+            rxList, srcType="galvanic", **kwargs
+        )
+
+    def getRHSdc(self, prob):
+        return Utils.sdiag(prob.mesh.vol) * prob.mesh.faceDiv * self._s_e
+
+    def phiInitial(self, prob):
+        if self.waveform.hasInitialFields:
+            RHSdc = self.getRHSdc(prob)
+            return prob.Adcinv * RHSdc
+        else:
+            return Zero()
+
+    def jInitial(self, prob):
+        if prob._fieldType != 'j':
+            raise NotImplementedError
+
+        if self.waveform.hasInitialFields:
+            phi = self.phiInitial(prob)
+            Div = Utils.sdiag(prob.mesh.vol) * prob.mesh.faceDiv
+            return - prob.MfRhoI * (Div.T * phi)
+
+        else:
+            return Zero()
+
+    def s_e(self, prob, time):
+        return self._s_e * self.waveform.eval(time)
+
+
+
+
+
+
+
