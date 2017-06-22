@@ -115,7 +115,7 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
 
 
     def test_Problem3D_CC_Dirchlet(self):
-        problem = DC.Problem3D_CC(self.mesh, sigma=self.sigma, bc_type = 'Dirchlet')
+        problem = DC.Problem3D_CC(self.mesh, sigma=self.sigma, bc_type = 'Dirichlet')
         problem.Solver = Solver
         problem.pair(self.survey)
         data = self.survey.dpred()
