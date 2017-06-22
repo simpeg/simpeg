@@ -16,11 +16,10 @@ from scipy.interpolate import UnivariateSpline
 from scipy.constants import mu_0
 from scipy.spatial import cKDTree
 
-
 import properties
+from discretize.Tests import checkDerivative
 
 from . import Utils
-from .Tests import checkDerivative
 
 
 class IdentityMap(object):
