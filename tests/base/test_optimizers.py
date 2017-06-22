@@ -6,7 +6,7 @@ from SimPEG.Utils import sdiag
 import numpy as np
 import scipy.sparse as sp
 from SimPEG import Optimization
-from SimPEG.Tests import getQuadratic, Rosenbrock
+from discretize.Tests import getQuadratic, Rosenbrock
 
 TOL = 1e-2
 

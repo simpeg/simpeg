@@ -2,6 +2,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 import discretize as Mesh
+from discretize import Tests
 
 from . import Maps
 from . import Models

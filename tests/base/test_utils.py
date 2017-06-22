@@ -11,7 +11,7 @@ from SimPEG.Utils import (
     download, surface2ind_topo
 )
 from SimPEG import Mesh
-from SimPEG.Tests import checkDerivative
+from discretize.Tests import checkDerivative
 
 
 TOL = 1e-8
