@@ -483,6 +483,138 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
     fid.close()
 
 
+def writeUBC_DClocs(fileName, DCsurvey, dim, formatType, iptype=0):
+    """
+       Write UBC GIF DCIP 2D or 3D locations file
+
+       :param string fileName: including path where the file is written out
+       :param Survey DCsurvey: DC survey class object
+       :param string dim:  either '2D' | '3D'
+       :param string surveyType:  either 'SURFACE' | 'GENERAL'
+       :rtype: file
+       :return: UBC 2D/3D-locations file
+    """
+
+    assert (dim == '2D') | (dim == '3D'), "Data must be either '2D' | '3D'"
+
+    assert ((formatType == 'SURFACE') |
+           (formatType == 'GENERAL') |
+           (formatType == 'SIMPLE')), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
+
+    fid = open(fileName, 'w')
+
+    if iptype != 0:
+        fid.write('IPTYPE=%i\n' % iptype)
+
+    else:
+        fid.write('! ' + formatType + ' FORMAT\n')
+
+    fid.close()
+
+    count = 0
+
+    for ii in range(DCsurvey.nSrc):
+
+        tx = np.c_[DCsurvey.srcList[ii].loc.copy()]
+
+        if np.shape(tx)[0] == 3:
+            surveyType = 'pole-dipole'
+
+        else:
+            surveyType = 'dipole-dipole'
+
+        rx = DCsurvey.srcList[ii].rxList[0].locs
+
+        nD = DCsurvey.srcList[ii].nD
+
+        M = rx[0].copy()
+        N = rx[1].copy()
+
+        # Adapt source-receiver location for dim and surveyType
+        if dim == '2D':
+
+            if formatType == 'SIMPLE':
+
+                # fid.writelines("%e " % ii for ii in Utils.mkvc(tx[0, :]))
+                A = np.repeat(tx[0,0], M.shape[0], axis=0)
+
+                if surveyType == 'pole-dipole':
+                    B = np.repeat(tx[0,0], M.shape[0], axis=0)
+
+                else:
+                    B = np.repeat(tx[1,0], M.shape[0], axis=0)
+
+                M = M[:, 0]
+                N = N[:, 0]
+
+                fid = open(fileName, 'ab')
+                np.savetxt(fid, np.c_[A, B, M, N], delimiter=' ', newline='\n')
+                fid.close()
+
+            else:
+                fid = open(fileName, 'a')
+                if formatType == 'SURFACE':
+
+                    fid.writelines("%f " % ii for ii in Utils.mkvc(tx[0, :]))
+                    M = M[:, 0]
+                    N = N[:, 0]
+
+                if formatType == 'GENERAL':
+
+                    # Flip sign for z-elevation to depth
+                    tx[2::2, :] = -tx[2::2, :]
+
+                    fid.writelines("%e " % ii for ii in Utils.mkvc(tx[::2, :]))
+                    M = M[:, 0::2]
+                    N = N[:, 0::2]
+
+                    # Flip sign for z-elevation to depth
+                    M[:, 1::2] = -M[:, 1::2]
+                    N[:, 1::2] = -N[:, 1::2]
+
+                fid.write('%i\n'% nD)
+                fid.close()
+
+                fid = open(fileName, 'ab')
+                np.savetxt(fid, np.c_[M, N], delimiter=' ', newline='\n')
+
+        if dim == '3D':
+            fid = open(fileName, 'a')
+            # Flip sign of z value for UBC DCoctree code
+            tx[:,2] = -tx[:, 2]
+            # print(tx)
+
+            # Flip sign of z value for UBC DCoctree code
+            M[:, 2] = -M[:, 2]
+            N[:, 2] = -N[:, 2]
+
+            if formatType == 'SURFACE':
+
+                fid.writelines("%e " % ii for ii in Utils.mkvc(tx[:, 0:2].T))
+                M = M[:, 0:2]
+                N = N[:, 0:2]
+
+            if formatType == 'GENERAL':
+
+                fid.writelines("%e " % ii for ii in Utils.mkvc(tx.T))
+
+            fid.write('%i\n'% nD)
+
+            fid.close()
+
+            fid = open(fileName, 'ab')
+            np.savetxt(fid, np.c_[M, N], fmt='%e', delimiter=' ', newline='\n')
+            fid.close()
+
+            fid = open(fileName, 'a')
+            fid.write('\n')
+            fid.close()
+
+        count += nD
+
+    fid.close()
+
+
 def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
     """
         Read DC survey and projects the coordinate system
