@@ -370,7 +370,6 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
     def load_results(self):
         results = np.loadtxt(self.fileName+str(".txt"), comments="#")
-        self.iterations = results[:, 0]
         self.beta = results[:, 1]
         self.phi_d = results[:, 2]
         self.phi_m = results[:, 3]
@@ -400,14 +399,24 @@ class SaveOutputEveryIteration(SaveEveryIteration):
             self.i_target = i_target
 
     def plot_misfit_curves(self, fname=None, plot_small_smooth=False):
+
+        self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
+        self.i_target = None
+
+        if self.invProb.phi_d < self.target_misfit:
+            i_target = 0
+            while self.phi_d[i_target] > self.target_misfit:
+                i_target += 1
+            self.i_target = i_target
+
         fig = plt.figure(figsize=(5, 2))
         ax = plt.subplot(111)
         ax_1 = ax.twinx()
-        ax.semilogy(self.iterations, self.phi_d, 'k-', lw=2)
-        ax_1.semilogy(self.iterations, self.phi_m, 'r', lw=2)
+        ax.semilogy(np.arange(len(self.phi_d)), self.phi_d, 'k-', lw=2)
+        ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m, 'r', lw=2)
         if plot_small_smooth:
-            ax_1.semilogy(self.iterations, self.phi_m_small, 'ro')
-            ax_1.semilogy(self.iterations, self.phi_m_smooth, 'rx')
+            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m_small, 'ro')
+            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m_smooth, 'rx')
             ax_1.legend(
                 ("$\phi_m$", "small", "smooth"), bbox_to_anchor=(1.5, 1.)
                 )
@@ -420,8 +429,16 @@ class SaveOutputEveryIteration(SaveEveryIteration):
             tl.set_color('r')
         plt.show()
 
-
     def plot_tikhonov_curves(self, fname=None, dpi=200):
+
+        self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
+        self.i_target = None
+
+        if self.invProb.phi_d < self.target_misfit:
+            i_target = 0
+            while self.phi_d[i_target] > self.target_misfit:
+                i_target += 1
+            self.i_target = i_target
 
         fig = plt.figure(figsize = (5, 8))
         ax1 = plt.subplot(311)
@@ -429,17 +446,17 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         ax3 = plt.subplot(313)
 
         ax1.plot(self.beta, self.phi_d, 'k-', lw=2, ms=4)
-        ax1.set_xlim(self.beta.min(), self.beta.max())
+        ax1.set_xlim(np.hstack(self.beta).min(), np.hstack(self.beta).max())
         ax1.set_xlabel("$\\beta$", fontsize = 14)
         ax1.set_ylabel("$\phi_d$", fontsize = 14)
 
         ax2.plot(self.beta, self.phi_m, 'k-', lw=2)
-        ax2.set_xlim(self.beta.min(), self.beta.max())
+        ax2.set_xlim(np.hstack(self.beta).min(), np.hstack(self.beta).max())
         ax2.set_xlabel("$\\beta$", fontsize = 14)
         ax2.set_ylabel("$\phi_m$", fontsize = 14)
 
         ax3.plot(self.phi_m, self.phi_d, 'k-', lw=2)
-        ax3.set_xlim(self.phi_m.min(), self.phi_m.max())
+        ax3.set_xlim(np.hstack(self.phi_m).min(), np.hstack(self.phi_m).max())
         ax3.set_xlabel("$\phi_m$", fontsize = 14)
         ax3.set_ylabel("$\phi_d$", fontsize = 14)
 
