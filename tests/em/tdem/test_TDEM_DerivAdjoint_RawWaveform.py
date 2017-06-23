@@ -1,15 +1,10 @@
 from __future__ import division, print_function
 import unittest
 import numpy as np
-from SimPEG import Mesh, Maps, SolverLU, Tests
+from SimPEG import Mesh, Maps, Tests
 from SimPEG import EM
 from scipy.interpolate import interp1d
-
-try:
-    from pymatsolver import PardisoSolver
-    Solver = PardisoSolver
-except ImportError:
-    Solver = SolverLU
+from pymatsolver import Pardiso as Solver
 
 plotIt = False
 

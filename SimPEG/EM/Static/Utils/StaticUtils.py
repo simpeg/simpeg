@@ -9,7 +9,7 @@ from SimPEG import Utils, Mesh
 from SimPEG.EM.Static import DC
 
 
-def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appConductivity", clim=None, scale="linear", sameratio=True):
+def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appConductivity", clim=None, scale="linear", sameratio=True, pcolorOpts={}):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
@@ -141,7 +141,7 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
 
     grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
     ph = plt.pcolormesh(grid_x[:, 0], grid_z[0, :], grid_rho.T,
-                        clim=(vmin, vmax), vmin=vmin, vmax=vmax)
+                        clim=(vmin, vmax), vmin=vmin, vmax=vmax, **pcolorOpts)
 
     if scale == "log":
         cbar = plt.colorbar(format="$10^{%.1f}$",
