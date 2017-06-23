@@ -289,7 +289,6 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
     header = None
     save_txt = True
-
     beta = None
     phi_d = None
     phi_m = None
