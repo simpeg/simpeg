@@ -123,10 +123,11 @@ class BaseProblem(Props.HasModel):
     deleteTheseOnModelUpdate = []
 
     @properties.observer('model')
-    def _on_model_update(self, value):
-        for prop in self.deleteTheseOnModelUpdate:
-            if hasattr(self, prop):
-                delattr(self, prop)
+    def _on_model_update(self, change):
+        if self.model is None or not np.allclose(self.model, change['value']):
+            for prop in self.deleteTheseOnModelUpdate:
+                if hasattr(self, prop):
+                    delattr(self, prop)
 
     @property
     def ispaired(self):
