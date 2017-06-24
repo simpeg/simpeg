@@ -151,7 +151,8 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
         def derChk(m):
             return [
-                self.probfwd.survey.dpred(m), lambda mx: self.prob.Jvec(m, mx)
+                self.probfwd.survey.dpred(m),
+                lambda mx: self.prob.Jvec(self.m, mx, f=self.fields)
             ]
         print('test_Jvec_{prbtype}_{rxcomp}'.format(
             prbtype=self.formulation, rxcomp=rxcomp)
@@ -168,8 +169,8 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
         m = np.random.rand(self.prob.sigmaMap.nP)
         d = np.random.randn(self.prob.survey.nD)
-        V1 = d.dot(self.prob.Jvec(self.m, m))
-        V2 = m.dot(self.prob.Jtvec(self.m, d))
+        V1 = d.dot(self.prob.Jvec(self.m, m, f=self.fields))
+        V2 = m.dot(self.prob.Jtvec(self.m, d, f=self.fields))
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
         passed = np.abs(V1-V2) < tol
 
