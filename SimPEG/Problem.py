@@ -124,12 +124,17 @@ class BaseProblem(Props.HasModel):
 
     @properties.observer('model')
     def _on_model_update(self, change):
-        if self.model is change['value']:
-            pass
-        if self.model is None or not np.allclose(self.model, change['value']):
-            for prop in self.deleteTheseOnModelUpdate:
-                if hasattr(self, prop):
-                    delattr(self, prop)
+        if change['previous'] is change['value']:
+            return
+        if (
+            not isinstance(change['previous'], properties.utils.Sentinel) and
+            change['value'] is not None and
+            np.allclose(change['previous'], change['value'])
+        ):
+            return
+        for prop in self.deleteTheseOnModelUpdate:
+            if hasattr(self, prop):
+                delattr(self, prop)
 
     @property
     def ispaired(self):
