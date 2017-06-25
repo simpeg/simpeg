@@ -93,8 +93,9 @@ def get_prob(mesh, mapping, formulation):
 
 
 def get_survey():
-    src = EM.TDEM.Src.MagDipole([], loc=np.array([0., 0., 0.]))
-    return EM.TDEM.Survey([src])
+    src1 = EM.TDEM.Src.MagDipole([], loc=np.array([0., 0., 0.]))
+    src2 = EM.TDEM.Src.MagDipole([], loc=np.array([0., 0., 8.]))
+    return EM.TDEM.Survey([src1, src2])
 
 
 # ====== TEST Jvec ========== #
