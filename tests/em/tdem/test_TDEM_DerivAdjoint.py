@@ -16,45 +16,6 @@ TOL = 1e-4
 
 np.random.seed(10)
 
-# # ====== TEST Fields Deriv Pieces ========== #
-
-#     def test_eDeriv_m_adjoint(self):
-#         prb, m0, mesh = setUp_TDEM()
-#         tInd = 0
-
-#         v = np.random.rand(mesh.nF)
-
-#         print ('\n Testing eDeriv_m Adjoint')
-
-#         prb, m0, mesh = setUp_TDEM()
-#         f = prb.fields(m0)
-
-#         m = np.random.rand(prb.sigmaMap.nP)
-#         e = np.random.randn(prb.mesh.nE)
-#         V1 = e.dot(f._eDeriv_m(1, prb.survey.srcList[0], m))
-#         V2 = m.dot(f._eDeriv_m(1, prb.survey.srcList[0], e, adjoint=True))
-#         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
-#         passed = np.abs(V1-V2) < tol
-
-#         print ('    ', V1, V2, np.abs(V1-V2), tol, passed)
-#         self.assertTrue(passed)
-
-#     def test_eDeriv_u_adjoint(self):
-#         print ('\n Testing eDeriv_u Adjoint')
-
-#         prb, m0, mesh = setUp_TDEM()
-#         f = prb.fields(m0)
-
-#         b = np.random.rand(prb.mesh.nF)
-#         e = np.random.randn(prb.mesh.nE)
-#         V1 = e.dot(f._eDeriv_u(1, prb.survey.srcList[0], b))
-#         V2 = b.dot(f._eDeriv_u(1, prb.survey.srcList[0], e, adjoint=True))
-#         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
-#         passed = np.abs(V1-V2) < tol
-
-#         print ('    ', V1, V2, np.abs(V1-V2), tol, passed)
-#         self.assertTrue(passed)
-
 
 def get_mesh():
     cs = 5.
@@ -177,6 +138,46 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
         print('    {v1} {v2} {passed}'.format(
             prbtype=self.formulation, v1=V1, v2=V2, passed=passed))
+        self.assertTrue(passed)
+
+
+class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
+
+    formulation = 'b'
+
+    def test_eDeriv_m_adjoint(self):
+        tInd = 0
+
+        prb = self.prob
+        f = self.fields
+        v = np.random.rand(prb.mesh.nF)
+
+        print ('\n Testing eDeriv_m Adjoint')
+
+        m = np.random.rand(len(self.m))
+        e = np.random.randn(prb.mesh.nE)
+        V1 = e.dot(f._eDeriv_m(1, prb.survey.srcList[0], m))
+        V2 = m.dot(f._eDeriv_m(1, prb.survey.srcList[0], e, adjoint=True))
+        tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
+        passed = np.abs(V1-V2) < tol
+
+        print ('    ', V1, V2, np.abs(V1-V2), tol, passed)
+        self.assertTrue(passed)
+
+    def test_eDeriv_u_adjoint(self):
+        print ('\n Testing eDeriv_u Adjoint')
+
+        prb = self.prob
+        f = self.fields
+
+        b = np.random.rand(prb.mesh.nF)
+        e = np.random.randn(prb.mesh.nE)
+        V1 = e.dot(f._eDeriv_u(1, prb.survey.srcList[0], b))
+        V2 = b.dot(f._eDeriv_u(1, prb.survey.srcList[0], e, adjoint=True))
+        tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
+        passed = np.abs(V1-V2) < tol
+
+        print ('    ', V1, V2, np.abs(V1-V2), tol, passed)
         self.assertTrue(passed)
 
 
