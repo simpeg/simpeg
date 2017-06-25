@@ -63,10 +63,8 @@ def run(plotIt=True, cleanAfterRun=True):
     wd = survey.std
 
     # Get the active cells
-    print("finding active cells")
     active = driver.activeCells
     nC = len(active)  # Number of active cells
-    print("done")
 
     # Create active map to go from reduce set to full
     activeMap = Maps.InjectActiveCells(mesh, active, -100)
