@@ -18,18 +18,18 @@ np.random.seed(10)
 
 
 def get_mesh():
-    cs = 5.
-    ncx = 8
-    ncy = 8
-    ncz = 8
-    npad = 4
+    cs = 10.
+    ncx = 4
+    ncy = 4
+    ncz = 4
+    npad = 2
     # hx = [(cs, ncx), (cs, npad, 1.3)]
     # hz = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
     return Mesh.TensorMesh(
         [
-            [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)],
-            [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)],
-            [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
+            [(cs, npad, -1.5), (cs, ncx), (cs, npad, 1.5)],
+            [(cs, npad, -1.5), (cs, ncy), (cs, npad, 1.5)],
+            [(cs, npad, -1.5), (cs, ncz), (cs, npad, 1.5)]
         ], 'CCC'
     )
 
