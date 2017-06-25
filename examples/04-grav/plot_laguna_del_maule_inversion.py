@@ -13,6 +13,7 @@ Craig Miller
 """
 import os
 import shutil
+import tarfile
 import SimPEG.PF as PF
 from SimPEG import Maps, Regularization, Optimization, DataMisfit,\
                    InvProblem, Directives, Inversion
@@ -24,15 +25,16 @@ import numpy as np
 def run(plotIt=True, cleanAfterRun=True):
 
     # Start by downloading files from the remote repository
-    url = "https://storage.googleapis.com/simpeg/Chile_GRAV_4_Miller/"
-    cloudfiles = [
-        'LdM_grav_obs.grv', 'LdM_mesh.mesh',
-        'LdM_topo.topo', 'LdM_input_file.inp'
-    ]
+    # directory where the downloaded files are
 
-    # Download to Downloads/SimPEGtemp
-    basePath = os.path.expanduser('~/Downloads/simpegtemp')
-    download([url+f for f in cloudfiles], folder=basePath, overwrite=True)
+    url = "https://storage.googleapis.com/simpeg/Chile_GRAV_4_Miller/Chile_GRAV_4_Miller.tar.gz"
+    downloads = download(url, overwrite=True)
+    basePath = downloads.split(".")[0]
+
+    # unzip the tarfile
+    tar = tarfile.open(downloads, "r")
+    tar.extractall()
+    tar.close()
 
     input_file = basePath + os.path.sep + 'LdM_input_file.inp'
     # %% User input
@@ -61,8 +63,10 @@ def run(plotIt=True, cleanAfterRun=True):
     wd = survey.std
 
     # Get the active cells
+    print("finding active cells")
     active = driver.activeCells
     nC = len(active)  # Number of active cells
+    print("done")
 
     # Create active map to go from reduce set to full
     activeMap = Maps.InjectActiveCells(mesh, active, -100)
