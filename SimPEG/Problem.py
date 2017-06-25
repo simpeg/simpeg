@@ -127,8 +127,8 @@ class BaseProblem(Props.HasModel):
         if change['previous'] is change['value']:
             return
         if (
-            not isinstance(change['previous'], properties.utils.Sentinel) and
-            change['value'] is not None and
+            isinstance(change['previous'], np.ndarray) and
+            isinstance(change['value'], np.ndarray) and
             np.allclose(change['previous'], change['value'])
         ):
             return
