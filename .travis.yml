@@ -67,10 +67,10 @@ install:
       gsutil cp gs://simpeg/_build.tar.gz $PWD/docs ;
       gsutil cp gs://simpeg/examples.tar.gz $PWD/docs/content ;
       cd docs ;
-      tar -xvzf _build.tar.gz ;
+      tar -xzf _build.tar.gz ;
       cd content ;
-      tar -xvzf examples.tar.gz ;
-      cd .. ;
+      tar -xzf examples.tar.gz ;
+      cd ../../ ;
     fi
 
 # Run test
@@ -79,9 +79,9 @@ script:
   - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "3" ]; then
       cd docs; make html-noplot ; cd ../;
     else
-      cd docs; make html; cd ..;
-      tar -cvzf _build.tar.gz docs/_build ;
-      tar -cvzf examples.tar.gz docs/content/examples ;
+      cd docs; make html ; cd ../;
+      tar -czf _build.tar.gz docs/_build ;
+      tar -czf examples.tar.gz docs/content/examples ;
       gsutil cp _build.tar.gz gs://simpeg ;
       gsutil cp examples.tar.gz gs://simpeg ;
     fi
