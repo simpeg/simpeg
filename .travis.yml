@@ -78,8 +78,10 @@ script:
   - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "3" ]; then
       cd docs; make html-noplot ; cd ../;
     else
-      nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
+      cd docs; make html; cd ..;
     fi
+    # nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
+
 # Calculate coverage
 after_success:
   - bash <(curl -s https://codecov.io/bash)
