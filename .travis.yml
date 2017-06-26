@@ -79,6 +79,10 @@ script:
       cd docs; make html-noplot ; cd ../;
     else
       cd docs; make html; cd ..;
+      tar -cvzf _build.tar.gz docs/_build ;
+      tar -cvzf examples.tar.gz docs/content/examples ;
+      gsutil cp _build.tar.gz gs://simpeg ;
+      gsutil cp examples.tar.gz gs://simpeg ;
     fi
     # nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
 
