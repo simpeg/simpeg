@@ -65,9 +65,11 @@ install:
       tar -xzf credentials.tar.gz ;
       gcloud auth activate-service-account --key-file credentials/client-secret-docs.json ;
       gsutil cp gs://simpeg/_build.tar.gz $PWD/docs/ ;
+      gsutil cp gs://simpeg/examples.tar.gz $PWD/docs/content/examples/ ;
       ls $PWD ;
       mkdir $PWD/docs/_build ;
       tar -xzf $PWD/docs/_build.tar.gz -C $PWD/docs/_build ;
+      tar -xzf $PWD/docs/content/examples/examples.tar.gz -C $PWD/docs/content/examples
       ls $PWD/docs/_build/ ;
     fi
 
@@ -78,7 +80,10 @@ script:
       cd docs; make html-noplot ; cd ../;
     else
       nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
-      gsutil cp docs/_build.tar.gz gs://simpeg ;
+      tar --exclude=index.rst -cvzf _build.tar.gz docs/_build
+      tar --exclude=index.rst -cvzf examples.tar.gz docs/content/examples
+      gsutil cp _build.tar.gz gs://simpeg ;
+      gsutil cp examples.tar.gz gs://simpeg ;
     fi
 # Calculate coverage
 after_success:
