@@ -1,0 +1,319 @@
+
+ BOOKPURNONG SKYTEM SURVEY: RAW LOCATED EM DATA
+
+
+ Survey Specifications:
+
+    Date flown/compiled       02 - 05 November 2006
+    Area name                 Bookpurnong, SA
+    EM system                 SkyTEM
+    Datum                     GDA94/MGA Zone 54
+    Description		      Survey flown at production altitude in both high and low Tx moment modes
+
+
+ System Geometry:
+
+    The nominal transmitter-receiver geometry is:
+
+       transmitter terrain clearance = 30 metres
+
+       vertical (z) component receiver coil: 12.40 m behind and 2.09 m above Tx loop centre (in-loop)
+       z-component receiver terrain clearance (nominal): 32.09 m
+       z-component receiver effective area: 31.4 m^2
+
+       horizontal in-line (x) component receiver coil: 13.69 m behind and 0.0 m above Tx loop centre (in-loop)
+       x-component receiver terrain clearance (nominal): 30 m
+       x-component receiver effective area: 31.4 m^2
+
+
+ Electromagnetic System:
+
+    SkyTEM is a time-domain electromagnetic system, capable of operating in a dual transmitter mode:
+
+	- Low moment mode where low current, high base frequency and fast switch off provide early time data for shallow imaging;
+	- High moment mode, where a higher current and lower base frequency provides high quality late time data for deep imaging.
+
+    It is important to note that the two modes run sequentially, (although the low moment mode only uses one Tx turn).
+    The exact sequencing can be digitally programmed to trade off vertical versus horizontal resolution for specific applications.
+    The system can thus be used in either the low or high moment mode, or in this combined (dual) mode.
+
+    Transmitter base frequency: 	25 Hz in high moment mode (half period 20 ms; nominal Tx on-time 10 ms; off-time 10 ms);
+                                        222.22 Hz in low moment mode (half period 2.25 ms; nominal Tx on-time 0.8 ms; off-time 1.45 ms)
+
+    Transmitter waveform:		Bipolar
+
+					A piecewise linear approximation to a half cycle of the 222.22 Hz high moment current waveform is given below:
+
+
+					Time (ms)       Current (% of peak)
+					-0.80            0
+					-0.77         	20
+					-0.75        	40
+					-0.71         	60
+					-0.64		80
+					-0.58		90
+					-0.51		95
+					-0.40		99.04
+					-0.30		100
+					 0.00		100
+					 0.00289	0.6
+                                         0.00348	0.2
+					 0.00406	0.0
+					 1.45000	0.0
+
+
+
+
+					A piecewise linear approximation to a half cycle of the 25 Hz high moment current waveform is given below:
+
+
+					Time (ms)       Current (% of peak)
+					-10             0
+					-9.29         	20
+					-8.41        	40
+					-7.26		60
+                                        -5.28		80
+					-3.62		90
+					-2.33		95
+					-0.62		99
+					 0.00		100
+					 0.0266		1.53
+					 0.0276		0.566
+					 0.0286		0.000
+                                         10.000		0.000
+
+
+    Tx area:				313.98 m^2
+    Number of Tx turns:			4 in high moment mode; 1 in low moment mode
+    Peak current:                       90 A in high moment mode; 40 A in low moment mode (typical)
+    Tx turn-off time:                   29 microseconds in high moment mode; 4 microseconds in low moment mode
+
+
+
+    Receiver window times are measured from the START of the Tx current turn-off:
+
+    In low Tx moment mode, the 20 window times (in seconds) are:
+
+SkyTEM
+Window  Window centre  	Window start  	Window width
+No	sec		sec		sec
+2  	118e-7  	1.01E-05 	3.70E-06
+3  	181e-7   	1.65E-05 	3.70E-06
+4  	246e-7   	2.29E-05 	3.70E-06
+5  	310e-7   	2.93E-05 	3.70E-06
+6  	374e-7   	3.57E-05 	3.70E-06
+7  	470e-7   	4.19E-05 	1.01E-05
+8  	598e-7   	5.47E-05 	1.01E-05
+9  	726e-7   	6.75E-05 	1.01E-05
+10  	886e-7   	8.03E-05 	1.65E-05
+11 	1118e-7  	1.01E-04 	2.13E-05
+12 	1454e-7   	1.30E-04 	3.06E-05
+13 	1852e-7   	1.66E-04 	3.34E-05
+14 	2344e-7   	2.10E-04 	4.70E-05
+15 	2952e-7   	2.64E-04 	5.66E-05
+16 	3706e-7   	3.31E-04 	7.90E-05
+17 	4644e-7   	4.15E-04 	9.78E-05
+18 	5814e-7   	5.19E-04 	1.22E-04
+19 	7278e-7   	6.49E-04 	1.58E-04
+20 	9112e-7   	8.12E-04 	1.94E-04
+21 	11170e-7   	1.02E-03 	2.46E-04
+
+
+    In high Tx moment mode, the times (in seconds) for the 24 windows are:
+
+SkyTEM
+Window  Window centre  	Window start  	Window width
+No	sec		sec		sec
+7  	470e-7   	4.19E-05 	1.01E-05
+8  	598e-7   	5.47E-05 	1.01E-05
+9  	726e-7   	6.75E-05 	1.01E-05
+10  	886e-7   	8.03E-05 	1.65E-05
+11  	1118e-7   	1.01E-04 	2.13E-05
+12 	1454e-7   	1.30E-04 	3.06E-05
+13 	1852e-7   	1.66E-04 	3.34E-05
+14 	2344e-7   	2.10E-04 	4.70E-05
+15 	2952e-7   	2.64E-04 	5.66E-05
+16 	3706e-7   	3.31E-04 	7.90E-05
+17 	4644e-7   	4.15E-04 	9.78E-05
+18 	5814e-7   	5.19E-04 	1.22E-04
+19 	7278e-7   	6.49E-04 	1.58E-04
+20 	9112e-7   	8.12E-04 	1.94E-04
+21 	11170e-7   	1.02E-03 	2.46E-04
+22 	14292E-7   	1.27E-03 	3.10E-04
+23 	17912E-7   	1.59E-03 	3.93E-04
+24 	22460E-7   	2.00E-03 	5.02E-04
+25 	28174E-7   	2.50E-03 	6.29E-04
+26 	35356E-7   	3.14E-03 	7.92E-04
+27 	44388E-7   	3.94E-03 	9.97E-04
+28 	55750E-7   	4.94E-03 	1.26E-03
+29 	7.00E-03   	6.21E-03 	1.59E-03
+30 	8.80E-03   	7.80E-03 	2.00E-03
+
+
+
+ Measured data:
+
+    Vertical and horizontal in-line components of dB/dt.
+
+    The received voltage is averaged over the windows listed above, and then normalised by the
+    Rx effective area, Tx current, Tx area and number of turns to yield units of V/(A.turns.m^4).
+
+    Data have NOT been corrected for Tx inclination.
+
+    Laser altimeter data HAVE been corrected for Tx inclination
+
+
+
+ Lines:
+
+    Data from Bookpurnong is contained in tab-delimited ASCII files
+
+ Files:
+    SK655CS_Bookpurnong_ZX_LM_final.txt contains production survey data in low Tx moment mode
+    SK655CS_Bookpurnong_ZX_HM_final.txt contains production survey data in high Tx moment mode
+
+
+
+ Located Data Format:
+
+    Each file has a single text header line, followed by combined line data for the vertical and horizontal in-line components.
+
+    Each file is written in a tab-delimited ascii format :-
+
+    The file format for the high Tx moment data (SK655CS_Bookpurnong_ZX_HM_final.txt) is:
+
+      Col  Variable                				Units
+
+        1  Fiducial              				N/A
+        2  Line number                 				N/A
+        3  Date of start of measurement	             		N/A (GMT)
+        4  Time of start of measurement				HH:MM:SS.S (GMT - 24 hr clock)
+        5  Date of end of measurement	             		N/A (GMT)
+        6  Time of end of measurement				HH:MM:SS.S (GMT)
+        7  System clock						N/A
+        8  Number of stacks          				N/A
+        9  Tilt angle in in-line direction			degrees - nose up +ve
+        10 Tilt angle perpendicular to in-line direction	degrees - starboard side up +ve
+	11 Altitude (laser altimeter)				metres
+	12 Peak Tx current					Amperes
+        13 Northing (GDA94/MGA54)         			metres
+        14 Easting  (GDA94/MGA54)         			metres
+        15 DGPS Altitude                                        metres
+        16 Digital terrain model (= GPS Alt - Laser Alt)	metres
+        17 Groundspeed						km/h
+        18 z-component dB/dt data, Window 7			V/(A.turns.m^4)
+        19 z-component dB/dt data, Window 8			V/(A.turns.m^4)
+        20 z-component dB/dt data, Window 9			V/(A.turns.m^4)
+        21 z-component dB/dt data, Window 10			V/(A.turns.m^4)
+        22 z-component dB/dt data, Window 11			V/(A.turns.m^4)
+        23 z-component dB/dt data, Window 12			V/(A.turns.m^4)
+        24 z-component dB/dt data, Window 13			V/(A.turns.m^4)
+        25 z-component dB/dt data, Window 14			V/(A.turns.m^4)
+        26 z-component dB/dt data, Window 15			V/(A.turns.m^4)
+        27 z-component dB/dt data, Window 16			V/(A.turns.m^4)
+        28 z-component dB/dt data, Window 17			V/(A.turns.m^4)
+        29 z-component dB/dt data, Window 18			V/(A.turns.m^4)
+        30 z-component dB/dt data, Window 19			V/(A.turns.m^4)
+        31 z-component dB/dt data, Window 20			V/(A.turns.m^4)
+        32 z-component dB/dt data, Window 21			V/(A.turns.m^4)
+        33 z-component dB/dt data, Window 22			V/(A.turns.m^4)
+        34 z-component dB/dt data, Window 23			V/(A.turns.m^4)
+        35 z-component dB/dt data, Window 24			V/(A.turns.m^4)
+        36 z-component dB/dt data, Window 25			V/(A.turns.m^4)
+        37 z-component dB/dt data, Window 26			V/(A.turns.m^4)
+        38 z-component dB/dt data, Window 27			V/(A.turns.m^4)
+        39 z-component dB/dt data, Window 28			V/(A.turns.m^4)
+        40 z-component dB/dt data, Window 29			V/(A.turns.m^4)
+        41 z-component dB/dt data, Window 30			V/(A.turns.m^4)
+        42 x-component dB/dt data, Window 7			V/(A.turns.m^4)
+        43 x-component dB/dt data, Window 8			V/(A.turns.m^4)
+        44 x-component dB/dt data, Window 9			V/(A.turns.m^4)
+        45 x-component dB/dt data, Window 10			V/(A.turns.m^4)
+        46 x-component dB/dt data, Window 11			V/(A.turns.m^4)
+        47 x-component dB/dt data, Window 12			V/(A.turns.m^4)
+        48 x-component dB/dt data, Window 13			V/(A.turns.m^4)
+        49 x-component dB/dt data, Window 14			V/(A.turns.m^4)
+        50 x-component dB/dt data, Window 15			V/(A.turns.m^4)
+        51 x-component dB/dt data, Window 16			V/(A.turns.m^4)
+        52 x-component dB/dt data, Window 17			V/(A.turns.m^4)
+        53 x-component dB/dt data, Window 18			V/(A.turns.m^4)
+        54 x-component dB/dt data, Window 19			V/(A.turns.m^4)
+        55 x-component dB/dt data, Window 20			V/(A.turns.m^4)
+        56 x-component dB/dt data, Window 21			V/(A.turns.m^4)
+        57 x-component dB/dt data, Window 22			V/(A.turns.m^4)
+        58 x-component dB/dt data, Window 23			V/(A.turns.m^4)
+        59 x-component dB/dt data, Window 24			V/(A.turns.m^4)
+        60 x-component dB/dt data, Window 25			V/(A.turns.m^4)
+        61 x-component dB/dt data, Window 26			V/(A.turns.m^4)
+        62 x-component dB/dt data, Window 27			V/(A.turns.m^4)
+        63 x-component dB/dt data, Window 28			V/(A.turns.m^4)
+        64 x-component dB/dt data, Window 29			V/(A.turns.m^4)
+        65 x-component dB/dt data, Window 30			V/(A.turns.m^4)
+
+
+
+    The file format for the low Tx moment data (SK655CS_Bookpurnong_ZX_LM_final.txt) is:
+
+      Col  Variable                				Units
+
+        1  Fiducial              				N/A
+        2  Line number                 				N/A
+        3  Date of start of measurement	             		N/A (GMT)
+        4  Time of start of measurement				HH:MM:SS.S (GMT - 24 hr clock)
+        5  Date of end of measurement	             		N/A (GMT)
+        6  Time of end of measurement				HH:MM:SS.S (GMT)
+        7  System clock						N/A
+        8  Number of stacks          				N/A
+        9  Tilt angle in in-line direction			degrees - nose up +ve
+        10 Tilt angle perpendicular to in-line direction	degrees - starboard side up +ve
+	11 Altitude (laser altimeter)				metres
+	12 Peak Tx current					Amperes
+        13 Northing (GDA94/MGA54)         			metres
+        14 Easting  (GDA94/MGA54)         			metres
+        15 DGPS Altitude                                        metres
+        16 Digital terrain model (= GPS Alt - Laser Alt)	metres
+        17 Groundspeed						km/h
+        18 z-component dB/dt data, Window 2			V/(A.turns.m^4)
+        19 z-component dB/dt data, Window 3			V/(A.turns.m^4)
+        20 z-component dB/dt data, Window 4			V/(A.turns.m^4)
+        21 z-component dB/dt data, Window 5			V/(A.turns.m^4)
+        22 z-component dB/dt data, Window 6			V/(A.turns.m^4)
+        23 z-component dB/dt data, Window 7			V/(A.turns.m^4)
+        24 z-component dB/dt data, Window 8			V/(A.turns.m^4)
+        25 z-component dB/dt data, Window 9			V/(A.turns.m^4)
+        26 z-component dB/dt data, Window 10			V/(A.turns.m^4)
+        27 z-component dB/dt data, Window 11			V/(A.turns.m^4)
+        28 z-component dB/dt data, Window 12			V/(A.turns.m^4)
+        29 z-component dB/dt data, Window 13			V/(A.turns.m^4)
+        30 z-component dB/dt data, Window 14			V/(A.turns.m^4)
+        31 z-component dB/dt data, Window 15			V/(A.turns.m^4)
+        32 z-component dB/dt data, Window 16			V/(A.turns.m^4)
+        33 z-component dB/dt data, Window 17			V/(A.turns.m^4)
+        34 z-component dB/dt data, Window 18			V/(A.turns.m^4)
+        35 z-component dB/dt data, Window 19			V/(A.turns.m^4)
+        36 z-component dB/dt data, Window 20			V/(A.turns.m^4)
+        37 z-component dB/dt data, Window 21			V/(A.turns.m^4)
+        38 x-component dB/dt data, Window 2			V/(A.turns.m^4)
+        39 x-component dB/dt data, Window 3			V/(A.turns.m^4)
+        40 x-component dB/dt data, Window 4			V/(A.turns.m^4)
+        41 x-component dB/dt data, Window 5			V/(A.turns.m^4)
+        42 x-component dB/dt data, Window 6			V/(A.turns.m^4)
+        43 x-component dB/dt data, Window 7			V/(A.turns.m^4)
+        44 x-component dB/dt data, Window 8			V/(A.turns.m^4)
+        45 x-component dB/dt data, Window 9			V/(A.turns.m^4)
+        46 x-component dB/dt data, Window 10			V/(A.turns.m^4)
+        47 x-component dB/dt data, Window 11			V/(A.turns.m^4)
+        48 x-component dB/dt data, Window 12			V/(A.turns.m^4)
+        49 x-component dB/dt data, Window 13			V/(A.turns.m^4)
+        50 x-component dB/dt data, Window 14			V/(A.turns.m^4)
+        51 x-component dB/dt data, Window 15			V/(A.turns.m^4)
+        52 x-component dB/dt data, Window 16			V/(A.turns.m^4)
+        53 x-component dB/dt data, Window 17			V/(A.turns.m^4)
+        54 x-component dB/dt data, Window 18			V/(A.turns.m^4)
+        55 x-component dB/dt data, Window 19			V/(A.turns.m^4)
+        56 x-component dB/dt data, Window 20			V/(A.turns.m^4)
+        57 x-component dB/dt data, Window 21			V/(A.turns.m^4)
+
+
+
+
