@@ -64,9 +64,9 @@ install:
       openssl aes-256-cbc -K $encrypted_7e0a8632ac3f_key -iv $encrypted_7e0a8632ac3f_iv -in credentials.tar.gz.enc -out credentials.tar.gz -d ;
       tar -xzf credentials.tar.gz ;
       gcloud auth activate-service-account --key-file credentials/client-secret-docs.json ;
-      gsutil cp gs://simpeg/_build.tar.gz . ;
-      gsutil cp gs://simpeg/examples.tar.gz . ;
-      ls $PWD ;
+      gsutil cp gs://simpeg/_build.tar.gz $PWD/ ;
+      gsutil cp gs://simpeg/examples.tar.gz $PWD/ ;
+      ls $PWD/ ;
       mkdir $PWD/docs/_build ;
       tar -xzf $PWD/_build.tar.gz -C $PWD/docs/_build ;
       tar -xzf $PWD/examples.tar.gz -C $PWD/docs/content/examples
