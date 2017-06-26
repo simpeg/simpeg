@@ -68,6 +68,7 @@ install:
       gsutil cp gs://simpeg/examples.tar.gz $PWD/ ;
       mkdir $PWD/docs/_build ;
       tar -xzf $PWD/_build.tar.gz -C $PWD/docs/_build ;
+      mkdir $PWD/docs/examples ;
       tar -xzf $PWD/examples.tar.gz -C $PWD/docs/content/examples ;
     fi
 
@@ -79,7 +80,7 @@ script:
     else
       nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
       tar -cvzf _build.tar.gz docs/_build ;
-      tar --exclude=index.rst -cvzf examples.tar.gz docs/content/examples ;
+      tar -cvzf examples.tar.gz docs/content/examples ;
       gsutil cp _build.tar.gz gs://simpeg ;
       gsutil cp examples.tar.gz gs://simpeg ;
     fi
