@@ -68,8 +68,8 @@ install:
       gsutil cp gs://simpeg/examples.tar.gz . ;
       ls $PWD ;
       mkdir $PWD/docs/_build ;
-      tar -xzf _build.tar.gz -C $PWD/docs/_build ;
-      tar -xzf examples.tar.gz -C $PWD/docs/content/examples
+      tar -xzf $PWD/_build.tar.gz -C $PWD/docs/_build ;
+      tar -xzf $PWD/examples.tar.gz -C $PWD/docs/content/examples
       ls $PWD/docs/_build/ ;
     fi
 
