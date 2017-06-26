@@ -67,9 +67,9 @@ install:
       gsutil cp gs://simpeg/_build.tar.gz $PWD/ ;
       gsutil cp gs://simpeg/examples.tar.gz $PWD/ ;
       mkdir $PWD/docs/_build ;
-      tar -xzf $PWD/_build.tar.gz -C $PWD/docs/_build ;
+      tar -xvzf $PWD/_build.tar.gz -C $PWD/docs/_build ;
       mkdir $PWD/docs/content/examples ;
-      tar -xzf $PWD/examples.tar.gz -C $PWD/docs/content/examples ;
+      tar -xvzf $PWD/examples.tar.gz -C $PWD/docs/content/examples ;
     fi
 
 # Run test
@@ -79,10 +79,6 @@ script:
       cd docs; make html-noplot ; cd ../;
     else
       nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
-      tar -cvzf _build.tar.gz docs/_build ;
-      tar -cvzf examples.tar.gz docs/content/examples ;
-      gsutil cp _build.tar.gz gs://simpeg ;
-      gsutil cp examples.tar.gz gs://simpeg ;
     fi
 # Calculate coverage
 after_success:
@@ -109,7 +105,7 @@ after_success:
         export GAE_PROJECT=simpegdocs ;
       elif [ "$TRAVIS_BRANCH" = "$DEV_BRANCH" ]; then
         tar -cvzf _build.tar.gz docs/_build ;
-        tar --exclude=index.rst -cvzf examples.tar.gz docs/content/examples ;
+        tar -cvzf examples.tar.gz docs/content/examples ;
         gsutil cp _build.tar.gz gs://simpeg ;
         gsutil cp examples.tar.gz gs://simpeg ;
         gcloud auth activate-service-account --key-file credentials/client-secret-dev.json ;
