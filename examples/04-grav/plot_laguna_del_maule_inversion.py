@@ -21,6 +21,8 @@ from SimPEG.Utils.io_utils import download
 import matplotlib.pyplot as plt
 import numpy as np
 
+import time
+
 
 def run(plotIt=True, cleanAfterRun=True):
 
@@ -62,9 +64,11 @@ def run(plotIt=True, cleanAfterRun=True):
     d = survey.dobs
     wd = survey.std
 
+    t = time.time()
     # Get the active cells
     active = driver.activeCells
     nC = len(active)  # Number of active cells
+    print(time.time()-t)
 
     # Create active map to go from reduce set to full
     activeMap = Maps.InjectActiveCells(mesh, active, -100)
