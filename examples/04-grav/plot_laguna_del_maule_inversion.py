@@ -135,6 +135,7 @@ def run(plotIt=True, cleanAfterRun=True):
     mrec = inv.run(mstart)
 
     if cleanAfterRun:
+        os.remove(downloads)
         shutil.rmtree(basePath)
 
     # %%
