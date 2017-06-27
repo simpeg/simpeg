@@ -10,7 +10,7 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.n
     ----------
 
     :param TensorMesh mesh: TensorMesh object on which to discretize the topography
-    :param numpy.darray topo: [X,Y,Z] topographic data
+    :param numpy.ndarray topo: [X,Y,Z] topographic data
     :param str gridLoc: 'CC' or 'N'. Default is 'CC'.
                         Discretize the topography
                         on cells-center 'CC' or nodes 'N'
