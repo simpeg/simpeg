@@ -5,6 +5,24 @@ from scipy.interpolate import griddata, interp1d
 def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.nan):
     """
     Get active indices from topography
+    
+    Parameters
+    ----------
+
+    :param TensorMesh mesh: TensorMesh object on which to discretize the topography
+    :param numpy.darray topo: [X,Y,Z] topographic data
+    :param str gridLoc: 'CC' or 'N'. Default is 'CC'.
+                        Discretize the topography
+                        on cells-center 'CC' or nodes 'N'
+    :param str method: 'nearest' or 'linear' or 'cubic'. Default is 'nearest'.
+                       Interpolation method for the topographic data
+    :param float fill_value: default is np.nan. Filling value for extrapolation
+
+    Returns
+    -------
+
+    :param numpy.array actind: index vector for the active cells on the mesh
+                               below the topography
     """
 
     if mesh.dim == 3:
