@@ -392,7 +392,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     ax0.semilogx(sigma_re, z, 'k', lw=2, label="RESOLVE")
     ax0.semilogx(sigma_sky, z, 'b', lw=2, label="SkyTEM")
-    ax0.set_ylim(-100, 0)
+    ax0.set_ylim(-50, 0)
     # ax0.set_xlim(5e-4, 1e2)
     ax0.grid(True)
     ax0.set_ylabel("Depth (m)")
@@ -459,6 +459,12 @@ def run(plotIt=True, saveFig=False, cleanup=True):
         plt.show()
 
     if cleanup:
+        print( os.path.split(directory)[:-1])
+        os.remove(
+            os.path.sep.join(
+                directory.split()[:-1] + ["._bookpurnong_inversion"]
+            )
+        )
         os.remove(downloads)
         shutil.rmtree(directory)
 
