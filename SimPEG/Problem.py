@@ -1,15 +1,14 @@
 from __future__ import print_function
-
-import numpy as np
-import properties
-
 from . import Utils
 from . import Survey
 from . import Models
+import numpy as np
 from . import Maps
 from .Fields import Fields, TimeFields
 from . import Mesh
 from . import Props
+import properties
+
 
 Solver = Utils.SolverUtils.Solver
 
@@ -127,16 +126,26 @@ class BaseProblem(Props.HasModel):
     clean_on_model_update = []
 
     @properties.observer('model')
-    def _on_model_update(self, value):
-        # properties to be deleted
+    def _on_model_update(self, change):
+        if change['previous'] is change['value']:
+            return
+        if (
+            isinstance(change['previous'], np.ndarray) and
+            isinstance(change['value'], np.ndarray) and
+            np.allclose(change['previous'], change['value'])
+        ):
+            return
+
         for prop in self.deleteTheseOnModelUpdate:
             if hasattr(self, prop):
                 delattr(self, prop)
+
         # matrix factors to clear
         for mat in self.clean_on_model_update:
             if getattr(self, mat, None) is not None:
                 getattr(self, mat).clean()  # clean factors
                 setattr(self, mat, None)  # set to none
+
 
     @property
     def ispaired(self):

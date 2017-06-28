@@ -3,11 +3,7 @@ import unittest
 import numpy as np
 from SimPEG import Mesh, Maps, SolverLU, Tests
 from SimPEG import EM
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    Solver = SolverLU
+from pymatsolver import Pardiso as Solver
 
 plotIt = False
 
