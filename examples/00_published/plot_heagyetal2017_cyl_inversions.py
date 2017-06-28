@@ -157,9 +157,17 @@ def run(plotIt=True, saveFig=False):
         matplotlib.rcParams['font.size'] = fs
 
         # Plot the model
+        # z_true = np.repeat(mesh.vectorCCz[active][1:], 2, axis=0)
+        # z_true = np.r_[mesh.vectorCCz[active][0], z_true, mesh.vectorCCz[active][-1]]
+        activeN = mesh.vectorNz <= 0. + cs/2.
+        z_true = np.repeat(mesh.vectorNz[activeN][1:-1], 2, axis=0)
+        z_true = np.r_[mesh.vectorNz[activeN][0], z_true, mesh.vectorNz[activeN][-1]]
+        sigma_true = np.repeat(sigma[active], 2, axis=0)
+
         ax0.semilogx(
-            sigma[active], mesh.vectorCCz[active], 'k-', lw=2, label="True"
+            sigma_true, z_true, 'k-', lw=2, label="True"
         )
+
         ax0.semilogx(
             np.exp(moptFD), mesh.vectorCCz[active], 'bo', ms=6,
             markeredgecolor='k', markeredgewidth=0.5, label="FDEM"

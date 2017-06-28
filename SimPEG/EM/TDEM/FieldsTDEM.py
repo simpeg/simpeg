@@ -249,7 +249,7 @@ class Fields3D_e(FieldsTDEM):
             s_m_src = src.s_m(
                 self.survey.prob, self._times[tInd]
             )
-            s_m[:, i] += s_m_src
+            s_m[:, i] = s_m[:, i] + s_m_src
         return s_m - self._edgeCurl * eSolution
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
@@ -341,15 +341,13 @@ class Fields3D_h(FieldsTDEM):
             return - MfRhoDeriv(C * hSolution - s_e).T * (C * (MeMuI * v))
         return - MeMuI * (C.T * (MfRhoDeriv(C * hSolution - s_e) * v))
 
-
-
     def _j(self, hSolution, srcList, tInd):
         s_e = np.zeros((self.mesh.nF, len(srcList)))
         for i, src in enumerate(srcList):
             s_e_src = src.s_e(
                 self.survey.prob, self._times[tInd]
             )
-            s_e[:, i] += s_e_src
+            s_e[:, i] = s_e[:, i] + s_e_src
 
         return self._edgeCurl * hSolution - s_e
 
