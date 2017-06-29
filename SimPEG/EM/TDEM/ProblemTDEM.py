@@ -680,7 +680,6 @@ class Problem3D_e(BaseTDEMProblem):
     _formulation = 'EB'
     fieldsPair = Fields3D_e  #: A Fields3D_e
     surveyPair = SurveyTDEM
-    Adcinv = None
 
     def __init__(self, mesh, **kwargs):
         BaseTDEMProblem.__init__(self, mesh, **kwargs)
