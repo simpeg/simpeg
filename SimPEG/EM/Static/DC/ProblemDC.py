@@ -237,9 +237,9 @@ class Problem3D_CC(BaseDCProblem):
                     gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
                     gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
 
-                elif(self.bc_type == 'Dirchlet'):
+                elif(self.bc_type == 'Dirichlet'):
                     if self.verbose:
-                        print('Setting BC to Dirchlet.')
+                        print('Setting BC to Dirichlet.')
                     alpha_xm, alpha_xp = temp_xm, temp_xp
                     alpha_ym, alpha_yp = temp_ym, temp_yp
                     alpha_zm, alpha_zp = temp_zm, temp_zp
