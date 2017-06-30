@@ -52,7 +52,7 @@ def setUp_TDEM(prbtype='b', rxcomp='bz', waveform='stepoff'):
 
     rxOffset = 10.
     rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxcomp[:-1]))(
-        np.array([[rxOffset, 0., -1e-2]]), rxtimes, rxcomp[-1]
+        np.r_[rxOffset, 0., -1e-2], rxtimes, rxcomp[-1]
     )
     src = EM.TDEM.Src.MagDipole(
         [rx], loc=np.array([0., 0., 0.]), waveform=waveform

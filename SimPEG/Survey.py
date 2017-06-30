@@ -9,7 +9,6 @@ from . import Utils
 from . import Props
 
 
-
 class BaseRx(object):
     """SimPEG Receiver Object"""
 
@@ -23,7 +22,7 @@ class BaseRx(object):
 
     def __init__(self, locs, rxType, **kwargs):
         self.uid = str(uuid.uuid4())
-        self.locs = locs
+        self.locs = np.atleast_2d(locs)
         self.rxType = rxType
         self._Ps = {}
         Utils.setKwargs(self, **kwargs)
