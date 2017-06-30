@@ -1,1 +1,1 @@
-from discretize import volTetra, indexCube, faceInfo
+from discretize.utils import volTetra, indexCube, faceInfo

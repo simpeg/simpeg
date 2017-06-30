@@ -1,1 +1,1 @@
-from discretize import rotationMatrixFromNormals, rotatePointsFromNormals
+from discretize.utils import rotationMatrixFromNormals, rotatePointsFromNormals

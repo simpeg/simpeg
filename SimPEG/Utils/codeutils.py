@@ -3,7 +3,7 @@ import types
 import numpy as np
 from functools import wraps
 
-from discretize import asArray_N_x_Dim
+from discretize.utils import asArray_N_x_Dim
 
 
 def memProfileWrapper(towrap, *funNames):

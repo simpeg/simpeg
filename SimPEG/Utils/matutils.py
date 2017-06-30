@@ -3,9 +3,13 @@ import numpy as np
 
 from discretize.utils import (
     Zero, Identity, mkvc, sdiag, sdInv, speye, kron3, spzeros, ddx, av,
-    avExtrap, ndgrid, ind2sub, sub2ind, getSubArray, inv3X3BlockDiagonal,
+    av_extrap, ndgrid, ind2sub, sub2ind, getSubArray, inv3X3BlockDiagonal,
     inv2X2BlockDiagonal, TensorType, makePropertyTensor, invPropertyTensor,
 )
+
+
+def avExtrap(**kwargs):
+    raise Exception("avExtrap has been depreciated. Use av_extrap instead.")
 
 
 def diagEst(matFun, n, k=None, approach='Probing'):
