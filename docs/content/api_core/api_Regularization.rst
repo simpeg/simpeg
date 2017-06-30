@@ -107,6 +107,8 @@ The API
     :members:
     :undoc-members:
 
-
+.. autoclass:: SimPEG.Regularization.RegularizationMesh
+    :members:
+    :undoc-members:
 
 
