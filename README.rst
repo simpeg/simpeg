@@ -38,6 +38,8 @@ The vision is to create a package for finite volume simulation with applications
 * supports 1D, 2D and 3D problems
 * designed for large-scale inversions
 
+You are welcome to join forum and engage with people who use and develop SimPEG at: https://groups.google.com/forum/#!forum/simpeg.
+
 Overview Video
 --------------
 
