@@ -1074,7 +1074,7 @@ class SmoothDeriv(BaseRegularization):
         if self.cell_weights is not None:
             W = (
                 Utils.sdiag(
-                    (Ave*self.cell_weights)**0.5
+                    (Ave*(self.cell_weights*self.regmesh.vol))**0.5
                 ) * W
             )
         return W
