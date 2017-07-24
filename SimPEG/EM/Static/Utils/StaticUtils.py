@@ -9,7 +9,7 @@ from SimPEG import Utils, Mesh
 from SimPEG.EM.Static import DC
 
 
-def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appConductivity", clim=None, scale="linear", sameratio=True):
+def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appConductivity", clim=None, scale="linear", sameratio=True, pcolorOpts={}):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
@@ -141,7 +141,7 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
 
     grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
     ph = plt.pcolormesh(grid_x[:, 0], grid_z[0, :], grid_rho.T,
-                        clim=(vmin, vmax), vmin=vmin, vmax=vmax)
+                        clim=(vmin, vmax), vmin=vmin, vmax=vmax, **pcolorOpts)
 
     if scale == "log":
         cbar = plt.colorbar(format="$10^{%.1f}$",
@@ -765,6 +765,7 @@ def readUBC_DC3Dobs(fileName):
 
             continue
 
+
         temp = np.fromstring(obsfile[ii], dtype=float, sep=' ')
 
         if zflag:
@@ -784,6 +785,7 @@ def readUBC_DC3Dobs(fileName):
                 wd.append(temp[-1])
 
         count = count - 1
+
 
         # Reach the end of transmitter block
         if count == 0:
@@ -937,43 +939,29 @@ def getSrc_locs(survey):
     return srcMat
 
 
-def drapeTopotoLoc(mesh, topo, pts, airind=None):
-    """
-        Drape
-    """
-    if mesh.dim == 2:
-        if pts.ndim > 1:
-            raise Exception("pts should be 1d array")
-    elif mesh.dim == 3:
-        if pts.shape[1] == 3:
-            raise Exception("shape of pts should be (x, 3)")
-    else:
-        raise NotImplementedError()
-    if airind is None:
-        airind = Utils.surface2ind_topo(mesh, topo)
-    meshtemp, topoCC = gettopoCC(mesh, ~airind)
-    inds = Utils.closestPoints(meshtemp, pts)
-
-    return np.c_[pts, topoCC[inds]]
-
-
-def gettopoCC(mesh, airind):
+def gettopoCC(mesh, actind):
     """
         Get topography from active indices of mesh.
+
     """
 
     if mesh.dim == 3:
 
         mesh2D = Mesh.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
         zc = mesh.gridCC[:, 2]
-        AIRIND = airind.reshape((mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]), order='F')
+        ACTIND = actind.reshape(
+            (mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]),
+            order='F'
+            )
         ZC = zc.reshape((mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]), order='F')
         topo = np.zeros(ZC.shape[0])
         topoCC = np.zeros(ZC.shape[0])
         for i in range(ZC.shape[0]):
-            ind  = np.argmax(ZC[i, :][~AIRIND[i, :]])
-            topo[i] = ZC[i, :][~AIRIND[i, :]].max() + mesh.hz[~AIRIND[i, :]][ind]*0.5
-            topoCC[i] = ZC[i, :][~AIRIND[i, :]].max()
+            ind = np.argmax(ZC[i, :][ACTIND[i, :]])
+            topo[i] = (
+                ZC[i, :][ACTIND[i, :]].max() + mesh.hz[ACTIND[i, :]][ind]*0.5
+                )
+            topoCC[i] = ZC[i, :][ACTIND[i, :]].max()
 
         return mesh2D, topoCC
 
@@ -981,13 +969,36 @@ def gettopoCC(mesh, airind):
 
         mesh1D = Mesh.TensorMesh([mesh.hx], [mesh.x0[0]])
         yc = mesh.gridCC[:, 1]
-        AIRIND = airind.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
+        ACTIND = actind.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
         YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
         topo = np.zeros(YC.shape[0])
         topoCC = np.zeros(YC.shape[0])
         for i in range(YC.shape[0]):
-            ind  = np.argmax(YC[i, :][~AIRIND[i, :]])
-            topo[i] = YC[i, :][~AIRIND[i, :]].max() + mesh.hy[~AIRIND[i, :]][ind]*0.5
-            topoCC[i] = YC[i, :][~AIRIND[i, :]].max()
+            ind = np.argmax(YC[i, :][ACTIND[i, :]])
+            topo[i] = (
+                YC[i, :][ACTIND[i, :]].max() + mesh.hy[ACTIND[i, :]][ind]*0.5
+                )
+            topoCC[i] = YC[i, :][ACTIND[i, :]].max()
 
         return mesh1D, topoCC
+
+
+def drapeTopotoLoc(mesh, pts, actind=None, topo=None):
+    """
+        Drape location right below (cell center) the topography
+    """
+    if mesh.dim == 2:
+        if pts.ndim > 1:
+            raise Exception("pts should be 1d array")
+    elif mesh.dim == 3:
+        if pts.shape[1] == 3:
+            raise Exception("shape of pts should be (x,3)")
+    else:
+        raise NotImplementedError()
+    if actind is None:
+        actind = Utils.surface2ind_topo(mesh, topo)
+
+    meshtemp, topoCC = gettopoCC(mesh, actind)
+    inds = Utils.closestPoints(meshtemp, pts)
+    out = np.c_[pts, topoCC[inds]]
+    return out

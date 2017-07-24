@@ -5,12 +5,7 @@ from SimPEG import Mesh, Maps, SolverLU
 from SimPEG import EM
 from scipy.constants import mu_0
 import matplotlib.pyplot as plt
-
-try:
-    from pymatsolver import Pardiso
-    Solver = Pardiso
-except ImportError:
-    Solver = SolverLU
+from pymatsolver import Pardiso as Solver
 
 
 def halfSpaceProblemAnaDiff(
@@ -93,7 +88,7 @@ def halfSpaceProblemAnaDiff(
 class TDEM_SimpleSrcTests(unittest.TestCase):
     def test_source(self):
         waveform = EM.TDEM.Src.StepOffWaveform()
-        assert waveform.eval(0.) == 0.
+        assert waveform.eval(0.) == 1.
 
 
 class TDEM_bTests(unittest.TestCase):
