@@ -1033,8 +1033,9 @@ def writeUBCobs(filename, survey, d):
     print("Observation file saved to: " + filename)
 
 
-def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
-                vmin=None, vmax=None, levels=None, fig=None):
+def plot_obs_2D(rxLoc, d=None, title=None,
+                vmin=None, vmax=None, levels=None, fig=None, ax=None,
+                colorbar=True, marker=True, cmap="plasma_r"):
     """ Function plot_obs(rxLoc,d)
     Generate a 2d interpolated plot from scatter points of data
 
@@ -1058,8 +1059,12 @@ def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
     if fig is None:
         fig = plt.figure()
 
-    ax = plt.subplot()
-    plt.scatter(rxLoc[:, 0], rxLoc[:, 1], c='k', s=10)
+    if ax is None:
+        ax = plt.subplot()
+
+    plt.sca(ax)
+    if marker:
+        plt.scatter(rxLoc[:, 0], rxLoc[:, 1], c='k', s=10)
 
     if d is not None:
 
@@ -1069,6 +1074,7 @@ def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
         if (vmax is None):
             vmax = d.max()
 
+
         # Create grid of points
         x = np.linspace(rxLoc[:, 0].min(), rxLoc[:, 0].max(), 100)
         y = np.linspace(rxLoc[:, 1].min(), rxLoc[:, 1].max(), 100)
@@ -1077,17 +1083,22 @@ def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
 
         # Interpolate
         d_grid = griddata(rxLoc[:, 0:2], d, (X, Y), method='linear')
-        plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],
-                   origin='lower', vmin=vmin, vmax=vmax, cmap="plasma")
-        plt.colorbar(fraction=0.02)
+        im = plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],
+                   origin='lower', vmin=vmin, vmax=vmax, cmap=cmap)
+
+        if colorbar:
+            plt.colorbar(fraction=0.02)
 
         if levels is None:
-            plt.contour(X, Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma")
-        else:
-            plt.contour(X, Y, d_grid, levels=levels, colors='r',
-                        vmin=vmin, vmax=vmax, cmap="plasma")
 
-    plt.title(varstr)
+            if vmin != vmax:
+                plt.contour(X, Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap=cmap)
+        else:
+            plt.contour(X, Y, d_grid, levels=levels, colors='k',
+                        vmin=vmin, vmax=vmax)
+
+    if title is not None:
+        plt.title(title)
     plt.gca().set_aspect('equal', adjustable='box')
 
-    return fig
+    return fig, im
