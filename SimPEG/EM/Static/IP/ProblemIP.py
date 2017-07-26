@@ -240,9 +240,10 @@ class Problem3D_CC(BaseIPProblem):
     def __init__(self, mesh, **kwargs):
         BaseIPProblem.__init__(self, mesh, **kwargs)
         self.setBC()
-        if self.storeJ:
-            self.getJ()
-            self.fswitch = True
+
+        # if self.storeJ:
+        #     self.getJ()
+        #     self.fswitch = True
 
     def getA(self):
         """
