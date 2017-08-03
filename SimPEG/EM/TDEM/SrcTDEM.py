@@ -18,7 +18,7 @@ from ..Base import BaseEMSrc
 ###############################################################################
 
 
-class BaseWaveform(object):
+class BaseWaveform(properties.HasProperties):
 
     hasInitialFields = properties.Bool(
         "Does the waveform have initial fields?", default=False
@@ -26,6 +26,11 @@ class BaseWaveform(object):
 
     offTime = properties.Float(
         "off-time of the source", default=0.
+    )
+
+    eps = properties.Float(
+        "window of time within which the waveform is considered on",
+        default=1e-9
     )
 
     def __init__(self, **kwargs):
@@ -46,9 +51,6 @@ class BaseWaveform(object):
 
 class StepOffWaveform(BaseWaveform):
 
-    eps = 1e-9
-    offTime = 0.
-
     def __init__(self, offTime=0.):
         BaseWaveform.__init__(self, offTime=offTime, hasInitialFields=True)
 
@@ -58,10 +60,8 @@ class StepOffWaveform(BaseWaveform):
         else:
             return 0.
 
-class RampOffWaveform(BaseWaveform):
 
-    eps = 1e-9
-    offTime = 0.
+class RampOffWaveform(BaseWaveform):
 
     def __init__(self, offTime=0.):
         BaseWaveform.__init__(self, offTime=offTime, hasInitialFields=True)
@@ -71,26 +71,6 @@ class RampOffWaveform(BaseWaveform):
             return 1.
         elif time < self.offTime:
             return -1. / self.offTime * (time - self.offTime)
-        else:
-            return 0.
-
-class VTEMWaveform(BaseWaveform):
-
-    eps = 1e-9
-    offTime = 4.2e-3
-    peakTime = 2.73e-3
-    a = 3.
-
-    def __init__(self, offTime=4.2e-3, peakTime=2.73e-3, a=3.):
-        BaseWaveform.__init__(
-            self, offTime=offTime, peakTime=peakTime, a=a, hasInitialFields=False
-            )
-
-    def eval(self, time):
-        if time <= self.peakTime:
-            return (1. - np.exp(-self.a*time/self.peakTime)) / (1.-np.exp(-self.a))
-        elif (time < self.offTime) and (time > self.peakTime):
-            return -1. / (self.offTime-self.peakTime) * (time - self.offTime)
         else:
             return 0.
 
@@ -118,14 +98,20 @@ class TriangularWaveform(BaseWaveform):
 
 class VTEMWaveform(BaseWaveform):
 
-    eps = 1e-9
-    offTime = 4.2e-3
-    peakTime = 2.73e-3
-    a = 3.
-    hasInitialFields = False
+    offTime = properties.Float(
+        "off-time of the source", default=4.2e-3
+    )
+
+    peakTime = properties.Float(
+        "Time at which the VTEM waveform is at its peak", default=2.73e-3
+    )
+
+    a = properties.Float(
+         "parameter controlling how quickly the waveform ramps on", default=3.
+    )
 
     def __init__(self, **kwargs):
-        BaseWaveform.__init__(self, **kwargs)
+        BaseWaveform.__init__(self, hasInitialFields=False, **kwargs)
 
     def eval(self, time):
         if time <= self.peakTime:
@@ -168,7 +154,7 @@ class BaseTDEMSrc(BaseEMSrc):
         else:
             self._waveform = self.StepOffWaveform(val)
 
-    def __init__(self, rxList, waveform = StepOffWaveform(), **kwargs):
+    def __init__(self, rxList, waveform=StepOffWaveform(), **kwargs):
         self.waveform = waveform
         BaseEMSrc.__init__(self, rxList, **kwargs)
 
@@ -452,5 +438,3 @@ class LineCurrent(BaseTDEMSrc):
 
     def s_e(self, prob, time):
         return self.Mejs(prob) * self.waveform.eval(time)
-
-

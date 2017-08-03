@@ -123,7 +123,15 @@ class BaseProblem(Props.HasModel):
     deleteTheseOnModelUpdate = []
 
     @properties.observer('model')
-    def _on_model_update(self, value):
+    def _on_model_update(self, change):
+        if change['previous'] is change['value']:
+            return
+        if (
+            isinstance(change['previous'], np.ndarray) and
+            isinstance(change['value'], np.ndarray) and
+            np.allclose(change['previous'], change['value'])
+        ):
+            return
         for prop in self.deleteTheseOnModelUpdate:
             if hasattr(self, prop):
                 delattr(self, prop)
