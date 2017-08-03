@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import gc
 from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
+from SimPEG import Solver as SimpegSolver
 import properties
 
 class MagneticIntegral(Problem.LinearProblem):
@@ -558,6 +559,11 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
 
     Props.Reciprocal(mu, mui)
 
+    Solver = SimpegSolver  #: Type of solver to pair with
+    solverOpts = {}  #: Solver options
+
+    Ainv = None
+
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
@@ -629,7 +635,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         """
         return self._Div*self.MfMuI*self._Div.T
 
-    def fields(self, m):
+    def fields(self, m=None):
         """
             Return magnetic potential (u) and flux (B)
             u: defined on the cell center [nC x 1]
@@ -642,18 +648,30 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
                 \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
+
+        if m is not None:
+            self.model = m
+
+        if self.Ainv is not None:
+            self.Ainv.clean()
+
         self.makeMassMatrices(m)
         A = self.getA(m)
-        rhs = self.getRHS(m)
+
+        self.Ainv = self.Solver(A, **self.solverOpts)
+
+        RHS = self.getRHS(m)
+
         m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/A.diagonal()))
-        u, info = sp.linalg.bicgstab(A, rhs, tol=1e-6, maxiter=1000, M=m1)
+        u = self.Ainv * RHS
         B0 = self.getB0()
         B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*u
 
         return {'B': B, 'u': u}
 
+
     @Utils.timeIt
-    def Jvec(self, m, v, u=None):
+    def Jvec(self, m, v, f=None):
         """
             Computing Jacobian multiplied by vector
 
@@ -726,10 +744,10 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
 
 
         """
-        if u is None:
-            u = self.fields(m)
+        if f is None:
+            f = self.fields(m)
 
-        B, u = u['B'], u['u']
+        B, u = f['B'], f['u']
         mu = self.muMap*(m)
         dmudm = self.muDeriv
         dchidmu = Utils.sdiag(1/mu_0*np.ones(self.mesh.nC))
@@ -777,7 +795,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         return Utils.mkvc(P*dBdmv)
 
     @Utils.timeIt
-    def Jtvec(self, m, v, u=None):
+    def Jtvec(self, m, v, f=None):
         """
             Computing Jacobian^T multiplied by vector.
 
@@ -806,12 +824,12 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
                 \mathbf{J}^{T}\mathbf{v} = (\\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} \mathbf{v}
 
         """
-        if u is None:
-            u = self.fields(m)
+        if f is None:
+            f = self.fields(m)
 
-        B, u = u['B'], u['u']
-        mu = self.mapping*(m)
-        dmudm = self.mapping.deriv(m)
+        B, u = f['B'], f['u']
+        mu = self.muMap*(m)
+        dmudm = self.muMap.deriv(m)
         dchidmu = Utils.sdiag(1/mu_0*np.ones(self.mesh.nC))
 
         vol = self.mesh.vol
@@ -876,35 +894,35 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         return Utils.mkvc(Jtv)
 
 
-def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
+# def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
 
-    """
-        Inversion module for MagneticsDiffSecondary
+#     """
+#         Inversion module for MagneticsDiffSecondary
 
-    """
-    from SimPEG import Optimization, Regularization, Parameters, ObjFunction, Inversion
-    prob = MagneticsDiffSecondary(mesh, model)
+#     """
+#     from SimPEG import Optimization, Regularization, Parameters, ObjFunction, Inversion
+#     prob = MagneticsDiffSecondary(mesh, model)
 
-    miter = kwargs.get('maxIter', 10)
+#     miter = kwargs.get('maxIter', 10)
 
-    if prob.ispaired:
-        prob.unpair()
-    if data.ispaired:
-        data.unpair()
-    prob.pair(data)
+#     if prob.ispaired:
+#         prob.unpair()
+#     if data.ispaired:
+#         data.unpair()
+#     prob.pair(data)
 
-    # Create an optimization program
-    opt = Optimization.InexactGaussNewton(maxIter=miter)
-    opt.bfgsH0 = Solver(sp.identity(model.nP), flag='D')
-    # Create a regularization program
-    reg = Regularization.Tikhonov(model)
-    # Create an objective function
-    beta = Parameters.BetaSchedule(beta0=1e0)
-    obj = ObjFunction.BaseObjFunction(data, reg, beta=beta)
-    # Create an inversion object
-    inv = Inversion.BaseInversion(obj, opt)
+#     # Create an optimization program
+#     opt = Optimization.InexactGaussNewton(maxIter=miter)
+#     opt.bfgsH0 = Solver(sp.identity(model.nP), flag='D')
+#     # Create a regularization program
+#     reg = Regularization.Tikhonov(model)
+#     # Create an objective function
+#     beta = Parameters.BetaSchedule(beta0=1e0)
+#     obj = ObjFunction.BaseObjFunction(data, reg, beta=beta)
+#     # Create an inversion object
+#     inv = Inversion.BaseInversion(obj, opt)
 
-    return inv, reg
+#     return inv, reg
 
 
 def get_T_mat(Xn, Yn, Zn, rxLoc):
@@ -1328,7 +1346,7 @@ def writeUBCobs(filename, survey, d):
     #print("Observation file saved to: " + filename)
 
 
-def plot_obs_2D(rxLoc, d=None, title=None,
+def plot_obs_2D(rxLoc, d=None, title=None, markers=True,
                 vmin=None, vmax=None, levels=None, fig=None, ax=None,
                 colorbar=True):
     """ Function plot_obs(rxLoc,d)
@@ -1358,7 +1376,11 @@ def plot_obs_2D(rxLoc, d=None, title=None,
         ax = plt.subplot()
 
     plt.sca(ax)
-    plt.scatter(rxLoc[:, 0], rxLoc[:, 1], c='k', s=10)
+
+    if markers:
+        plt.scatter(rxLoc[:, 0], rxLoc[:, 1], c='k', s=10)
+
+    im = []
 
     if d is not None:
 
