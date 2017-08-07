@@ -1105,3 +1105,35 @@ class UpdateApproxJtJ(InversionDirective):
             JtJdiag = JtJdiag / max(JtJdiag)
 
             self.reg.wght = JtJdiag
+
+
+class ScaleComboReg(InversionDirective):
+    """
+    Directive to take care of re-weighting
+    the non-linear magnetic problems.
+
+    """
+    # coordinate_system = 'Amp'
+    # test = False
+    mapping = None
+    ComboRegFun = False
+    ComboMisfitFun = False
+    JtJdiag = None
+    everyIter = True
+
+    def initialize(self):
+
+        # for reg in self.reg.objfcts:
+        m = self.invProb.model
+
+        scale = np.abs(self.reg.objfcts[0](m)).max()/np.abs(self.reg.objfcts[1](m)).max()
+        print("Initial scale: " + str(scale))
+        self.reg.objfcts[1].scale = scale
+
+    def endIter(self):
+
+        m = self.invProb.model
+
+        scale = np.abs(self.reg.objfcts[0].deriv(m)).max()/np.abs(self.reg.objfcts[1].deriv(m)).max()
+        print("Initial scale: " + str(scale))
+        self.reg.objfcts[1].scale = scale
