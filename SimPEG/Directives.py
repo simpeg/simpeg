@@ -664,7 +664,7 @@ class UpdatePreCond(InversionDirective):
     onlyOnStart = False
     mapping = None
     misfitDiag = None
-
+    epsilon = 1e-7
     def initialize(self):
 
         # Create the pre-conditioner
@@ -692,7 +692,7 @@ class UpdatePreCond(InversionDirective):
 
             self.opt.JtJdiag = JtJdiag
 
-        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag + self.invProb.beta*self.epsilon
 
         PC = Utils.sdiag((diagA)**-1.)
         self.opt.approxHinv = PC
@@ -714,7 +714,7 @@ class UpdatePreCond(InversionDirective):
                 regDiag += reg.mapping.P.T*(reg.W.T*reg.W).diagonal()
 
         # Assumes that opt.JtJdiag has been updated or static
-        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag + self.invProb.beta*self.epsilon
 
         PC = Utils.sdiag((diagA)**-1.)
         self.opt.approxHinv = PC
@@ -733,7 +733,6 @@ class UpdateSensWeighting(InversionDirective):
     ComboMisfitFun = False
     JtJdiag = None
     everyIter = True
-    epsilon = 1e-8
 
     def initialize(self):
 
@@ -911,15 +910,15 @@ class UpdateSensWeighting(InversionDirective):
         """
             Update the cell weights with the approximated sensitivity
         """
-        epsilon = [0, self.epsilon, self.epsilon]
-        for reg, threshold in zip(self.reg.objfcts, epsilon):
-            reg.cell_weights = reg.mapping * (self.wr + threshold)
+
+        for reg in self.reg.objfcts:
+            reg.cell_weights = reg.mapping * (self.wr)
 
 
         # TEST TO SCALE MAX OF ANGLES PHIM
-        scale = self.reg.objfcts[1].cell_weights.max()/self.reg.objfcts[2].cell_weights.max()
-        self.reg.objfcts[2].cell_weights *= scale
-        print('SCALE' + str(scale))
+        # scale = self.reg.objfcts[1].cell_weights.max()/self.reg.objfcts[2].cell_weights.max()
+        # self.reg.objfcts[2].cell_weights *= scale
+        # print('SCALE' + str(scale))
 
     def updateOpt(self):
         """
