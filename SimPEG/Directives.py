@@ -733,6 +733,7 @@ class UpdateSensWeighting(InversionDirective):
     ComboMisfitFun = False
     JtJdiag = None
     everyIter = True
+    epsilon = 1e-8
 
     def initialize(self):
 
@@ -784,39 +785,34 @@ class UpdateSensWeighting(InversionDirective):
         """
         self.JtJdiag = []
         # if self.ComboMisfitFun:
-        Phid = []
-        Jmax = []
+        # Phid = []
+        # Jmax = []
 
-        for dmisfit in self.dmisfit.objfcts:
-            # dmisfit.scale=1.
-            dynRange = np.abs(dmisfit.survey.dobs.max() -
-                              dmisfit.survey.dobs.min())**2.
+        # for dmisfit in self.dmisfit.objfcts:
+        #     # dmisfit.scale=1.
+        #     dynRange = np.abs(dmisfit.survey.dobs.max() -
+        #                       dmisfit.survey.dobs.min())**2.
 
-            Phid += [dmisfit(self.invProb.model)]
-            # dmisfit.scale = 1.
-            Jmax += [(np.abs(dmisfit.deriv(self.invProb.model)).max())]
+        #     Phid += [dmisfit(self.invProb.model)]
+        #     # dmisfit.scale = 1.
+        #     Jmax += [(np.abs(dmisfit.deriv(self.invProb.model)).max())]
 
-        minPhid = np.asarray(Phid).min()
+        # minPhid = np.asarray(Phid).min()
         # print("Jmax ratio: " +str((Jmax[0]/Jmax[1])**0.5))
-        for prob, survey, dmisfit, phid in zip(self.prob,
-                                               self.survey,
-                                               self.dmisfit.objfcts,
-                                               Phid):
+        for prob, survey, dmisfit in zip(self.prob,
+                                         self.survey,
+                                         self.dmisfit.objfcts):
             nD = survey.nD
             nC = prob.chiMap.shape[0]
             jtjdiag = np.zeros(nC)
             wd = dmisfit.W.diagonal()
 
-            scale = 1#(phid/minPhid)
-            print('Phid: ' + str(dmisfit(self.invProb.model)) + 'Scale: '+ str(scale))
             if isinstance(prob, Magnetics.MagneticVector):
 
                 if prob.coordinate_system == 'spherical':
                     for ii in range(nD):
 
                         jtjdiag += (wd[ii] * prob.F[ii, :] * prob.S)**2.
-
-                    jtjdiag += 1e-10
 
                 elif prob.coordinate_system == 'cartesian':
 
@@ -857,13 +853,13 @@ class UpdateSensWeighting(InversionDirective):
                 jtjdiag = prob.JtJdiag
 
             # Apply scale to the deriv and deriv2
-            dmisfit.scale = scale
+            # dmisfit.scale = scale
 
             # if prob.W is not None:
 
             #     jtjdiag *= prob.W
 
-            self.JtJdiag += [jtjdiag*scale]
+            self.JtJdiag += [jtjdiag]
 
         return self.JtJdiag
 
@@ -877,12 +873,12 @@ class UpdateSensWeighting(InversionDirective):
 
         # if self.ComboMisfitFun:
 
-        for JtJ, prob in zip(self.JtJdiag, self.prob):
+        for prob_JtJ, prob in zip(self.JtJdiag, self.prob):
 
-            prob_JtJ = JtJ
-            if prob.W is not None:
+            # prob_JtJ = JtJ
+            # if prob.W is not None:
 
-                prob_JtJ *= prob.W
+            #     prob_JtJ *= prob.W
 
             # prob_JtJ = prob_JtJ**0.5
             # prob_JtJ /= prob_JtJ.max()
@@ -915,10 +911,15 @@ class UpdateSensWeighting(InversionDirective):
         """
             Update the cell weights with the approximated sensitivity
         """
+        epsilon = [0, self.epsilon, self.epsilon]
+        for reg, threshold in zip(self.reg.objfcts, epsilon):
+            reg.cell_weights = reg.mapping * (self.wr + threshold)
 
-        for reg in self.reg.objfcts:
-            reg.cell_weights = reg.mapping * self.wr
 
+        # TEST TO SCALE MAX OF ANGLES PHIM
+        scale = self.reg.objfcts[1].cell_weights.max()/self.reg.objfcts[2].cell_weights.max()
+        self.reg.objfcts[2].cell_weights *= scale
+        print('SCALE' + str(scale))
 
     def updateOpt(self):
         """
