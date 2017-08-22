@@ -15,6 +15,7 @@ from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
 import properties
 from scipy.interpolate import griddata
+from SimPEG import Solver as SimpegSolver
 
 class MagneticIntegral(Problem.LinearProblem):
 
@@ -604,6 +605,11 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
 
     Props.Reciprocal(mu, mui)
 
+    Solver = SimpegSolver  #: Type of solver to pair with
+    solverOpts = {}  #: Solver options
+
+    Ainv = None
+
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
@@ -675,7 +681,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         """
         return self._Div*self.MfMuI*self._Div.T
 
-    def fields(self, m):
+    def fields(self, m=None):
         """
             Return magnetic potential (u) and flux (B)
             u: defined on the cell center [nC x 1]
@@ -688,18 +694,30 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
                 \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
+
+        if m is not None:
+            self.model = m
+
+        if self.Ainv is not None:
+            self.Ainv.clean()
+
         self.makeMassMatrices(m)
         A = self.getA(m)
-        rhs = self.getRHS(m)
-        m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/A.diagonal()))
-        u, info = sp.linalg.bicgstab(A, rhs, tol=1e-6, maxiter=1000, M=m1)
+
+        self.Ainv = self.Solver(A, **self.solverOpts)
+
+        RHS = self.getRHS(m)
+
+        # m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/A.diagonal()))
+        u = self.Ainv * RHS
         B0 = self.getB0()
         B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*u
 
         return {'B': B, 'u': u}
 
+
     @Utils.timeIt
-    def Jvec(self, m, v, u=None):
+    def Jvec(self, m, v, f=None):
         """
             Computing Jacobian multiplied by vector
 
@@ -772,10 +790,10 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
 
 
         """
-        if u is None:
-            u = self.fields(m)
+        if f is None:
+            f = self.fields(m)
 
-        B, u = u['B'], u['u']
+        B, u = f['B'], f['u']
         mu = self.muMap*(m)
         dmudm = self.muDeriv
         dchidmu = Utils.sdiag(1/mu_0*np.ones(self.mesh.nC))
@@ -787,14 +805,9 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         B0 = self.getB0()
 
         MfMuIvec = 1/self.MfMui.diagonal()
-        dMfMuI = Utils.sdiag(MfMuIvec**2)*self.mesh.aveF2CC.T*Utils.sdiag(vol*1./mu**2)
+        dMfMuI = (Utils.sdiag(MfMuIvec**2)*self.mesh.aveF2CC.T *
+                  Utils.sdiag(vol*1./mu**2))
 
-        # A = self._Div*self.MfMuI*self._Div.T
-        # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
-        # C(m,u) = A*m-rhs
-        # dudm = -(dCdu)^(-1)dCdm
-
-        dCdu = self.getA(m)
         dCdm_A = Div * (Utils.sdiag(Div.T * u) * dMfMuI * dmudm)
         dCdm_RHS1 = Div * (Utils.sdiag(self.MfMu0 * B0) * dMfMuI)
         temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
@@ -804,26 +817,17 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         dCdm_RHSv = dCdm_RHS1 * (dmudm * v)
         dCdm_v = dCdm_A * v - dCdm_RHSv
 
-        m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/dCdu.diagonal()))
-        sol, info = sp.linalg.bicgstab(dCdu, dCdm_v,
-                                       tol=1e-6, maxiter=1000, M=m1)
-
-        if info > 0:
-            print("Iterative solver did not work well (Jvec)")
-            # raise Exception ("Iterative solver did not work well")
-
-        # B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*u
-        # dBdm = d\mudm*dBd\mu
+        sol = self.Ainv*dCdm_v
 
         dudm = -sol
-        dBdmv =     (  Utils.sdiag(self.MfMu0*B0)*(dMfMuI * (dmudm*v)) \
-                     - Utils.sdiag(Div.T*u)*(dMfMuI* (dmudm*v)) \
-                     - self.MfMuI*(Div.T* (dudm)) )
+        dBdmv = (Utils.sdiag(self.MfMu0*B0)*(dMfMuI * (dmudm*v)) -
+                 Utils.sdiag(Div.T*u)*(dMfMuI * (dmudm*v)) -
+                 self.MfMuI*(Div.T * (dudm)))
 
         return Utils.mkvc(P*dBdmv)
 
     @Utils.timeIt
-    def Jtvec(self, m, v, u=None):
+    def Jtvec(self, m, v, f=None):
         """
             Computing Jacobian^T multiplied by vector.
 
@@ -852,12 +856,12 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
                 \mathbf{J}^{T}\mathbf{v} = (\\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} \mathbf{v}
 
         """
-        if u is None:
-            u = self.fields(m)
+        if f is None:
+            f = self.fields(m)
 
-        B, u = u['B'], u['u']
-        mu = self.mapping*(m)
-        dmudm = self.mapping.deriv(m)
+        B, u = f['B'], f['u']
+        mu = self.muMap*(m)
+        dmudm = self.muMap.deriv(m)
         dchidmu = Utils.sdiag(1/mu_0*np.ones(self.mesh.nC))
 
         vol = self.mesh.vol
@@ -869,40 +873,18 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         MfMuIvec = 1/self.MfMui.diagonal()
         dMfMuI = Utils.sdiag(MfMuIvec**2)*self.mesh.aveF2CC.T*Utils.sdiag(vol*1./mu**2)
 
-        # A = self._Div*self.MfMuI*self._Div.T
-        # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
-        # C(m,u) = A*m-rhs
-        # dudm = -(dCdu)^(-1)dCdm
-
-        dCdu = self.getA(m)
         s = Div * (self.MfMuI.T * (P.T*v))
+        sol = self.Ainv*s
 
-        m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/(dCdu.T).diagonal()))
-        sol, info = sp.linalg.bicgstab(dCdu.T, s, tol=1e-6, maxiter=1000, M=m1)
-
-        if info > 0:
-            print("Iterative solver did not work well (Jtvec)")
-            # raise Exception ("Iterative solver did not work well")
-
-
-        # dCdm_A = Div * ( Utils.sdiag( Div.T * u )* dMfMuI *dmudm  )
-        # dCdm_Atsol = ( dMfMuI.T*( Utils.sdiag( Div.T * u ) * (Div.T * dmudm)) ) * sol
         dCdm_Atsol = (dmudm.T * dMfMuI.T*(Utils.sdiag(Div.T * u) * Div.T)) * sol
 
-        # dCdm_RHS1 = Div * (Utils.sdiag( self.MfMu0*B0  ) * dMfMuI)
-        # dCdm_RHS1tsol = (dMfMuI.T*( Utils.sdiag( self.MfMu0*B0  ) ) * Div.T * dmudm) * sol
-        dCdm_RHS1tsol = (dmudm.T * dMfMuI.T*(Utils.sdiag( self.MfMu0*B0)) * Div.T ) * sol
+        dCdm_RHS1tsol = (dmudm.T * dMfMuI.T*(Utils.sdiag(self.MfMu0*B0)) * Div.T) * sol
 
-
-        # temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
-        temp1sol = ( Dface.T*( Utils.sdiag(vol)*sol ) )
+        temp1sol = (Dface.T*(Utils.sdiag(vol)*sol))
         temp2 = self.Bbc_const*(self._Pout.T*self.Bbc).T
-        # dCdm_RHS2v  = (Utils.sdiag(vol)*temp1)*np.inner(vol, dchidmu*dmudm*v)
-        dCdm_RHS2tsol  = (dmudm.T*dchidmu.T*vol)*np.inner(temp2, temp1sol)
+        dCdm_RHS2tsol = (dmudm.T*dchidmu.T*vol)*np.inner(temp2, temp1sol)
 
-        # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
-
-        #temporary fix
+        # temporary fix
         # dCdm_RHStsol = dCdm_RHS1tsol - dCdm_RHS2tsol
         dCdm_RHStsol = dCdm_RHS1tsol
 
@@ -916,41 +898,41 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         # dPBdm^T*v = Atemp^T*P^T*v - Btemp^T*P^T*v - Ctv
 
         Atemp = Utils.sdiag(self.MfMu0*B0)*(dMfMuI * (dmudm))
-        Btemp = Utils.sdiag(Div.T*u)*(dMfMuI* (dmudm))
+        Btemp = Utils.sdiag(Div.T*u)*(dMfMuI * (dmudm))
         Jtv = Atemp.T*(P.T*v) - Btemp.T*(P.T*v) - Ctv
 
         return Utils.mkvc(Jtv)
 
 
-def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
+# def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
 
-    """
-        Inversion module for MagneticsDiffSecondary
+#     """
+#         Inversion module for MagneticsDiffSecondary
 
-    """
-    from SimPEG import Optimization, Regularization, Parameters, ObjFunction, Inversion
-    prob = MagneticsDiffSecondary(mesh, model)
+#     """
+#     from SimPEG import Optimization, Regularization, Parameters, ObjFunction, Inversion
+#     prob = MagneticsDiffSecondary(mesh, model)
 
-    miter = kwargs.get('maxIter', 10)
+#     miter = kwargs.get('maxIter', 10)
 
-    if prob.ispaired:
-        prob.unpair()
-    if data.ispaired:
-        data.unpair()
-    prob.pair(data)
+#     if prob.ispaired:
+#         prob.unpair()
+#     if data.ispaired:
+#         data.unpair()
+#     prob.pair(data)
 
-    # Create an optimization program
-    opt = Optimization.InexactGaussNewton(maxIter=miter)
-    opt.bfgsH0 = Solver(sp.identity(model.nP), flag='D')
-    # Create a regularization program
-    reg = Regularization.Tikhonov(model)
-    # Create an objective function
-    beta = Parameters.BetaSchedule(beta0=1e0)
-    obj = ObjFunction.BaseObjFunction(data, reg, beta=beta)
-    # Create an inversion object
-    inv = Inversion.BaseInversion(obj, opt)
+#     # Create an optimization program
+#     opt = Optimization.InexactGaussNewton(maxIter=miter)
+#     opt.bfgsH0 = Solver(sp.identity(model.nP), flag='D')
+#     # Create a regularization program
+#     reg = Regularization.Tikhonov(model)
+#     # Create an objective function
+#     beta = Parameters.BetaSchedule(beta0=1e0)
+#     obj = ObjFunction.BaseObjFunction(data, reg, beta=beta)
+#     # Create an inversion object
+#     inv = Inversion.BaseInversion(obj, opt)
 
-    return inv, reg
+#     return inv, reg
 
 
 def get_T_mat(Xn, Yn, Zn, rxLoc):

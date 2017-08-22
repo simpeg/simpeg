@@ -664,7 +664,7 @@ class UpdatePreCond(InversionDirective):
     onlyOnStart = False
     mapping = None
     misfitDiag = None
-    epsilon = 1e-7
+    epsilon = 1e-8
     def initialize(self):
 
         # Create the pre-conditioner
@@ -739,9 +739,8 @@ class UpdateSensWeighting(InversionDirective):
         # Update inverse problem
         self.update()
 
-        if self.everyIter:
-            # Update the regularization
-            self.updateReg()
+        # Update the regularization
+        self.updateReg()
 
     def endIter(self):
 
