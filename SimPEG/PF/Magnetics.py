@@ -1531,7 +1531,7 @@ def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
 
 
 def plotProfile(xyzd, a, b, npts, data=None,
-                fig=None, ax=None, plotStr='b.-',
+                fig=None, ax=None, plotStr=None,
                 coordinate_system='local'):
     """
     Plot the data and line profile inside the spcified limits
@@ -1569,11 +1569,19 @@ def plotProfile(xyzd, a, b, npts, data=None,
     elif coordinate_system == 'yProfile':
         distance += a[1]
 
-    ax.plot(distance, dline, plotStr)
+    ax.plot(distance, dline)
 
     if data is not None:
-        dline = griddata(xyzd[:, :2], data, (x, y), method='linear')
-        ax.plot(distance, dline, 'r.-')
+
+        # if len(plotStr) == len(data):
+        for ii, d in enumerate(data):
+
+            dline = griddata(xyzd[:, :2], d, (x, y), method='linear')
+
+            if plotStr[ii]:
+                ax.plot(distance, dline, plotStr[ii])
+            else:
+                ax.plot(distance, dline)
 
     ax.set_xlim(distance.min(), distance.max())
 

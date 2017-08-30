@@ -598,6 +598,7 @@ class Update_IRLS(InversionDirective):
                 for comp in reg.objfcts:
                     comp.gamma = gamma
 
+            self.updateBeta = True
         # Beta Schedule
         if np.all([self.invProb.phi_d < self.target,
                    self.mode == 2]):
@@ -617,6 +618,7 @@ class Update_IRLS(InversionDirective):
 
             self.invProb.beta = (self.invProb.beta * self.target /
                                  self.invProb.phi_d)
+            self.updateBeta = False
 
     def regScale(self):
         """
@@ -714,7 +716,7 @@ class UpdatePreCond(InversionDirective):
                 regDiag += reg.mapping.P.T*(reg.W.T*reg.W).diagonal()
 
         # Assumes that opt.JtJdiag has been updated or static
-        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag + self.invProb.beta*self.epsilon
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag #+ self.invProb.beta*self.epsilon
 
         PC = Utils.sdiag((diagA)**-1.)
         self.opt.approxHinv = PC
@@ -733,14 +735,17 @@ class UpdateSensWeighting(InversionDirective):
     ComboMisfitFun = False
     JtJdiag = None
     everyIter = True
+    epsilon = 1e-2
+    threshold = None
 
     def initialize(self):
 
         # Update inverse problem
         self.update()
 
-        # Update the regularization
-        self.updateReg()
+        if self.everyIter:
+            # Update the regularization
+            self.updateReg()
 
     def endIter(self):
 
@@ -881,14 +886,35 @@ class UpdateSensWeighting(InversionDirective):
             # prob_JtJ = prob_JtJ**0.5
             # prob_JtJ /= prob_JtJ.max()
 
+            nC = prob.chiMap.shape[0]
+            wr_prob = np.zeros_like(self.invProb.model)
+            if isinstance(prob, Magnetics.MagneticVector):
 
+                nC = int(nC/3)
+
+                if self.threshold is None:
+                    self.threshold = np.ones(3)
+                    self.threshold[0] = prob_JtJ[:nC].max()*self.epsilon**2.
+                    self.threshold[1] = prob_JtJ[nC:2*nC].max()*self.epsilon**2.
+                    self.threshold[2] = prob_JtJ[2*nC:].max()*self.epsilon**2.
+
+                wr_prob[:nC] += (prob_JtJ[:nC] + self.threshold[0])
+
+                wr_prob[nC:2*nC] += (prob_JtJ[nC:2*nC] + self.threshold[1])
+
+                wr_prob[2*nC:] += (prob_JtJ[2*nC:] + self.threshold[2])
+
+            else:
+                if self.threshold is None:
+                    self.threshold = prob_JtJ[:nC].max()*self.epsilon**2.
+                wr_prob = prob_JtJ + self.threshold
 
             if getattr(prob.chiMap, 'index', None) is None:
+                wr += wr_prob
 
-                wr += prob_JtJ
             else:
 
-                wr[prob.chiMap.index] += prob_JtJ
+                wr[prob.chiMap.index] += wr_prob
 
         wr = wr**0.5
         wr /= wr.max()

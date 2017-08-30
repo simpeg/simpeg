@@ -1169,8 +1169,8 @@ class Mesh2MeshTopo(IdentityMap):
             KD Tree interpolation onto the active cells.
         """
         if self.tree==None:
-            self.tree = cKDTree(zip(self.mesh.gridCC[self.actind,0], self.mesh.gridCC[self.actind,1], self.mesh.gridCC[self.actind,2]))
-        d, inds = self.tree.query(zip(self.mesh2.gridCC[self.actind2,0],self.mesh2.gridCC[self.actind2,1],self.mesh2.gridCC[self.actind2,2]), k=self.nIterpPts)
+            self.tree = cKDTree(np.c_[self.mesh.gridCC[self.actind,0], self.mesh.gridCC[self.actind,1], self.mesh.gridCC[self.actind,2]])
+        d, inds = self.tree.query(np.c_[self.mesh2.gridCC[self.actind2,0],self.mesh2.gridCC[self.actind2,1],self.mesh2.gridCC[self.actind2,2]], k=self.nIterpPts)
         # Not sure consideration of the volume ...
         # vol = np.zeros((self.actind2.sum(), self.nIterpPts))
         # for i in range(self.nIterpPts):
