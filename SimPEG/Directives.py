@@ -579,7 +579,7 @@ class Update_IRLS(InversionDirective):
             # phim_new = self.reg(self.invProb.model)
             self.f_change = np.abs(self.f_old - phim_new) / self.f_old
 
-            print("Regularization decrease: {0:6.3e}".format((self.f_change)))
+            print("Phim relative change: {0:6.3e}".format((self.f_change)))
             # Check if the function has changed enough
             if self.f_change < self.f_min_change and self.IRLSiter > 1:
                 print("Minimum decrease in regularization. End of IRLS")
@@ -857,9 +857,9 @@ class UpdateSensWeighting(InversionDirective):
             # Apply scale to the deriv and deriv2
             # dmisfit.scale = scale
 
-            # if prob.W is not None:
+            if prob.W is not None:
 
-            #     jtjdiag *= prob.W
+                jtjdiag *= prob.W
 
             self.JtJdiag += [jtjdiag]
 
