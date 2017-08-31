@@ -736,7 +736,6 @@ class UpdateSensWeighting(InversionDirective):
     JtJdiag = None
     everyIter = True
     epsilon = 1e-2
-    threshold = None
 
     def initialize(self):
 
@@ -874,41 +873,32 @@ class UpdateSensWeighting(InversionDirective):
 
         wr = np.zeros_like(self.invProb.model)
 
-        # if self.ComboMisfitFun:
-
         for prob_JtJ, prob in zip(self.JtJdiag, self.prob):
 
-            # prob_JtJ = JtJ
-            # if prob.W is not None:
-
-            #     prob_JtJ *= prob.W
-
-            # prob_JtJ = prob_JtJ**0.5
-            # prob_JtJ /= prob_JtJ.max()
-
             nC = prob.chiMap.shape[0]
-            wr_prob = np.zeros_like(self.invProb.model)
+            wr_prob = np.zeros(nC)
             if isinstance(prob, Magnetics.MagneticVector):
 
                 nC = int(nC/3)
 
-                if self.threshold is None:
-                    self.threshold = np.ones(3)
-                    self.threshold[0] = prob_JtJ[:nC].max()*self.epsilon**2.
-                    self.threshold[1] = prob_JtJ[nC:2*nC].max()*self.epsilon**2.
-                    self.threshold[2] = prob_JtJ[2*nC:].max()*self.epsilon**2.
+                if prob.threshold is None:
+                    prob.threshold = np.ones(3)
+                    prob.threshold[0] = prob_JtJ[:nC].max()*self.epsilon**2.
+                    prob.threshold[1] = prob_JtJ[nC:2*nC].max()*self.epsilon**2.
+                    prob.threshold[2] = prob_JtJ[2*nC:].max()*self.epsilon**2.
 
-                wr_prob[:nC] += (prob_JtJ[:nC] + self.threshold[0])
+                wr_prob[:nC] += (prob_JtJ[:nC] + prob.threshold[0])
 
-                wr_prob[nC:2*nC] += (prob_JtJ[nC:2*nC] + self.threshold[1])
+                wr_prob[nC:2*nC] += (prob_JtJ[nC:2*nC] + prob.threshold[1])
 
-                wr_prob[2*nC:] += (prob_JtJ[2*nC:] + self.threshold[2])
+                wr_prob[2*nC:] += (prob_JtJ[2*nC:] + prob.threshold[2])
 
             else:
-                if self.threshold is None:
-                    self.threshold = prob_JtJ[:nC].max()*self.epsilon**2.
-                wr_prob = prob_JtJ + self.threshold
+                if prob.threshold is None:
+                    prob.threshold = prob_JtJ[:nC].max()*self.epsilon**2.
+                wr_prob = prob_JtJ + prob.threshold
 
+            # Check if it is a Combo problem
             if getattr(prob.chiMap, 'index', None) is None:
                 wr += wr_prob
 
@@ -919,16 +909,6 @@ class UpdateSensWeighting(InversionDirective):
         wr = wr**0.5
         wr /= wr.max()
 
-        # # Apply extra weighting
-        # for prob in self.prob:
-        #     if prob.W is not None:
-
-        #         if getattr(prob.chiMap, 'index', None) is None:
-        #             wr *= prob.W
-        #         else:
-
-        #             wr[prob.chiMap.index] *= prob.W
-
         return wr
 
     def updateReg(self):
@@ -938,12 +918,6 @@ class UpdateSensWeighting(InversionDirective):
 
         for reg in self.reg.objfcts:
             reg.cell_weights = reg.mapping * (self.wr)
-
-
-        # TEST TO SCALE MAX OF ANGLES PHIM
-        # scale = self.reg.objfcts[1].cell_weights.max()/self.reg.objfcts[2].cell_weights.max()
-        # self.reg.objfcts[2].cell_weights *= scale
-        # print('SCALE' + str(scale))
 
     def updateOpt(self):
         """
@@ -961,9 +935,6 @@ class UpdateSensWeighting(InversionDirective):
                 JtJdiag[prob.chiMap.index] += JtJ
 
         self.opt.JtJdiag = JtJdiag
-
-        # else:
-        #     self.opt.JtJdiag = self.JtJdiag[0]
 
 
 class ProjSpherical(InversionDirective):
@@ -1016,6 +987,7 @@ class JointAmpMVI(InversionDirective):
     minGNiter = 1
     jointMVIS = False
     updateM = False
+
     def initialize(self):
 
         # Get current MVI model and update MAI sensitivity
@@ -1050,7 +1022,6 @@ class JointAmpMVI(InversionDirective):
 
     def endIter(self):
 
-        # if self.opt.iter % self.minGNiter == 0:
         # Get current MVI model and update magnetization model for MAI
         m = self.invProb.model.copy()
         for prob in self.prob:

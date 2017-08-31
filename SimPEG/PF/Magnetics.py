@@ -265,7 +265,7 @@ class MagneticVector(MagneticIntegral):
     silent = False  # Don't display progress on screen
     scale = 1.
     W = None
-
+    threshold = None
     coordinate_system = properties.StringChoice(
     "Type of coordinate system we are regularizing in",
     choices=['cartesian', 'spherical'],
@@ -379,7 +379,7 @@ class MagneticAmplitude(MagneticIntegral):
     scale = 1.
     W = None
     coordinate_system = 'suscEffective'
-
+    threshold = None
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
