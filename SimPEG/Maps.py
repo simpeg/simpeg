@@ -1129,6 +1129,7 @@ class Mesh2MeshTopo(IdentityMap):
     tree = None
     nIterpPts = 6
     P = None  #: The CSR projection matrix.
+    epsilon = 1e-8  # Small value to avoid 0 division in weights
 
     def __init__(self, meshes, actinds, **kwargs):
         Utils.setKwargs(self, **kwargs)
@@ -1185,7 +1186,7 @@ class Mesh2MeshTopo(IdentityMap):
         # vol = np.zeros((self.actind2.sum(), self.nIterpPts))
         # for i in range(self.nIterpPts):
         #     vol[:,i] = self.mesh.vol[inds[:,i]]
-        w = 1. / d**2
+        w = 1. / (d+self.epsilon)**2
         w = Utils.sdiag(1./np.sum(w, axis=1)) * (w)
         I = Utils.mkvc(np.arange(inds.shape[0]).reshape([-1, 1]).repeat(self.nIterpPts, axis=1))
         J = Utils.mkvc(inds)
