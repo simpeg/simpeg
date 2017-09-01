@@ -1120,6 +1120,98 @@ class Mesh2Mesh(IdentityMap):
         return self.P
 
 
+class Mesh2MeshTopo(IdentityMap):
+    """
+        Takes a model on one mesh are translates it to another mesh
+        with consideration of topography
+
+    """
+    tree = None
+    nIterpPts = 6
+    P = None  #: The CSR projection matrix.
+
+    def __init__(self, meshes, actinds, **kwargs):
+        Utils.setKwargs(self, **kwargs)
+
+        assert type(meshes) is list, "meshes must be a list of two meshes"
+        assert len(meshes) == 2, "meshes must be a list of two meshes"
+        assert type(actinds) is list, "actinds must be a list of two meshes"
+        assert len(actinds) == 2, "actinds must be a list of two meshes"
+        assert meshes[0].dim == meshes[1].dim, """The two meshes must be the same dimension"""
+
+        self.mesh = meshes[0]
+        self.mesh2 = meshes[1]
+        self.actind = actinds[0]
+        self.actind2 = actinds[1]
+        self._createProjection()
+
+        # Old version using SimPEG interpolation
+        # self.P = self.mesh2.getInterpolationMat(self.mesh.gridCC,'CC',zerosOutside=True)
+
+    def genActiveindfromTopo(mesh, xyztopo):
+
+        #TODO: This possibly needs to be improved use vtk(?)
+        if mesh.dim == 3:
+            nCxy = mesh.nCx*mesh.nCy
+            Zcc = mesh.gridCC[:, 2].reshape((nCxy, mesh.nCz), order='F')
+            Ftopo = NearestNDInterpolator(xyztopo[:, :2], xyztopo[:, 2])
+            XY = Utils.ndgrid(mesh.vectorCCx, mesh.vectorCCy)
+            XY.shape
+            topo = Ftopo(XY)
+            actind = []
+            for ixy in range(nCxy):
+                actind.append(topo[ixy] <= Zcc[ixy, :])
+        else:
+            raise NotImplementedError("Only 3D is working")
+
+        return Utils.mkvc(np.vstack(actind))
+
+    #Question .. is it only generated once?
+    def _createProjection(self):
+        """
+            KD Tree interpolation onto the active cells.
+        """
+        if self.tree is None:
+            self.tree = cKDTree(np.c_[self.mesh.gridCC[self.actind, 0],
+                                      self.mesh.gridCC[self.actind, 1],
+                                      self.mesh.gridCC[self.actind, 2]])
+
+        d, inds = self.tree.query(np.c_[self.mesh2.gridCC[self.actind2, 0],
+                                        self.mesh2.gridCC[self.actind2, 1],
+                                        self.mesh2.gridCC[self.actind2, 2]],
+                                  k=self.nIterpPts)
+
+        # Not sure consideration of the volume ...
+        # vol = np.zeros((self.actind2.sum(), self.nIterpPts))
+        # for i in range(self.nIterpPts):
+        #     vol[:,i] = self.mesh.vol[inds[:,i]]
+        w = 1. / d**2
+        w = Utils.sdiag(1./np.sum(w, axis=1)) * (w)
+        I = Utils.mkvc(np.arange(inds.shape[0]).reshape([-1, 1]).repeat(self.nIterpPts, axis=1))
+        J = Utils.mkvc(inds)
+        P = sp.coo_matrix((Utils.mkvc(w), (I, J)),
+                          shape=(inds.shape[0], (self.actind).sum()))
+        # self.P = Utils.sdiag(self.mesh2.vol[self.actind2])*P.tocsc()
+        self.P = P.tocsr()
+
+    @property
+    def shape(self):
+        """Number of parameters in the model."""
+        # return (self.mesh.nC, self.mesh2.nC)
+        return (self.actind2.sum(), self.actind.sum())
+
+    @property
+    def nP(self):
+        """Number of parameters in the model."""
+        # return self.mesh2.nC
+        return self.actind2.sum()
+
+    def _transform(self, m):
+        return self.P*m
+
+    def deriv(self, m):
+        return self.P
+
 class InjectActiveCells(IdentityMap):
     """
         Active model parameters.
