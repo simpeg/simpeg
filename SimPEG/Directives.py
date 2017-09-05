@@ -694,7 +694,7 @@ class UpdatePreCond(InversionDirective):
 
             self.opt.JtJdiag = JtJdiag
 
-        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag + self.invProb.beta*self.epsilon
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
         PC = Utils.sdiag((diagA)**-1.)
         self.opt.approxHinv = PC
@@ -716,7 +716,7 @@ class UpdatePreCond(InversionDirective):
                 regDiag += reg.mapping.P.T*(reg.W.T*reg.W).diagonal()
 
         # Assumes that opt.JtJdiag has been updated or static
-        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag #+ self.invProb.beta*self.epsilon
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
         PC = Utils.sdiag((diagA)**-1.)
         self.opt.approxHinv = PC
