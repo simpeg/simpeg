@@ -1068,14 +1068,13 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
     maxIterCG = 5
     tolCG = 1e-1
 
-    stepOffBoundsFact = 1e-8 # perturbation of the inactive set off the bounds
-
+    # perturbation of the inactive set off the bounds
+    stepOffBoundsFact = 1e-8
     lower = [-np.inf]
     upper = [np.inf]
 
     ComboObjFun = False
     LSalwaysPass = False
-
 
     def _startup(self, x0):
 
@@ -1084,13 +1083,12 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
             self.lower = np.ones_like(x0)*self.lower
 
-        assert(self.lower.shape[0] != x0.shape[0], "Lower bound must be a list or vector length(model)")
-
         if type(self.upper) is not np.ndarray:
 
             self.upper = np.ones_like(x0)*self.upper
 
-        assert(self.lower.shape[0] != x0.shape[0], "Upper bound must be a list or vector length(model)")
+        assert self.lower.shape[0] == x0.shape[0], "Lower bound must be a list or vector"
+        assert self.upper.shape[0] == x0.shape[0], "Upper bound must be a list or vector"
 
     @Utils.count
     def projection(self, x):

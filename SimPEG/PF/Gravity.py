@@ -258,7 +258,7 @@ def progress(iter, prog, final):
     return prog
 
 
-def writeUBCobs(filename, survey, d):
+def writeUBCobs(filename, survey, d=None):
     """
     writeUBCobs(filename,survey,d)
 
@@ -277,6 +277,9 @@ def writeUBCobs(filename, survey, d):
     rxLoc = survey.srcField.rxList[0].locs
 
     wd = survey.std
+
+    if d is None:
+        d = survey.dobs
 
     data = np.c_[rxLoc, d, wd]
 

@@ -1322,7 +1322,7 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
     return wr
 
 
-def writeUBCobs(filename, survey, d):
+def writeUBCobs(filename, survey, d = None):
     """
     writeUBCobs(filename,B,M,rxLoc,d,wd)
 
@@ -1346,6 +1346,9 @@ def writeUBCobs(filename, survey, d):
     rxLoc = survey.srcField.rxList[0].locs
 
     wd = survey.std
+
+    if d is None:
+        d = survey.dobs
 
     data = np.c_[rxLoc, d, wd]
     head = ('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0])+
