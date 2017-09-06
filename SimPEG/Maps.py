@@ -387,6 +387,130 @@ class Wires(object):
         return self._nP
 
 
+class Tile(object):
+    """
+        Mapping for tiled inversion
+    """
+
+    tree = None
+    nCell = 12
+
+    def __init__(self, *args):
+
+        assert(len(args) == 2,
+               ('Mapping requires a tuple' +
+               '(MeshGlobal, ActiveGlobal), (MeshLocal, ActiveLocal)'))
+
+        for arg in args:
+            assert (
+                isinstance(arg, tuple) and
+                len(arg) == 2 and
+                isinstance(arg[0], 'Mesh') and
+                # TODO: this should be extended to a slice.
+                (arg[1].shape[0]==arg[0].nC)
+            ), (
+                "Each wire needs to be a tuple: (Mesh, Active). "
+                "You provided: {}".format(arg)
+            )
+
+        if tree is None:
+            tree = cKDTree(np.c_[args[0][0].gridCC[args[0][1], 0],
+                                 args[0][0].gridCC[args[0][1], 1],
+                                 args[0][0].gridCC[args[0][1], 2]])
+
+        indx = getTreeIndex(args[1][0], args[1][1], self.nC)
+
+        # Get the node coordinates (bottom-SW) and (top-NE) of cells
+        glob_bsw, glob_tne = getNodeExtent(args[0][0])
+
+        loca_bsw, loca_tne = getNodeExtent(args[1][0])
+
+        # Calculate interesected volume
+        V = []
+        indx = np.r_[indx]
+        for ii in range(indx.shape[1]):
+
+            # Grab corners for ith nearest cell
+            nbsw = glob_bsw[indx[:, ii], :]
+            ntne = glob_tne[indx[:, ii], :]
+
+            V += [(np.max([np.min([ntne[:, 0], loca_tne[:, 0]], axis=0)-np.max([nbsw[:, 0], loca_bsw[:, 0]], axis=0), np.zeros(mesh2.nC)], axis=0) *
+                   np.max([np.min([ntne[:, 1], loca_tne[:, 1]], axis=0)-np.max([nbsw[:, 1], loca_bsw[:, 1]], axis=0), np.zeros(mesh2.nC)], axis=0) *
+                   np.max([np.min([ntne[:, 2], loca_tne[:, 2]], axis=0)-np.max([nbsw[:, 2], loca_bsw[:, 2]], axis=0), np.zeros(mesh2.nC)], axis=0))]
+
+        V = np.c_[V]
+
+        I = Utils.mkvc(np.arange(inds.shape[0]).reshape([1, -1]).repeat(nIterpPts, axis=1))
+        J = Utils.mkvc(inds.T)
+        P = sp.coo_matrix((Utils.mkvc(V), (I, J)),
+                          shape=(inds.shape[0], (actv).sum()))
+        # self.P = Utils.sdiag(self.mesh2.vol[self.actind2])*P.tocsc()
+        self.P = P.tocsr()
+
+        self.PglobalModel = sp.spdiags(mkvc(1/(np.sum(P, axis=1)+1e-8)),
+                                       0, arg[1][0].nC, arg[1][0].nC) * self.P
+
+        self.PlocalJ = self.P.T * sp.spdiags(1/arg[1][0].vol,
+                                             0, arg[1][0].nC, arg[1][0].nC)
+
+    def getTreeIndex(self, tree, mesh, actvCell, nCell):
+        """
+            Querry the KDTree for nearest cells
+        """
+
+        d, indx = tree.query(np.c_[mesh.gridCC[:, 0],
+                                   mesh.gridCC[:, 1],
+                                   mesh.gridCC[:, 2]],
+                             k=nCell)
+        return indx
+
+    def getNodeExtent(self, mesh):
+
+        gridNx = mesh.gridN[:, 0].reshape(mesh.vnN, order='F')
+        gridNy = mesh.gridN[:, 1].reshape(mesh.vnN, order='F')
+        gridNz = mesh.gridN[:, 2].reshape(mesh.vnN, order='F')
+
+        bsw = np.c_[nodes_x[:-1, :-1, :-1],
+                    nodes_y[:-1, :-1, :-1],
+                    nodes_z[:-1, :-1, :-1]].reshape((mesh.nC, 3), order='F')
+
+        tne = np.c_[nodes_x[1:, 1:, 1:],
+                    nodes_y[1:, 1:, 1:],
+                    nodes_z[1:, 1:, 1:]].reshape((mesh.nC, 3), order='F')
+
+        return bsw, tne
+
+    def _transform(self, m):
+        return self.PglobalModel * m
+
+    @property
+    def shape(self):
+        """
+        Shape of the matrix operation (number of indices x nP)
+        """
+        return self._shape
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+        """
+
+        if v is not None:
+            return self.PlocalJ * v
+        return self.PlocalJ
+    # def __mul__(self, val):
+    #     assert isinstance(val, np.ndarray)
+    #     split = []
+    #     for n, w in self.maps:
+    #         split += [w * val]
+    #     return self._tuple(*split)
+    #
+    # @property
+    # def nP(self):
+    #     return self._nP
+
 class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
     """
         Two phase self-consistent effective medium theory mapping for
