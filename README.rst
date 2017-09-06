@@ -66,7 +66,7 @@ There is a paper about SimPEG!
     }
 
 Electromagnetics
-^^^^^^^^^^^^^^^^
+****************
 
 If you are using the electromagnetics module of SimPEG, please cite:
 
@@ -74,7 +74,7 @@ If you are using the electromagnetics module of SimPEG, please cite:
 
 **BibTex:**
 
-.. code:: 
+.. code::
 
     @article{heagy2017,
         title= "A framework for simulation and inversion in electromagnetics",
@@ -87,7 +87,7 @@ If you are using the electromagnetics module of SimPEG, please cite:
         issn = "0098-3004",
         doi = "http://dx.doi.org/10.1016/j.cageo.2017.06.018"
     }
-        
+
 
 
 Links
