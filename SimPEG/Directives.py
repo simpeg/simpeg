@@ -733,60 +733,62 @@ class Update_lin_PreCond(InversionDirective):
     Create a Jacobi preconditioner for the linear problem
     """
     onlyOnStart = False
-    mapping = None
-    ComboObjFun = False
 
     def initialize(self):
 
-        # Check if it is a ComboObjective
-        if not isinstance(self.reg, Regularization.BaseComboRegularization):
+        # Create the pre-conditioner
+        regDiag = np.zeros_like(self.invProb.model)
 
-            # It is a Combo objective, so will have to loop
-            self.ComboObjFun = True
-
-        if getattr(self, 'mapping', None) is None:
-            self.mapping = Maps.IdentityMap(nP=self.reg.mapping.nP)
-
-        if getattr(self.opt, 'approxHinv', None) is None:
-
-            # Update the pre-conditioner
-            if self.ComboObjFun:
-
-                reg_diag = []
-                for reg in self.reg.objfcts:
-                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
-
-                diagA = np.sum(self.prob.G**2., axis=0) + np.hstack(reg_diag)
-
+        for reg in self.reg.objfcts:
+            # Check if he has wire
+            if getattr(reg.mapping, 'P', None) is None:
+                regDiag += (reg.W.T*reg.W).diagonal()
             else:
-                diagA = (np.sum(self.prob.G**2., axis=0) +
-                         self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal())
+                # He is a snitch!
+                regDiag += reg.mapping.P.T*(reg.W.T*reg.W).diagonal()
 
-            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
-            self.opt.approxHinv = PC
+
+        # Deal with the linear case
+        if getattr(self.opt, 'JtJdiag', None) is None:
+
+            print("Approximated diag(JtJ) with linear operator")
+
+            JtJdiag = np.zeros_like(self.invProb.model)
+
+            for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
+
+                wd = dmisfit.W.diagonal()
+                for ii in range(prob.G.shape[0]):
+                    JtJdiag += prob.mapping.deriv().T*(wd[ii] * prob.G[ii, :])**2.
+
+            self.opt.JtJdiag = JtJdiag
+
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
+
+        PC = Utils.sdiag((diagA)**-1.)
+        self.opt.approxHinv = PC
 
     def endIter(self):
         # Cool the threshold parameter
         if self.onlyOnStart is True:
             return
 
-        if getattr(self.opt, 'approxHinv', None) is not None:
-            # Update the pre-conditioner
-            # Update the pre-conditioner
-            if self.ComboObjFun:
+        # Create the pre-conditioner
+        regDiag = np.zeros_like(self.invProb.model)
 
-                reg_diag = []
-                for reg in self.reg.objfcts:
-                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
-
-                diagA = np.sum(self.prob.G**2., axis=0) + np.hstack(reg_diag)
-
+        for reg in self.reg.objfcts:
+            # Check if he has wire
+            if getattr(reg.mapping, 'P', None) is None:
+                regDiag += (reg.W.T*reg.W).diagonal()
             else:
-                diagA = (np.sum(self.prob.G**2., axis=0) +
-                         self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal())
+                # He is a snitch!
+                regDiag += reg.mapping.P.T*(reg.W.T*reg.W).diagonal()
 
-            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
-            self.opt.approxHinv = PC
+        # Assumes that opt.JtJdiag has been updated or static
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
+
+        PC = Utils.sdiag((diagA)**-1.)
+        self.opt.approxHinv = PC
 
 
 class Update_Wj(InversionDirective):
