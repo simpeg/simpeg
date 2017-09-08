@@ -248,11 +248,11 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return fwr_out
 
-        def mapping(self):
-            """
-                Call for general mapping of the problem
-            """
-            return self.chiMap
+    def mapping(self):
+        """
+            Call for general mapping of the problem
+        """
+        return self.chiMap
 class MagneticVector(MagneticIntegral):
 
     forwardOnly = False  # If false, matric is store to memory (watch your RAM)

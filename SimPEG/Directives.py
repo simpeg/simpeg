@@ -759,7 +759,7 @@ class Update_lin_PreCond(InversionDirective):
 
                 wd = dmisfit.W.diagonal()
                 for ii in range(prob.G.shape[0]):
-                    JtJdiag += prob.mapping.deriv().T*(wd[ii] * prob.G[ii, :])**2.
+                    JtJdiag += prob.mapping().deriv().T*(wd[ii] * prob.G[ii, :])**2.
 
             self.opt.JtJdiag = JtJdiag
 
