@@ -393,7 +393,7 @@ class Tile(IdentityMap):
     """
 
     tree = None
-    nCell = 12
+    nCell = 27
 
     def __init__(self, *args):
 
