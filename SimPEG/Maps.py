@@ -387,7 +387,7 @@ class Wires(object):
         return self._nP
 
 
-class Tile(object):
+class Tile(IdentityMap):
     """
         Mapping for tiled inversion
     """
@@ -401,59 +401,100 @@ class Tile(object):
                ('Mapping requires a tuple' +
                '(MeshGlobal, ActiveGlobal), (MeshLocal, ActiveLocal)'))
 
-        for arg in args:
-            assert (
-                isinstance(arg, tuple) and
-                len(arg) == 2 and
-                isinstance(arg[0], 'Mesh') and
-                # TODO: this should be extended to a slice.
-                (arg[1].shape[0]==arg[0].nC)
-            ), (
-                "Each wire needs to be a tuple: (Mesh, Active). "
-                "You provided: {}".format(arg)
-            )
+        # for arg in args:
+        #     assert (
+        #         isinstance(arg, tuple) and
+        #         len(arg) == 2 and
+        #         isinstance(arg[0], 'Mesh') and
+        #         # TODO: this should be extended to a slice.
+        #         (arg[1].shape[0]==arg[0].nC)
+        #     ), (
+        #         "Each wire needs to be a tuple: (Mesh, Active). "
+        #         "You provided: {}".format(arg)
+        #     )
 
-        if tree is None:
-            tree = cKDTree(np.c_[args[0][0].gridCC[args[0][1], 0],
-                                 args[0][0].gridCC[args[0][1], 1],
-                                 args[0][0].gridCC[args[0][1], 2]])
+        self.meshGlobal = args[0][0]
+        self.actvGlobal = args[0][1]
 
-        indx = getTreeIndex(args[1][0], args[1][1], self.nC)
+        self.meshLocal = args[1][0]
+        self.actvLocal = args[1][1]
 
-        # Get the node coordinates (bottom-SW) and (top-NE) of cells
-        glob_bsw, glob_tne = getNodeExtent(args[0][0])
+    @property
+    def tree(self):
+        """
+            Create cKDTree structure for given global mesh
+        """
+        if getattr(self, '_tree', None) is None:
+            self._tree = cKDTree(np.c_[self.meshGlobal.gridCC[self.actvGlobal, 0],
+                                       self.meshGlobal.gridCC[self.actvGlobal, 1],
+                                       self.meshGlobal.gridCC[self.actvGlobal, 2]])
 
-        loca_bsw, loca_tne = getNodeExtent(args[1][0])
+        return self._tree
 
-        # Calculate interesected volume
-        V = []
-        indx = np.r_[indx]
-        for ii in range(indx.shape[1]):
+    @property
+    def P(self):
+        """
+            Set the projection matrix with partial volumes
+        """
+        if getattr(self, '_P', None) is None:
+            indx = self.getTreeIndex(self.tree, self.meshLocal, self.actvLocal)
 
-            # Grab corners for ith nearest cell
-            nbsw = glob_bsw[indx[:, ii], :]
-            ntne = glob_tne[indx[:, ii], :]
+            # Get the node coordinates (bottom-SW) and (top-NE) of cells
+            glob_bsw, glob_tne = self.getNodeExtent(self.meshGlobal)
 
-            V += [(np.max([np.min([ntne[:, 0], loca_tne[:, 0]], axis=0)-np.max([nbsw[:, 0], loca_bsw[:, 0]], axis=0), np.zeros(mesh2.nC)], axis=0) *
-                   np.max([np.min([ntne[:, 1], loca_tne[:, 1]], axis=0)-np.max([nbsw[:, 1], loca_bsw[:, 1]], axis=0), np.zeros(mesh2.nC)], axis=0) *
-                   np.max([np.min([ntne[:, 2], loca_tne[:, 2]], axis=0)-np.max([nbsw[:, 2], loca_bsw[:, 2]], axis=0), np.zeros(mesh2.nC)], axis=0))]
+            loca_bsw, loca_tne = self.getNodeExtent(self.meshLocal)
 
-        V = np.c_[V]
+            # Calculate interesected volume
+            V = []
+            indx = np.r_[indx]
+            for ii in range(indx.shape[1]):
 
-        I = Utils.mkvc(np.arange(inds.shape[0]).reshape([1, -1]).repeat(nIterpPts, axis=1))
-        J = Utils.mkvc(inds.T)
-        P = sp.coo_matrix((Utils.mkvc(V), (I, J)),
-                          shape=(inds.shape[0], (actv).sum()))
-        # self.P = Utils.sdiag(self.mesh2.vol[self.actind2])*P.tocsc()
-        self.P = P.tocsr()
+                # Grab corners for ith nearest cell
+                nbsw = glob_bsw[indx[:, ii], :]
+                ntne = glob_tne[indx[:, ii], :]
 
-        self.PglobalModel = sp.spdiags(mkvc(1/(np.sum(P, axis=1)+1e-8)),
-                                       0, arg[1][0].nC, arg[1][0].nC) * self.P
+                V += [(np.max([np.min([ntne[:, 0], loca_tne[:, 0]], axis=0)-np.max([nbsw[:, 0], loca_bsw[:, 0]], axis=0), np.zeros(self.meshLocal.nC)], axis=0) *
+                       np.max([np.min([ntne[:, 1], loca_tne[:, 1]], axis=0)-np.max([nbsw[:, 1], loca_bsw[:, 1]], axis=0), np.zeros(self.meshLocal.nC)], axis=0) *
+                       np.max([np.min([ntne[:, 2], loca_tne[:, 2]], axis=0)-np.max([nbsw[:, 2], loca_bsw[:, 2]], axis=0), np.zeros(self.meshLocal.nC)], axis=0))]
 
-        self.PlocalJ = self.P.T * sp.spdiags(1/arg[1][0].vol,
-                                             0, arg[1][0].nC, arg[1][0].nC)
+            V = np.c_[V]
 
-    def getTreeIndex(self, tree, mesh, actvCell, nCell):
+            I = Utils.mkvc(np.arange(indx.shape[0]).reshape([1, -1]).repeat(self.nCell, axis=1))
+            J = Utils.mkvc(indx.T)
+            P = sp.coo_matrix((Utils.mkvc(V), (I, J)),
+                              shape=(indx.shape[0], self.actvGlobal.sum()))
+            # self.P = Utils.sdiag(self.mesh2.vol[self.actind2])*P.tocsc()
+            self._P = P.tocsr()
+
+            self._shape = indx.shape[0], self.actvGlobal.sum()
+
+        return self._P
+
+    @property
+    def Ptransform(self):
+        """
+            Projection for the interpolation of the model (weighted average)
+        """
+        if getattr(self, '_Ptransform', None) is None:
+            sumW = Utils.mkvc(np.sum(self.P, axis=1)+1e-8)
+            self._Ptransform = sp.spdiags(1/sumW,
+                                          0, self.meshLocal.nC,
+                                          self.meshLocal.nC) * self.P
+
+        return self._Ptransform
+
+    @property
+    def Psensitivity(self):
+        """
+            Projection for the sensitivities, scaled by fractional volume
+        """
+        if getattr(self, '_Psensitivity', None) is None:
+            self._Psensitivity = sp.spdiags(1/self.meshLocal.vol,
+                                            0, self.meshLocal.nC,
+                                            self.meshLocal.nC) * self.P
+        return self._Psensitivity
+
+    def getTreeIndex(self, tree, mesh, actvCell):
         """
             Querry the KDTree for nearest cells
         """
@@ -461,7 +502,7 @@ class Tile(object):
         d, indx = tree.query(np.c_[mesh.gridCC[:, 0],
                                    mesh.gridCC[:, 1],
                                    mesh.gridCC[:, 2]],
-                             k=nCell)
+                             k=self.nCell)
         return indx
 
     def getNodeExtent(self, mesh):
@@ -470,18 +511,18 @@ class Tile(object):
         gridNy = mesh.gridN[:, 1].reshape(mesh.vnN, order='F')
         gridNz = mesh.gridN[:, 2].reshape(mesh.vnN, order='F')
 
-        bsw = np.c_[nodes_x[:-1, :-1, :-1],
-                    nodes_y[:-1, :-1, :-1],
-                    nodes_z[:-1, :-1, :-1]].reshape((mesh.nC, 3), order='F')
+        bsw = np.c_[gridNx[:-1, :-1, :-1],
+                    gridNy[:-1, :-1, :-1],
+                    gridNz[:-1, :-1, :-1]].reshape((mesh.nC, 3), order='F')
 
-        tne = np.c_[nodes_x[1:, 1:, 1:],
-                    nodes_y[1:, 1:, 1:],
-                    nodes_z[1:, 1:, 1:]].reshape((mesh.nC, 3), order='F')
+        tne = np.c_[gridNx[1:, 1:, 1:],
+                    gridNy[1:, 1:, 1:],
+                    gridNz[1:, 1:, 1:]].reshape((mesh.nC, 3), order='F')
 
         return bsw, tne
 
     def _transform(self, m):
-        return self.PglobalModel * m
+        return self.Ptransform * m
 
     @property
     def shape(self):
@@ -490,7 +531,7 @@ class Tile(object):
         """
         return self._shape
 
-    def deriv(self, m, v=None):
+    def deriv(self, v=None):
         """
             :param numpy.array m: model
             :rtype: scipy.sparse.csr_matrix
@@ -498,8 +539,8 @@ class Tile(object):
         """
 
         if v is not None:
-            return self.PlocalJ * v
-        return self.PlocalJ
+            return self.Psensitivity * v
+        return self.Psensitivity
     # def __mul__(self, val):
     #     assert isinstance(val, np.ndarray)
     #     split = []

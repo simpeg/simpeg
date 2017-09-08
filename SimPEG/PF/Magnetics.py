@@ -39,7 +39,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         else:
 
-            return self.G.dot(m)
+            return self.G.dot(self.chiMap*m)
 
     def fwr_rem(self):
         # TODO check if we are inverting for M
@@ -78,6 +78,12 @@ class MagneticIntegral(Problem.LinearProblem):
             self._G = self.Intrgl_Fwr_Op()
 
         return self._G
+
+    def Jvec(self, m, v, f=None):
+        return self.G.dot(self.chiMap.deriv() * v)
+
+    def Jtvec(self, m, v, f=None):
+        return self.chiMap.deriv().T * self.G.T.dot(v)
 
     def Intrgl_Fwr_Op(self, m=None, Magnetization="ind"):
 
