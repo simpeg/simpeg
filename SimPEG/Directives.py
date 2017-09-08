@@ -49,39 +49,42 @@ class InversionDirective(object):
     @property
     def reg(self):
         if getattr(self, '_reg', None) is None:
-            self._reg = self.invProb.reg
+            self.reg = self.invProb.reg  # go through the setter
         return self._reg
 
     @reg.setter
     def reg(self, value):
-        assert any([isinstance(value, regtype) for regtype in self._regPair]),(
-            "Regularization must be in {}, not {}".format(
-                self._regPair, type(value)
-            )
-        )
-        self._reg = reg
+        if isinstance(value, Regularization.BaseComboRegularization):
+            value = 1*value  # turn it into a combo objective function
+        self._reg = value
 
     @property
     def dmisfit(self):
-        return self.invProb.dmisfit
+        if getattr(self, '_dmisfit', None) is None:
+            self.dmisfit = self.invProb.dmisfit  # go through the setter
+        return self._dmisfit
 
     @dmisfit.setter
     def dmisfit(self, value):
-        assert any([
-                isinstance(value, dmisfittype) for dmisfittype in
-                self._dmisfitPair
-        ]), "Regularization must be in {}, not {}".format(
-                self._dmisfitPair, type(value)
-        )
-        self._dmisfit = dmisfit
+        if not isinstance(value, ObjectiveFunction.ComboObjectiveFunction):
+            value = 1*value  # turn it into a combo objective function
+        self._dmisfit = value
 
     @property
     def survey(self):
-        return self.dmisfit.survey
+        # if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+        return [objfcts.survey for objfcts in self.dmisfit.objfcts]
+
+        # else:
+        #     return self.dmisfit.survey
 
     @property
     def prob(self):
-        return self.dmisfit.prob
+        # if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+        return [objfcts.prob for objfcts in self.dmisfit.objfcts]
+
+        # else:
+        #     return self.dmisfit.prob
 
     def initialize(self):
         pass
