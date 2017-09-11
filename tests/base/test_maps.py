@@ -14,14 +14,14 @@ MAPS_TO_EXCLUDE_2D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
                       "SplineMap", "ParametrizedCasingAndLayer",
                       "ParametrizedLayer", "ParametrizedBlockInLayer",
-                      "Projection", "SelfConsistentEffectiveMedium"]
+                      "Projection", "SelfConsistentEffectiveMedium", "Tile"]
 MAPS_TO_EXCLUDE_3D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "CircleMap", "ParametricCircleMap", "Mesh2Mesh",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
                       "SplineMap", "ParametrizedCasingAndLayer",
                       "ParametrizedLayer", "ParametrizedBlockInLayer",
-                      "Projection", "SelfConsistentEffectiveMedium"]
+                      "Projection", "SelfConsistentEffectiveMedium", "Tile"]
 
 
 class MapTests(unittest.TestCase):
