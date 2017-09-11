@@ -46,14 +46,33 @@ class InversionDirective(object):
     def opt(self):
         return self.invProb.opt
 
+    # @property
+    # def reg(self):
+    #     if getattr(self, '_reg', None) is None:
+    #         self.reg = self.invProb.reg  # go through the setter
+    #     return self._reg
+
+    # @reg.setter
+    # def reg(self, value):
+    #     if isinstance(value, Regularization.BaseComboRegularization):
+    #         value = 1*value  # turn it into a combo objective function
+    #     self._reg = value
+
     @property
     def reg(self):
         if getattr(self, '_reg', None) is None:
-            self.reg = self.invProb.reg  # go through the setter
+            self._reg = self.invProb.reg
         return self._reg
 
     @reg.setter
     def reg(self, value):
+        assert any([isinstance(value, regtype) for regtype in self._regPair]),
+        (
+            "Regularization must be in {}, not {}".format(
+                self._regPair, type(value)
+            )
+        )
+
         if isinstance(value, Regularization.BaseComboRegularization):
             value = 1*value  # turn it into a combo objective function
         self._reg = value
