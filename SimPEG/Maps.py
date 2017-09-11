@@ -392,7 +392,8 @@ class Tile(IdentityMap):
         Mapping for tiled inversion
     """
 
-    nCell = 27
+    nCell = 27  # Number of neighbors to use in averaging
+    tol = 1e-8  # Tolerance to avoid zero division
 
     def __init__(self, *args, **kwargs):
 
@@ -465,28 +466,27 @@ class Tile(IdentityMap):
         return self._P
 
     @property
-    def Ptransform(self):
+    def Paverage(self):
         """
             Projection for the interpolation of the model (weighted average)
-        """
-        if getattr(self, '_Ptransform', None) is None:
-            sumW = Utils.mkvc(np.sum(self.P, axis=1)+1e-8)
-            self._Ptransform = sp.spdiags(1/sumW,
-                                          0, self.meshLocal.nC,
-                                          self.meshLocal.nC) * self.P
+            Doesn't assume that local cell completely filled by cells
+            in global mesh
+ in         """
+        if getattr(self, '_Paverage', None) is None:
+            sumW = Utils.mkvc(np.sum(self.P, axis=1) + self.tol)
+            self._Paverage = Utils.sdiag(1/sumW) * self.P
 
-        return self._Ptransform
+        return self._Paverage
 
     @property
-    def Psensitivity(self):
+    def Pvolume(self):
         """
             Projection for the sensitivities, scaled by fractional volume
         """
-        if getattr(self, '_Psensitivity', None) is None:
-            self._Psensitivity = sp.spdiags(1/self.meshLocal.vol,
-                                            0, self.meshLocal.nC,
-                                            self.meshLocal.nC) * self.P
-        return self._Psensitivity
+        if getattr(self, '_Pvolume', None) is None:
+            self._Pvolume = Utils.sdiag(1/self.meshLocal.vol) * self.P
+
+        return self._Pvolume
 
     def getTreeIndex(self, tree, mesh, actvCell):
         """
@@ -516,7 +516,7 @@ class Tile(IdentityMap):
         return bsw, tne
 
     def _transform(self, m):
-        return self.Ptransform * m
+        return self.Paverage * m
 
     @property
     def shape(self):
@@ -533,8 +533,8 @@ class Tile(IdentityMap):
         """
 
         if v is not None:
-            return self.Psensitivity * v
-        return self.Psensitivity
+            return self.Pvolume * v
+        return self.Pvolume
     # def __mul__(self, val):
     #     assert isinstance(val, np.ndarray)
     #     split = []
