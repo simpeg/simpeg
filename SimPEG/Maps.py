@@ -531,7 +531,7 @@ class Tile(IdentityMap):
         """
         return self._shape
 
-    def deriv(self, v=None):
+    def deriv(self, m, v=None):
         """
             :param numpy.array m: model
             :rtype: scipy.sparse.csr_matrix

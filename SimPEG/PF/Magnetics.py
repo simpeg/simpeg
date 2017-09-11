@@ -80,10 +80,10 @@ class MagneticIntegral(Problem.LinearProblem):
         return self._G
 
     def Jvec(self, m, v, f=None):
-        return self.G.dot(self.chiMap.deriv() * v)
+        return self.G.dot(self.chiMap.deriv(m) * v)
 
     def Jtvec(self, m, v, f=None):
-        return self.chiMap.deriv().T * self.G.T.dot(v)
+        return self.chiMap.deriv(m).T * self.G.T.dot(v)
 
     def Intrgl_Fwr_Op(self, m=None, Magnetization="ind"):
 
