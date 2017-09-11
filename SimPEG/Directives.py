@@ -46,18 +46,6 @@ class InversionDirective(object):
     def opt(self):
         return self.invProb.opt
 
-    # @property
-    # def reg(self):
-    #     if getattr(self, '_reg', None) is None:
-    #         self.reg = self.invProb.reg  # go through the setter
-    #     return self._reg
-
-    # @reg.setter
-    # def reg(self, value):
-    #     if isinstance(value, Regularization.BaseComboRegularization):
-    #         value = 1*value  # turn it into a combo objective function
-    #     self._reg = value
-
     @property
     def reg(self):
         if getattr(self, '_reg', None) is None:
@@ -66,8 +54,7 @@ class InversionDirective(object):
 
     @reg.setter
     def reg(self, value):
-        assert any([isinstance(value, regtype) for regtype in self._regPair]),
-        (
+        assert any([isinstance(value, regtype) for regtype in self._regPair]), (
             "Regularization must be in {}, not {}".format(
                 self._regPair, type(value)
             )
@@ -85,25 +72,34 @@ class InversionDirective(object):
 
     @dmisfit.setter
     def dmisfit(self, value):
+
+        assert any([
+                isinstance(value, dmisfittype) for dmisfittype in
+                self._dmisfitPair
+        ]), "Regularization must be in {}, not {}".format(
+                self._dmisfitPair, type(value)
+        )
+
         if not isinstance(value, ObjectiveFunction.ComboObjectiveFunction):
             value = 1*value  # turn it into a combo objective function
         self._dmisfit = value
 
     @property
     def survey(self):
-        # if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+        """
+           Assuming that dmisfit is always a ComboObjectiveFunction,
+           return a list of surveys for each dmisfit [survey1, survey2, ... ]
+        """
         return [objfcts.survey for objfcts in self.dmisfit.objfcts]
 
-        # else:
-        #     return self.dmisfit.survey
 
     @property
     def prob(self):
-        # if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+        """
+           Assuming that dmisfit is always a ComboObjectiveFunction,
+           return a list of problems for each dmisfit [prob1, prob2, ...]
+        """
         return [objfcts.prob for objfcts in self.dmisfit.objfcts]
-
-        # else:
-        #     return self.dmisfit.prob
 
     def initialize(self):
         pass
