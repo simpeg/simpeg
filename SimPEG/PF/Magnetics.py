@@ -254,7 +254,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return fwr_out
 
-    def mapping(self):
+    def mapPair(self):
         """
             Call for general mapping of the problem
         """

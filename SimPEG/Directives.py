@@ -544,7 +544,12 @@ class Update_IRLS(InversionDirective):
     @property
     def target(self):
         if getattr(self, '_target', None) is None:
-            self._target = self.survey.nD*0.5*self.chifact
+
+            nD = 0
+            for survey in self.survey:
+                nD += survey.nD
+
+            self._target = nD*0.5*self.chifact
         return self._target
 
     @target.setter
@@ -777,7 +782,7 @@ class UpdateJacobiPrecond(InversionDirective):
                 f = prob.fields(m)
                 wd = dmisfit.W.diagonal()
                 for ii in range(prob.getJ(m, f).shape[0]):
-                    JtJdiag += (prob.mapping().deriv(self.invProb.model).T *
+                    JtJdiag += (prob.mapPair().deriv(self.invProb.model).T *
                                 (wd[ii] * prob.getJ(m, f)[ii, :])**2.)
 
             self.opt.JtJdiag = JtJdiag
