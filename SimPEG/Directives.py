@@ -92,7 +92,6 @@ class InversionDirective(object):
         """
         return [objfcts.survey for objfcts in self.dmisfit.objfcts]
 
-
     @property
     def prob(self):
         """
@@ -755,13 +754,12 @@ class Update_lin_PreCond(InversionDirective):
         regDiag = np.zeros_like(self.invProb.model)
 
         for reg in self.reg.objfcts:
-            # Check if he has wire
+            # Check if regularization has a projection
             if getattr(reg.mapping, 'P', None) is None:
                 regDiag += (reg.W.T*reg.W).diagonal()
             else:
-                # He is a snitch!
-                regDiag += reg.mapping.P.T*(reg.W.T*reg.W).diagonal()
-
+                P = reg.mapping.P
+                regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
 
         # Deal with the linear case
         if getattr(self.opt, 'JtJdiag', None) is None:
@@ -793,12 +791,12 @@ class Update_lin_PreCond(InversionDirective):
         regDiag = np.zeros_like(self.invProb.model)
 
         for reg in self.reg.objfcts:
-            # Check if he has wire
+            # Check if regularization has a projection
             if getattr(reg.mapping, 'P', None) is None:
                 regDiag += (reg.W.T*reg.W).diagonal()
             else:
-                # He is a snitch!
-                regDiag += reg.mapping.P.T*(reg.W.T*reg.W).diagonal()
+                P = reg.mapping.P
+                regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
 
         # Assumes that opt.JtJdiag has been updated or static
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
