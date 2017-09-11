@@ -124,7 +124,7 @@ def run(plotIt=True, cleanAfterRun=True):
                                   minGNiter=5)
 
     # Preconditioning refreshing for each IRLS iteration
-    update_Jacobi = Directives.Update_lin_PreCond()
+    update_Jacobi = Directives.UpdateJacobiPrecond()
 
     # Create combined the L2 and Lp problem
     inv = Inversion.BaseInversion(invProb,

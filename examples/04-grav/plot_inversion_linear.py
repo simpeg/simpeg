@@ -123,7 +123,7 @@ def run(plotIt=True):
     # Use pick a treshold parameter empirically based on the distribution of
     # model parameters
     IRLS = Directives.Update_IRLS(f_min_change=1e-2, minGNiter=3)
-    update_Jacobi = Directives.Update_lin_PreCond()
+    update_Jacobi = Directives.UpdateJacobiPrecond()
     inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,
                                                           betaest,
                                                           update_Jacobi])

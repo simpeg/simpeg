@@ -725,24 +725,24 @@ class Update_IRLS(InversionDirective):
         dList = directiveList.dList
         self_ind = dList.index(self)
         lin_precond_ind = [
-            isinstance(d, Update_lin_PreCond) for d in dList
+            isinstance(d, UpdateJacobiPrecond) for d in dList
         ]
 
         if any(lin_precond_ind):
-            assert(lin_precond_ind.index(True) > self_ind), (
-                "The directive 'Update_lin_PreCond' must be after Update_IRLS "
+            assert lin_precond_ind.index(True) > self_ind, (
+                "The directive 'UpdateJacobiPrecond' must be after Update_IRLS "
                 "in the directiveList"
             )
         else:
             warnings.warn(
                 "Without a Linear preconditioner, convergence may be slow. "
-                "Consider adding `Directives.Update_lin_PreCond` to your "
+                "Consider adding `Directives.UpdateJacobiPrecond` to your "
                 "directives list"
             )
         return True
 
 
-class Update_lin_PreCond(InversionDirective):
+class UpdateJacobiPrecond(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
     """
@@ -770,10 +770,15 @@ class Update_lin_PreCond(InversionDirective):
 
             for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
 
+                assert hasattr(prob, 'getJ') is True, (
+                       'Check that problem can form J explicitely')
+
+                m = self.invProb.model
+                f = prob.fields(m)
                 wd = dmisfit.W.diagonal()
-                for ii in range(prob.G.shape[0]):
-                    JtJdiag += (prob.mapping().deriv(self.invProb.model).T*
-                                (wd[ii] * prob.G[ii, :])**2.)
+                for ii in range(prob.getJ(m, f).shape[0]):
+                    JtJdiag += (prob.mapping().deriv(self.invProb.model).T *
+                                (wd[ii] * prob.getJ(m, f)[ii, :])**2.)
 
             self.opt.JtJdiag = JtJdiag
 

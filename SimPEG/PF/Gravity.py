@@ -114,6 +114,12 @@ class GravityIntegral(Problem.LinearProblem):
 
         return fields
 
+    def getJ(self, m, f):
+        """
+            Sensitivity matrix
+        """
+        return self.G
+
     def Jvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
         return self.G.dot(dmudm*v)

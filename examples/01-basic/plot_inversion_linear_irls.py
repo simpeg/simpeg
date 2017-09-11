@@ -84,7 +84,7 @@ def run(N=100, plotIt=True):
         maxIterLS=20, maxIterCG=10, tolCG=1e-3
     )
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    update_Jacobi = Directives.Update_lin_PreCond()
+    update_Jacobi = Directives.UpdateJacobiPrecond()
 
     # Set the IRLS directive, penalize the lowest 25 percentile of model values
     # Start with an l2-l2, then switch to lp-norms

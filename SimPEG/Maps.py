@@ -392,26 +392,20 @@ class Tile(IdentityMap):
         Mapping for tiled inversion
     """
 
-    tree = None
     nCell = 27
 
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
 
         assert(len(args) == 2,
                ('Mapping requires a tuple' +
                '(MeshGlobal, ActiveGlobal), (MeshLocal, ActiveLocal)'))
 
-        # for arg in args:
-        #     assert (
-        #         isinstance(arg, tuple) and
-        #         len(arg) == 2 and
-        #         isinstance(arg[0], 'Mesh') and
-        #         # TODO: this should be extended to a slice.
-        #         (arg[1].shape[0]==arg[0].nC)
-        #     ), (
-        #         "Each wire needs to be a tuple: (Mesh, Active). "
-        #         "You provided: {}".format(arg)
-        #     )
+        # check if tree in kwargs
+        if 'tree' in kwargs.keys():   # kwargs is a dict
+            tree = kwargs.pop('tree')  # grab the dict entry from kwargs and remove from dict
+
+            assert isinstance(tree, cKDTree), ('Tree input must be a cKDTRee')
+            self._tree = tree
 
         self.meshGlobal = args[0][0]
         self.actvGlobal = args[0][1]
