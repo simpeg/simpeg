@@ -677,9 +677,8 @@ class UpdatePreCond(InversionDirective):
             if getattr(reg.mapping, 'P', None) is None:
                 regDiag += (reg.W.T*reg.W).diagonal()
             else:
-                # He is a snitch!
-                regDiag += reg.mapping.P.T*(reg.W.T*reg.W).diagonal()
-
+                P = reg.mapping.P
+                regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
 
         # Deal with the linear case
         if getattr(self.opt, 'JtJdiag', None) is None:
@@ -712,9 +711,8 @@ class UpdatePreCond(InversionDirective):
             if getattr(reg.mapping, 'P', None) is None:
                 regDiag += (reg.W.T*reg.W).diagonal()
             else:
-                # He is a snitch!
-                regDiag += reg.mapping.P.T*(reg.W.T*reg.W).diagonal()
-
+                P = reg.mapping.P
+                regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
         # Assumes that opt.JtJdiag has been updated or static
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
