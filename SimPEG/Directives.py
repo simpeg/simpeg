@@ -250,7 +250,12 @@ class TargetMisfit(InversionDirective):
         if getattr(self, '_target', None) is None:
             # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
             if self.phi_d_star is None:
-                self.phi_d_star = 0.5 * self.survey.nD
+
+                nD = 0
+                for survey in self.survey:
+                    nD += survey.nD
+
+                self.phi_d_star = 0.5 * nD
             self._target = self.chifact * self.phi_d_star
         return self._target
 
@@ -776,7 +781,7 @@ class UpdateJacobiPrecond(InversionDirective):
             for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
 
                 assert hasattr(prob, 'getJ') is True, (
-                       'Check that problem can form J explicitely')
+                       'Check that problem can form J explicitly')
 
                 m = self.invProb.model
                 f = prob.fields(m)
@@ -828,7 +833,12 @@ class Update_Wj(InversionDirective):
 
             m = self.invProb.model
             if self.k is None:
-                self.k = int(self.survey.nD/10)
+
+                nD = 0
+                for survey in self.survey:
+                    nD += survey.nD
+
+                self.k = int(nD/10)
 
             def JtJv(v):
 
