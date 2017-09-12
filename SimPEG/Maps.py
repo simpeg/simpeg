@@ -471,7 +471,7 @@ class Tile(IdentityMap):
             Projection for the interpolation of the model (weighted average)
             Doesn't assume that local cell completely filled by cells
             in global mesh
- in         """
+        """
         if getattr(self, '_Paverage', None) is None:
             sumW = Utils.mkvc(np.sum(self.P, axis=1) + self.tol)
             self._Paverage = Utils.sdiag(1/sumW) * self.P
