@@ -397,13 +397,13 @@ class Tile(IdentityMap):
 
     def __init__(self, *args, **kwargs):
 
-        assert(len(args) == 2,
-               ('Mapping requires a tuple' +
-               '(MeshGlobal, ActiveGlobal), (MeshLocal, ActiveLocal)'))
+        assert len(args) == 2, ('Mapping requires a tuple' +
+                                '(MeshGlobal, ActiveGlobal),' +
+                                '(MeshLocal, ActiveLocal)')
 
         # check if tree in kwargs
         if 'tree' in kwargs.keys():   # kwargs is a dict
-            tree = kwargs.pop('tree')  # grab the dict entry from kwargs and remove from dict
+            tree = kwargs.pop('tree')
 
             assert isinstance(tree, cKDTree), ('Tree input must be a cKDTRee')
             self._tree = tree
@@ -411,8 +411,21 @@ class Tile(IdentityMap):
         self.meshGlobal = args[0][0]
         self.actvGlobal = args[0][1]
 
+        if not isinstance(self.actvGlobal, bool):
+            temp = np.zeros(self.meshGlobal.nC, dtype='bool')
+            temp[self.actvGlobal] = True
+            self.actvGlobal = temp
+
         self.meshLocal = args[1][0]
         self.actvLocal = args[1][1]
+
+        if not isinstance(self.actvLocal, bool):
+            temp = np.zeros(self.meshLocal.nC, dtype='bool')
+            temp[self.actvLocal] = True
+            self.actvLocal = temp
+
+        if self.nCell > self.meshLocal.nC:
+            self.nCell = self.meshLocal.nC
 
     @property
     def tree(self):
@@ -420,9 +433,18 @@ class Tile(IdentityMap):
             Create cKDTree structure for given global mesh
         """
         if getattr(self, '_tree', None) is None:
-            self._tree = cKDTree(np.c_[self.meshGlobal.gridCC[self.actvGlobal, 0],
-                                       self.meshGlobal.gridCC[self.actvGlobal, 1],
-                                       self.meshGlobal.gridCC[self.actvGlobal, 2]])
+
+            if self.meshGlobal.dim == 1:
+                ccMat = np.c_[self.meshGlobal.gridCC[self.actvGlobal, 0]]
+            elif self.meshGlobal.dim == 2:
+                ccMat = np.c_[self.meshGlobal.gridCC[self.actvGlobal, 0],
+                              self.meshGlobal.gridCC[self.actvGlobal, 1]]
+            elif self.meshGlobal.dim == 3:
+                ccMat = np.c_[self.meshGlobal.gridCC[self.actvGlobal, 0],
+                              self.meshGlobal.gridCC[self.actvGlobal, 1],
+                              self.meshGlobal.gridCC[self.actvGlobal, 2]]
+
+            self._tree = cKDTree(ccMat)
 
         return self._tree
 
@@ -435,9 +457,11 @@ class Tile(IdentityMap):
             indx = self.getTreeIndex(self.tree, self.meshLocal, self.actvLocal)
 
             # Get the node coordinates (bottom-SW) and (top-NE) of cells
-            glob_bsw, glob_tne = self.getNodeExtent(self.meshGlobal)
+            glob_bsw, glob_tne = self.getNodeExtent(self.meshGlobal,
+                                                    self.actvGlobal)
 
-            loca_bsw, loca_tne = self.getNodeExtent(self.meshLocal)
+            loca_bsw, loca_tne = self.getNodeExtent(self.meshLocal,
+                                                    self.actvLocal)
 
             # Calculate interesected volume
             V = []
@@ -445,12 +469,23 @@ class Tile(IdentityMap):
             for ii in range(indx.shape[1]):
 
                 # Grab corners for ith nearest cell
-                nbsw = glob_bsw[indx[:, ii], :]
-                ntne = glob_tne[indx[:, ii], :]
+                if self.meshLocal.dim == 1:
+                    nbsw = glob_bsw[indx[:, ii]]
+                    ntne = glob_tne[indx[:, ii]]
 
-                V += [(np.max([np.min([ntne[:, 0], loca_tne[:, 0]], axis=0)-np.max([nbsw[:, 0], loca_bsw[:, 0]], axis=0), np.zeros(self.meshLocal.nC)], axis=0) *
-                       np.max([np.min([ntne[:, 1], loca_tne[:, 1]], axis=0)-np.max([nbsw[:, 1], loca_bsw[:, 1]], axis=0), np.zeros(self.meshLocal.nC)], axis=0) *
-                       np.max([np.min([ntne[:, 2], loca_tne[:, 2]], axis=0)-np.max([nbsw[:, 2], loca_bsw[:, 2]], axis=0), np.zeros(self.meshLocal.nC)], axis=0))]
+                    dV = np.max([np.min([ntne, loca_tne], axis=0)-np.max([nbsw, loca_bsw], axis=0), np.zeros(self.actvLocal.sum())], axis=0)
+
+                elif self.meshLocal.dim >= 2:
+                    nbsw = glob_bsw[indx[:, ii], :]
+                    ntne = glob_tne[indx[:, ii], :]
+                    dV = np.max([np.min([ntne[:, 0], loca_tne[:, 0]], axis=0)-np.max([nbsw[:, 0], loca_bsw[:, 0]], axis=0), np.zeros(self.actvLocal.sum())], axis=0)
+                    dV *= np.max([np.min([ntne[:, 1], loca_tne[:, 1]], axis=0)-np.max([nbsw[:, 1], loca_bsw[:, 1]], axis=0), np.zeros(self.actvLocal.sum())], axis=0)
+
+                if self.meshLocal.dim == 3:
+
+                    dV *= np.max([np.min([ntne[:, 2], loca_tne[:, 2]], axis=0)-np.max([nbsw[:, 2], loca_bsw[:, 2]], axis=0), np.zeros(self.actvLocal.sum())], axis=0)
+
+                V += [dV]
 
             V = np.c_[V]
 
@@ -484,7 +519,7 @@ class Tile(IdentityMap):
             Projection for the sensitivities, scaled by fractional volume
         """
         if getattr(self, '_Pvolume', None) is None:
-            self._Pvolume = Utils.sdiag(1/self.meshLocal.vol) * self.P
+            self._Pvolume = Utils.sdiag(1/self.meshLocal.vol[self.actvLocal]) * self.P
 
         return self._Pvolume
 
@@ -493,27 +528,73 @@ class Tile(IdentityMap):
             Querry the KDTree for nearest cells
         """
 
-        d, indx = tree.query(np.c_[mesh.gridCC[:, 0],
-                                   mesh.gridCC[:, 1],
-                                   mesh.gridCC[:, 2]],
-                             k=self.nCell)
+        if self.meshGlobal.dim == 1:
+            d, indx = tree.query(mesh.gridCC[actvCell, 0],
+                                 k=self.nCell)
+
+        elif self.meshGlobal.dim == 2:
+            d, indx = tree.query(np.c_[mesh.gridCC[actvCell, 0],
+                                       mesh.gridCC[actvCell, 1]],
+                                 k=self.nCell)
+
+        elif self.meshGlobal.dim == 3:
+            d, indx = tree.query(np.c_[mesh.gridCC[actvCell, 0],
+                                       mesh.gridCC[actvCell, 1],
+                                       mesh.gridCC[actvCell, 2]],
+                                 k=self.nCell)
         return indx
 
-    def getNodeExtent(self, mesh):
+    def getNodeExtent(self, mesh, actvCell):
 
-        gridNx = mesh.gridN[:, 0].reshape(mesh.vnN, order='F')
-        gridNy = mesh.gridN[:, 1].reshape(mesh.vnN, order='F')
-        gridNz = mesh.gridN[:, 2].reshape(mesh.vnN, order='F')
+        # Create projection matrix from all nodes to
+        # Bottom-SW and Top-NE
+        if mesh.dim == 1:
+            xi = np.r_[np.ones(mesh.vnC), 0]
+            Absw = sp.csr_matrix(Utils.sdiag(xi))
 
-        bsw = np.c_[gridNx[:-1, :-1, :-1],
-                    gridNy[:-1, :-1, :-1],
-                    gridNz[:-1, :-1, :-1]].reshape((mesh.nC, 3), order='F')
+            xi = np.r_[0, np.ones(mesh.vnC)]
+            Atne = sp.csr_matrix(Utils.sdiag(xi))
 
-        tne = np.c_[gridNx[1:, 1:, 1:],
-                    gridNy[1:, 1:, 1:],
-                    gridNz[1:, 1:, 1:]].reshape((mesh.nC, 3), order='F')
+        if mesh.dim == 2:
+            xi = np.r_[np.ones(mesh.vnC[0]), 0]
+            yi = np.r_[np.ones(mesh.vnC[1]), 0]
 
-        return bsw, tne
+            Absw = sp.csr_matrix(sp.kron(Utils.sdiag(yi), Utils.sdiag(xi)))
+
+            xi = np.r_[0, np.ones(mesh.vnC[0])]
+            yi = np.r_[0, np.ones(mesh.vnC[1])]
+
+            Atne = sp.csr_matrix(sp.kron(Utils.sdiag(yi), Utils.sdiag(xi)))
+
+        if mesh.dim == 3:
+            xi = np.r_[np.ones(mesh.vnC[0]), 0]
+            yi = np.r_[np.ones(mesh.vnC[1]), 0]
+            zi = np.r_[np.ones(mesh.vnC[2]), 0]
+
+            Absw = sp.csr_matrix(sp.kron(Utils.sdiag(zi),
+                                         sp.kron(Utils.sdiag(yi),
+                                                 Utils.sdiag(xi))))
+
+            xi = np.r_[0, np.ones(mesh.vnC[0])]
+            yi = np.r_[0, np.ones(mesh.vnC[1])]
+            zi = np.r_[0, np.ones(mesh.vnC[2])]
+
+            Atne = sp.csr_matrix(sp.kron(Utils.sdiag(zi),
+                                         sp.kron(Utils.sdiag(yi),
+                                                 Utils.sdiag(xi))))
+
+        rows = Utils.mkvc(np.sum(Absw, axis=0))
+        Absw = Absw[rows > 0, :]
+
+        rows = Utils.mkvc(np.sum(Atne, axis=0))
+        Atne = Atne[rows > 0, :]
+
+        # Grab the nodes
+        bsw = Absw * mesh.gridN
+        tne = Atne * mesh.gridN
+
+        # Return only active set
+        return bsw[actvCell], tne[actvCell]
 
     def _transform(self, m):
         return self.Paverage * m
