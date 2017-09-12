@@ -457,11 +457,11 @@ class Tile(IdentityMap):
             indx = self.getTreeIndex(self.tree, self.meshLocal, self.actvLocal)
 
             # Get the node coordinates (bottom-SW) and (top-NE) of cells
-            glob_bsw, glob_tne = self.getNodeExtent(self.meshGlobal,
-                                                    self.actvGlobal)
+            global_bsw, global_tne = self.getNodeExtent(self.meshGlobal,
+                                                        self.actvGlobal)
 
-            loca_bsw, loca_tne = self.getNodeExtent(self.meshLocal,
-                                                    self.actvLocal)
+            local_bsw, local_tne = self.getNodeExtent(self.meshLocal,
+                                                      self.actvLocal)
 
             # Calculate interesected volume
             V = []
@@ -470,20 +470,36 @@ class Tile(IdentityMap):
 
                 # Grab corners for ith nearest cell
                 if self.meshLocal.dim == 1:
-                    nbsw = glob_bsw[indx[:, ii]]
-                    ntne = glob_tne[indx[:, ii]]
+                    nbsw = global_bsw[indx[:, ii]]
+                    ntne = global_tne[indx[:, ii]]
 
-                    dV = np.max([np.min([ntne, loca_tne], axis=0)-np.max([nbsw, loca_bsw], axis=0), np.zeros(self.actvLocal.sum())], axis=0)
+                    dV = np.max([(np.min([ntne, local_tne], axis=0) -
+                                  np.max([nbsw, local_bsw], axis=0)),
+                                 np.zeros(self.actvLocal.sum())], axis=0)
 
                 elif self.meshLocal.dim >= 2:
-                    nbsw = glob_bsw[indx[:, ii], :]
-                    ntne = glob_tne[indx[:, ii], :]
-                    dV = np.max([np.min([ntne[:, 0], loca_tne[:, 0]], axis=0)-np.max([nbsw[:, 0], loca_bsw[:, 0]], axis=0), np.zeros(self.actvLocal.sum())], axis=0)
-                    dV *= np.max([np.min([ntne[:, 1], loca_tne[:, 1]], axis=0)-np.max([nbsw[:, 1], loca_bsw[:, 1]], axis=0), np.zeros(self.actvLocal.sum())], axis=0)
+                    nbsw = global_bsw[indx[:, ii], :]
+                    ntne = global_tne[indx[:, ii], :]
+
+                    dV = np.max([(np.min([ntne[:, 0], local_tne[:, 0]],
+                                         axis=0) -
+                                  np.max([nbsw[:, 0], local_bsw[:, 0]],
+                                         axis=0)),
+                                 np.zeros(self.actvLocal.sum())], axis=0)
+
+                    dV *= np.max([(np.min([ntne[:, 1], local_tne[:, 1]],
+                                          axis=0) -
+                                   np.max([nbsw[:, 1], local_bsw[:, 1]],
+                                          axis=0)),
+                                  np.zeros(self.actvLocal.sum())], axis=0)
 
                 if self.meshLocal.dim == 3:
 
-                    dV *= np.max([np.min([ntne[:, 2], loca_tne[:, 2]], axis=0)-np.max([nbsw[:, 2], loca_bsw[:, 2]], axis=0), np.zeros(self.actvLocal.sum())], axis=0)
+                    dV *= np.max([(np.min([ntne[:, 2], local_tne[:, 2]],
+                                          axis=0) -
+                                   np.max([nbsw[:, 2], local_bsw[:, 2]],
+                                          axis=0)),
+                                  np.zeros(self.actvLocal.sum())], axis=0)
 
                 V += [dV]
 
