@@ -424,8 +424,8 @@ class Tile(IdentityMap):
             temp[self.actvLocal] = True
             self.actvLocal = temp
 
-        if self.nCell > self.meshLocal.nC:
-            self.nCell = self.meshLocal.nC
+        if self.nCell > self.meshGlobal.nC:
+            self.nCell = self.meshGlobal.nC
 
     @property
     def tree(self):
@@ -503,11 +503,11 @@ class Tile(IdentityMap):
 
                 V += [dV]
 
-            V = np.c_[V]
+            self.V = np.c_[V]
 
             I = Utils.mkvc(np.arange(indx.shape[0]).reshape([1, -1]).repeat(self.nCell, axis=1))
             J = Utils.mkvc(indx.T)
-            P = sp.coo_matrix((Utils.mkvc(V), (I, J)),
+            P = sp.coo_matrix((Utils.mkvc(self.V), (I, J)),
                               shape=(indx.shape[0], self.actvGlobal.sum()))
             # self.P = Utils.sdiag(self.mesh2.vol[self.actind2])*P.tocsc()
             self._P = P.tocsr()
