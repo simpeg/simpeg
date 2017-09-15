@@ -64,14 +64,6 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return u
 
-    # def Jvec(self, m, v, f=None):
-    #     dmudm = self.chiMap.deriv(m)
-    #     return self.G.dot(dmudm*v)
-
-    # def Jtvec(self, m, v, f=None):
-    #     dmudm = self.chiMap.deriv(m)
-    #     return dmudm.T * (self.G.T.dot(v))
-
     @property
     def G(self):
         if not self.ispaired:
