@@ -733,7 +733,7 @@ class UpdateSensWeighting(InversionDirective):
     ComboMisfitFun = False
     JtJdiag = None
     everyIter = True
-    epsilon = 1e-2
+    epsilon = 1e-8
 
     def initialize(self):
 
@@ -879,11 +879,13 @@ class UpdateSensWeighting(InversionDirective):
 
                 nC = int(nC/3)
 
+                # NEED MORE RESEARCH ON HOW TO FIX THE THRESHOLD
+                # JUST TAKE A FRACTION OF THE MAX J VALUE FOR NOW
                 if prob.threshold is None:
                     prob.threshold = np.ones(3)
-                    prob.threshold[0] = prob_JtJ[:nC].max()*self.epsilon**2.
-                    prob.threshold[1] = prob_JtJ[nC:2*nC].max()*self.epsilon**2.
-                    prob.threshold[2] = prob_JtJ[2*nC:].max()*self.epsilon**2.
+                    prob.threshold[0] = prob_JtJ[:nC].max()*self.epsilon
+                    prob.threshold[1] = prob_JtJ[nC:2*nC].max()*self.epsilon
+                    prob.threshold[2] = prob_JtJ[2*nC:].max()*self.epsilon
 
                 wr_prob[:nC] += (prob_JtJ[:nC] + prob.threshold[0])
 
@@ -893,7 +895,7 @@ class UpdateSensWeighting(InversionDirective):
 
             else:
                 if prob.threshold is None:
-                    prob.threshold = prob_JtJ[:nC].max()*self.epsilon**2.
+                    prob.threshold = prob_JtJ[:nC].max()*self.epsilon
                 wr_prob = prob_JtJ + prob.threshold
 
             # Check if it is a Combo problem
