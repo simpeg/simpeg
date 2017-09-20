@@ -175,16 +175,40 @@ class Problem_CC(BaseSPProblem):
         self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
 
 
-class Problem_CC_Jstore(object):
-
+class Problem_CC_Jstore(Problem_CC):
     """docstring for Problem_CC_jstore"""
+    @property
+    def G(self):
+        """
+            Inverse of :code:`_G`
+        """
+        if getattr(self, '_G', None) is None:
+            A = self.getA()
+            self.Ainv = self.Solver(A, **self.solverOpts)
+            src = self.survey.srcList[0]
+            rx = src.rxList[0]
+            P = rx.getP(self.mesh, "CC").toarray()
+            src = self.survey.srcList[0]
+            self._G = ((self.Ainv * P.T).T) * src.evalDeriv(self, v=Utils.sdiag(np.ones_like(self.model)))
+            self.Ainv.clean()
+        return self._G
 
     def Jvec(self, m, v, f=None):
-        return self.G * v
+        self.model = m
+        return self.G.dot(v)
 
     def Jtvec(self, m, v, f=None):
-        return self.G.T * v
+
+        self.model = m
+        return self.G.T.dot(v)
+
+    @Utils.count
+    def fields(self, m):
+        return None
 
 
-
-
+class SurveySP_store(Survey):
+    @Utils.count
+    @Utils.requires('prob')
+    def dpred(self, m=None, f=None):
+        return self.prob.Jvec(m, m)

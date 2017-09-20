@@ -3,6 +3,8 @@ from SimPEG import Props
 from SimPEG.Utils import sdiag
 import scipy.sparse as sp
 import numpy as np
+from SimPEG.EM.Static.DC import Survey
+
 
 class StreamingCurrents(Src.BaseSrc):
 
@@ -19,6 +21,8 @@ class StreamingCurrents(Src.BaseSrc):
             raise Exception("SP source requires cross coupling coefficient L")
         if self.mesh is None:
             raise Exception("SP source requires mesh")
+        self.mesh.setCellGradBC("neumann")
+        self.Div = -sdiag(self.mesh.vol)*self.mesh.cellGrad.T
 
     def eval(self, prob):
         """
@@ -35,11 +39,11 @@ class StreamingCurrents(Src.BaseSrc):
         """
         if prob._formulation == 'HJ':
             if self.modelType == "Head":
-                q = -prob.Div*self.MfLiI*prob.Grad*prob.h
+                q = -self.Div*self.MfLiI*prob.Grad*prob.h
             elif self.modelType == "CurrentSource":
                 q = prob.q
             elif self.modelType == "CurrentDensity":
-                q = -prob.Div*prob.mesh.aveF2CCV.T*np.r_[prob.jsx, prob.jsy, prob.jsz]
+                q = -self.Div*prob.mesh.aveF2CCV.T*np.r_[prob.jsx, prob.jsy, prob.jsz]
             else:
                 raise NotImplementedError()
         elif prob._formulation == 'EB':
@@ -50,22 +54,22 @@ class StreamingCurrents(Src.BaseSrc):
         if prob._formulation == 'HJ':
             if adjoint:
                 if self.modelType == "Head":
-                    srcDeriv = - prob.hDeriv.T * prob.Grad.T * self.MfLiI.T * (prob.Div.T * v)
+                    srcDeriv = - prob.hDeriv.T * prob.Grad.T * self.MfLiI.T * (self.Div.T * v)
                 elif self.modelType == "CurrentSource":
                     srcDeriv = prob.qDeriv.T * v
                 elif self.modelType == "CurrentDensity":
                     jsDeriv = sp.vstack((prob.jsxDeriv, prob.jsyDeriv, prob.jszDeriv))
-                    srcDeriv = - jsDeriv.T * prob.mesh.aveF2CCV * (prob.Div.T*v)
+                    srcDeriv = - jsDeriv.T * prob.mesh.aveF2CCV * (self.Div.T*v)
                 else:
                     raise NotImplementedError()
             else:
                 if self.modelType == "Head":
-                    srcDeriv = -prob.Div*self.MfLiI*prob.Grad*(prob.hDeriv*v)
+                    srcDeriv = -self.Div*self.MfLiI*prob.Grad*(prob.hDeriv*v)
                 elif self.modelType == "CurrentSource":
                     srcDeriv = prob.qDeriv * v
                 elif self.modelType == "CurrentDensity":
                     jsDeriv = sp.vstack((prob.jsxDeriv, prob.jsyDeriv, prob.jszDeriv))
-                    srcDeriv = -prob.Div*prob.mesh.aveF2CCV.T*(jsDeriv*v)
+                    srcDeriv = -self.Div * prob.mesh.aveF2CCV.T*(jsDeriv*v)
                 else:
                     raise NotImplementedError()
         elif prob._formulation == 'EB':
