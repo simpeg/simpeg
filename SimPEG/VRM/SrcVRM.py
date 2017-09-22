@@ -54,12 +54,15 @@ class BaseSrcVRM(Survey.BaseSrc):
 class MagDipole(BaseSrcVRM):
 
     def __init__(self, rxList, loc, moment, **kwargs):
+
+        waveform = 'StepOff'
+
         assert len(loc) is 3, 'Tx location must be given as a column vector np.r[x,y,z]'
         assert len(moment) is 3, 'Dipole moment given as column vector np.r_[mx,my,mz]'
-        self.moment = moment
-        waveform = 'StepOff'
         super(MagDipole, self).__init__(rxList, **kwargs)
-
+        
+        self.waveform = waveform
+        self.moment = moment
 
 
 #########################################
@@ -73,10 +76,11 @@ class LineCurrent(BaseSrcVRM):
         Imax = 1.
         waveform = 'StepOff'
 
-        assert np.shape(locs)[1] is 3 and np.shape(locs)[0] > 1, 'locs is a N+1 by 3 array where N is the number of transmitter segments'
+        assert np.shape(locs)[1] == 3 and np.shape(locs)[0] > 1, 'locs is a N+1 by 3 array where N is the number of transmitter segments'
         if waveform is not 'StepOff':
             assert np.shape(waveform)[1] is 2, 'For custom waveforms, must have times and current (N X 2 array)'
         self.Imax = Imax
+        self.waveform = waveform
         super(LineCurrent, self).__init__(rxList, **kwargs)
 
 
