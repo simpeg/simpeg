@@ -1,16 +1,20 @@
 from .matutils import mkvc, ndgrid
 import numpy as np
 from scipy.interpolate import griddata, interp1d
+import numpy as np
+import discretize as Mesh
+from discretize.utils import closestPoints
 
 
-def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.nan):
+def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest',
+                     fill_value=np.nan):
     """
     Get active indices from topography
 
     Parameters
     ----------
 
-    :param TensorMesh mesh: TensorMesh object on which to discretize the topography
+    :param TensorMesh mesh: TensorMesh object on which to discretize topography
     :param numpy.ndarray topo: [X,Y,Z] topographic data
     :param str gridLoc: 'CC' or 'N'. Default is 'CC'.
                         Discretize the topography
@@ -49,7 +53,8 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.n
 
             if mesh._meshType not in ['TENSOR', 'CYL', 'BASETENSOR']:
                 raise NotImplementedError('Nodal surface2ind_topo not ' +
-                                          'implemented for {0!s} mesh'.format(mesh._meshType))
+                                          'implemented for' +
+                                          '{0!s} mesh'.format(mesh._meshType))
 
             # TODO: this will only work for tensor meshes
             Nz = mesh.vectorNz[1:]
@@ -74,7 +79,9 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.n
 
             gridTopo = Ftopo(mesh.vectorNx)
             if mesh._meshType not in ['TENSOR', 'CYL', 'BASETENSOR']:
-                raise NotImplementedError('Nodal surface2ind_topo not implemented for {0!s} mesh'.format(mesh._meshType))
+                raise NotImplementedError('Nodal surface2ind_topo not' +
+                                          'implemented for {0!s} ' +
+                                          'mesh'.format(mesh._meshType))
 
             # TODO: this will only work for tensor meshes
             Ny = mesh.vectorNy[1:]
@@ -85,7 +92,8 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.n
                                  for kk in range(len(Ny))]
 
     else:
-        raise NotImplementedError('surface2ind_topo not implemented for 1D mesh')
+        raise NotImplementedError('surface2ind_topo not implemented' +
+                                  ' for 1D mesh')
 
     return mkvc(actind)
 
@@ -152,7 +160,6 @@ def tileSurveyPoints(locs, maxNpoints):
                 if np.sum(mask) == 0:
                     filt[jj + ii*(nNy-1)] = False
 
-    print(filt.shape)
     x1, x2 = xtiles[:-1], xtiles[1:]
     y1, y2 = ytiles[:-1], ytiles[1:]
 
@@ -162,3 +169,67 @@ def tileSurveyPoints(locs, maxNpoints):
     xy2 = np.c_[mkvc(X2)[filt], mkvc(Y2)[filt]]
 
     return [xy1, xy2]
+
+
+def meshBuilder(xyz, h, padDist, nCmin=3, meshGlobal=None, expFact=1.3):
+    """
+        Function to quickly generate a Tensor mesh
+        given a cloud of xyz points, finest core cell size
+        and padding distance.
+        If a meshGlobal is provided, the core cells will be centered
+        on the underlaying mesh to reduce interpolation errors.
+    """
+
+    # Get center of the mesh
+    midX = np.mean([xyz[:, 0].max(), xyz[:, 0].min()])
+    midY = np.mean([xyz[:, 1].max(), xyz[:, 1].min()])
+    midZ = np.mean([xyz[:, 2].max(), xyz[:, 2].min()])
+
+    nCx = int((xyz[:, 0].max() - xyz[:, 0].min()) / h[0]) + nCmin*2
+    nCy = int((xyz[:, 1].max() - xyz[:, 1].min()) / h[1]) + nCmin*2
+    nCz = int((xyz[:, 2].max() - xyz[:, 2].min()) / h[2]) + nCmin*2
+
+    # Make sure the core has odd number of cells for centereing
+    # on global mesh
+    if meshGlobal is not None:
+        nCx += 1 - int(nCx % 2)
+        nCy += 1 - int(nCy % 2)
+        nCz += 1 - int(nCz % 2)
+
+    # Figure out paddings
+    def expand(dx, pad):
+        L = 0
+        nC = 0
+        while L < pad:
+            nC += 1
+            L = np.sum(dx * expFact**(np.asarray(range(nC))+1))
+
+        return nC
+
+    # Figure number of padding cells required to fill the space
+    npadEast = expand(h[0], padDist[0, 0])
+    npadWest = expand(h[0], padDist[0, 1])
+    npadSouth = expand(h[1], padDist[1, 0])
+    npadNorth = expand(h[1], padDist[1, 1])
+    npadDown = expand(h[2], padDist[2, 0])
+    npadUp = expand(h[2], padDist[2, 1])
+
+    # Add paddings
+    hx = [(h[0], npadWest, -expFact), (h[0], nCx), (h[0], npadEast, expFact)]
+    hy = [(h[1], npadSouth, -expFact), (h[1], nCy), (h[1], npadNorth, expFact)]
+    hz = [(h[2], npadDown, -expFact), (h[2], nCz), (h[2], npadUp, expFact)]
+
+    # Create mesh
+    mesh = Mesh.TensorMesh([hx, hy, hz], 'CC0')
+
+    mesh._x0 = np.r_[mesh.x0[0] + midX,
+                     mesh.x0[1] + midY,
+                     mesh.x0[2] - mesh.hz.sum() + midZ + h[2]*nCz/2]
+
+    if meshGlobal is not None:
+        # Shift tile center to closest cell in base grid
+        ind = closestPoints(meshGlobal, np.r_[midX, midY, midZ], gridLoc='CC')
+        shift = np.squeeze(meshGlobal.gridCC[ind, :]) - np.r_[midX, midY, midZ]
+        mesh._x0 = mesh.x0 + shift
+
+    return mesh

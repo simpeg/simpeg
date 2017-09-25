@@ -8,7 +8,7 @@ from SimPEG.Utils import (
     sdiag, sub2ind, ndgrid, mkvc, inv2X2BlockDiagonal,
     inv3X3BlockDiagonal, invPropertyTensor, makePropertyTensor, indexCube,
     ind2sub, asArray_N_x_Dim, TensorType, diagEst, count, timeIt, Counter,
-    download, surface2ind_topo
+    download, surface2ind_topo, modelutils
 )
 from SimPEG import Mesh
 from SimPEG.Tests import checkDerivative
@@ -348,6 +348,73 @@ class TestDownload(unittest.TestCase):
         # clean up
         shutil.rmtree(os.path.expanduser('./test_urls'))
         shutil.rmtree(os.path.expanduser('./test_url'))
+
+
+class TestTileBuilder(unittest.TestCase):
+
+    def test_mesh_creation(self):
+
+        # Create simple mesh
+        nCx, nCy, nCz = 3, 5, 7
+        nPadx, nPady, nPadz = 2, 3, 4
+        expFact = 1.3
+        h = np.r_[5, 10, 15]
+
+        hx = [(h[0], nPadx, -expFact), (h[0], nCx), (h[0], nPadx, expFact)]
+        hy = [(h[1], nPady, -expFact), (h[1], nCy), (h[1], nPady, expFact)]
+        hz = [(h[2], nPadz, -expFact), (h[2], nCz)]
+        mesh = Mesh.TensorMesh([hx, hy, hz], x0='CC0')
+        mesh._x0 = mesh._x0 + np.r_[0, 0, -mesh.hz.sum()]
+
+        # Get the padding distance
+        padDist = np.r_[np.c_[mesh.hx[:nPadx].sum(), mesh.hx[-nPadx:].sum()],
+                        np.c_[mesh.hy[:nPady].sum(), mesh.hy[-nPady:].sum()],
+                        np.c_[mesh.hz[:nPadz].sum(), 0]]
+
+        # Core limits
+        xyz = np.r_[np.c_[mesh.vectorNx[nPadx],
+                          mesh.vectorNy[nPady],
+                          mesh.vectorNz[nPadz]],
+                    np.c_[mesh.vectorNx[-nPadx-1],
+                          mesh.vectorNy[-nPady-1],
+                          0]]
+
+        mesh_out = modelutils.meshBuilder(xyz, h, padDist,
+                                          nCmin=0, meshGlobal=mesh,
+                                          expFact=expFact)
+
+        assert np.all(mesh.hx == mesh_out.hx)
+        assert np.all(mesh.hy == mesh_out.hy)
+        assert np.all(mesh.hz == mesh_out.hz)
+        assert np.all(mesh.x0 == mesh_out.x0)
+
+    def test_tile_survey(self):
+
+        # Create a random survey
+        nLocs = np.random.randint(300)+1
+        xyLocs = np.random.randn(nLocs, 2)
+
+        maxNpoints = int(nLocs/10)
+
+        tiles = modelutils.tileSurveyPoints(xyLocs, maxNpoints)
+
+        X1, Y1 = tiles[0][:, 0], tiles[0][:, 1]
+        X2, Y2 = tiles[1][:, 0], tiles[1][:, 1]
+
+        surveyMask = np.ones(nLocs, dtype='bool')
+
+        for tt in range(X1.shape[0]):
+
+            # Grab the data for current tile
+            ind_t = np.all([xyLocs[:, 0] >= X1[tt], xyLocs[:, 0] <= X2[tt],
+                            xyLocs[:, 1] >= Y1[tt], xyLocs[:, 1] <= Y2[tt],
+                            surveyMask], axis=0)
+
+            # Remember selected data in case of tile overlap
+            surveyMask[ind_t] = False
+            assert ind_t.sum() <= maxNpoints
+
+        assert not np.all(surveyMask)
 
 if __name__ == '__main__':
     unittest.main()
