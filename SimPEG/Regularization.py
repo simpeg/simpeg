@@ -1145,7 +1145,7 @@ class Tikhonov(BaseComboRegularization):
     def __init__(
         self, mesh,
         alpha_s=1e-6, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
-        alpha_xx=Utils.Zero(), alpha_yy=Utils.Zero(), alpha_zz=Utils.Zero(),
+        alpha_xx=0., alpha_yy=0., alpha_zz=0.,
         **kwargs
     ):
 
