@@ -68,7 +68,7 @@ class MagDipole(BaseSrcVRM):
         self.waveform = waveform
         self.moment = moment
 
-    # COMPUTE INDUCING FIELD OPERATOR FROM SOURCE
+    # COMPUTE INDUCING FIELD
     def getH0(self, xyz):
 
         # INPUTS
@@ -84,13 +84,7 @@ class MagDipole(BaseSrcVRM):
         Hy0 = (1/(4*np.pi))*(3*(xyz[1]-r0[1])*mdotr/R**5 - m[1]/R**3)
         Hz0 = (1/(4*np.pi))*(3*(xyz[2]-r0[2])*mdotr/R**5 - m[2]/R**3)
 
-        Hx0 = sp.diags(Hx0)
-        Hy0 = sp.diags(Hy0)
-        Hz0 = sp.diags(Hz0)
-
-        H0 = sp.vstack([Hx0,Hy0,Hz0])
-
-        return H0
+        return [Hx0,Hy0,Hz0]
 
 
 
@@ -116,7 +110,7 @@ class CircLoop(BaseSrcVRM):
         self.radius = radius
         self.Imax = Imax
 
-    # COMPUTE INDUCING FIELD OPERATOR FROM SOURCE
+    # COMPUTE INDUCING FIELD
     def getH0(self, xyz):
 
         # INPUTS
@@ -150,13 +144,7 @@ class CircLoop(BaseSrcVRM):
         Hy0 = np.dot(np.c_[Hxp, Hyp, Hzp],Rp[1,:].T)
         Hz0 = np.dot(np.c_[Hxp, Hyp, Hzp],Rp[2,:].T)
 
-        Hx0 = sp.diags(Hx0)
-        Hy0 = sp.diags(Hy0)
-        Hz0 = sp.diags(Hz0)
-
-        H0 = sp.vstack([Hx0,Hy0,Hz0])
-
-        return H0
+        return [Hx0,Hy0,Hz0]
 
 
 
@@ -181,7 +169,7 @@ class LineCurrent(BaseSrcVRM):
         super(LineCurrent, self).__init__(rxList, **kwargs)
 
 
-    # COMPUTE INDUCING FIELD OPERATOR FROM SOURCE
+    # COMPUTE INDUCING FIELD
     def getH0(self, xyz):
 
         # INPUTS
@@ -241,13 +229,7 @@ class LineCurrent(BaseSrcVRM):
             Hy0 = Hy0 + Phi*( Ix1*Rx3 - Ix3*Rx1)/R
             Hz0 = Hz0 + Phi*(-Ix1*Rx2 + Ix2*Rx1)/R
 
-        Hx0 = sp.diags(Hx0)
-        Hy0 = sp.diags(Hy0)
-        Hz0 = sp.diags(Hz0)
-
-        H0 = sp.vstack([Hx0,Hy0,Hz0])
-
-        return H0
+        return [Hx0,Hy0,Hz0]
 
 
 
