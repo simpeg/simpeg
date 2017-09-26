@@ -224,7 +224,7 @@ def meshBuilder(xyz, h, padDist, nCmin=3, meshGlobal=None, expFact=1.3):
 
     mesh._x0 = np.r_[mesh.x0[0] + midX,
                      mesh.x0[1] + midY,
-                     mesh.x0[2] - mesh.hz.sum() + midZ + h[2]*nCz/2]
+                     mesh.x0[2] - mesh.hz.sum() + midZ + h[2]*nCz/2.]
 
     if meshGlobal is not None:
         # Shift tile center to closest cell in base grid
