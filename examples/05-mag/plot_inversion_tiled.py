@@ -157,9 +157,9 @@ def run(plotIt=True):
             continue
 
         padDist = np.r_[np.c_[50, 50], np.c_[50, 50], np.c_[50, 0]]
-        mesh_t = Utils.meshutils.meshBuilder(xyzLoc[ind_t, :],
-                                             np.r_[dx, dx, dx],
-                                             padDist, meshGlobal=mesh)
+        mesh_t = Utils.modelutils.meshBuilder(xyzLoc[ind_t, :],
+                                              np.r_[dx, dx, dx],
+                                              padDist, meshGlobal=mesh)
 
         # Extract model from global to local mesh
         actv_t = Utils.surface2ind_topo(mesh_t, topo, 'N')
