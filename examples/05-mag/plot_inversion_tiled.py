@@ -156,7 +156,7 @@ def run(plotIt=True):
         if ind_t.sum() == 0:
             continue
 
-        padDist = np.r_[np.c_[50, 50], np.c_[50, 50], np.c_[50, 0]]
+        padDist = np.r_[np.c_[75, 75], np.c_[75, 75], np.c_[75, 0]]
         mesh_t = Utils.modelutils.meshBuilder(xyzLoc[ind_t, :],
                                               np.r_[dx, dx, dx],
                                               padDist, meshGlobal=mesh)
