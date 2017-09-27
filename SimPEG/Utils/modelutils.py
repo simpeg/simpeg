@@ -34,11 +34,14 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest',
 
         if gridLoc == 'CC':
             XY = ndgrid(mesh.vectorCCx, mesh.vectorCCy)
-            Zcc = mesh.gridCC[:, 2].reshape((np.prod(mesh.vnC[:2]), mesh.nCz),
+            Zcc = mesh.gridCC[:, 2].reshape((np.prod(mesh.vnC[:2]),
+                                             mesh.nCz),
                                             order='F')
 
-            gridTopo = griddata(topo[:, :2], topo[:, 2], XY, method=method,
+            gridTopo = griddata(topo[:, :2], topo[:, 2], XY,
+                                method=method,
                                 fill_value=fill_value)
+
             actind = [gridTopo >= Zcc[:, ixy]
                       for ixy in range(np.prod(mesh.vnC[2]))]
 
@@ -47,8 +50,10 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest',
         elif gridLoc == 'N':
 
             XY = ndgrid(mesh.vectorNx, mesh.vectorNy)
-            gridTopo = griddata(topo[:, :2], topo[:, 2], XY, method=method,
+            gridTopo = griddata(topo[:, :2], topo[:, 2], XY,
+                                method=method,
                                 fill_value=fill_value)
+
             gridTopo = gridTopo.reshape(mesh.vnN[:2], order='F')
 
             if mesh._meshType not in ['TENSOR', 'CYL', 'BASETENSOR']:
@@ -171,15 +176,32 @@ def tileSurveyPoints(locs, maxNpoints):
     return [xy1, xy2]
 
 
-def meshBuilder(xyz, h, padDist, nCmin=3, meshGlobal=None, expFact=1.3):
+def meshBuilder(xyz, h, padDist,
+                nCmin=3, meshGlobal=None, expFact=1.3,
+                meshType='TensorMesh'):
     """
         Function to quickly generate a Tensor mesh
         given a cloud of xyz points, finest core cell size
         and padding distance.
         If a meshGlobal is provided, the core cells will be centered
         on the underlaying mesh to reduce interpolation errors.
+
+        :param numpy.ndarray xyz: n x 3 array of locations [x, y, z]
+        :param numpy.ndarray h: 1 x 3 cell size for the core mesh
+        :param numpy.ndarray h: 2 x 3 padding distances [W,E,S,N,Down,Up]
+        [OPTIONAL]
+        :param integer nCmin: Number of core cells on the outer edge [3]
+        :object SimPEG.Mesh: Base mesh used to shift the new mesh for overlap
+        :param float expFact: Expension factor for padding cells [1.3]
+        :param string meshType: Specify output mesh type: "TensorMesh"
+
+        RETURNS:
+        :object SimPEG.Mesh: Mesh object
+
     """
 
+    assert meshType == 'TensorMesh', ('Revise meshType, only ' +
+                                      ' Tensor mesh implemented so far')
     # Get center of the mesh
     midX = np.mean([xyz[:, 0].max(), xyz[:, 0].min()])
     midY = np.mean([xyz[:, 1].max(), xyz[:, 1].min()])
@@ -214,17 +236,28 @@ def meshBuilder(xyz, h, padDist, nCmin=3, meshGlobal=None, expFact=1.3):
     npadDown = expand(h[2], padDist[2, 0])
     npadUp = expand(h[2], padDist[2, 1])
 
-    # Add paddings
-    hx = [(h[0], npadWest, -expFact), (h[0], nCx), (h[0], npadEast, expFact)]
-    hy = [(h[1], npadSouth, -expFact), (h[1], nCy), (h[1], npadNorth, expFact)]
-    hz = [(h[2], npadDown, -expFact), (h[2], nCz), (h[2], npadUp, expFact)]
+    # Create discretization
+    hx = [(h[0], npadWest, -expFact),
+          (h[0], nCx),
+          (h[0], npadEast, expFact)]
+    hy = [(h[1], npadSouth, -expFact),
+          (h[1], nCy), (h[1],
+          npadNorth, expFact)]
+    hz = [(h[2], npadDown, -expFact),
+          (h[2], nCz),
+          (h[2], npadUp, expFact)]
 
     # Create mesh
     mesh = Mesh.TensorMesh([hx, hy, hz], 'CC0')
 
+    # Re-set the mesh at the center of input locations
+    # z-shift is different for cases when no padding cells up
     mesh._x0 = np.r_[mesh.x0[0] + midX,
                      mesh.x0[1] + midY,
-                     mesh.x0[2] - mesh.hz.sum() + midZ + h[2]*nCz/2.]
+                     (mesh.x0[2] -
+                      mesh.hz[:(npadDown + nCz)].sum() +  # down to top of core
+                      midZ +                              # up to center locs
+                      h[2]*nCz/2.)]                       # up half the core
 
     if meshGlobal is not None:
         # Shift tile center to closest cell in base grid
