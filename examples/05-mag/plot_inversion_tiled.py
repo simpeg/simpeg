@@ -156,10 +156,10 @@ def run(plotIt=True):
         if ind_t.sum() == 0:
             continue
 
-        padDist = np.r_[np.c_[50, 50], np.c_[50, 50], np.c_[50, 0]]
-        mesh_t = Utils.meshutils.meshBuilder(xyzLoc[ind_t, :],
-                                             np.r_[dx, dx, dx],
-                                             padDist, meshGlobal=mesh)
+        padDist = np.r_[np.c_[75, 75], np.c_[75, 75], np.c_[75, 0]]
+        mesh_t = Utils.modelutils.meshBuilder(xyzLoc[ind_t, :],
+                                              np.r_[dx, dx, dx],
+                                              padDist, meshGlobal=mesh)
 
         # Extract model from global to local mesh
         actv_t = Utils.surface2ind_topo(mesh_t, topo, 'N')
