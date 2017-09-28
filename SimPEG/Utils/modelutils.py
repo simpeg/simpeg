@@ -177,8 +177,8 @@ def tileSurveyPoints(locs, maxNpoints):
 
 
 def meshBuilder(xyz, h, padDist,
-                nCmin=3, meshGlobal=None, expFact=1.3,
-                meshType='TensorMesh'):
+                padCore=np.r_[1, 1, 1], meshGlobal=None, expFact=1.3,
+                meshType='TENSOR'):
     """
         Function to quickly generate a Tensor mesh
         given a cloud of xyz points, finest core cell size
@@ -190,7 +190,7 @@ def meshBuilder(xyz, h, padDist,
         :param numpy.ndarray h: 1 x 3 cell size for the core mesh
         :param numpy.ndarray h: 2 x 3 padding distances [W,E,S,N,Down,Up]
         [OPTIONAL]
-        :param integer nCmin: Number of core cells on the outer edge [3]
+        :param numpy.ndarray padCore: Number of core cells around the xyz locs
         :object SimPEG.Mesh: Base mesh used to shift the new mesh for overlap
         :param float expFact: Expension factor for padding cells [1.3]
         :param string meshType: Specify output mesh type: "TensorMesh"
@@ -200,64 +200,127 @@ def meshBuilder(xyz, h, padDist,
 
     """
 
-    assert meshType == 'TensorMesh', ('Revise meshType, only ' +
-                                      ' Tensor mesh implemented so far')
+    assert meshType in ['TENSOR', 'TREE'], ('Revise meshType. Only ' +
+                                            ' TENSOR | TREE mesh ' +
+                                            'are implemented')
+
+    # Get extent of points
+    limx = np.r_[xyz[:, 0].max(), xyz[:, 0].min()]
+    limy = np.r_[xyz[:, 1].max(), xyz[:, 1].min()]
+    limz = np.r_[xyz[:, 2].max(), xyz[:, 2].min()]
+
     # Get center of the mesh
-    midX = np.mean([xyz[:, 0].max(), xyz[:, 0].min()])
-    midY = np.mean([xyz[:, 1].max(), xyz[:, 1].min()])
-    midZ = np.mean([xyz[:, 2].max(), xyz[:, 2].min()])
+    midX = np.mean(limx)
+    midY = np.mean(limy)
+    midZ = np.mean(limz)
 
-    nCx = int((xyz[:, 0].max() - xyz[:, 0].min()) / h[0]) + nCmin*2
-    nCy = int((xyz[:, 1].max() - xyz[:, 1].min()) / h[1]) + nCmin*2
-    nCz = int((xyz[:, 2].max() - xyz[:, 2].min()) / h[2]) + nCmin*2
+    nCx = int((xyz[:, 0].max() - xyz[:, 0].min()) / h[0]) + padCore[0]*2
+    nCy = int((xyz[:, 1].max() - xyz[:, 1].min()) / h[1]) + padCore[1]*2
+    nCz = int((xyz[:, 2].max() - xyz[:, 2].min()) / h[2]) + padCore[2]*2
 
-    # Make sure the core has odd number of cells for centereing
-    # on global mesh
-    if meshGlobal is not None:
-        nCx += 1 - int(nCx % 2)
-        nCy += 1 - int(nCy % 2)
-        nCz += 1 - int(nCz % 2)
+    if meshType == 'TENSOR':
+        # Make sure the core has odd number of cells for centereing
+        # on global mesh
+        if meshGlobal is not None:
+            nCx += 1 - int(nCx % 2)
+            nCy += 1 - int(nCy % 2)
+            nCz += 1 - int(nCz % 2)
 
-    # Figure out paddings
-    def expand(dx, pad):
-        L = 0
-        nC = 0
-        while L < pad:
-            nC += 1
-            L = np.sum(dx * expFact**(np.asarray(range(nC))+1))
+        # Figure out paddings
+        def expand(dx, pad):
+            L = 0
+            nC = 0
+            while L < pad:
+                nC += 1
+                L = np.sum(dx * expFact**(np.asarray(range(nC))+1))
 
-        return nC
+            return nC
 
-    # Figure number of padding cells required to fill the space
-    npadEast = expand(h[0], padDist[0, 0])
-    npadWest = expand(h[0], padDist[0, 1])
-    npadSouth = expand(h[1], padDist[1, 0])
-    npadNorth = expand(h[1], padDist[1, 1])
-    npadDown = expand(h[2], padDist[2, 0])
-    npadUp = expand(h[2], padDist[2, 1])
+        # Figure number of padding cells required to fill the space
+        npadEast = expand(h[0], padDist[0, 0])
+        npadWest = expand(h[0], padDist[0, 1])
+        npadSouth = expand(h[1], padDist[1, 0])
+        npadNorth = expand(h[1], padDist[1, 1])
+        npadDown = expand(h[2], padDist[2, 0])
+        npadUp = expand(h[2], padDist[2, 1])
 
-    # Create discretization
-    hx = [(h[0], npadWest, -expFact),
-          (h[0], nCx),
-          (h[0], npadEast, expFact)]
-    hy = [(h[1], npadSouth, -expFact),
-          (h[1], nCy), (h[1],
-          npadNorth, expFact)]
-    hz = [(h[2], npadDown, -expFact),
-          (h[2], nCz),
-          (h[2], npadUp, expFact)]
+        # Create discretization
+        hx = [(h[0], npadWest, -expFact),
+              (h[0], nCx),
+              (h[0], npadEast, expFact)]
+        hy = [(h[1], npadSouth, -expFact),
+              (h[1], nCy), (h[1],
+              npadNorth, expFact)]
+        hz = [(h[2], npadDown, -expFact),
+              (h[2], nCz),
+              (h[2], npadUp, expFact)]
 
-    # Create mesh
-    mesh = Mesh.TensorMesh([hx, hy, hz], 'CC0')
+        # Create mesh
+        mesh = Mesh.TensorMesh([hx, hy, hz], 'CC0')
 
-    # Re-set the mesh at the center of input locations
-    # z-shift is different for cases when no padding cells up
-    mesh._x0 = np.r_[mesh.x0[0] + midX,
-                     mesh.x0[1] + midY,
-                     (mesh.x0[2] -
-                      mesh.hz[:(npadDown + nCz)].sum() +  # down to top of core
-                      midZ +                              # up to center locs
-                      h[2]*nCz/2.)]                       # up half the core
+        # Re-set the mesh at the center of input locations
+        # z-shift is different for cases when no padding cells up
+        mesh._x0 = np.r_[mesh.x0[0] + midX,
+                         mesh.x0[1] + midY,
+                         (mesh.x0[2] -
+                          mesh.hz[:(npadDown + nCz)].sum() +  # down to top of core
+                          midZ +                              # up to center locs
+                          h[2]*nCz/2.)]                       # up half the core
+
+    elif meshType == 'TREE':
+
+        # Figure out full extent required from input
+        extent = np.max(np.r_[nCx * h[0] + padDist[0, :].sum(),
+                              nCy * h[1] + padDist[1, :].sum(),
+                              nCz * h[2] + padDist[2, :].sum()])
+
+        # Number of cells at the small octree level
+        nCx = 2**int(np.log2(extent/h[0]))
+        nCy = 2**int(np.log2(extent/h[1]))
+        nCz = 2**int(np.log2(extent/h[2]))
+
+        # Define the mesh and origin
+        mesh = Mesh.TreeMesh([np.ones(nCx)*h[0],
+                              np.ones(nCy)*h[1],
+                              np.ones(nCz)*h[2]])
+
+        # Set origin
+        mesh._x0 = np.r_[-nCx*h[0]/2+midX, -nCy*h[1]/2+midY, -nCz*h[2]/2+midZ]
+
+        # Refine mesh around locations
+        mesh.refine(2)
+
+        maxLevel = int(np.log2(extent / 2**2 / h[0]))
+
+        # Create iterative refinement
+        def refineFun(level, locs):
+
+            def refine(cell):
+                bsw = np.kron(np.ones(locs.shape[0]),
+                              (cell.center - np.r_[cell.h] * (padCore+1/2) +
+                               mesh.x0)).reshape((locs.shape[0], 3))
+
+                tne = np.kron(np.ones(locs.shape[0]),
+                              (cell.center + np.r_[cell.h] * (padCore+1/2) +
+                               mesh.x0)).reshape((locs.shape[0], 3))
+
+#                xyz = cell.center + mesh.x0
+                if np.any(np.all(np.c_[np.all(bsw < locs, axis=1),
+                                 np.all(tne > locs, axis=1)], axis=1)):
+                    return level
+                return 0
+            return refine
+
+        # xlim = np.r_[topo[:,0].min(), topo[:,0].max()]
+        # ylim = np.r_[topo[:,1].min(), topo[:,1].max()]
+        # zlim = np.r_[topo[:,2].min()-80, topo[:,2].max()+80]
+        level = 2
+        while mesh.vol.min()**(1/3) > h.min():
+            print('Smallest cell: ' + str(mesh.vol.min()**(1/3)))
+            print('Refining Octree mesh to level: '+str(level))
+            level += 1
+#            zWindow = h[2]*2**(maxLevel - level + 2)
+            mesh.refine(refineFun(level, xyz))
 
     if meshGlobal is not None:
         # Shift tile center to closest cell in base grid

@@ -380,7 +380,8 @@ class TestTileBuilder(unittest.TestCase):
                           0]]
 
         mesh_out = modelutils.meshBuilder(xyz, h, padDist,
-                                          nCmin=0, meshGlobal=mesh,
+                                          padCore=np.r_[0, 0, 0],
+                                          meshGlobal=mesh,
                                           expFact=expFact)
 
         assert np.all(mesh.hx == mesh_out.hx)
