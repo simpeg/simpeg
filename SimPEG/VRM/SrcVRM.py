@@ -60,7 +60,7 @@ class MagDipole(BaseSrcVRM):
 
         waveform = 'StepOff'
 
-        assert len(loc) is 3, 'Tx location must be given as a column vector np.r[x,y,z]'
+        assert len(loc) is 3, 'Tx location must be given as a column vector np.r_[x,y,z]'
         assert len(moment) is 3, 'Dipole moment given as column vector np.r_[mx,my,mz]'
         super(MagDipole, self).__init__(rxList, **kwargs)
         
@@ -72,19 +72,42 @@ class MagDipole(BaseSrcVRM):
     def getH0(self, xyz):
 
         # INPUTS
-        # xyz: [x,y,z] locations as a list at which primary field is computed
+        # xyz: N X 3 array of locations at which primary field is computed
 
         m = self.moment
         r0 = self.loc
 
-        R = np.sqrt((xyz[0]-r0[0])**2 + (xyz[1]-r0[1])**2 + (xyz[2]-r0[2])**2)
-        mdotr = m[0]*(xyz[0]-r0[0]) + m[1]*(xyz[1]-r0[1]) + m[2]*(xyz[2]-r0[2])
+        R = np.sqrt((xyz[:,0]-r0[0])**2 + (xyz[:,1]-r0[1])**2 + (xyz[:,2]-r0[2])**2)
+        mdotr = m[0]*(xyz[:,0]-r0[0]) + m[1]*(xyz[:,1]-r0[1]) + m[2]*(xyz[:,2]-r0[2])
 
-        Hx0 = (1/(4*np.pi))*(3*(xyz[0]-r0[0])*mdotr/R**5 - m[0]/R**3)
-        Hy0 = (1/(4*np.pi))*(3*(xyz[1]-r0[1])*mdotr/R**5 - m[1]/R**3)
-        Hz0 = (1/(4*np.pi))*(3*(xyz[2]-r0[2])*mdotr/R**5 - m[2]/R**3)
+        Hx0 = (1/(4*np.pi))*(3*(xyz[:,0]-r0[0])*mdotr/R**5 - m[0]/R**3)
+        Hy0 = (1/(4*np.pi))*(3*(xyz[:,1]-r0[1])*mdotr/R**5 - m[1]/R**3)
+        Hz0 = (1/(4*np.pi))*(3*(xyz[:,2]-r0[2])*mdotr/R**5 - m[2]/R**3)
 
-        return [Hx0,Hy0,Hz0]
+        return np.c_[Hx0,Hy0,Hz0]
+
+    def _getRefineFlags(self, xyzc, refFact, refRadius):
+
+        # This function assigns the refinement factor to each cell
+
+        # INPUTS:
+        # xyzc: Cell-center locations as NX3 array
+        # refFact: Refinement factor
+        # refRadius: Refinment radii
+
+        refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
+
+        R = np.sqrt((xyzc[:,0] - self.loc[0])**2 + (xyzc[:,1] - self.loc[1])**2 + (xyzc[:,2] - self.loc[2])**2)
+
+        for nn in range(0, refFact):
+
+            k = (R < refRadius[nn]+1e-3) & (refFlag < refFact-nn+1)
+            refFlag[k] = refFact - nn
+
+        return refFlag
+
+
+
 
 
 
@@ -114,7 +137,7 @@ class CircLoop(BaseSrcVRM):
     def getH0(self, xyz):
 
         # INPUTS
-        # xyz: [x,y,z] locations as a list at which primary field is computed
+        # xyz: N X 3 array at locations where primary field is computed
 
         r0 = self.loc
         theta = self.orientation[0] # Azimuthal
@@ -127,9 +150,9 @@ class CircLoop(BaseSrcVRM):
         Rz = np.r_[np.c_[np.cos(np.pi*alpha/180),-np.sin(np.pi*alpha/180), 0], np.c_[np.sin(np.pi*alpha/180),np.cos(np.pi*alpha/180),0], np.c_[0,0,1]]     # CCW ROTATION OF (90-ALPHA) ABOUT Z-AXIS
         R = np.dot(Rx,Rz)            # THE ORDER MATTERS
         
-        x1p = np.dot(np.c_[xyz[0]-r0[0], xyz[1]-r0[1], xyz[2]-r0[2]],R[0,:].T)
-        x2p = np.dot(np.c_[xyz[0]-r0[0], xyz[1]-r0[1], xyz[2]-r0[2]],R[1,:].T)
-        x3p = np.dot(np.c_[xyz[0]-r0[0], xyz[1]-r0[1], xyz[2]-r0[2]],R[2,:].T)
+        x1p = np.dot(np.c_[xyz[:,0]-r0[0], xyz[:,1]-r0[1], xyz[:,2]-r0[2]],R[0,:].T)
+        x2p = np.dot(np.c_[xyz[:,0]-r0[0], xyz[:,1]-r0[1], xyz[:,2]-r0[2]],R[1,:].T)
+        x3p = np.dot(np.c_[xyz[:,0]-r0[0], xyz[:,1]-r0[1], xyz[:,2]-r0[2]],R[2,:].T)
         
         s = np.sqrt(x1p**2 + x2p**2)     # Radial distance
         k = 4*a*s/(x3p**2 + (a+s)**2)
@@ -144,8 +167,44 @@ class CircLoop(BaseSrcVRM):
         Hy0 = np.dot(np.c_[Hxp, Hyp, Hzp],Rp[1,:].T)
         Hz0 = np.dot(np.c_[Hxp, Hyp, Hzp],Rp[2,:].T)
 
-        return [Hx0,Hy0,Hz0]
+        return np.c_[Hx0,Hy0,Hz0]
 
+
+
+    def _getRefineFlags(self, xyzc, refFact, refRadius):
+
+        # This function assigns the refinement factor to each cell
+
+        # INPUTS:
+        # xyzc: Cell-center locations as NX3 array
+        # refFact: Refinement factor
+        # refRadius: Refinment radii
+
+        refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
+
+        r0 = self.loc
+        a  = self.radius
+        theta = self.orientation[0] # Azimuthal
+        alpha = self.orientation[1] # Declination
+
+        # Rotate x,y,z into coordinate axis of transmitter loop
+        Rx = np.r_[np.c_[1,0,0], np.c_[0,np.cos(np.pi*theta/180), -np.sin(np.pi*theta/180)], np.c_[0,np.sin(np.pi*theta/180),np.cos(np.pi*theta/180)]]     # CCW ROTATION OF THETA AROUND X-AXIS
+        Rz = np.r_[np.c_[np.cos(np.pi*alpha/180),-np.sin(np.pi*alpha/180), 0], np.c_[np.sin(np.pi*alpha/180),np.cos(np.pi*alpha/180),0], np.c_[0,0,1]]     # CCW ROTATION OF (90-ALPHA) ABOUT Z-AXIS
+        R = np.dot(Rx,Rz)            # THE ORDER MATTERS
+        
+        x1p = np.dot(np.c_[xyzc[:,0]-r0[0], xyzc[:,1]-r0[1], xyzc[:,2]-r0[2]],R[0,:].T)
+        x2p = np.dot(np.c_[xyzc[:,0]-r0[0], xyzc[:,1]-r0[1], xyzc[:,2]-r0[2]],R[1,:].T)
+        x3p = np.dot(np.c_[xyzc[:,0]-r0[0], xyzc[:,1]-r0[1], xyzc[:,2]-r0[2]],R[2,:].T)
+        R = np.sqrt(x1p**2 + x2p**2 + x3p**2)
+        cosA = np.sqrt(x1p**2 + x2p**2)/R
+        D = np.sqrt(a**2 + R**2 - 2*a*R*cosA)
+
+        for nn in range(0, refFact):
+
+            k = (D < refRadius[nn]+1e-3) & (refFlag < refFact-nn+1)
+            refFlag[k] = refFact - nn
+
+        return refFlag
 
 
 
@@ -173,7 +232,7 @@ class LineCurrent(BaseSrcVRM):
     def getH0(self, xyz):
 
         # INPUTS
-        # xyz: [x,y,z] locations as a list at which primary field is computed
+        # xyz: N X 3 array at locations where primary field is computed
 
         # TRANSMITTER NODES
         I = self.Imax
@@ -182,7 +241,7 @@ class LineCurrent(BaseSrcVRM):
         x2tr = TxNodes[:,1]
         x3tr = TxNodes[:,2]
 
-        M = np.size(xyz[0])
+        M = np.shape(xyz)[0]
         N = np.size(x1tr)-1
 
         Hx0 = np.zeros(M)
@@ -201,19 +260,19 @@ class LineCurrent(BaseSrcVRM):
 
             # Vector Lengths between points
             vab = np.sqrt((x1b - x1a)**2 + (x2b - x2a)**2 + (x3b - x3a)**2)
-            vap = np.sqrt((xyz[0] - x1a)**2 + (xyz[1] - x2a)**2 + (xyz[2] - x3a)**2)
-            vbp = np.sqrt((xyz[0] - x1b)**2 + (xyz[1] - x2b)**2 + (xyz[2] - x3b)**2)
+            vap = np.sqrt((xyz[:,0] - x1a)**2 + (xyz[:,1] - x2a)**2 + (xyz[:,2] - x3a)**2)
+            vbp = np.sqrt((xyz[:,0] - x1b)**2 + (xyz[:,1] - x2b)**2 + (xyz[:,2] - x3b)**2)
 
             # Cosines from cos()=<v1,v2>/(|v1||v2|)
-            CosAlpha = ((xyz[0]-x1a)*(x1b - x1a) + (xyz[1]-x2a)*(x2b - x2a) + (xyz[2]-x3a)*(x3b - x3a))/(vap*vab)
-            CosBeta  = ((xyz[0]-x1b)*(x1a - x1b) + (xyz[1]-x2b)*(x2a - x2b) + (xyz[2]-x3b)*(x3a - x3b))/(vbp*vab)
+            CosAlpha = ((xyz[:,0]-x1a)*(x1b - x1a) + (xyz[:,1]-x2a)*(x2b - x2a) + (xyz[:,2]-x3a)*(x3b - x3a))/(vap*vab)
+            CosBeta  = ((xyz[:,0]-x1b)*(x1a - x1b) + (xyz[:,1]-x2b)*(x2a - x2b) + (xyz[:,2]-x3b)*(x3a - x3b))/(vbp*vab)
 
             # Determining Radial Vector From Wire
-            DotTemp = (x1a - xyz[0])*(x1b - x1a) + (x2a - xyz[1])*(x2b - x2a) + (x3a - xyz[2])*(x3b - x3a)
+            DotTemp = (x1a - xyz[:,0])*(x1b - x1a) + (x2a - xyz[:,1])*(x2b - x2a) + (x3a - xyz[:,2])*(x3b - x3a)
 
-            Rx1 = (x1a - xyz[0]) - DotTemp*(x1b - x1a)/vab**2
-            Rx2 = (x2a - xyz[1]) - DotTemp*(x2b - x2a)/vab**2
-            Rx3 = (x3a - xyz[2]) - DotTemp*(x3b - x3a)/vab**2
+            Rx1 = (x1a - xyz[:,0]) - DotTemp*(x1b - x1a)/vab**2
+            Rx2 = (x2a - xyz[:,1]) - DotTemp*(x2b - x2a)/vab**2
+            Rx3 = (x3a - xyz[:,2]) - DotTemp*(x3b - x3a)/vab**2
 
             R = np.sqrt(Rx1**2 + Rx2**2 + Rx3**2)
 
@@ -229,7 +288,48 @@ class LineCurrent(BaseSrcVRM):
             Hy0 = Hy0 + Phi*( Ix1*Rx3 - Ix3*Rx1)/R
             Hz0 = Hz0 + Phi*(-Ix1*Rx2 + Ix2*Rx1)/R
 
-        return [Hx0,Hy0,Hz0]
+        return np.c_[Hx0,Hy0,Hz0]
+
+
+
+    def _getRefineFlags(self, xyzc, refFact, refRadius):
+
+        # This function assigns the refinement factor to each cell
+
+        # INPUTS:
+        # xyzc: Cell-center locations as NX3 array
+        # refFact: Refinement factor
+        # refRadius: Refinment radii
+
+        refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
+        
+        nSeg = np.shape(self.loc)[0] - 1
+
+        for tt in range(0,nSeg):
+    
+            refFlagtt = np.zeros(np.shape(xyzc)[0], dtype=np.int)
+            Tx0 = self.loc[tt,:]
+            Tx1 = self.loc[tt+1,:]
+            A = (Tx1[0] - Tx0[0])**2 + (Tx1[1] - Tx0[1])**2 + (Tx1[2] - Tx0[2])**2
+            B = 2*(Tx1[0] - Tx0[0])*(Tx0[0] - xyzc[:,0]) + 2*(Tx1[1] - Tx0[1])*(Tx0[1] - xyzc[:,1]) + 2*(Tx1[2] - Tx0[2])*(Tx0[2] - xyzc[:,2])
+            
+            for nn in range(0, refFact):
+            
+                D = refRadius[nn] + 1e-3
+                C = (Tx0[0] - xyzc[:,0])**2 + (Tx0[1] - xyzc[:,1])**2 + (Tx0[2] - xyzc[:,2])**2 - D**2
+                E = np.array(B**2 - 4*A*C, dtype=np.complex)
+                
+                Qpos = (-B + np.sqrt(E))/(2*A)
+                Qneg = (-B - np.sqrt(E))/(2*A)
+                
+                kpos = (np.abs(np.imag(Qpos)) > 1e-12) | ((np.real(Qpos)<0.) & (np.real(Qneg)<0.)) | ((np.real(Qpos)>1.) & (np.real(Qneg)>1.))
+                kneg = (np.abs(np.imag(Qpos)) > 1e-12) | ((np.real(Qpos)<0.) & (np.real(Qneg)<0.)) | ((np.real(Qpos)>1.) & (np.real(Qneg)>1.)) | (kpos==True)
+                
+                refFlagtt[(kpos==False) & (kneg==False) & (refFlagtt<refFact+1-nn)] = refFact + 1 - nn
+                
+            refFlag = np.maximum(refFlag,refFlagtt)
+
+        return refFlag
 
 
 
