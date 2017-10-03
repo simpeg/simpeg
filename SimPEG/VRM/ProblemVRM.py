@@ -1,4 +1,4 @@
-from SimPEG import Problem
+from SimPEG import Problem, mkvc
 from SimPEG.VRM.SurveyVRM import SurveyVRM
 # from SimPEG.VRM.FieldsVRM import Fields_LinearFWD
 import numpy as np
@@ -279,7 +279,7 @@ class LinearFWD(BaseProblemVRM):
 
 		topoInd = mod != 0 # Only predict data from non-zero model values unless specified
 
-		
+
 		# GET CELL INFORMATION FOR FORWARD MODELING
 		meshObj = self.mesh
 		xyzc = meshObj.gridCC[topoInd,:]
@@ -296,10 +296,10 @@ class LinearFWD(BaseProblemVRM):
 			# Create initial A matrix
 			G   = self.getGeometryMatrix(xyzc, xyzh, pp)
 			H0  = self.getH0matrix(xyzc, pp)
-			A[pp] = G*H0
+			A.append(G*H0)
 
 			# Refine A matrix
-			refFact = self.refFact
+			refFact = 0 # self.refFact
 			refRadius = self.refRadius
 
 			if refFact > 0:
@@ -307,29 +307,44 @@ class LinearFWD(BaseProblemVRM):
 				srcObj = self.survey.srcList[pp]
 				refFlag = srcObj._getRefineFlags(xyzc, refFact, refRadius)
 
-				for qq in range(0,refFact):
+				for qq in range(1,refFact):
 
-					# Get subset mesh
-					# Get subset A matrix
+					A[pp][:,refFlag==qq] = self._getSubsetAcolumns(xyzc, xyzh, pp, qq, refFlag)
 
-
-
-
-
-
-
-
-
-
-
+		# COLLAPSE ALL A MATRICIES INTO SINGLE OPERATOR
 		A = np.vstack(A)
 
 		return A
 
 
-	# def _getSubsetMesh(self):
+	def _getSubsetAcolumns(self, xyzc, xyzh, pp, qq, refFlag):
 
-	# def_getSubsetAmatrix(self):
+		# INPUTS:
+		# xyzc: Cell centers of topo mesh cells
+		# xyzh: Cell widths of topo mesh cells
+		# pp: Source ID
+		# qq: Mesh refinement factor
+		# refFlag: refinement factors for all topo mesh cells
+
+		# GET SUBMESH GRID
+		n = 2**qq
+		[nx,ny,nz] = np.meshgrid(np.linspace(1,n,n)-0.5, np.linspace(1,n,n)-0.5, np.linspace(1,n,n)-0.5)
+		nxyz_sub = np.c_[mkvc(nx), mkvc(ny), mkvc(nz)]
+
+		xyzh_sub = xyzh[refFlag==qq,:] # Get widths of cells to be refined
+		xyzc_sub = xyzc[refFlag==qq,:] - xyzh[refFlag==qq,:]/2 # Get bottom southwest corners of cells to be refined
+		m = np.shape(xyzc_sub)[0]
+		xyzc_sub = np.kron(xyzc_sub, np.ones((n**3,1))) # Kron for n**3 refined cells
+		xyzh_sub = np.kron(xyzh_sub/n, np.ones((n**3,1))) # Kron for n**3 refined cells with widths h/n
+		nxyz_sub = np.kron(np.ones((m,1)),nxyz_sub) # Kron for n**3 refined cells
+		xyzc_sub = xyzc_sub + xyzh_sub*nxyz_sub
+
+		# GET SUBMESH A MATRIX AND COLLAPSE TO COLUMNS
+		G   = self.getGeometryMatrix(xyzc_sub, xyzh_sub, pp)
+		H0  = self.getH0matrix(xyzc_sub, pp)
+		Acols = (G*H0)*sp.kron(sp.diags(np.ones(m,1)),np.ones((n**3,1)))
+
+		return Acols
 
 
 
