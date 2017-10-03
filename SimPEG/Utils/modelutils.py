@@ -177,7 +177,8 @@ def tileSurveyPoints(locs, maxNpoints):
 
 
 def meshBuilder(xyz, h, padDist,
-                padCore=np.r_[1, 1, 1], meshGlobal=None, expFact=1.3,
+                padCore=np.r_[1, 1, 1], meshGlobal=None,
+                expFact=1.3,
                 meshType='TENSOR'):
     """
         Function to quickly generate a Tensor mesh
