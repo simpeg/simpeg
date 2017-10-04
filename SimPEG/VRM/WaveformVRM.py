@@ -13,22 +13,22 @@ class StepOff():
 
 		self.t0 = t0
 
-	def getCharDecay(self, dtype, times):
+	def getCharDecay(self, fieldType, times):
 
-		assert dtype in ["dhdt","dbdt"], "For step-off, dtype must be one of 'dhdt' or 'dbdt' and cannot be 'h' or 'b'"
+		assert fieldType in ["dhdt","dbdt"], "For step-off, fieldType must be one of 'dhdt' or 'dbdt' and cannot be 'h' or 'b'"
 		assert self.t0 < np.min(times), "Earliest time channel must be after beginning of off-time"
 		
 		t0 = self.t0
 
-		if dtype is "dbdt":
+		if fieldType is "dbdt":
 			mu0 = 4*np.pi*1e-7
 			eta = -1/(times-t0)
-		elif dtype is "dhdt":
+		elif fieldType is "dhdt":
 			eta = -1/(times-t0)
 
 		return eta
 
-	# def getTrueDecay(self, dtype, times, chi0, dchi, tau1, tau2):
+	# def getTrueDecay(self, fieldType, times, chi0, dchi, tau1, tau2):
 
 
 
@@ -44,22 +44,22 @@ class SquarePulse():
 		self.delt = delt
 		self.t0 = t0
 
-	def getCharDecay(self, dtype, times):
+	def getCharDecay(self, fieldType, times):
 
-		assert dtype in ["h","dhdt","b","dbdt"], "For square-pulse, dtype must be one of 'h', 'dhdt', 'b' or 'dbdt'"
+		assert fieldType in ["h","dhdt","b","dbdt"], "For square-pulse, fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
 		assert self.t0 < np.min(times), "Earliest time channel must be after beginning of off-time"
 		
 		t0 = self.t0
 		delt = self.delt
 		mu0 = 4*np.pi*1e-7
 
-		if dtype is "h":
+		if fieldType is "h":
 			eta = np.log(1 + delt/(times-t0))
-		elif dtype is "b":
+		elif fieldType is "b":
 			eta = mu0*np.log(1 + delt/(times-t0))
-		elif dtype is "dhdt":
+		elif fieldType is "dhdt":
 			eta = -(1/(times-t0) - 1/(times-t0+delt))
-		elif dtype is "dbdt":
+		elif fieldType is "dbdt":
 			eta = -mu0*(1/(times-t0) - 1/(times-t0+delt))
 
 		return eta
@@ -82,9 +82,9 @@ class Arbitrary():
 		self.t = t
 		self.I = I
 
-	def getCharDecay(self, dtype, times):
+	def getCharDecay(self, fieldType, times):
 
-		assert dtype in ["h","dhdt","b","dbdt"], "dtype must be one of 'h', 'dhdt', 'b' or 'dbdt'"
+		assert fieldType in ["h","dhdt","b","dbdt"], "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
 		assert np.max(self.t) < np.min(times), "Earliest time channel must be after beginning of off-time"
 
 		k = np.nonzero(self.I)
@@ -105,14 +105,14 @@ class Arbitrary():
 
 		eta = np.zeros(len(times))
 
-		if dtype in ["h","b"]:
+		if fieldType in ["h","b"]:
 			for tt in range(0,len(eta)):
 				eta[tt] = np.sum(g*np.log(1 + dt/(times[tt] - t + dt)))
-		elif dtype in ["dhdt","dbdt"]:
+		elif fieldType in ["dhdt","dbdt"]:
 			for tt in range(0,len(eta)):
 				eta[tt] = np.sum(g*(1/(times[tt] - t + dt) - 1/(times[tt] - t)))
 
-		if dtype in ["b","dbdt"]:
+		if fieldType in ["b","dbdt"]:
 			mu0 = 4*np.pi*1e-7
 			eta = mu0*eta
 

@@ -247,10 +247,23 @@ class LinearFWD(BaseProblemVRM):
 
 	def __init__(self, mesh, **kwargs):
 		super(LinearFWD,self).__init__(mesh, **kwargs)
+		self.P = None
+		self.A = None
+		self.T = None
 
 
-	@ property
-	def P(self, topoInd = 0):
+	# def fields(self, mod, topoInd = 0):
+
+	# 	assert self.ispaired, "Problem must be paired with survey to predict data"
+
+	# 	if 
+	# 	P = self.P(topoInd)
+	# 	A = self.A(topoInd)
+	# 	T = self.T
+
+
+
+	def getP(self, topoInd = 0):
 
 		# PROJECTION MATRIX FROM MESH CELLS TO CELLS THAT ARE ACTIVE FOR THE FORWARD PROBLEM. 
 		# NEEDED SO THAT SOURCES AND RECEIVERS ARE OUTSIDE THE MAGNETIZED REGION
@@ -275,8 +288,9 @@ class LinearFWD(BaseProblemVRM):
 		return P
 
 
-	@ property
-	def A(self, topoInd = 0):
+	def getA(self, topoInd = 0):
+
+		assert self.ispaired, "Problem must be paired with survey to generate A matrix"
 
 		if isinstance(topoInd, int) or isinstance(topoInd, float):
 			topoInd = meshObj.gridCC[:,2] < float(topoInd) + 1e-10
@@ -317,26 +331,34 @@ class LinearFWD(BaseProblemVRM):
 
 		return A
 
-	# @property
-	# def T(self):
+	def getT(self):
 
-	# 	srcList = self.survey.srcList
-	# 	nSrc = len(srcList)
+		assert self.ispaired, "Problem must be paired with survey to generate T matrix"
 
-	# 	for pp in range(0,nSrc):
+		srcList = self.survey.srcList
+		nSrc = len(srcList)
+		T = []
 
-	# 		rxList = srcList[pp].rxList
-	# 		nRx = len(rxList)
+		for pp in range(0,nSrc):
 
-	# 		# Extract waveform information
-	# 		# Ideally, it would produces a function handle whose only input is times and whether it is h, b, dh/dt, db/dt
+			rxList = srcList[pp].rxList
+			nRx = len(rxList)
+			waveObj = srcList[pp].waveform
 
-	# 		for qq in range(0,nSrc):
+			for qq in range(0,nSrc):
 
-	# 			times = rxList[qq].times
-	# 			nLoc = np.shape(rxList[qq].locs)[0]
+				times = rxList[qq].times
+				nLoc = np.shape(rxList[qq].locs)[0]
+				
+				I = sp.diags(np.ones(nLoc))
+				eta = waveObj.getCharDecay(rxList[qq].fieldType, times)
+				eta = np.matrix(eta).T
 
-	# 			# Function applied to waveform object with additional fields type and times
+				T.append(sp.kron(I, eta))
+
+		T = sp.block_diag(T)
+
+		return T
 
 
 
