@@ -1,6 +1,6 @@
 from .matutils import mkvc, ndgrid
 import numpy as np
-from scipy.interpolate import griddata, interp1d
+from scipy.interpolate import griddata, interp1d, interp2d, NearestNDInterpolator
 import numpy as np
 import discretize as Mesh
 from discretize.utils import closestPoints
@@ -33,21 +33,42 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest',
     if mesh.dim == 3:
 
         if gridLoc == 'CC':
-            XY = ndgrid(mesh.vectorCCx, mesh.vectorCCy)
-            Zcc = mesh.gridCC[:, 2].reshape((np.prod(mesh.vnC[:2]),
-                                             mesh.nCz),
-                                            order='F')
 
-            gridTopo = griddata(topo[:, :2], topo[:, 2], XY,
-                                method=method,
-                                fill_value=fill_value)
+            if mesh._meshType in ['TREE']:
 
-            actind = [gridTopo >= Zcc[:, ixy]
-                      for ixy in range(np.prod(mesh.vnC[2]))]
+                if method == 'nearest':
+                    F = NearestNDInterpolator(topo[:, :2], topo[:, 2])
 
-            actind = np.hstack(actind)
+                else:
+                    F = interp2d(topo[:, :2], topo[:, 2])
+
+                actind = np.zeros(mesh.nC, dtype='bool')
+
+                for ii, ind in enumerate(mesh._sortedCells):
+
+                    actind[ii] = mesh.gridCC[ii, 2] < F(mesh.gridCC[ii, :2])
+
+            else:
+                XY = ndgrid(mesh.vectorCCx, mesh.vectorCCy)
+                Zcc = mesh.gridCC[:, 2].reshape((np.prod(mesh.vnC[:2]),
+                                                 mesh.nCz),
+                                                order='F')
+
+                gridTopo = griddata(topo[:, :2], topo[:, 2], XY,
+                                    method=method,
+                                    fill_value=fill_value)
+
+                actind = [gridTopo >= Zcc[:, ixy]
+                          for ixy in range(np.prod(mesh.vnC[2]))]
+
+                actind = np.hstack(actind)
 
         elif gridLoc == 'N':
+
+            if mesh._meshType not in ['TENSOR', 'CYL', 'BASETENSOR']:
+                raise NotImplementedError('Nodal surface2ind_topo not ' +
+                                          'implemented for' +
+                                          '{0!s} mesh'.format(mesh._meshType))
 
             XY = ndgrid(mesh.vectorNx, mesh.vectorNy)
             gridTopo = griddata(topo[:, :2], topo[:, 2], XY,
@@ -55,11 +76,6 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest',
                                 fill_value=fill_value)
 
             gridTopo = gridTopo.reshape(mesh.vnN[:2], order='F')
-
-            if mesh._meshType not in ['TENSOR', 'CYL', 'BASETENSOR']:
-                raise NotImplementedError('Nodal surface2ind_topo not ' +
-                                          'implemented for' +
-                                          '{0!s} mesh'.format(mesh._meshType))
 
             # TODO: this will only work for tensor meshes
             Nz = mesh.vectorNz[1:]
@@ -286,7 +302,7 @@ def meshBuilder(xyz, h, padDist,
                               np.ones(nCz)*h[2]])
 
         # Set origin
-        mesh._x0 = np.r_[-nCx*h[0]/2+midX, -nCy*h[1]/2+midY, -nCz*h[2]/2+midZ]
+        mesh.x0 = np.r_[-nCx*h[0]/2+midX, -nCy*h[1]/2+midY, -nCz*h[2]/2+midZ]
 
         # Refine mesh around locations
         mesh.refine(2)
@@ -327,6 +343,6 @@ def meshBuilder(xyz, h, padDist,
         # Shift tile center to closest cell in base grid
         ind = closestPoints(meshGlobal, np.r_[midX, midY, midZ], gridLoc='CC')
         shift = np.squeeze(meshGlobal.gridCC[ind, :]) - np.r_[midX, midY, midZ]
-        mesh._x0 = mesh.x0 + shift
+        mesh.x0 = mesh.x0 + shift
 
     return mesh
