@@ -3,25 +3,7 @@ import scipy.sparse as sp
 import scipy.special as spec
 from SimPEG import Props, Utils, Survey
 from RxVRM import BaseRxVRM
-
-
-
-
-
-
-
-#########################################
-# VRM WAVEFORM CLASS
-#########################################
-
-# class waveformVRM():
-
-
-
-
-
-
-
+from WaveformVRM import StepOff, SquarePulse, Arbitrary
 
 
 
@@ -33,8 +15,12 @@ from RxVRM import BaseRxVRM
 class BaseSrcVRM(Survey.BaseSrc):
     """SimPEG Source Object"""
 
-    def __init__(self, rxList, **kwargs):
+    def __init__(self, rxList, waveform, **kwargs):
+
+        assert isinstance(waveform, (StepOff, SquarePulse, Arbitrary)), "waveform must be an instance of a VRM waveform class: StepOff, SquarePulse or Arbitrary"
+
         super(BaseSrcVRM, self).__init__(rxList, **kwargs)
+        self.waveform = waveform
         self.rxPair = BaseRxVRM # Links base Src class to acceptable Rx class?
 
     @property
@@ -56,16 +42,13 @@ class BaseSrcVRM(Survey.BaseSrc):
 
 class MagDipole(BaseSrcVRM):
 
-    def __init__(self, rxList, loc, moment, **kwargs):
-
-        waveform = 'StepOff'
+    def __init__(self, rxList, loc, moment, waveform, **kwargs):
 
         assert len(loc) is 3, 'Tx location must be given as a column vector np.r_[x,y,z]'
         assert len(moment) is 3, 'Dipole moment given as column vector np.r_[mx,my,mz]'
-        super(MagDipole, self).__init__(rxList, **kwargs)
+        super(MagDipole, self).__init__(rxList, waveform, **kwargs)
         
         self.loc = loc
-        self.waveform = waveform
         self.moment = moment
 
     # COMPUTE INDUCING FIELD
@@ -118,17 +101,13 @@ class MagDipole(BaseSrcVRM):
 
 class CircLoop(BaseSrcVRM):
 
-    def __init__(self, rxList, loc, radius, orientation, **kwargs):
-
-        waveform = 'StepOff'
-        Imax = 1.
+    def __init__(self, rxList, loc, radius, orientation, Imax, waveform, **kwargs):
 
         assert len(loc) is 3, 'Tx location must be given as a column vector np.r[x,y,z]'
         assert len(orientation) is 2, 'Two angles (theta, alpha) required to define orientation'
-        super(CircLoop, self).__init__(rxList, **kwargs)
+        super(CircLoop, self).__init__(rxList, waveform, **kwargs)
         
         self.loc = loc
-        self.waveform = waveform
         self.orientation = orientation
         self.radius = radius
         self.Imax = Imax
@@ -214,18 +193,14 @@ class CircLoop(BaseSrcVRM):
 
 class LineCurrent(BaseSrcVRM):
 
-    def __init__(self, rxList, loc, **kwargs):
-
-        Imax = 1.
-        waveform = 'StepOff'
+    def __init__(self, rxList, loc, Imax, waveform, **kwargs):
 
         assert np.shape(loc)[1] == 3 and np.shape(loc)[0] > 1, 'locs is a N+1 by 3 array where N is the number of transmitter segments'
-        if waveform is not 'StepOff':
-            assert np.shape(waveform)[1] is 2, 'For custom waveforms, must have times and current (N X 2 array)'
+
         self.loc = loc
         self.Imax = Imax
-        self.waveform = waveform
-        super(LineCurrent, self).__init__(rxList, **kwargs)
+
+        super(LineCurrent, self).__init__(rxList, waveform, **kwargs)
 
 
     # COMPUTE INDUCING FIELD

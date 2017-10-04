@@ -28,32 +28,11 @@ class BaseProblemVRM(Problem.BaseProblem):
 
 		super(BaseProblemVRM,self).__init__(mesh, **kwargs)
 
-
 		self.surveyPair = SurveyVRM
 		self.refFact = refFact
 		self.refRadius = refRadius
-		self.A = None
-		self.Tb = None
-		self.Tdbdt = None
 
-	# LOCAL FUNCTION FOR GETTING CELL WIDTHS
-	def fcngridH(self,meshObj):
-
-		if isinstance(meshObj, discretize.TreeMesh):
-			H = np.zeros((len(meshObj._cells),meshObj.dim))
-			for ii, ind in enumerate(meshObj._sortedCells):
-			    p = meshObj._asPointer(ind)
-			    H[ii, :] = meshObj._cellH(p)
-			return H
-		elif isinstance(meshObj, discretize.TensorMesh):
-			H = meshObj.h
-			H = np.meshgrid(H[0],H[1],H[2])
-	        hx = np.reshape(H[0],meshObj.nC)
-	        hy = np.reshape(H[1],meshObj.nC)
-	        hz = np.reshape(H[2],meshObj.nC)
-	        return np.c_[hx,hy,hz]
-
-	def getH0matrix(self, xyz, pp):
+	def _getH0matrix(self, xyz, pp):
 
 		# Creates sparse matrix containing inducing field components for source pp
 		# 
@@ -73,7 +52,7 @@ class BaseProblemVRM(Problem.BaseProblem):
 
 		return H0
 
-	def getGeometryMatrix(self, xyzc, xyzh, pp):
+	def _getGeometryMatrix(self, xyzc, xyzh, pp):
 
 		# Creates dense geometry matrix mapping from magentized voxel cells to the receivers for source pp
 		#
@@ -259,10 +238,6 @@ class BaseProblemVRM(Problem.BaseProblem):
 
 
 
-
-
-
-
 #######################################################################################
 # VRM CHARACTERISTIC DECAY FORMULATION (SINGLE MODEL PARAMETER AND ALLOWS INVERSION)
 #######################################################################################
@@ -274,28 +249,54 @@ class LinearFWD(BaseProblemVRM):
 		super(LinearFWD,self).__init__(mesh, **kwargs)
 
 
+	@ property
+	def P(self, topoInd = 0):
 
-	def fields(self, mod, **kwargs):
+		# PROJECTION MATRIX FROM MESH CELLS TO CELLS THAT ARE ACTIVE FOR THE FORWARD PROBLEM. 
+		# NEEDED SO THAT SOURCES AND RECEIVERS ARE OUTSIDE THE MAGNETIZED REGION
+		#
+		# INPUTS:
+		# topoInd: Either -An integer or float value corresponding to the maximum height of active cells
+		# 				  -A list or array with boolean or binary values denoting active and inactive cells
+		# 				  -A physical property model (numpy array) such that only non-zero cells are used in the forward model
 
-		topoInd = mod != 0 # Only predict data from non-zero model values unless specified
+		meshObj = self.mesh
 
+		if isinstance(topoInd, int) or isinstance(topoInd, float):
+			topoInd = meshObj.gridCC[:,2] < float(topoInd) + 1e-10
+		elif len(topoInd) != list(topoInd).count(True) + list(topoInd).count(False):
+			topoInd = topoInd != 0
+		else:
+			assert len(topoInd) == list(topoInd).count(True) + list(topoInd).count(False)
+		
+		P = sp.diags(np.ones(meshObj.nC), format='csr')
+		P = P[topoInd,:]
+
+		return P
+
+
+	@ property
+	def A(self, topoInd = 0):
+
+		if isinstance(topoInd, int) or isinstance(topoInd, float):
+			topoInd = meshObj.gridCC[:,2] < float(topoInd) + 1e-10
+		elif len(topoInd) != list(topoInd).count(True) + list(topoInd).count(False):
+			topoInd = topoInd != 0
+		else:
+			assert len(topoInd) == list(topoInd).count(True) + list(topoInd).count(False)
 
 		# GET CELL INFORMATION FOR FORWARD MODELING
 		meshObj = self.mesh
 		xyzc = meshObj.gridCC[topoInd,:]
 		xyzh = meshObj.gridH[topoInd,:]
-		# xyzh = self.fcngridH(meshObj) # <-- Temporary method was created to do this
-		# xyzh = xyzh[topoInd,:]
-		P = sp.diags(np.ones(len(mod)), format='csr')
-		P = P[topoInd,:]
 
 		# GET A MATRIX
 		A = []
 		for pp in range(0,self.survey.nSrc):
 
 			# Create initial A matrix
-			G   = self.getGeometryMatrix(xyzc, xyzh, pp)
-			H0  = self.getH0matrix(xyzc, pp)
+			G   = self._getGeometryMatrix(xyzc, xyzh, pp)
+			H0  = self._getH0matrix(xyzc, pp)
 			A.append(G*H0)
 
 			# Refine A matrix
@@ -315,6 +316,28 @@ class LinearFWD(BaseProblemVRM):
 		A = np.vstack(A)
 
 		return A
+
+	# @property
+	# def T(self):
+
+	# 	srcList = self.survey.srcList
+	# 	nSrc = len(srcList)
+
+	# 	for pp in range(0,nSrc):
+
+	# 		rxList = srcList[pp].rxList
+	# 		nRx = len(rxList)
+
+	# 		# Extract waveform information
+	# 		# Ideally, it would produces a function handle whose only input is times and whether it is h, b, dh/dt, db/dt
+
+	# 		for qq in range(0,nSrc):
+
+	# 			times = rxList[qq].times
+	# 			nLoc = np.shape(rxList[qq].locs)[0]
+
+	# 			# Function applied to waveform object with additional fields type and times
+
 
 
 	def _getSubsetAcolumns(self, xyzc, xyzh, pp, qq, refFlag):
@@ -340,8 +363,8 @@ class LinearFWD(BaseProblemVRM):
 		xyzc_sub = xyzc_sub + xyzh_sub*nxyz_sub
 
 		# GET SUBMESH A MATRIX AND COLLAPSE TO COLUMNS
-		G   = self.getGeometryMatrix(xyzc_sub, xyzh_sub, pp)
-		H0  = self.getH0matrix(xyzc_sub, pp)
+		G   = self._getGeometryMatrix(xyzc_sub, xyzh_sub, pp)
+		H0  = self._getH0matrix(xyzc_sub, pp)
 		Acols = (G*H0)*sp.kron(sp.diags(np.ones(m,1)),np.ones((n**3,1)))
 
 		return Acols
