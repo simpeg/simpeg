@@ -277,7 +277,7 @@ def meshBuilder(xyz, h, padDist,
 
         # Re-set the mesh at the center of input locations
         # z-shift is different for cases when no padding cells up
-        mesh._x0 = np.r_[mesh.x0[0] + midX,
+        mesh.x0 = np.r_[mesh.x0[0] + midX,
                          mesh.x0[1] + midY,
                          (mesh.x0[2] -
                           mesh.hz[:(npadDown + nCz)].sum() +  # down to top of core
@@ -336,13 +336,21 @@ def meshBuilder(xyz, h, padDist,
             print('Smallest cell: ' + str(mesh.vol.min()**(1/3)))
             print('Refining Octree mesh to level: '+str(level))
             level += 1
-#            zWindow = h[2]*2**(maxLevel - level + 2)
             mesh.refine(refineFun(level, xyz))
-
+            
+    # Shift tile center to closest cell in base grid
     if meshGlobal is not None:
-        # Shift tile center to closest cell in base grid
-        ind = closestPoints(meshGlobal, np.r_[midX, midY, midZ], gridLoc='CC')
-        shift = np.squeeze(meshGlobal.gridCC[ind, :]) - np.r_[midX, midY, midZ]
-        mesh.x0 = mesh.x0 + shift
+        
+        
+        # Select core cells
+        core = mesh.vol == mesh.vol.min()
+        center = np.percentile(mesh.gridCC[core,:], 50,
+                               axis=0, interpolation='nearest')
+        ind = closestPoints(meshGlobal, center, gridLoc='CC')
+        shift = np.squeeze(meshGlobal.gridCC[ind, :]) - center
+        mesh.x0 += shift
+
+        if isinstance(mesh, Mesh.TreeMesh):
+            mesh.number()
 
     return mesh
