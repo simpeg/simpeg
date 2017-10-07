@@ -18,6 +18,15 @@ class SurveyVRM(Survey.BaseSurvey):
 		self.srcList = srcList
 		self.srcPair = SrcVRM.BaseSrcVRM
 		self.rxPair  = RxVRM.BaseRxVRM
+
+
+	def dpred(self, m):
+
+		"""Predict data for a given model."""
+
+		assert self.ispaired, "Survey must be paired with a VRM problem"
+
+		return self.problem.fields(m, fType = None)
         
 
 
