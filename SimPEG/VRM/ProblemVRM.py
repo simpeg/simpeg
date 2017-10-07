@@ -324,7 +324,7 @@ response during the off-time. For background theory, see Cowan (2016).
         if self.topoMap is not None:
             m = self.topoMap.P.T*m
 
-        return sp.coo_matrix.dot(T, A*m)
+        return sp.coo_matrix.dot(T, self.A*m)
 
 
     def getA(self):
@@ -431,6 +431,62 @@ response during the off-time. For background theory, see Cowan (2016).
 
         return T
 
+    def Jvec(self, v):
+
+        """Compute T*A*Pt'*Pm*v"""
+
+        assert self.ispaired, "Problem must be paired with survey to predict data"
+
+        if self.A is None:
+            A = self.getA()
+        
+        if self.T is not None:
+            T = self.T
+        else:
+            T = self.getT(fType)
+
+        v = np.matrix(mkvc(v)).T
+
+        # Project to full mesh
+        if self.xiMap is not None:
+            v = self.xiMap.P*v
+
+        # Project to topography cells
+        if self.topoMap is not None:
+            v = self.topoMap.P.T*v
+
+        return sp.coo_matrix.dot(T, self.A*v)
+
+    def Jtvec(self, v):
+
+        """Compute Pm'*Pt*A'*T'*v"""
+
+        assert self.ispaired, "Problem must be paired with survey to predict data"
+
+        if self.A is None:
+            A = self.getA()
+        
+        if self.T is not None:
+            T = self.T
+        else:
+            T = self.getT(fType)
+
+        # Get v'
+        v = np.matrix(mkvc(v))
+        # Get v'*T
+        v = sp.coo_matrix.dot(v, T)
+        # Get A'*T'*v
+        v = A.dot(v).T
+
+        # Project to topography cells
+        if self.topoMap is not None:
+            v = self.topoMap.P*v
+
+        # Project to full mesh
+        if self.xiMap is not None:
+            v = self.xiMap.P.T*v
+
+        return v
 
     def unpair(self):
         """Unbind a survey from this problem instance."""
