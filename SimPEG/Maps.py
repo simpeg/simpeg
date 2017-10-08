@@ -495,6 +495,15 @@ class Tile(IdentityMap):
             Set the projection matrix with partial volumes
         """
         if getattr(self, '_P', None) is None:
+
+            level = []
+            for ii, ind in enumerate(self.meshLocal._sortedCells):
+
+                p = self.meshLocal._pointer(ind)
+                level += [self.meshLocal._levelWidth(p[-1])]
+
+            self.level = np.hstack(level)
+
             indx = self.getTreeIndex(self.tree, self.meshGlobal, self.actvGlobal)
 
             # Get the node coordinates (bottom-SW) and (top-NE) of cells
@@ -570,7 +579,8 @@ class Tile(IdentityMap):
         """
         if getattr(self, '_Paverage', None) is None:
             sumW = Utils.mkvc(np.sum(self.P, axis=1) + self.tol)
-            self._Paverage = Utils.sdiag(1/sumW) * self.P
+            # sumEl = Utils.mkvc(np.sum(self.P>0, axis=1))/self.level**3
+            self._Paverage = Utils.sdiag(1./sumW) * self.P
 
         return self._Paverage * self.S
 
