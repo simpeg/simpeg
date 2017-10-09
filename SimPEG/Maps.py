@@ -496,14 +496,13 @@ class Tile(IdentityMap):
         """
         if getattr(self, '_P', None) is None:
 
-            level = []
-            for ii, ind in enumerate(self.meshLocal._sortedCells):
+            # level = []
+            # for ii, ind in enumerate(self._sortedCells):
 
-                p = self.meshLocal._pointer(ind)
-                level += [self.meshLocal._levelWidth(p[-1])]
+            #     p = self.meshLocal._pointer[ind]
+            #     level += meshLocal._levelWidth[p[-1]]
 
-            self.level = np.hstack(level)
-
+            # self.level = level
             indx = self.getTreeIndex(self.tree, self.meshGlobal, self.actvGlobal)
 
             # Get the node coordinates (bottom-SW) and (top-NE) of cells
@@ -557,42 +556,47 @@ class Tile(IdentityMap):
 
                 nzV = dV > 0
                 if nzV.sum() > 0:
-                    V += [dV[nzV]]
+                    V += [dV[nzV]/self.meshLocal.vol[indx[nzV, ii]]]
                     I += [mkvc(indx[nzV, ii])]
                     J += [indG[nzV]]
 
             self.V = np.hstack(V)
 
-            self._P = sp.csr_matrix((self.V, (np.hstack(I), np.hstack(J))),
+            P = sp.csr_matrix((self.V, (np.hstack(I), np.hstack(J))),
                                     shape=(self.actvLocal.sum(), nactv))
+
+            sumRow = Utils.mkvc(np.sum(P, axis=1) + self.tol)
+
+            self._P = Utils.sdiag(1./sumRow) * P
 
             self._shape = self.actvLocal.sum(), nactv
 
-        return self._P
+        return self._P * self.S
 
-    @property
-    def Paverage(self):
-        """
-            Projection for the interpolation of the model (weighted average)
-            Doesn't assume that local cell completely filled by cells
-            in global mesh
-        """
-        if getattr(self, '_Paverage', None) is None:
-            sumW = Utils.mkvc(np.sum(self.P, axis=1) + self.tol)
-            # sumEl = Utils.mkvc(np.sum(self.P>0, axis=1))/self.level**3
-            self._Paverage = Utils.sdiag(1./sumW) * self.P
+    # @property
+    # def Paverage(self):
+    #     """
+    #         Projection for the interpolation of the model (weighted average)
+    #         Doesn't assume that local cell completely filled by cells
+    #         in global mesh
+    #     """
+    #     if getattr(self, '_Paverage', None) is None:
+    #         partialV = Utils.sdiag(1./self.meshLocal.vol[self.actvLocal]) * self.P
+    #         sumRow = Utils.mkvc(np.sum(partialV, axis=1) + self.tol)
+    #         # sumEl = Utils.mkvc(np.sum(self.P>0, axis=1))
+    #         self._Paverage = Utils.sdiag(1./sumRow) * partialV
 
-        return self._Paverage * self.S
+    #     return self._Paverage * self.S
 
-    @property
-    def Pvolume(self):
-        """
-            Projection for the sensitivities, scaled by fractional volume
-        """
-        if getattr(self, '_Pvolume', None) is None:
-            self._Pvolume = Utils.sdiag(1./self.meshLocal.vol[self.actvLocal]) * self.P
+    # @property
+    # def Pvolume(self):
+    #     """
+    #         Projection for the sensitivities, scaled by fractional volume
+    #     """
+    #     if getattr(self, '_Pvolume', None) is None:
+    #         self._Pvolume = Utils.sdiag(1./self.meshLocal.vol[self.actvLocal]) * self.P
 
-        return self._Pvolume * self.S
+    #     return self._Pvolume * self.S
 
     def getTreeIndex(self, tree, mesh, actvCell):
         """
@@ -677,14 +681,14 @@ class Tile(IdentityMap):
         return bsw[actvCell], tne[actvCell]
 
     def _transform(self, m):
-        return self.Paverage * m
+        return self.P * m
 
     @property
     def shape(self):
         """
         Shape of the matrix operation (number of indices x nP)
         """
-        return self.Pvolume.shape
+        return self.P.shape
 
     def deriv(self, m, v=None):
         """
@@ -694,8 +698,8 @@ class Tile(IdentityMap):
         """
 
         if v is not None:
-            return self.Pvolume * v
-        return self.Pvolume
+            return self.P * v
+        return self.P
 
 
 class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):

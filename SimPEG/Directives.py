@@ -786,10 +786,9 @@ class UpdateJacobiPrecond(InversionDirective):
                 m = self.invProb.model
                 f = prob.fields(m)
                 wd = dmisfit.W.diagonal()
-                for ii in range(prob.getJ(m, f).shape[0]):
-                    JtJdiag += (prob.mapPair().deriv(self.invProb.model).T *
-                                (wd[ii] * prob.getJ(m, f)[ii, :])**2.)
-
+                # for ii in range(prob.getJ(m, f).shape[0]):
+                #     JtJdiag += ((wd[ii] * prob.getJ(m, f)[ii, :])**2.)
+                JtJdiag = np.sum((dmisfit.W * prob.getJ(m, f))**2., axis=0)
             self.opt.JtJdiag = JtJdiag
 
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag

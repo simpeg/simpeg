@@ -78,13 +78,17 @@ class MagneticIntegral(Problem.LinearProblem):
         """
             Sensitivity matrix
         """
-        return self.G
+
+        dmudm = self.chiMap.deriv(m)
+        return self.G * dmudm
 
     def Jvec(self, m, v, f=None):
-        return self.G.dot(self.chiMap.deriv(m) * v)
+        dmudm = self.chiMap.deriv(m)
+        return self.G.dot(dmudm*v)
 
     def Jtvec(self, m, v, f=None):
-        return self.chiMap.deriv(m).T * self.G.T.dot(v)
+        dmudm = self.chiMap.deriv(m)
+        return dmudm.T * (self.G.T.dot(v))
 
     def Intrgl_Fwr_Op(self, m=None, Magnetization="ind"):
 
