@@ -563,7 +563,7 @@ class Tile(IdentityMap):
             self.V = np.hstack(V)
 
             P = sp.csr_matrix((self.V, (np.hstack(I), np.hstack(J))),
-                                    shape=(self.actvLocal.sum(), nactv))
+                              shape=(self.actvLocal.sum(), nactv))
 
             sumRow = Utils.mkvc(np.sum(P, axis=1) + self.tol)
 
@@ -572,31 +572,6 @@ class Tile(IdentityMap):
             self._shape = self.actvLocal.sum(), nactv
 
         return self._P * self.S
-
-    # @property
-    # def Paverage(self):
-    #     """
-    #         Projection for the interpolation of the model (weighted average)
-    #         Doesn't assume that local cell completely filled by cells
-    #         in global mesh
-    #     """
-    #     if getattr(self, '_Paverage', None) is None:
-    #         partialV = Utils.sdiag(1./self.meshLocal.vol[self.actvLocal]) * self.P
-    #         sumRow = Utils.mkvc(np.sum(partialV, axis=1) + self.tol)
-    #         # sumEl = Utils.mkvc(np.sum(self.P>0, axis=1))
-    #         self._Paverage = Utils.sdiag(1./sumRow) * partialV
-
-    #     return self._Paverage * self.S
-
-    # @property
-    # def Pvolume(self):
-    #     """
-    #         Projection for the sensitivities, scaled by fractional volume
-    #     """
-    #     if getattr(self, '_Pvolume', None) is None:
-    #         self._Pvolume = Utils.sdiag(1./self.meshLocal.vol[self.actvLocal]) * self.P
-
-    #     return self._Pvolume * self.S
 
     def getTreeIndex(self, tree, mesh, actvCell):
         """
