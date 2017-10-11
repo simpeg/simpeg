@@ -30,6 +30,7 @@ class BaseProblemVRM(Problem.BaseProblem):
         
         refRadius: Distances from source in which cell sensitivities are refined.
                    Must be an array or list with elements equal to the refFact.
+                   (default based on minimum cell size)
         
         topoMap: A Maps object which operates from mesh cells to cells which are
                  computed in the forward model (default is all mesh cells)
@@ -57,11 +58,15 @@ class BaseProblemVRM(Problem.BaseProblem):
 
     def _getH0matrix(self, xyz, pp):
 
-        # Creates sparse matrix containing inducing field components for source pp
-        # 
-        # INPUTS
-        # xyz: N X 3 array of locations to predict field
-        # pp: Source index
+        """
+        Creates sparse matrix containing inducing field components for source pp
+        
+        INPUTS:
+        
+            xyz: N X 3 array of locations to predict field
+            pp: Source index
+
+        """
 
         SrcObj = self.survey.srcList[pp]
 
@@ -77,12 +82,15 @@ class BaseProblemVRM(Problem.BaseProblem):
 
     def _getGeometryMatrix(self, xyzc, xyzh, pp):
 
-        # Creates dense geometry matrix mapping from magentized voxel cells to the receivers for source pp
-        #
-        # INPUTS:
-        # xyzc: N by 3 array containing cell center locations
-        # xyzh: N by 3 array containing cell dimensions
-        # pp: Source index
+        """
+        Creates the dense geometry matrix mapping from magentized voxel cells to the receivers for source pp
+        
+        INPUTS:
+        
+            xyzc: N by 3 array containing cell center locations
+            xyzh: N by 3 array containing cell dimensions
+            pp: Source index
+        """
 
         srcObj = self.survey.srcList[pp]
 
@@ -269,24 +277,24 @@ class BaseProblemVRM(Problem.BaseProblem):
 class LinearFWD(BaseProblemVRM):
 
     """
-    Problem class for linear VRM problem. The the solution to this problem \
-is a time-approximate solution which uses the characteristic decay of \
-the VRM response. The solution is only capable of providing the VRM \
+    Problem class for linear VRM problem. The the solution to this problem
+is a time-approximate solution which uses the characteristic decay of
+the VRM response. The solution is only capable of providing the VRM
 response during the off-time. For background theory, see Cowan (2016).
 
-    REQUIRED ARGUMENTS:
+REQUIRED ARGUMENTS:
 
-        mesh: 3D tensor or OcTree mesh
+    mesh: 3D tensor or OcTree mesh
 
-    KWARGS:
+KWARGS:
 
-        refFact: Maximum refinement factor for sensitivities (default = 3)
+    refFact: Maximum refinement factor for sensitivities (default = 3)
         
-        refRadius: Distances from source in which cell sensitivities are refined. Must be an array or list with elements equal to the refFact.
+    refRadius: Distances from source in which cell sensitivities are refined. Must be an array or list with number of elements equal to refFact.
         
-        topoMap: A Maps object which relates mesh cells to cells which are computed in the forward model (default is all mesh cells)
+    topoMap: A Maps object which relates mesh cells to cells which are computed in the forward model (default is all mesh cells)
 
-        xiMap: A Maps object which relates mesh cells to active cells
+    xiMap: A Maps object which relates mesh cells to active cells
 
     """
 
@@ -405,6 +413,11 @@ response during the off-time. For background theory, see Cowan (2016).
 
                     T.append(sp.kron(I, eta))
 
+            T = sp.block_diag(T)
+
+            if self.T is None:
+                self.T = T
+
         elif fType in ['h','b','dhdt','dbdt']:
 
             for pp in range(0,nSrc):
@@ -424,10 +437,7 @@ response during the off-time. For background theory, see Cowan (2016).
 
                     T.append(sp.kron(I, eta))
 
-        T = sp.block_diag(T)
-
-        if self.T is None:
-            self.T = T
+            T = sp.block_diag(T)
 
         return T
 

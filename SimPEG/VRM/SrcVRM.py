@@ -42,6 +42,20 @@ class BaseSrcVRM(Survey.BaseSrc):
 
 class MagDipole(BaseSrcVRM):
 
+    """
+Magnetic dipole source for VRM problem.
+
+INPUTS:
+
+    rxList: SimPEG receiver list
+
+    loc: xyz location for the magnetic dipole source
+
+    moment: numpy array [mx,my,mz] containing components of the dipole moment
+
+    waveform: instance of a VRM wavefrom class
+    """
+
     def __init__(self, rxList, loc, moment, waveform, **kwargs):
 
         assert len(loc) is 3, 'Tx location must be given as a column vector np.r_[x,y,z]'
@@ -100,6 +114,22 @@ class MagDipole(BaseSrcVRM):
 #########################################
 
 class CircLoop(BaseSrcVRM):
+
+    """
+Magnetic dipole source for VRM problem.
+
+INPUTS:
+
+    rxList: SimPEG receiver list
+
+    loc: xyz location for the center of the loop
+
+    orientation: np.r_[theta, alpha] where theta is azimuthal angle and alpha is declination angle
+
+    Imax: Maximum current in the transmitter wire (can be positive or negative)
+
+    waveform: instance of a VRM wavefrom class
+    """
 
     def __init__(self, rxList, loc, radius, orientation, Imax, waveform, **kwargs):
 
@@ -192,6 +222,20 @@ class CircLoop(BaseSrcVRM):
 #########################################
 
 class LineCurrent(BaseSrcVRM):
+
+    """
+Magnetic dipole source for VRM problem.
+
+INPUTS:
+
+    rxList: SimPEG receiver list
+
+    loc: N+1 X 3 numpy array with node locations for transmitter wire. 
+
+    Imax: Maximum current in the transmitter wire (can be positive or negative)
+
+    waveform: instance of a VRM wavefrom class
+    """
 
     def __init__(self, rxList, loc, Imax, waveform, **kwargs):
 

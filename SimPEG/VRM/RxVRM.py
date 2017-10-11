@@ -44,7 +44,17 @@ class BaseRxVRM(Survey.BaseRx):
 #########################################
 
 class Point_h(BaseRxVRM):
-    """Defines receiver which measures h in Am"""
+    """
+Defines receiver which measures h in Am
+
+INPUTS:
+    
+    locsXYZ: N X 3 numpy array with xyz locations for receivers
+
+    times: Time channels in seconds
+
+    fieldComp: Must be one of 'x', 'y' or 'z'
+    """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
         BaseRxVRM.__init__(self,locsXYZ, times, **kwargs)
@@ -58,6 +68,17 @@ class Point_h(BaseRxVRM):
 #########################################
 
 class Point_dhdt(BaseRxVRM):
+    """
+Defines receiver which measures dhdt in Am/s
+
+INPUTS:
+    
+    locsXYZ: N X 3 numpy array with xyz locations for receivers
+
+    times: Time channels in seconds
+
+    fieldComp: Must be one of 'x', 'y' or 'z'
+    """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
         BaseRxVRM.__init__(self,locsXYZ, times, **kwargs)
@@ -71,6 +92,17 @@ class Point_dhdt(BaseRxVRM):
 #########################################
 
 class Point_b(BaseRxVRM):
+    """
+Defines receiver which measures b in T
+
+INPUTS:
+    
+    locsXYZ: N X 3 numpy array with xyz locations for receivers
+
+    times: Time channels in seconds
+
+    fieldComp: Must be one of 'x', 'y' or 'z'
+    """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
         BaseRxVRM.__init__(self,locsXYZ, times, **kwargs)
@@ -85,6 +117,18 @@ class Point_b(BaseRxVRM):
 #########################################
 
 class Point_dbdt(BaseRxVRM):
+
+    """
+Defines receiver which measures db/dt in T/s
+
+INPUTS:
+    
+    locsXYZ: N X 3 numpy array with xyz locations for receivers
+
+    times: Time channels in seconds
+
+    fieldComp: Must be one of 'x', 'y' or 'z'
+    """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
         BaseRxVRM.__init__(self,locsXYZ, times, **kwargs)
