@@ -50,7 +50,7 @@ class BaseProblemVRM(Problem.BaseProblem):
         super(BaseProblemVRM,self).__init__(mesh, **kwargs)
 
         self.refFact = kwargs.get('refFact', 3)
-        self.refRadius = kwargs.get('refRadius', 1.25*np.mean(np.r_[np.min(mesh.h[0]),np.min(mesh.h[1]),np.min(mesh.h[2])])*np.r_[1.,2.,3.])
+        self.refRadius = kwargs.get('refRadius', 1.25*np.mean(np.r_[np.min(mesh.h[0]),np.min(mesh.h[1]),np.min(mesh.h[2])])*np.arange(1,self.refFact+1))
         self.topoMap = kwargs.get('topoMap', Maps.InjectActiveCells(mesh, np.ones(mesh.nC, dtype=bool), np.array([])) )
 
         assert len(self.refRadius) == self.refFact, 'Number of refinement radii must equal refinement factor'
@@ -361,7 +361,7 @@ KWARGS:
             A.append(G*H0)
 
             # Refine A matrix
-            refFact = 0 # self.refFact
+            refFact = self.refFact
             refRadius = self.refRadius
 
             if refFact > 0:
@@ -369,7 +369,7 @@ KWARGS:
                 srcObj = self.survey.srcList[pp]
                 refFlag = srcObj._getRefineFlags(xyzc, refFact, refRadius)
 
-                for qq in range(1,refFact):
+                for qq in range(1,refFact+1):
 
                     A[pp][:,refFlag==qq] = self._getSubsetAcolumns(xyzc, xyzh, pp, qq, refFlag)
 
@@ -486,7 +486,7 @@ KWARGS:
         # Get v'*T
         v = sp.coo_matrix.dot(v, T)
         # Get A'*T'*v
-        v = A.dot(v).T
+        v = v.dot(A).T
 
         # Project to topography cells
         if self.topoMap is not None:
@@ -540,7 +540,7 @@ KWARGS:
         # GET SUBMESH A MATRIX AND COLLAPSE TO COLUMNS
         G   = self._getGeometryMatrix(xyzc_sub, xyzh_sub, pp)
         H0  = self._getH0matrix(xyzc_sub, pp)
-        Acols = (G*H0)*sp.kron(sp.diags(np.ones(m,1)),np.ones((n**3,1)))
+        Acols = (G*H0)*sp.kron(sp.diags(np.ones(m)),np.ones((n**3,1)))
 
         return Acols
 

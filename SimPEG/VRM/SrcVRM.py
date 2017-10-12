@@ -98,7 +98,7 @@ INPUTS:
 
         for nn in range(0, refFact):
 
-            k = (R < refRadius[nn]+1e-3) & (refFlag < refFact-nn+1)
+            k = (R < refRadius[nn]+1e-5) & (refFlag < refFact-nn+1)
             refFlag[k] = refFact - nn
 
         return refFlag
@@ -344,7 +344,7 @@ INPUTS:
                 kpos = (np.abs(np.imag(Qpos)) > 1e-12) | ((np.real(Qpos)<0.) & (np.real(Qneg)<0.)) | ((np.real(Qpos)>1.) & (np.real(Qneg)>1.))
                 kneg = (np.abs(np.imag(Qpos)) > 1e-12) | ((np.real(Qpos)<0.) & (np.real(Qneg)<0.)) | ((np.real(Qpos)>1.) & (np.real(Qneg)>1.)) | (kpos==True)
                 
-                refFlagtt[(kpos==False) & (kneg==False) & (refFlagtt<refFact+1-nn)] = refFact + 1 - nn
+                refFlagtt[(kpos==False) & (kneg==False) & (refFlagtt<refFact+1-nn)] = refFact - nn
                 
             refFlag = np.maximum(refFlag,refFlagtt)
 
