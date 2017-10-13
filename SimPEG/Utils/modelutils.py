@@ -337,11 +337,11 @@ def meshBuilder(xyz, h, padDist,
             print('Refining Octree mesh to level: '+str(level))
             level += 1
             mesh.refine(refineFun(level, xyz))
-            
+
     # Shift tile center to closest cell in base grid
     if meshGlobal is not None:
-        
-        
+
+
         # Select core cells
         core = mesh.vol == mesh.vol.min()
         center = np.percentile(mesh.gridCC[core,:], 50,

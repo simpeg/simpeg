@@ -513,7 +513,7 @@ class Tile(IdentityMap):
                                                       self.actvLocal)
             nactv = self.actvGlobal.sum()
             indL = np.where(self.actvLocal)[0]
-            indG = np.where(self.actvGlobal)[0]
+            indG = np.asarray(range(nactv))
             # Calculate interesected volume
             V = []
             I = []
@@ -558,7 +558,7 @@ class Tile(IdentityMap):
                 if nzV.sum() > 0:
                     V += [dV[nzV]/self.meshLocal.vol[indx[nzV, ii]]]
                     I += [mkvc(indx[nzV, ii])]
-                    J += [indG[nzV]]
+                    J += [np.where(nzV)[0]]
 
             self.V = np.hstack(V)
 
