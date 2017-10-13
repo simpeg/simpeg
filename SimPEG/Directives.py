@@ -5,6 +5,7 @@ from . import Maps
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
+from .PF import Magnetics
 
 
 class InversionDirective(object):
@@ -49,12 +50,12 @@ class InversionDirective(object):
     @property
     def reg(self):
         if getattr(self, '_reg', None) is None:
-            self._reg = self.invProb.reg
+            self.reg = self.invProb.reg  # go through the setter
         return self._reg
 
     @reg.setter
     def reg(self, value):
-        assert any([isinstance(value, regtype) for regtype in self._regPair]),(
+        assert any([isinstance(value, regtype) for regtype in self._regPair]), (
             "Regularization must be in {}, not {}".format(
                 self._regPair, type(value)
             )
@@ -64,10 +65,11 @@ class InversionDirective(object):
             value = 1*value  # turn it into a combo objective function
         self._reg = value
 
-
     @property
     def dmisfit(self):
-        return self.invProb.dmisfit
+        if getattr(self, '_dmisfit', None) is None:
+            self.dmisfit = self.invProb.dmisfit  # go through the setter
+        return self._dmisfit
 
     @dmisfit.setter
     def dmisfit(self, value):
@@ -85,11 +87,13 @@ class InversionDirective(object):
 
     @property
     def survey(self):
-        return self.dmisfit.survey
+        # if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+        return [objfcts.survey for objfcts in self.dmisfit.objfcts]
 
     @property
     def prob(self):
-        return self.dmisfit.prob
+        # if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+        return [objfcts.prob for objfcts in self.dmisfit.objfcts]
 
     def initialize(self):
         pass
@@ -750,18 +754,8 @@ class Update_IRLS(InversionDirective):
         max_s = [np.pi, np.pi]
         for obj, var in zip(self.reg.objfcts[1:], max_s):
 
-
-            # for reg in obj.objfcts[1:]:
-            #     eps_s = reg.epsilon
-            #     norm_s = 2#self.reg.objfcts[0].norms[0]
-            #     f_m = abs(reg.f_m)
-            #     max_s += [np.max(eps_s**(1-norm_s/2.)*f_m /
-            #                    (f_m**2. + eps_s**2.)**(1-norm_s/2.))]
-
-
-
-            # max_s = np.asarray(max_s)
             obj.scale = max_p.max()/var
+
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
         # assert that it is listed after the IRLS directive
@@ -795,55 +789,55 @@ class Update_lin_PreCond(InversionDirective):
 
     def initialize(self):
 
-        # Check if it is a ComboObjective
-        if not isinstance(self.reg, Regularization.BaseComboRegularization):
+        # Create the pre-conditioner
+        regDiag = np.zeros_like(self.invProb.model)
 
-            # It is a Combo objective, so will have to loop
-            self.ComboObjFun = True
-
-        if getattr(self, 'mapping', None) is None:
-            self.mapping = Maps.IdentityMap(nP=self.reg.mapping.nP)
-
-        if getattr(self.opt, 'approxHinv', None) is None:
-
-            # Update the pre-conditioner
-            if self.ComboObjFun:
-
-                reg_diag = []
-                for reg in self.reg.objfcts:
-                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
-
-                diagA = np.sum(self.prob.G**2., axis=0) + np.hstack(reg_diag)
-
+        for reg in self.reg.objfcts:
+            # Check if he has wire
+            if getattr(reg.mapping, 'P', None) is None:
+                regDiag += (reg.W.T*reg.W).diagonal()
             else:
-                diagA = (np.sum(self.prob.G**2., axis=0) +
-                         self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal())
+                P = reg.mapping.P
+                regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
 
-            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
-            self.opt.approxHinv = PC
+        # Deal with the linear case
+        if getattr(self.opt, 'JtJdiag', None) is None:
+
+            print("Approximated diag(JtJ) with linear operator")
+            wd = self.dmisfit.W.diagonal()
+            JtJdiag = np.zeros_like(self.invProb.model)
+
+            for prob in self.prob:
+                for ii in range(prob.G.shape[0]):
+                    JtJdiag += (wd[ii] * prob.G[ii, :])**2.
+
+            self.opt.JtJdiag = JtJdiag
+
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
+
+        PC = Utils.sdiag((diagA)**-1.)
+        self.opt.approxHinv = PC
 
     def endIter(self):
         # Cool the threshold parameter
         if self.onlyOnStart is True:
             return
 
-        if getattr(self.opt, 'approxHinv', None) is not None:
-            # Update the pre-conditioner
-            # Update the pre-conditioner
-            if self.ComboObjFun:
+        # Create the pre-conditioner
+        regDiag = np.zeros_like(self.invProb.model)
 
-                reg_diag = []
-                for reg in self.reg.objfcts:
-                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
-
-                diagA = np.sum(self.prob.G**2., axis=0) + np.hstack(reg_diag)
-
+        for reg in self.reg.objfcts:
+            # Check if he has wire
+            if getattr(reg.mapping, 'P', None) is None:
+                regDiag += (reg.W.T*reg.W).diagonal()
             else:
-                diagA = (np.sum(self.prob.G**2., axis=0) +
-                         self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal())
+                P = reg.mapping.P
+                regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
+        # Assumes that opt.JtJdiag has been updated or static
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
-            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
-            self.opt.approxHinv = PC
+        PC = Utils.sdiag((diagA)**-1.)
+        self.opt.approxHinv = PC
 
 
 class Update_Wj(InversionDirective):
