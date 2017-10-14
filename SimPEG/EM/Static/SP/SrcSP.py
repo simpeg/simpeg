@@ -23,7 +23,7 @@ class StreamingCurrents(Src.BaseSrc):
             raise Exception("SP source requires mesh")
         self.mesh.setCellGradBC("neumann")
         # self.Div = -sdiag(self.mesh.vol)*self.mesh.cellGrad.T
-        self.Div = -sdiag(self.mesh.vol)*self.mesh.cellGrad.T
+        self.Div = -self.mesh.cellGrad.T
 
     def eval(self, prob):
         """
@@ -40,11 +40,11 @@ class StreamingCurrents(Src.BaseSrc):
         """
         if prob._formulation == 'HJ':
             if self.modelType == "Head":
-                q = -prob.Div*self.MfLiI*prob.Grad*prob.h
+                q = -self.Div*self.MfLiI*prob.Grad*prob.h
             elif self.modelType == "CurrentSource":
                 q = prob.q
             elif self.modelType == "CurrentDensity":
-                q = -prob.Div*prob.mesh.aveF2CCV.T*np.r_[prob.jsx, prob.jsy, prob.jsz]
+                q = -self.Div*prob.mesh.aveF2CCV.T*np.r_[prob.jsx, prob.jsy, prob.jsz]
             else:
                 raise NotImplementedError()
         elif prob._formulation == 'EB':
