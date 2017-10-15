@@ -22,8 +22,7 @@ class StreamingCurrents(Src.BaseSrc):
         if self.mesh is None:
             raise Exception("SP source requires mesh")
         self.mesh.setCellGradBC("neumann")
-        # self.Div = -sdiag(self.mesh.vol)*self.mesh.cellGrad.T
-        self.Div = -self.mesh.cellGrad.T
+        self.Div = -sdiag(self.mesh.vol)*self.mesh.cellGrad.T
 
     def eval(self, prob):
         """
