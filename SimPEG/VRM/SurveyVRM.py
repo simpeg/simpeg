@@ -26,7 +26,7 @@ class SurveyVRM(Survey.BaseSurvey):
 
 		assert self.ispaired, "Survey must be paired with a VRM problem"
 
-		return self.problem.fields(m, fType = None)
+		return self.prob.fields(m, fType = None)
         
 
 
