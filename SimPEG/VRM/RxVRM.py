@@ -2,13 +2,6 @@ import numpy as np
 from SimPEG import Survey
 
 
-
-
-
-
-
-
-
 #########################################
 # BASE VRM RECEIVER CLASS
 #########################################
@@ -37,8 +30,6 @@ class BaseRxVRM(Survey.BaseRx):
         return self.locs.shape[0] * len(self.times)
 
 
-
-
 #########################################
 # H AT POINT CLASS
 #########################################
@@ -48,19 +39,18 @@ class Point_h(BaseRxVRM):
 Defines receiver which measures h in Am
 
 INPUTS:
-    
-    locsXYZ: N X 3 numpy array with xyz locations for receivers
 
-    times: Time channels in seconds
+locsXYZ: N X 3 numpy array with xyz locations for receivers
 
-    fieldComp: Must be one of 'x', 'y' or 'z'
+times: Time channels in seconds
+
+fieldComp: Must be one of 'x', 'y' or 'z'
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
-        BaseRxVRM.__init__(self,locsXYZ, times, **kwargs)
+        BaseRxVRM.__init__(self, locsXYZ, times, **kwargs)
         self.fieldType = 'h'
         self.fieldComp = fieldComp
-
 
 
 #########################################
@@ -72,19 +62,18 @@ class Point_dhdt(BaseRxVRM):
 Defines receiver which measures dhdt in Am/s
 
 INPUTS:
-    
-    locsXYZ: N X 3 numpy array with xyz locations for receivers
 
-    times: Time channels in seconds
+locsXYZ: N X 3 numpy array with xyz locations for receivers
 
-    fieldComp: Must be one of 'x', 'y' or 'z'
+times: Time channels in seconds
+
+fieldComp: Must be one of 'x', 'y' or 'z'
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
-        BaseRxVRM.__init__(self,locsXYZ, times, **kwargs)
+        BaseRxVRM.__init__(self, locsXYZ, times, **kwargs)
         self.fieldType = 'dhdt'
         self.fieldComp = fieldComp
-
 
 
 #########################################
@@ -96,20 +85,18 @@ class Point_b(BaseRxVRM):
 Defines receiver which measures b in T
 
 INPUTS:
-    
-    locsXYZ: N X 3 numpy array with xyz locations for receivers
 
-    times: Time channels in seconds
+locsXYZ: N X 3 numpy array with xyz locations for receivers
 
-    fieldComp: Must be one of 'x', 'y' or 'z'
+times: Time channels in seconds
+
+fieldComp: Must be one of 'x', 'y' or 'z'
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
-        BaseRxVRM.__init__(self,locsXYZ, times, **kwargs)
+        BaseRxVRM.__init__(self, locsXYZ, times, **kwargs)
         self.fieldType = 'b'
         self.fieldComp = fieldComp
-
-
 
 
 #########################################
@@ -122,15 +109,15 @@ class Point_dbdt(BaseRxVRM):
 Defines receiver which measures db/dt in T/s
 
 INPUTS:
-    
-    locsXYZ: N X 3 numpy array with xyz locations for receivers
 
-    times: Time channels in seconds
+locsXYZ: N X 3 numpy array with xyz locations for receivers
 
-    fieldComp: Must be one of 'x', 'y' or 'z'
+times: Time channels in seconds
+
+fieldComp: Must be one of 'x', 'y' or 'z'
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
-        BaseRxVRM.__init__(self,locsXYZ, times, **kwargs)
+        BaseRxVRM.__init__(self, locsXYZ, times, **kwargs)
         self.fieldType = 'dbdt'
         self.fieldComp = fieldComp

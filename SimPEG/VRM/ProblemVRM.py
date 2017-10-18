@@ -124,191 +124,205 @@ pp: Source index
                     w2 = locs[rr, 2] - bz
                     w2[np.abs(w2) < 1e-10] = -np.min(xyzh[:, 2])/1000
 
-                    Gxx = (np.arctan((v1*w1)/(u1*np.sqrt(u1**2+v1**2+w1**2)+eps)) \
-                    - np.arctan((v1*w1)/(u2*np.sqrt(u2**2+v1**2+w1**2)+eps)) \
-                    + np.arctan((v2*w1)/(u2*np.sqrt(u2**2+v2**2+w1**2)+eps)) \
-                    - np.arctan((v2*w1)/(u1*np.sqrt(u1**2+v2**2+w1**2)+eps)) \
-                    + np.arctan((v2*w2)/(u1*np.sqrt(u1**2+v2**2+w2**2)+eps)) \
-                    - np.arctan((v1*w2)/(u1*np.sqrt(u1**2+v1**2+w2**2)+eps)) \
-                    + np.arctan((v1*w2)/(u2*np.sqrt(u2**2+v1**2+w2**2)+eps)) \
-                    - np.arctan((v2*w2)/(u2*np.sqrt(u2**2+v2**2+w2**2)+eps))
+                    Gxx = (
+                        np.arctan((v1*w1)/(u1*np.sqrt(u1**2+v1**2+w1**2)+eps)) -
+                        np.arctan((v1*w1)/(u2*np.sqrt(u2**2+v1**2+w1**2)+eps)) +
+                        np.arctan((v2*w1)/(u2*np.sqrt(u2**2+v2**2+w1**2)+eps)) -
+                        np.arctan((v2*w1)/(u1*np.sqrt(u1**2+v2**2+w1**2)+eps)) +
+                        np.arctan((v2*w2)/(u1*np.sqrt(u1**2+v2**2+w2**2)+eps)) -
+                        np.arctan((v1*w2)/(u1*np.sqrt(u1**2+v1**2+w2**2)+eps)) +
+                        np.arctan((v1*w2)/(u2*np.sqrt(u2**2+v1**2+w2**2)+eps)) -
+                        np.arctan((v2*w2)/(u2*np.sqrt(u2**2+v2**2+w2**2)+eps))
+                    )
 
-                    Gyx = np.log(np.sqrt(u1**2+v1**2+w1**2)-w1) \
-                    - np.log(np.sqrt(u2**2+v1**2+w1**2)-w1) \
-                    + np.log(np.sqrt(u2**2+v2**2+w1**2)-w1) \
-                    - np.log(np.sqrt(u1**2+v2**2+w1**2)-w1) \
-                    + np.log(np.sqrt(u1**2+v2**2+w2**2)-w2) \
-                    - np.log(np.sqrt(u1**2+v1**2+w2**2)-w2) \
-                    + np.log(np.sqrt(u2**2+v1**2+w2**2)-w2) \
-                    - np.log(np.sqrt(u2**2+v2**2+w2**2)-w2)
+                    Gyx = (
+                        np.log(np.sqrt(u1**2+v1**2+w1**2)-w1) -
+                        np.log(np.sqrt(u2**2+v1**2+w1**2)-w1) +
+                        np.log(np.sqrt(u2**2+v2**2+w1**2)-w1) -
+                        np.log(np.sqrt(u1**2+v2**2+w1**2)-w1) +
+                        np.log(np.sqrt(u1**2+v2**2+w2**2)-w2) -
+                        np.log(np.sqrt(u1**2+v1**2+w2**2)-w2) +
+                        np.log(np.sqrt(u2**2+v1**2+w2**2)-w2) -
+                        np.log(np.sqrt(u2**2+v2**2+w2**2)-w2)
+                    )
 
-                    Gzx = np.log(np.sqrt(u1**2+v1**2+w1**2)-v1) \
-                    - np.log(np.sqrt(u2**2+v1**2+w1**2)-v1) \
-                    + np.log(np.sqrt(u2**2+v2**2+w1**2)-v2) \
-                    - np.log(np.sqrt(u1**2+v2**2+w1**2)-v2) \
-                    + np.log(np.sqrt(u1**2+v2**2+w2**2)-v2) \
-                    - np.log(np.sqrt(u1**2+v1**2+w2**2)-v1) \
-                    + np.log(np.sqrt(u2**2+v1**2+w2**2)-v1) \
-                    - np.log(np.sqrt(u2**2+v2**2+w2**2)-v2)
+                    Gzx = (
+                        np.log(np.sqrt(u1**2+v1**2+w1**2)-v1) -
+                        np.log(np.sqrt(u2**2+v1**2+w1**2)-v1) +
+                        np.log(np.sqrt(u2**2+v2**2+w1**2)-v2) -
+                        np.log(np.sqrt(u1**2+v2**2+w1**2)-v2) +
+                        np.log(np.sqrt(u1**2+v2**2+w2**2)-v2) -
+                        np.log(np.sqrt(u1**2+v1**2+w2**2)-v1) +
+                        np.log(np.sqrt(u2**2+v1**2+w2**2)-v1) -
+                        np.log(np.sqrt(u2**2+v2**2+w2**2)-v2)
+                    )
 
-                    G[COUNT,:] = C*np.c_[Gxx,Gyx,Gzx]
+                    G[COUNT, :] = C*np.c_[Gxx, Gyx, Gzx]
                     COUNT = COUNT + 1
 
             elif dComp is 'y':
-                for rr in range(0,M):
-                    u1 = locs[rr,0] - ax
-                    u1[np.abs(u1) < 1e-10] =  np.min(xyzh[:,0])/1000 
-                    u2 = locs[rr,0] - bx 
-                    u2[np.abs(u2) < 1e-10] = -np.min(xyzh[:,0])/1000 
-                    v1 = locs[rr,1] - ay 
-                    v1[np.abs(v1) < 1e-10] =  np.min(xyzh[:,1])/1000 
-                    v2 = locs[rr,1] - by 
-                    v2[np.abs(v2) < 1e-10] = -np.min(xyzh[:,1])/1000 
-                    w1 = locs[rr,2] - az 
-                    w1[np.abs(w1) < 1e-10] =  np.min(xyzh[:,2])/1000 
-                    w2 = locs[rr,2] - bz 
-                    w2[np.abs(w2) < 1e-10] = -np.min(xyzh[:,2])/1000 
+                for rr in range(0, M):
+                    u1 = locs[rr, 0] - ax
+                    u1[np.abs(u1) < 1e-10] = np.min(xyzh[:, 0])/1000
+                    u2 = locs[rr, 0] - bx
+                    u2[np.abs(u2) < 1e-10] = -np.min(xyzh[:, 0])/1000
+                    v1 = locs[rr, 1] - ay
+                    v1[np.abs(v1) < 1e-10] = np.min(xyzh[:, 1])/1000
+                    v2 = locs[rr, 1] - by
+                    v2[np.abs(v2) < 1e-10] = -np.min(xyzh[:, 1])/1000
+                    w1 = locs[rr, 2] - az
+                    w1[np.abs(w1) < 1e-10] = np.min(xyzh[:, 2])/1000
+                    w2 = locs[rr, 2] - bz
+                    w2[np.abs(w2) < 1e-10] = -np.min(xyzh[:, 2])/1000
 
-                    Gxy = np.log(np.sqrt(u1**2+v1**2+w1**2)-w1) \
-                    - np.log(np.sqrt(u2**2+v1**2+w1**2)-w1) \
-                    + np.log(np.sqrt(u2**2+v2**2+w1**2)-w1) \
-                    - np.log(np.sqrt(u1**2+v2**2+w1**2)-w1) \
-                    + np.log(np.sqrt(u1**2+v2**2+w2**2)-w2) \
-                    - np.log(np.sqrt(u1**2+v1**2+w2**2)-w2) \
-                    + np.log(np.sqrt(u2**2+v1**2+w2**2)-w2) \
-                    - np.log(np.sqrt(u2**2+v2**2+w2**2)-w2)
+                    Gxy = (
+                        np.log(np.sqrt(u1**2+v1**2+w1**2)-w1) -
+                        np.log(np.sqrt(u2**2+v1**2+w1**2)-w1) +
+                        np.log(np.sqrt(u2**2+v2**2+w1**2)-w1) -
+                        np.log(np.sqrt(u1**2+v2**2+w1**2)-w1) +
+                        np.log(np.sqrt(u1**2+v2**2+w2**2)-w2) -
+                        np.log(np.sqrt(u1**2+v1**2+w2**2)-w2) +
+                        np.log(np.sqrt(u2**2+v1**2+w2**2)-w2) -
+                        np.log(np.sqrt(u2**2+v2**2+w2**2)-w2)
+                    )
 
-                    Gyy = np.arctan((u1*w1)/(v1*np.sqrt(u1**2+v1**2+w1**2)+eps)) \
-                    - np.arctan((u2*w1)/(v1*np.sqrt(u2**2+v1**2+w1**2)+eps)) \
-                    + np.arctan((u2*w1)/(v2*np.sqrt(u2**2+v2**2+w1**2)+eps)) \
-                    - np.arctan((u1*w1)/(v2*np.sqrt(u1**2+v2**2+w1**2)+eps)) \
-                    + np.arctan((u1*w2)/(v2*np.sqrt(u1**2+v2**2+w2**2)+eps)) \
-                    - np.arctan((u1*w2)/(v1*np.sqrt(u1**2+v1**2+w2**2)+eps)) \
-                    + np.arctan((u2*w2)/(v1*np.sqrt(u2**2+v1**2+w2**2)+eps)) \
-                    - np.arctan((u2*w2)/(v2*np.sqrt(u2**2+v2**2+w2**2)+eps)) 
+                    Gyy = (
+                        np.arctan((u1*w1)/(v1*np.sqrt(u1**2+v1**2+w1**2)+eps)) -
+                        np.arctan((u2*w1)/(v1*np.sqrt(u2**2+v1**2+w1**2)+eps)) +
+                        np.arctan((u2*w1)/(v2*np.sqrt(u2**2+v2**2+w1**2)+eps)) -
+                        np.arctan((u1*w1)/(v2*np.sqrt(u1**2+v2**2+w1**2)+eps)) +
+                        np.arctan((u1*w2)/(v2*np.sqrt(u1**2+v2**2+w2**2)+eps)) -
+                        np.arctan((u1*w2)/(v1*np.sqrt(u1**2+v1**2+w2**2)+eps)) +
+                        np.arctan((u2*w2)/(v1*np.sqrt(u2**2+v1**2+w2**2)+eps)) -
+                        np.arctan((u2*w2)/(v2*np.sqrt(u2**2+v2**2+w2**2)+eps))
+                    )
 
-                    Gzy = np.log(np.sqrt(u1**2+v1**2+w1**2)-u1) \
-                    - np.log(np.sqrt(u2**2+v1**2+w1**2)-u2) \
-                    + np.log(np.sqrt(u2**2+v2**2+w1**2)-u2) \
-                    - np.log(np.sqrt(u1**2+v2**2+w1**2)-u1) \
-                    + np.log(np.sqrt(u1**2+v2**2+w2**2)-u1) \
-                    - np.log(np.sqrt(u1**2+v1**2+w2**2)-u1) \
-                    + np.log(np.sqrt(u2**2+v1**2+w2**2)-u2) \
-                    - np.log(np.sqrt(u2**2+v2**2+w2**2)-u2)
+                    Gzy = (
+                        np.log(np.sqrt(u1**2+v1**2+w1**2)-u1) -
+                        np.log(np.sqrt(u2**2+v1**2+w1**2)-u2) +
+                        np.log(np.sqrt(u2**2+v2**2+w1**2)-u2) -
+                        np.log(np.sqrt(u1**2+v2**2+w1**2)-u1) +
+                        np.log(np.sqrt(u1**2+v2**2+w2**2)-u1) -
+                        np.log(np.sqrt(u1**2+v1**2+w2**2)-u1) +
+                        np.log(np.sqrt(u2**2+v1**2+w2**2)-u2) -
+                        np.log(np.sqrt(u2**2+v2**2+w2**2)-u2)
+                    )
 
-                    G[COUNT,:] = C*np.c_[Gxy,Gyy,Gzy]
+                    G[COUNT, :] = C*np.c_[Gxy, Gyy, Gzy]
                     COUNT = COUNT + 1
 
             elif dComp is 'z':
-                for rr in range(0,M):
-                    u1 = locs[rr,0] - ax
-                    u1[np.abs(u1) < 1e-10] =  np.min(xyzh[:,0])/1000 
-                    u2 = locs[rr,0] - bx 
-                    u2[np.abs(u2) < 1e-10] = -np.min(xyzh[:,0])/1000 
-                    v1 = locs[rr,1] - ay 
-                    v1[np.abs(v1) < 1e-10] =  np.min(xyzh[:,1])/1000 
-                    v2 = locs[rr,1] - by 
-                    v2[np.abs(v2) < 1e-10] = -np.min(xyzh[:,1])/1000 
-                    w1 = locs[rr,2] - az 
-                    w1[np.abs(w1) < 1e-10] =  np.min(xyzh[:,2])/1000 
-                    w2 = locs[rr,2] - bz 
-                    w2[np.abs(w2) < 1e-10] = -np.min(xyzh[:,2])/1000
+                for rr in range(0, M):
+                    u1 = locs[rr, 0] - ax
+                    u1[np.abs(u1) < 1e-10] = np.min(xyzh[:, 0])/1000
+                    u2 = locs[rr, 0] - bx
+                    u2[np.abs(u2) < 1e-10] = -np.min(xyzh[:, 0])/1000
+                    v1 = locs[rr, 1] - ay
+                    v1[np.abs(v1) < 1e-10] = np.min(xyzh[:, 1])/1000
+                    v2 = locs[rr, 1] - by
+                    v2[np.abs(v2) < 1e-10] = -np.min(xyzh[:, 1])/1000
+                    w1 = locs[rr, 2] - az
+                    w1[np.abs(w1) < 1e-10] = np.min(xyzh[:, 2])/1000
+                    w2 = locs[rr, 2] - bz
+                    w2[np.abs(w2) < 1e-10] = -np.min(xyzh[:, 2])/1000
 
-                    Gxz = np.log(np.sqrt(u1**2+v1**2+w1**2)-v1) \
-                    - np.log(np.sqrt(u2**2+v1**2+w1**2)-v1) \
-                    + np.log(np.sqrt(u2**2+v2**2+w1**2)-v2) \
-                    - np.log(np.sqrt(u1**2+v2**2+w1**2)-v2) \
-                    + np.log(np.sqrt(u1**2+v2**2+w2**2)-v2) \
-                    - np.log(np.sqrt(u1**2+v1**2+w2**2)-v1) \
-                    + np.log(np.sqrt(u2**2+v1**2+w2**2)-v1) \
-                    - np.log(np.sqrt(u2**2+v2**2+w2**2)-v2) 
+                    Gxz = (
+                        np.log(np.sqrt(u1**2+v1**2+w1**2)-v1) -
+                        np.log(np.sqrt(u2**2+v1**2+w1**2)-v1) +
+                        np.log(np.sqrt(u2**2+v2**2+w1**2)-v2) -
+                        np.log(np.sqrt(u1**2+v2**2+w1**2)-v2) +
+                        np.log(np.sqrt(u1**2+v2**2+w2**2)-v2) -
+                        np.log(np.sqrt(u1**2+v1**2+w2**2)-v1) +
+                        np.log(np.sqrt(u2**2+v1**2+w2**2)-v1) -
+                        np.log(np.sqrt(u2**2+v2**2+w2**2)-v2)
+                    )
 
-                    Gyz = np.log(np.sqrt(u1**2+v1**2+w1**2)-u1) \
-                    - np.log(np.sqrt(u2**2+v1**2+w1**2)-u2) \
-                    + np.log(np.sqrt(u2**2+v2**2+w1**2)-u2) \
-                    - np.log(np.sqrt(u1**2+v2**2+w1**2)-u1) \
-                    + np.log(np.sqrt(u1**2+v2**2+w2**2)-u1) \
-                    - np.log(np.sqrt(u1**2+v1**2+w2**2)-u1) \
-                    + np.log(np.sqrt(u2**2+v1**2+w2**2)-u2) \
-                    - np.log(np.sqrt(u2**2+v2**2+w2**2)-u2) 
+                    Gyz = (
+                        np.log(np.sqrt(u1**2+v1**2+w1**2)-u1) -
+                        np.log(np.sqrt(u2**2+v1**2+w1**2)-u2) +
+                        np.log(np.sqrt(u2**2+v2**2+w1**2)-u2) -
+                        np.log(np.sqrt(u1**2+v2**2+w1**2)-u1) +
+                        np.log(np.sqrt(u1**2+v2**2+w2**2)-u1) -
+                        np.log(np.sqrt(u1**2+v1**2+w2**2)-u1) +
+                        np.log(np.sqrt(u2**2+v1**2+w2**2)-u2) -
+                        np.log(np.sqrt(u2**2+v2**2+w2**2)-u2)
+                    )
 
-                    Gzz = - np.arctan((v1*w1)/(u1*np.sqrt(u1**2+v1**2+w1**2)+eps)) \
-                    + np.arctan((v1*w1)/(u2*np.sqrt(u2**2+v1**2+w1**2)+eps)) \
-                    - np.arctan((v2*w1)/(u2*np.sqrt(u2**2+v2**2+w1**2)+eps)) \
-                    + np.arctan((v2*w1)/(u1*np.sqrt(u1**2+v2**2+w1**2)+eps)) \
-                    - np.arctan((v2*w2)/(u1*np.sqrt(u1**2+v2**2+w2**2)+eps)) \
-                    + np.arctan((v1*w2)/(u1*np.sqrt(u1**2+v1**2+w2**2)+eps)) \
-                    - np.arctan((v1*w2)/(u2*np.sqrt(u2**2+v1**2+w2**2)+eps)) \
-                    + np.arctan((v2*w2)/(u2*np.sqrt(u2**2+v2**2+w2**2)+eps))
+                    Gzz = (
+                        - np.arctan((v1*w1)/(u1*np.sqrt(u1**2+v1**2+w1**2)+eps)) +
+                        np.arctan((v1*w1)/(u2*np.sqrt(u2**2+v1**2+w1**2)+eps)) -
+                        np.arctan((v2*w1)/(u2*np.sqrt(u2**2+v2**2+w1**2)+eps)) +
+                        np.arctan((v2*w1)/(u1*np.sqrt(u1**2+v2**2+w1**2)+eps)) -
+                        np.arctan((v2*w2)/(u1*np.sqrt(u1**2+v2**2+w2**2)+eps)) +
+                        np.arctan((v1*w2)/(u1*np.sqrt(u1**2+v1**2+w2**2)+eps)) -
+                        np.arctan((v1*w2)/(u2*np.sqrt(u2**2+v1**2+w2**2)+eps)) +
+                        np.arctan((v2*w2)/(u2*np.sqrt(u2**2+v2**2+w2**2)+eps))
+                    )
 
-                    Gzz = Gzz - np.arctan((u1*w1)/(v1*np.sqrt(u1**2+v1**2+w1**2)+eps)) \
-                    + np.arctan((u2*w1)/(v1*np.sqrt(u2**2+v1**2+w1**2)+eps)) \
-                    - np.arctan((u2*w1)/(v2*np.sqrt(u2**2+v2**2+w1**2)+eps)) \
-                    + np.arctan((u1*w1)/(v2*np.sqrt(u1**2+v2**2+w1**2)+eps)) \
-                    - np.arctan((u1*w2)/(v2*np.sqrt(u1**2+v2**2+w2**2)+eps)) \
-                    + np.arctan((u1*w2)/(v1*np.sqrt(u1**2+v1**2+w2**2)+eps)) \
-                    - np.arctan((u2*w2)/(v1*np.sqrt(u2**2+v1**2+w2**2)+eps)) \
-                    + np.arctan((u2*w2)/(v2*np.sqrt(u2**2+v2**2+w2**2)+eps))
+                    Gzz = (
+                        Gzz -
+                        np.arctan((u1*w1)/(v1*np.sqrt(u1**2+v1**2+w1**2)+eps)) +
+                        np.arctan((u2*w1)/(v1*np.sqrt(u2**2+v1**2+w1**2)+eps)) -
+                        np.arctan((u2*w1)/(v2*np.sqrt(u2**2+v2**2+w1**2)+eps)) +
+                        np.arctan((u1*w1)/(v2*np.sqrt(u1**2+v2**2+w1**2)+eps)) -
+                        np.arctan((u1*w2)/(v2*np.sqrt(u1**2+v2**2+w2**2)+eps)) +
+                        np.arctan((u1*w2)/(v1*np.sqrt(u1**2+v1**2+w2**2)+eps)) -
+                        np.arctan((u2*w2)/(v1*np.sqrt(u2**2+v1**2+w2**2)+eps)) +
+                        np.arctan((u2*w2)/(v2*np.sqrt(u2**2+v2**2+w2**2)+eps))
+                    )
 
-                    G[COUNT,:] = C*np.c_[Gxz,Gyz,Gzz]
+                    G[COUNT, :] = C*np.c_[Gxz, Gyz, Gzz]
                     COUNT = COUNT + 1
 
         return np.matrix(G)
 
 
-
-
-
-
-
-#######################################################################################
-# VRM CHARACTERISTIC DECAY FORMULATION (SINGLE MODEL PARAMETER AND ALLOWS INVERSION)
-#######################################################################################
+#############################################################################
+# VRM CHARACTERISTIC DECAY FORMULATION (SINGLE MODEL PARAMETER AND INVERSION)
+#############################################################################
 
 
 class LinearFWD(BaseProblemVRM):
 
     """
-    Problem class for linear VRM problem. The the solution to this problem
+Problem class for linear VRM problem. The the solution to this problem
 is a time-approximate solution which uses the characteristic decay of
 the VRM response. The solution is only capable of providing the VRM
 response during the off-time. For background theory, see Cowan (2016).
 
 REQUIRED ARGUMENTS:
 
-    mesh: 3D tensor or OcTree mesh
+mesh: 3D tensor or OcTree mesh
 
 KWARGS:
 
-    refFact: Maximum refinement factor for sensitivities (default = 3)
-        
-    refRadius: Distances from source in which cell sensitivities are refined. Must be an array or list with number of elements equal to refFact.
-        
-    topoMap: A Maps object which relates mesh cells to cells which are computed in the forward model (default is all mesh cells)
+refFact: Maximum refinement factor for sensitivities (default = 3)
 
-    xiMap: A Maps object which relates mesh cells to active cells
+refRadius: Distances from source in which cell sensitivities are refined. Must
+be an array or list with number of elements equal to refFact.
+
+topoMap: A Maps object which relates mesh cells to cells which are computed in
+the forward model (default is all mesh cells)
+
+xiMap: A Maps object which relates mesh cells to active cells
 
     """
 
-
-
     xi, xiMap, xiDeriv = Props.Invertible("Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)")
 
-
     def __init__(self, mesh, **kwargs):
-        super(LinearFWD,self).__init__(mesh, **kwargs)
+        super(LinearFWD, self).__init__(mesh, **kwargs)
 
         self.A = None
         self.T = None
 
-
-    def fields(self, m, fType = None):
+    def fields(self, m, fType=None):
 
         assert self.ispaired, "Problem must be paired with survey to predict data"
 
         if self.A is None:
             A = self.getA()
-        
+
         if self.T is not None:
             T = self.T
         else:
@@ -326,12 +340,12 @@ KWARGS:
 
         return sp.coo_matrix.dot(T, self.A*m)
 
-
     def getA(self):
 
         """
-        This function computes the geometric sensitivity matrix for the linear VRM problem. |
-        This function requires that the problem be paired with a survey object.
+This function computes the geometric sensitivity matrix for the linearVRM
+problem. This function requires that the problem be paired with a survey
+object.
         """
 
         assert self.ispaired, "Problem must be paired with survey to generate A matrix"
@@ -340,16 +354,16 @@ KWARGS:
 
         # GET CELL INFORMATION FOR FORWARD MODELING
         meshObj = self.mesh
-        xyzc = meshObj.gridCC[topoInd,:]
-        xyzh = meshObj.gridH[topoInd,:]
+        xyzc = meshObj.gridCC[topoInd, :]
+        xyzh = meshObj.gridH[topoInd, :]
 
         # GET A MATRIX
         A = []
-        for pp in range(0,self.survey.nSrc):
+        for pp in range(0, self.survey.nSrc):
 
             # Create initial A matrix
-            G   = self._getGeometryMatrix(xyzc, xyzh, pp)
-            H0  = self._getH0matrix(xyzc, pp)
+            G = self._getGeometryMatrix(xyzc, xyzh, pp)
+            H0 = self._getH0matrix(xyzc, pp)
             A.append(G*H0)
 
             # Refine A matrix
@@ -361,9 +375,9 @@ KWARGS:
                 srcObj = self.survey.srcList[pp]
                 refFlag = srcObj._getRefineFlags(xyzc, refFact, refRadius)
 
-                for qq in range(1,refFact+1):
+                for qq in range(1, refFact+1):
 
-                    A[pp][:,refFlag==qq] = self._getSubsetAcolumns(xyzc, xyzh, pp, qq, refFlag)
+                    A[pp][:, refFlag == qq] = self._getSubsetAcolumns(xyzc, xyzh, pp, qq, refFlag)
 
         # COLLAPSE ALL A MATRICIES INTO SINGLE OPERATOR
         A = np.vstack(A)
@@ -373,7 +387,7 @@ KWARGS:
 
         return A
 
-    def getT(self, fType = None):
+    def getT(self, fType=None):
 
         """
         This function returns the characteristic decay matrix. This function \
@@ -388,17 +402,17 @@ KWARGS:
 
         if fType is None:
 
-            for pp in range(0,nSrc):
+            for pp in range(0, nSrc):
 
                 rxList = srcList[pp].rxList
                 nRx = len(rxList)
                 waveObj = srcList[pp].waveform
 
-                for qq in range(0,nRx):
+                for qq in range(0, nRx):
 
                     times = rxList[qq].times
                     nLoc = np.shape(rxList[qq].locs)[0]
-                    
+
                     I = sp.diags(np.ones(nLoc))
                     eta = waveObj.getCharDecay(rxList[qq].fieldType, times)
                     eta = np.matrix(eta).T
@@ -410,19 +424,19 @@ KWARGS:
             if self.T is None:
                 self.T = T
 
-        elif fType in ['h','b','dhdt','dbdt']:
+        elif fType in ['h', 'b', 'dhdt', 'dbdt']:
 
-            for pp in range(0,nSrc):
+            for pp in range(0, nSrc):
 
                 rxList = srcList[pp].rxList
                 nRx = len(rxList)
                 waveObj = srcList[pp].waveform
 
-                for qq in range(0,nRx):
+                for qq in range(0, nRx):
 
                     times = rxList[qq].times
                     nLoc = np.shape(rxList[qq].locs)[0]
-                    
+
                     I = sp.diags(np.ones(nLoc))
                     eta = waveObj.getCharDecay(fType, times)
                     eta = np.matrix(eta).T
@@ -441,7 +455,7 @@ KWARGS:
 
         if self.A is None:
             A = self.getA()
-        
+
         if self.T is not None:
             T = self.T
         else:
@@ -467,7 +481,7 @@ KWARGS:
 
         if self.A is None:
             A = self.getA()
-        
+
         if self.T is not None:
             T = self.T
         else:
@@ -499,40 +513,38 @@ KWARGS:
         self.A = None
         self.T = None
 
-
-
     def _getSubsetAcolumns(self, xyzc, xyzh, pp, qq, refFlag):
 
         """
-        This method returns the refined sensitivities for columns that will \
-        be replaced in the A matrix for source pp and refinement factor qq
-        
-        INPUTS:
+This method returns the refined sensitivities for columns that will be replaced
+in the A matrix for source pp and refinement factor qq.
 
-            xyzc: Cell centers of topo mesh cells N X 3 array
-            xyzh: Cell widths of topo mesh cells N X 3 array
-            pp: Source ID
-            qq: Mesh refinement factor
-            refFlag: refinement factors for all topo mesh cells
+INPUTS:
+
+    xyzc: Cell centers of topo mesh cells N X 3 array
+    xyzh: Cell widths of topo mesh cells N X 3 array
+    pp: Source ID
+    qq: Mesh refinement factor
+    refFlag: refinement factors for all topo mesh cells
         """
 
         # GET SUBMESH GRID
         n = 2**qq
-        [nx,ny,nz] = np.meshgrid(np.linspace(1,n,n)-0.5, np.linspace(1,n,n)-0.5, np.linspace(1,n,n)-0.5)
+        [nx, ny, nz] = np.meshgrid(np.linspace(1, n, n)-0.5, np.linspace(1, n, n)-0.5, np.linspace(1, n, n)-0.5)
         nxyz_sub = np.c_[mkvc(nx), mkvc(ny), mkvc(nz)]
 
-        xyzh_sub = xyzh[refFlag==qq,:] # Get widths of cells to be refined
-        xyzc_sub = xyzc[refFlag==qq,:] - xyzh[refFlag==qq,:]/2 # Get bottom southwest corners of cells to be refined
+        xyzh_sub = xyzh[refFlag == qq, :]     # Get widths of cells to be refined
+        xyzc_sub = xyzc[refFlag == qq, :] - xyzh[refFlag == qq, :]/2   # Get bottom southwest corners of cells to be refined
         m = np.shape(xyzc_sub)[0]
-        xyzc_sub = np.kron(xyzc_sub, np.ones((n**3,1))) # Kron for n**3 refined cells
-        xyzh_sub = np.kron(xyzh_sub/n, np.ones((n**3,1))) # Kron for n**3 refined cells with widths h/n
-        nxyz_sub = np.kron(np.ones((m,1)),nxyz_sub) # Kron for n**3 refined cells
+        xyzc_sub = np.kron(xyzc_sub, np.ones((n**3, 1)))     # Kron for n**3 refined cells
+        xyzh_sub = np.kron(xyzh_sub/n, np.ones((n**3, 1)))   # Kron for n**3 refined cells with widths h/n
+        nxyz_sub = np.kron(np.ones((m, 1)), nxyz_sub)        # Kron for n**3 refined cells
         xyzc_sub = xyzc_sub + xyzh_sub*nxyz_sub
 
         # GET SUBMESH A MATRIX AND COLLAPSE TO COLUMNS
-        G   = self._getGeometryMatrix(xyzc_sub, xyzh_sub, pp)
-        H0  = self._getH0matrix(xyzc_sub, pp)
-        Acols = (G*H0)*sp.kron(sp.diags(np.ones(m)),np.ones((n**3,1)))
+        G = self._getGeometryMatrix(xyzc_sub, xyzh_sub, pp)
+        H0 = self._getH0matrix(xyzc_sub, pp)
+        Acols = (G*H0)*sp.kron(sp.diags(np.ones(m)), np.ones((n**3, 1)))
 
         return Acols
 

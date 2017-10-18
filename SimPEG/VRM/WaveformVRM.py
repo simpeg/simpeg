@@ -182,14 +182,3 @@ times: Observation times. These times must be during the off-time.
             eta = mu0*eta
 
         return eta
-
-
-
-
-
-
-
-
-
-
-
