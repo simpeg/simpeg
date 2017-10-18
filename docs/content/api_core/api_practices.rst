@@ -187,7 +187,7 @@ Consistency make code more readable and easier for collaborators to jump in.
 `PEP 8 <https://www.python.org/dev/peps/pep-0008/>`_ provides conventions for
 coding in Python. SimPEG is currently not `PEP 8
 <https://www.python.org/dev/peps/pep-0008/>`_ compliant, but we are working
-towards it and would appreciate contributions that do too!
+towards it and would appreciate contributions that do too! If you have sublime text 3, the linter can be set up through sublime text 3's package manager. The step by step process is found :ref:`here <api_practices_linter_install>`.
 
 There are a few resources we use to promote these practices: the service
 `Quantified Code <https://www.quantifiedcode.com/app/project/933aa3decf444538a
@@ -267,6 +267,32 @@ Text > Preferences > Package Settings > SublimeLinter > Settings-User)
     }
 
 
+Install PEP8 Linter Through Sublime Text 3
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _api_practices_linter_install:
+
+Instructions for installing and activating the pep8 linter for Mac OS X/Linux/Windows are below. For this to work, you MUST have installed sublime text 3.
+
+**Step 1: Install Sublime Linter 3:**
+
+- Opem sublime text 3
+- Open the Command Palette (cmd+shift+p on Mac OS X, ctrl+shift+p on Linux/Windows).
+- Type 'install' and select 'Package Control: Install Package' from the Command Palette. There will be a pause of a few seconds while Package Control finds the available packages.
+- When the list of available packages appears, type 'linter' and select 'SublimeLinter'. Note: The github repository name is “SublimeLinter3”, but the plugin name remains “SublimeLinter”.
+- After a few seconds SublimeLinter will be installed and loaded. Depending on your setup, you may see some prompts from SublimeLinter. For more information on SublimeLinter’s startup actions, see Startup actions. You will see an install message.
+- After reading the message, close Sublime Text 3
+
+**Step 2: Install pep8 Linter:**
+
+- Open sublime text 3
+- Open the Command Palette (cmd+shift+p on Mac OS X, ctrl+shift+p on Linux/Windows).
+- Type 'install' and select 'Package Control: Install Package' from the Command Palette. There will be a pause of a few seconds while Package Control finds the available packages.
+- When the list of available packages appears, type 'pep8' and select the appropriate option.
+- After a few seconds pep8 linter will be installed and loaded. Depending on your setup, you may see some prompts from SublimeLinter. For more information on SublimeLinter’s startup actions, see Startup actions. You will see an install message.
+- After reading the message, close Sublime Text 3
+
+The next time you open a .py file in sublime text 3, the linter should be activated.
 
 
 .. _pull_requests:
