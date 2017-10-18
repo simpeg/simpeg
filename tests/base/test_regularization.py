@@ -158,6 +158,7 @@ class RegularizationTests(unittest.TestCase):
         for regType in ['Tikhonov', 'Sparse', 'Simple']:
             reg = getattr(Regularization, regType)(mesh)
 
+            print(reg.nP, mesh.nC)
             self.assertTrue(reg.nP == mesh.nC)
 
             # Test assignment of active indices
@@ -301,6 +302,36 @@ class RegularizationTests(unittest.TestCase):
         self.assertTrue(reg.objfcts[1].norm == 1.)
         self.assertTrue(reg.objfcts[2].norm == 1.)
         self.assertTrue(reg.objfcts[3].norm == 1.)
+
+    def test_linked_properties(self):
+        mesh = Mesh.TensorMesh([8, 7, 6])
+        reg = Regularization.Tikhonov(mesh)
+
+        [self.assertTrue(reg.regmesh is fct.regmesh) for fct in reg.objfcts]
+        [self.assertTrue(reg.mapping is fct.mapping) for fct in reg.objfcts]
+
+        D = reg.regmesh.cellDiffx
+        reg.regmesh._cellDiffx = 4*D
+        v = np.random.rand(D.shape[1])
+        [
+            self.assertTrue(
+                np.all(reg.regmesh._cellDiffx*v == fct.regmesh.cellDiffx*v)
+            )
+            for fct in reg.objfcts
+        ]
+
+        indActive = mesh.gridCC[:, 2] < 0.4
+        reg.indActive = indActive
+        self.assertTrue(np.all(reg.regmesh.indActive == indActive))
+        [
+            self.assertTrue(np.all(reg.indActive == fct.indActive))
+            for fct in reg.objfcts
+        ]
+
+        [
+            self.assertTrue(np.all(reg.indActive == fct.regmesh.indActive))
+            for fct in reg.objfcts
+        ]
 
 if __name__ == '__main__':
     unittest.main()
