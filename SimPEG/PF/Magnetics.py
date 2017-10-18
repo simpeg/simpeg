@@ -75,11 +75,15 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return self._nD
 
+    @property
     def mapping(self):
         """
             Return chiMap
         """
-        return self.chiMap
+        if getattr(self, '_mapping', None) is None:
+            self._mapping = self.chiMap
+
+        return self._mapping
 
     @property
     def ProjTMI(self):

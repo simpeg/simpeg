@@ -347,6 +347,64 @@ class Projection(IdentityMap):
         return self.P
 
 
+class Homogenize(IdentityMap):
+    """
+        A map to group model cells into an homogeneous unit
+
+        :param list index: list of bool for each homogeneous unit
+
+    """
+
+    def __init__(self, index, **kwargs):
+        assert isinstance(index, (list)), (
+            'index must be a list, not {}'.format(type(index)))
+
+        super(Homogenize, self).__init__(**kwargs)
+        nP = len(index[0])
+        # if isinstance(index, slice):
+        #     index = list(range(*index.indices(self.nP)))
+        self.index = index
+        self._shape = nP, len(self.index),
+
+        # assert (max(index) < nP), (
+        #     'maximum index must be less than {}'.format(nP))
+
+        # sparse projection matrix
+        I = []
+        J = []
+        V = []
+        for ii, ind in enumerate(self.index):
+
+            I += [ii]*ind.sum()
+            J += np.where(ind)[0].tolist()
+            V += [1]*ind.sum()
+
+        self.P = sp.csr_matrix(
+            (V, (I, J)), shape=(len(self.index), nP)
+        ).T
+
+    def _transform(self, m):
+        return self.P * m
+
+    @property
+    def shape(self):
+        """
+        Shape of the matrix operation (number of indices x nP)
+        """
+        return self._shape
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+        """
+
+        if v is not None:
+            return self.P * v
+        return self.P
+
+
 class Wires(object):
 
     def __init__(self, *args):
