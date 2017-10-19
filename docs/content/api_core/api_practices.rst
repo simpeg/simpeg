@@ -276,7 +276,7 @@ Instructions for installing and activating the pep8 linter for Mac OS X/Linux/Wi
 
 **Step 1: Install Sublime Linter 3:**
 
-- Opem sublime text 3
+- Open sublime text 3
 - Open the Command Palette (cmd+shift+p on Mac OS X, ctrl+shift+p on Linux/Windows).
 - Type 'install' and select 'Package Control: Install Package' from the Command Palette. There will be a pause of a few seconds while Package Control finds the available packages.
 - When the list of available packages appears, type 'linter' and select 'SublimeLinter'. Note: The github repository name is “SublimeLinter3”, but the plugin name remains “SublimeLinter”.
