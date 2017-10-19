@@ -316,39 +316,19 @@ xiMap: A Maps object which relates mesh cells to active cells
         self.A = None
         self.T = None
 
-    def fields(self, m, fType=None):
-
-        assert self.ispaired, "Problem must be paired with survey to predict data"
-
-        if self.A is None:
-            A = self.getA()
-
-        if self.T is not None:
-            T = self.T
-        else:
-            T = self.getT(fType)
-
-        m = np.matrix(m).T
-
-        # Project to full mesh
-        if self.xiMap is not None:
-            m = self.xiMap.P*m + np.matrix(self.xiMap.valInactive).T
-
-        # Project to topography cells
-        if self.topoMap is not None:
-            m = self.topoMap.P.T*m
-
-        return sp.coo_matrix.dot(T, self.A*m)
-
-    def getA(self):
+    def setA(self):
 
         """
-This function computes the geometric sensitivity matrix for the linearVRM
+This function constructs the geometric sensitivity matrix for the linearVRM
 problem. This function requires that the problem be paired with a survey
 object.
         """
 
         assert self.ispaired, "Problem must be paired with survey to generate A matrix"
+
+        # Remove any previously stored A matrix
+        if self.A is not None:
+            self.A = None
 
         topoInd = self.topoMap.indActive
 
@@ -380,86 +360,81 @@ object.
                     A[pp][:, refFlag == qq] = self._getSubsetAcolumns(xyzc, xyzh, pp, qq, refFlag)
 
         # COLLAPSE ALL A MATRICIES INTO SINGLE OPERATOR
-        A = np.vstack(A)
+        self.A = np.vstack(A)
 
-        if self.A is None:
-            self.A = A
-
-        return A
-
-    def getT(self, fType=None):
+    def setT(self):
 
         """
-        This function returns the characteristic decay matrix. This function \
-        requires that the problem has been paired with a survey object.
+This function returns the characteristic decay matrix. This function requires
+that the problem has been paired with a survey object.
+
+fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
+       None, then the field type is computed according to the receivers.
         """
 
         assert self.ispaired, "Problem must be paired with survey to generate T matrix"
+
+        # Remove any previously stored T matrix
+        if self.T is not None:
+            self.T = None
 
         srcList = self.survey.srcList
         nSrc = len(srcList)
         T = []
 
-        if fType is None:
+        for pp in range(0, nSrc):
 
-            for pp in range(0, nSrc):
+            rxList = srcList[pp].rxList
+            nRx = len(rxList)
+            waveObj = srcList[pp].waveform
 
-                rxList = srcList[pp].rxList
-                nRx = len(rxList)
-                waveObj = srcList[pp].waveform
+            for qq in range(0, nRx):
 
-                for qq in range(0, nRx):
+                times = rxList[qq].times
+                nLoc = np.shape(rxList[qq].locs)[0]
 
-                    times = rxList[qq].times
-                    nLoc = np.shape(rxList[qq].locs)[0]
+                I = sp.diags(np.ones(nLoc))
+                eta = waveObj.getCharDecay(rxList[qq].fieldType, times)
+                eta = np.matrix(eta).T
 
-                    I = sp.diags(np.ones(nLoc))
-                    eta = waveObj.getCharDecay(rxList[qq].fieldType, times)
-                    eta = np.matrix(eta).T
+                T.append(sp.kron(I, eta))
 
-                    T.append(sp.kron(I, eta))
+        self.T = sp.block_diag(T)
 
-            T = sp.block_diag(T)
+    def fields(self, m):
 
-            if self.T is None:
-                self.T = T
+        assert self.ispaired, "Problem must be paired with survey to predict data"
 
-        elif fType in ['h', 'b', 'dhdt', 'dbdt']:
+        if self.A is None:
+            self.setA()
 
-            for pp in range(0, nSrc):
+        if self.T is None:
+            self.setT()
 
-                rxList = srcList[pp].rxList
-                nRx = len(rxList)
-                waveObj = srcList[pp].waveform
+        m = np.matrix(m).T
 
-                for qq in range(0, nRx):
+        # Project to full mesh
+        if self.xiMap is not None:
+            m = self.xiMap.P*m + np.matrix(self.xiMap.valInactive).T
 
-                    times = rxList[qq].times
-                    nLoc = np.shape(rxList[qq].locs)[0]
+        # Project to topography cells
+        if self.topoMap is not None:
+            m = self.topoMap.P.T*m
 
-                    I = sp.diags(np.ones(nLoc))
-                    eta = waveObj.getCharDecay(fType, times)
-                    eta = np.matrix(eta).T
+        # Must return as an array
+        return np.array(sp.coo_matrix.dot(self.T, self.A*m))
 
-                    T.append(sp.kron(I, eta))
-
-            T = sp.block_diag(T)
-
-        return T
-
-    def Jvec(self, v):
+    def Jvec(self, m, v, f=None):
 
         """Compute T*A*Pt'*Pm*v"""
 
         assert self.ispaired, "Problem must be paired with survey to predict data"
 
         if self.A is None:
-            A = self.getA()
+            self.setA()
 
-        if self.T is not None:
-            T = self.T
-        else:
-            T = self.getT(fType)
+        if self.T is None:
+            self.setT()
 
         v = np.matrix(mkvc(v)).T
 
@@ -471,28 +446,27 @@ object.
         if self.topoMap is not None:
             v = self.topoMap.P.T*v
 
-        return sp.coo_matrix.dot(T, self.A*v)
+        # Must return an array
+        return np.array(sp.coo_matrix.dot(self.T, self.A*v))
 
-    def Jtvec(self, v):
+    def Jtvec(self, m, v, f=None):
 
         """Compute Pm'*Pt*A'*T'*v"""
 
         assert self.ispaired, "Problem must be paired with survey to predict data"
 
         if self.A is None:
-            A = self.getA()
+            self.setA()
 
-        if self.T is not None:
-            T = self.T
-        else:
-            T = self.getT(fType)
+        if self.T is None:
+            self.setT()
 
         # Get v'
         v = np.matrix(mkvc(v))
         # Get v'*T
-        v = sp.coo_matrix.dot(v, T)
+        v = sp.coo_matrix.dot(v, self.T)
         # Get A'*T'*v
-        v = v.dot(A).T
+        v = v.dot(self.A).T
 
         # Project to topography cells
         if self.topoMap is not None:
@@ -502,7 +476,8 @@ object.
         if self.xiMap is not None:
             v = self.xiMap.P.T*v
 
-        return v
+        # Must return an array
+        return np.array(v)
 
     def unpair(self):
         """Unbind a survey from this problem instance."""

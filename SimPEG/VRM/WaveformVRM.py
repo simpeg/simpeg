@@ -17,10 +17,9 @@ KWARGS:
 t0: The start of the off-time
 """
 
+    def __init__(self, t0=0.):
 
-def __init__(self, t0=0.):
-
-    self.t0 = t0
+        self.t0 = t0
 
     def getCharDecay(self, fieldType, times):
 
