@@ -29,24 +29,72 @@ KWARGS:
 
     """
 
-    # SET ATTRIBUTES
-    refFact = None
-    refRadius = None
-    topoMap = None
+    # SET CLASS ATTRIBUTES
+    _refFact = None
+    _refRadius = None
+    _topoMap = None
+    _AisSet = False
+    _TisSet = False
     surveyPair = SurveyVRM
 
     def __init__(self, mesh, **kwargs):
 
+        # **kwargs
+        self._refFact = kwargs.get('refFact', 3)
+        self._refRadius = kwargs.get('refRadius', 1.25*np.mean(np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])])*np.arange(1, self.refFact+1))
+        self._topoMap = kwargs.get('topoMap', Maps.InjectActiveCells(mesh, np.ones(mesh.nC, dtype=bool), np.array([])))
+
+        # Assertions
         assert len(mesh.h) == 3, 'Problem requires 3D tensor or OcTree mesh'
+        assert isinstance(self._refFact, int), "Refinement factor must be set as an integer"
+        assert len(self._refRadius) >= self._refFact, 'Number of refinement radii must equal or greater than refinement factor'
+        assert isinstance(self._topoMap, Maps.InjectActiveCells), "topoMap must be an instance of class Maps.InjectActiveCells"
+
+        if self.refFact > 4:
+            print("Refinement factor larger than 4 may result in computations which exceed memory limits")
 
         super(BaseProblemVRM, self).__init__(mesh, **kwargs)
 
-        self.refFact = kwargs.get('refFact', 3)
-        self.refRadius = kwargs.get('refRadius', 1.25*np.mean(np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])])*np.arange(1, self.refFact+1))
-        self.topoMap = kwargs.get('topoMap', Maps.InjectActiveCells(mesh, np.ones(mesh.nC, dtype=bool), np.array([])))
+    @property
+    def refFact(self):
+        return self._refFact
 
-        assert len(self.refRadius) == self.refFact, 'Number of refinement radii must equal refinement factor'
-        assert isinstance(self.topoMap, Maps.InjectActiveCells), "topoMap must be an instance of class Maps.InjectActiveCells" 
+    @refFact.setter
+    def refFact(self, Val):
+        assert isinstance(Val, int) and Val > -1, "Refinement factor must be an integer value equal or larger than 0"
+
+        if Val != len(self._refRadius):
+            print("Refinement factor no longer matches length of refinement radii array. Please ensure refinement factor is equal or less to number of elements in refinement radii")
+
+        if Val > 4:
+            print("Refinement factor larger than 4 may result in computations which exceed memory limits")
+
+        self._refFact = Val
+
+    @property
+    def refRadius(self):
+        return self._refRadius
+
+    @refRadius.setter
+    def refRadius(self, Array):
+        assert isinstance(Array, np.ndarray), "Array must be a numpy array"
+
+        if self._refFact != len(Array):
+            print("Refinement factor no longer matches length of refinement radii array. Please ensure that the number of elements in refinement radii is equal or greater than the refinement factor")
+
+        self._refRadius = Array
+
+    @property
+    def topoMap(self):
+        return self._topoMap
+
+    @topoMap.setter
+    def topoMap(self, mappingObj):
+
+        assert isinstance(mappingObj, Maps.InjectActiveCells), "topoMap must be an instance of class Maps.InjectActiveCells"
+
+        self._topoMap = mappingObj
+        self._updateA = True
 
     def _getH0matrix(self, xyz, pp):
 
@@ -308,15 +356,17 @@ xiMap: A Maps object which relates mesh cells to active cells
 
     """
 
+    _A = None
+    _T = None
+
     xi, xiMap, xiDeriv = Props.Invertible("Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)")
 
     def __init__(self, mesh, **kwargs):
+
         super(LinearFWD, self).__init__(mesh, **kwargs)
 
-        self.A = None
-        self.T = None
-
-    def setA(self):
+    @property
+    def A(self):
 
         """
 This function constructs the geometric sensitivity matrix for the linearVRM
@@ -324,45 +374,56 @@ problem. This function requires that the problem be paired with a survey
 object.
         """
 
-        assert self.ispaired, "Problem must be paired with survey to generate A matrix"
+        if self._AisSet is False:
 
-        # Remove any previously stored A matrix
-        if self.A is not None:
-            self.A = None
+            assert self.ispaired, "Problem must be paired with survey to generate A matrix"
 
-        topoInd = self.topoMap.indActive
+            # Remove any previously stored A matrix
+            if self._A is not None:
+                self._A = None
 
-        # GET CELL INFORMATION FOR FORWARD MODELING
-        meshObj = self.mesh
-        xyzc = meshObj.gridCC[topoInd, :]
-        xyzh = meshObj.gridH[topoInd, :]
+            topoInd = self.topoMap.indActive
 
-        # GET A MATRIX
-        A = []
-        for pp in range(0, self.survey.nSrc):
+            # GET CELL INFORMATION FOR FORWARD MODELING
+            meshObj = self.mesh
+            xyzc = meshObj.gridCC[topoInd, :]
+            xyzh = meshObj.gridH[topoInd, :]
 
-            # Create initial A matrix
-            G = self._getGeometryMatrix(xyzc, xyzh, pp)
-            H0 = self._getH0matrix(xyzc, pp)
-            A.append(G*H0)
+            # GET A MATRIX
+            A = []
+            for pp in range(0, self.survey.nSrc):
 
-            # Refine A matrix
-            refFact = self.refFact
-            refRadius = self.refRadius
+                # Create initial A matrix
+                G = self._getGeometryMatrix(xyzc, xyzh, pp)
+                H0 = self._getH0matrix(xyzc, pp)
+                A.append(G*H0)
 
-            if refFact > 0:
+                # Refine A matrix
+                refFact = self.refFact
+                refRadius = self.refRadius
 
-                srcObj = self.survey.srcList[pp]
-                refFlag = srcObj._getRefineFlags(xyzc, refFact, refRadius)
+                if refFact > 0:
 
-                for qq in range(1, refFact+1):
+                    srcObj = self.survey.srcList[pp]
+                    refFlag = srcObj._getRefineFlags(xyzc, refFact, refRadius)
 
-                    A[pp][:, refFlag == qq] = self._getSubsetAcolumns(xyzc, xyzh, pp, qq, refFlag)
+                    for qq in range(1, refFact+1):
 
-        # COLLAPSE ALL A MATRICIES INTO SINGLE OPERATOR
-        self.A = np.vstack(A)
+                        A[pp][:, refFlag == qq] = self._getSubsetAcolumns(xyzc, xyzh, pp, qq, refFlag)
 
-    def setT(self):
+            # COLLAPSE ALL A MATRICIES INTO SINGLE OPERATOR
+            self._A = np.vstack(A)
+
+            self._AisSet = True
+
+            return self._A
+
+        elif self._AisSet is True:
+
+            return self._A
+
+    @property
+    def T(self):
 
         """
 This function returns the characteristic decay matrix. This function requires
@@ -372,44 +433,47 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
        None, then the field type is computed according to the receivers.
         """
 
-        assert self.ispaired, "Problem must be paired with survey to generate T matrix"
+        if self._TisSet is False:
 
-        # Remove any previously stored T matrix
-        if self.T is not None:
-            self.T = None
+            assert self.ispaired, "Problem must be paired with survey to generate T matrix"
 
-        srcList = self.survey.srcList
-        nSrc = len(srcList)
-        T = []
+            # Remove any previously stored T matrix
+            if self._T is not None:
+                self._T = None
 
-        for pp in range(0, nSrc):
+            srcList = self.survey.srcList
+            nSrc = len(srcList)
+            T = []
 
-            rxList = srcList[pp].rxList
-            nRx = len(rxList)
-            waveObj = srcList[pp].waveform
+            for pp in range(0, nSrc):
 
-            for qq in range(0, nRx):
+                rxList = srcList[pp].rxList
+                nRx = len(rxList)
+                waveObj = srcList[pp].waveform
 
-                times = rxList[qq].times
-                nLoc = np.shape(rxList[qq].locs)[0]
+                for qq in range(0, nRx):
 
-                I = sp.diags(np.ones(nLoc))
-                eta = waveObj.getCharDecay(rxList[qq].fieldType, times)
-                eta = np.matrix(eta).T
+                    times = rxList[qq].times
+                    nLoc = np.shape(rxList[qq].locs)[0]
 
-                T.append(sp.kron(I, eta))
+                    I = sp.diags(np.ones(nLoc))
+                    eta = waveObj.getCharDecay(rxList[qq].fieldType, times)
+                    eta = np.matrix(eta).T
 
-        self.T = sp.block_diag(T)
+                    T.append(sp.kron(I, eta))
+
+            self._T = sp.block_diag(T)
+            self._TisSet = True
+
+            return self._T
+
+        elif self._TisSet is True:
+
+            return self._T
 
     def fields(self, m):
 
         assert self.ispaired, "Problem must be paired with survey to predict data"
-
-        if self.A is None:
-            self.setA()
-
-        if self.T is None:
-            self.setT()
 
         m = np.matrix(m).T
 
@@ -430,12 +494,6 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
 
         assert self.ispaired, "Problem must be paired with survey to predict data"
 
-        if self.A is None:
-            self.setA()
-
-        if self.T is None:
-            self.setT()
-
         v = np.matrix(mkvc(v)).T
 
         # Project to full mesh
@@ -454,12 +512,6 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
         """Compute Pm'*Pt*A'*T'*v"""
 
         assert self.ispaired, "Problem must be paired with survey to predict data"
-
-        if self.A is None:
-            self.setA()
-
-        if self.T is None:
-            self.setT()
 
         # Get v'
         v = np.matrix(mkvc(v))
@@ -485,8 +537,10 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
             return
         self.survey._prob = None
         self._survey = None
-        self.A = None
-        self.T = None
+        self._A = None
+        self._T = None
+        self._AisSet = False
+        self._TisSet = False
 
     def _getSubsetAcolumns(self, xyzc, xyzh, pp, qq, refFlag):
 
