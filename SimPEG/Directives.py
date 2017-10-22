@@ -306,7 +306,7 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
             count += 1
 
             if getattr(prob, 'mapping', None) is not None:
-                xc = prob.mapping() * self.opt.xc
+                xc = prob.mapping * self.opt.xc
 
             else:
                 xc = self.opt.xc
