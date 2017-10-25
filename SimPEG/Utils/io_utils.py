@@ -40,7 +40,7 @@ def read_GOCAD_ts(tsfile):
         line = fid.readline()
 
         if re.match('END', line) == True:
-        line = fid.readline()
+            line = fid.readline()
         vrtx = []
 
         # Run down all the vertices and save in array
