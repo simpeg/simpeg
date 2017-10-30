@@ -173,7 +173,7 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
     return ph, ax, cbar, LEG
 
 
-def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
+def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
     """
         Load in endpoints and survey specifications to generate Tx, Rx location
         stations.
@@ -185,15 +185,11 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
         :object mesh -> SimPEG mesh object
         :switch surveyType -> "dipole-dipole" (dipole-dipole) | "pole-dipole" (pole-dipole) | 'gradient'
         : param a, n -> pole seperation, number of rx dipoles per tx
+        :str d2flag: With a 2D mesh, choose between a full 2D problem ('2D') or a 2.5D problem ('2.5D')
 
         Output:
         :param Tx, Rx -> List objects for each tx location
             Lines: P1x, P1y, P1z, P2x, P2y, P2z
-
-        Created on Wed December 9th, 2015
-
-        @author: dominiquef
-        !! Require clean up to deal with DCsurvey
     """
 
     def xy_2_r(x1, x2, y1, y2):
@@ -273,7 +269,10 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
                 P1 = np.c_[stn_x, np.ones(nstn).T*ztop]
                 # Create line of P2 locations
                 P2 = np.c_[stn_x+a*dl_x, np.ones(nstn).T*ztop]
-                rxClass = DC.Rx.Dipole_ky(P1, P2)
+                if d2flag == '2.5D':
+                    rxClass = DC.Rx.Dipole_ky(P1, P2)
+                elif d2flag =='2D':
+                    rxClass = DC.Rx.Dipole(P1, P2)
 
             if surveyType == 'dipole-dipole':
                 srcClass = DC.Src.Dipole([rxClass], M[ii, :], N[ii, :])
@@ -328,7 +327,10 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
             elif mesh.dim == 2:
                 M = M[:, [0, 2]]
                 N = N[:, [0, 2]]
-                rxClass = DC.Rx.Dipole_ky(rx[:, [0, 2]], rx[:, [3, 5]])
+                if d2flag == '2.5D':
+                    rxClass = DC.Rx.Dipole_ky(rx[:, [0, 2]], rx[:, [3, 5]])
+                elif d2flag == '2D':
+                    rxClass = DC.Rx.Dipole(rx[:, [0, 2]], rx[:, [3, 5]])
             srcClass = DC.Src.Dipole([rxClass],
                                      (endl[0, :]),
                                      (endl[1, :]))
