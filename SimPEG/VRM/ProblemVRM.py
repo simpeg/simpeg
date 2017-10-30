@@ -1,6 +1,6 @@
 from SimPEG import Problem, mkvc, Maps, Props, Solver as simpegSolver
 from SimPEG.VRM.SurveyVRM import SurveyVRM
-# from SimPEG.VRM.FieldsVRM import Fields_LinearFWD
+# from SimPEG.VRM.FieldsVRM import Fields_Linear
 import numpy as np
 import scipy.sparse as sp
 import discretize
@@ -33,8 +33,6 @@ KWARGS:
     _refFact = None
     _refRadius = None
     _topoMap = None
-    _AisSet = False
-    _TisSet = False
     surveyPair = SurveyVRM
 
     def __init__(self, mesh, **kwargs):
@@ -83,18 +81,6 @@ KWARGS:
             print("Refinement factor no longer matches length of refinement radii array. Please ensure that the number of elements in refinement radii is equal or greater than the refinement factor")
 
         self._refRadius = Array
-
-    @property
-    def topoMap(self):
-        return self._topoMap
-
-    @topoMap.setter
-    def topoMap(self, mappingObj):
-
-        assert isinstance(mappingObj, Maps.InjectActiveCells), "topoMap must be an instance of class Maps.InjectActiveCells"
-
-        self._topoMap = mappingObj
-        self._updateA = True
 
     def _getH0matrix(self, xyz, pp):
 
@@ -330,7 +316,7 @@ pp: Source index
 #############################################################################
 
 
-class LinearFWD(BaseProblemVRM):
+class LinearVRM(BaseProblemVRM):
 
     """
 Problem class for linear VRM problem. The the solution to this problem
@@ -357,19 +343,34 @@ xiMap: A Maps object which relates mesh cells to active cells
     """
 
     _A = None
+    _AisSet = False
     _T = None
+    _TisSet = False
 
     xi, xiMap, xiDeriv = Props.Invertible("Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)")
 
     def __init__(self, mesh, **kwargs):
 
-        super(LinearFWD, self).__init__(mesh, **kwargs)
+        super(LinearVRM, self).__init__(mesh, **kwargs)
+
+    @property
+    def topoMap(self):
+        return self._topoMap
+
+    @topoMap.setter
+    def topoMap(self, mappingObj):
+
+        assert isinstance(mappingObj, Maps.InjectActiveCells), "topoMap must be an instance of class Maps.InjectActiveCells"
+
+        self._topoMap = mappingObj
+        self._AisSet = False
+
 
     @property
     def A(self):
 
         """
-This function constructs the geometric sensitivity matrix for the linearVRM
+This function constructs the geometric sensitivity matrix for the linear VRM
 problem. This function requires that the problem be paired with a survey
 object.
         """
@@ -478,12 +479,10 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
         m = np.matrix(m).T
 
         # Project to full mesh
-        if self.xiMap is not None:
-            m = self.xiMap.P*m + np.matrix(self.xiMap.valInactive).T
+        m = self.xiMap.P*m + np.matrix(self.xiMap.valInactive).T
 
         # Project to topography cells
-        if self.topoMap is not None:
-            m = self.topoMap.P.T*m
+        m = self.topoMap.P.T*m
 
         # Must return as an array
         return np.array(sp.coo_matrix.dot(self.T, self.A*m))
@@ -497,15 +496,13 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
         v = np.matrix(mkvc(v)).T
 
         # Project to full mesh
-        if self.xiMap is not None:
-            v = self.xiMap.P*v
+        v = self.xiMap.P*v
 
         # Project to topography cells
-        if self.topoMap is not None:
-            v = self.topoMap.P.T*v
+        v = self.topoMap.P.T*v
 
         # Must return an array
-        return np.array(sp.coo_matrix.dot(self.T, self.A*v))
+        return np.array(sp.coo_matrix.dot(self.T[self.survey.tActive], self.A*v))
 
     def Jtvec(self, m, v, f=None):
 
@@ -515,18 +512,18 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
 
         # Get v'
         v = np.matrix(mkvc(v))
+
         # Get v'*T
-        v = sp.coo_matrix.dot(v, self.T)
+        v = sp.coo_matrix.dot(v, self.T[self.survey.tActive])
+
         # Get A'*T'*v
         v = v.dot(self.A).T
 
         # Project to topography cells
-        if self.topoMap is not None:
-            v = self.topoMap.P*v
+        v = self.topoMap.P*v
 
         # Project to full mesh
-        if self.xiMap is not None:
-            v = self.xiMap.P.T*v
+        v = self.xiMap.P.T*v
 
         # Must return an array
         return np.array(v)
