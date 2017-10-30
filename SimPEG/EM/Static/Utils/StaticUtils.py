@@ -359,6 +359,9 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
            (formatType == 'GENERAL') |
            (formatType == 'SIMPLE')), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
 
+    if(isinstance(DCsurvey.std, float)):
+        print('survey.std was a float computing uncertainty vector (survey.std*survey.dobs + survey.eps)')
+
     fid = open(fileName, 'w')
 
     if iptype != 0:
@@ -469,7 +472,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
 #                 print('array')
                 np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
             elif (isinstance(DCsurvey.std, float)):
-                print('survey.std was a float computing uncertainty vector (survey.std*survey.dobs + survey.eps)')
+                # print('survey.std was a float computing uncertainty vector (survey.std*survey.dobs + survey.eps)')
                 np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std*np.abs(DCsurvey.dobs[count:count+nD]) + DCsurvey.eps ], fmt='%e', delimiter=' ', newline='\n')
 
             fid.close()
