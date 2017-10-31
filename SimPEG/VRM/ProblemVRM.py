@@ -383,6 +383,8 @@ object.
             if self._A is not None:
                 self._A = None
 
+            print('CREATING A MATRIX')
+
             topoInd = self.topoMap.indActive
 
             # GET CELL INFORMATION FOR FORWARD MODELING
@@ -442,6 +444,8 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
             if self._T is not None:
                 self._T = None
 
+            print('CREATING T MATRIX')
+
             srcList = self.survey.srcList
             nSrc = len(srcList)
             T = []
@@ -479,51 +483,59 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
         m = np.matrix(m).T
 
         # Project to full mesh
-        m = self.xiMap.P*m + np.matrix(self.xiMap.valInactive).T
+        m = sp.csr_matrix.dot(self.xiMap.P, m) + np.matrix(self.xiMap.valInactive).T
 
         # Project to topography cells
-        m = self.topoMap.P.T*m
+        m = sp.csc_matrix.dot(self.topoMap.P.transpose(), m)
+        # m = self.topoMap.P.T*m
 
         # Must return as an array
         return np.array(sp.coo_matrix.dot(self.T, self.A*m))
 
     def Jvec(self, m, v, f=None):
 
-        """Compute T*A*Pt'*Pm*v"""
+        """Compute Pd*T*A*Pt'*Pm*v"""
 
         assert self.ispaired, "Problem must be paired with survey to predict data"
 
         v = np.matrix(mkvc(v)).T
 
         # Project to full mesh
-        v = self.xiMap.P*v
+        v = sp.csr_matrix.dot(self.xiMap.P, v)
 
         # Project to topography cells
-        v = self.topoMap.P.T*v
+        v = sp.csc_matrix.dot(self.topoMap.P.transpose(), v)
+
+        # Multiply by A
+        v = self.A*v
+
+        # Get active rows of T
+        T = self.T.tocsr()[self.survey.tActive, :]
 
         # Must return an array
-        return np.array(sp.coo_matrix.dot(self.T[self.survey.tActive], self.A*v))
+        return np.array(sp.csr_matrix.dot(T, v))
 
     def Jtvec(self, m, v, f=None):
 
-        """Compute Pm'*Pt*A'*T'*v"""
+        """Compute Pm'*Pt*A'*T'*Pd'*v"""
 
         assert self.ispaired, "Problem must be paired with survey to predict data"
 
         # Get v'
         v = np.matrix(mkvc(v))
 
-        # Get v'*T
-        v = sp.coo_matrix.dot(v, self.T[self.survey.tActive])
+        # Get T'*v
+        T = self.T.tocsr()[self.survey.tActive, :]
+        v = sp.csc_matrix.dot(T.transpose(), v.T)
 
         # Get A'*T'*v
-        v = v.dot(self.A).T
+        v = np.dot(v.T, self.A).T
 
         # Project to topography cells
-        v = self.topoMap.P*v
+        v = sp.csr_matrix.dot(self.topoMap.P, v)
 
         # Project to full mesh
-        v = self.xiMap.P.T*v
+        v = sp.csc_matrix.dot(self.xiMap.P.T, v)
 
         # Must return an array
         return np.array(v)

@@ -55,13 +55,15 @@ class SurveyVRM(Survey.BaseSurvey):
                     tActBool = np.r_[tActBool, np.kron(np.ones(nLoc), times)]
 
             self._tActIsSet = True
-            self._tActive = (tActBool >= self._tInterval[0]) & (tActBool <= self._tInterval[1])
+            self.tActive = (tActBool >= self._tInterval[0]) & (tActBool <= self._tInterval[1])
             return self._tActive
 
     @tActive.setter
     def tActive(self, BoolArgs):
         # assert
         assert len(BoolArgs) == self.nD, "Must be an array or list of boolean arguments with length equal to total number of data"
+        print('SETTING NEW ACTIVE TIMES')
+        self._tActIsSet = True
         self._tActive = BoolArgs
 
     def dpred(self, m, f=None):
@@ -73,4 +75,4 @@ class SurveyVRM(Survey.BaseSurvey):
         if f is None:
             f = self.prob.fields(m)
 
-        return f[self.tActive,:]
+        return f[self.tActive]
