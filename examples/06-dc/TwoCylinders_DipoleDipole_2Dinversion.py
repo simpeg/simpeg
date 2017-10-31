@@ -25,7 +25,6 @@ from SimPEG.EM.Static import DC, Utils as DCUtils
 import numpy as np
 import matplotlib.pyplot as plt
 from pymatsolver import PardisoSolver
-import copy
 
 np.random.seed(12345)
 
