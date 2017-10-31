@@ -85,7 +85,7 @@ expmap = Maps.ExpMap(mesh)
 mapactive = Maps.InjectActiveCells(mesh=mesh,  indActive=actind,
                                    valInactive=-5.)
 mapping = expmap*mapactive
-problem = DC.Problem3D_CC(mesh,  sigmaMap=mapping, storeJ=True)
+problem = DC.Problem3D_CC(mesh,  sigmaMap=mapping)
 problem.pair(survey)
 problem.Solver = PardisoSolver
 
