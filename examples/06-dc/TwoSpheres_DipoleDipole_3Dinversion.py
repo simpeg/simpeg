@@ -62,13 +62,13 @@ ln_sigr = -6.
 mtrue = ln_sigback*np.ones(mesh.nC)
 
 # Conductive sphere
-csph = (np.sqrt((mesh.gridCC[:, 0]-x0)**2.+(mesh.gridCC[:, 1]-y0)**2.
-        + (mesh.gridCC[:, 2]-z0)**2.)) < r0
+csph = (np.sqrt((mesh.gridCC[:, 0]-x0)**2.+(mesh.gridCC[:, 1]-y0)**2. +
+        (mesh.gridCC[:, 2]-z0)**2.)) < r0
 mtrue[csph] = ln_sigc*np.ones_like(mtrue[csph])
 
 # Resistive Sphere
-rsph = (np.sqrt((mesh.gridCC[:, 0]-x1)**2.+(mesh.gridCC[:, 1]-y1)**2.
-        + (mesh.gridCC[:, 2]-z1)**2.)) < r1
+rsph = (np.sqrt((mesh.gridCC[:, 0]-x1)**2.+(mesh.gridCC[:, 1]-y1)**2. +
+        (mesh.gridCC[:, 2]-z1)**2.)) < r1
 mtrue[rsph] = ln_sigr*np.ones_like(mtrue[rsph])
 
 # Extract Core Mesh
