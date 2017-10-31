@@ -130,7 +130,8 @@ class DCProblemTestsN(unittest.TestCase):
                 self.survey.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
             ],
             self.m0,
-            plotIt=False
+            plotIt=False,
+            num=3
         )
         self.assertTrue(passed)
 
@@ -149,7 +150,8 @@ class DCProblemTestsN(unittest.TestCase):
         passed = Tests.checkDerivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)],
             self.m0,
-            plotIt=False
+            plotIt=False,
+            num=3
         )
         self.assertTrue(passed)
 
