@@ -1,3 +1,21 @@
+"""
+3D DC inversion of Dipole Dipole array
+======================================
+
+This is an example for 3D DC Inversion. The model consists of 2 spheres,
+one conductive, the other one resistive compared to the background.
+
+We restrain the inversion to the Core Mesh through the use an Active Cells
+mapping that we combine with an exponetial mapping to invert
+in log conductivity space. Here mapping,  :math:`\\mathcal{M}`,
+indicates transformation of our model to a different space:
+
+.. math::
+    \\sigma = \\mathcal{M}(\\mathbf{m})
+
+Following example will show you how user can implement a 3D DC inversion.
+"""
+
 from SimPEG import (
     Mesh,  Problem,  Survey,  Maps,  Utils,
     EM,  DataMisfit,  Regularization,  Optimization,
