@@ -257,21 +257,21 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
 
             # Create receiver poles
 
-            if mesh.dim==3:
+            if mesh.dim == 3:
                 # Create line of P1 locations
                 P1 = np.c_[stn_x, stn_y, np.ones(nstn).T*ztop]
                 # Create line of P2 locations
                 P2 = np.c_[stn_x+a*dl_x, stn_y+a*dl_y, np.ones(nstn).T*ztop]
                 rxClass = DC.Rx.Dipole(P1, P2)
 
-            elif mesh.dim==2:
+            elif mesh.dim == 2:
                 # Create line of P1 locations
                 P1 = np.c_[stn_x, np.ones(nstn).T*ztop]
                 # Create line of P2 locations
                 P2 = np.c_[stn_x+a*dl_x, np.ones(nstn).T*ztop]
                 if d2flag == '2.5D':
                     rxClass = DC.Rx.Dipole_ky(P1, P2)
-                elif d2flag =='2D':
+                elif d2flag == '2D':
                     rxClass = DC.Rx.Dipole(P1, P2)
 
             if surveyType == 'dipole-dipole':
