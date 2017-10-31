@@ -7,57 +7,47 @@ from SimPEG.EM.Static import DC, Utils as DCUtils
 import numpy as np
 import matplotlib.pyplot as plt
 from pymatsolver import PardisoSolver
+import copy
 
 np.random.seed(12345)
 
-# 3D Mesh
+# 2D Mesh
 #########
-
-# Cell sizes
-csx,  csy,  csz = 1.,  1.,  0.5
+csx, csz = 0.25, 0.25
 # Number of core cells in each direction
-ncx, ncy,  ncz = 41, 31,  21
+ncx,  ncz = 123,  41
 # Number of padding cells to add in each direction
-npad = 7
-# Vectors of cell lengths in each direction with padding
+npad = 12
+# Vectors of cell lengthts in each direction
 hx = [(csx, npad,  -1.5), (csx, ncx), (csx, npad,  1.5)]
-hy = [(csy, npad,  -1.5), (csy, ncy), (csy, npad,  1.5)]
 hz = [(csz, npad, -1.5), (csz, ncz)]
-# Create mesh and center it
-mesh = Mesh.TensorMesh([hx, hy, hz], x0="CCN")
+# Create mesh
+mesh = Mesh.TensorMesh([hx,  hz], x0="CN")
 mesh.x0[1] = mesh.x0[1]+csz/2.
 
-# 2-spheres Model Creation
+# 2-cylinders Model Creation
 ##########################
-
 # Spheres parameters
-x0, y0, z0, r0 = -6., 0., -3.5,  3.
-x1, y1, z1, r1 = 6., 0., -3.5,  3.
+x0,  z0,  r0 = -6.,  -5.,  3.
+x1,  z1,  r1 = 6.,  -5.,  3.
 
-# ln conductivity
 ln_sigback = -5.
 ln_sigc = -3.
 ln_sigr = -6.
 
-# Define model
-# Background
 mtrue = ln_sigback*np.ones(mesh.nC)
 
-# Conductive sphere
-csph = (np.sqrt((mesh.gridCC[:, 0]-x0)**2.+(mesh.gridCC[:, 1]-y0)**2.
-        + (mesh.gridCC[:, 2]-z0)**2.)) < r0
+csph = (np.sqrt((mesh.gridCC[:, 1]-z0)**2.+(mesh.gridCC[:, 0]-x0)**2.)) < r0
 mtrue[csph] = ln_sigc*np.ones_like(mtrue[csph])
 
-# Resistive Sphere
-rsph = (np.sqrt((mesh.gridCC[:, 0]-x1)**2.+(mesh.gridCC[:, 1]-y1)**2.
-        + (mesh.gridCC[:, 2]-z1)**2.)) < r1
+# Define the sphere limit
+rsph = (np.sqrt((mesh.gridCC[:, 1]-z1)**2.+(mesh.gridCC[:, 0]-x1)**2.)) < r1
 mtrue[rsph] = ln_sigr*np.ones_like(mtrue[rsph])
 
-# Extract Core Mesh
-xmin,  xmax = -20., 20.
-ymin,  ymax = -15., 15.
-zmin, zmax = -10., 0.
-xyzlim = np.r_[[[xmin, xmax], [ymin, ymax], [zmin, zmax]]]
+mtrue = Utils.mkvc(mtrue)
+xmin,  xmax = -15., 15
+ymin,  ymax = -15., 0.
+xyzlim = np.r_[[[xmin, xmax], [ymin, ymax]]]
 actind,  meshCore = Utils.meshutils.ExtractCoreMesh(xyzlim, mesh)
 
 
@@ -82,113 +72,74 @@ def getCylinderPoints(xc, zc, r):
     cylinderPoints = np.vstack([cylinderPoints, topHalf[0, :]])
     return cylinderPoints
 
-# Setup a synthetic Dipole-Dipole Survey
-# Line 1
+# Setup a Dipole-Dipole Survey
 xmin, xmax = -15., 15.
 ymin, ymax = 0., 0.
 zmin, zmax = 0, 0
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey1 = DCUtils.gen_DCIPsurvey(endl, mesh, "dipole-dipole",
-                                 a=3, b=3, n=8)
-
-# Line 2
-xmin, xmax = -15., 15.
-ymin, ymax = 5., 5.
-zmin, zmax = 0, 0
-endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey2 = DCUtils.gen_DCIPsurvey(endl, mesh, "dipole-dipole",
-                                 a=3, b=3, n=8)
-
-# Line 3
-xmin, xmax = -15., 15.
-ymin, ymax = -5., -5.
-zmin, zmax = 0, 0
-endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey3 = DCUtils.gen_DCIPsurvey(endl, mesh, "dipole-dipole",
-                                 a=3, b=3, n=8)
-
-# Concatenate lines
-survey = DC.Survey(survey1.srcList + survey2.srcList + survey3.srcList)
+survey = DCUtils.gen_DCIPsurvey(endl, mesh, "dipole-dipole",
+                                a=1, b=1, n=10, d2flag='2D')
 
 # Setup Problem with exponential mapping and Active cells only in the core mesh
 expmap = Maps.ExpMap(mesh)
 mapactive = Maps.InjectActiveCells(mesh=mesh,  indActive=actind,
                                    valInactive=-5.)
 mapping = expmap*mapactive
-problem = DC.Problem3D_CC(mesh, sigmaMap=mapping)
+problem = DC.Problem3D_CC(mesh,  sigmaMap=mapping, storeJ=True)
 problem.pair(survey)
 problem.Solver = PardisoSolver
 
 survey.dpred(mtrue[actind])
 survey.makeSyntheticData(mtrue[actind], std=0.05, force=True)
 
+
 #####################
 # Tikhonov Inversion#
 #####################
 
-# Initial Model
 m0 = np.median(ln_sigback)*np.ones(mapping.nP)
-# Data Misfit
 dmis = DataMisfit.l2_DataMisfit(survey)
-# Regularization
-regT = Regularization.Simple(mesh, indActive=actind, alpha_s=1e-6,
-                             alpha_x=1., alpha_y=1., alpha_z=1.)
+regT = Regularization.Simple(mesh, indActive=actind)
 
-# Optimization Scheme
-opt = Optimization.InexactGaussNewton(maxIter=10)
+# Personal preference for this solver with a Jacobi preconditioner
+opt = Optimization.ProjectedGNCG(maxIter=5, lower=-10, upper=10,
+                                 maxIterLS=20, maxIterCG=30, tolCG=1e-4)
 
-# Form the problem
 opt.remember('xc')
 invProb = InvProblem.BaseInvProblem(dmis,  regT,  opt)
 
-# Directives for Inversions
-beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e+1)
+beta = Directives.BetaEstimate_ByEig(beta0_ratio=1.)
 Target = Directives.TargetMisfit()
 betaSched = Directives.BetaSchedule(coolingFactor=5.,  coolingRate=2)
 
 inv = Inversion.BaseInversion(invProb,  directiveList=[beta, Target,
                                                        betaSched])
-# Run Inversion
+
 minv = inv.run(m0)
+
 
 # Final Plot
 ############
 
-fig, ax = plt.subplots(2, 2, figsize=(12, 6))
+fig, ax = plt.subplots(1, 2, figsize=(12, 6))
 ax = Utils.mkvc(ax)
 
 cyl0v = getCylinderPoints(x0, z0, r0)
 cyl1v = getCylinderPoints(x1, z1, r1)
 
-cyl0h = getCylinderPoints(x0, y0, r0)
-cyl1h = getCylinderPoints(x1, y1, r1)
-
 clim = [(mtrue[actind]).min(), (mtrue[actind]).max()]
 
-dat = meshCore.plotSlice(((mtrue[actind])), ax=ax[0], normal='Y', clim=clim,
-                         ind=int(ncy/2))
-ax[0].set_title('Ground Truth, Vertical')
+dat = meshCore.plotImage(((mtrue[actind])), ax=ax[0], clim=clim)
+ax[0].set_title('Ground Truth')
 ax[0].set_aspect('equal')
 
-meshCore.plotSlice((minv), ax=ax[1], normal='Y', clim=clim, ind=int(ncy/2))
+meshCore.plotImage((minv), ax=ax[1], clim=clim)
 ax[1].set_aspect('equal')
-ax[1].set_title('Inverted Model, Vertical')
-
-meshCore.plotSlice(((mtrue[actind])), ax=ax[2], normal='Z', clim=clim,
-                   ind=int(ncz/2))
-ax[2].set_title('Ground Truth, Horizontal')
-ax[2].set_aspect('equal')
-
-meshCore.plotSlice((minv), ax=ax[3], normal='Z', clim=clim, ind=int(ncz/2))
-ax[3].set_title('Inverted Model, Horizontal')
-ax[3].set_aspect('equal')
+ax[1].set_title('Inverted Model')
 
 for i in range(2):
     ax[i].plot(cyl0v[:, 0], cyl0v[:, 1], 'k--')
     ax[i].plot(cyl1v[:, 0], cyl1v[:, 1], 'k--')
-for i in range(2, 4):
-    ax[i].plot(cyl1h[:, 0], cyl1h[:, 1], 'k--')
-    ax[i].plot(cyl0h[:, 0], cyl0h[:, 1], 'k--')
 
 fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
