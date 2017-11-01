@@ -32,7 +32,8 @@ KWARGS:
     # SET CLASS ATTRIBUTES
     _refFact = None
     _refRadius = None
-    _topoMap = None
+    _indActive = None
+
     surveyPair = SurveyVRM
 
     def __init__(self, mesh, **kwargs):
@@ -40,13 +41,13 @@ KWARGS:
         # **kwargs
         self._refFact = kwargs.get('refFact', 3)
         self._refRadius = kwargs.get('refRadius', 1.25*np.mean(np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])])*np.arange(1, self.refFact+1))
-        self._topoMap = kwargs.get('topoMap', Maps.InjectActiveCells(mesh, np.ones(mesh.nC, dtype=bool), np.array([])))
+        self._indActive = kwargs.get('indActive', np.ones(mesh.nC, dtype=bool))
 
         # Assertions
         assert len(mesh.h) == 3, 'Problem requires 3D tensor or OcTree mesh'
         assert isinstance(self._refFact, int), "Refinement factor must be set as an integer"
         assert len(self._refRadius) >= self._refFact, 'Number of refinement radii must equal or greater than refinement factor'
-        assert isinstance(self._topoMap, Maps.InjectActiveCells), "topoMap must be an instance of class Maps.InjectActiveCells"
+        assert list(self._indActive).count(True) + list(self._indActive).count(False) == len(self._indActive), "indActive must be a boolean array"
 
         if self.refFact > 4:
             print("Refinement factor larger than 4 may result in computations which exceed memory limits")
@@ -59,6 +60,7 @@ KWARGS:
 
     @refFact.setter
     def refFact(self, Val):
+
         assert isinstance(Val, int) and Val > -1, "Refinement factor must be an integer value equal or larger than 0"
 
         if Val != len(self._refRadius):
@@ -81,6 +83,17 @@ KWARGS:
             print("Refinement factor no longer matches length of refinement radii array. Please ensure that the number of elements in refinement radii is equal or greater than the refinement factor")
 
         self._refRadius = Array
+
+    @property
+    def indActive(self):
+        return self._indActive
+
+    @indActive.setter
+    def indActive(self, Vec):
+
+        assert list(self._indActive).count(True) + list(self._indActive).count(False) == len(self._indActive), "indActive must be a boolean array"
+
+        self._indActive = Vec
 
     def _getH0matrix(self, xyz, pp):
 
@@ -346,6 +359,7 @@ xiMap: A Maps object which relates mesh cells to active cells
     _AisSet = False
     _T = None
     _TisSet = False
+    _xiMap = None
 
     xi, xiMap, xiDeriv = Props.Invertible("Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)")
 
@@ -353,18 +367,19 @@ xiMap: A Maps object which relates mesh cells to active cells
 
         super(LinearVRM, self).__init__(mesh, **kwargs)
 
+        nAct = list(self._indActive).count(True)
+        self._xiMap = kwargs.get('xiMap', Maps.IdentityMap(nP=nAct))
+
     @property
-    def topoMap(self):
-        return self._topoMap
+    def xiMap(self):
+        return self._xiMap
 
-    @topoMap.setter
-    def topoMap(self, mappingObj):
+    @xiMap.setter
+    def xiMap(self, MapObj):
 
-        assert isinstance(mappingObj, Maps.InjectActiveCells), "topoMap must be an instance of class Maps.InjectActiveCells"
+        # assert isinstance(MapObj, SimPEG.Maps), "xiMap must be a mapping object"
 
-        self._topoMap = mappingObj
-        self._AisSet = False
-
+        self._xiMap = MapObj
 
     @property
     def A(self):
@@ -385,12 +400,12 @@ object.
 
             print('CREATING A MATRIX')
 
-            topoInd = self.topoMap.indActive
+            indActive = self.indActive
 
             # GET CELL INFORMATION FOR FORWARD MODELING
             meshObj = self.mesh
-            xyzc = meshObj.gridCC[topoInd, :]
-            xyzh = meshObj.gridH[topoInd, :]
+            xyzc = meshObj.gridCC[indActive, :]
+            xyzh = meshObj.gridH[indActive, :]
 
             # GET A MATRIX
             A = []
@@ -482,12 +497,8 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
 
         m = np.matrix(m).T
 
-        # Project to full mesh
-        m = sp.csr_matrix.dot(self.xiMap.P, m) + np.matrix(self.xiMap.valInactive).T
-
-        # Project to topography cells
-        m = sp.csc_matrix.dot(self.topoMap.P.transpose(), m)
-        # m = self.topoMap.P.T*m
+        # Project to active mesh cells
+        m = sp.csr_matrix.dot(self.xiMap.P, m)
 
         # Must return as an array
         return np.array(sp.coo_matrix.dot(self.T, self.A*m))
@@ -500,16 +511,13 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
 
         v = np.matrix(mkvc(v)).T
 
-        # Project to full mesh
+        # Project to active mesh cells
         v = sp.csr_matrix.dot(self.xiMap.P, v)
-
-        # Project to topography cells
-        v = sp.csc_matrix.dot(self.topoMap.P.transpose(), v)
 
         # Multiply by A
         v = self.A*v
 
-        # Get active rows of T
+        # Get active time rows of T
         T = self.T.tocsr()[self.survey.tActive, :]
 
         # Must return an array
@@ -531,10 +539,7 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
         # Get A'*T'*v
         v = np.dot(v.T, self.A).T
 
-        # Project to topography cells
-        v = sp.csr_matrix.dot(self.topoMap.P, v)
-
-        # Project to full mesh
+        # Project to full active mesh cells
         v = sp.csc_matrix.dot(self.xiMap.P.T, v)
 
         # Must return an array
