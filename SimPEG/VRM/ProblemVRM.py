@@ -33,6 +33,7 @@ KWARGS:
     _refFact = None
     _refRadius = None
     _indActive = None
+    _GeometryIsSet = False
 
     surveyPair = SurveyVRM
 
@@ -92,7 +93,7 @@ KWARGS:
     def indActive(self, Vec):
 
         assert list(self._indActive).count(True) + list(self._indActive).count(False) == len(self._indActive), "indActive must be a boolean array"
-
+        self._GeometryIsSet = False
         self._indActive = Vec
 
     def _getH0matrix(self, xyz, pp):
@@ -356,7 +357,6 @@ xiMap: A Maps object which relates mesh cells to active cells
     """
 
     _A = None
-    _AisSet = False
     _T = None
     _TisSet = False
     _xiMap = None
@@ -375,11 +375,10 @@ xiMap: A Maps object which relates mesh cells to active cells
         return self._xiMap
 
     @xiMap.setter
-    def xiMap(self, MapObj):
-
-        # assert isinstance(MapObj, SimPEG.Maps), "xiMap must be a mapping object"
-
-        self._xiMap = MapObj
+    def xiMap(self, mappingObj):
+        # Assert Statement???
+        self._GeometryIsSet = False
+        self._xiMap = mappingObj
 
     @property
     def A(self):
@@ -390,7 +389,7 @@ problem. This function requires that the problem be paired with a survey
 object.
         """
 
-        if self._AisSet is False:
+        if self._GeometryIsSet is False:
 
             assert self.ispaired, "Problem must be paired with survey to generate A matrix"
 
@@ -432,11 +431,11 @@ object.
             # COLLAPSE ALL A MATRICIES INTO SINGLE OPERATOR
             self._A = np.vstack(A)
 
-            self._AisSet = True
+            self._GeometryIsSet = True
 
             return self._A
 
-        elif self._AisSet is True:
+        elif self._GeometryIsSet is True:
 
             return self._A
 
@@ -495,10 +494,8 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
 
         assert self.ispaired, "Problem must be paired with survey to predict data"
 
-        m = np.matrix(m).T
-
         # Project to active mesh cells
-        m = sp.csr_matrix.dot(self.xiMap.P, m)
+        m = np.matrix(self.xiMap * m).T
 
         # Must return as an array
         return np.array(sp.coo_matrix.dot(self.T, self.A*m))
