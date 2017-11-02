@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.special as spec
 
 ###################################################
 #           STEP OFF WAVEFORM
@@ -26,7 +27,7 @@ t0: The start of the off-time
         """
 Characteristic decay function for step-off waveform. This function describes
 the decay of the VRM response for the Linear problem type. Note that the
-current will be normalized by its maximum value. The maximum current in the
+current will be LogUniformized by its maximum value. The maximum current in the
 transmitter is specified in the source object.
 
 INPUTS:
@@ -49,7 +50,35 @@ the off-time.
 
         return eta
 
-    # def getTrueDecay(self, fieldType, times, chi0, dchi, tau1, tau2):
+    def getLogUniformDecay(self, fieldType, times, chi0, dchi, tau1, tau2):
+
+        assert fieldType in ["h", "dhdt", "b", "dbdt"], "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' "
+
+        nT = len(times)
+        nC = len(dchi)
+        t0 = self.t0
+
+        times = np.kron(np.ones((nC, 1)), times)
+        chi0 = np.kron(np.reshape(chi0, newshape=(nC, 1)), np.ones((1, nT)))
+        dchi = np.kron(np.reshape(dchi, newshape=(nC, 1)), np.ones((1, nT)))
+        tau1 = np.kron(np.reshape(tau1, newshape=(nC, 1)), np.ones((1, nT)))
+        tau2 = np.kron(np.reshape(tau2, newshape=(nC, 1)), np.ones((1, nT)))
+
+        if fieldType is "h":
+            eta = 0.5*(1-np.sign(times-t0-1e-12))*(chi0 + dchi) + 0.5*(1+np.sign(times-t0-1e-12))*(dchi/np.log(tau2/tau1))*(spec.expi(-(times-t0)/tau2) - spec.expi(-(times-t0)/tau1))
+        elif fieldType is "b":
+            mu0 = 4*np.pi*1e-7
+            eta = 0.5*(1-np.sign(times-t0-1e-12))*(chi0 + dchi) + 0.5*(1+np.sign(times-t0-1e-12))*(dchi/np.log(tau2/tau1))*(spec.expi(-(times-t0)/tau2) - spec.expi(-(times-t0)/tau1))
+            eta = mu0*eta
+        elif fieldType is "dhdt":
+            eta = 0. + 0.5*(1+np.sign(times-t0-1e-12))*(dchi/np.log(tau2/tau1))*(np.exp(-(times-t0)/tau1) - np.exp(-(times-t0/tau2)))/(times-t0)
+        elif fieldType is "dbdt":
+            mu0 = 4*np.pi*1e-7
+            eta = 0. + 0.5*(1+np.sign(times-t0-1e-12))*(dchi/np.log(tau2/tau1))*(np.exp(-(times-t0)/tau1) - np.exp(-(times-t0/tau2)))/(times-t0)
+            eta = mu0*eta
+
+        return eta
+
 
 ###################################################
 #           SQUARE PULSE WAVEFORM
@@ -80,7 +109,7 @@ t0: The start of the off-time
         """
 Characteristic decay function for square-pulse waveform. This function
 describes the decay of the VRM response for the Linear problem type. Note that
-the current will be normalized by its maximum value. The maximum current in the
+the current will be LogUniformized by its maximum value. The maximum current in the
 transmitter is specified in the source object.
 
 INPUTS:
@@ -116,7 +145,7 @@ class Arbitrary():
 
     """
 Arbitrary waveform for predicting VRM response. Note that the current will be
-normalized by its maximum value. The maximum current in the transmitter is
+LogUniformized by its maximum value. The maximum current in the transmitter is
 specified in the source object.
 
 INPUTS:
@@ -138,7 +167,7 @@ I: Current for the waveform
         """
 Characteristic decay function for arbitrary waveform. This function describes
 the decay of the VRM response for the Linear problem type. Note that the
-current will be normalized by its maximum value. The maximum current in the
+current will be LogUniformized by its maximum value. The maximum current in the
 transmitter is specified in the source object.
 
 INPUTS:

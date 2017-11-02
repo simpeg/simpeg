@@ -16,16 +16,17 @@ Base class for VRM problem.
 
 REQUIRED ARGUMENTS:
 
-    mesh: 3D tensor or OcTree mesh
+mesh: 3D tensor or OcTree mesh
 
 KWARGS:
 
-    refFact: Maximum refinement factor for sensitivities (default = 3)
-    refRadius: Distances from source in which cell sensitivities are refined.
-               Must be an array or list with elements equal to the refFact.
-               (default based on minimum cell size)
-    topoMap: A Maps object which operates from mesh cells to cells which are
-             computed in the forward model (default is all mesh cells)
+refFact: Maximum refinement factor for sensitivities (default = 3)
+refRadius: Distances from source in which cell sensitivities are refined.
+           Must be an array or list with elements equal to the refFact.
+           (default based on minimum cell size)
+indActive: A numpy array with boolean entries, where the True entries
+           refer to topography cell which will be computed in the
+           forward model (default is all mesh cells)
 
     """
 
@@ -33,7 +34,7 @@ KWARGS:
     _refFact = None
     _refRadius = None
     _indActive = None
-    _GeometryIsSet = False
+    _AisSet = False
 
     surveyPair = SurveyVRM
 
@@ -93,7 +94,7 @@ KWARGS:
     def indActive(self, Vec):
 
         assert list(self._indActive).count(True) + list(self._indActive).count(False) == len(self._indActive), "indActive must be a boolean array"
-        self._GeometryIsSet = False
+        self._AisSet = False
         self._indActive = Vec
 
     def _getH0matrix(self, xyz, pp):
@@ -324,6 +325,74 @@ pp: Source index
 
         return np.matrix(G)
 
+    def _getAMatricies(self):
+
+        indActive = self.indActive
+
+        # GET CELL INFORMATION FOR FORWARD MODELING
+        meshObj = self.mesh
+        xyzc = meshObj.gridCC[indActive, :]
+        xyzh = meshObj.gridH[indActive, :]
+
+        # GET LIST OF A MATRICIES
+        A = []
+        for pp in range(0, self.survey.nSrc):
+
+            # Create initial A matrix
+            G = self._getGeometryMatrix(xyzc, xyzh, pp)
+            H0 = self._getH0matrix(xyzc, pp)
+            A.append(G*H0)
+
+            # Refine A matrix
+            refFact = self.refFact
+            refRadius = self.refRadius
+
+            if refFact > 0:
+
+                srcObj = self.survey.srcList[pp]
+                refFlag = srcObj._getRefineFlags(xyzc, refFact, refRadius)
+
+                for qq in range(1, refFact+1):
+
+                    A[pp][:, refFlag == qq] = self._getSubsetAcolumns(xyzc, xyzh, pp, qq, refFlag)
+
+        return A
+
+    def _getSubsetAcolumns(self, xyzc, xyzh, pp, qq, refFlag):
+
+        """
+This method returns the refined sensitivities for columns that will be replaced
+in the A matrix for source pp and refinement factor qq.
+
+INPUTS:
+
+    xyzc: Cell centers of topo mesh cells N X 3 array
+    xyzh: Cell widths of topo mesh cells N X 3 array
+    pp: Source ID
+    qq: Mesh refinement factor
+    refFlag: refinement factors for all topo mesh cells
+        """
+
+        # GET SUBMESH GRID
+        n = 2**qq
+        [nx, ny, nz] = np.meshgrid(np.linspace(1, n, n)-0.5, np.linspace(1, n, n)-0.5, np.linspace(1, n, n)-0.5)
+        nxyz_sub = np.c_[mkvc(nx), mkvc(ny), mkvc(nz)]
+
+        xyzh_sub = xyzh[refFlag == qq, :]     # Get widths of cells to be refined
+        xyzc_sub = xyzc[refFlag == qq, :] - xyzh[refFlag == qq, :]/2   # Get bottom southwest corners of cells to be refined
+        m = np.shape(xyzc_sub)[0]
+        xyzc_sub = np.kron(xyzc_sub, np.ones((n**3, 1)))     # Kron for n**3 refined cells
+        xyzh_sub = np.kron(xyzh_sub/n, np.ones((n**3, 1)))   # Kron for n**3 refined cells with widths h/n
+        nxyz_sub = np.kron(np.ones((m, 1)), nxyz_sub)        # Kron for n**3 refined cells
+        xyzc_sub = xyzc_sub + xyzh_sub*nxyz_sub
+
+        # GET SUBMESH A MATRIX AND COLLAPSE TO COLUMNS
+        G = self._getGeometryMatrix(xyzc_sub, xyzh_sub, pp)
+        H0 = self._getH0matrix(xyzc_sub, pp)
+        Acols = (G*H0)*sp.kron(sp.diags(np.ones(m)), np.ones((n**3, 1)))
+
+        return Acols
+
 
 #############################################################################
 # VRM CHARACTERISTIC DECAY FORMULATION (SINGLE MODEL PARAMETER AND INVERSION)
@@ -340,19 +409,20 @@ response during the off-time. For background theory, see Cowan (2016).
 
 REQUIRED ARGUMENTS:
 
-mesh: 3D tensor or OcTree mesh
+    mesh: 3D tensor or OcTree mesh
 
 KWARGS:
 
 refFact: Maximum refinement factor for sensitivities (default = 3)
+refRadius: Distances from source in which cell sensitivities are refined.
+           Must be an array or list with elements equal to the refFact.
+            (default based on minimum cell size)
+indActive: A numpy array with boolean entries, where the True entries
+           refer to topography cell which will be computed in the
+           forward model (default is all mesh cells)
 
-refRadius: Distances from source in which cell sensitivities are refined. Must
-be an array or list with number of elements equal to refFact.
-
-topoMap: A Maps object which relates mesh cells to cells which are computed in
-the forward model (default is all mesh cells)
-
-xiMap: A Maps object which relates mesh cells to active cells
+xiMap: A SimPEG mapping object which maps the model to the active
+       topography cells (i.e. indActive)
 
     """
 
@@ -377,7 +447,7 @@ xiMap: A Maps object which relates mesh cells to active cells
     @xiMap.setter
     def xiMap(self, mappingObj):
         # Assert Statement???
-        self._GeometryIsSet = False
+        self._AisSet = False
         self._xiMap = mappingObj
 
     @property
@@ -389,7 +459,7 @@ problem. This function requires that the problem be paired with a survey
 object.
         """
 
-        if self._GeometryIsSet is False:
+        if self._AisSet is False:
 
             assert self.ispaired, "Problem must be paired with survey to generate A matrix"
 
@@ -399,43 +469,13 @@ object.
 
             print('CREATING A MATRIX')
 
-            indActive = self.indActive
-
-            # GET CELL INFORMATION FOR FORWARD MODELING
-            meshObj = self.mesh
-            xyzc = meshObj.gridCC[indActive, :]
-            xyzh = meshObj.gridH[indActive, :]
-
-            # GET A MATRIX
-            A = []
-            for pp in range(0, self.survey.nSrc):
-
-                # Create initial A matrix
-                G = self._getGeometryMatrix(xyzc, xyzh, pp)
-                H0 = self._getH0matrix(xyzc, pp)
-                A.append(G*H0)
-
-                # Refine A matrix
-                refFact = self.refFact
-                refRadius = self.refRadius
-
-                if refFact > 0:
-
-                    srcObj = self.survey.srcList[pp]
-                    refFlag = srcObj._getRefineFlags(xyzc, refFact, refRadius)
-
-                    for qq in range(1, refFact+1):
-
-                        A[pp][:, refFlag == qq] = self._getSubsetAcolumns(xyzc, xyzh, pp, qq, refFlag)
-
             # COLLAPSE ALL A MATRICIES INTO SINGLE OPERATOR
-            self._A = np.vstack(A)
-
-            self._GeometryIsSet = True
+            self._A = np.vstack(self._getAMatricies())
+            self._AisSet = True
 
             return self._A
 
-        elif self._GeometryIsSet is True:
+        elif self._AisSet is True:
 
             return self._A
 
@@ -553,49 +593,115 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
         self._AisSet = False
         self._TisSet = False
 
-    def _getSubsetAcolumns(self, xyzc, xyzh, pp, qq, refFlag):
+
+class LogUniformVRM(BaseProblemVRM):
+
+    """
+Problem class for VRM assuming a log-normal distribution of time-relaxation
+constants. This model for VRM requires 4 model parameters for each cell:
+chi0, dchi, tau1, tau2.
+
+REQUIRED ARGUMENTS:
+
+mesh: 3D tensor or OcTree mesh
+
+KWARGS:
+
+refFact: Maximum refinement factor for sensitivities (default = 3)
+refRadius: Distances from source in which cell sensitivities are refined.
+           Must be an array or list with elements equal to the refFact.
+            (default based on minimum cell size)
+indActive: A numpy array with boolean entries, where the True entries
+           refer to topography cell which will be computed in the
+           forward model (default is all mesh cells)
+
+xiMap: A SimPEG mapping object which maps the model to the active
+       topography cells (i.e. indActive)
+
+    """
+
+    _A = None
+    _T = None
+    _TisSet = False
+    _xiMap = None
+
+    xi, xiMap, xiDeriv = Props.Invertible("Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)")
+
+    def __init__(self, mesh, **kwargs):
+
+        super(LogUniformVRM, self).__init__(mesh, **kwargs)
+
+        nAct = list(self._indActive).count(True)
+        self._xiMap = kwargs.get('xiMap', Maps.IdentityMap(nP=nAct))
+
+    @property
+    def xiMap(self):
+        return self._xiMap
+
+    @xiMap.setter
+    def xiMap(self, mappingObj):
+        # Assert Statement???
+        self._AisSet = False
+        self._xiMap = mappingObj
+
+    @property
+    def A(self):
 
         """
-This method returns the refined sensitivities for columns that will be replaced
-in the A matrix for source pp and refinement factor qq.
-
-INPUTS:
-
-    xyzc: Cell centers of topo mesh cells N X 3 array
-    xyzh: Cell widths of topo mesh cells N X 3 array
-    pp: Source ID
-    qq: Mesh refinement factor
-    refFlag: refinement factors for all topo mesh cells
+This function constructs the geometric sensitivity matrix for the VRM
+problem. This function requires that the problem be paired with a survey
+object.
         """
 
-        # GET SUBMESH GRID
-        n = 2**qq
-        [nx, ny, nz] = np.meshgrid(np.linspace(1, n, n)-0.5, np.linspace(1, n, n)-0.5, np.linspace(1, n, n)-0.5)
-        nxyz_sub = np.c_[mkvc(nx), mkvc(ny), mkvc(nz)]
+        if self._AisSet is False:
 
-        xyzh_sub = xyzh[refFlag == qq, :]     # Get widths of cells to be refined
-        xyzc_sub = xyzc[refFlag == qq, :] - xyzh[refFlag == qq, :]/2   # Get bottom southwest corners of cells to be refined
-        m = np.shape(xyzc_sub)[0]
-        xyzc_sub = np.kron(xyzc_sub, np.ones((n**3, 1)))     # Kron for n**3 refined cells
-        xyzh_sub = np.kron(xyzh_sub/n, np.ones((n**3, 1)))   # Kron for n**3 refined cells with widths h/n
-        nxyz_sub = np.kron(np.ones((m, 1)), nxyz_sub)        # Kron for n**3 refined cells
-        xyzc_sub = xyzc_sub + xyzh_sub*nxyz_sub
+            assert self.ispaired, "Problem must be paired with survey to generate A matrix"
 
-        # GET SUBMESH A MATRIX AND COLLAPSE TO COLUMNS
-        G = self._getGeometryMatrix(xyzc_sub, xyzh_sub, pp)
-        H0 = self._getH0matrix(xyzc_sub, pp)
-        Acols = (G*H0)*sp.kron(sp.diags(np.ones(m)), np.ones((n**3, 1)))
+            # Remove any previously stored A matrix
+            if self._A is not None:
+                self._A = None
 
-        return Acols
+            print('CREATING A MATRIX')
 
+            # COLLAPSE ALL A MATRICIES INTO SINGLE OPERATOR
+            self._A = self._getAMatricies()
+            self._AisSet = True
 
+            return self._A
 
+        elif self._AisSet is True:
 
+            return self._A
 
+    def fields(self, m_chi0, m_dchi, m_tau1, m_tau2):
 
+        assert self.ispaired, "Problem must be paired with survey to predict data"
 
+        # Extract viscosity parameters
+        chi0 = self.xiMap*m_chi0
+        dchi = self.xiMap*m_dchi
+        tau1 = self.xiMap*m_tau1
+        tau2 = self.xiMap*m_tau2
 
+        # Fields from each source
+        srcList = self.survey.srcList
+        nSrc = len(srcList)
+        f = []
 
+        for pp in range(0, nSrc):
+
+            rxList = srcList[pp].rxList
+            nRx = len(rxList)
+            waveObj = srcList[pp].waveform
+
+            for qq in range(0, nRx):
+
+                times = rxList[qq].times
+                eta = waveObj.getLogUniformDecay(rxList[qq].fieldType, times, chi0, dchi, tau1, tau2)
+
+                f.append(mkvc((self.A[qq] * np.matrix(eta)).T))
+
+        return np.vstack(f)
 
 
 
