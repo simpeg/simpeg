@@ -701,7 +701,7 @@ object.
 
                 f.append(mkvc((self.A[qq] * np.matrix(eta)).T))
 
-        return np.vstack(f)
+        return np.array(np.hstack(f))
 
 
 

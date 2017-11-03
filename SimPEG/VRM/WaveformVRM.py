@@ -15,7 +15,7 @@ INPUTS:
 
 KWARGS:
 
-t0: The start of the off-time
+t0: The start of the off-time (default is 0)
 """
 
     def __init__(self, t0=0.):
@@ -26,15 +26,15 @@ t0: The start of the off-time
 
         """
 Characteristic decay function for step-off waveform. This function describes
-the decay of the VRM response for the Linear problem type. Note that the
-current will be LogUniformized by its maximum value. The maximum current in the
+the decay of the VRM response for the linear problem type. Note that the
+current will be normalized by its maximum value. The maximum current in the
 transmitter is specified in the source object.
 
 INPUTS:
 
-fieldType: must be 'dhdt' or 'dbdt'. Characteristic decay for 'h' or 'b' cannot
-be computed for step-off times: Observation times. These times must be during
-the off-time.
+fieldType: must be 'dhdt' or 'dbdt'. Characteristic decay for 'h' or 'b' CANNOT
+    be computed for step-off
+times: Observation times. These times MUST be during the off-time.
         """
 
         assert fieldType in ["dhdt", "dbdt"], "For step-off, fieldType must be one of 'dhdt' or 'dbdt' and cannot be 'h' or 'b'"
@@ -52,6 +52,21 @@ the off-time.
 
     def getLogUniformDecay(self, fieldType, times, chi0, dchi, tau1, tau2):
 
+        """
+Decay function for a step-off waveform for log-uniform distribtuion of
+time-relaxation constants. The output of this function is the magnetization
+at each time for each cell, normalized by the inducing field.
+
+INPUTS:
+
+fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
+times: Observation times.
+chi0: DC (zero-frequency) magnetic susceptibility
+dchi: DC (zero-frequency) magnetic susceptibility attributed to VRM
+tau1: Lower-bound for log-uniform distribution of time-relaxation constants
+tau2: Upper-bound for log-uniform distribution of time-relaxation constants
+        """
+
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' "
 
         nT = len(times)
@@ -65,16 +80,30 @@ the off-time.
         tau2 = np.kron(np.reshape(tau2, newshape=(nC, 1)), np.ones((1, nT)))
 
         if fieldType is "h":
-            eta = 0.5*(1-np.sign(times-t0-1e-12))*(chi0 + dchi) + 0.5*(1+np.sign(times-t0-1e-12))*(dchi/np.log(tau2/tau1))*(spec.expi(-(times-t0)/tau2) - spec.expi(-(times-t0)/tau1))
+            eta = (
+                0.5*(1-np.sign(times-t0))*chi0 +
+                0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
+                (spec.expi(-(times-t0)/tau2) - spec.expi(-(times-t0)/tau1))
+                )
         elif fieldType is "b":
             mu0 = 4*np.pi*1e-7
-            eta = 0.5*(1-np.sign(times-t0-1e-12))*(chi0 + dchi) + 0.5*(1+np.sign(times-t0-1e-12))*(dchi/np.log(tau2/tau1))*(spec.expi(-(times-t0)/tau2) - spec.expi(-(times-t0)/tau1))
+            eta = (
+                0.5*(1-np.sign(times-t0))*chi0 +
+                0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
+                (spec.expi(-(times-t0)/tau2) - spec.expi(-(times-t0)/tau1))
+                )
             eta = mu0*eta
         elif fieldType is "dhdt":
-            eta = 0. + 0.5*(1+np.sign(times-t0-1e-12))*(dchi/np.log(tau2/tau1))*(np.exp(-(times-t0)/tau1) - np.exp(-(times-t0/tau2)))/(times-t0)
+            eta = (
+                0. + 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
+                (np.exp(-(times-t0)/tau1)-np.exp(-(times-t0)/tau2))/(times-t0)
+                )
         elif fieldType is "dbdt":
             mu0 = 4*np.pi*1e-7
-            eta = 0. + 0.5*(1+np.sign(times-t0-1e-12))*(dchi/np.log(tau2/tau1))*(np.exp(-(times-t0)/tau1) - np.exp(-(times-t0/tau2)))/(times-t0)
+            eta = (
+                0. + 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
+                (np.exp(-(times-t0)/tau1)-np.exp(-(times-t0)/tau2))/(times-t0)
+                )
             eta = mu0*eta
 
         return eta
@@ -92,7 +121,7 @@ Square-pulse waveform for predicting VRM response.
 
 INPUTS:
 
-delt: During of the on-time
+delt: Duration of the on-time (default is zero)
 
 KWARGS:
 
@@ -107,15 +136,15 @@ t0: The start of the off-time
     def getCharDecay(self, fieldType, times):
 
         """
-Characteristic decay function for square-pulse waveform. This function
-describes the decay of the VRM response for the Linear problem type. Note that
-the current will be LogUniformized by its maximum value. The maximum current in the
+Characteristic decay function for a square-pulse waveform. This function
+describes the decay of the VRM response for the linear problem type. Note that
+the current will be normalized by its maximum value. The maximum current in the
 transmitter is specified in the source object.
 
 INPUTS:
 
 fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
-times: Observation times. These times must be during the off-time.
+times: Observation times. These times MUST be during the off-time.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "For square-pulse, fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
@@ -133,6 +162,75 @@ times: Observation times. These times must be during the off-time.
             eta = -(1/(times-t0) - 1/(times-t0+delt))
         elif fieldType is "dbdt":
             eta = -mu0*(1/(times-t0) - 1/(times-t0+delt))
+
+        return eta
+
+    def getLogUniformDecay(self, fieldType, times, chi0, dchi, tau1, tau2):
+
+        """
+Decay function for a square-pulse waveform for log-uniform distribtuion of
+time-relaxation constants. The output of this function is the magnetization
+at each time for each cell, normalized by the inducing field.
+
+INPUTS:
+
+fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
+times: Observation times.
+chi0: DC (zero-frequency) magnetic susceptibility
+dchi: DC (zero-frequency) magnetic susceptibility attributed to VRM
+tau1: Lower-bound for log-uniform distribution of time-relaxation constants
+tau2: Upper-bound for log-uniform distribution of time-relaxation constants
+        """
+
+        assert fieldType in ["h", "dhdt", "b", "dbdt"], "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' "
+
+        nT = len(times)
+        nC = len(dchi)
+        t0 = self.t0
+        delt = self.delt
+
+        times = np.kron(np.ones((nC, 1)), times)
+        chi0 = np.kron(np.reshape(chi0, newshape=(nC, 1)), np.ones((1, nT)))
+        dchi = np.kron(np.reshape(dchi, newshape=(nC, 1)), np.ones((1, nT)))
+        tau1 = np.kron(np.reshape(tau1, newshape=(nC, 1)), np.ones((1, nT)))
+        tau2 = np.kron(np.reshape(tau2, newshape=(nC, 1)), np.ones((1, nT)))
+
+        if fieldType is "h":
+            eta = (
+                (np.sign(times-t0+delt) - np.sign(times-t0))*(chi0 - dchi) +
+                0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
+                (spec.expi(-(times-t0)/tau2) -
+                    spec.expi(-(times-t0)/tau1) -
+                    spec.expi(-(times-t0+delt)/tau2) +
+                    spec.expi(-(times-t0+delt)/tau1))
+                )
+        elif fieldType is "b":
+            mu0 = 4*np.pi*1e-7
+            eta = (
+                (np.sign(times-t0+delt) - np.sign(times-t0))*(chi0 - dchi) +
+                0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
+                (spec.expi(-(times-t0)/tau2) -
+                    spec.expi(-(times-t0)/tau1) -
+                    spec.expi(-(times-t0+delt)/tau2) +
+                    spec.expi(-(times-t0+delt)/tau1))
+                )
+            eta = mu0*eta
+        elif fieldType is "dhdt":
+            eta = (
+                0. + 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
+                (np.exp(-(times-t0)/tau1) - np.exp(-(times-t0)/tau2))/(times-t0) -
+                0.5*(1+np.sign(times-t0+delt))*(dchi/np.log(tau2/tau1)) *
+                (np.exp(-(times-t0+delt)/tau1) - np.exp(-(times-t0+delt)/tau2))/(times-t0+delt)
+                )
+        elif fieldType is "dbdt":
+            mu0 = 4*np.pi*1e-7
+            eta = (
+                0. + 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
+                (np.exp(-(times-t0)/tau1) - np.exp(-(times-t0)/tau2))/(times-t0) -
+                0.5*(1+np.sign(times-t0+delt))*(dchi/np.log(tau2/tau1)) *
+                (np.exp(-(times-t0+delt)/tau1) - np.exp(-(times-t0+delt)/tau2))/(times-t0+delt)
+                )
+            eta = mu0*eta
 
         return eta
 
@@ -210,3 +308,5 @@ times: Observation times. These times must be during the off-time.
             eta = mu0*eta
 
         return eta
+
+
