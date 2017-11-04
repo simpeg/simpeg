@@ -537,50 +537,51 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
         # Project to active mesh cells
         m = np.matrix(self.xiMap * m).T
 
-        # Must return as an array
-        return np.array(sp.coo_matrix.dot(self.T, self.A*m))
+        # Must return as a numpy array
+        return mkvc(sp.coo_matrix.dot(self.T, np.dot(self.A, m)))
 
     def Jvec(self, m, v, f=None):
 
-        """Compute Pd*T*A*Pt'*Pm*v"""
+        """Compute Pd*T*A*dxidm*v"""
 
         assert self.ispaired, "Problem must be paired with survey to predict data"
 
-        v = np.matrix(mkvc(v)).T
+        # Jacobian of xi wrt model
+        dxidm = self.xiMap.deriv(m)
 
-        # Project to active mesh cells
-        v = sp.csr_matrix.dot(self.xiMap.P, v)
+        # dxidm*v
+        v = np.matrix(dxidm*v).T
 
-        # Multiply by A
+        # Dot product with A
         v = self.A*v
 
         # Get active time rows of T
         T = self.T.tocsr()[self.survey.tActive, :]
 
         # Must return an array
-        return np.array(sp.csr_matrix.dot(T, v))
+        return mkvc(sp.csr_matrix.dot(T, v))
 
     def Jtvec(self, m, v, f=None):
 
-        """Compute Pm'*Pt*A'*T'*Pd'*v"""
+        """Compute dxidm'*A'*T'*Pd'*v"""
 
         assert self.ispaired, "Problem must be paired with survey to predict data"
 
-        # Get v'
-        v = np.matrix(mkvc(v))
+        # Define v as a column vector
+        v = np.matrix(v).T
 
-        # Get T'*v
+        # Get T'*Pd'*v
         T = self.T.tocsr()[self.survey.tActive, :]
-        v = sp.csc_matrix.dot(T.transpose(), v.T)
+        v = sp.csc_matrix.dot(T.transpose(), v)
 
-        # Get A'*T'*v
-        v = np.dot(v.T, self.A).T
+        # Multiply by A'
+        v = (np.dot(v.T, self.A)).T
 
-        # Project to full active mesh cells
-        v = sp.csc_matrix.dot(self.xiMap.P.T, v)
+        # Jacobian of xi wrt model
+        dxidm = self.xiMap.deriv(m)
 
         # Must return an array
-        return np.array(v)
+        return mkvc(dxidm.T*v)
 
     def unpair(self):
         """Unbind a survey from this problem instance."""
