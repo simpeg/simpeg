@@ -394,6 +394,7 @@ class Tile(IdentityMap):
 
     nCell = 27  # Number of neighbors to use in averaging
     tol = 1e-8  # Tolerance to avoid zero division
+    nBlock = 1
 
     def __init__(self, *args, **kwargs):
 
@@ -483,10 +484,11 @@ class Tile(IdentityMap):
                 'maximum index must be less than {}'.format(nP))
 
             # sparse projection matrix
-            self._S = sp.csr_matrix(
+            S = sp.csr_matrix(
                 (np.ones(nI), (np.where(self.index)[0], range(nI))), shape=(nP, nI)
             )
 
+            self._S = sp.block_diag([S for ii in range(self.nBlock)])
         return self._S
 
     @property
@@ -567,7 +569,9 @@ class Tile(IdentityMap):
 
             sumRow = Utils.mkvc(np.sum(P, axis=1) + self.tol)
 
-            self._P = Utils.sdiag(1./sumRow) * P
+            P = Utils.sdiag(1./sumRow) * P
+
+            self._P = sp.block_diag([P for ii in range(self.nBlock)])
 
             self._shape = self.actvLocal.sum(), nactv
 
