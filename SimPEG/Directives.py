@@ -245,7 +245,10 @@ class TargetMisfit(InversionDirective):
         if getattr(self, '_target', None) is None:
             # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
             if self.phi_d_star is None:
-                self.phi_d_star = 0.5 * self.survey.nD
+
+                self.phi_d_star = 0
+                for survey in self.survey:
+                    self.phi_d_star += 0.5 * survey.nD
             self._target = self.chifact * self.phi_d_star
         return self._target
 
