@@ -803,7 +803,7 @@ class UpdateSensWeighting(InversionDirective):
                                          self.survey,
                                          self.dmisfit.objfcts):
             nD = survey.nD
-            nC = prob.chiMap.shape[0]
+            nC = prob.chiMap.shape[1]
             jtjdiag = np.zeros(nC)
             wd = dmisfit.W.diagonal()
 
@@ -812,12 +812,12 @@ class UpdateSensWeighting(InversionDirective):
                 if prob.coordinate_system == 'spherical':
                     for ii in range(nD):
 
-                        jtjdiag += (wd[ii] * prob.F[ii, :] * prob.S)**2.
+                        jtjdiag += (wd[ii] * prob.F[ii, :] * prob.S * prob.mapping.deriv(self.invProb.model))**2.
 
                 elif prob.coordinate_system == 'cartesian':
 
                     if getattr(prob, 'JtJdiag', None) is None:
-                        prob.JtJdiag = np.sum(prob.F**2., axis=0)
+                        prob.JtJdiag = np.sum((prob.F* prob.mapping.deriv(self.invProb.model))**2., axis=0)
 
                     jtjdiag = prob.JtJdiag.copy()
 
@@ -831,19 +831,19 @@ class UpdateSensWeighting(InversionDirective):
 
                         rows = prob.F[ii::nD, :]
                         jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii, :],
-                                    rows * prob.S)))**2.
+                                    rows * prob.S)*prob.mapping.deriv(self.invProb.model)))**2.
 
                 elif getattr(prob, '_Mxyz', None) is not None:
                     for ii in range(nD):
 
                         jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii, :],
-                                                   prob.F[ii::nD, :]*prob.Mxyz)))**2.
+                                                   prob.F[ii::nD, :]*prob.Mxyz)*prob.mapping.deriv(self.invProb.model)))**2.
 
                 else:
                     for ii in range(nD):
 
                         jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii, :],
-                                                   prob.F[ii::nD, :])))**2.
+                                                   prob.F[ii::nD, :]))*prob.mapping.deriv(self.invProb.model))**2.
 
             elif isinstance(prob, Magnetics.MagneticIntegral):
 
@@ -873,7 +873,7 @@ class UpdateSensWeighting(InversionDirective):
 
         for prob_JtJ, prob in zip(self.JtJdiag, self.prob):
 
-            nC = prob.chiMap.shape[0]
+            nC = prob.chiMap.shape[1]
             wr_prob = np.zeros(nC)
             if isinstance(prob, Magnetics.MagneticVector):
 
@@ -900,12 +900,12 @@ class UpdateSensWeighting(InversionDirective):
 
             # print(wr_prob.min(),wr_prob.max(),prob.threshold)
             # Check if it is a Combo problem
-            if getattr(prob.chiMap, 'index', None) is None:
-                wr += wr_prob
+#            if getattr(prob.chiMap, 'index', None) is None:
+        wr += wr_prob
 
-            else:
+#            else:
 
-                wr[prob.chiMap.index] += wr_prob
+#                wr[prob.chiMap.index] += wr_prob
 
         wr = wr**0.5
         wr /= wr.max()
@@ -929,11 +929,11 @@ class UpdateSensWeighting(InversionDirective):
         for prob, JtJ, dmisfit in zip(self.prob, self.JtJdiag, self.dmisfit.objfcts):
 
             # Check if he has wire
-            if getattr(prob.chiMap, 'index', None) is None:
-                JtJdiag += JtJ
-            else:
+#            if getattr(prob.chiMap, 'index', None) is None:
+            JtJdiag += JtJ
+#            else:
                 # He is a snitch!
-                JtJdiag[prob.chiMap.index] += JtJ
+#                JtJdiag[prob.chiMap.index] += JtJ
 
         self.opt.JtJdiag = JtJdiag
 

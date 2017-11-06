@@ -354,34 +354,44 @@ class Homogenize(IdentityMap):
         :param list index: list of bool for each homogeneous unit
 
     """
-
+    nBlock = 1
     def __init__(self, index, **kwargs):
         assert isinstance(index, (list)), (
             'index must be a list, not {}'.format(type(index)))
 
         super(Homogenize, self).__init__(**kwargs)
-        nP = len(index[0])
+
         # if isinstance(index, slice):
         #     index = list(range(*index.indices(self.nP)))
         self.index = index
-        self._shape = nP, len(self.index),
 
         # assert (max(index) < nP), (
         #     'maximum index must be less than {}'.format(nP))
 
-        # sparse projection matrix
-        I = []
-        J = []
-        V = []
-        for ii, ind in enumerate(self.index):
+    @property
+    def P(self):
 
-            I += [ii]*ind.sum()
-            J += np.where(ind)[0].tolist()
-            V += [1]*ind.sum()
+        if getattr(self, '_P', None) is None:
+            nP = len(self.index[0])
+            # sparse projection matrix
+            I = []
+            J = []
+            V = []
+            for ii, ind in enumerate(self.index):
 
-        self.P = sp.csr_matrix(
-            (V, (I, J)), shape=(len(self.index), nP)
-        ).T
+                I += [ii]*ind.sum()
+                J += np.where(ind)[0].tolist()
+                V += [1]*ind.sum()
+
+            P = sp.csr_matrix(
+                (V, (I, J)), shape=(len(self.index), nP)
+            ).T
+
+            self._P = sp.block_diag([P for ii in range(self.nBlock)])
+
+            self._shape = self.nBlock*nP, self.nBlock*len(self.index),
+
+        return self._P
 
     def _transform(self, m):
         return self.P * m

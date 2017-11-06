@@ -314,6 +314,18 @@ class MagneticVector(MagneticIntegral):
 
         return u
 
+    def getJ(self, chi, f=None):
+
+        if self.coordinate_system == 'cartesian':
+
+            return np.dot(self.F, self.chiMap.deriv(chi))
+
+        else:
+            dmudm = self.S*self.chiMap.deriv(chi)
+
+            return np.dot(self.F, dmudm)
+
+
     def Jvec(self, chi, v, f=None):
 
         if self.coordinate_system == 'cartesian':
@@ -349,11 +361,11 @@ class MagneticVector(MagneticIntegral):
             if self.model is None:
                 raise Exception('Requires a chi')
 
-            nC = int(len(self.model)/3)
+            nC = int(self.mapping.shape[0]/3)
 
-            a = self.model[:nC]
-            t = self.model[nC:2*nC]
-            p = self.model[2*nC:]
+            a = (self.mapping * self.model)[:nC]
+            t = (self.mapping * self.model)[nC:2*nC]
+            p = (self.mapping * self.model)[2*nC:]
 
             Sx = sp.hstack([sp.diags(np.cos(t)*np.cos(p), 0),
                             sp.diags(-a*np.sin(t)*np.cos(p), 0),
@@ -453,6 +465,15 @@ class MagneticAmplitude(MagneticIntegral):
         ampB = self.fwr_ind(chi)
 
         return ampB
+
+    def getJ(self, chi, f=None):
+
+        if self.coordinate_system == 'spherical':
+            dmudm = self.S * self.chiMap.deriv(chi)
+        else:
+            dmudm = self.chiMap.deriv(chi)
+
+        return self.dfdm * np.dot(self.F, dmudm)
 
     def Jvec(self, chi, v, f=None):
 
