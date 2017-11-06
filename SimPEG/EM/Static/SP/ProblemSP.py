@@ -280,3 +280,25 @@ def atp2xyz(m):
                   a*np.sin(t)]
 
     return m_xyz
+
+
+def xyz2atp(m):
+    """ Convert from cartesian to spherical """
+
+    nC = int(len(m)/3)
+
+    x = m[:nC]
+    y = m[nC:2*nC]
+    z = m[2*nC:]
+
+    a = (x**2. + y**2. + z**2.)**0.5
+
+    t = np.zeros(nC)
+    t[a > 0] = np.arcsin(z[a > 0]/a[a > 0])
+
+    p = np.zeros(nC)
+    p[a > 0] = np.arctan2(y[a > 0], x[a > 0])
+
+    m_atp = np.r_[a, t, p]
+
+    return m_atp
