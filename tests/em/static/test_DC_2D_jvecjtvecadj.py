@@ -29,7 +29,7 @@ class DCProblem_2DTestsCC(unittest.TestCase):
         problem = DC.Problem2D_CC(mesh, rhoMap=Maps.IdentityMap(mesh))
         problem.pair(survey)
 
-        mSynth = np.ones(mesh.nC)*0.01
+        mSynth = np.ones(mesh.nC)*100.
         survey.makeSyntheticData(mSynth)
 
         # Now set up the problem to do some minimization
@@ -130,7 +130,7 @@ class DCProblemTestsN(unittest.TestCase):
         )
         problem.pair(survey)
 
-        mSynth = np.ones(mesh.nC)*1.
+        mSynth = np.ones(mesh.nC)*100.
         survey.makeSyntheticData(mSynth)
 
         # Now set up the problem to do some minimization
