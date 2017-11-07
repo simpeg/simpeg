@@ -1,6 +1,6 @@
 from __future__ import print_function
 from . import Utils
-from . import Regularization, DataMisfit, ObjectiveFunction
+from . import Regularization, DataMisfit, ObjectiveFunction, Utils
 from . import Maps
 import numpy as np
 import matplotlib.pyplot as plt
@@ -536,14 +536,13 @@ class Update_IRLS(InversionDirective):
     # Beta schedule
     coolingFactor = 2.
     coolingRate = 1
-    ComboRegFun = False
-    ComboMisfitFun = False
 
     updateBeta = True
 
     mode = 1
     scale_m = False
     phi_m_last = None
+
     @property
     def target(self):
         if getattr(self, '_target', None) is None:
@@ -608,7 +607,6 @@ class Update_IRLS(InversionDirective):
     def endIter(self):
 
                 # Adjust scales for MVI-S
-        # if self.ComboMisfitFun:
         if self.scale_m:
             self.regScale()
         # Update the model used by the regularization
@@ -868,3 +866,158 @@ class Update_Wj(InversionDirective):
             JtJdiag = JtJdiag / max(JtJdiag)
 
             self.reg.wght = JtJdiag
+
+
+class UpdateSensWeighting(InversionDirective):
+    """
+    Directive to take care of re-weighting
+    the non-linear magnetic problems.
+
+    """
+    # test = False
+    mapping = None
+    JtJdiag = None
+    everyIter = True
+    epsilon = 1e-12
+
+    def initialize(self):
+
+        # Update inverse problem
+        self.update()
+
+        if self.everyIter:
+            # Update the regularization
+            self.updateReg()
+
+    def endIter(self):
+
+        # Re-initialize the problem for update
+        for prob in self.prob:
+
+            if getattr(prob, 'coordinate_system', None) is not None:
+                if prob.coordinate_system == 'spherical':
+                    prob._S = None
+
+            prob.model = self.invProb.model
+
+        # Update inverse problem
+        self.update()
+
+        if self.everyIter:
+            # Update the regularization
+            self.updateReg()
+
+    def update(self):
+
+        # Get sum square of columns of J
+        self.getJtJdiag()
+
+        # Compute normalized weights
+        self.wr = self.getWr()
+
+        # Send a copy of JtJdiag for the preconditioner
+        self.updateOpt()
+
+    def getJtJdiag(self):
+        """
+            Compute explicitely the main diagonal of JtJ
+            Good for any problem where J is formed explicitely
+        """
+        self.JtJdiag = []
+
+        for prob, survey, dmisfit in zip(self.prob,
+                                         self.survey,
+                                         self.dmisfit.objfcts):
+            nD = survey.nD
+            nC = self.invProb.model.shape[0]
+            jtjdiag = np.zeros(nC)
+            wd = dmisfit.W.diagonal()
+
+            if getattr(prob, 'coordinate_system', None) is not None:
+                if prob.coordinate_system == 'spherical':
+                    for ii in range(nD):
+                        jtjdiag += (wd[ii] * prob.G[ii, :] * prob.S + self.epsilon)**2.
+
+            else:
+
+                for ii in range(nD):
+
+                    jtjdiag += (wd[ii] * prob.G[ii, :])**2.
+
+                jtjdiag = prob.JtJdiag
+
+            self.JtJdiag += [jtjdiag]
+
+        return self.JtJdiag
+
+    def getWr(self):
+        """
+            Take the diagonal of JtJ and return
+            a normalized sensitivty weighting vector
+        """
+        wr = np.zeros_like(self.invProb.model)
+
+        for prob_JtJ in self.JtJdiag:
+            wr += prob_JtJ
+
+        wr = wr**0.5
+        wr /= wr.max()
+
+        return wr
+
+    def updateReg(self):
+        """
+            Update the cell weights with the approximated sensitivity
+        """
+
+        for reg in self.reg.objfcts:
+            reg.cell_weights = reg.mapping * (self.wr)
+
+    def updateOpt(self):
+        """
+            Update a copy of JtJdiag to optimization for preconditioner
+        """
+
+        JtJdiag = np.zeros_like(self.invProb.model)
+        for prob, JtJ, dmisfit in zip(self.prob, self.JtJdiag, self.dmisfit.objfcts):
+
+            JtJdiag += JtJ
+
+        self.opt.JtJdiag = JtJdiag
+
+
+class ProjSpherical(InversionDirective):
+    """
+        Trick for spherical coordinate system.
+        Project \theta and \phi angles back to [-\pi,\pi] using
+        back and forth conversion.
+        spherical->cartesian->spherical
+    """
+    def initialize(self):
+
+        x = self.invProb.model
+        # Convert to cartesian than back to avoid over rotation
+        xyz = Utils.matutils.atp2xyz(x)
+        m = Utils.matutils.xyz2atp(xyz)
+
+        self.invProb.model = m
+
+        for prob in self.prob:
+            prob.model = m
+
+        self.opt.xc = m
+
+    def endIter(self):
+
+        x = self.invProb.model
+        # Convert to cartesian than back to avoid over rotation
+        xyz = Utils.matutils.atp2xyz(x)
+        m = Utils.matutils.xyz2atp(xyz)
+
+        self.invProb.model = m
+        self.invProb.phi_m_last = self.reg(m)
+
+        for prob in self.prob:
+            prob.model = m
+
+        self.opt.xc = m

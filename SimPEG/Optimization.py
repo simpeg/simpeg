@@ -1185,10 +1185,10 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
             # Only keep gradients going in the right direction on the active
             # set
-            indx = (
-                ((self.xc<=self.lower) & (delx < 0)) |
-                ((self.xc>=self.upper) & (delx > 0))
-            )
-            delx[indx] = 0.
+            # indx = (
+            #     ((self.xc<=self.lower) & (delx < 0)) |
+            #     ((self.xc>=self.upper) & (delx > 0))
+            # )
+            # delx[indx] = 0.
 
             return delx

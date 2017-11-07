@@ -1086,7 +1086,6 @@ class SmoothDeriv2(BaseRegularization):
             orientation=self.orientation
         )
 
-
     @property
     def W(self):
         """
@@ -1190,11 +1189,15 @@ class BaseSparse(BaseRegularization):
         "Model norm scaling to smooth out convergence", default=1.
     )
     epsilon = properties.Float(
-        "Threshold value for the model norm", #, default=1e-1
-        required = True
+        "Threshold value for the model norm", default=1e-3,
+        required=True
     )
     norm = properties.Float(
         "norm used", default=2
+    )
+
+    coordinate_system = properties.String(
+        "By default inherit the objctive", default='linear'
     )
 
     @property
@@ -1210,12 +1213,9 @@ class BaseSparse(BaseRegularization):
         if getattr(self, 'stashedR') is not None:
             return self.stashedR
 
-        eps = self.epsilon
-        exponent = self.norm
-
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = (eps**(1.-exponent/2.))**0.5
-        r = eta / (f_m**2. + eps**2.)**((1.-exponent/2.)/2.)
+        eta = (self.epsilon**(1.-self.norm/2.))**0.5
+        r = eta / (f_m**2. + self.epsilon**2.)**((1.-self.norm/2.)/2.)
 
         self.stashedR = r  # stash on the first calculation
         return r
@@ -1246,7 +1246,7 @@ class SparseSmall(BaseSparse):
         if getattr(self, 'model', None) is None:
             R = Utils.speye(self.regmesh.nC)
         else:
-            r = self.R(self.f_m) #, self.eps_p, self.norm)
+            r = self.R(self.f_m)
             R = Utils.sdiag(r)
 
         if self.cell_weights is not None:
@@ -1268,13 +1268,111 @@ class SparseDeriv(BaseSparse):
         "include mref in the smoothness calculation?", default=False
     )
 
+    @Utils.timeIt
+    def __call__(self, m):
+        """
+        We use a weighted 2-norm objective function
+
+        .. math::
+
+            r(m) = \\frac{1}{2}
+        """
+        if self.coordinate_system == 'spherical':
+            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
+            if getattr(self, 'model', None) is None:
+                R = Utils.speye(self.cellDiffStencil.shape[0])
+
+            else:
+                r = self.R(self.f_m)
+                R = Utils.sdiag(r)
+
+            if self.cell_weights is not None:
+                W = (
+                    Utils.sdiag(
+                        (self.gamma *
+                         (Ave*(self.cell_weights)))**0.5
+                    ) *
+                    R
+                )
+
+            else:
+                W = ((self.gamma)**0.5) * R
+
+            theta = self.cellDiffStencil * (self.mapping * m)
+            dmdx = coterminal(theta)
+            r = W * dmdx
+
+        else:
+            r = self.W * (self.mapping * (m - self.mref))
+
+        return 0.5 * r.dot(r)
+
+    @Utils.timeIt
+    def deriv(self, m):
+        """
+
+        The regularization is:
+
+        .. math::
+
+            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top
+                   W(m-m_\\text{ref})}
+
+        So the derivative is straight forward:
+
+        .. math::
+
+            R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
+
+        """
+        if self.coordinate_system == 'spherical':
+            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
+            if getattr(self, 'model', None) is None:
+                R = Utils.speye(self.cellDiffStencil.shape[0])
+
+            else:
+                r = self.R(self.f_m)
+                R = Utils.sdiag(r)
+
+            if self.cell_weights is not None:
+                W = (
+                    Utils.sdiag(
+                        (self.gamma * (Ave*(self.cell_weights)))**0.5
+                    ) *
+                    R
+                )
+
+            else:
+                W = ((self.gamma)**0.5) * R
+
+            theta = self.cellDiffStencil * (self.mapping * m)
+            dmdx = coterminal(theta)
+
+            r = W * dmdx
+
+        else:
+            r = self.W * (self.mapping * (m - self.mref))
+
+        mD = self.mapping.deriv(m - self.mref)
+        return mD.T * (self.W.T * r)
+
     @property
     def _multiplier_pair(self):
         return 'alpha_{orientation}'.format(orientation=self.orientation)
 
     @property
     def f_m(self):
-        return self.cellDiffStencil * (self.mapping * self.model)
+        if self.coordinate_system == 'spherical':
+            theta = self.cellDiffStencil * (self.mapping * self.model)
+            dmdx = coterminal(theta)
+
+        else:
+
+            dmdx = self.cellDiffStencil * (self.mapping * self.model)
+
+        return dmdx
 
     @property
     def cellDiffStencil(self):
@@ -1291,17 +1389,17 @@ class SparseDeriv(BaseSparse):
             R = Utils.speye(self.cellDiffStencil.shape[0])
 
         else:
-            r = self.R(self.f_m) # , self.eps_q, self.norm)
+            r = self.R(self.f_m)
             R = Utils.sdiag(r)
 
         if self.cell_weights is not None:
             return (
                 Utils.sdiag(
-                    (self.gamma*(Ave*self.cell_weights))**0.5
+                    (self.gamma * (Ave*(self.cell_weights)))**0.5
                 ) *
                 R * self.cellDiffStencil
             )
-        return ( (self.gamma)**0.5) * R * self.cellDiffStencil
+        return (self.gamma**0.5) * R * self.cellDiffStencil
 
 
 class Sparse(BaseComboRegularization):
@@ -1361,17 +1459,25 @@ class Sparse(BaseComboRegularization):
     )
 
     eps_p = properties.Float(
-        "Threshold value for the model norm", default=1e-1
+        "Threshold value for the model norm", required=True
         )
 
     eps_q = properties.Float(
-        "Threshold value for the model gradient norm", default=1e-1
+        "Threshold value for the model gradient norm", required=True
         )
 
     model = properties.Array("current model", dtype=float)
 
     gamma = properties.Float(
         "Model norm scaling to smooth out convergence", default=1.
+    )
+
+    coordinate_system = properties.String(
+        "type of model", default='linear'
+    )
+
+    scale = properties.Float(
+        "General nob for scaling", default=1.
     )
 
     # Observers
@@ -1401,3 +1507,24 @@ class Sparse(BaseComboRegularization):
         for objfct in self.objfcts:
             if isinstance(objfct, SparseDeriv):
                 objfct.epsilon = change['value']
+
+    @properties.observer('coordinate_system')
+    def _mirror_coordinate_system_to_objfcts(self, change):
+        for objfct in self.objfcts:
+            objfct.coordinate_system = change['value']
+
+    @properties.observer('scale')
+    def _mirror_scale_to_objfcts(self, change):
+        for objfct in self.objfcts:
+            objfct.scale = change['value']
+
+
+def coterminal(theta):
+    """ Compute coterminal angle so that [-pi < theta < pi]"""
+
+    sub = theta[np.abs(theta) >= np.pi]
+    sub = -np.sign(sub) * (2*np.pi-np.abs(sub))
+
+    theta[np.abs(theta) >= np.pi] = sub
+
+    return theta
