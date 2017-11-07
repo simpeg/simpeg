@@ -22,7 +22,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         mesh = Mesh.TensorMesh([hx, hy, hz], x0="CCN")
 
         x = mesh.vectorCCx[(mesh.vectorCCx > -80.) & (mesh.vectorCCx < 80.)]
-        y = mesh.vectorCCx[(mesh.vectorCCy > -80.) & (mesh.vectorCCy < 80.)]
+        y = mesh.vectorCCy[(mesh.vectorCCy > -80.) & (mesh.vectorCCy < 80.)]
         Aloc = np.r_[-100., 0., 0.]
         Bloc = np.r_[100., 0., 0.]
         M = Utils.ndgrid(x-12.5, y, np.r_[0.])

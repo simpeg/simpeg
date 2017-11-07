@@ -22,7 +22,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         sigma = np.ones(mesh.nC)*1e-2
 
         x = mesh.vectorCCx[(mesh.vectorCCx > -155.) & (mesh.vectorCCx < 155.)]
-        y = mesh.vectorCCx[(mesh.vectorCCy > -155.) & (mesh.vectorCCy < 155.)]
+        y = mesh.vectorCCy[(mesh.vectorCCy > -155.) & (mesh.vectorCCy < 155.)]
 
         Aloc = np.r_[-200., 0., 0.]
         Bloc = np.r_[200., 0., 0.]
