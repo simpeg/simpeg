@@ -184,8 +184,8 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
         :param endl -> input endpoints [x1, y1, z1, x2, y2, z2]
         :object mesh -> SimPEG mesh object
         :switch surveyType -> "dipole-dipole" (dipole-dipole) | "pole-dipole" (pole-dipole) | 'gradient'
-        : param a, n -> pole seperation, number of rx dipoles per tx
-        :str d2flag: With a 2D mesh, choose between a full 2D problem ('2D') or a 2.5D problem ('2.5D')
+        :param a, n -> pole seperation, number of rx dipoles per tx
+        :param str d2flag -> With a 2D mesh, choose between a full 2D problem ('2D') or a 2.5D problem ('2.5D')
 
         Output:
         :param Tx, Rx -> List objects for each tx location

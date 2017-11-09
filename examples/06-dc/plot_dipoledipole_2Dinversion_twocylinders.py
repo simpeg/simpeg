@@ -20,11 +20,14 @@ from SimPEG import (
     Mesh,  Problem,  Survey,  Maps,  Utils,
     EM,  DataMisfit,  Regularization,  Optimization,
     InvProblem,  Directives,  Inversion
-    )
+)
 from SimPEG.EM.Static import DC, Utils as DCUtils
 import numpy as np
 import matplotlib.pyplot as plt
-from pymatsolver import PardisoSolver
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from SimPEG import SolverLU as Solver
 
 np.random.seed(12345)
 
@@ -104,7 +107,7 @@ mapactive = Maps.InjectActiveCells(mesh=mesh,  indActive=actind,
 mapping = expmap*mapactive
 problem = DC.Problem3D_CC(mesh,  sigmaMap=mapping)
 problem.pair(survey)
-problem.Solver = PardisoSolver
+problem.Solver = Solver
 
 survey.dpred(mtrue[actind])
 survey.makeSyntheticData(mtrue[actind], std=0.05, force=True)
