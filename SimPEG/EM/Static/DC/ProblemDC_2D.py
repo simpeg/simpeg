@@ -7,6 +7,7 @@ from SimPEG import Utils
 from SimPEG.EM.Base import BaseEMProblem
 from .SurveyDC import Survey_ky
 from .FieldsDC_2D import Fields_ky, Fields_ky_CC, Fields_ky_N
+from .FieldsDC import FieldsDC, Fields_CC, Fields_N
 import numpy as np
 from SimPEG.Utils import Zero
 from .BoundaryUtils import getxBCyBC_CC
@@ -19,6 +20,7 @@ class BaseDCProblem_2D(BaseEMProblem):
 
     surveyPair = Survey_ky
     fieldsPair = Fields_ky  # SimPEG.EM.Static.Fields_2D
+    fieldsPair_fwd = FieldsDC
     nky = 15
     kys = np.logspace(-4, 1, nky)
     Ainv = [None for i in range(nky)]
@@ -42,6 +44,22 @@ class BaseDCProblem_2D(BaseEMProblem):
             u = self.Ainv[iky] * RHS
             f[Srcs, self._solutionType, iky] = u
         return f
+
+    def fields_to_space(self, f, y=0.):
+        f_fwd = self.fieldsPair_fwd(self.mesh, self.survey)
+        # Evaluating Integration using Trapezoidal rules
+        nky = self.kys.size
+        dky = np.diff(self.kys)
+        dky = np.r_[dky[0], dky]
+        phi0 = 1./np.pi*f[:, self._solutionType, 0]
+        phi = np.zeros_like(phi0)
+        for iky in range(nky):
+            phi1 = 1./np.pi*f[:, self._solutionType, iky]
+            phi += phi1*dky[iky]/2.*np.cos(self.kys[iky]*y)
+            phi += phi0*dky[iky]/2.*np.cos(self.kys[iky]*y)
+            phi0 = phi1.copy()
+        f_fwd[:, self._solutionType] = phi
+        return f_fwd
 
     def Jvec(self, m, v, f=None):
 
@@ -174,6 +192,7 @@ class Problem2D_CC(BaseDCProblem_2D):
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_ky_CC
+    fieldsPair_fwd = Fields_CC
 
     def __init__(self, mesh, **kwargs):
         BaseDCProblem_2D.__init__(self, mesh, **kwargs)
@@ -195,6 +214,7 @@ class Problem2D_CC(BaseDCProblem_2D):
         # Get resistivity rho
         rho = self.rho
         A = D * MfRhoI * G + Utils.sdiag(ky**2*vol/rho)
+        # A[0, 0] = A[0, 0] + 1.
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
@@ -231,67 +251,30 @@ class Problem2D_CC(BaseDCProblem_2D):
         return Zero()
 
     def setBC(self):
-        if self.mesh.dim == 3:
-            fxm, fxp, fym, fyp, fzm, fzp = self.mesh.faceBoundaryInd
-            gBFxm = self.mesh.gridFx[fxm, :]
-            gBFxp = self.mesh.gridFx[fxp, :]
-            gBFym = self.mesh.gridFy[fym, :]
-            gBFyp = self.mesh.gridFy[fyp, :]
-            gBFzm = self.mesh.gridFz[fzm, :]
-            gBFzp = self.mesh.gridFz[fzp, :]
+        fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
+        gBFxm = self.mesh.gridFx[fxm, :]
+        gBFxp = self.mesh.gridFx[fxp, :]
+        gBFym = self.mesh.gridFy[fym, :]
+        gBFyp = self.mesh.gridFy[fyp, :]
 
-            # Setup Mixed B.C (alpha, beta, gamma)
-            temp_xm = np.ones_like(gBFxm[:, 0])
-            temp_xp = np.ones_like(gBFxp[:, 0])
-            temp_ym = np.ones_like(gBFym[:, 1])
-            temp_yp = np.ones_like(gBFyp[:, 1])
-            temp_zm = np.ones_like(gBFzm[:, 2])
-            temp_zp = np.ones_like(gBFzp[:, 2])
+        # Setup Mixed B.C (alpha, beta, gamma)
+        temp_xm = np.ones_like(gBFxm[:, 0])
+        temp_xp = np.ones_like(gBFxp[:, 0])
+        temp_ym = np.ones_like(gBFym[:, 1])
+        temp_yp = np.ones_like(gBFyp[:, 1])
 
-            alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-            alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
-            alpha_zm, alpha_zp = temp_zm*0., temp_zp*0.
+        alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
+        alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
 
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
-            beta_zm, beta_zp = temp_zm, temp_zp
+        beta_xm, beta_xp = temp_xm, temp_xp
+        beta_ym, beta_yp = temp_ym, temp_yp
 
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-            gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
+        gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+        gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
 
-            alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp, alpha_zm,
-                     alpha_zp]
-            beta = [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
-            gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm,
-                     gamma_zp]
-
-        elif self.mesh.dim == 2:
-
-            fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
-            gBFxm = self.mesh.gridFx[fxm, :]
-            gBFxp = self.mesh.gridFx[fxp, :]
-            gBFym = self.mesh.gridFy[fym, :]
-            gBFyp = self.mesh.gridFy[fyp, :]
-
-            # Setup Mixed B.C (alpha, beta, gamma)
-            temp_xm = np.ones_like(gBFxm[:, 0])
-            temp_xp = np.ones_like(gBFxp[:, 0])
-            temp_ym = np.ones_like(gBFym[:, 1])
-            temp_yp = np.ones_like(gBFyp[:, 1])
-
-            alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-            alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
-
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
-
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-
-            alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
-            beta = [beta_xm, beta_xp, beta_ym, beta_yp]
-            gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
+        alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
+        beta = [beta_xm, beta_xp, beta_ym, beta_yp]
+        gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
 
         x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
         V = self.Vol
@@ -309,6 +292,7 @@ class Problem2D_N(BaseDCProblem_2D):
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # CC potentials means J is on faces
     fieldsPair = Fields_ky_N
+    fieldsPair_fwd = Fields_N
 
     def __init__(self, mesh, **kwargs):
         BaseDCProblem_2D.__init__(self, mesh, **kwargs)
@@ -352,9 +336,9 @@ class Problem2D_N(BaseDCProblem_2D):
         # Get conductivity sigma
         sigma = self.sigma
         A = Grad.T * MeSigma * Grad + ky**2*MnSigma
-
+        # This seems not required for 2.5D problem
         # Handling Null space of A
-        A[0, 0] = A[0, 0] + 1.
+        # A[0, 0] = A[0, 0] + 1.
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
