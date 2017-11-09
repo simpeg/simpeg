@@ -12,6 +12,7 @@ from scipy.interpolate import griddata
 from pymatsolver import PardisoSolver
 from matplotlib.colors import LogNorm
 
+
 class SurveyDesign(object):
     """docstring for SurveyDesign"""
 
@@ -319,71 +320,72 @@ class SurveyDesign(object):
         self.appResistivity = self.voltage / self.G * np.pi * 2.
 
     def plotData_2D(self, dataType="appResistivity", ms=100, showIt=True, scale='linear', clim=None, pcolorOpts={}):
-        fig = plt.figure(figsize=(8, 3))
-        xloc = (
-            self.SrcLoc[self.SrcID, 0] + self.SrcLoc[self.SrcID, 1] +
-            self.RxLoc[self.RxID, 0] + self.RxLoc[self.RxID, 1]
-            ) * 0.25
-        zloc = self.nLeg
-        if dataType == "appResistivity":
-            val = self.appResistivity.copy()
-        elif dataType == "voltage":
-            val = self.appResistivity.copy()
-        else:
-            raise Exception("Input valid dataType")
-
-        if scale == "log":
-            val = np.log10(abs(val))
-
-        if clim is None:
-            vmin, vmax = val.min(), val.max()
-            clim = vmin, vmax
-        # Grid points
-        print (clim)
-        out = plt.scatter(xloc, zloc, c=val, s=ms, clim=clim, vmin=clim[0], vmax=clim[1])
-        cb = plt.colorbar(out)
-
-        for x in self.xElec:
-            plt.plot(np.ones(2)*x, np.r_[0, -0.6], 'k-', alpha=0.3)
-        plt.plot(
-            np.r_[self.xElec.min(), self.xElec.max()],
-            np.r_[-0.6, -0.6], 'k-', alpha=0.3
-            )
-        plt.title("appResistivity")
-        plt.ylabel("n-Spacing")
-        plt.gca().invert_yaxis()
         if showIt:
+            fig = plt.figure(figsize=(8, 3))
+            xloc = (
+                self.SrcLoc[self.SrcID, 0] + self.SrcLoc[self.SrcID, 1] +
+                self.RxLoc[self.RxID, 0] + self.RxLoc[self.RxID, 1]
+                ) * 0.25
+            zloc = self.nLeg
+            if dataType == "appResistivity":
+                val = self.appResistivity.copy()
+            elif dataType == "voltage":
+                val = self.appResistivity.copy()
+            else:
+                raise Exception("Input valid dataType")
+
+            if scale == "log":
+                val = np.log10(abs(val))
+
+            if clim is None:
+                vmin, vmax = val.min(), val.max()
+                clim = vmin, vmax
+            # Grid points
+            print (clim)
+            out = plt.scatter(xloc, zloc, c=val, s=ms, clim=clim, vmin=clim[0], vmax=clim[1])
+            cb = plt.colorbar(out)
+
+            for x in self.xElec:
+                plt.plot(np.ones(2)*x, np.r_[0, -0.6], 'k-', alpha=0.3)
+            plt.plot(
+                np.r_[self.xElec.min(), self.xElec.max()],
+                np.r_[-0.6, -0.6], 'k-', alpha=0.3
+                )
+            plt.title("appResistivity")
+            plt.ylabel("n-Spacing")
+            plt.gca().invert_yaxis()
             plt.show()
 
     def plotfields_2D(self, iSrc=0, fieldType="E", showIt=True):
-        fig = plt.figure(figsize=(8, 3))
-        if self.problem._formulation == "HJ":
-            if (fieldType == "E") or (fieldType == "J"):
-                self.mesh.plotImage(
-                    self.F[self.survey.srcList[iSrc], 'j'], vType='E',
-                    view='vec',
-                    streamOpts={'color': 'w'}, pcolorOpts={"norm": LogNorm()})
-            else:
-                self.mesh.plotImage(
-                    self.F[self.survey.srcList[iSrc], 'j'], vType='CC'
-                    )
-        elif self.problem._formulation == "EB":
-            if (fieldType == "E") or (fieldType == "J"):
-                self.mesh.plotImage(
-                    self.F[self.survey.srcList[iSrc], 'j'], vType='E',
-                    view='vec',
-                    streamOpts={'color': 'w'}, pcolorOpts={"norm": LogNorm()}
-                    )
-            else:
-                self.mesh.plotImage(
-                    self.F[self.survey.srcList[iSrc], 'j'], vType='N'
-                    )
-        xlim = self.x0, self.lineLength
-        zlim = -self.dz * self.ncz, 0.
-        plt.xlim(xlim)
-        plt.ylim(zlim)
-        plt.gca().set_aspect("equal")
         if showIt:
+            fig = plt.figure(figsize=(8, 3))
+            # TODO: Make currents, fields, charges visible
+            if self.problem._formulation == "HJ":
+                if (fieldType == "E") or (fieldType == "J"):
+                    self.mesh.plotImage(
+                        self.F[self.survey.srcList[iSrc], 'j'], vType='E',
+                        view='vec',
+                        streamOpts={'color': 'w'}, pcolorOpts={"norm": LogNorm()})
+                else:
+                    self.mesh.plotImage(
+                        self.F[self.survey.srcList[iSrc], 'j'], vType='CC'
+                        )
+            elif self.problem._formulation == "EB":
+                if (fieldType == "E") or (fieldType == "J"):
+                    self.mesh.plotImage(
+                        self.F[self.survey.srcList[iSrc], 'j'], vType='E',
+                        view='vec',
+                        streamOpts={'color': 'w'}, pcolorOpts={"norm": LogNorm()}
+                        )
+                else:
+                    self.mesh.plotImage(
+                        self.F[self.survey.srcList[iSrc], 'j'], vType='N'
+                        )
+            xlim = self.x0, self.lineLength
+            zlim = -self.dz * self.ncz, 0.
+            plt.xlim(xlim)
+            plt.ylim(zlim)
+            plt.gca().set_aspect("equal")
             plt.show()
 
 
