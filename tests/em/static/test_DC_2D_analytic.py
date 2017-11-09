@@ -52,7 +52,6 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
             self.data_anal.size
         )
         if err < 0.05:
-            print (err)
             passed = True
             print(">> DC analytic test for Problem2D_N is passed")
         else:
@@ -71,7 +70,6 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
             self.data_anal.size
         )
         if err < 0.05:
-            print (err)
             passed = True
             print(">> DC analytic test for Problem2D_CC is passed")
         else:
@@ -128,11 +126,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         )
         if err < 0.05:
             passed = True
-            print (err)
             print(">> DC analytic test for Problem2D_N is passed")
-            plt.plot(data)
-            plt.plot(self.data_anal)
-            plt.show()
         else:
             passed = False
             print(">> DC analytic test for Problem2D_N is failed")
@@ -149,9 +143,8 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
             np.linalg.norm((data-self.data_anal)/self.data_anal)**2 /
             self.data_anal.size
         )
-        if err < 0.3:
+        if err < 0.05:
             passed = True
-            print (err)
             print(">> DC analytic test for Problem2D_CC is passed")
         else:
             passed = False
