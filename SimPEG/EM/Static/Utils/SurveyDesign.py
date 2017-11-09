@@ -151,61 +151,61 @@ class SurveyDesign(object):
         self.xElec = xElec
 
     def plot2Dgeometry(self, iSrc=0, showIt=True):
-        fig = plt.figure(figsize=(8, 3))
-        xloc = (
-            self.SrcLoc[self.SrcID, 0] + self.SrcLoc[self.SrcID, 1] +
-            self.RxLoc[self.RxID, 0] + self.RxLoc[self.RxID, 1]
-            ) * 0.25
-        zloc = self.nLeg
-        x_temp = (
-            self.SrcLoc[self.SrcID[self.SrcID == iSrc], 0] +
-            self.SrcLoc[self.SrcID[self.SrcID == iSrc], 1] +
-            self.RxLoc[self.RxID[self.SrcID == iSrc], 0] +
-            self.RxLoc[self.RxID[self.SrcID == iSrc], 1]
-            ) * 0.25
-        z_temp = self.nLeg[self.SrcID == iSrc]
-        plt.plot(
-            self.SrcLoc[self.SrcID[self.SrcID == iSrc], 0],
-            np.zeros_like(self.SrcLoc[self.SrcID[self.SrcID == iSrc], 0]),
-            'yv'
-            )
-        plt.plot(
-            self.SrcLoc[self.SrcID[self.SrcID == iSrc], 1],
-            np.zeros_like(self.SrcLoc[self.SrcID[self.SrcID == iSrc], 1]),
-            'gv'
-            )
-        plt.plot(
-            self.RxLoc[self.RxID[self.SrcID == iSrc], 0][0],
-            np.zeros_like(self.RxLoc[self.RxID[self.SrcID == iSrc], 0][0]),
-            'rv'
-            )
-        plt.plot(
-            self.RxLoc[self.RxID[self.SrcID == iSrc], 1][0],
-            np.zeros_like(self.RxLoc[self.RxID[self.SrcID == iSrc], 1][0]),
-            'bv'
-            )
-        plt.legend(("A", "B", "M", "N"))
-        plt.plot(
-            self.RxLoc[self.RxID[self.SrcID == iSrc], 0],
-            np.zeros_like(self.RxLoc[self.RxID[self.SrcID == iSrc], 0]),
-            'rv'
-            )
-        plt.plot(
-            self.RxLoc[self.RxID[self.SrcID == iSrc], 1],
-            np.zeros_like(self.RxLoc[self.RxID[self.SrcID == iSrc], 1]),
-            'bv'
-            )
-        plt.plot(x_temp, z_temp, 'ro')
-        plt.plot(xloc, zloc, 'k.')
-        for x in self.xElec:
-            plt.plot(np.ones(2)*x, np.r_[0, -0.6], 'k-', alpha=0.3)
-        plt.plot(
-            np.r_[self.xElec.min(), self.xElec.max()],
-            np.r_[-0.6, -0.6], 'k-', alpha=0.3
-            )
-        plt.ylabel("n-Spacing")
-        plt.gca().invert_yaxis()
         if showIt:
+            fig = plt.figure(figsize=(8, 3))
+            xloc = (
+                self.SrcLoc[self.SrcID, 0] + self.SrcLoc[self.SrcID, 1] +
+                self.RxLoc[self.RxID, 0] + self.RxLoc[self.RxID, 1]
+                ) * 0.25
+            zloc = self.nLeg
+            x_temp = (
+                self.SrcLoc[self.SrcID[self.SrcID == iSrc], 0] +
+                self.SrcLoc[self.SrcID[self.SrcID == iSrc], 1] +
+                self.RxLoc[self.RxID[self.SrcID == iSrc], 0] +
+                self.RxLoc[self.RxID[self.SrcID == iSrc], 1]
+                ) * 0.25
+            z_temp = self.nLeg[self.SrcID == iSrc]
+            plt.plot(
+                self.SrcLoc[self.SrcID[self.SrcID == iSrc], 0],
+                np.zeros_like(self.SrcLoc[self.SrcID[self.SrcID == iSrc], 0]),
+                'yv'
+                )
+            plt.plot(
+                self.SrcLoc[self.SrcID[self.SrcID == iSrc], 1],
+                np.zeros_like(self.SrcLoc[self.SrcID[self.SrcID == iSrc], 1]),
+                'gv'
+                )
+            plt.plot(
+                self.RxLoc[self.RxID[self.SrcID == iSrc], 0][0],
+                np.zeros_like(self.RxLoc[self.RxID[self.SrcID == iSrc], 0][0]),
+                'rv'
+                )
+            plt.plot(
+                self.RxLoc[self.RxID[self.SrcID == iSrc], 1][0],
+                np.zeros_like(self.RxLoc[self.RxID[self.SrcID == iSrc], 1][0]),
+                'bv'
+                )
+            plt.legend(("A", "B", "M", "N"))
+            plt.plot(
+                self.RxLoc[self.RxID[self.SrcID == iSrc], 0],
+                np.zeros_like(self.RxLoc[self.RxID[self.SrcID == iSrc], 0]),
+                'rv'
+                )
+            plt.plot(
+                self.RxLoc[self.RxID[self.SrcID == iSrc], 1],
+                np.zeros_like(self.RxLoc[self.RxID[self.SrcID == iSrc], 1]),
+                'bv'
+                )
+            plt.plot(x_temp, z_temp, 'ro')
+            plt.plot(xloc, zloc, 'k.')
+            for x in self.xElec:
+                plt.plot(np.ones(2)*x, np.r_[0, -0.6], 'k-', alpha=0.3)
+            plt.plot(
+                np.r_[self.xElec.min(), self.xElec.max()],
+                np.r_[-0.6, -0.6], 'k-', alpha=0.3
+                )
+            plt.ylabel("n-Spacing")
+            plt.gca().invert_yaxis()
             plt.show()
 
     def setMesh_2D(self, dx, dz, npadx=5, npadz=5, padratex=1.3, padratez=1.3, ncellperdipole=4):
