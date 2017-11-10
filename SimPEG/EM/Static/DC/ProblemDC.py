@@ -260,9 +260,13 @@ class Problem3D_CC(BaseDCProblem):
                     # where alpha = 1 / r  * dr/dn
                     # (Dey and Morrison, 1979)
 
-                    # This assumes that the source is at (0, 0, 0)
+                    # This assumes that the source is located at
+                    # (x_center, y_center_y, ztop)
                     # TODO: Implement Zhang et al. (1995)
-                    xs, ys, zs = 0., 0., 0.
+
+                    xs = np.median(self.mesh.vectorCCx)
+                    ys = np.median(self.mesh.vectorCCy)
+                    zs = self.mesh.vectorCCz[-1]
                     rxm = 1./np.sqrt(
                         (gBFxm[:, 0]-xs)**2 + (gBFxm[:, 1]-ys)**2
                         + (gBFxm[:, 2]-zs)**2

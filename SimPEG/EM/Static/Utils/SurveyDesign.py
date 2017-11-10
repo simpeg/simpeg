@@ -10,7 +10,7 @@ from SimPEG.EM.Static import DC
 import matplotlib.pyplot as plt
 from scipy.interpolate import griddata
 from pymatsolver import PardisoSolver
-from matplotlib.colors import LogNorm
+from matplotlib.colors import LogNorm, SymLogNorm
 
 
 class SurveyDesign(object):
@@ -358,29 +358,54 @@ class SurveyDesign(object):
 
     def plotfields_2D(self, iSrc=0, fieldType="E", showIt=True):
         if showIt:
-            fig = plt.figure(figsize=(8, 3))
-            # TODO: Make currents, fields, charges visible
+            fig = plt.figure(figsize=(8, 2))
             if self.problem._formulation == "HJ":
-                if (fieldType == "E") or (fieldType == "J"):
+                if fieldType == "E":
                     self.mesh.plotImage(
-                        self.F[self.survey.srcList[iSrc], 'j'], vType='E',
+                        self.F[self.survey.srcList[iSrc], 'e'], vType='F',
                         view='vec',
-                        streamOpts={'color': 'w'}, pcolorOpts={"norm": LogNorm()})
-                else:
+                        streamOpts={'color': 'w'}, pcolorOpts={"norm": LogNorm()}
+                        )
+                elif fieldType == "J":
                     self.mesh.plotImage(
-                        self.F[self.survey.srcList[iSrc], 'j'], vType='CC'
+                        self.F[self.survey.srcList[iSrc], 'j'], vType='F',
+                        view='vec',
+                        streamOpts={'color': 'w'}, pcolorOpts={"norm": LogNorm()}
+                        )
+                elif fieldType == "Phi":
+                    self.mesh.plotImage(
+                        self.F[self.survey.srcList[iSrc], 'phi'], vType='CC',
+                        pcolorOpts={"norm": SymLogNorm(1e-10)}
+                        )
+                elif fieldType == "Charge":
+                    self.mesh.plotImage(
+                        self.F[self.survey.srcList[iSrc], 'charge'], vType='CC',
+                        pcolorOpts={"norm": SymLogNorm(1e-10)}
                         )
             elif self.problem._formulation == "EB":
-                if (fieldType == "E") or (fieldType == "J"):
+                if fieldType == "E":
+                    self.mesh.plotImage(
+                        self.F[self.survey.srcList[iSrc], 'e'], vType='E',
+                        view='vec',
+                        streamOpts={'color': 'w'}, pcolorOpts={"norm": LogNorm()}
+                        )
+                elif fieldType == "J":
                     self.mesh.plotImage(
                         self.F[self.survey.srcList[iSrc], 'j'], vType='E',
                         view='vec',
                         streamOpts={'color': 'w'}, pcolorOpts={"norm": LogNorm()}
                         )
-                else:
+                elif fieldType == "Phi":
                     self.mesh.plotImage(
-                        self.F[self.survey.srcList[iSrc], 'j'], vType='N'
+                        self.F[self.survey.srcList[iSrc], 'phi'], vType='N',
+                        pcolorOpts={"norm": SymLogNorm(1e-10)}
                         )
+                elif fieldType == "Charge":
+                    self.mesh.plotImage(
+                        self.F[self.survey.srcList[iSrc], 'charge'], vType='N',
+                        pcolorOpts={"norm": SymLogNorm(1e-10)}
+                        )
+
             xlim = self.x0, self.lineLength
             zlim = -self.dz * self.ncz, 0.
             plt.xlim(xlim)
