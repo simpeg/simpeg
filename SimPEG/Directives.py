@@ -645,7 +645,7 @@ class Update_IRLS(InversionDirective):
             for survey in self.survey:
                 nD += survey.nD
 
-            self._target = nD*0.5*self.chifact
+            self._target = nD*0.5*self.chifact_target
 
         return self._target
 
