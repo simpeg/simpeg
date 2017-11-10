@@ -153,12 +153,11 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         self.assertTrue(passed)
 
 
-# This does not work well for Pole-Pole case
-# Enhancement is required by implementing better B.C.
 class DCProblemAnalyticTests_PP(unittest.TestCase):
 
     def setUp(self):
-
+        # Note: Pole-Pole requires bigger boundary to obtain good accuracy.
+        # One can use greater padding rate. Here 1.5 is used.
         cs = 12.5
         hx = [(cs, 7, -1.5), (cs, 61), (cs, 7, 1.5)]
         hy = [(cs, 7, -1.5), (cs, 20)]
