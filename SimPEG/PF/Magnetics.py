@@ -68,7 +68,8 @@ class MagneticIntegral(Problem.LinearProblem):
             raise Exception('Need to pair!')
 
         if getattr(self, '_F', None) is None:
-            self._F = self.Intrgl_Fwr_Op(magType=self.magType)
+            self._F = self.Intrgl_Fwr_Op(magType=self.magType,
+                                         recType=self.recType)
 
         return self._F
 
@@ -124,7 +125,7 @@ class MagneticIntegral(Problem.LinearProblem):
         dmudm = self.chiMap.deriv(m)
         return dmudm.T * (self.F.T.dot(v))
 
-    def Intrgl_Fwr_Op(self, m=None, Magnetization="ind"):
+    def Intrgl_Fwr_Op(self, m=None, magType='H0', recType='tmi'):
 
         """
 
@@ -359,12 +360,12 @@ class MagneticVector(MagneticIntegral):
 
         if self.coordinate_system == 'cartesian':
 
-            return np.dot(self.F, self.chiMap.deriv(chi))
+            return self.F*self.chiMap.deriv(chi)
 
         else:
             dmudm = self.S*self.chiMap.deriv(chi)
 
-            return np.dot(self.F, dmudm)
+            return self.F * dmudm
 
 
     def Jvec(self, chi, v, f=None):

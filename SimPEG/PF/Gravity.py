@@ -30,68 +30,8 @@ class GravityIntegral(Problem.LinearProblem):
 
         if self.forwardOnly:
 
-<<<<<<< HEAD
             # Compute the linear operation without forming the full dense G
             fields = self.Intrgl_Fwr_Op(m=m)
-=======
-            if getattr(self, 'actInd', None) is not None:
-
-                if self.actInd.dtype == 'bool':
-                    inds = np.asarray([inds for inds,
-                                      elem in enumerate(self.actInd, 1)
-                                      if elem], dtype=int) - 1
-                else:
-                    inds = self.actInd
-
-            else:
-
-                inds = np.asarray(range(self.mesh.nC))
-
-            nC = len(inds)
-
-            # Create active cell projector
-            P = sp.csr_matrix(
-                (np.ones(nC), (inds, range(nC))),
-                shape=(self.mesh.nC, nC)
-            )
-
-            if isinstance(self.mesh, Mesh.TreeMesh):
-                # Get upper and lower corners of each cell
-                bsw = (self.mesh.gridCC -
-                       np.kron(self.mesh.vol.T**(1/3)/2,
-                               np.ones(3)).reshape((self.mesh.nC, 3)))
-                tne = (self.mesh.gridCC +
-                       np.kron(self.mesh.vol.T**(1/3)/2,
-                               np.ones(3)).reshape((self.mesh.nC, 3)))
-
-                xn1, xn2 = bsw[:, 0], tne[:, 0]
-                yn1, yn2 = bsw[:, 1], tne[:, 1]
-                zn1, zn2 = bsw[:, 2], tne[:, 2]
-
-            else:
-
-                xn = self.mesh.vectorNx
-                yn = self.mesh.vectorNy
-                zn = self.mesh.vectorNz
-
-                yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
-                yn1, xn1, zn1 = np.meshgrid(yn[:-1], xn[:-1], zn[:-1])
-
-            Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
-            Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
-            Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
-
-            rxLoc = self.survey.srcField.rxList[0].locs
-            ndata = rxLoc.shape[0]
-
-            # Pre-allocate space and create magnetization matrix if required
-            # Pre-allocate space
-            if self.rtype == 'z':
-
-                fwr_d = np.zeros(self.survey.nRx)
-
-            elif self.rtype == 'xyz':
->>>>>>> LocalProblem
 
             return fields
 
@@ -100,27 +40,25 @@ class GravityIntegral(Problem.LinearProblem):
 
             return vec.astype(np.float64)
 
-<<<<<<< HEAD
     def mapping(self):
         """
             Return rhoMap
         """
         return self.rhoMap
-=======
+
     def getJ(self, m, f):
         """
             Sensitivity matrix
         """
-        return self.G
+        return self.F
 
     def Jvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
-        return self.G.dot(dmudm*v)
+        return self.F.dot(dmudm*v)
 
     def Jtvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
-        return dmudm.T * (self.G.T.dot(v))
->>>>>>> LocalProblem
+        return dmudm.F * (self.G.T.dot(v))
 
     @property
     def F(self):

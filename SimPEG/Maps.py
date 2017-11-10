@@ -15,13 +15,8 @@ from scipy.sparse.linalg import LinearOperator
 from scipy.interpolate import UnivariateSpline
 from scipy.constants import mu_0
 from scipy.spatial import cKDTree
-<<<<<<< HEAD
-=======
 from SimPEG.Utils import mkvc
->>>>>>> LocalProblem
-
 import properties
-
 from . import Utils
 from .Tests import checkDerivative
 

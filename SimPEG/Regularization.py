@@ -548,7 +548,6 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         if v is None:
             return mD.T * self.W.T * self.W * mD
 
-<<<<<<< HEAD
         return mD.T * ( self.W.T * ( self.W * ( mD * v) ) )
 
 
@@ -598,9 +597,6 @@ class Small(BaseRegularization):
         #     return sp.eye(self._nC_residual)
         else:
             return Utils.sdiag(self.regmesh.vol**0.5)
-=======
-        return mD.T * (self.W.T * (self.W * (mD * v)))
->>>>>>> LocalProblem
 
 
 ###############################################################################
@@ -654,17 +650,18 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
     cell_weights = properties.Array(
         "regularization weights applied at cell centers", dtype=float
     )
-<<<<<<< HEAD
+
     scale = properties.Float(
         "General nob for scaling", default=1.
-=======
+    )
+
     regmesh = properties.Instance(
         "regularization mesh", RegularizationMesh, required=True
     )
     mapping = properties.Instance(
         "mapping which is applied to model in the regularization",
         Maps.IdentityMap, default=Maps.IdentityMap()
->>>>>>> LocalProblem
+
     )
 
     # Other properties and methods
@@ -1149,42 +1146,22 @@ class SmoothDeriv(BaseRegularization):
         Weighting matrix that constructs the first spatial derivative stencil
         in the specified orientation
         """
-<<<<<<< HEAD
-        Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
-        W = getattr(
-=======
         vol = self.regmesh.vol.copy()
         if self.cell_weights is not None:
             vol *= self.cell_weights
 
         D = getattr(
->>>>>>> LocalProblem
+
             self.regmesh,
             "cellDiff{orientation}".format(
                 orientation=self.orientation
             )
         )
 
-<<<<<<< HEAD
-        W = (
-                Utils.sdiag(
-                    (Ave*self.regmesh.vol)**0.5
-                ) * W
-            )
-
-        if self.cell_weights is not None:
-            W = (
-                Utils.sdiag(
-                    (Ave*(self.cell_weights*self.regmesh.vol))**0.5
-                ) * W
-            )
-        return W
-=======
         Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
         return Utils.sdiag(np.sqrt(Ave * vol)) * D
->>>>>>> LocalProblem
 
 
 class SmoothDeriv2(BaseRegularization):
@@ -1303,24 +1280,14 @@ class Tikhonov(BaseComboRegularization):
 
         if mesh.dim > 1:
             objfcts += [
-<<<<<<< HEAD
-                    SmoothDeriv(mesh=mesh, orientation='y', **kwargs),
-                    # SmoothDeriv2(mesh=mesh, orientation='y', **kwargs)
-=======
                 SmoothDeriv(mesh=mesh, orientation='y', **kwargs),
                 SmoothDeriv2(mesh=mesh, orientation='y', **kwargs)
->>>>>>> LocalProblem
             ]
 
         if mesh.dim > 2:
             objfcts += [
-<<<<<<< HEAD
-                    SmoothDeriv(mesh=mesh, orientation='z', **kwargs),
-                    # SmoothDeriv2(mesh=mesh, orientation='z', **kwargs)
-=======
                 SmoothDeriv(mesh=mesh, orientation='z', **kwargs),
                 SmoothDeriv2(mesh=mesh, orientation='z', **kwargs)
->>>>>>> LocalProblem
             ]
 
         super(Tikhonov, self).__init__(
@@ -1416,7 +1383,7 @@ class SparseSmall(BaseSparse):
     @property
     def W(self):
         if getattr(self, 'model', None) is None:
-            R = Utils.speye(self.nP)
+            R = Utils.speye(self.mapping.shape[0])
         else:
             r = self.R(self.f_m) #, self.eps_p, self.norm)
             R = Utils.sdiag(r)
@@ -1470,7 +1437,6 @@ class SparseDeriv(BaseSparse):
 
             else:
                 W = ((self.scale * self.gamma)**0.5) * R
-
 
             theta = self.cellDiffStencil * (self.mapping * m)
             dmdx = coterminal(theta)
@@ -1684,7 +1650,6 @@ class Sparse(BaseComboRegularization):
         for objfct in self.objfcts:
             if isinstance(objfct, SparseDeriv):
                 objfct.epsilon = change['value']
-<<<<<<< HEAD
 
     @properties.observer('space')
     def _mirror_space_to_objfcts(self, change):
@@ -1706,6 +1671,3 @@ def coterminal(theta):
     theta[np.abs(theta) >= np.pi] = sub
 
     return theta
-
-=======
->>>>>>> LocalProblem
