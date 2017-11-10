@@ -142,11 +142,10 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
             else:
                 x = np.random.randn(self.nP)
 
-        v = x + 0.01*np.random.rand(len(x))
+        v = x + 0.1*np.random.rand(len(x))
         return checkDerivative(
             lambda m: [self.deriv(m).dot(v), self.deriv2(m, v=v)],
-                x, num=num, expectedOrder=1,
-                plotIt=plotIt, **kwargs
+            x, num=num, expectedOrder=1, plotIt=plotIt, **kwargs
         )
 
     def test(self, x=None, num=4, plotIt=False, **kwargs):
@@ -180,7 +179,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
             objfct2 = 1 * objfct2
 
         objfctlist = self.objfcts + objfct2.objfcts
-        multipliers = self._multipliers + objfct2._multipliers
+        multipliers = self.multipliers + objfct2.multipliers
 
         return ComboObjectiveFunction(
             objfcts=objfctlist, multipliers=multipliers
@@ -232,7 +231,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             )
 
     """
-    _multiplier_types = (float, None, Utils.Zero) + integer_types # Directive
+    _multiplier_types = (float, None, Utils.Zero, np.float64) + integer_types # Directive
+    _multipliers = None
 
     def __init__(self, objfcts=[], multipliers=None, **kwargs):
 
@@ -241,10 +241,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         self._nP = '*'
 
-        assert(len(objfcts)==len(multipliers)),(
+        assert(len(objfcts)==len(multipliers)), (
             "Must have the same number of Objective Functions and Multipliers "
-            "not {} and {}".format(len(objfcts),len(multipliers))
-            )
+            "not {} and {}".format(len(objfcts), len(multipliers))
+        )
 
         def validate_list(objfctlist, multipliers):
             """
@@ -280,23 +280,41 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         validate_list(objfcts, multipliers)
 
         self.objfcts = objfcts
-        self.__multipliers = multipliers
+        self._multipliers = multipliers
 
         super(ComboObjectiveFunction, self).__init__(**kwargs)
 
     def __len__(self):
-        return len(self._multipliers)
+        return len(self.multipliers)
 
     def __getitem__(self, key):
-        return self._multipliers[key], self.objfcts[key]
+        return self.multipliers[key], self.objfcts[key]
 
     @property
     def __len__(self):
         return self.objfcts.__len__
 
     @property
-    def _multipliers(self):
-        return self.__multipliers
+    def multipliers(self):
+        return self._multipliers
+
+    @multipliers.setter
+    def multipliers(self, value):
+        for val in value:
+            assert type(val) in self._multiplier_types, (
+                'Multiplier must be in type {} not {}'.format(
+                    self._multiplier_types, type(val)
+                )
+            )
+
+        assert len(value) == len(self.objfcts), (
+            'the length of multipliers should be the same as the number of'
+            ' objective functions ({}), not {}'.format(
+                len(self.objfcts, len(value))
+            )
+        )
+
+        self._multipliers = value
 
     def __call__(self, m, f=None):
 

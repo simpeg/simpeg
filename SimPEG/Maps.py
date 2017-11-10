@@ -7,7 +7,7 @@ from six import integer_types
 from six import string_types
 from collections import namedtuple
 import warnings
-
+from . import Mesh
 import numpy as np
 from numpy.polynomial import polynomial
 import scipy.sparse as sp
@@ -15,6 +15,10 @@ from scipy.sparse.linalg import LinearOperator
 from scipy.interpolate import UnivariateSpline
 from scipy.constants import mu_0
 from scipy.spatial import cKDTree
+<<<<<<< HEAD
+=======
+from SimPEG.Utils import mkvc
+>>>>>>> LocalProblem
 
 import properties
 
@@ -452,6 +456,300 @@ class Wires(object):
     @property
     def nP(self):
         return self._nP
+
+
+class Tile(IdentityMap):
+    """
+        Mapping for tiled inversion
+    """
+
+    nCell = 27  # Number of neighbors to use in averaging
+    tol = 1e-8  # Tolerance to avoid zero division
+    nBlock = 1
+
+    def __init__(self, *args, **kwargs):
+
+        assert len(args) == 2, ('Mapping requires a tuple' +
+                                '(MeshGlobal, ActiveGlobal),' +
+                                '(MeshLocal, ActiveLocal)')
+
+        # check if tree in kwargs
+        if 'tree' in kwargs.keys():   # kwargs is a dict
+            tree = kwargs.pop('tree')
+
+            assert isinstance(tree, cKDTree), ('Tree input must be a cKDTRee')
+            self._tree = tree
+
+        self.meshGlobal = args[0][0]
+        self.actvGlobal = args[0][1]
+
+        if not isinstance(self.actvGlobal, bool):
+            temp = np.zeros(self.meshGlobal.nC, dtype='bool')
+            temp[self.actvGlobal] = True
+            self.actvGlobal = temp
+
+        self.meshLocal = args[1][0]
+        self.actvLocal = args[1][1]
+
+        if not isinstance(self.actvLocal, bool):
+            temp = np.zeros(self.meshLocal.nC, dtype='bool')
+            temp[self.actvLocal] = True
+            self.actvLocal = temp
+
+        if self.nCell > self.meshGlobal.nC:
+            self.nCell = self.meshGlobal.nC
+
+        self.index = np.ones(self.actvGlobal.sum(), dtype='bool')
+
+    @property
+    def tree(self):
+        """
+            Create cKDTree structure for given global mesh
+        """
+        if getattr(self, '_tree', None) is None:
+
+            if self.meshLocal.dim == 1:
+                ccMat = np.c_[self.meshLocal.gridCC[self.actvLocal, 0]]
+            elif self.meshLocal.dim == 2:
+                ccMat = np.c_[self.meshLocal.gridCC[self.actvLocal, 0],
+                              self.meshLocal.gridCC[self.actvLocal, 1]]
+            elif self.meshLocal.dim == 3:
+                ccMat = np.c_[self.meshLocal.gridCC[self.actvLocal, 0],
+                              self.meshLocal.gridCC[self.actvLocal, 1],
+                              self.meshLocal.gridCC[self.actvLocal, 2]]
+
+            self._tree = cKDTree(ccMat)
+
+        return self._tree
+
+    @property
+    def index(self):
+        """This is the index of the actvGlobal used in the global problem."""
+        return getattr(self, '_index', None)
+
+    @index.setter
+    def index(self, index):
+        if getattr(self, '_index', None) is not None:
+            self._S = None
+
+
+        if not isinstance(index, bool):
+            temp = np.zeros(self.actvGlobal.sum(), dtype='bool')
+            temp[index] = True
+            index = temp
+
+        self._nP = index.sum()
+        self._index = index
+
+    @property
+    def S(self):
+        """
+            Create sub-selection matrix in case where the global
+            mesh is not touched by all sub meshes
+        """
+        if getattr(self, '_S', None) is None:
+
+            nP = self.actvGlobal.sum()
+            nI = self.index.sum()
+            assert (nI <= nP), (
+                'maximum index must be less than {}'.format(nP))
+
+            # sparse projection matrix
+            S = sp.csr_matrix(
+                (np.ones(nI), (np.where(self.index)[0], range(nI))), shape=(nP, nI)
+            )
+
+            self._S = sp.block_diag([S for ii in range(self.nBlock)])
+        return self._S
+
+    @property
+    def P(self):
+        """
+            Set the projection matrix with partial volumes
+        """
+        if getattr(self, '_P', None) is None:
+
+            # level = []
+            # for ii, ind in enumerate(self._sortedCells):
+
+            #     p = self.meshLocal._pointer[ind]
+            #     level += meshLocal._levelWidth[p[-1]]
+
+            # self.level = level
+            indx = self.getTreeIndex(self.tree, self.meshGlobal, self.actvGlobal)
+
+            # Get the node coordinates (bottom-SW) and (top-NE) of cells
+            global_bsw, global_tne = self.getNodeExtent(self.meshGlobal,
+                                                        self.actvGlobal)
+
+            local_bsw, local_tne = self.getNodeExtent(self.meshLocal,
+                                                      self.actvLocal)
+            nactv = self.actvGlobal.sum()
+            indL = np.where(self.actvLocal)[0]
+            indG = np.asarray(range(nactv))
+            # Calculate interesected volume
+            V = []
+            I = []
+            J = []
+            indx = np.r_[indx]
+            for ii in range(indx.shape[1]):
+
+                # Grab corners for ith nearest cell
+                if self.meshLocal.dim == 1:
+                    nbsw = local_bsw[indx[:, ii]]
+                    ntne = local_tne[indx[:, ii]]
+
+                    dV = np.max([(np.min([ntne, global_tne], axis=0) -
+                                  np.max([nbsw, global_bsw], axis=0)),
+                                 np.zeros(nactv)], axis=0)
+
+                elif self.meshLocal.dim >= 2:
+                    nbsw = local_bsw[indx[:, ii], :]
+                    ntne = local_tne[indx[:, ii], :]
+
+                    dV = np.max([(np.min([ntne[:, 0], global_tne[:, 0]],
+                                         axis=0) -
+                                  np.max([nbsw[:, 0], global_bsw[:, 0]],
+                                         axis=0)),
+                                 np.zeros(nactv)], axis=0)
+
+                    dV *= np.max([(np.min([ntne[:, 1], global_tne[:, 1]],
+                                          axis=0) -
+                                   np.max([nbsw[:, 1], global_bsw[:, 1]],
+                                          axis=0)),
+                                  np.zeros(nactv)], axis=0)
+
+                if self.meshLocal.dim == 3:
+
+                    dV *= np.max([(np.min([ntne[:, 2], global_tne[:, 2]],
+                                          axis=0) -
+                                   np.max([nbsw[:, 2], global_bsw[:, 2]],
+                                          axis=0)),
+                                  np.zeros(nactv)], axis=0)
+
+                nzV = dV > 0
+                if nzV.sum() > 0:
+                    V += [dV[nzV]/self.meshLocal.vol[indx[nzV, ii]]]
+                    I += [mkvc(indx[nzV, ii])]
+                    J += [np.where(nzV)[0]]
+
+            self.V = np.hstack(V)
+
+            P = sp.csr_matrix((self.V, (np.hstack(I), np.hstack(J))),
+                              shape=(self.actvLocal.sum(), nactv))
+
+            sumRow = Utils.mkvc(np.sum(P, axis=1) + self.tol)
+
+            P = Utils.sdiag(1./sumRow) * P
+
+            self._P = sp.block_diag([P for ii in range(self.nBlock)])
+
+            self._shape = self.actvLocal.sum(), nactv
+
+        return self._P * self.S
+
+    def getTreeIndex(self, tree, mesh, actvCell):
+        """
+            Querry the KDTree for nearest cells
+        """
+
+        if self.meshGlobal.dim == 1:
+            d, indx = tree.query(mesh.gridCC[actvCell, 0],
+                                 k=self.nCell)
+
+        elif self.meshGlobal.dim == 2:
+            d, indx = tree.query(np.c_[mesh.gridCC[actvCell, 0],
+                                       mesh.gridCC[actvCell, 1]],
+                                 k=self.nCell)
+
+        elif self.meshGlobal.dim == 3:
+            d, indx = tree.query(np.c_[mesh.gridCC[actvCell, 0],
+                                       mesh.gridCC[actvCell, 1],
+                                       mesh.gridCC[actvCell, 2]],
+                                 k=self.nCell)
+        return indx
+
+    def getNodeExtent(self, mesh, actvCell):
+
+        if isinstance(mesh, Mesh.TensorMesh):
+            # Create projection matrix from all nodes to
+            # Bottom-SW and Top-NE
+            if mesh.dim == 1:
+                xi = np.r_[np.ones(mesh.vnC), 0]
+                Absw = sp.csr_matrix(Utils.sdiag(xi))
+
+                xi = np.r_[0, np.ones(mesh.vnC)]
+                Atne = sp.csr_matrix(Utils.sdiag(xi))
+
+            if mesh.dim == 2:
+                xi = np.r_[np.ones(mesh.vnC[0]), 0]
+                yi = np.r_[np.ones(mesh.vnC[1]), 0]
+
+                Absw = sp.csr_matrix(sp.kron(Utils.sdiag(yi), Utils.sdiag(xi)))
+
+                xi = np.r_[0, np.ones(mesh.vnC[0])]
+                yi = np.r_[0, np.ones(mesh.vnC[1])]
+
+                Atne = sp.csr_matrix(sp.kron(Utils.sdiag(yi), Utils.sdiag(xi)))
+
+            if mesh.dim == 3:
+                xi = np.r_[np.ones(mesh.vnC[0]), 0]
+                yi = np.r_[np.ones(mesh.vnC[1]), 0]
+                zi = np.r_[np.ones(mesh.vnC[2]), 0]
+
+                Absw = sp.csr_matrix(sp.kron(Utils.sdiag(zi),
+                                             sp.kron(Utils.sdiag(yi),
+                                                     Utils.sdiag(xi))))
+
+                xi = np.r_[0, np.ones(mesh.vnC[0])]
+                yi = np.r_[0, np.ones(mesh.vnC[1])]
+                zi = np.r_[0, np.ones(mesh.vnC[2])]
+
+                Atne = sp.csr_matrix(sp.kron(Utils.sdiag(zi),
+                                             sp.kron(Utils.sdiag(yi),
+                                                     Utils.sdiag(xi))))
+
+            rows = Utils.mkvc(np.sum(Absw, axis=0))
+            Absw = Absw[rows > 0, :]
+
+            rows = Utils.mkvc(np.sum(Atne, axis=0))
+            Atne = Atne[rows > 0, :]
+
+            # Grab the nodes
+            bsw = Absw * mesh.gridN
+            tne = Atne * mesh.gridN
+
+        elif isinstance(mesh, Mesh.TreeMesh):
+            bsw = (mesh.gridCC -
+                   np.kron(mesh.vol.T**(1/3)/2,
+                           np.ones(3)).reshape((mesh.nC, 3)))
+            tne = (mesh.gridCC +
+                   np.kron(mesh.vol.T**(1/3)/2,
+                           np.ones(3)).reshape((mesh.nC, 3)))
+
+        # Return only active set
+        return bsw[actvCell], tne[actvCell]
+
+    def _transform(self, m):
+        return self.P * m
+
+    @property
+    def shape(self):
+        """
+        Shape of the matrix operation (number of indices x nP)
+        """
+        return self.P.shape
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+        """
+
+        if v is not None:
+            return self.P * v
+        return self.P
 
 
 class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
@@ -1269,6 +1567,99 @@ class Mesh2MeshTopo(IdentityMap):
     def deriv(self, m):
         return self.P
 
+# class Mesh2MeshTopo(IdentityMap):
+#     """
+#         Takes a model on one mesh are translates it to another mesh
+#         with consideration of topography
+
+#     """
+#     tree = None
+#     nIterpPts = 6
+#     P = None  #: The CSR projection matrix.
+#     epsilon = 1e-8  # Small value to avoid 0 division in weights
+
+#     def __init__(self, meshes, actinds, **kwargs):
+#         Utils.setKwargs(self, **kwargs)
+
+#         assert type(meshes) is list, "meshes must be a list of two meshes"
+#         assert len(meshes) == 2, "meshes must be a list of two meshes"
+#         assert type(actinds) is list, "actinds must be a list of two meshes"
+#         assert len(actinds) == 2, "actinds must be a list of two meshes"
+#         assert meshes[0].dim == meshes[1].dim, """The two meshes must be the same dimension"""
+
+#         self.mesh = meshes[0]
+#         self.mesh2 = meshes[1]
+#         self.actind = actinds[0]
+#         self.actind2 = actinds[1]
+#         self._createProjection()
+
+#         # Old version using SimPEG interpolation
+#         # self.P = self.mesh2.getInterpolationMat(self.mesh.gridCC,'CC',zerosOutside=True)
+
+#     def genActiveindfromTopo(mesh, xyztopo):
+
+#         #TODO: This possibly needs to be improved use vtk(?)
+#         if mesh.dim == 3:
+#             nCxy = mesh.nCx*mesh.nCy
+#             Zcc = mesh.gridCC[:, 2].reshape((nCxy, mesh.nCz), order='F')
+#             Ftopo = NearestNDInterpolator(xyztopo[:, :2], xyztopo[:, 2])
+#             XY = Utils.ndgrid(mesh.vectorCCx, mesh.vectorCCy)
+#             XY.shape
+#             topo = Ftopo(XY)
+#             actind = []
+#             for ixy in range(nCxy):
+#                 actind.append(topo[ixy] <= Zcc[ixy, :])
+#         else:
+#             raise NotImplementedError("Only 3D is working")
+
+#         return Utils.mkvc(np.vstack(actind))
+
+#     #Question .. is it only generated once?
+#     def _createProjection(self):
+#         """
+#             KD Tree interpolation onto the active cells.
+#         """
+#         if self.tree is None:
+#             self.tree = cKDTree(np.c_[self.mesh.gridCC[self.actind, 0],
+#                                       self.mesh.gridCC[self.actind, 1],
+#                                       self.mesh.gridCC[self.actind, 2]])
+
+#         d, inds = self.tree.query(np.c_[self.mesh2.gridCC[self.actind2, 0],
+#                                         self.mesh2.gridCC[self.actind2, 1],
+#                                         self.mesh2.gridCC[self.actind2, 2]],
+#                                   k=self.nIterpPts)
+
+#         # Not sure consideration of the volume ...
+#         # vol = np.zeros((self.actind2.sum(), self.nIterpPts))
+#         # for i in range(self.nIterpPts):
+#         #     vol[:,i] = self.mesh.vol[inds[:,i]]
+#         w = 1. / (d+self.epsilon)**2
+#         w = Utils.sdiag(1./np.sum(w, axis=1)) * (w)
+#         I = Utils.mkvc(np.arange(inds.shape[0]).reshape([-1, 1]).repeat(self.nIterpPts, axis=1))
+#         J = Utils.mkvc(inds)
+#         P = sp.coo_matrix((Utils.mkvc(w), (I, J)),
+#                           shape=(inds.shape[0], (self.actind).sum()))
+#         # self.P = Utils.sdiag(self.mesh2.vol[self.actind2])*P.tocsc()
+#         self.P = P.tocsr()
+
+#     @property
+#     def shape(self):
+#         """Number of parameters in the model."""
+#         # return (self.mesh.nC, self.mesh2.nC)
+#         return (self.actind2.sum(), self.actind.sum())
+
+#     @property
+#     def nP(self):
+#         """Number of parameters in the model."""
+#         # return self.mesh2.nC
+#         return self.actind2.sum()
+
+#     def _transform(self, m):
+#         return self.P*m
+
+#     def deriv(self, m):
+#         return self.P
+
 class InjectActiveCells(IdentityMap):
     """
         Active model parameters.
@@ -1321,7 +1712,6 @@ class InjectActiveCells(IdentityMap):
         if v is not None:
             return self.P * v
         return self.P
-
 
 ###############################################################################
 #                                                                             #

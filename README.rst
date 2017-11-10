@@ -20,10 +20,6 @@ SimPEG
     :target: https://codecov.io/gh/simpeg/simpeg
     :alt: Coverage status
 
-.. image:: https://www.quantifiedcode.com/api/v1/project/933aa3decf444538aa432c8817169b6d/badge.svg
-    :target: https://www.quantifiedcode.com/app/project/933aa3decf444538aa432c8817169b6d
-    :alt: Code issues
-
 .. image:: https://api.codacy.com/project/badge/Grade/4fc959a5294a418fa21fc7bc3b3aa078
     :target: https://www.codacy.com/app/lindseyheagy/simpeg?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=simpeg/simpeg&amp;utm_campaign=Badge_Grade
     :alt: codacy
@@ -37,6 +33,8 @@ The vision is to create a package for finite volume simulation with applications
 * provides a framework for geophysical and hydrogeologic problems
 * supports 1D, 2D and 3D problems
 * designed for large-scale inversions
+
+You are welcome to join forum and engage with people who use and develop SimPEG at: https://groups.google.com/forum/#!forum/simpeg.
 
 Overview Video
 --------------
@@ -66,6 +64,31 @@ There is a paper about SimPEG!
       year={2015},
       publisher={Elsevier}
     }
+
+Electromagnetics
+****************
+
+If you are using the electromagnetics module of SimPEG, please cite:
+
+    Lindsey J. Heagy, Rowan Cockett, Seogi Kang, Gudni K. Rosenkjaer, Douglas W. Oldenburg, A framework for simulation and inversion in electromagnetics, Computers & Geosciences, Volume 107, 2017, Pages 1-19, ISSN 0098-3004, http://dx.doi.org/10.1016/j.cageo.2017.06.018.
+
+**BibTex:**
+
+.. code::
+
+    @article{heagy2017,
+        title= "A framework for simulation and inversion in electromagnetics",
+        author= "Lindsey J. Heagy and Rowan Cockett and Seogi Kang and Gudni K. Rosenkjaer and Douglas W. Oldenburg",
+        journal= "Computers & Geosciences",
+        volume = "107",
+        pages = "1 - 19",
+        year = "2017",
+        note = "",
+        issn = "0098-3004",
+        doi = "http://dx.doi.org/10.1016/j.cageo.2017.06.018"
+    }
+
+
 
 Links
 -----

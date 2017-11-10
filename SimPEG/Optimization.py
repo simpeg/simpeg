@@ -1068,6 +1068,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
     maxIterCG = 5
     tolCG = 1e-1
 
+
     # perturbation of the inactive set off the bounds
     stepOffBoundsFact = 1e-8
     lower = [-np.inf]
@@ -1075,6 +1076,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
     ComboObjFun = False
     LSalwaysPass = False
+
 
     def _startup(self, x0):
 
@@ -1140,18 +1142,10 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         temp = sum((np.ones_like(self.xc.size)-Active))
         allBoundsAreActive = temp == self.xc.size
 
-        # if allBoundsAreActive:
-        #     Hinv = SolverICG(
-        #         self.H, M=self.approxHinv, tol=self.tolCG,
-        #         maxiter=self.maxIterCG
-        #     )
-        #     p = Hinv * (-self.g)
-        #     return p
-        # else:
         delx = np.zeros(self.g.size)
         resid = -(1-Active) * self.g
-        #print('MAX deriv',np.max(np.abs(self.g)))
-        r = (resid - (1-Active)*(self.H* delx))
+
+        r = (resid - (1-Active)*(self.H * delx))
 
         p = self.approxHinv*r
 
@@ -1160,7 +1154,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
         count = 0
 
-        while np.all([np.linalg.norm(r) > self.tolCG , count < self.maxIterCG]):
+        while np.all([np.linalg.norm(r) > self.tolCG, count < self.maxIterCG]):
 
             count += 1
 
@@ -1192,7 +1186,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
                     delx = delx/max_ang*np.pi/2.
 
-
         # Take a gradient step on the active cells if exist
         if temp != self.xc.size:
 
@@ -1204,7 +1197,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
             # perturb inactive set off of bounds so that they are included
             # in the step
             delx = delx + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
-
 
         # Only keep gradients going in the right direction on the active
         # set

@@ -76,10 +76,11 @@ class GravInvLinProblemTest(unittest.TestCase):
         idenMap = Maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        prob = PF.Gravity.GravityIntegral(mesh,
-                                          rhoMap=idenMap,
-                                          actInd=actv,
-                                          silent=True)
+        prob = PF.Gravity.GravityIntegral(
+            mesh,
+            rhoMap=idenMap,
+            actInd=actv
+        )
 
         # Pair the survey and problem
         survey.pair(prob)
@@ -119,7 +120,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         IRLS = Directives.Update_IRLS(f_min_change=1e-3,
                                       minGNiter=3)
-        update_Jacobi = Directives.UpdatePreCond(mapping=idenMap)
+        update_Jacobi = Directives.UpdateJacobiPrecond()
 
         self.inv = Inversion.BaseInversion(invProb,
                                            directiveList=[IRLS,

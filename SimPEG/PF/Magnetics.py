@@ -11,11 +11,14 @@ from SimPEG import Props
 from SimPEG import mkvc
 import matplotlib.pyplot as plt
 import gc
+from SimPEG import Mesh
+
 from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
 import properties
 from scipy.interpolate import griddata
 from SimPEG import Solver as SimpegSolver
+
 
 class MagneticIntegral(Problem.LinearProblem):
 
@@ -32,7 +35,10 @@ class MagneticIntegral(Problem.LinearProblem):
     equiSourceLayer = False
     silent = False  # Don't display progress on screen
     W = None
+
     def __init__(self, mesh, **kwargs):
+
+        assert mesh.dim == 3, 'Integral formulation only available for 3D mesh'
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     def fwr_ind(self, m):
@@ -102,7 +108,23 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return self._ProjTMI
 
-    def Intrgl_Fwr_Op(self, m=None, magType="H0", recType='tmi'):
+    def getJ(self, m, f):
+        """
+            Sensitivity matrix
+        """
+
+        dmudm = self.chiMap.deriv(m)
+        return self.F * dmudm
+
+    def Jvec(self, m, v, f=None):
+        dmudm = self.chiMap.deriv(m)
+        return self.F.dot(dmudm*v)
+
+    def Jtvec(self, m, v, f=None):
+        dmudm = self.chiMap.deriv(m)
+        return dmudm.T * (self.F.T.dot(v))
+
+    def Intrgl_Fwr_Op(self, m=None, Magnetization="ind"):
 
         """
 
@@ -137,12 +159,27 @@ class MagneticIntegral(Problem.LinearProblem):
 
         # Create vectors of nodal location
         # (lower and upper coners for each cell)
-        xn = self.mesh.vectorNx
-        yn = self.mesh.vectorNy
-        zn = self.mesh.vectorNz
+        if isinstance(self.mesh, Mesh.TreeMesh):
+            # Get upper and lower corners of each cell
+            bsw = (self.mesh.gridCC -
+                   np.kron(self.mesh.vol.T**(1/3)/2,
+                           np.ones(3)).reshape((self.mesh.nC, 3)))
+            tne = (self.mesh.gridCC +
+                   np.kron(self.mesh.vol.T**(1/3)/2,
+                           np.ones(3)).reshape((self.mesh.nC, 3)))
 
-        yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
-        yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
+            xn1, xn2 = bsw[:, 0], tne[:, 0]
+            yn1, yn2 = bsw[:, 1], tne[:, 1]
+            zn1, zn2 = bsw[:, 2], tne[:, 2]
+
+        else:
+
+            xn = self.mesh.vectorNx
+            yn = self.mesh.vectorNy
+            zn = self.mesh.vectorNz
+
+            yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+            yn1, xn1, zn1 = np.meshgrid(yn[:-1], xn[:-1], zn[:-1])
 
         # If equivalent source, use semi-infite prism
         if self.equiSourceLayer:
@@ -258,7 +295,11 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return F
 
-
+    def mapPair(self):
+        """
+            Call for general mapping of the problem
+        """
+        return self.chiMap
 class MagneticVector(MagneticIntegral):
 
     forwardOnly = False  # If false, matric is store to memory (watch your RAM)
@@ -1347,7 +1388,7 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
     return wr
 
 
-def writeUBCobs(filename, survey, d = None):
+def writeUBCobs(filename, survey, d=None):
     """
     writeUBCobs(filename,B,M,rxLoc,d,wd)
 
@@ -1376,10 +1417,11 @@ def writeUBCobs(filename, survey, d = None):
         d = survey.dobs
 
     data = np.c_[rxLoc, d, wd]
-    head = ('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0])+
-              '%6.2f %6.2f %6.2f\n' % (B[1], B[2], 1)+
-              '%i' % len(d))
-    np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n',header=head,comments='')
+    head = ('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0]) +
+            '%6.2f %6.2f %6.2f\n' % (B[1], B[2], 1) +
+            '%i' % len(d))
+    np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n',
+               header=head, comments='')
 
     #print("Observation file saved to: " + filename)
 
@@ -1387,6 +1429,7 @@ def writeUBCobs(filename, survey, d = None):
 def plot_obs_2D(rxLoc, d=None, title=None,
                 vmin=None, vmax=None, levels=None, fig=None, ax=None,
                 colorbar=True, marker=True, cmap="plasma_r", npts=100):
+
     """ Function plot_obs(rxLoc,d)
     Generate a 2d interpolated plot from scatter points of data
 

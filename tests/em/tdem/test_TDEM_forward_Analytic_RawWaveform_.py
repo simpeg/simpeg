@@ -6,11 +6,7 @@ import numpy as np
 from scipy.constants import mu_0
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
+from pymatsolver import Pardiso as Solver
 
 
 def halfSpaceProblemAnaDiff(
@@ -96,7 +92,7 @@ def halfSpaceProblemAnaDiff(
 class TDEM_SimpleSrcTests(unittest.TestCase):
     def test_source(self):
         waveform = EM.TDEM.Src.StepOffWaveform()
-        assert waveform.eval(0.) == 0.
+        assert waveform.eval(0.) == 1.
 
 
 class TDEM_bTests(unittest.TestCase):
@@ -115,7 +111,7 @@ class TDEM_bTests(unittest.TestCase):
 
     def test_analytic_m3_CYL_1m_MagDipole(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0,
-                        sig_half=1e-3) < 0.02)
+                        sig_half=1e-3) < 0.01)
 
     def test_analytic_p0_CYL_0m_CircularLoop(self):
         self.assertTrue(halfSpaceProblemAnaDiff(

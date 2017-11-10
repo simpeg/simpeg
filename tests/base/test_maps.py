@@ -14,14 +14,14 @@ MAPS_TO_EXCLUDE_2D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
                       "SplineMap", "ParametrizedCasingAndLayer",
                       "ParametrizedLayer", "ParametrizedBlockInLayer",
-                      "Projection", "SelfConsistentEffectiveMedium"]
+                      "Projection", "SelfConsistentEffectiveMedium", "Tile"]
 MAPS_TO_EXCLUDE_3D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "CircleMap", "ParametricCircleMap", "Mesh2Mesh",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
                       "SplineMap", "ParametrizedCasingAndLayer",
                       "ParametrizedLayer", "ParametrizedBlockInLayer",
-                      "Projection", "SelfConsistentEffectiveMedium"]
+                      "Projection", "SelfConsistentEffectiveMedium", "Tile"]
 
 
 class MapTests(unittest.TestCase):
@@ -280,6 +280,45 @@ class MapTests(unittest.TestCase):
         mapping = Maps.Projection(nP, np.r_[1, 2, 6, 1, 3, 5, 4, 9, 9, 8, 0])
         mapping.test()
 
+    def test_Tile(self):
+
+        tol = 1e-7
+
+        # Create sub meshes offseted
+        mesh2b = Mesh.TensorMesh([self.mesh2.hx,
+                                 np.r_[self.mesh2.hy, self.mesh2.hy]],
+                                 x0=self.mesh2.x0)
+        mesh2b._x0[1] = mesh2b.x0[1]-0.5
+
+        actv2 = np.ones(self.mesh2.nC, dtype='bool')
+        actv2b = np.ones(mesh2b.nC, dtype='bool')
+
+        # Create simple model on global mesh
+        m = np.ones(self.mesh2.nC)
+        m[4] = 2
+
+        M = Maps.Tile((self.mesh2, actv2), (mesh2b, actv2b))
+        mout = M.Paverage*m
+
+        # Check that max and min model values are preserved
+        self.assertTrue(np.linalg.norm(mout[mout > 0].min()-m.min()) < tol)
+        self.assertTrue(np.linalg.norm(mout[mout > 0].max()-m.max()) < tol)
+
+        meshGlobal = Mesh.TensorMesh([np.ones(10), np.ones(10), np.ones(10)],
+                                     x0='CCC')
+        meshLocal = Mesh.TensorMesh([np.ones(3)*3, np.ones(3)*3, np.ones(3)*3],
+                                    x0='CCC')
+        actvGlobal = np.ones(meshGlobal.nC, dtype='bool')
+        actvLocal = np.ones(meshLocal.nC, dtype='bool')
+
+        M = Maps.Tile((meshGlobal, actvGlobal), (meshLocal, actvLocal))
+        M.nCell = 100
+
+        senLocal = np.ones(meshLocal.nC)
+        senGlobal = M.Pvolume.T*senLocal
+
+        # Check if total sensitivity is preserved
+        self.assertTrue(np.linalg.norm(senGlobal.sum() - senLocal.sum()) < tol)
 
 class TestWires(unittest.TestCase):
 

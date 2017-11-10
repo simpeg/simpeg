@@ -9,7 +9,7 @@ from SimPEG import Mesh, Maps, Regularization, Utils, Tests, ObjectiveFunction
 from scipy.sparse.linalg import dsolve
 import inspect
 
-TOL = 1e-8
+TOL = 1e-7
 testReg = True
 testRegMesh = True
 
@@ -67,9 +67,8 @@ class RegularizationTests(unittest.TestCase):
                     reg.mref = mref
 
                     # test derivs
-                    passed = reg.test(m)
+                    passed = reg.test(m, eps=TOL)
                     self.assertTrue(passed)
-
 
 
         def test_regularization_ActiveCells(self):
@@ -159,6 +158,7 @@ class RegularizationTests(unittest.TestCase):
         for regType in ['Tikhonov', 'Sparse', 'Simple']:
             reg = getattr(Regularization, regType)(mesh)
 
+            print(reg.nP, mesh.nC)
             self.assertTrue(reg.nP == mesh.nC)
 
             # Test assignment of active indices
@@ -181,7 +181,7 @@ class RegularizationTests(unittest.TestCase):
             ]
 
             # test updated mappings
-            mapping = Maps.ExpMap(nP=indActive.sum())
+            mapping = Maps.ExpMap(nP=int(indActive.sum()))
             reg.mapping = mapping
             m = np.random.rand(mapping.nP)
             [
@@ -212,17 +212,17 @@ class RegularizationTests(unittest.TestCase):
         reg_a = reg1 + reg2
         self.assertTrue(len(reg_a)==2)
         self.assertTrue(reg1(m) + reg2(m) == reg_a(m))
-        reg_a.test()
+        reg_a.test(eps=TOL)
 
         reg_b = 2*reg1 + reg2
         self.assertTrue(len(reg_b)==2)
         self.assertTrue(2*reg1(m) + reg2(m) == reg_b(m))
-        reg_b.test()
+        reg_b.test(eps=TOL)
 
         reg_c = reg1 + reg2/2
         self.assertTrue(len(reg_c)==2)
         self.assertTrue(reg1(m) + 0.5*reg2(m) == reg_c(m))
-        reg_c.test()
+        reg_c.test(eps=TOL)
 
     def test_mappings(self):
         mesh = Mesh.TensorMesh([8, 7, 6])
@@ -243,9 +243,9 @@ class RegularizationTests(unittest.TestCase):
             print(reg3(m), reg1(m), reg2(m))
             self.assertTrue(reg3(m) == reg1(m) + reg2(m))
 
-            reg1.test()
-            reg2.test()
-            reg3.test()
+            reg1.test(eps=TOL)
+            reg2.test(eps=TOL)
+            reg3.test(eps=TOL)
 
     def test_mref_is_zero(self):
 
@@ -268,12 +268,12 @@ class RegularizationTests(unittest.TestCase):
 
         wires = Maps.Wires(('sigma', mesh.nC), ('mu', mesh.nC))
 
-        reg = Regularization.Small(
+        reg = Regularization.SimpleSmall(
             mesh, mapping=wires.sigma, cell_weights=cell_weights
         )
 
         objfct = ObjectiveFunction.L2ObjectiveFunction(
-            W=Utils.sdiag(cell_weights), mapping=wires.sigma
+            W=Utils.sdiag(np.sqrt(cell_weights)), mapping=wires.sigma
         )
 
         self.assertTrue(reg(m) == objfct(m))
@@ -302,6 +302,36 @@ class RegularizationTests(unittest.TestCase):
         self.assertTrue(reg.objfcts[1].norm == 1.)
         self.assertTrue(reg.objfcts[2].norm == 1.)
         self.assertTrue(reg.objfcts[3].norm == 1.)
+
+    def test_linked_properties(self):
+        mesh = Mesh.TensorMesh([8, 7, 6])
+        reg = Regularization.Tikhonov(mesh)
+
+        [self.assertTrue(reg.regmesh is fct.regmesh) for fct in reg.objfcts]
+        [self.assertTrue(reg.mapping is fct.mapping) for fct in reg.objfcts]
+
+        D = reg.regmesh.cellDiffx
+        reg.regmesh._cellDiffx = 4*D
+        v = np.random.rand(D.shape[1])
+        [
+            self.assertTrue(
+                np.all(reg.regmesh._cellDiffx*v == fct.regmesh.cellDiffx*v)
+            )
+            for fct in reg.objfcts
+        ]
+
+        indActive = mesh.gridCC[:, 2] < 0.4
+        reg.indActive = indActive
+        self.assertTrue(np.all(reg.regmesh.indActive == indActive))
+        [
+            self.assertTrue(np.all(reg.indActive == fct.indActive))
+            for fct in reg.objfcts
+        ]
+
+        [
+            self.assertTrue(np.all(reg.indActive == fct.regmesh.indActive))
+            for fct in reg.objfcts
+        ]
 
 if __name__ == '__main__':
     unittest.main()
