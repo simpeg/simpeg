@@ -11,6 +11,7 @@ from .FieldsDC import FieldsDC, Fields_CC, Fields_N
 import numpy as np
 from SimPEG.Utils import Zero
 from .BoundaryUtils import getxBCyBC_CC
+from scipy.special import kn
 
 
 class BaseDCProblem_2D(BaseEMProblem):
@@ -193,10 +194,11 @@ class Problem2D_CC(BaseDCProblem_2D):
     _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_ky_CC
     fieldsPair_fwd = Fields_CC
+    bc_type = 'Neumann'
 
     def __init__(self, mesh, **kwargs):
         BaseDCProblem_2D.__init__(self, mesh, **kwargs)
-        self.setBC()
+        # self.setBC()
 
     def getA(self, ky):
         """
@@ -206,6 +208,9 @@ class Problem2D_CC(BaseDCProblem_2D):
         A = D MfRhoI G
 
         """
+        # To handle Mixed boundary condition
+        if self._formulation == "HJ":
+            self.setBC(ky=ky)
 
         D = self.Div
         G = self.Grad
@@ -218,6 +223,10 @@ class Problem2D_CC(BaseDCProblem_2D):
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
+
+        # To handle Mixed boundary condition
+        if self._formulation == "HJ":
+            self.setBC(ky=ky)
 
         D = self.Div
         G = self.Grad
@@ -250,7 +259,7 @@ class Problem2D_CC(BaseDCProblem_2D):
         # return qDeriv
         return Zero()
 
-    def setBC(self):
+    def setBC(self, ky=None):
         fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
         gBFxm = self.mesh.gridFx[fxm, :]
         gBFxp = self.mesh.gridFx[fxp, :]
@@ -263,14 +272,53 @@ class Problem2D_CC(BaseDCProblem_2D):
         temp_ym = np.ones_like(gBFym[:, 1])
         temp_yp = np.ones_like(gBFyp[:, 1])
 
-        alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-        alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
+        if self.bc_type == "Neumann":
+            alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
+            alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
 
-        beta_xm, beta_xp = temp_xm, temp_xp
-        beta_ym, beta_yp = temp_ym, temp_yp
+            beta_xm, beta_xp = temp_xm, temp_xp
+            beta_ym, beta_yp = temp_ym, temp_yp
 
-        gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-        gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+
+        elif self.bc_type == "Dirichlet":
+            alpha_xm, alpha_xp = temp_xm, temp_xp
+            alpha_ym, alpha_yp = temp_ym, temp_yp
+
+            beta_xm, beta_xp = temp_xm*0., temp_xp*0.
+            beta_ym, beta_yp = temp_ym*0., temp_yp*0.
+
+            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+
+        elif self.bc_type == "Mixed":
+            xs = np.median(self.mesh.vectorCCx)
+            ys = np.median(self.mesh.vectorCCy[-1])
+            rxm = 1./np.sqrt(
+                (gBFxm[:, 0]-xs)**2 + (gBFxm[:, 1]-ys)**2
+                )
+            rxp = 1./np.sqrt(
+                (gBFxp[:, 0]-xs)**2 + (gBFxp[:, 1]-ys)**2
+                )
+            rym = 1./np.sqrt(
+                (gBFym[:, 0]-xs)**2 + (gBFym[:, 1]-ys)**2
+                )
+            alpha_xm = ky*(
+                kn(1, ky*rxm) / kn(0, ky*rxm) * (gBFxm[:, 0]-xs)
+                )
+            alpha_xp = ky*(
+                kn(1, ky*rxp) / kn(0, ky*rxp) * (gBFxp[:, 0]-xs)
+                )
+            alpha_ym = ky*(
+                kn(1, ky*rym) / kn(0, ky*rym) * (gBFym[:, 0]-ys)
+                )
+            alpha_yp = temp_yp*0.
+            beta_xm, beta_xp = temp_xm, temp_xp
+            beta_ym, beta_yp = temp_ym, temp_yp
+
+            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
 
         alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
         beta = [beta_xm, beta_xp, beta_ym, beta_yp]
