@@ -157,7 +157,8 @@ class Problem3D_CC(BaseDCProblem):
             for jj in J:
                 A[0,jj] = 0.
 
-            A[0, 0] = 1./Vol[0]
+            # A[0, 0] = 1./Vol[0]
+            A[0, 0] = 1.
 
         # I think we should deprecate this for DC problem.
         # if self._makeASymmetric is True:
@@ -245,16 +246,64 @@ class Problem3D_CC(BaseDCProblem):
                     alpha_ym, alpha_yp = temp_ym, temp_yp
                     alpha_zm, alpha_zp = temp_zm, temp_zp
 
-                    beta_xm, beta_xp = temp_xm*0, temp_xp*0
-                    beta_ym, beta_yp = temp_ym*0, temp_yp*0
-                    beta_zm, beta_zp = temp_zm*0, temp_zp*0
+                    beta_xm, beta_xp = temp_xm*1, temp_xp*1
+                    beta_ym, beta_yp = temp_ym*1, temp_yp*1
+                    beta_zm, beta_zp = temp_zm*1, temp_zp*1
 
                     gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
                     gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
                     gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
 
-                alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp, alpha_zm,
-                         alpha_zp]
+                elif(self.bc_type == 'Mixed'):
+                    # Ztop: Neumann
+                    # Others: Mixed: alpha * phi + d phi dn = 0
+                    # where alpha = 1 / r  * dr/dn
+                    # (Dey and Morrison, 1979)
+
+                    # This assumes that the source is at (0, 0, 0)
+                    # TODO: Implement Zhang et al. (1995)
+                    xs, ys, zs = 0., 0., 0.
+                    rxm = 1./np.sqrt(
+                        (gBFxm[:, 0]-xs)**2 + (gBFxm[:, 1]-ys)**2
+                        + (gBFxm[:, 2]-zs)**2
+                        )
+                    rxp = 1./np.sqrt(
+                        (gBFxp[:, 0]-xs)**2 + (gBFxp[:, 1]-ys)**2
+                        + (gBFxp[:, 2]-zs)**2
+                        )
+                    rym = 1./np.sqrt(
+                        (gBFym[:, 0]-xs)**2 + (gBFym[:, 1]-ys)**2
+                        + (gBFym[:, 2]-zs)**2
+                        )
+                    ryp = 1./np.sqrt(
+                        (gBFyp[:, 0]-xs)**2 + (gBFyp[:, 1]-ys)**2
+                        + (gBFyp[:, 2]-zs)**2
+                        )
+                    rzm = 1./np.sqrt(
+                        (gBFzm[:, 0]-xs)**2 + (gBFzm[:, 1]-ys)**2
+                        + (gBFzm[:, 2]-zs)**2
+                        )
+
+                    alpha_xm = (gBFxm[:, 0]-xs)/rxm**2
+                    alpha_xp = (gBFxp[:, 0]-xs)/rxp**2
+                    alpha_ym = (gBFym[:, 1]-ys)/rym**2
+                    alpha_yp = (gBFyp[:, 1]-ys)/ryp**2
+                    alpha_zm = (gBFzm[:, 2]-zs)/rzm**2
+                    alpha_zp = temp_zp.copy() * 0.
+
+                    beta_xm, beta_xp = temp_xm*1, temp_xp*1
+                    beta_ym, beta_yp = temp_ym*1, temp_yp*1
+                    beta_zm, beta_zp = temp_zm*1, temp_zp*1
+
+                    gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+                    gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+                    gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
+
+                alpha = [
+                    alpha_xm, alpha_xp,
+                    alpha_ym, alpha_yp,
+                    alpha_zm, alpha_zp
+                ]
                 beta = [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
                 gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm,
                          gamma_zp]
@@ -322,11 +371,10 @@ class Problem3D_N(BaseDCProblem):
         Vol = self.mesh.vol
 
         # Handling Null space of A
-        I, J, V = sp.sparse.find(A[0,:])
+        I, J, V = sp.sparse.find(A[0, :])
         for jj in J:
-            A[0,jj] = 0.
-
-        A[0, 0] = 1./Vol[0]
+            A[0, jj] = 0.
+        A[0, 0] = 1.
 
         return A
 

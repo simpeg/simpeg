@@ -7,6 +7,7 @@ try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
+import matplotlib.pyplot as plt
 
 
 class DCProblemAnalyticTests(unittest.TestCase):
@@ -14,14 +15,15 @@ class DCProblemAnalyticTests(unittest.TestCase):
     def setUp(self):
 
         cs = 25.
-        hx = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
-        hy = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
-        hz = [(cs, 7, -1.3), (cs, 20)]
+        npad = 7
+        hx = [(cs, npad, -1.3), (cs, 21), (cs, npad, 1.3)]
+        hy = [(cs, npad, -1.3), (cs, 21), (cs, npad, 1.3)]
+        hz = [(cs, npad, -1.3), (cs, 20)]
         mesh = Mesh.TensorMesh([hx, hy, hz], x0="CCN")
         sigma = np.ones(mesh.nC)*1e-2
 
         x = mesh.vectorCCx[(mesh.vectorCCx > -155.) & (mesh.vectorCCx < 155.)]
-        y = mesh.vectorCCx[(mesh.vectorCCy > -155.) & (mesh.vectorCCy < 155.)]
+        y = mesh.vectorCCy[(mesh.vectorCCy > -155.) & (mesh.vectorCCy < 155.)]
 
         Aloc = np.r_[-200., 0., 0.]
         Bloc = np.r_[200., 0., 0.]
@@ -54,15 +56,19 @@ class DCProblemAnalyticTests(unittest.TestCase):
             np.linalg.norm(self.data_anal)
         )
         if err < 0.2:
+            print (err)
             passed = True
             print(">> DC analytic test for Problem3D_N is passed")
         else:
+            print (err)
             passed = False
             print(">> DC analytic test for Problem3D_N is failed")
         self.assertTrue(passed)
 
     def test_Problem3D_CC(self):
-        problem = DC.Problem3D_CC(self.mesh, sigma=self.sigma)
+        problem = DC.Problem3D_CC(
+            self.mesh, sigma=self.sigma, bc_type='Neumann'
+            )
         problem.Solver = Solver
         problem.pair(self.survey)
         data = self.survey.dpred()
@@ -71,12 +77,15 @@ class DCProblemAnalyticTests(unittest.TestCase):
             np.linalg.norm(self.data_anal)
         )
         if err < 0.2:
+            print (err)
             passed = True
             print(">> DC analytic test for Problem3D_CC is passed")
         else:
+            print (err)
             passed = False
             print(">> DC analytic test for Problem3D_CC is failed")
         self.assertTrue(passed)
+
 
 class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
 
@@ -90,7 +99,7 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         sigma = np.ones(mesh.nC)*1e-2
 
         x = mesh.vectorCCx[(mesh.vectorCCx > -155.) & (mesh.vectorCCx < 155.)]
-        y = mesh.vectorCCx[(mesh.vectorCCy > -155.) & (mesh.vectorCCy < 155.)]
+        y = mesh.vectorCCy[(mesh.vectorCCy > -155.) & (mesh.vectorCCy < 155.)]
 
         Aloc = np.r_[-200., 0., 0.]
         Bloc = np.r_[200., 0., 0.]
@@ -113,9 +122,10 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         self.sigma = sigma
         self.data_anal = data_anal
 
-
     def test_Problem3D_CC_Dirchlet(self):
-        problem = DC.Problem3D_CC(self.mesh, sigma=self.sigma, bc_type = 'Dirchlet')
+        problem = DC.Problem3D_CC(
+            self.mesh, sigma=self.sigma, bc_type='Dirchlet'
+            )
         problem.Solver = Solver
         problem.pair(self.survey)
         data = self.survey.dpred()
@@ -129,6 +139,56 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         else:
             passed = False
             print(">> DC analytic test for Problem3D_CC_Dirchlet is failed")
+        self.assertTrue(passed)
+
+
+# This is for Pole-Pole case
+class DCProblemAnalyticTests_Mixed(unittest.TestCase):
+
+    def setUp(self):
+
+        cs = 25.
+        hx = [(cs, 7, -1.5), (cs, 21), (cs, 7, 1.5)]
+        hy = [(cs, 7, -1.5), (cs, 21), (cs, 7, 1.5)]
+        hz = [(cs, 7, -1.5), (cs, 20)]
+        mesh = Mesh.TensorMesh([hx, hy, hz], x0="CCN")
+        sigma = np.ones(mesh.nC)*1e-2
+
+        x = mesh.vectorCCx[(mesh.vectorCCx > -155.) & (mesh.vectorCCx < 155.)]
+        y = mesh.vectorCCy[(mesh.vectorCCy > -155.) & (mesh.vectorCCy < 155.)]
+
+        Aloc = np.r_[-200., 0., 0.]
+
+        M = Utils.ndgrid(x, y, np.r_[0.])
+        phiA = EM.Analytics.DCAnalytic_Pole_Pole(
+            Aloc, M, 1e-2, earth_type="halfspace"
+        )
+        data_anal = phiA
+
+        rx = DC.Rx.Pole(M)
+        src = DC.Src.Pole([rx], Aloc)
+        survey = DC.Survey([src])
+
+        self.survey = survey
+        self.mesh = mesh
+        self.sigma = sigma
+        self.data_anal = data_anal
+
+    def test_Problem3D_CC_Mixed(self):
+        problem = DC.Problem3D_CC(self.mesh, sigma=self.sigma, bc_type='Mixed')
+        problem.Solver = Solver
+        problem.pair(self.survey)
+        data = self.survey.dpred()
+        err = (
+            np.linalg.norm(data - self.data_anal) /
+            np.linalg.norm(self.data_anal)
+        )
+        if err < 0.2:
+            passed = True
+            print(">> DC analytic test for Problem3D_CC_Mixed is passed")
+        else:
+            passed = False
+            print(">> DC analytic test for Problem3D_CC_Mixed is failed")
         self.assertTrue(passed)
 
 if __name__ == '__main__':
