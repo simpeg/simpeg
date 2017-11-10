@@ -23,12 +23,17 @@ class BaseSrcVRM(Survey.BaseSrc):
 
     @property
     def nRx(self):
-        """Number of data"""
-        return len(self.rxList)
+        """Total number of receiver locations"""
+        return np.sum(np.array([np.shape(rx.locs)[0] for rx in self.rxList]))
 
     @property
-    def nD(self):
-        """Vector number of receivers"""
+    def vnRx(self):
+        """Vector number of receiver locations"""
+        return np.array([np.shape(rx.locs)[0] for rx in self.rxList])
+
+    @property
+    def vnD(self):
+        """Vector number of data"""
         return np.array([rx.nD for rx in self.rxList])
 
 
