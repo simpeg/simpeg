@@ -126,7 +126,7 @@ class Problem3D_CC(BaseDCProblem):
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_CC
-    bc_type = 'Neumann'
+    bc_type = 'Mixed'
 
     def __init__(self, mesh, **kwargs):
 

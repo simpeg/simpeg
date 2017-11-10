@@ -65,7 +65,28 @@ class DCProblemAnalyticTests(unittest.TestCase):
             print(">> DC analytic test for Problem3D_N is failed")
         self.assertTrue(passed)
 
-    def test_Problem3D_CC(self):
+    def test_Problem3D_CC_Mixed(self):
+        problem = DC.Problem3D_CC(
+            self.mesh, sigma=self.sigma, bc_type='Mixed'
+            )
+        problem.Solver = Solver
+        problem.pair(self.survey)
+        data = self.survey.dpred()
+        err = (
+            np.linalg.norm(data - self.data_anal) /
+            np.linalg.norm(self.data_anal)
+        )
+        if err < 0.2:
+            print (err)
+            passed = True
+            print(">> DC analytic test for Problem3D_CC is passed")
+        else:
+            print (err)
+            passed = False
+            print(">> DC analytic test for Problem3D_CC is failed")
+        self.assertTrue(passed)
+
+    def test_Problem3D_CC_Neumann(self):
         problem = DC.Problem3D_CC(
             self.mesh, sigma=self.sigma, bc_type='Neumann'
             )
@@ -87,6 +108,8 @@ class DCProblemAnalyticTests(unittest.TestCase):
         self.assertTrue(passed)
 
 
+# This is for testing Dirichlet B.C.
+# for wholepsace Earth.
 class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
 
     def setUp(self):

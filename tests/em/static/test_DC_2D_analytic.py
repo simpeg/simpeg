@@ -198,7 +198,6 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         )
         if err < 0.05:
             passed = True
-            print (err)
             print(">> DC analytic test for Problem2D_CC is passed")
         else:
             passed = False

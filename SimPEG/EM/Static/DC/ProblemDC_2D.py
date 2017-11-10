@@ -194,7 +194,7 @@ class Problem2D_CC(BaseDCProblem_2D):
     _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_ky_CC
     fieldsPair_fwd = Fields_CC
-    bc_type = 'Neumann'
+    bc_type = 'Mixed'
 
     def __init__(self, mesh, **kwargs):
         BaseDCProblem_2D.__init__(self, mesh, **kwargs)
