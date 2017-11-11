@@ -228,7 +228,12 @@ class Problem_CC_Jstore(Problem_CC):
 
     @Utils.count
     def fields(self, m):
-        return None
+
+        if self.coordinate_system == 'spherical':
+            m = Utils.matutils.atp2xyz(m)
+
+        return self.G.dot(m)
+
 
     @property
     def S(self):
@@ -269,9 +274,9 @@ class SurveySP_store(Survey):
     @Utils.requires('prob')
     def dpred(self, m=None, f=None):
 
-        if self.prob.coordinate_system == 'spherical':
-            m = Utils.matutils.atp2xyz(m)
+        # if self.prob.coordinate_system == 'spherical':
+        #     m = Utils.matutils.atp2xyz(m)
 
-        return self.prob.Jvec(m, m)
+        return self.prob.fields(m)
 
 
