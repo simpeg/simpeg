@@ -128,9 +128,9 @@ class Problem_CC(BaseSPProblem):
             gBFzp = self.mesh.gridFz[fzp, :]
 
             # Setup Mixed B.C (alpha, beta, gamma)
-            temp_xm, temp_xp = np.ones_like(gBFxm[:,0]), np.ones_like(gBFxp[:,0])
-            temp_ym, temp_yp = np.ones_like(gBFym[:,1]), np.ones_like(gBFyp[:,1])
-            temp_zm, temp_zp = np.ones_like(gBFzm[:,2]), np.ones_like(gBFzp[:,2])
+            temp_xm, temp_xp = np.ones_like(gBFxm[:, 0]), np.ones_like(gBFxp[:, 0])
+            temp_ym, temp_yp = np.ones_like(gBFym[:, 1]), np.ones_like(gBFyp[:, 1])
+            temp_zm, temp_zp = np.ones_like(gBFzm[:, 2]), np.ones_like(gBFzp[:, 2])
 
             alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
             alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
@@ -203,7 +203,6 @@ class Problem_CC_Jstore(Problem_CC):
 
         if self.coordinate_system == 'cartesian':
             return self.G
-
         else:
             return self.G * self.S
 
@@ -213,27 +212,27 @@ class Problem_CC_Jstore(Problem_CC):
 
         if self.coordinate_system == 'cartesian':
             return self.G.dot(v)
-
         else:
             return np.dot(self.G, self.S.dot(v))
 
     def Jtvec(self, m, v, f=None):
 
         self.model = m
+
         if self.coordinate_system == 'cartesian':
             return self.G.T.dot(v)
-
         else:
             return self.S.T*(self.G.T.dot(v))
 
     @Utils.count
     def fields(self, m):
 
+        self.model = m
+
         if self.coordinate_system == 'spherical':
             m = Utils.matutils.atp2xyz(m)
 
         return self.G.dot(m)
-
 
     @property
     def S(self):
@@ -273,10 +272,6 @@ class SurveySP_store(Survey):
     @Utils.count
     @Utils.requires('prob')
     def dpred(self, m=None, f=None):
-
-        # if self.prob.coordinate_system == 'spherical':
-        #     m = Utils.matutils.atp2xyz(m)
-
         return self.prob.fields(m)
 
 
