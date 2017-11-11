@@ -910,9 +910,9 @@ class UpdateJacobiPrecond(InversionDirective):
                 m = self.invProb.model
                 f = prob.fields(m)
                 wd = dmisfit.W.diagonal()
-                for ii in range(prob.getJ(m, f).shape[0]):
-                    JtJdiag += ((wd[ii] * prob.getJ(m, f)[ii, :])**2.)
-                # JtJdiag = np.sum((dmisfit.W * prob.getJ(m, f))**2., axis=0)
+#                for ii in range(prob.getJ(m, f).shape[0]):
+#                    JtJdiag += ((wd[ii] * prob.getJ(m, f)[ii, :])**2.)
+                JtJdiag += np.sum((dmisfit.W * prob.getJ(m, f))**2., axis=0)
             self.opt.JtJdiag = JtJdiag
 
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
@@ -1006,82 +1006,27 @@ class UpdateSensWeighting(InversionDirective):
             Good for any problem where J is formed explicitely
         """
         self.JtJdiag = []
-        # if self.ComboMisfitFun:
-        # Phid = []
-        # Jmax = []
 
-        # for dmisfit in self.dmisfit.objfcts:
-        #     # dmisfit.scale=1.
-        #     dynRange = np.abs(dmisfit.survey.dobs.max() -
-        #                       dmisfit.survey.dobs.min())**2.
-
-        #     Phid += [dmisfit(self.invProb.model)]
-        #     # dmisfit.scale = 1.
-        #     Jmax += [(np.abs(dmisfit.deriv(self.invProb.model)).max())]
-
-        # minPhid = np.asarray(Phid).min()
-        # print("Jmax ratio: " +str((Jmax[0]/Jmax[1])**0.5))
         for prob, survey, dmisfit in zip(self.prob,
                                          self.survey,
                                          self.dmisfit.objfcts):
-            nD = survey.nD
+
             nC = prob.chiMap.shape[1]
-            jtjdiag = np.zeros(nC)
-            wd = dmisfit.W.diagonal()
+            JtJdiag = np.zeros(nC)
 
-            if isinstance(prob, Magnetics.MagneticVector):
+            m = self.invProb.model
+            f = prob.fields(m)
 
-                if prob.coordinate_system == 'spherical':
-                    for ii in range(nD):
-
-                        jtjdiag += (wd[ii] * prob.F[ii, :] * prob.S * prob.mapping.deriv(self.invProb.model))**2.
-
-                elif prob.coordinate_system == 'cartesian':
-
-                    if getattr(prob, 'JtJdiag', None) is None:
-                        prob.JtJdiag = np.sum((prob.F* prob.mapping.deriv(self.invProb.model))**2., axis=0)
-
-                    jtjdiag = prob.JtJdiag.copy()
-
-            elif isinstance(prob, Magnetics.MagneticAmplitude):
-
-                Bxyz_a = prob.Bxyz_a(prob.chiMap * self.invProb.model)
-
-                if prob.coordinate_system == 'spherical':
-
-                    for ii in range(nD):
-
-                        rows = prob.F[ii::nD, :]
-                        jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii, :],
-                                    rows * prob.S)*prob.mapping.deriv(self.invProb.model)))**2.
-
-                elif getattr(prob, '_Mxyz', None) is not None:
-                    for ii in range(nD):
-
-                        jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii, :],
-                                                   prob.F[ii::nD, :]*prob.Mxyz)*prob.mapping.deriv(self.invProb.model)))**2.
-
-                else:
-                    for ii in range(nD):
-
-                        jtjdiag += (wd[ii]*(np.dot(Bxyz_a[ii, :],
-                                                   prob.F[ii::nD, :]))*prob.mapping.deriv(self.invProb.model))**2.
-
-            elif isinstance(prob, Magnetics.MagneticIntegral):
-
-                if getattr(prob, 'JtJdiag', None) is None:
-                    prob.JtJdiag = np.sum(prob.F**2., axis=0)
-
-                jtjdiag = prob.JtJdiag
+            JtJdiag += np.sum((dmisfit.W * prob.getJ(m, f))**2., axis=0)
 
             # Apply scale to the deriv and deriv2
             # dmisfit.scale = scale
 
             if prob.W is not None:
 
-                jtjdiag *= prob.W
+                JtJdiag *= prob.W
 
-            self.JtJdiag += [jtjdiag]
+            self.JtJdiag += [JtJdiag]
 
         return self.JtJdiag
 
@@ -1115,10 +1060,6 @@ class UpdateSensWeighting(InversionDirective):
 
                 wr_prob[2*nC:] += (prob_JtJ[2*nC:] + prob.threshold[2])
 
-        for reg in self.reg.objfcts:
-            # Check if regularization has a projection
-            if getattr(reg.mapping, 'P', None) is None:
-                regDiag += (reg.W.T*reg.W).diagonal()
             else:
                 # if prob.threshold is None:
                 prob.threshold = prob_JtJ[:nC].max()*self.epsilon

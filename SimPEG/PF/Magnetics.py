@@ -301,6 +301,8 @@ class MagneticIntegral(Problem.LinearProblem):
             Call for general mapping of the problem
         """
         return self.chiMap
+
+
 class MagneticVector(MagneticIntegral):
 
     forwardOnly = False  # If false, matric is store to memory (watch your RAM)
@@ -366,7 +368,6 @@ class MagneticVector(MagneticIntegral):
             dmudm = self.S*self.chiMap.deriv(chi)
 
             return self.F * dmudm
-
 
     def Jvec(self, chi, v, f=None):
 
@@ -438,6 +439,7 @@ class MagneticAmplitude(MagneticIntegral):
     W = None
     coordinate_system = 'suscEffective'
     threshold = None
+
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
@@ -515,7 +517,7 @@ class MagneticAmplitude(MagneticIntegral):
         else:
             dmudm = self.chiMap.deriv(chi)
 
-        return self.dfdm * np.dot(self.F, dmudm)
+        return self.dfdm * (self.F * dmudm)
 
     def Jvec(self, chi, v, f=None):
 
