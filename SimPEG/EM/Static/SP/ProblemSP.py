@@ -199,6 +199,14 @@ class Problem_CC_Jstore(Problem_CC):
             self.Ainv.clean()
         return self._G
 
+    def getJ(self, m, f):
+
+        if self.coordinate_system == 'cartesian':
+            return self.G
+
+        else:
+            return self.G * self.S
+
     def Jvec(self, m, v, f=None):
 
         self.model = m

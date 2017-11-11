@@ -928,25 +928,22 @@ class UpdateSensWeighting(InversionDirective):
         for prob, survey, dmisfit in zip(self.prob,
                                          self.survey,
                                          self.dmisfit.objfcts):
-            nD = survey.nD
-            nC = self.invProb.model.shape[0]
-            jtjdiag = np.zeros(nC)
-            wd = dmisfit.W.diagonal()
 
-            if getattr(prob, 'coordinate_system', None) is not None:
-                if prob.coordinate_system == 'spherical':
-                    for ii in range(nD):
-                        jtjdiag += (wd[ii] * prob.G[ii, :] * prob.S + self.epsilon)**2.
+            JtJdiag = np.zeros_like(self.invProb.model)
 
-            else:
+            m = self.invProb.model
+            f = prob.fields(m)
 
-                for ii in range(nD):
+            JtJdiag += np.sum((dmisfit.W * prob.getJ(m, f))**2., axis=0)
 
-                    jtjdiag += (wd[ii] * prob.G[ii, :])**2.
+            # Apply scale to the deriv and deriv2
+            # dmisfit.scale = scale
 
-                jtjdiag = prob.JtJdiag
+            if getattr(prob, 'W', None) is not None:
 
-            self.JtJdiag += [jtjdiag]
+                JtJdiag *= prob.W
+
+            self.JtJdiag += [JtJdiag]
 
         return self.JtJdiag
 
