@@ -219,7 +219,8 @@ class Problem2D_CC(BaseDCProblem_2D):
         # Get resistivity rho
         rho = self.rho
         A = D * MfRhoI * G + Utils.sdiag(ky**2*vol/rho)
-        # A[0, 0] = A[0, 0] + 1.
+        if self.bc_type == "Neumann":
+            A[0, 0] = A[0, 0] + 1.
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
@@ -386,7 +387,7 @@ class Problem2D_N(BaseDCProblem_2D):
         A = Grad.T * MeSigma * Grad + ky**2*MnSigma
         # This seems not required for 2.5D problem
         # Handling Null space of A
-        # A[0, 0] = A[0, 0] + 1.
+        A[0, 0] = A[0, 0] + 1.
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
