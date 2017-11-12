@@ -146,7 +146,10 @@ def writeVectorUBC(mesh, fileName, model):
         modelMat = mesh.r(model[:, ii], 'CC', 'CC', 'M')
         # Transpose the axes
         modelMatT = modelMat.transpose((2, 0, 1))
-        # Flip z to positive down
+        # Flip UBC order
         modelMatTR[:, ii] = Utils.mkvc(modelMatT[::-1, :, :])
 
+        # Flip z to positive down for MeshTools3D
+        if ii == 2:
+            modelMatTR[:, ii] *= -1
     np.savetxt(fileName, modelMatTR)
