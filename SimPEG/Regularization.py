@@ -1196,6 +1196,10 @@ class BaseSparse(BaseRegularization):
         "norm used", default=2
     )
 
+    scale = properties.Float(
+        "General nob for scaling", default=1.
+    )
+
     coordinate_system = properties.String(
         "By default inherit the objctive", default='linear'
     )
