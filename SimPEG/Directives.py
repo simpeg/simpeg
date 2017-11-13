@@ -594,7 +594,7 @@ class Update_IRLS(InversionDirective):
         # Look for cases where the block models in to be scaled
         for prob in self.prob:
 
-            if isinstance(prob, Magnetics.MagneticVector):
+            if getattr(prob, 'coordinate_system', None) is not None:
                 if prob.coordinate_system == 'spherical':
                     self.scale_m = True
 
