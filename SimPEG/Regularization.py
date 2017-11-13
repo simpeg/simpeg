@@ -1250,8 +1250,8 @@ class SparseSmall(BaseSparse):
             R = Utils.sdiag(r)
 
         if self.cell_weights is not None:
-            return Utils.sdiag((self.gamma*self.cell_weights)**0.5) * R
-        return (self.gamma)**0.5 * R
+            return Utils.sdiag((self.scale * self.gamma*self.cell_weights)**0.5) * R
+        return (self.scale * self.gamma)**0.5 * R
 
 
 class SparseDeriv(BaseSparse):
@@ -1290,14 +1290,14 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 W = (
                     Utils.sdiag(
-                        (self.gamma *
+                        (self.scale * self.gamma *
                          (Ave*(self.cell_weights)))**0.5
                     ) *
                     R
                 )
 
             else:
-                W = ((self.gamma)**0.5) * R
+                W = ((self.scale * self.gamma)**0.5) * R
 
             theta = self.cellDiffStencil * (self.mapping * m)
             dmdx = coterminal(theta)
@@ -1339,13 +1339,13 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 W = (
                     Utils.sdiag(
-                        (self.gamma * (Ave*(self.cell_weights)))**0.5
+                        (self.scale * self.gamma * (Ave*(self.cell_weights)))**0.5
                     ) *
                     R
                 )
 
             else:
-                W = ((self.gamma)**0.5) * R
+                W = ((self.scale * self.gamma)**0.5) * R
 
             theta = self.cellDiffStencil * (self.mapping * m)
             dmdx = coterminal(theta)
@@ -1395,11 +1395,11 @@ class SparseDeriv(BaseSparse):
         if self.cell_weights is not None:
             return (
                 Utils.sdiag(
-                    (self.gamma * (Ave*(self.cell_weights)))**0.5
+                    (self.scale * self.gamma * (Ave*(self.cell_weights)))**0.5
                 ) *
                 R * self.cellDiffStencil
             )
-        return (self.gamma**0.5) * R * self.cellDiffStencil
+        return (self.scale * self.gamma)**0.5 * R * self.cellDiffStencil
 
 
 class Sparse(BaseComboRegularization):
