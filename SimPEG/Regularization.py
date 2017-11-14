@@ -452,10 +452,11 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         """
         Shape of the residual
         """
-        if getattr(self.regmesh, 'nC', None) != '*':
-            return self.regmesh.nC
-        elif getattr(self, 'mapping', None) != '*':
+
+        if getattr(self, 'mapping', None) != '*':
             return self.mapping.shape[0]
+        elif getattr(self.regmesh, 'nC', None) != '*':
+            return self.regmesh.nC
         else:
             return self.nP
 
@@ -652,16 +653,16 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         if getattr(self, 'regmesh', None) is not None:
             self.regmesh.indActive = change['value']
 
-    @properties.validator('cell_weights')
-    def _validate_cell_weights(self, change):
-        if change['value'] is not None:
-            # todo: residual size? we need to know the expected end shape
-            if self._nC_residual != '*':
-                assert len(change['value']) == self._nC_residual, (
-                    'cell_weights must be length {} not {}'.format(
-                        self._nC_residual, len(change['value'])
-                    )
-                )
+    # @properties.validator('cell_weights')
+    # def _validate_cell_weights(self, change):
+    #     if change['value'] is not None:
+    #         # todo: residual size? we need to know the expected end shape
+    #         if self._nC_residual != '*':
+    #             assert len(change['value']) == self._nC_residual, (
+    #                 'cell_weights must be length {} not {}'.format(
+    #                     self._nC_residual, len(change['value'])
+    #                 )
+    #             )
 
     @properties.observer('mref')
     def _mirror_mref_to_objfctlist(self, change):
