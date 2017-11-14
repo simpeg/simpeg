@@ -957,6 +957,7 @@ class UpdateSensWeighting(InversionDirective):
         for prob_JtJ in self.JtJdiag:
             wr += prob_JtJ
 
+        wr += self.epsilon
         wr = wr**0.5
         wr /= wr.max()
 
