@@ -345,6 +345,35 @@ class Projection(IdentityMap):
             return self.P * v
         return self.P
 
+class Sum(ComboMap):
+    """
+        A map to add model parameters contributing to the
+        forward operation e.g. F(m) = F m1 + F m2 + ...
+
+
+    """
+
+    def _transform(self, m):
+
+        mout = np.zeros(self.nP)
+
+        for map_i in reversed(self.maps):
+            mout += map_i * m
+        return mout
+
+    def deriv(self, m, v=None):
+
+        if v is not None:
+            deriv = v
+        else:
+            deriv = 1
+
+        mi = m
+        for map_i in reversed(self.maps):
+            deriv = map_i.deriv(mi) * deriv
+            mi = map_i * mi
+        return deriv
+
 
 class Homogenize(IdentityMap):
     """
