@@ -21,8 +21,8 @@ class StreamingCurrents(Src.BaseSrc):
             raise Exception("SP source requires cross coupling coefficient L")
         if self.mesh is None:
             raise Exception("SP source requires mesh")
-        self.mesh.setCellGradBC("neumann")
         # TODO: remove below when confirmed
+        # self.mesh.setCellGradBC("neumann")
         # self.V = sp.block_diag([sdiag(self.mesh.vol)]*3)
         # self.Div = -self.mesh.cellGrad.T
 
@@ -41,7 +41,7 @@ class StreamingCurrents(Src.BaseSrc):
         """
         if prob._formulation == 'HJ':
             if self.modelType == "Head":
-                q = -self.Div*self.MfLiI*prob.Grad*prob.h
+                q = prob.Grad.T*self.MfLiI*prob.Grad*prob.h
             elif self.modelType == "CurrentSource":
                 q = prob.q
             elif self.modelType == "CurrentDensity":
@@ -57,7 +57,7 @@ class StreamingCurrents(Src.BaseSrc):
         if prob._formulation == 'HJ':
             if adjoint:
                 if self.modelType == "Head":
-                    srcDeriv = - prob.hDeriv.T * prob.Grad.T * self.MfLiI.T * (self.Div.T * v)
+                    srcDeriv = prob.hDeriv.T * prob.Grad.T * self.MfLiI.T * (prob.Grad * v)
                 elif self.modelType == "CurrentSource":
                     srcDeriv = prob.qDeriv.T * v
                 elif self.modelType == "CurrentDensity":
@@ -68,7 +68,7 @@ class StreamingCurrents(Src.BaseSrc):
                     raise NotImplementedError()
             else:
                 if self.modelType == "Head":
-                    srcDeriv = -self.Div*self.MfLiI*prob.Grad*(prob.hDeriv*v)
+                    srcDeriv = prob.Grad.T*self.MfLiI*prob.Grad*(prob.hDeriv*v)
                 elif self.modelType == "CurrentSource":
                     srcDeriv = prob.qDeriv * v
                 elif self.modelType == "CurrentDensity":
