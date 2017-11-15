@@ -22,7 +22,10 @@ class StreamingCurrents(Src.BaseSrc):
         if self.mesh is None:
             raise Exception("SP source requires mesh")
         self.mesh.setCellGradBC("neumann")
-        self.Div = -sdiag(self.mesh.vol)*self.mesh.cellGrad.T
+
+        self.V = sp.block_diag([sdiag(self.mesh.vol)]*3)
+        self.Div = -self.mesh.cellGrad.T
+
 
     def eval(self, prob):
         """
@@ -43,7 +46,7 @@ class StreamingCurrents(Src.BaseSrc):
             elif self.modelType == "CurrentSource":
                 q = prob.q
             elif self.modelType == "CurrentDensity":
-                q = -self.Div*prob.mesh.aveF2CCV.T*np.r_[prob.jsx, prob.jsy, prob.jsz]
+                q = -self.Div*prob.mesh.aveF2CCV.T* self.V *np.r_[prob.jsx, prob.jsy, prob.jsz]
             else:
                 raise NotImplementedError()
         elif prob._formulation == 'EB':
@@ -59,7 +62,7 @@ class StreamingCurrents(Src.BaseSrc):
                     srcDeriv = prob.qDeriv.T * v
                 elif self.modelType == "CurrentDensity":
                     jsDeriv = sp.vstack((prob.jsxDeriv, prob.jsyDeriv, prob.jszDeriv))
-                    srcDeriv = - jsDeriv.T * prob.mesh.aveF2CCV * (self.Div.T*v)
+                    srcDeriv = - jsDeriv.T * prob.mesh.aveF2CCV * self.V * (self.Div.T*v)
                 else:
                     raise NotImplementedError()
             else:
@@ -69,7 +72,7 @@ class StreamingCurrents(Src.BaseSrc):
                     srcDeriv = prob.qDeriv * v
                 elif self.modelType == "CurrentDensity":
                     jsDeriv = sp.vstack((prob.jsxDeriv, prob.jsyDeriv, prob.jszDeriv))
-                    srcDeriv = -self.Div * prob.mesh.aveF2CCV.T*(jsDeriv*v)
+                    srcDeriv = -self.Div * prob.mesh.aveF2CCV.T* self.V * (jsDeriv*v)
                 else:
                     raise NotImplementedError()
         elif prob._formulation == 'EB':
