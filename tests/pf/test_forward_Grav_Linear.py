@@ -41,46 +41,57 @@ class GravFwdProblemTests(unittest.TestCase):
         srcField = PF.BaseGrav.SrcField([rxLoc])
         self.survey = PF.BaseGrav.LinearSurvey(srcField)
 
-        self.prob_xyz = PF.Gravity.GravityIntegral(mesh, rhoMap=idenMap,
-                                                   actInd=sph_ind,
-                                                   forwardOnly=True,
-                                                   rtype='xyz')
+        self.prob_x = PF.Gravity.GravityIntegral(mesh, rhoMap=idenMap,
+                                                 actInd=sph_ind,
+                                                 forwardOnly=True,
+                                                 rType='x', silent=True)
+
+        self.prob_y = PF.Gravity.GravityIntegral(mesh, rhoMap=idenMap,
+                                                 actInd=sph_ind,
+                                                 forwardOnly=True,
+                                                 rType='y', silent=True)
 
         self.prob_z = PF.Gravity.GravityIntegral(mesh, rhoMap=idenMap,
                                                  actInd=sph_ind,
                                                  forwardOnly=True,
-                                                 rtype='z')
+                                                 rType='z', silent=True)
 
     def test_ana_forward(self):
 
         # Compute 3-component grav data
-        self.survey.pair(self.prob_xyz)
-        d = self.prob_xyz.fields(self.model)
+        self.survey.pair(self.prob_x)
+        dgx = self.prob_x.fields(self.model)
+        self.survey.unpair()
 
-        ndata = self.locXyz.shape[0]
-        dgx = d[0:ndata]
-        dgy = d[ndata:2*ndata]
-        dgz = d[2*ndata:]
+        self.survey.pair(self.prob_y)
+        dgy = self.prob_y.fields(self.model)
+        self.survey.unpair()
 
         # Compute gz data only
-        self.survey.unpair()
+
         self.survey.pair(self.prob_z)
-        dz = self.prob_z.fields(self.model)
+        dgz = self.prob_z.fields(self.model)
+
+        ndata = self.locXyz.shape[0]
 
         # Compute analytical response from mass sphere
-        gxa, gya, gza = PF.GravAnalytics.GravSphereFreeSpace(self.locXyz[:, 0],
-                                                             self.locXyz[:, 1],
-                                                             self.locXyz[:, 2],
-                                                             self.rad, 0, 0, 0,
-                                                             self.rho)
+        AnaSphere = PF.GravAnalytics.GravSphereFreeSpace(self.locXyz[:, 0],
+                                                         self.locXyz[:, 1],
+                                                         self.locXyz[:, 2],
+                                                         self.rad, 0, 0, 0,
+                                                         self.rho)
 
         # Compute residual
-        err_xyz = (np.linalg.norm(d-np.r_[gxa, gya, gza]) /
-                   np.linalg.norm(np.r_[gxa, gya, gza]))
+        err_x = (np.linalg.norm(dgx-AnaSphere['gx']) /
+                 np.linalg.norm(AnaSphere['gx']))
 
-        err_tmi = np.linalg.norm(dz-gza)/np.linalg.norm(gza)
+        err_y = (np.linalg.norm(dgy-AnaSphere['gy']) /
+                 np.linalg.norm(AnaSphere['gy']))
 
-        self.assertTrue(err_xyz < 0.005 and err_tmi < 0.005)
+        err_z = (np.linalg.norm(dgz-AnaSphere['gz']) /
+                 np.linalg.norm(AnaSphere['gz']))
+
+        self.assertTrue(err_x < 0.005 and err_y < 0.005 and err_z < 0.005)
 
 
 if __name__ == '__main__':

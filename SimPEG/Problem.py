@@ -8,8 +8,7 @@ from .Fields import Fields, TimeFields
 from . import Mesh
 from . import Props
 import properties
-
-
+import time
 Solver = Utils.SolverUtils.Solver
 
 
@@ -271,7 +270,7 @@ class LinearProblem(BaseProblem):
 
     # surveyPair = Survey.LinearSurvey
 
-    G = None
+    F = None
 
     def __init__(self, mesh, **kwargs):
         BaseProblem.__init__(self, mesh, **kwargs)
@@ -288,10 +287,41 @@ class LinearProblem(BaseProblem):
         self._modelMap = val
 
     def fields(self, m):
-        return self.G.dot(m)
+
+        # Check possible dtype for linear operator
+        # Important to avoid memory copies of dense matrix
+        if self.F.dtype is np.dtype('float32'):
+            y = np.dot(self.F, m.astype(np.float32))
+            y.astype(np.float64)
+
+        else:
+            y = np.dot(self.F, m)
+
+        return y
 
     def Jvec(self, m, v, f=None):
-        return self.G.dot(v)
+
+        # Check possible dtype for linear operator
+        # Important to avoid memory copies of dense matrix
+        if self.F.dtype is np.dtype('float32'):
+            y = np.dot(self.F, v.astype(np.float32))
+            y.astype(np.float64)
+
+        else:
+            y = np.dot(self.F, v)
+
+        return y
 
     def Jtvec(self, m, v, f=None):
-        return self.G.T.dot(v)
+
+        # Check possible dtype for linear operator
+        # Important to avoid memory copies of dense matrix
+        if self.F.dtype is np.dtype('float32'):
+
+            y = np.dot(self.F.T, v.astype(np.float32))
+            y.astype(np.float64)
+
+        else:
+            y = np.dot(self.F.T, v)
+
+        return y

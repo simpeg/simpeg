@@ -2,8 +2,19 @@
 PF: Magnetic: Inversion Linear
 ===============================
 
-Create a synthetic block model and invert
-with a compact norm
+In this example, we showcase the magnetic susceptibility
+inversion as introduced in the classic paper of:
+
+Li Y., and D. W. Oldenburg, 1996, 3-D inversion of magnetic data:
+Geophysics, 61, no. 2, 394-408.
+
+We first create a synthetic block model and invert
+with both smooth and compact norms for comparison.
+A solution to the compact norms is found using the Scaled-IRLS
+method presented in:
+
+Fournier, D. 2015, A cooperative magnetic inversion method with Lp-norm
+regularization. MSc. Thesis, UBC - EOAS Department
 
 """
 import matplotlib.pyplot as plt
@@ -83,17 +94,22 @@ def run(plotIt=True):
     idenMap = Maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
-    prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap, actInd=actv)
+    prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap, actInd=actv,
+                                         silent=True)
 
     # Pair the survey and problem
     survey.pair(prob)
 
+    # Create a static sensitivity weighting function
+    wr = np.sum(prob.F**2., axis=0)**0.5
+    wr = (wr/np.max(wr))
+    
     # Compute linear forward operator and compute some data
     d = prob.fields(model)
 
     # Add noise and uncertainties
     # We add some random Gaussian noise (1nT)
-    data = d + np.random.randn(len(d))
+    data = d #+ np.random.randn(len(d))
     wd = np.ones(len(data))*1.  # Assign flat uncertainties
 
     survey.dobs = data
@@ -102,18 +118,16 @@ def run(plotIt=True):
 
     # Create sensitivity weights from our linear forward operator
     rxLoc = survey.srcField.rxList[0].locs
-    wr = np.sum(prob.G**2., axis=0)**0.5
-    wr = (wr/np.max(wr))
 
     # Create a regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-    reg.cell_weights = wr
     reg.norms = [0, 1, 1, 1]
     reg.eps_p, reg.eps_q = 1e-3, 1e-3
+    reg.cell_weights = wr
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.W = 1/wd
+    dmis.W = 1./wd
 
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
@@ -122,12 +136,16 @@ def run(plotIt=True):
     betaest = Directives.BetaEstimate_ByEig()
 
     # Here is where the norms are applied
+
     # Use pick a treshold parameter empirically based on the distribution of
     #  model parameters
+
     IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=3)
-    update_Jacobi = Directives.Update_lin_PreCond()
+
+    update_Jacobi = Directives.UpdatePreCond()
+    update_SensWeight = Directives.UpdateSensWeighting()
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[IRLS, betaest, update_Jacobi])
+                                  directiveList=[betaest, IRLS, update_Jacobi])
 
     # Run the inversion
     m0 = np.ones(nC)*1e-4  # Starting model
@@ -137,7 +155,8 @@ def run(plotIt=True):
         # Here is the recovered susceptibility model
         ypanel = midx
         zpanel = -5
-        m_l2 = actvMap * IRLS.l2model
+        
+        m_l2 = actvMap * invProb.l2model
         m_l2[m_l2 == -100] = np.nan
 
         m_lp = actvMap * mrec
@@ -147,14 +166,21 @@ def run(plotIt=True):
         m_true[m_true == -100] = np.nan
 
         # Plot the data
-        PF.Magnetics.plot_obs_2D(rxLoc, d=d)
+        fig = plt.figure(figsize=(8, 4))
+        ax1 = plt.subplot(121)
+        ax2 = plt.subplot(122)
+        PF.Magnetics.plot_obs_2D(rxLoc, d=d, fig=fig, ax=ax1,
+                                 title='TMI Data')
+        PF.Magnetics.plot_obs_2D(rxLoc, d=invProb.dpred, fig=fig, ax=ax2,
+                                 title='Predicted Data')
 
-        plt.figure()
+        plt.figure(figsize=(5, 8))
 
         # Plot L2 model
         ax = plt.subplot(321)
         mesh.plotSlice(m_l2, ax=ax, normal='Z', ind=zpanel,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True, clim=(model.min(), model.max()),
+                       pcolorOpts={'cmap': 'magma_r', })
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan l2-model.')
@@ -166,7 +192,8 @@ def run(plotIt=True):
         # Vertica section
         ax = plt.subplot(322)
         mesh.plotSlice(m_l2, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True, clim=(model.min(), model.max()),
+                       pcolorOpts={'cmap': 'magma_r', })
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W l2-model.')
@@ -178,7 +205,8 @@ def run(plotIt=True):
         # Plot Lp model
         ax = plt.subplot(323)
         mesh.plotSlice(m_lp, ax=ax, normal='Z', ind=zpanel,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True, clim=(model.min(), model.max()),
+                       pcolorOpts={'cmap': 'magma_r', })
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan lp-model.')
@@ -190,7 +218,8 @@ def run(plotIt=True):
         # Vertical section
         ax = plt.subplot(324)
         mesh.plotSlice(m_lp, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True, clim=(model.min(), model.max()),
+                       pcolorOpts={'cmap': 'magma_r', })
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W lp-model.')
@@ -202,7 +231,8 @@ def run(plotIt=True):
         # Plot True model
         ax = plt.subplot(325)
         mesh.plotSlice(m_true, ax=ax, normal='Z', ind=zpanel,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True, clim=(model.min(), model.max()),
+                       pcolorOpts={'cmap': 'magma_r', })
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan true model.')
@@ -214,7 +244,8 @@ def run(plotIt=True):
         # Vertical section
         ax = plt.subplot(326)
         mesh.plotSlice(m_true, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True, clim=(model.min(), model.max()),
+                       pcolorOpts={'cmap': 'magma_r', })
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W true model.')

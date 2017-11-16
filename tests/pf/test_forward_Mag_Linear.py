@@ -47,28 +47,18 @@ class MagFwdProblemTests(unittest.TestCase):
         self.prob_xyz = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
                                                       actInd=sph_ind,
                                                       forwardOnly=True,
-                                                      rtype='xyz')
+                                                      silent=True)
 
-        self.prob_tmi = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
-                                                      actInd=sph_ind,
-                                                      forwardOnly=True,
-                                                      rtype='tmi')
 
     def test_ana_forward(self):
 
         # Compute 3-component mag data
         self.survey.pair(self.prob_xyz)
-        d = self.prob_xyz.fields(self.model)
 
-        ndata = self.locXyz.shape[0]
-        dbx = d[0:ndata]
-        dby = d[ndata:2*ndata]
-        dbz = d[2*ndata:]
-
-        # Compute tmi mag data
-        self.survey.unpair()
-        self.survey.pair(self.prob_tmi)
-        dtmi = self.prob_tmi.fields(self.model)
+        dbx = self.prob_xyz.Intrgl_Fwr_Op(self.model, recType='x')
+        dby = self.prob_xyz.Intrgl_Fwr_Op(self.model, recType='y')
+        dbz = self.prob_xyz.Intrgl_Fwr_Op(self.model, recType='z')
+        dtmi = self.prob_xyz.Intrgl_Fwr_Op(self.model, recType='tmi')
 
         # Compute analytical response from a magnetized sphere
         bxa, bya, bza = PF.MagAnalytics.MagSphereFreeSpace(self.locXyz[:, 0],
@@ -82,10 +72,11 @@ class MagFwdProblemTests(unittest.TestCase):
 
         btmi = mkvc(Ptmi.dot(np.vstack((bxa, bya, bza))))
 
-        err_xyz = (np.linalg.norm(d-np.r_[bxa, bya, bza]) /
+        err_xyz = (np.linalg.norm(np.r_[dbx, dby, dbz]-np.r_[bxa, bya, bza]) /
                    np.linalg.norm(np.r_[bxa, bya, bza]))
 
         err_tmi = np.linalg.norm(dtmi-btmi)/np.linalg.norm(btmi)
+
         self.assertTrue(err_xyz < 0.005 and err_tmi < 0.005)
 
 

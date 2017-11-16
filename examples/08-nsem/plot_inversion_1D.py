@@ -80,6 +80,7 @@ def run(plotIt=True):
     if plotIt:
         fig = NSEM.Utils.dataUtils.plotMT1DModelData(problem, [])
         fig.suptitle('Target - smooth true')
+        fig.axes[0].set_ylim([-10000, 500])
 
     # Assign uncertainties
     std = 0.05 # 5% std

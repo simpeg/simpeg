@@ -78,7 +78,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Create the forward model operator
         prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
-                                             actInd=actv)
+                                             actInd=actv, silent=True)
 
         # Pair the survey and problem
         survey.pair(prob)
@@ -94,7 +94,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         survey.std = wd
 
         # Create sensitivity weights from our linear forward operator
-        wr = np.sum(prob.G**2., axis=0)**0.5
+        wr = np.sum(prob.F**2., axis=0)**0.5
         wr = (wr/np.max(wr))
 
         # Create a regularization
@@ -118,7 +118,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         IRLS = Directives.Update_IRLS(f_min_change=1e-3,
                                       minGNiter=3)
-        update_Jacobi = Directives.Update_lin_PreCond()
+        update_Jacobi = Directives.UpdatePreCond()
         self.inv = Inversion.BaseInversion(invProb,
                                            directiveList=[IRLS, betaest,
                                                           update_Jacobi])

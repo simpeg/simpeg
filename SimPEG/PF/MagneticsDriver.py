@@ -1,9 +1,9 @@
 import re
 import os
-from SimPEG import Mesh, Utils
-import numpy as np
+from SimPEG import Mesh, Utils, mkvc
 from . import BaseMag
 from . import Magnetics
+import numpy as np
 
 
 class MagneticsDriver_Inv(object):
@@ -143,7 +143,7 @@ class MagneticsDriver_Inv(object):
         line = fid.readline()
         l_input = re.split('[!\s]', line)
         if l_input[0] == 'VALUE':
-            val = np.array(l_input[1:6])
+            val = np.array(l_input[1:13])
             lpnorms = val.astype(np.float)
 
         elif l_input[0] == 'FILE':
@@ -153,8 +153,9 @@ class MagneticsDriver_Inv(object):
         line = fid.readline()
         l_input = re.split('[!\s]', line)
         if l_input[0] == 'VALUE':
-            val = np.array(l_input[1:3])
-            eps = val.astype(np.float)
+
+            eps = [float(i) for i in l_input[1:3]]
+
 
         elif l_input[0] == 'DEFAULT':
             eps = None
@@ -182,7 +183,7 @@ class MagneticsDriver_Inv(object):
     @property
     def survey(self):
         if getattr(self, '_survey', None) is None:
-            self._survey = self.readMagneticsObservations(self.obsfile)
+            self._survey = readMagneticsObservations(self.basePath + self.obsfile)
         return self._survey
 
     @property
@@ -191,6 +192,7 @@ class MagneticsDriver_Inv(object):
             if getattr(self, 'topofile', None) is not None:
                 topo = np.genfromtxt(self.basePath + self.topofile,
                                      skip_header=1)
+
                 # Find the active cells
                 active = Utils.surface2ind_topo(self.mesh, topo, 'N')
 
@@ -201,11 +203,7 @@ class MagneticsDriver_Inv(object):
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
                 active = self.activeModel != 0
 
-            inds = np.asarray([inds for inds,
-                               elem in enumerate(active, 1)
-                               if elem], dtype=int) - 1
-
-            self._activeCells = inds
+            self._activeCells = np.asarray(np.where(mkvc(active))[0], dtype=int)
 
             # Reduce m0 to active space
             if len(self.m0) > len(self._activeCells):
@@ -329,56 +327,102 @@ class MagneticsDriver_Inv(object):
 
         return self._M
 
-    def readMagneticsObservations(self, obs_file):
-        """
-            Read and write UBC mag file format
 
-            INPUT:
-            :param fileName, path to the UBC obs mag file
+def readMagneticsObservations(obs_file):
+    """
+        Read and write UBC mag file format
 
-            OUTPUT:
-            :param survey
-            :param M, magnetization orentiaton (MI, MD)
-        """
+        INPUT:
+        :param fileName, path to the UBC obs mag file
 
-        fid = open(self.basePath + obs_file, 'r')
+        OUTPUT:
+        :param survey
+        :param M, magnetization orentiaton (MI, MD)
+    """
 
-        # First line has the inclination,declination and amplitude of B0
-        line = fid.readline()
-        B = np.array(line.split(), dtype=float)
+    fid = open(obs_file, 'r')
 
-        # Second line has the magnetization orientation and a flag
-        line = fid.readline()
-        M = np.array(line.split(), dtype=float)
+    # First line has the inclination,declination and amplitude of B0
+    line = fid.readline()
+    B = np.array(line.split(), dtype=float)
 
-        # Third line has the number of rows
-        line = fid.readline()
-        ndat = int(line.strip())
+    # Second line has the magnetization orientation and a flag
+    line = fid.readline()
+    M = np.array(line.split(), dtype=float)
 
-        # Pre-allocate space for obsx, obsy, obsz, data, uncert
-        line = fid.readline()
+    # Third line has the number of rows
+    line = fid.readline()
+    ndat = np.array(line.split(), dtype=int)[0]
+
+    # Pre-allocate space for obsx, obsy, obsz, data, uncert
+    line = fid.readline()
+    temp = np.array(line.split(), dtype=float)
+
+    d = np.zeros(ndat, dtype=float)
+    wd = np.zeros(ndat, dtype=float)
+    locXYZ = np.zeros((ndat, 3), dtype=float)
+
+    for ii in range(ndat):
+
         temp = np.array(line.split(), dtype=float)
+        locXYZ[ii, :] = temp[:3]
 
-        d = np.zeros(ndat, dtype=float)
-        wd = np.zeros(ndat, dtype=float)
-        locXYZ = np.zeros((ndat, 3), dtype=float)
+        if len(temp) > 3:
+            d[ii] = temp[3]
 
-        for ii in range(ndat):
+            if len(temp) == 5:
+                wd[ii] = temp[4]
 
-            temp = np.array(line.split(), dtype=float)
-            locXYZ[ii, :] = temp[:3]
+        line = fid.readline()
 
-            if len(temp) > 3:
-                d[ii] = temp[3]
+    rxLoc = BaseMag.RxObs(locXYZ)
+    srcField = BaseMag.SrcField([rxLoc], param=(B[2], B[0], B[1]))
+    survey = BaseMag.LinearSurvey(srcField)
+    survey.dobs = d
+    survey.std = wd
+    return survey
 
-                if len(temp) == 5:
-                    wd[ii] = temp[4]
 
-            line = fid.readline()
+def actIndFull2layer(mesh, actInd):
+    """
+    Function to extract upper layer (topo) of an
+    active index vector
+    """
 
-        rxLoc = BaseMag.RxObs(locXYZ)
-        srcField = BaseMag.SrcField([rxLoc], param=(B[2], B[0], B[1]))
-        survey = BaseMag.LinearSurvey(srcField)
-        survey.dobs = d
-        survey.std = wd
-        return survey
+    # Convert the actind to bool
+    if not isinstance(actInd, bool):
+
+        actIndFull = np.zeros(mesh.nC, dtype=bool)
+        actIndFull[actInd] = True
+
+    actIndFull = actIndFull.reshape(mesh.vnC, order='F')
+
+    actIndLayer = np.zeros(mesh.vnC, dtype=bool)
+    for ii in range(mesh.nCx):
+        for jj in range(mesh.nCy):
+
+            zcol = actIndFull[ii, jj, :]
+            actIndLayer[ii, jj, np.where(zcol)[0][-1]] = True
+
+    return np.asarray(np.where(mkvc(actIndLayer))[0], dtype=int)
+
+def writeVectorUBC(mesh, fileName, model):
+    """
+        Writes a vector model associated with a SimPEG TensorMesh
+        to a UBC-GIF format model file.
+
+        :param string fileName: File to write to
+        :param numpy.ndarray model: The model
+    """
+
+    modelMatTR = np.zeros_like(model)
+
+    for ii in range(3):
+        # Reshape model to a matrix
+        modelMat = mesh.r(model[:, ii], 'CC', 'CC', 'M')
+        # Transpose the axes
+        modelMatT = modelMat.transpose((2, 0, 1))
+        # Flip z to positive down
+        modelMatTR[:, ii] = Utils.mkvc(modelMatT[::-1, :, :])
+
+    np.savetxt(fileName, modelMatTR)

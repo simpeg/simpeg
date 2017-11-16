@@ -16,7 +16,7 @@ class LinearSurvey(Survey.BaseSurvey):
 
     @property
     def nD(self):
-        return self.prob.G.shape[0]
+        return self.srcField.rxList[0].locs.shape[0]
 
     @property
     def rxLoc(self):
@@ -65,10 +65,23 @@ class LinearSurvey(Survey.BaseSurvey):
 
         gfx = self.Qfx*u['G']
         gfy = self.Qfy*u['G']
-        gfz = self.Qfz*u['G']
+        gfz = -self.Qfz*u['G']
 
-        fields = {'gx': gfx, 'gy': gfy, 'gz': gfz}
+        gxx = self.Qfx*u['ggx']
+        gxy = self.Qfy*u['ggx']
+        gxz = self.Qfz*u['ggx']
+
+        gyy = self.Qfy*u['ggy']
+        gyz = self.Qfz*u['ggy']
+
+        gzz = self.Qfz*u['ggz']
+
+        fields = {'gx': gfx, 'gy': gfy, 'gz': gfz,
+                  'gxx': gxx, 'gxy': gxy, 'gxz': gxz,
+                  'gyy': gyy, 'gyz': gyz, 'gzz': gzz}
+
         return fields
+
 
 class SrcField(Survey.BaseSrc):
     """ Define the inducing field """

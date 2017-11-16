@@ -39,8 +39,13 @@ class BaseMagSurvey(Survey.BaseSurvey):
             self._Qfz = self.prob.mesh.getInterpolationMat(self.rxLoc, 'Fz')
         return self._Qfz
 
+    @property
+    def nD(self):
+        if getattr(self, '_nD', None) is None:
+            self._nD = self.rxLoc.shape[0]
+        return self._nD
 
-    def projectFields(self, u):
+    def projectFields(self, f):
         """
             This function projects the fields onto the data space.
 
@@ -62,9 +67,9 @@ class BaseMagSurvey(Survey.BaseSurvey):
         """
         # TODO: There can be some different tyes of data like |B| or B
 
-        bfx = self.Qfx*u['B']
-        bfy = self.Qfy*u['B']
-        bfz = self.Qfz*u['B']
+        bfx = self.Qfx*f['B']
+        bfy = self.Qfy*f['B']
+        bfz = self.Qfz*f['B']
 
         # Generate unit vector
         B0 = self.prob.survey.B0
@@ -105,6 +110,16 @@ class BaseMagSurvey(Survey.BaseSurvey):
 
         return np.r_[bfx, bfy, bfz]
 
+    def eval(self, f):
+        """Project fields to receiver locations
+
+        :param Fields u: fields object
+        :rtype: numpy.ndarray
+        :return: data
+        """
+        data = self.prob.survey.projectFields(f)
+
+        return data
 
 class LinearSurvey(Survey.BaseSurvey):
     """Base Magnetics Survey"""
@@ -121,7 +136,7 @@ class LinearSurvey(Survey.BaseSurvey):
 
     @property
     def nD(self):
-        return self.prob.G.shape[0]
+        return self.srcField.rxList[0].locs.shape[0]
 
     @property
     def nRx(self):

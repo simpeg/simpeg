@@ -23,6 +23,18 @@ import numpy as np
 
 
 def run(plotIt=True, cleanAfterRun=True):
+    """
+        PF: Gravity: Laguna del Maule Bouguer Gravity
+        =============================================
+
+        This notebook illustrates the SimPEG code used to invert Bouguer
+        gravity data collected at Laguna del Maule volcanic field, Chile.
+        Refer to Miller et al 2016 EPSL for full details.
+
+        We run the inversion in two steps.  Firstly creating a L2 model and
+        then applying an Lp norm to produce a compact model.
+        Craig Miller
+    """
 
     # Start by downloading files from the remote repository
     # directory where the downloaded files are
@@ -101,6 +113,9 @@ def run(plotIt=True, cleanAfterRun=True):
     reg.mref = driver.mref[dynamic]
     reg.cell_weights = wr * mesh.vol[active]
     reg.norms = driver.lpnorms
+    if driver.eps is not None:
+        reg.eps_p = driver.eps[0]
+        reg.eps_q = driver.eps[1]
 
     # Specify how the optimization will proceed
     opt = Optimization.ProjectedGNCG(maxIter=150, lower=driver.bounds[0],
@@ -124,11 +139,11 @@ def run(plotIt=True, cleanAfterRun=True):
                                   minGNiter=5)
 
     # Preconditioning refreshing for each IRLS iteration
-    update_Jacobi = Directives.Update_lin_PreCond()
+    update_Jacobi = Directives.UpdatePreCond()
 
     # Create combined the L2 and Lp problem
     inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[IRLS, update_Jacobi, betaest])
+                                  directiveList=[betaest, IRLS, update_Jacobi])
 
     # %%
     # Run L2 and Lp inversion
@@ -147,7 +162,7 @@ def run(plotIt=True, cleanAfterRun=True):
         # Write output model and data files and print misft stats.
 
         # reconstructing l2 model mesh with air cells and active dynamic cells
-        L2out = activeMap * IRLS.l2model
+        L2out = activeMap * invProb.l2model
 
         # reconstructing lp model mesh with air cells and active dynamic cells
         Lpout = activeMap*mrec
