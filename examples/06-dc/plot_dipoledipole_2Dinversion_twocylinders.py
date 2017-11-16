@@ -113,9 +113,9 @@ survey.dpred(mtrue[actind])
 survey.makeSyntheticData(mtrue[actind], std=0.05, force=True)
 
 
-#####################
-# Tikhonov Inversion#
-#####################
+######################
+# Tikhonov Inversion #
+######################
 
 m0 = np.median(ln_sigback)*np.ones(mapping.nP)
 dmis = DataMisfit.l2_DataMisfit(survey)

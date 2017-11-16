@@ -181,15 +181,17 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
         Assumes flat topo for now...
 
         Input:
-        :param endl -> input endpoints [x1, y1, z1, x2, y2, z2]
-        :object mesh -> SimPEG mesh object
-        :switch surveyType -> "dipole-dipole" (dipole-dipole) | "pole-dipole" (pole-dipole) | 'gradient'
-        :param a, n -> pole seperation, number of rx dipoles per tx
-        :param str d2flag -> With a 2D mesh, choose between a full 2D problem ('2D') or a 2.5D problem ('2.5D')
+        :param numpy.ndarray endl: input endpoints [x1, y1, z1, x2, y2, z2]
+        :param discretize.BaseMesh: discretize mesh object
+        :param str surveyType: 'dipole-dipole' | 'pole-dipole' | 'gradient'
+        :param int a: pole seperation
+        :param int b: dipole separation
+        :param int n: number of rx dipoles per tx
+        :param str d2flag: choose for 2D mesh between a '2D' or a '2.5D' survey
 
         Output:
-        :param Tx, Rx -> List objects for each tx location
-            Lines: P1x, P1y, P1z, P2x, P2y, P2z
+        :return: DC Survey SimPEG object containing all Tx and Rx
+        :rtype: SimPEG.EM.Static.DC.SurveyDC.Survey
     """
 
     def xy_2_r(x1, x2, y1, y2):
@@ -237,7 +239,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
             elif surveyType == 'pole-dipole':
                 tx = np.c_[M[ii, :], M[ii, :]]
             else:
-                raise Exception('The surveyType must be "dipole-dipole" or "pole-dipole"')
+                raise Exception("""surveyType must be either 'pole-dipole', 'dipole-dipole' or 'gradient'. """)
 
             # Rx.append(np.c_[M[ii+1:indx, :], N[ii+1:indx, :]])
 
