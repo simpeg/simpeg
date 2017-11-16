@@ -276,16 +276,30 @@ class ComboMap(IdentityMap):
 
     def deriv(self, m, v=None):
 
-        if v is not None:
-            deriv = v
-        else:
-            deriv = 1
-
-        mi = m
-        for map_i in reversed(self.maps):
-            deriv = map_i.deriv(mi) * deriv
-            mi = map_i * mi
-        return deriv
+        for ii, maps in enumerate(self.maps):
+            
+            if v is not None:
+                deriv = v
+            else:
+                deriv = 1
+            mi = m 
+            
+            if isinstance(maps, ComboMap):
+                mapList = reversed(maps)
+                
+            else:
+                mapList = [maps]    
+                
+            for map_i in mapList:
+                deriv = map_i.deriv(mi) * deriv
+                mi = map_i * mi
+            
+            if ii == 0:
+                comboDeriv = deriv
+            else:
+                comboDeriv += deriv
+            
+        return comboDeriv
 
     def __str__(self):
         return 'ComboMap[{0!s}]({1!s},{2!s})'.format(
@@ -351,28 +365,49 @@ class Sum(ComboMap):
         forward operation e.g. F(m) = F m1 + F m2 + ...
 
 
+
     """
+    def __init__(self, maps, **kwargs):
+        IdentityMap.__init__(self, None, **kwargs)
+
+        self.maps = []
+        for ii, m in enumerate(maps):
+            assert isinstance(m, IdentityMap), "Unrecognized data type, "
+            "inherit from an IdentityMap or ComboMap!"
+
+            # if (
+            #     ii > 0 and not (self.shape[1] == '*' or m.shape[0] == '*') and
+            #     not self.shape[1] == m.shape[0]
+            #    ):
+            #     prev = self.maps[-1]
+
+            #     raise ValueError(
+            #         'Dimension mismatch in map[{0!s}] ({1!s}, {2!s}) '
+            #         'and map[{3!s}] ({4!s}, {5!s}).'.format(
+            #             prev.__class__.__name__,
+            #             prev.shape[0],
+            #             prev.shape[1],
+            #             m.__class__.__name__,
+            #             m.shape[0],
+            #             m.shape[1]
+            #         )
+            #     )
+
+            if isinstance(m, ComboMap):
+                self.maps += m.maps
+            elif isinstance(m, IdentityMap):
+                self.maps += [m]
 
     def _transform(self, m):
 
-        mout = np.zeros(self.nP)
-
-        for map_i in reversed(self.maps):
-            mout += map_i * m
+        for ii, map_i in enumerate(reversed(self.maps)):
+            
+            if ii == 0:
+                mout = map_i * m
+            else:
+                mout += map_i * m
         return mout
 
-    def deriv(self, m, v=None):
-
-        if v is not None:
-            deriv = v
-        else:
-            deriv = 1
-
-        mi = m
-        for map_i in reversed(self.maps):
-            deriv = map_i.deriv(mi) * deriv
-            mi = map_i * mi
-        return deriv
 
 
 class Homogenize(IdentityMap):
