@@ -182,7 +182,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
 
         Input:
         :param numpy.ndarray endl: input endpoints [x1, y1, z1, x2, y2, z2]
-        :param discretize.BaseMesh: discretize mesh object
+        :param discretize.BaseMesh mesh: discretize mesh object
         :param str surveyType: 'dipole-dipole' | 'pole-dipole' | 'gradient'
         :param int a: pole seperation
         :param int b: dipole separation
