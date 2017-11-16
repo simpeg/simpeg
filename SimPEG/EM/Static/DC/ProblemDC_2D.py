@@ -387,7 +387,7 @@ class Problem2D_N(BaseDCProblem_2D):
         A = Grad.T * MeSigma * Grad + ky**2*MnSigma
         # This seems not required for 2.5D problem
         # Handling Null space of A
-        A[0, 0] = A[0, 0] + 1.
+        # A[0, 0] = A[0, 0] + 1.
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
