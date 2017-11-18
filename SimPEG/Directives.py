@@ -55,14 +55,11 @@ class InversionDirective(object):
     @property
     def reg(self):
         if getattr(self, '_reg', None) is None:
-
-            self._reg = self.invProb.reg
-
+            self.reg = self.invProb.reg  # go through the setter
         return self._reg
 
     @reg.setter
     def reg(self, value):
-
         assert any([isinstance(value, regtype) for regtype in self._regPair]), (
             "Regularization must be in {}, not {}".format(
                 self._regPair, type(value)
