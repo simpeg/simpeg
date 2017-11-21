@@ -143,9 +143,9 @@ problem.Solver = Solver
 survey.dpred(mtrue[actind])
 survey.makeSyntheticData(mtrue[actind], std=0.05, force=True)
 
-#####################
-# Tikhonov Inversion#
-#####################
+
+# Tikhonov Inversion
+####################
 
 # Initial Model
 m0 = np.median(ln_sigback)*np.ones(mapping.nP)
