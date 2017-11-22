@@ -173,7 +173,7 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
     return ph, ax, cbar, LEG
 
 
-def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
+def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
     """
         Load in endpoints and survey specifications to generate Tx, Rx location
         stations.
@@ -181,19 +181,17 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
         Assumes flat topo for now...
 
         Input:
-        :param endl -> input endpoints [x1, y1, z1, x2, y2, z2]
-        :object mesh -> SimPEG mesh object
-        :switch surveyType -> "dipole-dipole" (dipole-dipole) | "pole-dipole" (pole-dipole) | 'gradient'
-        : param a, n -> pole seperation, number of rx dipoles per tx
+        :param numpy.ndarray endl: input endpoints [x1, y1, z1, x2, y2, z2]
+        :param discretize.BaseMesh mesh: discretize mesh object
+        :param str surveyType: 'dipole-dipole' | 'pole-dipole' | 'gradient'
+        :param int a: pole seperation
+        :param int b: dipole separation
+        :param int n: number of rx dipoles per tx
+        :param str d2flag: choose for 2D mesh between a '2D' or a '2.5D' survey
 
         Output:
-        :param Tx, Rx -> List objects for each tx location
-            Lines: P1x, P1y, P1z, P2x, P2y, P2z
-
-        Created on Wed December 9th, 2015
-
-        @author: dominiquef
-        !! Require clean up to deal with DCsurvey
+        :return: DC Survey SimPEG object containing all Tx and Rx
+        :rtype: SimPEG.EM.Static.DC.SurveyDC.Survey
     """
 
     def xy_2_r(x1, x2, y1, y2):
@@ -241,7 +239,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
             elif surveyType == 'pole-dipole':
                 tx = np.c_[M[ii, :], M[ii, :]]
             else:
-                raise Exception('The surveyType must be "dipole-dipole" or "pole-dipole"')
+                raise Exception("""surveyType must be either 'pole-dipole', 'dipole-dipole' or 'gradient'. """)
 
             # Rx.append(np.c_[M[ii+1:indx, :], N[ii+1:indx, :]])
 
@@ -261,19 +259,22 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
 
             # Create receiver poles
 
-            if mesh.dim==3:
+            if mesh.dim == 3:
                 # Create line of P1 locations
                 P1 = np.c_[stn_x, stn_y, np.ones(nstn).T*ztop]
                 # Create line of P2 locations
                 P2 = np.c_[stn_x+a*dl_x, stn_y+a*dl_y, np.ones(nstn).T*ztop]
                 rxClass = DC.Rx.Dipole(P1, P2)
 
-            elif mesh.dim==2:
+            elif mesh.dim == 2:
                 # Create line of P1 locations
                 P1 = np.c_[stn_x, np.ones(nstn).T*ztop]
                 # Create line of P2 locations
                 P2 = np.c_[stn_x+a*dl_x, np.ones(nstn).T*ztop]
-                rxClass = DC.Rx.Dipole_ky(P1, P2)
+                if d2flag == '2.5D':
+                    rxClass = DC.Rx.Dipole_ky(P1, P2)
+                elif d2flag == '2D':
+                    rxClass = DC.Rx.Dipole(P1, P2)
 
             if surveyType == 'dipole-dipole':
                 srcClass = DC.Src.Dipole([rxClass], M[ii, :], N[ii, :])
@@ -328,7 +329,10 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
             elif mesh.dim == 2:
                 M = M[:, [0, 2]]
                 N = N[:, [0, 2]]
-                rxClass = DC.Rx.Dipole_ky(rx[:, [0, 2]], rx[:, [3, 5]])
+                if d2flag == '2.5D':
+                    rxClass = DC.Rx.Dipole_ky(rx[:, [0, 2]], rx[:, [3, 5]])
+                elif d2flag == '2D':
+                    rxClass = DC.Rx.Dipole(rx[:, [0, 2]], rx[:, [3, 5]])
             srcClass = DC.Src.Dipole([rxClass],
                                      (endl[0, :]),
                                      (endl[1, :]))
