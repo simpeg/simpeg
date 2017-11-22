@@ -156,7 +156,6 @@ class Problem3D_CC(BaseDCProblem):
             I, J, V = sp.sparse.find(A[0, :])
             for jj in J:
                 A[0, jj] = 0.
-
             # A[0, 0] = 1./Vol[0]
             A[0, 0] = 1.
 

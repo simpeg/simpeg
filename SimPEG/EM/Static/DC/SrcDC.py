@@ -39,15 +39,14 @@ class Dipole(BaseSrc):
 
     def eval(self, prob):
         if prob._formulation == 'HJ':
-            # Below option seems provide better result
-            # inds = closestPoints(prob.mesh, self.loc, gridLoc='CC')
-            # q = np.zeros(prob.mesh.nC)
-            # q[inds] = self.current * np.r_[1., -1.]
-            qa = prob.mesh.getInterpolationMat(self.loc[0],
-                                               locType='CC').todense()
-            qb = -prob.mesh.getInterpolationMat(self.loc[1],
-                                                locType='CC').todense()
-            q = self.current * mkvc(qa+qb)
+            inds = closestPoints(prob.mesh, self.loc, gridLoc='CC')
+            q = np.zeros(prob.mesh.nC)
+            q[inds] = self.current * np.r_[1., -1.]
+            # qa = prob.mesh.getInterpolationMat(self.loc[0],
+            #                                    locType='CC').todense()
+            # qb = -prob.mesh.getInterpolationMat(self.loc[1],
+            #                                     locType='CC').todense()
+            # q = self.current * mkvc(qa+qb)
         elif prob._formulation == 'EB':
             qa = prob.mesh.getInterpolationMat(self.loc[0],
                                                locType='N').todense()
@@ -65,11 +64,11 @@ class Pole(BaseSrc):
     def eval(self, prob):
         if prob._formulation == 'HJ':
             # Below option seems provide better result
-            # inds = closestPoints(prob.mesh, self.loc)
-            # q = np.zeros(prob.mesh.nC)
-            # q[inds] = self.current * np.r_[1.]
-            q = prob.mesh.getInterpolationMat(self.loc, locType='CC').todense()
-            q = self.current * mkvc(q)
+            inds = closestPoints(prob.mesh, self.loc)
+            q = np.zeros(prob.mesh.nC)
+            q[inds] = self.current * np.r_[1.]
+            # q = prob.mesh.getInterpolationMat(self.loc, locType='CC').todense()
+            # q = self.current * mkvc(q)
         elif prob._formulation == 'EB':
             q = prob.mesh.getInterpolationMat(self.loc, locType='N').todense()
             q = self.current * mkvc(q)
