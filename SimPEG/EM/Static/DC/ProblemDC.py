@@ -20,6 +20,8 @@ class BaseDCProblem(BaseEMProblem):
     surveyPair = Survey
     fieldsPair = FieldsDC
     Ainv = None
+    storeJ = False
+    Jmat = None
 
     def fields(self, m=None):
         if m is not None:
@@ -37,10 +39,15 @@ class BaseDCProblem(BaseEMProblem):
         f[Srcs, self._solutionType] = u
         return f
 
-    def getJ(self, m, f):
+    def getJ(self, m, f=None):
 
-        # print("Calculating J and storing")
+        if self.verbose:
+            print("Calculating J and storing")
+
         self.model = m
+
+        if f is None:
+            f = self.fields(m)
 
         self.Jmat = []
         AT = self.getA()
@@ -64,20 +71,23 @@ class BaseDCProblem(BaseEMProblem):
                 self.Jmat.append(np.vstack(Jt))
 
         self.Jmat = np.hstack(self.Jmat).T
-
         return self.Jmat
 
     def Jvec(self, m, v, f=None):
 
-        if np.all([self.storeJ, self.Jmat is not None]):
+        if self.storeJ:
+            if self.Jmat is None:
+                if f is None:
+                    self.model = m
+                    f = self.fields(m)
+                self.getJ(m,f=f)                
             return Utils.mkvc(np.dot(self.Jmat, v))
+
+        self.model = m
 
         if f is None:
             f = self.fields(m)
 
-        self.model = m
-
-        # Jv = self.dataPair(self.survey)  # same size as the data
         Jv = []
 
         A = self.getA()
@@ -92,19 +102,22 @@ class BaseDCProblem(BaseEMProblem):
                 df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                 df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
                 Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
-                # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
-        # return Utils.mkvc(Jv)
         return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
 
-        if np.all([self.storeJ, self.Jmat is not None]):
-            return Utils.mkvc(np.dot(self.Jmat.T, v))
-
-        if f is None:
-            f = self.fields(m)
+        if self.storeJ:
+            if self.Jmat is None:
+                if f is None:
+                    self.model = m
+                    f = self.fields(m)
+                self.getJ(m,f=f)                
+            return Utils.mkvc(np.dot(self.Jmat.T, v))            
 
         self.model = m
+
+        if f is None:
+            f = self.fields(m)        
 
         # Ensure v is a data object.
         if not isinstance(v, self.dataPair):
@@ -176,6 +189,15 @@ class BaseDCProblem(BaseEMProblem):
         for i, src in enumerate(Srcs):
             q[:, i] = src.eval(self)
         return q
+
+    @property
+    def deleteTheseOnModelUpdate(self):
+        toDelete = []
+        if self.sigmaMap is not None or self.rhoMap is not None:
+            toDelete += ['_MeSigma', '_MeSigmaI', '_MfRho', '_MfRhoI']
+        if self.Jmat is not None:
+            toDelete += ['Jmat']
+        return toDelete
 
 
 class Problem3D_CC(BaseDCProblem):
