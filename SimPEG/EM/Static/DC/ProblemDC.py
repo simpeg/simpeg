@@ -37,7 +37,40 @@ class BaseDCProblem(BaseEMProblem):
         f[Srcs, self._solutionType] = u
         return f
 
+    def getJ(self, m, f):
+
+        # print("Calculating J and storing")
+        self.model = m
+
+        self.Jmat = []
+        AT = self.getA()
+
+        for src in self.survey.srcList:
+            u_src = f[src, self._solutionType]
+            for rx in src.rxList:
+                # wrt f, need possibility wrt m
+                PT = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+                df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
+                                    None)
+                df_duT, df_dmT = df_duTFun(src, None, PT, adjoint=True)
+
+                ATinvdf_duT = self.Ainv * df_duT
+
+                dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
+                dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
+                du_dmT = -dA_dmT + dRHS_dmT
+                Jt = (df_dmT + du_dmT).astype(float)
+
+                self.Jmat.append(np.vstack(Jt))
+
+        self.Jmat = np.hstack(self.Jmat).T
+
+        return self.Jmat
+
     def Jvec(self, m, v, f=None):
+
+        if np.all([self.storeJ, self.Jmat is not None]):
+            return Utils.mkvc(np.dot(self.Jmat, v))
 
         if f is None:
             f = self.fields(m)
@@ -64,6 +97,10 @@ class BaseDCProblem(BaseEMProblem):
         return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
+
+        if np.all([self.storeJ, self.Jmat is not None]):
+            return Utils.mkvc(np.dot(self.Jmat.T, v))
+
         if f is None:
             f = self.fields(m)
 
@@ -93,6 +130,29 @@ class BaseDCProblem(BaseEMProblem):
                 Jtv += (df_dmT + du_dmT).astype(float)
 
         return Utils.mkvc(Jtv)
+
+    def getSourceTerm(self):
+        """
+        Evaluates the sources, and puts them in matrix form
+
+        :rtype: tuple
+        :return: q (nC or nN, nSrc)
+        """
+
+        Srcs = self.survey.srcList
+
+        if self._formulation == 'EB':
+            n = self.mesh.nN
+            # return NotImplementedError
+
+        elif self._formulation == 'HJ':
+            n = self.mesh.nC
+
+        q = np.zeros((n, len(Srcs)))
+
+        for i, src in enumerate(Srcs):
+            q[:, i] = src.eval(self)
+        return q
 
     def getSourceTerm(self):
         """
