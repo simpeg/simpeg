@@ -80,7 +80,7 @@ class BaseDCProblem(BaseEMProblem):
                 if f is None:
                     self.model = m
                     f = self.fields(m)
-                self.getJ(m,f=f)                
+                self.getJ(m, f=f)
             return Utils.mkvc(np.dot(self.Jmat, v))
 
         self.model = m
@@ -111,13 +111,13 @@ class BaseDCProblem(BaseEMProblem):
                 if f is None:
                     self.model = m
                     f = self.fields(m)
-                self.getJ(m,f=f)                
-            return Utils.mkvc(np.dot(self.Jmat.T, v))            
+                self.getJ(m, f=f)
+            return Utils.mkvc(np.dot(self.Jmat.T, v))
 
         self.model = m
 
         if f is None:
-            f = self.fields(m)        
+            f = self.fields(m)
 
         # Ensure v is a data object.
         if not isinstance(v, self.dataPair):
