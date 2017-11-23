@@ -211,6 +211,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
     stn_x = endl[0, 0] + np.array(range(int(nstn)))*dl_x*a
     stn_y = endl[0, 1] + np.array(range(int(nstn)))*dl_y*a
 
+
     if mesh.dim == 2:
         ztop = mesh.vectorNy[-1]
         # Create line of P1 locations
@@ -219,11 +220,11 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
         N = np.c_[stn_x+a*dl_x, np.ones(nstn).T*ztop]
 
     elif mesh.dim == 3:
-        ztop = mesh.vectorNz[-1]
+        stn_z = np.linspace(endl[0, 2], endl[0, 2], nstn)
         # Create line of P1 locations
-        M = np.c_[stn_x, stn_y, np.ones(nstn).T*ztop]
+        M = np.c_[stn_x, stn_y, stn_z]
         # Create line of P2 locations
-        N = np.c_[stn_x+a*dl_x, stn_y+a*dl_y, np.ones(nstn).T*ztop]
+        N = np.c_[stn_x+a*dl_x, stn_y+a*dl_y, stn_z]
 
     # Build list of Tx-Rx locations depending on survey type
     # Dipole-dipole: Moving tx with [a] spacing -> [AB a MN1 a MN2 ... a MNn]
@@ -260,10 +261,12 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
             # Create receiver poles
 
             if mesh.dim == 3:
+                stn_z = np.linspace(endl[0, 2], endl[0, 2], nstn)
+
                 # Create line of P1 locations
-                P1 = np.c_[stn_x, stn_y, np.ones(nstn).T*ztop]
+                P1 = np.c_[stn_x, stn_y, stn_z]
                 # Create line of P2 locations
-                P2 = np.c_[stn_x+a*dl_x, stn_y+a*dl_y, np.ones(nstn).T*ztop]
+                P2 = np.c_[stn_x+a*dl_x, stn_y+a*dl_y, stn_z]
                 rxClass = DC.Rx.Dipole(P1, P2)
 
             elif mesh.dim == 2:
