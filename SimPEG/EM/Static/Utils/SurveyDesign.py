@@ -414,3 +414,25 @@ class SurveyDesign(object):
             plt.show()
 
 
+def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
+    if mesh.dim == 3:
+        hx = mesh.hx
+        hy = mesh.hy
+        mesh2D = Mesh.TensorMesh(
+            [mesh.hx, mesh.hy], x0 = [mesh.x0[0], mesh.x0[1]]
+            )
+        out = Utils.ModelBuilder.randomModel(
+            mesh.vnC[:2], bounds=[zmin, zmax], its=its,
+            seed=seed, anisotropy=anisotropy
+            )
+        return out, mesh2D
+    elif mesh.dim == 2:
+        hx = mesh.hx
+        mesh1D = Mesh.TensorMesh([mesh.hx], x0 = [mesh.x0[0]])
+        out = Utils.ModelBuilder.randomModel(
+            mesh.vnC[:1], bounds=[zmin, zmax], its=its,
+            seed=seed, anisotropy=anisotropy
+            )
+        return out, mesh1D
+    else:
+        raise Exception("Only works for 2D and 3D models")
