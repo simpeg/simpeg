@@ -89,6 +89,60 @@ def calc_ElecSep(DCsurvey, surveyType='dipole-dipole'):
     return AB, MN, AM, AN, BM, BN
 
 
+def calc_rhoApp(DCsurvey, data, surveyType='dipole-dipole', spaceType='whole-space'):
+    """
+        Calculate apparent resistivity. Assuming that data are normalized voltages -
+        Vmn/I (Potential difference [V] divided by injection current [A]). For fwd
+        modelled data an injection current of 1A is assumed in SimPEG.
+
+        Input:
+        :param DCsurvey -> DC survey object
+        :param data -> normalized voltage measurements [V/A]
+        :switch surveyType -> Either 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'
+        :switch spaceType -> Assuming whole-space or half-space ('whole-space' | 'half-space')
+        Output:
+        :param rhoApp -> apparent resistivity
+
+        Edited Nov. 23th, 2017
+
+        @author: micmitch
+
+    """
+        # Get electrode separation distances
+        AB, MN, AM, AN, BM, BN = StaticUtils.calc_ElecSep(DCsurvey, surveyType=surveyType)
+
+        # Set factor for whole-space or half-space assumption
+        if spaceType == 'whole-space':
+            spaceFact = 4
+        elif spaceType == 'half-space':
+            spaceFact = 2
+        else:
+            print("""spaceType must be 'whole-space' or 'half-space'""")
+            break
+
+        # Determine geometric factor G based on electrode separation distances
+        if surveyType == 'dipole-dipole':
+            G = 1/AM - 1/BM - 1/AN + 1/BN
+
+        elif surveyType == 'pole-dipole':
+            G = 1/AM - 1/AN
+
+        elif surveyType == 'dipole-pole':
+            G = 1/AM - 1/BM
+
+        elif surveyType == 'pole-pole':
+            G = 1/AM
+
+        else:
+            print("""surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
+            break
+
+        # Calculate apparent resistivity
+        rhoApp = spaceFact*np.pi*data*(1/G)
+
+    return rhoApp
+
+
 def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appConductivity", clim=None, scale="linear", sameratio=True, pcolorOpts={}):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
