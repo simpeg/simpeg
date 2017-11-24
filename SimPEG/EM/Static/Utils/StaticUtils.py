@@ -9,6 +9,86 @@ from SimPEG import Utils, Mesh
 from SimPEG.EM.Static import DC
 
 
+def calc_ElecSep(DCsurvey, surveyType='dipole-dipole'):
+    """
+        Calculate electrode separation distances.
+
+        Input:
+        :param DCsurvey -> DC survey object
+        :switch surveyType -> Either 'pole-dipole' | 'dipole-dipole'
+        Output:
+        :param AB, MN, AM, AN, BM, BN -> electrode separation distances
+
+        Edited Nov. 23th, 2017
+
+        @author: micmitch
+
+    """
+
+    AB = []
+    MN = []
+    AM = []
+    AN = []
+    BM = []
+    BN = []
+
+    for ii in range(DCsurvey.nSrc):
+
+        Tx = DCsurvey.srcList[ii].loc
+        Rx = DCsurvey.srcList[ii].rxList[0].locs
+        nDTx = DCsurvey.srcList[ii].rxList[0].nD
+
+        if surveyType == 'dipole-dipole':
+            A = np.matlib.repmat(Tx[0], nDTx,1)
+            B = np.matlib.repmat(Tx[1], nDTx,1)
+            M = Rx[0]
+            N = Rx[1]
+
+            AB.append(np.sqrt(np.sum((A[:, :] - B[:, :])**2, axis = 1)))
+            MN.append(np.sqrt(np.sum((M[:, :] - N[:, :])**2, axis = 1)))
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis = 1)))
+            AN.append(np.sqrt(np.sum((A[:, :] - N[:, :])**2, axis = 1)))
+            BM.append(np.sqrt(np.sum((B[:, :] - M[:, :])**2, axis = 1)))
+            BN.append(np.sqrt(np.sum((B[:, :] - N[:, :])**2, axis = 1)))
+
+        elif surveyType == 'pole-dipole':
+            A = np.matlib.repmat(Tx[0], nDTx,1)
+            M = Rx[0]
+            N = Rx[1]
+
+            MN.append(np.sqrt(np.sum((M[:, :] - N[:, :])**2, axis = 1)))
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis = 1)))
+            AN.append(np.sqrt(np.sum((A[:, :] - N[:, :])**2, axis = 1)))
+
+        elif surveyType == 'dipole-pole':
+            A = np.matlib.repmat(Tx[0], nDTx,1)
+            B = np.matlib.repmat(Tx[1], nDTx,1)
+            M = Rx[0]
+
+            AB.append(np.sqrt(np.sum((A[:, :] - B[:, :])**2, axis = 1)))
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis = 1)))
+            BM.append(np.sqrt(np.sum((B[:, :] - M[:, :])**2, axis = 1)))
+
+        elif surveyType == 'pole-pole':
+            A = np.matlib.repmat(Tx[0], nDTx,1)
+            M = Rx[0]
+
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis = 1)))
+
+        else:
+            print("""surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
+            break
+
+    AB = np.hstack(AB)
+    MN = np.hstack(MN)
+    AM = np.hstack(AM)
+    AN = np.hstack(AN)
+    BM = np.hstack(BM)
+    BN = np.hstack(BN)
+
+    return AB, MN, AM, AN, BM, BN
+
+
 def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appConductivity", clim=None, scale="linear", sameratio=True, pcolorOpts={}):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
