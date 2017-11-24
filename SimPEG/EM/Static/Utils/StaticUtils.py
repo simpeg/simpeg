@@ -76,8 +76,7 @@ def calc_ElecSep(DCsurvey, surveyType='dipole-dipole'):
             AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis = 1)))
 
         else:
-            print("""surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
-            break
+            raise Exception("""surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
 
     AB = np.hstack(AB)
     MN = np.hstack(MN)
@@ -108,37 +107,36 @@ def calc_rhoApp(DCsurvey, data, surveyType='dipole-dipole', spaceType='whole-spa
         @author: micmitch
 
     """
-        # Get electrode separation distances
-        AB, MN, AM, AN, BM, BN = StaticUtils.calc_ElecSep(DCsurvey, surveyType=surveyType)
+    # Get electrode separation distances
+    AB, MN, AM, AN, BM, BN = StaticUtils.calc_ElecSep(DCsurvey, surveyType=surveyType)
 
-        # Set factor for whole-space or half-space assumption
-        if spaceType == 'whole-space':
-            spaceFact = 4
-        elif spaceType == 'half-space':
-            spaceFact = 2
-        else:
-            print("""spaceType must be 'whole-space' or 'half-space'""")
-            break
+    # Set factor for whole-space or half-space assumption
+    if spaceType == 'whole-space':
+        spaceFact = 4
+    elif spaceType == 'half-space':
+        spaceFact = 2
+    else:
+        raise Exception("""'spaceType must be 'whole-space' | 'half-space'""")
 
-        # Determine geometric factor G based on electrode separation distances
-        if surveyType == 'dipole-dipole':
-            G = 1/AM - 1/BM - 1/AN + 1/BN
+    # Determine geometric factor G based on electrode separation distances
+    if surveyType == 'dipole-dipole':
+        G = 1/AM - 1/BM - 1/AN + 1/BN
 
-        elif surveyType == 'pole-dipole':
-            G = 1/AM - 1/AN
+    elif surveyType == 'pole-dipole':
+        G = 1/AM - 1/AN
 
-        elif surveyType == 'dipole-pole':
-            G = 1/AM - 1/BM
+    elif surveyType == 'dipole-pole':
+        G = 1/AM - 1/BM
 
-        elif surveyType == 'pole-pole':
-            G = 1/AM
+    elif surveyType == 'pole-pole':
+        G = 1/AM
 
-        else:
-            print("""surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
-            break
+    else:
+        raise Exception("""'surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
 
-        # Calculate apparent resistivity
-        rhoApp = spaceFact*np.pi*data*(1/G)
+
+    # Calculate apparent resistivity
+    rhoApp = spaceFact*np.pi*data*(1/G)
 
     return rhoApp
 
@@ -503,6 +501,10 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
     if(isinstance(DCsurvey.std, float)):
         print('survey.std was a float computing uncertainty vector (survey.std*survey.dobs + survey.eps)')
 
+    if(isinstance(DCsurvey.eps, float)):
+        epsValue = DCsurvey.eps
+        DCsurvey.eps = epsValue*np.ones_like(DCSurvey.dobs)
+
     fid = open(fileName, 'w')
 
     if iptype != 0:
@@ -610,11 +612,11 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
 
             fid = open(fileName, 'ab')
             if isinstance(DCsurvey.std, np.ndarray):
-#                 print('array')
-                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
+                print('array')
+                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] + DCsurvey.eps[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
             elif (isinstance(DCsurvey.std, float)):
                 # print('survey.std was a float computing uncertainty vector (survey.std*survey.dobs + survey.eps)')
-                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std*np.abs(DCsurvey.dobs[count:count+nD]) + DCsurvey.eps ], fmt='%e', delimiter=' ', newline='\n')
+                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std*np.abs(DCsurvey.dobs[count:count+nD]) + DCsurvey.eps[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
 
             fid.close()
 
