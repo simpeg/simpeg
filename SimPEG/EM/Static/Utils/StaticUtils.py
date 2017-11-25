@@ -108,7 +108,7 @@ def calc_rhoApp(DCsurvey, data, surveyType='dipole-dipole', spaceType='whole-spa
 
     """
     # Get electrode separation distances
-    AB, MN, AM, AN, BM, BN = StaticUtils.calc_ElecSep(DCsurvey, surveyType=surveyType)
+    AB, MN, AM, AN, BM, BN = calc_ElecSep(DCsurvey, surveyType=surveyType)
 
     # Set factor for whole-space or half-space assumption
     if spaceType == 'whole-space':
