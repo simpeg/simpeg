@@ -1118,7 +1118,7 @@ def getSrc_locs(survey):
     return srcMat
 
 
-def gettopoCC(mesh, actind):
+def gettopoCC(mesh, actind, option="top"):
     """
         Get topography from active indices of mesh.
 
@@ -1134,35 +1134,46 @@ def gettopoCC(mesh, actind):
             )
         ZC = zc.reshape((mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]), order='F')
         topo = np.zeros(ZC.shape[0])
-        topoCC = np.zeros(ZC.shape[0])
-        for i in range(ZC.shape[0]):
-            ind = np.argmax(ZC[i, :][ACTIND[i, :]])
-            topo[i] = (
-                ZC[i, :][ACTIND[i, :]].max() + mesh.hz[ACTIND[i, :]][ind]*0.5
-                )
-            topoCC[i] = ZC[i, :][ACTIND[i, :]].max()
+        if option == "top":
+            for i in range(ZC.shape[0]):
+                ind = np.argmax(ZC[i, :][ACTIND[i, :]])
+                topo[i] = (
+                    ZC[i, :][ACTIND[i, :]].max() + mesh.hz[ACTIND[i, :]][ind] * 0.45
+                    )
+        elif option == "center":
+            for i in range(ZC.shape[0]):
+                ind = np.argmax(ZC[i, :][ACTIND[i, :]])
+                topo[i] = (
+                    ZC[i, :][ACTIND[i, :]].max()
+                    )
 
-        return mesh2D, topoCC
+        return mesh2D, topo
 
     elif mesh.dim == 2:
-
         mesh1D = Mesh.TensorMesh([mesh.hx], [mesh.x0[0]])
         yc = mesh.gridCC[:, 1]
         ACTIND = actind.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
         YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
         topo = np.zeros(YC.shape[0])
-        topoCC = np.zeros(YC.shape[0])
-        for i in range(YC.shape[0]):
-            ind = np.argmax(YC[i, :][ACTIND[i, :]])
-            topo[i] = (
-                YC[i, :][ACTIND[i, :]].max() + mesh.hy[ACTIND[i, :]][ind]*0.5
-                )
-            topoCC[i] = YC[i, :][ACTIND[i, :]].max()
+        if option == "top":
+            for i in range(YC.shape[0]):
+                ind = np.argmax(YC[i, :][ACTIND[i, :]])
+                topo[i] = (
+                    YC[i, :][ACTIND[i, :]].max() + mesh.hy[ACTIND[i, :]][ind] * 0.45
+                    )
+        elif option == "center":
+            for i in range(YC.shape[0]):
+                ind = np.argmax(YC[i, :][ACTIND[i, :]])
+                topo[i] = (
+                    YC[i, :][ACTIND[i, :]].max()
+                    )
+        else:
+            raise Exception()
 
-        return mesh1D, topoCC
+        return mesh1D, topo
 
 
-def drapeTopotoLoc(mesh, pts, actind=None, topo=None):
+def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
     """
         Drape location right below (cell center) the topography
     """
@@ -1177,7 +1188,31 @@ def drapeTopotoLoc(mesh, pts, actind=None, topo=None):
     if actind is None:
         actind = Utils.surface2ind_topo(mesh, topo)
 
-    meshtemp, topoCC = gettopoCC(mesh, actind)
+    meshtemp, topoCC = gettopoCC(mesh, actind, option=option)
     inds = Utils.closestPoints(meshtemp, pts)
     out = np.c_[pts, topoCC[inds]]
     return out
+
+
+def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
+    if mesh.dim == 3:
+        hx = mesh.hx
+        hy = mesh.hy
+        mesh2D = Mesh.TensorMesh(
+            [mesh.hx, mesh.hy], x0 = [mesh.x0[0], mesh.x0[1]]
+            )
+        out = Utils.ModelBuilder.randomModel(
+            mesh.vnC[:2], bounds=[zmin, zmax], its=its,
+            seed=seed, anisotropy=anisotropy
+            )
+        return out, mesh2D
+    elif mesh.dim == 2:
+        hx = mesh.hx
+        mesh1D = Mesh.TensorMesh([mesh.hx], x0 = [mesh.x0[0]])
+        out = Utils.ModelBuilder.randomModel(
+            mesh.vnC[:1], bounds=[zmin, zmax], its=its,
+            seed=seed, anisotropy=anisotropy
+            )
+        return out, mesh1D
+    else:
+        raise Exception("Only works for 2D and 3D models")
