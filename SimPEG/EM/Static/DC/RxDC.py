@@ -78,22 +78,9 @@ class Dipole(BaseRx):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        if mesh._meshType == "TREE":
-            inds0 = closestPoints(mesh, self.locs[0], gridLoc=Gloc)
-            inds1 = closestPoints(mesh, self.locs[1], gridLoc=Gloc)
-            values = np.r_[np.ones(self.nD), -np.ones(self.nD)]
-            nD = self.nD
-            I = np.r_[np.arange(nD), np.arange(nD)]
-            J = np.r_[inds0, inds1]
-            if Gloc == "CC":
-                n = mesh.nC
-            elif Gloc == "N":
-                n = mesh.nN
-            P = sp.coo_matrix((values, (I, J)), shape=(nD, n))
-        else:
-            P0 = mesh.getInterpolationMat(self.locs[0], Gloc)
-            P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
-            P = P0 - P1
+        P0 = mesh.getInterpolationMat(self.locs[0], Gloc)
+        P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
+        P = P0 - P1
 
         if self.storeProjections:
             self._Ps[mesh] = P
@@ -178,19 +165,7 @@ class Pole(BaseRx):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        if mesh._meshType == "TREE":
-            inds = closestPoints(mesh, self.locs, gridLoc=Gloc)
-            values = np.ones(self.nD)
-            nD = self.nD
-            I = np.arange(nD)
-            J = inds
-            if Gloc == "CC":
-                n = mesh.nC
-            elif Gloc == "N":
-                n = mesh.nN
-            P = sp.coo_matrix((values, (I, J)), shape=(nD, n))
-        else:
-            P = mesh.getInterpolationMat(self.locs, Gloc)
+        P = mesh.getInterpolationMat(self.locs, Gloc)
 
         if self.storeProjections:
             self._Ps[mesh] = P

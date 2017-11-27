@@ -42,26 +42,17 @@ class Dipole(BaseSrc):
         if self._q is not None:
             return self._q
         else:
-            if prob.mesh._meshType == "TREE":
-                if prob._formulation == 'HJ':
-                    inds = closestPoints(prob.mesh, self.loc, gridLoc='CC')
-                    self._q = np.zeros(prob.mesh.nC)
-                    self._q[inds] = self.current * np.r_[1., -1.]
-                elif prob._formulation == 'EB':
-                    inds = closestPoints(prob.mesh, self.loc, gridLoc='N')
-                    self._q = np.zeros(prob.mesh.nN)
-                    self._q[inds] = self.current * np.r_[1., -1.]
-            else:
-                if prob._formulation == 'HJ':
-                    inds = closestPoints(prob.mesh, self.loc, gridLoc='CC')
-                    self._q = np.zeros(prob.mesh.nC)
-                    self._q[inds] = self.current * np.r_[1., -1.]
-                elif prob._formulation == 'EB':
-                    qa = prob.mesh.getInterpolationMat(self.loc[0],
-                                                       locType='N').toarray()
-                    qb = -prob.mesh.getInterpolationMat(self.loc[1],
-                                                        locType='N').toarray()
-                    self._q = self.current * mkvc(qa+qb)
+            if prob._formulation == 'HJ':
+                inds = closestPoints(prob.mesh, self.loc, gridLoc='CC')
+                self._q = np.zeros(prob.mesh.nC)
+                self._q[inds] = self.current * np.r_[1., -1.]
+            elif prob._formulation == 'EB':
+                qa = prob.mesh.getInterpolationMat(self.loc[0],
+                                                   locType='N').toarray()
+                qb = -prob.mesh.getInterpolationMat(self.loc[1],
+                                                    locType='N').toarray()
+                self._q = self.current * mkvc(qa+qb)
+
             return self._q
 
 
@@ -74,23 +65,13 @@ class Pole(BaseSrc):
         if self._q is not None:
             return self._q
         else:
-            if prob.mesh._meshType == "TREE":
-                if prob._formulation == 'HJ':
-                    inds = closestPoints(prob.mesh, self.loc, gridLoc='CC')
-                    self._q = np.zeros(prob.mesh.nC)
-                    self._q[inds] = self.current * np.r_[1.]
-                elif prob._formulation == 'EB':
-                    inds = closestPoints(prob.mesh, self.loc, gridLoc='N')
-                    self._q = np.zeros(prob.mesh.nN)
-                    self._q[inds] = self.current * np.r_[1.]
-            else:
-                if prob._formulation == 'HJ':
-                    inds = closestPoints(prob.mesh, self.loc)
-                    self._q = np.zeros(prob.mesh.nC)
-                    self._q[inds] = self.current * np.r_[1.]
-                elif prob._formulation == 'EB':
-                    self._q = prob.mesh.getInterpolationMat(
-                        self.loc, locType='N'
-                        ).todense()
-                    self._q = self.current * mkvc(q)
+            if prob._formulation == 'HJ':
+                inds = closestPoints(prob.mesh, self.loc)
+                self._q = np.zeros(prob.mesh.nC)
+                self._q[inds] = self.current * np.r_[1.]
+            elif prob._formulation == 'EB':
+                self._q = prob.mesh.getInterpolationMat(
+                    self.loc, locType='N'
+                    ).todense()
+                self._q = self.current * mkvc(self._q)
             return self._q
