@@ -79,10 +79,10 @@ class Dipole(BaseRx):
             return self._Ps[mesh]
 
         if mesh._meshType == "TREE":
-            inds0 = closestPoints(mesh, rx.locs[0], gridLoc=Gloc)
-            inds1 = closestPoints(mesh, rx.locs[1], gridLoc=Gloc)
-            values = np.r_[np.ones(rx.nD), -np.ones(rx.nD)]
-            nD = rx.nD
+            inds0 = closestPoints(mesh, self.locs[0], gridLoc=Gloc)
+            inds1 = closestPoints(mesh, self.locs[1], gridLoc=Gloc)
+            values = np.r_[np.ones(self.nD), -np.ones(self.nD)]
+            nD = self.nD
             I = np.r_[np.arange(nD), np.arange(nD)]
             J = np.r_[inds0, inds1]
             if Gloc == "CC":
@@ -179,9 +179,9 @@ class Pole(BaseRx):
             return self._Ps[mesh]
 
         if mesh._meshType == "TREE":
-            inds = closestPoints(mesh, rx.locs[0], gridLoc=Gloc)
-            values = np.ones(rx.nD)
-            nD = rx.nD
+            inds = closestPoints(mesh, self.locs, gridLoc=Gloc)
+            values = np.ones(self.nD)
+            nD = self.nD
             I = np.arange(nD)
             J = inds
             if Gloc == "CC":

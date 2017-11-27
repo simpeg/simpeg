@@ -438,6 +438,8 @@ class Problem3D_N(BaseDCProblem):
 
     def __init__(self, mesh, **kwargs):
         BaseDCProblem.__init__(self, mesh, **kwargs)
+        if mesh._meshType == "TREE":
+            mesh.nodalGrad
 
     def getA(self):
         """
