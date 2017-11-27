@@ -55,7 +55,7 @@ class Survey(BaseEMSurvey):
                         Mlocs.append(rx.locs[0])
                         Nlocs.append(rx.locs[1])
             # Dipole
-            elif isinstance(src, SimPEG.EM.Static.DC.Src.Dipole) == 2:
+            elif isinstance(src, SimPEG.EM.Static.DC.Src.Dipole):
                 for rx in src.rxList:
                     nRx = rx.locs[0].shape[0]
                     Alocs.append(

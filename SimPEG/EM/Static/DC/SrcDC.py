@@ -15,6 +15,7 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
 
     current = 1.0
     loc = None
+    _q = None
 
     def __init__(self, rxList, **kwargs):
         SimPEG.Survey.BaseSrc.__init__(self, rxList, **kwargs)
@@ -38,22 +39,30 @@ class Dipole(BaseSrc):
         BaseSrc.__init__(self, rxList, **kwargs)
 
     def eval(self, prob):
-        if prob._formulation == 'HJ':
-            inds = closestPoints(prob.mesh, self.loc, gridLoc='CC')
-            q = np.zeros(prob.mesh.nC)
-            q[inds] = self.current * np.r_[1., -1.]
-            # qa = prob.mesh.getInterpolationMat(self.loc[0],
-            #                                    locType='CC').todense()
-            # qb = -prob.mesh.getInterpolationMat(self.loc[1],
-            #                                     locType='CC').todense()
-            # q = self.current * mkvc(qa+qb)
-        elif prob._formulation == 'EB':
-            qa = prob.mesh.getInterpolationMat(self.loc[0],
-                                               locType='N').todense()
-            qb = -prob.mesh.getInterpolationMat(self.loc[1],
-                                                locType='N').todense()
-            q = self.current * mkvc(qa+qb)
-        return q
+        if self._q is not None:
+            return self._q
+        else:
+            if prob.mesh._meshType == "TREE":
+                if prob._formulation == 'HJ':
+                    inds = closestPoints(prob.mesh, self.loc, gridLoc='CC')
+                    self._q = np.zeros(prob.mesh.nC)
+                    self._q[inds] = self.current * np.r_[1., -1.]
+                elif prob._formulation == 'EB':
+                    inds = closestPoints(prob.mesh, self.loc, gridLoc='N')
+                    self._q = np.zeros(prob.mesh.nN)
+                    self._q[inds] = self.current * np.r_[1., -1.]
+            else:
+                if prob._formulation == 'HJ':
+                    inds = closestPoints(prob.mesh, self.loc, gridLoc='CC')
+                    self._q = np.zeros(prob.mesh.nC)
+                    self._q[inds] = self.current * np.r_[1., -1.]
+                elif prob._formulation == 'EB':
+                    qa = prob.mesh.getInterpolationMat(self.loc[0],
+                                                       locType='N').toarray()
+                    qb = -prob.mesh.getInterpolationMat(self.loc[1],
+                                                        locType='N').toarray()
+                    self._q = self.current * mkvc(qa+qb)
+            return self._q
 
 
 class Pole(BaseSrc):
@@ -62,14 +71,26 @@ class Pole(BaseSrc):
         BaseSrc.__init__(self, rxList, loc=loc, **kwargs)
 
     def eval(self, prob):
-        if prob._formulation == 'HJ':
-            # Below option seems provide better result
-            inds = closestPoints(prob.mesh, self.loc)
-            q = np.zeros(prob.mesh.nC)
-            q[inds] = self.current * np.r_[1.]
-            # q = prob.mesh.getInterpolationMat(self.loc, locType='CC').todense()
-            # q = self.current * mkvc(q)
-        elif prob._formulation == 'EB':
-            q = prob.mesh.getInterpolationMat(self.loc, locType='N').todense()
-            q = self.current * mkvc(q)
-        return q
+        if self._q is not None:
+            return self._q
+        else:
+            if prob.mesh._meshType == "TREE":
+                if prob._formulation == 'HJ':
+                    inds = closestPoints(prob.mesh, self.loc, gridLoc='CC')
+                    self._q = np.zeros(prob.mesh.nC)
+                    self._q[inds] = self.current * np.r_[1.]
+                elif prob._formulation == 'EB':
+                    inds = closestPoints(prob.mesh, self.loc, gridLoc='N')
+                    self._q = np.zeros(prob.mesh.nN)
+                    self._q[inds] = self.current * np.r_[1.]
+            else:
+                if prob._formulation == 'HJ':
+                    inds = closestPoints(prob.mesh, self.loc)
+                    self._q = np.zeros(prob.mesh.nC)
+                    self._q[inds] = self.current * np.r_[1.]
+                elif prob._formulation == 'EB':
+                    self._q = prob.mesh.getInterpolationMat(
+                        self.loc, locType='N'
+                        ).todense()
+                    self._q = self.current * mkvc(q)
+            return self._q

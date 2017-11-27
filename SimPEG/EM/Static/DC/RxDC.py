@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 
 import SimPEG
 import numpy as np
+import scipy.sparse as sp
+from SimPEG.Utils import closestPoints
 
 
 class BaseRx(SimPEG.Survey.BaseRx):
@@ -76,9 +78,22 @@ class Dipole(BaseRx):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        P0 = mesh.getInterpolationMat(self.locs[0], Gloc)
-        P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
-        P = P0 - P1
+        if mesh._meshType == "TREE":
+            inds0 = closestPoints(mesh, rx.locs[0], gridLoc=Gloc)
+            inds1 = closestPoints(mesh, rx.locs[1], gridLoc=Gloc)
+            values = np.r_[np.ones(rx.nD), -np.ones(rx.nD)]
+            nD = rx.nD
+            I = np.r_[np.arange(nD), np.arange(nD)]
+            J = np.r_[inds0, inds1]
+            if Gloc == "CC":
+                n = mesh.nC
+            elif Gloc == "N":
+                n = mesh.nN
+            P = sp.coo_matrix((values, (I, J)), shape=(nD, n))
+        else:
+            P0 = mesh.getInterpolationMat(self.locs[0], Gloc)
+            P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
+            P = P0 - P1
 
         if self.storeProjections:
             self._Ps[mesh] = P
@@ -163,9 +178,19 @@ class Pole(BaseRx):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        P = mesh.getInterpolationMat(self.locs, Gloc)
-        # P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
-        # P = P0 - P1
+        if mesh._meshType == "TREE":
+            inds = closestPoints(mesh, rx.locs[0], gridLoc=Gloc)
+            values = np.ones(rx.nD)
+            nD = rx.nD
+            I = np.arange(nD)
+            J = inds
+            if Gloc == "CC":
+                n = mesh.nC
+            elif Gloc == "N":
+                n = mesh.nN
+            P = sp.coo_matrix((values, (I, J)), shape=(nD, n))
+        else:
+            P = mesh.getInterpolationMat(self.locs, Gloc)
 
         if self.storeProjections:
             self._Ps[mesh] = P
@@ -194,8 +219,6 @@ class Pole_ky(BaseRx):
             return self._Ps[mesh]
 
         P = mesh.getInterpolationMat(self.locs, Gloc)
-        # P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
-        # P = P0 - P1
 
         if self.storeProjections:
             self._Ps[mesh] = P
