@@ -7,6 +7,7 @@ import numpy as np
 
 from SimPEG import Utils, Mesh
 from SimPEG.EM.Static import DC
+from SimPEG.Utils import asArray_N_x_Dim, uniqueRows
 
 
 def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appConductivity", clim=None, scale="linear", sameratio=True, pcolorOpts={}):
@@ -1184,7 +1185,11 @@ def gettopoCC(mesh, actind, option="top"):
                 dz = 0.
             for i in range(npts):
                 inds = uniqXY[2] == i
-                topoCC[i] = (ZC[inds][actinds[inds]]).max()
+                actind_z = actind[inds]
+                if actind_z.sum() > 0.:
+                    topoCC[i] = (ZC[inds][actind_z]).max() + dz
+                else:
+                    topoCC[i] = (ZC[inds]).max() + dz
             return uniqXY[0], topoCC
         else:
             raise NotImplementedError(
@@ -1213,6 +1218,7 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
     elif mesh._meshType == "TREE":
         if mesh.dim == 3:
             uniqXYlocs, topoCC = gettopoCC(mesh, actind, option=option)
+            inds = closestPointsGrid(uniqXYlocs, pts)
         else:
             raise NotImplementedError()
     else:
@@ -1243,3 +1249,23 @@ def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
         return out, mesh1D
     else:
         raise Exception("Only works for 2D and 3D models")
+
+
+def closestPointsGrid(grid, pts, dim=2):
+    """Move a list of points to the closest points on a grid.
+
+    :param numpy.ndarray pts: Points to move
+    :rtype: numpy.ndarray
+    :return: nodeInds
+    """
+
+    pts = asArray_N_x_Dim(pts, dim)
+    nodeInds = np.empty(pts.shape[0], dtype=int)
+
+    for i, pt in enumerate(pts):
+        if dim == 1:
+            nodeInds[i] = ((pt - grid)**2).argmin()
+        else:
+            nodeInds[i] = ((np.tile(pt, (grid.shape[0], 1)) - grid)**2).sum(axis=1).argmin()
+
+    return nodeInds
