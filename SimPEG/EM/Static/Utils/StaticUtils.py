@@ -1124,53 +1124,72 @@ def gettopoCC(mesh, actind, option="top"):
 
     """
 
-    if mesh.dim == 3:
+    if mesh._meshType == "TENSOR":
 
-        mesh2D = Mesh.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
-        zc = mesh.gridCC[:, 2]
-        ACTIND = actind.reshape(
-            (mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]),
-            order='F'
-            )
-        ZC = zc.reshape((mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]), order='F')
-        topo = np.zeros(ZC.shape[0])
-        if option == "top":
+        if mesh.dim == 3:
+
+            mesh2D = Mesh.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
+            zc = mesh.gridCC[:, 2]
+            ACTIND = actind.reshape(
+                (mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]),
+                order='F'
+                )
+            ZC = zc.reshape((mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]), order='F')
+            topoCC = np.zeros(ZC.shape[0])
+            if option == "top":
+                dz = mesh.hz[ACTIND[i, :]][ind] * 0.45
+            elif option == "center":
+                dz = 0.
+            else:
+                raise Exception()
+
             for i in range(ZC.shape[0]):
                 ind = np.argmax(ZC[i, :][ACTIND[i, :]])
-                topo[i] = (
-                    ZC[i, :][ACTIND[i, :]].max() + mesh.hz[ACTIND[i, :]][ind] * 0.45
+                topoCC[i] = (
+                    ZC[i, :][ACTIND[i, :]].max() + dz
                     )
-        elif option == "center":
-            for i in range(ZC.shape[0]):
-                ind = np.argmax(ZC[i, :][ACTIND[i, :]])
-                topo[i] = (
-                    ZC[i, :][ACTIND[i, :]].max()
-                    )
+            return mesh2D, topoCC
 
-        return mesh2D, topo
+        elif mesh.dim == 2:
 
-    elif mesh.dim == 2:
-        mesh1D = Mesh.TensorMesh([mesh.hx], [mesh.x0[0]])
-        yc = mesh.gridCC[:, 1]
-        ACTIND = actind.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
-        YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
-        topo = np.zeros(YC.shape[0])
-        if option == "top":
+            mesh1D = Mesh.TensorMesh([mesh.hx], [mesh.x0[0]])
+            yc = mesh.gridCC[:, 1]
+            ACTIND = actind.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
+            YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
+            topoCC = np.zeros(YC.shape[0])
+            if option == "top":
+                dy = mesh.hy[ACTIND[i, :]][ind] * 0.45
+            elif option == "center":
+                dy = 0.
+            else:
+                raise Exception()
+
             for i in range(YC.shape[0]):
                 ind = np.argmax(YC[i, :][ACTIND[i, :]])
-                topo[i] = (
-                    YC[i, :][ACTIND[i, :]].max() + mesh.hy[ACTIND[i, :]][ind] * 0.45
+                topoCC[i] = (
+                    YC[i, :][ACTIND[i, :]].max() + dy
                     )
-        elif option == "center":
-            for i in range(YC.shape[0]):
-                ind = np.argmax(YC[i, :][ACTIND[i, :]])
-                topo[i] = (
-                    YC[i, :][ACTIND[i, :]].max()
-                    )
+            return mesh1D, topoCC
+
+    elif mesh._meshType == "TREE":
+        if mesh.dim == 3:
+            uniqXY = uniqueRows(mesh.gridCC[:, :2])
+            npts = uniqXY[0].shape[0]
+            ZC = mesh.gridCC[:,2]
+            topoCC = np.zeros(npts)
+            if option == "top":
+                # TODO: this assume same hz, need to be modified
+                dz = mesh.hz.min() * 0.45
+            elif option == "center":
+                dz = 0.
+            for i in range(npts):
+                inds = uniqXY[2] == i
+                topoCC[i] = (ZC[inds][actinds[inds]]).max()
+            return uniqXY[0], topoCC
         else:
-            raise Exception()
-
-        return mesh1D, topo
+            raise NotImplementedError(
+                "gettopoCC is not implemented for Quad tree mesh"
+                )
 
 
 def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
@@ -1187,9 +1206,17 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
         raise NotImplementedError()
     if actind is None:
         actind = Utils.surface2ind_topo(mesh, topo)
+    if mesh._meshType == "TENSOR":
+        meshtemp, topoCC = gettopoCC(mesh, actind, option=option)
+        inds = Utils.closestPoints(meshtemp, pts)
 
-    meshtemp, topoCC = gettopoCC(mesh, actind, option=option)
-    inds = Utils.closestPoints(meshtemp, pts)
+    elif mesh._meshType == "TREE":
+        if mesh.dim == 3:
+            uniqXYlocs, topoCC = gettopoCC(mesh, actind, option=option)
+        else:
+            raise NotImplementedError()
+    else:
+        raise NotImplementedError()
     out = np.c_[pts, topoCC[inds]]
     return out
 

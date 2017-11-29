@@ -9,7 +9,7 @@ from SimPEG import Utils, Mesh
 from SimPEG.EM.Static import DC
 import matplotlib.pyplot as plt
 from scipy.interpolate import griddata
-from pymatsolver import PardisoSolver
+# from pymatsolver import PardisoSolver
 from matplotlib.colors import LogNorm, SymLogNorm
 from SimPEG.EM.Static.Utils import genTopography, gettopoCC
 
@@ -319,6 +319,10 @@ class SurveyDesign(object):
         elif problemType == "3D_CC":
             self.problem = DC.Problem3D_CC(self.mesh, sigma=sigma)
         # self.problem.Solver = PardisoSolver
+        try:
+            self.survey.unpair()
+        except:
+            self.survey.pair(self.problem)
         self.survey.pair(self.problem)
         f = self.problem.fields(sigma)
         self.F = self.problem.fields_to_space(f)
@@ -348,7 +352,6 @@ class SurveyDesign(object):
                 vmin, vmax = val.min(), val.max()
                 clim = vmin, vmax
             # Grid points
-            print (clim)
             out = plt.scatter(xloc, zloc, c=val, s=ms, clim=clim, vmin=clim[0], vmax=clim[1])
             cb = plt.colorbar(out)
 

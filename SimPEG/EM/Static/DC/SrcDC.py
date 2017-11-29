@@ -70,8 +70,8 @@ class Pole(BaseSrc):
                 self._q = np.zeros(prob.mesh.nC)
                 self._q[inds] = self.current * np.r_[1.]
             elif prob._formulation == 'EB':
-                self._q = prob.mesh.getInterpolationMat(
+                q = prob.mesh.getInterpolationMat(
                     self.loc, locType='N'
                     ).todense()
-                self._q = self.current * mkvc(self._q)
+                self._q = self.current * mkvc(q)
             return self._q
