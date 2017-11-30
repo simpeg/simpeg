@@ -827,7 +827,8 @@ def readUBC_DC2DModel(fileName):
 
 def readUBC_DC2Dpre(fileName):
     """
-        Read UBC GIF DCIP 2D observation file and generate arrays for tx-rx location
+        Read UBC GIF DCIP 2D observation file and generate arrays 
+        for tx-rx location
 
         Input:
         :param fileName, path to the UBC GIF 3D obs file
@@ -843,7 +844,8 @@ def readUBC_DC2Dpre(fileName):
     """
 
     # Load file
-    obsfile = np.genfromtxt(fileName, delimiter=' \n', dtype=np.str, comments='!')
+    obsfile = np.genfromtxt(fileName, delimiter=' \n',
+                            dtype=np.str, comments='!')
 
     # Pre-allocate
     srcLists = []
@@ -890,7 +892,8 @@ def readUBC_DC2Dpre(fileName):
 
 def readUBC_DC3Dobs(fileName):
     """
-        Read UBC GIF DCIP 3D observation file and generate arrays for tx-rx location
+        Read UBC GIF DCIP 3D observation file and generate arrays
+        for tx-rx location
 
         Input:
         :param fileName, path to the UBC GIF 3D obs file
@@ -906,7 +909,8 @@ def readUBC_DC3Dobs(fileName):
     """
 
     # Load file
-    obsfile = np.genfromtxt(fileName, delimiter=' \n', dtype=np.str, comments='!')
+    obsfile = np.genfromtxt(fileName, delimiter=' \n',
+                            dtype=np.str, comments='!')
 
     # Pre-allocate
     srcLists = []
@@ -914,7 +918,7 @@ def readUBC_DC3Dobs(fileName):
     d = []
     wd = []
     zflag = True  # Flag for z value provided
-
+    poletx = False
     # Countdown for number of obs/tx
     count = 0
     for ii in range(obsfile.shape[0]):
@@ -930,7 +934,7 @@ def readUBC_DC3Dobs(fileName):
 
             # Check if z value is provided, if False -> nan
             if len(temp) == 5:
-                tx = np.r_[temp[0:2], np.nan, temp[0:2], np.nan]
+                tx = np.r_[temp[0:2], np.nan, temp[2:4], np.nan]
                 zflag = False
 
             else:
@@ -939,9 +943,7 @@ def readUBC_DC3Dobs(fileName):
                 temp[5] = -temp[5]
                 tx = temp[:-1]
 
-
             continue
-
 
         temp = np.fromstring(obsfile[ii], dtype=float, sep=' ')
 
