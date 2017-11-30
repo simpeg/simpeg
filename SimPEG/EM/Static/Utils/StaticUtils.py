@@ -880,7 +880,7 @@ def readUBC_DC2Dpre(fileName):
         d.append(temp[-1])
 
         Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
-        srcLists.append( DC.Src.Dipole( [Rx], tx[:3], tx[3:]) )
+        srcLists.append(DC.Src.Dipole([Rx], tx[:3], tx[3:]))
 
     # Create survey class
     survey = DC.SurveyDC.Survey(srcLists)
@@ -917,8 +917,10 @@ def readUBC_DC3Dobs(fileName):
     Rx = []
     d = []
     wd = []
-    zflag = True  # Flag for z value provided
+    # Flag for z value provided
+    zflag = True
     poletx = False
+
     # Countdown for number of obs/tx
     count = 0
     for ii in range(obsfile.shape[0]):
@@ -931,17 +933,28 @@ def readUBC_DC3Dobs(fileName):
             rx = []
             temp = (np.fromstring(obsfile[ii], dtype=float, sep=' ').T)
             count = int(temp[-1])
-
             # Check if z value is provided, if False -> nan
             if len(temp) == 5:
-                tx = np.r_[temp[0:2], np.nan, temp[2:4], np.nan]
+                # check if pole-dipole
+                if np.allclose(temp[0:2], temp[2:4]):
+                    tx = np.r_[temp[0:2], np.nan]
+                    poletx = True
+
+                else:
+                    tx = np.r_[temp[0:2], np.nan, temp[2:4], np.nan]
                 zflag = False
 
             else:
-                # Flip z values
-                temp[2] = -temp[2]
-                temp[5] = -temp[5]
-                tx = temp[:-1]
+                # check if pole-dipole
+                if np.allclose(temp[0:3], temp[3:6]):
+                    tx = np.r_[temp[0:3]]
+                    poletx = True
+                    temp[2] = -temp[2]
+                else:
+                    # Flip z values
+                    temp[2] = -temp[2]
+                    temp[5] = -temp[5]
+                    tx = temp[:-1]
 
             continue
 
@@ -973,7 +986,10 @@ def readUBC_DC3Dobs(fileName):
         if count == 0:
             rx = np.asarray(rx)
             Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
-            srcLists.append(DC.Src.Dipole([Rx], tx[:3], tx[3:]))
+            if poletx:
+                srcLists.append(DC.Src.Pole([Rx], tx[:3]))
+            else:
+                srcLists.append(DC.Src.Dipole([Rx], tx[:3], tx[3:]))
 
     survey = DC.SurveyDC.Survey(srcLists)
     survey.dobs = np.asarray(d)
