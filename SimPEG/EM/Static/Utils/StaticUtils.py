@@ -972,7 +972,7 @@ def readUBC_DC3Dobs(fileName):
                 wd.append(temp[-1])
 
         else:
-            rx.append(np.r_[temp[0:2], np.nan, temp[0:2], np.nan])
+            rx.append(np.r_[temp[0:2], np.nan, temp[2:4], np.nan])
 
             # Check if there is data with the location
             if len(temp) == 6:
