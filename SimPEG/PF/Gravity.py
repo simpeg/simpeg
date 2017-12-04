@@ -58,7 +58,7 @@ class GravityIntegral(Problem.LinearProblem):
 
     def Jtvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
-        return dmudm.F * (self.G.T.dot(v))
+        return dmudm.T * (self.F.T.dot(v))
 
     @property
     def F(self):
