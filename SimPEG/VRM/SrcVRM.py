@@ -2,8 +2,8 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.special as spec
 from SimPEG import Props, Utils, Survey
-from RxVRM import BaseRxVRM
-from WaveformVRM import StepOff, SquarePulse, Arbitrary
+from .RxVRM import BaseRxVRM
+from .WaveformVRM import StepOff, SquarePulse, Arbitrary
 
 
 #########################################
