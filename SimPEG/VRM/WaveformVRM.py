@@ -197,7 +197,7 @@ tau2: Upper-bound for log-uniform distribution of time-relaxation constants
 
         if fieldType is "h":
             eta = (
-                (np.sign(times-t0+delt) - np.sign(times-t0))*(chi0 - dchi) +
+                (np.sign(times-t0+delt) - np.sign(times-t0))*(chi0 - dchi) -
                 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
                 (spec.expi(-(times-t0)/tau2) -
                     spec.expi(-(times-t0)/tau1) -
@@ -207,7 +207,7 @@ tau2: Upper-bound for log-uniform distribution of time-relaxation constants
         elif fieldType is "b":
             mu0 = 4*np.pi*1e-7
             eta = (
-                (np.sign(times-t0+delt) - np.sign(times-t0))*(chi0 - dchi) +
+                (np.sign(times-t0+delt) - np.sign(times-t0))*(chi0 - dchi) -
                 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
                 (spec.expi(-(times-t0)/tau2) -
                     spec.expi(-(times-t0)/tau1) -
@@ -404,6 +404,6 @@ eta: decay at observed times
         self.t = t
         self.eta = eta
 
-    def getCharDecay(self, fieldType, times):
+    def getCharDecay(self):
 
         return self.eta
