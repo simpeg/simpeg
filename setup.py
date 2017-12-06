@@ -39,7 +39,7 @@ setup(
         'pymatsolver>=0.1.1',
         'ipython',
         'matplotlib',
-        'properties[math]>=0.3.1b2',
+        'properties[math]>=0.3.6b0',
         'discretize',
     ],
     author="Rowan Cockett",
