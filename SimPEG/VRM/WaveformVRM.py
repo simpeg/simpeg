@@ -235,15 +235,16 @@ tau2: Upper-bound for log-uniform distribution of time-relaxation constants
         return eta
 
 ###################################################
-#           ARBITRARY WAVEFORM
+#    ARBITRARY WAVEFORM UNIFORM DISCRETIZATION
 ###################################################
 
 
-class Arbitrary():
+class ArbitraryDiscrete():
 
     """
-Arbitrary waveform for predicting VRM response. Note that the current will be
-LogUniformized by its maximum value. The maximum current in the transmitter is
+Arbitrary waveform for predicting VRM response. This approach approximates the
+waveform as a set of trapezoids with uniform width. The current is normalized
+by its largest absolute value. The maximum current in the transmitter is
 specified in the source object.
 
 INPUTS:
@@ -277,9 +278,9 @@ times: Observation times. These times must be during the off-time.
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
         assert np.max(self.t) < np.min(times), "Earliest time channel must be after beginning of off-time"
 
-        k = np.nonzero(self.I)
-        j = k[0][0]
-        k = k[0][-1]
+        k = np.where(self.I > 1e-10)
+        j = k[0][0]-1
+        k = k[0][-1]+1
 
         twave = self.t[j:k+1]
         Iwave = self.I[j:k+1]/np.max(np.abs(self.I[j:k+1]))
@@ -292,20 +293,17 @@ times: Observation times. These times must be during the off-time.
         dt = (np.max(twave) - np.min(twave))/np.float64(N)
         tvec = np.linspace(np.min(twave), np.max(twave), N+1)
 
-        twave = np.r_[np.min(twave)-dt, twave, np.max(twave)+dt]
-        Iwave = np.r_[0., Iwave, 0.]
-
-        g = np.r_[0., np.interp(tvec, twave, Iwave), 0.]
-        tvec = np.r_[tvec, np.max(twave)+dt]
+        g = np.r_[Iwave[0], np.interp(tvec[1:-1], twave, Iwave), Iwave[-1]]
+        tvec = tvec[1:]
 
         eta = np.zeros(len(times))
 
         if fieldType in ["h", "b"]:
             for tt in range(0, len(eta)):
-                eta[tt] = np.sum((g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*np.log(1 + dt/(times[tt] - tvec + dt)) - g[1:] + g[0:-1])
+                eta[tt] = np.sum((g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*np.log(1 + dt/(times[tt] - tvec)) - g[1:] + g[0:-1])
         elif fieldType in ["dhdt", "dbdt"]:
             for tt in range(0, len(eta)):
-                eta[tt] = np.sum((((g[1:]-g[0:-1])/dt)*np.log(1 + dt/(times[tt] - tvec + dt)) - (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*(1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec))))
+                eta[tt] = np.sum((((g[1:]-g[0:-1])/dt)*np.log(1 + dt/(times[tt] - tvec)) - (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*(1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec))))
 
         if fieldType in ["b", "dbdt"]:
             mu0 = 4*np.pi*1e-7
@@ -313,28 +311,71 @@ times: Observation times. These times must be during the off-time.
 
         return eta
 
+###################################################
+#    ARBITRARY WAVEFORM UNIFORM DISCRETIZATION
+###################################################
 
 
+class ArbitraryPiecewise():
 
+    """
+Arbitrary waveform for predicting VRM response. This approach approximates the
+waveform as a piecewise linear function. The user is encourage to discretize
+the function more sparsely at the beginning of the function and more finely at
+the end. The current is normalized by its largest absolute value. The maximum
+current in the transmitter is specified in the source object.
 
-        # tvec = np.linspace(np.min(twave), np.max(twave)-dt, N)
-        
-        # # g evaluated at middle of pulses
-        # g = np.interp(tvec+dt/2, twave, Iwave)
+INPUTS:
 
-        # eta = np.zeros(len(times))
+t: Times for the waveform
+I: Current for the waveform
+    """
 
-        # if fieldType in ["h", "b"]:
-        #     for tt in range(0, len(eta)):
-        #         eta[tt] = np.sum(g*np.log(1 + dt/(times[tt] - tvec + dt)))
-        # elif fieldType in ["dhdt", "dbdt"]:
-        #     for tt in range(0, len(eta)):
-        #         eta[tt] = np.sum(g*(1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec)))
+    def __init__(self, t, I):
 
-        # if fieldType in ["b", "dbdt"]:
-        #     mu0 = 4*np.pi*1e-7
-        #     eta = mu0*eta
+        assert np.abs(I[0]) < 1e-10 and np.abs(I[-1]) < 1e-10, "Current at t0 and tmax should be 0"
+        assert len(t) == len(I), "Time values and current values must have same length"
 
-        # return eta
+        self.t = t
+        self.I = I
 
+    def getCharDecay(self, fieldType, times):
 
+        """
+Characteristic decay function for arbitrary waveform. This function describes
+the decay of the VRM response for the Linear problem type. Note that the
+current will be LogUniformized by its maximum value. The maximum current in the
+transmitter is specified in the source object.
+
+INPUTS:
+
+fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
+times: Observation times. These times must be during the off-time.
+        """
+
+        assert fieldType in ["h", "dhdt", "b", "dbdt"], "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
+        assert np.max(self.t) < np.min(times), "Earliest time channel must be after beginning of off-time"
+
+        k = np.where(self.I > 1e-10)
+        j = k[0][0]-1
+        k = k[0][-1]+1
+
+        tvec = self.t[j:k+1]
+        dt = tvec[1:] - tvec[0:-1]
+        g = self.I[j:k+1]/np.max(np.abs(self.I[j:k+1]))
+        tvec = tvec[1:]
+
+        eta = np.zeros(len(times))
+
+        if fieldType in ["h", "b"]:
+            for tt in range(0, len(eta)):
+                eta[tt] = np.sum((g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*np.log(1 + dt/(times[tt] - tvec)) - g[1:] + g[0:-1])
+        elif fieldType in ["dhdt", "dbdt"]:
+            for tt in range(0, len(eta)):
+                eta[tt] = np.sum((((g[1:]-g[0:-1])/dt)*np.log(1 + dt/(times[tt] - tvec)) - (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*(1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec))))
+
+        if fieldType in ["b", "dbdt"]:
+            mu0 = 4*np.pi*1e-7
+            eta = mu0*eta
+
+        return eta
