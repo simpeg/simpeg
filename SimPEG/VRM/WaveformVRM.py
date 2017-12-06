@@ -312,7 +312,7 @@ times: Observation times. These times must be during the off-time.
         return eta
 
 ###################################################
-#    ARBITRARY WAVEFORM UNIFORM DISCRETIZATION
+#    ARBITRARY WAVEFORM PIECEWISE DISCRETIZATION
 ###################################################
 
 
@@ -379,3 +379,31 @@ times: Observation times. These times must be during the off-time.
             eta = mu0*eta
 
         return eta
+
+###################################################
+#               CUSTOM DECAY
+###################################################
+
+
+class Custom():
+
+    """
+Custom decay. If you have the values of the decay at the observed times, it can
+be set here to avoid recalculating for every source.
+
+INPUTS:
+
+t: observation times
+eta: decay at observed times
+    """
+
+    def __init__(self, t, eta):
+
+        assert len(t) == len(eta), "Observed times and decay values must be same length."
+
+        self.t = t
+        self.eta = eta
+
+    def getCharDecay(self, fieldType, times):
+
+        return self.eta
