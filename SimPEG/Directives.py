@@ -339,11 +339,11 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
 
             count += 1
 
-            if getattr(prob, 'mapping', None) is not None:
-                xc = prob.mapping * self.opt.xc
+            # if getattr(prob, 'mapping', None) is not None:
+            #     xc = prob.mapping * self.opt.xc
 
-            else:
-                xc = self.opt.xc
+            # else:
+            xc = self.opt.xc
 
 
             # # Save predicted data
@@ -356,7 +356,7 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
             # Save model
             if not isinstance(prob, Magnetics.MagneticVector):
 
-                Mesh.TensorMesh.writeModelUBC(reg.mesh,
+                Mesh.TensorMesh.writeModelUBC(reg.regmesh.mesh,
                                               fileName + '.sus', self.mapping * xc)
             else:
 
@@ -382,11 +382,11 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                 m_rem[:, 0] = 0.
                 m_rem = Magnetics.pst2xyz(m_rem, self.survey[0].srcField.param)
 
-                MagneticsDriver.writeVectorUBC(self.prob[0].mesh, fileName + '_VEC.fld', vec)
+                MagneticsDriver.writeVectorUBC(reg.regmesh.mesh, fileName + '_VEC.fld', vec)
 
                 if self.saveComp:
-                    MagneticsDriver.writeVectorUBC(self.prob[0].mesh, fileName + '_IND.fld', m_ind)
-                    MagneticsDriver.writeVectorUBC(self.prob[0].mesh, fileName + '_REM.fld', m_rem)
+                    MagneticsDriver.writeVectorUBC(reg.regmesh.mesh, fileName + '_IND.fld', m_ind)
+                    MagneticsDriver.writeVectorUBC(reg.regmesh.mesh, fileName + '_REM.fld', m_rem)
 
 
 class SaveOutputEveryIteration(SaveEveryIteration):
