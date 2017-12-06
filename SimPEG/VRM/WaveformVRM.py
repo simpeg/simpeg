@@ -290,23 +290,51 @@ times: Observation times. These times must be during the off-time.
             N = 25000
 
         dt = (np.max(twave) - np.min(twave))/np.float64(N)
-        tvec = np.linspace(np.min(twave), np.max(twave)-dt, N)
-        # g evaluated at middle of pulses
-        g = np.interp(tvec+dt/2, twave, Iwave)
+        tvec = np.linspace(np.min(twave), np.max(twave), N+1)
+
+        twave = np.r_[np.min(twave)-dt, twave, np.max(twave)+dt]
+        Iwave = np.r_[0., Iwave, 0.]
+
+        g = np.r_[0., np.interp(tvec, twave, Iwave), 0.]
+        tvec = np.r_[tvec, np.max(twave)+dt]
 
         eta = np.zeros(len(times))
 
         if fieldType in ["h", "b"]:
             for tt in range(0, len(eta)):
-                eta[tt] = np.sum(g*np.log(1 + dt/(times[tt] - tvec + dt)))
+                eta[tt] = np.sum((g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*np.log(1 + dt/(times[tt] - tvec + dt)) - g[1:] + g[0:-1])
         elif fieldType in ["dhdt", "dbdt"]:
             for tt in range(0, len(eta)):
-                eta[tt] = np.sum(g*(1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec)))
+                eta[tt] = np.sum((((g[1:]-g[0:-1])/dt)*np.log(1 + dt/(times[tt] - tvec + dt)) - (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*(1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec))))
 
         if fieldType in ["b", "dbdt"]:
             mu0 = 4*np.pi*1e-7
             eta = mu0*eta
 
         return eta
+
+
+
+
+
+        # tvec = np.linspace(np.min(twave), np.max(twave)-dt, N)
+        
+        # # g evaluated at middle of pulses
+        # g = np.interp(tvec+dt/2, twave, Iwave)
+
+        # eta = np.zeros(len(times))
+
+        # if fieldType in ["h", "b"]:
+        #     for tt in range(0, len(eta)):
+        #         eta[tt] = np.sum(g*np.log(1 + dt/(times[tt] - tvec + dt)))
+        # elif fieldType in ["dhdt", "dbdt"]:
+        #     for tt in range(0, len(eta)):
+        #         eta[tt] = np.sum(g*(1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec)))
+
+        # if fieldType in ["b", "dbdt"]:
+        #     mu0 = 4*np.pi*1e-7
+        #     eta = mu0*eta
+
+        # return eta
 
 
