@@ -10,7 +10,7 @@ from SimPEG.EM.Static import DC
 from SimPEG.Utils import asArray_N_x_Dim, uniqueRows
 
 
-def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appConductivity", clim=None, scale="linear", sameratio=True, pcolorOpts={}):
+def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appConductivity", clim=None, scale="linear", sameratio=True, pcolorOpts={}, dataLoc=False, dobs=None, dim=2):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
@@ -42,6 +42,13 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
     LEG = []
     count = 0  # Counter for data
 
+    # Use dobs in survey if dobs is None
+    if dobs is None:
+        if DCsurvey.dobs is None:
+            raise Exception()
+        else:
+            dobs = DCsurvey.dobs.copy()
+
     for ii in range(DCsurvey.nSrc):
 
         Tx = DCsurvey.srcList[ii].loc
@@ -49,7 +56,8 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
 
         nD = DCsurvey.srcList[ii].rxList[0].nD
 
-        data = DCsurvey.dobs[count:count+nD]
+        # data = DCsurvey.dobs[count:count+nD]
+        data = dobs[count:count+nD]
         count += nD
 
         # Get distances between each poles A-B-M-N
@@ -65,7 +73,12 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
             # if DCsurvey.mesh.dim == 2:
             #     zsrc = Tx[1]
             # elif DCsurvey.mesh.dim ==3:
-            zsrc = Tx[2]
+            if dim == 2:
+                zsrc = Tx[1]
+            elif dim == 3:
+                zsrc = Tx[2]
+            else:
+                raise Exception()
 
         elif surveyType == 'dipole-dipole':
             MA = np.abs(Tx[0][0] - Rx[0][:, 0])
@@ -79,7 +92,12 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
             # if DCsurvey.mesh.dim == 2:
             #     zsrc = (Tx[0][1] + Tx[1][1])/2
             # elif DCsurvey.mesh.dim ==3:
-            zsrc = (Tx[0][2] + Tx[1][2])/2
+            if dim == 2:
+                zsrc = (Tx[0][1] + Tx[1][1])/2
+            elif dim == 3:
+                zsrc = (Tx[0][2] + Tx[1][2])/2
+            else:
+                raise Exception()
 
         # Change output for dataType
         if surveyType == 'pole-dipole':
@@ -166,7 +184,8 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
     cbar.ax.tick_params(labelsize=10)
 
     # Plot apparent resistivity
-    ax.plot(midx, midz, 'k.', ms=1)
+    if dataLoc:
+        ax.plot(midx, midz, 'k.', ms=1, alpha=0.4)
 
     if sameratio:
         plt.gca().set_aspect('equal', adjustable='box')
@@ -827,7 +846,7 @@ def readUBC_DC2DModel(fileName):
 
 def readUBC_DC2Dpre(fileName):
     """
-        Read UBC GIF DCIP 2D observation file and generate arrays 
+        Read UBC GIF DCIP 2D observation file and generate arrays
         for tx-rx location
 
         Input:
@@ -1155,15 +1174,15 @@ def gettopoCC(mesh, actind, option="top"):
                 )
             ZC = zc.reshape((mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]), order='F')
             topoCC = np.zeros(ZC.shape[0])
-            if option == "top":
-                dz = mesh.hz[ACTIND[i, :]][ind] * 0.45
-            elif option == "center":
-                dz = 0.
-            else:
-                raise Exception()
 
             for i in range(ZC.shape[0]):
                 ind = np.argmax(ZC[i, :][ACTIND[i, :]])
+                if option == "top":
+                    dz = mesh.hz[ACTIND[i, :]][ind] * 0.45
+                elif option == "center":
+                    dz = 0.
+                else:
+                    raise Exception()
                 topoCC[i] = (
                     ZC[i, :][ACTIND[i, :]].max() + dz
                     )
@@ -1176,15 +1195,14 @@ def gettopoCC(mesh, actind, option="top"):
             ACTIND = actind.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
             YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
             topoCC = np.zeros(YC.shape[0])
-            if option == "top":
-                dy = mesh.hy[ACTIND[i, :]][ind] * 0.45
-            elif option == "center":
-                dy = 0.
-            else:
-                raise Exception()
-
             for i in range(YC.shape[0]):
                 ind = np.argmax(YC[i, :][ACTIND[i, :]])
+                if option == "top":
+                    dy = mesh.hy[ACTIND[i, :]][ind] * 0.45
+                elif option == "center":
+                    dy = 0.
+                else:
+                    raise Exception()
                 topoCC[i] = (
                     YC[i, :][ACTIND[i, :]].max() + dy
                     )

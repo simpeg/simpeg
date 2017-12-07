@@ -25,6 +25,7 @@ class Survey(BaseEMSurvey):
     uniqElecLocs = None
     geometry = "SURFACE"
     topoFunc = None
+    surveyType = None
 
     def __init__(self, srcList, **kwargs):
         self.srcList = srcList
