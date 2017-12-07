@@ -376,7 +376,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
        :param Survey DCsurvey: DC survey class object
        :param string dim:  either '2D' | '3D'
        :param string surveyType:  either 'SURFACE' | 'GENERAL'
-       :rtype: file
+       :iptype: file
        :return: UBC2D-Data file
     """
 
