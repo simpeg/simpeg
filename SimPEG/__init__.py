@@ -20,7 +20,7 @@ from SimPEG import Directives
 from SimPEG import Inversion
 from SimPEG import Tests
 
-__version__   = '0.6.3'
+__version__   = '0.6.5'
 __author__    = 'SimPEG Team'
 __license__   = 'MIT'
 __copyright__ = '2013 - 2017, SimPEG Team, http://simpeg.xyz'
