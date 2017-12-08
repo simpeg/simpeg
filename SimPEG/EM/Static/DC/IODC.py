@@ -106,7 +106,7 @@ class IO(object):
 
             midAB = (self.Alocs[:, 0] + self.Blocs[:, 0])*0.5
             midMN = (self.Mlocs[:, 0] + self.Nlocs[:, 0])*0.5
-            z = abs(midAB-midMN)*0.5
+            z = abs(midAB-midMN)*1./3.
             x = (midAB+midMN)*0.5
             self.grids = np.c_[x, z]
         else:
