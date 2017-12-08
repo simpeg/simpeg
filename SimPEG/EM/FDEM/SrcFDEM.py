@@ -163,7 +163,7 @@ class RawVec_m(BaseFDEMSrc):
 
     def __init__(self, rxList, freq, s_m, **kwargs):
         self._s_m = np.array(s_m, dtype=complex)
-        self.freq = float
+        self.freq = freq
         super(RawVec_m, self).__init__(rxList, **kwargs)
 
     def s_m(self, prob):
