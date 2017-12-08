@@ -246,6 +246,7 @@ class SurveyDesign(object):
             )
         z0_mesh = -((dz * 1.3 ** (np.arange(npadz)+1)).sum() + dz * self.ncz)
         self.mesh = Mesh.TensorMesh([hx, hz], x0=[x0_mesh, z0_mesh])
+        print (mesh)
 
     def genDCSurvey_2D(self, problemType="2.5D"):
         srcList = []

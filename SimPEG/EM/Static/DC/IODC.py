@@ -40,6 +40,7 @@ class IO(object):
     padratez = 1.3
     ncellperdipole = 4
 
+
     def fromABMN_to_survey(self, A, B, M, N, surveyType, dobs=None, dataType="volt", fname=None, dim=2):
         """
         read ABMN location and data (V or appResistivity)
@@ -204,6 +205,7 @@ class IO(object):
             z0_mesh = -((dz * 1.3 ** (np.arange(npadz)+1)).sum() + dz * ncz) + zmax
             mesh = Mesh.TensorMesh([hx, hz], x0=[x0_mesh, z0_mesh])
             actind = Utils.surface2ind_topo(mesh, locs)
+            print (mesh)
         elif dim == 3:
             raise NotImplementedError()
 
@@ -212,11 +214,12 @@ class IO(object):
 
         return mesh, actind
 
-    def plotPseudoSection(self, dataType="appResistivity", scale="log", dataloc=True,aspect_ratio=2, cmap="jet", ncontour=10):
+    def plotPseudoSection(self, dataType="appResistivity", scale="log", dataloc=True,aspect_ratio=2, cmap="jet", ncontour=10, ax=None):
         matplotlib.rcParams['font.size'] = 12
         if self.dim == 2:
             fig = plt.figure(figsize = (10, 5))
-            ax = plt.subplot(111)
+            if ax is None:
+                ax = plt.subplot(111)
             if dataType == "appResistivity":
                 val = self.appResistivity.copy()
                 label = "Apparent Res. ($\Omega$m)"
