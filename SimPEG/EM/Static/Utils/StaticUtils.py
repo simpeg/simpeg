@@ -812,12 +812,12 @@ def readUBC_DC2DModel(fileName):
     obsfile = np.genfromtxt(fileName, delimiter=' \n',
                             dtype=np.str, comments='!')
 
-    dim = np.array(obsfile[0].split(), dtype=float)
+    dim = np.array(obsfile[0].split(), dtype=int)
 
     temp = np.array(obsfile[1].split(), dtype=float)
 
     if len(temp) > 1:
-        model = np.zeros(dim)
+        model = np.zeros((dim[0], dim[1]))
 
         for ii in range(len(obsfile)-1):
             mm = np.array(obsfile[ii+1].split(), dtype=float)

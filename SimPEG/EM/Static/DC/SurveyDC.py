@@ -10,13 +10,13 @@ from .SrcDC import BaseSrc
 import numpy as np
 from scipy.interpolate import interp1d, NearestNDInterpolator
 
-
 class Survey(BaseEMSurvey):
     """
     Base DC survey
     """
     rxPair = BaseRx
     srcPair = BaseSrc
+    # TODO: change this using properties
     Alocs = None
     Blocs = None
     Mlocs = None
@@ -86,20 +86,21 @@ class Survey(BaseEMSurvey):
         # 2D
         if mesh.dim == 2:
             if self.geometry == "SURFACE":
-                self.elecInfo = SimPEG.Utils.uniqueRows(
-                    np.hstack((
-                        self.Alocs[:, 0],
-                        self.Blocs[:, 0],
-                        self.Mlocs[:, 0],
-                        self.Nlocs[:, 0],
-                        )).reshape([-1, 1])
-                    )
-                self.uniqElecLocs = SimPEG.EM.Static.Utils.drapeTopotoLoc(
-                    mesh,
-                    self.elecInfo[0].flatten(),
-                    actind=actind,
-                    option=option
-                    )
+                if self.elecInfo is None:
+                    self.elecInfo = SimPEG.Utils.uniqueRows(
+                        np.hstack((
+                            self.Alocs[:, 0],
+                            self.Blocs[:, 0],
+                            self.Mlocs[:, 0],
+                            self.Nlocs[:, 0],
+                            )).reshape([-1, 1])
+                        )
+                    self.uniqElecLocs = SimPEG.EM.Static.Utils.drapeTopotoLoc(
+                        mesh,
+                        self.elecInfo[0].flatten(),
+                        actind=actind,
+                        option=option
+                        )
                 temp = (
                     self.uniqElecLocs[self.elecInfo[2], 1]
                     ).reshape((self.Alocs.shape[0], 4), order="F")
@@ -175,17 +176,18 @@ class Survey(BaseEMSurvey):
 
         if mesh.dim == 3:
             if self.geometry == "SURFACE":
-                self.elecInfo = SimPEG.Utils.uniqueRows(
-                    np.vstack((
-                        self.Alocs[:, :2],
-                        self.Blocs[:, :2],
-                        self.Mlocs[:, :2],
-                        self.Nlocs[:, :2],
-                        ))
-                    )
-                self.uniqElecLocs = SimPEG.EM.Static.Utils.drapeTopotoLoc(
-                    mesh, self.elecInfo[0], actind=actind
-                    )
+                if self.elecInfo is None:
+                    self.elecInfo = SimPEG.Utils.uniqueRows(
+                        np.vstack((
+                            self.Alocs[:, :2],
+                            self.Blocs[:, :2],
+                            self.Mlocs[:, :2],
+                            self.Nlocs[:, :2],
+                            ))
+                        )
+                    self.uniqElecLocs = SimPEG.EM.Static.Utils.drapeTopotoLoc(
+                        mesh, self.elecInfo[0], actind=actind
+                        )
                 temp = (
                     self.uniqElecLocs[self.elecInfo[2], 1]
                     ).reshape((self.Alocs.shape[0], 4), order="F")
