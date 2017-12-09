@@ -40,7 +40,6 @@ class IO(object):
     padratez = 1.3
     ncellperdipole = 4
 
-
     def fromABMN_to_survey(self, A, B, M, N, surveyType, dobs=None, dataType="volt", fname=None, dim=2):
         """
         read ABMN location and data (V or appResistivity)
@@ -93,13 +92,16 @@ class IO(object):
             self.Blocs = self.Blocs[self.sortinds, :]
             self.Mlocs = self.Mlocs[self.sortinds, :]
             self.Nlocs = self.Nlocs[self.sortinds, :]
-            self.dobs = dobs[self.sortinds]
+            G = self.getGeometricFactor()
+            if self.dobs is None:
+                self.dobs = 100.*self.G
+            else:
+                self.dobs = dobs[self.sortinds]
+
             if self.dataType == "volt":
                 self.V = self.dobs.copy()
-                G = self.getGeometricFactor()
                 self.appResistivity = self.V / G
             elif self.dataType == "appResistivity":
-                G = self.getGeometricFactor()
                 self.appResistivity = self.dobs.copy()
                 self.V = self.appResistivity * self.G
                 self.dobs = self.V.copy()
@@ -214,17 +216,25 @@ class IO(object):
 
         return mesh, actind
 
-    def plotPseudoSection(self, dataType="appResistivity", scale="log", dataloc=True,aspect_ratio=2, cmap="jet", ncontour=10, ax=None):
+    def plotPseudoSection(self, dataType="appResistivity", scale="log", dataloc=True,aspect_ratio=2, cmap="jet", ncontour=10, ax=None, dobs=None):
         matplotlib.rcParams['font.size'] = 12
+
+        if dobs is None:
+            dobs = self.dobs.copy()
+            appResistivity = self.appResistivity.copy()
+        else:
+            G = self.getGeometricFactor()
+            appResistivity = dobs / G
+
         if self.dim == 2:
             fig = plt.figure(figsize = (10, 5))
             if ax is None:
                 ax = plt.subplot(111)
             if dataType == "appResistivity":
-                val = self.appResistivity.copy()
+                val = appResistivity.copy()
                 label = "Apparent Res. ($\Omega$m)"
             elif dataType == "volt":
-                val = self.dobs.copy()
+                val = dobs.copy()
                 label = "Voltage (V)"
             else:
                 raise NotImplementedError()
@@ -254,3 +264,119 @@ class IO(object):
             plt.tight_layout()
             plt.show()
 
+    def genLocs_2D(self, surveyType, x0, lineLength, a, nSpacing):
+        """
+        genDClocs: Compute
+        """
+        self.surveyType = surveyType
+        self.x0 = x0
+        self.lineLength = lineLength
+        self.a = a
+        self.nSpacing = nSpacing
+
+        nElec = int(np.floor(lineLength / a)) + 1
+        xElec = x0 + np.arange(nElec)*a
+        if surveyType == "dipole-dipole":
+            SrcLoc = np.c_[xElec[:-1], xElec[1:]]
+            RxLoc = np.c_[xElec[:-1], xElec[1:]]
+            nSrc = SrcLoc.shape[0]
+            nRx = RxLoc.shape[0]
+            SrcID = []
+            RxID = []
+            nLeg = []
+            for iSrc in range(nSrc-2):
+                if nSrc-iSrc-1 > nSpacing:
+                    nSounding = nSpacing
+                else:
+                    nSounding = nSrc - iSrc - 2
+                SrcID.append(np.ones(nSounding, dtype=int) * iSrc)
+                RxID.append(np.arange(nSounding) + iSrc + 2)
+                nLeg.append(np.arange(nSounding)+1)
+            # Set actual number of source dipole
+            self.nSrc = nSrc-2
+
+        elif surveyType == "pole-dipole":
+            SrcLoc = np.c_[xElec, xElec]
+            RxLoc = np.c_[xElec[:-1], xElec[1:]]
+            nSrc = SrcLoc.shape[0]
+            nRx = RxLoc.shape[0]
+            SrcID = []
+            RxID = []
+            nLeg = []
+            for iSrc in range(nSrc-2):
+                if nSrc - iSrc - 2 > nSpacing:
+                    nSounding = nSpacing
+                else:
+                    nSounding = nSrc - iSrc - 2
+                SrcID.append(np.ones(nSounding, dtype=int) * iSrc)
+                RxID.append(np.arange(nSounding) + iSrc + 1)
+                nLeg.append(np.arange(nSounding)+1)
+            # Set actual number of source pole
+            self.nSrc = nSrc-2
+
+        elif surveyType == "dipole-pole":
+            SrcLoc = np.c_[xElec, xElec]
+            RxLoc = np.c_[xElec[:-1], xElec[1:]]
+            nSrc = SrcLoc.shape[0]
+            nRx = RxLoc.shape[0]
+            SrcID = []
+            RxID = []
+            nLeg = []
+            for iSrc in range(nSrc-2):
+                if nSrc - iSrc - 2 > nSpacing:
+                    nSounding = nSpacing
+                else:
+                    nSounding = nSrc - iSrc - 2
+                SrcID.append(np.ones(nSounding, dtype=int) * abs(iSrc-nSrc+1))
+                RxID.append(abs(np.arange(nSounding) + iSrc + 1-nRx+1))
+                nLeg.append(np.arange(nSounding)+1)
+            self.nSrc = nSrc-2
+
+        elif surveyType == "pole-pole":
+            SrcLoc = np.c_[xElec, xElec]
+            RxLoc = np.c_[xElec, xElec]
+            nSrc = SrcLoc.shape[0]
+            nRx = RxLoc.shape[0]
+            SrcID = []
+            RxID = []
+            nLeg = []
+            for iSrc in range(nSrc-1):
+                if nSrc - iSrc - 1 > nSpacing:
+                    nSounding = nSpacing
+                else:
+                    nSounding = nSrc - iSrc - 1
+                SrcID.append(np.ones(nSounding, dtype=int) * iSrc)
+                RxID.append(np.arange(nSounding) + iSrc +1)
+                nLeg.append(np.arange(nSounding)+1)
+            self.nSrc = nSrc-1
+
+        else:
+            raise NotImplementedError()
+
+        SrcID = np.hstack(SrcID)
+        RxID = np.hstack(RxID)
+        nLeg = np.hstack(nLeg)
+
+        if surveyType == "dipole-dipole":
+            A = np.c_[SrcLoc[SrcID, 0], np.ones(SrcID.size)]
+            B = np.c_[SrcLoc[SrcID, 1], np.ones(SrcID.size)]
+            M = np.c_[RxLoc[RxID, 0], np.ones(SrcID.size)]
+            N = np.c_[RxLoc[RxID, 1], np.ones(SrcID.size)]
+        elif surveyType == "pole-dipole":
+            A = np.c_[SrcLoc[SrcID], np.ones(SrcID.size)]
+            B = np.c_[SrcLoc[SrcID], np.ones(SrcID.size)]
+            M = np.c_[RxLoc[RxID, 0], np.ones(SrcID.size)]
+            N = np.c_[RxLoc[RxID, 1], np.ones(SrcID.size)]
+        elif surveyType == "dipole-pole":
+            A = np.c_[SrcLoc[SrcID, 0], np.ones(SrcID.size)]
+            B = np.c_[SrcLoc[SrcID, 1], np.ones(SrcID.size)]
+            M = np.c_[RxLoc[RxID], np.ones(SrcID.size)]
+            N = np.c_[RxLoc[RxID], np.ones(SrcID.size)]
+        elif surveyType == "pole-pole":
+            A = np.c_[SrcLoc[SrcID], np.ones(SrcID.size)]
+            B = np.c_[SrcLoc[SrcID], np.ones(SrcID.size)]
+            M = np.c_[RxLoc[RxID], np.ones(SrcID.size)]
+            N = np.c_[RxLoc[RxID], np.ones(SrcID.size)]
+        else:
+            raise NotImplementedError()
+        return A, B, M, N
