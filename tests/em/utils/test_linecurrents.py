@@ -5,6 +5,7 @@ from SimPEG.EM.Utils.CurrentUtils import (
 import unittest
 from SimPEG.Utils import io_utils
 
+
 class LineCurrentTests(unittest.TestCase):
 
     def setUp(self):

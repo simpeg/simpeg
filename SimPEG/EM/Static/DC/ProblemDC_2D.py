@@ -32,7 +32,6 @@ class BaseDCProblem_2D(BaseEMProblem):
     def fields(self, m):
         if m is not None:
             self.model = m
-
         if self.Ainv[0] is not None:
             for i in range(self.nky):
                 self.Ainv[i].clean()

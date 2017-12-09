@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 
 import SimPEG
 import numpy as np
+import scipy.sparse as sp
+from SimPEG.Utils import closestPoints
 
 
 class BaseRx(SimPEG.Survey.BaseRx):
@@ -164,8 +166,6 @@ class Pole(BaseRx):
             return self._Ps[mesh]
 
         P = mesh.getInterpolationMat(self.locs, Gloc)
-        # P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
-        # P = P0 - P1
 
         if self.storeProjections:
             self._Ps[mesh] = P
@@ -194,8 +194,6 @@ class Pole_ky(BaseRx):
             return self._Ps[mesh]
 
         P = mesh.getInterpolationMat(self.locs, Gloc)
-        # P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
-        # P = P0 - P1
 
         if self.storeProjections:
             self._Ps[mesh] = P

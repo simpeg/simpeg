@@ -238,7 +238,6 @@ class Problem3D_CC(BaseDCProblem):
             I, J, V = sp.sparse.find(A[0, :])
             for jj in J:
                 A[0, jj] = 0.
-            # A[0, 0] = 1./Vol[0]
             A[0, 0] = 1.
 
         # I think we should deprecate this for DC problem.
@@ -439,6 +438,10 @@ class Problem3D_N(BaseDCProblem):
 
     def __init__(self, mesh, **kwargs):
         BaseDCProblem.__init__(self, mesh, **kwargs)
+        # Not sure why I need to do this
+        # To evaluate mesh.aveE2CC, this is required....
+        if mesh._meshType == "TREE":
+            mesh.nodalGrad
 
     def getA(self):
         """

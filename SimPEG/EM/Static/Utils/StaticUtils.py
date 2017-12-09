@@ -7,6 +7,7 @@ import numpy as np
 
 from SimPEG import Utils, Mesh
 from SimPEG.EM.Static import DC
+from SimPEG.Utils import asArray_N_x_Dim, uniqueRows
 
 
 def calc_ElecSep(DCsurvey, surveyType='dipole-dipole'):
@@ -173,6 +174,13 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
     LEG = []
     count = 0  # Counter for data
 
+    # Use dobs in survey if dobs is None
+    if dobs is None:
+        if DCsurvey.dobs is None:
+            raise Exception()
+        else:
+            dobs = DCsurvey.dobs.copy()
+
     for ii in range(DCsurvey.nSrc):
 
         Tx = DCsurvey.srcList[ii].loc
@@ -180,7 +188,8 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
 
         nD = DCsurvey.srcList[ii].rxList[0].nD
 
-        data = DCsurvey.dobs[count:count+nD]
+        # data = DCsurvey.dobs[count:count+nD]
+        data = dobs[count:count+nD]
         count += nD
 
         # Get distances between each poles A-B-M-N
@@ -196,7 +205,12 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
             # if DCsurvey.mesh.dim == 2:
             #     zsrc = Tx[1]
             # elif DCsurvey.mesh.dim ==3:
-            zsrc = Tx[2]
+            if dim == 2:
+                zsrc = Tx[1]
+            elif dim == 3:
+                zsrc = Tx[2]
+            else:
+                raise Exception()
 
         elif surveyType == 'dipole-dipole':
             MA = np.abs(Tx[0][0] - Rx[0][:, 0])
@@ -210,7 +224,12 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
             # if DCsurvey.mesh.dim == 2:
             #     zsrc = (Tx[0][1] + Tx[1][1])/2
             # elif DCsurvey.mesh.dim ==3:
-            zsrc = (Tx[0][2] + Tx[1][2])/2
+            if dim == 2:
+                zsrc = (Tx[0][1] + Tx[1][1])/2
+            elif dim == 3:
+                zsrc = (Tx[0][2] + Tx[1][2])/2
+            else:
+                raise Exception()
 
         # Change output for dataType
         if surveyType == 'pole-dipole':
@@ -297,7 +316,8 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
     cbar.ax.tick_params(labelsize=10)
 
     # Plot apparent resistivity
-    ax.plot(midx, midz, 'k.', ms=1)
+    if dataLoc:
+        ax.plot(midx, midz, 'k.', ms=1, alpha=0.4)
 
     if sameratio:
         plt.gca().set_aspect('equal', adjustable='box')
@@ -488,7 +508,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
        :param Survey DCsurvey: DC survey class object
        :param string dim:  either '2D' | '3D'
        :param string surveyType:  either 'SURFACE' | 'GENERAL'
-       :rtype: file
+       :iptype: file
        :return: UBC2D-Data file
     """
 
@@ -928,12 +948,12 @@ def readUBC_DC2DModel(fileName):
     obsfile = np.genfromtxt(fileName, delimiter=' \n',
                             dtype=np.str, comments='!')
 
-    dim = np.array(obsfile[0].split(), dtype=float)
+    dim = np.array(obsfile[0].split(), dtype=int)
 
     temp = np.array(obsfile[1].split(), dtype=float)
 
     if len(temp) > 1:
-        model = np.zeros(dim)
+        model = np.zeros((dim[0], dim[1]))
 
         for ii in range(len(obsfile)-1):
             mm = np.array(obsfile[ii+1].split(), dtype=float)
@@ -962,7 +982,8 @@ def readUBC_DC2DModel(fileName):
 
 def readUBC_DC2Dpre(fileName):
     """
-        Read UBC GIF DCIP 2D observation file and generate arrays for tx-rx location
+        Read UBC GIF DCIP 2D observation file and generate arrays
+        for tx-rx location
 
         Input:
         :param fileName, path to the UBC GIF 3D obs file
@@ -978,7 +999,8 @@ def readUBC_DC2Dpre(fileName):
     """
 
     # Load file
-    obsfile = np.genfromtxt(fileName, delimiter=' \n', dtype=np.str, comments='!')
+    obsfile = np.genfromtxt(fileName, delimiter=' \n',
+                            dtype=np.str, comments='!')
 
     # Pre-allocate
     srcLists = []
@@ -1013,7 +1035,7 @@ def readUBC_DC2Dpre(fileName):
         d.append(temp[-1])
 
         Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
-        srcLists.append( DC.Src.Dipole( [Rx], tx[:3], tx[3:]) )
+        srcLists.append(DC.Src.Dipole([Rx], tx[:3], tx[3:]))
 
     # Create survey class
     survey = DC.SurveyDC.Survey(srcLists)
@@ -1025,7 +1047,8 @@ def readUBC_DC2Dpre(fileName):
 
 def readUBC_DC3Dobs(fileName):
     """
-        Read UBC GIF DCIP 3D observation file and generate arrays for tx-rx location
+        Read UBC GIF DCIP 3D observation file and generate arrays
+        for tx-rx location
 
         Input:
         :param fileName, path to the UBC GIF 3D obs file
@@ -1041,14 +1064,17 @@ def readUBC_DC3Dobs(fileName):
     """
 
     # Load file
-    obsfile = np.genfromtxt(fileName, delimiter=' \n', dtype=np.str, comments='!')
+    obsfile = np.genfromtxt(fileName, delimiter=' \n',
+                            dtype=np.str, comments='!')
 
     # Pre-allocate
     srcLists = []
     Rx = []
     d = []
     wd = []
-    zflag = True  # Flag for z value provided
+    # Flag for z value provided
+    zflag = True
+    poletx = False
 
     # Countdown for number of obs/tx
     count = 0
@@ -1062,21 +1088,30 @@ def readUBC_DC3Dobs(fileName):
             rx = []
             temp = (np.fromstring(obsfile[ii], dtype=float, sep=' ').T)
             count = int(temp[-1])
-
             # Check if z value is provided, if False -> nan
             if len(temp) == 5:
-                tx = np.r_[temp[0:2], np.nan, temp[0:2], np.nan]
+                # check if pole-dipole
+                if np.allclose(temp[0:2], temp[2:4]):
+                    tx = np.r_[temp[0:2], np.nan]
+                    poletx = True
+
+                else:
+                    tx = np.r_[temp[0:2], np.nan, temp[2:4], np.nan]
                 zflag = False
 
             else:
-                # Flip z values
-                temp[2] = -temp[2]
-                temp[5] = -temp[5]
-                tx = temp[:-1]
-
+                # check if pole-dipole
+                if np.allclose(temp[0:3], temp[3:6]):
+                    tx = np.r_[temp[0:3]]
+                    poletx = True
+                    temp[2] = -temp[2]
+                else:
+                    # Flip z values
+                    temp[2] = -temp[2]
+                    temp[5] = -temp[5]
+                    tx = temp[:-1]
 
             continue
-
 
         temp = np.fromstring(obsfile[ii], dtype=float, sep=' ')
 
@@ -1092,7 +1127,7 @@ def readUBC_DC3Dobs(fileName):
                 wd.append(temp[-1])
 
         else:
-            rx.append(np.r_[temp[0:2], np.nan, temp[0:2], np.nan])
+            rx.append(np.r_[temp[0:2], np.nan, temp[2:4], np.nan])
 
             # Check if there is data with the location
             if len(temp) == 6:
@@ -1106,7 +1141,10 @@ def readUBC_DC3Dobs(fileName):
         if count == 0:
             rx = np.asarray(rx)
             Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
-            srcLists.append(DC.Src.Dipole([Rx], tx[:3], tx[3:]))
+            if poletx:
+                srcLists.append(DC.Src.Pole([Rx], tx[:3]))
+            else:
+                srcLists.append(DC.Src.Dipole([Rx], tx[:3], tx[3:]))
 
     survey = DC.SurveyDC.Survey(srcLists)
     survey.dobs = np.asarray(d)
@@ -1254,51 +1292,84 @@ def getSrc_locs(survey):
     return srcMat
 
 
-def gettopoCC(mesh, actind):
+def gettopoCC(mesh, actind, option="top"):
     """
         Get topography from active indices of mesh.
 
     """
 
-    if mesh.dim == 3:
+    if mesh._meshType == "TENSOR":
 
-        mesh2D = Mesh.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
-        zc = mesh.gridCC[:, 2]
-        ACTIND = actind.reshape(
-            (mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]),
-            order='F'
-            )
-        ZC = zc.reshape((mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]), order='F')
-        topo = np.zeros(ZC.shape[0])
-        topoCC = np.zeros(ZC.shape[0])
-        for i in range(ZC.shape[0]):
-            ind = np.argmax(ZC[i, :][ACTIND[i, :]])
-            topo[i] = (
-                ZC[i, :][ACTIND[i, :]].max() + mesh.hz[ACTIND[i, :]][ind]*0.5
+        if mesh.dim == 3:
+
+            mesh2D = Mesh.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
+            zc = mesh.gridCC[:, 2]
+            ACTIND = actind.reshape(
+                (mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]),
+                order='F'
                 )
-            topoCC[i] = ZC[i, :][ACTIND[i, :]].max()
+            ZC = zc.reshape((mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]), order='F')
+            topoCC = np.zeros(ZC.shape[0])
 
-        return mesh2D, topoCC
+            for i in range(ZC.shape[0]):
+                ind = np.argmax(ZC[i, :][ACTIND[i, :]])
+                if option == "top":
+                    dz = mesh.hz[ACTIND[i, :]][ind] * 0.45
+                elif option == "center":
+                    dz = 0.
+                else:
+                    raise Exception()
+                topoCC[i] = (
+                    ZC[i, :][ACTIND[i, :]].max() + dz
+                    )
+            return mesh2D, topoCC
 
-    elif mesh.dim == 2:
+        elif mesh.dim == 2:
 
-        mesh1D = Mesh.TensorMesh([mesh.hx], [mesh.x0[0]])
-        yc = mesh.gridCC[:, 1]
-        ACTIND = actind.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
-        YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
-        topo = np.zeros(YC.shape[0])
-        topoCC = np.zeros(YC.shape[0])
-        for i in range(YC.shape[0]):
-            ind = np.argmax(YC[i, :][ACTIND[i, :]])
-            topo[i] = (
-                YC[i, :][ACTIND[i, :]].max() + mesh.hy[ACTIND[i, :]][ind]*0.5
+            mesh1D = Mesh.TensorMesh([mesh.hx], [mesh.x0[0]])
+            yc = mesh.gridCC[:, 1]
+            ACTIND = actind.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
+            YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
+            topoCC = np.zeros(YC.shape[0])
+            for i in range(YC.shape[0]):
+                ind = np.argmax(YC[i, :][ACTIND[i, :]])
+                if option == "top":
+                    dy = mesh.hy[ACTIND[i, :]][ind] * 0.45
+                elif option == "center":
+                    dy = 0.
+                else:
+                    raise Exception()
+                topoCC[i] = (
+                    YC[i, :][ACTIND[i, :]].max() + dy
+                    )
+            return mesh1D, topoCC
+
+    elif mesh._meshType == "TREE":
+        if mesh.dim == 3:
+            uniqXY = uniqueRows(mesh.gridCC[:, :2])
+            npts = uniqXY[0].shape[0]
+            ZC = mesh.gridCC[:,2]
+            topoCC = np.zeros(npts)
+            if option == "top":
+                # TODO: this assume same hz, need to be modified
+                dz = mesh.hz.min() * 0.45
+            elif option == "center":
+                dz = 0.
+            for i in range(npts):
+                inds = uniqXY[2] == i
+                actind_z = actind[inds]
+                if actind_z.sum() > 0.:
+                    topoCC[i] = (ZC[inds][actind_z]).max() + dz
+                else:
+                    topoCC[i] = (ZC[inds]).max() + dz
+            return uniqXY[0], topoCC
+        else:
+            raise NotImplementedError(
+                "gettopoCC is not implemented for Quad tree mesh"
                 )
-            topoCC[i] = YC[i, :][ACTIND[i, :]].max()
-
-        return mesh1D, topoCC
 
 
-def drapeTopotoLoc(mesh, pts, actind=None, topo=None):
+def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
     """
         Drape location right below (cell center) the topography
     """
@@ -1312,8 +1383,61 @@ def drapeTopotoLoc(mesh, pts, actind=None, topo=None):
         raise NotImplementedError()
     if actind is None:
         actind = Utils.surface2ind_topo(mesh, topo)
+    if mesh._meshType == "TENSOR":
+        meshtemp, topoCC = gettopoCC(mesh, actind, option=option)
+        inds = Utils.closestPoints(meshtemp, pts)
 
-    meshtemp, topoCC = gettopoCC(mesh, actind)
-    inds = Utils.closestPoints(meshtemp, pts)
+    elif mesh._meshType == "TREE":
+        if mesh.dim == 3:
+            uniqXYlocs, topoCC = gettopoCC(mesh, actind, option=option)
+            inds = closestPointsGrid(uniqXYlocs, pts)
+        else:
+            raise NotImplementedError()
+    else:
+        raise NotImplementedError()
     out = np.c_[pts, topoCC[inds]]
     return out
+
+
+def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
+    if mesh.dim == 3:
+        hx = mesh.hx
+        hy = mesh.hy
+        mesh2D = Mesh.TensorMesh(
+            [mesh.hx, mesh.hy], x0 = [mesh.x0[0], mesh.x0[1]]
+            )
+        out = Utils.ModelBuilder.randomModel(
+            mesh.vnC[:2], bounds=[zmin, zmax], its=its,
+            seed=seed, anisotropy=anisotropy
+            )
+        return out, mesh2D
+    elif mesh.dim == 2:
+        hx = mesh.hx
+        mesh1D = Mesh.TensorMesh([mesh.hx], x0 = [mesh.x0[0]])
+        out = Utils.ModelBuilder.randomModel(
+            mesh.vnC[:1], bounds=[zmin, zmax], its=its,
+            seed=seed, anisotropy=anisotropy
+            )
+        return out, mesh1D
+    else:
+        raise Exception("Only works for 2D and 3D models")
+
+
+def closestPointsGrid(grid, pts, dim=2):
+    """Move a list of points to the closest points on a grid.
+
+    :param numpy.ndarray pts: Points to move
+    :rtype: numpy.ndarray
+    :return: nodeInds
+    """
+
+    pts = asArray_N_x_Dim(pts, dim)
+    nodeInds = np.empty(pts.shape[0], dtype=int)
+
+    for i, pt in enumerate(pts):
+        if dim == 1:
+            nodeInds[i] = ((pt - grid)**2).argmin()
+        else:
+            nodeInds[i] = ((np.tile(pt, (grid.shape[0], 1)) - grid)**2).sum(axis=1).argmin()
+
+    return nodeInds

@@ -9,8 +9,9 @@ from SimPEG import Utils, Mesh
 from SimPEG.EM.Static import DC
 import matplotlib.pyplot as plt
 from scipy.interpolate import griddata
-from pymatsolver import PardisoSolver
+# from pymatsolver import PardisoSolver
 from matplotlib.colors import LogNorm, SymLogNorm
+from SimPEG.EM.Static.Utils import genTopography, gettopoCC
 
 
 class SurveyDesign(object):
@@ -40,6 +41,10 @@ class SurveyDesign(object):
     padratex = None
     padratey = None
     ncellperdipole = None
+    zmin = 0.
+    zmax = 0.
+    topo = None
+    actind = None
 
     def getGeometricFactor_2D(self):
         rAM = abs(self.SrcLoc[self.SrcID, 0]-self.RxLoc[self.RxID, 0])
@@ -208,7 +213,7 @@ class SurveyDesign(object):
             plt.gca().invert_yaxis()
             plt.show()
 
-    def setMesh_2D(self, dx, dz, npadx=5, npadz=5, padratex=1.3, padratez=1.3, ncellperdipole=4):
+    def setMesh_2D(self, dx, dz, npadx=5, npadz=5, padratex=1.3, padratez=1.3, ncellperdipole=4, zmin=0., zmax=0.):
         dx_ideal = self.a/ncellperdipole
         if dx > dx_ideal:
             print (">>Input dx is greater than expected")
@@ -225,20 +230,23 @@ class SurveyDesign(object):
         self.padratex = padratex
         self.padratez = padratez
         self.ncellperdipole = ncellperdipole
+        self.zmin = zmin
+        self.zmax = zmax
         # 3 cells each for buffer
         corexlength = self.lineLength + dx * 6
         # Use nPacing x a /2 to compute coredepth
-        corezlegnth = self.nSpacing * self.a / 2.
+        corezlegnth = self.nSpacing * self.a / 2. + self.zmax - self.zmin
         x0core = self.x0 - dx * 3
         self.ncx = np.floor(corexlength/dx)
         self.ncz = np.floor(corezlegnth/dz)
-        hx = [(dx, npadx, -padratex), (dx, self.ncx), (dx, npadz, padratex)]
+        hx = [(dx, npadx, -padratex), (dx, self.ncx), (dx, npadx, padratex)]
         hz = [(dz, npadz, -padratez), (dz, self.ncz)]
         x0_mesh = -(
             (dx * 1.3 ** (np.arange(npadx)+1)).sum() + dx * 3 - self.x0
             )
         z0_mesh = -((dz * 1.3 ** (np.arange(npadz)+1)).sum() + dz * self.ncz)
         self.mesh = Mesh.TensorMesh([hx, hz], x0=[x0_mesh, z0_mesh])
+        print (mesh)
 
     def genDCSurvey_2D(self, problemType="2.5D"):
         srcList = []
@@ -312,6 +320,10 @@ class SurveyDesign(object):
         elif problemType == "3D_CC":
             self.problem = DC.Problem3D_CC(self.mesh, sigma=sigma)
         # self.problem.Solver = PardisoSolver
+        try:
+            self.survey.unpair()
+        except:
+            self.survey.pair(self.problem)
         self.survey.pair(self.problem)
         f = self.problem.fields(sigma)
         self.F = self.problem.fields_to_space(f)
@@ -341,7 +353,6 @@ class SurveyDesign(object):
                 vmin, vmax = val.min(), val.max()
                 clim = vmin, vmax
             # Grid points
-            print (clim)
             out = plt.scatter(xloc, zloc, c=val, s=ms, clim=clim, vmin=clim[0], vmax=clim[1])
             cb = plt.colorbar(out)
 
@@ -413,26 +424,20 @@ class SurveyDesign(object):
             plt.gca().set_aspect("equal")
             plt.show()
 
+    def setTopo(self, seed=None, its=100, anisotropy=None):
+        """
+        Generating Random topography
+        """
+        topo, tmp_mesh = genTopography(
+            self.mesh, self.zmin, self.zmax,
+            seed=seed, its=its, anisotropy=anisotropy
+            )
+        self.actind = Utils.surface2ind_topo(
+            self.mesh, np.c_[tmp_mesh.gridCC, topo]
+            )
+        tmp_mesh, topo = gettopoCC(self.mesh, self.actind)
+        topo = np.c_[tmp_mesh.gridCC, topo]
+        self.topo = topo
+        # return topo, self.actind
 
-def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
-    if mesh.dim == 3:
-        hx = mesh.hx
-        hy = mesh.hy
-        mesh2D = Mesh.TensorMesh(
-            [mesh.hx, mesh.hy], x0 = [mesh.x0[0], mesh.x0[1]]
-            )
-        out = Utils.ModelBuilder.randomModel(
-            mesh.vnC[:2], bounds=[zmin, zmax], its=its,
-            seed=seed, anisotropy=anisotropy
-            )
-        return out, mesh2D
-    elif mesh.dim == 2:
-        hx = mesh.hx
-        mesh1D = Mesh.TensorMesh([mesh.hx], x0 = [mesh.x0[0]])
-        out = Utils.ModelBuilder.randomModel(
-            mesh.vnC[:1], bounds=[zmin, zmax], its=its,
-            seed=seed, anisotropy=anisotropy
-            )
-        return out, mesh1D
-    else:
-        raise Exception("Only works for 2D and 3D models")
+

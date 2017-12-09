@@ -12,6 +12,7 @@ cython
 pymatsolver>=0.1.2
 ipython
 matplotlib
-properties[math]
+properties>=0.3.6b0
+vectormath
 wheel
 pytest
