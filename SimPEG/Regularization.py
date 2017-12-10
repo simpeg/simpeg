@@ -911,6 +911,11 @@ class SimpleSmoothDeriv(BaseRegularization):
             "Orientation must be 'x', 'y' or 'z'"
         )
 
+        self.gradientType = gradientType
+        assert self.gradientType in ['orthogonal', 'total'], (
+            "gradientType must be 'orthogonal' or 'total'"
+        )
+
         if self.orientation == 'y':
             assert mesh.dim > 1, (
                 "Mesh must have at least 2 dimensions to regularize along the "
@@ -1498,7 +1503,6 @@ class SparseDeriv(BaseSparse):
         mD = self.mapping.deriv(m - self.mref)
         return mD.T * (self.W.T * r)
 
-
     @property
     def _multiplier_pair(self):
         return 'alpha_{orientation}'.format(orientation=self.orientation)
@@ -1511,7 +1515,32 @@ class SparseDeriv(BaseSparse):
 
         else:
 
-            dmdx = self.cellDiffStencil * (self.mapping * self.model)
+            if self.gradientType == 'total':
+                Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
+                dmdx = np.abs(self.regmesh.aveFx2CC *
+                              self.regmesh.cellDiffxStencil *
+                              (self.mapping * self.model)
+                              )
+
+                if self.regmesh.dim > 1:
+
+                    dmdx += np.abs(self.regmesh.aveFy2CC *
+                                   self.regmesh.cellDiffyStencil *
+                                   (self.mapping * self.model)
+                                   )
+
+                if self.regmesh.dim > 2:
+
+                    dmdx += np.abs(self.regmesh.aveFz2CC *
+                                   self.regmesh.cellDiffzStencil *
+                                   (self.mapping * self.model)
+                                   )
+
+                dmdx = Ave * dmdx
+
+            else:
+                dmdx = self.cellDiffStencil * (self.mapping * self.model)
 
         return dmdx
 
@@ -1617,6 +1646,10 @@ class Sparse(BaseComboRegularization):
         "type of model", default='linear'
     )
 
+    gradientType = properties.String(
+        "type of gradient", default='components'
+    )
+
     scale = properties.Float(
         "General nob for scaling", default=1.
     )
@@ -1655,6 +1688,11 @@ class Sparse(BaseComboRegularization):
     def _mirror_space_to_objfcts(self, change):
         for objfct in self.objfcts:
             objfct.space = change['value']
+
+    @properties.observer('gradientType')
+    def _mirror_gradientType_to_objfcts(self, change):
+        for objfct in self.objfcts:
+            objfct.gradientType = change['value']
 
     @properties.observer('scale')
     def _mirror_scale_to_objfcts(self, change):

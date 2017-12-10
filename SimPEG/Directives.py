@@ -906,9 +906,9 @@ class UpdateJacobiPrecond(InversionDirective):
 
                 m = self.invProb.model
                 f = prob.fields(m)
-                wd = dmisfit.W.diagonal()
-#                for ii in range(prob.getJ(m, f).shape[0]):
-#                    JtJdiag += ((wd[ii] * prob.getJ(m, f)[ii, :])**2.)
+                # wd = dmisfit.W.diagonal()
+                # for ii in range(prob.getJ(m, f).shape[0]):
+                #     JtJdiag += ((wd[ii] * prob.getJ(m, f)[ii, :])**2.)
                 JtJdiag += np.sum((dmisfit.W * prob.getJ(m, f))**2., axis=0)
             self.opt.JtJdiag = JtJdiag
 
@@ -1013,6 +1013,10 @@ class UpdateSensWeighting(InversionDirective):
 
             m = self.invProb.model
             f = prob.fields(m)
+            # wd = dmisfit.W.diagonal()
+
+            # for ii in range(prob.getJ(m, f).shape[0]):
+            #         JtJdiag += ((wd[ii] * prob.getJ(m, f)[ii, :])**2.)
 
             JtJdiag += np.sum((dmisfit.W * prob.getJ(m, f))**2., axis=0)
 
