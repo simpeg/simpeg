@@ -332,7 +332,7 @@ pp: Source index
         # GET CELL INFORMATION FOR FORWARD MODELING
         meshObj = self.mesh
         xyzc = meshObj.gridCC[indActive, :]
-        xyzh = meshObj.gridH[indActive, :]
+        xyzh = meshObj.h_gridded[indActive, :]
 
         # GET LIST OF A MATRICIES
         A = []
