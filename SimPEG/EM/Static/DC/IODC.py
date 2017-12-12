@@ -6,12 +6,14 @@ from . import RxDC as Rx
 from .SurveyDC import Survey, Survey_ky
 import matplotlib.pyplot as plt
 import matplotlib
+import properties
 
 
 class IO(object):
-    """Input and Output for DC"""
+    """Input and Output for DC, IP, SP, ..."""
 
     # TODO: use properties
+
     Alocs = None
     Blocs = None
     Mlocs = None
