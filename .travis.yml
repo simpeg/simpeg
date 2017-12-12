@@ -88,7 +88,7 @@ after_success:
   - bash <(curl -s https://codecov.io/bash)
 
   # early exit if not on a deplotment branch
-  - if ! [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" -o "$TRAVIS_TAG" ]; then
+  - if ! [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" -o "$TRAVIS_TAG" = "true" ]; then
       echo "Not deploying (because this is not a deployment branch)" ;
       exit 0 ;
     fi
@@ -119,7 +119,7 @@ after_success:
   - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY ]; then
       if [ "$TRAVIS_TAG" ]; then
         mv credentials/.pypirc ~/.pypirc ;
-        python setup.py bdist_wheel --universal ;
+        python setup.py sdist bdist_wheel --universal ;
         travis_wait 20 twine upload -r pypi --skip-existing dist/* ;
       fi
     fi
