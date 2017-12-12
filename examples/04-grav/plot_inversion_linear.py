@@ -100,7 +100,7 @@ def run(plotIt=True):
 
     # Create sensitivity weights from our linear forward operator
     rxLoc = survey.srcField.rxList[0].locs
-    wr = np.sum(prob.G**2., axis=0)**0.5
+    wr = np.sum(prob.F**2., axis=0)**0.5
     wr = (wr/np.max(wr))
 
     # Create a regularization
@@ -136,7 +136,7 @@ def run(plotIt=True):
         # Here is the recovered susceptibility model
         ypanel = midx
         zpanel = -7
-        m_l2 = actvMap * IRLS.l2model
+        m_l2 = actvMap * invProb.l2model
         m_l2[m_l2 == -100] = np.nan
 
         m_lp = actvMap * mrec

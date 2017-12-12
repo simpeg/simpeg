@@ -1332,6 +1332,10 @@ class BaseSparse(BaseRegularization):
         "By default inherit the objctive", default='linear'
     )
 
+    gradientType = properties.String(
+        "type of gradient", default='total'
+    )
+
     scale = properties.Float(
         "General nob for scaling", default=1.
     )

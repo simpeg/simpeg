@@ -99,8 +99,11 @@ def run(plotIt=True, cleanAfterRun=True):
     reg = Regularization.Sparse(mesh, indActive=active,
                                 mapping=staticCells)
     reg.mref = driver.mref[dynamic]
+    # reg.gradientType = "components"
     reg.cell_weights = wr * mesh.vol[active]
     reg.norms = driver.lpnorms
+    reg.eps_p = 0.1
+    reg.eps_q = 0.01
 
     # Specify how the optimization will proceed
     opt = Optimization.ProjectedGNCG(maxIter=150, lower=driver.bounds[0],
@@ -147,7 +150,7 @@ def run(plotIt=True, cleanAfterRun=True):
         # Write output model and data files and print misft stats.
 
         # reconstructing l2 model mesh with air cells and active dynamic cells
-        L2out = activeMap * IRLS.l2model
+        L2out = activeMap * invProb.l2model
 
         # reconstructing lp model mesh with air cells and active dynamic cells
         Lpout = activeMap*mrec
