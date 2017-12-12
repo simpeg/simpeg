@@ -159,7 +159,7 @@ waveform: instance of a VRM wavefrom class
         x2p = np.dot(np.c_[xyz[:, 0]-r0[0], xyz[:, 1]-r0[1], xyz[:, 2]-r0[2]],R[1, :].T)
         x3p = np.dot(np.c_[xyz[:, 0]-r0[0], xyz[:, 1]-r0[1], xyz[:, 2]-r0[2]],R[2, :].T)
 
-        s = np.sqrt(x1p**2 + x2p**2)     # Radial distance
+        s = np.sqrt(x1p**2 + x2p**2) + 1e-10     # Radial distance
         k = 4*a*s/(x3p**2 + (a+s)**2)
 
         Hxp = (x1p/s)*(x3p*I/(2*np.pi*s*np.sqrt(x3p**2 + (a + s)**2)))*(((a**2 + x3p**2 + s**2)/(x3p**2 + (s-a)**2))*spec.ellipe(k) - spec.ellipk(k))
