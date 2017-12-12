@@ -12,7 +12,7 @@ try:
 except ImportError:
     from SimPEG import SolverLU as Solver
 
-showIt = True
+showIt = False
 
 # Initiate I/O class for DC
 IO = DC.IO()

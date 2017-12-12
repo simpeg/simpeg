@@ -50,15 +50,15 @@ class BaseDCProblem(BaseEMProblem):
             f = self.fields(m)
 
         self.Jmat = []
-        AT = self.getA()
 
         for src in self.survey.srcList:
             u_src = f[src, self._solutionType]
             for rx in src.rxList:
                 # wrt f, need possibility wrt m
                 PT = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
-                df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
-                                    None)
+                df_duTFun = getattr(
+                    f, '_{0!s}Deriv'.format(rx.projField), None
+                )
                 df_duT, df_dmT = df_duTFun(src, None, PT, adjoint=True)
 
                 ATinvdf_duT = self.Ainv * df_duT
@@ -74,14 +74,14 @@ class BaseDCProblem(BaseEMProblem):
         return self.Jmat
 
     def Jvec(self, m, v, f=None):
-
+        """
+            Compute sensitivity matrix (J) and vector (v) product.
+        """
         if self.storeJ:
             if self.Jmat is None:
-                if f is None:
-                    self.model = m
-                    f = self.fields(m)
                 self.getJ(m, f=f)
-            return Utils.mkvc(np.dot(self.Jmat, v))
+                Jv = Utils.mkvc(np.dot(self.Jmat, v))
+            return Jv
 
         self.model = m
 
@@ -89,8 +89,6 @@ class BaseDCProblem(BaseEMProblem):
             f = self.fields(m)
 
         Jv = []
-
-        A = self.getA()
 
         for src in self.survey.srcList:
             u_src = f[src, self._solutionType]  # solution vector
@@ -105,14 +103,17 @@ class BaseDCProblem(BaseEMProblem):
         return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
-
+        """
+            Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+        """
         if self.storeJ:
             if self.Jmat is None:
                 if f is None:
                     self.model = m
                     f = self.fields(m)
                 self.getJ(m, f=f)
-            return Utils.mkvc(np.dot(self.Jmat.T, v))
+                Jtv = Utils.mkvc(np.dot(self.Jmat.T, v))
+            return Jtv
 
         self.model = m
 
