@@ -10,6 +10,7 @@ from .SrcDC import BaseSrc
 import numpy as np
 from scipy.interpolate import interp1d, NearestNDInterpolator
 
+
 class Survey(BaseEMSurvey):
     """
     Base DC survey
