@@ -102,9 +102,9 @@ they produce the same fields"""
         Problem.pair(Survey)
         Fields = Problem.fields(mod)
 
-        err1 = np.all(np.abs((Fields[9:18]-Fields[0:9])/Fields[0:9]) < 0.001)
-        err2 = np.all(np.abs((Fields[18:]-Fields[0:9])/Fields[0:9]) < 0.001)
-        err3 = np.all(np.abs((Fields[9:18]-Fields[18:])/Fields[18:]) < 0.001)
+        err1 = np.all(np.abs((Fields[9:18]-Fields[0:9])/(Fields[0:9]+1e-12)) < 0.001)
+        err2 = np.all(np.abs((Fields[18:]-Fields[0:9])/(Fields[0:9]+1e-12)) < 0.001)
+        err3 = np.all(np.abs((Fields[9:18]-Fields[18:])/(Fields[18:]+1e-12)) < 0.001)
 
         self.assertTrue(err1 and err2 and err3)
 

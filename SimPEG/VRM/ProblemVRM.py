@@ -42,12 +42,13 @@ indActive: A numpy array with boolean entries, where the True entries
 
         # **kwargs
         self._refFact = kwargs.get('refFact', 3)
-        self._refRadius = kwargs.get('refRadius', 1.25*np.mean(np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])])*np.arange(1, self.refFact+1))
+        self._refRadius = kwargs.get('refRadius', list(1.25*np.mean(np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])])*np.arange(1, self.refFact+1)))
         self._indActive = kwargs.get('indActive', np.ones(mesh.nC, dtype=bool))
 
         # Assertions
         assert len(mesh.h) == 3, 'Problem requires 3D tensor or OcTree mesh'
         assert isinstance(self._refFact, int), "Refinement factor must be set as an integer"
+        assert isinstance(self._refRadius, list), "Refinement radii must be a list with at least 1 entry"
         assert len(self._refRadius) >= self._refFact, 'Number of refinement radii must equal or greater than refinement factor'
         assert list(self._indActive).count(True) + list(self._indActive).count(False) == len(self._indActive), "indActive must be a boolean array"
 
@@ -78,13 +79,13 @@ indActive: A numpy array with boolean entries, where the True entries
         return self._refRadius
 
     @refRadius.setter
-    def refRadius(self, Array):
-        assert isinstance(Array, np.ndarray), "Array must be a numpy array"
+    def refRadius(self, radList):
+        assert isinstance(radList, list), "Array must be a numpy array"
 
-        if self._refFact != len(Array):
+        if self._refFact != len(radList):
             print("Refinement factor no longer matches length of refinement radii array. Please ensure that the number of elements in refinement radii is equal or greater than the refinement factor")
 
-        self._refRadius = Array
+        self._refRadius = radList
 
     @property
     def indActive(self):
@@ -353,8 +354,8 @@ pp: Source index
                 refFlag = srcObj._getRefineFlags(xyzc, refFact, refRadius)
 
                 for qq in range(1, refFact+1):
-
-                    A[pp][:, refFlag == qq] = self._getSubsetAcolumns(xyzc, xyzh, pp, qq, refFlag)
+                    if len(refFlag[refFlag == qq]) != 0:
+                        A[pp][:, refFlag == qq] = self._getSubsetAcolumns(xyzc, xyzh, pp, qq, refFlag)
 
         return A
 
