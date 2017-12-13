@@ -100,13 +100,13 @@ they produce the same fields"""
         Problem.pair(Survey)
         Fields = Problem.fields(mod)
 
-        err1 = np.all(np.abs((Fields[9:18]-Fields[0:9])/(Fields[0:9]+1e-12)) < 0.001)
-        err2 = np.all(np.abs((Fields[18:]-Fields[0:9])/(Fields[0:9]+1e-12)) < 0.001)
-        err3 = np.all(np.abs((Fields[9:18]-Fields[18:])/(Fields[18:]+1e-12)) < 0.001)
+        err1 = np.all(np.abs((Fields[9:18]-Fields[0:9])/(Fields[0:9]+1e-12)) < 0.002)
+        err2 = np.all(np.abs((Fields[18:]-Fields[0:9])/(Fields[0:9]+1e-12)) < 0.002)
+        err3 = np.all(np.abs((Fields[9:18]-Fields[18:])/(Fields[18:]+1e-12)) < 0.002)
 
         self.assertTrue(err1 and err2 and err3)
 
-    def test_convergence(self):
+    def test_convergence_vertical(self):
         """Test the convergence of the solution to analytic results from
 Cowan (2016) and test accuracy
         """
@@ -154,6 +154,56 @@ Cowan (2016) and test accuracy
         Test2 = np.all(Errs[1:]-Errs[0:-1] < 0.)
 
         self.assertTrue(Test1 and Test2)
+
+    def test_convergence_radial(self):
+
+        h = [(2, 30)]
+        meshObj = Mesh.TensorMesh((h, h, [(2, 20)]), x0='CCN')
+
+        dchi = 0.01
+        tau1 = 1e-8
+        tau2 = 1e0
+        mod = (dchi/np.log(tau2/tau1))*np.ones(meshObj.nC)
+
+        times = np.array([1e-3])
+        waveObj = VRM.WaveformVRM.SquarePulse(0.02)
+
+        z = 0.25
+        a = 5
+        rxList = [VRM.Rx.Point_dhdt(np.c_[a, 0., z], times, 'x')]
+        rxList.append(VRM.Rx.Point_dhdt(np.c_[0., a, z], times, 'y'))
+        txList = [VRM.Src.CircLoop(rxList, np.r_[0., 0., z], a, np.r_[0., 0.], 1., waveObj)]
+
+        Survey2 = VRM.Survey(txList)
+        Survey3 = VRM.Survey(txList)
+        Survey4 = VRM.Survey(txList)
+        Survey5 = VRM.Survey(txList)
+        Problem2 = VRM.ProblemVRM.LinearVRM(meshObj, refFact=2)
+        Problem3 = VRM.ProblemVRM.LinearVRM(meshObj, refFact=3)
+        Problem4 = VRM.ProblemVRM.LinearVRM(meshObj, refFact=4)
+        Problem5 = VRM.ProblemVRM.LinearVRM(meshObj, refFact=5)
+        Problem2.pair(Survey2)
+        Problem3.pair(Survey3)
+        Problem4.pair(Survey4)
+        Problem5.pair(Survey5)
+        Fields2 = Problem2.fields(mod)
+        Fields3 = Problem3.fields(mod)
+        Fields4 = Problem4.fields(mod)
+        Fields5 = Problem5.fields(mod)
+
+        gamma = 4*z*(2/np.pi)**1.5
+        F = -(1/np.log(tau2/tau1))*(1/times - 1/(times+0.02))
+        Fields_true = 0.5*(dchi/(2+dchi))*(np.pi*gamma)**-1*F
+
+        ErrsX = np.abs((np.r_[Fields2[0], Fields3[0], Fields4[0], Fields5[0]] - Fields_true)/Fields_true)
+        ErrsY = np.abs((np.r_[Fields2[1], Fields3[1], Fields4[1], Fields5[1]] - Fields_true)/Fields_true)
+
+        Testx1 = ErrsX[-1] < 0.01
+        Testy1 = ErrsY[-1] < 0.01
+        Testx2 = np.all(ErrsX[1:]-ErrsX[0:-1] < 0.)
+        Testy2 = np.all(ErrsY[1:]-ErrsY[0:-1] < 0.)
+
+        self.assertTrue(Testx1 and Testx2 and Testy1 and Testy2)
 
 
 
