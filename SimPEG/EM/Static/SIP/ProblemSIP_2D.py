@@ -237,7 +237,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         """
         sigma = self.sigma
         vol = self.mesh.vol
-        dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.actMap.P
+        dsigma_dlogsigma = Utils.sdiag(sigma)*self.actMap.P
         return (
             Utils.sdiag(u)*self.mesh.aveN2CC.T *
             (Utils.sdiag(vol) * dsigma_dlogsigma)
@@ -297,7 +297,6 @@ class Problem2D_CC(BaseSIPProblem_2D):
 
         D = self.Div
         G = self.Grad
-        vol = self.mesh.vol
         MfRhoIDeriv = self.MfRhoIDeriv
         MccRhoIDeriv = self.MccRhoIDeriv
         if adjoint:
@@ -437,7 +436,6 @@ class Problem2D_N(BaseSIPProblem_2D):
 
     def getADeriv(self, ky, u, v, adjoint=False):
 
-        MeSigma = self.MeSigma
         Grad = self.mesh.nodalGrad
         sigma = self.sigma
         vol = self.mesh.vol
