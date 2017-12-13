@@ -5,9 +5,7 @@ from SimPEG import Mesh
 
 # SUMMARY OF TESTS
 #
-# Convergence tests with sensitivity refinement (breaks if it finds zero refinement cells)
 # Tensor mesh bs octree mesh
-# Can you accurately approximate halfspace solution?
 # Linear and log normal codes need to match
 
 
@@ -107,6 +105,55 @@ they produce the same fields"""
         err3 = np.all(np.abs((Fields[9:18]-Fields[18:])/(Fields[18:]+1e-12)) < 0.001)
 
         self.assertTrue(err1 and err2 and err3)
+
+    def test_convergence(self):
+        """Test the convergence of the solution to analytic results from
+Cowan (2016) and test accuracy
+        """
+
+        h = [(2, 20)]
+        meshObj = Mesh.TensorMesh((h, h, h), x0='CCN')
+
+        dchi = 0.01
+        tau1 = 1e-8
+        tau2 = 1e0
+        mod = (dchi/np.log(tau2/tau1))*np.ones(meshObj.nC)
+
+        times = np.array([1e-3])
+        waveObj = VRM.WaveformVRM.SquarePulse(0.02)
+
+        z = 0.5
+        a = 0.1
+        loc_rx = np.c_[0., 0., z]
+        rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'z')]
+        txList = [VRM.Src.CircLoop(rxList, np.r_[0., 0., z], a, np.r_[0., 0.], 1., waveObj)]
+
+        Survey2 = VRM.Survey(txList)
+        Survey3 = VRM.Survey(txList)
+        Survey4 = VRM.Survey(txList)
+        Survey5 = VRM.Survey(txList)
+        Problem2 = VRM.ProblemVRM.LinearVRM(meshObj, refFact=2)
+        Problem3 = VRM.ProblemVRM.LinearVRM(meshObj, refFact=3)
+        Problem4 = VRM.ProblemVRM.LinearVRM(meshObj, refFact=4)
+        Problem5 = VRM.ProblemVRM.LinearVRM(meshObj, refFact=5)
+        Problem2.pair(Survey2)
+        Problem3.pair(Survey3)
+        Problem4.pair(Survey4)
+        Problem5.pair(Survey5)
+        Fields2 = Problem2.fields(mod)
+        Fields3 = Problem3.fields(mod)
+        Fields4 = Problem4.fields(mod)
+        Fields5 = Problem5.fields(mod)
+
+        F = -(1/np.log(tau2/tau1))*(1/times - 1/(times+0.02))
+        Fields_true = (0.5*np.pi*a**2/np.pi)*(dchi/(2+dchi))*((2*z)**2 + a**2)**-1.5*F
+
+        Errs = np.abs((np.r_[Fields2, Fields3, Fields4, Fields5] - Fields_true)/Fields_true)
+
+        Test1 = Errs[-1] < 0.005
+        Test2 = np.all(Errs[1:]-Errs[0:-1] < 0.)
+
+        self.assertTrue(Test1 and Test2)
 
 
 
