@@ -5,7 +5,7 @@ import numpy as np
 
 class VRM_waveform_tests(unittest.TestCase):
 
-    def discrete_tests():
+    def test_discrete(self):
 
         times = np.logspace(-4, -2, 3)
 
@@ -29,9 +29,9 @@ class VRM_waveform_tests(unittest.TestCase):
         err4 = np.max(np.abs((decay2dbdt-decay1dbdt)/decay1dbdt))
         err5 = np.max(np.abs((decay3dbdt-decay1dbdt)/decay1dbdt))
 
-        self.assertTrue(err1 < 0.01 and err2 < 0.01 and err3 < 0.01 and err4 < 0.01 and err5 < 0.01)
+        self.assertTrue(err1 < 0.01 and err2 < 0.01 and err3 < 0.01 and err4 < 0.025 and err5 < 0.01)
 
-    def loguniform_tests():
+    def test_loguniform(self):
 
         times = np.logspace(-4, -2, 3)
 
