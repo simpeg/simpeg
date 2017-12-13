@@ -162,7 +162,6 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
         @author: dominiquef
 
     """
-    from scipy.interpolate import griddata
     import pylab as plt
     # Set depth to 0 for now
     z0 = 0.
@@ -1400,8 +1399,6 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
 
 def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
     if mesh.dim == 3:
-        hx = mesh.hx
-        hy = mesh.hy
         mesh2D = Mesh.TensorMesh(
             [mesh.hx, mesh.hy], x0 = [mesh.x0[0], mesh.x0[1]]
             )
@@ -1411,7 +1408,6 @@ def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
             )
         return out, mesh2D
     elif mesh.dim == 2:
-        hx = mesh.hx
         mesh1D = Mesh.TensorMesh([mesh.hx], x0 = [mesh.x0[0]])
         out = Utils.ModelBuilder.randomModel(
             mesh.vnC[:1], bounds=[zmin, zmax], its=its,

@@ -7,7 +7,6 @@ try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
-import matplotlib.pyplot as plt
 
 
 class DCProblemAnalyticTests(unittest.TestCase):

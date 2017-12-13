@@ -50,15 +50,15 @@ class BaseDCProblem(BaseEMProblem):
             f = self.fields(m)
 
         self.Jmat = []
-        AT = self.getA()
 
         for src in self.survey.srcList:
             u_src = f[src, self._solutionType]
             for rx in src.rxList:
                 # wrt f, need possibility wrt m
                 PT = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
-                df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
-                                    None)
+                df_duTFun = getattr(
+                    f, '_{0!s}Deriv'.format(rx.projField), None
+                )
                 df_duT, df_dmT = df_duTFun(src, None, PT, adjoint=True)
 
                 ATinvdf_duT = self.Ainv * df_duT
@@ -74,14 +74,14 @@ class BaseDCProblem(BaseEMProblem):
         return self.Jmat
 
     def Jvec(self, m, v, f=None):
-
+        """
+            Compute sensitivity matrix (J) and vector (v) product.
+        """
         if self.storeJ:
             if self.Jmat is None:
-                if f is None:
-                    self.model = m
-                    f = self.fields(m)
                 self.getJ(m, f=f)
-            return Utils.mkvc(np.dot(self.Jmat, v))
+            Jv = Utils.mkvc(np.dot(self.Jmat, v))
+            return Jv
 
         self.model = m
 
@@ -89,8 +89,6 @@ class BaseDCProblem(BaseEMProblem):
             f = self.fields(m)
 
         Jv = []
-
-        A = self.getA()
 
         for src in self.survey.srcList:
             u_src = f[src, self._solutionType]  # solution vector
@@ -105,14 +103,17 @@ class BaseDCProblem(BaseEMProblem):
         return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
-
+        """
+            Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+        """
         if self.storeJ:
             if self.Jmat is None:
                 if f is None:
                     self.model = m
                     f = self.fields(m)
                 self.getJ(m, f=f)
-            return Utils.mkvc(np.dot(self.Jmat.T, v))
+            Jtv = Utils.mkvc(np.dot(self.Jmat.T, v))
+            return Jtv
 
         self.model = m
 
@@ -347,26 +348,16 @@ class Problem3D_CC(BaseDCProblem):
                     xs = np.median(self.mesh.vectorCCx)
                     ys = np.median(self.mesh.vectorCCy)
                     zs = self.mesh.vectorCCz[-1]
-                    rxm = 1./np.sqrt(
-                        (gBFxm[:, 0]-xs)**2 + (gBFxm[:, 1]-ys)**2
-                        + (gBFxm[:, 2]-zs)**2
-                        )
-                    rxp = 1./np.sqrt(
-                        (gBFxp[:, 0]-xs)**2 + (gBFxp[:, 1]-ys)**2
-                        + (gBFxp[:, 2]-zs)**2
-                        )
-                    rym = 1./np.sqrt(
-                        (gBFym[:, 0]-xs)**2 + (gBFym[:, 1]-ys)**2
-                        + (gBFym[:, 2]-zs)**2
-                        )
-                    ryp = 1./np.sqrt(
-                        (gBFyp[:, 0]-xs)**2 + (gBFyp[:, 1]-ys)**2
-                        + (gBFyp[:, 2]-zs)**2
-                        )
-                    rzm = 1./np.sqrt(
-                        (gBFzm[:, 0]-xs)**2 + (gBFzm[:, 1]-ys)**2
-                        + (gBFzm[:, 2]-zs)**2
-                        )
+
+                    def r_boundary(x, y, z):
+                        return 1./np.sqrt(
+                            (x - xs)**2 + (y - ys)**2 + (z - zs)**2
+                            )
+                    rxm = r_boundary(gBFxm[:, 0], gBFxm[:, 1], gBFxm[:, 2])
+                    rxp = r_boundary(gBFxp[:, 0], gBFxp[:, 1], gBFxp[:, 2])
+                    rym = r_boundary(gBFym[:, 0], gBFym[:, 1], gBFym[:, 2])
+                    ryp = r_boundary(gBFyp[:, 0], gBFyp[:, 1], gBFyp[:, 2])
+                    rzm = r_boundary(gBFzm[:, 0], gBFzm[:, 1], gBFzm[:, 2])
 
                     alpha_xm = (gBFxm[:, 0]-xs)/rxm**2
                     alpha_xp = (gBFxp[:, 0]-xs)/rxp**2

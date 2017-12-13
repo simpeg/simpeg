@@ -53,11 +53,11 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         )
         if err < 0.05:
             passed = True
-            print(">> DC analytic test for Problem2D_N is passed")
+            print(">> DC analytic test for PDP Problem2D_N is passed")
         else:
             print (err)
             passed = False
-            print(">> DC analytic test for Problem2D_N is failed")
+            print(">> DC analytic test for PDP Problem2D_N is failed")
         self.assertTrue(passed)
 
     def test_Problem2D_CC(self):
@@ -71,11 +71,11 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         )
         if err < 0.05:
             passed = True
-            print(">> DC analytic test for Problem2D_CC is passed")
+            print(">> DC analytic test for PDP Problem2D_CC is passed")
         else:
             print (err)
             passed = False
-            print(">> DC analytic test for Problem2D_CC is failed")
+            print(">> DC analytic test for PDP Problem2D_CC is failed")
         self.assertTrue(passed)
 
 
@@ -93,10 +93,10 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         M = Utils.ndgrid(x-12.5, np.r_[0.])
         N = Utils.ndgrid(x+12.5, np.r_[0.])
         A0loc = np.r_[-150, 0.]
-        A1loc = np.r_[-130, 0.]
+        A1loc = np.r_[-125, 0.]
         rxloc = np.c_[M, np.zeros(20)]
         data_anal = EM.Analytics.DCAnalytic_Dipole_Pole(
-                    [np.r_[A0loc, 0.],np.r_[A1loc, 0.]],
+                    [np.r_[A0loc, 0.], np.r_[A1loc, 0.]],
                     rxloc, sighalf, earth_type="halfspace")
 
         rx = DC.Rx.Pole_ky(M)
@@ -126,14 +126,16 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         )
         if err < 0.05:
             passed = True
-            print(">> DC analytic test for Problem2D_N is passed")
+            print(">> DC analytic test for DPP Problem2D_N is passed")
+            plt.plot(self.data_anal)
+            plt.plot(data, 'k.')
+            plt.show()
         else:
             passed = False
-            print(">> DC analytic test for Problem2D_N is failed")
+            print(">> DC analytic test for DPP Problem2D_N is failed")
             print (err)
         self.assertTrue(passed)
 
-    # This does not work well.
     def test_Problem2D_CC(self):
         problem = DC.Problem2D_CC(self.mesh, sigma=self.sigma)
         problem.Solver = self.Solver
@@ -145,11 +147,14 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         )
         if err < 0.05:
             passed = True
-            print(">> DC analytic test for Problem2D_CC is passed")
+            print(">> DC analytic test for DPP Problem2D_CC is passed")
         else:
             passed = False
-            print(">> DC analytic test for Problem2D_CC is failed")
+            print(">> DC analytic test for DPP Problem2D_CC is failed")
             print (err)
+            plt.plot(self.data_anal)
+            plt.plot(data, 'k.')
+            plt.show()
         self.assertTrue(passed)
 
 
@@ -198,10 +203,10 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         )
         if err < 0.05:
             passed = True
-            print(">> DC analytic test for Problem2D_CC is passed")
+            print(">> DC analytic test for PP Problem2D_CC is passed")
         else:
             passed = False
-            print(">> DC analytic test for Problem2D_CC is failed")
+            print(">> DC analytic test for PP Problem2D_CC is failed")
             print (err)
         self.assertTrue(passed)
 
