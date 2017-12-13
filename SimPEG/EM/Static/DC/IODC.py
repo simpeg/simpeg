@@ -3,10 +3,9 @@ import SimPEG
 from SimPEG import Utils, Mesh
 from . import SrcDC as Src   # Pole
 from . import RxDC as Rx
-from .SurveyDC import Survey, Survey_ky
+from .SurveyDC import Survey_ky
 import matplotlib.pyplot as plt
 import matplotlib
-import properties
 
 
 class IO(object):
@@ -198,7 +197,6 @@ class IO(object):
             if corezlength is None:
                 corezlength = self.grids[:, 1].max() + zmax - zmin
 
-            x0core = x0 - dx * 3
             ncx = np.floor(corexlength/dx)
             ncz = np.floor(corezlength/dz)
             hx = [(dx, npadx, -padratex), (dx, ncx), (dx, npadx, padratex)]
@@ -218,7 +216,7 @@ class IO(object):
 
         return mesh, actind
 
-    def plotPseudoSection(self, dataType="appResistivity", scale="log", dataloc=True,aspect_ratio=2, cmap="jet", ncontour=10, ax=None, dobs=None):
+    def plotPseudoSection(self, dataType="appResistivity", scale="log", dataloc=True,aspect_ratio=2, cmap="jet", ncontour=10, ax=None, dobs=None, figname=None):
         matplotlib.rcParams['font.size'] = 12
 
         if dobs is None:
@@ -240,7 +238,6 @@ class IO(object):
                 label = "Voltage (V)"
             else:
                 raise NotImplementedError()
-            vmin, vmax = val.min(), val.max()
             if scale == "log":
                 fmt = "10$^{%.1f}$"
             elif scale == "linear":
@@ -264,6 +261,8 @@ class IO(object):
             cb.set_label(label)
             ax.set_aspect(aspect_ratio)
             plt.tight_layout()
+            if figname is not None:
+                fig.savefig(figname, dpi=200)
             plt.show()
 
     def genLocs_2D(self, surveyType, x0, lineLength, a, nSpacing):

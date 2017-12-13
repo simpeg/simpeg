@@ -58,8 +58,6 @@ class SurveyDesign(object):
             G = (1./rAM - 1./rAN)
         elif self.surveyType == 'pole-pole':
             G = 1./rAM
-        # Not sure why ... there is a coherent error
-        factor = 1.11
         self.G = G
 
     def genLocs_2D(self, surveyType, x0, lineLength, a, nSpacing):
@@ -236,7 +234,6 @@ class SurveyDesign(object):
         corexlength = self.lineLength + dx * 6
         # Use nPacing x a /2 to compute coredepth
         corezlegnth = self.nSpacing * self.a / 2. + self.zmax - self.zmin
-        x0core = self.x0 - dx * 3
         self.ncx = np.floor(corexlength/dx)
         self.ncz = np.floor(corezlegnth/dz)
         hx = [(dx, npadx, -padratex), (dx, self.ncx), (dx, npadx, padratex)]
@@ -331,7 +328,7 @@ class SurveyDesign(object):
         self.getGeometricFactor_2D()
         self.appResistivity = self.voltage / self.G * np.pi * 2.
 
-    def plotData_2D(self, dataType="appResistivity", ms=100, showIt=True, scale='linear', clim=None, pcolorOpts={}):
+    def plotData_2D(self, dataType="appResistivity", ms=100, showIt=True, scale='linear', clim=None, pcolorOpts={}, figname=None):
         if showIt:
             fig = plt.figure(figsize=(8, 3))
             xloc = (
@@ -354,7 +351,7 @@ class SurveyDesign(object):
                 clim = vmin, vmax
             # Grid points
             out = plt.scatter(xloc, zloc, c=val, s=ms, clim=clim, vmin=clim[0], vmax=clim[1])
-            cb = plt.colorbar(out)
+            plt.colorbar(out)
 
             for x in self.xElec:
                 plt.plot(np.ones(2)*x, np.r_[0, -0.6], 'k-', alpha=0.3)
@@ -365,6 +362,8 @@ class SurveyDesign(object):
             plt.title("appResistivity")
             plt.ylabel("n-Spacing")
             plt.gca().invert_yaxis()
+            if figname is not None:
+                fig.savefig(figname, dpi=200)
             plt.show()
 
     def plotfields_2D(self, iSrc=0, fieldType="E", showIt=True):

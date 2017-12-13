@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 
 import SimPEG
 import numpy as np
-import scipy.sparse as sp
 from SimPEG.Utils import closestPoints
 
 

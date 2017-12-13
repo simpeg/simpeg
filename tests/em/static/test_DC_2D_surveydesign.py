@@ -2,8 +2,6 @@ from __future__ import print_function
 import unittest
 import numpy as np
 from SimPEG import DC
-from SimPEG import Utils
-import matplotlib.pyplot as plt
 
 
 class DCSurveyDesignTests(unittest.TestCase):

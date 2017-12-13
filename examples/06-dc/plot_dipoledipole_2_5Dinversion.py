@@ -1,9 +1,8 @@
 from SimPEG import DC
-from SimPEG import (Mesh, Maps, Utils, DataMisfit, Regularization,
+from SimPEG import (Maps, Utils, DataMisfit, Regularization,
                     Optimization, Inversion, InvProblem, Directives)
 from pymatsolver import PardisoSolver
 import matplotlib.pyplot as plt
-import matplotlib
 from matplotlib import colors
 import numpy as np
 from pylab import hist
