@@ -4,7 +4,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from SimPEG import Utils
-from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Static.DC.FieldsDC_2D import (
     Fields_ky, Fields_ky_CC, Fields_ky_N
     )
@@ -181,10 +180,10 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
             formulation
         """
         # TODO: only works isotropic sigma
-        sigma = self.sigma
         vol = self.mesh.vol
-        MnSigma = Utils.sdiag(self.mesh.aveN2CC.T*(Utils.sdiag(vol)*sigma))
-
+        MnSigma = Utils.sdiag(
+            self.mesh.aveN2CC.T*(Utils.sdiag(vol)*self.sigma)
+            )
         return MnSigma
 
     def MnSigmaDeriv(self, u):

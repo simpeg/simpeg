@@ -122,8 +122,6 @@ class BaseSIPProblem(BaseEMProblem):
 
         Jt = []
 
-        AT = self.getA()
-
         for isrc, src in enumerate(self.survey.srcList):
             sys.stdout.write(("\r %d / %d")%(isrc, self.survey.nSrc))
             sys.stdout.flush()

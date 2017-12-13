@@ -9,7 +9,6 @@ from SimPEG import Utils
 from SimPEG import Props
 from SimPEG import Maps
 
-from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Static.DC.FieldsDC_2D import (
     Fields_ky, Fields_ky_CC, Fields_ky_N
     )
@@ -301,7 +300,6 @@ class Problem2D_CC(BaseSIPProblem_2D):
         vol = self.mesh.vol
         MfRhoIDeriv = self.MfRhoIDeriv
         MccRhoIDeriv = self.MccRhoIDeriv
-        rho = self.rho
         if adjoint:
             return((MfRhoIDeriv( G * u).T) * (D.T * v) +
                    ky**2 * MccRhoIDeriv(u).T * v)

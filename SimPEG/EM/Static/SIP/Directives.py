@@ -1,6 +1,6 @@
 from SimPEG.Directives import InversionDirective
 import numpy as np
-from SimPEG import Utils
+
 
 class UpdateSensWeighting(InversionDirective):
     """
