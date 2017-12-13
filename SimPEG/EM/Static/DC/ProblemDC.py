@@ -80,7 +80,7 @@ class BaseDCProblem(BaseEMProblem):
         if self.storeJ:
             if self.Jmat is None:
                 self.getJ(m, f=f)
-                Jv = Utils.mkvc(np.dot(self.Jmat, v))
+            Jv = Utils.mkvc(np.dot(self.Jmat, v))
             return Jv
 
         self.model = m
@@ -112,7 +112,7 @@ class BaseDCProblem(BaseEMProblem):
                     self.model = m
                     f = self.fields(m)
                 self.getJ(m, f=f)
-                Jtv = Utils.mkvc(np.dot(self.Jmat.T, v))
+            Jtv = Utils.mkvc(np.dot(self.Jmat.T, v))
             return Jtv
 
         self.model = m
