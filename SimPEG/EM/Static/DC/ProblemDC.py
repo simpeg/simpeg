@@ -348,26 +348,16 @@ class Problem3D_CC(BaseDCProblem):
                     xs = np.median(self.mesh.vectorCCx)
                     ys = np.median(self.mesh.vectorCCy)
                     zs = self.mesh.vectorCCz[-1]
-                    rxm = 1./np.sqrt(
-                        (gBFxm[:, 0]-xs)**2 + (gBFxm[:, 1]-ys)**2
-                        + (gBFxm[:, 2]-zs)**2
-                        )
-                    rxp = 1./np.sqrt(
-                        (gBFxp[:, 0]-xs)**2 + (gBFxp[:, 1]-ys)**2
-                        + (gBFxp[:, 2]-zs)**2
-                        )
-                    rym = 1./np.sqrt(
-                        (gBFym[:, 0]-xs)**2 + (gBFym[:, 1]-ys)**2
-                        + (gBFym[:, 2]-zs)**2
-                        )
-                    ryp = 1./np.sqrt(
-                        (gBFyp[:, 0]-xs)**2 + (gBFyp[:, 1]-ys)**2
-                        + (gBFyp[:, 2]-zs)**2
-                        )
-                    rzm = 1./np.sqrt(
-                        (gBFzm[:, 0]-xs)**2 + (gBFzm[:, 1]-ys)**2
-                        + (gBFzm[:, 2]-zs)**2
-                        )
+
+                    def r_boundary(x, y, z):
+                        return 1./np.sqrt(
+                            (x - xs)**2 + (y - ys)**2 + (z - zs)**2
+                            )
+                    rxm = r_boundary(gBFxm[:, 0], gBFxm[:, 1], gBFxm[:, 2])
+                    rxp = r_boundary(gBFxp[:, 0], gBFxp[:, 1], gBFxp[:, 2])
+                    rym = r_boundary(gBFym[:, 0], gBFym[:, 1], gBFym[:, 2])
+                    ryp = r_boundary(gBFyp[:, 0], gBFyp[:, 1], gBFyp[:, 2])
+                    rzm = r_boundary(gBFzm[:, 0], gBFzm[:, 1], gBFzm[:, 2])
 
                     alpha_xm = (gBFxm[:, 0]-xs)/rxm**2
                     alpha_xp = (gBFxp[:, 0]-xs)/rxp**2

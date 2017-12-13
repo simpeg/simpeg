@@ -377,15 +377,16 @@ class Problem2D_CC(BaseDCProblem_2D):
         elif self.bc_type == "Mixed":
             xs = np.median(self.mesh.vectorCCx)
             ys = np.median(self.mesh.vectorCCy[-1])
-            rxm = 1./np.sqrt(
-                (gBFxm[:, 0]-xs)**2 + (gBFxm[:, 1]-ys)**2
-                )
-            rxp = 1./np.sqrt(
-                (gBFxp[:, 0]-xs)**2 + (gBFxp[:, 1]-ys)**2
-                )
-            rym = 1./np.sqrt(
-                (gBFym[:, 0]-xs)**2 + (gBFym[:, 1]-ys)**2
-                )
+
+            def r_boundary(x, y):
+                return 1./np.sqrt(
+                    (x - xs)**2 + (y - ys)**2
+                    )
+
+            rxm = r_boundary(gBFxm[:, 0], gBFxm[:, 1])
+            rxp = r_boundary(gBFxp[:, 0], gBFxp[:, 1])
+            rym = r_boundary(gBFym[:, 0], gBFym[:, 1])
+
             alpha_xm = ky*(
                 kn(1, ky*rxm) / kn(0, ky*rxm) * (gBFxm[:, 0]-xs)
                 )

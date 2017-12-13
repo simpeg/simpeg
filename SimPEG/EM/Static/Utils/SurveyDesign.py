@@ -246,7 +246,7 @@ class SurveyDesign(object):
             )
         z0_mesh = -((dz * 1.3 ** (np.arange(npadz)+1)).sum() + dz * self.ncz)
         self.mesh = Mesh.TensorMesh([hx, hz], x0=[x0_mesh, z0_mesh])
-        print (mesh)
+        print (self.mesh)
 
     def genDCSurvey_2D(self, problemType="2.5D"):
         srcList = []
@@ -438,6 +438,4 @@ class SurveyDesign(object):
         tmp_mesh, topo = gettopoCC(self.mesh, self.actind)
         topo = np.c_[tmp_mesh.gridCC, topo]
         self.topo = topo
-        # return topo, self.actind
-
 
