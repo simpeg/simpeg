@@ -632,7 +632,6 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
 
             fid = open(fileName, 'ab')
             if isinstance(DCsurvey.std, np.ndarray):
-                print('array')
                 np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] + DCsurvey.eps[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
             elif (isinstance(DCsurvey.std, float)):
                 # print('survey.std was a float computing uncertainty vector (survey.std*survey.dobs + survey.eps)')
