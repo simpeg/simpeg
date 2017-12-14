@@ -10,6 +10,141 @@ from SimPEG.EM.Static import DC
 from SimPEG.Utils import asArray_N_x_Dim, uniqueRows
 
 
+def calc_ElecSep(DCsurvey, surveyType='dipole-dipole'):
+    """
+        Calculate electrode separation distances.
+
+        Input:
+        :param DCsurvey: DC survey object
+        :switch surveyType: Either 'pole-dipole' | 'dipole-dipole'
+
+        Output:
+        :param AB, MN, AM, AN, BM, BN: electrode separation distances
+
+        Edited Nov. 23th, 2017
+
+        @author: micmitch
+
+    """
+
+    AB = []
+    MN = []
+    AM = []
+    AN = []
+    BM = []
+    BN = []
+
+    for ii in range(DCsurvey.nSrc):
+
+        Tx = DCsurvey.srcList[ii].loc
+        Rx = DCsurvey.srcList[ii].rxList[0].locs
+        nDTx = DCsurvey.srcList[ii].rxList[0].nD
+
+        if surveyType == 'dipole-dipole':
+            A = np.matlib.repmat(Tx[0], nDTx, 1)
+            B = np.matlib.repmat(Tx[1], nDTx, 1)
+            M = Rx[0]
+            N = Rx[1]
+
+            AB.append(np.sqrt(np.sum((A[:, :] - B[:, :])**2, axis=1)))
+            MN.append(np.sqrt(np.sum((M[:, :] - N[:, :])**2, axis=1)))
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis=1)))
+            AN.append(np.sqrt(np.sum((A[:, :] - N[:, :])**2, axis=1)))
+            BM.append(np.sqrt(np.sum((B[:, :] - M[:, :])**2, axis=1)))
+            BN.append(np.sqrt(np.sum((B[:, :] - N[:, :])**2, axis=1)))
+
+        elif surveyType == 'pole-dipole':
+            A = np.matlib.repmat(Tx[0], nDTx, 1)
+            M = Rx[0]
+            N = Rx[1]
+
+            MN.append(np.sqrt(np.sum((M[:, :] - N[:, :])**2, axis=1)))
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis=1)))
+            AN.append(np.sqrt(np.sum((A[:, :] - N[:, :])**2, axis=1)))
+
+        elif surveyType == 'dipole-pole':
+            A = np.matlib.repmat(Tx[0], nDTx, 1)
+            B = np.matlib.repmat(Tx[1], nDTx, 1)
+            M = Rx[0]
+
+            AB.append(np.sqrt(np.sum((A[:, :] - B[:, :])**2, axis=1)))
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis=1)))
+            BM.append(np.sqrt(np.sum((B[:, :] - M[:, :])**2, axis=1)))
+
+        elif surveyType == 'pole-pole':
+            A = np.matlib.repmat(Tx[0], nDTx, 1)
+            M = Rx[0]
+
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis=1)))
+
+        else:
+            raise Exception("""surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
+
+    AB = np.hstack(AB)
+    MN = np.hstack(MN)
+    AM = np.hstack(AM)
+    AN = np.hstack(AN)
+    BM = np.hstack(BM)
+    BN = np.hstack(BN)
+
+    return AB, MN, AM, AN, BM, BN
+
+
+def calc_rhoApp(DCsurvey, data, surveyType='dipole-dipole', spaceType='whole-space', eps=1e-10):
+    """
+        Calculate apparent resistivity. Assuming that data are normalized voltages -
+        Vmn/I (Potential difference [V] divided by injection current [A]). For fwd
+        modelled data an injection current of 1A is assumed in SimPEG.
+
+        Input:
+        :param DCsurvey: DC survey object
+        :param data -> normalized voltage measurements [V/A]
+        :switch surveyType: Either 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'
+        :switch spaceType: Assuming whole-space or half-space ('whole-space' | 'half-space')
+        :eps: Regularizer in case of a null geometric factor
+
+        Output:
+        :param rhoApp: apparent resistivity
+
+        Edited Nov. 23th, 2017
+
+        @author: micmitch
+
+    """
+    # Get electrode separation distances
+    AB, MN, AM, AN, BM, BN = calc_ElecSep(DCsurvey, surveyType=surveyType)
+
+    # Set factor for whole-space or half-space assumption
+    if spaceType == 'whole-space':
+        spaceFact = 4
+    elif spaceType == 'half-space':
+        spaceFact = 2
+    else:
+        raise Exception("""'spaceType must be 'whole-space' | 'half-space'""")
+
+    # Determine geometric factor G based on electrode separation distances
+    if surveyType == 'dipole-dipole':
+        G = 1/AM - 1/BM - 1/AN + 1/BN
+
+    elif surveyType == 'pole-dipole':
+        G = 1/AM - 1/AN
+
+    elif surveyType == 'dipole-pole':
+        G = 1/AM - 1/BM
+
+    elif surveyType == 'pole-pole':
+        G = 1/AM
+
+    else:
+        raise Exception("""'surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
+
+    # Calculate apparent resistivity
+    # absolute value is required because of the regularizer
+    rhoApp = np.abs(spaceFact*np.pi*data*(1/(G+eps)))
+
+    return rhoApp
+
+
 def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appConductivity", clim=None, scale="linear", sameratio=True, pcolorOpts={}, dataLoc=False, dobs=None, dim=2):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
@@ -19,9 +154,10 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
 
         Input:
         :param d2D, z0
-        :switch surveyType -> Either 'pole-dipole' | 'dipole-dipole'
-        :switch dataType=-> Either 'appResistivity' | 'appConductivity' | 'volt' (potential)
-        :scale -> Either 'linear' (default) | 'log'
+        :switch surveyType: Either 'pole-dipole' | 'dipole-dipole'
+        :switch dataType: Either 'appResistivity' | 'appConductivity' | 'volt' (potential)
+        :scale: Either 'linear' (default) | 'log'
+
         Output:
         :figure scatter plot overlayed on image
 
@@ -389,6 +525,10 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
     if(isinstance(DCsurvey.std, float)):
         print('survey.std was a float computing uncertainty vector (survey.std*survey.dobs + survey.eps)')
 
+    if(isinstance(DCsurvey.eps, float)):
+        epsValue = DCsurvey.eps
+        DCsurvey.eps = epsValue*np.ones_like(DCSurvey.dobs)
+
     fid = open(fileName, 'w')
 
     if iptype != 0:
@@ -496,11 +636,10 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
 
             fid = open(fileName, 'ab')
             if isinstance(DCsurvey.std, np.ndarray):
-#                 print('array')
-                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
+                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] + DCsurvey.eps[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
             elif (isinstance(DCsurvey.std, float)):
                 # print('survey.std was a float computing uncertainty vector (survey.std*survey.dobs + survey.eps)')
-                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std*np.abs(DCsurvey.dobs[count:count+nD]) + DCsurvey.eps ], fmt='%e', delimiter=' ', newline='\n')
+                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std*np.abs(DCsurvey.dobs[count:count+nD]) + DCsurvey.eps[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
 
             fid.close()
 
