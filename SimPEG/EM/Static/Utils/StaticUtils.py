@@ -15,10 +15,11 @@ def calc_ElecSep(DCsurvey, surveyType='dipole-dipole'):
         Calculate electrode separation distances.
 
         Input:
-        :param DCsurvey -> DC survey object
-        :switch surveyType -> Either 'pole-dipole' | 'dipole-dipole'
+        :param DCsurvey: DC survey object
+        :switch surveyType: Either 'pole-dipole' | 'dipole-dipole'
+
         Output:
-        :param AB, MN, AM, AN, BM, BN -> electrode separation distances
+        :param AB, MN, AM, AN, BM, BN: electrode separation distances
 
         Edited Nov. 23th, 2017
 
@@ -40,41 +41,41 @@ def calc_ElecSep(DCsurvey, surveyType='dipole-dipole'):
         nDTx = DCsurvey.srcList[ii].rxList[0].nD
 
         if surveyType == 'dipole-dipole':
-            A = np.matlib.repmat(Tx[0], nDTx,1)
-            B = np.matlib.repmat(Tx[1], nDTx,1)
+            A = np.matlib.repmat(Tx[0], nDTx, 1)
+            B = np.matlib.repmat(Tx[1], nDTx, 1)
             M = Rx[0]
             N = Rx[1]
 
-            AB.append(np.sqrt(np.sum((A[:, :] - B[:, :])**2, axis = 1)))
-            MN.append(np.sqrt(np.sum((M[:, :] - N[:, :])**2, axis = 1)))
-            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis = 1)))
-            AN.append(np.sqrt(np.sum((A[:, :] - N[:, :])**2, axis = 1)))
-            BM.append(np.sqrt(np.sum((B[:, :] - M[:, :])**2, axis = 1)))
-            BN.append(np.sqrt(np.sum((B[:, :] - N[:, :])**2, axis = 1)))
+            AB.append(np.sqrt(np.sum((A[:, :] - B[:, :])**2, axis=1)))
+            MN.append(np.sqrt(np.sum((M[:, :] - N[:, :])**2, axis=1)))
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis=1)))
+            AN.append(np.sqrt(np.sum((A[:, :] - N[:, :])**2, axis=1)))
+            BM.append(np.sqrt(np.sum((B[:, :] - M[:, :])**2, axis=1)))
+            BN.append(np.sqrt(np.sum((B[:, :] - N[:, :])**2, axis=1)))
 
         elif surveyType == 'pole-dipole':
-            A = np.matlib.repmat(Tx[0], nDTx,1)
+            A = np.matlib.repmat(Tx[0], nDTx, 1)
             M = Rx[0]
             N = Rx[1]
 
-            MN.append(np.sqrt(np.sum((M[:, :] - N[:, :])**2, axis = 1)))
-            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis = 1)))
-            AN.append(np.sqrt(np.sum((A[:, :] - N[:, :])**2, axis = 1)))
+            MN.append(np.sqrt(np.sum((M[:, :] - N[:, :])**2, axis=1)))
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis=1)))
+            AN.append(np.sqrt(np.sum((A[:, :] - N[:, :])**2, axis=1)))
 
         elif surveyType == 'dipole-pole':
-            A = np.matlib.repmat(Tx[0], nDTx,1)
-            B = np.matlib.repmat(Tx[1], nDTx,1)
+            A = np.matlib.repmat(Tx[0], nDTx, 1)
+            B = np.matlib.repmat(Tx[1], nDTx, 1)
             M = Rx[0]
 
-            AB.append(np.sqrt(np.sum((A[:, :] - B[:, :])**2, axis = 1)))
-            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis = 1)))
-            BM.append(np.sqrt(np.sum((B[:, :] - M[:, :])**2, axis = 1)))
+            AB.append(np.sqrt(np.sum((A[:, :] - B[:, :])**2, axis=1)))
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis=1)))
+            BM.append(np.sqrt(np.sum((B[:, :] - M[:, :])**2, axis=1)))
 
         elif surveyType == 'pole-pole':
-            A = np.matlib.repmat(Tx[0], nDTx,1)
+            A = np.matlib.repmat(Tx[0], nDTx, 1)
             M = Rx[0]
 
-            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis = 1)))
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis=1)))
 
         else:
             raise Exception("""surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
@@ -89,19 +90,20 @@ def calc_ElecSep(DCsurvey, surveyType='dipole-dipole'):
     return AB, MN, AM, AN, BM, BN
 
 
-def calc_rhoApp(DCsurvey, data, surveyType='dipole-dipole', spaceType='whole-space'):
+def calc_rhoApp(DCsurvey, data, surveyType='dipole-dipole', spaceType='whole-space', eps=1e-10):
     """
         Calculate apparent resistivity. Assuming that data are normalized voltages -
         Vmn/I (Potential difference [V] divided by injection current [A]). For fwd
         modelled data an injection current of 1A is assumed in SimPEG.
 
         Input:
-        :param DCsurvey -> DC survey object
+        :param DCsurvey: DC survey object
         :param data -> normalized voltage measurements [V/A]
-        :switch surveyType -> Either 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'
-        :switch spaceType -> Assuming whole-space or half-space ('whole-space' | 'half-space')
+        :switch surveyType: Either 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'
+        :switch spaceType: Assuming whole-space or half-space ('whole-space' | 'half-space')
+
         Output:
-        :param rhoApp -> apparent resistivity
+        :param rhoApp: apparent resistivity
 
         Edited Nov. 23th, 2017
 
@@ -135,7 +137,6 @@ def calc_rhoApp(DCsurvey, data, surveyType='dipole-dipole', spaceType='whole-spa
     else:
         raise Exception("""'surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
 
-
     # Calculate apparent resistivity
     rhoApp = spaceFact*np.pi*data*(1/G)
 
@@ -151,9 +152,10 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
 
         Input:
         :param d2D, z0
-        :switch surveyType -> Either 'pole-dipole' | 'dipole-dipole'
-        :switch dataType=-> Either 'appResistivity' | 'appConductivity' | 'volt' (potential)
-        :scale -> Either 'linear' (default) | 'log'
+        :switch surveyType: Either 'pole-dipole' | 'dipole-dipole'
+        :switch dataType: Either 'appResistivity' | 'appConductivity' | 'volt' (potential)
+        :scale: Either 'linear' (default) | 'log'
+
         Output:
         :figure scatter plot overlayed on image
 
