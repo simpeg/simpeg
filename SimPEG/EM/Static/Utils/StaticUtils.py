@@ -46,46 +46,52 @@ def calc_ElecSep(DCsurvey, surveyType='dipole-dipole'):
             M = Rx[0]
             N = Rx[1]
 
-            AB.append(np.sqrt(np.sum((A[:, :] - B[:, :])**2, axis=1)))
-            MN.append(np.sqrt(np.sum((M[:, :] - N[:, :])**2, axis=1)))
-            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis=1)))
-            AN.append(np.sqrt(np.sum((A[:, :] - N[:, :])**2, axis=1)))
-            BM.append(np.sqrt(np.sum((B[:, :] - M[:, :])**2, axis=1)))
-            BN.append(np.sqrt(np.sum((B[:, :] - N[:, :])**2, axis=1)))
+            AB.append(np.sqrt(np.sum((A[:, :] - B[:, :])**2., axis=1)))
+            MN.append(np.sqrt(np.sum((M[:, :] - N[:, :])**2., axis=1)))
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2., axis=1)))
+            AN.append(np.sqrt(np.sum((A[:, :] - N[:, :])**2., axis=1)))
+            BM.append(np.sqrt(np.sum((B[:, :] - M[:, :])**2., axis=1)))
+            BN.append(np.sqrt(np.sum((B[:, :] - N[:, :])**2., axis=1)))
 
         elif surveyType == 'pole-dipole':
-            A = np.matlib.repmat(Tx[0], nDTx, 1)
+            A = np.matlib.repmat(Tx, nDTx, 1)
             M = Rx[0]
             N = Rx[1]
 
-            MN.append(np.sqrt(np.sum((M[:, :] - N[:, :])**2, axis=1)))
-            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis=1)))
-            AN.append(np.sqrt(np.sum((A[:, :] - N[:, :])**2, axis=1)))
+            MN.append(np.sqrt(np.sum((M[:, :] - N[:, :])**2., axis=1)))
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2., axis=1)))
+            AN.append(np.sqrt(np.sum((A[:, :] - N[:, :])**2., axis=1)))
 
         elif surveyType == 'dipole-pole':
             A = np.matlib.repmat(Tx[0], nDTx, 1)
             B = np.matlib.repmat(Tx[1], nDTx, 1)
-            M = Rx[0]
+            M = Rx
 
-            AB.append(np.sqrt(np.sum((A[:, :] - B[:, :])**2, axis=1)))
-            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis=1)))
-            BM.append(np.sqrt(np.sum((B[:, :] - M[:, :])**2, axis=1)))
+            AB.append(np.sqrt(np.sum((A[:, :] - B[:, :])**2., axis=1)))
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2., axis=1)))
+            BM.append(np.sqrt(np.sum((B[:, :] - M[:, :])**2., axis=1)))
 
         elif surveyType == 'pole-pole':
-            A = np.matlib.repmat(Tx[0], nDTx, 1)
-            M = Rx[0]
+            A = np.matlib.repmat(Tx, nDTx, 1)
+            M = Rx
 
-            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2, axis=1)))
+            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2., axis=1)))
 
         else:
             raise Exception("""surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
 
-    AB = np.hstack(AB)
-    MN = np.hstack(MN)
-    AM = np.hstack(AM)
-    AN = np.hstack(AN)
-    BM = np.hstack(BM)
-    BN = np.hstack(BN)
+    if AB:
+        AB = np.hstack(AB)
+    if MN:
+        MN = np.hstack(MN)
+    if AM:
+        AM = np.hstack(AM)
+    if AN:
+        AN = np.hstack(AN)
+    if BM:
+        BM = np.hstack(BM)
+    if BN:
+        BN = np.hstack(BN)
 
     return AB, MN, AM, AN, BM, BN
 
@@ -351,7 +357,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
     """
 
     def xy_2_r(x1, x2, y1, y2):
-        r = np.sqrt(np.sum((x2 - x1)**2 + (y2 - y1)**2))
+        r = np.sqrt(np.sum((x2 - x1)**2. + (y2 - y1)**2.))
         return r
 
     # Evenly distribute electrodes and put on surface
@@ -455,7 +461,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
         max_y = endl[1, 1] - dl_y * b
 
         # Define the size of the survey grid (square for now)
-        box_l = np.sqrt((min_x - max_x)**2 + (min_y - max_y)**2)
+        box_l = np.sqrt((min_x - max_x)**2. + (min_y - max_y)**2.)
         box_w = box_l/2.
 
         nstn = int(np.floor(box_l / a))
@@ -1436,8 +1442,8 @@ def closestPointsGrid(grid, pts, dim=2):
 
     for i, pt in enumerate(pts):
         if dim == 1:
-            nodeInds[i] = ((pt - grid)**2).argmin()
+            nodeInds[i] = ((pt - grid)**2.).argmin()
         else:
-            nodeInds[i] = ((np.tile(pt, (grid.shape[0], 1)) - grid)**2).sum(axis=1).argmin()
+            nodeInds[i] = ((np.tile(pt, (grid.shape[0], 1)) - grid)**2.).sum(axis=1).argmin()
 
     return nodeInds
