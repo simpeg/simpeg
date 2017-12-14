@@ -6,7 +6,6 @@ from SimPEG import Mesh
 # SUMMARY OF TESTS
 #
 # Tensor mesh bs octree mesh
-# Linear and log normal codes need to match
 
 
 class VRM_fwd_tests(unittest.TestCase):
@@ -96,7 +95,7 @@ they produce the same fields"""
         txList.append(VRM.Src.LineCurrent(rxList, np.c_[px, py, pz], 1., waveObj))
 
         Survey = VRM.Survey(txList)
-        Problem = VRM.ProblemVRM.LinearVRM(meshObj, refFact=0)
+        Problem = VRM.ProblemVRM.LinearVRM(meshObj, refFact=1)
         Problem.pair(Survey)
         Fields = Problem.fields(mod)
 
@@ -205,6 +204,78 @@ Cowan (2016) and test accuracy
 
         self.assertTrue(Testx1 and Testx2 and Testy1 and Testy2)
 
+    def test_vs_mesh_vs_lognormal(self):
+
+        h1 = [(2, 8)]
+        h2 = 1*np.ones(18)
+        meshObj_Tensor = Mesh.TensorMesh((h1, h1, h1), x0='CCN')
+        #meshObj_OcTree = Mesh.TreeMesh([h2, h2], x0=[-8, -16])
+        #
+        #def refinefcn(cell):
+        #    xyz = cell.center
+        #    dist = ((xyz - [0., 0.2])**2).sum()**0.5
+        #    if dist < 5:
+        #        return 4
+        #    return 3
+        #
+        #meshObj_OcTree.refine(refinefcn)
+        #meshObj_OcTree.plotGrid()
+        #
+        #cells = meshObj_OcTree._cells
+        #recurse = []
+        #
+        #mesh = meshObj_OcTree
+        #mesh.plotGrid(grid=[[],[],[]])
+
+        chi0 = 0.
+        dchi = 0.01
+        tau1 = 1e-8
+        tau2 = 1e0
+
+        # Tensor Models
+        mod_a = (dchi/np.log(tau2/tau1))*np.ones(meshObj_Tensor.nC)
+        mod_chi0_a = chi0*np.ones(meshObj_Tensor.nC)
+        mod_dchi_a = dchi*np.ones(meshObj_Tensor.nC)
+        mod_tau1_a = tau1*np.ones(meshObj_Tensor.nC)
+        mod_tau2_a = tau2*np.ones(meshObj_Tensor.nC)
+
+        ## OcTree Models
+        #mod_b = (dchi/np.log(tau2/tau1))*np.ones(meshObj_OcTree.nC)
+        #mod_chi0_b = chi0*np.ones(meshObj_OcTree.nC)
+        #mod_dchi_b = dchi*np.ones(meshObj_OcTree.nC)
+        #mod_tau1_b = tau1*np.ones(meshObj_OcTree.nC)
+        #mod_tau2_b = tau2*np.ones(meshObj_OcTree.nC)
+
+        times = np.array([1e-3])
+        waveObj = VRM.WaveformVRM.SquarePulse(0.02)
+
+        z = 0.2
+        a = 0.1
+        loc_rx = np.c_[0., 0., z]
+        rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'z')]
+        txList = [VRM.Src.CircLoop(rxList, np.r_[0., 0., z], a, np.r_[0., 0.], 1., waveObj)]
+
+        Survey1 = VRM.Survey(txList)
+        Survey2 = VRM.Survey(txList)
+        #Survey3 = VRM.Survey(txList)
+        #Survey4 = VRM.Survey(txList)
+        Problem1 = VRM.ProblemVRM.LinearVRM(meshObj_Tensor, refFact=2)
+        Problem2 = VRM.ProblemVRM.LogUniformVRM(meshObj_Tensor, refFact=2)
+        #Problem3 = VRM.ProblemVRM.LinearVRM(meshObj_OcTree, refFact=1)
+        #Problem4 = VRM.ProblemVRM.LogUniformVRM(meshObj_OcTree, refFact=1)
+        Problem1.pair(Survey1)
+        Problem2.pair(Survey2)
+        #Problem3.pair(Survey3)
+        #Problem4.pair(Survey4)
+        Fields1 = Problem1.fields(mod_a)
+        Fields2 = Problem2.fields(mod_chi0_a, mod_dchi_a, mod_tau1_a, mod_tau2_a)
+        #Fields3 = Problem3.fields(mod_b)
+        #Fields4 = Problem4.fields(mod_chi0_b, mod_dchi_b, mod_tau1_b, mod_tau2_b)
+
+        #Errs = np.abs((np.r_[Fields2, Fields3, Fields4, Fields5] - Fields_true)/Fields_true)
+        #
+        #Test1 = Errs[-1] < 0.01
+        #Test2 = np.all(Errs[1:]-Errs[0:-1] < 0.) 
 
 
 if __name__ == '__main__':
