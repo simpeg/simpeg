@@ -168,29 +168,6 @@ class BaseDCProblem(BaseEMProblem):
             q[:, i] = src.eval(self)
         return q
 
-    def getSourceTerm(self):
-        """
-        Evaluates the sources, and puts them in matrix form
-
-        :rtype: tuple
-        :return: q (nC or nN, nSrc)
-        """
-
-        Srcs = self.survey.srcList
-
-        if self._formulation == 'EB':
-            n = self.mesh.nN
-            # return NotImplementedError
-
-        elif self._formulation == 'HJ':
-            n = self.mesh.nC
-
-        q = np.zeros((n, len(Srcs)))
-
-        for i, src in enumerate(Srcs):
-            q[:, i] = src.eval(self)
-        return q
-
     @property
     def deleteTheseOnModelUpdate(self):
         toDelete = []
