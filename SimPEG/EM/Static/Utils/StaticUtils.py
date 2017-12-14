@@ -139,7 +139,8 @@ def calc_rhoApp(DCsurvey, data, surveyType='dipole-dipole', spaceType='whole-spa
         raise Exception("""'surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
 
     # Calculate apparent resistivity
-    rhoApp = spaceFact*np.pi*data*(1/(G+eps))
+    # absolute value is required because of the regularizer
+    rhoApp = np.abs(spaceFact*np.pi*data*(1/(G+eps)))
 
     return rhoApp
 
