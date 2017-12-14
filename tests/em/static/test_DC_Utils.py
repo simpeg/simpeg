@@ -63,7 +63,7 @@ class DCUtilsTests(unittest.TestCase):
     def test_calc_rhoApp(self):
 
         # Compute apparent resistivity from survey
-        rhoapp = DCUtils.calc_rhoApp(self.survey, self.survey.dobs,
+        rhoapp = DCUtils.calc_rhoApp(self.survey, dobs=self.survey.dobs,
                                      surveyType='dipole-dipole',
                                      spaceType='whole-space')
 

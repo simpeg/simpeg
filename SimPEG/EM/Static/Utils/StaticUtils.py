@@ -96,7 +96,72 @@ def calc_ElecSep(DCsurvey, surveyType='dipole-dipole'):
     return AB, MN, AM, AN, BM, BN
 
 
-def calc_rhoApp(DCsurvey, data, surveyType='dipole-dipole', spaceType='whole-space', eps=1e-10):
+def calc_midpoints(DCsurvey, surveyType='dipole-dipole', dim=2):
+
+    # Pre-allocate
+    midx = []
+    midz = []
+
+    for ii in range(DCsurvey.nSrc):
+        Tx = DCsurvey.srcList[ii].loc
+        Rx = DCsurvey.srcList[ii].rxList[0].locs
+
+        # Get distances between each poles A-B-M-N
+        if surveyType == 'pole-dipole':
+            # Create mid-point location
+            Cmid = Tx[0]
+            Pmid = (Rx[0][:, 0] + Rx[1][:, 0])/2
+            if dim == 2:
+                zsrc = Tx[1]
+            elif dim == 3:
+                zsrc = Tx[2]
+            else:
+                raise Exception()
+
+        elif surveyType == 'dipole-dipole':
+            # Create mid-point location
+            Cmid = (Tx[0][0] + Tx[1][0])/2
+            Pmid = (Rx[0][:, 0] + Rx[1][:, 0])/2
+            # if DCsurvey.mesh.dim == 2:
+            #     zsrc = (Tx[0][1] + Tx[1][1])/2
+            # elif DCsurvey.mesh.dim ==3:
+            if dim == 2:
+                zsrc = (Tx[0][1] + Tx[1][1])/2
+            elif dim == 3:
+                zsrc = (Tx[0][2] + Tx[1][2])/2
+            else:
+                raise Exception()
+
+        elif surveyType == 'pole-pole':
+            # Create mid-point location
+            Cmid = Tx[0]
+            Pmid = Rx[:, 0]
+            if dim == 2:
+                zsrc = Tx[1]
+            elif dim == 3:
+                zsrc = Tx[2]
+            else:
+                raise Exception()
+
+        if surveyType == 'dipole-pole':
+            # Create mid-point location
+            Cmid = (Tx[0][0] + Tx[1][0])/2
+            Pmid = Rx[:, 0]
+            if dim == 2:
+                zsrc = (Tx[0][1] + Tx[1][1])/2
+            elif dim == 3:
+                zsrc = (Tx[0][2] + Tx[1][2])/2
+            else:
+                raise Exception()
+
+        midx = np.hstack([midx, (Cmid + Pmid)/2])
+        midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc])
+
+    return midx, midz
+
+
+def calc_rhoApp(DCsurvey, surveyType='dipole-dipole', spaceType='whole-space',
+                dobs=None, eps=1e-10):
     """
         Calculate apparent resistivity. Assuming that data are normalized voltages -
         Vmn/I (Potential difference [V] divided by injection current [A]). For fwd
@@ -118,6 +183,13 @@ def calc_rhoApp(DCsurvey, data, surveyType='dipole-dipole', spaceType='whole-spa
 
     """
     # Get electrode separation distances
+    # Use dobs in survey if dobs is None
+    if dobs is None:
+        if DCsurvey.dobs is None:
+            raise Exception()
+        else:
+            dobs = DCsurvey.dobs.copy()
+
     AB, MN, AM, AN, BM, BN = calc_ElecSep(DCsurvey, surveyType=surveyType)
 
     # Set factor for whole-space or half-space assumption
@@ -146,12 +218,15 @@ def calc_rhoApp(DCsurvey, data, surveyType='dipole-dipole', spaceType='whole-spa
 
     # Calculate apparent resistivity
     # absolute value is required because of the regularizer
-    rhoApp = np.abs(spaceFact*np.pi*data*(1/(G+eps)))
+    rhoApp = np.abs(spaceFact*np.pi*dobs*(1/(G+eps)))
 
     return rhoApp
 
 
-def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appConductivity", clim=None, scale="linear", sameratio=True, pcolorOpts={}, dataLoc=False, dobs=None, dim=2):
+def plot_pseudoSection(DCsurvey, ax, surveyType='dipole-dipole',
+                       dataType="appConductivity", spaceType='half-space',
+                       clim=None, scale="linear", sameratio=True,
+                       pcolorOpts={}, dataLoc=False, dobs=None, dim=2):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
@@ -176,13 +251,7 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
     from scipy.interpolate import griddata
     # Set depth to 0 for now
     z0 = 0.
-
-    # Pre-allocate
-    midx = []
-    midz = []
     rho = []
-    LEG = []
-    count = 0  # Counter for data
 
     # Use dobs in survey if dobs is None
     if dobs is None:
@@ -191,102 +260,32 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
         else:
             dobs = DCsurvey.dobs.copy()
 
-    for ii in range(DCsurvey.nSrc):
+    rhoApp = calc_rhoApp(DCsurvey, dobs=dobs,
+                         surveyType=surveyType,
+                         spaceType=spaceType)
+    AB, MN, AM, AN, BM, BN = calc_ElecSep(DCsurvey, surveyType=surveyType)
+    midx, midz = calc_midpoints(DCsurvey, surveyType=surveyType, dim=dim)
 
-        Tx = DCsurvey.srcList[ii].loc
-        Rx = DCsurvey.srcList[ii].rxList[0].locs
+    if dataType == 'volt':
+        if scale == "linear":
+            rho = dobs
+        elif scale == "log":
+            rho = np.log10(abs(dobs))
 
-        nD = DCsurvey.srcList[ii].rxList[0].nD
+    elif dataType == 'appConductivity':
+        if scale == "linear":
+            rho = 1./rhoApp
+        elif scale == "log":
+            rho = np.log10(1./rhoApp)
 
-        # data = DCsurvey.dobs[count:count+nD]
-        data = dobs[count:count+nD]
-        count += nD
+    elif dataType == 'appResistivity':
+        if scale == "linear":
+            rho = rhoApp
+        elif scale == "log":
+            rho = np.log10(rhoApp)
 
-        # Get distances between each poles A-B-M-N
-        if surveyType == 'pole-dipole':
-
-            MA = np.abs(Tx[0] - Rx[0][:, 0])
-            NA = np.abs(Tx[0] - Rx[1][:, 0])
-            MN = np.abs(Rx[1][:, 0] - Rx[0][:, 0])
-
-            # Create mid-point location
-            Cmid = Tx[0]
-            Pmid = (Rx[0][:, 0] + Rx[1][:, 0])/2
-            # if DCsurvey.mesh.dim == 2:
-            #     zsrc = Tx[1]
-            # elif DCsurvey.mesh.dim ==3:
-            if dim == 2:
-                zsrc = Tx[1]
-            elif dim == 3:
-                zsrc = Tx[2]
-            else:
-                raise Exception()
-
-        elif surveyType == 'dipole-dipole':
-            MA = np.abs(Tx[0][0] - Rx[0][:, 0])
-            MB = np.abs(Tx[1][0] - Rx[0][:, 0])
-            NA = np.abs(Tx[0][0] - Rx[1][:, 0])
-            NB = np.abs(Tx[1][0] - Rx[1][:, 0])
-
-            # Create mid-point location
-            Cmid = (Tx[0][0] + Tx[1][0])/2
-            Pmid = (Rx[0][:, 0] + Rx[1][:, 0])/2
-            # if DCsurvey.mesh.dim == 2:
-            #     zsrc = (Tx[0][1] + Tx[1][1])/2
-            # elif DCsurvey.mesh.dim ==3:
-            if dim == 2:
-                zsrc = (Tx[0][1] + Tx[1][1])/2
-            elif dim == 3:
-                zsrc = (Tx[0][2] + Tx[1][2])/2
-            else:
-                raise Exception()
-
-        # Change output for dataType
-        if surveyType == 'pole-dipole':
-
-            leg = data * 2*np.pi * MA * (MA + MN) / MN
-
-        elif surveyType == 'dipole-dipole':
-
-            leg = data * 2*np.pi / (1/MA - 1/MB + 1/NB - 1/NA)
-            LEG.append(1./(2*np.pi) * (1/MA - 1/MB + 1/NB - 1/NA))
-        else:
-            print(""" dataType must be 'pole-dipole' | 'dipole-dipole' """)
-            break
-
-        if dataType == 'volt':
-            if scale == "linear":
-                rho = np.hstack([rho, data])
-            elif scale == "log":
-                rho = np.hstack([rho, np.log10(abs(data))])
-
-        else:
-
-            # Compute pant leg of apparent rho
-
-            if dataType == 'appConductivity':
-
-                leg = abs(1./leg)
-
-            elif dataType == 'appResistivity':
-
-                leg = abs(leg)
-
-            else:
-                print("""dataType must be 'appResistivity' | 'appConductivity' | 'volt' """)
-                break
-
-            if scale == "linear":
-                rho = np.hstack([rho, leg])
-            elif scale == "log":
-                rho = np.hstack([rho, np.log10(leg)])
-
-        midx = np.hstack([midx, (Cmid + Pmid)/2])
-        # if DCsurvey.mesh.dim==3:
-        midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc])
-        # elif DCsurvey.mesh.dim==2:
-        #     midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc ])
-    ax = axs
+    else:
+        print("""dataType must be 'appResistivity' | 'appConductivity' | 'volt' """)
 
     # Grid points
     grid_x, grid_z = np.mgrid[np.min(midx):np.max(midx),
@@ -332,7 +331,7 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
     if sameratio:
         plt.gca().set_aspect('equal', adjustable='box')
 
-    return ph, ax, cbar, LEG
+    return ph, ax, cbar
 
 
 def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
@@ -345,7 +344,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
         Input:
         :param numpy.ndarray endl: input endpoints [x1, y1, z1, x2, y2, z2]
         :param discretize.BaseMesh mesh: discretize mesh object
-        :param str surveyType: 'dipole-dipole' | 'pole-dipole' | 'gradient'
+        :param str surveyType: 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole' | 'gradient'
         :param int a: pole seperation
         :param int b: dipole separation
         :param int n: number of rx dipoles per tx
@@ -397,17 +396,18 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
 
         for ii in range(0, int(nstn)-1):
 
-            if surveyType == 'dipole-dipole':
+            if surveyType == 'dipole-dipole' or surveyType == 'dipole-pole':
                 tx = np.c_[M[ii, :], N[ii, :]]
-            elif surveyType == 'pole-dipole':
-                tx = np.c_[M[ii, :], M[ii, :]]
+                # Current elctrode separation
+                AB = xy_2_r(tx[0, 1], endl[1, 0], tx[1, 1], endl[1, 1])
+            elif surveyType == 'pole-dipole' or surveyType == 'pole-pole':
+                tx = np.r_[M[ii, :]]
+                # Current elctrode separation
+                AB = xy_2_r(tx[0], endl[1, 0], tx[1], endl[1, 1])
             else:
-                raise Exception("""surveyType must be either 'pole-dipole', 'dipole-dipole' or 'gradient'. """)
+                raise Exception("""surveyType must be either 'pole-dipole', 'dipole-dipole', 'dipole-pole', 'pole-pole' or 'gradient'. """)
 
             # Rx.append(np.c_[M[ii+1:indx, :], N[ii+1:indx, :]])
-
-            # Current elctrode seperation
-            AB = xy_2_r(tx[0, 1], endl[1, 0], tx[1, 1], endl[1, 1])
 
             # Number of receivers to fit
             nstn = int(np.min([np.floor((AB - b) / a), n]))
@@ -429,21 +429,31 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
                 P1 = np.c_[stn_x, stn_y, stn_z]
                 # Create line of P2 locations
                 P2 = np.c_[stn_x+a*dl_x, stn_y+a*dl_y, stn_z]
-                rxClass = DC.Rx.Dipole(P1, P2)
+                if surveyType == 'dipole-dipole' or surveyType == 'pole-dipole':
+                    rxClass = DC.Rx.Dipole(P1, P2)
+                elif surveyType == 'dipole-pole' or surveyType == 'pole-pole':
+                    rxClass = DC.Rx.Pole(P1)
 
             elif mesh.dim == 2:
                 # Create line of P1 locations
                 P1 = np.c_[stn_x, np.ones(nstn).T*ztop]
                 # Create line of P2 locations
                 P2 = np.c_[stn_x+a*dl_x, np.ones(nstn).T*ztop]
-                if d2flag == '2.5D':
-                    rxClass = DC.Rx.Dipole_ky(P1, P2)
-                elif d2flag == '2D':
-                    rxClass = DC.Rx.Dipole(P1, P2)
+                if surveyType == 'dipole-dipole' or surveyType == 'pole-dipole':
+                    if d2flag == '2.5D':
+                        rxClass = DC.Rx.Dipole_ky(P1, P2)
+                    elif d2flag == '2D':
+                        rxClass = DC.Rx.Dipole(P1, P2)
+                elif surveyType == 'dipole-pole' or surveyType == 'pole-pole':
+                    if d2flag == '2.5D':
+                        rxClass = DC.Rx.Pole_ky(P1)
+                    elif d2flag == '2D':
+                        rxClass = DC.Rx.Pole(P1)
 
-            if surveyType == 'dipole-dipole':
+
+            if surveyType == 'dipole-dipole' or surveyType == 'dipole-pole':
                 srcClass = DC.Src.Dipole([rxClass], M[ii, :], N[ii, :])
-            elif surveyType == 'pole-dipole':
+            elif surveyType == 'pole-dipole' or surveyType == 'pole-pole':
                 srcClass = DC.Src.Pole([rxClass], M[ii, :])
             SrcList.append(srcClass)
 
@@ -503,7 +513,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
                                      (endl[1, :]))
         SrcList.append(srcClass)
     else:
-        print("""surveyType must be either 'pole-dipole', 'dipole-dipole' or 'gradient'. """)
+        print("""surveyType must be either 'pole-dipole', 'dipole-dipole', 'dipole-pole', 'pole-pole' or 'gradient'. """)
 
     survey = DC.Survey(SrcList)
 
