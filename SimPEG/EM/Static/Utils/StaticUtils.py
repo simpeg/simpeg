@@ -101,6 +101,7 @@ def calc_rhoApp(DCsurvey, data, surveyType='dipole-dipole', spaceType='whole-spa
         :param data -> normalized voltage measurements [V/A]
         :switch surveyType: Either 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'
         :switch spaceType: Assuming whole-space or half-space ('whole-space' | 'half-space')
+        :eps: Regularizer in case of a null geometric factor
 
         Output:
         :param rhoApp: apparent resistivity
@@ -138,7 +139,7 @@ def calc_rhoApp(DCsurvey, data, surveyType='dipole-dipole', spaceType='whole-spa
         raise Exception("""'surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
 
     # Calculate apparent resistivity
-    rhoApp = spaceFact*np.pi*data*(1/G)
+    rhoApp = spaceFact*np.pi*data*(1/(G+eps))
 
     return rhoApp
 
