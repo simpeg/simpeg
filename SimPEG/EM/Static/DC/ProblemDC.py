@@ -170,9 +170,7 @@ class BaseDCProblem(BaseEMProblem):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = []
-        if self.sigmaMap is not None or self.rhoMap is not None:
-            toDelete += ['_MeSigma', '_MeSigmaI', '_MfRho', '_MfRhoI']
+        toDelete = super(BaseDCProblem, self).deleteTheseOnModelUpdate
         if self.Jmat is not None:
             toDelete += ['Jmat']
         return toDelete
