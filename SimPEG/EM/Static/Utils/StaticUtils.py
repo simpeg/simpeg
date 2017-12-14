@@ -31,6 +31,7 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
 
     """
     import pylab as plt
+    from scipy.interpolate import griddata
     # Set depth to 0 for now
     z0 = 0.
 
