@@ -145,7 +145,7 @@ def calc_rhoApp(DCsurvey, data, surveyType='dipole-dipole', spaceType='whole-spa
     return rhoApp
 
 
-def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appConductivity", clim=None, scale="linear", sameratio=True, pcolorOpts={}):
+def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appConductivity", clim=None, scale="linear", sameratio=True, pcolorOpts={}, dataLoc=False, dobs=None, dim=2):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
