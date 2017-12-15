@@ -543,7 +543,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
 
     if(isinstance(DCsurvey.eps, float)):
         epsValue = DCsurvey.eps
-        DCsurvey.eps = epsValue*np.ones_like(DCSurvey.dobs)
+        DCsurvey.eps = epsValue*np.ones_like(DCsurvey.dobs)
 
     fid = open(fileName, 'w')
 
