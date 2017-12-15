@@ -160,7 +160,7 @@ def calc_midpoints(DCsurvey, surveyType='dipole-dipole', dim=2):
     return midx, midz
 
 
-def calc_rhoApp(DCsurvey, surveyType='dipole-dipole', spaceType='whole-space',
+def calc_rhoApp(DCsurvey, surveyType='dipole-dipole', spaceType='half-space',
                 dobs=None, eps=1e-10):
     """
         Calculate apparent resistivity. Assuming that data are normalized voltages -
