@@ -1113,6 +1113,7 @@ def readUBC_DC3Dobs(fileName):
     # Flag for z value provided
     zflag = True
     poletx = False
+    polerx = False
 
     # Countdown for number of obs/tx
     count = 0
@@ -1154,18 +1155,31 @@ def readUBC_DC3Dobs(fileName):
         temp = np.fromstring(obsfile[ii], dtype=float, sep=' ')
 
         if zflag:
-            # Flip z values
-            temp[2] = -temp[2]
-            temp[5] = -temp[5]
 
-            rx.append(temp[:-2])
+            # Check if Pole Receiver
+            if np.allclose(temp[0:3], temp[3:6]):
+                polerx = True
+                # Flip z values
+                temp[2] = -temp[2]
+                rx.append(temp[:3])
+            else:
+                temp[2] = -temp[2]
+                temp[5] = -temp[5]
+                rx.append(temp[:-2])
+
             # Check if there is data with the location
             if len(temp) == 8:
                 d.append(temp[-2])
                 wd.append(temp[-1])
 
         else:
-            rx.append(np.r_[temp[0:2], np.nan, temp[2:4], np.nan])
+            # Check if Pole Receiver
+            if np.allclose(temp[0:2], temp[2:4]):
+                polerx = True
+                # Flip z values
+                rx.append(temp[:2])
+            else:
+                rx.append(np.r_[temp[0:2], np.nan, temp[2:4], np.nan])
 
             # Check if there is data with the location
             if len(temp) == 6:
@@ -1178,7 +1192,10 @@ def readUBC_DC3Dobs(fileName):
         # Reach the end of transmitter block
         if count == 0:
             rx = np.asarray(rx)
-            Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
+            if polerx:
+                Rx = DC.Rx.Pole(rx[:, :3])
+            else:
+                Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
             if poletx:
                 srcLists.append(DC.Src.Pole([Rx], tx[:3]))
             else:
@@ -1187,6 +1204,7 @@ def readUBC_DC3Dobs(fileName):
     survey = DC.SurveyDC.Survey(srcLists)
     survey.dobs = np.asarray(d)
     survey.std = np.asarray(wd)
+    survey.eps = 0.
 
     return {'DCsurvey': survey}
 
