@@ -160,45 +160,21 @@ def calc_midpoints(DCsurvey, surveyType='dipole-dipole', dim=2):
     return midx, midz
 
 
-def calc_rhoApp(DCsurvey, surveyType='dipole-dipole', spaceType='half-space',
-                dobs=None, eps=1e-10):
+def calc_GeometricFactor(DCsurvey, surveyType='dipole-dipole'):
     """
-        Calculate apparent resistivity. Assuming that data are normalized voltages -
-        Vmn/I (Potential difference [V] divided by injection current [A]). For fwd
-        modelled data an injection current of 1A is assumed in SimPEG.
+        Calculate Geometric Factor. Assuming that data are normalized voltages
 
         Input:
         :param DCsurvey: DC survey object
-        :param data -> normalized voltage measurements [V/A]
         :switch surveyType: Either 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'
         :switch spaceType: Assuming whole-space or half-space ('whole-space' | 'half-space')
-        :eps: Regularizer in case of a null geometric factor
 
         Output:
-        :param rhoApp: apparent resistivity
-
-        Edited Nov. 23th, 2017
-
-        @author: micmitch
+        :param G: Geometric Factor
 
     """
-    # Get electrode separation distances
-    # Use dobs in survey if dobs is None
-    if dobs is None:
-        if DCsurvey.dobs is None:
-            raise Exception()
-        else:
-            dobs = DCsurvey.dobs.copy()
 
     AB, MN, AM, AN, BM, BN = calc_ElecSep(DCsurvey, surveyType=surveyType)
-
-    # Set factor for whole-space or half-space assumption
-    if spaceType == 'whole-space':
-        spaceFact = 4
-    elif spaceType == 'half-space':
-        spaceFact = 2
-    else:
-        raise Exception("""'spaceType must be 'whole-space' | 'half-space'""")
 
     # Determine geometric factor G based on electrode separation distances
     if surveyType == 'dipole-dipole':
@@ -215,6 +191,49 @@ def calc_rhoApp(DCsurvey, surveyType='dipole-dipole', spaceType='half-space',
 
     else:
         raise Exception("""'surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
+
+    return G
+
+
+def calc_rhoApp(DCsurvey, surveyType='dipole-dipole', spaceType='half-space',
+                dobs=None, eps=1e-10):
+    """
+        Calculate apparent resistivity. Assuming that data are normalized voltages -
+        Vmn/I (Potential difference [V] divided by injection current [A]). For fwd
+        modelled data an injection current of 1A is assumed in SimPEG.
+
+        Input:
+        :param DCsurvey: DC survey object
+        :param dobs: normalized voltage measurements [V/A]
+        :switch surveyType: Either 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'
+        :switch spaceType: Assuming whole-space or half-space ('whole-space' | 'half-space')
+        :eps: Regularizer in case of a null geometric factor
+
+        Output:
+        :param rhoApp: apparent resistivity
+
+        Edited Nov. 23th, 2017
+
+        @author: micmitch
+
+    """
+    # Use dobs in survey if dobs is None
+    if dobs is None:
+        if DCsurvey.dobs is None:
+            raise Exception()
+        else:
+            dobs = DCsurvey.dobs.copy()
+
+    # Set factor for whole-space or half-space assumption
+    if spaceType == 'whole-space':
+        spaceFact = 4.
+    elif spaceType == 'half-space':
+        spaceFact = 2.
+    else:
+        raise Exception("""'spaceType must be 'whole-space' | 'half-space'""")
+
+    # Calculate Geometric Factor
+    G = calc_GeometricFactor(DCsurvey, surveyType=surveyType)
 
     # Calculate apparent resistivity
     # absolute value is required because of the regularizer
@@ -263,7 +282,6 @@ def plot_pseudoSection(DCsurvey, ax, surveyType='dipole-dipole',
     rhoApp = calc_rhoApp(DCsurvey, dobs=dobs,
                          surveyType=surveyType,
                          spaceType=spaceType)
-    AB, MN, AM, AN, BM, BN = calc_ElecSep(DCsurvey, surveyType=surveyType)
     midx, midz = calc_midpoints(DCsurvey, surveyType=surveyType, dim=dim)
 
     if dataType == 'volt':
