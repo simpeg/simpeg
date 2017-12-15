@@ -235,7 +235,7 @@ def calc_rhoApp(DCsurvey, surveyType='dipole-dipole', spaceType='half-space',
 
     # Calculate apparent resistivity
     # absolute value is required because of the regularizer
-    rhoApp = np.abs(dobs*(1/(G+eps)))
+    rhoApp = np.abs(dobs*(1./(G+eps)))
 
     return rhoApp
 
