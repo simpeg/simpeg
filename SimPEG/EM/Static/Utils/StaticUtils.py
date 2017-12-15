@@ -520,14 +520,16 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
     return survey
 
 
-def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
+def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, surveyType='dipole-dipole', iptype=0):
     """
        Write UBC GIF DCIP 2D or 3D observation file
 
        :param string fileName: including path where the file is written out
        :param Survey DCsurvey: DC survey class object
        :param string dim:  either '2D' | '3D'
-       :param string surveyType:  either 'SURFACE' | 'GENERAL'
+       :param string formatType:  either 'SURFACE' | 'GENERAL'
+        :param str surveyType: 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole' | 'gradient'
+
        :iptype: file
        :return: UBC2D-Data file
     """
@@ -559,20 +561,21 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
 
     for ii in range(DCsurvey.nSrc):
 
-        tx = np.c_[DCsurvey.srcList[ii].loc.copy()]
-
-        if np.shape(tx)[0] == 3:
-            surveyType = 'pole-dipole'
-
-        else:
-            surveyType = 'dipole-dipole'
-
         rx = DCsurvey.srcList[ii].rxList[0].locs
-
         nD = DCsurvey.srcList[ii].nD
 
-        M = rx[0].copy()
-        N = rx[1].copy()
+        if surveyType == 'pole-dipole' or surveyType == 'pole-pole':
+            tx = np.r_[DCsurvey.srcList[ii].loc.copy()]
+            tx = np.repeat(np.r_[[tx]], 2, axis=0)
+        elif surveyType == 'dipole-dipole' or surveyType == 'dipole-pole':
+            tx = np.c_[DCsurvey.srcList[ii].loc.copy()]
+
+        if surveyType == 'pole-dipole' or surveyType == 'dipole-dipole':
+            M = rx[0].copy()
+            N = rx[1].copy()
+        elif surveyType == 'pole-pole' or surveyType == 'dipole-pole':
+            M = rx.copy()
+            N = rx.copy()
 
 
         # Adapt source-receiver location for dim and surveyType
