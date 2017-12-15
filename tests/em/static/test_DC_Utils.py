@@ -321,7 +321,7 @@ class DCUtilsTests_fullspace(unittest.TestCase):
                                      spaceType='whole-space', eps=1e-16)
 
         # Load benchmarks files from UBC-GIF codes
-        rhoappfile = os.pat h.sep.join([self.basePath, 'RhoApp_GIF_fullspace.txt'])
+        rhoappfile = os.path.sep.join([self.basePath, 'RhoApp_GIF_fullspace.txt'])
         rhogif = np.loadtxt(rhoappfile)
         # remove value with almost null geometric factor
         idx = rhoapp < 1e8
