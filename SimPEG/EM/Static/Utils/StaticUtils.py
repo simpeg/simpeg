@@ -160,7 +160,7 @@ def calc_midpoints(DCsurvey, surveyType='dipole-dipole', dim=2):
     return midx, midz
 
 
-def calc_GeometricFactor(DCsurvey, surveyType='dipole-dipole'):
+def calc_GeometricFactor(DCsurvey, surveyType='dipole-dipole', spaceType='half-space'):
     """
         Calculate Geometric Factor. Assuming that data are normalized voltages
 
@@ -173,6 +173,13 @@ def calc_GeometricFactor(DCsurvey, surveyType='dipole-dipole'):
         :param G: Geometric Factor
 
     """
+    # Set factor for whole-space or half-space assumption
+    if spaceType == 'whole-space':
+        spaceFact = 4.
+    elif spaceType == 'half-space':
+        spaceFact = 2.
+    else:
+        raise Exception("""'spaceType must be 'whole-space' | 'half-space'""")
 
     AB, MN, AM, AN, BM, BN = calc_ElecSep(DCsurvey, surveyType=surveyType)
 
@@ -192,7 +199,7 @@ def calc_GeometricFactor(DCsurvey, surveyType='dipole-dipole'):
     else:
         raise Exception("""'surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
 
-    return G
+    return (G/(spaceFact*np.pi))
 
 
 def calc_rhoApp(DCsurvey, surveyType='dipole-dipole', spaceType='half-space',
@@ -206,7 +213,6 @@ def calc_rhoApp(DCsurvey, surveyType='dipole-dipole', spaceType='half-space',
         :param DCsurvey: DC survey object
         :param dobs: normalized voltage measurements [V/A]
         :switch surveyType: Either 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'
-        :switch spaceType: Assuming whole-space or half-space ('whole-space' | 'half-space')
         :eps: Regularizer in case of a null geometric factor
 
         Output:
@@ -224,20 +230,12 @@ def calc_rhoApp(DCsurvey, surveyType='dipole-dipole', spaceType='half-space',
         else:
             dobs = DCsurvey.dobs.copy()
 
-    # Set factor for whole-space or half-space assumption
-    if spaceType == 'whole-space':
-        spaceFact = 4.
-    elif spaceType == 'half-space':
-        spaceFact = 2.
-    else:
-        raise Exception("""'spaceType must be 'whole-space' | 'half-space'""")
-
     # Calculate Geometric Factor
-    G = calc_GeometricFactor(DCsurvey, surveyType=surveyType)
+    G = calc_GeometricFactor(DCsurvey, surveyType=surveyType, spaceType=spaceType)
 
     # Calculate apparent resistivity
     # absolute value is required because of the regularizer
-    rhoApp = np.abs(spaceFact*np.pi*dobs*(1/(G+eps)))
+    rhoApp = np.abs(dobs*(1/(G+eps)))
 
     return rhoApp
 
