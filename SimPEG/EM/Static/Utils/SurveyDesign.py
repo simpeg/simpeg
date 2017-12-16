@@ -8,7 +8,7 @@ import numpy as np
 from SimPEG import Utils, Mesh
 from SimPEG.EM.Static import DC
 import matplotlib.pyplot as plt
-from scipy.interpolate import griddata
+#from scipy.interpolate import griddata
 # from pymatsolver import PardisoSolver
 from matplotlib.colors import LogNorm, SymLogNorm
 from SimPEG.EM.Static.Utils import genTopography, gettopoCC
@@ -437,4 +437,3 @@ class SurveyDesign(object):
         tmp_mesh, topo = gettopoCC(self.mesh, self.actind)
         topo = np.c_[tmp_mesh.gridCC, topo]
         self.topo = topo
-

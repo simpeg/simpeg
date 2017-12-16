@@ -183,7 +183,7 @@ def calc_GeometricFactor(DCsurvey, surveyType='dipole-dipole', spaceType='half-s
     else:
         raise Exception("""'spaceType must be 'whole-space' | 'half-space'""")
 
-    _, MN, AM, AN, BM, BN = calc_ElecSep(DCsurvey, surveyType=surveyType)
+    _, _, AM, AN, BM, BN = calc_ElecSep(DCsurvey, surveyType=surveyType)
 
     # Determine geometric factor G based on electrode separation distances
     if surveyType == 'dipole-dipole':
