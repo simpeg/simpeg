@@ -143,7 +143,7 @@ def calc_midpoints(DCsurvey, surveyType='dipole-dipole', dim=2):
             else:
                 raise Exception()
 
-        if surveyType == 'dipole-pole':
+        elif surveyType == 'dipole-pole':
             # Create mid-point location
             Cmid = (Tx[0][0] + Tx[1][0])/2
             Pmid = Rx[:, 0]
@@ -153,6 +153,8 @@ def calc_midpoints(DCsurvey, surveyType='dipole-dipole', dim=2):
                 zsrc = (Tx[0][2] + Tx[1][2])/2
             else:
                 raise Exception()
+        else:
+            raise Exception("""'surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
 
         midx = np.hstack([midx, (Cmid + Pmid)/2])
         midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc])
