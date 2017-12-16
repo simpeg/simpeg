@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import matplotlib.pyplot as plt
 from SimPEG.EM.Static import DC, Utils as DCUtils
-from SimPEG import Mesh, Problem, Survey, Maps
+from SimPEG import Mesh, Survey, Maps
 from SimPEG.Utils import io_utils
 import shutil
 import os

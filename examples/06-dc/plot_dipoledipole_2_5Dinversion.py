@@ -1,7 +1,6 @@
 from SimPEG import DC
 from SimPEG import (Maps, Utils, DataMisfit, Regularization,
                     Optimization, Inversion, InvProblem, Directives)
-from pymatsolver import PardisoSolver
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
@@ -34,10 +33,11 @@ rho = 1./sigma
 
 # Show the true conductivity model
 if showIt:
-    fig = plt.figure(figsize = (12, 3))
+    fig = plt.figure(figsize=(12, 3))
     ax = plt.subplot(111)
-    mesh.plotImage(1./sigma, grid=True, ax=ax, gridOpts={'alpha':0.2}, pcolorOpts={"cmap":"jet"})
-    plt.plot(IO.uniqElecLocs[:,0], IO.uniqElecLocs[:,1], 'k.')
+    mesh.plotImage(1./sigma, grid=True, ax=ax, gridOpts={'alpha': 0.2},
+                   pcolorOpts={"cmap": "jet"})
+    plt.plot(IO.uniqElecLocs[:, 0], IO.uniqElecLocs[:, 1], 'k.')
     plt.show()
 
 # Use Exponential Map: m = log(rho)
@@ -49,7 +49,7 @@ mtrue = np.ones(mesh.nC)*np.log(rho)
 # "N" means potential is defined at nodes
 prb = DC.Problem2D_N(
     mesh, rhoMap=mapping, storeJ=True,
-    Solver = PardisoSolver
+    Solver=Solver
 )
 # Pair problem with survey
 try:
@@ -109,9 +109,11 @@ rho_est[~actind] = np.nan
 if showIt:
     vmin, vmax = rho.min(), rho.max()
     fig, ax = plt.subplots(figsize=(20, 3))
-    out = mesh.plotImage(rho_est, clim=(vmin, vmax), pcolorOpts={"cmap":"jet", "norm":colors.LogNorm()}, ax=ax)
-    ax.set_xlim(IO.grids[:,0].min(), IO.grids[:,0].max())
-    ax.set_ylim(-IO.grids[:,1].max(), IO.grids[:,1].min())
+    out = mesh.plotImage(rho_est, clim=(vmin, vmax),
+                         pcolorOpts={"cmap": "jet", "norm": colors.LogNorm()},
+                         ax=ax)
+    ax.set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
+    ax.set_ylim(-IO.grids[:, 1].max(), IO.grids[:, 1].min())
     cb = plt.colorbar(out[0])
     cb.set_label("Resistivity ($\Omega$m)")
     ax.set_xlabel("Northing (m)")
