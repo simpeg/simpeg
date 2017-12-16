@@ -1,17 +1,23 @@
 from __future__ import print_function
 import unittest
 import numpy as np
+import matplotlib.pyplot as plt
 from SimPEG.EM.Static import DC, Utils as DCUtils
 from SimPEG import Mesh, Problem, Survey, Maps
 from SimPEG.Utils import io_utils
 import shutil
 import os
 
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from SimPEG import SolverLU as Solver
+
 
 class DCUtilsTests_halfspace(unittest.TestCase):
 
     def setUp(self):
-        url = 'https://storage.googleapis.com/simpeg/tests/dc_utils/'
+        url = 'https://github.com/thast/Benchmarks_files/raw/master/Test_DCUtils/'
         cloudfiles = ['mesh3d.msh', '2spheres_conmodel.npy',
                       'rhoA_GIF_dd.txt', 'rhoA_GIF_dp.txt',
                       'rhoA_GIF_pd.txt', 'rhoA_GIF_pp.txt'
@@ -55,7 +61,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
         # Setup Problem with exponential mapping
         expmap = Maps.ExpMap(self.mesh)
-        problem = DC.Problem3D_CC(mesh, sigmaMap=expmap)
+        problem = DC.Problem3D_CC(self.mesh, sigmaMap=expmap)
         problem.pair(survey)
         problem.Solver = Solver
 
@@ -64,17 +70,18 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         survey.eps = 1e-5
 
         # Testing IO
-        DCUtils.writeUBC_DCobs('./2sph_dipole_dipole.obs',
+        surveyfile = os.path.sep.join([self.basePath, '2sph_dipole_dipole.obs'])
+        DCUtils.writeUBC_DCobs(surveyfile,
                                survey,
                                dim='3D',
                                formatType='GENERAL')
-        survey = DCUtils.readUBC_DC3Dobs('./2sph_dipole_dipole.obs')
+        survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['DCsurvey']
-        DCUtils.writeUBC_DCobs('./2sph_dipole_dipole.obs',
+        DCUtils.writeUBC_DCobs(surveyfile,
                                survey,
                                dim='3D',
                                formatType='GENERAL')
-        survey = DCUtils.readUBC_DC3Dobs('./2sph_dipole_dipole.obs')
+        survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['DCsurvey']
 
         # Test Pseudosections plotting
@@ -108,7 +115,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
         # Setup Problem with exponential mapping
         expmap = Maps.ExpMap(self.mesh)
-        problem = DC.Problem3D_CC(mesh, sigmaMap=expmap)
+        problem = DC.Problem3D_CC(self.mesh, sigmaMap=expmap)
         problem.pair(survey)
         problem.Solver = Solver
 
@@ -117,17 +124,16 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         survey.eps = 1e-5
 
         # Testing IO
-        DCUtils.writeUBC_DCobs('./2sph_pole_dipole.obs',
-                               survey,
-                               dim='3D',
-                               formatType='GENERAL')
-        survey = DCUtils.readUBC_DC3Dobs('./2sph_pole_dipole.obs')
+        surveyfile = os.path.sep.join([self.basePath, '2sph_pole_dipole.obs'])
+        DCUtils.writeUBC_DCobs(surveyfile,
+                               survey, surveyType='pole-dipole',
+                               dim='3D', formatType='GENERAL')
+        survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['DCsurvey']
-        DCUtils.writeUBC_DCobs('./2sph_pole_dipole.obs',
-                               survey,
-                               dim='3D',
-                               formatType='GENERAL')
-        survey = DCUtils.readUBC_DC3Dobs('./2sph_pole_dipole.obs')
+        DCUtils.writeUBC_DCobs(surveyfile,
+                               survey, surveyType='pole-dipole',
+                               dim='3D', formatType='GENERAL')
+        survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['DCsurvey']
 
         # Test Pseudosections plotting
@@ -146,7 +152,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
         rhoA_GIF_file = os.path.sep.join([self.basePath, 'rhoA_GIF_pd.txt'])
         rhoA_GIF_pd = np.loadtxt(rhoA_GIF_file)
-        passed = np.allclose(rhoapp, rhoA_GIF_dp)
+        passed = np.allclose(rhoapp, rhoA_GIF_pd)
         self.assertTrue(passed)
 
     def test_dipole_pole(self):
@@ -161,7 +167,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
         # Setup Problem with exponential mapping
         expmap = Maps.ExpMap(self.mesh)
-        problem = DC.Problem3D_CC(mesh, sigmaMap=expmap)
+        problem = DC.Problem3D_CC(self.mesh, sigmaMap=expmap)
         problem.pair(survey)
         problem.Solver = Solver
 
@@ -170,17 +176,16 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         survey.eps = 1e-5
 
         # Testing IO
-        DCUtils.writeUBC_DCobs('./2sph_dipole_pole.obs',
-                               survey,
-                               dim='3D',
-                               formatType='GENERAL')
-        survey = DCUtils.readUBC_DC3Dobs('./2sph_dipole_pole.obs')
+        surveyfile = os.path.sep.join([self.basePath, '2sph_dipole_pole.obs'])
+        DCUtils.writeUBC_DCobs(surveyfile,
+                               survey, surveyType='dipole-pole',
+                               dim='3D', formatType='GENERAL')
+        survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['DCsurvey']
-        DCUtils.writeUBC_DCobs('./2sph_dipole_pole.obs',
-                               survey,
-                               dim='3D',
-                               formatType='GENERAL')
-        survey = DCUtils.readUBC_DC3Dobs('./2sph_dipole_pole.obs')
+        DCUtils.writeUBC_DCobs(surveyfile,
+                               survey, surveyType='dipole-pole',
+                               dim='3D', formatType='GENERAL')
+        survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['DCsurvey']
 
         # Test Pseudosections plotting
@@ -214,7 +219,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
         # Setup Problem with exponential mapping
         expmap = Maps.ExpMap(self.mesh)
-        problem = DC.Problem3D_CC(mesh, sigmaMap=expmap)
+        problem = DC.Problem3D_CC(self.mesh, sigmaMap=expmap)
         problem.pair(survey)
         problem.Solver = Solver
 
@@ -223,17 +228,16 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         survey.eps = 1e-5
 
         # Testing IO
-        DCUtils.writeUBC_DCobs('./2sph_pole_pole.obs',
-                               survey,
-                               dim='3D',
-                               formatType='GENERAL')
-        survey = DCUtils.readUBC_DC3Dobs('./2sph_pole_pole.obs')
+        surveyfile = os.path.sep.join([self.basePath, '2sph_pole_pole.obs'])
+        DCUtils.writeUBC_DCobs(surveyfile,
+                               survey, surveyType='pole-pole',
+                               dim='3D', formatType='GENERAL')
+        survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['DCsurvey']
-        DCUtils.writeUBC_DCobs('./2sph_pole_pole.obs',
-                               survey,
-                               dim='3D',
-                               formatType='GENERAL')
-        survey = DCUtils.readUBC_DC3Dobs('./2sph_pole_pole.obs')
+        DCUtils.writeUBC_DCobs(surveyfile,
+                               survey, surveyType='pole-pole',
+                               dim='3D', formatType='GENERAL')
+        survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['DCsurvey']
 
         # Test Pseudosections plotting
@@ -263,7 +267,7 @@ class DCUtilsTests_fullspace(unittest.TestCase):
 
     def setUp(self):
 
-        url = 'https://storage.googleapis.com/simpeg/tests/dc_utils/'
+        url = 'https://github.com/thast/Benchmarks_files/raw/master/Test_DCUtils/'
         cloudfiles = ['dPred_fullspace.txt', 'AB_GIF_fullspace.txt',
                       'MN_GIF_fullspace.txt', 'AM_GIF_fullspace.txt',
                       'AN_GIF_fullspace.txt', 'BM_GIF_fullspace.txt',
