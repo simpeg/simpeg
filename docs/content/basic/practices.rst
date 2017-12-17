@@ -10,7 +10,6 @@ Here we cover
 
 - :ref:`Testing <testing>`
 - :ref:`Style <style>`
-- :ref:`Pull Requests <pull_requests>`
 - :ref:`Licensing <licensing>`
 
 .. _testing:
@@ -51,7 +50,7 @@ Checkout the docs on `unittest
 
 
 Compare with known values
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In a simple case, you might now the exact value of what the output should be
 and you can :code:`assert` that this is in fact the case. For example, in
@@ -173,26 +172,60 @@ DEM_derivs.py>`_
             return survey.dpred(x), lambda x: prb.Jvec(x0, x)
         return Tests.checkDerivative(fun, x0, num=2, plotIt=False, eps=FLR)
 
+.. _documentation:
+
+Documentation
+-------------
+
+Documentation helps others use your code! Please document new contributions.
+SimPEG uses `sphinx <http://www.sphinx-doc.org/>`_ to build the documentation.
+When documenting a new class or function, please include a description
+(with math if it solves an equation), inputs, outputs and preferably a small example.
+
+For example:
+
+.. code:: python
+
+
+    class Tikhonov(BaseComboRegularization):
+        """
+        L2 Tikhonov regularization with both smallness and smoothness (first order
+        derivative) contributions.
+
+        .. math::
+            \phi_m(\mathbf{m}) = \\alpha_s \| W_s (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+            + \\alpha_x \| W_x \\frac{\partial}{\partial x} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+            + \\alpha_y \| W_y \\frac{\partial}{\partial y} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+            + \\alpha_z \| W_z \\frac{\partial}{\partial z} (\mathbf{m} - \mathbf{m_{ref}} ) \|^2
+
+        Note if the key word argument `mrefInSmooth` is False, then mref is not
+        included in the smoothness contribution.
+
+        :param BaseMesh mesh: SimPEG mesh
+        :param IdentityMap mapping: regularization mapping, takes the model from model space to the thing you want to regularize
+        :param numpy.ndarray indActive: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
+        :param bool mrefInSmooth: (default = False) put mref in the smoothness component?
+        :param float alpha_s: (default 1e-6) smallness weight
+        :param float alpha_x: (default 1) smoothness weight for first derivative in the x-direction
+        :param float alpha_y: (default 1) smoothness weight for first derivative in the y-direction
+        :param float alpha_z: (default 1) smoothness weight for first derivative in the z-direction
+        :param float alpha_xx: (default 1) smoothness weight for second derivative in the x-direction
+        :param float alpha_yy: (default 1) smoothness weight for second derivative in the y-direction
+        :param float alpha_zz: (default 1) smoothness weight for second derivative in the z-direction
+        """
+
+
 
 .. _style:
 
 Style
 -----
 
-.. image:: https://www.quantifiedcode.com/api/v1/project/933aa3decf444538aa432c8817169b6d/badge.svg
-  :target: https://www.quantifiedcode.com/app/project/933aa3decf444538aa432c8817169b6d
-  :alt: Code issues
-
 Consistency make code more readable and easier for collaborators to jump in.
 `PEP 8 <https://www.python.org/dev/peps/pep-0008/>`_ provides conventions for
 coding in Python. SimPEG is currently not `PEP 8
 <https://www.python.org/dev/peps/pep-0008/>`_ compliant, but we are working
 towards it and would appreciate contributions that do too! If you have sublime text 3, the linter can be set up through sublime text 3's package manager. The step by step process is found :ref:`here <api_practices_linter_install>`.
-
-There are a few resources we use to promote these practices: the service
-`Quantified Code <https://www.quantifiedcode.com/app/project/933aa3decf444538a
-a432c8817169b6d>`_ to check for consistency (... we have some work
-to do. Pull requests are welcome!)
 
 Sublime has PEP 8 linter packages that you can use. I use `SublimeLinter-pep8 <https://github.com/SublimeLinter/SublimeLinter-pep8>`_.
 You can install it by going to your package manager (`cmd + shift + p`),
@@ -293,23 +326,6 @@ Instructions for installing and activating the pep8 linter for Mac OS X/Linux/Wi
 - After reading the message, close Sublime Text 3
 
 The next time you open a .py file in sublime text 3, the linter should be activated.
-
-
-.. _pull_requests:
-
-Pull Requests
--------------
-
-Pull requests are a chance to get peer review on your code. For the git flow,
-we do all pull requests onto **dev** before merging to **master**. If you are
-working on a specific geophysical application, e.g. electromagnetics, pull
-requests should first go through that method's **dev** branch, in this case,
-**em/dev**. This way, we make sure that new changes are up-to date with the
-given method, and there is a chance to catch bugs before putting changes onto
-**master**. We do code reviews on pull requests, with the aim of promoting
-best practices and ensuring that new contributions can be built upon by the
-SimPEG community. For more info on best practices for version control and git
-flow, check out the article `A successful git branching model <http://nvie.com/posts/a-successful-git-branching-model/>`_
 
 
 .. _licensing:
