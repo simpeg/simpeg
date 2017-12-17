@@ -7,7 +7,7 @@ About SimPEG
 .. toctree::
    :maxdepth: 2
 
-   content/basic/bigPicture
+   content/basic/big_picture
    content/basic/contributing
    content/basic/installing
    content/basic/getting_started_developers
