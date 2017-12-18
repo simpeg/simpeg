@@ -18,7 +18,7 @@ class DirectivesValidation(unittest.TestCase):
         IRLS = Directives.Update_IRLS(
             f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
         )
-        update_Jacobi = Directives.Update_lin_PreCond()
+        update_Jacobi = Directives.UpdatePreconditioner()
         dList = [betaest, IRLS, update_Jacobi]
         directiveList = Directives.DirectiveList(*dList)
 
@@ -30,7 +30,7 @@ class DirectivesValidation(unittest.TestCase):
         IRLS = Directives.Update_IRLS(
             f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
         )
-        update_Jacobi = Directives.Update_lin_PreCond()
+        update_Jacobi = Directives.UpdatePreconditioner()
         dList = [betaest, update_Jacobi, IRLS]
         directiveList = Directives.DirectiveList(*dList)
 
@@ -43,7 +43,7 @@ class DirectivesValidation(unittest.TestCase):
         IRLS = Directives.Update_IRLS(
             f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
         )
-        update_Jacobi = Directives.Update_lin_PreCond()
+        update_Jacobi = Directives.UpdatePreconditioner()
         dList = [betaest, IRLS]
         directiveList = Directives.DirectiveList(*dList)
 
@@ -109,7 +109,7 @@ class ValidationInInversion(unittest.TestCase):
             f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
         )
 
-        update_Jacobi = Directives.Update_lin_PreCond()
+        update_Jacobi = Directives.UpdatePreconditioner()
 
         with self.assertRaises(AssertionError):
             # validation should happen and this will fail
