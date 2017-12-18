@@ -49,39 +49,56 @@ class InversionDirective(object):
     @property
     def reg(self):
         if getattr(self, '_reg', None) is None:
-            self._reg = self.invProb.reg
+            self.reg = self.invProb.reg  # go through the setter
         return self._reg
 
     @reg.setter
     def reg(self, value):
-        assert any([isinstance(value, regtype) for regtype in self._regPair]),(
+        assert any([isinstance(value, regtype) for regtype in self._regPair]), (
             "Regularization must be in {}, not {}".format(
                 self._regPair, type(value)
             )
         )
-        self._reg = reg
+
+        if isinstance(value, Regularization.BaseComboRegularization):
+            value = 1*value  # turn it into a combo objective function
+        self._reg = value
 
     @property
     def dmisfit(self):
-        return self.invProb.dmisfit
+        if getattr(self, '_dmisfit', None) is None:
+            self.dmisfit = self.invProb.dmisfit  # go through the setter
+        return self._dmisfit
 
     @dmisfit.setter
     def dmisfit(self, value):
+
         assert any([
                 isinstance(value, dmisfittype) for dmisfittype in
                 self._dmisfitPair
         ]), "Regularization must be in {}, not {}".format(
                 self._dmisfitPair, type(value)
         )
-        self._dmisfit = dmisfit
+
+        if not isinstance(value, ObjectiveFunction.ComboObjectiveFunction):
+            value = 1*value  # turn it into a combo objective function
+        self._dmisfit = value
 
     @property
     def survey(self):
-        return self.dmisfit.survey
+        """
+           Assuming that dmisfit is always a ComboObjectiveFunction,
+           return a list of surveys for each dmisfit [survey1, survey2, ... ]
+        """
+        return [objfcts.survey for objfcts in self.dmisfit.objfcts]
 
     @property
     def prob(self):
-        return self.dmisfit.prob
+        """
+           Assuming that dmisfit is always a ComboObjectiveFunction,
+           return a list of problems for each dmisfit [prob1, prob2, ...]
+        """
+        return [objfcts.prob for objfcts in self.dmisfit.objfcts]
 
     def initialize(self):
         pass
@@ -200,8 +217,13 @@ class BetaEstimate_ByEig(InversionDirective):
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
         x0 = np.random.rand(*m.shape)
-        t = x0.dot(self.dmisfit.deriv2(m, x0, f=f))
-        b = x0.dot(self.reg.deriv2(m, v=x0))
+
+        t, b = 0, 0
+
+        for dmis, reg in zip(self.dmisfit.objfcts, self.reg.objfcts):
+            t += x0.dot(dmis.deriv2(m, x0, f=f))
+            b += x0.dot(reg.deriv2(m, v=x0))
+
         self.beta0 = self.beta0_ratio*(t/b)
 
         self.invProb.beta = self.beta0
@@ -735,31 +757,34 @@ class UpdatePreconditioner(InversionDirective):
 
     def initialize(self):
 
-        # Check if it is a ComboObjective
-        if not isinstance(self.reg, Regularization.BaseComboRegularization):
-
-            # It is a Combo objective, so will have to loop
-            self.ComboObjFun = True
-
-        if getattr(self, 'mapping', None) is None:
-            self.mapping = Maps.IdentityMap(nP=self.reg.mapping.nP)
-
         if getattr(self.opt, 'approxHinv', None) is None:
 
+            if getattr(self.opt, 'JtJdiag', None) is None:
+
+                JtJdiag = np.zeros_like(self.invProb.model)
+                for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
+
+                    assert getattr(prob, 'getJ', None) is not None, (
+                        "Problem does not have a getJ attribute." +
+                        "Cannot form the sensitivity explicitely"
+                    )
+
+                    if getattr(prob, '_Jmat', None) is None:
+                        m = self.invProb.model
+                        prob.getJ(m)
+
+                    JtJdiag += np.sum((dmisfit.W*prob.Jmat)**2., axis=0)
+
+                self.opt.JtJdiag = JtJdiag
+
             # Update the pre-conditioner
-            if self.ComboObjFun:
+            reg_diag = np.zeros_like(self.invProb.model)
+            for reg in self.reg.objfcts:
+                reg_diag += self.invProb.beta*(reg.W.T*reg.W).diagonal()
 
-                reg_diag = []
-                for reg in self.reg.objfcts:
-                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+            Hdiag = self.opt.JtJdiag + reg_diag
 
-                diagA = np.sum(self.prob.G**2., axis=0) + np.hstack(reg_diag)
-
-            else:
-                diagA = (np.sum(self.prob.G**2., axis=0) +
-                         self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal())
-
-            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
+            PC = Utils.sdiag(Hdiag**-1.)
             self.opt.approxHinv = PC
 
     def endIter(self):
@@ -768,21 +793,15 @@ class UpdatePreconditioner(InversionDirective):
             return
 
         if getattr(self.opt, 'approxHinv', None) is not None:
+
             # Update the pre-conditioner
-            # Update the pre-conditioner
-            if self.ComboObjFun:
+            reg_diag = np.zeros_like(self.invProb.model)
+            for reg in self.reg.objfcts:
+                reg_diag += self.invProb.beta*(reg.W.T*reg.W).diagonal()
 
-                reg_diag = []
-                for reg in self.reg.objfcts:
-                    reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
+            Hdiag = self.opt.JtJdiag + reg_diag
 
-                diagA = np.sum(self.prob.G**2., axis=0) + np.hstack(reg_diag)
-
-            else:
-                diagA = (np.sum(self.prob.G**2., axis=0) +
-                         self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal())
-
-            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
+            PC = Utils.sdiag(Hdiag**-1.)
             self.opt.approxHinv = PC
 
 
@@ -823,7 +842,7 @@ class UpdateSensitivityWeights(InversionDirective):
     mapping = None
     JtJdiag = None
     everyIter = True
-    epsilon = 1e-12
+    threshold = 1e-12
 
     def initialize(self):
 
@@ -862,19 +881,16 @@ class UpdateSensitivityWeights(InversionDirective):
                                          self.survey,
                                          self.dmisfit.objfcts):
 
-            assert (getattr(prob, 'getJ', None) is not None, (
+            assert getattr(prob, 'getJ', None) is not None, (
                 "Problem does not have a getJ attribute." +
                 "Cannot form the sensitivity explicitely"
-                )
             )
 
             if getattr(prob, '_Jmat', None) is None:
                 m = self.invProb.model
                 prob.getJ(m)
 
-            JtJdiag += dmisfit.W*prob.Jmat
-
-            self.JtJdiag += [JtJdiag]
+            self.JtJdiag += [np.sum((dmisfit.W*prob.Jmat)**2., axis=0)]
 
         return self.JtJdiag
 
@@ -888,7 +904,7 @@ class UpdateSensitivityWeights(InversionDirective):
 
         for prob_JtJ, prob in zip(self.JtJdiag, self.prob):
 
-            wr += prob_JtJ + prob.threshold
+            wr += prob_JtJ + self.threshold
 
         wr = wr**0.5
         wr /= wr.max()
