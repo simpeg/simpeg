@@ -52,14 +52,14 @@ class BaseDCProblem(BaseEMProblem):
             if f is None:
                 f = self.fields(m)
             self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
+        pass
 
     def Jvec(self, m, v, f=None):
         """
             Compute sensitivity matrix (J) and vector (v) product.
         """
         if self.storeJ:
-            if self._Jmatrix is None:
-                self.getJ(m, f=f)
+            self.getJ(m, f=f)
             Jv = Utils.mkvc(np.dot(self._Jmatrix, v))
             return Jv
 
@@ -85,6 +85,7 @@ class BaseDCProblem(BaseEMProblem):
     def Jtvec(self, m, v, f=None):
         """
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+
         """
         if self.storeJ:
             self.getJ(m, f=f)
@@ -99,6 +100,10 @@ class BaseDCProblem(BaseEMProblem):
         return self._Jtvec(m, v=v, f=f)
 
     def _Jtvec(self, m, v=None, f=None):
+        """
+            Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+            Full J matrix can be computed by inputing v=None
+        """
 
         if v is not None:
             # Ensure v is a data object.
@@ -106,6 +111,7 @@ class BaseDCProblem(BaseEMProblem):
                 v = self.dataPair(self.survey, v)
             Jtv = np.zeros(m.size)
         else:
+            # This is for forming full sensitivity matrix
             Jtv = []
 
         for src in self.survey.srcList:
@@ -117,6 +123,7 @@ class BaseDCProblem(BaseEMProblem):
                         src, self.mesh, f, v[src, rx], adjoint=True
                     )
                 else:
+                    # This is for forming full sensitivity matrix
                     PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
                 df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
                                     None)
@@ -130,6 +137,7 @@ class BaseDCProblem(BaseEMProblem):
                 if v is not None:
                     Jtv += (df_dmT + du_dmT).astype(float)
                 else:
+                    # This is for forming full sensitivity matrix
                     Jtv.append(
                         np.vstack((df_dmT + du_dmT).astype(float))
                     )
