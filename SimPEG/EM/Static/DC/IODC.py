@@ -1,23 +1,33 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
+import properties
+
 import SimPEG
 from SimPEG import Utils, Mesh
 from . import SrcDC as Src   # Pole
 from . import RxDC as Rx
 from .SurveyDC import Survey_ky
-import matplotlib.pyplot as plt
-import matplotlib
 
 
-class IO(object):
+class IO(properties.HasProperties):
     """Input and Output for DC, IP, SP, ..."""
 
     # TODO: use properties
 
-    Alocs = None
-    Blocs = None
-    Mlocs = None
-    Nlocs = None
+    # a_locations = properties.Array(
+    #     "locations of the positive electrodes",
+    #     shape=[('*', 3), ('*', 2)],  # ('*', 3) for 3D or ('*', 2) for 2D
+    #     dtype=float  # data are floats
+    # )
+
+    a_locations = None
+    b_locations = None
+    m_locations = None
+    n_locations = None
+
     uniqElecLocs = None
+
     geometry = "SURFACE"
     dataType = 'volt'     # "volt" and "appResistivity"
     topoFunc = None
@@ -41,25 +51,29 @@ class IO(object):
     padratez = 1.3
     ncellperdipole = 4
 
-    def fromABMN_to_survey(self, A, B, M, N, surveyType, dobs=None, dataType="volt", fname=None, dim=2):
+    def from_ambnlocations_to_survey(
+        self, a_locations, b_locations, m_locations, n_locations,
+        surveyType, dobs=None,
+        dataType="volt", fname=None, dim=2
+    ):
         """
         read ABMN location and data (V or appResistivity)
         """
-        self.Alocs = A.copy()
-        self.Blocs = B.copy()
-        self.Mlocs = M.copy()
-        self.Nlocs = N.copy()
+        self.a_locations = a_locations.copy()
+        self.b_locations = b_locations.copy()
+        self.m_locations = m_locations.copy()
+        self.n_locations = n_locations.copy()
         self.surveyType = surveyType
         self.dataType = dataType
         self.dim = dim
 
-        uniqSrc = Utils.uniqueRows(np.c_[self.Alocs, self.Blocs])
+        uniqSrc = Utils.uniqueRows(np.c_[self.a_locations, self.b_locations])
         uniqElec = SimPEG.Utils.uniqueRows(
-            np.vstack((self.Alocs, self.Blocs, self.Mlocs, self.Nlocs))
+            np.vstack((self.a_locations, self.b_locations, self.m_locations, self.n_locations))
             )
         self.uniqElecLocs = uniqElec[0]
         nSrc = uniqSrc[0].shape[0]
-        ndata = self.Alocs.shape[0]
+        ndata = self.a_locations.shape[0]
 
         if dim == 2:
 
@@ -69,8 +83,8 @@ class IO(object):
                 inds = uniqSrc[2] == iSrc
                 sortinds.append(np.arange(ndata)[inds])
 
-                locsM = self.Mlocs[inds, :]
-                locsN = self.Nlocs[inds, :]
+                locsM = self.m_locations[inds, :]
+                locsN = self.n_locations[inds, :]
 
                 if (surveyType == 'dipole-dipole') or (surveyType == 'pole-dipole'):
                     rx = Rx.Dipole_ky(locsM, locsN)
@@ -89,10 +103,10 @@ class IO(object):
 
             self.sortinds = np.hstack(sortinds)
             survey = Survey_ky(srcLists)
-            self.Alocs = self.Alocs[self.sortinds, :]
-            self.Blocs = self.Blocs[self.sortinds, :]
-            self.Mlocs = self.Mlocs[self.sortinds, :]
-            self.Nlocs = self.Nlocs[self.sortinds, :]
+            self.a_locations = self.a_locations[self.sortinds, :]
+            self.b_locations = self.b_locations[self.sortinds, :]
+            self.m_locations = self.m_locations[self.sortinds, :]
+            self.n_locations = self.n_locations[self.sortinds, :]
             G = self.getGeometricFactor()
             if self.dobs is None:
                 self.dobs = 100.*self.G
@@ -107,8 +121,8 @@ class IO(object):
                 self.V = self.appResistivity * self.G
                 self.dobs = self.V.copy()
 
-            midAB = (self.Alocs[:, 0] + self.Blocs[:, 0])*0.5
-            midMN = (self.Mlocs[:, 0] + self.Nlocs[:, 0])*0.5
+            midAB = (self.a_locations[:, 0] + self.b_locations[:, 0])*0.5
+            midMN = (self.m_locations[:, 0] + self.n_locations[:, 0])*0.5
             z = abs(midAB-midMN)*1./3.
             x = (midAB+midMN)*0.5
             self.grids = np.c_[x, z]
@@ -121,27 +135,27 @@ class IO(object):
         if self.geometry == 'SURFACE':
 
             if self.dim == 2:
-                MA = abs(self.Alocs[:, 0] - self.Mlocs[:, 0])
-                MB = abs(self.Blocs[:, 0] - self.Mlocs[:, 0])
-                NA = abs(self.Alocs[:, 0] - self.Nlocs[:, 0])
-                NB = abs(self.Blocs[:, 0] - self.Nlocs[:, 0])
+                MA = abs(self.a_locations[:, 0] - self.m_locations[:, 0])
+                MB = abs(self.b_locations[:, 0] - self.m_locations[:, 0])
+                NA = abs(self.a_locations[:, 0] - self.n_locations[:, 0])
+                NB = abs(self.b_locations[:, 0] - self.n_locations[:, 0])
 
             elif self.dim == 3:
                 MA = np.sqrt(
-                    abs(self.Alocs[:, 0] - self.Mlocs[:, 0])**2. +
-                    abs(self.Alocs[:, 1] - self.Mlocs[:, 1])**2.
+                    abs(self.a_locations[:, 0] - self.m_locations[:, 0])**2. +
+                    abs(self.a_locations[:, 1] - self.m_locations[:, 1])**2.
                     )
                 MB = np.sqrt(
-                    abs(self.Blocs[:, 0] - self.Mlocs[:, 0])**2. +
-                    abs(self.Blocs[:, 1] - self.Mlocs[:, 1])**2.
+                    abs(self.b_locations[:, 0] - self.m_locations[:, 0])**2. +
+                    abs(self.b_locations[:, 1] - self.m_locations[:, 1])**2.
                     )
                 NA = np.sqrt(
-                    abs(self.Alocs[:, 0] - self.Nlocs[:, 0])**2. +
-                    abs(self.Alocs[:, 1] - self.Nlocs[:, 1])**2.
+                    abs(self.a_locations[:, 0] - self.n_locations[:, 0])**2. +
+                    abs(self.a_locations[:, 1] - self.n_locations[:, 1])**2.
                     )
                 NB = np.sqrt(
-                    abs(self.Blocs[:, 0] - self.Nlocs[:, 0])**2. +
-                    abs(self.Blocs[:, 1] - self.Nlocs[:, 1])**2.
+                    abs(self.b_locations[:, 0] - self.n_locations[:, 0])**2. +
+                    abs(self.b_locations[:, 1] - self.n_locations[:, 1])**2.
                     )
 
             if self.surveyType == 'dipole-dipole':
@@ -265,7 +279,7 @@ class IO(object):
                 fig.savefig(figname, dpi=200)
             plt.show()
 
-    def genLocs_2D(self, surveyType, x0, lineLength, a, nSpacing):
+    def gen_locations_2D(self, surveyType, x0, lineLength, a, nSpacing):
         """
         genDClocs: Compute
         """
@@ -381,3 +395,4 @@ class IO(object):
         else:
             raise NotImplementedError()
         return A, B, M, N
+
