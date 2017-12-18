@@ -6,16 +6,14 @@ from __future__ import unicode_literals
 from SimPEG.EM.Base import BaseEMSurvey
 from SimPEG.EM.Static.DC.SrcDC import BaseSrc
 from SimPEG.EM.Static.DC.RxDC import BaseRx
+from SimPEG.EM.Static.DC import Survey as SurveyDC
 
 
-class Survey(BaseEMSurvey):
-
-    rxPair = BaseRx
-    srcPair = BaseSrc
+class Survey(SurveyDC):
 
     def __init__(self, srcList, **kwargs):
         self.srcList = srcList
-        BaseEMSurvey.__init__(self, srcList, **kwargs)
+        SurveyDC.__init__(self, srcList, **kwargs)
 
     def dpred(self, m=None, f=None):
         """

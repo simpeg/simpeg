@@ -29,10 +29,13 @@ try:
 except ImportError:
     from SimPEG import SolverLU as Solver
 
+# Reproducible science
 np.random.seed(12345)
 
 # 2D Mesh
 #########
+
+# Cells size
 csx, csz = 0.25, 0.25
 # Number of core cells in each direction
 ncx,  ncz = 123,  41
@@ -46,7 +49,8 @@ mesh = Mesh.TensorMesh([hx,  hz], x0="CN")
 mesh.x0[1] = mesh.x0[1]+csz/2.
 
 # 2-cylinders Model Creation
-##########################
+############################
+
 # Spheres parameters
 x0,  z0,  r0 = -6.,  -5.,  3.
 x1,  z1,  r1 = 6.,  -5.,  3.
@@ -112,17 +116,15 @@ problem.Solver = Solver
 survey.dpred(mtrue[actind])
 survey.makeSyntheticData(mtrue[actind], std=0.05, force=True)
 
-
-######################
-# Tikhonov Inversion #
-######################
+# Tikhonov Inversion
+####################
 
 m0 = np.median(ln_sigback)*np.ones(mapping.nP)
 dmis = DataMisfit.l2_DataMisfit(survey)
 regT = Regularization.Simple(mesh, indActive=actind)
 
 # Personal preference for this solver with a Jacobi preconditioner
-opt = Optimization.ProjectedGNCG(maxIter=5, lower=-10, upper=10,
+opt = Optimization.ProjectedGNCG(maxIter=20, lower=-10, upper=10,
                                  maxIterLS=20, maxIterCG=30, tolCG=1e-4)
 
 opt.remember('xc')
@@ -136,7 +138,6 @@ inv = Inversion.BaseInversion(invProb,  directiveList=[beta, Target,
                                                        betaSched])
 
 minv = inv.run(m0)
-
 
 # Final Plot
 ############

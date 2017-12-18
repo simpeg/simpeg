@@ -46,7 +46,6 @@ hy = [(csy, npad,  -1.5), (csy, ncy), (csy, npad,  1.5)]
 hz = [(csz, npad, -1.5), (csz, ncz)]
 # Create mesh and center it
 mesh = Mesh.TensorMesh([hx, hy, hz], x0="CCN")
-mesh.x0[1] = mesh.x0[1]+csz/2.
 
 # 2-spheres Model Creation
 ##########################
@@ -143,9 +142,9 @@ problem.Solver = Solver
 survey.dpred(mtrue[actind])
 survey.makeSyntheticData(mtrue[actind], std=0.05, force=True)
 
-#####################
-# Tikhonov Inversion#
-#####################
+
+# Tikhonov Inversion
+####################
 
 # Initial Model
 m0 = np.median(ln_sigback)*np.ones(mapping.nP)
