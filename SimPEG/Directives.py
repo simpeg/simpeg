@@ -708,24 +708,24 @@ class Update_IRLS(InversionDirective):
         dList = directiveList.dList
         self_ind = dList.index(self)
         lin_precond_ind = [
-            isinstance(d, UpdateJacobiPrecond) for d in dList
+            isinstance(d, UpdatePreconditioner) for d in dList
         ]
 
         if any(lin_precond_ind):
             assert(lin_precond_ind.index(True) > self_ind), (
-                "The directive 'UpdateJacobiPrecond' must be after Update_IRLS "
+                "The directive 'UpdatePreconditioner' must be after Update_IRLS "
                 "in the directiveList"
             )
         else:
             warnings.warn(
                 "Without a Linear preconditioner, convergence may be slow. "
-                "Consider adding `Directives.UpdateJacobiPrecond` to your "
+                "Consider adding `Directives.UpdatePreconditioner` to your "
                 "directives list"
             )
         return True
 
 
-class UpdateJacobiPrecond(InversionDirective):
+class UpdatePreconditioner(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
     """
@@ -811,3 +811,106 @@ class Update_Wj(InversionDirective):
             JtJdiag = JtJdiag / max(JtJdiag)
 
             self.reg.wght = JtJdiag
+
+
+class UpdateSensitivityWeights(InversionDirective):
+    """
+    Directive to take care of re-weighting
+    the non-linear magnetic problems.
+
+    """
+
+    mapping = None
+    JtJdiag = None
+    everyIter = True
+    epsilon = 1e-12
+
+    def initialize(self):
+
+        # Calculate and update sensitivity
+        # for optimization and regularization
+        self.update()
+
+    def endIter(self):
+
+        if self.everyIter:
+            # Update inverse problem
+            self.update()
+
+    def update(self):
+
+        # Get sum square of columns of J
+        self.getJtJdiag()
+
+        # Compute normalized weights
+        self.wr = self.getWr()
+
+        # Send a copy of JtJdiag for the preconditioner
+        self.updateOpt()
+
+        # Update the regularization
+        self.updateReg()
+
+    def getJtJdiag(self):
+        """
+            Compute explicitely the main diagonal of JtJ
+            Good for any problem where J is formed explicitely
+        """
+        self.JtJdiag = []
+
+        for prob, survey, dmisfit in zip(self.prob,
+                                         self.survey,
+                                         self.dmisfit.objfcts):
+
+            assert (getattr(prob, 'getJ', None) is not None, (
+                "Problem does not have a getJ attribute." +
+                "Cannot form the sensitivity explicitely"
+                )
+            )
+
+            if getattr(prob, '_Jmat', None) is None:
+                m = self.invProb.model
+                prob.getJ(m)
+
+            JtJdiag += dmisfit.W*prob.Jmat
+
+            self.JtJdiag += [JtJdiag]
+
+        return self.JtJdiag
+
+    def getWr(self):
+        """
+            Take the diagonal of JtJ and return
+            a normalized sensitivty weighting vector
+        """
+
+        wr = np.zeros_like(self.invProb.model)
+
+        for prob_JtJ, prob in zip(self.JtJdiag, self.prob):
+
+            wr += prob_JtJ + prob.threshold
+
+        wr = wr**0.5
+        wr /= wr.max()
+
+        return wr
+
+    def updateReg(self):
+        """
+            Update the cell weights with the approximated sensitivity
+        """
+
+        for reg in self.reg.objfcts:
+            reg.cell_weights = reg.mapping * (self.wr)
+
+    def updateOpt(self):
+        """
+            Update a copy of JtJdiag to optimization for preconditioner
+        """
+        # if self.ComboMisfitFun:
+        JtJdiag = np.zeros_like(self.invProb.model)
+        for prob, JtJ, dmisfit in zip(self.prob, self.JtJdiag, self.dmisfit.objfcts):
+
+            JtJdiag += JtJ
+
+        self.opt.JtJdiag = JtJdiag
