@@ -53,7 +53,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         # Setup a dipole-dipole Survey
 
         survey = DCUtils.gen_DCIPsurvey(self.xyz, self.mesh,
-                                        surveyType="dipole-dipole",
+                                        survey_type="dipole-dipole",
                                         a=self.survey_a,
                                         b=self.survey_b,
                                         n=self.survey_n
@@ -74,29 +74,29 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         DCUtils.writeUBC_DCobs(surveyfile,
                                survey,
                                dim='3D',
-                               formatType='GENERAL')
+                               format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
-        survey = survey['DCsurvey']
+        survey = survey['dc_survey']
         DCUtils.writeUBC_DCobs(surveyfile,
                                survey,
                                dim='3D',
-                               formatType='GENERAL')
+                               format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
-        survey = survey['DCsurvey']
+        survey = survey['dc_survey']
 
         # Test Pseudosections plotting
         fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        DCUtils.plot_pseudoSection(survey, ax, surveyType='dipole-dipole',
+        DCUtils.plot_pseudoSection(survey, ax, survey_type='dipole-dipole',
                                    scale='log', clim=None,
-                                   dataType='appResistivity',
+                                   data_type='appResistivity',
                                    pcolorOpts={"cmap": "viridis"},
-                                   dataLoc=True)
+                                   data_location=True)
 
         # Test the utils functions electrode_separations,
         # source_receiver_midpoints, geometric_factor,
-        # calc_rhoApp all at once
-        rhoapp = DCUtils.calc_rhoApp(survey, surveyType='dipole-dipole',
-                                     spaceType='half-space', eps=0.)
+        # apparent_resistivity all at once
+        rhoapp = DCUtils.apparent_resistivity(survey, survey_type='dipole-dipole',
+                                     space_type='half-space', eps=0.)
 
         rhoA_GIF_file = os.path.sep.join([self.basePath, 'rhoA_GIF_dd.txt'])
         rhoA_GIF_dd = np.loadtxt(rhoA_GIF_file)
@@ -107,7 +107,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         # Setup a pole-dipole Survey
 
         survey = DCUtils.gen_DCIPsurvey(self.xyz, self.mesh,
-                                        surveyType="pole-dipole",
+                                        survey_type="pole-dipole",
                                         a=self.survey_a,
                                         b=self.survey_b,
                                         n=self.survey_n
@@ -126,29 +126,29 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         # Testing IO
         surveyfile = os.path.sep.join([self.basePath, '2sph_pole_dipole.obs'])
         DCUtils.writeUBC_DCobs(surveyfile,
-                               survey, surveyType='pole-dipole',
-                               dim='3D', formatType='GENERAL')
+                               survey, survey_type='pole-dipole',
+                               dim='3D', format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
-        survey = survey['DCsurvey']
+        survey = survey['dc_survey']
         DCUtils.writeUBC_DCobs(surveyfile,
-                               survey, surveyType='pole-dipole',
-                               dim='3D', formatType='GENERAL')
+                               survey, survey_type='pole-dipole',
+                               dim='3D', format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
-        survey = survey['DCsurvey']
+        survey = survey['dc_survey']
 
         # Test Pseudosections plotting
         fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        DCUtils.plot_pseudoSection(survey, ax, surveyType='pole-dipole',
+        DCUtils.plot_pseudoSection(survey, ax, survey_type='pole-dipole',
                                    scale='log', clim=None,
-                                   dataType='appResistivity',
+                                   data_type='appResistivity',
                                    pcolorOpts={"cmap": "viridis"},
-                                   dataLoc=True)
+                                   data_location=True)
 
         # Test the utils functions electrode_separations,
         # source_receiver_midpoints, geometric_factor,
-        # calc_rhoApp all at once
-        rhoapp = DCUtils.calc_rhoApp(survey, surveyType='pole-dipole',
-                                     spaceType='half-space', eps=0.)
+        # apparent_resistivity all at once
+        rhoapp = DCUtils.apparent_resistivity(survey, survey_type='pole-dipole',
+                                     space_type='half-space', eps=0.)
 
         rhoA_GIF_file = os.path.sep.join([self.basePath, 'rhoA_GIF_pd.txt'])
         rhoA_GIF_pd = np.loadtxt(rhoA_GIF_file)
@@ -159,7 +159,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         # Setup a dipole-pole Survey
 
         survey = DCUtils.gen_DCIPsurvey(self.xyz, self.mesh,
-                                        surveyType="dipole-pole",
+                                        survey_type="dipole-pole",
                                         a=self.survey_a,
                                         b=self.survey_b,
                                         n=self.survey_n
@@ -178,29 +178,29 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         # Testing IO
         surveyfile = os.path.sep.join([self.basePath, '2sph_dipole_pole.obs'])
         DCUtils.writeUBC_DCobs(surveyfile,
-                               survey, surveyType='dipole-pole',
-                               dim='3D', formatType='GENERAL')
+                               survey, survey_type='dipole-pole',
+                               dim='3D', format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
-        survey = survey['DCsurvey']
+        survey = survey['dc_survey']
         DCUtils.writeUBC_DCobs(surveyfile,
-                               survey, surveyType='dipole-pole',
-                               dim='3D', formatType='GENERAL')
+                               survey, survey_type='dipole-pole',
+                               dim='3D', format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
-        survey = survey['DCsurvey']
+        survey = survey['dc_survey']
 
         # Test Pseudosections plotting
         fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        DCUtils.plot_pseudoSection(survey, ax, surveyType='dipole-pole',
+        DCUtils.plot_pseudoSection(survey, ax, survey_type='dipole-pole',
                                    scale='log', clim=None,
-                                   dataType='appResistivity',
+                                   data_type='appResistivity',
                                    pcolorOpts={"cmap": "viridis"},
-                                   dataLoc=True)
+                                   data_location=True)
 
         # Test the utils functions electrode_separations,
         # source_receiver_midpoints, geometric_factor,
-        # calc_rhoApp all at once
-        rhoapp = DCUtils.calc_rhoApp(survey, surveyType='dipole-pole',
-                                     spaceType='half-space', eps=0.)
+        # apparent_resistivity all at once
+        rhoapp = DCUtils.apparent_resistivity(survey, survey_type='dipole-pole',
+                                     space_type='half-space', eps=0.)
 
         rhoA_GIF_file = os.path.sep.join([self.basePath, 'rhoA_GIF_dp.txt'])
         rhoA_GIF_dp = np.loadtxt(rhoA_GIF_file)
@@ -211,7 +211,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         # Setup a pole-pole Survey
 
         survey = DCUtils.gen_DCIPsurvey(self.xyz, self.mesh,
-                                        surveyType="pole-pole",
+                                        survey_type="pole-pole",
                                         a=self.survey_a,
                                         b=self.survey_b,
                                         n=self.survey_n
@@ -230,29 +230,29 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         # Testing IO
         surveyfile = os.path.sep.join([self.basePath, '2sph_pole_pole.obs'])
         DCUtils.writeUBC_DCobs(surveyfile,
-                               survey, surveyType='pole-pole',
-                               dim='3D', formatType='GENERAL')
+                               survey, survey_type='pole-pole',
+                               dim='3D', format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
-        survey = survey['DCsurvey']
+        survey = survey['dc_survey']
         DCUtils.writeUBC_DCobs(surveyfile,
-                               survey, surveyType='pole-pole',
-                               dim='3D', formatType='GENERAL')
+                               survey, survey_type='pole-pole',
+                               dim='3D', format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
-        survey = survey['DCsurvey']
+        survey = survey['dc_survey']
 
         # Test Pseudosections plotting
         fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        DCUtils.plot_pseudoSection(survey, ax, surveyType='pole-pole',
+        DCUtils.plot_pseudoSection(survey, ax, survey_type='pole-pole',
                                    scale='log', clim=None,
-                                   dataType='appResistivity',
+                                   data_type='appResistivity',
                                    pcolorOpts={"cmap": "viridis"},
-                                   dataLoc=True)
+                                   data_location=True)
 
         # Test the utils functions electrode_separations,
         # source_receiver_midpoints, geometric_factor,
-        # calc_rhoApp all at once
-        rhoapp = DCUtils.calc_rhoApp(survey, surveyType='pole-pole',
-                                     spaceType='half-space', eps=0.)
+        # apparent_resistivity all at once
+        rhoapp = DCUtils.apparent_resistivity(survey, survey_type='pole-pole',
+                                     space_type='half-space', eps=0.)
 
         rhoA_GIF_file = os.path.sep.join([self.basePath, 'rhoA_GIF_pp.txt'])
         rhoA_GIF_pp = np.loadtxt(rhoA_GIF_file)
@@ -282,7 +282,7 @@ class DCUtilsTests_fullspace(unittest.TestCase):
 
         survey_file = os.path.sep.join([self.basePath, 'dPred_Fullspace.txt'])
         DCsurvey = DCUtils.readUBC_DC3Dobs(survey_file)
-        DCsurvey = DCsurvey['DCsurvey']
+        DCsurvey = DCsurvey['dc_survey']
         self.survey = DCsurvey
 
     def test_ElecSep(self):
@@ -317,12 +317,12 @@ class DCUtilsTests_fullspace(unittest.TestCase):
 
         self.assertTrue(passed)
 
-    def test_calc_rhoApp(self):
+    def test_apparent_resistivity(self):
 
         # Compute apparent resistivity from survey
-        rhoapp = DCUtils.calc_rhoApp(self.survey, dobs=self.survey.dobs,
-                                     surveyType='dipole-dipole',
-                                     spaceType='whole-space', eps=1e-16)
+        rhoapp = DCUtils.apparent_resistivity(self.survey, dobs=self.survey.dobs,
+                                     survey_type='dipole-dipole',
+                                     space_type='whole-space', eps=1e-16)
 
         # Load benchmarks files from UBC-GIF codes
         rhoappfile = os.path.sep.join([self.basePath, 'RhoApp_GIF_fullspace.txt'])

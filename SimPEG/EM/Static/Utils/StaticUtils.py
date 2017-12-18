@@ -216,13 +216,17 @@ def geometric_factor(
         G = 1/AM
 
     else:
-        raise Exception("""'survey_type must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
+        raise Exception(
+        """'survey_type must be 'dipole-dipole' | 'pole-dipole' |
+        'dipole-pole' | 'pole-pole'"""
+        )
 
     return (G/(spaceFact*np.pi))
 
 
 def apparent_resistivity(
-    dc_survey, survey_type='dipole-dipole', space_type='half-space',dobs=None,
+    dc_survey, survey_type='dipole-dipole',
+    space_type='half-space', dobs=None,
     eps=1e-10
 ):
     """
@@ -259,9 +263,10 @@ def apparent_resistivity(
 
 
 def plot_pseudoSection(
-    dc_survey, ax, survey_type='dipole-dipole', data_type="appConductivity",
-    space_type='half-space',clim=None, scale="linear", sameratio=True,
-    pcolorOpts={}, dataLoc=False, dobs=None, dim=2
+    dc_survey, ax=None, survey_type='dipole-dipole',
+    data_type="appConductivity", space_type='half-space',
+    clim=None, scale="linear", sameratio=True,
+    pcolorOpts={}, data_location=False, dobs=None, dim=2
 ):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
@@ -333,16 +338,25 @@ def plot_pseudoSection(
     else:
         vmin, vmax = clim[0], clim[1]
 
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
+
     grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
-    ph = plt.pcolormesh(grid_x[:, 0], grid_z[0, :], grid_rho.T,
-                        clim=(vmin, vmax), vmin=vmin, vmax=vmax, **pcolorOpts)
+    ph = ax.pcolormesh(
+         grid_x[:, 0], grid_z[0, :], grid_rho.T,
+         clim=(vmin, vmax), vmin=vmin, vmax=vmax, **pcolorOpts
+    )
 
     if scale == "log":
-        cbar = plt.colorbar(format="$10^{%.1f}$",
-                            fraction=0.04, orientation="horizontal")
+        cbar = plt.colorbar(
+               ph, format="$10^{%.1f}$",
+               fraction=0.04, orientation="horizontal"
+        )
     elif scale == "linear":
-        cbar = plt.colorbar(format="%.1f",
-                            fraction=0.04, orientation="horizontal")
+        cbar = plt.colorbar(
+               ph, format="%.1f",
+               fraction=0.04, orientation="horizontal"
+        )
 
     if data_type == 'appConductivity':
         cbar.set_label("App.Cond", size=12)
@@ -359,13 +373,13 @@ def plot_pseudoSection(
     cbar.ax.tick_params(labelsize=10)
 
     # Plot apparent resistivity
-    if dataLoc:
+    if data_location:
         ax.plot(midx, midz, 'k.', ms=1, alpha=0.4)
 
     if sameratio:
-        plt.gca().set_aspect('equal', adjustable='box')
+        ax.set_aspect('equal', adjustable='box')
 
-    return ph, ax, cbar
+    return ax
 
 
 def gen_DCIPsurvey(endl, mesh, survey_type, a, b, n, d2flag='2.5D'):
