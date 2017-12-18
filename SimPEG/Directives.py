@@ -255,7 +255,13 @@ class TargetMisfit(InversionDirective):
         if getattr(self, '_target', None) is None:
             # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
             if self.phi_d_star is None:
-                self.phi_d_star = 0.5 * self.survey.nD
+
+                nD = 0
+                for survey in self.survey:
+                    nD += survey.nD
+
+                self.phi_d_star = 0.5 * nD
+
             self._target = self.chifact * self.phi_d_star
         return self._target
 
@@ -531,8 +537,8 @@ class Update_IRLS(InversionDirective):
     f_min_change = 1e-2
     beta_tol = 5e-2
     prctile = 95
-    chifact = 1.
-    l2model = None
+    chifact_start = 1.
+    chifact_target = 1.
 
     # Solving parameter for IRLS (mode:2)
     IRLSiter = 0
@@ -541,6 +547,7 @@ class Update_IRLS(InversionDirective):
     iterStart = 0
 
     # Beta schedule
+    updateBeta = True
     coolingFactor = 2.
     coolingRate = 1
     ComboObjFun = False
@@ -549,114 +556,92 @@ class Update_IRLS(InversionDirective):
     @property
     def target(self):
         if getattr(self, '_target', None) is None:
-            self._target = self.survey.nD*0.5*self.chifact
+            nD = 0
+            for survey in self.survey:
+                nD += survey.nD
+
+            self._target = nD*0.5*self.chifact_target
+
         return self._target
 
     @target.setter
     def target(self, val):
         self._target = val
 
-    def initialize(self):
-
-        # Check if it is a ComboObjective
-        if not isinstance(self.reg, Regularization.BaseComboRegularization):
-
-            # It is a Combo objective, so will have to loop
-            self.ComboObjFun = True
-
-        if self.mode == 1:
-
-            if self.ComboObjFun:
-
-                self.norms = []
-                for reg in self.reg.objfcts:
-                    self.norms.append(reg.norms)
-                    reg.norms = [2., 2., 2., 2.]
+    @property
+    def start(self):
+        if getattr(self, '_start', None) is None:
+            if isinstance(self.survey, list):
+                self._start = 0
+                for survey in self.survey:
+                    self._start += survey.nD*0.5*self.chifact_start
 
             else:
-                # Store assigned norms for later use - start with l2
-                self.norms = self.reg.norms
-                self.reg.norms = [2., 2., 2., 2.]
+
+                self._start = self.survey.nD*0.5*self.chifact_start
+        return self._start
+
+    @start.setter
+    def start(self, val):
+        self._start = val
+
+    def initialize(self):
+
+        # Store norms to be applied after the l2 inversion
+        self.norms = []
+        for reg in self.reg.objfcts:
+            self.norms.append(reg.norms)
+            reg.norms = [2., 2., 2., 2.]
+            reg.model = self.invProb.model
 
     def endIter(self):
 
+        # Update the model used by the regularization
+        phi_m_last = []
+        for reg in self.reg.objfcts:
+            reg.model = self.invProb.model
+            phi_m_last += [reg(self.invProb.model)]
+
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
-        if np.all([self.invProb.phi_d < self.target, self.mode == 1]):
-            print("Convergence with smooth l2-norm regularization: Start IRLS steps...")
+        if np.all([self.invProb.phi_d < self.start,
+                   self.mode == 1]):
+            print("Reached starting chifact with l2-norm regularization: Start IRLS steps...")
 
             self.mode = 2
-            self.coolingFactor = 1.
-            self.coolingRate = 1
             self.iterStart = self.opt.iter
             self.phi_d_last = self.invProb.phi_d
             self.invProb.phi_m_last = self.reg(self.invProb.model)
 
-            if getattr(self, 'f_old', None) is None:
-                self.f_old = self.reg(self.invProb.model)
-
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
-            if self.ComboObjFun:
 
-                for reg in self.reg.objfcts:
+            for reg in self.reg.objfcts:
 
-                    ## NEED TO CHANGE THE DEFAULT VALUE TO SOMETHING ELSE
-                    ## @lheagy
-                    if reg.eps_p == 0.1:
+                if getattr(reg, 'eps_p', None) is None:
 
-                        mtemp = reg.mapping * self.invProb.model
-                        reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
+                    mtemp = reg.mapping * self.invProb.model
+                    reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
+                    print("eps_p caluclate" + str(reg.eps_p))
 
-                    if reg.eps_q == 0.1:
-                        mtemp = reg.mapping * self.invProb.model
-                        reg.eps_q = np.percentile(np.abs(reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
+                if getattr(reg, 'eps_q', None) is None:
+                    mtemp = reg.mapping * self.invProb.model
+                    reg.eps_q = np.percentile(np.abs(reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
 
-            else:
-                if self.reg.eps_p == 0.1:
+            # Re-assign the norms supplied by user l2 -> lp
+            for reg, norms in zip(self.reg.objfcts, self.norms):
+                reg.norms = norms
+                print("L[p qx qy qz]-norm : " + str(reg.norms))
 
-                    mtemp = self.reg.mapping * self.invProb.model
-                    self.reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
+            # Save l2-model
+            self.invProb.l2model = self.invProb.model.copy()
 
-                if self.reg.eps_q == 0.1:
-                    mtemp = self.reg.mapping * self.invProb.model
-                    self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
-
-
-            # Re-assign the norms
-            if self.ComboObjFun:
-                for reg, norms in zip(self.reg.objfcts, self.norms):
-                    reg.norms = norms
-                    print("L[p qx qy qz]-norm : " + str(reg.norms))
-
-            else:
-                self.reg.norms = self.norms
-                print("L[p qx qy qz]-norm : " + str(self.reg.norms))
-
-            if self.ComboObjFun:
-                    for reg in self.reg.objfcts:
-                        reg.model = self.invProb.model
-
-            else:
-                self.reg.model = self.invProb.model
-
-            self.l2model = self.invProb.model.copy()
-
-            # Re-assign the norms
-            if self.ComboObjFun:
-                for reg in self.reg.objfcts:
-                    print("eps_p: " + str(reg.eps_p) +
-                          " eps_q: " + str(reg.eps_q))
-
-            else:
-                print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
-
-        # Beta Schedule
-        if np.all([self.opt.iter > 0, self.opt.iter % self.coolingRate == 0]):
-            if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
-            self.invProb.beta /= self.coolingFactor
+            # Print to screen
+            for reg in self.reg.objfcts:
+                print("eps_p: " + str(reg.eps_p) +
+                      " eps_q: " + str(reg.eps_q))
 
         # Only update after GN iterations
-        if np.all([(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode == 2]):
+        if np.all([(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode != 1]):
 
 
             # Check for maximum number of IRLS cycles
@@ -665,37 +650,39 @@ class Update_IRLS(InversionDirective):
                 self.opt.stopNextIteration = True
                 return
 
-            else:
-                # Update the model used in the regularization
-                if self.ComboObjFun:
-                    for reg in self.reg.objfcts:
-                        reg.model = self.invProb.model
+            # phi_m_last = []
+            for reg in self.reg.objfcts:
 
-                else:
-                    self.reg.model = self.invProb.model
+                # # Reset gamma scale
+                # phi_m_last += [reg(self.invProb.model)]
 
-                self.IRLSiter += 1
+                for comp in reg.objfcts:
+                    comp.gamma = 1.
+
+            # Remember the value of the norm from previous R matrices
+            self.f_old = self.reg(self.invProb.model)
+
+            self.IRLSiter += 1
 
             # Reset the regularization matrices so that it is
             # recalculated for current model. Do it to all levels of comboObj
             for reg in self.reg.objfcts:
 
                 # If comboObj, go down one more level
-                if self.ComboObjFun:
-                    for comp in reg.objfcts:
-                        comp.stashedR = None
-                        comp.gamma = 1.
-                else:
-                    reg.stashedR = None
-                    reg.gamma = 1.
+                for comp in reg.objfcts:
+                    comp.stashedR = None
 
             # Compute new model objective function value
             phim_new = self.reg(self.invProb.model)
 
+            phi_m_new = []
+            for reg in self.reg.objfcts:
+                phi_m_new += [reg(self.invProb.model)]
+
             # phim_new = self.reg(self.invProb.model)
             self.f_change = np.abs(self.f_old - phim_new) / self.f_old
 
-            print("Regularization decrease: {0:6.3e}".format((self.f_change)))
+            print("Phim relative change: {0:6.3e}".format((self.f_change)))
             # Check if the function has changed enough
             if self.f_change < self.f_min_change and self.IRLSiter > 1:
                 print("Minimum decrease in regularization. End of IRLS")
@@ -705,24 +692,36 @@ class Update_IRLS(InversionDirective):
                 self.f_old = phim_new
 
             # Update gamma to scale the regularization between IRLS iterations
-            gamma = self.invProb.phi_m_last / phim_new
-            for reg in self.reg.objfcts:
+
+            for reg, phim_old, phim_now in zip(self.reg.objfcts, phi_m_last, phi_m_new):
+
+                gamma = phim_old / phim_now
 
                 # If comboObj, go down one more level
-                if self.ComboObjFun:
-                    for comp in reg.objfcts:
-                        comp.stashedR = None
-                        comp.gamma = gamma
-                else:
-                    reg.stashedR = None
-                    reg.gamma = gamma
+                for comp in reg.objfcts:
+                    comp.gamma = gamma
 
-            # Check if misfit is within the tolerance, otherwise scale beta
-            val = self.invProb.phi_d / self.target
+            self.updateBeta = True
+        # Beta Schedule
+        if np.all([self.invProb.phi_d < self.target,
+                   self.mode == 2]):
+            print("Target chifact overshooted, adjusting beta ...")
+            self.mode = 3
 
-            if np.all([np.abs(1.-val) > self.beta_tol, self.IRLSiter > 1]):
-                self.invProb.beta = (self.invProb.beta * self.target /
-                                     self.invProb.phi_d)
+        if np.all([self.opt.iter > 0, self.opt.iter % self.coolingRate == 0,
+                   self.mode != 3]):
+
+            if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
+            self.invProb.beta /= self.coolingFactor
+
+        # Check if misfit is within the tolerance, otherwise scale beta
+        if np.all([np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol,
+                   self.updateBeta,
+                   self.mode == 3]):
+
+            self.invProb.beta = (self.invProb.beta * self.target /
+                                 self.invProb.phi_d)
+            self.updateBeta = False
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
@@ -764,16 +763,14 @@ class UpdatePreconditioner(InversionDirective):
                 JtJdiag = np.zeros_like(self.invProb.model)
                 for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
 
-                    assert getattr(prob, 'getJ', None) is not None, (
+                    assert getattr(prob, 'Jmatrix', None) is not None, (
                         "Problem does not have a getJ attribute." +
                         "Cannot form the sensitivity explicitely"
                     )
 
-                    if getattr(prob, '_Jmat', None) is None:
-                        m = self.invProb.model
-                        prob.getJ(m)
+                    m = self.invProb.model
 
-                    JtJdiag += np.sum((dmisfit.W*prob.Jmat)**2., axis=0)
+                    JtJdiag += np.sum((dmisfit.W*prob.Jmatrix(m))**2., axis=0)
 
                 self.opt.JtJdiag = JtJdiag
 
@@ -886,11 +883,9 @@ class UpdateSensitivityWeights(InversionDirective):
                 "Cannot form the sensitivity explicitely"
             )
 
-            if getattr(prob, '_Jmat', None) is None:
-                m = self.invProb.model
-                prob.getJ(m)
+            m = self.invProb.model
 
-            self.JtJdiag += [np.sum((dmisfit.W*prob.Jmat)**2., axis=0)]
+            self.JtJdiag += [np.sum((dmisfit.W*prob.Jmatrix(m))**2., axis=0)]
 
         return self.JtJdiag
 

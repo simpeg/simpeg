@@ -1210,8 +1210,8 @@ class BaseSparse(BaseRegularization):
         "Model norm scaling to smooth out convergence", default=1.
     )
     epsilon = properties.Float(
-        "Threshold value for the model norm", #, default=1e-1
-        required = True
+        "Threshold value for the model norm",  #, default=1e-1
+        required=True
     )
     norm = properties.Float(
         "norm used", default=2
@@ -1230,7 +1230,11 @@ class BaseSparse(BaseRegularization):
         if getattr(self, 'stashedR') is not None:
             return self.stashedR
 
-        eps = self.epsilon
+        if self.epsilon is None:
+            eps = 1.
+        else:
+            eps = self.epsilon
+
         exponent = self.norm
 
         # Eta scaling is important for mix-norms...do not mess with it
@@ -1381,12 +1385,10 @@ class Sparse(BaseComboRegularization):
     )
 
     eps_p = properties.Float(
-        "Threshold value for the model norm", default=1e-1
-        )
+        "Threshold value for the model norm")
 
     eps_q = properties.Float(
-        "Threshold value for the model gradient norm", default=1e-1
-        )
+        "Threshold value for the model gradient norm")
 
     model = properties.Array("current model", dtype=float)
 
