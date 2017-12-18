@@ -288,7 +288,14 @@ class DCUtilsTests_fullspace(unittest.TestCase):
     def test_ElecSep(self):
 
         # Compute dipoles distances from survey
-        AB, MN, AM, AN, BM, BN = DCUtils.electrode_separations(self.survey)
+        elecSepDict = DCUtils.electrode_separations(self.survey)
+
+        AM = elecSepDict['AM']
+        BM = elecSepDict['BM']
+        AN = elecSepDict['AN']
+        BN = elecSepDict['BN']
+        MN = elecSepDict['MN']
+        AB = elecSepDict['AB']
 
         # Load benchmarks files from UBC-GIF codes
         AB_file = os.path.sep.join([self.basePath, 'AB_GIF_fullspace.txt'])
