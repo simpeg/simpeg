@@ -49,11 +49,13 @@ class Survey(BaseEMSurvey):
                         src.loc.reshape([1, -1]).repeat(nRx, axis=0)
                         )
                     # Pole
-                    if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole_ky):
+                    if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole) or
+                    isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole_ky):
                         Mlocs.append(rx.locs)
                         Nlocs.append(rx.locs)
                     # Dipole
-                    elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole_ky):
+                    elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole) or
+                    isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole_ky):
                         Mlocs.append(rx.locs[0])
                         Nlocs.append(rx.locs[1])
             # Dipole
@@ -67,11 +69,13 @@ class Survey(BaseEMSurvey):
                         src.loc[1].reshape([1, -1]).repeat(nRx, axis=0)
                         )
                     # Pole
-                    if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole_ky):
+                    if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole) or
+                    isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole_ky):
                         Mlocs.append(rx.locs)
                         Nlocs.append(rx.locs)
                     # Dipole
-                    elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole_ky):
+                    elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole) or
+                    isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole_ky):
                         Mlocs.append(rx.locs[0])
                         Nlocs.append(rx.locs[1])
 
@@ -124,18 +128,32 @@ class Survey(BaseEMSurvey):
                         src.loc = np.array([locA[0], z_SrcA])
                         for rx in src.rxList:
                             # Pole Rx
-                            if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole_ky):
+                            if isinstance(
+                                rx, SimPEG.EM.Static.DC.Rx.Pole
+                            ) or
+                            isinstance(
+                                rx, SimPEG.EM.Static.DC.Rx.Pole_ky
+                            ):
+
                                 locM = rx.locs.copy()
                                 z_RxM = self.topoFunc(locM[:, 0])
                                 rx.locs = np.c_[locM[:, 0], z_RxM]
+
                             # Dipole Rx
-                            elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole_ky):
+                            elif isinstance(
+                                rx, SimPEG.EM.Static.DC.Rx.Dipole
+                            ) or
+                            isinstance(
+                                rx, SimPEG.EM.Static.DC.Rx.Dipole_ky
+                            ):
+
                                 locM = rx.locs[0].copy()
                                 locN = rx.locs[1].copy()
                                 z_RxM = self.topoFunc(locM[:, 0])
                                 z_RxN = self.topoFunc(locN[:, 0])
                                 rx.locs[0] = np.c_[locM[:, 0], z_RxM]
                                 rx.locs[1] = np.c_[locN[:, 0], z_RxN]
+
                             else:
                                 raise Exception()
 
@@ -151,18 +169,26 @@ class Survey(BaseEMSurvey):
 
                         for rx in src.rxList:
                             # Pole Rx
-                            if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole_ky):
+                            if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole) or
+                            isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole_ky):
+
                                 locM = rx.locs.copy()
                                 z_RxM = self.topoFunc(locM[:, 0])
                                 rx.locs = np.c_[locM[:, 0], z_RxM]
+
                             # Dipole Rx
-                            elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole_ky):
+                            elif isinstance(
+                                rx, SimPEG.EM.Static.DC.Rx.Dipole
+                                ) or
+                            isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole_ky):
+
                                 locM = rx.locs[0].copy()
                                 locN = rx.locs[1].copy()
                                 z_RxM = self.topoFunc(locM[:, 0])
                                 z_RxN = self.topoFunc(locN[:, 0])
                                 rx.locs[0] = np.c_[locM[:, 0], z_RxM]
                                 rx.locs[1] = np.c_[locN[:, 0], z_RxN]
+
                             else:
                                 raise Exception()
 

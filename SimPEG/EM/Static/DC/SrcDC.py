@@ -51,7 +51,7 @@ class Dipole(BaseSrc):
                                                    locType='N').toarray()
                 qb = -prob.mesh.getInterpolationMat(self.loc[1],
                                                     locType='N').toarray()
-                self._q = self.current * mkvc(qa+qb)
+                self._q = self.current * (qa+qb)
 
             return self._q
 
@@ -72,6 +72,6 @@ class Pole(BaseSrc):
             elif prob._formulation == 'EB':
                 q = prob.mesh.getInterpolationMat(
                     self.loc, locType='N'
-                    ).todense()
-                self._q = self.current * mkvc(q)
+                    )
+                self._q = self.current * q
             return self._q

@@ -279,7 +279,6 @@ class Problem2D_CC(BaseDCProblem_2D):
 
     def __init__(self, mesh, **kwargs):
         BaseDCProblem_2D.__init__(self, mesh, **kwargs)
-        # self.setBC()
 
     def getA(self, ky):
         """
@@ -381,7 +380,7 @@ class Problem2D_CC(BaseDCProblem_2D):
             def r_boundary(x, y):
                 return 1./np.sqrt(
                     (x - xs)**2 + (y - ys)**2
-                    )
+                )
 
             rxm = r_boundary(gBFxm[:, 0], gBFxm[:, 1])
             rxp = r_boundary(gBFxp[:, 0], gBFxp[:, 1])
@@ -389,13 +388,13 @@ class Problem2D_CC(BaseDCProblem_2D):
 
             alpha_xm = ky*(
                 kn(1, ky*rxm) / kn(0, ky*rxm) * (gBFxm[:, 0]-xs)
-                )
+            )
             alpha_xp = ky*(
                 kn(1, ky*rxp) / kn(0, ky*rxp) * (gBFxp[:, 0]-xs)
-                )
+            )
             alpha_ym = ky*(
                 kn(1, ky*rym) / kn(0, ky*rym) * (gBFym[:, 0]-ys)
-                )
+            )
             alpha_yp = temp_yp*0.
             beta_xm, beta_xp = temp_xm, temp_xp
             beta_ym, beta_yp = temp_ym, temp_yp
