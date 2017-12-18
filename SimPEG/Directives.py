@@ -708,24 +708,24 @@ class Update_IRLS(InversionDirective):
         dList = directiveList.dList
         self_ind = dList.index(self)
         lin_precond_ind = [
-            isinstance(d, Update_lin_PreCond) for d in dList
+            isinstance(d, UpdateJacobiPrecond) for d in dList
         ]
 
         if any(lin_precond_ind):
             assert(lin_precond_ind.index(True) > self_ind), (
-                "The directive 'Update_lin_PreCond' must be after Update_IRLS "
+                "The directive 'UpdateJacobiPrecond' must be after Update_IRLS "
                 "in the directiveList"
             )
         else:
             warnings.warn(
                 "Without a Linear preconditioner, convergence may be slow. "
-                "Consider adding `Directives.Update_lin_PreCond` to your "
+                "Consider adding `Directives.UpdateJacobiPrecond` to your "
                 "directives list"
             )
         return True
 
 
-class Update_lin_PreCond(InversionDirective):
+class UpdateJacobiPrecond(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
     """
