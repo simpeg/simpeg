@@ -118,7 +118,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         IRLS = Directives.Update_IRLS(f_min_change=1e-3,
                                       minGNiter=3)
-        update_Jacobi = Directives.Update_lin_PreCond()
+        update_Jacobi = Directives.UpdatePreconditioner()
         self.inv = Inversion.BaseInversion(invProb,
                                            directiveList=[IRLS, betaest,
                                                           update_Jacobi])
