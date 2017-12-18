@@ -251,9 +251,10 @@ def geometric_factor(
 
     else:
         raise Exception(
-            """survey_type must be 'dipole-dipole' | 'pole-dipole' |
-            'dipole-pole' | 'pole-pole"""
-        )
+                """survey_type must be 'dipole-dipole' | 'pole-dipole' |
+                'dipole-pole' | 'pole-pole'"""
+                " not {}".format(survey_type)
+            )
 
     return (G/(spaceFact*np.pi))
 
@@ -334,10 +335,16 @@ def plot_pseudoSection(
         else:
             dobs = dc_survey.dobs.copy()
 
-    rhoApp = apparent_resistivity(dc_survey, dobs=dobs,
-                         survey_type=survey_type,
-                         space_type=space_type)
-    midx, midz = source_receiver_midpoints(dc_survey, survey_type=survey_type, dim=dim)
+    rhoApp = apparent_resistivity(
+                dc_survey, dobs=dobs,
+                survey_type=survey_type,
+                space_type=space_type
+    )
+    midx, midz = source_receiver_midpoints(
+                    dc_survey,
+                    survey_type=survey_type,
+                    dim=dim
+    )
 
     if data_type == 'volt':
         if scale == "linear":
