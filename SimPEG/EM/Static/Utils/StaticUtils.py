@@ -26,6 +26,18 @@ def electrode_separations(
 
     """
 
+    if electrode_pair == 'All':
+        electrode_pair = np.r_[['AB', 'MN', 'AM', 'AN', 'BM', 'BN']]
+    elif isinstance(electrode_pair, list) or isinstance(electrode_pair, str):
+        electrode_pair = np.r_[electrode_pair]
+    elif ~isinstance(electrode_pair, [np.ndarray, np.generic]):
+        raise Exception(
+            """electrode_pair must be either a string, list of strings, or an
+            ndarray containing the electrode separation distances you would
+            like to calculate "not {}".format(electrode_pair)"""
+        )
+
+    elecSepDict = {}
     AB = []
     MN = []
     AM = []
@@ -79,23 +91,26 @@ def electrode_separations(
         else:
             raise Exception("""survey_type must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
 
-    if AB:
+    if AB and np.any(electrode_pair == 'AB'):
         AB = np.hstack(AB)
-    if MN:
+        elecSepDict = {'AB': AB}
+    if MN and np.any(electrode_pair == 'MN'):
         MN = np.hstack(MN)
-    if AM:
+        elecSepDict = {'MN': MN}
+    if AM and np.any(electrode_pair == 'AM'):
         AM = np.hstack(AM)
-    if AN:
+        elecSepDict = {'AM': AM}
+    if AN and np.any(electrode_pair == 'AN'):
         AN = np.hstack(AN)
-    if BM:
+        elecSepDict = {'AN': AN}
+    if BM and np.any(electrode_pair == 'BM'):
         BM = np.hstack(BM)
-    if BN:
+        elecSepDict = {'BM': BM}
+    if BN and np.any(electrode_pair == 'BN'):
         BN = np.hstack(BN)
+        elecSepDict = {'BN': BN}
 
-    return AB, MN, AM, AN, BM, BN
-
-
-
+    return elecSepDict
 
 def source_receiver_midpoints(dc_survey, survey_type='dipole-dipole', dim=2):
     """
@@ -200,7 +215,15 @@ def geometric_factor(
     else:
         raise Exception("""'space_type must be 'whole-space' | 'half-space'""")
 
-    _, _, AM, AN, BM, BN = electrode_separations(dc_survey, survey_type=survey_type)
+    elecSepDict = electrode_separations(
+            dc_survey, survey_type=survey_type,
+            electrode_pair=['AM', 'BM', 'AN', 'BN']
+    )
+
+    AM = elecSepDict['AM']
+    BM = elecSepDict['BM']
+    AN = elecSepDict['AN']
+    BN = elecSepDict['BN']
 
     # Determine geometric factor G based on electrode separation distances
     if survey_type == 'dipole-dipole':

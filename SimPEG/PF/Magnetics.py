@@ -79,6 +79,20 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return self._G
 
+    def Jmatrix(self, m):
+        """
+            Sensitivity matrix
+        """
+        dmudm = self.chiMap.deriv(m)
+        return self.G*dmudm
+
+    # def getJ(self, m, f=None):
+    #     """
+    #         Sensitivity matrix
+    #     """
+
+    #     return self.Jmat(m)
+
     def Intrgl_Fwr_Op(self, m=None, Magnetization="ind"):
 
         """
