@@ -89,26 +89,35 @@ def electrode_separations(
             AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2., axis=1)))
 
         else:
-            raise Exception("""survey_type must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
+            raise Exception(
+                """survey_type must be 'dipole-dipole' | 'pole-dipole' |
+                 'dipole-pole' | 'pole-pole'"""
+            )
 
-    if AB and np.any(electrode_pair == 'AB'):
-        AB = np.hstack(AB)
-        elecSepDict = {'AB': AB}
-    if MN and np.any(electrode_pair == 'MN'):
-        MN = np.hstack(MN)
-        elecSepDict = {'MN': MN}
-    if AM and np.any(electrode_pair == 'AM'):
-        AM = np.hstack(AM)
-        elecSepDict = {'AM': AM}
-    if AN and np.any(electrode_pair == 'AN'):
-        AN = np.hstack(AN)
-        elecSepDict = {'AN': AN}
-    if BM and np.any(electrode_pair == 'BM'):
-        BM = np.hstack(BM)
-        elecSepDict = {'BM': BM}
-    if BN and np.any(electrode_pair == 'BN'):
-        BN = np.hstack(BN)
-        elecSepDict = {'BN': BN}
+    if np.any(electrode_pair == 'AB'):
+        if AB:
+            AB = np.hstack(AB)
+        elecSepDict['AB'] = AB
+    if np.any(electrode_pair == 'MN'):
+        if MN:
+            MN = np.hstack(MN)
+        elecSepDict['MN'] = MN
+    if np.any(electrode_pair == 'AM'):
+        if AM:
+            AM = np.hstack(AM)
+        elecSepDict['AM'] = AM
+    if np.any(electrode_pair == 'AN'):
+        if AN:
+            AN = np.hstack(AN)
+        elecSepDict['AN'] = AN
+    if np.any(electrode_pair == 'BM'):
+        if BM:
+            BM = np.hstack(BM)
+        elecSepDict['BM'] = BM
+    if np.any(electrode_pair == 'BN'):
+        if BN:
+            BN = np.hstack(BN)
+        elecSepDict['BN'] = BN
 
     return elecSepDict
 
@@ -219,7 +228,6 @@ def geometric_factor(
             dc_survey, survey_type=survey_type,
             electrode_pair=['AM', 'BM', 'AN', 'BN']
     )
-
     AM = elecSepDict['AM']
     BM = elecSepDict['BM']
     AN = elecSepDict['AN']
@@ -240,8 +248,8 @@ def geometric_factor(
 
     else:
         raise Exception(
-        """'survey_type must be 'dipole-dipole' | 'pole-dipole' |
-        'dipole-pole' | 'pole-pole'"""
+            """survey_type must be 'dipole-dipole' | 'pole-dipole' |
+            'dipole-pole' | 'pole-pole"""
         )
 
     return (G/(spaceFact*np.pi))
