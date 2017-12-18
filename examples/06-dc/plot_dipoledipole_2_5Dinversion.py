@@ -15,10 +15,10 @@ showIt = False
 # Initiate I/O class for DC
 IO = DC.IO()
 # Obtain ABMN locations
-A, B, M, N = IO.genLocs_2D('dipole-dipole', 0., 200., 10., 10)
+A, B, M, N = IO.gen_locations_2D('dipole-dipole', 0., 200., 10., 10)
 
 # Generate DC survey object
-survey = IO.fromABMN_to_survey(
+survey = IO.from_ambnlocations_to_survey(
     A, B, M, N, 'dipole-dipole', dataType='volt'
 )
 
