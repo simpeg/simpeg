@@ -124,8 +124,8 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
     #  model parameters
-    IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=3)
-    update_Jacobi = Directives.Update_lin_PreCond()
+    IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=2)
+    update_Jacobi = Directives.UpdatePreconditioner()
     inv = Inversion.BaseInversion(invProb,
                                   directiveList=[IRLS, betaest, update_Jacobi])
 
@@ -137,7 +137,7 @@ def run(plotIt=True):
         # Here is the recovered susceptibility model
         ypanel = midx
         zpanel = -5
-        m_l2 = actvMap * IRLS.l2model
+        m_l2 = actvMap * invProb.l2model
         m_l2[m_l2 == -100] = np.nan
 
         m_lp = actvMap * mrec
