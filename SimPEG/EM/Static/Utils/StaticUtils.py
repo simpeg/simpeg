@@ -26,16 +26,17 @@ def electrode_separations(
 
     """
 
-    if electrode_pair == 'All':
-        electrode_pair = np.r_[['AB', 'MN', 'AM', 'AN', 'BM', 'BN']]
-    elif isinstance(electrode_pair, list) or isinstance(electrode_pair, str):
-        electrode_pair = np.r_[electrode_pair]
-    elif ~isinstance(electrode_pair, [np.ndarray, np.generic]):
-        raise Exception(
-            """electrode_pair must be either a string, list of strings, or an
-            ndarray containing the electrode separation distances you would
-            like to calculate "not {}".format(electrode_pair)"""
-        )
+    if not isinstance(electrode_pair, np.ndarray):
+        if electrode_pair == 'All':
+            electrode_pair = np.r_[['AB', 'MN', 'AM', 'AN', 'BM', 'BN']]
+        elif isinstance(electrode_pair, list) or isinstance(electrode_pair, str):
+            electrode_pair = np.r_[electrode_pair]
+        else:
+            raise Exception(
+                """electrode_pair must be either a string, list of strings, or an
+                ndarray containing the electrode separation distances you would
+                like to calculate""" " not {}".format(type(electrode_pair))
+            )
 
     elecSepDict = {}
     AB = []
@@ -91,7 +92,8 @@ def electrode_separations(
         else:
             raise Exception(
                 """survey_type must be 'dipole-dipole' | 'pole-dipole' |
-                 'dipole-pole' | 'pole-pole'"""
+                'dipole-pole' | 'pole-pole'"""
+                " not {}".format(survey_type)
             )
 
     if np.any(electrode_pair == 'AB'):
@@ -189,8 +191,9 @@ def source_receiver_midpoints(dc_survey, survey_type='dipole-dipole', dim=2):
                 raise Exception()
         else:
             raise Exception(
-                """'survey_type must be 'dipole-dipole' | 'pole-dipole'
-                    | 'dipole-pole' | 'pole-pole'"""
+                """survey_type must be 'dipole-dipole' | 'pole-dipole' |
+                'dipole-pole' | 'pole-pole'"""
+                " not {}".format(survey_type)
             )
 
         midx = np.hstack([midx, (Cmid + Pmid)/2])
