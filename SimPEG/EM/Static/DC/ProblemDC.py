@@ -40,7 +40,9 @@ class BaseDCProblem(BaseEMProblem):
         return f
 
     def getJ(self, m, f=None):
-
+        """
+            Generate Full sensitivity matrix
+        """
         if self.verbose:
             print("Calculating J and storing")
 
@@ -52,15 +54,15 @@ class BaseDCProblem(BaseEMProblem):
             if f is None:
                 f = self.fields(m)
             self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
-        pass
+        return self._Jmatrix
 
     def Jvec(self, m, v, f=None):
         """
             Compute sensitivity matrix (J) and vector (v) product.
         """
         if self.storeJ:
-            self.getJ(m, f=f)
-            Jv = Utils.mkvc(np.dot(self._Jmatrix, v))
+            J = self.getJ(m, f=f)
+            Jv = Utils.mkvc(np.dot(J, v))
             return Jv
 
         self.model = m
@@ -88,8 +90,8 @@ class BaseDCProblem(BaseEMProblem):
 
         """
         if self.storeJ:
-            self.getJ(m, f=f)
-            Jtv = Utils.mkvc(np.dot(self._Jmatrix.T, v))
+            J = self.getJ(m, f=f)
+            Jtv = Utils.mkvc(np.dot(J.T, v))
             return Jtv
 
         self.model = m
