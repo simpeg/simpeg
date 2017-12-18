@@ -17,7 +17,7 @@ except ImportError:
 class DCUtilsTests_halfspace(unittest.TestCase):
 
     def setUp(self):
-        url = 'https://github.com/thast/Benchmarks_files/raw/master/Test_DCUtils/'
+        url = 'https://storage.googleapis.com/simpeg/tests/dc_utils/'
         cloudfiles = ['mesh3d.msh', '2spheres_conmodel.npy',
                       'rhoA_GIF_dd.txt', 'rhoA_GIF_dp.txt',
                       'rhoA_GIF_pd.txt', 'rhoA_GIF_pp.txt'
@@ -267,7 +267,7 @@ class DCUtilsTests_fullspace(unittest.TestCase):
 
     def setUp(self):
 
-        url = 'https://github.com/thast/Benchmarks_files/raw/master/Test_DCUtils/'
+        url = 'https://storage.googleapis.com/simpeg/tests/dc_utils/'
         cloudfiles = ['dPred_fullspace.txt', 'AB_GIF_fullspace.txt',
                       'MN_GIF_fullspace.txt', 'AM_GIF_fullspace.txt',
                       'AN_GIF_fullspace.txt', 'BM_GIF_fullspace.txt',
