@@ -10,21 +10,22 @@ from SimPEG.EM.Static import DC
 from SimPEG.Utils import asArray_N_x_Dim, uniqueRows
 
 
-def calc_ElecSep(DCsurvey, surveyType='dipole-dipole'):
+def electrode_separations(DCsurvey, surveyType='dipole-dipole'):
     """
         Calculate electrode separation distances.
 
         Input:
         :param DCsurvey: DC survey object
-        :switch surveyType: Either 'pole-dipole' | 'dipole-dipole'
+        :param str surveyType: Either 'pole-dipole' | 'dipole-dipole'
+                                      | 'dipole-pole' | 'pole-pole'
 
         Output:
-        :param AB, MN, AM, AN, BM, BN: electrode separation distances
-
-        Edited Nov. 23th, 2017
-
-        @author: micmitch
-
+        :param numpy.ndarray AB: electrodes [A,B] separation distances
+        :param numpy.ndraray MN: electrodes [M,N] separation distances
+        :param numpy.ndarray AM: electrodes [A,M] separation distances
+        :param numpy.ndarray AN: electrodes [A,N] separation distances
+        :param numpy.ndarray BM: electrodes [B,M] separation distances
+        :param numpy.ndarray BN: electrodes [B,N] separation distances
     """
 
     AB = []
@@ -96,7 +97,19 @@ def calc_ElecSep(DCsurvey, surveyType='dipole-dipole'):
     return AB, MN, AM, AN, BM, BN
 
 
-def calc_midpoints(DCsurvey, surveyType='dipole-dipole', dim=2):
+def source_receiver_midpoints(DCsurvey, surveyType='dipole-dipole', dim=2):
+    """
+        Calculate source receiver midpoints.
+
+        Input:
+        :param DCsurvey: DC survey object
+        :param str surveyType: Either 'pole-dipole' | 'dipole-dipole'
+                                      | 'dipole-pole' | 'pole-pole'
+
+        Output:
+        :param numpy.ndarray midx: midpoints x location
+        :param numpy.ndarray midz: midpoints  z location
+    """
 
     # Pre-allocate
     midx = []
@@ -122,9 +135,6 @@ def calc_midpoints(DCsurvey, surveyType='dipole-dipole', dim=2):
             # Create mid-point location
             Cmid = (Tx[0][0] + Tx[1][0])/2
             Pmid = (Rx[0][:, 0] + Rx[1][:, 0])/2
-            # if DCsurvey.mesh.dim == 2:
-            #     zsrc = (Tx[0][1] + Tx[1][1])/2
-            # elif DCsurvey.mesh.dim ==3:
             if dim == 2:
                 zsrc = (Tx[0][1] + Tx[1][1])/2
             elif dim == 3:
@@ -154,7 +164,10 @@ def calc_midpoints(DCsurvey, surveyType='dipole-dipole', dim=2):
             else:
                 raise Exception()
         else:
-            raise Exception("""'surveyType must be 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'""")
+            raise Exception(
+                """'surveyType must be 'dipole-dipole' | 'pole-dipole'
+                    | 'dipole-pole' | 'pole-pole'"""
+            )
 
         midx = np.hstack([midx, (Cmid + Pmid)/2])
         midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc])
@@ -162,17 +175,21 @@ def calc_midpoints(DCsurvey, surveyType='dipole-dipole', dim=2):
     return midx, midz
 
 
-def calc_GeometricFactor(DCsurvey, surveyType='dipole-dipole', spaceType='half-space'):
+def geometric_factor(
+    DCsurvey, surveyType='dipole-dipole', spaceType='half-space'
+):
     """
         Calculate Geometric Factor. Assuming that data are normalized voltages
 
         Input:
         :param DCsurvey: DC survey object
-        :switch surveyType: Either 'dipole-dipole' | 'pole-dipole' | 'dipole-pole' | 'pole-pole'
-        :switch spaceType: Assuming whole-space or half-space ('whole-space' | 'half-space')
+        :param str surveyType: Either 'dipole-dipole' | 'pole-dipole'
+                               | 'dipole-pole' | 'pole-pole'
+        :param str spaceType: Assuming whole-space or half-space
+                              ('whole-space' | 'half-space')
 
         Output:
-        :param G: Geometric Factor
+        :param numpy.ndarray G: Geometric Factor
 
     """
     # Set factor for whole-space or half-space assumption
@@ -183,7 +200,7 @@ def calc_GeometricFactor(DCsurvey, surveyType='dipole-dipole', spaceType='half-s
     else:
         raise Exception("""'spaceType must be 'whole-space' | 'half-space'""")
 
-    _, _, AM, AN, BM, BN = calc_ElecSep(DCsurvey, surveyType=surveyType)
+    _, _, AM, AN, BM, BN = electrode_separations(DCsurvey, surveyType=surveyType)
 
     # Determine geometric factor G based on electrode separation distances
     if surveyType == 'dipole-dipole':
@@ -233,7 +250,7 @@ def calc_rhoApp(DCsurvey, surveyType='dipole-dipole', spaceType='half-space',
             dobs = DCsurvey.dobs.copy()
 
     # Calculate Geometric Factor
-    G = calc_GeometricFactor(DCsurvey, surveyType=surveyType, spaceType=spaceType)
+    G = geometric_factor(DCsurvey, surveyType=surveyType, spaceType=spaceType)
 
     # Calculate apparent resistivity
     # absolute value is required because of the regularizer
@@ -282,7 +299,7 @@ def plot_pseudoSection(DCsurvey, ax, surveyType='dipole-dipole',
     rhoApp = calc_rhoApp(DCsurvey, dobs=dobs,
                          surveyType=surveyType,
                          spaceType=spaceType)
-    midx, midz = calc_midpoints(DCsurvey, surveyType=surveyType, dim=dim)
+    midx, midz = source_receiver_midpoints(DCsurvey, surveyType=surveyType, dim=dim)
 
     if dataType == 'volt':
         if scale == "linear":

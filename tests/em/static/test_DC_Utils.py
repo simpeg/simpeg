@@ -92,8 +92,8 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                                    pcolorOpts={"cmap": "viridis"},
                                    dataLoc=True)
 
-        # Test the utils functions calc_ElecSep,
-        # calc_midpoints, calc_GeometricFactor,
+        # Test the utils functions electrode_separations,
+        # source_receiver_midpoints, geometric_factor,
         # calc_rhoApp all at once
         rhoapp = DCUtils.calc_rhoApp(survey, surveyType='dipole-dipole',
                                      spaceType='half-space', eps=0.)
@@ -144,8 +144,8 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                                    pcolorOpts={"cmap": "viridis"},
                                    dataLoc=True)
 
-        # Test the utils functions calc_ElecSep,
-        # calc_midpoints, calc_GeometricFactor,
+        # Test the utils functions electrode_separations,
+        # source_receiver_midpoints, geometric_factor,
         # calc_rhoApp all at once
         rhoapp = DCUtils.calc_rhoApp(survey, surveyType='pole-dipole',
                                      spaceType='half-space', eps=0.)
@@ -196,8 +196,8 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                                    pcolorOpts={"cmap": "viridis"},
                                    dataLoc=True)
 
-        # Test the utils functions calc_ElecSep,
-        # calc_midpoints, calc_GeometricFactor,
+        # Test the utils functions electrode_separations,
+        # source_receiver_midpoints, geometric_factor,
         # calc_rhoApp all at once
         rhoapp = DCUtils.calc_rhoApp(survey, surveyType='dipole-pole',
                                      spaceType='half-space', eps=0.)
@@ -248,8 +248,8 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                                    pcolorOpts={"cmap": "viridis"},
                                    dataLoc=True)
 
-        # Test the utils functions calc_ElecSep,
-        # calc_midpoints, calc_GeometricFactor,
+        # Test the utils functions electrode_separations,
+        # source_receiver_midpoints, geometric_factor,
         # calc_rhoApp all at once
         rhoapp = DCUtils.calc_rhoApp(survey, surveyType='pole-pole',
                                      spaceType='half-space', eps=0.)
@@ -288,7 +288,7 @@ class DCUtilsTests_fullspace(unittest.TestCase):
     def test_ElecSep(self):
 
         # Compute dipoles distances from survey
-        AB, MN, AM, AN, BM, BN = DCUtils.calc_ElecSep(self.survey)
+        AB, MN, AM, AN, BM, BN = DCUtils.electrode_separations(self.survey)
 
         # Load benchmarks files from UBC-GIF codes
         AB_file = os.path.sep.join([self.basePath, 'AB_GIF_fullspace.txt'])
