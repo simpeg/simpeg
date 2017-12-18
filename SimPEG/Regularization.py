@@ -77,7 +77,6 @@ class RegularizationMesh(Props.BaseSimPEG):
             return int(self.indActive.sum())
         return self.mesh.nC
 
-
     @property
     def dim(self):
         """
@@ -89,7 +88,6 @@ class RegularizationMesh(Props.BaseSimPEG):
         if getattr(self, '_dim', None) is None:
             self._dim = self.mesh.dim
         return self._dim
-
 
     @property
     def Pac(self):
@@ -120,12 +118,8 @@ class RegularizationMesh(Props.BaseSimPEG):
             if self.indActive is None:
                 self._Pafx = Utils.speye(self.mesh.nFx)
             else:
-                if getattr(self.mesh, 'aveCC2Fx', None) is not None:
-                    indActive_Fx = (self.mesh.aveCC2Fx() * self.indActive) != 0
-                    self._Pafx = Utils.speye(self.mesh.ntFx)[:, indActive_Fx]
-                else:
-                    indActive_Fx = (self.mesh.aveFx2CC.T * self.indActive) != 0
-                    self._Pafx = Utils.speye(self.mesh.nFx)[:, indActive_Fx]
+                indActive_Fx = (self.mesh.aveFx2CC.T * self.indActive) == 1
+                self._Pafx = Utils.speye(self.mesh.nFx)[:, indActive_Fx]
         return self._Pafx
 
     @property
@@ -141,12 +135,8 @@ class RegularizationMesh(Props.BaseSimPEG):
             if self.indActive is None:
                 self._Pafy = Utils.speye(self.mesh.nFy)
             else:
-                if getattr(self.mesh, 'aveCC2Fy', None) is not None:
-                    indActive_Fy = (self.mesh.aveCC2Fy() * self.indActive) != 0
-                    self._Pafy = Utils.speye(self.mesh.ntFy)[:, indActive_Fy]
-                else:
-                    indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) != 0
-                    self._Pafy = Utils.speye(self.mesh.nFy)[:, indActive_Fy]
+                indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) == 1
+                self._Pafy = Utils.speye(self.mesh.nFy)[:, indActive_Fy]
         return self._Pafy
 
     @property
@@ -162,12 +152,8 @@ class RegularizationMesh(Props.BaseSimPEG):
             if self.indActive is None:
                 self._Pafz = Utils.speye(self.mesh.nFz)
             else:
-                if getattr(self.mesh, 'aveCC2Fz', None) is not None:
-                    indActive_Fz = (self.mesh.aveCC2Fz() * self.indActive) != 0
-                    self._Pafz = Utils.speye(self.mesh.ntFz)[:, indActive_Fz]
-                else:
-                    indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) != 0
-                    self._Pafz = Utils.speye(self.mesh.nFz)[:, indActive_Fz]
+                indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) == 1
+                self._Pafz = Utils.speye(self.mesh.nFz)[:, indActive_Fz]
         return self._Pafz
 
     @property
@@ -191,12 +177,9 @@ class RegularizationMesh(Props.BaseSimPEG):
         :return: averaging matrix from active x-faces to active cell centers
         """
         if getattr(self, '_aveCC2Fx', None) is None:
-
-            if getattr(self.mesh, 'aveCC2Fx', None) is not None:
-                self._aveCC2Fx = self.Pafx.T * self.mesh.aveCC2Fx() * self.Pac
-            else:
-                self._aveCC2Fx = (
-                Utils.sdiag(1./(self.aveFx2CC.T).sum(1)) * self.aveFx2CC.T)
+            self._aveCC2Fx = (
+                Utils.sdiag(1./(self.aveFx2CC.T).sum(1)) * self.aveFx2CC.T
+            )
         return self._aveCC2Fx
 
     @property
@@ -220,10 +203,7 @@ class RegularizationMesh(Props.BaseSimPEG):
         :return: averaging matrix from active y-faces to active cell centers
         """
         if getattr(self, '_aveCC2Fy', None) is None:
-            if getattr(self.mesh, 'aveCC2Fy', None) is not None:
-                self._aveCC2Fy = self.Pafy.T * self.mesh.aveCC2Fy() * self.Pac
-            else:
-                self._aveCC2Fy = (
+            self._aveCC2Fy = (
                 Utils.sdiag(1./(self.aveFy2CC.T).sum(1)) * self.aveFy2CC.T
             )
         return self._aveCC2Fy
@@ -249,10 +229,7 @@ class RegularizationMesh(Props.BaseSimPEG):
         :return: averaging matrix from active z-faces to active cell centers
         """
         if getattr(self, '_aveCC2Fz', None) is None:
-            if getattr(self.mesh, 'aveCC2Fz', None) is not None:
-                self._aveCC2Fz = self.Pafz.T * self.mesh.aveCC2Fz() * self.Pac
-            else:
-                self._aveCC2Fz = (
+            self._aveCC2Fz = (
                 Utils.sdiag(1./(self.aveFz2CC.T).sum(1)) * self.aveFz2CC.T
             )
         return self._aveCC2Fz
@@ -393,28 +370,19 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
     Base class for regularization. Inherit this for building your own
     regularization. The base regularization assumes a weighted l2 style of
     regularization. However, if you wish to employ a different norm, the
-    methods :meth:`__call__`, :meth:`deriv` and :meth:`deriv2` can be over-written
-
-    **Optional Inputs**
+    methods :meth:`__call__`, :meth:`deriv` and :meth:`deriv2` can be
+    over-written
 
     :param BaseMesh mesh: SimPEG mesh
-    :param int nP: number of parameters
-    :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
-    :param numpy.ndarray mref: reference model
-    :param numpy.ndarray indActive: active cell indices for reducing the size
-    of differential operators in the definition of a regularization mesh
 
     """
 
-    counter = None
-
-    def __init__(
-        self, mesh=None, **kwargs
-    ):
-
+    def __init__(self, mesh=None, **kwargs):
         super(BaseRegularization, self).__init__()
-        self._mesh = mesh
+        self.regmesh = RegularizationMesh(mesh)
         Utils.setKwargs(self, **kwargs)
+
+    counter = None
 
     # Properties
     mref = Props.Array(
@@ -426,6 +394,13 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
     cell_weights = properties.Array(
         "regularization weights applied at cell centers", dtype=float
     )
+    regmesh = properties.Instance(
+        "regularization mesh", RegularizationMesh, required=True
+    )
+    mapping = properties.Instance(
+        "mapping which is applied to model in the regularization",
+        Maps.IdentityMap, default=Maps.IdentityMap()
+    )
 
     # Observers and Validators
     @properties.validator('indActive')
@@ -434,7 +409,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         if value is not None:
             if value.dtype != 'bool':  # cast it to a bool otherwise
                 tmp = value
-                value = np.zeros(self.mesh.nC, dtype=bool)
+                value = np.zeros(self.regmesh.nC, dtype=bool)
                 value[tmp] = True
                 change['value'] = value
 
@@ -447,13 +422,6 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         # update regmesh indActive
         if getattr(self, 'regmesh', None) is not None:
             self.regmesh.indActive = change['value']
-
-    @properties.validator('mref')
-    def _validate_mref(self, change):
-        if not isinstance(change['value'], Utils.Zero) and self.nP != '*':
-            assert len(change['value']) == self.nP, (
-                'mref must be length {}'.format(self.nP)
-            )
 
     @properties.validator('cell_weights')
     def _validate_cell_weights(self, change):
@@ -490,58 +458,6 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
             return self.mapping.shape[0]
         else:
             return self.nP
-
-    @property
-    def mesh(self):
-        """
-        a SimPEG mesh which the model is described on
-        """
-        return self._mesh
-
-    @mesh.setter
-    def mesh(self, value):
-        assert isinstance(value, Mesh.BaseMesh) or value is None, (
-            "mesh must be a SimPEG.Mesh object."
-        )
-        self._mesh = value
-
-    @property
-    def regmesh(self):
-        """
-        mesh used for creating operators for regularization. Excludes inactive
-        cells if they are provided
-        """
-        if getattr(self, '_regmesh', None) is None:
-            if self.indActive is not None:
-                self._regmesh = RegularizationMesh(
-                    self.mesh, indActive=self.indActive
-                )
-            else:
-                self._regmesh = RegularizationMesh(self.mesh)
-        return self._regmesh
-
-    @regmesh.setter
-    def regmesh(self, value):
-        assert isinstance(value, RegularizationMesh) or value is None, (
-            "regmesh must be an instance of a RegularizationMesh"
-            )
-        self._regmesh = value
-
-    @property
-    def mapping(self):
-        """
-        a mapping to map the model to the space in which you wish to regularize
-        it in
-        """
-        if getattr(self, '_mapping', None) is None:
-            return self.mapPair()
-        return self._mapping
-
-    @mapping.setter
-    def mapping(self, value):
-        if value is not None:
-            value._assertMatchesPair(self.mapPair)
-        self._mapping = value
 
     def _delta_m(self, m):
         if self.mref is None:
@@ -611,7 +527,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         if v is None:
             return mD.T * self.W.T * self.W * mD
 
-        return mD.T * ( self.W.T * ( self.W * ( mD * v) ) )
+        return mD.T * (self.W.T * (self.W * (mD * v)))
 
 
 ###############################################################################
@@ -622,21 +538,25 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
 
 class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
 
-    mapPair = Maps.IdentityMap
-
     def __init__(
-        self, mesh, objfcts=[],
-        mapping=None, **kwargs
+        self, mesh, objfcts=[], **kwargs
     ):
-
-        self._mesh = mesh
-        self._mapping = mapping
 
         super(BaseComboRegularization, self).__init__(
             objfcts=objfcts, multipliers=None
         )
-
+        self.regmesh = RegularizationMesh(mesh)
         Utils.setKwargs(self, **kwargs)
+
+        # link these attributes
+        linkattrs = [
+            'regmesh', 'indActive', 'cell_weights', 'mapping'
+        ]
+
+        for attr in linkattrs:
+            val = getattr(self, attr)
+            if val is not None:
+                [setattr(fct, attr, val) for fct in self.objfcts]
 
     # Properties
     alpha_s = Props.Float("smallness weight")
@@ -646,6 +566,8 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
     alpha_xx = Props.Float("weight for the second x-derivative")
     alpha_yy = Props.Float("weight for the second y-derivative")
     alpha_zz = Props.Float("weight for the second z-derivative")
+
+    counter = None
 
     mref = Props.Array(
         "reference model"
@@ -659,18 +581,43 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
     cell_weights = properties.Array(
         "regularization weights applied at cell centers", dtype=float
     )
-    scale = properties.Float(
-        "General nob for scaling", default=1.
+    regmesh = properties.Instance(
+        "regularization mesh", RegularizationMesh, required=True
+    )
+    mapping = properties.Instance(
+        "mapping which is applied to model in the regularization",
+        Maps.IdentityMap, default=Maps.IdentityMap()
     )
 
+    # Other properties and methods
     @property
     def nP(self):
+        """
+        number of model parameters
+        """
         if getattr(self.mapping, 'nP') != '*':
             return self.mapping.nP
         elif getattr(self.regmesh, 'nC') != '*':
             return self.regmesh.nC
         else:
             return '*'
+
+    @property
+    def _nC_residual(self):
+        """
+        Shape of the residual
+        """
+        if getattr(self.regmesh, 'nC', None) != '*':
+            return self.regmesh.nC
+        elif getattr(self, 'mapping', None) != '*':
+            return self.mapping.shape[0]
+        else:
+            return self.nP
+
+    def _delta_m(self, m):
+        if self.mref is None:
+            return m
+        return (-self.mref + m)  # in case self.mref is Zero, returns type m
 
     @property
     def multipliers(self):
@@ -684,8 +631,38 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
             ) for objfct in self.objfcts
         ]
 
-    # Mirror property changes down to objective functions in objective function
-    # list
+    # Observers and Validators
+    @properties.validator('indActive')
+    def _cast_to_bool(self, change):
+        value = change['value']
+        if value is not None:
+            if value.dtype != 'bool':  # cast it to a bool otherwise
+                tmp = value
+                value = np.zeros(self.regmesh.nC, dtype=bool)
+                value[tmp] = True
+                change['value'] = value
+
+        # update regmesh indActive
+        if getattr(self, 'regmesh', None) is not None:
+            self.regmesh.indActive = Utils.mkvc(value)
+
+    @properties.observer('indActive')
+    def _update_regmesh_indActive(self, change):
+        # update regmesh indActive
+        if getattr(self, 'regmesh', None) is not None:
+            self.regmesh.indActive = change['value']
+
+    @properties.validator('cell_weights')
+    def _validate_cell_weights(self, change):
+        if change['value'] is not None:
+            # todo: residual size? we need to know the expected end shape
+            if self._nC_residual != '*':
+                assert len(change['value']) == self._nC_residual, (
+                    'cell_weights must be length {} not {}'.format(
+                        self._nC_residual, len(change['value'])
+                    )
+                )
+
     @properties.observer('mref')
     def _mirror_mref_to_objfctlist(self, change):
         for fct in self.objfcts:
@@ -724,55 +701,10 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         for fct in self.objfcts:
             fct.cell_weights = change['value']
 
-    # Mirror other properties down
-
-    @property
-    def mesh(self):
-        """
-        a SimPEG mesh which the model is described on
-        """
-        return self._mesh
-
-    @mesh.setter
-    def mesh(self, value):
-        assert isinstance(value, Mesh.BaseMesh) or value is None, (
-            "mesh must be a SimPEG.Mesh object."
-        )
+    @properties.observer('mapping')
+    def _mirror_mapping_to_objfctlist(self, change):
         for fct in self.objfcts:
-            fct.mesh = value
-        self._mesh = value
-
-    @property
-    def regmesh(self):
-        # This could be cleaned up
-        if getattr(self, 'mesh', None) is not None:
-            if getattr(self, '_regmesh', None) is None:
-                self._regmesh = RegularizationMesh(mesh=self.mesh)
-                if self.indActive is not None:
-                    self._regmesh.indActive = self.indActive
-            return self._regmesh
-        return None
-
-    @regmesh.setter
-    def regmesh(self, val):
-        for fct in self.objfcts:
-            fct.regmesh = val
-        self._regmesh = val
-
-    @property
-    def mapping(self):
-        if getattr(self, '_mapping', None) is None:
-            if getattr(self, 'regmesh', None) is not None:
-                self._mapping = self.mapPair()
-            else:
-                self._mapping = None
-        return self._mapping
-
-    @mapping.setter
-    def mapping(self, val):
-        for fct in self.objfcts:
-            fct.mapping = val
-        self._mapping = val
+            fct.mapping = change['value']
 
 
 ###############################################################################
@@ -780,7 +712,6 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
 #              Simple Regularization (no volume contribution)                 #
 #                                                                             #
 ###############################################################################
-
 
 class SimpleSmall(BaseRegularization):
     """
@@ -1155,6 +1086,7 @@ class SmoothDeriv2(BaseRegularization):
             orientation=self.orientation
         )
 
+
     @property
     def W(self):
         """
@@ -1254,35 +1186,16 @@ class BaseSparse(BaseRegularization):
     model = properties.Array(
         "current model", dtype=float
     )
-
     gamma = properties.Float(
         "Model norm scaling to smooth out convergence", default=1.
     )
-
     epsilon = properties.Float(
-        "Threshold value for the model norm", default=1e-3,
-        required=True
+        "Threshold value for the model norm", #, default=1e-1
+        required = True
     )
-
     norm = properties.Float(
         "norm used", default=2
     )
-
-    space = properties.String(
-        "By default inherit the objctive", default='linear'
-    )
-
-    scale = properties.Float(
-        "General nob for scaling", default=1.
-    )
-
-    @property
-    def stashedR(self):
-        return self._stashedR
-
-    @stashedR.setter
-    def stashedR(self, value):
-        self._stashedR = value
 
     @property
     def stashedR(self):
@@ -1297,9 +1210,12 @@ class BaseSparse(BaseRegularization):
         if getattr(self, 'stashedR') is not None:
             return self.stashedR
 
+        eps = self.epsilon
+        exponent = self.norm
+
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = (self.epsilon**(1.-self.norm/2.))**0.5
-        r = eta / (f_m**2. + self.epsilon**2.)**((1.-self.norm/2.)/2.)
+        eta = (eps**(1.-exponent/2.))**0.5
+        r = eta / (f_m**2. + eps**2.)**((1.-exponent/2.)/2.)
 
         self.stashedR = r  # stash on the first calculation
         return r
@@ -1334,9 +1250,8 @@ class SparseSmall(BaseSparse):
             R = Utils.sdiag(r)
 
         if self.cell_weights is not None:
-            return Utils.sdiag((self.scale * self.gamma *
-                                self.cell_weights)**0.5) * R
-        return (self.scale * self.gamma)**0.5 * R
+            return Utils.sdiag((self.gamma*self.cell_weights)**0.5) * R
+        return (self.gamma)**0.5 * R
 
 
 class SparseDeriv(BaseSparse):
@@ -1353,112 +1268,13 @@ class SparseDeriv(BaseSparse):
         "include mref in the smoothness calculation?", default=False
     )
 
-    @Utils.timeIt
-    def __call__(self, m):
-        """
-        We use a weighted 2-norm objective function
-
-        .. math::
-
-            r(m) = \\frac{1}{2}
-        """
-        if self.space == 'spherical':
-            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
-
-            if getattr(self, 'model', None) is None:
-                R = Utils.speye(self.cellDiffStencil.shape[0])
-
-            else:
-                r = self.R(self.f_m)
-                R = Utils.sdiag(r)
-
-            if self.cell_weights is not None:
-                W = (
-                    Utils.sdiag(
-                        (self.scale * self.gamma * (Ave*(self.cell_weights)))**0.5
-                    ) *
-                    R
-                )
-
-            else:
-                W = ((self.scale * self.gamma)**0.5) * R
-
-
-            theta = self.cellDiffStencil * (self.mapping * m)
-            dmdx = coterminal(theta)
-            r = W * dmdx
-
-        else:
-            r = self.W * (self.mapping * (m))
-
-
-        return 0.5 * r.dot(r)
-
-    @Utils.timeIt
-    def deriv(self, m):
-        """
-
-        The regularization is:
-
-        .. math::
-
-            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top
-                   W(m-m_\\text{ref})}
-
-        So the derivative is straight forward:
-
-        .. math::
-
-            R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
-
-        """
-        if self.space == 'spherical':
-            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
-
-            if getattr(self, 'model', None) is None:
-                R = Utils.speye(self.cellDiffStencil.shape[0])
-
-            else:
-                r = self.R(self.f_m)
-                R = Utils.sdiag(r)
-
-            if self.cell_weights is not None:
-                W = (
-                    Utils.sdiag(
-                        (self.scale * self.gamma * (Ave*(self.cell_weights)))**0.5
-                    ) *
-                    R
-                )
-
-            else:
-                W = ((self.scale * self.gamma)**0.5) * R
-
-            theta = self.cellDiffStencil * (self.mapping * m)
-            dmdx = coterminal(theta)
-
-            r = W * dmdx
-
-        else:
-            r = self.W * (self.mapping * (m))
-        mD = self.mapping.deriv(m)
-        return mD.T * (self.W.T * r)
-
-
     @property
     def _multiplier_pair(self):
         return 'alpha_{orientation}'.format(orientation=self.orientation)
 
     @property
     def f_m(self):
-        if self.space == 'spherical':
-            theta = self.cellDiffStencil * (self.mapping * self.model)
-            dmdx = coterminal(theta)
-
-        else:
-
-            dmdx = self.cellDiffStencil * (self.mapping * self.model)
-
-        return dmdx
+        return self.cellDiffStencil * (self.mapping * self.model)
 
     @property
     def cellDiffStencil(self):
@@ -1475,17 +1291,17 @@ class SparseDeriv(BaseSparse):
             R = Utils.speye(self.cellDiffStencil.shape[0])
 
         else:
-            r = self.R(self.f_m)
+            r = self.R(self.f_m) # , self.eps_q, self.norm)
             R = Utils.sdiag(r)
 
         if self.cell_weights is not None:
             return (
                 Utils.sdiag(
-                    (self.scale * self.gamma * (Ave*(self.cell_weights)))**0.5
+                    (self.gamma*(Ave*self.cell_weights))**0.5
                 ) *
                 R * self.cellDiffStencil
             )
-        return ((self.scale * self.gamma)**0.5) * R * self.cellDiffStencil
+        return ( (self.gamma)**0.5) * R * self.cellDiffStencil
 
 
 class Sparse(BaseComboRegularization):
@@ -1545,11 +1361,11 @@ class Sparse(BaseComboRegularization):
     )
 
     eps_p = properties.Float(
-        "Threshold value for the model norm", required=True
+        "Threshold value for the model norm", default=1e-1
         )
 
     eps_q = properties.Float(
-        "Threshold value for the model gradient norm", required=True
+        "Threshold value for the model gradient norm", default=1e-1
         )
 
     model = properties.Array("current model", dtype=float)
@@ -1557,16 +1373,6 @@ class Sparse(BaseComboRegularization):
     gamma = properties.Float(
         "Model norm scaling to smooth out convergence", default=1.
     )
-
-    space = properties.String(
-        "type of model", default='linear'
-    )
-
-    scale = properties.Float(
-        "General nob for scaling", default=1.
-    )
-    # Save the l2 result during the IRLS
-    l2model = None
 
     # Observers
     @properties.observer('norms')
@@ -1595,25 +1401,3 @@ class Sparse(BaseComboRegularization):
         for objfct in self.objfcts:
             if isinstance(objfct, SparseDeriv):
                 objfct.epsilon = change['value']
-
-    @properties.observer('space')
-    def _mirror_space_to_objfcts(self, change):
-        for objfct in self.objfcts:
-            objfct.space = change['value']
-
-    @properties.observer('scale')
-    def _mirror_scale_to_objfcts(self, change):
-        for objfct in self.objfcts:
-            objfct.scale = change['value']
-
-
-def coterminal(theta):
-    """ Compute coterminal angle so that [-pi < theta < pi]"""
-
-    sub = theta[np.abs(theta) >= np.pi]
-    sub = -np.sign(sub) * (2*np.pi-np.abs(sub))
-
-    theta[np.abs(theta) >= np.pi] = sub
-
-    return theta
-
