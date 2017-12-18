@@ -259,10 +259,12 @@ def calc_rhoApp(DCsurvey, surveyType='dipole-dipole', spaceType='half-space',
     return rhoApp
 
 
-def plot_pseudoSection(DCsurvey, ax, surveyType='dipole-dipole',
-                       dataType="appConductivity", spaceType='half-space',
-                       clim=None, scale="linear", sameratio=True,
-                       pcolorOpts={}, dataLoc=False, dobs=None, dim=2):
+def plot_pseudoSection(
+    DCsurvey, ax=None, surveyType='dipole-dipole',
+    dataType="appConductivity", spaceType='half-space',
+    clim=None, scale="linear", sameratio=True,
+    pcolorOpts={}, dataLoc=False, dobs=None, dim=2
+):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
@@ -334,15 +336,20 @@ def plot_pseudoSection(DCsurvey, ax, surveyType='dipole-dipole',
     else:
         vmin, vmax = clim[0], clim[1]
 
+    if ax is None:
+        fig, ax = plt.subplots(1,1)
+
     grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
-    ph = plt.pcolormesh(grid_x[:, 0], grid_z[0, :], grid_rho.T,
-                        clim=(vmin, vmax), vmin=vmin, vmax=vmax, **pcolorOpts)
+    ph = ax.pcolormesh(
+         grid_x[:, 0], grid_z[0, :], grid_rho.T,
+         clim=(vmin, vmax), vmin=vmin, vmax=vmax, **pcolorOpts
+    )
 
     if scale == "log":
-        cbar = plt.colorbar(format="$10^{%.1f}$",
+        cbar = plt.colorbar(ph, format="$10^{%.1f}$",
                             fraction=0.04, orientation="horizontal")
     elif scale == "linear":
-        cbar = plt.colorbar(format="%.1f",
+        cbar = plt.colorbar(ph, format="%.1f",
                             fraction=0.04, orientation="horizontal")
 
     if dataType == 'appConductivity':
@@ -364,9 +371,9 @@ def plot_pseudoSection(DCsurvey, ax, surveyType='dipole-dipole',
         ax.plot(midx, midz, 'k.', ms=1, alpha=0.4)
 
     if sameratio:
-        plt.gca().set_aspect('equal', adjustable='box')
+       ax.set_aspect('equal', adjustable='box')
 
-    return ph, ax, cbar
+    return ax
 
 
 def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n, d2flag='2.5D'):
