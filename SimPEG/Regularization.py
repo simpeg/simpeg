@@ -1107,7 +1107,6 @@ class SmoothDeriv2(BaseRegularization):
             orientation=self.orientation
         )
 
-
     @property
     def W(self):
         """
@@ -1267,7 +1266,7 @@ class SparseSmall(BaseSparse):
         if getattr(self, 'model', None) is None:
             R = Utils.speye(self.regmesh.nC)
         else:
-            r = self.R(self.f_m) #, self.eps_p, self.norm)
+            r = self.R(self.f_m)
             R = Utils.sdiag(r)
 
         if self.cell_weights is not None:
@@ -1312,7 +1311,7 @@ class SparseDeriv(BaseSparse):
             R = Utils.speye(self.cellDiffStencil.shape[0])
 
         else:
-            r = self.R(self.f_m) # , self.eps_q, self.norm)
+            r = self.R(self.f_m)
             R = Utils.sdiag(r)
 
         if self.cell_weights is not None:
@@ -1322,7 +1321,7 @@ class SparseDeriv(BaseSparse):
                 ) *
                 R * self.cellDiffStencil
             )
-        return ( (self.gamma)**0.5) * R * self.cellDiffStencil
+        return ((self.gamma)**0.5) * R * self.cellDiffStencil
 
 
 class Sparse(BaseComboRegularization):
