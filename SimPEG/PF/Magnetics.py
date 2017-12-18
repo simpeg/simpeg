@@ -82,15 +82,15 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return self._nD
 
-    @property
-    def mapping(self):
-        """
-            Return chiMap
-        """
-        if getattr(self, '_mapping', None) is None:
-            self._mapping = self.chiMap
+    # @property
+    # def mapping(self):
+    #     """
+    #         Return chiMap
+    #     """
+    #     if getattr(self, '_mapping', None) is None:
+    #         self._mapping = self.chiMap
 
-        return self._mapping
+    #     return self._mapping
 
     @property
     def ProjTMI(self):
@@ -109,6 +109,17 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return self._ProjTMI
 
+    def getJtJdiag(self, m, W=None):
+        """
+            Return the diagonal of JtJ
+        """
+
+        if W is None:
+            W = 1.
+
+        dmudm = self.chiMap.deriv(m)
+        return np.sum((W * self.F * dmudm)**2., axis=0)
+
     def getJ(self, m, f):
         """
             Sensitivity matrix
@@ -126,7 +137,6 @@ class MagneticIntegral(Problem.LinearProblem):
         return dmudm.T * (self.F.T.dot(v))
 
     def Intrgl_Fwr_Op(self, m=None, magType='H0', recType='tmi'):
-
         """
 
         Magnetic forward operator in integral form
@@ -358,6 +368,21 @@ class MagneticVector(MagneticIntegral):
 
         return u
 
+    def getJtJdiag(self, m, W=None):
+        """
+            Return the diagonal of JtJ
+        """
+
+        if W is None:
+            W = 1.
+
+        dmudm = self.chiMap.deriv(m)
+        if self.coordinate_system == 'cartesian':
+            return np.sum((W * self.F * dmudm)**2., axis=0)
+
+        else:
+            return np.sum((W * self.F * (self.S * dmudm))**2., axis=0)
+
     def getJ(self, chi, f=None):
 
         if self.coordinate_system == 'cartesian':
@@ -404,11 +429,16 @@ class MagneticVector(MagneticIntegral):
             if self.model is None:
                 raise Exception('Requires a chi')
 
-            nC = int(self.mapping.shape[0]/3)
+            # nC = int(self.mapPair().shape[0]/3)
 
-            a = (self.mapping * self.model)[:nC]
-            t = (self.mapping * self.model)[nC:2*nC]
-            p = (self.mapping * self.model)[2*nC:]
+            # TEST - CONVERT TO CARTESIAN FOR TILE INTERPOLATION
+            m_xyz = self.chiMap * atp2xyz(self.model)
+            m_atp = xyz2atp(m_xyz)
+
+            nC = int(m_atp.shape[0]/3.)
+            a = m_atp[:nC]
+            t = m_atp[nC:2*nC]
+            p = m_atp[2*nC:]
 
             Sx = sp.hstack([sp.diags(np.cos(t)*np.cos(p), 0),
                             sp.diags(-a*np.sin(t)*np.cos(p), 0),
@@ -509,6 +539,21 @@ class MagneticAmplitude(MagneticIntegral):
         ampB = self.fwr_ind(chi)
 
         return ampB
+
+    def getJtJdiag(self, m, W=None):
+        """
+            Return the diagonal of JtJ
+        """
+
+        if W is None:
+            W = 1.
+
+        dmudm = self.chiMap.deriv(m)
+        if self.coordinate_system == 'cartesian':
+            return np.sum((W * self.dfdm * self.F * dmudm)**2., axis=0)
+
+        else:
+            return np.sum(((W * self.dfdm) * self.F * (self.S * dmudm))**2., axis=0)
 
     def getJ(self, chi, f=None):
 

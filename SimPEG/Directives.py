@@ -919,9 +919,9 @@ class UpdateJacobiPrecond(InversionDirective):
                 m = self.invProb.model
                 f = prob.fields(m)
                 wd = dmisfit.W.diagonal()
-                for ii in range(prob.getJ(m, f).shape[0]):
-                    JtJdiag += ((wd[ii] * prob.getJ(m, f)[ii, :])**2.)
-                # JtJdiag += np.sum((dmisfit.W * prob.getJ(m, f))**2., axis=0)
+                # for ii in range(prob.getJ(m, f).shape[0]):
+                #     JtJdiag += ((wd[ii] * prob.getJ(m, f)[ii, :])**2.)
+                JtJdiag += prob.getJtJdiag(m, W=dmisfit.W)
             self.opt.JtJdiag = JtJdiag
 
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
@@ -1027,10 +1027,10 @@ class UpdateSensWeighting(InversionDirective):
             f = prob.fields(m)
             wd = dmisfit.W.diagonal()
 
-            for ii in range(prob.getJ(m, f).shape[0]):
-                    JtJdiag += ((wd[ii] * prob.getJ(m, f)[ii, :])**2.)
+            # for ii in range(prob.getJ(m, f).shape[0]):
+            #         JtJdiag += ((wd[ii] * prob.getJ(m, f)[ii, :])**2.)
 
-            # JtJdiag += np.sum((dmisfit.W * prob.getJ(m, f))**2., axis=0)
+            JtJdiag += prob.getJtJdiag(m, W=dmisfit.W)
 
             # Apply scale to the deriv and deriv2
             # dmisfit.scale = scale
@@ -1081,7 +1081,7 @@ class UpdateSensWeighting(InversionDirective):
             # print(wr_prob.min(),wr_prob.max(),prob.threshold)
             # Check if it is a Combo problem
 #            if getattr(prob.chiMap, 'index', None) is None:
-        wr += wr_prob
+            wr += wr_prob
 
 #            else:
 
