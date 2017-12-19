@@ -464,11 +464,11 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
 
 
     if dim == 2:
-        ztop = mesh.vectorNy[-1]
+        ztop = np.linspace(endl[0, 1], endl[0, 1], nstn)
         # Create line of P1 locations
-        M = np.c_[stn_x, np.ones(nstn).T*ztop]
+        M = np.c_[stn_x, ztop]
         # Create line of P2 locations
-        N = np.c_[stn_x+a*dl_x, np.ones(nstn).T*ztop]
+        N = np.c_[stn_x+a*dl_x, ztop]
 
     elif dim == 3:
         stn_z = np.linspace(endl[0, 2], endl[0, 2], nstn)
@@ -529,6 +529,7 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
                     rxClass = DC.Rx.Pole(P1)
 
             elif dim == 2:
+                ztop = np.linspace(endl[0, 1], endl[0, 1], nstn)
                 # Create line of P1 locations
                 P1 = np.c_[stn_x, np.ones(nstn).T*ztop]
                 # Create line of P2 locations

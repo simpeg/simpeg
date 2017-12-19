@@ -108,7 +108,7 @@ xmin, xmax = -15., 15.
 ymin, ymax = 0., 0.
 zmin, zmax = 0, 0
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey1 = DCUtils.gen_DCIPsurvey(endl, mesh, "dipole-dipole",
+survey1 = DCUtils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
                                  a=3, b=3, n=8)
 
 # Line 2
@@ -116,7 +116,7 @@ xmin, xmax = -15., 15.
 ymin, ymax = 5., 5.
 zmin, zmax = 0, 0
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey2 = DCUtils.gen_DCIPsurvey(endl, mesh, "dipole-dipole",
+survey2 = DCUtils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
                                  a=3, b=3, n=8)
 
 # Line 3
@@ -124,7 +124,7 @@ xmin, xmax = -15., 15.
 ymin, ymax = -5., -5.
 zmin, zmax = 0, 0
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey3 = DCUtils.gen_DCIPsurvey(endl, mesh, "dipole-dipole",
+survey3 = DCUtils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
                                  a=3, b=3, n=8)
 
 # Concatenate lines
