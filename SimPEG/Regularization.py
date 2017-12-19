@@ -119,10 +119,10 @@ class RegularizationMesh(Props.BaseSimPEG):
                 self._Pafx = Utils.speye(self.mesh.nFx)
             else:
                 if getattr(self.mesh, 'aveCC2Fx', None) is not None:
-                    indActive_Fx = (self.mesh.aveCC2Fx() * self.indActive) != 0
+                    indActive_Fx = (self.mesh.aveCC2Fx() * self.indActive) == 1
                     self._Pafx = Utils.speye(self.mesh.ntFx)[:, indActive_Fx]
                 else:
-                    indActive_Fx = (self.mesh.aveFx2CC.T * self.indActive) != 0
+                    indActive_Fx = (self.mesh.aveFx2CC.T * self.indActive) == 1
                     self._Pafx = Utils.speye(self.mesh.nFx)[:, indActive_Fx]
         return self._Pafx
 
@@ -140,10 +140,10 @@ class RegularizationMesh(Props.BaseSimPEG):
                 self._Pafy = Utils.speye(self.mesh.nFy)
             else:
                 if getattr(self.mesh, 'aveCC2Fy', None) is not None:
-                    indActive_Fy = (self.mesh.aveCC2Fy() * self.indActive) != 0
+                    indActive_Fy = (self.mesh.aveCC2Fy() * self.indActive) == 1
                     self._Pafy = Utils.speye(self.mesh.ntFy)[:, indActive_Fy]
                 else:
-                    indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) != 0
+                    indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) == 1
                     self._Pafy = Utils.speye(self.mesh.nFy)[:, indActive_Fy]
         return self._Pafy
 
@@ -161,10 +161,10 @@ class RegularizationMesh(Props.BaseSimPEG):
                 self._Pafz = Utils.speye(self.mesh.nFz)
             else:
                 if getattr(self.mesh, 'aveCC2Fz', None) is not None:
-                    indActive_Fz = (self.mesh.aveCC2Fz() * self.indActive) != 0
+                    indActive_Fz = (self.mesh.aveCC2Fz() * self.indActive) == 1
                     self._Pafz = Utils.speye(self.mesh.ntFz)[:, indActive_Fz]
                 else:
-                    indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) != 0
+                    indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) == 1
                     self._Pafz = Utils.speye(self.mesh.nFz)[:, indActive_Fz]
         return self._Pafz
 
