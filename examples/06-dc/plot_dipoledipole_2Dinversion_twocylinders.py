@@ -133,16 +133,19 @@ invProb = InvProblem.BaseInvProblem(dmis,  regT,  opt)
 beta = Directives.BetaEstimate_ByEig(beta0_ratio=1.)
 Target = Directives.TargetMisfit()
 betaSched = Directives.BetaSchedule(coolingFactor=5.,  coolingRate=2)
+updateSensW = Directives.UpdateSensitivityWeights(threshold = 1e-3)
+update_Jacobi = Directives.UpdatePreconditioner()
 
 inv = Inversion.BaseInversion(invProb,  directiveList=[beta, Target,
-                                                       betaSched])
+                                                       betaSched,  updateSensW,
+                                                       update_Jacobi])
 
 minv = inv.run(m0)
 
 # Final Plot
 ############
 
-fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 ax = Utils.mkvc(ax)
 
 cyl0v = getCylinderPoints(x0, z0, r0)

@@ -1431,7 +1431,6 @@ class Sparse(BaseComboRegularization):
         alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
         **kwargs
     ):
-        self.regmesh.regularization_type = "Tikhonov"
 
         objfcts = [
             SparseSmall(mesh=mesh, **kwargs),
