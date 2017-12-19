@@ -21,7 +21,7 @@ class BaseDCProblem(BaseEMProblem):
     fieldsPair = FieldsDC
     Ainv = None
     storeJ = False
-    Jmat = None
+    _Jmatrix = None
 
     def fields(self, m=None):
         if m is not None:
@@ -40,47 +40,29 @@ class BaseDCProblem(BaseEMProblem):
         return f
 
     def getJ(self, m, f=None):
-
+        """
+            Generate Full sensitivity matrix
+        """
         if self.verbose:
             print("Calculating J and storing")
 
-        self.model = m
+        if self._Jmatrix is not None:
+            return self._Jmatrix
+        else:
 
-        if f is None:
-            f = self.fields(m)
-
-        self.Jmat = []
-
-        for src in self.survey.srcList:
-            u_src = f[src, self._solutionType]
-            for rx in src.rxList:
-                # wrt f, need possibility wrt m
-                PT = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
-                df_duTFun = getattr(
-                    f, '_{0!s}Deriv'.format(rx.projField), None
-                )
-                df_duT, df_dmT = df_duTFun(src, None, PT, adjoint=True)
-
-                ATinvdf_duT = self.Ainv * df_duT
-
-                dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
-                dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
-                du_dmT = -dA_dmT + dRHS_dmT
-                Jt = (df_dmT + du_dmT).astype(float)
-
-                self.Jmat.append(np.vstack(Jt))
-
-        self.Jmat = np.hstack(self.Jmat).T
-        return self.Jmat
+            self.model = m
+            if f is None:
+                f = self.fields(m)
+            self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
+        return self._Jmatrix
 
     def Jvec(self, m, v, f=None):
         """
             Compute sensitivity matrix (J) and vector (v) product.
         """
         if self.storeJ:
-            if self.Jmat is None:
-                self.getJ(m, f=f)
-            Jv = Utils.mkvc(np.dot(self.Jmat, v))
+            J = self.getJ(m, f=f)
+            Jv = Utils.mkvc(np.dot(J, v))
             return Jv
 
         self.model = m
@@ -105,14 +87,11 @@ class BaseDCProblem(BaseEMProblem):
     def Jtvec(self, m, v, f=None):
         """
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+
         """
         if self.storeJ:
-            if self.Jmat is None:
-                if f is None:
-                    self.model = m
-                    f = self.fields(m)
-                self.getJ(m, f=f)
-            Jtv = Utils.mkvc(np.dot(self.Jmat.T, v))
+            J = self.getJ(m, f=f)
+            Jtv = Utils.mkvc(np.dot(J.T, v))
             return Jtv
 
         self.model = m
@@ -120,18 +99,34 @@ class BaseDCProblem(BaseEMProblem):
         if f is None:
             f = self.fields(m)
 
-        # Ensure v is a data object.
-        if not isinstance(v, self.dataPair):
-            v = self.dataPair(self.survey, v)
+        return self._Jtvec(m, v=v, f=f)
 
-        Jtv = np.zeros(m.size)
-        AT = self.getA()
+    def _Jtvec(self, m, v=None, f=None):
+        """
+            Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+            Full J matrix can be computed by inputing v=None
+        """
+
+        if v is not None:
+            # Ensure v is a data object.
+            if not isinstance(v, self.dataPair):
+                v = self.dataPair(self.survey, v)
+            Jtv = np.zeros(m.size)
+        else:
+            # This is for forming full sensitivity matrix
+            Jtv = []
 
         for src in self.survey.srcList:
             u_src = f[src, self._solutionType]
             for rx in src.rxList:
                 # wrt f, need possibility wrt m
-                PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx], adjoint=True)
+                if v is not None:
+                    PTv = rx.evalDeriv(
+                        src, self.mesh, f, v[src, rx], adjoint=True
+                    )
+                else:
+                    # This is for forming full sensitivity matrix
+                    PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
                 df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
                                     None)
                 df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
@@ -141,14 +136,21 @@ class BaseDCProblem(BaseEMProblem):
                 dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
                 dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
                 du_dmT = -dA_dmT + dRHS_dmT
-                Jtv += (df_dmT + du_dmT).astype(float)
-
-        return Utils.mkvc(Jtv)
+                if v is not None:
+                    Jtv += (df_dmT + du_dmT).astype(float)
+                else:
+                    # This is for forming full sensitivity matrix
+                    Jtv.append(
+                        np.vstack((df_dmT + du_dmT).astype(float))
+                    )
+        if v is not None:
+            return Utils.mkvc(Jtv)
+        else:
+            return np.hstack(Jtv)
 
     def getSourceTerm(self):
         """
         Evaluates the sources, and puts them in matrix form
-
         :rtype: tuple
         :return: q (nC or nN, nSrc)
         """
@@ -171,8 +173,8 @@ class BaseDCProblem(BaseEMProblem):
     @property
     def deleteTheseOnModelUpdate(self):
         toDelete = super(BaseDCProblem, self).deleteTheseOnModelUpdate
-        if self.Jmat is not None:
-            toDelete += ['Jmat']
+        if self._Jmatrix is not None:
+            toDelete += ['_Jmatrix']
         return toDelete
 
 
@@ -193,11 +195,8 @@ class Problem3D_CC(BaseDCProblem):
 
     def getA(self):
         """
-
         Make the A matrix for the cell centered DC resistivity problem
-
         A = D MfRhoI G
-
         """
 
         D = self.Div
@@ -235,7 +234,6 @@ class Problem3D_CC(BaseDCProblem):
     def getRHS(self):
         """
         RHS for the DC problem
-
         q
         """
 
@@ -411,11 +409,8 @@ class Problem3D_N(BaseDCProblem):
 
     def getA(self):
         """
-
         Make the A matrix for the cell centered DC resistivity problem
-
         A = G.T MeSigma G
-
         """
 
         MeSigma = self.MeSigma
@@ -434,10 +429,8 @@ class Problem3D_N(BaseDCProblem):
 
     def getADeriv(self, u, v, adjoint=False):
         """
-
         Product of the derivative of our system matrix with respect to the
         model and a vector
-
         """
         Grad = self.mesh.nodalGrad
         if not adjoint:
@@ -448,7 +441,6 @@ class Problem3D_N(BaseDCProblem):
     def getRHS(self):
         """
         RHS for the DC problem
-
         q
         """
 

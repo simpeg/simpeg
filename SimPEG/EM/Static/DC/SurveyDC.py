@@ -4,9 +4,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import SimPEG
+from . import RxDC as Rx
+from . import SrcDC as Src
 from SimPEG.EM.Base import BaseEMSurvey
-from .RxDC import BaseRx
-from .SrcDC import BaseSrc
 import numpy as np
 from scipy.interpolate import interp1d, NearestNDInterpolator
 
@@ -15,8 +15,8 @@ class Survey(BaseEMSurvey):
     """
     Base DC survey
     """
-    rxPair = BaseRx
-    srcPair = BaseSrc
+    rxPair = Rx.BaseRx
+    srcPair = Src.BaseSrc
     # TODO: change this using properties
     Alocs = None
     Blocs = None
@@ -39,7 +39,7 @@ class Survey(BaseEMSurvey):
         Nlocs = []
         for src in self.srcList:
             # Pole
-            if isinstance(src, SimPEG.EM.Static.DC.Src.Pole):
+            if isinstance(src, Src.Pole):
                 for rx in src.rxList:
                     nRx = rx.nD
                     Alocs.append(
@@ -49,15 +49,15 @@ class Survey(BaseEMSurvey):
                         src.loc.reshape([1, -1]).repeat(nRx, axis=0)
                         )
                     # Pole
-                    if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole_ky):
+                    if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
                         Mlocs.append(rx.locs)
                         Nlocs.append(rx.locs)
                     # Dipole
-                    elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole_ky):
+                    elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
                         Mlocs.append(rx.locs[0])
                         Nlocs.append(rx.locs[1])
             # Dipole
-            elif isinstance(src, SimPEG.EM.Static.DC.Src.Dipole):
+            elif isinstance(src, Src.Dipole):
                 for rx in src.rxList:
                     nRx = rx.nD
                     Alocs.append(
@@ -67,11 +67,11 @@ class Survey(BaseEMSurvey):
                         src.loc[1].reshape([1, -1]).repeat(nRx, axis=0)
                         )
                     # Pole
-                    if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole_ky):
+                    if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
                         Mlocs.append(rx.locs)
                         Nlocs.append(rx.locs)
                     # Dipole
-                    elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole_ky):
+                    elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
                         Mlocs.append(rx.locs[0])
                         Nlocs.append(rx.locs[1])
 
@@ -118,18 +118,18 @@ class Survey(BaseEMSurvey):
                 # Loop over all Src and Rx locs and Drape topo
                 for src in self.srcList:
                     # Pole Src
-                    if isinstance(src, SimPEG.EM.Static.DC.Src.Pole):
+                    if isinstance(src, Src.Pole):
                         locA = src.loc.flatten()
                         z_SrcA = self.topoFunc(locA[0])
                         src.loc = np.array([locA[0], z_SrcA])
                         for rx in src.rxList:
                             # Pole Rx
-                            if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole_ky):
+                            if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
                                 locM = rx.locs.copy()
                                 z_RxM = self.topoFunc(locM[:, 0])
                                 rx.locs = np.c_[locM[:, 0], z_RxM]
                             # Dipole Rx
-                            elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole_ky):
+                            elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
                                 locM = rx.locs[0].copy()
                                 locN = rx.locs[1].copy()
                                 z_RxM = self.topoFunc(locM[:, 0])
@@ -140,7 +140,7 @@ class Survey(BaseEMSurvey):
                                 raise Exception()
 
                     # Dipole Src
-                    elif isinstance(src, SimPEG.EM.Static.DC.Src.Dipole):
+                    elif isinstance(src, Src.Dipole):
                         locA = src.loc[0].flatten()
                         locB = src.loc[1].flatten()
                         z_SrcA = self.topoFunc(locA[0])
@@ -151,12 +151,12 @@ class Survey(BaseEMSurvey):
 
                         for rx in src.rxList:
                             # Pole Rx
-                            if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole_ky):
+                            if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
                                 locM = rx.locs.copy()
                                 z_RxM = self.topoFunc(locM[:, 0])
                                 rx.locs = np.c_[locM[:, 0], z_RxM]
                             # Dipole Rx
-                            elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole) or isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole_ky):
+                            elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
                                 locM = rx.locs[0].copy()
                                 locN = rx.locs[1].copy()
                                 z_RxM = self.topoFunc(locM[:, 0])
@@ -206,19 +206,19 @@ class Survey(BaseEMSurvey):
                 # Loop over all Src and Rx locs and Drape topo
                 for src in self.srcList:
                     # Pole Src
-                    if isinstance(src, SimPEG.EM.Static.DC.Src.Pole):
+                    if isinstance(src, Src.Pole):
                         locA = src.loc.reshape([1, -1])
                         z_SrcA = self.topoFunc(locA[0, :2])
                         src.loc = np.r_[locA[0, :2].flatten(), z_SrcA]
 
                         for rx in src.rxList:
                             # Pole Rx
-                            if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole):
+                            if isinstance(rx, Rx.Pole):
                                 locM = rx.locs.copy()
                                 z_RxM = self.topoFunc(locM[:, :2])
                                 rx.locs = np.c_[locM[:, 0], z_RxM]
                             # Dipole Rx
-                            elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole):
+                            elif isinstance(rx, Rx.Dipole):
                                 locM = rx.locs[0].copy()
                                 locN = rx.locs[1].copy()
                                 z_RxM = self.topoFunc(locM[:, :2])
@@ -229,7 +229,7 @@ class Survey(BaseEMSurvey):
                                 raise Exception()
 
                     # Dipole Src
-                    elif isinstance(src, SimPEG.EM.Static.DC.Src.Dipole):
+                    elif isinstance(src, Src.Dipole):
                         locA = src.loc[0].reshape([1, -1])
                         locB = src.loc[1].reshape([1, -1])
                         z_SrcA = self.topoFunc(locA[0, :2])
@@ -239,12 +239,12 @@ class Survey(BaseEMSurvey):
 
                         for rx in src.rxList:
                             # Pole Rx
-                            if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole):
+                            if isinstance(rx, Rx.Pole):
                                 locM = rx.locs.copy()
                                 z_RxM = self.topoFunc(locM[:, :2])
                                 rx.locs = np.c_[locM[:, :2], z_RxM]
                             # Dipole Rx
-                            elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole):
+                            elif isinstance(rx, Rx.Dipole):
                                 locM = rx.locs[0].copy()
                                 locN = rx.locs[1].copy()
                                 z_RxM = self.topoFunc(locM[:, :2])
@@ -268,8 +268,8 @@ class Survey_ky(Survey):
     """
     2.5D survey
     """
-    rxPair = BaseRx
-    srcPair = BaseSrc
+    rxPair = Rx.BaseRx
+    srcPair = Src.BaseSrc
 
     def __init__(self, srcList, **kwargs):
         self.srcList = srcList
