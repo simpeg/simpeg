@@ -121,7 +121,7 @@ def run(plotIt=True, cleanAfterRun=True):
     # Set the eps parameter parameter in Line 11 of the
     # input file based on the distribution of model (DEFAULT = 95th %ile)
     IRLS = Directives.Update_IRLS(f_min_change=1e-2, maxIRLSiter=20,
-                                  minGNiter=5)
+                                  minGNiter=2)
 
     # Preconditioning refreshing for each IRLS iteration
     update_Jacobi = Directives.UpdatePreconditioner()
@@ -147,7 +147,7 @@ def run(plotIt=True, cleanAfterRun=True):
         # Write output model and data files and print misft stats.
 
         # reconstructing l2 model mesh with air cells and active dynamic cells
-        L2out = activeMap * IRLS.l2model
+        L2out = activeMap * invProb.l2model
 
         # reconstructing lp model mesh with air cells and active dynamic cells
         Lpout = activeMap*mrec

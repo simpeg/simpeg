@@ -290,6 +290,17 @@ class LinearProblem(BaseProblem):
     def fields(self, m):
         return self.G.dot(m)
 
+    def getJ(self, m, f=None):
+        """
+            Sensitivity matrix
+        """
+
+        if self.modelMap is not None:
+            dmudm = self.modelMap.deriv(m)
+            return self.G*dmudm
+        else:
+            return self.G
+
     def Jvec(self, m, v, f=None):
         return self.G.dot(v)
 
