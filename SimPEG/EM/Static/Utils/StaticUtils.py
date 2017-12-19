@@ -381,7 +381,7 @@ def plot_pseudoSection(
         vmin, vmax = clim[0], clim[1]
 
     if ax is None:
-        fig, ax = plt.subplots(1, 1)
+        fig, ax = plt.subplots(1, 1, figsize=(15, 3))
 
     grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
     ph = ax.pcolormesh(
