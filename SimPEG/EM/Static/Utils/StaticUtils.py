@@ -123,6 +123,7 @@ def electrode_separations(
 
     return elecSepDict
 
+
 def source_receiver_midpoints(dc_survey, survey_type='dipole-dipole', dim=2):
     """
         Calculate source receiver midpoints.
@@ -423,7 +424,7 @@ def plot_pseudoSection(
     return ax
 
 
-def gen_DCIPsurvey(endl, mesh, survey_type, a, b, n, d2flag='2.5D'):
+def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
     """
         Load in endpoints and survey specifications to generate Tx, Rx location
         stations.
@@ -462,14 +463,14 @@ def gen_DCIPsurvey(endl, mesh, survey_type, a, b, n, d2flag='2.5D'):
     stn_y = endl[0, 1] + np.array(range(int(nstn)))*dl_y*a
 
 
-    if mesh.dim == 2:
-        ztop = mesh.vectorNy[-1]
+    if dim == 2:
+        ztop = np.linspace(endl[0, 1], endl[0, 1], nstn)
         # Create line of P1 locations
-        M = np.c_[stn_x, np.ones(nstn).T*ztop]
+        M = np.c_[stn_x, ztop]
         # Create line of P2 locations
-        N = np.c_[stn_x+a*dl_x, np.ones(nstn).T*ztop]
+        N = np.c_[stn_x+a*dl_x, ztop]
 
-    elif mesh.dim == 3:
+    elif dim == 3:
         stn_z = np.linspace(endl[0, 2], endl[0, 2], nstn)
         # Create line of P1 locations
         M = np.c_[stn_x, stn_y, stn_z]
@@ -515,7 +516,7 @@ def gen_DCIPsurvey(endl, mesh, survey_type, a, b, n, d2flag='2.5D'):
 
             # Create receiver poles
 
-            if mesh.dim == 3:
+            if dim == 3:
                 stn_z = np.linspace(endl[0, 2], endl[0, 2], nstn)
 
                 # Create line of P1 locations
@@ -527,7 +528,8 @@ def gen_DCIPsurvey(endl, mesh, survey_type, a, b, n, d2flag='2.5D'):
                 elif survey_type == 'dipole-pole' or survey_type == 'pole-pole':
                     rxClass = DC.Rx.Pole(P1)
 
-            elif mesh.dim == 2:
+            elif dim == 2:
+                ztop = np.linspace(endl[0, 1], endl[0, 1], nstn)
                 # Create line of P1 locations
                 P1 = np.c_[stn_x, np.ones(nstn).T*ztop]
                 # Create line of P2 locations
@@ -606,14 +608,21 @@ def gen_DCIPsurvey(endl, mesh, survey_type, a, b, n, d2flag='2.5D'):
                                      (endl[1, :]))
         SrcList.append(srcClass)
     else:
-        print("""survey_type must be either 'pole-dipole', 'dipole-dipole', 'dipole-pole', 'pole-pole' or 'gradient'. """)
+        raise Exception(
+            """survey_type must be either 'pole-dipole', 'dipole-dipole',
+            'dipole-pole','pole-pole' or 'gradient'"""
+            " not {}".format(survey_type)
+        )
 
     survey = DC.Survey(SrcList)
 
     return survey
 
 
-def writeUBC_DCobs(fileName, dc_survey, dim, format_type, survey_type='dipole-dipole', ip_type=0):
+def writeUBC_DCobs(
+    fileName, dc_survey, dim, format_type,
+    survey_type='dipole-dipole', ip_type=0
+):
     """
         Write UBC GIF DCIP 2D or 3D observation file
 
@@ -1586,6 +1595,8 @@ def closestPointsGrid(grid, pts, dim=2):
         if dim == 1:
             nodeInds[i] = ((pt - grid)**2.).argmin()
         else:
-            nodeInds[i] = ((np.tile(pt, (grid.shape[0], 1)) - grid)**2.).sum(axis=1).argmin()
+            nodeInds[i] = (
+                (np.tile(
+                    pt, (grid.shape[0], 1)) - grid)**2.).sum(axis=1).argmin()
 
     return nodeInds

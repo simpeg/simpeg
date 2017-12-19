@@ -763,14 +763,14 @@ class UpdatePreconditioner(InversionDirective):
                 JtJdiag = np.zeros_like(self.invProb.model)
                 for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
 
-                    assert getattr(prob, 'Jmatrix', None) is not None, (
+                    assert getattr(prob, 'getJ', None) is not None, (
                         "Problem does not have a getJ attribute." +
                         "Cannot form the sensitivity explicitely"
                     )
 
                     m = self.invProb.model
 
-                    JtJdiag += np.sum((dmisfit.W*prob.Jmatrix(m))**2., axis=0)
+                    JtJdiag += np.sum((dmisfit.W*prob.getJ(m))**2., axis=0)
 
                 self.opt.JtJdiag = JtJdiag
 
@@ -885,7 +885,7 @@ class UpdateSensitivityWeights(InversionDirective):
 
             m = self.invProb.model
 
-            self.JtJdiag += [np.sum((dmisfit.W*prob.Jmatrix(m))**2., axis=0)]
+            self.JtJdiag += [np.sum((dmisfit.W*prob.getJ(m))**2., axis=0)]
 
         return self.JtJdiag
 
