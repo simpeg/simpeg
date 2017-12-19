@@ -791,12 +791,16 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
 
     assert (dim == 2) | (dim == 3), "Data must be either 2 | 3"
 
-    assert (
+    if not (
         (format_type == 'SURFACE') |
         (format_type == 'GENERAL') |
-        (format_type == 'SIMPLE')),
-        "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
-        " not"
+        (format_type == 'SIMPLE')
+    ):
+        raise Exception(
+            """format_type must be 'SURFACE' | 'GENERAL' |
+            'SIMPLE' | 'pole-pole'"""
+            " not {}".format(format_type)
+        )
 
     fid = open(fileName, 'w')
 

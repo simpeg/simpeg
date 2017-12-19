@@ -73,13 +73,13 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         surveyfile = os.path.sep.join([self.basePath, '2sph_dipole_dipole.obs'])
         DCUtils.writeUBC_DCobs(surveyfile,
                                survey,
-                               dim='3D',
+                               dim=3,
                                format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
         DCUtils.writeUBC_DCobs(surveyfile,
                                survey,
-                               dim='3D',
+                               dim=3,
                                format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
@@ -127,12 +127,12 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         surveyfile = os.path.sep.join([self.basePath, '2sph_pole_dipole.obs'])
         DCUtils.writeUBC_DCobs(surveyfile,
                                survey, survey_type='pole-dipole',
-                               dim='3D', format_type='GENERAL')
+                               dim=3, format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
         DCUtils.writeUBC_DCobs(surveyfile,
                                survey, survey_type='pole-dipole',
-                               dim='3D', format_type='GENERAL')
+                               dim=3, format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
 
@@ -179,12 +179,12 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         surveyfile = os.path.sep.join([self.basePath, '2sph_dipole_pole.obs'])
         DCUtils.writeUBC_DCobs(surveyfile,
                                survey, survey_type='dipole-pole',
-                               dim='3D', format_type='GENERAL')
+                               dim=3, format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
         DCUtils.writeUBC_DCobs(surveyfile,
                                survey, survey_type='dipole-pole',
-                               dim='3D', format_type='GENERAL')
+                               dim=3, format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
 
@@ -231,12 +231,12 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         surveyfile = os.path.sep.join([self.basePath, '2sph_pole_pole.obs'])
         DCUtils.writeUBC_DCobs(surveyfile,
                                survey, survey_type='pole-pole',
-                               dim='3D', format_type='GENERAL')
+                               dim=3, format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
         DCUtils.writeUBC_DCobs(surveyfile,
                                survey, survey_type='pole-pole',
-                               dim='3D', format_type='GENERAL')
+                               dim=3, format_type='GENERAL')
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
 
