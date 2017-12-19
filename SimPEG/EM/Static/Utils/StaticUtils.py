@@ -30,7 +30,7 @@ def electrode_separations(
         if electrode_pair == 'All':
             electrode_pair = np.r_[['AB', 'MN', 'AM', 'AN', 'BM', 'BN']]
         elif isinstance(electrode_pair, list) or isinstance(electrode_pair, str):
-            electrode_pair = np.r_[electrode_pair]
+                electrode_pair = np.r_[electrode_pair]
         else:
             raise Exception(
                 """electrode_pair must be either a string, list of strings, or an
@@ -289,7 +289,9 @@ def apparent_resistivity(
             dobs = dc_survey.dobs.copy()
 
     # Calculate Geometric Factor
-    G = geometric_factor(dc_survey, survey_type=survey_type, space_type=space_type)
+    G = geometric_factor(
+        dc_survey, survey_type=survey_type, space_type=space_type
+    )
 
     # Calculate apparent resistivity
     # absolute value is required because of the regularizer
@@ -366,7 +368,12 @@ def plot_pseudoSection(
             rho = np.log10(rhoApp)
 
     else:
-        print("""data_type must be 'appResistivity' | 'appConductivity' | 'volt' """)
+        print()
+        raise Exception(
+                """data_type must be 'appResistivity' |
+                'appConductivity' | 'volt' """
+                " not {}".format(data_type)
+        )
 
     # Grid points
     grid_x, grid_z = np.mgrid[np.min(midx):np.max(midx),
@@ -462,7 +469,6 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
     stn_x = endl[0, 0] + np.array(range(int(nstn)))*dl_x*a
     stn_y = endl[0, 1] + np.array(range(int(nstn)))*dl_y*a
 
-
     if dim == 2:
         ztop = np.linspace(endl[0, 1], endl[0, 1], nstn)
         # Create line of P1 locations
@@ -544,7 +550,6 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
                         rxClass = DC.Rx.Pole_ky(P1)
                     elif d2flag == '2D':
                         rxClass = DC.Rx.Pole(P1)
-
 
             if survey_type == 'dipole-dipole' or survey_type == 'dipole-pole':
                 srcClass = DC.Src.Dipole([rxClass], M[ii, :], N[ii, :])
@@ -653,7 +658,10 @@ def writeUBC_DCobs(
         )
 
     if(isinstance(dc_survey.std, float)):
-        print('survey.std was a float computing uncertainty vector (survey.std*survey.dobs + survey.eps)')
+        print(
+            """survey.std was a float computing uncertainty vector
+            (survey.std*survey.dobs + survey.eps)"""
+        )
 
     if(isinstance(dc_survey.eps, float)):
         epsValue = dc_survey.eps
@@ -689,29 +697,32 @@ def writeUBC_DCobs(
             M = rx.copy()
             N = rx.copy()
 
-
         # Adapt source-receiver location for dim and survey_type
         if dim == 2:
 
             if format_type == 'SIMPLE':
 
                 # fid.writelines("%e " % ii for ii in Utils.mkvc(tx[0, :]))
-                A = np.repeat(tx[0,0], M.shape[0], axis=0)
+                A = np.repeat(tx[0, 0], M.shape[0], axis=0)
 
                 if survey_type == 'pole-dipole':
-                    B = np.repeat(tx[0,0], M.shape[0], axis=0)
+                    B = np.repeat(tx[0, 0], M.shape[0], axis=0)
 
                 else:
-                    B = np.repeat(tx[1,0], M.shape[0], axis=0)
+                    B = np.repeat(tx[1, 0], M.shape[0], axis=0)
 
                 M = M[:, 0]
                 N = N[:, 0]
 
                 fid = open(fileName, 'ab')
-                np.savetxt(fid, np.c_[A, B, M, N,
-                                     dc_survey.dobs[count:count+nD],
-                                     dc_survey.std[count:count+nD]],
-                                     delimiter=' ', newline='\n')
+                np.savetxt(
+                    fid,
+                    np.c_[
+                        A, B, M, N,
+                        dc_survey.dobs[count:count+nD],
+                        dc_survey.std[count:count+nD]
+                    ],
+                    delimiter=' ', newline='\n')
                 fid.close()
 
             else:
@@ -735,16 +746,23 @@ def writeUBC_DCobs(
                     M[:, 1::2] = -M[:, 1::2]
                     N[:, 1::2] = -N[:, 1::2]
 
-                fid.write('%i\n'% nD)
+                fid.write('%i\n' % nD)
                 fid.close()
 
                 fid = open(fileName, 'ab')
-                np.savetxt(fid, np.c_[M, N, dc_survey.dobs[count:count+nD], dc_survey.std[count:count+nD] ], delimiter=' ', newline='\n')
+                np.savetxt(
+                    fid,
+                    np.c_[
+                        M, N,
+                        dc_survey.dobs[count:count+nD],
+                        dc_survey.std[count:count+nD]
+                    ],
+                    delimiter=' ', newline='\n')
 
         if dim == 3:
             fid = open(fileName, 'a')
             # Flip sign of z value for UBC DCoctree code
-            tx[:,2] = -tx[:, 2]
+            tx[:, 2] = -tx[:, 2]
             # print(tx)
 
             # Flip sign of z value for UBC DCoctree code
@@ -761,16 +779,31 @@ def writeUBC_DCobs(
 
                 fid.writelines("%e " % ii for ii in Utils.mkvc(tx.T))
 
-            fid.write('%i\n'% nD)
+            fid.write('%i\n' % nD)
 
             fid.close()
 
             fid = open(fileName, 'ab')
             if isinstance(dc_survey.std, np.ndarray):
-                np.savetxt(fid, np.c_[M, N, dc_survey.dobs[count:count+nD], dc_survey.std[count:count+nD] + dc_survey.eps[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
+                np.savetxt(
+                    fid,
+                    np.c_[
+                        M, N,
+                        dc_survey.dobs[count:count+nD],
+                        dc_survey.std[count:count+nD] + dc_survey.eps[count:count+nD]
+                    ],
+                    fmt='%e', delimiter=' ', newline='\n'
+                )
             elif (isinstance(dc_survey.std, float)):
-                # print('survey.std was a float computing uncertainty vector (survey.std*survey.dobs + survey.eps)')
-                np.savetxt(fid, np.c_[M, N, dc_survey.dobs[count:count+nD], dc_survey.std*np.abs(dc_survey.dobs[count:count+nD]) + dc_survey.eps[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
+                np.savetxt(
+                    fid,
+                    np.c_[
+                        M, N,
+                        dc_survey.dobs[count:count+nD],
+                        dc_survey.std*np.abs(dc_survey.dobs[count:count+nD]) + dc_survey.eps[count:count+nD]
+                    ],
+                    fmt='%e', delimiter=' ', newline='\n'
+                )
 
             fid.close()
 
