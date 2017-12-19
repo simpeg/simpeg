@@ -494,7 +494,11 @@ def gen_DCIPsurvey(endl, mesh, survey_type, a, b, n, d2flag='2.5D'):
                 # Current elctrode separation
                 AB = xy_2_r(tx[0], endl[1, 0], tx[1], endl[1, 1])
             else:
-                raise Exception("""survey_type must be either 'pole-dipole', 'dipole-dipole', 'dipole-pole', 'pole-pole' or 'gradient'. """)
+                raise Exception(
+                    """survey_type must be 'dipole-dipole' | 'pole-dipole' |
+                    'dipole-pole' | 'pole-pole'"""
+                    " not {}".format(survey_type)
+                )
 
             # Rx.append(np.c_[M[ii+1:indx, :], N[ii+1:indx, :]])
 
@@ -616,7 +620,7 @@ def writeUBC_DCobs(fileName, dc_survey, dim, format_type, survey_type='dipole-di
         Input:
         :param str fileName: including path where the file is written out
         :param SimPEG.EM.Static.DC.SurveyDC.Survey dc_survey: DC survey object
-        :param str dim:  either '2D' | '3D'
+        :param int dim:  either 2 | 3
         :param str format_type:  either 'SURFACE' | 'GENERAL'
         :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
             'dipole-pole' | 'pole-pole' | 'gradient'
@@ -626,11 +630,18 @@ def writeUBC_DCobs(fileName, dc_survey, dim, format_type, survey_type='dipole-di
         :rtype: file
     """
 
-    assert (dim == '2D') | (dim == '3D'), "Data must be either '2D' | '3D'"
+    assert (dim == 2) | (dim == 3), "Data must be either 2 | 3"
 
-    assert ((format_type == 'SURFACE') |
-           (format_type == 'GENERAL') |
-           (format_type == 'SIMPLE')), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
+    if not (
+        (format_type == 'SURFACE') |
+        (format_type == 'GENERAL') |
+        (format_type == 'SIMPLE')
+    ):
+        raise Exception(
+            """format_type must be 'SURFACE' | 'GENERAL' |
+            'SIMPLE' | 'pole-pole'"""
+            " not {}".format(format_type)
+        )
 
     if(isinstance(dc_survey.std, float)):
         print('survey.std was a float computing uncertainty vector (survey.std*survey.dobs + survey.eps)')
@@ -671,7 +682,7 @@ def writeUBC_DCobs(fileName, dc_survey, dim, format_type, survey_type='dipole-di
 
 
         # Adapt source-receiver location for dim and survey_type
-        if dim == '2D':
+        if dim == 2:
 
             if format_type == 'SIMPLE':
 
@@ -721,7 +732,7 @@ def writeUBC_DCobs(fileName, dc_survey, dim, format_type, survey_type='dipole-di
                 fid = open(fileName, 'ab')
                 np.savetxt(fid, np.c_[M, N, dc_survey.dobs[count:count+nD], dc_survey.std[count:count+nD] ], delimiter=' ', newline='\n')
 
-        if dim == '3D':
+        if dim == 3:
             fid = open(fileName, 'a')
             # Flip sign of z value for UBC DCoctree code
             tx[:,2] = -tx[:, 2]
@@ -770,19 +781,22 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
         Input:
         :param str fileName: including path where the file is written out
         :param SimPEG.EM.Static.DC.SurveyDC.Survey dc_survey: DC survey object
-        :param str dim:  either '2D' | '3D'
+        :param int dim:  either 2 | 3
         :param str survey_type:  either 'SURFACE' | 'GENERAL'
 
         Output:
         :rtype: file
-        :return: UBC 2D/3D-locations file
+        :return: UBC 2/3D-locations file
     """
 
-    assert (dim == '2D') | (dim == '3D'), "Data must be either '2D' | '3D'"
+    assert (dim == 2) | (dim == 3), "Data must be either 2 | 3"
 
-    assert ((format_type == 'SURFACE') |
-           (format_type == 'GENERAL') |
-           (format_type == 'SIMPLE')), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
+    assert (
+        (format_type == 'SURFACE') |
+        (format_type == 'GENERAL') |
+        (format_type == 'SIMPLE')),
+        "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
+        " not"
 
     fid = open(fileName, 'w')
 
@@ -814,18 +828,18 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
         N = rx[1].copy()
 
         # Adapt source-receiver location for dim and survey_type
-        if dim == '2D':
+        if dim == 2:
 
             if format_type == 'SIMPLE':
 
                 # fid.writelines("%e " % ii for ii in Utils.mkvc(tx[0, :]))
-                A = np.repeat(tx[0,0], M.shape[0], axis=0)
+                A = np.repeat(tx[0, 0], M.shape[0], axis=0)
 
                 if survey_type == 'pole-dipole':
-                    B = np.repeat(tx[0,0], M.shape[0], axis=0)
+                    B = np.repeat(tx[0, 0], M.shape[0], axis=0)
 
                 else:
-                    B = np.repeat(tx[1,0], M.shape[0], axis=0)
+                    B = np.repeat(tx[1, 0], M.shape[0], axis=0)
 
                 M = M[:, 0]
                 N = N[:, 0]
@@ -855,16 +869,16 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
                     M[:, 1::2] = -M[:, 1::2]
                     N[:, 1::2] = -N[:, 1::2]
 
-                fid.write('%i\n'% nD)
+                fid.write('%i\n' % nD)
                 fid.close()
 
                 fid = open(fileName, 'ab')
                 np.savetxt(fid, np.c_[M, N], delimiter=' ', newline='\n')
 
-        if dim == '3D':
+        if dim == 3:
             fid = open(fileName, 'a')
             # Flip sign of z value for UBC DCoctree code
-            tx[:,2] = -tx[:, 2]
+            tx[:, 2] = -tx[:, 2]
             # print(tx)
 
             # Flip sign of z value for UBC DCoctree code
@@ -881,7 +895,7 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
 
                 fid.writelines("%e " % ii for ii in Utils.mkvc(tx.T))
 
-            fid.write('%i\n'% nD)
+            fid.write('%i\n' % nD)
 
             fid.close()
 
@@ -1026,13 +1040,21 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
                                    np.c_[N, np.zeros(nrx), Rx[1][:, 2]])
 
             if survey_type == 'pole-dipole':
-                srcList2D.append(DC.Src.Pole([rxClass],
-                                 np.asarray([A, 0, Tx[ii][2]])))
+                srcList2D.append(
+                    DC.Src.Pole(
+                        [rxClass],
+                        np.asarray([A, 0, Tx[ii][2]])
+                    )
+                )
 
             elif survey_type == 'dipole-dipole':
-                srcList2D.append(DC.Src.Dipole([rxClass],
-                                 np.r_[A, 0, Tx[ii][2]],
-                                 np.r_[B, 0, Tx[ii][5]]))
+                srcList2D.append(
+                    DC.Src.Dipole(
+                        [rxClass],
+                        np.r_[A, 0, Tx[ii][2]],
+                        np.r_[B, 0, Tx[ii][5]]
+                    )
+                )
 
     survey2D = DC.SurveyDC.Survey(srcList2D)
     survey2D.dobs = survey.dobs
@@ -1054,8 +1076,10 @@ def readUBC_DC2DModel(fileName):
     """
 
     # Open fileand skip header... assume that we know the mesh already
-    obsfile = np.genfromtxt(fileName, delimiter=' \n',
-                            dtype=np.str, comments='!')
+    obsfile = np.genfromtxt(
+        fileName, delimiter=' \n',
+        dtype=np.str, comments='!'
+    )
 
     dim = np.array(obsfile[0].split(), dtype=int)
 
@@ -1108,8 +1132,10 @@ def readUBC_DC2Dpre(fileName):
     """
 
     # Load file
-    obsfile = np.genfromtxt(fileName, delimiter=' \n',
-                            dtype=np.str, comments='!')
+    obsfile = np.genfromtxt(
+        fileName, delimiter=' \n',
+        dtype=np.str, comments='!'
+    )
 
     # Pre-allocate
     srcLists = []
@@ -1168,8 +1194,10 @@ def readUBC_DC3Dobs(fileName):
     """
 
     # Load file
-    obsfile = np.genfromtxt(fileName, delimiter=' \n',
-                            dtype=np.str, comments='!')
+    obsfile = np.genfromtxt(
+        fileName, delimiter=' \n',
+        dtype=np.str, comments='!'
+    )
 
     # Pre-allocate
     srcLists = []
@@ -1253,7 +1281,6 @@ def readUBC_DC3Dobs(fileName):
                 wd.append(temp[-1])
 
         count = count - 1
-
 
         # Reach the end of transmitter block
         if count == 0:
@@ -1354,7 +1381,7 @@ def xy_2_lineID(dc_survey):
             indx = ii
 
         else:
-            xym = np.mean([xy0, xin], axis = 0)
+            xym = np.mean([xy0, xin], axis=0)
 
         lineID[ii] = linenum
         xout = xin
@@ -1468,7 +1495,7 @@ def gettopoCC(mesh, actind, option="top"):
         if mesh.dim == 3:
             uniqXY = uniqueRows(mesh.gridCC[:, :2])
             npts = uniqXY[0].shape[0]
-            ZC = mesh.gridCC[:,2]
+            ZC = mesh.gridCC[:, 2]
             topoCC = np.zeros(npts)
             if option == "top":
                 # TODO: this assume same hz, need to be modified
@@ -1522,7 +1549,7 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
 def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
     if mesh.dim == 3:
         mesh2D = Mesh.TensorMesh(
-            [mesh.hx, mesh.hy], x0 = [mesh.x0[0], mesh.x0[1]]
+            [mesh.hx, mesh.hy], x0=[mesh.x0[0], mesh.x0[1]]
             )
         out = Utils.ModelBuilder.randomModel(
             mesh.vnC[:2], bounds=[zmin, zmax], its=its,
@@ -1530,7 +1557,7 @@ def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
             )
         return out, mesh2D
     elif mesh.dim == 2:
-        mesh1D = Mesh.TensorMesh([mesh.hx], x0 = [mesh.x0[0]])
+        mesh1D = Mesh.TensorMesh([mesh.hx], x0=[mesh.x0[0]])
         out = Utils.ModelBuilder.randomModel(
             mesh.vnC[:1], bounds=[zmin, zmax], its=its,
             seed=seed, anisotropy=anisotropy
