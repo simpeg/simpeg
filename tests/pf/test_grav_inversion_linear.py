@@ -120,7 +120,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         IRLS = Directives.Update_IRLS(f_min_change=1e-3,
                                       minGNiter=3)
-        update_Jacobi = Directives.Update_lin_PreCond(mapping=idenMap)
+        update_Jacobi = Directives.UpdatePreconditioner(mapping=idenMap)
 
         self.inv = Inversion.BaseInversion(invProb,
                                            directiveList=[IRLS,
