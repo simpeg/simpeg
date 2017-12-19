@@ -606,14 +606,21 @@ def gen_DCIPsurvey(endl, mesh, survey_type, a, b, n, d2flag='2.5D'):
                                      (endl[1, :]))
         SrcList.append(srcClass)
     else:
-        print("""survey_type must be either 'pole-dipole', 'dipole-dipole', 'dipole-pole', 'pole-pole' or 'gradient'. """)
+        raise Exception(
+            """survey_type must be either 'pole-dipole', 'dipole-dipole',
+            'dipole-pole','pole-pole' or 'gradient'"""
+            " not {}".format(survey_type)
+        )
 
     survey = DC.Survey(SrcList)
 
     return survey
 
 
-def writeUBC_DCobs(fileName, dc_survey, dim, format_type, survey_type='dipole-dipole', ip_type=0):
+def writeUBC_DCobs(
+    fileName, dc_survey, dim, format_type,
+    survey_type='dipole-dipole', ip_type=0
+):
     """
         Write UBC GIF DCIP 2D or 3D observation file
 
@@ -1586,6 +1593,8 @@ def closestPointsGrid(grid, pts, dim=2):
         if dim == 1:
             nodeInds[i] = ((pt - grid)**2.).argmin()
         else:
-            nodeInds[i] = ((np.tile(pt, (grid.shape[0], 1)) - grid)**2.).sum(axis=1).argmin()
+            nodeInds[i] = (
+                (np.tile(
+                    pt, (grid.shape[0], 1)) - grid)**2.).sum(axis=1).argmin()
 
     return nodeInds
