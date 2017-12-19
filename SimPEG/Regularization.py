@@ -123,14 +123,22 @@ class RegularizationMesh(Props.BaseSimPEG):
                 # if getattr(self.mesh, 'aveCC2Fx', None) is not None:
                 if self.mesh._meshType == "TREE":
                     if self.regularization_type == "Tikhonov":
-                        indActive_Fx = (self.mesh.aveFx2CC.T * self.indActive) == 1
-                        self._Pafx = Utils.speye(self.mesh.nFx)[:, indActive_Fx]
+                        indActive_Fx = (
+                            (self.mesh.aveFx2CC.T * self.indActive) >= 1
+                        )
+                        self._Pafx = (
+                            Utils.speye(self.mesh.nFx)[:, indActive_Fx]
+                        )
                     else:
-                        indActive_Fx = (self.mesh.aveCC2Fx() * self.indActive) == 1
-                        self._Pafx = Utils.speye(self.mesh.ntFx)[:, indActive_Fx]
+                        indActive_Fx = (
+                            (self.mesh.aveCC2Fx() * self.indActive) >= 1
+                        )
+                        self._Pafx = (
+                            Utils.speye(self.mesh.ntFx)[:, indActive_Fx]
+                        )
                 else:
-                    print ('Pafx')
-                    indActive_Fx = (self.mesh.aveFx2CC.T * self.indActive) == 1
+                    indActive_Fx = self.mesh.aveFx2CC.T * self.indActive >= 1
+
                     self._Pafx = Utils.speye(self.mesh.nFx)[:, indActive_Fx]
         return self._Pafx
 
@@ -151,14 +159,22 @@ class RegularizationMesh(Props.BaseSimPEG):
                 if self.mesh._meshType == "TREE":
                     if self.regularization_type == "Tikhonov":
                         print ("Use Tikhonov")
-                        indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) == 1
-                        self._Pafy = Utils.speye(self.mesh.nFy)[:, indActive_Fy]
+                        indActive_Fy = (
+                            (self.mesh.aveFy2CC.T * self.indActive) >= 1
+                        )
+                        self._Pafy = (
+                            Utils.speye(self.mesh.nFy)[:, indActive_Fy]
+                        )
                     else:
                         print ("Use Simple")
-                        indActive_Fy = (self.mesh.aveCC2Fy() * self.indActive) == 1
-                        self._Pafy = Utils.speye(self.mesh.ntFy)[:, indActive_Fy]
+                        indActive_Fy = (
+                            (self.mesh.aveCC2Fy() * self.indActive) >= 1
+                        )
+                        self._Pafy = (
+                            Utils.speye(self.mesh.ntFy)[:, indActive_Fy]
+                        )
                 else:
-                    indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) == 1
+                    indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) >= 1
                     self._Pafy = Utils.speye(self.mesh.nFy)[:, indActive_Fy]
         return self._Pafy
 
@@ -178,15 +194,21 @@ class RegularizationMesh(Props.BaseSimPEG):
                 # if getattr(self.mesh, 'aveCC2Fz', None) is not None:
                 if self.mesh._meshType == "TREE":
                     if self.regularization_type == "Tikhonov":
-                        print ("Use Tikhonov")
-                        indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) == 1
-                        self._Pafz = Utils.speye(self.mesh.nFz)[:, indActive_Fz]
+                        indActive_Fz = (
+                            (self.mesh.aveFz2CC.T * self.indActive) >= 1
+                        )
+                        self._Pafz = (
+                            Utils.speye(self.mesh.nFz)[:, indActive_Fz]
+                        )
                     else:
-                        print ("Use Simple")
-                        indActive_Fz = (self.mesh.aveCC2Fz() * self.indActive) == 1
-                        self._Pafz = Utils.speye(self.mesh.ntFz)[:, indActive_Fz]
+                        indActive_Fz = (
+                            (self.mesh.aveCC2Fz() * self.indActive) >= 1
+                        )
+                        self._Pafz = (
+                            Utils.speye(self.mesh.ntFz)[:, indActive_Fz]
+                        )
                 else:
-                    indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) == 1
+                    indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) >= 1
                     self._Pafz = Utils.speye(self.mesh.nFz)[:, indActive_Fz]
         return self._Pafz
 
@@ -216,10 +238,13 @@ class RegularizationMesh(Props.BaseSimPEG):
             if self.mesh._meshType == "TREE":
                 if self.regularization_type == "Tikhonov":
                     self._aveCC2Fx = (
-                        Utils.sdiag(1./(self.aveFx2CC.T).sum(1)) * self.aveFx2CC.T
+                        Utils.sdiag(1./(self.aveFx2CC.T).sum(1)) *
+                        self.aveFx2CC.T
                     )
                 else:
-                    self._aveCC2Fx = self.Pafx.T * self.mesh.aveCC2Fx() * self.Pac
+                    self._aveCC2Fx = (
+                        self.Pafx.T * self.mesh.aveCC2Fx() * self.Pac
+                    )
             else:
                 self._aveCC2Fx = (
                     Utils.sdiag(1./(self.aveFx2CC.T).sum(1)) * self.aveFx2CC.T
@@ -251,10 +276,13 @@ class RegularizationMesh(Props.BaseSimPEG):
             if self.mesh._meshType == "TREE":
                 if self.regularization_type == "Tikhonov":
                     self._aveCC2Fy = (
-                        Utils.sdiag(1./(self.aveFy2CC.T).sum(1)) * self.aveFy2CC.T
+                        Utils.sdiag(1./(self.aveFy2CC.T).sum(1)) *
+                        self.aveFy2CC.T
                     )
                 else:
-                    self._aveCC2Fy = self.Pafy.T * self.mesh.aveCC2Fy() * self.Pac
+                    self._aveCC2Fy = (
+                        self.Pafy.T * self.mesh.aveCC2Fy() * self.Pac
+                    )
             else:
                 self._aveCC2Fy = (
                     Utils.sdiag(1./(self.aveFy2CC.T).sum(1)) * self.aveFy2CC.T
@@ -286,10 +314,13 @@ class RegularizationMesh(Props.BaseSimPEG):
             if self.mesh._meshType == "TREE":
                 if self.regularization_type == "Tikhonov":
                     self._aveCC2Fz = (
-                        Utils.sdiag(1./(self.aveFz2CC.T).sum(1)) * self.aveFz2CC.T
+                        Utils.sdiag(1./(self.aveFz2CC.T).sum(1)) *
+                        self.aveFz2CC.T
                     )
                 else:
-                    self._aveCC2Fz = self.Pafz.T * self.mesh.aveCC2Fz() * self.Pac
+                    self._aveCC2Fz = (
+                        self.Pafz.T * self.mesh.aveCC2Fz() * self.Pac
+                    )
             else:
                 self._aveCC2Fz = (
                     Utils.sdiag(1./(self.aveFz2CC.T).sum(1)) * self.aveFz2CC.T

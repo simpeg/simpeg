@@ -13,30 +13,66 @@ from .SurveyDC import Survey_ky
 class IO(properties.HasProperties):
     """Input and Output for DC, IP, SP, ..."""
 
-    # TODO: use properties
+    # Survey
+    survey_geometry = properties.StringChoice(
+        "Survey geometry of DC surveys",
+        default="SURFACE",
+        choices=["SURFACE", "BOREHOLE", "GENERAL"]
+    )
 
-    # a_locations = properties.Array(
-    #     "locations of the positive electrodes",
-    #     shape=[('*', 3), ('*', 2)],  # ('*', 3) for 3D or ('*', 2) for 2D
-    #     dtype=float  # data are floats
-    # )
+    a_locations = properties.Array(
+        "locations of the positive (+) current electrodes",
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
 
-    a_locations = None
-    b_locations = None
-    m_locations = None
-    n_locations = None
+    b_locations = properties.Array(
+        "locations of the negative (-) current electrodes",
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
 
-    uniqElecLocs = None
+    m_locations = properties.Array(
+        "locations of the positive (+) potential electrodes",
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
 
-    geometry = "SURFACE"
-    dataType = 'volt'     # "volt" and "appResistivity"
-    topoFunc = None
-    mesh = None
+    n_locations = properties.Array(
+        "locations of the negative (-) potential electrodes",
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
+
+    electrode_locations = properties.Array(
+        "unique locations of a, b, m, n electrodes",
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
+
+    # Data
+    data_type = properties.StringChoice(
+        "Type of DC survey",
+        default="volt",
+        choices=["volt", "appResistivity", "appConductivity"]
+    )
+
+    electrode_locations = properties.Array(
+        "unique locations of a, b, m, n electrodes",
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
+
     V = None
     appResistivity = None
     dobs = None
-    grids = None
     G = None
+    grids = None
+
+    # Related to Physics and Discretization
+    mesh = properties.Instance(
+        "Mesh for discretization", Mesh.BaseMesh, required=True
+    )
 
     dx = None
     dy = None
@@ -54,7 +90,7 @@ class IO(properties.HasProperties):
     def from_ambnlocations_to_survey(
         self, a_locations, b_locations, m_locations, n_locations,
         surveyType, dobs=None,
-        dataType="volt", fname=None, dim=2
+        data_type="volt", fname=None, dim=2
     ):
         """
         read ABMN location and data (V or appResistivity)
@@ -64,14 +100,14 @@ class IO(properties.HasProperties):
         self.m_locations = m_locations.copy()
         self.n_locations = n_locations.copy()
         self.surveyType = surveyType
-        self.dataType = dataType
+        self.data_type = data_type
         self.dim = dim
 
         uniqSrc = Utils.uniqueRows(np.c_[self.a_locations, self.b_locations])
         uniqElec = SimPEG.Utils.uniqueRows(
             np.vstack((self.a_locations, self.b_locations, self.m_locations, self.n_locations))
             )
-        self.uniqElecLocs = uniqElec[0]
+        self.electrode_locations = uniqElec[0]
         nSrc = uniqSrc[0].shape[0]
         ndata = self.a_locations.shape[0]
 
@@ -113,10 +149,10 @@ class IO(properties.HasProperties):
             else:
                 self.dobs = dobs[self.sortinds]
 
-            if self.dataType == "volt":
+            if self.data_type == "volt":
                 self.V = self.dobs.copy()
                 self.appResistivity = self.V / G
-            elif self.dataType == "appResistivity":
+            elif self.data_type == "appResistivity":
                 self.appResistivity = self.dobs.copy()
                 self.V = self.appResistivity * self.G
                 self.dobs = self.V.copy()
@@ -132,7 +168,7 @@ class IO(properties.HasProperties):
 
     def getGeometricFactor(self):
 
-        if self.geometry == 'SURFACE':
+        if self.survey_geometry == 'SURFACE':
 
             if self.dim == 2:
                 MA = abs(self.a_locations[:, 0] - self.m_locations[:, 0])
@@ -167,7 +203,7 @@ class IO(properties.HasProperties):
             elif surveyType == 'pole-pole':
                 self.G = 1./(2*np.pi) * (1./MA)
 
-        elif self.geometry == 'BOREHOLE':
+        elif self.survey_geometry == 'BOREHOLE':
             raise NotImplementedError()
 
         return self.G
@@ -177,18 +213,18 @@ class IO(properties.HasProperties):
             raise NotImplementedError()
 
         if dim == 2:
-            a = abs(np.diff(np.sort(self.uniqElecLocs[:, 0]))).min()
-            lineLength = abs(self.uniqElecLocs[:, 0].max()-self.uniqElecLocs[:, 0].min())
+            a = abs(np.diff(np.sort(self.electrode_locations[:, 0]))).min()
+            lineLength = abs(self.electrode_locations[:, 0].max()-self.electrode_locations[:, 0].min())
             dx_ideal = a/ncellperdipole
             if dx is None:
                 dx = dx_ideal
             if dz is None:
                 dz = dx*0.5
-            x0 = self.uniqElecLocs[:, 0].min()
+            x0 = self.electrode_locations[:, 0].min()
             if topo is None:
-                locs = self.uniqElecLocs
+                locs = self.electrode_locations
             else:
-                locs = np.vstack((topo, self.uniqElecLocs))
+                locs = np.vstack((topo, self.electrode_locations))
             zmax = locs[:, 1].max()
             zmin = locs[:, 1].min()
             if dx > dx_ideal:
@@ -230,7 +266,7 @@ class IO(properties.HasProperties):
 
         return mesh, actind
 
-    def plotPseudoSection(self, dataType="appResistivity", scale="log", dataloc=True,aspect_ratio=2, cmap="jet", ncontour=10, ax=None, dobs=None, figname=None):
+    def plotPseudoSection(self, data_type="appResistivity", scale="log", dataloc=True,aspect_ratio=2, cmap="jet", ncontour=10, ax=None, dobs=None, figname=None):
         matplotlib.rcParams['font.size'] = 12
 
         if dobs is None:
@@ -244,10 +280,10 @@ class IO(properties.HasProperties):
             fig = plt.figure(figsize = (10, 5))
             if ax is None:
                 ax = plt.subplot(111)
-            if dataType == "appResistivity":
+            if data_type == "appResistivity":
                 val = appResistivity.copy()
                 label = "Apparent Res. ($\Omega$m)"
-            elif dataType == "volt":
+            elif data_type == "volt":
                 val = dobs.copy()
                 label = "Voltage (V)"
             else:
