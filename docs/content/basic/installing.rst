@@ -23,7 +23,7 @@ We also recommend installing the latest version of Python 3.
 Installing SimPEG
 =================
 
-SimPEG is on `pypi <https://pypi.python.org/pypi/SimPEG>`! First, make sure
+SimPEG is on `pypi <https://pypi.python.org/pypi/SimPEG>`_! First, make sure
 your version of pip is up-to-date
 
 .. code::
