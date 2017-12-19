@@ -54,8 +54,9 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         # Setup a dipole-dipole Survey
 
         survey = DCUtils.gen_DCIPsurvey(
-            self.xyz, self.mesh,
+            self.xyz,
             survey_type="dipole-dipole",
+            dim=self.mesh.dim,
             a=self.survey_a,
             b=self.survey_b,
             n=self.survey_n
@@ -119,8 +120,9 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         # Setup a pole-dipole Survey
 
         survey = DCUtils.gen_DCIPsurvey(
-            self.xyz, self.mesh,
+            self.xyz,
             survey_type="pole-dipole",
+            dim=self.mesh.dim,
             a=self.survey_a,
             b=self.survey_b,
             n=self.survey_n
@@ -180,8 +182,9 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         # Setup a dipole-pole Survey
 
         survey = DCUtils.gen_DCIPsurvey(
-            self.xyz, self.mesh,
+            self.xyz,
             survey_type="dipole-pole",
+            dim=self.mesh.dim,
             a=self.survey_a,
             b=self.survey_b,
             n=self.survey_n
@@ -240,8 +243,9 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         # Setup a pole-pole Survey
 
         survey = DCUtils.gen_DCIPsurvey(
-            self.xyz, self.mesh,
+            self.xyz,
             survey_type="pole-pole",
+            dim=self.mesh.dim,
             a=self.survey_a,
             b=self.survey_b,
             n=self.survey_n
