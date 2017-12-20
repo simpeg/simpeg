@@ -56,7 +56,7 @@ if showIt:
     ax = plt.subplot(111)
     temp = rho.copy()
     temp[~actind] = np.nan
-    mesh.plotImage(
+    out = mesh.plotImage(
         temp, grid=True, ax=ax, gridOpts={'alpha': 0.2},
         clim=(10, 1000),
         pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()}

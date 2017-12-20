@@ -1,15 +1,7 @@
 from SimPEG import DC
-from SimPEG import (Maps, Utils, DataMisfit, Regularization,
-                    Optimization, Inversion, InvProblem, Directives)
 import matplotlib.pyplot as plt
-from matplotlib import colors
 import numpy as np
 import unittest
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
 
 
 class TestsIO_2D(unittest.TestCase):
