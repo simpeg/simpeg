@@ -300,9 +300,6 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         passed = np.allclose(rhoapp, rhoA_GIF_pp)
         self.assertTrue(passed)
 
-        # Clean up the working directory
-        shutil.rmtree(self.basePath)
-
 
 class DCUtilsTests_fullspace(unittest.TestCase):
 
