@@ -219,10 +219,11 @@ class BetaEstimate_ByEig(InversionDirective):
         x0 = np.random.rand(*m.shape)
 
         t, b = 0, 0
-
+        i_count = 0
         for dmis, reg in zip(self.dmisfit.objfcts, self.reg.objfcts):
-            t += x0.dot(dmis.deriv2(m, x0, f=f))
+            t += x0.dot(dmis.deriv2(m, x0, f=f[i_count]))
             b += x0.dot(reg.deriv2(m, v=x0))
+            i_count += 1
 
         self.beta0 = self.beta0_ratio*(t/b)
 

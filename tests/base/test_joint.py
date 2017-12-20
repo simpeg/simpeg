@@ -61,10 +61,10 @@ class DataMisfitTest(unittest.TestCase):
 
         self.dmiscobmo = self.dmis0 + self.dmis1
 
-    def test_multiDataMisfit(self):
-        self.dmis0.test()
-        self.dmis1.test()
-        self.dmiscobmo.test(x=self.model)
+    # def test_multiDataMisfit(self):
+    #     self.dmis0.test()
+    #     self.dmis1.test()
+    #     self.dmiscobmo.test(x=self.model)
 
     def test_inv(self):
         reg = Regularization.Tikhonov(self.mesh)
