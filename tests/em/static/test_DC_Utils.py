@@ -1,7 +1,6 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-import matplotlib.pyplot as plt
 from SimPEG.EM.Static import DC, Utils as DCUtils
 from SimPEG import Mesh, Maps
 from SimPEG.Utils import io_utils
@@ -16,6 +15,8 @@ except ImportError:
 
 class DCUtilsTests_halfspace(unittest.TestCase):
 
+    plotIt = False
+
     def setUp(self):
         url = 'https://storage.googleapis.com/simpeg/tests/dc_utils/'
         cloudfiles = [
@@ -24,7 +25,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
             'rhoA_GIF_pd.txt', 'rhoA_GIF_pp.txt'
         ]
 
-        self.basePath = os.path.expanduser('~/Downloads/simpegtemp')
+        self.basePath = os.path.expanduser('~/Downloads/TestStaticUtilsTemp')
         self.files = io_utils.download(
             [url+f for f in cloudfiles],
             folder=self.basePath,
@@ -93,15 +94,18 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
 
-        # Test Pseudosections plotting
-        fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        DCUtils.plot_pseudoSection(
-            survey, ax, survey_type='dipole-dipole',
-            scale='log', clim=None,
-            data_type='appResistivity',
-            pcolorOpts={"cmap": "viridis"},
-            data_location=True
-        )
+        if self.plotIt:
+            import matplotlib.pyplot as plt
+            # Test Pseudosections plotting
+            fig, ax = plt.subplots(1, 1, figsize=(15, 3))
+            ax = DCUtils.plot_pseudoSection(
+                survey, ax, survey_type='dipole-dipole',
+                scale='log', clim=None,
+                data_type='appResistivity',
+                pcolorOpts={"cmap": "viridis"},
+                data_location=True
+            )
+            plt.show()
 
         # Test the utils functions electrode_separations,
         # source_receiver_midpoints, geometric_factor,
@@ -155,15 +159,17 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
 
-        # Test Pseudosections plotting
-        fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        DCUtils.plot_pseudoSection(
-            survey, ax, survey_type='pole-dipole',
-            scale='log', clim=None,
-            data_type='appResistivity',
-            pcolorOpts={"cmap": "viridis"},
-            data_location=True
-        )
+        if self.plotIt:
+            import matplotlib.pyplot as plt
+            # Test Pseudosections plotting
+            fig, ax = plt.subplots(1, 1, figsize=(15, 3))
+            ax = DCUtils.plot_pseudoSection(
+                survey, ax, survey_type='pole-dipole',
+                scale='log', clim=None,
+                data_type='appResistivity',
+                pcolorOpts={"cmap": "viridis"},
+                data_location=True
+            )
 
         # Test the utils functions electrode_separations,
         # source_receiver_midpoints, geometric_factor,
@@ -217,15 +223,17 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
 
-        # Test Pseudosections plotting
-        fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        DCUtils.plot_pseudoSection(
-            survey, ax, survey_type='dipole-pole',
-            scale='log', clim=None,
-            data_type='appResistivity',
-            pcolorOpts={"cmap": "viridis"},
-            data_location=True
-        )
+        if self.plotIt:
+            import matplotlib.pyplot as plt
+            # Test Pseudosections plotting
+            fig, ax = plt.subplots(1, 1, figsize=(15, 3))
+            ax = DCUtils.plot_pseudoSection(
+                survey, ax, survey_type='dipole-pole',
+                scale='log', clim=None,
+                data_type='appResistivity',
+                pcolorOpts={"cmap": "viridis"},
+                data_location=True
+            )
 
         # Test the utils functions electrode_separations,
         # source_receiver_midpoints, geometric_factor,
@@ -278,15 +286,17 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
 
-        # Test Pseudosections plotting
-        fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        DCUtils.plot_pseudoSection(
-            survey, ax, survey_type='pole-pole',
-            scale='log', clim=None,
-            data_type='appResistivity',
-            pcolorOpts={"cmap": "viridis"},
-            data_location=True
-        )
+        if self.plotIt:
+            import matplotlib.pyplot as plt
+            # Test Pseudosections plotting
+            fig, ax = plt.subplots(1, 1, figsize=(15, 3))
+            ax = DCUtils.plot_pseudoSection(
+                survey, ax, survey_type='pole-pole',
+                scale='log', clim=None,
+                data_type='appResistivity',
+                pcolorOpts={"cmap": "viridis"},
+                data_location=True
+            )
 
         # Test the utils functions electrode_separations,
         # source_receiver_midpoints, geometric_factor,
@@ -299,9 +309,6 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         rhoA_GIF_pp = np.loadtxt(rhoA_GIF_file)
         passed = np.allclose(rhoapp, rhoA_GIF_pp)
         self.assertTrue(passed)
-
-        # Clean up the working directory
-        shutil.rmtree(self.basePath)
 
 
 class DCUtilsTests_fullspace(unittest.TestCase):
@@ -316,7 +323,7 @@ class DCUtilsTests_fullspace(unittest.TestCase):
             'BN_GIF_fullspace.txt', 'RhoApp_GIF_fullspace.txt'
         ]
 
-        self.basePath = os.path.expanduser('~/Downloads/simpegtemp')
+        self.basePath = os.path.expanduser('~/Downloads/TestStaticUtilsTemp')
         self.files = io_utils.download(
             [url+f for f in cloudfiles],
             folder=self.basePath,
