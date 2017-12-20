@@ -218,14 +218,14 @@ class BetaEstimate_ByEig(InversionDirective):
 
         x0 = np.random.rand(*m.shape)
 
-        # Check f is ojbect, if then put f in a list to handle multiple objective functions
-        if isinstance(f, object):
-            f = [f]
-
         t, b = 0, 0
         i_count = 0
         for dmis, reg in zip(self.dmisfit.objfcts, self.reg.objfcts):
-            t += x0.dot(dmis.deriv2(m, x0, f=f[i_count]))
+            # check if f is list
+            if isinstance(f, list):
+                t += x0.dot(dmis.deriv2(m, x0, f=f[i_count]))
+            else:
+                t += x0.dot(dmis.deriv2(m, x0, f=f))
             b += x0.dot(reg.deriv2(m, v=x0))
             i_count += 1
 
