@@ -24,7 +24,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
             'rhoA_GIF_pd.txt', 'rhoA_GIF_pp.txt'
         ]
 
-        self.basePath = os.path.expanduser('~/Downloads/simpegtemp')
+        self.basePath = os.path.expanduser('~/Downloads/TestStaticUtilsTemp')
         self.files = io_utils.download(
             [url+f for f in cloudfiles],
             folder=self.basePath,
@@ -95,7 +95,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
         # Test Pseudosections plotting
         fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        DCUtils.plot_pseudoSection(
+        ax = DCUtils.plot_pseudoSection(
             survey, ax, survey_type='dipole-dipole',
             scale='log', clim=None,
             data_type='appResistivity',
@@ -157,7 +157,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
         # Test Pseudosections plotting
         fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        DCUtils.plot_pseudoSection(
+        ax = DCUtils.plot_pseudoSection(
             survey, ax, survey_type='pole-dipole',
             scale='log', clim=None,
             data_type='appResistivity',
@@ -219,7 +219,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
         # Test Pseudosections plotting
         fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        DCUtils.plot_pseudoSection(
+        ax = DCUtils.plot_pseudoSection(
             survey, ax, survey_type='dipole-pole',
             scale='log', clim=None,
             data_type='appResistivity',
@@ -280,7 +280,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
         # Test Pseudosections plotting
         fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        DCUtils.plot_pseudoSection(
+        ax = DCUtils.plot_pseudoSection(
             survey, ax, survey_type='pole-pole',
             scale='log', clim=None,
             data_type='appResistivity',
@@ -313,7 +313,7 @@ class DCUtilsTests_fullspace(unittest.TestCase):
             'BN_GIF_fullspace.txt', 'RhoApp_GIF_fullspace.txt'
         ]
 
-        self.basePath = os.path.expanduser('~/Downloads/simpegtemp')
+        self.basePath = os.path.expanduser('~/Downloads/TestStaticUtilsTemp')
         self.files = io_utils.download(
             [url+f for f in cloudfiles],
             folder=self.basePath,
