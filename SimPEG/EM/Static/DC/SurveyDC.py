@@ -4,289 +4,303 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import SimPEG
+from . import RxDC as Rx
+from . import SrcDC as Src
 from SimPEG.EM.Base import BaseEMSurvey
-from .RxDC import BaseRx
-from .SrcDC import BaseSrc
 import numpy as np
 from scipy.interpolate import interp1d, NearestNDInterpolator
+import properties
 
 
-class Survey(BaseEMSurvey):
+class Survey(BaseEMSurvey, properties.HasProperties):
     """
     Base DC survey
     """
-    rxPair = BaseRx
-    srcPair = BaseSrc
-    # TODO: change this using properties
-    Alocs = None
-    Blocs = None
-    Mlocs = None
-    Nlocs = None
-    elecInfo = None
-    uniqElecLocs = None
-    geometry = "SURFACE"
-    topoFunc = None
-    surveyType = None
+    rxPair = Rx.BaseRx
+    srcPair = Src.BaseSrc
+
+    # Survey
+    survey_geometry = properties.StringChoice(
+        "Survey geometry of DC surveys",
+        default="SURFACE",
+        choices=["SURFACE", "BOREHOLE", "GENERAL"]
+    )
+
+    survey_type = properties.StringChoice(
+        "DC-IP Survey type",
+        default="dipole-dipole",
+        choices=[
+            "dipole-dipole", "pole-dipole",
+            "dipole-pole", "pole-pole"
+        ]
+    )
+
+    a_locations = properties.Array(
+        "locations of the positive (+) current electrodes",
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
+
+    b_locations = properties.Array(
+        "locations of the negative (-) current electrodes",
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
+
+    m_locations = properties.Array(
+        "locations of the positive (+) potential electrodes",
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
+
+    n_locations = properties.Array(
+        "locations of the negative (-) potential electrodes",
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
+
+    electrode_locations = properties.Array(
+        "unique locations of a, b, m, n electrodes",
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
+
+    electrodes_info = None
+    topo_function = None
 
     def __init__(self, srcList, **kwargs):
         self.srcList = srcList
         BaseEMSurvey.__init__(self, srcList, **kwargs)
 
-    def getABMNLocs(self):
-        Alocs = []
-        Blocs = []
-        Mlocs = []
-        Nlocs = []
+    def getABMN_locations(self):
+        a_locations = []
+        b_locations = []
+        m_locations = []
+        n_locations = []
         for src in self.srcList:
             # Pole
-            if isinstance(src, SimPEG.EM.Static.DC.Src.Pole):
+            if isinstance(src, Src.Pole):
                 for rx in src.rxList:
                     nRx = rx.nD
-                    Alocs.append(
+                    a_locations.append(
                         src.loc.reshape([1, -1]).repeat(nRx, axis=0)
                         )
-                    Blocs.append(
+                    b_locations.append(
                         src.loc.reshape([1, -1]).repeat(nRx, axis=0)
                         )
                     # Pole
-                    if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole) or
-                    isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole_ky):
-                        Mlocs.append(rx.locs)
-                        Nlocs.append(rx.locs)
+                    if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
+                        m_locations.append(rx.locs)
+                        n_locations.append(rx.locs)
                     # Dipole
-                    elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole) or
-                    isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole_ky):
-                        Mlocs.append(rx.locs[0])
-                        Nlocs.append(rx.locs[1])
+                    elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
+                        m_locations.append(rx.locs[0])
+                        n_locations.append(rx.locs[1])
             # Dipole
-            elif isinstance(src, SimPEG.EM.Static.DC.Src.Dipole):
+            elif isinstance(src, Src.Dipole):
                 for rx in src.rxList:
                     nRx = rx.nD
-                    Alocs.append(
+                    a_locations.append(
                         src.loc[0].reshape([1, -1]).repeat(nRx, axis=0)
                         )
-                    Blocs.append(
+                    b_locations.append(
                         src.loc[1].reshape([1, -1]).repeat(nRx, axis=0)
                         )
                     # Pole
-                    if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole) or
-                    isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole_ky):
-                        Mlocs.append(rx.locs)
-                        Nlocs.append(rx.locs)
+                    if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
+                        m_locations.append(rx.locs)
+                        n_locations.append(rx.locs)
                     # Dipole
-                    elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole) or
-                    isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole_ky):
-                        Mlocs.append(rx.locs[0])
-                        Nlocs.append(rx.locs[1])
+                    elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
+                        m_locations.append(rx.locs[0])
+                        n_locations.append(rx.locs[1])
 
-        self.Alocs = np.vstack(Alocs)
-        self.Blocs = np.vstack(Blocs)
-        self.Mlocs = np.vstack(Mlocs)
-        self.Nlocs = np.vstack(Nlocs)
+        self.a_locations = np.vstack(a_locations)
+        self.b_locations = np.vstack(b_locations)
+        self.m_locations = np.vstack(m_locations)
+        self.n_locations = np.vstack(n_locations)
 
     def drapeTopo(self, mesh, actind, option='top'):
-        if self.Alocs is None:
-            self.getABMNLocs()
+        if self.a_locations is None:
+            self.getABMN_locations()
 
         # 2D
         if mesh.dim == 2:
-            if self.geometry == "SURFACE":
-                if self.elecInfo is None:
-                    self.elecInfo = SimPEG.Utils.uniqueRows(
+            if self.survey_geometry == "SURFACE":
+                if self.electrodes_info is None:
+                    self.electrodes_info = SimPEG.Utils.uniqueRows(
                         np.hstack((
-                            self.Alocs[:, 0],
-                            self.Blocs[:, 0],
-                            self.Mlocs[:, 0],
-                            self.Nlocs[:, 0],
+                            self.a_locations[:, 0],
+                            self.b_locations[:, 0],
+                            self.m_locations[:, 0],
+                            self.n_locations[:, 0],
                             )).reshape([-1, 1])
                         )
-                    self.uniqElecLocs = SimPEG.EM.Static.Utils.drapeTopotoLoc(
+                    self.electrode_locations = SimPEG.EM.Static.Utils.drapeTopotoLoc(
                         mesh,
-                        self.elecInfo[0].flatten(),
+                        self.electrodes_info[0].flatten(),
                         actind=actind,
                         option=option
                         )
                 temp = (
-                    self.uniqElecLocs[self.elecInfo[2], 1]
-                    ).reshape((self.Alocs.shape[0], 4), order="F")
-                self.Alocs = np.c_[self.Alocs[:, 0], temp[:, 0]]
-                self.Blocs = np.c_[self.Blocs[:, 0], temp[:, 1]]
-                self.Mlocs = np.c_[self.Mlocs[:, 0], temp[:, 2]]
-                self.Nlocs = np.c_[self.Nlocs[:, 0], temp[:, 3]]
+                    self.electrode_locations[self.electrodes_info[2], 1]
+                    ).reshape((self.a_locations.shape[0], 4), order="F")
+                self.a_locations = np.c_[self.a_locations[:, 0], temp[:, 0]]
+                self.b_locations = np.c_[self.b_locations[:, 0], temp[:, 1]]
+                self.m_locations = np.c_[self.m_locations[:, 0], temp[:, 2]]
+                self.n_locations = np.c_[self.n_locations[:, 0], temp[:, 3]]
 
                 # Make interpolation function
-                self.topoFunc = interp1d(
-                    self.uniqElecLocs[:, 0], self.uniqElecLocs[:, 1]
+                self.topo_function = interp1d(
+                    self.electrode_locations[:, 0], self.electrode_locations[:, 1]
                     )
 
                 # Loop over all Src and Rx locs and Drape topo
                 for src in self.srcList:
                     # Pole Src
-                    if isinstance(src, SimPEG.EM.Static.DC.Src.Pole):
+                    if isinstance(src, Src.Pole):
                         locA = src.loc.flatten()
-                        z_SrcA = self.topoFunc(locA[0])
+                        z_SrcA = self.topo_function(locA[0])
                         src.loc = np.array([locA[0], z_SrcA])
                         for rx in src.rxList:
                             # Pole Rx
-                            if isinstance(
-                                rx, SimPEG.EM.Static.DC.Rx.Pole
-                            ) or
-                            isinstance(
-                                rx, SimPEG.EM.Static.DC.Rx.Pole_ky
-                            ):
-
+                            if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
                                 locM = rx.locs.copy()
-                                z_RxM = self.topoFunc(locM[:, 0])
+                                z_RxM = self.topo_function(locM[:, 0])
                                 rx.locs = np.c_[locM[:, 0], z_RxM]
-
                             # Dipole Rx
-                            elif isinstance(
-                                rx, SimPEG.EM.Static.DC.Rx.Dipole
-                            ) or
-                            isinstance(
-                                rx, SimPEG.EM.Static.DC.Rx.Dipole_ky
-                            ):
-
+                            elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
                                 locM = rx.locs[0].copy()
                                 locN = rx.locs[1].copy()
-                                z_RxM = self.topoFunc(locM[:, 0])
-                                z_RxN = self.topoFunc(locN[:, 0])
+                                z_RxM = self.topo_function(locM[:, 0])
+                                z_RxN = self.topo_function(locN[:, 0])
                                 rx.locs[0] = np.c_[locM[:, 0], z_RxM]
                                 rx.locs[1] = np.c_[locN[:, 0], z_RxN]
-
                             else:
                                 raise Exception()
 
                     # Dipole Src
-                    elif isinstance(src, SimPEG.EM.Static.DC.Src.Dipole):
+                    elif isinstance(src, Src.Dipole):
                         locA = src.loc[0].flatten()
                         locB = src.loc[1].flatten()
-                        z_SrcA = self.topoFunc(locA[0])
-                        z_SrcB = self.topoFunc(locB[0])
+                        z_SrcA = self.topo_function(locA[0])
+                        z_SrcB = self.topo_function(locB[0])
 
                         src.loc[0] = np.array([locA[0], z_SrcA])
                         src.loc[1] = np.array([locB[0], z_SrcB])
 
                         for rx in src.rxList:
                             # Pole Rx
-                            if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole) or
-                            isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole_ky):
-
+                            if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
                                 locM = rx.locs.copy()
-                                z_RxM = self.topoFunc(locM[:, 0])
+                                z_RxM = self.topo_function(locM[:, 0])
                                 rx.locs = np.c_[locM[:, 0], z_RxM]
-
                             # Dipole Rx
-                            elif isinstance(
-                                rx, SimPEG.EM.Static.DC.Rx.Dipole
-                                ) or
-                            isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole_ky):
-
+                            elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
                                 locM = rx.locs[0].copy()
                                 locN = rx.locs[1].copy()
-                                z_RxM = self.topoFunc(locM[:, 0])
-                                z_RxN = self.topoFunc(locN[:, 0])
+                                z_RxM = self.topo_function(locM[:, 0])
+                                z_RxN = self.topo_function(locN[:, 0])
                                 rx.locs[0] = np.c_[locM[:, 0], z_RxM]
                                 rx.locs[1] = np.c_[locN[:, 0], z_RxN]
-
                             else:
                                 raise Exception()
 
-            elif self.geometry == "BOREHOLE":
+            elif self.survey_geometry == "BOREHOLE":
                 raise Exception(
-                    "Not implemented yet for BOREHOLE geometry"
+                    "Not implemented yet for BOREHOLE survey_geometry"
                     )
             else:
                 raise Exception(
-                    "Input valid survey geometry: SURFACE or BOREHOLE"
+                    "Input valid survey survey_geometry: SURFACE or BOREHOLE"
                     )
 
         if mesh.dim == 3:
-            if self.geometry == "SURFACE":
-                if self.elecInfo is None:
-                    self.elecInfo = SimPEG.Utils.uniqueRows(
+            if self.survey_geometry == "SURFACE":
+                if self.electrodes_info is None:
+                    self.electrodes_info = SimPEG.Utils.uniqueRows(
                         np.vstack((
-                            self.Alocs[:, :2],
-                            self.Blocs[:, :2],
-                            self.Mlocs[:, :2],
-                            self.Nlocs[:, :2],
+                            self.a_locations[:, :2],
+                            self.b_locations[:, :2],
+                            self.m_locations[:, :2],
+                            self.n_locations[:, :2],
                             ))
                         )
-                    self.uniqElecLocs = SimPEG.EM.Static.Utils.drapeTopotoLoc(
-                        mesh, self.elecInfo[0], actind=actind
+                    self.electrode_locations = SimPEG.EM.Static.Utils.drapeTopotoLoc(
+                        mesh, self.electrodes_info[0], actind=actind
                         )
                 temp = (
-                    self.uniqElecLocs[self.elecInfo[2], 1]
-                    ).reshape((self.Alocs.shape[0], 4), order="F")
+                    self.electrode_locations[self.electrodes_info[2], 1]
+                    ).reshape((self.a_locations.shape[0], 4), order="F")
 
-                self.Alocs = np.c_[self.Alocs[:, :2], temp[:, 0]]
-                self.Blocs = np.c_[self.Blocs[:, :2], temp[:, 1]]
-                self.Mlocs = np.c_[self.Mlocs[:, :2], temp[:, 2]]
-                self.Nlocs = np.c_[self.Nlocs[:, :2], temp[:, 3]]
+                self.a_locations = np.c_[self.a_locations[:, :2], temp[:, 0]]
+                self.b_locations = np.c_[self.b_locations[:, :2], temp[:, 1]]
+                self.m_locations = np.c_[self.m_locations[:, :2], temp[:, 2]]
+                self.n_locations = np.c_[self.n_locations[:, :2], temp[:, 3]]
 
                 # Make interpolation function
-                self.topoFunc = NearestNDInterpolator(
-                    self.uniqElecLocs[:, :2],
-                    self.uniqElecLocs[:, 2]
+                self.topo_function = NearestNDInterpolator(
+                    self.electrode_locations[:, :2],
+                    self.electrode_locations[:, 2]
                     )
                 # Loop over all Src and Rx locs and Drape topo
                 for src in self.srcList:
                     # Pole Src
-                    if isinstance(src, SimPEG.EM.Static.DC.Src.Pole):
+                    if isinstance(src, Src.Pole):
                         locA = src.loc.reshape([1, -1])
-                        z_SrcA = self.topoFunc(locA[0, :2])
+                        z_SrcA = self.topo_function(locA[0, :2])
                         src.loc = np.r_[locA[0, :2].flatten(), z_SrcA]
 
                         for rx in src.rxList:
                             # Pole Rx
-                            if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole):
+                            if isinstance(rx, Rx.Pole):
                                 locM = rx.locs.copy()
-                                z_RxM = self.topoFunc(locM[:, :2])
+                                z_RxM = self.topo_function(locM[:, :2])
                                 rx.locs = np.c_[locM[:, 0], z_RxM]
                             # Dipole Rx
-                            elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole):
+                            elif isinstance(rx, Rx.Dipole):
                                 locM = rx.locs[0].copy()
                                 locN = rx.locs[1].copy()
-                                z_RxM = self.topoFunc(locM[:, :2])
-                                z_RxN = self.topoFunc(locN[:, :2])
+                                z_RxM = self.topo_function(locM[:, :2])
+                                z_RxN = self.topo_function(locN[:, :2])
                                 rx.locs[0] = np.c_[locM[:, :2], z_RxM]
                                 rx.locs[1] = np.c_[locN[:, :2], z_RxN]
                             else:
                                 raise Exception()
 
                     # Dipole Src
-                    elif isinstance(src, SimPEG.EM.Static.DC.Src.Dipole):
+                    elif isinstance(src, Src.Dipole):
                         locA = src.loc[0].reshape([1, -1])
                         locB = src.loc[1].reshape([1, -1])
-                        z_SrcA = self.topoFunc(locA[0, :2])
-                        z_SrcB = self.topoFunc(locB[0, :2])
+                        z_SrcA = self.topo_function(locA[0, :2])
+                        z_SrcB = self.topo_function(locB[0, :2])
                         src.loc[0] = np.r_[locA[0, :2].flatten(), z_SrcA]
                         src.loc[1] = np.r_[locB[0, :2].flatten(), z_SrcB]
 
                         for rx in src.rxList:
                             # Pole Rx
-                            if isinstance(rx, SimPEG.EM.Static.DC.Rx.Pole):
+                            if isinstance(rx, Rx.Pole):
                                 locM = rx.locs.copy()
-                                z_RxM = self.topoFunc(locM[:, :2])
+                                z_RxM = self.topo_function(locM[:, :2])
                                 rx.locs = np.c_[locM[:, :2], z_RxM]
                             # Dipole Rx
-                            elif isinstance(rx, SimPEG.EM.Static.DC.Rx.Dipole):
+                            elif isinstance(rx, Rx.Dipole):
                                 locM = rx.locs[0].copy()
                                 locN = rx.locs[1].copy()
-                                z_RxM = self.topoFunc(locM[:, :2])
-                                z_RxN = self.topoFunc(locN[:, :2])
+                                z_RxM = self.topo_function(locM[:, :2])
+                                z_RxN = self.topo_function(locN[:, :2])
                                 rx.locs[0] = np.c_[locM[:, :2], z_RxM]
                                 rx.locs[1] = np.c_[locN[:, :2], z_RxN]
                             else:
                                 raise Exception()
 
-            elif self.geometry == "BOREHOLE":
+            elif self.survey_geometry == "BOREHOLE":
                 raise Exception(
-                    "Not implemented yet for BOREHOLE geometry"
+                    "Not implemented yet for BOREHOLE survey_geometry"
                     )
             else:
                 raise Exception(
-                    "Input valid survey geometry: SURFACE or BOREHOLE"
+                    "Input valid survey survey_geometry: SURFACE or BOREHOLE"
                     )
 
 
@@ -294,8 +308,8 @@ class Survey_ky(Survey):
     """
     2.5D survey
     """
-    rxPair = BaseRx
-    srcPair = BaseSrc
+    rxPair = Rx.BaseRx
+    srcPair = Src.BaseSrc
 
     def __init__(self, srcList, **kwargs):
         self.srcList = srcList

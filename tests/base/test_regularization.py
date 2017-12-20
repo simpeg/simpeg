@@ -181,7 +181,7 @@ class RegularizationTests(unittest.TestCase):
             ]
 
             # test updated mappings
-            mapping = Maps.ExpMap(nP=indActive.sum())
+            mapping = Maps.ExpMap(nP=int(indActive.sum()))
             reg.mapping = mapping
             m = np.random.rand(mapping.nP)
             [

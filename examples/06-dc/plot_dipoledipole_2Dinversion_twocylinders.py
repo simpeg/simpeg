@@ -99,9 +99,9 @@ def getCylinderPoints(xc, zc, r):
 # Setup a Dipole-Dipole Survey
 xmin, xmax = -15., 15.
 ymin, ymax = 0., 0.
-zmin, zmax = 0, 0
+zmin, zmax = mesh.vectorCCy[-1], mesh.vectorCCy[-1]
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey = DCUtils.gen_DCIPsurvey(endl, mesh, "dipole-dipole",
+survey = DCUtils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
                                 a=1, b=1, n=10, d2flag='2D')
 
 # Setup Problem with exponential mapping and Active cells only in the core mesh
@@ -133,16 +133,19 @@ invProb = InvProblem.BaseInvProblem(dmis,  regT,  opt)
 beta = Directives.BetaEstimate_ByEig(beta0_ratio=1.)
 Target = Directives.TargetMisfit()
 betaSched = Directives.BetaSchedule(coolingFactor=5.,  coolingRate=2)
+updateSensW = Directives.UpdateSensitivityWeights(threshold = 1e-3)
+update_Jacobi = Directives.UpdatePreconditioner()
 
 inv = Inversion.BaseInversion(invProb,  directiveList=[beta, Target,
-                                                       betaSched])
+                                                       betaSched,  updateSensW,
+                                                       update_Jacobi])
 
 minv = inv.run(m0)
 
 # Final Plot
 ############
 
-fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 ax = Utils.mkvc(ax)
 
 cyl0v = getCylinderPoints(x0, z0, r0)

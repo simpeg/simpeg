@@ -62,7 +62,7 @@ def run(N=100, plotIt=True):
     wd = np.ones(nk) * std_noise
 
     # Distance weighting
-    wr = np.sum(prob.G**2., axis=0)**0.5
+    wr = np.sum(prob.getJ(m0)**2., axis=0)**0.5
     wr = wr/np.max(wr)
 
     dmis = DataMisfit.l2_DataMisfit(survey)
@@ -84,7 +84,7 @@ def run(N=100, plotIt=True):
         maxIterLS=20, maxIterCG=10, tolCG=1e-3
     )
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    update_Jacobi = Directives.Update_lin_PreCond()
+    update_Jacobi = Directives.UpdatePreconditioner()
 
     # Set the IRLS directive, penalize the lowest 25 percentile of model values
     # Start with an l2-l2, then switch to lp-norms
@@ -108,7 +108,7 @@ def run(N=100, plotIt=True):
         axes[0].set_title('Columns of matrix G')
 
         axes[1].plot(mesh.vectorCCx, mtrue, 'b-')
-        axes[1].plot(mesh.vectorCCx, IRLS.l2model, 'r-')
+        axes[1].plot(mesh.vectorCCx, invProb.l2model, 'r-')
         # axes[1].legend(('True Model', 'Recovered Model'))
         axes[1].set_ylim(-1.0, 1.25)
 

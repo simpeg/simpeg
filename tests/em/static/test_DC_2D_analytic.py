@@ -34,6 +34,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         self.mesh = mesh
         self.sigma = sigma
         self.data_anal = data_anal
+        self.plotIt = False
 
         try:
             from pymatsolver import Pardiso
@@ -55,7 +56,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
             passed = True
             print(">> DC analytic test for PDP Problem2D_N is passed")
         else:
-            print (err)
+            print(err)
             passed = False
             print(">> DC analytic test for PDP Problem2D_N is failed")
         self.assertTrue(passed)
@@ -73,7 +74,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
             passed = True
             print(">> DC analytic test for PDP Problem2D_CC is passed")
         else:
-            print (err)
+            print(err)
             passed = False
             print(">> DC analytic test for PDP Problem2D_CC is failed")
         self.assertTrue(passed)
@@ -107,6 +108,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         self.mesh = mesh
         self.sigma = sigma
         self.data_anal = data_anal
+        self.plotIt = False
 
         try:
             from pymatsolver import PardisoSolver
@@ -127,13 +129,14 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         if err < 0.05:
             passed = True
             print(">> DC analytic test for DPP Problem2D_N is passed")
-            plt.plot(self.data_anal)
-            plt.plot(data, 'k.')
-            plt.show()
+            if self.plotIt:
+                plt.plot(self.data_anal)
+                plt.plot(data, 'k.')
+                plt.show()
         else:
             passed = False
             print(">> DC analytic test for DPP Problem2D_N is failed")
-            print (err)
+            print(err)
         self.assertTrue(passed)
 
     def test_Problem2D_CC(self):
@@ -151,10 +154,11 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         else:
             passed = False
             print(">> DC analytic test for DPP Problem2D_CC is failed")
-            print (err)
-            plt.plot(self.data_anal)
-            plt.plot(data, 'k.')
-            plt.show()
+            print(err)
+            if self.plotIt:
+                plt.plot(self.data_anal)
+                plt.plot(data, 'k.')
+                plt.show()
         self.assertTrue(passed)
 
 
@@ -207,7 +211,7 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         else:
             passed = False
             print(">> DC analytic test for PP Problem2D_CC is failed")
-            print (err)
+            print(err)
         self.assertTrue(passed)
 
 if __name__ == '__main__':

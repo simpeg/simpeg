@@ -1,197 +1,368 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
+import properties
+import warnings
+
 import SimPEG
 from SimPEG import Utils, Mesh
 from . import SrcDC as Src   # Pole
 from . import RxDC as Rx
 from .SurveyDC import Survey_ky
-import matplotlib.pyplot as plt
-import matplotlib
 
 
-class IO(object):
-    """Input and Output for DC, IP, SP, ..."""
+class IO(properties.HasProperties):
+    """ """
 
-    # TODO: use properties
+    # Survey
+    survey_geometry = properties.StringChoice(
+        "Survey geometry of DC surveys",
+        default="SURFACE",
+        choices=["SURFACE", "BOREHOLE", "GENERAL"]
+    )
 
-    Alocs = None
-    Blocs = None
-    Mlocs = None
-    Nlocs = None
-    uniqElecLocs = None
-    geometry = "SURFACE"
-    dataType = 'volt'     # "volt" and "appResistivity"
-    topoFunc = None
-    mesh = None
-    V = None
-    appResistivity = None
-    dobs = None
-    grids = None
-    G = None
+    survey_type = properties.StringChoice(
+        "DC-IP Survey type",
+        default="dipole-dipole",
+        choices=[
+            "dipole-dipole", "pole-dipole",
+            "dipole-pole", "pole-pole"
+        ]
+    )
 
-    dx = None
-    dy = None
-    dz = None
+    dim = properties.Integer(
+        "Dimension of locations",
+        default=2,
+        required=True
+    )
 
-    npadx = 5
-    npady = 5
-    npadz = 5
+    a_locations = properties.Array(
+        "locations of the positive (+) current electrodes",
+        required=True,
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
 
-    padratex = 1.3
-    padratey = 1.3
-    padratez = 1.3
-    ncellperdipole = 4
+    b_locations = properties.Array(
+        "locations of the negative (-) current electrodes",
+        required=True,
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
 
-    def fromABMN_to_survey(self, A, B, M, N, surveyType, dobs=None, dataType="volt", fname=None, dim=2):
+    m_locations = properties.Array(
+        "locations of the positive (+) potential electrodes",
+        required=True,
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
+
+    n_locations = properties.Array(
+        "locations of the negative (-) potential electrodes",
+        required=True,
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
+
+    electrode_locations = properties.Array(
+        "unique locations of a, b, m, n electrodes",
+        required=True,
+        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float  # data are floats
+    )
+
+    # Data
+    data_type = properties.StringChoice(
+        "Type of DC-IP survey",
+        required=True,
+        default="volt",
+        choices=[
+           "volt", "appResistivity", "appConductivity",
+           "voltIP", "appChargeability"
+        ]
+    )
+
+    dobs = properties.Array(
+        "Measured data",
+        shape=('*',),
+        dtype=float  # data are floats
+    )
+
+    volt = properties.Array(
+        "Measured DC voltages (V)",
+        shape=('*',),
+        dtype=float  # data are floats
+    )
+
+    appResistivity = properties.Array(
+        "Measured apparent resistivity (Ohm-m)",
+        shape=('*',),
+        dtype=float  # data are floats
+    )
+
+    appConductivity = properties.Array(
+        "Measured apparent conductivity (S/m)",
+        shape=('*',),
+        dtype=float  # data are floats
+    )
+
+    G = properties.Array(
+        "Geometric factor of DC-IP survey",
+        shape=('*',),
+        dtype=float  # data are floats
+    )
+
+    grids = properties.Array(
+        "Spatial grids for plotting pseudo-section",
+        shape=('*', '*'),
+        dtype=float  # data are floats
+    )
+
+    space_type = properties.StringChoice(
+        "Assumption to compute apparent resistivity",
+        default="half-space",
+        choices=[
+            "half-space", "whole-space"
+        ]
+    )
+
+    voltIP = properties.Array(
+        "Measured IP voltages (V)",
+        shape=('*', '*'),
+        dtype=float  # data are floats
+    )
+
+    timesIP = properties.Array(
+        "Time channels of measured IP voltages (s)",
+        required=True,
+        shape=('*',),
+        dtype=float  # data are floats
+    )
+
+    sortinds = properties.Array(
+        "Sorting indices from ABMN",
+        required=True,
+        shape=('*',),
+        dtype=int  # data are floats
+    )
+
+    # Related to Physics and Discretization
+    mesh = properties.Instance(
+        "Mesh for discretization", Mesh.BaseMesh, required=True
+    )
+
+    dx = properties.Float(
+        "Length of corecell in x-direction", required=True,
+    )
+    dy = properties.Float(
+        "Length of corecell in y-direction", required=True
+    )
+    dy = properties.Float(
+        "Length of corecell in z-direction", required=True
+    )
+
+    npad_x = properties.Integer(
+        "The number of padding cells x-direction",
+        required=True,
+        default=5
+    )
+
+    npad_y = properties.Integer(
+        "The number of padding cells y-direction",
+        required=True,
+        default=5
+    )
+
+    npad_z = properties.Integer(
+        "The number of padding cells z-direction",
+        required=True,
+        default=5
+    )
+
+    pad_rate_x = properties.Float(
+        "The number of padding cells x-direction",
+        required=True,
+        default=5
+    )
+
+    pad_rate_y = properties.Float(
+        "The number of padding cells y-direction",
+        required=True,
+        default=5
+    )
+
+    pad_rate_z = properties.Float(
+        "The number of padding cells z-direction",
+        required=True,
+        default=5
+    )
+
+    ncell_per_dipole = properties.Integer(
+        "The number of cells between dipole electrodes",
+        required=True,
+        default=5
+    )
+
+    # For synthetic surveys
+    x0 = None
+    lineLength = None
+    a = None
+    n_spacing = None
+
+    def from_ambn_locations_to_survey(
+        self, a_locations, b_locations, m_locations, n_locations,
+        survey_type=None, dobs=None,
+        data_type="volt", fname=None, dim=2
+    ):
         """
-        read ABMN location and data (V or appResistivity)
+        read A, B, M, N electrode location and data (V or appResistivity)
         """
-        self.Alocs = A.copy()
-        self.Blocs = B.copy()
-        self.Mlocs = M.copy()
-        self.Nlocs = N.copy()
-        self.surveyType = surveyType
-        self.dataType = dataType
+        geometric_factor = SimPEG.EM.Static.Utils.StaticUtils.geometric_factor
+
+        self.a_locations = a_locations.copy()
+        self.b_locations = b_locations.copy()
+        self.m_locations = m_locations.copy()
+        self.n_locations = n_locations.copy()
+        self.survey_type = survey_type
+        self.data_type = data_type
         self.dim = dim
 
-        uniqSrc = Utils.uniqueRows(np.c_[self.Alocs, self.Blocs])
+        uniqSrc = Utils.uniqueRows(np.c_[self.a_locations, self.b_locations])
         uniqElec = SimPEG.Utils.uniqueRows(
-            np.vstack((self.Alocs, self.Blocs, self.Mlocs, self.Nlocs))
+            np.vstack((self.a_locations, self.b_locations, self.m_locations, self.n_locations))
             )
-        self.uniqElecLocs = uniqElec[0]
+        self.electrode_locations = uniqElec[0]
         nSrc = uniqSrc[0].shape[0]
-        ndata = self.Alocs.shape[0]
+        ndata = self.a_locations.shape[0]
 
-        if dim == 2:
-
+        if self.survey_geometry == "SURFACE":
+            # 2D locations
             srcLists = []
             sortinds = []
             for iSrc in range (nSrc):
                 inds = uniqSrc[2] == iSrc
                 sortinds.append(np.arange(ndata)[inds])
 
-                locsM = self.Mlocs[inds, :]
-                locsN = self.Nlocs[inds, :]
+                locsM = self.m_locations[inds, :]
+                locsN = self.n_locations[inds, :]
 
-                if (surveyType == 'dipole-dipole') or (surveyType == 'pole-dipole'):
+                if (survey_type == 'dipole-dipole') or (survey_type == 'pole-dipole'):
                     rx = Rx.Dipole_ky(locsM, locsN)
-                elif (surveyType == 'dipole-pole') or (surveyType == 'pole-pole'):
+                elif (survey_type == 'dipole-pole') or (survey_type == 'pole-pole'):
                     rx = Rx.Pole_ky(locsM)
 
-                locA = uniqSrc[0][iSrc, :2]
-                locB = uniqSrc[0][iSrc, 2:]
+                if dim == 2:
+                    locA = uniqSrc[0][iSrc, :2]
+                    locB = uniqSrc[0][iSrc, 2:]
+                elif dim == 3:
+                    locA = uniqSrc[0][iSrc, :3]
+                    locB = uniqSrc[0][iSrc, 3:]
 
-                if (surveyType == 'dipole-dipole') or (surveyType == 'dipole-pole'):
+                if (survey_type == 'dipole-dipole') or (survey_type == 'dipole-pole'):
                     src = Src.Dipole([rx], locA, locB)
-                elif (surveyType == 'pole-dipole') or (surveyType == 'pole-pole'):
+                elif (survey_type == 'pole-dipole') or (survey_type == 'pole-pole'):
                     src = Src.Pole([rx], locA)
 
                 srcLists.append(src)
 
             self.sortinds = np.hstack(sortinds)
             survey = Survey_ky(srcLists)
-            self.Alocs = self.Alocs[self.sortinds, :]
-            self.Blocs = self.Blocs[self.sortinds, :]
-            self.Mlocs = self.Mlocs[self.sortinds, :]
-            self.Nlocs = self.Nlocs[self.sortinds, :]
-            G = self.getGeometricFactor()
-            if self.dobs is None:
+            self.a_locations = self.a_locations[self.sortinds, :]
+            self.b_locations = self.b_locations[self.sortinds, :]
+            self.m_locations = self.m_locations[self.sortinds, :]
+            self.n_locations = self.n_locations[self.sortinds, :]
+            self.G = geometric_factor(
+                survey, survey_type=self.survey_type,
+                space_type=self.space_type
+                )
+            if dobs is None:
                 self.dobs = 100.*self.G
             else:
                 self.dobs = dobs[self.sortinds]
 
-            if self.dataType == "volt":
-                self.V = self.dobs.copy()
-                self.appResistivity = self.V / G
-            elif self.dataType == "appResistivity":
+            if self.data_type == "volt":
+                self.volt = self.dobs.copy()
+                self.appResistivity = self.volt / self.G
+            elif self.data_type == "appResistivity":
                 self.appResistivity = self.dobs.copy()
-                self.V = self.appResistivity * self.G
-                self.dobs = self.V.copy()
+                self.volt = self.appResistivity * self.G
+                self.dobs = self.volt.copy()
+            else:
+                raise NotImplementedError()
 
-            midAB = (self.Alocs[:, 0] + self.Blocs[:, 0])*0.5
-            midMN = (self.Mlocs[:, 0] + self.Nlocs[:, 0])*0.5
-            z = abs(midAB-midMN)*1./3.
-            x = (midAB+midMN)*0.5
-            self.grids = np.c_[x, z]
+            # Here we ignore ... z-locations
+
+            midABx = (self.a_locations[:, 0] + self.b_locations[:, 0])*0.5
+            midMNx = (self.m_locations[:, 0] + self.n_locations[:, 0])*0.5
+
+            if dim == 2:
+                z = abs(midABx-midMNx)*1./3.
+                x = (midABx+midMNx)*0.5
+                self.grids = np.c_[x, z]
+
+            elif dim == 3:
+                midABy = (self.a_locations[:, 1] + self.b_locations[:, 1])*0.5
+                midMNy = (self.m_locations[:, 1] + self.n_locations[:, 1])*0.5
+                z = np.sqrt((midABx-midMNx)**2 + (midABy-midMNy)**2) * 1./3.
+                x = (midABx+midMNx)*0.5
+                y = (midABy+midMNy)*0.5
+                self.grids = np.c_[x, y, z]
+            else:
+                raise Exception()
         else:
             raise NotImplementedError()
         return survey
 
-    def getGeometricFactor(self):
-
-        if self.geometry == 'SURFACE':
-
-            if self.dim == 2:
-                MA = abs(self.Alocs[:, 0] - self.Mlocs[:, 0])
-                MB = abs(self.Blocs[:, 0] - self.Mlocs[:, 0])
-                NA = abs(self.Alocs[:, 0] - self.Nlocs[:, 0])
-                NB = abs(self.Blocs[:, 0] - self.Nlocs[:, 0])
-
-            elif self.dim == 3:
-                MA = np.sqrt(
-                    abs(self.Alocs[:, 0] - self.Mlocs[:, 0])**2. +
-                    abs(self.Alocs[:, 1] - self.Mlocs[:, 1])**2.
-                    )
-                MB = np.sqrt(
-                    abs(self.Blocs[:, 0] - self.Mlocs[:, 0])**2. +
-                    abs(self.Blocs[:, 1] - self.Mlocs[:, 1])**2.
-                    )
-                NA = np.sqrt(
-                    abs(self.Alocs[:, 0] - self.Nlocs[:, 0])**2. +
-                    abs(self.Alocs[:, 1] - self.Nlocs[:, 1])**2.
-                    )
-                NB = np.sqrt(
-                    abs(self.Blocs[:, 0] - self.Nlocs[:, 0])**2. +
-                    abs(self.Blocs[:, 1] - self.Nlocs[:, 1])**2.
-                    )
-
-            if self.surveyType == 'dipole-dipole':
-                self.G = 1./(2*np.pi) * (1./MA - 1./MB + 1./NB - 1./NA)
-            elif surveyType == 'pole-dipole':
-                self.G = 1./(2*np.pi) * (1./MA - 1./NA)
-            elif surveyType == 'dipole-pole':
-                self.G = 1./(2*np.pi) * (1./MA - 1./MB)
-            elif surveyType == 'pole-pole':
-                self.G = 1./(2*np.pi) * (1./MA)
-
-        elif self.geometry == 'BOREHOLE':
+    def setMesh(self, topo=None,
+                dx=None, dz=None,
+                n_spacing=None, corezlength=None,
+                npad_x=7, npad_z=7,
+                pad_rate_x=1.3, pad_rate_y=1.3, pad_rate_z=1.3,
+                ncell_per_dipole=4, mesh_type='TensorMesh',
+                dim=2
+                ):
+        if mesh_type == 'TreeMesh':
             raise NotImplementedError()
 
-        return self.G
-
-    def setMesh(self, topo=None, dx=None, dz=None, nSpacing=None, corezlength=None, npadx=7, npadz=7, padratex=1.3, padratez=1.3, ncellperdipole=4, meshType='TensorMesh', dim=2):
-        if meshType == 'TreeMesh':
-            raise NotImplementedError()
+        electrode_separations = SimPEG.EM.Static.Utils.StaticUtils.electrode_separations
 
         if dim == 2:
-            a = abs(np.diff(np.sort(self.uniqElecLocs[:, 0]))).min()
-            lineLength = abs(self.uniqElecLocs[:, 0].max()-self.uniqElecLocs[:, 0].min())
-            dx_ideal = a/ncellperdipole
+            a = abs(np.diff(np.sort(self.electrode_locations[:, 0]))).min()
+            lineLength = abs(
+                self.electrode_locations[:, 0].max() -
+                self.electrode_locations[:, 0].min()
+            )
+            dx_ideal = a/ncell_per_dipole
             if dx is None:
                 dx = dx_ideal
+                warnings.warn(
+                    "dx is set to {} m (samllest electrode spacing ({}) / {})".format(dx, a, ncell_per_dipole)
+                )
             if dz is None:
                 dz = dx*0.5
-            x0 = self.uniqElecLocs[:, 0].min()
+                warnings.warn(
+                    "dz ({} m) is set to dx ({} m) / {}".format(dz, dx, 2)
+                )
+            x0 = self.electrode_locations[:, 0].min()
             if topo is None:
-                locs = self.uniqElecLocs
+                locs = self.electrode_locations
             else:
-                locs = np.vstack((topo, self.uniqElecLocs))
+                locs = np.vstack((topo, self.electrode_locations))
+
             zmax = locs[:, 1].max()
             zmin = locs[:, 1].min()
             if dx > dx_ideal:
-                print (">>Input dx is greater than expected")
-                print (
-                    (": You may need %.1e m cell, that is %i cells per %.1e m dipole legnth") %
-                    (dx_ideal, ncellperdipole, a)
-                    )
-            # TODO: conditional statement for dz?
-            # Inject variables into the class
+                warnings.warn(
+                    "Input dx ({}) is greater than expected \n We recommend using {:0.1e} m cells, that is, {:i} cells per {0.1e} m dipole length".format(dx, dx_ideal, ncell_per_dipole, a)
+                )
+
             self.dx = dx
             self.dz = dz
-            self.npadx = npadx
-            self.npadz = npadz
-            self.padratex = padratex
-            self.padratez = padratez
-            self.ncellperdipole = ncellperdipole
+            self.npad_x = npad_x
+            self.npad_z = npad_z
+            self.pad_rate_x = pad_rate_x
+            self.pad_rate_z = pad_rate_z
+            self.ncell_per_dipole = ncell_per_dipole
             # 3 cells each for buffer
             corexlength = lineLength + dx * 6
             if corezlength is None:
@@ -199,12 +370,12 @@ class IO(object):
 
             ncx = np.floor(corexlength/dx)
             ncz = np.floor(corezlength/dz)
-            hx = [(dx, npadx, -padratex), (dx, ncx), (dx, npadx, padratex)]
-            hz = [(dz, npadz, -padratez), (dz, ncz)]
+            hx = [(dx, npad_x, -pad_rate_x), (dx, ncx), (dx, npad_x, pad_rate_x)]
+            hz = [(dz, npad_z, -pad_rate_z), (dz, ncz)]
             x0_mesh = -(
-                (dx * 1.3 ** (np.arange(npadx)+1)).sum() + dx * 3 - x0
-                )
-            z0_mesh = -((dz * 1.3 ** (np.arange(npadz)+1)).sum() + dz * ncz) + zmax
+                (dx * 1.3 ** (np.arange(npad_x)+1)).sum() + dx * 3 - x0
+            )
+            z0_mesh = -((dz * 1.3 ** (np.arange(npad_z)+1)).sum() + dz * ncz) + zmax
             mesh = Mesh.TensorMesh([hx, hz], x0=[x0_mesh, z0_mesh])
             actind = Utils.surface2ind_topo(mesh, locs)
             print (mesh)
@@ -216,24 +387,32 @@ class IO(object):
 
         return mesh, actind
 
-    def plotPseudoSection(self, dataType="appResistivity", scale="log", dataloc=True,aspect_ratio=2, cmap="jet", ncontour=10, ax=None, dobs=None, figname=None):
+    def plotPseudoSection(
+        self, data_type="appResistivity",
+        dobs=None,
+        dataloc=True, aspect_ratio=2,
+        scale="log",
+        cmap="viridis", ncontour=10, ax=None, figname=None
+    ):
+        """
+            Plot 2D pseudo-section for DC-IP data
+        """
         matplotlib.rcParams['font.size'] = 12
 
         if dobs is None:
             dobs = self.dobs.copy()
             appResistivity = self.appResistivity.copy()
         else:
-            G = self.getGeometricFactor()
-            appResistivity = dobs / G
+            appResistivity = dobs / self.G
 
         if self.dim == 2:
-            fig = plt.figure(figsize = (10, 5))
             if ax is None:
+                fig = plt.figure(figsize=(10, 5))
                 ax = plt.subplot(111)
-            if dataType == "appResistivity":
+            if data_type == "appResistivity":
                 val = appResistivity.copy()
                 label = "Apparent Res. ($\Omega$m)"
-            elif dataType == "volt":
+            elif data_type == "volt":
                 val = dobs.copy()
                 label = "Voltage (V)"
             else:
@@ -247,137 +426,19 @@ class IO(object):
 
             out = Utils.plot2Ddata(
                 self.grids, val,
-                contourOpts={'cmap':cmap},
-                ax = ax,
+                contourOpts={'cmap': cmap},
+                ax=ax,
                 dataloc=dataloc,
                 scale=scale,
                 ncontour=ncontour
-                )
+            )
             ax.invert_yaxis()
             ax.set_xlabel("x (m)")
             ax.set_yticklabels([])
             ax.set_ylabel("n-spacing")
-            cb = plt.colorbar(out[0], fraction=0.01, format=fmt)
+            cb = plt.colorbar(out[0], fraction=0.01, format=fmt, ax=ax)
             cb.set_label(label)
             ax.set_aspect(aspect_ratio)
             plt.tight_layout()
             if figname is not None:
                 fig.savefig(figname, dpi=200)
-            plt.show()
-
-    def genLocs_2D(self, surveyType, x0, lineLength, a, nSpacing):
-        """
-        genDClocs: Compute
-        """
-        self.surveyType = surveyType
-        self.x0 = x0
-        self.lineLength = lineLength
-        self.a = a
-        self.nSpacing = nSpacing
-
-        nElec = int(np.floor(lineLength / a)) + 1
-        xElec = x0 + np.arange(nElec)*a
-        if surveyType == "dipole-dipole":
-            SrcLoc = np.c_[xElec[:-1], xElec[1:]]
-            RxLoc = np.c_[xElec[:-1], xElec[1:]]
-            nSrc = SrcLoc.shape[0]
-            nRx = RxLoc.shape[0]
-            SrcID = []
-            RxID = []
-            nLeg = []
-            for iSrc in range(nSrc-2):
-                if nSrc-iSrc-1 > nSpacing:
-                    nSounding = nSpacing
-                else:
-                    nSounding = nSrc - iSrc - 2
-                SrcID.append(np.ones(nSounding, dtype=int) * iSrc)
-                RxID.append(np.arange(nSounding) + iSrc + 2)
-                nLeg.append(np.arange(nSounding)+1)
-            # Set actual number of source dipole
-            self.nSrc = nSrc-2
-
-        elif surveyType == "pole-dipole":
-            SrcLoc = np.c_[xElec, xElec]
-            RxLoc = np.c_[xElec[:-1], xElec[1:]]
-            nSrc = SrcLoc.shape[0]
-            nRx = RxLoc.shape[0]
-            SrcID = []
-            RxID = []
-            nLeg = []
-            for iSrc in range(nSrc-2):
-                if nSrc - iSrc - 2 > nSpacing:
-                    nSounding = nSpacing
-                else:
-                    nSounding = nSrc - iSrc - 2
-                SrcID.append(np.ones(nSounding, dtype=int) * iSrc)
-                RxID.append(np.arange(nSounding) + iSrc + 1)
-                nLeg.append(np.arange(nSounding)+1)
-            # Set actual number of source pole
-            self.nSrc = nSrc-2
-
-        elif surveyType == "dipole-pole":
-            SrcLoc = np.c_[xElec, xElec]
-            RxLoc = np.c_[xElec[:-1], xElec[1:]]
-            nSrc = SrcLoc.shape[0]
-            nRx = RxLoc.shape[0]
-            SrcID = []
-            RxID = []
-            nLeg = []
-            for iSrc in range(nSrc-2):
-                if nSrc - iSrc - 2 > nSpacing:
-                    nSounding = nSpacing
-                else:
-                    nSounding = nSrc - iSrc - 2
-                SrcID.append(np.ones(nSounding, dtype=int) * abs(iSrc-nSrc+1))
-                RxID.append(abs(np.arange(nSounding) + iSrc + 1-nRx+1))
-                nLeg.append(np.arange(nSounding)+1)
-            self.nSrc = nSrc-2
-
-        elif surveyType == "pole-pole":
-            SrcLoc = np.c_[xElec, xElec]
-            RxLoc = np.c_[xElec, xElec]
-            nSrc = SrcLoc.shape[0]
-            nRx = RxLoc.shape[0]
-            SrcID = []
-            RxID = []
-            nLeg = []
-            for iSrc in range(nSrc-1):
-                if nSrc - iSrc - 1 > nSpacing:
-                    nSounding = nSpacing
-                else:
-                    nSounding = nSrc - iSrc - 1
-                SrcID.append(np.ones(nSounding, dtype=int) * iSrc)
-                RxID.append(np.arange(nSounding) + iSrc +1)
-                nLeg.append(np.arange(nSounding)+1)
-            self.nSrc = nSrc-1
-
-        else:
-            raise NotImplementedError()
-
-        SrcID = np.hstack(SrcID)
-        RxID = np.hstack(RxID)
-        nLeg = np.hstack(nLeg)
-
-        if surveyType == "dipole-dipole":
-            A = np.c_[SrcLoc[SrcID, 0], np.ones(SrcID.size)]
-            B = np.c_[SrcLoc[SrcID, 1], np.ones(SrcID.size)]
-            M = np.c_[RxLoc[RxID, 0], np.ones(SrcID.size)]
-            N = np.c_[RxLoc[RxID, 1], np.ones(SrcID.size)]
-        elif surveyType == "pole-dipole":
-            A = np.c_[SrcLoc[SrcID], np.ones(SrcID.size)]
-            B = np.c_[SrcLoc[SrcID], np.ones(SrcID.size)]
-            M = np.c_[RxLoc[RxID, 0], np.ones(SrcID.size)]
-            N = np.c_[RxLoc[RxID, 1], np.ones(SrcID.size)]
-        elif surveyType == "dipole-pole":
-            A = np.c_[SrcLoc[SrcID, 0], np.ones(SrcID.size)]
-            B = np.c_[SrcLoc[SrcID, 1], np.ones(SrcID.size)]
-            M = np.c_[RxLoc[RxID], np.ones(SrcID.size)]
-            N = np.c_[RxLoc[RxID], np.ones(SrcID.size)]
-        elif surveyType == "pole-pole":
-            A = np.c_[SrcLoc[SrcID], np.ones(SrcID.size)]
-            B = np.c_[SrcLoc[SrcID], np.ones(SrcID.size)]
-            M = np.c_[RxLoc[RxID], np.ones(SrcID.size)]
-            N = np.c_[RxLoc[RxID], np.ones(SrcID.size)]
-        else:
-            raise NotImplementedError()
-        return A, B, M, N
