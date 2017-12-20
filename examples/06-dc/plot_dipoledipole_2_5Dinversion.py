@@ -11,7 +11,7 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 
-def run(plotIt=True, survey_type='dipole-dipole'):
+def run(plotIt=False, survey_type="dipole-dipole"):
     np.random.seed(1)
     # Initiate I/O class for DC
     IO = DC.IO()
@@ -22,13 +22,13 @@ def run(plotIt=True, survey_type='dipole-dipole'):
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey = DC.Utils.gen_DCIPsurvey(endl, survey_type, dim=2,
+    survey = DC.Utils.gen_DCIPsurvey(endl, "dipole-dipole", dim=2,
                                      a=10, b=10, n=10)
     survey.getABMN_locations()
     survey = IO.from_ambn_locations_to_survey(
         survey.a_locations, survey.b_locations,
         survey.m_locations, survey.n_locations,
-        survey_type, data_type='volt'
+        'dipole-dipole', data_type='volt'
     )
 
     # Obtain 2D TensorMesh
@@ -84,7 +84,7 @@ def run(plotIt=True, survey_type='dipole-dipole'):
 
     # Generate 2.5D DC problem
     # "N" means potential is defined at nodes
-    prb = DC.Problem2D_CC(
+    prb = DC.Problem2D_N(
         mesh, rhoMap=mapping, storeJ=True,
         Solver=Solver
     )
@@ -133,7 +133,9 @@ def run(plotIt=True, survey_type='dipole-dipole'):
     updateSensW = Directives.UpdateSensitivityWeights()
     update_Jacobi = Directives.UpdatePreconditioner()
     inv = Inversion.BaseInversion(
-        invProb, directiveList=[beta, betaest, target, updateSensW, update_Jacobi]
+        invProb, directiveList=[
+            beta, betaest, target, updateSensW, update_Jacobi
+        ]
         )
     prb.counter = opt.counter = Utils.Counter()
     opt.LSshorten = 0.5
@@ -147,7 +149,7 @@ def run(plotIt=True, survey_type='dipole-dipole'):
     jtj = np.sqrt(updateSensW.JtJdiag[0])
     jtj /= jtj.max()
     temp = np.ones_like(jtj, dtype=bool)
-    temp[jtj > 0.01] = False
+    temp[jtj > 0.005] = False
     mask_inds[actind] = temp
     actind_final = np.logical_and(actind, ~mask_inds)
     jtj_cc = np.ones(mesh.nC)*np.nan
@@ -214,4 +216,4 @@ def run(plotIt=True, survey_type='dipole-dipole'):
         plt.show()
 
 if __name__ == '__main__':
-    run(survey_type='pole-pole')
+    run()
