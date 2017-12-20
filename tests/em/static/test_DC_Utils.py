@@ -48,7 +48,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         self.survey_a = 1.
         self.survey_b = 1.
         self.survey_n = 10
-        self.plotIt = True
+        self.plotIt = False
 
     def test_dipole_dipole(self):
         # Setup a dipole-dipole Survey
