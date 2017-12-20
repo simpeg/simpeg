@@ -15,8 +15,6 @@ except ImportError:
 
 class DCUtilsTests_halfspace(unittest.TestCase):
 
-    plotIt = False
-
     def setUp(self):
         url = 'https://storage.googleapis.com/simpeg/tests/dc_utils/'
         cloudfiles = [
@@ -50,6 +48,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         self.survey_a = 1.
         self.survey_b = 1.
         self.survey_n = 10
+        self.plotIt = True
 
     def test_dipole_dipole(self):
         # Setup a dipole-dipole Survey
@@ -170,6 +169,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                 pcolorOpts={"cmap": "viridis"},
                 data_location=True
             )
+            plt.show()
 
         # Test the utils functions electrode_separations,
         # source_receiver_midpoints, geometric_factor,
@@ -234,6 +234,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                 pcolorOpts={"cmap": "viridis"},
                 data_location=True
             )
+            plt.show()
 
         # Test the utils functions electrode_separations,
         # source_receiver_midpoints, geometric_factor,
@@ -297,7 +298,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                 pcolorOpts={"cmap": "viridis"},
                 data_location=True
             )
-
+            plt.show()
         # Test the utils functions electrode_separations,
         # source_receiver_midpoints, geometric_factor,
         # apparent_resistivity all at once
