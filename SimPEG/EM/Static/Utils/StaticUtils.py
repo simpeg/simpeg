@@ -1507,7 +1507,7 @@ def gettopoCC(mesh, actind, option="top"):
             for i in range(ZC.shape[0]):
                 ind = np.argmax(ZC[i, :][ACTIND[i, :]])
                 if option == "top":
-                    dz = mesh.hz[ACTIND[i, :]][ind]
+                    dz = mesh.hz[ACTIND[i, :]][ind] * 0.5
                 elif option == "center":
                     dz = 0.
                 else:
@@ -1527,7 +1527,7 @@ def gettopoCC(mesh, actind, option="top"):
             for i in range(YC.shape[0]):
                 ind = np.argmax(YC[i, :][ACTIND[i, :]])
                 if option == "top":
-                    dy = mesh.hy[ACTIND[i, :]][ind]
+                    dy = mesh.hy[ACTIND[i, :]][ind] * 0.5
                 elif option == "center":
                     dy = 0.
                 else:
@@ -1545,7 +1545,7 @@ def gettopoCC(mesh, actind, option="top"):
             topoCC = np.zeros(npts)
             if option == "top":
                 # TODO: this assume same hz, need to be modified
-                dz = mesh.hz.min()
+                dz = mesh.hz.min() * 0.5
             elif option == "center":
                 dz = 0.
             for i in range(npts):
