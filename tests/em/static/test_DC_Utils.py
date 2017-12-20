@@ -1,7 +1,6 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-import matplotlib.pyplot as plt
 from SimPEG.EM.Static import DC, Utils as DCUtils
 from SimPEG import Mesh, Maps
 from SimPEG.Utils import io_utils
@@ -15,6 +14,8 @@ except ImportError:
 
 
 class DCUtilsTests_halfspace(unittest.TestCase):
+
+    plotIt = False
 
     def setUp(self):
         url = 'https://storage.googleapis.com/simpeg/tests/dc_utils/'
@@ -93,15 +94,18 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
 
-        # Test Pseudosections plotting
-        fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        ax = DCUtils.plot_pseudoSection(
-            survey, ax, survey_type='dipole-dipole',
-            scale='log', clim=None,
-            data_type='appResistivity',
-            pcolorOpts={"cmap": "viridis"},
-            data_location=True
-        )
+        if self.plotIt:
+            import matplotlib.pyplot as plt
+            # Test Pseudosections plotting
+            fig, ax = plt.subplots(1, 1, figsize=(15, 3))
+            ax = DCUtils.plot_pseudoSection(
+                survey, ax, survey_type='dipole-dipole',
+                scale='log', clim=None,
+                data_type='appResistivity',
+                pcolorOpts={"cmap": "viridis"},
+                data_location=True
+            )
+            plt.show()
 
         # Test the utils functions electrode_separations,
         # source_receiver_midpoints, geometric_factor,
@@ -155,15 +159,17 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
 
-        # Test Pseudosections plotting
-        fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        ax = DCUtils.plot_pseudoSection(
-            survey, ax, survey_type='pole-dipole',
-            scale='log', clim=None,
-            data_type='appResistivity',
-            pcolorOpts={"cmap": "viridis"},
-            data_location=True
-        )
+        if self.plotIt:
+            import matplotlib.pyplot as plt
+            # Test Pseudosections plotting
+            fig, ax = plt.subplots(1, 1, figsize=(15, 3))
+            ax = DCUtils.plot_pseudoSection(
+                survey, ax, survey_type='pole-dipole',
+                scale='log', clim=None,
+                data_type='appResistivity',
+                pcolorOpts={"cmap": "viridis"},
+                data_location=True
+            )
 
         # Test the utils functions electrode_separations,
         # source_receiver_midpoints, geometric_factor,
@@ -217,15 +223,17 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
 
-        # Test Pseudosections plotting
-        fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        ax = DCUtils.plot_pseudoSection(
-            survey, ax, survey_type='dipole-pole',
-            scale='log', clim=None,
-            data_type='appResistivity',
-            pcolorOpts={"cmap": "viridis"},
-            data_location=True
-        )
+        if self.plotIt:
+            import matplotlib.pyplot as plt
+            # Test Pseudosections plotting
+            fig, ax = plt.subplots(1, 1, figsize=(15, 3))
+            ax = DCUtils.plot_pseudoSection(
+                survey, ax, survey_type='dipole-pole',
+                scale='log', clim=None,
+                data_type='appResistivity',
+                pcolorOpts={"cmap": "viridis"},
+                data_location=True
+            )
 
         # Test the utils functions electrode_separations,
         # source_receiver_midpoints, geometric_factor,
@@ -278,15 +286,17 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         survey = DCUtils.readUBC_DC3Dobs(surveyfile)
         survey = survey['dc_survey']
 
-        # Test Pseudosections plotting
-        fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-        ax = DCUtils.plot_pseudoSection(
-            survey, ax, survey_type='pole-pole',
-            scale='log', clim=None,
-            data_type='appResistivity',
-            pcolorOpts={"cmap": "viridis"},
-            data_location=True
-        )
+        if self.plotIt:
+            import matplotlib.pyplot as plt
+            # Test Pseudosections plotting
+            fig, ax = plt.subplots(1, 1, figsize=(15, 3))
+            ax = DCUtils.plot_pseudoSection(
+                survey, ax, survey_type='pole-pole',
+                scale='log', clim=None,
+                data_type='appResistivity',
+                pcolorOpts={"cmap": "viridis"},
+                data_location=True
+            )
 
         # Test the utils functions electrode_separations,
         # source_receiver_midpoints, geometric_factor,
