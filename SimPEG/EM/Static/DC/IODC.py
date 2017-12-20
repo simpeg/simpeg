@@ -275,7 +275,7 @@ class IO(properties.HasProperties):
                 survey, survey_type=self.survey_type,
                 space_type=self.space_type
                 )
-            if self.dobs is None:
+            if dobs is None:
                 self.dobs = 100.*self.G
             else:
                 self.dobs = dobs[self.sortinds]
