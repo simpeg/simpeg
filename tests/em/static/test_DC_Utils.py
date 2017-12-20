@@ -25,7 +25,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
             'rhoA_GIF_pd.txt', 'rhoA_GIF_pp.txt'
         ]
 
-        self.basePath = os.path.expanduser('~/Downloads/TestStaticUtilsTemp')
+        self.basePath = os.path.expanduser('~/Downloads/TestDCUtilsHalfSpace')
         self.files = io_utils.download(
             [url+f for f in cloudfiles],
             folder=self.basePath,
@@ -310,6 +310,9 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         passed = np.allclose(rhoapp, rhoA_GIF_pp)
         self.assertTrue(passed)
 
+        # Clean up the working directory
+        shutil.rmtree(self.basePath)
+
 
 class DCUtilsTests_fullspace(unittest.TestCase):
 
@@ -323,7 +326,7 @@ class DCUtilsTests_fullspace(unittest.TestCase):
             'BN_GIF_fullspace.txt', 'RhoApp_GIF_fullspace.txt'
         ]
 
-        self.basePath = os.path.expanduser('~/Downloads/TestStaticUtilsTemp')
+        self.basePath = os.path.expanduser('~/Downloads/TestDCUtilsFullSpace')
         self.files = io_utils.download(
             [url+f for f in cloudfiles],
             folder=self.basePath,
