@@ -11,7 +11,7 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 
-def run(plotIt=False, survey_type="dipole-dipole"):
+def run(plotIt=True, survey_type="dipole-dipole"):
     np.random.seed(1)
     # Initiate I/O class for DC
     IO = DC.IO()
@@ -22,13 +22,13 @@ def run(plotIt=False, survey_type="dipole-dipole"):
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey = DC.Utils.gen_DCIPsurvey(endl, "dipole-dipole", dim=2,
+    survey = DC.Utils.gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
                                      a=10, b=10, n=10)
     survey.getABMN_locations()
     survey = IO.from_ambn_locations_to_survey(
         survey.a_locations, survey.b_locations,
         survey.m_locations, survey.n_locations,
-        'dipole-dipole', data_type='volt'
+        survey_type, data_type='volt'
     )
 
     # Obtain 2D TensorMesh
