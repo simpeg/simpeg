@@ -333,7 +333,7 @@ class DCUtilsTests_fullspace(unittest.TestCase):
             overwrite=True
         )
 
-        survey_file = os.path.sep.join([self.basePath, 'dPred_Fullspace.txt'])
+        survey_file = os.path.sep.join([self.basePath, 'dPred_fullspace.txt'])
         DCsurvey = DCUtils.readUBC_DC3Dobs(survey_file)
         DCsurvey = DCsurvey['dc_survey']
         self.survey = DCsurvey
