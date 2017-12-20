@@ -286,7 +286,7 @@ def apparent_resistivity(
         if dc_survey.dobs is None:
             raise Exception()
         else:
-            dobs = dc_survey.dobs.copy()
+            dobs = dc_survey.dobs
 
     # Calculate Geometric Factor
     G = geometric_factor(
@@ -336,7 +336,7 @@ def plot_pseudoSection(
         if dc_survey.dobs is None:
             raise Exception()
         else:
-            dobs = dc_survey.dobs.copy()
+            dobs = dc_survey.dobs
 
     rhoApp = apparent_resistivity(
                 dc_survey, dobs=dobs,
@@ -685,17 +685,17 @@ def writeUBC_DCobs(
         nD = dc_survey.srcList[ii].nD
 
         if survey_type == 'pole-dipole' or survey_type == 'pole-pole':
-            tx = np.r_[dc_survey.srcList[ii].loc.copy()]
+            tx = np.r_[dc_survey.srcList[ii].loc]
             tx = np.repeat(np.r_[[tx]], 2, axis=0)
         elif survey_type == 'dipole-dipole' or survey_type == 'dipole-pole':
-            tx = np.c_[dc_survey.srcList[ii].loc.copy()]
+            tx = np.c_[dc_survey.srcList[ii].loc]
 
         if survey_type == 'pole-dipole' or survey_type == 'dipole-dipole':
-            M = rx[0].copy()
-            N = rx[1].copy()
+            M = rx[0]
+            N = rx[1]
         elif survey_type == 'pole-pole' or survey_type == 'dipole-pole':
-            M = rx.copy()
-            N = rx.copy()
+            M = rx
+            N = rx
 
         # Adapt source-receiver location for dim and survey_type
         if dim == 2:
@@ -722,7 +722,7 @@ def writeUBC_DCobs(
                         dc_survey.dobs[count:count+nD],
                         dc_survey.std[count:count+nD]
                     ],
-                    delimiter=' ', newline='\n')
+                    delimiter=str(' '), newline=str('\n'))
                 fid.close()
 
             else:
@@ -757,7 +757,7 @@ def writeUBC_DCobs(
                         dc_survey.dobs[count:count+nD],
                         dc_survey.std[count:count+nD]
                     ],
-                    delimiter=' ', newline='\n')
+                    delimiter=str(' '), newline=str('\n'))
 
         if dim == 3:
             fid = open(fileName, 'a')
@@ -792,7 +792,7 @@ def writeUBC_DCobs(
                         dc_survey.dobs[count:count+nD],
                         dc_survey.std[count:count+nD] + dc_survey.eps[count:count+nD]
                     ],
-                    fmt='%e', delimiter=' ', newline='\n'
+                    fmt=str('%e'), delimiter=str(' '), newline=str('\n')
                 )
             elif (isinstance(dc_survey.std, float)):
                 np.savetxt(
@@ -802,7 +802,7 @@ def writeUBC_DCobs(
                         dc_survey.dobs[count:count+nD],
                         dc_survey.std*np.abs(dc_survey.dobs[count:count+nD]) + dc_survey.eps[count:count+nD]
                     ],
-                    fmt='%e', delimiter=' ', newline='\n'
+                    fmt=str('%e'), delimiter=str(' '), newline=str('\n')
                 )
 
             fid.close()
@@ -858,7 +858,7 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
 
     for ii in range(dc_survey.nSrc):
 
-        tx = np.c_[dc_survey.srcList[ii].loc.copy()]
+        tx = np.c_[dc_survey.srcList[ii].loc]
 
         if np.shape(tx)[0] == 3:
             survey_type = 'pole-dipole'
@@ -870,8 +870,8 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
 
         nD = dc_survey.srcList[ii].nD
 
-        M = rx[0].copy()
-        N = rx[1].copy()
+        M = rx[0]
+        N = rx[1]
 
         # Adapt source-receiver location for dim and survey_type
         if dim == 2:
@@ -891,7 +891,10 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
                 N = N[:, 0]
 
                 fid = open(fileName, 'ab')
-                np.savetxt(fid, np.c_[A, B, M, N], delimiter=' ', newline='\n')
+                np.savetxt(
+                    fid, np.c_[A, B, M, N],
+                    delimiter=str(' '), newline=str('\n')
+                )
                 fid.close()
 
             else:
@@ -919,7 +922,9 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
                 fid.close()
 
                 fid = open(fileName, 'ab')
-                np.savetxt(fid, np.c_[M, N], delimiter=' ', newline='\n')
+                np.savetxt(
+                    fid, np.c_[M, N], delimiter=str(' '), newline=str('\n')
+                )
 
         if dim == 3:
             fid = open(fileName, 'a')
@@ -946,7 +951,11 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
             fid.close()
 
             fid = open(fileName, 'ab')
-            np.savetxt(fid, np.c_[M, N], fmt='%e', delimiter=' ', newline='\n')
+            np.savetxt(
+                fid, np.c_[M, N], fmt=str('%e'),
+                delimiter=str(' '),
+                newline=str('\n')
+            )
             fid.close()
 
             fid = open(fileName, 'a')
