@@ -94,7 +94,8 @@ def run(loc=None, sig=None, radi=None, param=None, survey_type='dipole-dipole',
     # We will handle the geometry of the survey for you and create all the
     # combination of tx-rx along line
     survey = gen_DCIPsurvey(
-        locs, dim=mesh.dim, survey_type=survey_type, a=param[0], b=param[1], n=param[2]
+        locs, dim=mesh.dim, survey_type=survey_type,
+        a=param[0], b=param[1], n=param[2]
     )
     Tx = survey.srcList
     Rx = [src.rxList[0] for src in Tx]
