@@ -131,7 +131,6 @@ class BaseDCProblem_2D(BaseEMProblem):
     def Jtvec(self, m, v, f=None):
         """
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
-
         """
         if self.storeJ:
             J = self.getJ(m, f=f)
@@ -248,7 +247,6 @@ class BaseDCProblem_2D(BaseEMProblem):
         """
         """
         Evaluates the sources, and puts them in matrix form
-
         :rtype: (numpy.ndarray, numpy.ndarray)
         :return: q (nC or nN, nSrc)
         """
@@ -270,9 +268,9 @@ class BaseDCProblem_2D(BaseEMProblem):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = []
-        if self.sigmaMap is not None or self.rhoMap is not None:
-            toDelete += ['_MeSigma', '_MeSigmaI', '_MfRho', '_MfRhoI']
+        toDelete = super(BaseDCProblem_2D, self).deleteTheseOnModelUpdate
+        if self.sigmaMap is not None:
+            toDelete += ['_MnSigma']
         if self._Jmatrix is not None:
             toDelete += ['_Jmatrix']
         return toDelete
@@ -294,11 +292,8 @@ class Problem2D_CC(BaseDCProblem_2D):
 
     def getA(self, ky):
         """
-
         Make the A matrix for the cell centered DC resistivity problem
-
         A = D MfRhoI G
-
         """
         # To handle Mixed boundary condition
         if self._formulation == "HJ":
@@ -336,7 +331,6 @@ class Problem2D_CC(BaseDCProblem_2D):
     def getRHS(self, ky):
         """
         RHS for the DC problem
-
         q
         """
 
@@ -447,11 +441,11 @@ class Problem2D_N(BaseDCProblem_2D):
             formulation
         """
         # TODO: only works isotropic sigma
-        sigma = self.sigma
-        vol = self.mesh.vol
-        MnSigma = Utils.sdiag(self.mesh.aveN2CC.T*(Utils.sdiag(vol)*sigma))
-
-        return MnSigma
+        if getattr(self, '_MnSigma', None) is None:
+            sigma = self.sigma
+            vol = self.mesh.vol
+            self._MnSigma = Utils.sdiag(self.mesh.aveN2CC.T*(Utils.sdiag(vol)*sigma))
+        return self._MnSigma
 
     def MnSigmaDeriv(self, u):
         """
@@ -465,11 +459,8 @@ class Problem2D_N(BaseDCProblem_2D):
 
     def getA(self, ky):
         """
-
         Make the A matrix for the cell centered DC resistivity problem
-
         A = D MfRhoI G
-
         """
 
         MeSigma = self.MeSigma
@@ -499,7 +490,6 @@ class Problem2D_N(BaseDCProblem_2D):
     def getRHS(self, ky):
         """
         RHS for the DC problem
-
         q
         """
 

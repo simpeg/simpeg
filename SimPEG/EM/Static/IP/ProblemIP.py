@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 from SimPEG import Utils
 from SimPEG.EM.Base import BaseEMProblem
-from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
+from SimPEG.EM.Static.DC.Fields_DC import Fields_DC, Fields_CC, Fields_N
 import numpy as np
 from SimPEG.Utils import Zero
 from SimPEG.EM.Static.DC import getxBCyBC_CC
@@ -31,21 +31,25 @@ class BaseIPProblem(BaseEMProblem):
     )
 
     surveyPair = Survey
-    fieldsPair = FieldsDC
+    fieldsPair = Fields_DC
     Ainv = None
-    f = None
+    _f = None
     storeJ = False
-    J = None
+    _Jmatrix = None
     fswitch = False
     sign = None
 
-    def fields(self, m):
-        return None
+    # def fields(self, m):
+    #     print ('>> fields??')
+    #     if self._f is None:
+    #         self.fields_dc
+    #     return self._f
 
-    def fieldsdc(self):
-        if self.verbose == True:
+    def fields(self, m):
+        if self.verbose is True:
             print (">> Compute fields")
-        if self.f is None:
+
+        if self._f is None:
             self.f = self.fieldsPair(self.mesh, self.survey)
             if self.Ainv is None:
                 A = self.getA()
@@ -54,35 +58,24 @@ class BaseIPProblem(BaseEMProblem):
             u = self.Ainv * RHS
             Srcs = self.survey.srcList
             self.f[Srcs, self._solutionType] = u
+        return self._f
 
-    def getJ(self, f=None):
+    def getJ(self, m, f=None):
         """
             Generate Full sensitivity matrix
         """
 
-        print (">> Compute Sensitivity matrix")
+        if self.verbose:
+            print("Calculating J and storing")
 
-        if self.f is None:
-            self.fieldsdc()
+        if self._Jmatrix is not None:
+            return self._Jmatrix
+        else:
 
-        Jt = []
-
-        AT = self.getA()
-
-        for isrc, src in enumerate(self.survey.srcList):
-            sys.stdout.write(("\r %d / %d")%(isrc, self.survey.nSrc))
-            sys.stdout.flush()
-            u_src = self.f[src, self._solutionType]
-            for rx in src.rxList:
-                P = rx.getP(self.mesh, rx.projGLoc(self.f)).toarray()
-                ATinvdf_duT = self.Ainv * (P.T)
-                dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
-                if rx.nD == 1:
-                    # Consider when rx has one location
-                    Jt.append(-dA_dmT.reshape([-1, 1]))
-                else:
-                    Jt.append(-dA_dmT)
-        return np.hstack(Jt).T
+            if f is None:
+                f = self.fields(m)
+            self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
+        return self._Jmatrix
 
     def Jvec(self, m, v, f=None):
 
@@ -90,16 +83,14 @@ class BaseIPProblem(BaseEMProblem):
 
         # When sensitivity matrix J is stored
         if self.storeJ:
-            if self.fswitch == False:
-                self.fieldsdc()
-                self.J = self.getJ(f=f)
-                self.fswitch = True
-            return self.sign * self.J.dot(v)
+            J = self.getJ(m, f=f)
+            Jv = Utils.mkvc(np.dot(J, v))
+            return self.sign * Jv
 
         else:
 
             if self.f is None:
-                self.fieldsdc()
+                self.fields()
 
             Jv = []
             A = self.getA()
@@ -120,6 +111,29 @@ class BaseIPProblem(BaseEMProblem):
             # Resistivity (d u / d log rho) - HJ form
             return self.sign*np.hstack(Jv)
 
+
+        # if self.f is None:
+        #     self.fields()
+
+        # Jt = []
+
+        # AT = self.getA()
+
+        # for isrc, src in enumerate(self.survey.srcList):
+        #     sys.stdout.write(("\r %d / %d")%(isrc, self.survey.nSrc))
+        #     sys.stdout.flush()
+        #     u_src = self.f[src, self._solutionType]
+        #     for rx in src.rxList:
+        #         P = rx.getP(self.mesh, rx.projGLoc(self.f)).toarray()
+        #         ATinvdf_duT = self.Ainv * (P.T)
+        #         dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
+        #         if rx.nD == 1:
+        #             # Consider when rx has one location
+        #             Jt.append(-dA_dmT.reshape([-1, 1]))
+        #         else:
+        #             Jt.append(-dA_dmT)
+        # return np.hstack(Jt).T
+
     def Jtvec(self, m, v, f=None):
 
         self.model = m
@@ -127,7 +141,7 @@ class BaseIPProblem(BaseEMProblem):
         # When sensitivity matrix J is stored
         if self.storeJ:
             if self.fswitch == False:
-                self.fieldsdc()
+                self.fields()
                 self.J = self.getJ(f=f)
                 self.fswitch = True
             Jtvec = self.J.T.dot(v)
@@ -135,7 +149,7 @@ class BaseIPProblem(BaseEMProblem):
 
         else:
             if self.f is None:
-                self.fieldsdc(m)
+                self.fields(m)
 
             # Ensure v is a data object.
             if not isinstance(v, self.dataPair):
@@ -159,6 +173,11 @@ class BaseIPProblem(BaseEMProblem):
             # Conductivity ((d u / d log sigma).T) - EB form
             # Resistivity ((d u / d log rho).T) - HJ form
             return self.sign*Utils.mkvc(Jtv)
+
+
+        # print (">> Compute Sensitivity matrix")
+
+
 
     def getSourceTerm(self):
         """

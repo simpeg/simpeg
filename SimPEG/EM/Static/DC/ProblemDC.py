@@ -175,6 +175,7 @@ class BaseDCProblem(BaseEMProblem):
         toDelete = super(BaseDCProblem, self).deleteTheseOnModelUpdate
         if self._Jmatrix is not None:
             toDelete += ['_Jmatrix']
+        print (toDelete)
         return toDelete
 
 

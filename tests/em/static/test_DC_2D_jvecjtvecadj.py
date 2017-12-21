@@ -127,27 +127,27 @@ class DCProblemTestsN(unittest.TestCase):
         self.survey = survey
         self.dmis = dmis
 
-    def test_misfit(self):
-        passed = Tests.checkDerivative(
-            lambda m: (
-                self.survey.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
-            ),
-            self.m0,
-            plotIt=False,
-            num=3
-        )
-        self.assertTrue(passed)
+    # def test_misfit(self):
+    #     passed = Tests.checkDerivative(
+    #         lambda m: (
+    #             self.survey.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
+    #         ),
+    #         self.m0,
+    #         plotIt=False,
+    #         num=3
+    #     )
+    #     self.assertTrue(passed)
 
-    def test_adjoint(self):
-        # Adjoint Test
-        # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.dobs.shape[0])
-        wtJv = w.dot(self.p.Jvec(self.m0, v))
-        vtJtw = v.dot(self.p.Jtvec(self.m0, w))
-        passed = np.abs(wtJv - vtJtw) < 1e-8
-        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
-        self.assertTrue(passed)
+    # def test_adjoint(self):
+    #     # Adjoint Test
+    #     # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
+    #     v = np.random.rand(self.mesh.nC)
+    #     w = np.random.rand(self.survey.dobs.shape[0])
+    #     wtJv = w.dot(self.p.Jvec(self.m0, v))
+    #     vtJtw = v.dot(self.p.Jtvec(self.m0, w))
+    #     passed = np.abs(wtJv - vtJtw) < 1e-8
+    #     print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
+    #     self.assertTrue(passed)
 
     def test_dataObj(self):
         passed = Tests.checkDerivative(
