@@ -222,7 +222,7 @@ class BetaEstimate_ByEig(InversionDirective):
         i_count = 0
         for dmis, reg in zip(self.dmisfit.objfcts, self.reg.objfcts):
             # check if f is list
-            if isinstance(f, list):
+            if len(self.dmisfit.objfcts) > 1:
                 t += x0.dot(dmis.deriv2(m, x0, f=f[i_count]))
             else:
                 t += x0.dot(dmis.deriv2(m, x0, f=f))
