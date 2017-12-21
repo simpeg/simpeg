@@ -6,13 +6,15 @@ import warnings
 
 import SimPEG
 from SimPEG import Utils, Mesh
-from . import SrcDC as Src   # Pole
+from . import SrcDC as Src
 from . import RxDC as Rx
 from .SurveyDC import Survey_ky
 
 
 class IO(properties.HasProperties):
-    """ """
+    """
+
+    """
 
     # Survey
     survey_geometry = properties.StringChoice(
@@ -128,7 +130,13 @@ class IO(properties.HasProperties):
 
     voltIP = properties.Array(
         "Measured IP voltages (V)",
-        shape=('*', '*'),
+        shape=('*',),
+        dtype=float  # data are floats
+    )
+
+    appChargeability = properties.Array(
+        "Measured apparent Chargeability (V/V)",
+        shape=('*',),
         dtype=float  # data are floats
     )
 
@@ -313,7 +321,33 @@ class IO(properties.HasProperties):
             raise NotImplementedError()
         return survey
 
-    def setMesh(self, topo=None,
+    def set_dc_data(self, dc_data, data_type='volt'):
+        if data_type == 'volt':
+            self.volt = dc_data.copy()
+            self.appResistivity = self.volt / self.G
+            self.appConductivity = 1./self.appResistivity
+        elif data_type == 'appResistivity':
+            self.appResistivity = dc_data.copy()
+            self.volt = self.appResistivity * self.G
+            self.appConductivity = 1./self.appResistivity
+        elif data_type == 'appConductivity':
+            self.appConductivity = dc_data.copy()
+            self.appResistivity = 1./self.appConductivity
+            self.volt = self.appResistivity * self.G
+        else:
+            raise NotImplementedError()
+
+    def set_ip_data(self, ip_data, data_type='appChargeability', dc_data=None):
+        if data_type == 'voltIP':
+            self.voltIP = ip_data.copy()
+            self.appChargeability = self.voltIP / self.volt
+        elif data_type == 'appChargeability':
+            self.appChargeability = ip_data.copy()
+            self.voltIP = self.appChargeability * self.volt
+        else:
+            raise NotImplementedError()
+
+    def set_mesh(self, topo=None,
                 dx=None, dz=None,
                 n_spacing=None, corezlength=None,
                 npad_x=7, npad_z=7,
@@ -387,34 +421,48 @@ class IO(properties.HasProperties):
 
         return mesh, actind
 
-    def plotPseudoSection(
+    def plot_pseudosection(
         self, data_type="appResistivity",
-        dobs=None,
+        data=None,
         dataloc=True, aspect_ratio=2,
         scale="log",
-        cmap="viridis", ncontour=10, ax=None, figname=None
+        cmap="viridis", ncontour=10, ax=None, figname=None,
+        label=None
     ):
         """
             Plot 2D pseudo-section for DC-IP data
         """
         matplotlib.rcParams['font.size'] = 12
 
-        if dobs is None:
-            dobs = self.dobs.copy()
-            appResistivity = self.appResistivity.copy()
-        else:
-            appResistivity = dobs / self.G
-
         if self.dim == 2:
             if ax is None:
                 fig = plt.figure(figsize=(10, 5))
                 ax = plt.subplot(111)
+
             if data_type == "appResistivity":
-                val = appResistivity.copy()
+                if data is not None:
+                    val = data.copy()
+                else:
+                    val = self.appResistivity.copy()
                 label = "Apparent Res. ($\Omega$m)"
             elif data_type == "volt":
-                val = dobs.copy()
+                if data is not None:
+                    val = data.copy()
+                else:
+                    val = self.volt.copy()
                 label = "Voltage (V)"
+            elif data_type == "appChargeability":
+                if data is not None:
+                    val = data.copy()
+                else:
+                    val = self.appChargeability.copy() * 1e3
+                label = "Apparent Charg. (mV/V)"
+            elif data_type == "voltIP":
+                if data is not None:
+                    val = data.copy()
+                else:
+                    val = self.voltIP.copy() * 1e3
+                label = "Secondary voltage. (mV)"
             else:
                 raise NotImplementedError()
             if scale == "log":

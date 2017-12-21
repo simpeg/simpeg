@@ -8,3 +8,4 @@ from .FieldsDC_2D import Fields_ky, Fields_ky_CC, Fields_ky_N
 from .BoundaryUtils import getxBCyBC_CC
 from . import Utils
 from .IODC import IO
+from .Run import run_inversion

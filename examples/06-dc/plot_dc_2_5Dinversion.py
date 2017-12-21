@@ -1,6 +1,6 @@
 """
-2.5D DC inversion of Dipole Dipole array with Topography
-========================================================
+2.5D DC inversion of with Topography
+====================================
 
 This is an example for 2.5D DC Inversion. Earth includes a topography,
 and below the topography conductive and resistive cylinders are embedded.
