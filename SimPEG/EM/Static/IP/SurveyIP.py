@@ -24,3 +24,10 @@ class Survey(SurveyDC):
         """
         return self.prob.Jvec(m, m, f=f)
 
+
+def from_dc_to_ip_survey(dc_survey):
+    srcList = dc_survey.srcList
+    srcList_ip = []
+    for src in srcList:
+        srcList_ip.append(src_ip)
+    return ip_survey
