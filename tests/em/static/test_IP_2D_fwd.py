@@ -9,6 +9,7 @@ try:
 except ImportError:
     from SimPEG import SolverLU as Solver
 
+
 class IPProblemAnalyticTests(unittest.TestCase):
 
     def setUp(self):
@@ -71,6 +72,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         if err < 0.05:
             passed = True
             print(">> IP forward test for Problem2D_N is passed")
+            print (err)
         else:
             passed = False
             print(">> IP forward test for Problem2D_N is failed")
@@ -103,6 +105,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         else:
             passed = False
             print(">> IP forward test for Problem2D_CC is failed")
+            print (err)
         self.assertTrue(passed)
 
 if __name__ == '__main__':

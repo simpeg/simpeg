@@ -36,7 +36,6 @@ class BaseIPProblem(BaseEMProblem):
     _f = None
     storeJ = False
     _Jmatrix = None
-    fswitch = False
     sign = None
 
     def fields(self, m):
@@ -72,6 +71,11 @@ class BaseIPProblem(BaseEMProblem):
 
             # delete fields after computing sensitivity
             del f
+            if self._f is not None:
+                del self._f
+            # clean all factorization
+            if self.Ainv is not None:
+                self.Ainv.clean()
 
         return self._Jmatrix
 
@@ -145,7 +149,7 @@ class BaseIPProblem(BaseEMProblem):
             u_src = f[src, self._solutionType]
             if self.storeJ:
                 # TODO: use logging package
-                sys.stdout.write(("\r %d / %d") % (isrc, self.survey.nSrc))
+                sys.stdout.write(("\r %d / %d") % (isrc+1, self.survey.nSrc))
                 sys.stdout.flush()
 
             for rx in src.rxList:

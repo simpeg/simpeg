@@ -52,7 +52,7 @@ class IPProblemTestsCC(unittest.TestCase):
             rho=1./sigma,
             etaMap=wires.eta,
             tauiMap=wires.taui,
-            verbose = True
+            verbose = False
         )
         problem.Solver = Solver
         problem.pair(survey)
@@ -149,7 +149,7 @@ class IPProblemTestsN(unittest.TestCase):
             sigma=sigma,
             etaMap=wires.eta,
             tauiMap=wires.taui,
-            verbose = True
+            verbose = False
         )
         problem.Solver = Solver
         problem.pair(survey)

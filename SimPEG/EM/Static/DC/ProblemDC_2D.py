@@ -444,7 +444,9 @@ class Problem2D_N(BaseDCProblem_2D):
         if getattr(self, '_MnSigma', None) is None:
             sigma = self.sigma
             vol = self.mesh.vol
-            self._MnSigma = Utils.sdiag(self.mesh.aveN2CC.T*(Utils.sdiag(vol)*sigma))
+            self._MnSigma = Utils.sdiag(
+                self.mesh.aveN2CC.T*(Utils.sdiag(vol)*sigma)
+            )
         return self._MnSigma
 
     def MnSigmaDeriv(self, u):

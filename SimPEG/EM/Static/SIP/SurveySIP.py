@@ -11,6 +11,7 @@ from SimPEG.EM.Static.SIP.SrcSIP import BaseSrc
 from SimPEG.EM.Static.SIP.RxSIP import BaseRx
 import uuid
 
+
 class Survey(BaseEMSurvey):
     rxPair = BaseRx
     srcPair = BaseSrc

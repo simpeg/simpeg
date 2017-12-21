@@ -14,6 +14,7 @@ from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
 from SimPEG.EM.Static.DC import getxBCyBC_CC
 from .SurveySIP import Survey, Data
+import gc
 
 
 class BaseSIPProblem(BaseEMProblem):
@@ -52,12 +53,11 @@ class BaseSIPProblem(BaseEMProblem):
     fieldsPair = FieldsDC
     dataPair = Data
     Ainv = None
-    f = None
+    _f = None
     actinds = None
     storeJ = False
-    J = None
-    fswitch = False
-    actMap = None    # Surje
+    _Jmatrix = None
+    actMap = None
 
     def getPeta(self, t):
         peta = self.eta*np.exp(-(self.taui*t)**self.c)
@@ -94,48 +94,67 @@ class BaseSIPProblem(BaseEMProblem):
         else:
             return dpetadc * (self.cDeriv*v)
 
-    def fieldsdc(self):
+    def fields(self, m):
         if self.verbose:
             print (">> Compute DC fields")
-        if self.f is None:
-            self.f = self.fieldsPair(self.mesh, self.survey)
+        if self._f is None:
+            self._f = self.fieldsPair(self.mesh, self.survey)
             if self.Ainv is None:
                 A = self.getA()
                 self.Ainv = self.Solver(A, **self.solverOpts)
             RHS = self.getRHS()
             u = self.Ainv * RHS
             Srcs = self.survey.srcList
-            self.f[Srcs, self._solutionType] = u
+            self._f[Srcs, self._solutionType] = u
+        return self._f
 
-    def fields(self, m):
-        return None
-
-    def getJ(self, f=None):
+    def getJ(self, m, f=None):
         """
             Generate Full sensitivity matrix
         """
 
-        print (">> Compute Sensitivity matrix")
+        if self.verbose:
+            print("Calculating J and storing")
 
-        if self.f is None:
-            self.fieldsdc()
+        if self._Jmatrix is not None:
+            return self._Jmatrix
+        else:
 
-        Jt = []
+            if f is None:
+                f = self.fields(m)
 
-        for isrc, src in enumerate(self.survey.srcList):
-            sys.stdout.write(("\r %d / %d")%(isrc, self.survey.nSrc))
-            sys.stdout.flush()
-            u_src = self.f[src, self._solutionType]
-            for rx in src.rxList:
-                P = rx.getP(self.mesh, rx.projGLoc(self.f)).toarray()
-                ATinvdf_duT = self.Ainv * (P.T)
-                dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
-                if rx.nD == 1:
-                    # Consider when rx has one location
-                    Jt.append(-dA_dmT.reshape([-1, 1]))
-                else:
-                    Jt.append(-dA_dmT)
-        return np.hstack(Jt).T
+            Jt = []
+
+            for isrc, src in enumerate(self.survey.srcList):
+                if self.verbose:
+                    sys.stdout.write(("\r %d / %d") % (isrc+1, self.survey.nSrc))
+                    sys.stdout.flush()
+                u_src = f[src, self._solutionType]
+                for rx in src.rxList:
+                    P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
+                    ATinvdf_duT = self.Ainv * (P.T)
+                    dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
+                    if rx.nD == 1:
+                        # Consider when rx has one location
+                        Jt.append(-dA_dmT.reshape([-1, 1]))
+                    else:
+                        Jt.append(-dA_dmT)
+            self._Jmatrix = np.hstack(Jt).T
+            if self.verbose:
+                collected = gc.collect()
+                print (
+                    "Garbage collector: collected %d objects." % (collected)
+                )
+
+            # Not sure why below has raise memory issue
+            # only for problem_cc, test_dataObj
+            # if self._f is not None:
+            #     del self._f
+            # clean all factorization
+            if self.Ainv is not None:
+                self.Ainv.clean()
+
+            return self._Jmatrix
 
     def forward(self, m, f=None):
 
@@ -144,17 +163,14 @@ class BaseSIPProblem(BaseEMProblem):
 
         # When sensitivity matrix is stored
         if self.storeJ:
-            if self.fswitch == False:
-                f = self.fieldsdc()
-                self.J = self.getJ(f=f)
-                self.fswitch = True
+            J = self.getJ(m, f=f)
 
             ntime = len(self.survey.times)
 
             self.model = m
             for tind in range(ntime):
                 Jv.append(
-                    self.J.dot(
+                    J.dot(
                         self.actMap.P.T*self.getPeta(self.survey.times[tind]))
                     )
             return self.sign * np.hstack(Jv)
@@ -162,8 +178,8 @@ class BaseSIPProblem(BaseEMProblem):
         # Do not store sensitivity matrix (memory-wise efficient)
         else:
 
-            if self.f is None:
-                self.fieldsdc()
+            if f is None:
+                f = self.fields(m)
 
             # A = self.getA()
             for tind in range(len(self.survey.times)):
@@ -171,7 +187,7 @@ class BaseSIPProblem(BaseEMProblem):
                 t = self.survey.times[tind]
                 v = self.getPeta(t)
                 for src in self.survey.srcList:
-                    u_src = self.f[src, self._solutionType]  # solution vector
+                    u_src = f[src, self._solutionType]  # solution vector
                     dA_dm_v = self.getADeriv(u_src, v)
                     dRHS_dm_v = self.getRHSDeriv(src, v)
                     du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
@@ -179,11 +195,12 @@ class BaseSIPProblem(BaseEMProblem):
                         timeindex = rx.getTimeP(self.survey.times)
                         if timeindex[tind]:
                             df_dmFun = getattr(
-                                self.f, '_{0!s}Deriv'.format(rx.projField), None
+                                f, '_{0!s}Deriv'.format(rx.projField),
+                                None
                                 )
                             df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
                             Jv.append(
-                                rx.evalDeriv(src, self.mesh, self.f, df_dm_v)
+                                rx.evalDeriv(src, self.mesh, f, df_dm_v)
                                 )
 
             return self.sign*np.hstack(Jv)
@@ -196,11 +213,7 @@ class BaseSIPProblem(BaseEMProblem):
 
         # When sensitivity matrix is stored
         if self.storeJ:
-            if self.fswitch == False:
-                self.fieldsdc()
-                self.J = self.getJ(f=f)
-                self.fswitch = True
-
+            J = self.getJ(m, f=f)
             ntime = len(self.survey.times)
 
             for tind in range(ntime):
@@ -210,15 +223,15 @@ class BaseSIPProblem(BaseEMProblem):
                 v1 = self.PetaTauiDeriv(t, v)
                 v2 = self.PetaCDeriv(t, v)
                 PTv = self.actMap.P.T*(v0+v1+v2)
-                Jv.append(self.J.dot(PTv))
+                Jv.append(J.dot(PTv))
 
             return self.sign * np.hstack(Jv)
 
         # Do not store sensitivity matrix (memory-wise efficient)
         else:
 
-            if self.f is None:
-                self.fieldsdc()
+            if f is None:
+                f = self.fields(m)
 
             for tind in range(len(self.survey.times)):
 
@@ -228,7 +241,7 @@ class BaseSIPProblem(BaseEMProblem):
                 v2 = self.PetaCDeriv(t, v)
 
                 for src in self.survey.srcList:
-                    u_src = self.f[src, self._solutionType]  # solution vector
+                    u_src = f[src, self._solutionType]  # solution vector
                     dA_dm_v = self.getADeriv(u_src, v0+v1+v2)
                     dRHS_dm_v = self.getRHSDeriv(src, v0+v1+v2)
                     du_dm_v = self.Ainv * (
@@ -239,14 +252,15 @@ class BaseSIPProblem(BaseEMProblem):
                         timeindex = rx.getTimeP(self.survey.times)
                         if timeindex[tind]:
                             df_dmFun = getattr(
-                                self.f, '_{0!s}Deriv'.format(rx.projField), None
+                                f, '_{0!s}Deriv'.format(rx.projField),
+                                None
                                 )
                             df_dm_v = df_dmFun(
                                 src, du_dm_v, v0+v1+v2, adjoint=False
                                 )
 
                             Jv_temp = (
-                                rx.evalDeriv(src, self.mesh, self.f, du_dm_v)
+                                rx.evalDeriv(src, self.mesh, f, du_dm_v)
                                 )
                             if rx.nD == 1:
                                 Jv_temp = Jv_temp.reshape([-1, 1])
@@ -261,18 +275,14 @@ class BaseSIPProblem(BaseEMProblem):
 
         # When sensitivity matrix is stored
         if self.storeJ:
-            if self.fswitch == False:
-                f = self.fieldsdc()
-                self.J = self.getJ(f=f)
-                self.fswitch = True
-
+            J = self.getJ(m, f=f)
             ntime = len(self.survey.times)
             Jtvec = np.zeros(m.size)
             v = v.reshape((int(self.survey.nD/ntime), ntime), order="F")
 
             for tind in range(ntime):
                 t = self.survey.times[tind]
-                Jtv = self.actMap.P*self.J.T.dot(v[:, tind])
+                Jtv = self.actMap.P*J.T.dot(v[:, tind])
                 Jtvec += (
                     self.PetaEtaDeriv(t, Jtv, adjoint=True) +
                     self.PetaTauiDeriv(t, Jtv, adjoint=True) +
@@ -284,8 +294,8 @@ class BaseSIPProblem(BaseEMProblem):
         # Do not store sensitivity matrix (memory-wise efficient)
         else:
 
-            if self.f is None:
-                self.fieldsdc()
+            if f is None:
+                f = self.fields(m)
 
             # Ensure v is a data object.
             if not isinstance(v, self.dataPair):
@@ -296,16 +306,16 @@ class BaseSIPProblem(BaseEMProblem):
             for tind in range(len(self.survey.times)):
                 t = self.survey.times[tind]
                 for src in self.survey.srcList:
-                    u_src = self.f[src, self._solutionType]
+                    u_src = f[src, self._solutionType]
                     for rx in src.rxList:
                         timeindex = rx.getTimeP(self.survey.times)
                         if timeindex[tind]:
                             # wrt f, need possibility wrt m
                             PTv = rx.evalDeriv(
-                                src, self.mesh, self.f, v[src, rx, t], adjoint=True
+                                src, self.mesh, f, v[src, rx, t], adjoint=True
                             )
                             df_duTFun = getattr(
-                                self.f, '_{0!s}Deriv'.format(rx.projField), None
+                                f, '_{0!s}Deriv'.format(rx.projField), None
                                 )
                             df_duT, df_dmT = df_duTFun(
                                 src, None, PTv, adjoint=True
@@ -397,6 +407,7 @@ class Problem3D_CC(BaseSIPProblem):
     _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_CC
     sign = 1.
+    bc_type = 'Neumann'
 
     def __init__(self, mesh, **kwargs):
         BaseSIPProblem.__init__(self, mesh, **kwargs)
@@ -471,83 +482,144 @@ class Problem3D_CC(BaseSIPProblem):
         return Utils.Zero()
 
     def setBC(self):
-        if self.mesh.dim == 3:
-            fxm, fxp, fym, fyp, fzm, fzp = self.mesh.faceBoundaryInd
-            gBFxm = self.mesh.gridFx[fxm, :]
-            gBFxp = self.mesh.gridFx[fxp, :]
-            gBFym = self.mesh.gridFy[fym, :]
-            gBFyp = self.mesh.gridFy[fyp, :]
-            gBFzm = self.mesh.gridFz[fzm, :]
-            gBFzp = self.mesh.gridFz[fzp, :]
+        if self.mesh._meshType == "TREE":
+            if(self.bc_type == 'Neumann'):
+                raise NotImplementedError()
+            elif(self.bc_type == 'Dirchlet'):
+                print('Homogeneous Dirchlet is the natural BC for this CC discretization.')
+                self.Div = Utils.sdiag(self.mesh.vol) * self.mesh.faceDiv
+                self.Grad = self.Div.T
 
-            # Setup Mixed B.C (alpha, beta, gamma)
-            temp_xm, temp_xp = (
-                np.ones_like(gBFxm[:, 0]), np.ones_like(gBFxp[:, 0])
-                )
-            temp_ym, temp_yp = (
-                np.ones_like(gBFym[:, 1]), np.ones_like(gBFyp[:, 1])
-                )
-            temp_zm, temp_zp = (
-                np.ones_like(gBFzm[:, 2]), np.ones_like(gBFzp[:, 2])
-                )
+        else:
 
-            alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-            alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
-            alpha_zm, alpha_zp = temp_zm*0., temp_zp*0.
+            if self.mesh.dim == 3:
+                fxm, fxp, fym, fyp, fzm, fzp = self.mesh.faceBoundaryInd
+                gBFxm = self.mesh.gridFx[fxm, :]
+                gBFxp = self.mesh.gridFx[fxp, :]
+                gBFym = self.mesh.gridFy[fym, :]
+                gBFyp = self.mesh.gridFy[fyp, :]
+                gBFzm = self.mesh.gridFz[fzm, :]
+                gBFzp = self.mesh.gridFz[fzp, :]
 
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
-            beta_zm, beta_zp = temp_zm, temp_zp
+                # Setup Mixed B.C (alpha, beta, gamma)
+                temp_xm = np.ones_like(gBFxm[:, 0])
+                temp_xp = np.ones_like(gBFxp[:, 0])
+                temp_ym = np.ones_like(gBFym[:, 1])
+                temp_yp = np.ones_like(gBFyp[:, 1])
+                temp_zm = np.ones_like(gBFzm[:, 2])
+                temp_zp = np.ones_like(gBFzp[:, 2])
 
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-            gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
+                if(self.bc_type == 'Neumann'):
+                    if self.verbose:
+                        print('Setting BC to Neumann.')
+                    alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
+                    alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
+                    alpha_zm, alpha_zp = temp_zm*0., temp_zp*0.
 
-            alpha = (
-                [alpha_xm, alpha_xp, alpha_ym, alpha_yp, alpha_zm, alpha_zp]
-                )
-            beta = (
-                [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
-                )
-            gamma = (
-                [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm, gamma_zp]
-                )
+                    beta_xm, beta_xp = temp_xm, temp_xp
+                    beta_ym, beta_yp = temp_ym, temp_yp
+                    beta_zm, beta_zp = temp_zm, temp_zp
 
-        elif self.mesh.dim == 2:
+                    gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+                    gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+                    gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
 
-            fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
-            gBFxm = self.mesh.gridFx[fxm, :]
-            gBFxp = self.mesh.gridFx[fxp, :]
-            gBFym = self.mesh.gridFy[fym, :]
-            gBFyp = self.mesh.gridFy[fyp, :]
+                elif(self.bc_type == 'Dirchlet'):
+                    if self.verbose:
+                        print('Setting BC to Dirchlet.')
+                    alpha_xm, alpha_xp = temp_xm, temp_xp
+                    alpha_ym, alpha_yp = temp_ym, temp_yp
+                    alpha_zm, alpha_zp = temp_zm, temp_zp
 
-            # Setup Mixed B.C (alpha, beta, gamma)
-            temp_xm, temp_xp = (
-                np.ones_like(gBFxm[:, 0]), np.ones_like(gBFxp[:, 0])
-                )
-            temp_ym, temp_yp = (
-                np.ones_like(gBFym[:, 1]), np.ones_like(gBFyp[:, 1])
-                )
+                    beta_xm, beta_xp = temp_xm*1, temp_xp*1
+                    beta_ym, beta_yp = temp_ym*1, temp_yp*1
+                    beta_zm, beta_zp = temp_zm*1, temp_zp*1
 
-            alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-            alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
+                    gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+                    gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+                    gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
 
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
+                elif(self.bc_type == 'Mixed'):
+                    # Ztop: Neumann
+                    # Others: Mixed: alpha * phi + d phi dn = 0
+                    # where alpha = 1 / r  * dr/dn
+                    # (Dey and Morrison, 1979)
 
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+                    # This assumes that the source is located at
+                    # (x_center, y_center_y, ztop)
+                    # TODO: Implement Zhang et al. (1995)
 
-            alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
-            beta = [beta_xm, beta_xp, beta_ym, beta_yp]
-            gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
+                    xs = np.median(self.mesh.vectorCCx)
+                    ys = np.median(self.mesh.vectorCCy)
+                    zs = self.mesh.vectorCCz[-1]
 
-        x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
-        V = self.Vol
-        self.Div = V * self.mesh.faceDiv
-        P_BC, B = self.mesh.getBCProjWF_simple()
-        M = B*self.mesh.aveCC2F
-        self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
+                    def r_boundary(x, y, z):
+                        return 1./np.sqrt(
+                            (x - xs)**2 + (y - ys)**2 + (z - zs)**2
+                            )
+                    rxm = r_boundary(gBFxm[:, 0], gBFxm[:, 1], gBFxm[:, 2])
+                    rxp = r_boundary(gBFxp[:, 0], gBFxp[:, 1], gBFxp[:, 2])
+                    rym = r_boundary(gBFym[:, 0], gBFym[:, 1], gBFym[:, 2])
+                    ryp = r_boundary(gBFyp[:, 0], gBFyp[:, 1], gBFyp[:, 2])
+                    rzm = r_boundary(gBFzm[:, 0], gBFzm[:, 1], gBFzm[:, 2])
+
+                    alpha_xm = (gBFxm[:, 0]-xs)/rxm**2
+                    alpha_xp = (gBFxp[:, 0]-xs)/rxp**2
+                    alpha_ym = (gBFym[:, 1]-ys)/rym**2
+                    alpha_yp = (gBFyp[:, 1]-ys)/ryp**2
+                    alpha_zm = (gBFzm[:, 2]-zs)/rzm**2
+                    alpha_zp = temp_zp.copy() * 0.
+
+                    beta_xm, beta_xp = temp_xm*1, temp_xp*1
+                    beta_ym, beta_yp = temp_ym*1, temp_yp*1
+                    beta_zm, beta_zp = temp_zm*1, temp_zp*1
+
+                    gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+                    gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+                    gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
+
+                alpha = [
+                    alpha_xm, alpha_xp,
+                    alpha_ym, alpha_yp,
+                    alpha_zm, alpha_zp
+                ]
+                beta = [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
+                gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm,
+                         gamma_zp]
+
+            elif self.mesh.dim == 2:
+
+                fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
+                gBFxm = self.mesh.gridFx[fxm, :]
+                gBFxp = self.mesh.gridFx[fxp, :]
+                gBFym = self.mesh.gridFy[fym, :]
+                gBFyp = self.mesh.gridFy[fyp, :]
+
+                # Setup Mixed B.C (alpha, beta, gamma)
+                temp_xm = np.ones_like(gBFxm[:, 0])
+                temp_xp = np.ones_like(gBFxp[:, 0])
+                temp_ym = np.ones_like(gBFym[:, 1])
+                temp_yp = np.ones_like(gBFyp[:, 1])
+
+                alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
+                alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
+
+                beta_xm, beta_xp = temp_xm, temp_xp
+                beta_ym, beta_yp = temp_ym, temp_yp
+
+                gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+                gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+
+                alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
+                beta = [beta_xm, beta_xp, beta_ym, beta_yp]
+                gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
+
+            x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
+            V = self.Vol
+            self.Div = V * self.mesh.faceDiv
+            P_BC, B = self.mesh.getBCProjWF_simple()
+            M = B*self.mesh.aveCC2F
+            self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
 
 
 class Problem3D_N(BaseSIPProblem):

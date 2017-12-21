@@ -150,7 +150,7 @@ class IPProblemTestsN(unittest.TestCase):
             sigma=sigma,
             etaMap=wires.eta,
             tauiMap=wires.taui,
-            storeJ = True,
+            storeJ = False,
         )
         problem.Solver = Solver
         problem.pair(survey)
@@ -255,7 +255,8 @@ class IPProblemTestsN_air(unittest.TestCase):
             etaMap=actmapeta*wires.eta,
             tauiMap=actmaptau*wires.taui,
             cMap=actmapc*wires.c,
-            storeJ = True
+            storeJ = True,
+            verbose=False
         )
 
         problem.Solver = Solver

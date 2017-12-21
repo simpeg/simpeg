@@ -43,7 +43,7 @@ class IPProblemTestsCC(unittest.TestCase):
         sigma = np.ones(mesh.nC) * 1.
         problem = IP.Problem2D_CC(
             mesh, sigma=sigma, etaMap=Maps.IdentityMap(mesh),
-            verbose=True
+            verbose=False
         )
         problem.pair(survey)
 
@@ -126,7 +126,7 @@ class IPProblemTestsN(unittest.TestCase):
         sigma = np.ones(mesh.nC) * 1.
         problem = IP.Problem2D_N(
             mesh, rho=1./sigma, etaMap=Maps.IdentityMap(mesh),
-            verbose=True
+            verbose=False
         )
         problem.pair(survey)
 

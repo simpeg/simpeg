@@ -15,6 +15,7 @@ from SimPEG.EM.Static.DC.FieldsDC_2D import (
 from SimPEG.EM.Static.DC import getxBCyBC_CC
 from SimPEG.EM.Static.IP import BaseIPProblem_2D
 from .SurveySIP import Survey
+from scipy.special import kn
 
 
 class BaseSIPProblem_2D(BaseIPProblem_2D):
@@ -41,7 +42,8 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
 
     surveyPair = Survey
     fieldsPair = Fields_ky
-    f = None
+    _f = None
+    _Jmatrix = None
     actinds = None
     actMap = None
 
@@ -80,7 +82,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         else:
             return dpetadc * (self.cDeriv*v)
 
-    def getJ(self, f=None):
+    def getJ(self, m, f=None):
         """
             Generate Full sensitivity matrix
         """
@@ -88,62 +90,74 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         if self.verbose:
             print (">> Compute Sensitivity matrix")
 
-        if self.f is None:
-            self.fieldsdc()
-        Jt = []
+        if self._Jmatrix is not None:
+            return self._Jmatrix
+        else:
 
-        # Assume y=0.
-        # This needs some thoughts to implement in general when src is dipole
-        dky = np.diff(self.kys)
-        dky = np.r_[dky[0], dky]
-        y = 0.
-        for src in self.survey.srcList:
-            for rx in src.rxList:
-                Jtv_temp1 = np.zeros((self.actinds.sum(), rx.nD), dtype=float)
-                Jtv_temp0 = np.zeros((self.actinds.sum(), rx.nD), dtype=float)
-                Jtv = np.zeros((self.actinds.sum(), rx.nD), dtype=float)
-                # TODO: this loop is pretty slow .. (Parellize)
-                for iky in range(self.nky):
-                    u_src = self.f[src, self._solutionType, iky]
-                    ky = self.kys[iky]
-                    AT = self.getA(ky)
+            if f is None:
+                f = self.fields(m)
 
-                    # wrt f, need possibility wrt m
-                    P = rx.getP(self.mesh, rx.projGLoc(self.f)).toarray()
+            Jt = []
 
-                    ATinvdf_duT = self.Ainv[iky] * (P.T)
+            # Assume y=0.
+            # This needs some thoughts to implement in general when src is dipole
+            dky = np.diff(self.kys)
+            dky = np.r_[dky[0], dky]
+            y = 0.
+            for src in self.survey.srcList:
+                for rx in src.rxList:
+                    Jtv_temp1 = np.zeros((self.actinds.sum(), rx.nD), dtype=float)
+                    Jtv_temp0 = np.zeros((self.actinds.sum(), rx.nD), dtype=float)
+                    Jtv = np.zeros((self.actinds.sum(), rx.nD), dtype=float)
+                    # TODO: this loop is pretty slow .. (Parellize)
+                    for iky in range(self.nky):
+                        u_src = f[src, self._solutionType, iky]
+                        ky = self.kys[iky]
+                        AT = self.getA(ky)
 
-                    dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT,
-                                            adjoint=True)
-                    Jtv_temp1 = 1./np.pi*(-dA_dmT)
-                    if rx.nD == 1:
-                        Jtv_temp1 = Jtv_temp1.reshape([-1, 1])
+                        # wrt f, need possibility wrt m
+                        P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
 
-                    # Trapezoidal intergration
-                    if iky == 0:
-                        # First assigment
-                        Jtv += Jtv_temp1*dky[iky]*np.cos(ky*y)
-                    else:
-                        Jtv += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
-                        Jtv += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
-                    Jtv_temp0 = Jtv_temp1.copy()
+                        ATinvdf_duT = self.Ainv[iky] * (P.T)
 
-                Jt.append(Jtv)
+                        dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT,
+                                                adjoint=True)
+                        Jtv_temp1 = 1./np.pi*(-dA_dmT)
+                        if rx.nD == 1:
+                            Jtv_temp1 = Jtv_temp1.reshape([-1, 1])
 
-        return np.hstack(Jt).T
+                        # Trapezoidal intergration
+                        if iky == 0:
+                            # First assigment
+                            Jtv += Jtv_temp1*dky[iky]*np.cos(ky*y)
+                        else:
+                            Jtv += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
+                            Jtv += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
+                        Jtv_temp0 = Jtv_temp1.copy()
+
+                    Jt.append(Jtv)
+
+            self._Jmatrix = np.hstack(Jt).T
+            # delete fields after computing sensitivity
+            del f
+            if self._f is not None:
+                del self._f
+            # clean all factorization
+            if self.Ainv[0] is not None:
+                for i in range(self.nky):
+                    self.Ainv[i].clean()
+            return self._Jmatrix
 
     def forward(self, m, f=None):
-        if self.fswitch == False:
-            f = self.fieldsdc()
-            self.J = self.getJ(f=f)
-            self.fswitch = True
+
+        J = self.getJ(m, f=f)
 
         ntime = len(self.survey.times)
         Jv = []
         self.model = m
         for tind in range(ntime):
             Jv.append(
-                self.J.dot(
+                J.dot(
                     self.actMap.P.T*self.getPeta(self.survey.times[tind]))
                 )
         return self.sign * np.hstack(Jv)
@@ -151,11 +165,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
     def Jvec(self, m, v, f=None):
 
         self.model = m
-        if self.fswitch == False:
-            f = self.fieldsdc()
-            self.J = self.getJ(f=f)
-            self.fswitch = True
-
+        J = self.getJ(m, f=f)
         ntime = len(self.survey.times)
         Jv = []
 
@@ -166,17 +176,14 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
             v1 = self.PetaTauiDeriv(t, v)
             v2 = self.PetaCDeriv(t, v)
             PTv = self.actMap.P.T*(v0+v1+v2)
-            Jv.append(self.J.dot(PTv))
+            Jv.append(J.dot(PTv))
 
         return self.sign * np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
 
         self.model = m
-        if self.fswitch == False:
-            f = self.fieldsdc()
-            self.J = self.getJ(f=f)
-            self.fswitch = True
+        J = self.getJ(m, f=f)
 
         ntime = len(self.survey.times)
         Jtvec = np.zeros(m.size)
@@ -184,7 +191,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
 
         for tind in range(ntime):
             t = self.survey.times[tind]
-            Jtv = self.actMap.P*self.J.T.dot(v[:, tind])
+            Jtv = self.actMap.P*J.T.dot(v[:, tind])
             Jtvec += (
                 self.PetaEtaDeriv(t, Jtv, adjoint=True) +
                 self.PetaTauiDeriv(t, Jtv, adjoint=True) +
@@ -200,9 +207,10 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         """
         ntime = len(self.survey.times)
         JtJdiag = np.zeros_like(self.model)
+        J = self.getJ(self.model, f=None)
         for tind in range(ntime):
             t = self.survey.times[tind]
-            Jtv = self.actMap.P*Utils.sdiag(1./self.mesh.vol)*self.J.T
+            Jtv = self.actMap.P*Utils.sdiag(1./self.mesh.vol)*J.T
             JtJdiag += (
                 (self.PetaEtaDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
                 (self.PetaTauiDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
@@ -264,10 +272,10 @@ class Problem2D_CC(BaseSIPProblem_2D):
     _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_ky_CC
     sign = 1.
+    bc_type = "Mixed"
 
     def __init__(self, mesh, **kwargs):
         BaseSIPProblem_2D.__init__(self, mesh, **kwargs)
-        self.setBC()
         if self.actinds is None:
             print ("You did not put Active indices")
             print ("So, set actMap = IdentityMap(mesh)")
@@ -283,6 +291,9 @@ class Problem2D_CC(BaseSIPProblem_2D):
         A = D MfRhoI G
 
         """
+        # To handle Mixed boundary condition
+        if self._formulation == "HJ":
+            self.setBC(ky=ky)
 
         D = self.Div
         G = self.Grad
@@ -294,6 +305,10 @@ class Problem2D_CC(BaseSIPProblem_2D):
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
+
+        # To handle Mixed boundary condition
+        if self._formulation == "HJ":
+            self.setBC(ky=ky)
 
         D = self.Div
         G = self.Grad
@@ -323,56 +338,20 @@ class Problem2D_CC(BaseSIPProblem_2D):
         # return qDeriv
         return Zero()
 
-    def setBC(self):
-        if self.mesh.dim == 3:
-            fxm, fxp, fym, fyp, fzm, fzp = self.mesh.faceBoundaryInd
-            gBFxm = self.mesh.gridFx[fxm, :]
-            gBFxp = self.mesh.gridFx[fxp, :]
-            gBFym = self.mesh.gridFy[fym, :]
-            gBFyp = self.mesh.gridFy[fyp, :]
-            gBFzm = self.mesh.gridFz[fzm, :]
-            gBFzp = self.mesh.gridFz[fzp, :]
+    def setBC(self, ky=None):
+        fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
+        gBFxm = self.mesh.gridFx[fxm, :]
+        gBFxp = self.mesh.gridFx[fxp, :]
+        gBFym = self.mesh.gridFy[fym, :]
+        gBFyp = self.mesh.gridFy[fyp, :]
 
-            # Setup Mixed B.C (alpha, beta, gamma)
-            temp_xm = np.ones_like(gBFxm[:, 0])
-            temp_xp = np.ones_like(gBFxp[:, 0])
-            temp_ym = np.ones_like(gBFym[:, 1])
-            temp_yp = np.ones_like(gBFyp[:, 1])
-            temp_zm = np.ones_like(gBFzm[:, 2])
-            temp_zp = np.ones_like(gBFzp[:, 2])
+        # Setup Mixed B.C (alpha, beta, gamma)
+        temp_xm = np.ones_like(gBFxm[:, 0])
+        temp_xp = np.ones_like(gBFxp[:, 0])
+        temp_ym = np.ones_like(gBFym[:, 1])
+        temp_yp = np.ones_like(gBFyp[:, 1])
 
-            alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-            alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
-            alpha_zm, alpha_zp = temp_zm*0., temp_zp*0.
-
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
-            beta_zm, beta_zp = temp_zm, temp_zp
-
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-            gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
-
-            alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp, alpha_zm,
-                     alpha_zp]
-            beta = [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
-            gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm,
-                     gamma_zp]
-
-        elif self.mesh.dim == 2:
-
-            fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
-            gBFxm = self.mesh.gridFx[fxm, :]
-            gBFxp = self.mesh.gridFx[fxp, :]
-            gBFym = self.mesh.gridFy[fym, :]
-            gBFyp = self.mesh.gridFy[fyp, :]
-
-            # Setup Mixed B.C (alpha, beta, gamma)
-            temp_xm = np.ones_like(gBFxm[:, 0])
-            temp_xp = np.ones_like(gBFxp[:, 0])
-            temp_ym = np.ones_like(gBFym[:, 1])
-            temp_yp = np.ones_like(gBFyp[:, 1])
-
+        if self.bc_type == "Neumann":
             alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
             alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
 
@@ -382,9 +361,47 @@ class Problem2D_CC(BaseSIPProblem_2D):
             gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
             gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
 
-            alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
-            beta = [beta_xm, beta_xp, beta_ym, beta_yp]
-            gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
+        elif self.bc_type == "Dirichlet":
+            alpha_xm, alpha_xp = temp_xm, temp_xp
+            alpha_ym, alpha_yp = temp_ym, temp_yp
+
+            beta_xm, beta_xp = temp_xm*0., temp_xp*0.
+            beta_ym, beta_yp = temp_ym*0., temp_yp*0.
+
+            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+
+        elif self.bc_type == "Mixed":
+            xs = np.median(self.mesh.vectorCCx)
+            ys = np.median(self.mesh.vectorCCy[-1])
+
+            def r_boundary(x, y):
+                return 1./np.sqrt(
+                    (x - xs)**2 + (y - ys)**2
+                    )
+
+            rxm = r_boundary(gBFxm[:, 0], gBFxm[:, 1])
+            rxp = r_boundary(gBFxp[:, 0], gBFxp[:, 1])
+            rym = r_boundary(gBFym[:, 0], gBFym[:, 1])
+            alpha_xm = ky*(
+                kn(1, ky*rxm) / kn(0, ky*rxm) * (gBFxm[:, 0]-xs)
+                )
+            alpha_xp = ky*(
+                kn(1, ky*rxp) / kn(0, ky*rxp) * (gBFxp[:, 0]-xs)
+                )
+            alpha_ym = ky*(
+                kn(1, ky*rym) / kn(0, ky*rym) * (gBFym[:, 0]-ys)
+                )
+            alpha_yp = temp_yp*0.
+            beta_xm, beta_xp = temp_xm, temp_xp
+            beta_ym, beta_yp = temp_ym, temp_yp
+
+            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+
+        alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
+        beta = [beta_xm, beta_xp, beta_ym, beta_yp]
+        gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
 
         x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
         V = self.Vol
