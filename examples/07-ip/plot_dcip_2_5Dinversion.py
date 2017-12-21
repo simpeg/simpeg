@@ -186,6 +186,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     mopt_dc, pred_dc = DC.run_inversion(
         m0_dc, survey_dc, actind, mesh, std_dc, eps_dc,
+        beta0_ratio=1e1,
         use_sensitivity_weight=True
         )
 
@@ -254,6 +255,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     mopt_ip, pred_ip = IP.run_inversion(
         m0_ip, survey_ip, actind, mesh, std_ip, eps_ip,
         upper=np.Inf, lower=0.,
+        beta0_ratio=1e1,
         use_sensitivity_weight=True
     )
 
@@ -296,4 +298,5 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         plt.show()
 
 if __name__ == '__main__':
-    run()
+    survey_type = 'dipole-dipole'
+    run(survey_type)
