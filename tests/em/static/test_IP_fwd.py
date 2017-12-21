@@ -61,7 +61,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
             sigma=self.sigmaInf,
             etaMap=Maps.IdentityMap(self.mesh),
             Ainv=problemDC.Ainv,
-            f=finf
+            _f=finf
         )
         problemIP.Solver = Solver
         surveyIP = IP.Survey([self.src])
@@ -92,7 +92,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
             rho=1./self.sigmaInf,
             etaMap=Maps.IdentityMap(self.mesh),
             Ainv=problemDC.Ainv,
-            f=finf
+            _f=finf
         )
         problemIP.Solver = Solver
         surveyIP = IP.Survey([self.src])

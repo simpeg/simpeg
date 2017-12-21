@@ -94,12 +94,14 @@ class BaseDCProblem(BaseEMProblem):
             Jtv = Utils.mkvc(np.dot(J.T, v))
             return Jtv
 
-        self.model = m
+        else:
 
-        if f is None:
-            f = self.fields(m)
+            self.model = m
 
-        return self._Jtvec(m, v=v, f=f)
+            if f is None:
+                f = self.fields(m)
+
+            return self._Jtvec(m, v=v, f=f)
 
     def _Jtvec(self, m, v=None, f=None):
         """
@@ -175,7 +177,6 @@ class BaseDCProblem(BaseEMProblem):
         toDelete = super(BaseDCProblem, self).deleteTheseOnModelUpdate
         if self._Jmatrix is not None:
             toDelete += ['_Jmatrix']
-        print (toDelete)
         return toDelete
 
 
