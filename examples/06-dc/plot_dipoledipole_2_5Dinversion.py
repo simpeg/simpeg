@@ -1,3 +1,17 @@
+"""
+2.5D DC inversion of Dipole Dipole array with Topography
+========================================================
+
+This is an example for 2.5D DC Inversion. Earth includes a topography,
+and below the topography conductive and resistive cylinders are embedded.
+Sensitivity weighting is used for the inversion.
+Approximate depth of investigation is computed by selecting
+1 percent of max(sqrt(diag(JtJ))), and regions having smaller sensitivity
+than this is blanked.
+User is promoted to try different suvey_type such as 'pole-dipole',
+'dipole-pole', and 'pole-pole'.
+"""
+
 from SimPEG import DC
 from SimPEG import (Maps, Utils, DataMisfit, Regularization,
                     Optimization, Inversion, InvProblem, Directives)
