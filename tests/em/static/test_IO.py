@@ -31,9 +31,9 @@ class TestsIO_2D(unittest.TestCase):
         )
 
         if self.plotIt:
-            self.IO.plotPseudoSection()
+            self.IO.plot_pseudosection()
             plt.show()
-        mesh, actind = self.IO.setMesh()
+        mesh, actind = self.IO.set_mesh()
 
     def test_topo_dpdp(self):
         self.survey = DC.Utils.gen_DCIPsurvey(
@@ -47,12 +47,12 @@ class TestsIO_2D(unittest.TestCase):
         )
 
         if self.plotIt:
-            self.IO.plotPseudoSection()
+            self.IO.plot_pseudosection()
             plt.show()
 
-        mesh, actind = self.IO.setMesh()
+        mesh, actind = self.IO.set_mesh()
         topo, mesh1D = DC.Utils.genTopography(mesh, -10, 0, its=100)
-        mesh, actind = self.IO.setMesh(topo=np.c_[mesh1D.vectorCCx, topo])
+        mesh, actind = self.IO.set_mesh(topo=np.c_[mesh1D.vectorCCx, topo])
         self.survey.drapeTopo(mesh, actind, option="top")
         if self.plotIt:
             mesh.plotImage(actind)

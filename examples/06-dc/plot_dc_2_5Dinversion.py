@@ -46,7 +46,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     )
 
     # Obtain 2D TensorMesh
-    mesh, actind = IO.setMesh()
+    mesh, actind = IO.set_mesh()
     topo, mesh1D = DC.Utils.genTopography(mesh, -10, 0, its=100)
     actind = Utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
     survey.drapeTopo(mesh, actind, option="top")
@@ -112,14 +112,17 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # Make synthetic DC data with 5% Gaussian noise
     dtrue = survey.makeSyntheticData(mtrue, std=0.05, force=True)
 
+    IO.set_dc_data(dc_data=survey.dobs, data_type='volt')
+
     # Show apparent resisitivty pseudo-section
     if plotIt:
-        IO.plotPseudoSection(dobs=survey.dobs)
+        IO.plot_pseudosection()
 
     # Show apparent resisitivty histogram
     if plotIt:
         fig = plt.figure()
         out = hist(survey.dobs/IO.G, bins=20)
+        plt.xlabel("Apparent Resisitivty ($\Omega$m)")
         plt.show()
 
     # Set initial model based upon histogram
