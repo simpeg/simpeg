@@ -104,3 +104,40 @@ class Data(SimPEG.Survey.Data):
                     indTop += rx.nRx
                     self[src, rx, t] = v[indBot:indTop]
                     indBot += rx.nRx
+
+
+def from_dc_to_sip_survey(survey_dc):
+    """
+    Generate sip survey from dc survey
+    """
+    srcList = survey_dc.srcList
+
+    srcList_sip = []
+    for src in srcList:
+        rxList_sip = []
+        for rx in src.rxList:
+            if isinstance(rx, DC.Rx.Pole_ky):
+                rx_sip = DC.Rx.Pole(rx.locs)
+            elif isinstance(rx, DC.Rx.Dipole_ky):
+                rx_sip = DC.Rx.Dipole(rx.locs[0], rx.locs[1])
+            else:
+                print (rx)
+                raise NotImplementedError()
+            rxList_sip.append(rx_sip)
+
+        if isinstance(src, DC.Src.Pole):
+            src_sip = DC.Src.Pole(
+                rxList_sip, src_sip.loc
+            )
+        elif isinstance(src, DC.Src.Dipole):
+            src_sip = DC.Src.Dipole(
+                rxList_sip, src.loc[0], src.loc[1]
+            )
+        else:
+            print (src)
+            raise NotImplementedError()
+        srcList_sip.append(src_sip)
+
+    survey_sip = Survey(srcList_sip)
+
+    return survey_sip

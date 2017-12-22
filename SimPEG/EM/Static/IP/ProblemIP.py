@@ -211,6 +211,9 @@ class BaseIPProblem(BaseEMProblem):
             q[:, i] = src.eval(self)
         return q
 
+    def delete_these_for_sensitivity(self):
+        del self._Jmatrix, self._MfRhoI, self._MeSigma
+
     @property
     def deleteTheseOnModelUpdate(self):
         toDelete = []

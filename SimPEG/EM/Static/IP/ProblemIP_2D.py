@@ -381,6 +381,12 @@ class Problem2D_CC(BaseIPProblem_2D):
         M = B*self.mesh.aveCC2F
         self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
 
+    def delete_these_for_sensitivity(self):
+        if self._Jmatrix is not None:
+            del self._Jmatrix
+        self._MeSigma = None
+        self._MnSigma = None
+
 
 class Problem2D_N(BaseIPProblem_2D):
     """
@@ -448,3 +454,8 @@ class Problem2D_N(BaseIPProblem_2D):
         # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
         # return qDeriv
         return Zero()
+
+    def delete_these_for_sensitivity(self):
+        if self._Jmatrix is not None:
+            del self._Jmatrix
+        self._MfrhoI = None
