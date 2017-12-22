@@ -18,8 +18,7 @@ subsequent IP inversion to recover a chargeability model.
 """
 
 from SimPEG import DC, IP
-from SimPEG import (Maps, Utils, DataMisfit, Regularization,
-                    Optimization, Inversion, InvProblem, Directives)
+from SimPEG import Maps, Utils
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
@@ -252,7 +251,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     prb_ip._Jmatrix = None
     # Input obtained resistivity to form sensitivity
     prb_ip.rho = mapping*mopt_dc
-    mopt_ip, pred_ip = IP.run_inversion(
+    mopt_ip, _ = IP.run_inversion(
         m0_ip, survey_ip, actind, mesh, std_ip, eps_ip,
         upper=np.Inf, lower=0.,
         beta0_ratio=1e0,
@@ -267,9 +266,8 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     charg_true = charg.copy()
     charg_true[~actind] = np.nan
 
-    # show recovered conductivity
+    # show recovered chargeability
     if plotIt:
-        vmin, vmax = rho.min(), rho.max()
         fig, ax = plt.subplots(2, 1, figsize=(20, 6))
         out1 = mesh.plotImage(
                 charg_true, clim=(0, 0.1),
@@ -299,4 +297,4 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
 if __name__ == '__main__':
     survey_type = 'dipole-dipole'
-    run(survey_type)
+    run(survey_type=survey_type, plotIt=False)

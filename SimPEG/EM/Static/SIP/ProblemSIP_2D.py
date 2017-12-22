@@ -100,7 +100,6 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
             Jt = []
 
             # Assume y=0.
-            # This needs some thoughts to implement in general when src is dipole
             dky = np.diff(self.kys)
             dky = np.r_[dky[0], dky]
             y = 0.
@@ -113,7 +112,6 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
                     for iky in range(self.nky):
                         u_src = f[src, self._solutionType, iky]
                         ky = self.kys[iky]
-                        AT = self.getA(ky)
 
                         # wrt f, need possibility wrt m
                         P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
@@ -443,8 +441,6 @@ class Problem2D_N(BaseSIPProblem_2D):
         MeSigma = self.MeSigma
         MnSigma = self.MnSigma
         Grad = self.mesh.nodalGrad
-        # Get conductivity sigma
-        sigma = self.sigma
         A = Grad.T * MeSigma * Grad + ky**2*MnSigma
 
         # Handling Null space of A

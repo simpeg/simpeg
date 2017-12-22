@@ -1,5 +1,5 @@
 import numpy as np
-from SimPEG import (Maps, Utils, DataMisfit, Regularization,
+from SimPEG import (Maps, DataMisfit, Regularization,
                     Optimization, Inversion, InvProblem, Directives)
 
 

@@ -85,7 +85,6 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
                     for iky in range(self.nky):
                         u_src = f[src, self._solutionType, iky]
                         ky = self.kys[iky]
-                        AT = self.getA(ky)
 
                         # wrt f, need possibility wrt m
                         P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
@@ -200,7 +199,7 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
         """
         sigma = self.sigma
         vol = self.mesh.vol
-        dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.etaDeriv
+        dsigma_dlogsigma = Utils.sdiag(sigma)*self.etaDeriv
         return (
             Utils.sdiag(u)*self.mesh.aveN2CC.T *
             (Utils.sdiag(vol) * dsigma_dlogsigma)
@@ -278,7 +277,6 @@ class Problem2D_CC(BaseIPProblem_2D):
         vol = self.mesh.vol
         MfRhoIDeriv = self.MfRhoIDeriv
         MccRhoIDeriv = self.MccRhoIDeriv
-        rho = self.rho
         if adjoint:
             ADeriv = (
                 (MfRhoIDeriv(G * u).T) * (D.T * v) +
@@ -418,8 +416,6 @@ class Problem2D_N(BaseIPProblem_2D):
         MeSigma = self.MeSigma
         MnSigma = self.MnSigma
         Grad = self.mesh.nodalGrad
-        # Get conductivity sigma
-        sigma = self.sigma
         A = Grad.T * MeSigma * Grad + ky**2*MnSigma
 
         # Handling Null space of A

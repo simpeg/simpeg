@@ -255,9 +255,9 @@ class BaseSIPProblem(BaseEMProblem):
                                 f, '_{0!s}Deriv'.format(rx.projField),
                                 None
                                 )
-                            df_dm_v = df_dmFun(
-                                src, du_dm_v, v0+v1+v2, adjoint=False
-                                )
+                            # df_dm_v = df_dmFun(
+                            #     src, du_dm_v, v0+v1+v2, adjoint=False
+                            #     )
 
                             Jv_temp = (
                                 rx.evalDeriv(src, self.mesh, f, du_dm_v)
