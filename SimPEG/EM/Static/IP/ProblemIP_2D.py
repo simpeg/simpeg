@@ -381,11 +381,16 @@ class Problem2D_CC(BaseIPProblem_2D):
         M = B*self.mesh.aveCC2F
         self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
 
-    def delete_these_for_sensitivity(self):
+    def delete_these_for_sensitivity(self, sigma=None, rho=None):
         if self._Jmatrix is not None:
             del self._Jmatrix
-        self._MeSigma = None
-        self._MnSigma = None
+        self._MfrhoI = None
+        if sigma is not None:
+            self.sigma = sigma
+        elif rho is not None:
+            self.sigma = 1./rho
+        else:
+            raise Exception("Either sigma or rho should be provided")
 
 
 class Problem2D_N(BaseIPProblem_2D):
@@ -455,7 +460,14 @@ class Problem2D_N(BaseIPProblem_2D):
         # return qDeriv
         return Zero()
 
-    def delete_these_for_sensitivity(self):
+    def delete_these_for_sensitivity(self, sigma=None, rho=None):
         if self._Jmatrix is not None:
             del self._Jmatrix
-        self._MfrhoI = None
+        self._MeSigma = None
+        self._MnSigma = None
+        if sigma is not None:
+            self.sigma = sigma
+        elif rho is not None:
+            self.sigma = 1./rho
+        else:
+            raise Exception("Either sigma or rho should be provided")
