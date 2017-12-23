@@ -108,19 +108,6 @@ class IO(properties.HasProperties):
         ]
     )
 
-    volt_ip = properties.Array(
-        "Measured IP voltages (V)",
-        shape=('*', '*'),
-        dtype=float  # data are floats
-    )
-
-    time_ip = properties.Array(
-        "Time channels of measured IP voltages (s)",
-        required=True,
-        shape=('*',),
-        dtype=float  # data are floats
-    )
-
     sortinds = properties.Array(
         "Sorting indices from ABMN",
         required=True,
@@ -262,7 +249,12 @@ class IO(properties.HasProperties):
 
         uniqSrc = Utils.uniqueRows(np.c_[self.a_locations, self.b_locations])
         uniqElec = SimPEG.Utils.uniqueRows(
-            np.vstack((self.a_locations, self.b_locations, self.m_locations, self.n_locations))
+            np.vstack(
+                (
+                    self.a_locations, self.b_locations,
+                    self.m_locations, self.n_locations
+                )
+                )
             )
         self.electrode_locations = uniqElec[0]
         nSrc = uniqSrc[0].shape[0]
@@ -272,7 +264,7 @@ class IO(properties.HasProperties):
             # 2D locations
             srcLists = []
             sortinds = []
-            for iSrc in range (nSrc):
+            for iSrc in range(nSrc):
                 inds = uniqSrc[2] == iSrc
                 sortinds.append(np.arange(ndata)[inds])
 
@@ -344,6 +336,9 @@ class IO(properties.HasProperties):
                 ncell_per_dipole=4, mesh_type='TensorMesh',
                 dimension=2
                 ):
+        """
+        Set up a mesh for a given DC survey
+        """
         if mesh_type == 'TreeMesh':
             raise NotImplementedError()
 
@@ -391,7 +386,9 @@ class IO(properties.HasProperties):
 
             ncx = np.floor(corexlength/dx)
             ncz = np.floor(corezlength/dz)
-            hx = [(dx, npad_x, -pad_rate_x), (dx, ncx), (dx, npad_x, pad_rate_x)]
+            hx = [
+                (dx, npad_x, -pad_rate_x), (dx, ncx), (dx, npad_x, pad_rate_x)
+            ]
             hz = [(dz, npad_z, -pad_rate_z), (dz, ncz)]
             x0_mesh = -(
                 (dx * 1.3 ** (np.arange(npad_x)+1)).sum() + dx * 3 - x0
