@@ -42,7 +42,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     survey = IO.from_ambn_locations_to_survey(
         survey.a_locations, survey.b_locations,
         survey.m_locations, survey.n_locations,
-        survey_type, data_type='volt'
+        survey_type, data_dc_type='volt'
     )
 
     # Obtain 2D TensorMesh
@@ -112,11 +112,12 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # Make synthetic DC data with 5% Gaussian noise
     dtrue = survey.makeSyntheticData(mtrue, std=0.05, force=True)
 
-    IO.set_dc_data(dc_data=survey.dobs, data_type='volt')
-
+    IO.data_dc = dtrue
     # Show apparent resisitivty pseudo-section
     if plotIt:
-        IO.plot_pseudosection()
+        IO.plotPseudoSection(
+            data=survey.dobs/IO.G, data_type='apparent_resistivity'
+        )
 
     # Show apparent resisitivty histogram
     if plotIt:

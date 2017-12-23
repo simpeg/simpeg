@@ -46,7 +46,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     survey_dc = IO.from_ambn_locations_to_survey(
         survey_dc.a_locations, survey_dc.b_locations,
         survey_dc.m_locations, survey_dc.n_locations,
-        survey_type, data_type='volt'
+        survey_type, data_dc_type='volt', data_ip_type='volt'
     )
 
     # Obtain 2D TensorMesh
@@ -131,7 +131,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # Make synthetic DC data with 5% Gaussian noise
     dtrue_dc = survey_dc.makeSyntheticData(mtrue_dc, std=0.05, force=True)
-    IO.set_dc_data(dc_data=dtrue_dc, data_type="volt")
+    IO.data_dc = dtrue_dc
 
     # Generate mtrue_ip for chargability
     mtrue_ip = charg[actind]
@@ -145,20 +145,20 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     prb_ip.pair(survey_ip)
     dtrue_ip = survey_ip.makeSyntheticData(mtrue_ip, std=0.05)
 
-    IO.set_ip_data(ip_data=dtrue_ip, data_type="voltIP")
+    IO.data_ip = dtrue_ip
 
     # Show apparent resisitivty pseudo-section
     if plotIt:
-        IO.plot_pseudosection(
-            data_type='appResistivity', scale='log',
+        IO.plotPseudoSection(
+            data_type='apparent_resistivity', scale='log',
             cmap='viridis'
         )
         plt.show()
 
     # Show apparent chargeability pseudo-section
     if plotIt:
-        IO.plot_pseudosection(
-            data_type='appChargeability', scale='linear',
+        IO.plotPseudoSection(
+            data_type='apparent_chargeability', scale='linear',
             cmap='magma'
         )
         plt.show()
@@ -167,10 +167,10 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     if plotIt:
         fig = plt.figure(figsize=(10, 4))
         ax1 = plt.subplot(121)
-        out = hist(np.log10(abs(IO.volt)), bins=20)
+        out = hist(np.log10(abs(IO.voltages)), bins=20)
         ax1.set_xlabel("log10 DC voltage (V)")
         ax2 = plt.subplot(122)
-        out = hist(IO.appResistivity, bins=20)
+        out = hist(IO.apparent_resistivity, bins=20)
         ax2.set_xlabel("Apparent Resistivity ($\Omega$m)")
         plt.tight_layout()
         plt.show()
@@ -231,10 +231,10 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     if plotIt:
         fig = plt.figure(figsize=(10, 4))
         ax1 = plt.subplot(121)
-        out = hist(np.log10(abs(IO.voltIP)), bins=20)
+        out = hist(np.log10(abs(IO.voltages_ip)), bins=20)
         ax1.set_xlabel("log10 IP voltage (V)")
         ax2 = plt.subplot(122)
-        out = hist(IO.appChargeability, bins=20)
+        out = hist(IO.apparent_chargeability, bins=20)
         ax2.set_xlabel("Apparent Chargeability (V/V)")
         plt.tight_layout()
         plt.show()
@@ -297,4 +297,4 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
 if __name__ == '__main__':
     survey_type = 'dipole-dipole'
-    run(survey_type=survey_type, plotIt=False)
+    run(survey_type=survey_type, plotIt=True)

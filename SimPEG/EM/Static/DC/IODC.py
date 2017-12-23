@@ -17,7 +17,7 @@ class IO(properties.HasProperties):
     """
 
     # Survey
-    survey_geometry = properties.StringChoice(
+    survey_layout = properties.StringChoice(
         "Survey geometry of DC surveys",
         default="SURFACE",
         choices=["SURFACE", "BOREHOLE", "GENERAL"]
@@ -32,8 +32,8 @@ class IO(properties.HasProperties):
         ]
     )
 
-    dim = properties.Integer(
-        "Dimension of locations",
+    dimension = properties.Integer(
+        "Dimension of electrode locations",
         default=2,
         required=True
     )
@@ -74,36 +74,54 @@ class IO(properties.HasProperties):
     )
 
     # Data
-    data_type = properties.StringChoice(
+    data_dc_type = properties.StringChoice(
         "Type of DC-IP survey",
         required=True,
         default="volt",
         choices=[
-           "volt", "appResistivity", "appConductivity",
-           "voltIP", "appChargeability"
+           "volt", "apparent_resistivity", "apparent_conductivity",
         ]
     )
 
-    dobs = properties.Array(
-        "Measured data",
+    data_dc = properties.Array(
+        "Measured DC data",
         shape=('*',),
         dtype=float  # data are floats
     )
 
-    volt = properties.Array(
-        "Measured DC voltages (V)",
+    data_ip_type = properties.StringChoice(
+        "Type of DC-IP survey",
+        required=True,
+        default="volt",
+        choices=[
+           "volt", "apparent_chargeability",
+        ]
+    )
+
+    data_ip = properties.Array(
+        "Measured IP data",
         shape=('*',),
         dtype=float  # data are floats
     )
 
-    appResistivity = properties.Array(
-        "Measured apparent resistivity (Ohm-m)",
-        shape=('*',),
+    data_sip_type = properties.StringChoice(
+        "Type of DC-IP survey",
+        required=True,
+        default="volt",
+        choices=[
+           "volt", "apparent_chargeability",
+        ]
+    )
+
+    data_sip = properties.Array(
+        "Measured Spectral IP data",
+        shape=('*', '*'),
         dtype=float  # data are floats
     )
 
-    appConductivity = properties.Array(
-        "Measured apparent conductivity (S/m)",
+    times_ip = properties.Array(
+        "Time channels of measured Spectral IP voltages (s)",
+        required=True,
         shape=('*',),
         dtype=float  # data are floats
     )
@@ -126,25 +144,6 @@ class IO(properties.HasProperties):
         choices=[
             "half-space", "whole-space"
         ]
-    )
-
-    voltIP = properties.Array(
-        "Measured IP voltages (V)",
-        shape=('*',),
-        dtype=float  # data are floats
-    )
-
-    appChargeability = properties.Array(
-        "Measured apparent Chargeability (V/V)",
-        shape=('*',),
-        dtype=float  # data are floats
-    )
-
-    timesIP = properties.Array(
-        "Time channels of measured IP voltages (s)",
-        required=True,
-        shape=('*',),
-        dtype=float  # data are floats
     )
 
     sortinds = properties.Array(
@@ -188,27 +187,27 @@ class IO(properties.HasProperties):
     )
 
     pad_rate_x = properties.Float(
-        "The number of padding cells x-direction",
+        "Expansion rate of padding cells in  x-direction",
         required=True,
-        default=5
+        default=1.3
     )
 
     pad_rate_y = properties.Float(
-        "The number of padding cells y-direction",
+        "Expansion rate of padding cells in  y-direction",
         required=True,
-        default=5
+        default=1.3
     )
 
     pad_rate_z = properties.Float(
-        "The number of padding cells z-direction",
+        "Expansion rate of padding cells in  z-direction",
         required=True,
-        default=5
+        default=1.3
     )
 
     ncell_per_dipole = properties.Integer(
         "The number of cells between dipole electrodes",
         required=True,
-        default=5
+        default=4
     )
 
     # For synthetic surveys
@@ -217,58 +216,150 @@ class IO(properties.HasProperties):
     a = None
     n_spacing = None
 
-    def from_ambn_locations_to_survey(
-        self, a_locations, b_locations, m_locations, n_locations,
-        survey_type=None, dobs=None,
-        data_type="volt", fname=None, dim=2
-    ):
+    # Properties
+    @property
+    def voltages(self):
         """
-        read A, B, M, N electrode location and data (V or appResistivity)
+        Votages (V)
+        """
+        if self.data_dc_type.lower() == "volt":
+            return self.data_dc
+        elif self.data_dc_type.lower() == "apparent_resistivity":
+            return self.data_dc * self.G
+        elif self.data_dc_type.lower() == "apparent_conductivity":
+            return self.apparent_conductivity / (self.data_dc * self.G)
+        else:
+            raise NotImplementedError()
+
+    @property
+    def apparent_resistivity(self):
+        """
+        Apparent Resistivity (Ohm-m)
+        """
+        if self.data_dc_type.lower() == "apparent_resistivity":
+            return self.data_dc
+        elif self.data_dc_type.lower() == "volt":
+            return self.data_dc / self.G
+        elif self.data_dc_type.lower() == "apparent_conductivity":
+            return 1./self.data_dc
+        else:
+            print(self.data_dc_type.lower())
+            raise NotImplementedError()
+
+    @property
+    def apparent_conductivity(self):
+        """
+        Apparent Conductivity (S/m)
+        """
+        if self.data_dc_type.lower() == "apparent_conductivity":
+            return self.data_dc
+        elif self.data_dc_type.lower() == "apparent_resistivity":
+            return 1./self.data_dc
+        elif self.data_dc_type.lower() == "volt":
+            return 1./self.data_dc * self.G
+
+    # For IP
+    @property
+    def voltages_ip(self):
+        """
+        IP votages (V)
+        """
+        if self.data_ip_type.lower() == "volt":
+            return self.data_ip
+        elif self.data_ip_type.lower() == "apparent_chargeability":
+            if self.voltages is None:
+                raise Exception(
+                    "DC voltages must be set to compute IP voltages"
+                    )
+            return self.data_ip * self.voltages
+        else:
+            raise NotImplementedError()
+
+    @property
+    def apparent_chargeability(self):
+        """
+        Apparent Conductivity (S/m)
+        """
+        if self.data_ip_type.lower() == "apparent_chargeability":
+            return self.data_ip
+        elif self.data_ip_type.lower() == "volt":
+            if self.voltages is None:
+                raise Exception(
+                    "DC voltages must be set to compute Apparent Chargeability"
+                    )
+            return self.data_ip / self.voltages
+        else:
+            raise NotImplementedError()
+
+    def geometric_factor(self, survey):
+        """
+        Compute geometric factor, G, using locational informaition
+        in survey object
         """
         geometric_factor = SimPEG.EM.Static.Utils.StaticUtils.geometric_factor
+        G = geometric_factor(
+            survey, survey_type=self.survey_type, space_type=self.space_type
+            )
+        return G
 
+    def from_ambn_locations_to_survey(
+        self, a_locations, b_locations, m_locations, n_locations,
+        survey_type=None, data_dc=None, data_ip=None, data_sip=None,
+        data_dc_type="volt", data_ip_type="volt", data_sip_type="volt",
+        fname=None, dimension=2
+    ):
+        """
+        read A, B, M, N electrode location and data (V or apparent_resistivity)
+        """
         self.a_locations = a_locations.copy()
         self.b_locations = b_locations.copy()
         self.m_locations = m_locations.copy()
         self.n_locations = n_locations.copy()
         self.survey_type = survey_type
-        self.data_type = data_type
-        self.dim = dim
+        self.dimension = dimension
+        self.data_dc_type = data_dc_type
+        self.data_ip_type = data_ip_type
+        self.data_sip_type = data_sip_type
 
         uniqSrc = Utils.uniqueRows(np.c_[self.a_locations, self.b_locations])
         uniqElec = SimPEG.Utils.uniqueRows(
-            np.vstack((self.a_locations, self.b_locations, self.m_locations, self.n_locations))
+            np.vstack(
+                (
+                    self.a_locations, self.b_locations,
+                    self.m_locations, self.n_locations
+                )
+                )
             )
         self.electrode_locations = uniqElec[0]
         nSrc = uniqSrc[0].shape[0]
         ndata = self.a_locations.shape[0]
 
-        if self.survey_geometry == "SURFACE":
+        if self.survey_layout == "SURFACE":
             # 2D locations
             srcLists = []
             sortinds = []
-            for iSrc in range (nSrc):
+            for iSrc in range(nSrc):
                 inds = uniqSrc[2] == iSrc
                 sortinds.append(np.arange(ndata)[inds])
 
                 locsM = self.m_locations[inds, :]
                 locsN = self.n_locations[inds, :]
 
-                if (survey_type == 'dipole-dipole') or (survey_type == 'pole-dipole'):
+                if survey_type in ['dipole-dipole', 'pole-dipole']:
                     rx = Rx.Dipole_ky(locsM, locsN)
-                elif (survey_type == 'dipole-pole') or (survey_type == 'pole-pole'):
+                elif survey_type in ['dipole-pole', 'pole-pole']:
                     rx = Rx.Pole_ky(locsM)
 
-                if dim == 2:
+                if dimension == 2:
                     locA = uniqSrc[0][iSrc, :2]
                     locB = uniqSrc[0][iSrc, 2:]
-                elif dim == 3:
+                elif dimension == 3:
                     locA = uniqSrc[0][iSrc, :3]
                     locB = uniqSrc[0][iSrc, 3:]
 
-                if (survey_type == 'dipole-dipole') or (survey_type == 'dipole-pole'):
+                if survey_type in ['dipole-dipole', 'dipole-pole']:
                     src = Src.Dipole([rx], locA, locB)
-                elif (survey_type == 'pole-dipole') or (survey_type == 'pole-pole'):
+                elif survey_type in ['pole-dipole', 'pole-pole']:
                     src = Src.Pole([rx], locA)
 
                 srcLists.append(src)
@@ -279,36 +370,26 @@ class IO(properties.HasProperties):
             self.b_locations = self.b_locations[self.sortinds, :]
             self.m_locations = self.m_locations[self.sortinds, :]
             self.n_locations = self.n_locations[self.sortinds, :]
-            self.G = geometric_factor(
-                survey, survey_type=self.survey_type,
-                space_type=self.space_type
-                )
-            if dobs is None:
-                self.dobs = 100.*self.G
-            else:
-                self.dobs = dobs[self.sortinds]
+            self.G = self.geometric_factor(survey)
 
-            if self.data_type == "volt":
-                self.volt = self.dobs.copy()
-                self.appResistivity = self.volt / self.G
-            elif self.data_type == "appResistivity":
-                self.appResistivity = self.dobs.copy()
-                self.volt = self.appResistivity * self.G
-                self.dobs = self.volt.copy()
-            else:
-                raise NotImplementedError()
+            if data_dc is not None:
+                self.data_dc = data_dc[self.sortinds]
+            if data_ip is not None:
+                self.data_ip = data_ip[self.sortinds]
+            if data_sip is not None:
+                self.data_ip = data_sip[self.sortinds, :]
 
             # Here we ignore ... z-locations
 
             midABx = (self.a_locations[:, 0] + self.b_locations[:, 0])*0.5
             midMNx = (self.m_locations[:, 0] + self.n_locations[:, 0])*0.5
 
-            if dim == 2:
+            if dimension == 2:
                 z = abs(midABx-midMNx)*1./3.
                 x = (midABx+midMNx)*0.5
                 self.grids = np.c_[x, z]
 
-            elif dim == 3:
+            elif dimension == 3:
                 midABy = (self.a_locations[:, 1] + self.b_locations[:, 1])*0.5
                 midMNy = (self.m_locations[:, 1] + self.n_locations[:, 1])*0.5
                 z = np.sqrt((midABx-midMNx)**2 + (midABy-midMNy)**2) * 1./3.
@@ -321,46 +402,21 @@ class IO(properties.HasProperties):
             raise NotImplementedError()
         return survey
 
-    def set_dc_data(self, dc_data, data_type='volt'):
-        if data_type == 'volt':
-            self.volt = dc_data.copy()
-            self.appResistivity = self.volt / self.G
-            self.appConductivity = 1./self.appResistivity
-        elif data_type == 'appResistivity':
-            self.appResistivity = dc_data.copy()
-            self.volt = self.appResistivity * self.G
-            self.appConductivity = 1./self.appResistivity
-        elif data_type == 'appConductivity':
-            self.appConductivity = dc_data.copy()
-            self.appResistivity = 1./self.appConductivity
-            self.volt = self.appResistivity * self.G
-        else:
-            raise NotImplementedError()
-
-    def set_ip_data(self, ip_data, data_type='appChargeability', dc_data=None):
-        if data_type == 'voltIP':
-            self.voltIP = ip_data.copy()
-            self.appChargeability = self.voltIP / self.volt
-        elif data_type == 'appChargeability':
-            self.appChargeability = ip_data.copy()
-            self.voltIP = self.appChargeability * self.volt
-        else:
-            raise NotImplementedError()
-
     def set_mesh(self, topo=None,
                 dx=None, dz=None,
                 n_spacing=None, corezlength=None,
                 npad_x=7, npad_z=7,
                 pad_rate_x=1.3, pad_rate_y=1.3, pad_rate_z=1.3,
                 ncell_per_dipole=4, mesh_type='TensorMesh',
-                dim=2
+                dimension=2
                 ):
+        """
+        Set up a mesh for a given DC survey
+        """
         if mesh_type == 'TreeMesh':
             raise NotImplementedError()
 
-        electrode_separations = SimPEG.EM.Static.Utils.StaticUtils.electrode_separations
-
-        if dim == 2:
+        if dimension == 2:
             a = abs(np.diff(np.sort(self.electrode_locations[:, 0]))).min()
             lineLength = abs(
                 self.electrode_locations[:, 0].max() -
@@ -404,7 +460,9 @@ class IO(properties.HasProperties):
 
             ncx = np.floor(corexlength/dx)
             ncz = np.floor(corezlength/dz)
-            hx = [(dx, npad_x, -pad_rate_x), (dx, ncx), (dx, npad_x, pad_rate_x)]
+            hx = [
+                (dx, npad_x, -pad_rate_x), (dx, ncx), (dx, npad_x, pad_rate_x)
+            ]
             hz = [(dz, npad_z, -pad_rate_z), (dz, ncz)]
             x0_mesh = -(
                 (dx * 1.3 ** (np.arange(npad_x)+1)).sum() + dx * 3 - x0
@@ -413,7 +471,7 @@ class IO(properties.HasProperties):
             mesh = Mesh.TensorMesh([hx, hz], x0=[x0_mesh, z0_mesh])
             actind = Utils.surface2ind_topo(mesh, locs)
             print (mesh)
-        elif dim == 3:
+        elif dimension == 3:
             raise NotImplementedError()
 
         else:
@@ -421,49 +479,56 @@ class IO(properties.HasProperties):
 
         return mesh, actind
 
-    def plot_pseudosection(
-        self, data_type="appResistivity",
+    def plotPseudoSection(
+        self, data_type="apparent_resistivity",
         data=None,
         dataloc=True, aspect_ratio=2,
         scale="log",
-        cmap="viridis", ncontour=10, ax=None, figname=None,
-        label=None
+        cmap="viridis", ncontour=10, ax=None,
+        figname=None, clim=None, label=None
     ):
         """
             Plot 2D pseudo-section for DC-IP data
         """
         matplotlib.rcParams['font.size'] = 12
 
-        if self.dim == 2:
+        if self.dimension == 2:
+
             if ax is None:
                 fig = plt.figure(figsize=(10, 5))
                 ax = plt.subplot(111)
-
-            if data_type == "appResistivity":
-                if data is not None:
-                    val = data.copy()
+            if data_type == "apparent_resistivity":
+                if data is None:
+                    val = self.apparent_resistivity
                 else:
-                    val = self.appResistivity.copy()
+                    val = data.copy()
                 label = "Apparent Res. ($\Omega$m)"
             elif data_type == "volt":
-                if data is not None:
-                    val = data.copy()
+                if data is None:
+                    val = self.voltages
                 else:
-                    val = self.volt.copy()
+                    val = data.copy()
                 label = "Voltage (V)"
-            elif data_type == "appChargeability":
+            elif data_type == "apparent_conductivity":
+                if data is None:
+                    val = self.apparent_conductivity
+                else:
+                    val = data.copy()
+                label = "Apparent Cond. (S/m)"
+            elif data_type == "apparent_chargeability":
                 if data is not None:
                     val = data.copy()
                 else:
-                    val = self.appChargeability.copy() * 1e3
+                    val = self.apparent_chargeability.copy() * 1e3
                 label = "Apparent Charg. (mV/V)"
-            elif data_type == "voltIP":
+            elif data_type == "volt_ip":
                 if data is not None:
                     val = data.copy()
                 else:
-                    val = self.voltIP.copy() * 1e3
+                    val = self.voltages_ip.copy() * 1e3
                 label = "Secondary voltage. (mV)"
             else:
+                print (data_type)
                 raise NotImplementedError()
             if scale == "log":
                 fmt = "10$^{%.1f}$"
@@ -478,7 +543,8 @@ class IO(properties.HasProperties):
                 ax=ax,
                 dataloc=dataloc,
                 scale=scale,
-                ncontour=ncontour
+                ncontour=ncontour,
+                clim=clim
             )
             ax.invert_yaxis()
             ax.set_xlabel("x (m)")
@@ -490,3 +556,6 @@ class IO(properties.HasProperties):
             plt.tight_layout()
             if figname is not None:
                 fig.savefig(figname, dpi=200)
+
+        else:
+            raise NotImplementedError()
