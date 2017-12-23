@@ -114,7 +114,9 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # Show apparent resisitivty pseudo-section
     if plotIt:
-        IO.plotPseudoSection(dobs=survey.dobs)
+        IO.plotPseudoSection(
+            data=survey.dobs/IO.G, data_type='apparent_resistivity'
+        )
 
     # Show apparent resisitivty histogram
     if plotIt:

@@ -7,7 +7,7 @@ import unittest
 class TestsIO_2D(unittest.TestCase):
 
     def setUp(self):
-        self.plotIt = False
+        self.plotIt = True
         np.random.seed(1)
         # Initiate I/O class for DC
         self.IO = DC.IO()
@@ -27,11 +27,12 @@ class TestsIO_2D(unittest.TestCase):
         self.survey = self.IO.from_ambn_locations_to_survey(
             self.survey.a_locations, self.survey.b_locations,
             self.survey.m_locations, self.survey.n_locations,
-            'dipole-dipole', data_type='volt'
+            'dipole-dipole', data_type='apparent_resistivity',
+            dobs=np.ones(self.survey.nD)*100.
         )
 
         if self.plotIt:
-            self.IO.plotPseudoSection()
+            self.IO.plotPseudoSection(data_type='apparent_resistivity')
             plt.show()
         mesh, actind = self.IO.setMesh()
 
@@ -43,11 +44,12 @@ class TestsIO_2D(unittest.TestCase):
         self.survey = self.IO.from_ambn_locations_to_survey(
             self.survey.a_locations, self.survey.b_locations,
             self.survey.m_locations, self.survey.n_locations,
-            'dipole-dipole', data_type='volt'
+            'dipole-dipole', data_type='apparent_resistivity',
+            dobs=np.ones(self.survey.nD)*100.
         )
 
         if self.plotIt:
-            self.IO.plotPseudoSection()
+            self.IO.plotPseudoSection(data_type='apparent_resistivity')
             plt.show()
 
         mesh, actind = self.IO.setMesh()
