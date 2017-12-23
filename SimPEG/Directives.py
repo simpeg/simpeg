@@ -505,6 +505,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         if fname is not None:
             fig.savefig(fname, dpi=dpi)
 
+
 class SaveOutputDictEveryIteration(SaveEveryIteration):
     """
         Saves inversion parameters at every iteraion.

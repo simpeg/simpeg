@@ -7,14 +7,15 @@ import numpy as np
 import SimPEG
 from SimPEG.EM.Base import BaseEMSurvey
 from SimPEG import Utils
-from SimPEG.EM.Static.SIP.SrcSIP import BaseSrc
-from SimPEG.EM.Static.SIP.RxSIP import BaseRx
+from . import RxSIP as Rx
+from . import SrcSIP as Src
+from SimPEG.EM.Static import DC
 import uuid
 
 
 class Survey(BaseEMSurvey):
-    rxPair = BaseRx
-    srcPair = BaseSrc
+    rxPair = Rx.BaseRx
+    srcPair = Src.BaseSrc
     times = None
 
     def __init__(self, srcList, **kwargs):
@@ -106,7 +107,7 @@ class Data(SimPEG.Survey.Data):
                     indBot += rx.nRx
 
 
-def from_dc_to_sip_survey(survey_dc):
+def from_dc_to_sip_survey(survey_dc, times):
     """
     Generate sip survey from dc survey
     """
@@ -117,20 +118,20 @@ def from_dc_to_sip_survey(survey_dc):
         rxList_sip = []
         for rx in src.rxList:
             if isinstance(rx, DC.Rx.Pole_ky):
-                rx_sip = DC.Rx.Pole(rx.locs)
+                rx_sip = Rx.Pole(rx.locs, times=times)
             elif isinstance(rx, DC.Rx.Dipole_ky):
-                rx_sip = DC.Rx.Dipole(rx.locs[0], rx.locs[1])
+                rx_sip = Rx.Dipole(rx.locs[0], rx.locs[1], times=times)
             else:
                 print (rx)
                 raise NotImplementedError()
             rxList_sip.append(rx_sip)
 
         if isinstance(src, DC.Src.Pole):
-            src_sip = DC.Src.Pole(
-                rxList_sip, src_sip.loc
+            src_sip = Src.Pole(
+                rxList_sip, src.loc
             )
         elif isinstance(src, DC.Src.Dipole):
-            src_sip = DC.Src.Dipole(
+            src_sip = Src.Dipole(
                 rxList_sip, src.loc[0], src.loc[1]
             )
         else:
