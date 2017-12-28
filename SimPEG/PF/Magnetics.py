@@ -35,6 +35,7 @@ class MagneticIntegral(Problem.LinearProblem):
     equiSourceLayer = False
     silent = False  # Don't display progress on screen
     W = None
+    memory_saving_mode = False
 
     def __init__(self, mesh, **kwargs):
 
@@ -82,16 +83,6 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return self._nD
 
-    # @property
-    # def mapping(self):
-    #     """
-    #         Return chiMap
-    #     """
-    #     if getattr(self, '_mapping', None) is None:
-    #         self._mapping = self.chiMap
-
-    #     return self._mapping
-
     @property
     def ProjTMI(self):
         if not self.ispaired:
@@ -115,10 +106,20 @@ class MagneticIntegral(Problem.LinearProblem):
         """
 
         if W is None:
-            W = 1.
+            W = sp.speye(self.F.shape[0])
 
         dmudm = self.chiMap.deriv(m)
-        return np.sum((W * self.F * dmudm)**2., axis=0)
+
+        if self.memory_saving_mode:
+            wd = W.diagonal()
+            JtJdiag = np.zeros_like(m)
+            for ii in range(self.F.shape[0]):
+                JtJdiag += ((wd[ii] * self.F[ii, :]) * dmudm)**2.
+
+            return JtJdiag
+
+        else:
+            return np.sum((W * self.F * dmudm)**2., axis=0)
 
     def getJ(self, m, f):
         """
@@ -324,6 +325,7 @@ class MagneticVector(MagneticIntegral):
     scale = 1.
     W = None
     threshold = None
+    memory_saving_mode = False
     coordinate_system = properties.StringChoice(
     "Type of coordinate system we are regularizing in",
     choices=['cartesian', 'spherical'],
@@ -374,14 +376,45 @@ class MagneticVector(MagneticIntegral):
         """
 
         if W is None:
-            W = 1.
+            W = Utils.speye(self.F.shape[0])
 
         dmudm = self.chiMap.deriv(m)
-        if self.coordinate_system == 'cartesian':
-            return np.sum((W * self.F * dmudm)**2., axis=0)
+
+        if self.memory_saving_mode:
+            wd = W.diagonal()
+            JtJdiag = np.zeros_like(m).astype(np.float64)
+
+            if self.coordinate_system == 'cartesian':
+                for ii in range(self.F.shape[0]):
+                    JtJdiag += ((wd[ii].astype(np.float32) * self.F[ii, :]) * dmudm)**2.
+            else:
+                for ii in range(self.F.shape[0]):
+                    JtJdiag += ((wd[ii].astype(np.float32) * self.F[ii, :]) *
+                                (self.S * dmudm))**2.
+
+            return JtJdiag
 
         else:
-            return np.sum((W * self.F * (self.S * dmudm))**2., axis=0)
+            if self.coordinate_system == 'cartesian':
+                return np.sum((W * self.F * dmudm)**2., axis=0)
+
+            else:
+                return np.sum((W * self.F * (self.S * dmudm))**2., axis=0)
+
+    # def getJtJdiag(self, m, W=None):
+    #     """
+    #         Return the diagonal of JtJ
+    #     """
+
+    #     if W is None:
+    #         W = 1.
+
+    #     dmudm = self.chiMap.deriv(m)
+    #     if self.coordinate_system == 'cartesian':
+    #         return np.sum((W * self.F * dmudm)**2., axis=0)
+
+    #     else:
+    #         return np.sum((W * self.F * (self.S * dmudm))**2., axis=0)
 
     def getJ(self, chi, f=None):
 

@@ -277,28 +277,28 @@ class ComboMap(IdentityMap):
     def deriv(self, m, v=None):
 
         for ii, maps in enumerate(self.maps):
-            
+
             if v is not None:
                 deriv = v
             else:
                 deriv = 1
-            mi = m 
-            
+            mi = m
+
             if isinstance(maps, ComboMap):
                 mapList = reversed(maps)
-                
+
             else:
-                mapList = [maps]    
-                
+                mapList = [maps]
+
             for map_i in mapList:
                 deriv = map_i.deriv(mi) * deriv
                 mi = map_i * mi
-            
+
             if ii == 0:
                 comboDeriv = deriv
             else:
                 comboDeriv += deriv
-            
+
         return comboDeriv
 
     def __str__(self):
@@ -401,7 +401,7 @@ class Sum(ComboMap):
     def _transform(self, m):
 
         for ii, map_i in enumerate(reversed(self.maps)):
-            
+
             if ii == 0:
                 mout = map_i * m
             else:
@@ -637,6 +637,7 @@ class Tile(IdentityMap):
             # self.level = level
             indx = self.getTreeIndex(self.tree, self.meshGlobal, self.actvGlobal)
 
+            self._tree = None
             # Get the node coordinates (bottom-SW) and (top-NE) of cells
             global_bsw, global_tne = self.getNodeExtent(self.meshGlobal,
                                                         self.actvGlobal)
