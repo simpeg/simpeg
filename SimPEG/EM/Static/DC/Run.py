@@ -24,6 +24,7 @@ def run_inversion(
         reg = Regularization.Simple(mesh, indActive=actind, mapping=regmap)
     else:
         reg = Regularization.Tikhonov(mesh, indActive=actind, mapping=regmap)
+        reg.alpha_s = 1./mesh.hx.min()
     opt = Optimization.ProjectedGNCG(maxIter=maxIter, upper=upper, lower=lower)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
     beta = Directives.BetaSchedule(

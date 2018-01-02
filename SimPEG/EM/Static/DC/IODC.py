@@ -442,10 +442,10 @@ class IO(properties.HasProperties):
             zmax = locs[:, 1].max()
             zmin = locs[:, 1].min()
             if dx > dx_ideal:
-                warnings.warn(
-                    "Input dx ({}) is greater than expected \n We recommend using {:0.1e} m cells, that is, {:i} cells per {0.1e} m dipole length".format(dx, dx_ideal, ncell_per_dipole, a)
-                )
-
+                # warnings.warn(
+                #     "Input dx ({}) is greater than expected \n We recommend using {:0.1e} m cells, that is, {} cells per {0.1e} m dipole length".format(dx, dx_ideal, ncell_per_dipole, a)
+                # )
+                pass
             self.dx = dx
             self.dz = dz
             self.npad_x = npad_x
