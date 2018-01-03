@@ -618,15 +618,18 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
             'dipole-pole','pole-pole' or 'gradient'"""
             " not {}".format(survey_type)
         )
-
-    survey = DC.Survey(SrcList)
+    if (d2flag == '2.5D') and (dim == 2):
+        survey = DC.Survey_ky(SrcList)
+    else:
+        survey = DC.Survey(SrcList)
 
     return survey
 
 
 def writeUBC_DCobs(
     fileName, dc_survey, dim, format_type,
-    survey_type='dipole-dipole', ip_type=0
+    survey_type='dipole-dipole', ip_type=0,
+    comment_lines=''
 ):
     """
         Write UBC GIF DCIP 2D or 3D observation file
@@ -669,11 +672,19 @@ def writeUBC_DCobs(
 
     fid = open(fileName, 'w')
 
+    if format_type in ['SURFACE', 'GENERAL'] and dim == 2:
+        fid.write('COMMON_CURRENT\n')
+
+    fid.write('! ' + format_type + ' FORMAT\n')
+
+    if comment_lines:
+        fid.write(comment_lines)
+
+    if dim == 2:
+        fid.write('{:d}\n'.format(dc_survey.nSrc))
+
     if ip_type != 0:
         fid.write('IPTYPE=%i\n' % ip_type)
-
-    else:
-        fid.write('! ' + format_type + ' FORMAT\n')
 
     fid.close()
 
@@ -729,7 +740,7 @@ def writeUBC_DCobs(
                 fid = open(fileName, 'a')
                 if format_type == 'SURFACE':
 
-                    fid.writelines("%f " % ii for ii in Utils.mkvc(tx[0, :]))
+                    fid.writelines("%f " % ii for ii in Utils.mkvc(tx[:, 0]))
                     M = M[:, 0]
                     N = N[:, 0]
 
@@ -738,9 +749,9 @@ def writeUBC_DCobs(
                     # Flip sign for z-elevation to depth
                     tx[2::2, :] = -tx[2::2, :]
 
-                    fid.writelines("%e " % ii for ii in Utils.mkvc(tx[::2, :]))
-                    M = M[:, 0::2]
-                    N = N[:, 0::2]
+                    fid.writelines(('{:e} {:e} ').format(ii, jj) for ii, jj in tx[:, :2])
+                    M = M[:, :2]
+                    N = N[:, :2]
 
                     # Flip sign for z-elevation to depth
                     M[:, 1::2] = -M[:, 1::2]
