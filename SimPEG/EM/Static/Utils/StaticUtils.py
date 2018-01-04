@@ -1129,56 +1129,6 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
     return survey2D
 
 
-def readUBC_DC2DModel(fileName):
-    """
-        Read UBC GIF 2DTensor model and generate 2D Tensor model in simpeg
-
-        Input:
-        :param string fileName: path to the UBC GIF 2D model file
-
-        Output:
-        :param SimPEG TensorMesh 2D object
-        :return
-    """
-
-    # Open fileand skip header... assume that we know the mesh already
-    obsfile = np.genfromtxt(
-        fileName, delimiter=' \n',
-        dtype=np.str, comments='!'
-    )
-
-    dim = np.array(obsfile[0].split(), dtype=int)
-
-    temp = np.array(obsfile[1].split(), dtype=float)
-
-    if len(temp) > 1:
-        model = np.zeros((dim[0], dim[1]))
-
-        for ii in range(len(obsfile)-1):
-            mm = np.array(obsfile[ii+1].split(), dtype=float)
-            model[:, ii] = mm
-
-        model = model[:, ::-1]
-
-    else:
-
-        if len(obsfile[1:]) == 1:
-            mm = np.array(obsfile[1:].split(), dtype=float)
-
-        else:
-            mm = np.array(obsfile[1:], dtype=float)
-
-        # Permute the second dimension to flip the order
-        model = mm.reshape(dim[1], dim[0])
-
-        model = model[::-1, :]
-        model = np.transpose(model, (1, 0))
-
-    model = Utils.mkvc(model)
-
-    return model
-
-
 def readUBC_DC2Dpre(fileName):
     """
         Read UBC GIF DCIP 2D observation file and generate arrays
