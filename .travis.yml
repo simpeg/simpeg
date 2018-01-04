@@ -42,9 +42,9 @@ env:
 before_install:
 # Install packages
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      wget https://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh -O miniconda.sh;
+      wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
     else
-      wget https://repo.continuum.io/miniconda/Miniconda3-3.8.3-Linux-x86_64.sh -O miniconda.sh;
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
     fi
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
@@ -53,9 +53,9 @@ before_install:
 
 install:
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py vtk;
+      conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py vtk;
     else
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
+      conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
     fi
   - pip install -r requirements_dev.txt
   - python setup.py install
