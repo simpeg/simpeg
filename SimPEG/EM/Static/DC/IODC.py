@@ -8,7 +8,7 @@ import SimPEG
 from SimPEG import Utils, Mesh
 from . import SrcDC as Src
 from . import RxDC as Rx
-from .SurveyDC import Survey_ky
+from .SurveyDC import Survey_ky, Survey
 
 
 class IO(properties.HasProperties):
@@ -344,11 +344,18 @@ class IO(properties.HasProperties):
 
                 locsM = self.m_locations[inds, :]
                 locsN = self.n_locations[inds, :]
-
-                if survey_type in ['dipole-dipole', 'pole-dipole']:
-                    rx = Rx.Dipole_ky(locsM, locsN)
-                elif survey_type in ['dipole-pole', 'pole-pole']:
-                    rx = Rx.Pole_ky(locsM)
+                if dimension == 2:
+                    if survey_type in ['dipole-dipole', 'pole-dipole']:
+                        rx = Rx.Dipole_ky(locsM, locsN)
+                    elif survey_type in ['dipole-pole', 'pole-pole']:
+                        rx = Rx.Pole_ky(locsM)
+                elif dimension == 3:
+                    if survey_type in ['dipole-dipole', 'pole-dipole']:
+                        rx = Rx.Dipole(locsM, locsN)
+                    elif survey_type in ['dipole-pole', 'pole-pole']:
+                        rx = Rx.Pole(locsM)                    
+                else:
+                    raise NotImplementedError()
 
                 if dimension == 2:
                     locA = uniqSrc[0][iSrc, :2]
@@ -365,7 +372,14 @@ class IO(properties.HasProperties):
                 srcLists.append(src)
 
             self.sortinds = np.hstack(sortinds)
-            survey = Survey_ky(srcLists)
+
+            if dimension == 2:
+                survey = Survey_ky(srcLists)
+            elif dimension == 3:
+                survey = Survey(srcLists)
+            else:
+                raise NotImplementedError()
+
             self.a_locations = self.a_locations[self.sortinds, :]
             self.b_locations = self.b_locations[self.sortinds, :]
             self.m_locations = self.m_locations[self.sortinds, :]
@@ -403,9 +417,9 @@ class IO(properties.HasProperties):
         return survey
 
     def set_mesh(self, topo=None,
-                dx=None, dz=None,
+                dx=None, dy=None, dz=None, 
                 n_spacing=None, corezlength=None,
-                npad_x=7, npad_z=7,
+                npad_x=7, npad_y=7, npad_z=7,
                 pad_rate_x=1.3, pad_rate_y=1.3, pad_rate_z=1.3,
                 ncell_per_dipole=4, mesh_type='TensorMesh',
                 dimension=2
@@ -416,7 +430,8 @@ class IO(properties.HasProperties):
         if mesh_type == 'TreeMesh':
             raise NotImplementedError()
 
-        if dimension == 2:
+        # 2D or 3D mesh
+        if dimension in [2, 3]:
             a = abs(np.diff(np.sort(self.electrode_locations[:, 0]))).min()
             lineLength = abs(
                 self.electrode_locations[:, 0].max() -
@@ -439,8 +454,6 @@ class IO(properties.HasProperties):
             else:
                 locs = np.vstack((topo, self.electrode_locations))
 
-            zmax = locs[:, 1].max()
-            zmin = locs[:, 1].min()
             if dx > dx_ideal:
                 # warnings.warn(
                 #     "Input dx ({}) is greater than expected \n We recommend using {:0.1e} m cells, that is, {} cells per {0.1e} m dipole length".format(dx, dx_ideal, ncell_per_dipole, a)
@@ -453,6 +466,13 @@ class IO(properties.HasProperties):
             self.pad_rate_x = pad_rate_x
             self.pad_rate_z = pad_rate_z
             self.ncell_per_dipole = ncell_per_dipole
+            if dimension == 2:
+                zmax = locs[:, 1].max()
+                zmin = locs[:, 1].min()
+            else:
+                zmax = locs[:, 2].max()
+                zmin = locs[:, 2].min()
+
             # 3 cells each for buffer
             corexlength = lineLength + dx * 6
             if corezlength is None:
@@ -468,12 +488,45 @@ class IO(properties.HasProperties):
                 (dx * 1.3 ** (np.arange(npad_x)+1)).sum() + dx * 3 - x0
             )
             z0_mesh = -((dz * 1.3 ** (np.arange(npad_z)+1)).sum() + dz * ncz) + zmax
-            mesh = Mesh.TensorMesh([hx, hz], x0=[x0_mesh, z0_mesh])
-            actind = Utils.surface2ind_topo(mesh, locs)
-            print (mesh)
-        elif dimension == 3:
-            raise NotImplementedError()
+            
+            # For 2D mesh
+            if dimension == 2:
+                h = [hx, hz]
+                x0_for_mesh = [x0_mesh, z0_mesh]
+                self.xyzlim = np.vstack((
+                    np.r_[x0, x0+corexlength],
+                    np.r_[zmax-corezlength, zmax]
+                ))
 
+            # For 3D mesh            
+            else:
+                if dy is None:
+                    raise Exception("You must input dy (m)")
+
+                self.dy = dy
+                self.npad_y = npad_y
+                self.pad_rate_y = pad_rate_y
+
+                ylocs = np.unique(self.electrode_locations[:,1])
+                ymin, ymax = ylocs.min(), ylocs.max()
+                # 2 cells each for buffer in y-direction
+                coreylength = ymax-ymin+4*dy
+                ncy = np.floor(coreylength/dy)
+                hy = [(dy, npad_y, -pad_rate_y), (dy, ncy), (dy, npad_y, pad_rate_y)]
+                y0 = ylocs.min()-dy/2.
+                y0_mesh = -(
+                    (dy * pad_rate_y ** (np.arange(npad_y)+1)).sum() + dy*2 - y0
+                )
+
+                h = [hx, hy, hz]
+                x0_for_mesh = [x0_mesh, y0_mesh, z0_mesh]
+                self.xyzlim = np.vstack((
+                    np.r_[x0, x0+corexlength],
+                    np.r_[y0, y0+coreylength],
+                    np.r_[zmax-corezlength, zmax]
+                ))
+            mesh = Mesh.TensorMesh(h, x0=x0_for_mesh)
+            actind = Utils.surface2ind_topo(mesh, locs)
         else:
             raise NotImplementedError()
 
