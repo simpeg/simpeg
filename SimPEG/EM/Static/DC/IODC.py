@@ -146,7 +146,13 @@ class IO(properties.HasProperties):
         ]
     )
 
-    sortinds = properties.Array(
+    line_inds = properties.Array(
+        "Line indices",
+        required=True,
+        shape=('*',),
+        dtype=int  # data are floats
+    )
+    sort_inds = properties.Array(
         "Sorting indices from ABMN",
         required=True,
         shape=('*',),
@@ -215,6 +221,7 @@ class IO(properties.HasProperties):
     lineLength = None
     a = None
     n_spacing = None
+    n_data = None
 
     # Properties
     @property
@@ -306,7 +313,7 @@ class IO(properties.HasProperties):
         self, a_locations, b_locations, m_locations, n_locations,
         survey_type=None, data_dc=None, data_ip=None, data_sip=None,
         data_dc_type="volt", data_ip_type="volt", data_sip_type="volt",
-        fname=None, dimension=2
+        fname=None, dimension=2, line_inds=None
     ):
         """
         read A, B, M, N electrode location and data (V or apparent_resistivity)
@@ -337,10 +344,10 @@ class IO(properties.HasProperties):
         if self.survey_layout == "SURFACE":
             # 2D locations
             srcLists = []
-            sortinds = []
+            sort_inds = []
             for iSrc in range(nSrc):
                 inds = uniqSrc[2] == iSrc
-                sortinds.append(np.arange(ndata)[inds])
+                sort_inds.append(np.arange(ndata)[inds])
 
                 locsM = self.m_locations[inds, :]
                 locsN = self.n_locations[inds, :]
@@ -353,7 +360,7 @@ class IO(properties.HasProperties):
                     if survey_type in ['dipole-dipole', 'pole-dipole']:
                         rx = Rx.Dipole(locsM, locsN)
                     elif survey_type in ['dipole-pole', 'pole-pole']:
-                        rx = Rx.Pole(locsM)                    
+                        rx = Rx.Pole(locsM)
                 else:
                     raise NotImplementedError()
 
@@ -371,7 +378,7 @@ class IO(properties.HasProperties):
 
                 srcLists.append(src)
 
-            self.sortinds = np.hstack(sortinds)
+            self.sort_inds = np.hstack(sort_inds)
 
             if dimension == 2:
                 survey = Survey_ky(srcLists)
@@ -380,20 +387,22 @@ class IO(properties.HasProperties):
             else:
                 raise NotImplementedError()
 
-            self.a_locations = self.a_locations[self.sortinds, :]
-            self.b_locations = self.b_locations[self.sortinds, :]
-            self.m_locations = self.m_locations[self.sortinds, :]
-            self.n_locations = self.n_locations[self.sortinds, :]
+            self.a_locations = self.a_locations[self.sort_inds, :]
+            self.b_locations = self.b_locations[self.sort_inds, :]
+            self.m_locations = self.m_locations[self.sort_inds, :]
+            self.n_locations = self.n_locations[self.sort_inds, :]
             self.G = self.geometric_factor(survey)
 
             if data_dc is not None:
-                self.data_dc = data_dc[self.sortinds]
+                self.data_dc = data_dc[self.sort_inds]
             if data_ip is not None:
-                self.data_ip = data_ip[self.sortinds]
+                self.data_ip = data_ip[self.sort_inds]
             if data_sip is not None:
-                self.data_ip = data_sip[self.sortinds, :]
-
+                self.data_ip = data_sip[self.sort_inds, :]
+            if line_inds is not None:
+                self.line_inds = line_inds[self.sort_inds]
             # Here we ignore ... z-locations
+            self.n_data = survey.nD
 
             midABx = (self.a_locations[:, 0] + self.b_locations[:, 0])*0.5
             midMNx = (self.m_locations[:, 0] + self.n_locations[:, 0])*0.5
@@ -417,7 +426,7 @@ class IO(properties.HasProperties):
         return survey
 
     def set_mesh(self, topo=None,
-                dx=None, dy=None, dz=None, 
+                dx=None, dy=None, dz=None,
                 n_spacing=None, corezlength=None,
                 npad_x=7, npad_y=7, npad_z=7,
                 pad_rate_x=1.3, pad_rate_y=1.3, pad_rate_z=1.3,
@@ -433,6 +442,10 @@ class IO(properties.HasProperties):
 
         # 2D or 3D mesh
         if dimension in [2, 3]:
+            if dimension == 2:
+                z_ind = 1
+            else:
+                z_ind = 2
             a = abs(np.diff(np.sort(self.electrode_locations[:, 0]))).min()
             lineLength = abs(
                 self.electrode_locations[:, 0].max() -
@@ -467,17 +480,13 @@ class IO(properties.HasProperties):
             self.pad_rate_x = pad_rate_x
             self.pad_rate_z = pad_rate_z
             self.ncell_per_dipole = ncell_per_dipole
-            if dimension == 2:
-                zmax = locs[:, 1].max()
-                zmin = locs[:, 1].min()
-            else:
-                zmax = locs[:, 2].max()
-                zmin = locs[:, 2].min()
+            zmax = locs[:, z_ind].max()
+            zmin = locs[:, z_ind].min()
 
             # 3 cells each for buffer
             corexlength = lineLength + dx * 6
             if corezlength is None:
-                corezlength = self.grids[:, 1].max() + zmax - zmin
+                corezlength = self.grids[:, z_ind].max()
 
             ncx = np.round(corexlength/dx)
             ncz = np.round(corezlength/dz)
@@ -489,9 +498,9 @@ class IO(properties.HasProperties):
                 (dx * pad_rate_x ** (np.arange(npad_x)+1)).sum() + dx * 3 - x0
             )
             z0_mesh = -((dz * pad_rate_z ** (np.arange(npad_z)+1)).sum() + dz * ncz) + zmax
-            
+
             # For 2D mesh
-            if dimension == 2:                
+            if dimension == 2:
                 h = [hx, hz]
                 x0_for_mesh = [x0_mesh, z0_mesh]
                 self.xyzlim = np.vstack((
@@ -499,7 +508,7 @@ class IO(properties.HasProperties):
                     np.r_[zmax-corezlength, zmax]
                 ))
 
-            # For 3D mesh            
+            # For 3D mesh
             else:
                 if dy is None:
                     raise Exception("You must input dy (m)")
@@ -508,15 +517,20 @@ class IO(properties.HasProperties):
                 self.npad_y = npad_y
                 self.pad_rate_y = pad_rate_y
 
-                ylocs = np.unique(self.electrode_locations[:,1])
+                ylocs = np.unique(self.electrode_locations[:, 1])
                 ymin, ymax = ylocs.min(), ylocs.max()
                 # 3 cells each for buffer in y-direction
                 coreylength = ymax-ymin+dy*6
                 ncy = np.round(coreylength/dy)
-                hy = [(dy, npad_y, -pad_rate_y), (dy, ncy), (dy, npad_y, pad_rate_y)]
+                hy = [
+                    (dy, npad_y, -pad_rate_y),
+                    (dy, ncy),
+                    (dy, npad_y, pad_rate_y)
+                ]
                 y0 = ylocs.min()-dy/2.
                 y0_mesh = -(
-                    (dy * pad_rate_y ** (np.arange(npad_y)+1)).sum() + dy*3 - y0
+                    (dy * pad_rate_y ** (np.arange(npad_y)+1)).sum()
+                    + dy*3 - y0
                 )
 
                 h = [hx, hy, hz]
@@ -539,77 +553,83 @@ class IO(properties.HasProperties):
         dataloc=True, aspect_ratio=2,
         scale="log",
         cmap="viridis", ncontour=10, ax=None,
-        figname=None, clim=None, label=None
+        figname=None, clim=None, label=None,
+        iline=0,
     ):
         """
             Plot 2D pseudo-section for DC-IP data
         """
         matplotlib.rcParams['font.size'] = 12
 
+        if ax is None:
+            fig = plt.figure(figsize=(10, 5))
+            ax = plt.subplot(111)
+
         if self.dimension == 2:
-
-            if ax is None:
-                fig = plt.figure(figsize=(10, 5))
-                ax = plt.subplot(111)
-            if data_type == "apparent_resistivity":
-                if data is None:
-                    val = self.apparent_resistivity
-                else:
-                    val = data.copy()
-                label = "Apparent Res. ($\Omega$m)"
-            elif data_type == "volt":
-                if data is None:
-                    val = self.voltages
-                else:
-                    val = data.copy()
-                label = "Voltage (V)"
-            elif data_type == "apparent_conductivity":
-                if data is None:
-                    val = self.apparent_conductivity
-                else:
-                    val = data.copy()
-                label = "Apparent Cond. (S/m)"
-            elif data_type == "apparent_chargeability":
-                if data is not None:
-                    val = data.copy()
-                else:
-                    val = self.apparent_chargeability.copy() * 1e3
-                label = "Apparent Charg. (mV/V)"
-            elif data_type == "volt_ip":
-                if data is not None:
-                    val = data.copy()
-                else:
-                    val = self.voltages_ip.copy() * 1e3
-                label = "Secondary voltage. (mV)"
-            else:
-                print (data_type)
-                raise NotImplementedError()
-            if scale == "log":
-                fmt = "10$^{%.1f}$"
-            elif scale == "linear":
-                fmt = "%.1e"
-            else:
-                raise NotImplementedError()
-
-            out = Utils.plot2Ddata(
-                self.grids, val,
-                contourOpts={'cmap': cmap},
-                ax=ax,
-                dataloc=dataloc,
-                scale=scale,
-                ncontour=ncontour,
-                clim=clim
-            )
-            ax.invert_yaxis()
-            ax.set_xlabel("x (m)")
-            ax.set_yticklabels([])
-            ax.set_ylabel("n-spacing")
-            cb = plt.colorbar(out[0], fraction=0.01, format=fmt, ax=ax)
-            cb.set_label(label)
-            ax.set_aspect(aspect_ratio)
-            plt.tight_layout()
-            if figname is not None:
-                fig.savefig(figname, dpi=200)
-
+            inds = np.ones(self.n_data, dtype=bool)
+            grids = self.grids.copy()
+        elif self.dimension == 3:
+            inds = self.line_inds == iline
+            grids = self.grids[inds, :][:, [0, 2]]
         else:
             raise NotImplementedError()
+
+        if data_type == "apparent_resistivity":
+            if data is None:
+                val = self.apparent_resistivity[inds]
+            else:
+                val = data.copy()[inds]
+            label = "Apparent Res. ($\Omega$m)"
+        elif data_type == "volt":
+            if data is None:
+                val = self.voltages[inds]
+            else:
+                val = data.copy()[inds]
+            label = "Voltage (V)"
+        elif data_type == "apparent_conductivity":
+            if data is None:
+                val = self.apparent_conductivity[inds]
+            else:
+                val = data.copy()[inds]
+            label = "Apparent Cond. (S/m)"
+        elif data_type == "apparent_chargeability":
+            if data is not None:
+                val = data.copy()[inds]
+            else:
+                val = self.apparent_chargeability.copy()[inds] * 1e3
+            label = "Apparent Charg. (mV/V)"
+        elif data_type == "volt_ip":
+            if data is not None:
+                val = data.copy()[inds]
+            else:
+                val = self.voltages_ip.copy()[inds] * 1e3
+            label = "Secondary voltage. (mV)"
+        else:
+            print (data_type)
+            raise NotImplementedError()
+        if scale == "log":
+            fmt = "10$^{%.1f}$"
+        elif scale == "linear":
+            fmt = "%.1e"
+        else:
+            raise NotImplementedError()
+
+        out = Utils.plot2Ddata(
+            grids, val,
+            contourOpts={'cmap': cmap},
+            ax=ax,
+            dataloc=dataloc,
+            scale=scale,
+            ncontour=ncontour,
+            clim=clim
+        )
+        ax.invert_yaxis()
+        ax.set_xlabel("x (m)")
+        ax.set_yticklabels([])
+        ax.set_ylabel("n-spacing")
+        cb = plt.colorbar(out[0], fraction=0.01, format=fmt, ax=ax)
+        cb.set_label(label)
+        ax.set_aspect(aspect_ratio)
+        plt.tight_layout()
+        if figname is not None:
+            fig.savefig(figname, dpi=200)
