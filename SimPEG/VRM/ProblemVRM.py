@@ -148,7 +148,8 @@ pp: Source index
 
         G = np.zeros((K, 3*N))
         C = -(1/(4*np.pi))
-        eps = 1e-10
+        tol = 1e-10   # Tolerance constant for numerical stability
+        tol2 = 1000.  # Tolerance constant for numerical stability
 
         COUNT = 0
 
@@ -162,27 +163,27 @@ pp: Source index
             if dComp is 'x':
                 for rr in range(0, M):
                     u1 = locs[rr, 0] - ax
-                    u1[np.abs(u1) < 1e-10] = np.min(xyzh[:, 0])/1000
+                    u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
                     u2 = locs[rr, 0] - bx
-                    u2[np.abs(u2) < 1e-10] = -np.min(xyzh[:, 0])/1000
+                    u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0])/tol2
                     v1 = locs[rr, 1] - ay
-                    v1[np.abs(v1) < 1e-10] = np.min(xyzh[:, 1])/1000
+                    v1[np.abs(v1) < tol] = np.min(xyzh[:, 1])/tol2
                     v2 = locs[rr, 1] - by
-                    v2[np.abs(v2) < 1e-10] = -np.min(xyzh[:, 1])/1000
+                    v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1])/tol2
                     w1 = locs[rr, 2] - az
-                    w1[np.abs(w1) < 1e-10] = np.min(xyzh[:, 2])/1000
+                    w1[np.abs(w1) < tol] = np.min(xyzh[:, 2])/tol2
                     w2 = locs[rr, 2] - bz
-                    w2[np.abs(w2) < 1e-10] = -np.min(xyzh[:, 2])/1000
+                    w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2])/tol2
 
                     Gxx = (
-                        np.arctan((v1*w1)/(u1*np.sqrt(u1**2+v1**2+w1**2)+eps)) -
-                        np.arctan((v1*w1)/(u2*np.sqrt(u2**2+v1**2+w1**2)+eps)) +
-                        np.arctan((v2*w1)/(u2*np.sqrt(u2**2+v2**2+w1**2)+eps)) -
-                        np.arctan((v2*w1)/(u1*np.sqrt(u1**2+v2**2+w1**2)+eps)) +
-                        np.arctan((v2*w2)/(u1*np.sqrt(u1**2+v2**2+w2**2)+eps)) -
-                        np.arctan((v1*w2)/(u1*np.sqrt(u1**2+v1**2+w2**2)+eps)) +
-                        np.arctan((v1*w2)/(u2*np.sqrt(u2**2+v1**2+w2**2)+eps)) -
-                        np.arctan((v2*w2)/(u2*np.sqrt(u2**2+v2**2+w2**2)+eps))
+                        np.arctan((v1*w1)/(u1*np.sqrt(u1**2+v1**2+w1**2)+tol)) -
+                        np.arctan((v1*w1)/(u2*np.sqrt(u2**2+v1**2+w1**2)+tol)) +
+                        np.arctan((v2*w1)/(u2*np.sqrt(u2**2+v2**2+w1**2)+tol)) -
+                        np.arctan((v2*w1)/(u1*np.sqrt(u1**2+v2**2+w1**2)+tol)) +
+                        np.arctan((v2*w2)/(u1*np.sqrt(u1**2+v2**2+w2**2)+tol)) -
+                        np.arctan((v1*w2)/(u1*np.sqrt(u1**2+v1**2+w2**2)+tol)) +
+                        np.arctan((v1*w2)/(u2*np.sqrt(u2**2+v1**2+w2**2)+tol)) -
+                        np.arctan((v2*w2)/(u2*np.sqrt(u2**2+v2**2+w2**2)+tol))
                     )
 
                     Gyx = (
@@ -213,17 +214,17 @@ pp: Source index
             elif dComp is 'y':
                 for rr in range(0, M):
                     u1 = locs[rr, 0] - ax
-                    u1[np.abs(u1) < 1e-10] = np.min(xyzh[:, 0])/1000
+                    u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
                     u2 = locs[rr, 0] - bx
-                    u2[np.abs(u2) < 1e-10] = -np.min(xyzh[:, 0])/1000
+                    u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0])/tol2
                     v1 = locs[rr, 1] - ay
-                    v1[np.abs(v1) < 1e-10] = np.min(xyzh[:, 1])/1000
+                    v1[np.abs(v1) < tol] = np.min(xyzh[:, 1])/tol2
                     v2 = locs[rr, 1] - by
-                    v2[np.abs(v2) < 1e-10] = -np.min(xyzh[:, 1])/1000
+                    v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1])/tol2
                     w1 = locs[rr, 2] - az
-                    w1[np.abs(w1) < 1e-10] = np.min(xyzh[:, 2])/1000
+                    w1[np.abs(w1) < tol] = np.min(xyzh[:, 2])/tol2
                     w2 = locs[rr, 2] - bz
-                    w2[np.abs(w2) < 1e-10] = -np.min(xyzh[:, 2])/1000
+                    w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2])/tol2
 
                     Gxy = (
                         np.log(np.sqrt(u1**2+v1**2+w1**2)-w1) -
@@ -237,14 +238,14 @@ pp: Source index
                     )
 
                     Gyy = (
-                        np.arctan((u1*w1)/(v1*np.sqrt(u1**2+v1**2+w1**2)+eps)) -
-                        np.arctan((u2*w1)/(v1*np.sqrt(u2**2+v1**2+w1**2)+eps)) +
-                        np.arctan((u2*w1)/(v2*np.sqrt(u2**2+v2**2+w1**2)+eps)) -
-                        np.arctan((u1*w1)/(v2*np.sqrt(u1**2+v2**2+w1**2)+eps)) +
-                        np.arctan((u1*w2)/(v2*np.sqrt(u1**2+v2**2+w2**2)+eps)) -
-                        np.arctan((u1*w2)/(v1*np.sqrt(u1**2+v1**2+w2**2)+eps)) +
-                        np.arctan((u2*w2)/(v1*np.sqrt(u2**2+v1**2+w2**2)+eps)) -
-                        np.arctan((u2*w2)/(v2*np.sqrt(u2**2+v2**2+w2**2)+eps))
+                        np.arctan((u1*w1)/(v1*np.sqrt(u1**2+v1**2+w1**2)+tol)) -
+                        np.arctan((u2*w1)/(v1*np.sqrt(u2**2+v1**2+w1**2)+tol)) +
+                        np.arctan((u2*w1)/(v2*np.sqrt(u2**2+v2**2+w1**2)+tol)) -
+                        np.arctan((u1*w1)/(v2*np.sqrt(u1**2+v2**2+w1**2)+tol)) +
+                        np.arctan((u1*w2)/(v2*np.sqrt(u1**2+v2**2+w2**2)+tol)) -
+                        np.arctan((u1*w2)/(v1*np.sqrt(u1**2+v1**2+w2**2)+tol)) +
+                        np.arctan((u2*w2)/(v1*np.sqrt(u2**2+v1**2+w2**2)+tol)) -
+                        np.arctan((u2*w2)/(v2*np.sqrt(u2**2+v2**2+w2**2)+tol))
                     )
 
                     Gzy = (
@@ -264,17 +265,17 @@ pp: Source index
             elif dComp is 'z':
                 for rr in range(0, M):
                     u1 = locs[rr, 0] - ax
-                    u1[np.abs(u1) < 1e-10] = np.min(xyzh[:, 0])/1000
+                    u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
                     u2 = locs[rr, 0] - bx
-                    u2[np.abs(u2) < 1e-10] = -np.min(xyzh[:, 0])/1000
+                    u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0])/tol2
                     v1 = locs[rr, 1] - ay
-                    v1[np.abs(v1) < 1e-10] = np.min(xyzh[:, 1])/1000
+                    v1[np.abs(v1) < tol] = np.min(xyzh[:, 1])/tol2
                     v2 = locs[rr, 1] - by
-                    v2[np.abs(v2) < 1e-10] = -np.min(xyzh[:, 1])/1000
+                    v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1])/tol2
                     w1 = locs[rr, 2] - az
-                    w1[np.abs(w1) < 1e-10] = np.min(xyzh[:, 2])/1000
+                    w1[np.abs(w1) < tol] = np.min(xyzh[:, 2])/tol2
                     w2 = locs[rr, 2] - bz
-                    w2[np.abs(w2) < 1e-10] = -np.min(xyzh[:, 2])/1000
+                    w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2])/tol2
 
                     Gxz = (
                         np.log(np.sqrt(u1**2+v1**2+w1**2)-v1) -
@@ -299,26 +300,26 @@ pp: Source index
                     )
 
                     Gzz = (
-                        - np.arctan((v1*w1)/(u1*np.sqrt(u1**2+v1**2+w1**2)+eps)) +
-                        np.arctan((v1*w1)/(u2*np.sqrt(u2**2+v1**2+w1**2)+eps)) -
-                        np.arctan((v2*w1)/(u2*np.sqrt(u2**2+v2**2+w1**2)+eps)) +
-                        np.arctan((v2*w1)/(u1*np.sqrt(u1**2+v2**2+w1**2)+eps)) -
-                        np.arctan((v2*w2)/(u1*np.sqrt(u1**2+v2**2+w2**2)+eps)) +
-                        np.arctan((v1*w2)/(u1*np.sqrt(u1**2+v1**2+w2**2)+eps)) -
-                        np.arctan((v1*w2)/(u2*np.sqrt(u2**2+v1**2+w2**2)+eps)) +
-                        np.arctan((v2*w2)/(u2*np.sqrt(u2**2+v2**2+w2**2)+eps))
+                        - np.arctan((v1*w1)/(u1*np.sqrt(u1**2+v1**2+w1**2)+tol)) +
+                        np.arctan((v1*w1)/(u2*np.sqrt(u2**2+v1**2+w1**2)+tol)) -
+                        np.arctan((v2*w1)/(u2*np.sqrt(u2**2+v2**2+w1**2)+tol)) +
+                        np.arctan((v2*w1)/(u1*np.sqrt(u1**2+v2**2+w1**2)+tol)) -
+                        np.arctan((v2*w2)/(u1*np.sqrt(u1**2+v2**2+w2**2)+tol)) +
+                        np.arctan((v1*w2)/(u1*np.sqrt(u1**2+v1**2+w2**2)+tol)) -
+                        np.arctan((v1*w2)/(u2*np.sqrt(u2**2+v1**2+w2**2)+tol)) +
+                        np.arctan((v2*w2)/(u2*np.sqrt(u2**2+v2**2+w2**2)+tol))
                     )
 
                     Gzz = (
                         Gzz -
-                        np.arctan((u1*w1)/(v1*np.sqrt(u1**2+v1**2+w1**2)+eps)) +
-                        np.arctan((u2*w1)/(v1*np.sqrt(u2**2+v1**2+w1**2)+eps)) -
-                        np.arctan((u2*w1)/(v2*np.sqrt(u2**2+v2**2+w1**2)+eps)) +
-                        np.arctan((u1*w1)/(v2*np.sqrt(u1**2+v2**2+w1**2)+eps)) -
-                        np.arctan((u1*w2)/(v2*np.sqrt(u1**2+v2**2+w2**2)+eps)) +
-                        np.arctan((u1*w2)/(v1*np.sqrt(u1**2+v1**2+w2**2)+eps)) -
-                        np.arctan((u2*w2)/(v1*np.sqrt(u2**2+v1**2+w2**2)+eps)) +
-                        np.arctan((u2*w2)/(v2*np.sqrt(u2**2+v2**2+w2**2)+eps))
+                        np.arctan((u1*w1)/(v1*np.sqrt(u1**2+v1**2+w1**2)+tol)) +
+                        np.arctan((u2*w1)/(v1*np.sqrt(u2**2+v1**2+w1**2)+tol)) -
+                        np.arctan((u2*w1)/(v2*np.sqrt(u2**2+v2**2+w1**2)+tol)) +
+                        np.arctan((u1*w1)/(v2*np.sqrt(u1**2+v2**2+w1**2)+tol)) -
+                        np.arctan((u1*w2)/(v2*np.sqrt(u1**2+v2**2+w2**2)+tol)) +
+                        np.arctan((u1*w2)/(v1*np.sqrt(u1**2+v1**2+w2**2)+tol)) -
+                        np.arctan((u2*w2)/(v1*np.sqrt(u2**2+v1**2+w2**2)+tol)) +
+                        np.arctan((u2*w2)/(v2*np.sqrt(u2**2+v2**2+w2**2)+tol))
                     )
 
                     G[COUNT, :] = C*np.c_[Gxz, Gyz, Gzz]
@@ -704,25 +705,3 @@ object.
                 f.append(mkvc((self.A[qq] * np.matrix(eta)).T))
 
         return np.array(np.hstack(f))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
