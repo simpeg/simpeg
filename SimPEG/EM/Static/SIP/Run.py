@@ -8,7 +8,9 @@ def spectral_ip_mappings(
     inactive_eta=1e-4,
     inactive_tau=1e-4,
     inactive_c=1e-4,
-    is_log=True
+    is_log_eta=True,
+    is_log_tau=True,
+    is_log_c=True
 ):
     """
     Generates Mappings for Spectral Induced Polarization Problem.
@@ -46,13 +48,19 @@ def spectral_ip_mappings(
         ('c', indActive.sum())
     )
 
-    if is_log:
-        eta_map = actmap_tau*Maps.ExpMap(nP=actmap_eta.nP)*wires.eta
-        tau_map = actmap_eta*Maps.ExpMap(nP=actmap_eta.nP)*wires.tau
-        c_map = actmap_c*Maps.ExpMap(nP=actmap_eta.nP)*wires.c
+    if is_log_eta:
+        eta_map = actmap_eta*Maps.ExpMap(nP=actmap_eta.nP)*wires.eta
     else:
-        eta_map = actmap_tau*wires.eta
-        tau_map = actmap_eta*wires.tau
+        eta_map = actmap_eta*wires.eta
+
+    if is_log_tau:
+        tau_map = actmap_tau*Maps.ExpMap(nP=actmap_tau.nP)*wires.tau
+    else:
+        tau_map = actmap_tau*wires.tau
+
+    if is_log_c:
+        c_map = actmap_c*Maps.ExpMap(nP=actmap_c.nP)*wires.c
+    else:
         c_map = actmap_c*wires.c
 
     return eta_map, tau_map, c_map, wires
