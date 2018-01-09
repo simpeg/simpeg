@@ -9,7 +9,11 @@ def run_inversion(
     maxIter=15, beta0_ratio=1e0,
     coolingFactor=5, coolingRate=2,
     upper=np.inf, lower=-np.inf,
-    use_sensitivity_weight=True
+    use_sensitivity_weight=True, 
+    alpha_s=1e-4,
+    alpha_x=1.,
+    alpha_y=1.,
+    alpha_z=1.,
 ):
     """
     Run DC inversion
@@ -22,9 +26,17 @@ def run_inversion(
     # Related to inversion
     if use_sensitivity_weight:
         reg = Regularization.Simple(mesh, indActive=actind, mapping=regmap)
+        reg.alpha_s = alpha_s
+        reg.alpha_x = alpha_x
+        reg.alpha_y = alpha_y
+        reg.alpha_z = alpha_z
     else:
         reg = Regularization.Tikhonov(mesh, indActive=actind, mapping=regmap)
-        reg.alpha_s = 1./mesh.hx.min()
+        reg.alpha_s = 1./mesh.hx.min()        
+        reg.alpha_x = alpha_x
+        reg.alpha_y = alpha_y
+        reg.alpha_z = alpha_z        
+
     opt = Optimization.ProjectedGNCG(maxIter=maxIter, upper=upper, lower=lower)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
     beta = Directives.BetaSchedule(

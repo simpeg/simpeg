@@ -422,7 +422,8 @@ class IO(properties.HasProperties):
                 npad_x=7, npad_y=7, npad_z=7,
                 pad_rate_x=1.3, pad_rate_y=1.3, pad_rate_z=1.3,
                 ncell_per_dipole=4, mesh_type='TensorMesh',
-                dimension=2
+                dimension=2,
+                method='linear'
                 ):
         """
         Set up a mesh for a given DC survey
@@ -478,23 +479,23 @@ class IO(properties.HasProperties):
             if corezlength is None:
                 corezlength = self.grids[:, 1].max() + zmax - zmin
 
-            ncx = np.floor(corexlength/dx)
-            ncz = np.floor(corezlength/dz)
+            ncx = np.round(corexlength/dx)
+            ncz = np.round(corezlength/dz)
             hx = [
                 (dx, npad_x, -pad_rate_x), (dx, ncx), (dx, npad_x, pad_rate_x)
             ]
             hz = [(dz, npad_z, -pad_rate_z), (dz, ncz)]
             x0_mesh = -(
-                (dx * 1.3 ** (np.arange(npad_x)+1)).sum() + dx * 3 - x0
+                (dx * pad_rate_x ** (np.arange(npad_x)+1)).sum() + dx * 3 - x0
             )
-            z0_mesh = -((dz * 1.3 ** (np.arange(npad_z)+1)).sum() + dz * ncz) + zmax
+            z0_mesh = -((dz * pad_rate_z ** (np.arange(npad_z)+1)).sum() + dz * ncz) + zmax
             
             # For 2D mesh
-            if dimension == 2:
+            if dimension == 2:                
                 h = [hx, hz]
                 x0_for_mesh = [x0_mesh, z0_mesh]
                 self.xyzlim = np.vstack((
-                    np.r_[x0, x0+corexlength],
+                    np.r_[x0, x0+lineLength],
                     np.r_[zmax-corezlength, zmax]
                 ))
 
@@ -509,24 +510,24 @@ class IO(properties.HasProperties):
 
                 ylocs = np.unique(self.electrode_locations[:,1])
                 ymin, ymax = ylocs.min(), ylocs.max()
-                # 2 cells each for buffer in y-direction
-                coreylength = ymax-ymin+4*dy
-                ncy = np.floor(coreylength/dy)
+                # 3 cells each for buffer in y-direction
+                coreylength = ymax-ymin+dy*6
+                ncy = np.round(coreylength/dy)
                 hy = [(dy, npad_y, -pad_rate_y), (dy, ncy), (dy, npad_y, pad_rate_y)]
                 y0 = ylocs.min()-dy/2.
                 y0_mesh = -(
-                    (dy * pad_rate_y ** (np.arange(npad_y)+1)).sum() + dy*2 - y0
+                    (dy * pad_rate_y ** (np.arange(npad_y)+1)).sum() + dy*3 - y0
                 )
 
                 h = [hx, hy, hz]
                 x0_for_mesh = [x0_mesh, y0_mesh, z0_mesh]
                 self.xyzlim = np.vstack((
-                    np.r_[x0, x0+corexlength],
-                    np.r_[y0, y0+coreylength],
+                    np.r_[x0, x0+lineLength],
+                    np.r_[ymin, ymax],
                     np.r_[zmax-corezlength, zmax]
                 ))
             mesh = Mesh.TensorMesh(h, x0=x0_for_mesh)
-            actind = Utils.surface2ind_topo(mesh, locs)
+            actind = Utils.surface2ind_topo(mesh, locs, method=method)
         else:
             raise NotImplementedError()
 
