@@ -59,7 +59,7 @@ def from_dc_to_ip_survey(dc_survey, dim="2.5D"):
 
     # for 2D or 3D case
     elif (dim == "2D") or ("3D"):
-        ip_survey = Survey([srcList])
+        ip_survey = Survey(srcList)
 
     else:
         raise Exception(" dim must be '2.5D', '2D', or '3D' ")
