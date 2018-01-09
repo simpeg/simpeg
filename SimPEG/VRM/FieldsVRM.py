@@ -1,5 +1,3 @@
-from SimPEG import Fields
-import numpy as np
 
 
 class Fields_LinearFWD(LinearFWD):

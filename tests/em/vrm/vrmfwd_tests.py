@@ -207,7 +207,7 @@ Cowan (2016) and test accuracy
     def test_vs_mesh_vs_lognormal(self):
 
         h1 = [(2, 8)]
-        h2 = 1*np.ones(18)
+        #h2 = 1*np.ones(18)
         meshObj_Tensor = Mesh.TensorMesh((h1, h1, h1), x0='CCN')
         #meshObj_OcTree = Mesh.TreeMesh([h2, h2], x0=[-8, -16])
         #
@@ -268,14 +268,14 @@ Cowan (2016) and test accuracy
         #Problem3.pair(Survey3)
         #Problem4.pair(Survey4)
         Fields1 = Problem1.fields(mod_a)
-        Fields2 = Problem2.fields(mod_chi0_a, mod_dchi_a, mod_tau1_a, mod_tau2_a)
+        #Fields2 = Problem2.fields(mod_chi0_a, mod_dchi_a, mod_tau1_a, mod_tau2_a)
         #Fields3 = Problem3.fields(mod_b)
         #Fields4 = Problem4.fields(mod_chi0_b, mod_dchi_b, mod_tau1_b, mod_tau2_b)
 
         #Errs = np.abs((np.r_[Fields2, Fields3, Fields4, Fields5] - Fields_true)/Fields_true)
         #
         #Test1 = Errs[-1] < 0.01
-        #Test2 = np.all(Errs[1:]-Errs[0:-1] < 0.) 
+        #Test2 = np.all(Errs[1:]-Errs[0:-1] < 0.)
 
 
 if __name__ == '__main__':

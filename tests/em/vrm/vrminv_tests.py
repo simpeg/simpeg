@@ -1,6 +1,6 @@
 import SimPEG.VRM as VRM
 import numpy as np
-from SimPEG import Mesh, mkvc, Maps, Props
+from SimPEG import Mesh, mkvc, Props
 import unittest
 from SimPEG import DataMisfit
 from SimPEG import Directives

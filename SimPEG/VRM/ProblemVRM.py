@@ -1,9 +1,7 @@
-from SimPEG import Problem, mkvc, Maps, Props, Solver as simpegSolver
+from SimPEG import Problem, mkvc, Maps, Props
 from SimPEG.VRM.SurveyVRM import SurveyVRM
-# from SimPEG.VRM.FieldsVRM import Fields_Linear
 import numpy as np
 import scipy.sparse as sp
-import discretize
 
 ############################################
 # BASE VRM PROBLEM CLASS
