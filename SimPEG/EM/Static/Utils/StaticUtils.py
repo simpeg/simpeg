@@ -617,8 +617,10 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
             'dipole-pole','pole-pole' or 'gradient'"""
             " not {}".format(survey_type)
         )
-
-    survey = DC.Survey(SrcList)
+    if (d2flag == '2.5D') and (dim == 2):
+        survey = DC.Survey_ky(SrcList)
+    else:
+        survey = DC.Survey(SrcList)
 
     return survey
 
@@ -690,7 +692,8 @@ def gen_3d_survey_from_2d_lines(
 
 def writeUBC_DCobs(
     fileName, dc_survey, dim, format_type,
-    survey_type='dipole-dipole', ip_type=0
+    survey_type='dipole-dipole', ip_type=0,
+    comment_lines=''
 ):
     """
         Write UBC GIF DCIP 2D or 3D observation file
@@ -733,11 +736,19 @@ def writeUBC_DCobs(
 
     fid = open(fileName, 'w')
 
+    if format_type in ['SURFACE', 'GENERAL'] and dim == 2:
+        fid.write('COMMON_CURRENT\n')
+
+    fid.write('! ' + format_type + ' FORMAT\n')
+
+    if comment_lines:
+        fid.write(comment_lines)
+
+    if dim == 2:
+        fid.write('{:d}\n'.format(dc_survey.nSrc))
+
     if ip_type != 0:
         fid.write('IPTYPE=%i\n' % ip_type)
-
-    else:
-        fid.write('! ' + format_type + ' FORMAT\n')
 
     fid.close()
 
@@ -793,7 +804,7 @@ def writeUBC_DCobs(
                 fid = open(fileName, 'a')
                 if format_type == 'SURFACE':
 
-                    fid.writelines("%f " % ii for ii in Utils.mkvc(tx[0, :]))
+                    fid.writelines("%f " % ii for ii in Utils.mkvc(tx[:, 0]))
                     M = M[:, 0]
                     N = N[:, 0]
 
@@ -802,9 +813,9 @@ def writeUBC_DCobs(
                     # Flip sign for z-elevation to depth
                     tx[2::2, :] = -tx[2::2, :]
 
-                    fid.writelines("%e " % ii for ii in Utils.mkvc(tx[::2, :]))
-                    M = M[:, 0::2]
-                    N = N[:, 0::2]
+                    fid.writelines(('{:e} {:e} ').format(ii, jj) for ii, jj in tx[:, :2])
+                    M = M[:, :2]
+                    N = N[:, :2]
 
                     # Flip sign for z-elevation to depth
                     M[:, 1::2] = -M[:, 1::2]
@@ -880,7 +891,10 @@ def writeUBC_DCobs(
     fid.close()
 
 
-def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
+def writeUBC_DClocs(
+    fileName, dc_survey, dim, format_type,
+    survey_type='dipole-dipole', ip_type=0,
+    comment_lines=''):
     """
         Write UBC GIF DCIP 2D or 3D locations file
 
@@ -908,13 +922,31 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
             " not {}".format(format_type)
         )
 
+    if(isinstance(dc_survey.std, float)):
+        print(
+            """survey.std was a float computing uncertainty vector
+            (survey.std*survey.dobs + survey.eps)"""
+        )
+
+    if(isinstance(dc_survey.eps, float)):
+        epsValue = dc_survey.eps
+        dc_survey.eps = epsValue*np.ones_like(dc_survey.dobs)
+
     fid = open(fileName, 'w')
+
+    if format_type in ['SURFACE', 'GENERAL'] and dim == 2:
+        fid.write('COMMON_CURRENT\n')
+
+    fid.write('! ' + format_type + ' FORMAT\n')
+
+    if comment_lines:
+        fid.write(comment_lines)
+
+    if dim == 2:
+        fid.write('{:d}\n'.format(dc_survey.nSrc))
 
     if ip_type != 0:
         fid.write('IPTYPE=%i\n' % ip_type)
-
-    else:
-        fid.write('! ' + format_type + ' FORMAT\n')
 
     fid.close()
 
@@ -922,20 +954,21 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
 
     for ii in range(dc_survey.nSrc):
 
-        tx = np.c_[dc_survey.srcList[ii].loc]
-
-        if np.shape(tx)[0] == 3:
-            survey_type = 'pole-dipole'
-
-        else:
-            survey_type = 'dipole-dipole'
-
         rx = dc_survey.srcList[ii].rxList[0].locs
-
         nD = dc_survey.srcList[ii].nD
 
-        M = rx[0]
-        N = rx[1]
+        if survey_type == 'pole-dipole' or survey_type == 'pole-pole':
+            tx = np.r_[dc_survey.srcList[ii].loc]
+            tx = np.repeat(np.r_[[tx]], 2, axis=0)
+        elif survey_type == 'dipole-dipole' or survey_type == 'dipole-pole':
+            tx = np.c_[dc_survey.srcList[ii].loc]
+
+        if survey_type == 'pole-dipole' or survey_type == 'dipole-dipole':
+            M = rx[0]
+            N = rx[1]
+        elif survey_type == 'pole-pole' or survey_type == 'dipole-pole':
+            M = rx
+            N = rx
 
         # Adapt source-receiver location for dim and survey_type
         if dim == 2:
@@ -956,16 +989,18 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
 
                 fid = open(fileName, 'ab')
                 np.savetxt(
-                    fid, np.c_[A, B, M, N],
-                    delimiter=str(' '), newline=str('\n')
-                )
+                    fid,
+                    np.c_[
+                        A, B, M, N,
+                    ],
+                    delimiter=str(' '), newline=str('\n'))
                 fid.close()
 
             else:
                 fid = open(fileName, 'a')
                 if format_type == 'SURFACE':
 
-                    fid.writelines("%f " % ii for ii in Utils.mkvc(tx[0, :]))
+                    fid.writelines("%f " % ii for ii in Utils.mkvc(tx[:, 0]))
                     M = M[:, 0]
                     N = N[:, 0]
 
@@ -974,9 +1009,9 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
                     # Flip sign for z-elevation to depth
                     tx[2::2, :] = -tx[2::2, :]
 
-                    fid.writelines("%e " % ii for ii in Utils.mkvc(tx[::2, :]))
-                    M = M[:, 0::2]
-                    N = N[:, 0::2]
+                    fid.writelines(('{:e} {:e} ').format(ii, jj) for ii, jj in tx[:, :2])
+                    M = M[:, :2]
+                    N = N[:, :2]
 
                     # Flip sign for z-elevation to depth
                     M[:, 1::2] = -M[:, 1::2]
@@ -987,8 +1022,11 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
 
                 fid = open(fileName, 'ab')
                 np.savetxt(
-                    fid, np.c_[M, N], delimiter=str(' '), newline=str('\n')
-                )
+                    fid,
+                    np.c_[
+                        M, N,
+                    ],
+                    delimiter=str(' '), newline=str('\n'))
 
         if dim == 3:
             fid = open(fileName, 'a')
@@ -1015,11 +1053,23 @@ def writeUBC_DClocs(fileName, dc_survey, dim, format_type, ip_type=0):
             fid.close()
 
             fid = open(fileName, 'ab')
-            np.savetxt(
-                fid, np.c_[M, N], fmt=str('%e'),
-                delimiter=str(' '),
-                newline=str('\n')
-            )
+            if isinstance(dc_survey.std, np.ndarray):
+                np.savetxt(
+                    fid,
+                    np.c_[
+                        M, N,
+                    ],
+                    fmt=str('%e'), delimiter=str(' '), newline=str('\n')
+                )
+            elif (isinstance(dc_survey.std, float)):
+                np.savetxt(
+                    fid,
+                    np.c_[
+                        M, N,
+                    ],
+                    fmt=str('%e'), delimiter=str(' '), newline=str('\n')
+                )
+
             fid.close()
 
             fid = open(fileName, 'a')
@@ -1180,56 +1230,6 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
     survey2D.std = survey.std
 
     return survey2D
-
-
-def readUBC_DC2DModel(fileName):
-    """
-        Read UBC GIF 2DTensor model and generate 2D Tensor model in simpeg
-
-        Input:
-        :param string fileName: path to the UBC GIF 2D model file
-
-        Output:
-        :param SimPEG TensorMesh 2D object
-        :return
-    """
-
-    # Open fileand skip header... assume that we know the mesh already
-    obsfile = np.genfromtxt(
-        fileName, delimiter=' \n',
-        dtype=np.str, comments='!'
-    )
-
-    dim = np.array(obsfile[0].split(), dtype=int)
-
-    temp = np.array(obsfile[1].split(), dtype=float)
-
-    if len(temp) > 1:
-        model = np.zeros((dim[0], dim[1]))
-
-        for ii in range(len(obsfile)-1):
-            mm = np.array(obsfile[ii+1].split(), dtype=float)
-            model[:, ii] = mm
-
-        model = model[:, ::-1]
-
-    else:
-
-        if len(obsfile[1:]) == 1:
-            mm = np.array(obsfile[1:].split(), dtype=float)
-
-        else:
-            mm = np.array(obsfile[1:], dtype=float)
-
-        # Permute the second dimension to flip the order
-        model = mm.reshape(dim[1], dim[0])
-
-        model = model[::-1, :]
-        model = np.transpose(model, (1, 0))
-
-    model = Utils.mkvc(model)
-
-    return model
 
 
 def readUBC_DC2Dpre(fileName):
