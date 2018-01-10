@@ -75,8 +75,14 @@ def run_inversion(
     eta_lower=1e-5, eta_upper=1,
     tau_lower=1e-6, tau_upper=2.,
     c_lower=1e-2, c_upper=1.,
-    is_log=True,
+    is_log_tau=True,
+    is_log_c=True,
+    is_log_eta=True,
     mref=None,
+    alpha_s = 1e-4,
+    alpha_x = 1e0,
+    alpha_y = 1e0,
+    alpha_z = 1e0,
 ):
     """
     Run Spectral Spectral IP inversion
@@ -104,12 +110,20 @@ def run_inversion(
     if np.isscalar(c_upper):
         c_upper = e * c_upper
 
-    if is_log:
-        m_upper = np.log(np.r_[eta_upper, tau_upper, c_upper])
-        m_lower = np.log(np.r_[eta_lower, tau_lower, c_lower])
-    else:
-        m_upper = np.r_[eta_upper, tau_upper, c_upper]
-        m_lower = np.r_[eta_lower, tau_lower, c_lower]
+    if is_log_eta:
+        eta_upper = np.log(eta_upper)
+        eta_lower = np.log(eta_lower)
+
+    if is_log_tau:
+        tau_upper = np.log(tau_upper)
+        tau_lower = np.log(tau_lower)
+
+    if is_log_c:
+        c_upper = np.log(c_upper)
+        c_lower = np.log(c_lower)
+
+    m_upper = np.r_[eta_upper, tau_upper, c_upper]
+    m_lower = np.r_[eta_lower, tau_lower, c_lower]
 
     # Set up regularization
     reg_eta = Regularization.Tikhonov(
@@ -122,14 +136,22 @@ def run_inversion(
     reg_c = Regularization.Tikhonov(mesh, mapping=wires.c, indActive=actind)
 
     # Todo:
-    if mesh.dim == 2:
-        reg_eta.alpha_s = 1./mesh.hx.min()
-        reg_tau.alpha_s = 1./mesh.hx.min()
-        reg_c.alpha_s = 1./mesh.hx.min()
-    elif mesh.dim == 3:
-        reg_eta.alpha_s = 1./mesh.hx.min()**2
-        reg_tau.alpha_s = 1./mesh.hx.min()**2
-        reg_c.alpha_s = 1./mesh.hx.min()**2
+
+    reg_eta.alpha_s = alpha_s
+    reg_tau.alpha_s = alpha_s
+    reg_c.alpha_s = alpha_s
+
+    reg_eta.alpha_x = alpha_x
+    reg_tau.alpha_x = alpha_x
+    reg_c.alpha_x = alpha_x
+
+    reg_eta.alpha_y = alpha_y
+    reg_tau.alpha_y = alpha_y
+    reg_c.alpha_y = alpha_y
+
+    reg_eta.alpha_z = alpha_z
+    reg_tau.alpha_z = alpha_z
+    reg_c.alpha_z = alpha_z
 
     reg = reg_eta + reg_tau + reg_c
 
@@ -148,6 +170,7 @@ def run_inversion(
     directiveList = [
             beta, betaest, target
     ]
+
     inv = Inversion.BaseInversion(
         invProb, directiveList=directiveList
         )
@@ -157,3 +180,4 @@ def run_inversion(
     # Run inversion
     mopt = inv.run(m0)
     return mopt, invProb.dpred
+
