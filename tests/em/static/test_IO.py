@@ -4,10 +4,10 @@ import numpy as np
 import unittest
 
 
-class TestsIO_2D(unittest.TestCase):
+class TestsIO(unittest.TestCase):
 
     def setUp(self):
-        self.plotIt = True
+        self.plotIt = False
         np.random.seed(1)
         # Initiate I/O class for DC
         self.IO = DC.IO()
@@ -27,14 +27,14 @@ class TestsIO_2D(unittest.TestCase):
         self.survey = self.IO.from_ambn_locations_to_survey(
             self.survey.a_locations, self.survey.b_locations,
             self.survey.m_locations, self.survey.n_locations,
-            'dipole-dipole', data_type='apparent_resistivity',
-            dobs=np.ones(self.survey.nD)*100.
+            'dipole-dipole', data_dc_type='apparent_resistivity',
+            data_dc=np.ones(self.survey.nD)*100.
         )
 
         if self.plotIt:
             self.IO.plotPseudoSection(data_type='apparent_resistivity')
             plt.show()
-        mesh, actind = self.IO.setMesh()
+        mesh, actind = self.IO.set_mesh()
 
     def test_topo_dpdp(self):
         self.survey = DC.Utils.gen_DCIPsurvey(
@@ -44,17 +44,17 @@ class TestsIO_2D(unittest.TestCase):
         self.survey = self.IO.from_ambn_locations_to_survey(
             self.survey.a_locations, self.survey.b_locations,
             self.survey.m_locations, self.survey.n_locations,
-            'dipole-dipole', data_type='apparent_resistivity',
-            dobs=np.ones(self.survey.nD)*100.
+            'dipole-dipole', data_dc_type='apparent_resistivity',
+            data_dc=np.ones(self.survey.nD)*100.
         )
 
         if self.plotIt:
             self.IO.plotPseudoSection(data_type='apparent_resistivity')
             plt.show()
 
-        mesh, actind = self.IO.setMesh()
+        mesh, actind = self.IO.set_mesh()
         topo, mesh1D = DC.Utils.genTopography(mesh, -10, 0, its=100)
-        mesh, actind = self.IO.setMesh(topo=np.c_[mesh1D.vectorCCx, topo])
+        mesh, actind = self.IO.set_mesh(topo=np.c_[mesh1D.vectorCCx, topo])
         self.survey.drapeTopo(mesh, actind, option="top")
         if self.plotIt:
             mesh.plotImage(actind)
