@@ -42,11 +42,11 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     survey = IO.from_ambn_locations_to_survey(
         survey.a_locations, survey.b_locations,
         survey.m_locations, survey.n_locations,
-        survey_type, data_type='volt'
+        survey_type, data_dc_type='volt'
     )
 
     # Obtain 2D TensorMesh
-    mesh, actind = IO.setMesh()
+    mesh, actind = IO.set_mesh()
     topo, mesh1D = DC.Utils.genTopography(mesh, -10, 0, its=100)
     actind = Utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
     survey.drapeTopo(mesh, actind, option="top")
