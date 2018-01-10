@@ -78,7 +78,7 @@ def run(plotIt=True):
     survey.dobs = survey.dtrue + 0.01*abs(survey.dtrue)*np.random.randn(*survey.dtrue.shape)
 
     if plotIt:
-        fig = NSEM.Utils.dataUtils.plotMT1DModelData(problem, [])
+        fig = NSEM.Utils.dataUtils.plotMT1DModelData(problem, [m_true])
         fig.suptitle('Target - smooth true')
 
     # Assign uncertainties
