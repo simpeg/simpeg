@@ -73,7 +73,7 @@ def run_inversion(
     coolingFactor=2, coolingRate=2,
     maxIterLS=20, maxIterCG=10, LSshorten=0.5,
     eta_lower=1e-5, eta_upper=1,
-    tau_lower=1e-6, tau_upper=2.,
+    tau_lower=1e-6, tau_upper=10.,
     c_lower=1e-2, c_upper=1.,
     is_log_tau=True,
     is_log_c=True,
