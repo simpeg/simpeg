@@ -71,8 +71,9 @@ class BaseIPProblem(BaseEMProblem):
 
             # delete fields after computing sensitivity
             del f
-            if self._f is not None:
-                del self._f
+            # Not sure why this is a problem
+            # if self._f is not None:
+            #     del self._f
             # clean all factorization
             if self.Ainv is not None:
                 self.Ainv.clean()
@@ -182,7 +183,7 @@ class BaseIPProblem(BaseEMProblem):
         if v is not None:
             return self.sign*Utils.mkvc(Jtv)
         else:
-            return self.sign*np.hstack(Jtv)
+            return np.hstack(Jtv)
         return
 
     def getSourceTerm(self):

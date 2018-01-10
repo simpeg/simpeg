@@ -76,7 +76,7 @@ def run_inversion(
     tau_lower=1e-6, tau_upper=2.,
     c_lower=1e-2, c_upper=1.,
     is_log=True,
-    mref=None
+    mref=None,
 ):
     """
     Run Spectral Spectral IP inversion
@@ -122,9 +122,14 @@ def run_inversion(
     reg_c = Regularization.Tikhonov(mesh, mapping=wires.c, indActive=actind)
 
     # Todo:
-    reg_eta.alpha_s = 1e-6
-    reg_tau.alpha_s = 1./mesh.hx.min()
-    reg_c.alpha_s = 1./mesh.hx.min()
+    if mesh.dim == 2:
+        reg_eta.alpha_s = 1./mesh.hx.min()
+        reg_tau.alpha_s = 1./mesh.hx.min()
+        reg_c.alpha_s = 1./mesh.hx.min()
+    elif mesh.dim == 3:
+        reg_eta.alpha_s = 1./mesh.hx.min()**2
+        reg_tau.alpha_s = 1./mesh.hx.min()**2
+        reg_c.alpha_s = 1./mesh.hx.min()**2
 
     reg = reg_eta + reg_tau + reg_c
 

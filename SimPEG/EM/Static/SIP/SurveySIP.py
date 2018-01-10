@@ -117,9 +117,9 @@ def from_dc_to_sip_survey(survey_dc, times):
     for src in srcList:
         rxList_sip = []
         for rx in src.rxList:
-            if isinstance(rx, DC.Rx.Pole_ky):
+            if isinstance(rx, DC.Rx.Pole_ky) or isinstance(rx, DC.Rx.Pole):
                 rx_sip = Rx.Pole(rx.locs, times=times)
-            elif isinstance(rx, DC.Rx.Dipole_ky):
+            elif isinstance(rx, DC.Rx.Dipole_ky) or isinstance(rx, DC.Rx.Dipole):
                 rx_sip = Rx.Dipole(rx.locs[0], rx.locs[1], times=times)
             else:
                 print (rx)

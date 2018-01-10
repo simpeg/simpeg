@@ -282,6 +282,23 @@ class IO(properties.HasProperties):
         else:
             raise NotImplementedError()
 
+    # For SIP
+    @property
+    def voltages_sip(self):
+        """
+        IP votages (V)
+        """
+        if self.data_sip_type.lower() == "volt":
+            return self.data_sip
+        elif self.data_sip_type.lower() == "apparent_chargeability":
+            if self.voltages is None:
+                raise Exception(
+                    "DC voltages must be set to compute IP voltages"
+                    )
+            return Utils.sdiag(self.voltages) * self.data_sip 
+        else:
+            raise NotImplementedError()                    
+
     @property
     def apparent_chargeability(self):
         """
@@ -298,6 +315,23 @@ class IO(properties.HasProperties):
         else:
             raise NotImplementedError()
 
+    # For SIP
+    @property
+    def apparent_chargeability_sip(self):
+        """
+        Apparent Conductivity (S/m)
+        """
+        if self.data_sip_type.lower() == "apparent_chargeability":
+            return self.data_sip
+        elif self.data_sip_type.lower() == "volt":
+            if self.voltages is None:
+                raise Exception(
+                    "DC voltages must be set to compute Apparent Chargeability"
+                    )
+            return Utils.sdiag(1./self.voltages) * self.data_sip 
+        else:
+            raise NotImplementedError()               
+
     def geometric_factor(self, survey):
         """
         Compute geometric factor, G, using locational informaition
@@ -313,7 +347,8 @@ class IO(properties.HasProperties):
         self, a_locations, b_locations, m_locations, n_locations,
         survey_type=None, data_dc=None, data_ip=None, data_sip=None,
         data_dc_type="volt", data_ip_type="volt", data_sip_type="volt",
-        fname=None, dimension=2, line_inds=None
+        fname=None, dimension=2, line_inds=None, 
+        times_ip=None
     ):
         """
         read A, B, M, N electrode location and data (V or apparent_resistivity)
@@ -326,7 +361,9 @@ class IO(properties.HasProperties):
         self.dimension = dimension
         self.data_dc_type = data_dc_type
         self.data_ip_type = data_ip_type
-        self.data_sip_type = data_sip_type
+        self.data_sip_type = data_sip_type        
+        if times_ip is not None:
+            self.times_ip = times_ip
 
         uniqSrc = Utils.uniqueRows(np.c_[self.a_locations, self.b_locations])
         uniqElec = SimPEG.Utils.uniqueRows(
@@ -398,7 +435,7 @@ class IO(properties.HasProperties):
             if data_ip is not None:
                 self.data_ip = data_ip[self.sort_inds]
             if data_sip is not None:
-                self.data_ip = data_sip[self.sort_inds, :]
+                self.data_sip = data_sip[self.sort_inds, :]
             if line_inds is not None:
                 self.line_inds = line_inds[self.sort_inds]
             # Here we ignore ... z-locations

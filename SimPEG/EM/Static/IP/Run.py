@@ -52,8 +52,9 @@ def run_inversion(
             beta, betaest, target, updateSensW, update_Jacobi
         ]
     else:
+        update_Jacobi = Directives.UpdatePreconditioner()
         directiveList = [
-            beta, betaest, target
+            beta, betaest, target, update_Jacobi
         ]
     inv = Inversion.BaseInversion(
         invProb, directiveList=directiveList
