@@ -295,9 +295,9 @@ class IO(properties.HasProperties):
                 raise Exception(
                     "DC voltages must be set to compute IP voltages"
                     )
-            return Utils.sdiag(self.voltages) * self.data_sip 
+            return Utils.sdiag(self.voltages) * self.data_sip
         else:
-            raise NotImplementedError()                    
+            raise NotImplementedError()
 
     @property
     def apparent_chargeability(self):
@@ -328,9 +328,9 @@ class IO(properties.HasProperties):
                 raise Exception(
                     "DC voltages must be set to compute Apparent Chargeability"
                     )
-            return Utils.sdiag(1./self.voltages) * self.data_sip 
+            return Utils.sdiag(1./self.voltages) * self.data_sip
         else:
-            raise NotImplementedError()               
+            raise NotImplementedError()
 
     def geometric_factor(self, survey):
         """
@@ -347,7 +347,7 @@ class IO(properties.HasProperties):
         self, a_locations, b_locations, m_locations, n_locations,
         survey_type=None, data_dc=None, data_ip=None, data_sip=None,
         data_dc_type="volt", data_ip_type="volt", data_sip_type="volt",
-        fname=None, dimension=2, line_inds=None, 
+        fname=None, dimension=2, line_inds=None,
         times_ip=None
     ):
         """
@@ -361,7 +361,7 @@ class IO(properties.HasProperties):
         self.dimension = dimension
         self.data_dc_type = data_dc_type
         self.data_ip_type = data_ip_type
-        self.data_sip_type = data_sip_type        
+        self.data_sip_type = data_sip_type
         if times_ip is not None:
             self.times_ip = times_ip
 
@@ -574,7 +574,7 @@ class IO(properties.HasProperties):
                 x0_for_mesh = [x0_mesh, y0_mesh, z0_mesh]
                 self.xyzlim = np.vstack((
                     np.r_[x0, x0+lineLength],
-                    np.r_[ymin, ymax],
+                    np.r_[ymin-dy*3, ymax+dy*3],
                     np.r_[zmax-corezlength, zmax]
                 ))
             mesh = Mesh.TensorMesh(h, x0=x0_for_mesh)
