@@ -1139,50 +1139,66 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
     arg7 = np.sqrt(dz1**2 + R4)
     arg8 = np.sqrt(dz1**2 + R3)
 
-    Tx[0, 0:nC] = np.arctan2(dy1 * dz2, (dx2 * arg5 + eps)) +\
-        - np.arctan2(dy2 * dz2, (dx2 * arg2 + eps)) +\
-        np.arctan2(dy2 * dz1, (dx2 * arg3 + eps)) +\
-        - np.arctan2(dy1 * dz1, (dx2 * arg8 + eps)) +\
-        np.arctan2(dy2 * dz2, (dx1 * arg1 + eps)) +\
-        - np.arctan2(dy1 * dz2, (dx1 * arg6 + eps)) +\
-        np.arctan2(dy1 * dz1, (dx1 * arg7 + eps)) +\
-        - np.arctan2(dy2 * dz1, (dx1 * arg4 + eps))
+    Tx[0, 0:nC] = (
+        np.arctan2(dy1 * dz2, (dx2 * arg5 + eps)) -
+        np.arctan2(dy2 * dz2, (dx2 * arg2 + eps)) +
+        np.arctan2(dy2 * dz1, (dx2 * arg3 + eps)) -
+        np.arctan2(dy1 * dz1, (dx2 * arg8 + eps)) +
+        np.arctan2(dy2 * dz2, (dx1 * arg1 + eps)) -
+        np.arctan2(dy1 * dz2, (dx1 * arg6 + eps)) +
+        np.arctan2(dy1 * dz1, (dx1 * arg7 + eps)) -
+        np.arctan2(dy2 * dz1, (dx1 * arg4 + eps))
+    )
 
-    Ty[0, 0:nC] = np.log((dz2 + arg2) / (dz1 + arg3 + eps)) +\
-        -np.log((dz2 + arg1) / (dz1 + arg4 + eps)) +\
-        np.log((dz2 + arg6) / (dz1 + arg7 + eps)) +\
-        -np.log((dz2 + arg5) / (dz1 + arg8 + eps))
+    Ty[0, 0:nC] = (
+        np.log((dz2 + arg2) / (dz1 + arg3 + eps)) -
+        np.log((dz2 + arg1) / (dz1 + arg4 + eps)) +
+        np.log((dz2 + arg6) / (dz1 + arg7 + eps)) -
+        np.log((dz2 + arg5) / (dz1 + arg8 + eps))
+    )
 
-    Ty[0, nC:2*nC] = np.arctan2(dx1 * dz2, (dy2 * arg1 + eps)) +\
-        - np.arctan2(dx2 * dz2, (dy2 * arg2 + eps)) +\
-        np.arctan2(dx2 * dz1, (dy2 * arg3 + eps)) +\
-        - np.arctan2(dx1 * dz1, (dy2 * arg4 + eps)) +\
-        np.arctan2(dx2 * dz2, (dy1 * arg5 + eps)) +\
-        - np.arctan2(dx1 * dz2, (dy1 * arg6 + eps)) +\
-        np.arctan2(dx1 * dz1, (dy1 * arg7 + eps)) +\
-        - np.arctan2(dx2 * dz1, (dy1 * arg8 + eps))
+    Ty[0, nC:2*nC] = (
+        np.arctan2(dx1 * dz2, (dy2 * arg1 + eps)) -
+        np.arctan2(dx2 * dz2, (dy2 * arg2 + eps)) +
+        np.arctan2(dx2 * dz1, (dy2 * arg3 + eps)) -
+        np.arctan2(dx1 * dz1, (dy2 * arg4 + eps)) +
+        np.arctan2(dx2 * dz2, (dy1 * arg5 + eps)) -
+        np.arctan2(dx1 * dz2, (dy1 * arg6 + eps)) +
+        np.arctan2(dx1 * dz1, (dy1 * arg7 + eps)) -
+        np.arctan2(dx2 * dz1, (dy1 * arg8 + eps))
+    )
 
     R1 = (dy2**2 + dz1**2)
     R2 = (dy2**2 + dz2**2)
     R3 = (dy1**2 + dz1**2)
     R4 = (dy1**2 + dz2**2)
 
-    Ty[0, 2*nC:] = np.log((dx1 + np.sqrt(dx1**2 + R1)) /
-                          (dx2 + np.sqrt(dx2**2 + R1) + eps)) +\
-        -np.log((dx1 + np.sqrt(dx1**2 + R2)) / (dx2 + np.sqrt(dx2**2 + R2) + eps)) +\
-        np.log((dx1 + np.sqrt(dx1**2 + R4)) / (dx2 + np.sqrt(dx2**2 + R4) + eps)) +\
-        -np.log((dx1 + np.sqrt(dx1**2 + R3)) / (dx2 + np.sqrt(dx2**2 + R3) + eps))
+    Ty[0, 2*nC:] = (
+        np.log((dx1 + np.sqrt(dx1**2 + R1) + eps) /
+               (dx2 + np.sqrt(dx2**2 + R1) + eps)) -
+        np.log((dx1 + np.sqrt(dx1**2 + R2) + eps) /
+               (dx2 + np.sqrt(dx2**2 + R2) + eps)) +
+        np.log((dx1 + np.sqrt(dx1**2 + R4) + eps) /
+               (dx2 + np.sqrt(dx2**2 + R4) + eps)) -
+        np.log((dx1 + np.sqrt(dx1**2 + R3) + eps) /
+               (dx2 + np.sqrt(dx2**2 + R3) + eps))
+    )
 
     R1 = (dx2**2 + dz1**2)
     R2 = (dx2**2 + dz2**2)
     R3 = (dx1**2 + dz1**2)
     R4 = (dx1**2 + dz2**2)
 
-    Tx[0, 2*nC:] = np.log((dy1 + np.sqrt(dy1**2 + R1)) /
-                          (dy2 + np.sqrt(dy2**2 + R1) + eps)) +\
-        -np.log((dy1 + np.sqrt(dy1**2 + R2)) / (dy2 + np.sqrt(dy2**2 + R2) + eps)) +\
-        np.log((dy1 + np.sqrt(dy1**2 + R4)) / (dy2 + np.sqrt(dy2**2 + R4) + eps)) +\
-        -np.log((dy1 + np.sqrt(dy1**2 + R3)) / (dy2 + np.sqrt(dy2**2 + R3) + eps))
+    Tx[0, 2*nC:] = (
+        np.log((dy1 + np.sqrt(dy1**2 + R1) + eps) /
+               (dy2 + np.sqrt(dy2**2 + R1) + eps)) -
+        np.log((dy1 + np.sqrt(dy1**2 + R2) + eps) /
+               (dy2 + np.sqrt(dy2**2 + R2) + eps)) +
+        np.log((dy1 + np.sqrt(dy1**2 + R4) + eps) /
+               (dy2 + np.sqrt(dy2**2 + R4) + eps)) -
+        np.log((dy1 + np.sqrt(dy1**2 + R3) + eps) /
+               (dy2 + np.sqrt(dy2**2 + R3) + eps))
+    )
 
     Tz[0, 2*nC:] = -(Ty[0, nC:2*nC] + Tx[0, 0:nC])
     Tz[0, nC:2*nC] = Ty[0, 2*nC:]
