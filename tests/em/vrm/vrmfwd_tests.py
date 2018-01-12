@@ -204,28 +204,26 @@ Cowan (2016) and test accuracy
 
         self.assertTrue(Testx1 and Testx2 and Testy1 and Testy2)
 
-    def test_vs_mesh_vs_lognormal(self):
+    def test_vs_mesh_vs_loguniform(self):
 
-        h1 = [(2, 8)]
-        #h2 = 1*np.ones(18)
-        meshObj_Tensor = Mesh.TensorMesh((h1, h1, h1), x0='CCN')
-        #meshObj_OcTree = Mesh.TreeMesh([h2, h2], x0=[-8, -16])
-        #
-        #def refinefcn(cell):
-        #    xyz = cell.center
-        #    dist = ((xyz - [0., 0.2])**2).sum()**0.5
-        #    if dist < 5:
-        #        return 4
-        #    return 3
-        #
-        #meshObj_OcTree.refine(refinefcn)
-        #meshObj_OcTree.plotGrid()
-        #
-        #cells = meshObj_OcTree._cells
-        #recurse = []
-        #
-        #mesh = meshObj_OcTree
-        #mesh.plotGrid(grid=[[],[],[]])
+        """Test to make sure OcTree matches Tensor results and linear vs
+loguniform match"""
+
+        h1 = [(2, 4)]
+        h2 = 0.5*np.ones(16)
+        meshObj_Tensor = Mesh.TensorMesh((h1, h1, h1), x0='000')
+        meshObj_OcTree = Mesh.TreeMesh([h2, h2, h2], x0='000')
+
+        meshObj_OcTree.refine(2)
+
+        def refinefcn(cell):
+            xyz = cell.center
+            dist = ((xyz - [4., 4., 8.])**2).sum()**0.5
+            if dist < 2.65:
+                return 4
+            return 2
+
+        meshObj_OcTree.refine(refinefcn)
 
         chi0 = 0.
         dchi = 0.01
@@ -239,43 +237,48 @@ Cowan (2016) and test accuracy
         mod_tau1_a = tau1*np.ones(meshObj_Tensor.nC)
         mod_tau2_a = tau2*np.ones(meshObj_Tensor.nC)
 
-        ## OcTree Models
-        #mod_b = (dchi/np.log(tau2/tau1))*np.ones(meshObj_OcTree.nC)
-        #mod_chi0_b = chi0*np.ones(meshObj_OcTree.nC)
-        #mod_dchi_b = dchi*np.ones(meshObj_OcTree.nC)
-        #mod_tau1_b = tau1*np.ones(meshObj_OcTree.nC)
-        #mod_tau2_b = tau2*np.ones(meshObj_OcTree.nC)
+        # OcTree Models
+        mod_b = (dchi/np.log(tau2/tau1))*np.ones(meshObj_OcTree.nC)
+        mod_chi0_b = chi0*np.ones(meshObj_OcTree.nC)
+        mod_dchi_b = dchi*np.ones(meshObj_OcTree.nC)
+        mod_tau1_b = tau1*np.ones(meshObj_OcTree.nC)
+        mod_tau2_b = tau2*np.ones(meshObj_OcTree.nC)
 
         times = np.array([1e-3])
         waveObj = VRM.WaveformVRM.SquarePulse(0.02)
 
-        z = 0.2
-        a = 0.1
-        loc_rx = np.c_[0., 0., z]
+        loc_rx = np.c_[4., 4.,8.25]
         rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'z')]
-        txList = [VRM.Src.CircLoop(rxList, np.r_[0., 0., z], a, np.r_[0., 0.], 1., waveObj)]
+        txList = [VRM.Src.MagDipole(rxList, np.r_[4., 4., 8.25], [0., 0., 1.], waveObj)]
 
         Survey1 = VRM.Survey(txList)
         Survey2 = VRM.Survey(txList)
-        #Survey3 = VRM.Survey(txList)
-        #Survey4 = VRM.Survey(txList)
-        Problem1 = VRM.ProblemVRM.LinearVRM(meshObj_Tensor, refFact=2)
-        Problem2 = VRM.ProblemVRM.LogUniformVRM(meshObj_Tensor, refFact=2)
-        #Problem3 = VRM.ProblemVRM.LinearVRM(meshObj_OcTree, refFact=1)
-        #Problem4 = VRM.ProblemVRM.LogUniformVRM(meshObj_OcTree, refFact=1)
+        Survey3 = VRM.Survey(txList)
+        Survey4 = VRM.Survey(txList)
+        Problem1 = VRM.ProblemVRM.LinearVRM(meshObj_Tensor, refFact=2, refRadius = [1.9, 3.6])
+        Problem2 = VRM.ProblemVRM.LogUniformVRM(meshObj_Tensor, refFact=2, refRadius = [1.9, 3.6])
+        Problem3 = VRM.ProblemVRM.LinearVRM(meshObj_OcTree, refFact=0)
+        Problem4 = VRM.ProblemVRM.LogUniformVRM(meshObj_OcTree, refFact=0)
         Problem1.pair(Survey1)
         Problem2.pair(Survey2)
-        #Problem3.pair(Survey3)
-        #Problem4.pair(Survey4)
+        Problem3.pair(Survey3)
+        Problem4.pair(Survey4)
         Fields1 = Problem1.fields(mod_a)
-        #Fields2 = Problem2.fields(mod_chi0_a, mod_dchi_a, mod_tau1_a, mod_tau2_a)
-        #Fields3 = Problem3.fields(mod_b)
-        #Fields4 = Problem4.fields(mod_chi0_b, mod_dchi_b, mod_tau1_b, mod_tau2_b)
+        Fields2 = Problem2.fields(mod_chi0_a, mod_dchi_a, mod_tau1_a, mod_tau2_a)
+        Fields3 = Problem3.fields(mod_b)
+        Fields4 = Problem4.fields(mod_chi0_b, mod_dchi_b, mod_tau1_b, mod_tau2_b)
 
-        #Errs = np.abs((np.r_[Fields2, Fields3, Fields4, Fields5] - Fields_true)/Fields_true)
-        #
-        #Test1 = Errs[-1] < 0.01
-        #Test2 = np.all(Errs[1:]-Errs[0:-1] < 0.)
+        Err1 = np.abs((Fields1-Fields2)/Fields1)
+        Err2 = np.abs((Fields2-Fields3)/Fields2)
+        Err3 = np.abs((Fields3-Fields4)/Fields3)
+        Err4 = np.abs((Fields4-Fields1)/Fields4)
+
+        Test1 = Err1 < 0.001
+        Test2 = Err1 < 0.001
+        Test3 = Err1 < 0.001
+        Test4 = Err1 < 0.001
+
+        self.assertTrue(Test1 and Test2 and Test3 and Test4)
 
 
 if __name__ == '__main__':
