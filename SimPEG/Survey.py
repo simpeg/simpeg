@@ -1,5 +1,6 @@
 from __future__ import print_function
 from . import Utils
+from . import Props
 import numpy as np
 import scipy.sparse as sp
 import uuid
@@ -32,7 +33,9 @@ class BaseRx(object):
     def rxType(self, value):
         known = self.knownRxTypes
         if known is not None:
-            assert value in known, "rxType must be in ['{0!s}']".format(("', '".join(known)))
+            assert value in known, (
+                "rxType must be in ['{0!s}']".format(("', '".join(known)))
+            )
         self._rxType = value
 
     @property
@@ -105,7 +108,8 @@ class BaseTimeRx(BaseRx):
 
             .. note::
 
-                Projection matrices are stored as a dictionary (mesh, timeMesh) if storeProjections is True
+                Projection matrices are stored as a dictionary (mesh, timeMesh)
+                if storeProjections is True
         """
         if (mesh, timeMesh) in self._Ps:
             return self._Ps[(mesh, timeMesh)]
@@ -120,7 +124,7 @@ class BaseTimeRx(BaseRx):
         return P
 
 
-class BaseSrc(object):
+class BaseSrc(Props.BaseSimPEG):
     """SimPEG Source Object"""
 
     loc    = None #: Location [x,y,z]
@@ -131,7 +135,9 @@ class BaseSrc(object):
     def __init__(self, rxList, **kwargs):
         assert type(rxList) is list, 'rxList must be a list'
         for rx in rxList:
-            assert isinstance(rx, self.rxPair), 'rxList must be a {0!s}'.format(self.rxPair.__name__)
+            assert isinstance(rx, self.rxPair), (
+                'rxList must be a {0!s}'.format(self.rxPair.__name__)
+            )
         assert len(set(rxList)) == len(rxList), 'The rxList must be unique'
         self.uid = str(uuid.uuid4())
         self.rxList = rxList
@@ -181,7 +187,9 @@ class Data(object):
         src, rx = self._ensureCorrectKey(key)
         assert rx is not None, 'set data using [Src, Rx]'
         assert isinstance(value, np.ndarray), 'value must by ndarray'
-        assert value.size == rx.nD, "value must have the same number of data as the source."
+        assert value.size == rx.nD, (
+            "value must have the same number of data as the source."
+        )
         self._dataDict[src][rx] = Utils.mkvc(value)
 
     def __getitem__(self, key):
@@ -198,7 +206,9 @@ class Data(object):
 
     def fromvec(self, v):
         v = Utils.mkvc(v)
-        assert v.size == self.survey.nD, 'v must have the correct number of data.'
+        assert v.size == self.survey.nD, (
+            'v must have the correct number of data.'
+        )
         indBot, indTop = 0, 0
         for src in self.survey.srcList:
             for rx in src.rxList:
@@ -231,21 +241,35 @@ class BaseSurvey(object):
     @srcList.setter
     def srcList(self, value):
         assert type(value) is list, 'srcList must be a list'
-        assert np.all([isinstance(src, self.srcPair) for src in value]), 'All sources must be instances of {0!s}'.format(self.srcPair.__name__)
+        assert np.all([isinstance(src, self.srcPair) for src in value]), (
+            'All sources must be instances of {0!s}'.format(
+                self.srcPair.__name__
+            )
+        )
         assert len(set(value)) == len(value), 'The srcList must be unique'
         self._srcList = value
         self._sourceOrder = dict()
-        [self._sourceOrder.setdefault(src.uid, ii) for ii, src in enumerate(self._srcList)]
+        [
+            self._sourceOrder.setdefault(src.uid, ii) for ii, src in
+            enumerate(self._srcList)
+        ]
 
     def getSourceIndex(self, sources):
         if type(sources) is not list:
             sources = [sources]
         for src in sources:
-            if getattr(src,'uid',None) is None:
-                raise KeyError('Source does not have a uid: {0!s}'.format(str(src)))
-        inds = list(map(lambda src: self._sourceOrder.get(src.uid, None), sources))
+            if getattr(src, 'uid', None) is None:
+                raise KeyError(
+                    'Source does not have a uid: {0!s}'.format(str(src))
+                )
+        inds = list(map(
+            lambda src: self._sourceOrder.get(src.uid, None), sources
+        ))
         if None in inds:
-            raise KeyError('Some of the sources specified are not in this survey. {0!s}'.format(str(inds)))
+            raise KeyError(
+                'Some of the sources specified are not in this survey. '
+                '{0!s}'.format(str(inds))
+            )
         return inds
 
     @property
@@ -262,14 +286,29 @@ class BaseSurvey(object):
         """Mesh of the paired problem."""
         if self.ispaired:
             return self.prob.mesh
-        raise Exception('Pair survey to a problem to access the problems mesh.')
+        raise Exception(
+            'Pair survey to a problem to access the problems mesh.'
+        )
 
     def pair(self, p):
         """Bind a problem to this survey instance using pointers"""
-        assert hasattr(p, 'surveyPair'), "Problem must have an attribute 'surveyPair'."
-        assert isinstance(self, p.surveyPair), "Problem requires survey object must be an instance of a {0!s} class.".format((p.surveyPair.__name__))
+        assert hasattr(p, 'surveyPair'), (
+            "Problem must have an attribute 'surveyPair'."
+        )
+        assert isinstance(self, p.surveyPair), (
+            "Problem requires survey object must be an instance of a {0!s} "
+            "class.".format((p.surveyPair.__name__))
+        )
         if p.ispaired:
-            raise Exception("The problem object is already paired to a survey. Use prob.unpair()")
+            raise Exception(
+                "The problem object is already paired to a survey. "
+                "Use prob.unpair()"
+            )
+        elif self.ispaired:
+            raise Exception(
+                "The survey object is already paired to a problem. "
+                "Use survey.unpair()"
+            )
         self._prob = p
         p._survey = self
 
@@ -280,7 +319,8 @@ class BaseSurvey(object):
         self._prob = None
 
     @property
-    def ispaired(self): return self.prob is not None
+    def ispaired(self):
+        return self.prob is not None
 
     @property
     def nD(self):
@@ -299,7 +339,7 @@ class BaseSurvey(object):
 
     @Utils.count
     @Utils.requires('prob')
-    def dpred(self, m, f=None):
+    def dpred(self, m=None, f=None):
         """dpred(m, f=None)
 
             Create the projected data from a model.
@@ -312,7 +352,8 @@ class BaseSurvey(object):
 
             Where P is a projection of the fields onto the data space.
         """
-        if f is None: f = self.prob.fields(m)
+        if f is None:
+            f = self.prob.fields(m)
         return Utils.mkvc(self.eval(f))
 
     @Utils.count
@@ -373,13 +414,17 @@ class BaseSurvey(object):
 
         """
         if getattr(self, 'dobs', None) is not None and not force:
-            raise Exception('Survey already has dobs. You can use force=True to override this exception.')
+            raise Exception(
+                'Survey already has dobs. You can use force=True to override '
+                'this exception.'
+            )
         self.mtrue = m
         self.dtrue = self.dpred(m, f=f)
         noise = std*abs(self.dtrue)*np.random.randn(*self.dtrue.shape)
         self.dobs = self.dtrue+noise
         self.std = self.dobs*0 + std
         return self.dobs
+
 
 class LinearSurvey(BaseSurvey):
     def eval(self, f):

@@ -1,9 +1,14 @@
-from SimPEG import Problem, Utils
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+from SimPEG import Utils
 from SimPEG.EM.Base import BaseEMProblem
 from .SurveyDC import Survey
 from .FieldsDC import FieldsDC, Fields_CC, Fields_N
-from SimPEG.Utils import sdiag
 import numpy as np
+import scipy as sp
 from SimPEG.Utils import Zero
 from .BoundaryUtils import getxBCyBC_CC
 
@@ -16,8 +21,9 @@ class BaseDCProblem(BaseEMProblem):
     fieldsPair = FieldsDC
     Ainv = None
 
-    def fields(self, m):
-        self.curModel = m
+    def fields(self, m=None):
+        if m is not None:
+            self.model = m
 
         if self.Ainv is not None:
             self.Ainv.clean()
@@ -36,9 +42,10 @@ class BaseDCProblem(BaseEMProblem):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
-        Jv = self.dataPair(self.survey)  # same size as the data
+        # Jv = self.dataPair(self.survey)  # same size as the data
+        Jv = []
 
         A = self.getA()
 
@@ -51,14 +58,16 @@ class BaseDCProblem(BaseEMProblem):
             for rx in src.rxList:
                 df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                 df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
-        return Utils.mkvc(Jv)
+                Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
+                # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+        # return Utils.mkvc(Jv)
+        return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
         # Ensure v is a data object.
         if not isinstance(v, self.dataPair):
@@ -95,11 +104,11 @@ class BaseDCProblem(BaseEMProblem):
 
         Srcs = self.survey.srcList
 
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             n = self.mesh.nN
             # return NotImplementedError
 
-        elif self._formulation is 'HJ':
+        elif self._formulation == 'HJ':
             n = self.mesh.nC
 
         q = np.zeros((n, len(Srcs)))
@@ -117,8 +126,10 @@ class Problem3D_CC(BaseDCProblem):
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_CC
+    bc_type = 'Neumann'
 
     def __init__(self, mesh, **kwargs):
+
         BaseDCProblem.__init__(self, mesh, **kwargs)
         self.setBC()
 
@@ -135,6 +146,18 @@ class Problem3D_CC(BaseDCProblem):
         G = self.Grad
         MfRhoI = self.MfRhoI
         A = D * MfRhoI * G
+
+        if(self.bc_type == 'Neumann'):
+            Vol = self.mesh.vol
+            if self.verbose:
+                print('Perturbing first row of A to remove nullspace for Neumann BC.')
+
+            # Handling Null space of A
+            I, J, V = sp.sparse.find(A[0, :])
+            for jj in J:
+                A[0,jj] = 0.
+
+            A[0, 0] = 1./Vol[0]
 
         # I think we should deprecate this for DC problem.
         # if self._makeASymmetric is True:
@@ -173,74 +196,102 @@ class Problem3D_CC(BaseDCProblem):
         return Zero()
 
     def setBC(self):
-        if self.mesh.dim==3:
-            fxm, fxp, fym, fyp, fzm, fzp = self.mesh.faceBoundaryInd
-            gBFxm = self.mesh.gridFx[fxm, :]
-            gBFxp = self.mesh.gridFx[fxp, :]
-            gBFym = self.mesh.gridFy[fym, :]
-            gBFyp = self.mesh.gridFy[fyp, :]
-            gBFzm = self.mesh.gridFz[fzm, :]
-            gBFzp = self.mesh.gridFz[fzp, :]
+        if self.mesh._meshType == "TREE":
+            if(self.bc_type == 'Neumann'):
+                raise NotImplementedError()
+            elif(self.bc_type == 'Dirchlet'):
+                print('Homogeneous Dirchlet is the natural BC for this CC discretization.')
+                self.Div = Utils.sdiag(self.mesh.vol) * self.mesh.faceDiv
+                self.Grad = self.Div.T
 
-            # Setup Mixed B.C (alpha, beta, gamma)
-            temp_xm = np.ones_like(gBFxm[:, 0])
-            temp_xp = np.ones_like(gBFxp[:, 0])
-            temp_ym = np.ones_like(gBFym[:, 1])
-            temp_yp = np.ones_like(gBFyp[:, 1])
-            temp_zm = np.ones_like(gBFzm[:, 2])
-            temp_zp = np.ones_like(gBFzp[:, 2])
+        else:
 
-            alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-            alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
-            alpha_zm, alpha_zp = temp_zm*0., temp_zp*0.
+            if self.mesh.dim == 3:
+                fxm, fxp, fym, fyp, fzm, fzp = self.mesh.faceBoundaryInd
+                gBFxm = self.mesh.gridFx[fxm, :]
+                gBFxp = self.mesh.gridFx[fxp, :]
+                gBFym = self.mesh.gridFy[fym, :]
+                gBFyp = self.mesh.gridFy[fyp, :]
+                gBFzm = self.mesh.gridFz[fzm, :]
+                gBFzp = self.mesh.gridFz[fzp, :]
 
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
-            beta_zm, beta_zp = temp_zm, temp_zp
+                # Setup Mixed B.C (alpha, beta, gamma)
+                temp_xm = np.ones_like(gBFxm[:, 0])
+                temp_xp = np.ones_like(gBFxp[:, 0])
+                temp_ym = np.ones_like(gBFym[:, 1])
+                temp_yp = np.ones_like(gBFyp[:, 1])
+                temp_zm = np.ones_like(gBFzm[:, 2])
+                temp_zp = np.ones_like(gBFzp[:, 2])
 
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-            gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
+                if(self.bc_type == 'Neumann'):
+                    if self.verbose:
+                        print('Setting BC to Neumann.')
+                    alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
+                    alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
+                    alpha_zm, alpha_zp = temp_zm*0., temp_zp*0.
 
-            alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp, alpha_zm,
-                     alpha_zp]
-            beta =  [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
-            gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm,
-                     gamma_zp]
+                    beta_xm, beta_xp = temp_xm, temp_xp
+                    beta_ym, beta_yp = temp_ym, temp_yp
+                    beta_zm, beta_zp = temp_zm, temp_zp
 
-        elif self.mesh.dim ==2:
+                    gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+                    gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+                    gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
 
-            fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
-            gBFxm = self.mesh.gridFx[fxm, :]
-            gBFxp = self.mesh.gridFx[fxp, :]
-            gBFym = self.mesh.gridFy[fym, :]
-            gBFyp = self.mesh.gridFy[fyp, :]
+                elif(self.bc_type == 'Dirchlet'):
+                    if self.verbose:
+                        print('Setting BC to Dirchlet.')
+                    alpha_xm, alpha_xp = temp_xm, temp_xp
+                    alpha_ym, alpha_yp = temp_ym, temp_yp
+                    alpha_zm, alpha_zp = temp_zm, temp_zp
 
-            # Setup Mixed B.C (alpha, beta, gamma)
-            temp_xm = np.ones_like(gBFxm[:, 0])
-            temp_xp = np.ones_like(gBFxp[:, 0])
-            temp_ym = np.ones_like(gBFym[:, 1])
-            temp_yp = np.ones_like(gBFyp[:, 1])
+                    beta_xm, beta_xp = temp_xm*0, temp_xp*0
+                    beta_ym, beta_yp = temp_ym*0, temp_yp*0
+                    beta_zm, beta_zp = temp_zm*0, temp_zp*0
 
-            alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-            alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
+                    gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+                    gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+                    gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
 
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
+                alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp, alpha_zm,
+                         alpha_zp]
+                beta = [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
+                gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm,
+                         gamma_zp]
 
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+            elif self.mesh.dim == 2:
 
-            alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
-            beta = [beta_xm, beta_xp, beta_ym, beta_yp]
-            gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
+                fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
+                gBFxm = self.mesh.gridFx[fxm, :]
+                gBFxp = self.mesh.gridFx[fxp, :]
+                gBFym = self.mesh.gridFy[fym, :]
+                gBFyp = self.mesh.gridFy[fyp, :]
 
-        x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
-        V = self.Vol
-        self.Div = V * self.mesh.faceDiv
-        P_BC, B = self.mesh.getBCProjWF_simple()
-        M = B*self.mesh.aveCC2F
-        self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
+                # Setup Mixed B.C (alpha, beta, gamma)
+                temp_xm = np.ones_like(gBFxm[:, 0])
+                temp_xp = np.ones_like(gBFxp[:, 0])
+                temp_ym = np.ones_like(gBFym[:, 1])
+                temp_yp = np.ones_like(gBFyp[:, 1])
+
+                alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
+                alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
+
+                beta_xm, beta_xp = temp_xm, temp_xp
+                beta_ym, beta_yp = temp_ym, temp_yp
+
+                gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+                gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+
+                alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
+                beta = [beta_xm, beta_xp, beta_ym, beta_yp]
+                gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
+
+            x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
+            V = self.Vol
+            self.Div = V * self.mesh.faceDiv
+            P_BC, B = self.mesh.getBCProjWF_simple()
+            M = B*self.mesh.aveCC2F
+            self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
 
 
 class Problem3D_N(BaseDCProblem):
@@ -268,8 +319,14 @@ class Problem3D_N(BaseDCProblem):
         Grad = self.mesh.nodalGrad
         A = Grad.T * MeSigma * Grad
 
+        Vol = self.mesh.vol
+
         # Handling Null space of A
-        A[0, 0] = A[0, 0] + 1.
+        I, J, V = sp.sparse.find(A[0,:])
+        for jj in J:
+            A[0,jj] = 0.
+
+        A[0, 0] = 1./Vol[0]
 
         return A
 
@@ -280,7 +337,6 @@ class Problem3D_N(BaseDCProblem):
         model and a vector
 
         """
-        MeSigma = self.MeSigma
         Grad = self.mesh.nodalGrad
         if not adjoint:
             return Grad.T*(self.MeSigmaDeriv(Grad*u)*v)
@@ -305,5 +361,3 @@ class Problem3D_N(BaseDCProblem):
         # qDeriv = src.evalDeriv(self, adjoint=adjoint)
         # return qDeriv
         return Zero()
-
-

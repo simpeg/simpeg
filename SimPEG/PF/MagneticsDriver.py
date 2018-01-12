@@ -1,6 +1,7 @@
 import re
 import os
-from SimPEG import Mesh, np, Utils
+from SimPEG import Mesh, Utils
+import numpy as np
 from . import BaseMag
 from . import Magnetics
 
@@ -10,8 +11,9 @@ class MagneticsDriver_Inv(object):
 
     def __init__(self, input_file=None):
         if input_file is not None:
-            self.basePath = os.path.sep.join(input_file.split(
-                                             os.path.sep)[:-1])
+            self.basePath = os.path.sep.join(
+                input_file.split(os.path.sep)[:-1]
+            )
             if len(self.basePath) > 0:
                 self.basePath += os.path.sep
             self.readDriverFile(input_file.split(os.path.sep)[-1])
@@ -206,7 +208,8 @@ class MagneticsDriver_Inv(object):
             self._activeCells = inds
 
             # Reduce m0 to active space
-            self._m0 = self.m0[self._activeCells]
+            if len(self.m0) > len(self._activeCells):
+                self._m0 = self.m0[self._activeCells]
 
         return self._activeCells
 
@@ -215,7 +218,7 @@ class MagneticsDriver_Inv(object):
         if getattr(self, '_staticCells', None) is None:
 
             # Cells with value 1 in active model are dynamic
-            staticCells = self.activeModel[self._activeCells] == -1
+            staticCells = self.activeModel[self.activeCells] == -1
 
             inds = np.asarray([inds for inds,
                                elem in enumerate(staticCells, 1)
@@ -230,7 +233,7 @@ class MagneticsDriver_Inv(object):
         if getattr(self, '_dynamicCells', None) is None:
 
             # Cells with value 1 in active model are dynamic
-            dynamicCells = self.activeModel[self._activeCells] == 1
+            dynamicCells = self.activeModel[self.activeCells] == 1
 
             inds = np.asarray([inds for inds,
                                elem in enumerate(dynamicCells, 1)
@@ -269,7 +272,7 @@ class MagneticsDriver_Inv(object):
                                                           self._mrefInput)
 
                 # Reduce to active space
-                self._mref = self._mref[self._activeCells]
+                self._mref = self._mref[self.activeCells]
 
         return self._mref
 
@@ -350,7 +353,7 @@ class MagneticsDriver_Inv(object):
 
         # Third line has the number of rows
         line = fid.readline()
-        ndat = np.array(line.split(), dtype=int)
+        ndat = int(line.strip())
 
         # Pre-allocate space for obsx, obsy, obsz, data, uncert
         line = fid.readline()
@@ -358,7 +361,7 @@ class MagneticsDriver_Inv(object):
 
         d = np.zeros(ndat, dtype=float)
         wd = np.zeros(ndat, dtype=float)
-        locXYZ = np.zeros((ndat[0], 3), dtype=float)
+        locXYZ = np.zeros((ndat, 3), dtype=float)
 
         for ii in range(ndat):
 

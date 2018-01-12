@@ -2,18 +2,32 @@
 Regularization
 **************
 
-If there is one model that has a misfit that equals the desired tolerance, then there are infinitely many other models which can fit to the same degree. The challenge is to find that model which has the desired characteristics and is compatible with a priori information. A single model can be selected from an infinite ensemble by measuring the length, or norm, of each model. Then a smallest, or sometimes largest, member can be isolated. Our goal is to design a norm that embodies our prior knowledge and, when minimized, yields a realistic candidate for the solution of our problem. The norm can penalize variation from a reference model, spatial derivatives of the model, or some combination of these.
+If there is one model that has a misfit that equals the desired tolerance,
+then there are infinitely many other models which can fit to the same degree.
+The challenge is to find that model which has the desired characteristics and
+is compatible with a priori information. A single model can be selected from
+an infinite ensemble by measuring the length, or norm, of each model. Then a
+smallest, or sometimes largest, member can be isolated. Our goal is to design
+a norm that embodies our prior knowledge and, when minimized, yields a
+realistic candidate for the solution of our problem. The norm can penalize
+variation from a reference model, spatial derivatives of the model, or some
+combination of these.
 
 Tikhonov Regularization
 =======================
 
-Here we will define regularization of a model, m, in general however, this should be thought of as (m-m_ref) but otherwise it is exactly the same:
+Here we will define regularization of a model, m, in general however, this
+should be thought of as (m-m_ref) but otherwise it is exactly the same:
 
 .. math::
 
     R(m) = \int_\Omega \frac{\alpha_x}{2}\left(\frac{\partial m}{\partial x}\right)^2 + \frac{\alpha_y}{2}\left(\frac{\partial m}{\partial y}\right)^2 \partial v
 
-Our discrete gradient operator works on cell centers and gives the derivative on the cell faces, which is not where we want to be evaluating this integral. We need to average the values back to the cell-centers before we integrate. To avoid null spaces, we square first and then average. In 2D with ij notation it looks like this:
+Our discrete gradient operator works on cell centers and gives the derivative
+on the cell faces, which is not where we want to be evaluating this integral.
+We need to average the values back to the cell-centers before we integrate. To
+avoid null spaces, we square first and then average. In 2D with ij notation it
+looks like this:
 
 .. math::
 
@@ -44,7 +58,9 @@ Where d_1 is the one dimensional derivative:
 
     R(m) \approx \mathbf{v}^\top \left[\frac{\alpha_x}{2}\mathbf{A}_1 (\mathbf{D}_1 m) \odot (\mathbf{D}_1 m) + \frac{\alpha_y}{2}\mathbf{A}_2 (\mathbf{D}_2 m) \odot (\mathbf{D}_2 m) \right]
 
-Recall that this is really a just point wise multiplication, or a diagonal matrix times a vector. When we multiply by something in a diagonal we can interchange and it gives the same results (i.e. it is point wise)
+Recall that this is really a just point wise multiplication, or a diagonal
+matrix times a vector. When we multiply by something in a diagonal we can
+interchange and it gives the same results (i.e. it is point wise)
 
 .. math::
 
@@ -87,25 +103,12 @@ Then we can write
 The API
 -------
 
-.. autoclass:: SimPEG.Regularization.BaseRegularization
+.. automodule:: SimPEG.Regularization
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Regularization.Simple
-    :show-inheritance:
-    :members:
-
-.. autoclass:: SimPEG.Regularization.Tikhonov
-    :show-inheritance:
-    :members:
-
-.. autoclass:: SimPEG.Regularization.Sparse
-    :show-inheritance:
-    :members:
-
 .. autoclass:: SimPEG.Regularization.RegularizationMesh
-    :show-inheritance:
     :members:
-
+    :undoc-members:
 
 

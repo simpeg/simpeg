@@ -7,10 +7,11 @@ import unittest
 from scipy.constants import mu_0
 
 from SimPEG.EM import NSEM
+from SimPEG import Maps
 
 
 TOL = 1e-4
-FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
+FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
 
@@ -21,7 +22,7 @@ def JvecAdjointTest(sigmaHalf, formulation='PrimSec'):
     print('Adjoint test of e formulation for {:s} comp \n'.format(formulation))
 
     if 'PrimSec' in formulation:
-        problem = NSEM.Problem1D_ePrimSec(m1d, sigmaPrimary = sigBG)
+        problem = NSEM.Problem1D_ePrimSec(m1d, sigmaPrimary=sigBG, sigmaMap=Maps.IdentityMap(m1d))
     else:
         raise NotImplementedError('Only {} formulations are implemented.'.format(formulation))
     problem.pair(survey)

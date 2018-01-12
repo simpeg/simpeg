@@ -1,20 +1,18 @@
 from __future__ import division, print_function
 import unittest
-from SimPEG import *
+from SimPEG import Mesh, Maps
 from SimPEG import EM
+import numpy as np
 from scipy.constants import mu_0
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
-
-try:
-    from pymatsolver import PardisoSolver
-    Solver = PardisoSolver
-except ImportError:
-    Solver = SolverLU
+from pymatsolver import Pardiso as Solver
 
 
-def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2,
-                            rxOffset=50., bounds=None, plotIt=False):
+def halfSpaceProblemAnaDiff(
+    meshType, srctype="MagDipole", sig_half=1e-2, rxOffset=50., bounds=None,
+    plotIt=False, rxType='bz'
+):
 
     if bounds is None:
         bounds = [1e-5, 1e-3]
@@ -35,7 +33,7 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2,
     actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
 
-    prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
+    prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
     prb.Solver = Solver
     prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
     out = EM.Utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
@@ -43,15 +41,18 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2,
     t0 = 0.006
     waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
 
-    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]), np.logspace(-4, -3, 31)+t0,
-                    'bz')
+    rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxType[:-1]))(
+        np.array([[rxOffset, 0., 0.]]), np.logspace(-4, -3, 31)+t0, rxType[-1]
+    )
 
     if srctype == "MagDipole":
-        src = EM.TDEM.Src.MagDipole([rx], waveform=waveform,
-                                    loc=np.array([0, 0., 0.]))
+        src = EM.TDEM.Src.MagDipole(
+            [rx], waveform=waveform, loc=np.array([0, 0., 0.])
+        )
     elif srctype == "CircularLoop":
-        src = EM.TDEM.Src.CircularLoop([rx], waveform=waveform,
-                                       loc=np.array([0., 0., 0.]), radius=13.)
+        src = EM.TDEM.Src.CircularLoop(
+            [rx], waveform=waveform, loc=np.array([0., 0., 0.]), radius=13.
+        )
 
     survey = EM.TDEM.Survey([src])
     prb.pair(survey)
@@ -80,7 +81,7 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2,
 
     if plotIt is True:
         plt.loglog(rx.times[bz_calc > 0]-t0, bz_calc[bz_calc > 0], 'r',
-                   rx.times[bz_calc<0]-t0, -bz_calc[bz_calc < 0], 'r--')
+                   rx.times[bz_calc < 0]-t0, -bz_calc[bz_calc < 0], 'r--')
         plt.loglog(rx.times-t0, abs(bz_ana), 'b*')
         plt.title('sig_half = {:e}'.format(sig_half))
         plt.show()
@@ -91,7 +92,7 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2,
 class TDEM_SimpleSrcTests(unittest.TestCase):
     def test_source(self):
         waveform = EM.TDEM.Src.StepOffWaveform()
-        assert waveform.eval(0.) == 0.
+        assert waveform.eval(0.) == 1.
 
 
 class TDEM_bTests(unittest.TestCase):
@@ -110,7 +111,7 @@ class TDEM_bTests(unittest.TestCase):
 
     def test_analytic_m3_CYL_1m_MagDipole(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0,
-                        sig_half=1e-3) < 0.02)
+                        sig_half=1e-3) < 0.01)
 
     def test_analytic_p0_CYL_0m_CircularLoop(self):
         self.assertTrue(halfSpaceProblemAnaDiff(
@@ -131,5 +132,3 @@ class TDEM_bTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-

@@ -145,15 +145,10 @@ where
 
 Here \\(\\bm\\) indicates model parameters in discretized space.
 
-Verification
-============
 
-Comparing to the analytic function:
-
-.. plot::
-
-    from SimPEG import Examples
-    Examples.DC_Analytic_Dipole.run(plotIt=True)
+.. image:: /content/examples/06-dc/images/sphx_glr_plot_analytic_dipole_001.png
+    :target: /content/examples/06-dc/plot_analytic_dipole.html
+    :align: center
 
 
 API for DC codes

@@ -1,23 +1,33 @@
 from __future__ import print_function
-from SimPEG import *
+from SimPEG import Problem
+from SimPEG import Utils
+from SimPEG import Props
+import scipy.sparse as sp
 from . import BaseGrav as GRAV
 import re
+import numpy as np
 
 
-class GravityIntegral(Problem.BaseProblem):
+
+class GravityIntegral(Problem.LinearProblem):
+
+    rho, rhoMap, rhoDeriv = Props.Invertible(
+        "Specific density (g/cc)",
+        default=1.
+    )
 
     # surveyPair = Survey.LinearSurvey
     forwardOnly = False  # Is TRUE, forward matrix not stored to memory
     actInd = None  #: Active cell indices provided
     rtype = 'z'
 
-    def __init__(self, mesh, mapping=None, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     def fwr_op(self):
         # Add forward function
-        # kappa = self.curModel.kappa TODO
-        rho = self.mapping*self.curModel
+        # kappa = self.model.kappa TODO
+        rho = self.rhoMap*self.model
 
         if self.forwardOnly:
 
@@ -51,9 +61,9 @@ class GravityIntegral(Problem.BaseProblem):
             yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
             yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
-            Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
-            Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
-            Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
+            Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+            Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+            Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
             rxLoc = self.survey.srcField.rxList[0].locs
             ndata = rxLoc.shape[0]
@@ -98,18 +108,18 @@ class GravityIntegral(Problem.BaseProblem):
             return self.G.dot(rho)
 
     def fields(self, m):
-        self.curModel = m
+        self.model = m
 
         fields = self.fwr_op()
 
         return fields
 
     def Jvec(self, m, v, f=None):
-        dmudm = self.mapping.deriv(m)
+        dmudm = self.rhoMap.deriv(m)
         return self.G.dot(dmudm*v)
 
     def Jtvec(self, m, v, f=None):
-        dmudm = self.mapping.deriv(m)
+        dmudm = self.rhoMap.deriv(m)
         return dmudm.T * (self.G.T.dot(v))
 
     @property
@@ -170,9 +180,9 @@ class GravityIntegral(Problem.BaseProblem):
         yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
         yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
-        Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
-        Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
-        Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
+        Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+        Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+        Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
         rxLoc = self.survey.srcField.rxList[0].locs
         ndata = rxLoc.shape[0]
@@ -238,8 +248,9 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
     indexing, once the topography has been figured out.
 
     """
-    from scipy.constants import G
-    NewtG = G*1e+8  # Convertion from mGal (1e-5) and g/cc (1e-3)
+    from scipy.constants import G as NewtG
+
+    NewtG = NewtG*1e+8  # Convertion from mGal (1e-5) and g/cc (1e-3)
     eps = 1e-10  # add a small value to the locations to avoid
 
     nC = Xn.shape[0]
@@ -447,3 +458,94 @@ def readUBCgravObs(obs_file):
     survey.dobs = d
     survey.std = wd
     return survey
+
+
+class Problem3D_Diff(Problem.BaseProblem):
+    """
+        Gravity in differential equations!
+    """
+
+    _depreciate_main_map = 'rhoMap'
+
+    rho, rhoMap, rhoDeriv = Props.Invertible(
+        "Specific density (g/cc)",
+        default=1.
+    )
+
+    solver = None
+
+    def __init__(self, mesh, **kwargs):
+        Problem.BaseProblem.__init__(self, mesh, **kwargs)
+
+        self.mesh.setCellGradBC('dirichlet')
+
+        self._Div = self.mesh.cellGrad
+
+
+    @property
+    def MfI(self): return self._MfI
+
+    @property
+    def Mfi(self): return self._Mfi
+
+    def makeMassMatrices(self, m):
+        rho = self.rhoMap*m
+        self._Mfi = self.mesh.getFaceInnerProduct()
+        self._MfI = Utils.sdiag(1./self._Mfi.diagonal())
+
+    def getRHS(self, m):
+        """
+
+
+        """
+
+        Mc = Utils.sdiag(self.mesh.vol)
+
+        rho = self.rhoMap*m
+
+        return Mc*rho
+
+    def getA(self, m):
+        """
+        GetA creates and returns the A matrix for the Gravity nodal problem
+
+        The A matrix has the form:
+
+        .. math ::
+
+            \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
+
+        """
+        return -self._Div.T*self.Mfi*self._Div
+
+    def fields(self, m):
+        """
+            Return magnetic potential (u) and flux (B)
+            u: defined on the cell nodes [nC x 1]
+            gField: defined on the cell faces [nF x 1]
+
+            After we compute u, then we update B.
+
+            .. math ::
+
+                \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
+
+        """
+        from scipy.constants import G as NewtG
+
+        self.makeMassMatrices(m)
+        A = self.getA(m)
+        RHS = self.getRHS(m)
+
+        if self.solver is None:
+            m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/A.diagonal()))
+            u, info = sp.linalg.bicgstab(A, RHS, tol=1e-6, maxiter=1000, M=m1)
+
+        else:
+            print("Solving with Paradiso")
+            Ainv = self.solver(A)
+            u = Ainv*RHS
+
+        gField = 4.*np.pi*NewtG*1e+8*self._Div*u
+
+        return {'G': gField, 'u': u}

@@ -1,3 +1,8 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import SimPEG
 import numpy as np
 from SimPEG.Utils import Zero, closestPoints
@@ -53,9 +58,15 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
 # DC.Rx.Dipole(locs)
 class Dipole(BaseRx):
 
+    rxgeom = "dipole"
+
     def __init__(self, locsM, locsN, times, rxType = 'phi', **kwargs):
         assert locsM.shape == locsN.shape, 'locsM and locsN need to be the same size'
-        locs = [locsM, locsN]
+        if np.array_equal(locsM, locsN):
+            self.rxgeom = "pole"
+            locs = [locsM]
+        else:
+            locs = [locsM, locsN]
         # We may not need this ...
         BaseRx.__init__(self, locs, times, rxType)
 
@@ -75,12 +86,16 @@ class Dipole(BaseRx):
 
 
     def getP(self, mesh, Gloc):
+
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        P0 = mesh.getInterpolationMat(self.locs[0], Gloc)
-        P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
-        P = P0 - P1
+        if self.rxgeom == "dipole":
+            P0 = mesh.getInterpolationMat(self.locs[0], Gloc)
+            P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
+            P = P0 - P1
+        elif self.rxgeom == "pole":
+            P = mesh.getInterpolationMat(self.locs[0], Gloc)
 
         if self.storeProjections:
             self._Ps[mesh] = P

@@ -1,5 +1,6 @@
 import unittest
-from SimPEG import Mesh, Utils, np, PF, Maps, Problem, Survey, mkvc
+from SimPEG import Mesh, Utils, PF, Maps, Problem, Survey, mkvc
+import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -43,12 +44,12 @@ class MagFwdProblemTests(unittest.TestCase):
         srcField = PF.BaseMag.SrcField([rxLoc], param=H0)
         self.survey = PF.BaseMag.LinearSurvey(srcField)
 
-        self.prob_xyz = PF.Magnetics.MagneticIntegral(mesh, mapping=idenMap,
+        self.prob_xyz = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
                                                       actInd=sph_ind,
                                                       forwardOnly=True,
                                                       rtype='xyz')
 
-        self.prob_tmi = PF.Magnetics.MagneticIntegral(mesh, mapping=idenMap,
+        self.prob_tmi = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
                                                       actInd=sph_ind,
                                                       forwardOnly=True,
                                                       rtype='tmi')
@@ -65,6 +66,7 @@ class MagFwdProblemTests(unittest.TestCase):
         dbz = d[2*ndata:]
 
         # Compute tmi mag data
+        self.survey.unpair()
         self.survey.pair(self.prob_tmi)
         dtmi = self.prob_tmi.fields(self.model)
 

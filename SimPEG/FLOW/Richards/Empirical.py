@@ -1,417 +1,657 @@
-from SimPEG import Mesh, Utils, np
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+import numpy as np
+import scipy.sparse as sp
+from scipy import constants
+from SimPEG import Utils, Props
 
 
-class NonLinearMap(object):
-    """
-    SimPEG NonLinearMap
+def _get_projections(u):
+    """Get the projections for each domain in the pressure head (u)"""
+    nP = len(u)
+    bools = u >= 0
+    ind_p = np.where(bools)[0]
+    ind_n = np.where(~bools)[0]
+    P_p = sp.csr_matrix((np.ones(len(ind_p)), (ind_p, ind_p)), shape=(nP, nP))
+    P_n = sp.csr_matrix((np.ones(len(ind_n)), (ind_n, ind_n)), shape=(nP, nP))
+    return P_p, P_n
 
-    """
+
+def _partition_args(mesh, Hcond, Theta, hcond_args, theta_args, **kwargs):
+
+    hcond_params = {k: kwargs[k] for k in kwargs if k in hcond_args}
+    theta_params = {k: kwargs[k] for k in kwargs if k in theta_args}
+
+    other_params = {
+        k: kwargs[k] for k in kwargs if k not in hcond_args + theta_args
+    }
+
+    if len(other_params) > 0:
+        raise Exception('Unknown parameters: {}'.format(other_params))
+
+    hcond = Hcond(mesh, **hcond_params)
+    theta = Theta(mesh, **theta_params)
+
+    return hcond, theta
+
+
+class NonLinearModel(Props.HasModel):
+    """A non linear model that has dependence on the fields and a model"""
 
     counter = None   #: A SimPEG.Utils.Counter object
     mesh = None      #: A SimPEG Mesh
 
-    def __init__(self, mesh):
+    def __init__(self, mesh, **kwargs):
         self.mesh = mesh
-
-    def _transform(self, u, m):
-        """
-            :param numpy.array u: fields
-            :param numpy.array m: model
-            :rtype: numpy.array
-            :return: transformed model
-
-            The *transform* changes the model into the physical property.
-
-        """
-        return m
-
-    def derivU(self, u, m):
-        """
-            :param numpy.array u: fields
-            :param numpy.array m: model
-            :rtype: scipy.sparse.csr_matrix
-            :return: derivative of transformed model
-
-            The *transform* changes the model into the physical property.
-            The *transformDerivU* provides the derivative of the *transform* with respect to the fields.
-        """
-        raise NotImplementedError('The transformDerivU is not implemented.')
-
-
-    def derivM(self, u, m):
-        """
-            :param numpy.array u: fields
-            :param numpy.array m: model
-            :rtype: scipy.sparse.csr_matrix
-            :return: derivative of transformed model
-
-            The *transform* changes the model into the physical property.
-            The *transformDerivU* provides the derivative of the *transform* with respect to the model.
-        """
-        raise NotImplementedError('The transformDerivM is not implemented.')
+        super(NonLinearModel, self).__init__(**kwargs)
 
     @property
     def nP(self):
         """Number of parameters in the model."""
         return self.mesh.nC
 
-    def example(self):
-        raise NotImplementedError('The example is not implemented.')
 
-    def test(self, m=None):
-        raise NotImplementedError('The test is not implemented.')
+class BaseWaterRetention(NonLinearModel):
 
-
-class RichardsMap(object):
-    """docstring for RichardsMap"""
-
-    mesh       = None  #: SimPEG mesh
-
-    @property
-    def thetaModel(self):
-        """Model for moisture content"""
-        return self._thetaModel
-
-    @property
-    def kModel(self):
-        """Model for hydraulic conductivity"""
-        return self._kModel
-
-    def __init__(self, mesh, thetaModel, kModel):
-        self.mesh = mesh
-        assert isinstance(thetaModel, NonLinearMap)
-        assert isinstance(kModel, NonLinearMap)
-
-        self._thetaModel = thetaModel
-        self._kModel = kModel
-
-    def theta(self, u, m):
-        return self.thetaModel.transform(u, m)
-
-    def thetaDerivM(self, u, m):
-        return self.thetaModel.transformDerivM(u, m)
-
-    def thetaDerivU(self, u, m):
-        return self.thetaModel.transformDerivU(u, m)
-
-    def k(self, u, m):
-        return self.kModel.transform(u, m)
-
-    def kDerivM(self, u, m):
-        return self.kModel.transformDerivM(u, m)
-
-    def kDerivU(self, u, m):
-        return self.kModel.transformDerivU(u, m)
-
-    def plot(self, m):
+    def plot(self, ax=None):
         import matplotlib.pyplot as plt
 
-        m = m[0]
-        h = np.linspace(-100, 20, 1000)
-        ax = plt.subplot(121)
-        ax.plot(self.theta(h, m), h)
-        ax = plt.subplot(122)
-        ax.semilogx(self.k(h, m), h)
+        if ax is None:
+            plt.figure()
+            ax = plt.subplot(111)
 
-    def _assertMatchesPair(self, pair):
-        assert isinstance(self, pair), "Mapping object must be an instance of a {0!s} class.".format((pair.__name__))
+        self.validate()
+
+        h = -np.logspace(-2, 3, 1000)
+        ax.semilogx(-h, self(h))
+        ax.set_title('Water retention curve')
+        ax.set_xlabel('Soil water potential, $- \psi$')
+        ax.set_ylabel('Water content, $\\theta$')
 
 
+class BaseHydraulicConductivity(NonLinearModel):
 
-def _ModelProperty(name, models, doc=None, default=None):
+    def plot(self, ax=None):
+        import matplotlib.pyplot as plt
 
-    def fget(self):
-        model = models[0]
-        if getattr(self, model, None) is not None:
-            MOD = getattr(self, model)
-            return getattr(MOD, name, default)
-        return default
+        if ax is None:
+            plt.figure()
+            ax = plt.subplot(111)
 
-    def fset(self, value):
-        for model in models:
-            if getattr(self, model, None) is not None:
-                MOD = getattr(self, model)
-                setattr(MOD, name, value)
+        self.validate()
 
-    return property(fget, fset=fset, doc=doc)
+        h = -np.logspace(-2, 3, 1000)
+        ax.loglog(-h, self(h))
+        ax.set_title('Hydraulic conductivity function')
+        ax.set_xlabel('Soil water potential, $- \psi$')
+        ax.set_ylabel('Hydraulic conductivity, $K$')
+
+
+class Haverkamp_theta(BaseWaterRetention):
+
+    theta_r, theta_rMap, theta_rDeriv = Props.Invertible(
+        "residual water content [L3L-3]",
+        default=0.075
+    )
+
+    theta_s, theta_sMap, theta_sDeriv = Props.Invertible(
+        "saturated water content [L3L-3]",
+        default=0.287
+    )
+
+    alpha, alphaMap, alphaDeriv = Props.Invertible(
+        "",
+        default=1.611e+06
+    )
+
+    beta, betaMap, betaDeriv = Props.Invertible(
+        "",
+        default=3.96
+    )
+
+    def _get_params(self):
+        return self.theta_r, self.theta_s, self.alpha, self.beta
+
+    def __call__(self, u):
+        theta_r, theta_s, alpha, beta = self._get_params()
+
+        f = (
+            alpha *
+            (theta_s - theta_r) /
+            (alpha + abs(u)**beta) +
+            theta_r
+        )
+
+        if np.isscalar(theta_s):
+            f[u >= 0] = theta_s
+        else:
+            f[u >= 0] = theta_s[u >= 0]
+        return f
+
+    def derivM(self, u):
+        """derivative with respect to m
+
+        .. code::
+
+            import sympy as sy
+
+            alpha, u, beta, theta_r, theta_s = sy.symbols(
+                'alpha u beta theta_r theta_s', real=True
+            )
+
+            f_n = (
+                alpha *
+                (theta_s - theta_r) /
+                (alpha + abs(u)**beta) +
+                theta_r
+            )
+        """
+        return (
+            self._derivTheta_r(u) +
+            self._derivTheta_s(u) +
+            self._derivAlpha(u) +
+            self._derivBeta(u)
+        )
+
+    def _derivTheta_r(self, u):
+        if self.theta_rMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, beta = self._get_params()
+        ddm = -alpha/(alpha + abs(u)**beta) + 1
+        ddm[u >= 0] = 0
+        dT = Utils.sdiag(ddm) * self.theta_rDeriv
+        return dT
+
+    def _derivTheta_s(self, u):
+        if self.theta_sMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, beta = self._get_params()
+        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
+        dT_p = P_p * self.theta_sDeriv
+        dT_n = P_n * Utils.sdiag(
+            alpha/(alpha + abs(u)**beta)
+        ) * self.theta_sDeriv
+        return dT_p + dT_n
+
+    def _derivAlpha(self, u):
+        if self.alphaMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, beta = self._get_params()
+        ddm = -alpha*(-theta_r + theta_s)/(alpha + abs(u)**beta)**2 + (-theta_r + theta_s)/(alpha + abs(u)**beta)
+        ddm[u >= 0] = 0
+        dA = Utils.sdiag(ddm) * self.alphaDeriv
+        return dA
+
+    def _derivBeta(self, u):
+        if self.betaMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, beta = self._get_params()
+        ddm = -alpha*(-theta_r + theta_s)*np.log(abs(u))*abs(u)**beta/(alpha + abs(u)**beta)**2
+        ddm[u >= 0] = 0
+        dN = Utils.sdiag(ddm) * self.betaDeriv
+        return dN
+
+    def derivU(self, u):
+        theta_r, theta_s, alpha, beta = self._get_params()
+
+        g = (
+            alpha * (
+                (theta_s - theta_r) /
+                (alpha + abs(u)**beta)**2
+            ) *
+            (-beta * abs(u)**(beta-1) * np.sign(u))
+        )
+        g[u >= 0] = 0
+        g = Utils.sdiag(g)
+        return g
+
+
+class Haverkamp_k(BaseHydraulicConductivity):
+
+    Ks, KsMap, KsDeriv = Props.Invertible(
+        "Saturated hydraulic conductivity",
+        default=9.44e-03
+    )
+
+    A, AMap, ADeriv = Props.Invertible(
+        "fitting parameter",
+        default=1.175e+06
+    )
+
+    gamma, gammaMap, gammaDeriv = Props.Invertible(
+        "fitting parameter",
+        default=4.74
+    )
+
+    def _get_params(self):
+        return self.Ks, self.A, self.gamma
+
+    def __call__(self, u):
+        Ks, A, gamma = self._get_params()
+        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
+        f_p = P_p * np.ones(len(u)) * Ks  # ensures scalar Ks works
+        f_n = P_n * Ks * A / (A + abs(u)**gamma)
+        return f_p + f_n
+
+    def derivU(self, u):
+        Ks, A, gamma = self._get_params()
+        g = -(Ks*A*gamma*abs(u)**(gamma-1)*np.sign(u))/((A+abs(u)**gamma)**2)
+        g[u >= 0] = 0
+        return Utils.sdiag(g)
+
+    def derivM(self, u):
+        return self._derivKs(u) + self._derivA(u) + self._derivGamma(u)
+
+    def _derivKs(self, u):
+        if self.KsMap is None:
+            return Utils.Zero()
+
+        Ks, A, gamma = self._get_params()
+        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
+
+        dKs_dm_p = P_p * self.KsDeriv
+        dKs_dm_n = P_n * Utils.sdiag(A/(A + abs(u)**gamma)) * self.KsDeriv
+        return dKs_dm_p + dKs_dm_n
+
+    def _derivA(self, u):
+        if self.AMap is None:
+            return Utils.Zero()
+        Ks, A, gamma = self._get_params()
+        ddm = Ks / (A + abs(u)**gamma) - Ks*A/(A + abs(u)**gamma)**2
+        ddm[u >= 0] = 0
+        dA_dm = Utils.sdiag(ddm) * self.ADeriv
+        return dA_dm
+
+    def _derivGamma(self, u):
+        if self.gammaMap is None:
+            return Utils.Zero()
+        Ks, A, gamma = self._get_params()
+        ddm = -(A*Ks*np.log(abs(u))*abs(u)**gamma)/(A + abs(u)**gamma)**2
+        ddm[u >= 0] = 0
+        dGamma_dm = Utils.sdiag(ddm) * self.gammaDeriv
+        return dGamma_dm
+
+
+def haverkamp(mesh, **kwargs):
+    return _partition_args(
+        mesh,
+        Haverkamp_k,
+        Haverkamp_theta,
+        ['Ks', 'A', 'gamma'],
+        ['alpha', 'beta', 'theta_r', 'theta_s'],
+        **kwargs
+    )
 
 
 class HaverkampParams(object):
     """Holds some default parameterizations for the Haverkamp model."""
-    def __init__(self): pass
+
     @property
     def celia1990(self):
+        """Parameters used in:
+
+            Celia, Michael A., Efthimios T. Bouloutas, and Rebecca L. Zarba.
+            "A general mass-conservative numerical solution for the unsaturated
+            flow equation." Water Resources Research 26.7 (1990): 1483-1496.
         """
-            Parameters used in:
+        return {
+            'alpha': 1.611e+06,
+            'beta': 3.96,
+            'theta_r': 0.075,
+            'theta_s': 0.287,
+            'Ks': 9.44e-03,
+            'A': 1.175e+06,
+            'gamma': 4.74
+        }
 
-                Celia, Michael A., Efthimios T. Bouloutas, and Rebecca L. Zarba.
-                "A general mass-conservative numerical solution for the unsaturated flow equation."
-                Water Resources Research 26.7 (1990): 1483-1496.
 
+class Vangenuchten_theta(BaseWaterRetention):
+
+    theta_r, theta_rMap, theta_rDeriv = Props.Invertible(
+        "residual water content [L3L-3]",
+        default=0.078
+    )
+
+    theta_s, theta_sMap, theta_sDeriv = Props.Invertible(
+        "saturated water content [L3L-3]",
+        default=0.430
+    )
+
+    n, nMap, nDeriv = Props.Invertible(
+        "measure of the pore-size distribution, >1",
+        default=1.56
+    )
+
+    alpha, alphaMap, alphaDeriv = Props.Invertible(
+        "related to the inverse of the air entry suction [L-1], >0",
+        default=0.036
+    )
+
+    def _get_params(self):
+        return self.theta_r, self.theta_s, self.alpha, self.n
+
+    def __call__(self, u):
+        theta_r, theta_s, alpha, n = self._get_params()
+        f = (
+            (
+                theta_s - theta_r
+            ) /
+            (
+                (1.0 + abs(alpha * u)**n) ** (1.0 - 1.0 / n)
+            ) +
+            theta_r
+        )
+        if np.isscalar(theta_s):
+            f[u >= 0] = theta_s
+        else:
+            f[u >= 0] = theta_s[u >= 0]
+
+        return f
+
+    def derivM(self, u):
+        """derivative with respect to m
+
+        .. code::
+
+            import sympy as sy
+
+            alpha, u, n, I, Ks, theta_r, theta_s = sy.symbols(
+                'alpha u n I Ks theta_r theta_s', real=True
+            )
+
+            m = 1.0 - 1.0/n
+            theta_e = 1.0 / ((1.0 + sy.functions.Abs(alpha * u) ** n) ** m)
+
+            f_n = (
+                (
+                    theta_s - theta_r
+                ) /
+                (
+                    (1.0 + abs(alpha * u)**n) ** (1.0 - 1.0 / n)
+                ) +
+                theta_r
+            )
         """
-        return {'alpha':1.611e+06, 'beta':3.96,
-                'theta_r':0.075, 'theta_s':0.287,
-                'Ks':9.44e-03, 'A':1.175e+06,
-                'gamma':4.74}
+        return (
+            self._derivTheta_r(u) +
+            self._derivTheta_s(u) +
+            self._derivN(u) +
+            self._derivAlpha(u)
+        )
 
+    def _derivTheta_r(self, u):
+        if self.theta_rMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, n = self._get_params()
+        ddm = -(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n) + 1
+        ddm[u >= 0] = 0
+        dT = Utils.sdiag(ddm) * self.theta_rDeriv
+        return dT
 
-class _haverkamp_theta(NonLinearMap):
+    def _derivTheta_s(self, u):
+        if self.theta_sMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, n = self._get_params()
+        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
+        dT_p = P_p * self.theta_sDeriv
+        dT_n = P_n * Utils.sdiag(
+            (abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)
+        ) * self.theta_sDeriv
+        return dT_p + dT_n
 
-    theta_s = 0.430
-    theta_r = 0.078
-    alpha   = 0.036
-    beta    = 3.960
+    def _derivN(self, u):
+        if self.nMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, n = self._get_params()
+        ddm = (-theta_r + theta_s)*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)
+        ddm[u >= 0] = 0
+        dN = Utils.sdiag(ddm) * self.nDeriv
+        return dN
 
-    def __init__(self, mesh, **kwargs):
-        NonLinearMap.__init__(self, mesh)
-        Utils.setKwargs(self, **kwargs)
+    def _derivAlpha(self, u):
+        if self.alphaMap is None:
+            return Utils.Zero()
+        theta_r, theta_s, alpha, n = self._get_params()
+        ddm = n*u*(-1.0 + 1.0/n)*(-theta_r + theta_s)*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*abs(alpha*u)**n*np.sign(alpha*u)/((abs(alpha*u)**n + 1.0)*abs(alpha*u))
+        ddm[u >= 0] = 0
+        dA = Utils.sdiag(ddm) * self.alphaDeriv
+        return dA
 
-    def setModel(self, m):
-        self._currentModel = m
-
-    def transform(self, u, m):
-        self.setModel(m)
-        f = (self.alpha*(self.theta_s  -    self.theta_r  )/
-                        (self.alpha    + abs(u)**self.beta) + self.theta_r)
-        if Utils.isScalar(self.theta_s):
-            f[u >= 0] = self.theta_s
-        else:
-            f[u >= 0] = self.theta_s[u >= 0]
-        return f
-
-    def transformDerivM(self, u, m):
-        self.setModel(m)
-
-    def transformDerivU(self, u, m):
-        self.setModel(m)
-        g = (self.alpha*((self.theta_s - self.theta_r)/
-             (self.alpha + abs(u)**self.beta)**2)
-             *(-self.beta*abs(u)**(self.beta-1)*np.sign(u)))
+    def derivU(self, u):
+        theta_r, theta_s, alpha, n = self._get_params()
+        g = -alpha*n*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1./n - 1)*(theta_r - theta_s)*(abs(alpha*u)**n + 1)**(1./n - 2)
         g[u >= 0] = 0
         g = Utils.sdiag(g)
         return g
 
 
-class _haverkamp_k(NonLinearMap):
+class Vangenuchten_k(BaseHydraulicConductivity):
 
-    A       = 1.175e+06
-    gamma   = 4.74
-    Ks      = np.log(24.96)
+    Ks, KsMap, KsDeriv = Props.Invertible(
+        "Saturated hydraulic conductivity",
+        default=24.96
+    )
 
-    def __init__(self, mesh, **kwargs):
-        NonLinearMap.__init__(self, mesh)
-        Utils.setKwargs(self, **kwargs)
+    I, IMap, IDeriv = Props.Invertible(
+        "",
+        default=0.5
+    )
 
-    def setModel(self, m):
-        self._currentModel = m
-        #TODO: Fix me!
-        self.Ks = m
+    n, nMap, nDeriv = Props.Invertible(
+        "measure of the pore-size distribution, >1",
+        default=1.56
+    )
 
-    def transform(self, u, m):
-        self.setModel(m)
-        f = np.exp(self.Ks)*self.A/(self.A+abs(u)**self.gamma)
-        if Utils.isScalar(self.Ks):
-            f[u >= 0] = np.exp(self.Ks)
-        else:
-            f[u >= 0] = np.exp(self.Ks[u >= 0])
-        return f
+    alpha, alphaMap, alphaDeriv = Props.Invertible(
+        "related to the inverse of the air entry suction [L-1], >0",
+        default=0.036
+    )
 
-    def transformDerivM(self, u, m):
-        self.setModel(m)
-        #A
-        # dA = np.exp(self.Ks)/(self.A+abs(u)**self.gamma) - np.exp(self.Ks)*self.A/(self.A+abs(u)**self.gamma)**2
-        #gamma
-        # dgamma = -(self.A*np.exp(self.Ks)*np.log(abs(u))*abs(u)**self.gamma)/(self.A + abs(u)**self.gamma)**2
-
-        # This assumes that the the model is Ks
-        return Utils.sdiag(self.transform(u, m))
-
-    def transformDerivU(self, u, m):
-        self.setModel(m)
-        g = -(np.exp(self.Ks)*self.A*self.gamma*abs(u)**(self.gamma-1)*np.sign(u))/((self.A+abs(u)**self.gamma)**2)
-        g[u >= 0] = 0
-        g = Utils.sdiag(g)
-        return g
-
-class Haverkamp(RichardsMap):
-    """Haverkamp Model"""
-
-    alpha   = _ModelProperty('alpha',   ['thetaModel'], default=1.6110e+06)
-    beta    = _ModelProperty('beta',    ['thetaModel'], default=3.96)
-    theta_r = _ModelProperty('theta_r', ['thetaModel'], default=0.075)
-    theta_s = _ModelProperty('theta_s', ['thetaModel'], default=0.287)
-
-    Ks    = _ModelProperty('Ks',    ['kModel'], default=np.log(24.96))
-    A     = _ModelProperty('A',     ['kModel'], default=1.1750e+06)
-    gamma = _ModelProperty('gamma', ['kModel'], default=4.74)
-
-    def __init__(self, mesh, **kwargs):
-        RichardsMap.__init__(self, mesh,
-                               _haverkamp_theta(mesh),
-                               _haverkamp_k(mesh))
-        Utils.setKwargs(self, **kwargs)
-
-
-
-
-class _vangenuchten_theta(NonLinearMap):
-
-    theta_s = 0.430
-    theta_r = 0.078
-    alpha   = 0.036
-    n       = 1.560
-
-    def __init__(self, mesh, **kwargs):
-        NonLinearMap.__init__(self, mesh)
-        Utils.setKwargs(self, **kwargs)
-
-    def setModel(self, m):
-        self._currentModel = m
-
-    def transform(self, u, m):
-        self.setModel(m)
-        m = 1 - 1.0/self.n
-        f = ((  self.theta_s  -  self.theta_r  )/
-             ((1+abs(self.alpha*u)**self.n)**m)   +  self.theta_r)
-        if Utils.isScalar(self.theta_s):
-            f[u >= 0] = self.theta_s
-        else:
-            f[u >= 0] = self.theta_s[u >= 0]
-
-        return f
-
-    def transformDerivM(self, u, m):
-        self.setModel(m)
-
-    def transformDerivU(self, u, m):
-        g = -self.alpha*self.n*abs(self.alpha*u)**(self.n - 1)*np.sign(self.alpha*u)*(1./self.n - 1)*(self.theta_r - self.theta_s)*(abs(self.alpha*u)**self.n + 1)**(1./self.n - 2)
-        g[u >= 0] = 0
-        g = Utils.sdiag(g)
-        return g
-
-
-class _vangenuchten_k(NonLinearMap):
-
-    I       = 0.500
-    alpha   = 0.036
-    n       = 1.560
-    Ks      = np.log(24.96)
-
-    def __init__(self, mesh, **kwargs):
-        NonLinearMap.__init__(self, mesh)
-        Utils.setKwargs(self, **kwargs)
-
-    def setModel(self, m):
-        self._currentModel = m
-        #TODO: Fix me!
-        self.Ks = m
-
-    def transform(self, u, m):
-        self.setModel(m)
-
+    def _get_params(self):
         alpha = self.alpha
         I = self.I
         n = self.n
         Ks = self.Ks
         m = 1.0 - 1.0/n
+        return Ks, alpha, I, n, m
 
-        theta_e = 1.0/((1.0+abs(alpha*u)**n)**m)
-        f = np.exp(Ks)*theta_e**I* ( ( 1.0 - ( 1.0 - theta_e**(1.0/m) )**m )**2 )
-        if Utils.isScalar(self.Ks):
-            f[u >= 0] = np.exp(self.Ks)
-        else:
-            f[u >= 0] = np.exp(self.Ks[u >= 0])
-        return f
+    def __call__(self, u):
+        Ks, alpha, I, n, m = self._get_params()
 
-    def transformDerivM(self, u, m):
-        self.setModel(m)
-#         #alpha
-#         # dA = I*u*n*np.exp(Ks)*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*u*n*np.exp(Ks)*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n));
-#         #n
-#         # dn = 2*np.exp(Ks)*((np.log(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n))/n**2 + ((1.0/n - 1)*(((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/((1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)) - np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))/(n**2*(1.0/n - 1)**2*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))))/(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1) - I*np.exp(Ks)*((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
-#         #I
-#         # dI = np.exp(Ks)*np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
-        return Utils.sdiag(self.transform(u, m)) # This assumes that the the model is Ks
+        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
+        theta_e = 1.0 / ((1.0 + abs(alpha * u) ** n) ** m)
+        f_p = P_p * np.ones(len(u)) * Ks  # ensures scalar Ks works
+        f_n = P_n * Ks * theta_e ** I * (
+            (1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2
+        )
+        return f_p + f_n
 
-    def transformDerivU(self, u, m):
-        self.setModel(m)
-        alpha = self.alpha
-        I = self.I
-        n = self.n
-        Ks = self.Ks
-        m = 1.0 - 1.0/n
+    def derivM(self, u):
+        """derivative with respect to m
 
-        g = I*alpha*n*np.exp(Ks)*abs(alpha*u)**(n - 1.0)*np.sign(alpha*u)*(1.0/n - 1.0)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*alpha*n*np.exp(Ks)*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))
-        g[u >= 0] = 0
-        g = Utils.sdiag(g)
+        .. code::
+
+            import sympy as sy
+
+            alpha, u, n, I, Ks, theta_r, theta_s = sy.symbols(
+                'alpha u n I Ks theta_r theta_s', real=True
+            )
+
+            m = 1.0 - 1.0/n
+            theta_e = 1.0 / ((1.0 + sy.functions.Abs(alpha * u) ** n) ** m)
+
+            f_n = Ks * theta_e ** I * (
+                (1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2
+            )
+
+            f_n = (
+                (
+                    theta_s - theta_r
+                ) /
+                (
+                    (1.0 + abs(alpha * u)**n) ** (1.0 - 1.0 / n)
+                ) +
+                theta_r
+            )
+        """
+        return (
+            self._derivKs(u) +
+            self._derivI(u) +
+            self._derivN(u) +
+            self._derivAlpha(u)
+        )
+
+    def _derivKs(self, u):
+        if self.KsMap is None:
+            return Utils.Zero()
+
+        Ks, alpha, I, n, m = self._get_params()
+        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
+        theta_e = 1.0 / ((1.0 + abs(alpha * u) ** n) ** m)
+        dKs_dm_p = P_p * self.KsDeriv
+        dKs_dm_n = P_n * Utils.sdiag(
+            theta_e ** I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
+        ) * self.KsDeriv
+        return dKs_dm_p + dKs_dm_n
+
+    def _derivAlpha(self, u):
+        if self.alphaMap is None:
+            return Utils.Zero()
+        Ks, alpha, I, n, m = self._get_params()
+        ddm = I*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))
+        ddm[u >= 0] = 0
+        dA = Utils.sdiag(ddm) * self.alphaDeriv
+        return dA
+
+    def _derivN(self, u):
+        if self.nMap is None:
+            return Utils.Zero()
+        Ks, alpha, I, n, m = self._get_params()
+        ddm = 1.0*I*Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)**2*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*(abs(alpha*u)**n + 1.0)**(1.0 - 1.0/n) - 2*Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n)*(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n))*(1.0 - 1.0/n)*(1.0*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*(abs(alpha*u)**n + 1.0)**(1.0 - 1.0/n)/(1.0 - 1.0/n) - 1.0*np.log(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))/(n**2*(1.0 - 1.0/n)**2))/(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0) + 1.0*np.log(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)/n**2)*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)
+        ddm[u >= 0] = 0
+        dn = Utils.sdiag(ddm) * self.nDeriv
+        return dn
+
+    def _derivI(self, u):
+        if self.IMap is None:
+            return Utils.Zero()
+        Ks, alpha, I, n, m = self._get_params()
+        ddm = Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)**2*np.log(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))
+        ddm[u >= 0] = 0
+        dI = Utils.sdiag(ddm) * self.IDeriv
+        return dI
+
+    def derivU(self, u):
+        Ks, alpha, I, n, m = self._get_params()
+        ddm = I*alpha*n*Ks*abs(alpha*u)**(n - 1.0)*np.sign(alpha*u)*(1.0/n - 1.0)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*alpha*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))
+        ddm[u >= 0] = 0
+        g = Utils.sdiag(ddm)
         return g
 
-class VanGenuchten(RichardsMap):
-    """vanGenuchten Model"""
 
-    theta_r = _ModelProperty('theta_r', ['thetaModel'], default=0.075)
-    theta_s = _ModelProperty('theta_s', ['thetaModel'], default=0.287)
-
-    alpha   = _ModelProperty('alpha',   ['thetaModel', 'kModel'], default=0.036)
-    n       = _ModelProperty('n',       ['thetaModel', 'kModel'], default=1.560)
-
-    Ks    = _ModelProperty('Ks',    ['kModel'], default=np.log(24.96))
-    I     = _ModelProperty('I',     ['kModel'], default=0.500)
-
-    def __init__(self, mesh, **kwargs):
-        RichardsMap.__init__(self, mesh,
-                               _vangenuchten_theta(mesh),
-                               _vangenuchten_k(mesh))
-        Utils.setKwargs(self, **kwargs)
+def van_genuchten(mesh, **kwargs):
+    return _partition_args(
+        mesh,
+        Vangenuchten_k,
+        Vangenuchten_theta,
+        ['alpha', 'n', 'Ks', 'I'],
+        ['alpha', 'n', 'theta_r', 'theta_s'],
+        **kwargs
+    )
 
 
 class VanGenuchtenParams(object):
-    """
-        The RETC code for quantifying the hydraulic functions of unsaturated soils,
-        Van Genuchten, M Th, Leij, F J, Yates, S R
+    """The RETC code for quantifying the hydraulic functions of unsaturated
+    soils, Van Genuchten, M Th, Leij, F J, Yates, S R
 
-        Table 3: Average values for selected soil water retention and hydraulic
-        conductivity parameters for 11 major soil textural groups
-        according to Rawls et al. [1982]
-
+    Table 3: Average values for selected soil water retention and hydraulic
+    conductivity parameters for 11 major soil textural groups
+    according to Rawls et al. [1982]
     """
-    def __init__(self): pass
+
     @property
     def sand(self):
-        return {"theta_r": 0.020, "theta_s": 0.417, "alpha": 0.138*100., "n": 1.592, "Ks": 504.0/100./24./60./60.}
+        return {
+            "theta_r": 0.020, "theta_s": 0.417, "alpha": 0.138*100.,
+            "n": 1.592, "Ks": 504.0*constants.centi/constants.day
+        }
+
     @property
-    def loamySand(self):
-        return {"theta_r": 0.035, "theta_s": 0.401, "alpha": 0.115*100., "n": 1.474, "Ks": 146.6/100./24./60./60.}
+    def loamy_sand(self):
+        return {
+            "theta_r": 0.035, "theta_s": 0.401, "alpha": 0.115*100.,
+            "n": 1.474, "Ks": 146.6*constants.centi/constants.day
+        }
+
     @property
-    def sandyLoam(self):
-        return {"theta_r": 0.041, "theta_s": 0.412, "alpha": 0.068*100., "n": 1.322, "Ks": 62.16/100./24./60./60.}
+    def sandy_loam(self):
+        return {
+            "theta_r": 0.041, "theta_s": 0.412, "alpha": 0.068*100.,
+            "n": 1.322, "Ks": 62.16*constants.centi/constants.day
+        }
+
     @property
     def loam(self):
-        return {"theta_r": 0.027, "theta_s": 0.434, "alpha": 0.090*100., "n": 1.220, "Ks": 16.32/100./24./60./60.}
+        return {
+            "theta_r": 0.027, "theta_s": 0.434, "alpha": 0.090*100.,
+            "n": 1.220, "Ks": 16.32*constants.centi/constants.day
+        }
+
     @property
-    def siltLoam(self):
-        return {"theta_r": 0.015, "theta_s": 0.486, "alpha": 0.048*100., "n": 1.211, "Ks": 31.68/100./24./60./60.}
+    def silt_loam(self):
+        return {
+            "theta_r": 0.015, "theta_s": 0.486, "alpha": 0.048*100.,
+            "n": 1.211, "Ks": 31.68*constants.centi/constants.day
+        }
+
     @property
-    def sandyClayLoam(self):
-        return {"theta_r": 0.068, "theta_s": 0.330, "alpha": 0.036*100., "n": 1.250, "Ks": 10.32/100./24./60./60.}
+    def sandy_clay_loam(self):
+        return {
+            "theta_r": 0.068, "theta_s": 0.330, "alpha": 0.036*100.,
+            "n": 1.250, "Ks": 10.32*constants.centi/constants.day
+        }
+
     @property
-    def clayLoam(self):
-        return {"theta_r": 0.075, "theta_s": 0.390, "alpha": 0.039*100., "n": 1.194, "Ks": 5.52/100./24./60./60.}
+    def clay_loam(self):
+        return {
+            "theta_r": 0.075, "theta_s": 0.390, "alpha": 0.039*100.,
+            "n": 1.194, "Ks": 5.52*constants.centi/constants.day
+        }
+
     @property
-    def siltyClayLoam(self):
-        return {"theta_r": 0.040, "theta_s": 0.432, "alpha": 0.031*100., "n": 1.151, "Ks": 3.60/100./24./60./60.}
+    def silty_clay_loam(self):
+        return {
+            "theta_r": 0.040, "theta_s": 0.432, "alpha": 0.031*100.,
+            "n": 1.151, "Ks": 3.60*constants.centi/constants.day
+        }
+
     @property
-    def sandyClay(self):
-        return {"theta_r": 0.109, "theta_s": 0.321, "alpha": 0.034*100., "n": 1.168, "Ks": 2.88/100./24./60./60.}
+    def sandy_clay(self):
+        return {
+            "theta_r": 0.109, "theta_s": 0.321, "alpha": 0.034*100.,
+            "n": 1.168, "Ks": 2.88*constants.centi/constants.day
+        }
+
     @property
-    def siltyClay(self):
-        return {"theta_r": 0.056, "theta_s": 0.423, "alpha": 0.029*100., "n": 1.127, "Ks": 2.16/100./24./60./60.}
+    def silty_clay(self):
+        return {
+            "theta_r": 0.056, "theta_s": 0.423, "alpha": 0.029*100.,
+            "n": 1.127, "Ks": 2.16*constants.centi/constants.day
+        }
+
     @property
     def clay(self):
-        return {"theta_r": 0.090, "theta_s": 0.385, "alpha": 0.027*100., "n": 1.131, "Ks": 1.44/100./24./60./60.}
+        return {
+            "theta_r": 0.090, "theta_s": 0.385, "alpha": 0.027*100.,
+            "n": 1.131, "Ks": 1.44*constants.centi/constants.day
+        }
 
-
-    # From: INDIRECT METHODS FOR ESTIMATING THE HYDRAULIC PROPERTIES OF UNSATURATED SOILS
+    # From:
+    #   INDIRECT METHODS FOR ESTIMATING THE HYDRAULIC
+    #   PROPERTIES OF UNSATURATED SOILS
     # @property
     # def siltLoamGE3(self):
     #     """Soil Index: 3310"""
@@ -556,21 +796,3 @@ class VanGenuchtenParams(object):
     # def plainfieldSand_125to149(self):
     #     """Soil Index: 4104b"""
     #     return {"theta_r": 0.000, "theta_s": 0.342, "alpha": 0.0230, "n": 5.18}
-
-
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    M = Mesh.TensorMesh([10])
-    VGparams = VanGenuchtenParams()
-    leg = []
-    for p in dir(VGparams):
-        if p[0] == '_': continue
-        leg += [p]
-        params = getattr(VGparams, p)
-        model = VanGenuchten(M, **params)
-        ks = np.log(np.r_[params['Ks']])
-        model.plot(ks)
-
-    plt.legend(leg)
-
-    plt.show()

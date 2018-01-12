@@ -117,7 +117,7 @@ def plotMT1DModelData(problem, models, symList=None):
     modelList = [problem.survey.mtrue]
     modelList.extend(models)
     if False:
-        modelList = [problem.mapping.sigmaMap*mod for mod in modelList]
+        modelList = [problem.sigmaMap*mod for mod in modelList]
     for nr, model in enumerate(modelList):
         # Calculate the data
         if nr==0:
@@ -132,7 +132,7 @@ def plotMT1DModelData(problem, models, symList=None):
             col = plt.cm.seismic(1-colRat)
         # The model - make the pts to plot
         meshPts = np.concatenate((problem.mesh.gridN[0:1],np.kron(problem.mesh.gridN[1::],np.ones(2))[:-1]))
-        modelPts = np.kron(1./(problem.mapping.sigmaMap*model),np.ones(2,))
+        modelPts = np.kron(1./(problem.sigmaMap*model),np.ones(2,))
         axM.semilogx(modelPts,meshPts,color=col)
 
         ## Data

@@ -1,21 +1,27 @@
 import numpy as np
 import unittest
 from SimPEG import Mesh, Maps, Models, Utils
-from scipy.sparse.linalg import dsolve
 import inspect
 
 TOL = 1e-14
+
+np.random.seed(121)
+
 
 MAPS_TO_EXCLUDE_2D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "Surject2Dto3D", "Map2Dto3D", "Mesh2Mesh",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
-                      "SplineMap", "Projection"]
+                      "SplineMap", "ParametrizedCasingAndLayer",
+                      "ParametrizedLayer", "ParametrizedBlockInLayer",
+                      "Projection", "SelfConsistentEffectiveMedium"]
 MAPS_TO_EXCLUDE_3D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "CircleMap", "ParametricCircleMap", "Mesh2Mesh",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
-                      "SplineMap", "Projection"]
+                      "SplineMap", "ParametrizedCasingAndLayer",
+                      "ParametrizedLayer", "ParametrizedBlockInLayer",
+                      "Projection", "SelfConsistentEffectiveMedium"]
 
 
 class MapTests(unittest.TestCase):
@@ -39,6 +45,7 @@ class MapTests(unittest.TestCase):
         self.mesh2 = Mesh.TensorMesh([a, b], x0=np.array([3, 5]))
         self.mesh3 = Mesh.TensorMesh([a, b, [3, 4]], x0=np.array([3, 5, 2]))
         self.mesh22 = Mesh.TensorMesh([b, a], x0=np.array([3, 5]))
+        self.meshCyl = Mesh.CylMesh([10., 1., 10.], x0='00C')
 
     def test_transforms2D(self):
         for M in self.maps2test2D:
@@ -58,6 +65,7 @@ class MapTests(unittest.TestCase):
 
     def test_invtransforms2D(self):
         for M in self.maps2test2D:
+            print('Testing Inverse {0}'.format(str(M.__name__)))
             mapping = M(self.mesh2)
             d = np.random.rand(mapping.shape[0])
             try:
@@ -70,6 +78,7 @@ class MapTests(unittest.TestCase):
 
     def test_invtransforms3D(self):
         for M in self.maps2test3D:
+            print('Testing Inverse {0}'.format(str(M.__name__)))
             mapping = M(self.mesh3)
             d = np.random.rand(mapping.shape[0])
             try:
@@ -80,7 +89,10 @@ class MapTests(unittest.TestCase):
             except NotImplementedError:
                 pass
 
-
+    def test_ParametricCasingAndLayer(self):
+        mapping = Maps.ParametrizedCasingAndLayer(self.meshCyl)
+        m = np.r_[-2., 1., 6., 2., -0.1, 0.2, 0.5, 0.2, -0.2, 0.2]
+        self.assertTrue(mapping.test(m))
 
     def test_transforms_logMap_reciprocalMap(self):
 
@@ -96,7 +108,7 @@ class MapTests(unittest.TestCase):
                    0.84130763, 0.22123854]
         dv3 = np.r_[0.96827838, 0.26072111, 0.45090749, 0.10573893,
                     0.65276365, 0.15646586, 0.51679682, 0.23071984,
-                    0.95106218, 0.14201845, 0.25093564, 0.3732866 ]
+                    0.95106218, 0.14201845, 0.25093564, 0.3732866]
 
         maps = Maps.LogMap(self.mesh2)
         self.assertTrue(maps.test(v2, dx=dv2))
@@ -144,15 +156,14 @@ class MapTests(unittest.TestCase):
         self.assertRaises(ValueError, lambda: (combo * vertMap) * expMap)
         self.assertRaises(ValueError, lambda: vertMap * expMap)
         self.assertRaises(ValueError, lambda: expMap * np.ones(100))
-        self.assertRaises(ValueError, lambda: expMap * np.ones((100.0, 1)))
-        self.assertRaises(ValueError, lambda: expMap * np.ones((100.0, 5)))
+        self.assertRaises(ValueError, lambda: expMap * np.ones((100, 1)))
+        self.assertRaises(ValueError, lambda: expMap * np.ones((100, 5)))
         self.assertRaises(ValueError, lambda: combo * np.ones(100))
-        self.assertRaises(ValueError, lambda: combo * np.ones((100.0, 1)))
-        self.assertRaises(ValueError, lambda: combo * np.ones((100.0, 5)))
+        self.assertRaises(ValueError, lambda: combo * np.ones((100, 1)))
+        self.assertRaises(ValueError, lambda: combo * np.ones((100, 5)))
 
     def test_activeCells(self):
         M = Mesh.TensorMesh([2, 4], '0C')
-        expMap = Maps.ExpMap(M)
         for actMap in [Maps.InjectActiveCells(M, M.vectorCCy <= 0, 10,
                        nC=M.nCy), Maps.ActiveCells(M, M.vectorCCy <= 0, 10,
                        nC=M.nCy)]:
@@ -192,7 +203,7 @@ class MapTests(unittest.TestCase):
     def test_map2Dto3D_x(self):
         M2 = Mesh.TensorMesh([2, 4])
         M3 = Mesh.TensorMesh([3, 2, 4])
-        m = np.random.rand(M2.nC)
+        m = np.random.rand(int(M2.nC))
 
         for m2to3 in [Maps.Surject2Dto3D(M3, normal='X'),
                       Maps.Map2Dto3D(M3, normal='X')]:
@@ -249,17 +260,64 @@ class MapTests(unittest.TestCase):
     def test_Projection(self):
         nP = 10
         m = np.arange(nP)
-        self.assertTrue(np.all(Maps.Projection(nP, slice(5))*m == m[:5]))
-        self.assertTrue(np.all(Maps.Projection(nP, slice(5, None))*m == m[5:]))
-        self.assertTrue(np.all(Maps.Projection(nP, np.r_[1, 5, 3, 2, 9, 9])*m ==
-                        np.r_[1, 5, 3, 2, 9, 9]))
-        self.assertTrue(np.all(Maps.Projection(nP, [1, 5, 3, 2, 9, 9])*m ==
-                        np.r_[1, 5, 3, 2, 9, 9]))
+        self.assertTrue(
+            np.all(Maps.Projection(nP, slice(5)) * m == m[:5])
+        )
+        self.assertTrue(
+            np.all(Maps.Projection(nP, slice(5, None)) * m == m[5:])
+        )
+        self.assertTrue(np.all(
+            Maps.Projection(nP, np.r_[1, 5, 3, 2, 9, 9]) * m ==
+            np.r_[1, 5, 3, 2, 9, 9]
+        ))
+        self.assertTrue(np.all(
+            Maps.Projection(nP, [1, 5, 3, 2, 9, 9]) * m ==
+            np.r_[1, 5, 3, 2, 9, 9]
+        ))
         with self.assertRaises(AssertionError):
-            Maps.Projection(nP, np.r_[10])*m
+            Maps.Projection(nP, np.r_[10]) * m
 
         mapping = Maps.Projection(nP, np.r_[1, 2, 6, 1, 3, 5, 4, 9, 9, 8, 0])
         mapping.test()
+
+
+class TestWires(unittest.TestCase):
+
+    def test_basic(self):
+        mesh = Mesh.TensorMesh([10, 10, 10])
+
+        wires = Maps.Wires(
+            ('sigma', mesh.nCz),
+            ('mu_casing', 1),
+        )
+
+        model = np.arange(mesh.nCz + 1)
+
+        assert isinstance(wires.sigma, Maps.Projection)
+        assert wires.nP == mesh.nCz + 1
+
+        named_model = wires * model
+
+        named_model.sigma == model[:mesh.nCz]
+        assert named_model.mu_casing == 10
+
+
+class TestSCEMT(unittest.TestCase):
+    def test_sphericalInclusions(self):
+        mesh = Mesh.TensorMesh([4,  5, 3])
+        mapping = Maps.SelfConsistentEffectiveMedium(
+            mesh, sigma0=1e-1, sigma1=1.
+        )
+        m = np.abs(np.random.rand(mesh.nC))
+        mapping.test(m=m, dx=0.05, num=3)
+
+    def test_spheroidalInclusions(self):
+        mesh = Mesh.TensorMesh([4,  3, 2])
+        mapping = Maps.SelfConsistentEffectiveMedium(
+            mesh, sigma0=1e-1, sigma1=1., alpha0=0.8, alpha1=0.9, rel_tol=1e-8
+        )
+        m = np.abs(np.random.rand(mesh.nC))
+        mapping.test(m=m, dx=0.05, num=3)
 
 if __name__ == '__main__':
     unittest.main()

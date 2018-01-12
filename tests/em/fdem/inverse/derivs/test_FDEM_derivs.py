@@ -5,7 +5,6 @@ from SimPEG import Tests
 from scipy.constants import mu_0
 from SimPEG.EM.Utils.testingUtils import getFDEMProblem
 
-
 testE = True
 testB = True
 testH = True
@@ -29,12 +28,12 @@ def derivTest(fdemType, comp):
     # prb.solverOpts = dict(check_accuracy=True)
 
     print('{0!s} formulation - {1!s}'.format(fdemType, comp))
-    x0 = np.log(np.ones(prb.mapping.nP)*CONDUCTIVITY)
-    mu = np.log(np.ones(prb.mesh.nC)*MU)
+    x0 = np.log(np.ones(prb.sigmaMap.nP)*CONDUCTIVITY)
+    # mu = np.log(np.ones(prb.mesh.nC)*MU)
 
     if addrandoms is True:
-        x0 = x0 + np.random.randn(prb.mapping.nP)*np.log(CONDUCTIVITY)*1e-1
-        mu = mu + np.random.randn(prb.mapping.nP)*MU*1e-1
+        x0 = x0 + np.random.randn(prb.sigmaMap.nP)*np.log(CONDUCTIVITY)*1e-1
+        # mu = mu + np.random.randn(prb.sigmaMap.nP)*MU*1e-1
 
     survey = prb.survey
 

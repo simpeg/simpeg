@@ -4,10 +4,12 @@ from SimPEG import Mesh, Problem, Fields, Survey, Utils
 import numpy as np
 import sys
 
+np.random.seed(32)
+
 if sys.version_info < (3,):
-  zero_types = [0, 0.0, np.r_[0], long(0),]
+  zero_types = [0, 0.0, np.r_[0], long(0)]
 else:
-  zero_types = [0, 0.0, np.r_[0],]
+  zero_types = [0, 0.0, np.r_[0]]
 
 
 class FieldsTest(unittest.TestCase):
@@ -75,7 +77,7 @@ class FieldsTest(unittest.TestCase):
             self.assertTrue(np.all(F[:, 'b'] == b*0))
 
         b = np.random.rand(F.mesh.nF, 1)
-        print(type(self.Src0),'here')
+        print(type(self.Src0), 'here')
         F[self.Src0, 'b'] = b
         self.assertTrue(np.all(F[self.Src0, 'b'] == b))
 

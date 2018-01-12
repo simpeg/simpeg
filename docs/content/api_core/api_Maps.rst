@@ -1,8 +1,8 @@
 .. _api_Maps:
 
 
-SimPEG Maps
-***********
+Maps
+****
 
 That's not a map...?!
 =====================
@@ -61,10 +61,10 @@ done by the :class:`SimPEG.Maps.ExpMap` described above.
     m = np.r_[0.2,1,0.1,2,2.9] # only 5 model parameters!
     sig = myMap * m
 
-.. plot::
 
-    from SimPEG import Examples
-    Examples.Maps_ComboMaps.run()
+.. image:: /content/examples/03-maps/images/sphx_glr_plot_combo_001.png
+    :target: /content/examples/03-maps/plot_combo.html
+    :align: center
 
 If you noticed, it was pretty easy to combine maps. What is even cooler is
 that the derivatives also are made for you (if everything goes right).
@@ -94,7 +94,8 @@ When these are used in the inverse problem, this is extremely important!!
 .. plot::
     :include-source:
 
-    from SimPEG import Mesh, Maps, np
+    import numpy as np
+    from SimPEG import Mesh, Maps
     import matplotlib.pyplot as plt
     M = Mesh.TensorMesh([100])
     expMap = Maps.ExpMap(M)
@@ -102,15 +103,6 @@ When these are used in the inverse problem, this is extremely important!!
     m[M.vectorCCx>0.5] = 1.0
     expMap.test(m, plotIt=True)
 
-
-The API
-=======
-
-The :code:`IdentityMap` is the base class for all mappings, and it does absolutely nothing.
-
-.. autoclass:: SimPEG.Maps.IdentityMap
-    :members:
-    :undoc-members:
 
 
 Common Maps
@@ -149,15 +141,14 @@ Map 2D Cross-Section to 3D Model
 Mesh to Mesh Map
 ----------------
 
-.. plot::
-
-    from SimPEG import Examples
-    Examples.Maps_Mesh2Mesh.run()
-
-
 .. autoclass:: SimPEG.Maps.Mesh2Mesh
     :members:
     :undoc-members:
+
+
+.. image:: /content/examples/03-maps/images/sphx_glr_plot_mesh2mesh_001.png
+    :target: /content/examples/03-maps/plot_mesh2mesh.html
+    :align: center
 
 
 Under the Hood
@@ -172,6 +163,17 @@ Remember, any time that you make your own combination of mappings
 be sure to test that the derivative is correct.
 
 .. autoclass:: SimPEG.Maps.ComboMap
+    :members:
+    :undoc-members:
+
+
+The API
+=======
+
+The :code:`IdentityMap` is the base class for all mappings, and it does absolutely nothing.
+
+.. automodule:: SimPEG.Maps
+    :show-inheritance:
     :members:
     :undoc-members:
 

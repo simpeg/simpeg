@@ -1,14 +1,19 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+import numpy as np
 import SimPEG
 from SimPEG.EM.Base import BaseEMSurvey
-from SimPEG import np, sp, Survey, Utils
-from SimPEG.Utils import Zero, Identity
+from SimPEG import Utils
 from SimPEG.EM.Static.SIP.SrcSIP import BaseSrc
 from SimPEG.EM.Static.SIP.RxSIP import BaseRx
 import uuid
 
 
 class Survey(BaseEMSurvey):
-    rxPair  = BaseRx
+    rxPair = BaseRx
     srcPair = BaseSrc
     times = None
 
@@ -88,7 +93,6 @@ class Data(SimPEG.Survey.Data):
                 for t in rx.times:
                     val.append(self[src, rx, t])
         return np.concatenate(val)
-
 
     def fromvec(self, v):
         v = Utils.mkvc(v)

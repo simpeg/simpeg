@@ -38,7 +38,7 @@
 #         rxLoc = np.c_[Utils.mkvc(X), Utils.mkvc(Y), Utils.mkvc(Z)]
 #         survey.rxLoc = rxLoc
 
-#         prob = PF.Magnetics.Problem3D_DiffSecondary(M, mapping=model)
+#         prob = PF.Magnetics.Problem3D_DiffSecondary(M, muMap=model)
 #         prob.pair(survey)
 #         dpre = survey.dpred(chi)
 

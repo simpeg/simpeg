@@ -2,11 +2,8 @@ from __future__ import print_function, division
 import types
 import numpy as np
 from functools import wraps
-import sys
-if sys.version_info < (3,):
-    scalarTypes = [float, int, long, np.float_, np.int_]
-else:
-    scalarTypes = [float, int, np.float_, np.int_]
+
+from discretize.utils import asArray_N_x_Dim
 
 
 def memProfileWrapper(towrap, *funNames):
@@ -74,8 +71,8 @@ def setKwargs(obj, ignore=None,  **kwargs):
         else:
             raise Exception('{0!s} attr is not recognized'.format(attr))
 
-    hook(obj, hook, silent=True)
-    hook(obj, setKwargs, silent=True)
+    # hook(obj, hook, silent=True)
+    # hook(obj, setKwargs, silent=True)
 
 
 def printTitles(obj, printers, name='Print Titles', pad=''):
@@ -174,36 +171,13 @@ def dependentProperty(name, value, children, doc):
     def fget(self): return getattr(self, name, value)
 
     def fset(self, val):
-        if (isScalar(val) and getattr(self, name, value) == val) or val is getattr(self, name, value):
+        if (np.isscalar(val) and getattr(self, name, value) == val) or val is getattr(self, name, value):
             return # it is the same!
         for child in children:
             if hasattr(self, child):
                 delattr(self, child)
         setattr(self, name, val)
     return property(fget=fget, fset=fset, doc=doc)
-
-
-def isScalar(f):
-    if type(f) in scalarTypes:
-        return True
-    elif isinstance(f, np.ndarray) and f.size == 1 and type(f[0]) in scalarTypes:
-        return True
-    return False
-
-
-def asArray_N_x_Dim(pts, dim):
-        if type(pts) == list:
-            pts = np.array(pts)
-        assert isinstance(pts, np.ndarray), "pts must be a numpy array"
-
-        if dim > 1:
-            pts = np.atleast_2d(pts)
-        elif len(pts.shape) == 1:
-            pts = pts[:,np.newaxis]
-
-        assert pts.shape[1] == dim, "pts must be a column vector of shape (nPts, {0:d}) not ({1:d}, {2:d})".format(*((dim,)+pts.shape))
-
-        return pts
 
 
 def requires(var):

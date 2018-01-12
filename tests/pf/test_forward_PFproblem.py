@@ -1,6 +1,6 @@
 import unittest
-from SimPEG import Mesh, Utils, np, PF
-import matplotlib.pyplot as plt
+from SimPEG import Mesh, Utils, PF
+import numpy as np
 
 
 class MagFwdProblemTests(unittest.TestCase):
@@ -19,7 +19,7 @@ class MagFwdProblemTests(unittest.TestCase):
         sph_ind = PF.MagAnalytics.spheremodel(M, 0., 0., 0., 100)
         chi[sph_ind] = chiblk
         model = PF.BaseMag.BaseMagMap(M)
-        prob = PF.Magnetics.Problem3D_DiffSecondary(M, mapping=model)
+        prob = PF.Magnetics.Problem3D_DiffSecondary(M, muMap=model)
         self.prob = prob
         self.M = M
         self.chi = chi

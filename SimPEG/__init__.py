@@ -1,23 +1,26 @@
-import numpy as np
-import scipy.sparse as sp
-from . import Utils
-from .Utils import mkvc
-from .Utils.SolverUtils import (_checkAccuracy, SolverWrapD, SolverWrapI,
-                               Solver, SolverCG, SolverDiag, SolverLU)
-from . import Mesh
-from . import Maps
-from . import Models
-from . import Problem
-from . import Survey
-from . import Regularization
-from . import DataMisfit
-from . import InvProblem
-from . import Optimization
-from . import Directives
-from . import Inversion
-from . import Tests
+from __future__ import print_function
 
-__version__   = '0.3.1'
-__author__    = 'Rowan Cockett'
+from SimPEG import Utils
+from SimPEG.Utils import mkvc
+from SimPEG.Utils.SolverUtils import (
+    _checkAccuracy, SolverWrapD, SolverWrapI,
+    Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
+)
+
+import discretize as Mesh
+from SimPEG import Maps
+from SimPEG import Models
+from SimPEG import Problem
+from SimPEG import Survey
+from SimPEG import Regularization
+from SimPEG import DataMisfit
+from SimPEG import InvProblem
+from SimPEG import Optimization
+from SimPEG import Directives
+from SimPEG import Inversion
+from SimPEG import Tests
+
+__version__   = '0.6.5'
+__author__    = 'SimPEG Team'
 __license__   = 'MIT'
-__copyright__ = 'Copyright 2014 Rowan Cockett'
+__copyright__ = '2013 - 2017, SimPEG Team, http://simpeg.xyz'

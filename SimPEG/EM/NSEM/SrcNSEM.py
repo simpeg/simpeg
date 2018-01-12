@@ -6,7 +6,7 @@ import numpy as np
 import scipy.sparse as sp
 
 from SimPEG import Maps, mkvc
-from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
+from SimPEG.EM.FDEM.SrcFDEM import BaseFDEMSrc as FDEMBaseSrc
 from SimPEG.EM.Utils import omega
 from .Utils.sourceUtils import homo1DModelSource
 
@@ -95,7 +95,7 @@ class Planewave_xy_1Dprimary(BaseNSEMSrc):
         # Note: M(sig) - M(sig_p) = M(sig - sig_p)
         # Need to deal with the edge/face discrepencies between 1d/2d/3d
         if problem.mesh.dim == 1:
-            Mesigma = problem.mesh.getFaceInnerProduct(problem.curModel.sigma)
+            Mesigma = problem.mesh.getFaceInnerProduct(problem.sigma)
             Mesigma_p = problem.mesh.getFaceInnerProduct(sigma_p)
         if problem.mesh.dim == 2:
             pass
@@ -119,7 +119,7 @@ class Planewave_xy_1Dprimary(BaseNSEMSrc):
         if problem.mesh.dim == 1:
             # Need to use the faceInnerProduct
             ePri = self.ePrimary(problem)[:,1]
-            MsigmaDeriv = problem.mesh.getFaceInnerProductDeriv(problem.curModel.sigma)(ePri) * problem.curModel.sigmaDeriv
+            MsigmaDeriv = problem.mesh.getFaceInnerProductDeriv(problem.sigma)(ePri) * problem.sigmaDeriv
             # MsigmaDeriv = ( MsigmaDeriv * MsigmaDeriv.T)**2
 
             if adjoint:
@@ -182,7 +182,7 @@ class Planewave_xy_3Dprimary(BaseNSEMSrc):
         # Note: M(sig) - M(sig_p) = M(sig - sig_p)
         # Need to deal with the edge/face discrepencies between 1d/2d/3d
         if problem.mesh.dim == 1:
-            Mesigma = problem.mesh.getFaceInnerProduct(problem.curModel.sigma)
+            Mesigma = problem.mesh.getFaceInnerProduct(problem.sigma)
             Mesigma_p = problem.mesh.getFaceInnerProduct(sigma_p)
         if problem.mesh.dim == 2:
             pass
@@ -198,7 +198,7 @@ class Planewave_xy_3Dprimary(BaseNSEMSrc):
         # Need to deal with
         if problem.mesh.dim == 1:
             # Need to use the faceInnerProduct
-            MsigmaDeriv = problem.mesh.getFaceInnerProductDeriv(problem.curModel.sigma)(self.ePrimary(problem)[:,1]) * problem.curModel.sigmaDeriv
+            MsigmaDeriv = problem.mesh.getFaceInnerProductDeriv(problem.sigma)(self.ePrimary(problem)[:,1]) * problem.sigmaDeriv
             # MsigmaDeriv = ( MsigmaDeriv * MsigmaDeriv.T)**2
         if problem.mesh.dim == 2:
             pass

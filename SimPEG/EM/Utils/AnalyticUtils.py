@@ -1,6 +1,8 @@
-from SimPEG import Mesh, np, Utils
+import numpy as np
+from SimPEG import Mesh, Utils
 from scipy.special import ellipk, ellipe
 from scipy.constants import mu_0
+import properties
 
 orientationDict = {'X': np.r_[1., 0., 0.],
                    'Y': np.r_[0., 1., 0.],
@@ -15,7 +17,7 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1.,
         at given locations 'ref. <http://en.wikipedia.org/wiki/Dipole#Magnetic_vector_potential>'
 
         :param numpy.ndarray srcLoc: Location of the source(s) (x, y, z)
-        :param numpy.ndarray,SimPEG.Mesh obsLoc: Where the potentials will be
+        :param numpy.ndarray,discretize obsLoc: Where the potentials will be
                                                  calculated (x, y, z) or a
                                                  SimPEG Mesh
         :param str,list component: The component to calculate - 'x', 'y', or
@@ -30,7 +32,7 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1.,
     if isinstance(orientation, str):
         orientation = orientationDict[orientation]
 
-    assert np.linalg.norm(np.array(orientation), 2) == 1., ("orientation must "
+    assert np.linalg.norm(orientation, 2) == 1., ("orientation must "
                                                             "be a unit vector")
 
     if type(component) in [list, tuple]:
@@ -78,8 +80,9 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1.,
     return A
 
 
-def MagneticDipoleFields(srcLoc, obsLoc, component,
-                         orientation='Z', moment=1., mu=mu_0):
+def MagneticDipoleFields(
+    srcLoc, obsLoc, component, orientation='Z', moment=1., mu=mu_0
+):
     """
         Calculate the vector potential of a set of magnetic dipoles
         at given locations 'ref. <http://en.wikipedia.org/wiki/Dipole#Magnetic_vector_potential>'
@@ -155,20 +158,22 @@ def MagneticDipoleFields(srcLoc, obsLoc, component,
         rx = component.repeat(nObs, axis=0)
         dR = obsLoc - srcLoc
         r = np.sqrt((dR**2).sum(axis=1))
-
         # mult each element and sum along the axis (vector dot product)
         m_dot_dR_div_r2 = (m * dR).sum(axis=1) / (r**2)
 
-        # multiply the scalar m_dot_dR by the 3D vector r
-        rvec_m_dot_dR_div_r2 = np.vstack([m_dot_dR_div_r2 * dR[:, i] for
-                                          i in range(3)]).T
+        #multiply the scalar m_dot_dR by the 3D vector r
+
+        rvec_m_dot_dR_div_r2 = np.vstack(
+            [np.multiply(m_dot_dR_div_r2, dR[:, i]) for i in range(3)]
+        ).T
+
+        # print((3. * rvec_m_dot_dR_div_r2).shape,rvec_m_dot_dR_div_r2.shape, m.shape)
         inside = (3. * rvec_m_dot_dR_div_r2) - m
 
         # dot product with rx orientation
         inside_dot_rx = (inside * rx).sum(axis=1)
         front = (mu/(4.* np.pi * r**3))
-
-        B.append(Utils.mkvc(front * inside_dot_rx))
+        B.append(Utils.mkvc(np.multiply(front, inside_dot_rx)))
 
     return np.vstack(B).T
 
@@ -201,7 +206,7 @@ def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, orientation='
         at given locations
 
         :param numpy.ndarray srcLoc: Location of the source(s) (x, y, z)
-        :param numpy.ndarray,SimPEG.Mesh obsLoc: Where the potentials will be calculated (x, y, z) or a SimPEG Mesh
+        :param numpy.ndarray,discretize obsLoc: Where the potentials will be calculated (x, y, z) or a SimPEG Mesh
         :param str,list component: The component to calculate - 'x', 'y', or 'z' if an array, or grid type if mesh, can be a list
         :param numpy.ndarray I: Input current of the loop
         :param numpy.ndarray radius: radius of the loop

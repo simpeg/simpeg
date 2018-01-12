@@ -10,15 +10,15 @@ import SimPEG as simpeg
 from SimPEG.EM import NSEM
 
 TOL = 1e-4
-FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
+FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
 
-# Test the Jvec derivative
+
 def DerivJvecTest(halfspace_value, freq=False, expMap=True):
 
     survey, sig, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(halfspace_value,False,structure=True)
-    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary = sigBG)
+    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary=sigBG, sigmaMap=simpeg.Maps.IdentityMap(mesh))
     problem.pair(survey)
     print('Using {0} solver for the problem'.format(problem.Solver))
     print('Derivative test of Jvec for eForm primary/secondary for 1d comp from {0} to {1} Hz\n'.format(survey.freqs[0],survey.freqs[-1]))
@@ -33,9 +33,11 @@ def DerivJvecTest(halfspace_value, freq=False, expMap=True):
     # if True:
     #     x0  = x0 + np.random.randn(problem.mesh.nC)*halfspace_value*1e-1
     survey = problem.survey
+
     def fun(x):
         return survey.dpred(x), lambda x: problem.Jvec(x0, x)
     return simpeg.Tests.checkDerivative(fun, x0, num=4, plotIt=False, eps=FLR)
+
 
 def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
 
@@ -62,14 +64,14 @@ def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
     return simpeg.Tests.checkDerivative(fun, u0, num=4, plotIt=False, eps=FLR)
 
 
-
 class NSEM_DerivTests(unittest.TestCase):
 
-    def setUp(self):
-        pass
+    def test_derivJvec_Z1dr(self):
+        self.assertTrue(DerivJvecTest(1e-2))
 
-    def test_derivJvec_Z1dr(self):self.assertTrue(DerivJvecTest(1e-2))
-    def test_derivJvec_Z1di(self):self.assertTrue(DerivJvecTest(1e-2))
+    def test_derivJvec_Z1di(self):
+        self.assertTrue(DerivJvecTest(1e-2))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,6 +1,7 @@
 language: python
+
 python:
-  - 3.4
+  - 3.6
   - 2.7
 
 sudo: false
@@ -10,20 +11,23 @@ addons:
     packages:
     - gcc
     - gfortran
-    - libopenmpi-dev
-    - libmumps-seq-dev
     - libblas-dev
     - liblapack-dev
 
 env:
-    - TEST_DIR="tests/mesh tests/base tests/utils"
+  global:
+    - DEPLOY_DIR=tests/docs
+    - MASTER_BRANCH=master
+    - GAE_PROJECT=simpegdocs
+    - DOCS_PY=2.7  # deploy docs from 2.7
+    - PYPI_PY=3.6 # deploy to pypi from python 3.6
+
+  matrix:
     - TEST_DIR=tests/em/fdem/inverse/derivs
     - TEST_DIR=tests/em/tdem
-    - TEST_DIR=tests/em/static
+    - TEST_DIR="tests/em/static tests/seis tests/base"
     - TEST_DIR=tests/flow
-    - TEST_DIR=tests/em/nsem/forward
-    - TEST_DIR=tests/em/nsem/inversion
-    - TEST_DIR=tests/examples
+    - TEST_DIR="tests/em/nsem/forward tests/em/nsem/inversion"
     - TEST_DIR=tests/em/fdem/inverse/adjoint
     - TEST_DIR=tests/em/fdem/forward
     - TEST_DIR=tests/pf
@@ -33,13 +37,14 @@ env:
       PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH};
       CLOUDSDK_CORE_DISABLE_PROMPTS=1
 
+
 # Setup anaconda
 before_install:
 # Install packages
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      wget http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh -O miniconda.sh;
+      wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
     else
-      wget http://repo.continuum.io/miniconda/Miniconda3-3.8.3-Linux-x86_64.sh -O miniconda.sh;
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
     fi
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
@@ -47,62 +52,77 @@ before_install:
   - conda update --yes conda
 
 install:
-
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose sphinx sympy vtk;
+      conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py vtk;
     else
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose sphinx sympy;
+      conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
     fi
-  - pip install nose-cov python-coveralls
-
-#  - pip install pyMKL;
-  - git clone https://github.com/jcapriot/pyMKL.git;
-    cd pyMKL;
-    python setup.py install;
-    cd ..;
-    git clone https://github.com/rowanc1/pymatsolver.git;
-    cd pymatsolver;
-    python setup.py install;
-    cd ..;
-
+  - pip install -r requirements_dev.txt
   - python setup.py install
-  - python setup.py build_ext --inplace
-  - if [ ${TEST_DIR} = "tests/docs" ]; then
-      pip install sphinx_rtd_theme ;
+  - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
+      if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi ;
+      openssl aes-256-cbc -K $encrypted_7e0a8632ac3f_key -iv $encrypted_7e0a8632ac3f_iv -in credentials.tar.gz.enc -out credentials.tar.gz -d ;
+      tar -xzf credentials.tar.gz ;
+      gcloud auth activate-service-account --key-file credentials/client-secret-docs.json ;
+      gsutil cp gs://simpeg/_build.tar.gz $PWD/docs ;
+      gsutil cp gs://simpeg/examples.tar.gz $PWD/docs/content ;
+      cd docs ;
+      tar -xzf _build.tar.gz _build;
+      cd content ;
+      tar -xzf examples.tar.gz examples;
+      cd ../../ ;
     fi
 
 # Run test
 script:
-  - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s
+  # - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s
+  - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "3" ]; then
+      cd docs; make html-noplot ; cd ../ ;
+    else
+      nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
+    fi
+
 
 # Calculate coverage
 after_success:
   - bash <(curl -s https://codecov.io/bash)
-  - openssl aes-256-cbc -K $encrypted_7e0a8632ac3f_key -iv $encrypted_7e0a8632ac3f_iv -in credentials.tar.gz.enc -out credentials.tar.gz -d
-  - tar -xvzf credentials.tar.gz
-  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
-      if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7" ]; then
-        python scripts/fetch_gae_sdk.py $(dirname "${GAE_PYTHONPATH}");
-        if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi ;
-        gcloud auth activate-service-account --key-file credentials/client-secret.json ;
-        gcloud config set project simpegdocs;
-        gcloud -q components update gae-python;
-        gcloud -q preview app deploy ./docs/app.yaml --version ${TRAVIS_COMMIT} --promote;
-      fi;
+
+  # early exit if not on a deplotment branch
+  - if ! [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" -o "$TRAVIS_TAG" = "true" ]; then
+      echo "Not deploying (because this is not a deployment branch)" ;
+      exit 0 ;
     fi
-  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
-      if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7" ]; then
+  - if ! [ "$TEST_DIR" = "$DEPLOY_DIR" ]; then
+      echo "Not deploying (because this is not a deployment directory)" ;
+      exit 0 ;
+    fi
+  - if [ "$TRAVIS_PULL_REQUEST" = "true" ]; then
+      echo "Not deploying (because this is a pull request)" ;
+      exit 0 ;
+    fi
+
+  # deploy docs
+  - if [ $TRAVIS_PYTHON_VERSION == $DOCS_PY ]; then
+      if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" ]; then
+        cd docs; tar -cvzf _build.tar.gz _build ;
+        cd content; tar -cvzf examples.tar.gz examples ; cd ..;
+        gsutil cp docs/_build.tar.gz gs://simpeg ;
+        gsutil cp docs/content/examples.tar.gz gs://simpeg ;
+        gcloud auth activate-service-account --key-file credentials/client-secret-dev.json ;
+        export GAE_PROJECT=$GAE_PROJECT ;
+      fi ;
+      gcloud config set project $GAE_PROJECT;
+      gcloud app deploy ./docs/app.yaml --version ${TRAVIS_COMMIT} --promote;
+    fi;
+
+  #deploy to pypi
+  - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY ]; then
+      if [ "$TRAVIS_TAG" ]; then
         mv credentials/.pypirc ~/.pypirc ;
-        python setup.py register -r pypi ;
-        travis_wait 20 python setup.py sdist upload -r pypi ;
-      fi;
+        python setup.py sdist bdist_wheel --universal ;
+        travis_wait 20 twine upload -r pypi --skip-existing dist/* ;
+      fi
     fi
-
-
 
 notifications:
-  email:
-    - rowanc1@gmail.com
-    - lindseyheagy@gmail.com
-    - gkrosen@gmail.com
-    - sgkang09@gmail.com
+  slack: simpeg:1KZq5giMtlJJ58TijIPgqf7n

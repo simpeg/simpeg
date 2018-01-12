@@ -1,5 +1,1 @@
-numpy
-scipy
-ipython
-matplotlib
-cython
+-e .

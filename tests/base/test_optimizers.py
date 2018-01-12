@@ -1,7 +1,7 @@
 from __future__ import print_function
 import unittest
 from SimPEG import Solver
-from SimPEG.Mesh import TensorMesh
+from discretize import TensorMesh
 from SimPEG.Utils import sdiag
 import numpy as np
 import scipy.sparse as sp
@@ -9,6 +9,7 @@ from SimPEG import Optimization
 from SimPEG.Tests import getQuadratic, Rosenbrock
 
 TOL = 1e-2
+
 
 class TestOptimizers(unittest.TestCase):
 

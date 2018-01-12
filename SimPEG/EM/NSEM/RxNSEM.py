@@ -10,8 +10,8 @@ from __future__ import division
 from scipy.constants import mu_0
 
 import SimPEG
+import numpy as np
 from SimPEG import mkvc
-# from SimPEG.EM.Utils.EMUtils import mu_0
 
 
 class BaseRxNSEM_Point(SimPEG.Survey.BaseRx):
@@ -26,34 +26,38 @@ class BaseRxNSEM_Point(SimPEG.Survey.BaseRx):
     """
 
     def __init__(self, locs, orientation=None, component=None):
-        assert(orientation in ['xx','xy', 'yx', 'yy', 'zx', 'zy']), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'. Arbitrary orientations have not yet been implemented.".format(orientation)
+        assert(orientation in ['xx', 'xy', 'yx', 'yy', 'zx', 'zy']), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'. Arbitrary orientations have not yet been implemented.".format(orientation)
         assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not {0!s}".format(component)
 
         self.orientation = orientation
         self.component = component
 
-
-        SimPEG.Survey.BaseRx.__init__(self, locs, rxType=None) #TODO: remove rxType from baseRx
+        SimPEG.Survey.BaseRx.__init__(self, locs, rxType=None) # TODO: remove rxType from baseRx
 
     # Set a mesh property
     @property
     def mesh(self):
         return self._mesh
+
     @mesh.setter
-    def mesh(self,value):
-        if value is getattr(self,'_mesh',None):
+    def mesh(self, value):
+        if value is getattr(self, '_mesh', None):
             pass
         else:
             self._mesh = value
+
     @property
     def src(self):
         return self._src
+
     @src.setter
     def src(self, value):
         self._src = value
+
     @property
     def f(self):
         return self._f
+
     @f.setter
     def f(self, value):
         self._f = value
@@ -75,30 +79,31 @@ class BaseRxNSEM_Point(SimPEG.Survey.BaseRx):
     # Location projection
     @property
     def Pex(self):
-        if getattr(self,'_Pex',None) is None:
+        if getattr(self, '_Pex', None) is None:
             self._Pex = self._mesh.getInterpolationMat(self._locs_e(), 'Ex')
         return self._Pex
 
     @property
     def Pey(self):
-        if getattr(self,'_Pey',None) is None:
+        if getattr(self, '_Pey', None) is None:
             self._Pey = self._mesh.getInterpolationMat(self._locs_e(), 'Ey')
         return self._Pey
 
     @property
     def Pbx(self):
-        if getattr(self,'_Pbx',None) is None:
+        if getattr(self, '_Pbx', None) is None:
             self._Pbx = self._mesh.getInterpolationMat(self._locs_b(), 'Fx')
         return self._Pbx
 
     @property
     def Pby(self):
-        if getattr(self,'_Pby',None) is None:
+        if getattr(self, '_Pby', None) is None:
             self._Pby = self._mesh.getInterpolationMat(self._locs_b(), 'Fy')
         return self._Pby
+
     @property
     def Pbz(self):
-        if getattr(self,'_Pbz',None) is None:
+        if getattr(self, '_Pbz', None) is None:
             self._Pbz = self._mesh.getInterpolationMat(self._locs_e(), 'Fz')
         return self._Pbz
 
@@ -111,55 +116,75 @@ class BaseRxNSEM_Point(SimPEG.Survey.BaseRx):
     @property
     def _ex_px(self):
         return self.Pex*self.f[self.src, 'e_px']
+
     @property
     def _ey_px(self):
         return self.Pey*self.f[self.src, 'e_px']
+
     @property
     def _ex_py(self):
         return self.Pex*self.f[self.src, 'e_py']
+
     @property
     def _ey_py(self):
         return self.Pey*self.f[self.src, 'e_py']
+
     @property
     def _hx_px(self):
         return self.Pbx*self.f[self.src, 'b_px']/mu_0
+
     @property
     def _hy_px(self):
         return self.Pby*self.f[self.src, 'b_px']/mu_0
+
     @property
     def _hz_px(self):
         return self.Pbz*self.f[self.src, 'b_px']/mu_0
+
     @property
     def _hx_py(self):
         return self.Pbx*self.f[self.src, 'b_py']/mu_0
+
     @property
     def _hy_py(self):
         return self.Pby*self.f[self.src, 'b_py']/mu_0
+
     @property
     def _hz_py(self):
         return self.Pbz*self.f[self.src, 'b_py']/mu_0
     # Get the derivatives
+
     def _ex_px_u(self, vec):
-        return self.Pex*self.f._e_pxDeriv_u(self.src,vec)
+        return self.Pex*self.f._e_pxDeriv_u(self.src, vec)
+
     def _ey_px_u(self, vec):
-        return self.Pey*self.f._e_pxDeriv_u(self.src,vec)
+        return self.Pey*self.f._e_pxDeriv_u(self.src, vec)
+
     def _ex_py_u(self, vec):
-        return self.Pex*self.f._e_pyDeriv_u(self.src,vec)
+        return self.Pex*self.f._e_pyDeriv_u(self.src, vec)
+
     def _ey_py_u(self, vec):
-        return self.Pey*self.f._e_pyDeriv_u(self.src,vec)
+        return self.Pey*self.f._e_pyDeriv_u(self.src, vec)
+
     def _hx_px_u(self, vec):
-        return self.Pbx*self.f._b_pxDeriv_u(self.src,vec)/mu_0
+        return self.Pbx*self.f._b_pxDeriv_u(self.src, vec)/mu_0
+
     def _hy_px_u(self, vec):
-        return self.Pby*self.f._b_pxDeriv_u(self.src,vec)/mu_0
+        return self.Pby*self.f._b_pxDeriv_u(self.src, vec)/mu_0
+
     def _hz_px_u(self, vec):
-        return self.Pbz*self.f._b_pxDeriv_u(self.src,vec)/mu_0
+        return self.Pbz*self.f._b_pxDeriv_u(self.src, vec)/mu_0
+
     def _hx_py_u(self, vec):
-        return self.Pbx*self.f._b_pyDeriv_u(self.src,vec)/mu_0
+        return self.Pbx*self.f._b_pyDeriv_u(self.src, vec)/mu_0
+
     def _hy_py_u(self, vec):
-        return self.Pby*self.f._b_pyDeriv_u(self.src,vec)/mu_0
+        return self.Pby*self.f._b_pyDeriv_u(self.src, vec)/mu_0
+
     def _hz_py_u(self, vec):
-        return self.Pbz*self.f._b_pyDeriv_u(self.src,vec)/mu_0
+        return self.Pbz*self.f._b_pyDeriv_u(self.src, vec)/mu_0
     # Define the components of the derivative
+
     @property
     def _Hd(self):
         return self._sDiag(1./(
@@ -168,7 +193,8 @@ class BaseRxNSEM_Point(SimPEG.Survey.BaseRx):
         ))
 
     def _Hd_uV(self, v):
-        return (self._sDiag(self._hy_py)*self._hx_px_u(v) +
+        return (
+            self._sDiag(self._hy_py)*self._hx_px_u(v) +
             self._sDiag(self._hx_px)*self._hy_py_u(v) -
             self._sDiag(self._hx_py)*self._hy_px_u(v) -
             self._sDiag(self._hy_px)*self._hx_py_u(v)
@@ -177,86 +203,105 @@ class BaseRxNSEM_Point(SimPEG.Survey.BaseRx):
     # Adjoint
     @property
     def _aex_px(self):
-        return mkvc(mkvc(self.f[self.src,'e_px'],2).T*self.Pex.T)
+        return mkvc(mkvc(self.f[self.src, 'e_px'], 2).T*self.Pex.T)
+
     @property
     def _aey_px(self):
-        return mkvc(mkvc(self.f[self.src,'e_px'],2).T*self.Pey.T)
+        return mkvc(mkvc(self.f[self.src, 'e_px'], 2).T*self.Pey.T)
+
     @property
     def _aex_py(self):
-        return mkvc(mkvc(self.f[self.src,'e_py'],2).T*self.Pex.T)
+        return mkvc(mkvc(self.f[self.src, 'e_py'], 2).T*self.Pex.T)
+
     @property
     def _aey_py(self):
-        return mkvc(mkvc(self.f[self.src,'e_py'],2).T*self.Pey.T)
+        return mkvc(mkvc(self.f[self.src, 'e_py'], 2).T*self.Pey.T)
+
     @property
     def _ahx_px(self):
-        return mkvc(mkvc(self.f[self.src,'b_px'],2).T/mu_0*self.Pbx.T)
+        return mkvc(mkvc(self.f[self.src, 'b_px'], 2).T/mu_0*self.Pbx.T)
+
     @property
     def _ahy_px(self):
-        return mkvc(mkvc(self.f[self.src,'b_px'],2).T/mu_0*self.Pby.T)
+        return mkvc(mkvc(self.f[self.src, 'b_px'], 2).T/mu_0*self.Pby.T)
+
     @property
     def _ahz_px(self):
-        return mkvc(mkvc(self.f[self.src,'b_px'],2).T/mu_0*self.Pbz.T)
+        return mkvc(mkvc(self.f[self.src, 'b_px'], 2).T/mu_0*self.Pbz.T)
+
     @property
     def _ahx_py(self):
-        return mkvc(mkvc(self.f[self.src,'b_py'],2).T/mu_0*self.Pbx.T)
+        return mkvc(mkvc(self.f[self.src, 'b_py'], 2).T/mu_0*self.Pbx.T)
+
     @property
     def _ahy_py(self):
-        return mkvc(mkvc(self.f[self.src,'b_py'],2).T/mu_0*self.Pby.T)
+        return mkvc(mkvc(self.f[self.src, 'b_py'], 2).T/mu_0*self.Pby.T)
+
     @property
     def _ahz_py(self):
-        return mkvc(mkvc(self.f[self.src,'b_py'],2).T/mu_0*self.Pbz.T)
+        return mkvc(mkvc(self.f[self.src, 'b_py'], 2).T/mu_0*self.Pbz.T)
 
     # NOTE: need to add a .T at the end for the output to be (nU,)
     def _aex_px_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._e_pxDeriv_u(self.src,self.Pex.T*mkvc(vec,),adjoint=True)
+        return self.f._e_pxDeriv_u(self.src, self.Pex.T*mkvc(vec,), adjoint=True)
+
     def _aey_px_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._e_pxDeriv_u(self.src,self.Pey.T*mkvc(vec,),adjoint=True)
+        return self.f._e_pxDeriv_u(self.src, self.Pey.T*mkvc(vec,), adjoint=True)
+
     def _aex_py_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._e_pyDeriv_u(self.src,self.Pex.T*mkvc(vec,),adjoint=True)
+        return self.f._e_pyDeriv_u(self.src, self.Pex.T*mkvc(vec,), adjoint=True)
+
     def _aey_py_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._e_pyDeriv_u(self.src,self.Pey.T*mkvc(vec,),adjoint=True)
+        return self.f._e_pyDeriv_u(self.src, self.Pey.T*mkvc(vec,), adjoint=True)
+
     def _ahx_px_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._b_pxDeriv_u(self.src,self.Pbx.T*mkvc(vec,),adjoint=True)/mu_0
+        return self.f._b_pxDeriv_u(self.src, self.Pbx.T*mkvc(vec,), adjoint=True)/mu_0
+
     def _ahy_px_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._b_pxDeriv_u(self.src,self.Pby.T*mkvc(vec,),adjoint=True)/mu_0
+        return self.f._b_pxDeriv_u(self.src, self.Pby.T*mkvc(vec,), adjoint=True)/mu_0
+
     def _ahz_px_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._b_pxDeriv_u(self.src,self.Pbz.T*mkvc(vec,),adjoint=True)/mu_0
+        return self.f._b_pxDeriv_u(self.src, self.Pbz.T*mkvc(vec,), adjoint=True)/mu_0
+
     def _ahx_py_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._b_pyDeriv_u(self.src,self.Pbx.T*mkvc(vec,),adjoint=True)/mu_0
+        return self.f._b_pyDeriv_u(self.src, self.Pbx.T*mkvc(vec,), adjoint=True)/mu_0
+
     def _ahy_py_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._b_pyDeriv_u(self.src,self.Pby.T*mkvc(vec,),adjoint=True)/mu_0
+        return self.f._b_pyDeriv_u(self.src, self.Pby.T*mkvc(vec,), adjoint=True)/mu_0
+
     def _ahz_py_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._b_pyDeriv_u(self.src,self.Pbz.T*mkvc(vec,),adjoint=True)/mu_0
+        return self.f._b_pyDeriv_u(self.src, self.Pbz.T*mkvc(vec,), adjoint=True)/mu_0
+
     # Define the components of the derivative
     @property
     def _aHd(self):
@@ -264,8 +309,10 @@ class BaseRxNSEM_Point(SimPEG.Survey.BaseRx):
             self._sDiag(self._ahx_px)*self._ahy_py -
             self._sDiag(self._ahx_py)*self._ahy_px
         ))
+
     def _aHd_uV(self, x):
-        return (self._ahx_px_u(self._sDiag(self._ahy_py)*x) +
+        return (
+            self._ahx_px_u(self._sDiag(self._ahy_py)*x) +
             self._ahx_px_u(self._sDiag(self._ahy_py)*x) -
             self._ahy_px_u(self._sDiag(self._ahx_py)*x) -
             self._ahx_py_u(self._sDiag(self._ahy_px)*x)
@@ -302,19 +349,22 @@ class Point_impedance1D(SimPEG.Survey.BaseRx):
     @property
     def mesh(self):
         return self._mesh
+
     @mesh.setter
-    def mesh(self,value):
-        if value is getattr(self,'_mesh',None):
+    def mesh(self, value):
+        if value is getattr(self, '_mesh', None):
             pass
         else:
             self._mesh = value
+
     # Utility for convienece
     def _sDiag(self, t):
-        return SimPEG.Utils.sdiag(mkvc(t,2))
+        return SimPEG.Utils.sdiag(mkvc(t, 2))
 
     @property
     def src(self):
         return self._src
+
     @src.setter
     def src(self, value):
         self._src = value
@@ -322,37 +372,43 @@ class Point_impedance1D(SimPEG.Survey.BaseRx):
     @property
     def f(self):
         return self._f
+
     @f.setter
     def f(self, value):
         self._f = value
 
     @property
     def Pex(self):
-        if getattr(self,'_Pex',None) is None:
+        if getattr(self, '_Pex', None) is None:
             self._Pex = self._mesh.getInterpolationMat(self.locs[:, -1], 'Fx')
         return self._Pex
 
     @property
     def Pbx(self):
-        if getattr(self,'_Pbx',None) is None:
+        if getattr(self, '_Pbx', None) is None:
             self._Pbx = self._mesh.getInterpolationMat(self.locs[:, -1], 'Ex')
         return self._Pbx
 
     @property
     def _ex(self):
         return self.Pex * mkvc(self.f[self.src, 'e_1d'], 2)
+
     @property
     def _hx(self):
         return self.Pbx * mkvc(self.f[self.src, 'b_1d'], 2) / mu_0
 
     def _ex_u(self, v):
         return self.Pex * self.f._eDeriv_u(self.src, v)
+
     def _hx_u(self, v):
         return self.Pbx * self.f._bDeriv_u(self.src, v) / mu_0
+
     def _aex_u(self, v):
         return self.f._eDeriv_u(self.src, self.Pex.T * v, adjoint=True)
+
     def _ahx_u(self, v):
         return self.f._bDeriv_u(self.src, self.Pbx.T * v, adjoint=True) / mu_0
+
     @property
     def _Hd(self):
         return self._sDiag(1./self._hx)
@@ -362,7 +418,7 @@ class Point_impedance1D(SimPEG.Survey.BaseRx):
         Project the fields to natural source data.
 
         :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
-        :param SimPEG.Mesh.TensorMesh mesh: Mesh defining the topology of the problem
+        :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
         :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param bool (optional) return_complex: Flag for return the complex evaluation
         :rtype: numpy.array
@@ -385,7 +441,7 @@ class Point_impedance1D(SimPEG.Survey.BaseRx):
         The derivative of the projection wrt u
 
         :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
-        :param SimPEG.Mesh.TensorMesh mesh: Mesh defining the topology of the problem
+        :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
         :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param numpy.ndarray v: vector of size (nU,) (adjoint=False)
             and size (nD,) (adjoint=True)
@@ -414,7 +470,7 @@ class Point_impedance1D(SimPEG.Survey.BaseRx):
             Z_D_uV = self._hx_u(v)
             # Evaluate
             rx_deriv = self._Hd * (Z_N_uV - self._sDiag(Z1d) * Z_D_uV)
-            rx_deriv_component = SimPEG.np.array(getattr(rx_deriv, self.component))
+            rx_deriv_component = np.array(getattr(rx_deriv, self.component))
         return rx_deriv_component
 
 
@@ -431,14 +487,12 @@ class Point_impedance3D(BaseRxNSEM_Point):
 
         BaseRxNSEM_Point.__init__(self, locs, orientation=orientation, component=component)
 
-
-
     def eval(self, src, mesh, f, return_complex=False):
         '''
         Project the fields to natural source data.
 
             :param SrcNSEM src: The source of the fields to project
-            :param SimPEG.Mesh.TensorMesh mesh: topological mesh corresponding to the fields
+            :param discretize.TensorMesh mesh: topological mesh corresponding to the fields
             :param FieldsNSEM f: Natural source fields object to project
             :rtype: numpy.array
             :return: component of the impedance evaluation
@@ -469,7 +523,7 @@ class Point_impedance3D(BaseRxNSEM_Point):
         The derivative of the projection wrt u
 
         :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
-        :param SimPEG.Mesh.TensorMesh mesh: Mesh defining the topology of the problem
+        :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
         :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param numpy.ndarray v: vector of size (nU,) (adjoint=False)
             and size (nD,) (adjoint=True)
@@ -487,8 +541,10 @@ class Point_impedance3D(BaseRxNSEM_Point):
                     self._sDiag(self._ahy_py)*self._aex_px -
                     self._sDiag(self._ahy_px)*self._aex_py
                 ))
+
                 def ZijN_uV(x):
-                    return (self._aex_px_u(self._sDiag(self._ahy_py)*x) +
+                    return (
+                        self._aex_px_u(self._sDiag(self._ahy_py)*x) +
                         self._ahy_py_u(self._sDiag(self._aex_px)*x) -
                         self._ahy_px_u(self._sDiag(self._aex_py)*x) -
                         self._aex_py_u(self._sDiag(self._ahy_px)*x)
@@ -498,8 +554,10 @@ class Point_impedance3D(BaseRxNSEM_Point):
                     -self._sDiag(self._ahx_py) * self._aex_px +
                     self._sDiag(self._ahx_px) * self._aex_py
                 ))
+
                 def ZijN_uV(x):
-                    return (-self._aex_px_u(self._sDiag(self._ahx_py)*x) -
+                    return (
+                        -self._aex_px_u(self._sDiag(self._ahx_py)*x) -
                         self._ahx_py_u(self._sDiag(self._aex_px)*x) +
                         self._ahx_px_u(self._sDiag(self._aex_py)*x) +
                         self._aex_py_u(self._sDiag(self._ahx_px)*x)
@@ -509,8 +567,10 @@ class Point_impedance3D(BaseRxNSEM_Point):
                     self._sDiag(self._ahy_py)*self._aey_px -
                     self._sDiag(self._ahy_px)*self._aey_py
                 ))
+
                 def ZijN_uV(x):
-                    return (self._aey_px_u(self._sDiag(self._ahy_py)*x) +
+                    return (
+                        self._aey_px_u(self._sDiag(self._ahy_py)*x) +
                         self._ahy_py_u(self._sDiag(self._aey_px)*x) -
                         self._ahy_px_u(self._sDiag(self._aey_py)*x) -
                         self._aey_py_u(self._sDiag(self._ahy_px)*x)
@@ -519,18 +579,20 @@ class Point_impedance3D(BaseRxNSEM_Point):
                 Zij = self._sDiag(self._aHd*(
                     -self._sDiag(self._ahx_py)*self._aey_px +
                     self._sDiag(self._ahx_px)*self._aey_py))
+
                 def ZijN_uV(x):
-                    return (-self._aey_px_u(self._sDiag(self._ahx_py)*x) -
+                    return (
+                        -self._aey_px_u(self._sDiag(self._ahx_py)*x) -
                         self._ahx_py_u(self._sDiag(self._aey_px)*x) +
                         self._ahx_px_u(self._sDiag(self._aey_py)*x) +
                         self._aey_py_u(self._sDiag(self._ahx_px)*x)
                     )
 
             # Calculate the complex derivative
-            rx_deriv_real = ZijN_uV(self._aHd*v) - self._aHd_uV(Zij.T*self._aHd*v)#
+            rx_deriv_real = ZijN_uV(self._aHd*v) - self._aHd_uV(Zij.T*self._aHd*v)
             # NOTE: Need to reshape the output to go from 2*nU array to a (nU,2) matrix for each polarization
             # rx_deriv_real = np.hstack((mkvc(rx_deriv_real[:len(rx_deriv_real)/2],2),mkvc(rx_deriv_real[len(rx_deriv_real)/2::],2)))
-            rx_deriv_real = rx_deriv_real.reshape((2,self.mesh.nE)).T
+            rx_deriv_real = rx_deriv_real.reshape((2, self.mesh.nE)).T
             # Extract the data
             if self.component == 'imag':
                 rx_deriv_component = 1j*rx_deriv_real
@@ -569,7 +631,7 @@ class Point_impedance3D(BaseRxNSEM_Point):
             Zij = self.eval(src, self.mesh, self.f, True)
             # Calculate the complex derivative
             rx_deriv_real = self._Hd * (ZijN_uV - self._sDiag(Zij) * self._Hd_uV(v))
-            rx_deriv_component = SimPEG.np.array(getattr(rx_deriv_real, self.component))
+            rx_deriv_component = np.array(getattr(rx_deriv_real, self.component))
 
         return rx_deriv_component
 
@@ -592,7 +654,7 @@ class Point_tipper3D(BaseRxNSEM_Point):
         Project the fields to natural source data.
 
         :param SrcNSEM src: The source of the fields to project
-        :param SimPEG.Mesh.TensorMesh mesh: Mesh defining the topology of the problem
+        :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
         :param FieldsNSEM f: Natural source fields object to project
         :rtype: numpy.array
         :return: Evaluated component of the impedance data
@@ -605,7 +667,7 @@ class Point_tipper3D(BaseRxNSEM_Point):
         if 'zx' in self.orientation:
             Tij = (- self._hy_px * self._hz_py + self._hy_py * self._hz_px)
         if 'zy' in self.orientation:
-            Tij = (  self._hx_px * self._hz_py - self._hx_py * self._hz_px)
+            Tij = (self._hx_px * self._hz_py - self._hx_py * self._hz_px)
         rx_eval_complex = self._Hd * Tij
 
         # Return the full impedance
@@ -618,7 +680,7 @@ class Point_tipper3D(BaseRxNSEM_Point):
         The derivative of the projection wrt u
 
         :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
-        :param SimPEG.Mesh.TensorMesh mesh: Mesh defining the topology of the problem
+        :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
         :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param numpy.ndarray v: Random vector of size
         :rtype: numpy.array
@@ -635,17 +697,20 @@ class Point_tipper3D(BaseRxNSEM_Point):
                     -self._sDiag(self._ahz_py)*self._ahy_px +
                     self._sDiag(self._ahz_px)*self._ahy_py)
                 )
+
                 def TijN_uV(x):
-                    return (-self._ahz_py_u(self._sDiag(self._ahy_px)*x) -
-                            self._ahy_px_u(self._sDiag(self._ahz_py)*x) +
-                            self._ahy_py_u(self._sDiag(self._ahz_px)*x) +
-                            self._ahz_px_u(self._sDiag(self._ahy_py)*x)
+                    return (
+                        -self._ahz_py_u(self._sDiag(self._ahy_px)*x) -
+                        self._ahy_px_u(self._sDiag(self._ahz_py)*x) +
+                        self._ahy_py_u(self._sDiag(self._ahz_px)*x) +
+                        self._ahz_px_u(self._sDiag(self._ahy_py)*x)
                     )
             elif 'zy' in self.orientation:
                 Tij = self._sDiag(self._aHd*(
                       self._sDiag(self._ahz_py)*self._ahx_px -
                       self._sDiag(self._ahz_px)*self._ahx_py)
                 )
+
                 def TijN_uV(x):
                     return (
                         self._ahx_px_u(self._sDiag(self._ahz_py)*x) +
@@ -655,12 +720,13 @@ class Point_tipper3D(BaseRxNSEM_Point):
                     )
 
             # Calculate the complex derivative
-            rx_deriv_real = ( TijN_uV(self._aHd*v) -
+            rx_deriv_real = (
+                TijN_uV(self._aHd*v) -
                 self._aHd_uV(Tij.T*self._aHd*v)
             )
             # NOTE: Need to reshape the output to go from 2*nU array to a (nU,2) matrix for each polarization
             # rx_deriv_real = np.hstack((mkvc(rx_deriv_real[:len(rx_deriv_real)/2],2),mkvc(rx_deriv_real[len(rx_deriv_real)/2::],2)))
-            rx_deriv_real = rx_deriv_real.reshape((2,self.mesh.nE)).T
+            rx_deriv_real = rx_deriv_real.reshape((2, self.mesh.nE)).T
             # Extract the data
             if self.component == 'imag':
                 rx_deriv_component = 1j*rx_deriv_real
@@ -668,19 +734,22 @@ class Point_tipper3D(BaseRxNSEM_Point):
                 rx_deriv_component = rx_deriv_real.astype(complex)
         else:
             if 'zx' in self.orientation:
-                TijN_uV = ( -self._sDiag(self._hy_px) * self._hz_py_u(v) -
-                            self._sDiag(self._hz_py) * self._hy_px_u(v) +
-                            self._sDiag(self._hy_py) * self._hz_px_u(v) +
-                            self._sDiag(self._hz_px) * self._hy_py_u(v))
+                TijN_uV = (
+                    -self._sDiag(self._hy_px) * self._hz_py_u(v) -
+                    self._sDiag(self._hz_py) * self._hy_px_u(v) +
+                    self._sDiag(self._hy_py) * self._hz_px_u(v) +
+                    self._sDiag(self._hz_px) * self._hy_py_u(v)
+                )
             elif 'zy' in self.orientation:
-                TijN_uV = (self._sDiag(self._hz_py) * self._hx_px_u(v) +
-                           self._sDiag(self._hx_px) * self._hz_py_u(v) -
-                           self._sDiag(self._hx_py) * self._hz_px_u(v) -
-                           self._sDiag(self._hz_px) * self._hx_py_u(v))
+                TijN_uV = (
+                    self._sDiag(self._hz_py) * self._hx_px_u(v) +
+                    self._sDiag(self._hx_px) * self._hz_py_u(v) -
+                    self._sDiag(self._hx_py) * self._hz_px_u(v) -
+                    self._sDiag(self._hz_px) * self._hx_py_u(v)
+                )
             Tij = self.eval(src, mesh, f, True)
             # Calculate the complex derivative
             rx_deriv_complex = self._Hd * (TijN_uV - self._sDiag(Tij) * self._Hd_uV(v) )
-            rx_deriv_component = SimPEG.np.array(getattr(rx_deriv_complex, self.component))
+            rx_deriv_component = np.array(getattr(rx_deriv_complex, self.component))
 
         return rx_deriv_component
-

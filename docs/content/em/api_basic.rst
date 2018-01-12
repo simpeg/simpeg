@@ -5,13 +5,6 @@ Overview of Electromagnetics in SimPEG
 The API
 =======
 
-Physical Properties
--------------------
-
-.. autoclass:: SimPEG.EM.Base.EMPropMap
-    :show-inheritance:
-    :members:
-    :undoc-members:
 
 Problem
 -------
@@ -30,4 +23,10 @@ Survey
     :members:
     :undoc-members:
 
+Sources
+-------
 
+.. autoclass:: SimPEG.EM.Base.BaseEMSrc
+    :show-inheritance:
+    :members:
+    :undoc-members:

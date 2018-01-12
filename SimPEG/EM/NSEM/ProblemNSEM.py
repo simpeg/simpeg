@@ -13,6 +13,7 @@ from ..FDEM.ProblemFDEM import BaseFDEMProblem
 from .SurveyNSEM import Survey, Data
 from .FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields3D_ePrimSec
 
+
 class BaseNSEMProblem(BaseFDEMProblem):
     """
         Base class for all Natural source problems.
@@ -34,7 +35,7 @@ class BaseNSEMProblem(BaseFDEMProblem):
     # Notes:
     # Use the fields and devs methods from BaseFDEMProblem
 
-    ## NEED to clean up the Jvec and Jtvec to use Zero and Identities for None components.
+    # NEED to clean up the Jvec and Jtvec to use Zero and Identities for None components.
     def Jvec(self, m, v, f=None):
         """
         Function to calculate the data sensitivities dD/dm times a vector.
@@ -51,7 +52,7 @@ class BaseNSEMProblem(BaseFDEMProblem):
         if f is None:
            f = self.fields(m)
         # Set current model
-        self.curModel = m
+        self.model = m
         # Initiate the Jv object
         Jv = self.dataPair(self.survey)
 
@@ -95,7 +96,7 @@ class BaseNSEMProblem(BaseFDEMProblem):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
         # Ensure v is a data object.
         if not isinstance(v, self.dataPair):
@@ -126,9 +127,9 @@ class BaseNSEMProblem(BaseFDEMProblem):
                     # du_dmT needs to be of size (nP,) number of model parameters
                     real_or_imag = rx.component
                     if real_or_imag == 'real':
-                        Jtv +=  np.array(du_dmT,dtype=complex).real
+                        Jtv +=  np.array(du_dmT, dtype=complex).real
                     elif real_or_imag == 'imag':
-                        Jtv +=  -np.array(du_dmT,dtype=complex).real
+                        Jtv +=  -np.array(du_dmT, dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
             # Clean the factorization, clear memory.
@@ -136,8 +137,9 @@ class BaseNSEMProblem(BaseFDEMProblem):
         return Jtv
 
 ###################################
-## 1D problems
+# 1D problems
 ###################################
+
 
 class Problem1D_ePrimSec(BaseNSEMProblem):
     """
@@ -170,10 +172,10 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
     # Initiate properties
     _sigmaPrimary = None
 
-
     def __init__(self, mesh, **kwargs):
         BaseNSEMProblem.__init__(self, mesh, **kwargs)
         # self._sigmaPrimary = sigmaPrimary
+
     @property
     def MeMui(self):
         """
@@ -189,7 +191,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
             Edge inner product matrix
         """
         # if getattr(self, '_MfSigma', None) is None:
-        self._MfSigma = self.mesh.getFaceInnerProduct(self.curModel.sigma)
+        self._MfSigma = self.mesh.getFaceInnerProduct(self.sigma)
         return self._MfSigma
 
     def MfSigmaDeriv(self, u):
@@ -197,7 +199,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
             Edge inner product matrix
         """
         # if getattr(self, '_MfSigmaDeriv', None) is None:
-        self._MfSigmaDeriv = self.mesh.getFaceInnerProductDeriv(self.curModel.sigma)(u) * self.curModel.sigmaDeriv
+        self._MfSigmaDeriv = self.mesh.getFaceInnerProductDeriv(self.sigma)(u) * self.sigmaDeriv
         return self._MfSigmaDeriv
 
     @property
@@ -270,16 +272,17 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         S_eDeriv = mkvc(Src.S_eDeriv_m(self, v, adjoint),)
         return -1j * omega(freq) * S_eDeriv
 
-    def fields(self, m):
-        '''
+    def fields(self, m=None):
+        """
         Function to calculate all the fields for the model m.
 
         :param numpy.ndarray m: Conductivity model (nC,)
         :rtype: SimPEG.EM.NSEM.FieldsNSEM.Fields1D_ePrimSec
         :return: NSEM fields object containing the solution
-        '''
+        """
         # Set the current model
-        self.curModel = m
+        if m is not None:
+            self.model = m
         # Make the fields object
         F = self.fieldsPair(self.mesh, self.survey)
         # Loop over the frequencies
@@ -305,7 +308,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
 
 
 ###################################
-## 3D problems
+# 3D problems
 ###################################
 class Problem3D_ePrimSec(BaseNSEMProblem):
     """
@@ -331,7 +334,7 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
     """
 
     # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
-    _solutionType = [ 'e_pxSolution', 'e_pySolution']  # Forces order on the object
+    _solutionType = ['e_pxSolution', 'e_pySolution']  # Forces order on the object
     _formulation  = 'EB'
     fieldsPair = Fields3D_ePrimSec
 
@@ -348,6 +351,7 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
 
         """
         return self._sigmaPrimary
+
     @sigmaPrimary.setter
     def sigmaPrimary(self, val):
         # Note: TODO add logic for val, make sure it is the correct size.
@@ -389,9 +393,8 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
             dMe_dsigV = sp.hstack(( self.MeSigmaDeriv( u[sol0] ).T, self.MeSigmaDeriv(u[sol1] ).T ))*v
         else:
             # Need a nE,2 matrix to be returned
-            dMe_dsigV = np.hstack(( mkvc(self.MeSigmaDeriv( u[sol0] )*v,2), mkvc( self.MeSigmaDeriv(u[sol1] )*v,2) ))
+            dMe_dsigV = np.hstack(( mkvc(self.MeSigmaDeriv( u[sol0] )*v, 2), mkvc( self.MeSigmaDeriv(u[sol1] )*v, 2) ))
         return 1j * omega(freq) * dMe_dsigV
-
 
     def getRHS(self, freq):
         """
@@ -428,17 +431,18 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
 
         return dRHS_dm
 
-    def fields(self, m):
-        '''
+    def fields(self, m=None):
+        """
         Function to calculate all the fields for the model m.
 
         :param numpy.ndarray (nC,) m: Conductivity model
         :rtype: SimPEG.EM.NSEM.FieldsNSEM
         :return: Fields object with of the solution
 
-        '''
+        """
         # Set the current model
-        self.curModel = m
+        if m is not None:
+            self.model = m
 
         F = self.fieldsPair(self.mesh, self.survey)
         for freq in self.survey.freqs:
@@ -447,7 +451,7 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
                 print('Starting work for {:.3e}'.format(freq))
                 sys.stdout.flush()
             A = self.getA(freq)
-            rhs  = self.getRHS(freq)
+            rhs = self.getRHS(freq)
             # Solve the system
             Ainv = self.Solver(A, **self.solverOpts)
             e_s = Ainv * rhs
@@ -456,8 +460,8 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
             Src = self.survey.getSrcByFreq(freq)[0]
             # Store the fields
             # Use self._solutionType
-            F[Src, 'e_pxSolution'] = e_s[:,0]
-            F[Src, 'e_pySolution'] = e_s[:,1]
+            F[Src, 'e_pxSolution'] = e_s[:, 0]
+            F[Src, 'e_pySolution'] = e_s[:, 1]
             # Note curl e = -iwb so b = -curl/iw
 
             if self.verbose:
