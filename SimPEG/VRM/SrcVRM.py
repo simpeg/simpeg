@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.special as spec
-from SimPEG import Utils, Survey
+from SimPEG import Survey
 from .RxVRM import BaseRxVRM
 from .WaveformVRM import StepOff, SquarePulse, ArbitraryDiscrete, ArbitraryPiecewise
 

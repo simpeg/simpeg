@@ -274,9 +274,9 @@ loguniform match"""
         Err4 = np.abs((Fields4-Fields1)/Fields4)
 
         Test1 = Err1 < 0.001
-        Test2 = Err1 < 0.001
-        Test3 = Err1 < 0.001
-        Test4 = Err1 < 0.001
+        Test2 = Err2 < 0.001
+        Test3 = Err3 < 0.001
+        Test4 = Err4 < 0.001
 
         self.assertTrue(Test1 and Test2 and Test3 and Test4)
 
