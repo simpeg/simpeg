@@ -431,6 +431,7 @@ xiMap: A SimPEG mapping object which maps the model to the active
     _TisSet = False
     _xiMap = None
 
+    # xi = Props.PhysicalProperty("Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)")
     xi, xiMap, xiDeriv = Props.Invertible("Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)")
 
     def __init__(self, mesh, **kwargs):
@@ -438,17 +439,8 @@ xiMap: A SimPEG mapping object which maps the model to the active
         super(LinearVRM, self).__init__(mesh, **kwargs)
 
         nAct = list(self._indActive).count(True)
-        self._xiMap = kwargs.get('xiMap', Maps.IdentityMap(nP=nAct))
-
-    @property
-    def xiMap(self):
-        return self._xiMap
-
-    @xiMap.setter
-    def xiMap(self, mappingObj):
-        # Assert Statement???
-        self._AisSet = False
-        self._xiMap = mappingObj
+        if self.xiMap is None:
+            self.xiMap = Maps.IdentityMap(nP=nAct)
 
     @property
     def A(self):
@@ -534,8 +526,11 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
 
         assert self.ispaired, "Problem must be paired with survey to predict data"
 
+        self.model = m   # Initiates/updates model and initiates mapping
+
         # Project to active mesh cells
-        m = np.matrix(self.xiMap * m).T
+        # m = np.matrix(self.xiMap * m).T
+        m = np.matrix(self.xi).T
 
         # Must return as a numpy array
         return mkvc(sp.coo_matrix.dot(self.T, np.dot(self.A, m)))
@@ -624,26 +619,18 @@ xiMap: A SimPEG mapping object which maps the model to the active
     _A = None
     _T = None
     _TisSet = False
-    _xiMap = None
+    # _xiMap = None
 
-    xi, xiMap, xiDeriv = Props.Invertible("Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)")
+    chi0 = Props.PhysicalProperty("DC susceptibility")
+    dchi = Props.PhysicalProperty("Frequency dependence")
+    tau1 = Props.PhysicalProperty("Low bound time-relaxation constant")
+    tau2 = Props.PhysicalProperty("Upper bound time-relaxation constant")
 
     def __init__(self, mesh, **kwargs):
 
         super(LogUniformVRM, self).__init__(mesh, **kwargs)
 
         nAct = list(self._indActive).count(True)
-        self._xiMap = kwargs.get('xiMap', Maps.IdentityMap(nP=nAct))
-
-    @property
-    def xiMap(self):
-        return self._xiMap
-
-    @xiMap.setter
-    def xiMap(self, mappingObj):
-        # Assert Statement???
-        self._AisSet = False
-        self._xiMap = mappingObj
 
     @property
     def A(self):
@@ -674,15 +661,9 @@ object.
 
             return self._A
 
-    def fields(self, m_chi0, m_dchi, m_tau1, m_tau2):
+    def fields(self, m=None):
 
         assert self.ispaired, "Problem must be paired with survey to predict data"
-
-        # Extract viscosity parameters
-        chi0 = self.xiMap*m_chi0
-        dchi = self.xiMap*m_dchi
-        tau1 = self.xiMap*m_tau1
-        tau2 = self.xiMap*m_tau2
 
         # Fields from each source
         srcList = self.survey.srcList
@@ -698,7 +679,7 @@ object.
             for qq in range(0, nRx):
 
                 times = rxList[qq].times
-                eta = waveObj.getLogUniformDecay(rxList[qq].fieldType, times, chi0, dchi, tau1, tau2)
+                eta = waveObj.getLogUniformDecay(rxList[qq].fieldType, times, self.chi0, self.dchi, self.tau1, self.tau2)
 
                 f.append(mkvc((self.A[qq] * np.matrix(eta)).T))
 
