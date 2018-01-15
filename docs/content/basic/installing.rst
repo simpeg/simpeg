@@ -11,7 +11,7 @@ Prerequisite: Installing Python
 
 We highly recommend installing python using
 `Anaconda <https://www.continuum.io/downloads>`_.
-It installs `python<https://www.python.org/>`_,
+It installs `python <https://www.python.org/>`_,
 `Jupyter <http://jupyter.org/>`_ and other core
 python libraries for scientific computing.
 
