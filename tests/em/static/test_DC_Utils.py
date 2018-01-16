@@ -1,7 +1,8 @@
-import matlplotlib
+from __future__ import print_function
+
+import matplotlib
 matplotlib.use('Agg')
 
-from __future__ import print_function
 import unittest
 import numpy as np
 from SimPEG.EM.Static import DC, Utils as DCUtils
