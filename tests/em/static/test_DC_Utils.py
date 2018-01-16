@@ -1,3 +1,6 @@
+import matlplotlib
+matplotlib.use('Agg')
+
 from __future__ import print_function
 import unittest
 import numpy as np
@@ -48,7 +51,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         self.survey_a = 1.
         self.survey_b = 1.
         self.survey_n = 10
-        self.plotIt = False
+        self.plotIt = True
 
     def test_dipole_dipole(self):
         # Setup a dipole-dipole Survey
