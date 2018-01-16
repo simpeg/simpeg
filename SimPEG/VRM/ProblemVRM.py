@@ -1,4 +1,4 @@
-from SimPEG import Problem, mkvc, Maps, Props
+from SimPEG import Problem, mkvc, Maps, Props, Survey
 from SimPEG.VRM.SurveyVRM import SurveyVRM
 import numpy as np
 import scipy.sparse as sp
@@ -33,8 +33,6 @@ indActive: A numpy array with boolean entries, where the True entries
     _refRadius = None
     _indActive = None
     _AisSet = False
-
-    surveyPair = SurveyVRM
 
     def __init__(self, mesh, **kwargs):
 
@@ -431,6 +429,8 @@ xiMap: A SimPEG mapping object which maps the model to the active
     _TisSet = False
     _xiMap = None
 
+    surveyPair = SurveyVRM     # Only linear problem can have survey and be inverted
+
     # xi = Props.PhysicalProperty("Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)")
     xi, xiMap, xiDeriv = Props.Invertible("Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)")
 
@@ -620,6 +620,8 @@ xiMap: A SimPEG mapping object which maps the model to the active
     _T = None
     _TisSet = False
     # _xiMap = None
+
+    surveyPair = Survey.BaseSurvey
 
     chi0 = Props.PhysicalProperty("DC susceptibility")
     dchi = Props.PhysicalProperty("Frequency dependence")
