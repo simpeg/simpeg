@@ -342,6 +342,8 @@ class SaveOutputEveryIteration(SaveEveryIteration):
             f.write(self.header)
             f.close()
 
+        # Create a list of each
+
         self.beta = []
         self.phi_d = []
         self.phi_m = []
@@ -349,29 +351,38 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.phi_m_smooth_x = []
         self.phi_m_smooth_y = []
         self.phi_m_smooth_z = []
+
+        for reg in self.reg.objfcts:
+            self.phi_m_small.append([])
+            self.phi_m_smooth_x.append([])
+            self.phi_m_smooth_y.append([])
+            self.phi_m_smooth_z.append([])
+
         self.phi = []
 
     def endIter(self):
-        phi_m_small = (
-            self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
-        )
-        phi_m_smooth_x = (
-            self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
-        )
-        phi_m_smooth_y = np.nan
-        phi_m_smooth_z = np.nan
 
-        if self.reg.regmesh.dim == 2:
-            phi_m_smooth_y = (
-                reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
+        for reg in self.reg.objfcts:
+            phi_m_small = (
+                self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
             )
-        elif self.reg.regmesh.dim == 3:
-            phi_m_smooth_y = (
-                self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
+            phi_m_smooth_x.append(
+                self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
             )
-            phi_m_smooth_z = (
-                self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
-            )
+            phi_m_smooth_y = np.nan
+            phi_m_smooth_z = np.nan
+
+            if self.reg.regmesh.dim == 2:
+                phi_m_smooth_y.append(
+                    reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
+                )
+            elif self.reg.regmesh.dim == 3:
+                phi_m_smooth_y.append(
+                    self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
+                )
+                phi_m_smooth_z.append(
+                    self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
+                )
 
         self.beta.append(self.invProb.beta)
         self.phi_d.append(self.invProb.phi_d)
