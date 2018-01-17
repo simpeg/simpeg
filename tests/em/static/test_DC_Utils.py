@@ -1,8 +1,6 @@
 from __future__ import print_function
-
-import matplotlib
-matplotlib.use('Agg')
-
+# import matplotlib
+# matplotlib.use('Agg')
 import unittest
 import numpy as np
 from SimPEG.EM.Static import DC, Utils as DCUtils
@@ -52,7 +50,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
         self.survey_a = 1.
         self.survey_b = 1.
         self.survey_n = 10
-        self.plotIt = True
+        self.plotIt = False
 
     def test_dipole_dipole(self):
         # Setup a dipole-dipole Survey

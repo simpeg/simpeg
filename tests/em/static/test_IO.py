@@ -1,6 +1,5 @@
-import matplotlib
-matplotlib.use('Agg')
-
+# import matplotlib
+# matplotlib.use('Agg')
 from SimPEG import DC
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,7 +9,7 @@ import unittest
 class TestsIO(unittest.TestCase):
 
     def setUp(self):
-        self.plotIt = True
+        self.plotIt = False
         np.random.seed(1)
         # Initiate I/O class for DC
         self.IO = DC.IO()
