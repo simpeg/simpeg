@@ -33,8 +33,8 @@ However, it can be shown that this does not conserve mass in the discrete formul
 
 Here we reproduce the results from Celia et al. (1990):
 
-.. image:: /content/examples/10-flow/images/sphx_glr_plot_richards_celia1990_001.png
-    :target: /content/examples/10-flow/plot_richards_celia1990.html
+.. image:: /content/examples/09-flow/images/sphx_glr_plot_richards_celia1990_001.png
+    :target: /content/examples/09-flow/plot_richards_celia1990.html
     :align: center
 
 Richards Problem
