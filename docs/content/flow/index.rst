@@ -37,6 +37,7 @@ Here we reproduce the results from Celia et al. (1990):
     :target: /content/examples/09-flow/plot_richards_celia1990.html
     :align: center
 
+
 Richards Problem
 ================
 
