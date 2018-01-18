@@ -253,7 +253,7 @@ class ComboMap(IdentityMap):
                 )
 
             if isinstance(m, ComboMap):
-                self.maps += m.maps
+                self.maps += m
             elif isinstance(m, IdentityMap):
                 self.maps += [m]
 
@@ -290,7 +290,7 @@ class ComboMap(IdentityMap):
             else:
                 mapList = [maps]
 
-            for map_i in mapList:
+            for map_i in reversed(mapList):
                 deriv = map_i.deriv(mi) * deriv
                 mi = map_i * mi
 
@@ -359,13 +359,11 @@ class Projection(IdentityMap):
             return self.P * v
         return self.P
 
+
 class Sum(ComboMap):
     """
         A map to add model parameters contributing to the
         forward operation e.g. F(m) = F m1 + F m2 + ...
-
-
-
     """
     def __init__(self, maps, **kwargs):
         IdentityMap.__init__(self, None, **kwargs)
@@ -393,21 +391,80 @@ class Sum(ComboMap):
             #         )
             #     )
 
-            if isinstance(m, ComboMap):
-                self.maps += m.maps
-            elif isinstance(m, IdentityMap):
-                self.maps += [m]
+            # if isinstance(m, ComboMap):
+            #     self.maps += [m.maps]
+            # elif isinstance(m, IdentityMap):
+            self.maps += [m]
+
+    @property
+    def shape(self):
+
+        if isinstance(self.maps[0], ComboMap):
+            return (self.maps[0].maps[0].shape[0], self.maps[0].maps[-1].shape[1])
+        else:
+            return (self.maps[0].shape[0], self.maps[0].shape[1])
+
+    @property
+    def nP(self):
+        """Number of model properties.
+
+           The number of cells in the
+           last dimension of the mesh."""
+        return self.maps[0][-1].nP
 
     def _transform(self, m):
 
-        for ii, map_i in enumerate(reversed(self.maps)):
+        for ii, map_i in enumerate(self.maps):
+
+            m0 = m.copy()
+
+            m0 = map_i * m0
 
             if ii == 0:
-                mout = map_i * m
+                mout = m0
             else:
-                mout += map_i * m
+                mout += m0
         return mout
 
+    def deriv(self, m, v=None):
+
+
+        for ii, map_i in enumerate(self.maps):
+
+            m0 = m.copy()
+            
+            if v is not None:
+                deriv = v
+            else:
+                deriv = 1
+
+            if isinstance(map_i, ComboMap):
+
+                for jj, maps in enumerate(reversed(map_i.maps)):
+
+                    if isinstance(maps, ComboMap):
+                        mapList = reversed(maps)
+
+                    else:
+                        mapList = [maps]
+
+                    for map_j in reversed(mapList):
+                        deriv = map_j.deriv(m0) * deriv
+                        m0 = map_j * m0
+
+                    # if jj == 0:
+                    #     comboDeriv = deriv
+                    # else:
+                    #     comboDeriv += deriv
+            else:
+                deriv = map_i.deriv(m0, v=deriv)
+
+            if ii == 0:
+                sumDeriv = deriv
+            else:
+                sumDeriv += deriv
+
+        return sumDeriv
 
 
 class Homogenize(IdentityMap):
