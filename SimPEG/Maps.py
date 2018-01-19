@@ -252,10 +252,15 @@ class ComboMap(IdentityMap):
                     )
                 )
 
-            if isinstance(m, ComboMap):
-                self.maps += m
-            elif isinstance(m, IdentityMap):
+            if np.any([isinstance(m, SumMap), isinstance(m, IdentityMap)]):
                 self.maps += [m]
+            elif isinstance(m, ComboMap):
+                self.maps += m.maps
+            else:
+                raise ValueError(
+                    'Map[{0!s}] not supported',
+                    m.__class__.__name__
+                )
 
     @property
     def shape(self):
@@ -276,30 +281,16 @@ class ComboMap(IdentityMap):
 
     def deriv(self, m, v=None):
 
-        for ii, maps in enumerate(self.maps):
+        if v is not None:
+            deriv = v
+        else:
+            deriv = 1
 
-            if v is not None:
-                deriv = v
-            else:
-                deriv = 1
-            mi = m
-
-            if isinstance(maps, ComboMap):
-                mapList = reversed(maps)
-
-            else:
-                mapList = [maps]
-
-            for map_i in reversed(mapList):
-                deriv = map_i.deriv(mi) * deriv
-                mi = map_i * mi
-
-            if ii == 0:
-                comboDeriv = deriv
-            else:
-                comboDeriv += deriv
-
-        return comboDeriv
+        mi = m
+        for map_i in reversed(self.maps):
+            deriv = map_i.deriv(mi) * deriv
+            mi = map_i * mi
+        return deriv
 
     def __str__(self):
         return 'ComboMap[{0!s}]({1!s},{2!s})'.format(
@@ -360,7 +351,7 @@ class Projection(IdentityMap):
         return self.P
 
 
-class Sum(ComboMap):
+class SumMap(ComboMap):
     """
         A map to add model parameters contributing to the
         forward operation e.g. F(m) = F m1 + F m2 + ...
@@ -373,36 +364,29 @@ class Sum(ComboMap):
             assert isinstance(m, IdentityMap), "Unrecognized data type, "
             "inherit from an IdentityMap or ComboMap!"
 
-            # if (
-            #     ii > 0 and not (self.shape[1] == '*' or m.shape[0] == '*') and
-            #     not self.shape[1] == m.shape[0]
-            #    ):
-            #     prev = self.maps[-1]
+            if (
+                ii > 0 and not (self.shape == '*' or m.shape == '*') and
+                not self.shape == m.shape
+               ):
 
-            #     raise ValueError(
-            #         'Dimension mismatch in map[{0!s}] ({1!s}, {2!s}) '
-            #         'and map[{3!s}] ({4!s}, {5!s}).'.format(
-            #             prev.__class__.__name__,
-            #             prev.shape[0],
-            #             prev.shape[1],
-            #             m.__class__.__name__,
-            #             m.shape[0],
-            #             m.shape[1]
-            #         )
-            #     )
+                raise ValueError(
+                    'Dimension mismatch in map[{0!s}] ({1!s}, {2!s}) '
+                    'and map[{3!s}] ({4!s}, {5!s}).'.format(
+                        self.maps[0].__class__.__name__,
+                        self.maps[0].shape[0],
+                        self.maps[0].shape[1],
+                        m.__class__.__name__,
+                        m.shape[0],
+                        m.shape[1]
+                    )
+                )
 
-            # if isinstance(m, ComboMap):
-            #     self.maps += [m.maps]
-            # elif isinstance(m, IdentityMap):
             self.maps += [m]
 
     @property
     def shape(self):
 
-        if isinstance(self.maps[0], ComboMap):
-            return (self.maps[0].maps[0].shape[0], self.maps[0].maps[-1].shape[1])
-        else:
-            return (self.maps[0].shape[0], self.maps[0].shape[1])
+        return (self.maps[0].shape[0], self.maps[0].shape[1])
 
     @property
     def nP(self):
@@ -428,36 +412,16 @@ class Sum(ComboMap):
 
     def deriv(self, m, v=None):
 
-
         for ii, map_i in enumerate(self.maps):
 
             m0 = m.copy()
-            
+
             if v is not None:
                 deriv = v
             else:
                 deriv = 1
 
-            if isinstance(map_i, ComboMap):
-
-                for jj, maps in enumerate(reversed(map_i.maps)):
-
-                    if isinstance(maps, ComboMap):
-                        mapList = reversed(maps)
-
-                    else:
-                        mapList = [maps]
-
-                    for map_j in reversed(mapList):
-                        deriv = map_j.deriv(m0) * deriv
-                        m0 = map_j * m0
-
-                    # if jj == 0:
-                    #     comboDeriv = deriv
-                    # else:
-                    #     comboDeriv += deriv
-            else:
-                deriv = map_i.deriv(m0, v=deriv)
+            deriv = map_i.deriv(m0, v=deriv)
 
             if ii == 0:
                 sumDeriv = deriv
@@ -467,7 +431,7 @@ class Sum(ComboMap):
         return sumDeriv
 
 
-class Homogenize(IdentityMap):
+class HomogeneousMap(IdentityMap):
     """
         A map to group model cells into an homogeneous unit
 
@@ -479,7 +443,7 @@ class Homogenize(IdentityMap):
         assert isinstance(index, (list)), (
             'index must be a list, not {}'.format(type(index)))
 
-        super(Homogenize, self).__init__(**kwargs)
+        super(HomogeneousMap, self).__init__(**kwargs)
 
         # if isinstance(index, slice):
         #     index = list(range(*index.indices(self.nP)))
@@ -494,17 +458,17 @@ class Homogenize(IdentityMap):
         if getattr(self, '_P', None) is None:
             nP = len(self.index[0])
             # sparse projection matrix
-            I = []
-            J = []
-            V = []
+            row = []
+            col = []
+            val = []
             for ii, ind in enumerate(self.index):
 
-                I += [ii]*ind.sum()
-                J += np.where(ind)[0].tolist()
-                V += [1]*ind.sum()
+                row += [ii]*ind.sum()
+                col += np.where(ind)[0].tolist()
+                val += [1]*ind.sum()
 
             P = sp.csr_matrix(
-                (V, (I, J)), shape=(len(self.index), nP)
+                (val, (row, col)), shape=(len(self.index), nP)
             ).T
 
             self._P = sp.block_diag([P for ii in range(self.nBlock)])
