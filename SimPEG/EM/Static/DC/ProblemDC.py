@@ -11,6 +11,7 @@ import numpy as np
 import scipy as sp
 from SimPEG.Utils import Zero
 from .BoundaryUtils import getxBCyBC_CC
+from profilehooks import profile
 
 
 class BaseDCProblem(BaseEMProblem):
@@ -56,6 +57,7 @@ class BaseDCProblem(BaseEMProblem):
             self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
         return self._Jmatrix
 
+    @profile
     def Jvec(self, m, v, f=None):
         """
             Compute sensitivity matrix (J) and vector (v) product.
@@ -73,11 +75,10 @@ class BaseDCProblem(BaseEMProblem):
         Jv = []
 
         for src in self.survey.srcList:
-            u_src = f[src, self._solutionType]  # solution vector
+            u_src = f[src, self._solutionType].copy()  # solution vector
             dA_dm_v = self.getADeriv(u_src, v)
             dRHS_dm_v = self.getRHSDeriv(src, v)
             du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
-
             for rx in src.rxList:
                 df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                 df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
@@ -94,14 +95,12 @@ class BaseDCProblem(BaseEMProblem):
             Jtv = Utils.mkvc(np.dot(J.T, v))
             return Jtv
 
-        else:
+        self.model = m
 
-            self.model = m
+        if f is None:
+            f = self.fields(m)
 
-            if f is None:
-                f = self.fields(m)
-
-            return self._Jtvec(m, v=v, f=f)
+        return self._Jtvec(m, v=v, f=f)
 
     def _Jtvec(self, m, v=None, f=None):
         """
@@ -119,7 +118,7 @@ class BaseDCProblem(BaseEMProblem):
             Jtv = []
 
         for src in self.survey.srcList:
-            u_src = f[src, self._solutionType]
+            u_src = f[src, self._solutionType].copy()
             for rx in src.rxList:
                 # wrt f, need possibility wrt m
                 if v is not None:
