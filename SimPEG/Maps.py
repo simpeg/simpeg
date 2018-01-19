@@ -254,10 +254,15 @@ class ComboMap(IdentityMap):
                     )
                 )
 
-            if isinstance(m, ComboMap):
-                self.maps += m.maps
-            elif isinstance(m, IdentityMap):
+            if np.any([isinstance(m, SumMap), isinstance(m, IdentityMap)]):
                 self.maps += [m]
+            elif isinstance(m, ComboMap):
+                self.maps += m.maps
+            else:
+                raise ValueError(
+                    'Map[{0!s}] not supported',
+                    m.__class__.__name__
+                )
 
     @property
     def shape(self):
@@ -328,6 +333,155 @@ class Projection(IdentityMap):
 
     def _transform(self, m):
         return m[self.index]
+
+    @property
+    def shape(self):
+        """
+        Shape of the matrix operation (number of indices x nP)
+        """
+        return self._shape
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+        """
+
+        if v is not None:
+            return self.P * v
+        return self.P
+
+
+class SumMap(ComboMap):
+    """
+        A map to add model parameters contributing to the
+        forward operation e.g. F(m) = F(g(x) + h(y))
+
+        Assumes that the model vectors defined by g(x) and h(y)
+        are equal in length.
+        Allows to assume different things about the model m:
+        i.e. parametric + voxel models
+    """
+    def __init__(self, maps, **kwargs):
+        IdentityMap.__init__(self, None, **kwargs)
+
+        self.maps = []
+        for ii, m in enumerate(maps):
+            assert isinstance(m, IdentityMap), "Unrecognized data type, "
+            "inherit from an IdentityMap or ComboMap!"
+
+            if (
+                ii > 0 and not (self.shape == '*' or m.shape == '*') and
+                not self.shape == m.shape
+               ):
+
+                raise ValueError(
+                    'Dimension mismatch in map[{0!s}] ({1!s}, {2!s}) '
+                    'and map[{3!s}] ({4!s}, {5!s}).'.format(
+                        self.maps[0].__class__.__name__,
+                        self.maps[0].shape[0],
+                        self.maps[0].shape[1],
+                        m.__class__.__name__,
+                        m.shape[0],
+                        m.shape[1]
+                    )
+                )
+
+            self.maps += [m]
+
+    @property
+    def shape(self):
+
+        return (self.maps[0].shape[0], self.maps[0].shape[1])
+
+    @property
+    def nP(self):
+        """Number of model properties.
+
+           The number of cells in the
+           last dimension of the mesh."""
+        return self.maps[0][-1].nP
+
+    def _transform(self, m):
+
+        for ii, map_i in enumerate(self.maps):
+
+            m0 = m.copy()
+
+            m0 = map_i * m0
+
+            if ii == 0:
+                mout = m0
+            else:
+                mout += m0
+        return mout
+
+    def deriv(self, m, v=None):
+
+        for ii, map_i in enumerate(self.maps):
+
+            m0 = m.copy()
+
+            if v is not None:
+                deriv = v
+            else:
+                deriv = 1
+
+            deriv = map_i.deriv(m0, v=deriv)
+
+            if ii == 0:
+                sumDeriv = deriv
+            else:
+                sumDeriv += deriv
+
+        return sumDeriv
+
+
+class HomogeneousMap(IdentityMap):
+    """
+        A map to group model cells into an homogeneous unit
+
+        :param list index: list of bool for each homogeneous unit
+
+    """
+    nBlock = 1  # Variable allowing to stack same Map over multiple sets
+
+    def __init__(self, index, **kwargs):
+        assert isinstance(index, (list)), (
+            'index must be a list, not {}'.format(type(index)))
+
+        super(HomogeneousMap, self).__init__(**kwargs)
+
+        self.index = index
+
+    @property
+    def P(self):
+
+        if getattr(self, '_P', None) is None:
+            nP = len(self.index[0])
+            # sparse projection matrix
+            row = []
+            col = []
+            val = []
+            for ii, ind in enumerate(self.index):
+
+                row += [ii]*ind.sum()
+                col += np.where(ind)[0].tolist()
+                val += [1]*ind.sum()
+
+            P = sp.csr_matrix(
+                (val, (row, col)), shape=(len(self.index), nP)
+            ).T
+
+            self._P = sp.block_diag([P for ii in range(self.nBlock)])
+
+            self._shape = self.nBlock*nP, self.nBlock*len(self.index),
+
+        return self._P
+
+    def _transform(self, m):
+        return self.P * m
 
     @property
     def shape(self):
