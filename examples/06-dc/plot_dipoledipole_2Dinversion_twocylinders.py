@@ -133,7 +133,7 @@ invProb = InvProblem.BaseInvProblem(dmis,  regT,  opt)
 beta = Directives.BetaEstimate_ByEig(beta0_ratio=1.)
 Target = Directives.TargetMisfit()
 betaSched = Directives.BetaSchedule(coolingFactor=5.,  coolingRate=2)
-updateSensW = Directives.UpdateSensitivityWeights(threshold = 1e-3)
+updateSensW = Directives.UpdateSensitivityWeights(threshold=1e-3)
 update_Jacobi = Directives.UpdatePreconditioner()
 
 inv = Inversion.BaseInversion(invProb,  directiveList=[beta, Target,
