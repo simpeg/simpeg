@@ -893,9 +893,11 @@ class UpdateSensitivityWeights(InversionDirective):
         """
         self.JtJdiag = []
 
-        for prob, survey, dmisfit in zip(self.prob,
-                                         self.survey,
-                                         self.dmisfit.objfcts):
+        for prob, survey, dmisfit in zip(
+            self.prob,
+            self.survey,
+            self.dmisfit.objfcts
+        ):
 
             assert getattr(prob, 'getJ', None) is not None, (
                 "Problem does not have a getJ attribute." +
