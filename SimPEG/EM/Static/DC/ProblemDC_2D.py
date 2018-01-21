@@ -12,6 +12,7 @@ import numpy as np
 from SimPEG.Utils import Zero
 from .BoundaryUtils import getxBCyBC_CC
 from scipy.special import kn
+from profilehooks import profile
 
 
 class BaseDCProblem_2D(BaseEMProblem):
@@ -34,7 +35,6 @@ class BaseDCProblem_2D(BaseEMProblem):
         if self.Ainv[0] is not None:
             for i in range(self.nky):
                 self.Ainv[i].clean()
-
         f = self.fieldsPair(self.mesh, self.survey)
         Srcs = self.survey.srcList
         for iky in range(self.nky):
@@ -79,6 +79,7 @@ class BaseDCProblem_2D(BaseEMProblem):
             self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
         return self._Jmatrix
 
+    @profile
     def Jvec(self, m, v, f=None):
         """
             Compute sensitivity matrix (J) and vector (v) product.
@@ -106,7 +107,6 @@ class BaseDCProblem_2D(BaseEMProblem):
         # TODO: this loop is pretty slow .. (Parellize)
         for iky in range(self.nky):
             ky = self.kys[iky]
-            A = self.getA(ky)
             for src in self.survey.srcList:
                 u_src = f[src, self._solutionType, iky]  # solution vector
                 dA_dm_v = self.getADeriv(ky, u_src, v)
@@ -128,6 +128,7 @@ class BaseDCProblem_2D(BaseEMProblem):
                     Jv0[src, rx] = Jv1_temp.copy()
         return Utils.mkvc(Jv)
 
+    @profile
     def Jtvec(self, m, v, f=None):
         """
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
@@ -170,7 +171,6 @@ class BaseDCProblem_2D(BaseEMProblem):
                     for iky in range(self.nky):
                         u_src = f[src, self._solutionType, iky]
                         ky = self.kys[iky]
-                        AT = self.getA(ky)
                         # wrt f, need possibility wrt m
                         PTv = rx.evalDeriv(ky, src, self.mesh, f, v[src, rx],
                                            adjoint=True)
@@ -216,8 +216,6 @@ class BaseDCProblem_2D(BaseEMProblem):
                     for iky in range(self.nky):
                         u_src = f[src, self._solutionType, iky]
                         ky = self.kys[iky]
-                        AT = self.getA(ky)
-
                         # wrt f, need possibility wrt m
                         P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
 
@@ -270,7 +268,10 @@ class BaseDCProblem_2D(BaseEMProblem):
     def deleteTheseOnModelUpdate(self):
         toDelete = super(BaseDCProblem_2D, self).deleteTheseOnModelUpdate
         if self.sigmaMap is not None:
-            toDelete += ['_MnSigma']
+            toDelete += [
+                '_MnSigma', '_MnSigmaDerivMat',
+                '_MccRhoI', '_MccRhoIDerivMat'
+            ]
         if self._Jmatrix is not None:
             toDelete += ['_Jmatrix']
         return toDelete
@@ -290,43 +291,94 @@ class Problem2D_CC(BaseDCProblem_2D):
     def __init__(self, mesh, **kwargs):
         BaseDCProblem_2D.__init__(self, mesh, **kwargs)
 
+    @property
+    def MccRhoI(self):
+        """
+            Node inner product matrix for \\(\\rho\\). Used in the E-B
+            formulation
+        """
+        # TODO: only works isotropic rho
+        if getattr(self, '_MccRhoI', None) is None:
+            self._MccRhoI = Utils.sdiag(
+                self.mesh.vol/self.rho
+            )
+        return self._MccRhoI
+
+    @property
+    def MccRhoIDerivMat(self):
+        """
+            Derivative of MccRho with respect to the model
+        """
+        if getattr(self, '_MccRhoIDerivMat', None) is None:
+            rho = self.rho
+            rhoderiv = self.rhoDeriv
+            vol = self.mesh.vol
+            self._MccRhoIDerivMat = (
+                Utils.sdiag(vol*(-1./rho**2))*self.rhoDeriv
+                )
+        return self._MccRhoIDerivMat
+
+    # TODO: This should take a vector
+    def MccRhoIDeriv(self, u, v, adjoint=False):
+        """
+            Derivative of :code:`MccRhoI` with respect to the model.
+        """
+        if self.rhoMap is None:
+            return Utils.Zero()
+
+        if len(self.rho.shape) > 1:
+            if self.rho.shape[1] > self.mesh.dim:
+                raise NotImplementedError(
+                    "Full anisotropy is not implemented for MccRhoIDeriv."
+                )
+        if self.storeInnerProduct:
+            if adjoint:
+                return self.MccRhoIDerivMat.T * (u * v)
+            else:
+                return u * (self.MccRhoIDerivMat * v)
+        else:
+            vol = self.mesh.vol
+            rho = self.rho
+            if adjoint:
+                return self.rhoDeriv.T * (u*vol*(-1./rho**2) * v)
+            else:
+                return (u*vol*(-1./rho**2))*(self.rhoDeriv * v)
+
     def getA(self, ky):
         """
         Make the A matrix for the cell centered DC resistivity problem
         A = D MfRhoI G
         """
         # To handle Mixed boundary condition
-        if self._formulation == "HJ":
-            self.setBC(ky=ky)
-
+        self.setBC(ky=ky)
         D = self.Div
         G = self.Grad
         vol = self.mesh.vol
         MfRhoI = self.MfRhoI
         # Get resistivity rho
         rho = self.rho
-        A = D * MfRhoI * G + Utils.sdiag(ky**2*vol/rho)
+        A = D * MfRhoI * G + ky**2 * self.MccRhoI
         if self.bc_type == "Neumann":
             A[0, 0] = A[0, 0] + 1.
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
-
         # To handle Mixed boundary condition
-        if self._formulation == "HJ":
-            self.setBC(ky=ky)
-
+        self.setBC(ky=ky)
         D = self.Div
         G = self.Grad
         vol = self.mesh.vol
-        MfRhoIDeriv = self.MfRhoIDeriv
         rho = self.rho
         if adjoint:
-            return((MfRhoIDeriv( G * u).T) * (D.T * v) +
-                   ky**2 * self.rhoDeriv.T*Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v)
-
-        return (D * ((MfRhoIDeriv(G * u)) * v) + ky**2*
-                Utils.sdiag(u.flatten()*vol*(-1./rho**2))*(self.rhoDeriv*v))
+            return (
+                self.MfRhoIDeriv(G*u.flatten(), D.T*v, adjoint=adjoint) +
+                ky**2 * self.MccRhoIDeriv(u.flatten(), v, adjoint=adjoint)
+            )
+        else:
+            return (
+                D * self.MfRhoIDeriv(G*u.flatten(), v, adjoint=adjoint) +
+                ky**2 * self.MccRhoIDeriv(u.flatten(), v, adjoint=adjoint)
+            )
 
     def getRHS(self, ky):
         """
@@ -449,22 +501,45 @@ class Problem2D_N(BaseDCProblem_2D):
             )
         return self._MnSigma
 
-    def MnSigmaDeriv(self, u):
+    @property
+    def MnSigmaDerivMat(self):
         """
             Derivative of MnSigma with respect to the model
         """
-        sigma = self.sigma
-        sigmaderiv = self.sigmaDeriv
-        vol = self.mesh.vol
-        return (Utils.sdiag(u)*self.mesh.aveN2CC.T*Utils.sdiag(vol) *
-                self.sigmaDeriv)
+        if getattr(self, '_MnSigmaDerivMat', None) is None:
+            sigma = self.sigma
+            sigmaderiv = self.sigmaDeriv
+            vol = self.mesh.vol
+            self._MnSigmaDerivMat = (
+                self.mesh.aveN2CC.T * Utils.sdiag(vol) * self.sigmaDeriv
+                )
+        return self._MnSigmaDerivMat
+
+    def MnSigmaDeriv(self, u, v, adjoint=False):
+        """
+            Derivative of MnSigma with respect to the model times a vector (u)
+        """
+        if self.storeInnerProduct:
+            if adjoint:
+                return self.MnSigmaDerivMat.T * (u*v)
+            else:
+                return u*(self.MnSigmaDerivMat * v)
+        else:
+            sigma = self.sigma
+            vol = self.mesh.vol
+            if adjoint:
+                return self.sigmaDeriv.T * (vol * (self.mesh.aveN2CC * (u*v)))
+            else:
+                dsig_dm_v = self.sigmaDeriv * v
+                return (
+                    u * (self.mesh.aveN2CC.T * (vol * dsig_dm_v))
+                )
 
     def getA(self, ky):
         """
         Make the A matrix for the cell centered DC resistivity problem
         A = D MfRhoI G
         """
-
         MeSigma = self.MeSigma
         MnSigma = self.MnSigma
         Grad = self.mesh.nodalGrad
@@ -474,6 +549,7 @@ class Problem2D_N(BaseDCProblem_2D):
         # This seems not required for 2.5D problem
         # Handling Null space of A
         # A[0, 0] = A[0, 0] + 1.
+        # print (A.shape, 'N')
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
@@ -484,10 +560,17 @@ class Problem2D_N(BaseDCProblem_2D):
         vol = self.mesh.vol
 
         if adjoint:
-            return (self.MeSigmaDeriv(Grad*u).T * (Grad*v) +
-                    ky**2*self.MnSigmaDeriv(u).T*v)
-        return (Grad.T*(self.MeSigmaDeriv(Grad*u)*v) +
-                ky**2*self.MnSigmaDeriv(u)*v)
+            return (
+                self.MeSigmaDeriv(Grad*u.flatten(), Grad*v, adjoint=adjoint) +
+                ky**2*self.MnSigmaDeriv(u.flatten(), v, adjoint=adjoint)
+            )
+        else:
+            return (
+                Grad.T*self.MeSigmaDeriv(Grad*u.flatten(), v, adjoint=adjoint) +
+                ky**2*self.MnSigmaDeriv(u.flatten(), v, adjoint=adjoint)
+            )
+        # return (Grad.T*(self.MeSigmaDeriv(Grad*u.flatten(), v, adjoint)) +
+        #         ky**2*self.MnSigmaDeriv(u.flatten())*v)
 
     def getRHS(self, ky):
         """
