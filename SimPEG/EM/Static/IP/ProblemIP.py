@@ -99,7 +99,7 @@ class BaseIPProblem(BaseEMProblem):
 
             for src in self.survey.srcList:
                 u_src = f[src, self._solutionType] # solution vector
-                dA_dm_v = self.getADeriv(u_src, v, adjoint=True)
+                dA_dm_v = self.getADeriv(u_src.flatten(), v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(src, v)
                 du_dm_v = self.Ainv * ( - dA_dm_v + dRHS_dm_v )
 
@@ -163,7 +163,7 @@ class BaseIPProblem(BaseEMProblem):
                     )
                     df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
                     ATinvdf_duT = self.Ainv * df_duT
-                    dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
+                    dA_dmT = self.getADeriv(u_src.flatten(), ATinvdf_duT, adjoint=True)
                     dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
                     du_dmT = -dA_dmT + dRHS_dmT
                     Jtv += (df_dmT + du_dmT).astype(float)
@@ -236,9 +236,6 @@ class BaseIPProblem(BaseEMProblem):
         """
             Derivative of :code:`MfRhoI` with respect to the model.
         """
-        if self.rhoMap is None:
-            return Utils.Zero()
-
         dMfRhoI_dI = -self.MfRhoI**2
         if self.storeInnerProduct:
             if adjoint:
@@ -276,16 +273,40 @@ class BaseIPProblem(BaseEMProblem):
         return self._MeSigmaDerivMat
 
     # TODO: This should take a vector
-    def MeSigmaDeriv(self, u):
+    def MeSigmaDeriv(self, u, v, adjoint=False):
         """
-            Derivative of MeSigma with respect to the model
+        Derivative of MeSigma with respect to the model times a vector (u)
         """
-        dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.etaDeriv
-        MeSigmaDeriv = (
-            self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) *
-            dsigma_dlogsigma
-        )
-        return MeSigmaDeriv
+        if self.storeInnerProduct:
+            if adjoint:
+                return self.MeSigmaDerivMat.T * (Utils.sdiag(u)*v)
+            else:
+                return Utils.sdiag(u)*(self.MeSigmaDerivMat * v)
+        else:
+            dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.etaDeriv
+            if adjoint:
+                return (
+                    dsigma_dlogsigma.T * (
+                        self.mesh.getEdgeInnerProductDeriv(self.sigma)(u).T * v
+                    )
+                )
+            else:
+                return (
+                    self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) *
+                    (dsigma_dlogsigma * v)
+                )
+
+    # # TODO: This should take a vector
+    # def MeSigmaDeriv(self, u):
+    #     """
+    #         Derivative of MeSigma with respect to the model
+    #     """
+    #     dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.etaDeriv
+    #     MeSigmaDeriv = (
+    #         self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) *
+    #         dsigma_dlogsigma
+    #     )
+    #     return MeSigmaDeriv
 
 
 class Problem3D_CC(BaseIPProblem):
@@ -323,17 +344,13 @@ class Problem3D_CC(BaseIPProblem):
 
         D = self.Div
         G = self.Grad
-        MfRhoIDeriv = self.MfRhoIDeriv
 
         if adjoint:
             # if self._makeASymmetric is True:
             #     v = V * v
-            return (MfRhoIDeriv(G * u).T) * (D.T * v)
+            return self.MfRhoIDeriv(G * u, D.T * v, adjoint)
 
-        # I think we should deprecate this for DC problem.
-        # if self._makeASymmetric is True:
-        #     return V.T * ( D * ( MfRhoIDeriv( D.T * ( V * u ) ) * v ) )
-        return D * (MfRhoIDeriv(G * u) * v)
+        return D * self.MfRhoIDeriv(G * u, v, adjoint)
 
     def getRHS(self):
         """
@@ -535,9 +552,9 @@ class Problem3D_N(BaseIPProblem):
         """
         Grad = self.mesh.nodalGrad
         if not adjoint:
-            return Grad.T*(self.MeSigmaDeriv(Grad*u)*v)
+            return Grad.T*self.MeSigmaDeriv(Grad*u, v, adjoint)
         elif adjoint:
-            return self.MeSigmaDeriv(Grad*u).T * (Grad*v)
+            return self.MeSigmaDeriv(Grad*u, Grad*v, adjoint)
 
     def getRHS(self):
         """
