@@ -7,7 +7,7 @@ from SimPEG import Utils
 from SimPEG.EM.Static.DC.FieldsDC_2D import (
     Fields_ky, Fields_ky_CC, Fields_ky_N
     )
-from SimPEG.EM.Static.DC import BaseDCProblem_2D
+from SimPEG.EM.Static.DC import BaseDCProblem_2D, Problem2D_CC, Problem2D_N
 import numpy as np
 from SimPEG.Utils import Zero
 from SimPEG.EM.Static.DC import getxBCyBC_CC

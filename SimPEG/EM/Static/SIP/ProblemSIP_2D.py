@@ -13,7 +13,7 @@ from SimPEG.EM.Static.DC.FieldsDC_2D import (
     Fields_ky, Fields_ky_CC, Fields_ky_N
     )
 from SimPEG.EM.Static.DC import getxBCyBC_CC
-from SimPEG.EM.Static.IP import BaseIPProblem_2D
+from SimPEG.EM.Static.IP import BaseIPProblem_2D, Problem2D_CC, Problem2D_N
 from .SurveySIP import Survey
 from scipy.special import kn
 
@@ -216,52 +216,148 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
                 )
         return JtJdiag
 
-    def MfRhoIDeriv(self, u):
+    @property
+    def MfRhoDerivMat(self):
+        """
+        Derivative of MfRho with respect to the model
+        """
+        if getattr(self, '_MfRhoDerivMat', None) is None:
+            drho_dlogrho = Utils.sdiag(self.rho)*self.actMap.P
+            self._MfRhoDerivMat = self.mesh.getFaceInnerProductDeriv(
+                np.ones(self.mesh.nC)
+            )(np.ones(self.mesh.nF)) * drho_dlogrho
+        return self._MfRhoDerivMat
+
+    def MfRhoIDeriv(self, u, v, adjoint=False):
         """
             Derivative of :code:`MfRhoI` with respect to the model.
         """
-
         dMfRhoI_dI = -self.MfRhoI**2
-        dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
-        drho_dlogrho = Utils.sdiag(self.rho)*self.actMap.P
-        return dMfRhoI_dI * (dMf_drho * drho_dlogrho)
+
+        if self.storeInnerProduct:
+            if adjoint:
+                return self.MfRhoDerivMat.T * (Utils.sdiag(u) * (dMfRhoI_dI.T * v))
+            else:
+                return dMfRhoI_dI * (Utils.sdiag(u) * (self.MfRhoDerivMat*v))
+        else:
+            drho_dlogrho = Utils.sdiag(self.rho)*self.actMap.P
+            dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
+            if adjoint:
+                return drho_dlogrho.T * (dMf_drho.T * (dMfRhoI_dI.T*v))
+            else:
+                return dMfRhoI_dI * (dMf_drho * (drho_dlogrho*v))
+
+    @property
+    def MeSigmaDerivMat(self):
+        """
+        Derivative of MeSigma with respect to the model
+        """
+        if getattr(self, '_MeSigmaDerivMat', None) is None:
+            dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.actMap.P
+            self._MeSigmaDerivMat = self.mesh.getEdgeInnerProductDeriv(
+                np.ones(self.mesh.nC)
+            )(np.ones(self.mesh.nE)) * dsigma_dlogsigma
+        return self._MeSigmaDerivMat
 
     # TODO: This should take a vector
-    def MeSigmaDeriv(self, u):
+    def MeSigmaDeriv(self, u, v, adjoint=False):
         """
-            Derivative of MeSigma with respect to the model
+        Derivative of MeSigma with respect to the model times a vector (u)
         """
-        dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.actMap.P
-        return (
-            self.mesh.getEdgeInnerProductDeriv(self.sigma)(u)
-            * dsigma_dlogsigma
-            )
 
-    def MnSigmaDeriv(self, u):
+        if self.storeInnerProduct:
+            if adjoint:
+                return self.MeSigmaDerivMat.T * (Utils.sdiag(u)*v)
+            else:
+                return Utils.sdiag(u)*(self.MeSigmaDerivMat * v)
+        else:
+            dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.actMap.P
+            if adjoint:
+                return (
+                    dsigma_dlogsigma.T * (
+                        self.mesh.getEdgeInnerProductDeriv(self.sigma)(u).T * v
+                    )
+                )
+            else:
+                return (
+                    self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) *
+                    (dsigma_dlogsigma * v)
+                )
+
+    @property
+    def MnSigmaDerivMat(self):
         """
             Derivative of MnSigma with respect to the model
         """
-        sigma = self.sigma
-        vol = self.mesh.vol
-        dsigma_dlogsigma = Utils.sdiag(sigma)*self.actMap.P
-        return (
-            Utils.sdiag(u)*self.mesh.aveN2CC.T *
-            (Utils.sdiag(vol) * dsigma_dlogsigma)
+        if getattr(self, '_MnSigmaDerivMat', None) is None:
+            sigma = self.sigma
+            vol = self.mesh.vol
+            dsigma_dlogsigma = Utils.sdiag(sigma)*self.actMap.P
+            self._MnSigmaDerivMat = (
+                self.mesh.aveN2CC.T * Utils.sdiag(vol) * dsigma_dlogsigma
+                )
+        return self._MnSigmaDerivMat
+
+    def MnSigmaDeriv(self, u, v, adjoint=False):
+        """
+            Derivative of MnSigma with respect to the model times a vector (u)
+        """
+        if self.storeInnerProduct:
+            if adjoint:
+                return self.MnSigmaDerivMat.T * (u*v)
+            else:
+                return u*(self.MnSigmaDerivMat * v)
+        else:
+            sigma = self.sigma
+            vol = self.mesh.vol
+            dsigma_dlogsigma = Utils.sdiag(sigma)*self.actMap.P
+            if adjoint:
+                return dsigma_dlogsigma.T * (vol * (self.mesh.aveN2CC * (u*v)))
+            else:
+                dsig_dm_v = dsigma_dlogsigma * v
+                return (
+                    u * (self.mesh.aveN2CC.T * (vol * dsig_dm_v))
                 )
 
-    def MccRhoIDeriv(self, u):
+    @property
+    def MccRhoiDerivMat(self):
         """
-            Derivative of MccRhoI with respect to the model
+            Derivative of MccRho with respect to the model
         """
-        rho = self.rho
-        vol = self.mesh.vol
-        drho_dlogrho = Utils.sdiag(rho)*self.actMap.P
-        return (
-            Utils.sdiag(u.flatten()*vol*(-1./rho**2))*drho_dlogrho
+        if getattr(self, '_MccRhoiDerivMat', None) is None:
+            rho = self.rho
+            vol = self.mesh.vol
+            drho_dlogrho = Utils.sdiag(rho)*self.actMap.P
+            self._MccRhoiDerivMat = (
+                Utils.sdiag(vol*(-1./rho**2))*drho_dlogrho
             )
+        return self._MccRhoiDerivMat
+
+    def MccRhoiDeriv(self, u, v, adjoint=False):
+        """
+            Derivative of :code:`MccRhoi` with respect to the model.
+        """
+        if len(self.rho.shape) > 1:
+            if self.rho.shape[1] > self.mesh.dim:
+                raise NotImplementedError(
+                    "Full anisotropy is not implemented for MccRhoiDeriv."
+                )
+        if self.storeInnerProduct:
+            if adjoint:
+                return self.MccRhoiDerivMat.T * (Utils.sdiag(u) * v)
+            else:
+                return Utils.sdiag(u) * (self.MccRhoiDerivMat * v)
+        else:
+            vol = self.mesh.vol
+            rho = self.rho
+            drho_dlogrho = Utils.sdiag(rho)*self.actMap.P
+            if adjoint:
+                return drho_dlogrho.T * (u*vol*(-1./rho**2) * v)
+            else:
+                return (u*vol*(-1./rho**2))*(drho_dlogrho * v)
 
 
-class Problem2D_CC(BaseSIPProblem_2D):
+class Problem2D_CC(BaseSIPProblem_2D, Problem2D_CC):
     """
     2.5D cell centered Spectral IP problem
     """
@@ -281,135 +377,8 @@ class Problem2D_CC(BaseSIPProblem_2D):
 
         self.actMap = Maps.InjectActiveCells(mesh, self.actinds, 0.)
 
-    def getA(self, ky):
-        """
 
-        Make the A matrix for the cell centered DC resistivity problem
-
-        A = D MfRhoI G
-
-        """
-        # To handle Mixed boundary condition
-        if self._formulation == "HJ":
-            self.setBC(ky=ky)
-
-        D = self.Div
-        G = self.Grad
-        vol = self.mesh.vol
-        MfRhoI = self.MfRhoI
-        # Get resistivity rho
-        rho = self.rho
-        A = D * MfRhoI * G + Utils.sdiag(ky**2*vol/rho)
-        return A
-
-    def getADeriv(self, ky, u, v, adjoint=False):
-
-        # To handle Mixed boundary condition
-        if self._formulation == "HJ":
-            self.setBC(ky=ky)
-
-        D = self.Div
-        G = self.Grad
-        MfRhoIDeriv = self.MfRhoIDeriv
-        MccRhoIDeriv = self.MccRhoIDeriv
-        if adjoint:
-            return((MfRhoIDeriv( G * u).T) * (D.T * v) +
-                   ky**2 * MccRhoIDeriv(u).T * v)
-        return (D * ((MfRhoIDeriv(G * u)) * v) + ky**2*MccRhoIDeriv(u)*v)
-
-    def getRHS(self, ky):
-        """
-        RHS for the DC problem
-
-        q
-        """
-
-        RHS = self.getSourceTerm(ky)
-        return RHS
-
-    def getRHSDeriv(self, ky, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
-        """
-        # TODO: add qDeriv for RHS depending on m
-        # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
-        # return qDeriv
-        return Zero()
-
-    def setBC(self, ky=None):
-        fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
-        gBFxm = self.mesh.gridFx[fxm, :]
-        gBFxp = self.mesh.gridFx[fxp, :]
-        gBFym = self.mesh.gridFy[fym, :]
-        gBFyp = self.mesh.gridFy[fyp, :]
-
-        # Setup Mixed B.C (alpha, beta, gamma)
-        temp_xm = np.ones_like(gBFxm[:, 0])
-        temp_xp = np.ones_like(gBFxp[:, 0])
-        temp_ym = np.ones_like(gBFym[:, 1])
-        temp_yp = np.ones_like(gBFyp[:, 1])
-
-        if self.bc_type == "Neumann":
-            alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-            alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
-
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
-
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-
-        elif self.bc_type == "Dirichlet":
-            alpha_xm, alpha_xp = temp_xm, temp_xp
-            alpha_ym, alpha_yp = temp_ym, temp_yp
-
-            beta_xm, beta_xp = temp_xm*0., temp_xp*0.
-            beta_ym, beta_yp = temp_ym*0., temp_yp*0.
-
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-
-        elif self.bc_type == "Mixed":
-            xs = np.median(self.mesh.vectorCCx)
-            ys = np.median(self.mesh.vectorCCy[-1])
-
-            def r_boundary(x, y):
-                return 1./np.sqrt(
-                    (x - xs)**2 + (y - ys)**2
-                    )
-
-            rxm = r_boundary(gBFxm[:, 0], gBFxm[:, 1])
-            rxp = r_boundary(gBFxp[:, 0], gBFxp[:, 1])
-            rym = r_boundary(gBFym[:, 0], gBFym[:, 1])
-            alpha_xm = ky*(
-                kn(1, ky*rxm) / kn(0, ky*rxm) * (gBFxm[:, 0]-xs)
-                )
-            alpha_xp = ky*(
-                kn(1, ky*rxp) / kn(0, ky*rxp) * (gBFxp[:, 0]-xs)
-                )
-            alpha_ym = ky*(
-                kn(1, ky*rym) / kn(0, ky*rym) * (gBFym[:, 0]-ys)
-                )
-            alpha_yp = temp_yp*0.
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
-
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-
-        alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
-        beta = [beta_xm, beta_xp, beta_ym, beta_yp]
-        gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
-
-        x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
-        V = self.Vol
-        self.Div = V * self.mesh.faceDiv
-        P_BC, B = self.mesh.getBCProjWF_simple()
-        M = B*self.mesh.aveCC2F
-        self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
-
-
-class Problem2D_N(BaseSIPProblem_2D):
+class Problem2D_N(BaseSIPProblem_2D, Problem2D_N):
     """
     2.5D nodal Spectral IP problem
     """
@@ -429,51 +398,4 @@ class Problem2D_N(BaseSIPProblem_2D):
 
         self.actMap = Maps.InjectActiveCells(mesh, self.actinds, 0.)
 
-    def getA(self, ky):
-        """
 
-        Make the A matrix for the cell centered DC resistivity problem
-
-        A = D MfRhoI G
-
-        """
-
-        MeSigma = self.MeSigma
-        MnSigma = self.MnSigma
-        Grad = self.mesh.nodalGrad
-        A = Grad.T * MeSigma * Grad + ky**2*MnSigma
-
-        # Handling Null space of A
-        A[0, 0] = A[0, 0] + 1.
-        return A
-
-    def getADeriv(self, ky, u, v, adjoint=False):
-
-        Grad = self.mesh.nodalGrad
-        sigma = self.sigma
-        vol = self.mesh.vol
-        if adjoint:
-            return (self.MeSigmaDeriv(Grad*u).T * (Grad*v) +
-                    ky**2*self.MnSigmaDeriv(u).T*v)
-
-        return (Grad.T*(self.MeSigmaDeriv(Grad*u)*v) +
-                ky**2*self.MnSigmaDeriv(u)*v)
-
-    def getRHS(self, ky):
-        """
-        RHS for the DC problem
-
-        q
-        """
-
-        RHS = self.getSourceTerm(ky)
-        return RHS
-
-    def getRHSDeriv(self, ky, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
-        """
-        # TODO: add qDeriv for RHS depending on m
-        # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
-        # return qDeriv
-        return Zero()
