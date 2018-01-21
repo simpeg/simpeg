@@ -31,7 +31,12 @@ class IPProblemAnalyticTests(unittest.TestCase):
         src0 = DC.Src.Dipole([rx], A0loc, B0loc)
         src1 = DC.Src.Dipole([rx], A1loc, B1loc)
 
+        rx_ip = DC.Rx.Dipole(M, N)
+        src0_ip = DC.Src.Dipole([rx], A0loc, B0loc)
+        src1_ip = DC.Src.Dipole([rx], A1loc, B1loc)
+
         srcLists = [src0, src1]
+        srcLists_ip = [src0_ip, src1_ip]
         surveyDC = DC.Survey_ky([src0, src1])
 
         sigmaInf = np.ones(mesh.nC) * 1.
@@ -47,6 +52,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.sigmaInf = sigmaInf
         self.sigma0 = sigma0
         self.srcLists = srcLists
+        self.srcLists_ip = srcLists_ip
         self.eta = eta
 
     def test_Problem2D_N(self):
@@ -64,7 +70,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
             etaMap=Maps.IdentityMap(self.mesh),
         )
         problemIP.Solver = Solver
-        surveyIP = IP.Survey(self.srcLists)
+        surveyIP = IP.Survey(self.srcLists_ip)
         problemIP.pair(surveyIP)
         data_full = data0 - datainf
         data = surveyIP.dpred(self.eta)
@@ -81,20 +87,20 @@ class IPProblemAnalyticTests(unittest.TestCase):
     def test_Problem2D_CC(self):
 
         problemDC = DC.Problem2D_CC(
-            self.mesh, sigmaMap=Maps.IdentityMap(self.mesh)
+            self.mesh, rhoMap=Maps.IdentityMap(self.mesh)
         )
         problemDC.Solver = Solver
         problemDC.pair(self.surveyDC)
-        data0 = self.surveyDC.dpred(self.sigma0)
-        finf = problemDC.fields(self.sigmaInf)
-        datainf = self.surveyDC.dpred(self.sigmaInf, f=finf)
+        data0 = self.surveyDC.dpred(1./self.sigma0)
+        finf = problemDC.fields(1./self.sigmaInf)
+        datainf = self.surveyDC.dpred(1./self.sigmaInf, f=finf)
         problemIP = IP.Problem2D_CC(
             self.mesh,
             rho=1./self.sigmaInf,
-            etaMap=Maps.IdentityMap(self.mesh),
+            etaMap=Maps.IdentityMap(self.mesh)
         )
         problemIP.Solver = Solver
-        surveyIP = IP.Survey(self.srcLists)
+        surveyIP = IP.Survey(self.srcLists_ip)
         problemIP.pair(surveyIP)
         data_full = data0 - datainf
         data = surveyIP.dpred(self.eta)
@@ -103,9 +109,14 @@ class IPProblemAnalyticTests(unittest.TestCase):
             passed = True
             print(">> IP forward test for Problem2D_CC is passed")
         else:
+            import matplotlib.pyplot as plt
             passed = False
             print(">> IP forward test for Problem2D_CC is failed")
             print (err)
+            plt.plot(data_full)
+            plt.plot(data, 'k.')
+            plt.show()
+
         self.assertTrue(passed)
 
 if __name__ == '__main__':

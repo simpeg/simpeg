@@ -276,20 +276,57 @@ class BaseDCProblem_2D(BaseEMProblem):
             toDelete += ['_Jmatrix']
         return toDelete
 
+    ####################################################
+    # Mass Matrices
+    ####################################################
 
-class Problem2D_CC(BaseDCProblem_2D):
-    """
-    2.5D cell centered DC problem
-    """
+    @property
+    def MnSigma(self):
+        """
+            Node inner product matrix for \\(\\sigma\\). Used in the E-B
+            formulation
+        """
+        # TODO: only works isotropic sigma
+        if getattr(self, '_MnSigma', None) is None:
+            sigma = self.sigma
+            vol = self.mesh.vol
+            self._MnSigma = Utils.sdiag(
+                self.mesh.aveN2CC.T*(Utils.sdiag(vol)*sigma)
+            )
+        return self._MnSigma
 
-    _solutionType = 'phiSolution'
-    _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_ky_CC
-    fieldsPair_fwd = Fields_CC
-    bc_type = 'Mixed'
+    @property
+    def MnSigmaDerivMat(self):
+        """
+            Derivative of MnSigma with respect to the model
+        """
+        if getattr(self, '_MnSigmaDerivMat', None) is None:
+            sigma = self.sigma
+            vol = self.mesh.vol
+            self._MnSigmaDerivMat = (
+                self.mesh.aveN2CC.T * Utils.sdiag(vol) * self.sigmaDeriv
+                )
+        return self._MnSigmaDerivMat
 
-    def __init__(self, mesh, **kwargs):
-        BaseDCProblem_2D.__init__(self, mesh, **kwargs)
+    def MnSigmaDeriv(self, u, v, adjoint=False):
+        """
+            Derivative of MnSigma with respect to the model times a vector (u)
+        """
+        if self.storeInnerProduct:
+            if adjoint:
+                return self.MnSigmaDerivMat.T * (u*v)
+            else:
+                return u*(self.MnSigmaDerivMat * v)
+        else:
+            sigma = self.sigma
+            vol = self.mesh.vol
+            if adjoint:
+                return self.sigmaDeriv.T * (vol * (self.mesh.aveN2CC * (u*v)))
+            else:
+                dsig_dm_v = self.sigmaDeriv * v
+                return (
+                    u * (self.mesh.aveN2CC.T * (vol * dsig_dm_v))
+                )
 
     @property
     def MccRhoi(self):
@@ -314,10 +351,9 @@ class Problem2D_CC(BaseDCProblem_2D):
             vol = self.mesh.vol
             self._MccRhoiDerivMat = (
                 Utils.sdiag(vol*(-1./rho**2))*self.rhoDeriv
-                )
+            )
         return self._MccRhoiDerivMat
 
-    # TODO: This should take a vector
     def MccRhoiDeriv(self, u, v, adjoint=False):
         """
             Derivative of :code:`MccRhoi` with respect to the model.
@@ -343,6 +379,21 @@ class Problem2D_CC(BaseDCProblem_2D):
             else:
                 return (u*vol*(-1./rho**2))*(self.rhoDeriv * v)
 
+
+class Problem2D_CC(BaseDCProblem_2D):
+    """
+    2.5D cell centered DC problem
+    """
+
+    _solutionType = 'phiSolution'
+    _formulation = 'HJ'  # CC potentials means J is on faces
+    fieldsPair = Fields_ky_CC
+    fieldsPair_fwd = Fields_CC
+    bc_type = 'Mixed'
+
+    def __init__(self, mesh, **kwargs):
+        BaseDCProblem_2D.__init__(self, mesh, **kwargs)
+
     def getA(self, ky):
         """
         Make the A matrix for the cell centered DC resistivity problem
@@ -363,7 +414,8 @@ class Problem2D_CC(BaseDCProblem_2D):
 
     def getADeriv(self, ky, u, v, adjoint=False):
         # To handle Mixed boundary condition
-        # self.setBC(ky=ky)
+        self.setBC(ky=ky)
+
         D = self.Div
         G = self.Grad
         vol = self.mesh.vol
@@ -483,55 +535,6 @@ class Problem2D_N(BaseDCProblem_2D):
     def __init__(self, mesh, **kwargs):
         BaseDCProblem_2D.__init__(self, mesh, **kwargs)
         # self.setBC()
-
-    @property
-    def MnSigma(self):
-        """
-            Node inner product matrix for \\(\\sigma\\). Used in the E-B
-            formulation
-        """
-        # TODO: only works isotropic sigma
-        if getattr(self, '_MnSigma', None) is None:
-            sigma = self.sigma
-            vol = self.mesh.vol
-            self._MnSigma = Utils.sdiag(
-                self.mesh.aveN2CC.T*(Utils.sdiag(vol)*sigma)
-            )
-        return self._MnSigma
-
-    @property
-    def MnSigmaDerivMat(self):
-        """
-            Derivative of MnSigma with respect to the model
-        """
-        if getattr(self, '_MnSigmaDerivMat', None) is None:
-            sigma = self.sigma
-            sigmaderiv = self.sigmaDeriv
-            vol = self.mesh.vol
-            self._MnSigmaDerivMat = (
-                self.mesh.aveN2CC.T * Utils.sdiag(vol) * self.sigmaDeriv
-                )
-        return self._MnSigmaDerivMat
-
-    def MnSigmaDeriv(self, u, v, adjoint=False):
-        """
-            Derivative of MnSigma with respect to the model times a vector (u)
-        """
-        if self.storeInnerProduct:
-            if adjoint:
-                return self.MnSigmaDerivMat.T * (u*v)
-            else:
-                return u*(self.MnSigmaDerivMat * v)
-        else:
-            sigma = self.sigma
-            vol = self.mesh.vol
-            if adjoint:
-                return self.sigmaDeriv.T * (vol * (self.mesh.aveN2CC * (u*v)))
-            else:
-                dsig_dm_v = self.sigmaDeriv * v
-                return (
-                    u * (self.mesh.aveN2CC.T * (vol * dsig_dm_v))
-                )
 
     def getA(self, ky):
         """

@@ -250,16 +250,6 @@ class BaseIPProblem(BaseEMProblem):
             else:
                 return dMfRhoI_dI * (dMf_drho * (drho_dlogrho*v))
 
-    # def MfRhoIDeriv(self, u):
-    #     """
-    #         Derivative of :code:`MfRhoI` with respect to the model.
-    #     """
-
-    #     dMfRhoI_dI = -self.MfRhoI**2
-    #     dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
-    #     drho_dlogrho = Utils.sdiag(self.rho)*self.etaDeriv
-    #     return dMfRhoI_dI * (dMf_drho * drho_dlogrho)
-
     @property
     def MeSigmaDerivMat(self):
         """
@@ -295,18 +285,6 @@ class BaseIPProblem(BaseEMProblem):
                     self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) *
                     (dsigma_dlogsigma * v)
                 )
-
-    # # TODO: This should take a vector
-    # def MeSigmaDeriv(self, u):
-    #     """
-    #         Derivative of MeSigma with respect to the model
-    #     """
-    #     dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.etaDeriv
-    #     MeSigmaDeriv = (
-    #         self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) *
-    #         dsigma_dlogsigma
-    #     )
-    #     return MeSigmaDeriv
 
 
 class Problem3D_CC(BaseIPProblem):
