@@ -373,32 +373,88 @@ class BaseSIPProblem(BaseEMProblem):
         toDelete = []
         return toDelete
 
-    def MfRhoIDeriv(self, u):
+    @property
+    def MfRhoDerivMat(self):
+        """
+        Derivative of MfRho with respect to the model
+        """
+        if getattr(self, '_MfRhoDerivMat', None) is None:
+            if self.storeJ:
+                drho_dlogrho = Utils.sdiag(self.rho)*self.actMap.P
+            else:
+                drho_dlogrho = Utils.sdiag(self.rho)
+            self._MfRhoDerivMat = self.mesh.getFaceInnerProductDeriv(
+                np.ones(self.mesh.nC)
+            )(np.ones(self.mesh.nF)) * drho_dlogrho
+        return self._MfRhoDerivMat
+
+    def MfRhoIDeriv(self, u, v, adjoint=False):
         """
             Derivative of :code:`MfRhoI` with respect to the model.
         """
-
         dMfRhoI_dI = -self.MfRhoI**2
-        dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
+
         if self.storeJ:
             drho_dlogrho = Utils.sdiag(self.rho)*self.actMap.P
         else:
             drho_dlogrho = Utils.sdiag(self.rho)
-        return dMfRhoI_dI * (dMf_drho * drho_dlogrho)
+
+        if self.storeInnerProduct:
+            if adjoint:
+                return self.MfRhoDerivMat.T * (Utils.sdiag(u) * (dMfRhoI_dI.T * v))
+            else:
+                return dMfRhoI_dI * (Utils.sdiag(u) * (self.MfRhoDerivMat*v))
+        else:
+            dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
+            drho_dlogrho = Utils.sdiag(self.rho)*self.etaDeriv
+            if adjoint:
+                return drho_dlogrho.T * (dMf_drho.T * (dMfRhoI_dI.T*v))
+            else:
+                return dMfRhoI_dI * (dMf_drho * (drho_dlogrho*v))
+
+    @property
+    def MeSigmaDerivMat(self):
+        """
+        Derivative of MeSigma with respect to the model
+        """
+        if getattr(self, '_MeSigmaDerivMat', None) is None:
+            if self.storeJ:
+                dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.actMap.P
+            else:
+                dsigma_dlogsigma = Utils.sdiag(self.sigma)
+            self._MeSigmaDerivMat = self.mesh.getEdgeInnerProductDeriv(
+                np.ones(self.mesh.nC)
+            )(np.ones(self.mesh.nE)) * dsigma_dlogsigma
+        return self._MeSigmaDerivMat
 
     # TODO: This should take a vector
-    def MeSigmaDeriv(self, u):
+    def MeSigmaDeriv(self, u, v, adjoint=False):
         """
-            Derivative of MeSigma with respect to the model
+        Derivative of MeSigma with respect to the model times a vector (u)
         """
         if self.storeJ:
             dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.actMap.P
         else:
             dsigma_dlogsigma = Utils.sdiag(self.sigma)
-        return (
-            self.mesh.getEdgeInnerProductDeriv(self.sigma)(u)
-            * dsigma_dlogsigma
-            )
+
+        if self.storeInnerProduct:
+            if adjoint:
+                return self.MeSigmaDerivMat.T * (Utils.sdiag(u)*v)
+            else:
+                return Utils.sdiag(u)*(self.MeSigmaDerivMat * v)
+        else:
+            dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.etaDeriv
+            if adjoint:
+                return (
+                    dsigma_dlogsigma.T * (
+                        self.mesh.getEdgeInnerProductDeriv(self.sigma)(u).T * v
+                    )
+                )
+            else:
+                return (
+                    self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) *
+                    (dsigma_dlogsigma * v)
+                )
 
 
 class Problem3D_CC(BaseSIPProblem):
@@ -448,14 +504,9 @@ class Problem3D_CC(BaseSIPProblem):
         MfRhoIDeriv = self.MfRhoIDeriv
 
         if adjoint:
-            # if self._makeASymmetric is True:
-            #     v = V * v
-            return(MfRhoIDeriv(G * u).T) * (D.T * v)
+            return self.MfRhoIDeriv(G * u, D.T * v, adjoint)
 
-        # I think we should deprecate this for DC problem.
-        # if self._makeASymmetric is True:
-        #     return V.T * ( D * ( MfRhoIDeriv( D.T * ( V * u ) ) * v ) )
-        return D * (MfRhoIDeriv(G * u) * v)
+        return D * self.MfRhoIDeriv(G * u, v, adjoint)
 
     def getRHS(self):
         """
@@ -664,9 +715,9 @@ class Problem3D_N(BaseSIPProblem):
         """
         Grad = self.mesh.nodalGrad
         if not adjoint:
-            return Grad.T*(self.MeSigmaDeriv(Grad*u)*v)
+            return Grad.T*self.MeSigmaDeriv(Grad*u, v, adjoint)
         elif adjoint:
-            return self.MeSigmaDeriv(Grad*u).T * (Grad*v)
+            return self.MeSigmaDeriv(Grad*u, Grad*v, adjoint)
 
     def getRHS(self):
         """

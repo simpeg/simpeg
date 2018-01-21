@@ -324,8 +324,6 @@ class Problem3D_CC(BaseIPProblem):
         G = self.Grad
 
         if adjoint:
-            # if self._makeASymmetric is True:
-            #     v = V * v
             return self.MfRhoIDeriv(G * u, D.T * v, adjoint)
 
         return D * self.MfRhoIDeriv(G * u, v, adjoint)
