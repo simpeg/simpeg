@@ -135,9 +135,17 @@ class Planewave_xy_1Dprimary(BaseNSEMSrc):
             # And stack them to be of the correct size
             e_p = self.ePrimary(problem)
             if adjoint:
-                return sp.hstack(( problem.MeSigmaDeriv(e_p[:,0]).T, problem.MeSigmaDeriv(e_p[:,1]).T ))*v
+                return (
+                    problem.MeSigmaDeriv(e_p[:, 0], v[:problem.mesh.nE], adjoint) +
+                    problem.MeSigmaDeriv(e_p[:, 1], v[problem.mesh.nE:], adjoint)
+                )
             else:
-                return np.hstack(( mkvc(problem.MeSigmaDeriv(e_p[:,0]) * v,2), mkvc(problem.MeSigmaDeriv(e_p[:,1])*v,2) ))
+                return np.hstack(
+                    (
+                        mkvc(problem.MeSigmaDeriv(e_p[:, 0], v, adjoint), 2),
+                        mkvc(problem.MeSigmaDeriv(e_p[:, 1], v, adjoint), 2)
+                    )
+                )
 
 
 class Planewave_xy_3Dprimary(BaseNSEMSrc):

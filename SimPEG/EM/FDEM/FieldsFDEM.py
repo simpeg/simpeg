@@ -843,22 +843,38 @@ class Fields3D_b(FieldsFDEM):
         if adjoint:
             s_eDeriv = src.s_eDeriv(self.prob, self._MeSigmaI.T * v, adjoint)
             return (
-                self._MeSigmaIDeriv(w).T * v +
+                self._MeSigmaIDeriv(w, v, adjoint) +
                 self._MfMuiDeriv(bSolution).T * (
                     self._edgeCurl * (self._MeSigmaI.T * v)
                     ) -
                 s_eDeriv +
                 src.ePrimaryDeriv(self.prob, v, adjoint)
             )
+            # return (
+            #     self._MeSigmaIDeriv(w).T * v +
+            #     self._MfMuiDeriv(bSolution).T * (
+            #         self._edgeCurl * (self._MeSigmaI.T * v)
+            #         ) -
+            #     s_eDeriv +
+            #     src.ePrimaryDeriv(self.prob, v, adjoint)
+            # )
         s_eDeriv = src.s_eDeriv(self.prob, v, adjoint)
         return (
-            self._MeSigmaIDeriv(w) * v +
+            self._MeSigmaIDeriv(w, v) +
             self._MeSigmaI * (
                 self._edgeCurl.T * (self._MfMuiDeriv(bSolution) * v)
             ) -
             self._MeSigmaI * s_eDeriv +
             src.ePrimaryDeriv(self.prob, v, adjoint)
         )
+        # return (
+        #     self._MeSigmaIDeriv(w) * v +
+        #     self._MeSigmaI * (
+        #         self._edgeCurl.T * (self._MfMuiDeriv(bSolution) * v)
+        #     ) -
+        #     self._MeSigmaI * s_eDeriv +
+        #     src.ePrimaryDeriv(self.prob, v, adjoint)
+        # )
 
     def _j(self, bSolution, srcList):
         """
@@ -1212,17 +1228,18 @@ class Fields3D_j(FieldsFDEM):
         if not adjoint:
             hDeriv_m = 1./(1j*omega(src.freq)) * (
                 -1. *  (
-                    MeMuI * (C.T * (MfRhoDeriv(jSolution)*v)) +
+                    MeMuI * (C.T * (MfRhoDeriv(jSolution, v, adjoint))) +
                     MeMuIDeriv(C.T * (MfRho * jSolution)) *  v
                 ) +
                 MeMuI * s_mDeriv(v) + MeMuIDeriv(s_m) * v
             )
 
         elif adjoint:
+            vec = C * (MeMuI.T * v)
             hDeriv_m = 1./(1j*omega(src.freq)) * (
                 (
                     -1. * (
-                        MfRhoDeriv(jSolution).T * (C * (MeMuI.T * v)) +
+                        MfRhoDeriv(jSolution, vec, adjoint) +
                         MeMuIDeriv(C.T * (MfRho * jSolution)).T * v
                     )
                 ) + s_mDeriv(MeMuI.T*v) + MeMuIDeriv(s_m).T * v
@@ -1277,13 +1294,15 @@ class Fields3D_j(FieldsFDEM):
         jSolution = Utils.mkvc(self[src, 'jSolution'])
         n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+
         if adjoint:
+            vec = self._aveF2CCV.T * (VI.T*v)
             return (
-                self._MfRhoDeriv(jSolution).T * (self._aveF2CCV.T * (VI.T*v)) +
+                self._MfRhoDeriv(jSolution, vec, adjoint) +
                 src.ePrimaryDeriv(self.prob, v, adjoint)
             )
         return (
-            VI * (self._aveF2CCV * (self._MfRhoDeriv(jSolution) * v)) +
+            VI * (self._aveF2CCV * (self._MfRhoDeriv(jSolution, v))) +
             src.ePrimaryDeriv(self.prob, v, adjoint)
         )
 
@@ -1359,8 +1378,9 @@ class Fields3D_j(FieldsFDEM):
             return (
                 1./(1j * omega(src.freq)) *
                 (
-                    s_mDeriv(v) - self._MfRhoDeriv(jSolution).T *
-                    (self._edgeCurl * v)
+                    s_mDeriv(v) - self._MfRhoDeriv(
+                        jSolution, self._edgeCurl * v, adjoint
+                    )
                 ) +
                 src.bPrimaryDeriv(self.prob, v, adjoint)
             )
@@ -1369,7 +1389,7 @@ class Fields3D_j(FieldsFDEM):
             VI * (
                 self._aveE2CCV * (
                     s_mDeriv(v) - self._edgeCurl.T *
-                    (self._MfRhoDeriv(jSolution) * v))
+                    (self._MfRhoDeriv(jSolution, v)))
             ) +
             src.bPrimaryDeriv(self.prob, v, adjoint)
         )
@@ -1609,8 +1629,8 @@ class Fields3D_h(FieldsFDEM):
         if adjoint:
             w = self._aveF2CCV.T * (VI.T * v)
             return (
-                self._MfRhoDeriv(self._edgeCurl * hSolution).T * w -
-                self._MfRhoDeriv(s_e).T * w +
+                self._MfRhoDeriv(self._edgeCurl * hSolution, w, adjoint) -
+                self._MfRhoDeriv(s_e, w, adjoint) +
                 src.ePrimaryDeriv(self.prob, v, adjoint)
             )
         return (
@@ -1618,8 +1638,8 @@ class Fields3D_h(FieldsFDEM):
             (
                 self._aveF2CCV *
                 (
-                    self._MfRhoDeriv(self._edgeCurl * hSolution) * v -
-                    self._MfRhoDeriv(s_e) * v
+                    self._MfRhoDeriv(self._edgeCurl * hSolution, v, adjoint) -
+                    self._MfRhoDeriv(s_e, v, adjoint)
 
                 )
             ) +

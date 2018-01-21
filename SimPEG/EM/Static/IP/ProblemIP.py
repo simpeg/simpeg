@@ -99,7 +99,7 @@ class BaseIPProblem(BaseEMProblem):
 
             for src in self.survey.srcList:
                 u_src = f[src, self._solutionType] # solution vector
-                dA_dm_v = self.getADeriv(u_src, v)
+                dA_dm_v = self.getADeriv(u_src, v, adjoint=True)
                 dRHS_dm_v = self.getRHSDeriv(src, v)
                 du_dm_v = self.Ainv * ( - dA_dm_v + dRHS_dm_v )
 
@@ -220,35 +220,60 @@ class BaseIPProblem(BaseEMProblem):
         toDelete = []
         return toDelete
 
-    # assume log rho or log cond
     @property
-    def MeSigma(self):
+    def MfRhoDerivMat(self):
         """
-            Edge inner product matrix for \\(\\sigma\\).
-            Used in the E-B formulation
+        Derivative of MfRho with respect to the model
         """
-        if getattr(self, '_MeSigma', None) is None:
-            self._MeSigma = self.mesh.getEdgeInnerProduct(self.sigma)
-        return self._MeSigma
+        if getattr(self, '_MfRhoDerivMat', None) is None:
+            drho_dlogrho = Utils.sdiag(self.rho)*self.etaDeriv
+            self._MfRhoDerivMat = self.mesh.getFaceInnerProductDeriv(
+                np.ones(self.mesh.nC)
+            )(np.ones(self.mesh.nF)) * Utils.sdiag(self.rho) * self.etaDeriv
+        return self._MfRhoDerivMat
 
-    @property
-    def MfRhoI(self):
-        """
-            Inverse of :code:`MfRho`
-        """
-        if getattr(self, '_MfRhoI', None) is None:
-            self._MfRhoI = self.mesh.getFaceInnerProduct(self.rho, invMat=True)
-        return self._MfRhoI
-
-    def MfRhoIDeriv(self, u):
+    def MfRhoIDeriv(self, u, v, adjoint=False):
         """
             Derivative of :code:`MfRhoI` with respect to the model.
         """
+        if self.rhoMap is None:
+            return Utils.Zero()
 
         dMfRhoI_dI = -self.MfRhoI**2
-        dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
-        drho_dlogrho = Utils.sdiag(self.rho)*self.etaDeriv
-        return dMfRhoI_dI * (dMf_drho * drho_dlogrho)
+        if self.storeInnerProduct:
+            if adjoint:
+                return self.MfRhoDerivMat.T * (Utils.sdiag(u) * (dMfRhoI_dI.T * v))
+            else:
+                return dMfRhoI_dI * (Utils.sdiag(u) * (self.MfRhoDerivMat*v))
+        else:
+            dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
+            drho_dlogrho = Utils.sdiag(self.rho)*self.etaDeriv
+            if adjoint:
+                return drho_dlogrho.T * (dMf_drho.T * (dMfRhoI_dI.T*v))
+            else:
+                return dMfRhoI_dI * (dMf_drho * (drho_dlogrho*v))
+
+    # def MfRhoIDeriv(self, u):
+    #     """
+    #         Derivative of :code:`MfRhoI` with respect to the model.
+    #     """
+
+    #     dMfRhoI_dI = -self.MfRhoI**2
+    #     dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
+    #     drho_dlogrho = Utils.sdiag(self.rho)*self.etaDeriv
+    #     return dMfRhoI_dI * (dMf_drho * drho_dlogrho)
+
+    @property
+    def MeSigmaDerivMat(self):
+        """
+        Derivative of MeSigma with respect to the model
+        """
+        if getattr(self, '_MeSigmaDerivMat', None) is None:
+            dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.etaDeriv
+            self._MeSigmaDerivMat = self.mesh.getEdgeInnerProductDeriv(
+                np.ones(self.mesh.nC)
+            )(np.ones(self.mesh.nE)) * dsigma_dlogsigma
+        return self._MeSigmaDerivMat
 
     # TODO: This should take a vector
     def MeSigmaDeriv(self, u):

@@ -390,10 +390,18 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
         sol0, sol1 = self._solutionType
 
         if adjoint:
-            dMe_dsigV = sp.hstack(( self.MeSigmaDeriv( u[sol0] ).T, self.MeSigmaDeriv(u[sol1] ).T ))*v
+            dMe_dsigV = (
+                self.MeSigmaDeriv(u[sol0], v[:self.mesh.nE], adjoint) +
+                self.MeSigmaDeriv(u[sol1], v[self.mesh.nE:], adjoint)
+            )
         else:
             # Need a nE,2 matrix to be returned
-            dMe_dsigV = np.hstack(( mkvc(self.MeSigmaDeriv( u[sol0] )*v, 2), mkvc( self.MeSigmaDeriv(u[sol1] )*v, 2) ))
+            dMe_dsigV = np.hstack(
+                (
+                    mkvc(self.MeSigmaDeriv(u[sol0], v, adjoint), 2),
+                    mkvc(self.MeSigmaDeriv(u[sol1], v, adjoint), 2)
+                )
+            )
         return 1j * omega(freq) * dMe_dsigV
 
     def getRHS(self, freq):

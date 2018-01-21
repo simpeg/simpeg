@@ -109,7 +109,7 @@ class BaseDCProblem_2D(BaseEMProblem):
             ky = self.kys[iky]
             for src in self.survey.srcList:
                 u_src = f[src, self._solutionType, iky]  # solution vector
-                dA_dm_v = self.getADeriv(ky, u_src, v)
+                dA_dm_v = self.getADeriv(ky, u_src, v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(ky, src, v)
                 du_dm_v = self.Ainv[iky] * (- dA_dm_v + dRHS_dm_v)
                 for rx in src.rxList:
@@ -270,7 +270,7 @@ class BaseDCProblem_2D(BaseEMProblem):
         if self.sigmaMap is not None:
             toDelete += [
                 '_MnSigma', '_MnSigmaDerivMat',
-                '_MccRhoI', '_MccRhoIDerivMat'
+                '_MccRhoi', '_MccRhoiDerivMat'
             ]
         if self._Jmatrix is not None:
             toDelete += ['_Jmatrix']
@@ -292,36 +292,35 @@ class Problem2D_CC(BaseDCProblem_2D):
         BaseDCProblem_2D.__init__(self, mesh, **kwargs)
 
     @property
-    def MccRhoI(self):
+    def MccRhoi(self):
         """
             Node inner product matrix for \\(\\rho\\). Used in the E-B
             formulation
         """
         # TODO: only works isotropic rho
-        if getattr(self, '_MccRhoI', None) is None:
-            self._MccRhoI = Utils.sdiag(
+        if getattr(self, '_MccRhoi', None) is None:
+            self._MccRhoi = Utils.sdiag(
                 self.mesh.vol/self.rho
             )
-        return self._MccRhoI
+        return self._MccRhoi
 
     @property
-    def MccRhoIDerivMat(self):
+    def MccRhoiDerivMat(self):
         """
             Derivative of MccRho with respect to the model
         """
-        if getattr(self, '_MccRhoIDerivMat', None) is None:
+        if getattr(self, '_MccRhoiDerivMat', None) is None:
             rho = self.rho
-            rhoderiv = self.rhoDeriv
             vol = self.mesh.vol
-            self._MccRhoIDerivMat = (
+            self._MccRhoiDerivMat = (
                 Utils.sdiag(vol*(-1./rho**2))*self.rhoDeriv
                 )
-        return self._MccRhoIDerivMat
+        return self._MccRhoiDerivMat
 
     # TODO: This should take a vector
-    def MccRhoIDeriv(self, u, v, adjoint=False):
+    def MccRhoiDeriv(self, u, v, adjoint=False):
         """
-            Derivative of :code:`MccRhoI` with respect to the model.
+            Derivative of :code:`MccRhoi` with respect to the model.
         """
         if self.rhoMap is None:
             return Utils.Zero()
@@ -329,13 +328,13 @@ class Problem2D_CC(BaseDCProblem_2D):
         if len(self.rho.shape) > 1:
             if self.rho.shape[1] > self.mesh.dim:
                 raise NotImplementedError(
-                    "Full anisotropy is not implemented for MccRhoIDeriv."
+                    "Full anisotropy is not implemented for MccRhoiDeriv."
                 )
         if self.storeInnerProduct:
             if adjoint:
-                return self.MccRhoIDerivMat.T * (u * v)
+                return self.MccRhoiDerivMat.T * (Utils.sdiag(u) * v)
             else:
-                return u * (self.MccRhoIDerivMat * v)
+                return Utils.sdiag(u) * (self.MccRhoiDerivMat * v)
         else:
             vol = self.mesh.vol
             rho = self.rho
@@ -357,27 +356,26 @@ class Problem2D_CC(BaseDCProblem_2D):
         MfRhoI = self.MfRhoI
         # Get resistivity rho
         rho = self.rho
-        A = D * MfRhoI * G + ky**2 * self.MccRhoI
+        A = D * MfRhoI * G + ky**2 * self.MccRhoi
         if self.bc_type == "Neumann":
             A[0, 0] = A[0, 0] + 1.
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
         # To handle Mixed boundary condition
-        self.setBC(ky=ky)
+        # self.setBC(ky=ky)
         D = self.Div
         G = self.Grad
         vol = self.mesh.vol
-        rho = self.rho
         if adjoint:
             return (
                 self.MfRhoIDeriv(G*u.flatten(), D.T*v, adjoint=adjoint) +
-                ky**2 * self.MccRhoIDeriv(u.flatten(), v, adjoint=adjoint)
+                ky**2 * self.MccRhoiDeriv(u.flatten(), v, adjoint=adjoint)
             )
         else:
             return (
                 D * self.MfRhoIDeriv(G*u.flatten(), v, adjoint=adjoint) +
-                ky**2 * self.MccRhoIDeriv(u.flatten(), v, adjoint=adjoint)
+                ky**2 * self.MccRhoiDeriv(u.flatten(), v, adjoint=adjoint)
             )
 
     def getRHS(self, ky):
