@@ -288,10 +288,16 @@ class LinearProblem(BaseProblem):
         self._modelMap = val
 
     def fields(self, m):
-        return self.G.dot(m)
+        return self.G.dot(self.modelMap * m)
+
+    def getJ(self, m):
+        return self.G * self.modelMap.deriv(m)
 
     def Jvec(self, m, v, f=None):
-        return self.G.dot(v)
+        return self.G.dot(self.modelMap.deriv(m) * v)
 
     def Jtvec(self, m, v, f=None):
-        return self.G.T.dot(v)
+        return self.modelMap.deriv(m).T*self.G.T.dot(v)
+
+    def getJtJdiag(self, m):
+        return np.sum(self.getJ(m)**2., axis=0)

@@ -39,11 +39,11 @@ class MagneticIntegral(Problem.LinearProblem):
 
         else:
 
-            return self.G.dot(m)
+            return self.G.dot(self.chiMap * m)
 
-    def fwr_rem(self):
-        # TODO check if we are inverting for M
-        return self.G.dot(self.chiMap(m))
+    # def fwr_rem(self):
+    #     # TODO check if we are inverting for M
+    #     return self.G.dot(self.chiMap * self.model)
 
     def fields(self, m, **kwargs):
         self.model = m
@@ -78,6 +78,11 @@ class MagneticIntegral(Problem.LinearProblem):
             self._G = self.Intrgl_Fwr_Op()
 
         return self._G
+
+    @property
+    def modelMap(self):
+
+        return self.chiMap
 
     def Intrgl_Fwr_Op(self, m=None, Magnetization="ind"):
 
@@ -205,12 +210,12 @@ class MagneticIntegral(Problem.LinearProblem):
             if self.forwardOnly:
 
                 if self.rtype == 'tmi':
-                    fwr_out[ii] = (Ptmi.dot(np.vstack((tx, ty, tz)))*Mxyz).dot(m)
+                    fwr_out[ii] = (Ptmi.dot(np.vstack((tx, ty, tz)))*Mxyz).dot(self.chiMap * m)
 
                 elif self.rtype == 'xyz':
-                    fwr_out[ii] = (tx*Mxyz).dot(m)
-                    fwr_out[ii+ndata] = (ty*Mxyz).dot(m)
-                    fwr_out[ii+2*ndata] = (tz*Mxyz).dot(m)
+                    fwr_out[ii] = (tx*Mxyz).dot(self.chiMap * m)
+                    fwr_out[ii+ndata] = (ty*Mxyz).dot(self.chiMap * m)
+                    fwr_out[ii+2*ndata] = (tz*Mxyz).dot(self.chiMap * m)
 
             else:
 
@@ -266,7 +271,7 @@ class MagneticVector(MagneticIntegral):
 
             # m = np.hstack([m, mii])
 
-            return self.G.dot(m)
+            return self.G.dot(self.chiMap * m)
 
     @property
     def G(self):
@@ -302,9 +307,9 @@ class MagneticAmplitude(MagneticIntegral):
 
         else:
             if m is None:
-                m = self.chiMap*self.model
+                m = self.model
 
-            Bxyz = self.G.dot(m)
+            Bxyz = self.G.dot(self.chiMap * m)
 
             return self.calcAmpData(Bxyz)
 
@@ -351,10 +356,7 @@ class MagneticAmplitude(MagneticIntegral):
 
             ndata = self.survey.srcField.rxList[0].locs.shape[0]
 
-            # Get field data
-            m = self.chiMap*self.model
-
-            Bxyz = self.G.dot(m)
+            Bxyz = self.G.dot(self.chiMap * self.model)
 
             Bamp = self.calcAmpData(Bxyz)
 

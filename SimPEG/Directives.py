@@ -753,10 +753,10 @@ class Update_lin_PreCond(InversionDirective):
                 for reg in self.reg.objfcts:
                     reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
 
-                diagA = np.sum(self.prob.G**2., axis=0) + np.hstack(reg_diag)
+                diagA = self.prob.getJtJdiag(self.invProb.model) + np.hstack(reg_diag)
 
             else:
-                diagA = (np.sum(self.prob.G**2., axis=0) +
+                diagA = (self.prob.getJtJdiag(self.invProb.model) +
                          self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal())
 
             PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
@@ -776,10 +776,10 @@ class Update_lin_PreCond(InversionDirective):
                 for reg in self.reg.objfcts:
                     reg_diag.append(self.invProb.beta*(reg.W.T*reg.W).diagonal())
 
-                diagA = np.sum(self.prob.G**2., axis=0) + np.hstack(reg_diag)
+                diagA = self.prob.getJtJdiag(self.invProb.model) + np.hstack(reg_diag)
 
             else:
-                diagA = (np.sum(self.prob.G**2., axis=0) +
+                diagA = (self.prob.getJtJdiag(self.invProb.model) +
                          self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal())
 
             PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)

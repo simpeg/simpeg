@@ -401,7 +401,7 @@ class SumMap(ComboMap):
 
            The number of cells in the
            last dimension of the mesh."""
-        return self.maps[0][-1].nP
+        return self.maps[-1].shape[1]
 
     def _transform(self, m):
 
@@ -426,10 +426,9 @@ class SumMap(ComboMap):
             if v is not None:
                 deriv = v
             else:
-                deriv = 1
+                deriv = sp.eye(self.nP)
 
             deriv = map_i.deriv(m0, v=deriv)
-
             if ii == 0:
                 sumDeriv = deriv
             else:
@@ -454,6 +453,7 @@ class HomogeneousMap(IdentityMap):
         super(HomogeneousMap, self).__init__(**kwargs)
 
         self.index = index
+        self._shape = self.P.shape
 
     @property
     def P(self):
