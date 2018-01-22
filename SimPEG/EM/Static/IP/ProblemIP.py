@@ -12,6 +12,7 @@ from SimPEG.EM.Static.DC import getxBCyBC_CC, Problem3D_CC, Problem3D_N
 from .SurveyIP import Survey
 from SimPEG import Props
 import sys
+from profilehooks import profile
 
 
 class BaseIPProblem(BaseEMProblem):
@@ -80,6 +81,7 @@ class BaseIPProblem(BaseEMProblem):
 
         return self._Jmatrix
 
+    @profile
     def Jvec(self, m, v, f=None):
 
         self.model = m
@@ -112,6 +114,7 @@ class BaseIPProblem(BaseEMProblem):
             # Resistivity (d u / d log rho) - HJ form
             return self.sign*np.hstack(Jv)
 
+    @profile
     def Jtvec(self, m, v, f=None):
         """
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
@@ -310,52 +313,52 @@ class Problem3D_N(BaseIPProblem, Problem3D_N):
     def __init__(self, mesh, **kwargs):
         BaseIPProblem.__init__(self, mesh, **kwargs)
 
-    def getA(self):
-        """
+    # def getA(self):
+    #     """
 
-        Make the A matrix for the cell centered DC resistivity problem
+    #     Make the A matrix for the cell centered DC resistivity problem
 
-        A = G.T MeSigma G
+    #     A = G.T MeSigma G
 
-        """
+    #     """
 
-        MeSigma = self.MeSigma
-        Grad = self.mesh.nodalGrad
-        A = Grad.T * MeSigma * Grad
+    #     MeSigma = self.MeSigma
+    #     Grad = self.mesh.nodalGrad
+    #     A = Grad.T * MeSigma * Grad
 
-        # Handling Null space of A
-        A[0, 0] = A[0, 0] + 1.
+    #     # Handling Null space of A
+    #     A[0, 0] = A[0, 0] + 1.
 
-        return A
+    #     return A
 
-    def getADeriv(self, u, v, adjoint=False):
-        """
-            Product of the derivative of our system matrix with
-            respect to the model and a vector
-        """
-        Grad = self.mesh.nodalGrad
-        if not adjoint:
-            return Grad.T*self.MeSigmaDeriv(Grad*u, v, adjoint)
-        elif adjoint:
-            return self.MeSigmaDeriv(Grad*u, Grad*v, adjoint)
+    # def getADeriv(self, u, v, adjoint=False):
+    #     """
+    #         Product of the derivative of our system matrix with
+    #         respect to the model and a vector
+    #     """
+    #     Grad = self.mesh.nodalGrad
+    #     if not adjoint:
+    #         return Grad.T*self.MeSigmaDeriv(Grad*u, v, adjoint)
+    #     elif adjoint:
+    #         return self.MeSigmaDeriv(Grad*u, Grad*v, adjoint)
 
-    def getRHS(self):
-        """
-        RHS for the DC problem
+    # def getRHS(self):
+    #     """
+    #     RHS for the DC problem
 
-        q
-        """
+    #     q
+    #     """
 
-        RHS = self.getSourceTerm()
-        return RHS
+    #     RHS = self.getSourceTerm()
+    #     return RHS
 
-    def getRHSDeriv(self, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
-        """
-        # TODO: add qDeriv for RHS depending on m
-        # qDeriv = src.evalDeriv(self, adjoint=adjoint)
-        # return qDeriv
-        return Zero()
+    # def getRHSDeriv(self, src, v, adjoint=False):
+    #     """
+    #     Derivative of the right hand side with respect to the model
+    #     """
+    #     # TODO: add qDeriv for RHS depending on m
+    #     # qDeriv = src.evalDeriv(self, adjoint=adjoint)
+    #     # return qDeriv
+    #     return Zero()
 
 

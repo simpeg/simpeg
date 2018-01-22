@@ -375,9 +375,9 @@ class BaseDCProblem_2D(BaseEMProblem):
             vol = self.mesh.vol
             rho = self.rho
             if adjoint:
-                return self.rhoDeriv.T * (u*vol*(-1./rho**2) * v)
+                return self.rhoDeriv.T * (Utils.sdiag(u*vol*(-1./rho**2)) * v)
             else:
-                return (u*vol*(-1./rho**2))*(self.rhoDeriv * v)
+                return (Utils.sdiag(u*vol*(-1./rho**2)))*(self.rhoDeriv * v)
 
 
 class Problem2D_CC(BaseDCProblem_2D):

@@ -137,36 +137,6 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
         return toDelete
 
     @property
-    def MfRhoDerivMat(self):
-        """
-        Derivative of MfRho with respect to the model
-        """
-        if getattr(self, '_MfRhoDerivMat', None) is None:
-            drho_dlogrho = Utils.sdiag(self.rho)*self.etaDeriv
-            self._MfRhoDerivMat = self.mesh.getFaceInnerProductDeriv(
-                np.ones(self.mesh.nC)
-            )(np.ones(self.mesh.nF)) * Utils.sdiag(self.rho) * self.etaDeriv
-        return self._MfRhoDerivMat
-
-    def MfRhoIDeriv(self, u, v, adjoint=False):
-        """
-            Derivative of :code:`MfRhoI` with respect to the model.
-        """
-        dMfRhoI_dI = -self.MfRhoI**2
-        if self.storeInnerProduct:
-            if adjoint:
-                return self.MfRhoDerivMat.T * (Utils.sdiag(u) * (dMfRhoI_dI.T * v))
-            else:
-                return dMfRhoI_dI * (Utils.sdiag(u) * (self.MfRhoDerivMat*v))
-        else:
-            dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
-            drho_dlogrho = Utils.sdiag(self.rho)*self.etaDeriv
-            if adjoint:
-                return drho_dlogrho.T * (dMf_drho.T * (dMfRhoI_dI.T*v))
-            else:
-                return dMfRhoI_dI * (dMf_drho * (drho_dlogrho*v))
-
-    @property
     def MeSigmaDerivMat(self):
         """
         Derivative of MeSigma with respect to the model
@@ -235,9 +205,9 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
             rho = self.rho
             drho_dlogrho = Utils.sdiag(rho)*self.etaDeriv
             if adjoint:
-                return drho_dlogrho.T * (u*vol*(-1./rho**2) * v)
+                return drho_dlogrho.T * (Utils.sdia(u*vol*(-1./rho**2)) * v)
             else:
-                return (u*vol*(-1./rho**2))*(drho_dlogrho * v)
+                return Utils.sdiag(u*vol*(-1./rho**2))*(drho_dlogrho * v)
 
     @property
     def MnSigmaDerivMat(self):
@@ -289,139 +259,6 @@ class Problem2D_CC(BaseIPProblem_2D, Problem2D_CC):
     def __init__(self, mesh, **kwargs):
         BaseIPProblem_2D.__init__(self, mesh, **kwargs)
 
-    # def getA(self, ky):
-    #     """
-
-    #     Make the A matrix for the cell centered DC resistivity problem
-
-    #     A = D MfRhoI G
-
-    #     """
-    #     # To handle Mixed boundary condition
-    #     self.setBC(ky=ky)
-
-    #     D = self.Div
-    #     G = self.Grad
-    #     vol = self.mesh.vol
-    #     MfRhoI = self.MfRhoI
-    #     # Get resistivity rho
-    #     rho = self.rho
-    #     A = D * MfRhoI * G + ky**2 * self.MccRhoi
-    #     if self.bc_type == "Neumann":
-    #         A[0, 0] = A[0, 0] + 1.
-    #     return A
-
-    # def getADeriv(self, ky, u, v, adjoint=False):
-
-    #     # To handle Mixed boundary condition
-    #     self.setBC(ky=ky)
-
-    #     D = self.Div
-    #     G = self.Grad
-    #     vol = self.mesh.vol
-    #     if adjoint:
-    #         ADeriv = (
-    #             self.MfRhoIDeriv(G*u, D.T*v, adjoint) +
-    #             ky**2 * self.MccRhoiDeriv(u, v, adjoint)
-    #         )
-    #     else:
-    #         ADeriv = (
-    #             D * self.MfRhoIDeriv(G*u, v, adjoint) +
-    #             ky**2*self.MccRhoiDeriv(u, v, adjoint)
-    #         )
-    #     return ADeriv
-
-    # def getRHS(self, ky):
-    #     """
-    #     RHS for the DC problem
-
-    #     q
-    #     """
-
-    #     RHS = self.getSourceTerm(ky)
-    #     return RHS
-
-    # def getRHSDeriv(self, ky, src, v, adjoint=False):
-    #     """
-    #     Derivative of the right hand side with respect to the model
-    #     """
-    #     # TODO: add qDeriv for RHS depending on m
-    #     # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
-    #     # return qDeriv
-    #     return Zero()
-
-    # def setBC(self, ky=None):
-    #     fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
-    #     gBFxm = self.mesh.gridFx[fxm, :]
-    #     gBFxp = self.mesh.gridFx[fxp, :]
-    #     gBFym = self.mesh.gridFy[fym, :]
-    #     gBFyp = self.mesh.gridFy[fyp, :]
-
-    #     # Setup Mixed B.C (alpha, beta, gamma)
-    #     temp_xm = np.ones_like(gBFxm[:, 0])
-    #     temp_xp = np.ones_like(gBFxp[:, 0])
-    #     temp_ym = np.ones_like(gBFym[:, 1])
-    #     temp_yp = np.ones_like(gBFyp[:, 1])
-
-    #     if self.bc_type == "Neumann":
-    #         alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-    #         alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
-
-    #         beta_xm, beta_xp = temp_xm, temp_xp
-    #         beta_ym, beta_yp = temp_ym, temp_yp
-
-    #         gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-    #         gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-
-    #     elif self.bc_type == "Dirichlet":
-    #         alpha_xm, alpha_xp = temp_xm, temp_xp
-    #         alpha_ym, alpha_yp = temp_ym, temp_yp
-
-    #         beta_xm, beta_xp = temp_xm*0., temp_xp*0.
-    #         beta_ym, beta_yp = temp_ym*0., temp_yp*0.
-
-    #         gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-    #         gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-
-    #     elif self.bc_type == "Mixed":
-    #         xs = np.median(self.mesh.vectorCCx)
-    #         ys = np.median(self.mesh.vectorCCy[-1])
-
-    #         def r_boundary(x, y):
-    #             return 1./np.sqrt(
-    #                 (x - xs)**2 + (y - ys)**2
-    #                 )
-
-    #         rxm = r_boundary(gBFxm[:, 0], gBFxm[:, 1])
-    #         rxp = r_boundary(gBFxp[:, 0], gBFxp[:, 1])
-    #         rym = r_boundary(gBFym[:, 0], gBFym[:, 1])
-    #         alpha_xm = ky*(
-    #             kn(1, ky*rxm) / kn(0, ky*rxm) * (gBFxm[:, 0]-xs)
-    #             )
-    #         alpha_xp = ky*(
-    #             kn(1, ky*rxp) / kn(0, ky*rxp) * (gBFxp[:, 0]-xs)
-    #             )
-    #         alpha_ym = ky*(
-    #             kn(1, ky*rym) / kn(0, ky*rym) * (gBFym[:, 0]-ys)
-    #             )
-    #         alpha_yp = temp_yp*0.
-    #         beta_xm, beta_xp = temp_xm, temp_xp
-    #         beta_ym, beta_yp = temp_ym, temp_yp
-
-    #         gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-    #         gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-
-    #     alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
-    #     beta = [beta_xm, beta_xp, beta_ym, beta_yp]
-    #     gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
-
-    #     x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
-    #     V = self.Vol
-    #     self.Div = V * self.mesh.faceDiv
-    #     P_BC, B = self.mesh.getBCProjWF_simple()
-    #     M = B*self.mesh.aveCC2F
-    #     self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
-
     def delete_these_for_sensitivity(self, sigma=None, rho=None):
         if self._Jmatrix is not None:
             del self._Jmatrix
@@ -432,6 +269,37 @@ class Problem2D_CC(BaseIPProblem_2D, Problem2D_CC):
             self.sigma = 1./rho
         else:
             raise Exception("Either sigma or rho should be provided")
+    @property
+    def MfRhoDerivMat(self):
+        """
+        Derivative of MfRho with respect to the model
+        """
+        if getattr(self, '_MfRhoDerivMat', None) is None:
+            drho_dlogrho = Utils.sdiag(self.rho)*self.etaDeriv
+            self._MfRhoDerivMat = self.mesh.getFaceInnerProductDeriv(
+                np.ones(self.mesh.nC)
+            )(np.ones(self.mesh.nF)) * Utils.sdiag(self.rho) * self.etaDeriv
+        return self._MfRhoDerivMat
+
+    def MfRhoIDeriv(self, u, v, adjoint=False):
+        """
+            Derivative of :code:`MfRhoI` with respect to the model.
+        """
+        dMfRhoI_dI = -self.MfRhoI**2
+        if self.storeInnerProduct:
+            if adjoint:
+                return self.MfRhoDerivMat.T * (
+                    Utils.sdiag(u) * (dMfRhoI_dI.T * v)
+                )
+            else:
+                return dMfRhoI_dI * (Utils.sdiag(u) * (self.MfRhoDerivMat*v))
+        else:
+            dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
+            drho_dlogrho = Utils.sdiag(self.rho)*self.etaDeriv
+            if adjoint:
+                return drho_dlogrho.T * (dMf_drho.T * (dMfRhoI_dI.T*v))
+            else:
+                return dMfRhoI_dI * (dMf_drho * (drho_dlogrho*v))
 
 
 class Problem2D_N(BaseIPProblem_2D, Problem2D_N):
@@ -446,58 +314,6 @@ class Problem2D_N(BaseIPProblem_2D, Problem2D_N):
 
     def __init__(self, mesh, **kwargs):
         BaseIPProblem_2D.__init__(self, mesh, **kwargs)
-
-    # def getA(self, ky):
-    #     """
-
-    #     Make the A matrix for the cell centered DC resistivity problem
-
-    #     A = D MfRhoI G
-
-    #     """
-
-    #     MeSigma = self.MeSigma
-    #     MnSigma = self.MnSigma
-    #     Grad = self.mesh.nodalGrad
-    #     A = Grad.T * MeSigma * Grad + ky**2*MnSigma
-
-    #     # Handling Null space of A
-    #     A[0, 0] = A[0, 0] + 1.
-    #     return A
-
-    # @Utils.count
-    # @Utils.timeIt
-    # def getADeriv(self, ky, u, v, adjoint=False):
-
-    #     MeSigma = self.MeSigma
-    #     Grad = self.mesh.nodalGrad
-    #     sigma = self.sigma
-    #     vol = self.mesh.vol
-    #     if adjoint:
-    #         return (self.MeSigmaDeriv(Grad*u, Grad*v, adjoint) +
-    #                 ky**2*self.MnSigmaDeriv(u, v, adjoint))
-
-    #     return (Grad.T*(self.MeSigmaDeriv(Grad*u, v, adjoint)) +
-    #             ky**2*self.MnSigmaDeriv(u, v, adjoint))
-
-    # def getRHS(self, ky):
-    #     """
-    #     RHS for the DC problem
-
-    #     q
-    #     """
-
-    #     RHS = self.getSourceTerm(ky)
-    #     return RHS
-
-    # def getRHSDeriv(self, ky, src, v, adjoint=False):
-    #     """
-    #     Derivative of the right hand side with respect to the model
-    #     """
-    #     # TODO: add qDeriv for RHS depending on m
-    #     # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
-    #     # return qDeriv
-    #     return Zero()
 
     def delete_these_for_sensitivity(self, sigma=None, rho=None):
         if self._Jmatrix is not None:

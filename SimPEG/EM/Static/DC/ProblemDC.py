@@ -435,9 +435,9 @@ class Problem3D_N(BaseDCProblem):
         """
         Grad = self.mesh.nodalGrad
         if not adjoint:
-            return Grad.T*(self.MeSigmaDeriv(Grad*u)*v)
+            return Grad.T*self.MeSigmaDeriv(Grad*u, v, adjoint)
         elif adjoint:
-            return self.MeSigmaDeriv(Grad*u).T * (Grad*v)
+            return self.MeSigmaDeriv(Grad*u, Grad*v, adjoint).T
 
     def getRHS(self):
         """
