@@ -405,8 +405,7 @@ class Fields3D_j(FieldsTDEM):
         dhdt = - MeMuI * (C.T * (MfRho * jSolution))
         for i, src in enumerate(srcList):
             s_m = src.s_m(self.survey.prob, self.survey.prob.times[tInd])
-            dhdt[:,i] = MeMuI * s_m + dhdt[:, i]
-
+            dhdt[:, i] = MeMuI * s_m + dhdt[:, i]
         return dhdt
 
     def _dhdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
