@@ -198,15 +198,17 @@ class Fields3D_b(FieldsTDEM):
         if adjoint is True:
             return (
                 self._MeSigmaIDeriv(
-                    -s_e + self._edgeCurl.T * (self._MfMui * bSolution)
-                ).T * v -
+                    -s_e + self._edgeCurl.T * (self._MfMui * bSolution), v,
+                    adjoint
+                ) -
                 s_eDeriv(self._MeSigmaI.T * v)
             )
 
         return (
-            self._MeSigmaIDeriv(-s_e + self._edgeCurl.T * (
-                self._MfMui * bSolution)
-            ) * v - self._MeSigmaI * s_eDeriv(v)
+            self._MeSigmaIDeriv(
+                -s_e + self._edgeCurl.T * (self._MfMui * bSolution),
+                v, adjoint
+            ) - self._MeSigmaI * s_eDeriv(v)
         )
 
 
@@ -338,8 +340,12 @@ class Fields3D_h(FieldsTDEM):
         s_e = src.s_e(self.survey.prob, self._times[tInd])
 
         if adjoint:
-            return - MfRhoDeriv(C * hSolution - s_e).T * (C * (MeMuI * v))
-        return - MeMuI * (C.T * (MfRhoDeriv(C * hSolution - s_e) * v))
+            return - MfRhoDeriv(
+                C * hSolution - s_e, (C * (MeMuI * v)), adjoint
+            )
+        return - MeMuI * (
+            C.T * (MfRhoDeriv(C * hSolution - s_e, v, adjoint))
+        )
 
     def _j(self, hSolution, srcList, tInd):
         s_e = np.zeros((self.mesh.nF, len(srcList)))
@@ -414,10 +420,10 @@ class Fields3D_j(FieldsTDEM):
 
     def _dhdtDeriv_m(self, tInd, src, v, adjoint=False):
         jSolution = self[[src], 'jSolution', tInd].flatten()
-        MfRhoDeriv = self._MfRhoDeriv(jSolution)
+        # MfRhoDeriv = self._MfRhoDeriv(jSolution)
         C = self._edgeCurl
         MeMuI = self._MeMuI
 
         if adjoint is True:
-            return -MfRhoDeriv.T * (C * (MeMuI * v))
-        return -MeMuI * (C.T * (MfRhoDeriv * v))
+            return -self._MfRhoDeriv(jSolution, C * (MeMuI * v), adjoint)
+        return -MeMuI * (C.T * self._MfRhoDeriv(jSolution, v, adjoint))

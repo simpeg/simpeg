@@ -207,7 +207,9 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Set FDEM survey (In-phase and Quadrature)
     survey = EM.FDEM.Survey(srcList)
-    prb = EM.FDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=Solver)
+    prb = EM.FDEM.Problem3D_b(
+        mesh, sigmaMap=mapping, Solver=Solver
+    )
     prb.pair(survey)
 
     # ------------------ RESOLVE Inversion ------------------ #

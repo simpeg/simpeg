@@ -511,17 +511,17 @@ class Problem3D_b(BaseTDEMProblem):
         """
         C = self.mesh.edgeCurl
 
-        def MeSigmaIDeriv(x):
-            return self.MeSigmaIDeriv(x)
+        # def MeSigmaIDeriv(x):
+        #     return self.MeSigmaIDeriv(x)
 
         MfMui = self.MfMui
 
         if adjoint:
             if self._makeASymmetric is True:
                 v = MfMui * v
-            return MeSigmaIDeriv(C.T * (MfMui * u)).T * (C.T * v)
+            return self.MeSigmaIDeriv(C.T * (MfMui * u), C.T * v, adjoint)
 
-        ADeriv = (C * (MeSigmaIDeriv(C.T * (MfMui * u)) * v))
+        ADeriv = (C * (self.MeSigmaIDeriv(C.T * (MfMui * u), v, adjoint)))
 
         if self._makeASymmetric is True:
             return MfMui.T * ADeriv
@@ -567,8 +567,8 @@ class Problem3D_b(BaseTDEMProblem):
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
 
-        def MeSigmaIDeriv(u):
-            return self.MeSigmaIDeriv(u)
+        # def MeSigmaIDeriv(u):
+        #     return self.MeSigmaIDeriv(u)
 
         MfMui = self.MfMui
 
@@ -583,7 +583,7 @@ class Problem3D_b(BaseTDEMProblem):
             if isinstance(s_e, Utils.Zero):
                 MeSigmaIDerivT_v = Utils.Zero()
             else:
-                MeSigmaIDerivT_v = MeSigmaIDeriv(s_e).T * C.T * v
+                MeSigmaIDerivT_v = self.MeSigmaIDeriv(s_e, C.T * v, adjoint)
 
             RHSDeriv = (
                 MeSigmaIDerivT_v + s_eDeriv( MeSigmaI.T * (C.T * v)) +
@@ -595,7 +595,7 @@ class Problem3D_b(BaseTDEMProblem):
         if isinstance(s_e, Utils.Zero):
             MeSigmaIDeriv_v = Utils.Zero()
         else:
-            MeSigmaIDeriv_v = MeSigmaIDeriv(s_e) * v
+            MeSigmaIDeriv_v = self.MeSigmaIDeriv(s_e, v, adjoint)
 
         RHSDeriv = (
             C * MeSigmaIDeriv_v + C * MeSigmaI * s_eDeriv(v) + s_mDeriv(v)
@@ -798,8 +798,10 @@ class Problem3D_e(BaseTDEMProblem):
                 un_src = f[src, ftype, tInd+1]
                 # cell centered on time mesh
                 dAT_dm_v = (
-                    self.MeSigmaDeriv(un_src).T * ATinv_df_duT_v[isrc, :]
+                    self.MeSigmaDeriv(
+                        un_src, ATinv_df_duT_v[isrc, :], adjoint=True
                     )
+                )
 
                 JTv = JTv + Utils.mkvc(
                     -dAT_dm_v + dRHST_dm_v
@@ -831,12 +833,12 @@ class Problem3D_e(BaseTDEMProblem):
         assert tInd >= 0 and tInd < self.nT
 
         dt = self.timeSteps[tInd]
-        MeSigmaDeriv = self.MeSigmaDeriv(u)
+        # MeSigmaDeriv = self.MeSigmaDeriv(u)
 
         if adjoint:
-            return 1./dt * MeSigmaDeriv.T * v
+            return 1./dt * self.MeSigmaDeriv(u, v, adjoint)
 
-        return 1./dt * MeSigmaDeriv * v
+        return 1./dt * self.MeSigmaDeriv(u, v, adjoint)
 
     def getAsubdiag(self, tInd):
         """
@@ -856,9 +858,9 @@ class Problem3D_e(BaseTDEMProblem):
         dt = self.timeSteps[tInd]
 
         if adjoint:
-            return - 1./dt * self.MeSigmaDeriv(u).T * v
+            return - 1./dt * self.MeSigmaDeriv(u, v, adjoint)
 
-        return - 1./dt * self.MeSigmaDeriv(u) * v
+        return - 1./dt * self.MeSigmaDeriv(u, v, adjoint)
 
     def getRHS(self, tInd):
         """
@@ -923,9 +925,9 @@ class Problem3D_e(BaseTDEMProblem):
     def getAdcDeriv(self, u, v, adjoint=False):
         Grad = self.mesh.nodalGrad
         if not adjoint:
-            return Grad.T*(self.MeSigmaDeriv(-u)*v)
+            return Grad.T*self.MeSigmaDeriv(-u, v, adjoint)
         elif adjoint:
-            return self.MeSigmaDeriv(-u).T * (Grad*v)
+            return self.MeSigmaDeriv(-u, Grad*v, adjoint)
         return Adc
 
     def clean(self):
@@ -999,12 +1001,11 @@ class Problem3D_h(BaseTDEMProblem):
 
         dt = self.timeSteps[tInd]
         C = self.mesh.edgeCurl
-        MfRhoDeriv = self.MfRhoDeriv(C * u)
 
         if adjoint:
-            return MfRhoDeriv.T * C * v
+            return  self.MfRhoDeriv(C * u, C * v, adjoint)
 
-        return C.T * (MfRhoDeriv * v)
+        return C.T * self.MfRhoDeriv(C * u, v, adjoint)
 
     def getAsubdiag(self, tInd):
         assert tInd >= 0 and tInd < self.nT
@@ -1027,12 +1028,11 @@ class Problem3D_h(BaseTDEMProblem):
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         C = self.mesh.edgeCurl
         s_m, s_e = src.eval(self, self.times[tInd])
-        MfRhoDeriv = self.MfRhoDeriv(s_e)
 
         if adjoint is True:
-            return MfRhoDeriv.T * (C * v)
+            return self.MfRhoDeriv(s_e, C * v, adjoint)
         # assumes no source derivs
-        return C.T * (MfRhoDeriv * v)
+        return C.T * self.MfRhoDeriv(s_e, v, adjoint)
 
 
 # ------------------------------- Problem3D_j ------------------------------- #
@@ -1081,15 +1081,15 @@ class Problem3D_j(BaseTDEMProblem):
         dt = self.timeSteps[tInd]
         C = self.mesh.edgeCurl
         MfRho = self.MfRho
-        MfRhoDeriv = self.MfRhoDeriv(u)
+        # MfRhoDeriv = self.MfRhoDeriv(u)
         MeMuI = self.MeMuI
 
         if adjoint:
             if self._makeASymmetric:
                 v = MfRho * v
-            return MfRhoDeriv.T * (C * (MeMuI.T * (C.T * v)))
+            return self.MfRhoDeriv(u, C * (MeMuI.T * (C.T * v)), adjoint)
 
-        ADeriv = C * (MeMuI * (C.T * MfRhoDeriv * v))
+        ADeriv = C * (MeMuI * (C.T * self.MfRhoDeriv(u, v, adjoint)))
         if self._makeASymmetric:
             return MfRho.T * ADeriv
         return ADeriv

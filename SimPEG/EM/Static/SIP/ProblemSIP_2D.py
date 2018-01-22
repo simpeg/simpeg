@@ -304,7 +304,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         """
         if self.storeInnerProduct:
             if adjoint:
-                return self.MnSigmaDerivMat.T * (u*v)
+                return self.MnSigmaDerivMat.T * (Utils.sdiag(u)*v)
             else:
                 return u*(self.MnSigmaDerivMat * v)
         else:

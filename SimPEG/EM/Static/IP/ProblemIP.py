@@ -58,6 +58,7 @@ class BaseIPProblem(BaseEMProblem):
         """
             Generate Full sensitivity matrix
         """
+        self.model = m
 
         if self.verbose:
             print("Calculating J and storing")
@@ -166,7 +167,9 @@ class BaseIPProblem(BaseEMProblem):
                     )
                     df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
                     ATinvdf_duT = self.Ainv * df_duT
-                    dA_dmT = self.getADeriv(u_src.flatten(), ATinvdf_duT, adjoint=True)
+                    dA_dmT = self.getADeriv(
+                        u_src.flatten(), ATinvdf_duT, adjoint=True
+                    )
                     dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
                     du_dmT = -dA_dmT + dRHS_dmT
                     Jtv += (df_dmT + du_dmT).astype(float)
@@ -232,7 +235,7 @@ class BaseIPProblem(BaseEMProblem):
             drho_dlogrho = Utils.sdiag(self.rho)*self.etaDeriv
             self._MfRhoDerivMat = self.mesh.getFaceInnerProductDeriv(
                 np.ones(self.mesh.nC)
-            )(np.ones(self.mesh.nF)) * Utils.sdiag(self.rho) * self.etaDeriv
+            )(np.ones(self.mesh.nF)) * drho_dlogrho
         return self._MfRhoDerivMat
 
     def MfRhoIDeriv(self, u, v, adjoint=False):
@@ -242,7 +245,9 @@ class BaseIPProblem(BaseEMProblem):
         dMfRhoI_dI = -self.MfRhoI**2
         if self.storeInnerProduct:
             if adjoint:
-                return self.MfRhoDerivMat.T * (Utils.sdiag(u) * (dMfRhoI_dI.T * v))
+                return self.MfRhoDerivMat.T * (
+                    Utils.sdiag(u) * (dMfRhoI_dI.T * v)
+                )
             else:
                 return dMfRhoI_dI * (Utils.sdiag(u) * (self.MfRhoDerivMat*v))
         else:
@@ -258,6 +263,7 @@ class BaseIPProblem(BaseEMProblem):
         """
         Derivative of MeSigma with respect to the model
         """
+
         if getattr(self, '_MeSigmaDerivMat', None) is None:
             dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.etaDeriv
             self._MeSigmaDerivMat = self.mesh.getEdgeInnerProductDeriv(

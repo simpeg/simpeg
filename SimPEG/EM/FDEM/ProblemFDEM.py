@@ -9,7 +9,7 @@ from SimPEG.EM.Utils import omega
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
-
+from profilehooks import profile
 
 class BaseFDEMProblem(BaseEMProblem):
     """
@@ -84,6 +84,7 @@ class BaseFDEMProblem(BaseEMProblem):
             Ainv.clean()
         return f
 
+    @profile
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector.
@@ -516,11 +517,11 @@ class Problem3D_b(BaseFDEMProblem):
 
         if not adjoint:
             # RHSderiv = C * (MeSigmaIDeriv * v)
-            RHSderiv = C * self.MeSigmaIDeriv(s_e, v)
+            RHSderiv = C * self.MeSigmaIDeriv(s_e, v, adjoint)
             SrcDeriv = s_mDeriv(v) + C * (self.MeSigmaI * s_eDeriv(v))
         elif adjoint:
             # RHSderiv = MeSigmaIDeriv.T * (C.T * v)
-            RHSderiv = self.MeSigmaIDeriv(s_e, C.T * v)
+            RHSderiv = self.MeSigmaIDeriv(s_e, C.T * v, adjoint)
             SrcDeriv = s_mDeriv(v) + s_eDeriv(self.MeSigmaI.T * (C.T * v))
 
         if self._makeASymmetric is True and not adjoint:
