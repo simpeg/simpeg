@@ -201,7 +201,6 @@ class BaseDCProblem_2D(BaseEMProblem):
         # This is for forming full sensitivity
         else:
 
-            # Jt = []
             # This is for forming full sensitivity matrix
             Jt = np.zeros((self.model.size, self.survey.nD), order='F')
             istrt = int(0)
@@ -216,7 +215,6 @@ class BaseDCProblem_2D(BaseEMProblem):
                     iend = istrt + rx.nD
                     Jtv_temp1 = np.zeros((m.size, rx.nD), dtype=float)
                     Jtv_temp0 = np.zeros((m.size, rx.nD), dtype=float)
-                    # Jtv = np.zeros((m.size, rx.nD), dtype=float)
                     # TODO: this loop is pretty slow .. (Parellize)
                     for iky in range(self.nky):
                         u_src = f[src, self._solutionType, iky]
@@ -229,8 +227,6 @@ class BaseDCProblem_2D(BaseEMProblem):
                         dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT,
                                                 adjoint=True)
                         Jtv_temp1 = 1./np.pi*(-dA_dmT)
-                        if rx.nD == 1:
-                            Jtv_temp1 = Jtv_temp1.reshape([-1, 1])
                         # Trapezoidal intergration
                         if iky == 0:
                             # First assigment
