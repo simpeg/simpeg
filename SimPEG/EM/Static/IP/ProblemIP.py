@@ -148,7 +148,9 @@ class BaseIPProblem(BaseEMProblem):
             Jtv = np.zeros(m.size)
         else:
             # This is for forming full sensitivity matrix
-            Jtv = []
+            Jtv = np.zeros((self.model.size, self.survey.nD), order='F')
+            istrt = int(0)
+            iend = int(0)
 
         for isrc, src in enumerate(self.survey.srcList):
             u_src = f[src, self._solutionType]
@@ -179,11 +181,13 @@ class BaseIPProblem(BaseEMProblem):
                     dA_dmT = self.getADeriv(
                         u_src, ATinvdf_duT, adjoint=True
                     )
+
+                    iend = istrt + rx.nD
                     if rx.nD == 1:
-                        # Consider when rx has one location
-                        Jtv.append(-dA_dmT.reshape([-1, 1]))
+                        Jtv[:, istrt] = dA_dmT
                     else:
-                        Jtv.append(-dA_dmT)
+                        Jtv[:, istrt:iend] = dA_dmT
+                    istrt += rx.nD
 
         # Conductivity ((d u / d log sigma).T) - EB form
         # Resistivity ((d u / d log rho).T) - HJ form
@@ -191,7 +195,7 @@ class BaseIPProblem(BaseEMProblem):
         if v is not None:
             return self.sign*Utils.mkvc(Jtv)
         else:
-            return np.hstack(Jtv)
+            return Jtv
         return
 
     def getSourceTerm(self):
@@ -321,52 +325,5 @@ class Problem3D_N(BaseIPProblem, Problem3D_N):
     def __init__(self, mesh, **kwargs):
         BaseIPProblem.__init__(self, mesh, **kwargs)
 
-    # def getA(self):
-    #     """
-
-    #     Make the A matrix for the cell centered DC resistivity problem
-
-    #     A = G.T MeSigma G
-
-    #     """
-
-    #     MeSigma = self.MeSigma
-    #     Grad = self.mesh.nodalGrad
-    #     A = Grad.T * MeSigma * Grad
-
-    #     # Handling Null space of A
-    #     A[0, 0] = A[0, 0] + 1.
-
-    #     return A
-
-    # def getADeriv(self, u, v, adjoint=False):
-    #     """
-    #         Product of the derivative of our system matrix with
-    #         respect to the model and a vector
-    #     """
-    #     Grad = self.mesh.nodalGrad
-    #     if not adjoint:
-    #         return Grad.T*self.MeSigmaDeriv(Grad*u, v, adjoint)
-    #     elif adjoint:
-    #         return self.MeSigmaDeriv(Grad*u, Grad*v, adjoint)
-
-    # def getRHS(self):
-    #     """
-    #     RHS for the DC problem
-
-    #     q
-    #     """
-
-    #     RHS = self.getSourceTerm()
-    #     return RHS
-
-    # def getRHSDeriv(self, src, v, adjoint=False):
-    #     """
-    #     Derivative of the right hand side with respect to the model
-    #     """
-    #     # TODO: add qDeriv for RHS depending on m
-    #     # qDeriv = src.evalDeriv(self, adjoint=adjoint)
-    #     # return qDeriv
-    #     return Zero()
 
 

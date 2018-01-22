@@ -115,7 +115,9 @@ class BaseDCProblem(BaseEMProblem):
             Jtv = np.zeros(m.size)
         else:
             # This is for forming full sensitivity matrix
-            Jtv = []
+            Jtv = np.zeros((self.model.size, self.survey.nD), order='F')
+            istrt = int(0)
+            iend = int(0)
 
         for src in self.survey.srcList:
             u_src = f[src, self._solutionType].copy()
@@ -140,14 +142,18 @@ class BaseDCProblem(BaseEMProblem):
                 if v is not None:
                     Jtv += (df_dmT + du_dmT).astype(float)
                 else:
-                    # This is for forming full sensitivity matrix
-                    Jtv.append(
-                        np.vstack((df_dmT + du_dmT).astype(float))
-                    )
+                    iend = istrt + rx.nD
+                    if rx.nD == 1:
+                        Jtv[:, istrt] = (df_dmT + du_dmT)
+                    else:
+                        Jtv[:, istrt:iend] = (df_dmT + du_dmT)
+                    istrt += rx.nD
+
         if v is not None:
             return Utils.mkvc(Jtv)
         else:
-            return np.hstack(Jtv)
+            # return np.hstack(Jtv)
+            return Jtv
 
     def getSourceTerm(self):
         """

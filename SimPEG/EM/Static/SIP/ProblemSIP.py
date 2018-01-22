@@ -124,7 +124,9 @@ class BaseSIPProblem(BaseEMProblem):
             if f is None:
                 f = self.fields(m)
 
-            Jt = []
+            Jt = np.zeros((self.model.size, self.survey.nD), order='F')
+            istrt = int(0)
+            iend = int(0)
 
             for isrc, src in enumerate(self.survey.srcList):
                 if self.verbose:
@@ -135,12 +137,14 @@ class BaseSIPProblem(BaseEMProblem):
                     P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
                     ATinvdf_duT = self.Ainv * (P.T)
                     dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
+                    iend = istrt + rx.nD
                     if rx.nD == 1:
-                        # Consider when rx has one location
-                        Jt.append(-dA_dmT.reshape([-1, 1]))
+                        Jt[:, istrt] = dA_dmT
                     else:
-                        Jt.append(-dA_dmT)
-            self._Jmatrix = np.hstack(Jt).T
+                        Jt[:, istrt:iend] = dA_dmT
+                    istrt += rx.nD
+
+            self._Jmatrix = Jt.T
             if self.verbose:
                 collected = gc.collect()
                 print (
