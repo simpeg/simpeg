@@ -10,6 +10,8 @@ from . import SrcDC as Src
 from . import RxDC as Rx
 from .SurveyDC import Survey_ky, Survey
 
+warnings.warn("code under construction - API might change in the future")
+
 
 class IO(properties.HasProperties):
     """

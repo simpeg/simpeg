@@ -141,10 +141,10 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                         self.electrodes_info[0].flatten(),
                         actind=actind,
                         option=option
-                        )
+                    )
                 temp = (
                     self.electrode_locations[self.electrodes_info[2], 1]
-                    ).reshape((self.a_locations.shape[0], 4), order="F")
+                ).reshape((self.a_locations.shape[0], 4), order="F")
                 self.a_locations = np.c_[self.a_locations[:, 0], temp[:, 0]]
                 self.b_locations = np.c_[self.b_locations[:, 0], temp[:, 1]]
                 self.m_locations = np.c_[self.m_locations[:, 0], temp[:, 2]]

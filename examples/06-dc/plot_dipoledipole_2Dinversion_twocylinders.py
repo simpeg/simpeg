@@ -17,9 +17,9 @@ Following example will show you how user can implement a 2D DC inversion.
 """
 
 from SimPEG import (
-    Mesh,  Problem,  Survey,  Maps,  Utils,
-    EM,  DataMisfit,  Regularization,  Optimization,
-    InvProblem,  Directives,  Inversion
+    Mesh, Maps, Utils,
+    DataMisfit, Regularization, Optimization,
+    InvProblem, Directives, Inversion
 )
 from SimPEG.EM.Static import DC, Utils as DCUtils
 import numpy as np
@@ -38,54 +38,56 @@ np.random.seed(12345)
 # Cells size
 csx, csz = 0.25, 0.25
 # Number of core cells in each direction
-ncx,  ncz = 123,  41
+ncx, ncz = 123, 41
 # Number of padding cells to add in each direction
 npad = 12
 # Vectors of cell lengthts in each direction
-hx = [(csx, npad,  -1.5), (csx, ncx), (csx, npad,  1.5)]
+hx = [(csx, npad, -1.5), (csx, ncx), (csx, npad, 1.5)]
 hz = [(csz, npad, -1.5), (csz, ncz)]
 # Create mesh
-mesh = Mesh.TensorMesh([hx,  hz], x0="CN")
-mesh.x0[1] = mesh.x0[1]+csz/2.
+mesh = Mesh.TensorMesh([hx, hz], x0="CN")
+mesh.x0[1] = mesh.x0[1] + csz / 2.
 
 # 2-cylinders Model Creation
 ############################
 
 # Spheres parameters
-x0,  z0,  r0 = -6.,  -5.,  3.
-x1,  z1,  r1 = 6.,  -5.,  3.
+x0, z0, r0 = -6., -5., 3.
+x1, z1, r1 = 6., -5., 3.
 
 ln_sigback = -5.
 ln_sigc = -3.
 ln_sigr = -6.
 
-mtrue = ln_sigback*np.ones(mesh.nC)
+mtrue = ln_sigback * np.ones(mesh.nC)
 
-csph = (np.sqrt((mesh.gridCC[:, 1]-z0)**2.+(mesh.gridCC[:, 0]-x0)**2.)) < r0
-mtrue[csph] = ln_sigc*np.ones_like(mtrue[csph])
+csph = (np.sqrt((mesh.gridCC[:, 1] - z0) **
+                2. + (mesh.gridCC[:, 0] - x0)**2.)) < r0
+mtrue[csph] = ln_sigc * np.ones_like(mtrue[csph])
 
 # Define the sphere limit
-rsph = (np.sqrt((mesh.gridCC[:, 1]-z1)**2.+(mesh.gridCC[:, 0]-x1)**2.)) < r1
-mtrue[rsph] = ln_sigr*np.ones_like(mtrue[rsph])
+rsph = (np.sqrt((mesh.gridCC[:, 1] - z1) **
+                2. + (mesh.gridCC[:, 0] - x1)**2.)) < r1
+mtrue[rsph] = ln_sigr * np.ones_like(mtrue[rsph])
 
 mtrue = Utils.mkvc(mtrue)
-xmin,  xmax = -15., 15
-ymin,  ymax = -15., 0.
+xmin, xmax = -15., 15
+ymin, ymax = -15., 0.
 xyzlim = np.r_[[[xmin, xmax], [ymin, ymax]]]
-actind,  meshCore = Utils.meshutils.ExtractCoreMesh(xyzlim, mesh)
+actind, meshCore = Utils.meshutils.ExtractCoreMesh(xyzlim, mesh)
 
 
 # Function to plot cylinder border
 def getCylinderPoints(xc, zc, r):
-    xLocOrig1 = np.arange(-r, r+r/10., r/10.)
-    xLocOrig2 = np.arange(r, -r-r/10., -r/10.)
+    xLocOrig1 = np.arange(-r, r + r / 10., r / 10.)
+    xLocOrig2 = np.arange(r, -r - r / 10., -r / 10.)
     # Top half of cylinder
-    zLoc1 = np.sqrt(-xLocOrig1**2.+r**2.)+zc
+    zLoc1 = np.sqrt(-xLocOrig1**2. + r**2.) + zc
     # Bottom half of cylinder
-    zLoc2 = -np.sqrt(-xLocOrig2**2.+r**2.)+zc
+    zLoc2 = -np.sqrt(-xLocOrig2**2. + r**2.) + zc
     # Shift from x = 0 to xc
-    xLoc1 = xLocOrig1 + xc*np.ones_like(xLocOrig1)
-    xLoc2 = xLocOrig2 + xc*np.ones_like(xLocOrig2)
+    xLoc1 = xLocOrig1 + xc * np.ones_like(xLocOrig1)
+    xLoc2 = xLocOrig2 + xc * np.ones_like(xLocOrig2)
 
     topHalf = np.vstack([xLoc1, zLoc1]).T
     topHalf = topHalf[0:-1, :]
@@ -95,6 +97,7 @@ def getCylinderPoints(xc, zc, r):
     cylinderPoints = np.vstack([topHalf, bottomHalf])
     cylinderPoints = np.vstack([cylinderPoints, topHalf[0, :]])
     return cylinderPoints
+
 
 # Setup a Dipole-Dipole Survey
 xmin, xmax = -15., 15.
@@ -106,10 +109,10 @@ survey = DCUtils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
 
 # Setup Problem with exponential mapping and Active cells only in the core mesh
 expmap = Maps.ExpMap(mesh)
-mapactive = Maps.InjectActiveCells(mesh=mesh,  indActive=actind,
+mapactive = Maps.InjectActiveCells(mesh=mesh, indActive=actind,
                                    valInactive=-5.)
-mapping = expmap*mapactive
-problem = DC.Problem3D_CC(mesh,  sigmaMap=mapping)
+mapping = expmap * mapactive
+problem = DC.Problem3D_CC(mesh, sigmaMap=mapping)
 problem.pair(survey)
 problem.Solver = Solver
 
@@ -119,7 +122,7 @@ survey.makeSyntheticData(mtrue[actind], std=0.05, force=True)
 # Tikhonov Inversion
 ####################
 
-m0 = np.median(ln_sigback)*np.ones(mapping.nP)
+m0 = np.median(ln_sigback) * np.ones(mapping.nP)
 dmis = DataMisfit.l2_DataMisfit(survey)
 regT = Regularization.Simple(mesh, indActive=actind)
 
@@ -128,17 +131,17 @@ opt = Optimization.ProjectedGNCG(maxIter=20, lower=-10, upper=10,
                                  maxIterLS=20, maxIterCG=30, tolCG=1e-4)
 
 opt.remember('xc')
-invProb = InvProblem.BaseInvProblem(dmis,  regT,  opt)
+invProb = InvProblem.BaseInvProblem(dmis, regT, opt)
 
 beta = Directives.BetaEstimate_ByEig(beta0_ratio=1.)
 Target = Directives.TargetMisfit()
-betaSched = Directives.BetaSchedule(coolingFactor=5.,  coolingRate=2)
-updateSensW = Directives.UpdateSensitivityWeights(threshold = 1e-3)
+betaSched = Directives.BetaSchedule(coolingFactor=5., coolingRate=2)
+updateSensW = Directives.UpdateSensitivityWeights(threshold=1e-3)
 update_Jacobi = Directives.UpdatePreconditioner()
 
-inv = Inversion.BaseInversion(invProb,  directiveList=[beta, Target,
-                                                       betaSched,  updateSensW,
-                                                       update_Jacobi])
+inv = Inversion.BaseInversion(invProb, directiveList=[beta, Target,
+                                                      betaSched, updateSensW,
+                                                      update_Jacobi])
 
 minv = inv.run(m0)
 

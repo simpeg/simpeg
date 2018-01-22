@@ -52,7 +52,6 @@ class Dipole(BaseSrc):
                 qb = -prob.mesh.getInterpolationMat(self.loc[1],
                                                     locType='N').toarray()
                 self._q = self.current * (qa+qb)
-
             return self._q
 
 

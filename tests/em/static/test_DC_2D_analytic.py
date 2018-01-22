@@ -35,6 +35,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         self.sigma = sigma
         self.data_anal = data_anal
         self.plotIt = False
+        self.tolerance = 0.05
 
         try:
             from pymatsolver import Pardiso
@@ -52,7 +53,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
             np.linalg.norm((data-self.data_anal) / self.data_anal)**2 /
             self.data_anal.size
         )
-        if err < 0.05:
+        if err < self.tolerance:
             passed = True
             print(">> DC analytic test for PDP Problem2D_N is passed")
         else:
