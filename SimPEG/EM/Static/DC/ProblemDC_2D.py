@@ -314,14 +314,18 @@ class BaseDCProblem_2D(BaseEMProblem):
         """
         if self.storeInnerProduct:
             if adjoint:
-                return self.MnSigmaDerivMat.T * (u*v)
+                return self.MnSigmaDerivMat.T * (
+                    Utils.sdiag(u)*v
+                )
             else:
                 return u*(self.MnSigmaDerivMat * v)
         else:
             sigma = self.sigma
             vol = self.mesh.vol
             if adjoint:
-                return self.sigmaDeriv.T * (vol * (self.mesh.aveN2CC * (u*v)))
+                return self.sigmaDeriv.T * (
+                    Utils.sdiag(vol) * (self.mesh.aveN2CC * (Utils.sdiag(u)*v))
+                )
             else:
                 dsig_dm_v = self.sigmaDeriv * v
                 return (
@@ -414,7 +418,7 @@ class Problem2D_CC(BaseDCProblem_2D):
 
     def getADeriv(self, ky, u, v, adjoint=False):
         # To handle Mixed boundary condition
-        self.setBC(ky=ky)
+        # self.setBC(ky=ky)
 
         D = self.Div
         G = self.Grad
