@@ -228,9 +228,9 @@ class Problem3D_CC(BaseDCProblem):
         MfRhoIDeriv = self.MfRhoIDeriv
 
         if adjoint:
-            return(MfRhoIDeriv(G * u).T) * (D.T * v)
+            return MfRhoIDeriv(G * u, D.T * v, adjoint)
 
-        return D * (MfRhoIDeriv(G * u) * v)
+        return D * (MfRhoIDeriv(G * u, v, adjoint))
 
     def getRHS(self):
         """

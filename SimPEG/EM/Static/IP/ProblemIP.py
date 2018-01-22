@@ -8,7 +8,7 @@ from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
 import numpy as np
 from SimPEG.Utils import Zero
-from SimPEG.EM.Static.DC import getxBCyBC_CC
+from SimPEG.EM.Static.DC import getxBCyBC_CC, Problem3D_CC, Problem3D_N
 from .SurveyIP import Survey
 from SimPEG import Props
 import sys
@@ -287,7 +287,7 @@ class BaseIPProblem(BaseEMProblem):
                 )
 
 
-class Problem3D_CC(BaseIPProblem):
+class Problem3D_CC(BaseIPProblem, Problem3D_CC):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
@@ -299,201 +299,8 @@ class Problem3D_CC(BaseIPProblem):
         BaseIPProblem.__init__(self, mesh, **kwargs)
         self.setBC()
 
-    def getA(self):
-        """
 
-        Make the A matrix for the cell centered DC resistivity problem
-
-        A = D MfRhoI G
-
-        """
-
-        D = self.Div
-        G = self.Grad
-        MfRhoI = self.MfRhoI
-        A = D * MfRhoI * G
-
-        # I think we should deprecate this for DC problem.
-        # if self._makeASymmetric is True:
-        #     return V.T * A
-        return A
-
-    def getADeriv(self, u, v, adjoint=False):
-
-        D = self.Div
-        G = self.Grad
-
-        if adjoint:
-            return self.MfRhoIDeriv(G * u, D.T * v, adjoint)
-
-        return D * self.MfRhoIDeriv(G * u, v, adjoint)
-
-    def getRHS(self):
-        """
-        RHS for the DC problem
-
-        q
-        """
-
-        RHS = self.getSourceTerm()
-
-        # I think we should deprecate this for DC problem.
-        # if self._makeASymmetric is True:
-        #     return self.Vol.T * RHS
-
-        return RHS
-
-    def getRHSDeriv(self, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
-        """
-        # TODO: add qDeriv for RHS depending on m
-        # qDeriv = src.evalDeriv(self, adjoint=adjoint)
-        # return qDeriv
-        return Zero()
-
-    def setBC(self):
-        if self.mesh._meshType == "TREE":
-            if(self.bc_type == 'Neumann'):
-                raise NotImplementedError()
-            elif(self.bc_type == 'Dirchlet'):
-                print('Homogeneous Dirchlet is the natural BC for this CC discretization.')
-                self.Div = Utils.sdiag(self.mesh.vol) * self.mesh.faceDiv
-                self.Grad = self.Div.T
-
-        else:
-
-            if self.mesh.dim == 3:
-                fxm, fxp, fym, fyp, fzm, fzp = self.mesh.faceBoundaryInd
-                gBFxm = self.mesh.gridFx[fxm, :]
-                gBFxp = self.mesh.gridFx[fxp, :]
-                gBFym = self.mesh.gridFy[fym, :]
-                gBFyp = self.mesh.gridFy[fyp, :]
-                gBFzm = self.mesh.gridFz[fzm, :]
-                gBFzp = self.mesh.gridFz[fzp, :]
-
-                # Setup Mixed B.C (alpha, beta, gamma)
-                temp_xm = np.ones_like(gBFxm[:, 0])
-                temp_xp = np.ones_like(gBFxp[:, 0])
-                temp_ym = np.ones_like(gBFym[:, 1])
-                temp_yp = np.ones_like(gBFyp[:, 1])
-                temp_zm = np.ones_like(gBFzm[:, 2])
-                temp_zp = np.ones_like(gBFzp[:, 2])
-
-                if(self.bc_type == 'Neumann'):
-                    if self.verbose:
-                        print('Setting BC to Neumann.')
-                    alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-                    alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
-                    alpha_zm, alpha_zp = temp_zm*0., temp_zp*0.
-
-                    beta_xm, beta_xp = temp_xm, temp_xp
-                    beta_ym, beta_yp = temp_ym, temp_yp
-                    beta_zm, beta_zp = temp_zm, temp_zp
-
-                    gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-                    gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-                    gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
-
-                elif(self.bc_type == 'Dirchlet'):
-                    if self.verbose:
-                        print('Setting BC to Dirchlet.')
-                    alpha_xm, alpha_xp = temp_xm, temp_xp
-                    alpha_ym, alpha_yp = temp_ym, temp_yp
-                    alpha_zm, alpha_zp = temp_zm, temp_zp
-
-                    beta_xm, beta_xp = temp_xm*1, temp_xp*1
-                    beta_ym, beta_yp = temp_ym*1, temp_yp*1
-                    beta_zm, beta_zp = temp_zm*1, temp_zp*1
-
-                    gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-                    gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-                    gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
-
-                elif(self.bc_type == 'Mixed'):
-                    # Ztop: Neumann
-                    # Others: Mixed: alpha * phi + d phi dn = 0
-                    # where alpha = 1 / r  * dr/dn
-                    # (Dey and Morrison, 1979)
-
-                    # This assumes that the source is located at
-                    # (x_center, y_center_y, ztop)
-                    # TODO: Implement Zhang et al. (1995)
-
-                    xs = np.median(self.mesh.vectorCCx)
-                    ys = np.median(self.mesh.vectorCCy)
-                    zs = self.mesh.vectorCCz[-1]
-
-                    def r_boundary(x, y, z):
-                        return 1./np.sqrt(
-                            (x - xs)**2 + (y - ys)**2 + (z - zs)**2
-                            )
-                    rxm = r_boundary(gBFxm[:, 0], gBFxm[:, 1], gBFxm[:, 2])
-                    rxp = r_boundary(gBFxp[:, 0], gBFxp[:, 1], gBFxp[:, 2])
-                    rym = r_boundary(gBFym[:, 0], gBFym[:, 1], gBFym[:, 2])
-                    ryp = r_boundary(gBFyp[:, 0], gBFyp[:, 1], gBFyp[:, 2])
-                    rzm = r_boundary(gBFzm[:, 0], gBFzm[:, 1], gBFzm[:, 2])
-
-                    alpha_xm = (gBFxm[:, 0]-xs)/rxm**2
-                    alpha_xp = (gBFxp[:, 0]-xs)/rxp**2
-                    alpha_ym = (gBFym[:, 1]-ys)/rym**2
-                    alpha_yp = (gBFyp[:, 1]-ys)/ryp**2
-                    alpha_zm = (gBFzm[:, 2]-zs)/rzm**2
-                    alpha_zp = temp_zp.copy() * 0.
-
-                    beta_xm, beta_xp = temp_xm*1, temp_xp*1
-                    beta_ym, beta_yp = temp_ym*1, temp_yp*1
-                    beta_zm, beta_zp = temp_zm*1, temp_zp*1
-
-                    gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-                    gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-                    gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
-
-                alpha = [
-                    alpha_xm, alpha_xp,
-                    alpha_ym, alpha_yp,
-                    alpha_zm, alpha_zp
-                ]
-                beta = [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
-                gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm,
-                         gamma_zp]
-
-            elif self.mesh.dim == 2:
-
-                fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
-                gBFxm = self.mesh.gridFx[fxm, :]
-                gBFxp = self.mesh.gridFx[fxp, :]
-                gBFym = self.mesh.gridFy[fym, :]
-                gBFyp = self.mesh.gridFy[fyp, :]
-
-                # Setup Mixed B.C (alpha, beta, gamma)
-                temp_xm = np.ones_like(gBFxm[:, 0])
-                temp_xp = np.ones_like(gBFxp[:, 0])
-                temp_ym = np.ones_like(gBFym[:, 1])
-                temp_yp = np.ones_like(gBFyp[:, 1])
-
-                alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-                alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
-
-                beta_xm, beta_xp = temp_xm, temp_xp
-                beta_ym, beta_yp = temp_ym, temp_yp
-
-                gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-                gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-
-                alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
-                beta = [beta_xm, beta_xp, beta_ym, beta_yp]
-                gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
-
-            x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
-            V = self.Vol
-            self.Div = V * self.mesh.faceDiv
-            P_BC, B = self.mesh.getBCProjWF_simple()
-            M = B*self.mesh.aveCC2F
-            self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
-
-
-class Problem3D_N(BaseIPProblem):
+class Problem3D_N(BaseIPProblem, Problem3D_N):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # N potentials means B is on faces
