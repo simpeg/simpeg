@@ -176,7 +176,9 @@ class BaseIPProblem(BaseEMProblem):
                 else:
                     P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
                     ATinvdf_duT = self.Ainv * (P.T)
-                    dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
+                    dA_dmT = self.getADeriv(
+                        u_src, ATinvdf_duT, adjoint=True
+                    )
                     if rx.nD == 1:
                         # Consider when rx has one location
                         Jtv.append(-dA_dmT.reshape([-1, 1]))
