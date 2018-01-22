@@ -201,7 +201,11 @@ class BaseDCProblem_2D(BaseEMProblem):
         # This is for forming full sensitivity
         else:
 
-            Jt = []
+            # Jt = []
+            # This is for forming full sensitivity matrix
+            Jt = np.zeros((self.model.size, self.survey.nD), order='F')
+            istrt = int(0)
+            iend = int(0)
 
             # Assume y=0.
             dky = np.diff(self.kys)
@@ -209,9 +213,10 @@ class BaseDCProblem_2D(BaseEMProblem):
             y = 0.
             for src in self.survey.srcList:
                 for rx in src.rxList:
+                    iend = istrt + rx.nD
                     Jtv_temp1 = np.zeros((m.size, rx.nD), dtype=float)
                     Jtv_temp0 = np.zeros((m.size, rx.nD), dtype=float)
-                    Jtv = np.zeros((m.size, rx.nD), dtype=float)
+                    # Jtv = np.zeros((m.size, rx.nD), dtype=float)
                     # TODO: this loop is pretty slow .. (Parellize)
                     for iky in range(self.nky):
                         u_src = f[src, self._solutionType, iky]
@@ -226,18 +231,23 @@ class BaseDCProblem_2D(BaseEMProblem):
                         Jtv_temp1 = 1./np.pi*(-dA_dmT)
                         if rx.nD == 1:
                             Jtv_temp1 = Jtv_temp1.reshape([-1, 1])
-
                         # Trapezoidal intergration
                         if iky == 0:
                             # First assigment
-                            Jtv += Jtv_temp1*dky[iky]*np.cos(ky*y)
+                            if rx.nD == 1:
+                                Jt[:, istrt] += Jtv_temp1*dky[iky]*np.cos(ky*y)
+                            else:
+                                Jt[:, istrt:iend] += Jtv_temp1*dky[iky]*np.cos(ky*y)
                         else:
-                            Jtv += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
-                            Jtv += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
+                            if rx.nD == 1:
+                                Jt[:, istrt] += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
+                                Jt[:, istrt] += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
+                            else:
+                                Jt[:, istrt:iend] += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
+                                Jt[:, istrt:iend] += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
                         Jtv_temp0 = Jtv_temp1.copy()
-
-                    Jt.append(Jtv)
-            return np.hstack(Jt)
+                    istrt += rx.nD
+            return Jt
 
     def getSourceTerm(self, ky):
         """

@@ -124,7 +124,10 @@ class BaseSIPProblem(BaseEMProblem):
             if f is None:
                 f = self.fields(m)
 
-            Jt = np.zeros((self.model.size, self.survey.nD), order='F')
+            Jt = np.zeros(
+                (self.actMap.nP, int(self.survey.nD/self.survey.times.size)),
+                order='F'
+            )
             istrt = int(0)
             iend = int(0)
 
