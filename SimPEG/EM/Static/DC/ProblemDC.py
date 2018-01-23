@@ -24,6 +24,7 @@ class BaseDCProblem(BaseEMProblem):
     storeJ = False
     _Jmatrix = None
 
+    @profile
     def fields(self, m=None):
         if m is not None:
             self.model = m

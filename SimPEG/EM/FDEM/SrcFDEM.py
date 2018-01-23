@@ -822,7 +822,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         if adjoint is True:
             return (
-                prob.MeSigmaDeriv(ePrimary).T * v -
+                prob.MeSigmaDeriv(ePrimary, v, adjoint) -
                 (
                     sigmaPrimaryDeriv.T * prob.mesh.getEdgeInnerProductDeriv(
                         sigmaPrimary
@@ -834,7 +834,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             )
 
         return(
-            prob.MeSigmaDeriv(ePrimary) * v -
+            prob.MeSigmaDeriv(ePrimary, v, adjoint) -
             prob.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary) *
             (sigmaPrimaryDeriv * v) +
             (prob.MeSigma - prob.mesh.getEdgeInnerProduct(sigmaPrimary)) *
