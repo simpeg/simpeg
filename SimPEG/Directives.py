@@ -251,7 +251,9 @@ class BetaSchedule(InversionDirective):
 
 
 class TargetMisfit(InversionDirective):
-
+    """
+    ... note:: Currently the target misfit is not set up for joint inversions. Get `in touch <https://github.com/simpeg/simpeg/issues/new>`_ if you would like to help with the upgrade!
+    """
     chifact = 1.
     phi_d_star = None
 
