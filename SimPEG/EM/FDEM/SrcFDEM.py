@@ -564,8 +564,8 @@ class PrimSecSigma(BaseFDEMSrc):
 
     def s_eDeriv(self, prob, v, adjoint=False):
         if adjoint:
-            return prob.MeSigmaDeriv(self.ePrimary(prob)).T * v
-        return prob.MeSigmaDeriv(self.ePrimary(prob)) * v
+            return prob.MeSigmaDeriv(self.ePrimary(prob), v, adjoint) *
+        return prob.MeSigmaDeriv(self.ePrimary(prob), v, adjoint)
 
 
 class PrimSecMappedSigma(BaseFDEMSrc):
@@ -757,7 +757,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
                     (self._ProjPrimary(prob, 'F', 'E').T * v)
                 )
                 epDeriv = (
-                    self.primaryProblem.MfRhoDeriv(f[:, 'j']).T * PTv +
+                    self.primaryProblem.MfRhoDeriv(f[:, 'j'], PTv, adjoint) +
                     self._primaryFieldsDeriv(
                         prob, self.primaryProblem.MfRho.T * PTv,
                         adjoint=adjoint, f=f
@@ -773,7 +773,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
                     (
                         self.primaryProblem.MfI *
                         (
-                            (self.primaryProblem.MfRhoDeriv(f[:, 'j']) * v) +
+                            (self.primaryProblem.MfRhoDeriv(f[:, 'j']), v, adjoint) +
                             (
                                 self.primaryProblem.MfRho *
                                 self._primaryFieldsDeriv(prob, v, f=f)
