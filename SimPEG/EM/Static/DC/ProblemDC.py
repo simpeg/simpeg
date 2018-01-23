@@ -11,7 +11,6 @@ import numpy as np
 import scipy as sp
 from SimPEG.Utils import Zero
 from .BoundaryUtils import getxBCyBC_CC
-from profilehooks import profile
 
 
 class BaseDCProblem(BaseEMProblem):
@@ -57,7 +56,6 @@ class BaseDCProblem(BaseEMProblem):
             self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
         return self._Jmatrix
 
-    @profile
     def Jvec(self, m, v, f=None):
         """
             Compute sensitivity matrix (J) and vector (v) product.
