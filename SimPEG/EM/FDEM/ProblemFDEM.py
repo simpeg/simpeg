@@ -11,6 +11,7 @@ import scipy.sparse as sp
 from scipy.constants import mu_0
 from profilehooks import profile
 
+
 class BaseFDEMProblem(BaseEMProblem):
     """
         We start by looking at Maxwell's equations in the electric
@@ -60,6 +61,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
     Props.Reciprocal(mu, mui)
 
+    @profile
     def fields(self, m=None):
         """
         Solve the forward problem for the fields.
@@ -123,6 +125,7 @@ class BaseFDEMProblem(BaseEMProblem):
             Ainv.clean()
         return np.hstack(Jv)
 
+    @profile
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transpose times a vector
