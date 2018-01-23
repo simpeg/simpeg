@@ -472,25 +472,25 @@ class SaveOutputEveryIteration(SaveEveryIteration):
                 i_target += 1
             self.i_target = i_target
 
-        fig = plt.figure(figsize = (5, 8))
+        fig = plt.figure(figsize=(5, 8))
         ax1 = plt.subplot(311)
         ax2 = plt.subplot(312)
         ax3 = plt.subplot(313)
 
         ax1.plot(self.beta, self.phi_d, 'k-', lw=2, ms=4)
         ax1.set_xlim(np.hstack(self.beta).min(), np.hstack(self.beta).max())
-        ax1.set_xlabel("$\\beta$", fontsize = 14)
-        ax1.set_ylabel("$\phi_d$", fontsize = 14)
+        ax1.set_xlabel("$\\beta$", fontsize=14)
+        ax1.set_ylabel("$\phi_d$", fontsize=14)
 
         ax2.plot(self.beta, self.phi_m, 'k-', lw=2)
         ax2.set_xlim(np.hstack(self.beta).min(), np.hstack(self.beta).max())
-        ax2.set_xlabel("$\\beta$", fontsize = 14)
-        ax2.set_ylabel("$\phi_m$", fontsize = 14)
+        ax2.set_xlabel("$\\beta$", fontsize=14)
+        ax2.set_ylabel("$\phi_m$", fontsize=14)
 
         ax3.plot(self.phi_m, self.phi_d, 'k-', lw=2)
         ax3.set_xlim(np.hstack(self.phi_m).min(), np.hstack(self.phi_m).max())
-        ax3.set_xlabel("$\phi_m$", fontsize = 14)
-        ax3.set_ylabel("$\phi_d$", fontsize = 14)
+        ax3.set_xlabel("$\phi_m$", fontsize=14)
+        ax3.set_ylabel("$\phi_d$", fontsize=14)
 
         if self.i_target is not None:
             ax1.plot(self.beta[self.i_target], self.phi_d[self.i_target], 'k*', ms=10)
@@ -504,6 +504,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         plt.show()
         if fname is not None:
             fig.savefig(fname, dpi=dpi)
+
 
 class SaveOutputDictEveryIteration(SaveEveryIteration):
     """
@@ -531,7 +532,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
         outDict['dpred'] = self.invProb.dpred
 
         # Save the file as a npz
-        np.savez('{:03d}-{:s}'.format(self.opt.iter,self.fileName), outDict)
+        np.savez('{:03d}-{:s}'.format(self.opt.iter, self.fileName), outDict)
 
 
 class Update_IRLS(InversionDirective):
@@ -608,8 +609,9 @@ class Update_IRLS(InversionDirective):
             phi_m_last += [reg(self.invProb.model)]
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
-        if np.all([self.invProb.phi_d < self.start,
-                   self.mode == 1]):
+        if np.all(
+            [self.invProb.phi_d < self.start, self.mode == 1]
+        ):
             print("Reached starting chifact with l2-norm regularization: Start IRLS steps...")
 
             self.mode = 2
@@ -630,7 +632,10 @@ class Update_IRLS(InversionDirective):
 
                 if getattr(reg, 'eps_q', None) is None:
                     mtemp = reg.mapping * self.invProb.model
-                    reg.eps_q = np.percentile(np.abs(reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
+                    reg.eps_q = np.percentile(
+                        np.abs(reg.regmesh.cellDiffxStencil*mtemp),
+                        self.prctile
+                    )
 
             # Re-assign the norms supplied by user l2 -> lp
             for reg, norms in zip(self.reg.objfcts, self.norms):
@@ -646,8 +651,9 @@ class Update_IRLS(InversionDirective):
                       " eps_q: " + str(reg.eps_q))
 
         # Only update after GN iterations
-        if np.all([(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode != 1]):
-
+        if np.all(
+            [(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode != 1]
+        ):
 
             # Check for maximum number of IRLS cycles
             if self.IRLSiter == self.maxIRLSiter:
@@ -698,7 +704,9 @@ class Update_IRLS(InversionDirective):
 
             # Update gamma to scale the regularization between IRLS iterations
 
-            for reg, phim_old, phim_now in zip(self.reg.objfcts, phi_m_last, phi_m_new):
+            for reg, phim_old, phim_now in zip(
+                self.reg.objfcts, phi_m_last, phi_m_new
+            ):
 
                 gamma = phim_old / phim_now
 
@@ -716,13 +724,19 @@ class Update_IRLS(InversionDirective):
         if np.all([self.opt.iter > 0, self.opt.iter % self.coolingRate == 0,
                    self.mode != 3]):
 
-            if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
+            if self.debug:
+                print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
+
             self.invProb.beta /= self.coolingFactor
 
         # Check if misfit is within the tolerance, otherwise scale beta
-        if np.all([np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol,
-                   self.updateBeta,
-                   self.mode == 3]):
+        if np.all(
+            [
+                np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol,
+                self.updateBeta,
+                self.mode == 3
+            ]
+        ):
 
             self.invProb.beta = (self.invProb.beta * self.target /
                                  self.invProb.phi_d)
@@ -879,9 +893,11 @@ class UpdateSensitivityWeights(InversionDirective):
         """
         self.JtJdiag = []
 
-        for prob, survey, dmisfit in zip(self.prob,
-                                         self.survey,
-                                         self.dmisfit.objfcts):
+        for prob, survey, dmisfit in zip(
+            self.prob,
+            self.survey,
+            self.dmisfit.objfcts
+        ):
 
             assert getattr(prob, 'getJ', None) is not None, (
                 "Problem does not have a getJ attribute." +
@@ -925,7 +941,9 @@ class UpdateSensitivityWeights(InversionDirective):
         """
         # if self.ComboMisfitFun:
         JtJdiag = np.zeros_like(self.invProb.model)
-        for prob, JtJ, dmisfit in zip(self.prob, self.JtJdiag, self.dmisfit.objfcts):
+        for prob, JtJ, dmisfit in zip(
+            self.prob, self.JtJdiag, self.dmisfit.objfcts
+        ):
 
             JtJdiag += JtJ
 
