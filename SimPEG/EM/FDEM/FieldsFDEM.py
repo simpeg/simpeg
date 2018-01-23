@@ -563,7 +563,7 @@ class Fields3D_e(FieldsFDEM):
 
         if adjoint:
             return (
-                self._MeSigmaDeriv(e).T * (self._aveE2CCV.T * (VI.T * v)) +
+                self._MeSigmaDeriv(e, self._aveE2CCV.T * (VI.T * v), adjoint) +
                 self._eDeriv_m(
                     src, self._aveE2CCV.T * (VI.T * v), adjoint=adjoint
                 )
@@ -573,7 +573,7 @@ class Fields3D_e(FieldsFDEM):
                 self._aveE2CCV *
                 (
                     self._eDeriv_m(src, v, adjoint=adjoint) +
-                    self._MeSigmaDeriv(e) * v
+                    self._MeSigmaDeriv(e, v, adjoint)
                 )
             )
         ) + src.jPrimaryDeriv(self.prob, v, adjoint)
