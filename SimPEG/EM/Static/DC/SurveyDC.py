@@ -22,8 +22,8 @@ class Survey(BaseEMSurvey, properties.HasProperties):
     # Survey
     survey_geometry = properties.StringChoice(
         "Survey geometry of DC surveys",
-        default="SURFACE",
-        choices=["SURFACE", "BOREHOLE", "GENERAL"]
+        default="surface",
+        choices=["surface", "borehole", "general"]
     )
 
     survey_type = properties.StringChoice(
@@ -126,7 +126,7 @@ class Survey(BaseEMSurvey, properties.HasProperties):
 
         # 2D
         if mesh.dim == 2:
-            if self.survey_geometry == "SURFACE":
+            if self.survey_geometry == "surface":
                 if self.electrodes_info is None:
                     self.electrodes_info = SimPEG.Utils.uniqueRows(
                         np.hstack((
@@ -141,10 +141,10 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                         self.electrodes_info[0].flatten(),
                         actind=actind,
                         option=option
-                        )
+                    )
                 temp = (
                     self.electrode_locations[self.electrodes_info[2], 1]
-                    ).reshape((self.a_locations.shape[0], 4), order="F")
+                ).reshape((self.a_locations.shape[0], 4), order="F")
                 self.a_locations = np.c_[self.a_locations[:, 0], temp[:, 0]]
                 self.b_locations = np.c_[self.b_locations[:, 0], temp[:, 1]]
                 self.m_locations = np.c_[self.m_locations[:, 0], temp[:, 2]]
@@ -206,17 +206,17 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                             else:
                                 raise Exception()
 
-            elif self.survey_geometry == "BOREHOLE":
+            elif self.survey_geometry == "borehole":
                 raise Exception(
-                    "Not implemented yet for BOREHOLE survey_geometry"
+                    "Not implemented yet for borehole survey_geometry"
                     )
             else:
                 raise Exception(
-                    "Input valid survey survey_geometry: SURFACE or BOREHOLE"
+                    "Input valid survey survey_geometry: surface or borehole"
                     )
 
         if mesh.dim == 3:
-            if self.survey_geometry == "SURFACE":
+            if self.survey_geometry == "surface":
                 if self.electrodes_info is None:
                     self.electrodes_info = SimPEG.Utils.uniqueRows(
                         np.vstack((
@@ -294,13 +294,13 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                             else:
                                 raise Exception()
 
-            elif self.survey_geometry == "BOREHOLE":
+            elif self.survey_geometry == "borehole":
                 raise Exception(
-                    "Not implemented yet for BOREHOLE survey_geometry"
+                    "Not implemented yet for borehole survey_geometry"
                     )
             else:
                 raise Exception(
-                    "Input valid survey survey_geometry: SURFACE or BOREHOLE"
+                    "Input valid survey survey_geometry: surface or borehole"
                     )
 
 

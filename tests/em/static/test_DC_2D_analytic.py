@@ -42,7 +42,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         except ImportError:
             self.Solver = SolverLU
 
-    def test_Problem2D_N(self):
+    def test_Problem2D_N(self, tolerance=0.05):
 
         problem = DC.Problem2D_N(self.mesh, sigma=self.sigma)
         problem.Solver = self.Solver
@@ -52,7 +52,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
             np.linalg.norm((data-self.data_anal) / self.data_anal)**2 /
             self.data_anal.size
         )
-        if err < 0.05:
+        if err < tolerance:
             passed = True
             print(">> DC analytic test for PDP Problem2D_N is passed")
         else:
@@ -61,7 +61,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
             print(">> DC analytic test for PDP Problem2D_N is failed")
         self.assertTrue(passed)
 
-    def test_Problem2D_CC(self):
+    def test_Problem2D_CC(self, tolerance=0.05):
         problem = DC.Problem2D_CC(self.mesh, sigma=self.sigma)
         problem.Solver = self.Solver
         problem.pair(self.survey)
@@ -70,7 +70,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
             np.linalg.norm((data-self.data_anal)/self.data_anal)**2 /
             self.data_anal.size
         )
-        if err < 0.05:
+        if err < tolerance:
             passed = True
             print(">> DC analytic test for PDP Problem2D_CC is passed")
         else:
@@ -116,7 +116,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         except ImportError:
             self.Solver = SolverLU
 
-    def test_Problem2D_N(self):
+    def test_Problem2D_N(self, tolerance=0.05):
 
         problem = DC.Problem2D_N(self.mesh, sigma=self.sigma)
         problem.Solver = self.Solver
@@ -126,7 +126,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
             np.linalg.norm((data-self.data_anal) / self.data_anal)**2 /
             self.data_anal.size
         )
-        if err < 0.05:
+        if err < tolerance:
             passed = True
             print(">> DC analytic test for DPP Problem2D_N is passed")
             if self.plotIt:
@@ -139,7 +139,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
             print(err)
         self.assertTrue(passed)
 
-    def test_Problem2D_CC(self):
+    def test_Problem2D_CC(self, tolerance=0.05):
         problem = DC.Problem2D_CC(self.mesh, sigma=self.sigma)
         problem.Solver = self.Solver
         problem.pair(self.survey)
@@ -148,7 +148,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
             np.linalg.norm((data-self.data_anal)/self.data_anal)**2 /
             self.data_anal.size
         )
-        if err < 0.05:
+        if err < tolerance:
             passed = True
             print(">> DC analytic test for DPP Problem2D_CC is passed")
         else:
@@ -196,7 +196,7 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         except ImportError:
             self.Solver = SolverLU
 
-    def test_Problem2D_CC(self):
+    def test_Problem2D_CC(self, tolerance=0.05):
         problem = DC.Problem2D_CC(self.mesh, sigma=self.sigma, bc_type="Mixed")
         problem.Solver = self.Solver
         problem.pair(self.survey)
@@ -205,7 +205,7 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
             np.linalg.norm((data-self.data_anal)/self.data_anal)**2 /
             self.data_anal.size
         )
-        if err < 0.05:
+        if err < tolerance:
             passed = True
             print(">> DC analytic test for PP Problem2D_CC is passed")
         else:

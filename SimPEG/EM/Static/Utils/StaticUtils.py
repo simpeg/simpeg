@@ -647,7 +647,11 @@ def writeUBC_DCobs(
         :rtype: file
     """
 
-    assert (dim == 2) | (dim == 3), "Data must be either 2 | 3"
+    if not((dim == 2) | (dim == 3)):
+        raise Exception(
+            """dim must be either 2 or 3"""
+            " not {}".format(dim)
+        )
 
     if not (
         (format_type == 'SURFACE') |
@@ -845,7 +849,11 @@ def writeUBC_DClocs(
         :return: UBC 2/3D-locations file
     """
 
-    assert (dim == 2) | (dim == 3), "Data must be either 2 | 3"
+    if not((dim == 2) | (dim == 3)):
+        raise Exception(
+            """dim must be either 2 or 3"""
+            " not {}".format(dim)
+        )
 
     if not (
         (format_type == 'SURFACE') |

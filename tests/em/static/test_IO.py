@@ -1,3 +1,5 @@
+# import matplotlib
+# matplotlib.use('Agg')
 from SimPEG import DC
 import matplotlib.pyplot as plt
 import numpy as np

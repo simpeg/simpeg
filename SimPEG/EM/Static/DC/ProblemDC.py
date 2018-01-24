@@ -300,9 +300,9 @@ class Problem3D_CC(BaseDCProblem):
                     alpha_ym, alpha_yp = temp_ym, temp_yp
                     alpha_zm, alpha_zp = temp_zm, temp_zp
 
-                    beta_xm, beta_xp = temp_xm*1, temp_xp*1
-                    beta_ym, beta_yp = temp_ym*1, temp_yp*1
-                    beta_zm, beta_zp = temp_zm*1, temp_zp*1
+                    beta_xm, beta_xp = temp_xm*0, temp_xp*0
+                    beta_ym, beta_yp = temp_ym*0, temp_yp*0
+                    beta_zm, beta_zp = temp_zm*0, temp_zp*0
 
                     gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
                     gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
