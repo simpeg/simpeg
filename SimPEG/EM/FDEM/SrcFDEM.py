@@ -564,7 +564,7 @@ class PrimSecSigma(BaseFDEMSrc):
 
     def s_eDeriv(self, prob, v, adjoint=False):
         if adjoint:
-            return prob.MeSigmaDeriv(self.ePrimary(prob), v, adjoint) *
+            return prob.MeSigmaDeriv(self.ePrimary(prob), v, adjoint)
         return prob.MeSigmaDeriv(self.ePrimary(prob), v, adjoint)
 
 
