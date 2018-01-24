@@ -9,7 +9,6 @@ from SimPEG.EM.TDEM.FieldsTDEM import (
 )
 from scipy.constants import mu_0
 import time
-from profilehooks import profile
 
 
 class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
@@ -34,7 +33,6 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
     #     """
 
-    @profile
     def fields(self, m):
         """
         Solve the forward problem for the fields.
@@ -93,7 +91,6 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         Ainv.clean()
         return F
 
-    @profile
     def Jvec(self, m, v, f=None):
         """
         Jvec computes the sensitivity times a vector
@@ -202,7 +199,6 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         # return Utils.mkvc(Jv)
         return np.hstack(Jv)
 
-    @profile
     def Jtvec(self, m, v, f=None):
 
         """
@@ -657,7 +653,6 @@ class Problem3D_e(BaseTDEMProblem):
     def __init__(self, mesh, **kwargs):
         BaseTDEMProblem.__init__(self, mesh, **kwargs)
 
-    @profile
     def Jtvec(self, m, v, f=None):
 
         """

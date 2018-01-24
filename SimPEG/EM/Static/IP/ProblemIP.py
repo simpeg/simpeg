@@ -12,7 +12,6 @@ from SimPEG.EM.Static.DC import getxBCyBC_CC, Problem3D_CC, Problem3D_N
 from .SurveyIP import Survey
 from SimPEG import Props
 import sys
-from profilehooks import profile
 
 
 class BaseIPProblem(BaseEMProblem):
@@ -82,7 +81,6 @@ class BaseIPProblem(BaseEMProblem):
 
         return self._Jmatrix
 
-    @profile
     def Jvec(self, m, v, f=None):
 
         self.model = m
@@ -115,7 +113,6 @@ class BaseIPProblem(BaseEMProblem):
             # Resistivity (d u / d log rho) - HJ form
             return self.sign*np.hstack(Jv)
 
-    @profile
     def Jtvec(self, m, v, f=None):
         """
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
