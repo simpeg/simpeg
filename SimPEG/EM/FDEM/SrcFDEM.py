@@ -763,17 +763,15 @@ class PrimSecMappedSigma(BaseFDEMSrc):
                         adjoint=adjoint, f=f
                     )
                 )
-                # epDeriv =(
-
-                #     (self.primaryProblem.MfI.T * PTv)
-                #     )
             else:
                 epDeriv = (
                     self._ProjPrimary(prob, 'F', 'E') *
                     (
                         self.primaryProblem.MfI *
                         (
-                            (self.primaryProblem.MfRhoDeriv(f[:, 'j']), v, adjoint) +
+                            self.primaryProblem.MfRhoDeriv(
+                                f[:, 'j'], v, adjoint
+                            ) +
                             (
                                 self.primaryProblem.MfRho *
                                 self._primaryFieldsDeriv(prob, v, f=f)
