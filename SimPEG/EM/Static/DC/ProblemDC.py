@@ -73,7 +73,7 @@ class BaseDCProblem(BaseEMProblem):
         Jv = []
 
         for src in self.survey.srcList:
-            u_src = f[src, self._solutionType].copy()  # solution vector
+            u_src = f[src, self._solutionType]  # solution vector
             dA_dm_v = self.getADeriv(u_src, v)
             dRHS_dm_v = self.getRHSDeriv(src, v)
             du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
