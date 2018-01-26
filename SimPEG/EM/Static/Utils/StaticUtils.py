@@ -822,7 +822,7 @@ def writeUBC_DCobs(
             else:
                 raise Exception(
                     """Uncertainities SurveyObject.std should be set.
-                    Either float or nunmpy.ndarray is expected"""
+                    Either float or nunmpy.ndarray is expected, """
                     "not {}".format(type(dc_survey.std)))
 
             fid.close()
