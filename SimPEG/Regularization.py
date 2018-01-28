@@ -1416,6 +1416,7 @@ class Tikhonov(BaseComboRegularization):
             objfcts=objfcts, **kwargs
         )
 
+        self.regmesh.regularization_type = 'Tikhonov'
 
 class BaseSparse(BaseRegularization):
     """
