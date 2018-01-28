@@ -137,6 +137,8 @@ class BaseTDEMSrc(BaseEMSrc):
     waveformPair = BaseWaveform  #: type of waveform to pair with
     waveform = None  #: source waveform
     srcType = None
+    _s_e = None
+    _s_m = None
 
     def __init__(self, rxList, **kwargs):
         super(BaseTDEMSrc, self).__init__(rxList, **kwargs)
@@ -225,6 +227,7 @@ class MagDipole(BaseTDEMSrc):
     )
     srcType = "Inductive"
 
+
     def __init__(self, rxList, **kwargs):
         # assert(self.orientation in ['X', 'Y', 'Z']), (
         #     "Orientation (right now) doesn't actually do anything! The methods"
@@ -252,6 +255,7 @@ class MagDipole(BaseTDEMSrc):
         )
 
     def _aSrc(self, prob):
+
         if prob._formulation == 'EB':
             gridX = prob.mesh.gridEx
             gridY = prob.mesh.gridEy
@@ -274,7 +278,6 @@ class MagDipole(BaseTDEMSrc):
             ay = self._srcFct(gridY, 'y')
             az = self._srcFct(gridZ, 'z')
             a = np.concatenate((ax, ay, az))
-
         return a
 
     def _bSrc(self, prob):
@@ -307,6 +310,9 @@ class MagDipole(BaseTDEMSrc):
         return Zero()
 
     def s_e(self, prob, time):
+        if self._s_e is not None:
+            return self.waveform.eval(time) * self._s_e
+
         C = prob.mesh.edgeCurl
         b = self._bSrc(prob)
 
@@ -318,13 +324,18 @@ class MagDipole(BaseTDEMSrc):
                 # if time > 0.0:
                 #     return Zero()
                 if prob._fieldType == 'b':
-                    return Zero()
+                    self._s_e = Zero()
+                    return self._s_e
                 elif prob._fieldType == 'e':
                     # Compute s_e from vector potential
-                    return C.T * (MfMui * b)
+                    self._s_e = C.T * (MfMui * b)
+                    # return C.T * (MfMui * b)
+                    return self._s_e
             else:
                 # b = self._bfromVectorPotential(prob)
-                return C.T * (MfMui * b) * self.waveform.eval(time)
+                self._s_e = C.T * (MfMui * b)
+                return self._s_e * self.waveform.eval(time)
+                # return C.T * (MfMui * b) * self.waveform.eval(time)
         # return Zero()
 
         elif prob._formulation == 'HJ':
