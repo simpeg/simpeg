@@ -878,10 +878,15 @@ class Problem3D_e(BaseTDEMProblem):
         dt = self.timeSteps[tInd-1]
         s_m, s_e = self.getSourceTerm(tInd)
         _, s_en1 = self.getSourceTerm(tInd-1)
-        if s_m.all() == 0:
-            return -1./dt * (s_e - s_en1)
-        return (-1./dt * (s_e - s_en1) +
-                self.mesh.edgeCurl.T * self.MfMui * s_m)
+
+        # For spped up, ignore the second term in rhs when s_m is zero
+        rhs = -1./dt * (s_e - s_en1)
+        if s_m.all() != 0:
+            rhs += self.mesh.edgeCurl.T * self.MfMui * s_m
+        return rhs
+        # return (
+        #     -1./dt * (s_e - s_en1) + self.mesh.edgeCurl.T * self.MfMui * s_m
+        # )
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         # right now, we are assuming that s_e, s_m do not depend on the model.
