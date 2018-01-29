@@ -1,6 +1,6 @@
 sphinx==1.5.6
 sphinx_rtd_theme
-sphinx-gallery
+sphinx-gallery>=0.1.13
 nose
 pillow
 nose-cov
