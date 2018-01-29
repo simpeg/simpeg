@@ -523,10 +523,29 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
         outDict['beta'] = self.invProb.beta
         outDict['phi_d'] = self.invProb.phi_d
         outDict['phi_m'] = self.invProb.phi_m
-        outDict['phi_ms'] = self.reg._evalSmall(self.invProb.model)
-        outDict['phi_mx'] = self.reg._evalSmoothx(self.invProb.model)
-        outDict['phi_my'] = self.reg._evalSmoothy(self.invProb.model) if self.prob.mesh.dim >= 2 else 'NaN'
-        outDict['phi_mz'] = self.reg._evalSmoothz(self.invProb.model) if self.prob.mesh.dim == 3 else 'NaN'
+
+        phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
+        for reg in self.reg.objfcts:
+            phi_s += (
+                reg.objfcts[0](self.invProb.model) * reg.alpha_s
+            )
+            phi_x += (
+                reg.objfcts[1](self.invProb.model) * reg.alpha_x
+            )
+            if reg.regmesh.dim > 1:
+                phi_y += (
+                    reg.objfcts[2](self.invProb.model) * reg.alpha_y
+                )
+
+            if reg.regmesh.dim > 2:
+                phi_z += (
+                    reg.objfcts[3](self.invProb.model) * reg.alpha_z
+                )
+
+        outDict['phi_ms'] = phi_s
+        outDict['phi_mx'] = phi_x
+        outDict['phi_my'] = phi_y
+        outDict['phi_mz'] = phi_z
         outDict['f'] = self.opt.f
         outDict['m'] = self.invProb.model
         outDict['dpred'] = self.invProb.dpred
