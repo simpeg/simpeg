@@ -22,8 +22,8 @@ class Survey(BaseEMSurvey, properties.HasProperties):
     # Survey
     survey_geometry = properties.StringChoice(
         "Survey geometry of DC surveys",
-        default="SURFACE",
-        choices=["SURFACE", "BOREHOLE", "GENERAL"]
+        default="surface",
+        choices=["surface", "borehole", "general"]
     )
 
     survey_type = properties.StringChoice(
@@ -126,7 +126,7 @@ class Survey(BaseEMSurvey, properties.HasProperties):
 
         # 2D
         if mesh.dim == 2:
-            if self.survey_geometry == "SURFACE":
+            if self.survey_geometry == "surface":
                 if self.electrodes_info is None:
                     self.electrodes_info = SimPEG.Utils.uniqueRows(
                         np.hstack((
@@ -206,17 +206,17 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                             else:
                                 raise Exception()
 
-            elif self.survey_geometry == "BOREHOLE":
+            elif self.survey_geometry == "borehole":
                 raise Exception(
-                    "Not implemented yet for BOREHOLE survey_geometry"
+                    "Not implemented yet for borehole survey_geometry"
                     )
             else:
                 raise Exception(
-                    "Input valid survey survey_geometry: SURFACE or BOREHOLE"
+                    "Input valid survey survey_geometry: surface or borehole"
                     )
 
         if mesh.dim == 3:
-            if self.survey_geometry == "SURFACE":
+            if self.survey_geometry == "surface":
                 if self.electrodes_info is None:
                     self.electrodes_info = SimPEG.Utils.uniqueRows(
                         np.vstack((
@@ -294,13 +294,13 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                             else:
                                 raise Exception()
 
-            elif self.survey_geometry == "BOREHOLE":
+            elif self.survey_geometry == "borehole":
                 raise Exception(
-                    "Not implemented yet for BOREHOLE survey_geometry"
+                    "Not implemented yet for borehole survey_geometry"
                     )
             else:
                 raise Exception(
-                    "Input valid survey survey_geometry: SURFACE or BOREHOLE"
+                    "Input valid survey survey_geometry: surface or borehole"
                     )
 
 

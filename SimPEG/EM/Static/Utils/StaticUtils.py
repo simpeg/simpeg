@@ -883,6 +883,11 @@ def writeUBC_DCobs(
                     ],
                     fmt=str('%e'), delimiter=str(' '), newline=str('\n')
                 )
+            else:
+                raise Exception(
+                    """Uncertainities SurveyObject.std should be set.
+                    Either float or nunmpy.ndarray is expected, """
+                    "not {}".format(type(dc_survey.std)))
 
             fid.close()
 
