@@ -871,16 +871,6 @@ def writeUBC_DClocs(
             " not {}".format(format_type)
         )
 
-    if(isinstance(dc_survey.std, float)):
-        print(
-            """survey.std was a float computing uncertainty vector
-            (survey.std*survey.dobs + survey.eps)"""
-        )
-
-    if(isinstance(dc_survey.eps, float)):
-        epsValue = dc_survey.eps
-        dc_survey.eps = epsValue*np.ones_like(dc_survey.dobs)
-
     fid = open(fileName, 'w')
 
     if format_type in ['SURFACE', 'GENERAL'] and dim == 2:
@@ -1002,23 +992,8 @@ def writeUBC_DClocs(
             fid.close()
 
             fid = open(fileName, 'ab')
-            if isinstance(dc_survey.std, np.ndarray):
-                np.savetxt(
-                    fid,
-                    np.c_[
-                        M, N,
-                    ],
-                    fmt=str('%e'), delimiter=str(' '), newline=str('\n')
-                )
-            elif (isinstance(dc_survey.std, float)):
-                np.savetxt(
-                    fid,
-                    np.c_[
-                        M, N,
-                    ],
-                    fmt=str('%e'), delimiter=str(' '), newline=str('\n')
-                )
-
+            np.savetxt(fid, np.c_[M, N], fmt=str('%e'), delimiter=str(' '),
+                newline=str('\n'))
             fid.close()
 
             fid = open(fileName, 'a')
