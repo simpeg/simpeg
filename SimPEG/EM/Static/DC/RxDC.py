@@ -58,6 +58,8 @@ class Dipole(BaseRx):
     Dipole receiver
     """
 
+    threshold = 1e-5
+
     def __init__(self, locsM, locsN, rxType='phi', **kwargs):
         assert locsM.shape == locsN.shape, ('locsM and locsN need to be the '
                                             'same size')
@@ -77,9 +79,19 @@ class Dipole(BaseRx):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        P0 = mesh.getInterpolationMat(self.locs[0], Gloc)
-        P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
+        inds_dipole = (
+            np.linalg.norm(self.locs[0]-self.locs[1], axis=1) > self.threshold
+        )
+
+        P0 = mesh.getInterpolationMat(self.locs[0][inds_dipole], Gloc)
+        P1 = mesh.getInterpolationMat(self.locs[1][inds_dipole], Gloc)
         P = P0 - P1
+
+        if ~np.alltrue(inds_dipole):
+            P0_pole = mesh.getInterpolationMat(
+                self.locs[0][~inds_dipole], Gloc
+            )
+            P = sp.vstack((P, P0_pole))
 
         if self.storeProjections:
             self._Ps[mesh] = P
