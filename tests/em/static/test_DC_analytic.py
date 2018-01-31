@@ -45,7 +45,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         self.sigma = sigma
         self.data_anal = data_anal
 
-    def test_Problem3D_N(self):
+    def test_Problem3D_N(self, tolerance=0.2):
         problem = DC.Problem3D_N(self.mesh, sigma=self.sigma)
         problem.Solver = Solver
         problem.pair(self.survey)
@@ -64,7 +64,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
             print(">> DC analytic test for Problem3D_N is failed")
         self.assertTrue(passed)
 
-    def test_Problem3D_CC_Mixed(self):
+    def test_Problem3D_CC_Mixed(self, tolerance=0.2):
         problem = DC.Problem3D_CC(
             self.mesh, sigma=self.sigma, bc_type='Mixed'
             )
@@ -75,7 +75,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
             np.linalg.norm(data - self.data_anal) /
             np.linalg.norm(self.data_anal)
         )
-        if err < 0.2:
+        if err < tolerance:
             print (err)
             passed = True
             print(">> DC analytic test for Problem3D_CC is passed")
@@ -85,7 +85,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
             print(">> DC analytic test for Problem3D_CC is failed")
         self.assertTrue(passed)
 
-    def test_Problem3D_CC_Neumann(self):
+    def test_Problem3D_CC_Neumann(self, tolerance=0.2):
         problem = DC.Problem3D_CC(
             self.mesh, sigma=self.sigma, bc_type='Neumann'
             )
@@ -96,7 +96,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
             np.linalg.norm(data - self.data_anal) /
             np.linalg.norm(self.data_anal)
         )
-        if err < 0.2:
+        if err < tolerance:
             print (err)
             passed = True
             print(">> DC analytic test for Problem3D_CC is passed")
@@ -144,7 +144,7 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         self.sigma = sigma
         self.data_anal = data_anal
 
-    def test_Problem3D_CC_Dirchlet(self):
+    def test_Problem3D_CC_Dirchlet(self, tolerance=0.2):
         problem = DC.Problem3D_CC(
             self.mesh, sigma=self.sigma, bc_type='Dirchlet'
             )
@@ -155,10 +155,12 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
             np.linalg.norm(data - self.data_anal) /
             np.linalg.norm(self.data_anal)
         )
-        if err < 0.2:
+        if err < tolerance:
+            print (err)
             passed = True
             print(">> DC analytic test for Problem3D_CC_Dirchlet is passed")
         else:
+            print (err)
             passed = False
             print(">> DC analytic test for Problem3D_CC_Dirchlet is failed")
         self.assertTrue(passed)
@@ -196,7 +198,7 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
         self.sigma = sigma
         self.data_anal = data_anal
 
-    def test_Problem3D_CC_Mixed(self):
+    def test_Problem3D_CC_Mixed(self, tolerance=0.2):
         problem = DC.Problem3D_CC(self.mesh, sigma=self.sigma, bc_type='Mixed')
         problem.Solver = Solver
         problem.pair(self.survey)
@@ -205,10 +207,12 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
             np.linalg.norm(data - self.data_anal) /
             np.linalg.norm(self.data_anal)
         )
-        if err < 0.2:
+        if err < tolerance:
+            print (err)
             passed = True
             print(">> DC analytic test for Problem3D_CC_Mixed is passed")
         else:
+            print (err)
             passed = False
             print(">> DC analytic test for Problem3D_CC_Mixed is failed")
         self.assertTrue(passed)

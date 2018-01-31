@@ -251,7 +251,9 @@ class BetaSchedule(InversionDirective):
 
 
 class TargetMisfit(InversionDirective):
-
+    """
+    ... note:: Currently the target misfit is not set up for joint inversions. Get `in touch <https://github.com/simpeg/simpeg/issues/new>`_ if you would like to help with the upgrade!
+    """
     chifact = 1.
     phi_d_star = None
 
@@ -342,6 +344,8 @@ class SaveOutputEveryIteration(SaveEveryIteration):
             f.write(self.header)
             f.close()
 
+        # Create a list of each
+
         self.beta = []
         self.phi_d = []
         self.phi_m = []
@@ -352,34 +356,35 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.phi = []
 
     def endIter(self):
-        phi_m_small = (
-            self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
-        )
-        phi_m_smooth_x = (
-            self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
-        )
-        phi_m_smooth_y = np.nan
-        phi_m_smooth_z = np.nan
 
-        if self.reg.regmesh.dim == 2:
-            phi_m_smooth_y = (
-                reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
+        phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
+        for reg in self.reg.objfcts:
+            phi_s += (
+                reg.objfcts[0](self.invProb.model) * reg.alpha_s
             )
-        elif self.reg.regmesh.dim == 3:
-            phi_m_smooth_y = (
-                self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
+            phi_x += (
+                reg.objfcts[1](self.invProb.model) * reg.alpha_x
             )
-            phi_m_smooth_z = (
-                self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
-            )
+
+            if reg.regmesh.dim == 2:
+                phi_y += (
+                    reg.objfcts[2](self.invProb.model) * reg.alpha_y
+                )
+            elif reg.regmesh.dim == 3:
+                phi_y += (
+                    reg.objfcts[2](self.invProb.model) * reg.alpha_y
+                )
+                phi_z += (
+                    reg.objfcts[3](self.invProb.model) * reg.alpha_z
+                )
 
         self.beta.append(self.invProb.beta)
         self.phi_d.append(self.invProb.phi_d)
         self.phi_m.append(self.invProb.phi_m)
-        self.phi_m_small.append(phi_m_small)
-        self.phi_m_smooth_x.append(phi_m_smooth_x)
-        self.phi_m_smooth_y.append(phi_m_smooth_y)
-        self.phi_m_smooth_z.append(phi_m_smooth_z)
+        self.phi_m_small.append(phi_s)
+        self.phi_m_smooth_x.append(phi_x)
+        self.phi_m_smooth_y.append(phi_y)
+        self.phi_m_smooth_z.append(phi_z)
         self.phi.append(self.opt.f)
 
         if self.save_txt:
@@ -410,12 +415,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.phi_m_smooth_y = results[:, 6]
         self.phi_m_smooth_z = results[:, 7]
 
-        if self.reg.regmesh.dim == 1:
-            self.phi_m_smooth = self.phi_m_smooth_x.copy()
-        elif self.reg.regmesh.dim == 2:
-            self.phi_m_smooth = self.phi_m_smooth_x + self.phi_m_smooth_y
-        elif self.reg.regmesh.dim == 3:
-            self.phi_m_smooth = (
+        self.phi_m_smooth = (
                 self.phi_m_smooth_x + self.phi_m_smooth_y + self.phi_m_smooth_z
                 )
 
@@ -523,10 +523,29 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
         outDict['beta'] = self.invProb.beta
         outDict['phi_d'] = self.invProb.phi_d
         outDict['phi_m'] = self.invProb.phi_m
-        outDict['phi_ms'] = self.reg._evalSmall(self.invProb.model)
-        outDict['phi_mx'] = self.reg._evalSmoothx(self.invProb.model)
-        outDict['phi_my'] = self.reg._evalSmoothy(self.invProb.model) if self.prob.mesh.dim >= 2 else 'NaN'
-        outDict['phi_mz'] = self.reg._evalSmoothz(self.invProb.model) if self.prob.mesh.dim == 3 else 'NaN'
+
+        phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
+        for reg in self.reg.objfcts:
+            phi_s += (
+                reg.objfcts[0](self.invProb.model) * reg.alpha_s
+            )
+            phi_x += (
+                reg.objfcts[1](self.invProb.model) * reg.alpha_x
+            )
+            if reg.regmesh.dim > 1:
+                phi_y += (
+                    reg.objfcts[2](self.invProb.model) * reg.alpha_y
+                )
+
+            if reg.regmesh.dim > 2:
+                phi_z += (
+                    reg.objfcts[3](self.invProb.model) * reg.alpha_z
+                )
+
+        outDict['phi_ms'] = phi_s
+        outDict['phi_mx'] = phi_x
+        outDict['phi_my'] = phi_y
+        outDict['phi_mz'] = phi_z
         outDict['f'] = self.opt.f
         outDict['m'] = self.invProb.model
         outDict['dpred'] = self.invProb.dpred
