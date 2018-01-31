@@ -935,16 +935,6 @@ def writeUBC_DClocs(
             " not {}".format(format_type)
         )
 
-    if(isinstance(dc_survey.std, float)):
-        print(
-            """survey.std was a float computing uncertainty vector
-            (survey.std*survey.dobs + survey.eps)"""
-        )
-
-    if(isinstance(dc_survey.eps, float)):
-        epsValue = dc_survey.eps
-        dc_survey.eps = epsValue*np.ones_like(dc_survey.dobs)
-
     fid = open(fileName, 'w')
 
     if format_type in ['SURFACE', 'GENERAL'] and dim == 2:
@@ -1066,23 +1056,8 @@ def writeUBC_DClocs(
             fid.close()
 
             fid = open(fileName, 'ab')
-            if isinstance(dc_survey.std, np.ndarray):
-                np.savetxt(
-                    fid,
-                    np.c_[
-                        M, N,
-                    ],
-                    fmt=str('%e'), delimiter=str(' '), newline=str('\n')
-                )
-            elif (isinstance(dc_survey.std, float)):
-                np.savetxt(
-                    fid,
-                    np.c_[
-                        M, N,
-                    ],
-                    fmt=str('%e'), delimiter=str(' '), newline=str('\n')
-                )
-
+            np.savetxt(fid, np.c_[M, N], fmt=str('%e'), delimiter=str(' '),
+                newline=str('\n'))
             fid.close()
 
             fid = open(fileName, 'a')
@@ -1383,15 +1358,15 @@ def readUBC_DC3Dobs(fileName):
         if zflag:
 
             # Check if Pole Receiver
-            if np.allclose(temp[0:3], temp[3:6]):
-                polerx = True
-                # Flip z values
-                temp[2] = -temp[2]
-                rx.append(temp[:3])
-            else:
-                temp[2] = -temp[2]
-                temp[5] = -temp[5]
-                rx.append(temp[:-2])
+            # if np.allclose(temp[0:3], temp[3:6]):
+            #     polerx = True
+            #     # Flip z values
+            #     temp[2] = -temp[2]
+            #     rx.append(temp[:3])
+            # else:
+            temp[2] = -temp[2]
+            temp[5] = -temp[5]
+            rx.append(temp[:-2])
 
             # Check if there is data with the location
             if len(temp) == 8:
@@ -1400,12 +1375,12 @@ def readUBC_DC3Dobs(fileName):
 
         else:
             # Check if Pole Receiver
-            if np.allclose(temp[0:2], temp[2:4]):
-                polerx = True
-                # Flip z values
-                rx.append(temp[:2])
-            else:
-                rx.append(np.r_[temp[0:2], np.nan, temp[2:4], np.nan])
+            # if np.allclose(temp[0:2], temp[2:4]):
+            #     polerx = True
+            #     # Flip z values
+            #     rx.append(temp[:2])
+            # else:
+            rx.append(np.r_[temp[0:2], np.nan, temp[2:4], np.nan])
 
             # Check if there is data with the location
             if len(temp) == 6:
@@ -1417,10 +1392,10 @@ def readUBC_DC3Dobs(fileName):
         # Reach the end of transmitter block
         if count == 0:
             rx = np.asarray(rx)
-            if polerx:
-                Rx = DC.Rx.Pole(rx[:, :3])
-            else:
-                Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
+            # if polerx:
+            #     Rx = DC.Rx.Pole(rx[:, :3])
+            # else:
+            Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
             if poletx:
                 srcLists.append(DC.Src.Pole([Rx], tx[:3]))
             else:
@@ -1591,15 +1566,20 @@ def gettopoCC(mesh, actind, option="top"):
             topoCC = np.zeros(ZC.shape[0])
 
             for i in range(ZC.shape[0]):
-                ind = np.argmax(ZC[i, :][ACTIND[i, :]])
-                if option == "top":
-                    dz = mesh.hz[ACTIND[i, :]][ind] * 0.5
-                elif option == "center":
-                    dz = 0.
+                dz = 0.
+                if ~np.all(ACTIND[i, :]):
+                    if option == "top":
+                        dz = mesh.hz[-1] * 0.5
+                    topoCC[i] = (
+                        mesh.vectorCCz[-1] + dz
+                    )
                 else:
-                    raise Exception()
-                topoCC[i] = (
-                    ZC[i, :][ACTIND[i, :]].max() + dz
+                    ind = np.argmax(ZC[i, :][ACTIND[i, :]])
+                    if option == "top":
+                        dz = mesh.hz[ACTIND[i, :]][ind] * 0.5
+
+                    topoCC[i] = (
+                        ZC[i, :][ACTIND[i, :]].max() + dz
                     )
             return mesh2D, topoCC
 
@@ -1611,15 +1591,19 @@ def gettopoCC(mesh, actind, option="top"):
             YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
             topoCC = np.zeros(YC.shape[0])
             for i in range(YC.shape[0]):
-                ind = np.argmax(YC[i, :][ACTIND[i, :]])
-                if option == "top":
-                    dy = mesh.hy[ACTIND[i, :]][ind] * 0.5
-                elif option == "center":
-                    dy = 0.
+                dy = 0.
+                if ~np.all(ACTIND[i, :]):
+                    if option == "top":
+                        dy = mesh.hy[-1] * 0.5
+                    topoCC[i] = (
+                        mesh.vectorCCy[-1]+ dy
+                    )
                 else:
-                    raise Exception()
-                topoCC[i] = (
-                    YC[i, :][ACTIND[i, :]].max() + dy
+                    ind = np.argmax(YC[i, :][ACTIND[i, :]])
+                    if option == "top":
+                        dy = mesh.hy[ACTIND[i, :]][ind] * 0.5
+                    topoCC[i] = (
+                        YC[i, :][ACTIND[i, :]].max() + dy
                     )
             return mesh1D, topoCC
 
