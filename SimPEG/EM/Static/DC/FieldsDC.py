@@ -77,22 +77,24 @@ class Fields_CC(FieldsDC):
     def __init__(self, mesh, survey, **kwargs):
         FieldsDC.__init__(self, mesh, survey, **kwargs)
 
-        if self.prob.bc_type == 'Dirichlet':
+        if self.survey.prob.bc_type == 'Dirichlet':
             self.cellGrad = -mesh.faceDiv.T
-        elif self.prob.bc_type == 'Neumann':
+        elif self.survey.prob.bc_type == 'Neumann':
             if self.mesh._meshType == "TREE":
                 raise NotImplementedError()
             mesh.setCellGradBC("neumann")
             self.cellGrad = mesh.cellGrad
 
     def startup(self):
-        self.prob = self.survey.prob
+        # self.prob = self.survey.prob
         self._MfRhoI = self.survey.prob.MfRhoI
         self._MfRho = self.survey.prob.MfRho
         self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
         self._nC = self.survey.prob.mesh.nC
         self._Grad = self.survey.prob.Grad
         self._MfI = self.survey.prob.MfI
+        self._Vol = self.survey.prob.Vol
+        self._faceDiv = self.survey.prob.mesh.faceDiv
 
     def _GLoc(self, fieldType):
         if fieldType == 'phi':
@@ -123,15 +125,16 @@ class Fields_CC(FieldsDC):
             .. math::
                 \vec{e} = \rho \vec{j}
         """
-        return self._MfI * (self._MfRho * self._j(phiSolution, srcList))
+        return self._MfI*self._MfRhoI * self._j(phiSolution, srcList)
 
     def _charge(self, phiSolution, srcList):
         """
             .. math::
                 \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
-        return epsilon_0*self.prob.Vol*(self.mesh.faceDiv*self._e(phiSolution,
-                                                                  srcList))
+        return epsilon_0*self._Vol*(
+            self._faceDiv*self._e(phiSolution, srcList)
+        )
 
 
 class Fields_N(FieldsDC):
