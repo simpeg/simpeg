@@ -125,7 +125,7 @@ class Fields_CC(FieldsDC):
             .. math::
                 \vec{e} = \rho \vec{j}
         """
-        return self._MfI*self._MfRhoI * self._j(phiSolution, srcList)
+        return self._MfI*self._MfRho * self._j(phiSolution, srcList)
 
     def _charge(self, phiSolution, srcList):
         """
