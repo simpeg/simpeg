@@ -1347,8 +1347,8 @@ def readUBC_DC3Dobs(fileName):
                     temp[2] = -temp[2]
                 else:
                     # Flip z values
-                    temp[2] = -temp[2]
-                    temp[5] = -temp[5]
+                    temp[2] = temp[2]
+                    temp[5] = temp[5]
                     tx = temp[:-1]
 
             continue
@@ -1364,8 +1364,8 @@ def readUBC_DC3Dobs(fileName):
             #     temp[2] = -temp[2]
             #     rx.append(temp[:3])
             # else:
-            temp[2] = -temp[2]
-            temp[5] = -temp[5]
+            temp[2] = temp[2]
+            temp[5] = temp[5]
             rx.append(temp[:-2])
 
             # Check if there is data with the location
