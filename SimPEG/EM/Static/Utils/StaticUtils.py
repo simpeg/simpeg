@@ -440,6 +440,7 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
 
         Input:
         :param numpy.ndarray endl: input endpoints [x1, y1, z1, x2, y2, z2]
+        :param discretize.BaseMesh mesh: discretize mesh object
         :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
             'dipole-pole' | 'pole-pole' | 'gradient'
         :param int a: pole seperation
@@ -623,71 +624,6 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
         survey = DC.Survey(SrcList)
 
     return survey
-
-
-def gen_3d_survey_from_2d_lines(
-        survey_type,
-        a, b, n_spacing,
-        n_lines=5, line_length=200., line_spacing=20.,
-        x0=0, y0=0, z0=0,
-        src_offset_y=0.,
-        dim=3,
-        is_IO=True
-):
-    """
-        Generate 3D DC survey using gen_DCIPsurvey function.
-
-        Input:
-        :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-            'dipole-pole' | 'pole-pole' | 'gradient'
-        :param int a: pole seperation
-        :param int b: dipole separation
-        :param int n_spacing: number of rx dipoles per tx
-
-        Output:
-        :return SimPEG.DC.SurveyDC.Survey survey_3d: 3D DC survey object
-    """
-    ylocs = np.arange(n_lines)*line_spacing + y0
-
-    survey_lists_2d = []
-    srcList = []
-    line_inds = []
-    for i, y in enumerate(ylocs):
-        # Generate DC survey object
-        xmin, xmax = x0, x0+line_length
-        ymin, ymax = y, y
-        zmin, zmax = 0, 0
-        IO_2d = DC.IO()
-        endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-        survey_2d = gen_DCIPsurvey(
-            endl, survey_type, a, b, n_spacing, dim=3,
-        )
-
-        srcList.append(survey_2d.srcList)
-        survey_2d.getABMN_locations()
-        survey_2d = IO_2d.from_ambn_locations_to_survey(
-            survey_2d.a_locations[:, [0, 2]], survey_2d.b_locations[:, [0, 2]],
-            survey_2d.m_locations[:, [0, 2]], survey_2d.n_locations[:, [0, 2]],
-            survey_type, dimension=2
-        )
-        survey_lists_2d.append(survey_2d)
-        line_inds.append(np.ones(survey_2d.nD, dtype=int)*i)
-    line_inds = np.hstack(line_inds)
-    srcList = sum(srcList, [])
-    survey_3d = DC.Survey(srcList)
-    survey_3d.getABMN_locations()
-    IO_3d = DC.IO()
-
-    survey_3d.a_locations[:, 1] += src_offset_y
-    survey_3d.b_locations[:, 1] += src_offset_y
-
-    survey_3d = IO_3d.from_ambn_locations_to_survey(
-        survey_3d.a_locations, survey_3d.b_locations,
-        survey_3d.m_locations, survey_3d.n_locations,
-        survey_type, dimension=3,
-        line_inds=line_inds
-    )
-    return IO_3d, survey_3d
 
 
 def writeUBC_DCobs(
@@ -1344,7 +1280,7 @@ def readUBC_DC3Dobs(fileName):
                 if np.allclose(temp[0:3], temp[3:6]):
                     tx = np.r_[temp[0:3]]
                     poletx = True
-                    temp[2] = -temp[2]
+                    temp[2] = temp[2]
                 else:
                     # Flip z values
                     temp[2] = temp[2]
@@ -1361,7 +1297,7 @@ def readUBC_DC3Dobs(fileName):
             # if np.allclose(temp[0:3], temp[3:6]):
             #     polerx = True
             #     # Flip z values
-            #     temp[2] = -temp[2]
+            #     temp[2] = temp[2]
             #     rx.append(temp[:3])
             # else:
             temp[2] = temp[2]
@@ -1549,7 +1485,6 @@ def getSrc_locs(survey):
 def gettopoCC(mesh, actind, option="top"):
     """
         Get topography from active indices of mesh.
-
     """
 
     if mesh._meshType == "TENSOR":
@@ -1566,20 +1501,15 @@ def gettopoCC(mesh, actind, option="top"):
             topoCC = np.zeros(ZC.shape[0])
 
             for i in range(ZC.shape[0]):
-                dz = 0.
-                if ~np.all(ACTIND[i, :]):
-                    if option == "top":
-                        dz = mesh.hz[-1] * 0.5
-                    topoCC[i] = (
-                        mesh.vectorCCz[-1] + dz
-                    )
+                ind = np.argmax(ZC[i, :][ACTIND[i, :]])
+                if option == "top":
+                    dz = mesh.hz[ACTIND[i, :]][ind] * 0.5
+                elif option == "center":
+                    dz = 0.
                 else:
-                    ind = np.argmax(ZC[i, :][ACTIND[i, :]])
-                    if option == "top":
-                        dz = mesh.hz[ACTIND[i, :]][ind] * 0.5
-
-                    topoCC[i] = (
-                        ZC[i, :][ACTIND[i, :]].max() + dz
+                    raise Exception()
+                topoCC[i] = (
+                    ZC[i, :][ACTIND[i, :]].max() + dz
                     )
             return mesh2D, topoCC
 
@@ -1591,19 +1521,15 @@ def gettopoCC(mesh, actind, option="top"):
             YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
             topoCC = np.zeros(YC.shape[0])
             for i in range(YC.shape[0]):
-                dy = 0.
-                if ~np.all(ACTIND[i, :]):
-                    if option == "top":
-                        dy = mesh.hy[-1] * 0.5
-                    topoCC[i] = (
-                        mesh.vectorCCy[-1]+ dy
-                    )
+                ind = np.argmax(YC[i, :][ACTIND[i, :]])
+                if option == "top":
+                    dy = mesh.hy[ACTIND[i, :]][ind] * 0.5
+                elif option == "center":
+                    dy = 0.
                 else:
-                    ind = np.argmax(YC[i, :][ACTIND[i, :]])
-                    if option == "top":
-                        dy = mesh.hy[ACTIND[i, :]][ind] * 0.5
-                    topoCC[i] = (
-                        YC[i, :][ACTIND[i, :]].max() + dy
+                    raise Exception()
+                topoCC[i] = (
+                    YC[i, :][ACTIND[i, :]].max() + dy
                     )
             return mesh1D, topoCC
 
