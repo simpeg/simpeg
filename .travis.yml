@@ -18,7 +18,7 @@ env:
   global:
     - DEPLOY_DIR=tests/docs
     - MASTER_BRANCH=master
-    - DEV_BRANCH=dev
+    - GAE_PROJECT=simpegdocs
     - DOCS_PY=2.7  # deploy docs from 2.7
     - PYPI_PY=3.6 # deploy to pypi from python 3.6
 
@@ -42,9 +42,9 @@ env:
 before_install:
 # Install packages
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      wget https://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh -O miniconda.sh;
+      wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
     else
-      wget https://repo.continuum.io/miniconda/Miniconda3-3.8.3-Linux-x86_64.sh -O miniconda.sh;
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
     fi
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
@@ -53,9 +53,9 @@ before_install:
 
 install:
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py vtk;
+      conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py vtk;
     else
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
+      conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
     fi
   - pip install -r requirements_dev.txt
   - python setup.py install
@@ -88,7 +88,7 @@ after_success:
   - bash <(curl -s https://codecov.io/bash)
 
   # early exit if not on a deplotment branch
-  - if ! [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" -o "$TRAVIS_BRANCH" = "$DEV_BRANCH" -o "$TRAVIS_TAG" ]; then
+  - if ! [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" -o "$TRAVIS_TAG" = "true" ]; then
       echo "Not deploying (because this is not a deployment branch)" ;
       exit 0 ;
     fi
@@ -104,15 +104,12 @@ after_success:
   # deploy docs
   - if [ $TRAVIS_PYTHON_VERSION == $DOCS_PY ]; then
       if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" ]; then
-        gcloud auth activate-service-account --key-file credentials/client-secret.json ;
-        export GAE_PROJECT=simpegdocs ;
-      elif [ "$TRAVIS_BRANCH" = "$DEV_BRANCH" ]; then
         cd docs; tar -cvzf _build.tar.gz _build ;
         cd content; tar -cvzf examples.tar.gz examples ; cd ..;
         gsutil cp docs/_build.tar.gz gs://simpeg ;
         gsutil cp docs/content/examples.tar.gz gs://simpeg ;
         gcloud auth activate-service-account --key-file credentials/client-secret-dev.json ;
-        export GAE_PROJECT=simpeg-dev-docs ;
+        export GAE_PROJECT=$GAE_PROJECT ;
       fi ;
       gcloud config set project $GAE_PROJECT;
       gcloud app deploy ./docs/app.yaml --version ${TRAVIS_COMMIT} --promote;
@@ -122,7 +119,7 @@ after_success:
   - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY ]; then
       if [ "$TRAVIS_TAG" ]; then
         mv credentials/.pypirc ~/.pypirc ;
-        python setup.py bdist_wheel --universal ;
+        python setup.py sdist bdist_wheel --universal ;
         travis_wait 20 twine upload -r pypi --skip-existing dist/* ;
       fi
     fi

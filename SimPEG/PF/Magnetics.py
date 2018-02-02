@@ -8,7 +8,6 @@ from SimPEG import Utils
 from SimPEG import Problem
 from SimPEG import Solver
 from SimPEG import Props
-from SimPEG import Mesh
 
 from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
@@ -27,8 +26,6 @@ class MagneticIntegral(Problem.LinearProblem):
     rtype = 'tmi'  #: Receiver type either "tmi" | "xyz"
 
     def __init__(self, mesh, **kwargs):
-
-        assert mesh.dim == 3, 'Integral formulation only available for 3D mesh'
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     def fwr_ind(self, m):
@@ -42,7 +39,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         else:
 
-            return self.G.dot(self.chiMap*m)
+            return self.G.dot(m)
 
     def fwr_rem(self):
         # TODO check if we are inverting for M
@@ -64,6 +61,14 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return u
 
+    # def Jvec(self, m, v, f=None):
+    #     dmudm = self.chiMap.deriv(m)
+    #     return self.G.dot(dmudm*v)
+
+    # def Jtvec(self, m, v, f=None):
+    #     dmudm = self.chiMap.deriv(m)
+    #     return dmudm.T * (self.G.T.dot(v))
+
     @property
     def G(self):
         if not self.ispaired:
@@ -74,21 +79,19 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return self._G
 
-    def getJ(self, m, f):
+    # def _Jmatrix(self):
+    #     """
+    #         Sensitivity matrix
+    #     """
+    #     dmudm = self.chiMap.deriv(self.chi)
+    #     return self.G*dmudm
+
+    def getJ(self, m, f=None):
         """
             Sensitivity matrix
         """
-
-        dmudm = self.chiMap.deriv(m)
-        return self.G * dmudm
-
-    def Jvec(self, m, v, f=None):
-        dmudm = self.chiMap.deriv(m)
-        return self.G.dot(dmudm*v)
-
-    def Jtvec(self, m, v, f=None):
-        dmudm = self.chiMap.deriv(m)
-        return dmudm.T * (self.G.T.dot(v))
+        dmudm = self.chiMap.deriv(self.chi)
+        return self.G*dmudm
 
     def Intrgl_Fwr_Op(self, m=None, Magnetization="ind"):
 
@@ -128,27 +131,12 @@ class MagneticIntegral(Problem.LinearProblem):
 
         # Create vectors of nodal location
         # (lower and upper coners for each cell)
-        if isinstance(self.mesh, Mesh.TreeMesh):
-            # Get upper and lower corners of each cell
-            bsw = (self.mesh.gridCC -
-                   np.kron(self.mesh.vol.T**(1/3)/2,
-                           np.ones(3)).reshape((self.mesh.nC, 3)))
-            tne = (self.mesh.gridCC +
-                   np.kron(self.mesh.vol.T**(1/3)/2,
-                           np.ones(3)).reshape((self.mesh.nC, 3)))
+        xn = self.mesh.vectorNx
+        yn = self.mesh.vectorNy
+        zn = self.mesh.vectorNz
 
-            xn1, xn2 = bsw[:, 0], tne[:, 0]
-            yn1, yn2 = bsw[:, 1], tne[:, 1]
-            zn1, zn2 = bsw[:, 2], tne[:, 2]
-
-        else:
-
-            xn = self.mesh.vectorNx
-            yn = self.mesh.vectorNy
-            zn = self.mesh.vectorNz
-
-            yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
-            yn1, xn1, zn1 = np.meshgrid(yn[:-1], xn[:-1], zn[:-1])
+        yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+        yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
         Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
         Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
@@ -268,11 +256,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return fwr_out
 
-    def mapPair(self):
-        """
-            Call for general mapping of the problem
-        """
-        return self.chiMap
+
 class MagneticVector(MagneticIntegral):
 
     forwardOnly = False  # If false, matric is store to memory (watch your RAM)
@@ -798,19 +782,19 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
     Ty = np.zeros((1, 3*nC))
     Tz = np.zeros((1, 3*nC))
 
-    dz2 = rxLoc[2] - Zn[:, 0] + eps
-    dz1 = rxLoc[2] - Zn[:, 1] + eps
+    dz2 = rxLoc[2] - Zn[:, 0]
+    dz1 = rxLoc[2] - Zn[:, 1]
 
-    dy2 = Yn[:, 1] - rxLoc[1] + eps
-    dy1 = Yn[:, 0] - rxLoc[1] + eps
+    dy2 = Yn[:, 1] - rxLoc[1]
+    dy1 = Yn[:, 0] - rxLoc[1]
 
-    dx2 = Xn[:, 1] - rxLoc[0] + eps
-    dx1 = Xn[:, 0] - rxLoc[0] + eps
+    dx2 = Xn[:, 1] - rxLoc[0]
+    dx1 = Xn[:, 0] - rxLoc[0]
 
-    R1 = (dy2**2 + dx2**2)
-    R2 = (dy2**2 + dx1**2)
-    R3 = (dy1**2 + dx2**2)
-    R4 = (dy1**2 + dx1**2)
+    R1 = (dy2**2 + dx2**2) + eps
+    R2 = (dy2**2 + dx1**2) + eps
+    R3 = (dy1**2 + dx2**2) + eps
+    R4 = (dy1**2 + dx1**2) + eps
 
     arg1 = np.sqrt(dz2**2 + R2)
     arg2 = np.sqrt(dz2**2 + R1)
@@ -844,10 +828,10 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
         np.arctan2(dx1 * dz1, (dy1 * arg7)) +\
         - np.arctan2(dx2 * dz1, (dy1 * arg8))
 
-    R1 = (dy2**2 + dz1**2)
-    R2 = (dy2**2 + dz2**2)
-    R3 = (dy1**2 + dz1**2)
-    R4 = (dy1**2 + dz2**2)
+    R1 = (dy2**2 + dz1**2) + eps
+    R2 = (dy2**2 + dz2**2) + eps
+    R3 = (dy1**2 + dz1**2) + eps
+    R4 = (dy1**2 + dz2**2) + eps
 
     Ty[0, 2*nC:] = np.log((dx1 + np.sqrt(dx1**2 + R1)) /
                           (dx2 + np.sqrt(dx2**2 + R1))) +\
@@ -855,10 +839,10 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
         np.log((dx1 + np.sqrt(dx1**2 + R4)) / (dx2 + np.sqrt(dx2**2 + R4))) +\
         -np.log((dx1 + np.sqrt(dx1**2 + R3)) / (dx2 + np.sqrt(dx2**2 + R3)))
 
-    R1 = (dx2**2 + dz1**2)
-    R2 = (dx2**2 + dz2**2)
-    R3 = (dx1**2 + dz1**2)
-    R4 = (dx1**2 + dz2**2)
+    R1 = (dx2**2 + dz1**2) + eps
+    R2 = (dx2**2 + dz2**2) + eps
+    R3 = (dx1**2 + dz1**2) + eps
+    R4 = (dx1**2 + dz2**2) + eps
 
     Tx[0, 2*nC:] = np.log((dy1 + np.sqrt(dy1**2 + R1)) /
                           (dy2 + np.sqrt(dy2**2 + R1))) +\
@@ -1057,7 +1041,7 @@ def writeUBCobs(filename, survey, d):
     data = np.c_[rxLoc, d, wd]
     head = ('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0])+
               '%6.2f %6.2f %6.2f\n' % (B[1], B[2], 1)+
-              '%i' % len(d))
+              '%i\n' % len(d))
     np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n',header=head,comments='')
 
     print("Observation file saved to: " + filename)

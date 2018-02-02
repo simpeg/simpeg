@@ -1,12 +1,12 @@
 from __future__ import print_function
 from SimPEG import Problem
 from SimPEG import Utils
+from SimPEG.Utils import mkvc
 from SimPEG import Props
 import scipy.sparse as sp
 from . import BaseGrav as GRAV
 import re
 import numpy as np
-
 
 
 class GravityIntegral(Problem.LinearProblem):
@@ -52,27 +52,14 @@ class GravityIntegral(Problem.LinearProblem):
                 shape=(self.mesh.nC, nC)
             )
 
-            if isinstance(self.mesh, Mesh.TreeMesh):
-                # Get upper and lower corners of each cell
-                bsw = (self.mesh.gridCC -
-                       np.kron(self.mesh.vol.T**(1/3)/2,
-                               np.ones(3)).reshape((self.mesh.nC, 3)))
-                tne = (self.mesh.gridCC +
-                       np.kron(self.mesh.vol.T**(1/3)/2,
-                               np.ones(3)).reshape((self.mesh.nC, 3)))
+            # Create vectors of nodal location
+            # (lower and upper corners for each cell)
+            xn = self.mesh.vectorNx
+            yn = self.mesh.vectorNy
+            zn = self.mesh.vectorNz
 
-                xn1, xn2 = bsw[:, 0], tne[:, 0]
-                yn1, yn2 = bsw[:, 1], tne[:, 1]
-                zn1, zn2 = bsw[:, 2], tne[:, 2]
-
-            else:
-
-                xn = self.mesh.vectorNx
-                yn = self.mesh.vectorNy
-                zn = self.mesh.vectorNz
-
-                yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
-                yn1, xn1, zn1 = np.meshgrid(yn[:-1], xn[:-1], zn[:-1])
+            yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+            yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
             Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
             Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
@@ -127,11 +114,20 @@ class GravityIntegral(Problem.LinearProblem):
 
         return fields
 
-    def getJ(self, m, f):
+    # def _Jmatrix(self, m):
+    #     """
+    #         Sensitivity matrix
+    #     """
+    #     dmudm = self.rhoMap.deriv(m)
+    #     return self.G*dmudm
+
+    def getJ(self, m, f=None):
         """
             Sensitivity matrix
         """
-        return self.G
+
+        dmudm = self.rhoMap.deriv(m)
+        return self.G*dmudm
 
     def Jvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
@@ -246,12 +242,6 @@ class GravityIntegral(Problem.LinearProblem):
 
         return G
 
-    def mapPair(self):
-        """
-            Call for general mapping of the problem
-        """
-        return self.rhoMap
-
 
 def get_T_mat(Xn, Yn, Zn, rxLoc):
     """
@@ -276,7 +266,7 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
     from scipy.constants import G as NewtG
 
     NewtG = NewtG*1e+8  # Convertion from mGal (1e-5) and g/cc (1e-3)
-    eps = 1e-10  # add a small value to the locations to avoid
+    eps = 1e-8  # add a small value to the locations to avoid
 
     nC = Xn.shape[0]
 
@@ -285,11 +275,11 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
     ty = np.zeros((1, nC))
     tz = np.zeros((1, nC))
 
-    dz = rxLoc[2] - Zn + eps
+    dz = rxLoc[2] - Zn
 
-    dy = Yn - rxLoc[1] + eps
+    dy = Yn - rxLoc[1]
 
-    dx = Xn - rxLoc[0] + eps
+    dx = Xn - rxLoc[0]
 
     # Compute contribution from each corners
     for aa in range(2):
@@ -297,28 +287,28 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
             for cc in range(2):
 
                 r = (
-                        dx[:, aa] ** 2 +
-                        dy[:, bb] ** 2 +
-                        dz[:, cc] ** 2
+                        mkvc(dx[:, aa]) ** 2 +
+                        mkvc(dy[:, bb]) ** 2 +
+                        mkvc(dz[:, cc]) ** 2
                     ) ** (0.50)
 
                 tx = tx - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                    dy[:, bb] * np.log(dz[:, cc] + r) +
-                    dz[:, cc] * np.log(dy[:, bb] + r) -
+                    dy[:, bb] * np.log(dz[:, cc] + r + eps) +
+                    dz[:, cc] * np.log(dy[:, bb] + r + eps) -
                     dx[:, aa] * np.arctan(dy[:, bb] * dz[:, cc] /
-                                          (dx[:, aa] * r)))
+                                          (dx[:, aa] * r + eps)))
 
                 ty = ty - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                    dx[:, aa] * np.log(dz[:, cc] + r) +
-                    dz[:, cc] * np.log(dx[:, aa] + r) -
+                    dx[:, aa] * np.log(dz[:, cc] + r + eps) +
+                    dz[:, cc] * np.log(dx[:, aa] + r + eps) -
                     dy[:, bb] * np.arctan(dx[:, aa] * dz[:, cc] /
-                                          (dy[:, bb] * r)))
+                                          (dy[:, bb] * r + eps)))
 
                 tz = tz - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                    dx[:, aa] * np.log(dy[:, bb] + r) +
-                    dy[:, bb] * np.log(dx[:, aa] + r) -
+                    dx[:, aa] * np.log(dy[:, bb] + r + eps) +
+                    dy[:, bb] * np.log(dx[:, aa] + r + eps) -
                     dz[:, cc] * np.arctan(dx[:, aa] * dy[:, bb] /
-                                          (dz[:, cc] * r)))
+                                          (dz[:, cc] * r + eps)))
 
     return tx, ty, tz
 

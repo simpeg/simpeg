@@ -14,7 +14,7 @@ from SimPEG.EM import NSEM
 np.random.seed(1983)
 
 
-def run(plotIt=True):
+def run(plotIt=False):
 
     # Setup the forward modeling
     # Setting up 1D mesh and conductivity models to forward model data.
