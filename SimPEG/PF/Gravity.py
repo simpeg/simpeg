@@ -7,7 +7,8 @@ import scipy.sparse as sp
 from . import BaseGrav as GRAV
 import re
 import numpy as np
-
+import multiprocessing
+import scipy.constants as constants
 
 
 class GravityIntegral(Problem.LinearProblem):
@@ -23,10 +24,14 @@ class GravityIntegral(Problem.LinearProblem):
     rType = 'z'
     silent = False
     memory_saving_mode = False
+    n_cpu = 2#multiprocessing.cpu_count()
+    PARALLEL = True
+    progressIndex = -1
 
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
+
 
     def fields(self, m):
         self.model = self.rhoMap*m
@@ -142,12 +147,12 @@ class GravityIntegral(Problem.LinearProblem):
         yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
         yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
-        Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
-        Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
-        Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
+        self.Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+        self.Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+        self.Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
-        rxLoc = self.survey.srcField.rxList[0].locs
-        ndata = int(rxLoc.shape[0])
+        self.rxLoc = self.survey.srcField.rxList[0].locs
+        self.ndata = int(self.rxLoc.shape[0])
 
         # Pre-allocate space and create magnetization matrix if required
         # Pre-allocate space
@@ -157,51 +162,46 @@ class GravityIntegral(Problem.LinearProblem):
 
         else:
 
-            F = np.zeros((ndata, nC), dtype=np.float32)
+            F = np.zeros((self.ndata, nC), dtype=np.float32)
 
         # Loop through all observations
         print("Begin linear forward calculation: " + self.rType)
 
         # Add counter to dsiplay progress. Good for large problems
         count = -1
-        for ii in range(ndata):
 
-            tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
+        if __name__ == 'SimPEG.PF.Gravity':
+            multiprocessing.freeze_support()
+            pool = multiprocessing.Pool(self.n_cpu)
 
-                        # Add counter to dsiplay progress. Good for large problems
+        if self.PARALLEL:
+            result = pool.map(self.get_T_mat, [ii for ii in range(self.ndata)])
+            pool.close()
+            pool.join()
+        else:
+            result = [self.get_T_mat(ii) for ii in range(self.ndata)]
 
-            if self.forwardOnly:
-                tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
+        return np.vstack(result)
+        # for ii in range(ndata):
+        #                 # Add counter to dsiplay progress. Good for large problems
 
-                if self.rType == 'x':
-                    F[ii] = tx.dot(m)
+        #     if self.forwardOnly:
+        #         t = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :],
+        #                       component=self.rType)
 
-                elif self.rType == 'y':
-                    F[ii] = ty.dot(m)
+        #         F[ii] = t.dot(m)
 
-                elif self.rType == 'z':
-                    F[ii] = tz.dot(m)
+        #     else:
 
-            else:
-                if self.rType == 'x':
-                    F[ii, :] = tx
+        #         F[ii, :] = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :],
+        #                              component=self.rType)
+        #     if not self.silent:
+        #         # Display progress
+        #         count = progress(ii, count, ndata)
 
-                elif self.rType == 'y':
-                    F[ii, :] = ty
+        # print("Done 100% ...forward operator completed!!\n")
 
-                elif self.rType == 'z':
-                    F[ii, :] = tz
-
-                else:
-                    raise Exception('rType must be: "x", "y" or "z"')
-
-            if not self.silent:
-                # Display progress
-                count = progress(ii, count, ndata)
-
-        print("Done 100% ...forward operator completed!!\n")
-
-        return F
+        # return F
 
     def mapPair(self):
         """
@@ -210,96 +210,92 @@ class GravityIntegral(Problem.LinearProblem):
         return self.rhoMap
 
 
-def get_T_mat(Xn, Yn, Zn, rxLoc):
-    """
-    Load in the active nodes of a tensor mesh and computes the gravity tensor
-    for a given observation location rxLoc[obsx, obsy, obsz]
+    def get_T_mat(self, index, component='z'):
+        """
+        Load in the active nodes of a tensor mesh and computes the gravity tensor
+        for a given observation location rxLoc[obsx, obsy, obsz]
 
-    INPUT:
-    Xn, Yn, Zn: Node location matrix for the lower and upper most corners of
-                all cells in the mesh shape[nC,2]
-    M
-    OUTPUT:
-    Tx = [Txx Txy Txz]
-    Ty = [Tyx Tyy Tyz]
-    Tz = [Tzx Tzy Tzz]
+        INPUT:
+        Xn, Yn, Zn: Node location matrix for the lower and upper most corners of
+                    all cells in the mesh shape[nC,2]
+        M
+        OUTPUT:
+        Tx = [Txx Txy Txz]
+        Ty = [Tyx Tyy Tyz]
+        Tz = [Tzx Tzy Tzz]
 
-    where each elements have dimension 1-by-nC.
-    Only the upper half 5 elements have to be computed since symetric.
-    Currently done as for-loops but will eventually be changed to vector
-    indexing, once the topography has been figured out.
+        where each elements have dimension 1-by-nC.
+        Only the upper half 5 elements have to be computed since symetric.
+        Currently done as for-loops but will eventually be changed to vector
+        indexing, once the topography has been figured out.
 
-    """
-    from scipy.constants import G as NewtG
+        """
 
-    NewtG = NewtG*1e+8  # Convertion from mGal (1e-5) and g/cc (1e-3)
-    eps = 1e-8  # add a small value to the locations to avoid
+        rxLoc = self.rxLoc[index, :]
+        NewtG = constants.G*1e+8  # Convertion from mGal (1e-5) and g/cc (1e-3)
+        eps = 1e-8  # add a small value to the locations to avoid
 
-    nC = Xn.shape[0]
+        nC = self.Xn.shape[0]
 
-    # Pre-allocate space for 1D array
-    tx = np.zeros((1, nC))
-    ty = np.zeros((1, nC))
-    tz = np.zeros((1, nC))
+        # Pre-allocate space for 1D array
+        t = np.zeros((1, nC))
 
-    dz = rxLoc[2] - Zn
+        dz = rxLoc[2] - self.Zn
 
-    dy = Yn - rxLoc[1]
+        dy = self.Yn - rxLoc[1]
 
-    dx = Xn - rxLoc[0]
+        dx = self.Xn - rxLoc[0]
 
-    # Compute contribution from each corners
-    for aa in range(2):
-        for bb in range(2):
-            for cc in range(2):
+        # Compute contribution from each corners
+        for aa in range(2):
+            for bb in range(2):
+                for cc in range(2):
 
-                r = (
-                        mkvc(dx[:, aa]) ** 2 +
-                        mkvc(dy[:, bb]) ** 2 +
-                        mkvc(dz[:, cc]) ** 2
-                    ) ** (0.50)
+                    r = (
+                            mkvc(dx[:, aa]) ** 2 +
+                            mkvc(dy[:, bb]) ** 2 +
+                            mkvc(dz[:, cc]) ** 2
+                        ) ** (0.50)
 
-                tx = tx - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                    dy[:, bb] * np.log(dz[:, cc] + r + eps) +
-                    dz[:, cc] * np.log(dy[:, bb] + r + eps) -
-                    dx[:, aa] * np.arctan(dy[:, bb] * dz[:, cc] /
-                                          (dx[:, aa] * r + eps)))
+                    if component == 'x':
+                        t = t - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                            dy[:, bb] * np.log(dz[:, cc] + r + eps) +
+                            dz[:, cc] * np.log(dy[:, bb] + r + eps) -
+                            dx[:, aa] * np.arctan(dy[:, bb] * dz[:, cc] /
+                                                  (dx[:, aa] * r + eps)))
 
-                ty = ty - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                    dx[:, aa] * np.log(dz[:, cc] + r + eps) +
-                    dz[:, cc] * np.log(dx[:, aa] + r + eps) -
-                    dy[:, bb] * np.arctan(dx[:, aa] * dz[:, cc] /
-                                          (dy[:, bb] * r + eps)))
+                    elif component == 'y':
+                        t = t - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                            dx[:, aa] * np.log(dz[:, cc] + r + eps) +
+                            dz[:, cc] * np.log(dx[:, aa] + r + eps) -
+                            dy[:, bb] * np.arctan(dx[:, aa] * dz[:, cc] /
+                                                  (dy[:, bb] * r + eps)))
 
-                tz = tz - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                    dx[:, aa] * np.log(dy[:, bb] + r + eps) +
-                    dy[:, bb] * np.log(dx[:, aa] + r + eps) -
-                    dz[:, cc] * np.arctan(dx[:, aa] * dy[:, bb] /
-                                          (dz[:, cc] * r + eps)))
+                    else:
+                        t = t - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                            dx[:, aa] * np.log(dy[:, bb] + r + eps) +
+                            dy[:, bb] * np.log(dx[:, aa] + r + eps) -
+                            dz[:, cc] * np.arctan(dx[:, aa] * dy[:, bb] /
+                                                  (dz[:, cc] * r + eps)))
 
-    return tx, ty, tz
+        self.progress(index)
+        return t
 
+    def progress(self, iter):
+        """
+        progress(iter,prog,final)
 
-def progress(iter, prog, final):
-    """
-    progress(iter,prog,final)
+        Function measuring the progress of a process and print to screen the %.
+        Useful to estimate the remaining runtime of a large problem.
 
-    Function measuring the progress of a process and print to screen the %.
-    Useful to estimate the remaining runtime of a large problem.
+        Created on Dec, 20th 2015
 
-    Created on Dec, 20th 2015
-
-    @author: dominiquef
-    """
-    arg = np.floor(float(iter)/float(final)*10.)
-
-    if arg > prog:
-
-        strg = "Done " + str(arg*10) + " %"
-        print(strg)
-        prog = arg
-
-    return prog
+        @author: dominiquef
+        """
+        arg = np.floor(iter/self.rxLoc.shape[0]*10.)
+        if arg > self.progressIndex:
+            print("Done " + str(arg*10) + " %")
+            self.progressIndex = arg
 
 
 def writeUBCobs(filename, survey, d=None):
