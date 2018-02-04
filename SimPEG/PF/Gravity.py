@@ -11,6 +11,79 @@ import multiprocessing
 import scipy.constants as constants
 
 
+def calcTrow(args):
+        """
+        Load in the active nodes of a tensor mesh and computes the gravity tensor
+        for a given observation location rxLoc[obsx, obsy, obsz]
+
+        INPUT:
+        Xn, Yn, Zn: Node location matrix for the lower and upper most corners of
+                    all cells in the mesh shape[nC,2]
+        M
+        OUTPUT:
+        Tx = [Txx Txy Txz]
+        Ty = [Tyx Tyy Tyz]
+        Tz = [Tzx Tzy Tzz]
+
+        where each elements have dimension 1-by-nC.
+        Only the upper half 5 elements have to be computed since symetric.
+        Currently done as for-loops but will eventually be changed to vector
+        indexing, once the topography has been figured out.
+
+        """
+
+        rxLoc, Xn, Yn, Zn, component = args
+
+        NewtG = constants.G*1e+8  # Convertion from mGal (1e-5) and g/cc (1e-3)
+        eps = 1e-8  # add a small value to the locations to avoid
+
+        nC = Xn.shape[0]
+
+        # Pre-allocate space for 1D array
+        t = np.zeros((1, nC))
+
+        dz = rxLoc[2] - Zn
+
+        dy = Yn - rxLoc[1]
+
+        dx = Xn - rxLoc[0]
+
+        # Compute contribution from each corners
+        for aa in range(2):
+            for bb in range(2):
+                for cc in range(2):
+
+                    r = (
+                            mkvc(dx[:, aa]) ** 2 +
+                            mkvc(dy[:, bb]) ** 2 +
+                            mkvc(dz[:, cc]) ** 2
+                        ) ** (0.50)
+
+                    if component == 'x':
+                        t = t - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                            dy[:, bb] * np.log(dz[:, cc] + r + eps) +
+                            dz[:, cc] * np.log(dy[:, bb] + r + eps) -
+                            dx[:, aa] * np.arctan(dy[:, bb] * dz[:, cc] /
+                                                  (dx[:, aa] * r + eps)))
+
+                    elif component == 'y':
+                        t = t - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                            dx[:, aa] * np.log(dz[:, cc] + r + eps) +
+                            dz[:, cc] * np.log(dx[:, aa] + r + eps) -
+                            dy[:, bb] * np.arctan(dx[:, aa] * dz[:, cc] /
+                                                  (dy[:, bb] * r + eps)))
+
+                    else:
+                        t = t - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                            dx[:, aa] * np.log(dy[:, bb] + r + eps) +
+                            dy[:, bb] * np.log(dx[:, aa] + r + eps) -
+                            dz[:, cc] * np.arctan(dx[:, aa] * dy[:, bb] /
+                                                  (dz[:, cc] * r + eps)))
+
+        # self.progress(index)
+        return t
+
+
 class GravityIntegral(Problem.LinearProblem):
 
     rho, rhoMap, rhoDeriv = Props.Invertible(
@@ -147,12 +220,12 @@ class GravityIntegral(Problem.LinearProblem):
         yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
         yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
-        self.Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
-        self.Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
-        self.Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
+        Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+        Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+        Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
-        self.rxLoc = self.survey.srcField.rxList[0].locs
-        self.ndata = int(self.rxLoc.shape[0])
+        rxLoc = self.survey.srcField.rxList[0].locs
+        self.ndata = int(rxLoc.shape[0])
 
         # Pre-allocate space and create magnetization matrix if required
         # Pre-allocate space
@@ -166,20 +239,19 @@ class GravityIntegral(Problem.LinearProblem):
 
         # Loop through all observations
         print("Begin linear forward calculation: " + self.rType)
+        comp = self.rType
 
         # Add counter to dsiplay progress. Good for large problems
         count = -1
 
-        if __name__ == 'SimPEG.PF.Gravity':
-            multiprocessing.freeze_support()
-            pool = multiprocessing.Pool(self.n_cpu)
-
         if self.PARALLEL:
-            result = pool.map(self.get_T_mat, [ii for ii in range(self.ndata)])
+            multiprocessing.freeze_support()
+            pool = multiprocessing.Pool(2)
+            result = pool.map(calcTrow, [(rxLoc[ii, :], Xn, Yn, Zn, comp) for ii in range(self.ndata)])
             pool.close()
             pool.join()
         else:
-            result = [self.get_T_mat(ii) for ii in range(self.ndata)]
+            result = [calcTrow((rxLoc[ii, :], Xn, Yn, Zn, comp)) for ii in range(self.ndata)]
 
         return np.vstack(result)
         # for ii in range(ndata):
@@ -210,92 +282,21 @@ class GravityIntegral(Problem.LinearProblem):
         return self.rhoMap
 
 
-    def get_T_mat(self, index, component='z'):
-        """
-        Load in the active nodes of a tensor mesh and computes the gravity tensor
-        for a given observation location rxLoc[obsx, obsy, obsz]
+    # def progress(self, iter):
+    #     """
+    #     progress(iter,prog,final)
 
-        INPUT:
-        Xn, Yn, Zn: Node location matrix for the lower and upper most corners of
-                    all cells in the mesh shape[nC,2]
-        M
-        OUTPUT:
-        Tx = [Txx Txy Txz]
-        Ty = [Tyx Tyy Tyz]
-        Tz = [Tzx Tzy Tzz]
+    #     Function measuring the progress of a process and print to screen the %.
+    #     Useful to estimate the remaining runtime of a large problem.
 
-        where each elements have dimension 1-by-nC.
-        Only the upper half 5 elements have to be computed since symetric.
-        Currently done as for-loops but will eventually be changed to vector
-        indexing, once the topography has been figured out.
+    #     Created on Dec, 20th 2015
 
-        """
-
-        rxLoc = self.rxLoc[index, :]
-        NewtG = constants.G*1e+8  # Convertion from mGal (1e-5) and g/cc (1e-3)
-        eps = 1e-8  # add a small value to the locations to avoid
-
-        nC = self.Xn.shape[0]
-
-        # Pre-allocate space for 1D array
-        t = np.zeros((1, nC))
-
-        dz = rxLoc[2] - self.Zn
-
-        dy = self.Yn - rxLoc[1]
-
-        dx = self.Xn - rxLoc[0]
-
-        # Compute contribution from each corners
-        for aa in range(2):
-            for bb in range(2):
-                for cc in range(2):
-
-                    r = (
-                            mkvc(dx[:, aa]) ** 2 +
-                            mkvc(dy[:, bb]) ** 2 +
-                            mkvc(dz[:, cc]) ** 2
-                        ) ** (0.50)
-
-                    if component == 'x':
-                        t = t - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                            dy[:, bb] * np.log(dz[:, cc] + r + eps) +
-                            dz[:, cc] * np.log(dy[:, bb] + r + eps) -
-                            dx[:, aa] * np.arctan(dy[:, bb] * dz[:, cc] /
-                                                  (dx[:, aa] * r + eps)))
-
-                    elif component == 'y':
-                        t = t - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                            dx[:, aa] * np.log(dz[:, cc] + r + eps) +
-                            dz[:, cc] * np.log(dx[:, aa] + r + eps) -
-                            dy[:, bb] * np.arctan(dx[:, aa] * dz[:, cc] /
-                                                  (dy[:, bb] * r + eps)))
-
-                    else:
-                        t = t - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                            dx[:, aa] * np.log(dy[:, bb] + r + eps) +
-                            dy[:, bb] * np.log(dx[:, aa] + r + eps) -
-                            dz[:, cc] * np.arctan(dx[:, aa] * dy[:, bb] /
-                                                  (dz[:, cc] * r + eps)))
-
-        self.progress(index)
-        return t
-
-    def progress(self, iter):
-        """
-        progress(iter,prog,final)
-
-        Function measuring the progress of a process and print to screen the %.
-        Useful to estimate the remaining runtime of a large problem.
-
-        Created on Dec, 20th 2015
-
-        @author: dominiquef
-        """
-        arg = np.floor(iter/self.rxLoc.shape[0]*10.)
-        if arg > self.progressIndex:
-            print("Done " + str(arg*10) + " %")
-            self.progressIndex = arg
+    #     @author: dominiquef
+    #     """
+    #     arg = np.floor(iter/self.rxLoc.shape[0]*10.)
+    #     if arg > self.progressIndex:
+    #         print("Done " + str(arg*10) + " %")
+    #         self.progressIndex = arg
 
 
 def writeUBCobs(filename, survey, d=None):
