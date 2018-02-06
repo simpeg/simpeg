@@ -302,7 +302,7 @@ class LinearProblem(BaseProblem):
             return self.G
 
     def Jvec(self, m, v, f=None):
-        return self.G.dot(v)
+        return self.G.dot(self.modelMap.deriv(m)*v)
 
     def Jtvec(self, m, v, f=None):
-        return self.G.T.dot(v)
+        return self.modelMap.deriv(m).T*self.G.T.dot(v)

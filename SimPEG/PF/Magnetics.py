@@ -28,49 +28,29 @@ class MagneticIntegral(Problem.LinearProblem):
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
-    def fwr_ind(self, m):
+    def fields(self, m, **kwargs):
+        """
+            Magnetic field data
+        """
+        self.model = m
 
         if self.forwardOnly:
 
             # Compute the linear operation without forming the full dense G
-            fwr_d = self.Intrgl_Fwr_Op(m=m)
+            fwr_d = self.Intrgl_Fwr_Op(m=self.chiMap*m)
 
             return fwr_d
 
         else:
 
-            return self.G.dot(m)
-
-    def fwr_rem(self):
-        # TODO check if we are inverting for M
-        return self.G.dot(self.chiMap(m))
-
-    def fields(self, m, **kwargs):
-        self.model = m
-
-        if self.rtype == 'tmi':
-            u = np.zeros(self.survey.nRx)
-        else:
-            u = np.zeros(3*self.survey.nRx)
-
-        u = self.fwr_ind(m=m)
-        # rem = self.rem
-
-        # if induced is not None:
-        #     total += induced
-
-        return u
-
-    # def Jvec(self, m, v, f=None):
-    #     dmudm = self.chiMap.deriv(m)
-    #     return self.G.dot(dmudm*v)
-
-    # def Jtvec(self, m, v, f=None):
-    #     dmudm = self.chiMap.deriv(m)
-    #     return dmudm.T * (self.G.T.dot(v))
+            return self.G.dot(self.chiMap*m)
 
     @property
     def G(self):
+        """
+            Linear forward operator
+            Array nD-by-nC
+        """
         if not self.ispaired:
             raise Exception('Need to pair!')
 
@@ -79,18 +59,11 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return self._G
 
-    # def _Jmatrix(self):
-    #     """
-    #         Sensitivity matrix
-    #     """
-    #     dmudm = self.chiMap.deriv(self.chi)
-    #     return self.G*dmudm
-
     def getJ(self, m, f=None):
         """
             Sensitivity matrix
         """
-        dmudm = self.chiMap.deriv(self.chi)
+        dmudm = self.chiMap.deriv(self.model)
         return self.G*dmudm
 
     def Intrgl_Fwr_Op(self, m=None, Magnetization="ind"):
@@ -147,13 +120,6 @@ class MagneticIntegral(Problem.LinearProblem):
         ndata = rxLoc.shape[0]
 
         # Pre-allocate space and create magnetization matrix if required
-
-
-        # # If assumes uniform magnetization direction
-        # if M.shape != (nC,3):
-
-        #     print('Magnetization vector must be Nc x 3')
-        #     return
         if getattr(self, 'M', None) is None:
             M = dipazm_2_xyz(np.ones(nC) * survey.srcField.param[1],
                              np.ones(nC) * survey.srcField.param[2])
@@ -166,14 +132,16 @@ class MagneticIntegral(Problem.LinearProblem):
 
         if survey.srcField.rxList[0].rxType == 'tmi':
 
-
             # Convert Bdecination from north to cartesian
-            D = (450.-float(survey.srcField.param[2])) % 360.
-            I = survey.srcField.param[1]
+            dec = (450.-float(survey.srcField.param[2])) % 360.
+            inc = survey.srcField.param[1]
+
             # Projection matrix
-            Ptmi = Utils.mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
-                              np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
-                              np.sin(np.deg2rad(I))], 2).T
+            Ptmi = Utils.mkvc(
+                    np.r_[np.cos(np.deg2rad(inc))*np.cos(np.deg2rad(dec)),
+                          np.cos(np.deg2rad(inc))*np.sin(np.deg2rad(dec)),
+                          np.sin(np.deg2rad(inc))], 2
+                    ).T
 
         if self.forwardOnly:
 
@@ -255,6 +223,13 @@ class MagneticIntegral(Problem.LinearProblem):
         print("Done 100% ...forward operator completed!!\n")
 
         return fwr_out
+
+    @property
+    def modelMap(self):
+        """
+            General call for model map
+        """
+        return self.chiMap
 
 
 class MagneticVector(MagneticIntegral):

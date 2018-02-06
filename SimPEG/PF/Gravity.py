@@ -242,6 +242,13 @@ class GravityIntegral(Problem.LinearProblem):
 
         return G
 
+    @property
+    def modelMap(self):
+        """
+            General call for model map
+        """
+        return self.rhoMap
+
 
 def get_T_mat(Xn, Yn, Zn, rxLoc):
     """
