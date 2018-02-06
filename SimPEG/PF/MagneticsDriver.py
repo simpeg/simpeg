@@ -332,7 +332,7 @@ class MagneticsDriver_Inv(object):
 
         return self._M
 
-    def readMagneticsObservations(obs_file):
+    def readMagneticsObservations(self, obs_file):
         """
         Read and write UBC mag file format
 
@@ -344,7 +344,7 @@ class MagneticsDriver_Inv(object):
         :param M, magnetization orentiaton (MI, MD)
         """
 
-        fid = open(obs_file, 'r')
+        fid = open(self.basePath + obs_file, 'r')
 
         # First line has the inclination,declination and amplitude of B0
         line = fid.readline()

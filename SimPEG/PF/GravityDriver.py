@@ -269,7 +269,7 @@ class GravityDriver_Inv(object):
 
         return self._activeModel
 
-    def readUBCgravObs(obs_file):
+    def readUBCgravObs(self, obs_file):
         """
         Read UBC grav file format
 
@@ -281,7 +281,7 @@ class GravityDriver_Inv(object):
 
         """
 
-        fid = open(obs_file, 'r')
+        fid = open(self.basePath + obs_file, 'r')
 
         # First line has the number of rows
         line = fid.readline()
