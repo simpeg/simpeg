@@ -120,7 +120,7 @@ class LinearSurvey(Survey.BaseSurvey):
 
     @property
     def nD(self):
-        return self.prob.G.shape[0]
+            return len(self.rxLoc)
 
     @property
     def nRx(self):
