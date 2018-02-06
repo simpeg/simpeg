@@ -51,7 +51,7 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.rtype == 'tmi':
             u = np.zeros(self.survey.nRx)
         else:
-            u = np.zeros(3*self.survey.nRx)
+            u = np.zeros(3 * self.survey.nRx)
 
         u = self.fwr_ind(m=m)
         # rem = self.rem
@@ -91,10 +91,13 @@ class MagneticIntegral(Problem.LinearProblem):
             Sensitivity matrix
         """
         dmudm = self.chiMap.deriv(self.chi)
-        return self.G*dmudm
+        return self.G * dmudm
+
+    @property
+    def modelMap(self):
+        return self.chiMap
 
     def Intrgl_Fwr_Op(self, m=None, Magnetization="ind"):
-
         """
 
         Magnetic forward operator in integral form
@@ -114,7 +117,7 @@ class MagneticIntegral(Problem.LinearProblem):
         if getattr(self, 'actInd', None) is not None:
             if self.actInd.dtype == 'bool':
                 inds = np.asarray([inds for inds,
-                                  elem in enumerate(self.actInd, 1) if elem],
+                                   elem in enumerate(self.actInd, 1) if elem],
                                   dtype=int) - 1
             else:
                 inds = self.actInd
@@ -138,16 +141,15 @@ class MagneticIntegral(Problem.LinearProblem):
         yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
         yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
-        Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
-        Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
-        Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
+        Yn = P.T * np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+        Xn = P.T * np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+        Zn = P.T * np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
         survey = self.survey
         rxLoc = survey.srcField.rxList[0].locs
         ndata = rxLoc.shape[0]
 
         # Pre-allocate space and create magnetization matrix if required
-
 
         # # If assumes uniform magnetization direction
         # if M.shape != (nC,3):
@@ -158,22 +160,22 @@ class MagneticIntegral(Problem.LinearProblem):
             M = dipazm_2_xyz(np.ones(nC) * survey.srcField.param[1],
                              np.ones(nC) * survey.srcField.param[2])
 
-        Mx = Utils.sdiag(M[:, 0]*survey.srcField.param[0])
-        My = Utils.sdiag(M[:, 1]*survey.srcField.param[0])
-        Mz = Utils.sdiag(M[:, 2]*survey.srcField.param[0])
+        Mx = Utils.sdiag(M[:, 0] * survey.srcField.param[0])
+        My = Utils.sdiag(M[:, 1] * survey.srcField.param[0])
+        Mz = Utils.sdiag(M[:, 2] * survey.srcField.param[0])
 
         Mxyz = sp.vstack((Mx, My, Mz))
 
         if survey.srcField.rxList[0].rxType == 'tmi':
 
-
             # Convert Bdecination from north to cartesian
-            D = (450.-float(survey.srcField.param[2])) % 360.
+            D = (450. - float(survey.srcField.param[2])) % 360.
             I = survey.srcField.param[1]
             # Projection matrix
-            Ptmi = Utils.mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
-                              np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
-                              np.sin(np.deg2rad(I))], 2).T
+            Ptmi = Utils.mkvc(np.r_[np.cos(np.deg2rad(I)) * np.cos(np.deg2rad(D)),
+                                    np.cos(np.deg2rad(I)) *
+                                    np.sin(np.deg2rad(D)),
+                                    np.sin(np.deg2rad(I))], 2).T
 
         if self.forwardOnly:
 
@@ -183,7 +185,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
             else:
 
-                fwr_out = np.zeros(3*self.survey.nRx)
+                fwr_out = np.zeros(3 * self.survey.nRx)
 
         else:
 
@@ -194,20 +196,21 @@ class MagneticIntegral(Problem.LinearProblem):
 
                 elif survey.srcField.rxList[0].rxType == 'xyz':
 
-                    fwr_out = np.zeros((int(3*ndata), nC))
+                    fwr_out = np.zeros((int(3 * ndata), nC))
 
             elif Magnetization == 'xyz':
                 if survey.srcField.rxList[0].rxType == 'tmi':
-                    fwr_out = np.zeros((int(ndata), int(3*nC)))
+                    fwr_out = np.zeros((int(ndata), int(3 * nC)))
 
                 elif survey.srcField.rxList[0].rxType == 'xyz':
-                    fwr_out = np.zeros((int(3*ndata), int(3*nC)))
+                    fwr_out = np.zeros((int(3 * ndata), int(3 * nC)))
 
             else:
                 print("""Flag must be either 'ind' | 'xyz', please revised""")
                 return
 
-            # Loop through all observations and create forward operator (nD-by-nC)
+            # Loop through all observations and create forward operator
+            # (nD-by-nC)
             print("Begin calculation of forward operator: " + Magnetization)
 
         # Add counter to dsiplay progress. Good for large problems
@@ -219,24 +222,26 @@ class MagneticIntegral(Problem.LinearProblem):
             if self.forwardOnly:
 
                 if self.rtype == 'tmi':
-                    fwr_out[ii] = (Ptmi.dot(np.vstack((tx, ty, tz)))*Mxyz).dot(m)
+                    fwr_out[ii] = (
+                        Ptmi.dot(np.vstack((tx, ty, tz))) * Mxyz).dot(m)
 
                 elif self.rtype == 'xyz':
-                    fwr_out[ii] = (tx*Mxyz).dot(m)
-                    fwr_out[ii+ndata] = (ty*Mxyz).dot(m)
-                    fwr_out[ii+2*ndata] = (tz*Mxyz).dot(m)
+                    fwr_out[ii] = (tx * Mxyz).dot(m)
+                    fwr_out[ii + ndata] = (ty * Mxyz).dot(m)
+                    fwr_out[ii + 2 * ndata] = (tz * Mxyz).dot(m)
 
             else:
 
                 if Magnetization == 'ind':
 
                     if survey.srcField.rxList[0].rxType == 'tmi':
-                        fwr_out[ii, :] = Ptmi.dot(np.vstack((tx, ty, tz)))*Mxyz
+                        fwr_out[ii, :] = Ptmi.dot(
+                            np.vstack((tx, ty, tz))) * Mxyz
 
                     elif survey.srcField.rxList[0].rxType == 'xyz':
-                        fwr_out[ii, :] = tx*Mxyz
-                        fwr_out[ii+ndata, :] = ty*Mxyz
-                        fwr_out[ii+2*ndata, :] = tz*Mxyz
+                        fwr_out[ii, :] = tx * Mxyz
+                        fwr_out[ii + ndata, :] = ty * Mxyz
+                        fwr_out[ii + 2 * ndata, :] = tz * Mxyz
 
                 elif Magnetization == 'xyz':
 
@@ -246,8 +251,9 @@ class MagneticIntegral(Problem.LinearProblem):
 
                     elif survey.srcField.rxList[0].rxType == 'xyz':
                         fwr_out[ii, :] = tx * survey.srcField.param[0]
-                        fwr_out[ii+ndata, :] = ty * survey.srcField.param[0]
-                        fwr_out[ii+2*ndata, :] = tz * survey.srcField.param[0]
+                        fwr_out[ii + ndata, :] = ty * survey.srcField.param[0]
+                        fwr_out[ii + 2 * ndata, :] = tz * \
+                            survey.srcField.param[0]
 
             # Display progress
             count = progress(ii, count, ndata)
@@ -316,7 +322,7 @@ class MagneticAmplitude(MagneticIntegral):
 
         else:
             if m is None:
-                m = self.chiMap*self.model
+                m = self.chiMap * self.model
 
             Bxyz = self.G.dot(m)
 
@@ -327,8 +333,8 @@ class MagneticAmplitude(MagneticIntegral):
         ndata = self.survey.srcField.rxList[0].locs.shape[0]
 
         Bamp = np.sqrt(Bxyz[:ndata]**2. +
-                       Bxyz[ndata:2*ndata]**2. +
-                       Bxyz[2*ndata:]**2.)
+                       Bxyz[ndata:2 * ndata]**2. +
+                       Bxyz[2 * ndata:]**2.)
 
         return Bamp
 
@@ -342,11 +348,11 @@ class MagneticAmplitude(MagneticIntegral):
 
     def Jvec(self, m, v, f=None):
         dmudm = self.chiMap.deriv(m)
-        return self.dfdm*(self.G.dot(dmudm*v))
+        return self.dfdm * (self.G.dot(dmudm * v))
 
     def Jtvec(self, m, v, f=None):
         dmudm = self.chiMap.deriv(m)
-        return dmudm.T * (self.G.T.dot(self.dfdm.T*v))
+        return dmudm.T * (self.G.T.dot(self.dfdm.T * v))
 
     @property
     def G(self):
@@ -366,15 +372,15 @@ class MagneticAmplitude(MagneticIntegral):
             ndata = self.survey.srcField.rxList[0].locs.shape[0]
 
             # Get field data
-            m = self.chiMap*self.model
+            m = self.chiMap * self.model
 
             Bxyz = self.G.dot(m)
 
             Bamp = self.calcAmpData(Bxyz)
 
-            Bx = sp.spdiags(Bxyz[:ndata]/Bamp, 0, ndata, ndata)
-            By = sp.spdiags(Bxyz[ndata:2*ndata]/Bamp, 0, ndata, ndata)
-            Bz = sp.spdiags(Bxyz[2*ndata:]/Bamp, 0, ndata, ndata)
+            Bx = sp.spdiags(Bxyz[:ndata] / Bamp, 0, ndata, ndata)
+            By = sp.spdiags(Bxyz[ndata:2 * ndata] / Bamp, 0, ndata, ndata)
+            Bz = sp.spdiags(Bxyz[2 * ndata:] / Bamp, 0, ndata, ndata)
             self._dfdm = sp.hstack((Bx, By, Bz))
 
         return self._dfdm
@@ -407,7 +413,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
 
         Dface = self.mesh.faceDiv
         Mc = Utils.sdiag(self.mesh.vol)
-        self._Div = Mc*Dface*Pin.T*Pin
+        self._Div = Mc * Dface * Pin.T * Pin
 
     @property
     def MfMuI(self): return self._MfMuI
@@ -419,20 +425,20 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
     def MfMu0(self): return self._MfMu0
 
     def makeMassMatrices(self, m):
-        mu = self.muMap*m
-        self._MfMui = self.mesh.getFaceInnerProduct(1./mu)/self.mesh.dim
+        mu = self.muMap * m
+        self._MfMui = self.mesh.getFaceInnerProduct(1. / mu) / self.mesh.dim
         # self._MfMui = self.mesh.getFaceInnerProduct(1./mu)
         # TODO: this will break if tensor mu
-        self._MfMuI = Utils.sdiag(1./self._MfMui.diagonal())
-        self._MfMu0 = self.mesh.getFaceInnerProduct(1./mu_0)/self.mesh.dim
+        self._MfMuI = Utils.sdiag(1. / self._MfMui.diagonal())
+        self._MfMu0 = self.mesh.getFaceInnerProduct(1. / mu_0) / self.mesh.dim
         # self._MfMu0 = self.mesh.getFaceInnerProduct(1/mu_0)
 
     @Utils.requires('survey')
     def getB0(self):
         b0 = self.survey.B0
-        B0 = np.r_[b0[0]*np.ones(self.mesh.nFx),
-                   b0[1]*np.ones(self.mesh.nFy),
-                   b0[2]*np.ones(self.mesh.nFz)]
+        B0 = np.r_[b0[0] * np.ones(self.mesh.nFx),
+                   b0[1] * np.ones(self.mesh.nFy),
+                   b0[2] * np.ones(self.mesh.nFz)]
         return B0
 
     def getRHS(self, m):
@@ -447,15 +453,16 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         Dface = self.mesh.faceDiv
         Mc = Utils.sdiag(self.mesh.vol)
 
-        mu = self.muMap*m
-        chi = mu/mu_0-1
+        mu = self.muMap * m
+        chi = mu / mu_0 - 1
 
         # Temporary fix
         Bbc, Bbc_const = CongruousMagBC(self.mesh, self.survey.B0, chi)
         self.Bbc = Bbc
         self.Bbc_const = Bbc_const
-        # return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 + Mc*Dface*self._Pout.T*Bbc
-        return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0
+        # return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 +
+        # Mc*Dface*self._Pout.T*Bbc
+        return self._Div * self.MfMuI * self.MfMu0 * B0 - self._Div * B0
 
     def getA(self, m):
         """
@@ -468,7 +475,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
             \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
 
         """
-        return self._Div*self.MfMuI*self._Div.T
+        return self._Div * self.MfMuI * self._Div.T
 
     def fields(self, m):
         """
@@ -486,10 +493,11 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         self.makeMassMatrices(m)
         A = self.getA(m)
         rhs = self.getRHS(m)
-        m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/A.diagonal()))
+        m1 = sp.linalg.interface.aslinearoperator(
+            Utils.sdiag(1 / A.diagonal()))
         u, info = sp.linalg.bicgstab(A, rhs, tol=1e-6, maxiter=1000, M=m1)
         B0 = self.getB0()
-        B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*u
+        B = self.MfMuI * self.MfMu0 * B0 - B0 - self.MfMuI * self._Div.T * u
 
         return {'B': B, 'u': u}
 
@@ -571,9 +579,9 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
             u = self.fields(m)
 
         B, u = u['B'], u['u']
-        mu = self.muMap*(m)
+        mu = self.muMap * (m)
         dmudm = self.muDeriv
-        dchidmu = Utils.sdiag(1/mu_0*np.ones(self.mesh.nC))
+        dchidmu = Utils.sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
         vol = self.mesh.vol
         Div = self._Div
@@ -581,8 +589,9 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         P = self.survey.projectFieldsDeriv(B)  # Projection matrix
         B0 = self.getB0()
 
-        MfMuIvec = 1/self.MfMui.diagonal()
-        dMfMuI = Utils.sdiag(MfMuIvec**2)*self.mesh.aveF2CC.T*Utils.sdiag(vol*1./mu**2)
+        MfMuIvec = 1 / self.MfMui.diagonal()
+        dMfMuI = Utils.sdiag(MfMuIvec**2) * \
+            self.mesh.aveF2CC.T * Utils.sdiag(vol * 1. / mu**2)
 
         # A = self._Div*self.MfMuI*self._Div.T
         # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
@@ -592,14 +601,16 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         dCdu = self.getA(m)
         dCdm_A = Div * (Utils.sdiag(Div.T * u) * dMfMuI * dmudm)
         dCdm_RHS1 = Div * (Utils.sdiag(self.MfMu0 * B0) * dMfMuI)
-        temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
-        dCdm_RHS2v = (Utils.sdiag(vol)*temp1)*np.inner(vol, dchidmu*dmudm*v)
+        temp1 = (Dface * (self._Pout.T * self.Bbc_const * self.Bbc))
+        dCdm_RHS2v = (Utils.sdiag(vol) * temp1) * \
+            np.inner(vol, dchidmu * dmudm * v)
 
         # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
         dCdm_RHSv = dCdm_RHS1 * (dmudm * v)
         dCdm_v = dCdm_A * v - dCdm_RHSv
 
-        m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/dCdu.diagonal()))
+        m1 = sp.linalg.interface.aslinearoperator(
+            Utils.sdiag(1 / dCdu.diagonal()))
         sol, info = sp.linalg.bicgstab(dCdu, dCdm_v,
                                        tol=1e-6, maxiter=1000, M=m1)
 
@@ -611,11 +622,11 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         # dBdm = d\mudm*dBd\mu
 
         dudm = -sol
-        dBdmv =     (  Utils.sdiag(self.MfMu0*B0)*(dMfMuI * (dmudm*v)) \
-                     - Utils.sdiag(Div.T*u)*(dMfMuI* (dmudm*v)) \
-                     - self.MfMuI*(Div.T* (dudm)) )
+        dBdmv = (Utils.sdiag(self.MfMu0 * B0) * (dMfMuI * (dmudm * v))
+                 - Utils.sdiag(Div.T * u) * (dMfMuI * (dmudm * v))
+                 - self.MfMuI * (Div.T * (dudm)))
 
-        return Utils.mkvc(P*dBdmv)
+        return Utils.mkvc(P * dBdmv)
 
     @Utils.timeIt
     def Jtvec(self, m, v, u=None):
@@ -651,18 +662,20 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
             u = self.fields(m)
 
         B, u = u['B'], u['u']
-        mu = self.mapping*(m)
+        mu = self.mapping * (m)
         dmudm = self.mapping.deriv(m)
-        dchidmu = Utils.sdiag(1/mu_0*np.ones(self.mesh.nC))
+        dchidmu = Utils.sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
         vol = self.mesh.vol
         Div = self._Div
         Dface = self.mesh.faceDiv
-        P = self.survey.projectFieldsDeriv(B)                 # Projection matrix
+        P = self.survey.projectFieldsDeriv(
+            B)                 # Projection matrix
         B0 = self.getB0()
 
-        MfMuIvec = 1/self.MfMui.diagonal()
-        dMfMuI = Utils.sdiag(MfMuIvec**2)*self.mesh.aveF2CC.T*Utils.sdiag(vol*1./mu**2)
+        MfMuIvec = 1 / self.MfMui.diagonal()
+        dMfMuI = Utils.sdiag(MfMuIvec**2) * \
+            self.mesh.aveF2CC.T * Utils.sdiag(vol * 1. / mu**2)
 
         # A = self._Div*self.MfMuI*self._Div.T
         # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
@@ -670,34 +683,35 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         # dudm = -(dCdu)^(-1)dCdm
 
         dCdu = self.getA(m)
-        s = Div * (self.MfMuI.T * (P.T*v))
+        s = Div * (self.MfMuI.T * (P.T * v))
 
-        m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/(dCdu.T).diagonal()))
+        m1 = sp.linalg.interface.aslinearoperator(
+            Utils.sdiag(1 / (dCdu.T).diagonal()))
         sol, info = sp.linalg.bicgstab(dCdu.T, s, tol=1e-6, maxiter=1000, M=m1)
 
         if info > 0:
             print("Iterative solver did not work well (Jtvec)")
             # raise Exception ("Iterative solver did not work well")
 
-
         # dCdm_A = Div * ( Utils.sdiag( Div.T * u )* dMfMuI *dmudm  )
         # dCdm_Atsol = ( dMfMuI.T*( Utils.sdiag( Div.T * u ) * (Div.T * dmudm)) ) * sol
-        dCdm_Atsol = (dmudm.T * dMfMuI.T*(Utils.sdiag(Div.T * u) * Div.T)) * sol
+        dCdm_Atsol = (dmudm.T * dMfMuI.T *
+                      (Utils.sdiag(Div.T * u) * Div.T)) * sol
 
         # dCdm_RHS1 = Div * (Utils.sdiag( self.MfMu0*B0  ) * dMfMuI)
         # dCdm_RHS1tsol = (dMfMuI.T*( Utils.sdiag( self.MfMu0*B0  ) ) * Div.T * dmudm) * sol
-        dCdm_RHS1tsol = (dmudm.T * dMfMuI.T*(Utils.sdiag( self.MfMu0*B0)) * Div.T ) * sol
-
+        dCdm_RHS1tsol = (dmudm.T * dMfMuI.T *
+                         (Utils.sdiag(self.MfMu0 * B0)) * Div.T) * sol
 
         # temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
-        temp1sol = ( Dface.T*( Utils.sdiag(vol)*sol ) )
-        temp2 = self.Bbc_const*(self._Pout.T*self.Bbc).T
+        temp1sol = (Dface.T * (Utils.sdiag(vol) * sol))
+        temp2 = self.Bbc_const * (self._Pout.T * self.Bbc).T
         # dCdm_RHS2v  = (Utils.sdiag(vol)*temp1)*np.inner(vol, dchidmu*dmudm*v)
-        dCdm_RHS2tsol  = (dmudm.T*dchidmu.T*vol)*np.inner(temp2, temp1sol)
+        dCdm_RHS2tsol = (dmudm.T * dchidmu.T * vol) * np.inner(temp2, temp1sol)
 
         # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
 
-        #temporary fix
+        # temporary fix
         # dCdm_RHStsol = dCdm_RHS1tsol - dCdm_RHS2tsol
         dCdm_RHStsol = dCdm_RHS1tsol
 
@@ -710,15 +724,14 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         # dBdm = d\mudm*dBd\mu
         # dPBdm^T*v = Atemp^T*P^T*v - Btemp^T*P^T*v - Ctv
 
-        Atemp = Utils.sdiag(self.MfMu0*B0)*(dMfMuI * (dmudm))
-        Btemp = Utils.sdiag(Div.T*u)*(dMfMuI* (dmudm))
-        Jtv = Atemp.T*(P.T*v) - Btemp.T*(P.T*v) - Ctv
+        Atemp = Utils.sdiag(self.MfMu0 * B0) * (dMfMuI * (dmudm))
+        Btemp = Utils.sdiag(Div.T * u) * (dMfMuI * (dmudm))
+        Jtv = Atemp.T * (P.T * v) - Btemp.T * (P.T * v) - Ctv
 
         return Utils.mkvc(Jtv)
 
 
 def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
-
     """
         Inversion module for MagneticsDiffSecondary
 
@@ -778,9 +791,9 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
     nC = Xn.shape[0]
 
     # Pre-allocate space for 1D array
-    Tx = np.zeros((1, 3*nC))
-    Ty = np.zeros((1, 3*nC))
-    Tz = np.zeros((1, 3*nC))
+    Tx = np.zeros((1, 3 * nC))
+    Ty = np.zeros((1, 3 * nC))
+    Tz = np.zeros((1, 3 * nC))
 
     dz2 = rxLoc[2] - Zn[:, 0]
     dz1 = rxLoc[2] - Zn[:, 1]
@@ -819,7 +832,7 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
         np.log((dz2 + arg6) / (dz1 + arg7)) +\
         -np.log((dz2 + arg5) / (dz1 + arg8))
 
-    Ty[0, nC:2*nC] = np.arctan2(dx1 * dz2, (dy2 * arg1)) +\
+    Ty[0, nC:2 * nC] = np.arctan2(dx1 * dz2, (dy2 * arg1)) +\
         - np.arctan2(dx2 * dz2, (dy2 * arg2)) +\
         np.arctan2(dx2 * dz1, (dy2 * arg3)) +\
         - np.arctan2(dx1 * dz1, (dy2 * arg4)) +\
@@ -833,8 +846,8 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
     R3 = (dy1**2 + dz1**2) + eps
     R4 = (dy1**2 + dz2**2) + eps
 
-    Ty[0, 2*nC:] = np.log((dx1 + np.sqrt(dx1**2 + R1)) /
-                          (dx2 + np.sqrt(dx2**2 + R1))) +\
+    Ty[0, 2 * nC:] = np.log((dx1 + np.sqrt(dx1**2 + R1)) /
+                            (dx2 + np.sqrt(dx2**2 + R1))) +\
         -np.log((dx1 + np.sqrt(dx1**2 + R2)) / (dx2 + np.sqrt(dx2**2 + R2))) +\
         np.log((dx1 + np.sqrt(dx1**2 + R4)) / (dx2 + np.sqrt(dx2**2 + R4))) +\
         -np.log((dx1 + np.sqrt(dx1**2 + R3)) / (dx2 + np.sqrt(dx2**2 + R3)))
@@ -844,20 +857,20 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
     R3 = (dx1**2 + dz1**2) + eps
     R4 = (dx1**2 + dz2**2) + eps
 
-    Tx[0, 2*nC:] = np.log((dy1 + np.sqrt(dy1**2 + R1)) /
-                          (dy2 + np.sqrt(dy2**2 + R1))) +\
+    Tx[0, 2 * nC:] = np.log((dy1 + np.sqrt(dy1**2 + R1)) /
+                            (dy2 + np.sqrt(dy2**2 + R1))) +\
         -np.log((dy1 + np.sqrt(dy1**2 + R2)) / (dy2 + np.sqrt(dy2**2 + R2))) +\
         np.log((dy1 + np.sqrt(dy1**2 + R4)) / (dy2 + np.sqrt(dy2**2 + R4))) +\
         -np.log((dy1 + np.sqrt(dy1**2 + R3)) / (dy2 + np.sqrt(dy2**2 + R3)))
 
-    Tz[0, 2*nC:] = -(Ty[0, nC:2*nC] + Tx[0, 0:nC])
-    Tz[0, nC:2*nC] = Ty[0, 2*nC:]
-    Tx[0, nC:2*nC] = Ty[0, 0:nC]
-    Tz[0, 0:nC] = Tx[0, 2*nC:]
+    Tz[0, 2 * nC:] = -(Ty[0, nC:2 * nC] + Tx[0, 0:nC])
+    Tz[0, nC:2 * nC] = Ty[0, 2 * nC:]
+    Tx[0, nC:2 * nC] = Ty[0, 0:nC]
+    Tz[0, 0:nC] = Tx[0, 2 * nC:]
 
-    Tx = Tx/(4*np.pi)
-    Ty = Ty/(4*np.pi)
-    Tz = Tz/(4*np.pi)
+    Tx = Tx / (4 * np.pi)
+    Ty = Ty / (4 * np.pi)
+    Tz = Tz / (4 * np.pi)
 
     return Tx, Ty, Tz
 
@@ -873,11 +886,11 @@ def progress(iter, prog, final):
 
     @author: dominiquef
     """
-    arg = np.floor(float(iter)/float(final)*10.)
+    arg = np.floor(float(iter) / float(final) * 10.)
 
     if arg > prog:
 
-        print("Done " + str(arg*10) + " %")
+        print("Done " + str(arg * 10) + " %")
         prog = arg
 
     return prog
@@ -943,7 +956,7 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
     # Find non-zero cells
     if actv.dtype == 'bool':
         inds = np.asarray([inds for inds,
-                          elem in enumerate(actv, 1) if elem], dtype=int) - 1
+                           elem in enumerate(actv, 1) if elem], dtype=int) - 1
     else:
         inds = actv
 
@@ -954,20 +967,20 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
                       shape=(mesh.nC, nC))
 
     # Geometrical constant
-    p = 1/np.sqrt(3)
+    p = 1 / np.sqrt(3)
 
     # Create cell center location
     Ym, Xm, Zm = np.meshgrid(mesh.vectorCCy, mesh.vectorCCx, mesh.vectorCCz)
     hY, hX, hZ = np.meshgrid(mesh.hy, mesh.hx, mesh.hz)
 
     # Remove air cells
-    Xm = P.T*Utils.mkvc(Xm)
-    Ym = P.T*Utils.mkvc(Ym)
-    Zm = P.T*Utils.mkvc(Zm)
+    Xm = P.T * Utils.mkvc(Xm)
+    Ym = P.T * Utils.mkvc(Ym)
+    Zm = P.T * Utils.mkvc(Zm)
 
-    hX = P.T*Utils.mkvc(hX)
-    hY = P.T*Utils.mkvc(hY)
-    hZ = P.T*Utils.mkvc(hZ)
+    hX = P.T * Utils.mkvc(hX)
+    hY = P.T * Utils.mkvc(hY)
+    hZ = P.T * Utils.mkvc(hZ)
 
     V = P.T * Utils.mkvc(mesh.vol)
     wr = np.zeros(nC)
@@ -1000,13 +1013,13 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
             (R4 + R0)**-R + (R5 + R0)**-R + (R6 + R0)**-R + \
             (R7 + R0)**-R + (R8 + R0)**-R
 
-        wr = wr + (V*temp/8.)**2.
+        wr = wr + (V * temp / 8.)**2.
 
         count = progress(dd, count, ndata)
 
-    wr = np.sqrt(wr)/V
+    wr = np.sqrt(wr) / V
     wr = Utils.mkvc(wr)
-    wr = np.sqrt(wr/(np.max(wr)))
+    wr = np.sqrt(wr / (np.max(wr)))
 
     print("Done 100% ...distance weighting completed!!\n")
 
@@ -1039,10 +1052,11 @@ def writeUBCobs(filename, survey, d):
     wd = survey.std
 
     data = np.c_[rxLoc, d, wd]
-    head = ('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0])+
-              '%6.2f %6.2f %6.2f\n' % (B[1], B[2], 1)+
-              '%i\n' % len(d))
-    np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n',header=head,comments='')
+    head = ('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0]) +
+            '%6.2f %6.2f %6.2f\n' % (B[1], B[2], 1) +
+            '%i\n' % len(d))
+    np.savetxt(filename, data, fmt='%e', delimiter=' ',
+               newline='\n', header=head, comments='')
 
     print("Observation file saved to: " + filename)
 
@@ -1088,7 +1102,6 @@ def plot_obs_2D(rxLoc, d=None, title=None,
         if (vmax is None):
             vmax = d.max()
 
-
         # Create grid of points
         x = np.linspace(rxLoc[:, 0].min(), rxLoc[:, 0].max(), 100)
         y = np.linspace(rxLoc[:, 1].min(), rxLoc[:, 1].max(), 100)
@@ -1097,8 +1110,10 @@ def plot_obs_2D(rxLoc, d=None, title=None,
 
         # Interpolate
         d_grid = griddata(rxLoc[:, 0:2], d, (X, Y), method='linear')
-        im = plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],
-                   origin='lower', vmin=vmin, vmax=vmax, cmap=cmap)
+        im = plt.imshow(
+            d_grid, extent=[x.min(), x.max(), y.min(), y.max()],
+            origin='lower', vmin=vmin, vmax=vmax, cmap=cmap
+        )
 
         if colorbar:
             plt.colorbar(fraction=0.02)
@@ -1116,3 +1131,59 @@ def plot_obs_2D(rxLoc, d=None, title=None,
     plt.gca().set_aspect('equal', adjustable='box')
 
     return fig, im
+
+
+def readMagneticsObservations(obs_file):
+    """
+        Read and write UBC mag file format
+
+        INPUT:
+        :param fileName, path to the UBC obs mag file
+
+        OUTPUT:
+        :param survey
+        :param M, magnetization orentiaton (MI, MD)
+    """
+
+    fid = open(obs_file, 'r')
+
+    # First line has the inclination,declination and amplitude of B0
+    line = fid.readline()
+    B = np.array(line.split(), dtype=float)
+
+    # Second line has the magnetization orientation and a flag
+    line = fid.readline()
+    M = np.array(line.split(), dtype=float)
+
+    # Third line has the number of rows
+    line = fid.readline()
+    ndat = int(line.strip())
+
+    # Pre-allocate space for obsx, obsy, obsz, data, uncert
+    line = fid.readline()
+    temp = np.array(line.split(), dtype=float)
+
+    d = np.zeros(ndat, dtype=float)
+    wd = np.zeros(ndat, dtype=float)
+    locXYZ = np.zeros((ndat, 3), dtype=float)
+
+    for ii in range(ndat):
+
+        temp = np.array(line.split(), dtype=float)
+        if len(temp) > 0:
+            locXYZ[ii, :] = temp[:3]
+
+            if len(temp) > 3:
+                d[ii] = temp[3]
+
+                if len(temp) == 5:
+                    wd[ii] = temp[4]
+
+        line = fid.readline()
+
+    rxLoc = MAG.RxObs(locXYZ)
+    srcField = MAG.SrcField([rxLoc], param=(B[2], B[0], B[1]))
+    survey = MAG.LinearSurvey(srcField)
+    survey.dobs = d
+    survey.std = wd
+    return survey

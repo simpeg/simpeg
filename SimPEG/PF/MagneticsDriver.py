@@ -281,7 +281,8 @@ class MagneticsDriver_Inv(object):
         if getattr(self, '_activeModel', None) is None:
             if self._staticInput == 'FILE':
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
-                self._activeModel = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self._staticInput)
+                self._activeModel = Mesh.TensorMesh.readModelUBC(
+                    self.mesh, self.basePath + self._staticInput)
 
             else:
                 self._activeModel = np.ones(self._mesh.nC)
@@ -317,9 +318,11 @@ class MagneticsDriver_Inv(object):
 
             # Cycle through three components and permute from UBC to SimPEG
             for ii in range(3):
-                m = np.reshape(M[:, ii],
-                               (self.mesh.nCz, self.mesh.nCx, self.mesh.nCy),
-                               order='F')
+                m = np.reshape(
+                    M[:, ii],
+                    (self.mesh.nCz, self.mesh.nCx, self.mesh.nCy),
+                    order='F'
+                )
 
                 m = m[::-1, :, :]
                 m = np.transpose(m, (1, 2, 0))
@@ -329,19 +332,19 @@ class MagneticsDriver_Inv(object):
 
         return self._M
 
-    def readMagneticsObservations(self, obs_file):
+    def readMagneticsObservations(obs_file):
         """
-            Read and write UBC mag file format
+        Read and write UBC mag file format
 
-            INPUT:
-            :param fileName, path to the UBC obs mag file
+        INPUT:
+        :param fileName, path to the UBC obs mag file
 
-            OUTPUT:
-            :param survey
-            :param M, magnetization orentiaton (MI, MD)
+        OUTPUT:
+        :param survey
+        :param M, magnetization orentiaton (MI, MD)
         """
 
-        fid = open(self.basePath + obs_file, 'r')
+        fid = open(obs_file, 'r')
 
         # First line has the inclination,declination and amplitude of B0
         line = fid.readline()
@@ -366,13 +369,14 @@ class MagneticsDriver_Inv(object):
         for ii in range(ndat):
 
             temp = np.array(line.split(), dtype=float)
-            locXYZ[ii, :] = temp[:3]
+            if len(temp) > 0:
+                locXYZ[ii, :] = temp[:3]
 
-            if len(temp) > 3:
-                d[ii] = temp[3]
+                if len(temp) > 3:
+                    d[ii] = temp[3]
 
-                if len(temp) == 5:
-                    wd[ii] = temp[4]
+                    if len(temp) == 5:
+                        wd[ii] = temp[4]
 
             line = fid.readline()
 

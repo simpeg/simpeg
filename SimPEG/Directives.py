@@ -808,15 +808,16 @@ class UpdatePreconditioner(InversionDirective):
 
                     m = self.invProb.model
 
-                    JtJdiag += np.sum((dmisfit.W*prob.getJ(m))**2., axis=0)
+                    JtJdiag += np.sum((dmisfit.W * prob.getJ(m))**2., axis=0)
 
                 self.opt.JtJdiag = JtJdiag
 
             # Update the pre-conditioner
             reg_diag = np.zeros_like(self.invProb.model)
             for reg in self.reg.objfcts:
-                reg_diag += self.invProb.beta*(reg.W.T*reg.W).diagonal()
-
+                W = reg.deriv2(m)
+                # reg_diag += self.invProb.beta * (reg.W.T * reg.W).diagonal()
+                reg_diag += self.invProb.beta * (W.T * W).diagonal()
             Hdiag = self.opt.JtJdiag + reg_diag
 
             PC = Utils.sdiag(Hdiag**-1.)
@@ -828,11 +829,13 @@ class UpdatePreconditioner(InversionDirective):
             return
 
         if getattr(self.opt, 'approxHinv', None) is not None:
-
+            m = self.invProb.model
             # Update the pre-conditioner
             reg_diag = np.zeros_like(self.invProb.model)
             for reg in self.reg.objfcts:
-                reg_diag += self.invProb.beta*(reg.W.T*reg.W).diagonal()
+                W = reg.deriv2(m)
+                # reg_diag += self.invProb.beta * (reg.W.T * reg.W).diagonal()
+                reg_diag += self.invProb.beta * (W.T * W).diagonal()
 
             Hdiag = self.opt.JtJdiag + reg_diag
 
