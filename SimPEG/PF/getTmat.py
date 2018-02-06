@@ -74,25 +74,36 @@ def calcTrow(args):
                         dz[:, cc] * np.arctan(dx[:, aa] * dy[:, bb] /
                                               (dz[:, cc] * r + eps)))
 
-    # progress(index)
+    # # progress(index)
+    # ind = np.asarray(range(10)) * nD / 10
+    # if np.any(index == ind):
+    #     print("Done " + str(index/nD*100) + " %")
+
     return t
 
-# class calcTmat(object):
-#     """docstring for ClassName"""
+# def progress(iter, prog, final):
+#     """
+#     progress(iter,prog,final)
 
-#     rxLoc = None
-#     Xn = None
-#     Yn = None
-#     Zn = None
-#     comp = 'z'
+#     Function measuring the progress of a process and print to screen the %.
+#     Useful to estimate the remaining runtime of a large problem.
 
-#     def __init__(self, **kwargs):
-#         # super(calcTmat).__init__(self, **kwargs)
-#         pass
+#     Created on Dec, 20th 2015
+
+#     @author: dominiquef
+#     """
+#     arg = np.floor(float(iter)/float(final)*10.)
+
+#     if arg > prog:
+
+#         print("Done " + str(arg*10) + " %")
+#         prog = arg
+
+#     return prog
 
 def getTmat(rxLoc, Xn, Yn, Zn, comp):
     print('Hello World')
-    print(rxLoc.shape[0])
+    nD = rxLoc.shape[0]
     pool = multiprocessing.Pool(8)
     result = pool.map(calcTrow, [(rxLoc[ii, :], Xn, Yn, Zn, comp) for ii in range(rxLoc.shape[0])])
     pool.close()
