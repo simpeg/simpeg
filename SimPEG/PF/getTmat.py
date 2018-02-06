@@ -1,4 +1,5 @@
 from SimPEG.Utils import mkvc
+from SimPEG import Utils
 import numpy as np
 import multiprocessing
 import scipy.constants as constants
@@ -39,6 +40,7 @@ def calcTrow(args):
     dy = Yn - rxLoc[1]
 
     dx = Xn - rxLoc[0]
+
 
     # Compute contribution from each corners
     for aa in range(2):
@@ -90,7 +92,8 @@ def calcTrow(args):
 
 def getTmat(rxLoc, Xn, Yn, Zn, comp):
     print('Hello World')
-    pool = multiprocessing.Pool(2)
+    print(rxLoc.shape[0])
+    pool = multiprocessing.Pool(8)
     result = pool.map(calcTrow, [(rxLoc[ii, :], Xn, Yn, Zn, comp) for ii in range(rxLoc.shape[0])])
     pool.close()
     pool.join()
@@ -99,6 +102,20 @@ def getTmat(rxLoc, Xn, Yn, Zn, comp):
 
 if __name__ == '__main__':
     print('Hello World')
+    rxLoc = np.random.randn(1000, 3)
+
+    nC = 20
+    xn = np.asarray(range(nC))#self.mesh.vectorNx
+    yn = np.asarray(range(nC))#self.mesh.vectorNy
+    zn = np.asarray(range(nC))#self.mesh.vectorNz
+
+    yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+    yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
+
+    Yn = np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+    Xn = np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+    Zn = np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
+    comp = 'dz'
     result = getTmat(rxLoc, Xn, Yn, Zn, comp)
     # getTmat(args)
 #     obj = ClassName()
