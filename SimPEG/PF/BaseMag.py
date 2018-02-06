@@ -120,7 +120,7 @@ class LinearSurvey(Survey.BaseSurvey):
 
     @property
     def nD(self):
-            return len(self.rxLoc)
+        return len(self.rxLoc)
 
     @property
     def nRx(self):
