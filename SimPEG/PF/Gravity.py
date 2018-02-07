@@ -13,8 +13,7 @@ import scipy.constants as constants
 import subprocess
 import os
 
-def calcTmat():
-    def calcTrow(args):
+def calcTrow(args):
         """
         Load in the active nodes of a tensor mesh and computes the gravity tensor
         for a given observation location rxLoc[obsx, obsy, obsz]
@@ -90,6 +89,8 @@ def calcTmat():
         #     print("Done " + str(index/nD*100) + " %")
 
         return t
+def calcTmat():
+
 
     # def progress(iter, prog, final):
     #     """
@@ -303,7 +304,7 @@ class GravityIntegral(Problem.LinearProblem):
         # Add counter to dsiplay progress. Good for large problems
         count = -1
 
-        result = calcTmat()
+        # result = calcTmat()
         # result = getTmat()
         # os.system("python getTmat.py" + " Obsfile Meshfile")
         # result = getTmat(rxLoc, Xn, Yn, Zn, comp)
@@ -316,7 +317,7 @@ class GravityIntegral(Problem.LinearProblem):
         #     pool.close()
         #     pool.join()
         # else:
-        #     result = [calcTrow((rxLoc[ii, :], Xn, Yn, Zn, comp)) for ii in range(self.ndata)]
+        result = [calcTrow((rxLoc[ii, :], Xn, Yn, Zn, comp)) for ii in range(self.ndata)]
 
         return np.vstack(result)
         # for ii in range(ndata):
