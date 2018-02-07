@@ -269,7 +269,7 @@ class GravityDriver_Inv(object):
 
         return self._activeModel
 
-    def readUBCgravObs(self, obs_file):
+    def readUBCgravObservations(self, obs_file):
         """
         Read UBC grav file format
 
