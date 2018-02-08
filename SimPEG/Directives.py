@@ -796,6 +796,8 @@ class UpdatePreconditioner(InversionDirective):
 
         if getattr(self.opt, 'approxHinv', None) is None:
 
+            m = self.invProb.model
+
             if getattr(self.opt, 'JtJdiag', None) is None:
 
                 JtJdiag = np.zeros_like(self.invProb.model)
@@ -805,8 +807,6 @@ class UpdatePreconditioner(InversionDirective):
                         "Problem does not have a getJ attribute." +
                         "Cannot form the sensitivity explicitely"
                     )
-
-                    m = self.invProb.model
 
                     JtJdiag += np.sum((dmisfit.W * prob.getJ(m))**2., axis=0)
 
