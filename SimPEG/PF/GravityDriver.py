@@ -281,7 +281,7 @@ class GravityDriver_Inv(object):
 
         """
 
-        fid = open(self.basePath + obs_file, 'r')
+        fid = open(obs_file, 'r')
 
         # First line has the number of rows
         line = fid.readline()
