@@ -9,7 +9,6 @@ import re
 import numpy as np
 import multiprocessing
 import scipy.constants as constants
-# from . import getTmat
 import subprocess
 import os
 import threading
@@ -42,12 +41,12 @@ class GravityIntegral(Problem.LinearProblem):
         if self.forwardOnly:
 
             # Compute the linear operation without forming the full dense G
-            fields = self.Intrgl_Fwr_Op(m=m)
+            fields = self.Intrgl_Fwr_Op()
 
             return fields
 
         else:
-            vec = np.dot(self.F, (self.rhoMap*(m)).astype(np.float32))
+            vec = np.dot(self.F, (self.model).astype(np.float32))
 
             return vec.astype(np.float64)
 
@@ -160,16 +159,6 @@ class GravityIntegral(Problem.LinearProblem):
         self.rxLoc = self.survey.srcField.rxList[0].locs
         self.nD = int(self.rxLoc.shape[0])
 
-        # Pre-allocate space and create magnetization matrix if required
-        # Pre-allocate space
-        if self.forwardOnly:
-
-            F = np.empty(self.nD, dtype='float64')
-
-        # else:
-
-            # F = np.zeros((self.nD, self.nC), dtype=np.float32)
-
         if self.n_cpu is None:
             self.n_cpu = multiprocessing.cpu_count()
 
@@ -181,33 +170,18 @@ class GravityIntegral(Problem.LinearProblem):
         for ii in range(self.n_cpu):
 
             nRows = int(rowInd[ii+1]-rowInd[ii])
-            threads[ii] = threading.Thread(target=self.getTmat, args=(rowInd[ii], nRows, F, ii))
+
+            if self.forwardOnly:
+                threads[ii] = threading.Thread(target=self.getDblock, args=(rowInd[ii], nRows, F, ii))
+            else:
+                threads[ii] = threading.Thread(target=self.getTblock, args=(rowInd[ii], nRows, F, ii))
             threads[ii].start()
 
         for thread in threads:
             thread.join()
 
         return np.vstack(F)
-        # for ii in range(ndata):
-        #                 # Add counter to dsiplay progress. Good for large problems
 
-        #     if self.forwardOnly:
-        #         t = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :],
-        #                       component=self.rType)
-
-        #         F[ii] = t.dot(m)
-
-        #     else:
-
-        #         F[ii, :] = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :],
-        #                              component=self.rType)
-        #     if not self.silent:
-        #         # Display progress
-        #         count = progress(ii, count, ndata)
-
-        # print("Done 100% ...forward operator completed!!\n")
-
-        # return F
 
     @property
     def mapPair(self):
@@ -284,10 +258,27 @@ class GravityIntegral(Problem.LinearProblem):
 
         return row
 
-    def getTmat(self, indStart, nRows, F, index):
+    def getTblock(self, indStart, nRows, F, index):
+        """
+            Calculate rows of sensitivity
+        """
         block = []
         for ii in range(nRows):
             block += [self.calcTrow(self.rxLoc[indStart+ii, :])]
+
+            # Monitor progress of first thread
+            if index == 0:
+                self.progress(ii, nRows)
+
+        F[index] = np.vstack(block)
+
+    def getDblock(self, indStart, nRows, F, index):
+        """
+            Calculate rows of data
+        """
+        block = []
+        for ii in range(nRows):
+            block += [self.calcTrow(self.rxLoc[indStart+ii, :])*self.model]
 
             # Monitor progress of first thread
             if index == 0:
