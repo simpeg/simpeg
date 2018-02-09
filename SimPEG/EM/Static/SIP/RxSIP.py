@@ -84,7 +84,6 @@ class Dipole(BaseRx):
         # Not sure why ...
         # return int(self.locs[0].size / 2)
 
-
     def getP(self, mesh, Gloc):
 
         if mesh in self._Ps:

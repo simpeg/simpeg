@@ -1,4 +1,4 @@
-.. _api_getting_started_developers:
+.. _getting_started_developers:
 
 Getting Started: for Developers
 ===============================

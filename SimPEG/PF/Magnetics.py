@@ -79,6 +79,20 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return self._G
 
+    # def _Jmatrix(self):
+    #     """
+    #         Sensitivity matrix
+    #     """
+    #     dmudm = self.chiMap.deriv(self.chi)
+    #     return self.G*dmudm
+
+    def getJ(self, m, f=None):
+        """
+            Sensitivity matrix
+        """
+        dmudm = self.chiMap.deriv(self.chi)
+        return self.G*dmudm
+
     def Intrgl_Fwr_Op(self, m=None, Magnetization="ind"):
 
         """
@@ -768,19 +782,19 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
     Ty = np.zeros((1, 3*nC))
     Tz = np.zeros((1, 3*nC))
 
-    dz2 = rxLoc[2] - Zn[:, 0] + eps
-    dz1 = rxLoc[2] - Zn[:, 1] + eps
+    dz2 = rxLoc[2] - Zn[:, 0]
+    dz1 = rxLoc[2] - Zn[:, 1]
 
-    dy2 = Yn[:, 1] - rxLoc[1] + eps
-    dy1 = Yn[:, 0] - rxLoc[1] + eps
+    dy2 = Yn[:, 1] - rxLoc[1]
+    dy1 = Yn[:, 0] - rxLoc[1]
 
-    dx2 = Xn[:, 1] - rxLoc[0] + eps
-    dx1 = Xn[:, 0] - rxLoc[0] + eps
+    dx2 = Xn[:, 1] - rxLoc[0]
+    dx1 = Xn[:, 0] - rxLoc[0]
 
-    R1 = (dy2**2 + dx2**2)
-    R2 = (dy2**2 + dx1**2)
-    R3 = (dy1**2 + dx2**2)
-    R4 = (dy1**2 + dx1**2)
+    R1 = (dy2**2 + dx2**2) + eps
+    R2 = (dy2**2 + dx1**2) + eps
+    R3 = (dy1**2 + dx2**2) + eps
+    R4 = (dy1**2 + dx1**2) + eps
 
     arg1 = np.sqrt(dz2**2 + R2)
     arg2 = np.sqrt(dz2**2 + R1)
@@ -814,10 +828,10 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
         np.arctan2(dx1 * dz1, (dy1 * arg7)) +\
         - np.arctan2(dx2 * dz1, (dy1 * arg8))
 
-    R1 = (dy2**2 + dz1**2)
-    R2 = (dy2**2 + dz2**2)
-    R3 = (dy1**2 + dz1**2)
-    R4 = (dy1**2 + dz2**2)
+    R1 = (dy2**2 + dz1**2) + eps
+    R2 = (dy2**2 + dz2**2) + eps
+    R3 = (dy1**2 + dz1**2) + eps
+    R4 = (dy1**2 + dz2**2) + eps
 
     Ty[0, 2*nC:] = np.log((dx1 + np.sqrt(dx1**2 + R1)) /
                           (dx2 + np.sqrt(dx2**2 + R1))) +\
@@ -825,10 +839,10 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
         np.log((dx1 + np.sqrt(dx1**2 + R4)) / (dx2 + np.sqrt(dx2**2 + R4))) +\
         -np.log((dx1 + np.sqrt(dx1**2 + R3)) / (dx2 + np.sqrt(dx2**2 + R3)))
 
-    R1 = (dx2**2 + dz1**2)
-    R2 = (dx2**2 + dz2**2)
-    R3 = (dx1**2 + dz1**2)
-    R4 = (dx1**2 + dz2**2)
+    R1 = (dx2**2 + dz1**2) + eps
+    R2 = (dx2**2 + dz2**2) + eps
+    R3 = (dx1**2 + dz1**2) + eps
+    R4 = (dx1**2 + dz2**2) + eps
 
     Tx[0, 2*nC:] = np.log((dy1 + np.sqrt(dy1**2 + R1)) /
                           (dy2 + np.sqrt(dy2**2 + R1))) +\
