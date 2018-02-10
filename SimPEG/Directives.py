@@ -636,16 +636,17 @@ class Update_IRLS(InversionDirective):
     iterStart = 0
 
     # Beta schedule
+    updateBeta = True
     coolingFactor = 2.
     coolingRate = 1
-    ComboRegFun = False
-    ComboMisfitFun = False
-
-    updateBeta = True
-
+    ComboObjFun = False
     mode = 1
-    scale_m = False
-    phi_m_last = None
+    coolEps_p = False
+    coolEps_q = False
+    floorEps_p = 1e-8
+    floorEps_q = 1e-8
+    coolEpsFact = 2.
+    silent = False
 
     @property
     def target(self):
@@ -721,7 +722,8 @@ class Update_IRLS(InversionDirective):
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if np.all([self.invProb.phi_d < self.start,
                    self.mode == 1]):
-            print("Reached starting chifact with l2-norm regularization: Start IRLS steps...")
+            if not self.silent:
+                print("Reached starting chifact with l2-norm regularization: Start IRLS steps...")
 
             self.mode = 2
             self.iterStart = self.opt.iter
@@ -745,25 +747,46 @@ class Update_IRLS(InversionDirective):
             # Re-assign the norms supplied by user l2 -> lp
             for reg, norms in zip(self.reg.objfcts, self.norms):
                 reg.norms = norms
-                print("L[p qx qy qz]-norm : " + str(reg.norms))
+                if not self.silent:
+                    print("L[p qx qy qz]-norm : " + str(reg.norms))
 
             # Save l2-model
             self.invProb.l2model = self.invProb.model.copy()
 
             # Print to screen
             for reg in self.reg.objfcts:
-                print("eps_p: " + str(reg.eps_p) +
-                      " eps_q: " + str(reg.eps_q))
+                if not self.silent:
+                    print("eps_p: " + str(reg.eps_p) +
+                          " eps_q: " + str(reg.eps_q))
 
         # Only update after GN iterations
         if np.all([(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode != 1]):
 
-
             # Check for maximum number of IRLS cycles
             if self.IRLSiter == self.maxIRLSiter:
-                print("Reach maximum number of IRLS cycles: {0:d}".format(self.maxIRLSiter))
+                if not self.silent:
+                    print("Reach maximum number of IRLS cycles: {0:d}".format(self.maxIRLSiter))
                 self.opt.stopNextIteration = True
                 return
+
+            self.phi_dm += [np.sum((self.invProb.l2model - self.invProb.model)**2.)]
+            self.phi_dmx += [np.sum((self.reg.objfcts[0].objfcts[1].cellDiffStencil*self.invProb.l2model - self.reg.objfcts[0].objfcts[1].cellDiffStencil*self.invProb.model)**2.)]
+            if self.coolEps_p:
+
+                for reg in self.reg.objfcts:
+                    if np.all([reg.eps_q > self.floorEps_q, self.phi_dm[self.IRLSiter] >= self.phi_dm[self.IRLSiter-1]]):
+                        reg.eps_q /= self.coolEpsFact
+                    else:
+                        self.coolEps_p = False
+
+            if self.coolEps_q:
+
+                for reg in self.reg.objfcts:
+
+                    if np.all([reg.eps_p > self.floorEps_p, self.phi_dmx[self.IRLSiter] >= self.phi_dmx[self.IRLSiter-1]]):
+                        reg.eps_p /= self.coolEpsFact
+                    else:
+                        self.coolEps_q = False
 
             # phi_m_last = []
             for reg in self.reg.objfcts:
@@ -797,7 +820,8 @@ class Update_IRLS(InversionDirective):
             # phim_new = self.reg(self.invProb.model)
             self.f_change = np.abs(self.f_old - phim_new) / self.f_old
 
-            print("Phim relative change: {0:6.3e}".format((self.f_change)))
+            if not self.silent:
+                print("Phim relative change: {0:6.3e}".format((self.f_change)))
             # Check if the function has changed enough
             if self.f_change < self.f_min_change and self.IRLSiter > 1:
                 print("Minimum decrease in regularization. End of IRLS")
@@ -820,13 +844,16 @@ class Update_IRLS(InversionDirective):
         # Beta Schedule
         if np.all([self.invProb.phi_d < self.target,
                    self.mode == 2]):
-            print("Target chifact overshooted, adjusting beta ...")
+            if not self.silent:
+                print("Target chifact overshooted, adjusting beta ...")
             self.mode = 3
 
         if np.all([self.opt.iter > 0, self.opt.iter % self.coolingRate == 0,
                    self.mode != 3]):
 
-            if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
+            if self.debug:
+                if not self.silent:
+                    print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
             self.invProb.beta /= self.coolingFactor
 
         # Check if misfit is within the tolerance, otherwise scale beta

@@ -307,11 +307,11 @@ class LinearProblem(BaseProblem):
         # Check possible dtype for linear operator
         # Important to avoid memory copies of dense matrix
         if self.F.dtype is np.dtype('float32'):
-            y = np.dot(self.F, (self.mapping.deriv(m)*v).astype(np.float32))
+            y = np.dot(self.F, (self.mapPair.deriv(m)*v).astype(np.float32))
             y.astype(np.float64)
 
         else:
-            y = np.dot(self.F, self.mapping.deriv(m)*v)
+            y = np.dot(self.F, self.mapPair.deriv(m)*v)
 
         return y
 
@@ -327,4 +327,4 @@ class LinearProblem(BaseProblem):
         else:
             y = np.dot(self.F.T, v)
 
-        return self.mapping.deriv(m).T*y
+        return self.mapPair.deriv(m).T*y
