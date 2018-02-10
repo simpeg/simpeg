@@ -7,12 +7,13 @@ import scipy.sparse as sp
 from . import BaseGrav as GRAV
 import re
 import numpy as np
-import multiprocessing
+# import multiprocessing
 import scipy.constants as constants
-import subprocess
+# import subprocess
 import os
 import threading
 import time
+from . import calcTmat
 
 class GravityIntegral(Problem.LinearProblem):
 
@@ -159,26 +160,38 @@ class GravityIntegral(Problem.LinearProblem):
         self.rxLoc = self.survey.srcField.rxList[0].locs
         self.nD = int(self.rxLoc.shape[0])
 
-        if self.n_cpu is None:
-            self.n_cpu = multiprocessing.cpu_count()
+        # if self.n_cpu is None:
+        #     self.n_cpu = multiprocessing.cpu_count()
 
+        # F = calcTmat.calcTmat(self.rxLoc, self.Xn, self.Yn, self.Zn)
+
+        # return F
         # Calculate the block size for each cpu
-        rowInd = np.linspace(0, self.nD, self.n_cpu+1).astype(int)
-        threads = [None]*self.n_cpu
-        F = [None]*self.n_cpu
+        # rowInd = np.linspace(0, self.nD, self.n_cpu+1).astype(int)
+        # threads = [None]*self.n_cpu
+        # F = [None]*self.n_cpu
 
-        for ii in range(self.n_cpu):
+        # for ii in range(self.n_cpu):
 
-            nRows = int(rowInd[ii+1]-rowInd[ii])
+        #     nRows = int(rowInd[ii+1]-rowInd[ii])
 
-            if self.forwardOnly:
-                threads[ii] = threading.Thread(target=self.getDblock, args=(rowInd[ii], nRows, F, ii))
-            else:
-                threads[ii] = threading.Thread(target=self.getTblock, args=(rowInd[ii], nRows, F, ii))
-            threads[ii].start()
+        #     if self.forwardOnly:
+        #         threads[ii] = threading.Thread(target=self.getDblock, args=(rowInd[ii], nRows, F, ii))
+        #     else:
+        #         threads[ii] = threading.Thread(target=self.getTblock, args=(rowInd[ii], nRows, F, ii))
+        #     threads[ii].start()
 
-        for thread in threads:
-            thread.join()
+        # for thread in threads:
+        #     thread.join()
+        arg = np.linspace(0, self.nD, 10, dtype=int)
+        F = []
+        for ii in range(self.nD):
+
+            F += [self.calcTrow(ii)]
+            if np.any(ii == arg):
+                print("Completed " + str(ii/self.nD*100) + " %")
+
+
 
         return np.vstack(F)
 
@@ -190,7 +203,7 @@ class GravityIntegral(Problem.LinearProblem):
         """
         return self.rhoMap
 
-    def calcTrow(self, rxLoc):
+    def calcTrow(self, index):
         """
         Load in the active nodes of a tensor mesh and computes the gravity tensor
         for a given observation location rxLoc[obsx, obsy, obsz]
@@ -211,6 +224,7 @@ class GravityIntegral(Problem.LinearProblem):
 
         """
 
+        rxLoc = self.rxLoc[index, :]
         NewtG = constants.G*1e+8  # Convertion from mGal (1e-5) and g/cc (1e-3)
         eps = 1e-8  # add a small value to the locations to avoid
 
@@ -222,7 +236,6 @@ class GravityIntegral(Problem.LinearProblem):
         dy = self.Yn - rxLoc[1]
 
         dx = self.Xn - rxLoc[0]
-
 
         # Compute contribution from each corners
         for aa in range(2):
@@ -250,7 +263,7 @@ class GravityIntegral(Problem.LinearProblem):
                                                   (dy[:, bb] * r + eps)))
 
                     else:
-                        row = row - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                        row -= NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             dx[:, aa] * np.log(dy[:, bb] + r + eps) +
                             dy[:, bb] * np.log(dx[:, aa] + r + eps) -
                             dz[:, cc] * np.arctan(dx[:, aa] * dy[:, bb] /
@@ -258,7 +271,7 @@ class GravityIntegral(Problem.LinearProblem):
 
         return row
 
-    def getTblock(self, indStart, nRows, F, index):
+    def getTblock(self, index):
         """
             Calculate rows of sensitivity
         """

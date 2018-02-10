@@ -6,4 +6,4 @@ from . import BaseGrav
 from . import Gravity
 from . import MagneticsDriver
 from . import GravityDriver
-from . import getTmat
+from . import calcTmat
