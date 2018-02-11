@@ -9,12 +9,10 @@ data. The original data can be downloaded from:
 The forward simulation is performed on the cylindrically symmetric mesh using
 :code:`SimPEG.EM.FDEM`.
 
-Heagy, L.J., R. Cockett, S. Kang, G.K. Rosenkjaer, D.W. Oldenburg,
-2017 (in review), A framework for simulation and inversion in electromagnetics.
-Computers & Geosciences
-
-The paper is available at:
-https://arxiv.org/abs/1610.00804
+    Lindsey J. Heagy, Rowan Cockett, Seogi Kang, Gudni K. Rosenkjaer, Douglas
+    W. Oldenburg, A framework for simulation and inversion in electromagnetics,
+    Computers & Geosciences, Volume 107, 2017, Pages 1-19, ISSN 0098-3004,
+    http://dx.doi.org/10.1016/j.cageo.2017.06.018.
 
 The script and figures are also on figshare:
 https://doi.org/10.6084/m9.figshare.5107711

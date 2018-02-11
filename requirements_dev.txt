@@ -1,6 +1,6 @@
 sphinx==1.5.6
 sphinx_rtd_theme
-sphinx-gallery
+sphinx-gallery>=0.1.13
 nose
 pillow
 nose-cov
@@ -12,6 +12,7 @@ cython
 pymatsolver>=0.1.2
 ipython
 matplotlib
-properties[math]
+properties>=0.3.6b0
+vectormath
 wheel
 pytest

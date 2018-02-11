@@ -118,7 +118,7 @@ class Fields_CC(FieldsDC):
             .. math::
                 \vec{e} = -\nabla \phi
         """
-        return -self.cellGrad*phiSolution
+        return self.prob.MfI*self.prob.MfRhoI * self._j(phiSolution, srcList)
 
     def _charge(self, phiSolution, srcList):
         """

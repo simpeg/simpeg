@@ -3,37 +3,45 @@
 Getting Started with SimPEG
 ***************************
 
-Dependencies
-============
 
-- Python 3.5 (or 2.7)
-- NumPy 1.8 (or greater)
-- SciPy 0.13 (or greater)
-- matplotlib 1.3 (or greater)
-- Cython 0.20 (or greater)
+.. _installing_python:
 
-Installing Python
-=================
+Prerequisite: Installing Python
+===============================
 
-Python is available on all major operating systems, but if you are getting started with python
-it is best to use a package manager such as
-`Continuum Anaconda <https://www.continuum.io/downloads>`_ or
-`Enthought Canopy <https://www.enthought.com/products/canopy/>`_.
-You can download the package manager and use it to install the dependencies above.
+We highly recommend installing python using
+`Anaconda <https://www.continuum.io/downloads>`_.
+It installs `python <https://www.python.org/>`_,
+`Jupyter <http://jupyter.org/>`_ and other core
+python libraries for scientific computing.
 
-.. note::
-    When using Continuum Anaconda, make sure to run::
+We also recommend installing the latest version of Python 3.
 
-        conda update conda
-        conda update anaconda
 
+.. _installing_simpeg:
 
 Installing SimPEG
 =================
 
-SimPEG is on pip!!::
+SimPEG is on `pypi <https://pypi.python.org/pypi/SimPEG>`_! First, make sure
+your version of pip is up-to-date
+
+.. code::
+
+    pip install --upgrade pip
+
+Then you can install SimPEG
+
+.. code::
 
     pip install SimPEG
+
+
+To update SimPEG, you can run
+
+.. code::
+
+    pip install --upgrade SimPEG
 
 
 Installing from Source
@@ -43,7 +51,7 @@ First (you need git)::
 
     git clone https://github.com/simpeg/simpeg
 
-Second (from the root of the simpeg repository)::
+Second (from the root of the SimPEG repository)::
 
     python setup.py install
 
@@ -51,15 +59,29 @@ Second (from the root of the simpeg repository)::
 	A common error when installing the setup.py is:
 	``Missing linker, needs MSC v.1500 (Microsoft Visual C++ 2008) Runtime Library``
 
-	The missing library can be found `here <https://www.microsoft.com/en-ca/download/details.aspx?id=29>`
+	The missing library can be found `here <https://www.microsoft.com/en-ca/download/details.aspx?id=29>`_
+
+If you are interested in contributing to SimPEG, please check out the page on :ref:`Contributing <contributing>`
+
+
+Success?
+========
+
+If you have been successful at downloading and installing SimPEG, you should
+be able to download and run any of the :ref:`Examples`.
+
+If not, you can reach out to other people developing and using SimPEG on the
+`google forum <https://groups.google.com/forum/#!forum/simpeg>`_ or on
+`slack <http://slack.simpeg.xyz>`_.
 
 Useful Links
 ============
+
 An enormous amount of information (including tutorials and examples) can be found on the official websites of the packages
 
-* `Python Website <https://www.python.org/>`_
-* `Numpy Website <https://www.numpy.org/>`_
-* `SciPy Website <https://www.scipy.org/>`_
+* `Python <https://www.python.org/>`_
+* `Numpy <https://www.numpy.org/>`_
+* `SciPy <https://www.scipy.org/>`_
 * `Matplotlib <https://matplotlib.org/>`_
 
 Python for scientific computing
@@ -67,6 +89,7 @@ Python for scientific computing
 
 * `Python for Scientists <https://sites.google.com/site/pythonforscientists/>`_ Links to commonly used packages, Matlab to Python comparison
 * `Python Wiki <http://wiki.python.org/moin/NumericAndScientific>`_ Lists packages and resources for scientific computing in Python
+* `Jupyter <http://jupyter.org/>`_
 
 Numpy and Matlab
 ----------------
@@ -80,12 +103,11 @@ Lessons in Python
 * `Software Carpentry <https://swcarpentry.github.io/python-novice-inflammation/>`_
 * `Introduction to NumPy and Matplotlib <https://www.youtube.com/watch?v=3Fp1zn5ao2M>`_
 
+
 Editing Python
 --------------
 
 There are numerous ways to edit and test Python (see `PythonWiki <http://wiki.python.org/moin/PythonEditors>`_ for an overview) and in our group at least the following options are being used:
 
 * `Sublime <https://www.sublimetext.com/>`_
-* `iPython Notebook <https://ipython.org/notebook.html>`_
-* `iPython <https://ipython.org/>`_
-* `Enthought Canopy <https://www.enthought.com/products/canopy/>`_
+* `Jupyter <http://jupyter.org/>`_
