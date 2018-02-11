@@ -1070,7 +1070,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
     maxIterCG = 5
     tolCG = 1e-1
-
+    cgCount = 0
 
     # perturbation of the inactive set off the bounds
     stepOffBoundsFact = 1e-8
@@ -1177,7 +1177,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
             sold = snew
             # End CG Iterations
-
+        self.cgCount += count
         if self.ComboObjFun:
 
             reg = self.parent.reg.objfcts[1]

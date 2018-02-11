@@ -307,7 +307,8 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return F
 
-    def mapPair(self):
+    @property
+    def modelMap(self):
         """
             Call for general mapping of the problem
         """
