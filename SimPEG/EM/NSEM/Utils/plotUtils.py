@@ -42,7 +42,7 @@ def _validate_kwargs(input_dict, compare_dict):
     return input_dict
 
 
-class Base_DataNSEM_plots(properties.HasProperties):
+class BaseDataNSEMPlots(properties.HasProperties):
     """
     A class container of matplotlib panels for plotting
     NSEM data.
@@ -84,7 +84,7 @@ class Base_DataNSEM_plots(properties.HasProperties):
                     item.remove()
 
 
-class tip_amp_station_plot(Base_DataNSEM_plots):
+class TipperAmplitudeStationPlot(BaseDataNSEMPlots):
     """
     Class for setting up 2 axes figure with:
         tipper amplitudes | tipper phase
@@ -92,7 +92,7 @@ class tip_amp_station_plot(Base_DataNSEM_plots):
     """
 
     def __init__(self):
-        super(tip_amp_station_plot, self).__init__()
+        super(TipperAmplitudeStationPlot, self).__init__()
 
 
     def setup(self):
@@ -159,7 +159,7 @@ class tip_amp_station_plot(Base_DataNSEM_plots):
                                     comp_plot_dict=dd_kwargs)
 
 
-class app_res_phs_imp_station_plot(Base_DataNSEM_plots):
+class ApperentResPhsStationPlot(BaseDataNSEMPlots):
     """
     Class for setting up 4 axes figure with:
             apparent resistivity | phase
@@ -169,7 +169,7 @@ class app_res_phs_imp_station_plot(Base_DataNSEM_plots):
     """
 
     def __init__(self):
-        super(app_res_phs_imp_station_plot, self).__init__()
+        super(ApperentResPhsStationPlot, self).__init__()
 
 
     def setup(self):
@@ -266,7 +266,7 @@ class app_res_phs_imp_station_plot(Base_DataNSEM_plots):
                                     comp_plot_dict=dd_kwargs)
 
 
-class DataNSEM_plot_functions(object):
+class DataNSEMPlotMethods(object):
     """
     Class container for properties and methods for
     plotting of NSEM data.
@@ -279,9 +279,10 @@ class DataNSEM_plot_functions(object):
         """
         pass
 
-    def plot_app_res(self, location,
-                     components=['xy', 'yx'], ax=None, errorbars=False,
-                     comp_plot_dict=DEFAULT_COMP_DICT):
+    def plot_app_res(
+        self, location,
+        components=['xy', 'yx'], ax=None, errorbars=False,
+            comp_plot_dict=DEFAULT_COMP_DICT):
         """
         Plot apperent resistivity curves at a given location
 
@@ -327,9 +328,10 @@ class DataNSEM_plot_functions(object):
 
         return ax
 
-    def plot_app_phs(self, location,
-                     components=['xy', 'yx'], ax=None, errorbars=False,
-                     comp_plot_dict=DEFAULT_COMP_DICT):
+    def plot_app_phs(
+        self, location,
+        components=['xy', 'yx'], ax=None, errorbars=False,
+            comp_plot_dict=DEFAULT_COMP_DICT):
         """
         Plot apperent resistivity curves at a given location
 
@@ -373,9 +375,10 @@ class DataNSEM_plot_functions(object):
 
         return ax
 
-    def plot_imp_amp(self, location,
-                     components=['xy', 'yx'], ax=None, errorbars=False,
-                     comp_plot_dict=DEFAULT_COMP_DICT):
+    def plot_imp_amp(
+        self, location,
+        components=['xy', 'yx'], ax=None, errorbars=False,
+            comp_plot_dict=DEFAULT_COMP_DICT):
         """
         Plot impedance amplitude curves at a given location
 
@@ -420,9 +423,10 @@ class DataNSEM_plot_functions(object):
 
         return ax
 
-    def plot_tip_amp(self, location,
-                     components=['zx', 'zy'], ax=None, errorbars=False,
-                     comp_plot_dict=DEFAULT_COMP_DICT):
+    def plot_tip_amp(
+        self, location,
+        components=['zx', 'zy'], ax=None, errorbars=False,
+            comp_plot_dict=DEFAULT_COMP_DICT):
         """
         Plot tipper amplitude curves at a given location
 
@@ -467,69 +471,9 @@ class DataNSEM_plot_functions(object):
 
         return ax
 
-    def map_iso_frequency(self, freq, ax=None, **plot_kwargs):
-        """
-        Function that maps the data at an certain frequency.
-        :param frequency: The frequency to map the data for
-        :type frequency: :class:`float`
-        :param ax: The ax object for mapping to. Default: None
-        :type ax: :class:`axes <matplotlib.axes>`
-
-        """
-    #     def plotIsoFreqNSimpedance(ax,freq,array,flag,par='abs',colorbar=True,colorNorm='SymLog',cLevel=True,contour=True):
-
-    # indUniFreq = np.where(freq==array['freq'])
-
-
-    # x, y = array['x'][indUniFreq],array['y'][indUniFreq]
-    # if par == 'abs':
-    #     zPlot = np.abs(array[flag][indUniFreq])
-    #     cmap = plt.get_cmap('OrRd_r')#seismic')
-    #     level = np.logspace(0,-5,31)
-    #     clevel = np.logspace(0,-4,5)
-    #     plotNorm = colors.LogNorm()
-    # elif par == 'real':
-    #     zPlot = np.real(array[flag][indUniFreq])
-    #     cmap = plt.get_cmap('RdYlBu')
-    #     if cLevel:
-    #         level = np.concatenate((-np.logspace(0,-10,31),np.logspace(-10,0,31)))
-    #         clevel = np.concatenate((-np.logspace(0,-8,5),np.logspace(-8,0,5)))
-    #     else:
-    #         level = np.linspace(zPlot.min(),zPlot.max(),100)
-    #         clevel = np.linspace(zPlot.min(),zPlot.max(),10)
-    #     if colorNorm=='SymLog':
-    #         plotNorm = colors.SymLogNorm(1e-10,linscale=2)
-    #     else:
-    #         plotNorm = colors.Normalize()
-    # elif par == 'imag':
-    #     zPlot = np.imag(array[flag][indUniFreq])
-    #     cmap = plt.get_cmap('RdYlBu')
-    #     level = np.concatenate((-np.logspace(0,-10,31),np.logspace(-10,0,31)))
-    #     clevel = np.concatenate((-np.logspace(0,-8,5),np.logspace(-8,0,5)))
-    #     plotNorm = colors.SymLogNorm(1e-10,linscale=2)
-    #     if cLevel:
-    #         level = np.concatenate((-np.logspace(0,-10,31),np.logspace(-10,0,31)))
-    #         clevel = np.concatenate((-np.logspace(0,-8,5),np.logspace(-8,0,5)))
-    #     else:
-    #         level = np.linspace(zPlot.min(),zPlot.max(),100)
-    #         clevel = np.linspace(zPlot.min(),zPlot.max(),10)
-    #     if colorNorm=='SymLog':
-    #         plotNorm = colors.SymLogNorm(1e-10,linscale=2)
-    #     elif colorNorm=='Lin':
-    #         plotNorm = colors.Normalize()
-    # if contour:
-    #     cs = ax.tricontourf(x,y,zPlot,levels=level,cmap=cmap,norm=plotNorm)#,extend='both')
-    # else:
-    #     uniX,uniY = np.unique(x),np.unique(y)
-    #     X,Y = np.meshgrid(np.append(uniX-25,uniX[-1]+25),np.append(uniY-25,uniY[-1]+25))
-    #     cs = ax.pcolor(X,Y,np.reshape(zPlot,(len(uniY),len(uniX))),cmap=cmap,norm=plotNorm)
-    # if colorbar:
-    #     plt.colorbar(cs,cax=ax.cax,ticks=clevel,format='%1.2e')
-    #     ax.set_title(flag+' '+par,fontsize=8)
-    # return cs
-
-
-    def map_data_locations(self, ax=None, **plot_kwargs):
+    def map_data_locations(
+        self, ax=None,
+            **plot_kwargs):
         """
         Function that plots all receiver locations of the data
             (all discreate data locations).
@@ -563,14 +507,13 @@ class DataNSEM_plot_functions(object):
             fig = ax.get_figure()
 
         # Plot the locations
-        ax.plot(unique_locations[:, 0], unique_locations[:, 1],
-                   **plot_kwargs)
+        ax.plot(unique_locations[:, 0], unique_locations[:, 1], **plot_kwargs)
 
         return (fig, ax)
 
-
-    def station_component(self, location, orientation, component,
-                               ax=None, **plot_kwargs):
+    def station_component(
+        self, location, orientation, component,
+            ax=None, **plot_kwargs):
         """
 
         :param numpy.ndarray location: Coordnaties of the station to plot
@@ -597,9 +540,9 @@ class DataNSEM_plot_functions(object):
 
         return (fig, ax, plot_obj)
 
-
-    def station_errorbars(self, location, orientation, component,
-                          ax=None, **plot_kwargs):
+    def station_errorbars(
+        self, location, orientation, component,
+            ax=None, **plot_kwargs):
         """
 
         :param numpy.ndarray location: Coordnaties of the station to plot
@@ -623,8 +566,9 @@ class DataNSEM_plot_functions(object):
                                **plot_kwargs)
         return (fig, ax, plot_obj)
 
-    def frequency_map(self, frequency, orientation, component,
-                      ax=None, plot_error=True, **plot_kwargs):
+    def frequency_map(
+        self, frequency, orientation, component,
+            ax=None, plot_error=True, **plot_kwargs):
         """
         Function to generate a iso-frequency map
 
@@ -643,7 +587,7 @@ class DataNSEM_plot_functions(object):
             fig = ax.get_figure()
 
         # Plot the data
-        locs, plot_data, errorbars = _get_station_data(
+        locs, plot_data, errorbars = _get_map_data(
             self, frequency, orientation, component,plot_error)
         plot_obj = plt.tricontourf(locs, plot_data,
                                **plot_kwargs)

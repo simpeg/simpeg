@@ -57,7 +57,10 @@ def rotateData(NSEMdata, rotAngle):
 # Function to get data and data info
 def extract_data_info(NSEMdata):
     """
-    Simple function that data, frequency and receiver type lists.
+    Simple function that extracts data, frequency and receiver type lists.
+
+    Useful when assigning uncertainties to data based on frequencies and
+    receiver types.
 
 
     """
@@ -73,8 +76,114 @@ def extract_data_info(NSEMdata):
                 rxTL.extend( (('t' + rx.orientation +' ')*rx.nD).split())
     return np.concatenate(dL), np.concatenate(freqL), np.array(rxTL)
 
+def reduce_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
+    """
+    Function that selects locations from all the receivers in the survey
+    (uses the numerator location as a reference). Also gives the option
+    of selecting frequencies and receiver.
+
+    :param SimPEG.EM.NSEM.Data NSEMdata: NSEM data object to process
+    :param numpy.ndarray locs: receiver locations to use (default is 'All' locations)
+    :param numpy.ndarray freqs: frequencies to use (default is 'All' frequencies))
+    :param string rxs: list of receiver sting types to use (default is 'All' types)
+        Can be any componation of ['zxx','zxy','zyx','zyy','tzx','tzy']
+    """
+
+    # Initiate new objects
+    new_srcList = []
+    data_list = []
+    std_list = []
+    floor_list = []
+
+    # Sort out input frequencies
+    if locs is 'All':
+        locations = NSEMdata._unique_locations()
+    elif isinstance(locs, np.ndarray):
+        locations = locs
+    else:
+        raise IOError('Incorrect input type for locs. \n' +
+                      'Can be \'All\' or ndarray ')
+    # Sort out input frequencies
+    if freqs is 'All':
+        frequencies = NSEMdata.survey.freqs
+    elif isinstance(freqs, np.ndarray):
+        frequencies = freqs
+    elif isinstance(freqs, list):
+        frequencies = np.array(freqs)
+    else:
+        raise IOError('Incorrect input type for freqs. \n' +
+                      'Can be \'All\'; ndarray or a list')
+    # Sort out input rxs
+    if rxs is 'All':
+        rx_comp = True
+    elif isinstance(rxs, list):
+        rx_comp = []
+        for rxT in rxs:
+            if'z' in rxT[0]:
+                rxtype = Point_impedance3D
+            elif 't' in rxT[0]:
+                rxtype = Point_tipper3D
+            else:
+                raise IOError('Unknown rx type string')
+            orient = rxT[1:3]
+            rx_comp.append((rxtype, orient))
+
+    else:
+        raise IOError('Incorrect input type for rxs. \n' +
+                      'Can be \'All\' or a list')
+
+    # Filter the data
+    for src in NSEMdata.survey.srcList:
+        if src.freq in frequencies:
+            new_rxList = []
+            for rx in src.rxList:
+                if rx_comp is True or np.any(
+                        [(isinstance(rx, ct) and rx.orientation in co)
+                            for (ct, co) in rx_comp]):
+                    if len(rx.locs.shape) == 3:
+                        ind_loc = np.sum(
+                            np.concatenate(
+                                [(np.sqrt(np.sum((rx.locs[:, :, 0] - location) ** 2, axis=1)) < 0.1).reshape(-1,1)
+                                 for location in locations],
+                                axis=1), axis=1, dtype=bool)
+                        new_locs = rx.locs[ind_loc,:,:]
+                    else:
+                        ind_loc = np.sum(
+                            np.concatenate(
+                                [(np.sqrt(np.sum((rx.locs[:, :] - location) ** 2, axis=1)) < 0.1).reshape(-1,1)
+                                 for location in locations],
+                                axis=1), axis=1, dtype=bool)
+                        new_locs = rx.locs[ind_loc,:]
+                    new_rx = type(rx)
+                    new_rxList.append(new_rx(new_locs, rx.orientation, rx.component))
+                    data_list.append(NSEMdata[src, rx][ind_loc])
+                    try:
+                        std_list.append(NSEMdata.standard_deviation[src, rx][ind_loc])
+                        floor_list.append(NSEMdata.floor[src, rx][ind_loc])
+                    except Exception as e:
+                        if verbose:
+                            print('No standard deviation or floor assigned')
+
+            new_src = type(src)
+            new_srcList.append(new_src(new_rxList, src.freq))
+
+    survey = Survey(new_srcList)
+    if std_list or floor_list:
+        return Data(
+            survey, np.concatenate(data_list),
+            np.concatenate(std_list), np.concatenate(floor_list))
+    else:
+        return Data(survey, np.concatenate(data_list))
 
 def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
+    """
+    Function that converts a 3D NSEMdata of a list of
+    1D NSEMdata objects for running 1D inversions for.
+
+    :param SimPEG.EM.NSEM.Data NSEMdata: NSEM data object to process
+    :param string rxType3D: component of the NSEMdata to use
+        Can be 'xy', 'yx' or 'det'
+    """
 
     # Find the unique locations
     # Need to find the locations
@@ -83,10 +192,13 @@ def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
     ## NEED TO: write this...
     # Calculte and add the DET of the tensor to the recArray
     if 'det' in rxType3D:
-        Zon = (recDataTemp['zxxr']+1j*recDataTemp['zxxi'])*(recDataTemp['zyyr']+1j*recDataTemp['zyyi'])
-        Zoff = (recDataTemp['zxyr']+1j*recDataTemp['zxyi'])*(recDataTemp['zyxr']+1j*recDataTemp['zyxi'])
+        Zon = ((recDataTemp['zxxr'] + 1j * recDataTemp['zxxi']) *
+               (recDataTemp['zyyr'] + 1j * recDataTemp['zyyi']))
+        Zoff = ((recDataTemp['zxyr'] + 1j * recDataTemp['zxyi']) *
+                (recDataTemp['zyxr'] + 1j * recDataTemp['zyxi']))
         det = np.sqrt(Zon - Zoff)
-        recData = recFunc.append_fields(recDataTemp,['zdetr','zdeti'],[det.real,det.imag] )
+        recData = recFunc.append_fields(
+            recDataTemp, ['zdetr', 'zdeti'], [det.real, det.imag] )
     else:
         recData = recDataTemp
 
@@ -95,33 +207,39 @@ def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
     uniLocs = rec_to_ndarr(np.unique(recData[['x','y','z']]))
     mtData1DList = []
     if 'xy' in rxType3D:
-        corr = -1 # Shift the data to comply with the quadtrature of the 1d problem
+        corr = -1
+        # Shift the data to comply with the quadtrature of the 1d problem
     else:
         corr = 1
     for loc in uniLocs:
         # Make the receiver list
         rx1DList = []
-        rx1DList.append(Point_impedance1D(simpeg.mkvc(loc,2).T,'real'))
-        rx1DList.append(Point_impedance1D(simpeg.mkvc(loc,2).T,'imag'))
+        rx1DList.append(Point_impedance1D(simpeg.mkvc(loc, 2).T, 'real'))
+        rx1DList.append(Point_impedance1D(simpeg.mkvc(loc, 2).T, 'imag'))
         # Source list
-        locrecData = recData[np.sqrt(np.sum( (rec_to_ndarr(recData[['x','y','z']]) - loc )**2,axis=1)) < 1e-5]
+        locrecData = recData[np.sqrt(
+            np.sum((rec_to_ndarr(
+                recData[['x', 'y', 'z']]) - loc)**2, axis=1)
+        ) < 1e-5]
         dat1DList = []
         src1DList = []
         for freq in locrecData['freq']:
-            src1DList.append(Planewave_xy_1Dprimary(rx1DList,freq))
-            for comp  in ['r','i']:
-                dat1DList.append( corr * locrecData[rxType3D+comp][locrecData['freq']== freq] )
+            src1DList.append(Planewave_xy_1Dprimary(rx1DList, freq))
+            for comp in ['r', 'i']:
+                dat1DList.append(
+                    corr *
+                    locrecData[rxType3D + comp][locrecData['freq'] == freq])
 
         # Make the survey
         sur1D = Survey(src1DList)
 
         # Make the data
         dataVec = np.hstack(dat1DList)
-        dat1D = Data(sur1D,dataVec)
+        dat1D = Data(sur1D, dataVec)
         sur1D.dobs = dataVec
         # Need to take NSEMdata.survey.std and split it as well.
-        std=0.05
-        sur1D.std =  np.abs(sur1D.dobs*std) #+ 0.01*np.linalg.norm(sur1D.dobs)
+        std = 0.05
+        sur1D.std = np.abs(sur1D.dobs * std)
         mtData1DList.append(dat1D)
 
     # Return the the list of data.

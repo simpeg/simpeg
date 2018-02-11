@@ -18,8 +18,10 @@ class EDIimporter:
 
 
     # Define data converters
-    _impUnitEDI2SI = 4*np.pi*1e-4 # Convert Z[mV/km/nT] (as in EDI)to Z[V/A] SI unit
-    _impUnitSI2EDI = 1./_impUnitEDI2SI # ConvertZ[V/A] SI unit to Z[mV/km/nT] (as in EDI)
+    # Convert Z[mV/km/nT] (as in EDI)to Z[V/A] SI unit
+    _impUnitEDI2SI = 4*np.pi*1e-4
+    # ConvertZ[V/A] SI unit to Z[mV/km/nT] (as in EDI)_
+    _impUnitSI2EDI = 1./_impUnitEDI2SI
 
     # Properties
     filesList = None
@@ -36,7 +38,10 @@ class EDIimporter:
         self.filesList = EDIfilesList
         # Set the components to import
         if compList is None:
-            self.comps = ['ZXXR','ZXYR','ZYXR','ZYYR','ZXXI','ZXYI','ZYXI','ZYYI','ZXX.VAR','ZXY.VAR','ZYX.VAR','ZYY.VAR']
+            self.comps = [
+                'ZXXR', 'ZXYR', 'ZYXR', 'ZYYR',
+                'ZXXI', 'ZXYI', 'ZYXI', 'ZYYI',
+                'ZXX.VAR', 'ZXY.VAR', 'ZYX.VAR', 'ZYY.VAR']
         else:
             self.comps = compList
         if outEPSG is not None:
@@ -146,7 +151,7 @@ def _findLatLong(fileLines):
     longD = longDMS[0] + longS*longDMS[1]/60 + longS*longDMS[2]/3600
     return latD, longD, elevM
 
-def _findLine(comp,fileLines):
+def _findLine(comp, fileLines):
     """ Find a line number in the file"""
     # Line counter
     c = 0
@@ -162,7 +167,7 @@ def _findLine(comp,fileLines):
     # Return the found indices
     return found
 
-def _findEDIcomp(comp,fileLines,dt=float):
+def _findEDIcomp(comp, fileLines, dt=float):
     """
     Extract the data vector.
 
