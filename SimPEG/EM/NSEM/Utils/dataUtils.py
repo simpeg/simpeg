@@ -35,7 +35,7 @@ def rotateData(NSEMdata, rotAngle):
     Function that rotates clockwist by rotAngle (- negative for a counter-clockwise rotation)
     '''
     recData = NSEMdata.toRecArray('Complex')
-    impData = rec_to_ndarr(recData[['zxx','zxy','zyx','zyy']],complex)
+    impData = rec_to_ndarr(recData[['zxx', 'zxy', 'zyx', 'zyy']], complex)
     # Make the rotation matrix
     # c,s,zxx,zxy,zyx,zyy = sympy.symbols('c,s,zxx,zxy,zyx,zyy')
     # rotM = sympy.Matrix([[c,-s],[s, c]])
@@ -45,8 +45,10 @@ def rotateData(NSEMdata, rotAngle):
     # [c*(c*zyx + s*zxx) - s*(c*zyy + s*zxy), c*(c*zyy + s*zxy) + s*(c*zyx + s*zxx)]])
     s = np.sin(-np.deg2rad(rotAngle))
     c = np.cos(-np.deg2rad(rotAngle))
-    rotMat = np.array([[c,-s],[s,c]])
-    rotData = (rotMat.dot(impData.reshape(-1,2,2).dot(rotMat.T))).transpose(1,0,2).reshape(-1,4)
+    rotMat = np.array([[c, -s], [s, c]])
+    rotData = (
+        rotMat.dot(impData.reshape(-1, 2, 2).dot(rotMat.T))
+    ).transpose(1, 0, 2).reshape(-1, 4)
     outRec = recData.copy()
     for nr,comp in enumerate(['zxx','zxy','zyx','zyy']):
         outRec[comp] = rotData[:,nr]
@@ -76,7 +78,7 @@ def extract_data_info(NSEMdata):
                 rxTL.extend( (('t' + rx.orientation +' ')*rx.nD).split())
     return np.concatenate(dL), np.concatenate(freqL), np.array(rxTL)
 
-def reduce_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
+def resample_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
     """
     Function that selects locations from all the receivers in the survey
     (uses the numerator location as a reference). Also gives the option
