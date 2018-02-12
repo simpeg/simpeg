@@ -30,7 +30,8 @@ class BaseSimulation(Props.HasModel):
 
     solver_opts = properties.Instance(
         "solver options as a kwarg dict",
-        dict
+        dict,
+        default={}
     )
 
     mesh = properties.Instance(
@@ -102,6 +103,53 @@ class BaseSimulation(Props.HasModel):
         :return: JTv
         """
         raise NotImplementedError('Jt is not yet implemented.')
+
+    @Utils.timeIt
+    def Jvec_approx(self, m, v, f=None):
+        """Jvec_approx(m, v, f=None)
+
+        Approximate effect of J(m) on a vector v
+
+        :param numpy.array m: model
+        :param numpy.array v: vector to multiply
+        :param Fields f: fields
+        :rtype: numpy.array
+        :return: approxJv
+        """
+        return self.Jvec(m, v, f)
+
+    @Utils.timeIt
+    def Jtvec_approx(self, m, v, f=None):
+        """Jtvec_approx(m, v, f=None)
+
+        Approximate effect of transpose of J(m) on a vector v.
+
+        :param numpy.array m: model
+        :param numpy.array v: vector to multiply
+        :param Fields f: fields
+        :rtype: numpy.array
+        :return: JTv
+        """
+        return self.Jtvec(m, v, f)
+
+
+    @Utils.count
+    def residual(self, m, dobs, f=None):
+        """residual(m, dobs, f=None)
+
+            :param numpy.array m: geophysical model
+            :param numpy.array f: fields
+            :rtype: numpy.array
+            :return: data residual
+
+            The data residual:
+
+            .. math::
+
+                \mu_\\text{data} = \mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}
+
+        """
+        return Utils.mkvc(self.dpred(m, f=f) - dobs)
 
     def make_synthetic_data(self, m, standard_deviation=0.05, f=None):
         """

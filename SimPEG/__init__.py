@@ -13,7 +13,7 @@ from SimPEG import Models
 from SimPEG import Problem
 from SimPEG import Survey
 from SimPEG import Regularization
-from SimPEG import DataMisfit
+# from SimPEG import DataMisfit
 from SimPEG import InvProblem
 from SimPEG import Optimization
 from SimPEG import Directives
@@ -21,6 +21,8 @@ from SimPEG import Inversion
 from SimPEG import Tests
 from SimPEG import Simulation
 from SimPEG import NewSurvey
+from SimPEG import NewDataMisfit
+
 
 __version__   = '0.7.1'
 __author__    = 'SimPEG Team'
