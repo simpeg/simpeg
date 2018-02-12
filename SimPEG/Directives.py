@@ -642,6 +642,7 @@ class Update_IRLS(InversionDirective):
     chifact_start = 1.
     chifact_target = 1.
     model_previous = []
+    modelDeriv_previous = []
 
     # Solving parameter for IRLS (mode:2)
     IRLSiter = 0
@@ -698,8 +699,6 @@ class Update_IRLS(InversionDirective):
 
     def initialize(self):
 
-        self.model_previous = self.invProb.model
-
         if self.mode == 1:
 
             self.norms = []
@@ -712,6 +711,8 @@ class Update_IRLS(InversionDirective):
         for reg in self.reg.objfcts:
             reg.model = self.invProb.model
 
+        self.model_previous = self.invProb.model
+        self.modelDeriv_previous = self.reg.objfcts[0].objfcts[1].f_m
         self.phi_dm = []
         self.phi_dmx = []
         # Look for cases where the block models in to be scaled
@@ -789,25 +790,37 @@ class Update_IRLS(InversionDirective):
                 self.opt.stopNextIteration = True
                 return
 
-            self.phi_dm += [self.reg.objfcts[0].objfcts[0](self.model_previous) - self.reg.objfcts[0].objfcts[0](self.invProb.model)]
-            self.phi_dmx += [self.reg.objfcts[0].objfcts[1](self.model_previous) - self.reg.objfcts[0].objfcts[1](self.invProb.model)]
-            if self.coolEps_p:
+            # Print to screen
+            for reg in self.reg.objfcts:
+                if not self.silent:
+                    print("eps_p: " + str(reg.eps_p) +
+                          " eps_q: " + str(reg.eps_q))
 
-                if self.coolEpsOptimized:
+            self.phi_dm += [np.linalg.norm(self.model_previous-self.invProb.model, 2) / np.linalg.norm(self.model_previous, 2) ]
+            self.phi_dmx += [np.linalg.norm(self.modelDeriv_previous-self.reg.objfcts[0].objfcts[1].f_m, 2)/np.linalg.norm(self.reg.objfcts[0].objfcts[1].f_m, 2)]
+            if self.coolEpsOptimized:
+                if self.coolEps_p:
+
                     for reg in self.reg.objfcts:
-                        if np.all([reg.eps_p > self.floorEps_p,
-                                   self.phi_dm[self.IRLSiter] >= self.phi_dm[self.IRLSiter-1],
-                                   reg.eps_q > self.floorEps_q,
-                                   self.phi_dmx[self.IRLSiter] >= self.phi_dmx[self.IRLSiter-1]]):
+                        if np.any([self.IRLSiter == 1, self.phi_dm[-1] >= 0.01]):
                             reg.eps_p /= self.coolEpsFact
+                        else:
+                            reg.eps_p = reg.eps_p
+
+                if self.coolEps_q:
+
+                    for reg in self.reg.objfcts:
+
+                        if np.any([self.IRLSiter == 1, self.phi_dmx[-1] >= 0.01]):
                             reg.eps_q /= self.coolEpsFact
                         else:
-                            self.coolEps_p = False
-                            # reg.eps_p = reg.eps_p
-                elif np.all([reg.eps_p > self.floorEps_p, reg.eps_q > self.floorEps_q]):
-                    for reg in self.reg.objfcts:
-                        reg.eps_p /= self.coolEpsFact
-                        reg.eps_q /= self.coolEpsFact
+                            reg.eps_q = reg.eps_q
+            else:
+                if reg.eps_p > self.floorEps_p and self.coolEps_p:
+                    reg.eps_p /= self.coolEpsFact
+
+                if reg.eps_q > self.floorEps_q and self.coolEps_q:
+                    reg.eps_q /= self.coolEpsFact
             # if self.coolEps_q:
             #     if self.coolEpsOptimized:
             #         for reg in self.reg.objfcts:
@@ -855,8 +868,8 @@ class Update_IRLS(InversionDirective):
 
             if not self.silent:
                 print("delta phim: {0:6.3e}".format(self.f_change))
-                print("eps_p: {0:6.3e}".format(self.reg.objfcts[0].eps_p))
-                print("eps_q: {0:6.3e}".format(self.reg.objfcts[0].eps_q))
+                # print("eps_p: {0:6.3e}".format(self.reg.objfcts[0].eps_p))
+                # print("eps_q: {0:6.3e}".format(self.reg.objfcts[0].eps_q))
             # Check if the function has changed enough
             if np.all([self.f_change < self.f_min_change,
                        self.IRLSiter > 1,
@@ -880,9 +893,10 @@ class Update_IRLS(InversionDirective):
                     comp.gamma = gamma
 
             self.updateBeta = True
+                    # Store last model
+            self.model_previous = self.invProb.model.copy()
+            self.modelDeriv_previous = self.reg.objfcts[0].objfcts[1].f_m
 
-        # Store last model
-        self.model_previous = self.invProb.model.copy()
 
         # Beta Schedule
         if np.all([self.invProb.phi_d < self.target,

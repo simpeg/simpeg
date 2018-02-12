@@ -1477,8 +1477,8 @@ class BaseSparse(BaseRegularization):
             return self.stashedR
 
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = (self.epsilon**(1.-self.norm/2.))**0.5
-        r = eta / (f_m**2. + self.epsilon**2.)**((1.-self.norm/2.)/2.)
+        eta = f_m.max() / (f_m / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.)).max()#(self.epsilon**(1.-self.norm/2.))**0.5
+        r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
 
         self.stashedR = r  # stash on the first calculation
         return r
@@ -1562,7 +1562,7 @@ class SparseDeriv(BaseSparse):
             else:
                 W = ((self.scale * self.gamma)**0.5) * R
 
-            theta = self.cellDiffStencil * (self.mapping * m)
+            theta = self.cellDiffStencil * (self.mapping * (m - self.mref))
             dmdx = coterminal(theta)
             r = W * dmdx
 
@@ -1653,13 +1653,13 @@ class SparseDeriv(BaseSparse):
 
                     dmdx += np.abs(self.regmesh.aveFz2CC *
                                    self.regmesh.cellDiffzStencil *
-                                   (self.mapping * self.model)
+                                   (self.mapping * (self.model - self.mref))
                                    )
 
                 dmdx = Ave * dmdx
 
             else:
-                dmdx = self.cellDiffStencil * (self.mapping * self.model)
+                dmdx = self.cellDiffStencil * (self.mapping * (self.model - self.mref))
 
         return dmdx
 
