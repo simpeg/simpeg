@@ -1,5 +1,7 @@
 import properties
 
+from .NewSurvey import BaseSrc
+
 
 class Data(object):
     """
@@ -28,7 +30,7 @@ class Data(object):
 
     srcList = properties.List(
         "source list",
-        Source.BaseSrc
+        BaseSrc
     )
 
     uid = properties.Uuid("unique ID for the data")
@@ -40,7 +42,7 @@ class Data(object):
         if v is not None:
             self.fromvec(v)
 
-    @properties
+    @property
     def nD(self):
         pass
 

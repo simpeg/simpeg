@@ -8,18 +8,39 @@ from . import Utils
 from . import Models
 from . import Maps
 from . import Props
-from . import Source
+# from . import Source
 from . import Data
+from .NewSurvey import BaseSurvey
 
 
-class BasePhysicsMixin(Props.HasModel):
+class BaseSimulation(Props.HasModel):
     """
-    BasePhysicsMixin is the base class for the physics mixins defining
+    BaseSimulation is the base class for all geophysical forward simulations in
+    SimPEG.
     """
+
+    counter = properties.Instance(
+        "A SimPEG.Utils.Counter object",
+        Utils.Counter
+    )
+
+    # TODO: Solver code needs to be cleaned up so this is either a pymatsolver
+    # solver or a SimPEG solver (or similar)
+    solver = Utils.SolverUtils.Solver
+
+    solver_opts = properties.Instance(
+        "solver options as a kwarg dict",
+        dict
+    )
 
     mesh = properties.Instance(
-        "the simulation mesh, a :class:`discretize.BaseMesh` instance",
+        "a discretize mesh instance",
         discretize.BaseMesh
+    )
+
+    survey = properties.Instance(
+        "a list of sources",
+        BaseSurvey
     )
 
     def fields(self, m):
@@ -91,40 +112,6 @@ class BasePhysicsMixin(Props.HasModel):
         :param numpy.array f: fields for the given model (if pre-calculated)
         """
 
-
-class BaseSimulation(properties.HasProperties):
-    """
-    BaseSimulation is the base class for all geophysical forward simulations in
-    SimPEG.
-    """
-
-    counter = properties.Instance(
-        "A SimPEG.Utils.Counter object",
-        Utils.Counter
-    )
-
-    # TODO: Solver code needs to be cleaned up so this is either a pymatsolver
-    # solver or a SimPEG solver (or similar)
-    solver = properties.Instance(
-        "Solver for the forward simulation",
-        object,
-        default=Utils.SolverUtils.Solver
-    )
-
-    solver_opts = properties.Instance(
-        "solver options as a kwarg dict",
-        dict
-    )
-
-    mesh = properties.Instance(
-        "a discretize mesh instance",
-        discretize.BaseMesh
-    )
-
-    survey = properties.Instance(
-        "a list of sources",
-        Source.BaseSrc
-    )
 
 
 

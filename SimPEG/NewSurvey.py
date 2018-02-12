@@ -28,7 +28,7 @@ class BaseRx(properties.HasProperties):
     )
 
     projGLoc = properties.StringChoice(
-        "Projection grid location, default is CC"
+        "Projection grid location, default is CC",
         choices=["CC", "F", "E"],
         default="CC"
     )
@@ -92,10 +92,10 @@ class BaseRx(properties.HasProperties):
 class BaseTimeRx(BaseRx):
     """SimPEG Receiver Object for time-domain simulations"""
 
-    times = properities.Array(
+    times = properties.Array(
         "times where the recievers measure data",
         shape=("*",),
-        retuired=True
+        required=True
     )
 
     projTLoc = properties.StringChoice(
@@ -209,11 +209,15 @@ class BaseSurvey(properties.HasProperties):
 
     counter = properties.Instance(
         "A SimPEG counter object",
-        Utils.counter
+        Utils.Counter
     )
 
     srcList = properties.List(
         "A list of sources for the survey",
+        properties.Instance(
+            "A SimPEG source",
+            BaseSrc
+        ),
         required=True
     )
 
