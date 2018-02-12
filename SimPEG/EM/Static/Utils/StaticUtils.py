@@ -777,12 +777,12 @@ def writeUBC_DCobs(
         if dim == 3:
             fid = open(fileName, 'a')
             # Flip sign of z value for UBC DCoctree code
-            tx[:, 2] = -tx[:, 2]
+            # tx[:, 2] = -tx[:, 2]
             # print(tx)
 
             # Flip sign of z value for UBC DCoctree code
-            M[:, 2] = -M[:, 2]
-            N[:, 2] = -N[:, 2]
+            # M[:, 2] = -M[:, 2]
+            # N[:, 2] = -N[:, 2]
 
             if format_type == 'SURFACE':
 
@@ -1227,10 +1227,8 @@ def readUBC_DC3Dobs(fileName):
     """
         Read UBC GIF DCIP 3D observation file and generate arrays
         for tx-rx location
-
         Input:
         :param string fileName: path to the UBC GIF 3D obs file
-
         Output:
         :param rx, tx, d, wd
         :return
@@ -1280,11 +1278,11 @@ def readUBC_DC3Dobs(fileName):
                 if np.allclose(temp[0:3], temp[3:6]):
                     tx = np.r_[temp[0:3]]
                     poletx = True
-                    temp[2] = temp[2]
+                    temp[2] = -temp[2]
                 else:
                     # Flip z values
-                    temp[2] = temp[2]
-                    temp[5] = temp[5]
+                    temp[2] = -temp[2]
+                    temp[5] = -temp[5]
                     tx = temp[:-1]
 
             continue
@@ -1294,15 +1292,15 @@ def readUBC_DC3Dobs(fileName):
         if zflag:
 
             # Check if Pole Receiver
-            # if np.allclose(temp[0:3], temp[3:6]):
-            #     polerx = True
-            #     # Flip z values
-            #     temp[2] = temp[2]
-            #     rx.append(temp[:3])
-            # else:
-            temp[2] = temp[2]
-            temp[5] = temp[5]
-            rx.append(temp[:-2])
+            if np.allclose(temp[0:3], temp[3:6]):
+                polerx = True
+                # Flip z values
+                temp[2] = -temp[2]
+                rx.append(temp[:3])
+            else:
+                temp[2] = -temp[2]
+                temp[5] = -temp[5]
+                rx.append(temp[:-2])
 
             # Check if there is data with the location
             if len(temp) == 8:
@@ -1311,12 +1309,12 @@ def readUBC_DC3Dobs(fileName):
 
         else:
             # Check if Pole Receiver
-            # if np.allclose(temp[0:2], temp[2:4]):
-            #     polerx = True
-            #     # Flip z values
-            #     rx.append(temp[:2])
-            # else:
-            rx.append(np.r_[temp[0:2], np.nan, temp[2:4], np.nan])
+            if np.allclose(temp[0:2], temp[2:4]):
+                polerx = True
+                # Flip z values
+                rx.append(temp[:2])
+            else:
+                rx.append(np.r_[temp[0:2], np.nan, temp[2:4], np.nan])
 
             # Check if there is data with the location
             if len(temp) == 6:
@@ -1328,10 +1326,10 @@ def readUBC_DC3Dobs(fileName):
         # Reach the end of transmitter block
         if count == 0:
             rx = np.asarray(rx)
-            # if polerx:
-            #     Rx = DC.Rx.Pole(rx[:, :3])
-            # else:
-            Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
+            if polerx:
+                Rx = DC.Rx.Pole(rx[:, :3])
+            else:
+                Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
             if poletx:
                 srcLists.append(DC.Src.Pole([Rx], tx[:3]))
             else:
