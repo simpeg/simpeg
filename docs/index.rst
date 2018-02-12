@@ -7,10 +7,11 @@ About SimPEG
 .. toctree::
    :maxdepth: 2
 
-   content/api_core/api_bigPicture
-   content/api_core/api_installing
-   content/api_core/api_getting_started_developers
-   content/api_core/api_practices
+   content/basic/big_picture
+   content/basic/contributing
+   content/basic/installing
+   content/basic/getting_started_developers
+   content/basic/practices
 
 
 Examples

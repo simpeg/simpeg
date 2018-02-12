@@ -37,6 +37,8 @@ class RegularizationMesh(Props.BaseSimPEG):
 
     """
 
+    regularization_type = None # or 'Simple', 'Sparse' or 'Tikhonov'
+
     def __init__(self, mesh, **kwargs):
         self.mesh = mesh
         Utils.setKwargs(self, **kwargs)
@@ -118,8 +120,26 @@ class RegularizationMesh(Props.BaseSimPEG):
             if self.indActive is None:
                 self._Pafx = Utils.speye(self.mesh.nFx)
             else:
-                indActive_Fx = (self.mesh.aveFx2CC.T * self.indActive) == 1
-                self._Pafx = Utils.speye(self.mesh.nFx)[:, indActive_Fx]
+                # if getattr(self.mesh, 'aveCC2Fx', None) is not None:
+                if self.mesh._meshType == "TREE":
+                    if self.regularization_type == "Tikhonov":
+                        indActive_Fx = (
+                            (self.mesh.aveFx2CC.T * self.indActive) >= 1
+                        )
+                        self._Pafx = (
+                            Utils.speye(self.mesh.nFx)[:, indActive_Fx]
+                        )
+                    else:
+                        indActive_Fx = (
+                            (self.mesh.aveCC2Fx() * self.indActive) >= 1
+                        )
+                        self._Pafx = (
+                            Utils.speye(self.mesh.ntFx)[:, indActive_Fx]
+                        )
+                else:
+                    indActive_Fx = self.mesh.aveFx2CC.T * self.indActive >= 1
+
+                    self._Pafx = Utils.speye(self.mesh.nFx)[:, indActive_Fx]
         return self._Pafx
 
     @property
@@ -135,8 +155,27 @@ class RegularizationMesh(Props.BaseSimPEG):
             if self.indActive is None:
                 self._Pafy = Utils.speye(self.mesh.nFy)
             else:
-                indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) == 1
-                self._Pafy = Utils.speye(self.mesh.nFy)[:, indActive_Fy]
+                # if getattr(self.mesh, 'aveCC2Fy', None) is not None:
+                if self.mesh._meshType == "TREE":
+                    if self.regularization_type == "Tikhonov":
+                        print ("Use Tikhonov")
+                        indActive_Fy = (
+                            (self.mesh.aveFy2CC.T * self.indActive) >= 1
+                        )
+                        self._Pafy = (
+                            Utils.speye(self.mesh.nFy)[:, indActive_Fy]
+                        )
+                    else:
+                        print ("Use Simple")
+                        indActive_Fy = (
+                            (self.mesh.aveCC2Fy() * self.indActive) >= 1
+                        )
+                        self._Pafy = (
+                            Utils.speye(self.mesh.ntFy)[:, indActive_Fy]
+                        )
+                else:
+                    indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) >= 1
+                    self._Pafy = Utils.speye(self.mesh.nFy)[:, indActive_Fy]
         return self._Pafy
 
     @property
@@ -152,8 +191,25 @@ class RegularizationMesh(Props.BaseSimPEG):
             if self.indActive is None:
                 self._Pafz = Utils.speye(self.mesh.nFz)
             else:
-                indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) == 1
-                self._Pafz = Utils.speye(self.mesh.nFz)[:, indActive_Fz]
+                # if getattr(self.mesh, 'aveCC2Fz', None) is not None:
+                if self.mesh._meshType == "TREE":
+                    if self.regularization_type == "Tikhonov":
+                        indActive_Fz = (
+                            (self.mesh.aveFz2CC.T * self.indActive) >= 1
+                        )
+                        self._Pafz = (
+                            Utils.speye(self.mesh.nFz)[:, indActive_Fz]
+                        )
+                    else:
+                        indActive_Fz = (
+                            (self.mesh.aveCC2Fz() * self.indActive) >= 1
+                        )
+                        self._Pafz = (
+                            Utils.speye(self.mesh.ntFz)[:, indActive_Fz]
+                        )
+                else:
+                    indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) >= 1
+                    self._Pafz = Utils.speye(self.mesh.nFz)[:, indActive_Fz]
         return self._Pafz
 
     @property
@@ -177,9 +233,22 @@ class RegularizationMesh(Props.BaseSimPEG):
         :return: averaging matrix from active x-faces to active cell centers
         """
         if getattr(self, '_aveCC2Fx', None) is None:
-            self._aveCC2Fx = (
-                Utils.sdiag(1./(self.aveFx2CC.T).sum(1)) * self.aveFx2CC.T
-            )
+
+            # if getattr(self.mesh, 'aveCC2Fx', None) is not None:
+            if self.mesh._meshType == "TREE":
+                if self.regularization_type == "Tikhonov":
+                    self._aveCC2Fx = (
+                        Utils.sdiag(1./(self.aveFx2CC.T).sum(1)) *
+                        self.aveFx2CC.T
+                    )
+                else:
+                    self._aveCC2Fx = (
+                        self.Pafx.T * self.mesh.aveCC2Fx() * self.Pac
+                    )
+            else:
+                self._aveCC2Fx = (
+                    Utils.sdiag(1./(self.aveFx2CC.T).sum(1)) * self.aveFx2CC.T
+                )
         return self._aveCC2Fx
 
     @property
@@ -203,9 +272,21 @@ class RegularizationMesh(Props.BaseSimPEG):
         :return: averaging matrix from active y-faces to active cell centers
         """
         if getattr(self, '_aveCC2Fy', None) is None:
-            self._aveCC2Fy = (
-                Utils.sdiag(1./(self.aveFy2CC.T).sum(1)) * self.aveFy2CC.T
-            )
+            # if getattr(self.mesh, 'aveCC2Fy', None) is not None:
+            if self.mesh._meshType == "TREE":
+                if self.regularization_type == "Tikhonov":
+                    self._aveCC2Fy = (
+                        Utils.sdiag(1./(self.aveFy2CC.T).sum(1)) *
+                        self.aveFy2CC.T
+                    )
+                else:
+                    self._aveCC2Fy = (
+                        self.Pafy.T * self.mesh.aveCC2Fy() * self.Pac
+                    )
+            else:
+                self._aveCC2Fy = (
+                    Utils.sdiag(1./(self.aveFy2CC.T).sum(1)) * self.aveFy2CC.T
+                )
         return self._aveCC2Fy
 
     @property
@@ -229,9 +310,21 @@ class RegularizationMesh(Props.BaseSimPEG):
         :return: averaging matrix from active z-faces to active cell centers
         """
         if getattr(self, '_aveCC2Fz', None) is None:
-            self._aveCC2Fz = (
-                Utils.sdiag(1./(self.aveFz2CC.T).sum(1)) * self.aveFz2CC.T
-            )
+            # if getattr(self.mesh, 'aveCC2Fz', None) is not None:
+            if self.mesh._meshType == "TREE":
+                if self.regularization_type == "Tikhonov":
+                    self._aveCC2Fz = (
+                        Utils.sdiag(1./(self.aveFz2CC.T).sum(1)) *
+                        self.aveFz2CC.T
+                    )
+                else:
+                    self._aveCC2Fz = (
+                        self.Pafz.T * self.mesh.aveCC2Fz() * self.Pac
+                    )
+            else:
+                self._aveCC2Fz = (
+                    Utils.sdiag(1./(self.aveFz2CC.T).sum(1)) * self.aveFz2CC.T
+                )
         return self._aveCC2Fz
 
     @property
@@ -1087,7 +1180,6 @@ class SmoothDeriv2(BaseRegularization):
             orientation=self.orientation
         )
 
-
     @property
     def W(self):
         """
@@ -1149,7 +1241,6 @@ class Tikhonov(BaseComboRegularization):
         alpha_xx=0., alpha_yy=0., alpha_zz=0.,
         **kwargs
     ):
-
         objfcts = [
             Small(mesh=mesh, **kwargs),
             SmoothDeriv(mesh=mesh, orientation='x', **kwargs),
@@ -1175,6 +1266,8 @@ class Tikhonov(BaseComboRegularization):
             objfcts=objfcts, **kwargs
         )
 
+        self.regmesh.regularization_type = 'Tikhonov'
+
 
 class BaseSparse(BaseRegularization):
     """
@@ -1191,8 +1284,8 @@ class BaseSparse(BaseRegularization):
         "Model norm scaling to smooth out convergence", default=1.
     )
     epsilon = properties.Float(
-        "Threshold value for the model norm", #, default=1e-1
-        required = True
+        "Threshold value for the model norm",  #, default=1e-1
+        required=True
     )
     norm = properties.Float(
         "norm used", default=2
@@ -1211,7 +1304,11 @@ class BaseSparse(BaseRegularization):
         if getattr(self, 'stashedR') is not None:
             return self.stashedR
 
-        eps = self.epsilon
+        if self.epsilon is None:
+            eps = 1.
+        else:
+            eps = self.epsilon
+
         exponent = self.norm
 
         # Eta scaling is important for mix-norms...do not mess with it
@@ -1247,7 +1344,7 @@ class SparseSmall(BaseSparse):
         if getattr(self, 'model', None) is None:
             R = Utils.speye(self.regmesh.nC)
         else:
-            r = self.R(self.f_m) #, self.eps_p, self.norm)
+            r = self.R(self.f_m)
             R = Utils.sdiag(r)
 
         if self.cell_weights is not None:
@@ -1292,7 +1389,7 @@ class SparseDeriv(BaseSparse):
             R = Utils.speye(self.cellDiffStencil.shape[0])
 
         else:
-            r = self.R(self.f_m) # , self.eps_q, self.norm)
+            r = self.R(self.f_m)
             R = Utils.sdiag(r)
 
         if self.cell_weights is not None:
@@ -1302,7 +1399,7 @@ class SparseDeriv(BaseSparse):
                 ) *
                 R * self.cellDiffStencil
             )
-        return ( (self.gamma)**0.5) * R * self.cellDiffStencil
+        return ((self.gamma)**0.5) * R * self.cellDiffStencil
 
 
 class Sparse(BaseComboRegularization):
@@ -1362,12 +1459,10 @@ class Sparse(BaseComboRegularization):
     )
 
     eps_p = properties.Float(
-        "Threshold value for the model norm", default=1e-1
-        )
+        "Threshold value for the model norm")
 
     eps_q = properties.Float(
-        "Threshold value for the model gradient norm", default=1e-1
-        )
+        "Threshold value for the model gradient norm")
 
     model = properties.Array("current model", dtype=float)
 
