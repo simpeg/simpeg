@@ -132,7 +132,6 @@ class BaseSimulation(Props.HasModel):
         """
         return self.Jtvec(m, v, f)
 
-
     @Utils.count
     def residual(self, m, dobs, f=None):
         """residual(m, dobs, f=None)
@@ -170,4 +169,49 @@ class BaseSimulation(Props.HasModel):
         )
 
 
+class LinearSimulation(BaseSimulation):
+    """
+    Class for a linear simulation of the form
 
+    .. math::
+
+        d = Gm
+
+    where :math:`d` is a vector of the data, `G` is the simulation matrix and
+    :math:`m` is the model.
+
+    Inherit this class to build a linear simulatio.
+    """
+
+    linear_model, model_map, model_deriv = Props.Invertible(
+        "The model for a linear problem"
+    )
+
+    def __init__(self, **kwargs):
+        super(LinearSimulation, self).__init__(**kwargs)
+
+    @property
+    def G(self):
+        raise NotImplementedError('G must be implemented for this simulation')
+
+    def fields(self, m):
+        self.model = m
+        return self.G.dot(self.model)
+
+    def dpred(self, m=None, f=None):
+        self.model = m
+        if f is not None:
+            return f
+        return self.fields(self.model)
+
+    def getJ(self, m, f=None):
+        self.model = m
+        return self.G.dot(self.model_deriv)
+
+    def Jvec(self, m, v, f=None):
+        self.model = m
+        return self.G.dot(self.model_deriv * v)
+
+    def Jtvec(self, m, v, f=None):
+        self.model = m
+        return self.model_deriv.T * self.G.T.dot(v)
