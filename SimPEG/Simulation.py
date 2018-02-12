@@ -103,7 +103,7 @@ class BaseSimulation(Props.HasModel):
         """
         raise NotImplementedError('Jt is not yet implemented.')
 
-    def makeSyntheticData(self, m, standard_deviation=0.05, f=None):
+    def make_synthetic_data(self, m, standard_deviation=0.05, f=None):
         """
         Make synthetic data given a model, and a standard deviation.
 
