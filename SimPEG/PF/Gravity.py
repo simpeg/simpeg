@@ -186,18 +186,23 @@ class GravityIntegral(Problem.LinearProblem):
         #     thread.join()
         arg = np.linspace(0, self.nD, 10, dtype=int)
         F = []
-        for ii in range(self.nD):
 
-            if self.forwardOnly:
+        if self.forwardOnly:
+            for ii in range(self.nD):
+
                 F += [np.dot(self.calcTrow(ii), self.model)]
                 if np.any(ii == arg):
                     print("Completed " + str(np.round(ii/self.nD*100)) + " %")
-            else:
+
+            return mkvc(np.vstack(F))
+
+        else:
+            for ii in range(self.nD):
                 F += [self.calcTrow(ii)]
                 if np.any(ii == arg):
                     print("Completed " + str(np.round(ii/self.nD*100)) + " %")
 
-        return np.vstack(F)
+            return np.vstack(F)
 
     @property
     def mapPair(self):
