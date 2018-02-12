@@ -9,7 +9,7 @@ from . import Models
 from . import Maps
 from . import Props
 # from . import Source
-from . import Data
+from .Data import Data
 from .NewSurvey import BaseSurvey
 
 
@@ -103,15 +103,23 @@ class BaseSimulation(Props.HasModel):
         """
         raise NotImplementedError('Jt is not yet implemented.')
 
-    def makeSyntheticData(self, m, std=0.05, f=None):
+    def makeSyntheticData(self, m, standard_deviation=0.05, f=None):
         """
         Make synthetic data given a model, and a standard deviation.
 
         :param numpy.array m: geophysical model
-        :param numpy.array std: standard deviation
+        :param numpy.array standard_deviation: standard deviation
         :param numpy.array f: fields for the given model (if pre-calculated)
         """
 
+        dclean = self.dpred(m, f=f)
+        noise = standard_deviation*abs(dclean)*np.random.randn(*dclean.shape)
+        dobs = dclean + noise
+
+        return Data(
+            dobs=dobs, survey=self.survey,
+            standard_deviation=standard_deviation
+        )
 
 
 

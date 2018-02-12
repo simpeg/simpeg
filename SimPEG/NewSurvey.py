@@ -264,3 +264,11 @@ class BaseSurvey(properties.HasProperties):
         """Number of Sources"""
         return len(self.srcList)
 
+
+class LinearSurvey(BaseSurvey):
+    """
+    Survey for a liear problem
+    """
+    @property
+    def nD(self):
+        return self.prob.G.shape[0]

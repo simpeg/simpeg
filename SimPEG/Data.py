@@ -1,16 +1,17 @@
 import properties
 
-from .NewSurvey import BaseSrc
+from .NewSurvey import BaseSurvey
 
 
-class Data(object):
+class Data(properties.HasProperties):
     """
     Fancy data storage by Src and Rx
     """
 
     dobs = properties.Array(
         "observed data",
-        shape=('*',)
+        shape=('*',),
+        required=True
     )
 
     standard_deviation = properties.Float(
@@ -28,26 +29,46 @@ class Data(object):
         shape=('*',)
     )
 
-    srcList = properties.List(
-        "source list",
-        BaseSrc
+    survey = properties.Instance(
+        "a SimPEG survey object",
+        BaseSurvey
     )
 
     uid = properties.Uuid("unique ID for the data")
 
-    def __init__(self, v=None):
-        self._dataDict = {}
-        for src in self.srcList:
-            self._dataDict[src] = {}
-        if v is not None:
-            self.fromvec(v)
+    _data_dict = properties.Instance(
+        "data dictionary so data can be accessed by [src, rx]. "
+        "This stores the indicies in the data vector corresponding "
+        "to each source receiver pair",
+        dict,
+    )
+
+    def __init__(self, **kwargs):
+        super(Data, self).__init__(**kwargs)
+
+    @properties.observer('survey')
+    def _create_data_dict(self, change):
+        survey = change['value']
+        self._data_dict = {}
+
+        # create an empty dict associated with each source
+        for src in survey.srcList:
+            self._data_dict[src] = {}
+
+        # loop over sources and find the associated data indices
+        indBot, indTop = 0, 0
+        for src in self.survey.srcList:
+            for rx in src.rxList:
+                indTop += rx.nD
+                self[src, rx] = np.arange(indBot, indTop)
+                indBot += rx.nD
 
     @property
     def nD(self):
-        pass
+        return len(dobs)
 
     def _ensureCorrectKey(self, key):
-        if type(key) is tuple:
+        if type(key) is tuplsee:
             if len(key) is not 2:
                 raise KeyError('Key must be [Src, Rx]')
             if key[0] not in self.survey.srcList:
@@ -55,42 +76,23 @@ class Data(object):
             if key[1] not in key[0].rxList:
                 raise KeyError('Rx Key must be a receiver for the source.')
             return key
+
+        # TODO: I think this can go
         elif isinstance(key, self.survey.srcPair):
             if key not in self.survey.srcList:
                 raise KeyError('Key must be a source in the survey.')
             return key, None
+
         else:
             raise KeyError('Key must be [Src] or [Src,Rx]')
-
-    def __setitem__(self, key, value):
-        src, rx = self._ensureCorrectKey(key)
-        assert rx is not None, 'set data using [Src, Rx]'
-        assert isinstance(value, np.ndarray), 'value must by ndarray'
-        assert value.size == rx.nD, (
-            "value must have the same number of data as the source."
-        )
-        self._dataDict[src][rx] = Utils.mkvc(value)
 
     def __getitem__(self, key):
         src, rx = self._ensureCorrectKey(key)
         if rx is not None:
             if rx not in self._dataDict[src]:
                 raise Exception('Data for receiver has not yet been set.')
-            return self._dataDict[src][rx]
+            return self.dobs[self._dataDict[src][rx]]
 
-        return np.concatenate([self[src, rx] for rx in src.rxList])
-
-    def tovec(self):
-        return np.concatenate([self[src] for src in self.survey.srcList])
-
-    def fromvec(self, v):
-        v = Utils.mkvc(v)
-        assert v.size == self.survey.nD, (
-            'v must have the correct number of data.'
-        )
-        indBot, indTop = 0, 0
-        for src in self.survey.srcList:
-            for rx in src.rxList:
-                indTop += rx.nD
-                self[src, rx] = v[indBot:indTop]
-                indBot += rx.nD
+        return np.concatenate([
+            self.obs[self._dataDict[src, rx]] for rx in src.rxList
+        ])
