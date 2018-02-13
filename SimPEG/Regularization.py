@@ -1479,8 +1479,8 @@ class BaseSparse(BaseRegularization):
             return self.stashedR
 
         # Eta scaling is important for mix-norms...do not mess with it
-        # eta = self.epsilon**(1.-self.norm/2.)
-        eta = np.abs(f_m + self.epsilon**2.).max() / (np.abs(f_m + self.epsilon**2.) / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.)).max()
+        eta = self.epsilon**(1.-self.norm/2.)
+        # eta = np.abs(f_m + self.epsilon**2.).max() / (np.abs(f_m + self.epsilon**2.) / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.)).max()
         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
         # print(eta)
         self.stashedR = r  # stash on the first calculation
