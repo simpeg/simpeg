@@ -274,7 +274,7 @@ class LinearProblem(BaseProblem):
 
     def __init__(self, mesh, **kwargs):
         BaseProblem.__init__(self, mesh, **kwargs)
-        # self.mapping = kwargs.pop('mapping', Maps.IdentityMap(mesh))
+        self.modelMap = kwargs.pop('modelMap', Maps.IdentityMap(mesh))
 
     @property
     def modelMap(self):
@@ -302,16 +302,27 @@ class LinearProblem(BaseProblem):
     def getJ(self, m, v):
         return self.G
 
+    def getJtJdiag(self, m, W=None):
+        """
+            Returns the diagonal of approximated Hessian, JtJ
+        """
+        if W is None:
+            W = Utils.speye(self.F.shape[0])
+
+        dmudm = self.modelMap.deriv(m)
+
+        return np.sum((W * self.F * dmudm)**2., axis=0)
+
     def Jvec(self, m, v, f=None):
 
         # Check possible dtype for linear operator
         # Important to avoid memory copies of dense matrix
         if self.F.dtype is np.dtype('float32'):
-            y = np.dot(self.F, (self.mapping.deriv(m)*v).astype(np.float32))
+            y = np.dot(self.F, (self.modelMap.deriv(m)*v).astype(np.float32))
             y.astype(np.float64)
 
         else:
-            y = np.dot(self.F, self.mapping.deriv(m)*v)
+            y = np.dot(self.F, self.modelMap.deriv(m)*v)
 
         return y
 
@@ -327,4 +338,4 @@ class LinearProblem(BaseProblem):
         else:
             y = np.dot(self.F.T, v)
 
-        return self.mapping.deriv(m).T*y
+        return self.modelMap.deriv(m).T*y

@@ -5,13 +5,14 @@ from SimPEG import Props
 from SimPEG.Utils import mkvc
 import scipy.sparse as sp
 from . import BaseGrav as GRAV
-from . import ParallelForward
+# from . import Forward
 import re
 import numpy as np
 import multiprocessing
 import scipy.constants as constants
 import os
 import time
+
 
 class GravityIntegral(Problem.LinearProblem):
 
@@ -163,27 +164,17 @@ class GravityIntegral(Problem.LinearProblem):
         # if self.n_cpu is None:
         #     self.n_cpu = multiprocessing.cpu_count()
 
-        # Switch to determine if the process has to be run in paralle
-        if self.parallelized:
-
-            job = ParallelForward.Gravity()
-
-            F = job.calcForward(
-                    self.rxLoc, self.Xn, self.Yn, self.Zn,
-                    self.n_cpu, self.forwardOnly, m=self.model,
-                    rxType=self.rxType
+        # Switch to determine if the process has to be run in parallel
+        job = Forward(
+                rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
+                n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
+                model=self.model, rxType=self.rxType,
+                parallelized=self.parallelized
                 )
 
-            return F
+        F = job.calculate()
 
-        else:
-
-            F = []
-            for ii in range(self.nD):
-                F += [self.calcTrow(ii)]
-                self.progress(ii, self.nD)
-
-            return np.vstack(F)
+        return F
 
     @property
     def mapPair(self):
@@ -192,10 +183,70 @@ class GravityIntegral(Problem.LinearProblem):
         """
         return self.rhoMap
 
-    def calcTrow(self, index):
+
+class Forward(object):
+    """
+        Add docstring once it works
+    """
+
+    progressIndex = -1
+    parallelized = False
+    rxLoc = None
+    Xn, Yn, Zn = None, None, None
+    n_cpu = None
+    forwardOnly = False
+    model = None
+    rxType = 'z'
+
+    def __init__(self, **kwargs):
+        super(Forward, self).__init__()
+        Utils.setKwargs(self, **kwargs)
+
+    def calculate(self):
+
+        self.nD = self.rxLoc.shape[0]
+
+        if self.parallelized:
+            if self.n_cpu is None:
+
+                # By default take half the cores, turns out be faster
+                # than running full threads
+                self.n_cpu = int(multiprocessing.cpu_count()/2)
+
+            pool = multiprocessing.Pool(self.n_cpu)
+
+            # rowInd = np.linspace(0, self.nD, self.n_cpu+1).astype(int)
+
+            # job_args = []
+
+            # for ii in range(self.n_cpu):
+
+            #     nRows = int(rowInd[ii+1]-rowInd[ii])
+            #     job_args += [(rowInd[ii], nRows, m)]
+
+            # result = pool.map(self.getTblock, job_args)
+
+            result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
+            pool.close()
+            pool.join()
+
+        else:
+
+            result = []
+            for ii in range(self.nD):
+                result += [self.calcTrow(self.rxLoc[ii, :])]
+                self.progress(ii, self.nD)
+
+        if self.forwardOnly:
+            return mkvc(np.vstack(result))
+
+        else:
+            return np.vstack(result)
+
+    def calcTrow(self, xyzLoc):
         """
         Load in the active nodes of a tensor mesh and computes the gravity tensor
-        for a given observation location rxLoc[obsx, obsy, obsz]
+        for a given observation location xyzLoc[obsx, obsy, obsz]
 
         INPUT:
         Xn, Yn, Zn: Node location matrix for the lower and upper most corners of
@@ -213,18 +264,17 @@ class GravityIntegral(Problem.LinearProblem):
 
         """
 
-        rxLoc = self.rxLoc[index, :]
         NewtG = constants.G*1e+8  # Convertion from mGal (1e-5) and g/cc (1e-3)
         eps = 1e-8  # add a small value to the locations to avoid
 
         # Pre-allocate space for 1D array
-        row = np.zeros((1, self.nC))
+        row = np.zeros((1, self.Xn.shape[0]))
 
-        dz = rxLoc[2] - self.Zn
+        dz = xyzLoc[2] - self.Zn
 
-        dy = self.Yn - rxLoc[1]
+        dy = self.Yn - xyzLoc[1]
 
-        dx = self.Xn - rxLoc[0]
+        dx = self.Xn - xyzLoc[0]
 
         # Compute contribution from each corners
         for aa in range(2):
