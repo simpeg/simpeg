@@ -658,11 +658,11 @@ class Update_IRLS(InversionDirective):
     ComboObjFun = False
     mode = 1
     coolEpsOptimized = True
-    coolEps_p = False
-    coolEps_q = False
+    coolEps_p = True
+    coolEps_q = True
     floorEps_p = 1e-8
     floorEps_q = 1e-8
-    coolEpsFact = 2.
+    coolEpsFact = 1.2
     silent = False
 
     @property
@@ -759,10 +759,18 @@ class Update_IRLS(InversionDirective):
                 if getattr(reg, 'eps_p', None) is None:
 
                     mtemp = reg.mapping * self.invProb.model
+
+                    # if self.coolEps_p:
+                    #     reg.eps_p = np.abs(mtemp).max()
+                    # else:
                     reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
 
                 if getattr(reg, 'eps_q', None) is None:
                     mtemp = reg.mapping * self.invProb.model
+
+                    # if self.coolEps_q:
+                    #     reg.eps_q = np.abs(mtemp).max()
+                    # else:
                     reg.eps_q = np.percentile(np.abs(reg.regmesh.cellDiffxStencil*mtemp), self.prctile)
 
             # Re-assign the norms supplied by user l2 -> lp
@@ -802,7 +810,7 @@ class Update_IRLS(InversionDirective):
                 if self.coolEps_p:
 
                     for reg in self.reg.objfcts:
-                        if np.any([self.IRLSiter == 1, self.phi_dm[-1] >= 0.01]):
+                        if np.any([self.IRLSiter == 1, self.phi_dm[-1] >= 0.0001]):
                             reg.eps_p /= self.coolEpsFact
                         else:
                             reg.eps_p = reg.eps_p
@@ -811,7 +819,7 @@ class Update_IRLS(InversionDirective):
 
                     for reg in self.reg.objfcts:
 
-                        if np.any([self.IRLSiter == 1, self.phi_dmx[-1] >= 0.01]):
+                        if np.any([self.IRLSiter == 1, self.phi_dmx[-1] >= 0.0001]):
                             reg.eps_q /= self.coolEpsFact
                         else:
                             reg.eps_q = reg.eps_q

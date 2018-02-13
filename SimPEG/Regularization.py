@@ -998,6 +998,7 @@ class SimpleSmall(BaseRegularization):
         else:
             return Utils.Identity()
 
+
 class SimpleSmoothDeriv(BaseRegularization):
     """
     Base Simple Smooth Regularization. This base class regularizes on the first
@@ -1418,6 +1419,7 @@ class Tikhonov(BaseComboRegularization):
 
         self.regmesh.regularization_type = 'Tikhonov'
 
+
 class BaseSparse(BaseRegularization):
     """
     Base class for building up the components of the Sparse Regularization
@@ -1477,9 +1479,10 @@ class BaseSparse(BaseRegularization):
             return self.stashedR
 
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = f_m.max() / (f_m / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.)).max()#(self.epsilon**(1.-self.norm/2.))**0.5
+        # eta = self.epsilon**(1.-self.norm/2.)
+        eta = np.abs(f_m + self.epsilon**2.).max() / (np.abs(f_m + self.epsilon**2.) / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.)).max()
         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
-
+        # print(eta)
         self.stashedR = r  # stash on the first calculation
         return r
 
@@ -1502,7 +1505,12 @@ class SparseSmall(BaseSparse):
 
     @property
     def f_m(self):
-        return self.mapping * (self.model - self.mref)
+
+        assert np.array_equal(self.mref, self.model) is False, (
+            'Reference and model cannot be the same in Sparse Regularization'
+        )
+
+        return self.mapping * self._delta_m(self.model)
 
     @property
     def W(self):
@@ -1516,6 +1524,32 @@ class SparseSmall(BaseSparse):
             return Utils.sdiag((self.scale * self.gamma *
                                 self.cell_weights)**0.5) * R
         return (self.scale * self.gamma)**0.5 * R
+
+    @Utils.timeIt
+    def deriv(self, m):
+        """
+
+        The regularization is:
+
+        .. math::
+
+            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top
+                   W(m-m_\\text{ref})}
+
+        So the derivative is straight forward:
+
+        .. math::
+
+            R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
+
+        """
+        assert np.array_equal(self.mref, m) is False, (
+            'Reference and model cannot be the same in Sparse Regularization'
+        )
+
+        mD = self.mapping.deriv(self._delta_m(m))
+        r = self.W * (self.mapping * (self._delta_m(m)))
+        return mD.T * (self.W.T * r)
 
 
 class SparseDeriv(BaseSparse):
@@ -1541,6 +1575,17 @@ class SparseDeriv(BaseSparse):
 
             r(m) = \\frac{1}{2}
         """
+        assert np.array_equal(self.mref, m) is False, (
+            'Reference and model cannot be the same in Sparse Regularization'
+        )
+
+        if self.mrefInSmooth:
+
+            f_m = self._delta_m(m)
+
+        else:
+            f_m = m
+
         if self.space == 'spherical':
             Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
@@ -1562,12 +1607,12 @@ class SparseDeriv(BaseSparse):
             else:
                 W = ((self.scale * self.gamma)**0.5) * R
 
-            theta = self.cellDiffStencil * (self.mapping * (m - self.mref))
+            theta = self.cellDiffStencil * (self.mapping * f_m)
             dmdx = coterminal(theta)
             r = W * dmdx
 
         else:
-            r = self.W * (self.mapping * (m - self.mref))
+            r = self.W * (self.mapping * f_m)
 
 
         return 0.5 * r.dot(r)
@@ -1590,6 +1635,18 @@ class SparseDeriv(BaseSparse):
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
 
         """
+
+        assert np.array_equal(self.mref, m) is False, (
+            'Reference and model cannot be the same in Sparse Regularization'
+        )
+
+        if self.mrefInSmooth:
+
+            model = self._delta_m(m)
+
+        else:
+            model = m
+
         if self.space == 'spherical':
             Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
@@ -1611,15 +1668,15 @@ class SparseDeriv(BaseSparse):
             else:
                 W = ((self.scale * self.gamma)**0.5) * R
 
-            theta = self.cellDiffStencil * (self.mapping * m)
+            theta = self.cellDiffStencil * (self.mapping * model)
             dmdx = coterminal(theta)
 
             r = W * dmdx
 
         else:
-            r = self.W * (self.mapping * (m - self.mref))
+            r = self.W * (self.mapping * model)
 
-        mD = self.mapping.deriv(m - self.mref)
+        mD = self.mapping.deriv(model)
         return mD.T * (self.W.T * r)
 
     @property
@@ -1628,8 +1685,20 @@ class SparseDeriv(BaseSparse):
 
     @property
     def f_m(self):
+
+        assert np.array_equal(self.mref, self.model) is False, (
+            'Reference and model cannot be the same in Sparse Regularization'
+        )
+
+        if self.mrefInSmooth:
+
+            f_m = self._delta_m(self.model)
+
+        else:
+            f_m = self.model
+
         if self.space == 'spherical':
-            theta = self.cellDiffStencil * (self.mapping * self.model)
+            theta = self.cellDiffStencil * (self.mapping * f_m)
             dmdx = coterminal(theta)
 
         else:
@@ -1639,27 +1708,27 @@ class SparseDeriv(BaseSparse):
 
                 dmdx = np.abs(self.regmesh.aveFx2CC *
                               self.regmesh.cellDiffxStencil *
-                              (self.mapping * self.model)
+                              (self.mapping * f_m)
                               )
 
                 if self.regmesh.dim > 1:
 
                     dmdx += np.abs(self.regmesh.aveFy2CC *
                                    self.regmesh.cellDiffyStencil *
-                                   (self.mapping * self.model)
+                                   (self.mapping * f_m)
                                    )
 
                 if self.regmesh.dim > 2:
 
                     dmdx += np.abs(self.regmesh.aveFz2CC *
                                    self.regmesh.cellDiffzStencil *
-                                   (self.mapping * (self.model - self.mref))
+                                   (self.mapping * f_m)
                                    )
 
                 dmdx = Ave * dmdx
 
             else:
-                dmdx = self.cellDiffStencil * (self.mapping * (self.model - self.mref))
+                dmdx = self.cellDiffStencil * (self.mapping * f_m)
 
         return dmdx
 
