@@ -16,7 +16,7 @@ addons:
 
 env:
   global:
-    - DEPLOY_DIR=tests/docs
+    - DEPLOY_DIR=ref/deploy
     - MASTER_BRANCH=master
     - GAE_PROJECT=simpegdocs
     - DOCS_PY=2.7  # deploy docs from 2.7
