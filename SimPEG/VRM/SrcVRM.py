@@ -111,7 +111,7 @@ waveform: instance of a VRM wavefrom class
 class CircLoop(BaseSrcVRM):
 
     """
-Magnetic dipole source for VRM problem.
+Circular current loop source for VRM problem.
 
 INPUTS:
 
@@ -216,7 +216,7 @@ waveform: instance of a VRM wavefrom class
 class LineCurrent(BaseSrcVRM):
 
     """
-Magnetic dipole source for VRM problem.
+Line current segments source for VRM problem.
 
 INPUTS:
 
