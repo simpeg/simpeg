@@ -5,13 +5,12 @@ from SimPEG import Props
 from SimPEG.Utils import mkvc
 import scipy.sparse as sp
 from . import BaseGrav as GRAV
+from . import ParallelForward
 import re
 import numpy as np
 import multiprocessing
 import scipy.constants as constants
-import subprocess
 import os
-import threading
 import time
 
 class GravityIntegral(Problem.LinearProblem):
@@ -24,10 +23,11 @@ class GravityIntegral(Problem.LinearProblem):
     # surveyPair = Survey.LinearSurvey
     forwardOnly = False  # Is TRUE, forward matrix not stored to memory
     actInd = None  #: Active cell indices provided
-    rType = 'z'
+    rxType = 'z'
     silent = False
     memory_saving_mode = False
-    n_cpu = None#multiprocessing.cpu_count()
+    parallelized = False
+    n_cpu = None
     progressIndex = -1
 
     aa = []
@@ -43,7 +43,7 @@ class GravityIntegral(Problem.LinearProblem):
             # Compute the linear operation without forming the full dense G
             fields = self.Intrgl_Fwr_Op()
 
-            return fields
+            return mkvc(fields)
 
         else:
             vec = np.dot(self.F, (self.model).astype(np.float32))
@@ -97,14 +97,13 @@ class GravityIntegral(Problem.LinearProblem):
             raise Exception('Need to pair!')
 
         if getattr(self, '_F', None) is None:
-            print("Begin linear forward calculation: " + self.rType)
+            print("Begin linear forward calculation: " + self.rxType)
             start = time.time()
             self._F = self.Intrgl_Fwr_Op()
-
             print("Linear forward calculation ended in: " + str(time.time()-start) + " sec")
         return self._F
 
-    def Intrgl_Fwr_Op(self, m=None, rType='z'):
+    def Intrgl_Fwr_Op(self, m=None, rxType='z'):
 
         """
 
@@ -164,43 +163,25 @@ class GravityIntegral(Problem.LinearProblem):
         # if self.n_cpu is None:
         #     self.n_cpu = multiprocessing.cpu_count()
 
-        # F = calcTmat.calcTmat(self.rxLoc, self.Xn, self.Yn, self.Zn)
+        # Switch to determine if the process has to be run in paralle
+        if self.parallelized:
 
-        # return F
-        # Calculate the block size for each cpu
-        # rowInd = np.linspace(0, self.nD, self.n_cpu+1).astype(int)
-        # threads = [None]*self.n_cpu
-        # F = [None]*self.n_cpu
+            job = ParallelForward.Gravity()
 
-        # for ii in range(self.n_cpu):
+            F = job.calcForward(
+                    self.rxLoc, self.Xn, self.Yn, self.Zn,
+                    self.n_cpu, self.forwardOnly, m=self.model,
+                    rxType=self.rxType
+                )
 
-        #     nRows = int(rowInd[ii+1]-rowInd[ii])
-
-        #     if self.forwardOnly:
-        #         threads[ii] = threading.Thread(target=self.getDblock, args=(rowInd[ii], nRows, F, ii))
-        #     else:
-        #         threads[ii] = threading.Thread(target=self.getTblock, args=(rowInd[ii], nRows, F, ii))
-        #     threads[ii].start()
-
-        # for thread in threads:
-        #     thread.join()
-        arg = np.linspace(0, self.nD, 10, dtype=int)
-        F = []
-
-        if self.forwardOnly:
-            for ii in range(self.nD):
-
-                F += [np.dot(self.calcTrow(ii), self.model)]
-                if np.any(ii == arg):
-                    print("Completed " + str(np.round(ii/self.nD*100)) + " %")
-
-            return mkvc(np.vstack(F))
+            return F
 
         else:
+
+            F = []
             for ii in range(self.nD):
                 F += [self.calcTrow(ii)]
-                if np.any(ii == arg):
-                    print("Completed " + str(np.round(ii/self.nD*100)) + " %")
+                self.progress(ii, self.nD)
 
             return np.vstack(F)
 
@@ -256,14 +237,14 @@ class GravityIntegral(Problem.LinearProblem):
                             mkvc(dz[:, cc]) ** 2
                         ) ** (0.50)
 
-                    if self.rType == 'x':
+                    if self.rxType == 'x':
                         row = row - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             dy[:, bb] * np.log(dz[:, cc] + r + eps) +
                             dz[:, cc] * np.log(dy[:, bb] + r + eps) -
                             dx[:, aa] * np.arctan(dy[:, bb] * dz[:, cc] /
                                                   (dx[:, aa] * r + eps)))
 
-                    elif self.rType == 'y':
+                    elif self.rxType == 'y':
                         row = row - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             dx[:, aa] * np.log(dz[:, cc] + r + eps) +
                             dz[:, cc] * np.log(dx[:, aa] + r + eps) -
@@ -277,35 +258,10 @@ class GravityIntegral(Problem.LinearProblem):
                             dz[:, cc] * np.arctan(dx[:, aa] * dy[:, bb] /
                                                   (dz[:, cc] * r + eps)))
 
-        return row
-
-    def getTblock(self, index):
-        """
-            Calculate rows of sensitivity
-        """
-        block = []
-        for ii in range(nRows):
-            block += [self.calcTrow(self.rxLoc[indStart+ii, :])]
-
-            # Monitor progress of first thread
-            if index == 0:
-                self.progress(ii, nRows)
-
-        F[index] = np.vstack(block)
-
-    def getDblock(self, indStart, nRows, F, index):
-        """
-            Calculate rows of data
-        """
-        block = []
-        for ii in range(nRows):
-            block += [self.calcTrow(self.rxLoc[indStart+ii, :])*self.model]
-
-            # Monitor progress of first thread
-            if index == 0:
-                self.progress(ii, nRows)
-
-        F[index] = np.vstack(block)
+        if self.forwardOnly:
+            return np.dot(row, self.model)
+        else:
+            return row
 
     def progress(self, iter, nRows):
         """
