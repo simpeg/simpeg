@@ -1,3 +1,4 @@
+import SimPEG
 from SimPEG import Survey
 from SimPEG.VRM import RxVRM, SrcVRM
 import numpy as np
@@ -66,13 +67,24 @@ class SurveyVRM(Survey.BaseSurvey):
         self._tActIsSet = True
         self._tActive = BoolArgs
 
-    def dpred(self, m, f=None):
+    def dpred(self, m=None, f=None):
 
         """Predict data for a given model."""
 
         assert self.ispaired, "Survey must be paired with a VRM problem"
 
-        if f is None:
+        if f is not None:
+
+            return f[self.tActive]
+
+        elif f is None and isinstance(self.prob, SimPEG.VRM.ProblemVRM.LinearVRM):
+
             f = self.prob.fields(m)
 
-        return f[self.tActive]
+            return f[self.tActive]
+
+        elif f is None and isinstance(self.prob, SimPEG.VRM.ProblemVRM.LogUniformVRM):
+
+            f = self.prob.fields()
+
+            return f[self.tActive]

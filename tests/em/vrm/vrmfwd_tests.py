@@ -267,18 +267,22 @@ loguniform match"""
         Fields2 = Problem2.fields()
         Fields3 = Problem3.fields(mod_b)
         Fields4 = Problem4.fields()
+        dpred1 = Survey1.dpred(mod_a)
+        dpred2 = Survey2.dpred(mod_a)
 
         Err1 = np.abs((Fields1-Fields2)/Fields1)
         Err2 = np.abs((Fields2-Fields3)/Fields2)
         Err3 = np.abs((Fields3-Fields4)/Fields3)
         Err4 = np.abs((Fields4-Fields1)/Fields4)
+        Err5 = np.abs((dpred1-dpred2)/dpred1)
 
         Test1 = Err1 < 0.001
         Test2 = Err2 < 0.001
         Test3 = Err3 < 0.001
         Test4 = Err4 < 0.001
+        Test5 = Err5 < 0.001
 
-        self.assertTrue(Test1 and Test2 and Test3 and Test4)
+        self.assertTrue(Test1 and Test2 and Test3 and Test4 and Test5)
 
 
 if __name__ == '__main__':

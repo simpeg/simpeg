@@ -632,8 +632,6 @@ xiMap: A SimPEG mapping object which maps the model to the active
 
         super(LogUniformVRM, self).__init__(mesh, **kwargs)
 
-        nAct = list(self._indActive).count(True)
-
     @property
     def A(self):
 
