@@ -19,6 +19,16 @@ class BaseSimulation(Props.HasModel):
     SimPEG.
     """
 
+    mesh = properties.Instance(
+        "a discretize mesh instance",
+        discretize.BaseMesh
+    )
+
+    survey = properties.Instance(
+        "a list of sources",
+        BaseSurvey
+    )
+
     counter = properties.Instance(
         "A SimPEG.Utils.Counter object",
         Utils.Counter
@@ -32,16 +42,6 @@ class BaseSimulation(Props.HasModel):
         "solver options as a kwarg dict",
         dict,
         default={}
-    )
-
-    mesh = properties.Instance(
-        "a discretize mesh instance",
-        discretize.BaseMesh
-    )
-
-    survey = properties.Instance(
-        "a list of sources",
-        BaseSurvey
     )
 
     def fields(self, m):
