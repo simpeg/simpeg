@@ -102,7 +102,7 @@ after_success:
     fi
 
   # deploy docs
-  - if [ $TRAVIS_PYTHON_VERSION == $DOCS_PY ]; then
+  - if [ $TRAVIS_PYTHON_VERSION = $DOCS_PY ]; then
       if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" ]; then
         cd docs; tar -cvzf _build.tar.gz _build ;
         cd content; tar -cvzf examples.tar.gz examples ; cd ..;
@@ -116,7 +116,7 @@ after_success:
     fi;
 
   #deploy to pypi
-  - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY ]; then
+  - if [ $TRAVIS_PYTHON_VERSION = $PYPI_PY ]; then
       if [ "$TRAVIS_TAG" ]; then
         mv credentials/.pypirc ~/.pypirc ;
         python setup.py sdist bdist_wheel --universal ;
