@@ -6,7 +6,8 @@ from __future__ import unicode_literals
 import unittest
 import numpy as np
 import discretize
-from SimPEG import Utils, Simulation, Maps, NewSurvey
+from SimPEG import Utils, Simulation, Maps
+import SimPEG.NewSurvey as Survey
 
 
 class TestLinearSimulation(unittest.TestCase):

@@ -10,15 +10,24 @@ from . import Utils
 from . import Props
 
 
+class RxLocationArray(properties.Array):
+
+    class_info = "an array of receiver locations"
+
+    def validate(self, instance, value):
+        if len(value.shape) == 1:
+            value = Utils.mkvc(value, 2).T
+        return super(RxLocationArray, self).validate(instance, value)
+
+
 class BaseRx(properties.HasProperties):
     """SimPEG Receiver Object"""
 
     # TODO: write a validator that checks against mesh dimension in the
     # BaseSimulation
-    locs = properties.Array(
+    locs = RxLocationArray(
         "Locations of the receivers (nRx x nDim)",
         shape=("*", "*"),
-        dtype=float,
         required=True
     )
 
@@ -178,16 +187,33 @@ class BaseSrc(Props.BaseSimPEG):
         "unique identifier for the source"
     )
 
-    # def __init__(self, rxList, **kwargs):
-    #     assert type(rxList) is list, 'rxList must be a list'
-    #     for rx in rxList:
-    #         assert isinstance(rx, self.rxPair), (
-    #             'rxList must be a {0!s}'.format(self.rxPair.__name__)
-    #         )
-    #     assert len(set(rxList)) == len(rxList), 'The rxList must be unique'
-    #     self.uid = str(uuid.uuid4())
-    #     self.rxList = rxList
-    #     Utils.setKwargs(self, **kwargs)
+    @properties.validator('rxList')
+    def _rxList_validator(self, change):
+        value = change['value']
+        assert len(set(value)) == len(value), 'The rxList must be unique'
+        self._rxOrder = dict()
+        [
+            self._rxOrder.setdefault(rx.uid, ii) for ii, rx in
+            enumerate(value)
+        ]
+
+    def getReceiverIndex(self, receiver):
+        if type(receiver) is not list:
+            receiver = [receiver]
+        for rx in receiver:
+            if getattr(rx, 'uid', None) is None:
+                raise KeyError(
+                    'Source does not have a uid: {0!s}'.format(str(rx))
+                )
+        inds = list(map(
+            lambda rx: self._rxOrder.get(rx.uid, None), receiver
+        ))
+        if None in inds:
+            raise KeyError(
+                'Some of the receiver specified are not in this survey. '
+                '{0!s}'.format(str(inds))
+            )
+        return inds
 
     @property
     def nD(self):
@@ -228,7 +254,7 @@ class BaseSurvey(properties.HasProperties):
         self._sourceOrder = dict()
         [
             self._sourceOrder.setdefault(src.uid, ii) for ii, src in
-            enumerate(self._srcList)
+            enumerate(value)
         ]
 
     def getSourceIndex(self, sources):
