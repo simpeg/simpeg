@@ -16,8 +16,8 @@ addons:
 
 env:
   global:
-    - DEPLOY_DIR=ref/deploy
-    - MASTER_BRANCH=master
+    - DEPLOY_DIR=tests/docs
+    - MASTER_BRANCH=ref/deploy
     - GAE_PROJECT=simpegdocs
     - DOCS_PY=2.7  # deploy docs from 2.7
     - PYPI_PY=3.6 # deploy to pypi from python 3.6
@@ -102,7 +102,7 @@ after_success:
     fi
 
   # deploy docs
-  - if [ $TRAVIS_PYTHON_VERSION = $DOCS_PY ]; then
+  - if [ $TRAVIS_PYTHON_VERSION == $DOCS_PY ]; then
       if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" ]; then
         cd docs; tar -cvzf _build.tar.gz _build ;
         cd content; tar -cvzf examples.tar.gz examples ; cd ..;
@@ -116,8 +116,8 @@ after_success:
     fi;
 
   #deploy to pypi
-  - if [ $TRAVIS_PYTHON_VERSION = $PYPI_PY ]; then
-      if [ "$TRAVIS_TAG" ]; then
+  - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY ]; then
+      if [ "$TRAVIS_TAG" = "true" ]; then
         mv credentials/.pypirc ~/.pypirc ;
         python setup.py sdist bdist_wheel --universal ;
         travis_wait 20 twine upload -r pypi --skip-existing dist/* ;
