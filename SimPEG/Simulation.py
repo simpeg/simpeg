@@ -12,12 +12,38 @@ from . import Props
 from .Data import Data
 from .NewSurvey import BaseSurvey
 
+__all__ = ['LinearSimulation']
+
+
+##############################################################################
+#                                                                            #
+#                             Custom Properties                              #
+#                                                                            #
+##############################################################################
+
+class TimeStepArray(properties.Array):
+
+    class_info = "an array or list of tuples specifying the mesh tensor"
+
+    def validate(self, instance, value):
+        if isinstance(value, list):
+            value = discretize.utils.meshTensor(value)
+        return super(TimeStepArray, self).validate(instance, value)
+
+
+##############################################################################
+#                                                                            #
+#                       Simulation Base Classes                              #
+#                                                                            #
+##############################################################################
 
 class BaseSimulation(Props.HasModel):
     """
     BaseSimulation is the base class for all geophysical forward simulations in
     SimPEG.
     """
+
+    _REGISTRY = {}
 
     mesh = properties.Instance(
         "a discretize mesh instance",
@@ -43,6 +69,10 @@ class BaseSimulation(Props.HasModel):
         dict,
         default={}
     )
+
+    @properties.observer('mesh')
+    def _update_registry(self, change):
+        self._REGISTRY.update(change['value']._REGISTRY)
 
     def fields(self, m):
         """
@@ -169,6 +199,72 @@ class BaseSimulation(Props.HasModel):
         )
 
 
+class BaseTimeSimulation(BaseSimulation):
+    """
+    Base class for a time domain simulation
+    """
+
+    time_steps = TimeStepArray(
+        """
+        Sets/gets the timeSteps for the time domain problem.
+
+        You can set as an array of dt's or as a list of tuples/floats.
+        Tuples must be length two with [..., (dt, repeat), ...]
+
+        For example, the following setters are the same::
+
+            prob.timeSteps = [(1e-6, 3), 1e-5, (1e-4, 2)]
+            prob.timeSteps = np.r_[1e-6,1e-6,1e-6,1e-5,1e-4,1e-4]
+
+        """,
+        dtype=float
+    )
+
+    t0 = properties.Float(
+        "Origin of the time discretization",
+        default=0.0
+    )
+
+    def __init__(self, **kwargs):
+        super(BaseTimeSimulation, self).__init__(**kwargs)
+
+    @properties.observer('time_steps')
+    def _remove_time_mesh_on_time_step_update(self, change):
+        del self.time_mesh
+
+    @properties.observer('t0')
+    def _remove_time_mesh_on_t0_update(self, change):
+        del self.time_mesh
+
+    @property
+    def time_mesh(self):
+        if getattr(self, '_time_mesh', None) is None:
+            self._time_mesh = discretize.TensorMesh(
+                [self.time_steps], x0=self.t0
+            )
+        return self._time_mesh
+
+    @time_mesh.deleter
+    def time_mesh(self):
+        if hasattr(self, '_time_mesh'):
+            del self._time_mesh
+
+    @property
+    def nT(self):
+        return self.time_mesh.nC
+
+    @property
+    def times(self):
+        "Modeling times"
+        return self.timeMesh.vectorNx
+
+
+##############################################################################
+#                                                                            #
+#                           Linear Simulation                                #
+#                                                                            #
+##############################################################################
+
 class LinearSimulation(BaseSimulation):
     """
     Class for a linear simulation of the form
@@ -215,3 +311,4 @@ class LinearSimulation(BaseSimulation):
     def Jtvec(self, m, v, f=None):
         self.model = m
         return self.model_deriv.T * self.G.T.dot(v)
+
