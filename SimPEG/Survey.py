@@ -221,17 +221,26 @@ class Data(BaseData):
     Storage of data, standard_deviation and floor storage
     with fancy [Src,Rx] indexing.
 
+    **Requried**
+    :param Survey survey: The survey descriping the layout of the data
 
+    **Optional**
+    :param ndarray dobs: The data vector matching the src and rx in survey
+    :param ndarray standard_deviation: The standard deviation vector
+        matching the src and rx in survey
+    :param ndarray floor: The floor vector for the data
+        matching the src and rx in survey
 
     """
 
-    def __init__(self, survey, v=None, standard_deviation=None, floor=None):
+    def __init__(self, survey, dobs=None, standard_deviation=None, floor=None):
         # Initiate the base problem
-        BaseData.__init__(self, survey, v)
+        BaseData.__init__(self, survey, dobs)
 
         # Set the uncertainty parameters
         # Note: Maybe set these
-        self.standard_deviation = StandardDeviation(self.survey, standard_deviation)
+        self.standard_deviation = StandardDeviation(
+            self.survey, standard_deviation)
         self.floor = Floor(self.survey, floor)
 
 
@@ -241,7 +250,9 @@ class Data(BaseData):
         standard_devation * np.abs(data) + floor
 
         """
-        return self.standard_deviation.tovec() * np.abs(self.tovec()) + self.floor.tovec()
+        return (
+            self.standard_deviation.tovec() * np.abs(self.tovec()) +
+            self.floor.tovec())
 
 class StandardDeviation(BaseData):
     """

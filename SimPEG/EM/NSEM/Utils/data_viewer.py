@@ -14,8 +14,11 @@ class NSEM_data_viewer(properties.HasProperties):
     Generates a clickble location map of the data, plotting data curves
     in a separate window.
 
+    **Required**
     :param SimPEG.EM.NSEM.Data data: Data object, needs to have assigned
         standard_deviation and floor
+
+    **Optional**
     :param dict data_dict: A dictionary of other NSEM Data objects
     :param string backend: Flag to control the backend used in matplotlib
 

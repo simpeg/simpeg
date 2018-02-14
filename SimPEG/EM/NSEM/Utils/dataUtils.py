@@ -10,29 +10,22 @@ from scipy import interpolate as sciint
 
 import SimPEG as simpeg
 from SimPEG.EM.NSEM.SurveyNSEM import Survey, Data
-from SimPEG.EM.NSEM.RxNSEM import Point_impedance1D, Point_impedance3D, Point_tipper3D
+from SimPEG.EM.NSEM.RxNSEM import (Point_impedance1D,
+    Point_impedance3D, Point_tipper3D)
 from SimPEG.EM.NSEM.SrcNSEM import Planewave_xy_1Dprimary
 from SimPEG.EM.NSEM.Utils import MT1Danalytic, plotDataTypes as pDt
 
 
-def getAppRes(NSEMdata):
-    # Make impedance
-    zList = []
-    for src in NSEMdata.survey.srcList:
-        zc = [src.freq]
-        for rx in src.rxList:
-            if 'i' in rx.rxType:
-                m=1j
-            else:
-                m = 1
-            zc.append(m*NSEMdata[src,rx])
-        zList.append(zc)
-    return [appResPhs(zList[i][0],np.sum(zList[i][1:3])) for i in np.arange(len(zList))]
 
-
-def rotateData(NSEMdata, rotAngle):
+def rotate_data(NSEMdata, rot_angle):
     '''
-    Function that rotates clockwist by rotAngle (- negative for a counter-clockwise rotation)
+    Function that rotates clockwise by rotation angle
+        (- negative for a counter-clockwise rotation)
+
+    **Required**
+    :param SimPEG.EM.NSEM.Data NSEMdata: NSEM data object to process
+    :param float rot_angle: Rotation angel in degrees,
+        positive for clockwise rotation
     '''
     recData = NSEMdata.toRecArray('Complex')
     impData = rec_to_ndarr(recData[['zxx', 'zxy', 'zyx', 'zyy']], complex)
@@ -43,8 +36,8 @@ def rotateData(NSEMdata, rotAngle):
     # rotM*zM*rotM.T
     # [c*(c*zxx - s*zyx) - s*(c*zxy - s*zyy), c*(c*zxy - s*zyy) + s*(c*zxx - s*zyx)],
     # [c*(c*zyx + s*zxx) - s*(c*zyy + s*zxy), c*(c*zyy + s*zxy) + s*(c*zyx + s*zxx)]])
-    s = np.sin(-np.deg2rad(rotAngle))
-    c = np.cos(-np.deg2rad(rotAngle))
+    s = np.sin(-np.deg2rad(rot_angle))
+    c = np.cos(-np.deg2rad(rot_angle))
     rotMat = np.array([[c, -s], [s, c]])
     rotData = (
         rotMat.dot(impData.reshape(-1, 2, 2).dot(rotMat.T))
@@ -64,6 +57,8 @@ def extract_data_info(NSEMdata):
     Useful when assigning uncertainties to data based on frequencies and
     receiver types.
 
+    **Required**
+    :param SimPEG.EM.NSEM.Data NSEMdata: NSEM data object to process
 
     """
     dL, freqL, rxTL = [], [], []
@@ -84,7 +79,10 @@ def resample_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
     (uses the numerator location as a reference). Also gives the option
     of selecting frequencies and receiver.
 
+    **Required**
     :param SimPEG.EM.NSEM.Data NSEMdata: NSEM data object to process
+
+    **Optional**
     :param numpy.ndarray locs: receiver locations to use (default is 'All' locations)
     :param numpy.ndarray freqs: frequencies to use (default is 'All' frequencies))
     :param string rxs: list of receiver sting types to use (default is 'All' types)
@@ -145,22 +143,24 @@ def resample_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
                     if len(rx.locs.shape) == 3:
                         ind_loc = np.sum(
                             np.concatenate(
-                                [(np.sqrt(np.sum((rx.locs[:, :, 0] - location) ** 2, axis=1)) < 0.1).reshape(-1,1)
+                                [(np.sqrt(np.sum((rx.locs[:, :, 0] - location) ** 2, axis=1)) < 0.1).reshape(-1, 1)
                                  for location in locations],
                                 axis=1), axis=1, dtype=bool)
                         new_locs = rx.locs[ind_loc,:,:]
                     else:
                         ind_loc = np.sum(
                             np.concatenate(
-                                [(np.sqrt(np.sum((rx.locs[:, :] - location) ** 2, axis=1)) < 0.1).reshape(-1,1)
+                                [(np.sqrt(np.sum((rx.locs[:, :] - location) ** 2, axis=1)) < 0.1).reshape(-1, 1)
                                  for location in locations],
                                 axis=1), axis=1, dtype=bool)
-                        new_locs = rx.locs[ind_loc,:]
+                        new_locs = rx.locs[ind_loc, :]
                     new_rx = type(rx)
-                    new_rxList.append(new_rx(new_locs, rx.orientation, rx.component))
+                    new_rxList.append(
+                        new_rx(new_locs, rx.orientation, rx.component))
                     data_list.append(NSEMdata[src, rx][ind_loc])
                     try:
-                        std_list.append(NSEMdata.standard_deviation[src, rx][ind_loc])
+                        std_list.append(
+                            NSEMdata.standard_deviation[src, rx][ind_loc])
                         floor_list.append(NSEMdata.floor[src, rx][ind_loc])
                     except Exception as e:
                         if verbose:
@@ -182,7 +182,10 @@ def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
     Function that converts a 3D NSEMdata of a list of
     1D NSEMdata objects for running 1D inversions for.
 
+    **Required**
     :param SimPEG.EM.NSEM.Data NSEMdata: NSEM data object to process
+
+    **Optional**
     :param string rxType3D: component of the NSEMdata to use
         Can be 'xy', 'yx' or 'det'
     """

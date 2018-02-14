@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 from .MT1Dsolutions import get1DEfields  # Add the names of the functions
 from .MT1Danalytic import getEHfields, getImpedance
-from .dataUtils import (getAppRes, appResPhs, rec_to_ndarr, rotateData,
+from .dataUtils import (rec_to_ndarr, rotate_data,
                         skindepth, makeAnalyticSolution, plotMT1DModelData,
                         plotImpAppRes, printTime, convert3Dto1Dobject,
                         resample_data, extract_data_info)

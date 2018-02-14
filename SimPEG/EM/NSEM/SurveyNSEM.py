@@ -1,14 +1,3 @@
-""" SurveyNSEM
-
-Module for Survey information of NSEM.
-This includes
-Sources
-Receivers
-Locations
-
-And relates to Data
-
-"""
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
@@ -29,10 +18,20 @@ from .Utils.plotUtils import DataNSEMPlotMethods
 
 class Survey(SimPEGsurvey.BaseSurvey):
     """
-    Survey class for NSEM. Contains all the sources associated with the survey.
+    Survey class for NSEM.
 
+    The class contains information about the survey setup
+    that is:
+     - Sources
+        - Type
+        - Receivers associated
+            - Type and location
+
+    **Requried**
     :param list srcList: List of sources associated with the survey
 
+
+    **Optional**
     """
     srcPair = BaseNSEMSrc
 
@@ -92,7 +91,10 @@ class Data(SimPEGsurvey.Data, DataNSEMPlotMethods):
     """
     Data class for NSEMdata. Stores the data vector indexed by the survey.
 
+    **Required**
     :param SimPEG.EM.NSEM.SurveyNSEM survey: NSEM survey object
+
+    **Optional**
     :param numpy.ndarray v: Vector of the data in order matching of the survey
     :param numpy.ndarray standard_deviation: Vector of the standard_deviation
         of data in order matching of the survey
@@ -100,15 +102,16 @@ class Data(SimPEGsurvey.Data, DataNSEMPlotMethods):
         order matching of the survey
 
     """
-    def __init__(self, survey, v=None, standard_deviation=None, floor=None):
+    def __init__(self, survey, dobs=None, standard_deviation=None, floor=None):
         # Pass the variables to the "parent" method
-        SimPEGsurvey.Data.__init__(self, survey, v, standard_deviation, floor)
+        SimPEGsurvey.Data.__init__(self, survey, dobs, standard_deviation, floor)
 
 
     def toRecArray(self, returnType='RealImag'):
         '''
         Returns a numpy.recarray for a SimpegNSEM impedance data object.
 
+        **Optional**
         :param str returnType: Switches between returning a rec array where the impedance
             is split to real and imaginary ('RealImag') or is a complex ('Complex')
         :rtype: numpy.recarray
@@ -117,32 +120,43 @@ class Data(SimPEGsurvey.Data, DataNSEMPlotMethods):
         '''
 
         # Define the record fields
-        dtRI = [('freq',float),('x',float),('y',float),('z',float),('zxxr',float),('zxxi',float),('zxyr',float),('zxyi',float),
-        ('zyxr',float),('zyxi',float),('zyyr',float),('zyyi',float),('tzxr',float),('tzxi',float),('tzyr',float),('tzyi',float)]
-        dtCP = [('freq',float),('x',float),('y',float),('z',float),('zxx',complex),('zxy',complex),('zyx',complex),('zyy',complex),('tzx',complex),('tzy',complex)]
+        dtRI = [
+            ('freq', float), ('x', float), ('y', float), ('z', float),
+            ('zxxr', float), ('zxxi', float), ('zxyr', float), ('zxyi', float),
+            ('zyxr', float), ('zyxi', float), ('zyyr', float), ('zyyi', float),
+            ('tzxr', float), ('tzxi', float), ('tzyr', float), ('tzyi', float)]
+        dtCP = [
+            ('freq', float), ('x', float), ('y', float), ('z', float),
+            ('zxx', complex), ('zxy', complex),
+            ('zyx', complex), ('zyy', complex),
+            ('tzx', complex), ('tzy', complex)]
+
         for src in self.survey.srcList:
             # Temp array for all the receivers of the source.
-            # Note: needs to be written more generally, using diffterent rxTypes and not all the data at the locaitons
+            # Note: needs to be written more generally,
+            # using diffterent rxTypes and not all the data at the locations
             # Assume the same locs for all RX
             locs = src.rxList[0].locs
             if locs.shape[1] == 1:
-                locs = np.hstack((np.array([[0.0,0.0]]),locs))
+                locs = np.hstack((np.array([[0.0, 0.0]]), locs))
             elif locs.shape[1] == 2:
-                locs = np.hstack((np.array([[0.0]]),locs))
-            tArrRec = np.concatenate((src.freq*np.ones((locs.shape[0],1)),locs,np.nan*np.ones((locs.shape[0],12))),axis=1).view(dtRI)
-            # np.array([(src.freq,rx.locs[0,0],rx.locs[0,1],rx.locs[0,2],np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ) for rx in src.rxList],dtype=dtRI)
+                locs = np.hstack((np.array([[0.0]]), locs))
+            tArrRec = np.concatenate((
+                src.freq * np.ones((locs.shape[0], 1)), locs,
+                np.nan * np.ones((locs.shape[0], 12))), axis=1).view(dtRI)
             # Get the type and the value for the DataNSEM object as a list
-            typeList = [[rx.orientation,rx.component,self[src,rx]] for rx in src.rxList]
+            typeList = [
+                [rx.orientation, rx.component, self[src, rx]]
+                for rx in src.rxList]
             # Insert the values to the temp array
-            for nr,(k, c, val) in enumerate(typeList):
+            for nr, (k, c, val) in enumerate(typeList):
                 zt_type = 't' if 'z' in k else 'z'
                 key = zt_type + k + c[0]
-                tArrRec[key] = mkvc(val,2)
+                tArrRec[key] = mkvc(val, 2)
             # Masked array
-            # mArrRec = np.ma.MaskedArray(_rec_to_ndarr(tArrRec),mask=np.isnan(_rec_to_ndarr(tArrRec))).view(dtype=tArrRec.dtype)
 
             try:
-                outTemp = recFunc.stack_arrays((outTemp,tArrRec))
+                outTemp = recFunc.stack_arrays((outTemp, tArrRec))
             except NameError:
                 outTemp = tArrRec.copy()
 
@@ -151,10 +165,10 @@ class Data(SimPEGsurvey.Data, DataNSEMPlotMethods):
             elif 'Complex' in returnType:
                 # Add the real and imaginary to a complex number
                 outArr = np.empty(outTemp.shape, dtype=dtCP)
-                for comp in ['freq','x','y','z']:
+                for comp in ['freq', 'x', 'y', 'z']:
                     outArr[comp] = outTemp[comp].copy()
-                for comp in ['zxx','zxy','zyx','zyy','tzx','tzy']:
-                    outArr[comp] = outTemp[comp+'r'].copy() + 1j*outTemp[comp+'i'].copy()
+                for comp in ['zxx', 'zxy', 'zyx', 'zyy', 'tzx', 'tzy']:
+                    outArr[comp] = outTemp[comp+'r'].copy() + 1j * outTemp[comp + 'i'].copy()
             else:
                 raise NotImplementedError('{:s} is not implemented, as to be RealImag or Complex.')
 
@@ -166,8 +180,11 @@ class Data(SimPEGsurvey.Data, DataNSEMPlotMethods):
         """
         Class method that reads in a numpy record array to NSEMdata object.
 
+        **Required**
         :param numpy.recarray recArray: Record array with the data. Has to have
             ('freq','x','y','z') columns and some ('zxx','zxy','zyx','zyy','tzx','tzy')
+
+        **Optional**
         :param string srcType: The type of SimPEG.EM.NSEM.SrcNSEM to be used
 
         """
