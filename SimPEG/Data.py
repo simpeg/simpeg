@@ -197,3 +197,14 @@ class Data(properties.HasProperties):
         return np.concatenate([
             self.obs[self._dataDict[src, rx]] for rx in src.rxList
         ])
+
+
+class SyntheticData(Data):
+    dclean = properties.Array(
+        "observed data",
+        shape=('*',),
+        required=True
+    )
+
+    def __init__(self, **kwargs):
+        super(SyntheticData, self).__init__(**kwargs)

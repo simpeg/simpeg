@@ -9,10 +9,10 @@ from . import Models
 from . import Maps
 from . import Props
 # from . import Source
-from .Data import Data
+from .Data import SyntheticData
 from .NewSurvey import BaseSurvey
 
-__all__ = ['LinearSimulation']
+__all__ = ['LinearSimulation', 'ExponentialSinusoidSimulation']
 
 
 ##############################################################################
@@ -52,7 +52,8 @@ class BaseSimulation(Props.HasModel):
 
     survey = properties.Instance(
         "a list of sources",
-        BaseSurvey
+        BaseSurvey,
+        default=BaseSurvey()
     )
 
     counter = properties.Instance(
@@ -193,8 +194,10 @@ class BaseSimulation(Props.HasModel):
         noise = standard_deviation*abs(dclean)*np.random.randn(*dclean.shape)
         dobs = dclean + noise
 
-        return Data(
-            dobs=dobs, survey=self.survey,
+        return SyntheticData(
+            dobs=dobs,
+            dclean=dclean,
+            survey=self.survey,
             standard_deviation=standard_deviation
         )
 
@@ -206,15 +209,15 @@ class BaseTimeSimulation(BaseSimulation):
 
     time_steps = TimeStepArray(
         """
-        Sets/gets the timeSteps for the time domain problem.
+        Sets/gets the timeSteps for the time domain simulation.
 
         You can set as an array of dt's or as a list of tuples/floats.
         Tuples must be length two with [..., (dt, repeat), ...]
 
         For example, the following setters are the same::
 
-            prob.timeSteps = [(1e-6, 3), 1e-5, (1e-4, 2)]
-            prob.timeSteps = np.r_[1e-6,1e-6,1e-6,1e-5,1e-4,1e-4]
+            sim.timeSteps = [(1e-6, 3), 1e-5, (1e-4, 2)]
+            sim.timeSteps = np.r_[1e-6,1e-6,1e-6,1e-5,1e-4,1e-4]
 
         """,
         dtype=float
@@ -240,7 +243,7 @@ class BaseTimeSimulation(BaseSimulation):
     def time_mesh(self):
         if getattr(self, '_time_mesh', None) is None:
             self._time_mesh = discretize.TensorMesh(
-                [self.time_steps], x0=self.t0
+                [self.time_steps], x0=[self.t0]
             )
         return self._time_mesh
 
@@ -256,7 +259,7 @@ class BaseTimeSimulation(BaseSimulation):
     @property
     def times(self):
         "Modeling times"
-        return self.timeMesh.vectorNx
+        return self.time_mesh.vectorNx
 
 
 ##############################################################################
@@ -311,4 +314,49 @@ class LinearSimulation(BaseSimulation):
     def Jtvec(self, m, v, f=None):
         self.model = m
         return self.model_deriv.T * self.G.T.dot(v)
+
+
+class ExponentialSinusoidSimulation(LinearSimulation):
+    """
+    This is the simulation class for the linear problem consisting of
+    exponentially decaying sinusoids
+    """
+    n_kernels = properties.Integer(
+        "number of kernels defining the linear problem",
+        default = 20
+    )
+
+    p = properties.Float(
+        "rate of exponential decay of the kernel",
+        default=-0.25
+    )
+
+    q = properties.Float(
+        "rate of oscillation of the kernel",
+        default = 0.25
+    )
+
+    def __init__(self, **kwargs):
+        super(ExponentialSinusoidSimulation, self).__init__(**kwargs)
+
+    @property
+    def _jk(self):
+        return np.linspace(1., 60., self.n_kernels)
+
+    def _g(self, k):
+        return (
+            np.exp(self.p*self._jk[k]*self.mesh.vectorCCx) *
+            np.cos(np.pi*self.q*self._jk[k]*self.mesh.vectorCCx)
+        )
+
+    @property
+    def G(self):
+        if getattr(self, '_G', None) is None:
+            G = np.empty((self.n_kernels, self.mesh.nC))
+
+            for i in range(self.n_kernels):
+                G[i, :] = self._g(i)
+
+            self._G = G
+        return self._G
 

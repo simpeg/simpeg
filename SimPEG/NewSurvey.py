@@ -265,10 +265,10 @@ class BaseSurvey(properties.HasProperties):
         return len(self.srcList)
 
 
-class LinearSurvey(BaseSurvey):
-    """
-    Survey for a liear problem
-    """
-    @property
-    def nD(self):
-        return self.prob.G.shape[0]
+# class LinearSurvey(BaseSurvey):
+#     """
+#     Survey for a linear problem
+#     """
+#     @property
+#     def nD(self):
+#         return self.simulation.G.shape[0]
