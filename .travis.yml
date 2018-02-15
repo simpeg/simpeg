@@ -105,7 +105,7 @@ after_success:
   - if [ $TRAVIS_PYTHON_VERSION == $DOCS_PY ]; then
       if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" ]; then
         cd docs; tar -cvzf _build.tar.gz _build ;
-        cd content; tar -cvzf examples.tar.gz examples ; cd ..;
+        cd content; tar -cvzf examples.tar.gz examples ; cd ../../ ;
         gsutil cp docs/_build.tar.gz gs://simpeg ;
         gsutil cp docs/content/examples.tar.gz gs://simpeg ;
         gcloud auth activate-service-account --key-file credentials/client-secret-dev.json ;
