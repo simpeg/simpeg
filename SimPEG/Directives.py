@@ -760,7 +760,7 @@ class Update_IRLS(InversionDirective):
 
                 if getattr(reg, 'eps_p', None) is None:
 
-                    mtemp = reg.mapping * self.invProb.model
+                    mtemp = reg.objfcts[0].f_m
 
                     # if self.coolEps_p:
                     #     reg.eps_p = np.abs(mtemp).max()
@@ -768,7 +768,7 @@ class Update_IRLS(InversionDirective):
                     reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
 
                 if getattr(reg, 'eps_q', None) is None:
-                    mtemp = reg.mapping * self.invProb.model
+                    mtemp = reg.objfcts[0].f_m
 
                     # if self.coolEps_q:
                     #     reg.eps_q = np.abs(mtemp).max()

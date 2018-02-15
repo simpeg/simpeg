@@ -1853,9 +1853,9 @@ class Sparse(BaseComboRegularization):
     @properties.validator('norms')
     def _validate_norms(self, change):
         if change['value'].shape[0] == 1:
-            change['value'] = np.kron(np.ones((self.regmesh.Pac.shape[0], 1)), change['value'])
+            change['value'] = np.kron(np.ones((self.regmesh.Pac.shape[1], 1)), change['value'])
         elif change['value'].shape[0] > 1:
-            assert change['value'].shape[0] == self.regmesh.Pac.shape[0], (
+            assert change['value'].shape[0] == self.regmesh.Pac.shape[1], (
                 "Vector of norms must be the size of active model parameters ({})"
                 "The provided vector has length "
                 "{}".format(
