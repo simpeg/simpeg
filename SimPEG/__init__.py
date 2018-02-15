@@ -3,7 +3,7 @@ from __future__ import print_function
 from SimPEG import Utils
 from SimPEG.Utils import mkvc
 from SimPEG.Utils.SolverUtils import (
-    _checkAccuracy, SolverWrapD, SolverWrapI,
+    SolverWrapD, SolverWrapI,
     Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
 )
 
