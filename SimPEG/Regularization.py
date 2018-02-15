@@ -1441,8 +1441,8 @@ class BaseSparse(BaseRegularization):
         required=True
     )
 
-    norm = properties.Float(
-        "norm used", default=2
+    norm = properties.Array(
+        "norm used", dtype=float
     )
 
     space = properties.String(
@@ -1457,13 +1457,6 @@ class BaseSparse(BaseRegularization):
         "General nob for scaling", default=1.
     )
 
-    @property
-    def stashedR(self):
-        return self._stashedR
-
-    @stashedR.setter
-    def stashedR(self, value):
-        self._stashedR = value
 
     @property
     def stashedR(self):
@@ -1472,20 +1465,6 @@ class BaseSparse(BaseRegularization):
     @stashedR.setter
     def stashedR(self, value):
         self._stashedR = value
-
-    def R(self, f_m):
-        # if R is stashed, return that instead
-        if getattr(self, 'stashedR') is not None:
-            return self.stashedR
-
-        # Eta scaling is important for mix-norms...do not mess with it
-        eta = self.epsilon**(1.-self.norm/2.)
-        # eta = np.abs(f_m + self.epsilon**2.).max() / (np.abs(f_m + self.epsilon**2.) / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.)).max()
-        r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
-        # print(eta)
-        self.stashedR = r  # stash on the first calculation
-        return r
-
 
 class SparseSmall(BaseSparse):
     """
@@ -1498,9 +1477,9 @@ class SparseSmall(BaseSparse):
 
     _multiplier_pair = 'alpha_s'
 
-    def __init__(self, mesh, norm=2, **kwargs):
+    def __init__(self, mesh, **kwargs):
         super(SparseSmall, self).__init__(
-            mesh=mesh, norm=norm, **kwargs
+            mesh=mesh, **kwargs
         )
 
     @property
@@ -1524,6 +1503,19 @@ class SparseSmall(BaseSparse):
             return Utils.sdiag((self.scale * self.gamma *
                                 self.cell_weights)**0.5) * R
         return (self.scale * self.gamma)**0.5 * R
+
+    def R(self, f_m):
+        # if R is stashed, return that instead
+        if getattr(self, 'stashedR') is not None:
+            return self.stashedR
+
+        # Eta scaling is important for mix-norms...do not mess with it
+        eta = 2*np.abs(f_m).max()**(1-self.norm/2) * self.epsilon**(1.-self.norm/2.)
+        # eta = np.abs(f_m + self.epsilon**2.).max() / (np.abs(f_m + self.epsilon**2.) / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.)).max()
+        r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
+        # print(eta)
+        self.stashedR = r  # stash on the first calculation
+        return r
 
     @Utils.timeIt
     def deriv(self, m):
@@ -1614,8 +1606,22 @@ class SparseDeriv(BaseSparse):
         else:
             r = self.W * (self.mapping * f_m)
 
-
         return 0.5 * r.dot(r)
+
+    def R(self, f_m):
+        # if R is stashed, return that instead
+        if getattr(self, 'stashedR') is not None:
+            return self.stashedR
+
+        Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
+        # Eta scaling is important for mix-norms...do not mess with it
+        eta = 2*np.abs(f_m).max()**(1-(Ave*self.norm)/2) * self.epsilon**(1.-(Ave*self.norm)/2.)
+        # eta = np.abs(f_m + self.epsilon**2.).max() / (np.abs(f_m + self.epsilon**2.) / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.)).max()
+        r = (eta / (f_m**2. + self.epsilon**2.)**(1.-(Ave*self.norm)/2.))**0.5
+        # print(eta)
+        self.stashedR = r  # stash on the first calculation
+        return r
 
     @Utils.timeIt
     def deriv(self, m):
@@ -1813,7 +1819,7 @@ class Sparse(BaseComboRegularization):
     # Properties
     norms = properties.Array(
         "Norms used to create the sparse regularization",
-        default=[2., 2., 2., 2.]
+        default=np.c_[2., 2., 2., 2.], shape={('*','*')}
     )
 
     eps_p = properties.Float(
@@ -1844,11 +1850,24 @@ class Sparse(BaseComboRegularization):
     # Save the l2 result during the IRLS
     l2model = None
 
+    @properties.validator('norms')
+    def _validate_norms(self, change):
+        if change['value'].shape[0] == 1:
+            change['value'] = np.kron(np.ones((self.regmesh.Pac.shape[0], 1)), change['value'])
+        elif change['value'].shape[0] > 1:
+            assert change['value'].shape[0] == self.regmesh.Pac.shape[0], (
+                "Vector of norms must be the size of active model parameters ({})"
+                "The provided vector has length "
+                "{}".format(
+                    self.regmesh.Pac.shape[0], len(change['value'])
+                )
+            )
+
     # Observers
     @properties.observer('norms')
     def _mirror_norms_to_objfcts(self, change):
         for i, objfct in enumerate(self.objfcts):
-            objfct.norm = change['value'][i]
+            objfct.norm = change['value'][:,i]
 
     @properties.observer('model')
     def _mirror_model_to_objfcts(self, change):

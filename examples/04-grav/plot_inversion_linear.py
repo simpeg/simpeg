@@ -125,8 +125,8 @@ def run(plotIt=True):
     # Use pick a treshold parameter empirically based on the distribution of
     # model parameters
     IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=1,
-                                  coolEps_p=True, coolEps_q=True, 
-                                  maxIRLSiter = 20, coolEpsFact = 1.1)
+                                  coolEps_p=True, coolEps_q=True,
+                                  maxIRLSiter = 20)
     update_Jacobi = Directives.UpdateJacobiPrecond()
     inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,
                                                           betaest,
@@ -182,7 +182,7 @@ def run(plotIt=True):
         # Plot Lp model
         ax = plt.subplot(323)
         mesh.plotSlice(m_lp, ax=ax, normal='Z', ind=zpanel,
-                       grid=True, clim=(m_lp.min(), m_lp.max()))
+                       grid=True, clim=(mrec.min(), mrec.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan lp-model.')
@@ -194,7 +194,7 @@ def run(plotIt=True):
         # Vertical section
         ax = plt.subplot(324)
         im = mesh.plotSlice(m_lp, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(m_lp.min(), m_lp.max()))
+                       grid=True, clim=(mrec.min(), mrec.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W lp-model.')

@@ -427,36 +427,38 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
         for reg in self.reg.objfcts:
 
-            f_m = reg.objfcts[0].f_m
-            phi_s += np.sum(f_m**2./(f_m**2. + 1e-8)**(1-reg.objfcts[0].norm/2.))
+            # f_m = reg.objfcts[0].f_m
+            # phi_s += np.sum(f_m**2./(f_m**2. + 1e-8)**(1-reg.objfcts[0].norm/2.))
 
-            f_m = reg.objfcts[1].f_m
-            phi_x += np.sum(f_m**2./(f_m**2. + 1e-8)**(1-reg.objfcts[1].norm/2.))
-            # phi_s += (
-            #     reg.objfcts[0](self.invProb.model) * reg.alpha_s
-            # )
-            # phi_x += (
-            #     reg.objfcts[1](self.invProb.model) * reg.alpha_x
-            # )
+            # f_m = reg.objfcts[1].f_m
+            # phi_x += np.sum(f_m**2./(f_m**2. + 1e-8)**(1-reg.objfcts[1].norm/2.))
+            phi_s += (
+                reg.objfcts[0](self.invProb.model) * reg.alpha_s
+            )
+            phi_x += (
+                reg.objfcts[1](self.invProb.model) * reg.alpha_x
+            )
 
             if reg.regmesh.dim > 1:
-                f_m = reg.objfcts[2].f_m
-                phi_x += np.sum(f_m**2./(f_m**2. + 1e-8)**(1-reg.objfcts[2].norm/2.))
+                # f_m = reg.objfcts[2].f_m
+                # phi_x += np.sum(f_m**2./(f_m**2. + 1e-8)**(1-reg.objfcts[2].norm/2.))
+                phi_y += (
+                    reg.objfcts[2](self.invProb.model) * reg.alpha_y
+                )
 
             if reg.regmesh.dim > 2:
-                f_m = reg.objfcts[3].f_m
-                phi_x += np.sum(f_m**2./(f_m**2. + 1e-8)**(1-reg.objfcts[3].norm/2.))
+                # f_m = reg.objfcts[3].f_m
+                # phi_x += np.sum(f_m**2./(f_m**2. + 1e-8)**(1-reg.objfcts[3].norm/2.))
 
-            #     phi_y += (
-            #         reg.objfcts[2](self.invProb.model) * reg.alpha_y
-            #     )
+                phi_z += (
+                    reg.objfcts[3](self.invProb.model) * reg.alpha_z
+                )
+
             # elif reg.regmesh.dim == 3:
             #     phi_y += (
             #         reg.objfcts[2](self.invProb.model) * reg.alpha_y
             #     )
-            #     phi_z += (
-            #         reg.objfcts[3](self.invProb.model) * reg.alpha_z
-            #     )
+
 
         self.beta.append(self.invProb.beta)
         self.phi_d.append(self.invProb.phi_d)
@@ -638,7 +640,7 @@ class Update_IRLS(InversionDirective):
     f_old = None
     f_min_change = 1e-2
     beta_tol = 5e-2
-    prctile = 95
+    prctile = 98
     chifact_start = 1.
     chifact_target = 1.
     model_previous = []
@@ -704,14 +706,14 @@ class Update_IRLS(InversionDirective):
             self.norms = []
             for reg in self.reg.objfcts:
                 self.norms.append(reg.norms)
-                reg.norms = [2., 2., 2., 2.]
+                reg.norms = np.c_[2., 2., 2., 2.]
                 reg.model = self.invProb.model
 
         # Update the model used by the regularization
         for reg in self.reg.objfcts:
             reg.model = self.invProb.model
 
-        self.model_previous = self.invProb.model
+        self.model_previous = self.reg.objfcts[0].objfcts[0].f_m
         self.modelDeriv_previous = self.reg.objfcts[0].objfcts[1].f_m
         self.phi_dm = []
         self.phi_dmx = []
@@ -804,7 +806,7 @@ class Update_IRLS(InversionDirective):
                     print("eps_p: " + str(reg.eps_p) +
                           " eps_q: " + str(reg.eps_q))
 
-            self.phi_dm += [np.linalg.norm(self.model_previous-self.invProb.model, 2) / np.linalg.norm(self.model_previous, 2) ]
+            self.phi_dm += [np.linalg.norm(self.model_previous-self.reg.objfcts[0].objfcts[0].f_m, 2) / np.linalg.norm(self.reg.objfcts[0].objfcts[0].f_m, 2) ]
             self.phi_dmx += [np.linalg.norm(self.modelDeriv_previous-self.reg.objfcts[0].objfcts[1].f_m, 2)/np.linalg.norm(self.reg.objfcts[0].objfcts[1].f_m, 2)]
             if self.coolEpsOptimized:
                 if self.coolEps_p:
@@ -902,7 +904,7 @@ class Update_IRLS(InversionDirective):
 
             self.updateBeta = True
                     # Store last model
-            self.model_previous = self.invProb.model.copy()
+            self.model_previous = self.reg.objfcts[0].objfcts[0].f_m
             self.modelDeriv_previous = self.reg.objfcts[0].objfcts[1].f_m
 
 
