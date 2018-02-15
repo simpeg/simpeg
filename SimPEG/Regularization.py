@@ -1311,7 +1311,10 @@ class BaseSparse(BaseRegularization):
         exponent = self.norm
 
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = (eps**(1.-exponent/2.))**0.5
+        # eta = (eps**(1.-exponent/2.))**0.5
+        eta = (
+            2*np.abs(f_m).max()**(1-self.norm/2) * eps**(1.-self.norm/2.)
+        )
         r = eta / (f_m**2. + eps**2.)**((1.-exponent/2.)/2.)
 
         self.stashedR = r  # stash on the first calculation

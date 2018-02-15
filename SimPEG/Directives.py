@@ -645,12 +645,12 @@ class Update_IRLS(InversionDirective):
 
                 if getattr(reg, 'eps_p', None) is None:
 
-                    mtemp = reg.mapping * self.invProb.model
+                    mtemp = reg[0][1].f_m
                     reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
                     print("eps_p caluclate" + str(reg.eps_p))
 
                 if getattr(reg, 'eps_q', None) is None:
-                    mtemp = reg.mapping * self.invProb.model
+                    mtemp = reg[0][1].f_m
                     reg.eps_q = np.percentile(
                         np.abs(reg.regmesh.cellDiffxStencil*mtemp),
                         self.prctile
