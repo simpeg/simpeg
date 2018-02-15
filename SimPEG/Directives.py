@@ -561,15 +561,18 @@ class Update_IRLS(InversionDirective):
     f_old = None
     f_min_change = 1e-2
     beta_tol = 5e-2
-    prctile = 95
+    prctile = 98
     chifact_start = 1.
     chifact_target = 1.
+    model_previous = []
+    modelDeriv_previous = []
 
     # Solving parameter for IRLS (mode:2)
     IRLSiter = 0
     minGNiter = 5
     maxIRLSiter = 10
     iterStart = 0
+    scale_m = False
 
     # Beta schedule
     updateBeta = True
@@ -577,6 +580,13 @@ class Update_IRLS(InversionDirective):
     coolingRate = 1
     ComboObjFun = False
     mode = 1
+    coolEpsOptimized = True
+    coolEps_p = True
+    coolEps_q = True
+    floorEps_p = 1e-8
+    floorEps_q = 1e-8
+    coolEpsFact = 1.2
+    silent = False
 
     @property
     def target(self):
@@ -612,15 +622,42 @@ class Update_IRLS(InversionDirective):
 
     def initialize(self):
 
-        # Store norms to be applied after the l2 inversion
-        self.norms = []
+        if self.mode == 1:
+
+            self.norms = []
+            for reg in self.reg.objfcts:
+                self.norms.append(reg.norms)
+                reg.norms = np.c_[2., 2., 2., 2.]
+                reg.model = self.invProb.model
+
+        # Update the model used by the regularization
         for reg in self.reg.objfcts:
-            self.norms.append(reg.norms)
-            reg.norms = [2., 2., 2., 2.]
             reg.model = self.invProb.model
+
+        self.model_previous = self.reg.objfcts[0].objfcts[0].f_m
+        self.modelDeriv_previous = self.reg.objfcts[0].objfcts[1].f_m
+        self.phi_dm = []
+        self.phi_dmx = []
+
+        # Look for cases where the block models in to be scaled
+        for prob in self.prob:
+
+            if isinstance(prob, Magnetics.MagneticVector):
+                if prob.coordinate_system == 'spherical':
+                    self.scale_m = True
+
+                # if np.all([prob.coordinate_system == 'cartesian', len(self.prob) > 1]):
+                #     self.scale_m = True
+
+        if self.scale_m:
+            self.regScale()
 
     def endIter(self):
 
+                # Adjust scales for MVI-S
+        # if self.ComboMisfitFun:
+        if self.scale_m:
+            self.regScale()
         # Update the model used by the regularization
         phi_m_last = []
         for reg in self.reg.objfcts:
@@ -628,10 +665,10 @@ class Update_IRLS(InversionDirective):
             phi_m_last += [reg(self.invProb.model)]
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
-        if np.all(
-            [self.invProb.phi_d < self.start, self.mode == 1]
-        ):
-            print("Reached starting chifact with l2-norm regularization: Start IRLS steps...")
+        if np.all([self.invProb.phi_d < self.start,
+                   self.mode == 1]):
+            if not self.silent:
+                print("Reached starting chifact with l2-norm regularization: Start IRLS steps...")
 
             self.mode = 2
             self.iterStart = self.opt.iter
@@ -645,46 +682,70 @@ class Update_IRLS(InversionDirective):
 
                 if getattr(reg, 'eps_p', None) is None:
 
-                    mtemp = reg.mapping * self.invProb.model
-                    reg.eps_p = np.percentile(np.abs(mtemp), self.prctile)
-                    print("eps_p caluclate" + str(reg.eps_p))
+                    reg.eps_p = np.percentile(np.abs(reg.objfcts[0].f_m), self.prctile)
 
                 if getattr(reg, 'eps_q', None) is None:
-                    mtemp = reg.mapping * self.invProb.model
-                    reg.eps_q = np.percentile(
-                        np.abs(reg.regmesh.cellDiffxStencil*mtemp),
-                        self.prctile
-                    )
+
+                    reg.eps_q = np.percentile(np.abs(reg.regmesh.cellDiffxStencil*reg.objfcts[0].f_m), self.prctile)
 
             # Re-assign the norms supplied by user l2 -> lp
             for reg, norms in zip(self.reg.objfcts, self.norms):
                 reg.norms = norms
-                print("L[p qx qy qz]-norm : " + str(reg.norms))
+                if not self.silent:
+                    print("L[p qx qy qz]-norm : " + str(reg.norms))
 
             # Save l2-model
             self.invProb.l2model = self.invProb.model.copy()
 
             # Print to screen
             for reg in self.reg.objfcts:
-                print("eps_p: " + str(reg.eps_p) +
-                      " eps_q: " + str(reg.eps_q))
+                if not self.silent:
+                    print("eps_p: " + str(reg.eps_p) +
+                          " eps_q: " + str(reg.eps_q))
 
         # Only update after GN iterations
-        if np.all(
-            [(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode != 1]
-        ):
+        if np.all([(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode != 1]):
 
             # Check for maximum number of IRLS cycles
             if self.IRLSiter == self.maxIRLSiter:
-                print("Reach maximum number of IRLS cycles: {0:d}".format(self.maxIRLSiter))
+                if not self.silent:
+                    print("Reach maximum number of IRLS cycles: {0:d}".format(self.maxIRLSiter))
                 self.opt.stopNextIteration = True
                 return
 
-            # phi_m_last = []
+            # Print to screen
             for reg in self.reg.objfcts:
+                if not self.silent:
+                    print("eps_p: " + str(reg.eps_p) +
+                          " eps_q: " + str(reg.eps_q))
 
-                # # Reset gamma scale
-                # phi_m_last += [reg(self.invProb.model)]
+            # self.phi_dm += [np.linalg.norm(self.model_previous-self.reg.objfcts[0].objfcts[0].f_m, 2) / np.linalg.norm(self.reg.objfcts[0].objfcts[0].f_m, 2) ]
+            # self.phi_dmx += [np.linalg.norm(self.modelDeriv_previous-self.reg.objfcts[0].objfcts[1].f_m, 2)/np.linalg.norm(self.reg.objfcts[0].objfcts[1].f_m, 2)]
+            # if self.coolEpsOptimized:
+            #     if self.coolEps_p:
+
+            #         for reg in self.reg.objfcts:
+            #             if np.any([self.IRLSiter == 1, self.phi_dm[-1] >= 0.0001]):
+            #                 reg.eps_p /= self.coolEpsFact
+            #             else:
+            #                 reg.eps_p = reg.eps_p
+
+            #     if self.coolEps_q:
+
+            #         for reg in self.reg.objfcts:
+
+            #             if np.any([self.IRLSiter == 1, self.phi_dmx[-1] >= 0.0001]):
+            #                 reg.eps_q /= self.coolEpsFact
+            #             else:
+            #                 reg.eps_q = reg.eps_q
+            # else:
+                if reg.eps_p > self.floorEps_p and self.coolEps_p:
+                    reg.eps_p /= self.coolEpsFact
+
+                if reg.eps_q > self.floorEps_q and self.coolEps_q:
+                    reg.eps_q /= self.coolEpsFact
+
+            for reg in self.reg.objfcts:
 
                 for comp in reg.objfcts:
                     comp.gamma = 1.
@@ -712,9 +773,15 @@ class Update_IRLS(InversionDirective):
             # phim_new = self.reg(self.invProb.model)
             self.f_change = np.abs(self.f_old - phim_new) / self.f_old
 
-            print("Phim relative change: {0:6.3e}".format((self.f_change)))
+            if not self.silent:
+                print("delta phim: {0:6.3e}".format(self.f_change))
+
             # Check if the function has changed enough
-            if self.f_change < self.f_min_change and self.IRLSiter > 1:
+            if np.all([self.f_change < self.f_min_change,
+                       self.IRLSiter > 1,
+                       np.abs(1. - self.invProb.phi_d / self.target) < self.beta_tol]
+                      ):
+
                 print("Minimum decrease in regularization. End of IRLS")
                 self.opt.stopNextIteration = True
                 return
@@ -722,10 +789,7 @@ class Update_IRLS(InversionDirective):
                 self.f_old = phim_new
 
             # Update gamma to scale the regularization between IRLS iterations
-
-            for reg, phim_old, phim_now in zip(
-                self.reg.objfcts, phi_m_last, phi_m_new
-            ):
+            for reg, phim_old, phim_now in zip(self.reg.objfcts, phi_m_last, phi_m_new):
 
                 gamma = phim_old / phim_now
 
@@ -734,32 +798,56 @@ class Update_IRLS(InversionDirective):
                     comp.gamma = gamma
 
             self.updateBeta = True
+
+            # Store last model
+            self.model_previous = self.reg.objfcts[0].objfcts[0].f_m
+            self.modelDeriv_previous = self.reg.objfcts[0].objfcts[1].f_m
+
+
         # Beta Schedule
         if np.all([self.invProb.phi_d < self.target,
                    self.mode == 2]):
-            print("Target chifact overshooted, adjusting beta ...")
+            if not self.silent:
+                print("Target chifact overshooted, adjusting beta ...")
             self.mode = 3
 
         if np.all([self.opt.iter > 0, self.opt.iter % self.coolingRate == 0,
                    self.mode != 3]):
 
             if self.debug:
-                print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
-
+                if not self.silent:
+                    print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
             self.invProb.beta /= self.coolingFactor
 
         # Check if misfit is within the tolerance, otherwise scale beta
-        if np.all(
-            [
-                np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol,
-                self.updateBeta,
-                self.mode == 3
-            ]
-        ):
+        if np.all([np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol,
+                   self.updateBeta,
+                   self.mode == 3]):
 
             self.invProb.beta = (self.invProb.beta * self.target /
                                  self.invProb.phi_d)
             self.updateBeta = False
+
+    def regScale(self):
+        """
+            Update the scales used by regularization for the
+            different block of models
+        """
+
+        # Currently implemented for MVI-S only
+        max_p = []
+        for reg in self.reg.objfcts[0].objfcts:
+            eps_p = reg.epsilon
+            norm_p = 2  # self.reg.objfcts[0].norms[0]
+            f_m = abs(reg.f_m)
+            max_p += [np.max(eps_p**(1-norm_p/2.)*f_m /
+                      (f_m**2. + eps_p**2.)**(1-norm_p/2.))]
+
+        max_p = np.asarray(max_p)
+
+        max_s = [np.pi, np.pi]
+        for obj, var in zip(self.reg.objfcts[1:], max_s):
+            obj.scale = max_p.max()/var
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
