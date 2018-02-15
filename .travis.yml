@@ -108,7 +108,7 @@ after_success:
         cd content; tar -cvzf examples.tar.gz examples ; cd ../../ ;
         gsutil cp docs/_build.tar.gz gs://simpeg ;
         gsutil cp docs/content/examples.tar.gz gs://simpeg ;
-        gcloud auth activate-service-account --key-file credentials/client-secret-dev.json ;
+        gcloud auth activate-service-account --key-file credentials/client-secret.json ;
         export GAE_PROJECT=$GAE_PROJECT ;
       fi ;
       gcloud config set project $GAE_PROJECT;
