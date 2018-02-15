@@ -65,9 +65,8 @@ class BaseSimulation(Props.HasModel):
     # solver or a SimPEG solver (or similar)
     solver = Utils.SolverUtils.Solver
 
-    solver_opts = properties.Instance(
+    solver_opts = properties.Dictionary(
         "solver options as a kwarg dict",
-        dict,
         default={}
     )
 
