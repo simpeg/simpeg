@@ -720,12 +720,9 @@ class Update_IRLS(InversionDirective):
         # Look for cases where the block models in to be scaled
         for prob in self.prob:
 
-            if isinstance(prob, Magnetics.MagneticVector):
+            if getattr(prob, 'coordinate_system', None) is not None:
                 if prob.coordinate_system == 'spherical':
                     self.scale_m = True
-
-                # if np.all([prob.coordinate_system == 'cartesian', len(self.prob) > 1]):
-                #     self.scale_m = True
 
         if self.scale_m:
             self.regScale()
@@ -806,26 +803,26 @@ class Update_IRLS(InversionDirective):
                     print("eps_p: " + str(reg.eps_p) +
                           " eps_q: " + str(reg.eps_q))
 
-            self.phi_dm += [np.linalg.norm(self.model_previous-self.reg.objfcts[0].objfcts[0].f_m, 2) / np.linalg.norm(self.reg.objfcts[0].objfcts[0].f_m, 2) ]
-            self.phi_dmx += [np.linalg.norm(self.modelDeriv_previous-self.reg.objfcts[0].objfcts[1].f_m, 2)/np.linalg.norm(self.reg.objfcts[0].objfcts[1].f_m, 2)]
-            if self.coolEpsOptimized:
-                if self.coolEps_p:
+            # self.phi_dm += [np.linalg.norm(self.model_previous-self.reg.objfcts[0].objfcts[0].f_m, 2) / np.linalg.norm(self.reg.objfcts[0].objfcts[0].f_m, 2) ]
+            # self.phi_dmx += [np.linalg.norm(self.modelDeriv_previous-self.reg.objfcts[0].objfcts[1].f_m, 2)/np.linalg.norm(self.reg.objfcts[0].objfcts[1].f_m, 2)]
+            # if self.coolEpsOptimized:
+            #     if self.coolEps_p:
 
-                    for reg in self.reg.objfcts:
-                        if np.any([self.IRLSiter == 1, self.phi_dm[-1] >= 0.0001]):
-                            reg.eps_p /= self.coolEpsFact
-                        else:
-                            reg.eps_p = reg.eps_p
+            #         for reg in self.reg.objfcts:
+            #             if np.any([self.IRLSiter == 1, self.phi_dm[-1] >= 0.0001]):
+            #                 reg.eps_p /= self.coolEpsFact
+            #             else:
+            #                 reg.eps_p = reg.eps_p
 
-                if self.coolEps_q:
+            #     if self.coolEps_q:
 
-                    for reg in self.reg.objfcts:
+            #         for reg in self.reg.objfcts:
 
-                        if np.any([self.IRLSiter == 1, self.phi_dmx[-1] >= 0.0001]):
-                            reg.eps_q /= self.coolEpsFact
-                        else:
-                            reg.eps_q = reg.eps_q
-            else:
+            #             if np.any([self.IRLSiter == 1, self.phi_dmx[-1] >= 0.0001]):
+            #                 reg.eps_q /= self.coolEpsFact
+            #             else:
+            #                 reg.eps_q = reg.eps_q
+            # else:
                 if reg.eps_p > self.floorEps_p and self.coolEps_p:
                     reg.eps_p /= self.coolEpsFact
 

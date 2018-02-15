@@ -295,7 +295,7 @@ class LinearProblem(BaseProblem):
             y.astype(np.float64)
 
         else:
-            y = np.dot(self.F, m)
+            y = np.dot(self.F, self.modelMap*m)
 
         return y
 

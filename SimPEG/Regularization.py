@@ -1485,10 +1485,6 @@ class SparseSmall(BaseSparse):
     @property
     def f_m(self):
 
-        assert np.array_equal(self.mref, self.model) is False, (
-            'Reference and model cannot be the same in Sparse Regularization'
-        )
-
         return self.mapping * self._delta_m(self.model)
 
     @property
@@ -1535,9 +1531,6 @@ class SparseSmall(BaseSparse):
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
 
         """
-        assert np.array_equal(self.mref, m) is False, (
-            'Reference and model cannot be the same in Sparse Regularization'
-        )
 
         mD = self.mapping.deriv(self._delta_m(m))
         r = self.W * (self.mapping * (self._delta_m(m)))
@@ -1567,9 +1560,6 @@ class SparseDeriv(BaseSparse):
 
             r(m) = \\frac{1}{2}
         """
-        assert np.array_equal(self.mref, m) is False, (
-            'Reference and model cannot be the same in Sparse Regularization'
-        )
 
         if self.mrefInSmooth:
 
@@ -1642,10 +1632,6 @@ class SparseDeriv(BaseSparse):
 
         """
 
-        assert np.array_equal(self.mref, m) is False, (
-            'Reference and model cannot be the same in Sparse Regularization'
-        )
-
         if self.mrefInSmooth:
 
             model = self._delta_m(m)
@@ -1691,10 +1677,6 @@ class SparseDeriv(BaseSparse):
 
     @property
     def f_m(self):
-
-        assert np.array_equal(self.mref, self.model) is False, (
-            'Reference and model cannot be the same in Sparse Regularization'
-        )
 
         if self.mrefInSmooth:
 
