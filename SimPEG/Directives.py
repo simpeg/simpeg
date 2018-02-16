@@ -472,34 +472,26 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         if fname is not None:
             fig.savefig(fname, dpi=dpi)
 
-class SaveOutputDictEveryIteration(SaveEveryIteration):
+class SaveOutputDataModelFinish(SaveEveryIteration):
     """
-        Saves inversion parameters at every iteraion.
+        Saves predicted models and data numpy vectors 
     """
 
     def initialize(self):
         print("SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(self.fileName))
-
+        self.outDict = {}
     def endIter(self):
 
         # Initialize the output dict
-        outDict = {}
         # Save the data.
-        outDict['iter'] = self.opt.iter
-        outDict['beta'] = self.invProb.beta
-        outDict['phi_d'] = self.invProb.phi_d
-        outDict['phi_m'] = self.invProb.phi_m
-        outDict['phi_ms'] = self.reg._evalSmall(self.invProb.model)
-        outDict['phi_mx'] = self.reg._evalSmoothx(self.invProb.model)
-        outDict['phi_my'] = self.reg._evalSmoothy(self.invProb.model) if self.prob.mesh.dim >= 2 else 'NaN'
-        outDict['phi_mz'] = self.reg._evalSmoothz(self.invProb.model) if self.prob.mesh.dim == 3 else 'NaN'
-        outDict['f'] = self.opt.f
-        outDict['m'] = self.invProb.model
-        outDict['dpred'] = self.invProb.dpred
+        self.outDict[self.opt.iter] = dict(
+            m=self.invProb.model, dpred=self.invProb.dpred)
 
+    def finish(self):
         # Save the file as a npz
-        np.savez('{:03d}-{:s}'.format(self.opt.iter,self.fileName), outDict)
-
+        np.savez('{:s}_dpred_models'.format(
+            self.fileName), self.outDict)
+ 
 
 class Update_IRLS(InversionDirective):
 
