@@ -199,7 +199,7 @@ class Problem_CC_Jstore(Problem_CC):
             self.Ainv.clean()
         return self._G
 
-    def getJ(self, m, f):
+    def getJ(self, m, f=None):
 
         if self.coordinate_system == 'cartesian':
             return self.G
