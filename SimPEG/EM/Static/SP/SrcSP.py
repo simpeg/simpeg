@@ -42,7 +42,9 @@ class StreamingCurrents(Src.BaseSrc):
             elif self.modelType == "CurrentSource":
                 q = prob.q
             elif self.modelType == "CurrentDensity":
-                q = prob.Grad.T*prob.mesh.aveCCV2F*np.r_[prob.jsx, prob.jsy, prob.jsz]
+                q = prob.Grad.T*prob.mesh.aveCCV2F*np.r_[
+                    prob.jsx, prob.jsy, prob.jsz
+                ]
             else:
                 raise NotImplementedError()
         elif prob._formulation == 'EB':
@@ -53,11 +55,15 @@ class StreamingCurrents(Src.BaseSrc):
         if prob._formulation == 'HJ':
             if adjoint:
                 if self.modelType == "Head":
-                    srcDeriv = prob.hDeriv.T * prob.Grad.T * self.MfLiI.T * (prob.Grad * v)
+                    srcDeriv = prob.hDeriv.T * prob.Grad.T * self.MfLiI.T * (
+                        prob.Grad * v
+                    )
                 elif self.modelType == "CurrentSource":
                     srcDeriv = prob.qDeriv.T * v
                 elif self.modelType == "CurrentDensity":
-                    jsDeriv = sp.vstack((prob.jsxDeriv, prob.jsyDeriv, prob.jszDeriv))
+                    jsDeriv = sp.vstack(
+                        (prob.jsxDeriv, prob.jsyDeriv, prob.jszDeriv)
+                    )
                     srcDeriv = jsDeriv.T * prob.mesh.aveCCV2F.T * (prob.Grad*v)
                 else:
                     raise NotImplementedError()
@@ -67,7 +73,9 @@ class StreamingCurrents(Src.BaseSrc):
                 elif self.modelType == "CurrentSource":
                     srcDeriv = prob.qDeriv * v
                 elif self.modelType == "CurrentDensity":
-                    jsDeriv = sp.vstack((prob.jsxDeriv, prob.jsyDeriv, prob.jszDeriv))
+                    jsDeriv = sp.vstack(
+                        (prob.jsxDeriv, prob.jsyDeriv, prob.jszDeriv)
+                    )
                     srcDeriv = prob.Grad.T * prob.mesh.aveCCV2F*(jsDeriv*v)
                 else:
                     raise NotImplementedError()
