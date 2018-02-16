@@ -1,7 +1,7 @@
 from SimPEG import Problem, Utils, Maps, Mesh
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC
-from SimPEG.EM.Static.DC import Survey, BaseDCProblem
+from SimPEG.EM.Static.DC import Survey, BaseDCProblem, Problem3D_CC
 from SimPEG.Utils import sdiag
 import numpy as np
 import scipy.sparse as sp
@@ -46,12 +46,6 @@ class BaseSPProblem(BaseDCProblem):
     modelType = None
     surveyPair = Survey
     fieldsPair = FieldsDC
-    # PropMap = SPPropMap
-    Ainv = None
-    sigma = None
-    rho = None
-    f = None
-    Ainv = None
 
     @property
     def deleteTheseOnModelUpdate(self):
@@ -64,16 +58,17 @@ class BaseSPProblem(BaseDCProblem):
         return self.Div*(Mf*(MfQviI*vel))
 
 
-class Problem_CC(BaseSPProblem):
+class Problem_CC(BaseSPProblem, Problem3D_CC):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_CC
     modelType = None
     coordinate_system = properties.StringChoice(
-    "Type of coordinate system we are regularizing in",
-    choices=['cartesian', 'spherical'],
-    default='cartesian' )
+        "Type of coordinate system we are regularizing in",
+        choices=['cartesian', 'spherical'],
+        default='cartesian'
+    )
 
     def __init__(self, mesh, **kwargs):
         BaseSPProblem.__init__(self, mesh, **kwargs)
@@ -82,34 +77,9 @@ class Problem_CC(BaseSPProblem):
         #                      initializing SPproblem")
         self.setBC()
 
-    def getA(self):
-        """
-
-        Make the A matrix for the cell centered DC resistivity problem
-
-        A = D MfRhoI G
-
-        """
-
-        D = self.Div
-        G = self.Grad
-        MfRhoI = self.MfRhoI
-        A = D * MfRhoI * G
-        return A
-
     def getADeriv(self, u, v, adjoint= False):
         # We assume conductivity is known
         return Zero()
-
-    def getRHS(self):
-        """
-        RHS for the DC problem
-
-        q
-        """
-
-        RHS = self.getSourceTerm()
-        return RHS
 
     def getRHSDeriv(self, src, v, adjoint=False):
         """
@@ -117,72 +87,12 @@ class Problem_CC(BaseSPProblem):
         """
         return src.evalDeriv(self, v=v, adjoint=adjoint)
 
-    def setBC(self):
-        if self.mesh.dim==3:
-            fxm,fxp,fym,fyp,fzm,fzp = self.mesh.faceBoundaryInd
-            gBFxm = self.mesh.gridFx[fxm, :]
-            gBFxp = self.mesh.gridFx[fxp, :]
-            gBFym = self.mesh.gridFy[fym, :]
-            gBFyp = self.mesh.gridFy[fyp, :]
-            gBFzm = self.mesh.gridFz[fzm, :]
-            gBFzp = self.mesh.gridFz[fzp, :]
-
-            # Setup Mixed B.C (alpha, beta, gamma)
-            temp_xm, temp_xp = np.ones_like(gBFxm[:, 0]), np.ones_like(gBFxp[:, 0])
-            temp_ym, temp_yp = np.ones_like(gBFym[:, 1]), np.ones_like(gBFyp[:, 1])
-            temp_zm, temp_zp = np.ones_like(gBFzm[:, 2]), np.ones_like(gBFzp[:, 2])
-
-            alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-            alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
-            alpha_zm, alpha_zp = temp_zm*0., temp_zp*0.
-
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
-            beta_zm, beta_zp = temp_zm, temp_zp
-
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-            gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
-
-            alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp, alpha_zm, alpha_zp]
-            beta =  [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
-            gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm, gamma_zp]
-
-        elif self.mesh.dim==2:
-
-            fxm,fxp,fym,fyp = self.mesh.faceBoundaryInd
-            gBFxm = self.mesh.gridFx[fxm,:]
-            gBFxp = self.mesh.gridFx[fxp,:]
-            gBFym = self.mesh.gridFy[fym,:]
-            gBFyp = self.mesh.gridFy[fyp,:]
-
-            # Setup Mixed B.C (alpha, beta, gamma)
-            temp_xm, temp_xp = np.ones_like(gBFxm[:,0]), np.ones_like(gBFxp[:,0])
-            temp_ym, temp_yp = np.ones_like(gBFym[:,1]), np.ones_like(gBFyp[:,1])
-
-            alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-            alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
-
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
-
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
-
-            alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
-            beta =  [beta_xm, beta_xp, beta_ym, beta_yp]
-            gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
-
-        x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
-        V = self.Vol
-        self.Div = V * self.mesh.faceDiv
-        P_BC, B = self.mesh.getBCProjWF_simple()
-        M = B*self.mesh.aveCC2F
-        self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
-
 
 class Problem_CC_Jstore(Problem_CC):
     """docstring for Problem_CC_jstore"""
+
+    _S = None
+
     @property
     def G(self):
         """
@@ -204,6 +114,7 @@ class Problem_CC_Jstore(Problem_CC):
         if self.coordinate_system == 'cartesian':
             return self.G
         else:
+            self.model = m
             return self.G * self.S
 
     def Jvec(self, m, v, f=None):
@@ -240,7 +151,8 @@ class Problem_CC_Jstore(Problem_CC):
             Derivatives for the spherical transformation
         """
         if getattr(self, '_S', None) is None:
-
+            if self.verbose:
+                print ("Compute S")
             if self.model is None:
                 raise Exception('Requires a model')
 
@@ -266,6 +178,13 @@ class Problem_CC_Jstore(Problem_CC):
             self._S = sp.vstack([Sx, Sy, Sz])
 
         return self._S
+
+    @property
+    def deleteTheseOnModelUpdate(self):
+        toDelete = super(BaseDCProblem, self).deleteTheseOnModelUpdate
+        if self._S is not None:
+            toDelete += ['_S']
+        return toDelete
 
 
 class SurveySP_store(Survey):

@@ -815,7 +815,11 @@ class UpdatePreconditioner(InversionDirective):
             # Update the pre-conditioner
             reg_diag = np.zeros_like(self.invProb.model)
             for reg in self.reg.objfcts:
-                reg_diag += self.invProb.beta*(reg.W.T*reg.W).diagonal()
+                if getattr(reg.mapping, 'P', None) is None:
+                    reg_diag += self.invProb.beta*(reg.W.T*reg.W).diagonal()
+                else:
+                    P = reg.mapping.P
+                    reg_diag += self.invProb.beta*(P.T * (reg.W.T * (reg.W * P))).diagonal()
 
             Hdiag = self.opt.JtJdiag + reg_diag
 
@@ -832,7 +836,11 @@ class UpdatePreconditioner(InversionDirective):
             # Update the pre-conditioner
             reg_diag = np.zeros_like(self.invProb.model)
             for reg in self.reg.objfcts:
-                reg_diag += self.invProb.beta*(reg.W.T*reg.W).diagonal()
+                if getattr(reg.mapping, 'P', None) is None:
+                    reg_diag += self.invProb.beta*(reg.W.T*reg.W).diagonal()
+                else:
+                    P = reg.mapping.P
+                    reg_diag += self.invProb.beta*(P.T * (reg.W.T * (reg.W * P))).diagonal()
 
             Hdiag = self.opt.JtJdiag + reg_diag
 
