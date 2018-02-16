@@ -106,7 +106,7 @@ def run(plotIt=True):
     # Create a regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.cell_weights = wr
-    reg.norms = [0, 1, 1, 1]
+    reg.norms = np.c_[0, 1, 1, 1]
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)

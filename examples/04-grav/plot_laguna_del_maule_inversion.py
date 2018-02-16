@@ -100,7 +100,8 @@ def run(plotIt=True, cleanAfterRun=True):
                                 mapping=staticCells)
     reg.mref = driver.mref[dynamic]
     reg.cell_weights = wr * mesh.vol[active]
-    reg.norms = driver.lpnorms
+    reg.norms = np.c_[0., 1., 1., 1., 2.]
+    # reg.norms = driver.lpnorms
 
     # Specify how the optimization will proceed
     opt = Optimization.ProjectedGNCG(maxIter=150, lower=driver.bounds[0],

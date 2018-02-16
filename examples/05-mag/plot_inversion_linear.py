@@ -108,7 +108,7 @@ def run(plotIt=True):
     # Create a regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.cell_weights = wr
-    reg.norms = [0, 1, 1, 1]
+    reg.norms = np.c_[0, 1, 1, 1]
     reg.eps_p, reg.eps_q = 1e-3, 1e-3
 
     # Data misfit function
@@ -119,7 +119,7 @@ def run(plotIt=True):
     opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
                                      maxIterLS=20, maxIterCG=10, tolCG=1e-3)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    betaest = Directives.BetaEstimate_ByEig()
+    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of

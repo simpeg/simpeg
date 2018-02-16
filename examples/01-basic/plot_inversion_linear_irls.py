@@ -76,7 +76,7 @@ def run(N=100, plotIt=True):
     reg = Regularization.Sparse(mesh, mapping=idenMap)
     reg.mref = mref
     reg.cell_weights = wr
-    reg.norms = [0., 0., 2., 2.]
+    reg.norms = np.c_[0., 0., 2., 2.]
     reg.mref = np.zeros(mesh.nC)
 
     opt = Optimization.ProjectedGNCG(
@@ -89,7 +89,7 @@ def run(N=100, plotIt=True):
     # Set the IRLS directive, penalize the lowest 25 percentile of model values
     # Start with an l2-l2, then switch to lp-norms
 
-    IRLS = Directives.Update_IRLS(prctile=25, maxIRLSiter=15, minGNiter=3)
+    IRLS = Directives.Update_IRLS(prctile=25, maxIRLSiter=15, minGNiter=1)
 
     inv = Inversion.BaseInversion(
         invProb,
