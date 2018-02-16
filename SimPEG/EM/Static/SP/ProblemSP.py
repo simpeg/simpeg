@@ -105,7 +105,9 @@ class Problem_CC_Jstore(Problem_CC):
             rx = src.rxList[0]
             P = rx.getP(self.mesh, "CC").toarray()
             src = self.survey.srcList[0]
-            self._G = ((self.Ainv * P.T).T) * src.evalDeriv(self, v=Utils.sdiag(np.ones_like(self.model)))
+            self._G = (self.Ainv * P.T).T * src.evalDeriv(
+                self, v=Utils.sdiag(np.ones_like(self.model))
+            )
             self.Ainv.clean()
         return self._G
 

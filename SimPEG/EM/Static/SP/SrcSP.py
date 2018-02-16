@@ -10,9 +10,6 @@ class StreamingCurrents(Src.BaseSrc):
 
     L = None
     mesh = None
-    # "Hydraulic Head (m)"
-    # "Streaming current source (A/m^3)"
-    # "Streaming current density (A/m^2)"
     modelType = None
 
     def __init__(self, rxList, **kwargs):
@@ -45,7 +42,6 @@ class StreamingCurrents(Src.BaseSrc):
             elif self.modelType == "CurrentSource":
                 q = prob.q
             elif self.modelType == "CurrentDensity":
-                # q = -self.Div*prob.mesh.aveF2CCV.T* self.V *np.r_[prob.jsx, prob.jsy, prob.jsz]
                 q = prob.Grad.T*prob.mesh.aveCCV2F*np.r_[prob.jsx, prob.jsy, prob.jsz]
             else:
                 raise NotImplementedError()
@@ -62,7 +58,6 @@ class StreamingCurrents(Src.BaseSrc):
                     srcDeriv = prob.qDeriv.T * v
                 elif self.modelType == "CurrentDensity":
                     jsDeriv = sp.vstack((prob.jsxDeriv, prob.jsyDeriv, prob.jszDeriv))
-                    # srcDeriv = - jsDeriv.T * prob.mesh.aveF2CCV * self.V * (self.Div.T*v)
                     srcDeriv = jsDeriv.T * prob.mesh.aveCCV2F.T * (prob.Grad*v)
                 else:
                     raise NotImplementedError()
@@ -73,7 +68,6 @@ class StreamingCurrents(Src.BaseSrc):
                     srcDeriv = prob.qDeriv * v
                 elif self.modelType == "CurrentDensity":
                     jsDeriv = sp.vstack((prob.jsxDeriv, prob.jsyDeriv, prob.jszDeriv))
-                    # srcDeriv = -self.Div * prob.mesh.aveF2CCV.T* self.V * (jsDeriv*v)
                     srcDeriv = prob.Grad.T * prob.mesh.aveCCV2F*(jsDeriv*v)
                 else:
                     raise NotImplementedError()
