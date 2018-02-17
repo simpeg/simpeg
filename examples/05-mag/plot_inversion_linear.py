@@ -102,14 +102,15 @@ def run(plotIt=True):
 
     # Create sensitivity weights from our linear forward operator
     rxLoc = survey.srcField.rxList[0].locs
-    wr = np.sum(prob.G**2., axis=0)**0.5
+    wr = np.sum(prob.F**2., axis=0)**0.5
     wr = (wr/np.max(wr))
 
     # Create a regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+    reg.mref = np.zeros(nC)
     reg.cell_weights = wr
-    reg.norms = [0, 1, 1, 1]
-    reg.eps_p, reg.eps_q = 1e-3, 1e-3
+    reg.norms = np.c_[0, 0, 0, 0]
+#    reg.eps_p, reg.eps_q = 1e-3, 1e-3
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
@@ -124,7 +125,7 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
     #  model parameters
-    IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=3)
+    IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=1)
     update_Jacobi = Directives.UpdateJacobiPrecond()
     inv = Inversion.BaseInversion(invProb,
                                   directiveList=[IRLS, betaest, update_Jacobi])
@@ -137,7 +138,7 @@ def run(plotIt=True):
         # Here is the recovered susceptibility model
         ypanel = midx
         zpanel = -5
-        m_l2 = actvMap * IRLS.l2model
+        m_l2 = actvMap * invProb.l2model
         m_l2[m_l2 == -100] = np.nan
 
         m_lp = actvMap * mrec
@@ -149,7 +150,7 @@ def run(plotIt=True):
         # Plot the data
         PF.Magnetics.plot_obs_2D(rxLoc, d=d)
 
-        plt.figure()
+        plt.figure(figsize=(12,9))
 
         # Plot L2 model
         ax = plt.subplot(321)

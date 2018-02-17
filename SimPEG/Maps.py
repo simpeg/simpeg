@@ -438,19 +438,16 @@ class HomogeneousMap(IdentityMap):
         :param list index: list of bool for each homogeneous unit
 
     """
-    nBlock = 1
+    nBlock = 1  # Variable allowing to stack same Map over multiple sets
+
     def __init__(self, index, **kwargs):
         assert isinstance(index, (list)), (
             'index must be a list, not {}'.format(type(index)))
 
         super(HomogeneousMap, self).__init__(**kwargs)
 
-        # if isinstance(index, slice):
-        #     index = list(range(*index.indices(self.nP)))
         self.index = index
-
-        # assert (max(index) < nP), (
-        #     'maximum index must be less than {}'.format(nP))
+        self._shape = self.P.shape
 
     @property
     def P(self):
@@ -497,6 +494,7 @@ class HomogeneousMap(IdentityMap):
         if v is not None:
             return self.P * v
         return self.P
+
 
 
 class Wires(object):

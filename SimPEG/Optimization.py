@@ -186,7 +186,7 @@ class Minimize(object):
     comment = ''  #: Used by some functions to indicate what is going on in the algorithm
     counter = None  #: Set this to a SimPEG.Utils.Counter() if you want to count things
     parent = None  #: This is the parent of the optimization routine.
-
+    silent = False
     LSalwaysPass = False
 
     def __init__(self, **kwargs):
@@ -272,14 +272,17 @@ class Minimize(object):
         """
         self.evalFunction = evalFunction
         self.startup(x0)
-        self.printInit()
-        print('x0 has any nan: {:b}'.format(np.any(np.isnan(x0))))
+
+        if not self.silent:
+            self.printInit()
+            print('x0 has any nan: {:b}'.format(np.any(np.isnan(x0))))
         while True:
             self.doStartIteration()
             self.f, self.g, self.H = evalFunction(
                 self.xc, return_g=True, return_H=True
             )
-            self.printIter()
+            if not self.silent:
+                self.printIter()
             if self.stoppingCriteria():
                 break
             self.searchDirection = self.findSearchDirection()
@@ -293,8 +296,8 @@ class Minimize(object):
             self.doEndIteration(xt)
             if self.stopNextIteration:
                 break
-
-        self.printDone()
+        if not self.silent:
+            self.printDone()
         self.finish()
 
         return self.xc
@@ -1067,7 +1070,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
     maxIterCG = 5
     tolCG = 1e-1
-
+    cgCount = 0
 
     # perturbation of the inactive set off the bounds
     stepOffBoundsFact = 1e-8
@@ -1174,7 +1177,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
             sold = snew
             # End CG Iterations
-
+        self.cgCount += count
         if self.ComboObjFun:
 
             reg = self.parent.reg.objfcts[1]

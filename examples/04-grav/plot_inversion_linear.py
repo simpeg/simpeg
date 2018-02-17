@@ -69,8 +69,8 @@ def run(plotIt=True):
     # We can now create a susceptibility model and generate data
     # Here a simple block in half-space
     model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
-    model[(midx-5):(midx-1), (midy-2):(midy+2), -10:-6] = 0.5
-    model[(midx+1):(midx+5), (midy-2):(midy+2), -10:-6] = -0.5
+    model[(midx-5):(midx-1), (midy-2):(midy+2), -9:-5] = 0.5
+    model[(midx+1):(midx+5), (midy-2):(midy+2), -9:-5] = -0.5
     model = Utils.mkvc(model)
     model = model[actv]
 
@@ -101,12 +101,14 @@ def run(plotIt=True):
     # Create sensitivity weights from our linear forward operator
     rxLoc = survey.srcField.rxList[0].locs
     wr = np.sum(prob.F**2., axis=0)**0.5
-    wr = (wr/np.max(wr))
+    wr = (wr/np.max(wr))**0.5
 
     # Create a regularization
-    reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+    reg = Regularization.Sparse(mesh, indActive=actv,
+                                mapping=idenMap, gradientType = 'component')
     reg.cell_weights = wr
-    reg.norms = [0, 1, 1, 1]
+    reg.mref = np.zeros(nC)
+    reg.norms = [0, 0, 0, 0]
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
@@ -114,7 +116,7 @@ def run(plotIt=True):
 
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=100, lower=-1., upper=1.,
-                                     maxIterLS=20, maxIterCG=10,
+                                     maxIterLS=20, maxIterCG=20,
                                      tolCG=1e-3)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     betaest = Directives.BetaEstimate_ByEig()
@@ -122,7 +124,9 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
     # model parameters
-    IRLS = Directives.Update_IRLS(f_min_change=1e-2, minGNiter=3)
+    IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=1,
+                                  coolEps_p=True, coolEps_q=True,
+                                  maxIRLSiter = 20)
     update_Jacobi = Directives.UpdateJacobiPrecond()
     inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,
                                                           betaest,
@@ -148,12 +152,12 @@ def run(plotIt=True):
         # Plot the data
         PF.Gravity.plot_obs_2D(rxLoc, d=data)
 
-        plt.figure()
+        plt.figure(figsize=(12,9))
 
         # Plot L2 model
         ax = plt.subplot(321)
         mesh.plotSlice(m_l2, ax=ax, normal='Z', ind=zpanel,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True, clim=(invProb.l2model.min(), invProb.l2model.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan l2-model.')
@@ -164,11 +168,12 @@ def run(plotIt=True):
 
         # Vertica section
         ax = plt.subplot(322)
-        mesh.plotSlice(m_l2, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(model.min(), model.max()))
+        im = mesh.plotSlice(m_l2, ax=ax, normal='Y', ind=midx,
+                       grid=True, clim=(m_l2.min(), m_l2.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W l2-model.')
+        plt.colorbar(im[0])
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
         plt.ylabel('z')
@@ -177,7 +182,7 @@ def run(plotIt=True):
         # Plot Lp model
         ax = plt.subplot(323)
         mesh.plotSlice(m_lp, ax=ax, normal='Z', ind=zpanel,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True, clim=(mrec.min(), mrec.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan lp-model.')
@@ -188,11 +193,12 @@ def run(plotIt=True):
 
         # Vertical section
         ax = plt.subplot(324)
-        mesh.plotSlice(m_lp, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(model.min(), model.max()))
+        im = mesh.plotSlice(m_lp, ax=ax, normal='Y', ind=midx,
+                       grid=True, clim=(mrec.min(), mrec.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W lp-model.')
+        plt.colorbar(im[0])
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
         plt.ylabel('z')
@@ -212,11 +218,12 @@ def run(plotIt=True):
 
         # Vertical section
         ax = plt.subplot(326)
-        mesh.plotSlice(m_true, ax=ax, normal='Y', ind=midx,
+        im = mesh.plotSlice(m_true, ax=ax, normal='Y', ind=midx,
                        grid=True, clim=(model.min(), model.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W true model.')
+        plt.colorbar(im[0])
         plt.gca().set_aspect('equal')
         plt.xlabel('x')
         plt.ylabel('z')
