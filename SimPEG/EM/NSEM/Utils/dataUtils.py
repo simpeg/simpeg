@@ -263,7 +263,7 @@ def rec_to_ndarr(rec_arr, data_type=float):
     """
     Function to transform a numpy record array to a nd array.
     """
-    return np.copy(rec_arr.view((data_type, len(rec_arr.dtype.names))))
+    return rec_arr.copy().view((data_type, len(rec_arr.dtype.names)))
 
 def makeAnalyticSolution(mesh, model, elev, freqs):
 
@@ -341,7 +341,7 @@ def plotMT1DModelData(problem, models, symList=None):
         axM.semilogx(modelPts, meshPts, color=col)
 
         ## Data
-        loc = rec_to_ndarr(np.unique(data1D[['x', 'y']]))
+        loc = rec_to_ndarr(np.unique(data1D[['x', 'y']].copy()))
         # Appres
         pDt.plotIsoStaImpedance(axR, loc, data1D, 'zyx', 'res', pColor=col)
         # Appphs
