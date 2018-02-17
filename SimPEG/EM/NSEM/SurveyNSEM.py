@@ -210,7 +210,7 @@ class Data(SimPEGsurvey.Data, DataNSEMPlotMethods):
                 # Find index of not nan values in rxType
                 notNaNind = ~np.isnan(dFreq[rxType].copy())
                 if np.any(notNaNind): # Make sure that there is any data to add.
-                    locs = _rec_to_ndarr(dFreq[['x','y','z']][notNaNind].copy())
+                    locs = _rec_to_ndarr(dFreq[['x', 'y', 'z']][notNaNind].copy())
                     if dFreq[rxType].dtype.name in 'complex128':
                         if 't' in rxType:
                             rxList.append(Point_tipper3D(locs,rxType[1:3],'real'))
