@@ -1457,7 +1457,6 @@ class BaseSparse(BaseRegularization):
         "General nob for scaling", default=1.
     )
 
-
     @property
     def stashedR(self):
         return self._stashedR
@@ -1465,6 +1464,7 @@ class BaseSparse(BaseRegularization):
     @stashedR.setter
     def stashedR(self, value):
         self._stashedR = value
+
 
 class SparseSmall(BaseSparse):
     """
@@ -1492,7 +1492,7 @@ class SparseSmall(BaseSparse):
         if getattr(self, 'model', None) is None:
             R = Utils.speye(self.mapping.shape[0])
         else:
-            r = self.R(self.f_m) #, self.eps_p, self.norm)
+            r = self.R(self.f_m)
             R = Utils.sdiag(r)
 
         if self.cell_weights is not None:
@@ -1801,7 +1801,7 @@ class Sparse(BaseComboRegularization):
     # Properties
     norms = properties.Array(
         "Norms used to create the sparse regularization",
-        default=np.c_[2., 2., 2., 2.], shape={('*','*')}
+        default=np.c_[2., 2., 2., 2.], shape={('*', '*')}
     )
 
     eps_p = properties.Float(
