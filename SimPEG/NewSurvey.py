@@ -32,9 +32,9 @@ class BaseRx(properties.HasProperties):
     )
 
     # TODO: get rid of this
-    knownRxTypes = properties.String(
-        "Set this to a list of strings to ensure that srcType is known",
-    )
+    # knownRxTypes = properties.String(
+    #     "Set this to a list of strings to ensure that srcType is known",
+    # )
 
     projGLoc = properties.StringChoice(
         "Projection grid location, default is CC",

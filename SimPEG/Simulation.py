@@ -3,6 +3,7 @@ from __future__ import print_function
 import numpy as np
 import discretize
 import properties
+import warnings
 
 from . import Utils
 from . import Models
@@ -73,6 +74,38 @@ class BaseSimulation(Props.HasModel):
     @properties.observer('mesh')
     def _update_registry(self, change):
         self._REGISTRY.update(change['value']._REGISTRY)
+
+    @property
+    def Solver(self):
+        warnings.warn(
+            "simulation.Solver will be deprecaited and replaced with "
+            "simulation.solver. Please update your code accordingly"
+        )
+        return self.solver
+
+    @Solver.setter
+    def Solver(self, value):
+        warnings.warn(
+            "simulation.Solver will be deprecaited and replaced with "
+            "simulation.solver. Please update your code accordingly"
+        )
+        self.solver = value
+
+    @property
+    def solverOpts(self):
+        warnings.warn(
+            "simulation.solverOpts will be deprecaited and replaced with "
+            "simulation.solver_opts. Please update your code accordingly"
+        )
+        return self.solver
+
+    @solverOpts.setter
+    def solverOpts(self, value):
+        warnings.warn(
+            "simulation.solverOpts will be deprecaited and replaced with "
+            "simulation.solver_opts. Please update your code accordingly"
+        )
+        self.solver_opts = value
 
     def fields(self, m):
         """

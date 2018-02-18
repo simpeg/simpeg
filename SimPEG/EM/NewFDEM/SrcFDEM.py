@@ -12,6 +12,11 @@ from .RxFDEM import BaseFDEMRx
 
 import warnings
 
+__all__ = [
+    'RawVec', 'RawVec_m', 'RawVec_e', 'MagDipole', 'MagDipole_Bfield',
+    'CircularLoop', 'PrimSecSigma', 'PrimSecMappedSigma'
+]
+
 
 ###############################################################################
 #                                                                             #
@@ -26,12 +31,14 @@ class BaseFDEMSrc(BaseEMSrc):
     """
 
     frequency = properties.Float(
-        "frequency of the source", min=0, required=True
+        "frequency of the source",
+        min=0, required=True
     )
 
     rxList = properties.List(
         "list of FDEM receivers",
-        properties.Instance(BaseFDEMRx)
+        properties.Instance(BaseFDEMRx),
+        default=[]
     )
 
     def __init__(self, **kwargs):
@@ -384,53 +391,53 @@ class MagDipole(BaseFDEMSrc):
 
         return C*a
 
-    def hPrimary(self, simulation ):
+    def hPrimary(self, simulation):
         """
         The primary magnetic field from a magnetic vector potential
 
-        :param BaseFDEMSimulation simulation : FDEM simulation
+        :param BaseFDEMSimulation simulation: FDEM simulation
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
-        b = self.bPrimary(simulation )
+        b = self.bPrimary(simulation)
         return 1./self.mu * b
 
-    def s_m(self, simulation ):
+    def s_m(self, simulation):
         """
         The magnetic source term
 
-        :param BaseFDEMSimulation simulation : FDEM simulation
+        :param BaseFDEMSimulation simulation: FDEM simulation
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
 
-        b_p = self.bPrimary(simulation )
-        if simulation ._formulation == 'HJ':
-            b_p = simulation .Me * b_p
+        b_p = self.bPrimary(simulation)
+        if simulation._formulation == 'HJ':
+            b_p = simulation.Me * b_p
         return -1j*emutils.omega(self.freq)*b_p
 
-    def s_e(self, simulation ):
+    def s_e(self, simulation):
         """
         The electric source term
 
-        :param BaseFDEMSimulation simulation : FDEM simulation
+        :param BaseFDEMSimulation simulation: FDEM simulation
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
 
-        if all(np.r_[self.mu] == np.r_[simulation .mu]):
+        if all(np.r_[self.mu] == np.r_[simulation.mu]):
             return Zero()
         else:
-            formulation = simulation ._formulation
+            formulation = simulation._formulation
 
             if formulation == 'EB':
-                mui_s = simulation .mui - 1./self.mu
-                MMui_s = simulation .mesh.getFaceInnerProduct(mui_s)
-                C = simulation .mesh.edgeCurl
+                mui_s = simulation.mui - 1./self.mu
+                MMui_s = simulation.mesh.getFaceInnerProduct(mui_s)
+                C = simulation.mesh.edgeCurl
             elif formulation == 'HJ':
-                mu_s = simulation .mu - self.mu
-                MMui_s = simulation .mesh.getEdgeInnerProduct(mu_s, invMat=True)
-                C = simulation .mesh.edgeCurl.T
+                mu_s = simulation.mu - self.mu
+                MMui_s = simulation.mesh.getEdgeInnerProduct(mu_s, invMat=True)
+                C = simulation.mesh.edgeCurl.T
 
             return -C.T * (MMui_s * self.bPrimary(simulation))
 
@@ -438,14 +445,14 @@ class MagDipole(BaseFDEMSrc):
         if not hasattr(simulation , 'muMap') or not hasattr(simulation , 'muiMap'):
             return Zero()
         else:
-            formulation = simulation ._formulation
+            formulation = simulation._formulation
 
             if formulation == 'EB':
-                mui_s = simulation .mui - 1./self.mu
-                MMui_sDeriv = simulation .mesh.getFaceInnerProductDeriv(mui_s)(
+                mui_s = simulation.mui - 1./self.mu
+                MMui_sDeriv = simulation.mesh.getFaceInnerProductDeriv(mui_s)(
                     self.bPrimary(simulation )
-                ) * simulation .muiDeriv
-                C = simulation .mesh.edgeCurl
+                ) * simulation.muiDeriv
+                C = simulation.mesh.edgeCurl
 
                 if adjoint:
                     return -MMui_sDeriv.T * (C * v)
@@ -455,9 +462,9 @@ class MagDipole(BaseFDEMSrc):
             elif formulation == 'HJ':
                 return Zero()
                 # raise NotImplementedError
-                mu_s = simulation .mu - self.mu
-                MMui_s = simulation .mesh.getEdgeInnerProduct(mu_s, invMat=True)
-                C = simulation .mesh.edgeCurl.T
+                mu_s = simulation.mu - self.mu
+                MMui_s = simulation.mesh.getEdgeInnerProduct(mu_s, invMat=True)
+                C = simulation.mesh.edgeCurl.T
 
                 return -C.T * (MMui_s * self.bPrimary(simulation ))
 
@@ -550,6 +557,15 @@ class CircularLoop(MagDipole):
 
 class PrimSecSigma(BaseFDEMSrc):
 
+    # todo this should also allow a vector
+    sigma_background = properties.Float(
+        "conductivity of the background",
+        min=0,
+        required=True
+    )
+
+
+
     def __init__(self, rxList, freq, sigBack, ePrimary, **kwargs):
         self.sigBack = sigBack
 
@@ -584,6 +600,10 @@ class PrimSecMappedSigma(BaseFDEMSrc):
     :param Mapping map2meshSecondary: mapping current model to act as primary
     model on the secondary mesh
     """
+
+    primary_simulation = properties.Instance(
+
+    )
 
     def __init__(self, rxList, freq, primaryProblem, primarySurvey,
                  map2meshSecondary=None, **kwargs):

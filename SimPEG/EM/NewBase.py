@@ -18,6 +18,26 @@ from .. import Utils
 ###############################################################################
 
 class BaseEMSrc(Survey.BaseSrc):
+    """
+    Base class for an electromagnetic source. All EM sources are defined by an
+    electric source term :code:`s_e` associated with `Ampere's Law <https://em.geosci.xyz/content/maxwell1_fundamentals/formative_laws/ampere_maxwell.html>`_
+    and a magnetic source term :code:`s_m` associated with `Faraday's Law <https://em.geosci.xyz/content/maxwell1_fundamentals/formative_laws/faraday.html>`_
+
+    In the time domain:
+
+    .. math::
+
+        \nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} = \vec{s}_m \\
+        \nabla \times \vec{h} - \vec{j} = \vec{s}_e
+
+    and in the frequency domain
+
+    .. math::
+
+        \nabla \times \vec{E} + i\omega\vec{B} = \vec{S}_m \\
+        \nabla \times \vec{H} - \vec{J} = \vec{S}_e
+
+    """
 
     integrate = properties.Bool("integrate the source term?", default=False)
 
@@ -105,25 +125,28 @@ class BaseEMSrc(Survey.BaseSrc):
         return Utils.Zero()
 
 
-###############################################################################
-#                                                                             #
-#                             Base EM Survey                                  #
-#                                                                             #
-###############################################################################
+# ###############################################################################
+# #                                                                             #
+# #                             Base EM Survey                                  #
+# #                                                                             #
+# ###############################################################################
 
-class BaseEMSurvey(Survey.BaseSurvey):
+# class BaseEMSurvey(Survey.BaseSurvey):
+#     """
+#     Base class for an electromagnetic survey.
+#     """
 
-    srcList = properties.List(
-        "A list of sources for the survey",
-        properties.Instance(
-            "A SimPEG source",
-            BaseEMSrc
-        ),
-        required=True
-    )
+#     srcList = properties.List(
+#         "A list of sources for the survey",
+#         properties.Instance(
+#             "A SimPEG source",
+#             BaseEMSrc
+#         ),
+#         required=True
+#     )
 
-    def __init__(self, **kwargs):
-        Survey.BaseSurvey.__init__(self, **kwargs)
+#     def __init__(self, **kwargs):
+#         Survey.BaseSurvey.__init__(self, **kwargs)
 
 
 ###############################################################################
@@ -133,6 +156,9 @@ class BaseEMSurvey(Survey.BaseSurvey):
 ###############################################################################
 
 class BaseEMSimulation(Simulation.BaseSimulation):
+    """
+    Base class for an electromagnetic simulation
+    """
 
     sigma, sigmaMap, sigmaDeriv = Props.Invertible(
         "Electrical conductivity (S/m)"
@@ -156,7 +182,7 @@ class BaseEMSimulation(Simulation.BaseSimulation):
 
     survey = properties.Instance(
         "a list of sources",
-        BaseSurvey,
+        BaseEMSurvey,
         required=True
     )
 
