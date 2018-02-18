@@ -4,7 +4,8 @@ import unittest
 import matplotlib
 matplotlib.use('Agg')
 
-from SimPEG.EM import FDEM, Analytics, mu_0
+from SimPEG.EM import Analytics, mu_0
+from SimPEG.EM import NewFDEM as FDEM
 import numpy as np
 from SimPEG import Mesh, Maps, Utils
 import warnings
@@ -29,10 +30,10 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
         self.freq = 1.
 
-        self.prob_e = FDEM.Problem3D_e(self.mesh, sigmaMap=mapping)
-        self.prob_b = FDEM.Problem3D_b(self.mesh, sigmaMap=mapping)
-        self.prob_h = FDEM.Problem3D_h(self.mesh, sigmaMap=mapping)
-        self.prob_j = FDEM.Problem3D_j(self.mesh, sigmaMap=mapping)
+        self.prob_e = FDEM.Simulation3D_e(mesh=self.mesh, sigmaMap=mapping)
+        self.prob_b = FDEM.Simulation3D_b(mesh=self.mesh, sigmaMap=mapping)
+        self.prob_h = FDEM.Simulation3D_h(mesh=self.mesh, sigmaMap=mapping)
+        self.prob_j = FDEM.Simulation3D_j(mesh=self.mesh, sigmaMap=mapping)
 
         loc = np.r_[0., 0., 0.]
         self.loc = Utils.mkvc(
@@ -45,7 +46,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
         for orient in ['x', 'y', 'z', 'X', 'Y', 'Z']:
             src = FDEM.Src.MagDipole(
-                [], freq=self.freq, loc=np.r_[0., 0., 0.], orientation=orient
+                freq=self.freq, loc=np.r_[0., 0., 0.], orientation=orient
             )
 
             # test assignments
@@ -70,10 +71,9 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
         print('\ntesting MagDipole error handling')
 
-
         with warnings.catch_warnings(record=True):
             FDEM.Src.MagDipole(
-                [], freq=self.freq, loc=np.r_[0., 0., 0.],
+                freq=self.freq, loc=np.r_[0., 0., 0.],
                 orientation=np.r_[1., 1., 0.]
             )
 
@@ -182,42 +182,42 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
     # ------------- TEST MAG DIPOLE ------------------ #
 
     def test_MagDipole_bPrimaryMu0_e(self):
-        src = FDEM.Src.MagDipole([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=mu_0)
         assert self.bPrimaryTest(src, 'e')
 
     def test_MagDipole_bPrimaryMu50_e(self):
-        src = FDEM.Src.MagDipole([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=50.*mu_0)
         assert self.bPrimaryTest(src, 'e')
 
     def test_MagDipole_bPrimaryMu0_b(self):
-        src = FDEM.Src.MagDipole([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=mu_0)
         assert self.bPrimaryTest(src, 'b')
 
     def test_MagDipole_bPrimaryMu50_b(self):
-        src = FDEM.Src.MagDipole([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=50.*mu_0)
         assert self.bPrimaryTest(src, 'b')
 
     def test_MagDipole_bPrimaryMu0_h(self):
-        src = FDEM.Src.MagDipole([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=mu_0)
         assert self.bPrimaryTest(src, 'h')
 
     def test_MagDipole_bPrimaryMu50_h(self):
-        src = FDEM.Src.MagDipole([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=50.*mu_0)
         assert self.bPrimaryTest(src, 'h')
 
     def test_MagDipole_bPrimaryMu0_h(self):
-        src = FDEM.Src.MagDipole([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=mu_0)
         assert self.bPrimaryTest(src, 'j')
 
     def test_MagDipole_bPrimaryMu50_h(self):
-        src = FDEM.Src.MagDipole([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=50.*mu_0)
         assert self.bPrimaryTest(src, 'j')
 
@@ -225,42 +225,42 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
     # ------------- TEST MAG DIPOLE B FIELD ------------------ #
 
     def test_MagDipole_Bfield_bPrimaryMu0_e(self):
-        src = FDEM.Src.MagDipole_Bfield([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole_Bfield(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=mu_0)
         assert self.bPrimaryTest(src, 'e')
 
     def test_MagDipole_Bfield_bPrimaryMu50_e(self):
-        src = FDEM.Src.MagDipole_Bfield([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole_Bfield(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=50.*mu_0)
         assert self.bPrimaryTest(src, 'e')
 
     def test_MagDipole_Bfield_bPrimaryMu0_b(self):
-        src = FDEM.Src.MagDipole_Bfield([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole_Bfield(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=mu_0)
         assert self.bPrimaryTest(src, 'b')
 
     def test_MagDipole_Bfield_bPrimaryMu50_b(self):
-        src = FDEM.Src.MagDipole_Bfield([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole_Bfield(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=50.*mu_0)
         assert self.bPrimaryTest(src, 'b')
 
     def test_MagDipole_Bfield_bPrimaryMu0_h(self):
-        src = FDEM.Src.MagDipole_Bfield([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole_Bfield(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=mu_0)
         assert self.bPrimaryTest(src, 'h')
 
     def test_MagDipole_Bfield_bPrimaryMu50_h(self):
-        src = FDEM.Src.MagDipole_Bfield([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole_Bfield(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=50.*mu_0)
         assert self.bPrimaryTest(src, 'h')
 
     def test_MagDipole_Bfield_bPrimaryMu0_h(self):
-        src = FDEM.Src.MagDipole_Bfield([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole_Bfield(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=mu_0)
         assert self.bPrimaryTest(src, 'j')
 
     def test_MagDipole_Bfield_bPrimaryMu50_h(self):
-        src = FDEM.Src.MagDipole_Bfield([], freq=self.freq, loc=self.loc,
+        src = FDEM.Src.MagDipole_Bfield(freq=self.freq, loc=self.loc,
                                  orientation='Z', mu=50.*mu_0)
         assert self.bPrimaryTest(src, 'j')
 
@@ -268,42 +268,42 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
     # ------------- TEST MAG DIPOLE CIRCULAR LOOP ------------------ #
 
     def test_CircularLoop_bPrimaryMu0_e(self):
-        src = FDEM.Src.CircularLoop([], freq=self.freq, radius=np.sqrt(1/np.pi),
+        src = FDEM.Src.CircularLoop(freq=self.freq, radius=np.sqrt(1/np.pi),
                                     loc=self.loc, orientation='Z', mu=mu_0)
         assert self.bPrimaryTest(src, 'e')
 
     def test_CircularLoop_bPrimaryMu50_e(self):
-        src = FDEM.Src.CircularLoop([], freq=self.freq, radius=np.sqrt(1/np.pi),
+        src = FDEM.Src.CircularLoop(freq=self.freq, radius=np.sqrt(1/np.pi),
                                     loc=self.loc, orientation='Z', mu=50.*mu_0)
         assert self.bPrimaryTest(src, 'e')
 
     def test_CircularLoop_bPrimaryMu0_b(self):
-        src = FDEM.Src.CircularLoop([], freq=self.freq, radius=np.sqrt(1/np.pi),
+        src = FDEM.Src.CircularLoop(freq=self.freq, radius=np.sqrt(1/np.pi),
                                     loc=self.loc, orientation='Z', mu=mu_0)
         assert self.bPrimaryTest(src, 'b')
 
     def test_CircularLoop_bPrimaryMu50_b(self):
-        src = FDEM.Src.CircularLoop([], freq=self.freq, radius=np.sqrt(1/np.pi),
+        src = FDEM.Src.CircularLoop(freq=self.freq, radius=np.sqrt(1/np.pi),
                                     loc=self.loc, orientation='Z', mu=50.*mu_0)
         assert self.bPrimaryTest(src, 'b')
 
     def test_CircularLoop_bPrimaryMu0_h(self):
-        src = FDEM.Src.CircularLoop([], freq=self.freq, radius=np.sqrt(1/np.pi),
+        src = FDEM.Src.CircularLoop(freq=self.freq, radius=np.sqrt(1/np.pi),
                                     loc=self.loc, orientation='Z', mu=mu_0)
         assert self.bPrimaryTest(src, 'h')
 
     def test_CircularLoop_bPrimaryMu50_h(self):
-        src = FDEM.Src.CircularLoop([], freq=self.freq, radius=np.sqrt(1/np.pi),
+        src = FDEM.Src.CircularLoop(freq=self.freq, radius=np.sqrt(1/np.pi),
                                     loc=self.loc, orientation='Z', mu=50.*mu_0)
         assert self.bPrimaryTest(src, 'h')
 
     def test_CircularLoop_bPrimaryMu0_h(self):
-        src = FDEM.Src.CircularLoop([], freq=self.freq, radius=np.sqrt(1/np.pi),
+        src = FDEM.Src.CircularLoop(freq=self.freq, radius=np.sqrt(1/np.pi),
                                     loc=self.loc, orientation='Z', mu=mu_0)
         assert self.bPrimaryTest(src, 'j')
 
     def test_CircularLoop_bPrimaryMu50_h(self):
-        src = FDEM.Src.CircularLoop([], freq=self.freq, radius=np.sqrt(1/np.pi),
+        src = FDEM.Src.CircularLoop(freq=self.freq, radius=np.sqrt(1/np.pi),
                                     loc=self.loc, orientation='Z', mu=50.*mu_0)
         assert self.bPrimaryTest(src, 'j')
 

@@ -126,33 +126,9 @@ class BaseEMSrc(Survey.BaseSrc):
         return Utils.Zero()
 
 
-# ###############################################################################
-# #                                                                             #
-# #                             Base EM Survey                                  #
-# #                                                                             #
-# ###############################################################################
-
-# class BaseEMSurvey(Survey.BaseSurvey):
-#     """
-#     Base class for an electromagnetic survey.
-#     """
-
-#     srcList = properties.List(
-#         "A list of sources for the survey",
-#         properties.Instance(
-#             "A SimPEG source",
-#             BaseEMSrc
-#         ),
-#         required=True
-#     )
-
-#     def __init__(self, **kwargs):
-#         Survey.BaseSurvey.__init__(self, **kwargs)
-
-
 ###############################################################################
 #                                                                             #
-#                             Base EM Simulation                                 #
+#                             Base EM Simulation                              #
 #                                                                             #
 ###############################################################################
 

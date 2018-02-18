@@ -4,9 +4,10 @@ from scipy.constants import mu_0
 import properties
 
 from ... import Props
+from ...Utils import mkvc
 from ..NewBase import BaseEMSimulation
 from .SurveyFDEM import Survey
-from .DataFDEM import Data
+from .DataFDEM import SyntheticData
 from .FieldsFDEM import (
     Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
 )
@@ -91,6 +92,28 @@ class BaseFDEMSimulation(BaseEMSimulation):
             Ainv.clean()
         return f
 
+    def dpred(self, m=None, f=None):
+        """dpred(m, f=None)
+
+            Create the projected data from a model.
+            The fields, f, (if provided) will be used for the predicted data
+            instead of recalculating the fields (which may be expensive!).
+
+            .. math::
+
+                d_\\text{pred} = P(f(m))
+
+            Where P is a projection of the fields onto the data space.
+        """
+        if f is None:
+            f = self.fields(m)
+
+        data = SyntheticData(survey=self.survey)
+        for src in self.survey.srcList:
+            for rx in src.rxList:
+                data[src, rx] = rx.eval(src, self.mesh, f)
+        return data.dobs
+
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector.
@@ -114,7 +137,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         for freq in self.survey.freqs:
             A = self.getA(freq)
             # create the concept of Ainv (actually a solve)
-            Ainv = self.Solver(A, **self.solverOpts)
+            Ainv = self.solver(A, **self.solver_opts)
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = f[src, self._solutionType]
@@ -147,14 +170,14 @@ class BaseFDEMSimulation(BaseEMSimulation):
         self.model = m
 
         # Ensure v is a data object.
-        if not isinstance(v, Data):
-            v = self.Data(survey=self.survey, dobs=v)
+        if not isinstance(v, SyntheticData):
+            v = SyntheticData(survey=self.survey, dobs=v)
 
         Jtv = np.zeros(m.size)
 
         for freq in self.survey.freqs:
             AT = self.getA(freq).T
-            ATinv = self.Solver(AT, **self.solver_opts)
+            ATinv = self.solver(AT, **self.solver_opts)
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = f[src, self._solutionType]
@@ -186,7 +209,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
             ATinv.clean()
 
-        return Utils.mkvc(Jtv)
+        return mkvc(Jtv)
 
     def getSourceTerm(self, freq):
         """

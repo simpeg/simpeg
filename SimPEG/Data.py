@@ -2,6 +2,7 @@ import properties
 import numpy as np
 
 from .NewSurvey import BaseSurvey
+from .Utils import mkvc
 
 
 class UncertaintyArray(properties.Array):
@@ -161,7 +162,7 @@ class Data(properties.HasProperties):
         for src in self.survey.srcList:
             for rx in src.rxList:
                 indTop += rx.nD
-                self[src, rx] = np.arange(indBot, indTop)
+                self._data_dict[src][rx] = np.arange(indBot, indTop)
                 indBot += rx.nD
 
     @property
@@ -169,7 +170,7 @@ class Data(properties.HasProperties):
         return len(self.dobs)
 
     def _ensureCorrectKey(self, key):
-        if type(key) is tuplsee:
+        if type(key) is tuple:
             if len(key) is not 2:
                 raise KeyError('Key must be [Src, Rx]')
             if key[0] not in self.survey.srcList:
@@ -187,15 +188,33 @@ class Data(properties.HasProperties):
         else:
             raise KeyError('Key must be [Src] or [Src,Rx]')
 
+    def __setitem__(self, key, value):
+        src, rx = self._ensureCorrectKey(key)
+        assert rx is not None, 'set data using [Src, Rx]'
+        assert isinstance(value, np.ndarray), 'value must by ndarray'
+        assert value.size == rx.nD, (
+            "value must have the same number of data as the source."
+        )
+        inds = self._data_dict[src][rx]
+        if getattr(self, 'dobs', None) is None:
+            self.dobs = np.nan * np.ones(self.survey.nD)
+        else:
+            if not np.all(np.isnan(self.dobs[inds])):
+                raise Exception(
+                    "Observed data cannot be overwritten. Create a new Data "
+                    "object or a SyntheticData object instead"
+                )
+        self.dobs[inds] = mkvc(value)
+
     def __getitem__(self, key):
         src, rx = self._ensureCorrectKey(key)
         if rx is not None:
-            if rx not in self._dataDict[src]:
+            if rx not in self._data_dict[src]:
                 raise Exception('Data for receiver has not yet been set.')
-            return self.dobs[self._dataDict[src][rx]]
+            return self.dobs[self._data_dict[src][rx]]
 
         return np.concatenate([
-            self.obs[self._dataDict[src, rx]] for rx in src.rxList
+            self.dobs[self._data_dict[src][rx]] for rx in src.rxList
         ])
 
 
@@ -208,3 +227,15 @@ class SyntheticData(Data):
 
     def __init__(self, **kwargs):
         super(SyntheticData, self).__init__(**kwargs)
+
+    def __setitem__(self, key, value):
+        src, rx = self._ensureCorrectKey(key)
+        assert rx is not None, 'set data using [Src, Rx]'
+        assert isinstance(value, np.ndarray), 'value must by ndarray'
+        assert value.size == rx.nD, (
+            "value must have the same number of data as the source."
+        )
+        inds = self._data_dict[src][rx]
+        if getattr(self, 'dobs', None) is None:
+            self.dobs = np.nan * np.ones(self.survey.nD)
+        self.dobs[inds] = mkvc(value)

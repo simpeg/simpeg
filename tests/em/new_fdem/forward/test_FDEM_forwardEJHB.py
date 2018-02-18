@@ -1,7 +1,7 @@
 import unittest
 from SimPEG import EM
 from scipy.constants import mu_0
-from SimPEG.EM.Utils.testingUtils import getFDEMProblem, crossCheckTest
+from SimPEG.EM.Utils.NewTestingUtils import getFDEMSimulation, crossCheckTest
 
 testEJ = True
 testBH = True

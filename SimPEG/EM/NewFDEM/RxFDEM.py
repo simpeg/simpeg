@@ -33,8 +33,26 @@ class BaseFDEMRx(BaseRx):
     def __init__(self, **kwargs):
         super(BaseFDEMRx, self).__init__(**kwargs)
 
+    @property
+    def projComp(self):
+        # TODO generalize for arbitrary orientations
+        if getattr(self, '_projComp', None) is None:
+            if self.orientation == "x":
+                projComp = "x"
+            elif self.orientation == "y":
+                projComp = "y"
+            elif self.orientation == "z":
+                projComp = "z"
+            else:
+                raise NotImplementedError(
+                    "Arbitrary receiver orientations have not yet been implemented"
+                )
+            self._projComp = projComp
+        return self._projComp
+
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
+
         return f._GLoc(self.projField) + self.projComp
 
     def eval(self, src, mesh, f):

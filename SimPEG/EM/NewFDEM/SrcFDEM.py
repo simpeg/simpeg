@@ -34,7 +34,7 @@ class RawVec_e(BaseFDEMSrc):
     # TODO: Think about this name - not a fan of this at the moment.
     vec_e = properties.Array(
         "vector source term",
-        dtype=complex
+        dtype=(complex, float)
     )
 
     def __init__(self, **kwargs):
@@ -45,6 +45,11 @@ class RawVec_e(BaseFDEMSrc):
             )
             self.vec_e = s_e
         super(BaseFDEMSrc, self).__init__(**kwargs)
+
+    @properties.validator('vec_e')
+    def _cast_to_complex(self, change):
+        if change['value'].dtype is not complex:
+            change['value'] = np.array(change['value'], complex)
 
     def s_e(self, simulation):
         """
@@ -69,7 +74,7 @@ class RawVec_m(BaseFDEMSrc):
     # TODO: Think about this name - not a fan of this at the moment.
     vec_m = properties.Array(
         "vector source term",
-        dtype=complex
+        dtype=(complex, float)
     )
 
     def __init__(self, **kwargs):
@@ -80,6 +85,11 @@ class RawVec_m(BaseFDEMSrc):
             )
             self.vec_m = s_m
         super(RawVec_m, self).__init__( **kwargs)
+
+    @properties.validator('vec_m')
+    def _cast_to_complex(self, change):
+        if change['value'].dtype is not complex:
+            change['value'] = np.array(change['value'], complex)
 
     def s_m(self, simulation):
         """
@@ -358,6 +368,21 @@ class MagDipole_Bfield(MagDipole):
             orientation=self.orientation
         )
 
+    def _get_grids(self, simulation):
+        formulation = simulation._formulation
+
+        if formulation == 'EB':
+            gridX = simulation.mesh.gridFx
+            gridY = simulation.mesh.gridFy
+            gridZ = simulation.mesh.gridFz
+
+        elif formulation == 'HJ':
+            gridX = simulation.mesh.gridEx
+            gridY = simulation.mesh.gridEy
+            gridZ = simulation.mesh.gridEz
+
+        return gridX, gridY, gridZ
+
     def bPrimary(self, simulation):
         """
         The primary magnetic flux density from the analytic solution for
@@ -376,13 +401,13 @@ class MagDipole_Bfield(MagDipole):
                 raise NotImplementedError(
                     'Non-symmetric cyl mesh not implemented yet!'
                 )
-            bx = self._srcfct(gridX, 'x')
-            bz = self._srcfct(gridZ, 'z')
+            bx = self._srcFct(gridX, 'x')
+            bz = self._srcFct(gridZ, 'z')
             b = np.concatenate((bx, bz))
         else:
-            bx = self._srcfct(gridX, 'x')
-            by = self._srcfct(gridY, 'y')
-            bz = self._srcfct(gridZ, 'z')
+            bx = self._srcFct(gridX, 'x')
+            by = self._srcFct(gridY, 'y')
+            bz = self._srcFct(gridZ, 'z')
             b = np.concatenate((bx, by, bz))
 
         return Utils.mkvc(b)
@@ -467,11 +492,10 @@ class PrimSecMappedSigma(BaseFDEMSrc):
     **Required**
     :param list rxList: Receiver List
     :param float freq: frequency
-    :param BaseFDEMProblem primary_simulation: FDEM primary problem
-    :param SurveyFDEM primarySurvey: FDEM primary survey
+    :param BaseFDEMSimulation primary_simulation: FDEM primary problem
 
     **Optional**
-    :param Mapping map2meshSecondary: mapping current model to act as primary
+    :param Mapping map2secondary_mesh: mapping current model to act as primary
     model on the secondary mesh
     """
 
@@ -481,7 +505,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         required=True
     )
 
-    map2meshSecondary = properties.Instance(
+    map2secondary_mesh = properties.Instance(
         "mapping of the primary model to the secondary mesh",
         Maps.IdentityMap
     )
@@ -550,13 +574,13 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         freq = self.freq
 
         A = self.primary_simulation.getA(freq)
-        src = self.primarySurvey.srcList[0]
+        src = self.primary_simulation.survey.srcList[0]
         u_src = Utils.mkvc(f[src, self.primary_simulation._solutionType])
 
         if adjoint is True:
             Jtv = np.zeros(simulation.sigmaMap.nP, dtype=complex)
-            ATinv = self.primary_simulation.Solver(
-                A.T, **self.primary_simulation.solverOpts
+            ATinv = self.primary_simulation.solver(
+                A.T, **self.primary_simulation.solver_opts
             )
             df_duTFun = getattr(
                 f, '_{0}Deriv'.format(
@@ -584,7 +608,9 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             return Utils.mkvc(Jtv)
 
         # create the concept of Ainv (actually a solve)
-        Ainv = self.primary_simulation.Solver(A, **self.primary_simulation.solverOpts)
+        Ainv = self.primary_simulation.solver(
+            A, **self.primary_simulation.solver_opts
+        )
 
         # for src in self.survey.getSrcByFreq(freq):
         dA_dm_v = self.primary_simulation.getADeriv(freq, u_src, v)
@@ -694,7 +720,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         return Utils.mkvc(bp)
 
     def s_e(self, simulation, f=None):
-        sigmaPrimary = self.map2meshSecondary * simulation.model
+        sigmaPrimary = self.map2secondary_mesh * simulation.model
 
         return Utils.mkvc(
             (simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(sigmaPrimary)) *
@@ -703,8 +729,8 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
     def s_eDeriv(self, simulation, v, adjoint=False):
 
-        sigmaPrimary = self.map2meshSecondary * simulation.model
-        sigmaPrimaryDeriv = self.map2meshSecondary.deriv(
+        sigmaPrimary = self.map2secondary_mesh * simulation.model
+        sigmaPrimaryDeriv = self.map2secondary_mesh.deriv(
                 simulation.model)
 
         f = self._primaryFields(simulation)

@@ -75,12 +75,30 @@ class BaseSimulation(Props.HasModel):
     def _update_registry(self, change):
         self._REGISTRY.update(change['value']._REGISTRY)
 
+    #: List of strings, e.g. ['_MeSigma', '_MeSigmaI']
+    deleteTheseOnModelUpdate = []
+
+    @properties.observer('model')
+    def _on_model_update(self, change):
+        if change['previous'] is change['value']:
+            return
+        if (
+            isinstance(change['previous'], np.ndarray) and
+            isinstance(change['value'], np.ndarray) and
+            np.allclose(change['previous'], change['value'])
+        ):
+            return
+        for prop in self.deleteTheseOnModelUpdate:
+            if hasattr(self, prop):
+                delattr(self, prop)
+
     @property
     def Solver(self):
         warnings.warn(
             "simulation.Solver will be deprecaited and replaced with "
             "simulation.solver. Please update your code accordingly"
         )
+        raise Exception
         return self.solver
 
     @Solver.setter

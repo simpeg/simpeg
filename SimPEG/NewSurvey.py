@@ -86,15 +86,15 @@ class BaseRx(properties.HasProperties):
 
                 Projection matrices are stored as a dictionary listed by meshes.
         """
-        if mesh in self._Ps:
-            return self._Ps[mesh]
-
         if projGLoc is None:
             projGLoc = self.projGLoc
 
+        if (mesh, projGLoc) in self._Ps:
+            return self._Ps[(mesh, projGLoc)]
+
         P = mesh.getInterpolationMat(self.locs, projGLoc)
         if self.storeProjections:
-            self._Ps[mesh] = P
+            self._Ps[(mesh, projGLoc)] = P
         return P
 
 
@@ -259,9 +259,11 @@ class BaseSurvey(properties.HasProperties):
             self._sourceOrder.setdefault(src.uid, ii) for ii, src in
             enumerate(value)
         ]
+
     def getSourceIndex(self, sources):
         if type(sources) is not list:
             sources = [sources]
+
         for src in sources:
             if getattr(src, 'uid', None) is None:
                 raise KeyError(
@@ -291,6 +293,12 @@ class BaseSurvey(properties.HasProperties):
     def nSrc(self):
         """Number of Sources"""
         return len(self.srcList)
+
+    def dpred(self, m, f=None):
+        raise Exception(
+            "Survey no longer has the dpred method. Please use "
+            "simulation.dpred instead"
+        )
 
 
 # class LinearSurvey(BaseSurvey):

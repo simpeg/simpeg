@@ -2,6 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 import properties
 
+from ...Utils import sdiag, Identity, Zero, mkvc
 from ...NewFields import Fields as BaseFields
 from ..Utils import omega
 
@@ -391,7 +392,7 @@ class Fields3D_e(BaseFDEMFields):
         :return: primary electric field as defined by the sources
         """
 
-        ePrimary = np.zeros([self.nE, len(srcList)], dtype=complex)
+        ePrimary = np.zeros([self.mesh.nE, len(srcList)], dtype=complex)
         for i, src in enumerate(srcList):
             ep = src.ePrimary(self.simulation)
             ePrimary[:, i] = ePrimary[:, i] + ep
@@ -866,7 +867,7 @@ class Fields3D_b(BaseFDEMFields):
             to the model with a vector
         """
 
-        bSolution = Utils.mkvc(self[src, 'bSolution'])
+        bSolution = mkvc(self[src, 'bSolution'])
         s_e = src.s_e(self.simulation)
 
         w = -s_e + self.mesh.edgeCurl.T * (self._MfMui * bSolution)
@@ -1245,7 +1246,7 @@ class Fields3D_j(BaseFDEMFields):
             to the model with a vector
         """
 
-        jSolution = Utils.mkvc(self[[src], 'jSolution'])
+        jSolution = mkvc(self[[src], 'jSolution'])
         MeMuI = self._MeMuI
         MeMuIDeriv = self._MeMuIDeriv
         C = self.mesh.edgeCurl
@@ -1322,7 +1323,7 @@ class Fields3D_j(BaseFDEMFields):
         :return: product of the derivative of the electric field with respect
             to the model with a vector
         """
-        jSolution = Utils.mkvc(self[src, 'jSolution'])
+        jSolution = mkvc(self[src, 'jSolution'])
         n = int(self.mesh.aveF2CCV.shape[0] / self.mesh.nC)  # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
         if adjoint:
@@ -1659,7 +1660,7 @@ class Fields3D_h(BaseFDEMFields):
         :return: product of the electric field derivative with respect to the
             inversion model with a vector
         """
-        hSolution = Utils.mkvc(self[src, 'hSolution'])
+        hSolution = mkvc(self[src, 'hSolution'])
         n = int(self.mesh.aveF2CCV.shape[0] / self.mesh.nC)  # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
         s_e = src.s_e(self.simulation)

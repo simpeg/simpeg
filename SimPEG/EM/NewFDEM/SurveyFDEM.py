@@ -1,5 +1,5 @@
 import properties
-from ... import Utils
+from ...Utils import Zero
 from ...NewSurvey import BaseSurvey
 from ..NewBase import BaseEMSrc
 from .RxFDEM import BaseFDEMRx
@@ -49,7 +49,7 @@ class BaseFDEMSrc(BaseEMSrc):
         :return: primary magnetic flux density
         """
         if getattr(self, '_bPrimary', None) is None:
-            self._bPrimary = Utils.Zero()
+            self._bPrimary = Zero()
         return self._bPrimary
 
     def bPrimaryDeriv(self, simulation, v, adjoint=False):
@@ -73,7 +73,7 @@ class BaseFDEMSrc(BaseEMSrc):
         :return: primary magnetic field
         """
         if getattr(self, '_hPrimary', None) is None:
-            self._hPrimary = Utils.Zero()
+            self._hPrimary = Zero()
         return self._hPrimary
 
     def hPrimaryDeriv(self, simulation, v, adjoint=False):
@@ -97,7 +97,7 @@ class BaseFDEMSrc(BaseEMSrc):
         :return: primary electric field
         """
         if getattr(self, '_ePrimary', None) is None:
-            self._ePrimary = Utils.Zero()
+            self._ePrimary = Zero()
         return self._ePrimary
 
     def ePrimaryDeriv(self, simulation, v, adjoint=False):
@@ -121,7 +121,7 @@ class BaseFDEMSrc(BaseEMSrc):
         :return: primary current density
         """
         if getattr(self, '_jPrimary', None) is None:
-            self._jPrimary = Utils.Zero()
+            self._jPrimary = Zero()
         return self._jPrimary
 
     def jPrimaryDeriv(self, simulation, v, adjoint=False):

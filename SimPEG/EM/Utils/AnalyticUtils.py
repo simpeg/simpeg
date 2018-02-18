@@ -3,6 +3,7 @@ from SimPEG import Mesh, Utils
 from scipy.special import ellipk, ellipe
 from scipy.constants import mu_0
 import properties
+import warnings
 
 orientationDict = {'X': np.r_[1., 0., 0.],
                    'Y': np.r_[0., 1., 0.],
@@ -30,7 +31,7 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1.,
     # TODO: break this out!
 
     if isinstance(orientation, str):
-        orientation = orientationDict[orientation]
+        orientation = orientationDict[orientation.upper()]
 
     assert np.linalg.norm(orientation, 2) == 1., ("orientation must "
                                                             "be a unit vector")
@@ -104,26 +105,34 @@ def MagneticDipoleFields(
     """
 
     if isinstance(orientation, str):
-        assert orientation.upper() in ['X', 'Y', 'Z'], ("orientation must be 'x', "
-                                                      "'y', or 'z' or a vector"
-                                                      "not {}".format(orientation)
-                                                      )
-    elif (not np.allclose(np.r_[1., 0., 0.], orientation) or
-          not np.allclose(np.r_[0., 1., 0.], orientation) or
-          not np.allclose(np.r_[0., 0., 1.], orientation)):
-        warnings.warn('Arbitrary trasnmitter orientations ({}) not thouroughly tested '
-                      'Pull request on a test anyone? bueller?').format(orientation)
+        assert orientation.upper() in ['X', 'Y', 'Z'], (
+            "orientation must be 'x', 'y', or 'z' or a vector not {}".format(
+                orientation
+            )
+        )
+    # elif (
+    #     not np.allclose(np.r_[1., 0., 0.], orientation) or
+    #     not np.allclose(np.r_[0., 1., 0.], orientation) or
+    #     not np.allclose(np.r_[0., 0., 1.], orientation)
+    # ):
+        # warnings.warn(
+        #     'Arbitrary trasnmitter orientations ({}) not thouroughly tested'
+        # ).format(orientation)
 
     if isinstance(component, str):
-        assert component.upper() in ['X', 'Y', 'Z'], ("component must be 'x', "
-                                                      "'y', or 'z' or a vector"
-                                                      "not {}".format(component)
-                                                      )
-    elif (not np.allclose(np.r_[1., 0., 0.], component) or
-          not np.allclose(np.r_[0., 1., 0.], component) or
-          not np.allclose(np.r_[0., 0., 1.], component)):
-        warnings.warn('Arbitrary receiver orientations ({}) not thouroughly tested '
-                      'Pull request on a test anyone? bueller?').format(component)
+        assert component.upper() in ['X', 'Y', 'Z'], (
+            "component must be 'x', 'y', or 'z' or a vector not {}".format(
+                component
+            )
+        )
+    elif (
+        not np.allclose(np.r_[1., 0., 0.], component) or
+        not np.allclose(np.r_[0., 1., 0.], component) or
+        not np.allclose(np.r_[0., 0., 1.], component)
+    ):
+        warnings.warn(
+            'Arbitrary receiver orientations ({}) not thouroughly tested'
+        ).format(component)
 
     if isinstance(orientation, str):
         orientation = orientationDict[orientation.upper()]
@@ -131,9 +140,10 @@ def MagneticDipoleFields(
     if isinstance(component, str):
         component = orientationDict[component.upper()]
 
-    assert np.linalg.norm(orientation, 2) == 1., ('orientation must be a unit '
-                                                  'vector. Use "moment=X to '
-                                                  'scale source fields')
+    assert np.linalg.norm(orientation, 2) == 1., (
+        'orientation must be a unit vector. Use moment=X to scale source '
+        'fields'
+    )
 
     if np.linalg.norm(component, 2) != 1.:
         warnings.warn('The magnitude of the receiver component vector is > 1, '
