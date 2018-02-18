@@ -25,9 +25,9 @@ def run(plotIt=True):
     ct = 10
     air = simpeg.Utils.meshTensor([(ct, 25, 1.4)])
     core = np.concatenate((
-        np.kron(simpeg.Utils.meshTensor([(ct, 10, -1.3)]), np.ones((5, ))),
+        np.kron(simpeg.Utils.meshTensor([(ct, 15, -1.2)]), np.ones((8, ))),
         simpeg.Utils.meshTensor([(ct, 5)])))
-    bot = simpeg.Utils.meshTensor([(core[0], 25, -1.4)])
+    bot = simpeg.Utils.meshTensor([(core[0], 20, -1.4)])
     x0 = -np.array([np.sum(np.concatenate((core, bot)))])
     # Make the model
     m1d = simpeg.Mesh.TensorMesh([np.concatenate((bot, core, air))], x0=x0)
@@ -91,7 +91,7 @@ def run(plotIt=True):
         fig.suptitle('Target - smooth true')
 
     # Assign uncertainties
-    std = 0.05  # 5% std
+    std = 0.025  # 5% std
     survey.std = np.abs(survey.dobs * std)
     # Assign the data weight
     Wd = 1. / survey.std
@@ -99,11 +99,9 @@ def run(plotIt=True):
     # Setup the inversion proceedure
     # Define a counter
     C = simpeg.Utils.Counter()
-    # Set the optimization
-    opt = simpeg.Optimization.ProjectedGNCG(maxIter=25)
+    # Optimization
+    opt = simpeg.Optimization.InexactGaussNewton(maxIter=25)
     opt.counter = C
-    opt.lower = np.log(1e-4)
-    opt.upper = np.log(5)
     opt.LSshorten = 0.1
     opt.remember('xc')
     # Data misfit
@@ -113,19 +111,19 @@ def run(plotIt=True):
     regMesh = simpeg.Mesh.TensorMesh([m1d.hx[active]], m1d.x0)
     reg = simpeg.Regularization.Tikhonov(regMesh)
     reg.mrefInSmooth = True
-    reg.alpha_s = 1e-1
+    reg.alpha_s = 1e-2
     reg.alpha_x = 1.
-    reg.alpha_xx = .1
     reg.mrefInSmooth = True
     # Inversion problem
     invProb = simpeg.InvProblem.BaseInvProblem(dmis, reg, opt)
     invProb.counter = C
-    # Beta cooling
+    # Beta schedule
     beta = simpeg.Directives.BetaSchedule()
     beta.coolingRate = 4.
     beta.coolingFactor = 4.
-    betaest = simpeg.Directives.BetaEstimate_ByEig(beta0_ratio=100.)
-    betaest.beta0 = 1.
+    # Initial estimate of beta
+    betaest = simpeg.Directives.BetaEstimate_ByEig(beta0_ratio=10.)
+    # Target misfit stop
     targmis = simpeg.Directives.TargetMisfit()
     targmis.target = survey.nD
     # Create an inversion object
