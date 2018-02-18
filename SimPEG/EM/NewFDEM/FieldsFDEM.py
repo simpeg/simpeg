@@ -349,8 +349,11 @@ class Fields3D_e(FieldsFDEM):
         assert aliasFields is None, (
             "aliasFields should not be changed from the default"
         )
-        kawrgs['knownFields'] = {'eSolution': 'E'}
-        kwargs['aliasFields'] = {
+
+        super(Fields3D_e, self).__init__(**kwargs)
+
+        self.knownFields = {'eSolution': 'E'}
+        self.aliasFields = {
             'e': ['eSolution', 'E', '_e'],
             'ePrimary': ['eSolution', 'E', '_ePrimary'],
             'eSecondary': ['eSolution', 'E', '_eSecondary'],
@@ -360,8 +363,6 @@ class Fields3D_e(FieldsFDEM):
             'j': ['eSolution', 'CCV', '_j'],  # TODO: move to F
             'h': ['eSolution', 'CCV', '_h'],  # TODO: move to E
         }
-
-        super(Fields3D_e, self).__init__(**kwargs)
 
     def startup(self):
         self._MeSigma = self.simulation.MeSigma
@@ -701,8 +702,11 @@ class Fields3D_b(FieldsFDEM):
         assert aliasFields is None, (
             "aliasFields should not be changed from the default"
         )
-        kawrgs['knownFields'] = {'bSolution': 'F'}
-        kwargs['aliasFields'] = {
+
+        super(Fields3D_b, self).__init__(**kwargs)
+
+        self.knownFields = {'bSolution': 'F'}
+        self.aliasFields = {
             'b': ['bSolution', 'F', '_b'],
             'bPrimary': ['bSolution', 'F', '_bPrimary'],
             'bSecondary': ['bSolution', 'F', '_bSecondary'],
@@ -712,8 +716,6 @@ class Fields3D_b(FieldsFDEM):
             'j': ['bSolution', 'CCV', '_j'],  # TODO: move to edges
             'h': ['bSolution', 'CCV', '_h'],  # TODO: move to faces
         }
-
-        super(Fields3D_b, self).__init__(**kwargs)
 
     def startup(self):
         self._MeSigma = self.simulation.MeSigma
@@ -1064,8 +1066,11 @@ class Fields3D_j(FieldsFDEM):
         assert aliasFields is None, (
             "aliasFields should not be changed from the default"
         )
-        kawrgs['knownFields'] = {'jSolution': 'F'}
-        kwargs['aliasFields'] = {
+
+        super(Fields3D_j, self).__init__(**kwargs)
+
+        self.knownFields = {'jSolution': 'F'}
+        self.aliasFields = {
             'j': ['jSolution', 'F', '_j'],
             'jPrimary': ['jSolution', 'F', '_jPrimary'],
             'jSecondary': ['jSolution', 'F', '_jSecondary'],
@@ -1075,8 +1080,6 @@ class Fields3D_j(FieldsFDEM):
             'e': ['jSolution', 'CCV', '_e'],  # TODO: move to faces
             'b': ['jSolution', 'CCV', '_b'],  # TODO: move to edges
           }
-
-        super(Fields3D_j, self).__init__(**kwargs)
 
     def startup(self):
         self._MeMu = self.simulation.MeMu
@@ -1441,8 +1444,11 @@ class Fields3D_h(FieldsFDEM):
         assert aliasFields is None, (
             "aliasFields should not be changed from the default"
         )
-        kawrgs['knownFields'] = {'hSolution': 'E'}
-        kwargs['aliasFields'] = {
+
+        super(Fields3D_h, self).__init__(**kwargs)
+
+        self.knownFields = {'hSolution': 'E'}
+        self.aliasFields = {
             'h': ['hSolution', 'E', '_h'],
             'hPrimary': ['hSolution', 'E', '_hPrimary'],
             'hSecondary': ['hSolution', 'E', '_hSecondary'],
@@ -1452,8 +1458,6 @@ class Fields3D_h(FieldsFDEM):
             'e': ['hSolution', 'CCV', '_e'],  # TODO: move to faces
             'b': ['hSolution', 'CCV', '_b'],  # TODO: move to edges
           }
-
-        super(Fields3D_h, self).__init__(**kwargs)
 
     def startup(self):
         self._MeMu = self.simulation.MeMu

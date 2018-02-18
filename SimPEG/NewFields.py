@@ -74,6 +74,10 @@ class Fields(properties.HasProperties):
     def mesh(self):
         return self.simulation.mesh
 
+    @property
+    def survey(self):
+        return self.simulation.survey
+
     def startup(self):
         pass
 
@@ -87,7 +91,7 @@ class Fields(properties.HasProperties):
         return "{0:e} MB".format(sz)
 
     def _storageShape(self, loc):
-        nSrc = self.simulation.survey.nSrc
+        nSrc = self.survey.nSrc
 
         nP = {'CC': self.mesh.nC,
               'N':  self.mesh.nN,
@@ -118,7 +122,7 @@ class Fields(properties.HasProperties):
         if type(srcTestList) is slice:
             ind = srcTestList
         else:
-            ind = self.simulation.survey.getSourceIndex(srcTestList)
+            ind = self.survey.getSourceIndex(srcTestList)
         return ind
 
     def _nameIndex(self, name, accessType):
@@ -193,7 +197,7 @@ class Fields(properties.HasProperties):
             # Aliased fields
             alias, loc, func = self.aliasFields[name]
 
-            srcII = np.array(self.simulation.survey.srcList)[ind]
+            srcII = np.array(self.survey.srcList)[ind]
             srcII = srcII.tolist()
 
             if isinstance(func, string_types):
