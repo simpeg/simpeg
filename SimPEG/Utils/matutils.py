@@ -88,9 +88,9 @@ def atp2xyz(m):
 
     nC = int(len(m)/3)
 
-    a = m[:nC] + 1e-8
-    t = m[nC:2*nC]
-    p = m[2*nC:]
+    a = m[:, 0] + 1e-8
+    t = m[:, 1]
+    p = m[:, 2]
 
     m_xyz = np.r_[a*np.cos(t)*np.cos(p),
                   a*np.cos(t)*np.sin(p),
@@ -182,18 +182,18 @@ def pst2xyz(m, param):
 def xyz2atp(m):
     """ Convert from cartesian to spherical """
 
-    nC = int(len(m)/3)
+    # nC = int(len(m)/3)
 
-    x = m[:nC]
-    y = m[nC:2*nC]
-    z = m[2*nC:]
+    x = m[:, 0]
+    y = m[:, 1]
+    z = m[:, 2]
 
     a = (x**2. + y**2. + z**2.)**0.5
 
-    t = np.zeros(nC)
+    t = np.zeros_like(x)
     t[a > 0] = np.arcsin(z[a > 0]/a[a > 0])
 
-    p = np.zeros(nC)
+    p = np.zeros_like(x)
     p[a > 0] = np.arctan2(y[a > 0], x[a > 0])
 
     m_atp = np.r_[a, t, p]
