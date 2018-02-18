@@ -107,6 +107,13 @@ class BaseSimulation(Props.HasModel):
         )
         self.solver_opts = value
 
+    def pair(self, survey):
+        warnings.warn(
+            "simulation.pair(survey) will be depreciated. Please use "
+            "simulation.survey = survey"
+        )
+        self.survey = survey
+
     def fields(self, m):
         """
         u = fields(m)

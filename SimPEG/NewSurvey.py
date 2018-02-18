@@ -247,6 +247,9 @@ class BaseSurvey(properties.HasProperties):
         required=True
     )
 
+    def __init__(self, **kwargs):
+        super(BaseSurvey, self).__init__(**kwargs)
+
     @properties.validator('srcList')
     def _srcList_validator(self, change):
         value = change['value']
@@ -256,7 +259,6 @@ class BaseSurvey(properties.HasProperties):
             self._sourceOrder.setdefault(src.uid, ii) for ii, src in
             enumerate(value)
         ]
-
     def getSourceIndex(self, sources):
         if type(sources) is not list:
             sources = [sources]

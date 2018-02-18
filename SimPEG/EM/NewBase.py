@@ -9,6 +9,7 @@ from scipy.constants import mu_0
 from .. import NewSurvey as Survey
 from .. import Simulation
 from .. import Utils
+from .. import Props
 
 
 ###############################################################################
@@ -182,7 +183,7 @@ class BaseEMSimulation(Simulation.BaseSimulation):
 
     survey = properties.Instance(
         "a list of sources",
-        BaseEMSurvey,
+        BaseEMSrc,
         required=True
     )
 

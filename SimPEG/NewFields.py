@@ -61,7 +61,7 @@ class Fields(properties.HasProperties):
             'Aliased fields and Known Fields have overlapping definitions.'
         )
 
-    @properties.validator('aliasedFields')
+    @properties.validator('aliasFields')
     def _check_overlap_with_known(self, change):
         allFields = (
             [k for k in self.knownFields] + [a for a in change['value']]

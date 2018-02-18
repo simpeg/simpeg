@@ -1,7 +1,147 @@
 import properties
-from ...Survey import BaseSurvey
-from .SrcFDEM import BaseFDEMSrc
+from ... import Utils
+from ...NewSurvey import BaseSurvey
+from ..NewBase import BaseEMSrc
+from .RxFDEM import BaseFDEMRx
 
+
+###############################################################################
+#                                                                             #
+#                            Base FDEM Source                                 #
+#                                                                             #
+###############################################################################
+
+class BaseFDEMSrc(BaseEMSrc):
+    """
+    Base source class for FDEM Survey. Inherit this to build your own FDEM
+    source.
+    """
+
+    freq = properties.Float(
+        "frequency of the source",
+        min=0, required=True
+    )
+
+    rxList = properties.List(
+        "list of FDEM receivers",
+        properties.Instance("FDEM receiver", BaseFDEMRx),
+        default=[]
+    )
+
+    def __init__(self, **kwargs):
+        # TODO: spell out frequency
+        # freq = kwargs.pop('freq', None)
+        # if freq is not None:
+        #     warnings.warn(
+        #         "the keyword argument 'freq' will be depreciated in favour of "
+        #         "'frequency' please use src(frequency={}) to create the "
+        #         "source".format(freq)
+        #     )
+        #     kwargs['frequency'] = freq
+        super(BaseFDEMSrc, self).__init__(**kwargs)
+
+    def bPrimary(self, simulation):
+        """
+        Primary magnetic flux density
+
+        :param BaseFDEMSimulation simulation: FDEM Simulation
+        :rtype: numpy.ndarray
+        :return: primary magnetic flux density
+        """
+        if getattr(self, '_bPrimary', None) is None:
+            self._bPrimary = Utils.Zero()
+        return self._bPrimary
+
+    def bPrimaryDeriv(self, simulation, v, adjoint=False):
+        """
+        Derivative of the primary magnetic flux density
+
+        :param BaseFDEMSimulation simulation: FDEM Simulation
+        :param numpy.ndarray v: vector
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: primary magnetic flux density
+        """
+        return Zero()
+
+    def hPrimary(self, simulation):
+        """
+        Primary magnetic field
+
+        :param BaseFDEMSimulation simulation: FDEM Simulation
+        :rtype: numpy.ndarray
+        :return: primary magnetic field
+        """
+        if getattr(self, '_hPrimary', None) is None:
+            self._hPrimary = Utils.Zero()
+        return self._hPrimary
+
+    def hPrimaryDeriv(self, simulation, v, adjoint=False):
+        """
+        Derivative of the primary magnetic field
+
+        :param BaseFDEMSimulation simulation: FDEM Simulation
+        :param numpy.ndarray v: vector
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: primary magnetic flux density
+        """
+        return Zero()
+
+    def ePrimary(self, simulation):
+        """
+        Primary electric field
+
+        :param BaseFDEMSimulation simulation: FDEM Simulation
+        :rtype: numpy.ndarray
+        :return: primary electric field
+        """
+        if getattr(self, '_ePrimary', None) is None:
+            self._ePrimary = Utils.Zero()
+        return self._ePrimary
+
+    def ePrimaryDeriv(self, simulation, v, adjoint=False):
+        """
+        Derivative of the primary electric field
+
+        :param BaseFDEMSimulation simulation: FDEM Simulation
+        :param numpy.ndarray v: vector
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: primary magnetic flux density
+        """
+        return Zero()
+
+    def jPrimary(self, simulation):
+        """
+        Primary current density
+
+        :param BaseFDEMSimulation simulation: FDEM Simulation
+        :rtype: numpy.ndarray
+        :return: primary current density
+        """
+        if getattr(self, '_jPrimary', None) is None:
+            self._jPrimary = Utils.Zero()
+        return self._jPrimary
+
+    def jPrimaryDeriv(self, simulation, v, adjoint=False):
+        """
+        Derivative of the primary current density
+
+        :param BaseFDEMSimulation simulation: FDEM Simulation
+        :param numpy.ndarray v: vector
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: primary magnetic flux density
+        """
+        return Zero()
+
+
+###############################################################################
+#                                                                             #
+#                                  Survey                                     #
+#                                                                             #
+###############################################################################
 
 class Survey(BaseSurvey):
     """
@@ -20,19 +160,6 @@ class Survey(BaseSurvey):
     def __init__(self, **kwargs):
         super(Survey, self).__init__(**kwargs)
 
-    @properties.observer('srcList')
-    def _set_freqs(self, change):
-        srcList = change['value']
-        _freqDict = {}
-
-        for src in srcList:
-            if src.freq not in _freqDict:
-                _freqDict[src.freq] = []
-            _freqDict[src.freq] += [src]
-
-        self._freqDict = _freqDict
-        self._freqs = sorted([f for f in self._freqDict])
-
     # @property
     # def frequencies(self):
     #     """
@@ -45,6 +172,16 @@ class Survey(BaseSurvey):
         """
         Frequencies in the FDEM survey
         """
+        if getattr(self, '_freqs', None) is None:
+            _freqDict = {}
+
+            for src in self.srcList:
+                if src.freq not in _freqDict:
+                    _freqDict[src.freq] = []
+                _freqDict[src.freq] += [src]
+
+            self._freqDict = _freqDict
+            self._freqs = sorted([f for f in self._freqDict])
         return self._freqs
 
     @property

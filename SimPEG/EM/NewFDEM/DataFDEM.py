@@ -1,6 +1,7 @@
 import properties
 
 from ...Data import Data as BaseData
+from .SurveyFDEM import Survey
 
 
 class Data(BaseData):
@@ -9,7 +10,8 @@ class Data(BaseData):
     """
 
     survey = properties.Instance(
-        "a frequency domain EM survey"
+        "a frequency domain EM survey",
+        Survey
     )
 
     def __init__(self, **kwargs):

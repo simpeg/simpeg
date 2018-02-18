@@ -1,14 +1,16 @@
 import numpy as np
 import scipy.sparse as sp
-# from scipy.constants import mu_0
+from scipy.constants import mu_0
 import properties
 
+from ... import Props
 from ..NewBase import BaseEMSimulation
 from .SurveyFDEM import Survey
 from .DataFDEM import Data
 from .FieldsFDEM import (
-    FieldsFDEM, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
+    Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
 )
+from ..Utils import omega
 
 
 class BaseFDEMSimulation(BaseEMSimulation):
@@ -47,7 +49,8 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     survey = properties.Instance(
         "Frequency domain EM survey instance",
-        Survey
+        Survey,
+        required=True
     )
 
     mu, muMap, muDeriv = Props.Invertible(
@@ -76,7 +79,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         if m is not None:
             self.model = m
 
-        f = self.fieldsPair(self.mesh, self.survey)
+        f = self.fieldsPair(simulation=self)
 
         for freq in self.survey.freqs:
             A = self.getA(freq)
@@ -401,7 +404,7 @@ class Simulation3D_b(BaseFDEMSimulation):
     fieldsPair = Fields3D_b
 
     def __init__(self, **kwargs):
-        super(Simulation3D_e, self).__init__(**kwargs)
+        super(Simulation3D_b, self).__init__(**kwargs)
 
     def getA(self, freq):
         """

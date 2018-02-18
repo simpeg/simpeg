@@ -24,8 +24,8 @@ class BaseFDEMRx(BaseRx):
     component = properties.StringChoice(
         "'real' or 'imag' component of the field to be measured",
         choices={
-            'real': ['real', 're', 'in-phase', 'inphase'],
-            'imag': ['imag', 'im', 'quadrature', 'quad', 'out-of-phase']
+            'real': ['re', 'in-phase', 'inphase'],
+            'imag': ['im', 'quadrature', 'quad', 'out-of-phase']
         },
         required=True
     )
@@ -107,9 +107,9 @@ class Point_e(BaseFDEMRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, **kwargs):
+        super(Point_e, self).__init__(**kwargs)
         self.projField = 'e'
-        super(Point_e, self).__init__(locs, orientation, component)
 
 
 class Point_b(BaseFDEMRx):
@@ -121,9 +121,9 @@ class Point_b(BaseFDEMRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, **kwargs):
+        super(Point_b, self).__init__(**kwargs)
         self.projField = 'b'
-        super(Point_b, self).__init__(locs, orientation, component)
 
 
 class Point_bSecondary(BaseFDEMRx):
@@ -135,9 +135,9 @@ class Point_bSecondary(BaseFDEMRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, **kwargs):
+        super(Point_bSecondary, self).__init__(**kwargs)
         self.projField = 'bSecondary'
-        super(Point_bSecondary, self).__init__(locs, orientation, component)
 
 
 class Point_h(BaseFDEMRx):
@@ -149,9 +149,9 @@ class Point_h(BaseFDEMRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, **kwargs):
+        super(Point_h, self).__init__(**kwargs)
         self.projField = 'h'
-        super(Point_h, self).__init__(locs, orientation, component)
 
 
 class Point_j(BaseFDEMRx):
@@ -163,7 +163,7 @@ class Point_j(BaseFDEMRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, **kwargs):
+        super(Point_j, self).__init__(**kwargs)
         self.projField = 'j'
-        super(Point_j, self).__init__(locs, orientation, component)
 

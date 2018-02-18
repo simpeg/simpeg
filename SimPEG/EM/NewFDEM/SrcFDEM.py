@@ -4,11 +4,11 @@ from scipy.constants import mu_0
 import warnings
 
 from SimPEG.Utils import Zero
-from SimPEG import Survey, Simulation, Utils
+from SimPEG import Simulation, Utils, Maps
 
 from .. import Utils as emutils
-from ..NewBase import BaseEMSrc
-from .RxFDEM import BaseFDEMRx
+from .SimulationFDEM import BaseFDEMSimulation
+from .SurveyFDEM import BaseFDEMSrc
 
 import warnings
 
@@ -16,137 +16,6 @@ __all__ = [
     'RawVec', 'RawVec_m', 'RawVec_e', 'MagDipole', 'MagDipole_Bfield',
     'CircularLoop', 'PrimSecSigma', 'PrimSecMappedSigma'
 ]
-
-
-###############################################################################
-#                                                                             #
-#                            Base FDEM Source                                 #
-#                                                                             #
-###############################################################################
-
-class BaseFDEMSrc(BaseEMSrc):
-    """
-    Base source class for FDEM Survey. Inherit this to build your own FDEM
-    source.
-    """
-
-    frequency = properties.Float(
-        "frequency of the source",
-        min=0, required=True
-    )
-
-    rxList = properties.List(
-        "list of FDEM receivers",
-        properties.Instance(BaseFDEMRx),
-        default=[]
-    )
-
-    def __init__(self, **kwargs):
-        freq = kwargs.pop('freq', None)
-        if freq is not None:
-            warnings.warn(
-                "the keyword argument 'freq' will be depreciated in favour of "
-                "'frequency' please use src(frequency={}) to create the "
-                "source".format(freq)
-            )
-            kwargs['frequency'] = freq
-        super(BaseFDEMSrc, self).__init__(**kwargs)
-
-    def bPrimary(self, simulation):
-        """
-        Primary magnetic flux density
-
-        :param BaseFDEMSimulation simulation: FDEM Simulation
-        :rtype: numpy.ndarray
-        :return: primary magnetic flux density
-        """
-        if getattr(self, '_bPrimary', None) is None:
-            self._bPrimary = Utils.Zero()
-        return self._bPrimary
-
-    def bPrimaryDeriv(self, simulation, v, adjoint=False):
-        """
-        Derivative of the primary magnetic flux density
-
-        :param BaseFDEMSimulation simulation: FDEM Simulation
-        :param numpy.ndarray v: vector
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: primary magnetic flux density
-        """
-        return Zero()
-
-    def hPrimary(self, simulation):
-        """
-        Primary magnetic field
-
-        :param BaseFDEMSimulation simulation: FDEM Simulation
-        :rtype: numpy.ndarray
-        :return: primary magnetic field
-        """
-        if getattr(self, '_hPrimary', None) is None:
-            self._hPrimary = Utils.Zero()
-        return self._hPrimary
-
-    def hPrimaryDeriv(self, simulation, v, adjoint=False):
-        """
-        Derivative of the primary magnetic field
-
-        :param BaseFDEMSimulation simulation: FDEM Simulation
-        :param numpy.ndarray v: vector
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: primary magnetic flux density
-        """
-        return Zero()
-
-    def ePrimary(self, simulation):
-        """
-        Primary electric field
-
-        :param BaseFDEMSimulation simulation: FDEM Simulation
-        :rtype: numpy.ndarray
-        :return: primary electric field
-        """
-        if getattr(self, '_ePrimary', None) is None:
-            self._ePrimary = Utils.Zero()
-        return self._ePrimary
-
-    def ePrimaryDeriv(self, simulation, v, adjoint=False):
-        """
-        Derivative of the primary electric field
-
-        :param BaseFDEMSimulation simulation: FDEM Simulation
-        :param numpy.ndarray v: vector
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: primary magnetic flux density
-        """
-        return Zero()
-
-    def jPrimary(self, simulation):
-        """
-        Primary current density
-
-        :param BaseFDEMSimulation simulation: FDEM Simulation
-        :rtype: numpy.ndarray
-        :return: primary current density
-        """
-        if getattr(self, '_jPrimary', None) is None:
-            self._jPrimary = Utils.Zero()
-        return self._jPrimary
-
-    def jPrimaryDeriv(self, simulation, v, adjoint=False):
-        """
-        Derivative of the primary current density
-
-        :param BaseFDEMSimulation simulation: FDEM Simulation
-        :param numpy.ndarray v: vector
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: primary magnetic flux density
-        """
-        return Zero()
 
 
 ###############################################################################
@@ -266,7 +135,7 @@ class MagDipole(BaseFDEMSrc):
       \\boldsymbol{\mu}^{\mathbf{-1}^\mathbf{P}} +
       \\boldsymbol{\mu}^{\mathbf{-1}^\mathbf{S}}`
 
-    and define a zero-frequency primary problem, noting that the source is
+    and define a zero-frequency primary simulation, noting that the source is
     generated by a divergence free electric current
 
     .. math::
@@ -557,31 +426,36 @@ class CircularLoop(MagDipole):
 
 class PrimSecSigma(BaseFDEMSrc):
 
-    # todo this should also allow a vector
-    sigma_background = properties.Float(
+    # todo this should also allow a scalar
+    sigma_background = properties.Array(
         "conductivity of the background",
-        min=0,
+        shape=('*',),
         required=True
     )
 
+    _ePrimary = properties.Array(
+        "primary electric field",
+        shape=('*',),
+        required=True,
+        dtype=complex
+    )
 
+    def __init__(self, **kwargs):
+        ePrimary = kwargs.pop("ePrimary", None)
+        if ePrimary is not None:
+            kwargs['_ePrimary'] = ePrimary
 
-    def __init__(self, rxList, freq, sigBack, ePrimary, **kwargs):
-        self.sigBack = sigBack
+        super(PrimSecSigma, self).__init__(**kwargs)
 
-        BaseFDEMSrc.__init__(
-            self, rxList, freq=freq, _ePrimary=ePrimary, **kwargs
-        )
-
-    def s_e(self, prob):
+    def s_e(self, simulation):
         return (
-            prob.MeSigma - prob.mesh.getEdgeInnerProduct(self.sigBack)
-        ) * self.ePrimary(prob)
+            simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(self.sigBack)
+        ) * self.ePrimary(simulation)
 
-    def s_eDeriv(self, prob, v, adjoint=False):
+    def s_eDeriv(self, simulation, v, adjoint=False):
         if adjoint:
-            return prob.MeSigmaDeriv(self.ePrimary(prob)).T * v
-        return prob.MeSigmaDeriv(self.ePrimary(prob)) * v
+            return simulation.MeSigmaDeriv(self.ePrimary(simulation)).T * v
+        return simulation.MeSigmaDeriv(self.ePrimary(simulation)) * v
 
 
 class PrimSecMappedSigma(BaseFDEMSrc):
@@ -593,7 +467,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
     **Required**
     :param list rxList: Receiver List
     :param float freq: frequency
-    :param BaseFDEMProblem primaryProblem: FDEM primary problem
+    :param BaseFDEMProblem primary_simulation: FDEM primary problem
     :param SurveyFDEM primarySurvey: FDEM primary survey
 
     **Optional**
@@ -602,94 +476,91 @@ class PrimSecMappedSigma(BaseFDEMSrc):
     """
 
     primary_simulation = properties.Instance(
-
+        "simulation for the primary problem",
+        BaseFDEMSimulation,
+        required=True
     )
 
-    def __init__(self, rxList, freq, primaryProblem, primarySurvey,
-                 map2meshSecondary=None, **kwargs):
+    map2meshSecondary = properties.Instance(
+        "mapping of the primary model to the secondary mesh",
+        Maps.IdentityMap
+    )
 
-        self.primaryProblem = primaryProblem
-        self.primarySurvey = primarySurvey
+    def __init__(self, **kwargs):
+        super(PrimSecMappedSigma, self).__init__(**kwargs)
 
-        if self.primaryProblem.ispaired is False:
-            self.primaryProblem.pair(self.primarySurvey)
-
-        self.map2meshSecondary = map2meshSecondary
-
-        BaseFDEMSrc.__init__(self, rxList, freq=freq, **kwargs)
-
-    def _ProjPrimary(self, prob, locType, locTypeTo):
+    def _ProjPrimary(self, simulation, locType, locTypeTo):
         # TODO: if meshes have not changed, store the projection
         # if getattr(self, '__ProjPrimary', None) is None:
 
         # TODO: implement for HJ formulation
-        if prob._formulation == 'EB':
+        if simulation._formulation == 'EB':
             pass
         else:
             raise NotImplementedError(
                 'PrimSecMappedSigma Source has not been implemented for {} '
-                'formulation'.format(prob._formulation)
+                'formulation'.format(simulation._formulation)
                 )
 
         # TODO: only set up for tensot meshes (Tree meshes should be easy/done)
         # but have not been tried or tested.
-        assert prob.mesh._meshType in ['TENSOR'], (
+        assert simulation.mesh._meshType in ['TENSOR'], (
             'PrimSecMappedSigma source has not been implemented for {}'.format(
-                prob.mesh._meshType)
+                simulation.mesh._meshType)
             )
 
         # if EB formulation, interpolate E, elif HJ interpolate J
-        # if self.primaryProblem._formulation == 'EB':
+        # if self.primary_simulation._formulation == 'EB':
         #     locType = 'E'
-        # elif self.primaryProblem._formulation == 'HJ':
+        # elif self.primary_simulation._formulation == 'HJ':
         #     locType = 'F'
 
         # get interpolation mat from primary mesh to secondary mesh
-        if self.primaryProblem.mesh._meshType == 'CYL':
-            return self.primaryProblem.mesh.getInterpolationMatCartMesh(
-                prob.mesh, locType=locType, locTypeTo=locTypeTo
+        if self.primary_simulation.mesh._meshType == 'CYL':
+            return self.primary_simulation.mesh.getInterpolationMatCartMesh(
+                simulation.mesh, locType=locType, locTypeTo=locTypeTo
             )
-        return self.primaryProblem.mesh.getInterploationMat(
-            prob.mesh, locType=locType, locTypeTo=locTypeTo
+        return self.primary_simulation.mesh.getInterploationMat(
+            simulation.mesh, locType=locType, locTypeTo=locTypeTo
         )
 
         # return self.__ProjPrimary
 
-    def _primaryFields(self, prob, fieldType=None, f=None):
-        # TODO: cache and check if prob.curModel has changed
+    def _primaryFields(self, simulation, fieldType=None, f=None):
+        # TODO: cache and check if simulation.curModel has changed
 
         if f is None:
-            f = self.primaryProblem.fields(prob.model)
+            f = self.primary_simulation.fields(simulation.model)
 
         if fieldType is not None:
             return f[:, fieldType]
         return f
 
-    def _primaryFieldsDeriv(self, prob, v, adjoint=False, f=None):
+    def _primaryFieldsDeriv(self, simulation, v, adjoint=False, f=None):
         # TODO: this should not be hard-coded for j
-        # jp = self._primaryFields(prob)[:,'j']
+        # jp = self._primaryFields(simulation)[:,'j']
 
         # TODO: pull apart Jvec so that don't have to copy paste this code in
-        # A = self.primaryProblem.getA(self.freq)
-        # Ainv = self.primaryProblem.Solver(A, **self.primaryProblem.solverOpts) # create the concept of Ainv (actually a solve)
+        # A = self.primary_simulation.getA(self.freq)
+        # Ainv = self.primary_simulation.Solver(A, **self.primary_simulation.solverOpts) # create the concept of Ainv (actually a solve)
 
         if f is None:
-            f = self._primaryFields(prob.sigma, f=f)
+            f = self._primaryFields(simulation.sigma, f=f)
 
         freq = self.freq
 
-        A = self.primaryProblem.getA(freq)
+        A = self.primary_simulation.getA(freq)
         src = self.primarySurvey.srcList[0]
-        u_src = Utils.mkvc(f[src, self.primaryProblem._solutionType])
+        u_src = Utils.mkvc(f[src, self.primary_simulation._solutionType])
 
         if adjoint is True:
-            Jtv = np.zeros(prob.sigmaMap.nP, dtype=complex)
-            ATinv = self.primaryProblem.Solver(
-                A.T, **self.primaryProblem.solverOpts
+            Jtv = np.zeros(simulation.sigmaMap.nP, dtype=complex)
+            ATinv = self.primary_simulation.Solver(
+                A.T, **self.primary_simulation.solverOpts
             )
             df_duTFun = getattr(
                 f, '_{0}Deriv'.format(
-                    'e' if self.primaryProblem._formulation == 'EB' else 'j'
+                    'e' if self.primary_simulation._formulation == 'EB' else 'j'
                 ),
                 None
             )
@@ -697,10 +568,10 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
             ATinvdf_duT = ATinv * df_duT
 
-            dA_dmT = self.primaryProblem.getADeriv(
+            dA_dmT = self.primary_simulation.getADeriv(
                 freq, u_src, ATinvdf_duT, adjoint=True
             )
-            dRHS_dmT = self.primaryProblem.getRHSDeriv(
+            dRHS_dmT = self.primary_simulation.getRHSDeriv(
                 freq, src, ATinvdf_duT, adjoint=True
             )
 
@@ -713,21 +584,21 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             return Utils.mkvc(Jtv)
 
         # create the concept of Ainv (actually a solve)
-        Ainv = self.primaryProblem.Solver(A, **self.primaryProblem.solverOpts)
+        Ainv = self.primary_simulation.Solver(A, **self.primary_simulation.solverOpts)
 
         # for src in self.survey.getSrcByFreq(freq):
-        dA_dm_v = self.primaryProblem.getADeriv(freq, u_src, v)
-        dRHS_dm_v = self.primaryProblem.getRHSDeriv(freq, src, v)
+        dA_dm_v = self.primary_simulation.getADeriv(freq, u_src, v)
+        dRHS_dm_v = self.primary_simulation.getRHSDeriv(freq, src, v)
         du_dm_v = Ainv * (-dA_dm_v + dRHS_dm_v)
 
-        # if self.primaryProblem._formulation == 'EB':
+        # if self.primary_simulation._formulation == 'EB':
         df_dmFun = getattr(
             f, '_{0}Deriv'.format(
-                'e' if self.primaryProblem._formulation == 'EB' else 'j'
+                'e' if self.primary_simulation._formulation == 'EB' else 'j'
             ),
             None
         )
-        # elif self.primaryProblem._formulation == 'HJ':
+        # elif self.primary_simulation._formulation == 'HJ':
         #     df_dmFun = getattr(f, '_{0}Deriv'.format('j'), None)
         df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
         # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
@@ -735,67 +606,67 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         return df_dm_v
 
-        # return self.primaryProblem.Jvec(prob.curModel, v, f=f)
+        # return self.primary_simulation.Jvec(simulation.curModel, v, f=f)
 
-    def ePrimary(self, prob, f=None):
+    def ePrimary(self, simulation, f=None):
         if f is None:
-            f = self._primaryFields(prob)
+            f = self._primaryFields(simulation)
 
-        if self.primaryProblem._formulation == 'EB':
-            ep = self._ProjPrimary(prob, 'E', 'E') * f[:, 'e']
-        elif self.primaryProblem._formulation == 'HJ':
-            ep = self._ProjPrimary(prob, 'F', 'E') * (
-                    self.primaryProblem.MfI * (
-                        self.primaryProblem.MfRho * f[:, 'j'])
+        if self.primary_simulation._formulation == 'EB':
+            ep = self._ProjPrimary(simulation, 'E', 'E') * f[:, 'e']
+        elif self.primary_simulation._formulation == 'HJ':
+            ep = self._ProjPrimary(simulation, 'F', 'E') * (
+                    self.primary_simulation.MfI * (
+                        self.primary_simulation.MfRho * f[:, 'j'])
                     )
 
         return Utils.mkvc(ep)
 
-    def ePrimaryDeriv(self, prob, v, adjoint=False, f=None):
+    def ePrimaryDeriv(self, simulation, v, adjoint=False, f=None):
 
         if f is None:
-            f = self._primaryFields(prob)
+            f = self._primaryFields(simulation)
 
         # if adjoint is True:
         #     raise NotImplementedError
-        if self.primaryProblem._formulation == 'EB':
+        if self.primary_simulation._formulation == 'EB':
             if adjoint is True:
                 epDeriv = self._primaryFieldsDeriv(
-                    prob, (self._ProjPrimary(prob, 'E', 'E').T * v), f=f,
+                    simulation, (self._ProjPrimary(simulation, 'E', 'E').T * v), f=f,
                     adjoint=adjoint
                 )
             else:
                 epDeriv = (
-                    self._ProjPrimary(prob, 'E', 'E') *
-                    self._primaryFieldsDeriv(prob, v, f=f)
+                    self._ProjPrimary(simulation, 'E', 'E') *
+                    self._primaryFieldsDeriv(simulation, v, f=f)
                 )
-        elif self.primaryProblem._formulation == 'HJ':
+        elif self.primary_simulation._formulation == 'HJ':
             if adjoint is True:
                 PTv = (
-                    self.primaryProblem.MfI.T *
-                    (self._ProjPrimary(prob, 'F', 'E').T * v)
+                    self.primary_simulation.MfI.T *
+                    (self._ProjPrimary(simulation, 'F', 'E').T * v)
                 )
                 epDeriv = (
-                    self.primaryProblem.MfRhoDeriv(f[:, 'j']).T * PTv +
+                    self.primary_simulation.MfRhoDeriv(f[:, 'j']).T * PTv +
                     self._primaryFieldsDeriv(
-                        prob, self.primaryProblem.MfRho.T * PTv,
+                        simulation, self.primary_simulation.MfRho.T * PTv,
                         adjoint=adjoint, f=f
                     )
                 )
                 # epDeriv =(
 
-                #     (self.primaryProblem.MfI.T * PTv)
+                #     (self.primary_simulation.MfI.T * PTv)
                 #     )
             else:
                 epDeriv = (
-                    self._ProjPrimary(prob, 'F', 'E') *
+                    self._ProjPrimary(simulation, 'F', 'E') *
                     (
-                        self.primaryProblem.MfI *
+                        self.primary_simulation.MfI *
                         (
-                            (self.primaryProblem.MfRhoDeriv(f[:, 'j']) * v) +
+                            (self.primary_simulation.MfRhoDeriv(f[:, 'j']) * v) +
                             (
-                                self.primaryProblem.MfRho *
-                                self._primaryFieldsDeriv(prob, v, f=f)
+                                self.primary_simulation.MfRho *
+                                self._primaryFieldsDeriv(simulation, v, f=f)
                             )
                         )
                     )
@@ -803,61 +674,61 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         return Utils.mkvc(epDeriv)
 
-    def bPrimary(self, prob, f=None):
+    def bPrimary(self, simulation, f=None):
         if f is None:
-            f = self._primaryFields(prob)
+            f = self._primaryFields(simulation)
 
-        if self.primaryProblem._formulation == 'EB':
-            bp = self._ProjPrimary(prob, 'F', 'F') * f[:, 'b']
-        elif self.primaryProblem._formulation == 'HJ':
+        if self.primary_simulation._formulation == 'EB':
+            bp = self._ProjPrimary(simulation, 'F', 'F') * f[:, 'b']
+        elif self.primary_simulation._formulation == 'HJ':
             bp = (
-                self._ProjPrimary(prob, 'E', 'F') *
+                self._ProjPrimary(simulation, 'E', 'F') *
                 (
-                    self.primaryProblem.MeI *
+                    self.primary_simulation.MeI *
                     (
-                        self.primaryProblem.MeMu * f[:, 'h']
+                        self.primary_simulation.MeMu * f[:, 'h']
                     )
                 )
             )
 
         return Utils.mkvc(bp)
 
-    def s_e(self, prob, f=None):
-        sigmaPrimary = self.map2meshSecondary * prob.model
+    def s_e(self, simulation, f=None):
+        sigmaPrimary = self.map2meshSecondary * simulation.model
 
         return Utils.mkvc(
-            (prob.MeSigma - prob.mesh.getEdgeInnerProduct(sigmaPrimary)) *
-            self.ePrimary(prob, f=f)
+            (simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(sigmaPrimary)) *
+            self.ePrimary(simulation, f=f)
         )
 
-    def s_eDeriv(self, prob, v, adjoint=False):
+    def s_eDeriv(self, simulation, v, adjoint=False):
 
-        sigmaPrimary = self.map2meshSecondary * prob.model
+        sigmaPrimary = self.map2meshSecondary * simulation.model
         sigmaPrimaryDeriv = self.map2meshSecondary.deriv(
-                prob.model)
+                simulation.model)
 
-        f = self._primaryFields(prob)
-        ePrimary = self.ePrimary(prob, f=f)
+        f = self._primaryFields(simulation)
+        ePrimary = self.ePrimary(simulation, f=f)
 
         if adjoint is True:
             return (
-                prob.MeSigmaDeriv(ePrimary).T * v -
+                simulation.MeSigmaDeriv(ePrimary).T * v -
                 (
-                    sigmaPrimaryDeriv.T * prob.mesh.getEdgeInnerProductDeriv(
+                    sigmaPrimaryDeriv.T * simulation.mesh.getEdgeInnerProductDeriv(
                         sigmaPrimary
                     )(ePrimary).T * v
                 ) +
-                self.ePrimaryDeriv(prob, (
-                    prob.MeSigma - prob.mesh.getEdgeInnerProduct(
+                self.ePrimaryDeriv(simulation, (
+                    simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(
                         sigmaPrimary)).T * v, adjoint=adjoint, f=f)
             )
 
         return(
-            prob.MeSigmaDeriv(ePrimary) * v -
-            prob.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary) *
+            simulation.MeSigmaDeriv(ePrimary) * v -
+            simulation.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary) *
             (sigmaPrimaryDeriv * v) +
-            (prob.MeSigma - prob.mesh.getEdgeInnerProduct(sigmaPrimary)) *
-            self.ePrimaryDeriv(prob, v, adjoint=adjoint, f=f)
+            (simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(sigmaPrimary)) *
+            self.ePrimaryDeriv(simulation, v, adjoint=adjoint, f=f)
         )
 
 

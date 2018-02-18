@@ -3,6 +3,7 @@ import scipy.sparse as sp
 import properties
 
 from ...NewFields import Fields as BaseFields
+from ..Utils import omega
 
 __all__ = ['Fields3D_e', 'Fields3D_b', 'Fields3D_h', 'Fields3D_j']
 
@@ -332,7 +333,7 @@ class BaseFDEMFields(BaseFields):
 # E forumlation #
 #################
 
-class Fields3D_e(FieldsFDEM):
+class Fields3D_e(BaseFDEMFields):
     """
     Fields object for Problem3D_e.
 
@@ -685,7 +686,7 @@ class Fields3D_e(FieldsFDEM):
 # B forumlation #
 #################
 
-class Fields3D_b(FieldsFDEM):
+class Fields3D_b(BaseFDEMFields):
     """
     Fields object for Problem3D_b.
 
@@ -727,7 +728,6 @@ class Fields3D_b(FieldsFDEM):
         self._Me = self.simulation.Me
         self._sigma = self.simulation.sigma
         self._mui = self.simulation.mui
-        self.mesh.nC = self.simulation.mesh.nC
 
     # def _GLoc(self, fieldType):
     #     if fieldType in ['e', 'eSecondary', 'ePrimary']:
@@ -1049,7 +1049,7 @@ class Fields3D_b(FieldsFDEM):
 # J forumlation #
 #################
 
-class Fields3D_j(FieldsFDEM):
+class Fields3D_j(BaseFDEMFields):
     """
     Fields object for Problem3D_j.
 
@@ -1427,7 +1427,7 @@ class Fields3D_j(FieldsFDEM):
 # H forumlation #
 #################
 
-class Fields3D_h(FieldsFDEM):
+class Fields3D_h(BaseFDEMFields):
     """
     Fields object for Problem3D_h.
 
