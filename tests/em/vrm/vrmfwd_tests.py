@@ -99,10 +99,10 @@ they produce the same fields"""
         Problem.pair(Survey)
         Fields = Problem.fields(mod)
 
-        err1 = np.all(np.abs((Fields[9:18]-Fields[0:9])/(Fields[0:9]+1e-14)) < 0.005)
-        err2 = np.all(np.abs((Fields[18:]-Fields[0:9])/(Fields[0:9]+1e-14)) < 0.005)
-        err3 = np.all(np.abs((Fields[9:18]-Fields[18:])/(Fields[18:]+1e-14)) < 0.005)
-        
+        err1 = np.all(np.abs(Fields[9:18]-Fields[0:9])/(np.abs(Fields[0:9])+1e-14) < 0.005)
+        err2 = np.all(np.abs(Fields[18:]-Fields[0:9])/(np.abs(Fields[0:9])+1e-14) < 0.005)
+        err3 = np.all(np.abs(Fields[9:18]-Fields[18:])/(np.abs(Fields[18:])+1e-14) < 0.005)
+
         self.assertTrue(err1 and err2 and err3)
 
     def test_convergence_vertical(self):
@@ -247,7 +247,7 @@ loguniform match"""
         times = np.array([1e-3])
         waveObj = VRM.WaveformVRM.SquarePulse(0.02)
 
-        loc_rx = np.c_[4., 4.,8.25]
+        loc_rx = np.c_[4., 4., 8.25]
         rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'z')]
         txList = [VRM.Src.MagDipole(rxList, np.r_[4., 4., 8.25], [0., 0., 1.], waveObj)]
 
@@ -255,8 +255,8 @@ loguniform match"""
         Survey2 = VRM.Survey(txList)
         Survey3 = VRM.Survey(txList)
         Survey4 = VRM.Survey(txList)
-        Problem1 = VRM.ProblemVRM.LinearVRM(meshObj_Tensor, refFact=2, refRadius = [1.9, 3.6])
-        Problem2 = VRM.ProblemVRM.LogUniformVRM(meshObj_Tensor, refFact=2, refRadius = [1.9, 3.6], chi0=mod_chi0_a, dchi=mod_dchi_a, tau1=mod_tau1_a, tau2=mod_tau2_a)
+        Problem1 = VRM.ProblemVRM.LinearVRM(meshObj_Tensor, refFact=2, refRadius=[1.9, 3.6])
+        Problem2 = VRM.ProblemVRM.LogUniformVRM(meshObj_Tensor, refFact=2, refRadius=[1.9, 3.6], chi0=mod_chi0_a, dchi=mod_dchi_a, tau1=mod_tau1_a, tau2=mod_tau2_a)
         Problem3 = VRM.ProblemVRM.LinearVRM(meshObj_OcTree, refFact=0)
         Problem4 = VRM.ProblemVRM.LogUniformVRM(meshObj_OcTree, refFact=0, chi0=mod_chi0_b, dchi=mod_dchi_b, tau1=mod_tau1_b, tau2=mod_tau2_b)
         Problem1.pair(Survey1)
