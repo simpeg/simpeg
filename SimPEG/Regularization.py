@@ -474,7 +474,9 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         super(BaseRegularization, self).__init__()
         self.regmesh = RegularizationMesh(mesh)
         Utils.setKwargs(self, **kwargs)
-
+    mrefInSmooth = properties.Bool(
+        "include mref in the smoothness calculation?", default=None
+    )
     counter = None
 
     # Properties
@@ -493,10 +495,6 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
     mapping = properties.Instance(
         "mapping which is applied to model in the regularization",
         Maps.IdentityMap, default=Maps.IdentityMap()
-    )
-
-    mrefInSmooth = properties.Bool(
-        "include mref in the smoothness calculation?", default=False
     )
 
     # Observers and Validators
