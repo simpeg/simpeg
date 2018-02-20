@@ -35,7 +35,7 @@ def run(plotIt=True):
     # Get index of the center
     midx = int(mesh.nCx/2)
     midy = int(mesh.nCy/2)
-
+    midz = int(-7)
     # Lets create a simple Gaussian topo and set the active cells
     [xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
     zz = -np.exp((xx**2 + yy**2) / 75**2) + mesh.vectorNz[-1]
@@ -69,8 +69,8 @@ def run(plotIt=True):
     # We can now create a susceptibility model and generate data
     # Here a simple block in half-space
     model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
-    model[(midx-5):(midx-1), (midy-2):(midy+2), -10:-6] = 0.5
-    model[(midx+1):(midx+5), (midy-2):(midy+2), -10:-6] = -0.5
+    model[(midx-5):(midx-1), (midy-2):(midy+2), (midz-2):(midz+2)] = 0.5
+    model[(midx+1):(midx+5), (midy-2):(midy+2), (midz-2):(midz+2)] = -0.5
     model = Utils.mkvc(model)
     model = model[actv]
 
@@ -104,7 +104,10 @@ def run(plotIt=True):
     wr = (wr/np.max(wr))
 
     # Create a regularization
-    reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+    reg = Regularization.Sparse(
+        mesh, indActive=actv, mapping=idenMap, mrefInSmooth=True
+    )
+
     reg.cell_weights = wr
     reg.norms = [0, 0, 0, 0]
 
