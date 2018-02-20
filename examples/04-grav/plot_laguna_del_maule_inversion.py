@@ -15,8 +15,8 @@ import os
 import shutil
 import tarfile
 import SimPEG.PF as PF
-from SimPEG import Maps, Regularization, Optimization, DataMisfit,\
-                   InvProblem, Directives, Inversion
+from SimPEG import Maps, Regularization, Optimization, DataMisfit
+from SimPEG import InvProblem, Directives, Inversion
 from SimPEG.Utils.io_utils import download
 import matplotlib.pyplot as plt
 import numpy as np
@@ -100,10 +100,10 @@ def run(plotIt=True, cleanAfterRun=True):
                                 mapping=staticCells)
     reg.mref = driver.mref[dynamic]
     # reg.gradientType = "components"
-    reg.cell_weights = wr * mesh.vol[active]
-    reg.norms = driver.lpnorms
-    reg.eps_p = 0.1
-    reg.eps_q = 0.01
+    reg.cell_weights = wr
+    reg.norms = np.c_[driver.lpnorms].T
+    # reg.eps_p = 0.1
+    # reg.eps_q = 0.01
 
     # Specify how the optimization will proceed
     opt = Optimization.ProjectedGNCG(maxIter=150, lower=driver.bounds[0],
@@ -124,7 +124,7 @@ def run(plotIt=True, cleanAfterRun=True):
     # Set the eps parameter parameter in Line 11 of the
     # input file based on the distribution of model (DEFAULT = 95th %ile)
     IRLS = Directives.Update_IRLS(f_min_change=1e-2, maxIRLSiter=20,
-                                  minGNiter=5)
+                                  minGNiter=1)
 
     # Preconditioning refreshing for each IRLS iteration
     update_Jacobi = Directives.UpdateJacobiPrecond()

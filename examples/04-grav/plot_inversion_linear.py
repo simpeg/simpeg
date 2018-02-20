@@ -108,7 +108,7 @@ def run(plotIt=True):
                                 mapping=idenMap, gradientType = 'component')
     reg.cell_weights = wr
     reg.mref = np.zeros(nC)
-    reg.norms = [0, 0, 0, 0]
+    reg.norms = np.c_[0, 0, 0, 0]
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
