@@ -816,8 +816,8 @@ class UpdatePreconditioner(InversionDirective):
             reg_diag = np.zeros_like(self.invProb.model)
             for reg in self.reg.objfcts:
                 W = reg.deriv2(m)
-                # reg_diag += self.invProb.beta * (reg.W.T * reg.W).diagonal()
-                reg_diag += self.invProb.beta * (W.T * W).diagonal()
+
+                reg_diag += self.invProb.beta * W.diagonal()
             Hdiag = self.opt.JtJdiag + reg_diag
 
             PC = Utils.sdiag(Hdiag**-1.)
@@ -835,7 +835,7 @@ class UpdatePreconditioner(InversionDirective):
             for reg in self.reg.objfcts:
                 W = reg.deriv2(m)
                 # reg_diag += self.invProb.beta * (reg.W.T * reg.W).diagonal()
-                reg_diag += self.invProb.beta * (W.T * W).diagonal()
+                reg_diag += self.invProb.beta * W.diagonal()
 
             Hdiag = self.opt.JtJdiag + reg_diag
 
