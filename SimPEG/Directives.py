@@ -975,3 +975,41 @@ class UpdateSensitivityWeights(InversionDirective):
             JtJdiag += JtJ
 
         self.opt.JtJdiag = JtJdiag
+
+
+class ProjSpherical(InversionDirective):
+    """
+       Trick for spherical coordinate system.
+       Project \theta and \phi angles back to [-\pi,\pi] using
+       back and forth conversion.
+       spherical->cartesian->spherical
+    """
+
+    def initialize(self):
+
+        x = self.invProb.model
+        # Convert to cartesian than back to avoid over rotation
+        xyz = Utils.matutils.atp2xyz(x)
+        m = Utils.matutils.xyz2atp(xyz)
+
+        self.invProb.model = m
+
+        for prob in self.prob:
+            prob.model = m
+
+        self.opt.xc = m
+
+    def endIter(self):
+
+        x = self.invProb.model
+        # Convert to cartesian than back to avoid over rotation
+        xyz = Utils.matutils.atp2xyz(x)
+        m = Utils.matutils.xyz2atp(xyz)
+
+        self.invProb.model = m
+        self.invProb.phi_m_last = self.reg(m)
+
+        for prob in self.prob:
+            prob.model = m
+
+        self.opt.xc = m
