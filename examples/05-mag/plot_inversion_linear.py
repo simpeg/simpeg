@@ -108,23 +108,25 @@ def run(plotIt=True):
     # Create a regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.cell_weights = wr
-    reg.norms = [0, 1, 1, 1]
-    reg.eps_p, reg.eps_q = 1e-3, 1e-3
+    reg.norms = [0, 0, 0, 0]
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
     dmis.W = 1/wd
 
     # Add directives to the inversion
-    opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
-                                     maxIterLS=20, maxIterCG=10, tolCG=1e-3)
+    opt = Optimization.ProjectedGNCG(maxIter=100, lower=-1., upper=1.,
+                                     maxIterLS=20, maxIterCG=20,
+                                     tolCG=1e-4)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     betaest = Directives.BetaEstimate_ByEig()
 
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
-    #  model parameters
-    IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=2)
+    # model parameters
+    IRLS = Directives.Update_IRLS(
+        f_min_change=1e-2, minGNiter=1, maxIRLSiter=20
+    )
     update_Jacobi = Directives.UpdatePreconditioner()
     inv = Inversion.BaseInversion(invProb,
                                   directiveList=[IRLS, betaest, update_Jacobi])
