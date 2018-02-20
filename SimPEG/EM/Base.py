@@ -67,17 +67,49 @@ class BaseEMProblem(Problem.BaseProblem):
     ####################################################
     # Mass Matrices
     ####################################################
+
+    @property
+    def _clear_on_mu_update(self):
+        return ['_MeMu', '_MeMuI', '_MfMui', '_MfMuiI']
+
+    @property
+    def _clear_on_sigma_update(self):
+        return ['_MeSigma', '_MeSigmaI', '_MfRho', '_MfRhoI']
+
     @property
     def deleteTheseOnModelUpdate(self):
         toDelete = []
         if self.sigmaMap is not None or self.rhoMap is not None:
-            toDelete += ['_MeSigma', '_MeSigmaI', '_MfRho', '_MfRhoI']
+            toDelete += self._clear_on_sigma_update
 
         if hasattr(self, 'muMap') or hasattr(self, 'muiMap'):
             if self.muMap is not None or self.muiMap is not None:
-                toDelete += ['_MeMu', '_MeMuI', '_MfMui', '_MfMuiI']
-
+                toDelete += self._clear_on_mu_update
         return toDelete
+
+    @properties.observer('mu')
+    def _clear_mu_mats_on_mu_update(self, change):
+        for mat in self._clear_on_mu_update:
+            if hasattr(self, mat):
+                delattr(self, mat)
+
+    @properties.observer('mui')
+    def _clear_mu_mats_on_mui_update(self, change):
+        for mat in self._clear_on_mu_update:
+            if hasattr(self, mat):
+                delattr(self, mat)
+
+    @properties.observer('sigma')
+    def _clear_sigma_mats_on_sigma_update(self, change):
+        for mat in self._clear_on_sigma_update:
+            if hasattr(self, mat):
+                delattr(self, mat)
+
+    @properties.observer('rho')
+    def _clear_sigma_mats_on_rho_update(self, change):
+        for mat in self._clear_on_sigma_update:
+            if hasattr(self, mat):
+                delattr(self, mat)
 
     @property
     def Me(self):
@@ -172,7 +204,6 @@ class BaseEMProblem(Problem.BaseProblem):
         dMfMuiI_dI = -self.MfMuiI**2
         dMf_dmui = self.mesh.getEdgeInnerProductDeriv(self.mui)(u)
         return dMfMuiI_dI * (dMf_dmui * self.muiDeriv)
-
 
     @property
     def MeMu(self):
