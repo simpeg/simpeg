@@ -495,6 +495,10 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         Maps.IdentityMap, default=Maps.IdentityMap()
     )
 
+    mrefInSmooth = properties.Bool(
+        "include mref in the smoothness calculation?", default=False
+    )
+
     # Observers and Validators
     @properties.validator('indActive')
     def _cast_to_bool(self, change):
@@ -1371,7 +1375,15 @@ class SparseDeriv(BaseSparse):
 
     @property
     def f_m(self):
-        return self.cellDiffStencil * (self.mapping * self.model)
+        if self.mrefInSmooth:
+            f_m = self.cellDiffStencil * (
+                self.mapping * self._delta_m(self.model)
+            )
+
+        else:
+            f_m = self.cellDiffStencil * (self.mapping * self.model)
+
+        return f_m
 
     @property
     def cellDiffStencil(self):
@@ -1468,6 +1480,9 @@ class Sparse(BaseComboRegularization):
     gamma = properties.Float(
         "Model norm scaling to smooth out convergence", default=1.
     )
+    mrefInSmooth = properties.Bool(
+        "include mref in the smoothness calculation?", default=False
+    )
 
     # Observers
     @properties.observer('norms')
@@ -1496,3 +1511,9 @@ class Sparse(BaseComboRegularization):
         for objfct in self.objfcts:
             if isinstance(objfct, SparseDeriv):
                 objfct.epsilon = change['value']
+
+    @properties.observer('mrefInSmooth')
+    def _mirror_mrefInSmooth_to_objfcts(self, change):
+        for i, objfct in enumerate(self.objfcts):
+            if isinstance(objfct, SparseDeriv):
+                objfct.mrefInSmooth = change['value']
