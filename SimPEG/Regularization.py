@@ -518,7 +518,9 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         Utils.setKwargs(self, **kwargs)
 
     counter = None
-
+    mrefInSmooth = properties.Bool(
+        "include mref in the smoothness calculation?", default=None
+    )
     # Properties
     mref = Props.Array(
         "reference model"

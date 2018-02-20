@@ -10,7 +10,7 @@ from SimPEG import Optimization
 from SimPEG import InvProblem
 from SimPEG import Directives
 from SimPEG import Inversion
-
+import matplotlib.pyplot as plt
 import SimPEG.PF as PF
 
 np.random.seed(43)
@@ -70,7 +70,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         self.model = model[actv]
 
         # Create active map to go from reduce set to full
-        actvMap = Maps.InjectActiveCells(mesh, actv, ndv)
+        self.actvMap = Maps.InjectActiveCells(mesh, actv, ndv)
 
         # Create reduced identity map
         idenMap = Maps.IdentityMap(nP=nC)
@@ -99,13 +99,15 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Create sensitivity weights from our linear forward operator
         wr = PF.Magnetics.get_dist_wgt(mesh, locXYZ, actv, 2., 2.)
-        wr = wr**2.
+        wr = np.sum(prob.F**2., axis=0)**0.5
+        wr = (wr/np.max(wr))
 
         # Create a regularization
-        reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-        reg.cell_weights = wr
-        reg.norms = [0, 1, 1, 1]
-        reg.eps_p, reg.eps_q = 5e-2, 1e-2
+        self.reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+        self.reg.cell_weights = wr
+        self.reg.norms = np.c_[0, 0, 0, 0]
+
+        # self.reg.eps_p, self.reg.eps_q = 5e-2, 1e-2
 
         # Data misfit function
         dmis = DataMisfit.l2_DataMisfit(survey)
@@ -115,24 +117,27 @@ class GravInvLinProblemTest(unittest.TestCase):
         opt = Optimization.ProjectedGNCG(maxIter=100, lower=-1., upper=1.,
                                          maxIterLS=20, maxIterCG=10,
                                          tolCG=1e-3)
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e+8)
+        invProb = InvProblem.BaseInvProblem(dmis, self.reg, opt, beta=1e+8)
 
         # Here is where the norms are applied
         IRLS = Directives.Update_IRLS(f_min_change=1e-3,
-                                      minGNiter=3)
-        update_Jacobi = Directives.UpdateJacobiPrecond()
+                                      minGNiter=1)
+        update_Jacobi = Directives.UpdateJacobiPrecond(mapping=idenMap)
 
         self.inv = Inversion.BaseInversion(invProb,
                                            directiveList=[IRLS,
                                                           update_Jacobi])
+        self.mesh = mesh
 
     def test_mag_inverse(self):
 
         # Run the inversion
         mrec = self.inv.run(self.model)
+
         residual = np.linalg.norm(mrec-self.model) / np.linalg.norm(self.model)
         print(residual)
-        self.assertTrue(residual < 0.05)
+        self.assertTrue(residual < 0.1)
+
 
 if __name__ == '__main__':
     unittest.main()
