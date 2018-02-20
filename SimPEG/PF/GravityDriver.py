@@ -220,8 +220,11 @@ class GravityDriver_Inv(object):
             # Cells with value 1 in active model are dynamic
             dynamicCells = self.activeModel[self._activeCells] == 1
 
-            inds = np.asarray([inds for inds, elem in enumerate(
-                dynamicCells, 1) if elem], dtype=int) - 1
+            inds = np.asarray(
+                [inds for inds, elem in enumerate(
+                 dynamicCells, 1) if elem], dtype=int
+            ) - 1
+
             self._dynamicCells = inds
 
         return self._dynamicCells
@@ -240,7 +243,8 @@ class GravityDriver_Inv(object):
             else:
 
                 self._m0 = Mesh.TensorMesh.readModelUBC(
-                    self.mesh, self.basePath + self.mstart)
+                    self.mesh, self.basePath + self.mstart
+                )
 
         return self._m0
 

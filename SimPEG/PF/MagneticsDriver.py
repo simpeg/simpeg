@@ -189,8 +189,10 @@ class MagneticsDriver_Inv(object):
     def activeCells(self):
         if getattr(self, '_activeCells', None) is None:
             if getattr(self, 'topofile', None) is not None:
-                topo = np.genfromtxt(self.basePath + self.topofile,
-                                     skip_header=1)
+                topo = np.genfromtxt(
+                    self.basePath + self.topofile, skip_header=1
+                )
+
                 # Find the active cells
                 active = Utils.surface2ind_topo(self.mesh, topo, 'N')
 
@@ -220,9 +222,10 @@ class MagneticsDriver_Inv(object):
             # Cells with value 1 in active model are dynamic
             staticCells = self.activeModel[self.activeCells] == -1
 
-            inds = np.asarray([inds for inds,
-                               elem in enumerate(staticCells, 1)
-                               if elem], dtype=int) - 1
+            inds = np.asarray(
+                [inds for inds,
+                 elem in enumerate(staticCells, 1) if elem], dtype=int
+            ) - 1
 
             self._staticCells = inds
 
@@ -235,9 +238,10 @@ class MagneticsDriver_Inv(object):
             # Cells with value 1 in active model are dynamic
             dynamicCells = self.activeModel[self.activeCells] == 1
 
-            inds = np.asarray([inds for inds,
-                               elem in enumerate(dynamicCells, 1)
-                               if elem], dtype=int) - 1
+            inds = np.asarray([
+                inds for inds,
+                elem in enumerate(dynamicCells, 1) if elem], dtype=int
+            ) - 1
 
             self._dynamicCells = inds
 
@@ -255,9 +259,9 @@ class MagneticsDriver_Inv(object):
             if isinstance(self.mstart, float):
                 self._m0 = np.ones(self.nC) * self.mstart
             else:
-                self._m0 = Mesh.TensorMesh.readModelUBC(self.mesh,
-                                                        self.basePath +
-                                                        self.mstart)
+                self._m0 = Mesh.TensorMesh.readModelUBC(
+                    self.mesh, self.basePath + self.mstart
+                )
 
         return self._m0
 
@@ -267,9 +271,9 @@ class MagneticsDriver_Inv(object):
             if isinstance(self._mrefInput, float):
                 self._mref = np.ones(self.nC) * self._mrefInput
             else:
-                self._mref = Mesh.TensorMesh.readModelUBC(self.mesh,
-                                                          self.basePath +
-                                                          self._mrefInput)
+                self._mref = Mesh.TensorMesh.readModelUBC(
+                    self.mesh, self.basePath + self._mrefInput
+                )
 
                 # Reduce to active space
                 self._mref = self._mref[self.activeCells]
@@ -282,7 +286,8 @@ class MagneticsDriver_Inv(object):
             if self._staticInput == 'FILE':
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
                 self._activeModel = Mesh.TensorMesh.readModelUBC(
-                    self.mesh, self.basePath + self._staticInput)
+                    self.mesh, self.basePath + self._staticInput
+                )
 
             else:
                 self._activeModel = np.ones(self._mesh.nC)
@@ -297,10 +302,10 @@ class MagneticsDriver_Inv(object):
 
         if getattr(self, 'magfile', None) is None:
 
-            M = Magnetics.dipazm_2_xyz(np.ones(self.nC) *
-                                       self.survey.srcField.param[1],
-                                       np.ones(self.nC) *
-                                       self.survey.srcField.param[2])
+            M = Magnetics.dipazm_2_xyz(
+                np.ones(self.nC) * self.survey.srcField.param[1],
+                np.ones(self.nC) * self.survey.srcField.param[2]
+            )
 
         else:
 
