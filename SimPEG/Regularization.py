@@ -1506,7 +1506,7 @@ class SparseSmall(BaseSparse):
             return self.stashedR
 
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = (np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
+        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
         # eta = np.abs(f_m + self.epsilon**2.).max() / (np.abs(f_m + self.epsilon**2.) / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.)).max()
         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
         # print(eta)
@@ -1898,3 +1898,136 @@ def coterminal(theta):
     theta[np.abs(theta) >= np.pi] = sub
 
     return theta
+
+
+def ddx(n, vals):
+    """Define 1D averaging operator from cell-centers to nodes."""
+    ddx = (
+        sp.sparse.spdiags(
+            (np.ones((n, 1)) * vals).T,
+            [-1, 0, 1],
+            n, n,
+            format="csr"
+        )
+    )
+    return ddx
+
+
+def getDiffOpRot(mesh, psi, theta, phi, vec, forward=True):
+
+    hz = np.kron(mesh.hz, np.kron(np.ones(mesh.vnC[1]), np.ones(mesh.vnC[0])))
+    hy = np.kron(np.ones(mesh.vnC[2]), np.kron(mesh.hy, np.ones(mesh.vnC[0])))
+    hx = np.kron(np.ones(mesh.vnC[2]), np.kron(np.ones(mesh.vnC[1]), mesh.hx))
+
+    unitMesh = Mesh.TensorMesh([np.ones(3), np.ones(3), np.ones(3)], x0='CCC')
+
+    stencil = []
+    for ii in range(unitMesh.nC):
+        stencil += [np.kron(np.r_[-1, 1], [0.5, 0.5, 0.5]).reshape((2, 3)) +
+                    np.kron(
+                        np.ones(2),
+                        unitMesh.gridCC[ii, :]).reshape((2, 3))
+                    ]
+
+    if isinstance(theta, float):
+        theta = np.ones(mesh.nC) * theta
+
+    if isinstance(phi, float):
+        phi = np.ones(mesh.nC) * phi
+
+    if isinstance(psi, float):
+        psi = np.ones(mesh.nC) * psi
+
+    if forward:
+        ind = 1
+    else:
+        ind = -1
+
+    if vec == 'X':
+        px = np.kron(np.ones(mesh.nC), np.c_[ind, 0, 0])
+        theta = np.arctan2((np.sin(theta)/hz), (np.cos(theta)/hx))
+        phi = np.arctan2((np.sin(phi)/hy), (np.cos(phi)/hx))
+        psi = np.arctan2((np.sin(psi)/hz), (np.cos(psi)/hy))
+
+    elif vec == 'Y':
+        px = np.kron(np.ones(mesh.nC), np.c_[0, ind, 0])
+        theta = np.arctan2((np.sin(theta)/hz), (np.cos(theta)/hx))
+        phi = np.arctan2((np.sin(phi)/hx), (np.cos(phi)/hy))
+        psi = np.arctan2((np.sin(psi)/hz), (np.cos(psi)/hy))
+
+    else:
+        px = np.kron(np.ones(mesh.nC), np.c_[0, 0, ind])
+        theta = np.arctan2((np.sin(theta)/hx), (np.cos(theta)/hz))
+        phi = np.arctan2((np.sin(phi)/hy), (np.cos(phi)/hx))
+        psi = np.arctan2((np.sin(psi)/hy), (np.cos(psi)/hz))
+
+    # Create sparse rotation operators
+    rxa = mkvc(np.c_[np.ones(mesh.nC), np.cos(psi), np.cos(psi)].T)
+    rxb = mkvc(np.c_[np.zeros(mesh.nC), np.sin(psi), np.zeros(mesh.nC)].T)
+    rxc = mkvc(np.c_[np.zeros(mesh.nC), -np.sin(psi), np.zeros(mesh.nC)].T)
+    Rx = sp.sparse.diags([rxb[:-1], rxa, rxc[:-1]], [-1, 0, 1])
+
+    rya = mkvc(np.c_[np.cos(theta), np.ones(mesh.nC), np.cos(theta)].T)
+    ryb = mkvc(np.c_[-np.sin(theta), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
+    ryc = mkvc(np.c_[np.sin(theta), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
+    Ry = sp.sparse.diags([ryb[:-2], rya, ryc[:-2]], [-2, 0, 2])
+
+    rza = mkvc(np.c_[np.cos(phi), np.cos(phi), np.ones(mesh.nC)].T)
+    rzb = mkvc(np.c_[np.sin(phi), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
+    rzc = mkvc(np.c_[-np.sin(phi), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
+    Rz = sp.sparse.diags([rzb[:-1], rza, rzc[:-1]], [-1, 0, 1])
+
+    # Rotate all cell vectors
+    rx = (Rz*(Ry*(Rx*px.T))).reshape((mesh.nC, 3))
+
+    # Move the bottom-SW and top-NE nodes
+    nBSW = np.kron(stencil[13][0], np.ones((mesh.nC, 1)))+rx
+    nTNE = np.kron(stencil[13][1], np.ones((mesh.nC, 1)))+rx
+
+    # Compute fractional volumes with base stencil
+    V = []
+    for s in stencil:
+
+        sBSW = np.kron(s[0], np.ones((mesh.nC, 1)))
+        sTNE = np.kron(s[1], np.ones((mesh.nC, 1)))
+
+        V += [(
+                np.max([
+                    np.min([sTNE[:, 0], nTNE[:, 0]], axis=0) -
+                    np.max([sBSW[:, 0], nBSW[:, 0]], axis=0),
+                    np.zeros(mesh.nC)], axis=0) *
+                np.max([
+                    np.min([sTNE[:, 1], nTNE[:, 1]], axis=0) -
+                    np.max([sBSW[:, 1], nBSW[:, 1]], axis=0),
+                    np.zeros(mesh.nC)], axis=0) *
+                np.max([
+                    np.min([sTNE[:, 2], nTNE[:, 2]], axis=0) -
+                    np.max([sBSW[:, 2], nBSW[:, 2]], axis=0),
+                    np.zeros(mesh.nC)], axis=0))]
+
+    count = -1
+    Gx = speye(mesh.nC)
+
+    for ii in range(3):
+        flagz = [0, 0, 0]
+        flagz[ii] = 1
+
+        for jj in range(3):
+            flagy = [0, 0, 0]
+            flagy[jj] = 1
+
+            for kk in range(3):
+
+                flagx = [0, 0, 0]
+                flagx[kk] = 1
+
+                count += 1
+                Gx -= (sdiag(np.ones(mesh.nC)*V[count]) *
+                       kron3(
+                            ddx(mesh.nCz, flagz),
+                            ddx(mesh.nCy, flagy),
+                            ddx(mesh.nCx, flagx)
+                            )
+                       )
+
+    return Gx, rx
