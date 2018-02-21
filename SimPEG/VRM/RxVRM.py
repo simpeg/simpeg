@@ -35,15 +35,15 @@ class BaseRxVRM(Survey.BaseRx):
 
 class Point_h(BaseRxVRM):
     """
-Defines receiver which measures h in Am
+    Defines receiver which measures h in Am
 
-INPUTS:
+    REQUIRED ARGUMENTS:
 
-locsXYZ: N X 3 numpy array with xyz locations for receivers
+    locsXYZ: N X 3 numpy array with xyz locations for receivers
 
-times: Time channels in seconds
+    times: Time channels in seconds
 
-fieldComp: Must be one of 'x', 'y' or 'z'
+    fieldComp: Must be one of 'x', 'y' or 'z'
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
@@ -58,15 +58,15 @@ fieldComp: Must be one of 'x', 'y' or 'z'
 
 class Point_dhdt(BaseRxVRM):
     """
-Defines receiver which measures dhdt in Am/s
+    Defines receiver which measures dhdt in Am/s
 
-INPUTS:
+    REQUIRED ARGUMENTS:
 
-locsXYZ: N X 3 numpy array with xyz locations for receivers
+    locsXYZ: N X 3 numpy array with xyz locations for receivers
 
-times: Time channels in seconds
+    times: Time channels in seconds
 
-fieldComp: Must be one of 'x', 'y' or 'z'
+    fieldComp: Must be one of 'x', 'y' or 'z'
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
@@ -81,15 +81,15 @@ fieldComp: Must be one of 'x', 'y' or 'z'
 
 class Point_b(BaseRxVRM):
     """
-Defines receiver which measures b in T
+    Defines receiver which measures b in T
 
-INPUTS:
+    REQUIRED ARGUMENTS:
 
-locsXYZ: N X 3 numpy array with xyz locations for receivers
+    locsXYZ: N X 3 numpy array with xyz locations for receivers
 
-times: Time channels in seconds
+    times: Time channels in seconds
 
-fieldComp: Must be one of 'x', 'y' or 'z'
+    fieldComp: Must be one of 'x', 'y' or 'z'
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
@@ -105,15 +105,15 @@ fieldComp: Must be one of 'x', 'y' or 'z'
 class Point_dbdt(BaseRxVRM):
 
     """
-Defines receiver which measures db/dt in T/s
+    Defines receiver which measures db/dt in T/s
 
-INPUTS:
+    REQUIRED ARGUMENTS:
 
-locsXYZ: N X 3 numpy array with xyz locations for receivers
+    locsXYZ: N X 3 numpy array with xyz locations for receivers
 
-times: Time channels in seconds
+    times: Time channels in seconds
 
-fieldComp: Must be one of 'x', 'y' or 'z'
+    fieldComp: Must be one of 'x', 'y' or 'z'
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):

@@ -7,9 +7,15 @@ class VRM_waveform_tests(unittest.TestCase):
 
     def test_discrete(self):
 
+        """
+        Test ensures that if all different waveform classes are used to
+        construct the same waveform, the characteristic decay they
+        produce should be the same.
+        """
+
         times = np.logspace(-4, -2, 3)
 
-        waveObj1 = VRM.WaveformVRM.SquarePulse(0.002)
+        waveObj1 = VRM.WaveformVRM.SquarePulse(0.002, t0=0.)
         waveObj2 = VRM.WaveformVRM.ArbitraryDiscrete(np.r_[-0.00200001, -0.002, -0.0000000001, 0.], np.r_[0., 1., 1., 0.])
         waveObj3 = VRM.WaveformVRM.ArbitraryPiecewise(np.r_[-0.00200001, -0.002, -0.0000000001, 0.], np.r_[0., 1., 1., 0.])
         waveObj4 = VRM.WaveformVRM.Custom(times, waveObj1.getCharDecay('b', times))
@@ -33,9 +39,14 @@ class VRM_waveform_tests(unittest.TestCase):
 
     def test_loguniform(self):
 
+        """
+        Tests to make sure log uniform decay and characteristic decay
+        match of the range in which the approximation is valid.
+        """
+
         times = np.logspace(-4, -2, 3)
 
-        waveObj1 = VRM.WaveformVRM.StepOff()
+        waveObj1 = VRM.WaveformVRM.StepOff(t0=0.)
         waveObj2 = VRM.WaveformVRM.SquarePulse(0.02)
 
         chi0 = np.array([0.])

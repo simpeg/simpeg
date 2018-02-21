@@ -14,8 +14,12 @@ class VRM_inversion_tests(unittest.TestCase):
 
     def test_basic_inversion(self):
 
+        """
+        Test to see if inversion recovers model
+        """
+
         h = [(2, 30)]
-        meshObj = Mesh.TensorMesh((h, h, [(2,10)]), x0='CCN')
+        meshObj = Mesh.TensorMesh((h, h, [(2, 10)]), x0='CCN')
 
         mod = 0.00025*np.ones(meshObj.nC)
         mod[(meshObj.gridCC[:, 0] > -4.) &

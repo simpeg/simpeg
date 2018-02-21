@@ -3,14 +3,11 @@ import SimPEG.VRM as VRM
 import numpy as np
 from SimPEG import Mesh
 
-# SUMMARY OF TESTS
-#
-# Tensor mesh bs octree mesh
-
 
 class VRM_fwd_tests(unittest.TestCase):
-    """Can the code match the analytic solution for the case that the
-excitation is dipolar
+
+    """
+    Computed vs analytic dipole field
     """
 
     def test_predict_dipolar(self):
@@ -59,8 +56,11 @@ excitation is dipolar
         self.assertTrue(np.all(np.abs(Fields[1:-1:3] - np.r_[fx, fy, fz]) < 1e-5*np.sqrt((Fields[1:-1:3]**2).sum())))
 
     def test_sources(self):
-        """If all the source types are setup to product dipolar fields, will
-they produce the same fields"""
+        """
+        Multiple source classes are used to make a small dipole source with the
+        same orientation and dipole moment. Test ensures the same fields are
+        computed.
+        """
 
         h = [0.5, 0.5]
         meshObj = Mesh.TensorMesh((h, h, h), x0='CCC')
@@ -106,8 +106,10 @@ they produce the same fields"""
         self.assertTrue(err1 and err2 and err3)
 
     def test_convergence_vertical(self):
-        """Test the convergence of the solution to analytic results from
-Cowan (2016) and test accuracy
+
+        """
+        Test the convergence of the solution to analytic results from
+        Cowan (2016) and test accuracy
         """
 
         h = [(2, 20)]
@@ -155,6 +157,11 @@ Cowan (2016) and test accuracy
         self.assertTrue(Test1 and Test2)
 
     def test_convergence_radial(self):
+
+        """
+        Test the convergence of the solution to analytic results from
+        Cowan (2016) and test accuracy
+        """
 
         h = [(2, 30)]
         meshObj = Mesh.TensorMesh((h, h, [(2, 20)]), x0='CCN')
@@ -206,8 +213,10 @@ Cowan (2016) and test accuracy
 
     def test_vs_mesh_vs_loguniform(self):
 
-        """Test to make sure OcTree matches Tensor results and linear vs
-loguniform match"""
+        """
+        Test to make sure OcTree matches Tensor results and linear vs
+        loguniform match
+        """
 
         h1 = [(2, 4)]
         h2 = 0.5*np.ones(16)

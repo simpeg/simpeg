@@ -10,21 +10,21 @@ import scipy.sparse as sp
 
 class BaseProblemVRM(Problem.BaseProblem):
     """
-Base class for VRM problem.
+    Base class for VRM problem.
 
-REQUIRED ARGUMENTS:
+    REQUIRED ARGUMENTS:
 
-mesh: 3D tensor or OcTree mesh
+    mesh: 3D tensor or OcTree mesh object
 
-KWARGS:
+    KWARGS:
 
-refFact: Maximum refinement factor for sensitivities (default = 3)
-refRadius: Distances from source in which cell sensitivities are refined.
-           Must be an array or list with elements equal to the refFact.
-           (default based on minimum cell size)
-indActive: A numpy array with boolean entries, where the True entries
-           refer to topography cell which will be computed in the
-           forward model (default is all mesh cells)
+    refFact: Maximum refinement factor for sensitivities (default = 3)
+    refRadius: Distances from source in which cell sensitivities are refined
+               from smallest to largest. Must be an array or list with elements
+               equal to the refFact. (default based on minimum cell size)
+    indActive: A numpy array with boolean entries, where the True entries
+               refer to topography cell which will be computed in the
+               forward model (default is all mesh cells)
 
     """
 
@@ -76,7 +76,7 @@ indActive: A numpy array with boolean entries, where the True entries
 
     @refRadius.setter
     def refRadius(self, radList):
-        assert isinstance(radList, list), "Array must be a numpy array"
+        assert isinstance(radList, (list, tuple)), "Array must be a numpy array"
 
         if self._refFact != len(radList):
             print("Refinement factor no longer matches length of refinement radii array. Please ensure that the number of elements in refinement radii is equal or greater than the refinement factor")
@@ -97,12 +97,18 @@ indActive: A numpy array with boolean entries, where the True entries
     def _getH0matrix(self, xyz, pp):
 
         """
-Creates sparse matrix containing inducing field components for source pp
+        Creates sparse matrix containing inducing field components
+        for source pp
 
-INPUTS:
+        REQUIRED ARGUMENTS:
 
-xyz: N X 3 array of locations to predict field
-pp: Source index
+        xyz: N X 3 array of locations to predict field
+        pp: Source index
+
+        OUTPUTS:
+
+        H0: A 3N X N sparse array containing Hx, Hy and Hz at
+            all locations
         """
 
         SrcObj = self.survey.srcList[pp]
@@ -120,14 +126,18 @@ pp: Source index
     def _getGeometryMatrix(self, xyzc, xyzh, pp):
 
         """
-Creates the dense geometry matrix mapping from magentized voxel cells to the
-receivers for source pp
+        Creates the dense geometry matrix which maps from the magnetized voxel
+        cells to the receiver locations for source pp
 
-INPUTS:
+        REQUIRED ARGUMENTS:
 
-xyzc: N by 3 array containing cell center locations
-xyzh: N by 3 array containing cell dimensions
-pp: Source index
+        xyzc: N by 3 numpy array containing cell center locations [xc,yc,zc]
+        xyzh: N by 3 numpy array containing cell dimensions [hx,hy,hz]
+        pp: Source index
+
+        OUTPUTS:
+
+        G: Linear geometry operator
         """
 
         srcObj = self.survey.srcList[pp]
@@ -325,6 +335,8 @@ pp: Source index
 
     def _getAMatricies(self):
 
+        """Returns the full geometric operator"""
+
         indActive = self.indActive
 
         # GET CELL INFORMATION FOR FORWARD MODELING
@@ -359,16 +371,20 @@ pp: Source index
     def _getSubsetAcolumns(self, xyzc, xyzh, pp, qq, refFlag):
 
         """
-This method returns the refined sensitivities for columns that will be replaced
-in the A matrix for source pp and refinement factor qq.
+        This method returns the refined sensitivities for columns that will be
+        replaced in the A matrix for source pp and refinement factor qq.
 
-INPUTS:
+        INPUTS:
 
-    xyzc: Cell centers of topo mesh cells N X 3 array
-    xyzh: Cell widths of topo mesh cells N X 3 array
-    pp: Source ID
-    qq: Mesh refinement factor
-    refFlag: refinement factors for all topo mesh cells
+        xyzc: Cell centers of topo mesh cells N X 3 array
+        xyzh: Cell widths of topo mesh cells N X 3 array
+        pp: Source ID
+        qq: Mesh refinement factor
+        refFlag: refinement factors for all topo mesh cells
+
+        OUTPUTS:
+
+        Acols: Columns containing replacement sensitivities
         """
 
         # GET SUBMESH GRID
@@ -400,27 +416,27 @@ INPUTS:
 class LinearVRM(BaseProblemVRM):
 
     """
-Problem class for linear VRM problem. The the solution to this problem
-is a time-approximate solution which uses the characteristic decay of
-the VRM response. The solution is only capable of providing the VRM
-response during the off-time. For background theory, see Cowan (2016).
+    Problem class for linear VRM problem. The the solution to this problem
+    is a time-approximate solution which uses the characteristic decay of
+    the VRM response. The solution is only capable of providing the VRM
+    response during the off-time. For background theory, see Cowan (2016).
 
-REQUIRED ARGUMENTS:
+    REQUIRED ARGUMENTS:
 
-    mesh: 3D tensor or OcTree mesh
+    mesh: 3D tensor or OcTree mesh object
 
-KWARGS:
+    KWARGS:
 
-refFact: Maximum refinement factor for sensitivities (default = 3)
-refRadius: Distances from source in which cell sensitivities are refined.
-           Must be an array or list with elements equal to the refFact.
-            (default based on minimum cell size)
-indActive: A numpy array with boolean entries, where the True entries
-           refer to topography cell which will be computed in the
-           forward model (default is all mesh cells)
+    refFact: Maximum refinement factor for sensitivities (default = 3)
+    refRadius: Distances from source in which cell sensitivities are refined.
+               Must be an array or list with elements equal to the refFact.
+                (default based on minimum cell size)
+    indActive: A numpy array with boolean entries, where the True entries
+               refer to topography cell which will be computed in the
+               forward model (default is all mesh cells)
 
-xiMap: A SimPEG mapping object which maps the model to the active
-       topography cells (i.e. indActive)
+    xiMap: A SimPEG mapping object which maps the model to the active
+           topography cells (i.e. indActive)
 
     """
 
@@ -446,9 +462,9 @@ xiMap: A SimPEG mapping object which maps the model to the active
     def A(self):
 
         """
-This function constructs the geometric sensitivity matrix for the linear VRM
-problem. This function requires that the problem be paired with a survey
-object.
+        This function constructs the geometric sensitivity matrix for the
+        linear VRM problem. This function requires that the problem be paired
+        with a survey object.
         """
 
         if self._AisSet is False:
@@ -475,11 +491,8 @@ object.
     def T(self):
 
         """
-This function returns the characteristic decay matrix. This function requires
-that the problem has been paired with a survey object.
-
-fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
-       None, then the field type is computed according to the receivers.
+        This function returns the characteristic decay matrix. This function
+        requires that the problem has been paired with a survey object.
         """
 
         if self._TisSet is False:
@@ -593,26 +606,26 @@ fType: The field type (h, dh/dt, b, db/dt) that will be computed. If fType is
 class LogUniformVRM(BaseProblemVRM):
 
     """
-Problem class for VRM assuming a log-normal distribution of time-relaxation
-constants. This model for VRM requires 4 model parameters for each cell:
-chi0, dchi, tau1, tau2.
+    Problem class for VRM assuming a log-normal distribution of time-relaxation
+    constants. This model for VRM requires 4 model parameters for each cell:
+    chi0, dchi, tau1, tau2.
 
-REQUIRED ARGUMENTS:
+    REQUIRED ARGUMENTS:
 
-mesh: 3D tensor or OcTree mesh
+    mesh: 3D tensor or OcTree mesh
 
-KWARGS:
+    KWARGS:
 
-refFact: Maximum refinement factor for sensitivities (default = 3)
-refRadius: Distances from source in which cell sensitivities are refined.
-           Must be an array or list with elements equal to the refFact.
-            (default based on minimum cell size)
-indActive: A numpy array with boolean entries, where the True entries
-           refer to topography cell which will be computed in the
-           forward model (default is all mesh cells)
+    refFact: Maximum refinement factor for sensitivities (default = 3)
+    refRadius: Distances from source in which cell sensitivities are refined.
+               Must be an array or list with elements equal to the refFact.
+                (default based on minimum cell size)
+    indActive: A numpy array with boolean entries, where the True entries
+               refer to topography cell which will be computed in the
+               forward model (default is all mesh cells)
 
-xiMap: A SimPEG mapping object which maps the model to the active
-       topography cells (i.e. indActive)
+    xiMap: A SimPEG mapping object which maps the model to the active
+           topography cells (i.e. indActive)
 
     """
 
@@ -636,9 +649,9 @@ xiMap: A SimPEG mapping object which maps the model to the active
     def A(self):
 
         """
-This function constructs the geometric sensitivity matrix for the VRM
-problem. This function requires that the problem be paired with a survey
-object.
+        This function constructs the geometric sensitivity matrix for the VRM
+        problem. This function requires that the problem be paired with a
+        survey object.
         """
 
         if self._AisSet is False:

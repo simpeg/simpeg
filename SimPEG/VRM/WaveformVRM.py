@@ -9,32 +9,46 @@ import scipy.special as spec
 class StepOff():
 
     """
-Step-Off waveform for predicting VRM response.
+    Step-Off waveform for predicting VRM response.
 
-INPUTS:
+    REQUIRED ARGUMENTS: None
 
-KWARGS:
+    KWARGS:
 
-t0: The start of the off-time (default is 0)
-"""
+        t0: The start of the off-time (default is 0)
 
-    def __init__(self, t0=0.):
+    """
 
-        self.t0 = t0
+    def __init__(self, **kwargs):
+
+        self._t0 = kwargs.get('t0', 0.)
+
+    @property
+    def t0(self):
+        return self._t0
+
+    @t0.setter
+    def t0(self, Val):
+        assert isinstance(Val, (int, float)), "Must be a number"
+        self._t0 = Val
 
     def getCharDecay(self, fieldType, times):
 
         """
-Characteristic decay function for step-off waveform. This function describes
-the decay of the VRM response for the linear problem type. Note that the
-current will be normalized by its maximum value. The maximum current in the
-transmitter is specified in the source object.
+        Characteristic decay function for step-off waveform. This function
+        describes the decay of the VRM response for the linear problem type.
+        Note that the current will be normalized by its maximum value. The
+        maximum current in the transmitter is specified in the source object.
 
-INPUTS:
+        REQUIRED ARGUMENTS:
 
-fieldType: must be 'dhdt' or 'dbdt'. Characteristic decay for 'h' or 'b' CANNOT
-    be computed for step-off
-times: Observation times. These times MUST be during the off-time.
+        fieldType: must be 'dhdt' or 'dbdt'. Characteristic decay for 'h'
+            or 'b' CANNOT be computed for step-off
+        times: Observation times. These times MUST be during the off-time.
+
+        OUTPUTS:
+
+        eta: characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["dhdt", "dbdt"], "For step-off, fieldType must be one of 'dhdt' or 'dbdt' and cannot be 'h' or 'b'"
@@ -53,18 +67,26 @@ times: Observation times. These times MUST be during the off-time.
     def getLogUniformDecay(self, fieldType, times, chi0, dchi, tau1, tau2):
 
         """
-Decay function for a step-off waveform for log-uniform distribtuion of
-time-relaxation constants. The output of this function is the magnetization
-at each time for each cell, normalized by the inducing field.
+        Decay function for a step-off waveform for log-uniform distribution of
+        time-relaxation constants. The output of this function is the
+        magnetization at each time for each cell, normalized by the inducing
+        field.
 
-INPUTS:
+        REQUIRED ARGUMENTS:
 
-fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
-times: Observation times.
-chi0: DC (zero-frequency) magnetic susceptibility
-dchi: DC (zero-frequency) magnetic susceptibility attributed to VRM
-tau1: Lower-bound for log-uniform distribution of time-relaxation constants
-tau2: Upper-bound for log-uniform distribution of time-relaxation constants
+        fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
+        times: Observation times
+        chi0: DC (zero-frequency) magnetic susceptibility for all cells
+        dchi: DC (zero-frequency) magnetic susceptibility attributed to VRM for
+            all cells
+        tau1: Lower-bound for log-uniform distribution of time-relaxation
+            constants for all cells
+        tau2: Upper-bound for log-uniform distribution of time-relaxation
+            constants for all cells
+
+        OUTPUTS:
+
+        eta: characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' "
@@ -117,34 +139,57 @@ tau2: Upper-bound for log-uniform distribution of time-relaxation constants
 class SquarePulse():
 
     """
-Square-pulse waveform for predicting VRM response.
+    Square-pulse waveform for predicting VRM response.
 
-INPUTS:
+    REQUIRED ARGUMENTS:
 
-delt: Duration of the on-time (default is zero)
+    delt: Duration of the on-time
 
-KWARGS:
+    KWARGS:
 
-t0: The start of the off-time
+    t0: The start of the off-time (default is 0)
     """
 
-    def __init__(self, delt, t0=0.):
+    def __init__(self, delt, **kwargs):
 
-        self.delt = delt
-        self.t0 = t0
+        self._delt = delt
+        self._t0 = kwargs.get('t0', 0.)
+
+    @property
+    def delt(self):
+        return self._delt
+
+    @delt.setter
+    def delt(self, Val):
+        assert isinstance(Val, (int, float)), "Must be a number"
+        self._t0 = Val
+
+    @property
+    def t0(self):
+        return self._t0
+
+    @t0.setter
+    def t0(self, Val):
+        assert isinstance(Val, (int, float)), "Must be a number"
+        self._t0 = Val
 
     def getCharDecay(self, fieldType, times):
 
         """
-Characteristic decay function for a square-pulse waveform. This function
-describes the decay of the VRM response for the linear problem type. Note that
-the current will be normalized by its maximum value. The maximum current in the
-transmitter is specified in the source object.
+        Characteristic decay function for a square-pulse waveform. This
+        function describes the decay of the VRM response for the linear
+        problem type. Note that the current will be normalized by its maximum
+        value. The maximum current in the transmitter is specified in the
+        source object.
 
-INPUTS:
+        REQUIRED ARGUMENTS:
 
-fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
-times: Observation times. These times MUST be during the off-time.
+        fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
+        times: Observation times. These times MUST be during the off-time.
+
+        OUTPUTS:
+
+        eta: characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "For square-pulse, fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
@@ -168,18 +213,26 @@ times: Observation times. These times MUST be during the off-time.
     def getLogUniformDecay(self, fieldType, times, chi0, dchi, tau1, tau2):
 
         """
-Decay function for a square-pulse waveform for log-uniform distribtuion of
-time-relaxation constants. The output of this function is the magnetization
-at each time for each cell, normalized by the inducing field.
+        Decay function for a square-pulse waveform for log-uniform distribution
+        of time-relaxation constants. The output of this function is the
+        magnetization at each time for each cell, normalized by the inducing
+        field.
 
-INPUTS:
+        REQUIRED ARGUMENTS:
 
-fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
-times: Observation times.
-chi0: DC (zero-frequency) magnetic susceptibility
-dchi: DC (zero-frequency) magnetic susceptibility attributed to VRM
-tau1: Lower-bound for log-uniform distribution of time-relaxation constants
-tau2: Upper-bound for log-uniform distribution of time-relaxation constants
+        fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
+        times: Observation times.
+        chi0: DC (zero-frequency) magnetic susceptibility for all cells
+        dchi: DC (zero-frequency) magnetic susceptibility attributed to VRM for
+            all cells
+        tau1: Lower-bound for log-uniform distribution of time-relaxation
+            constants for all cells
+        tau2: Upper-bound for log-uniform distribution of time-relaxation
+            constants for all cells
+
+        OUTPUTS:
+
+        eta: characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' "
@@ -242,15 +295,15 @@ tau2: Upper-bound for log-uniform distribution of time-relaxation constants
 class ArbitraryDiscrete():
 
     """
-Arbitrary waveform for predicting VRM response. This approach approximates the
-waveform as a set of trapezoids with uniform width. The current is normalized
-by its largest absolute value. The maximum current in the transmitter is
-specified in the source object.
+    Arbitrary waveform for predicting VRM response. This approach approximates
+    the waveform as a set of trapezoids with uniform width. The current is
+    normalized by its largest absolute value. The maximum current in the
+    transmitter is specified in the source object.
 
-INPUTS:
+    REQUIRED ARGUMENTS:
 
-t: Times for the waveform
-I: Current for the waveform
+    t: Times for the waveform
+    I: Current for the waveform
     """
 
     def __init__(self, t, I):
@@ -264,15 +317,19 @@ I: Current for the waveform
     def getCharDecay(self, fieldType, times):
 
         """
-Characteristic decay function for arbitrary waveform. This function describes
-the decay of the VRM response for the Linear problem type. Note that the
-current will be LogUniformized by its maximum value. The maximum current in the
-transmitter is specified in the source object.
+        Characteristic decay function for arbitrary waveform. This function
+        describes the decay of the VRM response for the Linear problem type.
+        Note that the current will be normalized by its maximum value. The
+        maximum current in the transmitter is specified in the source object.
 
-INPUTS:
+        REQUIRD ARGUMENTS:
 
-fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
-times: Observation times. These times must be during the off-time.
+        fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
+        times: Observation times. These times MUST be during the off-time.
+
+        OUTPUTS:
+
+        eta: characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
@@ -319,16 +376,17 @@ times: Observation times. These times must be during the off-time.
 class ArbitraryPiecewise():
 
     """
-Arbitrary waveform for predicting VRM response. This approach approximates the
-waveform as a piecewise linear function. The user is encourage to discretize
-the function more sparsely at the beginning of the function and more finely at
-the end. The current is normalized by its largest absolute value. The maximum
-current in the transmitter is specified in the source object.
+    Arbitrary waveform for predicting VRM response. This approach approximates
+    the waveform as a piecewise linear function. The user is encourage to
+    discretize the function more sparsely at the beginning of the function and
+    more finely at the end. The current is normalized by its largest absolute
+    value. The maximum current in the transmitter is specified in the source
+    object.
 
-INPUTS:
+    REQUIRED ARGUMENTS:
 
-t: Times for the waveform
-I: Current for the waveform
+    t: Times for the waveform
+    I: Current for the waveform
     """
 
     def __init__(self, t, I):
@@ -342,15 +400,19 @@ I: Current for the waveform
     def getCharDecay(self, fieldType, times):
 
         """
-Characteristic decay function for arbitrary waveform. This function describes
-the decay of the VRM response for the Linear problem type. Note that the
-current will be LogUniformized by its maximum value. The maximum current in the
-transmitter is specified in the source object.
+        Characteristic decay function for arbitrary waveform. This function
+        describes the decay of the VRM response for the Linear problem type.
+        Note that the current will be LogUniformized by its maximum value. The
+        maximum current in the transmitter is specified in the source object.
 
-INPUTS:
+        INPUTS:
 
-fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
-times: Observation times. These times must be during the off-time.
+        fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
+        times: Observation times. These times must be during the off-time.
+
+        OUTPUTS:
+
+        eta: characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
@@ -388,13 +450,13 @@ times: Observation times. These times must be during the off-time.
 class Custom():
 
     """
-Custom decay. If you have the values of the decay at the observed times, it can
-be set here to avoid recalculating for every source.
+    Custom decay. If you have the values of the decay at the observed times,
+    it can be set here to avoid recalculating for every source.
 
-INPUTS:
+    REQUIRED ARGUMENTS:
 
-t: observation times
-eta: decay at observed times
+    t: observation times
+    eta: decay at observed times
     """
 
     def __init__(self, t, eta):
@@ -405,5 +467,6 @@ eta: decay at observed times
         self.eta = eta
 
     def getCharDecay(self):
+        """Returns characteristic decay function at specified times"""
 
         return self.eta
