@@ -15,7 +15,7 @@ class StepOff():
 
     KWARGS:
 
-        t0: The start of the off-time (default is 0)
+    t0 -- The start of the off-time (default is 0)
 
     """
 
@@ -42,13 +42,14 @@ class StepOff():
 
         REQUIRED ARGUMENTS:
 
-        fieldType: must be 'dhdt' or 'dbdt'. Characteristic decay for 'h'
-            or 'b' CANNOT be computed for step-off
-        times: Observation times. These times MUST be during the off-time.
+        fieldType -- must be 'dhdt' or 'dbdt'. Characteristic decay for 'h'
+        or 'b' CANNOT be computed for step-off
+
+        times -- Observation times. These times MUST be during the off-time.
 
         OUTPUTS:
 
-        eta: characteristic decay function evaluated at all specified times.
+        eta -- characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["dhdt", "dbdt"], "For step-off, fieldType must be one of 'dhdt' or 'dbdt' and cannot be 'h' or 'b'"
@@ -74,19 +75,24 @@ class StepOff():
 
         REQUIRED ARGUMENTS:
 
-        fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
-        times: Observation times
-        chi0: DC (zero-frequency) magnetic susceptibility for all cells
-        dchi: DC (zero-frequency) magnetic susceptibility attributed to VRM for
-            all cells
-        tau1: Lower-bound for log-uniform distribution of time-relaxation
-            constants for all cells
-        tau2: Upper-bound for log-uniform distribution of time-relaxation
-            constants for all cells
+        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
+
+        times -- Observation times
+
+        chi0 -- DC (zero-frequency) magnetic susceptibility for all cells
+
+        dchi -- DC (zero-frequency) magnetic susceptibility attributed to VRM
+        for all cells
+
+        tau1 -- Lower-bound for log-uniform distribution of time-relaxation
+        constants for all cells
+
+        tau2 -- Upper-bound for log-uniform distribution of time-relaxation
+        constants for all cells
 
         OUTPUTS:
 
-        eta: characteristic decay function evaluated at all specified times.
+        eta -- characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' "
@@ -143,11 +149,11 @@ class SquarePulse():
 
     REQUIRED ARGUMENTS:
 
-    delt: Duration of the on-time
+    delt -- Duration of the on-time
 
     KWARGS:
 
-    t0: The start of the off-time (default is 0)
+    t0 -- The start of the off-time (default is 0)
     """
 
     def __init__(self, delt, **kwargs):
@@ -184,12 +190,13 @@ class SquarePulse():
 
         REQUIRED ARGUMENTS:
 
-        fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
-        times: Observation times. These times MUST be during the off-time.
+        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
+
+        times -- Observation times. These times MUST be during the off-time.
 
         OUTPUTS:
 
-        eta: characteristic decay function evaluated at all specified times.
+        eta -- characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "For square-pulse, fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
@@ -220,19 +227,24 @@ class SquarePulse():
 
         REQUIRED ARGUMENTS:
 
-        fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
-        times: Observation times.
-        chi0: DC (zero-frequency) magnetic susceptibility for all cells
-        dchi: DC (zero-frequency) magnetic susceptibility attributed to VRM for
-            all cells
-        tau1: Lower-bound for log-uniform distribution of time-relaxation
-            constants for all cells
-        tau2: Upper-bound for log-uniform distribution of time-relaxation
-            constants for all cells
+        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
+
+        times -- Observation times.
+
+        chi0 -- DC (zero-frequency) magnetic susceptibility for all cells
+
+        dchi -- DC (zero-frequency) magnetic susceptibility attributed to VRM
+        for all cells
+
+        tau1 -- Lower-bound for log-uniform distribution of time-relaxation
+        constants for all cells
+
+        tau2 -- Upper-bound for log-uniform distribution of time-relaxation
+        constants for all cells
 
         OUTPUTS:
 
-        eta: characteristic decay function evaluated at all specified times.
+        eta -- characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' "
@@ -302,8 +314,9 @@ class ArbitraryDiscrete():
 
     REQUIRED ARGUMENTS:
 
-    t: Times for the waveform
-    I: Current for the waveform
+    t -- Times for the waveform
+
+    I -- Current for the waveform
     """
 
     def __init__(self, t, I):
@@ -324,12 +337,13 @@ class ArbitraryDiscrete():
 
         REQUIRD ARGUMENTS:
 
-        fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
-        times: Observation times. These times MUST be during the off-time.
+        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
+
+        times -- Observation times. These times MUST be during the off-time.
 
         OUTPUTS:
 
-        eta: characteristic decay function evaluated at all specified times.
+        eta -- characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
@@ -385,8 +399,9 @@ class ArbitraryPiecewise():
 
     REQUIRED ARGUMENTS:
 
-    t: Times for the waveform
-    I: Current for the waveform
+    t -- Times for the waveform
+
+    I -- Current for the waveform
     """
 
     def __init__(self, t, I):
@@ -407,12 +422,13 @@ class ArbitraryPiecewise():
 
         INPUTS:
 
-        fieldType: must be 'h', 'b', 'dhdt' or 'dbdt'.
-        times: Observation times. These times must be during the off-time.
+        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
+
+        times -- Observation times. These times must be during the off-time.
 
         OUTPUTS:
 
-        eta: characteristic decay function evaluated at all specified times.
+        eta -- characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
@@ -455,8 +471,9 @@ class Custom():
 
     REQUIRED ARGUMENTS:
 
-    t: observation times
-    eta: decay at observed times
+    t -- observation times
+
+    eta -- decay at observed times
     """
 
     def __init__(self, t, eta):

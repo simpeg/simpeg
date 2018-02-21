@@ -39,11 +39,11 @@ class Point_h(BaseRxVRM):
 
     REQUIRED ARGUMENTS:
 
-    locsXYZ: N X 3 numpy array with xyz locations for receivers
+    locsXYZ -- N X 3 numpy array with xyz locations for receivers
 
-    times: Time channels in seconds
+    times -- Time channels in seconds
 
-    fieldComp: Must be one of 'x', 'y' or 'z'
+    fieldComp -- Must be one of 'x', 'y' or 'z'
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
@@ -62,11 +62,11 @@ class Point_dhdt(BaseRxVRM):
 
     REQUIRED ARGUMENTS:
 
-    locsXYZ: N X 3 numpy array with xyz locations for receivers
+    locsXYZ -- N X 3 numpy array with xyz locations for receivers
 
-    times: Time channels in seconds
+    times -- Time channels in seconds
 
-    fieldComp: Must be one of 'x', 'y' or 'z'
+    fieldComp -- Must be one of 'x', 'y' or 'z'
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
@@ -85,11 +85,11 @@ class Point_b(BaseRxVRM):
 
     REQUIRED ARGUMENTS:
 
-    locsXYZ: N X 3 numpy array with xyz locations for receivers
+    locsXYZ -- N X 3 numpy array with xyz locations for receivers
 
-    times: Time channels in seconds
+    times -- Time channels in seconds
 
-    fieldComp: Must be one of 'x', 'y' or 'z'
+    fieldComp -- Must be one of 'x', 'y' or 'z'
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
@@ -109,11 +109,11 @@ class Point_dbdt(BaseRxVRM):
 
     REQUIRED ARGUMENTS:
 
-    locsXYZ: N X 3 numpy array with xyz locations for receivers
+    locsXYZ -- N X 3 numpy array with xyz locations for receivers
 
-    times: Time channels in seconds
+    times -- Time channels in seconds
 
-    fieldComp: Must be one of 'x', 'y' or 'z'
+    fieldComp -- Must be one of 'x', 'y' or 'z'
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):

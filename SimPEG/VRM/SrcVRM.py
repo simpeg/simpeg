@@ -47,10 +47,13 @@ class MagDipole(BaseSrcVRM):
 
     REQUIRED ARGUMENTS:
 
-    rxList: SimPEG receiver list
-    loc: xyz location for the magnetic dipole source
-    moment: numpy array [mx,my,mz] containing components of the dipole moment
-    waveform: instance of a VRM wavefrom class
+    rxList -- SimPEG receiver list
+
+    loc -- xyz location for the magnetic dipole source
+
+    moment -- numpy array [mx,my,mz] containing components of the dipole moment
+
+    waveform -- instance of a VRM wavefrom class
     """
 
     def __init__(self, rxList, loc, moment, waveform, **kwargs):
@@ -69,12 +72,12 @@ class MagDipole(BaseSrcVRM):
 
         REQUIRED ARGUMENTS:
 
-        xyz: N X 3 array of locations at which primary field components
-            are computed
+        xyz -- N X 3 array of locations at which primary field components
+        are computed
 
         OUTPUTS:
 
-        H0: N X 3 array containing [Hx0,Hy0,Hz0] at all xyz locations
+        H0 -- N X 3 array containing [Hx0,Hy0,Hz0] at all xyz locations
 
         """
 
@@ -97,12 +100,15 @@ class MagDipole(BaseSrcVRM):
 
         REQUIRED ARGUMENTS:
 
-        xyzc: Cell-center locations as NX3 array
-        refFact: Refinement factors
-        refRadius: Refinement radii
+        xyzc -- Cell-center locations as NX3 array
+
+        refFact -- Refinement factors
+
+        refRadius -- Refinement radii
 
         OUTPUTS:
-        refFlag: Vector of length N with the refinement factor for each cell
+
+        refFlag -- Vector of length N with the refinement factor for each cell
         """
 
         refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
@@ -129,11 +135,16 @@ class CircLoop(BaseSrcVRM):
     REQUIRED ARGUMENTS:
 
     rxList: SimPEG receiver list
-    loc: xyz location for the center of the loop
-    orientation: np.r_[theta, alpha] where theta is azimuthal angle and alpha
-        is declination angle
-    Imax: Maximum current in the transmitter wire (can be positive or negative)
-    waveform: instance of a VRM waveform class
+
+    loc -- xyz location for the center of the loop
+
+    orientation -- np.r_[theta, alpha] where theta is azimuthal angle and alpha
+    is declination angle
+
+    Imax -- Maximum current in the transmitter wire (can be positive
+    or negative)
+
+    waveform -- instance of a VRM waveform class
     """
 
     def __init__(self, rxList, loc, radius, orientation, Imax, waveform, **kwargs):
@@ -154,12 +165,12 @@ class CircLoop(BaseSrcVRM):
 
         REQUIRED ARGUMENTS:
 
-        xyz: N X 3 array of locations at which primary field components
-            are computed
+        xyz -- N X 3 array of locations at which primary field components
+        are computed
 
         OUTPUTS:
 
-        H0: N X 3 array containing [Hx0,Hy0,Hz0] at all xyz locations
+        H0 -- N X 3 array containing [Hx0,Hy0,Hz0] at all xyz locations
 
         """
 
@@ -200,18 +211,21 @@ class CircLoop(BaseSrcVRM):
 
         REQUIRED ARGUMENTS:
 
-        xyzc: Cell-center locations as NX3 array
-        refFact: Refinement factors
-        refRadius: Refinement radii
+        xyzc -- Cell-center locations as NX3 array
+
+        refFact -- Refinement factors
+
+        refRadius -- Refinement radii
 
         OUTPUTS:
-        refFlag: Vector of length N with the refinement factor for each cell
+
+        refFlag -- Vector of length N with the refinement factor for each cell
         """
 
         refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
 
         r0 = self.loc
-        a  = self.radius
+        a = self.radius
         theta = self.orientation[0]  # Azimuthal
         alpha = self.orientation[1]  # Declination
 
@@ -246,10 +260,14 @@ class LineCurrent(BaseSrcVRM):
 
     REQUIRED ARGUMENTS:
 
-    rxList: SimPEG receiver list
-    loc: N+1 X 3 numpy array with node locations for transmitter wire.
-    Imax: Maximum current in the transmitter wire (can be positive or negative)
-    waveform: instance of a VRM waveform class
+    rxList -- SimPEG receiver list
+
+    loc -- N+1 X 3 numpy array with node locations for transmitter wire.
+
+    Imax -- Maximum current in the transmitter wire (can be positive
+    or negative)
+
+    waveform -- instance of a VRM waveform class
     """
 
     def __init__(self, rxList, loc, Imax, waveform, **kwargs):
@@ -268,12 +286,12 @@ class LineCurrent(BaseSrcVRM):
 
         REQUIRED ARGUMENTS:
 
-        xyz: N X 3 array of locations at which primary field components
-            are computed
+        xyz -- N X 3 array of locations at which primary field components
+        are computed
 
         OUTPUTS:
 
-        H0: N X 3 array containing [Hx0,Hy0,Hz0] at all xyz locations
+        H0 -- N X 3 array containing [Hx0,Hy0,Hz0] at all xyz locations
 
         """
 
@@ -340,12 +358,15 @@ class LineCurrent(BaseSrcVRM):
 
         REQUIRED ARGUMENTS:
 
-        xyzc: Cell-center locations as NX3 array
-        refFact: Refinement factors
-        refRadius: Refinement radii
+        xyzc -- Cell-center locations as NX3 array
+
+        refFact -- Refinement factors
+
+        refRadius -- Refinement radii
 
         OUTPUTS:
-        refFlag: Vector of length N with the refinement factor for each cell
+
+        refFlag -- Vector of length N with the refinement factor for each cell
         """
 
         refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
