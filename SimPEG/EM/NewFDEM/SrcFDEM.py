@@ -84,7 +84,7 @@ class RawVec_m(BaseFDEMSrc):
                 "The key word 's_m' will be depreciated. Please use vec_e=s_m"
             )
             self.vec_m = s_m
-        super(RawVec_m, self).__init__( **kwargs)
+        super(RawVec_m, self).__init__(**kwargs)
 
     @properties.validator('vec_m')
     def _cast_to_complex(self, change):
