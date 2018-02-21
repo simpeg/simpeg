@@ -356,4 +356,5 @@ nitpick_ignore = [
     ('py:func', 'discretize.utils.meshutils.meshTensor'),
     ('py:class', 'properties.base.HasProperties'),
     ('py:class', 'properties.base.base.HasProperties'),
+    ('py:class', 'properties.Boolean')
 ]

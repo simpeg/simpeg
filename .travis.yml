@@ -106,10 +106,10 @@ after_success:
   - if [ $TRAVIS_PYTHON_VERSION == $DOCS_PY ]; then
       if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" ]; then
         cd docs; tar -cvzf _build.tar.gz _build ;
-        cd content; tar -cvzf examples.tar.gz examples ; cd ..;
+        cd content; tar -cvzf examples.tar.gz examples ; cd ../../ ;
         gsutil cp docs/_build.tar.gz gs://simpeg ;
         gsutil cp docs/content/examples.tar.gz gs://simpeg ;
-        gcloud auth activate-service-account --key-file credentials/client-secret-dev.json ;
+        gcloud auth activate-service-account --key-file credentials/client-secret.json ;
         export GAE_PROJECT=$GAE_PROJECT ;
       fi ;
       gcloud config set project $GAE_PROJECT;
@@ -118,7 +118,7 @@ after_success:
 
   #deploy to pypi
   - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY ]; then
-      if [ "$TRAVIS_TAG" ]; then
+      if [ "$TRAVIS_TAG" = "true" ]; then
         mv credentials/.pypirc ~/.pypirc ;
         python setup.py sdist bdist_wheel --universal ;
         travis_wait 20 twine upload -r pypi --skip-existing dist/* ;
