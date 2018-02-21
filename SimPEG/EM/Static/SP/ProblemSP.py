@@ -64,6 +64,7 @@ class Problem_CC(BaseSPProblem, Problem3D_CC):
     _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_CC
     modelType = None
+    bc_type = "Mixed"
     coordinate_system = properties.StringChoice(
         "Type of coordinate system we are regularizing in",
         choices=['cartesian', 'spherical'],
@@ -72,9 +73,6 @@ class Problem_CC(BaseSPProblem, Problem3D_CC):
 
     def __init__(self, mesh, **kwargs):
         BaseSPProblem.__init__(self, mesh, **kwargs)
-        # if self.rho is None:
-        #     raise Exception("Resistivity:rho needs to set when \
-        #                      initializing SPproblem")
         self.setBC()
 
     def getADeriv(self, u, v, adjoint= False):
