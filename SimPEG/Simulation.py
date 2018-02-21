@@ -3,9 +3,10 @@ from __future__ import print_function
 import numpy as np
 import discretize
 import properties
+import pymatsolver
 import warnings
 
-from . import Utils
+from .Utils import Counter
 from . import Models
 from . import Maps
 from . import Props
@@ -59,12 +60,16 @@ class BaseSimulation(Props.HasModel):
 
     counter = properties.Instance(
         "A SimPEG.Utils.Counter object",
-        Utils.Counter
+        Counter
     )
 
     # TODO: Solver code needs to be cleaned up so this is either a pymatsolver
     # solver or a SimPEG solver (or similar)
-    solver = Utils.SolverUtils.Solver
+    solver = properties.Instance(
+        "a pymatsolver class",
+        pymatsolver,
+        default=pymatsolver.Solver
+    )
 
     solver_opts = properties.Dictionary(
         "solver options as a kwarg dict",
