@@ -107,6 +107,7 @@ class Problem_CC_Jstore(Problem_CC):
                 self, v=Utils.sdiag(np.ones_like(self.model))
             )
             self.Ainv.clean()
+            del self.Ainv
         return self._G
 
     def getJ(self, m, f=None):

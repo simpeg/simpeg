@@ -25,12 +25,12 @@ class StreamingCurrents(Src.BaseSrc):
             if self.indActive is None:
                 self.indActive = np.ones(self.mesh.nC, dtype=bool)
             # This is for setting a Neuman condition on the topographic faces
-            V = Utils.sdiag(self.mesh.vol)
+
             self.Grad = sp.vstack(
                 (
-                    self.Pafx * self.mesh.faceDivx.T * V * self.Pac,
-                    self.Pafy * self.mesh.faceDivy.T * V * self.Pac,
-                    self.Pafz * self.mesh.faceDivz.T * V * self.Pac,
+                    self.Pafx * self.mesh.faceDivx.T * self.V * self.Pac,
+                    self.Pafy * self.mesh.faceDivy.T * self.V * self.Pac,
+                    self.Pafz * self.mesh.faceDivz.T * self.V * self.Pac,
                 )
             )
 
@@ -54,7 +54,7 @@ class StreamingCurrents(Src.BaseSrc):
             if self.modelType == "Head":
                 q = prob.Grad.T*self.MfLiI*prob.Grad*prob.h
             elif self.modelType == "CurrentSource":
-                q = prob.q
+                q = self.V * prob.q
             elif self.modelType == "CurrentDensity":
                 q = self.Grad.T*self.mesh.aveCCV2F*np.r_[
                     prob.jsx, prob.jsy, prob.jsz
@@ -73,7 +73,7 @@ class StreamingCurrents(Src.BaseSrc):
                         prob.Grad * v
                     )
                 elif self.modelType == "CurrentSource":
-                    srcDeriv = prob.qDeriv.T * v
+                    srcDeriv = prob.qDeriv.T * (self.V * v)
                 elif self.modelType == "CurrentDensity":
                     jsDeriv = sp.vstack(
                         (prob.jsxDeriv, prob.jsyDeriv, prob.jszDeriv)
@@ -85,7 +85,7 @@ class StreamingCurrents(Src.BaseSrc):
                 if self.modelType == "Head":
                     srcDeriv = prob.Grad.T*self.MfLiI*prob.Grad*(prob.hDeriv*v)
                 elif self.modelType == "CurrentSource":
-                    srcDeriv = prob.qDeriv * v
+                    srcDeriv = self.V * (prob.qDeriv * v)
                 elif self.modelType == "CurrentDensity":
                     jsDeriv = sp.vstack(
                         (prob.jsxDeriv, prob.jsyDeriv, prob.jszDeriv)
@@ -96,6 +96,14 @@ class StreamingCurrents(Src.BaseSrc):
         elif prob._formulation == 'EB':
             raise NotImplementedError()
         return srcDeriv
+    @property
+    def V(self):
+        """
+            :code:`V`
+        """
+        if getattr(self, '_V', None) is None:
+            self._V = Utils.sdiag(self.mesh.vol)
+        return self._V
 
     @property
     def MfLi(self):
