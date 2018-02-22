@@ -20,28 +20,10 @@ Contents
 .. toctree::
    :maxdepth: 2
 
+   background
    api_VRM
 
 
-Background Theory
------------------
 
-
-
-
-
-
-Linear Problem
-^^^^^^^^^^^^^^
-
-
-
-
-
-
-
-
-Non-Linear Problem
-^^^^^^^^^^^^^^^^^^
 
 
