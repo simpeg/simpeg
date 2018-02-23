@@ -485,10 +485,6 @@ class LineCurrent(BaseTDEMSrc):
     :param list rxList: receiver list
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
-    # waveform = None
-    loc = None
-    # mu = mu_0
-    # srcType = "Galvanic"
 
     def __init__(self, rxList, **kwargs):
         self.integrate = False
