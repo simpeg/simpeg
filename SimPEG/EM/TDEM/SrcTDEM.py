@@ -124,6 +124,78 @@ class VTEMWaveform(BaseWaveform):
             return 0.
 
 
+class TrapezoidWaveform(BaseWaveform):
+    """
+    A waveform that has a linear ramp-on and a linear ramp-off.
+    """
+
+    ramp_on = properties.Array(
+        """times over which the transmitter ramps on
+        [time starting to ramp on, time fully on]
+        """,
+        shape=(2,),
+        dtype=float
+    )
+
+    ramp_off = properties.Array(
+        """times over which we ramp off the waveform
+        [time starting to ramp off, time off]
+        """,
+        shape=(2,),
+        dtype=float
+    )
+
+    def __init__(self, **kwargs):
+        super(TrapezoidWaveform, self).__init__(**kwargs)
+        self.hasInitialFields = False
+
+    def eval(self, time):
+        if time < self.ramp_on[0]:
+            return 0
+        elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
+            return (1. / (self.ramp_on[1] - self.ramp_on[0])) * (time - self.ramp_on[0])
+        elif time > self.ramp_on[1] and time < self.ramp_off[0]:
+            return 1
+        elif time >= self.ramp_off[0] and time <= self.ramp_off[1]:
+            return 1 - (1. / (self.ramp_off[1] - self.ramp_off[0])) * (time - self.ramp_off[0])
+        else:
+            return 0
+
+
+class QuarterSineRampOnWaveform(BaseWaveform):
+    """
+    A waveform that has a quarter-sine ramp-on and a linear ramp-off
+    """
+
+    ramp_on = properties.Array(
+        "times over which the transmitter ramps on",
+        shape=(2,),
+        dtype=float
+    )
+
+    ramp_off = properties.Array(
+        "times over which we ramp off the waveform",
+        shape=(2,),
+        dtype=float
+    )
+
+    def __init__(self, **kwargs):
+        super(QuarterSineRampOnWaveform, self).__init__(**kwargs)
+        self.hasInitialFields = False
+
+    def eval(self, time):
+        if time < self.ramp_on[0]:
+            return 0
+        elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
+            return np.sin(np.pi/2 * (1. / (self.ramp_on[1] - self.ramp_on[0])) * (time - self.ramp_on[0]))
+        elif time > self.ramp_on[1] and time < self.ramp_off[0]:
+            return 1
+        elif time >= self.ramp_off[0] and time <= self.ramp_off[1]:
+            return 1 - (1. / (self.ramp_off[1] - self.ramp_off[0])) * (time - self.ramp_off[0])
+        else:
+            return 0
+
+
 ###############################################################################
 #                                                                             #
 #                                    Sources                                  #
@@ -281,6 +353,36 @@ class MagDipole(BaseTDEMSrc):
 
         return a
 
+    def _getAmagnetostatic(self, prob):
+        if prob._formulation == 'EB':
+            return prob.mesh.faceDiv * prob.MfMuiI * prob.mesh.faceDiv.T
+        else:
+            raise NotImplementedError
+
+    def _rhs_magnetostatic(self, prob):
+        if getattr(self, '_hp', None) is None:
+            if prob._formulation == 'EB':
+                bp = prob.mesh.edgeCurl * self._aSrc(prob)
+                self._MfMuip = prob.mesh.getFaceInnerProduct(1./self.mu)
+                self._MfMuipI = prob.mesh.getFaceInnerProduct(
+                    1./self.mu, invMat=True
+                )
+                self._hp = self._MfMuip * bp
+            else:
+                raise NotImplementedError
+
+        if prob._formulation == 'EB':
+            return -prob.mesh.faceDiv * (
+                (prob.MfMuiI - self._MfMuipI) * self._hp
+            )
+        else:
+            raise NotImplementedError
+
+    def _phiSrc(self, prob):
+        Ainv = prob.Solver(self._getAmagnetostatic(prob))
+        rhs = self._rhs_magnetostatic(prob)
+        return Ainv * rhs
+
     def _bSrc(self, prob):
         if prob._formulation == 'EB':
             C = prob.mesh.edgeCurl
@@ -295,18 +397,28 @@ class MagDipole(BaseTDEMSrc):
         if self.waveform.hasInitialFields is False:
             return Zero()
 
-        return self._bSrc(prob)
+        if np.all(prob.mu == self.mu):
+            return self._bSrc(prob)
+
+        else:
+            if prob._formulation == 'EB':
+                hs = prob.mesh.faceDiv.T * self._phiSrc(prob)
+                ht = self._hp + hs
+                return prob.MfMuiI * ht
+            else:
+                raise NotImplementedError
 
     def hInitial(self, prob):
 
         if self.waveform.hasInitialFields is False:
             return Zero()
-
-        return 1./self.mu * self._bSrc(prob)
+        if prob._formulation == 'EB':
+            return prob.MfMui * self.bInitial(prob)
+        elif prob._formulation == 'HJ':
+            return prob.MeMuI * self.bInitial(prob)
 
     def s_m(self, prob, time):
         if self.waveform.hasInitialFields is False:
-            # raise NotImplementedError
             return Zero()
         return Zero()
 
@@ -315,36 +427,29 @@ class MagDipole(BaseTDEMSrc):
         b = self._bSrc(prob)
 
         if prob._formulation == 'EB':
-
-            MfMui = prob.MfMui
+            MfMui = prob.mesh.getFaceInnerProduct(1./self.mu)
 
             if self.waveform.hasInitialFields is True and time < prob.timeSteps[1]:
-                # if time > 0.0:
-                #     return Zero()
                 if prob._fieldType == 'b':
                     return Zero()
                 elif prob._fieldType == 'e':
                     # Compute s_e from vector potential
                     return C.T * (MfMui * b)
             else:
-                # b = self._bfromVectorPotential(prob)
                 return C.T * (MfMui * b) * self.waveform.eval(time)
-        # return Zero()
 
         elif prob._formulation == 'HJ':
 
-            h = 1./self.mu * b
+            MeMuI = prob.mesh.getEdgeInnerProduct(self.mu, invMat=True)
+            h = prob.MeMuI * b
 
             if self.waveform.hasInitialFields is True and time < prob.timeSteps[1]:
-                # if time > 0.0:
-                #     return Zero()
                 if prob._fieldType == 'h':
                     return Zero()
                 elif prob._fieldType == 'j':
                     # Compute s_e from vector potential
                     return C * h
             else:
-                # b = self._bfromVectorPotential(prob)
                 return C * h * self.waveform.eval(time)
 
 
@@ -380,9 +485,9 @@ class LineCurrent(BaseTDEMSrc):
     :param list rxList: receiver list
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
-    waveform = None
+    # waveform = None
     loc = None
-    mu = mu_0
+    # mu = mu_0
     # srcType = "Galvanic"
 
     def __init__(self, rxList, **kwargs):
