@@ -34,7 +34,7 @@ waveforms = dict(zip(
 ))
 
 # plot the waveforms
-fig, ax = plt.subplots(2, 2, figsize=(8, 8))
+fig, ax = plt.subplots(2, 2, figsize=(7, 7))
 ax = mkvc(ax)
 
 for a, key in zip(ax, waveforms):
