@@ -1,27 +1,45 @@
 from __future__ import division, print_function
-import scipy.sparse as sp
+
 import numpy as np
-from SimPEG import Problem, Utils, Solver as SimpegSolver
-from SimPEG.EM.Base import BaseEMProblem
-from SimPEG.EM.TDEM.SurveyTDEM import Survey as SurveyTDEM
-from SimPEG.EM.TDEM.FieldsTDEM import (
-    FieldsTDEM, Fields3D_b, Fields3D_e, Fields3D_h, Fields3D_j, Fields_Derivs
-)
+import scipy.sparse as sp
 from scipy.constants import mu_0
 import time
+import properties
+
+from pymatsolver import Solver
+
+from ...Simulation import BaseTimeSimulation
+from ...Utils import mkvc, speye, Zero
+from ...Data import SyntheticData
+from ..Base import BaseEMSimulation
+
+from .SurveyTDEM import Survey
+from .FieldsTDEM import (
+    Fields3D_b, Fields3D_e, Fields3D_h, Fields3D_j, Fields_Derivs
+)
 
 
-class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
+class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     """
     We start with the first order form of Maxwell's equations, eliminate and
     solve the second order form. For the time discretization, we use backward
     Euler.
     """
-    surveyPair = SurveyTDEM  #: A SimPEG.EM.TDEM.SurveyTDEM Class
-    fieldsPair = FieldsTDEM  #: A SimPEG.EM.TDEM.FieldsTDEM Class
 
-    def __init__(self, mesh, **kwargs):
-        BaseEMProblem.__init__(self, mesh, **kwargs)
+    survey = properties.Instance(
+        "Frequency domain EM survey instance",
+        Survey,
+        required=True
+    )
+
+    verbose = properties.Bool(
+        "print logging info?",
+        default=False
+    )
+
+    def __init__(self, **kwargs):
+        # super(BaseTDEMSimulation, self).__init__(self, **kwargs)
+        BaseEMSimulation.__init__(self, **kwargs)
 
     # def fields_nostore(self, m):
     #     """
@@ -45,7 +63,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         tic = time.time()
         self.model = m
 
-        F = self.fieldsPair(self.mesh, self.survey)
+        F = self.fieldsPair(simulation=self)
 
         # set initial fields
         F[:, self._fieldType+'Solution', 0] = self.getInitialFields()
@@ -54,11 +72,11 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         if self.verbose:
             print('{}\nCalculating fields(m)\n{}'.format('*'*50, '*'*50))
         Ainv = None
-        for tInd, dt in enumerate(self.timeSteps):
+        for tInd, dt in enumerate(self.time_steps):
             # keep factors if dt is the same as previous step b/c A will be the
             # same
             if Ainv is not None and (
-                tInd > 0 and dt != self.timeSteps[tInd - 1]
+                tInd > 0 and dt != self.time_steps[tInd - 1]
             ):
                 Ainv.clean()
                 Ainv = None
@@ -67,7 +85,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 A = self.getAdiag(tInd)
                 if self.verbose:
                     print('Factoring...   (dt = {:e})'.format(dt))
-                Ainv = self.Solver(A, **self.solverOpts)
+                Ainv = self.Solver(A, **self.solver_opts)
                 if self.verbose:
                     print('Done')
 
@@ -90,6 +108,28 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             print('{}\nDone calculating fields(m)\n{}'.format('*'*50, '*'*50))
         Ainv.clean()
         return F
+
+    def dpred(self, m=None, f=None):
+        """dpred(m, f=None)
+
+            Create the projected data from a model.
+            The fields, f, (if provided) will be used for the predicted data
+            instead of recalculating the fields (which may be expensive!).
+
+            .. math::
+
+                d_\\text{pred} = P(f(m))
+
+            Where P is a projection of the fields onto the data space.
+        """
+        if f is None:
+            f = self.fields(m)
+
+        data = SyntheticData(survey=self.survey)
+        for src in self.survey.srcList:
+            for rx in src.rxList:
+                data[src, rx] = rx.eval(src, self.mesh, self.time_mesh, f)
+        return data.dobs
 
     def Jvec(self, m, v, f=None):
         """
@@ -128,28 +168,28 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         # for i, src in enumerate(self.survey.srcList):
         dun_dm_v = np.hstack([
-            Utils.mkvc(
+            mkvc(
                 self.getInitialFieldsDeriv(src, v, f=f), 2
             )
             for src in self.survey.srcList
         ])
         # can over-write this at each timestep
         # store the field derivs we need to project to calc full deriv
-        df_dm_v = Fields_Derivs(self.mesh, self.survey)
+        df_dm_v = Fields_Derivs(simulation=self)
 
         Adiaginv = None
 
-        for tInd, dt in zip(range(self.nT), self.timeSteps):
+        for tInd, dt in zip(range(self.nT), self.time_steps):
             # keep factors if dt is the same as previous step b/c A will be the
             # same
             if Adiaginv is not None and (tInd > 0 and dt !=
-                                         self.timeSteps[tInd - 1]):
+                                         self.time_steps[tInd - 1]):
                 Adiaginv.clean()
                 Adiaginv = None
 
             if Adiaginv is None:
                 A = self.getAdiag(tInd)
-                Adiaginv = self.Solver(A, **self.solverOpts)
+                Adiaginv = self.Solver(A, **self.solver_opts)
 
             Asubdiag = self.getAsubdiag(tInd)
 
@@ -180,7 +220,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 JRHS = dRHS_dm_v - dAsubdiag_dm_v - dA_dm_v
 
                 # step in time and overwrite
-                if tInd != len(self.timeSteps+1):
+                if tInd != len(self.time_steps+1):
                     dun_dm_v[:, i] = Adiaginv * (
                         JRHS - Asubdiag * dun_dm_v[:, i]
                     )
@@ -189,14 +229,14 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         for src in self.survey.srcList:
             for rx in src.rxList:
                 Jv.append(
-                    rx.evalDeriv(src, self.mesh, self.timeMesh, f, Utils.mkvc(
+                    rx.evalDeriv(src, self.mesh, self.time_mesh, f, mkvc(
                             df_dm_v[src, '%sDeriv' % rx.projField, :]
                         )
                     )
                 )
         Adiaginv.clean()
         # del df_dm_v, dun_dm_v, Asubdiag
-        # return Utils.mkvc(Jv)
+        # return mkvc(Jv)
         return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
@@ -226,10 +266,10 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         ftype = self._fieldType + 'Solution'  # the thing we solved for
 
         # Ensure v is a data object.
-        if not isinstance(v, self.dataPair):
-            v = self.dataPair(self.survey, v)
+        if not isinstance(v, SyntheticData):
+            v = SyntheticData(survey=self.survey, dobs=v)
 
-        df_duT_v = Fields_Derivs(self.mesh, self.survey)
+        df_duT_v = Fields_Derivs(simulation=self)
 
         # same size as fields at a single timestep
         ATinv_df_duT_v = np.zeros(
@@ -244,7 +284,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         # Loop over sources and receivers to create a fields object:
         # PT_v, df_duT_v, df_dmT_v
         # initialize storage for PT_v (don't need to preserve over sources)
-        PT_v = Fields_Derivs(self.mesh, self.survey)
+        PT_v = Fields_Derivs(simulation=self)
         for src in self.survey.srcList:
             # Looping over initializing field class is appending memory!
             # PT_v = Fields_Derivs(self.mesh, self.survey) # initialize storage
@@ -256,17 +296,17 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
             for rx in src.rxList:
                 PT_v[src, '{}Deriv'.format(rx.projField), :] = rx.evalDeriv(
-                    src, self.mesh, self.timeMesh, f, Utils.mkvc(v[src, rx]),
+                    src, self.mesh, self.time_mesh, f, mkvc(v[src, rx]),
                     adjoint=True
                 ) # this is +=
 
-                # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN,
-                # self.timeMesh.nN), order='F')
+                # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.time_mesh.nN,
+                # self.time_mesh.nN), order='F')
                 df_duTFun = getattr(f, '_{}Deriv'.format(rx.projField), None)
 
                 for tInd in range(self.nT+1):
                     cur = df_duTFun(
-                        tInd, src, None, Utils.mkvc(
+                        tInd, src, None, mkvc(
                             PT_v[src, '{}Deriv'.format(rx.projField), tInd]
                         ),
                         adjoint=True
@@ -274,7 +314,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
                     df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd] = (
                         df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd] +
-                        Utils.mkvc(cur[0], 2))
+                        mkvc(cur[0], 2))
                     JTv = cur[1] + JTv
 
         del PT_v # no longer need this
@@ -283,13 +323,13 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         # Do the back-solve through time
         # if the previous timestep is the same: no need to refactor the matrix
-        # for tInd, dt in zip(range(self.nT), self.timeSteps):
+        # for tInd, dt in zip(range(self.nT), self.time_steps):
 
         for tInd in reversed(range(self.nT)):
             # tInd = tIndP - 1
             if AdiagTinv is not None and (
                 tInd <= self.nT and
-                self.timeSteps[tInd] != self.timeSteps[tInd+1]
+                self.time_steps[tInd] != self.time_steps[tInd+1]
             ):
                 AdiagTinv.clean()
                 AdiagTinv = None
@@ -297,7 +337,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             # refactor if we need to
             if AdiagTinv is None:  # and tInd > -1:
                 Adiag = self.getAdiag(tInd)
-                AdiagTinv = self.Solver(Adiag.T, **self.solverOpts)
+                AdiagTinv = self.Solver(Adiag.T, **self.solver_opts)
 
             if tInd < self.nT - 1:
                 Asubdiag = self.getAsubdiag(tInd+1)
@@ -311,17 +351,17 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                         src, '{}Deriv'.format(self._fieldType), tInd+1]
                 elif tInd > -1:
                     ATinv_df_duT_v[isrc, :] = AdiagTinv * (
-                        Utils.mkvc(df_duT_v[
+                        mkvc(df_duT_v[
                             src, '{}Deriv'.format(self._fieldType), tInd+1
                         ]
-                        ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
+                        ) - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :]))
 
                 if tInd < self.nT:
                     dAsubdiagT_dm_v = self.getAsubdiagDeriv(
                         tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
                         adjoint=True)
                 else:
-                    dAsubdiagT_dm_v = Utils.Zero()
+                    dAsubdiagT_dm_v = Zero()
 
                 dRHST_dm_v = self.getRHSDeriv(
                         tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
@@ -333,7 +373,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                     tInd, un_src, ATinv_df_duT_v[isrc, :], adjoint=True
                 )
 
-                JTv = JTv + Utils.mkvc(
+                JTv = JTv + mkvc(
                     -dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v
                 )
 
@@ -341,7 +381,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         if AdiagTinv is not None:
             AdiagTinv.clean()
 
-        return Utils.mkvc(JTv).astype(float)
+        return mkvc(JTv).astype(float)
 
     def getSourceTerm(self, tInd):
         """
@@ -396,11 +436,12 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         elif adjoint is True:
             ifieldsDeriv = np.zeros(self.mapping.nP)
 
-        ifieldsDeriv = (Utils.mkvc(
+        ifieldsDeriv = (mkvc(
             getattr(src, '{}InitialDeriv'.format(self._fieldType),
                     None)(self, v, adjoint, f)) + ifieldsDeriv
             )
         return ifieldsDeriv
+
 
 ###############################################################################
 #                                                                             #
@@ -408,9 +449,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 #                                                                             #
 ###############################################################################
 
-# ------------------------------- Problem3D_b ------------------------------- #
+# ---------------------------- B - Formulation ------------------------------ #
 
-class Problem3D_b(BaseTDEMProblem):
+class Simulation3D_b(BaseTDEMSimulation):
     """
     Starting from the quasi-static E-B formulation of Maxwell's equations
     (semi-discretized)
@@ -477,10 +518,9 @@ class Problem3D_b(BaseTDEMProblem):
     _fieldType = 'b'
     _formulation = 'EB'
     fieldsPair = Fields3D_b  #: A SimPEG.EM.TDEM.Fields3D_b object
-    surveyPair = SurveyTDEM
 
-    def __init__(self, mesh, **kwargs):
-        BaseTDEMProblem.__init__(self, mesh, **kwargs)
+    def __init__(self, **kwargs):
+        super(Simulation3D_b, self).__init__(**kwargs)
 
     def getAdiag(self, tInd):
         """
@@ -493,11 +533,11 @@ class Problem3D_b(BaseTDEMProblem):
         """
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
         MfMui = self.MfMui
-        I = Utils.speye(self.mesh.nF)
+        I = speye(self.mesh.nF)
 
         A = 1./dt * I + (C * (MeSigmaI * (C.T * MfMui)))
 
@@ -532,7 +572,7 @@ class Problem3D_b(BaseTDEMProblem):
         Matrix below the diagonal
         """
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         MfMui = self.MfMui
         Asubdiag = - 1./dt * sp.eye(self.mesh.nF)
 
@@ -542,7 +582,7 @@ class Problem3D_b(BaseTDEMProblem):
         return Asubdiag
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
-        return Utils.Zero() * v
+        return Zero() * v
 
     def getRHS(self, tInd):
         """
@@ -580,8 +620,8 @@ class Problem3D_b(BaseTDEMProblem):
         if adjoint:
             if self._makeASymmetric is True:
                 v = self.MfMui * v
-            if isinstance(s_e, Utils.Zero):
-                MeSigmaIDerivT_v = Utils.Zero()
+            if isinstance(s_e, Zero):
+                MeSigmaIDerivT_v = Zero()
             else:
                 MeSigmaIDerivT_v = MeSigmaIDeriv(s_e).T * C.T * v
 
@@ -592,8 +632,8 @@ class Problem3D_b(BaseTDEMProblem):
 
             return RHSDeriv
 
-        if isinstance(s_e, Utils.Zero):
-            MeSigmaIDeriv_v = Utils.Zero()
+        if isinstance(s_e, Zero):
+            MeSigmaIDeriv_v = Zero()
         else:
             MeSigmaIDeriv_v = MeSigmaIDeriv(s_e) * v
 
@@ -606,8 +646,8 @@ class Problem3D_b(BaseTDEMProblem):
         return RHSDeriv
 
 
-# ------------------------------- Problem3D_e ------------------------------- #
-class Problem3D_e(BaseTDEMProblem):
+# ------------------------------- Simulation3D_e ------------------------------- #
+class Simulation3D_e(BaseTDEMSimulation):
     """
         Solve the EB-formulation of Maxwell's equations for the electric field, e.
 
@@ -646,11 +686,10 @@ class Problem3D_e(BaseTDEMProblem):
     _fieldType = 'e'
     _formulation = 'EB'
     fieldsPair = Fields3D_e  #: A Fields3D_e
-    surveyPair = SurveyTDEM
     Adcinv = None
 
-    def __init__(self, mesh, **kwargs):
-        BaseTDEMProblem.__init__(self, mesh, **kwargs)
+    def __init__(self, **kwargs):
+        super(Simulation3D_e, self).__init__(**kwargs)
 
     def Jtvec(self, m, v, f=None):
 
@@ -666,10 +705,10 @@ class Problem3D_e(BaseTDEMProblem):
         ftype = self._fieldType + 'Solution'  # the thing we solved for
 
         # Ensure v is a data object.
-        if not isinstance(v, self.dataPair):
-            v = self.dataPair(self.survey, v)
+        if not isinstance(v, SyntheticData):
+            v = SyntheticData(survey=self.survey, dobs=v)
 
-        df_duT_v = Fields_Derivs(self.mesh, self.survey)
+        df_duT_v = Fields_Derivs(simulation=self)
 
         # same size as fields at a single timestep
         ATinv_df_duT_v = np.zeros(
@@ -684,7 +723,7 @@ class Problem3D_e(BaseTDEMProblem):
         # Loop over sources and receivers to create a fields object:
         # PT_v, df_duT_v, df_dmT_v
         # initialize storage for PT_v (don't need to preserve over sources)
-        PT_v = Fields_Derivs(self.mesh, self.survey)
+        PT_v = Fields_Derivs(simulation=self)
         for src in self.survey.srcList:
             # Looping over initializing field class is appending memory!
             # PT_v = Fields_Derivs(self.mesh, self.survey) # initialize storage
@@ -696,18 +735,18 @@ class Problem3D_e(BaseTDEMProblem):
 
             for rx in src.rxList:
                 PT_v[src, '{}Deriv'.format(rx.projField), :] = rx.evalDeriv(
-                    src, self.mesh, self.timeMesh, f, Utils.mkvc(v[src, rx]),
+                    src, self.mesh, self.time_mesh, f, mkvc(v[src, rx]),
                     adjoint=True
                 )
                 # this is +=
 
-                # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN,
-                # self.timeMesh.nN), order='F')
+                # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.time_mesh.nN,
+                # self.time_mesh.nN), order='F')
                 df_duTFun = getattr(f, '_{}Deriv'.format(rx.projField), None)
 
                 for tInd in range(self.nT+1):
                     cur = df_duTFun(
-                        tInd, src, None, Utils.mkvc(
+                        tInd, src, None, mkvc(
                             PT_v[src, '{}Deriv'.format(rx.projField), tInd]
                         ),
                         adjoint=True
@@ -715,7 +754,7 @@ class Problem3D_e(BaseTDEMProblem):
 
                     df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd] = (
                         df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd]
-                        + Utils.mkvc(cur[0], 2)
+                        + mkvc(cur[0], 2)
                         )
                     JTv = cur[1] + JTv
 
@@ -726,13 +765,13 @@ class Problem3D_e(BaseTDEMProblem):
 
         # Do the back-solve through time
         # if the previous timestep is the same: no need to refactor the matrix
-        # for tInd, dt in zip(range(self.nT), self.timeSteps):
+        # for tInd, dt in zip(range(self.nT), self.time_steps):
 
         for tInd in reversed(range(self.nT)):
             # tInd = tIndP - 1
             if AdiagTinv is not None and (
                 tInd <= self.nT and
-                self.timeSteps[tInd] != self.timeSteps[tInd+1]
+                self.time_steps[tInd] != self.time_steps[tInd+1]
             ):
                 AdiagTinv.clean()
                 AdiagTinv = None
@@ -740,7 +779,7 @@ class Problem3D_e(BaseTDEMProblem):
             # refactor if we need to
             if AdiagTinv is None:  # and tInd > -1:
                 Adiag = self.getAdiag(tInd)
-                AdiagTinv = self.Solver(Adiag.T, **self.solverOpts)
+                AdiagTinv = self.solver(Adiag.T, **self.solver_opts)
 
             if tInd < self.nT - 1:
                 Asubdiag = self.getAsubdiag(tInd+1)
@@ -754,10 +793,10 @@ class Problem3D_e(BaseTDEMProblem):
                         src, '{}Deriv'.format(self._fieldType), tInd+1]
                 elif tInd > -1:
                     ATinv_df_duT_v[isrc, :] = AdiagTinv * (
-                        Utils.mkvc(df_duT_v[
+                        mkvc(df_duT_v[
                             src, '{}Deriv'.format(self._fieldType), tInd+1
                         ]
-                        ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
+                        ) - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :]))
 
                 dAsubdiagT_dm_v = self.getAsubdiagDeriv(
                     tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
@@ -773,7 +812,7 @@ class Problem3D_e(BaseTDEMProblem):
                     tInd, un_src, ATinv_df_duT_v[isrc, :], adjoint=True
                 )
 
-                JTv = JTv + Utils.mkvc(
+                JTv = JTv + mkvc(
                     -dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v
                 )
 
@@ -782,18 +821,18 @@ class Problem3D_e(BaseTDEMProblem):
         Grad = self.mesh.nodalGrad
 
         for isrc, src in enumerate(self.survey.srcList):
-            if src.srcType == "Galvanic":
+            if src.srcType == "grounded":
 
                 ATinv_df_duT_v[isrc, :] = Grad*(self.Adcinv*(Grad.T*(
-                    Utils.mkvc(df_duT_v[
+                    mkvc(df_duT_v[
                         src, '{}Deriv'.format(self._fieldType), tInd+1
                     ]
-                    ) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
+                    ) - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :]))
                 ))
 
                 dRHST_dm_v = self.getRHSDeriv(
-                        tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
-                        )  # on nodes of time mesh
+                    tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
+                )  # on nodes of time mesh
 
                 un_src = f[src, ftype, tInd+1]
                 # cell centered on time mesh
@@ -801,7 +840,7 @@ class Problem3D_e(BaseTDEMProblem):
                     self.MeSigmaDeriv(un_src).T * ATinv_df_duT_v[isrc, :]
                     )
 
-                JTv = JTv + Utils.mkvc(
+                JTv = JTv + mkvc(
                     -dAT_dm_v + dRHST_dm_v
                 )
 
@@ -809,7 +848,7 @@ class Problem3D_e(BaseTDEMProblem):
         if AdiagTinv is not None:
             AdiagTinv.clean()
 
-        return Utils.mkvc(JTv).astype(float)
+        return mkvc(JTv).astype(float)
 
     def getAdiag(self, tInd):
         """
@@ -817,7 +856,7 @@ class Problem3D_e(BaseTDEMProblem):
         """
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
         MeSigma = self.MeSigma
@@ -830,7 +869,7 @@ class Problem3D_e(BaseTDEMProblem):
         """
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         MeSigmaDeriv = self.MeSigmaDeriv(u)
 
         if adjoint:
@@ -844,7 +883,7 @@ class Problem3D_e(BaseTDEMProblem):
         """
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
 
         return - 1./dt * self.MeSigma
 
@@ -853,7 +892,7 @@ class Problem3D_e(BaseTDEMProblem):
         Derivative of the matrix below the diagonal with respect to electrical
         conductivity
         """
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
 
         if adjoint:
             return - 1./dt * self.MeSigmaDeriv(u).T * v
@@ -865,10 +904,10 @@ class Problem3D_e(BaseTDEMProblem):
         right hand side
         """
         # Omit this: Note input was tInd+1
-        # if tInd == len(self.timeSteps):
+        # if tInd == len(self.time_steps):
         #     tInd = tInd - 1
 
-        dt = self.timeSteps[tInd-1]
+        dt = self.time_steps[tInd-1]
         s_m, s_e = self.getSourceTerm(tInd)
         _, s_en1 = self.getSourceTerm(tInd-1)
         return (-1./dt * (s_e - s_en1) +
@@ -876,7 +915,7 @@ class Problem3D_e(BaseTDEMProblem):
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         # right now, we are assuming that s_e, s_m do not depend on the model.
-        return Utils.Zero()
+        return Zero()
 
     def getInitialFields(self):
         """
@@ -894,7 +933,8 @@ class Problem3D_e(BaseTDEMProblem):
 
         for i, src in enumerate(Srcs):
             # Check if the source is grounded
-            if src.srcType == "Galvanic" and src.waveform.hasInitialFields:
+            print(src.srcType)
+            if src.srcType == "grounded" and src.waveform.hasInitialFields:
                 # Check self.Adcinv and clean
                 if self.Adcinv is not None:
                     self.Adcinv.clean()
@@ -902,7 +942,7 @@ class Problem3D_e(BaseTDEMProblem):
                 if self.verbose:
                     print ("Factorize system matrix for DC problem")
                 Adc = self.getAdc()
-                self.Adcinv = self.Solver(Adc)
+                self.Adcinv = self.solver(Adc)
 
             ifields[:, i] = (
                 ifields[:, i] + getattr(
@@ -935,15 +975,16 @@ class Problem3D_e(BaseTDEMProblem):
         if self.Adcinv is not None:
             self.Adcinv.clean()
 
+
 ###############################################################################
 #                                                                             #
 #                                H-J Formulation                              #
 #                                                                             #
 ###############################################################################
 
-# ------------------------------- Problem3D_h ------------------------------- #
+# ------------------------------- Simulation3D_h ------------------------------- #
 
-class Problem3D_h(BaseTDEMProblem):
+class Simulation3D_h(BaseTDEMSimulation):
     """
     Solve the H-J formulation of Maxwell's equations for the magnetic field h.
 
@@ -975,10 +1016,9 @@ class Problem3D_h(BaseTDEMProblem):
     _fieldType = 'h'
     _formulation = 'HJ'
     fieldsPair = Fields3D_h  #: Fields object pair
-    surveyPair = SurveyTDEM
 
-    def __init__(self, mesh, **kwargs):
-        BaseTDEMProblem.__init__(self, mesh, **kwargs)
+    def __init__(self, **kwargs):
+        super(Simulation3D_h, self).__init__(**kwargs)
 
     def getAdiag(self, tInd):
         """
@@ -987,7 +1027,7 @@ class Problem3D_h(BaseTDEMProblem):
         """
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         C = self.mesh.edgeCurl
         MfRho = self.MfRho
         MeMu = self.MeMu
@@ -997,7 +1037,7 @@ class Problem3D_h(BaseTDEMProblem):
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         C = self.mesh.edgeCurl
         MfRhoDeriv = self.MfRhoDeriv(C * u)
 
@@ -1009,12 +1049,12 @@ class Problem3D_h(BaseTDEMProblem):
     def getAsubdiag(self, tInd):
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
 
         return - 1./dt * self.MeMu
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
-        return Utils.Zero()
+        return Zero()
 
     def getRHS(self, tInd):
 
@@ -1035,9 +1075,9 @@ class Problem3D_h(BaseTDEMProblem):
         return C.T * (MfRhoDeriv * v)
 
 
-# ------------------------------- Problem3D_j ------------------------------- #
+# ------------------------------- Simulation3D_j ------------------------------- #
 
-class Problem3D_j(BaseTDEMProblem):
+class Simulation3D_j(BaseTDEMSimulation):
 
     """
     Solve the H-J formulation for current density
@@ -1050,10 +1090,9 @@ class Problem3D_j(BaseTDEMProblem):
     _fieldType = 'j'
     _formulation = 'HJ'
     fieldsPair = Fields3D_j  #: Fields object pair
-    surveyPair = SurveyTDEM  #: survey
 
-    def __init__(self, mesh, **kwargs):
-        BaseTDEMProblem.__init__(self, mesh, **kwargs)
+    def __init__(self, **kwargs):
+        super(Simulation3D_j, self).__init__(**kwargs)
 
     def getAdiag(self, tInd):
         """
@@ -1062,7 +1101,7 @@ class Problem3D_j(BaseTDEMProblem):
         """
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         C = self.mesh.edgeCurl
         MfRho = self.MfRho
         MeMuI = self.MeMuI
@@ -1078,7 +1117,7 @@ class Problem3D_j(BaseTDEMProblem):
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         C = self.mesh.edgeCurl
         MfRho = self.MfRho
         MfRhoDeriv = self.MfRhoDeriv(u)
@@ -1098,23 +1137,23 @@ class Problem3D_j(BaseTDEMProblem):
         assert tInd >= 0 and tInd < self.nT
         eye = sp.eye(self.mesh.nF)
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
 
         if self._makeASymmetric:
             return -1./dt * self.MfRho.T
         return -1./dt * eye
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
-        return Utils.Zero()
+        return Zero()
 
     def getRHS(self, tInd):
 
-        if tInd == len(self.timeSteps):
+        if tInd == len(self.time_steps):
             tInd = tInd - 1
 
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         s_m, s_e = self.getSourceTerm(tInd)
         _, s_en1 = self.getSourceTerm(tInd-1)
 
@@ -1124,5 +1163,5 @@ class Problem3D_j(BaseTDEMProblem):
         return rhs
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
-        return Utils.Zero()  # assumes no derivs on sources
+        return Zero()  # assumes no derivs on sources
 

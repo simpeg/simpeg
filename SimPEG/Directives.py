@@ -1,6 +1,6 @@
 from __future__ import print_function
 from . import Utils
-from . import Regularization, DataMisfit, ObjectiveFunction, NewDataMisfit
+from . import Regularization, OldDataMisfit, ObjectiveFunction, DataMisfit
 from . import Maps
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,9 +17,9 @@ class InversionDirective(object):
         ObjectiveFunction.ComboObjectiveFunction
     ]
     _dmisfitPair = [
-        DataMisfit.BaseDataMisfit,
+        OldDataMisfit.BaseDataMisfit,
         ObjectiveFunction.ComboObjectiveFunction,
-        NewDataMisfit.BaseDataMisfit
+        DataMisfit.BaseDataMisfit
     ]
 
     def __init__(self, **kwargs):

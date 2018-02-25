@@ -33,10 +33,10 @@ class BaseFDEMFields(BaseFields):
     nFrequencies)
     """
 
+    dtype = complex  #: dtype of field values
+
     def __init__(self, **kwargs):
         super(BaseFDEMFields, self).__init__(**kwargs)
-
-    dtype = complex
 
     def _GLoc(self, fieldType):
         """Grid location of the fieldType"""
@@ -343,19 +343,9 @@ class Fields3D_e(BaseFDEMFields):
     """
 
     def __init__(self, **kwargs):
-        knownFields = kwargs.pop('knownFields', None)
-        assert knownFields is None, (
-            "knownFields should not be changed from the default"
-        )
-        aliasFields = kwargs.pop('aliasFields', None)
-        assert aliasFields is None, (
-            "aliasFields should not be changed from the default"
-        )
 
-        super(Fields3D_e, self).__init__(**kwargs)
-
-        self.knownFields = {'eSolution': 'E'}
-        self.aliasFields = {
+        knownFields = {'eSolution': 'E'}
+        aliasFields = {
             'e': ['eSolution', 'E', '_e'],
             'ePrimary': ['eSolution', 'E', '_ePrimary'],
             'eSecondary': ['eSolution', 'E', '_eSecondary'],
@@ -365,6 +355,23 @@ class Fields3D_e(BaseFDEMFields):
             'j': ['eSolution', 'CCV', '_j'],  # TODO: move to F
             'h': ['eSolution', 'CCV', '_h'],  # TODO: move to E
         }
+
+        knownFieldskwarg = kwargs.pop('knownFields', None)
+        if knownFieldskwarg is not None:
+            assert knownFieldskwarg == knownFields, (
+                "knownFields should not be changed from the default"
+            )
+
+        aliasFieldskwarg = kwargs.pop('aliasFields', None)
+        if knownFieldskwarg is not None:
+            assert aliasFieldskwarg == aliasFields, (
+                "aliasFields should not be changed from the default"
+            )
+
+        super(Fields3D_e, self).__init__(**kwargs)
+
+        self.knownFields = knownFields
+        self.aliasFields = aliasFields
 
     def startup(self):
         self._MeSigma = self.simulation.MeSigma
@@ -696,19 +703,9 @@ class Fields3D_b(BaseFDEMFields):
     """
 
     def __init__(self, **kwargs):
-        knownFields = kwargs.pop('knownFields', None)
-        assert knownFields is None, (
-            "knownFields should not be changed from the default"
-        )
-        aliasFields = kwargs.pop('aliasFields', None)
-        assert aliasFields is None, (
-            "aliasFields should not be changed from the default"
-        )
 
-        super(Fields3D_b, self).__init__(**kwargs)
-
-        self.knownFields = {'bSolution': 'F'}
-        self.aliasFields = {
+        knownFields = {'bSolution': 'F'}
+        aliasFields = {
             'b': ['bSolution', 'F', '_b'],
             'bPrimary': ['bSolution', 'F', '_bPrimary'],
             'bSecondary': ['bSolution', 'F', '_bSecondary'],
@@ -718,6 +715,23 @@ class Fields3D_b(BaseFDEMFields):
             'j': ['bSolution', 'CCV', '_j'],  # TODO: move to edges
             'h': ['bSolution', 'CCV', '_h'],  # TODO: move to faces
         }
+
+        knownFieldskwarg = kwargs.pop('knownFields', None)
+        if knownFieldskwarg is not None:
+            assert knownFieldskwarg == knownFields, (
+                "knownFields should not be changed from the default"
+            )
+
+        aliasFieldskwarg = kwargs.pop('aliasFields', None)
+        if knownFieldskwarg is not None:
+            assert aliasFieldskwarg == aliasFields, (
+                "aliasFields should not be changed from the default"
+            )
+
+        super(Fields3D_b, self).__init__(**kwargs)
+
+        self.knownFields = knownFields
+        self.aliasFields = aliasFields
 
     def startup(self):
         self._MeSigma = self.simulation.MeSigma
@@ -1059,19 +1073,9 @@ class Fields3D_j(BaseFDEMFields):
     """
 
     def __init__(self, **kwargs):
-        knownFields = kwargs.pop('knownFields', None)
-        assert knownFields is None, (
-            "knownFields should not be changed from the default"
-        )
-        aliasFields = kwargs.pop('aliasFields', None)
-        assert aliasFields is None, (
-            "aliasFields should not be changed from the default"
-        )
 
-        super(Fields3D_j, self).__init__(**kwargs)
-
-        self.knownFields = {'jSolution': 'F'}
-        self.aliasFields = {
+        knownFields = {'jSolution': 'F'}
+        aliasFields = {
             'j': ['jSolution', 'F', '_j'],
             'jPrimary': ['jSolution', 'F', '_jPrimary'],
             'jSecondary': ['jSolution', 'F', '_jSecondary'],
@@ -1080,7 +1084,24 @@ class Fields3D_j(BaseFDEMFields):
             'hSecondary': ['jSolution', 'E', '_hSecondary'],
             'e': ['jSolution', 'CCV', '_e'],  # TODO: move to faces
             'b': ['jSolution', 'CCV', '_b'],  # TODO: move to edges
-          }
+        }
+
+        knownFieldskwarg = kwargs.pop('knownFields', None)
+        if knownFieldskwarg is not None:
+            assert knownFieldskwarg == knownFields, (
+                "knownFields should not be changed from the default"
+            )
+
+        aliasFieldskwarg = kwargs.pop('aliasFields', None)
+        if knownFieldskwarg is not None:
+            assert aliasFieldskwarg == aliasFields, (
+                "aliasFields should not be changed from the default"
+            )
+
+        super(Fields3D_j, self).__init__(**kwargs)
+
+        self.knownFields = knownFields
+        self.aliasFields = aliasFields
 
     def startup(self):
         self._MeMu = self.simulation.MeMu
@@ -1437,19 +1458,9 @@ class Fields3D_h(BaseFDEMFields):
     """
 
     def __init__(self, **kwargs):
-        knownFields = kwargs.pop('knownFields', None)
-        assert knownFields is None, (
-            "knownFields should not be changed from the default"
-        )
-        aliasFields = kwargs.pop('aliasFields', None)
-        assert aliasFields is None, (
-            "aliasFields should not be changed from the default"
-        )
 
-        super(Fields3D_h, self).__init__(**kwargs)
-
-        self.knownFields = {'hSolution': 'E'}
-        self.aliasFields = {
+        knownFields = {'hSolution': 'E'}
+        aliasFields = {
             'h': ['hSolution', 'E', '_h'],
             'hPrimary': ['hSolution', 'E', '_hPrimary'],
             'hSecondary': ['hSolution', 'E', '_hSecondary'],
@@ -1459,6 +1470,23 @@ class Fields3D_h(BaseFDEMFields):
             'e': ['hSolution', 'CCV', '_e'],  # TODO: move to faces
             'b': ['hSolution', 'CCV', '_b'],  # TODO: move to edges
           }
+
+        knownFieldskwarg = kwargs.pop('knownFields', None)
+        if knownFieldskwarg is not None:
+            assert knownFieldskwarg == knownFields, (
+                "knownFields should not be changed from the default"
+            )
+
+        aliasFieldskwarg = kwargs.pop('aliasFields', None)
+        if knownFieldskwarg is not None:
+            assert aliasFieldskwarg == aliasFields, (
+                "aliasFields should not be changed from the default"
+            )
+
+        super(Fields3D_h, self).__init__(**kwargs)
+
+        self.knownFields = knownFields
+        self.aliasFields = aliasFields
 
     def startup(self):
         self._MeMu = self.simulation.MeMu

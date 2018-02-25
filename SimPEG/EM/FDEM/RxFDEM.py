@@ -45,7 +45,8 @@ class BaseFDEMRx(BaseRx):
                 projComp = "z"
             else:
                 raise NotImplementedError(
-                    "Arbitrary receiver orientations have not yet been implemented"
+                    "Arbitrary receiver orientations have not yet been "
+                    "implemented"
                 )
             self._projComp = projComp
         return self._projComp

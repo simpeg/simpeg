@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 import properties
 from scipy.constants import mu_0
 
-from .. import NewSurvey as Survey
+from .. import Survey
 from .. import Simulation
 from .. import Utils
 from .. import Props

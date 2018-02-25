@@ -25,6 +25,7 @@ class BaseRx(properties.HasProperties):
 
     # TODO: write a validator that checks against mesh dimension in the
     # BaseSimulation
+    # TODO: locations
     locs = RxLocationArray(
         "Locations of the receivers (nRx x nDim)",
         shape=("*", "*"),
@@ -38,7 +39,7 @@ class BaseRx(properties.HasProperties):
 
     projGLoc = properties.StringChoice(
         "Projection grid location, default is CC",
-        choices=["CC", "F", "E"],
+        choices=["CC", "Fx", "Fy", "Fz", "Ex", "Ey", "Ez", "N"],
         default="CC"
     )
 
@@ -51,11 +52,14 @@ class BaseRx(properties.HasProperties):
         "unique ID for the receiver"
     )
 
-    _Ps = properties.Instance(
+    _Ps = properties.Dictionary(
         "dictonary for storing projections",
-        dict,
-        default={}
     )
+
+    def __init__(self, **kwargs):
+        super(BaseRx, self).__init__(**kwargs)
+        if getattr(self, '_Ps', None) is None:
+            self._Ps = {}
 
     # @property
     # def rxType(self):
@@ -113,9 +117,8 @@ class BaseTimeRx(BaseRx):
         default="N"
     )
 
-    # def __init__(self, locs, times, rxType, **kwargs):
-    #     self.times = times
-    #     BaseRx.__init__(self, locs, rxType, **kwargs)
+    def __init__(self, **kwargs):
+        super(BaseTimeRx, self).__init__(**kwargs)
 
     @property
     def nD(self):

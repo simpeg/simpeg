@@ -33,31 +33,29 @@ def halfSpaceProblemAnaDiff(
     actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
 
-    prb = EM.TDEM.Simulation3D_b(mesh=mesh, sigmaMap=mapping)
-    prb.solver = Solver
-    prb.time_steps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
+    prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
+    prb.Solver = Solver
+    prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
     out = EM.Utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
     wavefun = interp1d(prb.times, out)
     t0 = 0.006
     waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
 
     rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxType[:-1]))(
-        locs=np.array([[rxOffset, 0., 0.]]), times=np.logspace(-4, -3, 31)+t0,
-        orientation=rxType[-1]
+        np.array([[rxOffset, 0., 0.]]), np.logspace(-4, -3, 31)+t0, rxType[-1]
     )
 
     if srctype == "MagDipole":
         src = EM.TDEM.Src.MagDipole(
-            rxList=[rx], waveform=waveform, loc=np.array([0, 0., 0.])
+            [rx], waveform=waveform, loc=np.array([0, 0., 0.])
         )
     elif srctype == "CircularLoop":
         src = EM.TDEM.Src.CircularLoop(
-            rxList=[rx], waveform=waveform, loc=np.array([0., 0., 0.]),
-            radius=13.
+            [rx], waveform=waveform, loc=np.array([0., 0., 0.]), radius=13.
         )
 
-    survey = EM.TDEM.Survey(srcList=[src])
-    prb.survey = survey
+    survey = EM.TDEM.Survey([src])
+    prb.pair(survey)
 
     sigma = np.ones(mesh.nCz)*1e-8
     sigma[active] = sig_half
@@ -70,7 +68,7 @@ def halfSpaceProblemAnaDiff(
         bz_ana = mu_0*EM.Analytics.hzAnalyticCentLoopT(13, rx.times-t0,
                                                        sig_half)
 
-    bz_calc = prb.dpred(sigma)
+    bz_calc = survey.dpred(sigma)
     ind = np.logical_and(rx.times-t0 > bounds[0], rx.times-t0 < bounds[1])
     log10diff = (np.linalg.norm(np.log10(np.abs(bz_calc[ind])) -
                  np.log10(np.abs(bz_ana[ind]))) /

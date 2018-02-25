@@ -1,3 +1,5 @@
+from __future__ import division, print_function
+
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
@@ -244,9 +246,8 @@ class BaseFDEMSimulation(BaseEMSimulation):
 ###############################################################################
 
 
-#################
-# E forumlation #
-#################
+# ----------------------------- E - Formulation ----------------------------- #
+
 class Simulation3D_e(BaseFDEMSimulation):
     """
     By eliminating the magnetic flux density using
@@ -396,9 +397,8 @@ class Simulation3D_e(BaseFDEMSimulation):
         )
 
 
-#################
-# B forumlation #
-#################
+# ----------------------------- B - Formulation ----------------------------- #
+
 class Simulation3D_b(BaseFDEMSimulation):
     """
     We eliminate :math:`\mathbf{e}` using
@@ -575,9 +575,8 @@ class Simulation3D_b(BaseFDEMSimulation):
 #                                                                             #
 ###############################################################################
 
-#################
-# J forumlation #
-#################
+# ----------------------------- J - Formulation ----------------------------- #
+
 class Simulation3D_j(BaseFDEMSimulation):
     """
     We eliminate \\\(\\\mathbf{h}\\\) using
@@ -771,9 +770,7 @@ class Simulation3D_j(BaseFDEMSimulation):
             return RHSDeriv
 
 
-#################
-# H forumlation #
-#################
+# ----------------------------- H - Formulation ----------------------------- #
 
 class Simulation3D_h(BaseFDEMSimulation):
     """

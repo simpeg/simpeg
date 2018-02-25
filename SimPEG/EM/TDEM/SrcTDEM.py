@@ -4,10 +4,13 @@ import numpy as np
 from scipy.constants import mu_0
 import properties
 import warnings
+import types
 
-from .SurveyTDEM import BaseWaveform, BaseTDEMSrc
 from ...Utils import Zero, Identity
-from ..Utils import MagneticDipoleVectorPotential
+from ..Utils import (
+    MagneticDipoleVectorPotential, getSourceTermLineCurrentPolygon,
+    MagneticLoopVectorPotential
+)
 from ..Base import BaseEMSrc
 
 
@@ -19,14 +22,17 @@ from ..Base import BaseEMSrc
 
 class BaseWaveform(properties.HasProperties):
 
+    # TODO: _has_initial_fields
     hasInitialFields = properties.Bool(
         "Does the waveform have initial fields?", default=False
     )
 
+    # TODO: off_time
     offTime = properties.Float(
         "offTime of the source", default=0.
     )
 
+    # TODO: this should be private
     eps = properties.Float(
         "window of time within which the waveform is considered on",
         default=1e-9
@@ -41,9 +47,11 @@ class BaseWaveform(properties.HasProperties):
             "BaseWaveform class.".format(pair.__name__)
         )
 
+    # TODO: call
     def eval(self, time):
         raise NotImplementedError
 
+    # TODO: deriv
     def evalDeriv(self, time):
         raise NotImplementedError  # needed for E-formulation
 
@@ -78,13 +86,11 @@ class RampOffWaveform(BaseWaveform):
 
 class RawWaveform(BaseWaveform):
 
-    waveFct = properties.Instance(
-        "waveform function",
-        function
-    )
+    # todo: think about how to turn this into a property
+    waveFct = None  #: wave function
 
     def __init__(self, **kwargs):
-        super(RawWaveform, self).__init__(self, **kwargs)
+        super(RawWaveform, self).__init__(**kwargs)
 
     def eval(self, time):
         return self.waveFct(time)
@@ -149,6 +155,7 @@ class BaseTDEMSrc(BaseEMSrc):
         default=StepOffWaveform()
     )
 
+    # TODO: src_type
     srcType = properties.StringChoice(
         "type of the source. Is it grounded or inductive?",
         choices={
@@ -239,7 +246,7 @@ class MagDipole(BaseTDEMSrc):
         #     )
         # self.integrate = False
         super(MagDipole, self).__init__(**kwargs)
-        self.srcType = 'inductive'
+        getSourceTermLineCurrentPolygon
 
     @properties.validator('orientation')
     def _warn_non_axis_aligned_sources(self, change):
@@ -324,7 +331,7 @@ class MagDipole(BaseTDEMSrc):
 
             MfMui = simulation.MfMui
 
-            if self.waveform.hasInitialFields is True and time < simulation.timeSteps[1]:
+            if self.waveform.hasInitialFields is True and time < simulation.time_steps[1]:
                 # if time > 0.0:
                 #     return Zero()
                 if simulation._fieldType == 'b':
@@ -341,7 +348,7 @@ class MagDipole(BaseTDEMSrc):
 
             h = 1./self.mu * b
 
-            if self.waveform.hasInitialFields is True and time < simulation.timeSteps[1]:
+            if self.waveform.hasInitialFields is True and time < simulation.time_steps[1]:
                 # if time > 0.0:
                 #     return Zero()
                 if simulation._fieldType == 'h':
@@ -387,7 +394,11 @@ class LineCurrent(BaseTDEMSrc):
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
     # waveform = None
-    # loc = None
+    loc = properties.Array(
+        "locations of the two electrodes, np.vstack([Aloc, Bloc])",
+        shape=(2, 3),
+        dtype=float
+    )
     # mu = mu_0
 
     def __init__(self, **kwargs):

@@ -1,9 +1,11 @@
-import SimPEG
-from SimPEG import Utils
 import scipy.sparse as sp
+import properties
+
+from ...Survey import BaseTimeRx
+from ...Utils import mkvc
 
 
-class BaseRx(SimPEG.Survey.BaseTimeRx):
+class BaseTDEMRx(BaseTimeRx):
     """
     Time domain receiver base class
 
@@ -12,18 +14,19 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locs, times, orientation=None):
-        assert(orientation in ['x', 'y', 'z']), (
-            "Orientation {0!s} not known. Orientation must be in "
-            "'x', 'y', 'z'. Arbitrary orientations have not yet been "
-            "implemented.".format(orientation)
-        )
-        self.projComp = orientation
-        SimPEG.Survey.BaseTimeRx.__init__(self, locs, times, rxType=None) #TODO: remove rxType from baseRx
+    # TODO: this should be extended to allow arbitrary orrientations
+    orientation = properties.StringChoice(
+        "orientation of the receiver 'x', 'y', or 'z'",
+        choices=['x', 'y', 'z'],
+        required=True
+    )
+
+    def __init__(self, **kwargs):
+        super(BaseTDEMRx, self).__init__(**kwargs)
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
-        return f._GLoc(self.projField) + self.projComp
+        return f._GLoc(self.projField) + self.orientation
 
     def projTLoc(self, f):
         """Time Location projection (e.g. CC N)"""
@@ -98,7 +101,8 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
         """
 
         P = self.getP(mesh, timeMesh, f)
-        f_part = Utils.mkvc(f[src, self.projField, :])
+        f_part = mkvc(f[src, self.projField, :])
+
         return P*f_part
 
     def evalDeriv(self, src, mesh, timeMesh, f, v, adjoint=False):
@@ -115,15 +119,16 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
         """
 
         P = self.getP(mesh, timeMesh, f)
+
         if not adjoint:
-            return P * v # Utils.mkvc(v[src, self.projField+'Deriv', :])
+            return P * v # mkvc(v[src, self.projField+'Deriv', :])
         elif adjoint:
             # dP_dF_T = P.T * v #[src, self]
             # newshape = (len(dP_dF_T)/timeMesh.nN, timeMesh.nN )
             return P.T * v # np.reshape(dP_dF_T, newshape, order='F')
 
 
-class Point_e(BaseRx):
+class Point_e(BaseTDEMRx):
     """
     Electric field TDEM receiver
 
@@ -132,12 +137,12 @@ class Point_e(BaseRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locs, times, orientation=None):
+    def __init__(self, **kwargs):
         self.projField = 'e'
-        super(Point_e, self).__init__(locs, times, orientation)
+        super(Point_e, self).__init__(**kwargs)
 
 
-class Point_b(BaseRx):
+class Point_b(BaseTDEMRx):
     """
     Magnetic flux TDEM receiver
 
@@ -146,12 +151,12 @@ class Point_b(BaseRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locs, times, orientation=None):
+    def __init__(self, **kwargs):
         self.projField = 'b'
-        super(Point_b, self).__init__(locs, times, orientation)
+        super(Point_b, self).__init__(**kwargs)
 
 
-class Point_dbdt(BaseRx):
+class Point_dbdt(BaseTDEMRx):
     """
     dbdt TDEM receiver
 
@@ -160,9 +165,9 @@ class Point_dbdt(BaseRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locs, times, orientation=None):
+    def __init__(self, **kwargs):
         self.projField = 'dbdt'
-        super(Point_dbdt, self).__init__(locs, times, orientation)
+        super(Point_dbdt, self).__init__(**kwargs)
 
     def eval(self, src, mesh, timeMesh, f):
 
@@ -170,14 +175,14 @@ class Point_dbdt(BaseRx):
             return super(Point_dbdt, self).eval(src, mesh, timeMesh, f)
 
         P = self.getP(mesh, timeMesh, f)
-        f_part = Utils.mkvc(f[src, 'b', :])
+        f_part = mkvc(f[src, 'b', :])
         return P*f_part
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
         if self.projField in f.aliasFields:
             return super(Point_dbdt, self).projGLoc(f)
-        return f._GLoc(self.projField) + self.projComp
+        return f._GLoc(self.projField) + self.orientation
 
     def getTimeP(self, timeMesh, f):
         """
@@ -195,7 +200,7 @@ class Point_dbdt(BaseRx):
         )*timeMesh.faceDiv
 
 
-class Point_h(BaseRx):
+class Point_h(BaseTDEMRx):
     """
     Magnetic field TDEM receiver
 
@@ -204,12 +209,12 @@ class Point_h(BaseRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locs, times, orientation=None):
+    def __init__(self, **kwargs):
         self.projField = 'h'
-        super(Point_h, self).__init__(locs, times, orientation)
+        super(Point_h, self).__init__(**kwargs)
 
 
-class Point_j(BaseRx):
+class Point_j(BaseTDEMRx):
     """
     Current density TDEM receiver
 
@@ -218,12 +223,13 @@ class Point_j(BaseRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locs, times, orientation=None):
+    def __init__(self, **kwargs):
         self.projField = 'j'
-        super(Point_j, self).__init__(locs, times, orientation)
+        super(Point_j, self).__init__(**kwargs)
 
-class Point_dhdt(BaseRx):
 
-    def __init__(self, locs, times, orientation=None):
+class Point_dhdt(BaseTDEMRx):
+
+    def __init__(self, **kwargs):
         self.projField = 'dhdt'
-        super(Point_dhdt, self).__init__(locs, times, orientation)
+        super(Point_dhdt, self).__init__(**kwargs)

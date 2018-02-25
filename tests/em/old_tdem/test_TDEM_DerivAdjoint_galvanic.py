@@ -45,10 +45,10 @@ def setUp_TDEM(prbtype='e', rxcomp='ex'):
     Bloc = np.r_[10., 0., 0.]
     srcloc = np.vstack((Aloc, Bloc))
 
-    src = EM.TDEM.Src.LineCurrent(rxList=[rx], loc=srcloc, waveform=EM.TDEM.Src.StepOffWaveform())
-    survey = EM.TDEM.Survey(srcList=[src])
+    src = EM.TDEM.Src.LineCurrent([rx], loc=srcloc, waveform = EM.TDEM.Src.StepOffWaveform())
+    survey = EM.TDEM.Survey([src])
 
-    prb = getattr(EM.TDEM, 'Simulation3D_{}'.format(prbtype))(mesh=mesh, sigmaMap=mapping)
+    prb = getattr(EM.TDEM, 'Problem3D_{}'.format(prbtype))(mesh, sigmaMap=mapping)
 
     prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
 
@@ -75,7 +75,7 @@ class TDEM_DerivTests(unittest.TestCase):
             prb, m, mesh = setUp_TDEM(prbtype, rxcomp)
 
             def derChk(m):
-                return [prb.dpred(m), lambda mx: prb.Jvec(m, mx)]
+                return [prb.survey.dpred(m), lambda mx: prb.Jvec(m, mx)]
             print('test_Jvec_{prbtype}_{rxcomp}'.format(
                 prbtype=prbtype, rxcomp=rxcomp)
             )

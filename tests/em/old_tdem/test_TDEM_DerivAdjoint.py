@@ -45,8 +45,8 @@ def get_mapping(mesh):
 
 
 def get_prob(mesh, mapping, formulation):
-    prb = getattr(EM.TDEM, 'Simulation3D_{}'.format(formulation))(
-        mesh=mesh, sigmaMap=mapping
+    prb = getattr(EM.TDEM, 'Problem3D_{}'.format(formulation))(
+        mesh, sigmaMap=mapping
     )
     prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
     prb.Solver = Solver
@@ -54,9 +54,9 @@ def get_prob(mesh, mapping, formulation):
 
 
 def get_survey():
-    src1 = EM.TDEM.Src.MagDipole(loc=np.array([0., 0., 0.]))
-    src2 = EM.TDEM.Src.MagDipole(loc=np.array([0., 0., 8.]))
-    return EM.TDEM.Survey(srcList=[src1, src2])
+    src1 = EM.TDEM.Src.MagDipole([], loc=np.array([0., 0., 0.]))
+    src2 = EM.TDEM.Src.MagDipole([], loc=np.array([0., 0., 8.]))
+    return EM.TDEM.Survey([src1, src2])
 
 
 # ====== TEST Jvec ========== #
@@ -113,7 +113,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
         def derChk(m):
             return [
-                self.probfwd.dpred(m),
+                self.probfwd.survey.dpred(m),
                 lambda mx: self.prob.Jvec(self.m, mx, f=self.fields)
             ]
         print('test_Jvec_{prbtype}_{rxcomp}'.format(
@@ -186,8 +186,8 @@ class DerivAdjoint_E(Base_DerivAdjoint_Test):
     formulation = 'e'
 
     if testDeriv:
-        # def test_Jvec_e_dbxdt(self):
-        #     self.JvecTest('dbdtx')
+        def test_Jvec_e_dbxdt(self):
+            self.JvecTest('dbdtx')
 
         def test_Jvec_e_dbzdt(self):
             self.JvecTest('dbdtz')

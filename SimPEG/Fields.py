@@ -240,7 +240,7 @@ class TimeFields(Fields):
               'N':  self.mesh.nN,
               'F':  self.mesh.nF,
               'E':  self.mesh.nE}[loc]
-        nSrc = self.simulation.nSrc
+        nSrc = self.simulation.survey.nSrc
         nT = self.simulation.nT + 1
         return (nP, nSrc, nT)
 
@@ -308,7 +308,7 @@ class TimeFields(Fields):
             pointerShape = self._correctShape(alias, ind)
             pointerFields = pointerFields.reshape(pointerShape, order='F')
 
-            timeII = np.arange(self.survey.prob.nT + 1)[timeInd]
+            timeII = np.arange(self.simulation.nT + 1)[timeInd]
             srcII = np.array(self.survey.srcList)[srcInd]
             srcII = srcII.tolist()
 

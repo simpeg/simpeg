@@ -40,11 +40,11 @@ def get_mapping(mesh):
 
 
 def get_prob(mesh, mapping, formulation):
-    prb = getattr(EM.TDEM, 'Problem3D_{}'.format(formulation))(
-        mesh, sigmaMap=mapping
+    prb = getattr(EM.TDEM, 'Simulation3D_{}'.format(formulation))(
+        mesh=mesh, sigmaMap=mapping
     )
-    prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
-    prb.Solver = Solver
+    prb.time_steps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
+    prb.solver = Solver
     return prb
 
 
@@ -55,10 +55,10 @@ def get_survey(prob, t0):
 
     waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
     src = EM.TDEM.Src.MagDipole(
-        [], waveform=waveform, loc=np.array([0., 0., 0.])
+        waveform=waveform, loc=np.array([0., 0., 0.])
     )
 
-    return EM.TDEM.Survey([src])
+    return EM.TDEM.Survey(srcList=[src])
 
 
 class Base_DerivAdjoint_Test(unittest.TestCase):
@@ -92,7 +92,8 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
         timerx = self.t0 + np.logspace(-5, -3, 20)
         return getattr(EM.TDEM.Rx, 'Point_{}'.format(rxcomp[:-1]))(
-            np.array([[rxOffset, 0., 0.]]), timerx, rxcomp[-1]
+            locs=np.array([[rxOffset, 0., 0.]]), times=timerx,
+            orientation=rxcomp[-1]
         )
 
     def set_rxList(self, rxcomp):
@@ -112,7 +113,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
         def derChk(m):
             return [
-                self.probfwd.survey.dpred(m),
+                self.probfwd.dpred(m),
                 lambda mx: self.prob.Jvec(self.m, mx, f=self.fields)
             ]
         print('test_Jvec_{prbtype}_{rxcomp}'.format(

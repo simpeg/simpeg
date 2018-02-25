@@ -4,8 +4,8 @@ import properties
 import warnings
 
 from ...Utils import Zero
-from ...NewSurvey import BaseSurvey
-from ..NewBase import BaseEMSrc
+from ...Survey import BaseSurvey
+from .SrcTDEM import BaseTDEMSrc
 
 
 ###############################################################################
@@ -14,7 +14,7 @@ from ..NewBase import BaseEMSrc
 #                                                                             #
 ###############################################################################
 
-class Survey(BaseEMSrc):
+class Survey(BaseSurvey):
     """
     Time domain electromagnetic survey
     """

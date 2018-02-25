@@ -33,38 +33,41 @@ def halfSpaceProblemAnaDiff(
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
 
     rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxType[:-1]))(
-        np.array([[rxOffset, 0., 0.]]), np.logspace(-5, -4, 21), rxType[-1]
+        locs=np.array([[rxOffset, 0., 0.]]),
+        times=np.logspace(-5, -4, 21), orientation=rxType[-1]
     )
 
     if srctype == "MagDipole":
         src = EM.TDEM.Src.MagDipole(
-            [rx], waveform=EM.TDEM.Src.StepOffWaveform(),
+            rxList=[rx], waveform=EM.TDEM.Src.StepOffWaveform(),
             loc=np.array([0., 0., 0.])
         )
     elif srctype == "CircularLoop":
         src = EM.TDEM.Src.CircularLoop(
-            [rx], waveform=EM.TDEM.Src.StepOffWaveform(),
+            rxList=[rx], waveform=EM.TDEM.Src.StepOffWaveform(),
             loc=np.array([0., 0., 0.]), radius=0.1
         )
 
-    survey = EM.TDEM.Survey([src])
-    prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
+    survey = EM.TDEM.Survey(srcList=[src])
+    prb = EM.TDEM.Simulation3D_b(mesh=mesh, sigmaMap=mapping)
     prb.Solver = Solver
 
-    prb.timeSteps = [(1e-06, 40), (5e-06, 40), (1e-05, 40), (5e-05, 40),
-                     (0.0001, 40), (0.0005, 40)]
+    prb.time_steps = [
+        (1e-06, 40), (5e-06, 40), (1e-05, 40), (5e-05, 40), (0.0001, 40),
+        (0.0005, 40)
+    ]
 
     sigma = np.ones(mesh.nCz)*1e-8
     sigma[active] = sig_half
     sigma = np.log(sigma[active])
-    prb.pair(survey)
+    prb.survey = survey
     if srctype == "MagDipole":
         bz_ana = mu_0*EM.Analytics.hzAnalyticDipoleT(rx.locs[0][0]+1e-3,
                                                      rx.times, sig_half)
     elif srctype == "CircularLoop":
         bz_ana = mu_0*EM.Analytics.hzAnalyticDipoleT(13, rx.times, sig_half)
 
-    bz_calc = survey.dpred(sigma)
+    bz_calc = prb.dpred(sigma)
     ind = np.logical_and(rx.times > bounds[0], rx.times < bounds[1])
     log10diff = (np.linalg.norm(np.log10(np.abs(bz_calc[ind])) -
                  np.log10(np.abs(bz_ana[ind]))) /

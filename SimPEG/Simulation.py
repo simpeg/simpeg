@@ -290,8 +290,8 @@ class BaseTimeSimulation(BaseSimulation):
 
         For example, the following setters are the same::
 
-            sim.timeSteps = [(1e-6, 3), 1e-5, (1e-4, 2)]
-            sim.timeSteps = np.r_[1e-6,1e-6,1e-6,1e-5,1e-4,1e-4]
+            sim.time_steps = [(1e-6, 3), 1e-5, (1e-4, 2)]
+            sim.time_steps = np.r_[1e-6,1e-6,1e-6,1e-5,1e-4,1e-4]
 
         """,
         dtype=float
@@ -334,6 +334,31 @@ class BaseTimeSimulation(BaseSimulation):
     def times(self):
         "Modeling times"
         return self.time_mesh.vectorNx
+
+    @property
+    def timeSteps(self):
+        warnings.warn(
+            "timeSteps will be depreciated in favor of time_steps. "
+            "Please update your code accordingly"
+        )
+        return self.time_steps
+
+    @timeSteps.setter
+    def timeSteps(self, value):
+        warnings.warn(
+            "timeSteps will be depreciated in favor of time_steps. "
+            "Please update your code accordingly"
+        )
+        self.time_steps = value
+
+    @property
+    def timeMesh(self):
+        raise Exception
+        warnings.warn(
+            "timeMesh will be depreciated in favor of time_mesh. "
+            "Please update your code accordingly"
+        )
+        return self.time_mesh
 
 
 ##############################################################################

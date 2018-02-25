@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 import unittest
 from SimPEG import Maps, Mesh
-from SimPEG.EM import TDEM
+from SimPEG import EM
 import numpy as np
 
 import warnings
@@ -34,7 +34,7 @@ def setUp_TDEM(prbtype='b', rxcomp='bz', waveform='stepoff'):
     activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
 
-    prb = getattr(TDEM, 'Simulation3D_{}'.format(prbtype))(mesh=mesh, sigmaMap=mapping)
+    prb = getattr(EM.TDEM, 'Problem3D_{}'.format(prbtype))(mesh, sigmaMap=mapping)
 
     rxtimes = np.logspace(-4, -3, 20)
 
@@ -42,23 +42,25 @@ def setUp_TDEM(prbtype='b', rxcomp='bz', waveform='stepoff'):
         out = EM.Utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
         wavefun = interp1d(prb.times, out)
         t0 = 0.006
-        waveform = TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
+        waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
         prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
         rxtimes = t0+rxtimes
 
     else:
-        waveform = TDEM.Src.StepOffWaveform()
-        prb.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
+        waveform = EM.TDEM.Src.StepOffWaveform()
+        prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
 
     rxOffset = 10.
-    rx = getattr(TDEM.Rx, 'Point_{}'.format(rxcomp[:-1]))(
-        locs=np.array([[rxOffset, 0., -1e-2]]), times=rxtimes, orientation=rxcomp[-1]
+    rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxcomp[:-1]))(
+        np.array([[rxOffset, 0., -1e-2]]), rxtimes, rxcomp[-1]
     )
-    src = TDEM.Src.MagDipole(
-        rxList=[rx], loc=np.array([0., 0., 0.]), waveform=waveform
+    src = EM.TDEM.Src.MagDipole(
+        [rx], loc=np.array([0., 0., 0.]), waveform=waveform
     )
 
-    survey = TDEM.Survey(srcList=[src])
+    survey = EM.TDEM.Survey([src])
+
+
 
     prb.Solver = Solver
 
@@ -76,8 +78,8 @@ def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz', waveform='stepoff'):
     prb1, m1, mesh1 = setUp_TDEM(prbtype1, rxcomp, waveform)
     prb2, _, mesh2 = setUp_TDEM(prbtype2, rxcomp, waveform)
 
-    d1 = prb1.dpred(m1)
-    d2 = prb2.dpred(m1)
+    d1 = prb1.survey.dpred(m1)
+    d2 = prb2.survey.dpred(m1)
 
     check = np.linalg.norm(d1 - d2)
     tol = 0.5 * (np.linalg.norm(d1) + np.linalg.norm(d2)) * TOL
@@ -141,13 +143,15 @@ class TDEM_cross_check_EB(unittest.TestCase):
     def test_HJ_dhdtz_vtem(self):
         CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='vtem')
 
+
     def test_MagDipoleSimpleFail(self):
 
         print('\ntesting MagDipole error handling')
 
+
         with warnings.catch_warnings(record=True):
-            TDEM.Src.MagDipole(
-                loc=np.r_[0., 0., 0.],
+            EM.TDEM.Src.MagDipole(
+                [], loc=np.r_[0., 0., 0.],
                 orientation=np.r_[1., 1., 0.]
             )
 
