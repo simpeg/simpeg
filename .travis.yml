@@ -96,7 +96,7 @@ after_success:
       echo "Not deploying (because this is not a deployment directory)" ;
       exit 0 ;
     fi
-  - if [ "$TRAVIS_PULL_REQUEST" = "true" ]; then
+  - if ! [ "$TRAVIS_PULL_REQUEST" = "false" ]; then
       echo "Not deploying (because this is a pull request)" ;
       exit 0 ;
     fi
