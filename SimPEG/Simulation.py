@@ -274,6 +274,9 @@ class BaseSimulation(Props.HasModel):
             "make_synthetic_data. Please update your code to use "
             "make_synthetic_data", DeprecationWarning
         )
+        return self.make_synthetic_data(
+            m, standard_deviation=standard_deviation, f=f
+        )
 
 
 class BaseTimeSimulation(BaseSimulation):

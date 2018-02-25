@@ -217,6 +217,38 @@ class Data(properties.HasProperties):
             self.dobs[self._data_dict[src][rx]] for rx in src.rxList
         ])
 
+    @property
+    def std(self):
+        warnings.warn(
+            "std has been depreciated in favor of standard_deviation. Please "
+            "update your code to use 'standard_deviation'", DeprecationWarning
+        )
+        return self.standard_deviation
+
+    @std.setter
+    def std(self, value):
+        warnings.warn(
+            "std has been depreciated in favor of standard_deviation. Please "
+            "update your code to use 'standard_deviation'", DeprecationWarning
+        )
+        self.standard_deviation = value
+
+    @property
+    def eps(self):
+        warnings.warn(
+            "eps has been depreciated in favor of noise_floor. Please "
+            "update your code to use 'noise_floor'", DeprecationWarning
+        )
+        return self.noise_floor
+
+    @eps.setter
+    def eps(self, value):
+        warnings.warn(
+            "eps has been depreciated in favor of noise_floor. Please "
+            "update your code to use 'noise_floor'", DeprecationWarning
+        )
+        self.noise_floor = value
+
 
 class SyntheticData(Data):
     dclean = properties.Array(
