@@ -193,7 +193,7 @@ def run(plotIt=True):
 
     # assemble the source
     sg = np.hstack([sg_x, sg_y, sg_z])
-    sg_p = [FDEM.Src.RawVec_e([], _, sg/mesh.area) for _ in freqs]
+    sg_p = [FDEM.Src.RawVec_e(freq=f, vec_e=sg/mesh.area) for f in freqs]
 
     # downhole source
     dg_x = np.zeros(mesh.vnF[0], dtype=complex)
@@ -225,20 +225,20 @@ def run(plotIt=True):
 
     # assemble the source
     dg = np.hstack([dg_x, dg_y, dg_z])
-    dg_p = [FDEM.Src.RawVec_e([], _, dg/mesh.area) for _ in freqs]
+    dg_p = [FDEM.Src.RawVec_e(freq=f, vec_e=dg/mesh.area) for f in freqs]
 
     # ------------ Problem and Survey ---------------
-    survey = FDEM.Survey(sg_p + dg_p)
-    problem = FDEM.Problem3D_h(
-        mesh,
+    survey = FDEM.Survey(srcList=sg_p + dg_p)
+    simulation = FDEM.Simulation3D_h(
+        mesh=mesh,
         sigmaMap=Maps.IdentityMap(mesh),
-        Solver=Solver
+        solver=Solver,
+        survey=survey
     )
-    problem.pair(survey)
 
     # ------------- Solve ---------------------------
     t0 = time.time()
-    fieldsCasing = problem.fields(sigCasing)
+    fieldsCasing = simulation.fields(sigCasing)
     print('Time to solve 2 sources', time.time() - t0)
 
     # Plot current

@@ -6,7 +6,7 @@ import properties
 import pymatsolver
 import warnings
 
-from .Utils import Counter, timeIt, count
+from .Utils import Counter, timeIt, count, mkvc
 from . import Models
 from . import Maps
 from . import Props
@@ -102,16 +102,17 @@ class BaseSimulation(Props.HasModel):
     def Solver(self):
         warnings.warn(
             "simulation.Solver will be deprecaited and replaced with "
-            "simulation.solver. Please update your code accordingly"
+            "simulation.solver. Please update your code accordingly",
+            DeprecationWarning
         )
-        raise Exception
         return self.solver
 
     @Solver.setter
     def Solver(self, value):
         warnings.warn(
             "simulation.Solver will be deprecaited and replaced with "
-            "simulation.solver. Please update your code accordingly"
+            "simulation.solver. Please update your code accordingly",
+            DeprecationWarning
         )
         self.solver = value
 
@@ -119,7 +120,8 @@ class BaseSimulation(Props.HasModel):
     def solverOpts(self):
         warnings.warn(
             "simulation.solverOpts will be deprecaited and replaced with "
-            "simulation.solver_opts. Please update your code accordingly"
+            "simulation.solver_opts. Please update your code accordingly",
+            DeprecationWarning
         )
         return self.solver
 
@@ -127,14 +129,16 @@ class BaseSimulation(Props.HasModel):
     def solverOpts(self, value):
         warnings.warn(
             "simulation.solverOpts will be deprecaited and replaced with "
-            "simulation.solver_opts. Please update your code accordingly"
+            "simulation.solver_opts. Please update your code accordingly",
+            DeprecationWarning
         )
         self.solver_opts = value
 
     def pair(self, survey):
         warnings.warn(
             "simulation.pair(survey) will be depreciated. Please use "
-            "simulation.survey = survey"
+            "simulation.survey = survey",
+            DeprecationWarning
         )
         self.survey = survey
 
@@ -242,7 +246,7 @@ class BaseSimulation(Props.HasModel):
                 \mu_\\text{data} = \mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}
 
         """
-        return Utils.mkvc(self.dpred(m, f=f) - dobs)
+        return mkvc(self.dpred(m, f=f) - dobs)
 
     def make_synthetic_data(self, m, standard_deviation=0.05, f=None):
         """
@@ -262,6 +266,13 @@ class BaseSimulation(Props.HasModel):
             dclean=dclean,
             survey=self.survey,
             standard_deviation=standard_deviation
+        )
+
+    def makeSyntheticData(self, m, standard_deviation=0.05, f=None):
+        warnings.warn(
+            "makeSyntheticData will be depreciated in favor of "
+            "make_synthetic_data. Please update your code to use "
+            "make_synthetic_data", DeprecationWarning
         )
 
 
