@@ -1,37 +1,58 @@
-import SimPEG
+import properties
+
+from ...Survey import BaseRx
+
+__all__ = [
+    'Point_e', 'Point_b', 'Point_h', 'Point_j', 'Point_bSecondary'
+]
 
 
-
-class BaseRx(SimPEG.Survey.BaseRx):
+class BaseFDEMRx(BaseRx):
     """
-    Frequency domain receiver base class
-
-    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string component: real or imaginary component 'real' or 'imag'
+    Base frequency domain electromagnetic receiver. Inherit this to build a
+    frequency domain electromagnetic receiver.
     """
 
-    def __init__(self, locs, orientation=None, component=None):
-        assert(
-            orientation in ['x', 'y', 'z']
-        ), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'."
-        " Arbitrary orientations have not yet been implemented.".format(
-            orientation
-        )
-        assert(
-            component in ['real', 'imag']
-            ), "'component' must be 'real' or 'imag', not {0!s}".format(
-                component
-            )
+    # TODO: eventually, this should be a Vector3 and we can allow arbitraty
+    # orientations
+    orientation = properties.StringChoice(
+        "orientation of the receiver 'x', 'y', or 'z'",
+        choices=['x', 'y', 'z'],
+        required=True
+    )
 
-        self.projComp = orientation
-        self.component = component
+    component = properties.StringChoice(
+        "'real' or 'imag' component of the field to be measured",
+        choices={
+            'real': ['re', 'in-phase', 'inphase'],
+            'imag': ['im', 'quadrature', 'quad', 'out-of-phase']
+        },
+        required=True
+    )
 
-        # TODO: remove rxType from baseRx
-        SimPEG.Survey.BaseRx.__init__(self, locs, rxType=None)
+    def __init__(self, **kwargs):
+        super(BaseFDEMRx, self).__init__(**kwargs)
+
+    @property
+    def projComp(self):
+        # TODO generalize for arbitrary orientations
+        if getattr(self, '_projComp', None) is None:
+            if self.orientation == "x":
+                projComp = "x"
+            elif self.orientation == "y":
+                projComp = "y"
+            elif self.orientation == "z":
+                projComp = "z"
+            else:
+                raise NotImplementedError(
+                    "Arbitrary receiver orientations have not yet been implemented"
+                )
+            self._projComp = projComp
+        return self._projComp
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
+
         return f._GLoc(self.projField) + self.projComp
 
     def eval(self, src, mesh, f):
@@ -95,7 +116,7 @@ class BaseRx(SimPEG.Survey.BaseRx):
             return df_duT, df_dmT
 
 
-class Point_e(BaseRx):
+class Point_e(BaseFDEMRx):
     """
     Electric field FDEM receiver
 
@@ -104,12 +125,12 @@ class Point_e(BaseRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, **kwargs):
+        super(Point_e, self).__init__(**kwargs)
         self.projField = 'e'
-        super(Point_e, self).__init__(locs, orientation, component)
 
 
-class Point_b(BaseRx):
+class Point_b(BaseFDEMRx):
     """
     Magnetic flux FDEM receiver
 
@@ -118,12 +139,12 @@ class Point_b(BaseRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, **kwargs):
+        super(Point_b, self).__init__(**kwargs)
         self.projField = 'b'
-        super(Point_b, self).__init__(locs, orientation, component)
 
 
-class Point_bSecondary(BaseRx):
+class Point_bSecondary(BaseFDEMRx):
     """
     Magnetic flux FDEM receiver
 
@@ -132,12 +153,12 @@ class Point_bSecondary(BaseRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, **kwargs):
+        super(Point_bSecondary, self).__init__(**kwargs)
         self.projField = 'bSecondary'
-        super(Point_bSecondary, self).__init__(locs, orientation, component)
 
 
-class Point_h(BaseRx):
+class Point_h(BaseFDEMRx):
     """
     Magnetic field FDEM receiver
 
@@ -146,12 +167,12 @@ class Point_h(BaseRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, **kwargs):
+        super(Point_h, self).__init__(**kwargs)
         self.projField = 'h'
-        super(Point_h, self).__init__(locs, orientation, component)
 
 
-class Point_j(BaseRx):
+class Point_j(BaseFDEMRx):
     """
     Current density FDEM receiver
 
@@ -160,6 +181,7 @@ class Point_j(BaseRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, **kwargs):
+        super(Point_j, self).__init__(**kwargs)
         self.projField = 'j'
-        super(Point_j, self).__init__(locs, orientation, component)
+

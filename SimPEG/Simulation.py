@@ -6,13 +6,13 @@ import properties
 import pymatsolver
 import warnings
 
-from .Utils import Counter
+from .Utils import Counter, timeIt, count
 from . import Models
 from . import Maps
 from . import Props
 # from . import Source
 from .Data import SyntheticData
-from .NewSurvey import BaseSurvey
+from .Survey import BaseSurvey
 
 __all__ = ['LinearSimulation', 'ExponentialSinusoidSimulation']
 
@@ -65,11 +65,12 @@ class BaseSimulation(Props.HasModel):
 
     # TODO: Solver code needs to be cleaned up so this is either a pymatsolver
     # solver or a SimPEG solver (or similar)
-    solver = properties.Instance(
-        "a pymatsolver class",
-        pymatsolver,
-        default=pymatsolver.Solver
-    )
+    # solver = properties.Instance(
+    #     "a pymatsolver class",
+    #     pymatsolver,
+    #     default=pymatsolver.Solver
+    # )
+    solver = pymatsolver.Solver
 
     solver_opts = properties.Dictionary(
         "solver options as a kwarg dict",
@@ -167,7 +168,7 @@ class BaseSimulation(Props.HasModel):
         """
         raise NotImplementedError('dpred is not yet implemented')
 
-    @Utils.timeIt
+    @timeIt
     def Jvec(self, m, v, f=None):
         """
         Jv = Jvec(m, v, f=None)
@@ -182,7 +183,7 @@ class BaseSimulation(Props.HasModel):
         """
         raise NotImplementedError('Jvec is not yet implemented.')
 
-    @Utils.timeIt
+    @timeIt
     def Jtvec(self, m, v, f=None):
         """
         Jtv = Jtvec(m, v, f=None)
@@ -197,7 +198,7 @@ class BaseSimulation(Props.HasModel):
         """
         raise NotImplementedError('Jt is not yet implemented.')
 
-    @Utils.timeIt
+    @timeIt
     def Jvec_approx(self, m, v, f=None):
         """Jvec_approx(m, v, f=None)
 
@@ -211,7 +212,7 @@ class BaseSimulation(Props.HasModel):
         """
         return self.Jvec(m, v, f)
 
-    @Utils.timeIt
+    @timeIt
     def Jtvec_approx(self, m, v, f=None):
         """Jtvec_approx(m, v, f=None)
 
@@ -225,7 +226,7 @@ class BaseSimulation(Props.HasModel):
         """
         return self.Jtvec(m, v, f)
 
-    @Utils.count
+    @count
     def residual(self, m, dobs, f=None):
         """residual(m, dobs, f=None)
 

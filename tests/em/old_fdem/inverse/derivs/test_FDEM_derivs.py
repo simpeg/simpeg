@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from SimPEG import Tests
 from scipy.constants import mu_0
-from SimPEG.EM.Utils.NewTestingUtils import getFDEMSimulation, crossCheckTest
+from SimPEG.EM.Utils.OldtestingUtils import getFDEMProblem
 
 testE = True
 testB = True
@@ -24,7 +24,7 @@ SrcType = ['MagDipole', 'RawVec']  # or 'MAgDipole_Bfield', 'CircularLoop', 'Raw
 
 def derivTest(fdemType, comp):
 
-    prb = getFDEMSimulation(fdemType, comp, SrcType, freq)
+    prb = getFDEMProblem(fdemType, comp, SrcType, freq)
     # prb.solverOpts = dict(check_accuracy=True)
 
     print('{0!s} formulation - {1!s}'.format(fdemType, comp))
@@ -35,8 +35,10 @@ def derivTest(fdemType, comp):
         x0 = x0 + np.random.randn(prb.sigmaMap.nP)*np.log(CONDUCTIVITY)*1e-1
         # mu = mu + np.random.randn(prb.sigmaMap.nP)*MU*1e-1
 
+    survey = prb.survey
+
     def fun(x):
-        return prb.dpred(x), lambda x: prb.Jvec(x0, x)
+        return survey.dpred(x), lambda x: prb.Jvec(x0, x)
     return Tests.checkDerivative(fun, x0, num=2, plotIt=False, eps=FLR)
 
 

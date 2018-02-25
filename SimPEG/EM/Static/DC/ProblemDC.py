@@ -4,7 +4,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from SimPEG import Utils
-from SimPEG.EM.Base import BaseEMProblem
+from SimPEG.EM.OldBase import BaseEMProblem
 from .SurveyDC import Survey
 from .FieldsDC import FieldsDC, Fields_CC, Fields_N
 import numpy as np

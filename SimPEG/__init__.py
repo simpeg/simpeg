@@ -20,8 +20,6 @@ from SimPEG import Directives
 from SimPEG import Inversion
 from SimPEG import Tests
 from SimPEG import Simulation
-from SimPEG import NewSurvey
-from SimPEG import NewDataMisfit
 
 
 __version__   = '0.7.1'

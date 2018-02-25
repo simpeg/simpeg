@@ -6,7 +6,7 @@ import sys
 import numpy as np
 from numpy.lib import recfunctions as recFunc
 
-from SimPEG import Survey as SimPEGsurvey, mkvc
+from SimPEG import OldSurvey as SimPEGsurvey, mkvc
 from .RxNSEM import Point_impedance3D, Point_tipper3D
 from .SrcNSEM import BaseNSEMSrc, Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
 

@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from SimPEG.EM.Base import BaseEMSurvey
+from SimPEG.EM.OldBase import BaseEMSurvey
 from SimPEG.EM.Static.DC.SrcDC import BaseSrc
 from SimPEG.EM.Static.DC.RxDC import BaseRx
 from SimPEG.EM.Static.DC import Survey as SurveyDC

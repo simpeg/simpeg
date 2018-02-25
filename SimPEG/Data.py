@@ -1,7 +1,7 @@
 import properties
 import numpy as np
 
-from .NewSurvey import BaseSurvey
+from .Survey import BaseSurvey
 from .Utils import mkvc
 
 

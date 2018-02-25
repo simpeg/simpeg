@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import SimPEG
-from SimPEG.EM.Base import BaseEMSurvey
+from SimPEG.EM.OldBase import BaseEMSurvey
 from SimPEG import Utils
 from SimPEG.EM.Static.SIP.SrcSIP import BaseSrc
 from SimPEG.EM.Static.SIP.RxSIP import BaseRx
@@ -39,7 +39,7 @@ class Survey(BaseEMSurvey):
         return self.prob.forward(m, f=f)
 
 
-class Data(SimPEG.Survey.Data):
+class Data(SimPEG.OldSurvey.Data):
     """Fancy data storage by Src and Rx"""
 
     def __init__(self, survey, v=None):

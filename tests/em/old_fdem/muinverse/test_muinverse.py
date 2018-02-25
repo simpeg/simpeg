@@ -1,5 +1,5 @@
 from SimPEG import Mesh, Maps, Utils, Tests
-from SimPEG.EM import FDEM
+from SimPEG.EM import OldFDEM as FDEM
 import numpy as np
 from scipy.constants import mu_0
 

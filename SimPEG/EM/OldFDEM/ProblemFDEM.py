@@ -1,58 +1,53 @@
+from SimPEG import Problem, Utils, Props, Solver as SimpegSolver
+from .SurveyFDEM import Survey as SurveyFDEM
+from .FieldsFDEM import (
+    FieldsFDEM, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
+)
+from SimPEG.EM.OldBase import BaseEMProblem
+from SimPEG.EM.Utils import omega
+
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
-import properties
-
-from ... import Props
-from ...Utils import mkvc
-from ..NewBase import BaseEMSimulation
-from .SurveyFDEM import Survey
-from .DataFDEM import SyntheticData
-from .FieldsFDEM import (
-    Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
-)
-from ..Utils import omega
 
 
-class BaseFDEMSimulation(BaseEMSimulation):
+class BaseFDEMProblem(BaseEMProblem):
     """
-    We start by looking at Maxwell's equations in the electric
-    field \\\(\\\mathbf{e}\\\) and the magnetic flux
-    density \\\(\\\mathbf{b}\\\)
+        We start by looking at Maxwell's equations in the electric
+        field \\\(\\\mathbf{e}\\\) and the magnetic flux
+        density \\\(\\\mathbf{b}\\\)
 
-    .. math ::
+        .. math ::
 
-        \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\\\
-        {\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
-        \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
+            \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\\\
+            {\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
+            \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
 
-    if using the E-B formulation (:code:`Simulation3D_e`
-    or :code:`Simulation3D_b`). Note that in this case,
-    :math:`\mathbf{s_e}` is an integrated quantity.
+        if using the E-B formulation (:code:`Problem3D_e`
+        or :code:`Problem3D_b`). Note that in this case,
+        :math:`\mathbf{s_e}` is an integrated quantity.
 
-    If we write Maxwell's equations in terms of
-    \\\(\\\mathbf{h}\\\) and current density \\\(\\\mathbf{j}\\\)
+        If we write Maxwell's equations in terms of
+        \\\(\\\mathbf{h}\\\) and current density \\\(\\\mathbf{j}\\\)
 
-    .. math ::
+        .. math ::
 
-        \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j} +
-        i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
-        \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
+            \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j} +
+            i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
+            \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
-    if using the H-J formulation (:code:`Simulation3D_j` or
-    :code:`Simulation3D_h`). Note that here, :math:`\mathbf{s_m}` is an
-    integrated quantity.
+        if using the H-J formulation (:code:`Problem3D_j` or
+        :code:`Problem3D_h`). Note that here, :math:`\mathbf{s_m}` is an
+        integrated quantity.
 
-    The problem performs the elimination so that we are solving the system
-    for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or
-    \\\(\\\mathbf{h}\\\)
+        The problem performs the elimination so that we are solving the system
+        for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or
+        \\\(\\\mathbf{h}\\\)
+
     """
 
-    survey = properties.Instance(
-        "Frequency domain EM survey instance",
-        Survey,
-        required=True
-    )
+    surveyPair = SurveyFDEM
+    fieldsPair = FieldsFDEM
 
     mu, muMap, muDeriv = Props.Invertible(
         "Magnetic Permeability (H/m)",
@@ -64,9 +59,6 @@ class BaseFDEMSimulation(BaseEMSimulation):
     )
 
     Props.Reciprocal(mu, mui)
-
-    def __init__(self, **kwargs):
-        super(BaseFDEMSimulation, self).__init__(**kwargs)
 
     def fields(self, m=None):
         """
@@ -80,39 +72,17 @@ class BaseFDEMSimulation(BaseEMSimulation):
         if m is not None:
             self.model = m
 
-        f = self.fieldsPair(simulation=self)
+        f = self.fieldsPair(self.mesh, self.survey)
 
         for freq in self.survey.freqs:
             A = self.getA(freq)
             rhs = self.getRHS(freq)
-            Ainv = self.solver(A, **self.solver_opts)
+            Ainv = self.Solver(A, **self.solverOpts)
             u = Ainv * rhs
-            srcs = self.survey.getSrcByFreq(freq)
-            f[srcs, self._solutionType] = u
+            Srcs = self.survey.getSrcByFreq(freq)
+            f[Srcs, self._solutionType] = u
             Ainv.clean()
         return f
-
-    def dpred(self, m=None, f=None):
-        """dpred(m, f=None)
-
-            Create the projected data from a model.
-            The fields, f, (if provided) will be used for the predicted data
-            instead of recalculating the fields (which may be expensive!).
-
-            .. math::
-
-                d_\\text{pred} = P(f(m))
-
-            Where P is a projection of the fields onto the data space.
-        """
-        if f is None:
-            f = self.fields(m)
-
-        data = SyntheticData(survey=self.survey)
-        for src in self.survey.srcList:
-            for rx in src.rxList:
-                data[src, rx] = rx.eval(src, self.mesh, f)
-        return data.dobs
 
     def Jvec(self, m, v, f=None):
         """
@@ -137,7 +107,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         for freq in self.survey.freqs:
             A = self.getA(freq)
             # create the concept of Ainv (actually a solve)
-            Ainv = self.solver(A, **self.solver_opts)
+            Ainv = self.Solver(A, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = f[src, self._solutionType]
@@ -145,7 +115,6 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
                 du_dm_v = Ainv * (- dA_dm_v + dRHS_dm_v)
 
-                # if len(src.rxList) > 0: # else just append the last piece
                 for rx in src.rxList:
                     Jv.append(
                         rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
@@ -170,14 +139,14 @@ class BaseFDEMSimulation(BaseEMSimulation):
         self.model = m
 
         # Ensure v is a data object.
-        if not isinstance(v, SyntheticData):
-            v = SyntheticData(survey=self.survey, dobs=v)
+        if not isinstance(v, self.dataPair):
+            v = self.dataPair(self.survey, v)
 
         Jtv = np.zeros(m.size)
 
         for freq in self.survey.freqs:
             AT = self.getA(freq).T
-            ATinv = self.solver(AT, **self.solver_opts)
+            ATinv = self.Solver(AT, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = f[src, self._solutionType]
@@ -209,7 +178,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
             ATinv.clean()
 
-        return mkvc(Jtv)
+        return Utils.mkvc(Jtv)
 
     def getSourceTerm(self, freq):
         """
@@ -238,23 +207,17 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
 
 ###############################################################################
-#                                                                             #
 #                               E-B Formulation                               #
-#                                                                             #
 ###############################################################################
 
-
-#################
-# E forumlation #
-#################
-class Simulation3D_e(BaseFDEMSimulation):
+class Problem3D_e(BaseFDEMProblem):
     """
     By eliminating the magnetic flux density using
 
-    .. math ::
+        .. math ::
 
-        \mathbf{b} = \\frac{1}{i \omega}\\left(-\mathbf{C} \mathbf{e} +
-        \mathbf{s_m}\\right)
+            \mathbf{b} = \\frac{1}{i \omega}\\left(-\mathbf{C} \mathbf{e} +
+            \mathbf{s_m}\\right)
 
 
     we can write Maxwell's equations as a second order system in
@@ -276,8 +239,8 @@ class Simulation3D_e(BaseFDEMSimulation):
     _formulation  = 'EB'
     fieldsPair    = Fields3D_e
 
-    def __init__(self, **kwargs):
-        super(Simulation3D_e, self).__init__(**kwargs)
+    def __init__(self, mesh, **kwargs):
+        BaseFDEMProblem.__init__(self, mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -396,10 +359,7 @@ class Simulation3D_e(BaseFDEMSimulation):
         )
 
 
-#################
-# B forumlation #
-#################
-class Simulation3D_b(BaseFDEMSimulation):
+class Problem3D_b(BaseFDEMProblem):
     """
     We eliminate :math:`\mathbf{e}` using
 
@@ -426,8 +386,8 @@ class Simulation3D_b(BaseFDEMSimulation):
     _formulation = 'EB'
     fieldsPair = Fields3D_b
 
-    def __init__(self, **kwargs):
-        super(Simulation3D_b, self).__init__(**kwargs)
+    def __init__(self, mesh, **kwargs):
+        BaseFDEMProblem.__init__(self, mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -570,15 +530,11 @@ class Simulation3D_b(BaseFDEMSimulation):
 
 
 ###############################################################################
-#                                                                             #
 #                               H-J Formulation                               #
-#                                                                             #
 ###############################################################################
 
-#################
-# J forumlation #
-#################
-class Simulation3D_j(BaseFDEMSimulation):
+
+class Problem3D_j(BaseFDEMProblem):
     """
     We eliminate \\\(\\\mathbf{h}\\\) using
 
@@ -608,8 +564,8 @@ class Simulation3D_j(BaseFDEMSimulation):
     _formulation  = 'HJ'
     fieldsPair    = Fields3D_j
 
-    def __init__(self, **kwargs):
-        super(Simulation3D_j, self).__init__(**kwargs)
+    def __init__(self, mesh, **kwargs):
+        BaseFDEMProblem.__init__(self, mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -771,11 +727,7 @@ class Simulation3D_j(BaseFDEMSimulation):
             return RHSDeriv
 
 
-#################
-# H forumlation #
-#################
-
-class Simulation3D_h(BaseFDEMSimulation):
+class Problem3D_h(BaseFDEMProblem):
     """
     We eliminate \\\(\\\mathbf{j}\\\) using
 
@@ -798,8 +750,8 @@ class Simulation3D_h(BaseFDEMSimulation):
     _formulation  = 'HJ'
     fieldsPair    = Fields3D_h
 
-    def __init__(self, **kwargs):
-        super(Simulation3D_h, self).__init__(**kwargs)
+    def __init__(self, mesh, **kwargs):
+        BaseFDEMProblem.__init__(self, mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -897,7 +849,7 @@ class Simulation3D_h(BaseFDEMSimulation):
         :return: product of rhs deriv with a vector
         """
 
-        s_e = src.s_e(self)
+        _, s_e = src.eval(self)
         C = self.mesh.edgeCurl
         MfRho = self.MfRho
 
@@ -910,4 +862,3 @@ class Simulation3D_h(BaseFDEMSimulation):
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         return RHSDeriv + s_mDeriv(v) + C.T * (MfRho * s_eDeriv(v))
-

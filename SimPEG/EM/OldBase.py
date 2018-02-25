@@ -6,136 +6,24 @@ from __future__ import unicode_literals
 import properties
 from scipy.constants import mu_0
 
-from .. import NewSurvey as Survey
-from .. import Simulation
-from .. import Utils
-from .. import Props
+from SimPEG import OldSurvey as Survey
+from SimPEG import Problem
+from SimPEG import Utils
+from SimPEG import Maps
+from SimPEG import Props
+from SimPEG import Solver as SimpegSolver
+
+
+__all__ = ['BaseEMProblem', 'BaseEMSurvey', 'BaseEMSrc']
 
 
 ###############################################################################
 #                                                                             #
-#                             Base EM Source                                  #
+#                             Base EM Problem                                 #
 #                                                                             #
 ###############################################################################
 
-class BaseEMSrc(Survey.BaseSrc):
-    """
-    Base class for an electromagnetic source. All EM sources are defined by an
-    electric source term :code:`s_e` associated with `Ampere's Law <https://em.geosci.xyz/content/maxwell1_fundamentals/formative_laws/ampere_maxwell.html>`_
-    and a magnetic source term :code:`s_m` associated with `Faraday's Law <https://em.geosci.xyz/content/maxwell1_fundamentals/formative_laws/faraday.html>`_
-
-    In the time domain:
-
-    .. math::
-
-        \nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} = \vec{s}_m \\
-        \nabla \times \vec{h} - \vec{j} = \vec{s}_e
-
-    and in the frequency domain
-
-    .. math::
-
-        \nabla \times \vec{E} + i\omega\vec{B} = \vec{S}_m \\
-        \nabla \times \vec{H} - \vec{J} = \vec{S}_e
-
-    """
-
-    integrate = properties.Bool("integrate the source term?", default=False)
-
-    def eval(self, simulation):
-        """
-        - :math:`s_m` : magnetic source term
-        - :math:`s_e` : electric source term
-
-        :param BaseEMSimulation simulation: EM Simulation
-        :rtype: tuple
-        :return: tuple with magnetic source term and electric source term
-        """
-        s_m = self.s_m(simulation)
-        s_e = self.s_e(simulation)
-        return s_m, s_e
-
-    def evalDeriv(self, simulation, v=None, adjoint=False):
-        """
-        Derivatives of the source terms with respect to the inversion model
-        - :code:`s_mDeriv` : derivative of the magnetic source term
-        - :code:`s_eDeriv` : derivative of the electric source term
-
-        :param BaseEMSimulation simulation: EM Simulation
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: tuple
-        :return: tuple with magnetic source term and electric source term
-            derivatives times a vector
-
-        """
-        if v is not None:
-            return (
-                self.s_mDeriv(simulation, v, adjoint),
-                self.s_eDeriv(simulation, v, adjoint)
-            )
-        else:
-            return (
-                lambda v: self.s_mDeriv(simulation, v, adjoint),
-                lambda v: self.s_eDeriv(simulation, v, adjoint)
-            )
-
-    def s_m(self, simulation):
-        """
-        Magnetic source term
-
-        :param BaseEMSimulation simulation: EM Simulation
-        :rtype: numpy.ndarray
-        :return: magnetic source term on mesh
-        """
-        return Utils.Zero()
-
-    def s_e(self, simulation):
-        """
-        Electric source term
-
-        :param BaseEMSimulation simulation: EM Simulation
-        :rtype: numpy.ndarray
-        :return: electric source term on mesh
-        """
-        return Utils.Zero()
-
-    def s_mDeriv(self, simulation, v, adjoint=False):
-        """
-        Derivative of magnetic source term with respect to the inversion model
-
-        :param BaseEMSimulation simulation: EM Simulation
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of magnetic source term derivative with a vector
-        """
-
-        return Utils.Zero()
-
-    def s_eDeriv(self, simulation, v, adjoint=False):
-        """
-        Derivative of electric source term with respect to the inversion model
-
-        :param BaseEMSimulation simulation: EM Simulation
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of electric source term derivative with a vector
-        """
-        return Utils.Zero()
-
-
-###############################################################################
-#                                                                             #
-#                             Base EM Simulation                              #
-#                                                                             #
-###############################################################################
-
-class BaseEMSimulation(Simulation.BaseSimulation):
-    """
-    Base class for an electromagnetic simulation
-    """
+class BaseEMProblem(Problem.BaseProblem):
 
     sigma, sigmaMap, sigmaDeriv = Props.Invertible(
         "Electrical conductivity (S/m)"
@@ -157,23 +45,29 @@ class BaseEMSimulation(Simulation.BaseSimulation):
 
     Props.Reciprocal(mu, mui)
 
-    survey = properties.Instance(
-        "a list of sources",
-        BaseEMSrc,
-        required=True
-    )
+    surveyPair = Survey.BaseSurvey  #: The survey to pair with.
+    dataPair = Survey.Data  #: The data to pair with.
 
-    _makeASymmetric = properties.Bool(
-        "symmetrize the system matrix?",
-        default=True
-    )
+    mapPair = Maps.IdentityMap  #: Type of mapping to pair with
 
-    def __init__(self, **kwargs):
-        super(BaseEMSimulation, self).__init__(**kwargs)
+    Solver = SimpegSolver  #: Type of solver to pair with
+    solverOpts = {}  #: Solver options
+
+    verbose = False
+
+    ####################################################
+    # Make A Symmetric
+    ####################################################
+    @property
+    def _makeASymmetric(self):
+        if getattr(self, '__makeASymmetric', None) is None:
+            self.__makeASymmetric = True
+        return self.__makeASymmetric
 
     ####################################################
     # Mass Matrices
     ####################################################
+
     @property
     def deleteTheseOnModelUpdate(self):
         toDelete = []
@@ -279,6 +173,7 @@ class BaseEMSimulation(Simulation.BaseSimulation):
         dMf_dmui = self.mesh.getEdgeInnerProductDeriv(self.mui)(u)
         return dMfMuiI_dI * (dMf_dmui * self.muiDeriv)
 
+
     @property
     def MeMu(self):
         """
@@ -353,6 +248,7 @@ class BaseEMSimulation(Simulation.BaseSimulation):
             self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) *
             self.sigmaDeriv
         )
+
 
     @property
     def MeSigmaI(self):
@@ -433,3 +329,125 @@ class BaseEMSimulation(Simulation.BaseSimulation):
         return dMfRhoI_dI * (dMf_drho * self.rhoDeriv)
 
 
+###############################################################################
+#                                                                             #
+#                             Base EM Survey                                  #
+#                                                                             #
+###############################################################################
+
+class BaseEMSurvey(Survey.BaseSurvey):
+
+    def __init__(self, srcList, **kwargs):
+        # Sort these by frequency
+        self.srcList = srcList
+        Survey.BaseSurvey.__init__(self, **kwargs)
+
+    def eval(self, f):
+        """Project fields to receiver locations
+
+        :param Fields u: fields object
+        :rtype: numpy.ndarray
+        :return: data
+        """
+        data = Survey.Data(self)
+        for src in self.srcList:
+            for rx in src.rxList:
+                data[src, rx] = rx.eval(src, self.mesh, f)
+        return data
+
+    def evalDeriv(self, f):
+        raise Exception('Use Receivers to project fields deriv.')
+
+
+###############################################################################
+#                                                                             #
+#                             Base EM Source                                  #
+#                                                                             #
+###############################################################################
+
+class BaseEMSrc(Survey.BaseSrc):
+
+    integrate = properties.Bool("integrate the source term?", default=False)
+
+    def eval(self, prob):
+        """
+        - :math:`s_m` : magnetic source term
+        - :math:`s_e` : electric source term
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :rtype: tuple
+        :return: tuple with magnetic source term and electric source term
+        """
+        s_m = self.s_m(prob)
+        s_e = self.s_e(prob)
+        return s_m, s_e
+
+    def evalDeriv(self, prob, v=None, adjoint=False):
+        """
+        Derivatives of the source terms with respect to the inversion model
+        - :code:`s_mDeriv` : derivative of the magnetic source term
+        - :code:`s_eDeriv` : derivative of the electric source term
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: tuple
+        :return: tuple with magnetic source term and electric source term
+            derivatives times a vector
+
+        """
+        if v is not None:
+            return (
+                self.s_mDeriv(prob, v, adjoint),
+                self.s_eDeriv(prob, v, adjoint)
+            )
+        else:
+            return (
+                lambda v: self.s_mDeriv(prob, v, adjoint),
+                lambda v: self.s_eDeriv(prob, v, adjoint)
+            )
+
+    def s_m(self, prob):
+        """
+        Magnetic source term
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :rtype: numpy.ndarray
+        :return: magnetic source term on mesh
+        """
+        return Utils.Zero()
+
+    def s_e(self, prob):
+        """
+        Electric source term
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :rtype: numpy.ndarray
+        :return: electric source term on mesh
+        """
+        return Utils.Zero()
+
+    def s_mDeriv(self, prob, v, adjoint=False):
+        """
+        Derivative of magnetic source term with respect to the inversion model
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of magnetic source term derivative with a vector
+        """
+
+        return Utils.Zero()
+
+    def s_eDeriv(self, prob, v, adjoint=False):
+        """
+        Derivative of electric source term with respect to the inversion model
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of electric source term derivative with a vector
+        """
+        return Utils.Zero()

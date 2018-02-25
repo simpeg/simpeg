@@ -5,42 +5,78 @@ from __future__ import unicode_literals
 
 from six import string_types
 import numpy as np
+import properties
+import discretize
+
+from .Simulation import BaseSimulation, BaseTimeSimulation
 from . import Utils
 
 
-class Fields(object):
+class Fields(properties.HasProperties):
     """Fancy Field Storage
 
-    u[:,'phi'] = phi
-    print(u[src0,'phi'])
+    .. code::python
+        fields = Fields(
+            simulation=simulation, knownFields={"phi": "CC"}
+        )
+        fields[:,'phi'] = phi
+        print(fields[src0,'phi'])
 
     """
 
-    #: Known fields,   a dict with locations, e.g. {"e": "E", "phi": "CC"}
-    knownFields = None
-    #: Aliased fields, a dict with [alias, location, function], e.g. {"b":["e","F",lambda(F,e,ind)]}
-    aliasFields = None
+    simulation = properties.Instance(
+        "a SimPEG simulation",
+        BaseSimulation
+    )
+
+    knownFields = properties.Dictionary(
+        """
+        a dictionary with the names of the know fields and their location on
+        a mesh e.g. {"e": "E", "phi": "CC"}
+        """,
+        required=True
+    )
+
+    aliasFields = properties.Dictionary(
+        """
+        a dictionary of the aliased fields with [alias, location, function],
+        e.g. {"b":["e","F",lambda(F,e,ind)]}
+        """,
+        default={}
+    )
     #: dtype is the type of the storage matrix. This can be a dictionary.
     dtype = float
 
-    def __init__(self, mesh, survey, **kwargs):
-        self.survey = survey
-        self.mesh = mesh
-        Utils.setKwargs(self, **kwargs)
+    def __init__(self, **kwargs):
+        super(Fields, self).__init__(**kwargs)
         self._fields = {}
+        self.startup()
 
-        if self.knownFields is None:
-            raise Exception('knownFields cannot be set to None')
-        if self.aliasFields is None:
-            self.aliasFields = {}
-
+    @properties.validator('knownFields')
+    def _check_overlap_with_aliased(self, change):
         allFields = (
-            [k for k in self.knownFields] + [a for a in self.aliasFields]
+            [k for k in change['value']] + [a for a in self.aliasFields]
         )
         assert len(allFields) == len(set(allFields)), (
             'Aliased fields and Known Fields have overlapping definitions.'
         )
-        self.startup()
+
+    @properties.validator('aliasFields')
+    def _check_overlap_with_known(self, change):
+        allFields = (
+            [k for k in self.knownFields] + [a for a in change['value']]
+        )
+        assert len(allFields) == len(set(allFields)), (
+            'Aliased fields and Known Fields have overlapping definitions.'
+        )
+
+    @property
+    def mesh(self):
+        return self.simulation.mesh
+
+    @property
+    def survey(self):
+        return self.simulation.survey
 
     def startup(self):
         pass
@@ -184,18 +220,28 @@ class Fields(object):
 class TimeFields(Fields):
     """Fancy Field Storage for time domain problems
 
-        u[:,'phi', timeInd] = phi
-        print(u[src0,'phi'])
+    .. code:: python
+        fields = TimeFields(simulation=simulation, knownFields={'phi':'CC'})
+        fields[:,'phi', timeInd] = phi
+        print(fields[src0,'phi'])
 
     """
+
+    simulation = properties.Instance(
+        "a SimPEG time simulation",
+        BaseTimeSimulation
+    )
+
+    def __init__(self, **kwargs):
+        super(TimeFields, self).__init__(**kwargs)
 
     def _storageShape(self, loc):
         nP = {'CC': self.mesh.nC,
               'N':  self.mesh.nN,
               'F':  self.mesh.nF,
               'E':  self.mesh.nE}[loc]
-        nSrc = self.survey.nSrc
-        nT = self.survey.prob.nT + 1
+        nSrc = self.simulation.nSrc
+        nT = self.simulation.nT + 1
         return (nP, nSrc, nT)
 
     def _indexAndNameFromKey(self, key, accessType):

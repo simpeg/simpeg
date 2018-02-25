@@ -5,15 +5,13 @@ import scipy.sparse as sp
 from SimPEG import Mesh
 from SimPEG import Utils
 from SimPEG import SolverLU
-from SimPEG.EM import Analytics
-from SimPEG.EM import NewFDEM as FDEM
+from SimPEG.EM import OldFDEM as FDEM
 from scipy.constants import mu_0
 
 import matplotlib
 matplotlib.use('Agg')
 
 import matplotlib.pylab as plt
-
 
 plotIt = False
 tol_Transect = 2e-1
@@ -37,14 +35,14 @@ class FDEM_analyticTests(unittest.TestCase):
 
         x = np.linspace(-10, 10, 5)
         XYZ = Utils.ndgrid(x, np.r_[0], np.r_[0])
-        rxList = FDEM.Rx.Point_e(locs=XYZ, orientation='x', component='imag')
+        rxList = FDEM.Rx.Point_e(XYZ, orientation='x', component='imag')
         SrcList = [
             FDEM.Src.MagDipole(
-                rxList=[rxList], loc=np.r_[0., 0., 0.],
+                [rxList], loc=np.r_[0., 0., 0.],
                 freq=freq
             ),
             FDEM.Src.CircularLoop(
-                rxList=[rxList], loc=np.r_[0., 0., 0.],
+                [rxList], loc=np.r_[0., 0., 0.],
                 freq=freq, radius=np.sqrt(1./np.pi)
             ),
             # FDEM.Src.MagDipole_Bfield(
@@ -53,19 +51,20 @@ class FDEM_analyticTests(unittest.TestCase):
             # ), # less accurate
         ]
 
-        survey = FDEM.Survey(srcList=SrcList)
+        survey = FDEM.Survey(SrcList)
 
         sig = 1e-1
         sigma = np.ones(mesh.nC)*sig
         sigma[mesh.gridCC[:, 2] > 0] = 1e-8
 
-        prb = FDEM.Simulation3D_b(mesh=mesh, sigma=sigma, survey=survey)
+        prb = FDEM.Problem3D_b(mesh, sigma=sigma)
+        prb.pair(survey)
 
         try:
             from pymatsolver import Pardiso
-            prb.solver = Pardiso
+            prb.Solver = Pardiso
         except ImportError:
-            prb.solver = SolverLU
+            prb.Solver = SolverLU
 
         self.prb = prb
         self.mesh = mesh
@@ -86,7 +85,7 @@ class FDEM_analyticTests(unittest.TestCase):
             P = self.mesh.getInterpolationMat(XYZ, 'Fz')
 
             ana = mu_0*np.imag(
-                Analytics.FDEM.hzAnalyticDipoleF(x, src.freq, self.sig)
+                EM.Analytics.FDEM.hzAnalyticDipoleF(x, src.freq, self.sig)
             )
             num = P*np.imag(self.u[src, 'b'])
 
@@ -148,26 +147,20 @@ class TestDipoles(unittest.TestCase):
 
         de = np.zeros(mesh.nF, dtype=complex)
         de[s_ind] = 1./csz
-        de_p = [FDEM.Src.RawVec_e(freq=freq, vec_e=de/mesh.area)]
+        de_p = [FDEM.Src.RawVec_e([], freq, de/mesh.area)]
 
-        dm_p = [FDEM.Src.MagDipole(freq=freq, loc=src_loc)]
+        dm_p = [FDEM.Src.MagDipole([], freq, src_loc)]
 
-        # create the survey
-        surveye = FDEM.Survey(srcList=de_p)
-        surveym = FDEM.Survey(srcList=dm_p)
+        # Pair the problem and survey
+        surveye = FDEM.Survey(de_p)
+        surveym = FDEM.Survey(dm_p)
 
-        prbe = FDEM.Simulation3D_h(
-            mesh=mesh, sigma=sigmaback, mu=mur*mu_0, survey=surveye
-        )
-        prbm = FDEM.Simulation3D_e(
-            mesh=mesh, sigma=sigmaback, mu=mur*mu_0, survey=surveym
-        )
+        prbe = FDEM.Problem3D_h(mesh, sigma=sigmaback, mu=mur*mu_0)
+        prbm = FDEM.Problem3D_e(mesh, sigma=sigmaback, mu=mur*mu_0)
 
-        print(prbe.survey)
-
-        # # pair problem and survey
-        # prbe.pair(surveye)
-        # prbm.pair(surveym)
+        # pair problem and survey
+        prbe.pair(surveye)
+        prbm.pair(surveym)
 
         # solve
         fieldsBackE = prbe.fields()
@@ -202,7 +195,7 @@ class TestDipoles(unittest.TestCase):
         bx, bz = Pfx*bn, Pfz*bn
 
         # get analytic solution
-        exa, eya, eza = Analytics.FDEM.ElectricDipoleWholeSpace(
+        exa, eya, eza = EM.Analytics.FDEM.ElectricDipoleWholeSpace(
             XYZ, src_loc, sigmaback, freq, orientation='Z', mu=mur*mu_0
         )
 
@@ -210,7 +203,7 @@ class TestDipoles(unittest.TestCase):
         eya = Utils.mkvc(eya, 2)
         eza = Utils.mkvc(eza, 2)
 
-        bxa, bya, bza = Analytics.FDEM.MagneticDipoleWholeSpace(
+        bxa, bya, bza = EM.Analytics.FDEM.MagneticDipoleWholeSpace(
             XYZ, src_loc, sigmaback, freq, orientation='Z', mu=mur*mu_0
         )
         bxa = Utils.mkvc(bxa, 2)
