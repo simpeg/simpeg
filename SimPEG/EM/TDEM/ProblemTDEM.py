@@ -5,7 +5,8 @@ from SimPEG import Problem, Utils, Solver as SimpegSolver
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.TDEM.SurveyTDEM import Survey as SurveyTDEM
 from SimPEG.EM.TDEM.FieldsTDEM import (
-    FieldsTDEM, Fields3D_b, Fields3D_e, Fields3D_h, Fields3D_j, Fields_Derivs
+    FieldsTDEM, Fields3D_b, Fields3D_e, Fields3D_h, Fields3D_j,
+    Fields_Derivs_eb, Fields_Derivs_hj
 )
 from scipy.constants import mu_0
 import time
@@ -142,7 +143,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         ])
         # can over-write this at each timestep
         # store the field derivs we need to project to calc full deriv
-        df_dm_v = Fields_Derivs(self.mesh, self.survey)
+        df_dm_v = self.Fields_Derivs(self.mesh, self.survey)
 
         Adiaginv = None
 
@@ -236,7 +237,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         if not isinstance(v, self.dataPair):
             v = self.dataPair(self.survey, v)
 
-        df_duT_v = Fields_Derivs(self.mesh, self.survey)
+        df_duT_v = self.Fields_Derivs(self.mesh, self.survey)
 
         # same size as fields at a single timestep
         ATinv_df_duT_v = np.zeros(
@@ -251,7 +252,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         # Loop over sources and receivers to create a fields object:
         # PT_v, df_duT_v, df_dmT_v
         # initialize storage for PT_v (don't need to preserve over sources)
-        PT_v = Fields_Derivs(self.mesh, self.survey)
+        PT_v = self.Fields_Derivs(self.mesh, self.survey)
         for src in self.survey.srcList:
             # Looping over initializing field class is appending memory!
             # PT_v = Fields_Derivs(self.mesh, self.survey) # initialize storage
@@ -511,6 +512,7 @@ class Problem3D_b(BaseTDEMProblem):
     _formulation = 'EB'
     fieldsPair = Fields3D_b  #: A SimPEG.EM.TDEM.Fields3D_b object
     surveyPair = SurveyTDEM
+    Fields_Derivs = Fields_Derivs_eb
 
     def __init__(self, mesh, **kwargs):
         BaseTDEMProblem.__init__(self, mesh, **kwargs)
@@ -680,6 +682,7 @@ class Problem3D_e(BaseTDEMProblem):
     _formulation = 'EB'
     fieldsPair = Fields3D_e  #: A Fields3D_e
     surveyPair = SurveyTDEM
+    Fields_Derivs = Fields_Derivs_eb
 
     def __init__(self, mesh, **kwargs):
         BaseTDEMProblem.__init__(self, mesh, **kwargs)
@@ -700,7 +703,7 @@ class Problem3D_e(BaseTDEMProblem):
         if not isinstance(v, self.dataPair):
             v = self.dataPair(self.survey, v)
 
-        df_duT_v = Fields_Derivs(self.mesh, self.survey)
+        df_duT_v = self.Fields_Derivs(self.mesh, self.survey)
 
         # same size as fields at a single timestep
         ATinv_df_duT_v = np.zeros(
@@ -715,7 +718,7 @@ class Problem3D_e(BaseTDEMProblem):
         # Loop over sources and receivers to create a fields object:
         # PT_v, df_duT_v, df_dmT_v
         # initialize storage for PT_v (don't need to preserve over sources)
-        PT_v = Fields_Derivs(self.mesh, self.survey)
+        PT_v = self.Fields_Derivs(self.mesh, self.survey)
         for src in self.survey.srcList:
             # Looping over initializing field class is appending memory!
             # PT_v = Fields_Derivs(self.mesh, self.survey) # initialize storage
@@ -1036,6 +1039,7 @@ class Problem3D_h(BaseTDEMProblem):
     _formulation = 'HJ'
     fieldsPair = Fields3D_h  #: Fields object pair
     surveyPair = SurveyTDEM
+    Fields_Derivs = Fields_Derivs_hj
 
     def __init__(self, mesh, **kwargs):
         BaseTDEMProblem.__init__(self, mesh, **kwargs)
@@ -1111,6 +1115,7 @@ class Problem3D_j(BaseTDEMProblem):
     _formulation = 'HJ'
     fieldsPair = Fields3D_j  #: Fields object pair
     surveyPair = SurveyTDEM  #: survey
+    Fields_Derivs = Fields_Derivs_hj
 
     def __init__(self, mesh, **kwargs):
         BaseTDEMProblem.__init__(self, mesh, **kwargs)

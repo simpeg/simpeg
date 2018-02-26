@@ -291,6 +291,9 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
         def test_Jvec_j_dhdtz(self):
             self.JvecTest('dhdtz')
 
+        def test_Jvec_j_ey(self):
+            self.JvecTest('ey')
+
     if testAdjoint:
         def test_Jvec_adjoint_j_jy(self):
             self.JvecVsJtvecTest('jy')
@@ -300,6 +303,9 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 
         def test_Jvec_adjoint_j_dhdtz(self):
             self.JvecVsJtvecTest('dhdtz')
+
+        def test_Jvec_adjoint_j_ey(self):
+            self.JvecVsJtvecTest('ey')
 
 if __name__ == '__main__':
     unittest.main()

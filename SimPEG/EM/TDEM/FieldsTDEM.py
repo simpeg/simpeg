@@ -106,16 +106,30 @@ class FieldsTDEM(SimPEG.Problem.TimeFields):
         )
 
 
-class Fields_Derivs(FieldsTDEM):
+class Fields_Derivs_eb(FieldsTDEM):
     """
         A fields object for satshing derivs
     """
     knownFields = {
                     'bDeriv': 'F',
                     'eDeriv': 'E',
+                    'hDeriv': 'F',
+                    'jDeriv': 'E',
+                    'dbdtDeriv': 'F',
+                    'dhdtDeriv': 'F'
+                  }
+
+
+class Fields_Derivs_hj(FieldsTDEM):
+    """
+        A fields object for satshing derivs
+    """
+    knownFields = {
+                    'bDeriv': 'E',
+                    'eDeriv': 'F',
                     'hDeriv': 'E',
                     'jDeriv': 'F',
-                    'dbdtDeriv': 'F',
+                    'dbdtDeriv': 'E',
                     'dhdtDeriv': 'E'
                   }
 
@@ -366,6 +380,8 @@ class Fields3D_j(FieldsTDEM):
     aliasFields = {
                     'dhdt': ['jSolution', 'E', '_dhdt'],
                     'j': ['jSolution', 'F', '_j'],
+                    'e': ['jSolution', 'F', '_e'],
+                    'charges': ['jSolution', 'F', '_charges']
                   }
 
     def startup(self):
@@ -421,3 +437,22 @@ class Fields3D_j(FieldsTDEM):
         if adjoint is True:
             return -MfRhoDeriv.T * (C * (MeMuI * v))
         return -MeMuI * (C.T * (MfRhoDeriv * v))
+
+    def _e(self, jSolution, srcList, tInd):
+        return self.survey.prob.MfI * (
+            self._MfRho * self._j(jSolution, srcList, tInd)
+        )
+
+    def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint is True:
+            return self._MfRho.T * (self.survey.prob.MfI.T * dun_dm_v)
+        return self.survey.prob.MfI * (self._MfRho * dun_dm_v)
+
+    def _eDeriv_m(self, tInd, src, v, adjoint=False):
+        jSolution = Utils.mkvc(self[src, 'jSolution', tInd])
+        if adjoint:
+            return self._MfRhoDeriv(jSolution).T * (self.survey.prob.MfI.T * v)
+        return self.survey.prob.MfI * (self._MfRhoDeriv(jSolution) * v )
+
+    # def _dbdt(self, jSolution, srcList, tInd):
+    #     dhdt =
