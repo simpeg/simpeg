@@ -42,7 +42,7 @@ class BaseTDEMRx(BaseTimeRx):
         """
         return mesh.getInterpolationMat(self.locs, self.projGLoc(f))
 
-    def getTimeP(self, timeMesh, f):
+    def getTimeP(self, time_mesh, f):
         """
             Returns the time projection matrix.
 
@@ -50,9 +50,9 @@ class BaseTDEMRx(BaseTimeRx):
 
                 This is not stored in memory, but is created on demand.
         """
-        return timeMesh.getInterpolationMat(self.times, self.projTLoc(f))
+        return time_mesh.getInterpolationMat(self.times, self.projTLoc(f))
 
-    def getP(self, mesh, timeMesh, f):
+    def getP(self, mesh, time_mesh, f):
         """
             Returns the projection matrices as a
             list for all components collected by
@@ -60,21 +60,21 @@ class BaseTDEMRx(BaseTimeRx):
 
             .. note::
 
-                Projection matrices are stored as a dictionary (mesh, timeMesh) if storeProjections is True
+                Projection matrices are stored as a dictionary (mesh, time_mesh) if storeProjections is True
         """
-        if (mesh, timeMesh) in self._Ps:
-            return self._Ps[(mesh, timeMesh)]
+        if (mesh, time_mesh) in self._Ps:
+            return self._Ps[(mesh, time_mesh)]
 
         Ps = self.getSpatialP(mesh, f)
-        Pt = self.getTimeP(timeMesh, f)
+        Pt = self.getTimeP(time_mesh, f)
         P = sp.kron(Pt, Ps)
 
         if self.storeProjections:
-            self._Ps[(mesh, timeMesh)] = P
+            self._Ps[(mesh, time_mesh)] = P
 
         return P
 
-    def getTimeP(self, timeMesh, f):
+    def getTimeP(self, time_mesh, f):
         """
             Returns the time projection matrix.
 
@@ -83,13 +83,13 @@ class BaseTDEMRx(BaseTimeRx):
                 This is not stored in memory, but is created on demand.
         """
         # if self.projField == 'dbdt':
-        #     return timeMesh.getInterpolationMat(
+        #     return time_mesh.getInterpolationMat(
         #         self.times, self.projTLoc(f)
-        #     )*timeMesh.faceDiv
+        #     )*time_mesh.faceDiv
         # else:
-        return timeMesh.getInterpolationMat(self.times, self.projTLoc(f))
+        return time_mesh.getInterpolationMat(self.times, self.projTLoc(f))
 
-    def eval(self, src, mesh, timeMesh, f):
+    def eval(self, src, mesh, time_mesh, f):
         """
         Project fields to receivers to get data.
 
@@ -100,31 +100,31 @@ class BaseTDEMRx(BaseTimeRx):
         :return: fields projected to recievers
         """
 
-        P = self.getP(mesh, timeMesh, f)
+        P = self.getP(mesh, time_mesh, f)
         f_part = mkvc(f[src, self.projField, :])
 
         return P*f_part
 
-    def evalDeriv(self, src, mesh, timeMesh, f, v, adjoint=False):
+    def evalDeriv(self, src, mesh, time_mesh, f, v, adjoint=False):
         """
         Derivative of projected fields with respect to the inversion model times a vector.
 
         :param SimPEG.EM.TDEM.SrcTDEM.BaseSrc src: TDEM source
         :param BaseMesh mesh: mesh used
-        :param BaseMesh timeMesh: time mesh
+        :param BaseMesh time_mesh: time mesh
         :param Fields f: fields object
         :param numpy.ndarray v: vector to multiply
         :rtype: numpy.ndarray
         :return: fields projected to recievers
         """
 
-        P = self.getP(mesh, timeMesh, f)
+        P = self.getP(mesh, time_mesh, f)
 
         if not adjoint:
             return P * v # mkvc(v[src, self.projField+'Deriv', :])
         elif adjoint:
             # dP_dF_T = P.T * v #[src, self]
-            # newshape = (len(dP_dF_T)/timeMesh.nN, timeMesh.nN )
+            # newshape = (len(dP_dF_T)/time_mesh.nN, time_mesh.nN )
             return P.T * v # np.reshape(dP_dF_T, newshape, order='F')
 
 
@@ -169,12 +169,12 @@ class Point_dbdt(BaseTDEMRx):
         self.projField = 'dbdt'
         super(Point_dbdt, self).__init__(**kwargs)
 
-    def eval(self, src, mesh, timeMesh, f):
+    def eval(self, src, mesh, time_mesh, f):
 
         if self.projField in f.aliasFields:
-            return super(Point_dbdt, self).eval(src, mesh, timeMesh, f)
+            return super(Point_dbdt, self).eval(src, mesh, time_mesh, f)
 
-        P = self.getP(mesh, timeMesh, f)
+        P = self.getP(mesh, time_mesh, f)
         f_part = mkvc(f[src, 'b', :])
         return P*f_part
 
@@ -184,7 +184,7 @@ class Point_dbdt(BaseTDEMRx):
             return super(Point_dbdt, self).projGLoc(f)
         return f._GLoc(self.projField) + self.orientation
 
-    def getTimeP(self, timeMesh, f):
+    def getTimeP(self, time_mesh, f):
         """
             Returns the time projection matrix.
 
@@ -193,11 +193,11 @@ class Point_dbdt(BaseTDEMRx):
                 This is not stored in memory, but is created on demand.
         """
         if self.projField in f.aliasFields:
-            return super(Point_dbdt, self).getTimeP(timeMesh, f)
+            return super(Point_dbdt, self).getTimeP(time_mesh, f)
 
-        return timeMesh.getInterpolationMat(
+        return time_mesh.getInterpolationMat(
             self.times, 'CC'
-        )*timeMesh.faceDiv
+        )*time_mesh.faceDiv
 
 
 class Point_h(BaseTDEMRx):
