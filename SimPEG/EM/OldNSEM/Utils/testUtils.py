@@ -72,7 +72,7 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
         for freq in freqs:
             srcList.append(Planewave_xy_1Dprimary(rxList,freq))
 
-    survey = Survey(srcList=srcList)
+    survey = Survey(srcList)
     return (survey, sigma, sigmaBack, m1d)
 
 

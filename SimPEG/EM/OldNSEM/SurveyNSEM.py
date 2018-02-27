@@ -6,10 +6,7 @@ import sys
 import numpy as np
 from numpy.lib import recfunctions as recFunc
 
-import properties
-
-from ...Data import Data
-from ..FDEM import Survey as FDEMSurvey
+from SimPEG import OldSurvey as SimPEGsurvey, mkvc
 from .SrcNSEM import BaseNSEMSrc, Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
 from .RxNSEM import Point_impedance3D, Point_tipper3D
 from .Utils.plotUtils import DataNSEMPlotMethods
@@ -19,7 +16,7 @@ from .Utils.plotUtils import DataNSEMPlotMethods
 #########
 
 
-class Survey(FDEMSurvey):
+class Survey(SimPEGsurvey.BaseSurvey):
     """
     Survey class for NSEM.
 
@@ -36,17 +33,61 @@ class Survey(FDEMSurvey):
 
     **Optional**
     """
+    srcPair = BaseNSEMSrc
 
-    def __init__(self, **kwargs):
-        super(FDEMSurvey, self).__init__(**kwargs)
+    def __init__(self, srcList, **kwargs):
+        # Sort these by frequency
+        self.srcList = srcList
+        SimPEGsurvey.BaseSurvey.__init__(self, **kwargs)
 
+        _freqDict = {}
+        for src in srcList:
+            if src.freq not in _freqDict:
+                _freqDict[src.freq] = []
+            _freqDict[src.freq] += [src]
+
+        self._freqDict = _freqDict
+        self._freqs = sorted([f for f in self._freqDict])
+
+    @property
+    def freqs(self):
+        """Frequencies"""
+        return self._freqs
+
+    @property
+    def nFreq(self):
+        """Number of frequencies"""
+        return len(self._freqDict)
+
+    def getSrcByFreq(self, freq):
+        """Returns the sources associated with a specific frequency."""
+        assert freq in self._freqDict, "The requested frequency is not in this survey."
+        return self._freqDict[freq]
+
+    def eval(self, f):
+        """
+        Evalute and return Data given calculated fields
+
+        :param SimPEG.EM.NSEM.FieldsNSEM f: A NSEM fileds object to evaluate data from
+        :retype: SimPEG.EM.NSEM.Data
+        :return: NSEM Data object
+        """
+        data = Data(self)
+        for src in self.srcList:
+            sys.stdout.flush()
+            for rx in src.rxList:
+                data[src, rx] = rx.eval(src, self.mesh, f)
+        return data
+
+    def evalDeriv(self, f):
+        raise Exception('Use Sources to project fields deriv.')
 
 #########
 # Data
 #########
 
 
-class Data(Data, DataNSEMPlotMethods):
+class Data(SimPEGsurvey.Data, DataNSEMPlotMethods):
     """
     Data class for NSEMdata. Stores the data vector indexed by the survey.
 
@@ -59,13 +100,9 @@ class Data(Data, DataNSEMPlotMethods):
     :param numpy.ndarray floor: Vector of the noise floor of the data in order matching of the survey
 
     """
-
-    # floor = properties.Renamed('noise_floor')
-
-    # def __init__(self, survey=survey, dobs=None, standard_deviation=None, floor=None):
-    #     # Pass the variables to the "parent" method
-    #     super(Data, self).__init__(
-    #         self, survey, dobs, standard_deviation, floor)
+    def __init__(self, survey, dobs=None, standard_deviation=None, floor=None):
+        # Pass the variables to the "parent" method
+        SimPEGsurvey.Data.__init__(self, survey, dobs, standard_deviation, floor)
 
 
     def toRecArray(self, returnType='RealImag'):
