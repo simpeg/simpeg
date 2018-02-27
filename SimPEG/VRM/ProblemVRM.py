@@ -583,7 +583,7 @@ class LinearVRM(BaseProblemVRM):
 
     def Jtvec(self, m, v, f=None):
 
-        """Compute dxidm'*A'*T'*Pd'*v"""
+        """Compute (Pd*T*A*dxidm)^T * v"""
 
         assert self.ispaired, "Problem must be paired with survey to predict data"
 
