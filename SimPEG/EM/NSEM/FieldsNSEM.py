@@ -1,5 +1,5 @@
 from SimPEG import Utils
-from SimPEG import Problem
+from SimPEG.OldFields import Fields
 
 from SimPEG.Utils import Zero
 from SimPEG.Utils import Identity
@@ -12,10 +12,13 @@ from SimPEG.EM.Utils import omega
 ##############
 #   Fields   #
 ##############
-class BaseNSEMFields(Problem.Fields):
+class BaseNSEMFields(Fields):
     """Field Storage for a NSEM method."""
     knownFields = {}
     dtype = complex
+
+    def __init__(self, mesh, survey, **kwargs):
+        Fields.__init__(self, mesh, survey, **kwargs)
 
 
 ###########

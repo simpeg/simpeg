@@ -23,9 +23,6 @@ class BaseNSEMSrc(FDEMBaseSrc):
     :param list rxList: A list of receivers associated with the source
     '''
 
-    freq = None #: Frequency (float)
-
-
     def __init__(self, rxList, freq):
 
         self.freq = float(freq)

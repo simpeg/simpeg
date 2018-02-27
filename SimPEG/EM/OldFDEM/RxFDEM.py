@@ -2,7 +2,7 @@ import SimPEG
 
 
 
-class BaseRx(SimPEG.Survey.BaseRx):
+class BaseRx(SimPEG.OldSurvey.BaseRx):
     """
     Frequency domain receiver base class
 
@@ -28,7 +28,7 @@ class BaseRx(SimPEG.Survey.BaseRx):
         self.component = component
 
         # TODO: remove rxType from baseRx
-        SimPEG.Survey.BaseRx.__init__(self, locs, rxType=None)
+        SimPEG.OldSurvey.BaseRx.__init__(self, locs, rxType=None)
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
