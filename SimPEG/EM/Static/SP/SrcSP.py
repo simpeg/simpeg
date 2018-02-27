@@ -26,7 +26,7 @@ class StreamingCurrents(Src.BaseSrc):
                 self.indActive = np.ones(self.mesh.nC, dtype=bool)
             # This is for setting a Neuman condition on the topographic faces
 
-            self.Grad = sp.vstack(
+            self.Grad = -sp.vstack(
                 (
                     self.Pafx * self.mesh.faceDivx.T * self.V * self.Pac,
                     self.Pafy * self.mesh.faceDivy.T * self.V * self.Pac,
