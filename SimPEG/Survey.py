@@ -216,6 +216,7 @@ class BaseData(object):
                 self[src, rx] = v[indBot:indTop]
                 indBot += rx.nD
 
+
 class Data(BaseData):
     """
     Storage of data, standard_deviation and floor storage
@@ -226,10 +227,8 @@ class Data(BaseData):
 
     **Optional**
     :param ndarray dobs: The data vector matching the src and rx in survey
-    :param ndarray standard_deviation: The standard deviation vector
-        matching the src and rx in survey
-    :param ndarray floor: The floor vector for the data
-        matching the src and rx in survey
+    :param ndarray standard_deviation: The standard deviation vector matching the src and rx in survey
+    :param ndarray floor: The floor vector for the data matching the src and rx in survey
 
     """
 
@@ -243,7 +242,6 @@ class Data(BaseData):
             self.survey, standard_deviation)
         self.floor = Floor(self.survey, floor)
 
-
     def calculate_uncertainty(self):
         """
         Return the uncertainty base on
@@ -253,6 +251,7 @@ class Data(BaseData):
         return (
             self.standard_deviation.tovec() * np.abs(self.tovec()) +
             self.floor.tovec())
+
 
 class StandardDeviation(BaseData):
     """
@@ -265,6 +264,7 @@ class StandardDeviation(BaseData):
         # Initiate the base problem
         BaseData.__init__(self, survey, standard_deviation)
 
+
 class Floor(BaseData):
     """
     Storage of floor estimates of data
@@ -275,6 +275,7 @@ class Floor(BaseData):
     def __init__(self, survey, floor=None):
         # Initiate the base problem
         BaseData.__init__(self, survey, floor)
+
 
 class BaseSurvey(object):
     """Survey holds the observed data, and the standard deviations."""
