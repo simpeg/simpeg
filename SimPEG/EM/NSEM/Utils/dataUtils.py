@@ -341,7 +341,7 @@ def plotMT1DModelData(problem, models, symList=None):
         axM.semilogx(modelPts, meshPts, color=col)
 
         ## Data
-        loc = rec_to_ndarr(np.unique(data1D[['x', 'y']].copy()))
+        loc = rec_to_ndarr(np.unique(data1D[['x', 'y']]).copy())
         # Appres
         pDt.plotIsoStaImpedance(axR, loc, data1D, 'zyx', 'res', pColor=col)
         # Appphs

@@ -96,10 +96,8 @@ class Data(SimPEGsurvey.Data, DataNSEMPlotMethods):
 
     **Optional**
     :param numpy.ndarray v: Vector of the data in order matching of the survey
-    :param numpy.ndarray standard_deviation: Vector of the standard_deviation
-        of data in order matching of the survey
-    :param numpy.ndarray floor: Vector of the noise floor of the data in
-        order matching of the survey
+    :param numpy.ndarray standard_deviation: Vector of the standard_deviation of data in order matching of the survey
+    :param numpy.ndarray floor: Vector of the noise floor of the data in order matching of the survey
 
     """
     def __init__(self, survey, dobs=None, standard_deviation=None, floor=None):
@@ -112,8 +110,7 @@ class Data(SimPEGsurvey.Data, DataNSEMPlotMethods):
         Returns a numpy.recarray for a SimpegNSEM impedance data object.
 
         **Optional**
-        :param str returnType: Switches between returning a rec array where the impedance
-            is split to real and imaginary ('RealImag') or is a complex ('Complex')
+        :param str returnType: Switches between returning a rec array where the impedance is split to real and imaginary ('RealImag') or is a complex ('Complex')
         :rtype: numpy.recarray
         :return: Record array with data, with indexed columns
 
@@ -168,9 +165,13 @@ class Data(SimPEGsurvey.Data, DataNSEMPlotMethods):
                 for comp in ['freq', 'x', 'y', 'z']:
                     outArr[comp] = outTemp[comp].copy()
                 for comp in ['zxx', 'zxy', 'zyx', 'zyy', 'tzx', 'tzy']:
-                    outArr[comp] = outTemp[comp+'r'].copy() + 1j * outTemp[comp + 'i'].copy()
+                    outArr[comp] = (outTemp[comp + 'r'].copy() + 1j *
+                                    outTemp[comp + 'i'].copy()
+                                    )
             else:
-                raise NotImplementedError('{:s} is not implemented, as to be RealImag or Complex.')
+                raise NotImplementedError(
+                    '{:s} is not implemented, as to be RealImag or Complex.'
+                )
 
         # Return
         return outArr
@@ -181,8 +182,7 @@ class Data(SimPEGsurvey.Data, DataNSEMPlotMethods):
         Class method that reads in a numpy record array to NSEMdata object.
 
         **Required**
-        :param numpy.recarray recArray: Record array with the data. Has to have
-            ('freq','x','y','z') columns and some ('zxx','zxy','zyx','zyy','tzx','tzy')
+        :param numpy.recarray recArray: Record array with the data. Has to have ('freq','x','y','z') columns and some ('zxx','zxy','zyx','zyy','tzx','tzy')
 
         **Optional**
         :param string srcType: The type of SimPEG.EM.NSEM.SrcNSEM to be used
