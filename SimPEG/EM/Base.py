@@ -159,7 +159,7 @@ class BaseEMSimulation(Simulation.BaseSimulation):
 
     survey = properties.Instance(
         "the EM survey",
-        Survey,
+        Survey.BaseSurvey,
         required=True
     )
 
