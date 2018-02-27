@@ -1,6 +1,8 @@
 from __future__ import division
 import numpy as np
 import scipy.sparse as sp
+from scipy.constants import epsilon_0
+
 import SimPEG
 from SimPEG import Utils
 from SimPEG.EM.Utils import omega
@@ -415,7 +417,7 @@ class Fields3D_j(FieldsTDEM):
         dhdt = - MeMuI * (C.T * (MfRho * jSolution))
         for i, src in enumerate(srcList):
             s_m = src.s_m(self.survey.prob, self.survey.prob.times[tInd])
-            dhdt[:,i] = MeMuI * s_m + dhdt[:, i]
+            dhdt[:, i] = MeMuI * s_m + dhdt[:, i]
 
         return dhdt
 
@@ -454,5 +456,30 @@ class Fields3D_j(FieldsTDEM):
             return self._MfRhoDeriv(jSolution).T * (self.survey.prob.MfI.T * v)
         return self.survey.prob.MfI * (self._MfRhoDeriv(jSolution) * v )
 
-    # def _dbdt(self, jSolution, srcList, tInd):
-    #     dhdt =
+    def _dbdt(self, jSolution, srcList, tInd):
+        dhdt = Utils.mkvc(self._dhdt(jSolution, srcList, tInd))
+        return self.survey.prob.Me * (self.survey.prob.MeMuI * dhdt)
+
+    def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        # dhdt = Utils.mkvc(self[src, 'dhdt', tInd])
+        if adjoint:
+            return self._dhdtDeriv_u(
+                tInd, src,
+                self.survey.prob.MeMuI.T * (self.survey.prob.Me.T * dun_dm_v),
+                adjoint
+            )
+        return self.survey.prob.Me * (
+            self.survey.prob.MeMuI * self._dhdtDeriv_u(tInd, src, dun_dm_v)
+        )
+
+    def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
+        if adjoint:
+            return self._dhdtDeriv_m(
+                tInd, src,
+                self.survey.prob.MeMuI.T * (self.survey.prob.Me.T * v),
+                adjoint
+            )
+        return self.survey.prob.Me * (
+            self.survey.prob.MeMuI * self._dhdtDeriv_m(tInd, src, v)
+        )
+
