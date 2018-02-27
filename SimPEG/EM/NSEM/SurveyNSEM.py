@@ -20,13 +20,6 @@ class Survey(SimPEGsurvey.BaseSurvey):
     """
     Survey class for NSEM.
 
-    The class contains information about the survey setup
-    that is:
-     - Sources
-        - Type
-        - Receivers associated
-            - Type and location
-
     **Requried**
     :param list srcList: List of sources associated with the survey
 
