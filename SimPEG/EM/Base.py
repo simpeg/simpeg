@@ -158,8 +158,8 @@ class BaseEMSimulation(Simulation.BaseSimulation):
     Props.Reciprocal(mu, mui)
 
     survey = properties.Instance(
-        "a list of sources",
-        BaseEMSrc,
+        "the EM survey",
+        Survey,
         required=True
     )
 
