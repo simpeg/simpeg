@@ -24,6 +24,9 @@ SimPEG
     :target: https://www.codacy.com/app/lindseyheagy/simpeg?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=simpeg/simpeg&amp;utm_campaign=Badge_Grade
     :alt: codacy
 
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1162997.svg
+   :target: https://doi.org/10.5281/zenodo.1162997
+
 Simulation and Parameter Estimation in Geophysics  -  A python package for simulation and gradient based parameter estimation in the context of geophysical applications.
 
 The vision is to create a package for finite volume simulation with applications to geophysical imaging and subsurface flow. To enable the understanding of the many different components, this package has the following features:
