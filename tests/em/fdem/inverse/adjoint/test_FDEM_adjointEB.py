@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from SimPEG import EM
 from scipy.constants import mu_0
-from SimPEG.EM.Utils.testingUtils import getFDEMProblem
+from SimPEG.EM.Utils.TestingUtils import getFDEMSimulation, crossCheckTest
 
 testE = True
 testB = True
@@ -21,7 +21,7 @@ SrcList = ['RawVec', 'MagDipole'] #or 'MAgDipole_Bfield', 'CircularLoop', 'RawVe
 
 
 def adjointTest(fdemType, comp):
-    prb = getFDEMProblem(fdemType, comp, SrcList, freq)
+    prb = getFDEMSimulation(fdemType, comp, SrcList, freq)
     # prb.solverOpts = dict(check_accuracy=True)
     print('Adjoint {0!s} formulation - {1!s}'.format(fdemType, comp))
 

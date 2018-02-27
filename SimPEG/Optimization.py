@@ -13,7 +13,7 @@ __all__ = [
     'StoppingCriteria', 'IterationPrinters'
 ]
 
-SolverICG = SolverWrapI(sp.linalg.cg, checkAccuracy=False)
+SolverICG = SolverWrapI(sp.linalg.cg, check_accuracy=False)
 
 
 class StoppingCriteria(object):

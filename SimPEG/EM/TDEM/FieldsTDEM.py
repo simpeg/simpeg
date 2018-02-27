@@ -1,13 +1,16 @@
 from __future__ import division
 import numpy as np
 import scipy.sparse as sp
-import SimPEG
-from SimPEG import Utils
-from SimPEG.EM.Utils import omega
-from SimPEG.Utils import Zero, Identity
+
+from ...Fields import TimeFields
+from ...Utils import Zero
+
+__all__ = [
+    'Fields3D_e', 'Fields3D_b', 'Fields3D_h', 'Fields3D_j', 'Fields_Derivs'
+]
 
 
-class FieldsTDEM(SimPEG.Problem.TimeFields):
+class BaseTDEMFields(TimeFields):
     """
 
     Fancy Field Storage for a TDEM survey. Only one field type is stored for
@@ -32,8 +35,10 @@ class FieldsTDEM(SimPEG.Problem.TimeFields):
     nFrequencies)
     """
 
-    knownFields = {}
     dtype = float
+
+    def __init__(self, **kwargs):
+        super(BaseTDEMFields, self).__init__(**kwargs)
 
     def _GLoc(self, fieldType):
         """Grid location of the fieldType"""
@@ -106,35 +111,72 @@ class FieldsTDEM(SimPEG.Problem.TimeFields):
         )
 
 
-class Fields_Derivs(FieldsTDEM):
+class Fields_Derivs(BaseTDEMFields):
     """
         A fields object for satshing derivs
     """
-    knownFields = {
-                    'bDeriv': 'F',
-                    'eDeriv': 'E',
-                    'hDeriv': 'E',
-                    'jDeriv': 'F',
-                    'dbdtDeriv': 'F',
-                    'dhdtDeriv': 'E'
-                  }
+
+    def __init__(self, **kwargs):
+        knownFields = {
+            'bDeriv': 'F',
+            'eDeriv': 'E',
+            'hDeriv': 'E',
+            'jDeriv': 'F',
+            'dbdtDeriv': 'F',
+            'dhdtDeriv': 'E'
+        }
+
+        aliasFields = {}
+
+        knownFieldskwarg = kwargs.pop('knownFields', None)
+        if knownFieldskwarg is not None:
+            assert knownFieldskwarg == knownFields, (
+                "knownFields should not be changed from the default"
+            )
+
+        aliasFieldskwarg = kwargs.pop('aliasFields', None)
+        if knownFieldskwarg is not None:
+            assert aliasFieldskwarg == aliasFields, (
+                "aliasFields should not be changed from the default"
+            )
+
+        super(Fields_Derivs, self).__init__(**kwargs)
+
+        self.knownFields = knownFields
 
 
-class Fields3D_b(FieldsTDEM):
+class Fields3D_b(BaseTDEMFields):
     """Field Storage for a TDEM survey."""
-    knownFields = {'bSolution': 'F'}
-    aliasFields = {
-                    'b': ['bSolution', 'F', '_b'],
-                    'e': ['bSolution', 'E', '_e'],
-                    'dbdt': ['bSolution', 'F', '_dbdt']
-                  }
+
+    def __init__(self, **kwargs):
+        knownFields = {'bSolution': 'F'}
+        aliasFields = {
+            'b': ['bSolution', 'F', '_b'],
+            'e': ['bSolution', 'E', '_e'],
+            'dbdt': ['bSolution', 'F', '_dbdt']
+        }
+
+        knownFieldskwarg = kwargs.pop('knownFields', None)
+        if knownFieldskwarg is not None:
+            assert knownFieldskwarg == knownFields, (
+                "knownFields should not be changed from the default"
+            )
+
+        aliasFieldskwarg = kwargs.pop('aliasFields', None)
+        if knownFieldskwarg is not None:
+            assert aliasFieldskwarg == aliasFields, (
+                "aliasFields should not be changed from the default"
+            )
+
+        super(Fields3D_b, self).__init__(**kwargs)
+
+        self.knownFields = knownFields
+        self.aliasFields = aliasFields
 
     def startup(self):
-        self._MeSigmaI = self.survey.prob.MeSigmaI
-        self._MeSigmaIDeriv = self.survey.prob.MeSigmaIDeriv
-        self._edgeCurl = self.survey.prob.mesh.edgeCurl
-        self._MfMui = self.survey.prob.MfMui
-        self._timeMesh = self.survey.prob.timeMesh
+        self._MeSigmaI = self.simulation.MeSigmaI
+        self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
+        self._MfMui = self.simulation.MfMui
 
     def _TLoc(self, fieldType):
         if fieldType in ['e', 'b']:
@@ -152,79 +194,97 @@ class Fields3D_b(FieldsTDEM):
         return Zero()
 
     def _dbdt(self, bSolution, srcList, tInd):
-        # self._timeMesh.faceDiv
-        dbdt = - self._edgeCurl * self._e(bSolution, srcList, tInd)
+        # self.simulation.time_mesh.faceDiv
+        dbdt = - self.simulation.mesh.edgeCurl * self._e(bSolution, srcList, tInd)
         for i, src in enumerate(srcList):
-            s_m = src.s_m(self.survey.prob, self.survey.prob.times[tInd])
+            s_m = src.s_m(self.simulation, self.simulation.times[tInd])
             dbdt[:, i] = dbdt[:, i] + s_m
         return dbdt
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         if adjoint is True:
             return - self._eDeriv_u(
-                tInd, src, self._edgeCurl.T * dun_dm_v, adjoint
+                tInd, src, self.simulation.mesh.edgeCurl.T * dun_dm_v, adjoint
             )
-        return -(self._edgeCurl * self._eDeriv_u(tInd, src, dun_dm_v))
+        return -(self.simulation.mesh.edgeCurl * self._eDeriv_u(tInd, src, dun_dm_v))
 
     def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
         if adjoint is True:
-            return -(self._eDeriv_m(tInd, src, self._edgeCurl.T * v, adjoint))
-        return -(self._edgeCurl * self._eDeriv_m(tInd, src, v)) #+ src.s_mDeriv() assuming src doesn't have deriv for now
+            return -(self._eDeriv_m(tInd, src, self.simulation.mesh.edgeCurl.T * v, adjoint))
+        return -(self.simulation.mesh.edgeCurl * self._eDeriv_m(tInd, src, v)) #+ src.s_mDeriv() assuming src doesn't have deriv for now
 
     def _e(self, bSolution, srcList, tInd):
-        e = self._MeSigmaI * (self._edgeCurl.T * (self._MfMui * bSolution))
+        e = self._MeSigmaI * (self.simulation.mesh.edgeCurl.T * (self._MfMui * bSolution))
         for i, src in enumerate(srcList):
-            s_e = src.s_e(self.survey.prob, self.survey.prob.times[tInd])
+            s_e = src.s_e(self.simulation, self.simulation.times[tInd])
             e[:, i] = e[:, i] - self._MeSigmaI * s_e
         return e
 
     def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         if adjoint is True:
             return (
-                self._MfMui.T * (self._edgeCurl * (self._MeSigmaI.T * dun_dm_v))
+                self._MfMui.T * (self.simulation.mesh.edgeCurl * (self._MeSigmaI.T * dun_dm_v))
             )
         return (
-            self._MeSigmaI * (self._edgeCurl.T * (self._MfMui * dun_dm_v))
+            self._MeSigmaI * (self.simulation.mesh.edgeCurl.T * (self._MfMui * dun_dm_v))
         )
 
     def _eDeriv_m(self, tInd, src, v, adjoint=False):
-        _, s_e = src.eval(self.survey.prob, self.survey.prob.times[tInd])
+        _, s_e = src.eval(self.simulation, self.simulation.times[tInd])
         bSolution = self[[src], 'bSolution', tInd].flatten()
 
         _, s_eDeriv = src.evalDeriv(
-            self.survey.prob.times[tInd], self, adjoint=adjoint
+            self.simulation.times[tInd], self, adjoint=adjoint
         )
 
         if adjoint is True:
             return (
                 self._MeSigmaIDeriv(
-                    -s_e + self._edgeCurl.T * (self._MfMui * bSolution)
+                    -s_e + self.simulation.mesh.edgeCurl.T * (self._MfMui * bSolution)
                 ).T * v -
                 s_eDeriv(self._MeSigmaI.T * v)
             )
 
         return (
-            self._MeSigmaIDeriv(-s_e + self._edgeCurl.T * (
+            self._MeSigmaIDeriv(-s_e + self.simulation.mesh.edgeCurl.T * (
                 self._MfMui * bSolution)
             ) * v - self._MeSigmaI * s_eDeriv(v)
         )
 
 
-class Fields3D_e(FieldsTDEM):
+class Fields3D_e(BaseTDEMFields):
     """Fancy Field Storage for a TDEM survey."""
-    knownFields = {'eSolution': 'E'}
-    aliasFields = {
-                    'e': ['eSolution', 'E', '_e'],
-                    'b': ['eSolution', 'F', '_b'],
-                    'dbdt': ['eSolution', 'F', '_dbdt'],
-                  }
+
+    def __init__(self, **kwargs):
+
+        knownFields = {'eSolution': 'E'}
+        aliasFields = {
+            'e': ['eSolution', 'E', '_e'],
+            'b': ['eSolution', 'F', '_b'],
+            'dbdt': ['eSolution', 'F', '_dbdt'],
+        }
+
+        knownFieldskwarg = kwargs.pop('knownFields', None)
+        if knownFieldskwarg is not None:
+            assert knownFieldskwarg == knownFields, (
+                "knownFields should not be changed from the default"
+            )
+
+        aliasFieldskwarg = kwargs.pop('aliasFields', None)
+        if knownFieldskwarg is not None:
+            assert aliasFieldskwarg == aliasFields, (
+                "aliasFields should not be changed from the default"
+            )
+
+        super(Fields3D_e, self).__init__(**kwargs)
+
+        self.knownFields = knownFields
+        self.aliasFields = aliasFields
 
     def startup(self):
-        self._MeSigmaI = self.survey.prob.MeSigmaI
-        self._MeSigmaIDeriv = self.survey.prob.MeSigmaIDeriv
-        self._edgeCurl = self.survey.prob.mesh.edgeCurl
-        self._MfMui = self.survey.prob.MfMui
-        self._times = self.survey.prob.times
+        self._MeSigmaI = self.simulation.MeSigmaI
+        self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
+        self._MfMui = self.simulation.MfMui
 
     def _TLoc(self, fieldType):
         if fieldType in ['e', 'b']:
@@ -247,21 +307,21 @@ class Fields3D_e(FieldsTDEM):
         s_m = np.zeros((self.mesh.nF, len(srcList)))
         for i, src in enumerate(srcList):
             s_m_src = src.s_m(
-                self.survey.prob, self._times[tInd]
+                self.simulation, self.simulation.times[tInd]
             )
             s_m[:, i] = s_m[:, i] + s_m_src
-        return s_m - self._edgeCurl * eSolution
+        return s_m - self.simulation.mesh.edgeCurl * eSolution
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         if adjoint:
-            return -self._edgeCurl.T * dun_dm_v
-        return -self._edgeCurl * dun_dm_v
+            return -self.simulation.mesh.edgeCurl.T * dun_dm_v
+        return -self.simulation.mesh.edgeCurl * dun_dm_v
 
     def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
         # s_mDeriv = src.s_mDeriv(
-        #     self._times[tInd], self, adjoint=adjoint
+        #     self.simulation.times[tInd], self, adjoint=adjoint
         # )
-        return Utils.Zero()  # assumes source doesn't depend on model
+        return Zero()  # assumes source doesn't depend on model
 
     def _b(self, eSolution, srcList, tInd):
         """
@@ -269,28 +329,46 @@ class Fields3D_e(FieldsTDEM):
         """
         raise NotImplementedError('To obtain b-fields, please use Problem3D_b')
         # dbdt = self._dbdt(eSolution, srcList, tInd)
-        # dt = self.survey.prob.timeMesh.hx
+        # dt = self.simulation.time_mesh.hx
         # # assume widths of "ghost cells" same on either end
         # dtn = np.hstack([dt[0], 0.5*(dt[1:] + dt[:-1]), dt[-1]])
         # return dtn[tInd] * dbdt
         # # raise NotImplementedError
 
 
-class Fields3D_h(FieldsTDEM):
+class Fields3D_h(BaseTDEMFields):
     """Fancy Field Storage for a TDEM survey."""
-    knownFields = {'hSolution': 'E'}
-    aliasFields = {
-                    'h': ['hSolution', 'E', '_h'],
-                    'dhdt': ['hSolution', 'E', '_dhdt'],
-                    'j': ['hSolution', 'F', '_j'],
-                  }
+
+    def __init__(self, **kwargs):
+
+        knownFields = {'hSolution': 'E'}
+        aliasFields = {
+            'h': ['hSolution', 'E', '_h'],
+            'dhdt': ['hSolution', 'E', '_dhdt'],
+            'j': ['hSolution', 'F', '_j'],
+        }
+
+        knownFieldskwarg = kwargs.pop('knownFields', None)
+        if knownFieldskwarg is not None:
+            assert knownFieldskwarg == knownFields, (
+                "knownFields should not be changed from the default"
+            )
+
+        aliasFieldskwarg = kwargs.pop('aliasFields', None)
+        if knownFieldskwarg is not None:
+            assert aliasFieldskwarg == aliasFields, (
+                "aliasFields should not be changed from the default"
+            )
+
+        super(Fields3D_h, self).__init__(**kwargs)
+
+        self.knownFields = knownFields
+        self.aliasFields = aliasFields
 
     def startup(self):
-        self._edgeCurl = self.survey.prob.mesh.edgeCurl
-        self._times = self.survey.prob.times
-        self._MeMuI = self.survey.prob.MeMuI
-        self._MfRho = self.survey.prob.MfRho
-        self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
+        self._MeMuI = self.simulation.MeMuI
+        self._MfRho = self.simulation.MfRho
+        self._MfRhoDeriv = self.simulation.MfRhoDeriv
 
     def _TLoc(self, fieldType):
         # if fieldType in ['h', 'j']:
@@ -308,19 +386,19 @@ class Fields3D_h(FieldsTDEM):
         return Zero()
 
     def _dhdt(self, hSolution, srcList, tInd):
-        C = self._edgeCurl
+        C = self.simulation.mesh.edgeCurl
         MeMuI = self._MeMuI
         MfRho = self._MfRho
 
         dhdt = - MeMuI * (C.T * (MfRho * (C * hSolution)))
 
         for i, src in enumerate(srcList):
-            s_m, s_e = src.eval(self.survey.prob, self._times[tInd])
+            s_m, s_e = src.eval(self.simulation, self.simulation.times[tInd])
             dhdt[:, i] = MeMuI * (C.T * MfRho * s_e + s_m) +  dhdt[:, i]
         return dhdt
 
     def _dhdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        C = self._edgeCurl
+        C = self.simulation.mesh.edgeCurl
         MeMuI = self._MeMuI
         MfRho = self._MfRho
 
@@ -329,13 +407,13 @@ class Fields3D_h(FieldsTDEM):
         return - MeMuI * (C.T * (MfRho * (C * dun_dm_v)))
 
     def _dhdtDeriv_m(self, tInd, src, v, adjoint=False):
-        C = self._edgeCurl
+        C = self.simulation.mesh.edgeCurl
         MeMuI = self._MeMuI
         MfRho = self._MfRho
         MfRhoDeriv = self._MfRhoDeriv
 
         hSolution = self[[src], 'hSolution', tInd].flatten()
-        s_e = src.s_e(self.survey.prob, self._times[tInd])
+        s_e = src.s_e(self.simulation, self.simulation.times[tInd])
 
         if adjoint:
             return - MfRhoDeriv(C * hSolution - s_e).T * (C * (MeMuI * v))
@@ -345,35 +423,52 @@ class Fields3D_h(FieldsTDEM):
         s_e = np.zeros((self.mesh.nF, len(srcList)))
         for i, src in enumerate(srcList):
             s_e_src = src.s_e(
-                self.survey.prob, self._times[tInd]
+                self.simulation, self.simulation.times[tInd]
             )
             s_e[:, i] = s_e[:, i] + s_e_src
 
-        return self._edgeCurl * hSolution - s_e
+        return self.simulation.mesh.edgeCurl * hSolution - s_e
 
     def _jDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         if adjoint:
-            return self._edgeCurl.T * dun_dm_v
-        return self._edgeCurl * dun_dm_v
+            return self.simulation.mesh.edgeCurl.T * dun_dm_v
+        return self.simulation.mesh.edgeCurl * dun_dm_v
 
     def _jDeriv_m(self, tInd, src, v, adjoint=False):
         return Zero() # assumes the source doesn't depend on the model
 
 
-class Fields3D_j(FieldsTDEM):
+class Fields3D_j(BaseTDEMFields):
     """Fancy Field Storage for a TDEM survey."""
-    knownFields = {'jSolution': 'F'}
-    aliasFields = {
-                    'dhdt': ['jSolution', 'E', '_dhdt'],
-                    'j': ['jSolution', 'F', '_j'],
-                  }
+
+    def __init__(self, **kwargs):
+        knownFields = {'jSolution': 'F'}
+        aliasFields = {
+            'dhdt': ['jSolution', 'E', '_dhdt'],
+            'j': ['jSolution', 'F', '_j'],
+        }
+
+        knownFieldskwarg = kwargs.pop('knownFields', None)
+        if knownFieldskwarg is not None:
+            assert knownFieldskwarg == knownFields, (
+                "knownFields should not be changed from the default"
+            )
+
+        aliasFieldskwarg = kwargs.pop('aliasFields', None)
+        if knownFieldskwarg is not None:
+            assert aliasFieldskwarg == aliasFields, (
+                "aliasFields should not be changed from the default"
+            )
+
+        super(Fields3D_j, self).__init__(**kwargs)
+
+        self.knownFields = knownFields
+        self.aliasFields = aliasFields
 
     def startup(self):
-        self._edgeCurl = self.survey.prob.mesh.edgeCurl
-        self._times = self.survey.prob.times
-        self._MeMuI = self.survey.prob.MeMuI
-        self._MfRho = self.survey.prob.MfRho
-        self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
+        self._MeMuI = self.simulation.MeMuI
+        self._MfRho = self.simulation.MfRho
+        self._MfRhoDeriv = self.simulation.MfRhoDeriv
 
     def _TLoc(self, fieldType):
         # if fieldType in ['h', 'j']:
@@ -392,19 +487,19 @@ class Fields3D_j(FieldsTDEM):
         raise NotImplementedError('Please use Problem3D_h to get h-fields')
 
     def _dhdt(self, jSolution, srcList, tInd):
-        C = self._edgeCurl
+        C = self.simulation.mesh.edgeCurl
         MfRho = self._MfRho
         MeMuI = self._MeMuI
 
         dhdt = - MeMuI * (C.T * (MfRho * jSolution))
         for i, src in enumerate(srcList):
-            s_m = src.s_m(self.survey.prob, self.survey.prob.times[tInd])
-            dhdt[:,i] = MeMuI * s_m + dhdt[:, i]
+            s_m = src.s_m(self.simulation, self.simulation.times[tInd])
+            dhdt[:, i] = MeMuI * s_m + dhdt[:, i]
 
         return dhdt
 
     def _dhdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        C = self._edgeCurl
+        C = self.simulation.mesh.edgeCurl
         MfRho = self._MfRho
         MeMuI = self._MeMuI
 
@@ -415,7 +510,7 @@ class Fields3D_j(FieldsTDEM):
     def _dhdtDeriv_m(self, tInd, src, v, adjoint=False):
         jSolution = self[[src], 'jSolution', tInd].flatten()
         MfRhoDeriv = self._MfRhoDeriv(jSolution)
-        C = self._edgeCurl
+        C = self.simulation.mesh.edgeCurl
         MeMuI = self._MeMuI
 
         if adjoint is True:

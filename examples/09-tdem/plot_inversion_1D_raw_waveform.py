@@ -19,6 +19,7 @@ try:
 except ImportError:
     from SimPEG import SolverLU as Solver
 
+
 def run(plotIt=True):
 
     cs, ncx, ncz, npad = 5., 25, 24, 15
@@ -41,32 +42,34 @@ def run(plotIt=True):
     x = np.r_[30, 50, 70, 90]
     rxloc = np.c_[x, x*0., np.zeros_like(x)]
 
-    prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
-    prb.Solver = Solver
-    prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 5), (1e-4, 10), (5e-4, 10)]
+    simulation = EM.TDEM.Simulation3D_b(mesh=mesh, sigmaMap=mapping)
+    simulation.solver = Solver
+    simulation.time_steps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 5), (1e-4, 10), (5e-4, 10)]
 
     # Use VTEM waveform
-    out = EM.Utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
+    out = EM.Utils.VTEMFun(simulation.times, 0.00595, 0.006, 100)
 
     # Forming function handle for waveform using 1D linear interpolation
-    wavefun = interp1d(prb.times, out)
+    wavefun = interp1d(simulation.times, out)
     t0 = 0.006
     waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
 
-    rx = EM.TDEM.Rx.Point_dbdt(rxloc, np.logspace(-4, -2.5, 11)+t0, 'z')
-    src = EM.TDEM.Src.CircularLoop([rx], waveform=waveform,
-                                   loc=np.array([0., 0., 0.]), radius=10.)
-    survey = EM.TDEM.Survey([src])
-    prb.pair(survey)
+    rx = EM.TDEM.Rx.Point_dbdt(
+        locs=rxloc, times=np.logspace(-4, -2.5, 11)+t0, orientation='z'
+    )
+    src = EM.TDEM.Src.CircularLoop(
+        rxList=[rx], waveform=waveform, loc=np.array([0., 0., 0.]), radius=10.
+    )
+    survey = EM.TDEM.Survey(srcList=[src])
+    simulation.survey = survey
     # create observed data
     std = 0.02
 
-    survey.dobs = survey.makeSyntheticData(mtrue, std)
-    # dobs = survey.dpred(mtrue)
-    survey.std = std
-    survey.eps = 1e-11
+    data = simulation.make_synthetic_data(mtrue, std)
+    data.standard_deviation = std
+    data.noise_floor = 1e-11
 
-    dmisfit = DataMisfit.l2_DataMisfit(survey)
+    dmisfit = DataMisfit.l2_DataMisfit(data=data, simulation=simulation)
     regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
     reg = Regularization.Simple(regMesh)
     opt = Optimization.InexactGaussNewton(maxIter=5, LSshorten=0.5)
@@ -78,13 +81,13 @@ def run(plotIt=True):
     invProb.beta = 1e2
     inv = Inversion.BaseInversion(invProb, directiveList=[beta, target])
     m0 = np.log(np.ones(mtrue.size)*sig_half)
-    prb.counter = opt.counter = Utils.Counter()
+    simulation.counter = opt.counter = Utils.Counter()
     opt.remember('xc')
     mopt = inv.run(m0)
 
     if plotIt:
         fig, ax = plt.subplots(1, 2, figsize=(10, 6))
-        Dobs = survey.dobs.reshape((len(rx.times), len(x)))
+        Dobs = data.dobs.reshape((len(rx.times), len(x)))
         Dpred = invProb.dpred.reshape((len(rx.times), len(x)))
         for i in range (len(x)):
             ax[0].loglog(rx.times-t0, -Dobs[:,i].flatten(), 'k')

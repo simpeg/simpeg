@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 import SimPEG
 from . import RxDC as Rx
 from . import SrcDC as Src
-from SimPEG.EM.Base import BaseEMSurvey
+from SimPEG.EM.OldBase import BaseEMSurvey
 import numpy as np
 from scipy.interpolate import interp1d, NearestNDInterpolator
 import properties

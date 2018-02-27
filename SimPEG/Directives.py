@@ -1,6 +1,6 @@
 from __future__ import print_function
 from . import Utils
-from . import Regularization, DataMisfit, ObjectiveFunction
+from . import Regularization, OldDataMisfit, ObjectiveFunction, DataMisfit
 from . import Maps
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,8 +17,9 @@ class InversionDirective(object):
         ObjectiveFunction.ComboObjectiveFunction
     ]
     _dmisfitPair = [
-        DataMisfit.BaseDataMisfit,
-        ObjectiveFunction.ComboObjectiveFunction
+        OldDataMisfit.BaseDataMisfit,
+        ObjectiveFunction.ComboObjectiveFunction,
+        DataMisfit.BaseDataMisfit
     ]
 
     def __init__(self, **kwargs):
@@ -76,7 +77,7 @@ class InversionDirective(object):
         assert any([
                 isinstance(value, dmisfittype) for dmisfittype in
                 self._dmisfitPair
-        ]), "Regularization must be in {}, not {}".format(
+        ]), "DataMisfit must be in {}, not {}".format(
                 self._dmisfitPair, type(value)
         )
 
@@ -264,8 +265,10 @@ class TargetMisfit(InversionDirective):
             if self.phi_d_star is None:
 
                 nD = 0
-                for survey in self.survey:
-                    nD += survey.nD
+                # for survey in self.survey:
+                #     nD += survey.nD
+                for dmisfit in self.dmisfit.objfcts:
+                    nD += dmisfit.nD
 
                 self.phi_d_star = 0.5 * nD
 

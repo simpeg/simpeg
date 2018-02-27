@@ -60,7 +60,9 @@ def run(plotIt=True):
 
     # ----- FDEM problem & survey -----
     rxlocs = Utils.ndgrid([np.r_[10.], np.r_[0], np.r_[30.]])
-    bzr = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'real')
+    bzr = FDEM.Rx.Point_bSecondary(
+        locs=rxlocs, orientation='z', component='real'
+    )
     # bzi = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'imag')
 
     freqs = np.linspace(2000, 10000, 10)  # np.logspace(3, 4, 10)
@@ -76,22 +78,22 @@ def run(plotIt=True):
     )
 
     srcList = [
-        FDEM.Src.MagDipole([bzr], freq, srcLoc, orientation='Z')
+        FDEM.Src.MagDipole(rxList=[bzr], freq=freq, loc=srcLoc, orientation='Z')
         for freq in freqs
     ]
 
-    surveyFD = FDEM.Survey(srcList)
-    prbFD = FDEM.Problem3D_b(
-        mesh, sigma=surj1Dmap * sigma, muMap=muMap, Solver=Solver
+    surveyFD = FDEM.Survey(srcList=srcList)
+    simFD = FDEM.Simulation3D_b(
+        mesh=mesh, sigma=surj1Dmap * sigma, muMap=muMap, survey=surveyFD,
+        solver=Solver
     )
-    prbFD.pair(surveyFD)
     std = 0.03
-    surveyFD.makeSyntheticData(mtrue, std)
-    surveyFD.eps = np.linalg.norm(surveyFD.dtrue)*1e-6
+    synthetic_data = simFD.make_synthetic_data(mtrue, std)
+    synthetic_data.noise_floor = np.linalg.norm(synthetic_data.dclean)*1e-6
 
     # FDEM inversion
     np.random.seed(13472)
-    dmisfit = DataMisfit.l2_DataMisfit(surveyFD)
+    dmisfit = DataMisfit.l2_DataMisfit(simulation=simFD, data=synthetic_data)
     regMesh = Mesh.TensorMesh([mesh.hz[muMap.maps[-1].indActive]])
     reg = Regularization.Simple(regMesh)
     opt = Optimization.InexactGaussNewton(maxIterCG=10)
@@ -108,11 +110,11 @@ def run(plotIt=True):
     m0 = mur_half * np.ones(mtrue.size)
     reg.alpha_s = 2e-2
     reg.alpha_x = 1.
-    prbFD.counter = opt.counter = Utils.Counter()
+    simFD.counter = opt.counter = Utils.Counter()
     opt.remember('xc')
     moptFD = inv.run(m0)
 
-    dpredFD = surveyFD.dpred(moptFD)
+    dpredFD = simFD.dpred(moptFD)
 
     if plotIt:
         fig, ax = plt.subplots(1, 3, figsize=(10, 6))
@@ -148,7 +150,7 @@ def run(plotIt=True):
         # plot the data misfits - negative b/c we choose positive to be in the
         # direction of primary
 
-        ax[2].plot(freqs, -surveyFD.dobs, 'k-', lw=2)
+        ax[2].plot(freqs, -synthetic_data.dobs, 'k-', lw=2)
         # ax[2].plot(freqs, -surveyFD.dobs[1::2], 'k--', lw=2)
 
         ax[2].loglog(freqs, -dpredFD, 'bo', ms=6)

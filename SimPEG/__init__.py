@@ -3,7 +3,7 @@ from __future__ import print_function
 from SimPEG import Utils
 from SimPEG.Utils import mkvc
 from SimPEG.Utils.SolverUtils import (
-    _checkAccuracy, SolverWrapD, SolverWrapI,
+    SolverWrapD, SolverWrapI,
     Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
 )
 
@@ -13,12 +13,14 @@ from SimPEG import Models
 from SimPEG import Problem
 from SimPEG import Survey
 from SimPEG import Regularization
-from SimPEG import DataMisfit
+# from SimPEG import DataMisfit
 from SimPEG import InvProblem
 from SimPEG import Optimization
 from SimPEG import Directives
 from SimPEG import Inversion
 from SimPEG import Tests
+from SimPEG import Simulation
+
 
 __version__   = '0.7.1'
 __author__    = 'SimPEG Team'

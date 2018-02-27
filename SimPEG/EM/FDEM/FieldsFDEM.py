@@ -1,14 +1,16 @@
 import numpy as np
 import scipy.sparse as sp
-import SimPEG
-from SimPEG import Utils
-from SimPEG.EM.Utils import omega
-from SimPEG.Utils import Zero, Identity, sdiag
+import properties
+
+from ...Utils import sdiag, Identity, Zero, mkvc
+from ...Fields import Fields as BaseFields
+from ..Utils import omega
+
+__all__ = ['Fields3D_e', 'Fields3D_b', 'Fields3D_h', 'Fields3D_j']
 
 
-class FieldsFDEM(SimPEG.Problem.Fields):
+class BaseFDEMFields(BaseFields):
     """
-
     Fancy Field Storage for a FDEM survey. Only one field type is stored for
     each problem, the rest are computed. The fields object acts like an array
     and is indexed by
@@ -31,8 +33,10 @@ class FieldsFDEM(SimPEG.Problem.Fields):
     nFrequencies)
     """
 
-    knownFields = {}
-    dtype = complex
+    dtype = complex  #: dtype of field values
+
+    def __init__(self, **kwargs):
+        super(BaseFDEMFields, self).__init__(**kwargs)
 
     def _GLoc(self, fieldType):
         """Grid location of the fieldType"""
@@ -320,7 +324,17 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         )
 
 
-class Fields3D_e(FieldsFDEM):
+###############################################################################
+#                                                                             #
+#                               E-B Formulation                               #
+#                                                                             #
+###############################################################################
+
+#################
+# E forumlation #
+#################
+
+class Fields3D_e(BaseFDEMFields):
     """
     Fields object for Problem3D_e.
 
@@ -328,38 +342,52 @@ class Fields3D_e(FieldsFDEM):
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
-    knownFields = {'eSolution': 'E'}
-    aliasFields = {
-        'e': ['eSolution', 'E', '_e'],
-        'ePrimary': ['eSolution', 'E', '_ePrimary'],
-        'eSecondary': ['eSolution', 'E', '_eSecondary'],
-        'b': ['eSolution', 'F', '_b'],
-        'bPrimary': ['eSolution', 'F', '_bPrimary'],
-        'bSecondary': ['eSolution', 'F', '_bSecondary'],
-        'j': ['eSolution', 'CCV', '_j'],
-        'h': ['eSolution', 'CCV', '_h'],
-    }
+    def __init__(self, **kwargs):
+
+        knownFields = {'eSolution': 'E'}
+        aliasFields = {
+            'e': ['eSolution', 'E', '_e'],
+            'ePrimary': ['eSolution', 'E', '_ePrimary'],
+            'eSecondary': ['eSolution', 'E', '_eSecondary'],
+            'b': ['eSolution', 'F', '_b'],
+            'bPrimary': ['eSolution', 'F', '_bPrimary'],
+            'bSecondary': ['eSolution', 'F', '_bSecondary'],
+            'j': ['eSolution', 'CCV', '_j'],  # TODO: move to F
+            'h': ['eSolution', 'CCV', '_h'],  # TODO: move to E
+        }
+
+        knownFieldskwarg = kwargs.pop('knownFields', None)
+        if knownFieldskwarg is not None:
+            assert knownFieldskwarg == knownFields, (
+                "knownFields should not be changed from the default"
+            )
+
+        aliasFieldskwarg = kwargs.pop('aliasFields', None)
+        if knownFieldskwarg is not None:
+            assert aliasFieldskwarg == aliasFields, (
+                "aliasFields should not be changed from the default"
+            )
+
+        super(Fields3D_e, self).__init__(**kwargs)
+
+        self.knownFields = knownFields
+        self.aliasFields = aliasFields
 
     def startup(self):
-        self.prob = self.survey.prob
-        self._edgeCurl = self.survey.prob.mesh.edgeCurl
-        self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
-        self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
-        self._nC = self.survey.prob.mesh.nC
-        self._MeSigma = self.survey.prob.MeSigma
-        self._MeSigmaDeriv = self.survey.prob.MeSigmaDeriv
-        self._MfMui = self.survey.prob.MfMui
-        self._MfMuiDeriv = self.survey.prob.MfMuiDeriv
+        self._MeSigma = self.simulation.MeSigma
+        self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
+        self._MfMui = self.simulation.MfMui
+        self._MfMuiDeriv = self.simulation.MfMuiDeriv
 
-    def _GLoc(self, fieldType):
-        if fieldType in ['e', 'eSecondary', 'ePrimary']:
-            return 'E'
-        elif fieldType in ['b', 'bSecondary', 'bPrimary']:
-            return 'F'
-        elif (fieldType == 'h') or (fieldType == 'j'):
-            return 'CCV'
-        else:
-            raise Exception('Field type must be e, b, h, j')
+    # def _GLoc(self, fieldType):
+    #     if fieldType in ['e', 'eSecondary', 'ePrimary']:
+    #         return 'E'
+    #     elif fieldType in ['b', 'bSecondary', 'bPrimary']:
+    #         return 'F'
+    #     elif (fieldType == 'h') or (fieldType == 'j'):
+    #         return 'CCV'
+    #     else:
+    #         raise Exception('Field type must be e, b, h, j')
 
     def _ePrimary(self, eSolution, srcList):
         """
@@ -371,9 +399,9 @@ class Fields3D_e(FieldsFDEM):
         :return: primary electric field as defined by the sources
         """
 
-        ePrimary = np.zeros([self.prob.mesh.nE, len(srcList)], dtype=complex)
+        ePrimary = np.zeros([self.mesh.nE, len(srcList)], dtype=complex)
         for i, src in enumerate(srcList):
-            ep = src.ePrimary(self.prob)
+            ep = src.ePrimary(self.simulation)
             ePrimary[:, i] = ePrimary[:, i] + ep
         return ePrimary
 
@@ -418,7 +446,7 @@ class Fields3D_e(FieldsFDEM):
             inversion model with a vector
         """
 
-        return src.ePrimaryDeriv(self.prob, v, adjoint)
+        return src.ePrimaryDeriv(self.simulation, v, adjoint)
 
     def _bPrimary(self, eSolution, srcList):
         """
@@ -431,11 +459,11 @@ class Fields3D_e(FieldsFDEM):
         """
 
         bPrimary = np.zeros(
-                [self._edgeCurl.shape[0], eSolution.shape[1]], dtype=complex
+                [self.mesh.edgeCurl.shape[0], eSolution.shape[1]], dtype=complex
         )
 
         for i, src in enumerate(srcList):
-            bp = src.bPrimary(self.prob)
+            bp = src.bPrimary(self.simulation)
             bPrimary[:, i] = bPrimary[:, i] + bp
         return bPrimary
 
@@ -449,11 +477,11 @@ class Fields3D_e(FieldsFDEM):
         :return: secondary magnetic flux density
         """
 
-        C = self._edgeCurl
+        C = self.mesh.edgeCurl
         b = (C * eSolution)
         for i, src in enumerate(srcList):
             b[:, i] *= - 1./(1j*omega(src.freq))  # freq depends on the source
-            s_m = src.s_m(self.prob)
+            s_m = src.s_m(self.simulation)
             b[:, i] = b[:, i] + 1./(1j*omega(src.freq)) * s_m
         return b
 
@@ -470,7 +498,7 @@ class Fields3D_e(FieldsFDEM):
             respect to the field we solved for with a vector
         """
 
-        C = self._edgeCurl
+        C = self.mesh.edgeCurl
         if adjoint:
             return - 1./(1j*omega(src.freq)) * (C.T * du_dm_v)
         return - 1./(1j*omega(src.freq)) * (C * du_dm_v)
@@ -491,10 +519,10 @@ class Fields3D_e(FieldsFDEM):
         return self._bDeriv_src(src, v, adjoint=adjoint)
 
     def _bDeriv_src(self, src, v, adjoint=False):
-        s_mDeriv = src.s_mDeriv(self.prob, v, adjoint)
+        s_mDeriv = src.s_mDeriv(self.simulation, v, adjoint)
         return (
             1./(1j * omega(src.freq)) * s_mDeriv +
-            src.bPrimaryDeriv(self.prob, v, adjoint)
+            src.bPrimaryDeriv(self.simulation, v, adjoint)
         )
 
     def _j(self,  eSolution, srcList):
@@ -506,10 +534,10 @@ class Fields3D_e(FieldsFDEM):
         :rtype: numpy.ndarray
         :return: current density
         """
-        aveE2CCV = self._aveE2CCV
+        aveE2CCV = self.mesh.aveE2CCV
         # number of components (instead of checking if cyl or not)
-        n = int(aveE2CCV.shape[0] / self._nC)
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(aveE2CCV.shape[0] / self.mesh.nC)
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
         return VI * (aveE2CCV * (self._MeSigma * self._e(eSolution, srcList)))
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -525,20 +553,20 @@ class Fields3D_e(FieldsFDEM):
             to the field we solved for with a vector
         """
         # number of components (instead of checking if cyl or not)
-        n = int(self._aveE2CCV.shape[0] / self._nC)
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveE2CCV.shape[0] / self.mesh.nC)
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
 
         if adjoint:
             return (
                 self._eDeriv_u(
                     src, self._MeSigma.T * (
-                        self._aveE2CCV.T * (VI.T * du_dm_v)
+                        self.mesh.aveE2CCV.T * (VI.T * du_dm_v)
                         ), adjoint=adjoint
                 )
             )
         return (
             VI * (
-                self._aveE2CCV * (
+                self.mesh.aveE2CCV * (
                     self._MeSigma * (
                         self._eDeriv_u(src, du_dm_v, adjoint=adjoint)
                     )
@@ -558,25 +586,25 @@ class Fields3D_e(FieldsFDEM):
             inversion model with a vector
         """
         e = self[src, 'e']
-        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveE2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
 
         if adjoint:
             return (
-                self._MeSigmaDeriv(e).T * (self._aveE2CCV.T * (VI.T * v)) +
+                self._MeSigmaDeriv(e).T * (self.mesh.aveE2CCV.T * (VI.T * v)) +
                 self._eDeriv_m(
-                    src, self._aveE2CCV.T * (VI.T * v), adjoint=adjoint
+                    src, self.mesh.aveE2CCV.T * (VI.T * v), adjoint=adjoint
                 )
-            ) + src.jPrimaryDeriv(self.prob, v, adjoint)
+            ) + src.jPrimaryDeriv(self.simulation, v, adjoint)
         return (
             VI * (
-                self._aveE2CCV *
+                self.mesh.aveE2CCV *
                 (
                     self._eDeriv_m(src, v, adjoint=adjoint) +
                     self._MeSigmaDeriv(e) * v
                 )
             )
-        ) + src.jPrimaryDeriv(self.prob, v, adjoint)
+        ) + src.jPrimaryDeriv(self.simulation, v, adjoint)
 
     def _h(self, eSolution, srcList):
         """
@@ -587,11 +615,11 @@ class Fields3D_e(FieldsFDEM):
         :rtype: numpy.ndarray
         :return: magnetic field
         """
-        n = int(self._aveF2CCV.shape[0] / self._nC)  # Number of Components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveF2CCV.shape[0] / self.mesh.nC)  # Number of Components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
 
         return (
-            VI * (self._aveF2CCV * (self._MfMui * self._b(eSolution, srcList)))
+            VI * (self.mesh.aveF2CCV * (self._MfMui * self._b(eSolution, srcList)))
         )
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -606,14 +634,14 @@ class Fields3D_e(FieldsFDEM):
         :return: product of the derivative of the magnetic field with respect
             to the field we solved for with a vector
         """
-        n = int(self._aveF2CCV.shape[0] / self._nC)  # Number of Components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveF2CCV.shape[0] / self.mesh.nC)  # Number of Components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
         if adjoint:
-            v = self._MfMui.T * (self._aveF2CCV.T * (VI.T * du_dm_v))
+            v = self._MfMui.T * (self.mesh.aveF2CCV.T * (VI.T * du_dm_v))
             return self._bDeriv_u(src, v, adjoint=adjoint)
         return (
             VI * (
-                self._aveF2CCV * (
+                self.mesh.aveF2CCV * (
                     self._MfMui *
                     self._bDeriv_u(src, du_dm_v, adjoint=adjoint)
                 )
@@ -621,18 +649,18 @@ class Fields3D_e(FieldsFDEM):
         )
 
     def _hDeriv_mui(self, src, v, adjoint=False):
-        n = int(self._aveF2CCV.shape[0] / self._nC)  # Number of Components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveF2CCV.shape[0] / self.mesh.nC)  # Number of Components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
 
         if adjoint is True:
             return (
                 self._MfMuiDeriv(self[src, 'b']).T * (
-                    self._aveF2CCV.T * (VI.T * v)
+                    self.mesh.aveF2CCV.T * (VI.T * v)
                 )
             )
 
         return (
-            VI * (self._aveF2CCV * (self._MfMuiDeriv(self[src, 'b']) * v))
+            VI * (self.mesh.aveF2CCV * (self._MfMuiDeriv(self[src, 'b']) * v))
         )
 
     def _hDeriv_m(self, src, v, adjoint=False):
@@ -646,23 +674,27 @@ class Fields3D_e(FieldsFDEM):
         :return: product of the magnetic field derivative with respect to the
             inversion model with a vector
         """
-        n = int(self._aveF2CCV.shape[0] / self._nC)  # Number of Components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveF2CCV.shape[0] / self.mesh.nC)  # Number of Components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
         if adjoint:
             return (
-                self._bDeriv_m(src, self._MfMui.T * (self._aveF2CCV.T * (VI.T * v)), adjoint=adjoint) +
+                self._bDeriv_m(src, self._MfMui.T * (self.mesh.aveF2CCV.T * (VI.T * v)), adjoint=adjoint) +
                 self._hDeriv_mui(src, v, adjoint=adjoint)
             )
         return (
             VI * (
-                self._aveF2CCV * (
+                self.mesh.aveF2CCV * (
                     self._MfMui * self._bDeriv_m(src, v, adjoint=adjoint)
                 )
             )
         ) + self._hDeriv_mui(src, v, adjoint=adjoint)
 
 
-class Fields3D_b(FieldsFDEM):
+#################
+# B forumlation #
+#################
+
+class Fields3D_b(BaseFDEMFields):
     """
     Fields object for Problem3D_b.
 
@@ -670,43 +702,57 @@ class Fields3D_b(FieldsFDEM):
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
-    knownFields = {'bSolution': 'F'}
-    aliasFields = {
-        'b': ['bSolution', 'F', '_b'],
-        'bPrimary': ['bSolution', 'F', '_bPrimary'],
-        'bSecondary': ['bSolution', 'F', '_bSecondary'],
-        'e': ['bSolution', 'E', '_e'],
-        'ePrimary': ['bSolution', 'E', '_ePrimary'],
-        'eSecondary': ['bSolution', 'E', '_eSecondary'],
-        'j': ['bSolution', 'CCV', '_j'],
-        'h': ['bSolution', 'CCV', '_h'],
-    }
+    def __init__(self, **kwargs):
+
+        knownFields = {'bSolution': 'F'}
+        aliasFields = {
+            'b': ['bSolution', 'F', '_b'],
+            'bPrimary': ['bSolution', 'F', '_bPrimary'],
+            'bSecondary': ['bSolution', 'F', '_bSecondary'],
+            'e': ['bSolution', 'E', '_e'],
+            'ePrimary': ['bSolution', 'E', '_ePrimary'],
+            'eSecondary': ['bSolution', 'E', '_eSecondary'],
+            'j': ['bSolution', 'CCV', '_j'],  # TODO: move to edges
+            'h': ['bSolution', 'CCV', '_h'],  # TODO: move to faces
+        }
+
+        knownFieldskwarg = kwargs.pop('knownFields', None)
+        if knownFieldskwarg is not None:
+            assert knownFieldskwarg == knownFields, (
+                "knownFields should not be changed from the default"
+            )
+
+        aliasFieldskwarg = kwargs.pop('aliasFields', None)
+        if knownFieldskwarg is not None:
+            assert aliasFieldskwarg == aliasFields, (
+                "aliasFields should not be changed from the default"
+            )
+
+        super(Fields3D_b, self).__init__(**kwargs)
+
+        self.knownFields = knownFields
+        self.aliasFields = aliasFields
 
     def startup(self):
-        self.prob = self.survey.prob
-        self._edgeCurl = self.survey.prob.mesh.edgeCurl
-        self._MeSigma = self.survey.prob.MeSigma
-        self._MeSigmaI = self.survey.prob.MeSigmaI
-        self._MfMui = self.survey.prob.MfMui
-        self._MfMuiDeriv = self.survey.prob.MfMuiDeriv
-        self._MeSigmaDeriv = self.survey.prob.MeSigmaDeriv
-        self._MeSigmaIDeriv = self.survey.prob.MeSigmaIDeriv
-        self._Me = self.survey.prob.Me
-        self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
-        self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
-        self._sigma = self.survey.prob.sigma
-        self._mui = self.survey.prob.mui
-        self._nC = self.survey.prob.mesh.nC
+        self._MeSigma = self.simulation.MeSigma
+        self._MeSigmaI = self.simulation.MeSigmaI
+        self._MfMui = self.simulation.MfMui
+        self._MfMuiDeriv = self.simulation.MfMuiDeriv
+        self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
+        self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
+        self._Me = self.simulation.Me
+        self._sigma = self.simulation.sigma
+        self._mui = self.simulation.mui
 
-    def _GLoc(self, fieldType):
-        if fieldType in ['e', 'eSecondary', 'ePrimary']:
-            return 'E'
-        elif fieldType in ['b', 'bSecondary', 'bPrimary']:
-            return 'F'
-        elif (fieldType == 'h') or (fieldType == 'j'):
-            return'CCV'
-        else:
-            raise Exception('Field type must be e, b, h, j')
+    # def _GLoc(self, fieldType):
+    #     if fieldType in ['e', 'eSecondary', 'ePrimary']:
+    #         return 'E'
+    #     elif fieldType in ['b', 'bSecondary', 'bPrimary']:
+    #         return 'F'
+    #     elif (fieldType == 'h') or (fieldType == 'j'):
+    #         return'CCV'
+    #     else:
+    #         raise Exception('Field type must be e, b, h, j')
 
     def _bPrimary(self, bSolution, srcList):
         """
@@ -718,9 +764,9 @@ class Fields3D_b(FieldsFDEM):
         :return: primary electric field as defined by the sources
         """
 
-        bPrimary = np.zeros([self.prob.mesh.nF, len(srcList)], dtype=complex)
+        bPrimary = np.zeros([self.mesh.nF, len(srcList)], dtype=complex)
         for i, src in enumerate(srcList):
-            bp = src.bPrimary(self.prob)
+            bp = src.bPrimary(self.simulation)
             bPrimary[:, i] = bPrimary[:, i] + bp
         return bPrimary
 
@@ -780,10 +826,10 @@ class Fields3D_b(FieldsFDEM):
         """
 
         ePrimary = np.zeros(
-            [self._edgeCurl.shape[1], bSolution.shape[1]], dtype=complex
+            [self.mesh.edgeCurl.shape[1], bSolution.shape[1]], dtype=complex
         )
         for i, src in enumerate(srcList):
-            ep = src.ePrimary(self.prob)
+            ep = src.ePrimary(self.simulation)
             ePrimary[:, i] = ePrimary[:, i] + ep
         return ePrimary
 
@@ -797,9 +843,9 @@ class Fields3D_b(FieldsFDEM):
         :return: secondary electric field
         """
 
-        e = (self._edgeCurl.T * (self._MfMui * bSolution))
+        e = (self.mesh.edgeCurl.T * (self._MfMui * bSolution))
         for i, src in enumerate(srcList):
-            s_e = src.s_e(self.prob)
+            s_e = src.s_e(self.simulation)
             e[:, i] = e[:, i] + - s_e
 
         return self._MeSigmaI * e
@@ -819,9 +865,9 @@ class Fields3D_b(FieldsFDEM):
 
         if not adjoint:
             return (
-                self._MeSigmaI * (self._edgeCurl.T * (self._MfMui * du_dm_v))
+                self._MeSigmaI * (self.mesh.edgeCurl.T * (self._MfMui * du_dm_v))
             )
-        return self._MfMui.T * (self._edgeCurl * (self._MeSigmaI.T * du_dm_v))
+        return self._MfMui.T * (self.mesh.edgeCurl * (self._MeSigmaI.T * du_dm_v))
 
     def _eDeriv_m(self, src, v, adjoint=False):
         """
@@ -835,29 +881,29 @@ class Fields3D_b(FieldsFDEM):
             to the model with a vector
         """
 
-        bSolution = Utils.mkvc(self[src, 'bSolution'])
-        s_e = src.s_e(self.prob)
+        bSolution = mkvc(self[src, 'bSolution'])
+        s_e = src.s_e(self.simulation)
 
-        w = -s_e + self._edgeCurl.T * (self._MfMui * bSolution)
+        w = -s_e + self.mesh.edgeCurl.T * (self._MfMui * bSolution)
 
         if adjoint:
-            s_eDeriv = src.s_eDeriv(self.prob, self._MeSigmaI.T * v, adjoint)
+            s_eDeriv = src.s_eDeriv(self.simulation, self._MeSigmaI.T * v, adjoint)
             return (
                 self._MeSigmaIDeriv(w).T * v +
                 self._MfMuiDeriv(bSolution).T * (
-                    self._edgeCurl * (self._MeSigmaI.T * v)
+                    self.mesh.edgeCurl * (self._MeSigmaI.T * v)
                     ) -
                 s_eDeriv +
-                src.ePrimaryDeriv(self.prob, v, adjoint)
+                src.ePrimaryDeriv(self.simulation, v, adjoint)
             )
-        s_eDeriv = src.s_eDeriv(self.prob, v, adjoint)
+        s_eDeriv = src.s_eDeriv(self.simulation, v, adjoint)
         return (
             self._MeSigmaIDeriv(w) * v +
             self._MeSigmaI * (
-                self._edgeCurl.T * (self._MfMuiDeriv(bSolution) * v)
+                self.mesh.edgeCurl.T * (self._MfMuiDeriv(bSolution) * v)
             ) -
             self._MeSigmaI * s_eDeriv +
-            src.ePrimaryDeriv(self.prob, v, adjoint)
+            src.ePrimaryDeriv(self.simulation, v, adjoint)
         )
 
     def _j(self, bSolution, srcList):
@@ -870,16 +916,16 @@ class Fields3D_b(FieldsFDEM):
         :return: primary current density
         """
 
-        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveE2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
 
 
-        j = (self._edgeCurl.T * (self._MfMui * bSolution))
+        j = (self.mesh.edgeCurl.T * (self._MfMui * bSolution))
         for i, src in enumerate(srcList):
-            s_e = src.s_e(self.prob)
+            s_e = src.s_e(self.simulation)
             j[:, i] = j[:, i] - s_e
 
-        return VI * (self._aveE2CCV * j)
+        return VI * (self.mesh.aveE2CCV * j)
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -893,20 +939,20 @@ class Fields3D_b(FieldsFDEM):
         :return: product of the derivative of the current density with respect
             to the field we solved for with a vector
         """
-        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveE2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
         if adjoint:
             return (
                 self._MfMui.T * (
-                    self._edgeCurl * (
-                        self._aveE2CCV.T * (VI.T * du_dm_v)
+                    self.mesh.edgeCurl * (
+                        self.mesh.aveE2CCV.T * (VI.T * du_dm_v)
                     )
                 )
             )
         return (
             VI * (
-                self._aveE2CCV * (
-                    self._edgeCurl.T * (
+                self.mesh.aveE2CCV * (
+                    self.mesh.edgeCurl.T * (
                         self._MfMui * du_dm_v
                     )
                 )
@@ -915,19 +961,19 @@ class Fields3D_b(FieldsFDEM):
         # forgetting the source term here
 
     def _jDeriv_mui(self, src, v, adjoint=False):
-        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveE2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
         MfMuiDeriv = self._MfMuiDeriv(self[src, 'b'])
 
         if adjoint:
             return (
                 MfMuiDeriv.T * (
-                    self._edgeCurl * (self._aveE2CCV.T * (VI.T * v))
+                    self.mesh.edgeCurl * (self.mesh.aveE2CCV.T * (VI.T * v))
                 )
             )
 
         return (
-            VI * (self._aveE2CCV * (self._edgeCurl.T * (MfMuiDeriv * v)))
+            VI * (self.mesh.aveE2CCV * (self.mesh.edgeCurl.T * (MfMuiDeriv * v)))
         )
 
     def _jDeriv_m(self, src, v, adjoint=False):
@@ -955,10 +1001,10 @@ class Fields3D_b(FieldsFDEM):
         :rtype: numpy.ndarray
         :return: magnetic field
         """
-        n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveF2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
         return (
-            VI * (self._aveF2CCV * (self._MfMui * self._b(bSolution, srcList)))
+            VI * (self.mesh.aveF2CCV * (self._MfMui * self._b(bSolution, srcList)))
         )
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -973,23 +1019,23 @@ class Fields3D_b(FieldsFDEM):
         :return: product of the derivative of the magnetic field with respect
             to the field we solved for with a vector
         """
-        n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveF2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
 
         if adjoint:
-            return self._MfMui.T * (self._aveF2CCV.T * (VI.T * du_dm_v))
-        return VI * (self._aveF2CCV * (self._MfMui * du_dm_v))
+            return self._MfMui.T * (self.mesh.aveF2CCV.T * (VI.T * du_dm_v))
+        return VI * (self.mesh.aveF2CCV * (self._MfMui * du_dm_v))
 
     def _hDeriv_mui(self, src, v, adjoint=False):
         b = self[src, 'b']
-        n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveF2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
 
         if adjoint:
             return (
-                self._MfMuiDeriv(b).T * (self._aveF2CCV.T * (VI * v))
+                self._MfMuiDeriv(b).T * (self.mesh.aveF2CCV.T * (VI * v))
             )
-        return VI * (self._aveF2CCV * (self._MfMuiDeriv(b) * v))
+        return VI * (self.mesh.aveF2CCV * (self._MfMuiDeriv(b) * v))
 
     def _hDeriv_m(self, src, v, adjoint=False):
         """
@@ -1003,12 +1049,22 @@ class Fields3D_b(FieldsFDEM):
             to the model with a vector
         """
         return (
-            src.hPrimaryDeriv(self.prob, v, adjoint) +
+            src.hPrimaryDeriv(self.simulation, v, adjoint) +
             self._hDeriv_mui(src, v, adjoint)
         )
 
 
-class Fields3D_j(FieldsFDEM):
+###############################################################################
+#                                                                             #
+#                               H-J Formulation                               #
+#                                                                             #
+###############################################################################
+
+#################
+# J forumlation #
+#################
+
+class Fields3D_j(BaseFDEMFields):
     """
     Fields object for Problem3D_j.
 
@@ -1016,31 +1072,45 @@ class Fields3D_j(FieldsFDEM):
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
-    knownFields = {'jSolution': 'F'}
-    aliasFields = {
-        'j': ['jSolution', 'F', '_j'],
-        'jPrimary': ['jSolution', 'F', '_jPrimary'],
-        'jSecondary': ['jSolution', 'F', '_jSecondary'],
-        'h': ['jSolution', 'E', '_h'],
-        'hPrimary': ['jSolution', 'E', '_hPrimary'],
-        'hSecondary': ['jSolution', 'E', '_hSecondary'],
-        'e': ['jSolution', 'CCV', '_e'],
-        'b': ['jSolution', 'CCV', '_b'],
-      }
+    def __init__(self, **kwargs):
+
+        knownFields = {'jSolution': 'F'}
+        aliasFields = {
+            'j': ['jSolution', 'F', '_j'],
+            'jPrimary': ['jSolution', 'F', '_jPrimary'],
+            'jSecondary': ['jSolution', 'F', '_jSecondary'],
+            'h': ['jSolution', 'E', '_h'],
+            'hPrimary': ['jSolution', 'E', '_hPrimary'],
+            'hSecondary': ['jSolution', 'E', '_hSecondary'],
+            'e': ['jSolution', 'CCV', '_e'],  # TODO: move to faces
+            'b': ['jSolution', 'CCV', '_b'],  # TODO: move to edges
+        }
+
+        knownFieldskwarg = kwargs.pop('knownFields', None)
+        if knownFieldskwarg is not None:
+            assert knownFieldskwarg == knownFields, (
+                "knownFields should not be changed from the default"
+            )
+
+        aliasFieldskwarg = kwargs.pop('aliasFields', None)
+        if knownFieldskwarg is not None:
+            assert aliasFieldskwarg == aliasFields, (
+                "aliasFields should not be changed from the default"
+            )
+
+        super(Fields3D_j, self).__init__(**kwargs)
+
+        self.knownFields = knownFields
+        self.aliasFields = aliasFields
 
     def startup(self):
-        self.prob = self.survey.prob
-        self._edgeCurl = self.survey.prob.mesh.edgeCurl
-        self._MeMu = self.survey.prob.MeMu
-        self._MeMuI = self.survey.prob.MeMuI
-        self._MeMuIDeriv = self.survey.prob.MeMuIDeriv
-        self._MfRho = self.survey.prob.MfRho
-        self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
-        self._rho = self.survey.prob.rho
-        self._mu = self.survey.prob.mui
-        self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
-        self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
-        self._nC = self.survey.prob.mesh.nC
+        self._MeMu = self.simulation.MeMu
+        self._MeMuI = self.simulation.MeMuI
+        self._MeMuIDeriv = self.simulation.MeMuIDeriv
+        self._MfRho = self.simulation.MfRho
+        self._MfRhoDeriv = self.simulation.MfRhoDeriv
+        self._rho = self.simulation.rho
+        self._mu = self.simulation.mui
 
     def _GLoc(self, fieldType):
         if fieldType in ['h', 'hSecondary', 'hPrimary']:
@@ -1064,7 +1134,7 @@ class Fields3D_j(FieldsFDEM):
 
         jPrimary = np.zeros_like(jSolution, dtype=complex)
         for i, src in enumerate(srcList):
-            jp = src.jPrimary(self.prob)
+            jp = src.jPrimary(self.simulation)
             jPrimary[:, i] = jPrimary[:, i] + jp
         return jPrimary
 
@@ -1125,7 +1195,7 @@ class Fields3D_j(FieldsFDEM):
             inversion model with a vector
         """
         # assuming primary does not depend on the model
-        return src.jPrimaryDeriv(self.prob, v, adjoint)
+        return src.jPrimaryDeriv(self.simulation, v, adjoint)
 
     def _hPrimary(self, jSolution, srcList):
         """
@@ -1138,10 +1208,10 @@ class Fields3D_j(FieldsFDEM):
         """
 
         hPrimary = np.zeros(
-            [self._edgeCurl.shape[1], jSolution.shape[1]], dtype=complex
+            [self.mesh.edgeCurl.shape[1], jSolution.shape[1]], dtype=complex
         )
         for i, src in enumerate(srcList):
-            hp = src.hPrimary(self.prob)
+            hp = src.hPrimary(self.simulation)
             hPrimary[:, i] = hPrimary[:, i] + hp
         return hPrimary
 
@@ -1155,10 +1225,10 @@ class Fields3D_j(FieldsFDEM):
         :return: secondary magnetic field
         """
 
-        h = (self._edgeCurl.T * (self._MfRho * jSolution))
+        h = (self.mesh.edgeCurl.T * (self._MfRho * jSolution))
         for i, src in enumerate(srcList):
             h[:, i] *= -1./(1j*omega(src.freq))
-            s_m = src.s_m(self.prob)
+            s_m = src.s_m(self.simulation)
             h[:, i] = h[:, i] + 1./(1j*omega(src.freq)) * (s_m)
         return self._MeMuI * h
 
@@ -1178,11 +1248,11 @@ class Fields3D_j(FieldsFDEM):
         if adjoint:
             return (
                 -1./(1j*omega(src.freq)) * self._MfRho.T *
-                (self._edgeCurl * (self._MeMuI.T * du_dm_v))
+                (self.mesh.edgeCurl * (self._MeMuI.T * du_dm_v))
             )
         return (
             -1./(1j*omega(src.freq)) * self._MeMuI *
-            (self._edgeCurl.T * (self._MfRho * du_dm_v))
+            (self.mesh.edgeCurl.T * (self._MfRho * du_dm_v))
         )
 
     def _hDeriv_m(self, src, v, adjoint=False):
@@ -1197,17 +1267,17 @@ class Fields3D_j(FieldsFDEM):
             to the model with a vector
         """
 
-        jSolution = Utils.mkvc(self[[src], 'jSolution'])
+        jSolution = mkvc(self[[src], 'jSolution'])
         MeMuI = self._MeMuI
         MeMuIDeriv = self._MeMuIDeriv
-        C = self._edgeCurl
+        C = self.mesh.edgeCurl
         MfRho = self._MfRho
         MfRhoDeriv = self._MfRhoDeriv
 
-        s_m = src.s_m(self.prob)
+        s_m = src.s_m(self.simulation)
 
         def s_mDeriv(v):
-            return src.s_mDeriv(self.prob, v, adjoint=adjoint)
+            return src.s_mDeriv(self.simulation, v, adjoint=adjoint)
 
         if not adjoint:
             hDeriv_m = 1./(1j*omega(src.freq)) * (
@@ -1228,7 +1298,7 @@ class Fields3D_j(FieldsFDEM):
                 ) + s_mDeriv(MeMuI.T*v) + MeMuIDeriv(s_m).T * v
             )
 
-        return hDeriv_m + src.hPrimaryDeriv(self.prob, v, adjoint)
+        return hDeriv_m + src.hPrimaryDeriv(self.simulation, v, adjoint)
 
     def _e(self, jSolution, srcList):
         """
@@ -1239,10 +1309,10 @@ class Fields3D_j(FieldsFDEM):
         :rtype: numpy.ndarray
         :return: electric field
         """
-        n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveF2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
         return (
-            VI * (self._aveF2CCV * (self._MfRho * self._j(jSolution, srcList)))
+            VI * (self.mesh.aveF2CCV * (self._MfRho * self._j(jSolution, srcList)))
         )
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -1257,11 +1327,11 @@ class Fields3D_j(FieldsFDEM):
         :return: product of the derivative of the electric field with respect
             to the field we solved for with a vector
         """
-        n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveF2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
         if adjoint:
-            return self._MfRho.T * (self._aveF2CCV.T * (VI.T * du_dm_v))
-        return VI * (self._aveF2CCV * (self._MfRho * du_dm_v))
+            return self._MfRho.T * (self.mesh.aveF2CCV.T * (VI.T * du_dm_v))
+        return VI * (self.mesh.aveF2CCV * (self._MfRho * du_dm_v))
 
     def _eDeriv_m(self, src, v, adjoint=False):
         """
@@ -1274,17 +1344,17 @@ class Fields3D_j(FieldsFDEM):
         :return: product of the derivative of the electric field with respect
             to the model with a vector
         """
-        jSolution = Utils.mkvc(self[src, 'jSolution'])
-        n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        jSolution = mkvc(self[src, 'jSolution'])
+        n = int(self.mesh.aveF2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
         if adjoint:
             return (
-                self._MfRhoDeriv(jSolution).T * (self._aveF2CCV.T * (VI.T*v)) +
-                src.ePrimaryDeriv(self.prob, v, adjoint)
+                self._MfRhoDeriv(jSolution).T * (self.mesh.aveF2CCV.T * (VI.T*v)) +
+                src.ePrimaryDeriv(self.simulation, v, adjoint)
             )
         return (
-            VI * (self._aveF2CCV * (self._MfRhoDeriv(jSolution) * v)) +
-            src.ePrimaryDeriv(self.prob, v, adjoint)
+            VI * (self.mesh.aveF2CCV * (self._MfRhoDeriv(jSolution) * v)) +
+            src.ePrimaryDeriv(self.simulation, v, adjoint)
         )
 
     def _b(self, jSolution, srcList):
@@ -1296,11 +1366,11 @@ class Fields3D_j(FieldsFDEM):
         :rtype: numpy.ndarray
         :return: secondary magnetic flux density
         """
-        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveE2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
 
         return (
-            VI * (self._aveE2CCV * (self._MeMu * self._h(jSolution, srcList)))
+            VI * (self.mesh.aveE2CCV * (self._MeMu * self._h(jSolution, srcList)))
         )
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -1315,24 +1385,24 @@ class Fields3D_j(FieldsFDEM):
         :return: product of the derivative of the magnetic flux density with
             respect to the field we solved for with a vector
         """
-        # if self.prob.mesh._meshType == 'CYL':
+        # if self.mesh._meshType == 'CYL':
         #     self.
-        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveE2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
 
         if adjoint:
             return (
                 -1./(1j*omega(src.freq)) *
                 self._MfRho.T * (
-                    self._edgeCurl * (
-                        self._aveE2CCV.T * (VI.T * du_dm_v)
+                    self.mesh.edgeCurl * (
+                        self.mesh.aveE2CCV.T * (VI.T * du_dm_v)
                     )
                 )
             )
 
         return (
             -1./(1j*omega(src.freq)) * VI *
-            (self._aveE2CCV * (self._edgeCurl.T * (self._MfRho * du_dm_v)))
+            (self.mesh.aveE2CCV * (self.mesh.edgeCurl.T * (self._MfRho * du_dm_v)))
         )
 
     def _bDeriv_m(self, src, v, adjoint=False):
@@ -1348,34 +1418,38 @@ class Fields3D_j(FieldsFDEM):
             respect to the model with a vector
         """
         jSolution = self[src, 'jSolution']
-        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveE2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
 
         def s_mDeriv(v):
-            return src.s_mDeriv(self.prob, v, adjoint=adjoint)
+            return src.s_mDeriv(self.simulation, v, adjoint=adjoint)
 
         if adjoint:
-            v = self._aveE2CCV.T * (VI.T * v)
+            v = self.mesh.aveE2CCV.T * (VI.T * v)
             return (
                 1./(1j * omega(src.freq)) *
                 (
                     s_mDeriv(v) - self._MfRhoDeriv(jSolution).T *
-                    (self._edgeCurl * v)
+                    (self.mesh.edgeCurl * v)
                 ) +
-                src.bPrimaryDeriv(self.prob, v, adjoint)
+                src.bPrimaryDeriv(self.simulation, v, adjoint)
             )
         return (
             1./(1j * omega(src.freq)) *
             VI * (
-                self._aveE2CCV * (
-                    s_mDeriv(v) - self._edgeCurl.T *
+                self.mesh.aveE2CCV * (
+                    s_mDeriv(v) - self.mesh.edgeCurl.T *
                     (self._MfRhoDeriv(jSolution) * v))
             ) +
-            src.bPrimaryDeriv(self.prob, v, adjoint)
+            src.bPrimaryDeriv(self.simulation, v, adjoint)
         )
 
 
-class Fields3D_h(FieldsFDEM):
+#################
+# H forumlation #
+#################
+
+class Fields3D_h(BaseFDEMFields):
     """
     Fields object for Problem3D_h.
 
@@ -1383,31 +1457,44 @@ class Fields3D_h(FieldsFDEM):
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
-    knownFields = {'hSolution': 'E'}
-    aliasFields = {
-        'h': ['hSolution', 'E', '_h'],
-        'hPrimary': ['hSolution', 'E', '_hPrimary'],
-        'hSecondary': ['hSolution', 'E', '_hSecondary'],
-        'j': ['hSolution', 'F', '_j'],
-        'jPrimary': ['hSolution', 'F', '_jPrimary'],
-        'jSecondary': ['hSolution', 'F', '_jSecondary'],
-        'e': ['hSolution', 'CCV', '_e'],
-        'b': ['hSolution', 'CCV', '_b'],
-      }
+    def __init__(self, **kwargs):
+
+        knownFields = {'hSolution': 'E'}
+        aliasFields = {
+            'h': ['hSolution', 'E', '_h'],
+            'hPrimary': ['hSolution', 'E', '_hPrimary'],
+            'hSecondary': ['hSolution', 'E', '_hSecondary'],
+            'j': ['hSolution', 'F', '_j'],
+            'jPrimary': ['hSolution', 'F', '_jPrimary'],
+            'jSecondary': ['hSolution', 'F', '_jSecondary'],
+            'e': ['hSolution', 'CCV', '_e'],  # TODO: move to faces
+            'b': ['hSolution', 'CCV', '_b'],  # TODO: move to edges
+          }
+
+        knownFieldskwarg = kwargs.pop('knownFields', None)
+        if knownFieldskwarg is not None:
+            assert knownFieldskwarg == knownFields, (
+                "knownFields should not be changed from the default"
+            )
+
+        aliasFieldskwarg = kwargs.pop('aliasFields', None)
+        if knownFieldskwarg is not None:
+            assert aliasFieldskwarg == aliasFields, (
+                "aliasFields should not be changed from the default"
+            )
+
+        super(Fields3D_h, self).__init__(**kwargs)
+
+        self.knownFields = knownFields
+        self.aliasFields = aliasFields
 
     def startup(self):
-        self.prob = self.survey.prob
-        self._edgeCurl = self.survey.prob.mesh.edgeCurl
-        self._MeMu = self.survey.prob.MeMu
-        self._MeMuDeriv = self.survey.prob.MeMuDeriv
-        # self._MeMuI = self.survey.prob.MeMuI
-        self._MfRho = self.survey.prob.MfRho
-        self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
-        self._rho = self.survey.prob.rho
-        self._mu = self.survey.prob.mui
-        self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
-        self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
-        self._nC = self.survey.prob.mesh.nC
+        self._MeMu = self.simulation.MeMu
+        self._MeMuDeriv = self.simulation.MeMuDeriv
+        self._MfRho = self.simulation.MfRho
+        self._MfRhoDeriv = self.simulation.MfRhoDeriv
+        self._rho = self.simulation.rho
+        self._mu = self.simulation.mui
 
     def _GLoc(self, fieldType):
         if fieldType in ['h', 'hSecondary', 'hPrimary']:
@@ -1431,7 +1518,7 @@ class Fields3D_h(FieldsFDEM):
 
         hPrimary = np.zeros_like(hSolution, dtype=complex)
         for i, src in enumerate(srcList):
-            hp = src.hPrimary(self.prob)
+            hp = src.hPrimary(self.simulation)
             hPrimary[:, i] = hPrimary[:, i] + hp
         return hPrimary
 
@@ -1477,7 +1564,7 @@ class Fields3D_h(FieldsFDEM):
             inversion model with a vector
         """
 
-        return src.hPrimaryDeriv(self.prob, v, adjoint)
+        return src.hPrimaryDeriv(self.simulation, v, adjoint)
 
     def _jPrimary(self, hSolution, srcList):
         """
@@ -1490,10 +1577,10 @@ class Fields3D_h(FieldsFDEM):
         """
 
         jPrimary = np.zeros(
-            [self._edgeCurl.shape[0], hSolution.shape[1]], dtype=complex
+            [self.mesh.edgeCurl.shape[0], hSolution.shape[1]], dtype=complex
         )
         for i, src in enumerate(srcList):
-            jp = src.jPrimary(self.prob)
+            jp = src.jPrimary(self.simulation)
             jPrimary[:, i] = jPrimary[:, i] + jp
         return jPrimary
 
@@ -1507,9 +1594,9 @@ class Fields3D_h(FieldsFDEM):
         :return: secondary current density
         """
 
-        j = self._edgeCurl*hSolution
+        j = self.mesh.edgeCurl*hSolution
         for i, src in enumerate(srcList):
-            s_e = src.s_e(self.prob)
+            s_e = src.s_e(self.simulation)
             j[:, i] = j[:, i] + -s_e
         return j
 
@@ -1527,9 +1614,9 @@ class Fields3D_h(FieldsFDEM):
         """
 
         if not adjoint:
-            return self._edgeCurl*du_dm_v
+            return self.mesh.edgeCurl*du_dm_v
         elif adjoint:
-            return self._edgeCurl.T*du_dm_v
+            return self.mesh.edgeCurl.T*du_dm_v
 
     def _jDeriv_m(self, src, v, adjoint=False):
         """
@@ -1544,8 +1631,8 @@ class Fields3D_h(FieldsFDEM):
         """
 
         return (
-            -src.s_eDeriv(self.prob, v, adjoint) +
-            src.jPrimaryDeriv(self.prob, v, adjoint)
+            -src.s_eDeriv(self.simulation, v, adjoint) +
+            src.jPrimaryDeriv(self.simulation, v, adjoint)
         )
 
     def _e(self, hSolution, srcList):
@@ -1557,12 +1644,12 @@ class Fields3D_h(FieldsFDEM):
         :rtype: numpy.ndarray
         :return: electric field
         """
-        n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveF2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
 
         return (
             VI *
-            (self._aveF2CCV * (self._MfRho * self._j(hSolution, srcList)))
+            (self.mesh.aveF2CCV * (self._MfRho * self._j(hSolution, srcList)))
         )
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -1577,17 +1664,17 @@ class Fields3D_h(FieldsFDEM):
         :return: product of the derivative of the electric field with respect
             to the field we solved for with a vector
         """
-        n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveF2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
         if adjoint:
             return (
-                self._edgeCurl.T *
+                self.mesh.edgeCurl.T *
                 (
-                    self._MfRho.T * (self._aveF2CCV.T * (VI.T * du_dm_v))
+                    self._MfRho.T * (self.mesh.aveF2CCV.T * (VI.T * du_dm_v))
                 )
             )
         return (
-            VI * (self._aveF2CCV * (self._MfRho * self._edgeCurl * du_dm_v))
+            VI * (self.mesh.aveF2CCV * (self._MfRho * self.mesh.edgeCurl * du_dm_v))
         )
 
     def _eDeriv_m(self, src, v, adjoint=False):
@@ -1601,29 +1688,29 @@ class Fields3D_h(FieldsFDEM):
         :return: product of the electric field derivative with respect to the
             inversion model with a vector
         """
-        hSolution = Utils.mkvc(self[src, 'hSolution'])
-        n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
-        s_e = src.s_e(self.prob)
+        hSolution = mkvc(self[src, 'hSolution'])
+        n = int(self.mesh.aveF2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
+        s_e = src.s_e(self.simulation)
 
         if adjoint:
-            w = self._aveF2CCV.T * (VI.T * v)
+            w = self.mesh.aveF2CCV.T * (VI.T * v)
             return (
-                self._MfRhoDeriv(self._edgeCurl * hSolution).T * w -
+                self._MfRhoDeriv(self.mesh.edgeCurl * hSolution).T * w -
                 self._MfRhoDeriv(s_e).T * w +
-                src.ePrimaryDeriv(self.prob, v, adjoint)
+                src.ePrimaryDeriv(self.simulation, v, adjoint)
             )
         return (
             VI *
             (
-                self._aveF2CCV *
+                self.mesh.aveF2CCV *
                 (
-                    self._MfRhoDeriv(self._edgeCurl * hSolution) * v -
+                    self._MfRhoDeriv(self.mesh.edgeCurl * hSolution) * v -
                     self._MfRhoDeriv(s_e) * v
 
                 )
             ) +
-            src.ePrimaryDeriv(self.prob, v, adjoint)
+            src.ePrimaryDeriv(self.simulation, v, adjoint)
         )
 
     def _b(self, hSolution, srcList):
@@ -1636,10 +1723,10 @@ class Fields3D_h(FieldsFDEM):
         :return: magnetic flux density
         """
         h = self._h(hSolution, srcList)
-        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveE2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
 
-        return VI * (self._aveE2CCV * (self._MeMu * h))
+        return VI * (self.mesh.aveE2CCV * (self._MeMu * h))
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -1653,22 +1740,22 @@ class Fields3D_h(FieldsFDEM):
         :return: product of the derivative of the magnetic flux density with
             respect to the field we solved for with a vector
         """
-        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveE2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
         if adjoint:
-            return self._MeMu.T * (self._aveE2CCV.T * (VI.T * du_dm_v))
-        return VI * (self._aveE2CCV * (self._MeMu * du_dm_v))
+            return self._MeMu.T * (self.mesh.aveE2CCV.T * (VI.T * du_dm_v))
+        return VI * (self.mesh.aveE2CCV * (self._MeMu * du_dm_v))
 
     def _bDeriv_mu(self, src, v, adjoint=False):
         h = self[src, 'h']
-        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        n = int(self.mesh.aveE2CCV.shape[0] / self.mesh.nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.mesh.vol))
         MeMuDeriv = self._MeMuDeriv(h)
 
         if adjoint:
-            return MeMuDeriv.T * (self._aveE2CCV.T * (VI.T * v))
-        return VI * (self._aveE2CCV * (MeMuDeriv * v))
-        # return VI * (self._aveE2CCV * (self._MeMu * h))
+            return MeMuDeriv.T * (self.mesh.aveE2CCV.T * (VI.T * v))
+        return VI * (self.mesh.aveE2CCV * (MeMuDeriv * v))
+        # return VI * (self.mesh.aveE2CCV * (self._MeMu * h))
 
     def _bDeriv_m(self, src, v, adjoint=False):
         """
@@ -1683,7 +1770,7 @@ class Fields3D_h(FieldsFDEM):
             to the inversion model with a vector
         """
         return (
-            src.bPrimaryDeriv(self.prob, v, adjoint) +
+            src.bPrimaryDeriv(self.simulation, v, adjoint) +
             self._bDeriv_mu(src, v, adjoint)
         )
 

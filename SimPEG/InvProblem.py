@@ -4,6 +4,7 @@ from . import Props
 from . import DataMisfit
 from . import Regularization
 from . import ObjectiveFunction
+from . import OldDataMisfit
 
 import properties
 import numpy as np
@@ -91,13 +92,22 @@ class BaseInvProblem(Props.BaseSimPEG):
 
         self.model = m0
 
-        if isinstance(self.dmisfit, DataMisfit.BaseDataMisfit):
+        if isinstance(self.dmisfit, OldDataMisfit.BaseDataMisfit):
             print("""
     SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
     ***Done using same Solver and solverOpts as the problem***"""
             )
             self.opt.bfgsH0 = self.dmisfit.prob.Solver(
                 self.reg.deriv2(self.model), **self.dmisfit.prob.solverOpts
+            )
+        elif isinstance(self.dmisfit, DataMisfit.BaseDataMisfit):
+            print("""
+    SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
+    ***Done using same solver and solver_opts as the problem***"""
+            )
+            self.opt.bfgsH0 = self.dmisfit.simulation.solver(
+                self.reg.deriv2(self.model),
+                **self.dmisfit.simulation.solver_opts
             )
         elif isinstance(self.dmisfit, ObjectiveFunction.BaseObjectiveFunction):
             for objfct in self.dmisfit.objfcts:
@@ -138,8 +148,11 @@ class BaseInvProblem(Props.BaseSimPEG):
                 break
 
         if f is None:
-            if isinstance(self.dmisfit, DataMisfit.BaseDataMisfit):
+            if isinstance(self.dmisfit, OldDataMisfit.BaseDataMisfit):
                 f = self.dmisfit.prob.fields(m)
+            elif isinstance(self.dmisfit, DataMisfit.BaseDataMisfit):
+                f = self.dmisfit.simulation.fields(m)
+
             elif isinstance(self.dmisfit, ObjectiveFunction.BaseObjectiveFunction):
                 f = []
                 for objfct in self.dmisfit.objfcts:
@@ -156,8 +169,10 @@ class BaseInvProblem(Props.BaseSimPEG):
         return f
 
     def get_dpred(self, m, f):
-        if isinstance(self.dmisfit, DataMisfit.BaseDataMisfit):
+        if isinstance(self.dmisfit, OldDataMisfit.BaseDataMisfit):
             return self.dmisfit.survey.dpred(m, f=f)
+        elif isinstance(self.dmisfit, DataMisfit.BaseDataMisfit):
+            return self.dmisfit.simulation.dpred(m, f=f)
         elif isinstance(self.dmisfit, ObjectiveFunction.BaseObjectiveFunction):
             dpred = []
             for i, objfct in enumerate(self.dmisfit.objfcts):

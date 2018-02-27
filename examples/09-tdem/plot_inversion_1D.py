@@ -5,10 +5,17 @@ EM: TDEM: 1D: Inversion
 Here we will create and run a TDEM 1D inversion.
 """
 import numpy as np
-from SimPEG import (Mesh, Maps, SolverLU, DataMisfit, Regularization,
-                    Optimization, InvProblem, Inversion, Directives, Utils)
+from SimPEG import (
+    Mesh, Maps, DataMisfit, Regularization,
+    Optimization, InvProblem, Inversion, Directives, Utils
+)
 import SimPEG.EM as EM
 import matplotlib.pyplot as plt
+
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from pymatsolver import SolverLU as Solver
 
 
 def run(plotIt=True):
@@ -32,26 +39,25 @@ def run(plotIt=True):
 
     rxOffset = 1e-3
     rx = EM.TDEM.Rx.Point_b(
-        np.array([[rxOffset, 0., 30]]),
-        np.logspace(-5, -3, 31),
-        'z'
+        locs=np.array([[rxOffset, 0., 30]]),
+        times=np.logspace(-5, -3, 31),
+        orientation='z'
     )
-    src = EM.TDEM.Src.MagDipole([rx], loc=np.array([0., 0., 80]))
-    survey = EM.TDEM.Survey([src])
-    prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
+    src = EM.TDEM.Src.MagDipole(rxList=[rx], loc=np.array([0., 0., 80]))
+    survey = EM.TDEM.Survey(srcList=[src])
+    simulation = EM.TDEM.Simulation3D_b(mesh=mesh, sigmaMap=mapping, survey=survey)
 
-    prb.Solver = SolverLU
-    prb.timeSteps = [(1e-06, 20), (1e-05, 20), (0.0001, 20)]
-    prb.pair(survey)
+    simulation.solver = Solver
+    simulation.time_steps = [(1e-06, 20), (1e-05, 20), (0.0001, 20)]
 
     # create observed data
     std = 0.05
 
-    survey.dobs = survey.makeSyntheticData(mtrue, std)
-    survey.std = std
-    survey.eps = 1e-5*np.linalg.norm(survey.dobs)
+    data = simulation.make_synthetic_data(mtrue, std)
+    data.standard_deviation = std
+    data.noise_floor = 1e-5*np.linalg.norm(data.dobs)
 
-    dmisfit = DataMisfit.l2_DataMisfit(survey)
+    dmisfit = DataMisfit.l2_DataMisfit(data=data, simulation=simulation)
     regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
     reg = Regularization.Tikhonov(regMesh, alpha_s=1e-2, alpha_x=1.)
     opt = Optimization.InexactGaussNewton(maxIter=5, LSshorten=0.5)
@@ -62,15 +68,15 @@ def run(plotIt=True):
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e0)
     inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaest])
     m0 = np.log(np.ones(mtrue.size)*sig_half)
-    prb.counter = opt.counter = Utils.Counter()
+    simulation.counter = opt.counter = Utils.Counter()
     opt.remember('xc')
 
     mopt = inv.run(m0)
 
     if plotIt:
         fig, ax = plt.subplots(1, 2, figsize=(10, 6))
-        ax[0].loglog(rx.times, survey.dtrue, 'b.-')
-        ax[0].loglog(rx.times, survey.dobs, 'r.-')
+        ax[0].loglog(rx.times, data.dclean, 'b.-')
+        ax[0].loglog(rx.times, data.dobs, 'r.-')
         ax[0].legend(('Noisefree', '$d^{obs}$'), fontsize=16)
         ax[0].set_xlabel('Time (s)', fontsize=14)
         ax[0].set_ylabel('$B_z$ (T)', fontsize=16)

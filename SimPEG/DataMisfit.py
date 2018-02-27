@@ -3,7 +3,8 @@ import numpy as np
 import properties
 
 from . import Utils
-from . import Survey
+from .Data import Data
+from .Simulation import BaseSimulation
 from . import ObjectiveFunction
 from .Tests import checkDerivative
 
@@ -18,32 +19,62 @@ class BaseDataMisfit(ObjectiveFunction.L2ObjectiveFunction):
             term.
     """
 
-    debug   = False  #: Print debugging information
-    counter = None  #: Set this to a SimPEG.Utils.Counter() if you want to count things
+    data = properties.Instance(
+        "A SimPEG data class containing the observed data",
+        Data,
+        required=True
+    )
 
-    _hasFields = True  #: Data Misfits take fields, handy to store them
+    simulation = properties.Instance(
+        "A SimPEG simulation",
+        BaseSimulation,
+        required=True
+    )
 
-    def __init__(self, survey, **kwargs):
-        assert survey.ispaired, 'The survey must be paired to a problem.'
-        if isinstance(survey, Survey.BaseSurvey):
-            self.survey = survey
-            self.prob   = survey.prob
+    debug = properties.Bool(
+        "Print debugging information",
+        default=False
+    )
+
+    counter = properties.Instance(
+        "Set this to a SimPEG.Utils.Counter() if you want to count things",
+        Utils.Counter
+    )
+
+    _hasFields = properties.Bool(
+        "Data Misfits take fields, handy to store them",
+        default=True
+    )
+
+    def __init__(self, **kwargs):
         super(BaseDataMisfit, self).__init__(**kwargs)
 
     @property
     def nP(self):
         if self._mapping is not None:
             return self.mapping.nP
-        elif self.prob.model is not None:
-            return len(self.prob.model)
+        elif self.simulation.model is not None:
+            return len(self.simulation.model)
         else:
             return '*'
+
+    @property
+    def nD(self):
+        return self.data.nD
+
+    @property
+    def shape(self):
+        return (self.nD, self.nP)
 
     @property
     def Wd(self):
         raise AttributeError(
             'The `Wd` property been depreciated, please use: `W` instead'
         )
+
+    @property
+    def uncertainty(self):
+        return self.data.uncertainty
 
 
 class l2_DataMisfit(BaseDataMisfit):
@@ -59,33 +90,29 @@ class l2_DataMisfit(BaseDataMisfit):
 
     """
 
-    std = 0.05  #: default standard deviation if not provided by survey
-    eps = None  #: default floor
-    eps_factor = 1e-5  #: factor to multiply by the norm of the data to create floor
+    def __init__(self, **kwargs):
+        BaseDataMisfit.__init__(self, **kwargs)
 
-    def __init__(self, survey, **kwargs):
-        BaseDataMisfit.__init__(self, survey, **kwargs)
+        # if self.std is None:
+        #     if getattr(self.survey, 'std', None) is not None:
+        #         print(
+        #             'SimPEG.DataMisfit.l2_DataMisfit assigning default std '
+        #             'of 5%'
+        #         )
+        #     else:
+        #         self.std = self.survey.std
 
-        if self.std is None:
-            if getattr(self.survey, 'std', None) is not None:
-                print(
-                    'SimPEG.DataMisfit.l2_DataMisfit assigning default std '
-                    'of 5%'
-                )
-            else:
-                self.std = self.survey.std
-
-        if self.eps is None:
-            if getattr(self.survey, 'eps', None) is None:
-                print(
-                    'SimPEG.DataMisfit.l2_DataMisfit assigning default eps '
-                    'of 1e-5 * ||dobs||'
-                )
-                self.eps = (
-                    np.linalg.norm(Utils.mkvc(survey.dobs), 2)*self.eps_factor
-                )  # default
-            else:
-                self.eps = self.survey.eps
+        # if self.eps is None:
+        #     if getattr(self.survey, 'eps', None) is None:
+        #         print(
+        #             'SimPEG.DataMisfit.l2_DataMisfit assigning default eps '
+        #             'of 1e-5 * ||dobs||'
+        #         )
+        #         self.eps = (
+        #             np.linalg.norm(Utils.mkvc(survey.dobs), 2)*self.eps_factor
+        #         )  # default
+        #     else:
+        #         self.eps = self.survey.eps
 
     @property
     def W(self):
@@ -101,29 +128,35 @@ class l2_DataMisfit(BaseDataMisfit):
         """
 
         if getattr(self, '_W', None) is None:
-
-            survey = self.survey
-            self._W = Utils.sdiag(1/(abs(survey.dobs)*self.std+self.eps))
-
+            uncertainty = self.uncertainty
+            if uncertainty is None:
+                raise Exception(
+                    "data uncertainties must be set before the data misfit "
+                    "can be constructed (data.standard_deviation = 0.05, "
+                    "data.noise_floor = 1e-5), alternatively, the W matrix "
+                    "can be set directly (dmisfit.W = 1./uncertainty)"
+                )
+            self._W = Utils.sdiag(1/(uncertainty))
         return self._W
 
     @W.setter
     def W(self, value):
         if len(value.shape) < 2:
             value = Utils.sdiag(value)
-        assert value.shape == (self.survey.nD, self.survey.nD), (
+        assert value.shape == (self.data.nD, self.data.nD), (
             'W must have shape ({nD},{nD}), not ({val0}, val{1})'.format(
-                nD=self.survey.nD, val0=value.shape[0], val1=value.shape[1]
+                nD=self.data.nD, val0=value.shape[0], val1=value.shape[1]
             )
         )
         self._W = value
 
+    def residual(self, m, f=None):
+        return self.simulation.residual(m, self.data.dobs, f=f)
+
     @Utils.timeIt
     def __call__(self, m, f=None):
         "__call__(m, f=None)"
-        if f is None:
-            f = self.prob.fields(m)
-        R = self.W * self.survey.residual(m, f)
+        R = self.W * self.residual(m, f=f)
         return 0.5*np.vdot(R, R)
 
     @Utils.timeIt
@@ -142,9 +175,9 @@ class l2_DataMisfit(BaseDataMisfit):
         :param SimPEG.Fields.Fields f: fields object
         """
         if f is None:
-            f = self.prob.fields(m)
-        return self.prob.Jtvec(
-            m, self.W.T * (self.W * self.survey.residual(m, f=f)), f=f
+            f = self.simulation.fields(m)
+        return self.simulation.Jtvec(
+            m, self.W.T * (self.W * self.residual(m, f=f)), f=f
         )
 
     @Utils.timeIt
@@ -161,9 +194,9 @@ class l2_DataMisfit(BaseDataMisfit):
         :param SimPEG.Fields.Fields f: fields object
         """
         if f is None:
-            f = self.prob.fields(m)
-        return self.prob.Jtvec_approx(
-            m, self.W * (self.W * self.prob.Jvec_approx(m, v, f=f)), f=f
+            f = self.simulation.fields(m)
+        return self.simulation.Jtvec_approx(
+            m, self.W * (self.W * self.simulation.Jvec_approx(m, v, f=f)), f=f
         )
 
 

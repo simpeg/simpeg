@@ -3,9 +3,10 @@ from six import string_types
 import time
 import numpy as np
 from functools import wraps
+import properties
 
 
-class Counter(object):
+class Counter(properties.HasProperties):
     """
         Counter allows anything that calls it to record iterations and
         timings in a simple way.
@@ -35,9 +36,16 @@ class Counter(object):
             c.counter.summary()
 
     """
-    def __init__(self):
-        self._countList = {}
-        self._timeList = {}
+
+    _countList = properties.Dictionary(
+        "a dictionary for the things that we are cointing",
+        default={}
+    )
+
+    _timeList = properties.Dictionary(
+        "a dictionary to keep track of times",
+        default={}
+    )
 
     def count(self, prop):
         """
