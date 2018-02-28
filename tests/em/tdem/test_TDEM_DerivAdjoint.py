@@ -195,15 +195,33 @@ class DerivAdjoint_E(Base_DerivAdjoint_Test):
         def test_Jvec_e_ey(self):
             self.JvecTest('ey')
 
+        def test_Jvec_e_dhxdt(self):
+            self.JvecTest('dhdtx')
+
+        def test_Jvec_e_dhzdt(self):
+            self.JvecTest('dhdtz')
+
+        def test_Jvec_e_jy(self):
+            self.JvecTest('jy')
+
     if testAdjoint:
-        def test_Jvec_adjoint_e_ey(self):
+        def test_Jvec_adjoint_e_dbdtx(self):
             self.JvecVsJtvecTest('dbdtx')
 
-        def test_Jvec_adjoint_e_ey(self):
+        def test_Jvec_adjoint_e_dbdtz(self):
             self.JvecVsJtvecTest('dbdtz')
 
         def test_Jvec_adjoint_e_ey(self):
             self.JvecVsJtvecTest('ey')
+
+        def test_Jvec_adjoint_e_dhdtx(self):
+            self.JvecVsJtvecTest('dhdtx')
+
+        def test_Jvec_adjoint_e_dhdtz(self):
+            self.JvecVsJtvecTest('dhdtz')
+
+        def test_Jvec_adjoint_e_jy(self):
+            self.JvecVsJtvecTest('jy')
 
 
 class DerivAdjoint_B(Base_DerivAdjoint_Test):
@@ -223,8 +241,23 @@ class DerivAdjoint_B(Base_DerivAdjoint_Test):
         def test_Jvec_b_dbdtz(self):
             self.JvecTest('dbdtz')
 
-        def test_Jvec_b_ey(self):
-            self.JvecTest('ey')
+        def test_Jvec_b_jy(self):
+            self.JvecTest('jy')
+
+        def test_Jvec_b_hx(self):
+            self.JvecTest('hx')
+
+        def test_Jvec_b_hz(self):
+            self.JvecTest('hz')
+
+        def test_Jvec_b_dhdtx(self):
+            self.JvecTest('dhdtx')
+
+        def test_Jvec_b_dhdtz(self):
+            self.JvecTest('dhdtz')
+
+        def test_Jvec_b_jy(self):
+            self.JvecTest('jy')
 
     if testAdjoint:
         def test_Jvec_adjoint_b_bx(self):
@@ -233,14 +266,29 @@ class DerivAdjoint_B(Base_DerivAdjoint_Test):
         def test_Jvec_adjoint_b_bz(self):
             self.JvecVsJtvecTest('bz')
 
-        def test_Jvec_adjoint_b_dbdtz(self):
+        def test_Jvec_adjoint_b_dbdtx(self):
             self.JvecVsJtvecTest('dbdtx')
 
-        def test_Jvec_adjoint_b_dbdtx(self):
+        def test_Jvec_adjoint_b_dbdtz(self):
             self.JvecVsJtvecTest('dbdtz')
 
         def test_Jvec_adjoint_b_ey(self):
             self.JvecVsJtvecTest('ey')
+
+        def test_Jvec_adjoint_b_hx(self):
+            self.JvecVsJtvecTest('hx')
+
+        def test_Jvec_adjoint_b_hz(self):
+            self.JvecVsJtvecTest('hz')
+
+        def test_Jvec_adjoint_b_dhdtx(self):
+            self.JvecVsJtvecTest('dhdtx')
+
+        def test_Jvec_adjoint_b_dhdtx(self):
+            self.JvecVsJtvecTest('dhdtz')
+
+        def test_Jvec_adjoint_b_ey(self):
+            self.JvecVsJtvecTest('jy')
 
 
 class DerivAdjoint_H(Base_DerivAdjoint_Test):
@@ -260,6 +308,24 @@ class DerivAdjoint_H(Base_DerivAdjoint_Test):
         def test_Jvec_h_dhdtz(self):
             self.JvecTest('dhdtz')
 
+        def test_Jvec_h_jy(self):
+            self.JvecTest('jy')
+
+        def test_Jvec_h_bx(self):
+            self.JvecTest('bx')
+
+        def test_Jvec_h_bz(self):
+            self.JvecTest('bz')
+
+        def test_Jvec_h_dbdtx(self):
+            self.JvecTest('dbdtx')
+
+        def test_Jvec_h_dbdtz(self):
+            self.JvecTest('dbdtz')
+
+        def test_Jvec_h_ey(self):
+            self.JvecTest('ey')
+
     if testAdjoint:
         def test_Jvec_adjoint_h_hx(self):
             self.JvecVsJtvecTest('hx')
@@ -275,6 +341,21 @@ class DerivAdjoint_H(Base_DerivAdjoint_Test):
 
         def test_Jvec_adjoint_h_jy(self):
             self.JvecVsJtvecTest('jy')
+
+        def test_Jvec_adjoint_h_bx(self):
+            self.JvecVsJtvecTest('bx')
+
+        def test_Jvec_adjoint_h_bz(self):
+            self.JvecVsJtvecTest('bz')
+
+        def test_Jvec_adjoint_h_dbdtx(self):
+            self.JvecVsJtvecTest('dbdtx')
+
+        def test_Jvec_adjoint_h_dbdtz(self):
+            self.JvecVsJtvecTest('dbdtz')
+
+        def test_Jvec_adjoint_h_ey(self):
+            self.JvecVsJtvecTest('ey')
 
 
 class DerivAdjoint_J(Base_DerivAdjoint_Test):
