@@ -361,7 +361,7 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
             else:
 
                 if prob.coordinate_system == 'spherical':
-                    vec_xyz = Magnetics.atp2xyz(xc)
+                    vec_xyz = Utils.matutils.atp2xyz(xc.reshape((int(len(xc)/3), 3)))
                 else:
                     vec_xyz = xc
 
@@ -373,14 +373,14 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
 
                 vec = np.c_[vec_x, vec_y, vec_z]
 
-                m_pst = Magnetics.xyz2pst(vec, self.survey[0].srcField.param)
+                m_pst = Utils.matutils.xyz2pst(vec, self.survey[0].srcField.param)
                 m_ind = m_pst.copy()
                 m_ind[:, 1:] = 0.
-                m_ind = Magnetics.pst2xyz(m_ind, self.survey[0].srcField.param)
+                m_ind = Utils.matutils.pst2xyz(m_ind, self.survey[0].srcField.param)
 
                 m_rem = m_pst.copy()
                 m_rem[:, 0] = 0.
-                m_rem = Magnetics.pst2xyz(m_rem, self.survey[0].srcField.param)
+                m_rem = Utils.matutils.pst2xyz(m_rem, self.survey[0].srcField.param)
 
                 MagneticsDriver.writeVectorUBC(reg.regmesh.mesh, fileName + '_VEC.fld', vec)
 
@@ -775,8 +775,8 @@ class Update_IRLS(InversionDirective):
             # Re-assign the norms supplied by user l2 -> lp
             for reg, norms in zip(self.reg.objfcts, self.norms):
                 reg.norms = norms
-                if not self.silent:
-                    print("L[p qx qy qz]-norm : " + str(reg.norms))
+                # if not self.silent:
+                #     print("L[p qx qy qz]-norm : " + str(reg.norms))
 
             # Save l2-model
             self.invProb.l2model = self.invProb.model.copy()
@@ -862,6 +862,10 @@ class Update_IRLS(InversionDirective):
                 # If comboObj, go down one more level
                 for comp in reg.objfcts:
                     comp.stashedR = None
+
+            for dmis in self.dmisfit.objfcts:
+                if getattr(dmis, 'stashedR', None) is not None:
+                    dmis.stashedR = None
 
             # Compute new model objective function value
             phim_new = self.reg(self.invProb.model)
@@ -1220,8 +1224,10 @@ class ProjSpherical(InversionDirective):
 
         x = self.invProb.model
         # Convert to cartesian than back to avoid over rotation
-        xyz = Magnetics.atp2xyz(x)
-        m = Magnetics.xyz2atp(xyz)
+        nC = int(len(x)/3)
+
+        xyz = Utils.matutils.atp2xyz(x.reshape((nC, 3)))
+        m = Utils.matutils.xyz2atp(xyz.reshape((nC, 3)))
 
         self.invProb.model = m
 
@@ -1233,9 +1239,11 @@ class ProjSpherical(InversionDirective):
     def endIter(self):
 
         x = self.invProb.model
+        nC = int(len(x)/3)
+
         # Convert to cartesian than back to avoid over rotation
-        xyz = Magnetics.atp2xyz(x)
-        m = Magnetics.xyz2atp(xyz)
+        xyz = Utils.matutils.atp2xyz(x.reshape((nC, 3)))
+        m = Utils.matutils.xyz2atp(xyz.reshape((nC, 3)))
 
         self.invProb.model = m
         self.invProb.phi_m_last = self.reg(m)
@@ -1270,7 +1278,7 @@ class JointAmpMVI(InversionDirective):
 
             if isinstance(prob, Magnetics.MagneticVector):
                 if prob.coordinate_system == 'spherical':
-                    xyz = Magnetics.atp2xyz(prob.chiMap * m)
+                    xyz = Magnetics.atp2xyz((prob.chiMap * m).reshape((int(len(m)/3), 3)))
                     self.jointMVIS = True
                 elif prob.coordinate_system == 'cartesian':
                     xyz = prob.chiMap * m
@@ -1300,7 +1308,7 @@ class JointAmpMVI(InversionDirective):
 
             if isinstance(prob, Magnetics.MagneticVector):
                 if prob.coordinate_system == 'spherical':
-                    xyz = Magnetics.atp2xyz(prob.chiMap * m)
+                    xyz = Magnetics.atp2xyz((prob.chiMap * m).reshape((int(len(m)/3), 3)))
 
                 elif prob.coordinate_system == 'cartesian':
                     xyz = prob.chiMap * m
