@@ -166,101 +166,101 @@ class l2_DataMisfit(BaseDataMisfit):
             m, self.W * (self.scale * self.W * self.prob.Jvec_approx(m, v, f=f)), f=f
         )
 
-class l1_DataMisfit(l2_DataMisfit):
-    """
+# class l1_DataMisfit(l2_DataMisfit):
+#     """
 
-    The data misfit with an l_2 norm:
+#     The data misfit with an l_2 norm:
 
-    .. math::
+#     .. math::
 
-        \mu_\\text{data} = {1\over 2}\left|
-        \mathbf{W}_d (\mathbf{d}_\\text{pred} -
-        \mathbf{d}_\\text{obs}) \\right|_2^2
+#         \mu_\\text{data} = {1\over 2}\left|
+#         \mathbf{W}_d (\mathbf{d}_\\text{pred} -
+#         \mathbf{d}_\\text{obs}) \\right|_2^2
 
-    """
-    def __init__(self, survey, **kwargs):
-        self._stashedR = None
-        self.epsilon = 1e-8
-        self.norm = 1.
-        l2_DataMisfit.__init__(self, survey, **kwargs)
+#     """
+#     def __init__(self, survey, **kwargs):
+#         self._stashedR = None
+#         self.epsilon = 1e-8
+#         self.norm = 1.
+#         l2_DataMisfit.__init__(self, survey, **kwargs)
 
-    @property
-    def stashedR(self):
-        return self._stashedR
+#     @property
+#     def stashedR(self):
+#         return self._stashedR
 
-    @stashedR.setter
-    def stashedR(self, value):
-        self._stashedR = value
+#     @stashedR.setter
+#     def stashedR(self, value):
+#         self._stashedR = value
 
-    def R(self, f_m):
-        # if R is stashed, return that instead
-        if getattr(self, 'stashedR') is not None:
-            return self.stashedR
+#     def R(self, f_m):
+#         # if R is stashed, return that instead
+#         if getattr(self, 'stashedR') is not None:
+#             return self.stashedR
 
-        # Eta scaling is important for mix-norms...do not mess with it
-        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
-        r = (eta / (f_m**2. + self.epsilon**2.)**(1.-(self.norm)/2.))**0.5
-        self.stashedR = r  # stash on the first calculation
-        return r
+#         # Eta scaling is important for mix-norms...do not mess with it
+#         eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
+#         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-(self.norm)/2.))**0.5
+#         self.stashedR = r  # stash on the first calculation
+#         return r
 
-    @Utils.timeIt
-    def __call__(self, m, f=None):
-        "__call__(m, f=None)"
-        if f is None:
-            f = self.prob.fields(m)
-        R = self.W * self.survey.residual(m, f)
+#     @Utils.timeIt
+#     def __call__(self, m, f=None):
+#         "__call__(m, f=None)"
+#         if f is None:
+#             f = self.prob.fields(m)
+#         R = self.W * self.survey.residual(m, f)
 
-        r = self.R(f)
-        R = R*Utils.sdiag(r)
+#         r = self.R(f)
+#         R = R*Utils.sdiag(r)
 
-        return 0.5*np.vdot(R, R)
+#         return 0.5*np.vdot(R, R)
 
-    @Utils.timeIt
-    def deriv(self, m, f=None):
-        """
-        deriv(m, f=None)
+#     @Utils.timeIt
+#     def deriv(self, m, f=None):
+#         """
+#         deriv(m, f=None)
 
-        Derivative of the data misfit
+#         Derivative of the data misfit
 
-        .. math::
+#         .. math::
 
-            \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W}
-            (\mathbf{d} - \mathbf{d}^{obs})
+#             \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W}
+#             (\mathbf{d} - \mathbf{d}^{obs})
 
-        :param numpy.ndarray m: model
-        :param SimPEG.Fields.Fields f: fields object
-        """
-        if f is None:
-            f = self.prob.fields(m)
+#         :param numpy.ndarray m: model
+#         :param SimPEG.Fields.Fields f: fields object
+#         """
+#         if f is None:
+#             f = self.prob.fields(m)
 
-        r = self.R(f)
+#         r = self.R(f)
 
-        R = Utils.sdiag(r)
+#         R = Utils.sdiag(r)
 
-        return self.prob.Jtvec(
-            m, self.W.T * R.T * (self.scale * R * self.W * self.survey.residual(m, f=f)), f=f
-        )
+#         return self.prob.Jtvec(
+#             m, self.W.T * R.T * (self.scale * R * self.W * self.survey.residual(m, f=f)), f=f
+#         )
 
-    @Utils.timeIt
-    def deriv2(self, m, v, f=None):
-        """
-        deriv2(m, v, f=None)
+#     @Utils.timeIt
+#     def deriv2(self, m, v, f=None):
+#         """
+#         deriv2(m, v, f=None)
 
-        .. math::
+#         .. math::
 
-            \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W} \mathbf{J}
+#             \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W} \mathbf{J}
 
-        :param numpy.ndarray m: model
-        :param numpy.ndarray v: vector
-        :param SimPEG.Fields.Fields f: fields object
-        """
-        # if f is None:
-        f = self.prob.fields(m)
+#         :param numpy.ndarray m: model
+#         :param numpy.ndarray v: vector
+#         :param SimPEG.Fields.Fields f: fields object
+#         """
+#         # if f is None:
+#         f = self.prob.fields(m)
 
-        r = self.R(f)
+#         r = self.R(f)
 
-        R = Utils.sdiag(r)
+#         R = Utils.sdiag(r)
 
-        return self.prob.Jtvec_approx(
-            m, self.W * R.T * (self.scale * R * self.W * self.prob.Jvec_approx(m, v, f=f)), f=f
-        )
+#         return self.prob.Jtvec_approx(
+#             m, self.W * R.T * (self.scale * R * self.W * self.prob.Jvec_approx(m, v, f=f)), f=f
+#         )
