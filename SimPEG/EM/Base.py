@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 import properties
 from scipy.constants import mu_0
+import numpy as np
 
 from SimPEG import Survey
 from SimPEG import Problem

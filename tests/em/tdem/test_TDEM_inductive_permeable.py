@@ -22,7 +22,7 @@ TOL = 1e-4
 
 class TestInductiveSourcesPermeability(unittest.TestCase):
 
-    def test_permeable_sources(self):
+    def setUp(self):
         target_mur = [1, 50, 100, 200]
         target_l = 500
         target_r = 50
@@ -54,16 +54,37 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             mesh.plotGrid()
             plt.show()
 
+        self.radius_loop = radius_loop
+        self.target_mur = target_mur
+        self.target_l = target_l
+        self.target_r = target_r
+        self.sigma_back = sigma_back
+        self.model_names = model_names
+        self.mesh = mesh
+
+    def test_permeable_sources(self):
+
+        target_mur = self.target_mur
+        target_l = self.target_l
+        target_r = self.target_r
+        sigma_back = self.sigma_back
+        model_names = self.model_names
+        mesh = self.mesh
+        radius_loop = self.radius_loop
+
         # Assign physical properties on the mesh
         def populate_target(mur):
             mu_model = np.ones(mesh.nC)
             x_inds = mesh.gridCC[:, 0] < target_r
-            z_inds = (mesh.gridCC[:, 2] <= 0) & (mesh.gridCC[:, 2] >= -target_l)
+            z_inds = (
+                (mesh.gridCC[:, 2] <= 0) & (mesh.gridCC[:, 2] >= -target_l)
+            )
             mu_model[x_inds & z_inds] = mur
             return mu_0 * mu_model
 
         mu_dict = {
-            key: populate_target(mu) for key, mu in zip(model_names, target_mur)
+            key: populate_target(mu) for key, mu in
+            zip(model_names, target_mur)
         }
         sigma = np.ones(mesh.nC) * sigma_back
 
@@ -72,14 +93,16 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             xlim = np.r_[-200, 200]  # x-limits in meters
             zlim = np.r_[-1.5*target_l, 10.]  # z-limits in meters. (z-positive up)
 
-            fig, ax = plt.subplots(1, len(model_names), figsize=(6*len(model_names), 5))
+            fig, ax = plt.subplots(
+                1, len(model_names), figsize=(6*len(model_names), 5)
+            )
             if len(model_names) == 1:
                 ax = [ax]
 
             for a, key in zip(ax, model_names):
                 plt.colorbar(mesh.plotImage(
                     mu_dict[key], ax=a,
-                    pcolorOpts={'norm':LogNorm()},  # plot on a log-scale
+                    pcolorOpts={'norm': LogNorm()},  # plot on a log-scale
                     mirror=True
                 )[0], ax=a)
                 a.set_title('{}'.format(key), fontsize=13)
@@ -120,11 +143,11 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         src_list_late_ontime = [src_ramp_on]
 
         prob = TDEM.Problem3D_b(
-            mesh=mesh, sigmaMap=Maps.IdentityMap(mesh), timeSteps=timeSteps,
+            mesh=mesh, timeSteps=timeSteps, sigmaMap=Maps.IdentityMap(mesh),
             Solver=Pardiso
         )
         prob_late_ontime = TDEM.Problem3D_b(
-            mesh=mesh, sigmaMap=Maps.IdentityMap(mesh), timeSteps=timeSteps,
+            mesh=mesh, timeSteps=timeSteps, sigmaMap=Maps.IdentityMap(mesh),
             Solver=Pardiso
         )
 
@@ -151,7 +174,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
 
         for key in model_names:
             prob.mu = mu_dict[key]
-            prob.model = sigma
+            prob.sigma = sigma
             b_magnetostatic[key] = src_magnetostatic.bInitial(prob)
 
             prob_late_ontime.mu = mu_dict[key]
@@ -205,6 +228,74 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             passed += [passed_test]
 
         assert all(passed)
+
+        prob.sigma = 1e-4*np.ones(mesh.nC)
+        v = utils.mkvc(np.random.rand(mesh.nE))
+        w = utils.mkvc(np.random.rand(mesh.nF))
+        assert(
+            np.all(
+                mesh.getEdgeInnerProduct(1e-4*np.ones(mesh.nC))*v ==
+                prob.MeSigma*v
+            )
+        )
+
+        assert(
+            np.all(
+                mesh.getEdgeInnerProduct(
+                    1e-4*np.ones(mesh.nC), invMat=True
+                )*v ==
+                prob.MeSigmaI*v
+            )
+        )
+        assert(
+            np.all(
+                mesh.getFaceInnerProduct(1./1e-4*np.ones(mesh.nC))*w ==
+                prob.MfRho*w
+            )
+        )
+
+        assert(
+            np.all(
+                mesh.getFaceInnerProduct(
+                    1./1e-4*np.ones(mesh.nC), invMat=True
+                )*w ==
+                prob.MfRhoI*w
+            )
+        )
+
+        prob.rho = 1./1e-3*np.ones(mesh.nC)
+        v = utils.mkvc(np.random.rand(mesh.nE))
+        w = utils.mkvc(np.random.rand(mesh.nF))
+        assert(
+            np.all(
+                mesh.getEdgeInnerProduct(1e-3*np.ones(mesh.nC))*v ==
+                prob.MeSigma*v
+            )
+        )
+
+        assert(
+            np.all(
+                mesh.getEdgeInnerProduct(
+                    1e-3*np.ones(mesh.nC), invMat=True
+                )*v ==
+                prob.MeSigmaI*v
+            )
+        )
+        assert(
+            np.all(
+                mesh.getFaceInnerProduct(1./1e-3*np.ones(mesh.nC))*w ==
+                prob.MfRho*w
+            )
+        )
+
+        assert(
+            np.all(
+                mesh.getFaceInnerProduct(
+                    1./1e-3*np.ones(mesh.nC), invMat=True
+                )*w ==
+                prob.MfRhoI*w
+            )
+        )
 
 
 if __name__ == '__main__':
