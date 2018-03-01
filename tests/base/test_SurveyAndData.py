@@ -44,6 +44,20 @@ class TestData(unittest.TestCase):
         D2 = Survey.Data(self.D.survey, V)
         self.assertTrue(np.all(Utils.mkvc(D2) == Utils.mkvc(self.D)))
 
+    def test_standard_dev(self):
+        V = []
+        for src in self.D.survey.srcList:
+            for rx in src.rxList:
+                v = np.random.rand(rx.nD)
+                V += [v]
+                self.D.standard_deviation[src, rx] = v
+                self.assertTrue(np.all(v == self.D.standard_deviation[src, rx]))
+        V = np.concatenate(V)
+        self.assertTrue(np.all(V == Utils.mkvc(self.D.standard_deviation)))
+
+        D2 = Survey.Data(self.D.survey, standard_deviation=V)
+        self.assertTrue(np.all(Utils.mkvc(D2.standard_deviation) == Utils.mkvc(self.D.standard_deviation)))
+
     def test_uniqueSrcs(self):
         srcs = self.D.survey.srcList
         srcs += [srcs[0]]
