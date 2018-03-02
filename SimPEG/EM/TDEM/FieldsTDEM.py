@@ -6,7 +6,7 @@ from scipy.constants import epsilon_0
 import SimPEG
 from SimPEG import Utils
 from SimPEG.EM.Utils import omega
-from SimPEG.Utils import Zero, Identity
+from SimPEG.Utils import Zero, Identity, sdiag
 
 
 class FieldsTDEM(SimPEG.Problem.TimeFields):
@@ -582,9 +582,9 @@ class Fields3D_h(FieldsTDEM):
         )
 
     def _charge(self, hSolution, srcList, tInd):
-        vol = utils.sdiag(self.survey.prob.mesh.vol)
+        vol = sdiag(self.survey.prob.mesh.vol)
         return epsilon_0*vol*(
-            self._faceDiv*self._e(hSolution, srcList, tInd)
+            self.survey.prob.mesh.faceDiv*self._e(hSolution, srcList, tInd)
         )
 
 
@@ -670,9 +670,9 @@ class Fields3D_j(FieldsTDEM):
         return self.survey.prob.MfI * (self._MfRhoDeriv(jSolution) * v)
 
     def _charge(self, jSolution, srcList, tInd):
-        vol = utils.sdiag(self.survey.prob.mesh.vol)
+        vol = sdiag(self.survey.prob.mesh.vol)
         return epsilon_0*vol*(
-            self._faceDiv*self._e(jSolution, srcList, tInd)
+            self.survey.prob.mesh.faceDiv*self._e(jSolution, srcList, tInd)
         )
 
     def _dbdt(self, jSolution, srcList, tInd):
