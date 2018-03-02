@@ -5,28 +5,28 @@ from __future__ import division
 import numpy as np
 import scipy.sparse as sp
 
+import properties
+
 from SimPEG import Maps, mkvc
-from SimPEG.EM.OldFDEM.SrcFDEM import BaseFDEMSrc as FDEMBaseSrc
-from SimPEG.EM.Utils import omega
+from ..FDEM.SurveyFDEM import BaseFDEMSrc
+from ...EM.Utils import omega
 from .Utils.sourceUtils import homo1DModelSource
 
 #################
 ###   Sources ###
 #################
 
-class BaseNSEMSrc(FDEMBaseSrc):
+class BaseNSEMSrc(BaseFDEMSrc):
     '''
-    Sources for the NSEM problem.
-    Use the SimPEG BaseSrc, since the source fields share properties with the transmitters.
-
-    :param float freq: The frequency of the source
-    :param list rxList: A list of receivers associated with the source
+    Base sources for the NSEM problem.
+    Use the SimPEG BaseFDEMSrc, since the source fields
+    share properties with the transmitters.
     '''
 
-    def __init__(self, rxList, freq):
+    def __init__(self, **kwargs):
 
-        self.freq = float(freq)
-        FDEMBaseSrc.__init__(self, rxList)
+        super(BaseNSEMSrc, self).__init__(
+            **kwargs)
 
 # 1D sources
 class Planewave_xy_1DhomotD(BaseNSEMSrc):
@@ -48,10 +48,13 @@ class Planewave_xy_1Dprimary(BaseNSEMSrc):
 
 
     """
-    def __init__(self, rxList, freq):
+    sigma1d = properties.Array(
+        'The 1D conductivity model',
+        default=None)
+
+    def __init__(self, *args, **kwargs):
         # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
-        self.sigma1d = None
-        BaseNSEMSrc.__init__(self, rxList, freq)
+        BaseNSEMSrc.__init__(self, *args, **kwargs)
 
 
     def ePrimary(self, problem):

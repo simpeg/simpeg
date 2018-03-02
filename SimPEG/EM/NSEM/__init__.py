@@ -13,4 +13,5 @@ from . import SrcNSEM as Src
 from . import RxNSEM as Rx
 from .SurveyNSEM import Survey, Data
 from .FieldsNSEM import Fields1D_ePrimSec, Fields3D_ePrimSec
-from .ProblemNSEM import Problem1D_ePrimSec, Problem3D_ePrimSec
+from .SimulationNSEM import (
+    Simulation1D_ePrimSec, Simulation3D_ePrimSec)

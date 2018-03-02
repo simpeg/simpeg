@@ -61,16 +61,36 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
     rxList = []
     for rxType in ['z1d', 'z1d']:
-        rxList.append(Point_impedance1D(simpeg.mkvc(np.array([0.0]), 2).T, 'real'))
-        rxList.append(Point_impedance1D(simpeg.mkvc(np.array([0.0]), 2).T, 'imag'))
+        rxList.append(
+            Point_impedance1D(
+                locs=simpeg.mkvc(np.array([0.0]), 2).T,
+                component='real'
+            )
+        )
+        rxList.append(
+            Point_impedance1D(
+                locs=simpeg.mkvc(np.array([0.0]), 2).T,
+                component='imag'
+            )
+        )
     # Source list
     srcList = []
     if tD:
         for freq in freqs:
-            srcList.append(Planewave_xy_1DhomotD(rxList,freq))
+            srcList.append(
+                Planewave_xy_1DhomotD(
+                    rxList=rxList,
+                    freq=freq
+                )
+            )
     else:
         for freq in freqs:
-            srcList.append(Planewave_xy_1Dprimary(rxList,freq))
+            srcList.append(
+                Planewave_xy_1Dprimary(
+                    rxList=rxList,
+                    freq=freq
+                )
+            )
 
     survey = Survey(srcList=srcList)
     return (survey, sigma, sigmaBack, m1d)

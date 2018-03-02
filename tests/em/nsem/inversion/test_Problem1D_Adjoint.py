@@ -18,25 +18,28 @@ MU = mu_0
 
 def JvecAdjointTest(sigmaHalf, formulation='PrimSec'):
     forType = 'PrimSec' not in formulation
-    survey, sigma, sigBG, m1d = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,tD=forType,structure=False)
+    survey, sigma, sigBG, m1d = NSEM.Utils.testUtils.setup1DSurvey(
+        sigmaHalf, tD=forType, structure=False)
     print('Adjoint test of e formulation for {:s} comp \n'.format(formulation))
 
     if 'PrimSec' in formulation:
-        problem = NSEM.Problem1D_ePrimSec(m1d, sigmaPrimary=sigBG, sigmaMap=Maps.IdentityMap(m1d))
+        simulation = NSEM.Simulation1D_ePrimSec(
+            mesh=m1d, survey=survey,
+            sigmaPrimary=sigBG, sigmaMap=Maps.IdentityMap(m1d))
     else:
-        raise NotImplementedError('Only {} formulations are implemented.'.format(formulation))
-    problem.pair(survey)
-    m  = sigma
-    u = problem.fields(m)
+        raise NotImplementedError(
+            'Only {} formulations are implemented.'.format(formulation))
+    m = sigma
+    u = simulation.fields(m)
 
     np.random.seed(1983)
     v = np.random.rand(survey.nD,)
-    # print problem.PropMap.PropModel.nP
-    w = np.random.rand(problem.mesh.nC,)
+    # print simulation.PropMap.PropModel.nP
+    w = np.random.rand(simulation.mesh.nC,)
 
-    vJw = v.ravel().dot(problem.Jvec(m, w, u))
-    wJtv = w.ravel().dot(problem.Jtvec(m, v, u))
-    tol = np.max([TOL*(10**int(np.log10(np.abs(vJw)))),FLR])
+    vJw = v.ravel().dot(simulation.Jvec(m, w, u))
+    wJtv = w.ravel().dot(simulation.Jtvec(m, v, u))
+    tol = np.max([TOL * (10**int(np.log10(np.abs(vJw)))), FLR])
     print(' vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol')
     print(vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol)
     return np.abs(vJw - wJtv) < tol

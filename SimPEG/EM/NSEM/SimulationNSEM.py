@@ -7,35 +7,31 @@ import sys
 import scipy.sparse as sp
 import numpy as np
 
+import properties
+
 from SimPEG.EM.Utils.EMUtils import omega, mu_0
 from SimPEG import SolverLU as SimpegSolver, Utils, mkvc
-from ..OldFDEM.ProblemFDEM import BaseFDEMProblem
+from ..FDEM.SimulationFDEM import BaseFDEMSimulation
 from .SurveyNSEM import Survey, Data
-from .FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields3D_ePrimSec
+from .FieldsNSEM import (
+    BaseNSEMFields, Fields1D_ePrimSec, Fields3D_ePrimSec)
 
 
-class BaseNSEMProblem(BaseFDEMProblem):
+class BaseNSEMSimulation(BaseFDEMSimulation):
     """
         Base class for all Natural source problems.
     """
+    verbose = properties.Boolean(
+        'Contols print outputs from the simulation',
+        default=False
+    )
 
-    def __init__(self, mesh, **kwargs):
-        BaseFDEMProblem.__init__(self, mesh, **kwargs)
-        Utils.setKwargs(self, **kwargs)
+    def __init__(self, **kwargs):
+        super(BaseNSEMSimulation, self).__init__(**kwargs)
     # Set the default pairs of the problem
-    surveyPair = Survey
-    dataPair = Data
-    fieldsPair = BaseNSEMFields
+    # fieldsPair = BaseNSEMFields
+    # Use the fields and dpred methods from BaseFDEMSimulation
 
-    # Set the solver
-    Solver = SimpegSolver
-    solverOpts = {}
-
-    verbose = False
-    # Notes:
-    # Use the fields and devs methods from BaseFDEMProblem
-
-    # NEED to clean up the Jvec and Jtvec to use Zero and Identities for None components.
     def Jvec(self, m, v, f=None):
         """
         Function to calculate the data sensitivities dD/dm times a vector.
@@ -141,9 +137,9 @@ class BaseNSEMProblem(BaseFDEMProblem):
 ###################################
 
 
-class Problem1D_ePrimSec(BaseNSEMProblem):
+class Simulation1D_ePrimSec(BaseNSEMSimulation):
     """
-    A NSEM problem soving a e formulation and primary/secondary fields decomposion.
+    A NSEM simulation soving a e formulation and primary/secondary fields decomposion.
 
     By eliminating the magnetic flux density using
 
@@ -172,8 +168,8 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
     # Initiate properties
     _sigmaPrimary = None
 
-    def __init__(self, mesh, **kwargs):
-        BaseNSEMProblem.__init__(self, mesh, **kwargs)
+    def __init__(self, **kwargs):
+        super(Simulation1D_ePrimSec, self).__init__(**kwargs)
         # self._sigmaPrimary = sigmaPrimary
 
     @property
@@ -182,7 +178,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
             Edge inner product matrix
         """
         if getattr(self, '_MeMui', None) is None:
-            self._MeMui = self.mesh.getEdgeInnerProduct(1.0/mu_0)
+            self._MeMui = self.mesh.getEdgeInnerProduct(1.0 / mu_0)
         return self._MeMui
 
     @property
@@ -310,7 +306,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
 ###################################
 # 3D problems
 ###################################
-class Problem3D_ePrimSec(BaseNSEMProblem):
+class Simulation3D_ePrimSec(BaseNSEMSimulation):
     """
     A NSEM problem solving a e formulation and a primary/secondary fields decompostion.
 
@@ -342,7 +338,7 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
     _sigmaPrimary = None
 
     def __init__(self, mesh, **kwargs):
-        BaseNSEMProblem.__init__(self, mesh, **kwargs)
+        super(Simulation3D_ePrimSec, self).__init__(**kwargs)
 
     @property
     def sigmaPrimary(self):

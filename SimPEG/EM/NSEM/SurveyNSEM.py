@@ -8,7 +8,7 @@ from numpy.lib import recfunctions as recFunc
 
 import properties
 
-from ...Data import Data
+from ...Data import Data as SimPEGData
 from ..FDEM import Survey as FDEMSurvey
 from .SrcNSEM import BaseNSEMSrc, Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
 from .RxNSEM import Point_impedance3D, Point_tipper3D
@@ -38,7 +38,7 @@ class Survey(FDEMSurvey):
     """
 
     def __init__(self, **kwargs):
-        super(FDEMSurvey, self).__init__(**kwargs)
+        super(Survey, self).__init__(**kwargs)
 
 
 #########
@@ -46,7 +46,7 @@ class Survey(FDEMSurvey):
 #########
 
 
-class Data(Data, DataNSEMPlotMethods):
+class Data(SimPEGData, DataNSEMPlotMethods):
     """
     Data class for NSEMdata. Stores the data vector indexed by the survey.
 
