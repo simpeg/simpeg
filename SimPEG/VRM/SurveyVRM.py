@@ -10,6 +10,18 @@ import numpy as np
 
 class SurveyVRM(Survey.BaseSurvey):
 
+    """
+    **Survey class for VRM problems.**
+
+    REQUIRED ARGUMENTS:
+
+    srcList -- A source list containing VRM sources
+
+    KWARGS:
+
+    ActiveTimeInterval -- a list of length 2 with the minimum and maximum time
+    """
+
     _tActive = None
     _tActIsSet = False
     _tInterval = None
@@ -61,7 +73,7 @@ class SurveyVRM(Survey.BaseSurvey):
 
     @tActive.setter
     def tActive(self, BoolArgs):
-        # assert
+
         assert len(BoolArgs) == self.nD, "Must be an array or list of boolean arguments with length equal to total number of data"
         print('SETTING NEW ACTIVE TIMES')
         self._tActIsSet = True
@@ -69,7 +81,15 @@ class SurveyVRM(Survey.BaseSurvey):
 
     def dpred(self, m=None, f=None):
 
-        """Predict data for a given model."""
+        """
+        Predict data for a given model.
+
+        INPUT ARGS:
+
+        m -- An amalgamated magnetic parameter model
+
+        f -- Pre-computed fields
+        """
 
         assert self.ispaired, "Survey must be paired with a VRM problem"
 
@@ -77,13 +97,13 @@ class SurveyVRM(Survey.BaseSurvey):
 
             return f[self.tActive]
 
-        elif f is None and isinstance(self.prob, SimPEG.VRM.ProblemVRM.LinearVRM):
+        elif f is None and isinstance(self.prob, SimPEG.VRM.ProblemVRM.Problem_Linear):
 
             f = self.prob.fields(m)
 
             return f[self.tActive]
 
-        elif f is None and isinstance(self.prob, SimPEG.VRM.ProblemVRM.LogUniformVRM):
+        elif f is None and isinstance(self.prob, SimPEG.VRM.ProblemVRM.Problem_LogUniform):
 
             f = self.prob.fields()
 

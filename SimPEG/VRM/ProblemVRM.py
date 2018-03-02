@@ -8,7 +8,7 @@ import scipy.sparse as sp
 ############################################
 
 
-class BaseProblemVRM(Problem.BaseProblem):
+class Problem_BaseVRM(Problem.BaseProblem):
     """
     **Base class for VRM problem.**
 
@@ -53,7 +53,7 @@ class BaseProblemVRM(Problem.BaseProblem):
         if self.refFact > 4:
             print("Refinement factor larger than 4 may result in computations which exceed memory limits")
 
-        super(BaseProblemVRM, self).__init__(mesh, **kwargs)
+        super(Problem_BaseVRM, self).__init__(mesh, **kwargs)
 
     @property
     def refFact(self):
@@ -421,7 +421,7 @@ class BaseProblemVRM(Problem.BaseProblem):
 #############################################################################
 
 
-class LinearVRM(BaseProblemVRM):
+class Problem_Linear(Problem_BaseVRM):
 
     """
     Problem class for linear VRM problem. The the solution to this problem
@@ -462,7 +462,7 @@ class LinearVRM(BaseProblemVRM):
 
     def __init__(self, mesh, **kwargs):
 
-        super(LinearVRM, self).__init__(mesh, **kwargs)
+        super(Problem_Linear, self).__init__(mesh, **kwargs)
 
         nAct = list(self._indActive).count(True)
         if self.xiMap is None:
@@ -615,7 +615,7 @@ class LinearVRM(BaseProblemVRM):
         self._TisSet = False
 
 
-class LogUniformVRM(BaseProblemVRM):
+class Problem_LogUniform(Problem_BaseVRM):
 
     """
     Problem class for VRM assuming a log-normal distribution of time-relaxation
@@ -657,7 +657,7 @@ class LogUniformVRM(BaseProblemVRM):
 
     def __init__(self, mesh, **kwargs):
 
-        super(LogUniformVRM, self).__init__(mesh, **kwargs)
+        super(Problem_LogUniform, self).__init__(mesh, **kwargs)
 
     @property
     def A(self):

@@ -42,7 +42,7 @@ class VRM_inversion_tests(unittest.TestCase):
         txList = [VRM.Src.LineCurrent(rxList, txNodes, 1., waveObj)]
 
         Survey = VRM.Survey(txList)
-        Problem = VRM.ProblemVRM.LinearVRM(meshObj, refFact=2)
+        Problem = VRM.Problem_Linear(meshObj, refFact=2)
         Problem.pair(Survey)
         Survey.makeSyntheticData(mod)
         Survey.eps = 1e-11
