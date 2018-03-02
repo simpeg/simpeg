@@ -196,17 +196,17 @@ class BaseRxNSEM_Point(BaseFDEMRx):
 
     @property
     def _Hd(self):
-        return self._sDiag(1. / (
-            self._sDiag(self._hx_px) * self._hy_py -
-            self._sDiag(self._hx_py) * self._hy_px
+        return sdiag(1. / (
+            sdiag(self._hx_px) * self._hy_py -
+            sdiag(self._hx_py) * self._hy_px
         ))
 
     def _Hd_uV(self, v):
         return (
-            self._sDiag(self._hy_py) * self._hx_px_u(v) +
-            self._sDiag(self._hx_px) * self._hy_py_u(v) -
-            self._sDiag(self._hx_py) * self._hy_px_u(v) -
-            self._sDiag(self._hy_px) * self._hx_py_u(v)
+            sdiag(self._hy_py) * self._hx_px_u(v) +
+            sdiag(self._hx_px) * self._hy_py_u(v) -
+            sdiag(self._hx_py) * self._hy_px_u(v) -
+            sdiag(self._hy_px) * self._hx_py_u(v)
         )
 
     # Adjoint
@@ -324,17 +324,17 @@ class BaseRxNSEM_Point(BaseFDEMRx):
     # Define the components of the derivative
     @property
     def _aHd(self):
-        return self._sDiag(1. / (
-            self._sDiag(self._ahx_px) * self._ahy_py -
-            self._sDiag(self._ahx_py) * self._ahy_px
+        return sdiag(1. / (
+            sdiag(self._ahx_px) * self._ahy_py -
+            sdiag(self._ahx_py) * self._ahy_px
         ))
 
     def _aHd_uV(self, x):
         return (
-            self._ahx_px_u(self._sDiag(self._ahy_py) * x) +
-            self._ahx_px_u(self._sDiag(self._ahy_py) * x) -
-            self._ahy_px_u(self._sDiag(self._ahx_py) * x) -
-            self._ahx_py_u(self._sDiag(self._ahy_px) * x)
+            self._ahx_px_u(sdiag(self._ahy_py) * x) +
+            self._ahx_px_u(sdiag(self._ahy_py) * x) -
+            self._ahy_px_u(sdiag(self._ahx_py) * x) -
+            self._ahx_py_u(sdiag(self._ahy_px) * x)
         )
 
     def eval(self, src, mesh, f, return_complex=False):
@@ -427,7 +427,7 @@ class Point_impedance1D(BaseFDEMRx):
 
     @property
     def _Hd(self):
-        return self._sDiag(1./self._hx)
+        return sdiag(1./self._hx)
 
     def eval(self, src, mesh, f, return_complex=False):
         '''
@@ -476,7 +476,7 @@ class Point_impedance1D(BaseFDEMRx):
             def aZ_D_uV(x):
                 return self._ahx_u(x)
             rx_deriv = aZ_N_uV(
-                self._Hd.T * v) - aZ_D_uV(self._sDiag(Z1d).T * self._Hd.T * v)
+                self._Hd.T * v) - aZ_D_uV(sdiag(Z1d).T * self._Hd.T * v)
             if self.component == 'imag':
                 rx_deriv_component = 1j * rx_deriv
             elif self.component == 'real':
@@ -486,7 +486,7 @@ class Point_impedance1D(BaseFDEMRx):
             Z_N_uV = -self._ex_u(v)
             Z_D_uV = self._hx_u(v)
             # Evaluate
-            rx_deriv = self._Hd * (Z_N_uV - self._sDiag(Z1d) * Z_D_uV)
+            rx_deriv = self._Hd * (Z_N_uV - sdiag(Z1d) * Z_D_uV)
             rx_deriv_component = np.array(getattr(rx_deriv, self.component))
         return rx_deriv_component
 
@@ -552,55 +552,55 @@ class Point_impedance3D(BaseRxNSEM_Point):
 
         if adjoint:
             if 'xx' in self.orientation:
-                Zij = self._sDiag(self._aHd * (
-                    self._sDiag(self._ahy_py)*self._aex_px -
-                    self._sDiag(self._ahy_px)*self._aex_py
+                Zij = sdiag(self._aHd * (
+                    sdiag(self._ahy_py)*self._aex_px -
+                    sdiag(self._ahy_px)*self._aex_py
                 ))
 
                 def ZijN_uV(x):
                     return (
-                        self._aex_px_u(self._sDiag(self._ahy_py) * x) +
-                        self._ahy_py_u(self._sDiag(self._aex_px) * x) -
-                        self._ahy_px_u(self._sDiag(self._aex_py) * x) -
-                        self._aex_py_u(self._sDiag(self._ahy_px) * x)
+                        self._aex_px_u(sdiag(self._ahy_py) * x) +
+                        self._ahy_py_u(sdiag(self._aex_px) * x) -
+                        self._ahy_px_u(sdiag(self._aex_py) * x) -
+                        self._aex_py_u(sdiag(self._ahy_px) * x)
                     )
             elif 'xy' in self.orientation:
-                Zij = self._sDiag(self._aHd * (
-                    -self._sDiag(self._ahx_py) * self._aex_px +
-                    self._sDiag(self._ahx_px) * self._aex_py
+                Zij = sdiag(self._aHd * (
+                    -sdiag(self._ahx_py) * self._aex_px +
+                    sdiag(self._ahx_px) * self._aex_py
                 ))
 
                 def ZijN_uV(x):
                     return (
-                        -self._aex_px_u(self._sDiag(self._ahx_py) * x) -
-                        self._ahx_py_u(self._sDiag(self._aex_px) * x) +
-                        self._ahx_px_u(self._sDiag(self._aex_py) * x) +
-                        self._aex_py_u(self._sDiag(self._ahx_px) * x)
+                        -self._aex_px_u(sdiag(self._ahx_py) * x) -
+                        self._ahx_py_u(sdiag(self._aex_px) * x) +
+                        self._ahx_px_u(sdiag(self._aex_py) * x) +
+                        self._aex_py_u(sdiag(self._ahx_px) * x)
                     )
             elif 'yx' in self.orientation:
-                Zij = self._sDiag(self._aHd * (
-                    self._sDiag(self._ahy_py) * self._aey_px -
-                    self._sDiag(self._ahy_px) * self._aey_py
+                Zij = sdiag(self._aHd * (
+                    sdiag(self._ahy_py) * self._aey_px -
+                    sdiag(self._ahy_px) * self._aey_py
                 ))
 
                 def ZijN_uV(x):
                     return (
-                        self._aey_px_u(self._sDiag(self._ahy_py) * x) +
-                        self._ahy_py_u(self._sDiag(self._aey_px) * x) -
-                        self._ahy_px_u(self._sDiag(self._aey_py) * x) -
-                        self._aey_py_u(self._sDiag(self._ahy_px) * x)
+                        self._aey_px_u(sdiag(self._ahy_py) * x) +
+                        self._ahy_py_u(sdiag(self._aey_px) * x) -
+                        self._ahy_px_u(sdiag(self._aey_py) * x) -
+                        self._aey_py_u(sdiag(self._ahy_px) * x)
                     )
             elif 'yy' in self.orientation:
-                Zij = self._sDiag(self._aHd * (
-                    -self._sDiag(self._ahx_py) * self._aey_px +
-                    self._sDiag(self._ahx_px) * self._aey_py))
+                Zij = sdiag(self._aHd * (
+                    -sdiag(self._ahx_py) * self._aey_px +
+                    sdiag(self._ahx_px) * self._aey_py))
 
                 def ZijN_uV(x):
                     return (
-                        -self._aey_px_u(self._sDiag(self._ahx_py) * x) -
-                        self._ahx_py_u(self._sDiag(self._aey_px) * x) +
-                        self._ahx_px_u(self._sDiag(self._aey_py) * x) +
-                        self._aey_py_u(self._sDiag(self._ahx_px) * x)
+                        -self._aey_px_u(sdiag(self._ahx_py) * x) -
+                        self._ahx_py_u(sdiag(self._aey_px) * x) +
+                        self._ahx_px_u(sdiag(self._aey_py) * x) +
+                        self._aey_py_u(sdiag(self._ahx_px) * x)
                     )
 
             # Calculate the complex derivative
@@ -617,36 +617,36 @@ class Point_impedance3D(BaseRxNSEM_Point):
         else:
             if 'xx' in self.orientation:
                 ZijN_uV = (
-                    self._sDiag(self._hy_py) * self._ex_px_u(v) +
-                    self._sDiag(self._ex_px) * self._hy_py_u(v) -
-                    self._sDiag(self._ex_py) * self._hy_px_u(v) -
-                    self._sDiag(self._hy_px) * self._ex_py_u(v)
+                    sdiag(self._hy_py) * self._ex_px_u(v) +
+                    sdiag(self._ex_px) * self._hy_py_u(v) -
+                    sdiag(self._ex_py) * self._hy_px_u(v) -
+                    sdiag(self._hy_px) * self._ex_py_u(v)
                 )
             elif 'xy' in self.orientation:
                 ZijN_uV = (
-                    -self._sDiag(self._hx_py) * self._ex_px_u(v) -
-                    self._sDiag(self._ex_px) * self._hx_py_u(v) +
-                    self._sDiag(self._ex_py) * self._hx_px_u(v) +
-                    self._sDiag(self._hx_px) * self._ex_py_u(v)
+                    -sdiag(self._hx_py) * self._ex_px_u(v) -
+                    sdiag(self._ex_px) * self._hx_py_u(v) +
+                    sdiag(self._ex_py) * self._hx_px_u(v) +
+                    sdiag(self._hx_px) * self._ex_py_u(v)
                 )
             elif 'yx' in self.orientation:
                 ZijN_uV = (
-                    self._sDiag(self._hy_py) * self._ey_px_u(v) +
-                    self._sDiag(self._ey_px) * self._hy_py_u(v) -
-                    self._sDiag(self._ey_py) * self._hy_px_u(v) -
-                    self._sDiag(self._hy_px) * self._ey_py_u(v)
+                    sdiag(self._hy_py) * self._ey_px_u(v) +
+                    sdiag(self._ey_px) * self._hy_py_u(v) -
+                    sdiag(self._ey_py) * self._hy_px_u(v) -
+                    sdiag(self._hy_px) * self._ey_py_u(v)
                 )
             elif 'yy' in self.orientation:
                 ZijN_uV = (
-                    -self._sDiag(self._hx_py) * self._ey_px_u(v) -
-                    self._sDiag(self._ey_px) * self._hx_py_u(v) +
-                    self._sDiag(self._ey_py) * self._hx_px_u(v) +
-                    self._sDiag(self._hx_px) * self._ey_py_u(v)
+                    -sdiag(self._hx_py) * self._ey_px_u(v) -
+                    sdiag(self._ey_px) * self._hx_py_u(v) +
+                    sdiag(self._ey_py) * self._hx_px_u(v) +
+                    sdiag(self._hx_px) * self._ey_py_u(v)
                 )
 
             Zij = self.eval(src, self.mesh, self._f, True)
             # Calculate the complex derivative
-            rx_deriv_real = self._Hd * (ZijN_uV - self._sDiag(Zij) * self._Hd_uV(v))
+            rx_deriv_real = self._Hd * (ZijN_uV - sdiag(Zij) * self._Hd_uV(v))
             rx_deriv_component = np.array(getattr(rx_deriv_real, self.component))
 
         return rx_deriv_component
@@ -709,30 +709,30 @@ class Point_tipper3D(BaseRxNSEM_Point):
 
         if adjoint:
             if 'zx' in self.orientation:
-                Tij = self._sDiag(self._aHd * (
-                    -self._sDiag(self._ahz_py) * self._ahy_px +
-                    self._sDiag(self._ahz_px) * self._ahy_py)
+                Tij = sdiag(self._aHd * (
+                    -sdiag(self._ahz_py) * self._ahy_px +
+                    sdiag(self._ahz_px) * self._ahy_py)
                 )
 
                 def TijN_uV(x):
                     return (
-                        -self._ahz_py_u(self._sDiag(self._ahy_px) * x) -
-                        self._ahy_px_u(self._sDiag(self._ahz_py) * x) +
-                        self._ahy_py_u(self._sDiag(self._ahz_px) * x) +
-                        self._ahz_px_u(self._sDiag(self._ahy_py) * x)
+                        -self._ahz_py_u(sdiag(self._ahy_px) * x) -
+                        self._ahy_px_u(sdiag(self._ahz_py) * x) +
+                        self._ahy_py_u(sdiag(self._ahz_px) * x) +
+                        self._ahz_px_u(sdiag(self._ahy_py) * x)
                     )
             elif 'zy' in self.orientation:
-                Tij = self._sDiag(self._aHd * (
-                    self._sDiag(self._ahz_py) * self._ahx_px -
-                    self._sDiag(self._ahz_px) * self._ahx_py)
+                Tij = sdiag(self._aHd * (
+                    sdiag(self._ahz_py) * self._ahx_px -
+                    sdiag(self._ahz_px) * self._ahx_py)
                 )
 
                 def TijN_uV(x):
                     return (
-                        self._ahx_px_u(self._sDiag(self._ahz_py) * x) +
-                        self._ahz_py_u(self._sDiag(self._ahx_px) * x) -
-                        self._ahx_py_u(self._sDiag(self._ahz_px) * x) -
-                        self._ahz_px_u(self._sDiag(self._ahx_py) * x)
+                        self._ahx_px_u(sdiag(self._ahz_py) * x) +
+                        self._ahz_py_u(sdiag(self._ahx_px) * x) -
+                        self._ahx_py_u(sdiag(self._ahz_px) * x) -
+                        self._ahz_px_u(sdiag(self._ahx_py) * x)
                     )
 
             # Calculate the complex derivative
@@ -751,22 +751,22 @@ class Point_tipper3D(BaseRxNSEM_Point):
         else:
             if 'zx' in self.orientation:
                 TijN_uV = (
-                    -self._sDiag(self._hy_px) * self._hz_py_u(v) -
-                    self._sDiag(self._hz_py) * self._hy_px_u(v) +
-                    self._sDiag(self._hy_py) * self._hz_px_u(v) +
-                    self._sDiag(self._hz_px) * self._hy_py_u(v)
+                    -sdiag(self._hy_px) * self._hz_py_u(v) -
+                    sdiag(self._hz_py) * self._hy_px_u(v) +
+                    sdiag(self._hy_py) * self._hz_px_u(v) +
+                    sdiag(self._hz_px) * self._hy_py_u(v)
                 )
             elif 'zy' in self.orientation:
                 TijN_uV = (
-                    self._sDiag(self._hz_py) * self._hx_px_u(v) +
-                    self._sDiag(self._hx_px) * self._hz_py_u(v) -
-                    self._sDiag(self._hx_py) * self._hz_px_u(v) -
-                    self._sDiag(self._hz_px) * self._hx_py_u(v)
+                    sdiag(self._hz_py) * self._hx_px_u(v) +
+                    sdiag(self._hx_px) * self._hz_py_u(v) -
+                    sdiag(self._hx_py) * self._hz_px_u(v) -
+                    sdiag(self._hz_px) * self._hx_py_u(v)
                 )
             Tij = self.eval(src, mesh, f, True)
             # Calculate the complex derivative
             rx_deriv_complex = (
-                self._Hd * (TijN_uV - self._sDiag(Tij) * self._Hd_uV(v))
+                self._Hd * (TijN_uV - sdiag(Tij) * self._Hd_uV(v))
             )
             rx_deriv_component = np.array(
                 getattr(rx_deriv_complex, self.component)

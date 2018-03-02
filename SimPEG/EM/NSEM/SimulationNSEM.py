@@ -26,6 +26,9 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         default=False
     )
 
+    # Not sure if this is need, but leaving for now
+    dataPair = Data
+
     def __init__(self, **kwargs):
         super(BaseNSEMSimulation, self).__init__(**kwargs)
     # Set the default pairs of the problem
@@ -50,14 +53,14 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         # Set current model
         self.model = m
         # Initiate the Jv object
-        Jv = self.dataPair(self.survey)
+        Jv = self.dataPair(survey=self.survey)
 
         # Loop all the frequenies
         for freq in self.survey.freqs:
             # Get the system
             A = self.getA(freq)
             # Factor
-            Ainv = self.Solver(A, **self.solverOpts)
+            Ainv = self.solver(A, **self.solver_opts)
 
             for src in self.survey.getSrcByFreq(freq):
                 # We need fDeriv_m = df/du*du/dm + df/dm
@@ -280,7 +283,7 @@ class Simulation1D_ePrimSec(BaseNSEMSimulation):
         if m is not None:
             self.model = m
         # Make the fields object
-        F = self.fieldsPair(self.mesh, self.survey)
+        F = self.fieldsPair(mesh=self.mesh, survey=self.survey)
         # Loop over the frequencies
         for freq in self.survey.freqs:
             if self.verbose:
@@ -289,7 +292,7 @@ class Simulation1D_ePrimSec(BaseNSEMSimulation):
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs  = self.getRHS(freq)
-            Ainv = self.Solver(A, **self.solverOpts)
+            Ainv = self.solver(A, **self.solver_opts)
             e_s = Ainv * rhs
 
             # Store the fields
@@ -449,7 +452,7 @@ class Simulation3D_ePrimSec(BaseNSEMSimulation):
             A = self.getA(freq)
             rhs = self.getRHS(freq)
             # Solve the system
-            Ainv = self.Solver(A, **self.solverOpts)
+            Ainv = self.solver(A, **self.solver_opts)
             e_s = Ainv * rhs
 
             # Store the fields

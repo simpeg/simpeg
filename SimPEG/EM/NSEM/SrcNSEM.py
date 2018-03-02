@@ -52,6 +52,8 @@ class Planewave_xy_1Dprimary(BaseNSEMSrc):
         'The 1D conductivity model',
         default=None)
 
+    _ePrimary = None
+
     def __init__(self, *args, **kwargs):
         # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
         BaseNSEMSrc.__init__(self, *args, **kwargs)
