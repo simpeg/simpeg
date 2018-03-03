@@ -47,8 +47,8 @@ print("skin_depth: {:1.2f}m".format(500/np.sqrt(sigma_deep*freq)))
 # Define a dipping interface between the surface layer and the deeper layer
 #
 
-z_interface_shallow = -1
-z_interface_deep = -3
+z_interface_shallow = -0.5
+z_interface_deep = -1.5
 
 
 def interface(x):
@@ -78,15 +78,15 @@ plt.plot(x, interface(x))
 #
 
 csx = 0.5  # cell size for the horizontal direction
-csz = 0.25  # cell size for the vertical direction
+csz = 0.125  # cell size for the vertical direction
 pf = 1.3  # expansion factor for the padding cells
 
 npadx = 7  # number of padding cells in the x-direction
-npady = 8  # number of padding cells in the y-direction
-npadz = 10  # number of padding cells in the z-direction
+npady = 7  # number of padding cells in the y-direction
+npadz = 11  # number of padding cells in the z-direction
 
 core_domain_x = np.r_[-10, 10]  # extent of uniform cells in the x-direction
-core_domain_z = np.r_[-5., 0.]  # extent of uniform cells in the z-direction
+core_domain_z = np.r_[-2., 0.]  # extent of uniform cells in the z-direction
 
 # number of cells in the core region
 ncx = int(np.diff(core_domain_x)/csx)
@@ -102,7 +102,7 @@ mesh = Mesh.TensorMesh(
 )
 # set the origin
 mesh.x0 = np.r_[
-    -mesh.hx.sum()/2., -mesh.hy.sum()/2., -mesh.hz[:npad+ncz].sum()
+    -mesh.hx.sum()/2., -mesh.hy.sum()/2., -mesh.hz[:npadz+ncz].sum()
 ]
 
 print("the mesh has {} cells".format(mesh.nC))
@@ -153,7 +153,7 @@ cb = plt.colorbar(inversion_mesh.plotImage(m_true, ax=ax, grid=True)[0], ax=ax)
 cb.set_label("$\log(\sigma)$")
 ax.set_title("true model")
 ax.set_xlim([-10, 10])
-ax.set_ylim([-5, 0])
+ax.set_ylim([-3, 0])
 
 ###############################################################################
 # Survey
@@ -203,7 +203,7 @@ prob.pair(survey)
 t = time.time()
 dclean = survey.dpred(m_true)
 print(
-    "Done forward simulation. Elapsed time = {1.2f} s".format(time.time() - t)
+    "Done forward simulation. Elapsed time = {:1.2f} s".format(time.time() - t)
 )
 
 
@@ -211,16 +211,17 @@ def plot_data(data, ax=None, color="C0", label=""):
     if ax is None:
         fig, ax = plt.subplots(1, 3, figsize=(15, 5))
 
+    # data is [re, im, re, im, ...]
     data_real = data[0::2]
     data_imag = data[1::2]
 
-    for i, offset in enumerate(rx_sep):
+    for i, offset in enumerate(coil_separations):
         ax[i].plot(
-            src_locations, data_real[i::3],
+            src_locations, data_real[i::len(coil_separations)],
             color=color, label="{} real".format(label)
         )
         ax[i].plot(
-            src_locations, data_imag[i::3], '--',
+            src_locations, data_imag[i::len(coil_separations)], '--',
             color=color, label="{} imag".format(label)
         )
 
@@ -228,6 +229,9 @@ def plot_data(data, ax=None, color="C0", label=""):
         ax[i].legend()
         ax[i].grid(which="both")
         ax[i].set_ylim(np.r_[data.min(), data.max()]+1e-11*np.r_[-1, 1])
+
+        ax[i].set_xlabel("source location x (m)")
+        ax[i].set_ylabel("Secondary B-Field (T)")
 
     plt.tight_layout()
     return ax
@@ -256,11 +260,11 @@ survey.dobs = dclean
 # the regularization.
 
 dmisfit = DataMisfit.l2_DataMisfit(survey)
-reg = Regularization.Simple(inversion_mesh, alpha_x=1, alpha_y=0.25)
+reg = Regularization.Simple(inversion_mesh, alpha_x=2, alpha_z=1)
 opt = Optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
 invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
 
-betaest = Directives.BetaEstimate_ByEig(beta0_ratio=0.05)
+betaest = Directives.BetaEstimate_ByEig(beta0_ratio=0.1)
 target = Directives.TargetMisfit()
 
 directiveList = [betaest, target]
@@ -313,12 +317,13 @@ cb = plt.colorbar(
 ax[1].set_title("true model")
 cb.set_label("$\log(\sigma)$")
 
-# plot the true interface on top
-x = np.linspace(-10, 10, 50)
-[a.plot(x, interface(x), 'k') for a in ax]
+# # uncomment to plot the true interface
+# x = np.linspace(-10, 10, 50)
+# [a.plot(x, interface(x), 'k') for a in ax]
 
 [a.set_xlim([-10, 10]) for a in ax]
-[a.set_ylim([-5, 0]) for a in ax]
+[a.set_ylim([-3, 0]) for a in ax]
 
 
 plt.tight_layout()
+plt.show()
