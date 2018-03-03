@@ -15,8 +15,6 @@ fields with receivers to give us predicted data.
 .. image:: ../../images/simpegEM_noMath.png
     :scale: 50%
 
-Contents
---------
 
 .. toctree::
    :maxdepth: 2

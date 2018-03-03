@@ -2,8 +2,8 @@
 
 
 
-Viscous Remanent Magnetization
-******************************
+API
+***
 
 Below describes the classes, methods and properties relevant to forward modeling and inverting VRM responses in the time domain.
 
