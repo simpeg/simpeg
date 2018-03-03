@@ -13,14 +13,11 @@ def appRes_psFieldNorm(sigmaHalf):
     survey, sigma, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(
         sigmaHalf, False
     )
-    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary=sigBG, sigma=sigma)
-    problem.pair(survey)
-
-    # Get the fields
-    fields = problem.fields()
+    problem = NSEM.Simulation1D_ePrimSec(
+        mesh=mesh, survey=survey, sigmaPrimary=sigBG, sigma=sigma)
 
     # Project the data
-    data = survey.eval(fields)
+    data = NSEM.Data(survey=survey, dobs=problem.dpred())
 
     # Calculate the app res and phs
     app_r = np.array(NSEM.Utils.testUtils.getAppResPhs(data))[:, 0]
@@ -37,19 +34,17 @@ def appPhs_psFieldNorm(sigmaHalf):
     survey, sigma, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(
         sigmaHalf, False
     )
-    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary=sigBG, sigma=sigma)
-    problem.pair(survey)
-
-    # Get the fields
-    fields = problem.fields()
+    problem = NSEM.Simulation1D_ePrimSec(
+        mesh=mesh, survey=survey, sigmaPrimary=sigBG, sigma=sigma)
 
     # Project the data
-    data = survey.eval(fields)
+    data = NSEM.Data(survey=survey, dobs=problem.dpred(sigma))
 
     # Calculate the app  phs
     app_p = np.array(NSEM.Utils.testUtils.getAppResPhs(data))[:, 1]
 
-    return np.linalg.norm(np.abs(app_p - np.ones(survey.nFreq)*45) / 45)
+    return np.linalg.norm(
+        np.abs(app_p - np.ones(survey.nFreq) * 45) / 45)
 
 
 class TestAnalytics(unittest.TestCase):

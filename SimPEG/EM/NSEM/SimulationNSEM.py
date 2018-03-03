@@ -79,7 +79,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                     Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, mkvc(du_dm_v)) # wrt uPDeriv_u(mkvc(du_dm))
             Ainv.clean()
         # Return the vectorized sensitivities
-        return mkvc(Jv)
+        return mkvc(Jv.dobs)
 
     def Jtvec(self, m, v, f=None):
         """
@@ -99,14 +99,14 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
 
         # Ensure v is a data object.
         if not isinstance(v, self.dataPair):
-            v = self.dataPair(self.survey, v)
+            v = self.dataPair(survey=self.survey, dobs=v)
 
         Jtv = np.zeros(m.size)
 
         for freq in self.survey.freqs:
             AT = self.getA(freq).T
 
-            ATinv = self.Solver(AT, **self.solverOpts)
+            ATinv = self.solver(AT, **self.solver_opts)
 
             for src in self.survey.getSrcByFreq(freq):
                 # u_src needs to have both polarizations
@@ -283,7 +283,7 @@ class Simulation1D_ePrimSec(BaseNSEMSimulation):
         if m is not None:
             self.model = m
         # Make the fields object
-        F = self.fieldsPair(mesh=self.mesh, survey=self.survey)
+        F = self.fieldsPair(simulation=self)
         # Loop over the frequencies
         for freq in self.survey.freqs:
             if self.verbose:
@@ -340,7 +340,7 @@ class Simulation3D_ePrimSec(BaseNSEMSimulation):
     # Initiate properties
     _sigmaPrimary = None
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, **kwargs):
         super(Simulation3D_ePrimSec, self).__init__(**kwargs)
 
     @property
@@ -368,7 +368,7 @@ class Simulation3D_ePrimSec(BaseNSEMSimulation):
         Mesig = self.MeSigma
         C = self.mesh.edgeCurl
 
-        return C.T*Mfmui*C + 1j*omega(freq)*Mesig
+        return C.T * Mfmui * C + 1j * omega(freq) * Mesig
 
     def getADeriv(self, freq, u, v, adjoint=False):
         """
@@ -443,7 +443,7 @@ class Simulation3D_ePrimSec(BaseNSEMSimulation):
         if m is not None:
             self.model = m
 
-        F = self.fieldsPair(self.mesh, self.survey)
+        F = self.fieldsPair(simulation=self)
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()

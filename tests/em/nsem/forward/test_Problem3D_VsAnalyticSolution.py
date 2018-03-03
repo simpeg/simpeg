@@ -29,7 +29,8 @@ def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf, appR=True, expMap=False):
 
     # Calculate the app  phs
     survey, problem = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(NSEM.Utils.testUtils.halfSpace(sigmaHalf), expMap=expMap)
-    data = problem.dataPair(survey, survey.dpred(problem.model))
+    data = problem.dataPair(
+        survey=survey, dobs=problem.dpred(problem.model))
     recData = data.toRecArray('Complex')
     app_rpxy = NSEM.Utils.appResPhs(recData['freq'], recData['zxy'])[0]
     # app_rpyx = NSEM.Utils.appResPhs(recData['freq'], recData['zyx'])[0]

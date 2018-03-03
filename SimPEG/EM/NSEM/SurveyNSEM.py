@@ -8,6 +8,7 @@ from numpy.lib import recfunctions as recFunc
 
 import properties
 
+from SimPEG import mkvc
 from ...Data import Data as SimPEGData
 from ..FDEM import Survey as FDEMSurvey
 from .SrcNSEM import BaseNSEMSrc, Planewave_xy_1Dprimary, Planewave_xy_1DhomotD

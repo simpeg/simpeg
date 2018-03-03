@@ -442,7 +442,7 @@ class Point_impedance1D(BaseFDEMRx):
         '''
         # NOTE: Maybe set this as a property
         self._src = src
-        self.mesh = mesh
+        self._mesh = mesh
         self._f = f
 
         rx_eval_complex = -self._Hd * self._ex
@@ -502,7 +502,7 @@ class Point_impedance3D(BaseRxNSEM_Point):
 
     def __init__(self, **kwargs):
 
-        super(Point_impedance3D, self).__init__(self, **kwargs)
+        super(Point_impedance3D, self).__init__(**kwargs)
 
     def eval(self, src, mesh, f, return_complex=False):
         '''
@@ -608,7 +608,7 @@ class Point_impedance3D(BaseRxNSEM_Point):
                 self._aHd * v) - self._aHd_uV(Zij.T * self._aHd * v)
             # NOTE: Need to reshape the output to go from 2*nU array to a (nU,2) matrix for each polarization
             # rx_deriv_real = np.hstack((mkvc(rx_deriv_real[:len(rx_deriv_real)/2],2),mkvc(rx_deriv_real[len(rx_deriv_real)/2::],2)))
-            rx_deriv_real = rx_deriv_real.reshape((2, self.mesh.nE)).T
+            rx_deriv_real = rx_deriv_real.reshape((2, self._mesh.nE)).T
             # Extract the data
             if self.component == 'imag':
                 rx_deriv_component = 1j * rx_deriv_real
@@ -644,10 +644,12 @@ class Point_impedance3D(BaseRxNSEM_Point):
                     sdiag(self._hx_px) * self._ey_py_u(v)
                 )
 
-            Zij = self.eval(src, self.mesh, self._f, True)
+            Zij = self.eval(
+                self._src, self._mesh, self._f, True)
             # Calculate the complex derivative
             rx_deriv_real = self._Hd * (ZijN_uV - sdiag(Zij) * self._Hd_uV(v))
-            rx_deriv_component = np.array(getattr(rx_deriv_real, self.component))
+            rx_deriv_component = np.array(
+                getattr(rx_deriv_real, self.component))
 
         return rx_deriv_component
 
@@ -663,7 +665,7 @@ class Point_tipper3D(BaseRxNSEM_Point):
 
     def __init__(self, **kwargs):
 
-        super(Point_tipper3D, self).__init__(self, **kwargs)
+        super(Point_tipper3D, self).__init__(**kwargs)
 
     def eval(self, src, mesh, f, return_complex=False):
         '''
@@ -704,7 +706,7 @@ class Point_tipper3D(BaseRxNSEM_Point):
             for both polarizations
         """
         self._src = src
-        self.mesh = mesh
+        self._mesh = mesh
         self._f = f
 
         if adjoint:
@@ -742,7 +744,7 @@ class Point_tipper3D(BaseRxNSEM_Point):
             )
             # NOTE: Need to reshape the output to go from 2*nU array to a (nU,2) matrix for each polarization
             # rx_deriv_real = np.hstack((mkvc(rx_deriv_real[:len(rx_deriv_real)/2],2),mkvc(rx_deriv_real[len(rx_deriv_real)/2::],2)))
-            rx_deriv_real = rx_deriv_real.reshape((2, self.mesh.nE)).T
+            rx_deriv_real = rx_deriv_real.reshape((2, self._mesh.nE)).T
             # Extract the data
             if self.component == 'imag':
                 rx_deriv_component = 1j * rx_deriv_real

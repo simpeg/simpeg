@@ -9,7 +9,7 @@ from SimPEG.Utils import meshTensor
 from SimPEG.EM.NSEM.RxNSEM import Point_impedance1D, Point_impedance3D, Point_tipper3D
 from SimPEG.EM.NSEM.SurveyNSEM import Survey
 from SimPEG.EM.NSEM.SrcNSEM import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
-from SimPEG.EM.NSEM.ProblemNSEM import Problem3D_ePrimSec
+from SimPEG.EM.NSEM.SimulationNSEM import Simulation3D_ePrimSec
 from .dataUtils import appResPhs
 
 np.random.seed(1100)
@@ -112,39 +112,49 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp='Imp', singleFreq=False, expMap=Tr
 
     for rx_type in rx_type_list:
         if rx_type in ['xx', 'xy', 'yx', 'yy']:
-            rxList.append(Point_impedance3D(rx_loc, rx_type, 'real'))
-            rxList.append(Point_impedance3D(rx_loc, rx_type, 'imag'))
+            rxList.append(Point_impedance3D(
+                locs=rx_loc, orientation=rx_type, component='real'))
+            rxList.append(Point_impedance3D(
+                locs=rx_loc, orientation=rx_type, component='imag'))
         if rx_type in ['zx', 'zy']:
-            rxList.append(Point_tipper3D(rx_loc, rx_type, 'real'))
-            rxList.append(Point_tipper3D(rx_loc, rx_type, 'imag'))
+            rxList.append(Point_tipper3D(
+                locs=rx_loc, orientation=rx_type, component='real'))
+            rxList.append(Point_tipper3D(
+                locs=rx_loc, orientation=rx_type, component='imag'))
 
     # Source list
     srcList = []
 
     if singleFreq:
-        srcList.append(Planewave_xy_1Dprimary(rxList, singleFreq))
+        srcList.append(Planewave_xy_1Dprimary(
+            rxList=rxList, freq=singleFreq))
     else:
         for freq in freqs:
-            srcList.append(Planewave_xy_1Dprimary(rxList, freq))
+            srcList.append(
+                Planewave_xy_1Dprimary(rxList=rxList, freq=freq)
+            )
     # Survey NSEM
-    survey = Survey(srcList)
+    survey = Survey(srcList=srcList)
 
     # Setup the problem object
     sigma1d = M.r(sigBG, 'CC', 'CC', 'M')[0, 0, :]
 
     if expMap:
-        problem = Problem3D_ePrimSec(M, sigmaPrimary=np.log(sigma1d))
+        problem = Simulation3D_ePrimSec(
+            mesh=M, survey=survey,
+            sigmaPrimary=np.log(sigma1d)
+        )
         problem.sigmaMap = simpeg.Maps.ExpMap(problem.mesh)
         problem.model = np.log(sig)
     else:
-        problem = Problem3D_ePrimSec(M, sigmaPrimary=sigma1d)
+        problem = Simulation3D_ePrimSec(
+            mesh=M, survey=survey, sigmaPrimary=sigma1d)
         problem.sigmaMap = simpeg.Maps.IdentityMap(problem.mesh)
         problem.model = sig
-    problem.pair(survey)
     problem.verbose = False
     try:
         from pymatsolver import Pardiso
-        problem.Solver = Pardiso
+        problem.solver = Pardiso
     except:
         pass
 

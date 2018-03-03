@@ -31,8 +31,8 @@ def getAppResPhs(NSEMdata):
 
 
 def calculateAnalyticSolution(srcList, mesh, model):
-    surveyAna = NSEM.Survey(srcList)
-    data1D = NSEM.Data(surveyAna)
+    surveyAna = NSEM.Survey(srcList=srcList)
+    data1D = NSEM.Data(survey=surveyAna)
     for src in surveyAna.srcList:
         elev = src.rxList[0].locs[0]
         anaEd, anaEu, anaHd, anaHu = NSEM.Utils.MT1Danalytic.getEHfields(
@@ -57,14 +57,14 @@ def dataMis_AnalyticPrimarySecondary(sigmaHalf):
         sigmaHalf, False, structure=True
     )
     # Analytic data
-    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary=sig, sigma=sig)
-    problem.pair(survey)
+    problem = NSEM.Simulation1D_ePrimSec(
+        mesh=mesh, survey=survey, sigmaPrimary=sig, sigma=sig)
 
     dataAnaObj = calculateAnalyticSolution(survey.srcList, mesh, sig)
 
-    data = survey.dpred()
-    dataAna = simpeg.mkvc(dataAnaObj)
-    return np.all((data - dataAna)/dataAna < 2.)
+    data = problem.dpred()
+    dataAna = simpeg.mkvc(dataAnaObj.dobs)
+    return np.all((data - dataAna) / dataAna < 2.)
 
 
 class TestNumericVsAnalytics(unittest.TestCase):

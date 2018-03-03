@@ -32,7 +32,7 @@ def DerivJvecTest(inputSetup, comp='All', freq=False, expMap=True):
     survey = problem.survey
 
     def fun(x):
-        return survey.dpred(x), lambda x: problem.Jvec(x0, x)
+        return problem.dpred(x), lambda x: problem.Jvec(x0, x)
     return simpeg.Tests.checkDerivative(fun, x0, num=3, plotIt=False, eps=FLR)
 
 
@@ -53,10 +53,10 @@ def DerivProjfieldsTest(inputSetup, comp='All', freq=False):
     f0[src, 'e_pySolution'] = u0[len(u0)/2::]  # u0y
 
     def fun(u):
-        f = problem.fieldsPair(survey.mesh, survey)
+        f = problem.fieldsPair(simulation=problem)
         f[src, 'e_pxSolution'] = u[:len(u)/2]
         f[src, 'e_pySolution'] = u[len(u)/2::]
-        return rx.eval(src, survey.mesh, f), lambda t: rx.evalDeriv(src, survey.mesh, f0, simpeg.mkvc(t, 2))
+        return rx.eval(src, problem.mesh, f), lambda t: rx.evalDeriv(src, survey.mesh, f0, simpeg.mkvc(t, 2))
 
     return simpeg.Tests.checkDerivative(fun, u0, num=3, plotIt=False, eps=FLR)
 

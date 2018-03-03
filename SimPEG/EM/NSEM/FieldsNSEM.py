@@ -17,7 +17,7 @@ class BaseNSEMFields(BaseFDEMFields):
     knownFields = {}
     dtype = complex
 
-    def __init__(self, mesh, survey, **kwargs):
+    def __init__(self, **kwargs):
         super(BaseNSEMFields, self).__init__(**kwargs)
 
 
@@ -54,7 +54,7 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         """
         ePrimary = np.zeros_like(eSolution)
         for i, src in enumerate(srcList):
-            ep = src.ePrimary(self.survey.prob)
+            ep = src.ePrimary(self.simulation)
             ePrimary[:, i] = ePrimary[:, i] + ep[:, -1]
         return ePrimary
 
@@ -128,9 +128,10 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         return Zero()
 
     def _bPrimary(self, eSolution, srcList):
-        bPrimary = np.zeros([self.simulation.mesh.nE, eSolution.shape[1]], dtype=complex)
+        bPrimary = np.zeros(
+            [self.simulation.mesh.nE, eSolution.shape[1]], dtype=complex)
         for i, src in enumerate(srcList):
-            bp = src.bPrimary(self.survey.prob)
+            bp = src.bPrimary(self.simulation)
             bPrimary[:, i] = bPrimary[:, i] + bp[:, -1]
         return bPrimary
 
@@ -248,7 +249,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         'b_pySecondary': ['e_pySolution', 'F', '_b_pySecondary']
     }
 
-    def __init__(self, mesh, survey, **kwargs):
+    def __init__(self, **kwargs):
         super(Fields3D_ePrimSec, self).__init__(**kwargs)
 
     def _e_pxPrimary(self, e_pxSolution, srcList):
@@ -263,7 +264,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         """
         e_pxPrimary = np.zeros_like(e_pxSolution)
         for i, src in enumerate(srcList):
-            ep = src.ePrimary(self.survey.prob)
+            ep = src.ePrimary(self.simulation)
             if ep is not None:
                 e_pxPrimary[:, i] = ep[:, 0]
         return e_pxPrimary
@@ -281,7 +282,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
 
         e_pyPrimary = np.zeros_like(e_pySolution)
         for i, src in enumerate(srcList):
-            ep = src.ePrimary(self.survey.prob)
+            ep = src.ePrimary(self.simulation)
             if ep is not None:
                 e_pyPrimary[:, i] = ep[:, 1]
         return e_pyPrimary
@@ -347,7 +348,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         """
         b_pxPrimary = np.zeros([self.simulation.mesh.nF, e_pxSolution.shape[1]], dtype=complex)
         for i, src in enumerate(srcList):
-            bp = src.bPrimary(self.survey.prob)
+            bp = src.bPrimary(self.simulation)
             if bp is not None:
                 b_pxPrimary[:, i] += bp[:, 0]
         return b_pxPrimary
@@ -364,7 +365,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         """
         b_pyPrimary = np.zeros([self.simulation.mesh.nF,e_pySolution.shape[1]], dtype=complex)
         for i, src in enumerate(srcList):
-            bp = src.bPrimary(self.survey.prob)
+            bp = src.bPrimary(self.simulation)
             if bp is not None:
                 b_pyPrimary[:, i] += bp[:, 1]
         return b_pyPrimary
