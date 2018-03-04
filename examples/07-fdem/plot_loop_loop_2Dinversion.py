@@ -47,27 +47,25 @@ print("skin_depth: {:1.2f}m".format(500/np.sqrt(sigma_deep*freq)))
 # Define a dipping interface between the surface layer and the deeper layer
 #
 
-z_interface_shallow = -0.5
+z_interface_shallow = -0.25
 z_interface_deep = -1.5
+x_dip = np.r_[0., 8.]
 
 
 def interface(x):
     interface = np.zeros_like(x)
 
-    interface[x < 0] = z_interface_shallow
+    interface[x < x_dip[0]] = z_interface_shallow
 
-    dipping_unit = ((x >= 0) & (x <= 10))
+    dipping_unit = ((x >= x_dip[0]) & (x <= x_dip[1]))
     x_dipping = (
-        -(z_interface_shallow-z_interface_deep)/10.
+        -(z_interface_shallow-z_interface_deep)/x_dip[1]
     )*(x[dipping_unit]) + z_interface_shallow
     interface[dipping_unit] = x_dipping
 
-    interface[x > 10] = z_interface_deep
+    interface[x > x_dip[1]] = z_interface_deep
 
     return interface
-
-x = np.linspace(-20, 20, 50)
-plt.plot(x, interface(x))
 
 ###############################################################################
 # Forward Modelling Mesh
@@ -153,7 +151,7 @@ cb = plt.colorbar(inversion_mesh.plotImage(m_true, ax=ax, grid=True)[0], ax=ax)
 cb.set_label("$\log(\sigma)$")
 ax.set_title("true model")
 ax.set_xlim([-10, 10])
-ax.set_ylim([-3, 0])
+ax.set_ylim([-2, 0])
 
 ###############################################################################
 # Survey
@@ -161,8 +159,8 @@ ax.set_ylim([-3, 0])
 #
 # Create our true model which we will use to generate synthetic data for
 
-src_locations = np.arange(-10, 10, 2)
-src_z = 0.2  # src is 0.25m above the surface
+src_locations = np.arange(-10, 10, 0.5)
+src_z = 0.25  # src is 0.25m above the surface
 orientation = 'z'  # z-oriented dipole for horizontal co-planar loops
 
 # reciever offset in 3D space
@@ -242,11 +240,11 @@ ax = plot_data(dclean)
 # Set up data for inversion
 # -------------------------
 #
-# We will invert the clean data, and assign a standard deviation of 0.05, and
-# a floor of 1e-13.
+# We will invert the clean data, and assign a standard deviation of 0.03, and
+# a floor of 1e-11.
 
-survey.std = 0.05
-survey.eps = 1e-12
+survey.std = 0.01
+survey.eps = 1e-11
 survey.dobs = dclean
 
 ###############################################################################
@@ -260,7 +258,7 @@ survey.dobs = dclean
 # the regularization.
 
 dmisfit = DataMisfit.l2_DataMisfit(survey)
-reg = Regularization.Simple(inversion_mesh, alpha_x=2, alpha_z=1)
+reg = Regularization.Simple(inversion_mesh)
 opt = Optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
 invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
 
@@ -322,8 +320,7 @@ cb.set_label("$\log(\sigma)$")
 # [a.plot(x, interface(x), 'k') for a in ax]
 
 [a.set_xlim([-10, 10]) for a in ax]
-[a.set_ylim([-3, 0]) for a in ax]
-
+[a.set_ylim([-2, 0]) for a in ax]
 
 plt.tight_layout()
 plt.show()
