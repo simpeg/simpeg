@@ -286,7 +286,7 @@ def makeAnalyticSolution(mesh, model, elev, freqs):
     return dataRec
 
 
-def plotMT1DModelData(problem, models, symList=None):
+def plotMT1DModelData(simulation, models, symList=None):
 
     # Setup the figure
     fontSize = 15
@@ -314,19 +314,13 @@ def plotMT1DModelData(problem, models, symList=None):
     # if not symList:
     #   symList = ['x']*len(models)
     # Loop through the models.
-    modelList = [problem.survey.mtrue]
-    modelList.extend(models)
+    modelList = models
     if False:
-        modelList = [problem.sigmaMap * mod for mod in modelList]
+        modelList = [simulation.sigmaMap * mod for mod in modelList]
     for nr, model in enumerate(modelList):
-        # Calculate the data
-        if nr == 0:
-            data1D = problem.dataPair(
-                problem.survey, problem.survey.dobs).toRecArray('Complex')
-        else:
-            data1D = problem.dataPair(
-                problem.survey,
-                problem.survey.dpred(model)).toRecArray('Complex')
+        data1D = Data(
+            survey=simulation.survey,
+            dobs=simulation.dpred(model)).toRecArray('Complex')
         # Plot the data and the model
         colRat = nr / ((len(modelList) - 1.999) * 1.)
         if colRat > 1.:
@@ -335,9 +329,9 @@ def plotMT1DModelData(problem, models, symList=None):
             col = plt.cm.seismic(1 - colRat)
         # The model - make the pts to plot
         meshPts = np.concatenate((
-            problem.mesh.gridN[0:1],
-            np.kron(problem.mesh.gridN[1::], np.ones(2))[:-1]))
-        modelPts = np.kron(1. / (problem.sigmaMap * model), np.ones(2,))
+            simulation.mesh.gridN[0:1],
+            np.kron(simulation.mesh.gridN[1::], np.ones(2))[:-1]))
+        modelPts = np.kron(1. / (simulation.sigmaMap * model), np.ones(2,))
         axM.semilogx(modelPts, meshPts, color=col)
 
         ## Data

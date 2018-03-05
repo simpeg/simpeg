@@ -14,9 +14,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 try:
-    from pymatsolver import Pardiso as Solver
+    from pymatsolver import Pardiso as solver
 except:
-    from SimPEG import Solver
+    from SimPEG import solver
 
 
 def run(plotIt=True):
@@ -57,38 +57,39 @@ def run(plotIt=True):
     # Make a receiver list
     rxList = []
     for rx_orientation in ['xx', 'xy', 'yx', 'yy']:
-        rxList.append(NSEM.Rx.Point_impedance3D(rx_loc, rx_orientation, 'real'))
-        rxList.append(NSEM.Rx.Point_impedance3D(rx_loc, rx_orientation, 'imag'))
+        rxList.append(NSEM.Rx.Point_impedance3D(
+            locs=rx_loc, orientation=rx_orientation, component='real'))
+        rxList.append(NSEM.Rx.Point_impedance3D(
+            locs=rx_loc, orientation=rx_orientation, component='imag'))
     for rx_orientation in ['zx', 'zy']:
-        rxList.append(NSEM.Rx.Point_tipper3D(rx_loc, rx_orientation, 'real'))
-        rxList.append(NSEM.Rx.Point_tipper3D(rx_loc, rx_orientation, 'imag'))
+        rxList.append(NSEM.Rx.Point_tipper3D(
+            locs=rx_loc, orientation=rx_orientation, component='real'))
+        rxList.append(NSEM.Rx.Point_tipper3D(
+            locs=rx_loc, orientation=rx_orientation, component='imag'))
 
     # Source list
     srcList = [
-        NSEM.Src.Planewave_xy_1Dprimary(rxList, freq)
+        NSEM.Src.Planewave_xy_1Dprimary(rxList=rxList, freq=freq)
         for freq in np.logspace(4, -2, 13)
     ]
     # Survey MT
-    survey = NSEM.Survey(srcList)
+    survey = NSEM.Survey(srcList=srcList)
 
-    # Setup the problem object
-    problem = NSEM.Problem3D_ePrimSec(M, sigma=sig, sigmaPrimary=sigBG)
-
-    problem.pair(survey)
-    problem.Solver = Solver
+    # Setup the simulation object
+    simulation = NSEM.Simulation3D_ePrimSec(
+        mesh=M, survey=survey, sigma=sig, sigmaPrimary=sigBG)
+    simulation.solver = solver
 
     # Calculate the data
-    fields = problem.fields()
-    dataVec = survey.eval(fields)
+    fields = simulation.fields()
+    dataVec = NSEM.Data(
+        survey=simulation.survey, dobs=simulation.dpred(f=fields))
 
     # Add uncertainty to the data - 10% standard
     # devation and 0 floor
-    dataVec.standard_deviation.fromvec(
-        np.ones_like(simpeg.mkvc(dataVec)) * 0.1
-    )
-    dataVec.floor.fromvec(
-        np.zeros_like(simpeg.mkvc(dataVec))
-    )
+    dataVec.standard_deviation = np.ones_like(
+        dataVec.dobs)* 0.1
+    dataVec.noise_floor = np.zeros_like(dataVec.dobs)
 
     # Add plots
     if plotIt:
@@ -103,7 +104,7 @@ def run(plotIt=True):
         ax_r_on = ax_r.twinx()
         ax_r_on.set_yscale('log')
         ax_r_on.set_ylabel('Apparent resistivity [xx-yy]')
-        ax_p.set_ylabel('Apparent phase')
+        ax_p.set_ylabel('Apperent phase')
         ax_p.set_xlabel('Frequency [Hz]')
         # Start plotting
         ax_r = dataVec.plot_app_res(

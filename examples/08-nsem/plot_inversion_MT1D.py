@@ -62,37 +62,39 @@ def run(plotIt=True):
     # Receivers
     rxList = []
     rxList.append(
-        NSEM.Rx.Point_impedance1D(simpeg.mkvc(np.array([-0.5]), 2).T, 'real'))
+        NSEM.Rx.Point_impedance1D(
+            locs=simpeg.mkvc(np.array([-0.5]), 2).T,
+            component='real'))
     rxList.append(
-        NSEM.Rx.Point_impedance1D(simpeg.mkvc(np.array([-0.5]), 2).T, 'imag'))
+        NSEM.Rx.Point_impedance1D(
+            locs=simpeg.mkvc(np.array([-0.5]), 2).T,
+            component='imag'))
     # Source list
     srcList = []
     for freq in freqs:
-            srcList.append(NSEM.Src.Planewave_xy_1Dprimary(rxList, freq))
+        srcList.append(
+            NSEM.Src.Planewave_xy_1Dprimary(
+                rxList=rxList,
+                freq=freq))
     # Make the survey
-    survey = NSEM.Survey(srcList)
+    survey = NSEM.Survey(srcList=srcList)
     survey.mtrue = m_true
 
-    # Set the problem
-    problem = NSEM.Problem1D_ePrimSec(
-        m1d, sigmaPrimary=sigma_0, sigmaMap=mappingExpAct)
-    problem.pair(survey)
+    # Set the Simulation
+    simulation = NSEM.Simulation1D_ePrimSec(
+        mesh=m1d, survey=survey,
+        sigmaPrimary=sigma_0, sigmaMap=mappingExpAct)
 
     # Forward model data
     # Project the data
-    survey.dtrue = survey.dpred(m_true)
-    survey.dobs = (
-        survey.dtrue + 0.01 *
-        abs(survey.dtrue) *
-        np.random.randn(*survey.dtrue.shape))
+    std = 0.025  # 2.5% std
+    synthetic_data = simulation.make_synthetic_data(
+        m_true, std)
+    # Assign the floor
+    # synthetic_data.noise_floor(
+    #     )
 
-    # Assign uncertainties
-    std = 0.025  # 5% std
-    survey.std = np.abs(survey.dobs * std)
-    # Assign the data weight
-    Wd = 1. / survey.std
-
-    # Setup the inversion proceedure
+    # Setup the inversion procedure
     # Define a counter
     C = simpeg.Utils.Counter()
     # Optimization
@@ -101,15 +103,13 @@ def run(plotIt=True):
     opt.LSshorten = 0.1
     opt.remember('xc')
     # Data misfit
-    dmis = simpeg.DataMisfit.l2_DataMisfit(survey)
-    dmis.W = Wd
+    dmis = simpeg.DataMisfit.l2_DataMisfit(simulation=simulation, data=synthetic_data)
     # Regularization - with a regularization mesh
     regMesh = simpeg.Mesh.TensorMesh([m1d.hx[active]], m1d.x0)
     reg = simpeg.Regularization.Tikhonov(regMesh)
     reg.mrefInSmooth = True
     reg.alpha_s = 1e-2
     reg.alpha_x = 1.
-    reg.mrefInSmooth = True
     # Inversion problem
     invProb = simpeg.InvProblem.BaseInvProblem(dmis, reg, opt)
     invProb.counter = C
@@ -130,7 +130,8 @@ def run(plotIt=True):
     mopt = inv.run(m_0)
 
     if plotIt:
-        fig = NSEM.Utils.dataUtils.plotMT1DModelData(problem, [mopt])
+        fig = NSEM.Utils.dataUtils.plotMT1DModelData(
+            simulation, [m_true, mopt])
         fig.suptitle('Target - smooth true')
         fig.axes[0].set_ylim([-10000, 500])
 
