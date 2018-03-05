@@ -83,7 +83,7 @@ npadx = 7  # number of padding cells in the x-direction
 npady = 7  # number of padding cells in the y-direction
 npadz = 11  # number of padding cells in the z-direction
 
-core_domain_x = np.r_[-10, 10]  # extent of uniform cells in the x-direction
+core_domain_x = np.r_[-11.5, 11.5]  # extent of uniform cells in the x-direction
 core_domain_z = np.r_[-2., 0.]  # extent of uniform cells in the z-direction
 
 # number of cells in the core region
@@ -159,7 +159,7 @@ ax.set_ylim([-2, 0])
 #
 # Create our true model which we will use to generate synthetic data for
 
-src_locations = np.arange(-10, 10, 0.5)
+src_locations = np.arange(-11, 11, 0.5)
 src_z = 0.25  # src is 0.25m above the surface
 orientation = 'z'  # z-oriented dipole for horizontal co-planar loops
 
@@ -243,7 +243,7 @@ ax = plot_data(dclean)
 # We will invert the clean data, and assign a standard deviation of 0.03, and
 # a floor of 1e-11.
 
-survey.std = 0.01
+survey.std = 0.03
 survey.eps = 1e-11
 survey.dobs = dclean
 
@@ -259,10 +259,11 @@ survey.dobs = dclean
 
 dmisfit = DataMisfit.l2_DataMisfit(survey)
 reg = Regularization.Simple(inversion_mesh)
-opt = Optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
+opt = Optimization.InexactGaussNewton(maxIterCG=10, maxIter=10, remember="xc")
 invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
 
-betaest = Directives.BetaEstimate_ByEig(beta0_ratio=0.1)
+betaest = Directives.BetaEstimate_ByEig(beta0_ratio=0.25)
+# betaschedule = Directives.BetaSchedule(coolingFactor = 2., coolingRate = 1)
 target = Directives.TargetMisfit()
 
 directiveList = [betaest, target]
