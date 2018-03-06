@@ -72,8 +72,12 @@ def interface(x):
 # ----------------------
 #
 # Here, we set up a 3D tensor mesh which we will perform the forward
-# simulations on
+# simulations on.
 #
+# .. note::
+#
+#   In practice, a smaller horizontal discretization should be used to improve
+#   accuracy, particularly for the shortest offset (eg. you can try 0.25m).
 
 csx = 0.5  # cell size for the horizontal direction
 csz = 0.125  # cell size for the vertical direction
@@ -252,36 +256,42 @@ survey.dobs = dclean
 # --------------------
 #
 # We create the data misfit, simple regularization
-# (a Tikhonov-style regularization) and assign more smoothing horizontally than
-# vertically. We estimate the trade-off parameter, beta, between the data
+# (a Tikhonov-style regularization, :class:`SimPEG.Regularization.Simple`)
+# The smoothness and smallness contributions can be set by including
+# `alpha_s, alpha_x, alpha_y` as input arguments when the regularization is
+# created. The default reference model in the regularization is the starting
+# model. To set something different, you can input an `mref` into the
+# regularization.
+#
+# We estimate the trade-off parameter, beta, between the data
 # misfit and regularization by the largest eigenvalue of the data misfit and
-# the regularization.
+# the regularization. Here, we use a fixed beta, but could alternatively
+# employ a beta-cooling schedule using :class:`SimPEG.Directives.BetaSchedule`
 
 dmisfit = DataMisfit.l2_DataMisfit(survey)
 reg = Regularization.Simple(inversion_mesh)
-opt = Optimization.InexactGaussNewton(maxIterCG=10, maxIter=10, remember="xc")
+opt = Optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
 invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
 
 betaest = Directives.BetaEstimate_ByEig(beta0_ratio=0.25)
-# betaschedule = Directives.BetaSchedule(coolingFactor = 2., coolingRate = 1)
 target = Directives.TargetMisfit()
 
 directiveList = [betaest, target]
 inv = Inversion.BaseInversion(invProb, directiveList=directiveList)
 
-print("target misfit = {:1.2f}".format(target.target))
+print("The target misfit is {:1.2f}".format(target.target))
 
 ###############################################################################
 # Run the inversion
 # ------------------
 #
-# We start from a half-space equal to the deep conductivity
+# We start from a half-space equal to the deep conductivity.
 
 m0 = np.log(sigma_deep) * np.ones(inversion_mesh.nC)
 
 t = time.time()
 mrec = inv.run(m0)
-print("\n Inversion Complete. Elapsed Time = {:1.2f}s".format(time.time() - t))
+print("\n Inversion Complete. Elapsed Time = {:1.2f} s".format(time.time() - t))
 
 ###############################################################################
 # Plot the predicted and observed data
@@ -325,3 +335,16 @@ cb.set_label("$\log(\sigma)$")
 
 plt.tight_layout()
 plt.show()
+
+###############################################################################
+# Moving Forward
+# --------------
+#
+# If you have suggestions for improving this example, please create a `pull request on the example in SimPEG<https://github.com/simpeg/simpeg/tree/master/examples/07-fdem>`_
+#
+# You might try:
+#    - improving the discretization
+#    - changing beta
+#    - changing the noise model
+#    - playing with the regulariztion parameters
+#    - ...
