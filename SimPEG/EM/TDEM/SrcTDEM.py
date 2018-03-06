@@ -369,7 +369,12 @@ class MagDipole(BaseTDEMSrc):
         if prob._formulation == 'EB':
             return prob.mesh.faceDiv * prob.MfMuiI * prob.mesh.faceDiv.T
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                    "Solving the magnetostatic problem for the initial fields "
+                    "when a permeable model is considered has not yet been "
+                    "implemented for the HJ formulation. "
+                    "See: https://github.com/simpeg/simpeg/issues/680"
+                )
 
     def _rhs_magnetostatic(self, prob):
         if getattr(self, '_hp', None) is None:
@@ -381,14 +386,24 @@ class MagDipole(BaseTDEMSrc):
                 )
                 self._hp = self._MfMuip * bp
             else:
-                raise NotImplementedError
+                raise NotImplementedError(
+                    "Solving the magnetostatic problem for the initial fields "
+                    "when a permeable model is considered has not yet been "
+                    "implemented for the HJ formulation. "
+                    "See: https://github.com/simpeg/simpeg/issues/680"
+                )
 
         if prob._formulation == 'EB':
             return -prob.mesh.faceDiv * (
                 (prob.MfMuiI - self._MfMuipI) * self._hp
             )
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                    "Solving the magnetostatic problem for the initial fields "
+                    "when a permeable model is considered has not yet been "
+                    "implemented for the HJ formulation. "
+                    "See: https://github.com/simpeg/simpeg/issues/680"
+                )
 
     def _phiSrc(self, prob):
         Ainv = prob.Solver(self._getAmagnetostatic(prob))
