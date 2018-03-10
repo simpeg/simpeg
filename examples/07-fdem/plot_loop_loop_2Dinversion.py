@@ -340,7 +340,7 @@ plt.show()
 # Moving Forward
 # --------------
 #
-# If you have suggestions for improving this example, please create a `pull request on the example in SimPEG <https://github.com/simpeg/simpeg/tree/master/examples/07-fdem>`_
+# If you have suggestions for improving this example, please create a `pull request on the example in SimPEG <https://github.com/simpeg/simpeg/blob/master/examples/07-fdem/plot_loop_loop_2Dinversion.py>`_
 #
 # You might try:
 #    - improving the discretization
