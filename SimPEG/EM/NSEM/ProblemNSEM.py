@@ -16,7 +16,7 @@ from .FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields3D_ePrimSec
 
 class BaseNSEMProblem(BaseFDEMProblem):
     """
-        Base class for all Natural source problems.
+    Base class for all Natural source problems.
     """
 
     def __init__(self, mesh, **kwargs):
@@ -42,8 +42,7 @@ class BaseNSEMProblem(BaseFDEMProblem):
 
         :param numpy.ndarray m: conductivity model (nP,)
         :param numpy.ndarray v: vector which we take sensitivity product with (nP,)
-        :param SimPEG.EM.NSEM.FieldsNSEM (optional) u: NSEM fields object, if not given
-            it is calculated
+        :param SimPEG.EM.NSEM.FieldsNSEM (optional) u: NSEM fields object, if not given it is calculated
         :rtype: numpy.ndarray
         :return: Jv (nData,) Data sensitivities wrt m
         """

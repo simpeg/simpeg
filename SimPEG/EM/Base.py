@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 import properties
 from scipy.constants import mu_0
+import numpy as np
 
 from SimPEG import Survey
 from SimPEG import Problem
@@ -67,7 +68,6 @@ class BaseEMProblem(Problem.BaseProblem):
     ####################################################
     # Mass Matrices
     ####################################################
-
     @property
     def _clear_on_mu_update(self):
         return ['_MeMu', '_MeMuI', '_MfMui', '_MfMuiI']
@@ -89,24 +89,56 @@ class BaseEMProblem(Problem.BaseProblem):
 
     @properties.observer('mu')
     def _clear_mu_mats_on_mu_update(self, change):
+        if change['previous'] is change['value']:
+            return
+        if (
+            isinstance(change['previous'], np.ndarray) and
+            isinstance(change['value'], np.ndarray) and
+            np.allclose(change['previous'], change['value'])
+        ):
+            return
         for mat in self._clear_on_mu_update:
             if hasattr(self, mat):
                 delattr(self, mat)
 
     @properties.observer('mui')
     def _clear_mu_mats_on_mui_update(self, change):
+        if change['previous'] is change['value']:
+            return
+        if (
+            isinstance(change['previous'], np.ndarray) and
+            isinstance(change['value'], np.ndarray) and
+            np.allclose(change['previous'], change['value'])
+        ):
+            return
         for mat in self._clear_on_mu_update:
             if hasattr(self, mat):
                 delattr(self, mat)
 
     @properties.observer('sigma')
     def _clear_sigma_mats_on_sigma_update(self, change):
+        if change['previous'] is change['value']:
+            return
+        if (
+            isinstance(change['previous'], np.ndarray) and
+            isinstance(change['value'], np.ndarray) and
+            np.allclose(change['previous'], change['value'])
+        ):
+            return
         for mat in self._clear_on_sigma_update:
             if hasattr(self, mat):
                 delattr(self, mat)
 
     @properties.observer('rho')
     def _clear_sigma_mats_on_rho_update(self, change):
+        if change['previous'] is change['value']:
+            return
+        if (
+            isinstance(change['previous'], np.ndarray) and
+            isinstance(change['value'], np.ndarray) and
+            np.allclose(change['previous'], change['value'])
+        ):
+            return
         for mat in self._clear_on_sigma_update:
             if hasattr(self, mat):
                 delattr(self, mat)

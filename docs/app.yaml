@@ -110,6 +110,7 @@ skip_files:
   - ^(.*/)?.*/doctrees/.*$
   - ^(.*/)?.*/_modules/.*$
   - ^(.*/)?.*/_sources/.*$
+  - ^(.*/)?.*\.tar.gz$
 
 
 libraries:

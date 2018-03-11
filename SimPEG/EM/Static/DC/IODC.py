@@ -10,9 +10,6 @@ from . import SrcDC as Src
 from . import RxDC as Rx
 from .SurveyDC import Survey_ky, Survey
 
-warnings.warn("code under construction - API might change in the future")
-
-
 class IO(properties.HasProperties):
     """
 
@@ -224,6 +221,12 @@ class IO(properties.HasProperties):
     a = None
     n_spacing = None
     n_data = None
+
+    def __init__(self, **kwargs):
+        super(IO, self).__init__(**kwargs)
+        warnings.warn(
+            "code under construction - API might change in the future"
+        )
 
     # Properties
     @property

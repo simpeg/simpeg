@@ -153,11 +153,17 @@ class TrapezoidWaveform(BaseWaveform):
         if time < self.ramp_on[0]:
             return 0
         elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
-            return (1. / (self.ramp_on[1] - self.ramp_on[0])) * (time - self.ramp_on[0])
+            return (
+                (1. / (self.ramp_on[1] - self.ramp_on[0])) *
+                (time - self.ramp_on[0])
+            )
         elif time > self.ramp_on[1] and time < self.ramp_off[0]:
             return 1
         elif time >= self.ramp_off[0] and time <= self.ramp_off[1]:
-            return 1 - (1. / (self.ramp_off[1] - self.ramp_off[0])) * (time - self.ramp_off[0])
+            return (
+                1 - (1. / (self.ramp_off[1] - self.ramp_off[0])) *
+                (time - self.ramp_off[0])
+            )
         else:
             return 0
 
@@ -187,11 +193,17 @@ class QuarterSineRampOnWaveform(BaseWaveform):
         if time < self.ramp_on[0]:
             return 0
         elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
-            return np.sin(np.pi/2 * (1. / (self.ramp_on[1] - self.ramp_on[0])) * (time - self.ramp_on[0]))
+            return np.sin(
+                np.pi/2 * (1. / (self.ramp_on[1] - self.ramp_on[0])) *
+                (time - self.ramp_on[0])
+            )
         elif time > self.ramp_on[1] and time < self.ramp_off[0]:
             return 1
         elif time >= self.ramp_off[0] and time <= self.ramp_off[1]:
-            return 1 - (1. / (self.ramp_off[1] - self.ramp_off[0])) * (time - self.ramp_off[0])
+            return (
+                1 - (1. / (self.ramp_off[1] - self.ramp_off[0])) *
+                (time - self.ramp_off[0])
+            )
         else:
             return 0
 
@@ -357,7 +369,12 @@ class MagDipole(BaseTDEMSrc):
         if prob._formulation == 'EB':
             return prob.mesh.faceDiv * prob.MfMuiI * prob.mesh.faceDiv.T
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                    "Solving the magnetostatic problem for the initial fields "
+                    "when a permeable model is considered has not yet been "
+                    "implemented for the HJ formulation. "
+                    "See: https://github.com/simpeg/simpeg/issues/680"
+                )
 
     def _rhs_magnetostatic(self, prob):
         if getattr(self, '_hp', None) is None:
@@ -369,14 +386,24 @@ class MagDipole(BaseTDEMSrc):
                 )
                 self._hp = self._MfMuip * bp
             else:
-                raise NotImplementedError
+                raise NotImplementedError(
+                    "Solving the magnetostatic problem for the initial fields "
+                    "when a permeable model is considered has not yet been "
+                    "implemented for the HJ formulation. "
+                    "See: https://github.com/simpeg/simpeg/issues/680"
+                )
 
         if prob._formulation == 'EB':
             return -prob.mesh.faceDiv * (
                 (prob.MfMuiI - self._MfMuipI) * self._hp
             )
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                    "Solving the magnetostatic problem for the initial fields "
+                    "when a permeable model is considered has not yet been "
+                    "implemented for the HJ formulation. "
+                    "See: https://github.com/simpeg/simpeg/issues/680"
+                )
 
     def _phiSrc(self, prob):
         Ainv = prob.Solver(self._getAmagnetostatic(prob))
@@ -412,10 +439,11 @@ class MagDipole(BaseTDEMSrc):
 
         if self.waveform.hasInitialFields is False:
             return Zero()
-        if prob._formulation == 'EB':
-            return prob.MfMui * self.bInitial(prob)
-        elif prob._formulation == 'HJ':
-            return prob.MeMuI * self.bInitial(prob)
+        # if prob._formulation == 'EB':
+        #     return prob.MfMui * self.bInitial(prob)
+        # elif prob._formulation == 'HJ':
+        #     return prob.MeMuI * self.bInitial(prob)
+        return 1./self.mu * self.bInitial(prob)
 
     def s_m(self, prob, time):
         if self.waveform.hasInitialFields is False:
@@ -440,8 +468,7 @@ class MagDipole(BaseTDEMSrc):
 
         elif prob._formulation == 'HJ':
 
-            MeMuI = prob.mesh.getEdgeInnerProduct(self.mu, invMat=True)
-            h = prob.MeMuI * b
+            h = 1./self.mu * b
 
             if self.waveform.hasInitialFields is True and time < prob.timeSteps[1]:
                 if prob._fieldType == 'h':
@@ -485,10 +512,6 @@ class LineCurrent(BaseTDEMSrc):
     :param list rxList: receiver list
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
-    # waveform = None
-    loc = None
-    # mu = mu_0
-    # srcType = "Galvanic"
 
     def __init__(self, rxList, **kwargs):
         self.integrate = False
