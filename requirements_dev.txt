@@ -16,4 +16,4 @@ properties>=0.3.6b0
 vectormath
 wheel
 pytest
-https://github.com/simpeg/discretize.git@feat/3Dcylmesh
+git+https://github.com/simpeg/discretize.git@feat/3Dcylmesh
