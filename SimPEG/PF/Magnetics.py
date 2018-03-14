@@ -366,7 +366,7 @@ class MagneticVector(MagneticIntegral):
         if self.coordinate_system == 'cartesian':
             m = self.chiMap*(chi)
         else:
-            m = self.chiMap*(atp2xyz(chi.reshape((int(len(chi)/3), 3))))
+            m = self.chiMap*(atp2xyz(chi.reshape((int(len(chi)/3), 3), order='F')))
 
         u = self.fwr_ind(m=m)
 
@@ -468,8 +468,8 @@ class MagneticVector(MagneticIntegral):
 
             # TEST - CONVERT TO CARTESIAN FOR TILE INTERPOLATION
             nC = int(len(self.model)/3)
-            m_xyz = self.chiMap * atp2xyz(self.model.reshape((nC, 3)))
-            m_atp = xyz2atp(m_xyz.reshape((nC, 3)))
+            m_xyz = self.chiMap * atp2xyz(self.model.reshape((nC, 3), order='F'))
+            m_atp = xyz2atp(m_xyz.reshape((nC, 3), order='F'))
 
             nC = int(m_atp.shape[0]/3.)
             a = m_atp[:nC]

@@ -361,7 +361,7 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
             else:
 
                 if prob.coordinate_system == 'spherical':
-                    vec_xyz = Utils.matutils.atp2xyz(xc.reshape((int(len(xc)/3), 3)))
+                    vec_xyz = Utils.matutils.atp2xyz(xc.reshape((int(len(xc)/3), 3), order='F'))
                 else:
                     vec_xyz = xc
 
@@ -898,7 +898,7 @@ class Update_IRLS(InversionDirective):
             for reg, phim_old, phim_now in zip(self.reg.objfcts, phi_m_last, phi_m_new):
 
                 gamma = phim_old / phim_now
-
+                #print('Gamma: '+str(gamma))
                 # If comboObj, go down one more level
                 for comp in reg.objfcts:
                     comp.gamma = gamma
@@ -1022,6 +1022,7 @@ class UpdateJacobiPrecond(InversionDirective):
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
         PC = Utils.sdiag((diagA)**-1.)
+
         self.opt.approxHinv = PC
 
     def endIter(self):
@@ -1059,7 +1060,7 @@ class UpdateSensWeighting(InversionDirective):
     ComboMisfitFun = False
     JtJdiag = None
     everyIter = True
-    epsilon = 1e-8
+    epsilon = 1e-10
 
     def initialize(self):
 
@@ -1226,8 +1227,8 @@ class ProjSpherical(InversionDirective):
         # Convert to cartesian than back to avoid over rotation
         nC = int(len(x)/3)
 
-        xyz = Utils.matutils.atp2xyz(x.reshape((nC, 3)))
-        m = Utils.matutils.xyz2atp(xyz.reshape((nC, 3)))
+        xyz = Utils.matutils.atp2xyz(x.reshape((nC, 3), order='F'))
+        m = Utils.matutils.xyz2atp(xyz.reshape((nC, 3), order='F'))
 
         self.invProb.model = m
 
@@ -1242,8 +1243,8 @@ class ProjSpherical(InversionDirective):
         nC = int(len(x)/3)
 
         # Convert to cartesian than back to avoid over rotation
-        xyz = Utils.matutils.atp2xyz(x.reshape((nC, 3)))
-        m = Utils.matutils.xyz2atp(xyz.reshape((nC, 3)))
+        xyz = Utils.matutils.atp2xyz(x.reshape((nC, 3), order='F'))
+        m = Utils.matutils.xyz2atp(xyz.reshape((nC, 3), order='F'))
 
         self.invProb.model = m
         self.invProb.phi_m_last = self.reg(m)
@@ -1278,7 +1279,7 @@ class JointAmpMVI(InversionDirective):
 
             if isinstance(prob, Magnetics.MagneticVector):
                 if prob.coordinate_system == 'spherical':
-                    xyz = Magnetics.atp2xyz((prob.chiMap * m).reshape((int(len(m)/3), 3)))
+                    xyz = Magnetics.atp2xyz((prob.chiMap * m).reshape((int(len(m)/3), 3), order='F'))
                     self.jointMVIS = True
                 elif prob.coordinate_system == 'cartesian':
                     xyz = prob.chiMap * m
@@ -1308,7 +1309,7 @@ class JointAmpMVI(InversionDirective):
 
             if isinstance(prob, Magnetics.MagneticVector):
                 if prob.coordinate_system == 'spherical':
-                    xyz = Magnetics.atp2xyz((prob.chiMap * m).reshape((int(len(m)/3), 3)))
+                    xyz = Magnetics.atp2xyz((prob.chiMap * m).reshape((int(len(m)/3), 3), order='F'))
 
                 elif prob.coordinate_system == 'cartesian':
                     xyz = prob.chiMap * m

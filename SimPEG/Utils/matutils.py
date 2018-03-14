@@ -191,7 +191,7 @@ def xyz2atp(m):
     a = (x**2. + y**2. + z**2.)**0.5
 
     t = np.zeros_like(x)
-    t[a > 0] = np.arccos(z[a > 0]/a[a > 0])
+    t[a > 0] = np.arcsin(z[a > 0]/a[a > 0])
 
     p = np.zeros_like(x)
     p[a > 0] = np.arctan2(y[a > 0], x[a > 0])

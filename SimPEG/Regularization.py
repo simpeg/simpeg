@@ -1455,10 +1455,20 @@ class BaseSparse(BaseRegularization):
         "type of gradient", default='total'
     )
 
-    scale = properties.Float(
-        "General nob for scaling", default=1.
+    scale = properties.Array(
+        "General nob for scaling", dtype=float
     )
 
+    @properties.validator('scale')
+    def _validate_scale(self, change):
+        if change['value'] is not None:
+            # todo: residual size? we need to know the expected end shape
+            if self._nC_residual != '*':
+                assert len(change['value']) == self._nC_residual, (
+                    'scale must be length {} not {}'.format(
+                        self._nC_residual, len(change['value'])
+                    )
+                )
     @property
     def stashedR(self):
         return self._stashedR
@@ -1497,10 +1507,14 @@ class SparseSmall(BaseSparse):
             r = self.R(self.f_m)
             R = Utils.sdiag(r)
 
+        if self.scale is None:
+
+            self.scale = np.ones(self.mapping.shape[0])
+
         if self.cell_weights is not None:
             return Utils.sdiag((self.scale * self.gamma *
                                 self.cell_weights)**0.5) * R
-        return (self.scale * self.gamma)**0.5 * R
+        return Utils.sdiag((self.scale * self.gamma)**0.5) * R
 
     def R(self, f_m):
         # if R is stashed, return that instead
@@ -1570,6 +1584,8 @@ class SparseDeriv(BaseSparse):
         else:
             f_m = m
 
+        if self.scale is None:
+            self.scale = np.ones(self.mapping.shape[0])
         if self.space == 'spherical':
             Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
@@ -1583,13 +1599,13 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 W = (
                     Utils.sdiag(
-                        (self.scale * self.gamma * (Ave*(self.cell_weights)))**0.5
+                        (Ave*(self.scale * self.gamma * self.cell_weights))**0.5
                     ) *
                     R
                 )
 
             else:
-                W = ((self.scale * self.gamma)**0.5) * R
+                W = Utils.sdiag((Ave * self.scale * self.gamma)**0.5) * R
 
             theta = self.cellDiffStencil * (self.mapping * f_m)
             dmdx = coterminal(theta)
@@ -1609,6 +1625,7 @@ class SparseDeriv(BaseSparse):
 
         # Eta scaling is important for mix-norms...do not mess with it
         eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-Ave*self.norm/2.)
+
         # eta = np.abs(f_m + self.epsilon**2.).max() / (np.abs(f_m + self.epsilon**2.) / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.)).max()
         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-(Ave*self.norm)/2.))**0.5
         # print(eta)
@@ -1641,6 +1658,10 @@ class SparseDeriv(BaseSparse):
         else:
             model = m
 
+        if self.scale is None:
+            self.scale = np.ones(self.mapping.shape[0])
+
+
         if self.space == 'spherical':
             Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
@@ -1654,13 +1675,13 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 W = (
                     Utils.sdiag(
-                        (self.scale * self.gamma * (Ave*(self.cell_weights)))**0.5
+                        ((Ave * (self.scale * self.gamma * self.cell_weights)))**0.5
                     ) *
                     R
                 )
 
             else:
-                W = ((self.scale * self.gamma)**0.5) * R
+                W = Utils.sdiag((Ave * self.scale * self.gamma)**0.5) * R
 
             theta = self.cellDiffStencil * (self.mapping * model)
             dmdx = coterminal(theta)
@@ -1686,6 +1707,10 @@ class SparseDeriv(BaseSparse):
 
         else:
             f_m = self.model
+
+        if self.scale is None:
+            self.scale = np.ones(self.mapping.shape[0])
+
 
         if self.space == 'spherical':
             theta = self.cellDiffStencil * (self.mapping * f_m)
@@ -1740,14 +1765,17 @@ class SparseDeriv(BaseSparse):
             r = self.R(self.f_m)
             R = Utils.sdiag(r)
 
+        if self.scale is None:
+            self.scale = np.ones(self.mapping.shape[0])
+
         if self.cell_weights is not None:
             return (
                 Utils.sdiag(
-                    (self.scale * self.gamma * (Ave*(self.cell_weights)))**0.5
+                    (Ave*(self.scale * self.gamma * self.cell_weights))**0.5
                 ) *
                 R * self.cellDiffStencil
             )
-        return ((self.scale * self.gamma)**0.5) * R * self.cellDiffStencil
+        return Utils.sdiag((Ave*self.scale * self.gamma)**0.5) * R * self.cellDiffStencil
 
 
 class Sparse(BaseComboRegularization):
@@ -1828,9 +1856,11 @@ class Sparse(BaseComboRegularization):
         "type of gradient", default='components'
     )
 
-    scale = properties.Float(
-        "General nob for scaling", default=1.
+    scales = properties.Array(
+        "General nob for scaling",
+        default=np.c_[1., 1., 1., 1.], shape={('*', '*')}
     )
+
     # Save the l2 result during the IRLS
     l2model = None
 
@@ -1885,10 +1915,24 @@ class Sparse(BaseComboRegularization):
         for objfct in self.objfcts:
             objfct.gradientType = change['value']
 
-    @properties.observer('scale')
+    @properties.validator('scales')
+    def _validate_scales(self, change):
+        if change['value'].shape[0] == 1:
+            change['value'] = np.kron(np.ones((self.regmesh.Pac.shape[1], 1)), change['value'])
+        elif change['value'].shape[0] > 1:
+            assert change['value'].shape[0] == self.regmesh.Pac.shape[1], (
+                "Vector of scales must be the size of active model parameters ({})"
+                "The provided vector has length "
+                "{}".format(
+                    self.regmesh.Pac.shape[0], len(change['value'])
+                )
+            )
+
+    # Observers
+    @properties.observer('scales')
     def _mirror_scale_to_objfcts(self, change):
-        for objfct in self.objfcts:
-            objfct.scale = change['value']
+        for i, objfct in enumerate(self.objfcts):
+            objfct.scale = change['value'][:,i]
 
 
 def coterminal(theta):

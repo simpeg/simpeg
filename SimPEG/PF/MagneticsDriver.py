@@ -441,3 +441,36 @@ def writeVectorUBC(mesh, fileName, model):
         modelMatTR[:, ii] = Utils.mkvc(modelMatT[::-1, :, :])
 
     np.savetxt(fileName, modelMatTR)
+
+
+def readVectorUBC(mesh, fileName):
+    """Read UBC 3DVector model and generate 3D Vector mesh model
+
+    Input:
+    :param string fileName: path to the UBC GIF mesh file to read
+
+    Output:
+    :rtype: numpy.ndarray
+    :return: model with TensorMesh ordered x3 nC
+    """
+    model = np.loadtxt(fileName)
+    # Fist line is the size of the model
+    # model = np.array(model.ravel()[0].split(), dtype=float)
+
+    vx = np.reshape(model[:, 0], (mesh.nCz, mesh.nCx, mesh.nCy), order='F')
+    vx = vx[::-1, :, :]
+    vx = np.transpose(vx, (1, 2, 0))
+    vx = mkvc(vx)
+
+    vy = np.reshape(model[:, 1], (mesh.nCz, mesh.nCx, mesh.nCy), order='F')
+    vy = vy[::-1, :, :]
+    vy = np.transpose(vy, (1, 2, 0))
+    vy = mkvc(vy)
+
+    vz = np.reshape(model[:, 2], (mesh.nCz, mesh.nCx, mesh.nCy), order='F')
+    vz = vz[::-1, :, :]
+    vz = np.transpose(vz, (1, 2, 0))
+    vz = mkvc(vz)
+
+    model = np.r_[vx, vy, -vz]
+    return model
