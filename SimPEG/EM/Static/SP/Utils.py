@@ -172,17 +172,17 @@ def readVectorUBC(mesh, fileName):
     vx = np.reshape(model[:, 0], (mesh.nCz, mesh.nCx, mesh.nCy), order='F')
     vx = vx[::-1, :, :]
     vx = np.transpose(vx, (1, 2, 0))
-    vx = mkvc(vx)
+    vx = Utils.mkvc(vx)
 
     vy = np.reshape(model[:, 1], (mesh.nCz, mesh.nCx, mesh.nCy), order='F')
     vy = vy[::-1, :, :]
     vy = np.transpose(vy, (1, 2, 0))
-    vy = mkvc(vy)
+    vy = Utils.mkvc(vy)
 
     vz = np.reshape(model[:, 2], (mesh.nCz, mesh.nCx, mesh.nCy), order='F')
     vz = vz[::-1, :, :]
     vz = np.transpose(vz, (1, 2, 0))
-    vz = mkvc(vz)
+    vz = Utils.mkvc(vz)
 
     # Flip z to positive up from MeshTools3D to SimPEG
     model = np.r_[vx, vy, -vz]
