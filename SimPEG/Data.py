@@ -179,43 +179,69 @@ class Data(properties.HasProperties):
                 raise KeyError('Rx Key must be a receiver for the source.')
             return key
 
-        # TODO: I think this can go
-        elif isinstance(key, self.survey.srcPair):
-            if key not in self.survey.srcList:
-                raise KeyError('Key must be a source in the survey.')
-            return key, None
+        # # TODO: I think this can go
+        # # GKR: Think so as well, survey has no srcPair
+        # elif isinstance(key, self.survey.srcPair):
+        #     if key not in self.survey.srcList:
+        #         raise KeyError('Key must be a source in the survey.')
+        #     return key, None
 
         else:
             raise KeyError('Key must be [Src] or [Src,Rx]')
 
-    def __setitem__(self, key, value):
+    def _set_data_properties(self, key, value, arr_name='dobs'):
+        """
+        Function to set data, standard_deviation or noise floor with
+        a [src, rx] pair.
+
+        """
+
         src, rx = self._ensureCorrectKey(key)
         assert rx is not None, 'set data using [Src, Rx]'
         assert isinstance(value, np.ndarray), 'value must by ndarray'
         assert value.size == rx.nD, (
             "value must have the same number of data as the source."
         )
+        assert arr_name in ['dobs', 'standard_deviation', 'noise_floor'], (
+            "has to be one of the settable array's: dobs, standard_deviation" +
+            " or noise_floor")
+        # Get the inds
         inds = self._data_dict[src][rx]
-        if getattr(self, 'dobs', None) is None:
-            self.dobs = np.nan * np.ones(self.survey.nD)
-        else:
-            if not np.all(np.isnan(self.dobs[inds])):
+        # Get the array
+        arr = getattr(self, arr_name, None)
+        if arr is None:
+            arr = np.nan * np.ones(self.survey.nD)
+        elif 'dobs' == arr_name:
+            if not np.all(np.isnan(arr[inds])):
                 raise Exception(
                     "Observed data cannot be overwritten. Create a new Data "
                     "object or a SyntheticData object instead"
                 )
-        self.dobs[inds] = mkvc(value)
+        arr[inds] = mkvc(value)
+        setattr(self, arr_name, arr)
 
-    def __getitem__(self, key):
+    def _get_data_properties(self, key, arr_name='dobs'):
+        """
+        Function to get dobs, standard_deviation or nosie_floor via
+        [src, rx] pair
+        """
+
         src, rx = self._ensureCorrectKey(key)
+        arr = getattr(self, arr_name, None)
         if rx is not None:
             if rx not in self._data_dict[src]:
                 raise Exception('Data for receiver has not yet been set.')
-            return self.dobs[self._data_dict[src][rx]]
+            return arr[self._data_dict[src][rx]]
 
         return np.concatenate([
-            self.dobs[self._data_dict[src][rx]] for rx in src.rxList
+            arr[self._data_dict[src][rx]] for rx in src.rxList
         ])
+
+    def __setitem__(self, key, value):
+        self._set_data_properties(key, value)
+
+    def __getitem__(self, key):
+        return self._get_data_properties(key)
 
     @property
     def std(self):

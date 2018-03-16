@@ -770,8 +770,10 @@ def _extract_frequency_data(
     loc_arr = rx.locs
     data_arr = data[src, rx]
     if return_uncert:
-        std_arr = data.standard_deviation[src, rx]
-        floor_arr = data.floor[src, rx]
+        std_arr = data._get_data_properties(
+            (src, rx), 'standard_deviation')
+        floor_arr = data._get_data_properties(
+            (src, rx), 'noise_floor')
     if return_uncert:
         return (loc_arr, data_arr, std_arr, floor_arr)
     return (loc_arr, data_arr)
@@ -803,8 +805,10 @@ def _extract_location_data(
 
 
             if return_uncert:
-                std_list.append(data.standard_deviation[src, rx][ind_loc])
-                floor_list.append(data.floor[src, rx][ind_loc])
+                std_list.append(data._get_data_properties(
+                    (src, rx), 'standard_deviation')[ind_loc])
+                floor_list.append(data._get_data_properties(
+                    (src, rx), 'noise_floor')[ind_loc])
     if return_uncert:
         return (np.array(freq_list), np.concatenate(data_list),
                 np.concatenate(std_list), np.concatenate(floor_list))
