@@ -2,6 +2,7 @@ import properties
 import numpy as np
 
 from .Survey import BaseSurvey
+from .Survey import BaseSrc
 from .Utils import mkvc
 
 
@@ -178,14 +179,10 @@ class Data(properties.HasProperties):
             if key[1] not in key[0].rxList:
                 raise KeyError('Rx Key must be a receiver for the source.')
             return key
-
-        # # TODO: I think this can go
-        # # GKR: Think so as well, survey has no srcPair
-        # elif isinstance(key, self.survey.srcPair):
-        #     if key not in self.survey.srcList:
-        #         raise KeyError('Key must be a source in the survey.')
-        #     return key, None
-
+        if isinstance(key, BaseSrc):
+            if key not in self.survey.srcList:
+                raise KeyError('Key must be a source in the survey.')
+            return key, None
         else:
             raise KeyError('Key must be [Src] or [Src,Rx]')
 
