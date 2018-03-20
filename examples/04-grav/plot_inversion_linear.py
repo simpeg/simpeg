@@ -122,8 +122,8 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
     # model parameters
-    IRLS = Directives.Update_IRLS(f_min_change=1e-2, minGNiter=3)
-    update_Jacobi = Directives.Update_lin_PreCond()
+    IRLS = Directives.Update_IRLS(f_min_change=1e-2, minGNiter=2)
+    update_Jacobi = Directives.UpdatePreconditioner()
     inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,
                                                           betaest,
                                                           update_Jacobi])
@@ -136,7 +136,7 @@ def run(plotIt=True):
         # Here is the recovered susceptibility model
         ypanel = midx
         zpanel = -7
-        m_l2 = actvMap * IRLS.l2model
+        m_l2 = actvMap * invProb.l2model
         m_l2[m_l2 == -100] = np.nan
 
         m_lp = actvMap * mrec
@@ -144,6 +144,8 @@ def run(plotIt=True):
 
         m_true = actvMap * model
         m_true[m_true == -100] = np.nan
+
+        vmin, vmax = mrec.min(), mrec.max()
 
         # Plot the data
         PF.Gravity.plot_obs_2D(rxLoc, d=data)
@@ -153,7 +155,7 @@ def run(plotIt=True):
         # Plot L2 model
         ax = plt.subplot(321)
         mesh.plotSlice(m_l2, ax=ax, normal='Z', ind=zpanel,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True, clim=(vmin, vmax))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan l2-model.')
@@ -165,7 +167,7 @@ def run(plotIt=True):
         # Vertica section
         ax = plt.subplot(322)
         mesh.plotSlice(m_l2, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True, clim=(vmin, vmax))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W l2-model.')
@@ -177,7 +179,7 @@ def run(plotIt=True):
         # Plot Lp model
         ax = plt.subplot(323)
         mesh.plotSlice(m_lp, ax=ax, normal='Z', ind=zpanel,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True, clim=(vmin, vmax))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan lp-model.')
@@ -189,7 +191,7 @@ def run(plotIt=True):
         # Vertical section
         ax = plt.subplot(324)
         mesh.plotSlice(m_lp, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True, clim=(vmin, vmax))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W lp-model.')
@@ -201,7 +203,7 @@ def run(plotIt=True):
         # Plot True model
         ax = plt.subplot(325)
         mesh.plotSlice(m_true, ax=ax, normal='Z', ind=zpanel,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True, clim=(vmin, vmax))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan true model.')
@@ -213,7 +215,7 @@ def run(plotIt=True):
         # Vertical section
         ax = plt.subplot(326)
         mesh.plotSlice(m_true, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(model.min(), model.max()))
+                       grid=True, clim=(vmin, vmax))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
                  ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W true model.')
