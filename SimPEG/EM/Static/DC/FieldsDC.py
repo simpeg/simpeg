@@ -77,11 +77,14 @@ class Fields_CC(FieldsDC):
     def __init__(self, mesh, survey, **kwargs):
         FieldsDC.__init__(self, mesh, survey, **kwargs)
 
-        if self.survey.prob.bc_type == 'Dirichlet':
+        if getattr(self.survey.prob, 'bc_type', None) == 'Dirichlet':
             self.cellGrad = -mesh.faceDiv.T
-        elif self.survey.prob.bc_type == 'Neumann':
+        elif getattr(self.survey.prob, 'bc_type', None) == 'Neumann':
             if self.mesh._meshType == "TREE":
                 raise NotImplementedError()
+            mesh.setCellGradBC("neumann")
+            self.cellGrad = mesh.cellGrad
+        else:
             mesh.setCellGradBC("neumann")
             self.cellGrad = mesh.cellGrad
 
