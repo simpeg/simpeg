@@ -11,7 +11,7 @@ import scipy.sparse as sp
 class Problem_BaseVRM(Problem.BaseProblem):
     """
     **Base class for VRM problem.**
-
+..
 ..    REQUIRED ARGUMENTS:
 ..
 ..    mesh -- 3D tensor or OcTree mesh object
@@ -100,7 +100,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
         """
         Creates sparse matrix containing inducing field components
         for source pp
-
+..
 ..        REQUIRED ARGUMENTS:
 ..
 ..        xyz: N X 3 array of locations to predict field
@@ -129,7 +129,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
         """
         Creates the dense geometry matrix which maps from the magnetized voxel
         cells to the receiver locations for source pp
-
+..
 ..        REQUIRED ARGUMENTS:
 ..
 ..        xyzc: N by 3 numpy array containing cell center locations [xc,yc,zc]
@@ -376,7 +376,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
         """
         This method returns the refined sensitivities for columns that will be
         replaced in the A matrix for source pp and refinement factor qq.
-
+..
 ..        INPUTS:
 ..
 ..        xyzc -- Cell centers of topo mesh cells N X 3 array
@@ -446,7 +446,6 @@ class Problem_Linear(Problem_BaseVRM):
 ..
 ..    xiMap -- A SimPEG mapping object which maps the model to the active
 ..    topography cells (i.e. indActive)
-
     """
 
     _A = None
@@ -471,9 +470,9 @@ class Problem_Linear(Problem_BaseVRM):
     def A(self):
 
         """
-    This function constructs the geometric sensitivity matrix for the
-    linear VRM problem. This function requires that the problem be paired
-    with a survey object.
+        This function constructs the geometric sensitivity matrix for the
+        linear VRM problem. This function requires that the problem be paired
+        with a survey object.
         """
 
         if self._AisSet is False:
@@ -500,8 +499,8 @@ class Problem_Linear(Problem_BaseVRM):
     def T(self):
 
         """
-    This function returns the characteristic decay matrix. This function
-    requires that the problem has been paired with a survey object.
+        This function returns the characteristic decay matrix. This function
+        requires that the problem has been paired with a survey object.
         """
 
         if self._TisSet is False:
@@ -620,7 +619,7 @@ class Problem_LogUniform(Problem_BaseVRM):
     Problem class for VRM assuming a log-normal distribution of time-relaxation
     constants. This model for VRM requires 4 model parameters for each cell:
     chi0, dchi, tau1, tau2.
-
+..
 ..    REQUIRED ARGUMENTS:
 ..
 ..    mesh -- 3D tensor or OcTree mesh
@@ -639,7 +638,6 @@ class Problem_LogUniform(Problem_BaseVRM):
 ..
 ..    xiMap -- A SimPEG mapping object which maps the model to the active
 ..    topography cells (i.e. indActive)
-
     """
 
     _A = None
