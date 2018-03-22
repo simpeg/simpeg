@@ -27,6 +27,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
 ..    indActive -- A numpy array with boolean entries, where the True entries
 ..    refer to topography cell which will be computed in the forward model
 ..    (default is all mesh cells)
+
     """
 
     # SET CLASS ATTRIBUTES
@@ -110,6 +111,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
 ..        OUTPUTS:
 ..
 ..        H0: A 3N X N sparse array containing Hx, Hy and Hz at all locations
+
         """
 
         SrcObj = self.survey.srcList[pp]
@@ -141,6 +143,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
 ..        OUTPUTS:
 ..
 ..        G: Linear geometry operator
+
         """
 
         srcObj = self.survey.srcList[pp]
@@ -392,6 +395,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
 ..        OUTPUTS:
 ..
 ..        Acols -- Columns containing replacement sensitivities
+
         """
 
         # GET SUBMESH GRID
@@ -446,6 +450,7 @@ class Problem_Linear(Problem_BaseVRM):
 ..
 ..    xiMap -- A SimPEG mapping object which maps the model to the active
 ..    topography cells (i.e. indActive)
+
     """
 
     _A = None
@@ -473,6 +478,7 @@ class Problem_Linear(Problem_BaseVRM):
         This function constructs the geometric sensitivity matrix for the
         linear VRM problem. This function requires that the problem be paired
         with a survey object.
+
         """
 
         if self._AisSet is False:
@@ -501,6 +507,7 @@ class Problem_Linear(Problem_BaseVRM):
         """
         This function returns the characteristic decay matrix. This function
         requires that the problem has been paired with a survey object.
+
         """
 
         if self._TisSet is False:
@@ -638,6 +645,7 @@ class Problem_LogUniform(Problem_BaseVRM):
 ..
 ..    xiMap -- A SimPEG mapping object which maps the model to the active
 ..    topography cells (i.e. indActive)
+
     """
 
     _A = None
@@ -663,6 +671,7 @@ class Problem_LogUniform(Problem_BaseVRM):
         This function constructs the geometric sensitivity matrix for the VRM
         problem. This function requires that the problem be paired with a
         survey object.
+
         """
 
         if self._AisSet is False:
