@@ -12,22 +12,21 @@ class Problem_BaseVRM(Problem.BaseProblem):
     """
     **Base class for VRM problem.**
 
-    REQUIRED ARGUMENTS:
-
-    mesh -- 3D tensor or OcTree mesh object
-
-    KWARGS:
-
-    refFact -- Maximum refinement factor for sensitivities (default = 3)
-
-    refRadius -- Distances from source in which cell sensitivities are refined
-    from smallest to largest. Must be an array or list with elements equal to
-    the refFact. (default based on minimum cell size)
-
-    indActive -- A numpy array with boolean entries, where the True entries
-    refer to topography cell which will be computed in the forward model
-    (default is all mesh cells)
-
+..    REQUIRED ARGUMENTS:
+..
+..    mesh -- 3D tensor or OcTree mesh object
+..
+..    KWARGS:
+..
+..    refFact -- Maximum refinement factor for sensitivities (default = 3)
+..
+..    refRadius -- Distances from source in which cell sensitivities are refined
+..    from smallest to largest. Must be an array or list with elements equal to
+..    the refFact. (default based on minimum cell size)
+..
+..    indActive -- A numpy array with boolean entries, where the True entries
+..    refer to topography cell which will be computed in the forward model
+..    (default is all mesh cells)
     """
 
     # SET CLASS ATTRIBUTES
@@ -102,15 +101,15 @@ class Problem_BaseVRM(Problem.BaseProblem):
         Creates sparse matrix containing inducing field components
         for source pp
 
-        REQUIRED ARGUMENTS:
-
-        xyz: N X 3 array of locations to predict field
-
-        pp: Source index
-
-        OUTPUTS:
-
-        H0: A 3N X N sparse array containing Hx, Hy and Hz at all locations
+..        REQUIRED ARGUMENTS:
+..
+..        xyz: N X 3 array of locations to predict field
+..
+..        pp: Source index
+..
+..        OUTPUTS:
+..
+..        H0: A 3N X N sparse array containing Hx, Hy and Hz at all locations
         """
 
         SrcObj = self.survey.srcList[pp]
@@ -131,17 +130,17 @@ class Problem_BaseVRM(Problem.BaseProblem):
         Creates the dense geometry matrix which maps from the magnetized voxel
         cells to the receiver locations for source pp
 
-        REQUIRED ARGUMENTS:
-
-        xyzc: N by 3 numpy array containing cell center locations [xc,yc,zc]
-
-        xyzh: N by 3 numpy array containing cell dimensions [hx,hy,hz]
-
-        pp: Source index
-
-        OUTPUTS:
-
-        G: Linear geometry operator
+..        REQUIRED ARGUMENTS:
+..
+..        xyzc: N by 3 numpy array containing cell center locations [xc,yc,zc]
+..
+..        xyzh: N by 3 numpy array containing cell dimensions [hx,hy,hz]
+..
+..        pp: Source index
+..
+..        OUTPUTS:
+..
+..        G: Linear geometry operator
         """
 
         srcObj = self.survey.srcList[pp]
@@ -378,21 +377,21 @@ class Problem_BaseVRM(Problem.BaseProblem):
         This method returns the refined sensitivities for columns that will be
         replaced in the A matrix for source pp and refinement factor qq.
 
-        INPUTS:
-
-        xyzc -- Cell centers of topo mesh cells N X 3 array
-
-        xyzh -- Cell widths of topo mesh cells N X 3 array
-
-        pp -- Source ID
-
-        qq -- Mesh refinement factor
-
-        refFlag -- refinement factors for all topo mesh cells
-
-        OUTPUTS:
-
-        Acols -- Columns containing replacement sensitivities
+..        INPUTS:
+..
+..        xyzc -- Cell centers of topo mesh cells N X 3 array
+..
+..        xyzh -- Cell widths of topo mesh cells N X 3 array
+..
+..        pp -- Source ID
+..
+..        qq -- Mesh refinement factor
+..
+..        refFlag -- refinement factors for all topo mesh cells
+..
+..        OUTPUTS:
+..
+..        Acols -- Columns containing replacement sensitivities
         """
 
         # GET SUBMESH GRID
@@ -428,25 +427,25 @@ class Problem_Linear(Problem_BaseVRM):
     is a time-approximate solution which uses the characteristic decay of
     the VRM response. The solution is only capable of providing the VRM
     response during the off-time. For background theory, see Cowan (2016).
-
-    REQUIRED ARGUMENTS:
-
-    mesh -- 3D tensor or OcTree mesh object
-
-    KWARGS:
-
-    refFact -- Maximum refinement factor for sensitivities (default = 3)
-
-    refRadius -- Distances from source in which cell sensitivities are refined.
-    Must be an array or list with elements equal to the refFact. (default based
-    on minimum cell size)
-
-    indActive -- A numpy array with boolean entries, where the True entries
-    refer to topography cell which will be computed in the forward model
-    (default is all mesh cells)
-
-    xiMap -- A SimPEG mapping object which maps the model to the active
-    topography cells (i.e. indActive)
+..
+..    REQUIRED ARGUMENTS:
+..
+..    mesh -- 3D tensor or OcTree mesh object
+..
+..    KWARGS:
+..
+..    refFact -- Maximum refinement factor for sensitivities (default = 3)
+..
+..    refRadius -- Distances from source in which cell sensitivities are refined.
+..    Must be an array or list with elements equal to the refFact. (default based
+..    on minimum cell size)
+..
+..    indActive -- A numpy array with boolean entries, where the True entries
+..    refer to topography cell which will be computed in the forward model
+..    (default is all mesh cells)
+..
+..    xiMap -- A SimPEG mapping object which maps the model to the active
+..    topography cells (i.e. indActive)
 
     """
 
@@ -472,9 +471,9 @@ class Problem_Linear(Problem_BaseVRM):
     def A(self):
 
         """
-        This function constructs the geometric sensitivity matrix for the
-        linear VRM problem. This function requires that the problem be paired
-        with a survey object.
+    This function constructs the geometric sensitivity matrix for the
+    linear VRM problem. This function requires that the problem be paired
+    with a survey object.
         """
 
         if self._AisSet is False:
@@ -501,8 +500,8 @@ class Problem_Linear(Problem_BaseVRM):
     def T(self):
 
         """
-        This function returns the characteristic decay matrix. This function
-        requires that the problem has been paired with a survey object.
+    This function returns the characteristic decay matrix. This function
+    requires that the problem has been paired with a survey object.
         """
 
         if self._TisSet is False:
@@ -622,24 +621,24 @@ class Problem_LogUniform(Problem_BaseVRM):
     constants. This model for VRM requires 4 model parameters for each cell:
     chi0, dchi, tau1, tau2.
 
-    REQUIRED ARGUMENTS:
-
-    mesh -- 3D tensor or OcTree mesh
-
-    KWARGS:
-
-    refFact -- Maximum refinement factor for sensitivities (default = 3)
-
-    refRadius -- Distances from source in which cell sensitivities are refined.
-    Must be an array or list with elements equal to the refFact. (default based
-    on minimum cell size)
-
-    indActive -- A numpy array with boolean entries, where the True entries
-    refer to topography cell which will be computed in the forward model
-    (default is all mesh cells)
-
-    xiMap -- A SimPEG mapping object which maps the model to the active
-    topography cells (i.e. indActive)
+..    REQUIRED ARGUMENTS:
+..
+..    mesh -- 3D tensor or OcTree mesh
+..
+..    KWARGS:
+..
+..    refFact -- Maximum refinement factor for sensitivities (default = 3)
+..
+..    refRadius -- Distances from source in which cell sensitivities are refined.
+..    Must be an array or list with elements equal to the refFact. (default based
+..    on minimum cell size)
+..
+..    indActive -- A numpy array with boolean entries, where the True entries
+..    refer to topography cell which will be computed in the forward model
+..    (default is all mesh cells)
+..
+..    xiMap -- A SimPEG mapping object which maps the model to the active
+..    topography cells (i.e. indActive)
 
     """
 

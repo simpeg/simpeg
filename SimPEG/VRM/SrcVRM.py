@@ -45,15 +45,15 @@ class MagDipole(BaseSrcVRM):
     """
     Magnetic dipole source for VRM problem.
 
-    REQUIRED ARGUMENTS:
-
-    rxList -- SimPEG receiver list
-
-    loc -- xyz location for the magnetic dipole source
-
-    moment -- numpy array [mx,my,mz] containing components of the dipole moment
-
-    waveform -- instance of a VRM wavefrom class
+..    REQUIRED ARGUMENTS:
+..
+..    rxList -- SimPEG receiver list
+..
+..    loc -- xyz location for the magnetic dipole source
+..
+..    moment -- numpy array [mx,my,mz] containing components of the dipole moment
+..
+..    waveform -- instance of a VRM wavefrom class
     """
 
     def __init__(self, rxList, loc, moment, waveform, **kwargs):
@@ -69,15 +69,15 @@ class MagDipole(BaseSrcVRM):
 
         """
         Computes inducing field at locations xyz
-
-        REQUIRED ARGUMENTS:
-
-        xyz -- N X 3 array of locations at which primary field components
-        are computed
-
-        OUTPUTS:
-
-        H0 -- N X 3 array containing [Hx0,Hy0,Hz0] at all xyz locations
+..
+..        REQUIRED ARGUMENTS:
+..
+..        xyz -- N X 3 array of locations at which primary field components
+..        are computed
+..
+..        OUTPUTS:
+..
+..        H0 -- N X 3 array containing [Hx0,Hy0,Hz0] at all xyz locations
 
         """
 
@@ -97,18 +97,18 @@ class MagDipole(BaseSrcVRM):
 
         """
         This function finds the refinement factor to be assigned to each cell
-
-        REQUIRED ARGUMENTS:
-
-        xyzc -- Cell-center locations as NX3 array
-
-        refFact -- Refinement factors
-
-        refRadius -- Refinement radii
-
-        OUTPUTS:
-
-        refFlag -- Vector of length N with the refinement factor for each cell
+..
+..        REQUIRED ARGUMENTS:
+..
+..        xyzc -- Cell-center locations as NX3 array
+..
+..        refFact -- Refinement factors
+..
+..        refRadius -- Refinement radii
+..
+..        OUTPUTS:
+..
+..        refFlag -- Vector of length N with the refinement factor for each cell
         """
 
         refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
@@ -130,21 +130,21 @@ class MagDipole(BaseSrcVRM):
 class CircLoop(BaseSrcVRM):
 
     """
-    Circular current loop source for VRM problem.
-
-    REQUIRED ARGUMENTS:
-
-    rxList: SimPEG receiver list
-
-    loc -- xyz location for the center of the loop
-
-    orientation -- np.r_[theta, alpha] where theta is azimuthal angle and alpha
-    is declination angle
-
-    Imax -- Maximum current in the transmitter wire (can be positive
-    or negative)
-
-    waveform -- instance of a VRM waveform class
+..    Circular current loop source for VRM problem.
+..
+..    REQUIRED ARGUMENTS:
+..
+..    rxList: SimPEG receiver list
+..
+..    loc -- xyz location for the center of the loop
+..
+..    orientation -- np.r_[theta, alpha] where theta is azimuthal angle and alpha
+..    is declination angle
+..
+..    Imax -- Maximum current in the transmitter wire (can be positive
+..    or negative)
+..
+..    waveform -- instance of a VRM waveform class
     """
 
     def __init__(self, rxList, loc, radius, orientation, Imax, waveform, **kwargs):
@@ -162,16 +162,16 @@ class CircLoop(BaseSrcVRM):
 
         """
         Computes inducing field at locations xyz
-
-        REQUIRED ARGUMENTS:
-
-        xyz -- N X 3 array of locations at which primary field components
-        are computed
-
-        OUTPUTS:
-
-        H0 -- N X 3 array containing [Hx0,Hy0,Hz0] at all xyz locations
-
+..
+..        REQUIRED ARGUMENTS:
+..
+..        xyz -- N X 3 array of locations at which primary field components
+..        are computed
+..
+..        OUTPUTS:
+..
+..        H0 -- N X 3 array containing [Hx0,Hy0,Hz0] at all xyz locations
+..
         """
 
         r0 = self.loc
@@ -208,18 +208,18 @@ class CircLoop(BaseSrcVRM):
 
         """
         This function finds the refinement factor to be assigned to each cell
-
-        REQUIRED ARGUMENTS:
-
-        xyzc -- Cell-center locations as NX3 array
-
-        refFact -- Refinement factors
-
-        refRadius -- Refinement radii
-
-        OUTPUTS:
-
-        refFlag -- Vector of length N with the refinement factor for each cell
+..
+..        REQUIRED ARGUMENTS:
+..
+..        xyzc -- Cell-center locations as NX3 array
+..
+..        refFact -- Refinement factors
+..
+..        refRadius -- Refinement radii
+..
+..        OUTPUTS:
+..
+..        refFlag -- Vector of length N with the refinement factor for each cell
         """
 
         refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
@@ -257,17 +257,17 @@ class LineCurrent(BaseSrcVRM):
 
     """
     Line current segments source for VRM problem.
-
-    REQUIRED ARGUMENTS:
-
-    rxList -- SimPEG receiver list
-
-    loc -- N+1 X 3 numpy array with node locations for transmitter wire.
-
-    Imax -- Maximum current in the transmitter wire (can be positive
-    or negative)
-
-    waveform -- instance of a VRM waveform class
+..
+..    REQUIRED ARGUMENTS:
+..
+..    rxList -- SimPEG receiver list
+..
+..    loc -- N+1 X 3 numpy array with node locations for transmitter wire.
+..
+..    Imax -- Maximum current in the transmitter wire (can be positive
+..    or negative)
+..
+..    waveform -- instance of a VRM waveform class
     """
 
     def __init__(self, rxList, loc, Imax, waveform, **kwargs):
@@ -283,16 +283,15 @@ class LineCurrent(BaseSrcVRM):
 
         """
         Computes inducing field at locations xyz
-
-        REQUIRED ARGUMENTS:
-
-        xyz -- N X 3 array of locations at which primary field components
-        are computed
-
-        OUTPUTS:
-
-        H0 -- N X 3 array containing [Hx0,Hy0,Hz0] at all xyz locations
-
+..
+..        REQUIRED ARGUMENTS:
+..
+..        xyz -- N X 3 array of locations at which primary field components
+..        are computed
+..
+..        OUTPUTS:
+..
+..        H0 -- N X 3 array containing [Hx0,Hy0,Hz0] at all xyz locations
         """
 
         # TRANSMITTER NODES
@@ -355,18 +354,18 @@ class LineCurrent(BaseSrcVRM):
 
         """
         This function finds the refinement factor to be assigned to each cell
-
-        REQUIRED ARGUMENTS:
-
-        xyzc -- Cell-center locations as NX3 array
-
-        refFact -- Refinement factors
-
-        refRadius -- Refinement radii
-
-        OUTPUTS:
-
-        refFlag -- Vector of length N with the refinement factor for each cell
+..
+..        REQUIRED ARGUMENTS:
+..
+..        xyzc -- Cell-center locations as NX3 array
+..
+..        refFact -- Refinement factors
+..
+..        refRadius -- Refinement radii
+..
+..        OUTPUTS:
+..
+..        refFlag -- Vector of length N with the refinement factor for each cell
         """
 
         refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)

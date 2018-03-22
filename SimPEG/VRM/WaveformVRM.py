@@ -10,12 +10,12 @@ class StepOff():
 
     """
     Step-Off waveform for predicting VRM response.
-
-    REQUIRED ARGUMENTS: None
-
-    KWARGS:
-
-    t0 -- The start of the off-time (default is 0)
+..
+..    REQUIRED ARGUMENTS: None
+..
+..    KWARGS:
+..
+..    t0 -- The start of the off-time (default is 0)
 
     """
 
@@ -39,17 +39,17 @@ class StepOff():
         describes the decay of the VRM response for the linear problem type.
         Note that the current will be normalized by its maximum value. The
         maximum current in the transmitter is specified in the source object.
-
-        REQUIRED ARGUMENTS:
-
-        fieldType -- must be 'dhdt' or 'dbdt'. Characteristic decay for 'h'
-        or 'b' CANNOT be computed for step-off
-
-        times -- Observation times. These times MUST be during the off-time.
-
-        OUTPUTS:
-
-        eta -- characteristic decay function evaluated at all specified times.
+..
+..        REQUIRED ARGUMENTS:
+..
+..        fieldType -- must be 'dhdt' or 'dbdt'. Characteristic decay for 'h'
+..        or 'b' CANNOT be computed for step-off
+..
+..        times -- Observation times. These times MUST be during the off-time.
+..
+..        OUTPUTS:
+..
+..        eta -- characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["dhdt", "dbdt"], "For step-off, fieldType must be one of 'dhdt' or 'dbdt' and cannot be 'h' or 'b'"
@@ -72,27 +72,27 @@ class StepOff():
         time-relaxation constants. The output of this function is the
         magnetization at each time for each cell, normalized by the inducing
         field.
-
-        REQUIRED ARGUMENTS:
-
-        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
-
-        times -- Observation times
-
-        chi0 -- DC (zero-frequency) magnetic susceptibility for all cells
-
-        dchi -- DC (zero-frequency) magnetic susceptibility attributed to VRM
-        for all cells
-
-        tau1 -- Lower-bound for log-uniform distribution of time-relaxation
-        constants for all cells
-
-        tau2 -- Upper-bound for log-uniform distribution of time-relaxation
-        constants for all cells
-
-        OUTPUTS:
-
-        eta -- characteristic decay function evaluated at all specified times.
+..
+..        REQUIRED ARGUMENTS:
+..
+..        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
+..
+..        times -- Observation times
+..
+..        chi0 -- DC (zero-frequency) magnetic susceptibility for all cells
+..
+..        dchi -- DC (zero-frequency) magnetic susceptibility attributed to VRM
+..        for all cells
+..
+..        tau1 -- Lower-bound for log-uniform distribution of time-relaxation
+..        constants for all cells
+..
+..        tau2 -- Upper-bound for log-uniform distribution of time-relaxation
+..        constants for all cells
+..
+..        OUTPUTS:
+..
+..        eta -- characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' "
@@ -146,14 +146,14 @@ class SquarePulse():
 
     """
     Square-pulse waveform for predicting VRM response.
-
-    REQUIRED ARGUMENTS:
-
-    delt -- Duration of the on-time
-
-    KWARGS:
-
-    t0 -- The start of the off-time (default is 0)
+..
+..    REQUIRED ARGUMENTS:
+..
+..    delt -- Duration of the on-time
+..
+..    KWARGS:
+..
+..    t0 -- The start of the off-time (default is 0)
     """
 
     def __init__(self, delt, **kwargs):
@@ -187,16 +187,16 @@ class SquarePulse():
         problem type. Note that the current will be normalized by its maximum
         value. The maximum current in the transmitter is specified in the
         source object.
-
-        REQUIRED ARGUMENTS:
-
-        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
-
-        times -- Observation times. These times MUST be during the off-time.
-
-        OUTPUTS:
-
-        eta -- characteristic decay function evaluated at all specified times.
+..
+..        REQUIRED ARGUMENTS:
+..
+..        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
+..
+..        times -- Observation times. These times MUST be during the off-time.
+..
+..        OUTPUTS:
+..
+..        eta -- characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "For square-pulse, fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
@@ -224,27 +224,27 @@ class SquarePulse():
         of time-relaxation constants. The output of this function is the
         magnetization at each time for each cell, normalized by the inducing
         field.
-
-        REQUIRED ARGUMENTS:
-
-        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
-
-        times -- Observation times.
-
-        chi0 -- DC (zero-frequency) magnetic susceptibility for all cells
-
-        dchi -- DC (zero-frequency) magnetic susceptibility attributed to VRM
-        for all cells
-
-        tau1 -- Lower-bound for log-uniform distribution of time-relaxation
-        constants for all cells
-
-        tau2 -- Upper-bound for log-uniform distribution of time-relaxation
-        constants for all cells
-
-        OUTPUTS:
-
-        eta -- characteristic decay function evaluated at all specified times.
+..
+..        REQUIRED ARGUMENTS:
+..
+..        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
+..
+..        times -- Observation times.
+..
+..        chi0 -- DC (zero-frequency) magnetic susceptibility for all cells
+..
+..        dchi -- DC (zero-frequency) magnetic susceptibility attributed to VRM
+..        for all cells
+..
+..        tau1 -- Lower-bound for log-uniform distribution of time-relaxation
+..        constants for all cells
+..
+..        tau2 -- Upper-bound for log-uniform distribution of time-relaxation
+..        constants for all cells
+..
+..        OUTPUTS:
+..
+..        eta -- characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' "
@@ -311,12 +311,12 @@ class ArbitraryDiscrete():
     the waveform as a set of trapezoids with uniform width. The current is
     normalized by its largest absolute value. The maximum current in the
     transmitter is specified in the source object.
-
-    REQUIRED ARGUMENTS:
-
-    t -- Times for the waveform
-
-    I -- Current for the waveform
+..
+..    REQUIRED ARGUMENTS:
+..
+..    t -- Times for the waveform
+..
+..    I -- Current for the waveform
     """
 
     def __init__(self, t, I):
@@ -334,16 +334,16 @@ class ArbitraryDiscrete():
         describes the decay of the VRM response for the Linear problem type.
         Note that the current will be normalized by its maximum value. The
         maximum current in the transmitter is specified in the source object.
-
-        REQUIRD ARGUMENTS:
-
-        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
-
-        times -- Observation times. These times MUST be during the off-time.
-
-        OUTPUTS:
-
-        eta -- characteristic decay function evaluated at all specified times.
+..
+..        REQUIRD ARGUMENTS:
+..
+..        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
+..
+..        times -- Observation times. These times MUST be during the off-time.
+..
+..        OUTPUTS:
+..
+..        eta -- characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
@@ -396,12 +396,12 @@ class ArbitraryPiecewise():
     more finely at the end. The current is normalized by its largest absolute
     value. The maximum current in the transmitter is specified in the source
     object.
-
-    REQUIRED ARGUMENTS:
-
-    t -- Times for the waveform
-
-    I -- Current for the waveform
+..
+..    REQUIRED ARGUMENTS:
+..
+..    t -- Times for the waveform
+..
+..    I -- Current for the waveform
     """
 
     def __init__(self, t, I):
@@ -419,16 +419,16 @@ class ArbitraryPiecewise():
         describes the decay of the VRM response for the Linear problem type.
         Note that the current will be LogUniformized by its maximum value. The
         maximum current in the transmitter is specified in the source object.
-
-        INPUTS:
-
-        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
-
-        times -- Observation times. These times must be during the off-time.
-
-        OUTPUTS:
-
-        eta -- characteristic decay function evaluated at all specified times.
+..
+..        INPUTS:
+..
+..        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
+..
+..        times -- Observation times. These times must be during the off-time.
+..
+..        OUTPUTS:
+..
+..        eta -- characteristic decay function evaluated at all specified times.
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
@@ -468,12 +468,12 @@ class Custom():
     """
     Custom decay. If you have the values of the decay at the observed times,
     it can be set here to avoid recalculating for every source.
-
-    REQUIRED ARGUMENTS:
-
-    t -- observation times
-
-    eta -- decay at observed times
+..
+..    REQUIRED ARGUMENTS:
+..
+..    t -- observation times
+..
+..    eta -- decay at observed times
     """
 
     def __init__(self, t, eta):
