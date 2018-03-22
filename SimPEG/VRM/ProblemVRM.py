@@ -10,23 +10,6 @@ import scipy.sparse as sp
 
 class Problem_BaseVRM(Problem.BaseProblem):
     """
-    **Base class for VRM problem.**
-..
-..    REQUIRED ARGUMENTS:
-..
-..    mesh -- 3D tensor or OcTree mesh object
-..
-..    KWARGS:
-..
-..    refFact -- Maximum refinement factor for sensitivities (default = 3)
-..
-..    refRadius -- Distances from source in which cell sensitivities are refined
-..    from smallest to largest. Must be an array or list with elements equal to
-..    the refFact. (default based on minimum cell size)
-..
-..    indActive -- A numpy array with boolean entries, where the True entries
-..    refer to topography cell which will be computed in the forward model
-..    (default is all mesh cells)
 
     """
 
@@ -101,7 +84,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
         """
         Creates sparse matrix containing inducing field components
         for source pp
-..
+
 ..        REQUIRED ARGUMENTS:
 ..
 ..        xyz: N X 3 array of locations to predict field
@@ -111,7 +94,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
 ..        OUTPUTS:
 ..
 ..        H0: A 3N X N sparse array containing Hx, Hy and Hz at all locations
-
+..
         """
 
         SrcObj = self.survey.srcList[pp]
