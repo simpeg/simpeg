@@ -410,29 +410,6 @@ class Problem_BaseVRM(Problem.BaseProblem):
 class Problem_Linear(Problem_BaseVRM):
 
     """
-    Problem class for linear VRM problem. The the solution to this problem
-    is a time-approximate solution which uses the characteristic decay of
-    the VRM response. The solution is only capable of providing the VRM
-    response during the off-time. For background theory, see Cowan (2016).
-..
-..    REQUIRED ARGUMENTS:
-..
-..    mesh -- 3D tensor or OcTree mesh object
-..
-..    KWARGS:
-..
-..    refFact -- Maximum refinement factor for sensitivities (default = 3)
-..
-..    refRadius -- Distances from source in which cell sensitivities are refined.
-..    Must be an array or list with elements equal to the refFact. (default based
-..    on minimum cell size)
-..
-..    indActive -- A numpy array with boolean entries, where the True entries
-..    refer to topography cell which will be computed in the forward model
-..    (default is all mesh cells)
-..
-..    xiMap -- A SimPEG mapping object which maps the model to the active
-..    topography cells (i.e. indActive)
 
     """
 
@@ -606,28 +583,6 @@ class Problem_Linear(Problem_BaseVRM):
 class Problem_LogUniform(Problem_BaseVRM):
 
     """
-    Problem class for VRM assuming a log-normal distribution of time-relaxation
-    constants. This model for VRM requires 4 model parameters for each cell:
-    chi0, dchi, tau1, tau2.
-..
-..    REQUIRED ARGUMENTS:
-..
-..    mesh -- 3D tensor or OcTree mesh
-..
-..    KWARGS:
-..
-..    refFact -- Maximum refinement factor for sensitivities (default = 3)
-..
-..    refRadius -- Distances from source in which cell sensitivities are refined.
-..    Must be an array or list with elements equal to the refFact. (default based
-..    on minimum cell size)
-..
-..    indActive -- A numpy array with boolean entries, where the True entries
-..    refer to topography cell which will be computed in the forward model
-..    (default is all mesh cells)
-..
-..    xiMap -- A SimPEG mapping object which maps the model to the active
-..    topography cells (i.e. indActive)
 
     """
 

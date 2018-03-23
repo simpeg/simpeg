@@ -44,6 +44,7 @@ class Point_h(BaseRxVRM):
 ..    times -- Time channels in seconds
 ..
 ..    fieldComp -- Must be one of 'x', 'y' or 'z'
+
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
@@ -67,6 +68,7 @@ class Point_dhdt(BaseRxVRM):
 ..    times -- Time channels in seconds
 ..
 ..    fieldComp -- Must be one of 'x', 'y' or 'z'
+
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
@@ -90,6 +92,7 @@ class Point_b(BaseRxVRM):
 ..    times -- Time channels in seconds
 ..
 ..    fieldComp -- Must be one of 'x', 'y' or 'z'
+
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):
@@ -114,6 +117,7 @@ class Point_dbdt(BaseRxVRM):
 ..    times -- Time channels in seconds
 ..
 ..    fieldComp -- Must be one of 'x', 'y' or 'z'
+
     """
 
     def __init__(self, locsXYZ, times, fieldComp, **kwargs):

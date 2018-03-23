@@ -43,17 +43,7 @@ class BaseSrcVRM(Survey.BaseSrc):
 class MagDipole(BaseSrcVRM):
 
     """
-    Magnetic dipole source for VRM problem.
 
-..    REQUIRED ARGUMENTS:
-..
-..    rxList -- SimPEG receiver list
-..
-..    loc -- xyz location for the magnetic dipole source
-..
-..    moment -- numpy array [mx,my,mz] containing components of the dipole moment
-..
-..    waveform -- instance of a VRM wavefrom class
     """
 
     def __init__(self, rxList, loc, moment, waveform, **kwargs):
@@ -69,15 +59,15 @@ class MagDipole(BaseSrcVRM):
 
         """
         Computes inducing field at locations xyz
-..
-..        REQUIRED ARGUMENTS:
-..
-..        xyz -- N X 3 array of locations at which primary field components
-..        are computed
-..
-..        OUTPUTS:
-..
-..        H0 -- N X 3 array containing [Hx0,Hy0,Hz0] at all xyz locations
+
+        REQUIRED ARGUMENTS:
+
+        xyz -- N X 3 array of locations at which primary field components
+        are computed
+
+        OUTPUTS:
+
+        H0 -- N X 3 array containing [Hx0,Hy0,Hz0] at all xyz locations
 
         """
 

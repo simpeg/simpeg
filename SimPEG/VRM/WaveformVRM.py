@@ -9,13 +9,6 @@ import scipy.special as spec
 class StepOff():
 
     """
-    Step-Off waveform for predicting VRM response.
-..
-..    REQUIRED ARGUMENTS: None
-..
-..    KWARGS:
-..
-..    t0 -- The start of the off-time (default is 0)
 
     """
 
@@ -50,6 +43,7 @@ class StepOff():
 ..        OUTPUTS:
 ..
 ..        eta -- characteristic decay function evaluated at all specified times.
+
         """
 
         assert fieldType in ["dhdt", "dbdt"], "For step-off, fieldType must be one of 'dhdt' or 'dbdt' and cannot be 'h' or 'b'"
@@ -93,6 +87,7 @@ class StepOff():
 ..        OUTPUTS:
 ..
 ..        eta -- characteristic decay function evaluated at all specified times.
+
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' "
@@ -145,15 +140,7 @@ class StepOff():
 class SquarePulse():
 
     """
-    Square-pulse waveform for predicting VRM response.
-..
-..    REQUIRED ARGUMENTS:
-..
-..    delt -- Duration of the on-time
-..
-..    KWARGS:
-..
-..    t0 -- The start of the off-time (default is 0)
+
     """
 
     def __init__(self, delt, **kwargs):
@@ -197,6 +184,7 @@ class SquarePulse():
 ..        OUTPUTS:
 ..
 ..        eta -- characteristic decay function evaluated at all specified times.
+
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "For square-pulse, fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
@@ -245,6 +233,7 @@ class SquarePulse():
 ..        OUTPUTS:
 ..
 ..        eta -- characteristic decay function evaluated at all specified times.
+
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' "
@@ -307,16 +296,7 @@ class SquarePulse():
 class ArbitraryDiscrete():
 
     """
-    Arbitrary waveform for predicting VRM response. This approach approximates
-    the waveform as a set of trapezoids with uniform width. The current is
-    normalized by its largest absolute value. The maximum current in the
-    transmitter is specified in the source object.
-..
-..    REQUIRED ARGUMENTS:
-..
-..    t -- Times for the waveform
-..
-..    I -- Current for the waveform
+
     """
 
     def __init__(self, t, I):
@@ -344,6 +324,7 @@ class ArbitraryDiscrete():
 ..        OUTPUTS:
 ..
 ..        eta -- characteristic decay function evaluated at all specified times.
+
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
@@ -390,18 +371,7 @@ class ArbitraryDiscrete():
 class ArbitraryPiecewise():
 
     """
-    Arbitrary waveform for predicting VRM response. This approach approximates
-    the waveform as a piecewise linear function. The user is encourage to
-    discretize the function more sparsely at the beginning of the function and
-    more finely at the end. The current is normalized by its largest absolute
-    value. The maximum current in the transmitter is specified in the source
-    object.
-..
-..    REQUIRED ARGUMENTS:
-..
-..    t -- Times for the waveform
-..
-..    I -- Current for the waveform
+
     """
 
     def __init__(self, t, I):
@@ -429,6 +399,7 @@ class ArbitraryPiecewise():
 ..        OUTPUTS:
 ..
 ..        eta -- characteristic decay function evaluated at all specified times.
+
         """
 
         assert fieldType in ["h", "dhdt", "b", "dbdt"], "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
@@ -466,14 +437,7 @@ class ArbitraryPiecewise():
 class Custom():
 
     """
-    Custom decay. If you have the values of the decay at the observed times,
-    it can be set here to avoid recalculating for every source.
-..
-..    REQUIRED ARGUMENTS:
-..
-..    t -- observation times
-..
-..    eta -- decay at observed times
+
     """
 
     def __init__(self, t, eta):

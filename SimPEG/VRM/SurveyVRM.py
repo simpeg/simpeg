@@ -11,15 +11,7 @@ import numpy as np
 class SurveyVRM(Survey.BaseSurvey):
 
     """
-    **Survey class for VRM problems.**
-..
-..    REQUIRED ARGUMENTS:
-..
-..    srcList -- A source list containing VRM sources
-..
-..    KWARGS:
-..
-..    ActiveTimeInterval -- a list of length 2 with the minimum and maximum time
+
     """
 
     _tActive = None
@@ -82,13 +74,7 @@ class SurveyVRM(Survey.BaseSurvey):
     def dpred(self, m=None, f=None):
 
         """
-        Predict data for a given model.
-..
-..        INPUT ARGS:
-..
-..        m -- An amalgamated magnetic parameter model
-..
-..        f -- Pre-computed fields
+
         """
 
         assert self.ispaired, "Survey must be paired with a VRM problem"
