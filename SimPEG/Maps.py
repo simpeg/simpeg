@@ -125,7 +125,7 @@ class IdentityMap(object):
 
             :param numpy.array m: model
             :param kwargs: key word arguments of
-                           :meth:`SimPEG.Tests.checkDerivative`
+                           :meth:`discretize.Tests.checkDerivative`
             :rtype: bool
             :return: passed the test?
 
@@ -149,7 +149,7 @@ class IdentityMap(object):
 
             :param numpy.array m: model
             :param kwargs: key word arguments of
-                           :meth:`SimPEG.Tests.checkDerivative`
+                           :meth:`discretize.Tests.checkDerivative`
             :rtype: bool
             :return: passed the test?
 
