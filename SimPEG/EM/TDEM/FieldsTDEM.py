@@ -110,7 +110,7 @@ class FieldsTDEM(SimPEG.Problem.TimeFields):
 
 class Fields_Derivs_eb(FieldsTDEM):
     """
-        A fields object for satshing derivs
+    A fields object for satshing derivs in the EB formulatio
     """
     knownFields = {
                     'bDeriv': 'F',
@@ -124,7 +124,7 @@ class Fields_Derivs_eb(FieldsTDEM):
 
 class Fields_Derivs_hj(FieldsTDEM):
     """
-        A fields object for satshing derivs
+    A fields object for satshing derivs in the HJ formulation
     """
     knownFields = {
                     'bDeriv': 'E',
