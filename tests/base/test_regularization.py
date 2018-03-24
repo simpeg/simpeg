@@ -296,7 +296,7 @@ class RegularizationTests(unittest.TestCase):
         self.assertTrue(reg.objfcts[2].norm == 2.)
         self.assertTrue(reg.objfcts[3].norm == 2.)
 
-        reg.norms = [0., 1., 1., 1.]
+        reg.norms = np.c_[0., 1., 1., 1.]
         self.assertTrue(np.all(reg.norms == [0., 1., 1., 1.]))
         self.assertTrue(reg.objfcts[0].norm == 0.)
         self.assertTrue(reg.objfcts[1].norm == 1.)

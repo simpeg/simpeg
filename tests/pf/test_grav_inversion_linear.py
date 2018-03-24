@@ -104,7 +104,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         # Create a regularization
         reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
         reg.cell_weights = wr
-        reg.norms = [0, 1, 1, 1]
+        reg.norms = np.c_[0, 1, 1, 1]
         reg.eps_p, reg.eps_q = 5e-2, 1e-2
 
         # Data misfit function
