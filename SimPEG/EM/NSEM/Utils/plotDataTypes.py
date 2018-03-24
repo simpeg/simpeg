@@ -175,9 +175,11 @@ def plotIsoFreqNStipper(ax,freq,array,flag,par='abs',colorbar=True,colorNorm='Sy
 def plotIsoStaImpedance(ax, loc, array, flag, par='abs',
                         pSym='s', pColor=None, addLabel='', zorder=1):
 
-    appResFact = 1/(8*np.pi**2*10**(-7))
+    appResFact = 1 / (8 * np.pi**2 * 10**(-7))
     treshold = 1.0 # 1 meter
-    indUniSta = np.sqrt(np.sum((array[['x','y']].view((float,2))-loc)**2,axis=1)) < treshold
+    indUniSta = np.sqrt(
+        np.sum((array[['x', 'y']].copy().view((float, 2)) - loc)**2, axis=1)
+    ) < treshold
     freq = array['freq'][indUniSta]
 
     if par == 'abs':
@@ -187,9 +189,11 @@ def plotIsoStaImpedance(ax, loc, array, flag, par='abs',
     elif par == 'imag':
         zPlot = np.imag(array[flag][indUniSta])
     elif par == 'res':
-        zPlot = (appResFact/freq)*np.abs(array[flag][indUniSta])**2
+        zPlot = (appResFact / freq) * np.abs(array[flag][indUniSta])**2
     elif par == 'phs':
-        zPlot = np.arctan2(array[flag][indUniSta].imag,array[flag][indUniSta].real)*(180/np.pi)
+        zPlot = np.arctan2(
+            array[flag][indUniSta].imag,
+            array[flag][indUniSta].real) * (180 / np.pi)
 
     if not pColor:
         if 'xx' in flag:
@@ -205,12 +209,15 @@ def plotIsoStaImpedance(ax, loc, array, flag, par='abs',
             lab = 'YY'
             pColor = 'y'
 
-    ax.plot(freq,zPlot,color=pColor,marker=pSym,label=flag+addLabel,zorder=zorder)
+    ax.plot(freq, zPlot, color=pColor, marker=pSym,
+        label=flag + addLabel, zorder=zorder)
 
 
-def plotPsudoSectNSimpedance(ax,sectDict,array,flag,par='abs',colorbar=True,colorNorm='None',cLevel=None,contour=True):
+def plotPsudoSectNSimpedance(
+    ax, sectDict, array, flag, par='abs', colorbar=True,
+        colorNorm='None', cLevel=None, contour=True):
 
-    indSect = np.where(sectDict.values()[0]==array[sectDict.keys()[0]])
+    indSect = np.where(sectDict.values()[0] == array[sectDict.keys()[0]])
 
     # Define the plot axes
     if 'x' in sectDict.keys()[0]:

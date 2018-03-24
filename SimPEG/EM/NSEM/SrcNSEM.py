@@ -57,34 +57,37 @@ class Planewave_xy_1Dprimary(BaseNSEMSrc):
         BaseNSEMSrc.__init__(self, rxList, freq)
 
 
-    def ePrimary(self,problem):
+    def ePrimary(self, problem):
         # Get primary fields for both polarizations
         if self.sigma1d is None:
             # Set the sigma1d as the 1st column in the background model
             if len(problem._sigmaPrimary) == problem.mesh.nC:
                 if problem.mesh.dim == 1:
-                    self.sigma1d = problem.mesh.r(problem._sigmaPrimary,'CC','CC','M')[:]
+                    self.sigma1d = problem.mesh.r(
+                        problem._sigmaPrimary, 'CC', 'CC', 'M')[:]
                 elif problem.mesh.dim == 3:
-                    self.sigma1d = problem.mesh.r(problem._sigmaPrimary,'CC','CC','M')[0,0,:]
+                    self.sigma1d = problem.mesh.r(
+                        problem._sigmaPrimary, 'CC', 'CC', 'M')[0, 0, :]
             # Or as the 1D model that matches the vertical cell number
             elif len(problem._sigmaPrimary) == problem.mesh.nCz:
                 self.sigma1d = problem._sigmaPrimary
 
         if self._ePrimary is None:
-            self._ePrimary = homo1DModelSource(problem.mesh,self.freq,self.sigma1d)
+            self._ePrimary = homo1DModelSource(
+                problem.mesh, self.freq, self.sigma1d)
         return self._ePrimary
 
-    def bPrimary(self,problem):
+    def bPrimary(self, problem):
         # Project ePrimary to bPrimary
         # Satisfies the primary(background) field conditions
         if problem.mesh.dim == 1:
             C = problem.mesh.nodalGrad
         elif problem.mesh.dim == 3:
             C = problem.mesh.edgeCurl
-        bBG_bp = (- C * self.ePrimary(problem) )*(1/( 1j*omega(self.freq) ))
+        bBG_bp = (- C * self.ePrimary(problem)) * (1 / (1j * omega(self.freq)))
         return bBG_bp
 
-    def S_e(self,problem):
+    def S_e(self, problem):
         """
         Get the electrical field source
         """
@@ -104,22 +107,24 @@ class Planewave_xy_1Dprimary(BaseNSEMSrc):
             Mesigma_p = problem.mesh.getEdgeInnerProduct(sigma_p)
         return (Mesigma - Mesigma_p) * e_p
 
-    def S_eDeriv(self, problem, v, adjoint = False):
+    def S_eDeriv(self, problem, v, adjoint=False):
         """
         The derivative of S_e with respect to
         """
 
         return self.S_eDeriv_m(problem, v, adjoint)
 
-    def S_eDeriv_m(self, problem, v, adjoint = False):
+    def S_eDeriv_m(self, problem, v, adjoint=False):
         '''
         Get the derivative of S_e wrt to sigma (m)
         '''
         # Need to deal with
         if problem.mesh.dim == 1:
             # Need to use the faceInnerProduct
-            ePri = self.ePrimary(problem)[:,1]
-            MsigmaDeriv = problem.mesh.getFaceInnerProductDeriv(problem.sigma)(ePri) * problem.sigmaDeriv
+            ePri = self.ePrimary(problem)[:, 1]
+            MsigmaDeriv = (
+                problem.mesh.getFaceInnerProductDeriv(problem.sigma)(ePri) *
+                problem.sigmaDeriv)
             # MsigmaDeriv = ( MsigmaDeriv * MsigmaDeriv.T)**2
 
             if adjoint:
@@ -135,17 +140,13 @@ class Planewave_xy_1Dprimary(BaseNSEMSrc):
             # And stack them to be of the correct size
             e_p = self.ePrimary(problem)
             if adjoint:
-                return (
-                    problem.MeSigmaDeriv(e_p[:, 0], v[:problem.mesh.nE], adjoint) +
-                    problem.MeSigmaDeriv(e_p[:, 1], v[problem.mesh.nE:], adjoint)
-                )
+                return sp.hstack((
+                    problem.MeSigmaDeriv(e_p[:, 0]).T,
+                    problem.MeSigmaDeriv(e_p[:, 1]).T)) * v
             else:
-                return np.hstack(
-                    (
-                        mkvc(problem.MeSigmaDeriv(e_p[:, 0], v, adjoint), 2),
-                        mkvc(problem.MeSigmaDeriv(e_p[:, 1], v, adjoint), 2)
-                    )
-                )
+                return np.hstack((
+                    mkvc(problem.MeSigmaDeriv(e_p[:, 0]) * v, 2),
+                    mkvc(problem.MeSigmaDeriv(e_p[:, 1]) * v, 2)))
 
 
 class Planewave_xy_3Dprimary(BaseNSEMSrc):
@@ -161,25 +162,28 @@ class Planewave_xy_3Dprimary(BaseNSEMSrc):
         # Hidden property of the ePrimary
         self._ePrimary = None
 
-    def ePrimary(self,problem):
+    def ePrimary(self, problem):
         # Get primary fields for both polarizations
         self.sigmaPrimary = problem._sigmaPrimary
 
         if self._ePrimary is None:
-            self._ePrimary = homo3DModelSource(problem.mesh,self.sigmaPrimary,self.freq)
+            self._ePrimary = homo3DModelSource(
+                problem.mesh, self.sigmaPrimary, self.freq)
         return self._ePrimary
 
-    def bPrimary(self,problem):
+    def bPrimary(self, problem):
         # Project ePrimary to bPrimary
         # Satisfies the primary(background) field conditions
         if problem.mesh.dim == 1:
             C = problem.mesh.nodalGrad
         elif problem.mesh.dim == 3:
             C = problem.mesh.edgeCurl
-        bBG_bp = (- C * self.ePrimary(problem) )*(1/( 1j*omega(self.freq) ))
+        bBG_bp = (
+            (- C * self.ePrimary(problem)) *
+            (1 / (1j * omega(self.freq))))
         return bBG_bp
 
-    def S_e(self,problem):
+    def S_e(self, problem):
         """
         Get the electrical field source
         """
@@ -199,26 +203,31 @@ class Planewave_xy_3Dprimary(BaseNSEMSrc):
             Mesigma_p = problem.mesh.getEdgeInnerProduct(sigma_p)
         return (Mesigma - Mesigma_p) * e_p
 
-    def S_eDeriv_m(self, problem, v, adjoint = False):
+    def S_eDeriv_m(self, problem, v, adjoint=False):
         '''
         Get the derivative of S_e wrt to sigma (m)
         '''
         # Need to deal with
         if problem.mesh.dim == 1:
             # Need to use the faceInnerProduct
-            MsigmaDeriv = problem.mesh.getFaceInnerProductDeriv(problem.sigma)(self.ePrimary(problem)[:,1]) * problem.sigmaDeriv
+            MsigmaDeriv = (
+                problem.mesh.getFaceInnerProductDeriv(
+                    problem.sigma)(self.ePrimary(problem)[:, 1]) *
+                problem.sigmaDeriv)
             # MsigmaDeriv = ( MsigmaDeriv * MsigmaDeriv.T)**2
         if problem.mesh.dim == 2:
             pass
         if problem.mesh.dim == 3:
             # Need to take the derivative of both u_px and u_py
             ePri = self.ePrimary(problem)
-            # MsigmaDeriv = problem.MeSigmaDeriv(ePri[:,0]) + problem.MeSigmaDeriv(ePri[:,1])
-            # MsigmaDeriv = problem.MeSigmaDeriv(np.sum(ePri,axis=1))
             if adjoint:
-                return sp.hstack(( problem.MeSigmaDeriv(ePri[:,0]).T, problem.MeSigmaDeriv(ePri[:,1]).T ))*v
+                return sp.hstack((
+                    problem.MeSigmaDeriv(ePri[:, 0]).T,
+                    problem.MeSigmaDeriv(ePri[:, 1]).T)) * v
             else:
-                return np.hstack(( mkvc(problem.MeSigmaDeriv(ePri[:,0]) * v,2), mkvc(problem.MeSigmaDeriv(ePri[:,1])*v,2) ))
+                return np.hstack((
+                    mkvc(problem.MeSigmaDeriv(ePri[:, 0]) * v, 2),
+                    mkvc(problem.MeSigmaDeriv(ePri[:, 1]) * v, 2) ))
         if adjoint:
             #
             return MsigmaDeriv.T * v

@@ -57,6 +57,7 @@ install:
     else
       conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
     fi
+
   - pip install -r requirements_dev.txt
   - python setup.py install
   - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
@@ -96,7 +97,7 @@ after_success:
       echo "Not deploying (because this is not a deployment directory)" ;
       exit 0 ;
     fi
-  - if [ "$TRAVIS_PULL_REQUEST" = "true" ]; then
+  - if ! [ "$TRAVIS_PULL_REQUEST" = "false" ]; then
       echo "Not deploying (because this is a pull request)" ;
       exit 0 ;
     fi
