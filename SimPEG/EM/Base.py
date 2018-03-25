@@ -390,6 +390,17 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MfRho = self.mesh.getFaceInnerProduct(self.rho)
         return self._MfRho
 
+    @property
+    def MfRhoDerivMat(self):
+        """
+        Derivative of MfRho with respect to the model
+        """
+        if getattr(self, '_MfRhoDerivMat', None) is None:
+            self._MfRhoDerivMat = self.mesh.getFaceInnerProductDeriv(
+                np.ones(self.mesh.nC)
+            )(np.ones(self.mesh.nF)) * self.rhoDeriv
+        return self._MfRhoDerivMat
+
     # TODO: This should take a vector
     def MfRhoDeriv(self, u, v, adjoint=False):
         """
