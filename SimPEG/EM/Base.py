@@ -391,18 +391,6 @@ class BaseEMProblem(Problem.BaseProblem):
         return self._MfRho
 
     # TODO: This should take a vector
-    def MfRhoDeriv(self, u):
-        """
-        Derivative of :code:`MfRho` with respect to the model.
-        """
-        if self.rhoMap is None:
-            return Utils.Zero()
-
-        return (
-            self.mesh.getFaceInnerProductDeriv(self.rho)(u) * self.rhoDeriv
-        )
-
-    # TODO: This should take a vector
     def MfRhoDeriv(self, u, v, adjoint=False):
         """
         Derivative of :code:`MfRho` with respect to the model.
