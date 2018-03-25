@@ -118,15 +118,17 @@ class Fields_CC(FieldsDC):
             .. math::
                 \vec{e} = -\nabla \phi
         """
-        return self.prob.MfI*self.prob.MfRhoI * self._j(phiSolution, srcList)
+        # return self.prob.MfI*self.prob.MfRhoI * self._j(phiSolution, srcList)
+        return self.prob.MfI * self.prob.Grad * phiSolution
 
     def _charge(self, phiSolution, srcList):
         """
             .. math::
                 \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
-        return epsilon_0*self.prob.Vol*(self.mesh.faceDiv*self._e(phiSolution,
-                                                                  srcList))
+        return epsilon_0*(
+            self.prob.Div*self._e(phiSolution, srcList)
+        )
 
 
 class Fields_N(FieldsDC):

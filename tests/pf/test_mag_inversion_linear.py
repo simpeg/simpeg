@@ -131,6 +131,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         residual = np.linalg.norm(mrec-self.model) / np.linalg.norm(self.model)
         print(residual)
         self.assertTrue(residual < 0.2)
+        # self.assertTrue(residual < 0.05)
 
 if __name__ == '__main__':
     unittest.main()
