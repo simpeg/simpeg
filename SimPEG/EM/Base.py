@@ -55,6 +55,7 @@ class BaseEMProblem(Problem.BaseProblem):
     solverOpts = {}  #: Solver options
 
     verbose = False
+    storeInnerProduct = True
 
     ####################################################
     # Make A Symmetric
