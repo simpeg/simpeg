@@ -100,13 +100,13 @@ def run(plotIt=True, cleanAfterRun=True):
                                 mapping=staticCells)
     reg.mref = driver.mref[dynamic]
     reg.cell_weights = wr * mesh.vol[active]
-    reg.norms = np.c_[0., 1., 1., 1., 2.]
+    reg.norms = np.c_[0., 1., 1., 1.]
     # reg.norms = driver.lpnorms
 
     # Specify how the optimization will proceed
-    opt = Optimization.ProjectedGNCG(maxIter=150, lower=driver.bounds[0],
-                                     upper=driver.bounds[1], maxIterLS=20,
-                                     maxIterCG=20, tolCG=1e-3)
+    opt = Optimization.ProjectedGNCG(maxIter=30, lower=driver.bounds[0],
+                                     upper=driver.bounds[1], maxIterLS=10,
+                                     maxIterCG=10, tolCG=1e-3)
 
     # Define misfit function (obs-calc)
     dmis = DataMisfit.l2_DataMisfit(survey)
@@ -116,13 +116,13 @@ def run(plotIt=True, cleanAfterRun=True):
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
 
     # Specify how the initial beta is found
-    betaest = Directives.BetaEstimate_ByEig()
+    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1.)
 
     # IRLS sets up the Lp inversion problem
     # Set the eps parameter parameter in Line 11 of the
     # input file based on the distribution of model (DEFAULT = 95th %ile)
-    IRLS = Directives.Update_IRLS(f_min_change=1e-2, maxIRLSiter=20,
-                                  minGNiter=2)
+    IRLS = Directives.Update_IRLS(f_min_change=1e-2, maxIRLSiter=10,
+                                  minGNiter=1)
 
     # Preconditioning refreshing for each IRLS iteration
     update_Jacobi = Directives.UpdatePreconditioner()
