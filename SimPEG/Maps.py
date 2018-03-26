@@ -1895,7 +1895,7 @@ class ParametricLayer(BaseParametric):
 
 class ParametricBlock(BaseParametric):
     """
-        Parametric Block in a Layered Space
+        Parametric Block in a Homogeneous Space
 
         For 2D:
 
@@ -1935,7 +1935,7 @@ class ParametricBlock(BaseParametric):
                                 spacing to give the slope of the arctan
                                 functions
         :param float slope: slope of the arctan function
-        :param numpy.ndarray indActive: bool vector with
+        :param numpy.ndarray indActive: bool vector with active indices
 
     """
 
