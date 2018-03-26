@@ -79,7 +79,7 @@ primaryMapping = (
 
 mapping = (
     Maps.ExpMap(meshs) *
-    Maps.ParametrizedBlockInLayer(meshs) *
+    Maps.ParametricBlockInLayer(meshs) *
     Maps.Projection(
         nP=8, index=np.hstack([np.r_[0], np.arange(0, 8)])
     )
