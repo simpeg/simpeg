@@ -363,7 +363,7 @@ nitpick_ignore = [
     ('py:class', 'properties.base.base.HasProperties'),
     ('py:class', 'properties.Boolean'),
     ('py:class', 'SimPEG.VRM.ProblemVRM.Problem_BaseVRM'),
-    ('py:class', 'SimPEG.VRM.ProblemVRM.Problem_Linear')
+    ('py:class', 'SimPEG.VRM.ProblemVRM.Problem_Linear'),
     ('py:class', 'SimPEG.VRM.ProblemVRM.Problem_LogUniform'),
     ('py:class', 'SimPEG.VRM.RxVRM.BaseRxVRM'),
     ('py:class', 'SimPEG.VRM.RxVRM.Point_h'),
