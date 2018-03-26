@@ -20,7 +20,7 @@ env:
     - MASTER_BRANCH=master
     - GAE_PROJECT=simpegdocs
     - DOCS_PY=2.7  # deploy docs from 2.7
-    - PYPI_PY=3.6 # deploy to pypi from python 3.6
+    # - PYPI_PY=3.6 # deploy to pypi from python 3.6
 
   matrix:
     # - TEST_DIR=tests/em/fdem/inverse/derivs
@@ -30,7 +30,7 @@ env:
     # - TEST_DIR="tests/em/nsem/forward tests/em/nsem/inversion"
     # - TEST_DIR=tests/em/fdem/inverse/adjoint
     # - TEST_DIR=tests/em/fdem/forward
-    - TEST_DIR=tests/em/vrm
+    # - TEST_DIR=tests/em/vrm
     # - TEST_DIR=tests/pf
     - TEST_DIR=tests/docs;
       GAE_PYTHONPATH=${HOME}/.cache/google_appengine;
