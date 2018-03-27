@@ -1,8 +1,8 @@
 """
-Maps: Parametrized Block in a Layer
+Maps: Parametric Block in a Layer
 ===================================
 
-Parametrized description of a block confined to a layer in a
+Parametric description of a block confined to a layer in a
 wholespace. The mapping can be applied in 2D or 3D. Here we show a 2D
 example.
 
@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt
 def run(plotIt=True):
 
     mesh = Mesh.TensorMesh([50, 50], x0='CC')  # 2D Tensor Mesh
-    mapping = Maps.ParametrizedBlockInLayer(mesh)  # mapping
+    mapping = Maps.ParametricBlockInLayer(mesh)  # mapping
 
     m = np.hstack(
         np.r_[

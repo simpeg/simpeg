@@ -8,20 +8,26 @@ TOL = 1e-14
 np.random.seed(121)
 
 
-MAPS_TO_EXCLUDE_2D = ["ComboMap", "ActiveCells", "InjectActiveCells",
-                      "LogMap", "ReciprocalMap",
-                      "Surject2Dto3D", "Map2Dto3D", "Mesh2Mesh",
-                      "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
-                      "SplineMap", "ParametrizedCasingAndLayer",
-                      "ParametrizedLayer", "ParametrizedBlockInLayer",
-                      "Projection", "SelfConsistentEffectiveMedium"]
-MAPS_TO_EXCLUDE_3D = ["ComboMap", "ActiveCells", "InjectActiveCells",
-                      "LogMap", "ReciprocalMap",
-                      "CircleMap", "ParametricCircleMap", "Mesh2Mesh",
-                      "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
-                      "SplineMap", "ParametrizedCasingAndLayer",
-                      "ParametrizedLayer", "ParametrizedBlockInLayer",
-                      "Projection", "SelfConsistentEffectiveMedium"]
+MAPS_TO_EXCLUDE_2D = [
+    "ComboMap", "ActiveCells", "InjectActiveCells",
+    "LogMap", "ReciprocalMap",
+    "Surject2Dto3D", "Map2Dto3D", "Mesh2Mesh",
+    "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
+    "SplineMap", "BaseParametric", "ParametricBlock",
+    "ParametricCasingAndLayer",
+    "ParametricLayer", "ParametricBlockInLayer",
+    "Projection", "SelfConsistentEffectiveMedium"
+]
+MAPS_TO_EXCLUDE_3D = [
+    "ComboMap", "ActiveCells", "InjectActiveCells",
+    "LogMap", "ReciprocalMap",
+    "CircleMap", "ParametricCircleMap", "Mesh2Mesh",
+    "BaseParametric", "ParametricBlock",
+    "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
+    "SplineMap", "ParametricCasingAndLayer",
+    "ParametricLayer", "ParametricBlockInLayer",
+    "Projection", "SelfConsistentEffectiveMedium"
+]
 
 
 class MapTests(unittest.TestCase):
@@ -90,8 +96,17 @@ class MapTests(unittest.TestCase):
                 pass
 
     def test_ParametricCasingAndLayer(self):
-        mapping = Maps.ParametrizedCasingAndLayer(self.meshCyl)
+        mapping = Maps.ParametricCasingAndLayer(self.meshCyl)
         m = np.r_[-2., 1., 6., 2., -0.1, 0.2, 0.5, 0.2, -0.2, 0.2]
+        self.assertTrue(mapping.test(m))
+
+    def test_ParametricBlock2D(self):
+        mesh = Mesh.TensorMesh(
+            [np.ones(30), np.ones(20)], x0=np.array([-15, -5])
+        )
+        mapping = Maps.ParametricBlock(mesh)
+        # val_background,val_block, block_x0, block_dx, block_y0, block_dy
+        m = np.r_[-2., 1., -5, 10, 5, 4]
         self.assertTrue(mapping.test(m))
 
     def test_transforms_logMap_reciprocalMap(self):
