@@ -1,17 +1,22 @@
 from SimPEG import Survey
+import properties
 
 
 #########################################
-# BASE VRM RECEIVER CLASS
+# POINT RECEIVER CLASS FOR VRM
 #########################################
 
-class BaseRxVRM(Survey.BaseRx):
-    """BaseRxVRM class"""
+class Point(Survey.BaseRx, properties.HasProperties):
+    """Point receiver"""
 
-    def __init__(self, locs, times, **kwargs):
+    def __init__(self, locs, times, fieldType, fieldComp, **kwargs):
         assert locs.shape[1] == 3, 'locs must in 3-D (x,y,z).'
-        super(BaseRxVRM, self).__init__(locs, 'None', storeProjections=False, **kwargs)
+        super(Point, self).__init__(locs, 'None', storeProjections=False, **kwargs)
         self.times = times
+        assert fieldType in ['h', 'b', 'dhdt', 'dbdt'], '"fieldType" must be one of "h", "b", "dhdt" or "dbdt"'
+        self.fieldType = fieldType
+        assert fieldComp in ['x', 'y', 'z'], '"fieldComp" must be one of "x", "y" or "z"'
+        self.fieldComp = fieldComp
 
     @property
     def nTimes(self):
@@ -27,64 +32,3 @@ class BaseRxVRM(Survey.BaseRx):
     def nD(self):
         """Number of data in the receiver."""
         return self.locs.shape[0] * len(self.times)
-
-
-#########################################
-# H AT POINT CLASS
-#########################################
-
-class Point_h(BaseRxVRM):
-    """
-
-    """
-
-    def __init__(self, locsXYZ, times, fieldComp, **kwargs):
-        BaseRxVRM.__init__(self, locsXYZ, times, **kwargs)
-        self.fieldType = 'h'
-        self.fieldComp = fieldComp
-
-
-#########################################
-# dH/dt AT POINT CLASS
-#########################################
-
-class Point_dhdt(BaseRxVRM):
-    """
-
-    """
-
-    def __init__(self, locsXYZ, times, fieldComp, **kwargs):
-        BaseRxVRM.__init__(self, locsXYZ, times, **kwargs)
-        self.fieldType = 'dhdt'
-        self.fieldComp = fieldComp
-
-
-#########################################
-# B AT POINT CLASS
-#########################################
-
-class Point_b(BaseRxVRM):
-    """
-
-    """
-
-    def __init__(self, locsXYZ, times, fieldComp, **kwargs):
-        BaseRxVRM.__init__(self, locsXYZ, times, **kwargs)
-        self.fieldType = 'b'
-        self.fieldComp = fieldComp
-
-
-#########################################
-# dB/dt AT POINT CLASS
-#########################################
-
-class Point_dbdt(BaseRxVRM):
-
-    """
-
-    """
-
-    def __init__(self, locsXYZ, times, fieldComp, **kwargs):
-        BaseRxVRM.__init__(self, locsXYZ, times, **kwargs)
-        self.fieldType = 'dbdt'
-        self.fieldComp = fieldComp

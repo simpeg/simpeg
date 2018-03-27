@@ -28,9 +28,13 @@ class VRM_fwd_tests(unittest.TestCase):
         R = 2.
         loc_rx = R*np.c_[np.sin(phi)*np.cos(psi), np.sin(phi)*np.sin(psi), np.cos(phi)]
 
-        rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'x')]
-        rxList.append(VRM.Rx.Point_dhdt(loc_rx, times, 'y'))
-        rxList.append(VRM.Rx.Point_dhdt(loc_rx, times, 'z'))
+        # rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'x')]
+        # rxList.append(VRM.Rx.Point_dhdt(loc_rx, times, 'y'))
+        # rxList.append(VRM.Rx.Point_dhdt(loc_rx, times, 'z'))
+
+        rxList = [VRM.Rx.Point(loc_rx, times, 'dhdt', 'x')]
+        rxList.append(VRM.Rx.Point(loc_rx, times, 'dhdt', 'y'))
+        rxList.append(VRM.Rx.Point(loc_rx, times, 'dhdt', 'z'))
 
         alpha = np.random.uniform(0, np.pi)
         beta = np.random.uniform(-np.pi, np.pi)
@@ -78,9 +82,13 @@ class VRM_fwd_tests(unittest.TestCase):
         Rrx = 3.
         loc_rx = Rrx*np.c_[np.sin(phi)*np.cos(psi), np.sin(phi)*np.sin(psi), np.cos(phi)]
 
-        rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'x')]
-        rxList.append(VRM.Rx.Point_dhdt(loc_rx, times, 'y'))
-        rxList.append(VRM.Rx.Point_dhdt(loc_rx, times, 'z'))
+        # rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'x')]
+        # rxList.append(VRM.Rx.Point_dhdt(loc_rx, times, 'y'))
+        # rxList.append(VRM.Rx.Point_dhdt(loc_rx, times, 'z'))
+
+        rxList = [VRM.Rx.Point(loc_rx, times, 'dhdt', 'x')]
+        rxList.append(VRM.Rx.Point(loc_rx, times, 'dhdt', 'y'))
+        rxList.append(VRM.Rx.Point(loc_rx, times, 'dhdt', 'z'))
 
         alpha = np.random.uniform(0, np.pi)
         beta = np.random.uniform(-np.pi, np.pi)
@@ -126,7 +134,8 @@ class VRM_fwd_tests(unittest.TestCase):
         z = 0.5
         a = 0.1
         loc_rx = np.c_[0., 0., z]
-        rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'z')]
+        # rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'z')]
+        rxList = [VRM.Rx.Point(loc_rx, times, 'dhdt', 'z')]
         txList = [VRM.Src.CircLoop(rxList, np.r_[0., 0., z], a, np.r_[0., 0.], 1., waveObj)]
 
         Survey2 = VRM.Survey(txList)
@@ -176,8 +185,10 @@ class VRM_fwd_tests(unittest.TestCase):
 
         z = 0.25
         a = 5
-        rxList = [VRM.Rx.Point_dhdt(np.c_[a, 0., z], times, 'x')]
-        rxList.append(VRM.Rx.Point_dhdt(np.c_[0., a, z], times, 'y'))
+        # rxList = [VRM.Rx.Point_dhdt(np.c_[a, 0., z], times, 'x')]
+        # rxList.append(VRM.Rx.Point_dhdt(np.c_[0., a, z], times, 'y'))
+        rxList = [VRM.Rx.Point(np.c_[a, 0., z], times, 'dhdt', 'x')]
+        rxList.append(VRM.Rx.Point(np.c_[0., a, z], times, 'dhdt', 'y'))
         txList = [VRM.Src.CircLoop(rxList, np.r_[0., 0., z], a, np.r_[0., 0.], 1., waveObj)]
 
         Survey2 = VRM.Survey(txList)
@@ -257,7 +268,8 @@ class VRM_fwd_tests(unittest.TestCase):
         waveObj = VRM.WaveformVRM.SquarePulse(0.02)
 
         loc_rx = np.c_[4., 4., 8.25]
-        rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'z')]
+        # rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'z')]
+        rxList = [VRM.Rx.Point(loc_rx, times, 'dhdt', 'z')]
         txList = [VRM.Src.MagDipole(rxList, np.r_[4., 4., 8.25], [0., 0., 1.], waveObj)]
 
         Survey1 = VRM.Survey(txList)
