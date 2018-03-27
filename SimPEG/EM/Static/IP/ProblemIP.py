@@ -8,7 +8,7 @@ from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
 import numpy as np
 from SimPEG.Utils import Zero
-from SimPEG.EM.Static.DC import getxBCyBC_CC, Problem3D_CC, Problem3D_N
+from SimPEG.EM.Static.DC import Problem3D_CC, Problem3D_N
 from .SurveyIP import Survey
 from SimPEG import Props
 import sys

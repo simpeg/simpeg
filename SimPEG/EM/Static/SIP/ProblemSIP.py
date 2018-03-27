@@ -259,10 +259,10 @@ class BaseSIPProblem(BaseEMProblem):
                     for rx in src.rxList:
                         timeindex = rx.getTimeP(self.survey.times)
                         if timeindex[tind]:
-                            df_dmFun = getattr(
-                                f, '_{0!s}Deriv'.format(rx.projField),
-                                None
-                                )
+                            # df_dmFun = getattr(
+                            #     f, '_{0!s}Deriv'.format(rx.projField),
+                            #     None
+                            #     )
                             # df_dm_v = df_dmFun(
                             #     src, du_dm_v, v0+v1+v2, adjoint=False
                             #     )
@@ -324,29 +324,29 @@ class BaseSIPProblem(BaseEMProblem):
                             )
                             df_duTFun = getattr(
                                 f, '_{0!s}Deriv'.format(rx.projField), None
-                                )
+                            )
                             df_duT, df_dmT = df_duTFun(
                                 src, None, PTv, adjoint=True
-                                )
+                            )
                             ATinvdf_duT = self.Ainv * df_duT
                             dA_dmT = self.getADeriv(
                                 u_src, ATinvdf_duT, adjoint=True
-                                )
+                            )
                             dRHS_dmT = self.getRHSDeriv(
                                 src, ATinvdf_duT, adjoint=True
-                                )
+                            )
                             du_dmT = -dA_dmT + dRHS_dmT
                             Jtv += (
                                 self.PetaEtaDeriv(
                                     self.survey.times[tind], du_dmT, adjoint=True
-                                    ) +
+                                ) +
                                 self.PetaTauiDeriv(
                                     self.survey.times[tind], du_dmT, adjoint=True
-                                    ) +
+                                ) +
                                 self.PetaCDeriv(
                                     self.survey.times[tind], du_dmT, adjoint=True
-                                    )
                                 )
+                            )
 
             return self.sign*Jtv
 

@@ -10,7 +10,6 @@ from SimPEG.EM.Static.DC.FieldsDC_2D import (
 from SimPEG.EM.Static.DC import BaseDCProblem_2D, Problem2D_CC, Problem2D_N
 import numpy as np
 from SimPEG.Utils import Zero
-from SimPEG.EM.Static.DC import getxBCyBC_CC
 from .SurveyIP import Survey
 from SimPEG import Props
 from scipy.special import kn
@@ -210,7 +209,6 @@ class Problem2D_CC(BaseIPProblem_2D, Problem2D_CC):
         Derivative of MfRho with respect to the model
         """
         if getattr(self, '_MfRhoDerivMat', None) is None:
-            drho_dlogrho = Utils.sdiag(self.rho)*self.etaDeriv
             self._MfRhoDerivMat = self.mesh.getFaceInnerProductDeriv(
                 np.ones(self.mesh.nC)
             )(np.ones(self.mesh.nF)) * Utils.sdiag(self.rho) * self.etaDeriv
