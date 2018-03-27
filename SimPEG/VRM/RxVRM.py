@@ -8,7 +8,8 @@ import properties
 class BaseRxVRM(Survey.BaseRx):
     """Base VRM receiver class"""
 
-     def __init__(self, locs, **kwargs):
+    def __init__(self, locs, **kwargs):
+
         super(BaseRxVRM, self).__init__(locs, 'None', storeProjections=False, **kwargs)
 
 
@@ -16,7 +17,7 @@ class BaseRxVRM(Survey.BaseRx):
 # POINT RECEIVER CLASS FOR VRM
 #########################################
 
-class Point(Survey.BaseRxVRM):
+class Point(BaseRxVRM):
     """Point receiver"""
 
     def __init__(self, locs, times, fieldType, fieldComp, **kwargs):
