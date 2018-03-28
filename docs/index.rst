@@ -32,6 +32,7 @@ Packages
    content/dc/index
    content/ip/index
    content/pf/index
+   content/vrm/index
    content/flow/index
 
 Finite Volume
