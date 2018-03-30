@@ -13,13 +13,13 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
     rxType = None
 
     knownRxTypes = {
-                    'phi': ['phi' , None],
-                    'ex': ['e' , 'x'],
-                    'ey': ['e' , 'y'],
-                    'ez': ['e' , 'z'],
-                    'jx': ['j' , 'x'],
-                    'jy': ['j' , 'y'],
-                    'jz': ['j' , 'z'],
+                    'phi': ['phi', None],
+                    'ex': ['e', 'x'],
+                    'ey': ['e', 'y'],
+                    'ez': ['e', 'z'],
+                    'jx': ['j', 'x'],
+                    'jy': ['j', 'y'],
+                    'jz': ['j', 'z'],
                     }
 
     def __init__(self, locs, times, rxType, **kwargs):

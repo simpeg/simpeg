@@ -1,2 +1,2 @@
-Inducec Polarization
+Induced Polarization
 ====================

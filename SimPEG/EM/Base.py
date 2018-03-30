@@ -449,7 +449,9 @@ class BaseEMProblem(Problem.BaseProblem):
         dMfRhoI_dI = -self.MfRhoI**2
         if self.storeInnerProduct:
             if adjoint:
-                return self.MfRhoDerivMat.T * (Utils.sdiag(u) * (dMfRhoI_dI.T * v))
+                return (
+                    self.MfRhoDerivMat.T * (Utils.sdiag(u) * (dMfRhoI_dI.T*v))
+                )
             else:
                 return dMfRhoI_dI * (Utils.sdiag(u) * (self.MfRhoDerivMat*v))
         else:

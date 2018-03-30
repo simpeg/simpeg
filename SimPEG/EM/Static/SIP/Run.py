@@ -79,10 +79,10 @@ def run_inversion(
     is_log_c=True,
     is_log_eta=True,
     mref=None,
-    alpha_s = 1e-4,
-    alpha_x = 1e0,
-    alpha_y = 1e0,
-    alpha_z = 1e0,
+    alpha_s=1e-4,
+    alpha_x=1e0,
+    alpha_y=1e0,
+    alpha_z=1e0,
 ):
     """
     Run Spectral Spectral IP inversion

@@ -133,7 +133,9 @@ class BaseSIPProblem(BaseEMProblem):
 
             for isrc, src in enumerate(self.survey.srcList):
                 if self.verbose:
-                    sys.stdout.write(("\r %d / %d") % (isrc+1, self.survey.nSrc))
+                    sys.stdout.write(
+                        ("\r %d / %d") % (isrc+1, self.survey.nSrc)
+                    )
                     sys.stdout.flush()
                 u_src = f[src, self._solutionType]
                 for rx in src.rxList:
@@ -259,14 +261,6 @@ class BaseSIPProblem(BaseEMProblem):
                     for rx in src.rxList:
                         timeindex = rx.getTimeP(self.survey.times)
                         if timeindex[tind]:
-                            # df_dmFun = getattr(
-                            #     f, '_{0!s}Deriv'.format(rx.projField),
-                            #     None
-                            #     )
-                            # df_dm_v = df_dmFun(
-                            #     src, du_dm_v, v0+v1+v2, adjoint=False
-                            #     )
-
                             Jv_temp = (
                                 rx.evalDeriv(src, self.mesh, f, du_dm_v)
                                 )
@@ -338,13 +332,16 @@ class BaseSIPProblem(BaseEMProblem):
                             du_dmT = -dA_dmT + dRHS_dmT
                             Jtv += (
                                 self.PetaEtaDeriv(
-                                    self.survey.times[tind], du_dmT, adjoint=True
+                                    self.survey.times[tind], du_dmT,
+                                    adjoint=True
                                 ) +
                                 self.PetaTauiDeriv(
-                                    self.survey.times[tind], du_dmT, adjoint=True
+                                    self.survey.times[tind], du_dmT,
+                                    adjoint=True
                                 ) +
                                 self.PetaCDeriv(
-                                    self.survey.times[tind], du_dmT, adjoint=True
+                                    self.survey.times[tind], du_dmT,
+                                    adjoint=True
                                 )
                             )
 
@@ -404,7 +401,11 @@ class BaseSIPProblem(BaseEMProblem):
 
         if self.storeInnerProduct:
             if adjoint:
-                return self.MfRhoDerivMat.T * (Utils.sdiag(u) * (dMfRhoI_dI.T * v))
+                return (
+                    self.MfRhoDerivMat.T * (
+                        Utils.sdiag(u) * (dMfRhoI_dI.T * v)
+                    )
+                )
             else:
                 return dMfRhoI_dI * (Utils.sdiag(u) * (self.MfRhoDerivMat*v))
         else:

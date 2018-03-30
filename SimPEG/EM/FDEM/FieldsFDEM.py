@@ -850,14 +850,6 @@ class Fields3D_b(FieldsFDEM):
                 s_eDeriv +
                 src.ePrimaryDeriv(self.prob, v, adjoint)
             )
-            # return (
-            #     self._MeSigmaIDeriv(w).T * v +
-            #     self._MfMuiDeriv(bSolution).T * (
-            #         self._edgeCurl * (self._MeSigmaI.T * v)
-            #         ) -
-            #     s_eDeriv +
-            #     src.ePrimaryDeriv(self.prob, v, adjoint)
-            # )
         s_eDeriv = src.s_eDeriv(self.prob, v, adjoint)
         return (
             self._MeSigmaIDeriv(w, v) +
@@ -867,14 +859,6 @@ class Fields3D_b(FieldsFDEM):
             self._MeSigmaI * s_eDeriv +
             src.ePrimaryDeriv(self.prob, v, adjoint)
         )
-        # return (
-        #     self._MeSigmaIDeriv(w) * v +
-        #     self._MeSigmaI * (
-        #         self._edgeCurl.T * (self._MfMuiDeriv(bSolution) * v)
-        #     ) -
-        #     self._MeSigmaI * s_eDeriv +
-        #     src.ePrimaryDeriv(self.prob, v, adjoint)
-        # )
 
     def _j(self, bSolution, srcList):
         """
@@ -888,7 +872,6 @@ class Fields3D_b(FieldsFDEM):
 
         n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
-
 
         j = (self._edgeCurl.T * (self._MfMui * bSolution))
         for i, src in enumerate(srcList):

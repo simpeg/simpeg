@@ -111,8 +111,12 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
             for src in self.survey.srcList:
                 for rx in src.rxList:
                     iend = istrt + rx.nD
-                    Jtv_temp1 = np.zeros((self.actinds.sum(), rx.nD), dtype=float)
-                    Jtv_temp0 = np.zeros((self.actinds.sum(), rx.nD), dtype=float)
+                    Jtv_temp1 = np.zeros(
+                        (self.actinds.sum(), rx.nD), dtype=float
+                    )
+                    Jtv_temp0 = np.zeros(
+                        (self.actinds.sum(), rx.nD), dtype=float
+                    )
                     # TODO: this loop is pretty slow .. (Parellize)
                     for iky in range(self.nky):
                         u_src = f[src, self._solutionType, iky]
@@ -132,14 +136,24 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
                             if rx.nD == 1:
                                 Jt[:, istrt] += Jtv_temp1*dky[iky]*np.cos(ky*y)
                             else:
-                                Jt[:, istrt:iend] += Jtv_temp1*dky[iky]*np.cos(ky*y)
+                                Jt[:, istrt:iend] += (
+                                    Jtv_temp1*dky[iky]*np.cos(ky*y)
+                                )
                         else:
                             if rx.nD == 1:
-                                Jt[:, istrt] += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
-                                Jt[:, istrt] += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
+                                Jt[:, istrt] += (
+                                    Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
+                                )
+                                Jt[:, istrt] += (
+                                    Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
+                                )
                             else:
-                                Jt[:, istrt:iend] += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
-                                Jt[:, istrt:iend] += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
+                                Jt[:, istrt:iend] += (
+                                    Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
+                                )
+                                Jt[:, istrt:iend] += (
+                                    Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
+                                )
                         Jtv_temp0 = Jtv_temp1.copy()
                     istrt += rx.nD
 
@@ -244,7 +258,11 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
 
         if self.storeInnerProduct:
             if adjoint:
-                return self.MfRhoDerivMat.T * (Utils.sdiag(u) * (dMfRhoI_dI.T * v))
+                return (
+                    self.MfRhoDerivMat.T * (
+                        Utils.sdiag(u) * (dMfRhoI_dI.T * v)
+                    )
+                )
             else:
                 return dMfRhoI_dI * (Utils.sdiag(u) * (self.MfRhoDerivMat*v))
         else:
@@ -405,5 +423,3 @@ class Problem2D_N(BaseSIPProblem_2D, Problem2D_N):
             self.actinds = np.ones(mesh.nC, dtype=bool)
 
         self.actMap = Maps.InjectActiveCells(mesh, self.actinds, 0.)
-
-
