@@ -16,4 +16,3 @@ properties>=0.3.6b0
 vectormath
 wheel
 pytest
-profilehooks

@@ -65,7 +65,6 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     blk_inds_charg = Utils.ModelBuilder.getIndicesSphere(
         np.r_[100., -25], 12.5, mesh.gridCC
     )
-    layer_inds = mesh.gridCC[:, 1] > -5.
     sigma = np.ones(mesh.nC)*1./100.
     sigma[blk_inds_c] = 1./10.
     sigma[blk_inds_r] = 1./1000.

@@ -31,7 +31,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
         src0 = DC.Src.Dipole([rx], A0loc, B0loc)
         src1 = DC.Src.Dipole([rx], A1loc, B1loc)
 
-        rx_ip = DC.Rx.Dipole(M, N)
         src0_ip = DC.Src.Dipole([rx], A0loc, B0loc)
         src1_ip = DC.Src.Dipole([rx], A1loc, B1loc)
 
