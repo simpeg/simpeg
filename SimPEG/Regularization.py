@@ -1512,9 +1512,9 @@ class SparseSmall(BaseSparse):
             self.scale = np.ones(self.mapping.shape[0])
 
         if self.cell_weights is not None:
-            return Utils.sdiag((self.scale * self.gamma *
+            return Utils.sdiag((self.scale *
                                 self.cell_weights)**0.5) * R
-        return Utils.sdiag((self.scale * self.gamma)**0.5) * R
+        return Utils.sdiag((self.scale)**0.5) * R
 
     def R(self, f_m):
         # if R is stashed, return that instead
@@ -1528,6 +1528,7 @@ class SparseSmall(BaseSparse):
         # print(eta)
         self.stashedR = r  # stash on the first calculation
         return r
+
 
     @Utils.timeIt
     def deriv(self, m):
@@ -1549,7 +1550,7 @@ class SparseSmall(BaseSparse):
         """
 
         mD = self.mapping.deriv(self._delta_m(m))
-        r = self.W * (self.mapping * (self._delta_m(m)))
+        r = self.gamma * self.W * (self.mapping * (self._delta_m(m)))
         return mD.T * (self.W.T * r)
 
 
@@ -1562,6 +1563,7 @@ class SparseDeriv(BaseSparse):
 
         self.orientation = orientation
         super(SparseDeriv, self).__init__(mesh=mesh, **kwargs)
+
 
     mrefInSmooth = properties.Bool(
         "include mref in the smoothness calculation?", default=False
@@ -1599,13 +1601,13 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 W = (
                     Utils.sdiag(
-                        (Ave*(self.scale * self.gamma * self.cell_weights))**0.5
+                        (Ave*(self.scale * self.cell_weights))**0.5
                     ) *
                     R
                 )
 
             else:
-                W = Utils.sdiag((Ave * self.scale * self.gamma)**0.5) * R
+                W = Utils.sdiag((Ave * self.scale)**0.5) * R
 
             theta = self.cellDiffStencil * (self.mapping * f_m)
             dmdx = coterminal(theta)
@@ -1624,10 +1626,10 @@ class SparseDeriv(BaseSparse):
         Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-Ave*self.norm/2.)
+        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
 
         # eta = np.abs(f_m + self.epsilon**2.).max() / (np.abs(f_m + self.epsilon**2.) / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.)).max()
-        r = (eta / (f_m**2. + self.epsilon**2.)**(1.-(Ave*self.norm)/2.))**0.5
+        r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
         # print(eta)
         self.stashedR = r  # stash on the first calculation
         return r
@@ -1675,21 +1677,21 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 W = (
                     Utils.sdiag(
-                        ((Ave * (self.scale * self.gamma * self.cell_weights)))**0.5
+                        ((Ave * (self.scale * self.cell_weights)))**0.5
                     ) *
                     R
                 )
 
             else:
-                W = Utils.sdiag((Ave * self.scale * self.gamma)**0.5) * R
+                W = Utils.sdiag((Ave * self.scale)**0.5) * R
 
             theta = self.cellDiffStencil * (self.mapping * model)
             dmdx = coterminal(theta)
 
-            r = W * dmdx
+            r = self.gamma * W * dmdx
 
         else:
-            r = self.W * (self.mapping * model)
+            r = self.gamma * self.W * (self.mapping * model)
 
         mD = self.mapping.deriv(model)
         return mD.T * (self.W.T * r)
@@ -1771,11 +1773,11 @@ class SparseDeriv(BaseSparse):
         if self.cell_weights is not None:
             return (
                 Utils.sdiag(
-                    (Ave*(self.scale * self.gamma * self.cell_weights))**0.5
+                    (Ave*(self.scale * self.cell_weights))**0.5
                 ) *
                 R * self.cellDiffStencil
             )
-        return Utils.sdiag((Ave*self.scale * self.gamma)**0.5) * R * self.cellDiffStencil
+        return Utils.sdiag((Ave*self.scale)**0.5) * R * self.cellDiffStencil
 
 
 class Sparse(BaseComboRegularization):
@@ -1880,8 +1882,11 @@ class Sparse(BaseComboRegularization):
     # Observers
     @properties.observer('norms')
     def _mirror_norms_to_objfcts(self, change):
-        for i, objfct in enumerate(self.objfcts):
-            objfct.norm = change['value'][:,i]
+
+        self.objfcts[0].norm = change['value'][:,0]
+        for i, objfct in enumerate(self.objfcts[1:]):
+            Ave = getattr(objfct.regmesh, 'aveCC2F{}'.format(objfct.orientation))
+            objfct.norm = Ave*change['value'][:,i+1]
 
     @properties.observer('model')
     def _mirror_model_to_objfcts(self, change):
