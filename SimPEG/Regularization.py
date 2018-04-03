@@ -1299,7 +1299,7 @@ class BaseSparse(BaseRegularization):
     )
 
     gradientType = properties.String(
-        "type of gradient", default='total'
+        "type of gradient", default='components'
     )
 
     scale = properties.Float(
@@ -1355,7 +1355,7 @@ class SparseSmall(BaseSparse):
             return self.stashedR
 
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = 2*np.abs(f_m).max()**(1-self.norm/2) * self.epsilon**(1.-self.norm/2.)
+        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
         # print(eta)
         self.stashedR = r  # stash on the first calculation
@@ -1409,8 +1409,6 @@ class SparseDeriv(BaseSparse):
 
             r(m) = \\frac{1}{2}
         """
-
-
         if self.mrefInSmooth:
 
             f_m = self._delta_m(m)
@@ -1431,9 +1429,10 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 W = (
                     Utils.sdiag(
-                        (self.scale * self.gamma * (Ave*(self.cell_weights)))**0.5
-                    ) *
-                    R
+                        (
+                            self.scale * self.gamma * (Ave*(self.cell_weights))
+                        )**0.5
+                    ) * R
                 )
 
             else:
@@ -1456,8 +1455,8 @@ class SparseDeriv(BaseSparse):
         Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = 2*np.abs(f_m).max()**(1-(Ave*self.norm)/2) * self.epsilon**(1.-(Ave*self.norm)/2.)
-        r = (eta / (f_m**2. + self.epsilon**2.)**(1.-(Ave*self.norm)/2.))**0.5
+        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
+        r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
 
         self.stashedR = r  # stash on the first calculation
         return r
@@ -1501,9 +1500,10 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 W = (
                     Utils.sdiag(
-                        (self.scale * self.gamma * (Ave*(self.cell_weights)))**0.5
-                    ) *
-                    R
+                        (self.scale * self.gamma *
+                            (Ave*(self.cell_weights))
+                         )**0.5
+                    ) * R
                 )
 
             else:
@@ -1541,7 +1541,10 @@ class SparseDeriv(BaseSparse):
         else:
 
             if self.gradientType == 'total':
-                Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+                Ave = getattr(
+                    self.regmesh,
+                    'aveCC2F{}'.format(self.orientation)
+                )
 
                 dmdx = np.abs(self.regmesh.aveFx2CC *
                               self.regmesh.cellDiffxStencil *
@@ -1650,7 +1653,7 @@ class Sparse(BaseComboRegularization):
     # Properties
     norms = properties.Array(
         "Norms used to create the sparse regularization",
-        default=np.c_[2., 2., 2., 2.], shape={('*','*')}
+        default=np.c_[2., 2., 2., 2.], shape={('*', '*')}
     )
 
     eps_p = properties.Float(
@@ -1684,10 +1687,14 @@ class Sparse(BaseComboRegularization):
     @properties.validator('norms')
     def _validate_norms(self, change):
         if change['value'].shape[0] == 1:
-            change['value'] = np.kron(np.ones((self.regmesh.Pac.shape[1], 1)), change['value'])
+            change['value'] = np.kron(
+                np.ones((self.regmesh.Pac.shape[1], 1)),
+                change['value']
+            )
+
         elif change['value'].shape[0] > 1:
             assert change['value'].shape[0] == self.regmesh.Pac.shape[1], (
-                "Vector of norms must be the size of active model parameters ({})"
+                "Vector of norms must be the size of active model parameters"
                 "The provided vector has length "
                 "{}".format(
                     self.regmesh.Pac.shape[0], len(change['value'])
@@ -1697,8 +1704,14 @@ class Sparse(BaseComboRegularization):
     # Observers
     @properties.observer('norms')
     def _mirror_norms_to_objfcts(self, change):
-        for i, objfct in enumerate(self.objfcts):
-            objfct.norm = change['value'][:,i]
+
+        self.objfcts[0].norm = change['value'][:, 0]
+        for i, objfct in enumerate(self.objfcts[1:]):
+            Ave = getattr(
+                objfct.regmesh,
+                'aveCC2F{}'.format(objfct.orientation)
+            )
+            objfct.norm = Ave*change['value'][:, i+1]
 
     @properties.observer('model')
     def _mirror_model_to_objfcts(self, change):
