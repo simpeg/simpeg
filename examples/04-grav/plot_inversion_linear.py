@@ -69,8 +69,8 @@ def run(plotIt=True):
     # We can now create a susceptibility model and generate data
     # Here a simple block in half-space
     model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
-    model[(midx-5):(midx-1), (midy-2):(midy+2), -10:-6] = 0.5
-    model[(midx+1):(midx+5), (midy-2):(midy+2), -10:-6] = -0.5
+    model[(midx-5):(midx-1), (midy-2):(midy+2), -10:-6] = 0.75
+    model[(midx+1):(midx+5), (midy-2):(midy+2), -10:-6] = -0.75
     model = Utils.mkvc(model)
     model = model[actv]
 
@@ -106,7 +106,7 @@ def run(plotIt=True):
     # Create a regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.cell_weights = wr
-    reg.norms = np.c_[0, 1, 1, 1]
+    reg.norms = np.c_[1, 0, 0, 0]
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
@@ -122,11 +122,14 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
     # model parameters
-    IRLS = Directives.Update_IRLS(f_min_change=1e-2, minGNiter=2)
+    IRLS = Directives.Update_IRLS(
+        f_min_change=1e-4, maxIRLSiter=30, coolEpsFact=1.5, beta_tol=1e-1,
+    )
+    saveDict = Directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = Directives.UpdatePreconditioner()
-    inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,
-                                                          betaest,
-                                                          update_Jacobi])
+    inv = Inversion.BaseInversion(
+        invProb, directiveList=[IRLS, betaest, update_Jacobi, saveDict]
+    )
 
     # Run the inversion
     m0 = np.ones(nC)*1e-4  # Starting model
@@ -223,6 +226,27 @@ def run(plotIt=True):
         plt.xlabel('x')
         plt.ylabel('z')
         plt.gca().set_aspect('equal', adjustable='box')
+
+        # Plot convergence curves
+        fig, axs = plt.figure(), plt.subplot()
+        axs.plot(saveDict.phi_d, 'k', lw=2)
+        axs.plot(
+            np.r_[IRLS.iterStart, IRLS.iterStart],
+            np.r_[0, np.max(saveDict.phi_d)], 'k:'
+        )
+
+        twin = axs.twinx()
+        twin.plot(saveDict.phi_m, 'k--', lw=2)
+        axs.text(
+            IRLS.iterStart, np.max(saveDict.phi_d)/2.,
+            'IRLS Steps', va='bottom', ha='center',
+            rotation='vertical', size=12,
+            bbox={'facecolor': 'white'}
+        )
+
+        axs.set_ylabel('$\phi_d$', size=16, rotation=0)
+        axs.set_xlabel('Iterations', size=14)
+        twin.set_ylabel('$\phi_m$', size=16, rotation=0)
 
 if __name__ == '__main__':
     run()

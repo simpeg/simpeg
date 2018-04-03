@@ -156,9 +156,9 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
     )
     #     gradientType = 'components'
     reg.norms = np.c_[p, qx, qz, 0.]
-    IRLS = Directives.Update_IRLS(maxIRLSiter=15, minGNiter=1)
+    IRLS = Directives.Update_IRLS(maxIRLSiter=20, minGNiter=1)
 
-    opt = Optimization.InexactGaussNewton(maxIter=15)
+    opt = Optimization.InexactGaussNewton(maxIter=40)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
     beta = Directives.BetaSchedule(coolingFactor=5, coolingRate=2)
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e0)
