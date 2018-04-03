@@ -641,6 +641,68 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 #                                                                             #
 ###############################################################################
 
+class LinearMap(IdentityMap):
+    """
+        Linear mapping
+
+        .. math::
+
+            m = a*{\sigma} + b
+
+    """
+
+    def __init__(self, a=1., b=0., mesh=None, nP=None, **kwargs):
+        self.a = a
+        self.b = b
+        super(LinearMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+
+    def _transform(self, m):
+        return self.a*(Utils.mkvc(m))+self.b
+
+    def inverse(self, D):
+        """
+            :param numpy.array D: physical property
+            :rtype: numpy.array
+            :return: model
+
+            The *transformInverse* changes the physical property into the
+            model.
+
+            .. math::
+
+                m = \log{\sigma}
+
+        """
+        return (Utils.mkvc(D)-self.b)/self.a
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+
+            The *transform* changes the model into the physical property.
+            The *transformDeriv* provides the derivative of the *transform*.
+
+            If the model *transform* is:
+
+            .. math::
+
+                m = \log{\sigma}
+
+                \exp{m} = \exp{\log{\sigma}} = \sigma
+
+            Then the derivative is:
+
+            .. math::
+
+                \\frac{\partial \exp{m}}{\partial m} = \\text{sdiag}(\exp{m})
+        """
+        deriv = self.a * Utils.sdiag(np.ones_like(Utils.mkvc(m)))
+        if v is not None:
+            return deriv * v
+        return deriv
+
 class ExpMap(IdentityMap):
     """
         Electrical conductivity varies over many orders of magnitude, so it is

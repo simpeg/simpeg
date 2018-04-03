@@ -6,7 +6,8 @@ from __future__ import unicode_literals
 import numpy as np
 import unittest
 from SimPEG import Mesh, Maps, Regularization, Utils, Tests, ObjectiveFunction
-from scipy.sparse.linalg import dsolve
+from scipy.stats import multivariate_normal
+from scipy.sparse.linalg import dsolve, spsolve, LinearOperator, bicgstab
 import inspect
 
 TOL = 1e-7
@@ -18,7 +19,11 @@ np.random.seed(639)
 IGNORE_ME = [
     'BaseRegularization',
     'BaseComboRegularization',
-    'BaseSparse'
+    'BaseSparse',
+    'SimplePetroRegularization',
+    'PetroRegularization',
+    'PetroSmallness',
+    'SimplePetroSmallness',
 ]
 
 
@@ -70,6 +75,51 @@ class RegularizationTests(unittest.TestCase):
                     passed = reg.test(m, eps=TOL)
                     self.assertTrue(passed)
 
+        def test_petroregularization_approxDeriv(self):
+            mean0 = np.r_[2.,0.];
+            sigma0 = np.r_[[[1.0, -1.], [-1., 2.]]]
+            rv0 = multivariate_normal(mean0, sigma0)
+
+            mean1 = mean0-2.
+            sigma1 = np.r_ [[[0.5, 0.3], [0.3, 0.5]]]
+            rv1 = multivariate_normal(mean1,sigma1)
+            s0 = rv0.rvs(700)
+            s1 = rv1.rvs(300)
+            s = np.r_[s0,s1]
+            model = Utils.mkvc(s)
+
+            mesh = Mesh.TensorMesh([s.shape[0]])
+            wires = Maps.Wires(('s0',mesh.nC),('s1',mesh.nC))
+
+            n = 2
+            clfref = Utils.GaussianMixture(n_components=n,
+                                           covariance_type='full',
+                                           max_iter= 1000, n_init=20)
+            clfref.fit(s)
+
+            reg = Regularization.SimplePetroRegularization(mesh=mesh,
+                                                           GMmref=clfref,
+                                                           wiresmap=wires,
+                                                           evaltype='full',
+                                                           approx_gradient=True,
+                                                           alpha_x=0.)
+
+            deriv = reg.deriv(model)
+            H = lambda x: reg.deriv2(model,x)
+            HH = LinearOperator([2000,2000], matvec=H, rmatvec=H)
+            deriv2 = bicgstab(HH,deriv)[0]
+
+            Hfull = reg.deriv2(model)
+            deriv2bis = spsolve(Hfull,deriv)
+
+            tol =1e-10
+            error00 = np.max(np.minimum(np.abs((wires*(model-deriv2))[0]-clfref.means_[0][0 ]),np.abs((wires*(model-deriv2))[0]-clfref.means_[1][0])))
+            error01 = np.max(np.minimum(np.abs((wires*(model-deriv2))[1]-clfref.means_[0][1 ]),np.abs((wires*(model-deriv2))[1]-clfref.means_[1][1])))
+            error10 = np.max(np.minimum(np.abs((wires*(model-deriv2bis))[0  ]-clfref.means_[0 ][0]),np.abs((wires*(model-deriv2bis))[0]-clfref.means_[1][0])))
+            error11 = np.max(np.minimum(np.abs((wires*(model-deriv2bis))[1]-clfref.means_[0 ][1]),np.abs((wires*(model-deriv2bis))[1]-clfref.means_[1][1])))
+
+            self.assertTrue(np.max([error00,error01,error10,error11]) < tol)
+            print('Petro Tested')
 
         def test_regularization_ActiveCells(self):
             for R in dir(Regularization):
@@ -332,6 +382,8 @@ class RegularizationTests(unittest.TestCase):
             self.assertTrue(np.all(reg.indActive == fct.regmesh.indActive))
             for fct in reg.objfcts
         ]
+
+
 
 if __name__ == '__main__':
     unittest.main()

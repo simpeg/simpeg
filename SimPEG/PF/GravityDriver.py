@@ -10,7 +10,8 @@ class GravityDriver_Inv(object):
 
     def __init__(self, input_file=None):
         if input_file is not None:
-            self.basePath = os.path.sep.join(input_file.split(os.path.sep)[:-1])
+            self.basePath = os.path.sep.join(
+                input_file.split(os.path.sep)[:-1])
             if len(self.basePath) > 0:
                 self.basePath += os.path.sep
             self.readDriverFile(input_file.split(os.path.sep)[-1])
@@ -169,14 +170,16 @@ class GravityDriver_Inv(object):
     @property
     def survey(self):
         if getattr(self, '_survey', None) is None:
-            self._survey = self.readGravityObservations(self.basePath + self.obsfile)
+            self._survey = self.readGravityObservations(
+                self.basePath + self.obsfile)
         return self._survey
 
     @property
     def activeCells(self):
         if getattr(self, '_activeCells', None) is None:
             if getattr(self, 'topofile', None) is not None:
-                topo = np.genfromtxt(self.basePath + self.topofile, skip_header=1)
+                topo = np.genfromtxt(
+                    self.basePath + self.topofile, skip_header=1)
                 # Find the active cells
                 active = Utils.surface2ind_topo(self.mesh, topo, 'N')
 
@@ -188,7 +191,7 @@ class GravityDriver_Inv(object):
                 active = self.activeModel != 0
 
             inds = np.asarray([inds for inds, elem in enumerate(active, 1)
-                              if elem], dtype=int) - 1
+                               if elem], dtype=int) - 1
             self._activeCells = inds
 
             # Reduce m0 to active space
@@ -205,7 +208,7 @@ class GravityDriver_Inv(object):
             staticCells = self.activeModel[self._activeCells] == -1
 
             inds = np.asarray([inds for inds, elem in enumerate(staticCells, 1)
-                              if elem], dtype=int) - 1
+                               if elem], dtype=int) - 1
             self._staticCells = inds
 
         return self._staticCells
@@ -217,7 +220,8 @@ class GravityDriver_Inv(object):
             # Cells with value 1 in active model are dynamic
             dynamicCells = self.activeModel[self._activeCells] == 1
 
-            inds = np.asarray([inds for inds, elem in enumerate(dynamicCells, 1) if elem], dtype=int) - 1
+            inds = np.asarray([inds for inds, elem in enumerate(
+                dynamicCells, 1) if elem], dtype=int) - 1
             self._dynamicCells = inds
 
         return self._dynamicCells
@@ -235,7 +239,8 @@ class GravityDriver_Inv(object):
                 self._m0 = np.ones(self.nC) * self.mstart
             else:
 
-                self._m0 = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self.mstart)
+                self._m0 = Mesh.TensorMesh.readModelUBC(
+                    self.mesh, self.basePath + self.mstart)
 
         return self._m0
 
@@ -245,7 +250,8 @@ class GravityDriver_Inv(object):
             if isinstance(self._mrefInput, float):
                 self._mref = np.ones(self.nC) * self._mrefInput
             else:
-                self._mref = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self._mrefInput)
+                self._mref = Mesh.TensorMesh.readModelUBC(
+                    self.mesh, self.basePath + self._mrefInput)
                 self._mref = self._mref[self.activeCells]
         return self._mref
 
@@ -254,14 +260,16 @@ class GravityDriver_Inv(object):
         if getattr(self, '_activeModel', None) is None:
             if isinstance(self._staticInput, str):
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
-                self._activeModel = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self._staticInput)
+                self._activeModel = Mesh.TensorMesh.readModelUBC(
+                    self.mesh, self.basePath + self._staticInput
+                )
 
             else:
                 self._activeModel = np.ones(self._mesh.nC)
 
         return self._activeModel
 
-    def readGravityObservations(self, obs_file):
+    def readUBCgravObs(obs_file):
         """
         Read UBC grav file format
 
@@ -277,11 +285,10 @@ class GravityDriver_Inv(object):
 
         # First line has the number of rows
         line = fid.readline()
-        ndat = int(line.strip())
+        ndat = int(line.split()[0])
 
         # Pre-allocate space for obsx, obsy, obsz, data, uncert
         line = fid.readline()
-        temp = np.array(line.split(), dtype=float)
 
         d = np.zeros(ndat, dtype=float)
         wd = np.zeros(ndat, dtype=float)
@@ -290,14 +297,15 @@ class GravityDriver_Inv(object):
         for ii in range(ndat):
 
             temp = np.array(line.split(), dtype=float)
-            locXYZ[ii, :] = temp[:3]
-            d[ii] = temp[3]
-            wd[ii] = temp[4]
+            if len(temp) > 0:
+                locXYZ[ii, :] = temp[:3]
+                d[ii] = temp[3]
+                wd[ii] = temp[4]
             line = fid.readline()
 
-        rxLoc = BaseGrav.RxObs(locXYZ)
-        srcField = BaseGrav.SrcField([rxLoc])
-        survey = BaseGrav.LinearSurvey(srcField)
+        rxLoc = GRAV.RxObs(locXYZ)
+        srcField = GRAV.SrcField([rxLoc])
+        survey = GRAV.LinearSurvey(srcField)
         survey.dobs = d
         survey.std = wd
         return survey

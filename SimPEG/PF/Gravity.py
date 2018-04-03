@@ -129,13 +129,17 @@ class GravityIntegral(Problem.LinearProblem):
         dmudm = self.rhoMap.deriv(m)
         return self.G*dmudm
 
-    def Jvec(self, m, v, f=None):
-        dmudm = self.rhoMap.deriv(m)
-        return self.G.dot(dmudm*v)
+    # def Jvec(self, m, v, f=None):
+    #     dmudm = self.rhoMap.deriv(m)
+    #     return self.G.dot(dmudm*v)
 
-    def Jtvec(self, m, v, f=None):
-        dmudm = self.rhoMap.deriv(m)
-        return dmudm.T * (self.G.T.dot(v))
+    # def Jtvec(self, m, v, f=None):
+    #     dmudm = self.rhoMap.deriv(m)
+    #     return dmudm.T * (self.G.T.dot(v))
+
+    @property
+    def modelMap(self):
+        return self.rhoMap
 
     @property
     def G(self):
@@ -449,11 +453,10 @@ def readUBCgravObs(obs_file):
 
     # First line has the number of rows
     line = fid.readline()
-    ndat = np.array(line.split(), dtype=int)
+    ndat = int(line.split()[0])
 
     # Pre-allocate space for obsx, obsy, obsz, data, uncert
     line = fid.readline()
-    temp = np.array(line.split(), dtype=float)
 
     d = np.zeros(ndat, dtype=float)
     wd = np.zeros(ndat, dtype=float)
@@ -462,9 +465,10 @@ def readUBCgravObs(obs_file):
     for ii in range(ndat):
 
         temp = np.array(line.split(), dtype=float)
-        locXYZ[ii, :] = temp[:3]
-        d[ii] = temp[3]
-        wd[ii] = temp[4]
+        if len(temp) > 0:
+            locXYZ[ii, :] = temp[:3]
+            d[ii] = temp[3]
+            wd[ii] = temp[4]
         line = fid.readline()
 
     rxLoc = GRAV.RxObs(locXYZ)

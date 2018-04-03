@@ -7,19 +7,20 @@ import SimPEG
 import numpy as np
 from SimPEG.Utils import Zero, closestPoints
 
+
 class BaseRx(SimPEG.Survey.BaseTimeRx):
     locs = None
     rxType = None
 
     knownRxTypes = {
-                    'phi':['phi',None],
-                    'ex':['e','x'],
-                    'ey':['e','y'],
-                    'ez':['e','z'],
-                    'jx':['j','x'],
-                    'jy':['j','y'],
-                    'jz':['j','z'],
-                    }
+        'phi': ['phi', None],
+        'ex': ['e', 'x'],
+        'ey': ['e', 'y'],
+        'ez': ['e', 'z'],
+        'jx': ['j', 'x'],
+        'jy': ['j', 'y'],
+        'jz': ['j', 'z'],
+    }
 
     def __init__(self, locs, times, rxType, **kwargs):
         SimPEG.Survey.BaseTimeRx.__init__(self, locs, times, rxType, **kwargs)
@@ -50,9 +51,9 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
     def evalDeriv(self, src, mesh, f, v, adjoint=False):
         P = self.getP(mesh, self.projGLoc(f))
         if not adjoint:
-            return P*v
+            return P * v
         elif adjoint:
-            return P.T*v
+            return P.T * v
 
 
 # DC.Rx.Dipole(locs)
@@ -60,7 +61,7 @@ class Dipole(BaseRx):
 
     rxgeom = "dipole"
 
-    def __init__(self, locsM, locsN, times, rxType = 'phi', **kwargs):
+    def __init__(self, locsM, locsN, times, rxType='phi', **kwargs):
         assert locsM.shape == locsN.shape, 'locsM and locsN need to be the same size'
         if np.array_equal(locsM, locsN):
             self.rxgeom = "pole"

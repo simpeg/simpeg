@@ -361,6 +361,7 @@ nitpick_ignore = [
     ('py:func', 'discretize.utils.meshutils.meshTensor'),
     ('py:class', 'properties.base.HasProperties'),
     ('py:class', 'properties.base.base.HasProperties'),
+    ('py:class', 'SimPEG.Survey.LinearSurvey'),
     ('py:class', 'properties.Boolean'),
     ('py:class', 'SimPEG.VRM.ProblemVRM.Problem_BaseVRM'),
     ('py:class', 'SimPEG.VRM.ProblemVRM.Problem_Linear'),

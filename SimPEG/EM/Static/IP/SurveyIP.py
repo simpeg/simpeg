@@ -23,3 +23,4 @@ class Survey(SurveyDC):
                 d_\\text{pred} = Pf(m)
         """
         return self.prob.Jvec(m, m, f=f)
+
