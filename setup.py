@@ -43,7 +43,6 @@ setup(
         'vectormath',
         'discretize',
         'scikit-learn',
-        'copy',
         'seaborn',
     ],
     author="Rowan Cockett",
