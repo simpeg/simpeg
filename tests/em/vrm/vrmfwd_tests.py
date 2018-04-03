@@ -305,6 +305,59 @@ class VRM_fwd_tests(unittest.TestCase):
 
         self.assertTrue(Test1 and Test2 and Test3 and Test4 and Test5)
 
+    def test_receiver_types(self):
+        """
+        Test ensures the fields predicted for each receiver type
+        are correct.
+        """
+
+        h1 = [0.25, 0.25]
+        meshObj_Tensor = Mesh.TensorMesh((h1, h1, h1), x0='CCN')
+
+        chi0 = 0.
+        dchi = 0.01
+        tau1 = 1e-8
+        tau2 = 1e0
+
+        # Tensor Model
+        mod = (dchi/np.log(tau2/tau1))*np.ones(meshObj_Tensor.nC)
+
+        times = np.array([1e-3])
+        waveObj = VRM.WaveformVRM.SquarePulse(0.02)
+
+        phi = np.random.uniform(-np.pi, np.pi)
+        psi = np.random.uniform(-np.pi, np.pi)
+        R = 4.
+        loc_rx = R*np.c_[np.sin(phi)*np.cos(psi), np.sin(phi)*np.sin(psi), np.cos(phi)]
+        loc_tx = 0.5*np.r_[np.sin(phi)*np.cos(psi), np.sin(phi)*np.sin(psi), np.cos(phi)]
+
+        rxList1 = [VRM.Rx.Point(loc_rx, times, 'dhdt', 'x')]
+        rxList1.append(VRM.Rx.Point(loc_rx, times, 'dhdt', 'y'))
+        rxList1.append(VRM.Rx.Point(loc_rx, times, 'dhdt', 'z'))
+
+        w = 0.1
+        N = 100
+        rxList2 = [VRM.Rx.SquareLoop(loc_rx, times, w, N, 'dhdt', 'x')]
+        rxList2.append(VRM.Rx.SquareLoop(loc_rx, times, w, N, 'dhdt', 'y'))
+        rxList2.append(VRM.Rx.SquareLoop(loc_rx, times, w, N, 'dhdt', 'z'))
+
+        txList1 = [VRM.Src.MagDipole(rxList1, loc_tx, [1., 1., 1.], waveObj)]
+        txList2 = [VRM.Src.MagDipole(rxList2, loc_tx, [1., 1., 1.], waveObj)]
+
+        Survey1 = VRM.Survey(txList1)
+        Survey2 = VRM.Survey(txList2)
+        Problem1 = VRM.Problem_Linear(meshObj_Tensor, refFact=2, refRadius=[1.9, 3.6])
+        Problem2 = VRM.Problem_Linear(meshObj_Tensor, refFact=2, refRadius=[1.9, 3.6])
+        Problem1.pair(Survey1)
+        Problem2.pair(Survey2)
+        Fields1 = Problem1.fields(mod)
+        Fields2 = Problem2.fields(mod)
+
+        Err = np.abs(Fields1-Fields2)
+
+        Test = np.all(Err < 1e-7)
+
+        self.assertTrue(Test)
 
 if __name__ == '__main__':
     unittest.main()
