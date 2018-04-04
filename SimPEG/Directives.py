@@ -807,11 +807,11 @@ class Update_IRLS(InversionDirective):
 
                 if getattr(reg, 'eps_p', None) is None:
 
-                    reg.eps_p = np.percentile(np.abs(self.invProb.model), self.prctile)
+                    reg.eps_p = np.percentile(np.abs(reg._delta_m(self.invProb.model)), self.prctile)
 
                 if getattr(reg, 'eps_q', None) is None:
 
-                    reg.eps_q = np.percentile(np.abs(reg.regmesh.cellDiffxStencil * self.invProb.model), self.prctile)
+                    reg.eps_q = np.percentile(np.abs(reg._delta_m(self.invProb.model)), self.prctile)
 
             # Re-assign the norms supplied by user l2 -> lp
             for reg, norms in zip(self.reg.objfcts, self.norms):
