@@ -2,10 +2,11 @@ from __future__ import print_function
 import numpy as np
 import properties
 
+from discretize.Tests import checkDerivative
+
 from . import Utils
 from . import Survey
 from . import ObjectiveFunction
-from .Tests import checkDerivative
 
 
 class BaseDataMisfit(ObjectiveFunction.L2ObjectiveFunction):

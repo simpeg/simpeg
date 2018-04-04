@@ -4,7 +4,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import SimPEG
-from SimPEG.Utils import Identity, Zero
+from SimPEG.Utils import Identity, Zero, sdiag
 import numpy as np
 from scipy.constants import epsilon_0
 
@@ -76,17 +76,28 @@ class Fields_CC(FieldsDC):
 
     def __init__(self, mesh, survey, **kwargs):
         FieldsDC.__init__(self, mesh, survey, **kwargs)
-        if self.mesh._meshType == "TREE":
-            if(self.prob.bc_type == 'Neumann'):
+
+        if getattr(self.survey.prob, 'bc_type', None) == 'Dirichlet':
+            self.cellGrad = -mesh.faceDiv.T
+        elif getattr(self.survey.prob, 'bc_type', None) == 'Neumann':
+            if self.mesh._meshType == "TREE":
                 raise NotImplementedError()
-            elif(self.prob.bc_type == 'Dirchlet'):
-                self.cellGrad = -mesh.faceDiv.T
+            mesh.setCellGradBC("neumann")
+            self.cellGrad = mesh.cellGrad
         else:
             mesh.setCellGradBC("neumann")
             self.cellGrad = mesh.cellGrad
 
     def startup(self):
-        self.prob = self.survey.prob
+        # self.prob = self.survey.prob
+        self._MfRhoI = self.survey.prob.MfRhoI
+        self._MfRho = self.survey.prob.MfRho
+        self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
+        self._nC = self.survey.prob.mesh.nC
+        self._Grad = self.survey.prob.Grad
+        self._MfI = self.survey.prob.MfI
+        self._Vol = self.survey.prob.Vol
+        self._faceDiv = self.survey.prob.mesh.faceDiv
 
     def _GLoc(self, fieldType):
         if fieldType == 'phi':
@@ -110,23 +121,23 @@ class Fields_CC(FieldsDC):
             .. math::
                 \mathbf{j} = \mathbf{M}^{f \ -1}_{\rho} \mathbf{G} \phi
         """
-        return self.prob.MfRhoI*self.prob.Grad*phiSolution
+        return self._MfRhoI*self._Grad*phiSolution
 
     def _e(self, phiSolution, srcList):
         """
-            In HJ formulation e is not well-defined!!
             .. math::
-                \vec{e} = -\nabla \phi
+                \vec{e} = \rho \vec{j}
         """
-        return self.prob.MfI*self.prob.MfRhoI * self._j(phiSolution, srcList)
+        return self._MfI*self._MfRho * self._j(phiSolution, srcList)
 
     def _charge(self, phiSolution, srcList):
         """
             .. math::
                 \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
-        return epsilon_0*self.prob.Vol*(self.mesh.faceDiv*self._e(phiSolution,
-                                                                  srcList))
+        return epsilon_0*self._Vol*(
+            self._faceDiv*self._e(phiSolution, srcList)
+        )
 
 
 class Fields_N(FieldsDC):

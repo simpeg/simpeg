@@ -2,6 +2,7 @@ from __future__ import print_function
 import numpy as np
 from .Maps import IdentityMap
 
+
 class Model(np.ndarray):
 
     def __new__(cls, input_array, mapping=None):

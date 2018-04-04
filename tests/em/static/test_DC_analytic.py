@@ -67,7 +67,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
     def test_Problem3D_CC_Mixed(self, tolerance=0.2):
         problem = DC.Problem3D_CC(
             self.mesh, sigma=self.sigma, bc_type='Mixed'
-            )
+        )
         problem.Solver = Solver
         problem.pair(self.survey)
         data = self.survey.dpred()
@@ -144,10 +144,11 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         self.sigma = sigma
         self.data_anal = data_anal
 
-    def test_Problem3D_CC_Dirchlet(self, tolerance=0.2):
+    def test_Problem3D_CC_Dirichlet(self, tolerance=0.2):
         problem = DC.Problem3D_CC(
-            self.mesh, sigma=self.sigma, bc_type='Dirchlet'
-            )
+            self.mesh, sigma=self.sigma, bc_type='Dirichlet'
+        )
+
         problem.Solver = Solver
         problem.pair(self.survey)
         data = self.survey.dpred()

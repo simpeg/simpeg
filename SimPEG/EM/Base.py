@@ -237,7 +237,6 @@ class BaseEMProblem(Problem.BaseProblem):
         dMf_dmui = self.mesh.getEdgeInnerProductDeriv(self.mui)(u)
         return dMfMuiI_dI * (dMf_dmui * self.muiDeriv)
 
-
     @property
     def MeMu(self):
         """

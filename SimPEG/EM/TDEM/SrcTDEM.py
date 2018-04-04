@@ -577,3 +577,51 @@ class LineCurrent(BaseTDEMSrc):
 
     def s_e(self, prob, time):
         return self.Mejs(prob) * self.waveform.eval(time)
+
+
+# TODO: this should be generalized and plugged into getting the Line current
+# on faces
+class RawVec_Grounded(BaseTDEMSrc):
+
+    mu = properties.Float(
+        "permeability of the background", default=mu_0, min=0.
+    )
+
+    def __init__(self, rxList, s_e, **kwargs):
+        self.integrate = False
+        self._s_e = s_e
+        super(RawVec_Grounded, self).__init__(
+            rxList, srcType="galvanic", **kwargs
+        )
+
+    def getRHSdc(self, prob):
+        return Utils.sdiag(prob.mesh.vol) * prob.mesh.faceDiv * self._s_e
+
+    def phiInitial(self, prob):
+        if self.waveform.hasInitialFields:
+            RHSdc = self.getRHSdc(prob)
+            return prob.Adcinv * RHSdc
+        else:
+            return Zero()
+
+    def jInitial(self, prob):
+        if prob._fieldType != 'j':
+            raise NotImplementedError
+
+        if self.waveform.hasInitialFields:
+            phi = self.phiInitial(prob)
+            Div = Utils.sdiag(prob.mesh.vol) * prob.mesh.faceDiv
+            return - prob.MfRhoI * (Div.T * phi)
+
+        else:
+            return Zero()
+
+    def s_e(self, prob, time):
+        return self._s_e * self.waveform.eval(time)
+
+
+
+
+
+
+

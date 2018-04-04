@@ -362,6 +362,8 @@ nitpick_ignore = [
     ('py:class', 'properties.base.HasProperties'),
     ('py:class', 'properties.base.base.HasProperties'),
     ('py:class', 'properties.Boolean'),
+    ('py:class', 'Fields_Derivs_eb'),
+    ('py:class', 'Fields_Derivs_hj'),
     ('py:class', 'SimPEG.VRM.ProblemVRM.Problem_BaseVRM'),
     ('py:class', 'SimPEG.VRM.ProblemVRM.Problem_Linear'),
     ('py:class', 'SimPEG.VRM.ProblemVRM.Problem_LogUniform'),

@@ -7,7 +7,7 @@ from pymatsolver import Pardiso as Solver
 
 plotIt = False
 
-testDeriv = True
+testDeriv = False
 testAdjoint = True
 
 TOL = 1e-4
@@ -70,7 +70,6 @@ class TDEM_DerivTests(unittest.TestCase):
 # ====== TEST Jvec ========== #
 
     if testDeriv:
-
         def JvecTest(self, prbtype, rxcomp):
             prb, m, mesh = setUp_TDEM(prbtype, rxcomp)
 
@@ -94,7 +93,6 @@ class TDEM_DerivTests(unittest.TestCase):
 # ====== TEST Jtvec ========== #
 
     if testAdjoint:
-
         def JvecVsJtvecTest(self, prbtype='b', rxcomp='bz'):
 
             print(
@@ -106,13 +104,17 @@ class TDEM_DerivTests(unittest.TestCase):
             prb, m0, mesh = setUp_TDEM(prbtype, rxcomp)
             m = np.random.rand(prb.sigmaMap.nP)
             d = np.random.randn(prb.survey.nD)
+
+            print(m.shape, d.shape, m0.shape)
+
             V1 = d.dot(prb.Jvec(m0, m))
             V2 = m.dot(prb.Jtvec(m0, d))
             tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
             passed = np.abs(V1-V2) < tol
 
             print('AdjointTest {prbtype} {v1} {v2} {passed}'.format(
-                prbtype=prbtype, v1=V1, v2=V2, passed=passed))
+                prbtype=prbtype, v1=V1, v2=V2, passed=passed)
+            )
             self.assertTrue(passed)
 
         def test_Jvec_adjoint_e_dbzdt(self):
