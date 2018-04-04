@@ -76,6 +76,7 @@ def run(N=100, plotIt=True):
     reg = Regularization.Sparse(mesh, mapping=idenMap)
     reg.mref = mref
     reg.cell_weights = wr
+    reg.eps_p, reg.eps_q = 1e-1, 1e-1
     reg.norms = np.c_[0., 0., 2., 2.]
     reg.mref = np.zeros(mesh.nC)
 
@@ -89,11 +90,12 @@ def run(N=100, plotIt=True):
     # Set the IRLS directive, penalize the lowest 25 percentile of model values
     # Start with an l2-l2, then switch to lp-norms
 
-    IRLS = Directives.Update_IRLS(prctile=25, maxIRLSiter=15, minGNiter=1)
-
+    IRLS = Directives.Update_IRLS(
+        maxIRLSiter=20, minGNiter=1, f_min_change=1e-4)
+    saveDict = Directives.SaveOutputEveryIteration(save_txt=False)
     inv = Inversion.BaseInversion(
         invProb,
-        directiveList=[IRLS, betaest, update_Jacobi]
+        directiveList=[IRLS, betaest, update_Jacobi, saveDict]
     )
 
     # Run inversion
@@ -102,27 +104,48 @@ def run(N=100, plotIt=True):
     print("Final misfit:" + str(invProb.dmisfit(mrec)))
 
     if plotIt:
-        fig, axes = plt.subplots(1, 2, figsize=(12*1.2, 4*1.2))
+        fig, axes = plt.subplots(2, 2, figsize=(12*1.2, 8*1.2))
         for i in range(prob.G.shape[0]):
-            axes[0].plot(prob.G[i, :])
-        axes[0].set_title('Columns of matrix G')
+            axes[0, 0].plot(prob.G[i, :])
+        axes[0, 0].set_title('Columns of matrix G')
 
-        axes[1].plot(mesh.vectorCCx, mtrue, 'b-')
-        axes[1].plot(mesh.vectorCCx, invProb.l2model, 'r-')
-        # axes[1].legend(('True Model', 'Recovered Model'))
-        axes[1].set_ylim(-1.0, 1.25)
+        axes[0, 1].plot(mesh.vectorCCx, mtrue, 'b-')
+        axes[0, 1].plot(mesh.vectorCCx, invProb.l2model, 'r-')
+        # axes[0, 1].legend(('True Model', 'Recovered Model'))
+        axes[0, 1].set_ylim(-1.0, 1.25)
 
-        axes[1].plot(mesh.vectorCCx, mrec, 'k-', lw=2)
-        axes[1].legend(
+        axes[0, 1].plot(mesh.vectorCCx, mrec, 'k-', lw=2)
+        axes[0, 1].legend(
             (
                 'True Model',
                 'Smooth l2-l2',
-                'Sparse lp: {0}, lqx: {1}'.format(*reg.norms)
+                'Sparse norms: {0}'.format(*reg.norms)
             ),
             fontsize=12
         )
 
+        axes[1, 1].plot(saveDict.phi_d, 'k', lw=2)
+
+        twin = axes[1, 1].twinx()
+        twin.plot(saveDict.phi_m, 'k--', lw=2)
+        axes[1, 1].plot(
+            np.r_[IRLS.iterStart, IRLS.iterStart],
+            np.r_[0, np.max(saveDict.phi_d)], 'k:'
+        )
+        axes[1, 1].text(
+            IRLS.iterStart, 0.,
+            'IRLS Start', va='bottom', ha='center',
+            rotation='vertical', size=12,
+            bbox={'facecolor': 'white'}
+        )
+
+        axes[1, 1].set_ylabel('$\phi_d$', size=16, rotation=0)
+        axes[1, 1].set_xlabel('Iterations', size=14)
+        axes[1, 0].axis('off')
+        twin.set_ylabel('$\phi_m$', size=16, rotation=0)
+
     return prob, survey, mesh, mrec
+
 
 if __name__ == '__main__':
     run()

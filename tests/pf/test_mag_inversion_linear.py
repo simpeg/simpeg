@@ -100,7 +100,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Create a regularization
         reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
         reg.cell_weights = wr
-        reg.norms = np.c_[0, 1, 1, 1]
+        reg.norms = np.c_[0, 0, 0, 0]
         reg.gradientType = 'component'
         # reg.eps_p, reg.eps_q = 1e-3, 1e-3
 
@@ -117,7 +117,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         betaest = Directives.BetaEstimate_ByEig()
 
         # Here is where the norms are applied
-        IRLS = Directives.Update_IRLS(minGNiter=1)
+        IRLS = Directives.Update_IRLS(f_min_change=1e-4, minGNiter=1)
         update_Jacobi = Directives.UpdatePreconditioner()
         self.inv = Inversion.BaseInversion(invProb,
                                            directiveList=[IRLS, betaest,
@@ -130,7 +130,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         residual = np.linalg.norm(mrec-self.model) / np.linalg.norm(self.model)
         print(residual)
-        self.assertTrue(residual < 0.2)
+        self.assertTrue(residual < 0.05)
         # self.assertTrue(residual < 0.05)
 
 if __name__ == '__main__':

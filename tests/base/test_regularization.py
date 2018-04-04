@@ -102,10 +102,11 @@ class RegularizationTests(unittest.TestCase):
                         continue
 
                     for indAct in [indActive, indActive.nonzero()[0]]: # test both bool and integers
-                        if indAct.dtype == int:
+                        if indAct.dtype != bool:
                             nP = indAct.size
                         else:
-                            nP = indAct.sum()
+                            nP = int(indAct.sum())
+
                         reg = r(
                             mesh, indActive=indAct, mapping=Maps.IdentityMap(nP=nP)
                         )
@@ -298,18 +299,21 @@ class RegularizationTests(unittest.TestCase):
             mesh, cell_weights=cell_weights
         )
         reg.norms = np.c_[2., 2., 2., 2.]
-        self.assertTrue(np.all(reg.norms == np.c_[2., 2., 2., 2.]))
+        self.assertTrue(np.all(reg.norms == np.kron(
+                np.ones((reg.regmesh.Pac.shape[1], 1)), np.c_[2., 2., 2., 2.])))
         self.assertTrue(np.all(reg.objfcts[0].norm == 2.*np.ones(mesh.nC)))
-        self.assertTrue(np.all(reg.objfcts[1].norm == 2.*np.ones(mesh.nC)))
-        self.assertTrue(np.all(reg.objfcts[2].norm == 2.*np.ones(mesh.nC)))
-        self.assertTrue(np.all(reg.objfcts[3].norm == 2.*np.ones(mesh.nC)))
+        self.assertTrue(np.all(reg.objfcts[1].norm == 2.*np.ones(mesh.nFx)))
+
+        self.assertTrue(np.all(reg.objfcts[2].norm == 2.*np.ones(mesh.nFy)))
+        self.assertTrue(np.all(reg.objfcts[3].norm == 2.*np.ones(mesh.nFz)))
 
         reg.norms = np.c_[0., 1., 1., 1.]
-        self.assertTrue(np.all(reg.norms == np.c_[0., 1., 1., 1.]))
+        self.assertTrue(np.all(reg.norms == np.kron(
+                np.ones((reg.regmesh.Pac.shape[1], 1)), np.c_[0., 1., 1., 1.])))
         self.assertTrue(np.all(reg.objfcts[0].norm == 0.*np.ones(mesh.nC)))
-        self.assertTrue(np.all(reg.objfcts[1].norm == 1.*np.ones(mesh.nC)))
-        self.assertTrue(np.all(reg.objfcts[2].norm == 1.*np.ones(mesh.nC)))
-        self.assertTrue(np.all(reg.objfcts[3].norm == 1.*np.ones(mesh.nC)))
+        self.assertTrue(np.all(reg.objfcts[1].norm == 1.*np.ones(mesh.nFx)))
+        self.assertTrue(np.all(reg.objfcts[2].norm == 1.*np.ones(mesh.nFy)))
+        self.assertTrue(np.all(reg.objfcts[3].norm == 1.*np.ones(mesh.nFz)))
 
     def test_linked_properties(self):
         mesh = Mesh.TensorMesh([8, 7, 6])
