@@ -546,10 +546,10 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         Shape of the residual
         """
 
-        if getattr(self, 'mapping', None) != '*':
-            return self.mapping.shape[0]
-        elif getattr(self.regmesh, 'nC', None) != '*':
+        if getattr(self.regmesh, 'nC', None) != '*':
             return self.regmesh.nC
+        elif getattr(self, 'mapping', None) != '*':
+            return self.mapping.shape[0]
         else:
             return self.nP
 
