@@ -13,7 +13,7 @@ def run_inversion(
     alpha_s=1e-4,
     alpha_x=1.,
     alpha_y=1.,
-    alpha_z=1.,    
+    alpha_z=1.,
 ):
     """
     Run IP inversion
@@ -29,13 +29,13 @@ def run_inversion(
         reg.alpha_s = alpha_s
         reg.alpha_x = alpha_x
         reg.alpha_y = alpha_y
-        reg.alpha_z = alpha_z        
+        reg.alpha_z = alpha_z
     else:
         reg = Regularization.Tikhonov(mesh, indActive=actind, mapping=regmap)
         reg.alpha_s = alpha_s
         reg.alpha_x = alpha_x
         reg.alpha_y = alpha_y
-        reg.alpha_z = alpha_z        
+        reg.alpha_z = alpha_z
     opt = Optimization.ProjectedGNCG(maxIter=maxIter, upper=upper, lower=lower)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
     beta = Directives.BetaSchedule(
@@ -52,9 +52,8 @@ def run_inversion(
             beta, betaest, target, updateSensW, update_Jacobi
         ]
     else:
-        update_Jacobi = Directives.UpdatePreconditioner()
         directiveList = [
-            beta, betaest, target, update_Jacobi
+            beta, betaest, target
         ]
     inv = Inversion.BaseInversion(
         invProb, directiveList=directiveList

@@ -474,7 +474,7 @@ class IO(properties.HasProperties):
                 pad_rate_x=1.3, pad_rate_y=1.3, pad_rate_z=1.3,
                 ncell_per_dipole=4, mesh_type='TensorMesh',
                 dimension=2,
-                method='linear'
+                method='nearest'
                 ):
         """
         Set up a mesh for a given DC survey
