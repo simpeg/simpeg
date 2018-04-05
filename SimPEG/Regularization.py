@@ -552,10 +552,13 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         Shape of the residual
         """
 
-        if getattr(self, 'mapping', None) != '*':
-            return self.mapping.shape[0]
-        elif getattr(self.regmesh, 'nC', None) != '*':
+        nC = getattr(self.regmesh, 'nC', None)
+        mapping = getattr(self, 'mapping', None)
+
+        if nC != '*' and nC is not None:
             return self.regmesh.nC
+        elif mapping is not None and mapping.shape[0] != '*':
+            return self.mapping.shape[0]
         else:
             return self.nP
 
@@ -707,9 +710,12 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         """
         Shape of the residual
         """
-        if getattr(self.regmesh, 'nC', None) != '*':
+        nC = getattr(self.regmesh, 'nC', None)
+        mapping = getattr(self, 'mapping', None)
+
+        if nC != '*' and nC is not None:
             return self.regmesh.nC
-        elif getattr(self, 'mapping', None) != '*':
+        elif mapping is not None and mapping.shape[0] != '*':
             return self.mapping.shape[0]
         else:
             return self.nP
