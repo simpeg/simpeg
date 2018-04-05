@@ -382,41 +382,16 @@ class MagneticVector(MagneticIntegral):
 
         dmudm = self.chiMap.deriv(m)
 
-        if self.memory_saving_mode:
-            wd = W.diagonal()
-            JtJdiag = np.zeros_like(m).astype(np.float64)
-
-            if self.coordinate_system == 'cartesian':
-                for ii in range(self.F.shape[0]):
-                    JtJdiag += ((wd[ii].astype(np.float32) * self.F[ii, :]) * dmudm)**2.
-            else:
-                for ii in range(self.F.shape[0]):
-                    JtJdiag += ((wd[ii].astype(np.float32) * self.F[ii, :]) *
-                                (self.S * dmudm))**2.
-
-            return JtJdiag
+        if self.coordinate_system == 'cartesian':
+            return np.sum((W * self.F * dmudm)**2., axis=0)
 
         else:
-            if self.coordinate_system == 'cartesian':
-                return np.sum((W * self.F * dmudm)**2., axis=0)
 
-            else:
-                return np.sum((W * self.F * (self.S * dmudm))**2., axis=0)
+            gtgdiag = np.sum((W * self.F)**2., axis=0)
+            Japprox = Utils.sdiag(mkvc(gtgdiag)**0.5) * (self.S * dmudm)
 
-    # def getJtJdiag(self, m, W=None):
-    #     """
-    #         Return the diagonal of JtJ
-    #     """
+            return (Japprox.T*Japprox).diagonal()
 
-    #     if W is None:
-    #         W = 1.
-
-    #     dmudm = self.chiMap.deriv(m)
-    #     if self.coordinate_system == 'cartesian':
-    #         return np.sum((W * self.F * dmudm)**2., axis=0)
-
-    #     else:
-    #         return np.sum((W * self.F * (self.S * dmudm))**2., axis=0)
 
     def getJ(self, chi, f=None):
 

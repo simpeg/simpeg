@@ -1007,7 +1007,7 @@ class UpdateJacobiPrecond(InversionDirective):
 
             for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
 
-                assert hasattr(prob, 'getJ') is True, (
+                assert hasattr(prob, 'getJtJdiag') is True, (
                        'Check that problem can form J explicitly')
 
                 m = self.invProb.model
