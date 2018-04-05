@@ -950,7 +950,8 @@ class Update_IRLS(InversionDirective):
 
         max_s = [np.pi, np.pi]
         for obj, var in zip(self.reg.objfcts[1:], max_s):
-            obj.scale = max_p.max()/var
+
+            obj.scales = np.ones(obj.scales.shape)*max_p.max()/var
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
