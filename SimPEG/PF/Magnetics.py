@@ -107,20 +107,20 @@ class MagneticIntegral(Problem.LinearProblem):
         """
 
         if W is None:
-            W = sp.speye(self.F.shape[0])
+            W = Utils.speye(self.F.shape[0])
 
         dmudm = self.chiMap.deriv(m)
 
-        if self.memory_saving_mode:
-            wd = W.diagonal()
-            JtJdiag = np.zeros_like(m)
-            for ii in range(self.F.shape[0]):
-                JtJdiag += ((wd[ii] * self.F[ii, :]) * dmudm)**2.
+        # if self.memory_saving_mode:
+        #     wd = W.diagonal()
+        #     JtJdiag = np.zeros_like(m)
+        #     for ii in range(self.F.shape[0]):
+        #         JtJdiag += ((wd[ii] * self.F[ii, :]) * dmudm)**2.
 
-            return JtJdiag
+        #     return JtJdiag
 
-        else:
-            return np.sum((W * self.F * dmudm)**2., axis=0)
+        # else:
+        return np.sum((W * self.F * dmudm)**2., axis=0)
 
     def getJ(self, m, f):
         """
