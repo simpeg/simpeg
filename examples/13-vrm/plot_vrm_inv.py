@@ -11,14 +11,13 @@ half-space is used to model the inductive response.
 """
 import SimPEG.VRM as VRM
 import numpy as np
-from SimPEG import mkvc, Mesh, Maps
+from SimPEG import mkvc, Mesh, Maps, DataMisfit, Directives, Optimization, Regularization, InvProblem, Inversion
 import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
 
     # CREATE MESH
-    # Works for 3D tensor and 3D tree meshes
     cs, ncx, ncy, ncz, npad = 2., 35, 35, 20, 5
     hx = [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)]
     hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
@@ -26,13 +25,9 @@ def run(plotIt=True):
     mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
 
     # SET MAPPING AND ACTIVE CELLS
-    # Only cells below the surface (z=0) are being modeled.
-    # All other cells set to to 0 for plotting on mesh.
     topoCells = mesh.gridCC[:, 2] < 0.
 
     # CREATE MODEL (XI: THE AMALGAMATED MAGNETIC PROPERTY)
-    # The model is made by summing a set of 3D Gaussian distributions.
-    # Only active cells have a model value.
     xyzc = mesh.gridCC[topoCells, :]
     C = 2*np.pi*8**2
     xi_true = (
@@ -48,13 +43,11 @@ def run(plotIt=True):
         )
 
     # SET THE TRANSMITTER WAVEFORM
-    # This determines the off-time decay behaviour of the VRM response
     waveform = VRM.WaveformVRM.StepOff()
 
     # CREATE SURVEY
-    # Similar to an EM-63 survey by all 3 components of the field are measured
-    times = np.logspace(-5, -2, 31) # Observation times
-    x, y = np.meshgrid(np.linspace(-30, 30, 21), np.linspace(-30,30,21))
+    times = np.logspace(-5, -2, 31)  # Observation times
+    x, y = np.meshgrid(np.linspace(-30, 30, 21), np.linspace(-30, 30, 21))
     z = 0.5*np.ones(x.shape)
     loc = np.c_[mkvc(x), mkvc(y), mkvc(z)]  # Src and Rx Locations
 
@@ -69,24 +62,20 @@ def run(plotIt=True):
 
     SurveyVRM = VRM.Survey(srcListVRM)
 
-    # DEFINE THE PROBLEM
+    # DEFINE THE VRM PROBLEM
     ProblemVRM = VRM.Problem_Linear(mesh, indActive=topoCells, refFact=3, refRadius=[1.25, 2.5, 3.75])
     ProblemVRM.pair(SurveyVRM)
 
     # PREDICT THE FIELDS
-    FieldsVRM = ProblemVRM.fields(xi_true)
+    FieldsVRM = SurveyVRM.dpred(xi_true)
 
     n_times = len(times)
     n_loc = loc.shape[0]
-    FieldsVRM = np.reshape(FieldsVRM, (n_loc, n_times))
-
-    ################################
-    # ARTIFICIAL TEM RESPONSE
 
     sig = 1e-1
     mu0 = 4*np.pi*1e-7
     FieldsTEM = -sig**1.5*mu0**2.5*times**-2.5/(20*np.pi**1.5)
-    FieldsTEM = np.kron(np.ones((n_loc, 1)), np.reshape(FieldsTEM, (1, n_times)))
+    FieldsTEM = np.kron(np.ones(n_loc), FieldsTEM)
     C = (
        np.exp(-(loc[:, 0]-10)**2/(25**2))*np.exp(-(loc[:, 1]-20)**2/(35**2)) +
        np.exp(-(loc[:, 0]+20)**2/(20**2))*np.exp(-(loc[:, 1]+20)**2/(40**2)) +
@@ -94,16 +83,57 @@ def run(plotIt=True):
        0.25
        )
 
-    C = np.kron(np.reshape(C, (len(C), 1)), np.ones((1, n_times)))
+    C = np.kron(C, np.ones(n_times))
     FieldsTEM = C*FieldsTEM
 
-    #################################
+    # TOTAL OBSERCED FIELD WITH NOISE
+    FieldsTOT = FieldsTEM + FieldsVRM
+    FieldsTOT = FieldsTOT + 0.05*np.abs(FieldsTOT)*np.random.normal(size=FieldsTOT.shape)
+
+    ##########################################
+    # INVERT LATE TIMES
+
+    # CREATE NEW PROBLEM
+    SurveyINV = VRM.Survey(srcListVRM)
+    actCells = (mesh.gridCC[:, 2] < 0.) & (mesh.gridCC[:, 2] > -2.)
+    ProblemINV = VRM.Problem_Linear(mesh, indActive=actCells, refFact=3, refRadius=[1.25, 2.5, 3.75])
+    ProblemINV.pair(SurveyINV)
+    SurveyINV.ActiveTimeInterval = [1e-3, 1e-2]
+    SurveyINV.dobs = FieldsTOT[SurveyINV.tActive]
+    SurveyINV.std = 0.05*np.abs(FieldsTOT[SurveyINV.tActive])
+    SurveyINV.eps = 1e-11
+
+    # SET INVERSION
+    dmis = DataMisfit.l2_DataMisfit(SurveyINV)
+    reg = Regularization.Simple(mesh=mesh, indActive=actCells, alpha_s=1)
+    opt = Optimization.ProjectedGNCG(maxIter=20, lower=0., upper=1e-2, maxIterLS=20, tolCG=1e-4)
+    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+    directives = [
+        Directives.BetaSchedule(coolingFactor=2, coolingRate=1),
+        Directives.TargetMisfit()
+    ]
+    inv = Inversion.BaseInversion(invProb, directiveList=directives)
+
+    xi_0 = 1e-6*np.ones(actCells.sum())
+    xi_rec = inv.run(xi_0)
+
+    ############################################
+    # REMOVE VRM RESPONSE
+
+    SurveyINV.ActiveTimeInterval = [0., 1.]
+    FieldsPRE = SurveyINV.dpred(xi_rec)
+
+    ################################
     # PLOTTING
 
+    FieldsTOT = np.reshape(FieldsTOT, (n_loc, n_times))
+    FieldsVRM = np.reshape(FieldsVRM, (n_loc, n_times))
+    FieldsTEM = np.reshape(FieldsTEM, (n_loc, n_times))
+    FieldsPRE = np.reshape(FieldsPRE, (n_loc, n_times))
+
     Fig = plt.figure(figsize=(11, 11))
-    Ax13 = Fig.add_axes([0.06, 0.66, 0.26, 0.25])
-    Ax12 = Fig.add_axes([0.38, 0.66, 0.26, 0.25])
-    Ax11 = Fig.add_axes([0.70, 0.66, 0.30, 0.25])
+    Ax12 = Fig.add_axes([0.22, 0.66, 0.26, 0.25])
+    Ax11 = Fig.add_axes([0.58, 0.66, 0.30, 0.25])
 
     Ax21 = Fig.add_axes([0.1, 0.33, 0.4, 0.25])
     Ax22 = Fig.add_axes([0.6, 0.33, 0.4, 0.25])
@@ -115,9 +145,10 @@ def run(plotIt=True):
     N = x.shape[0]
 
     # PLOT MODEL
-    plotMap = Maps.InjectActiveCells(mesh, topoCells, 0.)  # Maps to mesh
+    invMap = Maps.InjectActiveCells(mesh, actCells, 0.)  # Maps to mesh
+    topoMap = Maps.InjectActiveCells(mesh, topoCells, 0.)
 
-    Cplot11 = mesh.plotSlice(plotMap*xi_true, ind=int((ncz+2*npad)/2-1), ax=Ax11, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
+    Cplot11 = mesh.plotSlice(invMap*xi_rec, ind=int((ncz+2*npad)/2-1), ax=Ax11, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
     cbar11 = plt.colorbar(Cplot11[0], ax=Ax11, pad=0.02, format='%.2e')
     cbar11.set_label('[SI]', rotation=270, labelpad=15, size=FS)
     cbar11.set_clim((0., np.max(xi_true)))
@@ -125,61 +156,58 @@ def run(plotIt=True):
     Ax11.set_xlabel('X [m]', fontsize=FS)
     Ax11.set_ylabel('Y [m]', fontsize=FS, labelpad=-10)
     Ax11.tick_params(labelsize=FS-2)
-    titlestr11 = "True Model (z = 0 m)"
+    titlestr11 = "Recovered Surface Model"
     Ax11.set_title(titlestr11, fontsize=FS+2)
 
-    Cplot12 = mesh.plotSlice(plotMap*xi_true, ind=int((ncz+2*npad)/2-4), ax=Ax12, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
+    Cplot12 = mesh.plotSlice(topoMap*xi_true, ind=int((ncz+2*npad)/2-1), ax=Ax12, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
     Cplot12[0].set_clim((0., np.max(xi_true)))
     Ax12.set_xlabel('X [m]', fontsize=FS)
     Ax12.set_ylabel('Y [m]', fontsize=FS, labelpad=-10)
     Ax12.tick_params(labelsize=FS-2)
-    titlestr12 = "True Model (z = -6 m)"
+    titlestr12 = "True Model (z = 0 m)"
     Ax12.set_title(titlestr12, fontsize=FS+2)
-
-    Cplot13 = mesh.plotSlice(plotMap*xi_true, ind=int((ncz+2*npad)/2-7), ax=Ax13, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
-    Cplot13[0].set_clim((0., np.max(xi_true)))
-    Ax13.set_xlabel('X [m]', fontsize=FS)
-    Ax13.set_ylabel('Y [m]', fontsize=FS, labelpad=-10)
-    Ax13.tick_params(labelsize=FS-2)
-    titlestr13 = "True Model (z = -12 m)"
-    Ax13.set_title(titlestr13, fontsize=FS+2)
 
     # PLOT DECAY
     j1 = int((N**2-1)/2 - 3*N)
-    di_vrm = mkvc(np.abs(FieldsVRM[j1, :]))
+    di_tot = mkvc(np.abs(FieldsTOT[j1, :]))
+    di_pre = mkvc(np.abs(FieldsVRM[j1, :]))
     di_tem = mkvc(np.abs(FieldsTEM[j1, :]))
+    Ax21.loglog(times, di_tot, 'k.-')
     Ax21.loglog(times, di_tem, 'r.-')
-    Ax21.loglog(times, di_vrm, 'b.-')
-    Ax21.loglog(times, di_tem+di_vrm, 'k.-')
-    Ax21.set_xlabel('t [s]', fontsize=FS)
+    Ax21.loglog(times, di_pre, 'b.-')
+    Ax21.loglog(times, np.abs(di_tot-di_pre), 'g.-')
+    Ax21.set_xlabel('t [s]', fontsize=FS, labelpad=-10)
     Ax21.set_ylabel('|dBz/dt| [T/s]', fontsize=FS)
     Ax21.tick_params(labelsize=FS-2)
     Ax21.set_xbound(np.min(times), np.max(times))
-    Ax21.set_ybound(1.2*np.max(di_tem+di_vrm),1e-5*np.max(di_tem+di_vrm))
+    Ax21.set_ybound(1.2*np.max(di_tot),1e-5*np.max(di_tot))
     titlestr21 = "Decay at X = " + '{:.2f}'.format(loc[j1, 0]) + " m and Y = " + '{:.2f}'.format(loc[j1, 1]) + " m"
     Ax21.set_title(titlestr21, fontsize=FS+2)
-    Ax21.text(1.2e-5, 18*np.max(di_tem)/1e5, "TEM", fontsize=FS, color='r')
-    Ax21.text(1.2e-5, 6*np.max(di_tem)/1e5, "VRM", fontsize=FS, color='b')
-    Ax21.text(1.2e-5, 2*np.max(di_tem)/1e5, "TEM + VRM", fontsize=FS, color='k')
+    Ax21.text(1.2e-5, 54*np.max(di_tot)/1e5, "Observed", fontsize=FS, color='k')
+    Ax21.text(1.2e-5, 18*np.max(di_tot)/1e5, "True TEM", fontsize=FS, color='r')
+    Ax21.text(1.2e-5, 6*np.max(di_tot)/1e5, "Predicted VRM", fontsize=FS, color='b')
+    Ax21.text(1.2e-5, 2*np.max(di_tot)/1e5, "Recovered TEM", fontsize=FS, color='g')
 
     j2 = int((N**2-1)/2 + 3*N)
-    di_vrm = mkvc(np.abs(FieldsVRM[j2, :]))
-    di_tem = mkvc(np.abs(FieldsTEM[j2, :]))
+    di_tot = mkvc(np.abs(FieldsTOT[j1, :]))
+    di_pre = mkvc(np.abs(FieldsVRM[j1, :]))
+    di_tem = mkvc(np.abs(FieldsTEM[j1, :]))
+    Ax22.loglog(times, di_tot, 'k.-')
     Ax22.loglog(times, di_tem, 'r.-')
-    Ax22.loglog(times, di_vrm, 'b.-')
-    Ax22.loglog(times, di_tem+di_vrm, 'k.-')
-    Ax22.set_xlabel('t [s]', fontsize=FS)
+    Ax22.loglog(times, di_pre, 'b.-')
+    Ax22.loglog(times, np.abs(di_tot-di_pre), 'g.-')
+    Ax22.set_xlabel('t [s]', fontsize=FS, labelpad=-10)
     Ax22.set_ylabel('|dBz/dt| [T/s]', fontsize=FS)
     Ax22.tick_params(labelsize=FS-2)
     Ax22.set_xbound(np.min(times), np.max(times))
-    Ax22.set_ybound(1.2*np.max(di_tem+di_vrm), 1e-5*np.max(di_tem+di_vrm))
-    titlestr22 = "Decay at X = " + '{:.2f}'.format(loc[j2, 0]) + " m and Y = " + '{:.2f}'.format(loc[j2, 1]) + " m"
+    Ax22.set_ybound(1.2*np.max(di_tot),1e-5*np.max(di_tot))
+    titlestr22 = "Decay at X = " + '{:.2f}'.format(loc[j2, 0]) + " m and Y = " + '{:.2f}'.format(loc[j1, 1]) + " m"
     Ax22.set_title(titlestr22, fontsize=FS+2)
 
     # PLOT ANOMALIES
-    d2 = np.reshape(np.abs(FieldsTEM[:, 0]+FieldsVRM[:, 0]), (N, N))
-    d3 = np.reshape(np.abs(FieldsTEM[:, 10]+FieldsVRM[:, 10]), (N, N))
-    d4 = np.reshape(np.abs(FieldsTEM[:, 20]+FieldsVRM[:, 20]), (N, N))
+    d2 = np.reshape(np.abs(FieldsTOT[:, 10]), (N, N))
+    d3 = np.reshape(np.abs(FieldsTEM[:, 10]), (N, N))
+    d4 = np.reshape(np.abs(FieldsTOT[:, 10]-FieldsPRE[:, 10]), (N, N))
 
     Cplot31 = Ax31.contourf(x, y, d2.T, 40, cmap='magma_r')
     cbar31 = plt.colorbar(Cplot31, ax=Ax31, pad=0.02, format='%.2e')
@@ -191,7 +219,7 @@ def run(plotIt=True):
     Ax31.scatter(x, y, color=(0, 0, 0), s=4)
     Ax31.set_xbound(np.min(x), np.max(x))
     Ax31.set_ybound(np.min(y), np.max(y))
-    titlestr31 = "dBz/dt at t=" + '{:.1e}'.format(times[0]) + " s"
+    titlestr31 = "Obs at t=" + '{:.1e}'.format(times[10]) + " s"
     Ax31.set_title(titlestr31, fontsize=FS+2)
 
     Cplot32 = Ax32.contourf(x, y, d3.T, 40, cmap='magma_r')
@@ -203,7 +231,7 @@ def run(plotIt=True):
     Ax32.tick_params(labelsize=FS-2)
     Ax32.set_xbound(np.min(x), np.max(x))
     Ax32.set_ybound(np.min(y), np.max(y))
-    titlestr32 = "dBz/dt at t=" + '{:.1e}'.format(times[10]) + " s"
+    titlestr32 = "True TEM at t=" + '{:.1e}'.format(times[10]) + " s"
     Ax32.set_title(titlestr32, fontsize=FS+2)
 
     Cplot33 = Ax33.contourf(x, y, d4.T, 40, cmap='magma_r')
@@ -215,7 +243,7 @@ def run(plotIt=True):
     Ax33.tick_params(labelsize=FS-2)
     Ax33.set_xbound(np.min(x), np.max(x))
     Ax33.set_ybound(np.min(y), np.max(y))
-    titlestr33 = "dBz/dt at t=" + '{:.1e}'.format(times[20]) + " s"
+    titlestr33 = "Rec TEM at t=" + '{:.1e}'.format(times[10]) + " s"
     Ax33.set_title(titlestr33, fontsize=FS+2)
 
 if __name__ == '__main__':
