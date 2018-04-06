@@ -345,5 +345,29 @@ class RegularizationTests(unittest.TestCase):
             for fct in reg.objfcts
         ]
 
+    def test_nC_residual(self):
+
+        # x-direction
+        cs, ncx, ncz, npad = 1., 10., 10., 20
+        hx = [(cs, ncx), (cs, npad, 1.3)]
+
+        # z direction
+        npad = 12
+        temp = np.logspace(np.log10(1.), np.log10(12.), 19)
+        temp_pad = temp[-1] * 1.3 ** np.arange(npad)
+        hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
+        mesh = Mesh.CylMesh([hx, 1, hz], '00C')
+        active = mesh.vectorCCz < 0.
+
+        active = mesh.vectorCCz < 0.
+        actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+        mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
+
+        regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+        reg = Regularization.Simple(regMesh)
+
+        self.assertTrue(reg._nC_residual == regMesh.nC)
+        self.assertTrue(all([fct._nC_residual == regMesh.nC for fct in reg.objfcts]))
+
 if __name__ == '__main__':
     unittest.main()
