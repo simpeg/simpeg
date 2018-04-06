@@ -8,6 +8,7 @@ import scipy.sparse as sp
 # BASE VRM PROBLEM CLASS
 ############################################
 
+
 class Problem_BaseVRM(Problem.BaseProblem):
     """
 
@@ -737,7 +738,7 @@ class Problem_Linear(Problem_BaseVRM):
 
         # Project to active mesh cells
         # m = np.matrix(self.xiMap * m).T
-        m = np.matrix(self.xi).T
+        m = np.matrix(self.xiMap * m).T
 
         # Must return as a numpy array
         return mkvc(sp.coo_matrix.dot(self.T, np.dot(self.A, m)))
