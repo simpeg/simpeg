@@ -2,12 +2,14 @@
 Predict Response from a Conductive and Magnetically Viscous Earth
 =================================================================
 
-Here, we predict the vertical db/dt response over a conductive and
-magnetically viscous Earth for a small coincident loop system. Following
-the theory, the total response is approximately equal to the sum of the
-inductive and VRM responses modelled separately. The SimPEG.VRM module is
-used to model the VRM response while an analytic solution for a conductive
-half-space is used to model the inductive response.
+Here, we use an equivalent source inversion to remove the VRM response from TEM
+data collected by a small coincident loop system. The data being inverted are
+the same as in the forward modeling example. To remove the VRM signal we:
+
+    1) invert the late time data to recover an equivalent source surface layer
+    of cells.
+    2) use the recovered model to predict the VRM response at all times
+    3) subtract the predicted VRM response from the observed data
 """
 import SimPEG.VRM as VRM
 import numpy as np
@@ -114,7 +116,7 @@ def run(plotIt=True):
     ]
     inv = Inversion.BaseInversion(invProb, directiveList=directives)
 
-    xi_0 = 1e-6*np.ones(actCells.sum())
+    xi_0 = 1e-3*np.ones(actCells.sum())
     xi_rec = inv.run(xi_0)
 
     ############################################
