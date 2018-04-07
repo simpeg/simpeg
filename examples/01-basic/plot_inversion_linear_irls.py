@@ -68,7 +68,7 @@ def run(N=100, plotIt=True):
     dmis = DataMisfit.l2_DataMisfit(survey)
     dmis.W = 1./wd
 
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
+    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 
     # Creat reduced identity map
     idenMap = Maps.IdentityMap(nP=mesh.nC)
