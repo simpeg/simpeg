@@ -77,7 +77,7 @@ class BaseEMProblem(Problem.BaseProblem):
     def _clear_on_sigma_update(self):
         return [
             '_MeSigma', '_MeSigmaI', '_MfRho', '_MfRhoI',
-            '_MeSigmaDerivMat', '_MfRhoDerivMat'
+            '_MeSigmaDerivMatrix', '_MfRhoDerivMatrix'
         ]
 
     @property
@@ -308,11 +308,11 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of MeSigma with respect to the model
         """
-        if getattr(self, '_MeSigmaDerivMat', None) is None:
-            self._MeSigmaDerivMat = self.mesh.getEdgeInnerProductDeriv(
+        if getattr(self, '_MeSigmaDerivMatrix', None) is None:
+            self._MeSigmaDerivMatrix = self.mesh.getEdgeInnerProductDeriv(
                 np.ones(self.mesh.nC)
             )(np.ones(self.mesh.nE)) * self.sigmaDeriv
-        return self._MeSigmaDerivMat
+        return self._MeSigmaDerivMatrix
 
     # TODO: This should take a vector
     def MeSigmaDeriv(self, u, v, adjoint=False):
@@ -395,11 +395,11 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of MfRho with respect to the model
         """
-        if getattr(self, '_MfRhoDerivMat', None) is None:
-            self._MfRhoDerivMat = self.mesh.getFaceInnerProductDeriv(
+        if getattr(self, '_MfRhoDerivMatrix', None) is None:
+            self._MfRhoDerivMatrix = self.mesh.getFaceInnerProductDeriv(
                 np.ones(self.mesh.nC)
             )(np.ones(self.mesh.nF)) * self.rhoDeriv
-        return self._MfRhoDerivMat
+        return self._MfRhoDerivMatrix
 
     # TODO: This should take a vector
     def MfRhoDeriv(self, u, v, adjoint=False):

@@ -571,9 +571,6 @@ class Problem3D_b(BaseTDEMProblem):
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
 
-        # def MeSigmaIDeriv(u):
-        #     return self.MeSigmaIDeriv(u)
-
         MfMui = self.MfMui
 
         _, s_e = src.eval(self, self.times[tInd])
@@ -1093,7 +1090,6 @@ class Problem3D_j(BaseTDEMProblem):
         dt = self.timeSteps[tInd]
         C = self.mesh.edgeCurl
         MfRho = self.MfRho
-        # MfRhoDeriv = self.MfRhoDeriv(u)
         MeMuI = self.MeMuI
 
         if adjoint:

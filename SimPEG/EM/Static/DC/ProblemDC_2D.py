@@ -338,7 +338,7 @@ class BaseDCProblem_2D(BaseEMProblem):
     @property
     def MccRhoi(self):
         """
-            Node inner product matrix for \\(\\rho\\). Used in the E-B
+            Cell inner product matrix for \\(\\rho^{-1}\\). Used in the H-J
             formulation
         """
         # TODO: only works isotropic rho

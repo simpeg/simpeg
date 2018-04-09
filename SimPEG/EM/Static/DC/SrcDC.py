@@ -71,6 +71,6 @@ class Pole(BaseSrc):
             elif prob._formulation == 'EB':
                 q = prob.mesh.getInterpolationMat(
                     self.loc, locType='N'
-                    )
+                )
                 self._q = self.current * q.toarray()
             return self._q
