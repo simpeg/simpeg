@@ -573,9 +573,10 @@ class Update_IRLS(InversionDirective):
     maxIRLSiter = 20
     iterStart = 0
     sphericalDomain = False
-    
+
     # Beta schedule
     updateBeta = True
+    betaSearch = True
     coolingFactor = 2.
     coolingRate = 1
     ComboObjFun = False
@@ -657,16 +658,12 @@ class Update_IRLS(InversionDirective):
 
         if self.sphericalDomain:
             self._angleScale()
-        
+
         # Check if misfit is within the tolerance, otherwise scale beta
-        if np.any([
-            np.all([
+        if np.all([
                 np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol,
-                self.updateBeta
-            ]),
-            np.all([
-                self.mode == 1,
-                np.abs(1. - self.invProb.phi_d / self.start) > self.beta_tol])
+                self.updateBeta,
+                self.mode != 1
         ]):
 
             ratio = (self.target / self.invProb.phi_d)
@@ -679,13 +676,21 @@ class Update_IRLS(InversionDirective):
 
             self.invProb.beta = self.invProb.beta * ratio
 
-            if self.mode != 1:
+            if np.all([self.mode != 1, self.betaSearch]):
                 print("Beta search step")
                 # self.updateBeta = False
                 # Re-use previous model and continue with new beta
                 self.invProb.model = self.reg.objfcts[0].model
                 self.opt.xc = self.reg.objfcts[0].model
                 return
+
+        elif np.all([
+                self.mode == 1,
+                self.opt.iter % self.coolingRate == 0,
+                np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol
+        ]):
+
+            self.invProb.beta = self.invProb.beta / self.coolingFactor
 
         phim_new = 0
         for reg in self.reg.objfcts:
@@ -754,7 +759,7 @@ class Update_IRLS(InversionDirective):
 
             if self.fix_Jmatrix:
                 print (">> Fix Jmatrix")
-                self.invProb.dmisfit.prob.fix_Jmatrix = True                
+                self.invProb.dmisfit.prob.fix_Jmatrix = True
 
             # Check for maximum number of IRLS cycles
             if self.IRLSiter == self.maxIRLSiter:
