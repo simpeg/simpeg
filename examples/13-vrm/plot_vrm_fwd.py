@@ -13,6 +13,7 @@ import SimPEG.VRM as VRM
 import numpy as np
 from SimPEG import mkvc, Mesh, Maps
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 
 def run(plotIt=True):
@@ -27,7 +28,6 @@ def run(plotIt=True):
 
     # SET MAPPING AND ACTIVE CELLS
     # Only cells below the surface (z=0) are being modeled.
-    # All other cells set to to 0 for plotting on mesh.
     topoCells = mesh.gridCC[:, 2] < 0.
 
     # CREATE MODEL (XI: THE AMALGAMATED MAGNETIC PROPERTY)
@@ -53,7 +53,7 @@ def run(plotIt=True):
 
     # CREATE SURVEY
     # Similar to an EM-63 survey by all 3 components of the field are measured
-    times = np.logspace(-5, -2, 31) # Observation times
+    times = np.logspace(-5, -2, 31)  # Observation times
     x, y = np.meshgrid(np.linspace(-30, 30, 21), np.linspace(-30,30,21))
     z = 0.5*np.ones(x.shape)
     loc = np.c_[mkvc(x), mkvc(y), mkvc(z)]  # Src and Rx Locations
@@ -97,16 +97,15 @@ def run(plotIt=True):
     C = np.kron(np.reshape(C, (len(C), 1)), np.ones((1, n_times)))
     FieldsTEM = C*FieldsTEM
 
-    #################################
-    # PLOTTING
 
-    Fig = plt.figure(figsize=(11, 11))
-    Ax13 = Fig.add_axes([0.06, 0.66, 0.26, 0.25])
-    Ax12 = Fig.add_axes([0.38, 0.66, 0.26, 0.25])
-    Ax11 = Fig.add_axes([0.70, 0.66, 0.30, 0.25])
+    Fig = plt.figure(figsize=(10, 10))
+    Ax11 = Fig.add_axes([0.07, 0.7, 0.24, 0.24])
+    Ax12 = Fig.add_axes([0.37, 0.7, 0.24, 0.24])
+    Ax13 = Fig.add_axes([0.67, 0.7, 0.24, 0.24])
+    Ax14 = Fig.add_axes([0.92, 0.7, 0.01, 0.24])
 
-    Ax21 = Fig.add_axes([0.1, 0.33, 0.4, 0.25])
-    Ax22 = Fig.add_axes([0.6, 0.33, 0.4, 0.25])
+    Ax21 = Fig.add_axes([0.1, 0.35, 0.4, 0.28])
+    Ax22 = Fig.add_axes([0.6, 0.35, 0.4, 0.28])
 
     Ax31 = Fig.add_axes([0.05, 0.05, 0.25, 0.21])
     Ax32 = Fig.add_axes([0.4, 0.05, 0.25, 0.21])
@@ -117,32 +116,33 @@ def run(plotIt=True):
     # PLOT MODEL
     plotMap = Maps.InjectActiveCells(mesh, topoCells, 0.)  # Maps to mesh
 
-    Cplot11 = mesh.plotSlice(plotMap*xi_true, ind=int((ncz+2*npad)/2-1), ax=Ax11, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
-    cbar11 = plt.colorbar(Cplot11[0], ax=Ax11, pad=0.02, format='%.2e')
-    cbar11.set_label('[SI]', rotation=270, labelpad=15, size=FS)
-    cbar11.set_clim((0., np.max(xi_true)))
-    cbar11.ax.tick_params(labelsize=FS-2)
-    Ax11.set_xlabel('X [m]', fontsize=FS)
-    Ax11.set_ylabel('Y [m]', fontsize=FS, labelpad=-10)
+    Cplot11 = mesh.plotSlice(plotMap*xi_true, normal='X', ind=int((ncx+2*npad)/2-6), ax=Ax11, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
+    Cplot11[0].set_clim((0., np.max(xi_true)))
+    Ax11.set_xlabel('Y [m]', fontsize=FS)
+    Ax11.set_ylabel('Z [m]', fontsize=FS, labelpad=-5)
     Ax11.tick_params(labelsize=FS-2)
-    titlestr11 = "True Model (z = 0 m)"
+    titlestr11 = "True Model (x = -12 m)"
     Ax11.set_title(titlestr11, fontsize=FS+2)
 
-    Cplot12 = mesh.plotSlice(plotMap*xi_true, ind=int((ncz+2*npad)/2-4), ax=Ax12, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
+    Cplot12 = mesh.plotSlice(plotMap*xi_true, normal='Y', ind=int((ncy+2*npad)/2), ax=Ax12, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
     Cplot12[0].set_clim((0., np.max(xi_true)))
     Ax12.set_xlabel('X [m]', fontsize=FS)
-    Ax12.set_ylabel('Y [m]', fontsize=FS, labelpad=-10)
+    Ax12.set_ylabel('Z [m]', fontsize=FS, labelpad=-5)
     Ax12.tick_params(labelsize=FS-2)
-    titlestr12 = "True Model (z = -6 m)"
+    titlestr12 = "True Model (y = 0 m)"
     Ax12.set_title(titlestr12, fontsize=FS+2)
 
-    Cplot13 = mesh.plotSlice(plotMap*xi_true, ind=int((ncz+2*npad)/2-7), ax=Ax13, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
+    Cplot13 = mesh.plotSlice(plotMap*xi_true, normal='Z', ind=int((ncz+2*npad)/2-1), ax=Ax13, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
     Cplot13[0].set_clim((0., np.max(xi_true)))
     Ax13.set_xlabel('X [m]', fontsize=FS)
-    Ax13.set_ylabel('Y [m]', fontsize=FS, labelpad=-10)
+    Ax13.set_ylabel('Y [m]', fontsize=FS, labelpad=-5)
     Ax13.tick_params(labelsize=FS-2)
-    titlestr13 = "True Model (z = -12 m)"
+    titlestr13 = "True Model (z = 0 m)"
     Ax13.set_title(titlestr13, fontsize=FS+2)
+
+    norm = mpl.colors.Normalize(vmin=0., vmax=np.max(xi_true))
+    cbar14 = mpl.colorbar.ColorbarBase(Ax14, cmap='gist_heat_r', norm=norm, orientation = 'vertical')
+    cbar14.set_label('$\Delta \chi /$ln$(\lambda_2 / \lambda_1 )$ [SI]', rotation=270, labelpad=15, size=FS)
 
     # PLOT DECAY
     j1 = int((N**2-1)/2 - 3*N)
@@ -169,7 +169,7 @@ def run(plotIt=True):
     Ax22.loglog(times, di_vrm, 'b.-')
     Ax22.loglog(times, di_tem+di_vrm, 'k.-')
     Ax22.set_xlabel('t [s]', fontsize=FS)
-    Ax22.set_ylabel('|dBz/dt| [T/s]', fontsize=FS)
+    Ax22.set_ylabel('', fontsize=FS)
     Ax22.tick_params(labelsize=FS-2)
     Ax22.set_xbound(np.min(times), np.max(times))
     Ax22.set_ybound(1.2*np.max(di_tem+di_vrm), 1e-5*np.max(di_tem+di_vrm))

@@ -1,6 +1,6 @@
 """
-Predict Response from a Conductive and Magnetically Viscous Earth
-=================================================================
+Method of Equivalent Sources for Removing VRM Responses
+=======================================================
 
 Here, we use an equivalent source inversion to remove the VRM response from TEM
 data collected by a small coincident loop system. The data being inverted are
@@ -13,8 +13,12 @@ the same as in the forward modeling example. To remove the VRM signal we:
 """
 import SimPEG.VRM as VRM
 import numpy as np
-from SimPEG import mkvc, Mesh, Maps, DataMisfit, Directives, Optimization, Regularization, InvProblem, Inversion
+from SimPEG import (
+    mkvc, Mesh, Maps, DataMisfit, Directives, Optimization, Regularization,
+    InvProblem, Inversion
+    )
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 
 def run(plotIt=True):
@@ -88,7 +92,7 @@ def run(plotIt=True):
     C = np.kron(C, np.ones(n_times))
     FieldsTEM = C*FieldsTEM
 
-    # TOTAL OBSERCED FIELD WITH NOISE
+
     FieldsTOT = FieldsTEM + FieldsVRM
     FieldsTOT = FieldsTOT + 0.05*np.abs(FieldsTOT)*np.random.normal(size=FieldsTOT.shape)
 
@@ -107,7 +111,9 @@ def run(plotIt=True):
 
     # SET INVERSION
     dmis = DataMisfit.l2_DataMisfit(SurveyINV)
-    reg = Regularization.Simple(mesh=mesh, indActive=actCells, alpha_s=1)
+    W = mkvc((np.sum(np.array(ProblemINV.A)**2, axis=0)))**0.5
+    W = W/np.max(W)
+    reg = Regularization.Simple(mesh=mesh, indActive=actCells, alpha_s=0.25,  cell_weights=W)
     opt = Optimization.ProjectedGNCG(maxIter=20, lower=0., upper=1e-2, maxIterLS=20, tolCG=1e-4)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     directives = [
@@ -116,6 +122,7 @@ def run(plotIt=True):
     ]
     inv = Inversion.BaseInversion(invProb, directiveList=directives)
 
+    # m0 = 1e-6*np.ones(actCells.sum())
     xi_0 = 1e-3*np.ones(actCells.sum())
     xi_rec = inv.run(xi_0)
 
@@ -133,16 +140,18 @@ def run(plotIt=True):
     FieldsTEM = np.reshape(FieldsTEM, (n_loc, n_times))
     FieldsPRE = np.reshape(FieldsPRE, (n_loc, n_times))
 
-    Fig = plt.figure(figsize=(11, 11))
-    Ax12 = Fig.add_axes([0.22, 0.66, 0.26, 0.25])
-    Ax11 = Fig.add_axes([0.58, 0.66, 0.30, 0.25])
+    Fig = plt.figure(figsize=(10, 10))
+    Ax11 = Fig.add_axes([0.2, 0.7, 0.25, 0.25])
+    Ax12 = Fig.add_axes([0.55, 0.7, 0.25, 0.25])
+    Ax13 = Fig.add_axes([0.83, 0.7, 0.01, 0.25])
 
-    Ax21 = Fig.add_axes([0.1, 0.33, 0.4, 0.25])
-    Ax22 = Fig.add_axes([0.6, 0.33, 0.4, 0.25])
+    Ax21 = Fig.add_axes([0.15, 0.35, 0.35, 0.27])
+    Ax22 = Fig.add_axes([0.6, 0.35, 0.35, 0.27])
 
-    Ax31 = Fig.add_axes([0.05, 0.05, 0.25, 0.21])
-    Ax32 = Fig.add_axes([0.4, 0.05, 0.25, 0.21])
-    Ax33 = Fig.add_axes([0.75, 0.05, 0.25, 0.21])
+    Ax31 = Fig.add_axes([0.1, 0.03, 0.25, 0.25])
+    Ax32 = Fig.add_axes([0.38, 0.03, 0.25, 0.25])
+    Ax33 = Fig.add_axes([0.66, 0.03, 0.25, 0.25])
+    Ax34 = Fig.add_axes([0.93, 0.03, 0.01, 0.25])
     FS = 12
     N = x.shape[0]
 
@@ -150,24 +159,26 @@ def run(plotIt=True):
     invMap = Maps.InjectActiveCells(mesh, actCells, 0.)  # Maps to mesh
     topoMap = Maps.InjectActiveCells(mesh, topoCells, 0.)
 
-    Cplot11 = mesh.plotSlice(invMap*xi_rec, ind=int((ncz+2*npad)/2-1), ax=Ax11, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
-    cbar11 = plt.colorbar(Cplot11[0], ax=Ax11, pad=0.02, format='%.2e')
-    cbar11.set_label('[SI]', rotation=270, labelpad=15, size=FS)
-    cbar11.set_clim((0., np.max(xi_true)))
-    cbar11.ax.tick_params(labelsize=FS-2)
+    MAX = np.max(np.r_[xi_true, xi_rec])
+    Cplot11 = mesh.plotSlice(topoMap*xi_true, ind=int((ncz+2*npad)/2-1), ax=Ax11, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
+    Cplot11[0].set_clim((0., MAX))
     Ax11.set_xlabel('X [m]', fontsize=FS)
-    Ax11.set_ylabel('Y [m]', fontsize=FS, labelpad=-10)
+    Ax11.set_ylabel('Y [m]', fontsize=FS, labelpad=-5)
     Ax11.tick_params(labelsize=FS-2)
-    titlestr11 = "Recovered Surface Model"
+    titlestr11 = "True Model (z = 0 m)"
     Ax11.set_title(titlestr11, fontsize=FS+2)
 
-    Cplot12 = mesh.plotSlice(topoMap*xi_true, ind=int((ncz+2*npad)/2-1), ax=Ax12, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
-    Cplot12[0].set_clim((0., np.max(xi_true)))
+    Cplot12 = mesh.plotSlice(invMap*xi_rec, ind=int((ncz+2*npad)/2-1), ax=Ax12, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
+    Cplot12[0].set_clim((0., MAX))
     Ax12.set_xlabel('X [m]', fontsize=FS)
-    Ax12.set_ylabel('Y [m]', fontsize=FS, labelpad=-10)
+    Ax12.axes.get_yaxis().set_visible(False)
     Ax12.tick_params(labelsize=FS-2)
-    titlestr12 = "True Model (z = 0 m)"
+    titlestr12 = "Equivalent Source Model"
     Ax12.set_title(titlestr12, fontsize=FS+2)
+
+    norm = mpl.colors.Normalize(vmin=0., vmax=MAX)
+    cbar14 = mpl.colorbar.ColorbarBase(Ax13, cmap='gist_heat_r', norm=norm, orientation='vertical')
+    cbar14.set_label('$\Delta \chi /$ln$(\lambda_2 / \lambda_1 )$ [SI]', rotation=270, labelpad=15, size=FS)
 
     # PLOT DECAY
     j1 = int((N**2-1)/2 - 3*N)
@@ -182,7 +193,7 @@ def run(plotIt=True):
     Ax21.set_ylabel('|dBz/dt| [T/s]', fontsize=FS)
     Ax21.tick_params(labelsize=FS-2)
     Ax21.set_xbound(np.min(times), np.max(times))
-    Ax21.set_ybound(1.2*np.max(di_tot),1e-5*np.max(di_tot))
+    Ax21.set_ybound(1.2*np.max(di_tot), 1e-5*np.max(di_tot))
     titlestr21 = "Decay at X = " + '{:.2f}'.format(loc[j1, 0]) + " m and Y = " + '{:.2f}'.format(loc[j1, 1]) + " m"
     Ax21.set_title(titlestr21, fontsize=FS+2)
     Ax21.text(1.2e-5, 54*np.max(di_tot)/1e5, "Observed", fontsize=FS, color='k')
@@ -211,25 +222,24 @@ def run(plotIt=True):
     d3 = np.reshape(np.abs(FieldsTEM[:, 10]), (N, N))
     d4 = np.reshape(np.abs(FieldsTOT[:, 10]-FieldsPRE[:, 10]), (N, N))
 
+    MIN = np.min(np.r_[d2, d3, d4])
+    MAX = np.max(np.r_[d2, d3, d4])
+
     Cplot31 = Ax31.contourf(x, y, d2.T, 40, cmap='magma_r')
-    cbar31 = plt.colorbar(Cplot31, ax=Ax31, pad=0.02, format='%.2e')
-    cbar31.set_label('[T/s]', rotation=270, labelpad=12, size=FS)
-    cbar31.ax.tick_params(labelsize=FS-2)
+    Ax31.set_xticks(np.linspace(-30, 30, 7))
     Ax31.set_xlabel('X [m]', fontsize=FS)
     Ax31.set_ylabel('Y [m]', fontsize=FS, labelpad=-12)
     Ax31.tick_params(labelsize=FS-2)
     Ax31.scatter(x, y, color=(0, 0, 0), s=4)
     Ax31.set_xbound(np.min(x), np.max(x))
     Ax31.set_ybound(np.min(y), np.max(y))
-    titlestr31 = "Obs at t=" + '{:.1e}'.format(times[10]) + " s"
+    titlestr31 = "Observed at t=" + '{:.1e}'.format(times[10]) + " s"
     Ax31.set_title(titlestr31, fontsize=FS+2)
 
     Cplot32 = Ax32.contourf(x, y, d3.T, 40, cmap='magma_r')
-    cbar32 = plt.colorbar(Cplot32, ax=Ax32, pad=0.02, format='%.2e')
-    cbar32.set_label('[T/s]', rotation=270, labelpad=12, size=FS)
-    cbar32.ax.tick_params(labelsize=FS-2)
+    Ax32.set_xticks(np.linspace(-30, 30, 7))
     Ax32.set_xlabel('X [m]', fontsize=FS)
-    Ax32.set_ylabel('Y [m]', fontsize=FS, labelpad=-12)
+    Ax32.axes.get_yaxis().set_visible(False)
     Ax32.tick_params(labelsize=FS-2)
     Ax32.set_xbound(np.min(x), np.max(x))
     Ax32.set_ybound(np.min(y), np.max(y))
@@ -237,16 +247,18 @@ def run(plotIt=True):
     Ax32.set_title(titlestr32, fontsize=FS+2)
 
     Cplot33 = Ax33.contourf(x, y, d4.T, 40, cmap='magma_r')
-    cbar33 = plt.colorbar(Cplot33, ax=Ax33, pad=0.02, format='%.2e')
-    cbar33.set_label('[T/s]', rotation=270, labelpad=12, size=FS)
-    cbar33.ax.tick_params(labelsize=FS-2)
+    Ax33.set_xticks(np.linspace(-30, 30, 7))
     Ax33.set_xlabel('X [m]', fontsize=FS)
-    Ax33.set_ylabel('Y [m]', fontsize=FS, labelpad=-12)
+    Ax33.axes.get_yaxis().set_visible(False)
     Ax33.tick_params(labelsize=FS-2)
     Ax33.set_xbound(np.min(x), np.max(x))
     Ax33.set_ybound(np.min(y), np.max(y))
-    titlestr33 = "Rec TEM at t=" + '{:.1e}'.format(times[10]) + " s"
+    titlestr33 = "Recov. TEM at t=" + '{:.1e}'.format(times[10]) + " s"
     Ax33.set_title(titlestr33, fontsize=FS+2)
+
+    norm = mpl.colors.Normalize(vmin=MIN, vmax=MAX)
+    cbar34 = mpl.colorbar.ColorbarBase(Ax34, cmap='magma_r', norm=norm, orientation='vertical', format='%.1e')
+    cbar34.set_label('dBz/dt [T/s]', rotation=270, size=FS)
 
 if __name__ == '__main__':
     run()
