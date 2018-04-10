@@ -54,7 +54,7 @@ def run(plotIt=True):
     # CREATE SURVEY
     # Similar to an EM-63 survey by all 3 components of the field are measured
     times = np.logspace(-5, -2, 31)  # Observation times
-    x, y = np.meshgrid(np.linspace(-30, 30, 21), np.linspace(-30,30,21))
+    x, y = np.meshgrid(np.linspace(-30, 30, 21), np.linspace(-30, 30, 21))
     z = 0.5*np.ones(x.shape)
     loc = np.c_[mkvc(x), mkvc(y), mkvc(z)]  # Src and Rx Locations
 
@@ -82,6 +82,9 @@ def run(plotIt=True):
 
     ################################
     # ARTIFICIAL TEM RESPONSE
+    # An analytic solution for the response near the surface of a conductive
+    # half-space (Nabighian, 1979) is scaled at each location to provide
+    # lateral variability in the TEM response.
 
     sig = 1e-1
     mu0 = 4*np.pi*1e-7
@@ -107,7 +110,7 @@ def run(plotIt=True):
         Ax14 = Fig.add_axes([0.89, 0.7, 0.01, 0.24])
 
         Ax21 = Fig.add_axes([0.1, 0.335, 0.38, 0.29])
-        Ax22 = Fig.add_axes([0.6, 0.335, 0.38, 0.29])
+        Ax22 = Fig.add_axes([0.57, 0.335, 0.38, 0.29])
 
         Ax31 = Fig.add_axes([0.07, 0.05, 0.24, 0.21])
         Ax32 = Fig.add_axes([0.38, 0.05, 0.24, 0.21])

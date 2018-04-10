@@ -6,12 +6,12 @@ Here, we use an equivalent source inversion to remove the VRM response from TEM
 data collected by a small coincident loop system. The data being inverted are
 the same as in the forward modeling example. To remove the VRM signal we:
 
-1) invert the late time data to recover an equivalent source surface layer
-of cells.
+    1. invert the late time data to recover an equivalent source surface layer
+    of cells.
 
-2) use the recovered model to predict the VRM response at all times
+    2. use the recovered model to predict the VRM response at all times
 
-3) subtract the predicted VRM response from the observed data
+    3. subtract the predicted VRM response from the observed data
 """
 import SimPEG.VRM as VRM
 import numpy as np
@@ -94,7 +94,6 @@ def run(plotIt=True):
     C = np.kron(C, np.ones(n_times))
     FieldsTEM = C*FieldsTEM
 
-
     FieldsTOT = FieldsTEM + FieldsVRM
     FieldsTOT = FieldsTOT + 0.05*np.abs(FieldsTOT)*np.random.normal(size=FieldsTOT.shape)
 
@@ -147,9 +146,9 @@ def run(plotIt=True):
 
         Fig = plt.figure(figsize=(10, 10))
 
-        Ax11 = Fig.add_axes([0.2, 0.7, 0.25, 0.25])
-        Ax12 = Fig.add_axes([0.55, 0.7, 0.25, 0.25])
-        Ax13 = Fig.add_axes([0.83, 0.7, 0.01, 0.25])
+        Ax11 = Fig.add_axes([0.15, 0.7, 0.25, 0.25])
+        Ax12 = Fig.add_axes([0.5, 0.7, 0.25, 0.25])
+        Ax13 = Fig.add_axes([0.78, 0.7, 0.01, 0.25])
 
         Ax21 = Fig.add_axes([0.1, 0.36, 0.35, 0.26])
         Ax22 = Fig.add_axes([0.55, 0.36, 0.35, 0.26])
@@ -219,7 +218,7 @@ def run(plotIt=True):
         Ax22.axes.get_yaxis().set_visible(False)
         Ax22.tick_params(labelsize=FS-2)
         Ax22.set_xbound(np.min(times), np.max(times))
-        Ax22.set_ybound(1.2*np.max(di_tot),1e-5*np.max(di_tot))
+        Ax22.set_ybound(1.2*np.max(di_tot), 1e-5*np.max(di_tot))
         titlestr22 = "Decay at X = " + '{:.2f}'.format(loc[j2, 0]) + " m and Y = " + '{:.2f}'.format(loc[j1, 1]) + " m"
         Ax22.set_title(titlestr22, fontsize=FS+2)
 
