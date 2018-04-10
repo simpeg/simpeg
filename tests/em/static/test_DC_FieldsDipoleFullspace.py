@@ -1,6 +1,6 @@
 from __future__ import print_function
 import unittest
-from SimPEG import Mesh, Utils, EM
+from SimPEG import Mesh, Utils
 import numpy as np
 import SimPEG.EM.Static.DC as DC
 try:
@@ -8,10 +8,6 @@ try:
 except ImportError:
     from SimPEG import SolverLU as Solver
 
-from geoana import utils, spatial
-from geoana.em import fdem
-
-from geoana import utils, spatial
 from geoana.em import fdem
 from scipy.constants import mu_0, epsilon_0
 
