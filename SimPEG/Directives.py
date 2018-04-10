@@ -708,7 +708,7 @@ class Update_IRLS(InversionDirective):
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if np.all([
-            np.abs(1. - self.invProb.phi_d / self.start) < self.beta_tol,
+            self.invProb.phi_d < self.start,
             self.mode == 1
         ]):
             if not self.silent:
