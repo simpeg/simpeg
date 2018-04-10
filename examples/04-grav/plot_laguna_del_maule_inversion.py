@@ -104,7 +104,7 @@ def run(plotIt=True, cleanAfterRun=True):
     # reg.norms = driver.lpnorms
 
     # Specify how the optimization will proceed
-    opt = Optimization.ProjectedGNCG(maxIter=100, lower=driver.bounds[0],
+    opt = Optimization.ProjectedGNCG(maxIter=20, lower=driver.bounds[0],
                                      upper=driver.bounds[1], maxIterLS=10,
                                      maxIterCG=20, tolCG=1e-3)
 

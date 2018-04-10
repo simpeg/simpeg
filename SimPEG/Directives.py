@@ -573,7 +573,7 @@ class Update_IRLS(InversionDirective):
     maxIRLSiter = 20
     iterStart = 0
     sphericalDomain = False
-
+    
     # Beta schedule
     updateBeta = True
     coolingFactor = 2.
@@ -587,6 +587,7 @@ class Update_IRLS(InversionDirective):
     floorEps_q = 1e-8
     coolEpsFact = 1.2
     silent = False
+    fix_Jmatrix = False
 
     @property
     def target(self):
@@ -656,7 +657,7 @@ class Update_IRLS(InversionDirective):
 
         if self.sphericalDomain:
             self._angleScale()
-
+        
         # Check if misfit is within the tolerance, otherwise scale beta
         if np.any([
             np.all([
@@ -681,7 +682,6 @@ class Update_IRLS(InversionDirective):
             if self.mode != 1:
                 print("Beta search step")
                 # self.updateBeta = False
-
                 # Re-use previous model and continue with new beta
                 self.invProb.model = self.reg.objfcts[0].model
                 self.opt.xc = self.reg.objfcts[0].model
@@ -751,6 +751,10 @@ class Update_IRLS(InversionDirective):
             (self.opt.iter-self.iterStart) % self.minGNiter == 0,
             self.mode != 1
         ]):
+
+            if self.fix_Jmatrix:
+                print (">> Fix Jmatrix")
+                self.invProb.dmisfit.prob.fix_Jmatrix = True                
 
             # Check for maximum number of IRLS cycles
             if self.IRLSiter == self.maxIRLSiter:
