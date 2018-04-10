@@ -23,15 +23,15 @@ env:
     - PYPI_PY=3.6 # deploy to pypi from python 3.6
 
   matrix:
-    - TEST_DIR=tests/em/fdem/inverse/derivs
-    - TEST_DIR=tests/em/tdem
-    - TEST_DIR="tests/em/static tests/seis tests/base"
-    - TEST_DIR=tests/flow
-    - TEST_DIR="tests/em/nsem/forward tests/em/nsem/inversion"
-    - TEST_DIR=tests/em/fdem/inverse/adjoint
-    - TEST_DIR=tests/em/fdem/forward
-    - TEST_DIR=tests/em/vrm
-    - TEST_DIR=tests/pf
+    # - TEST_DIR=tests/em/fdem/inverse/derivs
+    # - TEST_DIR=tests/em/tdem
+    # - TEST_DIR="tests/em/static tests/seis tests/base"
+    # - TEST_DIR=tests/flow
+    # - TEST_DIR="tests/em/nsem/forward tests/em/nsem/inversion"
+    # - TEST_DIR=tests/em/fdem/inverse/adjoint
+    # - TEST_DIR=tests/em/fdem/forward
+    # - TEST_DIR=tests/em/vrm
+    # - TEST_DIR=tests/pf
     - TEST_DIR=tests/docs;
       GAE_PYTHONPATH=${HOME}/.cache/google_appengine;
       PATH=$PATH:${HOME}/google-cloud-sdk/bin;
