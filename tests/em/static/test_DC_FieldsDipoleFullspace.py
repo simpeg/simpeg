@@ -194,10 +194,10 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
     def setUp(self):
 
         cs = 0.5
-        npad = 21
-        hx = [(cs, npad, -1.2), (cs, 15), (cs, npad, 1.2)]
-        hy = [(cs, npad, -1.2), (cs, 15), (cs, npad, 1.2)]
-        hz = [(cs, npad, -1.2), (cs, 15), (cs, npad, 1.2)]
+        npad = 11
+        hx = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
+        hy = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
+        hz = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
         mesh = Mesh.TensorMesh([hx, hy, hz], x0="CCC")
         sigma = np.ones(mesh.nC)*1e-2
 
