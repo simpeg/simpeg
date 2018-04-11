@@ -358,7 +358,7 @@ class RegularizationTests(unittest.TestCase):
         self.assertTrue(all([fct._nC_residual == regMesh.nC for fct in reg.objfcts]))
 
     def test_indActive_nc_residual(self):
-         # x-direction
+        # x-direction
         cs, ncx, ncz, npad = 1., 10., 10., 20
         hx = [(cs, ncx), (cs, npad, 1.3)]
 
@@ -370,10 +370,7 @@ class RegularizationTests(unittest.TestCase):
         mesh = Mesh.CylMesh([hx, 1, hz], '00C')
         active = mesh.vectorCCz < 0.
 
-        active = mesh.vectorCCz < 0.
-
         reg = Regularization.Simple(mesh, indActive=active)
-        # print(reg._nC_residual, len(active.nonzero())
         self.assertTrue(reg._nC_residual == len(active.nonzero()[0]))
 
 
