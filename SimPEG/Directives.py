@@ -216,6 +216,8 @@ class BetaEstimate_ByEig(InversionDirective):
         m = self.invProb.model
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
+        # Fix the seed for random vector for consistent result
+        np.random.seed(1)
         x0 = np.random.rand(*m.shape)
 
         t, b = 0, 0
@@ -230,7 +232,6 @@ class BetaEstimate_ByEig(InversionDirective):
             i_count += 1
 
         self.beta0 = self.beta0_ratio*(t/b)
-
         self.invProb.beta = self.beta0
 
 
@@ -561,6 +562,7 @@ class Update_IRLS(InversionDirective):
     f_old = 0
     f_min_change = 1e-2
     beta_tol = 1e-1
+    beta_ratio_l2 = None
     prctile = 100
     chifact_start = 1.
     chifact_target = 1.
@@ -666,15 +668,19 @@ class Update_IRLS(InversionDirective):
                 self.mode != 1
         ]):
 
-            ratio = (self.target / self.invProb.phi_d)
+            # ratio = (self.target / self.invProb.phi_d)
 
-            if ratio > 1:
-                ratio = np.mean([2.0, ratio])
+            # if ratio > 1:
+            #     ratio = np.mean([2.0, ratio])
 
-            else:
-                ratio = np.mean([0.5, ratio])
+            # else:
+            #     ratio = np.mean([0.5, ratio])
 
-            self.invProb.beta = self.invProb.beta * ratio
+            # self.invProb.beta = self.invProb.beta * ratio
+            Jx_irls, Wx_irls = self.get_Jx_Wx()
+            # Jx_irls = self.invProb.Jx
+            ratio_irls = Jx_irls/Wx_irls
+            self.invProb.beta = ratio_irls * self.beta_ratio_l2
 
             if np.all([self.mode != 1, self.betaSearch]):
                 print("Beta search step")
@@ -721,7 +727,8 @@ class Update_IRLS(InversionDirective):
             self.iterStart = self.opt.iter
             self.phi_d_last = self.invProb.phi_d
             self.invProb.phi_m_last = self.reg(self.invProb.model)
-
+            ratio_l2 = self.invProb.Jx / self.invProb.Wx
+            self.beta_ratio_l2 = self.invProb.beta / ratio_l2
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
             for reg in self.reg.objfcts:
@@ -888,6 +895,30 @@ class Update_IRLS(InversionDirective):
                 "directives list"
             )
         return True
+
+    def get_Jx_Wx(self):
+        """
+            Evaluate
+        """
+        m = self.invProb.model
+        f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
+
+        # Fix the seed for random vector for consistent result
+        np.random.seed(1)
+        x0 = np.random.rand(*m.shape)
+
+        t, b = 0, 0
+        i_count = 0
+        for dmis, reg in zip(self.dmisfit.objfcts, self.reg.objfcts):
+            # check if f is list
+            if len(self.dmisfit.objfcts) > 1:
+                t += x0.dot(dmis.deriv2(m, x0, f=f[i_count]))
+            else:
+                t += x0.dot(dmis.deriv2(m, x0, f=f))
+            b += x0.dot(reg.deriv2(m, v=x0))
+            i_count += 1
+
+        return t, b
 
 
 class UpdatePreconditioner(InversionDirective):
