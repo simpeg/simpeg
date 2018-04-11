@@ -27,6 +27,7 @@ class BaseDCProblem_2D(BaseEMProblem):
     nT = nky  # Only for using TimeFields
     storeJ = False
     _Jmatrix = None
+    fix_Jmatrix = False
 
     def fields(self, m):
         if m is not None:
@@ -65,13 +66,11 @@ class BaseDCProblem_2D(BaseEMProblem):
         """
             Generate Full sensitivity matrix
         """
-        if self.verbose:
-            print("Calculating J and storing")
-
         if self._Jmatrix is not None:
             return self._Jmatrix
         else:
-
+            if self.verbose:
+                print("Calculating J and storing")
             self.model = m
             if f is None:
                 f = self.fields(m)
@@ -275,6 +274,10 @@ class BaseDCProblem_2D(BaseEMProblem):
                 '_MnSigma', '_MnSigmaDerivMat',
                 '_MccRhoi', '_MccRhoiDerivMat'
             ]
+
+        if self.fix_Jmatrix:
+            return toDelete
+
         if self._Jmatrix is not None:
             toDelete += ['_Jmatrix']
         return toDelete

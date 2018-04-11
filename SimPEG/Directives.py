@@ -670,20 +670,20 @@ class Update_IRLS(InversionDirective):
                 self.mode != 1
         ]):
 
-            # ratio = (self.target / self.invProb.phi_d)
+            ratio = (self.target / self.invProb.phi_d)
 
-            # if ratio > 1:
-            #     ratio = np.mean([2.0, ratio])
+            if ratio > 1:
+                ratio = np.mean([2.0, ratio])
 
-            # else:
-            #     ratio = np.mean([0.5, ratio])
+            else:
+                ratio = np.mean([0.5, ratio])
 
-            # self.invProb.beta = self.invProb.beta * ratio
-            Jx_irls, Wx_irls = self.get_Jx_Wx()
-            # Jx_irls = self.invProb.Jx
-            ratio_irls = Jx_irls/Wx_irls
-            self.invProb.beta = ratio_irls * self.beta_ratio_l2
-
+            self.invProb.beta = self.invProb.beta * ratio
+            # Jx_irls, Wx_irls = self.get_Jx_Wx()
+            # # Jx_irls = self.invProb.Jx
+            # ratio_irls = Jx_irls/Wx_irls
+            # self.invProb.beta = ratio_irls
+            # print (Jx_irls, Wx_irls, self.beta_ratio_l2)
             if np.all([self.mode != 1, self.betaSearch]):
                 print("Beta search step")
                 # self.updateBeta = False
