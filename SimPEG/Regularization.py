@@ -649,7 +649,6 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         if "indActive" in kwargs.keys():
             indActive = kwargs.pop("indActive")
             self.regmesh.indActive = indActive
-
         Utils.setKwargs(self, **kwargs)
 
         # link these attributes
