@@ -12,8 +12,8 @@ from SimPEG import Maps
 
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
-from SimPEG.EM.Static.IP import Problem3D_CC, Problem3D_N
-from SimPEG.EM.Static.DC import getxBCyBC_CC
+from SimPEG.EM.Static.IP import Problem3D_CC as BaseProblem3D_CC
+from SimPEG.EM.Static.IP import Problem3D_N as BaseProblem3D_N
 from .SurveySIP import Survey, Data
 import gc
 
@@ -319,7 +319,7 @@ class BaseSIPProblem(BaseEMProblem):
                             df_duTFun = getattr(
                                 f, '_{0!s}Deriv'.format(rx.projField), None
                             )
-                            df_duT, df_dmT = df_duTFun(
+                            df_duT, _ = df_duTFun(
                                 src, None, PTv, adjoint=True
                             )
                             ATinvdf_duT = self.Ainv * df_duT
@@ -462,7 +462,7 @@ class BaseSIPProblem(BaseEMProblem):
                 )
 
 
-class Problem3D_CC(BaseSIPProblem, Problem3D_CC):
+class Problem3D_CC(BaseSIPProblem, BaseProblem3D_CC):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
@@ -483,7 +483,7 @@ class Problem3D_CC(BaseSIPProblem, Problem3D_CC):
             self.actMap = Maps.InjectActiveCells(mesh, self.actinds, 0.)
 
 
-class Problem3D_N(BaseSIPProblem, Problem3D_N):
+class Problem3D_N(BaseSIPProblem, BaseProblem3D_N):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # N potentials means B is on faces

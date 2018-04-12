@@ -7,12 +7,12 @@ from SimPEG import Utils
 from SimPEG.EM.Static.DC.FieldsDC_2D import (
     Fields_ky, Fields_ky_CC, Fields_ky_N
     )
-from SimPEG.EM.Static.DC import BaseDCProblem_2D, Problem2D_CC, Problem2D_N
+from SimPEG.EM.Static.DC import BaseDCProblem_2D
+from SimPEG.EM.Static.DC import Problem2D_CC as BaseProblem2D_CC
+from SimPEG.EM.Static.DC import Problem2D_N as BaseProblem2D_N
 import numpy as np
-from SimPEG.Utils import Zero
 from .SurveyIP import Survey
 from SimPEG import Props
-from scipy.special import kn
 
 
 class BaseIPProblem_2D(BaseDCProblem_2D):
@@ -179,7 +179,7 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
                 )
 
 
-class Problem2D_CC(BaseIPProblem_2D, Problem2D_CC):
+class Problem2D_CC(BaseIPProblem_2D, BaseProblem2D_CC):
     """
     2.5D cell centered IP problem
     """
@@ -235,7 +235,7 @@ class Problem2D_CC(BaseIPProblem_2D, Problem2D_CC):
                 return dMfRhoI_dI * (dMf_drho * (drho_dlogrho*v))
 
 
-class Problem2D_N(BaseIPProblem_2D, Problem2D_N):
+class Problem2D_N(BaseIPProblem_2D, BaseProblem2D_N):
     """
     2.5D nodal IP problem
     """

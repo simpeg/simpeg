@@ -75,9 +75,7 @@ class Data(SimPEG.Survey.Data):
         src, rx, t = self._ensureCorrectKey(key)
         assert rx is not None, 'set data using [Src, Rx]'
         assert isinstance(value, np.ndarray), 'value must by ndarray'
-        assert value.size == rx.nD, (
-            "value must have the same number of data as the source."
-        )
+        assert value.size == rx.nD, ("value must have the same number of data as the source.")
         self._dataDict[src][rx][t] = Utils.mkvc(value)
 
     def __getitem__(self, key):

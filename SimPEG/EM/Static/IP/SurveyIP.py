@@ -32,6 +32,7 @@ def from_dc_to_ip_survey(dc_survey, dim="2.5D"):
         srcList_ip = []
         for src in srcList:
             rxList_ip = []
+            src_ip = []
             for rx in src.rxList:
                 if isinstance(rx, DC.Rx.Pole_ky):
                     rx_ip = DC.Rx.Pole(rx.locs)
