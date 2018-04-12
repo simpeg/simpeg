@@ -679,11 +679,12 @@ class Update_IRLS(InversionDirective):
                 ratio = np.mean([0.5, ratio])
 
             self.invProb.beta = self.invProb.beta * ratio
+
             # Jx_irls, Wx_irls = self.get_Jx_Wx()
-            # # Jx_irls = self.invProb.Jx
+            # Jx_irls = self.invProb.Jx
             # ratio_irls = Jx_irls/Wx_irls
-            # self.invProb.beta = ratio_irls
-            # print (Jx_irls, Wx_irls, self.beta_ratio_l2)
+            # self.invProb.beta = ratio_irls * ratio
+
             if np.all([self.mode != 1, self.betaSearch]):
                 print("Beta search step")
                 # self.updateBeta = False
@@ -900,7 +901,7 @@ class Update_IRLS(InversionDirective):
 
     def get_Jx_Wx(self):
         """
-            Evaluate
+            Evaluate Rayleigh quotient of J (sensitivity)and W (regularization) matrix
         """
         m = self.invProb.model
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
@@ -1076,7 +1077,7 @@ class UpdateSensitivityWeights(InversionDirective):
 
         wr = np.zeros_like(self.invProb.model)
 
-        for prob_JtJ, prob in zip(self.JtJdiag, self.prob):
+        for prob_JtJ, prob, dmisfit in zip(self.JtJdiag, self.prob, self.dmisfit.objfcts):
 
             wr += prob_JtJ + self.threshold
 
