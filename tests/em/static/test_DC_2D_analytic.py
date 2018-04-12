@@ -22,7 +22,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         A0loc = np.r_[-150, 0.]
         # A1loc = np.r_[-130, 0.]
         rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
-        data_ana = EM.Analytics.DCAnalytic_Pole_Dipole(
+        data_anal = EM.Analytics.DCAnalytic_Pole_Dipole(
             np.r_[A0loc, 0.], rxloc, sighalf, earth_type="halfspace"
         )
 
@@ -33,7 +33,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         self.survey = survey
         self.mesh = mesh
         self.sigma = sigma
-        self.data_ana = data_ana
+        self.data_anal = data_anal
         self.plotIt = False
 
         try:
@@ -49,8 +49,8 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         problem.pair(self.survey)
         data = self.survey.dpred()
         err = (
-            np.linalg.norm((data-self.data_ana) / self.data_ana)**2 /
-            self.data_ana.size
+            np.linalg.norm((data-self.data_anal) / self.data_anal)**2 /
+            self.data_anal.size
         )
         if err < tolerance:
             passed = True
@@ -67,8 +67,8 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         problem.pair(self.survey)
         data = self.survey.dpred()
         err = (
-            np.linalg.norm((data-self.data_ana)/self.data_ana)**2 /
-            self.data_ana.size
+            np.linalg.norm((data-self.data_anal)/self.data_anal)**2 /
+            self.data_anal.size
         )
         if err < tolerance:
             passed = True
@@ -96,7 +96,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         A0loc = np.r_[-150, 0.]
         A1loc = np.r_[-125, 0.]
         rxloc = np.c_[M, np.zeros(20)]
-        data_ana = EM.Analytics.DCAnalytic_Dipole_Pole(
+        data_anal = EM.Analytics.DCAnalytic_Dipole_Pole(
                     [np.r_[A0loc, 0.], np.r_[A1loc, 0.]],
                     rxloc, sighalf, earth_type="halfspace")
 
@@ -107,7 +107,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         self.survey = survey
         self.mesh = mesh
         self.sigma = sigma
-        self.data_ana = data_ana
+        self.data_anal = data_anal
         self.plotIt = False
 
         try:
@@ -123,14 +123,14 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         problem.pair(self.survey)
         data = self.survey.dpred()
         err = (
-            np.linalg.norm((data-self.data_ana) / self.data_ana)**2 /
-            self.data_ana.size
+            np.linalg.norm((data-self.data_anal) / self.data_anal)**2 /
+            self.data_anal.size
         )
         if err < tolerance:
             passed = True
             print(">> DC analytic test for DPP Problem2D_N is passed")
             if self.plotIt:
-                plt.plot(self.data_ana)
+                plt.plot(self.data_anal)
                 plt.plot(data, 'k.')
                 plt.show()
         else:
@@ -145,8 +145,8 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         problem.pair(self.survey)
         data = self.survey.dpred()
         err = (
-            np.linalg.norm((data-self.data_ana)/self.data_ana)**2 /
-            self.data_ana.size
+            np.linalg.norm((data-self.data_anal)/self.data_anal)**2 /
+            self.data_anal.size
         )
         if err < tolerance:
             passed = True
@@ -156,7 +156,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
             print(">> DC analytic test for DPP Problem2D_CC is failed")
             print(err)
             if self.plotIt:
-                plt.plot(self.data_ana)
+                plt.plot(self.data_anal)
                 plt.plot(data, 'k.')
                 plt.show()
         self.assertTrue(passed)
@@ -177,7 +177,7 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         M = Utils.ndgrid(x-12.5, np.r_[0.])
         A0loc = np.r_[-150, 0.]
         rxloc = np.c_[M, np.zeros(20)]
-        data_ana = EM.Analytics.DCAnalytic_Pole_Pole(
+        data_anal = EM.Analytics.DCAnalytic_Pole_Pole(
                     np.r_[A0loc, 0.],
                     rxloc, sighalf, earth_type="halfspace")
 
@@ -188,7 +188,7 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         self.survey = survey
         self.mesh = mesh
         self.sigma = sigma
-        self.data_ana = data_ana
+        self.data_anal = data_anal
 
         try:
             from pymatsolver import PardisoSolver
@@ -202,8 +202,8 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         problem.pair(self.survey)
         data = self.survey.dpred()
         err = (
-            np.linalg.norm((data-self.data_ana)/self.data_ana)**2 /
-            self.data_ana.size
+            np.linalg.norm((data-self.data_anal)/self.data_anal)**2 /
+            self.data_anal.size
         )
         if err < tolerance:
             passed = True

@@ -21,11 +21,11 @@ VRM Problem
 Waveform
 ========
 
-.. .. automodule:: SimPEG.VRM.WaveformVRM
-..     :show-inheritance:
-..     :members:
-..     :undoc-members:
-..     :inherited-members:
+.. automodule:: SimPEG.VRM.WaveformVRM
+    :show-inheritance:
+    :members:
+    :undoc-members:
+    :inherited-members:
 
 Sources
 =======
