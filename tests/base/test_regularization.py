@@ -371,7 +371,6 @@ class RegularizationTests(unittest.TestCase):
          active = mesh.vectorCCz < 0.
 
          reg = Regularization.Simple(mesh, indActive=active)
-         # print(reg._nC_residual, len(active.nonzero())
          self.assertTrue(reg._nC_residual == len(active.nonzero()[0]))
 
 if __name__ == '__main__':
