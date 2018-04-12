@@ -34,7 +34,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         phiB = EM.Analytics.DCAnalytic_Pole_Dipole(
             Bloc, [M, N], 1e-2, earth_type="halfspace"
         )
-        data_ana = phiA-phiB
+        data_anal = phiA-phiB
 
         rx = DC.Rx.Dipole(M, N)
         src = DC.Src.Dipole([rx], Aloc, Bloc)
@@ -43,7 +43,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         self.survey = survey
         self.mesh = mesh
         self.sigma = sigma
-        self.data_ana = data_ana
+        self.data_anal = data_anal
 
     def test_Problem3D_N(self, tolerance=0.2):
         problem = DC.Problem3D_N(self.mesh, sigma=self.sigma)
@@ -51,8 +51,8 @@ class DCProblemAnalyticTests(unittest.TestCase):
         problem.pair(self.survey)
         data = self.survey.dpred()
         err = (
-            np.linalg.norm(data - self.data_ana) /
-            np.linalg.norm(self.data_ana)
+            np.linalg.norm(data - self.data_anal) /
+            np.linalg.norm(self.data_anal)
         )
         if err < 0.2:
             print (err)
@@ -72,8 +72,8 @@ class DCProblemAnalyticTests(unittest.TestCase):
         problem.pair(self.survey)
         data = self.survey.dpred()
         err = (
-            np.linalg.norm(data - self.data_ana) /
-            np.linalg.norm(self.data_ana)
+            np.linalg.norm(data - self.data_anal) /
+            np.linalg.norm(self.data_anal)
         )
         if err < tolerance:
             print (err)
@@ -93,8 +93,8 @@ class DCProblemAnalyticTests(unittest.TestCase):
         problem.pair(self.survey)
         data = self.survey.dpred()
         err = (
-            np.linalg.norm(data - self.data_ana) /
-            np.linalg.norm(self.data_ana)
+            np.linalg.norm(data - self.data_anal) /
+            np.linalg.norm(self.data_anal)
         )
         if err < tolerance:
             print (err)
@@ -133,7 +133,7 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         phiB = EM.Analytics.DCAnalytic_Pole_Dipole(
             Bloc, [M, N], 1e-2, earth_type="wholespace"
         )
-        data_ana = phiA-phiB
+        data_anal = phiA-phiB
 
         rx = DC.Rx.Dipole(M, N)
         src = DC.Src.Dipole([rx], Aloc, Bloc)
@@ -142,7 +142,7 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         self.survey = survey
         self.mesh = mesh
         self.sigma = sigma
-        self.data_ana = data_ana
+        self.data_anal = data_anal
 
     def test_Problem3D_CC_Dirchlet(self, tolerance=0.2):
         problem = DC.Problem3D_CC(
@@ -152,8 +152,8 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         problem.pair(self.survey)
         data = self.survey.dpred()
         err = (
-            np.linalg.norm(data - self.data_ana) /
-            np.linalg.norm(self.data_ana)
+            np.linalg.norm(data - self.data_anal) /
+            np.linalg.norm(self.data_anal)
         )
         if err < tolerance:
             print (err)
@@ -187,7 +187,7 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
         phiA = EM.Analytics.DCAnalytic_Pole_Pole(
             Aloc, M, 1e-2, earth_type="halfspace"
         )
-        data_ana = phiA
+        data_anal = phiA
 
         rx = DC.Rx.Pole(M)
         src = DC.Src.Pole([rx], Aloc)
@@ -196,7 +196,7 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
         self.survey = survey
         self.mesh = mesh
         self.sigma = sigma
-        self.data_ana = data_ana
+        self.data_anal = data_anal
 
     def test_Problem3D_CC_Mixed(self, tolerance=0.2):
         problem = DC.Problem3D_CC(self.mesh, sigma=self.sigma, bc_type='Mixed')
@@ -204,8 +204,8 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
         problem.pair(self.survey)
         data = self.survey.dpred()
         err = (
-            np.linalg.norm(data - self.data_ana) /
-            np.linalg.norm(self.data_ana)
+            np.linalg.norm(data - self.data_anal) /
+            np.linalg.norm(self.data_anal)
         )
         if err < tolerance:
             print (err)
