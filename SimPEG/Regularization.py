@@ -473,6 +473,9 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
     def __init__(self, mesh=None, **kwargs):
         super(BaseRegularization, self).__init__()
         self.regmesh = RegularizationMesh(mesh)
+        if "indActive" in kwargs.keys():
+            indActive = kwargs.pop("indActive")
+            self.regmesh.indActive = indActive
         Utils.setKwargs(self, **kwargs)
     mrefInSmooth = properties.Bool(
         "include mref in the smoothness calculation?", default=None
@@ -547,9 +550,13 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         """
         Shape of the residual
         """
-        if getattr(self.regmesh, 'nC', None) != '*':
+
+        nC = getattr(self.regmesh, 'nC', None)
+        mapping = getattr(self, 'mapping', None)
+
+        if nC != '*' and nC is not None:
             return self.regmesh.nC
-        elif getattr(self, 'mapping', None) != '*':
+        elif mapping is not None and mapping.shape[0] != '*':
             return self.mapping.shape[0]
         else:
             return self.nP
@@ -641,6 +648,9 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
             objfcts=objfcts, multipliers=None
         )
         self.regmesh = RegularizationMesh(mesh)
+        if "indActive" in kwargs.keys():
+            indActive = kwargs.pop("indActive")
+            self.regmesh.indActive = indActive
         Utils.setKwargs(self, **kwargs)
 
         # link these attributes
@@ -702,9 +712,12 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         """
         Shape of the residual
         """
-        if getattr(self.regmesh, 'nC', None) != '*':
+        nC = getattr(self.regmesh, 'nC', None)
+        mapping = getattr(self, 'mapping', None)
+
+        if nC != '*' and nC is not None:
             return self.regmesh.nC
-        elif getattr(self, 'mapping', None) != '*':
+        elif mapping is not None and mapping.shape[0] != '*':
             return self.mapping.shape[0]
         else:
             return self.nP

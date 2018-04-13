@@ -249,7 +249,7 @@ class PrimSecCasingExample(object):
 
             # maps a list of casing parameters to the cyl mesh (below the
             # subsurface)
-            paramMapPrimary = Maps.ParametrizedCasingAndLayer(
+            paramMapPrimary = Maps.ParametricCasingAndLayer(
                 self.meshp, indActive=self.indActivePrimary, slopeFact=1e4
                 )
 
@@ -543,7 +543,7 @@ class PrimSecCasingExample(object):
         # model on our mesh
         if getattr(self, '_mapping', None) is None:
             print('building secondary mapping')
-            paramMap = Maps.ParametrizedBlockInLayer(
+            paramMap = Maps.ParametricBlockInLayer(
                 self.meshs, indActive=self.indActive
                 )
             self._mapping = (
@@ -561,7 +561,7 @@ class PrimSecCasingExample(object):
             # map the primary model to the secondary mesh (layer without the
             # block)
             print('Building primaryMap2meshs')
-            paramMapPrimaryMeshs = Maps.ParametrizedLayer(
+            paramMapPrimaryMeshs = Maps.ParametricLayer(
                 self.meshs, indActive=self.indActive
                 )
 

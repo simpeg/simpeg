@@ -116,9 +116,9 @@ class Fields_CC(FieldsDC):
         """
             In HJ formulation e is not well-defined!!
             .. math::
-                \vec{e} = -\nabla \phi
+                \vec{e} = \rho \vec{j}
         """
-        return self.prob.MfI*self.prob.MfRhoI * self._j(phiSolution, srcList)
+        return self.prob.MfI*self.prob.MfRho * self._j(phiSolution, srcList)
 
     def _charge(self, phiSolution, srcList):
         """

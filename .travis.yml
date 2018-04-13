@@ -30,6 +30,7 @@ env:
     - TEST_DIR="tests/em/nsem/forward tests/em/nsem/inversion"
     - TEST_DIR=tests/em/fdem/inverse/adjoint
     - TEST_DIR=tests/em/fdem/forward
+    - TEST_DIR=tests/em/vrm
     - TEST_DIR=tests/pf
     - TEST_DIR=tests/docs;
       GAE_PYTHONPATH=${HOME}/.cache/google_appengine;
@@ -97,7 +98,7 @@ after_success:
       echo "Not deploying (because this is not a deployment directory)" ;
       exit 0 ;
     fi
-  - if [ "$TRAVIS_PULL_REQUEST" = "true" ]; then
+  - if ! [ "$TRAVIS_PULL_REQUEST" = "false" ]; then
       echo "Not deploying (because this is a pull request)" ;
       exit 0 ;
     fi
