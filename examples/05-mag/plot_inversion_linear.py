@@ -108,8 +108,9 @@ def run(plotIt=True):
     # Create a regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.cell_weights = wr
-    reg.norms = [0, 1, 1, 1]
-    reg.eps_p, reg.eps_q = 1e-3, 1e-3
+    reg.mref = np.zeros(nC)
+    reg.norms = np.c_[0, 1, 1, 1]
+    # reg.eps_p, reg.eps_q = 1e-0, 1e-0
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
@@ -119,15 +120,19 @@ def run(plotIt=True):
     opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
                                      maxIterLS=20, maxIterCG=10, tolCG=1e-3)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    betaest = Directives.BetaEstimate_ByEig()
+    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
     #  model parameters
-    IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=2)
+    IRLS = Directives.Update_IRLS(
+        f_min_change=1e-4, maxIRLSiter=40
+    )
+    saveDict = Directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = Directives.UpdatePreconditioner()
-    inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[IRLS, betaest, update_Jacobi])
+    inv = Inversion.BaseInversion(
+        invProb, directiveList=[IRLS, betaest, update_Jacobi, saveDict]
+    )
 
     # Run the inversion
     m0 = np.ones(nC)*1e-4  # Starting model
@@ -222,6 +227,27 @@ def run(plotIt=True):
         plt.xlabel('x')
         plt.ylabel('z')
         plt.gca().set_aspect('equal', adjustable='box')
+
+        # Plot convergence curves
+        fig, axs = plt.figure(), plt.subplot()
+        axs.plot(saveDict.phi_d, 'k', lw=2)
+        axs.plot(
+            np.r_[IRLS.iterStart, IRLS.iterStart],
+            np.r_[0, np.max(saveDict.phi_d)], 'k:'
+        )
+
+        twin = axs.twinx()
+        twin.plot(saveDict.phi_m, 'k--', lw=2)
+        axs.text(
+            IRLS.iterStart, 0,
+            'IRLS Steps', va='bottom', ha='center',
+            rotation='vertical', size=12,
+            bbox={'facecolor': 'white'}
+        )
+
+        axs.set_ylabel('$\phi_d$', size=16, rotation=0)
+        axs.set_xlabel('Iterations', size=14)
+        twin.set_ylabel('$\phi_m$', size=16, rotation=0)
 
 if __name__ == '__main__':
     run()
