@@ -158,7 +158,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
 
             if isinstance(rxObj, Point):
 
-                if dComp is 'x':
+                if dComp.lower() == 'x':
                     for rr in range(0, M):
                         u1 = locs[rr, 0] - ax
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
@@ -209,7 +209,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
                         G[COUNT, :] = C*np.c_[Gxx, Gyx, Gzx]
                         COUNT = COUNT + 1
 
-                elif dComp is 'y':
+                elif dComp.lower() == 'y':
                     for rr in range(0, M):
                         u1 = locs[rr, 0] - ax
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
@@ -260,7 +260,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
                         G[COUNT, :] = C*np.c_[Gxy, Gyy, Gzy]
                         COUNT = COUNT + 1
 
-                elif dComp is 'z':
+                elif dComp.lower() == 'z':
                     for rr in range(0, M):
                         u1 = locs[rr, 0] - ax
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
@@ -335,7 +335,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
                     np.r_[0.171324, 0.467914, 0.360762, 0.360762, 0.467914, 0.171324],
                     np.r_[0.129485, 0.279705, 0.381830, 0.417959, 0.381830, 0.279705, 0.129485]
                     ]
-                wt = wt[rxObj.quad_order-1]
+                wt = wt[rxObj.quadOrder-1]
                 nw = len(wt)
                 wt = rxObj.nTurns*(rxObj.width/2)**2*np.reshape(np.outer(wt, wt), (1, nw**2))
 
@@ -349,10 +349,10 @@ class Problem_BaseVRM(Problem.BaseProblem):
                     np.r_[-0.932470, -0.238619, -0.661209, 0.661209, 0.238619, 0.932470],
                     np.r_[-0.949108, -0.741531, -0.405845, 0., 0.405845, 0.741531, 0.949108]
                     ]
-                s1 = (rxObj.width/2)*np.reshape(np.kron(ds[rxObj.quad_order-1], np.ones(nw)), (nw**2, 1))
-                s2 = (rxObj.width/2)*np.reshape(np.kron(np.ones(nw), ds[rxObj.quad_order-1]), (nw**2, 1))
+                s1 = (rxObj.width/2)*np.reshape(np.kron(ds[rxObj.quadOrder-1], np.ones(nw)), (nw**2, 1))
+                s2 = (rxObj.width/2)*np.reshape(np.kron(np.ones(nw), ds[rxObj.quadOrder-1]), (nw**2, 1))
 
-                if dComp is 'x':
+                if dComp.lower() == 'x':
                     for rr in range(0, M):
 
                         u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax)
@@ -410,7 +410,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
                         G[COUNT, :] = C*np.c_[Gxx, Gyx, Gzx]
                         COUNT = COUNT + 1
 
-                elif dComp is 'y':
+                elif dComp.lower() == 'y':
                     for rr in range(0, M):
 
                         u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) + np.kron(s1, np.ones((1, N)))
@@ -468,7 +468,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
                         G[COUNT, :] = C*np.c_[Gxy, Gyy, Gzy]
                         COUNT = COUNT + 1
 
-                elif dComp is 'z':
+                elif dComp.lower() == 'z':
                     for rr in range(0, M):
 
                         u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) + np.kron(s1, np.ones((1, N)))

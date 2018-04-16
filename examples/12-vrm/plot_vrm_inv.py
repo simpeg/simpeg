@@ -64,7 +64,7 @@ def run(plotIt=True):
     for pp in range(0, loc.shape[0]):
 
         loc_pp = np.reshape(loc[pp, :], (1, 3))
-        rxListVRM = [VRM.Rx.Point(loc_pp, times, 'dbdt', 'z')]
+        rxListVRM = [VRM.Rx.Point(loc_pp, times=times, fieldType='dbdt', fieldComp='z')]
 
         srcListVRM.append(VRM.Src.MagDipole(rxListVRM, mkvc(loc[pp, :]), [0., 0., 0.01], waveform))
 

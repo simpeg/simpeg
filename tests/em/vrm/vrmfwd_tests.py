@@ -21,7 +21,7 @@ class VRM_fwd_tests(unittest.TestCase):
         mod = (dchi/np.log(tau2/tau1))*np.ones(meshObj.nC)
 
         times = np.logspace(-4, -2, 3)
-        waveObj = VRM.WaveformVRM.SquarePulse(0.02)
+        waveObj = VRM.WaveformVRM.SquarePulse(delt=0.02)
 
         phi = np.random.uniform(-np.pi, np.pi)
         psi = np.random.uniform(-np.pi, np.pi)
@@ -32,9 +32,9 @@ class VRM_fwd_tests(unittest.TestCase):
         # rxList.append(VRM.Rx.Point_dhdt(loc_rx, times, 'y'))
         # rxList.append(VRM.Rx.Point_dhdt(loc_rx, times, 'z'))
 
-        rxList = [VRM.Rx.Point(loc_rx, times, 'dhdt', 'x')]
-        rxList.append(VRM.Rx.Point(loc_rx, times, 'dhdt', 'y'))
-        rxList.append(VRM.Rx.Point(loc_rx, times, 'dhdt', 'z'))
+        rxList = [VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='x')]
+        rxList.append(VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='y'))
+        rxList.append(VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='z'))
 
         alpha = np.random.uniform(0, np.pi)
         beta = np.random.uniform(-np.pi, np.pi)
@@ -75,20 +75,16 @@ class VRM_fwd_tests(unittest.TestCase):
         mod = (dchi/np.log(tau2/tau1))*np.ones(meshObj.nC)
 
         times = np.logspace(-4, -2, 3)
-        waveObj = VRM.WaveformVRM.SquarePulse(0.02)
+        waveObj = VRM.WaveformVRM.SquarePulse(delt=0.02)
 
         phi = np.random.uniform(-np.pi, np.pi)
         psi = np.random.uniform(-np.pi, np.pi)
         Rrx = 3.
         loc_rx = Rrx*np.c_[np.sin(phi)*np.cos(psi), np.sin(phi)*np.sin(psi), np.cos(phi)]
 
-        # rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'x')]
-        # rxList.append(VRM.Rx.Point_dhdt(loc_rx, times, 'y'))
-        # rxList.append(VRM.Rx.Point_dhdt(loc_rx, times, 'z'))
-
-        rxList = [VRM.Rx.Point(loc_rx, times, 'dhdt', 'x')]
-        rxList.append(VRM.Rx.Point(loc_rx, times, 'dhdt', 'y'))
-        rxList.append(VRM.Rx.Point(loc_rx, times, 'dhdt', 'z'))
+        rxList = [VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='x')]
+        rxList.append(VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='y'))
+        rxList.append(VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='z'))
 
         alpha = np.random.uniform(0, np.pi)
         beta = np.random.uniform(-np.pi, np.pi)
@@ -129,13 +125,12 @@ class VRM_fwd_tests(unittest.TestCase):
         mod = (dchi/np.log(tau2/tau1))*np.ones(meshObj.nC)
 
         times = np.array([1e-3])
-        waveObj = VRM.WaveformVRM.SquarePulse(0.02)
+        waveObj = VRM.WaveformVRM.SquarePulse(delt=0.02)
 
         z = 0.5
         a = 0.1
         loc_rx = np.c_[0., 0., z]
-        # rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'z')]
-        rxList = [VRM.Rx.Point(loc_rx, times, 'dhdt', 'z')]
+        rxList = [VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='z')]
         txList = [VRM.Src.CircLoop(rxList, np.r_[0., 0., z], a, np.r_[0., 0.], 1., waveObj)]
 
         Survey2 = VRM.Survey(txList)
@@ -181,14 +176,12 @@ class VRM_fwd_tests(unittest.TestCase):
         mod = (dchi/np.log(tau2/tau1))*np.ones(meshObj.nC)
 
         times = np.array([1e-3])
-        waveObj = VRM.WaveformVRM.SquarePulse(0.02)
+        waveObj = VRM.WaveformVRM.SquarePulse(delt=0.02)
 
         z = 0.25
         a = 5
-        # rxList = [VRM.Rx.Point_dhdt(np.c_[a, 0., z], times, 'x')]
-        # rxList.append(VRM.Rx.Point_dhdt(np.c_[0., a, z], times, 'y'))
-        rxList = [VRM.Rx.Point(np.c_[a, 0., z], times, 'dhdt', 'x')]
-        rxList.append(VRM.Rx.Point(np.c_[0., a, z], times, 'dhdt', 'y'))
+        rxList = [VRM.Rx.Point(np.c_[a, 0., z], times=times, fieldType='dhdt', fieldComp='x')]
+        rxList.append(VRM.Rx.Point(np.c_[0., a, z], times=times, fieldType='dhdt', fieldComp='y'))
         txList = [VRM.Src.CircLoop(rxList, np.r_[0., 0., z], a, np.r_[0., 0.], 1., waveObj)]
 
         Survey2 = VRM.Survey(txList)
@@ -265,11 +258,10 @@ class VRM_fwd_tests(unittest.TestCase):
         mod_tau2_b = tau2*np.ones(meshObj_OcTree.nC)
 
         times = np.array([1e-3])
-        waveObj = VRM.WaveformVRM.SquarePulse(0.02)
+        waveObj = VRM.WaveformVRM.SquarePulse(delt=0.02)
 
         loc_rx = np.c_[4., 4., 8.25]
-        # rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'z')]
-        rxList = [VRM.Rx.Point(loc_rx, times, 'dhdt', 'z')]
+        rxList = [VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='z')]
         txList = [VRM.Src.MagDipole(rxList, np.r_[4., 4., 8.25], [0., 0., 1.], waveObj)]
 
         Survey1 = VRM.Survey(txList)
@@ -323,7 +315,7 @@ class VRM_fwd_tests(unittest.TestCase):
         mod = (dchi/np.log(tau2/tau1))*np.ones(meshObj_Tensor.nC)
 
         times = np.array([1e-3])
-        waveObj = VRM.WaveformVRM.SquarePulse(0.02)
+        waveObj = VRM.WaveformVRM.SquarePulse(delt=0.02)
 
         phi = np.random.uniform(-np.pi, np.pi)
         psi = np.random.uniform(-np.pi, np.pi)
@@ -331,15 +323,15 @@ class VRM_fwd_tests(unittest.TestCase):
         loc_rx = R*np.c_[np.sin(phi)*np.cos(psi), np.sin(phi)*np.sin(psi), np.cos(phi)]
         loc_tx = 0.5*np.r_[np.sin(phi)*np.cos(psi), np.sin(phi)*np.sin(psi), np.cos(phi)]
 
-        rxList1 = [VRM.Rx.Point(loc_rx, times, 'dhdt', 'x')]
-        rxList1.append(VRM.Rx.Point(loc_rx, times, 'dhdt', 'y'))
-        rxList1.append(VRM.Rx.Point(loc_rx, times, 'dhdt', 'z'))
+        rxList1 = [VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='x')]
+        rxList1.append(VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='y'))
+        rxList1.append(VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='z'))
 
         w = 0.1
         N = 100
-        rxList2 = [VRM.Rx.SquareLoop(loc_rx, times, w, N, 'dhdt', 'x')]
-        rxList2.append(VRM.Rx.SquareLoop(loc_rx, times, w, N, 'dhdt', 'y'))
-        rxList2.append(VRM.Rx.SquareLoop(loc_rx, times, w, N, 'dhdt', 'z'))
+        rxList2 = [VRM.Rx.SquareLoop(loc_rx, times=times, width=w, nTurns=N, fieldType='dhdt', fieldComp='x')]
+        rxList2.append(VRM.Rx.SquareLoop(loc_rx, times=times, width=w, nTurns=N, fieldType='dhdt', fieldComp='y'))
+        rxList2.append(VRM.Rx.SquareLoop(loc_rx, times=times, width=w, nTurns=N, fieldType='dhdt', fieldComp='z'))
 
         txList1 = [VRM.Src.MagDipole(rxList1, loc_tx, [1., 1., 1.], waveObj)]
         txList2 = [VRM.Src.MagDipole(rxList2, loc_tx, [1., 1., 1.], waveObj)]
