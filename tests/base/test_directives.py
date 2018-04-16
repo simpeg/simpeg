@@ -83,7 +83,7 @@ class ValidationInInversion(unittest.TestCase):
 
         wr = np.sum(prob.G**2., axis=0)**0.5
         reg.cell_weights = wr
-        reg.norms = [0, 1, 1, 1]
+        reg.norms = np.c_[0, 1, 1, 1]
         reg.eps_p, reg.eps_q = 1e-3, 1e-3
 
         # Data misfit function

@@ -47,16 +47,11 @@ class Dipole(BaseSrc):
                 self._q = np.zeros(prob.mesh.nC)
                 self._q[inds] = self.current * np.r_[1., -1.]
             elif prob._formulation == 'EB':
-                qa = prob.mesh.getInterpolationMat(
-                    self.loc[0],
-                    locType='N'
-                ).toarray()
-                qb = -prob.mesh.getInterpolationMat(
-                    self.loc[1],
-                    locType='N'
-                ).toarray()
-                self._q = self.current * mkvc(qa+qb)
-
+                qa = prob.mesh.getInterpolationMat(self.loc[0],
+                                                   locType='N').toarray()
+                qb = -prob.mesh.getInterpolationMat(self.loc[1],
+                                                    locType='N').toarray()
+                self._q = self.current * (qa+qb)
             return self._q
 
 
@@ -76,6 +71,6 @@ class Pole(BaseSrc):
             elif prob._formulation == 'EB':
                 q = prob.mesh.getInterpolationMat(
                     self.loc, locType='N'
-                    ).todense()
-                self._q = self.current * mkvc(q)
+                )
+                self._q = self.current * q.toarray()
             return self._q
