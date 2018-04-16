@@ -77,7 +77,6 @@ class BaseDCProblem(BaseEMProblem):
             dA_dm_v = self.getADeriv(u_src, v)
             dRHS_dm_v = self.getRHSDeriv(src, v)
             du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
-
             for rx in src.rxList:
                 df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                 df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
@@ -114,10 +113,12 @@ class BaseDCProblem(BaseEMProblem):
             Jtv = np.zeros(m.size)
         else:
             # This is for forming full sensitivity matrix
-            Jtv = []
+            Jtv = np.zeros((self.model.size, self.survey.nD), order='F')
+            istrt = int(0)
+            iend = int(0)
 
         for src in self.survey.srcList:
-            u_src = f[src, self._solutionType]
+            u_src = f[src, self._solutionType].copy()
             for rx in src.rxList:
                 # wrt f, need possibility wrt m
                 if v is not None:
@@ -139,14 +140,18 @@ class BaseDCProblem(BaseEMProblem):
                 if v is not None:
                     Jtv += (df_dmT + du_dmT).astype(float)
                 else:
-                    # This is for forming full sensitivity matrix
-                    Jtv.append(
-                        np.vstack((df_dmT + du_dmT).astype(float))
-                    )
+                    iend = istrt + rx.nD
+                    if rx.nD == 1:
+                        Jtv[:, istrt] = (df_dmT + du_dmT)
+                    else:
+                        Jtv[:, istrt:iend] = (df_dmT + du_dmT)
+                    istrt += rx.nD
+
         if v is not None:
             return Utils.mkvc(Jtv)
         else:
-            return np.hstack(Jtv)
+            # return np.hstack(Jtv)
+            return Jtv
 
     def getSourceTerm(self):
         """
@@ -227,9 +232,9 @@ class Problem3D_CC(BaseDCProblem):
         MfRhoIDeriv = self.MfRhoIDeriv
 
         if adjoint:
-            return(MfRhoIDeriv(G * u).T) * (D.T * v)
+            return MfRhoIDeriv(G * u, D.T * v, adjoint)
 
-        return D * (MfRhoIDeriv(G * u) * v)
+        return D * (MfRhoIDeriv(G * u, v, adjoint))
 
     def getRHS(self):
         """
@@ -434,9 +439,9 @@ class Problem3D_N(BaseDCProblem):
         """
         Grad = self.mesh.nodalGrad
         if not adjoint:
-            return Grad.T*(self.MeSigmaDeriv(Grad*u)*v)
+            return Grad.T*self.MeSigmaDeriv(Grad*u, v, adjoint)
         elif adjoint:
-            return self.MeSigmaDeriv(Grad*u).T * (Grad*v)
+            return self.MeSigmaDeriv(Grad*u, Grad*v, adjoint)
 
     def getRHS(self):
         """

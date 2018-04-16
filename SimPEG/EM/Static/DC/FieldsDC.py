@@ -125,8 +125,9 @@ class Fields_CC(FieldsDC):
             .. math::
                 \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
-        return epsilon_0*self.prob.Vol*(self.mesh.faceDiv*self._e(phiSolution,
-                                                                  srcList))
+        return epsilon_0*(
+            self.prob.Div*self._e(phiSolution, srcList)
+        )
 
 
 class Fields_N(FieldsDC):
