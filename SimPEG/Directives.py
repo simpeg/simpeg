@@ -649,7 +649,7 @@ class Update_IRLS(InversionDirective):
     phi_d_last = None
     f_old = None
     f_min_change = 1e-2
-    beta_tol = 5e-2
+    beta_tol = 5e-1
     prctile = 98
     chifact_start = 1.
     chifact_target = 1.
@@ -665,6 +665,7 @@ class Update_IRLS(InversionDirective):
 
     # Beta schedule
     updateBeta = True
+    betaSearch = True
     coolingFactor = 2.
     coolingRate = 1
     ComboObjFun = False
@@ -693,6 +694,15 @@ class Update_IRLS(InversionDirective):
         self._target = val
 
     @property
+    def norms(self):
+        if getattr(self, '_norms', None) is None:
+            self._norms = []
+            for reg in self.reg.objfcts:
+                self._norms.append(reg.norms)
+        return self._norms
+
+
+    @property
     def start(self):
         if getattr(self, '_start', None) is None:
             if isinstance(self.survey, list):
@@ -711,17 +721,33 @@ class Update_IRLS(InversionDirective):
 
     def initialize(self):
 
-        if self.mode == 1:
+        # Look for cases where the block models in to be scaled
+        for prob in self.prob:
 
-            self.norms = []
-            for reg in self.reg.objfcts:
-                self.norms.append(reg.norms)
-                reg.norms = np.c_[2., 2., 2., 2.]
-                reg.model = self.invProb.model
+            if getattr(prob, 'coordinate_system', None) is not None:
+                if prob.coordinate_system == 'spherical':
+                    self.scale_m = True
 
         # Update the model used by the regularization
         for reg in self.reg.objfcts:
             reg.model = self.invProb.model
+
+        if self.scale_m:
+            self.regScale()
+
+        self.phi_d_last = self.dmisfit.objfcts[0](self.invProb.model)
+
+        if np.all([
+            self.phi_d_last < self.start,
+            self.mode == 1
+        ]):
+            self.startIRLS()
+
+        if self.mode == 1:
+
+            for reg in self.reg.objfcts:
+                reg.norms = np.c_[2., 2., 2., 2.]
+                reg.model = self.invProb.model
 
         self.f_old = 0
         for reg in self.reg.objfcts:
@@ -732,15 +758,6 @@ class Update_IRLS(InversionDirective):
         self.modelDeriv_previous = self.reg.objfcts[0].objfcts[1].f_m
         self.phi_dm = []
         self.phi_dmx = []
-        # Look for cases where the block models in to be scaled
-        for prob in self.prob:
-
-            if getattr(prob, 'coordinate_system', None) is not None:
-                if prob.coordinate_system == 'spherical':
-                    self.scale_m = True
-
-        if self.scale_m:
-            self.regScale()
 
     def endIter(self):
 
@@ -749,31 +766,35 @@ class Update_IRLS(InversionDirective):
         if self.scale_m:
             self.regScale()
 
-        # Check if misfit is within the tolerance, otherwise scale beta
-        if np.any([
-            np.all([np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol,
-                   self.updateBeta]),
-            np.all([self.mode == 1, np.abs(1. - self.invProb.phi_d / self.start) > self.beta_tol])
-            ]):
+        self.phi_d_last = self.dmisfit.objfcts[0](self.invProb.model)
 
-            ratio = (self.target / self.invProb.phi_d)
+        # Check if misfit is within the tolerance, otherwise scale beta
+        if np.all([np.abs(1. - self.phi_d_last / self.target) > self.beta_tol,
+                   self.updateBeta, self.mode!= 1]):
+
+
+            ratio = (self.target / self.phi_d_last)
 
             if ratio > 1:
-                ratio = np.min([2.0, ratio])
+                ratio = np.mean([2.0, ratio])
 
             else:
-                ratio = np.max([0.5, ratio])
+                ratio = np.mean([0.5, ratio])
 
             self.invProb.beta = self.invProb.beta * ratio
 
-            if self.mode != 1:
-                print("Beta search step: " + str(np.abs(1. - self.invProb.phi_d / self.target)))
+            if self.mode != 1 and self.betaSearch:
+                print("Beta search step: " + str(np.abs(1. - self.phi_d_last / self.target)))
                 # self.updateBeta = False
 
                 # Re-use previous model and continue with new beta
                 self.invProb.model = self.reg.objfcts[0].model
                 self.opt.xc = self.reg.objfcts[0].model
                 return
+
+        elif  np.all([self.mode == 1, self.opt.iter % self.coolingRate == 0]):
+
+            self.invProb.beta = self.invProb.beta / self.coolingFactor
 
         phim_new = 0
         for reg in self.reg.objfcts:
@@ -791,42 +812,8 @@ class Update_IRLS(InversionDirective):
             phi_m_last += [reg(self.invProb.model)]
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
-        if np.all([np.abs(1. - self.invProb.phi_d / self.start) < self.beta_tol,
-                   self.mode == 1]):
-            if not self.silent:
-                print("Reached starting chifact with l2-norm regularization: Start IRLS steps...")
-
-            self.mode = 2
-            self.iterStart = self.opt.iter
-            self.phi_d_last = self.invProb.phi_d
-            self.invProb.phi_m_last = self.reg(self.invProb.model)
-
-            # Either use the supplied epsilon, or fix base on distribution of
-            # model values
-            for reg in self.reg.objfcts:
-
-                if getattr(reg, 'eps_p', None) is None:
-
-                    reg.eps_p = np.percentile(np.abs(reg._delta_m(self.invProb.model)), self.prctile)
-
-                if getattr(reg, 'eps_q', None) is None:
-
-                    reg.eps_q = np.percentile(np.abs(reg._delta_m(self.invProb.model)), self.prctile)
-
-            # Re-assign the norms supplied by user l2 -> lp
-            for reg, norms in zip(self.reg.objfcts, self.norms):
-                reg.norms = norms
-
-            # Save l2-model
-            self.invProb.l2model = self.invProb.model.copy()
-
-            # Print to screen
-            for reg in self.reg.objfcts:
-                if not self.silent:
-                    print("eps_p: " + str(reg.eps_p) +
-                          " eps_q: " + str(reg.eps_q))
-
-
+        if np.all([self.phi_d_last < self.start, self.mode == 1]):
+            self.startIRLS()
 
         # Only update after GN iterations
         if np.all([(self.opt.iter-self.iterStart) % self.minGNiter == 0, self.mode != 1]):
@@ -841,10 +828,10 @@ class Update_IRLS(InversionDirective):
             # Print to screen
             for reg in self.reg.objfcts:
 
-                if reg.eps_p > self.floorEps_p and self.coolEps_p:
+                if reg.eps_p > self.floorEps_p and self.coolEps_p and reg.space!='spherical':
                     reg.eps_p /= self.coolEpsFact
                     print('Eps_p: ' + str(reg.eps_p))
-                if reg.eps_q > self.floorEps_q and self.coolEps_q:
+                if reg.eps_q > self.floorEps_q and self.coolEps_q and reg.space!='spherical':
                     reg.eps_q /= self.coolEpsFact
                     print('Eps_q: ' + str(reg.eps_q))
 
@@ -883,7 +870,7 @@ class Update_IRLS(InversionDirective):
             # Check if the function has changed enough
             if np.all([self.f_change < self.f_min_change,
                        self.IRLSiter > 1,
-                       np.abs(1. - self.invProb.phi_d / self.target) < self.beta_tol]
+                       np.abs(1. - self.phi_d_last / self.target) < self.beta_tol]
                       ):
 
                 print("Minimum decrease in regularization. End of IRLS")
@@ -896,40 +883,67 @@ class Update_IRLS(InversionDirective):
             for reg, phim_old, phim_now in zip(self.reg.objfcts, phi_m_last, phi_m_new):
 
                 if self.updateGamma:
-
                     gamma = phim_old / phim_now
-
                 else:
                     gamma = 1
-                print('Gamma: '+str(gamma))
+
                 # If comboObj, go down one more level
                 for comp in reg.objfcts:
                     comp.gamma = gamma
 
             self.updateBeta = True
-                    # Store last model
 
-
+            # Store last model
             self.model_previous = self.reg.objfcts[0].objfcts[0].f_m
             self.modelDeriv_previous = self.reg.objfcts[0].objfcts[1].f_m
             self.invProb.phi_m_last = self.reg(self.invProb.model)
 
-        # Beta Schedule
-        # if np.all([self.invProb.phi_d < self.target,
-        #            self.mode == 2]):
-        #     if not self.silent:
-        #         print("Target chifact overshooted, adjusting beta ...")
-        #     self.mode = 3
+    def startIRLS(self):
+        if not self.silent:
+            print("Reached starting chifact with l2-norm regularization:" +
+                  " Start IRLS steps...")
 
-        # if np.all([self.opt.iter > 0, self.opt.iter % self.coolingRate == 0,
-        #            self.mode != 3]):
+        self.mode = 2
 
-        #     if self.debug:
-        #         if not self.silent:
-        #             print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
-        #     self.invProb.beta /= self.coolingFactor
+        if getattr(self.opt, 'iter', None) is None:
+            self.iterStart = 0
+        else:
+            self.iterStart = self.opt.iter
 
+        self.invProb.phi_m_last = self.reg(self.invProb.model)
 
+        # Either use the supplied epsilon, or fix base on distribution of
+        # model values
+        for reg in self.reg.objfcts:
+
+            if getattr(reg, 'eps_p', None) is None:
+
+                reg.eps_p = np.percentile(
+                                np.abs(reg.mapping*reg._delta_m(
+                                    self.invProb.model)
+                                ), self.prctile
+                            )
+
+            if getattr(reg, 'eps_q', None) is None:
+
+                reg.eps_q = np.percentile(
+                                np.abs(reg.mapping*reg._delta_m(
+                                    self.invProb.model)
+                                ), self.prctile
+                            )
+
+        # Re-assign the norms supplied by user l2 -> lp
+        for reg, norms in zip(self.reg.objfcts, self.norms):
+            reg.norms = norms
+
+        # Save l2-model
+        self.invProb.l2model = self.invProb.model.copy()
+
+        # Print to screen
+        for reg in self.reg.objfcts:
+            if not self.silent:
+                print("eps_p: " + str(reg.eps_p) +
+                      " eps_q: " + str(reg.eps_q))
 
     def regScale(self):
         """
@@ -1185,6 +1199,7 @@ class UpdateSensWeighting(InversionDirective):
         wr = wr**0.5
         wr /= wr.max()
 
+
         return wr
 
     def updateReg(self):
@@ -1193,6 +1208,7 @@ class UpdateSensWeighting(InversionDirective):
         """
 
         for reg in self.reg.objfcts:
+
             reg.cell_weights = reg.mapping * (self.wr)
 
     def updateOpt(self):
