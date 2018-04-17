@@ -730,8 +730,8 @@ class Update_IRLS(InversionDirective):
             self.iterStart = self.opt.iter
             self.phi_d_last = self.invProb.phi_d
             self.invProb.phi_m_last = self.reg(self.invProb.model)
-            ratio_l2 = self.invProb.Jx / self.invProb.Wx
-            self.beta_ratio_l2 = self.invProb.beta / ratio_l2
+            # ratio_l2 = self.invProb.Jx / self.invProb.Wx
+            # self.beta_ratio_l2 = self.invProb.beta / ratio_l2
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
             for reg in self.reg.objfcts:
@@ -1018,6 +1018,7 @@ class UpdateSensitivityWeights(InversionDirective):
     JtJdiag = None
     everyIter = True
     threshold = 1e-12
+    switch = True
 
     def initialize(self):
 
@@ -1076,13 +1077,15 @@ class UpdateSensitivityWeights(InversionDirective):
         """
 
         wr = np.zeros_like(self.invProb.model)
+        if self.switch:
+            for prob_JtJ, prob, dmisfit in zip(self.JtJdiag, self.prob, self.dmisfit.objfcts):
 
-        for prob_JtJ, prob, dmisfit in zip(self.JtJdiag, self.prob, self.dmisfit.objfcts):
+                wr += prob_JtJ + self.threshold
 
-            wr += prob_JtJ + self.threshold
-
-        wr = wr**0.5
-        wr /= wr.max()
+            wr = wr**0.5
+            wr /= wr.max()
+        else:
+            wr += 1.
 
         return wr
 
