@@ -1080,6 +1080,7 @@ class GaussianMixtureUpdateModel(InversionDirective):
         if self.fixed_membership is None:
             membership = clfupdate.predict(model)
             self.invProb.reg.mref = Utils.mkvc(clfupdate.means_[membership])
+            self.invProb.reg.objfcts[0]._r_second_deriv = None
         else:
             self.invProb.reg.mref = Utils.mkvc(
                 clfupdate.means_[self.fixed_membership])
@@ -1091,6 +1092,19 @@ class GaussianMixtureUpdateModel(InversionDirective):
                     .format(self.opt.iter)
                 )
             self.invProb.reg.gamma /= self.coolingFactor
+
+
+class UpdateReference(InversionDirective):
+
+    def endIter(self):
+        m = self.invProb.model
+        modellist = self.invProb.reg.wiresmap * m
+        model = np.c_[
+            [a * b for a, b in zip(self.invProb.reg.maplist, modellist)]].T
+
+        membership = self.invProb.reg.GMmref.predict(model)
+        self.invProb.reg.mref = Utils.mkvc(self.invProb.reg.GMmref.means_[membership])
+        self.invProb.reg.objfcts[0]._r_second_deriv = None
 
 # class GaussianMixtureUpdateModel(InversionDirective):
 
