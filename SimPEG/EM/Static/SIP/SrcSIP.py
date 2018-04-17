@@ -30,7 +30,7 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
     @property
     def vnD(self):
         """Vector number of data"""
-        return np.array([rx.nD * len(rx.times) for rx in self.rxList])
+        return np.array([rx.nD*len(rx.times) for rx in self.rxList])
 
 
 class Dipole(BaseSrc):
@@ -39,7 +39,7 @@ class Dipole(BaseSrc):
     """
 
     def __init__(self, rxList, locA, locB, **kwargs):
-        assert locA.shape == locB.shape, 'Shape of locA and locB should be the same'
+        assert locA.shape == locB.shape, ('Shape of locA and locB should be the same')
         self.loc = [locA, locB]
         BaseSrc.__init__(self, rxList, **kwargs)
 
@@ -50,11 +50,12 @@ class Dipole(BaseSrc):
             q[inds] = self.current * np.r_[1., -1.]
         elif prob._formulation == 'EB':
             qa = prob.mesh.getInterpolationMat(
-                self.loc[0], locType='N').todense()
-            qb = - \
-                prob.mesh.getInterpolationMat(
-                    self.loc[1], locType='N').todense()
-            q = self.current * mkvc(qa + qb)
+                    self.loc[0], locType='N'
+                ).todense()
+            qb = -prob.mesh.getInterpolationMat(
+                self.loc[1], locType='N'
+            ).todense()
+            q = self.current * mkvc(qa+qb)
         return q
 
 

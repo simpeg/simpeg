@@ -155,6 +155,7 @@ class Fields(object):
         field[:, ind] = val
 
     def _getField(self, name, ind):
+
         if name in self._fields:
             out = self._fields[name][:, ind]
         else:
@@ -246,7 +247,6 @@ class TimeFields(Fields):
 
     def _getField(self, name, ind):
         srcInd, timeInd = ind
-
         if name in self._fields:
             out = self._fields[name][:, srcInd, timeInd]
         else:

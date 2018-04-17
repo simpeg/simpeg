@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 
 import SimPEG
 import numpy as np
-from SimPEG.Utils import Zero, closestPoints
 
 
 class BaseRx(SimPEG.Survey.BaseTimeRx):
@@ -13,14 +12,14 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
     rxType = None
 
     knownRxTypes = {
-        'phi': ['phi', None],
-        'ex': ['e', 'x'],
-        'ey': ['e', 'y'],
-        'ez': ['e', 'z'],
-        'jx': ['j', 'x'],
-        'jy': ['j', 'y'],
-        'jz': ['j', 'z'],
-    }
+                    'phi': ['phi', None],
+                    'ex': ['e', 'x'],
+                    'ey': ['e', 'y'],
+                    'ez': ['e', 'z'],
+                    'jx': ['j', 'x'],
+                    'jy': ['j', 'y'],
+                    'jz': ['j', 'z'],
+                    }
 
     def __init__(self, locs, times, rxType, **kwargs):
         SimPEG.Survey.BaseTimeRx.__init__(self, locs, times, rxType, **kwargs)
@@ -51,23 +50,21 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
     def evalDeriv(self, src, mesh, f, v, adjoint=False):
         P = self.getP(mesh, self.projGLoc(f))
         if not adjoint:
-            return P * v
+            return P*v
         elif adjoint:
-            return P.T * v
+            return P.T*v
 
 
-# DC.Rx.Dipole(locs)
 class Dipole(BaseRx):
-
-    rxgeom = "dipole"
+    """
+    Dipole receiver
+    """
 
     def __init__(self, locsM, locsN, times, rxType='phi', **kwargs):
-        assert locsM.shape == locsN.shape, 'locsM and locsN need to be the same size'
-        if np.array_equal(locsM, locsN):
-            self.rxgeom = "pole"
-            locs = [locsM]
-        else:
-            locs = [locsM, locsN]
+        assert locsM.shape == locsN.shape, (
+            'locsM and locsN need to be the same size'
+        )
+        locs = [np.atleast_2d(locsM), np.atleast_2d(locsN)]
         # We may not need this ...
         BaseRx.__init__(self, locs, times, rxType)
 
@@ -86,16 +83,48 @@ class Dipole(BaseRx):
         # return int(self.locs[0].size / 2)
 
     def getP(self, mesh, Gloc):
-
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        if self.rxgeom == "dipole":
-            P0 = mesh.getInterpolationMat(self.locs[0], Gloc)
-            P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
-            P = P0 - P1
-        elif self.rxgeom == "pole":
-            P = mesh.getInterpolationMat(self.locs[0], Gloc)
+        P0 = mesh.getInterpolationMat(self.locs[0], Gloc)
+        P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
+        P = P0 - P1
+
+        if self.storeProjections:
+            self._Ps[mesh] = P
+
+        return P
+
+
+class Pole(BaseRx):
+    """
+    Pole receiver
+    """
+
+    def __init__(self, locsM, times, rxType='phi', **kwargs):
+        locs = np.atleast_2d(locsM)
+        # We may not need this ...
+        BaseRx.__init__(self, locs, times, rxType)
+
+    @property
+    def nD(self):
+        """Number of data in the receiver."""
+        # return self.locs[0].shape[0] * len(self.times)
+        return self.locs.shape[0]
+
+    @property
+    def nRx(self):
+        """Number of data in the receiver."""
+        return self.locs.shape[0]
+
+        # Not sure why ...
+        # return int(self.locs[0].size / 2)
+
+    def getP(self, mesh, Gloc):
+        if mesh in self._Ps:
+            return self._Ps[mesh]
+
+        P = mesh.getInterpolationMat(self.locs, Gloc)
 
         if self.storeProjections:
             self._Ps[mesh] = P
