@@ -105,9 +105,9 @@ def run(plotIt=True):
     actCells = (mesh.gridCC[:, 2] < 0.) & (mesh.gridCC[:, 2] > -2.)
     ProblemINV = VRM.Problem_Linear(mesh, indActive=actCells, refFact=3, refRadius=[1.25, 2.5, 3.75])
     ProblemINV.pair(SurveyINV)
-    SurveyINV.ActiveTimeInterval = [1e-3, 1e-2]
-    SurveyINV.dobs = FieldsTOT[SurveyINV.tActive]
-    SurveyINV.std = 0.05*np.abs(FieldsTOT[SurveyINV.tActive])
+    SurveyINV.set_active_interval(1e-3, 1e-2)
+    SurveyINV.dobs = FieldsTOT[SurveyINV.t_active]
+    SurveyINV.std = 0.05*np.abs(FieldsTOT[SurveyINV.t_active])
     SurveyINV.eps = 1e-11
 
     # SET INVERSION
@@ -130,7 +130,7 @@ def run(plotIt=True):
     ############################################
     # REMOVE VRM RESPONSE
 
-    SurveyINV.ActiveTimeInterval = [0., 1.]
+    SurveyINV.set_active_interval(0., 1.)
     FieldsPRE = SurveyINV.dpred(xi_rec)
 
     ################################

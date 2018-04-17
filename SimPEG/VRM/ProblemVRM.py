@@ -759,7 +759,7 @@ class Problem_Linear(Problem_BaseVRM):
         v = self.A*v
 
         # Get active time rows of T
-        T = self.T.tocsr()[self.survey.tActive, :]
+        T = self.T.tocsr()[self.survey.t_active, :]
 
         # Must return an array
         return mkvc(sp.csr_matrix.dot(T, v))
@@ -774,7 +774,7 @@ class Problem_Linear(Problem_BaseVRM):
         v = np.matrix(v).T
 
         # Get T'*Pd'*v
-        T = self.T.tocsr()[self.survey.tActive, :]
+        T = self.T.tocsr()[self.survey.t_active, :]
         v = sp.csc_matrix.dot(T.transpose(), v)
 
         # Multiply by A'
