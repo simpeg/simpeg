@@ -647,6 +647,59 @@ class GaussianMixtureWithMapping(GaussianMixture):
                    }[covariance_type](resp, self.cluster_mapping[k] * X, nk, means, reg_covar))[k]
         return nk, means, covariances
 
+    # TODOs: Still not working because of inverse mapping not implemented
+    def sample(self, n_samples=1):
+        """Generate random samples from the fitted Gaussian distribution.
+
+        Parameters
+        ----------
+        n_samples : int, optional
+            Number of samples to generate. Defaults to 1.
+
+        Returns
+        -------
+        X : array, shape (n_samples, n_features)
+            Randomly generated sample
+
+        y : array, shape (nsamples,)
+            Component labels
+
+        """
+        self._check_is_fitted()
+
+        if n_samples < 1:
+            raise ValueError(
+                "Invalid value for 'n_samples': %d . The sampling requires at "
+                "least one sample." % (self.n_components))
+
+        _, n_features = self.means_.shape
+        rng = check_random_state(self.random_state)
+        n_samples_comp = rng.multinomial(n_samples, self.weights_)
+
+        if self.covariance_type == 'full':
+            X = np.vstack([
+                rng.multivariate_normal(mean, covariance, int(sample))
+                for (mean, covariance, sample) in zip(
+                    self.means_, self.covariances_, n_samples_comp)])
+        elif self.covariance_type == "tied":
+            X = np.vstack([
+                rng.multivariate_normal(mean, self.covariances_, int(sample))
+                for (mean, sample) in zip(
+                    self.means_, n_samples_comp)])
+        else:
+            X = np.vstack([
+                mean + rng.randn(sample, n_features) * np.sqrt(covariance)
+                for (mean, covariance, sample) in zip(
+                    self.means_, self.covariances_, n_samples_comp)])
+
+        y = np.concatenate([j * np.ones(sample, dtype=int)
+                           for j, sample in enumerate(n_samples_comp)])
+        X = np.vstack([
+               self.cluster_mapping[y[i]].inverse(X[i].reshape(-1, n_features))
+                for i in range(len(X))])
+
+        return (X, y)
+
     def _m_step(self, X, log_resp):
         """M step.
         Parameters
