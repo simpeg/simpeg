@@ -16,7 +16,7 @@ from sklearn.mixture.gaussian_mixture import (
 from sklearn.mixture.base import _check_X, check_random_state, ConvergenceWarning
 import warnings
 from .matutils import mkvc
-
+from SimPEG import Maps
 
 def ComputeDistances(a, b):
 
