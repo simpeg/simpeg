@@ -136,29 +136,6 @@ class SquarePulse(properties.HasProperties):
     t0 = properties.Float('Start of off-time', default=0.)
     delt = properties.Float('Pulse width')
 
-    # def __init__(self, delt, **kwargs):
-
-    #     self._delt = delt
-    #     self._t0 = kwargs.get('t0', 0.)
-
-    # @property
-    # def delt(self):
-    #     return self._delt
-
-    # @delt.setter
-    # def delt(self, Val):
-    #     assert isinstance(Val, (int, float)), "Must be a number"
-    #     self._t0 = Val
-
-    # @property
-    # def t0(self):
-    #     return self._t0
-
-    # @t0.setter
-    # def t0(self, Val):
-    #     assert isinstance(Val, (int, float)), "Must be a number"
-    #     self._t0 = Val
-
     def getCharDecay(self, fieldType, times):
 
         """
@@ -297,14 +274,6 @@ class ArbitraryDiscrete(properties.HasProperties):
     t_wave = properties.Array('Waveform times', dtype=float)
     I_wave = properties.Array('Waveform current', dtype=float)
 
-    # def __init__(self, t, I):
-
-    #     assert np.abs(I[0]) < 1e-10 and np.abs(I[-1]) < 1e-10, "Current at t0 and tmax should be 0"
-    #     assert len(t) == len(I), "Time values and current values must have same length"
-
-    #     self.t = t
-    #     self.I = I
-
     @properties.validator('t_wave')
     def _t_wave_validator(self, change):
         assert len(change['value']) > 2, "Waveform must be defined by at least 3 points"
@@ -397,14 +366,6 @@ class ArbitraryPiecewise(properties.HasProperties):
     t_wave = properties.Array('Waveform times', dtype=float)
     I_wave = properties.Array('Waveform current', dtype=float)
 
-    # def __init__(self, t, I):
-
-    #     assert np.abs(I[0]) < 1e-10 and np.abs(I[-1]) < 1e-10, "Current at t0 and tmax should be 0"
-    #     assert len(t) == len(I), "Time values and current values must have same length"
-
-    #     self.t = t
-    #     self.I = I
-
     @properties.validator('t_wave')
     def _t_wave_validator(self, change):
         assert len(change['value']) > 2, "Waveform must be defined by at least 3 points"
@@ -487,13 +448,6 @@ class Custom(properties.HasProperties):
 
     times = properties.Array('Times at which characteristic decay function is evaluated', dtype=float)
     eta = properties.Array('Characteristic decay function at evaluation times', dtype=float)
-
-    # def __init__(self, t, eta):
-
-    #     assert len(t) == len(eta), "Observed times and decay values must be same length."
-
-    #     self.t = t
-    #     self.eta = eta
 
     @properties.observer('times')
     def _times_observer(self, change):

@@ -15,19 +15,10 @@ class Problem_BaseVRM(Problem.BaseProblem):
 
     """
 
-    # SET CLASS ATTRIBUTES
-    # _ref_factor = None
-    # _ref_radius = None
-    # _indActive = None
     _AisSet = False
-
-
     ref_factor = properties.Integer('Sensitivity refinement factor', min=0)
     ref_radius = properties.Array('Sensitivity refinement radii from sources', dtype=float)
     indActive = properties.Array('Topography active cells', dtype=bool)
-
-
-
 
     def __init__(self, mesh, **kwargs):
 
@@ -56,20 +47,6 @@ class Problem_BaseVRM(Problem.BaseProblem):
         else:
             self.indActive = indActive
 
-        # **kwargs
-        # self._ref_factor = kwargs.get('ref_factor', 3)
-        # self._ref_radius = kwargs.get('ref_radius', list(1.25*np.mean(np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])])*np.arange(1, self.ref_factor+1)))
-        # self._indActive = kwargs.get('indActive', np.ones(mesh.nC, dtype=bool))
-
-        # Assertions
-        # assert isinstance(self._ref_factor, int), "Refinement factor must be set as an integer"
-        # assert isinstance(self._ref_radius, list), "Refinement radii must be a list with at least 1 entry"
-        # assert len(self._ref_radius) >= self._ref_factor, 'Number of refinement radii must equal or greater than refinement factor'
-        # assert list(self._indActive).count(True) + list(self._indActive).count(False) == len(self._indActive), "indActive must be a boolean array"
-
-        # if self.ref_factor > 4:
-        #     print("Refinement factor larger than 4 may result in computations which exceed memory limits")
-
     @properties.observer('ref_factor')
     def _ref_factor_observer(self, change):
         if change['value'] > 4:
@@ -85,48 +62,6 @@ class Problem_BaseVRM(Problem.BaseProblem):
     @properties.validator('indActive')
     def _ind_active_validator(self, change):
         assert len(change['value']) == self.mesh.nC, "Length of active topo cells array must equal number of mesh cells"
-
-
-    # @property
-    # def ref_factor(self):
-    #     return self._ref_factor
-
-    # @ref_factor.setter
-    # def ref_factor(self, Val):
-
-    #     assert isinstance(Val, int) and Val > -1, "Refinement factor must be an integer value equal or larger than 0"
-
-    #     if Val != len(self._ref_radius):
-    #         print("Refinement factor no longer matches length of refinement radii array. Please ensure refinement factor is equal or less to number of elements in refinement radii")
-
-    #     if Val > 4:
-    #         print("Refinement factor larger than 4 may result in computations which exceed memory limits")
-
-    #     self._ref_factor = Val
-
-    # @property
-    # def ref_radius(self):
-    #     return self._ref_radius
-
-    # @ref_radius.setter
-    # def ref_radius(self, radList):
-    #     assert isinstance(radList, (list, tuple)), "Array must be a numpy array"
-
-    #     if self._ref_factor != len(radList):
-    #         print("Refinement factor no longer matches length of refinement radii array. Please ensure that the number of elements in refinement radii is equal or greater than the refinement factor")
-
-    #     self._ref_radius = radList
-
-    # @property
-    # def indActive(self):
-    #     return self._indActive
-
-    # @indActive.setter
-    # def indActive(self, Vec):
-
-    #     assert list(self._indActive).count(True) + list(self._indActive).count(False) == len(self._indActive), "indActive must be a boolean array"
-    #     self._AisSet = False
-    #     self._indActive = Vec
 
     def _getH0matrix(self, xyz, pp):
 
