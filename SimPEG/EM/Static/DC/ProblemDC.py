@@ -422,8 +422,6 @@ class Problem3D_N(BaseDCProblem):
         Grad = self.mesh.nodalGrad
         A = Grad.T * MeSigma * Grad
 
-        Vol = self.mesh.vol
-
         # Handling Null space of A
         I, J, V = sp.sparse.find(A[0, :])
         for jj in J:

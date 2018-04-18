@@ -121,8 +121,7 @@ after_success:
   - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY ]; then
       if [ "$TRAVIS_TAG" = "true" ]; then
         mv credentials/.pypirc ~/.pypirc ;
-        python setup.py sdist bdist_wheel --universal ;
-        travis_wait 20 twine upload -r pypi --skip-existing dist/* ;
+        python setup.py sdist bdist_wheel --universal upload;
       fi
     fi
 
