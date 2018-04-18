@@ -1,8 +1,8 @@
 from __future__ import print_function
 import unittest
 
-import matplotlib
-matplotlib.use('Agg')
+# import matplotlib
+# matplotlib.use('Agg')
 
 from SimPEG.EM import FDEM, Analytics, mu_0
 import numpy as np
