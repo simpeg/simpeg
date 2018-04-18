@@ -3,11 +3,12 @@ import scipy.special as spec
 from SimPEG import Survey
 from .RxVRM import BaseRxVRM
 from .WaveformVRM import StepOff, SquarePulse, ArbitraryDiscrete, ArbitraryPiecewise
-
+import properties
 
 #########################################
 # BASE VRM SOURCE CLASS
 #########################################
+
 
 class BaseSrcVRM(Survey.BaseSrc):
     """SimPEG Source Object"""
@@ -83,7 +84,7 @@ class MagDipole(BaseSrcVRM):
 
         return np.c_[Hx0, Hy0, Hz0]
 
-    def _getRefineFlags(self, xyzc, refFact, refRadius):
+    def _getRefineFlags(self, xyzc, ref_factor, ref_radius):
 
         """
         This function finds the refinement factor to be assigned to each cell
@@ -92,9 +93,9 @@ class MagDipole(BaseSrcVRM):
 
         xyzc -- Cell-center locations as NX3 array
 
-        refFact -- Refinement factors
+        ref_factor -- Refinement factors
 
-        refRadius -- Refinement radii
+        ref_radius -- Refinement radii
 
         OUTPUTS:
 
@@ -106,10 +107,10 @@ class MagDipole(BaseSrcVRM):
 
         R = np.sqrt((xyzc[:, 0] - self.loc[0])**2 + (xyzc[:, 1] - self.loc[1])**2 + (xyzc[:, 2] - self.loc[2])**2)
 
-        for nn in range(0, refFact):
+        for nn in range(0, ref_factor):
 
-            k = (R < refRadius[nn]+1e-5) & (refFlag < refFact-nn+1)
-            refFlag[k] = refFact - nn
+            k = (R < ref_radius[nn]+1e-5) & (refFlag < ref_factor-nn+1)
+            refFlag[k] = ref_factor - nn
 
         return refFlag
 
@@ -181,7 +182,7 @@ class CircLoop(BaseSrcVRM):
 
         return np.c_[Hx0, Hy0, Hz0]
 
-    def _getRefineFlags(self, xyzc, refFact, refRadius):
+    def _getRefineFlags(self, xyzc, ref_factor, ref_radius):
 
         """
         This function finds the refinement factor to be assigned to each cell
@@ -190,9 +191,9 @@ class CircLoop(BaseSrcVRM):
 
         xyzc -- Cell-center locations as NX3 array
 
-        refFact -- Refinement factors
+        ref_factor -- Refinement factors
 
-        refRadius -- Refinement radii
+        ref_radius -- Refinement radii
 
         OUTPUTS:
 
@@ -219,10 +220,10 @@ class CircLoop(BaseSrcVRM):
         cosA = np.sqrt(x1p**2 + x2p**2)/R
         D = np.sqrt(a**2 + R**2 - 2*a*R*cosA)
 
-        for nn in range(0, refFact):
+        for nn in range(0, ref_factor):
 
-            k = (D < refRadius[nn]+1e-3) & (refFlag < refFact-nn+1)
-            refFlag[k] = refFact - nn
+            k = (D < ref_radius[nn]+1e-3) & (refFlag < ref_factor-nn+1)
+            refFlag[k] = ref_factor - nn
 
         return refFlag
 
@@ -318,7 +319,7 @@ class LineCurrent(BaseSrcVRM):
 
         return np.c_[Hx0, Hy0, Hz0]
 
-    def _getRefineFlags(self, xyzc, refFact, refRadius):
+    def _getRefineFlags(self, xyzc, ref_factor, ref_radius):
 
         """
         This function finds the refinement factor to be assigned to each cell
@@ -327,9 +328,9 @@ class LineCurrent(BaseSrcVRM):
 
         xyzc -- Cell-center locations as NX3 array
 
-        refFact -- Refinement factors
+        ref_factor -- Refinement factors
 
-        refRadius -- Refinement radii
+        ref_radius -- Refinement radii
 
         OUTPUTS:
 
@@ -349,9 +350,9 @@ class LineCurrent(BaseSrcVRM):
             A = (Tx1[0] - Tx0[0])**2 + (Tx1[1] - Tx0[1])**2 + (Tx1[2] - Tx0[2])**2
             B = 2*(Tx1[0] - Tx0[0])*(Tx0[0] - xyzc[:, 0]) + 2*(Tx1[1] - Tx0[1])*(Tx0[1] - xyzc[:, 1]) + 2*(Tx1[2] - Tx0[2])*(Tx0[2] - xyzc[:, 2])
 
-            for nn in range(0, refFact):
+            for nn in range(0, ref_factor):
 
-                D = refRadius[nn] + 1e-3
+                D = ref_radius[nn] + 1e-3
                 C = (Tx0[0] - xyzc[:, 0])**2 + (Tx0[1] - xyzc[:, 1])**2 + (Tx0[2] - xyzc[:, 2])**2 - D**2
                 E = np.array(B**2 - 4*A*C, dtype=np.complex)
 
@@ -361,7 +362,7 @@ class LineCurrent(BaseSrcVRM):
                 kpos = (np.abs(np.imag(Qpos)) > 1e-12) | ((np.real(Qpos) < 0.) & (np.real(Qneg) < 0.)) | ((np.real(Qpos) > 1.) & (np.real(Qneg) > 1.))
                 kneg = (np.abs(np.imag(Qpos)) > 1e-12) | ((np.real(Qpos) < 0.) & (np.real(Qneg) < 0.)) | ((np.real(Qpos) > 1.) & (np.real(Qneg) > 1.)) | (kpos == True)
 
-                refFlagtt[(kpos == False) & (kneg == False) & (refFlagtt < refFact+1-nn)] = refFact - nn
+                refFlagtt[(kpos == False) & (kneg == False) & (refFlagtt < ref_factor+1-nn)] = ref_factor - nn
 
             refFlag = np.maximum(refFlag, refFlagtt)
 

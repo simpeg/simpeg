@@ -70,7 +70,7 @@ def run(plotIt=True):
     SurveyVRM = VRM.Survey(srcListVRM)
 
     # DEFINE THE PROBLEM
-    ProblemVRM = VRM.Problem_Linear(mesh, indActive=topoCells, refFact=3, refRadius=[1.25, 2.5, 3.75])
+    ProblemVRM = VRM.Problem_Linear(mesh, indActive=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75])
     ProblemVRM.pair(SurveyVRM)
 
     # PREDICT THE FIELDS

@@ -8,6 +8,7 @@ import properties
 # BASE VRM SURVEY CLASS
 ############################################
 
+
 class SurveyVRM(Survey.BaseSurvey, properties.HasProperties):
 
     """
@@ -17,16 +18,23 @@ class SurveyVRM(Survey.BaseSurvey, properties.HasProperties):
     t_active = properties.Array('Boolean array where True denotes active data in the inversion', dtype=bool)
 
     def __init__(self, srcList, **kwargs):
-        super(SurveyVRM, self).__init__(**kwargs)
+
+        t_active = kwargs.pop('t_active', None)
+
         self.srcList = srcList
         self.srcPair = SrcVRM.BaseSrcVRM
         self.rxPair = RxVRM.BaseRxVRM
-        if self.t_active is None:
-            self.t_active = np.ones(self.nD, dtype=bool)
 
-    @properties.observer('t_active')
-    def _t_active_observer(self, change):
-        print("Indicies of active data changed and may not correspond to property: t_interval")
+        super(SurveyVRM, self).__init__(**kwargs)
+
+        if t_active is None:
+            self.t_active = np.ones(self.nD, dtype=bool)
+        else:
+            self.t_active = t_active
+
+    @properties.validator('t_active')
+    def _t_active_validator(self, change):
+        assert self.nD == len(change['value']), "Length of t_active boolean array must equal number of data"
 
     def set_active_interval(self, tmin, tmax):
         """Set active times using an interval"""
