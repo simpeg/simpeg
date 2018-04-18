@@ -3,6 +3,7 @@ from SimPEG.VRM.SurveyVRM import SurveyVRM
 from SimPEG.VRM.RxVRM import Point, SquareLoop
 import numpy as np
 import scipy.sparse as sp
+import properties
 
 ############################################
 # BASE VRM PROBLEM CLASS
@@ -14,71 +15,53 @@ class Problem_BaseVRM(Problem.BaseProblem):
 
     """
 
-    # SET CLASS ATTRIBUTES
-    _refFact = None
-    _refRadius = None
-    _indActive = None
     _AisSet = False
+    ref_factor = properties.Integer('Sensitivity refinement factor', min=0)
+    ref_radius = properties.Array('Sensitivity refinement radii from sources', dtype=float)
+    indActive = properties.Array('Topography active cells', dtype=bool)
 
     def __init__(self, mesh, **kwargs):
 
-        # **kwargs
-        self._refFact = kwargs.get('refFact', 3)
-        self._refRadius = kwargs.get('refRadius', list(1.25*np.mean(np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])])*np.arange(1, self.refFact+1)))
-        self._indActive = kwargs.get('indActive', np.ones(mesh.nC, dtype=bool))
-
-        # Assertions
+        ref_factor = kwargs.pop('ref_factor', None)
+        ref_radius = kwargs.pop('ref_radius', None)
+        indActive = kwargs.pop('indActive', None)
         assert len(mesh.h) == 3, 'Problem requires 3D tensor or OcTree mesh'
-        assert isinstance(self._refFact, int), "Refinement factor must be set as an integer"
-        assert isinstance(self._refRadius, list), "Refinement radii must be a list with at least 1 entry"
-        assert len(self._refRadius) >= self._refFact, 'Number of refinement radii must equal or greater than refinement factor'
-        assert list(self._indActive).count(True) + list(self._indActive).count(False) == len(self._indActive), "indActive must be a boolean array"
-
-        if self.refFact > 4:
-            print("Refinement factor larger than 4 may result in computations which exceed memory limits")
 
         super(Problem_BaseVRM, self).__init__(mesh, **kwargs)
 
-    @property
-    def refFact(self):
-        return self._refFact
+        if ref_factor is None and ref_radius is None:
+            self.ref_factor = 3
+            self.ref_radius = list(1.25*np.mean(np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])])*np.arange(1, 4))
+        elif ref_factor is None and ref_radius is not None:
+            self.ref_factor = len(ref_radius)
+            self.ref_radius = ref_radius
+        elif ref_factor is not None and ref_radius is None:
+            self.ref_factor = ref_factor
+            self.ref_radius = list(1.25*np.mean(np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])])*np.arange(1, ref_factor+1))
+        else:
+            self.ref_factor = ref_factor
+            self.ref_radius = ref_radius
 
-    @refFact.setter
-    def refFact(self, Val):
+        if indActive is None:
+            self.indActive = np.ones(mesh.nC, dtype=bool)
+        else:
+            self.indActive = indActive
 
-        assert isinstance(Val, int) and Val > -1, "Refinement factor must be an integer value equal or larger than 0"
-
-        if Val != len(self._refRadius):
-            print("Refinement factor no longer matches length of refinement radii array. Please ensure refinement factor is equal or less to number of elements in refinement radii")
-
-        if Val > 4:
+    @properties.observer('ref_factor')
+    def _ref_factor_observer(self, change):
+        if change['value'] > 4:
             print("Refinement factor larger than 4 may result in computations which exceed memory limits")
+        if self.ref_radius is not None and change['value'] != len(self.ref_radius):
+            print("Number of refinement radii currently DOES NOT match ref_factor")
 
-        self._refFact = Val
+    @properties.observer('ref_radius')
+    def _ref_radius_validator(self, change):
+        if self.ref_factor is not None and len(change['value']) != self.ref_factor:
+            print("Number of refinement radii current DOES NOT match ref_factor")
 
-    @property
-    def refRadius(self):
-        return self._refRadius
-
-    @refRadius.setter
-    def refRadius(self, radList):
-        assert isinstance(radList, (list, tuple)), "Array must be a numpy array"
-
-        if self._refFact != len(radList):
-            print("Refinement factor no longer matches length of refinement radii array. Please ensure that the number of elements in refinement radii is equal or greater than the refinement factor")
-
-        self._refRadius = radList
-
-    @property
-    def indActive(self):
-        return self._indActive
-
-    @indActive.setter
-    def indActive(self, Vec):
-
-        assert list(self._indActive).count(True) + list(self._indActive).count(False) == len(self._indActive), "indActive must be a boolean array"
-        self._AisSet = False
-        self._indActive = Vec
+    @properties.validator('indActive')
+    def _ind_active_validator(self, change):
+        assert len(change['value']) == self.mesh.nC, "Length of active topo cells array must equal number of mesh cells"
 
     def _getH0matrix(self, xyz, pp):
 
@@ -158,7 +141,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
 
             if isinstance(rxObj, Point):
 
-                if dComp is 'x':
+                if dComp.lower() == 'x':
                     for rr in range(0, M):
                         u1 = locs[rr, 0] - ax
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
@@ -209,7 +192,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
                         G[COUNT, :] = C*np.c_[Gxx, Gyx, Gzx]
                         COUNT = COUNT + 1
 
-                elif dComp is 'y':
+                elif dComp.lower() == 'y':
                     for rr in range(0, M):
                         u1 = locs[rr, 0] - ax
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
@@ -260,7 +243,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
                         G[COUNT, :] = C*np.c_[Gxy, Gyy, Gzy]
                         COUNT = COUNT + 1
 
-                elif dComp is 'z':
+                elif dComp.lower() == 'z':
                     for rr in range(0, M):
                         u1 = locs[rr, 0] - ax
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
@@ -335,7 +318,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
                     np.r_[0.171324, 0.467914, 0.360762, 0.360762, 0.467914, 0.171324],
                     np.r_[0.129485, 0.279705, 0.381830, 0.417959, 0.381830, 0.279705, 0.129485]
                     ]
-                wt = wt[rxObj.quad_order-1]
+                wt = wt[rxObj.quadOrder-1]
                 nw = len(wt)
                 wt = rxObj.nTurns*(rxObj.width/2)**2*np.reshape(np.outer(wt, wt), (1, nw**2))
 
@@ -349,10 +332,10 @@ class Problem_BaseVRM(Problem.BaseProblem):
                     np.r_[-0.932470, -0.238619, -0.661209, 0.661209, 0.238619, 0.932470],
                     np.r_[-0.949108, -0.741531, -0.405845, 0., 0.405845, 0.741531, 0.949108]
                     ]
-                s1 = (rxObj.width/2)*np.reshape(np.kron(ds[rxObj.quad_order-1], np.ones(nw)), (nw**2, 1))
-                s2 = (rxObj.width/2)*np.reshape(np.kron(np.ones(nw), ds[rxObj.quad_order-1]), (nw**2, 1))
+                s1 = (rxObj.width/2)*np.reshape(np.kron(ds[rxObj.quadOrder-1], np.ones(nw)), (nw**2, 1))
+                s2 = (rxObj.width/2)*np.reshape(np.kron(np.ones(nw), ds[rxObj.quadOrder-1]), (nw**2, 1))
 
-                if dComp is 'x':
+                if dComp.lower() == 'x':
                     for rr in range(0, M):
 
                         u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax)
@@ -410,7 +393,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
                         G[COUNT, :] = C*np.c_[Gxx, Gyx, Gzx]
                         COUNT = COUNT + 1
 
-                elif dComp is 'y':
+                elif dComp.lower() == 'y':
                     for rr in range(0, M):
 
                         u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) + np.kron(s1, np.ones((1, N)))
@@ -468,7 +451,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
                         G[COUNT, :] = C*np.c_[Gxy, Gyy, Gzy]
                         COUNT = COUNT + 1
 
-                elif dComp is 'z':
+                elif dComp.lower() == 'z':
                     for rr in range(0, M):
 
                         u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) + np.kron(s1, np.ones((1, N)))
@@ -561,15 +544,15 @@ class Problem_BaseVRM(Problem.BaseProblem):
             A.append(G*H0)
 
             # Refine A matrix
-            refFact = self.refFact
-            refRadius = self.refRadius
+            ref_factor = self.ref_factor
+            ref_radius = self.ref_radius
 
-            if refFact > 0:
+            if ref_factor > 0:
 
                 srcObj = self.survey.srcList[pp]
-                refFlag = srcObj._getRefineFlags(xyzc, refFact, refRadius)
+                refFlag = srcObj._getRefineFlags(xyzc, ref_factor, ref_radius)
 
-                for qq in range(1, refFact+1):
+                for qq in range(1, ref_factor+1):
                     if len(refFlag[refFlag == qq]) != 0:
                         A[pp][:, refFlag == qq] = self._getSubsetAcolumns(xyzc, xyzh, pp, qq, refFlag)
 
@@ -645,7 +628,7 @@ class Problem_Linear(Problem_BaseVRM):
 
         super(Problem_Linear, self).__init__(mesh, **kwargs)
 
-        nAct = list(self._indActive).count(True)
+        nAct = list(self.indActive).count(True)
         if self.xiMap is None:
             self.xiMap = Maps.IdentityMap(nP=nAct)
 
@@ -653,9 +636,8 @@ class Problem_Linear(Problem_BaseVRM):
     def A(self):
 
         """
-        This function constructs the geometric sensitivity matrix for the
-        linear VRM problem. This function requires that the problem be paired
-        with a survey object.
+        The geometric sensitivity matrix for the linear VRM problem. Accessing
+        this property requires that the problem be paired with a survey object.
 
         """
 
@@ -683,8 +665,8 @@ class Problem_Linear(Problem_BaseVRM):
     def T(self):
 
         """
-        This function returns the characteristic decay matrix. This function
-        requires that the problem has been paired with a survey object.
+        The characteristic decay matrix for the VRM problem. Accessing this
+        property requires that the problem be paired with a survey object.
 
         """
 
@@ -759,7 +741,7 @@ class Problem_Linear(Problem_BaseVRM):
         v = self.A*v
 
         # Get active time rows of T
-        T = self.T.tocsr()[self.survey.tActive, :]
+        T = self.T.tocsr()[self.survey.t_active, :]
 
         # Must return an array
         return mkvc(sp.csr_matrix.dot(T, v))
@@ -774,7 +756,7 @@ class Problem_Linear(Problem_BaseVRM):
         v = np.matrix(v).T
 
         # Get T'*Pd'*v
-        T = self.T.tocsr()[self.survey.tActive, :]
+        T = self.T.tocsr()[self.survey.t_active, :]
         v = sp.csc_matrix.dot(T.transpose(), v)
 
         # Multiply by A'
@@ -824,9 +806,8 @@ class Problem_LogUniform(Problem_BaseVRM):
     def A(self):
 
         """
-        This function constructs the geometric sensitivity matrix for the VRM
-        problem. This function requires that the problem be paired with a
-        survey object.
+        The geometric sensitivity matrix for the linear VRM problem. Accessing
+        this property requires that the problem be paired with a survey object.
 
         """
 

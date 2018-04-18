@@ -28,11 +28,11 @@ class VRM_inversion_tests(unittest.TestCase):
             (meshObj.gridCC[:, 1] < 4.)] = 0.001
 
         times = np.logspace(-4, -2, 5)
-        waveObj = VRM.WaveformVRM.SquarePulse(0.02)
+        waveObj = VRM.WaveformVRM.SquarePulse(delt=0.02)
 
         x, y = np.meshgrid(np.linspace(-17, 17, 16), np.linspace(-17, 17, 16))
         x, y, z = mkvc(x), mkvc(y), 0.5*np.ones(np.size(x))
-        rxList = [VRM.Rx.Point(np.c_[x, y, z], times, 'dbdt', 'z')]
+        rxList = [VRM.Rx.Point(np.c_[x, y, z], times=times, fieldType='dbdt', fieldComp='z')]
 
         txNodes = np.array([[-20, -20, 0.001],
                             [20, -20, 0.001],
@@ -42,7 +42,9 @@ class VRM_inversion_tests(unittest.TestCase):
         txList = [VRM.Src.LineCurrent(rxList, txNodes, 1., waveObj)]
 
         Survey = VRM.Survey(txList)
-        Problem = VRM.Problem_Linear(meshObj, refFact=2)
+        Survey.t_active = np.zeros(Survey.nD, dtype=bool)
+        Survey.set_active_interval(-1e6, 1e6)
+        Problem = VRM.Problem_Linear(meshObj, ref_factor=2)
         Problem.pair(Survey)
         Survey.makeSyntheticData(mod)
         Survey.eps = 1e-11

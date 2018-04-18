@@ -6,11 +6,8 @@ Here, we use an equivalent source inversion to remove the VRM response from TEM
 data collected by a small coincident loop system. The data being inverted are
 the same as in the forward modeling example. To remove the VRM signal we:
 
-    1. invert the late time data to recover an equivalent source surface layer
-    of cells.
-
+    1. invert the late time data to recover an equivalent source surface layer of cells.
     2. use the recovered model to predict the VRM response at all times
-
     3. subtract the predicted VRM response from the observed data
 """
 import SimPEG.VRM as VRM
@@ -64,14 +61,14 @@ def run(plotIt=True):
     for pp in range(0, loc.shape[0]):
 
         loc_pp = np.reshape(loc[pp, :], (1, 3))
-        rxListVRM = [VRM.Rx.Point(loc_pp, times, 'dbdt', 'z')]
+        rxListVRM = [VRM.Rx.Point(loc_pp, times=times, fieldType='dbdt', fieldComp='z')]
 
         srcListVRM.append(VRM.Src.MagDipole(rxListVRM, mkvc(loc[pp, :]), [0., 0., 0.01], waveform))
 
     SurveyVRM = VRM.Survey(srcListVRM)
 
     # DEFINE THE VRM PROBLEM
-    ProblemVRM = VRM.Problem_Linear(mesh, indActive=topoCells, refFact=3, refRadius=[1.25, 2.5, 3.75])
+    ProblemVRM = VRM.Problem_Linear(mesh, indActive=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75])
     ProblemVRM.pair(SurveyVRM)
 
     # PREDICT THE FIELDS
@@ -103,11 +100,11 @@ def run(plotIt=True):
     # CREATE NEW PROBLEM
     SurveyINV = VRM.Survey(srcListVRM)
     actCells = (mesh.gridCC[:, 2] < 0.) & (mesh.gridCC[:, 2] > -2.)
-    ProblemINV = VRM.Problem_Linear(mesh, indActive=actCells, refFact=3, refRadius=[1.25, 2.5, 3.75])
+    ProblemINV = VRM.Problem_Linear(mesh, indActive=actCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75])
     ProblemINV.pair(SurveyINV)
-    SurveyINV.ActiveTimeInterval = [1e-3, 1e-2]
-    SurveyINV.dobs = FieldsTOT[SurveyINV.tActive]
-    SurveyINV.std = 0.05*np.abs(FieldsTOT[SurveyINV.tActive])
+    SurveyINV.set_active_interval(1e-3, 1e-2)
+    SurveyINV.dobs = FieldsTOT[SurveyINV.t_active]
+    SurveyINV.std = 0.05*np.abs(FieldsTOT[SurveyINV.t_active])
     SurveyINV.eps = 1e-11
 
     # SET INVERSION
@@ -130,7 +127,7 @@ def run(plotIt=True):
     ############################################
     # REMOVE VRM RESPONSE
 
-    SurveyINV.ActiveTimeInterval = [0., 1.]
+    SurveyINV.set_active_interval(0., 1.)
     FieldsPRE = SurveyINV.dpred(xi_rec)
 
     ################################

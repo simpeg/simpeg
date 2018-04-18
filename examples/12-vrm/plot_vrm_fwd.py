@@ -63,14 +63,14 @@ def run(plotIt=True):
     for pp in range(0, loc.shape[0]):
 
         loc_pp = np.reshape(loc[pp, :], (1, 3))
-        rxListVRM = [VRM.Rx.Point(loc_pp, times, 'dbdt', 'z')]
+        rxListVRM = [VRM.Rx.Point(loc_pp, times=times, fieldType='dbdt', fieldComp='z')]
 
         srcListVRM.append(VRM.Src.MagDipole(rxListVRM, mkvc(loc[pp, :]), [0., 0., 0.01], waveform))
 
     SurveyVRM = VRM.Survey(srcListVRM)
 
     # DEFINE THE PROBLEM
-    ProblemVRM = VRM.Problem_Linear(mesh, indActive=topoCells, refFact=3, refRadius=[1.25, 2.5, 3.75])
+    ProblemVRM = VRM.Problem_Linear(mesh, indActive=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75])
     ProblemVRM.pair(SurveyVRM)
 
     # PREDICT THE FIELDS
