@@ -21,7 +21,8 @@ class VRM_waveform_tests(unittest.TestCase):
         waveObj1 = VRM.WaveformVRM.SquarePulse(delt=0.002, t0=0.)
         waveObj2 = VRM.WaveformVRM.ArbitraryDiscrete(t_wave=t, I_wave=I)
         waveObj3 = VRM.WaveformVRM.ArbitraryPiecewise(t_wave=t, I_wave=I)
-        waveObj4 = VRM.WaveformVRM.Custom(times=times, eta=waveObj1.getCharDecay('b', times))
+        waveObj4 = VRM.WaveformVRM.Custom(
+            times=times, eta=waveObj1.getCharDecay('b', times))
 
         decay1b = waveObj1.getCharDecay('b', times)
         decay2b = waveObj2.getCharDecay('b', times)
@@ -38,7 +39,9 @@ class VRM_waveform_tests(unittest.TestCase):
         err4 = np.max(np.abs((decay2dbdt-decay1dbdt)/decay1dbdt))
         err5 = np.max(np.abs((decay3dbdt-decay1dbdt)/decay1dbdt))
 
-        self.assertTrue(err1 < 0.01 and err2 < 0.01 and err3 < 0.01 and err4 < 0.025 and err5 < 0.01)
+        self.assertTrue(
+            err1 < 0.01 and err2 < 0.01 and err3 < 0.01 and err4 < 0.025 and err5 < 0.01
+            )
 
     def test_loguniform(self):
 

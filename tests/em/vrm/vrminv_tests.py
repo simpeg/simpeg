@@ -51,8 +51,12 @@ class VRM_inversion_tests(unittest.TestCase):
 
         dmis = DataMisfit.l2_DataMisfit(Survey)
         W = mkvc((np.sum(np.array(Problem.A)**2, axis=0)))**0.25
-        reg = Regularization.Simple(meshObj, alpha_s=0.01, alpha_x=1., alpha_y=1., alpha_z=1., cell_weights=W)
-        opt = Optimization.ProjectedGNCG(maxIter=20, lower=0., upper=1e-2, maxIterLS=20, tolCG=1e-4)
+        reg = Regularization.Simple(
+            meshObj, alpha_s=0.01, alpha_x=1., alpha_y=1., alpha_z=1., cell_weights=W
+            )
+        opt = Optimization.ProjectedGNCG(
+            maxIter=20, lower=0., upper=1e-2, maxIterLS=20, tolCG=1e-4
+            )
         invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
         directives = [
             Directives.BetaSchedule(coolingFactor=2, coolingRate=1),

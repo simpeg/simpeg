@@ -57,7 +57,11 @@ class VRM_fwd_tests(unittest.TestCase):
         fy = (1/(4*np.pi))*(3*loc_rx[0, 1]*dmdot/R**5 - dmdty/R**3)
         fz = (1/(4*np.pi))*(3*loc_rx[0, 2]*dmdot/R**5 - dmdtz/R**3)
 
-        self.assertTrue(np.all(np.abs(Fields[1:-1:3] - np.r_[fx, fy, fz]) < 1e-5*np.sqrt((Fields[1:-1:3]**2).sum())))
+        self.assertTrue(
+            np.all(np.abs(
+                Fields[1:-1:3] - np.r_[fx, fy, fz]) < 1e-5*np.sqrt((Fields[1:-1:3]**2).sum())
+                )
+            )
 
     def test_sources(self):
         """
@@ -92,7 +96,9 @@ class VRM_fwd_tests(unittest.TestCase):
         loc_tx = Rtx*np.r_[np.sin(alpha)*np.cos(beta), np.sin(alpha)*np.sin(beta), np.cos(alpha)]
 
         txList = [VRM.Src.MagDipole(rxList, loc_tx, [0., 0., 0.01], waveObj)]
-        txList.append(VRM.Src.CircLoop(rxList, loc_tx, np.sqrt(0.01/np.pi), np.r_[0., 0.], 1., waveObj))
+        txList.append(VRM.Src.CircLoop(
+            rxList, loc_tx, np.sqrt(0.01/np.pi), np.r_[0., 0.], 1., waveObj)
+            )
         px = loc_tx[0]+np.r_[-0.05, 0.05, 0.05, -0.05, -0.05]
         py = loc_tx[1]+np.r_[-0.05, -0.05, 0.05, 0.05, -0.05]
         pz = loc_tx[2]*np.ones(5)
@@ -205,8 +211,10 @@ class VRM_fwd_tests(unittest.TestCase):
         F = -(1/np.log(tau2/tau1))*(1/times - 1/(times+0.02))
         Fields_true = 0.5*(dchi/(2+dchi))*(np.pi*gamma)**-1*F
 
-        ErrsX = np.abs((np.r_[Fields2[0], Fields3[0], Fields4[0], Fields5[0]] - Fields_true)/Fields_true)
-        ErrsY = np.abs((np.r_[Fields2[1], Fields3[1], Fields4[1], Fields5[1]] - Fields_true)/Fields_true)
+        ErrsX = np.abs(
+            (np.r_[Fields2[0], Fields3[0], Fields4[0], Fields5[0]] - Fields_true)/Fields_true)
+        ErrsY = np.abs(
+            (np.r_[Fields2[1], Fields3[1], Fields4[1], Fields5[1]] - Fields_true)/Fields_true)
 
         Testx1 = ErrsX[-1] < 0.01
         Testy1 = ErrsY[-1] < 0.01
@@ -269,9 +277,15 @@ class VRM_fwd_tests(unittest.TestCase):
         Survey3 = VRM.Survey(txList)
         Survey4 = VRM.Survey(txList)
         Problem1 = VRM.Problem_Linear(meshObj_Tensor, ref_factor=2, ref_radius=[1.9, 3.6])
-        Problem2 = VRM.Problem_LogUniform(meshObj_Tensor, ref_factor=2, ref_radius=[1.9, 3.6], chi0=mod_chi0_a, dchi=mod_dchi_a, tau1=mod_tau1_a, tau2=mod_tau2_a)
+        Problem2 = VRM.Problem_LogUniform(
+            meshObj_Tensor, ref_factor=2, ref_radius=[1.9, 3.6], chi0=mod_chi0_a,
+            dchi=mod_dchi_a, tau1=mod_tau1_a, tau2=mod_tau2_a
+            )
         Problem3 = VRM.Problem_Linear(meshObj_OcTree, ref_factor=0)
-        Problem4 = VRM.Problem_LogUniform(meshObj_OcTree, ref_factor=0, chi0=mod_chi0_b, dchi=mod_dchi_b, tau1=mod_tau1_b, tau2=mod_tau2_b)
+        Problem4 = VRM.Problem_LogUniform(
+            meshObj_OcTree, ref_factor=0, chi0=mod_chi0_b, dchi=mod_dchi_b,
+            tau1=mod_tau1_b, tau2=mod_tau2_b
+            )
         Problem1.pair(Survey1)
         Problem2.pair(Survey2)
         Problem3.pair(Survey3)
@@ -329,9 +343,12 @@ class VRM_fwd_tests(unittest.TestCase):
 
         w = 0.1
         N = 100
-        rxList2 = [VRM.Rx.SquareLoop(loc_rx, times=times, width=w, nTurns=N, fieldType='dhdt', fieldComp='x')]
-        rxList2.append(VRM.Rx.SquareLoop(loc_rx, times=times, width=w, nTurns=N, fieldType='dhdt', fieldComp='y'))
-        rxList2.append(VRM.Rx.SquareLoop(loc_rx, times=times, width=w, nTurns=N, fieldType='dhdt', fieldComp='z'))
+        rxList2 = [VRM.Rx.SquareLoop(
+            loc_rx, times=times, width=w, nTurns=N, fieldType='dhdt', fieldComp='x')]
+        rxList2.append(VRM.Rx.SquareLoop(
+            loc_rx, times=times, width=w, nTurns=N, fieldType='dhdt', fieldComp='y'))
+        rxList2.append(VRM.Rx.SquareLoop(
+            loc_rx, times=times, width=w, nTurns=N, fieldType='dhdt', fieldComp='z'))
 
         txList1 = [VRM.Src.MagDipole(rxList1, loc_tx, [1., 1., 1.], waveObj)]
         txList2 = [VRM.Src.MagDipole(rxList2, loc_tx, [1., 1., 1.], waveObj)]
