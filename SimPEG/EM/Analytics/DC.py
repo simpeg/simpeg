@@ -139,81 +139,13 @@ def DCAnalytic_Dipole_Dipole(txlocs, rxlocs, sigma, current=1., earth_type="whol
     return phi
 
 
-# def DCAnalyticSphere(txloc, rxloc, xc, radius, sigma, sigma1,
-#                      field_type="secondary", order=12, halfspace=False):
-#     """
-#     Parameters:
-
-#     :param array txloc: A (+) current electrode location (x, y, z)
-#     :param array xc: x center of depressed sphere
-#     :param array rxloc: M(+) electrode locations / (Nx3 array, # of electrodes)
-
-#     :param float radius: radius (float): radius of the sphere (m)
-#     :param float rho: resistivity of the background (ohm-m)
-#     :param float rho1: resistivity of the sphere
-#     :param string field_type: : "secondary", "total", "primary"
-#           (default="secondary")
-#           "secondary": secondary potential only due to sphere
-#           "primary": primary potential from the point source
-#           "total": "secondary"+"primary"
-#     :param float order: maximum order of Legendre polynomial (default=12)
-
-#     Written by Seogi Kang (skang@eos.ubc.ca)
-#     Ph.D. Candidate of University of British Columbia, Canada
-#     """
-
-#     Pleg = []
-#     # Compute Legendre Polynomial
-#     for i in range(order):
-#         Pleg.append(special.legendre(i, monic=0))
-
-#     rho = 1./sigma
-#     rho1 = 1./sigma1
-
-#     # Center of the sphere should be aligned in txloc in y-direction
-#     yc = txloc[1]
-#     xyz = np.c_[rxloc[:, 0]-xc, rxloc[:, 1]-yc, rxloc[:, 2]]
-#     r = np.sqrt((xyz**2).sum(axis=1))
-
-#     x0 = abs(txloc[0]-xc)
-
-#     costheta = xyz[:, 0]/r * (txloc[0]-xc)/x0
-#     # phi = np.zeros_like(r)
-#     R = (r**2+x0**2.-2.*r*x0*costheta)**0.5
-#     # primary potential in a whole space
-#     prim = rho*1./(4*np.pi*R)
-
-#     if field_type == "primary":
-#         return prim
-
-#     sphind = r < radius
-#     out = np.zeros_like(r)
-#     for n in range(order):
-#         An, Bn = AnBnfun(n, radius, x0, rho, rho1)
-#         dumout = An*r[~sphind]**(-n-1.)*Pleg[n](costheta[~sphind])
-#         out[~sphind] += dumout
-#         dumin = Bn*r[sphind]**(n)*Pleg[n](costheta[sphind])
-#         out[sphind] += dumin
-
-#     out[~sphind] += prim[~sphind]
-
-#     if halfspace:
-#         scale = 2
-#     else:
-#         scale = 1
-
-#     if field_type == "secondary":
-#         return scale*(out-prim)
-#     elif field_type == "total":
-#         return scale*out
-
-def DCAnalyticSphere(txloc, rxloc, sphloc, radius, sigma, sigma1,
+def DCAnalyticSphere(txloc, rxloc, xc, radius, sigma, sigma1,
                      field_type="secondary", order=12, halfspace=False):
     """
     Parameters:
 
     :param array txloc: A (+) current electrode location (x, y, z)
-    :param array sphloc: center of the sphere (x, y, z)
+    :param array xc: x center of depressed sphere
     :param array rxloc: M(+) electrode locations / (Nx3 array, # of electrodes)
 
     :param float radius: radius (float): radius of the sphere (m)
@@ -229,6 +161,7 @@ def DCAnalyticSphere(txloc, rxloc, sphloc, radius, sigma, sigma1,
     Written by Seogi Kang (skang@eos.ubc.ca)
     Ph.D. Candidate of University of British Columbia, Canada
     """
+
     Pleg = []
     # Compute Legendre Polynomial
     for i in range(order):
@@ -237,100 +170,32 @@ def DCAnalyticSphere(txloc, rxloc, sphloc, radius, sigma, sigma1,
     rho = 1./sigma
     rho1 = 1./sigma1
 
+    # Center of the sphere should be aligned in txloc in y-direction
+    yc = txloc[1]
+    xyz = np.c_[rxloc[:, 0]-xc, rxloc[:, 1]-yc, rxloc[:, 2]]
+    r = np.sqrt((xyz**2).sum(axis=1))
 
-    geomcheck = np.equal(sphloc,txloc)
-    if(geomcheck[0] == False and geomcheck[1] == True and geomcheck[2] == True):
-        xc = sphloc[0]
-        print('xc =',xc)
+    x0 = abs(txloc[0]-xc)
 
-        # Center of the sphere should be aligned in txloc in y and z directions
-        yc = txloc[1]
-        zc = txloc[2]
-        xyz = np.c_[rxloc[:, 0]-xc, rxloc[:, 1]-yc, rxloc[:, 2]-zc]
-        r = np.sqrt((xyz**2).sum(axis=1))
-
-        x0 = abs(txloc[0]-xc)
-
-        costheta = xyz[:, 0]/r * (txloc[0]-xc)/x0
-        R = (r**2+x0**2.-2.*r*x0*costheta)**0.5
-
-        # primary potential in a whole space
-        prim = rho*1./(4*np.pi*R)
-
-        sphind = r < radius
-        out = np.zeros_like(r)
-        for n in range(order):
-            An, Bn = AnBnfun(n, radius, x0, rho, rho1)
-            dumout = An*r[~sphind]**(-n-1.)*Pleg[n](costheta[~sphind])
-            out[~sphind] += dumout
-            dumin = Bn*r[sphind]**(n)*Pleg[n](costheta[sphind])
-            out[sphind] += dumin
-
-        out[~sphind] += prim[~sphind]
-
-    elif(geomcheck[0] == True and geomcheck[1] == False and geomcheck[2] == True):
-        yc = sphloc[1]
-        print('yc =',yc)
-
-        # Center of the sphere should be aligned in txloc in x and z directions
-        xc = txloc[0]
-        zc = txloc[2]
-        xyz = np.c_[rxloc[:, 0]-xc, rxloc[:, 1]-yc, rxloc[:, 2]-zc]
-        r = np.sqrt((xyz**2).sum(axis=1))
-
-        y0 = abs(txloc[1]-yc)
-
-        costheta = xyz[:, 1]/r * (txloc[1]-yc)/y0
-        R = (r**2+y0**2.-2.*r*y0*costheta)**0.5
-
-        # primary potential in a whole space
-        prim = rho*1./(4*np.pi*R)
-
-        sphind = r < radius
-        out = np.zeros_like(r)
-        for n in range(order):
-            An, Bn = AnBnfun(n, radius, y0, rho, rho1)
-            dumout = An*r[~sphind]**(-n-1.)*Pleg[n](costheta[~sphind])
-            out[~sphind] += dumout
-            dumin = Bn*r[sphind]**(n)*Pleg[n](costheta[sphind])
-            out[sphind] += dumin
-
-        out[~sphind] += prim[~sphind]
-
-    elif(geomcheck[0] == True and geomcheck[1] == True and geomcheck[2] == False):
-        zc = sphloc[2]
-        print('zc =',zc)
-
-        # Center of the sphere should be aligned in txloc in x and z directions
-        xc = txloc[0]
-        yc = txloc[2]
-        xyz = np.c_[rxloc[:, 0]-xc, rxloc[:, 1]-yc, rxloc[:, 2]-zc]
-        r = np.sqrt((xyz**2).sum(axis=1))
-
-        z0 = abs(txloc[2]-zc)
-
-        costheta = xyz[:, 2]/r * (txloc[2]-zc)/z0
-        R = (r**2+z0**2.-2.*r*z0*costheta)**0.5
-
-        # primary potential in a whole space
-        prim = rho*1./(4*np.pi*R)
-
-        sphind = r < radius
-        out = np.zeros_like(r)
-        for n in range(order):
-            An, Bn = AnBnfun(n, radius, z0, rho, rho1)
-            dumout = An*r[~sphind]**(-n-1.)*Pleg[n](costheta[~sphind])
-            out[~sphind] += dumout
-            dumin = Bn*r[sphind]**(n)*Pleg[n](costheta[sphind])
-            out[sphind] += dumin
-
-        out[~sphind] += prim[~sphind]
-
-    else:
-        assert "sphloc and txloc can only be offset in one direction!"
+    costheta = xyz[:, 0]/r * (txloc[0]-xc)/x0
+    # phi = np.zeros_like(r)
+    R = (r**2+x0**2.-2.*r*x0*costheta)**0.5
+    # primary potential in a whole space
+    prim = rho*1./(4*np.pi*R)
 
     if field_type == "primary":
         return prim
+
+    sphind = r < radius
+    out = np.zeros_like(r)
+    for n in range(order):
+        An, Bn = AnBnfun(n, radius, x0, rho, rho1)
+        dumout = An*r[~sphind]**(-n-1.)*Pleg[n](costheta[~sphind])
+        out[~sphind] += dumout
+        dumin = Bn*r[sphind]**(n)*Pleg[n](costheta[sphind])
+        out[sphind] += dumin
+
+    out[~sphind] += prim[~sphind]
 
     if halfspace:
         scale = 2
@@ -343,10 +208,91 @@ def DCAnalyticSphere(txloc, rxloc, sphloc, radius, sigma, sigma1,
         return scale*out
 
 
-def AnBnfun(n, radius, x0, rho, rho1, I=1.):
+def DCAnalyticSphere_Generalized(txloc, rxloc, sphloc, radius, sigma, sigma1,
+                     field_type="secondary", order=12, halfspace=False):
+    """
+    Parameters:
+
+    :param array txloc: A (+) current electrode location (x, y, z)
+    :param array sphloc: location of sphere center (x, y, z)
+    :param array rxloc: M(+) electrode locations / (Nx3 array, # of electrodes)
+
+    :param float radius: radius (float): radius of the sphere (m)
+    :param float rho: resistivity of the background (ohm-m)
+    :param float rho1: resistivity of the sphere
+    :param string field_type: : "secondary", "total", "primary"
+          (default="secondary")
+          "secondary": secondary potential only due to sphere
+          "primary": primary potential from the point source
+          "total": "secondary"+"primary"
+    :param float order: maximum order of Legendre polynomial (default=12)
+
+    Written by Seogi Kang (skang@eos.ubc.ca)
+    Ph.D. Candidate of University of British Columbia, Canada
+    """
+
+    Pleg = []
+    # Compute Legendre Polynomial
+    for i in range(order):
+        Pleg.append(special.legendre(i, monic=0))
+
+    rho = 1./sigma
+    rho1 = 1./sigma1
+
+    xyz = np.c_[rxloc[:, 0] - sphloc[0], rxloc[:, 1] - sphloc[1], rxloc[:, 2] - sphloc[2]]
+
+    # r: vec from sphere center to rxloc
+    rx = rxloc[:, 0] - sphloc[0]
+    ry = rxloc[:, 1] - sphloc[1]
+    rz = rxloc[:, 2] - sphloc[2]
+    r = np.sqrt((np.c_[rx, ry, rz]**2).sum(axis=1))
+
+    # rs: vec from sphere center to txloc
+    rsx = txloc[0] - sphloc[0]
+    rsy = txloc[1] - sphloc[1]
+    rsz = txloc[2] - sphloc[2]
+    rs = np.sqrt(rsx**2 + rsy**2 + rsz**2)
+
+    assert rs>radius, "Tx must lie outside of the sphere!"
+
+    # cos(theta) = (\vec(rs) dot \vec(r))/(||\vec(rs)|| dot ||\vec(r)||)
+    costheta = (rsx*rx + rsy*ry + rsz*rz)/(rs*r)
+
+    # R: distance from txloc to rxloc
+    R = np.sqrt(r**2+rs**2.-2.*r*rs*costheta)
+
+    # primary potential in a whole space
+    prim = rho*1./(4*np.pi*R)
+
+    if field_type == "primary":
+        return prim
+
+    sphind = r < radius
+    out = np.zeros_like(r)
+    for n in range(order):
+        An, Bn = AnBnfun(n, radius, rs, rho, rho1)
+        dumout = An*r[~sphind]**(-n-1.)*Pleg[n](costheta[~sphind])
+        out[~sphind] += dumout
+        dumin = Bn*r[sphind]**(n)*Pleg[n](costheta[sphind])
+        out[sphind] += dumin
+
+    out[~sphind] += prim[~sphind]
+
+    if halfspace:
+        scale = 2
+    else:
+        scale = 1
+
+    if field_type == "secondary":
+        return scale*(out-prim)
+    elif field_type == "total":
+        return scale*out
+
+
+def AnBnfun(n, radius, rs, rho, rho1, I=1.):
     const = I*rho/(4*np.pi)
     bunmo = n*rho + (n+1)*rho1
-    An = const * radius**(2*n+1) / x0 ** (n+1.) * n * \
+    An = const * radius**(2*n+1) / rs ** (n+1.) * n * \
         (rho1-rho) / bunmo
-    Bn = const * 1. / x0 ** (n+1.) * (2*n+1) * (rho1) / bunmo
+    Bn = const * 1. / rs ** (n+1.) * (2*n+1) * (rho1) / bunmo
     return An, Bn
