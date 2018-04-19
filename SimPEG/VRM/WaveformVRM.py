@@ -36,7 +36,9 @@ class StepOff(properties.HasProperties):
 
         """
 
-        assert fieldType in ["dhdt", "dbdt"], "For step-off, fieldType must be one of 'dhdt' or 'dbdt' and cannot be 'h' or 'b'"
+        assert fieldType in ["dhdt", "dbdt"], (
+            "For step-off, fieldType must be one of 'dhdt' or 'dbdt' and cannot be 'h' or 'b'")
+
         assert self.t0 < np.min(times), "Earliest time channel must be after beginning of off-time"
 
         t0 = self.t0
@@ -80,7 +82,8 @@ class StepOff(properties.HasProperties):
 
         """
 
-        assert fieldType in ["h", "dhdt", "b", "dbdt"], "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' "
+        assert fieldType in ["h", "dhdt", "b", "dbdt"], (
+            "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' ")
 
         nT = len(times)
         nC = len(dchi)
@@ -158,7 +161,8 @@ class SquarePulse(properties.HasProperties):
         """
 
         assert self.delt is not None, "Pulse width 'delt' must be set"
-        assert fieldType in ["h", "dhdt", "b", "dbdt"], "For square-pulse, fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
+        assert fieldType in ["h", "dhdt", "b", "dbdt"], (
+            "For square-pulse, fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'")
         assert self.t0 < np.min(times), "Earliest time channel must be after beginning of off-time"
 
         t0 = self.t0
@@ -208,7 +212,8 @@ class SquarePulse(properties.HasProperties):
         """
 
         assert self.delt is not None, "Pulse width 'delt' must be set"
-        assert fieldType in ["h", "dhdt", "b", "dbdt"], "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' "
+        assert fieldType in ["h", "dhdt", "b", "dbdt"], (
+            "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt'")
 
         nT = len(times)
         nC = len(dchi)
@@ -287,7 +292,8 @@ class ArbitraryDiscrete(properties.HasProperties):
     @properties.validator('I_wave')
     def _I_wave_validator(self, change):
         assert len(change['value']) > 2, "Waveform must be defined by at least 3 points"
-        assert np.abs(change['value'][0]) < 1e-10 and np.abs(change['value'][-1]) < 1e-10, "Current waveform should begin and end at 0"
+        assert np.abs(change['value'][0]) < 1e-10 and np.abs(change['value'][-1]) < 1e-10, (
+            "Current waveform should begin and end at 0")
 
     @properties.observer('I_wave')
     def _I_wave_observer(self, change):
@@ -315,9 +321,12 @@ class ArbitraryDiscrete(properties.HasProperties):
 
         """
 
-        assert self.t_wave is not None and self.I_wave is not None, "Times and current for waveform must be set"
-        assert fieldType in ["h", "dhdt", "b", "dbdt"], "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
-        assert np.max(self.t_wave) < np.min(times), "Earliest time channel must be after beginning of off-time"
+        assert self.t_wave is not None and self.I_wave is not None, (
+            "Times and current for waveform must be set")
+        assert fieldType in ["h", "dhdt", "b", "dbdt"], (
+            "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'")
+        assert np.max(self.t_wave) < np.min(times), (
+            "Earliest time channel must be after beginning of off-time")
 
         k = np.where(self.I_wave > 1e-10)
         j = k[0][0]-1
@@ -341,10 +350,17 @@ class ArbitraryDiscrete(properties.HasProperties):
 
         if fieldType in ["h", "b"]:
             for tt in range(0, len(eta)):
-                eta[tt] = np.sum((g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*np.log(1 + dt/(times[tt] - tvec)) - g[1:] + g[0:-1])
+                eta[tt] = np.sum(
+                    (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt) *
+                    np.log(1 + dt/(times[tt] - tvec)) - g[1:] + g[0:-1]
+                    )
         elif fieldType in ["dhdt", "dbdt"]:
             for tt in range(0, len(eta)):
-                eta[tt] = np.sum((((g[1:]-g[0:-1])/dt)*np.log(1 + dt/(times[tt] - tvec)) - (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*(1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec))))
+                eta[tt] = np.sum(
+                    ((g[1:]-g[0:-1])/dt)*np.log(1 + dt/(times[tt] - tvec)) -
+                    (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt) *
+                    (1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec))
+                    )
 
         if fieldType in ["b", "dbdt"]:
             mu0 = 4*np.pi*1e-7
@@ -379,7 +395,8 @@ class ArbitraryPiecewise(properties.HasProperties):
     @properties.validator('I_wave')
     def _I_wave_validator(self, change):
         assert len(change['value']) > 2, "Waveform must be defined by at least 3 points"
-        assert np.abs(change['value'][0]) < 1e-10 and np.abs(change['value'][-1]) < 1e-10, "Current waveform should begin and end at 0"
+        assert np.abs(change['value'][0]) < 1e-10 and np.abs(change['value'][-1]) < 1e-10, (
+            "Current waveform should begin and end at 0")
 
     @properties.observer('I_wave')
     def _I_wave_observer(self, change):
@@ -407,9 +424,12 @@ class ArbitraryPiecewise(properties.HasProperties):
 
         """
 
-        assert self.t_wave is not None and self.I_wave is not None, "Times and current for waveform must be set"
-        assert fieldType in ["h", "dhdt", "b", "dbdt"], "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
-        assert np.max(self.t_wave) < np.min(times), "Earliest time channel must be after beginning of off-time"
+        assert self.t_wave is not None and self.I_wave is not None, (
+            "Times and current for waveform must be set")
+        assert fieldType in ["h", "dhdt", "b", "dbdt"], (
+            "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'")
+        assert np.max(self.t_wave) < np.min(times), (
+            "Earliest time channel must be after beginning of off-time")
 
         k = np.where(self.I_wave > 1e-10)
         j = k[0][0]-1
@@ -424,10 +444,17 @@ class ArbitraryPiecewise(properties.HasProperties):
 
         if fieldType in ["h", "b"]:
             for tt in range(0, len(eta)):
-                eta[tt] = np.sum((g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*np.log(1 + dt/(times[tt] - tvec)) - g[1:] + g[0:-1])
+                eta[tt] = np.sum(
+                    (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt) *
+                    np.log(1 + dt/(times[tt] - tvec)) - g[1:] + g[0:-1]
+                    )
         elif fieldType in ["dhdt", "dbdt"]:
             for tt in range(0, len(eta)):
-                eta[tt] = np.sum((((g[1:]-g[0:-1])/dt)*np.log(1 + dt/(times[tt] - tvec)) - (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*(1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec))))
+                eta[tt] = np.sum(
+                    ((g[1:]-g[0:-1])/dt)*np.log(1 + dt/(times[tt] - tvec)) -
+                    (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt) *
+                    (1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec))
+                    )
 
         if fieldType in ["b", "dbdt"]:
             mu0 = 4*np.pi*1e-7
@@ -446,8 +473,10 @@ class Custom(properties.HasProperties):
 
     """
 
-    times = properties.Array('Times at which characteristic decay function is evaluated', dtype=float)
-    eta = properties.Array('Characteristic decay function at evaluation times', dtype=float)
+    times = properties.Array(
+        'Times at which characteristic decay function is evaluated', dtype=float)
+    eta = properties.Array(
+        'Characteristic decay function at evaluation times', dtype=float)
 
     @properties.observer('times')
     def _times_observer(self, change):

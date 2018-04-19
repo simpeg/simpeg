@@ -61,7 +61,8 @@ class Problem_BaseVRM(Problem.BaseProblem):
 
     @properties.validator('indActive')
     def _ind_active_validator(self, change):
-        assert len(change['value']) == self.mesh.nC, "Length of active topo cells array must equal number of mesh cells"
+        assert len(change['value']) == self.mesh.nC, (
+            "Length of active topo cells array must equal number of mesh cells")
 
     def _getH0matrix(self, xyz, pp):
 
@@ -332,8 +333,15 @@ class Problem_BaseVRM(Problem.BaseProblem):
                     np.r_[-0.932470, -0.238619, -0.661209, 0.661209, 0.238619, 0.932470],
                     np.r_[-0.949108, -0.741531, -0.405845, 0., 0.405845, 0.741531, 0.949108]
                     ]
-                s1 = (rxObj.width/2)*np.reshape(np.kron(ds[rxObj.quadOrder-1], np.ones(nw)), (nw**2, 1))
-                s2 = (rxObj.width/2)*np.reshape(np.kron(np.ones(nw), ds[rxObj.quadOrder-1]), (nw**2, 1))
+
+                s1 = (
+                    0.5*rxObj.width *
+                    np.reshape(np.kron(ds[rxObj.quadOrder-1], np.ones(nw)), (nw**2, 1))
+                    )
+                s2 = (
+                    0.5*rxObj.width *
+                    np.reshape(np.kron(np.ones(nw), ds[rxObj.quadOrder-1]), (nw**2, 1))
+                    )
 
                 if dComp.lower() == 'x':
                     for rr in range(0, M):
@@ -342,13 +350,27 @@ class Problem_BaseVRM(Problem.BaseProblem):
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
                         u2 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx)
                         u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0])/tol2
-                        v1 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay) + np.kron(s1, np.ones((1, N)))
+
+                        v1 = (
+                            np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay) +
+                            np.kron(s1, np.ones((1, N)))
+                            )
                         v1[np.abs(v1) < tol] = np.min(xyzh[:, 1])/tol2
-                        v2 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by) + np.kron(s1, np.ones((1, N)))
+                        v2 = (
+                            np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by) +
+                            np.kron(s1, np.ones((1, N)))
+                            )
                         v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1])/tol2
-                        w1 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az) + np.kron(s2, np.ones((1, N)))
+
+                        w1 = (
+                            np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az) +
+                            np.kron(s2, np.ones((1, N)))
+                            )
                         w1[np.abs(w1) < tol] = np.min(xyzh[:, 2])/tol2
-                        w2 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz) + np.kron(s2, np.ones((1, N)))
+                        w2 = (
+                            np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz) +
+                            np.kron(s2, np.ones((1, N)))
+                            )
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2])/tol2
 
                         Gxx = (
@@ -396,17 +418,31 @@ class Problem_BaseVRM(Problem.BaseProblem):
                 elif dComp.lower() == 'y':
                     for rr in range(0, M):
 
-                        u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) + np.kron(s1, np.ones((1, N)))
+                        u1 = (
+                            np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) +
+                            np.kron(s1, np.ones((1, N)))
+                            )
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
-                        u2 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx) + np.kron(s1, np.ones((1, N)))
+                        u2 = (
+                            np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx) +
+                            np.kron(s1, np.ones((1, N)))
+                            )
                         u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0])/tol2
+
                         v1 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay)
                         v1[np.abs(v1) < tol] = np.min(xyzh[:, 1])/tol2
                         v2 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by)
                         v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1])/tol2
-                        w1 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az) + np.kron(s2, np.ones((1, N)))
+
+                        w1 = (
+                            np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az) +
+                            np.kron(s2, np.ones((1, N)))
+                            )
                         w1[np.abs(w1) < tol] = np.min(xyzh[:, 2])/tol2
-                        w2 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz) + np.kron(s2, np.ones((1, N)))
+                        w2 = (
+                            np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz) +
+                            np.kron(s2, np.ones((1, N)))
+                            )
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2])/tol2
 
                         Gxy = (
@@ -454,14 +490,28 @@ class Problem_BaseVRM(Problem.BaseProblem):
                 elif dComp.lower() == 'z':
                     for rr in range(0, M):
 
-                        u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) + np.kron(s1, np.ones((1, N)))
+                        u1 = (
+                            np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) +
+                            np.kron(s1, np.ones((1, N)))
+                            )
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
-                        u2 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx) + np.kron(s1, np.ones((1, N)))
+                        u2 = (
+                            np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx) +
+                            np.kron(s1, np.ones((1, N)))
+                            )
+
                         u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0])/tol2
-                        v1 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay) + np.kron(s2, np.ones((1, N)))
+                        v1 = (
+                            np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay) +
+                            np.kron(s2, np.ones((1, N)))
+                            )
                         v1[np.abs(v1) < tol] = np.min(xyzh[:, 1])/tol2
-                        v2 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by) + np.kron(s2, np.ones((1, N)))
+                        v2 = (
+                            np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by) +
+                            np.kron(s2, np.ones((1, N)))
+                            )
                         v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1])/tol2
+
                         w1 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az)
                         w1[np.abs(w1) < tol] = np.min(xyzh[:, 2])/tol2
                         w2 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz)
@@ -554,7 +604,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
 
                 for qq in range(1, ref_factor+1):
                     if len(refFlag[refFlag == qq]) != 0:
-                        A[pp][:, refFlag == qq] = self._getSubsetAcolumns(xyzc, xyzh, pp, qq, refFlag)
+                        A[pp][:, refFlag == qq] =self._getSubsetAcolumns(xyzc, xyzh, pp, qq, refFlag)
 
         return A
 
@@ -584,7 +634,8 @@ class Problem_BaseVRM(Problem.BaseProblem):
 
         # GET SUBMESH GRID
         n = 2**qq
-        [nx, ny, nz] = np.meshgrid(np.linspace(1, n, n)-0.5, np.linspace(1, n, n)-0.5, np.linspace(1, n, n)-0.5)
+        [nx, ny, nz] = np.meshgrid(
+            np.linspace(1, n, n)-0.5, np.linspace(1, n, n)-0.5, np.linspace(1, n, n)-0.5)
         nxyz_sub = np.c_[mkvc(nx), mkvc(ny), mkvc(nz)]
 
         xyzh_sub = xyzh[refFlag == qq, :]     # Get widths of cells to be refined
@@ -619,10 +670,10 @@ class Problem_Linear(Problem_BaseVRM):
     _TisSet = False
     _xiMap = None
 
-    surveyPair = SurveyVRM     # Only linear problem can have survey and be inverted
+    surveyPair = SurveyVRM  # Only linear problem can have survey and be inverted
 
-    # xi = Props.PhysicalProperty("Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)")
-    xi, xiMap, xiDeriv = Props.Invertible("Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)")
+    xi, xiMap, xiDeriv = Props.Invertible(
+        "Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)")
 
     def __init__(self, mesh, **kwargs):
 
@@ -851,7 +902,9 @@ class Problem_LogUniform(Problem_BaseVRM):
             for qq in range(0, nRx):
 
                 times = rxList[qq].times
-                eta = waveObj.getLogUniformDecay(rxList[qq].fieldType, times, self.chi0, self.dchi, self.tau1, self.tau2)
+                eta = waveObj.getLogUniformDecay(
+                    rxList[qq].fieldType, times, self.chi0, self.dchi, self.tau1, self.tau2
+                    )
 
                 f.append(mkvc((self.A[qq] * np.matrix(eta)).T))
 

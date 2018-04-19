@@ -15,7 +15,8 @@ class SurveyVRM(Survey.BaseSurvey, properties.HasProperties):
 
     """
 
-    t_active = properties.Array('Boolean array where True denotes active data in the inversion', dtype=bool)
+    t_active = properties.Array(
+        'Boolean array where True denotes active data in the inversion', dtype=bool)
 
     def __init__(self, srcList, **kwargs):
 
@@ -34,7 +35,8 @@ class SurveyVRM(Survey.BaseSurvey, properties.HasProperties):
 
     @properties.validator('t_active')
     def _t_active_validator(self, change):
-        assert self.nD == len(change['value']), "Length of t_active boolean array must equal number of data"
+        assert self.nD == len(change['value']), (
+            "Length of t_active boolean array must equal number of data")
 
     def set_active_interval(self, tmin, tmax):
         """Set active times using an interval"""

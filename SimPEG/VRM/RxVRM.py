@@ -57,12 +57,12 @@ class SquareLoop(BaseRxVRM):
 
     """
 
-    # _quad_order = None
-
     times = properties.Array('Observation times', dtype=float)
     width = properties.Float('Square loop width', min=1e-6)
     nTurns = properties.Integer('Number of loop turns', min=1, default=1)
-    quadOrder = properties.Integer('Order for numerical quadrature integration over loop', min=1, max=7, default=3)
+    quadOrder = properties.Integer(
+        'Order for numerical quadrature integration over loop', min=1, max=7, default=3
+        )
     fieldType = properties.StringChoice('Field type', choices=["h", "b", "dhdt", "dbdt"])
     fieldComp = properties.StringChoice('Component of response', choices=["x", "y", "z"])
 

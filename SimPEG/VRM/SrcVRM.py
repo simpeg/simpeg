@@ -15,7 +15,8 @@ class BaseSrcVRM(Survey.BaseSrc):
 
     def __init__(self, rxList, waveform, **kwargs):
 
-        assert isinstance(waveform, (StepOff, SquarePulse, ArbitraryDiscrete, ArbitraryPiecewise)), "waveform must be an instance of a VRM waveform class: StepOff, SquarePulse or Arbitrary"
+        assert isinstance(waveform, (StepOff, SquarePulse, ArbitraryDiscrete, ArbitraryPiecewise)), (
+            "waveform must be an instance of a VRM waveform class: StepOff, SquarePulse or Arbitrary")
 
         super(BaseSrcVRM, self).__init__(rxList, **kwargs)
         self.waveform = waveform
@@ -105,7 +106,11 @@ class MagDipole(BaseSrcVRM):
 
         refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
 
-        R = np.sqrt((xyzc[:, 0] - self.loc[0])**2 + (xyzc[:, 1] - self.loc[1])**2 + (xyzc[:, 2] - self.loc[2])**2)
+        R = np.sqrt(
+            (xyzc[:, 0] - self.loc[0])**2 +
+            (xyzc[:, 1] - self.loc[1])**2 +
+            (xyzc[:, 2] - self.loc[2])**2
+            )
 
         for nn in range(0, ref_factor):
 
@@ -159,13 +164,23 @@ class CircLoop(BaseSrcVRM):
         I = self.Imax
 
         # Rotate x,y,z into coordinate axis of transmitter loop
-        Rx = np.r_[np.c_[1, 0, 0], np.c_[0, np.cos(np.pi*theta/180), -np.sin(np.pi*theta/180)], np.c_[0, np.sin(np.pi*theta/180), np.cos(np.pi*theta/180)]]     # CCW ROTATION OF THETA AROUND X-AXIS
-        Rz = np.r_[np.c_[np.cos(np.pi*alpha/180), -np.sin(np.pi*alpha/180), 0], np.c_[np.sin(np.pi*alpha/180), np.cos(np.pi*alpha/180), 0], np.c_[0, 0, 1]]     # CCW ROTATION OF (90-ALPHA) ABOUT Z-AXIS
+        Rx = np.r_[
+            np.c_[1, 0, 0],
+            np.c_[0, np.cos(np.pi*theta/180), -np.sin(np.pi*theta/180)],
+            np.c_[0, np.sin(np.pi*theta/180), np.cos(np.pi*theta/180)]
+            ]     # CCW ROTATION OF THETA AROUND X-AXIS
+
+        Rz = np.r_[
+            np.c_[np.cos(np.pi*alpha/180), -np.sin(np.pi*alpha/180), 0],
+            np.c_[np.sin(np.pi*alpha/180), np.cos(np.pi*alpha/180), 0],
+            np.c_[0, 0, 1]
+            ]     # CCW ROTATION OF (90-ALPHA) ABOUT Z-AXIS
+
         R = np.dot(Rx, Rz)            # THE ORDER MATTERS
 
-        x1p = np.dot(np.c_[xyz[:, 0]-r0[0], xyz[:, 1]-r0[1], xyz[:, 2]-r0[2]],R[0, :].T)
-        x2p = np.dot(np.c_[xyz[:, 0]-r0[0], xyz[:, 1]-r0[1], xyz[:, 2]-r0[2]],R[1, :].T)
-        x3p = np.dot(np.c_[xyz[:, 0]-r0[0], xyz[:, 1]-r0[1], xyz[:, 2]-r0[2]],R[2, :].T)
+        x1p = np.dot(np.c_[xyz[:, 0]-r0[0], xyz[:, 1]-r0[1], xyz[:, 2]-r0[2]], R[0, :].T)
+        x2p = np.dot(np.c_[xyz[:, 0]-r0[0], xyz[:, 1]-r0[1], xyz[:, 2]-r0[2]], R[1, :].T)
+        x3p = np.dot(np.c_[xyz[:, 0]-r0[0], xyz[:, 1]-r0[1], xyz[:, 2]-r0[2]], R[2, :].T)
 
         s = np.sqrt(x1p**2 + x2p**2) + 1e-10     # Radial distance
         k = 4*a*s/(x3p**2 + (a+s)**2)
@@ -209,8 +224,18 @@ class CircLoop(BaseSrcVRM):
         alpha = self.orientation[1]  # Declination
 
         # Rotate x,y,z into coordinate axis of transmitter loop
-        Rx = np.r_[np.c_[1, 0, 0], np.c_[0, np.cos(np.pi*theta/180), -np.sin(np.pi*theta/180)], np.c_[0, np.sin(np.pi*theta/180), np.cos(np.pi*theta/180)]]     # CCW ROTATION OF THETA AROUND X-AXIS
-        Rz = np.r_[np.c_[np.cos(np.pi*alpha/180), -np.sin(np.pi*alpha/180), 0], np.c_[np.sin(np.pi*alpha/180), np.cos(np.pi*alpha/180), 0], np.c_[0, 0, 1]]     # CCW ROTATION OF (90-ALPHA) ABOUT Z-AXIS
+        Rx = np.r_[
+            np.c_[1, 0, 0],
+            np.c_[0, np.cos(np.pi*theta/180), -np.sin(np.pi*theta/180)],
+            np.c_[0, np.sin(np.pi*theta/180), np.cos(np.pi*theta/180)]
+            ]     # CCW ROTATION OF THETA AROUND X-AXIS
+
+        Rz = np.r_[
+            np.c_[np.cos(np.pi*alpha/180), -np.sin(np.pi*alpha/180), 0],
+            np.c_[np.sin(np.pi*alpha/180), np.cos(np.pi*alpha/180), 0],
+            np.c_[0, 0, 1]
+            ]     # CCW ROTATION OF (90-ALPHA) ABOUT Z-AXIS
+
         R = np.dot(Rx, Rz)            # THE ORDER MATTERS
 
         x1p = np.dot(np.c_[xyzc[:, 0]-r0[0], xyzc[:, 1]-r0[1], xyzc[:, 2]-r0[2]], R[0, :].T)
@@ -240,7 +265,8 @@ class LineCurrent(BaseSrcVRM):
 
     def __init__(self, rxList, loc, Imax, waveform, **kwargs):
 
-        assert np.shape(loc)[1] == 3 and np.shape(loc)[0] > 1, 'locs is a N+1 by 3 array where N is the number of transmitter segments'
+        assert np.shape(loc)[1] == 3 and np.shape(loc)[0] > 1, (
+            'locs is a N+1 by 3 array where N is the number of transmitter segments')
 
         self.loc = loc
         self.Imax = Imax
@@ -297,7 +323,11 @@ class LineCurrent(BaseSrcVRM):
             CosBeta  = ((xyz[:,0]-x1b)*(x1a - x1b) + (xyz[:, 1]-x2b)*(x2a - x2b) + (xyz[:, 2]-x3b)*(x3a - x3b))/(vbp*vab)
 
             # Determining Radial Vector From Wire
-            DotTemp = (x1a - xyz[:, 0])*(x1b - x1a) + (x2a - xyz[:, 1])*(x2b - x2a) + (x3a - xyz[:, 2])*(x3b - x3a)
+            DotTemp = (
+                (x1a - xyz[:, 0])*(x1b - x1a) +
+                (x2a - xyz[:, 1])*(x2b - x2a) +
+                (x3a - xyz[:, 2])*(x3b - x3a)
+                )
 
             Rx1 = (x1a - xyz[:, 0]) - DotTemp*(x1b - x1a)/vab**2
             Rx2 = (x2a - xyz[:, 1]) - DotTemp*(x2b - x2a)/vab**2
@@ -348,21 +378,40 @@ class LineCurrent(BaseSrcVRM):
             Tx0 = self.loc[tt, :]
             Tx1 = self.loc[tt+1, :]
             A = (Tx1[0] - Tx0[0])**2 + (Tx1[1] - Tx0[1])**2 + (Tx1[2] - Tx0[2])**2
-            B = 2*(Tx1[0] - Tx0[0])*(Tx0[0] - xyzc[:, 0]) + 2*(Tx1[1] - Tx0[1])*(Tx0[1] - xyzc[:, 1]) + 2*(Tx1[2] - Tx0[2])*(Tx0[2] - xyzc[:, 2])
+            B = (
+                2*(Tx1[0] - Tx0[0])*(Tx0[0] - xyzc[:, 0]) +
+                2*(Tx1[1] - Tx0[1])*(Tx0[1] - xyzc[:, 1]) +
+                2*(Tx1[2] - Tx0[2])*(Tx0[2] - xyzc[:, 2])
+                )
 
             for nn in range(0, ref_factor):
 
                 D = ref_radius[nn] + 1e-3
-                C = (Tx0[0] - xyzc[:, 0])**2 + (Tx0[1] - xyzc[:, 1])**2 + (Tx0[2] - xyzc[:, 2])**2 - D**2
+                C = (
+                    (Tx0[0] - xyzc[:, 0])**2 +
+                    (Tx0[1] - xyzc[:, 1])**2 +
+                    (Tx0[2] - xyzc[:, 2])**2 -
+                    D**2
+                    )
                 E = np.array(B**2 - 4*A*C, dtype=np.complex)
 
                 Qpos = (-B + np.sqrt(E))/(2*A)
                 Qneg = (-B - np.sqrt(E))/(2*A)
 
-                kpos = (np.abs(np.imag(Qpos)) > 1e-12) | ((np.real(Qpos) < 0.) & (np.real(Qneg) < 0.)) | ((np.real(Qpos) > 1.) & (np.real(Qneg) > 1.))
-                kneg = (np.abs(np.imag(Qpos)) > 1e-12) | ((np.real(Qpos) < 0.) & (np.real(Qneg) < 0.)) | ((np.real(Qpos) > 1.) & (np.real(Qneg) > 1.)) | (kpos == True)
+                kpos = (
+                    (np.abs(np.imag(Qpos)) > 1e-12) |
+                    ((np.real(Qpos) < 0.) & (np.real(Qneg) < 0.)) |
+                    ((np.real(Qpos) > 1.) & (np.real(Qneg) > 1.))
+                    )
+                kneg = (
+                    (np.abs(np.imag(Qpos)) > 1e-12) |
+                    ((np.real(Qpos) < 0.) & (np.real(Qneg) < 0.)) |
+                    ((np.real(Qpos) > 1.) & (np.real(Qneg) > 1.)) |
+                    (kpos == True)
+                    )
 
-                refFlagtt[(kpos == False) & (kneg == False) & (refFlagtt < ref_factor+1-nn)] = ref_factor - nn
+                Ind = (kpos == False) & (kneg == False) & (refFlagtt < ref_factor+1-nn)
+                refFlagtt[Ind] = ref_factor - nn
 
             refFlag = np.maximum(refFlag, refFlagtt)
 

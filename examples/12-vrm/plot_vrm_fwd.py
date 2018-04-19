@@ -36,14 +36,30 @@ def run(plotIt=True):
     xyzc = mesh.gridCC[topoCells, :]
     C = 2*np.pi*8**2
     xi_true = (
-        4e-4*np.exp(-(xyzc[:, 0]-50)**2/(3*C))*np.exp(-(xyzc[:, 1])**2/(20*C))*np.exp(-(xyzc[:, 2])**2/C) +
-        4e-4*np.exp(-(xyzc[:, 0]+50)**2/(3*C))*np.exp(-(xyzc[:, 1])**2/(20*C))*np.exp(-(xyzc[:, 2])**2/C) +
-        4e-4*np.exp(-(xyzc[:, 0]+40)**2/(3*C))*np.exp(-(xyzc[:, 1]-40)**2/C)*np.exp(-(xyzc[:, 2])**2/C) +
-        6e-4*np.exp(-(xyzc[:, 0]+20)**2/C)*np.exp(-(xyzc[:, 1]-10)**2/C)*np.exp(-(xyzc[:, 2])**2/C) +
-        8e-4*np.exp(-(xyzc[:, 0]+15)**2/(3*C))*np.exp(-(xyzc[:, 1]+20)**2/(0.4*C))*np.exp(-(xyzc[:, 2])**2/C) +
-        6e-4*np.exp(-(xyzc[:, 0]-20)**2/(0.5*C))*np.exp(-(xyzc[:, 1]-15)**2/(0.5*C))*np.exp(-(xyzc[:, 2])**2/C) +
-        8e-4*np.exp(-(xyzc[:, 0]+10)**2/(0.1*C))*np.exp(-(xyzc[:, 1])**2/(0.1*C))*np.exp(-(xyzc[:, 2])**2/C) +
-        8e-4*np.exp(-(xyzc[:, 0]-25)**2/(0.1*C))*np.exp(-(xyzc[:, 1])**2/(0.4*C))*np.exp(-(xyzc[:, 2])**2/C) +
+        4e-4*np.exp(-(xyzc[:, 0]-50)**2/(3*C)) *
+        np.exp(-(xyzc[:, 1])**2/(20*C)) *
+        np.exp(-(xyzc[:, 2])**2/C) +
+        4e-4*np.exp(-(xyzc[:, 0]+50)**2/(3*C)) *
+        np.exp(-(xyzc[:, 1])**2/(20*C)) *
+        np.exp(-(xyzc[:, 2])**2/C) +
+        4e-4*np.exp(-(xyzc[:, 0]+40)**2/(3*C)) *
+        np.exp(-(xyzc[:, 1]-40)**2/C) *
+        np.exp(-(xyzc[:, 2])**2/C) +
+        6e-4*np.exp(-(xyzc[:, 0]+20)**2/C) *
+        np.exp(-(xyzc[:, 1]-10)**2/C) *
+        np.exp(-(xyzc[:, 2])**2/C) +
+        8e-4*np.exp(-(xyzc[:, 0]+15)**2/(3*C)) *
+        np.exp(-(xyzc[:, 1]+20)**2/(0.4*C)) *
+        np.exp(-(xyzc[:, 2])**2/C) +
+        6e-4*np.exp(-(xyzc[:, 0]-20)**2/(0.5*C)) *
+        np.exp(-(xyzc[:, 1]-15)**2/(0.5*C)) *
+        np.exp(-(xyzc[:, 2])**2/C) +
+        8e-4*np.exp(-(xyzc[:, 0]+10)**2/(0.1*C)) *
+        np.exp(-(xyzc[:, 1])**2/(0.1*C)) *
+        np.exp(-(xyzc[:, 2])**2/C) +
+        8e-4*np.exp(-(xyzc[:, 0]-25)**2/(0.1*C)) *
+        np.exp(-(xyzc[:, 1])**2/(0.4*C)) *
+        np.exp(-(xyzc[:, 2])**2/C) +
         1e-5
         )
 
@@ -65,12 +81,14 @@ def run(plotIt=True):
         loc_pp = np.reshape(loc[pp, :], (1, 3))
         rxListVRM = [VRM.Rx.Point(loc_pp, times=times, fieldType='dbdt', fieldComp='z')]
 
-        srcListVRM.append(VRM.Src.MagDipole(rxListVRM, mkvc(loc[pp, :]), [0., 0., 0.01], waveform))
+        srcListVRM.append(
+            VRM.Src.MagDipole(rxListVRM, mkvc(loc[pp, :]), [0., 0., 0.01], waveform))
 
     SurveyVRM = VRM.Survey(srcListVRM)
 
     # DEFINE THE PROBLEM
-    ProblemVRM = VRM.Problem_Linear(mesh, indActive=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75])
+    ProblemVRM = VRM.Problem_Linear(
+        mesh, indActive=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75])
     ProblemVRM.pair(SurveyVRM)
 
     # PREDICT THE FIELDS
@@ -120,7 +138,9 @@ def run(plotIt=True):
 
         plotMap = Maps.InjectActiveCells(mesh, topoCells, 0.)  # Maps to mesh
 
-        Cplot11 = mesh.plotSlice(plotMap*xi_true, normal='X', ind=int((ncx+2*npad)/2-6), ax=Ax11, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
+        Cplot11 = mesh.plotSlice(
+            plotMap*xi_true, normal='X', ind=int((ncx+2*npad)/2-6),
+            ax=Ax11, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
         Cplot11[0].set_clim((0., np.max(xi_true)))
         Ax11.set_xlabel('Y [m]', fontsize=FS)
         Ax11.set_ylabel('Z [m]', fontsize=FS, labelpad=-10)
@@ -128,7 +148,9 @@ def run(plotIt=True):
         titlestr11 = "True Model (x = -12 m)"
         Ax11.set_title(titlestr11, fontsize=FS+2)
 
-        Cplot12 = mesh.plotSlice(plotMap*xi_true, normal='Y', ind=int((ncy+2*npad)/2), ax=Ax12, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
+        Cplot12 = mesh.plotSlice(
+            plotMap*xi_true, normal='Y', ind=int((ncy+2*npad)/2),
+            ax=Ax12, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
         Cplot12[0].set_clim((0., np.max(xi_true)))
         Ax12.set_xlabel('X [m]', fontsize=FS)
         Ax12.set_ylabel('Z [m]', fontsize=FS, labelpad=-10)
@@ -136,7 +158,9 @@ def run(plotIt=True):
         titlestr12 = "True Model (y = 0 m)"
         Ax12.set_title(titlestr12, fontsize=FS+2)
 
-        Cplot13 = mesh.plotSlice(plotMap*xi_true, normal='Z', ind=int((ncz+2*npad)/2-1), ax=Ax13, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
+        Cplot13 = mesh.plotSlice(
+            plotMap*xi_true, normal='Z', ind=int((ncz+2*npad)/2-1),
+            ax=Ax13, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
         Cplot13[0].set_clim((0., np.max(xi_true)))
         Ax13.set_xlabel('X [m]', fontsize=FS)
         Ax13.set_ylabel('Y [m]', fontsize=FS, labelpad=-10)
@@ -145,8 +169,11 @@ def run(plotIt=True):
         Ax13.set_title(titlestr13, fontsize=FS+2)
 
         norm = mpl.colors.Normalize(vmin=0., vmax=np.max(xi_true))
-        cbar14 = mpl.colorbar.ColorbarBase(Ax14, cmap='gist_heat_r', norm=norm, orientation = 'vertical')
-        cbar14.set_label('$\Delta \chi /$ln$(\lambda_2 / \lambda_1 )$ [SI]', rotation=270, labelpad=15, size=FS)
+        cbar14 = mpl.colorbar.ColorbarBase(
+            Ax14, cmap='gist_heat_r', norm=norm, orientation='vertical')
+        cbar14.set_label(
+            '$\Delta \chi /$ln$(\lambda_2 / \lambda_1 )$ [SI]',
+            rotation=270, labelpad=15, size=FS)
 
         # PLOT DECAY
         j1 = int((N**2-1)/2 - 3*N)
@@ -159,8 +186,10 @@ def run(plotIt=True):
         Ax21.set_ylabel('|dBz/dt| [T/s]', fontsize=FS)
         Ax21.tick_params(labelsize=FS-2)
         Ax21.set_xbound(np.min(times), np.max(times))
-        Ax21.set_ybound(1.2*np.max(di_tem+di_vrm),1e-5*np.max(di_tem+di_vrm))
-        titlestr21 = "Decay at X = " + '{:.2f}'.format(loc[j1, 0]) + " m and Y = " + '{:.2f}'.format(loc[j1, 1]) + " m"
+        Ax21.set_ybound(1.2*np.max(di_tem+di_vrm), 1e-5*np.max(di_tem+di_vrm))
+        titlestr21 = (
+            "Decay at X = " + '{:.2f}'.format(loc[j1, 0]) +
+            " m and Y = " + '{:.2f}'.format(loc[j1, 1]) + " m")
         Ax21.set_title(titlestr21, fontsize=FS+2)
         Ax21.text(1.2e-5, 18*np.max(di_tem)/1e5, "TEM", fontsize=FS, color='r')
         Ax21.text(1.2e-5, 6*np.max(di_tem)/1e5, "VRM", fontsize=FS, color='b')
@@ -177,7 +206,9 @@ def run(plotIt=True):
         Ax22.tick_params(labelsize=FS-2)
         Ax22.set_xbound(np.min(times), np.max(times))
         Ax22.set_ybound(1.2*np.max(di_tem+di_vrm), 1e-5*np.max(di_tem+di_vrm))
-        titlestr22 = "Decay at X = " + '{:.2f}'.format(loc[j2, 0]) + " m and Y = " + '{:.2f}'.format(loc[j2, 1]) + " m"
+        titlestr22 = (
+            "Decay at X = " + '{:.2f}'.format(loc[j2, 0]) +
+            " m and Y = " + '{:.2f}'.format(loc[j2, 1]) + " m")
         Ax22.set_title(titlestr22, fontsize=FS+2)
 
         # PLOT ANOMALIES
