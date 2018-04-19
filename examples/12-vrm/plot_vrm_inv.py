@@ -139,7 +139,6 @@ def run(plotIt=True):
     ]
     inv = Inversion.BaseInversion(invProb, directiveList=directives)
 
-    # m0 = 1e-6*np.ones(actCells.sum())
     xi_0 = 1e-3*np.ones(actCells.sum())
     xi_rec = inv.run(xi_0)
 
