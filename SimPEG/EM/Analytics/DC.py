@@ -209,7 +209,7 @@ def DCAnalyticSphere(txloc, rxloc, xc, radius, sigma, sigma1,
 
 
 def DCAnalyticSphere_Generalized(txloc, rxloc, sphloc, radius, sigma, sigma1,
-                     field_type="secondary", order=12, halfspace=False):
+                      current=1.0, field_type="secondary", order=12, halfspace=False):
     """
     Parameters:
 
@@ -270,7 +270,7 @@ def DCAnalyticSphere_Generalized(txloc, rxloc, sphloc, radius, sigma, sigma1,
     sphind = r < radius
     out = np.zeros_like(r)
     for n in range(order):
-        An, Bn = AnBnfun(n, radius, rs, rho, rho1)
+        An, Bn = AnBnfun(n, radius, rs, rho, rho1, I=current)
         dumout = An*r[~sphind]**(-n-1.)*Pleg[n](costheta[~sphind])
         out[~sphind] += dumout
         dumin = Bn*r[sphind]**(n)*Pleg[n](costheta[sphind])
