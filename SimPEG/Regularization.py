@@ -7,10 +7,9 @@ import properties
 from scipy.stats import multivariate_normal
 from scipy.special import logsumexp
 import copy
-
+import discretize as Mesh
 from . import Utils
 from . import Maps
-from . import Mesh
 from . import ObjectiveFunction
 from . import Props
 
@@ -669,12 +668,48 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
 
     # Properties
     alpha_s = Props.Float("smallness weight")
-    alpha_x = Props.Float("weight for the first x-derivative")
-    alpha_y = Props.Float("weight for the first y-derivative")
-    alpha_z = Props.Float("weight for the first z-derivative")
-    alpha_xx = Props.Float("weight for the second x-derivative")
-    alpha_yy = Props.Float("weight for the second y-derivative")
-    alpha_zz = Props.Float("weight for the second z-derivative")
+    alpha_x =properties.Union(
+        'This can be a float or an array',
+        props=[
+            properties.Float(''),
+            properties.Array(''),
+        ],
+    )
+    alpha_y =properties.Union(
+        'This can be a float or an array',
+        props=[
+            properties.Float(''),
+            properties.Array(''),
+        ],
+    )
+    alpha_z =properties.Union(
+        'This can be a float or an array',
+        props=[
+            properties.Float(''),
+            properties.Array(''),
+        ],
+    )
+    alpha_xx = properties.Union(
+        'This can be a float or an array',
+        props=[
+            properties.Float(''),
+            properties.Array(''),
+        ],
+    )
+    alpha_yy = properties.Union(
+        'This can be a float or an array',
+        props=[
+            properties.Float(''),
+            properties.Array(''),
+        ],
+    )
+    alpha_zz = properties.Union(
+        'This can be a float or an array',
+        props=[
+            properties.Float(''),
+            properties.Array(''),
+        ],
+    )
 
     counter = None
 
@@ -2815,10 +2850,43 @@ class SimplePetroWithMappingRegularization(BaseComboRegularization):
         self._evaltype = evaltype
         self.mapping = Maps.IdentityMap(mesh, nP=self.wiresmap.nP)
 
+        # if isinstance(alpha_x, float):
+        #     self.alpha_x = alpha_x * np.ones(len(self._wiresmap.maps))
+        # else:
+        #     self.alpha_x = alpha_x
+
+        # if isinstance(alpha_y, float):
+        #     self.alpha_y = alpha_y * np.ones(len(self._wiresmap.maps))
+        # else:
+        #     self.alpha_y = alpha_y
+
+        # if isinstance(alpha_z, float):
+        #     self.alpha_z = alpha_z * np.ones(len(self._wiresmap.maps))
+        # else:
+        #     self.alpha_z = alpha_z
+
+        # if isinstance(alpha_xx, float):
+        #     self.alpha_xx = alpha_xx * np.ones(len(self._wiresmap.maps))
+        # else:
+        #     self.alpha_xx = alpha_xx
+
+        # if isinstance(alpha_yy, float):
+        #     self.alpha_yy = alpha_yy * np.ones(len(self._wiresmap.maps))
+        # else:
+        #     self.alpha_yy = alpha_yy
+
+        # if isinstance(alpha_zz, float):
+        #     self.alpha_zz = alpha_zz * np.ones(len(self._wiresmap.maps))
+        # else:
+        #     self.alpha_zz = alpha_zz
+
         objfcts = [
             SimplePetroWithMappingSmallness(
-                mesh=mesh, GMmodel=self.GMmodel, wiresmap=self.wiresmap,
-                maplist=self.maplist, approx_gradient=approx_gradient,
+                mesh=mesh,
+                GMmodel=self.GMmodel,
+                wiresmap=self.wiresmap,
+                maplist=self.maplist,
+                approx_gradient=approx_gradient,
                 evaltype=evaltype,
                 mapping=self.mapping, **kwargs)
         ]

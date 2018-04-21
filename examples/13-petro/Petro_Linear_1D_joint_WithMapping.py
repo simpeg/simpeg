@@ -39,9 +39,9 @@ m0[20:41] = np.linspace(0., 1., 21)
 m0[41:57] = np.linspace(-1, 0., 16)
 
 poly0 = Maps.PolynomialPetroClusterMap(coeffyx=np.r_[0., -2., 2.])
-poly1 = Maps.PolynomialPetroClusterMap(coeffyx=np.r_[-0., -2., -2.])
+poly1 = Maps.PolynomialPetroClusterMap(coeffyx=np.r_[-0., 3, 6, 4.])
 poly0_inverse = Maps.PolynomialPetroClusterMap(coeffyx=-np.r_[-0., -2., 2.])
-poly1_inverse = Maps.PolynomialPetroClusterMap(coeffyx=-np.r_[0., -2., -2.])
+poly1_inverse = Maps.PolynomialPetroClusterMap(coeffyx=-np.r_[0., 3, 6, 4.])
 cluster_mapping = [Maps.IdentityMap(), poly0_inverse, poly1_inverse]
 
 m1 = np.zeros(100)
@@ -221,7 +221,7 @@ targets = Directives.PetroTargetMisfit(
 )
 
 # Setup Inversion
-inv = Inversion.BaseInversion(invProb, directiveList=[Alphas, Scales, beta,
+inv = Inversion.BaseInversion(invProb, directiveList=[Scales, beta,
                                                       targets,
                                                       ])
 

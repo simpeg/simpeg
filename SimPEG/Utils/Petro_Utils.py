@@ -13,10 +13,71 @@ from sklearn.mixture.gaussian_mixture import (
     _estimate_gaussian_covariances_diag,
     _estimate_gaussian_covariances_spherical
 )
-from sklearn.mixture.base import _check_X, check_random_state, ConvergenceWarning
+from sklearn.mixture.base import (
+    _check_X, check_random_state, ConvergenceWarning
+)
 import warnings
 from .matutils import mkvc
-from SimPEG import Maps
+from SimPEG import Maps, Regularization
+
+
+def MakeSimplePetroRegularization(
+    mesh, GMmref, GMmodel=None,
+    wiresmap=None, maplist=None,
+    approx_gradient=True,
+    evaltype='approx',
+    alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
+    alpha_xx=0., alpha_yy=0., alpha_zz=0.,
+    **kwargs
+):
+    reg = Regularization.SimplePetroRegularization(
+        mesh=mesh, GMmref=GMmref, GMmodel=GMmodel,
+        wiresmap=wiresmap, maplist=maplist,
+        approx_gradient=approx_gradient,
+        evaltype=evaltype,
+        alpha_s=alpha_s,
+        alpha_x=0., alpha_y=0., alpha_z=0.,
+        **kwargs
+    )
+
+    if wiresmap is None:
+        wrmp = Maps.Wires(('m', mesh.nC))
+    else:
+        wrmp = wiresmap
+
+    if maplist is None:
+        mplst = [Maps.IdentityMap(mesh) for maps in wrmp.maps]
+    else:
+        mplst = maplist
+
+    if isinstance(alpha_x, float):
+        alph_x = alpha_x * np.ones(len(wrmp.maps))
+    else:
+        alph_x = alpha_x
+
+    if isinstance(alpha_y, float):
+        alph_y = alpha_y * np.ones(len(wrmp.maps))
+    else:
+        alph_y = alpha_y
+
+    if isinstance(alpha_z, float):
+        alph_z = alpha_z * np.ones(len(wrmp.maps))
+    else:
+        alph_z = alpha_z
+
+    for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
+        reg += Regularization.Simple(
+            mesh=mesh,
+            mapping=maps * wire[1],
+            alpha_s=0.,
+            alpha_x=alph_x[i],
+            alpha_y=alph_y[i],
+            alpha_z=alph_z[i],
+            ** kwargs
+        )
+
+    return reg
+
 
 def ComputeDistances(a, b):
 
@@ -28,8 +89,7 @@ def ComputeDistances(a, b):
 
     assert d == d1, ('vectors must have same number of columns')
 
-    sq_dis = np.dot((x**2.), np.ones([d, t])) + \
-        np.dot(np.ones([n, d]), (y**2.).T) - 2. * np.dot(x, y.T)
+    sq_dis = np.dot((x**2.), np.ones([d, t])) + np.dot(np.ones([n, d]), (y**2.).T) - 2. * np.dot(x, y.T)
 
     idx = np.argmin(sq_dis, axis=1)
 
@@ -69,7 +129,7 @@ def order_cluster(GMmodel, GMref, outputindex=False):
         _, id_dis = ComputeDistances(mkvc(GMmodel.means_[i], numDims=2),
                                      mkvc(GMref.means_[idx_ref], numDims=2))
         idrefmean = np.where(GMref.means_ == GMref.means_[
-                             idx_ref][id_dis])[0][0]
+            idx_ref][id_dis])[0][0]
         indx.append(idrefmean)
         idx_ref[idrefmean] = False
 
@@ -505,6 +565,7 @@ class GaussianMixtureWithPrior(GaussianMixture):
 
         return self
 
+
 class GaussianMixtureWithMapping(GaussianMixture):
 
     def __init__(self, n_components=1, covariance_type='full', tol=1e-3,
@@ -514,7 +575,8 @@ class GaussianMixtureWithMapping(GaussianMixture):
                  verbose=0, verbose_interval=10, cluster_mapping=None):
 
         if cluster_mapping is None:
-            self.cluster_mapping = [Maps.IdentityMap() for i in range(n_components)]
+            self.cluster_mapping = [Maps.IdentityMap()
+                                    for i in range(n_components)]
         else:
             self.cluster_mapping = cluster_mapping
 
@@ -592,39 +654,39 @@ class GaussianMixtureWithMapping(GaussianMixture):
 
         if covariance_type == 'full':
             log_prob = np.empty((n_samples, n_components))
-            for k, (mu, prec_chol,mapping ) in enumerate(zip(means, precisions_chol,cluster_mapping)):
+            for k, (mu, prec_chol, mapping) in enumerate(zip(means, precisions_chol, cluster_mapping)):
                 y = np.dot(mapping * X, prec_chol) - np.dot(mu, prec_chol)
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
         elif covariance_type == 'tied':
             log_prob = np.empty((n_samples, n_components))
-            for k, (mu,mapping) in enumerate(zip(means, cluster_mapping)):
-                y = np.dot(mapping * X, precisions_chol) - np.dot(mu, precisions_chol)
+            for k, (mu, mapping) in enumerate(zip(means, cluster_mapping)):
+                y = np.dot(mapping * X, precisions_chol) - \
+                    np.dot(mu, precisions_chol)
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
         elif covariance_type == 'diag' or covariance_type == 'spherical':
             log_prob = np.empty((n_samples, n_components))
             precisions = precisions_chol ** 2
-            for k, (mu, prec_chol,mapping ) in enumerate(zip(means, precisions_chol,cluster_mapping)):
-                y = np.dot(mapping * X, prec_chol*np.eye(n_features)) - np.dot(mu, prec_chol*np.eye(n_features))
+            for k, (mu, prec_chol, mapping) in enumerate(zip(means, precisions_chol, cluster_mapping)):
+                y = np.dot(mapping * X, prec_chol * np.eye(n_features)
+                           ) - np.dot(mu, prec_chol * np.eye(n_features))
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
-            #log_prob = (np.sum((means ** 2 * precisions), 1) -
+            # log_prob = (np.sum((means ** 2 * precisions), 1) -
             #            2. * np.dot(X, (means * precisions).T) +
             #            np.dot(X ** 2, precisions.T))
 
-        #elif covariance_type == 'spherical':
+        # elif covariance_type == 'spherical':
         #    precisions = precisions_chol ** 2
         #    log_prob = (np.sum(means ** 2, 1) * precisions -
         #                2 * np.dot(X, means.T * precisions) +
         #                np.outer(row_norms(X, squared=True), precisions))
         return -.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
 
-
     def _estimate_log_prob(self, X):
         return self._estimate_log_gaussian_prob(
             X, self.means_, self.precisions_cholesky_, self.covariance_type, self.cluster_mapping)
-
 
     def _estimate_gaussian_parameters(self, X, resp, reg_covar, covariance_type):
 
@@ -632,19 +694,20 @@ class GaussianMixtureWithMapping(GaussianMixture):
         # stupid lazy piece of junk code to get the shapes right
         means = np.dot(resp.T, X) / nk[:, np.newaxis]
         covariances = {"full": _estimate_gaussian_covariances_full,
-                   "tied": _estimate_gaussian_covariances_tied,
-                   "diag": _estimate_gaussian_covariances_diag,
-                   "spherical": _estimate_gaussian_covariances_spherical
-                   }[covariance_type](resp, X, nk, means, reg_covar)
-        #The actual calculation
+                       "tied": _estimate_gaussian_covariances_tied,
+                       "diag": _estimate_gaussian_covariances_diag,
+                       "spherical": _estimate_gaussian_covariances_spherical
+                       }[covariance_type](resp, X, nk, means, reg_covar)
+        # The actual calculation
         for k in range(means.shape[0]):
-            means[k] = (np.dot(resp.T, self.cluster_mapping[k] * X) / nk[:, np.newaxis])[k]
+            means[k] = (np.dot(resp.T, self.cluster_mapping[
+                        k] * X) / nk[:, np.newaxis])[k]
         for k in range(means.shape[0]):
             covariances[k] = ({"full": _estimate_gaussian_covariances_full,
-                   "tied": _estimate_gaussian_covariances_tied,
-                   "diag": _estimate_gaussian_covariances_diag,
-                   "spherical": _estimate_gaussian_covariances_spherical
-                   }[covariance_type](resp, self.cluster_mapping[k] * X, nk, means, reg_covar))[k]
+                               "tied": _estimate_gaussian_covariances_tied,
+                               "diag": _estimate_gaussian_covariances_diag,
+                               "spherical": _estimate_gaussian_covariances_spherical
+                               }[covariance_type](resp, self.cluster_mapping[k] * X, nk, means, reg_covar))[k]
         return nk, means, covariances
 
     # TODOs: Still not working because of inverse mapping not implemented
@@ -693,10 +756,10 @@ class GaussianMixtureWithMapping(GaussianMixture):
                     self.means_, self.covariances_, n_samples_comp)])
 
         y = np.concatenate([j * np.ones(sample, dtype=int)
-                           for j, sample in enumerate(n_samples_comp)])
+                            for j, sample in enumerate(n_samples_comp)])
         X = np.vstack([
-               self.cluster_mapping[y[i]].inverse(X[i].reshape(-1, n_features))
-                for i in range(len(X))])
+            self.cluster_mapping[y[i]].inverse(X[i].reshape(-1, n_features))
+            for i in range(len(X))])
 
         return (X, y)
 
@@ -712,7 +775,7 @@ class GaussianMixtureWithMapping(GaussianMixture):
         n_samples, _ = X.shape
         self.weights_, self.means_, self.covariances_ = (
             self._estimate_gaussian_parameters(X, np.exp(log_resp), self.reg_covar,
-                                          self.covariance_type))
+                                               self.covariance_type))
         self.weights_ /= n_samples
         self.precisions_cholesky_ = _compute_precision_cholesky(
             self.covariances_, self.covariance_type)
