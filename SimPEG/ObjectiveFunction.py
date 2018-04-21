@@ -447,4 +447,4 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
                 )
             )
         W = self.W * self.mapping.deriv(m)
-        return self.W.T * self.W
+        return W.T * W
