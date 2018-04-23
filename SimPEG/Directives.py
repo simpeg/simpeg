@@ -1413,7 +1413,7 @@ class SmoothUpdateReferenceModel(InversionDirective):
 
     neighbors = None
     distance = 2
-    wegithed_random_walk = True
+    weigthed_random_walk = True
     compute_score = False
     maxit = None
     verbose = False
@@ -1454,7 +1454,7 @@ class SmoothUpdateReferenceModel(InversionDirective):
                                                           indActive=indActive,
                                                           neighbors=self.neighbors,
                                                           norm=self.distance,
-                                                          weighted_selection=self.wegithed_random_walk,
+                                                          weighted_selection=self.weigthed_random_walk,
                                                           compute_score=self.compute_score,
                                                           maxit=self.maxit,
                                                           verbose=self.verbose)
@@ -1465,7 +1465,7 @@ class SmoothUpdateReferenceModel(InversionDirective):
                                                 indActive=indActive,
                                                 neighbors=self.neighbors,
                                                 norm=self.distance,
-                                                weighted_selection=self.wegithed_random_walk,
+                                                weighted_selection=self.weigthed_random_walk,
                                                 compute_score=self.compute_score,
                                                 maxit=self.maxit,
                                                 verbose=self.verbose)
