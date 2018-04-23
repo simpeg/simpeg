@@ -1458,6 +1458,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
     alpha0_ratio = 1e-2  #: estimateAlha0 is used with this ratio
     ninit = 10
     verbose = False
+    debug = False
 
     def initialize(self):
         """
@@ -1473,17 +1474,23 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     for i in range(len(self.invProb.reg.objfcts))
                 ]
             )
-            Small = np.where(np.r_[
+            Small = np.r_[
                 [
-                    (
+                    (np.r_[
+                        i, j,
+                        (
                         isinstance(regpart, Regularization.SimplePetroWithMappingSmallness) or
                         isinstance(regpart, Regularization.SimplePetroSmallness) or
                         isinstance(regpart, Regularization.PetroSmallness)
-                    )
+                        )
+                    ])
                     for i, regobjcts in enumerate(self.invProb.reg.objfcts)
                     for j, regpart in enumerate(regobjcts.objfcts)
                 ]
-            ])
+            ]
+            Small = Small[Small[:,2]==1][:,:2][0]
+            if self.debug:
+                print(type(self.invProb.reg.objfcts[Small[0]].objfcts[Small[1]]))
             Smooth = np.r_[
                 [
                     (np.r_[
@@ -1543,12 +1550,15 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         elif mode == 1:
             for i in range(nbr):
                 ratio = []
-                if Smooth[i,2]:
-                    idx = Smooth[i,:2]
+                if Smooth[i, 2]:
+                    idx = Smooth[i, :2]
+                    if self.debug:
+                        print(type(self.invProb.reg.objfcts[idx[0]].objfcts[idx[1]]))
+
                     for j in range(self.ninit):
                         x0 = np.random.rand(m.shape[0])
                         t = x0.dot(self.invProb.reg.objfcts[
-                               Small[0][0]].deriv2(m, v=x0))
+                               Small[0]].objfcts[Small[1]].deriv2(m, v=x0))
                         b = x0.dot(self.invProb.reg.objfcts[
                                idx[0]].objfcts[idx[1]].deriv2(m, v=x0))
                         ratio.append(t / b)
