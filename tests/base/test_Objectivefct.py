@@ -41,6 +41,16 @@ class TestBaseObjFct(unittest.TestCase):
         objfct = ObjectiveFunction.L2ObjectiveFunction()
         self.assertTrue(objfct.test(eps=1e-9))
 
+    def test_deriv2(self):
+        nP=100
+        mapping=Maps.ExpMap(nP=nP)
+        m = np.random.rand(nP)
+        v = np.random.rand(nP)
+        objfct = ObjectiveFunction.L2ObjectiveFunction(nP=nP, mapping=mapping)
+        self.assertTrue(
+            np.allclose(objfct.deriv2(m=m, v=v), objfct.deriv2(m=m)*v)
+        )
+
     def test_scalarmul(self):
         scalar = 10.
         nP = 100
