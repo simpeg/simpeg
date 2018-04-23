@@ -30,6 +30,7 @@ env:
     - TEST_DIR="tests/em/nsem/forward tests/em/nsem/inversion"
     - TEST_DIR=tests/em/fdem/inverse/adjoint
     - TEST_DIR=tests/em/fdem/forward
+    - TEST_DIR=tests/em/vrm
     - TEST_DIR=tests/pf
     - TEST_DIR=tests/docs;
       GAE_PYTHONPATH=${HOME}/.cache/google_appengine;
@@ -57,6 +58,7 @@ install:
     else
       conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
     fi
+
   - pip install -r requirements_dev.txt
   - python setup.py install
   - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
@@ -96,7 +98,7 @@ after_success:
       echo "Not deploying (because this is not a deployment directory)" ;
       exit 0 ;
     fi
-  - if [ "$TRAVIS_PULL_REQUEST" = "true" ]; then
+  - if ! [ "$TRAVIS_PULL_REQUEST" = "false" ]; then
       echo "Not deploying (because this is a pull request)" ;
       exit 0 ;
     fi
@@ -105,10 +107,10 @@ after_success:
   - if [ $TRAVIS_PYTHON_VERSION == $DOCS_PY ]; then
       if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" ]; then
         cd docs; tar -cvzf _build.tar.gz _build ;
-        cd content; tar -cvzf examples.tar.gz examples ; cd ..;
+        cd content; tar -cvzf examples.tar.gz examples ; cd ../../ ;
         gsutil cp docs/_build.tar.gz gs://simpeg ;
         gsutil cp docs/content/examples.tar.gz gs://simpeg ;
-        gcloud auth activate-service-account --key-file credentials/client-secret-dev.json ;
+        gcloud auth activate-service-account --key-file credentials/client-secret.json ;
         export GAE_PROJECT=$GAE_PROJECT ;
       fi ;
       gcloud config set project $GAE_PROJECT;
@@ -117,7 +119,7 @@ after_success:
 
   #deploy to pypi
   - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY ]; then
-      if [ "$TRAVIS_TAG" ]; then
+      if [ "$TRAVIS_TAG" = "true" ]; then
         mv credentials/.pypirc ~/.pypirc ;
         python setup.py sdist bdist_wheel --universal ;
         travis_wait 20 twine upload -r pypi --skip-existing dist/* ;

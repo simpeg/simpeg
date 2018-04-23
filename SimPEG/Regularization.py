@@ -473,6 +473,9 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
     def __init__(self, mesh=None, **kwargs):
         super(BaseRegularization, self).__init__()
         self.regmesh = RegularizationMesh(mesh)
+        if "indActive" in kwargs.keys():
+            indActive = kwargs.pop("indActive")
+            self.regmesh.indActive = indActive
         Utils.setKwargs(self, **kwargs)
 
     counter = None
@@ -545,9 +548,13 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         """
         Shape of the residual
         """
-        if getattr(self.regmesh, 'nC', None) != '*':
+
+        nC = getattr(self.regmesh, 'nC', None)
+        mapping = getattr(self, 'mapping', None)
+
+        if nC != '*' and nC is not None:
             return self.regmesh.nC
-        elif getattr(self, 'mapping', None) != '*':
+        elif mapping is not None and mapping.shape[0] != '*':
             return self.mapping.shape[0]
         else:
             return self.nP
@@ -639,6 +646,9 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
             objfcts=objfcts, multipliers=None
         )
         self.regmesh = RegularizationMesh(mesh)
+        if "indActive" in kwargs.keys():
+            indActive = kwargs.pop("indActive")
+            self.regmesh.indActive = indActive
         Utils.setKwargs(self, **kwargs)
 
         # link these attributes
@@ -700,9 +710,12 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         """
         Shape of the residual
         """
-        if getattr(self.regmesh, 'nC', None) != '*':
+        nC = getattr(self.regmesh, 'nC', None)
+        mapping = getattr(self, 'mapping', None)
+
+        if nC != '*' and nC is not None:
             return self.regmesh.nC
-        elif getattr(self, 'mapping', None) != '*':
+        elif mapping is not None and mapping.shape[0] != '*':
             return self.mapping.shape[0]
         else:
             return self.nP
@@ -1279,15 +1292,30 @@ class BaseSparse(BaseRegularization):
     model = properties.Array(
         "current model", dtype=float
     )
+
     gamma = properties.Float(
         "Model norm scaling to smooth out convergence", default=1.
     )
+
     epsilon = properties.Float(
-        "Threshold value for the model norm",  #, default=1e-1
+        "Threshold value for the model norm", default=1e-3,
         required=True
     )
-    norm = properties.Float(
-        "norm used", default=2
+
+    norm = properties.Array(
+        "norm used", dtype=float
+    )
+
+    space = properties.String(
+        "By default inherit the objctive", default='linear'
+    )
+
+    gradientType = properties.String(
+        "type of gradient", default='components'
+    )
+
+    scale = properties.Float(
+        "General nob for scaling", default=1.
     )
 
     @property
@@ -1297,25 +1325,6 @@ class BaseSparse(BaseRegularization):
     @stashedR.setter
     def stashedR(self, value):
         self._stashedR = value
-
-    def R(self, f_m):
-        # if R is stashed, return that instead
-        if getattr(self, 'stashedR') is not None:
-            return self.stashedR
-
-        if self.epsilon is None:
-            eps = 1.
-        else:
-            eps = self.epsilon
-
-        exponent = self.norm
-
-        # Eta scaling is important for mix-norms...do not mess with it
-        eta = (eps**(1.-exponent/2.))**0.5
-        r = eta / (f_m**2. + eps**2.)**((1.-exponent/2.)/2.)
-
-        self.stashedR = r  # stash on the first calculation
-        return r
 
 
 class SparseSmall(BaseSparse):
@@ -1329,26 +1338,64 @@ class SparseSmall(BaseSparse):
 
     _multiplier_pair = 'alpha_s'
 
-    def __init__(self, mesh, norm=2, **kwargs):
+    def __init__(self, mesh, **kwargs):
         super(SparseSmall, self).__init__(
-            mesh=mesh, norm=norm, **kwargs
+            mesh=mesh, **kwargs
         )
 
     @property
     def f_m(self):
-        return self.mapping * (self.model - self.mref)
+
+        return self.mapping * self._delta_m(self.model)
 
     @property
     def W(self):
         if getattr(self, 'model', None) is None:
-            R = Utils.speye(self.regmesh.nC)
+            R = Utils.speye(self.mapping.shape[0])
         else:
-            r = self.R(self.f_m)
+            r = self.R(self.f_m) #, self.eps_p, self.norm)
             R = Utils.sdiag(r)
 
         if self.cell_weights is not None:
-            return Utils.sdiag((self.gamma*self.cell_weights)**0.5) * R
-        return (self.gamma)**0.5 * R
+            return Utils.sdiag((self.scale * self.gamma *
+                                self.cell_weights)**0.5) * R
+        return (self.scale * self.gamma)**0.5 * R
+
+    def R(self, f_m):
+        # if R is stashed, return that instead
+        if getattr(self, 'stashedR') is not None:
+            return self.stashedR
+
+        # Eta scaling is important for mix-norms...do not mess with it
+        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
+        r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
+        # print(eta)
+        self.stashedR = r  # stash on the first calculation
+        return r
+
+    @Utils.timeIt
+    def deriv(self, m):
+        """
+
+        The regularization is:
+
+        .. math::
+
+            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top
+                   W(m-m_\\text{ref})}
+
+        So the derivative is straight forward:
+
+        .. math::
+
+            R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
+
+        """
+
+
+        mD = self.mapping.deriv(self._delta_m(m))
+        r = self.W * (self.mapping * (self._delta_m(m)))
+        return mD.T * (self.W.T * r)
 
 
 class SparseDeriv(BaseSparse):
@@ -1365,13 +1412,177 @@ class SparseDeriv(BaseSparse):
         "include mref in the smoothness calculation?", default=False
     )
 
+    @Utils.timeIt
+    def __call__(self, m):
+        """
+        We use a weighted 2-norm objective function
+
+        .. math::
+
+            r(m) = \\frac{1}{2}
+        """
+        if self.mrefInSmooth:
+
+            f_m = self._delta_m(m)
+
+        else:
+            f_m = m
+
+        if self.space == 'spherical':
+            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
+            if getattr(self, 'model', None) is None:
+                R = Utils.speye(self.cellDiffStencil.shape[0])
+
+            else:
+                r = self.R(self.f_m)
+                R = Utils.sdiag(r)
+
+            if self.cell_weights is not None:
+                W = (
+                    Utils.sdiag(
+                        (
+                            self.scale * self.gamma * (Ave*(self.cell_weights))
+                        )**0.5
+                    ) * R
+                )
+
+            else:
+                W = ((self.scale * self.gamma)**0.5) * R
+
+            theta = self.cellDiffStencil * (self.mapping * f_m)
+            dmdx = coterminal(theta)
+            r = W * dmdx
+
+        else:
+            r = self.W * (self.mapping * f_m)
+
+        return 0.5 * r.dot(r)
+
+    def R(self, f_m):
+        # if R is stashed, return that instead
+        if getattr(self, 'stashedR') is not None:
+            return self.stashedR
+
+        Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
+        # Eta scaling is important for mix-norms...do not mess with it
+        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
+        r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
+
+        self.stashedR = r  # stash on the first calculation
+        return r
+
+    @Utils.timeIt
+    def deriv(self, m):
+        """
+
+        The regularization is:
+
+        .. math::
+
+            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top
+                   W(m-m_\\text{ref})}
+
+        So the derivative is straight forward:
+
+        .. math::
+
+            R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
+
+        """
+
+        if self.mrefInSmooth:
+
+            model = self._delta_m(m)
+
+        else:
+            model = m
+
+        if self.space == 'spherical':
+            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
+            if getattr(self, 'model', None) is None:
+                R = Utils.speye(self.cellDiffStencil.shape[0])
+
+            else:
+                r = self.R(self.f_m)
+                R = Utils.sdiag(r)
+
+            if self.cell_weights is not None:
+                W = (
+                    Utils.sdiag(
+                        (self.scale * self.gamma *
+                            (Ave*(self.cell_weights))
+                         )**0.5
+                    ) * R
+                )
+
+            else:
+                W = ((self.scale * self.gamma)**0.5) * R
+
+            theta = self.cellDiffStencil * (self.mapping * model)
+            dmdx = coterminal(theta)
+
+            r = W * dmdx
+
+        else:
+            r = self.W * (self.mapping * model)
+
+        mD = self.mapping.deriv(model)
+        return mD.T * (self.W.T * r)
+
     @property
     def _multiplier_pair(self):
         return 'alpha_{orientation}'.format(orientation=self.orientation)
 
     @property
     def f_m(self):
-        return self.cellDiffStencil * (self.mapping * self.model)
+
+        if self.mrefInSmooth:
+
+            f_m = self._delta_m(self.model)
+
+        else:
+            f_m = self.model
+
+        if self.space == 'spherical':
+            theta = self.cellDiffStencil * (self.mapping * f_m)
+            dmdx = coterminal(theta)
+
+        else:
+
+            if self.gradientType == 'total':
+                Ave = getattr(
+                    self.regmesh,
+                    'aveCC2F{}'.format(self.orientation)
+                )
+
+                dmdx = np.abs(self.regmesh.aveFx2CC *
+                              self.regmesh.cellDiffxStencil *
+                              (self.mapping * f_m)
+                              )
+
+                if self.regmesh.dim > 1:
+
+                    dmdx += np.abs(self.regmesh.aveFy2CC *
+                                   self.regmesh.cellDiffyStencil *
+                                   (self.mapping * f_m)
+                                   )
+
+                if self.regmesh.dim > 2:
+
+                    dmdx += np.abs(self.regmesh.aveFz2CC *
+                                   self.regmesh.cellDiffzStencil *
+                                   (self.mapping * f_m)
+                                   )
+
+                dmdx = Ave * dmdx
+
+            else:
+                dmdx = self.cellDiffStencil * (self.mapping * f_m)
+
+        return dmdx
 
     @property
     def cellDiffStencil(self):
@@ -1394,11 +1605,11 @@ class SparseDeriv(BaseSparse):
         if self.cell_weights is not None:
             return (
                 Utils.sdiag(
-                    (self.gamma*(Ave*self.cell_weights))**0.5
+                    (self.scale * self.gamma * (Ave*(self.cell_weights)))**0.5
                 ) *
                 R * self.cellDiffStencil
             )
-        return ((self.gamma)**0.5) * R * self.cellDiffStencil
+        return ((self.scale * self.gamma)**0.5) * R * self.cellDiffStencil
 
 
 class Sparse(BaseComboRegularization):
@@ -1454,14 +1665,16 @@ class Sparse(BaseComboRegularization):
     # Properties
     norms = properties.Array(
         "Norms used to create the sparse regularization",
-        default=[2., 2., 2., 2.]
+        default=np.c_[2., 2., 2., 2.], shape={('*', '*')}
     )
 
     eps_p = properties.Float(
-        "Threshold value for the model norm")
+        "Threshold value for the model norm", required=True
+        )
 
     eps_q = properties.Float(
-        "Threshold value for the model gradient norm")
+        "Threshold value for the model gradient norm", required=True
+        )
 
     model = properties.Array("current model", dtype=float)
 
@@ -1469,11 +1682,48 @@ class Sparse(BaseComboRegularization):
         "Model norm scaling to smooth out convergence", default=1.
     )
 
+    space = properties.String(
+        "type of model", default='linear'
+    )
+
+    gradientType = properties.String(
+        "type of gradient", default='components'
+    )
+
+    scale = properties.Float(
+        "General nob for scaling", default=1.
+    )
+    # Save the l2 result during the IRLS
+    l2model = None
+
+    @properties.validator('norms')
+    def _validate_norms(self, change):
+        if change['value'].shape[0] == 1:
+            change['value'] = np.kron(
+                np.ones((self.regmesh.Pac.shape[1], 1)),
+                change['value']
+            )
+
+        elif change['value'].shape[0] > 1:
+            assert change['value'].shape[0] == self.regmesh.Pac.shape[1], (
+                "Vector of norms must be the size of active model parameters"
+                "The provided vector has length "
+                "{}".format(
+                    self.regmesh.Pac.shape[0], len(change['value'])
+                )
+            )
+
     # Observers
     @properties.observer('norms')
     def _mirror_norms_to_objfcts(self, change):
-        for i, objfct in enumerate(self.objfcts):
-            objfct.norm = change['value'][i]
+
+        self.objfcts[0].norm = change['value'][:, 0]
+        for i, objfct in enumerate(self.objfcts[1:]):
+            Ave = getattr(
+                objfct.regmesh,
+                'aveCC2F{}'.format(objfct.orientation)
+            )
+            objfct.norm = Ave*change['value'][:, i+1]
 
     @properties.observer('model')
     def _mirror_model_to_objfcts(self, change):
@@ -1496,3 +1746,29 @@ class Sparse(BaseComboRegularization):
         for objfct in self.objfcts:
             if isinstance(objfct, SparseDeriv):
                 objfct.epsilon = change['value']
+
+    @properties.observer('space')
+    def _mirror_space_to_objfcts(self, change):
+        for objfct in self.objfcts:
+            objfct.space = change['value']
+
+    @properties.observer('gradientType')
+    def _mirror_gradientType_to_objfcts(self, change):
+        for objfct in self.objfcts:
+            objfct.gradientType = change['value']
+
+    @properties.observer('scale')
+    def _mirror_scale_to_objfcts(self, change):
+        for objfct in self.objfcts:
+            objfct.scale = change['value']
+
+
+def coterminal(theta):
+    """ Compute coterminal angle so that [-pi < theta < pi]"""
+
+    sub = theta[np.abs(theta) >= np.pi]
+    sub = -np.sign(sub) * (2*np.pi-np.abs(sub))
+
+    theta[np.abs(theta) >= np.pi] = sub
+
+    return theta
