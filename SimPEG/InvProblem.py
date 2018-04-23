@@ -165,7 +165,7 @@ class BaseInvProblem(Props.BaseSimPEG):
                     dpred += [objfct.survey.dpred(m, f=f[i])]
                 else:
                     dpred += []
-                return dpred
+            return dpred
 
     @Utils.timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
