@@ -104,7 +104,9 @@ betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e0, ninit=10)
 target = Directives.PetroTargetMisfit(verbose=True)
 petrodir = Directives.GaussianMixtureUpdateModel(verbose=False)
 addmref = Directives.AddMrefInSmooth()
-inv = Inversion.BaseInversion(invProb, directiveList=[betaest, beta, target, addmref, petrodir])
+inv = Inversion.BaseInversion(
+    invProb,
+    directiveList=[betaest, target, beta, addmref, petrodir])
 m0 = np.log(np.ones(mtrue.size)*sig_half)
 prb.counter = opt.counter = Utils.Counter()
 opt.remember('xc')
