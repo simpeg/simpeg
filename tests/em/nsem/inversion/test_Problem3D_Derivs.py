@@ -69,16 +69,16 @@ class NSEM_DerivTests(unittest.TestCase):
     # Do a derivative test of Jvec
     def test_derivJvec_impedanceAll(self):
         self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2), 'Imp', .1))
-    # def test_derivJvec_zxxr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'xx',.1))
-    # def test_derivJvec_zxyi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'xy',.1))
-    # def test_derivJvec_zyxr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'yx',.1))
-    # def test_derivJvec_zyyi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'yy',.1))
+    def test_derivJvec_zxxr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'xx',.1))
+    def test_derivJvec_zxyi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'xy',.1))
+    def test_derivJvec_zyxr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'yx',.1))
+    def test_derivJvec_zyyi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'yy',.1))
 
     # Tipper
     def test_derivJvec_tipperAll(self):
         self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2), 'Tip', .1))
-    # def test_derivJvec_tzxr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zx',.1))
-    # def test_derivJvec_tzyi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zy',.1))
+    def test_derivJvec_tzxr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zx',.1))
+    def test_derivJvec_tzyi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zy',.1))
 
 if __name__ == '__main__':
     unittest.main()

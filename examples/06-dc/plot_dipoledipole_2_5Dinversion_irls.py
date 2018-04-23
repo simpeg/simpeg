@@ -1,15 +1,23 @@
 """
-2.5D DC inversion of with Topography
-====================================
+2.5D DC inversion of with Iterative Reweighted Least Squares
+============================================================
 
-This is an example for 2.5D DC Inversion. Earth includes a topography,
+This is an example for 2.5D DC Inversion with Iterative Reweighted
+Least Squares (IRLS). Earth includes a topography,
 and below the topography conductive and resistive cylinders are embedded.
-Sensitivity weighting is used for the inversion.
-Approximate depth of investigation is computed by selecting
-1 percent of max(sqrt(diag(JtJ))), and regions having smaller sensitivity
-than this is blanked.
-User is promoted to try different suvey_type such as 'pole-dipole',
-'dipole-pole', and 'pole-pole'.
+User is promoted to try different p, qx, qz.
+For instance a set of paraemters (default):
+
+* p=0 (sparse model, m)
+* qx=2 (smooth model, m in x-direction)
+* qz=2 (smooth model, m in z-direction)
+
+But if you want share edges of the model, you can try:
+
+* p=0 (sparse model, m)
+* qx=0 (smooth model, m in x-direction)
+* qz=2 (smooth model, m in z-direction)
+
 """
 
 from SimPEG import DC
@@ -25,7 +33,7 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 
-def run(plotIt=True, survey_type="dipole-dipole"):
+def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
     np.random.seed(1)
     # Initiate I/O class for DC
     IO = DC.IO()
@@ -142,17 +150,23 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     regmap = Maps.IdentityMap(nP=int(actind.sum()))
 
     # Related to inversion
-    reg = Regularization.Simple(mesh, indActive=actind, mapping=regmap)
-    opt = Optimization.InexactGaussNewton(maxIter=15)
+    reg = Regularization.Sparse(
+        mesh, indActive=actind, mapping=regmap,
+        gradientType = 'components'
+    )
+    #     gradientType = 'components'
+    reg.norms = np.c_[p, qx, qz, 0.]
+    IRLS = Directives.Update_IRLS(maxIRLSiter=20, minGNiter=1)
+
+    opt = Optimization.InexactGaussNewton(maxIter=40)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
     beta = Directives.BetaSchedule(coolingFactor=5, coolingRate=2)
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e0)
     target = Directives.TargetMisfit()
-    updateSensW = Directives.UpdateSensitivityWeights()
     update_Jacobi = Directives.UpdatePreconditioner()
     inv = Inversion.BaseInversion(
         invProb, directiveList=[
-            beta, betaest, target, updateSensW, update_Jacobi
+            betaest, IRLS
         ]
         )
     prb.counter = opt.counter = Utils.Counter()
@@ -162,63 +176,36 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # Run inversion
     mopt = inv.run(m0)
 
-    # Get diag(JtJ)
-    mask_inds = np.ones(mesh.nC, dtype=bool)
-    jtj = np.sqrt(updateSensW.JtJdiag[0])
-    jtj /= jtj.max()
-    temp = np.ones_like(jtj, dtype=bool)
-    temp[jtj > 0.005] = False
-    mask_inds[actind] = temp
-    actind_final = np.logical_and(actind, ~mask_inds)
-    jtj_cc = np.ones(mesh.nC)*np.nan
-    jtj_cc[actind] = jtj
-
-    # Show the sensitivity
-    if plotIt:
-        fig = plt.figure(figsize=(12, 3))
-        ax = plt.subplot(111)
-        temp = rho.copy()
-        temp[~actind] = np.nan
-        out = mesh.plotImage(
-            jtj_cc, grid=True, ax=ax,
-            gridOpts={'alpha': 0.2}, clim=(0.005, 0.5),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()}
-        )
-        ax.plot(
-            survey.electrode_locations[:, 0],
-            survey.electrode_locations[:, 1], 'k.'
-        )
-        ax.set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
-        ax.set_ylim(-IO.grids[:, 1].max(), IO.grids[:, 1].min())
-        cb = plt.colorbar(out[0])
-        cb.set_label("Sensitivity")
-        ax.set_aspect('equal')
-        plt.show()
-
-    # Convert obtained inversion model to resistivity
-    # rho = M(m), where M(.) is a mapping
-
     rho_est = mapping*mopt
-    rho_est[~actind_final] = np.nan
+    rho_est_l2 = mapping*invProb.l2model
+    rho_est[~actind] = np.nan
+    rho_est_l2[~actind] = np.nan
     rho_true = rho.copy()
-    rho_true[~actind_final] = np.nan
+    rho_true[~actind] = np.nan
 
     # show recovered conductivity
     if plotIt:
         vmin, vmax = rho.min(), rho.max()
-        fig, ax = plt.subplots(2, 1, figsize=(20, 6))
+        fig, ax = plt.subplots(3, 1, figsize=(20, 9))
         out1 = mesh.plotImage(
                 rho_true, clim=(10, 1000),
                 pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
                 ax=ax[0]
         )
         out2 = mesh.plotImage(
-            rho_est, clim=(10, 1000),
+            rho_est_l2, clim=(10, 1000),
             pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
             ax=ax[1]
         )
-        out = [out1, out2]
-        for i in range(2):
+        out3 = mesh.plotImage(
+            rho_est, clim=(10, 1000),
+            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            ax=ax[2]
+        )
+
+        out = [out1, out2, out3]
+        titles = ["True", "L2", ("L%d, Lx%d, Lz%d")%(p, qx, qz)]
+        for i in range(3):
             ax[i].plot(
                 survey.electrode_locations[:, 0],
                 survey.electrode_locations[:, 1], 'kv'
@@ -230,8 +217,11 @@ def run(plotIt=True, survey_type="dipole-dipole"):
             ax[i].set_xlabel("Northing (m)")
             ax[i].set_ylabel("Elevation (m)")
             ax[i].set_aspect('equal')
+            ax[i].set_title(titles[i])
         plt.tight_layout()
         plt.show()
 
+
 if __name__ == '__main__':
     run()
+
