@@ -27,10 +27,12 @@ from .modelutils import surface2ind_topo
 from .PlotUtils import plot2Ddata, plotLayer
 from .io_utils import download
 
-from .Petro_Utils import (
+from .petroutils import (
     MakeSimplePetroRegularization, ComputeDistances,
     order_clusters_GM_weight, order_cluster,
-    computePrecision, computeCovariance, ComputeConstantTerm, GaussianMixture,
-    _compute_precision_cholesky, GibbsSampling_PottsDenoising,
-    ICM_PottsDenoising, FuzzyGaussianMixtureWithPrior,
-    GaussianMixtureWithMapping, GaussianMixtureWithMappingWithPrior)
+    computePrecision, computeCovariance, ComputeConstantTerm,
+    _compute_precision_cholesky, GaussianMixture,
+    GaussianMixtureWithPrior, FuzzyGaussianMixtureWithPrior,
+    GaussianMixtureWithMapping, GaussianMixtureWithMappingWithPrior,
+    GibbsSampling_PottsDenoising, ICM_PottsDenoising
+)

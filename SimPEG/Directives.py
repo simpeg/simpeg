@@ -1173,7 +1173,7 @@ class GaussianMixtureUpdateModel(InversionDirective):
             self.fixed_membership = self.petroregularizer.membership(
                 self.petroregularizer.mref)
 
-        clfupdate = Utils.Petro_Utils.GaussianMixtureWithPrior(
+        clfupdate = Utils.GaussianMixtureWithPrior(
             GMref=self.petroregularizer.GMmref,
             alphadir=self.alphadir,
             kappa=self.kappa,
