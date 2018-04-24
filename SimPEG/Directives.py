@@ -745,6 +745,8 @@ class Update_IRLS(InversionDirective):
 
         if self.mode == 1:
 
+            self.norms
+
             for reg in self.reg.objfcts:
                 reg.norms = np.c_[2., 2., 2., 2.]
                 reg.model = self.invProb.model
@@ -803,8 +805,11 @@ class Update_IRLS(InversionDirective):
             # phi_m_last += [reg(self.invProb.model)]
 
             for comp in reg.objfcts:
+                comp.model = self.invProb.model
                 phim_new += np.sum(comp.f_m**2. / (comp.f_m**2. + comp.epsilon**2.)**(1 - comp.norm/2.))
 
+        print("phimNew: ", phim_new)
+        print("f_old: ", self.f_old)
         # Update the model used by the regularization
         phi_m_last = []
         for reg in self.reg.objfcts:
@@ -934,6 +939,7 @@ class Update_IRLS(InversionDirective):
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms in zip(self.reg.objfcts, self.norms):
+
             reg.norms = norms
 
         # Save l2-model
