@@ -339,73 +339,6 @@ class SaveModelEveryIteration(SaveEveryIteration):
         )
 
 
-class SaveUBCModelEveryIteration(SaveEveryIteration):
-    """SaveModelEveryIteration"""
-
-    replace = True
-    saveComp = True
-    mapping = None
-
-    def initialize(self):
-
-        if getattr(self, 'mapping', None) is None:
-            return self.mapPair()
-        print("SimPEG.SaveModelEveryIteration will save your models" +
-              " in UBC format as: '###-{0!s}.sus'".format(self.fileName))
-
-    def endIter(self):
-
-        if not self.replace:
-            fileName = self.fileName + "Iter" + str(self.opt.iter)
-        else:
-            fileName = self.fileName
-
-        count = -1
-        for prob, survey, reg in zip(self.prob, self.survey, self.reg.objfcts):
-
-            count += 1
-
-            xc = prob.mapPair() * self.opt.xc
-
-            # Save model
-            if not isinstance(prob, Magnetics.MagneticVector):
-
-                Mesh.TensorMesh.writeModelUBC(reg.mesh,
-                                              fileName + '.sus', self.mapping * xc)
-            else:
-
-                if prob.coordinate_system == 'spherical':
-                    vec_xyz = Magnetics.atp2xyz(xc)
-                else:
-                    vec_xyz = xc
-
-                nC = self.mapping.shape[1]
-
-                vec_x = self.mapping * vec_xyz[:nC]
-                vec_y = self.mapping * vec_xyz[nC:2 * nC]
-                vec_z = self.mapping * vec_xyz[2 * nC:]
-
-                vec = np.c_[vec_x, vec_y, vec_z]
-
-                m_pst = Magnetics.xyz2pst(vec, self.survey[0].srcField.param)
-                m_ind = m_pst.copy()
-                m_ind[:, 1:] = 0.
-                m_ind = Magnetics.pst2xyz(m_ind, self.survey[0].srcField.param)
-
-                m_rem = m_pst.copy()
-                m_rem[:, 0] = 0.
-                m_rem = Magnetics.pst2xyz(m_rem, self.survey[0].srcField.param)
-
-                MagneticsDriver.writeVectorUBC(
-                    self.prob[0].mesh, fileName + '_VEC.fld', vec)
-
-                if self.saveComp:
-                    MagneticsDriver.writeVectorUBC(
-                        self.prob[0].mesh, fileName + '_IND.fld', m_ind)
-                    MagneticsDriver.writeVectorUBC(
-                        self.prob[0].mesh, fileName + '_REM.fld', m_rem)
-
-
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
 
@@ -420,12 +353,6 @@ class SaveOutputEveryIteration(SaveEveryIteration):
     phi_m_smooth_z = None
     phi = None
 
-    def endIter(self):
-        f = open(self.fileName + '.txt', 'a')
-        f.write(' {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e}\n'.format(
-            self.opt.iter, self.invProb.beta, self.invProb.phi_d, self.invProb.phi_m, self.opt.f))
-        f.close()
-
     def initialize(self):
         if self.save_txt is True:
             print(
@@ -437,9 +364,9 @@ class SaveOutputEveryIteration(SaveEveryIteration):
             f.write(self.header)
             f.close()
 
-        self.iter = []
+        # Create a list of each
+
         self.beta = []
-        self.alphas = []
         self.phi_d = []
         self.phi_m = []
         self.phi_m_small = []
@@ -447,15 +374,6 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.phi_m_smooth_y = []
         self.phi_m_smooth_z = []
         self.phi = []
-        self.phi_dDeriv = []
-        self.phi_mDeriv = []
-        self.phi_m_small_Deriv = []
-        self.phi_m_smooth_x_Deriv = []
-        self.phi_m_smooth_y_Deriv = []
-        self.phi_m_smooth_z_Deriv = []
-        self.m = []
-        self.dpred = []
-        self.mref = []
 
     def endIter(self):
 
@@ -481,8 +399,6 @@ class SaveOutputEveryIteration(SaveEveryIteration):
                 )
 
         self.beta.append(self.invProb.beta)
-        self.alphas.append(self.invProb.reg.multipliers)
-        self.phi.append(self.opt.f)
         self.phi_d.append(self.invProb.phi_d)
         self.phi_m.append(self.invProb.phi_m)
         self.phi_m_small.append(phi_s)
@@ -490,31 +406,6 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.phi_m_smooth_y.append(phi_y)
         self.phi_m_smooth_z.append(phi_z)
         self.phi.append(self.opt.f)
-
-        # Initialize the output dict
-        outDict = {}
-        # Save the data.
-        outDict['iter'] = self.iter
-        outDict['beta'] = self.beta
-        outDict['phi'] = self.phi
-        outDict['phi_d'] = self.phi_d
-        outDict['phi_m'] = self.phi_m
-        outDict['phi_ms'] = self.phi_m_small
-        outDict['phi_mx'] = self.phi_m_smooth_x
-        outDict['phi_my'] = self.phi_m_smooth_y
-        outDict['phi_mz'] = self.phi_m_smooth_z
-        outDict['m'] = self.m
-        outDict['dpred'] = self.dpred
-        outDict['mref'] = self.mref
-        outDict['alphas'] = self.alphas
-        outDict['phi_d_deriv'] = self.phi_dDeriv
-        outDict['phi_m_deriv'] = self.phi_mDeriv
-        outDict['phi_ms_deriv'] = self.phi_m_small_Deriv
-        outDict['phi_mx_deriv'] = self.phi_m_smooth_x_Deriv
-        outDict['phi_my_deriv'] = self.phi_m_smooth_y_Deriv
-        outDict['phi_mz_deriv'] = self.phi_m_smooth_z_Deriv
-        # Save the file as a npz
-        np.savez('{:03d}-{:s}'.format(self.opt.iter, self.fileName), outDict)
 
         if self.save_txt:
             f = open(self.fileName + '.txt', 'a')
