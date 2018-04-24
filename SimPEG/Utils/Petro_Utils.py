@@ -1,15 +1,82 @@
 import numpy as np
 import copy
 from scipy.stats import multivariate_normal
-from scipy import spatial
+from scipy import spatial, linalg
 from scipy.special import logsumexp
 from scipy.sparse import diags
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
-from sklearn.mixture.gaussian_mixture import _compute_precision_cholesky
-from sklearn.mixture.base import _check_X, check_random_state, ConvergenceWarning
+from sklearn.mixture.gaussian_mixture import (
+    _compute_precision_cholesky, _compute_log_det_cholesky,
+    _estimate_gaussian_covariances_full,
+    _estimate_gaussian_covariances_tied,
+    _estimate_gaussian_covariances_diag,
+    _estimate_gaussian_covariances_spherical
+)
+from sklearn.mixture.base import (
+    _check_X, check_random_state, ConvergenceWarning
+)
 import warnings
 from .matutils import mkvc
+from SimPEG import Maps, Regularization
+
+
+def MakeSimplePetroRegularization(
+    mesh, GMmref, GMmodel=None,
+    wiresmap=None, maplist=None,
+    approx_gradient=True,
+    evaltype='approx',
+    alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
+    alpha_xx=0., alpha_yy=0., alpha_zz=0.,
+    **kwargs
+):
+    reg = Regularization.SimplePetroRegularization(
+        mesh=mesh, GMmref=GMmref, GMmodel=GMmodel,
+        wiresmap=wiresmap, maplist=maplist,
+        approx_gradient=approx_gradient,
+        evaltype=evaltype,
+        alpha_s=alpha_s,
+        alpha_x=0., alpha_y=0., alpha_z=0.,
+        **kwargs
+    )
+
+    if wiresmap is None:
+        wrmp = Maps.Wires(('m', mesh.nC))
+    else:
+        wrmp = wiresmap
+
+    if maplist is None:
+        mplst = [Maps.IdentityMap(mesh) for maps in wrmp.maps]
+    else:
+        mplst = maplist
+
+    if isinstance(alpha_x, float):
+        alph_x = alpha_x * np.ones(len(wrmp.maps))
+    else:
+        alph_x = alpha_x
+
+    if isinstance(alpha_y, float):
+        alph_y = alpha_y * np.ones(len(wrmp.maps))
+    else:
+        alph_y = alpha_y
+
+    if isinstance(alpha_z, float):
+        alph_z = alpha_z * np.ones(len(wrmp.maps))
+    else:
+        alph_z = alpha_z
+
+    for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
+        reg += Regularization.Simple(
+            mesh=mesh,
+            mapping=maps * wire[1],
+            alpha_s=0.,
+            alpha_x=alph_x[i],
+            alpha_y=alph_y[i],
+            alpha_z=alph_z[i],
+            ** kwargs
+        )
+
+    return reg
 
 
 def ComputeDistances(a, b):
@@ -22,8 +89,7 @@ def ComputeDistances(a, b):
 
     assert d == d1, ('vectors must have same number of columns')
 
-    sq_dis = np.dot((x**2.), np.ones([d, t])) + \
-        np.dot(np.ones([n, d]), (y**2.).T) - 2. * np.dot(x, y.T)
+    sq_dis = np.dot((x**2.), np.ones([d, t])) + np.dot(np.ones([n, d]), (y**2.).T) - 2. * np.dot(x, y.T)
 
     idx = np.argmin(sq_dis, axis=1)
 
@@ -63,7 +129,7 @@ def order_cluster(GMmodel, GMref, outputindex=False):
         _, id_dis = ComputeDistances(mkvc(GMmodel.means_[i], numDims=2),
                                      mkvc(GMref.means_[idx_ref], numDims=2))
         idrefmean = np.where(GMref.means_ == GMref.means_[
-                             idx_ref][id_dis])[0][0]
+            idx_ref][id_dis])[0][0]
         indx.append(idrefmean)
         idx_ref[idrefmean] = False
 
@@ -389,7 +455,7 @@ class GaussianMixtureWithPrior(GaussianMixture):
         self.alphadir = alphadir * np.ones(self.n_components)
         self.prior_type = prior_type
         self.update_covariances = update_covariances
-        self.fixed_membership=fixed_membership
+        self.fixed_membership = fixed_membership
 
         super(GaussianMixtureWithPrior, self).__init__(
             covariance_type=self.covariance_type,
@@ -456,8 +522,9 @@ class GaussianMixtureWithPrior(GaussianMixture):
 
                 log_prob_norm, log_resp = self._e_step(X)
                 if self.fixed_membership is not None:
-                    new_log_resp=-(np.inf)*np.ones_like(log_resp)
-                    new_log_resp[np.arange(len(new_log_resp)),self.fixed_membership] = 0.
+                    new_log_resp = -(np.inf) * np.ones_like(log_resp)
+                    new_log_resp[
+                        np.arange(len(new_log_resp)), self.fixed_membership] = 0.
                     log_resp = new_log_resp
                 self._m_step(X, log_resp)
                 UpdateGaussianMixtureModel(
@@ -497,6 +564,387 @@ class GaussianMixtureWithPrior(GaussianMixture):
         self.last_step_change = change
 
         return self
+
+
+class GaussianMixtureWithMapping(GaussianMixture):
+
+    def __init__(self, n_components=1, covariance_type='full', tol=1e-3,
+                 reg_covar=1e-6, max_iter=100, n_init=1, init_params='kmeans',
+                 weights_init=None, means_init=None, precisions_init=None,
+                 random_state=None, warm_start=False,
+                 verbose=0, verbose_interval=10, cluster_mapping=None):
+
+        if cluster_mapping is None:
+            self.cluster_mapping = [Maps.IdentityMap()
+                                    for i in range(n_components)]
+        else:
+            self.cluster_mapping = cluster_mapping
+
+        super(GaussianMixtureWithMapping, self).__init__(
+            covariance_type=covariance_type,
+            init_params=init_params,
+            max_iter=max_iter,
+            means_init=means_init,
+            n_components=n_components,
+            n_init=n_init,
+            precisions_init=precisions_init,
+            random_state=random_state,
+            reg_covar=reg_covar,
+            tol=tol,
+            verbose=verbose,
+            verbose_interval=verbose_interval,
+            warm_start=warm_start,
+            weights_init=weights_init,
+            #**kwargs
+        )
+
+    def _initialize(self, X, resp):
+        """Initialization of the Gaussian mixture parameters.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+        resp : array-like, shape (n_samples, n_components)
+        """
+        n_samples, _ = X.shape
+
+        weights, means, covariances = self._estimate_gaussian_parameters(
+            X, resp, self.reg_covar, self.covariance_type)
+        weights /= n_samples
+
+        self.weights_ = (weights if self.weights_init is None
+                         else self.weights_init)
+        self.means_ = means if self.means_init is None else self.means_init
+
+        if self.precisions_init is None:
+            self.covariances_ = covariances
+            self.precisions_cholesky_ = _compute_precision_cholesky(
+                covariances, self.covariance_type)
+        elif self.covariance_type == 'full':
+            self.precisions_cholesky_ = np.array(
+                [linalg.cholesky(prec_init, lower=True)
+                 for prec_init in self.precisions_init])
+        elif self.covariance_type == 'tied':
+            self.precisions_cholesky_ = linalg.cholesky(self.precisions_init,
+                                                        lower=True)
+        else:
+            self.precisions_cholesky_ = self.precisions_init
+
+    def _estimate_log_gaussian_prob(self, X, means, precisions_chol, covariance_type, cluster_mapping):
+        """Estimate the log Gaussian probability.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+        means : array-like, shape (n_components, n_features)
+        precisions_chol : array-like
+            Cholesky decompositions of the precision matrices.
+            'full' : shape of (n_components, n_features, n_features)
+            'tied' : shape of (n_features, n_features)
+            'diag' : shape of (n_components, n_features)
+            'spherical' : shape of (n_components,)
+        covariance_type : {'full', 'tied', 'diag', 'spherical'}
+        Returns
+        -------
+        log_prob : array, shape (n_samples, n_components)
+        """
+        n_samples, n_features = X.shape
+        n_components, _ = means.shape
+        # det(precision_chol) is half of det(precision)
+        log_det = _compute_log_det_cholesky(
+            precisions_chol, covariance_type, n_features)
+
+        if covariance_type == 'full':
+            log_prob = np.empty((n_samples, n_components))
+            for k, (mu, prec_chol, mapping) in enumerate(zip(means, precisions_chol, cluster_mapping)):
+                y = np.dot(mapping * X, prec_chol) - np.dot(mu, prec_chol)
+                log_prob[:, k] = np.sum(np.square(y), axis=1)
+
+        elif covariance_type == 'tied':
+            log_prob = np.empty((n_samples, n_components))
+            for k, (mu, mapping) in enumerate(zip(means, cluster_mapping)):
+                y = np.dot(mapping * X, precisions_chol) - \
+                    np.dot(mu, precisions_chol)
+                log_prob[:, k] = np.sum(np.square(y), axis=1)
+
+        elif covariance_type == 'diag' or covariance_type == 'spherical':
+            log_prob = np.empty((n_samples, n_components))
+            precisions = precisions_chol ** 2
+            for k, (mu, prec_chol, mapping) in enumerate(zip(means, precisions_chol, cluster_mapping)):
+                y = np.dot(mapping * X, prec_chol * np.eye(n_features)
+                           ) - np.dot(mu, prec_chol * np.eye(n_features))
+                log_prob[:, k] = np.sum(np.square(y), axis=1)
+
+            # log_prob = (np.sum((means ** 2 * precisions), 1) -
+            #            2. * np.dot(X, (means * precisions).T) +
+            #            np.dot(X ** 2, precisions.T))
+
+        # elif covariance_type == 'spherical':
+        #    precisions = precisions_chol ** 2
+        #    log_prob = (np.sum(means ** 2, 1) * precisions -
+        #                2 * np.dot(X, means.T * precisions) +
+        #                np.outer(row_norms(X, squared=True), precisions))
+        return -.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
+
+    def _estimate_log_prob(self, X):
+        return self._estimate_log_gaussian_prob(
+            X, self.means_, self.precisions_cholesky_, self.covariance_type, self.cluster_mapping)
+
+    def _estimate_gaussian_parameters(self, X, resp, reg_covar, covariance_type):
+
+        nk = resp.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
+        # stupid lazy piece of junk code to get the shapes right
+        means = np.dot(resp.T, X) / nk[:, np.newaxis]
+        covariances = {"full": _estimate_gaussian_covariances_full,
+                       "tied": _estimate_gaussian_covariances_tied,
+                       "diag": _estimate_gaussian_covariances_diag,
+                       "spherical": _estimate_gaussian_covariances_spherical
+                       }[covariance_type](resp, X, nk, means, reg_covar)
+        # The actual calculation
+        for k in range(means.shape[0]):
+            means[k] = (np.dot(resp.T, self.cluster_mapping[
+                        k] * X) / nk[:, np.newaxis])[k]
+        for k in range(means.shape[0]):
+            covariances[k] = ({"full": _estimate_gaussian_covariances_full,
+                               "tied": _estimate_gaussian_covariances_tied,
+                               "diag": _estimate_gaussian_covariances_diag,
+                               "spherical": _estimate_gaussian_covariances_spherical
+                               }[covariance_type](resp, self.cluster_mapping[k] * X, nk, means, reg_covar))[k]
+        return nk, means, covariances
+
+    # TODOs: Still not working because of inverse mapping not implemented
+    def sample(self, n_samples=1):
+        """Generate random samples from the fitted Gaussian distribution.
+
+        Parameters
+        ----------
+        n_samples : int, optional
+            Number of samples to generate. Defaults to 1.
+
+        Returns
+        -------
+        X : array, shape (n_samples, n_features)
+            Randomly generated sample
+
+        y : array, shape (nsamples,)
+            Component labels
+
+        """
+        self._check_is_fitted()
+
+        if n_samples < 1:
+            raise ValueError(
+                "Invalid value for 'n_samples': %d . The sampling requires at "
+                "least one sample." % (self.n_components))
+
+        _, n_features = self.means_.shape
+        rng = check_random_state(self.random_state)
+        n_samples_comp = rng.multinomial(n_samples, self.weights_)
+
+        if self.covariance_type == 'full':
+            X = np.vstack([
+                rng.multivariate_normal(mean, covariance, int(sample))
+                for (mean, covariance, sample) in zip(
+                    self.means_, self.covariances_, n_samples_comp)])
+        elif self.covariance_type == "tied":
+            X = np.vstack([
+                rng.multivariate_normal(mean, self.covariances_, int(sample))
+                for (mean, sample) in zip(
+                    self.means_, n_samples_comp)])
+        else:
+            X = np.vstack([
+                mean + rng.randn(sample, n_features) * np.sqrt(covariance)
+                for (mean, covariance, sample) in zip(
+                    self.means_, self.covariances_, n_samples_comp)])
+
+        y = np.concatenate([j * np.ones(sample, dtype=int)
+                            for j, sample in enumerate(n_samples_comp)])
+        X = np.vstack([
+            self.cluster_mapping[y[i]].inverse(X[i].reshape(-1, n_features))
+            for i in range(len(X))])
+
+        return (X, y)
+
+    def _m_step(self, X, log_resp):
+        """M step.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+        log_resp : array-like, shape (n_samples, n_components)
+            Logarithm of the posterior probabilities (or responsibilities) of
+            the point of each sample in X.
+        """
+        n_samples, _ = X.shape
+        self.weights_, self.means_, self.covariances_ = (
+            self._estimate_gaussian_parameters(X, np.exp(log_resp), self.reg_covar,
+                                               self.covariance_type))
+        self.weights_ /= n_samples
+        self.precisions_cholesky_ = _compute_precision_cholesky(
+            self.covariances_, self.covariance_type)
+
+
+class GaussianMixtureWithMappingWithPrior(GaussianMixtureWithPrior):
+
+    def __init__(
+            self, GMref, kappa=0., nu=0., alphadir=0.,
+            prior_type='semi',  # semi or conjuguate
+            cluster_mapping=None,
+            n_components=1, covariance_type='full', tol=1e-3,
+            reg_covar=1e-6, max_iter=100, n_init=1, init_params='kmeans',
+            weights_init=None, means_init=None, precisions_init=None,
+            random_state=None, warm_start=False,
+            verbose=0, verbose_interval=10):
+
+        if cluster_mapping is None:
+            self.cluster_mapping = [Maps.IdentityMap()
+                                    for i in range(n_components)]
+        else:
+            self.cluster_mapping = cluster_mapping
+
+        super(GaussianMixtureWithMappingWithPrior, self).__init__(
+            covariance_type=covariance_type,
+            init_params=init_params,
+            max_iter=max_iter,
+            means_init=means_init,
+            n_components=n_components,
+            n_init=n_init,
+            precisions_init=precisions_init,
+            random_state=random_state,
+            reg_covar=reg_covar,
+            tol=tol,
+            verbose=verbose,
+            verbose_interval=verbose_interval,
+            warm_start=warm_start,
+            weights_init=weights_init,
+            #**kwargs
+        )
+
+    def _initialize(self, X, resp):
+        """Initialization of the Gaussian mixture parameters.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+        resp : array-like, shape (n_samples, n_components)
+        """
+        n_samples, _ = X.shape
+
+        weights, means, covariances = self._estimate_gaussian_parameters(
+            X, resp, self.reg_covar, self.covariance_type)
+        weights /= n_samples
+
+        self.weights_ = (weights if self.weights_init is None
+                         else self.weights_init)
+        self.means_ = means if self.means_init is None else self.means_init
+
+        if self.precisions_init is None:
+            self.covariances_ = covariances
+            self.precisions_cholesky_ = _compute_precision_cholesky(
+                covariances, self.covariance_type)
+        elif self.covariance_type == 'full':
+            self.precisions_cholesky_ = np.array(
+                [linalg.cholesky(prec_init, lower=True)
+                 for prec_init in self.precisions_init])
+        elif self.covariance_type == 'tied':
+            self.precisions_cholesky_ = linalg.cholesky(self.precisions_init,
+                                                        lower=True)
+        else:
+            self.precisions_cholesky_ = self.precisions_init
+
+    def _estimate_log_gaussian_prob(self, X, means, precisions_chol, covariance_type, cluster_mapping):
+        """Estimate the log Gaussian probability.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+        means : array-like, shape (n_components, n_features)
+        precisions_chol : array-like
+            Cholesky decompositions of the precision matrices.
+            'full' : shape of (n_components, n_features, n_features)
+            'tied' : shape of (n_features, n_features)
+            'diag' : shape of (n_components, n_features)
+            'spherical' : shape of (n_components,)
+        covariance_type : {'full', 'tied', 'diag', 'spherical'}
+        Returns
+        -------
+        log_prob : array, shape (n_samples, n_components)
+        """
+        n_samples, n_features = X.shape
+        n_components, _ = means.shape
+        # det(precision_chol) is half of det(precision)
+        log_det = _compute_log_det_cholesky(
+            precisions_chol, covariance_type, n_features)
+
+        if covariance_type == 'full':
+            log_prob = np.empty((n_samples, n_components))
+            for k, (mu, prec_chol, mapping) in enumerate(zip(means, precisions_chol, cluster_mapping)):
+                y = np.dot(mapping * X, prec_chol) - np.dot(mu, prec_chol)
+                log_prob[:, k] = np.sum(np.square(y), axis=1)
+
+        elif covariance_type == 'tied':
+            log_prob = np.empty((n_samples, n_components))
+            for k, (mu, mapping) in enumerate(zip(means, cluster_mapping)):
+                y = np.dot(mapping * X, precisions_chol) - \
+                    np.dot(mu, precisions_chol)
+                log_prob[:, k] = np.sum(np.square(y), axis=1)
+
+        elif covariance_type == 'diag' or covariance_type == 'spherical':
+            log_prob = np.empty((n_samples, n_components))
+            precisions = precisions_chol ** 2
+            for k, (mu, prec_chol, mapping) in enumerate(zip(means, precisions_chol, cluster_mapping)):
+                y = np.dot(mapping * X, prec_chol * np.eye(n_features)
+                           ) - np.dot(mu, prec_chol * np.eye(n_features))
+                log_prob[:, k] = np.sum(np.square(y), axis=1)
+
+            # log_prob = (np.sum((means ** 2 * precisions), 1) -
+            #            2. * np.dot(X, (means * precisions).T) +
+            #            np.dot(X ** 2, precisions.T))
+
+        # elif covariance_type == 'spherical':
+        #    precisions = precisions_chol ** 2
+        #    log_prob = (np.sum(means ** 2, 1) * precisions -
+        #                2 * np.dot(X, means.T * precisions) +
+        #                np.outer(row_norms(X, squared=True), precisions))
+        return -.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
+
+    def _estimate_log_prob(self, X):
+        return self._estimate_log_gaussian_prob(
+            X, self.means_, self.precisions_cholesky_, self.covariance_type, self.cluster_mapping)
+
+    def _estimate_gaussian_parameters(self, X, resp, reg_covar, covariance_type):
+
+        nk = resp.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
+        # stupid lazy piece of junk code to get the shapes right
+        means = np.dot(resp.T, X) / nk[:, np.newaxis]
+        covariances = {"full": _estimate_gaussian_covariances_full,
+                       "tied": _estimate_gaussian_covariances_tied,
+                       "diag": _estimate_gaussian_covariances_diag,
+                       "spherical": _estimate_gaussian_covariances_spherical
+                       }[covariance_type](resp, X, nk, means, reg_covar)
+        # The actual calculation
+        for k in range(means.shape[0]):
+            means[k] = (np.dot(resp.T, self.cluster_mapping[
+                        k] * X) / nk[:, np.newaxis])[k]
+        for k in range(means.shape[0]):
+            covariances[k] = ({"full": _estimate_gaussian_covariances_full,
+                               "tied": _estimate_gaussian_covariances_tied,
+                               "diag": _estimate_gaussian_covariances_diag,
+                               "spherical": _estimate_gaussian_covariances_spherical
+                               }[covariance_type](resp, self.cluster_mapping[k] * X, nk, means, reg_covar))[k]
+        return nk, means, covariances
+
+    def _m_step(self, X, log_resp):
+        """M step.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+        log_resp : array-like, shape (n_samples, n_components)
+            Logarithm of the posterior probabilities (or responsibilities) of
+            the point of each sample in X.
+        """
+        n_samples, _ = X.shape
+        self.weights_, self.means_, self.covariances_ = (
+            self._estimate_gaussian_parameters(X, np.exp(log_resp), self.reg_covar,
+                                               self.covariance_type))
+        self.weights_ /= n_samples
+        self.precisions_cholesky_ = _compute_precision_cholesky(
+            self.covariances_, self.covariance_type)
 
 
 def GibbsSampling_PottsDenoising(mesh, minit, log_univar, Pottmatrix,

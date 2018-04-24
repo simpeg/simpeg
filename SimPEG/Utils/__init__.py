@@ -31,4 +31,5 @@ from .Petro_Utils import (
     ComputeDistances, order_clusters_GM_weight, order_cluster,
     computePrecision, computeCovariance,ComputeConstantTerm, GaussianMixture,
     _compute_precision_cholesky,GibbsSampling_PottsDenoising,
-    ICM_PottsDenoising,FuzzyGaussianMixtureWithPrior)
+    ICM_PottsDenoising,FuzzyGaussianMixtureWithPrior,
+    GaussianMixtureWithMapping, GaussianMixtureWithMappingWithPrior)
