@@ -42,7 +42,7 @@ setup(
         'properties>=0.3.6b0',
         'vectormath',
         'discretize',
-        'scikit-learn',
+        'scikit-learn>=0.19.1',
         'seaborn',
     ],
     author="Rowan Cockett",
