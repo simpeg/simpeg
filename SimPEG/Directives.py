@@ -1258,158 +1258,6 @@ class UpdateReference(InversionDirective):
             self.petroregularizer.GMmref.means_[membership])
         self.petroregularizer.objfcts[0]._r_second_deriv = None
 
-# class GaussianMixtureUpdateModel(InversionDirective):
-
-#     coolingFactor = 1.
-#     coolingRate = 1
-#     update_covariances = False
-#     verbose = False
-#     alphadir = None
-#     nu = None
-#     kappa = None
-
-#     def endIter(self):
-#         m = self.invProb.model
-#         modellist = self.invProb.reg.wiresmap * m
-#         model = np.c_[
-#             [a * b for a, b in zip(self.invProb.reg.maplist, modellist)]].T
-
-#         clfupdate = Utils.GaussianMixture(
-#             n_components=self.invProb.reg.GMmref.n_components,
-#             covariance_type=self.invProb.reg.GMmref.covariance_type,
-#             max_iter=self.invProb.reg.GMmref.max_iter,
-#             n_init=self.invProb.reg.GMmref.n_init,
-#             reg_covar=self.invProb.reg.GMmref.reg_covar,
-#             # weights_init=self.invProb.reg.GMmref.weights_,
-#             # means_init=self.invProb.reg.GMmref.means_,
-#             # precisions_init=self.invProb.reg.GMmref.precisions_
-#         )
-#         clfupdate = clfupdate.fit(model)
-
-#         if (self.alphadir is None) or (self.nu is None) or (self.kappa is None):
-#             self.alphadir = self.invProb.reg.gamma
-#             self.nu = self.invProb.reg.gamma
-#             self.kappa = self.invProb.reg.gamma
-
-#         # if self.verbose:
-#         #     print('before order means: ', clfupdate.means_)
-#         #     print('before order weights: ', clfupdate.weights_)
-#         #     print('before order precisions: ', clfupdate.precisions_)
-#         Utils.order_cluster(clfupdate, self.invProb.reg.GMmref)
-#         if self.verbose:
-#             print('before update means: ', clfupdate.means_)
-#             print('before update weights: ', clfupdate.weights_)
-#             print('before update precisions: ', clfupdate.precisions_)
-
-#         for k in range(clfupdate.n_components):
-#             clfupdate.means_[k] = (1. / (1. + self.nu[k])) * (
-# clfupdate.means_[k] + self.nu[k] * self.invProb.reg.GMmref.means_[k])
-
-#             if self.invProb.reg.GMmref.covariance_type == 'tied':
-#                 pass
-#             elif self.update_covariances:
-#                 clfupdate.covariances_[k] = (1. / (1. + self.kappa[k])) * (clfupdate.covariances_[
-#                     k] + self.kappa[k] * self.invProb.reg.GMmref.covariances_[k])
-#             else:
-#                 clfupdate.precisions_[k] = (1. / (1. + self.kappa[k])) * (clfupdate.precisions_[
-# k] + self.kappa[k] * self.invProb.reg.GMmref.precisions_[k])
-
-#             clfupdate.weights_[k] = (1. / (1. + self.alphadir[k])) * (
-# clfupdate.weights_[k] + self.alphadir[k] *
-# self.invProb.reg.GMmref.weights_[k])
-
-#         if self.invProb.reg.GMmref.covariance_type == 'tied':
-#             if self.update_covariances:
-#                 clfupdate.covariances_ = (1. / (1. + self.kappa[0])) * (clfupdate.covariances_ + self.kappa[0] * self.invProb.reg.GMmref.covariances_)
-#                 clfupdate.precisions_cholesky_ = Utils._compute_precision_cholesky(
-#                     clfupdate.covariances_, clfupdate.covariance_type)
-#                 Utils.computePrecision(clfupdate)
-#             else:
-#                 clfupdate.precisions_ = (1. / (1. + self.kappa[0])) * (clfupdate.precisions_ + self.kappa[0] * self.invProb.reg.GMmref.precisions_)
-#                 clfupdate.covariances_cholesky_ = Utils._compute_precision_cholesky(
-#                     clfupdate.precisions_, clfupdate.covariance_type)
-#                 Utils.computeCovariance(clfupdate)
-#                 clfupdate.precisions_cholesky_ = Utils._compute_precision_cholesky(
-#                     clfupdate.covariances_, clfupdate.covariance_type)
-#         elif self.update_covariances:
-#             clfupdate.precisions_cholesky_ = Utils._compute_precision_cholesky(
-#                 clfupdate.covariances_, clfupdate.covariance_type)
-#             Utils.computePrecision(clfupdate)
-#         else:
-#             clfupdate.covariances_cholesky_ = Utils._compute_precision_cholesky(
-#                 clfupdate.precisions_, clfupdate.covariance_type)
-#             Utils.computeCovariance(clfupdate)
-#             clfupdate.precisions_cholesky_ = Utils._compute_precision_cholesky(
-#                 clfupdate.covariances_, clfupdate.covariance_type)
-
-#         membership = clfupdate.predict(model)
-#         self.invProb.reg.GMmodel = clfupdate
-#         self.invProb.reg.mref = Utils.mkvc(clfupdate.means_[membership])
-
-#         if self.verbose:
-#             print('after update means: ', clfupdate.means_)
-#             print('after update weights: ', clfupdate.weights_)
-#             print('after update precisions: ', clfupdate.precisions_)
-
-#         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
-#             if self.debug:
-#                 print(
-#                     'BetaSchedule is cooling Beta. Iteration: {0:d}'
-#                     .format(self.opt.iter)
-#                 )
-#             self.invProb.reg.gamma /= self.coolingFactor
-
-
-class FuzzyGaussianMixtureWithPriorUpdateModel(InversionDirective):
-
-    coolingFactor = 1.
-    coolingRate = 1
-    update_covariances = False
-    verbose = False
-    max_iter = 100
-    alphadir = 1.
-    nu = 0.
-    kappa = 0.
-    fuzzyness = 2.
-
-    def endIter(self):
-
-        m = self.invProb.model
-        modellist = self.invProb.reg.wiresmap * m
-        model = np.c_[
-            [a * b for a, b in zip(self.invProb.reg.maplist, modellist)]].T
-
-        clfupdate = Utils.FuzzyGaussianMixtureWithPrior(
-            GMref=self.invProb.reg.GMmref,
-            kappa=self.kappa,
-            nu=self.nu,
-            alphadir=self.alphadir,
-            fuzzyness=self.fuzzyness,
-            reg_covar=self.invProb.reg.GMmref.reg_covar,
-            GMinit=self.invProb.reg.GMmref,
-            init_params='kmeans', max_iter=self.max_iter,
-            # means_init=None, n_components=3, n_init=10, precisions_init=None,
-            # random_state=None, reg_covar=1e-06, tol=0.001, verbose=0,
-            # verbose_interval=10, warm_start=False, weights_init=None,
-        )
-
-        clfupdate.FitFuzzyWithConjugatePrior(model)
-        Utils.order_cluster(clfupdate, self.invProb.reg.GMmref)
-
-        membership = clfupdate.predict(model)
-        self.invProb.reg.GMmodel = clfupdate
-        self.invProb.reg.mref = Utils.mkvc(clfupdate.means_[membership])
-
-        if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
-            if self.debug:
-                print(
-                    'BetaSchedule is cooling Beta. Iteration: {0:d}'
-                    .format(self.opt.iter)
-                )
-            self.alphadir /= self.coolingFactor
-            self.kappa /= self.coolingFactor
-            self.nu /= self.coolingFactor
-
 
 class SmoothUpdateReferenceModel(InversionDirective):
 
@@ -1529,9 +1377,11 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                 ]
             ]
             Small = Small[Small[:, 2] == 1][:, :2][0]
+
             if self.debug:
                 print(type(self.invProb.reg.objfcts[
                       Small[0]].objfcts[Small[1]]))
+
             Smooth = np.r_[
                 [
                     (np.r_[
@@ -1559,9 +1409,6 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                 ]
             ]
             mode = 2
-
-        # if isinstance(self.invProb.reg, ObjectiveFunction.ComboObjectiveFunction):
-        #    print('careful, alphas may not have been chosen properly')
 
         if not isinstance(self.alpha0_ratio, np.ndarray):
             self.alpha0_ratio = self.alpha0_ratio * np.ones(nbr)
@@ -1664,10 +1511,12 @@ class PetroTargetMisfit(InversionDirective):
                 ]
             ]
             self.Small = Small[Small[:, 2] == 1][:, :2][0]
+
             if self.debug:
                 print(type(self.invProb.reg.objfcts[
                       Small[0]].objfcts[Small[1]]))
             self._regmode = 1
+
         else:
             self._regmode = 2
 
@@ -1790,9 +1639,6 @@ class ScalingEstimate_ByEig(InversionDirective):
         if len(self.dmisfit.objfcts) == 1:
             raise Exception('This Directives only applies ot joint inversion')
 
-        # if not isinstance(self.Chi0_ratio,np.ndarray):
-        #    self.Chi0_ratio = self.Chi0_ratio*np.ones(2)
-
         m = self.invProb.model
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
@@ -1898,7 +1744,6 @@ class PetroBetaReWeighting(InversionDirective):
     force_prior_increase_rate = 10.
 
     def initialize(self):
-        # self.previous_phid = self.invProb.phi_d
         targetclass = np.r_[[isinstance(
             dirpart, PetroTargetMisfit) for dirpart in self.inversion.directiveList.dList]]
         if ~np.any(targetclass):
@@ -1974,9 +1819,6 @@ class PetroBetaReWeighting(InversionDirective):
                         '\nalphadir: ', self.updategaussianclass.alphadir
                     )
 
-        # else:
-        #    self.mode = 1
-
         if self.opt.iter > 0 and self.opt.iter % self.UpdateRate == 0:
             if self.verbose:
                 print('progress', self.dmlist, '><',
@@ -1993,7 +1835,6 @@ class PetroBetaReWeighting(InversionDirective):
                             self.mode == 1
                         ]
                     ),
-                    # np.all([not self.DM, self.mode == 2]),
                     np.all(
                         [
                             np.all(
@@ -2097,7 +1938,6 @@ class PetroBetaReWeighting(InversionDirective):
                             '\nalphadir: ', self.updategaussianclass.alphadir
                         )
 
-        # self.previous_phid = copy.deepcopy(self.invProb.phi_d)
         self.previous_score = copy.deepcopy(self.score)
         self.previous_dmlist = copy.deepcopy(
             self.inversion.directiveList.dList[self.targetclass].dmlist)
