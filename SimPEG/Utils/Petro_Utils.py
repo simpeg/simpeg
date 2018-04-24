@@ -26,6 +26,7 @@ def MakeSimplePetroRegularization(
     wiresmap=None, maplist=None,
     approx_gradient=True,
     evaltype='approx',
+    gamma=1.,
     alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
     alpha_xx=0., alpha_yy=0., alpha_zz=0.,
     **kwargs
@@ -39,6 +40,7 @@ def MakeSimplePetroRegularization(
         alpha_x=0., alpha_y=0., alpha_z=0.,
         **kwargs
     )
+    reg.gamma = gamma
 
     if wiresmap is None:
         wrmp = Maps.Wires(('m', mesh.nC))

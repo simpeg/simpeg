@@ -15,10 +15,9 @@ We explore it through the UBC linear example.
 from SimPEG import (
     Mesh, Problem, Survey, DataMisfit,
     Regularization, Optimization, InvProblem,
-    Directives, Inversion)
+    Directives, Inversion, Utils)
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.mixture import GaussianMixture
 
 # Better rendering
 import seaborn
@@ -92,14 +91,16 @@ mpetro = linearmap * mtrue
 # on the true model to simulate the laboratory
 # petrophysical measurements
 n = 3
-clf = GaussianMixture(n_components=n, covariance_type='spherical', max_iter=1000,
+clf = Utils.GaussianMixture(n_components=n, covariance_type='spherical', max_iter=1000,
                       n_init=20, reg_covar=(a**2) * 1e-3, warm_start=True)
 clf.fit(mpetro.reshape(-1, 1))
 # Initial model, same as for Tikhonov
 minit = m0
 
 # Petrophyically constrained regularization
-reg = Regularization.SimplePetroRegularization(
+#reg = Regularization.SimplePetroRegularization(
+#    GMmref=clf, GMmodel=clf, mesh=mesh, mref=m0, maplist=[linearmap])
+reg = Utils.MakeSimplePetroRegularization(
     GMmref=clf, GMmodel=clf, mesh=mesh, mref=m0, maplist=[linearmap])
 
 # Include the reference model in the smoothness term
@@ -148,7 +149,7 @@ mcluster = inv.run(minit)
 print('All stopping Criteria: ', targets.AllStop)
 print('Final Data Misfit: ', dmis(mcluster))
 print('Final Cluster Scorce: ',
-      invProb.reg.objfcts[0](mcluster, externalW=False))
+      invProb.reg.objfcts[0].objfcts[0](mcluster, externalW=False))
 #print('Final DP misfit: ', targets.ThetaTarget())
 print('alphas', reg.multipliers)
 print('final confidences', inv.directiveList.dList[
@@ -159,7 +160,7 @@ reg.mrefInSmooth = False
 print(reg.objfcts[1].mrefInSmooth)
 print(reg.objfcts[1]._delta_m(mcluster))
 
-print(reg.mref == reg.objfcts[1].mref)
+print(reg.objfcts[0].mref == reg.objfcts[1].objfcts[1].mref)
 
 # Final Plot
 fig, axes = plt.subplots(1, 3, figsize=(12 * 1.2, 4 * 1.2))
@@ -176,7 +177,7 @@ axes[1].legend(['Mtrue Hist.', 'Model Hist.'])
 axes[2].plot(M.vectorCCx, survey.mtrue, color='black')
 axes[2].plot(M.vectorCCx, mnormal, color='blue')
 axes[2].plot(M.vectorCCx, mcluster, 'r-')
-axes[2].plot(M.vectorCCx, linearmap.inverse(reg.mref), 'r--')
+axes[2].plot(M.vectorCCx, linearmap.inverse(reg.objfcts[0].mref), 'r--')
 
 axes[2].legend(('True Model', 'L2 Model', 'Petro Model', 'Learned Mref'))
 axes[2].set_ylim([-2, 2])

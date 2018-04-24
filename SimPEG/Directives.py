@@ -725,7 +725,7 @@ class Update_IRLS(InversionDirective):
             for survey in self.survey:
                 nD += survey.nD
 
-            self._target = nD*0.5*self.chifact_target
+            self._target = nD * 0.5 * self.chifact_target
 
         return self._target
 
@@ -739,11 +739,11 @@ class Update_IRLS(InversionDirective):
             if isinstance(self.survey, list):
                 self._start = 0
                 for survey in self.survey:
-                    self._start += survey.nD*0.5*self.chifact_start
+                    self._start += survey.nD * 0.5 * self.chifact_start
 
             else:
 
-                self._start = self.survey.nD*0.5*self.chifact_start
+                self._start = self.survey.nD * 0.5 * self.chifact_start
         return self._start
 
     @start.setter
@@ -1151,7 +1151,8 @@ class GaussianMixtureUpdateModel(InversionDirective):
             self._regmode = 2
 
         if self._regmode == 1:
-            self.petroregularizer = self.invProb.reg.objfcts[self.petrosmallness]
+            self.petroregularizer = self.invProb.reg.objfcts[
+                self.petrosmallness]
         else:
             self.petroregularizer = self.invProb.reg
 
@@ -1241,7 +1242,8 @@ class UpdateReference(InversionDirective):
             self._regmode = 2
 
         if self._regmode == 1:
-            self.petroregularizer = self.invProb.reg.objfcts[self.petrosmallness]
+            self.petroregularizer = self.invProb.reg.objfcts[
+                self.petrosmallness]
         else:
             self.petroregularizer = self.invProb.reg
 
@@ -1517,18 +1519,19 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     (np.r_[
                         i, j,
                         (
-                        isinstance(regpart, Regularization.SimplePetroWithMappingSmallness) or
-                        isinstance(regpart, Regularization.SimplePetroSmallness) or
-                        isinstance(regpart, Regularization.PetroSmallness)
+                            isinstance(regpart, Regularization.SimplePetroWithMappingSmallness) or
+                            isinstance(regpart, Regularization.SimplePetroSmallness) or
+                            isinstance(regpart, Regularization.PetroSmallness)
                         )
                     ])
                     for i, regobjcts in enumerate(self.invProb.reg.objfcts)
                     for j, regpart in enumerate(regobjcts.objfcts)
                 ]
             ]
-            Small = Small[Small[:,2]==1][:,:2][0]
+            Small = Small[Small[:, 2] == 1][:, :2][0]
             if self.debug:
-                print(type(self.invProb.reg.objfcts[Small[0]].objfcts[Small[1]]))
+                print(type(self.invProb.reg.objfcts[
+                      Small[0]].objfcts[Small[1]]))
             Smooth = np.r_[
                 [
                     (np.r_[
@@ -1591,21 +1594,22 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                 if Smooth[i, 2]:
                     idx = Smooth[i, :2]
                     if self.debug:
-                        print(type(self.invProb.reg.objfcts[idx[0]].objfcts[idx[1]]))
+                        print(type(self.invProb.reg.objfcts[
+                              idx[0]].objfcts[idx[1]]))
 
                     for j in range(self.ninit):
                         x0 = np.random.rand(m.shape[0])
                         t = x0.dot(self.invProb.reg.objfcts[
-                               Small[0]].objfcts[Small[1]].deriv2(m, v=x0))
+                            Small[0]].objfcts[Small[1]].deriv2(m, v=x0))
                         b = x0.dot(self.invProb.reg.objfcts[
-                               idx[0]].objfcts[idx[1]].deriv2(m, v=x0))
+                            idx[0]].objfcts[idx[1]].deriv2(m, v=x0))
                         ratio.append(t / b)
 
                     self.alpha0[i] *= self.alpha0_ratio[i] * np.median(ratio)
                     mtype = self.invProb.reg.objfcts[
-                               idx[0]].objfcts[idx[1]]._multiplier_pair
+                        idx[0]].objfcts[idx[1]]._multiplier_pair
                     setattr(self.invProb.reg.objfcts[
-                               idx[0]], mtype, self.alpha0[i])
+                        idx[0]], mtype, self.alpha0[i])
 
         if self.verbose:
             print('Alpha scales: ', self.invProb.reg.multipliers)
@@ -1650,18 +1654,19 @@ class PetroTargetMisfit(InversionDirective):
                     (np.r_[
                         i, j,
                         (
-                        isinstance(regpart, Regularization.SimplePetroWithMappingSmallness) or
-                        isinstance(regpart, Regularization.SimplePetroSmallness) or
-                        isinstance(regpart, Regularization.PetroSmallness)
+                            isinstance(regpart, Regularization.SimplePetroWithMappingSmallness) or
+                            isinstance(regpart, Regularization.SimplePetroSmallness) or
+                            isinstance(regpart, Regularization.PetroSmallness)
                         )
                     ])
                     for i, regobjcts in enumerate(self.invProb.reg.objfcts)
                     for j, regpart in enumerate(regobjcts.objfcts)
                 ]
             ]
-            self.Small = Small[Small[:,2]==1][:,:2][0]
+            self.Small = Small[Small[:, 2] == 1][:, :2][0]
             if self.debug:
-                print(type(self.invProb.reg.objfcts[Small[0]].objfcts[Small[1]]))
+                print(type(self.invProb.reg.objfcts[
+                      Small[0]].objfcts[Small[1]]))
             self._regmode = 1
         else:
             self._regmode = 2
@@ -1703,7 +1708,7 @@ class PetroTargetMisfit(InversionDirective):
         self._CLtarget = val
 
     def phims(self):
-        if self._regmode==2:
+        if self._regmode == 2:
             return self.invProb.reg.objfcts[0](self.invProb.model, externalW=False)
         else:
             return self.invProb.reg.objfcts[self.Small[0]].objfcts[self.Small[1]](
@@ -1897,7 +1902,8 @@ class PetroBetaReWeighting(InversionDirective):
         targetclass = np.r_[[isinstance(
             dirpart, PetroTargetMisfit) for dirpart in self.inversion.directiveList.dList]]
         if ~np.any(targetclass):
-            raise Exception('You need to have a PetroTargetMisfit directives to use the PetroBetaReWeighting directive')
+            raise Exception(
+                'You need to have a PetroTargetMisfit directives to use the PetroBetaReWeighting directive')
         else:
             self.targetclass = np.where(targetclass)[0][-1]
             self.DMtarget = np.sum(
@@ -2116,17 +2122,84 @@ class AddMrefInSmooth(InversionDirective):
             self._DMtarget = self.inversion.directiveList.dList[
                 self.targetclass].DMtarget
 
-        self.nbr = len(self.invProb.reg.objfcts)
-        if isinstance(self.invProb.reg, ObjectiveFunction.ComboObjectiveFunction):
-            print('careful, mref may not have been set properly in Smoothness')
+        if getattr(
+            self.invProb.reg.objfcts[0],
+            'objfcts',
+            None
+        ) is not None:
+            petrosmallness = np.where(np.r_[
+                [
+                    (
+                        isinstance(
+                            regpart,
+                            Regularization.SimplePetroRegularization
+                        ) or
+                        isinstance(
+                            regpart,
+                            Regularization.PetroRegularization
+                        ) or
+                        isinstance(
+                            regpart,
+                            Regularization.SimplePetroWithMappingRegularization
+                        )
+                    )
+                    for regpart in self.invProb.reg.objfcts
+                ]
+            ])[0][0]
+            self.petrosmallness = petrosmallness
+            if self.debug:
+                print(type(self.invProb.reg.objfcts[self.petrosmallness]))
+            self._regmode = 1
+        else:
+            self._regmode = 2
 
-        self.Smooth = np.r_[[(
-            isinstance(regpart, Regularization.SmoothDeriv) or
-            isinstance(regpart, Regularization.SimpleSmoothDeriv))
-            for regpart in self.invProb.reg.objfcts]]
+        if self._regmode == 1:
+            self.petroregularizer = self.invProb.reg.objfcts[
+                self.petrosmallness]
+        else:
+            self.petroregularizer = self.invProb.reg
 
-        self.previous_membership = self.invProb.reg.membership(
-            self.invProb.reg.mref)
+        if getattr(
+            self.invProb.reg.objfcts[0],
+            'objfcts',
+            None
+        ) is not None:
+            self.nbr = np.sum(
+                [
+                    len(self.invProb.reg.objfcts[i].objfcts)
+                    for i in range(len(self.invProb.reg.objfcts))
+                ]
+            )
+            self.Smooth = np.r_[
+                [
+                    (np.r_[
+                        i, j,
+                        ((isinstance(regpart, Regularization.SmoothDeriv) or
+                          isinstance(regpart, Regularization.SimpleSmoothDeriv)) and not
+                         (isinstance(regobjcts, Regularization.SimplePetroRegularization) or
+                          isinstance(regobjcts, Regularization.PetroRegularization) or
+                          isinstance(regobjcts, Regularization.SimplePetroWithMappingRegularization))
+                         )])
+                    for i, regobjcts in enumerate(self.invProb.reg.objfcts)
+                    for j, regpart in enumerate(regobjcts.objfcts)
+                ]
+            ]
+            self._regmode = 1
+        else:
+            self.nbr = len(self.invProb.reg.objfcts)
+            self.Smooth = np.r_[
+                [
+                    (
+                        isinstance(regpart, Regularization.SmoothDeriv) or
+                        isinstance(regpart, Regularization.SimpleSmoothDeriv)
+                    )
+                    for regpart in self.invProb.reg.objfcts
+                ]
+            ]
+            self._regmode = 2
+
+        self.previous_membership = self.petroregularizer.membership(
+            self.petroregularizer.mref)
 
     @property
     def DMtarget(self):
@@ -2141,7 +2214,8 @@ class AddMrefInSmooth(InversionDirective):
 
     def endIter(self):
         self.DM = self.inversion.directiveList.dList[self.targetclass].DM
-        self.membership = self.invProb.reg.membership(self.invProb.reg.mref)
+        self.membership = self.petroregularizer.membership(
+            self.petroregularizer.mref)
 
         same_mref = np.all(self.membership == self.previous_membership)
         if self.verbose:
@@ -2158,9 +2232,21 @@ class AddMrefInSmooth(InversionDirective):
             if self.verbose:
                 print('add mref to Smoothness')
 
-            for i in range(self.nbr):
-                if self.Smooth[i]:
-                    self.invProb.reg.objfcts[i].mref = self.invProb.reg.mref
+            if self._regmode == 2:
+                for i in range(self.nbr):
+                    if self.Smooth[i]:
+                        self.invProb.reg.objfcts[
+                            i].mref = self.petroregularizer.mref
+
+            elif self._regmode == 1:
+                for i in range(self.nbr):
+                    if self.Smooth[i, 2]:
+                        idx = self.Smooth[i, :2]
+                        if self.debug:
+                            print(type(self.invProb.reg.objfcts[
+                                  idx[0]].objfcts[idx[1]]))
+                        self.invProb.reg.objfcts[idx[0]].objfcts[
+                            idx[1]].mref = self.petroregularizer.mref
 
         self.previous_membership = copy.deepcopy(self.membership)
 
