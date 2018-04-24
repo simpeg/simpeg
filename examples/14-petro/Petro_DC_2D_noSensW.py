@@ -114,15 +114,21 @@ survey.makeSyntheticData(mtrue[actind], std=0.05, force=True)
 #####################
 m0 = np.median(ln_sigback) * np.ones(mapping.nP)
 dmis = DataMisfit.l2_DataMisfit(survey)
-regT = Regularization.Tikhonov(mesh, indActive=actind)
-opt = Optimization.InexactGaussNewton(maxIter=0, tolX=1e-6)
+regT = Regularization.Simple(
+    mesh,
+    alpha_s=1.,
+    alpha_x=1.,
+    alpha_y=1., indActive=actind
+)
+opt = Optimization.InexactGaussNewton(maxIter=20, tolX=1e-6)
 opt.remember('xc')
 invProb = InvProblem.BaseInvProblem(dmis, regT, opt)
 
 beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e-3)
-betaSched = Directives.BetaSchedule(coolingFactor=5., coolingRate=5)
+betaSched = Directives.BetaSchedule(coolingFactor=5., coolingRate=3)
+target = Directives.TargetMisfit()
 
-inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaSched])
+inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaSched, target])
 
 mnormal = inv.run(m0)
 

@@ -168,7 +168,7 @@ gamma_petro = np.r_[1., 1., 1.]
 reg.gamma = gamma_petro
 
 opt = Optimization.ProjectedGNCG(maxIter=20, lower=-10, upper=10,
-                                 maxIterLS=20, maxIterCG=10, tolCG=1e-4)
+                                 maxIterLS=20, maxIterCG=30, tolCG=1e-4)
 opt.remember('xc')
 
 invProb = InvProblem.BaseInvProblem(dmis,  reg,  opt)
@@ -177,7 +177,7 @@ Alphas = Directives.AlphasSmoothEstimate_ByEig(ninit=10)
 beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e3, ninit=10)
 betaIt = Directives.PetroBetaReWeighting(verbose=True, rateCooling=5., rateWarming=1., tolerance=0.05)
 targets = Directives.PetroTargetMisfit(TriggerSmall=True,ToleranceTheta=0.1,TriggerTheta=False, verbose=True)
-MrefInSmooth = Directives.AddMrefInSmooth()
+MrefInSmooth = Directives.AddMrefInSmooth(verbose=True, wait_till_stable=True)
 #invProb.beta = 5.01e+01
 K = np.r_[1., 1., 2.]
 petrodir = Directives.GaussianMixtureUpdateModel(

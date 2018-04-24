@@ -1736,7 +1736,7 @@ class PetroBetaReWeighting(InversionDirective):
     mode2_iter = 0
     betamax = 1e10
     betamin = 1e-10
-    UpdateRate = 3
+    UpdateRate = 1
     ratio_in_cooling = True
 
     update_prior_confidence = False
