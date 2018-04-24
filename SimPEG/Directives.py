@@ -267,6 +267,11 @@ class BetaSchedule(InversionDirective):
 
 
 class TargetMisfit(InversionDirective):
+    """
+     ... note:: Currently this target misfit is not set up for joint inversion.
+     Get `in touch <https://github.com/simpeg/simpeg/issues/new>`_
+     if you would like to help with the upgrade; or check out PetroTargetMisfit
+    """
 
     chifact = 1.
     phi_d_star = None
@@ -1153,8 +1158,10 @@ class GaussianMixtureUpdateModel(InversionDirective):
     def endIter(self):
         m = self.invProb.model
         if self._regmode == 1:
-            self.petroregularizer = self.invProb.reg.objfcts[self.petrosmallness]
-            modellist = self.invProb.reg.objfcts[self.petrosmallness].wiresmap * m
+            self.petroregularizer = self.invProb.reg.objfcts[
+                self.petrosmallness]
+            modellist = self.invProb.reg.objfcts[
+                self.petrosmallness].wiresmap * m
         else:
             self.petroregularizer = self.invProb.reg
             modellist = self.invProb.reg.wiresmap * m
@@ -1200,11 +1207,12 @@ class GaussianMixtureUpdateModel(InversionDirective):
             membership = clfupdate.predict(model)
             if self._regmode == 1:
                 self.invProb.reg.objfcts[self.petrosmallness].mref = Utils.mkvc(
-                clfupdate.means_[membership])
-                self.invProb.reg.objfcts[self.petrosmallness]._r_second_deriv = None
+                    clfupdate.means_[membership])
+                self.invProb.reg.objfcts[
+                    self.petrosmallness]._r_second_deriv = None
             else:
                 self.invProb.reg.mref = Utils.mkvc(
-                clfupdate.means_[membership])
+                    clfupdate.means_[membership])
                 self.invProb.reg._r_second_deriv = None
         else:
             self.petroregularizer.mref = Utils.mkvc(
@@ -1516,7 +1524,7 @@ class PetroTargetMisfit(InversionDirective):
             ]
             if Small[Small[:, 2] == 1][:, :2].size == 0:
                 warnings.warn(
-                'There is no petroregularization. No Smallness target possible'
+                    'There is no petroregularization. No Smallness target possible'
                 )
                 self.Small = -1
             else:
@@ -1613,7 +1621,7 @@ class PetroTargetMisfit(InversionDirective):
         if np.all(self.targetlist):
             self.DM = True
 
-        if (self.TriggerSmall and np.any(self.Small!=-1)):
+        if (self.TriggerSmall and np.any(self.Small != -1)):
             if (self.phims() > self.CLtarget):
                 self.CL = False
 
@@ -2155,10 +2163,11 @@ class UpdateSensitivityWeights(InversionDirective):
         """
         self.JtJdiag = []
 
-        for prob, survey, dmisfit in zip(self.prob,
-                                         self.survey,
-                                         self.dmisfit.objfcts):
-
+        for prob, survey, dmisfit in zip(
+            self.prob,
+            self.survey,
+            self.dmisfit.objfcts
+        ):
             assert getattr(prob, 'getJ', None) is not None, (
                 "Problem does not have a getJ attribute." +
                 "Cannot form the sensitivity explicitely"
