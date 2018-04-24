@@ -27,7 +27,7 @@ class GravityIntegral(Problem.LinearProblem):
     def fwr_op(self):
         # Add forward function
         # kappa = self.model.kappa TODO
-        rho = self.rhoMap*self.model
+        rho = self.rhoMap * self.model
 
         if self.forwardOnly:
 
@@ -35,8 +35,8 @@ class GravityIntegral(Problem.LinearProblem):
 
                 if self.actInd.dtype == 'bool':
                     inds = np.asarray([inds for inds,
-                                      elem in enumerate(self.actInd, 1)
-                                      if elem], dtype=int) - 1
+                                       elem in enumerate(self.actInd, 1)
+                                       if elem], dtype=int) - 1
                 else:
                     inds = self.actInd
 
@@ -61,9 +61,9 @@ class GravityIntegral(Problem.LinearProblem):
             yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
             yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
-            Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
-            Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
-            Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
+            Yn = P.T * np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+            Xn = P.T * np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+            Zn = P.T * np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
             rxLoc = self.survey.srcField.rxList[0].locs
             ndata = rxLoc.shape[0]
@@ -76,7 +76,7 @@ class GravityIntegral(Problem.LinearProblem):
 
             elif self.rtype == 'xyz':
 
-                fwr_d = np.zeros(3*self.survey.nRx)
+                fwr_d = np.zeros(3 * self.survey.nRx)
 
             else:
 
@@ -94,8 +94,8 @@ class GravityIntegral(Problem.LinearProblem):
 
                 elif self.rtype == 'xyz':
                     fwr_d[ii] = tx.dot(rho)
-                    fwr_d[ii+ndata] = ty.dot(rho)
-                    fwr_d[ii+2*ndata] = tz.dot(rho)
+                    fwr_d[ii + ndata] = ty.dot(rho)
+                    fwr_d[ii + 2 * ndata] = tz.dot(rho)
 
             # Display progress
                 count = progress(ii, count, ndata)
@@ -127,15 +127,15 @@ class GravityIntegral(Problem.LinearProblem):
         """
 
         dmudm = self.rhoMap.deriv(m)
-        return self.G*dmudm
+        return self.G * dmudm
 
-    # def Jvec(self, m, v, f=None):
-    #     dmudm = self.rhoMap.deriv(m)
-    #     return self.G.dot(dmudm*v)
+    def Jvec(self, m, v, f=None):
+        dmudm = self.rhoMap.deriv(m)
+        return self.G.dot(dmudm * v)
 
-    # def Jtvec(self, m, v, f=None):
-    #     dmudm = self.rhoMap.deriv(m)
-    #     return dmudm.T * (self.G.T.dot(v))
+    def Jtvec(self, m, v, f=None):
+        dmudm = self.rhoMap.deriv(m)
+        return dmudm.T * (self.G.T.dot(v))
 
     @property
     def modelMap(self):
@@ -152,7 +152,6 @@ class GravityIntegral(Problem.LinearProblem):
         return self._G
 
     def Intrgl_Fwr_Op(self, flag):
-
         """
 
         Gravity forward operator in integral form
@@ -173,8 +172,8 @@ class GravityIntegral(Problem.LinearProblem):
 
             if self.actInd.dtype == 'bool':
                 inds = np.asarray([inds for inds,
-                                  elem in enumerate(self.actInd, 1)
-                                  if elem], dtype=int) - 1
+                                   elem in enumerate(self.actInd, 1)
+                                   if elem], dtype=int) - 1
             else:
                 inds = self.actInd
 
@@ -199,9 +198,9 @@ class GravityIntegral(Problem.LinearProblem):
         yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
         yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
-        Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
-        Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
-        Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
+        Yn = P.T * np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+        Xn = P.T * np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+        Zn = P.T * np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
         rxLoc = self.survey.srcField.rxList[0].locs
         ndata = rxLoc.shape[0]
@@ -214,7 +213,7 @@ class GravityIntegral(Problem.LinearProblem):
 
         elif flag == 'xyz':
 
-            G = np.zeros((int(3*ndata), nC))
+            G = np.zeros((int(3 * ndata), nC))
 
         else:
 
@@ -236,8 +235,8 @@ class GravityIntegral(Problem.LinearProblem):
 
             elif flag == 'xyz':
                 G[ii, :] = tx
-                G[ii+ndata, :] = ty
-                G[ii+2*ndata, :] = tz
+                G[ii + ndata, :] = ty
+                G[ii + 2 * ndata, :] = tz
 
             # Display progress
             count = progress(ii, count, ndata)
@@ -269,7 +268,7 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
     """
     from scipy.constants import G as NewtG
 
-    NewtG = NewtG*1e+8  # Convertion from mGal (1e-5) and g/cc (1e-3)
+    NewtG = NewtG * 1e+8  # Convertion from mGal (1e-5) and g/cc (1e-3)
     eps = 1e-8  # add a small value to the locations to avoid
 
     nC = Xn.shape[0]
@@ -291,10 +290,10 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
             for cc in range(2):
 
                 r = (
-                        mkvc(dx[:, aa]) ** 2 +
-                        mkvc(dy[:, bb]) ** 2 +
-                        mkvc(dz[:, cc]) ** 2
-                    ) ** (0.50)
+                    mkvc(dx[:, aa]) ** 2 +
+                    mkvc(dy[:, bb]) ** 2 +
+                    mkvc(dz[:, cc]) ** 2
+                ) ** (0.50)
 
                 tx = tx - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                     dy[:, bb] * np.log(dz[:, cc] + r + eps) +
@@ -328,11 +327,11 @@ def progress(iter, prog, final):
 
     @author: dominiquef
     """
-    arg = np.floor(float(iter)/float(final)*10.)
+    arg = np.floor(float(iter) / float(final) * 10.)
 
     if arg > prog:
 
-        strg = "Done " + str(arg*10) + " %"
+        strg = "Done " + str(arg * 10) + " %"
         print(strg)
         prog = arg
 
@@ -361,8 +360,9 @@ def writeUBCobs(filename, survey, d):
 
     data = np.c_[rxLoc, d, wd]
 
-    head = '%i\n'%len(d)
-    np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n', header=head,comments='')
+    head = '%i\n' % len(d)
+    np.savetxt(filename, data, fmt='%e', delimiter=' ',
+               newline='\n', header=head, comments='')
 
     print("Observation file saved to: " + filename)
 
@@ -436,8 +436,7 @@ def plot_obs_2D(rxLoc, d=None, varstr='Gz Obs', vmin=None, vmax=None,
     return fig
 
 
-def readUBCgravObs(obs_file):
-
+def readGravityObservations(obs_file):
     """
     Read UBC grav file format
 
@@ -500,7 +499,6 @@ class Problem3D_Diff(Problem.BaseProblem):
 
         self._Div = self.mesh.cellGrad
 
-
     @property
     def MfI(self): return self._MfI
 
@@ -508,9 +506,9 @@ class Problem3D_Diff(Problem.BaseProblem):
     def Mfi(self): return self._Mfi
 
     def makeMassMatrices(self, m):
-        rho = self.rhoMap*m
+        rho = self.rhoMap * m
         self._Mfi = self.mesh.getFaceInnerProduct()
-        self._MfI = Utils.sdiag(1./self._Mfi.diagonal())
+        self._MfI = Utils.sdiag(1. / self._Mfi.diagonal())
 
     def getRHS(self, m):
         """
@@ -520,9 +518,9 @@ class Problem3D_Diff(Problem.BaseProblem):
 
         Mc = Utils.sdiag(self.mesh.vol)
 
-        rho = self.rhoMap*m
+        rho = self.rhoMap * m
 
-        return Mc*rho
+        return Mc * rho
 
     def getA(self, m):
         """
@@ -535,7 +533,7 @@ class Problem3D_Diff(Problem.BaseProblem):
             \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
 
         """
-        return -self._Div.T*self.Mfi*self._Div
+        return -self._Div.T * self.Mfi * self._Div
 
     def fields(self, m):
         """
@@ -557,14 +555,15 @@ class Problem3D_Diff(Problem.BaseProblem):
         RHS = self.getRHS(m)
 
         if self.solver is None:
-            m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/A.diagonal()))
+            m1 = sp.linalg.interface.aslinearoperator(
+                Utils.sdiag(1 / A.diagonal()))
             u, info = sp.linalg.bicgstab(A, RHS, tol=1e-6, maxiter=1000, M=m1)
 
         else:
             print("Solving with Paradiso")
             Ainv = self.solver(A)
-            u = Ainv*RHS
+            u = Ainv * RHS
 
-        gField = 4.*np.pi*NewtG*1e+8*self._Div*u
+        gField = 4. * np.pi * NewtG * 1e+8 * self._Div * u
 
         return {'G': gField, 'u': u}
