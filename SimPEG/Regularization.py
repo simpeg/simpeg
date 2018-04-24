@@ -668,48 +668,12 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
 
     # Properties
     alpha_s = Props.Float("smallness weight")
-    alpha_x =properties.Union(
-        'This can be a float or an array',
-        props=[
-            properties.Float(''),
-            properties.Array(''),
-        ],
-    )
-    alpha_y =properties.Union(
-        'This can be a float or an array',
-        props=[
-            properties.Float(''),
-            properties.Array(''),
-        ],
-    )
-    alpha_z =properties.Union(
-        'This can be a float or an array',
-        props=[
-            properties.Float(''),
-            properties.Array(''),
-        ],
-    )
-    alpha_xx = properties.Union(
-        'This can be a float or an array',
-        props=[
-            properties.Float(''),
-            properties.Array(''),
-        ],
-    )
-    alpha_yy = properties.Union(
-        'This can be a float or an array',
-        props=[
-            properties.Float(''),
-            properties.Array(''),
-        ],
-    )
-    alpha_zz = properties.Union(
-        'This can be a float or an array',
-        props=[
-            properties.Float(''),
-            properties.Array(''),
-        ],
-    )
+    alpha_x = Props.Float("weight for the first x-derivative")
+    alpha_y = Props.Float("weight for the first y-derivative")
+    alpha_z = Props.Float("weight for the first z-derivative")
+    alpha_xx = Props.Float("weight for the second x-derivative")
+    alpha_yy = Props.Float("weight for the second y-derivative")
+    alpha_zz = Props.Float("weight for the second z-derivative")
 
     counter = None
 
@@ -1326,6 +1290,7 @@ class BaseSparse(BaseRegularization):
     """
     Base class for building up the components of the Sparse Regularization
     """
+
     def __init__(self, mesh, **kwargs):
         self._stashedR = None
         super(BaseSparse, self).__init__(mesh=mesh, **kwargs)
@@ -1392,7 +1357,7 @@ class SparseSmall(BaseSparse):
         if getattr(self, 'model', None) is None:
             R = Utils.speye(self.mapping.shape[0])
         else:
-            r = self.R(self.f_m) #, self.eps_p, self.norm)
+            r = self.R(self.f_m)  # , self.eps_p, self.norm)
             R = Utils.sdiag(r)
 
         if self.cell_weights is not None:
@@ -1406,8 +1371,8 @@ class SparseSmall(BaseSparse):
             return self.stashedR
 
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
-        r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
+        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1. - self.norm / 2.)
+        r = (eta / (f_m**2. + self.epsilon**2.)**(1. - self.norm / 2.))**0.5
         # print(eta)
         self.stashedR = r  # stash on the first calculation
         return r
@@ -1423,7 +1388,6 @@ class SparseSmall(BaseSparse):
         .. math::
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
         """
-
 
         mD = self.mapping.deriv(self._delta_m(m))
         r = self.W * (self.mapping * (self._delta_m(m)))
@@ -1472,7 +1436,8 @@ class SparseDeriv(BaseSparse):
                 W = (
                     Utils.sdiag(
                         (
-                            self.scale * self.gamma * (Ave*(self.cell_weights))
+                            self.scale * self.gamma *
+                            (Ave * (self.cell_weights))
                         )**0.5
                     ) * R
                 )
@@ -1497,8 +1462,8 @@ class SparseDeriv(BaseSparse):
         Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
-        r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
+        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1. - self.norm / 2.)
+        r = (eta / (f_m**2. + self.epsilon**2.)**(1. - self.norm / 2.))**0.5
 
         self.stashedR = r  # stash on the first calculation
         return r
@@ -1536,7 +1501,7 @@ class SparseDeriv(BaseSparse):
                 W = (
                     Utils.sdiag(
                         (self.scale * self.gamma *
-                            (Ave*(self.cell_weights))
+                            (Ave * (self.cell_weights))
                          )**0.5
                     ) * R
                 )
@@ -1628,7 +1593,7 @@ class SparseDeriv(BaseSparse):
         if self.cell_weights is not None:
             return (
                 Utils.sdiag(
-                    (self.scale * self.gamma * (Ave*(self.cell_weights)))**0.5
+                    (self.scale * self.gamma * (Ave * (self.cell_weights)))**0.5
                 ) *
                 R * self.cellDiffStencil
             )
@@ -1651,6 +1616,7 @@ class Sparse(BaseComboRegularization):
     It is strongly recommended to do a few Gauss-Newton iterations
     before updating.
     """
+
     def __init__(
         self, mesh,
         alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
@@ -1684,11 +1650,11 @@ class Sparse(BaseComboRegularization):
 
     eps_p = properties.Float(
         "Threshold value for the model norm", required=True
-        )
+    )
 
     eps_q = properties.Float(
         "Threshold value for the model gradient norm", required=True
-        )
+    )
 
     model = properties.Array("current model", dtype=float)
 
@@ -1737,7 +1703,7 @@ class Sparse(BaseComboRegularization):
                 objfct.regmesh,
                 'aveCC2F{}'.format(objfct.orientation)
             )
-            objfct.norm = Ave*change['value'][:, i+1]
+            objfct.norm = Ave * change['value'][:, i + 1]
 
     @properties.observer('model')
     def _mirror_model_to_objfcts(self, change):
@@ -1781,7 +1747,7 @@ def coterminal(theta):
     """ Compute coterminal angle so that [-pi < theta < pi]"""
 
     sub = theta[np.abs(theta) >= np.pi]
-    sub = -np.sign(sub) * (2*np.pi-np.abs(sub))
+    sub = -np.sign(sub) * (2 * np.pi - np.abs(sub))
 
     theta[np.abs(theta) >= np.pi] = sub
 
