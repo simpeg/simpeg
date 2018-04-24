@@ -1836,12 +1836,11 @@ class PetroSmallness(BaseRegularization):
     def membership(self, m):
         modellist = self.wiresmap * m
         model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-        return self.GMmodel.predict(model)  # Utils.mkvc(m, numDims=2))
+        return self.GMmodel.predict(model)
 
     @properties.validator('cell_weights')
     def _validate_cell_weights(self, change):
         if change['value'] is not None:
-            # todo: residual size? we need to know the expected end shape
             if self._nC_residual != '*':
                 if (len(change['value']) != self._nC_residual) and (len(change['value']) != len(self.wiresmap.maps) * self._nC_residual):
                     raise Exception(
@@ -1864,11 +1863,7 @@ class PetroSmallness(BaseRegularization):
             self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
 
         if self.evaltype == 'approx':
-            # Test
             membership = self.membership(self.mref)
-            # mref = Utils.mkvc(self.GMmodel.means_[membership])
-            #dm = self.wiresmap * (self._delta_m(m, self.mref))
-            #dmr = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
             dm = self.wiresmap * (m)
             dmref = self.wiresmap * (self.mref)
             dmm = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
@@ -1895,7 +1890,6 @@ class PetroSmallness(BaseRegularization):
                 model) + Utils.ComputeConstantTerm(self.GMmodel)
             score_vec = Utils.mkvc(
                 np.r_[[score for maps in self.wiresmap.maps]])
-            # (self.mapping*m)[:,np.newaxis]))
             return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
 
     @Utils.timeIt
@@ -1905,10 +1899,6 @@ class PetroSmallness(BaseRegularization):
             self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
 
         membership = self.membership(self.mref)
-        #mref = Utils.mkvc(self.GMmodel.means_[membership])
-        # modellist = self.wiresmap * self._delta_m(m, self.mref)
-        # mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
-        # mD = sp.block_diag(mD)
         modellist = self.wiresmap * m
         mreflist = self.wiresmap * self.mref
         mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
@@ -1918,9 +1908,6 @@ class PetroSmallness(BaseRegularization):
             dmmodel = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
             dmmref = np.c_[[a for a in mreflist]].T
             dm = dmmodel - dmmref
-
-            # dm = [a * b for a, b in zip(self.maplist, modellist)]
-            # dm = np.c_[dm].T
 
             if self.GMmodel.covariance_type == 'tied':
                 r = self.W * \
@@ -1967,51 +1954,19 @@ class PetroSmallness(BaseRegularization):
             r = sign * np.exp(logderiv)
             return Utils.mkvc(mD.T * (self.W.T * (self.W * r)))
 
-    #@Utils.timeIt
-    # def deriv2(self, m, v=None):
-        # For a positive definite Hessian, we approximate it with the covariance of the cluster
-        # whose each point belong
-    #    membership = self.membership(m)
-    #    mref = Utils.mkvc(self.GMmodel.means_[membership])
-
-    #    if self.GMmodel.covariance_type == 'tied':
-    #        r = self.GMmodel.precisions_[np.zeros_like(membership)]
-    #    else:
-    #        r =  self.GMmodel.precisions_[membership]
-
-    #    mD = self.mapping.deriv(self._delta_m(m,mref))
-    #    r = self.W.T * self.W * Utils.sdiag(Utils.mkvc(r))
-
-    #   if v is not None:
-    #        return mD.T * (r * (mD * v))
-    #    else:
-    #        return mD.T * r * mD
-
     @Utils.timeIt
     def deriv2(self, m, v=None):
 
         if getattr(self, 'mref', None) is None:
             self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
 
-        # For a positive definite Hessian, we approximate it with the covariance of the cluster
+        # For a positive definite Hessian,
+        # we approximate it with the covariance of the cluster
         # whose each point belong
         membership = self.membership(self.mref)
-        #mref = Utils.mkvc(self.GMmodel.means_[membership])
-        #mref = self.GMmodel.means_[membership]
-        # modellist = self.wiresmap * self._delta_m(m, self.mref)
-        # mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
-        # mD = sp.block_diag(mD)
-
         modellist = self.wiresmap * m
         mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
         mD = sp.block_diag(mD)
-
-        #mD = self.mapping.deriv(self._delta_m(m, mref))
-        #dm = [a*b for a,b in zip(self.maplist, modellist)]
-        #dm = self.mapping * (self._delta_m(m, mref))
-
-        # Test for wires mapping with several physical properties
-        #dm = np.c_[dm].T
 
         if self.GMmodel.covariance_type == 'tied':
             r = self.GMmodel.precisions_[np.newaxis, :, :][
@@ -2021,7 +1976,6 @@ class PetroSmallness(BaseRegularization):
                        np.eye(len(self.wiresmap.maps)) for memb in membership]]
         else:
             r = self.GMmodel.precisions_[membership]
-        #r = self.W.T * self.W * Utils.sdiag(Utils.mkvc(r))
         if v is not None:
             mDv = self.wiresmap * (mD * v)
             mDv = np.c_[mDv]
@@ -2042,7 +1996,6 @@ class PetroSmallness(BaseRegularization):
 
             mDW = self.W * mD
 
-            # return mD.T * ((self.W.T * self.W) * Hr)
             return (mDW.T * mDW) * Hr
 
 
@@ -2127,7 +2080,6 @@ class PetroRegularization(BaseComboRegularization):
             self._GMmodel = copy.deepcopy(gm)
         self.objfcts[0].GMmodel = self.GMmodel
 
-    # @classmethod
     def membership(self, m):
         return self.objfcts[0].membership(m)
 
@@ -2201,19 +2153,12 @@ class SimplePetroSmallness(BaseRegularization):
                     Utils.speye(len(self.wiresmap.maps)),
                     Utils.sdiag(np.sqrt(self.cell_weights))
                 )
-
-        # elif self._nC_residual != '*':
-        # return
-        # sp.kron(Utils.speye(len(self.wiresmap.maps)),sp.eye(self._nC_residual))
         else:
             return Utils.Identity()
-#        return sp.kron(Utils.speye(len(self.wiresmap.maps)),
-#                       Utils.sdiag(np.sqrt(self.regmesh.vol)))
 
     @properties.validator('cell_weights')
     def _validate_cell_weights(self, change):
         if change['value'] is not None:
-            # todo: residual size? we need to know the expected end shape
             if self._nC_residual != '*':
                 if (len(change['value']) != self._nC_residual) and (len(change['value']) != len(self.wiresmap.maps) * self._nC_residual):
                     raise Exception(
@@ -2244,11 +2189,7 @@ class SimplePetroSmallness(BaseRegularization):
             self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
 
         if self.evaltype == 'approx':
-            # Test
             membership = self.membership(self.mref)
-            # mref = Utils.mkvc(self.GMmodel.means_[membership])
-            #dm = self.wiresmap * (self._delta_m(m, self.mref))
-            #dmr = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
             dm = self.wiresmap * (m)
             dmref = self.wiresmap * (self.mref)
             dmm = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
@@ -2275,7 +2216,6 @@ class SimplePetroSmallness(BaseRegularization):
                 model) + Utils.ComputeConstantTerm(self.GMmodel)
             score_vec = Utils.mkvc(
                 np.r_[[score for maps in self.wiresmap.maps]])
-            # (self.mapping*m)[:,np.newaxis]))
             return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
 
     @Utils.timeIt
@@ -2285,10 +2225,6 @@ class SimplePetroSmallness(BaseRegularization):
             self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
 
         membership = self.membership(self.mref)
-        #mref = Utils.mkvc(self.GMmodel.means_[membership])
-        # modellist = self.wiresmap * self._delta_m(m, self.mref)
-        # mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
-        # mD = sp.block_diag(mD)
         modellist = self.wiresmap * m
         mreflist = self.wiresmap * self.mref
         mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
@@ -2298,9 +2234,6 @@ class SimplePetroSmallness(BaseRegularization):
             dmmodel = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
             dmmref = np.c_[[a for a in mreflist]].T
             dm = dmmodel - dmmref
-
-            # dm = [a * b for a, b in zip(self.maplist, modellist)]
-            # dm = np.c_[dm].T
 
             if self.GMmodel.covariance_type == 'tied':
                 r = self.W * \
@@ -2346,51 +2279,19 @@ class SimplePetroSmallness(BaseRegularization):
             r = sign * np.exp(logderiv)
             return Utils.mkvc(mD.T * (self.W.T * (self.W * r)))
 
-    #@Utils.timeIt
-    # def deriv2(self, m, v=None):
-        # For a positive definite Hessian, we approximate it with the covariance of the cluster
-        # whose each point belong
-    #    membership = self.membership(m)
-    #    mref = Utils.mkvc(self.GMmodel.means_[membership])
-
-    #    if self.GMmodel.covariance_type == 'tied':
-    #        r = self.GMmodel.precisions_[np.zeros_like(membership)]
-    #    else:
-    #        r =  self.GMmodel.precisions_[membership]
-
-    #    mD = self.mapping.deriv(self._delta_m(m,mref))
-    #    r = self.W.T * self.W * Utils.sdiag(Utils.mkvc(r))
-
-    #   if v is not None:
-    #        return mD.T * (r * (mD * v))
-    #    else:
-    #        return mD.T * r * mD
-
     @Utils.timeIt
     def deriv2(self, m, v=None):
 
         if getattr(self, 'mref', None) is None:
             self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
 
-        # For a positive definite Hessian, we approximate it with the covariance of the cluster
+        # For a positive definite Hessian,
+        # we approximate it with the covariance of the cluster
         # whose each point belong
         membership = self.membership(self.mref)
-        #mref = Utils.mkvc(self.GMmodel.means_[membership])
-        #mref = self.GMmodel.means_[membership]
-        # modellist = self.wiresmap * self._delta_m(m, self.mref)
-        # mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
-        # mD = sp.block_diag(mD)
-
         modellist = self.wiresmap * m
         mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
         mD = sp.block_diag(mD)
-
-        #mD = self.mapping.deriv(self._delta_m(m, mref))
-        #dm = [a*b for a,b in zip(self.maplist, modellist)]
-        #dm = self.mapping * (self._delta_m(m, mref))
-
-        # Test for wires mapping with several physical properties
-        #dm = np.c_[dm].T
 
         if self.GMmodel.covariance_type == 'tied':
             r = self.GMmodel.precisions_[np.newaxis, :, :][
@@ -2400,7 +2301,7 @@ class SimplePetroSmallness(BaseRegularization):
                        np.eye(len(self.wiresmap.maps)) for memb in membership]]
         else:
             r = self.GMmodel.precisions_[membership]
-        #r = self.W.T * self.W * Utils.sdiag(Utils.mkvc(r))
+
         if v is not None:
             mDv = self.wiresmap * (mD * v)
             mDv = np.c_[mDv]
@@ -2421,7 +2322,6 @@ class SimplePetroSmallness(BaseRegularization):
 
             mDW = self.W * mD
 
-            # return mD.T * ((self.W.T * self.W) * Hr)
             return (mDW.T * mDW) * Hr
 
 
@@ -2504,7 +2404,6 @@ class SimplePetroRegularization(BaseComboRegularization):
             self._GMmodel = copy.deepcopy(gm)
         self.objfcts[0].GMmodel = self.GMmodel
 
-    #@classmethod
     def membership(self, m):
         return self.objfcts[0].membership(m)
 
@@ -2586,19 +2485,12 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
                     Utils.speye(len(self.wiresmap.maps)),
                     Utils.sdiag(np.sqrt(self.cell_weights))
                 )
-
-        # elif self._nC_residual != '*':
-        # return
-        # sp.kron(Utils.speye(len(self.wiresmap.maps)),sp.eye(self._nC_residual))
         else:
             return Utils.Identity()
-#        return sp.kron(Utils.speye(len(self.wiresmap.maps)),
-#                       Utils.sdiag(np.sqrt(self.regmesh.vol)))
 
     @properties.validator('cell_weights')
     def _validate_cell_weights(self, change):
         if change['value'] is not None:
-            # todo: residual size? we need to know the expected end shape
             if self._nC_residual != '*':
                 if (len(change['value']) != self._nC_residual) and (len(change['value']) != len(self.wiresmap.maps) * self._nC_residual):
                     raise Exception(
@@ -2615,7 +2507,7 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
     def membership(self, m):
         modellist = self.wiresmap * m
         model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-        return self.GMmodel.predict(model)  # Utils.mkvc(m, numDims=2))
+        return self.GMmodel.predict(model)
 
     @Utils.timeIt
     def __call__(self, m, externalW=True):
@@ -2629,11 +2521,7 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
             self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
 
         if self.evaltype == 'approx':
-            # Test
             membership = self.membership(self.mref)
-            # mref = Utils.mkvc(self.GMmodel.means_[membership])
-            #dm = self.wiresmap * (self._delta_m(m, self.mref))
-            #dmr = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
             dm = self.wiresmap * (m)
             dmref = self.wiresmap * (self.mref)
             dmm = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
@@ -2665,7 +2553,6 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
                 model) + Utils.ComputeConstantTerm(self.GMmodel)
             score_vec = Utils.mkvc(
                 np.r_[[score for maps in self.wiresmap.maps]])
-            # (self.mapping*m)[:,np.newaxis]))
             return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
 
     @Utils.timeIt
@@ -2675,10 +2562,6 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
             self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
 
         membership = self.membership(self.mref)
-        #mref = Utils.mkvc(self.GMmodel.means_[membership])
-        # modellist = self.wiresmap * self._delta_m(m, self.mref)
-        # mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
-        # mD = sp.block_diag(mD)
         modellist = self.wiresmap * m
         dmmodel = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
         mreflist = self.wiresmap * self.mref
@@ -2694,14 +2577,9 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
             dmmref = np.c_[[a for a in mreflist]].T
             dm = dmm - dmmref
 
-            # dm = [a * b for a, b in zip(self.maplist, modellist)]
-            # dm = np.c_[dm].T
-
             if self.GMmodel.covariance_type == 'tied':
                 raise Exception('Not implemented')
             else:
-                #gaussian_deriv = np.r_[
-                 #   [np.dot(self.GMmodel.precisions_[membership[i]], dm[i]) for i in range(len(dm))]]
                 r = self.W * \
                     Utils.mkvc(np.r_[
                         [
@@ -2715,52 +2593,21 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
         else:
             raise Exception('Not implemented')
 
-    #@Utils.timeIt
-    # def deriv2(self, m, v=None):
-        # For a positive definite Hessian, we approximate it with the covariance of the cluster
-        # whose each point belong
-    #    membership = self.membership(m)
-    #    mref = Utils.mkvc(self.GMmodel.means_[membership])
-
-    #    if self.GMmodel.covariance_type == 'tied':
-    #        r = self.GMmodel.precisions_[np.zeros_like(membership)]
-    #    else:
-    #        r =  self.GMmodel.precisions_[membership]
-
-    #    mD = self.mapping.deriv(self._delta_m(m,mref))
-    #    r = self.W.T * self.W * Utils.sdiag(Utils.mkvc(r))
-
-    #   if v is not None:
-    #        return mD.T * (r * (mD * v))
-    #    else:
-    #        return mD.T * r * mD
-
     @Utils.timeIt
     def deriv2(self, m, v=None):
 
         if getattr(self, 'mref', None) is None:
             self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
 
-        # For a positive definite Hessian, we approximate it with the covariance of the cluster
+        # For a positive definite Hessian,
+        # we approximate it with the covariance of the cluster
         # whose each point belong
         membership = self.membership(self.mref)
-        #mref = Utils.mkvc(self.GMmodel.means_[membership])
-        #mref = self.GMmodel.means_[membership]
-        # modellist = self.wiresmap * self._delta_m(m, self.mref)
-        # mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
-        # mD = sp.block_diag(mD)
-
         modellist = self.wiresmap * m
         dmmodel = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
         mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
         mD = sp.block_diag(mD)
 
-        #mD = self.mapping.deriv(self._delta_m(m, mref))
-        #dm = [a*b for a,b in zip(self.maplist, modellist)]
-        #dm = self.mapping * (self._delta_m(m, mref))
-
-        # Test for wires mapping with several physical properties
-        #dm = np.c_[dm].T
         if self._r_second_deriv is None:
             if self.GMmodel.covariance_type == 'tied':
                 r = np.r_[
@@ -2802,7 +2649,6 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
                         for i in range(len(dmmodel))
                     ]
                 ]
-            #r = self.W.T * self.W * Utils.sdiag(Utils.mkvc(r))
             self._r_second_deriv = r
 
         if v is not None:
@@ -2825,7 +2671,6 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
 
             mDW = self.W * mD
 
-            # return mD.T * ((self.W.T * self.W) * Hr)
             return (mDW.T * mDW) * Hr
 
 
@@ -2849,36 +2694,6 @@ class SimplePetroWithMappingRegularization(BaseComboRegularization):
         self._approx_gradient = approx_gradient
         self._evaltype = evaltype
         self.mapping = Maps.IdentityMap(mesh, nP=self.wiresmap.nP)
-
-        # if isinstance(alpha_x, float):
-        #     self.alpha_x = alpha_x * np.ones(len(self._wiresmap.maps))
-        # else:
-        #     self.alpha_x = alpha_x
-
-        # if isinstance(alpha_y, float):
-        #     self.alpha_y = alpha_y * np.ones(len(self._wiresmap.maps))
-        # else:
-        #     self.alpha_y = alpha_y
-
-        # if isinstance(alpha_z, float):
-        #     self.alpha_z = alpha_z * np.ones(len(self._wiresmap.maps))
-        # else:
-        #     self.alpha_z = alpha_z
-
-        # if isinstance(alpha_xx, float):
-        #     self.alpha_xx = alpha_xx * np.ones(len(self._wiresmap.maps))
-        # else:
-        #     self.alpha_xx = alpha_xx
-
-        # if isinstance(alpha_yy, float):
-        #     self.alpha_yy = alpha_yy * np.ones(len(self._wiresmap.maps))
-        # else:
-        #     self.alpha_yy = alpha_yy
-
-        # if isinstance(alpha_zz, float):
-        #     self.alpha_zz = alpha_zz * np.ones(len(self._wiresmap.maps))
-        # else:
-        #     self.alpha_zz = alpha_zz
 
         objfcts = [
             SimplePetroWithMappingSmallness(
@@ -2982,140 +2797,3 @@ class SimplePetroWithMappingRegularization(BaseComboRegularization):
         if ap is not None:
             self._approx_gradient = ap
         self.objfcts[0].approx_gradient = self.approx_gradient
-
-# class SimplePetroSmallness(BaseRegularization):
-#    """
-#    Smallness term for the petrophysically constrained regularization
-#    """
-#
-#    _multiplier_pair = 'alpha_s'
-#
-#    def __init__(self, GMmodel, mesh=None, **kwargs):
-#
-#        super(SimplePetroSmallness, self).__init__(
-#            mesh=mesh, **kwargs
-#        )
-#        self.GMmodel = GMmodel
-#
-#
-#    def membership(self,m):
-#        return self.GMmodel.predict(Utils.mkvc(m, numDims=2))
-#
-#
-#    @property
-#    def W(self):
-#        """
-#        Weighting matrix
-#        """
-#        if self.cell_weights is not None:
-#            return Utils.sdiag(np.sqrt(self.cell_weights))
-#        elif self._nC_residual != '*':
-#            return sp.eye(self._nC_residual)
-#        else:
-#            return Utils.Identity()
-#
-#    def _delta_m(self, m,mref):
-#        return (-mref + m)  # in case self.mref is Zero, returns type m
-#
-#    @Utils.timeIt
-#    def __call__(self, m):
-#
-#        #membership = self.membership(m)
-#        #mref = Utils.mkvc(self.GMmodel.means_[membership])
-#        #dm = self.mapping * (self._delta_m(m,mref))
-#        #r0 = self.W * dm
-#
-#        #if self.GMmodel.covariance_type == 'tied':
-#        #    r1 = self.W * np.r_[[np.dot(self.GMmodel.precisions_, np.r_[dm[i]]) for i in range(len(m))]]
-#        #else:
-#        #    r1 = self.W * np.r_[[np.dot(self.GMmodel.precisions_[membership[i]], np.r_[dm[i]]) for i in range(len(m))]]
-#
-#        #return 0.5 * r0.dot(Utils.mkvc(r1))
-#        return -np.sum((self.W*self.W.T)*self.GMmodel.score_samples((self.mapping*m)[:,np.newaxis]))
-#
-#    @Utils.timeIt
-#    def deriv(self, m):
-#
-#        membership = self.membership(m)
-#        mref = Utils.mkvc(self.GMmodel.means_[membership])
-#        mD = self.mapping.deriv(self._delta_m(m,mref))
-#        dm = self.mapping * (self._delta_m(m,mref))
-#        if self.GMmodel.covariance_type == 'tied':
-#            r = self.W * np.r_[[np.dot(self.GMmodel.precisions_, np.r_[dm[i]]) for i in range(len(m))]]
-#        else:
-#            r = self.W * np.r_[[np.dot(self.GMmodel.precisions_[membership[i]], np.r_[dm[i]]) for i in range(len(m))]]
-#
-#        return Utils.mkvc(mD.T * (self.W.T * r))
-#
-#    @Utils.timeIt
-#    def deriv2(self, m, v=None):
-#        # For a positive definite Hessian, we approximate it with the covariance of the cluster
-#        # whose each point belong
-#        membership = self.membership(m)
-#        mref = Utils.mkvc(self.GMmodel.means_[membership])
-#
-#        if self.GMmodel.covariance_type == 'tied':
-#            r = self.GMmodel.precisions_[np.zeros_like(membership)]
-#        else:
-#            r =  self.GMmodel.precisions_[membership]
-#
-#        mD = self.mapping.deriv(self._delta_m(m,mref))
-#        r = self.W.T * self.W * Utils.sdiag(Utils.mkvc(r))
-#
-#        if v is not None:
-#            return mD.T * (r * (mD * v))
-#        else:
-#            return mD.T * r * mD
-#
-#
-# class SimplePetroRegularization(BaseComboRegularization):
-#
-#    def __init__(
-#        self, mesh, GMmref, GMmodel = None,
-#        alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
-#        **kwargs
-#    ):
-#        self.GMmref = GMmref
-#        Utils.order_clusters_GM_weight(self.GMmref)
-#        self._GMmodel = GMmodel
-#
-#        objfcts = [
-#            SimplePetroSmallness(GMmodel=self.GMmodel, mesh = mesh, **kwargs),
-#            SimpleSmoothDeriv(mesh=mesh, orientation='x', **kwargs),
-#        ]
-#
-#        if mesh.dim > 1:
-#            objfcts += [
-#                SimpleSmoothDeriv(mesh=mesh, orientation='y', **kwargs),
-#            ]
-#
-#        if mesh.dim > 2:
-#            objfcts += [
-#                SimpleSmoothDeriv(mesh=mesh, orientation='z', **kwargs),
-#            ]
-#
-#        super(SimplePetroRegularization, self).__init__(
-#            mesh,
-#            alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
-#            objfcts=objfcts, **kwargs)
-#
-#        #Utils.setKwargs(self, **kwargs)
-#
-#    # Properties
-#    alpha_s = Props.Float("PetroPhysics weights")
-#
-#    @property
-#    def GMmodel(self):
-#        if getattr(self, '_GMmodel', None) is None:
-#            self._GMmodel = self.GMmref
-#        return self._GMmodel
-#
-#    @GMmodel.setter
-#    def GMmodel(self,gm):
-#        if gm is not None:
-#            self._GMmodel = copy.deepcopy(gm)
-#        self.objfcts[0].GMmodel = self._GMmodel
-#
-#    @classmethod
-#    def membership(self,m):
-#        return self.objfcts[0].membership(m)
