@@ -135,7 +135,7 @@ mnormal = inv.run(m0)
 # on the true model to simulate the laboratory
 # petrophysical measurements
 n = 3
-clf = GaussianMixture(n_components=n, covariance_type='full')
+clf = GaussianMixture(n_components=n, covariance_type='full', reg_covar=3e-3)
 clf.fit(mtrue[actind].reshape(-1, 1))
 Utils.order_clusters_GM_weight(clf)
 print(clf.covariances_)
