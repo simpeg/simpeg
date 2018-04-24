@@ -1150,15 +1150,14 @@ class GaussianMixtureUpdateModel(InversionDirective):
         else:
             self._regmode = 2
 
-        if self._regmode == 1:
-            self.petroregularizer = self.invProb.reg.objfcts[
-                self.petrosmallness]
-        else:
-            self.petroregularizer = self.invProb.reg
-
     def endIter(self):
         m = self.invProb.model
-        modellist = self.petroregularizer.wiresmap * m
+        if self._regmode == 1:
+            self.petroregularizer = self.invProb.reg.objfcts[self.petrosmallness]
+            modellist = self.invProb.reg.objfcts[self.petrosmallness].wiresmap * m
+        else:
+            self.petroregularizer = self.invProb.reg
+            modellist = self.invProb.reg.objfcts[self.petrosmallness].wiresmap * m
         model = np.c_[
             [a * b for a, b in zip(self.petroregularizer.maplist, modellist)]].T
 
@@ -1199,9 +1198,14 @@ class GaussianMixtureUpdateModel(InversionDirective):
         self.petroregularizer.GMmodel = clfupdate
         if self.fixed_membership is None:
             membership = clfupdate.predict(model)
-            self.petroregularizer.mref = Utils.mkvc(
+            if self._regmode == 1:
+                self.invProb.reg.objfcts[self.petrosmallness].mref = Utils.mkvc(
                 clfupdate.means_[membership])
-            self.petroregularizer.objfcts[0]._r_second_deriv = None
+                self.invProb.reg.objfcts[self.petrosmallness]._r_second_deriv = None
+            else:
+                self.invProb.reg.mref = Utils.mkvc(
+                clfupdate.means_[membership])
+                self.invProb.reg._r_second_deriv = None
         else:
             self.petroregularizer.mref = Utils.mkvc(
                 clfupdate.means_[self.fixed_membership])
@@ -1510,7 +1514,13 @@ class PetroTargetMisfit(InversionDirective):
                     for j, regpart in enumerate(regobjcts.objfcts)
                 ]
             ]
-            self.Small = Small[Small[:, 2] == 1][:, :2][0]
+            if Small[Small[:, 2] == 1][:, :2].size == 0:
+                warnings.warn(
+                'There is no petroregularization. No Smallness target possible'
+                )
+                self.Small = -1
+            else:
+                self.Small = Small[Small[:, 2] == 1][:, :2][0]
 
             if self.debug:
                 print(type(self.invProb.reg.objfcts[
@@ -1518,6 +1528,7 @@ class PetroTargetMisfit(InversionDirective):
             self._regmode = 1
 
         else:
+            self.Small = 0
             self._regmode = 2
 
     @property
@@ -1559,6 +1570,8 @@ class PetroTargetMisfit(InversionDirective):
     def phims(self):
         if self._regmode == 2:
             return self.invProb.reg.objfcts[0](self.invProb.model, externalW=False)
+        elif np.any(self.Small == -1):
+            return self.invProb.reg.objfcts[0](self.invProb.model)
         else:
             return self.invProb.reg.objfcts[self.Small[0]].objfcts[self.Small[1]](
                 self.invProb.model, externalW=False
@@ -1600,7 +1613,7 @@ class PetroTargetMisfit(InversionDirective):
         if np.all(self.targetlist):
             self.DM = True
 
-        if (self.TriggerSmall):
+        if (self.TriggerSmall and np.any(self.Small!=-1)):
             if (self.phims() > self.CLtarget):
                 self.CL = False
 
