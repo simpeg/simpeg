@@ -66,24 +66,24 @@ actind, meshCore = Utils.meshutils.ExtractCoreMesh(xyzlim, mesh)
 
 # Function to plot cylinder border
 def getCylinderPoints(xc, zc, r):
-  xLocOrig1 = np.arange(-r, r + r / 10., r / 10.)
-  xLocOrig2 = np.arange(r, -r - r / 10., -r / 10.)
-  # Top half of cylinder
-  zLoc1 = np.sqrt(-xLocOrig1**2. + r**2.) + zc
-  # Bottom half of cylinder
-  zLoc2 = -np.sqrt(-xLocOrig2**2. + r**2.) + zc
-  # Shift from x = 0 to xc
-  xLoc1 = xLocOrig1 + xc * np.ones_like(xLocOrig1)
-  xLoc2 = xLocOrig2 + xc * np.ones_like(xLocOrig2)
+    xLocOrig1 = np.arange(-r, r + r / 10., r / 10.)
+    xLocOrig2 = np.arange(r, -r - r / 10., -r / 10.)
+    # Top half of cylinder
+    zLoc1 = np.sqrt(-xLocOrig1**2. + r**2.) + zc
+    # Bottom half of cylinder
+    zLoc2 = -np.sqrt(-xLocOrig2**2. + r**2.) + zc
+    # Shift from x = 0 to xc
+    xLoc1 = xLocOrig1 + xc * np.ones_like(xLocOrig1)
+    xLoc2 = xLocOrig2 + xc * np.ones_like(xLocOrig2)
 
-  topHalf = np.vstack([xLoc1, zLoc1]).T
-  topHalf = topHalf[0:-1, :]
-  bottomHalf = np.vstack([xLoc2, zLoc2]).T
-  bottomHalf = bottomHalf[0:-1, :]
+    topHalf = np.vstack([xLoc1, zLoc1]).T
+    topHalf = topHalf[0:-1, :]
+    bottomHalf = np.vstack([xLoc2, zLoc2]).T
+    bottomHalf = bottomHalf[0:-1, :]
 
-  cylinderPoints = np.vstack([topHalf, bottomHalf])
-  cylinderPoints = np.vstack([cylinderPoints, topHalf[0, :]])
-  return cylinderPoints
+    cylinderPoints = np.vstack([topHalf, bottomHalf])
+    cylinderPoints = np.vstack([cylinderPoints, topHalf[0, :]])
+    return cylinderPoints
 
 
 # Setup a Dipole-Dipole Survey
@@ -150,30 +150,37 @@ wires = Maps.Wires(('m', m0.shape[0]))
 reg = Regularization.SimplePetroRegularization(GMmref=clf, mesh=mesh,
                                                wiresmap=wires,
                                                maplist=[idenMap],
-                                               mref=m0,
-                                               alpha_s=1e-3,
+                                               # mref=m0,
+                                               alpha_s=1.,
                                                alpha_x=1.,
                                                alpha_y=1.,
                                                indActive=actind)
-reg.mrefInSmooth = True
-reg.approx_gradient = False
-gamma_petro = np.r_[1., 1., 2.]
+reg.mrefInSmooth = False
+reg.approx_gradient = True
+gamma_petro = np.r_[1., 1., 1.]
 reg.gamma = gamma_petro
 
-opt = Optimization.ProjectedGNCG(maxIter=3, lower=-10, upper=10,
-                                 maxIterLS=20, maxIterCG=10, tolCG=1e-4)
+opt = Optimization.ProjectedGNCG(maxIter=20, lower=-10, upper=10,
+                                 maxIterLS=20, maxIterCG=30, tolCG=1e-4)
 opt.remember('xc')
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
+beta = Directives.BetaEstimate_ByEig(beta0_ratio=1.)
 gamma_petro = np.ones(clf.n_components) * 1.
 petrodir = Directives.GaussianMixtureUpdateModel()
 invProb.reg.gamma = gamma_petro
+Alphas = Directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=1., ninit=10)
 
-betaSched = Directives.BetaSchedule(coolingFactor=.5, coolingRate=3)
+betaIt = Directives.PetroBetaReWeighting(verbose=True,
+                                         rateCooling=5.,
+                                         UpdateRate=1)
+targets = Directives.PetroTargetMisfit(TriggerTheta=False,
+                                       verbose=True)
 smoothref = Directives.SmoothUpdateReferenceModel(neighbors=8,
                                                   indiag=float(1. / clf.reg_covar))
+addmref = Directives.AddMrefInSmooth(verbose=True, wait_till_stable=True)
+
 inv = Inversion.BaseInversion(
-    invProb, directiveList=[beta, betaSched, petrodir, smoothref])
+    invProb, directiveList=[Alphas, beta, targets, petrodir, betaIt, addmref])
 
 mcluster = inv.run(m0)
 
@@ -206,8 +213,8 @@ ax[3].set_title('Learned Reference model')
 ax[3].set_aspect('equal')
 
 for i in range(4):
-  ax[i].plot(cyl0[:, 0], cyl0[:, 1], 'k--')
-  ax[i].plot(cyl1[:, 0], cyl1[:, 1], 'k--')
+    ax[i].plot(cyl0[:, 0], cyl0[:, 1], 'k--')
+    ax[i].plot(cyl1[:, 0], cyl1[:, 1], 'k--')
 
 fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])

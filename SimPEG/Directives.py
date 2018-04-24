@@ -1157,7 +1157,7 @@ class GaussianMixtureUpdateModel(InversionDirective):
             modellist = self.invProb.reg.objfcts[self.petrosmallness].wiresmap * m
         else:
             self.petroregularizer = self.invProb.reg
-            modellist = self.invProb.reg.objfcts[self.petrosmallness].wiresmap * m
+            modellist = self.invProb.reg.wiresmap * m
         model = np.c_[
             [a * b for a, b in zip(self.petroregularizer.maplist, modellist)]].T
 

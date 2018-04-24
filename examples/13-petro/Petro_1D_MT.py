@@ -104,7 +104,7 @@ def appres_phase_from_data(data, frequency):
     return app_res, phase
 
 clf = GaussianMixture(n_components=4, covariance_type='full',
-                      max_iter=1000, n_init=20, reg_covar=1e-3)
+                      max_iter=10, n_init=3, reg_covar=1e-3)
 clf.fit(mtrue.reshape(-1,1))
 Utils.order_clusters_GM_weight(clf)
 
@@ -205,18 +205,17 @@ invProb.reg.gamma = gamma
 # Directives
 Alphas = Directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=1e-2,ninit=10)
 targets = Directives.PetroTargetMisfit(TriggerTheta=False,
-                                       ToleranceTheta=0.25,
                                        verbose=True,
                                        chifact=1.1,
                                        chiSmall=1.1)
 MrefInSmooth = Directives.AddMrefInSmooth()
 petrodir = Directives.GaussianMixtureUpdateModel(verbose=False)
 beta = Directives.BetaEstimate_ByEig(beta0_ratio=1.,ninit=20)
-betaIt = Directives.PetroBetaReWeighting(verbose=True, tolerance=0.,
-                                         rateCooling=5., rateWarming=5.,
+betaIt = Directives.PetroBetaReWeighting(verbose=True,
+                                         rateCooling=5.,
                                          UpdateRate=1)
 #invProb.beta = 2e-2
-directives = [Alphas, beta, betaIt, petrodir, targets, MrefInSmooth]
+directives = [Alphas, beta, targets, petrodir, betaIt]
 
 # assemble in an inversion
 inv = Inversion.BaseInversion(invProb, directiveList=directives)

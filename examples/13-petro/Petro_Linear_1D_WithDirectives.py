@@ -136,7 +136,7 @@ gamma_petro = np.ones(clf.n_components) * 1.
 membership = clf.predict(mtrue[:, np.newaxis])
 petrodir = Directives.GaussianMixtureUpdateModel(
     verbose=False)  # , fixed_membership=membership)
-addmref = Directives.AddMrefInSmooth(verbose=True)
+addmref = Directives.AddMrefInSmooth(verbose=True, wait_till_stable=True)
 invProb.reg.gamma = gamma_petro
 
 # Setup Inversion
