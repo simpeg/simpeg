@@ -18,7 +18,8 @@ from sklearn.mixture.base import (
 )
 import warnings
 from .matutils import mkvc
-from SimPEG import Maps, Regularization
+from ..Maps import IdentityMap, Wires
+from ..Regularization import Simple, SimplePetroRegularization
 
 
 def MakeSimplePetroRegularization(
@@ -31,7 +32,7 @@ def MakeSimplePetroRegularization(
     alpha_xx=0., alpha_yy=0., alpha_zz=0.,
     **kwargs
 ):
-    reg = Regularization.SimplePetroRegularization(
+    reg = SimplePetroRegularization(
         mesh=mesh, GMmref=GMmref, GMmodel=GMmodel,
         wiresmap=wiresmap, maplist=maplist,
         approx_gradient=approx_gradient,
@@ -43,12 +44,12 @@ def MakeSimplePetroRegularization(
     reg.gamma = gamma
 
     if wiresmap is None:
-        wrmp = Maps.Wires(('m', mesh.nC))
+        wrmp = Wires(('m', mesh.nC))
     else:
         wrmp = wiresmap
 
     if maplist is None:
-        mplst = [Maps.IdentityMap(mesh) for maps in wrmp.maps]
+        mplst = [IdentityMap(mesh) for maps in wrmp.maps]
     else:
         mplst = maplist
 
@@ -68,7 +69,7 @@ def MakeSimplePetroRegularization(
         alph_z = alpha_z
 
     for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
-        reg += Regularization.Simple(
+        reg += Simple(
             mesh=mesh,
             mapping=maps * wire[1],
             alpha_s=0.,
@@ -577,7 +578,7 @@ class GaussianMixtureWithMapping(GaussianMixture):
                  verbose=0, verbose_interval=10, cluster_mapping=None):
 
         if cluster_mapping is None:
-            self.cluster_mapping = [Maps.IdentityMap()
+            self.cluster_mapping = [IdentityMap()
                                     for i in range(n_components)]
         else:
             self.cluster_mapping = cluster_mapping
@@ -796,7 +797,7 @@ class GaussianMixtureWithMappingWithPrior(GaussianMixtureWithPrior):
             verbose=0, verbose_interval=10):
 
         if cluster_mapping is None:
-            self.cluster_mapping = [Maps.IdentityMap()
+            self.cluster_mapping = [IdentityMap()
                                     for i in range(n_components)]
         else:
             self.cluster_mapping = cluster_mapping
