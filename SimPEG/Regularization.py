@@ -645,13 +645,13 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
 #                                                                             #
 ###############################################################################
 
-class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
+class SimpleComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
 
     def __init__(
         self, mesh, objfcts=[], **kwargs
     ):
 
-        super(BaseComboRegularization, self).__init__(
+        super(SimpleComboRegularization, self).__init__(
             objfcts=objfcts, multipliers=None
         )
         self.regmesh = RegularizationMesh(mesh)
@@ -821,6 +821,30 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
     #     for fct in self.objfcts:
     #         fct.mapping = change['value']
 
+class BaseComboRegularization(SimpleComboRegularization):
+
+    def __init__(
+        self, mesh, objfcts=[], **kwargs
+    ):
+
+        super(BaseComboRegularization, self).__init__(
+            mesh=mesh, objfcts=objfcts, **kwargs
+        )
+
+        # link these attributes
+        linkattrs = [
+            'regmesh', 'indActive', 'cell_weights', 'mapping'
+        ]
+
+        for attr in linkattrs:
+            val = getattr(self, attr)
+            if val is not None:
+                [setattr(fct, attr, val) for fct in self.objfcts]
+
+    @properties.observer('mapping')
+    def _mirror_mapping_to_objfctlist(self, change):
+        for fct in self.objfcts:
+            fct.mapping = change['value']
 
 ###############################################################################
 #                                                                             #
@@ -1997,7 +2021,7 @@ class PetroSmallness(BaseRegularization):
             return (mDW.T * mDW) * Hr
 
 
-class PetroRegularization(BaseComboRegularization):
+class PetroRegularization(SimpleComboRegularization):
 
     def __init__(
         self, mesh, GMmref, GMmodel=None,
@@ -2323,7 +2347,7 @@ class SimplePetroSmallness(BaseRegularization):
             return (mDW.T * mDW) * Hr
 
 
-class SimplePetroRegularization(BaseComboRegularization):
+class SimplePetroRegularization(SimpleComboRegularization):
 
     def __init__(
         self, mesh, GMmref, GMmodel=None,
@@ -2672,7 +2696,7 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
             return (mDW.T * mDW) * Hr
 
 
-class SimplePetroWithMappingRegularization(BaseComboRegularization):
+class SimplePetroWithMappingRegularization(SimpleComboRegularization):
 
     def __init__(
         self, mesh, GMmref, GMmodel=None,
