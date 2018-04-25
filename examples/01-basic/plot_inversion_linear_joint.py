@@ -77,10 +77,6 @@ def run(N=100, plotIt=True):
         Directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
         Directives.BetaSchedule(),
         Directives.PetroTargetMisfit(TriggerSmall=False, verbose=True),
-        # Directives.JointScalingSchedule(verbose=True),
-        # Directives.AlphasSmoothEstimate_ByEig(ninit=10)
-        Directives.ScalingEstimate_ByEig(verbose=True),
-        Directives.AddMrefInSmooth(verbose=True)
         ]
     inv = Inversion.BaseInversion(invProb, directiveList=directives)
     m0 = np.zeros(mesh.nC*2)
