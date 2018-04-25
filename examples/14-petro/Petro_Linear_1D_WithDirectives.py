@@ -83,25 +83,24 @@ mnormal = inv.run(m0)
 #########################################
 # Petrophysically constrained inversion #
 #########################################
-from SimPEG import Maps
-a = 1.
-linearmap = Maps.LinearMap(a=a, b=0.)
-mpetro = linearmap * mtrue
+
+mpetro = mtrue
 # fit a Gaussian Mixture Model with n components
 # on the true model to simulate the laboratory
 # petrophysical measurements
 n = 3
-clf = Utils.GaussianMixture(n_components=n, covariance_type='spherical', max_iter=1000,
-                      n_init=20, reg_covar=(a**2) * 1e-3, warm_start=True)
+clf = Utils.GaussianMixture(
+    n_components=n, covariance_type='spherical', max_iter=1000,
+    n_init=20, reg_covar=1e-3, warm_start=True
+)
 clf.fit(mpetro.reshape(-1, 1))
 # Initial model, same as for Tikhonov
 minit = m0
 
 # Petrophyically constrained regularization
-#reg = Regularization.SimplePetroRegularization(
-#    GMmref=clf, GMmodel=clf, mesh=mesh, mref=m0, maplist=[linearmap])
 reg = Regularization.MakeSimplePetroRegularization(
-    GMmref=clf, GMmodel=clf, mesh=mesh, mref=m0, maplist=[linearmap])
+    GMmref=clf, GMmodel=clf, mesh=mesh, mref=m0, maplist=None
+)
 
 # Include the reference model in the smoothness term
 reg.mrefInSmooth = False
@@ -177,7 +176,7 @@ axes[1].legend(['Mtrue Hist.', 'Model Hist.'])
 axes[2].plot(M.vectorCCx, survey.mtrue, color='black')
 axes[2].plot(M.vectorCCx, mnormal, color='blue')
 axes[2].plot(M.vectorCCx, mcluster, 'r-')
-axes[2].plot(M.vectorCCx, linearmap.inverse(reg.objfcts[0].mref), 'r--')
+axes[2].plot(M.vectorCCx, (reg.objfcts[0].mref), 'r--')
 
 axes[2].legend(('True Model', 'L2 Model', 'Petro Model', 'Learned Mref'))
 axes[2].set_ylim([-2, 2])
