@@ -1387,7 +1387,7 @@ class SparseSmall(BaseSparse):
         The regularization is:
         .. math::
             R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top
-                   W(m-m_\\text{ref})}
+            W(m-m_\\text{ref})}
         So the derivative is straight forward:
         .. math::
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
