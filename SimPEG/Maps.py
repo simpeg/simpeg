@@ -20,7 +20,7 @@ from scipy.spatial import cKDTree
 
 import properties
 
-from . import Utils
+from .Utils import setKwargs, Identity, Zero, sdiag, mkvc
 from .Tests import checkDerivative
 
 
@@ -30,7 +30,7 @@ class IdentityMap(object):
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
         if nP is not None:
             if isinstance(nP, string_types):
@@ -120,7 +120,7 @@ class IdentityMap(object):
             return v
         if isinstance(self.nP, integer_types):
             return sp.identity(self.nP)
-        return Utils.Identity()
+        return Identity()
 
     def test(self, m=None, num=4, **kwargs):
         """Test the derivative of the mapping.
@@ -197,8 +197,8 @@ class IdentityMap(object):
                 )
             return self._transform(val)
 
-        elif isinstance(val, Utils.Zero):
-            return Utils.Zero()
+        elif isinstance(val, Zero):
+            return Zero()
 
         raise Exception(
             'Unrecognized data type to multiply. Try a map or a numpy.ndarray!'
@@ -627,7 +627,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         den = phi0 * (R0 + (sige - self.sigma0) * dR0) + \
             phi1 * (R1 + (sige - self.sigma1) * dR1)
 
-        return Utils.sdiag(num / den)
+        return sdiag(num / den)
 
     def _transform(self, m):
         return self._sc2phaseEMTRandSpheroidstransform(m)
@@ -662,7 +662,7 @@ class LinearMap(IdentityMap):
         super(LinearMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
-        return self.a * (Utils.mkvc(m)) + self.b
+        return self.a * (mkvc(m)) + self.b
 
     def inverse(self, D):
         """
@@ -678,7 +678,7 @@ class LinearMap(IdentityMap):
                 m = \log{\sigma}
 
         """
-        return (Utils.mkvc(D) - self.b) / self.a
+        return (mkvc(D) - self.b) / self.a
 
     def deriv(self, m, v=None):
         """
@@ -703,7 +703,7 @@ class LinearMap(IdentityMap):
 
                 \\frac{\partial \exp{m}}{\partial m} = \\text{sdiag}(\exp{m})
         """
-        deriv = self.a * Utils.sdiag(np.ones_like(Utils.mkvc(m)))
+        deriv = self.a * sdiag(np.ones_like(mkvc(m)))
         if v is not None:
             return deriv * v
         return deriv
@@ -735,7 +735,7 @@ class ExpMap(IdentityMap):
         super(ExpMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
-        return np.exp(Utils.mkvc(m))
+        return np.exp(mkvc(m))
 
     def inverse(self, D):
         """
@@ -751,7 +751,7 @@ class ExpMap(IdentityMap):
                 m = \log{\sigma}
 
         """
-        return np.log(Utils.mkvc(D))
+        return np.log(mkvc(D))
 
     def deriv(self, m, v=None):
         """
@@ -776,7 +776,7 @@ class ExpMap(IdentityMap):
 
                 \\frac{\partial \exp{m}}{\partial m} = \\text{sdiag}(\exp{m})
         """
-        deriv = Utils.sdiag(np.exp(Utils.mkvc(m)))
+        deriv = sdiag(np.exp(mkvc(m)))
         if v is not None:
             return deriv * v
         return deriv
@@ -797,14 +797,14 @@ class ReciprocalMap(IdentityMap):
         super(ReciprocalMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
-        return 1.0 / Utils.mkvc(m)
+        return 1.0 / mkvc(m)
 
     def inverse(self, D):
-        return 1.0 / Utils.mkvc(D)
+        return 1.0 / mkvc(D)
 
     def deriv(self, m, v=None):
         # TODO: if this is a tensor, you might have a problem.
-        deriv = Utils.sdiag(- Utils.mkvc(m)**(-2))
+        deriv = sdiag(- mkvc(m)**(-2))
         if v is not None:
             return deriv * v
         return deriv
@@ -836,20 +836,20 @@ class LogMap(IdentityMap):
         super(LogMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
-        return np.log(Utils.mkvc(m))
+        return np.log(mkvc(m))
 
     def deriv(self, m, v=None):
-        mod = Utils.mkvc(m)
+        mod = mkvc(m)
         deriv = np.zeros(mod.shape)
         tol = 1e-16  # zero
         ind = np.greater_equal(np.abs(mod), tol)
         deriv[ind] = 1.0 / mod[ind]
         if v is not None:
-            return Utils.sdiag(deriv) * v
-        return Utils.sdiag(deriv)
+            return sdiag(deriv) * v
+        return sdiag(deriv)
 
     def inverse(self, m):
-        return np.exp(Utils.mkvc(m))
+        return np.exp(mkvc(m))
 
 
 class ChiMap(IdentityMap):
@@ -928,7 +928,7 @@ class Weighting(IdentityMap):
 
     @property
     def P(self):
-        return Utils.sdiag(self.weights)
+        return sdiag(self.weights)
 
     def _transform(self, m):
         return self.weights * m
@@ -1050,7 +1050,7 @@ class SurjectVertical1D(IdentityMap):
             :return: transformed model
         """
         repNum = self.mesh.vnC[:self.mesh.dim - 1].prod()
-        return Utils.mkvc(m).repeat(repNum)
+        return mkvc(m).repeat(repNum)
 
     def deriv(self, m, v=None):
         """
@@ -1104,9 +1104,9 @@ class Surject2Dto3D(IdentityMap):
             :rtype: numpy.array
             :return: transformed model
         """
-        m = Utils.mkvc(m)
+        m = mkvc(m)
         if self.normal == 'Z':
-            return Utils.mkvc(
+            return mkvc(
                 m.reshape(
                     self.mesh.vnC[[0, 1]], order='F'
                 )[:, :, np.newaxis].repeat(
@@ -1115,7 +1115,7 @@ class Surject2Dto3D(IdentityMap):
                 )
             )
         elif self.normal == 'Y':
-            return Utils.mkvc(
+            return mkvc(
                 m.reshape(
                     self.mesh.vnC[[0, 2]], order='F'
                 )[:, np.newaxis, :].repeat(
@@ -1124,7 +1124,7 @@ class Surject2Dto3D(IdentityMap):
                 )
             )
         elif self.normal == 'X':
-            return Utils.mkvc(
+            return mkvc(
                 m.reshape(
                     self.mesh.vnC[[1, 2]], order='F'
                 )[np.newaxis, :, :].repeat(
@@ -1155,7 +1155,7 @@ class Mesh2Mesh(IdentityMap):
     """
 
     def __init__(self, meshes, **kwargs):
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
         assert type(meshes) is list, "meshes must be a list of two meshes"
         assert len(meshes) == 2, "meshes must be a list of two meshes"
@@ -1479,8 +1479,8 @@ class ParametricPolyMap(IdentityMap):
             g1 = -(np.arctan(alpha * f) / np.pi + 0.5) + 1.0
             g2 = (np.arctan(alpha * f) / np.pi + 0.5)
 
-        g3 = Utils.sdiag(alpha * (sig2 - sig1) /
-                         (1. + (alpha * f)**2) / np.pi) * V
+        g3 = sdiag(alpha * (sig2 - sig1) /
+                   (1. + (alpha * f)**2) / np.pi) * V
 
         if v is not None:
             return sp.csr_matrix(np.c_[g1, g2, g3]) * v
@@ -1639,8 +1639,8 @@ class ParametricSplineMap(IdentityMap):
                     spla = UnivariateSpline(self.pts, ca, k=self.order, s=0)
                     splb = UnivariateSpline(self.pts, cb, k=self.order, s=0)
                     fderiv = (spla(X) - splb(X)) / (2 * dy)
-                    g3[:, i] = Utils.sdiag(alpha * (sig2 - sig1) /
-                                           (1. + (alpha * f)**2) / np.pi) * fderiv
+                    g3[:, i] = sdiag(alpha * (sig2 - sig1) /
+                                     (1. + (alpha * f)**2) / np.pi) * fderiv
 
         elif self.mesh.dim == 3:
             g3 = np.zeros((self.mesh.nC, self.npts * 2))
@@ -1677,8 +1677,8 @@ class ParametricSplineMap(IdentityMap):
                         flinesb = ((self.spl["splt"](Y) - spltb(Y)) * (Z - zb) /
                                    (zt - zb) + spltb(Y) - X)
                     fderiv = (flinesa - flinesb) / (2 * dy)
-                    g3[:, i] = Utils.sdiag(alpha * (sig2 - sig1) /
-                                           (1. + (alpha * f)**2) / np.pi) * fderiv
+                    g3[:, i] = sdiag(alpha * (sig2 - sig1) /
+                                     (1. + (alpha * f)**2) / np.pi) * fderiv
         else:
             raise(Exception("Not Implemented for Y and Z, your turn :)"))
 
@@ -1760,6 +1760,7 @@ class PolynomialPetroClusterMap(IdentityMap):
         #out[:,0] = polynomialxx_inverse(D[:,0]) + polynomialxy_inverse(D[:,1])
         #out[:,1] = polynomialyx_inverse(D[:,0]) + polynomialyy_inverse(D[:,1])
         # return out
+
     def _derivmatrix(self, m):
         return np.r_[
             [
