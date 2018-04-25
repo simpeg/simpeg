@@ -182,7 +182,9 @@ class MagneticsDriver_Inv(object):
     @property
     def survey(self):
         if getattr(self, '_survey', None) is None:
-            self._survey = self.readMagneticsObservations(self.obsfile)
+            self._survey = self.readMagneticsObservations(
+                self.basePath + self.obsfile
+        )
         return self._survey
 
     @property
@@ -329,7 +331,7 @@ class MagneticsDriver_Inv(object):
 
         return self._M
 
-    def readMagneticsObservations(obs_file):
+    def readMagneticsObservations(self, obs_file):
         """
         Read and write UBC mag file format
 
