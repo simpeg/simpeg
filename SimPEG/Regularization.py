@@ -8,7 +8,11 @@ from scipy.stats import multivariate_normal
 from scipy.special import logsumexp
 import copy
 import discretize as Mesh
-from . import Utils
+from .Utils import (
+    speye, setKwargs, sdiag, mkvc, timeIt,
+    Identity, Zero, order_clusters_GM_weight,
+    ComputeConstantTerm
+    )
 from . import Maps
 from . import ObjectiveFunction
 from . import Props
@@ -43,7 +47,7 @@ class RegularizationMesh(Props.BaseSimPEG):
 
     def __init__(self, mesh, **kwargs):
         self.mesh = mesh
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
     indActive = properties.Array("active indices in mesh", dtype=[bool, int])
 
@@ -104,9 +108,9 @@ class RegularizationMesh(Props.BaseSimPEG):
         """
         if getattr(self, '_Pac', None) is None:
             if self.indActive is None:
-                self._Pac = Utils.speye(self.mesh.nC)
+                self._Pac = speye(self.mesh.nC)
             else:
-                self._Pac = Utils.speye(self.mesh.nC)[:, self.indActive]
+                self._Pac = speye(self.mesh.nC)[:, self.indActive]
         return self._Pac
 
     @property
@@ -120,7 +124,7 @@ class RegularizationMesh(Props.BaseSimPEG):
         """
         if getattr(self, '_Pafx', None) is None:
             if self.indActive is None:
-                self._Pafx = Utils.speye(self.mesh.nFx)
+                self._Pafx = speye(self.mesh.nFx)
             else:
                 # if getattr(self.mesh, 'aveCC2Fx', None) is not None:
                 if self.mesh._meshType == "TREE":
@@ -129,19 +133,19 @@ class RegularizationMesh(Props.BaseSimPEG):
                             (self.mesh.aveFx2CC.T * self.indActive) >= 1
                         )
                         self._Pafx = (
-                            Utils.speye(self.mesh.nFx)[:, indActive_Fx]
+                            speye(self.mesh.nFx)[:, indActive_Fx]
                         )
                     else:
                         indActive_Fx = (
                             (self.mesh.aveCC2Fx() * self.indActive) >= 1
                         )
                         self._Pafx = (
-                            Utils.speye(self.mesh.ntFx)[:, indActive_Fx]
+                            speye(self.mesh.ntFx)[:, indActive_Fx]
                         )
                 else:
                     indActive_Fx = self.mesh.aveFx2CC.T * self.indActive >= 1
 
-                    self._Pafx = Utils.speye(self.mesh.nFx)[:, indActive_Fx]
+                    self._Pafx = speye(self.mesh.nFx)[:, indActive_Fx]
         return self._Pafx
 
     @property
@@ -155,7 +159,7 @@ class RegularizationMesh(Props.BaseSimPEG):
         """
         if getattr(self, '_Pafy', None) is None:
             if self.indActive is None:
-                self._Pafy = Utils.speye(self.mesh.nFy)
+                self._Pafy = speye(self.mesh.nFy)
             else:
                 # if getattr(self.mesh, 'aveCC2Fy', None) is not None:
                 if self.mesh._meshType == "TREE":
@@ -165,7 +169,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                             (self.mesh.aveFy2CC.T * self.indActive) >= 1
                         )
                         self._Pafy = (
-                            Utils.speye(self.mesh.nFy)[:, indActive_Fy]
+                            speye(self.mesh.nFy)[:, indActive_Fy]
                         )
                     else:
                         print("Use Simple")
@@ -173,11 +177,11 @@ class RegularizationMesh(Props.BaseSimPEG):
                             (self.mesh.aveCC2Fy() * self.indActive) >= 1
                         )
                         self._Pafy = (
-                            Utils.speye(self.mesh.ntFy)[:, indActive_Fy]
+                            speye(self.mesh.ntFy)[:, indActive_Fy]
                         )
                 else:
                     indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) >= 1
-                    self._Pafy = Utils.speye(self.mesh.nFy)[:, indActive_Fy]
+                    self._Pafy = speye(self.mesh.nFy)[:, indActive_Fy]
         return self._Pafy
 
     @property
@@ -191,7 +195,7 @@ class RegularizationMesh(Props.BaseSimPEG):
         """
         if getattr(self, '_Pafz', None) is None:
             if self.indActive is None:
-                self._Pafz = Utils.speye(self.mesh.nFz)
+                self._Pafz = speye(self.mesh.nFz)
             else:
                 # if getattr(self.mesh, 'aveCC2Fz', None) is not None:
                 if self.mesh._meshType == "TREE":
@@ -200,18 +204,18 @@ class RegularizationMesh(Props.BaseSimPEG):
                             (self.mesh.aveFz2CC.T * self.indActive) >= 1
                         )
                         self._Pafz = (
-                            Utils.speye(self.mesh.nFz)[:, indActive_Fz]
+                            speye(self.mesh.nFz)[:, indActive_Fz]
                         )
                     else:
                         indActive_Fz = (
                             (self.mesh.aveCC2Fz() * self.indActive) >= 1
                         )
                         self._Pafz = (
-                            Utils.speye(self.mesh.ntFz)[:, indActive_Fz]
+                            speye(self.mesh.ntFz)[:, indActive_Fz]
                         )
                 else:
                     indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) >= 1
-                    self._Pafz = Utils.speye(self.mesh.nFz)[:, indActive_Fz]
+                    self._Pafz = speye(self.mesh.nFz)[:, indActive_Fz]
         return self._Pafz
 
     @property
@@ -240,7 +244,7 @@ class RegularizationMesh(Props.BaseSimPEG):
             if self.mesh._meshType == "TREE":
                 if self.regularization_type == "Tikhonov":
                     self._aveCC2Fx = (
-                        Utils.sdiag(1. / (self.aveFx2CC.T).sum(1)) *
+                        sdiag(1. / (self.aveFx2CC.T).sum(1)) *
                         self.aveFx2CC.T
                     )
                 else:
@@ -249,7 +253,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
             else:
                 self._aveCC2Fx = (
-                    Utils.sdiag(1. / (self.aveFx2CC.T).sum(1)) *
+                    sdiag(1. / (self.aveFx2CC.T).sum(1)) *
                     self.aveFx2CC.T
                 )
         return self._aveCC2Fx
@@ -279,7 +283,7 @@ class RegularizationMesh(Props.BaseSimPEG):
             if self.mesh._meshType == "TREE":
                 if self.regularization_type == "Tikhonov":
                     self._aveCC2Fy = (
-                        Utils.sdiag(1. / (self.aveFy2CC.T).sum(1)) *
+                        sdiag(1. / (self.aveFy2CC.T).sum(1)) *
                         self.aveFy2CC.T
                     )
                 else:
@@ -288,7 +292,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
             else:
                 self._aveCC2Fy = (
-                    Utils.sdiag(1. / (self.aveFy2CC.T).sum(1)) *
+                    sdiag(1. / (self.aveFy2CC.T).sum(1)) *
                     self.aveFy2CC.T
                 )
         return self._aveCC2Fy
@@ -318,7 +322,7 @@ class RegularizationMesh(Props.BaseSimPEG):
             if self.mesh._meshType == "TREE":
                 if self.regularization_type == "Tikhonov":
                     self._aveCC2Fz = (
-                        Utils.sdiag(1. / (self.aveFz2CC.T).sum(1)) *
+                        sdiag(1. / (self.aveFz2CC.T).sum(1)) *
                         self.aveFz2CC.T
                     )
                 else:
@@ -327,7 +331,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
             else:
                 self._aveCC2Fz = (
-                    Utils.sdiag(1. / (self.aveFz2CC.T).sum(1)) *
+                    sdiag(1. / (self.aveFz2CC.T).sum(1)) *
                     self.aveFz2CC.T
                 )
         return self._aveCC2Fz
@@ -481,7 +485,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         if "indActive" in kwargs.keys():
             indActive = kwargs.pop("indActive")
             self.regmesh.indActive = indActive
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
     counter = None
 
@@ -516,7 +520,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
 
         # update regmesh indActive
         if getattr(self, 'regmesh', None) is not None:
-            self.regmesh.indActive = Utils.mkvc(value)
+            self.regmesh.indActive = mkvc(value)
 
     @properties.observer('indActive')
     def _update_regmesh_indActive(self, change):
@@ -569,7 +573,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
             return m
         return (-self.mref + m)  # in case self.mref is Zero, returns type m
 
-    @Utils.timeIt
+    @timeIt
     def __call__(self, m):
         """
         We use a weighted 2-norm objective function
@@ -581,7 +585,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         r = self.W * (self.mapping * (self._delta_m(m)))
         return 0.5 * r.dot(r)
 
-    @Utils.timeIt
+    @timeIt
     def deriv(self, m):
         """
 
@@ -604,7 +608,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         r = self.W * (self.mapping * (self._delta_m(m)))
         return mD.T * (self.W.T * r)
 
-    @Utils.timeIt
+    @timeIt
     def deriv2(self, m, v=None):
         """
         Second derivative
@@ -654,7 +658,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         if "indActive" in kwargs.keys():
             indActive = kwargs.pop("indActive")
             self.regmesh.indActive = indActive
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
         # link these attributes
         linkattrs = [
@@ -755,7 +759,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
 
         # update regmesh indActive
         if getattr(self, 'regmesh', None) is not None:
-            self.regmesh.indActive = Utils.mkvc(value)
+            self.regmesh.indActive = mkvc(value)
 
     @properties.observer('indActive')
     def _update_regmesh_indActive(self, change):
@@ -779,7 +783,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         for fct in self.objfcts:
             if getattr(fct, 'mrefInSmooth', None) is not None:
                 if self.mrefInSmooth is False:
-                    fct.mref = Utils.Zero()
+                    fct.mref = Zero()
                 else:
                     fct.mref = change['value']
             else:
@@ -866,11 +870,11 @@ class SimpleSmall(BaseRegularization):
         Weighting matrix
         """
         if self.cell_weights is not None:
-            return Utils.sdiag(np.sqrt(self.cell_weights))
+            return sdiag(np.sqrt(self.cell_weights))
         elif self._nC_residual != '*':
             return sp.eye(self._nC_residual)
         else:
-            return Utils.Identity()
+            return Identity()
 
 
 class SimpleSmoothDeriv(BaseRegularization):
@@ -939,7 +943,7 @@ class SimpleSmoothDeriv(BaseRegularization):
         if self.cell_weights is not None:
             Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
             W = (
-                Utils.sdiag(
+                sdiag(
                     (Ave * self.cell_weights)**0.5
                 ) * W
             )
@@ -1071,8 +1075,8 @@ class Small(BaseRegularization):
         Weighting matrix
         """
         if self.cell_weights is not None:
-            return Utils.sdiag(np.sqrt(self.regmesh.vol * self.cell_weights))
-        return Utils.sdiag(np.sqrt(self.regmesh.vol))
+            return sdiag(np.sqrt(self.regmesh.vol * self.cell_weights))
+        return sdiag(np.sqrt(self.regmesh.vol))
 
 
 class SmoothDeriv(BaseRegularization):
@@ -1123,7 +1127,7 @@ class SmoothDeriv(BaseRegularization):
         )
 
         if self.mrefInSmooth is False:
-            self.mref = Utils.Zero()
+            self.mref = Zero()
 
     @property
     def _multiplier_pair(self):
@@ -1148,7 +1152,7 @@ class SmoothDeriv(BaseRegularization):
 
         Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
-        return Utils.sdiag(np.sqrt(Ave * vol)) * D
+        return sdiag(np.sqrt(Ave * vol)) * D
 
 
 class SmoothDeriv2(BaseRegularization):
@@ -1208,7 +1212,7 @@ class SmoothDeriv2(BaseRegularization):
             vol *= self.cell_weights
 
         W = (
-            Utils.sdiag(vol**0.5) *
+            sdiag(vol**0.5) *
             getattr(
                 self.regmesh,
                 'faceDiff{orientation}'.format(
@@ -1355,13 +1359,13 @@ class SparseSmall(BaseSparse):
     @property
     def W(self):
         if getattr(self, 'model', None) is None:
-            R = Utils.speye(self.mapping.shape[0])
+            R = speye(self.mapping.shape[0])
         else:
             r = self.R(self.f_m)  # , self.eps_p, self.norm)
-            R = Utils.sdiag(r)
+            R = sdiag(r)
 
         if self.cell_weights is not None:
-            return Utils.sdiag((self.scale * self.gamma *
+            return sdiag((self.scale * self.gamma *
                                 self.cell_weights)**0.5) * R
         return (self.scale * self.gamma)**0.5 * R
 
@@ -1377,7 +1381,7 @@ class SparseSmall(BaseSparse):
         self.stashedR = r  # stash on the first calculation
         return r
 
-    @Utils.timeIt
+    @timeIt
     def deriv(self, m):
         """
         The regularization is:
@@ -1408,7 +1412,7 @@ class SparseDeriv(BaseSparse):
         "include mref in the smoothness calculation?", default=False
     )
 
-    @Utils.timeIt
+    @timeIt
     def __call__(self, m):
         """
         We use a weighted 2-norm objective function
@@ -1426,15 +1430,15 @@ class SparseDeriv(BaseSparse):
             Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
             if getattr(self, 'model', None) is None:
-                R = Utils.speye(self.cellDiffStencil.shape[0])
+                R = speye(self.cellDiffStencil.shape[0])
 
             else:
                 r = self.R(self.f_m)
-                R = Utils.sdiag(r)
+                R = sdiag(r)
 
             if self.cell_weights is not None:
                 W = (
-                    Utils.sdiag(
+                    sdiag(
                         (
                             self.scale * self.gamma *
                             (Ave * (self.cell_weights))
@@ -1468,7 +1472,7 @@ class SparseDeriv(BaseSparse):
         self.stashedR = r  # stash on the first calculation
         return r
 
-    @Utils.timeIt
+    @timeIt
     def deriv(self, m):
         """
         The regularization is:
@@ -1491,15 +1495,15 @@ class SparseDeriv(BaseSparse):
             Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
             if getattr(self, 'model', None) is None:
-                R = Utils.speye(self.cellDiffStencil.shape[0])
+                R = speye(self.cellDiffStencil.shape[0])
 
             else:
                 r = self.R(self.f_m)
-                R = Utils.sdiag(r)
+                R = sdiag(r)
 
             if self.cell_weights is not None:
                 W = (
-                    Utils.sdiag(
+                    sdiag(
                         (self.scale * self.gamma *
                             (Ave * (self.cell_weights))
                          )**0.5
@@ -1584,15 +1588,15 @@ class SparseDeriv(BaseSparse):
         Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
         if getattr(self, 'model', None) is None:
-            R = Utils.speye(self.cellDiffStencil.shape[0])
+            R = speye(self.cellDiffStencil.shape[0])
 
         else:
             r = self.R(self.f_m)
-            R = Utils.sdiag(r)
+            R = sdiag(r)
 
         if self.cell_weights is not None:
             return (
-                Utils.sdiag(
+                sdiag(
                     (self.scale * self.gamma * (Ave * (self.cell_weights)))**0.5
                 ) *
                 R * self.cellDiffStencil
@@ -1640,7 +1644,7 @@ class Sparse(BaseComboRegularization):
             **kwargs
         )
 
-        # Utils.setKwargs(self, **kwargs)
+        # setKwargs(self, **kwargs)
 
     # Properties
     norms = properties.Array(
@@ -1790,11 +1794,11 @@ class PetroSmallness(BaseRegularization):
         Need to change the size to match self.wiresmap.maps * mesh.nC
         """
         if self.cell_weights is not None:
-            return sp.kron(Utils.speye(len(self.wiresmap.maps)),
-                           Utils.sdiag(np.sqrt(self.regmesh.vol))) * self.cell_weights
+            return sp.kron(speye(len(self.wiresmap.maps)),
+                           sdiag(np.sqrt(self.regmesh.vol))) * self.cell_weights
         else:
-            return sp.kron(Utils.speye(len(self.wiresmap.maps)),
-                           Utils.sdiag(np.sqrt(self.regmesh.vol)))
+            return sp.kron(speye(len(self.wiresmap.maps)),
+                           sdiag(np.sqrt(self.regmesh.vol)))
 
     def _delta_m(self, m, mref):
         return (-mref + m)  # in case self.mref is Zero, returns type m
@@ -1817,16 +1821,16 @@ class PetroSmallness(BaseRegularization):
                         )
                     )
 
-    @Utils.timeIt
+    @timeIt
     def __call__(self, m, externalW=True):
 
         if externalW:
             W = self.W
         else:
-            W = Utils.Identity()
+            W = Identity()
 
         if getattr(self, 'mref', None) is None:
-            self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
+            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
 
         if self.evaltype == 'approx':
             membership = self.membership(self.mref)
@@ -1835,7 +1839,7 @@ class PetroSmallness(BaseRegularization):
             dmm = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
             dmmref = np.c_[[a for a in dmref]].T
             dmr = dmm - dmmref
-            r0 = W * Utils.mkvc(dmr)
+            r0 = W * mkvc(dmr)
 
             if self.GMmodel.covariance_type == 'tied':
                 r1 = np.r_[[np.dot(self.GMmodel.precisions_, np.r_[dmr[i]])
@@ -1847,22 +1851,22 @@ class PetroSmallness(BaseRegularization):
                 r1 = np.r_[[np.dot(self.GMmodel.precisions_[membership[i]],
                                    np.r_[dmr[i]]) for i in range(len(dmr))]]
 
-            return 0.5 * r0.dot(W * Utils.mkvc(r1))
+            return 0.5 * r0.dot(W * mkvc(r1))
 
         elif self.evaltype == 'full':
             modellist = self.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
             score = self.GMmodel.score_samples(
-                model) + Utils.ComputeConstantTerm(self.GMmodel)
-            score_vec = Utils.mkvc(
+                model) + ComputeConstantTerm(self.GMmodel)
+            score_vec = mkvc(
                 np.r_[[score for maps in self.wiresmap.maps]])
             return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
 
-    @Utils.timeIt
+    @timeIt
     def deriv(self, m):
 
         if getattr(self, 'mref', None) is None:
-            self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
+            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
 
         membership = self.membership(self.mref)
         modellist = self.wiresmap * m
@@ -1877,18 +1881,18 @@ class PetroSmallness(BaseRegularization):
 
             if self.GMmodel.covariance_type == 'tied':
                 r = self.W * \
-                    Utils.mkvc(
+                    mkvc(
                         np.r_[[np.dot(self.GMmodel.precisions_, dm[i]) for i in range(len(dm))]])
             elif self.GMmodel.covariance_type == 'diag' or self.GMmodel.covariance_type == 'spherical':
                 r = self.W * \
-                    Utils.mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
+                    mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
                                membership[i]] * np.eye(len(self.wiresmap.maps)), dm[i]) for i in range(len(dm))]])
             else:
                 r = self.W * \
-                    Utils.mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
+                    mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
                                membership[i]], dm[i]) for i in range(len(dm))]])
 
-            return Utils.mkvc(mD.T * (self.W.T * r))
+            return mkvc(mD.T * (self.W.T * r))
 
         else:
             modellist = self.wiresmap * m
@@ -1899,32 +1903,32 @@ class PetroSmallness(BaseRegularization):
             W = []
             for k in range(self.GMmodel.n_components):
                 if self.GMmodel.covariance_type == 'tied':
-                    logP[:, k] = Utils.mkvc(multivariate_normal(
+                    logP[:, k] = mkvc(multivariate_normal(
                         self.GMmodel.means_[k], self.GMmodel.covariances_).logpdf(model))
-                    W.append(self.GMmodel.weights_[k] * Utils.mkvc(np.r_[[np.dot(
+                    W.append(self.GMmodel.weights_[k] * mkvc(np.r_[[np.dot(
                         self.GMmodel.precisions_, (model[i] - self.GMmodel.means_[k]).T)for i in range(len(model))]]))
                 elif self.GMmodel.covariance_type == 'diag' or self.GMmodel.covariance_type == 'spherical':
-                    logP[:, k] = Utils.mkvc(multivariate_normal(
+                    logP[:, k] = mkvc(multivariate_normal(
                         self.GMmodel.means_[k], self.GMmodel.covariances_[k] * np.eye(len(self.wiresmap.maps))).logpdf(model))
-                    W.append(self.GMmodel.weights_[k] * Utils.mkvc(np.r_[[np.dot(self.GMmodel.precisions_[k] * np.eye(
+                    W.append(self.GMmodel.weights_[k] * mkvc(np.r_[[np.dot(self.GMmodel.precisions_[k] * np.eye(
                         len(self.wiresmap.maps)), (model[i] - self.GMmodel.means_[k]).T)for i in range(len(model))]]))
                 else:
-                    logP[:, k] = Utils.mkvc(multivariate_normal(
+                    logP[:, k] = mkvc(multivariate_normal(
                         self.GMmodel.means_[k], self.GMmodel.covariances_[k]).logpdf(model))
-                    W.append(self.GMmodel.weights_[k] * Utils.mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
+                    W.append(self.GMmodel.weights_[k] * mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
                              k], (model[i] - self.GMmodel.means_[k]).T)for i in range(len(model))]]))
             W = (np.c_[W].T)
             logP = np.vstack([logP for maps in self.wiresmap.maps])
             numer, sign = logsumexp(logP, axis=1, b=W, return_sign=True)
             logderiv = numer - score_vec
             r = sign * np.exp(logderiv)
-            return Utils.mkvc(mD.T * (self.W.T * (self.W * r)))
+            return mkvc(mD.T * (self.W.T * (self.W * r)))
 
-    @Utils.timeIt
+    @timeIt
     def deriv2(self, m, v=None):
 
         if getattr(self, 'mref', None) is None:
-            self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
+            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
 
         # For a positive definite Hessian,
         # we approximate it with the covariance of the cluster
@@ -1945,8 +1949,8 @@ class PetroSmallness(BaseRegularization):
         if v is not None:
             mDv = self.wiresmap * (mD * v)
             mDv = np.c_[mDv]
-            return Utils.mkvc(mD.T * ((self.W.T * self.W) *
-                                      Utils.mkvc(np.r_[[np.dot(r[i], mDv[i]) for i in range(len(mDv))]])))
+            return mkvc(mD.T * ((self.W.T * self.W) *
+                                      mkvc(np.r_[[np.dot(r[i], mDv[i]) for i in range(len(mDv))]])))
         else:
             # Forming the Hessian by diagonal blocks
             hlist = [[r[:, i, j]
@@ -1957,7 +1961,7 @@ class PetroSmallness(BaseRegularization):
             for i in range(len(self.wiresmap.maps)):
                 Hc = sp.csc_matrix((0, 0), dtype=np.float64)
                 for j in range(len(self.wiresmap.maps)):
-                    Hc = sp.hstack([Hc, Utils.sdiag(hlist[i][j])])
+                    Hc = sp.hstack([Hc, sdiag(hlist[i][j])])
                 Hr = sp.vstack([Hr, Hc])
 
             mDW = self.W * mD
@@ -1976,7 +1980,7 @@ class PetroRegularization(BaseComboRegularization):
         **kwargs
     ):
         self.GMmref = GMmref
-        Utils.order_clusters_GM_weight(self.GMmref)
+        order_clusters_GM_weight(self.GMmref)
         self._GMmodel = copy.deepcopy(GMmodel)
         self._wiresmap = wiresmap
         self._maplist = maplist
@@ -2029,7 +2033,7 @@ class PetroRegularization(BaseComboRegularization):
             alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
             alpha_xx=alpha_xx, alpha_yy=alpha_yy, alpha_zz=alpha_zz,
             objfcts=objfcts, **kwargs)
-        # Utils.setKwargs(self, **kwargs)
+        # setKwargs(self, **kwargs)
 
     # Properties
     alpha_s = Props.Float("PetroPhysics weights")
@@ -2113,14 +2117,14 @@ class SimplePetroSmallness(BaseRegularization):
         """
         if self.cell_weights is not None:
             if len(self.cell_weights) == self.wiresmap.nP:
-                return Utils.sdiag(np.sqrt(self.cell_weights))
+                return sdiag(np.sqrt(self.cell_weights))
             else:
                 return sp.kron(
-                    Utils.speye(len(self.wiresmap.maps)),
-                    Utils.sdiag(np.sqrt(self.cell_weights))
+                    speye(len(self.wiresmap.maps)),
+                    sdiag(np.sqrt(self.cell_weights))
                 )
         else:
-            return Utils.Identity()
+            return Identity()
 
     @properties.validator('cell_weights')
     def _validate_cell_weights(self, change):
@@ -2141,18 +2145,18 @@ class SimplePetroSmallness(BaseRegularization):
     def membership(self, m):
         modellist = self.wiresmap * m
         model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-        return self.GMmodel.predict(model)  # Utils.mkvc(m, numDims=2))
+        return self.GMmodel.predict(model)  # mkvc(m, numDims=2))
 
-    @Utils.timeIt
+    @timeIt
     def __call__(self, m, externalW=True):
 
         if externalW:
             W = self.W
         else:
-            W = Utils.Identity()
+            W = Identity()
 
         if getattr(self, 'mref', None) is None:
-            self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
+            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
 
         if self.evaltype == 'approx':
             membership = self.membership(self.mref)
@@ -2161,7 +2165,7 @@ class SimplePetroSmallness(BaseRegularization):
             dmm = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
             dmmref = np.c_[[a for a in dmref]].T
             dmr = dmm - dmmref
-            r0 = W * Utils.mkvc(dmr)
+            r0 = W * mkvc(dmr)
 
             if self.GMmodel.covariance_type == 'tied':
                 r1 = np.r_[[np.dot(self.GMmodel.precisions_, np.r_[dmr[i]])
@@ -2173,22 +2177,22 @@ class SimplePetroSmallness(BaseRegularization):
                 r1 = np.r_[[np.dot(self.GMmodel.precisions_[membership[i]],
                                    np.r_[dmr[i]]) for i in range(len(dmr))]]
 
-            return 0.5 * r0.dot(W * Utils.mkvc(r1))
+            return 0.5 * r0.dot(W * mkvc(r1))
 
         elif self.evaltype == 'full':
             modellist = self.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
             score = self.GMmodel.score_samples(
-                model) + Utils.ComputeConstantTerm(self.GMmodel)
-            score_vec = Utils.mkvc(
+                model) + ComputeConstantTerm(self.GMmodel)
+            score_vec = mkvc(
                 np.r_[[score for maps in self.wiresmap.maps]])
             return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
 
-    @Utils.timeIt
+    @timeIt
     def deriv(self, m):
 
         if getattr(self, 'mref', None) is None:
-            self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
+            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
 
         membership = self.membership(self.mref)
         modellist = self.wiresmap * m
@@ -2203,17 +2207,17 @@ class SimplePetroSmallness(BaseRegularization):
 
             if self.GMmodel.covariance_type == 'tied':
                 r = self.W * \
-                    Utils.mkvc(
+                    mkvc(
                         np.r_[[np.dot(self.GMmodel.precisions_, dm[i]) for i in range(len(dm))]])
             elif self.GMmodel.covariance_type == 'diag' or self.GMmodel.covariance_type == 'spherical':
                 r = self.W * \
-                    Utils.mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
+                    mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
                                membership[i]] * np.eye(len(self.wiresmap.maps)), dm[i]) for i in range(len(dm))]])
             else:
                 r = self.W * \
-                    Utils.mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
+                    mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
                                membership[i]], dm[i]) for i in range(len(dm))]])
-            return Utils.mkvc(mD.T * (self.W.T * r))
+            return mkvc(mD.T * (self.W.T * r))
 
         else:
             modellist = self.wiresmap * m
@@ -2224,32 +2228,32 @@ class SimplePetroSmallness(BaseRegularization):
             W = []
             for k in range(self.GMmodel.n_components):
                 if self.GMmodel.covariance_type == 'tied':
-                    logP[:, k] = Utils.mkvc(multivariate_normal(
+                    logP[:, k] = mkvc(multivariate_normal(
                         self.GMmodel.means_[k], self.GMmodel.covariances_).logpdf(model))
-                    W.append(self.GMmodel.weights_[k] * Utils.mkvc(np.r_[[np.dot(
+                    W.append(self.GMmodel.weights_[k] * mkvc(np.r_[[np.dot(
                         self.GMmodel.precisions_, (model[i] - self.GMmodel.means_[k]).T)for i in range(len(model))]]))
                 elif self.GMmodel.covariance_type == 'diag' or self.GMmodel.covariance_type == 'spherical':
-                    logP[:, k] = Utils.mkvc(multivariate_normal(
+                    logP[:, k] = mkvc(multivariate_normal(
                         self.GMmodel.means_[k], self.GMmodel.covariances_[k] * np.eye(len(self.wiresmap.maps))).logpdf(model))
-                    W.append(self.GMmodel.weights_[k] * Utils.mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
+                    W.append(self.GMmodel.weights_[k] * mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
                              k] * np.eye(len(self.wiresmap.maps)), (model[i] - self.GMmodel.means_[k]).T)for i in range(len(model))]]))
                 else:
-                    logP[:, k] = Utils.mkvc(multivariate_normal(
+                    logP[:, k] = mkvc(multivariate_normal(
                         self.GMmodel.means_[k], self.GMmodel.covariances_[k]).logpdf(model))
-                    W.append(self.GMmodel.weights_[k] * Utils.mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
+                    W.append(self.GMmodel.weights_[k] * mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
                              k], (model[i] - self.GMmodel.means_[k]).T)for i in range(len(model))]]))
             W = (np.c_[W].T)
             logP = np.vstack([logP for maps in self.wiresmap.maps])
             numer, sign = logsumexp(logP, axis=1, b=W, return_sign=True)
             logderiv = numer - score_vec
             r = sign * np.exp(logderiv)
-            return Utils.mkvc(mD.T * (self.W.T * (self.W * r)))
+            return mkvc(mD.T * (self.W.T * (self.W * r)))
 
-    @Utils.timeIt
+    @timeIt
     def deriv2(self, m, v=None):
 
         if getattr(self, 'mref', None) is None:
-            self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
+            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
 
         # For a positive definite Hessian,
         # we approximate it with the covariance of the cluster
@@ -2271,8 +2275,8 @@ class SimplePetroSmallness(BaseRegularization):
         if v is not None:
             mDv = self.wiresmap * (mD * v)
             mDv = np.c_[mDv]
-            return Utils.mkvc(mD.T * ((self.W.T * self.W) *
-                                      Utils.mkvc(np.r_[[np.dot(r[i], mDv[i]) for i in range(len(mDv))]])))
+            return mkvc(mD.T * ((self.W.T * self.W) *
+                                      mkvc(np.r_[[np.dot(r[i], mDv[i]) for i in range(len(mDv))]])))
         else:
             # Forming the Hessian by diagonal blocks
             hlist = [[r[:, i, j]
@@ -2283,7 +2287,7 @@ class SimplePetroSmallness(BaseRegularization):
             for i in range(len(self.wiresmap.maps)):
                 Hc = sp.csc_matrix((0, 0), dtype=np.float64)
                 for j in range(len(self.wiresmap.maps)):
-                    Hc = sp.hstack([Hc, Utils.sdiag(hlist[i][j])])
+                    Hc = sp.hstack([Hc, sdiag(hlist[i][j])])
                 Hr = sp.vstack([Hr, Hc])
 
             mDW = self.W * mD
@@ -2302,7 +2306,7 @@ class SimplePetroRegularization(BaseComboRegularization):
         **kwargs
     ):
         self.GMmref = GMmref
-        Utils.order_clusters_GM_weight(self.GMmref)
+        order_clusters_GM_weight(self.GMmref)
         self._GMmodel = copy.deepcopy(GMmodel)
         self._wiresmap = wiresmap
         self._maplist = maplist
@@ -2353,7 +2357,7 @@ class SimplePetroRegularization(BaseComboRegularization):
             alpha_xx=alpha_xx, alpha_yy=alpha_yy, alpha_zz=alpha_zz,
             objfcts=objfcts, **kwargs)
 
-        #Utils.setKwargs(self, **kwargs)
+        #setKwargs(self, **kwargs)
 
     # Properties
     alpha_s = Props.Float("PetroPhysics weights")
@@ -2445,14 +2449,14 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
         """
         if self.cell_weights is not None:
             if len(self.cell_weights) == self.wiresmap.nP:
-                return Utils.sdiag(np.sqrt(self.cell_weights))
+                return sdiag(np.sqrt(self.cell_weights))
             else:
                 return sp.kron(
-                    Utils.speye(len(self.wiresmap.maps)),
-                    Utils.sdiag(np.sqrt(self.cell_weights))
+                    speye(len(self.wiresmap.maps)),
+                    sdiag(np.sqrt(self.cell_weights))
                 )
         else:
-            return Utils.Identity()
+            return Identity()
 
     @properties.validator('cell_weights')
     def _validate_cell_weights(self, change):
@@ -2475,16 +2479,16 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
         model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
         return self.GMmodel.predict(model)
 
-    @Utils.timeIt
+    @timeIt
     def __call__(self, m, externalW=True):
 
         if externalW:
             W = self.W
         else:
-            W = Utils.Identity()
+            W = Identity()
 
         if getattr(self, 'mref', None) is None:
-            self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
+            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
 
         if self.evaltype == 'approx':
             membership = self.membership(self.mref)
@@ -2498,7 +2502,7 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
             ].reshape(-1, 2)
             dmmref = np.c_[[a for a in dmref]].T
             dmr = dmm - dmmref
-            r0 = W * Utils.mkvc(dmr)
+            r0 = W * mkvc(dmr)
 
             if self.GMmodel.covariance_type == 'tied':
                 r1 = np.r_[[np.dot(self.GMmodel.precisions_, np.r_[dmr[i]])
@@ -2510,22 +2514,22 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
                 r1 = np.r_[[np.dot(self.GMmodel.precisions_[membership[i]],
                                    np.r_[dmr[i]]) for i in range(len(dmr))]]
 
-            return 0.5 * r0.dot(W * Utils.mkvc(r1))
+            return 0.5 * r0.dot(W * mkvc(r1))
 
         elif self.evaltype == 'full':
             modellist = self.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
             score = self.GMmodel.score_samples(
-                model) + Utils.ComputeConstantTerm(self.GMmodel)
-            score_vec = Utils.mkvc(
+                model) + ComputeConstantTerm(self.GMmodel)
+            score_vec = mkvc(
                 np.r_[[score for maps in self.wiresmap.maps]])
             return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
 
-    @Utils.timeIt
+    @timeIt
     def deriv(self, m):
 
         if getattr(self, 'mref', None) is None:
-            self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
+            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
 
         membership = self.membership(self.mref)
         modellist = self.wiresmap * m
@@ -2547,23 +2551,23 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
                 raise Exception('Not implemented')
             else:
                 r = self.W * \
-                    Utils.mkvc(np.r_[
+                    mkvc(np.r_[
                         [
-                            Utils.mkvc(
+                            mkvc(
                                 self.GMmodel.cluster_mapping[membership[i]].deriv(
                                     dmmodel[i],
                                     v=np.dot(self.GMmodel.precisions_[membership[i]], dm[i])))
                             for i in range(dmmodel.shape[0])]])
-            return Utils.mkvc(mD.T * (self.W.T * r))
+            return mkvc(mD.T * (self.W.T * r))
 
         else:
             raise Exception('Not implemented')
 
-    @Utils.timeIt
+    @timeIt
     def deriv2(self, m, v=None):
 
         if getattr(self, 'mref', None) is None:
-            self.mref = Utils.mkvc(self.GMmodel.means_[self.membership(m)])
+            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
 
         # For a positive definite Hessian,
         # we approximate it with the covariance of the cluster
@@ -2620,8 +2624,8 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
         if v is not None:
             mDv = self.wiresmap * (mD * v)
             mDv = np.c_[mDv]
-            return Utils.mkvc(mD.T * ((self.W.T * self.W) *
-                                      Utils.mkvc(np.r_[[np.dot(self._r_second_deriv[i], mDv[i]) for i in range(len(mDv))]])))
+            return mkvc(mD.T * ((self.W.T * self.W) *
+                                      mkvc(np.r_[[np.dot(self._r_second_deriv[i], mDv[i]) for i in range(len(mDv))]])))
         else:
             # Forming the Hessian by diagonal blocks
             hlist = [[self._r_second_deriv[:, i, j]
@@ -2632,7 +2636,7 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
             for i in range(len(self.wiresmap.maps)):
                 Hc = sp.csc_matrix((0, 0), dtype=np.float64)
                 for j in range(len(self.wiresmap.maps)):
-                    Hc = sp.hstack([Hc, Utils.sdiag(hlist[i][j])])
+                    Hc = sp.hstack([Hc, sdiag(hlist[i][j])])
                 Hr = sp.vstack([Hr, Hc])
 
             mDW = self.W * mD
@@ -2651,7 +2655,7 @@ class SimplePetroWithMappingRegularization(BaseComboRegularization):
         **kwargs
     ):
         self.GMmref = GMmref
-        Utils.order_clusters_GM_weight(self.GMmref)
+        order_clusters_GM_weight(self.GMmref)
         self._GMmodel = copy.deepcopy(GMmodel)
         self._wiresmap = wiresmap
         self._maplist = maplist
@@ -2706,7 +2710,7 @@ class SimplePetroWithMappingRegularization(BaseComboRegularization):
             alpha_xx=alpha_xx, alpha_yy=alpha_yy, alpha_zz=alpha_zz,
             objfcts=objfcts, **kwargs)
 
-        #Utils.setKwargs(self, **kwargs)
+        #setKwargs(self, **kwargs)
 
     # Properties
     alpha_s = Props.Float("PetroPhysics weights")
