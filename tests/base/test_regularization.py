@@ -22,6 +22,8 @@ IGNORE_ME = [
     'BaseSparse',
     'SimplePetroRegularization',
     'PetroRegularization',
+    'SimplePetroWithMappingRegularization',
+    'SimplePetroWithMappingSmallness',
     'PetroSmallness',
     'SimplePetroSmallness',
 ]
