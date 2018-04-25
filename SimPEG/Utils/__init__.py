@@ -28,7 +28,7 @@ from .PlotUtils import plot2Ddata, plotLayer
 from .io_utils import download
 
 from .petroutils import (
-    MakeSimplePetroRegularization, ComputeDistances,
+    ComputeDistances,
     order_clusters_GM_weight, order_cluster,
     computePrecision, computeCovariance, ComputeConstantTerm,
     _compute_precision_cholesky, GaussianMixture,

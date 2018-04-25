@@ -100,7 +100,7 @@ minit = m0
 # Petrophyically constrained regularization
 #reg = Regularization.SimplePetroRegularization(
 #    GMmref=clf, GMmodel=clf, mesh=mesh, mref=m0, maplist=[linearmap])
-reg = Utils.MakeSimplePetroRegularization(
+reg = Regularization.MakeSimplePetroRegularization(
     GMmref=clf, GMmodel=clf, mesh=mesh, mref=m0, maplist=[linearmap])
 
 # Include the reference model in the smoothness term
