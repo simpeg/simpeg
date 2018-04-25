@@ -276,7 +276,7 @@ def checkDerivative(
             import numpy as np
             from SimPEG import Tests, Utils
             def simplePass(x):
-                return np.sin(x), sdiag(np.cos(x))
+                return np.sin(x), Utils.sdiag(np.cos(x))
             Tests.checkDerivative(simplePass, np.random.randn(5))
     """
 
