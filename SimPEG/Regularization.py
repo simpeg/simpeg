@@ -12,7 +12,7 @@ from .Utils import (
     speye, setKwargs, sdiag, mkvc, timeIt,
     Identity, Zero, order_clusters_GM_weight,
     ComputeConstantTerm
-    )
+)
 from . import Maps
 from . import ObjectiveFunction
 from . import Props
@@ -1340,7 +1340,9 @@ class BaseSparse(BaseRegularization):
 class SparseSmall(BaseSparse):
     """
     Sparse smallness regularization
+
     **Inputs**
+
     :param int norm: norm on the smallness
     """
 
@@ -1384,13 +1386,20 @@ class SparseSmall(BaseSparse):
     @timeIt
     def deriv(self, m):
         """
+
         The regularization is:
+
         .. math::
+
             R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top
-            W(m-m_\\text{ref})}
+                   W(m-m_\\text{ref})}
+
         So the derivative is straight forward:
+
         .. math::
+
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
+
         """
 
         mD = self.mapping.deriv(self._delta_m(m))
@@ -1416,7 +1425,9 @@ class SparseDeriv(BaseSparse):
     def __call__(self, m):
         """
         We use a weighted 2-norm objective function
+
         .. math::
+
             r(m) = \\frac{1}{2}
         """
         if self.mrefInSmooth:
@@ -1475,13 +1486,20 @@ class SparseDeriv(BaseSparse):
     @timeIt
     def deriv(self, m):
         """
+
         The regularization is:
+
         .. math::
+
             R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top
                    W(m-m_\\text{ref})}
+
         So the derivative is straight forward:
+
         .. math::
+
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
+
         """
 
         if self.mrefInSmooth:
@@ -1607,15 +1625,24 @@ class SparseDeriv(BaseSparse):
 class Sparse(BaseComboRegularization):
     """
     The regularization is:
+
     .. math::
+
         R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R
         W(m-m_\\text{ref})}
+
     where the IRLS weight
+
     .. math::
+
         R = \eta TO FINISH LATER!!!
+
     So the derivative is straight forward:
+
     .. math::
+
         R(m) = \mathbf{W^\\top R^\\top R W (m-m_\\text{ref})}
+
     The IRLS weights are recomputed after each beta solves.
     It is strongly recommended to do a few Gauss-Newton iterations
     before updating.
@@ -1756,6 +1783,7 @@ def coterminal(theta):
     theta[np.abs(theta) >= np.pi] = sub
 
     return theta
+
 
 ###############################################################################
 #                                                                             #
@@ -1950,7 +1978,7 @@ class PetroSmallness(BaseRegularization):
             mDv = self.wiresmap * (mD * v)
             mDv = np.c_[mDv]
             return mkvc(mD.T * ((self.W.T * self.W) *
-                                      mkvc(np.r_[[np.dot(r[i], mDv[i]) for i in range(len(mDv))]])))
+                                mkvc(np.r_[[np.dot(r[i], mDv[i]) for i in range(len(mDv))]])))
         else:
             # Forming the Hessian by diagonal blocks
             hlist = [[r[:, i, j]
@@ -2276,7 +2304,7 @@ class SimplePetroSmallness(BaseRegularization):
             mDv = self.wiresmap * (mD * v)
             mDv = np.c_[mDv]
             return mkvc(mD.T * ((self.W.T * self.W) *
-                                      mkvc(np.r_[[np.dot(r[i], mDv[i]) for i in range(len(mDv))]])))
+                                mkvc(np.r_[[np.dot(r[i], mDv[i]) for i in range(len(mDv))]])))
         else:
             # Forming the Hessian by diagonal blocks
             hlist = [[r[:, i, j]
@@ -2625,7 +2653,7 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
             mDv = self.wiresmap * (mD * v)
             mDv = np.c_[mDv]
             return mkvc(mD.T * ((self.W.T * self.W) *
-                                      mkvc(np.r_[[np.dot(self._r_second_deriv[i], mDv[i]) for i in range(len(mDv))]])))
+                                mkvc(np.r_[[np.dot(self._r_second_deriv[i], mDv[i]) for i in range(len(mDv))]])))
         else:
             # Forming the Hessian by diagonal blocks
             hlist = [[self._r_second_deriv[:, i, j]
