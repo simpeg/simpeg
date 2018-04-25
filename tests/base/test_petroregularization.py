@@ -41,7 +41,7 @@ class TestPetroRegularization(unittest.TestCase):
         self.mesh = Mesh.TensorMesh([self.samples.shape[0]])
         self.wires = Maps.Wires(('s0', self.mesh.nC), ('s1', self.mesh.nC))
 
-        self.PlotIt = True
+        self.PlotIt = False
 
     def test_full_covariances(self):
         # Fit a Gaussian Mixture
