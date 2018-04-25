@@ -269,7 +269,7 @@ class GravityDriver_Inv(object):
 
         return self._activeModel
 
-    def readGravityObservations(obs_file):
+    def readGravityObservations(self, obs_file):
         """
         Read UBC grav file format
 
@@ -303,9 +303,9 @@ class GravityDriver_Inv(object):
                 wd[ii] = temp[4]
             line = fid.readline()
 
-        rxLoc = GRAV.RxObs(locXYZ)
-        srcField = GRAV.SrcField([rxLoc])
-        survey = GRAV.LinearSurvey(srcField)
+        rxLoc = BaseGrav.RxObs(locXYZ)
+        srcField = BaseGrav.SrcField([rxLoc])
+        survey = BaseGrav.LinearSurvey(srcField)
         survey.dobs = d
         survey.std = wd
         return survey
