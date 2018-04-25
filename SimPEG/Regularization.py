@@ -662,7 +662,7 @@ class SimpleComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
 
         # link these attributes
         linkattrs = [
-            'regmesh', 'indActive', 'cell_weights'
+            'regmesh', 'indActive',
         ]
 
         for attr in linkattrs:
@@ -767,17 +767,6 @@ class SimpleComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         if getattr(self, 'regmesh', None) is not None:
             self.regmesh.indActive = change['value']
 
-    @properties.validator('cell_weights')
-    def _validate_cell_weights(self, change):
-        if change['value'] is not None:
-            # todo: residual size? we need to know the expected end shape
-            if self._nC_residual != '*':
-                assert len(change['value']) == self._nC_residual, (
-                    'cell_weights must be length {} not {}'.format(
-                        self._nC_residual, len(change['value'])
-                    )
-                )
-
     @properties.observer('mref')
     def _mirror_mref_to_objfctlist(self, change):
         for fct in self.objfcts:
@@ -811,15 +800,6 @@ class SimpleComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         for fct in self.objfcts:
             fct.indActive = value
 
-    @properties.observer('cell_weights')
-    def _mirror_cell_weights_to_objfctlist(self, change):
-        for fct in self.objfcts:
-            fct.cell_weights = change['value']
-
-    # @properties.observer('mapping')
-    # def _mirror_mapping_to_objfctlist(self, change):
-    #     for fct in self.objfcts:
-    #         fct.mapping = change['value']
 
 class BaseComboRegularization(SimpleComboRegularization):
 
@@ -845,6 +825,23 @@ class BaseComboRegularization(SimpleComboRegularization):
     def _mirror_mapping_to_objfctlist(self, change):
         for fct in self.objfcts:
             fct.mapping = change['value']
+
+    @properties.validator('cell_weights')
+    def _validate_cell_weights(self, change):
+        if change['value'] is not None:
+            # todo: residual size? we need to know the expected end shape
+            if self._nC_residual != '*':
+                assert len(change['value']) == self._nC_residual, (
+                    'cell_weights must be length {} not {}'.format(
+                        self._nC_residual, len(change['value'])
+                    )
+                )
+
+    @properties.observer('cell_weights')
+    def _mirror_cell_weights_to_objfctlist(self, change):
+        for fct in self.objfcts:
+            fct.cell_weights = change['value']
+
 
 ###############################################################################
 #                                                                             #
