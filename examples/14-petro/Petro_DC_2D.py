@@ -128,8 +128,8 @@ Target = Directives.TargetMisfit()
 betaSched = Directives.BetaSchedule(coolingFactor=2.,  coolingRate=3)
 updateSensW = Directives.Update_DC_Wr(wrType='sensitivityW',
                                   changeMref=False, eps=1e-7)
-#updateSensW = Directives.UpdateSensitivityWeights(threshold=1e-7)
-#update_Jacobi = Directives.UpdatePreconditioner()
+# updateSensW = Directives.UpdateSensitivityWeights(threshold=1e-7)
+# update_Jacobi = Directives.UpdatePreconditioner()
 
 inv = Inversion.BaseInversion(invProb,  directiveList=[beta, Target,
                                                        betaSched, updateSensW,
@@ -149,10 +149,11 @@ m0 = np.median(ln_sigback)*np.ones(mapping.nP)
 dmis = DataMisfit.l2_DataMisfit(survey)
 
 n = 3
-clf = GaussianMixture(n_components=n,  covariance_type='tied', reg_covar=1e-3)
+clf = GaussianMixture(n_components=n,  covariance_type='tied', reg_covar=3e-3)
 clf.fit(mtrue[actind].reshape(-1, 1))
 Utils.order_clusters_GM_weight(clf)
-
+print(clf.covariances_)
+print(clf.means_)
 idenMap = Maps.IdentityMap(nP=m0.shape[0])
 wires = Maps.Wires(('m', m0.shape[0]))
 reg = Regularization.SimplePetroRegularization(
@@ -163,27 +164,31 @@ reg = Regularization.SimplePetroRegularization(
     indActive=actind
 )
 reg.mrefInSmooth = False
-reg.approx_gradient = False
-gamma_petro = np.r_[1., 1., 1.]
+reg.approx_gradient = True
+gamma_petro = np.r_[1., 3., 3.]
 reg.gamma = gamma_petro
 
 opt = Optimization.ProjectedGNCG(maxIter=20, lower=-10, upper=10,
-                                 maxIterLS=20, maxIterCG=30, tolCG=1e-4)
+                                 maxIterLS=20, maxIterCG=50, tolCG=1e-4)
 opt.remember('xc')
 
 invProb = InvProblem.BaseInvProblem(dmis,  reg,  opt)
 
-Alphas = Directives.AlphasSmoothEstimate_ByEig(ninit=10)
-beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e3, ninit=10)
-betaIt = Directives.PetroBetaReWeighting(verbose=True, rateCooling=5., rateWarming=1., tolerance=0.05)
-targets = Directives.PetroTargetMisfit(TriggerSmall=True,ToleranceTheta=0.1,TriggerTheta=False, verbose=True)
+Alphas = Directives.AlphasSmoothEstimate_ByEig(
+  alpha0_ratio=1e-2, ninit=10, verbose=True
+)
+beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e1, ninit=10)
+betaIt = Directives.PetroBetaReWeighting(
+  verbose=True, rateCooling=5.,
+  rateWarming=1., tolerance=0.05)
+targets = Directives.PetroTargetMisfit(
+  TriggerSmall=True,
+  TriggerTheta=False,
+  verbose=True
+  )
 MrefInSmooth = Directives.AddMrefInSmooth(verbose=True, wait_till_stable=True)
 #invProb.beta = 5.01e+01
-K = np.r_[1., 1., 2.]
-petrodir = Directives.GaussianMixtureUpdateModel(
-  alphadir=K,
-  kappa=K,
-  nu=K)
+petrodir = Directives.GaussianMixtureUpdateModel()
 #betaSched = Directives.BetaSchedule(coolingFactor=.5,  coolingRate=2)
 
 updateSensW = Directives.Update_DC_Wr(wrType='sensitivityW',
@@ -191,15 +196,12 @@ updateSensW = Directives.Update_DC_Wr(wrType='sensitivityW',
 #updateSensW = Directives.UpdateSensitivityWeights(threshold=1e-7)
 #update_Jacobi = Directives.UpdatePreconditioner()
 
-# Rule of thumb for Potts model: indiag log coeff = 1/reg_covar of clf
-smoothref = Directives.SmoothUpdateReferenceModel(neighbors=4,
-                                                  indiag=float(1./clf.covariances_))
-
 inv = Inversion.BaseInversion(invProb,
                               directiveList=[Alphas, beta,
+                                             petrodir,
                                              targets, betaIt,
-                                             #MrefInSmooth,
-                                             petrodir, updateSensW,
+                                             MrefInSmooth,
+                                             updateSensW,
                                              ])
 
 
