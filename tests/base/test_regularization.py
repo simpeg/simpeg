@@ -19,6 +19,7 @@ np.random.seed(639)
 IGNORE_ME = [
     'BaseRegularization',
     'BaseComboRegularization',
+    'SimpleComboRegularization',
     'BaseSparse',
     'SimplePetroRegularization',
     'PetroRegularization',
