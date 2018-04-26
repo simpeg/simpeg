@@ -237,11 +237,11 @@ class BetaEstimate_ByEig(InversionDirective):
                 # check if f is list
                 if len(self.dmisfit.objfcts) > 1:
                     t += mult * x0.dot(dmis.deriv2(m, x0, f=f[i_count]))
+                    i_count += 1
                 else:
                     t += mult * x0.dot(dmis.deriv2(m, x0, f=f))
             for mult, reg in zip(self.reg.multipliers, self.reg.objfcts):
                 b += mult * x0.dot(reg.deriv2(m, v=x0))
-            i_count += 1
             ratio.append(t / b)
 
         self.ratio = ratio
@@ -1636,7 +1636,7 @@ class PetroBetaReWeighting(InversionDirective):
     betamax = 1e10
     betamin = 1e-10
     UpdateRate = 1
-    ratio_in_cooling = True
+    ratio_in_cooling = False
 
     update_prior_confidence = False
     progress_gamma_warming = 0.02
