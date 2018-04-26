@@ -149,7 +149,9 @@ m0 = np.median(ln_sigback)*np.ones(mapping.nP)
 dmis = DataMisfit.l2_DataMisfit(survey)
 
 n = 3
-clf = GaussianMixture(n_components=n,  covariance_type='tied', reg_covar=3e-3)
+clf = GaussianMixture(
+  n_components=n,  covariance_type='tied', reg_covar=5e-3
+)
 clf.fit(mtrue[actind].reshape(-1, 1))
 Utils.order_clusters_GM_weight(clf)
 print(clf.covariances_)
@@ -168,7 +170,7 @@ reg.approx_gradient = True
 gamma_petro = np.r_[1., 3., 3.]
 reg.gamma = gamma_petro
 
-opt = Optimization.ProjectedGNCG(maxIter=20, lower=-10, upper=10,
+opt = Optimization.ProjectedGNCG(maxIter=30, lower=-10, upper=10,
                                  maxIterLS=20, maxIterCG=50, tolCG=1e-4)
 opt.remember('xc')
 
@@ -177,14 +179,14 @@ invProb = InvProblem.BaseInvProblem(dmis,  reg,  opt)
 Alphas = Directives.AlphasSmoothEstimate_ByEig(
   alpha0_ratio=1e-2, ninit=10, verbose=True
 )
-beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e1, ninit=10)
+beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e2, ninit=10)
 betaIt = Directives.PetroBetaReWeighting(
-  verbose=True, rateCooling=5.,
-  rateWarming=1., tolerance=0.05)
+  verbose=True, rateCooling=8.,
+    rateWarming=1., tolerance=0.05)
 targets = Directives.PetroTargetMisfit(
   TriggerSmall=True,
   TriggerTheta=False,
-  verbose=True
+  verbose=True,
   )
 MrefInSmooth = Directives.AddMrefInSmooth(verbose=True, wait_till_stable=True)
 #invProb.beta = 5.01e+01
