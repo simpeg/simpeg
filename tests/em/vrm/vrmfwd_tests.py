@@ -3,6 +3,8 @@ import SimPEG.VRM as VRM
 import numpy as np
 from SimPEG import Mesh
 
+np.random.seed(518936)
+
 
 class VRM_fwd_tests(unittest.TestCase):
 
