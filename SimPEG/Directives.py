@@ -5,7 +5,7 @@ from . import Maps
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
-
+from .Utils import mkvc
 
 class InversionDirective(object):
     """InversionDirective"""
@@ -1066,7 +1066,7 @@ class UpdateSensitivityWeights(InversionDirective):
 
             m = self.invProb.model
 
-            self.JtJdiag += [np.sum((dmisfit.W*prob.getJ(m))**2., axis=0)]
+            self.JtJdiag += [mkvc(np.sum((dmisfit.W*prob.getJ(m)).power(2.), axis=0))]
 
         return self.JtJdiag
 
