@@ -45,9 +45,9 @@ def spectral_ip_mappings(
     )
 
     wires = Maps.Wires(
-        ('eta', indActive.sum()),
-        ('tau', indActive.sum()),
-        ('c', indActive.sum())
+        ('eta', int(indActive.sum())),
+        ('tau', int(indActive.sum())),
+        ('c', int(indActive.sum()))
     )
 
     if is_log_eta:
@@ -128,14 +128,14 @@ def run_inversion(
     m_lower = np.r_[eta_lower, tau_lower, c_lower]
 
     # Set up regularization
-    reg_eta = Regularization.Tikhonov(
+    reg_eta = Regularization.Simple(
         mesh, mapping=wires.eta, indActive=actind
         )
-    reg_tau = Regularization.Tikhonov(
+    reg_tau = Regularization.Simple(
         mesh, mapping=wires.tau, indActive=actind
         )
 
-    reg_c = Regularization.Tikhonov(mesh, mapping=wires.c, indActive=actind)
+    reg_c = Regularization.Simple(mesh, mapping=wires.c, indActive=actind)
 
     # Todo:
 

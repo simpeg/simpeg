@@ -221,14 +221,14 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
 
         return self.sign * Jtvec
 
-    def getJtJdiag(self):
+    def getJtJdiag(self, m):
         """
         Compute JtJ using adjoint problem. Still we never form
         JtJ
         """
         ntime = len(self.survey.times)
-        JtJdiag = np.zeros_like(self.model)
-        J = self.getJ(self.model, f=None)
+        JtJdiag = np.zeros_like(m)
+        J = self.getJ(m, f=None)
         for tind in range(ntime):
             t = self.survey.times[tind]
             Jtv = self.actMap.P*Utils.sdiag(1./self.mesh.vol)*J.T

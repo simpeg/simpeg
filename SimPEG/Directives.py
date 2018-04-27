@@ -1033,8 +1033,10 @@ class UpdateSensitivityWeights(InversionDirective):
             )
 
             m = self.invProb.model
-
-            self.JtJdiag += [np.sum((dmisfit.W*prob.getJ(m))**2., axis=0)]
+            if getattr(prob, 'getJtJdiag', None):
+                self.JtJdiag += [prob.getJtJdiag(m)]
+            else:
+                self.JtJdiag += [np.sum((dmisfit.W*prob.getJ(m))**2., axis=0)]
 
         return self.JtJdiag
 
