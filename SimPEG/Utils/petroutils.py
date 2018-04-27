@@ -18,7 +18,7 @@ from sklearn.mixture.base import (
 )
 import warnings
 from .matutils import mkvc
-from ..Maps import IdentityMap, Wires
+from ..Maps import IdentityMap
 
 
 def ComputeDistances(a, b):
@@ -29,9 +29,13 @@ def ComputeDistances(a, b):
     n, d = x.shape
     t, d1 = y.shape
 
-    assert d == d1, ('vectors must have same number of columns')
+    if not d == d1:
+        raise Exception('vectors must have same number of columns')
 
-    sq_dis = np.dot((x**2.), np.ones([d, t])) + np.dot(np.ones([n, d]), (y**2.).T) - 2. * np.dot(x, y.T)
+    sq_dis = np.dot(
+        (x**2.),
+        np.ones([d, t])
+    ) + np.dot(np.ones([n, d]), (y**2.).T) - 2. * np.dot(x, y.T)
 
     idx = np.argmin(sq_dis, axis=1)
 
@@ -279,9 +283,10 @@ class FuzzyGaussianMixtureWithPrior(GaussianMixture):
                                       k]) * (self.fuzzyness - 1.)).logpdf(X)) + np.log(self.fuzzyness - 1) / 2.
             elif self.GMref.covariance_type == 'tied':
                 raise Exception('Implementation in progress')
-                for k in range(n_components):
-                    logP[:, k] = mkvc(multivariate_normal(self.means_[k], (self.covariances_) * (
-                        self.fuzzyness - 1.)).logpdf(X)) + np.log(self.fuzzyness - 1) / 2.
+                # for k in range(n_components):
+                #    logP[:, k] = mkvc(multivariate_normal(self.means_[k], (self.covariances_) * (
+                # self.fuzzyness - 1.)).logpdf(X)) + np.log(self.fuzzyness - 1)
+                # / 2.
             else:
                 raise Exception('Spherical is not implemented yet')
             logWP = logW + logP
@@ -571,6 +576,7 @@ class GaussianMixtureWithMapping(GaussianMixture):
         else:
             self.precisions_cholesky_ = self.precisions_init
 
+    @classmethod
     def _estimate_log_gaussian_prob(self, X, means, precisions_chol, covariance_type, cluster_mapping):
         """Estimate the log Gaussian probability.
         Parameters
@@ -726,14 +732,16 @@ class GaussianMixtureWithMapping(GaussianMixture):
 class GaussianMixtureWithMappingWithPrior(GaussianMixtureWithPrior):
 
     def __init__(
-            self, GMref, kappa=0., nu=0., alphadir=0.,
-            prior_type='semi',  # semi or conjuguate
-            cluster_mapping=None,
-            n_components=1, covariance_type='full', tol=1e-3,
-            reg_covar=1e-6, max_iter=100, n_init=1, init_params='kmeans',
-            weights_init=None, means_init=None, precisions_init=None,
-            random_state=None, warm_start=False,
-            verbose=0, verbose_interval=10):
+        self, GMref, kappa=0., nu=0., alphadir=0.,
+        prior_type='semi',  # semi or conjuguate
+        cluster_mapping=None,
+        init_params='kmeans', max_iter=100,
+        means_init=None, n_init=10, precisions_init=None,
+        random_state=None, reg_covar=1e-06, tol=0.001, verbose=0,
+        verbose_interval=10, warm_start=False, weights_init=None,
+        update_covariances=False,
+        fixed_membership=None
+    ):
 
         if cluster_mapping is None:
             self.cluster_mapping = [IdentityMap()
@@ -742,6 +750,7 @@ class GaussianMixtureWithMappingWithPrior(GaussianMixtureWithPrior):
             self.cluster_mapping = cluster_mapping
 
         super(GaussianMixtureWithMappingWithPrior, self).__init__(
+            GMref=GMref, kappa=kappa, nu=nu, alphadir=alphadir,
             covariance_type=covariance_type,
             init_params=init_params,
             max_iter=max_iter,

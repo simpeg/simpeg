@@ -8,7 +8,7 @@ from .Fields import Fields, TimeFields
 from . import Mesh
 from . import Props
 import properties
-import time
+
 Solver = Utils.SolverUtils.Solver
 
 

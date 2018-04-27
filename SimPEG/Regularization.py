@@ -1849,9 +1849,6 @@ class PetroSmallness(BaseRegularization):
             return sp.kron(speye(len(self.wiresmap.maps)),
                            sdiag(np.sqrt(self.regmesh.vol)))
 
-    def _delta_m(self, m, mref):
-        return (-mref + m)  # in case self.mref is Zero, returns type m
-
     def membership(self, m):
         modellist = self.wiresmap * m
         model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
@@ -2188,9 +2185,6 @@ class SimplePetroSmallness(BaseRegularization):
                         )
                     )
 
-    def _delta_m(self, m, mref):
-        return (-mref + m)  # in case self.mref is Zero, returns type m
-
     def membership(self, m):
         modellist = self.wiresmap * m
         model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
@@ -2519,9 +2513,6 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
                             len(change['value'])
                         )
                     )
-
-    def _delta_m(self, m, mref):
-        return (-mref + m)  # in case self.mref is Zero, returns type m
 
     def membership(self, m):
         modellist = self.wiresmap * m

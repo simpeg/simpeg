@@ -1,18 +1,14 @@
 from __future__ import print_function
-from . import Utils
-from . import Regularization, DataMisfit, ObjectiveFunction
-from . import Maps
+from . import (
+    Utils, Regularization,
+    ObjectiveFunction, Utils,
+    Maps, DataMisfit
+)
+
 import numpy as np
-import scipy.sparse as sp
 import matplotlib.pyplot as plt
 import warnings
-from . import Maps
-from .PF import Magnetics, MagneticsDriver
-from . import Regularization
-from . import Mesh
-from . import ObjectiveFunction
 import copy
-# from .Utils import FuzzyGaussianMixtureWithPrior
 
 
 class InversionDirective(object):
@@ -2101,7 +2097,7 @@ class UpdateSensitivityWeights(InversionDirective):
         """
         # if self.ComboMisfitFun:
         JtJdiag = np.zeros_like(self.invProb.model)
-        for prob, JtJ, dmisfit in zip(self.prob, self.JtJdiag, self.dmisfit.objfcts):
+        for _, JtJ, dmisfit in zip(self.prob, self.JtJdiag, self.dmisfit.objfcts):
 
             JtJdiag += JtJ
 

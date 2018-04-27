@@ -4,7 +4,6 @@ from . import Props
 from . import DataMisfit
 from . import Regularization
 from . import ObjectiveFunction
-from . import Optimization
 
 import properties
 import numpy as np

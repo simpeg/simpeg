@@ -1,5 +1,5 @@
 from SimPEG import (
-    Mesh,  Problem,  Survey,  Maps,  Utils,
+    Mesh,  Survey,  Maps,  Utils,
     EM,  DataMisfit,  Regularization,  Optimization,
     InvProblem,  Directives,  Inversion
     )
@@ -51,13 +51,13 @@ mtrue = ln_sigback*np.ones(mesh.nC) + norm(noisemean, noisevar).rvs(mesh.nC)
 mprim = copy.deepcopy(mtrue)
 
 csph = (np.sqrt((mesh.gridCC[:, 1]-z0)**2.+(mesh.gridCC[:, 0]-x0)**2.)) < r0
-mtrue[csph] = ln_sigc*np.ones_like(mtrue[csph])
-+ norm(noisemean, noisevar).rvs(np.prod((mtrue[csph]).shape))
+mtrue[csph] = ln_sigc*np.ones_like(mtrue[csph]) + \
+  norm(noisemean, noisevar).rvs(np.prod((mtrue[csph]).shape))
 
 # Define the sphere limit
 rsph = (np.sqrt((mesh.gridCC[:, 1]-z1)**2.+(mesh.gridCC[:, 0]-x1)**2.)) < r1
-mtrue[rsph] = ln_sigr*np.ones_like(mtrue[rsph])
-+ norm(noisemean, noisevar).rvs(np.prod((mtrue[rsph]).shape))
+mtrue[rsph] = ln_sigr*np.ones_like(mtrue[rsph]) + \
+  norm(noisemean, noisevar).rvs(np.prod((mtrue[rsph]).shape))
 
 mtrue = Utils.mkvc(mtrue)
 xmin,  xmax = -15., 15
@@ -177,7 +177,7 @@ opt.remember('xc')
 invProb = InvProblem.BaseInvProblem(dmis,  reg,  opt)
 
 Alphas = Directives.AlphasSmoothEstimate_ByEig(
-  alpha0_ratio=1e-2, ninit=10, verbose=True
+  alpha0_ratio=1e-3, ninit=10, verbose=True
 )
 beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e2, ninit=10)
 betaIt = Directives.PetroBetaReWeighting(

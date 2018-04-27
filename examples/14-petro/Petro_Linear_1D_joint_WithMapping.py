@@ -1,5 +1,5 @@
 from SimPEG import (
-    Mesh, Problem, Survey, Maps, Utils, EM, DataMisfit,
+    Mesh, Problem, Survey, Maps, Utils, DataMisfit,
     Regularization, Optimization, InvProblem,
     Directives, Inversion)
 import numpy as np

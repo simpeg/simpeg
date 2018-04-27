@@ -1176,4 +1176,4 @@ def readMagneticsObservations(obs_file):
         survey = MAG.LinearSurvey(srcField)
         survey.dobs = d
         survey.std = wd
-        return survey
+        return survey, M
