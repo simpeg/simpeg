@@ -5,10 +5,9 @@ from __future__ import unicode_literals
 
 import numpy as np
 import unittest
-from SimPEG import Mesh, Maps, Regularization, Utils, Tests, ObjectiveFunction
+from SimPEG import Mesh, Maps, Regularization, Utils
 from scipy.stats import multivariate_normal
-from scipy.sparse.linalg import dsolve, spsolve, LinearOperator, bicgstab
-import inspect
+from scipy.sparse.linalg import LinearOperator, bicgstab
 
 
 class TestPetroRegularization(unittest.TestCase):

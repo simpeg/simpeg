@@ -1,7 +1,6 @@
 from SimPEG import (
-    Mesh,  Survey,  Maps,  Utils,
-    EM,  DataMisfit,  Regularization,  Optimization,
-    InvProblem,  Directives,  Inversion
+    Mesh,  Maps,  Utils, DataMisfit,  Regularization,
+    Optimization, InvProblem,  Directives,  Inversion
     )
 from SimPEG.EM.Static import DC, Utils as DCUtils
 import numpy as np

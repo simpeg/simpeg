@@ -7,7 +7,7 @@ import numpy as np
 import unittest
 from SimPEG import Mesh, Maps, Regularization, Utils, Tests, ObjectiveFunction
 from scipy.stats import multivariate_normal
-from scipy.sparse.linalg import dsolve, spsolve, LinearOperator, bicgstab
+from scipy.sparse.linalg import spsolve, LinearOperator, bicgstab
 import inspect
 
 TOL = 1e-7

@@ -1,8 +1,7 @@
 from __future__ import print_function
 from . import (
     Utils, Regularization,
-    ObjectiveFunction, Utils,
-    Maps, DataMisfit
+    ObjectiveFunction, DataMisfit
 )
 
 import numpy as np
@@ -187,6 +186,7 @@ class BetaEstimate_ByEig(InversionDirective):
     beta0 = None       #: The initial Beta (regularization parameter)
     beta0_ratio = 1e2  #: estimateBeta0 is used with this ratio
     ninit = 1
+    seed = 518936
 
     def initialize(self):
         """
@@ -217,6 +217,7 @@ class BetaEstimate_ByEig(InversionDirective):
             :rtype: float
             :return: beta0
         """
+        np.random.seed(self.seed)
 
         if self.debug:
             print('Calculating the beta0 parameter.')
@@ -2097,7 +2098,7 @@ class UpdateSensitivityWeights(InversionDirective):
         """
         # if self.ComboMisfitFun:
         JtJdiag = np.zeros_like(self.invProb.model)
-        for _, JtJ, dmisfit in zip(self.prob, self.JtJdiag, self.dmisfit.objfcts):
+        for _, JtJ, _ in zip(self.prob, self.JtJdiag, self.dmisfit.objfcts):
 
             JtJdiag += JtJ
 

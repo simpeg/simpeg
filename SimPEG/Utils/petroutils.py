@@ -799,7 +799,10 @@ class GaussianMixtureWithMappingWithPrior(GaussianMixtureWithPrior):
         else:
             self.precisions_cholesky_ = self.precisions_init
 
-    def _estimate_log_gaussian_prob(self, X, means, precisions_chol, covariance_type, cluster_mapping):
+    @classmethod
+    def _estimate_log_gaussian_prob(
+        self, X, means, precisions_chol, covariance_type, cluster_mapping
+    ):
         """Estimate the log Gaussian probability.
         Parameters
         ----------

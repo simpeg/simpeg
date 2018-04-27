@@ -1,6 +1,8 @@
 import numpy as np
-from SimPEG import (Mesh, Maps, SolverLU, DataMisfit, Regularization,
-                    Optimization, InvProblem, Inversion, Directives, Utils)
+from SimPEG import (
+    Mesh, Maps, DataMisfit, Regularization,
+    Optimization, InvProblem, Inversion, Directives, Utils
+)
 import SimPEG.EM as EM
 import matplotlib.pyplot as plt
 import seaborn
