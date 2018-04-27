@@ -34,7 +34,7 @@ class RegularizationTests(unittest.TestCase):
 
     def setUp(self):
         hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
-        hx, hy, hz = hx/hx.sum(), hy/hy.sum(), hz/hz.sum()
+        hx, hy, hz = hx / hx.sum(), hy / hy.sum(), hz / hz.sum()
         mesh1 = Mesh.TensorMesh([hx])
         mesh2 = Mesh.TensorMesh([hx, hy])
         mesh3 = Mesh.TensorMesh([hx, hy, hz])
@@ -71,7 +71,7 @@ class RegularizationTests(unittest.TestCase):
                         m = np.random.rand(mapping.nP)
                     else:
                         m = np.random.rand(mesh.nC)
-                    mref = np.ones_like(m)*np.mean(m)
+                    mref = np.ones_like(m) * np.mean(m)
                     reg.mref = mref
 
                     # test derivs
@@ -79,25 +79,25 @@ class RegularizationTests(unittest.TestCase):
                     self.assertTrue(passed)
 
         def test_petroregularization_approxDeriv(self):
-            mean0 = np.r_[2.,0.];
+            mean0 = np.r_[2., 0.]
             sigma0 = np.r_[[[1.0, -1.], [-1., 2.]]]
             rv0 = multivariate_normal(mean0, sigma0)
 
-            mean1 = mean0-2.
-            sigma1 = np.r_ [[[0.5, 0.3], [0.3, 0.5]]]
-            rv1 = multivariate_normal(mean1,sigma1)
+            mean1 = mean0 - 2.
+            sigma1 = np.r_[[[0.5, 0.3], [0.3, 0.5]]]
+            rv1 = multivariate_normal(mean1, sigma1)
             s0 = rv0.rvs(700)
             s1 = rv1.rvs(300)
-            s = np.r_[s0,s1]
+            s = np.r_[s0, s1]
             model = Utils.mkvc(s)
 
             mesh = Mesh.TensorMesh([s.shape[0]])
-            wires = Maps.Wires(('s0',mesh.nC),('s1',mesh.nC))
+            wires = Maps.Wires(('s0', mesh.nC), ('s1', mesh.nC))
 
             n = 2
             clfref = Utils.GaussianMixture(n_components=n,
                                            covariance_type='full',
-                                           max_iter= 1000, n_init=20)
+                                           max_iter=1000, n_init=20)
             clfref.fit(s)
 
             reg = Regularization.SimplePetroRegularization(mesh=mesh,
@@ -108,20 +108,50 @@ class RegularizationTests(unittest.TestCase):
                                                            alpha_x=0.)
 
             deriv = reg.deriv(model)
-            H = lambda x: reg.deriv2(model,x)
-            HH = LinearOperator([2000,2000], matvec=H, rmatvec=H)
-            deriv2 = bicgstab(HH,deriv)[0]
+            H = lambda x: reg.deriv2(model, x)
+            HH = LinearOperator([2000, 2000], matvec=H, rmatvec=H)
+            deriv2 = bicgstab(HH, deriv)[0]
 
             Hfull = reg.deriv2(model)
-            deriv2bis = spsolve(Hfull,deriv)
+            deriv2bis = spsolve(Hfull, deriv)
 
-            tol =1e-10
-            error00 = np.max(np.minimum(np.abs((wires*(model-deriv2))[0]-clfref.means_[0][0 ]),np.abs((wires*(model-deriv2))[0]-clfref.means_[1][0])))
-            error01 = np.max(np.minimum(np.abs((wires*(model-deriv2))[1]-clfref.means_[0][1 ]),np.abs((wires*(model-deriv2))[1]-clfref.means_[1][1])))
-            error10 = np.max(np.minimum(np.abs((wires*(model-deriv2bis))[0  ]-clfref.means_[0 ][0]),np.abs((wires*(model-deriv2bis))[0]-clfref.means_[1][0])))
-            error11 = np.max(np.minimum(np.abs((wires*(model-deriv2bis))[1]-clfref.means_[0 ][1]),np.abs((wires*(model-deriv2bis))[1]-clfref.means_[1][1])))
+            tol = 1e-10
+            error00 = np.max(
+                np.minimum(
+                    np.abs(
+                        (wires * (model - deriv2))[0] - clfref.means_[0][0]
+                    ),
+                    np.abs(
+                        (wires * (model - deriv2))[0] - clfref.means_[1][0])
+                )
+            )
+            error01 = np.max(
+                np.minimum(
+                    np.abs(
+                        (wires * (model - deriv2))[1] - clfref.means_[0][1]
+                    ),
+                    np.abs(
+                        (wires * (model - deriv2))[1] - clfref.means_[1][1])
+                )
+            )
+            error10 = np.max(
+                np.minimum(
+                    np.abs((wires * (model - deriv2bis))[0] - clfref.means_[0][0]
+                           ),
+                    np.abs(
+                        (wires * (model - deriv2bis))[0] - clfref.means_[1][0])
+                )
+            )
+            error11 = np.max(
+                np.minimum(
+                    np.abs((wires * (model - deriv2bis))[1] - clfref.means_[0][1]
+                           ),
+                    np.abs((wires * (model - deriv2bis))
+                           [1] - clfref.means_[1][1])
+                )
+            )
 
-            self.assertTrue(np.max([error00,error01,error10,error11]) < tol)
+            self.assertTrue(np.max([error00, error01, error10, error11]) < tol)
             print('Petro Tested')
 
         def test_regularization_ActiveCells(self):
@@ -142,37 +172,39 @@ class RegularizationTests(unittest.TestCase):
                         indActive = Utils.mkvc(mesh.gridCC <= 0.8)
                     elif mesh.dim == 2:
                         indActive = Utils.mkvc(mesh.gridCC[:, -1] <= (
-                            2*np.sin(2*np.pi*mesh.gridCC[:, 0])+0.5)
+                            2 * np.sin(2 * np.pi * mesh.gridCC[:, 0]) + 0.5)
                         )
                     elif mesh.dim == 3:
                         indActive = Utils.mkvc(mesh.gridCC[:, -1] <= (
-                                2 * np.sin(2*np.pi*mesh.gridCC[:, 0])+0.5 *
-                                2 * np.sin(2*np.pi*mesh.gridCC[:, 1])+0.5)
-                            )
+                            2 * np.sin(2 * np.pi * mesh.gridCC[:, 0]) + 0.5 *
+                            2 * np.sin(2 * np.pi * mesh.gridCC[:, 1]) + 0.5)
+                        )
 
                     if mesh.dim < 3 and r.__name__[-1] == 'z':
                         continue
                     if mesh.dim < 2 and r.__name__[-1] == 'y':
                         continue
 
-                    for indAct in [indActive, indActive.nonzero()[0]]: # test both bool and integers
+                    # test both bool and integers
+                    for indAct in [indActive, indActive.nonzero()[0]]:
                         if indAct.dtype != bool:
                             nP = indAct.size
                         else:
                             nP = int(indAct.sum())
 
                         reg = r(
-                            mesh, indActive=indAct, mapping=Maps.IdentityMap(nP=nP)
+                            mesh, indActive=indAct, mapping=Maps.IdentityMap(
+                                nP=nP)
                         )
                         m = np.random.rand(mesh.nC)[indAct]
-                        mref = np.ones_like(m)*np.mean(m)
+                        mref = np.ones_like(m) * np.mean(m)
                         reg.mref = mref
 
                         print(
-                                '--- Checking {} ---\n'.format(
-                                    reg.__class__.__name__
-                                )
+                            '--- Checking {} ---\n'.format(
+                                reg.__class__.__name__
                             )
+                        )
 
                         passed = reg.test(m, eps=TOL)
                         self.assertTrue(passed)
@@ -193,16 +225,17 @@ class RegularizationTests(unittest.TestCase):
                 elif mesh.dim == 2:
                     indAct = (
                         Utils.mkvc(
-                            mesh.gridCC[:,-1] <=
-                            2*np.sin(2*np.pi*mesh.gridCC[:, 0]) + 0.5
+                            mesh.gridCC[:, -1] <=
+                            2 * np.sin(2 * np.pi * mesh.gridCC[:, 0]) + 0.5
                         )
                     )
                 elif mesh.dim == 3:
                     indAct = (
                         Utils.mkvc(
                             mesh.gridCC[:, -1] <=
-                            2*np.sin(2*np.pi*mesh.gridCC[:, 0]) +
-                            0.5 * 2*np.sin(2*np.pi*mesh.gridCC[:, 1]) + 0.5
+                            2 * np.sin(2 * np.pi * mesh.gridCC[:, 0]) +
+                            0.5 * 2 * np.sin(2 * np.pi *
+                                             mesh.gridCC[:, 1]) + 0.5
                         )
                     )
 
@@ -255,12 +288,12 @@ class RegularizationTests(unittest.TestCase):
             [
                 setattr(
                     reg, '{}'.format(objfct._multiplier_pair),
-                    0.5*getattr(reg, '{}'.format(objfct._multiplier_pair))
+                    0.5 * getattr(reg, '{}'.format(objfct._multiplier_pair))
                 )
                 for objfct in reg.objfcts
             ]
             b = reg(m)
-            self.assertTrue(0.5*a == b)
+            self.assertTrue(0.5 * a == b)
 
     def test_addition(self):
         mesh = Mesh.TensorMesh([8, 7, 6])
@@ -270,23 +303,23 @@ class RegularizationTests(unittest.TestCase):
         reg2 = Regularization.Simple(mesh)
 
         reg_a = reg1 + reg2
-        self.assertTrue(len(reg_a)==2)
+        self.assertTrue(len(reg_a) == 2)
         self.assertTrue(reg1(m) + reg2(m) == reg_a(m))
         reg_a.test(eps=TOL)
 
-        reg_b = 2*reg1 + reg2
-        self.assertTrue(len(reg_b)==2)
-        self.assertTrue(2*reg1(m) + reg2(m) == reg_b(m))
+        reg_b = 2 * reg1 + reg2
+        self.assertTrue(len(reg_b) == 2)
+        self.assertTrue(2 * reg1(m) + reg2(m) == reg_b(m))
         reg_b.test(eps=TOL)
 
-        reg_c = reg1 + reg2/2
-        self.assertTrue(len(reg_c)==2)
-        self.assertTrue(reg1(m) + 0.5*reg2(m) == reg_c(m))
+        reg_c = reg1 + reg2 / 2
+        self.assertTrue(len(reg_c) == 2)
+        self.assertTrue(reg1(m) + 0.5 * reg2(m) == reg_c(m))
         reg_c.test(eps=TOL)
 
     def test_mappings(self):
         mesh = Mesh.TensorMesh([8, 7, 6])
-        m = np.random.rand(2*mesh.nC)
+        m = np.random.rand(2 * mesh.nC)
 
         wires = Maps.Wires(('sigma', mesh.nC), ('mu', mesh.nC))
 
@@ -296,9 +329,9 @@ class RegularizationTests(unittest.TestCase):
 
             reg3 = reg1 + reg2
 
-            self.assertTrue(reg1.nP == 2*mesh.nC)
-            self.assertTrue(reg2.nP == 2*mesh.nC)
-            self.assertTrue(reg3.nP == 2*mesh.nC)
+            self.assertTrue(reg1.nP == 2 * mesh.nC)
+            self.assertTrue(reg2.nP == 2 * mesh.nC)
+            self.assertTrue(reg3.nP == 2 * mesh.nC)
 
             print(reg3(m), reg1(m), reg2(m))
             self.assertTrue(reg3(m) == reg1(m) + reg2(m))
@@ -323,8 +356,8 @@ class RegularizationTests(unittest.TestCase):
 
     def test_mappings_and_cell_weights(self):
         mesh = Mesh.TensorMesh([8, 7, 6])
-        m = np.random.rand(2*mesh.nC)
-        v = np.random.rand(2*mesh.nC)
+        m = np.random.rand(2 * mesh.nC)
+        v = np.random.rand(2 * mesh.nC)
 
         cell_weights = np.random.rand(mesh.nC)
 
@@ -354,20 +387,20 @@ class RegularizationTests(unittest.TestCase):
         )
         reg.norms = np.c_[2., 2., 2., 2.]
         self.assertTrue(np.all(reg.norms == np.kron(
-                np.ones((reg.regmesh.Pac.shape[1], 1)), np.c_[2., 2., 2., 2.])))
-        self.assertTrue(np.all(reg.objfcts[0].norm == 2.*np.ones(mesh.nC)))
-        self.assertTrue(np.all(reg.objfcts[1].norm == 2.*np.ones(mesh.nFx)))
+            np.ones((reg.regmesh.Pac.shape[1], 1)), np.c_[2., 2., 2., 2.])))
+        self.assertTrue(np.all(reg.objfcts[0].norm == 2. * np.ones(mesh.nC)))
+        self.assertTrue(np.all(reg.objfcts[1].norm == 2. * np.ones(mesh.nFx)))
 
-        self.assertTrue(np.all(reg.objfcts[2].norm == 2.*np.ones(mesh.nFy)))
-        self.assertTrue(np.all(reg.objfcts[3].norm == 2.*np.ones(mesh.nFz)))
+        self.assertTrue(np.all(reg.objfcts[2].norm == 2. * np.ones(mesh.nFy)))
+        self.assertTrue(np.all(reg.objfcts[3].norm == 2. * np.ones(mesh.nFz)))
 
         reg.norms = np.c_[0., 1., 1., 1.]
         self.assertTrue(np.all(reg.norms == np.kron(
-                np.ones((reg.regmesh.Pac.shape[1], 1)), np.c_[0., 1., 1., 1.])))
-        self.assertTrue(np.all(reg.objfcts[0].norm == 0.*np.ones(mesh.nC)))
-        self.assertTrue(np.all(reg.objfcts[1].norm == 1.*np.ones(mesh.nFx)))
-        self.assertTrue(np.all(reg.objfcts[2].norm == 1.*np.ones(mesh.nFy)))
-        self.assertTrue(np.all(reg.objfcts[3].norm == 1.*np.ones(mesh.nFz)))
+            np.ones((reg.regmesh.Pac.shape[1], 1)), np.c_[0., 1., 1., 1.])))
+        self.assertTrue(np.all(reg.objfcts[0].norm == 0. * np.ones(mesh.nC)))
+        self.assertTrue(np.all(reg.objfcts[1].norm == 1. * np.ones(mesh.nFx)))
+        self.assertTrue(np.all(reg.objfcts[2].norm == 1. * np.ones(mesh.nFy)))
+        self.assertTrue(np.all(reg.objfcts[3].norm == 1. * np.ones(mesh.nFz)))
 
     def test_linked_properties(self):
         mesh = Mesh.TensorMesh([8, 7, 6])
@@ -377,11 +410,11 @@ class RegularizationTests(unittest.TestCase):
         [self.assertTrue(reg.mapping is fct.mapping) for fct in reg.objfcts]
 
         D = reg.regmesh.cellDiffx
-        reg.regmesh._cellDiffx = 4*D
+        reg.regmesh._cellDiffx = 4 * D
         v = np.random.rand(D.shape[1])
         [
             self.assertTrue(
-                np.all(reg.regmesh._cellDiffx*v == fct.regmesh.cellDiffx*v)
+                np.all(reg.regmesh._cellDiffx * v == fct.regmesh.cellDiffx * v)
             )
             for fct in reg.objfcts
         ]
@@ -414,30 +447,32 @@ class RegularizationTests(unittest.TestCase):
         active = mesh.vectorCCz < 0.
 
         active = mesh.vectorCCz < 0.
-        actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+        actMap = Maps.InjectActiveCells(
+            mesh, active, np.log(1e-8), nC=mesh.nCz)
         mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
 
         regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
         reg = Regularization.Simple(regMesh)
 
         self.assertTrue(reg._nC_residual == regMesh.nC)
-        self.assertTrue(all([fct._nC_residual == regMesh.nC for fct in reg.objfcts]))
+        self.assertTrue(
+            all([fct._nC_residual == regMesh.nC for fct in reg.objfcts]))
 
     def test_indActive_nc_residual(self):
           # x-direction
-         cs, ncx, ncz, npad = 1., 10., 10., 20
-         hx = [(cs, ncx), (cs, npad, 1.3)]
+        cs, ncx, ncz, npad = 1., 10., 10., 20
+        hx = [(cs, ncx), (cs, npad, 1.3)]
 
-         # z direction
-         npad = 12
-         temp = np.logspace(np.log10(1.), np.log10(12.), 19)
-         temp_pad = temp[-1] * 1.3 ** np.arange(npad)
-         hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-         mesh = Mesh.CylMesh([hx, 1, hz], '00C')
-         active = mesh.vectorCCz < 0.
+        # z direction
+        npad = 12
+        temp = np.logspace(np.log10(1.), np.log10(12.), 19)
+        temp_pad = temp[-1] * 1.3 ** np.arange(npad)
+        hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
+        mesh = Mesh.CylMesh([hx, 1, hz], '00C')
+        active = mesh.vectorCCz < 0.
 
-         reg = Regularization.Simple(mesh, indActive=active)
-         self.assertTrue(reg._nC_residual == len(active.nonzero()[0]))
+        reg = Regularization.Simple(mesh, indActive=active)
+        self.assertTrue(reg._nC_residual == len(active.nonzero()[0]))
 
 if __name__ == '__main__':
     unittest.main()

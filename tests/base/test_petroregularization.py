@@ -44,6 +44,8 @@ class TestPetroRegularization(unittest.TestCase):
         self.PlotIt = False
 
     def test_full_covariances(self):
+
+        print('Test Full covariances: ')
         # Fit a Gaussian Mixture
         clf = Utils.GaussianMixture(
             n_components=self.n_components,
@@ -78,14 +80,20 @@ class TestPetroRegularization(unittest.TestCase):
         score = reg_simple(Utils.mkvc(self.samples))
         passed_score_simple = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score_simple)
-        print('scores for SimplePetro are ok')
+        print(
+            'scores for SimplePetro are ok. Difference is: ',
+            np.max(np.abs(score_approx - score))
+        )
 
         score_approx = reg(Utils.mkvc(self.samples))
         reg.objfcts[0].evaltype = 'full'
         score = reg(Utils.mkvc(self.samples))
         passed_score = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score)
-        print('scores for Petro are ok')
+        print(
+            'scores for Petro are ok. Difference is: ',
+            np.max(np.abs(score_approx - score))
+        )
 
         # check derivatives as an optimization on locally quadratic function
         # Simple
@@ -93,11 +101,14 @@ class TestPetroRegularization(unittest.TestCase):
         reference = clf.means_[clf.predict(self.samples)]
 
         deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
-        reg.approx_gradient = False
+        reg_simple.approx_gradient = False
         deriv_simple_full = reg_simple.deriv(Utils.mkvc(self.samples))
         passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
-        print('1st derivatives for Simple  ro are ok')
+        print(
+            '1st derivatives for SimplePetro are ok. Difference is: ',
+            np.max(np.abs(deriv_simple_full - deriv_simple))
+        )
         deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
         Hessian_simple = lambda x: reg_simple.deriv2(
             Utils.mkvc(self.samples), x)
@@ -113,10 +124,26 @@ class TestPetroRegularization(unittest.TestCase):
             Utils.mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative_simple)
-        print('derivatives for SimplePetro are ok')
+        print(
+            '2nd derivatives for SimplePetro are ok. Difference is: ',
+            np.max(
+                np.abs(
+                    Utils.mkvc(self.samples - direction2_simple) -
+                    Utils.mkvc(reference)
+                )
+            )
+        )
 
         # With volumes
         deriv = reg.deriv(Utils.mkvc(self.samples))
+        reg.approx_gradient = False
+        deriv_full = reg.deriv(Utils.mkvc(self.samples))
+        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
+        self.assertTrue(passed_deriv1)
+        print(
+            '1st derivatives for Petro are ok. Difference is: ',
+            np.max(np.abs(deriv_full - deriv))
+        )
         Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
         HV = LinearOperator(
             [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
@@ -130,7 +157,15 @@ class TestPetroRegularization(unittest.TestCase):
             Utils.mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative)
-        print('derivatives for Petro are ok')
+        print(
+            '2nd derivatives for Petro are ok. Difference is: ',
+            np.max(
+                np.abs(
+                    Utils.mkvc(self.samples - direction2) -
+                    Utils.mkvc(reference)
+                )
+            )
+        )
 
         if self.PlotIt:
             import matplotlib.pyplot as plt
@@ -207,6 +242,8 @@ class TestPetroRegularization(unittest.TestCase):
             plt.show()
 
     def test_tied_covariances(self):
+
+        print('Test Tied covariances: ')
         # Fit a Gaussian Mixture
         clf = Utils.GaussianMixture(
             n_components=self.n_components,
@@ -240,20 +277,35 @@ class TestPetroRegularization(unittest.TestCase):
         score = reg_simple(Utils.mkvc(self.samples))
         passed_score_simple = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score_simple)
-        print('scores for SimplePetro are ok')
+        print(
+            'scores for SimplePetro are ok. Difference is: ',
+            np.max(np.abs(score_approx - score))
+        )
 
         score_approx = reg(Utils.mkvc(self.samples))
         reg.objfcts[0].evaltype = 'full'
         score = reg(Utils.mkvc(self.samples))
         passed_score = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score)
-        print('scores for Petro are ok')
+        print(
+            'scores for Petro are ok. Difference is: ',
+            np.max(np.abs(score_approx - score))
+        )
 
         # check derivatives as an optimization on locally quadratic function
         # Simple
 
         reference = clf.means_[clf.predict(self.samples)]
 
+        deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
+        reg_simple.approx_gradient = False
+        deriv_simple_full = reg_simple.deriv(Utils.mkvc(self.samples))
+        passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
+        self.assertTrue(passed_deriv1)
+        print(
+            '1st derivatives for SimplePetro are ok. Difference is: ',
+            np.max(np.abs(deriv_simple_full - deriv_simple))
+        )
         deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
         Hessian_simple = lambda x: reg_simple.deriv2(
             Utils.mkvc(self.samples), x)
@@ -269,10 +321,26 @@ class TestPetroRegularization(unittest.TestCase):
             Utils.mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative_simple)
-        print('derivatives for SimplePetro are ok')
+        print(
+            '2nd derivatives for SimplePetro are ok. Difference is: ',
+            np.max(
+                np.abs(
+                    Utils.mkvc(self.samples - direction2_simple) -
+                    Utils.mkvc(reference)
+                )
+            )
+        )
 
         # With volumes
         deriv = reg.deriv(Utils.mkvc(self.samples))
+        reg.approx_gradient = False
+        deriv_full = reg.deriv(Utils.mkvc(self.samples))
+        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
+        self.assertTrue(passed_deriv1)
+        print(
+            '1st derivatives for Petro are ok. Difference is: ',
+            np.max(np.abs(deriv_full - deriv))
+        )
         Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
         HV = LinearOperator(
             [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
@@ -286,7 +354,15 @@ class TestPetroRegularization(unittest.TestCase):
             Utils.mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative)
-        print('derivatives for Petro are ok')
+        print(
+            '2nd derivatives for Petro are ok. Difference is: ',
+            np.max(
+                np.abs(
+                    Utils.mkvc(self.samples - direction2) -
+                    Utils.mkvc(reference)
+                )
+            )
+        )
 
         if self.PlotIt:
             import matplotlib.pyplot as plt
@@ -363,6 +439,8 @@ class TestPetroRegularization(unittest.TestCase):
             plt.show()
 
     def test_diag_covariances(self):
+
+        print('Test Diagonal covariances: ')
         # Fit a Gaussian Mixture
         clf = Utils.GaussianMixture(
             n_components=self.n_components,
@@ -396,20 +474,35 @@ class TestPetroRegularization(unittest.TestCase):
         score = reg_simple(Utils.mkvc(self.samples))
         passed_score_simple = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score_simple)
-        print('scores for SimplePetro are ok')
+        print(
+            'scores for SimplePetro are ok. Difference is: ',
+            np.max(np.abs(score_approx - score))
+        )
 
         score_approx = reg(Utils.mkvc(self.samples))
         reg.objfcts[0].evaltype = 'full'
         score = reg(Utils.mkvc(self.samples))
         passed_score = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score)
-        print('scores for Petro are ok')
+        print(
+            'scores for Petro are ok. Difference is: ',
+            np.max(np.abs(score_approx - score))
+        )
 
         # check derivatives as an optimization on locally quadratic function
         # Simple
 
         reference = clf.means_[clf.predict(self.samples)]
 
+        deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
+        reg_simple.approx_gradient = False
+        deriv_simple_full = reg_simple.deriv(Utils.mkvc(self.samples))
+        passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
+        self.assertTrue(passed_deriv1)
+        print(
+            '1st derivatives for SimplePetro are ok. Difference is: ',
+            np.max(np.abs(deriv_simple_full - deriv_simple))
+        )
         deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
         Hessian_simple = lambda x: reg_simple.deriv2(
             Utils.mkvc(self.samples), x)
@@ -425,10 +518,26 @@ class TestPetroRegularization(unittest.TestCase):
             Utils.mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative_simple)
-        print('derivatives for SimplePetro are ok')
+        print(
+            '2nd derivatives for SimplePetro are ok. Difference is: ',
+            np.max(
+                np.abs(
+                    Utils.mkvc(self.samples - direction2_simple) -
+                    Utils.mkvc(reference)
+                )
+            )
+        )
 
         # With volumes
         deriv = reg.deriv(Utils.mkvc(self.samples))
+        reg.approx_gradient = False
+        deriv_full = reg.deriv(Utils.mkvc(self.samples))
+        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
+        self.assertTrue(passed_deriv1)
+        print(
+            '1st derivatives for Petro are ok. Difference is: ',
+            np.max(np.abs(deriv_full - deriv))
+        )
         Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
         HV = LinearOperator(
             [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
@@ -442,7 +551,15 @@ class TestPetroRegularization(unittest.TestCase):
             Utils.mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative)
-        print('derivatives for Petro are ok')
+        print(
+            '2nd derivatives for Petro are ok. Difference is: ',
+            np.max(
+                np.abs(
+                    Utils.mkvc(self.samples - direction2) -
+                    Utils.mkvc(reference)
+                )
+            )
+        )
 
         if self.PlotIt:
             import matplotlib.pyplot as plt
@@ -519,6 +636,8 @@ class TestPetroRegularization(unittest.TestCase):
             plt.show()
 
     def test_spherical_covariances(self):
+
+        print('Test Spherical covariances: ')
         # Fit a Gaussian Mixture
         clf = Utils.GaussianMixture(
             n_components=self.n_components,
@@ -552,20 +671,35 @@ class TestPetroRegularization(unittest.TestCase):
         score = reg_simple(Utils.mkvc(self.samples))
         passed_score_simple = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score_simple)
-        print('scores for SimplePetro are ok')
+        print(
+            'scores for SimplePetro are ok. Difference is: ',
+            np.max(np.abs(score_approx - score))
+        )
 
         score_approx = reg(Utils.mkvc(self.samples))
         reg.objfcts[0].evaltype = 'full'
         score = reg(Utils.mkvc(self.samples))
         passed_score = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score)
-        print('scores for Petro are ok')
+        print(
+            'scores for Petro are ok. Difference is: ',
+            np.max(np.abs(score_approx - score))
+        )
 
         # check derivatives as an optimization on locally quadratic function
         # Simple
 
         reference = clf.means_[clf.predict(self.samples)]
 
+        deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
+        reg_simple.approx_gradient = False
+        deriv_simple_full = reg_simple.deriv(Utils.mkvc(self.samples))
+        passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
+        self.assertTrue(passed_deriv1)
+        print(
+            '1st derivatives for SimplePetro are ok. Difference is: ',
+            np.max(np.abs(deriv_simple_full - deriv_simple))
+        )
         deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
         Hessian_simple = lambda x: reg_simple.deriv2(
             Utils.mkvc(self.samples), x)
@@ -581,10 +715,26 @@ class TestPetroRegularization(unittest.TestCase):
             Utils.mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative_simple)
-        print('derivatives for SimplePetro are ok')
+        print(
+            '2nd derivatives for SimplePetro are ok. Difference is: ',
+            np.max(
+                np.abs(
+                    Utils.mkvc(self.samples - direction2_simple) -
+                    Utils.mkvc(reference)
+                )
+            )
+        )
 
         # With volumes
         deriv = reg.deriv(Utils.mkvc(self.samples))
+        reg.approx_gradient = False
+        deriv_full = reg.deriv(Utils.mkvc(self.samples))
+        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
+        self.assertTrue(passed_deriv1)
+        print(
+            '1st derivatives for Petro are ok. Difference is: ',
+            np.max(np.abs(deriv_full - deriv))
+        )
         Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
         HV = LinearOperator(
             [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
@@ -598,7 +748,15 @@ class TestPetroRegularization(unittest.TestCase):
             Utils.mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative)
-        print('derivatives for Petro are ok')
+        print(
+            '2nd derivatives for Petro are ok. Difference is: ',
+            np.max(
+                np.abs(
+                    Utils.mkvc(self.samples - direction2) -
+                    Utils.mkvc(reference)
+                )
+            )
+        )
 
         if self.PlotIt:
             import matplotlib.pyplot as plt
