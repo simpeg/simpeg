@@ -80,6 +80,7 @@ class Survey(BaseEMSurvey, properties.HasProperties):
         for src in self.srcList:
             for rx in src.rxList:
                 nRx = rx.nD
+                # Pole Source
                 if isinstance(src, Src.Pole):
                     a_locations.append(
                         src.loc.reshape([1, -1]).repeat(nRx, axis=0)
@@ -87,9 +88,8 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                     b_locations.append(
                         src.loc.reshape([1, -1]).repeat(nRx, axis=0)
                         )
+                # Dipole Source
                 elif isinstance(src, Src.Dipole):
-                    # for rx in src.rxList:
-                        # nRx = rx.nD
                     a_locations.append(
                         src.loc[0].reshape([1, -1]).repeat(nRx, axis=0)
                     )
@@ -97,23 +97,12 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                         src.loc[1].reshape([1, -1]).repeat(nRx, axis=0)
                     )
 
-            # for rx in src.rxList:
-
-                    # Pole
-                    # if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
-                    #     m_locations.append(rx.locs)
-                    #     n_locations.append(rx.locs)
-                    # # Dipole
-                    # elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
-                    #     m_locations.append(rx.locs[0])
-                    #     n_locations.append(rx.locs[1])
-            # Dipole
-
-                # Pole
+                # Pole RX
                 if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
                     m_locations.append(rx.locs)
                     n_locations.append(rx.locs)
-                # Dipole
+
+                # Dipole RX
                 elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
                     m_locations.append(rx.locs[0])
                     n_locations.append(rx.locs[1])
