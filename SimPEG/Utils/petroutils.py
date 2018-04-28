@@ -615,28 +615,24 @@ class GaussianMixtureWithMapping(GaussianMixture):
 
         elif covariance_type == 'diag' or covariance_type == 'spherical':
             log_prob = np.empty((n_samples, n_components))
-            precisions = precisions_chol ** 2
-            for k, (mu, prec_chol, mapping) in enumerate(zip(means, precisions_chol, cluster_mapping)):
+            for k, (mu, prec_chol, mapping) in enumerate(
+                zip(means, precisions_chol, cluster_mapping)
+            ):
                 y = np.dot(mapping * X, prec_chol * np.eye(n_features)
                            ) - np.dot(mu, prec_chol * np.eye(n_features))
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
-            # log_prob = (np.sum((means ** 2 * precisions), 1) -
-            #            2. * np.dot(X, (means * precisions).T) +
-            #            np.dot(X ** 2, precisions.T))
-
-        # elif covariance_type == 'spherical':
-        #    precisions = precisions_chol ** 2
-        #    log_prob = (np.sum(means ** 2, 1) * precisions -
-        #                2 * np.dot(X, means.T * precisions) +
-        #                np.outer(row_norms(X, squared=True), precisions))
         return -.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
 
     def _estimate_log_prob(self, X):
         return self._estimate_log_gaussian_prob(
-            X, self.means_, self.precisions_cholesky_, self.covariance_type, self.cluster_mapping)
+            X, self.means_, self.precisions_cholesky_,
+            self.covariance_type, self.cluster_mapping
+        )
 
-    def _estimate_gaussian_parameters(self, X, resp, reg_covar, covariance_type):
+    def _estimate_gaussian_parameters(
+        self, X, resp, reg_covar, covariance_type
+    ):
 
         nk = resp.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
         # stupid lazy piece of junk code to get the shapes right
@@ -651,11 +647,15 @@ class GaussianMixtureWithMapping(GaussianMixture):
             means[k] = (np.dot(resp.T, self.cluster_mapping[
                         k] * X) / nk[:, np.newaxis])[k]
         for k in range(means.shape[0]):
-            covariances[k] = ({"full": _estimate_gaussian_covariances_full,
-                               "tied": _estimate_gaussian_covariances_tied,
-                               "diag": _estimate_gaussian_covariances_diag,
-                               "spherical": _estimate_gaussian_covariances_spherical
-                               }[covariance_type](resp, self.cluster_mapping[k] * X, nk, means, reg_covar))[k]
+            covariances[k] = (
+                {"full": _estimate_gaussian_covariances_full,
+                 "tied": _estimate_gaussian_covariances_tied,
+                 "diag": _estimate_gaussian_covariances_diag,
+                 "spherical": _estimate_gaussian_covariances_spherical
+                 }[covariance_type](
+                    resp, self.cluster_mapping[k] * X, nk, means, reg_covar
+                )
+            )[k]
         return nk, means, covariances
 
     # TODOs: Still not working because of inverse mapping not implemented
@@ -722,8 +722,11 @@ class GaussianMixtureWithMapping(GaussianMixture):
         """
         n_samples, _ = X.shape
         self.weights_, self.means_, self.covariances_ = (
-            self._estimate_gaussian_parameters(X, np.exp(log_resp), self.reg_covar,
-                                               self.covariance_type))
+            self._estimate_gaussian_parameters(
+                X, np.exp(log_resp), self.reg_covar,
+                self.covariance_type
+            )
+        )
         self.weights_ /= n_samples
         self.precisions_cholesky_ = _compute_precision_cholesky(
             self.covariances_, self.covariance_type)
@@ -751,11 +754,9 @@ class GaussianMixtureWithMappingWithPrior(GaussianMixtureWithPrior):
 
         super(GaussianMixtureWithMappingWithPrior, self).__init__(
             GMref=GMref, kappa=kappa, nu=nu, alphadir=alphadir,
-            covariance_type=covariance_type,
             init_params=init_params,
             max_iter=max_iter,
             means_init=means_init,
-            n_components=n_components,
             n_init=n_init,
             precisions_init=precisions_init,
             random_state=random_state,
@@ -765,6 +766,8 @@ class GaussianMixtureWithMappingWithPrior(GaussianMixtureWithPrior):
             verbose_interval=verbose_interval,
             warm_start=warm_start,
             weights_init=weights_init,
+            update_covariances=update_covariances,
+            fixed_membership=fixed_membership
             #**kwargs
         )
 

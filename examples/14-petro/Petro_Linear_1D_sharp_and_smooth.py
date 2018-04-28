@@ -15,7 +15,8 @@ We explore it through the UBC linear example.
 from SimPEG import (
     Mesh, Problem, Survey, Utils, DataMisfit,
     Regularization, Optimization, InvProblem,
-    Directives, Inversion)
+    Directives, Inversion
+)
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.mixture import GaussianMixture

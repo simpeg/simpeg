@@ -1,7 +1,7 @@
 from SimPEG import (
     Mesh,  Maps,  Utils, DataMisfit,  Regularization,
     Optimization, InvProblem,  Directives,  Inversion
-    )
+)
 from SimPEG.EM.Static import DC, Utils as DCUtils
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,11 +11,12 @@ from sklearn.mixture import GaussianMixture
 import copy
 
 # Reproducible science
-np.random.seed(12345)
-
 # Python Version
 import sys
 print(sys.version)
+seed = 12345
+np.random.seed(seed)
+
 
 # 2D Mesh
 #########
@@ -29,7 +30,7 @@ hx = [(csx, npad,  -1.5), (csx, ncx), (csx, npad,  1.5)]
 hz = [(csz, npad, -1.5), (csz, ncz)]
 # Create mesh
 mesh = Mesh.TensorMesh([hx,  hz], x0="CN")
-mesh.x0[1] = mesh.x0[1]+csz/2.
+mesh.x0[1] = mesh.x0[1] + csz / 2.
 
 # 2-cylinders Model Creation
 ##########################
@@ -46,17 +47,19 @@ noisemean = 0.
 noisevar = 0.05
 ln_over = -2.
 
-mtrue = ln_sigback*np.ones(mesh.nC) + norm(noisemean, noisevar).rvs(mesh.nC)
+mtrue = ln_sigback * np.ones(mesh.nC) + norm(noisemean, noisevar).rvs(mesh.nC)
 mprim = copy.deepcopy(mtrue)
 
-csph = (np.sqrt((mesh.gridCC[:, 1]-z0)**2.+(mesh.gridCC[:, 0]-x0)**2.)) < r0
-mtrue[csph] = ln_sigc*np.ones_like(mtrue[csph]) + \
-  norm(noisemean, noisevar).rvs(np.prod((mtrue[csph]).shape))
+csph = (np.sqrt((mesh.gridCC[:, 1] - z0) **
+                2. + (mesh.gridCC[:, 0] - x0)**2.)) < r0
+mtrue[csph] = ln_sigc * np.ones_like(mtrue[csph]) + \
+    norm(noisemean, noisevar).rvs(np.prod((mtrue[csph]).shape))
 
 # Define the sphere limit
-rsph = (np.sqrt((mesh.gridCC[:, 1]-z1)**2.+(mesh.gridCC[:, 0]-x1)**2.)) < r1
-mtrue[rsph] = ln_sigr*np.ones_like(mtrue[rsph]) + \
-  norm(noisemean, noisevar).rvs(np.prod((mtrue[rsph]).shape))
+rsph = (np.sqrt((mesh.gridCC[:, 1] - z1) **
+                2. + (mesh.gridCC[:, 0] - x1)**2.)) < r1
+mtrue[rsph] = ln_sigr * np.ones_like(mtrue[rsph]) + \
+    norm(noisemean, noisevar).rvs(np.prod((mtrue[rsph]).shape))
 
 mtrue = Utils.mkvc(mtrue)
 xmin,  xmax = -15., 15
@@ -67,15 +70,15 @@ actind,  meshCore = Utils.meshutils.ExtractCoreMesh(xyzlim, mesh)
 
 # Function to plot cylinder border
 def getCylinderPoints(xc, zc, r):
-    xLocOrig1 = np.arange(-r, r+r/10., r/10.)
-    xLocOrig2 = np.arange(r, -r-r/10., -r/10.)
+    xLocOrig1 = np.arange(-r, r + r / 10., r / 10.)
+    xLocOrig2 = np.arange(r, -r - r / 10., -r / 10.)
     # Top half of cylinder
-    zLoc1 = np.sqrt(-xLocOrig1**2.+r**2.)+zc
+    zLoc1 = np.sqrt(-xLocOrig1**2. + r**2.) + zc
     # Bottom half of cylinder
-    zLoc2 = -np.sqrt(-xLocOrig2**2.+r**2.)+zc
+    zLoc2 = -np.sqrt(-xLocOrig2**2. + r**2.) + zc
     # Shift from x = 0 to xc
-    xLoc1 = xLocOrig1 + xc*np.ones_like(xLocOrig1)
-    xLoc2 = xLocOrig2 + xc*np.ones_like(xLocOrig2)
+    xLoc1 = xLocOrig1 + xc * np.ones_like(xLocOrig1)
+    xLoc2 = xLocOrig2 + xc * np.ones_like(xLocOrig2)
 
     topHalf = np.vstack([xLoc1, zLoc1]).T
     topHalf = topHalf[0:-1, :]
@@ -98,9 +101,11 @@ survey = DCUtils.gen_DCIPsurvey(
 
 # Setup Problem with exponential mapping and Active cells only in the core mesh
 expmap = Maps.ExpMap(mesh)
-mapactive = Maps.InjectActiveCells(mesh=mesh,  indActive=actind,
-                                   valInactive=-5.)
-mapping = expmap*mapactive
+mapactive = Maps.InjectActiveCells(
+    mesh=mesh,  indActive=actind,
+    valInactive=-5.
+)
+mapping = expmap * mapactive
 problem = DC.Problem3D_CC(mesh,  sigmaMap=mapping, storeJ=True)
 problem.pair(survey)
 problem.Solver = PardisoSolver
@@ -111,7 +116,7 @@ survey.makeSyntheticData(mtrue[actind], std=0.01, force=True)
 #####################
 # Tikhonov Inversion#
 #####################
-m0 = np.median(ln_sigback)*np.ones(mapping.nP)
+m0 = np.median(ln_sigback) * np.ones(mapping.nP)
 dmis = DataMisfit.l2_DataMisfit(survey)
 regT = Regularization.Simple(mesh, indActive=actind)
 
@@ -122,11 +127,13 @@ opt = Optimization.ProjectedGNCG(maxIter=20, lower=-10, upper=10,
 opt.remember('xc')
 invProb = InvProblem.BaseInvProblem(dmis,  regT,  opt)
 
-beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e+1)
+beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e+1, seed=seed)
 Target = Directives.TargetMisfit()
 betaSched = Directives.BetaSchedule(coolingFactor=2.,  coolingRate=3)
-updateSensW = Directives.Update_DC_Wr(wrType='sensitivityW',
-                                  changeMref=False, eps=1e-7)
+updateSensW = Directives.Update_DC_Wr(
+    wrType='sensitivityW',
+    changeMref=False, eps=1e-7
+)
 # updateSensW = Directives.UpdateSensitivityWeights(threshold=1e-7)
 # update_Jacobi = Directives.UpdatePreconditioner()
 
@@ -144,12 +151,12 @@ mnormal = inv.run(m0)
 # fit a Gaussian Mixture Model with n components
 # on the true model to simulate the laboratory
 # petrophysical measurements
-m0 = np.median(ln_sigback)*np.ones(mapping.nP)
+m0 = np.median(ln_sigback) * np.ones(mapping.nP)
 dmis = DataMisfit.l2_DataMisfit(survey)
 
 n = 3
 clf = GaussianMixture(
-  n_components=n,  covariance_type='tied', reg_covar=5e-3
+    n_components=n,  covariance_type='tied', reg_covar=5e-3
 )
 clf.fit(mtrue[actind].reshape(-1, 1))
 Utils.order_clusters_GM_weight(clf)
@@ -161,7 +168,7 @@ reg = Regularization.SimplePetroRegularization(
     GMmref=clf,  mesh=mesh,
     wiresmap=wires,
     maplist=[idenMap],
-    mref=m0, #alpha_s=1., alpha_x=1.,#alpha_y=1.,
+    mref=m0,
     indActive=actind
 )
 reg.mrefInSmooth = False
@@ -169,33 +176,35 @@ reg.approx_gradient = True
 gamma_petro = np.r_[1., 3., 3.]
 reg.gamma = gamma_petro
 
-opt = Optimization.ProjectedGNCG(maxIter=30, lower=-10, upper=10,
-                                 maxIterLS=20, maxIterCG=50, tolCG=1e-4)
+opt = Optimization.ProjectedGNCG(
+    maxIter=30, lower=-10, upper=10,
+    maxIterLS=20, maxIterCG=50, tolCG=1e-4
+)
 opt.remember('xc')
 
 invProb = InvProblem.BaseInvProblem(dmis,  reg,  opt)
 
 Alphas = Directives.AlphasSmoothEstimate_ByEig(
-  alpha0_ratio=1e-3, ninit=10, verbose=True
+    alpha0_ratio=1e-3, ninit=10, verbose=True
 )
 beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e2, ninit=10)
 betaIt = Directives.PetroBetaReWeighting(
-  verbose=True, rateCooling=8.,
-    rateWarming=1., tolerance=0.05)
+    verbose=True, rateCooling=8.,
+    rateWarming=1., tolerance=0.05
+)
 targets = Directives.PetroTargetMisfit(
-  TriggerSmall=True,
-  TriggerTheta=False,
-  verbose=True,
-  )
+    TriggerSmall=True,
+    TriggerTheta=False,
+    verbose=True,
+)
 MrefInSmooth = Directives.AddMrefInSmooth(verbose=True, wait_till_stable=True)
-#invProb.beta = 5.01e+01
 petrodir = Directives.GaussianMixtureUpdateModel()
-#betaSched = Directives.BetaSchedule(coolingFactor=.5,  coolingRate=2)
-
-updateSensW = Directives.Update_DC_Wr(wrType='sensitivityW',
-                                  changeMref=False, eps=1e-7)
-#updateSensW = Directives.UpdateSensitivityWeights(threshold=1e-7)
-#update_Jacobi = Directives.UpdatePreconditioner()
+updateSensW = Directives.Update_DC_Wr(
+    wrType='sensitivityW',
+    changeMref=False, eps=1e-7
+)
+# updateSensW = Directives.UpdateSensitivityWeights(threshold=1e-7)
+# update_Jacobi = Directives.UpdatePreconditioner()
 
 inv = Inversion.BaseInversion(invProb,
                               directiveList=[Alphas, beta,
@@ -210,7 +219,10 @@ mcluster = inv.run(m0)
 
 print('All stopping Criteria: ', targets.AllStop)
 print('Final Data Misfit: ', dmis(mcluster))
-print('Final Cluster Scorce: ', invProb.reg.objfcts[0](mcluster, externalW=False))
+print(
+    'Final Cluster Scorce: ',
+    invProb.reg.objfcts[0](mcluster, externalW=False)
+)
 
 # Final Plot
 fig, ax = plt.subplots(2, 2, figsize=(12, 6))

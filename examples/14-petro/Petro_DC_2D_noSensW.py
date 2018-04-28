@@ -1,7 +1,6 @@
 from SimPEG import (
-    Mesh, Problem, Survey, Maps, Utils,
-    EM, DataMisfit, Regularization, Optimization,
-    InvProblem, Directives, Inversion
+    Mesh,  Maps,  Utils, DataMisfit,  Regularization,
+    Optimization, InvProblem,  Directives,  Inversion
 )
 from SimPEG.EM.Static import DC, Utils as DCUtils
 import numpy as np
@@ -12,7 +11,7 @@ from sklearn.mixture import GaussianMixture
 import copy
 
 # Reproducible science!
-np.random.seed(12345)
+np.random.seed(518936)
 
 # 2D Mesh
 #########
@@ -141,7 +140,7 @@ mnormal = inv.run(m0)
 # on the true model to simulate the laboratory
 # petrophysical measurements
 n = 3
-clf = GaussianMixture(n_components=n, covariance_type='full', reg_covar=3e-3)
+clf = GaussianMixture(n_components=n, covariance_type='tied', reg_covar=5e-3)
 clf.fit(mtrue[actind].reshape(-1, 1))
 Utils.order_clusters_GM_weight(clf)
 print(clf.covariances_)
@@ -153,40 +152,44 @@ Utils.order_clusters_GM_weight(clf)
 
 idenMap = Maps.IdentityMap(nP=m0.shape[0])
 wires = Maps.Wires(('m', m0.shape[0]))
-reg = Regularization.SimplePetroRegularization(GMmref=clf, mesh=mesh,
-                                               wiresmap=wires,
-                                               maplist=[idenMap],
-                                               # mref=m0,
-                                               alpha_s=1.,
-                                               alpha_x=1.,
-                                               alpha_y=1.,
-                                               indActive=actind)
+reg = Regularization.SimplePetroRegularization(
+    GMmref=clf, mesh=mesh,
+    wiresmap=wires,
+    maplist=[idenMap],
+    alpha_s=1.,
+    alpha_x=1.,
+    alpha_y=1.,
+    indActive=actind
+)
 reg.mrefInSmooth = False
 reg.approx_gradient = True
 gamma_petro = np.r_[1., 1., 1.]
 reg.gamma = gamma_petro
 
-opt = Optimization.ProjectedGNCG(maxIter=20, lower=-10, upper=10,
-                                 maxIterLS=20, maxIterCG=30, tolCG=1e-4)
+opt = Optimization.ProjectedGNCG(
+    maxIter=20, lower=-10, upper=10,
+    maxIterLS=20, maxIterCG=50, tolCG=1e-4
+)
 opt.remember('xc')
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-beta = Directives.BetaEstimate_ByEig(beta0_ratio=1.)
-gamma_petro = np.ones(clf.n_components) * 1.
+Alphas = Directives.AlphasSmoothEstimate_ByEig(
+    alpha0_ratio=1., ninit=10, verbose=True
+)
+beta = Directives.BetaEstimate_ByEig(beta0_ratio=1., ninit=10)
+betaIt = Directives.PetroBetaReWeighting(
+    verbose=True, rateCooling=5.,
+    rateWarming=1., progress=0.1
+)
+targets = Directives.PetroTargetMisfit(
+    TriggerSmall=True,
+    TriggerTheta=False,
+    verbose=True,
+)
+MrefInSmooth = Directives.AddMrefInSmooth(verbose=True, wait_till_stable=True)
 petrodir = Directives.GaussianMixtureUpdateModel()
-invProb.reg.gamma = gamma_petro
-Alphas = Directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=1., ninit=10)
-
-betaIt = Directives.PetroBetaReWeighting(verbose=True,
-                                         rateCooling=5.,
-                                         UpdateRate=1)
-targets = Directives.PetroTargetMisfit(TriggerTheta=False,
-                                       verbose=True)
-smoothref = Directives.SmoothUpdateReferenceModel(neighbors=8,
-                                                  indiag=float(1. / clf.reg_covar))
-addmref = Directives.AddMrefInSmooth(verbose=True, wait_till_stable=True)
 
 inv = Inversion.BaseInversion(
-    invProb, directiveList=[Alphas, beta, targets, petrodir, betaIt, addmref])
+    invProb, directiveList=[Alphas, beta, petrodir, targets, betaIt, MrefInSmooth])
 
 mcluster = inv.run(m0)
 
