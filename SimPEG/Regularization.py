@@ -7,7 +7,6 @@ import properties
 from scipy.stats import multivariate_normal
 from scipy.special import logsumexp
 import copy
-import discretize as Mesh
 from .Utils import (
     speye, setKwargs, sdiag, mkvc, timeIt,
     Identity, Zero, order_clusters_GM_weight,

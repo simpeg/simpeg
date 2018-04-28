@@ -1,7 +1,7 @@
 from __future__ import print_function
 import numpy as np
 from numpy.linalg import norm
-from SimPEG.Utils import mkvc, sdiag, diagEst, exampleLrmGrid
+from SimPEG.Utils import mkvc, diagEst, exampleLrmGrid
 from discretize import TensorMesh, CurvilinearMesh, CylMesh
 from discretize.TreeMesh import TreeMesh as Tree
 import scipy.sparse as sp
