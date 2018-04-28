@@ -15,7 +15,7 @@ class JointInversionTest(unittest.TestCase):
 
     def setUp(self):
 
-        self.PlotIt = True
+        self.PlotIt = False
 
         # Mesh
         N = 100
