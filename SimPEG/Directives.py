@@ -185,8 +185,8 @@ class BetaEstimate_ByEig(InversionDirective):
 
     beta0 = None       #: The initial Beta (regularization parameter)
     beta0_ratio = 1e2  #: estimateBeta0 is used with this ratio
-    ninit = 1
-    seed = 518936
+    ninit = 1          #: number of vector for estimation.
+    seed = 518936      #: Random Seed
 
     def initialize(self):
         """
@@ -1418,14 +1418,42 @@ class PetroTargetMisfit(InversionDirective):
             else:
                 self.Small = Small[Small[:, 2] == 1][:, :2][0]
 
-            if self.debug:
-                print(type(self.invProb.reg.objfcts[
-                      Small[0]].objfcts[Small[1]]))
+                if self.debug:
+                    print(type(self.invProb.reg.objfcts[
+                        self.Small[0]].objfcts[self.Small[1]]))
+
             self._regmode = 1
 
         else:
-            self.Small = 0
+            Small = np.r_[
+                [
+                    (np.r_[
+                        j,
+                        (
+                            isinstance(regpart, Regularization.SimplePetroWithMappingSmallness) or
+                            isinstance(regpart, Regularization.SimplePetroSmallness) or
+                            isinstance(regpart, Regularization.PetroSmallness)
+                        )
+                    ])
+
+                    for j, regpart in enumerate(self.invProb.reg.objfcts)
+                ]
+            ]
+            if Small[Small[:, 1] == 1][:, :1].size == 0:
+                warnings.warn(
+                    'There is no petroregularization. No Smallness target possible'
+                )
+                self.Small = -1
+            else:
+                self.Small = Small[Small[:, 1] == 1][:, :1][0]
+
+                if self.debug:
+                    print(type(self.invProb.reg.objfcts[
+                      self.Small[0]]))
+
             self._regmode = 2
+
+
 
     @property
     def DMtarget(self):
@@ -1464,10 +1492,12 @@ class PetroTargetMisfit(InversionDirective):
         self._CLtarget = val
 
     def phims(self):
-        if self._regmode == 2:
-            return self.invProb.reg.objfcts[0](self.invProb.model, externalW=False)
-        elif np.any(self.Small == -1):
+        if np.any(self.Small == -1):
             return self.invProb.reg.objfcts[0](self.invProb.model)
+        elif self._regmode == 2:
+            return self.invProb.reg.objfcts[self.Small[0]](
+                self.invProb.model, externalW=False
+            )
         else:
             return self.invProb.reg.objfcts[self.Small[0]].objfcts[self.Small[1]](
                 self.invProb.model, externalW=False

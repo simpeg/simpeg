@@ -68,32 +68,39 @@ class DataMisfitTest(unittest.TestCase):
 
     def test_inv(self):
         reg = Regularization.Tikhonov(self.mesh)
-        opt = Optimization.InexactGaussNewton(maxIter=10)
+        opt = Optimization.InexactGaussNewton(maxIter=30)
         invProb = InvProblem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives = [
             Directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
+            Directives.PetroTargetMisfit(TriggerSmall=False),
+            Directives.BetaSchedule()
         ]
         inv = Inversion.BaseInversion(invProb, directiveList=directives)
         m0 = self.model.mean() * np.ones_like(self.model)
 
         mrec = inv.run(m0)
 
-    # def test_inv_mref_setting(self):
-    #     reg1 = Regularization.Tikhonov(self.mesh)
-    #     reg2 = Regularization.Tikhonov(self.mesh)
-    #     reg = reg1+reg2
-    #     opt = Optimization.InexactGaussNewton(maxIter=10)
-    #     invProb = InvProblem.BaseInvProblem(self.dmiscombo, reg, opt)
-    #     directives = [
-    #         Directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
-    #     ]
-    #     inv = Inversion.BaseInversion(invProb, directiveList=directives)
-    #     m0 = self.model.mean() * np.ones_like(self.model)
+    def test_inv_mref_setting(self):
+        reg1 = Regularization.Tikhonov(self.mesh)
+        reg2 = Regularization.Tikhonov(self.mesh)
+        reg = reg1 + reg2
+        opt = Optimization.ProjectedGNCG(
+            maxIter=30, lower=-10, upper=10,
+            maxIterLS=20, maxIterCG=50, tolCG=1e-4
+        )
+        invProb = InvProblem.BaseInvProblem(self.dmiscombo, reg, opt)
+        directives = [
+            Directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
+            Directives.PetroTargetMisfit(TriggerSmall=False, verbose=True),
+            Directives.BetaSchedule()
+        ]
+        inv = Inversion.BaseInversion(invProb, directiveList=directives)
+        m0 = self.model.mean() * np.ones_like(self.model)
 
-    #     mrec = inv.run(m0)
+        mrec = inv.run(m0)
 
-    #     self.assertTrue(np.all(reg1.mref == m0))
-    #     self.assertTrue(np.all(reg2.mref == m0))
+        self.assertTrue(np.all(reg1.mref == m0))
+        self.assertTrue(np.all(reg2.mref == m0))
 
 if __name__ == '__main__':
     unittest.main()
