@@ -230,8 +230,8 @@ class JointInversionTest(unittest.TestCase):
                 'with nonlinear petrophysical relationships',
                 fontsize=24
             )
-        plt.subplots_adjust(wspace=0.3, hspace=0.3, top=0.85)
-        plt.show()
+            plt.subplots_adjust(wspace=0.3, hspace=0.3, top=0.85)
+            plt.show()
 
     def test_joint_petro_inv(self):
 
@@ -353,6 +353,9 @@ class JointInversionTest(unittest.TestCase):
             )
             axes[3].set_xlabel('Property 1')
             axes[3].set_ylabel('Property 2')
+
+            plt.subplots_adjust(wspace=0.3, hspace=0.3, top=0.85)
+            plt.show()
 
 if __name__ == '__main__':
     unittest.main()
