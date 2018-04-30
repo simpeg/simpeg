@@ -182,7 +182,9 @@ class MagneticsDriver_Inv(object):
     @property
     def survey(self):
         if getattr(self, '_survey', None) is None:
-            self._survey = self.readMagneticsObservations(self.obsfile)
+            self._survey = self.readMagneticsObservations(
+                self.basePath + self.obsfile
+        )
         return self._survey
 
     @property
@@ -331,17 +333,17 @@ class MagneticsDriver_Inv(object):
 
     def readMagneticsObservations(self, obs_file):
         """
-            Read and write UBC mag file format
+        Read and write UBC mag file format
 
-            INPUT:
-            :param fileName, path to the UBC obs mag file
+        INPUT:
+        :param fileName, path to the UBC obs mag file
 
-            OUTPUT:
-            :param survey
-            :param M, magnetization orentiaton (MI, MD)
+        OUTPUT:
+        :param survey
+        :param M, magnetization orentiaton (MI, MD)
         """
 
-        fid = open(self.basePath + obs_file, 'r')
+        fid = open(obs_file, 'r')
 
         # First line has the inclination,declination and amplitude of B0
         line = fid.readline()
@@ -366,13 +368,14 @@ class MagneticsDriver_Inv(object):
         for ii in range(ndat):
 
             temp = np.array(line.split(), dtype=float)
-            locXYZ[ii, :] = temp[:3]
+            if len(temp) > 0:
+                locXYZ[ii, :] = temp[:3]
 
-            if len(temp) > 3:
-                d[ii] = temp[3]
+                if len(temp) > 3:
+                    d[ii] = temp[3]
 
-                if len(temp) == 5:
-                    wd[ii] = temp[4]
+                    if len(temp) == 5:
+                        wd[ii] = temp[4]
 
             line = fid.readline()
 

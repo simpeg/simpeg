@@ -34,7 +34,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'numpy>=1.7',
-        'scipy>=0.13',
+        'scipy>=1.0.0',
         'cython',
         'pymatsolver>=0.1.1',
         'ipython',
@@ -42,6 +42,8 @@ setup(
         'properties>=0.3.6b0',
         'vectormath',
         'discretize',
+        'scikit-learn>=0.19.1',
+        'seaborn',
     ],
     author="Rowan Cockett",
     author_email="rowanc1@gmail.com",

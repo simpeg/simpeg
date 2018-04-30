@@ -109,7 +109,6 @@ class BaseMagSurvey(Survey.BaseSurvey):
 class LinearSurvey(Survey.BaseSurvey):
     """Base Magnetics Survey"""
 
-    rxLoc = None  #: receiver locations
     rxType = None  #: receiver type
 
     def __init__(self, srcField, **kwargs):
@@ -121,7 +120,10 @@ class LinearSurvey(Survey.BaseSurvey):
 
     @property
     def nD(self):
-        return self.prob.G.shape[0]
+        if self.prob is None or self.prob.G is None:
+            return len(self.rxLoc)
+        else:
+            return self.prob.G.shape[0]
 
     @property
     def nRx(self):
@@ -132,6 +134,10 @@ class LinearSurvey(Survey.BaseSurvey):
     #         self._B0 = SrcField.param[0] * dipazm_2_xyz(SrcField.param[1],SrcField.param[2])
 
     #     return self._B0
+
+    @property
+    def rxLoc(self):
+        return self.srcField.rxList[0].locs
 
 
 class SrcField(Survey.BaseSrc):

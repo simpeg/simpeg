@@ -17,6 +17,9 @@ class BaseInvProblem(Props.BaseSimPEG):
     #: Trade-off parameter
     beta = 1.0
 
+    #: Chi Factor
+    Chi = 1.0
+
     #: Print debugging information
     debug = False
 
@@ -93,8 +96,8 @@ class BaseInvProblem(Props.BaseSimPEG):
 
         if isinstance(self.dmisfit, DataMisfit.BaseDataMisfit):
             print("""
-    SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-    ***Done using same Solver and solverOpts as the problem***"""
+                SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
+                ***Done using same Solver and solverOpts as the problem***"""
             )
             self.opt.bfgsH0 = self.dmisfit.prob.Solver(
                 self.reg.deriv2(self.model), **self.dmisfit.prob.solverOpts
@@ -103,9 +106,9 @@ class BaseInvProblem(Props.BaseSimPEG):
             for objfct in self.dmisfit.objfcts:
                 if isinstance(objfct, DataMisfit.BaseDataMisfit):
                     print("""
-    SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-    ***Done using same Solver and solverOpts as the {} problem***""".format(
-                            objfct.prob.__class__.__name__
+                        SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
+                        ***Done using same Solver and solverOpts as the {} problem***""".format(
+                        objfct.prob.__class__.__name__
                         )
                     )
                     self.opt.bfgsH0 = objfct.prob.Solver(
@@ -187,14 +190,14 @@ class BaseInvProblem(Props.BaseSimPEG):
         self.phi_d, self.phi_d_last = phi_d, self.phi_d
         self.phi_m, self.phi_m_last = phi_m, self.phi_m
 
-        phi = phi_d + self.beta * phi_m
+        phi = self.Chi * phi_d + self.beta * phi_m
 
         out = (phi,)
         if return_g:
             phi_dDeriv = self.dmisfit.deriv(m, f=f)
             phi_mDeriv = self.reg.deriv(m)
 
-            g = phi_dDeriv + self.beta * phi_mDeriv
+            g = self.Chi * phi_dDeriv + self.beta * phi_mDeriv
             out += (g,)
 
         if return_H:
@@ -202,7 +205,7 @@ class BaseInvProblem(Props.BaseSimPEG):
                 phi_d2Deriv = self.dmisfit.deriv2(m, v, f=f)
                 phi_m2Deriv = self.reg.deriv2(m, v=v)
 
-                return phi_d2Deriv + self.beta * phi_m2Deriv
+                return self.Chi * phi_d2Deriv + self.beta * phi_m2Deriv
 
             H = sp.linalg.LinearOperator( (m.size, m.size), H_fun, dtype=m.dtype )
             out += (H,)

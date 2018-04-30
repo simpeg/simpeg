@@ -10,7 +10,7 @@ np.random.seed(121)
 
 MAPS_TO_EXCLUDE_2D = [
     "ComboMap", "ActiveCells", "InjectActiveCells",
-    "LogMap", "ReciprocalMap",
+    "LogMap", "ReciprocalMap", "PolynomialPetroClusterMap",
     "Surject2Dto3D", "Map2Dto3D", "Mesh2Mesh",
     "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
     "SplineMap", "BaseParametric", "ParametricBlock",
@@ -20,7 +20,7 @@ MAPS_TO_EXCLUDE_2D = [
 ]
 MAPS_TO_EXCLUDE_3D = [
     "ComboMap", "ActiveCells", "InjectActiveCells",
-    "LogMap", "ReciprocalMap",
+    "LogMap", "ReciprocalMap", "PolynomialPetroClusterMap",
     "CircleMap", "ParametricCircleMap", "Mesh2Mesh",
     "BaseParametric", "ParametricBlock",
     "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
@@ -147,15 +147,15 @@ class MapTests(unittest.TestCase):
         M = Mesh.TensorMesh([2, 3])
         expMap = Maps.ExpMap(M)
         vertMap = Maps.SurjectVertical1D(M)
-        combo = expMap*vertMap
+        combo = expMap * vertMap
         m = np.arange(3.0)
         t_true = np.exp(np.r_[0, 0, 1, 1, 2, 2.])
         self.assertLess(np.linalg.norm((combo * m) - t_true, np.inf), TOL)
-        self.assertLess(np.linalg.norm((expMap * vertMap * m)-t_true, np.inf),
+        self.assertLess(np.linalg.norm((expMap * vertMap * m) - t_true, np.inf),
                         TOL)
-        self.assertLess(np.linalg.norm(expMap * (vertMap * m)-t_true, np.inf),
+        self.assertLess(np.linalg.norm(expMap * (vertMap * m) - t_true, np.inf),
                         TOL)
-        self.assertLess(np.linalg.norm((expMap * vertMap) * m-t_true, np.inf),
+        self.assertLess(np.linalg.norm((expMap * vertMap) * m - t_true, np.inf),
                         TOL)
         # Try making a model
         mod = Models.Model(m, mapping=combo)
@@ -180,8 +180,8 @@ class MapTests(unittest.TestCase):
     def test_activeCells(self):
         M = Mesh.TensorMesh([2, 4], '0C')
         for actMap in [Maps.InjectActiveCells(M, M.vectorCCy <= 0, 10,
-                       nC=M.nCy), Maps.ActiveCells(M, M.vectorCCy <= 0, 10,
-                       nC=M.nCy)]:
+                                              nC=M.nCy), Maps.ActiveCells(M, M.vectorCCy <= 0, 10,
+                                                                          nC=M.nCy)]:
 
             vertMap = Maps.SurjectVertical1D(M)
             combo = vertMap * actMap
@@ -189,9 +189,9 @@ class MapTests(unittest.TestCase):
             mod = Models.Model(m, combo)
 
             self.assertLess(np.linalg.norm(mod.transform -
-                            np.r_[1, 1, 2, 2, 10, 10, 10, 10.]), TOL)
+                                           np.r_[1, 1, 2, 2, 10, 10, 10, 10.]), TOL)
             self.assertLess((mod.transformDeriv -
-                            combo.deriv(m)).toarray().sum(), TOL)
+                             combo.deriv(m)).toarray().sum(), TOL)
 
     def test_tripleMultiply(self):
         M = Mesh.TensorMesh([2, 4], '0C')
@@ -202,15 +202,15 @@ class MapTests(unittest.TestCase):
         t_true = np.exp(np.r_[1, 1, 2, 2, 10, 10, 10, 10.])
 
         self.assertLess(np.linalg.norm((expMap * vertMap * actMap * m) -
-                        t_true, np.inf), TOL)
+                                       t_true, np.inf), TOL)
         self.assertLess(np.linalg.norm(((expMap * vertMap * actMap) * m) -
-                        t_true, np.inf), TOL)
+                                       t_true, np.inf), TOL)
         self.assertLess(np.linalg.norm((expMap * vertMap * (actMap * m)) -
-                        t_true, np.inf), TOL)
+                                       t_true, np.inf), TOL)
         self.assertLess(np.linalg.norm((expMap * (vertMap * actMap) * m) -
-                        t_true, np.inf), TOL)
+                                       t_true, np.inf), TOL)
         self.assertLess(np.linalg.norm(((expMap * vertMap) * actMap * m) -
-                        t_true, np.inf), TOL)
+                                       t_true, np.inf), TOL)
 
         self.assertRaises(ValueError, lambda: expMap * actMap * vertMap)
         self.assertRaises(ValueError, lambda: actMap * vertMap * expMap)
@@ -228,7 +228,7 @@ class MapTests(unittest.TestCase):
             self.assertTrue(m2to3.test())
             self.assertTrue(m2to3.testVec())
             self.assertTrue(np.all(Utils.mkvc((m2to3 * m).reshape(M3.vnC,
-                            order='F')[0, :, :]) == m))
+                                                                  order='F')[0, :, :]) == m))
 
     def test_map2Dto3D_y(self):
         M2 = Mesh.TensorMesh([3, 4])
@@ -236,13 +236,13 @@ class MapTests(unittest.TestCase):
         m = np.random.rand(M2.nC)
 
         for m2to3 in [Maps.Surject2Dto3D(M3, normal='Y'), Maps.Map2Dto3D(M3,
-                      normal='Y')]:
+                                                                         normal='Y')]:
             # m2to3 = Maps.Surject2Dto3D(M3, normal='Y')
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
             self.assertTrue(m2to3.testVec())
             self.assertTrue(np.all(Utils.mkvc((m2to3 * m).reshape(M3.vnC,
-                            order='F')[:, 0, :]) == m))
+                                                                  order='F')[:, 0, :]) == m))
 
     def test_map2Dto3D_z(self):
         M2 = Mesh.TensorMesh([3, 2])
@@ -250,14 +250,14 @@ class MapTests(unittest.TestCase):
         m = np.random.rand(M2.nC)
 
         for m2to3 in [Maps.Surject2Dto3D(M3, normal='Z'), Maps.Map2Dto3D(M3,
-                      normal='Z')]:
+                                                                         normal='Z')]:
 
             # m2to3 = Maps.Surject2Dto3D(M3, normal='Z')
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
             self.assertTrue(m2to3.testVec())
             self.assertTrue(np.all(Utils.mkvc((m2to3 * m).reshape(M3.vnC,
-                            order='F')[:, :, 0]) == m))
+                                                                  order='F')[:, :, 0]) == m))
 
     def test_ParametricPolyMap(self):
         M2 = Mesh.TensorMesh([np.ones(10), np.ones(10)], "CN")
@@ -318,6 +318,7 @@ class TestWires(unittest.TestCase):
 
 
 class TestSCEMT(unittest.TestCase):
+
     def test_sphericalInclusions(self):
         mesh = Mesh.TensorMesh([4,  5, 3])
         mapping = Maps.SelfConsistentEffectiveMedium(

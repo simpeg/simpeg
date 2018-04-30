@@ -7,6 +7,7 @@ from six import integer_types
 from six import string_types
 from collections import namedtuple
 import warnings
+import copy
 
 import numpy as np
 from numpy.polynomial import polynomial
@@ -19,7 +20,7 @@ from scipy.spatial import cKDTree
 
 import properties
 
-from . import Utils
+from .Utils import setKwargs, Identity, Zero, sdiag, mkvc
 from .Tests import checkDerivative
 
 
@@ -29,7 +30,7 @@ class IdentityMap(object):
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
         if nP is not None:
             if isinstance(nP, string_types):
@@ -119,7 +120,7 @@ class IdentityMap(object):
             return v
         if isinstance(self.nP, integer_types):
             return sp.identity(self.nP)
-        return Utils.Identity()
+        return Identity()
 
     def test(self, m=None, num=4, **kwargs):
         """Test the derivative of the mapping.
@@ -161,7 +162,7 @@ class IdentityMap(object):
         if 'plotIt' not in kwargs:
             kwargs['plotIt'] = False
         return checkDerivative(
-            lambda m: [self*m, lambda x: self.deriv(m, x)], m, num=4, **kwargs
+            lambda m: [self * m, lambda x: self.deriv(m, x)], m, num=4, **kwargs
         )
 
     def _assertMatchesPair(self, pair):
@@ -196,8 +197,8 @@ class IdentityMap(object):
                 )
             return self._transform(val)
 
-        elif isinstance(val, Utils.Zero):
-            return Utils.Zero()
+        elif isinstance(val, Zero):
+            return Zero()
 
         raise Exception(
             'Unrecognized data type to multiply. Try a map or a numpy.ndarray!'
@@ -239,7 +240,7 @@ class ComboMap(IdentityMap):
             if (
                 ii > 0 and not (self.shape[1] == '*' or m.shape[0] == '*') and
                 not self.shape[1] == m.shape[0]
-               ):
+            ):
                 prev = self.maps[-1]
 
                 raise ValueError(
@@ -497,13 +498,13 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
     rel_tol = properties.Float(
         "relative tolerance for convergence for the fixed-point iteration",
-        default = 1e-4
+        default=1e-4
     )
 
     maxIter = properties.Integer(
         "maximum number of iterations for the fixed point iteration "
         "calculation",
-        default = 50
+        default=50
     )
 
     def __init__(self, mesh=None, nP=None, sigstart=None, **kwargs):
@@ -516,7 +517,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         absolute tolerance for the convergence of the fixed point iteration calc
         """
         if getattr(self, '_tol', None) is None:
-            self._tol = self.rel_tol*min(self.sigma0, self.sigma1)
+            self._tol = self.rel_tol * min(self.sigma0, self.sigma1)
         return self._tol
 
     @property
@@ -528,36 +529,38 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
     def wennerBounds(self, phi1):
         """Define Wenner Conductivity Bounds"""
-        # TODO: Add HS bounds (not needed for spherical particles, but for ellipsoidal ones)
-        phi0   = 1.0-phi1
-        sigWup = phi0*self.sigma0 + phi1*self.sigma1
-        sigWlo = 1.0/(phi0/self.sigma0 + phi1/self.sigma1)
+        # TODO: Add HS bounds (not needed for spherical particles, but for
+        # ellipsoidal ones)
+        phi0 = 1.0 - phi1
+        sigWup = phi0 * self.sigma0 + phi1 * self.sigma1
+        sigWlo = 1.0 / (phi0 / self.sigma0 + phi1 / self.sigma1)
         W = np.array([sigWlo, sigWup])
 
         return W
 
     def getQ(self, alpha):
         if alpha < 1.:
-            Chi = np.sqrt((1./alpha**2.) - 1.)
-            return 1./2.*(1. + 1./(alpha**2. - 1.)*(1. - np.arctan(Chi)/Chi))
+            Chi = np.sqrt((1. / alpha**2.) - 1.)
+            return 1. / 2. * (1. + 1. / (alpha**2. - 1.) * (1. - np.arctan(Chi) / Chi))
         elif alpha > 1.:
             raise NotImplementedError(
                 'Aspect ratios > 1 have not been implemeted'
             )
         elif alpha == 1:
-            return 1./3.
+            return 1. / 3.
 
     def getR(self, sj, se, alpha):
         if alpha == 1.:
-            return 3.0*se/(2.0*se+sj)
+            return 3.0 * se / (2.0 * se + sj)
         Q = self.getQ(alpha)
-        return se/3.*(2./(se + Q*(sj-se)) + 1./(sj - 2.*Q*(sj-se)))
+        return se / 3. * (2. / (se + Q * (sj - se)) + 1. / (sj - 2. * Q * (sj - se)))
 
     def getdR(self, sj, se, alpha):
         Q = self.getQ(alpha)
         return (
-            sj/3. *
-            ( 2.*Q/(se + Q*(sj-se))**2 + (1. - 2.*Q)/(sj - 2.*Q*(sj-se))**2 )
+            sj / 3. *
+            (2. * Q / (se + Q * (sj - se))**2 +
+             (1. - 2. * Q) / (sj - 2. * Q * (sj - se))**2)
         )
 
     def _sc2phaseEMTRandSpheroidstransform(self, phi1):
@@ -572,9 +575,9 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
         if not (np.all(0 <= phi1) and np.all(phi1 <= 1)):
             warnings.warn('there are phis outside bounds of 0 and 1')
-            phi1 = np.median(np.c_[phi1*0, phi1, phi1*0+1.])
+            phi1 = np.median(np.c_[phi1 * 0, phi1, phi1 * 0 + 1.])
 
-        phi0 = 1.0-phi1
+        phi0 = 1.0 - phi1
 
         sige1 = self.sigstart
 
@@ -582,11 +585,11 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
             R0 = self.getR(self.sigma0, sige1, self.alpha0)
             R1 = self.getR(self.sigma1, sige1, self.alpha1)
 
-            den = phi0*R0 + phi1*R1
-            num = phi0*self.sigma0*R0 + phi1*self.sigma1*R1
+            den = phi0 * R0 + phi1 * R1
+            num = phi0 * self.sigma0 * R0 + phi1 * self.sigma1 * R1
 
-            sige2 = num/den
-            relerr = np.abs(sige2-sige1)
+            sige2 = num / den
+            relerr = np.abs(sige2 - sige1)
 
             if np.all(relerr <= self.tol):
                 if self.sigstart is None:
@@ -594,7 +597,8 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
                 return sige2
 
             sige1 = sige2
-        # TODO: make this a proper warning, and output relevant info (sigma0, sigma1, phi, sigstart, and relerr)
+        # TODO: make this a proper warning, and output relevant info (sigma0,
+        # sigma1, phi, sigstart, and relerr)
         warnings.warn('Maximum number of iterations reached')
 
         return sige2
@@ -604,14 +608,14 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         R0 = getR(self.sigma0, sige, self.alp0)
         R1 = getR(self.sigma1, sige, self.alp1)
 
-        num = -(sigma0 - sige)*R0
-        den = (sigma1-sige)*R1 - (sigma0-sige)*R0
+        num = -(sigma0 - sige) * R0
+        den = (sigma1 - sige) * R1 - (sigma0 - sige) * R0
 
-        return num/den
+        return num / den
 
     def _sc2phaseEMTRandSpheroidstransformDeriv(self, sige, phi1):
 
-        phi0 = 1.0-phi1
+        phi0 = 1.0 - phi1
 
         R0 = self.getR(self.sigma0, sige, self.alpha0)
         R1 = self.getR(self.sigma1, sige, self.alpha1)
@@ -619,10 +623,11 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         dR0 = self.getdR(self.sigma0, sige, self.alpha0)
         dR1 = self.getdR(self.sigma1, sige, self.alpha1)
 
-        num = (sige-self.sigma0)*R0 - (sige-self.sigma1)*R1
-        den = phi0*(R0 + (sige-self.sigma0)*dR0) + phi1*(R1 + (sige-self.sigma1)*dR1)
+        num = (sige - self.sigma0) * R0 - (sige - self.sigma1) * R1
+        den = phi0 * (R0 + (sige - self.sigma0) * dR0) + \
+            phi1 * (R1 + (sige - self.sigma1) * dR1)
 
-        return Utils.sdiag(num/den)
+        return sdiag(num / den)
 
     def _transform(self, m):
         return self._sc2phaseEMTRandSpheroidstransform(m)
@@ -667,7 +672,7 @@ class ExpMap(IdentityMap):
         super(ExpMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
-        return np.exp(Utils.mkvc(m))
+        return np.exp(mkvc(m))
 
     def inverse(self, D):
         """
@@ -683,7 +688,7 @@ class ExpMap(IdentityMap):
                 m = \log{\sigma}
 
         """
-        return np.log(Utils.mkvc(D))
+        return np.log(mkvc(D))
 
     def deriv(self, m, v=None):
         """
@@ -708,7 +713,7 @@ class ExpMap(IdentityMap):
 
                 \\frac{\partial \exp{m}}{\partial m} = \\text{sdiag}(\exp{m})
         """
-        deriv = Utils.sdiag(np.exp(Utils.mkvc(m)))
+        deriv = sdiag(np.exp(mkvc(m)))
         if v is not None:
             return deriv * v
         return deriv
@@ -724,18 +729,19 @@ class ReciprocalMap(IdentityMap):
             \\rho = \\frac{1}{\sigma}
 
     """
+
     def __init__(self, mesh=None, nP=None, **kwargs):
         super(ReciprocalMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
-        return 1.0 / Utils.mkvc(m)
+        return 1.0 / mkvc(m)
 
     def inverse(self, D):
-        return 1.0 / Utils.mkvc(D)
+        return 1.0 / mkvc(D)
 
     def deriv(self, m, v=None):
         # TODO: if this is a tensor, you might have a problem.
-        deriv = Utils.sdiag(- Utils.mkvc(m)**(-2))
+        deriv = sdiag(- mkvc(m)**(-2))
         if v is not None:
             return deriv * v
         return deriv
@@ -767,20 +773,20 @@ class LogMap(IdentityMap):
         super(LogMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
-        return np.log(Utils.mkvc(m))
+        return np.log(mkvc(m))
 
     def deriv(self, m, v=None):
-        mod = Utils.mkvc(m)
+        mod = mkvc(m)
         deriv = np.zeros(mod.shape)
         tol = 1e-16  # zero
         ind = np.greater_equal(np.abs(mod), tol)
-        deriv[ind] = 1.0/mod[ind]
+        deriv[ind] = 1.0 / mod[ind]
         if v is not None:
-            return Utils.sdiag(deriv)*v
-        return Utils.sdiag(deriv)
+            return sdiag(deriv) * v
+        return sdiag(deriv)
 
     def inverse(self, m):
-        return np.exp(Utils.mkvc(m))
+        return np.exp(mkvc(m))
 
 
 class ChiMap(IdentityMap):
@@ -830,7 +836,7 @@ class MuRelative(IdentityMap):
         return mu_0 * sp.eye(self.nP)
 
     def inverse(self, m):
-        return 1./mu_0 * m
+        return 1. / mu_0 * m
 
 
 class Weighting(IdentityMap):
@@ -859,10 +865,10 @@ class Weighting(IdentityMap):
 
     @property
     def P(self):
-        return Utils.sdiag(self.weights)
+        return sdiag(self.weights)
 
     def _transform(self, m):
-        return self.weights*m
+        return self.weights * m
 
     def inverse(self, D):
         return self.weights**(-1.) * D
@@ -879,6 +885,7 @@ class ComplexMap(IdentityMap):
         default nP is nC in the mesh times 2 [real, imag]
 
     """
+
     def __init__(self, mesh=None, nP=None, **kwargs):
         super(ComplexMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
         if nP is not None:
@@ -891,18 +898,18 @@ class ComplexMap(IdentityMap):
 
     @property
     def shape(self):
-        return (int(self.nP/2), self.nP)
+        return (int(self.nP / 2), self.nP)
 
     def _transform(self, m):
         nC = self.mesh.nC
-        return m[:nC] + m[nC:]*1j
+        return m[:nC] + m[nC:] * 1j
 
     def deriv(self, m, v=None):
         nC = self.shape[0]
-        shp = (nC, nC*2)
+        shp = (nC, nC * 2)
 
         def fwd(v):
-            return v[:nC] + v[nC:]*1j
+            return v[:nC] + v[nC:] * 1j
 
         def adj(v):
             return np.r_[v.real, v.imag]
@@ -971,7 +978,7 @@ class SurjectVertical1D(IdentityMap):
 
            The number of cells in the
            last dimension of the mesh."""
-        return int(self.mesh.vnC[self.mesh.dim-1])
+        return int(self.mesh.vnC[self.mesh.dim - 1])
 
     def _transform(self, m):
         """
@@ -979,8 +986,8 @@ class SurjectVertical1D(IdentityMap):
             :rtype: numpy.array
             :return: transformed model
         """
-        repNum = self.mesh.vnC[:self.mesh.dim-1].prod()
-        return Utils.mkvc(m).repeat(repNum)
+        repNum = self.mesh.vnC[:self.mesh.dim - 1].prod()
+        return mkvc(m).repeat(repNum)
 
     def deriv(self, m, v=None):
         """
@@ -988,7 +995,7 @@ class SurjectVertical1D(IdentityMap):
             :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
         """
-        repNum = self.mesh.vnC[:self.mesh.dim-1].prod()
+        repNum = self.mesh.vnC[:self.mesh.dim - 1].prod()
         repVec = sp.csr_matrix(
             (np.ones(repNum), (range(repNum), np.zeros(repNum))),
             shape=(repNum, 1)
@@ -1034,9 +1041,9 @@ class Surject2Dto3D(IdentityMap):
             :rtype: numpy.array
             :return: transformed model
         """
-        m = Utils.mkvc(m)
+        m = mkvc(m)
         if self.normal == 'Z':
-            return Utils.mkvc(
+            return mkvc(
                 m.reshape(
                     self.mesh.vnC[[0, 1]], order='F'
                 )[:, :, np.newaxis].repeat(
@@ -1045,7 +1052,7 @@ class Surject2Dto3D(IdentityMap):
                 )
             )
         elif self.normal == 'Y':
-            return Utils.mkvc(
+            return mkvc(
                 m.reshape(
                     self.mesh.vnC[[0, 2]], order='F'
                 )[:, np.newaxis, :].repeat(
@@ -1054,7 +1061,7 @@ class Surject2Dto3D(IdentityMap):
                 )
             )
         elif self.normal == 'X':
-            return Utils.mkvc(
+            return mkvc(
                 m.reshape(
                     self.mesh.vnC[[1, 2]], order='F'
                 )[np.newaxis, :, :].repeat(
@@ -1085,7 +1092,7 @@ class Mesh2Mesh(IdentityMap):
     """
 
     def __init__(self, meshes, **kwargs):
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
         assert type(meshes) is list, "meshes must be a list of two meshes"
         assert len(meshes) == 2, "meshes must be a list of two meshes"
@@ -1141,7 +1148,7 @@ class InjectActiveCells(IdentityMap):
         self.indActive = indActive
         self.indInactive = np.logical_not(indActive)
         if np.isscalar(valInactive):
-            self.valInactive = np.ones(self.nC)*float(valInactive)
+            self.valInactive = np.ones(self.nC) * float(valInactive)
         else:
             self.valInactive = np.ones(self.nC)
             self.valInactive[self.indInactive] = valInactive.copy()
@@ -1166,7 +1173,7 @@ class InjectActiveCells(IdentityMap):
         return self.P * m + self.valInactive
 
     def inverse(self, D):
-        return self.P.T*D
+        return self.P.T * D
 
     def deriv(self, m, v=None):
         if v is not None:
@@ -1221,8 +1228,8 @@ class ParametricCircleMap(IdentityMap):
             sig1, sig2 = np.exp(sig1), np.exp(sig2)
         X = self.mesh.gridCC[:, 0]
         Y = self.mesh.gridCC[:, 1]
-        return sig1 + (sig2 - sig1)*(np.arctan(a*(np.sqrt((X-x)**2 +
-                                     (Y-y)**2) - r))/np.pi + 0.5)
+        return sig1 + (sig2 - sig1) * (np.arctan(a * (np.sqrt((X - x)**2 +
+                                                              (Y - y)**2) - r)) / np.pi + 0.5)
 
     def deriv(self, m, v=None):
         a = self.slope
@@ -1233,37 +1240,37 @@ class ParametricCircleMap(IdentityMap):
         Y = self.mesh.gridCC[:, 1]
         if self.logSigma:
             g1 = - (
-                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2))) / np.pi +
                 0.5
             ) * sig1 + sig1
             g2 = (
-                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2))) / np.pi +
                 0.5
             ) * sig2
         else:
             g1 = -(
-                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2))) / np.pi +
                 0.5
             ) + 1.0
             g2 = (
-                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2))) / np.pi +
                 0.5
             )
 
-        g3 = a*(-X + x)*(-sig1 + sig2) / (
-            np.pi*(
-                a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1
+        g3 = a * (-X + x) * (-sig1 + sig2) / (
+            np.pi * (
+                a**2 * (-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1
             ) * np.sqrt((X - x)**2 + (Y - y)**2)
         )
 
-        g4 = a*(-Y + y)*(-sig1 + sig2) / (
-            np.pi*(
-                a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1
+        g4 = a * (-Y + y) * (-sig1 + sig2) / (
+            np.pi * (
+                a**2 * (-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1
             ) * np.sqrt((X - x)**2 + (Y - y)**2)
         )
 
-        g5 = -a*(-sig1 + sig2) / (
-            np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)
+        g5 = -a * (-sig1 + sig2) / (
+            np.pi * (a**2 * (-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)
         )
 
         if v is not None:
@@ -1314,9 +1321,9 @@ class ParametricPolyMap(IdentityMap):
     @property
     def nP(self):
         if np.isscalar(self.order):
-            nP = self.order+3
+            nP = self.order + 3
         else:
-            nP = (self.order[0]+1)*(self.order[1]+1)+2
+            nP = (self.order[0] + 1) * (self.order[1] + 1) + 2
         return nP
 
     def _transform(self, m):
@@ -1345,21 +1352,21 @@ class ParametricPolyMap(IdentityMap):
             Z = self.mesh.gridCC[self.actInd, 2]
 
             if self.normal == 'X':
-                f = (polynomial.polyval2d(Y, Z, c.reshape((self.order[0]+1,
-                     self.order[1]+1))) - X)
+                f = (polynomial.polyval2d(Y, Z, c.reshape((self.order[0] + 1,
+                                                           self.order[1] + 1))) - X)
             elif self.normal == 'Y':
-                f = (polynomial.polyval2d(X, Z, c.reshape((self.order[0]+1,
-                     self.order[1]+1))) - Y)
+                f = (polynomial.polyval2d(X, Z, c.reshape((self.order[0] + 1,
+                                                           self.order[1] + 1))) - Y)
             elif self.normal == 'Z':
-                f = (polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1,
-                     self.order[1]+1))) - Z)
+                f = (polynomial.polyval2d(X, Y, c.reshape((self.order[0] + 1,
+                                                           self.order[1] + 1))) - Z)
             else:
                 raise(Exception("Input for normal = X or Y or Z"))
 
         else:
             raise(Exception("Only supports 2D"))
 
-        return sig1+(sig2-sig1)*(np.arctan(alpha*f)/np.pi+0.5)
+        return sig1 + (sig2 - sig1) * (np.arctan(alpha * f) / np.pi + 0.5)
 
     def deriv(self, m, v=None):
         alpha = self.slope
@@ -1374,10 +1381,10 @@ class ParametricPolyMap(IdentityMap):
 
             if self.normal == 'X':
                 f = polynomial.polyval(Y, c) - X
-                V = polynomial.polyvander(Y, len(c)-1)
+                V = polynomial.polyvander(Y, len(c) - 1)
             elif self.normal == 'Y':
                 f = polynomial.polyval(X, c) - Y
-                V = polynomial.polyvander(X, len(c)-1)
+                V = polynomial.polyvander(X, len(c) - 1)
             else:
                 raise(Exception("Input for normal = X or Y or Z"))
 
@@ -1388,28 +1395,29 @@ class ParametricPolyMap(IdentityMap):
             Z = self.mesh.gridCC[self.actInd, 2]
 
             if self.normal == 'X':
-                f = (polynomial.polyval2d(Y, Z, c.reshape((self.order[0]+1,
-                     self.order[1]+1))) - X)
+                f = (polynomial.polyval2d(Y, Z, c.reshape((self.order[0] + 1,
+                                                           self.order[1] + 1))) - X)
                 V = polynomial.polyvander2d(Y, Z, self.order)
             elif self.normal == 'Y':
-                f = (polynomial.polyval2d(X, Z, c.reshape((self.order[0]+1,
-                     self.order[1]+1))) - Y)
+                f = (polynomial.polyval2d(X, Z, c.reshape((self.order[0] + 1,
+                                                           self.order[1] + 1))) - Y)
                 V = polynomial.polyvander2d(X, Z, self.order)
             elif self.normal == 'Z':
-                f = (polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1,
-                     self.order[1]+1))) - Z)
+                f = (polynomial.polyval2d(X, Y, c.reshape((self.order[0] + 1,
+                                                           self.order[1] + 1))) - Z)
                 V = polynomial.polyvander2d(X, Y, self.order)
             else:
                 raise(Exception("Input for normal = X or Y or Z"))
 
         if self.logSigma:
-            g1 = -(np.arctan(alpha*f)/np.pi + 0.5)*sig1 + sig1
-            g2 = (np.arctan(alpha*f)/np.pi + 0.5)*sig2
+            g1 = -(np.arctan(alpha * f) / np.pi + 0.5) * sig1 + sig1
+            g2 = (np.arctan(alpha * f) / np.pi + 0.5) * sig2
         else:
-            g1 = -(np.arctan(alpha*f)/np.pi + 0.5) + 1.0
-            g2 = (np.arctan(alpha*f)/np.pi + 0.5)
+            g1 = -(np.arctan(alpha * f) / np.pi + 0.5) + 1.0
+            g2 = (np.arctan(alpha * f) / np.pi + 0.5)
 
-        g3 = Utils.sdiag(alpha*(sig2-sig1)/(1.+(alpha*f)**2)/np.pi)*V
+        g3 = sdiag(alpha * (sig2 - sig1) /
+                   (1. + (alpha * f)**2) / np.pi) * V
 
         if v is not None:
             return sp.csr_matrix(np.c_[g1, g2, g3]) * v
@@ -1451,9 +1459,9 @@ class ParametricSplineMap(IdentityMap):
     @property
     def nP(self):
         if self.mesh.dim == 2:
-            return np.size(self.pts)+2
+            return np.size(self.pts) + 2
         elif self.mesh.dim == 3:
-            return np.size(self.pts)*2+2
+            return np.size(self.pts) * 2 + 2
         else:
             raise(Exception("Only supports 2D and 3D"))
 
@@ -1509,7 +1517,7 @@ class ParametricSplineMap(IdentityMap):
         else:
             raise(Exception("Only supports 2D and 3D"))
 
-        return sig1+(sig2-sig1)*(np.arctan(alpha*f)/np.pi+0.5)
+        return sig1 + (sig2 - sig1) * (np.arctan(alpha * f) / np.pi + 0.5)
 
     def deriv(self, m, v=None):
         alpha = self.slope
@@ -1536,7 +1544,7 @@ class ParametricSplineMap(IdentityMap):
             if self.normal == 'X':
                 zb = self.ptsv[0]
                 zt = self.ptsv[1]
-                flines = ((self.spl["splt"](Y)-self.spl["splb"](Y)) *
+                flines = ((self.spl["splt"](Y) - self.spl["splb"](Y)) *
                           (Z - zb) / (zt - zb) + self.spl["splb"](Y))
                 f = flines - X
             # elif self.normal =='Y':
@@ -1545,11 +1553,11 @@ class ParametricSplineMap(IdentityMap):
                 raise(Exception("Not Implemented for Y and Z, your turn :)"))
 
         if self.logSigma:
-            g1 = -(np.arctan(alpha*f)/np.pi + 0.5)*sig1 + sig1
-            g2 = (np.arctan(alpha*f)/np.pi + 0.5)*sig2
+            g1 = -(np.arctan(alpha * f) / np.pi + 0.5) * sig1 + sig1
+            g2 = (np.arctan(alpha * f) / np.pi + 0.5) * sig2
         else:
-            g1 = -(np.arctan(alpha*f)/np.pi + 0.5) + 1.0
-            g2 = (np.arctan(alpha*f)/np.pi + 0.5)
+            g1 = -(np.arctan(alpha * f) / np.pi + 0.5) + 1.0
+            g2 = (np.arctan(alpha * f) / np.pi + 0.5)
 
         if self.mesh.dim == 2:
             g3 = np.zeros((self.mesh.nC, self.npts))
@@ -1559,30 +1567,30 @@ class ParametricSplineMap(IdentityMap):
                 # Modfications for X and Z directions ...
                 for i in range(np.size(self.pts)):
                     ctemp = c[i]
-                    ind = np.argmin(abs(self.mesh.vectorCCy-ctemp))
+                    ind = np.argmin(abs(self.mesh.vectorCCy - ctemp))
                     ca = c.copy()
                     cb = c.copy()
-                    dy = self.mesh.hy[ind]*1.5
-                    ca[i] = ctemp+dy
-                    cb[i] = ctemp-dy
+                    dy = self.mesh.hy[ind] * 1.5
+                    ca[i] = ctemp + dy
+                    cb[i] = ctemp - dy
                     spla = UnivariateSpline(self.pts, ca, k=self.order, s=0)
                     splb = UnivariateSpline(self.pts, cb, k=self.order, s=0)
-                    fderiv = (spla(X)-splb(X))/(2*dy)
-                    g3[:, i] = Utils.sdiag(alpha*(sig2-sig1) /
-                                           (1.+(alpha*f)**2) / np.pi)*fderiv
+                    fderiv = (spla(X) - splb(X)) / (2 * dy)
+                    g3[:, i] = sdiag(alpha * (sig2 - sig1) /
+                                     (1. + (alpha * f)**2) / np.pi) * fderiv
 
         elif self.mesh.dim == 3:
-            g3 = np.zeros((self.mesh.nC, self.npts*2))
+            g3 = np.zeros((self.mesh.nC, self.npts * 2))
             if self.normal == 'X':
                 # Here we use perturbation to compute sensitivity
-                for i in range(self.npts*2):
+                for i in range(self.npts * 2):
                     ctemp = c[i]
-                    ind = np.argmin(abs(self.mesh.vectorCCy-ctemp))
+                    ind = np.argmin(abs(self.mesh.vectorCCy - ctemp))
                     ca = c.copy()
                     cb = c.copy()
-                    dy = self.mesh.hy[ind]*1.5
-                    ca[i] = ctemp+dy
-                    cb[i] = ctemp-dy
+                    dy = self.mesh.hy[ind] * 1.5
+                    ca[i] = ctemp + dy
+                    cb[i] = ctemp - dy
 
                     # treat bottom boundary
                     if i < self.npts:
@@ -1590,10 +1598,10 @@ class ParametricSplineMap(IdentityMap):
                                                  k=self.order, s=0)
                         splbb = UnivariateSpline(self.pts, cb[:self.npts],
                                                  k=self.order, s=0)
-                        flinesa = ((self.spl["splt"](Y) - splba(Y)) * (Z-zb) /
-                                   (zt-zb) + splba(Y) - X)
-                        flinesb = ((self.spl["splt"](Y) - splbb(Y)) * (Z-zb) /
-                                   (zt-zb) + splbb(Y) - X)
+                        flinesa = ((self.spl["splt"](Y) - splba(Y)) * (Z - zb) /
+                                   (zt - zb) + splba(Y) - X)
+                        flinesb = ((self.spl["splt"](Y) - splbb(Y)) * (Z - zb) /
+                                   (zt - zb) + splbb(Y) - X)
 
                     # treat top boundary
                     else:
@@ -1601,19 +1609,115 @@ class ParametricSplineMap(IdentityMap):
                                                  k=self.order, s=0)
                         spltb = UnivariateSpline(self.pts, ca[self.npts:],
                                                  k=self.order, s=0)
-                        flinesa = ((self.spl["splt"](Y) - splta(Y)) * (Z-zb) /
-                                   (zt-zb) + splta(Y) - X)
-                        flinesb = ((self.spl["splt"](Y) - spltb(Y)) * (Z-zb) /
-                                   (zt-zb) + spltb(Y) - X)
-                    fderiv = (flinesa-flinesb)/(2*dy)
-                    g3[:, i] = Utils.sdiag(alpha*(sig2-sig1) /
-                                           (1.+(alpha*f)**2) / np.pi)*fderiv
+                        flinesa = ((self.spl["splt"](Y) - splta(Y)) * (Z - zb) /
+                                   (zt - zb) + splta(Y) - X)
+                        flinesb = ((self.spl["splt"](Y) - spltb(Y)) * (Z - zb) /
+                                   (zt - zb) + spltb(Y) - X)
+                    fderiv = (flinesa - flinesb) / (2 * dy)
+                    g3[:, i] = sdiag(alpha * (sig2 - sig1) /
+                                     (1. + (alpha * f)**2) / np.pi) * fderiv
         else:
             raise(Exception("Not Implemented for Y and Z, your turn :)"))
 
         if v is not None:
             return sp.csr_matrix(np.c_[g1, g2, g3]) * v
         return sp.csr_matrix(np.c_[g1, g2, g3])
+
+###############################################################################
+#                                                                             #
+#                       Maps for petrophsyics clusters                        #
+#                                                                             #
+###############################################################################
+
+
+class PolynomialPetroClusterMap(IdentityMap):
+    """
+        Modeling polynomial relationships between physical properties
+
+    """
+
+    def __init__(
+        self,
+        coeffxx=np.r_[0., 1],
+        coeffxy=np.zeros(1),
+        coeffyx=np.zeros(1),
+        coeffyy=np.r_[0., 1],
+        mesh=None,
+        nP=None,
+        **kwargs
+    ):
+
+        self.coeffxx = coeffxx
+        self.coeffxy = coeffxy
+        self.coeffyx = coeffyx
+        self.coeffyy = coeffyy
+        self.polynomialxx = polynomial.Polynomial(self.coeffxx)
+        self.polynomialxy = polynomial.Polynomial(self.coeffxy)
+        self.polynomialyx = polynomial.Polynomial(self.coeffyx)
+        self.polynomialyy = polynomial.Polynomial(self.coeffyy)
+        self.polynomialxx_deriv = self.polynomialxx.deriv(m=1)
+        self.polynomialxy_deriv = self.polynomialxy.deriv(m=1)
+        self.polynomialyx_deriv = self.polynomialyx.deriv(m=1)
+        self.polynomialyy_deriv = self.polynomialyy.deriv(m=1)
+
+        super(PolynomialPetroClusterMap, self).__init__(
+            mesh=mesh, nP=nP, **kwargs)
+
+    def _transform(self, m):
+        out = copy.deepcopy(m)
+        out[:, 0] = self.polynomialxx(m[:, 0]) + self.polynomialxy(m[:, 1])
+        out[:, 1] = self.polynomialyx(m[:, 0]) + self.polynomialyy(m[:, 1])
+        return out
+
+    def inverse(self, D):
+        """
+            :param numpy.array D: physical property
+            :rtype: numpy.array
+            :return: model
+
+            The *transformInverse* changes the physical property into the
+            model.
+
+            .. math::
+
+                m = \log{\sigma}
+
+        """
+        #coeffxx_inverse = np.r_[0.,1.,0.] - self.coeffxx
+        #coeffxy_inverse = - self.coeffxy
+        #coeffyx_inverse = - self.coeffyx
+        #coeffyy_inverse = np.r_[0.,1.,0.] - self.coeffyy
+
+        #polynomialxx_inverse = polynomial.Polynomial(coeffxx_inverse)
+        #polynomialxy_inverse = polynomial.Polynomial(coeffxy_inverse)
+        #polynomialyx_inverse = polynomial.Polynomial(coeffyx_inverse)
+        #polynomialyy_inverse = polynomial.Polynomial(coeffyy_inverse)
+        raise Exception('Not implemented')
+        #out = copy.deepcopy(D)
+        #out[:,0] = polynomialxx_inverse(D[:,0]) + polynomialxy_inverse(D[:,1])
+        #out[:,1] = polynomialyx_inverse(D[:,0]) + polynomialyy_inverse(D[:,1])
+        # return out
+
+    def _derivmatrix(self, m):
+        return np.r_[
+            [
+                [self.polynomialxx_deriv(
+                    m[:, 0])[0], self.polynomialyx_deriv(m[:, 0])[0]],
+                [self.polynomialxy_deriv(
+                    m[:, 1])[0], self.polynomialyy_deriv(m[:, 1])[0]]
+            ]
+        ]
+
+    def deriv(self, m, v=None):
+        """
+
+        """
+        if v is None:
+            out = self._derivmatrix(m.reshape(-1, 2))
+            return out
+        else:
+            out = np.dot(self._derivmatrix(m.reshape(-1, 2)), v.reshape(2, -1))
+            return out
 
 
 ###############################################################################
@@ -1625,6 +1729,7 @@ class ParametricSplineMap(IdentityMap):
 
 class FullMap(SurjectFull):
     """FullMap is depreciated. Use SurjectVertical1DMap instead"""
+
     def __init__(self, mesh, **kwargs):
         warnings.warn(
             "`FullMap` is deprecated and will be removed in future versions."
@@ -1635,6 +1740,7 @@ class FullMap(SurjectFull):
 
 class Vertical1DMap(SurjectVertical1D):
     """Vertical1DMap is depreciated. Use SurjectVertical1D instead"""
+
     def __init__(self, mesh, **kwargs):
         warnings.warn(
             "`Vertical1DMap` is deprecated and will be removed in future"
@@ -1749,13 +1855,13 @@ class BaseParametric(IdentityMap):
         return self._z
 
     def _atanfct(self, xyz, xyzi, slope):
-        return np.arctan(slope * (xyz - xyzi))/np.pi + 0.5
+        return np.arctan(slope * (xyz - xyzi)) / np.pi + 0.5
 
     def _atanfctDeriv(self, xyz, xyzi, slope):
         # d/dx(atan(x)) = 1/(1+x**2)
         x = slope * (xyz - xyzi)
         dx = - slope
-        return (1./(1 + x**2))/np.pi * dx
+        return (1. / (1 + x**2)) / np.pi * dx
 
 
 class ParametricLayer(BaseParametric):
@@ -1787,7 +1893,6 @@ class ParametricLayer(BaseParametric):
 
     def __init__(self, mesh, **kwargs):
         super(ParametricLayer, self).__init__(mesh, **kwargs)
-
 
     @property
     def nP(self):
@@ -1847,9 +1952,9 @@ class ParametricLayer(BaseParametric):
         layer_top = mDict['layer_center'] + mDict['layer_thickness'] / 2.
 
         return (
-            -0.5*self._atanfctDeriv(z, layer_bottom, self.slope) *
+            -0.5 * self._atanfctDeriv(z, layer_bottom, self.slope) *
             self._atanfct(z, layer_top, -self.slope) +
-            0.5*self._atanfct(z, layer_bottom, self.slope) *
+            0.5 * self._atanfct(z, layer_bottom, self.slope) *
             self._atanfctDeriv(z, layer_top, -self.slope)
         )
 
@@ -1871,12 +1976,12 @@ class ParametricLayer(BaseParametric):
         return self._atanLayer(mDict)
 
     def _deriv_layer_center(self, mDict):
-        return ((mDict['val_layer']-mDict['val_background']) *
+        return ((mDict['val_layer'] - mDict['val_background']) *
                 self._atanLayerDeriv_layer_center(mDict))
 
     def _deriv_layer_thickness(self, mDict):
         return (
-            (mDict['val_layer']-mDict['val_background']) *
+            (mDict['val_layer'] - mDict['val_background']) *
             self._atanLayerDeriv_layer_thickness(mDict)
         )
 
@@ -1985,22 +2090,22 @@ class ParametricBlock(BaseParametric):
             return self._mDict3d(m)
 
     def xleft(self, mDict):
-        return mDict['x0_block'] - 0.5*mDict['dx_block']
+        return mDict['x0_block'] - 0.5 * mDict['dx_block']
 
     def xright(self, mDict):
-        return mDict['x0_block'] + 0.5*mDict['dx_block']
+        return mDict['x0_block'] + 0.5 * mDict['dx_block']
 
     def yleft(self, mDict):
-        return mDict['y0_block'] - 0.5*mDict['dy_block']
+        return mDict['y0_block'] - 0.5 * mDict['dy_block']
 
     def yright(self, mDict):
-        return mDict['y0_block'] + 0.5*mDict['dy_block']
+        return mDict['y0_block'] + 0.5 * mDict['dy_block']
 
     def zleft(self, mDict):
-        return mDict['z0_block'] - 0.5*mDict['dz_block']
+        return mDict['z0_block'] - 0.5 * mDict['dz_block']
 
     def zright(self, mDict):
-        return mDict['z0_block'] + 0.5*mDict['dz_block']
+        return mDict['z0_block'] + 0.5 * mDict['dz_block']
 
     def _atanBlock2d(self, mDict):
         return (
@@ -2246,10 +2351,10 @@ class ParametricCasingAndLayer(ParametricLayer):
         }
 
     def casing_a(self, mDict):
-        return mDict['casing_radius'] - 0.5*mDict['casing_thickness']
+        return mDict['casing_radius'] - 0.5 * mDict['casing_thickness']
 
     def casing_b(self, mDict):
-        return mDict['casing_radius'] + 0.5*mDict['casing_thickness']
+        return mDict['casing_radius'] + 0.5 * mDict['casing_thickness']
 
     def _atanCasingLength(self, mDict):
         return (
@@ -2433,7 +2538,7 @@ class ParametricCasingAndLayer(ParametricLayer):
 
     def _deriv_layer_thickness(self, mDict):
         d_layer_cont_dlayer_thickness = (
-            (mDict['val_layer']-mDict['val_background']) *
+            (mDict['val_layer'] - mDict['val_background']) *
             self._atanLayerDeriv_layer_thickness(mDict)
         )
         d_casing_cont_dlayer_thickness = (
@@ -2625,16 +2730,16 @@ class ParametricBlockInLayer(ParametricLayer):
             return self._mDict3d(m)
 
     def xleft(self, mDict):
-        return mDict['x0_block'] - 0.5*mDict['dx_block']
+        return mDict['x0_block'] - 0.5 * mDict['dx_block']
 
     def xright(self, mDict):
-        return mDict['x0_block'] + 0.5*mDict['dx_block']
+        return mDict['x0_block'] + 0.5 * mDict['dx_block']
 
     def yleft(self, mDict):
-        return mDict['y0_block'] - 0.5*mDict['dy_block']
+        return mDict['y0_block'] - 0.5 * mDict['dy_block']
 
     def yright(self, mDict):
-        return mDict['y0_block'] + 0.5*mDict['dy_block']
+        return mDict['y0_block'] + 0.5 * mDict['dy_block']
 
     def _atanBlock2d(self, mDict):
         return (
@@ -2829,42 +2934,43 @@ class ParametricBlockInLayer(ParametricLayer):
 
     def _deriv2d_val_layer(self, mDict):
         d_layer_dval_layer = self._atanLayer(mDict)
-        d_block_dval_layer = (-d_layer_dval_layer)*self._atanBlock2d(mDict)
+        d_block_dval_layer = (-d_layer_dval_layer) * self._atanBlock2d(mDict)
         return d_layer_dval_layer + d_block_dval_layer
 
     def _deriv2d_val_block(self, mDict):
         d_layer_dval_block = 0.
-        d_block_dval_block = (1.-d_layer_dval_block)*self._atanBlock2d(mDict)
+        d_block_dval_block = (1. - d_layer_dval_block) * \
+            self._atanBlock2d(mDict)
         return d_layer_dval_block + d_block_dval_block
 
     def _deriv2d_layer_center(self, mDict):
         d_layer_dlayer_center = (
-            (mDict['val_layer']-mDict['val_background']) *
+            (mDict['val_layer'] - mDict['val_background']) *
             self._atanLayerDeriv_layer_center(mDict)
         )
         d_block_dlayer_center = (
-            (mDict['val_block']-self.layer_cont(mDict)) *
+            (mDict['val_block'] - self.layer_cont(mDict)) *
             self._atanBlock2dDeriv_layer_center(mDict) -
-            d_layer_dlayer_center*self._atanBlock2d(mDict)
+            d_layer_dlayer_center * self._atanBlock2d(mDict)
         )
         return d_layer_dlayer_center + d_block_dlayer_center
 
     def _deriv2d_layer_thickness(self, mDict):
         d_layer_dlayer_thickness = (
-            (mDict['val_layer']-mDict['val_background']) *
+            (mDict['val_layer'] - mDict['val_background']) *
             self._atanLayerDeriv_layer_thickness(mDict)
         )
         d_block_dlayer_thickness = (
-            (mDict['val_block']-self.layer_cont(mDict)) *
+            (mDict['val_block'] - self.layer_cont(mDict)) *
             self._atanBlock2dDeriv_layer_thickness(mDict) -
-            d_layer_dlayer_thickness*self._atanBlock2d(mDict)
+            d_layer_dlayer_thickness * self._atanBlock2d(mDict)
         )
         return d_layer_dlayer_thickness + d_block_dlayer_thickness
 
     def _deriv2d_x0_block(self, mDict):
         d_layer_dx0 = 0.
         d_block_dx0 = (
-            (mDict['val_block']-self.layer_cont(mDict)) *
+            (mDict['val_block'] - self.layer_cont(mDict)) *
             self._atanBlock2dDeriv_x0(mDict)
         )
         return d_layer_dx0 + d_block_dx0
@@ -2872,7 +2978,7 @@ class ParametricBlockInLayer(ParametricLayer):
     def _deriv2d_dx_block(self, mDict):
         d_layer_ddx = 0.
         d_block_ddx = (
-            (mDict['val_block']-self.layer_cont(mDict)) *
+            (mDict['val_block'] - self.layer_cont(mDict)) *
             self._atanBlock2dDeriv_dx(mDict)
         )
         return d_layer_ddx + d_block_ddx
@@ -2898,7 +3004,7 @@ class ParametricBlockInLayer(ParametricLayer):
         # contribution from the layered background
         layer_cont = (
             mDict['val_background'] +
-            (mDict['val_layer']-mDict['val_background']) *
+            (mDict['val_layer'] - mDict['val_background']) *
             self._atanLayer(mDict)
         )
         # perturbation due to the block
@@ -2922,30 +3028,31 @@ class ParametricBlockInLayer(ParametricLayer):
 
     def _deriv3d_val_block(self, mDict):
         d_layer_dval_block = 0.
-        d_block_dval_block = (1.-d_layer_dval_block) * self._atanBlock3d(mDict)
+        d_block_dval_block = (1. - d_layer_dval_block) * \
+            self._atanBlock3d(mDict)
         return d_layer_dval_block + d_block_dval_block
 
     def _deriv3d_layer_center(self, mDict):
         d_layer_dlayer_center = (
-            (mDict['val_layer']-mDict['val_background']) *
+            (mDict['val_layer'] - mDict['val_background']) *
             self._atanLayerDeriv_layer_center(mDict)
         )
         d_block_dlayer_center = (
-            (mDict['val_block']-self.layer_cont(mDict)) *
+            (mDict['val_block'] - self.layer_cont(mDict)) *
             self._atanBlock3dDeriv_layer_center(mDict) -
-            d_layer_dlayer_center*self._atanBlock3d(mDict)
+            d_layer_dlayer_center * self._atanBlock3d(mDict)
         )
         return d_layer_dlayer_center + d_block_dlayer_center
 
     def _deriv3d_layer_thickness(self, mDict):
         d_layer_dlayer_thickness = (
-            (mDict['val_layer']-mDict['val_background']) *
+            (mDict['val_layer'] - mDict['val_background']) *
             self._atanLayerDeriv_layer_thickness(mDict)
         )
         d_block_dlayer_thickness = (
-            (mDict['val_block']-self.layer_cont(mDict)) *
+            (mDict['val_block'] - self.layer_cont(mDict)) *
             self._atanBlock3dDeriv_layer_thickness(mDict) -
-            d_layer_dlayer_thickness*self._atanBlock3d(mDict)
+            d_layer_dlayer_thickness * self._atanBlock3d(mDict)
         )
         return d_layer_dlayer_thickness + d_block_dlayer_thickness
 
@@ -2960,7 +3067,7 @@ class ParametricBlockInLayer(ParametricLayer):
     def _deriv3d_y0_block(self, mDict):
         d_layer_dy0 = 0.
         d_block_dy0 = (
-            (mDict['val_block']-self.layer_cont(mDict)) *
+            (mDict['val_block'] - self.layer_cont(mDict)) *
             self._atanBlock3dDeriv_y0(mDict)
         )
         return d_layer_dy0 + d_block_dy0
@@ -2968,7 +3075,7 @@ class ParametricBlockInLayer(ParametricLayer):
     def _deriv3d_dx_block(self, mDict):
         d_layer_ddx = 0.
         d_block_ddx = (
-            (mDict['val_block']-self.layer_cont(mDict)) *
+            (mDict['val_block'] - self.layer_cont(mDict)) *
             self._atanBlock3dDeriv_dx(mDict)
         )
         return d_layer_ddx + d_block_ddx
@@ -2976,7 +3083,7 @@ class ParametricBlockInLayer(ParametricLayer):
     def _deriv3d_dy_block(self, mDict):
         d_layer_ddy = 0.
         d_block_ddy = (
-            (mDict['val_block']-self.layer_cont(mDict)) *
+            (mDict['val_block'] - self.layer_cont(mDict)) *
             self._atanBlock3dDeriv_dy(mDict)
         )
         return d_layer_ddy + d_block_ddy

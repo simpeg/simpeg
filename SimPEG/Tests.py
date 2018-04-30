@@ -1,8 +1,7 @@
 from __future__ import print_function
 import numpy as np
 from numpy.linalg import norm
-from SimPEG.Utils import mkvc, sdiag, diagEst
-from SimPEG import Utils
+from SimPEG.Utils import mkvc, diagEst, exampleLrmGrid
 from discretize import TensorMesh, CurvilinearMesh, CylMesh
 from discretize.TreeMesh import TreeMesh as Tree
 import scipy.sparse as sp
@@ -143,10 +142,10 @@ class OrderTest(unittest.TestCase):
             if self.meshDimension == 1:
                 raise Exception('Lom not supported for 1D')
             elif self.meshDimension == 2:
-                X, Y = Utils.exampleLrmGrid([nc, nc], kwrd)
+                X, Y = exampleLrmGrid([nc, nc], kwrd)
                 self.M = CurvilinearMesh([X, Y])
             elif self.meshDimension == 3:
-                X, Y, Z = Utils.exampleLrmGrid([nc, nc, nc], kwrd)
+                X, Y, Z = exampleLrmGrid([nc, nc, nc], kwrd)
                 self.M = CurvilinearMesh([X, Y, Z])
             return 1./nc
 

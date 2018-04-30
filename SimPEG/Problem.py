@@ -9,7 +9,6 @@ from . import Mesh
 from . import Props
 import properties
 
-
 Solver = Utils.SolverUtils.Solver
 
 
@@ -108,6 +107,11 @@ class BaseProblem(Props.HasModel):
             raise Exception(
                 "The survey object is already paired to a problem. "
                 "Use survey.unpair()"
+            )
+        elif self.ispaired:
+            raise Exception(
+                "The problem is already paired to a survey. "
+                "Use problem.unpair()"
             )
         self._survey = d
         d._prob = self
@@ -280,7 +284,9 @@ class LinearProblem(BaseProblem):
     @property
     def modelMap(self):
         "A SimPEG.Map instance."
-        return getattr(self, '_modelMap', None)
+        if getattr(self, '_modelMap', None) is None:
+            self._modelMap = Maps.IdentityMap(self.mesh)
+        return self._modelMap
 
     @modelMap.setter
     def modelMap(self, val):
@@ -288,7 +294,17 @@ class LinearProblem(BaseProblem):
         self._modelMap = val
 
     def fields(self, m):
-        return self.G.dot(m)
+
+        # Check possible dtype for linear operator
+        # Important to avoid memory copies of dense matrix
+        if self.G.dtype is np.dtype('float32'):
+            y = np.dot(self.G, m.astype(np.float32))
+            y.astype(np.float64)
+
+        else:
+            y = np.dot(self.G, self.modelMap*m)
+
+        return y
 
     def getJ(self, m, f=None):
         """
@@ -302,7 +318,29 @@ class LinearProblem(BaseProblem):
             return self.G
 
     def Jvec(self, m, v, f=None):
-        return self.G.dot(v)
+
+        # Check possible dtype for linear operator
+        # Important to avoid memory copies of dense matrix
+        if self.G.dtype is np.dtype('float32'):
+            y = np.dot(self.G, self.modelMap.deriv(m)*(v.astype(np.float32)))
+            y.astype(np.float64)
+
+        else:
+            y = np.dot(self.G, self.modelMap.deriv(m)*v)
+
+        return y
 
     def Jtvec(self, m, v, f=None):
-        return self.G.T.dot(v)
+
+        # Check possible dtype for linear operator
+        # Important to avoid memory copies of dense matrix
+        if self.G.dtype is np.dtype('float32'):
+
+            y = self.modelMap.deriv(m).T * np.dot(self.G.T, v.astype(np.float32))
+            y.astype(np.float64)
+
+        else:
+            y = self.modelMap.deriv(m).T * np.dot(self.G.T, v)
+
+        return y
+

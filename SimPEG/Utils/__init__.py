@@ -26,3 +26,13 @@ from .coordutils import rotatePointsFromNormals, rotationMatrixFromNormals
 from .modelutils import surface2ind_topo
 from .PlotUtils import plot2Ddata, plotLayer
 from .io_utils import download
+
+from .petroutils import (
+    ComputeDistances,
+    order_clusters_GM_weight, order_cluster,
+    computePrecision, computeCovariance, ComputeConstantTerm,
+    _compute_precision_cholesky, GaussianMixture,
+    GaussianMixtureWithPrior, FuzzyGaussianMixtureWithPrior,
+    GaussianMixtureWithMapping, GaussianMixtureWithMappingWithPrior,
+    GibbsSampling_PottsDenoising, ICM_PottsDenoising
+)

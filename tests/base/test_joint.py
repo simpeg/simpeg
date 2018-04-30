@@ -59,19 +59,21 @@ class DataMisfitTest(unittest.TestCase):
         self.dmis0 = DataMisfit.l2_DataMisfit(self.survey0)
         self.dmis1 = DataMisfit.l2_DataMisfit(self.survey1)
 
-        self.dmiscobmo = self.dmis0 + self.dmis1
+        self.dmiscombo = self.dmis0 + self.dmis1
 
-    def test_multiDataMisfit(self):
-        self.dmis0.test()
-        self.dmis1.test()
-        self.dmiscobmo.test(x=self.model)
+    # def test_multiDataMisfit(self):
+    #     self.dmis0.test()
+    #     self.dmis1.test()
+    #     self.dmiscombo.test(x=self.model)
 
     def test_inv(self):
         reg = Regularization.Tikhonov(self.mesh)
-        opt = Optimization.InexactGaussNewton(maxIter=10)
-        invProb = InvProblem.BaseInvProblem(self.dmiscobmo, reg, opt)
+        opt = Optimization.InexactGaussNewton(maxIter=30)
+        invProb = InvProblem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives = [
             Directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
+            Directives.PetroTargetMisfit(TriggerSmall=False),
+            Directives.BetaSchedule()
         ]
         inv = Inversion.BaseInversion(invProb, directiveList=directives)
         m0 = self.model.mean() * np.ones_like(self.model)
@@ -81,11 +83,16 @@ class DataMisfitTest(unittest.TestCase):
     def test_inv_mref_setting(self):
         reg1 = Regularization.Tikhonov(self.mesh)
         reg2 = Regularization.Tikhonov(self.mesh)
-        reg = reg1+reg2
-        opt = Optimization.InexactGaussNewton(maxIter=10)
-        invProb = InvProblem.BaseInvProblem(self.dmiscobmo, reg, opt)
+        reg = reg1 + reg2
+        opt = Optimization.ProjectedGNCG(
+            maxIter=30, lower=-10, upper=10,
+            maxIterLS=20, maxIterCG=50, tolCG=1e-4
+        )
+        invProb = InvProblem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives = [
             Directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
+            Directives.PetroTargetMisfit(TriggerSmall=False, verbose=True),
+            Directives.BetaSchedule()
         ]
         inv = Inversion.BaseInversion(invProb, directiveList=directives)
         m0 = self.model.mean() * np.ones_like(self.model)
