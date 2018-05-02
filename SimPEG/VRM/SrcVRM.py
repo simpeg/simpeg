@@ -3,7 +3,6 @@ import scipy.special as spec
 from SimPEG import Survey
 from .RxVRM import BaseRxVRM
 from .WaveformVRM import StepOff, SquarePulse, ArbitraryDiscrete, ArbitraryPiecewise
-import properties
 
 #########################################
 # BASE VRM SOURCE CLASS

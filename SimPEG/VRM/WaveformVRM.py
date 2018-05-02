@@ -282,9 +282,6 @@ class ArbitraryDiscrete(properties.HasProperties):
     @properties.validator('t_wave')
     def _t_wave_validator(self, change):
         assert len(change['value']) > 2, "Waveform must be defined by at least 3 points"
-
-    @properties.observer('t_wave')
-    def _t_wave_observer(self, change):
         if self.I_wave is not None:
             if len(change['value']) != len(self.I_wave):
                 print('Length of time vector no longer matches length of current vector')
@@ -294,9 +291,6 @@ class ArbitraryDiscrete(properties.HasProperties):
         assert len(change['value']) > 2, "Waveform must be defined by at least 3 points"
         assert np.abs(change['value'][0]) < 1e-10 and np.abs(change['value'][-1]) < 1e-10, (
             "Current waveform should begin and end at 0")
-
-    @properties.observer('I_wave')
-    def _I_wave_observer(self, change):
         if self.t_wave is not None:
             if len(change['value']) != len(self.t_wave):
                 print('Length of time vector no longer matches length of current vector')
@@ -327,6 +321,8 @@ class ArbitraryDiscrete(properties.HasProperties):
             "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'")
         assert np.max(self.t_wave) < np.min(times), (
             "Earliest time channel must be after beginning of off-time")
+        assert len(self.t_wave) == len(self.I_wave), (
+            "Length of t_wave and I_wave must be the same")
 
         k = np.where(self.I_wave > 1e-10)
         j = k[0][0]-1
