@@ -10,6 +10,7 @@ from . import Maps
 from . import Mesh
 from . import ObjectiveFunction
 from . import Props
+from .Utils import mkvc
 
 __all__ = [
     'SimpleSmall', 'SimpleSmoothDeriv', 'Simple',
@@ -228,8 +229,10 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
 
                 else:
+                    nCinRow = mkvc((self._aveCC2Fx.T).sum(1))
+                    nCinRow[nCinRow > 0] = 1./nCinRow[nCinRow > 0]
                     self._aveFx2CC = (
-                        Utils.sdiag(1./(self.aveCC2Fx.T).sum(1)) *
+                        Utils.sdiag(nCinRow) *
                         self.aveCC2Fx.T
                     )
 
@@ -281,8 +284,10 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
 
                 else:
+                    nCinRow = mkvc((self.aveCC2Fy.T).sum(1))
+                    nCinRow[nCinRow > 0] = 1./nCinRow[nCinRow > 0]
                     self._aveFy2CC = (
-                        Utils.sdiag(1./(self.aveCC2Fy.T).sum(1)) *
+                        Utils.sdiag(nCinRow) *
                         self.aveCC2Fy.T
                     )
 
@@ -333,8 +338,10 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
 
                 else:
+                    nCinRow = mkvc((self.aveCC2Fz.T).sum(1))
+                    nCinRow[nCinRow > 0] = 1./nCinRow[nCinRow > 0]
                     self._aveFz2CC = (
-                        Utils.sdiag(1./(self.aveCC2Fz.T).sum(1)) *
+                        Utils.sdiag(nCinRow) *
                         self.aveCC2Fz.T
                     )
 
@@ -1522,8 +1529,17 @@ class SparseSmall(BaseSparse):
             return self.stashedR
 
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
-        # eta = np.abs(f_m + self.epsilon**2.).max() / (np.abs(f_m + self.epsilon**2.) / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.)).max()
+        # eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
+
+        maxVal = np.ones_like(f_m) * np.abs(f_m).max()
+        maxVal[self.norm < 1] = self.epsilon / np.sqrt(1.-self.norm[self.norm < 1])
+        maxGrad = maxVal / (maxVal**2. + self.epsilon**2.)**(1.-self.norm/2.)
+
+        if any(maxGrad==0):
+            eta = 1.
+        else:
+            eta = np.abs(f_m).max()/maxGrad
+
         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
         # print(eta)
         self.stashedR = r  # stash on the first calculation
@@ -1626,8 +1642,14 @@ class SparseDeriv(BaseSparse):
         Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
-
+        # eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
+        maxVal = np.ones_like(f_m) * np.abs(f_m).max()
+        maxVal[self.norm < 1] = self.epsilon / np.sqrt(1.-self.norm[self.norm < 1])
+        maxGrad = maxVal / (maxVal**2. + self.epsilon**2.)**(1.-self.norm/2.)
+        if any(maxGrad==0):
+            eta = 1.
+        else:
+            eta = np.abs(f_m).max()/maxGrad
         # eta = np.abs(f_m + self.epsilon**2.).max() / (np.abs(f_m + self.epsilon**2.) / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.)).max()
         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
         # print(eta)

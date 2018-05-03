@@ -648,9 +648,9 @@ class Update_IRLS(InversionDirective):
     updateGamma = False
     phi_d_last = None
     f_old = None
-    f_min_change = 1e-2
+    f_min_change = 1e-4
     beta_tol = 5e-1
-    prctile = 98
+    prctile = 99.
     chifact_start = 1.
     chifact_target = 1.
     model_previous = []
@@ -658,8 +658,8 @@ class Update_IRLS(InversionDirective):
 
     # Solving parameter for IRLS (mode:2)
     IRLSiter = 0
-    minGNiter = 5
-    maxIRLSiter = 10
+    minGNiter = 1
+    maxIRLSiter = 40
     iterStart = 0
     scale_m = False
 
@@ -670,7 +670,8 @@ class Update_IRLS(InversionDirective):
     coolingRate = 1
     ComboObjFun = False
     mode = 1
-    coolEpsOptimized = True
+    floorEpsEnforced = False
+    forceIter = False
     coolEps_p = True
     coolEps_q = True
     floorEps_p = 1e-8
@@ -808,8 +809,6 @@ class Update_IRLS(InversionDirective):
                 comp.model = self.invProb.model
                 phim_new += np.sum(comp.f_m**2. / (comp.f_m**2. + comp.epsilon**2.)**(1 - comp.norm/2.))
 
-        print("phimNew: ", phim_new)
-        print("f_old: ", self.f_old)
         # Update the model used by the regularization
         phi_m_last = []
         for reg in self.reg.objfcts:
@@ -831,13 +830,21 @@ class Update_IRLS(InversionDirective):
                 return
 
             # Print to screen
+            self.forceIter = False
             for reg in self.reg.objfcts:
 
                 if reg.eps_p > self.floorEps_p and self.coolEps_p and reg.space!='spherical' and self.IRLSiter > 1:
                     reg.eps_p /= self.coolEpsFact
+
+                    if self.floorEpsEnforced:
+                        self.forceIter = True
                     print('Eps_p: ' + str(reg.eps_p))
                 if reg.eps_q > self.floorEps_q and self.coolEps_q and reg.space!='spherical' and self.IRLSiter > 1:
                     reg.eps_q /= self.coolEpsFact
+
+                    if self.floorEpsEnforced:
+                        self.forceIter = True
+
                     print('Eps_q: ' + str(reg.eps_q))
 
             # Remember the value of the norm from previous R matrices
@@ -875,7 +882,8 @@ class Update_IRLS(InversionDirective):
             # Check if the function has changed enough
             if np.all([self.f_change < self.f_min_change,
                        self.IRLSiter > 1,
-                       np.abs(1. - self.phi_d_last / self.target) < self.beta_tol]
+                       np.abs(1. - self.phi_d_last / self.target) < self.beta_tol,
+                       self.forceIter is False]
                       ):
 
                 print("Minimum decrease in regularization. End of IRLS")
