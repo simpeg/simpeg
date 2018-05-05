@@ -144,9 +144,9 @@ class BaseSIPProblem(BaseEMProblem):
                     dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
                     iend = istrt + rx.nD
                     if rx.nD == 1:
-                        Jt[:, istrt] = dA_dmT
+                        Jt[:, istrt] = -dA_dmT
                     else:
-                        Jt[:, istrt:iend] = dA_dmT
+                        Jt[:, istrt:iend] = -dA_dmT
                     istrt += rx.nD
 
             self._Jmatrix = Jt.T

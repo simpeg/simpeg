@@ -130,18 +130,19 @@ def run_inversion(
     # Set up regularization
     reg_eta = Regularization.Simple(
         mesh, mapping=wires.eta, indActive=actind
-        )
+    )
     reg_tau = Regularization.Simple(
         mesh, mapping=wires.tau, indActive=actind
-        )
-
-    reg_c = Regularization.Simple(mesh, mapping=wires.c, indActive=actind)
+    )
+    reg_c = Regularization.Simple(
+        mesh, mapping=wires.c, indActive=actind
+    )
 
     # Todo:
 
     reg_eta.alpha_s = alpha_s
-    reg_tau.alpha_s = alpha_s
-    reg_c.alpha_s = alpha_s
+    reg_tau.alpha_s = 0.
+    reg_c.alpha_s = 0.
 
     reg_eta.alpha_x = alpha_x
     reg_tau.alpha_x = alpha_x
