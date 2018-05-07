@@ -231,7 +231,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         J = self.getJ(m, f=None)
         for tind in range(ntime):
             t = self.survey.times[tind]
-            Jtv = self.actMap.P*Utils.sdiag(1./self.mesh.vol)*J.T
+            Jtv = self.actMap.P*J.T
             JtJdiag += (
                 (self.PetaEtaDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
                 (self.PetaTauiDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +

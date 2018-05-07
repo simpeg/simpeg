@@ -166,6 +166,24 @@ class BaseSIPProblem(BaseEMProblem):
 
             return self._Jmatrix
 
+    def getJtJdiag(self, m):
+        """
+        Compute JtJ using adjoint problem. Still we never form
+        JtJ
+        """
+        ntime = len(self.survey.times)
+        JtJdiag = np.zeros_like(m)
+        J = self.getJ(m, f=None)
+        for tind in range(ntime):
+            t = self.survey.times[tind]
+            Jtv = self.actMap.P*J.T
+            JtJdiag += (
+                (self.PetaEtaDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
+                (self.PetaTauiDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
+                (self.PetaCDeriv(t, Jtv, adjoint=True)**2).sum(axis=1)
+                )
+        return JtJdiag
+
     def forward(self, m, f=None):
 
         self.model = m
