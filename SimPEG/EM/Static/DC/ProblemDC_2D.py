@@ -30,7 +30,8 @@ class BaseDCProblem_2D(BaseEMProblem):
     fix_Jmatrix = False
 
     def fields(self, m):
-        print ("Compute fields")
+        if self.verbose:
+            print (">> Compute fields")
         if m is not None:
             self.model = m
         if self.Ainv[0] is not None:
