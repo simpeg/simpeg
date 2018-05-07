@@ -1,5 +1,5 @@
-import matplotlib
-matplotlib.use('Agg')
+# import matplotlib
+# matplotlib.use('Agg')
 
 from SimPEG import Mesh, Maps, Tests, Utils
 from SimPEG.EM import mu_0, FDEM, Analytics
@@ -79,7 +79,7 @@ primaryMapping = (
 
 mapping = (
     Maps.ExpMap(meshs) *
-    Maps.ParametrizedBlockInLayer(meshs) *
+    Maps.ParametricBlockInLayer(meshs) *
     Maps.Projection(
         nP=8, index=np.hstack([np.r_[0], np.arange(0, 8)])
     )

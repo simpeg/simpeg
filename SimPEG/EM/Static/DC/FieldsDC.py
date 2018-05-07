@@ -116,17 +116,18 @@ class Fields_CC(FieldsDC):
         """
             In HJ formulation e is not well-defined!!
             .. math::
-                \vec{e} = -\nabla \phi
+                \vec{e} = \rho \vec{j}
         """
-        return -self.cellGrad*phiSolution
+        return self.prob.MfI*self.prob.MfRho * self._j(phiSolution, srcList)
 
     def _charge(self, phiSolution, srcList):
         """
             .. math::
                 \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
-        return epsilon_0*self.prob.Vol*(self.mesh.faceDiv*self._e(phiSolution,
-                                                                  srcList))
+        return epsilon_0*(
+            self.prob.Div*self._e(phiSolution, srcList)
+        )
 
 
 class Fields_N(FieldsDC):

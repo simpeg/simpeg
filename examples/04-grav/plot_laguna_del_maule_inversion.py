@@ -97,14 +97,15 @@ def run(plotIt=True, cleanAfterRun=True):
 
     # %% Create inversion objects
     reg = Regularization.Sparse(mesh, indActive=active,
-                                mapping=staticCells)
+                                mapping=staticCells, gradientType='total')
     reg.mref = driver.mref[dynamic]
     reg.cell_weights = wr * mesh.vol[active]
-    reg.norms = driver.lpnorms
+    reg.norms = np.c_[0., 1., 1., 1.]
+    # reg.norms = driver.lpnorms
 
     # Specify how the optimization will proceed
-    opt = Optimization.ProjectedGNCG(maxIter=150, lower=driver.bounds[0],
-                                     upper=driver.bounds[1], maxIterLS=20,
+    opt = Optimization.ProjectedGNCG(maxIter=20, lower=driver.bounds[0],
+                                     upper=driver.bounds[1], maxIterLS=10,
                                      maxIterCG=20, tolCG=1e-3)
 
     # Define misfit function (obs-calc)
@@ -115,16 +116,15 @@ def run(plotIt=True, cleanAfterRun=True):
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
 
     # Specify how the initial beta is found
-    betaest = Directives.BetaEstimate_ByEig()
+    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
 
     # IRLS sets up the Lp inversion problem
     # Set the eps parameter parameter in Line 11 of the
     # input file based on the distribution of model (DEFAULT = 95th %ile)
-    IRLS = Directives.Update_IRLS(f_min_change=1e-2, maxIRLSiter=20,
-                                  minGNiter=5)
+    IRLS = Directives.Update_IRLS(f_min_change=1e-4, maxIRLSiter=40, beta_tol=5e-1)
 
     # Preconditioning refreshing for each IRLS iteration
-    update_Jacobi = Directives.Update_lin_PreCond()
+    update_Jacobi = Directives.UpdatePreconditioner()
 
     # Create combined the L2 and Lp problem
     inv = Inversion.BaseInversion(invProb,
@@ -147,7 +147,7 @@ def run(plotIt=True, cleanAfterRun=True):
         # Write output model and data files and print misft stats.
 
         # reconstructing l2 model mesh with air cells and active dynamic cells
-        L2out = activeMap * IRLS.l2model
+        L2out = activeMap * invProb.l2model
 
         # reconstructing lp model mesh with air cells and active dynamic cells
         Lpout = activeMap*mrec

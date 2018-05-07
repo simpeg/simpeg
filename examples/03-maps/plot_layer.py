@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 def run(plotIt=True):
 
     mesh = Mesh.TensorMesh([50, 50], x0='CC')  # 2D tensor mesh
-    mapping = Maps.ParametrizedLayer(mesh)  # parametrized layer in wholespace
+    mapping = Maps.ParametricLayer(mesh)  # parametric layer in wholespace
 
     # model
     m = np.hstack(

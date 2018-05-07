@@ -20,6 +20,8 @@ class BaseDCProblem(BaseEMProblem):
     surveyPair = Survey
     fieldsPair = FieldsDC
     Ainv = None
+    storeJ = False
+    _Jmatrix = None
 
     def fields(self, m=None):
         if m is not None:
@@ -37,50 +39,95 @@ class BaseDCProblem(BaseEMProblem):
         f[Srcs, self._solutionType] = u
         return f
 
+    def getJ(self, m, f=None):
+        """
+            Generate Full sensitivity matrix
+        """
+        if self.verbose:
+            print("Calculating J and storing")
+
+        if self._Jmatrix is not None:
+            return self._Jmatrix
+        else:
+
+            self.model = m
+            if f is None:
+                f = self.fields(m)
+            self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
+        return self._Jmatrix
+
     def Jvec(self, m, v, f=None):
+        """
+            Compute sensitivity matrix (J) and vector (v) product.
+        """
+        if self.storeJ:
+            J = self.getJ(m, f=f)
+            Jv = Utils.mkvc(np.dot(J, v))
+            return Jv
+
+        self.model = m
 
         if f is None:
             f = self.fields(m)
 
-        self.model = m
-
-        # Jv = self.dataPair(self.survey)  # same size as the data
         Jv = []
-
-        A = self.getA()
 
         for src in self.survey.srcList:
             u_src = f[src, self._solutionType]  # solution vector
             dA_dm_v = self.getADeriv(u_src, v)
             dRHS_dm_v = self.getRHSDeriv(src, v)
             du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
-
             for rx in src.rxList:
                 df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                 df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
                 Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
-                # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
-        # return Utils.mkvc(Jv)
         return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
-        if f is None:
-            f = self.fields(m)
+        """
+            Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+
+        """
+        if self.storeJ:
+            J = self.getJ(m, f=f)
+            Jtv = Utils.mkvc(np.dot(J.T, v))
+            return Jtv
 
         self.model = m
 
-        # Ensure v is a data object.
-        if not isinstance(v, self.dataPair):
-            v = self.dataPair(self.survey, v)
+        if f is None:
+            f = self.fields(m)
 
-        Jtv = np.zeros(m.size)
-        AT = self.getA()
+        return self._Jtvec(m, v=v, f=f)
+
+    def _Jtvec(self, m, v=None, f=None):
+        """
+            Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+            Full J matrix can be computed by inputing v=None
+        """
+
+        if v is not None:
+            # Ensure v is a data object.
+            if not isinstance(v, self.dataPair):
+                v = self.dataPair(self.survey, v)
+            Jtv = np.zeros(m.size)
+        else:
+            # This is for forming full sensitivity matrix
+            Jtv = np.zeros((self.model.size, self.survey.nD), order='F')
+            istrt = int(0)
+            iend = int(0)
 
         for src in self.survey.srcList:
-            u_src = f[src, self._solutionType]
+            u_src = f[src, self._solutionType].copy()
             for rx in src.rxList:
                 # wrt f, need possibility wrt m
-                PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx], adjoint=True)
+                if v is not None:
+                    PTv = rx.evalDeriv(
+                        src, self.mesh, f, v[src, rx], adjoint=True
+                    )
+                else:
+                    # This is for forming full sensitivity matrix
+                    PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
                 df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
                                     None)
                 df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
@@ -90,14 +137,25 @@ class BaseDCProblem(BaseEMProblem):
                 dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
                 dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
                 du_dmT = -dA_dmT + dRHS_dmT
-                Jtv += (df_dmT + du_dmT).astype(float)
+                if v is not None:
+                    Jtv += (df_dmT + du_dmT).astype(float)
+                else:
+                    iend = istrt + rx.nD
+                    if rx.nD == 1:
+                        Jtv[:, istrt] = (df_dmT + du_dmT)
+                    else:
+                        Jtv[:, istrt:iend] = (df_dmT + du_dmT)
+                    istrt += rx.nD
 
-        return Utils.mkvc(Jtv)
+        if v is not None:
+            return Utils.mkvc(Jtv)
+        else:
+            # return np.hstack(Jtv)
+            return Jtv
 
     def getSourceTerm(self):
         """
         Evaluates the sources, and puts them in matrix form
-
         :rtype: tuple
         :return: q (nC or nN, nSrc)
         """
@@ -117,6 +175,13 @@ class BaseDCProblem(BaseEMProblem):
             q[:, i] = src.eval(self)
         return q
 
+    @property
+    def deleteTheseOnModelUpdate(self):
+        toDelete = super(BaseDCProblem, self).deleteTheseOnModelUpdate
+        if self._Jmatrix is not None:
+            toDelete += ['_Jmatrix']
+        return toDelete
+
 
 class Problem3D_CC(BaseDCProblem):
     """
@@ -135,11 +200,8 @@ class Problem3D_CC(BaseDCProblem):
 
     def getA(self):
         """
-
         Make the A matrix for the cell centered DC resistivity problem
-
         A = D MfRhoI G
-
         """
 
         D = self.Div
@@ -155,9 +217,8 @@ class Problem3D_CC(BaseDCProblem):
             # Handling Null space of A
             I, J, V = sp.sparse.find(A[0, :])
             for jj in J:
-                A[0,jj] = 0.
-
-            A[0, 0] = 1./Vol[0]
+                A[0, jj] = 0.
+            A[0, 0] = 1.
 
         # I think we should deprecate this for DC problem.
         # if self._makeASymmetric is True:
@@ -171,14 +232,13 @@ class Problem3D_CC(BaseDCProblem):
         MfRhoIDeriv = self.MfRhoIDeriv
 
         if adjoint:
-            return(MfRhoIDeriv(G * u).T) * (D.T * v)
+            return MfRhoIDeriv(G * u, D.T * v, adjoint)
 
-        return D * (MfRhoIDeriv(G * u) * v)
+        return D * (MfRhoIDeriv(G * u, v, adjoint))
 
     def getRHS(self):
         """
         RHS for the DC problem
-
         q
         """
 
@@ -253,8 +313,50 @@ class Problem3D_CC(BaseDCProblem):
                     gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
                     gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
 
-                alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp, alpha_zm,
-                         alpha_zp]
+                elif(self.bc_type == 'Mixed'):
+                    # Ztop: Neumann
+                    # Others: Mixed: alpha * phi + d phi dn = 0
+                    # where alpha = 1 / r  * dr/dn
+                    # (Dey and Morrison, 1979)
+
+                    # This assumes that the source is located at
+                    # (x_center, y_center_y, ztop)
+                    # TODO: Implement Zhang et al. (1995)
+
+                    xs = np.median(self.mesh.vectorCCx)
+                    ys = np.median(self.mesh.vectorCCy)
+                    zs = self.mesh.vectorCCz[-1]
+
+                    def r_boundary(x, y, z):
+                        return 1./np.sqrt(
+                            (x - xs)**2 + (y - ys)**2 + (z - zs)**2
+                            )
+                    rxm = r_boundary(gBFxm[:, 0], gBFxm[:, 1], gBFxm[:, 2])
+                    rxp = r_boundary(gBFxp[:, 0], gBFxp[:, 1], gBFxp[:, 2])
+                    rym = r_boundary(gBFym[:, 0], gBFym[:, 1], gBFym[:, 2])
+                    ryp = r_boundary(gBFyp[:, 0], gBFyp[:, 1], gBFyp[:, 2])
+                    rzm = r_boundary(gBFzm[:, 0], gBFzm[:, 1], gBFzm[:, 2])
+
+                    alpha_xm = (gBFxm[:, 0]-xs)/rxm**2
+                    alpha_xp = (gBFxp[:, 0]-xs)/rxp**2
+                    alpha_ym = (gBFym[:, 1]-ys)/rym**2
+                    alpha_yp = (gBFyp[:, 1]-ys)/ryp**2
+                    alpha_zm = (gBFzm[:, 2]-zs)/rzm**2
+                    alpha_zp = temp_zp.copy() * 0.
+
+                    beta_xm, beta_xp = temp_xm*1, temp_xp*1
+                    beta_ym, beta_yp = temp_ym*1, temp_yp*1
+                    beta_zm, beta_zp = temp_zm*1, temp_zp*1
+
+                    gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+                    gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+                    gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
+
+                alpha = [
+                    alpha_xm, alpha_xp,
+                    alpha_ym, alpha_yp,
+                    alpha_zm, alpha_zp
+                ]
                 beta = [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
                 gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm,
                          gamma_zp]
@@ -305,14 +407,15 @@ class Problem3D_N(BaseDCProblem):
 
     def __init__(self, mesh, **kwargs):
         BaseDCProblem.__init__(self, mesh, **kwargs)
+        # Not sure why I need to do this
+        # To evaluate mesh.aveE2CC, this is required....
+        if mesh._meshType == "TREE":
+            mesh.nodalGrad
 
     def getA(self):
         """
-
         Make the A matrix for the cell centered DC resistivity problem
-
         A = G.T MeSigma G
-
         """
 
         MeSigma = self.MeSigma
@@ -322,31 +425,27 @@ class Problem3D_N(BaseDCProblem):
         Vol = self.mesh.vol
 
         # Handling Null space of A
-        I, J, V = sp.sparse.find(A[0,:])
+        I, J, V = sp.sparse.find(A[0, :])
         for jj in J:
-            A[0,jj] = 0.
-
-        A[0, 0] = 1./Vol[0]
+            A[0, jj] = 0.
+        A[0, 0] = 1.
 
         return A
 
     def getADeriv(self, u, v, adjoint=False):
         """
-
         Product of the derivative of our system matrix with respect to the
         model and a vector
-
         """
         Grad = self.mesh.nodalGrad
         if not adjoint:
-            return Grad.T*(self.MeSigmaDeriv(Grad*u)*v)
+            return Grad.T*self.MeSigmaDeriv(Grad*u, v, adjoint)
         elif adjoint:
-            return self.MeSigmaDeriv(Grad*u).T * (Grad*v)
+            return self.MeSigmaDeriv(Grad*u, Grad*v, adjoint)
 
     def getRHS(self):
         """
         RHS for the DC problem
-
         q
         """
 
