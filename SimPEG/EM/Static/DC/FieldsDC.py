@@ -70,6 +70,7 @@ class Fields_CC(FieldsDC):
         'j': ['phiSolution', 'F', '_j'],
         'e': ['phiSolution', 'F', '_e'],
         'charge': ['phiSolution', 'CC', '_charge'],
+        'charge_density': ['phiSolution', 'CC', '_charge_density'],
     }
     # primary - secondary
     # CC variables
@@ -119,6 +120,7 @@ class Fields_CC(FieldsDC):
     def _j(self, phiSolution, srcList):
         """
             .. math::
+
                 \mathbf{j} = \mathbf{M}^{f \ -1}_{\rho} \mathbf{G} \phi
         """
         return self._MfRhoI*self._Grad*phiSolution
@@ -126,6 +128,7 @@ class Fields_CC(FieldsDC):
     def _e(self, phiSolution, srcList):
         """
             .. math::
+
                 \vec{e} = \rho \vec{j}
         """
         return self._MfI*self._MfRho * self._j(phiSolution, srcList)
@@ -133,9 +136,21 @@ class Fields_CC(FieldsDC):
     def _charge(self, phiSolution, srcList):
         """
             .. math::
+
                 \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return epsilon_0*self._Vol*(
+            self._faceDiv*self._e(phiSolution, srcList)
+        )
+
+    def _charge_density(self, phiSolution, srcList):
+        """
+            .. math::
+
+                \frac{1}{V}\int \nabla \codt \vec{e} =
+                \frac{1}{V}\int \frac{\rho_v }{\epsillon_0}
+        """
+        return epsilon_0*(
             self._faceDiv*self._e(phiSolution, srcList)
         )
 
