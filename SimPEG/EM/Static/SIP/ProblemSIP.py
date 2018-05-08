@@ -85,16 +85,16 @@ class BaseSIPProblem(BaseEMProblem):
 
 
     def getPeta(self, t):
-        eta = self.eta
-        taui = self.taui
-        c = self.c
+        eta = self._eta_store
+        taui = self._taui_store
+        c = self._c_store
         peta = eta*np.exp(-(taui*t)**c)
         return peta
 
     def PetaEtaDeriv(self, t, v, adjoint=False):
-        eta = self.eta
-        taui = self.taui
-        c = self.c
+        eta = self._eta_store
+        taui = self._taui_store
+        c = self._c_store
         etaDeriv = self.etaDeriv
 
         v = np.array(v, dtype=float)
@@ -107,9 +107,9 @@ class BaseSIPProblem(BaseEMProblem):
 
     def PetaTauiDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
-        eta = self.eta
-        taui = self.taui
-        c = self.c
+        eta = self._eta_store
+        taui = self._taui_store
+        c = self._c_store
         tauiDeriv = self.tauiDeriv
 
         taui_t_c = (taui*t)**c
@@ -123,9 +123,9 @@ class BaseSIPProblem(BaseEMProblem):
 
     def PetaCDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
-        eta = self.eta
-        taui = self.taui
-        c = self.c
+        eta = self._eta_store
+        taui = self._taui_store
+        c = self._c_store
         cDeriv = self.cDeriv
         taui_t_c = (taui*t)**c
         dpetadc = (
@@ -159,7 +159,6 @@ class BaseSIPProblem(BaseEMProblem):
         """
             Generate Full sensitivity matrix
         """
-
 
         if self._Jmatrix is not None:
             return self._Jmatrix
