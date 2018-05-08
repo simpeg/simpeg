@@ -64,37 +64,37 @@ class BaseSIPProblem(BaseEMProblem):
     @property
     def eta_store(self):
         if getattr(self, '_eta_store', None) is None:
-            self._eta_store = self.eta.copy()
+            self._eta_store = self.eta
         return self._eta_store
 
     @property
     def taui_store(self):
         if getattr(self, '_taui_store', None) is None:
-            self._taui_store = self.taui.copy()
+            self._taui_store = self.taui
         return self._taui_store
 
     @property
     def c_store(self):
         if getattr(self, '_c_store', None) is None:
-            self._c_store = self.c.copy()
+            self._c_store = self.c
         return self._c_store
 
     @property
     def etaDeriv_store(self):
         if getattr(self, '_etaDeriv_store', None) is None:
-            self._etaDeriv_store = self.etaDeriv.copy()
+            self._etaDeriv_store = self.etaDeriv
         return self._etaDeriv_store
 
     @property
     def tauiDeriv_store(self):
         if getattr(self, '_tauiDeriv_store', None) is None:
-            self._tauiDeriv_store = self.tauiDeriv.copy()
+            self._tauiDeriv_store = self.tauiDeriv
         return self._tauiDeriv_store
 
     @property
     def cDeriv_store(self):
         if getattr(self, '_cDeriv_store', None) is None:
-            self._cDeriv_store = self.cDeriv.copy()
+            self._cDeriv_store = self.cDeriv
         return self._cDeriv_store
 
 

@@ -24,6 +24,9 @@ class Survey(SurveyDC):
                 d_\\text{pred} = Pf(m)
         """
         # return self.prob.Jvec(m, m, f=f)
+        if f is None:
+            f = self.prob.fields(m)
+
         return self._pred
 
 
