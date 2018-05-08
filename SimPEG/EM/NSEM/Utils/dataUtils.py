@@ -157,26 +157,36 @@ def resample_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
                         new_locs = rx.locs[ind_loc, :]
                     new_rx = type(rx)
                     new_rxList.append(
-                        new_rx(new_locs, rx.orientation, rx.component))
+                        new_rx(
+                            locs=new_locs,
+                            orientation=rx.orientation,
+                            component=rx.component
+                        ))
                     data_list.append(NSEMdata[src, rx][ind_loc])
                     try:
                         std_list.append(
-                            NSEMdata.standard_deviation[src, rx][ind_loc])
-                        floor_list.append(NSEMdata.floor[src, rx][ind_loc])
+                            NSEMdata._get_data_properties(
+                                (src, rx), 'standard_deviation')[ind_loc]
+                        )
+                        floor_list.append(
+                            NSEMdata._get_data_properties(
+                                (src, rx), 'noise_floor')[ind_loc])
                     except Exception as e:
                         if verbose:
                             print('No standard deviation or floor assigned')
 
             new_src = type(src)
-            new_srcList.append(new_src(new_rxList, src.freq))
+            new_srcList.append(new_src(rxList=new_rxList, freq=src.freq))
 
-    survey = Survey(new_srcList)
+    survey = Survey(srcList=new_srcList)
     if std_list or floor_list:
         return Data(
-            survey, np.concatenate(data_list),
-            np.concatenate(std_list), np.concatenate(floor_list))
+            survey=survey,
+            dobs=np.concatenate(data_list),
+            standard_deviation=np.concatenate(std_list),
+            noise_floor=np.concatenate(floor_list))
     else:
-        return Data(survey, np.concatenate(data_list))
+        return Data(survey=survey, dobs=np.concatenate(data_list))
 
 def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
     """
