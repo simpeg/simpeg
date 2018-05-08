@@ -438,7 +438,11 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
                 return (u*vol*(-1./rho**2))*(drho_dlogrho * v)
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = ['_eta_store', '_taui_store', '_c_store']
+        toDelete = [
+            '_eta_store', '_taui_store', '_c_store',
+            '_etaDeriv_store', '_tauDeriv_store', '_cDeriv_store'
+        ]
+
         return toDelete
 
 
