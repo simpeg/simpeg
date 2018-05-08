@@ -150,7 +150,7 @@ class BaseSIPProblem(BaseEMProblem):
             Srcs = self.survey.srcList
             self._f[Srcs, self._solutionType] = u
 
-        # self.survey._pred = self.forward(m, f=self._f)
+        self.survey._pred = self.forward(m, f=self._f)
 
         return self._f
 
