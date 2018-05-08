@@ -52,6 +52,9 @@ class BaseIPProblem(BaseEMProblem):
             u = self.Ainv * RHS
             Srcs = self.survey.srcList
             self._f[Srcs, self._solutionType] = u
+
+        self.survey._pred = self.forward(m, f=self._f)
+
         return self._f
 
     def getJ(self, m, f=None):
@@ -72,10 +75,8 @@ class BaseIPProblem(BaseEMProblem):
             self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
 
             # delete fields after computing sensitivity
-            del f
-            # Not sure why this is a problem
-            # if self._f is not None:
-            #     del self._f
+            # del f
+            self._f = []
             # clean all factorization
             if self.Ainv is not None:
                 self.Ainv.clean()
@@ -113,6 +114,9 @@ class BaseIPProblem(BaseEMProblem):
             # Conductivity (d u / d log sigma) - EB form
             # Resistivity (d u / d log rho) - HJ form
             return self.sign*np.hstack(Jv)
+
+    def forward(self, m, f=None):
+        return self.Jvec(m, m, f=f)
 
     def Jtvec(self, m, v, f=None):
         """

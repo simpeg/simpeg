@@ -17,6 +17,7 @@ class Survey(BaseEMSurvey):
     rxPair = Rx.BaseRx
     srcPair = Src.BaseSrc
     times = None
+    _pred = None
 
     def __init__(self, srcList, **kwargs):
         self.srcList = srcList
@@ -37,7 +38,7 @@ class Survey(BaseEMSurvey):
             .. math::
                 d_\\text{pred} = Pf(m)
         """
-        return self.prob.forward(m, f=f)
+        return self._pred
 
 
 class Data(SimPEG.Survey.Data):

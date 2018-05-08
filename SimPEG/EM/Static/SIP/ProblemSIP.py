@@ -16,6 +16,7 @@ from SimPEG.EM.Static.IP import Problem3D_CC as BaseProblem3D_CC
 from SimPEG.EM.Static.IP import Problem3D_N as BaseProblem3D_N
 from .SurveySIP import Survey, Data
 import gc
+from profilehooks import profile
 
 
 class BaseSIPProblem(BaseEMProblem):
@@ -60,44 +61,99 @@ class BaseSIPProblem(BaseEMProblem):
     _Jmatrix = None
     actMap = None
 
+    @property
+    def eta_store(self):
+        if getattr(self, '_eta_store', None) is None:
+            self._eta_store = self.eta.copy()
+        return self._eta_store
+
+    @property
+    def taui_store(self):
+        if getattr(self, '_taui_store', None) is None:
+            self._taui_store = self.taui.copy()
+        return self._taui_store
+
+    @property
+    def c_store(self):
+        if getattr(self, '_c_store', None) is None:
+            self._c_store = self.c.copy()
+        return self._c_store
+
+    @property
+    def etaDeriv_store(self):
+        if getattr(self, '_etaDeriv_store', None) is None:
+            self._etaDeriv_store = self.etaDeriv.copy()
+        return self._etaDeriv_store
+
+    @property
+    def tauiDeriv_store(self):
+        if getattr(self, '_tauiDeriv_store', None) is None:
+            self._tauiDeriv_store = self.tauiDeriv.copy()
+        return self._tauiDeriv_store
+
+    @property
+    def cDeriv_store(self):
+        if getattr(self, '_cDeriv_store', None) is None:
+            self._cDeriv_store = self.cDeriv.copy()
+        return self._cDeriv_store
+
+
     def getPeta(self, t):
-        peta = self.eta*np.exp(-(self.taui*t)**self.c)
+        eta = self.eta_store
+        taui = self.taui_store
+        c = self.c_store
+        peta = eta*np.exp(-(taui*t)**c)
         return peta
 
     def PetaEtaDeriv(self, t, v, adjoint=False):
+        eta = self.eta_store
+        taui = self.taui_store
+        c = self.c_store
+        etaDeriv = self.etaDeriv_store
+
         v = np.array(v, dtype=float)
-        taui_t_c = (self.taui*t)**self.c
+        taui_t_c = (taui*t)**c
         dpetadeta = np.exp(-taui_t_c)
         if adjoint:
-            return self.etaDeriv.T * (dpetadeta * v)
+            return etaDeriv.T * (dpetadeta * v)
         else:
-            return dpetadeta * (self.etaDeriv*v)
+            return dpetadeta * (etaDeriv*v)
 
     def PetaTauiDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
-        taui_t_c = (self.taui*t)**self.c
+        eta = self.eta_store
+        taui = self.taui_store
+        c = self.c_store
+        tauiDeriv = self.tauiDeriv_store
+
+        taui_t_c = (taui*t)**c
         dpetadtaui = (
-            - self.c * self.eta / self.taui * taui_t_c * np.exp(-taui_t_c)
+            - c * eta / taui * taui_t_c * np.exp(-taui_t_c)
             )
         if adjoint:
-            return self.tauiDeriv.T * (dpetadtaui*v)
+            return tauiDeriv.T * (dpetadtaui*v)
         else:
-            return dpetadtaui * (self.tauiDeriv*v)
+            return dpetadtaui * (tauiDeriv*v)
 
     def PetaCDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
-        taui_t_c = (self.taui*t)**self.c
+        eta = self.eta_store
+        taui = self.taui_store
+        c = self.c_store
+        cDeriv = self.cDeriv_store
+        taui_t_c = (taui*t)**c
         dpetadc = (
-            -self.eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(self.taui*t)
+            -eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(taui*t)
             )
         if adjoint:
-            return self.cDeriv.T * (dpetadc*v)
+            return cDeriv.T * (dpetadc*v)
         else:
-            return dpetadc * (self.cDeriv*v)
+            return dpetadc * (cDeriv*v)
 
     def fields(self, m):
         if self.verbose:
             print (">> Compute DC fields")
+
         if self._f is None:
             self._f = self.fieldsPair(self.mesh, self.survey)
             if self.Ainv is None:
@@ -107,20 +163,23 @@ class BaseSIPProblem(BaseEMProblem):
             u = self.Ainv * RHS
             Srcs = self.survey.srcList
             self._f[Srcs, self._solutionType] = u
+
+        self.survey._pred = self.forward(m, f=self._f)
+
         return self._f
 
+    @profile
     def getJ(self, m, f=None):
         """
             Generate Full sensitivity matrix
         """
 
-        if self.verbose:
-            print("Calculating J and storing")
 
         if self._Jmatrix is not None:
             return self._Jmatrix
         else:
-
+            if self.verbose:
+                print("Calculating J and storing")
             if f is None:
                 f = self.fields(m)
 
@@ -156,10 +215,8 @@ class BaseSIPProblem(BaseEMProblem):
                     "Garbage collector: collected %d objects." % (collected)
                 )
 
-            # Not sure why below has raise memory issue
-            # only for problem_cc, test_dataObj
-            # if self._f is not None:
-            #     del self._f
+            # clean field object
+            self._f = []
             # clean all factorization
             if self.Ainv is not None:
                 self.Ainv.clean()
@@ -181,10 +238,14 @@ class BaseSIPProblem(BaseEMProblem):
                 (self.PetaEtaDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
                 (self.PetaTauiDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
                 (self.PetaCDeriv(t, Jtv, adjoint=True)**2).sum(axis=1)
-                )
+            )
         return JtJdiag
 
+    @profile
     def forward(self, m, f=None):
+
+        if self.verbose:
+            print ('>> Compute predicted data')
 
         self.model = m
         Jv = []
@@ -233,6 +294,7 @@ class BaseSIPProblem(BaseEMProblem):
 
             return self.sign*np.hstack(Jv)
 
+    @profile
     def Jvec(self, m, v, f=None):
 
         self.model = m
@@ -289,6 +351,7 @@ class BaseSIPProblem(BaseEMProblem):
 
             return self.sign*np.hstack(Jv)
 
+    @profile
     def Jtvec(self, m, v, f=None):
 
         self.model = m
@@ -393,7 +456,7 @@ class BaseSIPProblem(BaseEMProblem):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = []
+        toDelete = ['_eta_store', '_taui_store', '_c_store']
         return toDelete
 
     @property

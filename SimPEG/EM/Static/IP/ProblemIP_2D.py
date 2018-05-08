@@ -51,6 +51,9 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
                 RHS = self.getRHS(ky)
                 u = self.Ainv[iky] * RHS
                 self._f[Srcs, self._solutionType, iky] = u
+
+        self.survey._pred = self.forward(m, f=self._f)
+
         return self._f
 
     def Jvec(self, m, v, f=None):
@@ -58,6 +61,9 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
         J = self.getJ(m, f=f)
         Jv = J.dot(v)
         return self.sign * Jv
+
+    def forward(self, m, f=None):
+        return self.Jvec(m, m, f=f)
 
     def Jtvec(self, m, v, f=None):
         self.model = m

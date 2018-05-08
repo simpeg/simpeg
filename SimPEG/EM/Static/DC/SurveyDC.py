@@ -310,6 +310,7 @@ class Survey_ky(Survey):
     """
     rxPair = Rx.BaseRx
     srcPair = Src.BaseSrc
+    _pred = None
 
     def __init__(self, srcList, **kwargs):
         self.srcList = srcList

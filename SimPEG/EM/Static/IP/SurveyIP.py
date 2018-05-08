@@ -10,6 +10,8 @@ from SimPEG.EM.Static import DC
 
 class Survey(SurveyDC):
 
+    _pred = None
+
     def __init__(self, srcList, **kwargs):
         self.srcList = srcList
         SurveyDC.__init__(self, srcList, **kwargs)
@@ -21,7 +23,8 @@ class Survey(SurveyDC):
             .. math::
                 d_\\text{pred} = Pf(m)
         """
-        return self.prob.Jvec(m, m, f=f)
+        # return self.prob.Jvec(m, m, f=f)
+        return self._pred
 
 
 def from_dc_to_ip_survey(dc_survey, dim="2.5D"):
