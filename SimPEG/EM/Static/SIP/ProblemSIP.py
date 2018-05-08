@@ -68,19 +68,19 @@ class BaseSIPProblem(BaseEMProblem):
     @property
     def etaDeriv_store(self):
         if getattr(self, '_etaDeriv_store', None) is None:
-            self._etaDeriv_store = self.etaDeriv.copy()
+            self._etaDeriv_store = self.etaDeriv
         return self._etaDeriv_store
 
     @property
     def tauiDeriv_store(self):
         if getattr(self, '_tauiDeriv_store', None) is None:
-            self._tauiDeriv_store = self.tauiDeriv.copy()
+            self._tauiDeriv_store = self.tauiDeriv
         return self._tauiDeriv_store
 
     @property
     def cDeriv_store(self):
         if getattr(self, '_cDeriv_store', None) is None:
-            self._cDeriv_store = self.cDeriv.copy()
+            self._cDeriv_store = self.cDeriv
         return self._cDeriv_store
 
 
@@ -447,7 +447,7 @@ class BaseSIPProblem(BaseEMProblem):
     @property
     def deleteTheseOnModelUpdate(self):
         toDelete = [
-            '_etaDeriv_store', '_tauDeriv_store', '_cDeriv_store'
+            '_etaDeriv_store', '_tauiDeriv_store', '_cDeriv_store'
         ]
         return toDelete
 
