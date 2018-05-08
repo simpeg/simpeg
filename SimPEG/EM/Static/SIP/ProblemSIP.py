@@ -78,6 +78,13 @@ class BaseSIPProblem(BaseEMProblem):
         return self._tauiDeriv_store
 
     @property
+    def tauDeriv_store(self):
+        if getattr(self, '_tauDeriv_store', None) is None:
+            self._tauDeriv_store = self.tauDeriv
+        return self._tauDeriv_store
+
+
+    @property
     def cDeriv_store(self):
         if getattr(self, '_cDeriv_store', None) is None:
             self._cDeriv_store = self.cDeriv
@@ -101,7 +108,10 @@ class BaseSIPProblem(BaseEMProblem):
         taui_t_c = (taui*t)**c
         dpetadeta = np.exp(-taui_t_c)
         if adjoint:
-            return etaDeriv.T * (dpetadeta * v)
+            if v.ndim == 1:
+                return etaDeriv.T * (dpetadeta * v)
+            else:
+                return etaDeriv.T * (Utils.sdiag(dpetadeta) * v)
         else:
             return dpetadeta * (etaDeriv*v)
 
@@ -117,7 +127,10 @@ class BaseSIPProblem(BaseEMProblem):
             - c * eta / taui * taui_t_c * np.exp(-taui_t_c)
             )
         if adjoint:
-            return tauiDeriv.T * (dpetadtaui*v)
+            if v.ndim == 1:
+                return tauiDeriv.T * (dpetadtaui*v)
+            else:
+                return tauiDeriv.T * (Utils.sdiag(dpetadtaui)*v)
         else:
             return dpetadtaui * (tauiDeriv*v)
 
@@ -132,7 +145,10 @@ class BaseSIPProblem(BaseEMProblem):
             -eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(taui*t)
             )
         if adjoint:
-            return cDeriv.T * (dpetadc*v)
+            if v.ndim == 1:
+                return cDeriv.T * (dpetadc*v)
+            else:
+                return cDeriv.T * (Utils.sdiag(dpetadc)*v)
         else:
             return dpetadc * (cDeriv*v)
 
@@ -208,17 +224,22 @@ class BaseSIPProblem(BaseEMProblem):
 
             return self._Jmatrix
 
-    def getJtJdiag(self, m):
+    def getJtJdiag(self, m, Wd):
         """
         Compute JtJ using adjoint problem. Still we never form
         JtJ
         """
+        if self.verbose:
+            print (">> Compute trace(JtJ)")
         ntime = len(self.survey.times)
         JtJdiag = np.zeros_like(m)
         J = self.getJ(m, f=None)
+        wd = (Wd.diagonal()).reshape(
+            (self.survey.n_locations, ntime), order='F'
+        )
         for tind in range(ntime):
             t = self.survey.times[tind]
-            Jtv = self.actMap.P*J.T
+            Jtv = self.actMap.P*J.T*Utils.sdiag(wd[:, tind])
             JtJdiag += (
                 (self.PetaEtaDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
                 (self.PetaTauiDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
@@ -447,7 +468,8 @@ class BaseSIPProblem(BaseEMProblem):
     @property
     def deleteTheseOnModelUpdate(self):
         toDelete = [
-            '_etaDeriv_store', '_tauiDeriv_store', '_cDeriv_store'
+            '_etaDeriv_store', '_tauiDeriv_store', '_cDeriv_store',
+            '_tauDeriv_store'
         ]
         return toDelete
 

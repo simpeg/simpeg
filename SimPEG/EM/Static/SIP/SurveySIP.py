@@ -31,6 +31,10 @@ class Survey(BaseEMSurvey):
                 time_rx.append(rx.times)
         self.times = np.unique(np.hstack(time_rx))
 
+    @property
+    def n_locations(self):
+        return int(self.nD/self.times.size)
+
     def dpred(self, m, f=None):
         """
             Predicted data.
