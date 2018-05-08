@@ -61,23 +61,9 @@ class BaseSIPProblem(BaseEMProblem):
     _Jmatrix = None
     actMap = None
 
-    @property
-    def eta_store(self):
-        if getattr(self, '_eta_store', None) is None:
-            self._eta_store = self.eta.copy()
-        return self._eta_store
-
-    @property
-    def taui_store(self):
-        if getattr(self, '_taui_store', None) is None:
-            self._taui_store = self.taui.copy()
-        return self._taui_store
-
-    @property
-    def c_store(self):
-        if getattr(self, '_c_store', None) is None:
-            self._c_store = self.c.copy()
-        return self._c_store
+    _eta_store = None
+    _taui_store = None
+    _c_store = None
 
     @property
     def etaDeriv_store(self):
@@ -99,16 +85,16 @@ class BaseSIPProblem(BaseEMProblem):
 
 
     def getPeta(self, t):
-        eta = self.eta_store
-        taui = self.taui_store
-        c = self.c_store
+        eta = self._eta_store
+        taui = self._taui_store
+        c = self._c_store
         peta = eta*np.exp(-(taui*t)**c)
         return peta
 
     def PetaEtaDeriv(self, t, v, adjoint=False):
-        eta = self.eta_store
-        taui = self.taui_store
-        c = self.c_store
+        eta = self._eta_store
+        taui = self._taui_store
+        c = self._c_store
         etaDeriv = self.etaDeriv_store
 
         v = np.array(v, dtype=float)
@@ -121,9 +107,9 @@ class BaseSIPProblem(BaseEMProblem):
 
     def PetaTauiDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
-        eta = self.eta_store
-        taui = self.taui_store
-        c = self.c_store
+        eta = self._eta_store
+        taui = self._taui_store
+        c = self._c_store
         tauiDeriv = self.tauiDeriv_store
 
         taui_t_c = (taui*t)**c
@@ -137,9 +123,9 @@ class BaseSIPProblem(BaseEMProblem):
 
     def PetaCDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
-        eta = self.eta_store
-        taui = self.taui_store
-        c = self.c_store
+        eta = self._eta_store
+        taui = self._taui_store
+        c = self._c_store
         cDeriv = self.cDeriv_store
         taui_t_c = (taui*t)**c
         dpetadc = (
@@ -164,7 +150,7 @@ class BaseSIPProblem(BaseEMProblem):
             Srcs = self.survey.srcList
             self._f[Srcs, self._solutionType] = u
 
-        self.survey._pred = self.forward(m, f=self._f)
+        # self.survey._pred = self.forward(m, f=self._f)
 
         return self._f
 
@@ -248,6 +234,11 @@ class BaseSIPProblem(BaseEMProblem):
             print ('>> Compute predicted data')
 
         self.model = m
+
+        self._eta_store = self.eta
+        self._taui_store = self.taui
+        self._c_store = self.c
+
         Jv = []
 
         # When sensitivity matrix is stored
@@ -457,7 +448,6 @@ class BaseSIPProblem(BaseEMProblem):
     @property
     def deleteTheseOnModelUpdate(self):
         toDelete = [
-            '_eta_store', '_taui_store', '_c_store',
             '_etaDeriv_store', '_tauDeriv_store', '_cDeriv_store'
         ]
         return toDelete
