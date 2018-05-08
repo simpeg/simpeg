@@ -85,16 +85,16 @@ class BaseSIPProblem(BaseEMProblem):
 
 
     def getPeta(self, t):
-        eta = self._eta_store
-        taui = self._taui_store
-        c = self._c_store
+        eta = self.eta
+        taui = self.taui
+        c = self.c
         peta = eta*np.exp(-(taui*t)**c)
         return peta
 
     def PetaEtaDeriv(self, t, v, adjoint=False):
-        eta = self._eta_store
-        taui = self._taui_store
-        c = self._c_store
+        eta = self.eta
+        taui = self.taui
+        c = self.c
         etaDeriv = self.etaDeriv_store
 
         v = np.array(v, dtype=float)
@@ -107,9 +107,9 @@ class BaseSIPProblem(BaseEMProblem):
 
     def PetaTauiDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
-        eta = self._eta_store
-        taui = self._taui_store
-        c = self._c_store
+        eta = self.eta
+        taui = self.taui
+        c = self.c
         tauiDeriv = self.tauiDeriv_store
 
         taui_t_c = (taui*t)**c
@@ -123,9 +123,9 @@ class BaseSIPProblem(BaseEMProblem):
 
     def PetaCDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
-        eta = self._eta_store
-        taui = self._taui_store
-        c = self._c_store
+        eta = self.eta
+        taui = self.taui
+        c = self.c
         cDeriv = self.cDeriv_store
         taui_t_c = (taui*t)**c
         dpetadc = (
