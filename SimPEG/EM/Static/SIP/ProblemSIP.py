@@ -95,7 +95,7 @@ class BaseSIPProblem(BaseEMProblem):
         eta = self._eta_store
         taui = self._taui_store
         c = self._c_store
-        etaDeriv = self.etaDeriv
+        etaDeriv = self.etaDeriv_store
 
         v = np.array(v, dtype=float)
         taui_t_c = (taui*t)**c
@@ -110,7 +110,7 @@ class BaseSIPProblem(BaseEMProblem):
         eta = self._eta_store
         taui = self._taui_store
         c = self._c_store
-        tauiDeriv = self.tauiDeriv
+        tauiDeriv = self.tauiDeriv_store
 
         taui_t_c = (taui*t)**c
         dpetadtaui = (
@@ -126,7 +126,7 @@ class BaseSIPProblem(BaseEMProblem):
         eta = self._eta_store
         taui = self._taui_store
         c = self._c_store
-        cDeriv = self.cDeriv
+        cDeriv = self.cDeriv_store
         taui_t_c = (taui*t)**c
         dpetadc = (
             -eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(taui*t)
