@@ -40,7 +40,6 @@ class Survey(BaseEMSurvey):
         """
         # if f is None:
         #     f = self.prob.fields(m)
-
         # return self._pred
         return self.prob.forward(m, f=f)
 
