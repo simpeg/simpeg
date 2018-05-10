@@ -42,11 +42,12 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest',
                 else:
                     F = interp2d(topo[:, :2], topo[:, 2])
 
-                actind = np.zeros(mesh.nC, dtype='bool')
+                # actind = np.zeros(mesh.nC, dtype='bool')
 
-                for ii, ind in enumerate(mesh._sortedCells):
-
-                    actind[ii] = mesh.gridCC[ii, 2] < F(mesh.gridCC[ii, :2])
+                # Fetch elevation at all points
+                zTopo = F(mesh.gridCC[:, :2])
+                # for ii, ind in enumerate(mesh._sortedCells):
+                actind = mesh.gridCC[:, 2] < zTopo
 
             else:
                 XY = ndgrid(mesh.vectorCCx, mesh.vectorCCy)
@@ -233,8 +234,8 @@ def meshBuilder(xyz, h, padDist,
     midZ = np.mean(limz)
 
     nCx = int((xyz[:, 0].max() - xyz[:, 0].min()) / h[0]) + padCore[0]*2
-    nCy = int((xyz[:, 1].max() - xyz[:, 1].min()) / h[1]) + padCore[1]*2
-    nCz = int((xyz[:, 2].max() - xyz[:, 2].min()) / h[2]) + padCore[2]*2
+    nCy = int((xyz[:, 1].max() - xyz[:, 1].min()) / h[1]) + padCore[0]*2
+    nCz = int((xyz[:, 2].max() - xyz[:, 2].min()) / h[2]) + padCore[0]*2
 
     if meshType == 'TENSOR':
         # Make sure the core has odd number of cells for centereing
@@ -292,59 +293,70 @@ def meshBuilder(xyz, h, padDist,
                               nCy * h[1] + padDist[1, :].sum(),
                               nCz * h[2] + padDist[2, :].sum()])
 
+        maxLevel = int(np.log2(extent/h[0]))+1
+
         # Number of cells at the small octree level
-        nCx = 2**(int(np.log2(extent/h[0]))+1)
-        nCy = 2**(int(np.log2(extent/h[1]))+1)
-        nCz = 2**(int(np.log2(extent/h[2]))+1)
+        # For now equal in 3D
+
+        nCx, nCy, nCz = 2**(maxLevel), 2**(maxLevel), 2**(maxLevel)
+        # nCy = 2**(int(np.log2(extent/h[1]))+1)
+        # nCz = 2**(int(np.log2(extent/h[2]))+1)
 
         # Define the mesh and origin
+        # For now cubic cells
         mesh = Mesh.TreeMesh([np.ones(nCx)*h[0],
-                              np.ones(nCy)*h[1],
-                              np.ones(nCz)*h[2]])
+                              np.ones(nCx)*h[0],
+                              np.ones(nCx)*h[0]])
 
         # Set origin
         if gridLoc == 'CC':
-            mesh.x0 = np.r_[-nCx*h[0]/2.+midX, -nCy*h[1]/2.+midY, -nCz*h[2]/2.+midZ]
+            mesh.x0 = np.r_[-nCx*h[0]/2.+midX, -nCy*h[0]/2.+midY, -nCz*h[0]/2.+midZ]
         elif gridLoc == 'N':
-            mesh.x0 = np.r_[-nCx*h[0]/2.+midX, -nCy*h[1]/2.+midY, -nCz*h[2] + limz.max()]
+            mesh.x0 = np.r_[-nCx*h[0]/2.+midX, -nCy*h[0]/2.+midY, -nCz*h[0] + limz.max()]
         else:
             assert  NotImplementedError('gridLoc must be CC | N')
 
 
         # Refine mesh around locations
-        mesh.refine(2)
+        # mesh.refine(2)
 
-        maxLevel = int(np.log2(extent / 2.**2 / h[0]))
+        # maxLevel = int(np.log2(extent / 2.**2 / h[0]))
 
         # Create iterative refinement
-        def refineFun(level, locs):
+#         def refineFun(level, locs):
 
-            def refine(cell):
-                bsw = np.kron(np.ones(locs.shape[0]),
-                              (cell.center - np.r_[cell.h] * (padCore+1./2.) +
-                               mesh.x0)).reshape((locs.shape[0], 3))
+#             def refine(cell):
+#                 bsw = np.kron(np.ones(locs.shape[0]),
+#                               (cell.center - np.r_[cell.h] * (padCore+1./2.) +
+#                                mesh.x0)).reshape((locs.shape[0], 3))
 
-                tne = np.kron(np.ones(locs.shape[0]),
-                              (cell.center + np.r_[cell.h] * (padCore+1./2.) +
-                               mesh.x0)).reshape((locs.shape[0], 3))
+#                 tne = np.kron(np.ones(locs.shape[0]),
+#                               (cell.center + np.r_[cell.h] * (padCore+1./2.) +
+#                                mesh.x0)).reshape((locs.shape[0], 3))
 
-#                xyz = cell.center + mesh.x0
-                if np.any(np.all(np.c_[np.all(bsw < locs, axis=1),
-                                 np.all(tne > locs, axis=1)], axis=1)):
-                    return level
-                return 0
-            return refine
+# #                xyz = cell.center + mesh.x0
+#                 if np.any(np.all(np.c_[np.all(bsw < locs, axis=1),
+#                                  np.all(tne > locs, axis=1)], axis=1)):
+#                     return level
+#                 return 0
+#             return refine
+
+        mesh.insert_cells(
+            xyz,
+            np.ones(xyz.shape[0])*maxLevel
+        )
 
         # xlim = np.r_[topo[:,0].min(), topo[:,0].max()]
         # ylim = np.r_[topo[:,1].min(), topo[:,1].max()]
         # zlim = np.r_[topo[:,2].min()-80, topo[:,2].max()+80]
-        level = 2
-        print('h min: ' + str(h.min()))
-        while mesh.vol.min()**(1./3.) > h.min():
-            print('Smallest cell: ' + str(mesh.vol.min()**(1./3)))
-            print('Refining Octree mesh to level: '+str(level))
-            level += 1
-            mesh.refine(refineFun(level, xyz))
+        # level = 2
+        # print('h min: ' + str(h.min()))
+        # while mesh.vol.min()**(1./3.) > h.min():
+        #     print('Smallest cell: ' + str(mesh.vol.min()**(1./3)))
+        #     print('Refining Octree mesh to level: '+str(level))
+        #     level += 1
+        #     mesh.refine(refineFun(level, xyz))
+
 
     # Shift tile center to closest cell in base grid
     if meshGlobal is not None:

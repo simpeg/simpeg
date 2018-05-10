@@ -911,6 +911,7 @@ class Update_IRLS(InversionDirective):
             self.modelDeriv_previous = self.reg.objfcts[0].objfcts[1].f_m
             self.invProb.phi_m_last = self.reg(self.invProb.model)
 
+
     def startIRLS(self):
         if not self.silent:
             print("Reached starting chifact with l2-norm regularization:" +
