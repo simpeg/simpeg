@@ -280,11 +280,11 @@ def meshBuilder(xyz, h, padDist,
         # Re-set the mesh at the center of input locations
         # z-shift is different for cases when no padding cells up
         mesh.x0 = np.r_[mesh.x0[0] + midX,
-                         mesh.x0[1] + midY,
-                         (mesh.x0[2] -
-                          mesh.hz[:(npadDown + nCz)].sum() +  # down to top of core
-                          midZ +                              # up to center locs
-                          h[2]*nCz/2.)]                       # up half the core
+                        mesh.x0[1] + midY,
+                        (mesh.x0[2] -
+                         mesh.hz[:(npadDown + nCz)].sum() +  # down to top of core
+                         midZ +                              # up to center locs
+                         h[2]*nCz/2.)]                       # up half the core
 
     elif meshType == 'TREE':
 
@@ -316,47 +316,14 @@ def meshBuilder(xyz, h, padDist,
         else:
             assert  NotImplementedError('gridLoc must be CC | N')
 
-
-        # Refine mesh around locations
-        # mesh.refine(2)
-
-        # maxLevel = int(np.log2(extent / 2.**2 / h[0]))
-
-        # Create iterative refinement
-#         def refineFun(level, locs):
-
-#             def refine(cell):
-#                 bsw = np.kron(np.ones(locs.shape[0]),
-#                               (cell.center - np.r_[cell.h] * (padCore+1./2.) +
-#                                mesh.x0)).reshape((locs.shape[0], 3))
-
-#                 tne = np.kron(np.ones(locs.shape[0]),
-#                               (cell.center + np.r_[cell.h] * (padCore+1./2.) +
-#                                mesh.x0)).reshape((locs.shape[0], 3))
-
-# #                xyz = cell.center + mesh.x0
-#                 if np.any(np.all(np.c_[np.all(bsw < locs, axis=1),
-#                                  np.all(tne > locs, axis=1)], axis=1)):
-#                     return level
-#                 return 0
-#             return refine
-
+        # Currently a single refinement
+        # Can be called multiple times by passing finalize=False
         mesh.insert_cells(
             xyz,
             np.ones(xyz.shape[0])*maxLevel
         )
 
-        # xlim = np.r_[topo[:,0].min(), topo[:,0].max()]
-        # ylim = np.r_[topo[:,1].min(), topo[:,1].max()]
-        # zlim = np.r_[topo[:,2].min()-80, topo[:,2].max()+80]
-        # level = 2
-        # print('h min: ' + str(h.min()))
-        # while mesh.vol.min()**(1./3.) > h.min():
-        #     print('Smallest cell: ' + str(mesh.vol.min()**(1./3)))
-        #     print('Refining Octree mesh to level: '+str(level))
-        #     level += 1
-        #     mesh.refine(refineFun(level, xyz))
-
+        # need to mesh.finalize() is running multiple refinement
 
     # Shift tile center to closest cell in base grid
     if meshGlobal is not None:

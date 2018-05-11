@@ -132,7 +132,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                         )
                     else:
                         indActive_Fx = (
-                            (self.mesh.aveCC2Fx * self.indActive) >= 1
+                            (self.mesh._aveCC2FxStencil() * self.indActive) >= 1
                         )
                         self._Pafx = (
                             Utils.speye(self.mesh.ntFx)[:, indActive_Fx]
@@ -169,7 +169,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     else:
                         print ("Use Simple")
                         indActive_Fy = (
-                            (self.mesh.aveCC2Fy * self.indActive) >= 1
+                            (self.mesh._aveCC2FyStencil() * self.indActive) >= 1
                         )
                         self._Pafy = (
                             Utils.speye(self.mesh.ntFy)[:, indActive_Fy]
@@ -203,7 +203,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                         )
                     else:
                         indActive_Fz = (
-                            (self.mesh.aveCC2Fz * self.indActive) >= 1
+                            (self.mesh._aveCC2FzStencil() * self.indActive) >= 1
                         )
                         self._Pafz = (
                             Utils.speye(self.mesh.ntFz)[:, indActive_Fz]
@@ -229,7 +229,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
 
                 else:
-                    nCinRow = mkvc((self._aveCC2Fx.T).sum(1))
+                    nCinRow = mkvc((self.aveCC2Fx.T).sum(1))
                     nCinRow[nCinRow > 0] = 1./nCinRow[nCinRow > 0]
                     self._aveFx2CC = (
                         Utils.sdiag(nCinRow) *
@@ -260,7 +260,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
                 else:
                     self._aveCC2Fx = (
-                        self.Pafx.T * self.mesh.aveCC2Fx * self.Pac
+                        self.Pafx.T * self.mesh._aveCC2FxStencil() * self.Pac
                     )
             else:
                 self._aveCC2Fx = (
@@ -314,7 +314,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
                 else:
                     self._aveCC2Fy = (
-                        self.Pafy.T * self.mesh.aveCC2Fy * self.Pac
+                        self.Pafy.T * self.mesh._aveCC2FyStencil() * self.Pac
                     )
             else:
                 self._aveCC2Fy = (
@@ -368,7 +368,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
                 else:
                     self._aveCC2Fz = (
-                        self.Pafz.T * self.mesh.aveCC2Fz * self.Pac
+                        self.Pafz.T * self.mesh._aveCC2FzStencil() * self.Pac
                     )
             else:
                 self._aveCC2Fz = (
