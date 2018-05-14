@@ -70,13 +70,11 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
             self._tauDeriv_store = self.tauDeriv
         return self._tauDeriv_store
 
-
     @property
     def cDeriv_store(self):
         if getattr(self, '_cDeriv_store', None) is None:
             self._cDeriv_store = self.cDeriv
         return self._cDeriv_store
-
 
     def getPeta(self, t):
         eta = self._eta_store

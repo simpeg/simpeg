@@ -47,6 +47,7 @@ class Survey(BaseEMSurvey):
         return self._pred
         # return self.prob.forward(m, f=f)
 
+
 class Data(SimPEG.Survey.Data):
     """Fancy data storage by Src and Rx"""
 
