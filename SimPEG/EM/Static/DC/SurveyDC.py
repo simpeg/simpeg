@@ -78,42 +78,34 @@ class Survey(BaseEMSurvey, properties.HasProperties):
         m_locations = []
         n_locations = []
         for src in self.srcList:
-            # Pole
-            if isinstance(src, Src.Pole):
-                for rx in src.rxList:
-                    nRx = rx.nD
+            for rx in src.rxList:
+                nRx = rx.nD
+                # Pole Source
+                if isinstance(src, Src.Pole):
                     a_locations.append(
                         src.loc.reshape([1, -1]).repeat(nRx, axis=0)
                         )
                     b_locations.append(
                         src.loc.reshape([1, -1]).repeat(nRx, axis=0)
                         )
-                    # Pole
-                    if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
-                        m_locations.append(rx.locs)
-                        n_locations.append(rx.locs)
-                    # Dipole
-                    elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
-                        m_locations.append(rx.locs[0])
-                        n_locations.append(rx.locs[1])
-            # Dipole
-            elif isinstance(src, Src.Dipole):
-                for rx in src.rxList:
-                    nRx = rx.nD
+                # Dipole Source
+                elif isinstance(src, Src.Dipole):
                     a_locations.append(
                         src.loc[0].reshape([1, -1]).repeat(nRx, axis=0)
-                        )
+                    )
                     b_locations.append(
                         src.loc[1].reshape([1, -1]).repeat(nRx, axis=0)
-                        )
-                    # Pole
-                    if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
-                        m_locations.append(rx.locs)
-                        n_locations.append(rx.locs)
-                    # Dipole
-                    elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
-                        m_locations.append(rx.locs[0])
-                        n_locations.append(rx.locs[1])
+                    )
+
+                # Pole RX
+                if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
+                    m_locations.append(rx.locs)
+                    n_locations.append(rx.locs)
+
+                # Dipole RX
+                elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
+                    m_locations.append(rx.locs[0])
+                    n_locations.append(rx.locs[1])
 
         self.a_locations = np.vstack(a_locations)
         self.b_locations = np.vstack(b_locations)
