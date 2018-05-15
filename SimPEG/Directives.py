@@ -782,7 +782,7 @@ class Update_IRLS(InversionDirective):
                 ratio = np.mean([2.0, ratio])
 
             else:
-                ratio = np.mean([0.5, ratio])
+                ratio = np.mean([0.75, ratio])
 
             self.invProb.beta = self.invProb.beta * ratio
 

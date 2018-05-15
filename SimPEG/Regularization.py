@@ -1529,22 +1529,18 @@ class SparseSmall(BaseSparse):
             return self.stashedR
 
         # Eta scaling is important for mix-norms...do not mess with it
-        # eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
-
         maxVal = np.ones_like(f_m) * np.abs(f_m).max()
         maxVal[self.norm < 1] = self.epsilon / np.sqrt(1.-self.norm[self.norm < 1])
         maxGrad = maxVal / (maxVal**2. + self.epsilon**2.)**(1.-self.norm/2.)
 
-        if any(maxGrad==0):
-            eta = 1.
-        else:
-            eta = np.abs(f_m).max()/maxGrad
+        # Default to 1 for zero gradients
+        eta = np.ones_like(f_m)
+        eta[maxGrad != 0] = np.abs(f_m).max()/maxGrad[maxGrad != 0]
 
         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
-        # print(eta)
+
         self.stashedR = r  # stash on the first calculation
         return r
-
 
     @Utils.timeIt
     def deriv(self, m):
@@ -1632,7 +1628,7 @@ class SparseDeriv(BaseSparse):
         else:
             r = self.W * (self.mapping * f_m)
 
-        return 0.5 * r.dot(r)
+        return 0.5*r.dot(r)
 
     def R(self, f_m):
         # if R is stashed, return that instead
@@ -1642,15 +1638,13 @@ class SparseDeriv(BaseSparse):
         Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
         # Eta scaling is important for mix-norms...do not mess with it
-        # eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
         maxVal = np.ones_like(f_m) * np.abs(f_m).max()
         maxVal[self.norm < 1] = self.epsilon / np.sqrt(1.-self.norm[self.norm < 1])
         maxGrad = maxVal / (maxVal**2. + self.epsilon**2.)**(1.-self.norm/2.)
-        if any(maxGrad==0):
-            eta = 1.
-        else:
-            eta = np.abs(f_m).max()/maxGrad
-        # eta = np.abs(f_m + self.epsilon**2.).max() / (np.abs(f_m + self.epsilon**2.) / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.)).max()
+
+        eta = np.ones_like(f_m)
+        eta[maxGrad != 0] = np.abs(f_m).max()/maxGrad[maxGrad != 0]
+
         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
         # print(eta)
         self.stashedR = r  # stash on the first calculation
