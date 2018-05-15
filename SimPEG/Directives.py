@@ -5,7 +5,7 @@ from . import Maps
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
-
+from .Utils import mkvc
 
 class InversionDirective(object):
     """InversionDirective"""
@@ -514,48 +514,55 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
         Saves inversion parameters at every iteraion.
     """
 
+    # Initialize the output dict
+    outDict = None
+    outDict = {}
+    saveOnDisk = False
+
     def initialize(self):
         print("SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(self.fileName))
 
     def endIter(self):
 
+        # regCombo = ["phi_ms", "phi_msx"]
+
+        # if self.prob[0].mesh.dim >= 2:
+        #     regCombo += ["phi_msy"]
+
+        # if self.prob[0].mesh.dim == 3:
+        #     regCombo += ["phi_msz"]
+
         # Initialize the output dict
-        outDict = {}
+        iterDict = None
+        iterDict = {}
+
         # Save the data.
-        outDict['iter'] = self.opt.iter
-        outDict['beta'] = self.invProb.beta
-        outDict['phi_d'] = self.invProb.phi_d
-        outDict['phi_m'] = self.invProb.phi_m
+        iterDict['iter'] = self.opt.iter
+        iterDict['beta'] = self.invProb.beta
+        iterDict['phi_d'] = self.invProb.phi_d
+        iterDict['phi_m'] = self.invProb.phi_m
 
-        phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
-        for reg in self.reg.objfcts:
-            phi_s += (
-                reg.objfcts[0](self.invProb.model) * reg.alpha_s
-            )
-            phi_x += (
-                reg.objfcts[1](self.invProb.model) * reg.alpha_x
-            )
-            if reg.regmesh.dim > 1:
-                phi_y += (
-                    reg.objfcts[2](self.invProb.model) * reg.alpha_y
-                )
+        # for label, fcts in zip(regCombo, self.reg.objfcts[0].objfcts):
+        #     iterDict[label] = fcts(self.invProb.model)
 
-            if reg.regmesh.dim > 2:
-                phi_z += (
-                    reg.objfcts[3](self.invProb.model) * reg.alpha_z
-                )
+        iterDict['f'] = self.opt.f
+        iterDict['m'] = self.invProb.model
+        iterDict['dpred'] = self.invProb.dpred
 
-        outDict['phi_ms'] = phi_s
-        outDict['phi_mx'] = phi_x
-        outDict['phi_my'] = phi_y
-        outDict['phi_mz'] = phi_z
-        outDict['f'] = self.opt.f
-        outDict['m'] = self.invProb.model
-        outDict['dpred'] = self.invProb.dpred
+        if hasattr(self.reg.objfcts[0], 'eps_p') is True:
+            iterDict['eps_p'] = self.reg.objfcts[0].eps_p
+            iterDict['eps_q'] = self.reg.objfcts[0].eps_q
+
+        if hasattr(self.reg.objfcts[0], 'norms') is True:
+            iterDict['lps'] = self.reg.objfcts[0].norms[0][0]
+            iterDict['lpx'] = self.reg.objfcts[0].norms[0][1]
 
         # Save the file as a npz
-        np.savez('{:03d}-{:s}'.format(self.opt.iter, self.fileName), outDict)
+        if self.saveOnDisk:
 
+            np.savez('{:03d}-{:s}'.format(self.opt.iter, self.fileName), iterDict)
+
+        self.outDict[self.opt.iter] = iterDict
 
 class Update_IRLS(InversionDirective):
 
@@ -1066,7 +1073,7 @@ class UpdateSensitivityWeights(InversionDirective):
 
             m = self.invProb.model
 
-            self.JtJdiag += [np.sum((dmisfit.W*prob.getJ(m))**2., axis=0)]
+            self.JtJdiag += [mkvc(np.sum((dmisfit.W*prob.getJ(m)).power(2.), axis=0))]
 
         return self.JtJdiag
 
