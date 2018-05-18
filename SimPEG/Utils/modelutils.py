@@ -305,8 +305,8 @@ def meshBuilder(xyz, h, padDist,
         # Define the mesh and origin
         # For now cubic cells
         mesh = Mesh.TreeMesh([np.ones(nCx)*h[0],
-                              np.ones(nCx)*h[0],
-                              np.ones(nCx)*h[0]])
+                              np.ones(nCx)*h[1],
+                              np.ones(nCx)*h[2]])
 
         # Set origin
         if gridLoc == 'CC':

@@ -36,6 +36,7 @@ class MagneticIntegral(Problem.LinearProblem):
     equiSourceLayer = False
     silent = False  # Don't display progress on screen
     W = None
+    gtgdiag = None
     memory_saving_mode = False
 
     def __init__(self, mesh, **kwargs):
@@ -106,21 +107,21 @@ class MagneticIntegral(Problem.LinearProblem):
             Return the diagonal of JtJ
         """
 
-        if W is None:
-            W = Utils.speye(self.F.shape[0])
+        if self.gtgdiag is None:
 
-        dmudm = self.chiMap.deriv(m)
+            if W is None:
+                w = np.ones(self.F.shape[1])
+            else:
+                w = W.diagonal()
 
-        # if self.memory_saving_mode:
-        #     wd = W.diagonal()
-        #     JtJdiag = np.zeros_like(m)
-        #     for ii in range(self.F.shape[0]):
-        #         JtJdiag += ((wd[ii] * self.F[ii, :]) * dmudm)**2.
+            dmudm = self.chiMap.deriv(m)
+            self.gtgdiag = np.zeros(self.F.shape[1])
 
-        #     return JtJdiag
+            for ii in range(self.F.shape[0]):
 
-        # else:
-        return np.sum((W * self.F * dmudm)**2., axis=0)
+                self.gtgdiag += (w[ii]*self.F[ii, :]*dmudm)**2.
+
+        return self.gtgdiag
 
     def getJ(self, m, f):
         """
@@ -326,6 +327,7 @@ class MagneticVector(MagneticIntegral):
     silent = False  # Don't display progress on screen
     scale = 1.
     W = None
+    gtgdiag = None
     threshold = None
     memory_saving_mode = False
     coordinate_system = properties.StringChoice(
@@ -377,21 +379,27 @@ class MagneticVector(MagneticIntegral):
             Return the diagonal of JtJ
         """
 
-        if W is None:
-            W = Utils.speye(self.F.shape[0])
+        if self.gtgdiag is None:
 
-        dmudm = self.chiMap.deriv(m)
+            if W is None:
+                w = np.ones(self.F.shape[1])
+            else:
+                w = W.diagonal()
+
+            dmudm = self.chiMap.deriv(m)
+            self.gtgdiag = np.zeros(self.F.shape[1])
+
+            for ii in range(self.F.shape[0]):
+
+                self.gtgdiag += (w[ii]*self.F[ii, :]*dmudm)**2.
 
         if self.coordinate_system == 'cartesian':
-            return np.sum((W * self.F * dmudm)**2., axis=0)
+            return self.gtgdiag
 
         else:
-
-            gtgdiag = np.sum((W * self.F)**2., axis=0)
-            Japprox = Utils.sdiag(mkvc(gtgdiag)**0.5) * (self.S * dmudm)
+            Japprox = Utils.sdiag(mkvc(self.gtgdiag)**0.5) * (self.S * dmudm)
 
             return (Japprox.T*Japprox).diagonal()
-
 
     def getJ(self, chi, f=None):
 
