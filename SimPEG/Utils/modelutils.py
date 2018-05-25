@@ -40,7 +40,7 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest',
                     F = NearestNDInterpolator(topo[:, :2], topo[:, 2])
 
                 else:
-                    F = interp2d(topo[:, :2], topo[:, 2])
+                    F = interp2d(topo[:, 0], topo[:, 1], topo[:, 2])
 
                 # actind = np.zeros(mesh.nC, dtype='bool')
 
@@ -232,9 +232,9 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
     midY = np.mean(limy)
     midZ = np.mean(limz)
 
-    nCx = int((xyz[:, 0].max() - xyz[:, 0].min()) / h[0])
-    nCy = int((xyz[:, 1].max() - xyz[:, 1].min()) / h[1])
-    nCz = int((xyz[:, 2].max() - xyz[:, 2].min()) / h[2])
+    nCx = int(limx[0]-limx[1]) / h[0]
+    nCy = int(limy[0]-limy[1]) / h[1]
+    nCz = int(limz[0]-limz[1]) / h[2]
 
     if meshType == 'TENSOR':
         # Make sure the core has odd number of cells for centereing
@@ -351,8 +351,9 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
 
 def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
 
+    maxLevel = int(np.log2(mesh.hx.shape[0]))
+
     if dtype == "point":
-        maxLevel = int(np.log2(mesh.hx.shape[0]))
 
         mesh.insert_cells(xyz, np.ones(xyz.shape[0])*maxLevel, finalize=False)
 
@@ -387,6 +388,44 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
         mesh.insert_cells(
             newLoc, maxLevel-mkvc(gridLevel)+1, finalize=finalize
         )
+
+    elif dtype == 'surface':
+
+        # Get extent of points
+        limx = np.r_[xyz[:, 0].max(), xyz[:, 0].min()]
+        limy = np.r_[xyz[:, 1].max(), xyz[:, 1].min()]
+
+        F = NearestNDInterpolator(xyz[:, :2], xyz[:, 2])
+        zOffset = 0
+        # Cycle through the first 3 octree levels
+        for ii in range(3):
+
+            dx = mesh.hx.min()*2**ii
+
+            nCx = int(limx[0]-limx[1]) / dx
+            nCy = int(limy[0]-limy[1]) / dx
+
+            # Create a grid at the octree level in xy
+            CCx, CCy = np.meshgrid(
+                np.linspace(limx[1], limx[0], nCx),
+                np.linspace(limy[1], limy[0], nCy)
+            )
+
+            z = F(mkvc(CCx), mkvc(CCy))
+
+            for level in range(int(nCpad[ii])):
+
+                z = z - zOffset
+                mesh.insert_cells(
+                    np.c_[mkvc(CCx), mkvc(CCy), z], np.ones_like(z)*maxLevel-ii,
+                    finalize=False
+                )
+
+                zOffset += dx
+
+        if finalize:
+            mesh.finalize()
+
     else:
         NotImplementedError("Only dtype='points' has been implemented")
 
