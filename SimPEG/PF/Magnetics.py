@@ -13,7 +13,7 @@ from SimPEG.Utils.matutils import atp2xyz, dipazm_2_xyz, xyz2atp
 import matplotlib.pyplot as plt
 import gc
 from SimPEG import Mesh
-
+import multiprocessing
 from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
 import properties
@@ -31,13 +31,16 @@ class MagneticIntegral(Problem.LinearProblem):
     forwardOnly = False  # If false, matrix is store to memory (watch your RAM)
     actInd = None  #: Active cell indices provided
     M = None  #: Magnetization matrix provided, otherwise all induced
-    recType = 'tmi'  #: Receiver type either "tmi" | "xyz"
+    rxType = 'tmi'  #: Receiver type either "tmi" | "xyz"
     magType = 'H0'
     equiSourceLayer = False
     silent = False  # Don't display progress on screen
     W = None
     gtgdiag = None
     memory_saving_mode = False
+    n_cpu = None
+    parallelized = False
+    progressIndex = -1
 
     def __init__(self, mesh, **kwargs):
 
@@ -72,7 +75,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         if getattr(self, '_F', None) is None:
             self._F = self.Intrgl_Fwr_Op(magType=self.magType,
-                                         recType=self.recType)
+                                         rxType=self.rxType)
 
         return self._F
 
@@ -139,13 +142,13 @@ class MagneticIntegral(Problem.LinearProblem):
         dmudm = self.chiMap.deriv(m)
         return dmudm.T * (self.F.T.dot(v))
 
-    def Intrgl_Fwr_Op(self, m=None, magType='H0', recType='tmi'):
+    def Intrgl_Fwr_Op(self, m=None, magType='H0', rxType='tmi'):
         """
 
         Magnetic forward operator in integral form
 
         magType  = 'H0' | 'x' | 'y' | 'z'
-        recType  = 'tmi' | 'x' | 'y' | 'z'
+        rxType  = 'tmi' | 'x' | 'y' | 'z'
 
         Return
         _F = Linear forward operator | (forwardOnly)=data
@@ -199,113 +202,61 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.equiSourceLayer:
             zn1 -= 1000.
 
-        Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
-        Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
-        Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
+        self.Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+        self.Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+        self.Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
-        survey = self.survey
-        rxLoc = survey.srcField.rxList[0].locs
+        # survey = self.survey
+        self.rxLoc = self.survey.srcField.rxList[0].locs
 
-        # Pre-allocate space and create Magnetization matrix if required
-        # If assumes uniform Magnetization direction
         if magType == 'H0':
             if getattr(self, 'M', None) is None:
-                self.M = dipazm_2_xyz(np.ones(nC) * survey.srcField.param[1],
-                                      np.ones(nC) * survey.srcField.param[2])
+                self.M = dipazm_2_xyz(np.ones(nC) * self.survey.srcField.param[1],
+                                      np.ones(nC) * self.survey.srcField.param[2])
 
-            Mx = Utils.sdiag(self.M[:, 0]*survey.srcField.param[0])
-            My = Utils.sdiag(self.M[:, 1]*survey.srcField.param[0])
-            Mz = Utils.sdiag(self.M[:, 2]*survey.srcField.param[0])
+            Mx = Utils.sdiag(self.M[:, 0] * self.survey.srcField.param[0])
+            My = Utils.sdiag(self.M[:, 1] * self.survey.srcField.param[0])
+            Mz = Utils.sdiag(self.M[:, 2] * self.survey.srcField.param[0])
 
-            Mxyz = sp.vstack((Mx, My, Mz))
+            self.Mxyz = sp.vstack((Mx, My, Mz))
 
         elif magType == 'x':
 
-            Mxyz = sp.vstack((sp.identity(nC)*survey.srcField.param[0],
+            self.Mxyz = sp.vstack((sp.identity(nC) * self.survey.srcField.param[0],
                               sp.csr_matrix((nC, nC)),
                               sp.csr_matrix((nC, nC))))
 
         elif magType == 'y':
 
-            Mxyz = sp.vstack((sp.csr_matrix((nC, nC)),
-                              sp.identity(nC)*survey.srcField.param[0],
+            self.Mxyz = sp.vstack((sp.csr_matrix((nC, nC)),
+                              sp.identity(nC) * self.survey.srcField.param[0],
                               sp.csr_matrix((nC, nC))))
 
         elif magType == 'z':
 
-            Mxyz = sp.vstack((sp.csr_matrix((nC, nC)),
+            self.Mxyz = sp.vstack((sp.csr_matrix((nC, nC)),
                               sp.csr_matrix((nC, nC)),
-                              sp.identity(nC)*survey.srcField.param[0]))
+                              sp.identity(nC) * self.survey.srcField.param[0]))
 
         elif magType == 'full':
 
-            Mxyz = sp.identity(3*nC)*survey.srcField.param[0]
+            self.Mxyz = sp.identity(3*nC) * self.survey.srcField.param[0]
 
         else:
             raise Exception('magType must be: "H0", "x", "y", "z" or "full"')
 
-        # Check if we need to store the forward operator and pre-allocate memory
-        gc.collect()
-        if self.forwardOnly:
+                # Loop through all observations and create forward operator (nD-by-nC)
+        print("Begin forward: M=" + magType + ", Rx type= " + self.rxType)
 
-            F = np.empty(self.survey.nRx, dtype='float64')
+        # Switch to determine if the process has to be run in parallel
+        job = Forward(
+                rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
+                n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
+                model=self.model, rxType=self.rxType, Mxyz=self.Mxyz,
+                P=self.ProjTMI, parallelized=self.parallelized
+                )
 
-        else:
-
-            if recType != 'xyz':
-                F = np.empty((self.nD, Mxyz.shape[1]), dtype=np.float32)
-            else:
-                F = np.empty((3*self.nD, Mxyz.shape[1]), dtype=np.float32)
-
-        # Loop through all observations and create forward operator (nD-by-nC)
-        print("Begin forward: M=" + magType + ", Rx type= " + recType)
-
-        # Add counter to dsiplay progress. Good for large problems
-        count = -1
-        for ii in range(self.nD):
-
-            tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
-
-            if self.forwardOnly:
-
-                if recType == 'tmi':
-                    F[ii] = (self.ProjTMI.dot(np.vstack((tx, ty, tz)))*Mxyz).dot(m)
-
-                elif recType == 'x':
-                    F[ii] = (tx*Mxyz).dot(m)
-                elif recType == 'y':
-                    F[ii] = (ty*Mxyz).dot(m)
-                elif recType == 'z':
-                    F[ii] = (tz*Mxyz).dot(m)
-                else:
-                    raise Exception('recType must be: "tmi", "x", "y" or "z"')
-
-            else:
-
-                if recType == 'tmi':
-                    F[ii, :] = self.ProjTMI.dot(np.vstack((tx, ty, tz)))*Mxyz
-
-                elif recType == 'x':
-                    F[ii, :] = tx*Mxyz
-
-                elif recType == 'y':
-                    F[ii, :] = ty*Mxyz
-
-                elif recType == 'z':
-                    F[ii, :] = tz*Mxyz
-
-                elif recType == 'xyz':
-                    F[ii, :] = tx*Mxyz
-                    F[ii+self.nD, :] = ty*Mxyz
-                    F[ii+2*self.nD, :] = tz*Mxyz
-                else:
-                    raise Exception('recType must be: "tmi", "x", "y" or "z"')
-
-            if not self.silent:
-                # Display progress
-                count = progress(ii, count, self.nD)
-
-        print("Done 100% ...forward operator completed!!\n")
+        F = job.calculate()
 
         return F
 
@@ -315,6 +266,148 @@ class MagneticIntegral(Problem.LinearProblem):
             Call for general mapping of the problem
         """
         return self.chiMap
+
+class Forward(object):
+
+    progressIndex = -1
+    parallelized = False
+    rxLoc = None
+    Xn, Yn, Zn = None, None, None
+    n_cpu = None
+    forwardOnly = False
+    model = None
+    rxType = 'z'
+    Mxyz = None
+    P = None
+
+    def __init__(self, **kwargs):
+        super(Forward, self).__init__()
+        Utils.setKwargs(self, **kwargs)
+
+    def calculate(self):
+        self.nD = self.rxLoc.shape[0]
+
+        if self.parallelized:
+            if self.n_cpu is None:
+
+                # By default take half the cores, turns out be faster
+                # than running full threads
+                self.n_cpu = int(multiprocessing.cpu_count()/2)
+
+            pool = multiprocessing.Pool(self.n_cpu)
+
+            # rowInd = np.linspace(0, self.nD, self.n_cpu+1).astype(int)
+
+            # job_args = []
+
+            # for ii in range(self.n_cpu):
+
+            #     nRows = int(rowInd[ii+1]-rowInd[ii])
+            #     job_args += [(rowInd[ii], nRows, m)]
+
+            # result = pool.map(self.getTblock, job_args)
+
+            result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
+            pool.close()
+            pool.join()
+
+        else:
+
+            result = []
+            for ii in range(self.nD):
+                result += [self.calcTrow(self.rxLoc[ii, :])]
+                self.progress(ii, self.nD)
+
+        if self.forwardOnly:
+            return mkvc(np.vstack(result))
+
+        else:
+            return np.vstack(result)
+
+    def calcTrow(self, xyzLoc):
+        """
+        Load in the active nodes of a tensor mesh and computes the gravity tensor
+        for a given observation location xyzLoc[obsx, obsy, obsz]
+
+        INPUT:
+        Xn, Yn, Zn: Node location matrix for the lower and upper most corners of
+                    all cells in the mesh shape[nC,2]
+        M
+        OUTPUT:
+        Tx = [Txx Txy Txz]
+        Ty = [Tyx Tyy Tyz]
+        Tz = [Tzx Tzy Tzz]
+
+        where each elements have dimension 1-by-nC.
+        Only the upper half 5 elements have to be computed since symetric.
+        Currently done as for-loops but will eventually be changed to vector
+        indexing, once the topography has been figured out.
+
+        """
+
+        # Pre-allocate space and create Magnetization matrix if required
+        # If assumes uniform Magnetization direction
+
+
+        # Check if we need to store the forward operator and pre-allocate memory
+
+        if self.forwardOnly:
+
+            F = np.empty(self.survey.nRx, dtype='float64')
+
+        else:
+
+            if self.rxType != 'xyz':
+                F = np.empty((self.nD, self.Mxyz.shape[1]), dtype=np.float32)
+            else:
+                F = np.empty((3*self.nD, self.Mxyz.shape[1]), dtype=np.float32)
+
+        # Add counter to dsiplay progress. Good for large problems
+        count = -1
+        # for ii in range(self.nD):
+
+        tx, ty, tz = calcRow(self.Xn, self.Yn, self.Zn, xyzLoc)
+
+        if self.rxType == 'tmi':
+            row = self.P.dot(np.vstack((tx, ty, tz)))*self.Mxyz
+
+        elif self.rxType == 'x':
+            row = tx*self.Mxyz
+
+        elif self.rxType == 'y':
+            row = ty*self.Mxyz
+
+        elif self.rxType == 'z':
+            row = tz*self.Mxyz
+
+        elif self.rxType == 'xyz':
+            row = tx*self.Mxyz
+            row = np.r_[row, ty*self.Mxyz]
+            row = np.r_[row, tz*self.Mxyz]
+        else:
+            raise Exception('rxType must be: "tmi", "x", "y" or "z"')
+
+        if self.forwardOnly:
+
+            return np.dot(row, self.model)
+        else:
+            return row
+
+    def progress(self, iter, nRows):
+        """
+        progress(iter,prog,final)
+
+        Function measuring the progress of a process and print to screen the %.
+        Useful to estimate the remaining runtime of a large problem.
+
+        Created on Dec, 20th 2015
+
+        @author: dominiquef
+        """
+        arg = np.floor(iter/nRows*10.)
+        if arg > self.progressIndex:
+            print("Done " + str(arg*10) + " %")
+            self.progressIndex = arg
 
 
 class MagneticVector(MagneticIntegral):
@@ -482,7 +575,7 @@ class MagneticAmplitude(MagneticIntegral):
     actInd = None  #: Active cell indices provided
     M = None  #: magType matrix provided, otherwise all induced
     magType = 'H0'  #: Option "H0", "x", "y", "z", "full" (for Joint)
-    recType = 'xyz'
+    rxType = 'xyz'
     silent = False  # Don't display progress on screen
     scale = 1.
     W = None
@@ -511,7 +604,7 @@ class MagneticAmplitude(MagneticIntegral):
             Bxyz = []
             for rtype in ['x', 'y', 'z']:
                 Bxyz += [Intrgl_Fwr_Op(m=m, magType=self.magType,
-                                       recType=rtype)]
+                                       rxType=rtype)]
 
             return self.calcAmpData(np.r_[Bxyz])
 
@@ -632,10 +725,10 @@ class MagneticAmplitude(MagneticIntegral):
 
             # self._F = []
             # for rtype in ['x', 'y', 'z']:
-            #     self._F.append(self.Intrgl_Fwr_Op(magType=self.magType, recType=rtype))
+            #     self._F.append(self.Intrgl_Fwr_Op(magType=self.magType, rxType=rtype))
 
             # self._F = np.vstack(self._F)
-            self._F = self.Intrgl_Fwr_Op(magType=self.magType, recType=self.recType)
+            self._F = self.Intrgl_Fwr_Op(magType=self.magType, rxType=self.rxType)
         return self._F
 
     @property
@@ -1068,7 +1161,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
 #     return inv, reg
 
 
-def get_T_mat(Xn, Yn, Zn, rxLoc):
+def calcRow(Xn, Yn, Zn, rxLoc):
     """
     Load in the active nodes of a tensor mesh and computes the magnetic tensor
     for a given observation location rxLoc[obsx, obsy, obsz]
