@@ -193,8 +193,7 @@ def tileSurveyPoints(locs, maxNpoints):
     return [xy1, xy2]
 
 
-def meshBuilder(xyz, h, padDist,
-                padCore=np.r_[1, 1, 1], meshGlobal=None,
+def meshBuilder(xyz, h, padDist, meshGlobal=None,
                 expFact=1.3,
                 meshType='TENSOR',
                 gridLoc='CC'):
@@ -233,9 +232,9 @@ def meshBuilder(xyz, h, padDist,
     midY = np.mean(limy)
     midZ = np.mean(limz)
 
-    nCx = int((xyz[:, 0].max() - xyz[:, 0].min()) / h[0]) + padCore[0]*2
-    nCy = int((xyz[:, 1].max() - xyz[:, 1].min()) / h[1]) + padCore[0]*2
-    nCz = int((xyz[:, 2].max() - xyz[:, 2].min()) / h[2]) + padCore[0]*2
+    nCx = int((xyz[:, 0].max() - xyz[:, 0].min()) / h[0])
+    nCy = int((xyz[:, 1].max() - xyz[:, 1].min()) / h[1])
+    nCz = int((xyz[:, 2].max() - xyz[:, 2].min()) / h[2])
 
     if meshType == 'TENSOR':
         # Make sure the core has odd number of cells for centereing
@@ -314,30 +313,81 @@ def meshBuilder(xyz, h, padDist,
         elif gridLoc == 'N':
             mesh.x0 = np.r_[-nCx*h[0]/2.+midX, -nCy*h[0]/2.+midY, -nCz*h[0] + limz.max()]
         else:
-            assert  NotImplementedError('gridLoc must be CC | N')
+            assert NotImplementedError('gridLoc must be CC | N')
+
+        # if np.all([meshGlobal is not None, useGlobalCore]):
+
+        #     # Get core cell centers
+        #     indCore = meshGlobal.vol == meshGlobal.vol.min()
+
+        #     xyz = np.r_[xyz, meshGlobal.gridCC[indCore, :]]
 
         # Currently a single refinement
         # Can be called multiple times by passing finalize=False
-        mesh.insert_cells(
-            xyz,
-            np.ones(xyz.shape[0])*maxLevel
-        )
+        # mesh.insert_cells(
+        #     xyz,
+        #     np.ones(xyz.shape[0])*maxLevel,
+        #     finalize=finalize
+        # )
 
         # need to mesh.finalize() is running multiple refinement
 
     # Shift tile center to closest cell in base grid
-    if meshGlobal is not None:
+    # if meshGlobal is not None:
+
+    #     # Select core cells
+    #     core = mesh.vol == mesh.vol.min()
+    #     center = np.percentile(mesh.gridCC[core,:], 50,
+    #                            axis=0, interpolation='nearest')
+    #     ind = closestPoints(meshGlobal, center, gridLoc='CC')
+    #     shift = np.squeeze(meshGlobal.gridCC[ind, :]) - center
+    #     mesh.x0 += shift
+
+        # if isinstance(mesh, Mesh.TreeMesh):
+        #     mesh.number()
+
+    return mesh
 
 
-        # Select core cells
-        core = mesh.vol == mesh.vol.min()
-        center = np.percentile(mesh.gridCC[core,:], 50,
-                               axis=0, interpolation='nearest')
-        ind = closestPoints(meshGlobal, center, gridLoc='CC')
-        shift = np.squeeze(meshGlobal.gridCC[ind, :]) - center
-        mesh.x0 += shift
+def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
 
-        if isinstance(mesh, Mesh.TreeMesh):
-            mesh.number()
+    if dtype == "point":
+        maxLevel = int(np.log2(mesh.hx.shape[0]))
+
+        mesh.insert_cells(xyz, np.ones(xyz.shape[0])*maxLevel, finalize=False)
+
+        stencil = np.r_[
+                np.ones(nCpad[0]),
+                np.ones(nCpad[1])*2,
+                np.ones(nCpad[2])*3
+            ]
+
+        # Reflect in the opposite direction
+        vec = np.r_[stencil[::-1], 1, stencil]
+        vecX, vecY, vecZ = np.meshgrid(vec, vec, vec)
+        gridLevel = np.maximum(np.maximum(vecX,
+                               vecY), vecZ)
+        gridLevel = np.kron(np.ones((xyz.shape[0], 1)), gridLevel)
+
+        # Grid the coordinates
+        vec = np.r_[-stencil[::-1], 0, stencil]
+        vecX, vecY, vecZ = np.meshgrid(vec, vec, vec)
+        offset = np.c_[
+            mkvc(np.sign(vecX)*2**np.abs(vecX) * mesh.hx.min()),
+            mkvc(np.sign(vecY)*2**np.abs(vecY) * mesh.hx.min()),
+            mkvc(np.sign(vecZ)*2**np.abs(vecZ) * mesh.hx.min())
+        ]
+
+        # Replicate the point locations in each offseted grid points
+        newLoc = (
+            np.kron(xyz, np.ones((offset.shape[0], 1))) +
+            np.kron(np.ones((xyz.shape[0], 1)), offset)
+        )
+
+        mesh.insert_cells(
+            newLoc, maxLevel-mkvc(gridLevel)+1, finalize=finalize
+        )
+    else:
+        NotImplementedError("Only dtype='points' has been implemented")
 
     return mesh
