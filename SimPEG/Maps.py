@@ -536,14 +536,20 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         return W
 
     def getQ(self, alpha):
-        if alpha < 1.:
-            Chi = np.sqrt((1./alpha**2.) - 1.)
-            return 1./2.*(1. + 1./(alpha**2. - 1.)*(1. - np.arctan(Chi)/Chi))
-        elif alpha > 1.:
-            raise NotImplementedError(
-                'Aspect ratios > 1 have not been implemeted'
+        if alpha < 1.:  # oblate spheroid
+            chi = np.sqrt((1./alpha**2.) - 1)
+            return 1./2. * (
+                1 + 1./(alpha**2. - 1) * (1. - np.arctan(chi)/chi)
             )
-        elif alpha == 1:
+        elif alpha > 1.:  # prolate spheroid
+            chi = np.sqrt(1 - (1./alpha**2.))
+            return 1./2. * (
+                1 + 1./(alpha**2. - 1) * (1. - 1./(2.*chi) * np.log((1 + chi)/(1-chi)))
+            )
+            # raise NotImplementedError(
+            #     'Aspect ratios > 1 have not been implemeted'
+            # )
+        elif alpha == 1:  # sphere
             return 1./3.
 
     def getR(self, sj, se, alpha):
