@@ -132,6 +132,7 @@ class Fields_CC(FieldsDC):
                 \vec{e} = \rho \vec{j}
         """
         return self._MfI*self._MfRho * self._j(phiSolution, srcList)
+        # prob._MfI * cart_mesh.faceDiv.T * p
 
     def _charge(self, phiSolution, srcList):
         """
