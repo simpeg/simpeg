@@ -72,7 +72,8 @@ class BaseEMProblem(Problem.BaseProblem):
     @property
     def _clear_on_mu_update(self):
         return [
-            '_MeMu', '_MeMuI', '_MfMui', '_MfMuiI'
+            '_MeMu', '_MeMuI', '_MfMui', '_MfMuiI',
+            '_MfMuiDeriv', '_MeMuDeriv'
         ]
 
     @property
