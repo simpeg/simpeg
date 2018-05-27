@@ -472,6 +472,8 @@ class MagneticVector(MagneticIntegral):
             Return the diagonal of JtJ
         """
 
+        dmudm = self.chiMap.deriv(m)
+
         if self.gtgdiag is None:
 
             if W is None:
@@ -479,7 +481,7 @@ class MagneticVector(MagneticIntegral):
             else:
                 w = W.diagonal()
 
-            dmudm = self.chiMap.deriv(m)
+
             self.gtgdiag = np.zeros(self.F.shape[1])
 
             for ii in range(self.F.shape[0]):

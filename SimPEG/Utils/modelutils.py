@@ -415,9 +415,8 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
 
             for level in range(int(nCpad[ii])):
 
-                z = z - zOffset
                 mesh.insert_cells(
-                    np.c_[mkvc(CCx), mkvc(CCy), z], np.ones_like(z)*maxLevel-ii,
+                    np.c_[mkvc(CCx), mkvc(CCy), z-zOffset], np.ones_like(z)*maxLevel-ii,
                     finalize=False
                 )
 

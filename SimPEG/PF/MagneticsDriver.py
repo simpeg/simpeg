@@ -421,6 +421,7 @@ def actIndFull2layer(mesh, actInd):
 
     return np.asarray(np.where(mkvc(actIndLayer))[0], dtype=int)
 
+
 def writeVectorUBC(mesh, fileName, model):
     """
         Writes a vector model associated with a SimPEG TensorMesh
@@ -433,12 +434,17 @@ def writeVectorUBC(mesh, fileName, model):
     modelMatTR = np.zeros_like(model)
 
     for ii in range(3):
-        # Reshape model to a matrix
-        modelMat = mesh.r(model[:, ii], 'CC', 'CC', 'M')
-        # Transpose the axes
-        modelMatT = modelMat.transpose((2, 0, 1))
-        # Flip z to positive down
-        modelMatTR[:, ii] = Utils.mkvc(modelMatT[::-1, :, :])
+
+        if isinstance(mesh, Mesh.TreeMesh):
+            modelMatTR[:, ii] = model[:, ii][mesh._ubc_order]
+
+        else:
+            # Reshape model to a matrix
+            modelMat = mesh.r(model[:, ii], 'CC', 'CC', 'M')
+            # Transpose the axes
+            modelMatT = modelMat.transpose((2, 0, 1))
+            # Flip z to positive down
+            modelMatTR[:, ii] = Utils.mkvc(modelMatT[::-1, :, :])
 
     np.savetxt(fileName, modelMatTR)
 
