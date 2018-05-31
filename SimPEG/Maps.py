@@ -1177,7 +1177,7 @@ class InjectActiveCells(IdentityMap):
 #                                                                             #
 #                             Parametric Maps                                 #
 #                                                                             #
-###############################################################################
+######################s#########################################################
 
 
 class ParametricCircleMap(IdentityMap):

@@ -93,7 +93,10 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         taui_t_c = (taui*t)**c
         dpetadeta = np.exp(-taui_t_c)
         if adjoint:
-            return etaDeriv.T * (dpetadeta * v)
+            if v.ndim == 1:
+                return etaDeriv.T * (dpetadeta * v)
+            else:
+                return etaDeriv.T * (Utils.sdiag(dpetadeta) * v)
         else:
             return dpetadeta * (etaDeriv*v)
 
@@ -109,7 +112,10 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
             - c * eta / taui * taui_t_c * np.exp(-taui_t_c)
             )
         if adjoint:
-            return tauiDeriv.T * (dpetadtaui*v)
+            if v.ndim == 1:
+                return tauiDeriv.T * (dpetadtaui*v)
+            else:
+                return tauiDeriv.T * (Utils.sdiag(dpetadtaui)*v)
         else:
             return dpetadtaui * (tauiDeriv*v)
 
@@ -124,7 +130,10 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
             -eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(taui*t)
             )
         if adjoint:
-            return cDeriv.T * (dpetadc*v)
+            if v.ndim == 1:
+                return cDeriv.T * (dpetadc*v)
+            else:
+                return cDeriv.T * (Utils.sdiag(dpetadc)*v)
         else:
             return dpetadc * (cDeriv*v)
 
@@ -207,7 +216,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
             # delete fields after computing sensitivity
             del f
             if self._f is not None:
-                del self._f
+                self._f = []
             # clean all factorization
             if self.Ainv[0] is not None:
                 for i in range(self.nky):
@@ -215,6 +224,12 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
             return self._Jmatrix
 
     def forward(self, m, f=None):
+
+        self.model = m
+
+        self._eta_store = self.eta
+        self._taui_store = self.taui
+        self._c_store = self.c
 
         J = self.getJ(m, f=f)
 
@@ -427,6 +442,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
                 return drho_dlogrho.T * (u*vol*(-1./rho**2) * v)
             else:
                 return (u*vol*(-1./rho**2))*(drho_dlogrho * v)
+
     @property
     def deleteTheseOnModelUpdate(self):
         toDelete = [
