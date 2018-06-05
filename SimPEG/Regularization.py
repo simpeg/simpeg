@@ -1539,6 +1539,14 @@ class SparseSmall(BaseSparse):
 
         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
 
+        # Theoritical full deriv for testing
+        # r = (
+        #     eta * (
+        #         1. / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.) +
+        #         (self.norm/2. - 1.) * f_m**2. / (f_m**2. + self.epsilon**2.)**(2.-self.norm/2.)
+        #     )
+
+        # )**0.5
         self.stashedR = r  # stash on the first calculation
         return r
 
@@ -1646,6 +1654,16 @@ class SparseDeriv(BaseSparse):
         eta[maxGrad != 0] = np.abs(f_m).max()/maxGrad[maxGrad != 0]
 
         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
+
+        # Theoritical full deriv for testing
+        # r = (
+        #     eta * (
+        #         1. / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.) +
+        #         (self.norm/2. - 1.) * f_m**2. / (f_m**2. + self.epsilon**2.)**(2.-self.norm/2.)
+        #     )
+
+        # )**0.5
+
         # print(eta)
         self.stashedR = r  # stash on the first calculation
         return r

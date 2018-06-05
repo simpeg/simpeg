@@ -351,16 +351,16 @@ class Forward(object):
 
         # Check if we need to store the forward operator and pre-allocate memory
 
-        if self.forwardOnly:
+        # if self.forwardOnly:
 
-            F = np.empty(self.survey.nRx, dtype='float64')
+        #     F = np.empty(self.survey.nRx, dtype='float64')
 
-        else:
+        # else:
 
-            if self.rxType != 'xyz':
-                F = np.empty((self.nD, self.Mxyz.shape[1]), dtype=np.float32)
-            else:
-                F = np.empty((3*self.nD, self.Mxyz.shape[1]), dtype=np.float32)
+        #     if self.rxType != 'xyz':
+        #         F = np.empty((self.nD, self.Mxyz.shape[1]), dtype=np.float32)
+        #     else:
+        #         F = np.empty((3*self.nD, self.Mxyz.shape[1]), dtype=np.float32)
 
         # Add counter to dsiplay progress. Good for large problems
         count = -1
@@ -391,7 +391,7 @@ class Forward(object):
 
             return np.dot(row, self.model)
         else:
-            return row
+            return np.float32(row)
 
     def progress(self, iter, nRows):
         """
@@ -482,7 +482,7 @@ class MagneticVector(MagneticIntegral):
                 w = W.diagonal()
 
 
-            self.gtgdiag = np.zeros(self.F.shape[1])
+            self.gtgdiag = np.zeros(dmudm.shape[1])
 
             for ii in range(self.F.shape[0]):
 
@@ -492,7 +492,7 @@ class MagneticVector(MagneticIntegral):
             return self.gtgdiag
 
         else:
-            Japprox = Utils.sdiag(mkvc(self.gtgdiag)**0.5) * (self.S * dmudm)
+            Japprox = Utils.sdiag(mkvc(self.gtgdiag)**0.5*dmudm.T) * (self.S * dmudm)
 
             return (Japprox.T*Japprox).diagonal()
 
@@ -546,10 +546,12 @@ class MagneticVector(MagneticIntegral):
 
             # TEST - CONVERT TO CARTESIAN FOR TILE INTERPOLATION
             nC = int(len(self.model)/3)
+
             m_xyz = self.chiMap * atp2xyz(self.model.reshape((nC, 3), order='F'))
+
+            nC = int(m_xyz.shape[0]/3.)
             m_atp = xyz2atp(m_xyz.reshape((nC, 3), order='F'))
 
-            nC = int(m_atp.shape[0]/3.)
             a = m_atp[:nC]
             t = m_atp[nC:2*nC]
             p = m_atp[2*nC:]

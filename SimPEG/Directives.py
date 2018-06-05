@@ -360,12 +360,17 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                                               fileName + '.sus', self.mapping * xc)
             else:
 
+                nC = self.mapping.shape[1]
+
                 if prob.coordinate_system == 'spherical':
                     vec_xyz = Utils.matutils.atp2xyz(xc.reshape((int(len(xc)/3), 3), order='F'))
+                    theta = self.mapping * xc[nC:2*nC]
+                    phi = self.mapping * xc[2*nC:]
                 else:
                     vec_xyz = xc
-
-                nC = self.mapping.shape[1]
+                    atp = Utils.matutils.xyz2atp(xc.reshape((int(len(xc)/3), 3), order='F'))
+                    theta = self.mapping * atp[nC:2*nC]
+                    phi = self.mapping * atp[2*nC:]
 
                 vec_x = self.mapping * vec_xyz[:nC]
                 vec_y = self.mapping * vec_xyz[nC:2*nC]
@@ -373,20 +378,72 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
 
                 vec = np.c_[vec_x, vec_y, vec_z]
 
-                m_pst = Utils.matutils.xyz2pst(vec, self.survey[0].srcField.param)
+                m_pst = Utils.matutils.xyz2pst(
+                    vec, self.survey[0].srcField.param
+                )
                 m_ind = m_pst.copy()
                 m_ind[:, 1:] = 0.
-                m_ind = Utils.matutils.pst2xyz(m_ind, self.survey[0].srcField.param)
+                m_ind = Utils.matutils.pst2xyz(
+                    m_ind, self.survey[0].srcField.param
+                )
 
                 m_rem = m_pst.copy()
                 m_rem[:, 0] = 0.
-                m_rem = Utils.matutils.pst2xyz(m_rem, self.survey[0].srcField.param)
+                m_rem = Utils.matutils.pst2xyz(
+                    m_rem, self.survey[0].srcField.param
+                )
 
-                MagneticsDriver.writeVectorUBC(reg.regmesh.mesh, fileName + '_VEC.fld', vec)
+                MagneticsDriver.writeVectorUBC(
+                    reg.regmesh.mesh, fileName + '_VEC.fld', vec)
 
                 if self.saveComp:
-                    MagneticsDriver.writeVectorUBC(reg.regmesh.mesh, fileName + '_IND.fld', m_ind)
-                    MagneticsDriver.writeVectorUBC(reg.regmesh.mesh, fileName + '_REM.fld', m_rem)
+                    if isinstance(reg.regmesh.mesh, Mesh.TreeMesh):
+                        Mesh.TreeMesh.writeUBC(
+                            reg.regmesh.mesh,
+                            fileName + '.msh',
+                            models={fileName + '.theta': theta}
+                        )
+                        Mesh.TreeMesh.writeUBC(
+                            reg.regmesh.mesh,
+                            fileName + '.msh',
+                            models={fileName + '.phi': phi}
+                        )
+                        Mesh.TreeMesh.writeUBC(
+                            reg.regmesh.mesh,
+                            fileName + '.msh',
+                            models={fileName + '_TOT.amp': np.sum(vec**2, axis=1)**0.5}
+                        )
+                        Mesh.TreeMesh.writeUBC(
+                            reg.regmesh.mesh,
+                            fileName + '.msh',
+                            models={fileName + '_IND.amp': np.sum(m_ind**2, axis=1)**0.5}
+                        )
+                        Mesh.TreeMesh.writeUBC(
+                            reg.regmesh.mesh,
+                            fileName + '.msh',
+                            models={fileName + '_REM.amp': np.sum(m_rem**2, axis=1)**0.5}
+                        )
+                    else:
+                        Mesh.TensorMesh.writeModelUBC(
+                            reg.regmesh.mesh,
+                            fileName + '.theta', theta
+                        )
+                        Mesh.TensorMesh.writeModelUBC(
+                            reg.regmesh.mesh,
+                            fileName + '.phi', phi
+                        )
+                        Mesh.TensorMesh.writeModelUBC(
+                            reg.regmesh.mesh,
+                            fileName + '_TOT.amp', np.sum(vec**2, axis=1)**0.5
+                        )
+                        Mesh.TensorMesh.writeModelUBC(
+                            reg.regmesh.mesh,
+                            fileName + '_IND.amp', np.sum(m_ind**2, axis=1)**0.5
+                        )
+                        Mesh.TensorMesh.writeModelUBC(
+                            reg.regmesh.mesh,
+                            fileName + '_REM.amp', np.sum(m_rem**2, axis=1)**0.5
+                        )
 
 
 class SaveOutputEveryIteration(SaveEveryIteration):

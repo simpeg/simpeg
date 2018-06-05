@@ -234,7 +234,7 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
 
     nCx = int(limx[0]-limx[1]) / h[0]
     nCy = int(limy[0]-limy[1]) / h[1]
-    nCz = int(limz[0]-limz[1]) / h[2]
+    nCz = int(limz[0]-limz[1]+int(np.min(np.r_[nCx, nCy])/3)) / h[2]
 
     if meshType == 'TENSOR':
         # Make sure the core has odd number of cells for centereing
