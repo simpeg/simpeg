@@ -1157,7 +1157,8 @@ def readMagneticsObservations(obs_file):
         wd = np.zeros(ndat, dtype=float)
         locXYZ = np.zeros((ndat, 3), dtype=float)
 
-        for ii in range(ndat):
+        ii = 0
+        while ii < ndat:
 
             temp = np.array(line.split(), dtype=float)
             if len(temp) > 0:
@@ -1168,7 +1169,7 @@ def readMagneticsObservations(obs_file):
 
                     if len(temp) == 5:
                         wd[ii] = temp[4]
-
+                ii += 1
             line = fid.readline()
 
         rxLoc = MAG.RxObs(locXYZ)
