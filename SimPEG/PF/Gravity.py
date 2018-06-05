@@ -461,14 +461,16 @@ def readGravityObservations(obs_file):
     wd = np.zeros(ndat, dtype=float)
     locXYZ = np.zeros((ndat, 3), dtype=float)
 
-    for ii in range(ndat):
-
+    ii=0
+    while ii<ndat:
         temp = np.array(line.split(), dtype=float)
         if len(temp) > 0:
             locXYZ[ii, :] = temp[:3]
             d[ii] = temp[3]
             wd[ii] = temp[4]
+            ii+=1
         line = fid.readline()
+
 
     rxLoc = GRAV.RxObs(locXYZ)
     srcField = GRAV.SrcField([rxLoc])
