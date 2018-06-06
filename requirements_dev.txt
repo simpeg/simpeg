@@ -17,3 +17,4 @@ vectormath
 wheel
 pytest
 git+https://github.com/simpeg/discretize.git@feat/3Dcylmesh
+git+https://github.com/simpeg/geoana@ref/em_and_docs
