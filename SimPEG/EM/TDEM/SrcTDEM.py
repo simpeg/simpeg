@@ -5,6 +5,8 @@ from scipy.constants import mu_0
 import properties
 import warnings
 
+from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
+
 from SimPEG import Utils
 from SimPEG.Utils import Zero, Identity
 from SimPEG.EM.Utils import *
@@ -312,34 +314,18 @@ class MagDipole(BaseTDEMSrc):
     )
 
     def __init__(self, rxList, **kwargs):
-        # assert(self.orientation in ['X', 'Y', 'Z']), (
-        #     "Orientation (right now) doesn't actually do anything! The methods"
-        #     " in SrcUtils should take care of this..."
-        #     )
-        # self.integrate = False
         BaseTDEMSrc.__init__(self, rxList, srcType="inductive", **kwargs)
 
-    @properties.validator('orientation')
-    def _warn_non_axis_aligned_sources(self, change):
-        value = change['value']
-        axaligned = [
-            True for vec in [
-                np.r_[1., 0., 0.], np.r_[0., 1., 0.], np.r_[0., 0., 1.]
-            ]
-            if np.all(value == vec)
-        ]
-        if len(axaligned) != 1:
-            warnings.warn(
-                'non-axes aligned orientations {} are not rigorously'
-                ' tested'.format(value)
+    def _srcFct(self, obsLoc, coordinates="cartesian"):
+        if getattr(self, '_dipole', None) is None:
+            self._dipole = MagneticDipoleWholeSpace(
+                mu=self.mu, orientation=self.orientation, location=self.loc,
+                moment=self.moment
             )
-
-    def _srcFct(self, obsLoc, component):
-        return MagneticDipoleVectorPotential(
-            self.loc, obsLoc, component, mu=self.mu, moment=self.moment
-        )
+        return self._dipole.vector_potential(obsLoc, coordinates=coordinates)
 
     def _aSrc(self, prob):
+        coordinates = "cartesian"
         if prob._formulation == 'EB':
             gridX = prob.mesh.gridEx
             gridY = prob.mesh.gridEy
@@ -351,17 +337,14 @@ class MagDipole(BaseTDEMSrc):
             gridZ = prob.mesh.gridFz
 
         if prob.mesh._meshType is 'CYL':
-            if not prob.mesh.isSymmetric:
-                raise NotImplementedError(
-                    'Non-symmetric cyl mesh not implemented yet!'
-                )
-            a = self._srcFct(gridY, 'y')
+            coordinates = "cylindrical"
+            if prob.mesh.isSymmetric:
+                return self._srcFct(gridY)[:, 1]
 
-        else:
-            ax = self._srcFct(gridX, 'x')
-            ay = self._srcFct(gridY, 'y')
-            az = self._srcFct(gridZ, 'z')
-            a = np.concatenate((ax, ay, az))
+        ax = self._srcFct(gridX, coordinates)[:, 0]
+        ay = self._srcFct(gridY, coordinates)[:, 1]
+        az = self._srcFct(gridZ, coordinates)[:, 2]
+        a = np.concatenate((ax, ay, az))
 
         return a
 
@@ -485,6 +468,10 @@ class CircularLoop(MagDipole):
     radius = properties.Float(
         "radius of the loop source", default=1., min=0.
     )
+
+    current = properties.Float(
+        "current in the loop", default=1.
+    )
     # waveform = None
     # loc = None
     # orientation = 'Z'
@@ -499,10 +486,22 @@ class CircularLoop(MagDipole):
         # self.integrate = False
         super(CircularLoop, self).__init__(rxList, **kwargs)
 
-    def _srcFct(self, obsLoc, component):
-        return MagneticLoopVectorPotential(
-            self.loc, obsLoc, component, mu=self.mu, radius=self.radius
-        )
+    @property
+    def moment(self):
+        return np.pi * self.radius**2 * self.current
+
+    def _srcFct(self, obsLoc, coordinates="cartesian"):
+        # return MagneticLoopVectorPotential(
+        #     self.loc, obsLoc, component, mu=self.mu, radius=self.radius
+        # )
+
+        if getattr(self, '_loop', None) is None:
+            self._loop = CircularLoopWholeSpace(
+                mu=self.mu, location=self.loc,
+                orientation=self.orientation, radius=self.radius,
+                current=self.current
+            )
+        return self._loop.vector_potential(obsLoc, coordinates)
 
 
 class LineCurrent(BaseTDEMSrc):
