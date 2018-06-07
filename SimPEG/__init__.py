@@ -19,6 +19,7 @@ from SimPEG import Optimization
 from SimPEG import Directives
 from SimPEG import Inversion
 from SimPEG import Tests
+from SimPEG.Utils import versions
 
 __version__   = '0.8.3'
 __author__    = 'SimPEG Team'
