@@ -1068,6 +1068,9 @@ class GaussianMixtureUpdateModel(InversionDirective):
             self.fixed_membership = self.petroregularizer.membership(
                 self.petroregularizer.mref)
 
+        # TEMPORARY FOR WEIGHTS ACCROSS THE MESH
+        self.petroregularizer.GMmodel.weights_ = self.petroregularizer.GMmref.weights_
+
         clfupdate = Utils.GaussianMixtureWithPrior(
             GMref=self.petroregularizer.GMmref,
             alphadir=self.alphadir,
@@ -1226,8 +1229,7 @@ class SmoothUpdateReferenceModel(InversionDirective):
 
 class BoreholeLithologyConstraints(InversionDirective):
 
-    borehole_index = None
-    borehole_lithology = None
+    borehole_weight_mesh = None
 
     def endIter(self):
         membership = self.invProb.reg.membership(self.invProb.reg.mref)
@@ -1237,6 +1239,64 @@ class BoreholeLithologyConstraints(InversionDirective):
         self.invProb.reg.mref = Utils.mkvc(
             self.invProb.reg.GMmodel.means_[membership]
         )
+
+class BoreholeLithologyConstraintsEllipsoidMixture(InversionDirective):
+
+    borehole_weights = None
+
+    def initialize(self):
+        if getattr(
+            self.invProb.reg.objfcts[0],
+            'objfcts',
+            None
+        ) is not None:
+            petrosmallness = np.where(np.r_[
+                [
+                    (
+                        isinstance(
+                            regpart,
+                            Regularization.SimplePetroRegularization
+                        ) or
+                        isinstance(
+                            regpart,
+                            Regularization.PetroRegularization
+                        ) or
+                        isinstance(
+                            regpart,
+                            Regularization.SimplePetroWithMappingRegularization
+                        )
+                    )
+                    for regpart in self.invProb.reg.objfcts
+                ]
+            ])[0][0]
+            self.petrosmallness = petrosmallness
+            if self.debug:
+                print(type(self.invProb.reg.objfcts[self.petrosmallness]))
+            self._regmode = 1
+        else:
+            self._regmode = 2
+
+        if self._regmode == 1:
+            self.petroregularizer = self.invProb.reg.objfcts[
+                self.petrosmallness]
+        else:
+            self.petroregularizer = self.invProb.reg
+
+    def endIter(self):
+        if not self.petroregularizer.mrefInSmooth:
+            m = self.invProb.model
+            modellist = self.petroregularizer.wiresmap * m
+            model = np.c_[
+                [
+                a * b for a, b in zip(
+                    self.petroregularizer.maplist, modellist
+                    )
+                ]
+            ].T
+            self.petroregularizer.GMmodel.weights_ = self.borehole_weights
+            membership = self.petroregularizer.GMmodel.predict(model)
+            self.petroregularizer.mref = Utils.mkvc(
+                self.petroregularizer.GMmodel.means_[membership])
 
 
 class AlphasSmoothEstimate_ByEig(InversionDirective):
