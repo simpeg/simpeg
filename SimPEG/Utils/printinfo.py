@@ -244,23 +244,26 @@ def versions_text(add_pckg=None):
 def _get_packages(add_pckg):
     """Create list of packages."""
 
-    # Return empty list if None
-    if add_pckg is None:
-        return []
-
-    # Cast add_pckg
-    if isinstance(add_pckg, tuple):
-        add_pckg = list(add_pckg)
-
-    if not isinstance(add_pckg, list):
-        add_pckg = [add_pckg, ]
-
-    # Create package-list
+    # Mandatory packages
     pckgs = [numpy, scipy, SimPEG, cython, properties, vectormath, discretize,
-             pymatsolver]                             # Mandatory ones
-    for module in [IPython, ipywidgets, matplotlib]:  # Optional ones
+             pymatsolver]
+
+    # Optional packages
+    for module in [IPython, ipywidgets, matplotlib]:
         if module:
             pckgs += [module]
-    pckgs += add_pckg  # Add the ones from the input
+
+    # Cast and add add_pckg
+    if add_pckg is not None:
+
+        # Cast add_pckg
+        if isinstance(add_pckg, tuple):
+            add_pckg = list(add_pckg)
+
+        if not isinstance(add_pckg, list):
+            add_pckg = [add_pckg, ]
+
+        # Add add_pckg
+        pckgs += add_pckg
 
     return pckgs
