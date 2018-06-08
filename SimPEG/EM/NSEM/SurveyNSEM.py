@@ -232,6 +232,23 @@ class Data(SimPEGsurvey.Data, DataNSEMPlotMethods):
         dataVec = np.hstack(dataList)
         return cls(survey, dataVec)
 
+    def _unique_locations(self):
+        '''
+        Return unique locations in the survey
+        '''
+        return _unique_rows(np.concatenate(
+            [rx.locs if len(rx.locs.shape) == 2 else rx.locs[:, :, 0]
+             for src in self.survey.srcList for rx in src.rxList]))
+
+
+def _unique_rows(array):
+    """
+    Finds and returns unique rows in an array
+    """
+    array = np.ascontiguousarray(array)
+    unique_array = np.unique(array.view([('', array.dtype)] * array.shape[1]))
+    return unique_array.view(
+        array.dtype).reshape((unique_array.shape[0], array.shape[1]))
 
 def _rec_to_ndarr(rec_arr, data_type=float):
     """

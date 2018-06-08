@@ -497,9 +497,15 @@ class DataNSEMPlotMethods(object):
             if key not in plot_kwargs:
                 plot_kwargs[key] = val
         # Get unique locations
-        unique_locations = _unique_rows(np.concatenate(
-            [rx.locs for src in self.survey.srcList for rx in src.rxList])
-        )
+        if len(self.survey.srcList[0].rxList[0].locs.shape) == 3:
+            unique_locations = _unique_rows(np.concatenate(
+                [rx.locs[:, :, 0]
+                    for src in self.survey.srcList for rx in src.rxList])
+            )
+        else:
+            unique_locations = _unique_rows(np.concatenate(
+                [rx.locs for src in self.survey.srcList for rx in src.rxList])
+            )
         # Make the figure and the axes
         if ax is None:
             fig, ax = plt.subplots(1, 1)
@@ -795,8 +801,12 @@ def _extract_location_data(
             return (np.array([]), np.array([]))
         else:
             rx = rx_list[0]
-
-        ind_loc = np.sqrt(np.sum((rx.locs[:, :2] - location) ** 2, axis=1)) < 0.1
+        if len(rx.locs.shape) == 3:
+            ind_loc = np.sqrt(np.sum(
+                (rx.locs[:, :2, 0] - location[:, :2]) ** 2, axis=1)) < 0.1
+        else:
+            ind_loc = np.sqrt(np.sum(
+                (rx.locs[:, :2] - location) ** 2, axis=1)) < 0.1
         if np.any(ind_loc):
             freq_list.append(src.freq)
             data_list.append(data[src, rx][ind_loc])
