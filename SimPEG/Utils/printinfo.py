@@ -35,7 +35,6 @@ import multiprocessing
 
 # Required packages
 import SimPEG
-import scipy
 import cython
 import properties
 import vectormath
@@ -64,7 +63,7 @@ except ImportError:
 __all__ = ['versions', 'versions_html', 'versions_text']
 
 
-def versions(mode='print', add_pckg=[], ncol=4):
+def versions(mode='print', add_pckg=None, ncol=4):
     """Return date, time, and version information.
 
     Print or return date, time, and package version information in any
@@ -128,7 +127,7 @@ def versions(mode='print', add_pckg=[], ncol=4):
         print(versions_text(add_pckg))
 
 
-def versions_html(add_pckg=[], ncol=4):
+def versions_html(add_pckg=None, ncol=4):
     """HTML version.
 
     See ``versions`` for details.
@@ -204,7 +203,7 @@ def versions_html(add_pckg=[], ncol=4):
     return html
 
 
-def versions_text(add_pckg=[]):
+def versions_text(add_pckg=None):
     """Plain-text version.
 
     See ``versions`` for details.
@@ -244,6 +243,10 @@ def versions_text(add_pckg=[]):
 
 def _get_packages(add_pckg):
     """Create list of packages."""
+
+    # Return empty list if None
+    if add_pckg is None:
+        return []
 
     # Cast add_pckg
     if isinstance(add_pckg, tuple):
