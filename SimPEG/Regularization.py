@@ -10,7 +10,7 @@ from . import Maps
 from . import Mesh
 from . import ObjectiveFunction
 from . import Props
-from .Utils import mkvc
+from .Utils import mkvc, speye, sdiag, kron3
 
 __all__ = [
     'SimpleSmall', 'SimpleSmoothDeriv', 'Simple',
@@ -1988,7 +1988,7 @@ def coterminal(theta):
 def ddx(n, vals):
     """Define 1D averaging operator from cell-centers to nodes."""
     ddx = (
-        sp.sparse.spdiags(
+        sp.spdiags(
             (np.ones((n, 1)) * vals).T,
             [-1, 0, 1],
             n, n,
@@ -2050,17 +2050,17 @@ def getDiffOpRot(mesh, psi, theta, phi, vec, forward=True):
     rxa = mkvc(np.c_[np.ones(mesh.nC), np.cos(psi), np.cos(psi)].T)
     rxb = mkvc(np.c_[np.zeros(mesh.nC), np.sin(psi), np.zeros(mesh.nC)].T)
     rxc = mkvc(np.c_[np.zeros(mesh.nC), -np.sin(psi), np.zeros(mesh.nC)].T)
-    Rx = sp.sparse.diags([rxb[:-1], rxa, rxc[:-1]], [-1, 0, 1])
+    Rx = sp.diags([rxb[:-1], rxa, rxc[:-1]], [-1, 0, 1])
 
     rya = mkvc(np.c_[np.cos(theta), np.ones(mesh.nC), np.cos(theta)].T)
     ryb = mkvc(np.c_[-np.sin(theta), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
     ryc = mkvc(np.c_[np.sin(theta), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
-    Ry = sp.sparse.diags([ryb[:-2], rya, ryc[:-2]], [-2, 0, 2])
+    Ry = sp.diags([ryb[:-2], rya, ryc[:-2]], [-2, 0, 2])
 
     rza = mkvc(np.c_[np.cos(phi), np.cos(phi), np.ones(mesh.nC)].T)
     rzb = mkvc(np.c_[np.sin(phi), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
     rzc = mkvc(np.c_[-np.sin(phi), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
-    Rz = sp.sparse.diags([rzb[:-1], rza, rzc[:-1]], [-1, 0, 1])
+    Rz = sp.diags([rzb[:-1], rza, rzc[:-1]], [-1, 0, 1])
 
     # Rotate all cell vectors
     rx = (Rz*(Ry*(Rx*px.T))).reshape((mesh.nC, 3))

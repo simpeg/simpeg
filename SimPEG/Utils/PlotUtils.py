@@ -265,10 +265,10 @@ def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
     nC = mesh.nC
 
     if vmin is None:
-        vmin = m.min()
+        vmin = m[np.isnan(m)!=True].min()
 
     if vmax is None:
-        vmax = m.max()
+        vmax = m[np.isnan(m)!=True].max()
 
     if len(m) == 3*nC:
         m_lpx = m[0:nC]
@@ -352,7 +352,7 @@ def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
     im2, cbar = [], []
     if fill:
         im2 = axs.contourf(xx, yy, model,
-                           30, vmin=vmin, vmax=vmax, clim=[vmin, vmax],
+                           30, vmin=vmin, vmax=vmax,
                            cmap=cmap)
 
         cbar = plt.colorbar(im2, orientation=orientation, ax=axs,

@@ -523,8 +523,8 @@ def minCurvatureInterp(
 
         while np.all([count < iterMax, residual > tol]):
             for ii in range(m.shape[1]):
-                # F = NearestNDInterpolator(mesh.gridCC[ijk], data[:, ii])
-                m[:, ii] = data[ind, ii]
+                # Reset the closest cell grid to the contraints
+                m[d < 1.1*gridSize, ii] = data[ind[d < 1.1*gridSize], ii]
             mtemp = m
             m = Ave.T * (Ave * m)
             residual = np.linalg.norm(m-mtemp)/np.linalg.norm(mtemp)
