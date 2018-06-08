@@ -2,10 +2,11 @@ from .matutils import mkvc, ndgrid
 import numpy as np
 from scipy.interpolate import griddata, interp1d, interp2d, NearestNDInterpolator
 import numpy as np
+import scipy.sparse as sp
 from scipy.sparse.linalg import bicgstab
 from scipy.spatial import cKDTree
 import discretize as Mesh
-from discretize.utils import closestPoints
+from discretize.utils import closestPoints, kron3, speye
 
 
 def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest',
@@ -493,10 +494,10 @@ def minCurvatureInterp(
         vectorZ = zmin+np.cumsum(np.ones(nCz) * gridSize)
 
     if ndim == 3:
-        gridCx, gridCy, gridCz = np.meshgrid(vectorX, vectorY, vectorZ)
+        gridCy, gridCx, gridCz = np.meshgrid(vectorY, vectorX, vectorZ)
         gridCC = np.c_[mkvc(gridCx), mkvc(gridCy), mkvc(gridCz)]
     elif ndim == 2:
-        gridCx, gridCy = np.meshgrid(vectorX, vectorY)
+        gridCy, gridCx = np.meshgrid(vectorY, vectorX)
         gridCC = np.c_[mkvc(gridCx), mkvc(gridCy)]
     else:
         gridCC = vectorX
@@ -529,6 +530,7 @@ def minCurvatureInterp(
             residual = np.linalg.norm(m-mtemp)/np.linalg.norm(mtemp)
             count += 1
 
+        print(count)
         return gridCC, m
 
     elif method == 'spline':

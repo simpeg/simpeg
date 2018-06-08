@@ -5,7 +5,8 @@ from scipy.interpolate import griddata
 from scipy.spatial import cKDTree
 from scipy.interpolate.interpnd import _ndim_coords_from_arrays
 from matplotlib.colors import LightSource, Normalize
-
+import matplotlib.gridspec as gridspec
+from SimPEG.Utils import mkvc
 
 def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
                ax=None, mask=None, level=None, figname=None,
@@ -250,3 +251,237 @@ def plotDataHillside(x, y, z, axs=None, fill=True, contour=0,
         if clabel:
             plt.clabel(CS, inline=1, fontsize=10, fmt='%i')
     return im, CS
+
+
+def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
+                      subFact=2, scale=1., xlim=None, ylim=None, vec='k',
+                      title=None, axs=None, actv=None, contours=None, fill=True,
+                      orientation='vertical', cmap='pink_r'):
+
+    """
+    Plot section through a 3D tensor model
+    """
+    # plot recovered model
+    nC = mesh.nC
+
+    if vmin is None:
+        vmin = m.min()
+
+    if vmax is None:
+        vmax = m.max()
+
+    if len(m) == 3*nC:
+        m_lpx = m[0:nC]
+        m_lpy = m[nC:2*nC]
+        m_lpz = m[2*nC:]
+
+        if actv is not None:
+            m_lpx[actv!=True] = np.nan
+            m_lpy[actv!=True] = np.nan
+            m_lpz[actv!=True] = np.nan
+
+        amp = np.sqrt(m_lpx**2. + m_lpy**2. + m_lpz**2.)
+
+        m_lpx = (m_lpx).reshape(mesh.vnC, order='F')
+        m_lpy = (m_lpy).reshape(mesh.vnC, order='F')
+        m_lpz = (m_lpz).reshape(mesh.vnC, order='F')
+        amp = amp.reshape(mesh.vnC, order='F')
+    else:
+
+        if actv is not None:
+            m[actv!=True] = np.nan
+
+        amp = m.reshape(mesh.vnC, order='F')
+
+    xx = mesh.gridCC[:, 0].reshape(mesh.vnC, order="F")
+    zz = mesh.gridCC[:, 2].reshape(mesh.vnC, order="F")
+    yy = mesh.gridCC[:, 1].reshape(mesh.vnC, order="F")
+
+    if axs is None:
+        fig, axs = plt.figure(), plt.subplot()
+
+    if normal == 'x':
+        xx = yy[ind, :, :].T
+        yy = zz[ind, :, :].T
+        model = amp[ind, :, :].T
+
+        if len(m) == 3*nC:
+            mx = m_lpy[ind, ::subFact, ::subFact].T
+            my = m_lpz[ind, ::subFact, ::subFact].T
+
+    elif normal == 'y':
+        xx = xx[:, ind, :].T
+        yy = zz[:, ind, :].T
+        model = amp[:, ind, :].T
+
+        if len(m) == 3*nC:
+            mx = m_lpx[::subFact, ind, ::subFact].T
+            my = m_lpz[::subFact, ind, ::subFact].T
+
+    elif normal == 'z':
+
+        if actv is not None:
+            actIndFull = np.zeros(mesh.nC, dtype=bool)
+            actIndFull[actv] = True
+        else:
+            actIndFull = np.ones(mesh.nC, dtype=bool)
+
+        actIndFull = actIndFull.reshape(mesh.vnC, order='F')
+
+        model = np.zeros((mesh.nCx, mesh.nCy))
+        mx = np.zeros((mesh.nCx, mesh.nCy))
+        my = np.zeros((mesh.nCx, mesh.nCy))
+        for ii in range(mesh.nCx):
+            for jj in range(mesh.nCy):
+
+                zcol = actIndFull[ii, jj, :]
+                model[ii, jj] = amp[ii, jj, np.where(zcol)[0][-ind]]
+
+                if len(m) == 3*nC:
+                    mx[ii, jj] = m_lpx[ii, jj, np.where(zcol)[0][-ind]]
+                    my[ii, jj] = m_lpy[ii, jj, np.where(zcol)[0][-ind]]
+
+        xx = xx[:, :, ind].T
+        yy = yy[:, :, ind].T
+        model = model.T
+
+        if len(m) == 3*nC:
+            mx = mx[::subFact, ::subFact].T
+            my = my[::subFact, ::subFact].T
+
+    im2, cbar = [], []
+    if fill:
+        im2 = axs.contourf(xx, yy, model,
+                           30, vmin=vmin, vmax=vmax, clim=[vmin, vmax],
+                           cmap=cmap)
+
+        cbar = plt.colorbar(im2, orientation=orientation, ax=axs,
+                 ticks=np.linspace(vmin, vmax, 4),
+                 format="${%.3f}$", shrink=0.5)
+    if contours is not None:
+        axs.contour(xx, yy, model, contours, colors='k')
+
+    if len(m) == 3*nC:
+
+        axs.quiver(mkvc(xx[::subFact, ::subFact]),
+                   mkvc(yy[::subFact, ::subFact]),
+                   mkvc(mx),
+                   mkvc(my),
+                   pivot='mid',
+                   scale_units="inches", scale=scale, linewidths=(1,),
+                   edgecolors=(vec),
+                   headaxislength=0.1, headwidth=10, headlength=30)
+
+    axs.set_aspect('equal')
+
+    if xlim is not None:
+        axs.set_xlim(xlim[0], xlim[1])
+
+    if ylim is not None:
+        axs.set_ylim(ylim[0], ylim[1])
+
+    if title is not None:
+        axs.set_title(title)
+
+    return axs, im2, cbar
+
+
+# def vizCond(mesh, model, axs=None, normal = 'z', ind = 0, xlim=None, ylim=None, vmin=None, contours=None, fill=True, vmax=None,subFact=None, scale=1., savefig=False, cmap = 'jet_r', figname="Conductivity.png"):
+
+
+#     axs, im, cbar = plotModelSections(mesh, model, normal=normal,
+#                                ind=ind, axs=axs, cmap=cmap, subFact=subFact,
+#                                xlim=xlim, scale = scale, vec ='w',
+#                                ylim=ylim, contours=contours, fill=fill,
+#                                vmin=vmin, vmax=vmax)
+
+
+
+
+
+#     if normal=='x':
+#         axs.set_title(str(int(mesh.vectorCCx[ind])) + ' E')
+#         # Add lakes and hydro
+# #         for file in pline[:11]:
+# #             trace = np.loadtxt(file, skiprows=1, delimiter=',')
+# #             ax2.plot(trace[:,1], trace[:,2], 'k', ms=1)
+# #             ax2.text(trace[0,1], trace[0,2],file[28:-4])
+
+#     elif normal=='y':
+#         axs.set_title(str(int(mesh.vectorCCy[ind])) + ' N')
+#         # Add lakes and hydro
+# #         for file in pline[11:]:
+# #             trace = np.loadtxt(file, skiprows=1, delimiter=',')
+# #             ax2.plot(trace[:,0], trace[:,2], 'k', ms=1)
+# #             ax2.text(trace[0,0], trace[0,2],file[28:-4])
+
+#     else:
+#         axs.set_title('Depth: -' + str(np.sum(mesh.hz[-ind:-1])+mesh.hz[-ind]/2) + ' m')
+
+#     return axs, im, cbar
+
+
+def plotProfile(xyzd, a, b, npts, data=None,
+                fig=None, ax=None, plotStr=None,
+                coordinate_system='local'):
+    """
+    Plot the data and line profile inside the spcified limits
+    """
+    def linefun(x1, x2, y1, y2, nx, tol=1e-3):
+        dx = x2-x1
+        dy = y2-y1
+
+        if np.abs(dx) <= tol:
+            y = np.linspace(y1, y2, nx)
+            x = np.ones_like(y)*x1
+        elif np.abs(dy) <= tol:
+            x = np.linspace(x1, x2, nx)
+            y = np.ones_like(x)*y1
+        else:
+            x = np.linspace(x1, x2, nx)
+            slope = (y2-y1)/(x2-x1)
+            y = slope*(x-x1)+y1
+        return x, y
+
+    if fig is None:
+        fig = plt.figure(figsize=(6, 9))
+
+        plt.rcParams.update({'font.size': 14})
+
+    if ax is None:
+        ax = plt.subplot()
+
+    x, y = linefun(a[0], b[0], a[1], b[1], npts)
+    distance = np.sqrt((x-a[0])**2.+(y-a[1])**2.)
+    dline = griddata(xyzd[:, :2], xyzd[:, -1], (x, y), method='linear')
+
+    if coordinate_system == 'xProfile':
+        distance += a[0]
+    elif coordinate_system == 'yProfile':
+        distance += a[1]
+
+    ax.plot(distance, dline, plotStr)
+
+    if data is not None:
+
+        # if len(plotStr) == len(data):
+        for ii, d in enumerate(data):
+
+            dline = griddata(xyzd[:, :2], d, (x, y), method='linear')
+
+            if plotStr[ii]:
+                ax.plot(distance, dline, plotStr[ii])
+            else:
+                ax.plot(distance, dline)
+
+    ax.set_xlim(distance.min(), distance.max())
+
+    # ax.set_xlabel("Distance (m)")
+    # ax.set_ylabel("Magnetic field (nT)")
+
+    #ax.text(distance.min(), dline.max()*0.8, 'A', fontsize = 16)
+    # ax.text(distance.max()*0.97, out_linei.max()*0.8, 'B', fontsize = 16)
+    # ax.legend(("Observed", "Simulated"), bbox_to_anchor=(0.5, -0.3))
+    # ax.grid(True)
+
+    return ax
