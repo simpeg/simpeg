@@ -118,7 +118,7 @@ class MagneticIntegral(Problem.LinearProblem):
                 w = W.diagonal()
 
             dmudm = self.chiMap.deriv(m)
-            self.gtgdiag = np.zeros(self.F.shape[1])
+            self.gtgdiag = np.zeros(dmudm.shape[1])
 
             for ii in range(self.F.shape[0]):
 
@@ -494,7 +494,7 @@ class MagneticVector(MagneticIntegral):
         else:
             Japprox = Utils.sdiag(mkvc(self.gtgdiag)**0.5*dmudm.T) * (self.S * dmudm)
 
-            return np.sum(Japprox.power(2), axis=0)
+            return mkvc(np.sum(Japprox.power(2), axis=0))
 
     def getJ(self, chi, f=None):
 

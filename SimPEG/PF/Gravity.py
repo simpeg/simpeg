@@ -1,9 +1,9 @@
 from __future__ import print_function
 from SimPEG import Problem
 from SimPEG import Utils
-from SimPEG import Props
+from SimPEG import Props, Mesh
 from SimPEG.Utils import mkvc
-import scipy.sparse as sp
+import scipy as sp
 from . import BaseGrav as GRAV
 # from . import Forward
 import re
@@ -30,6 +30,7 @@ class GravityIntegral(Problem.LinearProblem):
     parallelized = False
     n_cpu = None
     progressIndex = -1
+    gtgdiag = None
 
     aa = []
 
@@ -58,25 +59,25 @@ class GravityIntegral(Problem.LinearProblem):
         return self.rhoMap
 
     def getJtJdiag(self, m, W=None):
-            """
-                Return the diagonal of JtJ
-            """
+        """
+            Return the diagonal of JtJ
+        """
+
+        if self.gtgdiag is None:
 
             if W is None:
-                W = sp.speye(self.F.shape[0])
+                w = np.ones(self.F.shape[1])
+            else:
+                w = W.diagonal()
 
             dmudm = self.rhoMap.deriv(m)
+            self.gtgdiag = np.zeros(dmudm.shape[1])
 
-            if self.memory_saving_mode:
-                wd = W.diagonal()
-                JtJdiag = np.zeros_like(m)
-                for ii in range(self.F.shape[0]):
-                    JtJdiag += ((wd[ii] * self.F[ii, :]) * dmudm)**2.
+            for ii in range(self.F.shape[0]):
 
-                return JtJdiag
+                self.gtgdiag += (w[ii]*self.F[ii, :]*dmudm)**2.
 
-            else:
-                return np.sum((W * self.F * dmudm)**2., axis=0)
+        return self.gtgdiag
 
     def getJ(self, m, f):
         """
@@ -140,19 +141,34 @@ class GravityIntegral(Problem.LinearProblem):
         self.nC = len(inds)
 
         # Create active cell projector
-        P = sp.csr_matrix(
+        P = sp.sparse.csr_matrix(
             (np.ones(self.nC), (inds, range(self.nC))),
             shape=(self.mesh.nC, self.nC)
         )
 
         # Create vectors of nodal location
         # (lower and upper corners for each cell)
-        xn = self.mesh.vectorNx
-        yn = self.mesh.vectorNy
-        zn = self.mesh.vectorNz
+        if isinstance(self.mesh, Mesh.TreeMesh):
+            # Get upper and lower corners of each cell
+            bsw = (self.mesh.gridCC -
+                   np.kron(self.mesh.vol.T**(1/3)/2,
+                           np.ones(3)).reshape((self.mesh.nC, 3)))
+            tne = (self.mesh.gridCC +
+                   np.kron(self.mesh.vol.T**(1/3)/2,
+                           np.ones(3)).reshape((self.mesh.nC, 3)))
 
-        yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
-        yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
+            xn1, xn2 = bsw[:, 0], tne[:, 0]
+            yn1, yn2 = bsw[:, 1], tne[:, 1]
+            zn1, zn2 = bsw[:, 2], tne[:, 2]
+
+        else:
+
+            xn = self.mesh.vectorNx
+            yn = self.mesh.vectorNy
+            zn = self.mesh.vectorNz
+
+            yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+            yn1, xn1, zn1 = np.meshgrid(yn[:-1], xn[:-1], zn[:-1])
 
         self.Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
         self.Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]

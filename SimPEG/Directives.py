@@ -356,8 +356,16 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
             # Save model
             if not isinstance(prob, Magnetics.MagneticVector):
 
-                Mesh.TensorMesh.writeModelUBC(reg.regmesh.mesh,
-                                              fileName + '.sus', self.mapping * xc)
+                if isinstance(reg.regmesh.mesh, Mesh.TreeMesh):
+                        Mesh.TreeMesh.writeUBC(
+                            reg.regmesh.mesh,
+                            fileName + '.msh',
+                            models={fileName + '.mod': self.mapping * xc}
+                        )
+                        
+                else:
+                    Mesh.TensorMesh.writeModelUBC(reg.regmesh.mesh,
+                                              fileName + '.mod', self.mapping * xc)
             else:
 
                 nC = self.mapping.shape[1]
