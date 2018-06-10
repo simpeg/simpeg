@@ -494,7 +494,7 @@ class MagneticVector(MagneticIntegral):
         else:
             Japprox = Utils.sdiag(mkvc(self.gtgdiag)**0.5*dmudm.T) * (self.S * dmudm)
 
-            return (Japprox.T*Japprox).diagonal()
+            return np.sum(Japprox.power(2), axis=0)
 
     def getJ(self, chi, f=None):
 

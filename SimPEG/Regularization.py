@@ -2053,8 +2053,8 @@ def getDiffOpRot(mesh, psi, theta, phi, vec, forward=True):
     Rx = sp.diags([rxb[:-1], rxa, rxc[:-1]], [-1, 0, 1])
 
     rya = mkvc(np.c_[np.cos(theta), np.ones(mesh.nC), np.cos(theta)].T)
-    ryb = mkvc(np.c_[-np.sin(theta), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
-    ryc = mkvc(np.c_[np.sin(theta), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
+    ryb = mkvc(np.c_[np.sin(theta), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
+    ryc = mkvc(np.c_[-np.sin(theta), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
     Ry = sp.diags([ryb[:-2], rya, ryc[:-2]], [-2, 0, 2])
 
     rza = mkvc(np.c_[np.cos(phi), np.cos(phi), np.ones(mesh.nC)].T)
