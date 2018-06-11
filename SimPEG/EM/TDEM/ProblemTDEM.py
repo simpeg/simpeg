@@ -21,6 +21,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
     surveyPair = SurveyTDEM  #: A SimPEG.EM.TDEM.SurveyTDEM Class
     fieldsPair = FieldsTDEM  #: A SimPEG.EM.TDEM.FieldsTDEM Class
     clean_on_model_update = ['_Adcinv']  #: clear DC matrix factors on any model updates
+    dt_threshold = 1e-8
 
     def __init__(self, mesh, **kwargs):
         BaseEMProblem.__init__(self, mesh, **kwargs)
@@ -61,7 +62,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             # keep factors if dt is the same as previous step b/c A will be the
             # same
             if Ainv is not None and (
-                tInd > 0 and dt != self.timeSteps[tInd - 1]
+                tInd > 0 and abs(dt-self.timeSteps[tInd - 1]) > self.dt_threshold
             ):
                 Ainv.clean()
                 Ainv = None
