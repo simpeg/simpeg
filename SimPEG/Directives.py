@@ -362,7 +362,7 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                             fileName + '.msh',
                             models={fileName + '.mod': self.mapping * xc}
                         )
-                        
+
                 else:
                     Mesh.TensorMesh.writeModelUBC(reg.regmesh.mesh,
                                               fileName + '.mod', self.mapping * xc)
@@ -409,12 +409,12 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                         Mesh.TreeMesh.writeUBC(
                             reg.regmesh.mesh,
                             fileName + '.msh',
-                            models={fileName + '.theta': theta}
+                            models={fileName + '.dip': (np.rad2deg(theta)) }
                         )
                         Mesh.TreeMesh.writeUBC(
                             reg.regmesh.mesh,
                             fileName + '.msh',
-                            models={fileName + '.phi': phi}
+                            models={fileName + '.azm': (450 - np.rad2deg(phi)) % 360}
                         )
                         Mesh.TreeMesh.writeUBC(
                             reg.regmesh.mesh,
@@ -434,11 +434,11 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                     else:
                         Mesh.TensorMesh.writeModelUBC(
                             reg.regmesh.mesh,
-                            fileName + '.theta', theta
+                            fileName + '.dip', (np.rad2deg(theta))
                         )
                         Mesh.TensorMesh.writeModelUBC(
                             reg.regmesh.mesh,
-                            fileName + '.phi', phi
+                            fileName + '.azm', (450 - np.rad2deg(phi)) % 360
                         )
                         Mesh.TensorMesh.writeModelUBC(
                             reg.regmesh.mesh,
