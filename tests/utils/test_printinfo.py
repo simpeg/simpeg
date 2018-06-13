@@ -1,5 +1,4 @@
 import pip
-import pytest
 
 # Optional imports
 try:
@@ -32,7 +31,7 @@ def test_versions(capsys):
     out2, _ = capsys.readouterr()
 
     # They have to be the same, except time (run at slightly different times)
-    assert out1b[:-75] == out2[:-75]
+    assert out1b[75:] == out2[75:]
 
     # Check the 'Pretty'/'plain'-version, providing a package as list
     out3 = versions('plain', add_pckg=[pip, ])
@@ -40,9 +39,9 @@ def test_versions(capsys):
     out3c = versions('Pretty', add_pckg=[pip, ])
 
     # They have to be the same, except time (run at slightly different times)
-    assert out3[:-75] == out3b[:-75]
+    assert out3[75:] == out3b[75:]
     if IPython:
-        assert out3[:-75] == out3c.data[:-75]
+        assert out3[75:] == out3c.data[75:]
     else:
         assert out3c is None
 
@@ -61,9 +60,9 @@ def test_versions(capsys):
     assert 'td style=' in out4
 
     # They have to be the same, except time (run at slightly different times)
-    assert out4[:-50] == out4b[:-50]
+    assert out4[50:] == out4b[50:]
     if IPython:
-        assert out4[:-50] == out4c.data[:-50]
+        assert out4[50:] == out4c.data[50:]
     else:
         assert out4c is None
 
