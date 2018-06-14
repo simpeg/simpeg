@@ -803,11 +803,11 @@ class Update_IRLS(InversionDirective):
 
         self.phi_d_last = self.dmisfit.objfcts[0](self.invProb.model)
 
-        if np.all([
-            self.phi_d_last < self.start,
-            self.mode == 1
-        ]):
-            self.startIRLS()
+        # if np.all([
+        #     self.phi_d_last < self.start,
+        #     self.mode == 1
+        # ]):
+        #     self.startIRLS()
 
         if self.mode == 1:
 
