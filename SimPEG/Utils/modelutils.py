@@ -199,7 +199,7 @@ def tileSurveyPoints(locs, maxNpoints):
 def meshBuilder(xyz, h, padDist, meshGlobal=None,
                 expFact=1.3,
                 meshType='TENSOR',
-                gridLoc='CC'):
+                verticalAlignement='CC'):
     """
         Function to quickly generate a Tensor mesh
         given a cloud of xyz points, finest core cell size
@@ -311,12 +311,12 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
                               np.ones(nCx)*h[2]])
 
         # Set origin
-        if gridLoc == 'CC':
-            mesh.x0 = np.r_[-nCx*h[0]/2.+midX, -nCy*h[0]/2.+midY, -nCz*h[0]/2.+midZ]
-        elif gridLoc == 'N':
-            mesh.x0 = np.r_[-nCx*h[0]/2.+midX, -nCy*h[0]/2.+midY, -nCz*h[0] + limz.max()]
+        if verticalAlignement == 'center':
+            mesh.x0 = np.r_[-nCx*h[0]/2.+midX, -nCy*h[1]/2.+midY, -nCz*h[2]/2.+midZ]
+        elif verticalAlignement == 'top':
+            mesh.x0 = np.r_[-nCx*h[0]/2.+midX, -nCy*h[1]/2.+midY, -(nCz-1)*h[2] + limz.max()]
         else:
-            assert NotImplementedError('gridLoc must be CC | N')
+            assert NotImplementedError("gridLoc must be 'center' | 'top'")
 
     return mesh
 
