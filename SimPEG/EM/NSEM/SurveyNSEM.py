@@ -51,14 +51,6 @@ class Data(SimPEGData, DataNSEMPlotMethods):
     """
     Data class for NSEMdata. Stores the data vector indexed by the survey.
 
-    **Required**
-    :param SimPEG.EM.NSEM.SurveyNSEM survey: NSEM survey object
-
-    **Optional**
-    :param numpy.ndarray v: Vector of the data in order matching of the survey
-    :param numpy.ndarray standard_deviation: Vector of the standard_deviation of data in order matching of the survey
-    :param numpy.ndarray floor: Vector of the noise floor of the data in order matching of the survey
-
     """
 
     # floor = properties.Renamed('noise_floor')

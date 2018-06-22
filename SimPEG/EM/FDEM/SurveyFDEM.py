@@ -167,21 +167,28 @@ class Survey(BaseSurvey):
     #     """
     #     return self._freqs
 
+    def _setup_freqs(self):
+        """
+        Setup up background _freqs and _freqDict
+
+        """
+        _freqDict = {}
+
+        for src in self.srcList:
+            if src.freq not in _freqDict:
+                _freqDict[src.freq] = []
+            _freqDict[src.freq] += [src]
+
+        self._freqDict = _freqDict
+        self._freqs = sorted([f for f in self._freqDict])
+
     @property
     def freqs(self):
         """
         Frequencies in the FDEM survey
         """
         if getattr(self, '_freqs', None) is None:
-            _freqDict = {}
-
-            for src in self.srcList:
-                if src.freq not in _freqDict:
-                    _freqDict[src.freq] = []
-                _freqDict[src.freq] += [src]
-
-            self._freqDict = _freqDict
-            self._freqs = sorted([f for f in self._freqDict])
+            self._setup_freqs()
         return self._freqs
 
     @property
@@ -189,6 +196,8 @@ class Survey(BaseSurvey):
         """
         Number of frequencies in the survey
         """
+        if getattr(self, '_freqDict', None) is None:
+            self._setup_freqs()
         return len(self._freqDict)
 
     @property
@@ -196,6 +205,8 @@ class Survey(BaseSurvey):
         """
         Number of sources at each frequency
         """
+        if getattr(self, '_freqDict', None) is None:
+            self._setup_freqs()
         if getattr(self, '_nSrcByFreq', None) is None:
             self._nSrcByFreq = {}
             for freq in self.freqs:
@@ -209,6 +220,8 @@ class Survey(BaseSurvey):
         :rtype: dictionary
         :return: sources at the sepcified frequency
         """
+        if getattr(self, '_freqDict', None) is None:
+            self._setup_freqs()
         assert freq in self._freqDict, (
             "The requested frequency is not in this survey."
         )
