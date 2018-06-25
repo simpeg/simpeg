@@ -2024,7 +2024,7 @@ class PetroRegularization(SimpleComboRegularization):
         alpha_xx=0., alpha_yy=0., alpha_zz=0.,
         **kwargs
     ):
-        self.GMmref = GMmref
+        self.GMmref = copy.deepcopy(GMmref)
         order_clusters_GM_weight(self.GMmref)
         self._GMmodel = copy.deepcopy(GMmodel)
         self._wiresmap = wiresmap
@@ -2347,7 +2347,7 @@ class SimplePetroRegularization(SimpleComboRegularization):
         alpha_xx=0., alpha_yy=0., alpha_zz=0.,
         **kwargs
     ):
-        self.GMmref = GMmref
+        self.GMmref = copy.deepcopy(GMmref)
         order_clusters_GM_weight(self.GMmref)
         self._GMmodel = copy.deepcopy(GMmodel)
         self._wiresmap = wiresmap
@@ -2693,7 +2693,7 @@ class SimplePetroWithMappingRegularization(SimpleComboRegularization):
         alpha_xx=0., alpha_yy=0., alpha_zz=0.,
         **kwargs
     ):
-        self.GMmref = GMmref
+        self.GMmref = copy.deepcopy(GMmref)
         order_clusters_GM_weight(self.GMmref)
         self._GMmodel = copy.deepcopy(GMmodel)
         self._wiresmap = wiresmap

@@ -1044,6 +1044,7 @@ class GaussianMixtureUpdateModel(InversionDirective):
             self._regmode = 2
 
     def endIter(self):
+
         m = self.invProb.model
         if self._regmode == 1:
             self.petroregularizer = self.invProb.reg.objfcts[
@@ -1064,7 +1065,7 @@ class GaussianMixtureUpdateModel(InversionDirective):
             self.kappa = self.petroregularizer.gamma * \
                 np.ones(self.petroregularizer.GMmref.n_components)
 
-        if self.petroregularizer.mrefInSmooth:
+        if self.petroregularizer.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
             self.fixed_membership = self.petroregularizer.membership(
                 self.petroregularizer.mref)
 
@@ -1197,31 +1198,36 @@ class SmoothUpdateReferenceModel(InversionDirective):
             self.Pottmatrix = Pott
 
         # if self.log_univar is None:
-        self.log_univar = np.log(
-            self.invProb.reg.GMmodel.predict_proba(model))
+        _, self.log_univar = self.invProb.reg.GMmodel._estimate_log_prob_resp(
+            model
+        )
 
         if self.method == 'Gibbs':
-            denoised = Utils.GibbsSampling_PottsDenoising(mesh, minit,
-                                                          self.log_univar,
-                                                          self.Pottmatrix,
-                                                          indActive=indActive,
-                                                          neighbors=self.neighbors,
-                                                          norm=self.distance,
-                                                          weighted_selection=self.weigthed_random_walk,
-                                                          compute_score=self.compute_score,
-                                                          maxit=self.maxit,
-                                                          verbose=self.verbose)
+            denoised = Utils.GibbsSampling_PottsDenoising(
+                mesh, minit,
+                self.log_univar,
+                self.Pottmatrix,
+                indActive=indActive,
+                neighbors=self.neighbors,
+                norm=self.distance,
+                weighted_selection=self.weigthed_random_walk,
+                compute_score=self.compute_score,
+                maxit=self.maxit,
+                verbose=self.verbose
+            )
         elif self.method == 'ICM':
-            denoised = Utils.ICM_PottsDenoising(mesh, minit,
-                                                self.log_univar,
-                                                self.Pottmatrix,
-                                                indActive=indActive,
-                                                neighbors=self.neighbors,
-                                                norm=self.distance,
-                                                weighted_selection=self.weigthed_random_walk,
-                                                compute_score=self.compute_score,
-                                                maxit=self.maxit,
-                                                verbose=self.verbose)
+            denoised = Utils.ICM_PottsDenoising(
+                mesh, minit,
+                self.log_univar,
+                self.Pottmatrix,
+                indActive=indActive,
+                neighbors=self.neighbors,
+                norm=self.distance,
+                weighted_selection=self.weigthed_random_walk,
+                compute_score=self.compute_score,
+                maxit=self.maxit,
+                verbose=self.verbose
+            )
 
         self.invProb.reg.mref = Utils.mkvc(
             self.invProb.reg.GMmodel.means_[denoised[0]])
@@ -1239,6 +1245,7 @@ class BoreholeLithologyConstraints(InversionDirective):
         self.invProb.reg.mref = Utils.mkvc(
             self.invProb.reg.GMmodel.means_[membership]
         )
+
 
 class BoreholeLithologyConstraintsEllipsoidMixture(InversionDirective):
 
@@ -1288,8 +1295,8 @@ class BoreholeLithologyConstraintsEllipsoidMixture(InversionDirective):
             modellist = self.petroregularizer.wiresmap * m
             model = np.c_[
                 [
-                a * b for a, b in zip(
-                    self.petroregularizer.maplist, modellist
+                    a * b for a, b in zip(
+                        self.petroregularizer.maplist, modellist
                     )
                 ]
             ].T
@@ -1509,11 +1516,9 @@ class PetroTargetMisfit(InversionDirective):
 
                 if self.debug:
                     print(type(self.invProb.reg.objfcts[
-                      self.Small[0]]))
+                        self.Small[0]]))
 
             self._regmode = 2
-
-
 
     @property
     def DMtarget(self):
@@ -1936,6 +1941,20 @@ class PetroBetaReWeighting(InversionDirective):
                             '\nkappa: ', self.updategaussianclass.kappa,
                             '\nalphadir: ', self.updategaussianclass.alphadir
                         )
+            elif np.all([not self.DM,
+                         self.mode == 2]):
+
+                if np.all([self.invProb.beta > self.betamin]):
+
+                    ratio = 1.
+                    indx = self.dmlist > (1. + self.tolerance) * self.DMtarget
+                    if np.any(indx) and self.ratio_in_cooling:
+                        ratio = np.max(
+                            [self.dmlist[indx] / self.DMtarget[indx]])
+                    self.invProb.beta /= (self.rateCooling * ratio)
+
+                    if self.verbose:
+                        print('update beta for countering plateau')
 
         self.previous_score = copy.deepcopy(self.score)
         self.previous_dmlist = copy.deepcopy(
@@ -2067,6 +2086,7 @@ class AddMrefInSmooth(InversionDirective):
             )
         if self.DM and (same_mref or not self.wait_till_stable):
             self.invProb.reg.mrefInSmooth = True
+            self.petroregularizer.mrefInSmooth = True
 
             if self.verbose:
                 print('add mref to Smoothness')

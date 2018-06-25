@@ -227,7 +227,7 @@ inv = Inversion.BaseInversion(invProb, directiveList=[Scales, beta,
 
 mtik = inv.run(minit)
 
-fig, axes = plt.subplots(3, 4, figsize=(15, 15))
+fig, axes = plt.subplots(3, 4, figsize=(25, 15))
 axes = axes.reshape(12)
 
 left, width = .25, .5
@@ -367,4 +367,5 @@ axes[11].legend(
 axes[11].set_xlabel('Property 1')
 axes[11].set_ylabel('Property 2')
 plt.subplots_adjust(wspace=0.3, hspace=0.3, top=0.85)
+fig.savefig("LinearWithMapping.png", dpi=300, bbox_inches='tight')
 plt.show()
