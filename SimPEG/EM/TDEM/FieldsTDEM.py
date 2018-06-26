@@ -156,6 +156,7 @@ class Fields3D_b(FieldsTDEM):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MfMui = self.survey.prob.MfMui
         self._timeMesh = self.survey.prob.timeMesh
+        self._MeI = self.survey.prob.MeI
 
     def _TLoc(self, fieldType):
         return 'N'
@@ -228,9 +229,9 @@ class Fields3D_b(FieldsTDEM):
             ) * v - self._MeSigmaI * s_eDeriv(v)
         )
 
-    def _j(self, hSolution, srcList, tInd):
-        return self.survey.prob.MeI * (
-            self._MeSigma * self._e(hSolution, srcList, tInd)
+    def _j(self, bSolution, srcList, tInd):
+        return self._MeI * (
+            self._MeSigma * self._e(bSolution, srcList, tInd)
         )
 
     def _jDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
