@@ -22,7 +22,7 @@ inversion example. Note that we have 3D forward modeling mesh.
 
 from SimPEG import (
     Mesh, Maps, DataMisfit, Regularization, Optimization,
-    InvProblem, Directives, Inversion
+    InvProblem, Directives, Inversion, versions
 )
 from SimPEG.Utils import plotLayer
 try:
@@ -266,3 +266,10 @@ ax[1].set_ylim(-500, 0)
 ax[1].set_xlabel('Conductivity (S/m)', fontsize=25)
 ax[1].set_ylabel('Depth (m)', fontsize=25)
 ax[1].set_title('(b)', fontsize=25)
+
+###############################################################################
+# Print the version of SimPEG and dependencies
+# --------------------------------------------
+#
+
+versions()

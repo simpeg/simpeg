@@ -23,6 +23,7 @@ All modules provided in ``add_pckg`` are also shown. They have to be imported
 before ``versions`` is called.
 
 """
+from __future__ import print_function
 
 # Mandatory modules
 import sys
@@ -223,7 +224,7 @@ def versions_text(add_pckg=None):
 
     # Width for text-version
     n = 54
-    text = '\n' + n*'-' + '\n'
+    text = u'\n' + ''.join(n*['-']) + '\n'
 
     # Date and time info as title
     text += time.strftime('  %a %b %d %H:%M:%S %Y %Z\n\n')
@@ -248,8 +249,7 @@ def versions_text(add_pckg=None):
             text += '  '+txt+'\n'
 
     # Finish
-    text += n*'-'
-
+    text += ''.join(n*['-'])
     return text
 
 
