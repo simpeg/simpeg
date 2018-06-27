@@ -1,6 +1,6 @@
 """
-:mod:`printinfo` -- Tools to print date, time, and version information
-======================================================================
+`printinfo` -- Tools to print date, time, and version information
+=================================================================
 
 Print or return date, time, and package version information in any environment
 (Jupyter notebook, IPython console, Python console, QT console), either as
@@ -113,11 +113,13 @@ def versions(mode='print', add_pckg=None, ncol=4):
 
 
     **Returns**
+
     Depending on ``mode`` (HTML-instance; plain text; html as plain text; or
     nothing, only printing to stdout).
 
 
     **Examples**
+
     >>> import pytest
     >>> import dateutil
     >>> from SimPEG import versions
