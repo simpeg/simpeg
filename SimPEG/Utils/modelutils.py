@@ -507,12 +507,16 @@ def minCurvatureInterp(
     # Get the grid location
     d, ind = tree.query(gridCC, k=1)
 
+    if data.ndim == 1:
+        data = np.c_[data]
+
     if method == 'relaxation':
 
         Ave = aveCC2F(gridCx)
 
         count = 0
         residual = 1.
+
 
         m = np.zeros((gridCC.shape[0], data.shape[1]))
 
@@ -530,9 +534,6 @@ def minCurvatureInterp(
             residual = np.linalg.norm(m-mtemp)/np.linalg.norm(mtemp)
             count += 1
 
-        print(count)
-        return gridCC, m
-
     elif method == 'spline':
 
         ndat = locs.shape[0]
@@ -544,22 +545,19 @@ def minCurvatureInterp(
             r = (locs[i, 0] - locs[:, 0])**2. + (locs[i, 1] - locs[:, 1])**2.
             A[i, :] = r.T * (np.log((r.T + 1e-8)**0.5) - 1.)
 
-        # Solve system for the weights
-        w = bicgstab(A, data, tol=1e-6)
 
         # Compute new solution
-        # Reformat the line data locations but skip every n points for test
         nC = gridCC.shape[0]
-        m = np.zeros(nC)
+        m = np.zeros((nC, data.shape[1]))
 
-        # We can parallelize this part later
-        for i in range(nC):
+        # Solve system for the weights
+        for dd in range(data.shape[1]):
+            w = bicgstab(A, data[:, dd], tol=1e-6)
 
-            r = (gridCC[i, 0] - locs[:, 0])**2. + (gridCC[i, 1] - locs[:, 1])**2.
-            m[i] = np.sum(w[0] * r.T * (np.log((r.T + 1e-8)**0.5) - 1.))
+            # We can parallelize this part later
+            for i in range(nC):
 
-        return gridCC, m.reshape(gridCx.shape, order='F')
+                r = (gridCC[i, 0] - locs[:, 0])**2. + (gridCC[i, 1] - locs[:, 1])**2.
+                m[i, dd] = np.sum(w[0] * r.T * (np.log((r.T + 1e-8)**0.5) - 1.))
 
-    else:
-
-        NotImplementedError("Only methods 'relaxation' || 'spline' are available" )
+    return gridCC, m, gridCx.shape
