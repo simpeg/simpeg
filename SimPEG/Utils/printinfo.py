@@ -91,8 +91,8 @@ def versions(mode='print', add_pckg=None, ncol=4):
 
     This is a wrapper for ``versions_html`` and ``versions_text``.
 
-    Parameters
-    ----------
+    **Parameters**
+
     mode : string, optional; {<'print'>, 'HTML', 'Pretty', 'plain', 'html'}
         Defaults to 'print':
             - 'print': Prints text-version to stdout, nothing returned.
@@ -112,14 +112,12 @@ def versions(mode='print', add_pckg=None, ncol=4):
         ``mode='HTML'`` or ``mode='html'``. Defaults to 3.
 
 
-    Returns
-    -------
+    **Returns**
     Depending on ``mode`` (HTML-instance; plain text; html as plain text; or
     nothing, only printing to stdout).
 
 
-    Examples
-    --------
+    **Examples**
     >>> import pytest
     >>> import dateutil
     >>> from SimPEG import versions
