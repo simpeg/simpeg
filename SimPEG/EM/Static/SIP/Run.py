@@ -1,6 +1,8 @@
 import numpy as np
-from SimPEG import (Maps, Utils, DataMisfit, Regularization,
-                    Optimization, Inversion, InvProblem, Directives)
+from SimPEG import (
+    Maps, DataMisfit, Regularization,
+    Optimization, Inversion, InvProblem, Directives
+)
 
 
 def spectral_ip_mappings(

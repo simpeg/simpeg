@@ -184,28 +184,18 @@ class BetaEstimate_ByEig(InversionDirective):
         """
             The initial beta is calculated by comparing the estimated
             eigenvalues of JtJ and WtW.
-
             To estimate the eigenvector of **A**, we will use one iteration
             of the *Power Method*:
-
             .. math::
-
                 \mathbf{x_1 = A x_0}
-
             Given this (very course) approximation of the eigenvector, we can
             use the *Rayleigh quotient* to approximate the largest eigenvalue.
-
             .. math::
-
                 \lambda_0 = \\frac{\mathbf{x^\\top A x}}{\mathbf{x^\\top x}}
-
             We will approximate the largest eigenvalue for both JtJ and WtW,
             and use some ratio of the quotient to estimate beta0.
-
             .. math::
-
                 \\beta_0 = \gamma \\frac{\mathbf{x^\\top J^\\top J x}}{\mathbf{x^\\top W^\\top W x}}
-
             :rtype: float
             :return: beta0
         """
@@ -687,11 +677,6 @@ class Update_IRLS(InversionDirective):
 
             self.invProb.beta = self.invProb.beta * ratio
 
-            # Jx_irls, Wx_irls = self.get_Jx_Wx()
-            # Jx_irls = self.invProb.Jx
-            # ratio_irls = Jx_irls/Wx_irls
-            # self.invProb.beta = ratio_irls * ratio
-
             if np.all([self.mode != 1, self.betaSearch]):
                 print("Beta search step")
                 # self.updateBeta = False
@@ -700,12 +685,13 @@ class Update_IRLS(InversionDirective):
                 self.opt.xc = self.reg.objfcts[0].model
                 return
 
-        elif np.all([
-                self.mode == 1,
-                self.opt.iter % self.coolingRate == 0,
-                np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol
-        ]):
-
+        # elif np.all([
+        #         self.mode == 1,
+        #         self.opt.iter % self.coolingRate == 0,
+        #         np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol
+        # ]):
+        #     self.invProb.beta = self.invProb.beta / self.coolingFactor
+        else:
             self.invProb.beta = self.invProb.beta / self.coolingFactor
 
         phim_new = 0
@@ -724,7 +710,7 @@ class Update_IRLS(InversionDirective):
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if np.all([
-            self.invProb.phi_d < self.start,
+            self.invProb.phi_d <= self.start,
             self.mode == 1
         ]):
             if not self.silent:
@@ -737,8 +723,6 @@ class Update_IRLS(InversionDirective):
             self.iterStart = self.opt.iter
             self.phi_d_last = self.invProb.phi_d
             self.invProb.phi_m_last = self.reg(self.invProb.model)
-            # ratio_l2 = self.invProb.Jx / self.invProb.Wx
-            # self.beta_ratio_l2 = self.invProb.beta / ratio_l2
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
             for reg in self.reg.objfcts:
@@ -906,30 +890,6 @@ class Update_IRLS(InversionDirective):
             )
         return True
 
-    def get_Jx_Wx(self):
-        """
-            Evaluate Rayleigh quotient of J (sensitivity)and W (regularization) matrix
-        """
-        m = self.invProb.model
-        f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
-
-        # Fix the seed for random vector for consistent result
-        np.random.seed(1)
-        x0 = np.random.rand(*m.shape)
-
-        t, b = 0, 0
-        i_count = 0
-        for dmis, reg in zip(self.dmisfit.objfcts, self.reg.objfcts):
-            # check if f is list
-            if len(self.dmisfit.objfcts) > 1:
-                t += x0.dot(dmis.deriv2(m, x0, f=f[i_count]))
-            else:
-                t += x0.dot(dmis.deriv2(m, x0, f=f))
-            b += x0.dot(reg.deriv2(m, v=x0))
-            i_count += 1
-
-        return t, b
-
 
 class UpdatePreconditioner(InversionDirective):
     """
@@ -1018,7 +978,6 @@ class UpdateSensitivityWeights(InversionDirective):
     """
     Directive to take care of re-weighting
     the non-linear magnetic problems.
-
     """
 
     mapping = None

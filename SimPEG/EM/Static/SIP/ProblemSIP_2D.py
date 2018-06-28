@@ -12,8 +12,9 @@ from SimPEG import Maps
 from SimPEG.EM.Static.DC.FieldsDC_2D import (
     Fields_ky, Fields_ky_CC, Fields_ky_N
     )
-from SimPEG.EM.Static.DC import getxBCyBC_CC
-from SimPEG.EM.Static.IP import BaseIPProblem_2D, Problem2D_CC, Problem2D_N
+from SimPEG.EM.Static.IP import BaseIPProblem_2D
+from SimPEG.EM.Static.IP import Problem2D_N as BaseProblem2D_N
+from SimPEG.EM.Static.IP import Problem2D_CC as BaseProblem2D_CC
 from .SurveySIP import Survey
 from scipy.special import kn
 
@@ -383,7 +384,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
                 return (u*vol*(-1./rho**2))*(drho_dlogrho * v)
 
 
-class Problem2D_CC(BaseSIPProblem_2D, Problem2D_CC):
+class Problem2D_CC(BaseSIPProblem_2D, BaseProblem2D_CC):
     """
     2.5D cell centered Spectral IP problem
     """
@@ -404,7 +405,7 @@ class Problem2D_CC(BaseSIPProblem_2D, Problem2D_CC):
         self.actMap = Maps.InjectActiveCells(mesh, self.actinds, 0.)
 
 
-class Problem2D_N(BaseSIPProblem_2D, Problem2D_N):
+class Problem2D_N(BaseSIPProblem_2D, BaseProblem2D_N):
     """
     2.5D nodal Spectral IP problem
     """

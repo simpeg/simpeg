@@ -8,7 +8,8 @@ from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
 import numpy as np
 from SimPEG.Utils import Zero
-from SimPEG.EM.Static.DC import Problem3D_CC, Problem3D_N
+from SimPEG.EM.Static.DC import Problem3D_CC as BaseProblem3D_CC
+from SimPEG.EM.Static.DC import Problem3D_N as BaseProblem3D_N
 from .SurveyIP import Survey
 from SimPEG import Props
 import sys
@@ -299,7 +300,7 @@ class BaseIPProblem(BaseEMProblem):
                 )
 
 
-class Problem3D_CC(BaseIPProblem, Problem3D_CC):
+class Problem3D_CC(BaseIPProblem, BaseProblem3D_CC):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
@@ -312,7 +313,7 @@ class Problem3D_CC(BaseIPProblem, Problem3D_CC):
         self.setBC()
 
 
-class Problem3D_N(BaseIPProblem, Problem3D_N):
+class Problem3D_N(BaseIPProblem, BaseProblem3D_N):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # N potentials means B is on faces

@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 
 import SimPEG
 import numpy as np
-from SimPEG.Utils import Zero, closestPoints
 
 
 class BaseRx(SimPEG.Survey.BaseTimeRx):
@@ -62,8 +61,9 @@ class Dipole(BaseRx):
     """
 
     def __init__(self, locsM, locsN, times, rxType='phi', **kwargs):
-        assert locsM.shape == locsN.shape, ('locsM and locsN need to be the '
-                                            'same size')
+        assert locsM.shape == locsN.shape, (
+            'locsM and locsN need to be the same size'
+        )
         locs = [np.atleast_2d(locsM), np.atleast_2d(locsN)]
         # We may not need this ...
         BaseRx.__init__(self, locs, times, rxType)

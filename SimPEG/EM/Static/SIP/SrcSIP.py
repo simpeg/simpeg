@@ -39,9 +39,7 @@ class Dipole(BaseSrc):
     """
 
     def __init__(self, rxList, locA, locB, **kwargs):
-        assert locA.shape == locB.shape, (
-            'Shape of locA and locB should be the same'
-        )
+        assert locA.shape == locB.shape, ('Shape of locA and locB should be the same')
         self.loc = [locA, locB]
         BaseSrc.__init__(self, rxList, **kwargs)
 
