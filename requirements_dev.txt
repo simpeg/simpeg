@@ -17,3 +17,4 @@ vectormath
 wheel
 pytest
 geoana
+sphinxcontrib-napoleon
