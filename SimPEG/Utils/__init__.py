@@ -26,3 +26,5 @@ from .coordutils import rotatePointsFromNormals, rotationMatrixFromNormals
 from .modelutils import surface2ind_topo
 from .PlotUtils import plot2Ddata, plotLayer
 from .io_utils import download
+
+from .printinfo import versions
