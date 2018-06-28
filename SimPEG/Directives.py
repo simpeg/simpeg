@@ -223,8 +223,6 @@ class BetaEstimate_ByEig(InversionDirective):
 
         self.beta0 = self.beta0_ratio*(t/b)
         self.invProb.beta = self.beta0
-        self.invProb.Jx = t
-        self.invProb.Wx = b
 
 
 class BetaSchedule(InversionDirective):
