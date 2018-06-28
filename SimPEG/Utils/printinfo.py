@@ -6,8 +6,8 @@ Print or return date, time, and package version information in any environment
 (Jupyter notebook, IPython console, Python console, QT console), either as
 html-table (notebook) or as plain text (anywhere).
 
-This script is an adapted version of ``empymod.printversions``, which itself
-was heavily inspired by
+This script is an adapted version of ``empymod.printversions``
+(https://empymod.github.io), which itself was heavily inspired by
 
 - ``ipynbtools.py`` from https://github.com/qutip, and
 - ``watermark.py`` from https://github.com/rasbt/watermark,
@@ -83,8 +83,8 @@ def versions(mode='print', add_pckg=None, ncol=4):
     environment (Jupyter notebook, IPython console, Python console, QT
     console), either as html-table (notebook) or as plain text (anywhere).
 
-    This script is an adapted version of ``empymod.printversions``, which
-    itself was heavily inspired by
+    This script is an adapted version of ``empymod.printversions``,
+    (https://empymod.github.io) which itself was heavily inspired by
 
         - ipynbtools.py from qutip https://github.com/qutip
         - watermark.py from https://github.com/rasbt/watermark
