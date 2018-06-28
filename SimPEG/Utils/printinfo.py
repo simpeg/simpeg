@@ -1,6 +1,6 @@
 """
-:mod:`printinfo` -- Tools to print date, time, and version information
-======================================================================
+`printinfo` -- Tools to print date, time, and version information
+=================================================================
 
 Print or return date, time, and package version information in any environment
 (Jupyter notebook, IPython console, Python console, QT console), either as
@@ -23,6 +23,7 @@ All modules provided in ``add_pckg`` are also shown. They have to be imported
 before ``versions`` is called.
 
 """
+from __future__ import print_function
 
 # Mandatory modules
 import sys
@@ -90,8 +91,8 @@ def versions(mode='print', add_pckg=None, ncol=4):
 
     This is a wrapper for ``versions_html`` and ``versions_text``.
 
-    Parameters
-    ----------
+    **Parameters**
+
     mode : string, optional; {<'print'>, 'HTML', 'Pretty', 'plain', 'html'}
         Defaults to 'print':
             - 'print': Prints text-version to stdout, nothing returned.
@@ -111,14 +112,14 @@ def versions(mode='print', add_pckg=None, ncol=4):
         ``mode='HTML'`` or ``mode='html'``. Defaults to 3.
 
 
-    Returns
-    -------
+    **Returns**
+
     Depending on ``mode`` (HTML-instance; plain text; html as plain text; or
     nothing, only printing to stdout).
 
 
-    Examples
-    --------
+    **Examples**
+
     >>> import pytest
     >>> import dateutil
     >>> from SimPEG import versions
@@ -223,7 +224,7 @@ def versions_text(add_pckg=None):
 
     # Width for text-version
     n = 54
-    text = '\n' + n*'-' + '\n'
+    text = u'\n' + ''.join(n*['-']) + '\n'
 
     # Date and time info as title
     text += time.strftime('  %a %b %d %H:%M:%S %Y %Z\n\n')
@@ -248,8 +249,7 @@ def versions_text(add_pckg=None):
             text += '  '+txt+'\n'
 
     # Finish
-    text += n*'-'
-
+    text += ''.join(n*['-'])
     return text
 
 

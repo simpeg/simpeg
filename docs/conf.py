@@ -35,10 +35,13 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
+    'sphinxcontrib.napoleon',
     'matplotlib.sphinxext.plot_directive',
     'sphinx_gallery.gen_gallery',
     'edit_on_github',
 ]
+
+# numpydoc_show_class_members = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
