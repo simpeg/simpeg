@@ -264,7 +264,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     # Bird height from the surface
     b_height_skytem = skytem["src_elevation"].value
     src_height = b_height_skytem[rxind_skytem]
-    srcLoc = np.array([[0., 0., src_height]])
+    srcLoc = np.array([0., 0., src_height])
 
     # Radius of the source loop
     area = skytem["area"].value
