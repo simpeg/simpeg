@@ -60,6 +60,7 @@ class BaseSIPProblem(BaseEMProblem):
     storeJ = False
     _Jmatrix = None
     actMap = None
+    n_pulse = 1
 
     _eta_store = None
     _taui_store = None
