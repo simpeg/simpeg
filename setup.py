@@ -42,6 +42,7 @@ setup(
         'properties>=0.3.6b0',
         'vectormath',
         'discretize',
+        'geoana'
     ],
     author="Rowan Cockett",
     author_email="rowanc1@gmail.com",
