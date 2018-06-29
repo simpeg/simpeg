@@ -71,6 +71,10 @@ class BaseEMProblem(Problem.BaseProblem):
     ####################################################
     @property
     def _clear_on_mu_update(self):
+        """
+        These matrices are deleted if there is an update to the permeability
+        model
+        """
         return [
             '_MeMu', '_MeMuI', '_MfMui', '_MfMuiI',
             '_MfMuiDeriv', '_MeMuDeriv'
@@ -78,6 +82,10 @@ class BaseEMProblem(Problem.BaseProblem):
 
     @property
     def _clear_on_sigma_update(self):
+        """
+        These matrices are deleted if there is an update to the conductivity
+        model
+        """
         return [
             '_MeSigma', '_MeSigmaI', '_MfRho', '_MfRhoI',
             '_MeSigmaDeriv', '_MfRhoDeriv'
@@ -85,6 +93,10 @@ class BaseEMProblem(Problem.BaseProblem):
 
     @property
     def deleteTheseOnModelUpdate(self):
+        """
+        matrices to be deleted if the model maps for conductivity and/or
+        permeability are updated
+        """
         toDelete = []
         if self.sigmaMap is not None or self.rhoMap is not None:
             toDelete += self._clear_on_sigma_update
@@ -267,7 +279,7 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MeMu = self.mesh.getEdgeInnerProduct(self.mu)
         return self._MeMu
 
-    def MeMuDeriv(self, u):
+    def MeMuDeriv(self, u, v=None, adjoint=False):
         """
         Derivative of :code:`MeMu` with respect to the model.
         """
@@ -291,13 +303,13 @@ class BaseEMProblem(Problem.BaseProblem):
     @property
     def MeMuI(self):
         """
-            Inverse of :code:`MeMu`
+        Inverse of :code:`MeMu`
         """
         if getattr(self, '_MeMuI', None) is None:
             self._MeMuI = self.mesh.getEdgeInnerProduct(self.mu, invMat=True)
         return self._MeMuI
 
-    def MeMuIDeriv(self, u):
+    def MeMuIDeriv(self, u, v=None, adjoint=False):
         """
         Derivative of :code:`MeMuI` with respect to the model
         """
