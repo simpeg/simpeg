@@ -39,8 +39,7 @@ setup(
         'pymatsolver>=0.1.1',
         'ipython',
         'matplotlib',
-        'properties>=0.3.6b0',
-        'vectormath',
+        'properties[math]',
         'discretize',
         'geoana'
     ],
