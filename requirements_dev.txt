@@ -11,3 +11,4 @@ sympy
 wheel
 pytest
 git+https://github.com/simpeg/discretize.git@feat/3Dcylmesh
+jupyter
