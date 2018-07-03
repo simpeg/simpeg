@@ -579,11 +579,11 @@ class Fields3D_h(FieldsTDEM):
         j = Utils.mkvc(self[src, 'j', tInd])
         if adjoint is True:
             return (
-                self._MfRhoDeriv(j).T * (self.survey.prob.MfI.T * v) +
+                self._MfRhoDeriv(j, self.survey.prob.MfI.T * v, adjoint) +
                 self._jDeriv_m(tInd, src, self._MfRho * v)
             )
         return self.survey.prob.MfI * (
-            self._MfRhoDeriv(j) * v +
+            self._MfRhoDeriv(j, v) +
             self._MfRho * self._jDeriv_m(tInd, src, v)
         )
 
@@ -654,8 +654,8 @@ class Fields3D_j(FieldsTDEM):
         MeMuI = self._MeMuI
 
         if adjoint is True:
-            return -self._MfRhoDeriv.T * (C * (MeMuI * v))
-        return -MeMuI * (C.T * (self._MfRhoDeriv * v))
+            return -self._MfRhoDeriv(jSolution, C * (MeMuI * v), adjoint)
+        return -MeMuI * (C.T * (self._MfRhoDeriv(jSolution, v)))
 
     def _e(self, jSolution, srcList, tInd):
         return self.survey.prob.MfI * (
@@ -670,8 +670,10 @@ class Fields3D_j(FieldsTDEM):
     def _eDeriv_m(self, tInd, src, v, adjoint=False):
         jSolution = Utils.mkvc(self[src, 'jSolution', tInd])
         if adjoint:
-            return self._MfRhoDeriv(jSolution).T * (self.survey.prob.MfI.T * v)
-        return self.survey.prob.MfI * (self._MfRhoDeriv(jSolution) * v)
+            return self._MfRhoDeriv(
+                jSolution, self.survey.prob.MfI.T * v, adjoint
+            )
+        return self.survey.prob.MfI * self._MfRhoDeriv(jSolution, v)
 
     def _charge(self, jSolution, srcList, tInd):
         vol = sdiag(self.survey.prob.mesh.vol)
