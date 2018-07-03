@@ -239,7 +239,7 @@ def plotDataHillside(x, y, z, axs=None, fill=True, contour=0,
             cmap=cmap, norm=MidPointNorm(midpoint=midpoint), alpha=alpha
         )
 
-        axs.imshow(ls.hillshade(d_grid, vert_exag=ve, dx=1., dy=1.),
+        axs.imshow(ls.hillshade(d_grid.T, vert_exag=ve, dx=1., dy=1.),
                    cmap='gray', alpha=alphaHS,
                    extent=extent, origin='lower')
 
