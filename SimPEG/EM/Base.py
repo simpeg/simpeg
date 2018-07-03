@@ -258,7 +258,7 @@ class BaseEMProblem(Problem.BaseProblem):
         if len(self.mui.shape) > 1:
             if self.mui.shape[1] > self.mesh.dim:
                 raise NotImplementedError(
-                        "Full anisotropy is not implemented for MfMuiIDeriv."
+                    "Full anisotropy is not implemented for MfMuiIDeriv."
                 )
 
         dMfMuiI_dI = -self.MfMuiI**2

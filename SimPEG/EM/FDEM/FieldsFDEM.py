@@ -551,7 +551,7 @@ class Fields3D_e(FieldsFDEM):
 
         if adjoint:
             return (
-                self._MeSigmaDeriv(e).T * (self._MeI.T * v) +
+                self._MeSigmaDeriv(e, (self._MeI.T * v), adjoint=adjoint) +
                 self._eDeriv_m(
                     src, (self._MeI.T * v), adjoint=adjoint
                 )
@@ -559,7 +559,7 @@ class Fields3D_e(FieldsFDEM):
         return (
             self._MeI * (
                 self._eDeriv_m(src, v, adjoint=adjoint) +
-                self._MeSigmaDeriv(e) * v
+                self._MeSigmaDeriv(e, v, adjoint=adjoint)
             )
         ) + src.jPrimaryDeriv(self.prob, v, adjoint)
 
@@ -605,12 +605,10 @@ class Fields3D_e(FieldsFDEM):
 
         if adjoint is True:
             return (
-                self._MfMuiDeriv(self[src, 'b']).T * (
-                    (self._MfI.T * v)
-                )
+                self._MfMuiDeriv(self[src, 'b'], (self._MfI.T * v), adjoint)
             )
 
-        return (self._MfI * (self._MfMuiDeriv(self[src, 'b']) * v))
+        return self._MfI * (self._MfMuiDeriv(self[src, 'b'], v))
 
     def _hDeriv_m(self, src, v, adjoint=False):
         """
@@ -821,9 +819,9 @@ class Fields3D_b(FieldsFDEM):
             s_eDeriv = src.s_eDeriv(self.prob, self._MeSigmaI.T * v, adjoint)
             return (
                 self._MeSigmaIDeriv(w, v, adjoint) +
-                self._MfMuiDeriv(bSolution).T * (
-                    self._edgeCurl * (self._MeSigmaI.T * v)
-                    ) -
+                self._MfMuiDeriv(
+                    bSolution, self._edgeCurl * (self._MeSigmaI.T * v), adjoint
+                ) -
                 s_eDeriv +
                 src.ePrimaryDeriv(self.prob, v, adjoint)
             )
@@ -831,7 +829,7 @@ class Fields3D_b(FieldsFDEM):
         return (
             self._MeSigmaIDeriv(w, v) +
             self._MeSigmaI * (
-                self._edgeCurl.T * (self._MfMuiDeriv(bSolution) * v)
+                self._edgeCurl.T * self._MfMuiDeriv(bSolution, v)
             ) -
             self._MeSigmaI * s_eDeriv +
             src.ePrimaryDeriv(self.prob, v, adjoint)
@@ -888,12 +886,14 @@ class Fields3D_b(FieldsFDEM):
         # forgetting the source term here
 
     def _jDeriv_mui(self, src, v, adjoint=False):
-        MfMuiDeriv = self._MfMuiDeriv(self[src, 'b'])
 
         if adjoint:
-            return MfMuiDeriv.T * (self._edgeCurl * (self._MeI.T * v))
+            return MfMuiDeriv(
+                self[src, 'b'], (self._edgeCurl * (self._MeI.T * v)),
+                adjoint
+            )
 
-        return self._MeI * (self._edgeCurl.T * (MfMuiDeriv * v))
+        return self._MeI * (self._edgeCurl.T * MfMuiDeriv(self[src, 'b'], v))
 
     def _jDeriv_m(self, src, v, adjoint=False):
         """
@@ -941,8 +941,8 @@ class Fields3D_b(FieldsFDEM):
     def _hDeriv_mui(self, src, v, adjoint=False):
         b = self[src, 'b']
         if adjoint:
-            return self._MfMuiDeriv(b).T * (self._MfI.T * v)
-        return self._MfI * (self._MfMuiDeriv(b) * v)
+            return self._MfMuiDeriv(b, self._MfI.T * v, adjoint)
+        return self._MfI * self._MfMuiDeriv(b, v)
 
     def _hDeriv_m(self, src, v, adjoint=False):
         """
@@ -1292,8 +1292,9 @@ class Fields3D_j(FieldsFDEM):
             return (
                 1./(1j * omega(src.freq)) *
                 (
-                    s_mDeriv(v) - self._MfRhoDeriv(jSolution).T *
-                    (self._edgeCurl * v)
+                    s_mDeriv(v) - self._MfRhoDeriv(
+                        jSolution, self._edgeCurl * v, adjoint
+                    )
                 ) +
                 src.bPrimaryDeriv(self.prob, v, adjoint)
             )
@@ -1301,7 +1302,7 @@ class Fields3D_j(FieldsFDEM):
             1./(1j * omega(src.freq)) *
             self._MeI * (
                 s_mDeriv(v) - self._edgeCurl.T *
-                (self._MfRhoDeriv(jSolution) * v)
+                self._MfRhoDeriv(jSolution, v, adjoint)
             ) +
             src.bPrimaryDeriv(self.prob, v, adjoint)
         )
@@ -1531,14 +1532,14 @@ class Fields3D_h(FieldsFDEM):
         if adjoint:
             w = self._MfI.T * v
             return (
-                self._MfRhoDeriv(self._edgeCurl * hSolution).T * w -
-                self._MfRhoDeriv(s_e).T * w +
+                self._MfRhoDeriv(self._edgeCurl * hSolution, w, adoint) -
+                self._MfRhoDeriv(s_e, w, adjoint) +
                 src.ePrimaryDeriv(self.prob, v, adjoint)
             )
         return (
             self._MfI * (
-                    self._MfRhoDeriv(self._edgeCurl * hSolution) * v -
-                    self._MfRhoDeriv(s_e) * v
+                    self._MfRhoDeriv(self._edgeCurl * hSolution, v) -
+                    self._MfRhoDeriv(s_e, v)
             ) +
             src.ePrimaryDeriv(self.prob, v, adjoint)
         )
@@ -1573,11 +1574,10 @@ class Fields3D_h(FieldsFDEM):
 
     def _bDeriv_mu(self, src, v, adjoint=False):
         h = self[src, 'h']
-        MeMuDeriv = self._MeMuDeriv(h)
 
         if adjoint:
-            return MeMuDeriv.T * (self._MeI.T * v)
-        return self._MeI * (MeMuDeriv * v)
+            return self._MeMuDeriv(h, self._MeI.T * v, adjoint)
+        return self._MeI * self._MeMuDeriv(h, v)
 
     def _bDeriv_m(self, src, v, adjoint=False):
         """
