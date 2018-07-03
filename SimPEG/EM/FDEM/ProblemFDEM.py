@@ -111,7 +111,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = f[src, self._solutionType]
-                dA_dm_v = self.getADeriv(freq, u_src, v)
+                dA_dm_v = self.getADeriv(freq, u_src, v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
                 du_dm_v = Ainv * (- dA_dm_v + dRHS_dm_v)
 
@@ -283,12 +283,8 @@ class Problem3D_e(BaseFDEMProblem):
             adjoint (nD,)
         """
 
-        dMe_dsig = self.MeSigmaDeriv(u)
-
-        if adjoint:
-            return 1j * omega(freq) * ( dMe_dsig.T * v )
-
-        return 1j * omega(freq) * ( dMe_dsig * v )
+        dMe_dsig_v = self.MeSigmaDeriv(u, v, adjoint)
+        return 1j * omega(freq) * dMe_dsig_v
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
         """
@@ -438,11 +434,13 @@ class Problem3D_b(BaseFDEMProblem):
         MeSigmaIDeriv = self.MeSigmaIDeriv
         vec = C.T * (MfMui * u)
 
-        MeSigmaIDeriv = MeSigmaIDeriv(vec)
-
         if adjoint:
-            return MeSigmaIDeriv.T * (C.T * v)
-        return C * (MeSigmaIDeriv * v)
+            return MeSigmaIDeriv(vec, C.T * v, adjoint)
+        return C * MeSigmaIDeriv(vec, v, adjoint)
+
+        # if adjoint:
+        #     return MeSigmaIDeriv.T * (C.T * v)
+        # return C * (MeSigmaIDeriv * v)
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
 
@@ -513,14 +511,16 @@ class Problem3D_b(BaseFDEMProblem):
         if self._makeASymmetric and adjoint:
             v = self.MfMui * v
 
-        MeSigmaIDeriv = self.MeSigmaIDeriv(s_e)
+        # MeSigmaIDeriv = self.MeSigmaIDeriv(s_e)
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         if not adjoint:
-            RHSderiv = C * (MeSigmaIDeriv * v)
+            # RHSderiv = C * (MeSigmaIDeriv * v)
+            RHSderiv = C * self.MeSigmaIDeriv(s_e, v, adjoint)
             SrcDeriv = s_mDeriv(v) + C * (self.MeSigmaI * s_eDeriv(v))
         elif adjoint:
-            RHSderiv = MeSigmaIDeriv.T * (C.T * v)
+            # RHSderiv = MeSigmaIDeriv.T * (C.T * v)
+            RHSderiv = self.MeSigmaIDeriv(s_e, C.T * v, adjoint)
             SrcDeriv = s_mDeriv(v) + s_eDeriv(self.MeSigmaI.T * (C.T * v))
 
         if self._makeASymmetric is True and not adjoint:
@@ -619,12 +619,17 @@ class Problem3D_j(BaseFDEMProblem):
         MeMuI = self.MeMuI
         MfRho = self.MfRho
         C = self.mesh.edgeCurl
-        MfRhoDeriv = self.MfRhoDeriv(u)
 
         if adjoint:
-            return MfRhoDeriv.T * (C * (MeMuI.T * (C.T * v)))
+            vec = C * (MeMuI.T * (C.T * v))
+            return self.MfRhoDeriv(u, vec, adjoint)
+        return C * (MeMuI * (C.T * (self.MfRhoDeriv(u, v, adjoint))))
 
-        return C * (MeMuI * (C.T * (MfRhoDeriv * v)))
+        # MfRhoDeriv = self.MfRhoDeriv(u)
+        # if adjoint:
+        #     return MfRhoDeriv.T * (C * (MeMuI.T * (C.T * v)))
+
+        # return C * (MeMuI * (C.T * (MfRhoDeriv * v)))
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
 
@@ -796,11 +801,15 @@ class Problem3D_h(BaseFDEMProblem):
 
         MeMu = self.MeMu
         C = self.mesh.edgeCurl
-        MfRhoDeriv = self.MfRhoDeriv(C*u)
-
         if adjoint:
-            return MfRhoDeriv.T * (C * v)
-        return C.T * (MfRhoDeriv * v)
+            return self.MfRhoDeriv(C*u, C*v, adjoint)
+        return C.T * self.MfRhoDeriv(C*u, v, adjoint)
+
+        # MfRhoDeriv = self.MfRhoDeriv(C*u)
+
+        # if adjoint:
+        #     return MfRhoDeriv.T * (C * v)
+        # return C.T * (MfRhoDeriv * v)
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
         MeMuDeriv = self.MeMuDeriv(u)
@@ -853,11 +862,15 @@ class Problem3D_h(BaseFDEMProblem):
         C = self.mesh.edgeCurl
         MfRho = self.MfRho
 
-        MfRhoDeriv = self.MfRhoDeriv(s_e)
+        # MfRhoDeriv = self.MfRhoDeriv(s_e)
+        # if not adjoint:
+        #     RHSDeriv = C.T * (MfRhoDeriv * v)
+        # elif adjoint:
+        #     RHSDeriv = MfRhoDeriv.T * (C * v)
         if not adjoint:
-            RHSDeriv = C.T * (MfRhoDeriv * v)
+            RHSDeriv = C.T * (self.MfRhoDeriv(s_e, v, adjoint))
         elif adjoint:
-            RHSDeriv = MfRhoDeriv.T * (C * v)
+            RHSDeriv = self.MfRhoDeriv(s_e, C*v, adjoint)
 
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 

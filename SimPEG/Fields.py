@@ -16,12 +16,13 @@ class Fields(object):
 
     """
 
-    #: Known fields,   a dict with locations, e.g. {"e": "E", "phi": "CC"}
+    #: Known fields, a dict with locations, e.g. ``{"e": "E", "phi": "CC"}``
     knownFields = None
-    #: Aliased fields, a dict with [alias, location, function], e.g. {"b":["e","F",lambda(F,e,ind)]}
+    #: Aliased fields, a dict with [alias, location, function], e.g. ``{"b": ["e", "F", lambda(F,e,ind)]}``
     aliasFields = None
     #: dtype is the type of the storage matrix. This can be a dictionary.
     dtype = float
+
 
     def __init__(self, mesh, survey, **kwargs):
         self.survey = survey
@@ -155,6 +156,7 @@ class Fields(object):
         field[:, ind] = val
 
     def _getField(self, name, ind):
+
         if name in self._fields:
             out = self._fields[name][:, ind]
         else:
@@ -246,7 +248,6 @@ class TimeFields(Fields):
 
     def _getField(self, name, ind):
         srcInd, timeInd = ind
-
         if name in self._fields:
             out = self._fields[name][:, srcInd, timeInd]
         else:

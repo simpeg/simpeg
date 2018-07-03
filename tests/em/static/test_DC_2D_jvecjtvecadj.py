@@ -4,6 +4,10 @@ import numpy as np
 from SimPEG import (Mesh, Maps, Utils, DataMisfit, Regularization,
                     Optimization, Tests, Inversion, InvProblem)
 import SimPEG.EM.Static.DC as DC
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from SimPEG import SolverLU as Solver
 
 np.random.seed(41)
 
@@ -26,7 +30,10 @@ class DCProblem_2DTestsCC(unittest.TestCase):
         src0 = DC.Src.Pole([rx], A0loc)
         src1 = DC.Src.Pole([rx], A1loc)
         survey = DC.Survey_ky([src0, src1])
-        problem = DC.Problem2D_CC(mesh, rhoMap=Maps.IdentityMap(mesh))
+        problem = DC.Problem2D_CC(
+            mesh, rhoMap=Maps.IdentityMap(mesh),
+            Solver=Solver
+            )
         problem.pair(survey)
 
         mSynth = np.ones(mesh.nC)*1.
@@ -102,7 +109,8 @@ class DCProblemTestsN(unittest.TestCase):
         src1 = DC.Src.Pole([rx], A1loc)
         survey = DC.Survey_ky([src0, src1])
         problem = DC.Problem2D_N(
-            mesh, rhoMap=Maps.IdentityMap(mesh)
+            mesh, rhoMap=Maps.IdentityMap(mesh),
+            Solver=Solver
         )
         problem.pair(survey)
 
@@ -178,7 +186,8 @@ class DCProblem_2DTestsCC_storeJ(unittest.TestCase):
         src1 = DC.Src.Pole([rx], A1loc)
         survey = DC.Survey_ky([src0, src1])
         problem = DC.Problem2D_CC(
-            mesh, rhoMap=Maps.IdentityMap(mesh), storeJ=True
+            mesh, rhoMap=Maps.IdentityMap(mesh), storeJ=True,
+            Solver=Solver
             )
         problem.pair(survey)
 
@@ -255,7 +264,8 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         src1 = DC.Src.Pole([rx], A1loc)
         survey = DC.Survey_ky([src0, src1])
         problem = DC.Problem2D_N(
-            mesh, rhoMap=Maps.IdentityMap(mesh), storeJ=False
+            mesh, rhoMap=Maps.IdentityMap(mesh), storeJ=True,
+            Solver=Solver
         )
         problem.pair(survey)
 

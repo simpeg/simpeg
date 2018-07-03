@@ -1,6 +1,6 @@
 """
-2.5D DC inversion of Dipole Dipole array with Topography
-========================================================
+2.5D DC inversion of with Topography
+====================================
 
 This is an example for 2.5D DC Inversion. Earth includes a topography,
 and below the topography conductive and resistive cylinders are embedded.
@@ -112,6 +112,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # Make synthetic DC data with 5% Gaussian noise
     dtrue = survey.makeSyntheticData(mtrue, std=0.05, force=True)
 
+    IO.data_dc = dtrue
     # Show apparent resisitivty pseudo-section
     if plotIt:
         IO.plotPseudoSection(
@@ -122,6 +123,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     if plotIt:
         fig = plt.figure()
         out = hist(survey.dobs/IO.G, bins=20)
+        plt.xlabel("Apparent Resisitivty ($\Omega$m)")
         plt.show()
 
     # Set initial model based upon histogram
