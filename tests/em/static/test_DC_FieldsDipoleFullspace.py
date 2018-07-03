@@ -92,9 +92,9 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         self.ROIfaceInds = ROIfaceInds
 
 
-    def test_Problem3D_CC_Dirchlet(self, tolerance=0.1):
+    def test_Problem3D_CC_Dirichlet(self, tolerance=0.1):
         problem = DC.Problem3D_CC(
-            self.mesh, sigma=self.sigma, bc_type='Dirchlet'
+            self.mesh, sigma=self.sigma, bc_type='Dirichlet'
             )
         problem.Solver = Solver
         problem.pair(self.survey)
@@ -115,7 +115,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
             print ('E field error =', errE)
             print ('J field error =', errJ)
             passed = True
-            print(">> DC analytic test for Problem3D_CC_Dirchlet passed")
+            print(">> DC analytic test for Problem3D_CC_Dirichlet passed")
         else:
             print('\n')
             print ('E field error =', errE)
