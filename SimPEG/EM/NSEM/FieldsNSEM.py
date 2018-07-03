@@ -82,7 +82,7 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         """
         Total derivative of e with respect to the inversion model. Returns :math:`d\mathbf{e}/d\mathbf{m}` for forward and (:math:`d\mathbf{e}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
 
-        :param Src src: sorce
+        :param Src src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
         :param bool adjoint: adjoint?
@@ -161,7 +161,7 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         """
         Total derivative of b with respect to the inversion model. Returns :math:`d\mathbf{b}/d\mathbf{m}` for forward and (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
 
-        :param Src src: sorce
+        :param Src src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
         :param bool adjoint: adjoint?

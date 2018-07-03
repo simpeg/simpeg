@@ -140,13 +140,21 @@ class Planewave_xy_1Dprimary(BaseNSEMSrc):
             # And stack them to be of the correct size
             e_p = self.ePrimary(problem)
             if adjoint:
-                return sp.hstack((
-                    problem.MeSigmaDeriv(e_p[:, 0]).T,
-                    problem.MeSigmaDeriv(e_p[:, 1]).T)) * v
+                return (
+                    problem.MeSigmaDeriv(
+                        e_p[:, 0], v[:int(v.shape[0]/2)], adjoint
+                    ) +
+                    problem.MeSigmaDeriv(
+                        e_p[:, 1], v[int(v.shape[0]/2):], adjoint
+                    )
+                )
+                # return sp.hstack((
+                #     problem.MeSigmaDeriv(e_p[:, 0]).T,
+                #     problem.MeSigmaDeriv(e_p[:, 1]).T)) * v
             else:
                 return np.hstack((
-                    mkvc(problem.MeSigmaDeriv(e_p[:, 0]) * v, 2),
-                    mkvc(problem.MeSigmaDeriv(e_p[:, 1]) * v, 2)))
+                    mkvc(problem.MeSigmaDeriv(e_p[:, 0], v, adjoint), 2),
+                    mkvc(problem.MeSigmaDeriv(e_p[:, 1], v, adjoint), 2)))
 
 
 class Planewave_xy_3Dprimary(BaseNSEMSrc):
@@ -221,13 +229,22 @@ class Planewave_xy_3Dprimary(BaseNSEMSrc):
             # Need to take the derivative of both u_px and u_py
             ePri = self.ePrimary(problem)
             if adjoint:
-                return sp.hstack((
-                    problem.MeSigmaDeriv(ePri[:, 0]).T,
-                    problem.MeSigmaDeriv(ePri[:, 1]).T)) * v
+                return (
+                    problem.MeSigmaDeriv(
+                        ePri[:, 0], v[:int(v.shape[0]/2)], adjoint
+                    ) +
+                    problem.MeSigmaDeriv(
+                        ePri[:, 1], v[int(v.shape[0]/2):], adjoint
+                    )
+                )
+                # return sp.hstack((
+                #     problem.MeSigmaDeriv(ePri[:, 0]).T,
+                #     problem.MeSigmaDeriv(ePri[:, 1]).T)) * v
             else:
                 return np.hstack((
-                    mkvc(problem.MeSigmaDeriv(ePri[:, 0]) * v, 2),
-                    mkvc(problem.MeSigmaDeriv(ePri[:, 1]) * v, 2) ))
+                    mkvc(problem.MeSigmaDeriv(ePri[:, 0], v, adjoint), 2),
+                    mkvc(problem.MeSigmaDeriv(ePri[:, 1], v, adjoint), 2)
+                ))
         if adjoint:
             #
             return MsigmaDeriv.T * v

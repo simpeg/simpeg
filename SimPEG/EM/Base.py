@@ -55,6 +55,7 @@ class BaseEMProblem(Problem.BaseProblem):
     solverOpts = {}  #: Solver options
 
     verbose = False
+    storeInnerProduct = True
 
     ####################################################
     # Make A Symmetric
@@ -70,14 +71,32 @@ class BaseEMProblem(Problem.BaseProblem):
     ####################################################
     @property
     def _clear_on_mu_update(self):
-        return ['_MeMu', '_MeMuI', '_MfMui', '_MfMuiI']
+        """
+        These matrices are deleted if there is an update to the permeability
+        model
+        """
+        return [
+            '_MeMu', '_MeMuI', '_MfMui', '_MfMuiI',
+            '_MfMuiDeriv', '_MeMuDeriv'
+        ]
 
     @property
     def _clear_on_sigma_update(self):
-        return ['_MeSigma', '_MeSigmaI', '_MfRho', '_MfRhoI']
+        """
+        These matrices are deleted if there is an update to the conductivity
+        model
+        """
+        return [
+            '_MeSigma', '_MeSigmaI', '_MfRho', '_MfRhoI',
+            '_MeSigmaDeriv', '_MfRhoDeriv'
+        ]
 
     @property
     def deleteTheseOnModelUpdate(self):
+        """
+        matrices to be deleted if the model maps for conductivity and/or
+        permeability are updated
+        """
         toDelete = []
         if self.sigmaMap is not None or self.rhoMap is not None:
             toDelete += self._clear_on_sigma_update
@@ -198,16 +217,26 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MfMui = self.mesh.getFaceInnerProduct(self.mui)
         return self._MfMui
 
-    def MfMuiDeriv(self, u):
+    def MfMuiDeriv(self, u, v=None, adjoint=False):
         """
         Derivative of :code:`MfMui` with respect to the model.
         """
         if self.muiMap is None:
             return Utils.Zero()
 
-        return (
-            self.mesh.getFaceInnerProductDeriv(self.mui)(u) * self.muiDeriv
-        )
+        if getattr(self, '_MfMuiDeriv', None) is None:
+            self._MfMuiDeriv = self.mesh.getFaceInnerProductDeriv(
+                np.ones(self.mesh.nC)
+            )(np.ones(self.mesh.nF)) * self.muiDeriv
+
+        if v is not None:
+            if adjoint is True:
+                return self._MfMuiDeriv.T*(Utils.sdiag(u)*v)
+            return Utils.sdiag(u)*(self._MfMuiDeriv*v)
+        else:
+            if adjoint is True:
+                return self._MfMuiDeriv.T*(Utils.sdiag(u))
+            return Utils.sdiag(u)*(self._MfMuiDeriv)
 
     @property
     def MfMuiI(self):
@@ -218,8 +247,7 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MfMuiI = self.mesh.getFaceInnerProduct(self.mui, invMat=True)
         return self._MfMuiI
 
-    # TODO: This should take a vector
-    def MfMuiIDeriv(self, u):
+    def MfMuiIDeriv(self, u, v=None, adjoint=False):
         """
         Derivative of :code:`MfMui` with respect to the model
         """
@@ -234,8 +262,12 @@ class BaseEMProblem(Problem.BaseProblem):
                 )
 
         dMfMuiI_dI = -self.MfMuiI**2
-        dMf_dmui = self.mesh.getEdgeInnerProductDeriv(self.mui)(u)
-        return dMfMuiI_dI * (dMf_dmui * self.muiDeriv)
+        if adjoint is True:
+            return self.MfMuiDeriv(
+                u, v=dMfMuiI_dI.T * v if v is not None else dMfMuiI_dI.T,
+                adjoint=adjoint
+            )
+        return dMfMuiI_dI * self.MfMuiDeriv(u, v=v)
 
     @property
     def MeMu(self):
@@ -247,28 +279,37 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MeMu = self.mesh.getEdgeInnerProduct(self.mu)
         return self._MeMu
 
-    def MeMuDeriv(self, u):
+    def MeMuDeriv(self, u, v=None, adjoint=False):
         """
         Derivative of :code:`MeMu` with respect to the model.
         """
         if self.muMap is None:
             return Utils.Zero()
 
-        return (
-            self.mesh.getEdgeInnerProductDeriv(self.mu)(u) * self.muDeriv
-        )
+        if getattr(self, '_MeMuDeriv', None) is None:
+            self._MeMuDeriv = self.mesh.getEdgeInnerProductDeriv(
+                np.ones(self.mesh.nC)
+            )(np.ones(self.mesh.nE)) * self.muDeriv
+
+        if v is not None:
+            if adjoint:
+                return self._MeMuDeriv.T * (Utils.sdiag(u)*v)
+            return Utils.sdiag(u)*(self._MeMuDeriv * v)
+        else:
+            if adjoint is True:
+                return self._MeMuDeriv.T * Utils.sdiag(u)
+            return Utils.sdiag(u) * self._MeMuDeriv
 
     @property
     def MeMuI(self):
         """
-            Inverse of :code:`MeMu`
+        Inverse of :code:`MeMu`
         """
         if getattr(self, '_MeMuI', None) is None:
             self._MeMuI = self.mesh.getEdgeInnerProduct(self.mu, invMat=True)
         return self._MeMuI
 
-    # TODO: This should take a vector
-    def MeMuIDeriv(self, u):
+    def MeMuIDeriv(self, u, v=None, adjoint=False):
         """
         Derivative of :code:`MeMuI` with respect to the model
         """
@@ -283,8 +324,12 @@ class BaseEMProblem(Problem.BaseProblem):
                 )
 
         dMeMuI_dI = -self.MeMuI**2
-        dMe_dmu = self.mesh.getEdgeInnerProductDeriv(self.mu)(u)
-        return dMeMuI_dI * (dMe_dmu * self.muDeriv)
+        if adjoint is True:
+            return self.MeMuDeriv(
+                u, v=dMeMuI_dI.T * v if v is not None else dMeMuI_dI.T,
+                adjoint=adjoint
+            )
+        return dMeMuI_dI * self.MeMuDeriv(u, v=v)
 
     ####################################################
     # Electrical Conductivity
@@ -299,19 +344,26 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MeSigma = self.mesh.getEdgeInnerProduct(self.sigma)
         return self._MeSigma
 
-    # TODO: This should take a vector
-    def MeSigmaDeriv(self, u):
+    def MeSigmaDeriv(self, u, v=None, adjoint=False):
         """
-        Derivative of MeSigma with respect to the model
+        Derivative of MeSigma with respect to the model times a vector (u)
         """
         if self.sigmaMap is None:
             return Utils.Zero()
 
-        return (
-            self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) *
-            self.sigmaDeriv
-        )
+        if getattr(self, '_MeSigmaDeriv', None) is None:
+            self._MeSigmaDeriv = self.mesh.getEdgeInnerProductDeriv(
+                np.ones(self.mesh.nC)
+            )(np.ones(self.mesh.nE)) * self.sigmaDeriv
 
+        if v is not None:
+            if adjoint:
+                return self._MeSigmaDeriv.T * (Utils.sdiag(u)*v)
+            return Utils.sdiag(u)*(self._MeSigmaDeriv * v)
+        else:
+            if adjoint is True:
+                return self._MeSigmaDeriv.T * Utils.sdiag(u)
+            return Utils.sdiag(u) * self._MeSigmaDeriv
 
     @property
     def MeSigmaI(self):
@@ -324,8 +376,7 @@ class BaseEMProblem(Problem.BaseProblem):
             )
         return self._MeSigmaI
 
-    # TODO: This should take a vector
-    def MeSigmaIDeriv(self, u):
+    def MeSigmaIDeriv(self, u, v=None, adjoint=False):
         """
         Derivative of :code:`MeSigmaI` with respect to the model
         """
@@ -337,10 +388,14 @@ class BaseEMProblem(Problem.BaseProblem):
                 raise NotImplementedError(
                     "Full anisotropy is not implemented for MeSigmaIDeriv."
                 )
-
         dMeSigmaI_dI = -self.MeSigmaI**2
-        dMe_dsig = self.mesh.getEdgeInnerProductDeriv(self.sigma)(u)
-        return dMeSigmaI_dI * (dMe_dsig * self.sigmaDeriv)
+        if adjoint is True:
+            return self.MeSigmaDeriv(
+                u, v=(dMeSigmaI_dI.T*v) if v is not None else dMeSigmaI_dI.T,
+                adjoint=adjoint
+            )
+        else:
+            return  dMeSigmaI_dI * self.MeSigmaDeriv(u, v=v)
 
     @property
     def MfRho(self):
@@ -352,17 +407,26 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MfRho = self.mesh.getFaceInnerProduct(self.rho)
         return self._MfRho
 
-    # TODO: This should take a vector
-    def MfRhoDeriv(self, u):
+    def MfRhoDeriv(self, u, v=None, adjoint=False):
         """
         Derivative of :code:`MfRho` with respect to the model.
         """
         if self.rhoMap is None:
             return Utils.Zero()
 
-        return (
-            self.mesh.getFaceInnerProductDeriv(self.rho)(u) * self.rhoDeriv
-        )
+        if getattr(self, '_MfRhoDeriv', None) is None:
+            self._MfRhoDeriv = self.mesh.getFaceInnerProductDeriv(
+                np.ones(self.mesh.nC)
+            )(np.ones(self.mesh.nF)) * self.rhoDeriv
+
+        if v is not None:
+            if adjoint is True:
+                return self._MfRhoDeriv.T*(Utils.sdiag(u)*v)
+            return Utils.sdiag(u)*(self._MfRhoDeriv*v)
+        else:
+            if adjoint is True:
+                return self._MfRhoDeriv.T*(Utils.sdiag(u))
+            return Utils.sdiag(u)*(self._MfRhoDeriv)
 
     @property
     def MfRhoI(self):
@@ -373,8 +437,7 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MfRhoI = self.mesh.getFaceInnerProduct(self.rho, invMat=True)
         return self._MfRhoI
 
-    # TODO: This should take a vector
-    def MfRhoIDeriv(self, u):
+    def MfRhoIDeriv(self, u, v=None, adjoint=False):
         """
             Derivative of :code:`MfRhoI` with respect to the model.
         """
@@ -386,10 +449,15 @@ class BaseEMProblem(Problem.BaseProblem):
                 raise NotImplementedError(
                     "Full anisotropy is not implemented for MfRhoIDeriv."
                 )
-
         dMfRhoI_dI = -self.MfRhoI**2
-        dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
-        return dMfRhoI_dI * (dMf_drho * self.rhoDeriv)
+
+        if adjoint is True:
+            return self.MfRhoDeriv(
+                u, v=(dMfRhoI_dI.T*v) if v is not None else dMfRhoI_dI.T,
+                adjoint=adjoint
+            )
+        else:
+            return dMfRhoI_dI * self.MfRhoDeriv(u, v=v)
 
 
 ###############################################################################

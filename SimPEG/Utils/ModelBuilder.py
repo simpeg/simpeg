@@ -3,6 +3,7 @@ import numpy as np
 import scipy.ndimage as ndi
 import scipy.sparse as sp
 from .matutils import mkvc
+from scipy.spatial import Delaunay
 
 import sys
 if sys.version_info < (3,):
@@ -330,3 +331,37 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
     mi = mi*(bounds[1]-bounds[0])+bounds[0]
 
     return mi
+
+def PolygonInd(mesh, pts):
+    """
+        Finde a volxel indices included in mpolygon (2D) or polyhedra (3D)
+        uniformly distributed model.
+
+        :param tuple shape: shape of the model.
+        :param int seed: pick which model to produce, prints the seed if you don't choose.
+        :param numpy.ndarray anisotropy: this is the (3 x n) blurring kernel that is used.
+        :param int its: number of smoothing iterations
+        :param list bounds: bounds on the model, len(list) == 2
+        :rtype: numpy.ndarray
+        :return: M, the model
+
+
+        .. plot::
+
+            import matplotlib.pyplot as plt
+            import SimPEG.Utils.ModelBuilder as MB
+            plt.colorbar(plt.imshow(MB.randomModel((50,50),bounds=[-4,0])))
+            plt.title('A very cool, yet completely random model.')
+            plt.show()
+
+
+    """    
+    if mesh.dim == 1:
+        assert "Only works for a mesh greater than 1-dimension"
+    elif mesh.dim == 2:
+        assert ~(pts.shape[1] != 2), "Please input (*,2) array"
+    elif mesh.dim == 3:
+        assert ~(pts.shape[1] != 3), "Please input (*,3) array"
+    hull = Delaunay(pts)
+    inds = hull.find_simplex(mesh.gridCC)>=0
+    return inds

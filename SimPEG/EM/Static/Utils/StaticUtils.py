@@ -777,12 +777,12 @@ def writeUBC_DCobs(
         if dim == 3:
             fid = open(fileName, 'a')
             # Flip sign of z value for UBC DCoctree code
-            tx[:, 2] = -tx[:, 2]
+            # tx[:, 2] = -tx[:, 2]
             # print(tx)
 
             # Flip sign of z value for UBC DCoctree code
-            M[:, 2] = -M[:, 2]
-            N[:, 2] = -N[:, 2]
+            # M[:, 2] = -M[:, 2]
+            # N[:, 2] = -N[:, 2]
 
             if format_type == 'SURFACE':
 
@@ -870,16 +870,6 @@ def writeUBC_DClocs(
             'SIMPLE' | 'pole-pole'"""
             " not {}".format(format_type)
         )
-
-    if(isinstance(dc_survey.std, float)):
-        print(
-            """survey.std was a float computing uncertainty vector
-            (survey.std*survey.dobs + survey.eps)"""
-        )
-
-    if(isinstance(dc_survey.eps, float)):
-        epsValue = dc_survey.eps
-        dc_survey.eps = epsValue*np.ones_like(dc_survey.dobs)
 
     fid = open(fileName, 'w')
 
@@ -1002,23 +992,8 @@ def writeUBC_DClocs(
             fid.close()
 
             fid = open(fileName, 'ab')
-            if isinstance(dc_survey.std, np.ndarray):
-                np.savetxt(
-                    fid,
-                    np.c_[
-                        M, N,
-                    ],
-                    fmt=str('%e'), delimiter=str(' '), newline=str('\n')
-                )
-            elif (isinstance(dc_survey.std, float)):
-                np.savetxt(
-                    fid,
-                    np.c_[
-                        M, N,
-                    ],
-                    fmt=str('%e'), delimiter=str(' '), newline=str('\n')
-                )
-
+            np.savetxt(fid, np.c_[M, N], fmt=str('%e'), delimiter=str(' '),
+                newline=str('\n'))
             fid.close()
 
             fid = open(fileName, 'a')
@@ -1252,10 +1227,8 @@ def readUBC_DC3Dobs(fileName):
     """
         Read UBC GIF DCIP 3D observation file and generate arrays
         for tx-rx location
-
         Input:
         :param string fileName: path to the UBC GIF 3D obs file
-
         Output:
         :param rx, tx, d, wd
         :return
@@ -1510,7 +1483,6 @@ def getSrc_locs(survey):
 def gettopoCC(mesh, actind, option="top"):
     """
         Get topography from active indices of mesh.
-
     """
 
     if mesh._meshType == "TENSOR":

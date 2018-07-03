@@ -8,8 +8,8 @@ from SimPEG import SolverLU
 from SimPEG import EM
 from scipy.constants import mu_0
 
-import matplotlib
-matplotlib.use('Agg')
+# import matplotlib
+# matplotlib.use('Agg')
 
 import matplotlib.pylab as plt
 

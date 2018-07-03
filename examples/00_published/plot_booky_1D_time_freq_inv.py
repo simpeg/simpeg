@@ -207,7 +207,9 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Set FDEM survey (In-phase and Quadrature)
     survey = EM.FDEM.Survey(srcList)
-    prb = EM.FDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=Solver)
+    prb = EM.FDEM.Problem3D_b(
+        mesh, sigmaMap=mapping, Solver=Solver
+    )
     prb.pair(survey)
 
     # ------------------ RESOLVE Inversion ------------------ #
@@ -235,7 +237,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Regularization
     regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = Regularization.Simple(regMesh)
+    reg = Regularization.Simple(regMesh, mapping=Maps.IdentityMap(regMesh))
 
     # Optimization
     opt = Optimization.InexactGaussNewton(maxIter=5)
@@ -253,7 +255,6 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     reg.mref = m0.copy()
     opt.LSshorten = 0.5
     opt.remember('xc')
-
     # run the inversion
     mopt_re = inv.run(m0)
     dpred_re = invProb.dpred
@@ -349,7 +350,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Regularization
     regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = Regularization.Simple(regMesh)
+    reg = Regularization.Simple(regMesh, mapping=Maps.IdentityMap(regMesh))
 
     # Optimization
     opt = Optimization.InexactGaussNewton(maxIter=5)

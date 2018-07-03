@@ -820,7 +820,7 @@ class Fields3D_b(FieldsFDEM):
         if adjoint:
             s_eDeriv = src.s_eDeriv(self.prob, self._MeSigmaI.T * v, adjoint)
             return (
-                self._MeSigmaIDeriv(w).T * v +
+                self._MeSigmaIDeriv(w, v, adjoint) +
                 self._MfMuiDeriv(bSolution).T * (
                     self._edgeCurl * (self._MeSigmaI.T * v)
                     ) -
@@ -829,7 +829,7 @@ class Fields3D_b(FieldsFDEM):
             )
         s_eDeriv = src.s_eDeriv(self.prob, v, adjoint)
         return (
-            self._MeSigmaIDeriv(w) * v +
+            self._MeSigmaIDeriv(w, v) +
             self._MeSigmaI * (
                 self._edgeCurl.T * (self._MfMuiDeriv(bSolution) * v)
             ) -
@@ -846,6 +846,9 @@ class Fields3D_b(FieldsFDEM):
         :rtype: numpy.ndarray
         :return: primary current density
         """
+
+        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
         j = (self._edgeCurl.T * (self._MfMui * bSolution))
 
@@ -1162,7 +1165,7 @@ class Fields3D_j(FieldsFDEM):
         if not adjoint:
             hDeriv_m = 1./(1j*omega(src.freq)) * (
                 -1. *  (
-                    MeMuI * (C.T * (MfRhoDeriv(jSolution)*v)) +
+                    MeMuI * (C.T * (MfRhoDeriv(jSolution, v, adjoint))) +
                     MeMuIDeriv(C.T * (MfRho * jSolution)) *  v
                 ) +
                 MeMuI * s_mDeriv(v) + MeMuIDeriv(s_m) * v
