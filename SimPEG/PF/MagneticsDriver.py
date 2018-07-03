@@ -182,7 +182,9 @@ class MagneticsDriver_Inv(object):
     @property
     def survey(self):
         if getattr(self, '_survey', None) is None:
-            self._survey = self.readMagneticsObservations(self.obsfile)
+            self._survey = self.readMagneticsObservations(
+                self.basePath + self.obsfile
+            )
         return self._survey
 
     @property
@@ -371,7 +373,8 @@ class MagneticsDriver_Inv(object):
         wd = np.zeros(ndat, dtype=float)
         locXYZ = np.zeros((ndat, 3), dtype=float)
 
-        for ii in range(ndat):
+        ii = 0
+        while ii < ndat:
 
             temp = np.array(line.split(), dtype=float)
             if len(temp) > 0:
@@ -382,7 +385,7 @@ class MagneticsDriver_Inv(object):
 
                     if len(temp) == 5:
                         wd[ii] = temp[4]
-
+                ii += 1
             line = fid.readline()
 
         rxLoc = BaseMag.RxObs(locXYZ)

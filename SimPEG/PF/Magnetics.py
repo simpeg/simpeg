@@ -29,17 +29,18 @@ class MagneticIntegral(Problem.LinearProblem):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     def fwr_ind(self, m):
+        chi = self.chiMap * m
 
         if self.forwardOnly:
 
             # Compute the linear operation without forming the full dense G
-            fwr_d = self.Intrgl_Fwr_Op(m=m)
+            fwr_d = self.Intrgl_Fwr_Op(m=chi)
 
             return fwr_d
 
         else:
 
-            return self.G.dot(m)
+            return self.G.dot(chi)
 
     def fwr_rem(self):
         # TODO check if we are inverting for M
@@ -1167,7 +1168,8 @@ def readMagneticsObservations(obs_file):
     wd = np.zeros(ndat, dtype=float)
     locXYZ = np.zeros((ndat, 3), dtype=float)
 
-    for ii in range(ndat):
+    ii = 0
+    while ii < ndat:
 
         temp = np.array(line.split(), dtype=float)
         if len(temp) > 0:
@@ -1178,7 +1180,7 @@ def readMagneticsObservations(obs_file):
 
                 if len(temp) == 5:
                     wd[ii] = temp[4]
-
+            ii += 1
         line = fid.readline()
 
     rxLoc = MAG.RxObs(locXYZ)
@@ -1186,4 +1188,4 @@ def readMagneticsObservations(obs_file):
     survey = MAG.LinearSurvey(srcField)
     survey.dobs = d
     survey.std = wd
-    return survey
+    return survey, M
