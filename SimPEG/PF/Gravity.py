@@ -27,7 +27,6 @@ class GravityIntegral(Problem.LinearProblem):
     def fwr_op(self):
         # Add forward function
         # kappa = self.model.kappa TODO
-        rho = self.rhoMap * self.model
 
         if self.forwardOnly:
 
@@ -90,12 +89,12 @@ class GravityIntegral(Problem.LinearProblem):
                 tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
 
                 if self.rtype == 'z':
-                    fwr_d[ii] = tz.dot(rho)
+                    fwr_d[ii] = tz.dot(self.rho)
 
                 elif self.rtype == 'xyz':
-                    fwr_d[ii] = tx.dot(rho)
-                    fwr_d[ii + ndata] = ty.dot(rho)
-                    fwr_d[ii + 2 * ndata] = tz.dot(rho)
+                    fwr_d[ii] = tx.dot(self.rho)
+                    fwr_d[ii + ndata] = ty.dot(self.rho)
+                    fwr_d[ii + 2 * ndata] = tz.dot(self.rho)
 
             # Display progress
                 count = progress(ii, count, ndata)
@@ -105,7 +104,7 @@ class GravityIntegral(Problem.LinearProblem):
             return fwr_d
 
         else:
-            return self.G.dot(rho)
+            return self.G.dot(self.rho)
 
     def fields(self, m):
         self.model = m
@@ -507,7 +506,8 @@ class Problem3D_Diff(Problem.BaseProblem):
     def Mfi(self): return self._Mfi
 
     def makeMassMatrices(self, m):
-        rho = self.rhoMap * m
+        self.model = m
+        rho = self.rho
         self._Mfi = self.mesh.getFaceInnerProduct()
         self._MfI = Utils.sdiag(1. / self._Mfi.diagonal())
 
@@ -519,7 +519,8 @@ class Problem3D_Diff(Problem.BaseProblem):
 
         Mc = Utils.sdiag(self.mesh.vol)
 
-        rho = self.rhoMap * m
+        self.model = m
+        rho = self.rho
 
         return Mc * rho
 

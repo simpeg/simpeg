@@ -29,18 +29,17 @@ class MagneticIntegral(Problem.LinearProblem):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     def fwr_ind(self, m):
-        chi = self.chiMap * m
 
         if self.forwardOnly:
 
             # Compute the linear operation without forming the full dense G
-            fwr_d = self.Intrgl_Fwr_Op(m=chi)
+            fwr_d = self.Intrgl_Fwr_Op(m=self.chi)
 
             return fwr_d
 
         else:
 
-            return self.G.dot(chi)
+            return self.G.dot(self.chi)
 
     def fwr_rem(self):
         # TODO check if we are inverting for M

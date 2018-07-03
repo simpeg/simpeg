@@ -256,7 +256,8 @@ class GravityDriver_Inv(object):
                 self._mref = np.ones(self.nC) * self._mrefInput
             else:
                 self._mref = Mesh.TensorMesh.readModelUBC(
-                    self.mesh, self.basePath + self._mrefInput)
+                    self.mesh, self.basePath + self._mrefInput
+                )
                 self._mref = self._mref[self.activeCells]
         return self._mref
 
