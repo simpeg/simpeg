@@ -351,7 +351,7 @@ class MagneticsDriver_Inv(object):
         :param M, magnetization orentiaton (MI, MD)
         """
 
-        fid = open(self.basePath + obs_file, 'r')
+        fid = open(obs_file, 'r')
 
         # First line has the inclination,declination and amplitude of B0
         line = fid.readline()
