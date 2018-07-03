@@ -888,12 +888,12 @@ class Fields3D_b(FieldsFDEM):
     def _jDeriv_mui(self, src, v, adjoint=False):
 
         if adjoint:
-            return MfMuiDeriv(
+            return self._MfMuiDeriv(
                 self[src, 'b'], (self._edgeCurl * (self._MeI.T * v)),
                 adjoint
             )
 
-        return self._MeI * (self._edgeCurl.T * MfMuiDeriv(self[src, 'b'], v))
+        return self._MeI * (self._edgeCurl.T * self._MfMuiDeriv(self[src, 'b'], v))
 
     def _jDeriv_m(self, src, v, adjoint=False):
         """
@@ -1532,7 +1532,7 @@ class Fields3D_h(FieldsFDEM):
         if adjoint:
             w = self._MfI.T * v
             return (
-                self._MfRhoDeriv(self._edgeCurl * hSolution, w, adoint) -
+                self._MfRhoDeriv(self._edgeCurl * hSolution, w, adjoint) -
                 self._MfRhoDeriv(s_e, w, adjoint) +
                 src.ePrimaryDeriv(self.prob, v, adjoint)
             )

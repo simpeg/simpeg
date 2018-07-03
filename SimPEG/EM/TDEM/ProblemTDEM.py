@@ -62,7 +62,8 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             # keep factors if dt is the same as previous step b/c A will be the
             # same
             if Ainv is not None and (
-                tInd > 0 and abs(dt-self.timeSteps[tInd - 1]) > self.dt_threshold
+                tInd > 0 and abs(dt-self.timeSteps[tInd - 1]) >
+                self.dt_threshold
             ):
                 Ainv.clean()
                 Ainv = None
@@ -421,7 +422,8 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         return ifieldsDeriv
 
-    # Store matrix factors if we need to solve the DC problem to get the initial condition
+    # Store matrix factors if we need to solve the DC problem to get the
+    # initial condition
     @property
     def Adcinv(self):
         if not hasattr(self, 'getAdc'):
@@ -919,41 +921,6 @@ class Problem3D_e(BaseTDEMProblem):
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         # right now, we are assuming that s_e, s_m do not depend on the model.
         return Utils.Zero()
-
-    # def getInitialFields(self):
-    #     """
-    #     Ask the sources for initial fields
-    #     """
-
-    #     Srcs = self.survey.srcList
-
-    #     if self._fieldType in ['b', 'j']:
-    #         ifields = np.zeros((self.mesh.nF, len(Srcs)))
-    #     elif self._fieldType in ['e', 'h']:
-    #         ifields = np.zeros((self.mesh.nE, len(Srcs)))
-    #     if self.verbose:
-    #         print ("Calculating Initial fields")
-
-    #     for i, src in enumerate(Srcs):
-    #         # Check if the source is grounded
-    #         # if src.srcType == "galvanic" and src.waveform.hasInitialFields:
-    #             # # Check self.Adcinv and clean
-    #             # if self.Adcinv is not None:
-    #             #     self.Adcinv.clean()
-    #             # # Factorize Adc matrix
-    #             # if getattr(self, 'Adcinv', None) is None:
-    #             #     if self.verbose:
-    #             #         print ("Factorize system matrix for DC problem")
-    #             #     Adc = self.getAdc()
-    #             #     self.Adcinv = self.Solver(Adc)
-
-    #         ifields[:, i] = (
-    #             ifields[:, i] + getattr(
-    #                 src, '{}Initial'.format(self._fieldType), None
-    #             )(self)
-    #         )
-
-    #     return ifields
 
     def getAdc(self):
         MeSigma = self.MeSigma

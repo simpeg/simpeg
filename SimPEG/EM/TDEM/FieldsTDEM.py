@@ -650,13 +650,12 @@ class Fields3D_j(FieldsTDEM):
 
     def _dhdtDeriv_m(self, tInd, src, v, adjoint=False):
         jSolution = self[[src], 'jSolution', tInd].flatten()
-        # MfRhoDeriv = self._MfRhoDeriv(jSolution)
         C = self._edgeCurl
         MeMuI = self._MeMuI
 
         if adjoint is True:
-            return -MfRhoDeriv.T * (C * (MeMuI * v))
-        return -MeMuI * (C.T * (MfRhoDeriv * v))
+            return -self._MfRhoDeriv.T * (C * (MeMuI * v))
+        return -MeMuI * (C.T * (self._MfRhoDeriv * v))
 
     def _e(self, jSolution, srcList, tInd):
         return self.survey.prob.MfI * (
