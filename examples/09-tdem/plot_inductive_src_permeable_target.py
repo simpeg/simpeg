@@ -21,7 +21,7 @@ from pymatsolver import Pardiso
 import time
 
 from SimPEG.EM import TDEM
-from SimPEG import Utils, Maps
+from SimPEG import Utils, Maps, versions
 
 ###############################################################################
 # Model Parameters
@@ -260,3 +260,10 @@ for a, v in zip(ax, ["magnetostatic", "late_ontime", "diff"]):
         max_r=200
     )
 plt.tight_layout()
+
+###############################################################################
+# Print the version of SimPEG and dependencies
+# --------------------------------------------
+#
+
+versions()

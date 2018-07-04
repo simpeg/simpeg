@@ -913,7 +913,7 @@ class UpdatePreconditioner(InversionDirective):
 
                     m = self.invProb.model
 
-                    JtJdiag += np.sum((dmisfit.W*prob.getJ(m))**2., axis=0)
+                    JtJdiag += np.sum(np.power((dmisfit.W*prob.getJ(m)), 2), axis=0)
 
                 self.opt.JtJdiag = JtJdiag
 
