@@ -199,7 +199,7 @@ def tileSurveyPoints(locs, maxNpoints):
 def meshBuilder(xyz, h, padDist, meshGlobal=None,
                 expFact=1.3,
                 meshType='TENSOR',
-                verticalAlignment='CC'):
+                verticalAlignment='top'):
     """
         Function to quickly generate a Tensor mesh
         given a cloud of xyz points, finest core cell size
@@ -209,7 +209,7 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
 
         :param numpy.ndarray xyz: n x 3 array of locations [x, y, z]
         :param numpy.ndarray h: 1 x 3 cell size for the core mesh
-        :param numpy.ndarray h: 2 x 3 padding distances [W,E,S,N,Down,Up]
+        :param numpy.ndarray padDist: 2 x 3 padding distances [W,E,S,N,Down,Up]
         [OPTIONAL]
         :param numpy.ndarray padCore: Number of core cells around the xyz locs
         :object SimPEG.Mesh: Base mesh used to shift the new mesh for overlap
@@ -280,13 +280,13 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
         mesh = Mesh.TensorMesh([hx, hy, hz], 'CC0')
 
         # Re-set the mesh at the center of input locations
-        # z-shift is different for cases when no padding cells up
-        mesh.x0 = np.r_[mesh.x0[0] + midX,
-                        mesh.x0[1] + midY,
-                        (mesh.x0[2] -
-                         mesh.hz[:(npadDown + nCz)].sum() +  # down to top of core
-                         midZ +                              # up to center locs
-                         h[2]*nCz/2.)]                       # up half the core
+        # Set origin
+        if verticalAlignment == 'center':
+            mesh.x0 = [midX-np.sum(mesh.hx)/2., midY-np.sum(mesh.hy)/2., midZ-np.sum(mesh.hz)/2.]
+        elif verticalAlignment == 'top':
+            mesh.x0 = [midX-np.sum(mesh.hx)/2., midY-np.sum(mesh.hy)/2., limz[0]-np.sum(mesh.hz)]
+        else:
+            assert NotImplementedError("verticalAlignment must be 'center' | 'top'")
 
     elif meshType == 'TREE':
 
