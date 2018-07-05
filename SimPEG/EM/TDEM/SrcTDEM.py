@@ -312,6 +312,9 @@ class MagDipole(BaseTDEMSrc):
     orientation = properties.Vector3(
         "orientation of the source", default='Z', length=1., required=True
     )
+    loc = properties.Vector3(
+        "location of the source", default=np.r_[0.,0.,0.]
+    )
 
     def __init__(self, rxList, **kwargs):
         BaseTDEMSrc.__init__(self, rxList, srcType="inductive", **kwargs)
@@ -511,6 +514,8 @@ class LineCurrent(BaseTDEMSrc):
     :param list rxList: receiver list
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
+
+    loc = properties.Array("location of the source", shape=('*', 3))
 
     def __init__(self, rxList, **kwargs):
         self.integrate = False

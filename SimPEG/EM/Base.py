@@ -497,53 +497,11 @@ class BaseEMSurvey(Survey.BaseSurvey):
 #                                                                             #
 ###############################################################################
 
-# class SourceLocationVector(properties.Array):
-
-#     class_info = 'a length 3 vector describing the location of the source'
-
-#     def validate(self, instance, value):
-#         """
-#         coerce the shape to a 1D vector if an array is input. See
-#         https://github.com/seequent/properties/issues/250
-#         """
-#         if len(value.shape) > 1:
-#             value = value.flatten()
-
-#         print(self.shape, len(value))
-#         if len(value) != self.shape[0]:
-#             raise Exception(
-#                 'loc must be length {}, the provided input is length {}'.format(
-#                     self.shape[0], len(value)
-#                 )
-#             )
-
-#         return super(Array, self).validate(instance, value)
-
 class BaseEMSrc(Survey.BaseSrc):
 
-    loc = properties.Array("location of the source", shape={(3,), (3, '*')})
+    loc = properties.Array("location of the source", shape={(3,), ('*', 3)})
 
     integrate = properties.Bool("integrate the source term?", default=False)
-
-    @properties.validator('loc')
-    def _coerce_loc_shape(self, change):
-        """
-        coerce the shape to a 1D vector if an array is input. See
-        https://github.com/seequent/properties/issues/250
-        """
-        value = change['value']
-        if len(value.shape) > 1:
-            value = value.flatten()
-
-        if len(value) != 3:
-            raise Exception(
-                'loc must be length {}, the provided input is length {}'.format(
-                    3, len(value)
-                )
-            )
-
-        change['value'] = value
-
 
     def eval(self, prob):
         """
