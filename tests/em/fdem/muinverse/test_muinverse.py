@@ -134,8 +134,6 @@ class MuTests(unittest.TestCase):
     def test_mats_cleared(self):
         self.setUpProb()
         u = self.prob.fields(self.m0)
-        v = np.random.rand(self.mesh.nE)
-        w = np.random.rand(self.mesh.nF)
 
         MeMu = self.prob.MeMu
         MeMuI = self.prob.MeMuI
