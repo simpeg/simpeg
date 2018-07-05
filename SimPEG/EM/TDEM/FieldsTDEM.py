@@ -6,7 +6,7 @@ from scipy.constants import epsilon_0
 import SimPEG
 from SimPEG import Utils
 from SimPEG.EM.Utils import omega
-from SimPEG.Utils import Zero, Identity, sdiag
+from SimPEG.Utils import Zero, sdiag
 
 
 class FieldsTDEM(SimPEG.Problem.TimeFields):

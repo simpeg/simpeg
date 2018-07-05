@@ -1,6 +1,6 @@
 from __future__ import print_function
 import numpy as np
-import scipy.sparse as sp
+from scipy.sparse import linalg
 from .matutils import mkvc
 import warnings
 
@@ -21,6 +21,7 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
 
     ::
 
+        import scipy.sparse as sp
         Solver   = SolverUtils.SolverWrapD(sp.linalg.spsolve, factorize=False)
         SolverLU = SolverUtils.SolverWrapD(sp.linalg.splu, factorize=True)
 
@@ -84,6 +85,7 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
 
     ::
 
+        import scipy.sparse as sp
         SolverCG = SolverUtils.SolverWrapI(sp.linalg.cg)
 
     """
@@ -133,7 +135,6 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
     return type(name if name is not None else fun.__name__, (object,), {"__init__": __init__, "clean": clean, "__mul__": __mul__})
 
 
-from scipy.sparse import linalg
 Solver   = SolverWrapD(linalg.spsolve, factorize=False, name="Solver")
 SolverLU = SolverWrapD(linalg.splu, factorize=True, name="SolverLU")
 SolverCG = SolverWrapI(linalg.cg, name="SolverCG")
