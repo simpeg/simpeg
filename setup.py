@@ -39,9 +39,10 @@ setup(
         'pymatsolver>=0.1.1',
         'ipython',
         'matplotlib',
-        'properties[math]',
+        'properties>=0.5.2',
+        'vectormath>=0.2.0',
         'discretize',
-        'geoana'
+        'geoana>=0.0.4'
     ],
     author="Rowan Cockett",
     author_email="rowanc1@gmail.com",
