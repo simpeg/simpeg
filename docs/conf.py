@@ -384,5 +384,6 @@ nitpick_ignore = [
     ('py:class', 'SimPEG.VRM.WaveformVRM.SquarePulse'),
     ('py:class', 'SimPEG.VRM.WaveformVRM.ArbitraryDiscrete'),
     ('py:class', 'SimPEG.VRM.WaveformVRM.ArbitraryPiecewise'),
-    ('py:class', 'SimPEG.VRM.WaveformVRM.Custom')
+    ('py:class', 'SimPEG.VRM.WaveformVRM.Custom'),
+    ('py:class', 'SimPEG.Props.LocationVector')
 ]
