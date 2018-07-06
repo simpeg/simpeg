@@ -11,6 +11,7 @@ from SimPEG import Utils
 from SimPEG.Utils import Zero, Identity
 from SimPEG.EM.Utils import *
 from ..Base import BaseEMSrc
+from ...Props import LocationVector
 
 
 ###############################################################################
@@ -312,8 +313,9 @@ class MagDipole(BaseTDEMSrc):
     orientation = properties.Vector3(
         "orientation of the source", default='Z', length=1., required=True
     )
-    loc = properties.Vector3(
-        "location of the source", default=np.r_[0.,0.,0.]
+    loc = LocationVector(
+        "location of the source", default=np.r_[0.,0.,0.],
+        shape=(3,)
     )
 
     def __init__(self, rxList, **kwargs):

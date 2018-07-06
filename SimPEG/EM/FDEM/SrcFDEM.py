@@ -10,6 +10,7 @@ from SimPEG import Survey, Problem, Utils
 
 from .. import Utils as emutils
 from ..Base import BaseEMSrc
+from ...Props import LocationVector
 
 
 class BaseFDEMSrc(BaseEMSrc):
@@ -293,8 +294,8 @@ class MagDipole(BaseFDEMSrc):
     freq = properties.Float(
         "frequency of the source (Hz)", required=True
     )
-    loc = properties.Vector3(
-        "location of the source", default=np.r_[0.,0.,0.]
+    loc = LocationVector(
+        "location of the source", default=np.r_[0.,0.,0.], shape=(3,)
     )
 
     def __init__(
