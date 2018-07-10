@@ -1367,9 +1367,16 @@ class SparseSmall(BaseSparse):
             return self.stashedR
 
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
+        maxVal = np.ones_like(f_m) * np.abs(f_m).max()
+        maxVal[self.norm < 1] = self.epsilon / np.sqrt(1.-self.norm[self.norm < 1])
+        maxGrad = maxVal / (maxVal**2. + self.epsilon**2.)**(1.-self.norm/2.)
+
+        # Default to 1 for zero gradients
+        eta = np.ones_like(f_m)
+        eta[maxGrad != 0] = np.abs(f_m).max()/maxGrad[maxGrad != 0]
+
         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
-        # print(eta)
+
         self.stashedR = r  # stash on the first calculation
         return r
 
@@ -1467,7 +1474,13 @@ class SparseDeriv(BaseSparse):
         Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = (2. * np.abs(f_m).max() * self.epsilon)**(1.-self.norm/2.)
+        maxVal = np.ones_like(f_m) * np.abs(f_m).max()
+        maxVal[self.norm < 1] = self.epsilon / np.sqrt(1.-self.norm[self.norm < 1])
+        maxGrad = maxVal / (maxVal**2. + self.epsilon**2.)**(1.-self.norm/2.)
+
+        eta = np.ones_like(f_m)
+        eta[maxGrad != 0] = np.abs(f_m).max()/maxGrad[maxGrad != 0]
+
         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
 
         self.stashedR = r  # stash on the first calculation
