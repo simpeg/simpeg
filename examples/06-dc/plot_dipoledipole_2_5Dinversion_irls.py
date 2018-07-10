@@ -108,7 +108,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
     # "N" means potential is defined at nodes
     prb = DC.Problem2D_N(
         mesh, rhoMap=mapping, storeJ=True,
-        Solver=Solver
+        Solver=Solver, verbose=True
     )
     # Pair problem with survey
     try:
@@ -152,11 +152,14 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
     # Related to inversion
     reg = Regularization.Sparse(
         mesh, indActive=actind, mapping=regmap,
-        gradientType = 'components'
+        gradientType='components'
     )
     #     gradientType = 'components'
     reg.norms = np.c_[p, qx, qz, 0.]
-    IRLS = Directives.Update_IRLS(maxIRLSiter=20, minGNiter=1)
+    IRLS = Directives.Update_IRLS(
+        maxIRLSiter=20, minGNiter=1,
+        betaSearch=False, fix_Jmatrix=True
+    )
 
     opt = Optimization.InexactGaussNewton(maxIter=40)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
