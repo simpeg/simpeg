@@ -489,8 +489,8 @@ class SaveOutputEveryIteration(SaveEveryIteration):
             ax3.plot(self.phi_m[self.i_target], self.phi_d[self.i_target], 'k*', ms=10)
 
         for ax in [ax1, ax2, ax3]:
-            ax.set_xscale("log")
-            ax.set_yscale("log")
+            ax.set_xscale("linear")
+            ax.set_yscale("linear")
         plt.tight_layout()
         plt.show()
         if fname is not None:
