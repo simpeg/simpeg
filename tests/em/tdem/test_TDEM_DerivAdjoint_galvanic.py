@@ -7,7 +7,7 @@ from pymatsolver import Pardiso as Solver
 
 plotIt = False
 
-testDeriv = False
+testDeriv = True
 testAdjoint = True
 
 TOL = 1e-4
