@@ -465,10 +465,6 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
             \chi = \sqrt{\\frac{1}{\\alpha^2} - 1}
 
-        .. todo::
-
-            Prolate spheroids (\alpha > 1, needle-like) have not been
-            implemented yet
 
         For reference, see
         `Torquato (2002), Random Heterogeneous Materials <https://link.springer.com/book/10.1007/978-1-4757-6355-3>`_
