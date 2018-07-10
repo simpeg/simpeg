@@ -186,16 +186,22 @@ class BetaEstimate_ByEig(InversionDirective):
             eigenvalues of JtJ and WtW.
             To estimate the eigenvector of **A**, we will use one iteration
             of the *Power Method*:
+
             .. math::
                 \mathbf{x_1 = A x_0}
+
             Given this (very course) approximation of the eigenvector, we can
             use the *Rayleigh quotient* to approximate the largest eigenvalue.
+
             .. math::
                 \lambda_0 = \\frac{\mathbf{x^\\top A x}}{\mathbf{x^\\top x}}
+
             We will approximate the largest eigenvalue for both JtJ and WtW,
             and use some ratio of the quotient to estimate beta0.
+
             .. math::
                 \\beta_0 = \gamma \\frac{\mathbf{x^\\top J^\\top J x}}{\mathbf{x^\\top W^\\top W x}}
+
             :rtype: float
             :return: beta0
         """
@@ -678,12 +684,6 @@ class Update_IRLS(InversionDirective):
                 self.opt.xc = self.reg.objfcts[0].model
                 return
 
-        # elif np.all([
-        #         self.mode == 1,
-        #         self.opt.iter % self.coolingRate == 0,
-        #         np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol
-        # ]):
-        #     self.invProb.beta = self.invProb.beta / self.coolingFactor
         elif np.all([self.mode == 1, self.opt.iter % self.coolingRate == 0]):
 
             self.invProb.beta = self.invProb.beta / self.coolingFactor
@@ -907,14 +907,16 @@ class UpdatePreconditioner(InversionDirective):
                 JtJdiag = np.zeros_like(self.invProb.model)
                 for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
 
-                    assert getattr(prob, 'getJ', None) is not None, (
-                        "Problem does not have a getJ attribute." +
-                        "Cannot form the sensitivity explicitely"
-                    )
-
                     m = self.invProb.model
 
-                    JtJdiag += np.sum(np.power((dmisfit.W*prob.getJ(m)), 2), axis=0)
+                    if getattr(prob, 'getJtJdiag', None) is None:
+                        assert getattr(prob, 'getJ', None) is not None, (
+                        "Problem does not have a getJ attribute." +
+                        "Cannot form the sensitivity explicitely"
+                        )
+                        JtJdiag += np.sum(np.power((dmisfit.W*prob.getJ(m)), 2), axis=0)
+                    else:
+                        JtJdiag += prob.getJtJdiag(m)
 
                 self.opt.JtJdiag = JtJdiag
 
@@ -1023,15 +1025,19 @@ class UpdateSensitivityWeights(InversionDirective):
             self.survey,
             self.dmisfit.objfcts
         ):
-
-            assert getattr(prob, 'getJ', None) is not None, (
-                "Problem does not have a getJ attribute." +
-                "Cannot form the sensitivity explicitely"
-            )
-
             m = self.invProb.model
 
-            self.JtJdiag += [mkvc(np.sum((dmisfit.W*prob.getJ(m))**(2.), axis=0))]
+            if getattr(prob, 'getJtJdiag', None) is None:
+                assert getattr(prob, 'getJ', None) is not None, (
+                    "Problem does not have a getJ attribute." +
+                    "Cannot form the sensitivity explicitely"
+                )
+
+
+
+                self.JtJdiag += [mkvc(np.sum((dmisfit.W*prob.getJ(m))**(2.), axis=0))]
+            else:
+                self.JtJdiag += [prob.getJtJdiag(m)]
 
         return self.JtJdiag
 
