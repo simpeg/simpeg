@@ -21,7 +21,7 @@ from SimPEG import Inversion
 from SimPEG import Tests
 from SimPEG.Utils import versions
 
-__version__   = '0.8.5'
+__version__   = '0.8.6'
 __author__    = 'SimPEG Team'
 __license__   = 'MIT'
 __copyright__ = '2013 - 2017, SimPEG Team, http://simpeg.xyz'
