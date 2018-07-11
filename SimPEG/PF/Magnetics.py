@@ -614,8 +614,8 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         dCdm_A = Div * (Utils.sdiag(Div.T * u) * dMfMuI * dmudm)
         dCdm_RHS1 = Div * (Utils.sdiag(self.MfMu0 * B0) * dMfMuI)
         temp1 = (Dface * (self._Pout.T * self.Bbc_const * self.Bbc))
-        dCdm_RHS2v = (Utils.sdiag(vol) * temp1) * \
-            np.inner(vol, dchidmu * dmudm * v)
+        # dCdm_RHS2v = (Utils.sdiag(vol) * temp1) * \
+        #    np.inner(vol, dchidmu * dmudm * v)
 
         # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
         dCdm_RHSv = dCdm_RHS1 * (dmudm * v)

@@ -517,7 +517,6 @@ class Problem3D_Diff(Problem.BaseProblem):
 
     def makeMassMatrices(self, m):
         self.model = m
-        rho = self.rho
         self._Mfi = self.mesh.getFaceInnerProduct()
         self._MfI = Utils.sdiag(1. / self._Mfi.diagonal())
 
