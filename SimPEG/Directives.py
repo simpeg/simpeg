@@ -906,10 +906,8 @@ class UpdatePreconditioner(InversionDirective):
 
             if getattr(self.opt, 'JtJdiag', None) is None:
 
-                JtJdiag = np.zeros_like(self.invProb.model)
+                JtJdiag = np.zeros_like(m)
                 for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
-
-                    m = self.invProb.model
 
                     if getattr(prob, 'getJtJdiag', None) is None:
                         assert getattr(prob, 'getJ', None) is not None, (
@@ -923,7 +921,7 @@ class UpdatePreconditioner(InversionDirective):
                 self.opt.JtJdiag = JtJdiag
 
             # Update the pre-conditioner
-            reg_diag = np.zeros_like(self.invProb.model)
+            reg_diag = np.zeros_like(m)
             for reg in self.reg.objfcts:
                 W = reg.deriv2(m)
                 reg_diag += self.invProb.beta * W.diagonal()
@@ -940,7 +938,7 @@ class UpdatePreconditioner(InversionDirective):
         if getattr(self.opt, 'approxHinv', None) is not None:
             m = self.invProb.model
             # Update the pre-conditioner
-            reg_diag = np.zeros_like(self.invProb.model)
+            reg_diag = np.zeros_like(m)
             for reg in self.reg.objfcts:
                 W = reg.deriv2(m)
                 reg_diag += self.invProb.beta * W.diagonal()
