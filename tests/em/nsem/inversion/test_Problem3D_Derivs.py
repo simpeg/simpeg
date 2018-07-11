@@ -16,11 +16,15 @@ CONDUCTIVITY = 1e1
 MU = mu_0
 
 # Test the Jvec derivative
-def DerivJvecTest(inputSetup, comp='All', freq=False, expMap=True):
+def DerivJvecTest(inputSetup, tf_type='All', freq=False, expMap=True):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
-    survey, problem = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(inputSetup, comp=comp, singleFreq=freq, expMap=expMap)
+    survey, problem = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(
+        inputSetup, tf_type=tf_type, singleFreq=freq
+    )
     print('Using {0} solver for the problem'.format(problem.Solver))
-    print('Derivative test of Jvec for eForm primary/secondary for {} comp at {}\n'.format(comp, survey.freqs))
+    print((
+        'Derivative test of Jvec for eForm primary/secondary ',
+        'for {} comp at {}\n'.format(tf_type, survey.freqs)))
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # problem.sigmaPrimary = np.log(sigBG)
     x0 = np.log(sigBG)
@@ -38,24 +42,26 @@ def DerivJvecTest(inputSetup, comp='All', freq=False, expMap=True):
 
 def DerivProjfieldsTest(inputSetup, comp='All', freq=False):
 
-    survey, problem = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(inputSetup, comp, freq)
+    survey, problem = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(
+        inputSetup, tf_type=tf_type, singleFreq=freq
+    )
     print('Derivative test of data projection for eFormulation primary/secondary\n')
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # Initate things for the derivs Test
     src = survey.srcList[0]
     np.random.seed(1983)
-    u0x = np.random.randn(survey.mesh.nE)+np.random.randn(survey.mesh.nE)*1j
-    u0y = np.random.randn(survey.mesh.nE)+np.random.randn(survey.mesh.nE)*1j
+    u0x = np.random.randn(survey.mesh.nE) + np.random.randn(survey.mesh.nE) * 1j
+    u0y = np.random.randn(survey.mesh.nE) + np.random.randn(survey.mesh.nE) * 1j
     u0 = np.vstack((simpeg.mkvc(u0x, 2), simpeg.mkvc(u0y, 2)))
     f0 = problem.fieldsPair(survey.mesh, survey)
     # u0 = np.hstack((simpeg.mkvc(u0_px,2),simpeg.mkvc(u0_py,2)))
-    f0[src, 'e_pxSolution'] = u0[:len(u0)/2]  # u0x
-    f0[src, 'e_pySolution'] = u0[len(u0)/2::]  # u0y
+    f0[src, 'e_pxSolution'] = u0[:len(u0) / 2]  # u0x
+    f0[src, 'e_pySolution'] = u0[len(u0) / 2::]  # u0y
 
     def fun(u):
         f = problem.fieldsPair(simulation=problem)
-        f[src, 'e_pxSolution'] = u[:len(u)/2]
-        f[src, 'e_pySolution'] = u[len(u)/2::]
+        f[src, 'e_pxSolution'] = u[:len(u) / 2]
+        f[src, 'e_pySolution'] = u[len(u) / 2::]
         return rx.eval(src, problem.mesh, f), lambda t: rx.evalDeriv(src, survey.mesh, f0, simpeg.mkvc(t, 2))
 
     return simpeg.Tests.checkDerivative(fun, u0, num=3, plotIt=False, eps=FLR)
@@ -68,7 +74,8 @@ class NSEM_DerivTests(unittest.TestCase):
 
     # Do a derivative test of Jvec
     def test_derivJvec_impedanceAll(self):
-        self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2), 'Imp', .1))
+        self.assertTrue(DerivJvecTest(
+            NSEM.Utils.testUtils.halfSpace(1e-2), 'Imp', .1))
     # def test_derivJvec_zxxr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'xx',.1))
     # def test_derivJvec_zxyi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'xy',.1))
     # def test_derivJvec_zyxr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'yx',.1))
@@ -76,9 +83,14 @@ class NSEM_DerivTests(unittest.TestCase):
 
     # Tipper
     def test_derivJvec_tipperAll(self):
-        self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2), 'Tip', .1))
+        self.assertTrue(DerivJvecTest(
+            NSEM.Utils.testUtils.halfSpace(1e-2), 'Tip', .1))
     # def test_derivJvec_tzxr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zx',.1))
     # def test_derivJvec_tzyi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zy',.1))
+    # Tipper
+    def test_derivJvec_HMVAll(self):
+        self.assertTrue(DerivJvecTest(
+            NSEM.Utils.testUtils.blockInhalfSpace([1e-2, 1]), 'HMV', .1))
 
 if __name__ == '__main__':
     unittest.main()
