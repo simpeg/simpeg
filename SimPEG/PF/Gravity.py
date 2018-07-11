@@ -33,9 +33,13 @@ class GravityIntegral(Problem.LinearProblem):
             if getattr(self, 'actInd', None) is not None:
 
                 if self.actInd.dtype == 'bool':
-                    inds = np.asarray([inds for inds,
-                                       elem in enumerate(self.actInd, 1)
-                                       if elem], dtype=int) - 1
+                    inds = np.asarray(
+                        [
+                            inds for inds, elem in enumerate(self.actInd, 1)
+                            if elem
+                        ],
+                        dtype=int
+                    ) - 1
                 else:
                     inds = self.actInd
 
@@ -170,9 +174,13 @@ class GravityIntegral(Problem.LinearProblem):
         if getattr(self, 'actInd', None) is not None:
 
             if self.actInd.dtype == 'bool':
-                inds = np.asarray([inds for inds,
-                                   elem in enumerate(self.actInd, 1)
-                                   if elem], dtype=int) - 1
+                inds = np.asarray(
+                    [
+                        inds for inds, elem in enumerate(self.actInd, 1)
+                        if elem
+                    ],
+                    dtype=int
+                ) - 1
             else:
                 inds = self.actInd
 
@@ -360,8 +368,10 @@ def writeUBCobs(filename, survey, d):
     data = np.c_[rxLoc, d, wd]
 
     head = '%i\n' % len(d)
-    np.savetxt(filename, data, fmt='%e', delimiter=' ',
-               newline='\n', header=head, comments='')
+    np.savetxt(
+        filename, data, fmt='%e', delimiter=' ',
+        newline='\n', header=head, comments=''
+    )
 
     print("Observation file saved to: " + filename)
 
@@ -558,7 +568,8 @@ class Problem3D_Diff(Problem.BaseProblem):
 
         if self.solver is None:
             m1 = sp.linalg.interface.aslinearoperator(
-                Utils.sdiag(1 / A.diagonal()))
+                Utils.sdiag(1 / A.diagonal())
+            )
             u, info = sp.linalg.bicgstab(A, RHS, tol=1e-6, maxiter=1000, M=m1)
 
         else:

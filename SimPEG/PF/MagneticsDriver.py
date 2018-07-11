@@ -205,9 +205,12 @@ class MagneticsDriver_Inv(object):
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
                 active = self.activeModel != 0
 
-            inds = np.asarray([inds for inds,
-                               elem in enumerate(active, 1)
-                               if elem], dtype=int) - 1
+            inds = np.asarray(
+                [
+                    inds for inds, elem in enumerate(active, 1) if elem
+                ],
+                dtype=int
+            ) - 1
 
             self._activeCells = inds
 
@@ -225,8 +228,10 @@ class MagneticsDriver_Inv(object):
             staticCells = self.activeModel[self.activeCells] == -1
 
             inds = np.asarray(
-                [inds for inds,
-                 elem in enumerate(staticCells, 1) if elem], dtype=int
+                [
+                    inds for inds, elem in enumerate(staticCells, 1) if elem
+                ],
+                dtype=int
             ) - 1
 
             self._staticCells = inds
@@ -240,9 +245,11 @@ class MagneticsDriver_Inv(object):
             # Cells with value 1 in active model are dynamic
             dynamicCells = self.activeModel[self.activeCells] == 1
 
-            inds = np.asarray([
-                inds for inds,
-                elem in enumerate(dynamicCells, 1) if elem], dtype=int
+            inds = np.asarray(
+                [
+                    inds for inds, elem in enumerate(dynamicCells, 1) if elem
+                ],
+                dtype=int
             ) - 1
 
             self._dynamicCells = inds
