@@ -411,7 +411,7 @@ class RegularizationMesh(Props.BaseSimPEG):
         if getattr(self, '_cellDiffxStencil', None) is None:
 
             self._cellDiffxStencil = (
-                self.Pafx.T * self.mesh._cellGradxStencil() * self.Pac
+                self.Pafx.T * self.mesh._cellGradxStencil * self.Pac
             )
         return self._cellDiffxStencil
 
@@ -429,7 +429,7 @@ class RegularizationMesh(Props.BaseSimPEG):
         if getattr(self, '_cellDiffyStencil', None) is None:
 
             self._cellDiffyStencil = (
-                self.Pafy.T * self.mesh._cellGradyStencil() * self.Pac
+                self.Pafy.T * self.mesh._cellGradyStencil * self.Pac
             )
         return self._cellDiffyStencil
 
@@ -447,7 +447,7 @@ class RegularizationMesh(Props.BaseSimPEG):
         if getattr(self, '_cellDiffzStencil', None) is None:
 
             self._cellDiffzStencil = (
-                self.Pafz.T * self.mesh._cellGradzStencil() * self.Pac
+                self.Pafz.T * self.mesh._cellGradzStencil * self.Pac
             )
         return self._cellDiffzStencil
 

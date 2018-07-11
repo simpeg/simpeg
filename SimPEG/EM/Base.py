@@ -18,6 +18,7 @@ from SimPEG import Solver as SimpegSolver
 __all__ = ['BaseEMProblem', 'BaseEMSurvey', 'BaseEMSrc']
 
 
+
 ###############################################################################
 #                                                                             #
 #                             Base EM Problem                                 #
@@ -258,7 +259,7 @@ class BaseEMProblem(Problem.BaseProblem):
         if len(self.mui.shape) > 1:
             if self.mui.shape[1] > self.mesh.dim:
                 raise NotImplementedError(
-                        "Full anisotropy is not implemented for MfMuiIDeriv."
+                    "Full anisotropy is not implemented for MfMuiIDeriv."
                 )
 
         dMfMuiI_dI = -self.MfMuiI**2
@@ -497,6 +498,8 @@ class BaseEMSurvey(Survey.BaseSurvey):
 ###############################################################################
 
 class BaseEMSrc(Survey.BaseSrc):
+
+    loc = properties.Array("location of the source", shape={(3,), ('*', 3)})
 
     integrate = properties.Bool("integrate the source term?", default=False)
 

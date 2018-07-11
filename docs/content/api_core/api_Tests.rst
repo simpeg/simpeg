@@ -3,6 +3,6 @@
 Testing SimPEG
 ==============
 
-.. automodule:: SimPEG.Tests
+.. automodule:: discretize.Tests
     :members:
     :undoc-members:

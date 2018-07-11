@@ -3,11 +3,14 @@ import numpy as np
 from scipy.constants import mu_0
 import warnings
 
+from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
+
 from SimPEG.Utils import Zero
 from SimPEG import Survey, Problem, Utils
 
 from .. import Utils as emutils
 from ..Base import BaseEMSrc
+from ...Props import LocationVector
 
 
 class BaseFDEMSrc(BaseEMSrc):
@@ -291,8 +294,8 @@ class MagDipole(BaseFDEMSrc):
     freq = properties.Float(
         "frequency of the source (Hz)", required=True
     )
-    loc = properties.Vector3(
-        "location of the source", default=np.r_[0.,0.,0.]
+    loc = LocationVector(
+        "location of the source", default=np.r_[0.,0.,0.], shape=(3,)
     )
 
     def __init__(
@@ -306,27 +309,13 @@ class MagDipole(BaseFDEMSrc):
         self.freq = freq
         self.loc = loc
 
-
-    @properties.validator('orientation')
-    def _warn_non_axis_aligned_sources(self, change):
-        value = change['value']
-        axaligned = [
-            True for vec in [np.r_[1.,0.,0.], np.r_[0.,1.,0.], np.r_[0.,0.,1.]]
-            if np.all(value == vec)
-        ]
-        if len(axaligned) != 1:
-            warnings.warn(
-                'non-axes aligned orientations {} are not rigorously'
-                ' tested'.format(value)
+    def _srcFct(self, obsLoc, coordinates="cartesian"):
+        if getattr(self, '_dipole', None) is None:
+            self._dipole = MagneticDipoleWholeSpace(
+                mu=self.mu, orientation=self.orientation, location=self.loc,
+                moment=self.moment
             )
-
-
-
-    def _srcFct(self, obsLoc, component):
-        return emutils.MagneticDipoleVectorPotential(
-            self.loc, obsLoc, component, mu=self.mu, moment=self.moment,
-            orientation=self.orientation
-        )
+        return self._dipole.vector_potential(obsLoc, coordinates=coordinates)
 
     def bPrimary(self, prob):
         """
@@ -337,6 +326,7 @@ class MagDipole(BaseFDEMSrc):
         :return: primary magnetic field
         """
         formulation = prob._formulation
+        coordinates = "cartesian"
 
         if formulation == 'EB':
             gridX = prob.mesh.gridEx
@@ -351,19 +341,24 @@ class MagDipole(BaseFDEMSrc):
             C = prob.mesh.edgeCurl.T
 
         if prob.mesh._meshType == 'CYL':
-            if not prob.mesh.isSymmetric:
-                # TODO ?
-                raise NotImplementedError(
-                    'Non-symmetric cyl mesh not implemented yet!')
-            assert (np.linalg.norm(self.orientation - np.r_[0., 0., 1.]) <
-                    1e-6), ('for cylindrical symmetry, the dipole must be '
-                            'oriented in the Z direction')
-            a = self._srcFct(gridY, 'y')
-        else:
-            ax = self._srcFct(gridX, 'x')
-            ay = self._srcFct(gridY, 'y')
-            az = self._srcFct(gridZ, 'z')
-            a = np.concatenate((ax, ay, az))
+            coordinates = "cylindrical"
+
+            if prob.mesh.isSymmetric is True:
+                if not (
+                    np.linalg.norm(self.orientation - np.r_[0., 0., 1.]) < 1e-6
+                ):
+                    raise AssertionError(
+                        'for cylindrical symmetry, the dipole must be oriented'
+                        ' in the Z direction'
+                    )
+                a = self._srcFct(gridY)[:, 1]
+
+                return C*a
+
+        ax = self._srcFct(gridX, coordinates)[:, 0]
+        ay = self._srcFct(gridY, coordinates)[:, 1]
+        az = self._srcFct(gridZ, coordinates)[:, 2]
+        a = np.concatenate((ax, ay, az))
 
         return C*a
 
@@ -469,10 +464,14 @@ class MagDipole_Bfield(MagDipole):
             rxList, freq=freq, loc=loc, **kwargs
         )
 
-    def _srcFct(self, obsLoc, component):
-        return emutils.MagneticDipoleFields(
-            self.loc, obsLoc, component, mu=self.mu, moment=self.moment,
-            orientation=self.orientation
+    def _srcFct(self, obsLoc, coordinates="cartesian"):
+        if getattr(self, '_dipole', None) is None:
+            self._dipole = MagneticDipoleWholeSpace(
+                mu=self.mu, orientation=self.orientation, location=self.loc,
+                moment=self.moment
+            )
+        return self._dipole.magnetic_flux_density(
+            obsLoc, coordinates=coordinates
         )
 
     def bPrimary(self, prob):
@@ -486,6 +485,7 @@ class MagDipole_Bfield(MagDipole):
         """
 
         formulation = prob._formulation
+        coordinates = "cartesian"
 
         if formulation == 'EB':
             gridX = prob.mesh.gridFx
@@ -497,20 +497,16 @@ class MagDipole_Bfield(MagDipole):
             gridY = prob.mesh.gridEy
             gridZ = prob.mesh.gridEz
 
-        srcfct = emutils.MagneticDipoleFields
         if prob.mesh._meshType == 'CYL':
-            if not prob.mesh.isSymmetric:
-                # TODO ?
-                raise NotImplementedError(
-                    'Non-symmetric cyl mesh not implemented yet!'
-                )
-            bx = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment)
-            bz = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment)
-            b = np.concatenate((bx, bz))
+            coordinates = "cylindrical"
+            if prob.mesh.isSymmetric:
+                bx = self._srcFct(gridX)[:, 0]
+                bz = self._srcFct(gridZ)[:, 2]
+                b = np.concatenate((bx, bz))
         else:
-            bx = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment)
-            by = srcfct(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
-            bz = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment)
+            bx = self._srcFct(gridX, coordinates=coordinates)[:, 0]
+            by = self._srcFct(gridY, coordinates=coordinates)[:, 1]
+            bz = self._srcFct(gridZ, coordinates=coordinates)[:, 2]
             b = np.concatenate((bx, by, bz))
 
         return Utils.mkvc(b)
@@ -534,19 +530,30 @@ class CircularLoop(MagDipole):
     :param float mu: background magnetic permeability
     """
 
+    # default moment is 1
+
     radius = properties.Float("radius of the loop", default=1., min=0.)
+
+    current = properties.Float("current in the loop", default=1.)
+
 
     def __init__(self, rxList, freq, loc, **kwargs):
         super(CircularLoop, self).__init__(
             rxList, freq, loc, **kwargs
         )
 
-    def _srcFct(self, obsLoc, component):
-        return emutils.MagneticLoopVectorPotential(
-            self.loc, obsLoc, component, mu=self.mu, radius=self.radius,
-            orientation=self.orientation
-        )
+    @property
+    def moment(self):
+        return np.pi*self.radius**2 * self.current
 
+    def _srcFct(self, obsLoc, coordinates="cartesian"):
+        if getattr(self, '_loop', None) is None:
+            self._loop = CircularLoopWholeSpace(
+                mu=self.mu, location=self.loc,
+                orientation=self.orientation, radius=self.radius,
+                current=self.current
+            )
+        return self._loop.vector_potential(obsLoc, coordinates)
 
 class PrimSecSigma(BaseFDEMSrc):
 

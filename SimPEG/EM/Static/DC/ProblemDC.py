@@ -256,15 +256,14 @@ class Problem3D_CC(BaseDCProblem):
         return Zero()
 
     def setBC(self):
-        if self.mesh._meshType == "TREE":
-            if(self.bc_type == 'Neumann'):
-                raise NotImplementedError()
-            elif(self.bc_type == 'Dirchlet'):
-                print('Homogeneous Dirchlet is the natural BC for this CC discretization.')
-                self.Div = Utils.sdiag(self.mesh.vol) * self.mesh.faceDiv
-                self.Grad = self.Div.T
+        if self.bc_type == 'Dirichlet':
+            print('Homogeneous Dirichlet is the natural BC for this CC discretization.')
+            self.Div = Utils.sdiag(self.mesh.vol) * self.mesh.faceDiv
+            self.Grad = self.Div.T
 
         else:
+            if self.mesh._meshType == "TREE" and self.bc_type == 'Neumann':
+                raise NotImplementedError()
 
             if self.mesh.dim == 3:
                 fxm, fxp, fym, fyp, fzm, fzp = self.mesh.faceBoundaryInd
@@ -298,9 +297,9 @@ class Problem3D_CC(BaseDCProblem):
                     gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
                     gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
 
-                elif(self.bc_type == 'Dirchlet'):
+                elif(self.bc_type == 'Dirichlet'):
                     if self.verbose:
-                        print('Setting BC to Dirchlet.')
+                        print('Setting BC to Dirichlet.')
                     alpha_xm, alpha_xp = temp_xm, temp_xp
                     alpha_ym, alpha_yp = temp_ym, temp_yp
                     alpha_zm, alpha_zp = temp_zm, temp_zp
@@ -330,7 +329,7 @@ class Problem3D_CC(BaseDCProblem):
                     def r_boundary(x, y, z):
                         return 1./np.sqrt(
                             (x - xs)**2 + (y - ys)**2 + (z - zs)**2
-                            )
+                        )
                     rxm = r_boundary(gBFxm[:, 0], gBFxm[:, 1], gBFxm[:, 2])
                     rxp = r_boundary(gBFxp[:, 0], gBFxp[:, 1], gBFxp[:, 2])
                     rym = r_boundary(gBFym[:, 0], gBFym[:, 1], gBFym[:, 2])
