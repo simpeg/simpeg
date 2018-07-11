@@ -593,7 +593,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         B, u = u['B'], u['u']
         mu = self.muMap * (m)
         dmudm = self.muDeriv
-        dchidmu = Utils.sdiag(1 / mu_0 * np.ones(self.mesh.nC))
+        # dchidmu = Utils.sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
         vol = self.mesh.vol
         Div = self._Div
@@ -613,7 +613,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         dCdu = self.getA(m)
         dCdm_A = Div * (Utils.sdiag(Div.T * u) * dMfMuI * dmudm)
         dCdm_RHS1 = Div * (Utils.sdiag(self.MfMu0 * B0) * dMfMuI)
-        temp1 = (Dface * (self._Pout.T * self.Bbc_const * self.Bbc))
+        # temp1 = (Dface * (self._Pout.T * self.Bbc_const * self.Bbc))
         # dCdm_RHS2v = (Utils.sdiag(vol) * temp1) * \
         #    np.inner(vol, dchidmu * dmudm * v)
 
@@ -725,7 +725,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         temp1sol = (Dface.T * (Utils.sdiag(vol) * sol))
         temp2 = self.Bbc_const * (self._Pout.T * self.Bbc).T
         # dCdm_RHS2v  = (Utils.sdiag(vol)*temp1)*np.inner(vol, dchidmu*dmudm*v)
-        dCdm_RHS2tsol = (dmudm.T * dchidmu.T * vol) * np.inner(temp2, temp1sol)
+        # dCdm_RHS2tsol = (dmudm.T * dchidmu.T * vol) * np.inner(temp2, temp1sol)
 
         # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
 
