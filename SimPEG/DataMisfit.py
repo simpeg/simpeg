@@ -5,7 +5,6 @@ import properties
 from . import Utils
 from . import Survey
 from . import ObjectiveFunction
-from .Tests import checkDerivative
 
 
 class BaseDataMisfit(ObjectiveFunction.L2ObjectiveFunction):

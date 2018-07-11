@@ -491,3 +491,26 @@ class HasModel(BaseSimPEG):
             out += ['', str(e)]
 
         return '\n'.join(out)
+
+
+class LocationVector(properties.Array):
+
+    class_info = ''
+
+    def validate(self, instance, value):
+        """
+        coerce the shape to a 1D vector if an array is input. See
+        https://github.com/seequent/properties/issues/250
+        """
+        if len(value.shape) > 1:
+            value = value.flatten()
+
+        if value.shape not in self.shape:
+        # if len(value) != self.shape[0]:
+            raise Exception(
+                'loc must be length {}, the provided input is length {}'.format(
+                    self.shape, len(value)
+                )
+            )
+
+        return super(properties.Array, self).validate(instance, value)
