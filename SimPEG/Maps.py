@@ -490,9 +490,22 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         "aspect ratio of the phase-1 ellipsoids", default=1.
     )
 
+    orientation0 = properties.Vector3(
+        "orientation of the phase-0 inclusions", default='Z'
+    )
+
+    orientation1 = properties.Vector3(
+        "orientation of the phase-1 inclusions", default='Z'
+    )
+
+    random = properties.Bool(
+        "are the inclusions randomly oriented (True) or preferentially aligned (False)?",
+        default=True
+    )
+
     rel_tol = properties.Float(
         "relative tolerance for convergence for the fixed-point iteration",
-        default = 1e-4
+        default = 1e-3
     )
 
     maxIter = properties.Integer(
@@ -508,7 +521,8 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
     @property
     def tol(self):
         """
-        absolute tolerance for the convergence of the fixed point iteration calc
+        absolute tolerance for the convergence of the fixed point iteration
+        calc
         """
         if getattr(self, '_tol', None) is None:
             self._tol = self.rel_tol*min(self.sigma0, self.sigma1)
@@ -521,15 +535,87 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         """
         return self._sigstart
 
-    def wennerBounds(self, phi1):
-        """Define Wenner Conductivity Bounds"""
-        # TODO: Add HS bounds (not needed for spherical particles, but for ellipsoidal ones)
+    def wiener_bounds(self, phi1):
+        """Define Wenner Conductivity Bounds
+
+        See Torquato, 2002
+        """
         phi0   = 1.0-phi1
         sigWup = phi0*self.sigma0 + phi1*self.sigma1
         sigWlo = 1.0/(phi0/self.sigma0 + phi1/self.sigma1)
         W = np.array([sigWlo, sigWup])
 
         return W
+
+    def hashin_shtrikman_bounds(self, phi1):
+        """Hashin Shtrikman bounds
+
+        See Torquato, 2002
+        """
+        # TODO: this should probably exsist on its own as a util
+
+        phi0 = 1.0 - phi1
+        sigWu = self.wiener_bounds(phi1)[1]
+        sig_tilde = phi0*self.sigma1 + phi1*self.sigma0
+
+        sigma_min = np.min([self.sigma0, self.sigma1])
+        sigma_max = np.max([self.sigma0, self.sigma1])
+
+        sigHSlo = (
+            sigWu -
+            (
+                (phi0*phi1*(self.sigma0 - self.sigma1)**2) /
+                (sig_tilde + 2*sigma_max)
+            )
+        )
+        sigHSup = (
+            sigWu - (
+                (phi0*phi1*(self.sigma0 - self.sigma1)**2) /
+                (sig_tilde + 2*sigma_min)
+            )
+        )
+
+        return np.array([sigHSlo, sigHSup])
+
+    def hashin_shtrikman_bounds_anisotropic(self, phi1):
+        """Hashin Shtrikman bounds for anisotropic media
+
+        See Torquato, 2002
+        """
+        phi0 = 1.0 - phi1
+        sigWu = self.wiener_bounds(phi1)[1]
+
+        sigma_min = np.min([self.sigma0, self.sigma1])
+        sigma_max = np.max([self.sigma0, self.sigma1])
+
+        phi_min = phi0 if self.sigma1 > self.sigma0 else phi1
+        phi_max = phi1 if self.sigma1 > self.sigma0 else phi0
+
+
+        amax = -phi0*phi1*self.getA(
+            self.alpha1 if self.sigma1 > self.sigma0 else self.alpha0,
+            self.orientation1 if self.sigma1 > self.sigma0 else
+            self.orientation0
+        )
+        I = np.eye(3)
+
+
+        sigHSlo = (
+            sigWu*I +
+            (
+                (sigma_min - sigma_max)**2* amax *
+                np.linalg.inv(sigma_min*I + (sigma_min-sigma_max)/phi_max*amax)
+            )
+        )
+        sigHSup = (
+            sigWu*I +
+            (
+                (sigma_max - sigma_min)**2* amax *
+                np.linalg.inv(sigma_max*I + (sigma_max-sigma_min)/phi_min*amax)
+            )
+        )
+
+        return [sigHSlo, sigHSup]
 
     def getQ(self, alpha):
         if alpha < 1.:  # oblate spheroid
@@ -542,34 +628,48 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
             return 1./2. * (
                 1 + 1./(alpha**2. - 1) * (1. - 1./(2.*chi) * np.log((1 + chi)/(1-chi)))
             )
-            # raise NotImplementedError(
-            #     'Aspect ratios > 1 have not been implemeted'
-            # )
         elif alpha == 1:  # sphere
             return 1./3.
 
-    def getR(self, sj, se, alpha):
-        if alpha == 1.:
-            return 3.0*se/(2.0*se+sj)
+    def getA(self, alpha, orientation):
+        """Depolarization tensor
+        """
         Q = self.getQ(alpha)
-        return se/3.*(2./(se + Q*(sj-se)) + 1./(sj - 2.*Q*(sj-se)))
+        A = np.diag([Q, Q, 1-2*Q])
+        R = Utils.rotationMatrixFromNormals(np.r_[0., 0., 1.], orientation)
+        return (R.T).dot(A).dot(R)
 
-    def getdR(self, sj, se, alpha):
-        Q = self.getQ(alpha)
-        return (
-            sj/3. *
-            ( 2.*Q/(se + Q*(sj-se))**2 + (1. - 2.*Q)/(sj - 2.*Q*(sj-se))**2 )
-        )
+    def getR(self, sj, se, alpha, orientation):
 
-    def _sc2phaseEMTRandSpheroidstransform(self, phi1):
+        if self.random is True:  # isotropic
+            if alpha == 1.:
+                return 3.0*se/(2.0*se+sj)
+            Q = self.getQ(alpha)
+            return se/3.*(2./(se + Q*(sj-se)) + 1./(sj - 2.*Q*(sj-se)))
+        else:  # anisotropic
+            I = np.eye(3)
+            seinv = np.linalg.inv(se)
+            Rinv = I + self.getA(alpha, orientation)*seinv*(sj*I-se)
+            return np.linalg.inv(Rinv)
+
+
+    def getdR(self, sj, se, alpha, orientation):
+
+        if self.random is True:
+            Q = self.getQ(alpha)
+            return (
+                sj/3. *
+                (2.*Q/(se + Q*(sj-se))**2 + (1. - 2.*Q)/(sj - 2.*Q*(sj-se))**2)
+            )
+        else:
+            raise NotImplementedError
+
+    def _sc2phaseEMTSpheroidstransform(self, phi1):
         """
         Self Consistent Effective Medium Theory Model Transform,
         alpha = aspect ratio (c/a <= 1)
 
         """
-
-        if self.sigstart is None:
-            self._sigstart = self.wennerBounds(phi1)[0]
 
         if not (np.all(0 <= phi1) and np.all(phi1 <= 1)):
             warnings.warn('there are phis outside bounds of 0 and 1')
@@ -577,21 +677,32 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
         phi0 = 1.0-phi1
 
-        sige1 = self.sigstart
+        # starting guess
+        if self.sigstart is None:
+            sige1 = np.mean(self.wiener_bounds(phi1))
+        else:
+            sige1 = self.sigstart
+
+        if self.random is False:
+            sige1 = sige1 * np.eye(3)
 
         for i in range(self.maxIter):
-            R0 = self.getR(self.sigma0, sige1, self.alpha0)
-            R1 = self.getR(self.sigma1, sige1, self.alpha1)
+            R0 = self.getR(self.sigma0, sige1, self.alpha0, self.orientation0)
+            R1 = self.getR(self.sigma1, sige1, self.alpha1, self.orientation1)
 
             den = phi0*R0 + phi1*R1
             num = phi0*self.sigma0*R0 + phi1*self.sigma1*R1
 
-            sige2 = num/den
-            relerr = np.abs(sige2-sige1)
+            if self.random is True:
+                sige2 = num/den
+                relerr = np.abs(sige2-sige1)
+            else:
+                sige2 = num * np.linalg.inv(den)
+                relerr = np.linalg.norm(np.abs(sige2-sige1).flatten(), np.inf)
 
             if np.all(relerr <= self.tol):
                 if self.sigstart is None:
-                    self.sigstart = sige2  # store as a starting point for the next time around
+                    self._sigstart = sige2  # store as a starting point for the next time around
                 return sige2
 
             sige1 = sige2
@@ -600,17 +711,17 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
         return sige2
 
-    def _sc2phaseEMTRandSpheroidsinversetransform(self, sige):
+    def _sc2phaseEMTSpheroidsinversetransform(self, sige):
 
-        R0 = getR(self.sigma0, sige, self.alp0)
-        R1 = getR(self.sigma1, sige, self.alp1)
+        R0 = getR(self.sigma0, sige, self.alpha0, self.orientation0)
+        R1 = getR(self.sigma1, sige, self.alpha1, self.orientation1)
 
         num = -(sigma0 - sige)*R0
         den = (sigma1-sige)*R1 - (sigma0-sige)*R0
 
         return num/den
 
-    def _sc2phaseEMTRandSpheroidstransformDeriv(self, sige, phi1):
+    def _sc2phaseEMTSpheroidstransformDeriv(self, sige, phi1):
 
         phi0 = 1.0-phi1
 
@@ -626,14 +737,14 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         return Utils.sdiag(num/den)
 
     def _transform(self, m):
-        return self._sc2phaseEMTRandSpheroidstransform(m)
+        return self._sc2phaseEMTSpheroidstransform(m)
 
     def deriv(self, m):
         sige = self._transform(m)
-        return self._sc2phaseEMTRandSpheroidstransformDeriv(sige, m)
+        return self._sc2phaseEMTSpheroidstransformDeriv(sige, m)
 
     def inverse(self, sige):
-        return self._sc2phaseEMTRandSpheroidsinversetransform(sige)
+        return self._sc2phaseEMTSpheroidsinversetransform(sige)
 
 
 ###############################################################################
