@@ -13,7 +13,7 @@ from ...Data import Data as SimPEGData
 from ..FDEM import Survey as FDEMSurvey
 from .SrcNSEM import BaseNSEMSrc, Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
 from .RxNSEM import Point_impedance3D, Point_tipper3D
-from .Utils.plotUtils import DataNSEMPlotMethods
+from .Utils.plotUtils import DataNSEM_plot_functions
 
 #########
 # Survey
@@ -47,7 +47,7 @@ class Survey(FDEMSurvey):
 #########
 
 
-class Data(SimPEGData, DataNSEMPlotMethods):
+class Data(SimPEGData, DataNSEM_plot_functions):
     """
     Data class for NSEMdata. Stores the data vector indexed by the survey.
 
