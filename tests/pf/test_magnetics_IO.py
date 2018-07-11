@@ -1,5 +1,6 @@
 from __future__ import print_function
 import unittest
+import numpy as np
 from SimPEG import Mesh, PF
 from SimPEG.Utils import io_utils
 from scipy.constants import mu_0
@@ -44,6 +45,16 @@ class MagSensProblemTests(unittest.TestCase):
             os.path.sep.join([self.basePath, 'FWR_data.dat']),
             driver.survey, driver.survey.dobs
         )
+
+        # Read it back
+        data, _ = PF.Magnetics.readMagneticsObservations(
+                os.path.sep.join(
+                    [self.basePath, 'FWR_data.dat']
+                )
+        )
+        # Check similarity
+        passed = np.all(data.dobs == driver.survey.dobs)
+        self.assertTrue(passed, True)
 
         # Clean up the working directory
         shutil.rmtree(self.basePath)
