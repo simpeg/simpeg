@@ -858,6 +858,7 @@ class Update_IRLS(InversionDirective):
                 # Re-use previous model and continue with new beta
                 self.invProb.model = self.reg.objfcts[0].model
                 self.opt.xc = self.reg.objfcts[0].model
+                self.opt.iter -= 1
                 return
 
         elif  np.all([self.mode == 1, self.opt.iter % self.coolingRate == 0]):

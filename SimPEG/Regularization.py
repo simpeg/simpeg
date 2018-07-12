@@ -1433,6 +1433,9 @@ class BaseSparse(BaseRegularization):
     """
     Base class for building up the components of the Sparse Regularization
     """
+
+
+
     def __init__(self, mesh, **kwargs):
         self._stashedR = None
         super(BaseSparse, self).__init__(mesh=mesh, **kwargs)
@@ -1464,6 +1467,12 @@ class BaseSparse(BaseRegularization):
 
     scale = properties.Array(
         "General nob for scaling", dtype=float
+    )
+
+    # Give the option to scale or not
+    scaledIRLS = properties.Bool(
+        "Scale the gradients of the IRLS norms",
+        default=True
     )
 
     @properties.validator('scale')
@@ -1501,6 +1510,12 @@ class SparseSmall(BaseSparse):
             mesh=mesh, **kwargs
         )
 
+    # Give the option to scale or not
+    scaledIRLS = properties.Bool(
+        "Scale the gradients of the IRLS norms",
+        default=True
+    )
+
     @property
     def f_m(self):
 
@@ -1528,14 +1543,17 @@ class SparseSmall(BaseSparse):
         if getattr(self, 'stashedR') is not None:
             return self.stashedR
 
-        # Eta scaling is important for mix-norms...do not mess with it
-        maxVal = np.ones_like(f_m) * np.abs(f_m).max()
-        maxVal[self.norm < 1] = self.epsilon / np.sqrt(1.-self.norm[self.norm < 1])
-        maxGrad = maxVal / (maxVal**2. + self.epsilon**2.)**(1.-self.norm/2.)
 
         # Default to 1 for zero gradients
         eta = np.ones_like(f_m)
-        eta[maxGrad != 0] = np.abs(f_m).max()/maxGrad[maxGrad != 0]
+
+        if self.scaledIRLS:
+            # Eta scaling is important for mix-norms...do not mess with it
+            maxVal = np.ones_like(f_m) * np.abs(f_m).max()
+            maxVal[self.norm < 1] = self.epsilon / np.sqrt(1.-self.norm[self.norm < 1])
+            maxGrad = maxVal / (maxVal**2. + self.epsilon**2.)**(1.-self.norm/2.)
+
+            eta[maxGrad != 0] = np.abs(f_m).max()/maxGrad[maxGrad != 0]
 
         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
 
@@ -1587,6 +1605,12 @@ class SparseDeriv(BaseSparse):
 
     mrefInSmooth = properties.Bool(
         "include mref in the smoothness calculation?", default=False
+    )
+
+    # Give the option to scale or not
+    scaledIRLS = properties.Bool(
+        "Scale the gradients of the IRLS norms",
+        default=True
     )
 
     @Utils.timeIt
@@ -1645,13 +1669,16 @@ class SparseDeriv(BaseSparse):
 
         Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
-        # Eta scaling is important for mix-norms...do not mess with it
-        maxVal = np.ones_like(f_m) * np.abs(f_m).max()
-        maxVal[self.norm < 1] = self.epsilon / np.sqrt(1.-self.norm[self.norm < 1])
-        maxGrad = maxVal / (maxVal**2. + self.epsilon**2.)**(1.-self.norm/2.)
 
         eta = np.ones_like(f_m)
-        eta[maxGrad != 0] = np.abs(f_m).max()/maxGrad[maxGrad != 0]
+
+        if self.scaledIRLS:
+            # Eta scaling is important for mix-norms...do not mess with it
+            maxVal = np.ones_like(f_m) * np.abs(f_m).max()
+            maxVal[self.norm < 1] = self.epsilon / np.sqrt(1.-self.norm[self.norm < 1])
+            maxGrad = maxVal / (maxVal**2. + self.epsilon**2.)**(1.-self.norm/2.)
+
+            eta[maxGrad != 0] = np.abs(f_m).max()/maxGrad[maxGrad != 0]
 
         r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
 
@@ -1897,8 +1924,16 @@ class Sparse(BaseComboRegularization):
         default=np.c_[1., 1., 1., 1.], shape={('*', '*')}
     )
 
+    # Give the option to scale or not
+    scaledIRLS = properties.Bool(
+        "Scale the gradients of the IRLS norms",
+        default=True
+    )
+
     # Save the l2 result during the IRLS
     l2model = None
+
+
 
     @properties.validator('norms')
     def _validate_norms(self, change):
@@ -1948,6 +1983,11 @@ class Sparse(BaseComboRegularization):
     def _mirror_space_to_objfcts(self, change):
         for objfct in self.objfcts:
             objfct.space = change['value']
+
+    @properties.observer('scaledIRLS')
+    def _mirror_scaledIRLS_to_objfcts(self, change):
+        for objfct in self.objfcts:
+            objfct.scaledIRLS = change['value']
 
     @properties.observer('gradientType')
     def _mirror_gradientType_to_objfcts(self, change):
