@@ -631,7 +631,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         elif alpha == 1:  # sphere
             return 1./3.
 
-    def getA(self, alpha, orientation):
+    def getA(self, alpha):
         """Depolarization tensor
         """
         Q = self.getQ(alpha)
@@ -639,7 +639,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         R = Utils.rotationMatrixFromNormals(np.r_[0., 0., 1.], orientation)
         return (R.T).dot(A).dot(R)
 
-    def getR(self, sj, se, alpha, orientation):
+    def getR(self, sj, se, alpha, orientation=None):
 
         if self.random is True:  # isotropic
             if alpha == 1.:
@@ -647,13 +647,15 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
             Q = self.getQ(alpha)
             return se/3.*(2./(se + Q*(sj-se)) + 1./(sj - 2.*Q*(sj-se)))
         else:  # anisotropic
+            if orientation is None:
+                raise Exception("orientation must be provided if random=False")
             I = np.eye(3)
             seinv = np.linalg.inv(se)
             Rinv = I + self.getA(alpha, orientation)*seinv*(sj*I-se)
             return np.linalg.inv(Rinv)
 
 
-    def getdR(self, sj, se, alpha, orientation):
+    def getdR(self, sj, se, alpha, orientation=None):
 
         if self.random is True:
             Q = self.getQ(alpha)
@@ -662,6 +664,8 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
                 (2.*Q/(se + Q*(sj-se))**2 + (1. - 2.*Q)/(sj - 2.*Q*(sj-se))**2)
             )
         else:
+            if orientation is None:
+                raise Exception("orientation must be provided if random=False")
             raise NotImplementedError
 
     def _sc2phaseEMTSpheroidstransform(self, phi1):
@@ -725,11 +729,11 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
         phi0 = 1.0-phi1
 
-        R0 = self.getR(self.sigma0, sige, self.alpha0)
-        R1 = self.getR(self.sigma1, sige, self.alpha1)
+        R0 = self.getR(self.sigma0, sige, self.alpha0, self.orientation0)
+        R1 = self.getR(self.sigma1, sige, self.alpha1, self.orientation1)
 
-        dR0 = self.getdR(self.sigma0, sige, self.alpha0)
-        dR1 = self.getdR(self.sigma1, sige, self.alpha1)
+        dR0 = self.getdR(self.sigma0, sige, self.alpha0, self.orientation0)
+        dR1 = self.getdR(self.sigma1, sige, self.alpha1, self.orientation1)
 
         num = (sige-self.sigma0)*R0 - (sige-self.sigma1)*R1
         den = phi0*(R0 + (sige-self.sigma0)*dR0) + phi1*(R1 + (sige-self.sigma1)*dR1)
