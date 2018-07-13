@@ -30,7 +30,7 @@ with open("README.rst") as f:
 
 setup(
     name="SimPEG",
-    version="0.8.6",
+    version="0.9.0",
     packages=find_packages(),
     install_requires=[
         'numpy>=1.7',
@@ -41,7 +41,7 @@ setup(
         'matplotlib',
         'properties>=0.5.2',
         'vectormath>=0.2.0',
-        'discretize',
+        'discretize>=0.2.0',
         'geoana>=0.0.4'
     ],
     author="Rowan Cockett",
