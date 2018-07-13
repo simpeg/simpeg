@@ -69,7 +69,7 @@ class MagneticIntegral(Problem.LinearProblem):
         return u
 
     @property
-    def F(self):
+    def G(self):
         if not self.ispaired:
             raise Exception('Need to pair!')
 
