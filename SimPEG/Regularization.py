@@ -132,7 +132,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                         )
                     else:
                         indActive_Fx = (
-                            (self.mesh._aveCC2FxStencil() * self.indActive) >= 1
+                            (self.mesh._aveCC2FxStencil * self.indActive) >= 1
                         )
                         self._Pafx = (
                             Utils.speye(self.mesh.ntFx)[:, indActive_Fx]
@@ -169,7 +169,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     else:
                         print ("Use Simple")
                         indActive_Fy = (
-                            (self.mesh._aveCC2FyStencil() * self.indActive) >= 1
+                            (self.mesh._aveCC2FyStencil * self.indActive) >= 1
                         )
                         self._Pafy = (
                             Utils.speye(self.mesh.ntFy)[:, indActive_Fy]
@@ -203,7 +203,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                         )
                     else:
                         indActive_Fz = (
-                            (self.mesh._aveCC2FzStencil() * self.indActive) >= 1
+                            (self.mesh._aveCC2FzStencil * self.indActive) >= 1
                         )
                         self._Pafz = (
                             Utils.speye(self.mesh.ntFz)[:, indActive_Fz]
@@ -260,7 +260,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
                 else:
                     self._aveCC2Fx = (
-                        self.Pafx.T * self.mesh._aveCC2FxStencil() * self.Pac
+                        self.Pafx.T * self.mesh._aveCC2FxStencil * self.Pac
                     )
             else:
                 self._aveCC2Fx = (
@@ -314,7 +314,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
                 else:
                     self._aveCC2Fy = (
-                        self.Pafy.T * self.mesh._aveCC2FyStencil() * self.Pac
+                        self.Pafy.T * self.mesh._aveCC2FyStencil * self.Pac
                     )
             else:
                 self._aveCC2Fy = (
@@ -368,7 +368,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
                 else:
                     self._aveCC2Fz = (
-                        self.Pafz.T * self.mesh._aveCC2FzStencil() * self.Pac
+                        self.Pafz.T * self.mesh._aveCC2FzStencil * self.Pac
                     )
             else:
                 self._aveCC2Fz = (
@@ -460,7 +460,7 @@ class RegularizationMesh(Props.BaseSimPEG):
         if getattr(self, '_cellDiffxStencil', None) is None:
 
             self._cellDiffxStencil = (
-                self.Pafx.T * self.mesh._cellGradxStencil() * self.Pac
+                self.Pafx.T * self.mesh._cellGradxStencil * self.Pac
             )
         return self._cellDiffxStencil
 
@@ -478,7 +478,7 @@ class RegularizationMesh(Props.BaseSimPEG):
         if getattr(self, '_cellDiffyStencil', None) is None:
 
             self._cellDiffyStencil = (
-                self.Pafy.T * self.mesh._cellGradyStencil() * self.Pac
+                self.Pafy.T * self.mesh._cellGradyStencil * self.Pac
             )
         return self._cellDiffyStencil
 
@@ -496,7 +496,7 @@ class RegularizationMesh(Props.BaseSimPEG):
         if getattr(self, '_cellDiffzStencil', None) is None:
 
             self._cellDiffzStencil = (
-                self.Pafz.T * self.mesh._cellGradzStencil() * self.Pac
+                self.Pafz.T * self.mesh._cellGradzStencil * self.Pac
             )
         return self._cellDiffzStencil
 
