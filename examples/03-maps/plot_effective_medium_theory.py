@@ -67,8 +67,8 @@ for i, s in enumerate(sigma1):
 # -------------------------------
 #
 # The plot shows the effective conductivity of 5 difference mixtures. In all
-# cases, the conductivity of the fluid, $\sigma_0$, is 3 S/m. The conductivity
-# of the particles is indicated in the legend
+# cases, the conductivity of the fluid, :math:`\sigma_0`, is 3 S/m. The
+# conductivity of the particles is indicated in the legend
 #
 
 fig, ax = plt.subplots(1, 1, figsize=(7, 4), dpi=350)
