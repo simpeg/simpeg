@@ -631,7 +631,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         elif alpha == 1:  # sphere
             return 1./3.
 
-    def getA(self, alpha):
+    def getA(self, alpha, orientation):
         """Depolarization tensor
         """
         Q = self.getQ(alpha)
