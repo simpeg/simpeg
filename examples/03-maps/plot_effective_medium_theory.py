@@ -22,7 +22,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from SimPEG import Maps
 from matplotlib import rcParams
-from string import ascii_lowercase
 rcParams['font.size'] = 12
 
 ###############################################################################
