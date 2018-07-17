@@ -190,7 +190,7 @@ class GravityIntegral(Problem.LinearProblem):
 
         G = job.calculate()
 
-        return F
+        return G
 
     @property
     def mapPair(self):

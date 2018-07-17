@@ -249,6 +249,10 @@ class MagneticIntegral(Problem.LinearProblem):
         print("Begin forward: M=" + magType + ", Rx type= " + self.rxType)
 
         # Switch to determine if the process has to be run in parallel
+
+        if self.forwardOnly:
+            self.model = m
+
         job = Forward(
                 rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,

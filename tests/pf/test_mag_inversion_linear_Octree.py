@@ -1,16 +1,12 @@
 from __future__ import print_function
 import unittest
-from SimPEG import Mesh
-from SimPEG import Utils
-from SimPEG import Maps
-from SimPEG import Regularization
-from SimPEG import DataMisfit
-from SimPEG import Optimization
-from SimPEG import InvProblem
-from SimPEG import Directives
-from SimPEG import Inversion
-import numpy as np
+from SimPEG import (Mesh, Directives, Maps,
+                    InvProblem, Optimization, DataMisfit,
+                    Inversion, Utils, Regularization)
+
 import SimPEG.PF as PF
+import scipy as sp
+import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -20,109 +16,139 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         np.random.seed(0)
 
-        # Define the inducing field parameter
-        H0 = (50000, 90, 0)
+        # First we need to define the direction of the inducing field
+        # As a simple case, we pick a vertical inducing field of magnitude
+        # 50,000nT.
+        # From old convention, field orientation is given as an
+        # azimuth from North (positive clockwise)
+        # and dip from the horizontal (positive downward).
+        H0 = (50000., 90., 0.)
+
+        # Assume all induced so the magnetization M is in the same direction
+        M = np.array([90, 0])
 
         # Create a mesh
-        dx = 5.
+        h = [5, 5, 5]
+        padDist = np.ones((3, 2)) * 100
 
-        hxind = [(dx, 5, -1.3), (dx, 5), (dx, 5, 1.3)]
-        hyind = [(dx, 5, -1.3), (dx, 5), (dx, 5, 1.3)]
-        hzind = [(dx, 5, -1.3), (dx, 6)]
-
-        self.mesh = Mesh.TensorMesh([hxind, hyind, hzind], 'CCC')
-
-        # Get index of the center
-        midx = int(self.mesh.nCx/2)
-        midy = int(self.mesh.nCy/2)
-
+        # Create grid of points for topography
         # Lets create a simple Gaussian topo and set the active cells
-        [xx, yy] = np.meshgrid(self.mesh.vectorNx, self.mesh.vectorNy)
-        zz = -np.exp((xx**2 + yy**2) / 75**2) + self.mesh.vectorNz[-1]
+        [xx, yy] = np.meshgrid(
+            np.linspace(-200, 200, 50),
+            np.linspace(-200, 200, 50)
+        )
 
-        # Go from topo to actv cells
+        b = 100
+        A = 50
+        zz = A*np.exp(-0.5*((xx/b)**2. + (yy/b)**2.))
+
+        # We would usually load a topofile
         topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
-        actv = Utils.surface2ind_topo(self.mesh, topo, 'N')
-        actv = np.asarray([inds for inds, elem in enumerate(actv, 1)
-                          if elem], dtype=int) - 1
-
-        # Create active map to go from reduce space to full
-        self.actvMap = Maps.InjectActiveCells(self.mesh, actv, -100)
-        nC = len(actv)
 
         # Create and array of observation points
-        xr = np.linspace(-20., 20., 20)
-        yr = np.linspace(-20., 20., 20)
+        xr = np.linspace(-100., 100., 20)
+        yr = np.linspace(-100., 100., 20)
         X, Y = np.meshgrid(xr, yr)
-
-        # Move the observation points 5m above the topo
-        Z = -np.exp((X**2 + Y**2) / 75**2) + self.mesh.vectorNz[-1] + 5.
+        Z = A*np.exp(-0.5*((X/b)**2. + (Y/b)**2.)) + 5
 
         # Create a MAGsurvey
-        rxLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
-        rxLoc = PF.BaseMag.RxObs(rxLoc)
+        xyzLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
+        rxLoc = PF.BaseMag.RxObs(xyzLoc)
         srcField = PF.BaseMag.SrcField([rxLoc], param=H0)
         survey = PF.BaseMag.LinearSurvey(srcField)
 
+        # Create a topography
+        self.mesh = Utils.modelutils.meshBuilder(topo, h, padDist,
+                                                 meshType='TREE',
+                                                 verticalAlignment='center')
+
+        # Refine the mesh around topography
+        self.mesh = Utils.modelutils.refineTree(
+            self.mesh, topo, dtype='surface', nCpad=[0, 3, 1], finalize=False
+        )
+
+        # Refine around obs points
+        self.mesh = Utils.modelutils.refineTree(
+            self.mesh, xyzLoc, dtype='surface', nCpad=[4, 0, 0], finalize=True
+        )
+
+        # Define an active cells from topo
+        actv = Utils.surface2ind_topo(self.mesh, topo)
+        nC = int(actv.sum())
+
         # We can now create a susceptibility model and generate data
-        # Here a simple block in half-space
-        model = np.zeros((self.mesh.nCx, self.mesh.nCy, self.mesh.nCz))
-        model[(midx-2):(midx+2), (midy-2):(midy+2), -6:-2] = 0.02
-        model = Utils.mkvc(model)
-        self.model = model[actv]
+        # Lets start with a simple block in half-space
+        self.model = Utils.ModelBuilder.addBlock(
+            self.mesh.gridCC, np.zeros(self.mesh.nC),
+            np.r_[-40, -40, -50], np.r_[40, 40, 0], 0.05
+        )[actv]
 
         # Create active map to go from reduce set to full
-        self.actvMap = Maps.InjectActiveCells(self.mesh, actv, -100)
+        self.actvMap = Maps.InjectActiveCells(self.mesh, actv, np.nan)
 
         # Creat reduced identity map
         idenMap = Maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        prob = PF.Magnetics.MagneticIntegral(self.mesh, chiMap=idenMap,
-                                             actInd=actv)
+        prob = PF.Magnetics.MagneticIntegral(
+            self.mesh, chiMap=idenMap, actInd=actv
+        )
 
         # Pair the survey and problem
         survey.pair(prob)
 
         # Compute linear forward operator and compute some data
-        d = prob.fields(self.model)
+        data = prob.fields(self.model)
 
         # Add noise and uncertainties (1nT)
-        data = d + np.random.randn(len(d))
+        data += np.random.randn(len(data))
         wd = np.ones(len(data))*1.
 
         survey.dobs = data
         survey.std = wd
 
         # Create sensitivity weights from our linear forward operator
-        wr = np.sum(prob.G**2., axis=0)**0.5
-        wr = (wr/np.max(wr))
+        rxLoc = survey.srcField.rxList[0].locs
+        wr = np.zeros(prob.G.shape[1])
+        for ii in range(survey.nD):
+            wr += (prob.G[ii, :]/survey.std[ii])**2.
+
+        # wr = (wr/np.max(wr))
+        wr = wr**0.5
 
         # Create a regularization
         reg = Regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
-        reg.cell_weights = wr
         reg.norms = np.c_[0, 0, 0, 0]
-        reg.gradientType = 'component'
-        # reg.eps_p, reg.eps_q = 1e-3, 1e-3
+        reg.cell_weights = wr
+        reg.mref = np.zeros(nC)
 
         # Data misfit function
         dmis = DataMisfit.l2_DataMisfit(survey)
-        dmis.W = 1/wd
+        dmis.W = 1./survey.std
 
         # Add directives to the inversion
-        opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
-                                         maxIterLS=20, maxIterCG=10,
-                                         tolCG=1e-3)
+        opt = Optimization.ProjectedGNCG(
+            maxIter=30, lower=0., upper=10.,
+            maxIterLS=20, maxIterCG=20, tolCG=1e-4
+        )
 
         invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
         betaest = Directives.BetaEstimate_ByEig()
 
         # Here is where the norms are applied
-        IRLS = Directives.Update_IRLS(f_min_change=1e-4, minGNiter=1)
+        # Use pick a treshold parameter empirically based on the distribution of
+        #  model parameters
+        IRLS = Directives.Update_IRLS(
+            f_min_change=1e-3, maxIRLSiter=30, beta_tol=5e-1
+        )
         update_Jacobi = Directives.UpdatePreconditioner()
-        self.inv = Inversion.BaseInversion(invProb,
-                                           directiveList=[IRLS, betaest,
-                                                          update_Jacobi])
+
+        # saveOuput = Directives.SaveOutputEveryIteration()
+        # saveModel.fileName = work_dir + out_dir + 'ModelSus'
+        self.inv = Inversion.BaseInversion(
+            invProb,
+            directiveList=[betaest, IRLS, update_Jacobi]
+        )
 
     def test_mag_inverse(self):
 
@@ -130,22 +156,22 @@ class MagInvLinProblemTest(unittest.TestCase):
         mrec = self.inv.run(self.model)
 
         residual = np.linalg.norm(mrec-self.model) / np.linalg.norm(self.model)
-        print(residual)
+        # print(residual)
 
         # plt.figure()
         # ax = plt.subplot(1, 2, 1)
-        # midx = int(self.mesh.nCx/2)
+        # midx = 65
         # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
         #                grid=True, clim=(0, 0.02))
 
         # ax = plt.subplot(1, 2, 2)
-        # midx = int(self.mesh.nCx/2)
         # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
         #                grid=True, clim=(0, 0.02))
         # plt.show()
 
         self.assertTrue(residual < 0.05)
         # self.assertTrue(residual < 0.05)
+
 
 if __name__ == '__main__':
     unittest.main()
