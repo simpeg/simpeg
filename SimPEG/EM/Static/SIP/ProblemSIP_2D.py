@@ -15,11 +15,12 @@ from SimPEG.EM.Static.DC.FieldsDC_2D import (
 from SimPEG.EM.Static.IP import BaseIPProblem_2D
 from SimPEG.EM.Static.IP import Problem2D_N as BaseProblem2D_N
 from SimPEG.EM.Static.IP import Problem2D_CC as BaseProblem2D_CC
+from SimPEG.EM.Static.SIP import BaseSIPProblem
 from .SurveySIP import Survey
 from scipy.special import kn
 
 
-class BaseSIPProblem_2D(BaseIPProblem_2D):
+class BaseSIPProblem_2D(BaseIPProblem_2D, BaseSIPProblem):
 
     eta, etaMap, etaDeriv = Props.Invertible(
         "Electrical Chargeability (V/V)"
@@ -75,67 +76,6 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         if getattr(self, '_cDeriv_store', None) is None:
             self._cDeriv_store = self.cDeriv
         return self._cDeriv_store
-
-    def getPeta(self, t):
-        eta = self._eta_store
-        taui = self._taui_store
-        c = self._c_store
-        peta = eta*np.exp(-(taui*t)**c)
-        return peta
-
-    def PetaEtaDeriv(self, t, v, adjoint=False):
-        eta = self._eta_store
-        taui = self._taui_store
-        c = self._c_store
-        etaDeriv = self.etaDeriv_store
-
-        v = np.array(v, dtype=float)
-        taui_t_c = (taui*t)**c
-        dpetadeta = np.exp(-taui_t_c)
-        if adjoint:
-            if v.ndim == 1:
-                return etaDeriv.T * (dpetadeta * v)
-            else:
-                return etaDeriv.T * (Utils.sdiag(dpetadeta) * v)
-        else:
-            return dpetadeta * (etaDeriv*v)
-
-    def PetaTauiDeriv(self, t, v, adjoint=False):
-        v = np.array(v, dtype=float)
-        eta = self._eta_store
-        taui = self._taui_store
-        c = self._c_store
-        tauiDeriv = self.tauiDeriv_store
-
-        taui_t_c = (taui*t)**c
-        dpetadtaui = (
-            - c * eta / taui * taui_t_c * np.exp(-taui_t_c)
-            )
-        if adjoint:
-            if v.ndim == 1:
-                return tauiDeriv.T * (dpetadtaui*v)
-            else:
-                return tauiDeriv.T * (Utils.sdiag(dpetadtaui)*v)
-        else:
-            return dpetadtaui * (tauiDeriv*v)
-
-    def PetaCDeriv(self, t, v, adjoint=False):
-        v = np.array(v, dtype=float)
-        eta = self._eta_store
-        taui = self._taui_store
-        c = self._c_store
-        cDeriv = self.cDeriv_store
-        taui_t_c = (taui*t)**c
-        dpetadc = (
-            -eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(taui*t)
-            )
-        if adjoint:
-            if v.ndim == 1:
-                return cDeriv.T * (dpetadc*v)
-            else:
-                return cDeriv.T * (Utils.sdiag(dpetadc)*v)
-        else:
-            return dpetadc * (cDeriv*v)
 
     def getJ(self, m, f=None):
         """
@@ -239,7 +179,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         for tind in range(ntime):
             Jv.append(
                 J.dot(
-                    self.actMap.P.T*self.getPeta(self.survey.times[tind]))
+                    self.actMap.P.T*self.get_peta(self.survey.times[tind]))
                 )
         return self.sign * np.hstack(Jv)
 
@@ -277,7 +217,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
                 self.PetaEtaDeriv(t, Jtv, adjoint=True) +
                 self.PetaTauiDeriv(t, Jtv, adjoint=True) +
                 self.PetaCDeriv(t, Jtv, adjoint=True)
-                )
+            )
 
         return self.sign * Jtvec
 
@@ -296,7 +236,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
                 (self.PetaEtaDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
                 (self.PetaTauiDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
                 (self.PetaCDeriv(t, Jtv, adjoint=True)**2).sum(axis=1)
-                )
+            )
         return JtJdiag
 
     @property

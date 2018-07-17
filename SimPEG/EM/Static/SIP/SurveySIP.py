@@ -18,6 +18,8 @@ class Survey(BaseEMSurvey):
     srcPair = Src.BaseSrc
     times = None
     _pred = None
+    n_pulse = 2
+    T = 8.
 
     def __init__(self, srcList, **kwargs):
         self.srcList = srcList

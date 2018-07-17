@@ -90,22 +90,81 @@ class BaseSIPProblem(BaseEMProblem):
             self._cDeriv_store = self.cDeriv
         return self._cDeriv_store
 
-    def getPeta(self, t):
-        eta = self._eta_store
+    def get_t_over_tau(self, t):
         taui = self._taui_store
+        return (t*taui)
+
+    def get_exponent(self, t):
         c = self._c_store
-        peta = eta*np.exp(-(taui*t)**c)
+        t_over_tau = self.get_t_over_tau(t)
+        return (t_over_tau)**c
+
+    def get_peta_step_off(self, exponent):
+        eta = self._eta_store
+        peta = eta*np.exp(-exponent)
         return peta
 
+    def get_peta_pulse_off(self, t):
+        """
+            Compute pseudo-chargeability from a single pulse waveform
+        """
+        T = self.survey.T
+        exponent_0 = self.get_exponent(t)
+        exponent_1 = self.get_exponent(t+T/4.)
+        peta = self.get_peta_step_off(exponent_0) - self.get_peta_step_off(exponent_1)
+        return peta
+
+    def get_multi_pulse_response(self, t, pulse_func):
+        n_pulse = self.survey.n_pulse
+        T = self.survey.T
+        peta = np.zeros(self._eta_store.shape[0], float, order='C')
+        for i_pulse in range (n_pulse):
+            factor = (-1)**i_pulse * (n_pulse-i_pulse)
+            peta += pulse_func(t+T/2*i_pulse) * factor
+        return peta/n_pulse
+
+    def get_peta(self, t):
+        n_pulse = self.survey.n_pulse
+        if n_pulse == 0:
+            exponent = self.get_exponent(t)
+            return self.get_peta_step_off(exponent)
+        else:
+            return self.get_multi_pulse_response(t, self.get_peta_pulse_off)
+
+
+    def get_peta_eta_deriv_step_off(self, exponent):
+        return np.exp(-exponent)
+
+    def get_peta_eta_deriv_pulse_off(self, t):
+        """
+            Compute derivative of pseudo-chargeability w.r.t eta from a single pulse waveform
+        """
+        T = self.survey.T
+        exponent_0 = self.get_exponent(t)
+        exponent_1 = self.get_exponent(t+T/4.)
+        peta_eta_deriv = (
+            self.get_peta_eta_deriv_step_off(exponent_0) -
+            self.get_peta_eta_deriv_step_off(exponent_1)
+        )
+        return peta_eta_deriv
+
+    def get_peta_eta_deriv(self, t):
+        n_pulse = self.survey.n_pulse
+        if n_pulse == 0:
+            exponent = self.get_exponent(t)
+            return self.get_peta_eta_deriv_step_off(exponent)
+        else:
+            return self.get_multi_pulse_response(
+                t, self.get_peta_eta_deriv_pulse_off
+            )
+
     def PetaEtaDeriv(self, t, v, adjoint=False):
-        eta = self._eta_store
-        taui = self._taui_store
-        c = self._c_store
+
         etaDeriv = self.etaDeriv_store
 
         v = np.array(v, dtype=float)
-        taui_t_c = (taui*t)**c
-        dpetadeta = np.exp(-taui_t_c)
+        dpetadeta = self.get_peta_eta_deriv(t)
+
         if adjoint:
             if v.ndim == 1:
                 return etaDeriv.T * (dpetadeta * v)
@@ -114,17 +173,43 @@ class BaseSIPProblem(BaseEMProblem):
         else:
             return dpetadeta * (etaDeriv*v)
 
-    def PetaTauiDeriv(self, t, v, adjoint=False):
-        v = np.array(v, dtype=float)
+    def get_peta_taui_deriv_step_off(self, exponent):
         eta = self._eta_store
         taui = self._taui_store
         c = self._c_store
-        tauiDeriv = self.tauiDeriv_store
+        peta_taui_deriv = (
+            - c * eta / taui * exponent * np.exp(-exponent)
+        )
+        return peta_taui_deriv
 
-        taui_t_c = (taui*t)**c
-        dpetadtaui = (
-            - c * eta / taui * taui_t_c * np.exp(-taui_t_c)
+    def get_peta_taui_deriv_pulse_off(self, t):
+        """
+            Compute derivative of pseudo-chargeability w.r.t eta from a single pulse waveform
+        """
+        T = self.survey.T
+        exponent_0 = self.get_exponent(t)
+        exponent_1 = self.get_exponent(t+T/4.)
+        peta_taui_deriv = (
+            self.get_peta_taui_deriv_step_off(exponent_0) -
+            self.get_peta_taui_deriv_step_off(exponent_1)
+        )
+        return peta_taui_deriv
+
+    def get_peta_taui_deriv(self, t):
+        n_pulse = self.survey.n_pulse
+        if n_pulse == 0:
+            exponent = self.get_exponent(t)
+            return self.get_peta_taui_deriv_step_off(exponent)
+        else:
+            return self.get_multi_pulse_response(
+                t, self.get_peta_taui_deriv_pulse_off
             )
+
+    def PetaTauiDeriv(self, t, v, adjoint=False):
+        v = np.array(v, dtype=float)
+        tauiDeriv = self.tauiDeriv_store
+        dpetadtaui = self.get_peta_taui_deriv(t)
+
         if adjoint:
             if v.ndim == 1:
                 return tauiDeriv.T * (dpetadtaui*v)
@@ -133,16 +218,44 @@ class BaseSIPProblem(BaseEMProblem):
         else:
             return dpetadtaui * (tauiDeriv*v)
 
+    def get_peta_c_deriv_step_off(self, exponent, t_over_tau):
+        eta = self._eta_store
+        peta_c_deriv = (
+            - eta * (exponent)*np.exp(-exponent) * np.log(t_over_tau)
+        )
+        return peta_c_deriv
+
+    def get_peta_c_deriv_pulse_off(self, t):
+        """
+            Compute derivative of pseudo-chargeability w.r.t eta from a single pulse waveform
+        """
+        T = self.survey.T
+        exponent_0 = self.get_exponent(t)
+        exponent_1 = self.get_exponent(t+T/4.)
+        t_over_tau_0 = self.get_t_over_tau(t)
+        t_over_tau_1 = self.get_t_over_tau(t+T/4.)
+
+        peta_c_deriv = (
+            self.get_peta_c_deriv_step_off(exponent_0, t_over_tau_0) -
+            self.get_peta_c_deriv_step_off(exponent_1, t_over_tau_1)
+        )
+        return peta_c_deriv
+
+    def get_peta_c_deriv(self, t):
+        n_pulse = self.survey.n_pulse
+        if n_pulse == 0:
+            exponent = self.get_exponent(t)
+            t_over_tau = self.get_t_over_tau(t)
+            return self.get_peta_c_deriv_step_off(exponent, t_over_tau)
+        else:
+            return self.get_multi_pulse_response(
+                t, self.get_peta_c_deriv_pulse_off
+            )
+
     def PetaCDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
-        eta = self._eta_store
-        taui = self._taui_store
-        c = self._c_store
         cDeriv = self.cDeriv_store
-        taui_t_c = (taui*t)**c
-        dpetadc = (
-            -eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(taui*t)
-            )
+        dpetadc = self.get_peta_c_deriv(t)
         if adjoint:
             if v.ndim == 1:
                 return cDeriv.T * (dpetadc*v)
@@ -169,7 +282,7 @@ class BaseSIPProblem(BaseEMProblem):
 
         return self._f
 
-    @profile
+    # @profile
     def getJ(self, m, f=None):
         """
             Generate Full sensitivity matrix
@@ -246,7 +359,7 @@ class BaseSIPProblem(BaseEMProblem):
             )
         return JtJdiag
 
-    @profile
+    # @profile
     def forward(self, m, f=None):
 
         if self.verbose:
@@ -270,7 +383,7 @@ class BaseSIPProblem(BaseEMProblem):
             for tind in range(ntime):
                 Jv.append(
                     J.dot(
-                        self.actMap.P.T*self.getPeta(self.survey.times[tind]))
+                        self.actMap.P.T*self.get_peta(self.survey.times[tind]))
                     )
             return self.sign * np.hstack(Jv)
 
@@ -284,7 +397,7 @@ class BaseSIPProblem(BaseEMProblem):
             for tind in range(len(self.survey.times)):
                 # Pseudo-chareability
                 t = self.survey.times[tind]
-                v = self.getPeta(t)
+                v = self.get_peta(t)
                 for src in self.survey.srcList:
                     u_src = f[src, self._solutionType]  # solution vector
                     dA_dm_v = self.getADeriv(u_src, v)
@@ -304,7 +417,7 @@ class BaseSIPProblem(BaseEMProblem):
 
             return self.sign*np.hstack(Jv)
 
-    @profile
+    # @profile
     def Jvec(self, m, v, f=None):
 
         self.model = m
@@ -361,7 +474,7 @@ class BaseSIPProblem(BaseEMProblem):
 
             return self.sign*np.hstack(Jv)
 
-    @profile
+    # @profile
     def Jtvec(self, m, v, f=None):
 
         self.model = m
