@@ -1532,28 +1532,19 @@ def gettopoCC(mesh, actind, option="top"):
             return mesh1D, topoCC
 
     elif mesh._meshType == "TREE":
-        if mesh.dim == 3:
-            uniqXY = uniqueRows(mesh.gridCC[:, :2])
-            npts = uniqXY[0].shape[0]
-            ZC = mesh.gridCC[:, 2]
-            topoCC = np.zeros(npts)
-            if option == "top":
-                # TODO: this assume same hz, need to be modified
-                dz = mesh.hz.min() * 0.5
-            elif option == "center":
-                dz = 0.
-            for i in range(npts):
-                inds = uniqXY[2] == i
-                actind_z = actind[inds]
-                if actind_z.sum() > 0.:
-                    topoCC[i] = (ZC[inds][actind_z]).max() + dz
-                else:
-                    topoCC[i] = (ZC[inds]).max() + dz
-            return uniqXY[0], topoCC
-        else:
-            raise NotImplementedError(
-                "gettopoCC is not implemented for Quad tree mesh"
-                )
+        is_top = np.zeros(mesh.nC, dtype=bool)
+        neighbor_dir = 3 if mesh.dim == 2 else 5
+        for cell in mesh:
+            if actind[cell.index] and (cell.neighbors[neighbor_dir] == -1 or
+                        not np.any(actind[cell.neighbors[neighbor_dir]])):
+
+                is_top[cell.index] = True
+
+        topo_locs = mesh.gridCC[is_top]
+        if option == 'top':
+            hs = mesh.h_gridded[is_top]
+            topo_locs[:, -1] += hs[:, -1]*0.5
+        return topo_locs[:, :-1], topo_locs[:, -1]
 
 
 def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
@@ -1575,11 +1566,8 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
         inds = Utils.closestPoints(meshtemp, pts)
 
     elif mesh._meshType == "TREE":
-        if mesh.dim == 3:
-            uniqXYlocs, topoCC = gettopoCC(mesh, actind, option=option)
-            inds = closestPointsGrid(uniqXYlocs, pts)
-        else:
-            raise NotImplementedError()
+        uniqXYlocs, topoCC = gettopoCC(mesh, actind, option=option)
+        inds = closestPointsGrid(uniqXYlocs, pts)
     else:
         raise NotImplementedError()
     out = np.c_[pts, topoCC[inds]]

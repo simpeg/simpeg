@@ -142,8 +142,17 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.n
                 raise NotImplementedError('gridLoc=N is not implemented for TREE mesh')
             else:
                 raise Exception("gridLoc must be either CC or N")
-        else:
-            raise NotImplementedError('surface2ind_topo not implemented for Quadtree or 1D mesh')
+        elif mesh.dim == 2:
+            sorter = np.argsort(topo[:, 0])
+            topo = topo[sorter]
+            Ftopo = interp1d(topo[:, 0], topo[:, 1], bounds_error=False,
+                             fill_value=(topo[0, 1], topo[-1, 1]), kind=method)
+            if gridLoc == 'CC':
+                grid = mesh.gridCC
+            elif gridLoc == 'N':
+                grid = mesh.gridN
+            gridTopo = Ftopo(grid[:, 0])
+            actind = grid[:, 1] <= gridTopo
 
     return mkvc(actind)
 

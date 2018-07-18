@@ -74,6 +74,7 @@ def diagEst(matFun, n, k=None, approach='Probing'):
 
 
 def uniqueRows(M):
+    M = np.atleast_2d(M)
     b = np.ascontiguousarray(M).view(np.dtype(
         (np.void, M.dtype.itemsize * M.shape[1]))
     )
