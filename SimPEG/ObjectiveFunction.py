@@ -8,8 +8,9 @@ import scipy.sparse as sp
 from six import integer_types
 import warnings
 
+from discretize.Tests import checkDerivative
+
 from . import Utils
-from .Tests import checkDerivative
 from . import Maps
 from . import Props
 
@@ -447,4 +448,4 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
                 )
             )
         W = self.W * self.mapping.deriv(m)
-        return self.W.T * self.W
+        return W.T * W

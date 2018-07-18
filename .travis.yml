@@ -25,7 +25,7 @@ env:
   matrix:
     - TEST_DIR=tests/em/fdem/inverse/derivs
     - TEST_DIR=tests/em/tdem
-    - TEST_DIR="tests/em/static tests/seis tests/base"
+    - TEST_DIR="tests/em/static tests/seis tests/base tests/utils"
     - TEST_DIR=tests/flow
     - TEST_DIR="tests/em/nsem/forward tests/em/nsem/inversion"
     - TEST_DIR=tests/em/fdem/inverse/adjoint
@@ -79,7 +79,7 @@ install:
 script:
   # - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s
   - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "3" ]; then
-      cd docs; make html-noplot ; cd ../ ;
+      cd docs; travis_wait 30 make html-noplot ; cd ../ ;
     else
       nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
     fi
@@ -121,8 +121,7 @@ after_success:
   - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY ]; then
       if [ "$TRAVIS_TAG" = "true" ]; then
         mv credentials/.pypirc ~/.pypirc ;
-        python setup.py sdist bdist_wheel --universal ;
-        travis_wait 20 twine upload -r pypi --skip-existing dist/* ;
+        python setup.py sdist bdist_wheel --universal upload;
       fi
     fi
 
