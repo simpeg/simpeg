@@ -1,7 +1,9 @@
 import unittest
-from SimPEG import EM
+import numpy as np
 import sys
 from scipy.constants import mu_0
+
+from SimPEG import EM
 from SimPEG.EM.Utils.testingUtils import getFDEMProblem, crossCheckTest
 
 testEB = True
@@ -16,6 +18,42 @@ TOLEJHB = 1 # averaging and more sensitive to boundary condition violations (ie.
 
 SrcList = ['RawVec', 'MagDipole_Bfield', 'MagDipole', 'CircularLoop']
 
+
+class SrcLocTest(unittest.TestCase):
+    def test_src(self):
+        src = EM.FDEM.Src.MagDipole(
+            [], loc=np.array([[1.5, 3., 5.]]),
+            freq=10
+        )
+        self.assertTrue(np.all(src.loc == np.r_[1.5, 3., 5.]))
+        self.assertTrue(src.loc.shape==(3,))
+
+        with self.assertRaises(Exception):
+            src = EM.FDEM.Src.MagDipole(
+                [], loc=np.array([[0., 0., 0., 1.]]),
+                freq=10
+            )
+
+        with self.assertRaises(Exception):
+            src = EM.FDEM.Src.MagDipole(
+                [], loc=np.r_[0., 0., 0., 1.],
+                freq=10
+            )
+
+        src = EM.TDEM.Src.MagDipole(
+            [], loc=np.array([[1.5, 3., 5.]]),
+        )
+        self.assertTrue(np.all(src.loc == np.r_[1.5, 3., 5.]))
+
+        with self.assertRaises(Exception):
+            src = EM.TDEM.Src.MagDipole(
+                [], loc=np.array([[0., 0., 0., 1.]]),
+            )
+
+        with self.assertRaises(Exception):
+            src = EM.TDEM.Src.MagDipole(
+                [], loc=np.r_[0., 0., 0., 1.],
+            )
 
 class FDEM_CrossCheck(unittest.TestCase):
     if testEB:

@@ -1,10 +1,12 @@
 from __future__ import division
 import numpy as np
 import scipy.sparse as sp
+from scipy.constants import epsilon_0
+
 import SimPEG
 from SimPEG import Utils
 from SimPEG.EM.Utils import omega
-from SimPEG.Utils import Zero, Identity
+from SimPEG.Utils import Zero, sdiag
 
 
 class FieldsTDEM(SimPEG.Problem.TimeFields):
@@ -106,16 +108,30 @@ class FieldsTDEM(SimPEG.Problem.TimeFields):
         )
 
 
-class Fields_Derivs(FieldsTDEM):
+class Fields_Derivs_eb(FieldsTDEM):
     """
-        A fields object for satshing derivs
+    A fields object for satshing derivs in the EB formulatio
     """
     knownFields = {
                     'bDeriv': 'F',
                     'eDeriv': 'E',
+                    'hDeriv': 'F',
+                    'jDeriv': 'E',
+                    'dbdtDeriv': 'F',
+                    'dhdtDeriv': 'F'
+                  }
+
+
+class Fields_Derivs_hj(FieldsTDEM):
+    """
+    A fields object for satshing derivs in the HJ formulation
+    """
+    knownFields = {
+                    'bDeriv': 'E',
+                    'eDeriv': 'F',
                     'hDeriv': 'E',
                     'jDeriv': 'F',
-                    'dbdtDeriv': 'F',
+                    'dbdtDeriv': 'E',
                     'dhdtDeriv': 'E'
                   }
 
@@ -125,22 +141,24 @@ class Fields3D_b(FieldsTDEM):
     knownFields = {'bSolution': 'F'}
     aliasFields = {
                     'b': ['bSolution', 'F', '_b'],
+                    'h': ['bSolution', 'F', '_h'],
                     'e': ['bSolution', 'E', '_e'],
-                    'dbdt': ['bSolution', 'F', '_dbdt']
+                    'j': ['bSolution', 'E', '_j'],
+                    'dbdt': ['bSolution', 'F', '_dbdt'],
+                    'dhdt': ['bSolution', 'F', '_dhdt']
                   }
 
     def startup(self):
+        self._MeSigma = self.survey.prob.MeSigma
         self._MeSigmaI = self.survey.prob.MeSigmaI
+        self._MeSigmaDeriv = self.survey.prob.MeSigmaDeriv
         self._MeSigmaIDeriv = self.survey.prob.MeSigmaIDeriv
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MfMui = self.survey.prob.MfMui
         self._timeMesh = self.survey.prob.timeMesh
 
     def _TLoc(self, fieldType):
-        if fieldType in ['e', 'b']:
-            return 'N'
-        elif fieldType == 'dbdt':
-            return 'N'
+        return 'N'
 
     def _b(self, bSolution, srcList, tInd):
         return bSolution
@@ -181,7 +199,8 @@ class Fields3D_b(FieldsTDEM):
     def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         if adjoint is True:
             return (
-                self._MfMui.T * (self._edgeCurl * (self._MeSigmaI.T * dun_dm_v))
+                self._MfMui.T *
+                (self._edgeCurl * (self._MeSigmaI.T * dun_dm_v))
             )
         return (
             self._MeSigmaI * (self._edgeCurl.T * (self._MfMui * dun_dm_v))
@@ -211,30 +230,109 @@ class Fields3D_b(FieldsTDEM):
             ) - self._MeSigmaI * s_eDeriv(v)
         )
 
+    def _j(self, hSolution, srcList, tInd):
+        return self.survey.prob.MeI * (
+            self._MeSigma * self._e(hSolution, srcList, tInd)
+        )
+
+    def _jDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint:
+            return self._eDeriv_u(
+                tInd, src,
+                self._MeSigma.T * (self.survey.prob.MeI.T * dun_dm_v),
+                adjoint=True
+            )
+        return self.survey.prob.MeI * (
+            self._MeSigma * self._eDeriv_u(tInd, src, dun_dm_v)
+        )
+
+    def _jDeriv_m(self, tInd, src, v, adjoint=False):
+        e = self[src, 'e', tInd]
+        if adjoint:
+            w = self.survey.prob.MeI.T * v
+            return (
+                self._MeSigmaDeriv(e).T * w +
+                self._eDeriv_m(tInd, src, self._MeSigma.T * w, adjoint=True)
+            )
+        return self.survey.prob.MeI * (
+            self._MeSigmaDeriv(e) * v +
+            self._MeSigma * self._eDeriv_m(tInd, src, v)
+        )
+
+    def _h(self, hSolution, srcList, tInd):
+        return self.survey.prob.MfI * (
+            self._MfMui * self._b(hSolution, srcList, tInd)
+        )
+
+    def _hDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint:
+            return self._bDeriv_u(
+                tInd, src, self._MfMui.T * (self.survey.prob.MfI.T * dun_dm_v),
+                adjoint=True
+            )
+        return self.survey.prob.MfI * (
+            self._MfMui * self._bDeriv_u(tInd, src, dun_dm_v)
+        )
+
+    def _hDeriv_m(self, tInd, src, v, adjoint=False):
+        if adjoint:
+            return self._bDeriv_m(
+                tInd, src, self._MfMui.T * (self.survey.prob.MfI.T * v),
+                adjoint=True
+            )
+        return self.survey.prob.MfI * (
+            self._MfMui * self._bDeriv_m(tInd, src, v)
+        )
+
+    def _dhdt(self, hSolution, srcList, tInd):
+        return self.survey.prob.MfI * (
+            self._MfMui * self._dbdt(hSolution, srcList, tInd)
+        )
+
+    def _dhdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint:
+            return self._dbdtDeriv_u(
+                tInd, src, self._MfMui.T * (self.survey.prob.MfI.T * dun_dm_v),
+                adjoint=True
+            )
+        return self.survey.prob.MfI * (
+            self._MfMui * self._dbdtDeriv_u(tInd, src, dun_dm_v)
+        )
+
+    def _dhdtDeriv_m(self, tInd, src, v, adjoint=False):
+        if adjoint:
+            return self._dbdtDeriv_m(
+                tInd, src, self._MfMui.T * (self.survey.prob.MfI.T * v),
+                adjoint=True
+            )
+        return self.survey.prob.MfI * (
+            self._MfMui * self._dbdtDeriv_m(tInd, src, v)
+        )
+
 
 class Fields3D_e(FieldsTDEM):
     """Fancy Field Storage for a TDEM survey."""
     knownFields = {'eSolution': 'E'}
     aliasFields = {
                     'e': ['eSolution', 'E', '_e'],
+                    'j': ['eSolution', 'E', '_j'],
                     'b': ['eSolution', 'F', '_b'],
+                    # 'h': ['eSolution', 'F', '_h'],
                     'dbdt': ['eSolution', 'F', '_dbdt'],
+                    'dhdt': ['eSolution', 'F', '_dhdt'],
                   }
 
     def startup(self):
+        self._MeSigma = self.survey.prob.MeSigma
         self._MeSigmaI = self.survey.prob.MeSigmaI
+        self._MeSigmaDeriv = self.survey.prob.MeSigmaDeriv
         self._MeSigmaIDeriv = self.survey.prob.MeSigmaIDeriv
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MfMui = self.survey.prob.MfMui
         self._times = self.survey.prob.times
 
     def _TLoc(self, fieldType):
-        if fieldType in ['e', 'b']:
-            return 'N'
-        elif fieldType == 'dbdt':
-            return 'N'
-        else:
-            raise NotImplementedError
+        return 'N'
 
     def _e(self, eSolution, srcList, tInd):
         return eSolution
@@ -277,20 +375,78 @@ class Fields3D_e(FieldsTDEM):
         # return dtn[tInd] * dbdt
         # # raise NotImplementedError
 
+    def _j(self, eSolution, srcList, tInd):
+        return self.survey.prob.MeI * (
+            self._MeSigma * self._e(eSolution, srcList, tInd)
+        )
+
+    def _jDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint:
+            return self._eDeriv_u(
+                tInd, src,
+                self._MeSigma.T * (self.survey.prob.MeI.T * dun_dm_v),
+                adjoint=True
+            )
+        return self.survey.prob.MeI * (
+            self._MeSigma * self._eDeriv_u(tInd, src, dun_dm_v)
+        )
+
+    def _jDeriv_m(self, tInd, src, v, adjoint=False):
+        e = self[src, 'e', tInd]
+        if adjoint:
+            w = self.survey.prob.MeI.T * v
+            return (
+                self._MeSigmaDeriv(e).T * w +
+                self._eDeriv_m(tInd, src, self._MeSigma.T * w, adjoint=True)
+            )
+        return self.survey.prob.MeI * (
+            self._MeSigmaDeriv(e) * v +
+            self._MeSigma * self._eDeriv_m(tInd, src, v)
+        )
+
+    def _dhdt(self, eSolution, srcList, tInd):
+        return self.survey.prob.MfI * (
+            self._MfMui * self._dbdt(eSolution, srcList, tInd)
+        )
+
+    def _dhdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint:
+            return self._dbdtDeriv_u(
+                tInd, src, self._MfMui.T * (self.survey.prob.MfI.T * dun_dm_v),
+                adjoint=True
+            )
+        return self.survey.prob.MfI * (
+            self._MfMui * self._dbdtDeriv_u(tInd, src, dun_dm_v)
+        )
+
+    def _dhdtDeriv_m(self, tInd, src, v, adjoint=False):
+        if adjoint:
+            return self._dbdtDeriv_m(
+                tInd, src, self._MfMui.T * (self.survey.prob.MfI.T * v)
+            )
+        return self.survey.prob.MfI * (
+            self._MfMui * self._dbdtDeriv_m(tInd, src, v)
+        )
+
 
 class Fields3D_h(FieldsTDEM):
     """Fancy Field Storage for a TDEM survey."""
     knownFields = {'hSolution': 'E'}
     aliasFields = {
                     'h': ['hSolution', 'E', '_h'],
+                    'b': ['hSolution', 'E', '_b'],
                     'dhdt': ['hSolution', 'E', '_dhdt'],
+                    'dbdt': ['hSolution', 'E', '_dbdt'],
                     'j': ['hSolution', 'F', '_j'],
+                    'e': ['hSolution', 'F', '_e'],
+                    'charge': ['hSolution', 'CC', '_charge']
                   }
 
     def startup(self):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._times = self.survey.prob.times
         self._MeMuI = self.survey.prob.MeMuI
+        self._MeMu = self.survey.prob.MeMu
         self._MfRho = self.survey.prob.MfRho
         self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
 
@@ -365,13 +521,88 @@ class Fields3D_h(FieldsTDEM):
     def _jDeriv_m(self, tInd, src, v, adjoint=False):
         return Zero() # assumes the source doesn't depend on the model
 
+    def _b(self, hSolution, srcList, tInd):
+        h = self._h(hSolution, srcList, tInd)
+        return self.survey.prob.MeI * (self._MeMu * h)
+
+    def _bDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint:
+            return self._hDeriv_u(
+                tInd, src, self._MeMu.T * (self.survey.prob.MeI.T * dun_dm_v),
+                adjoint=adjoint
+            )
+        return self.survey.prob.MeI * (self._MeMu * self._hDeriv_u(tInd, src, dun_dm_v))
+
+    def _bDeriv_m(self, tInd, src, v, adjoint=False):
+        if adjoint:
+            return self._hDeriv_m(
+                tInd, src, self._MeMu.T * (self.survey.prob.MeI.T * v), adjoint=adjoint
+            )
+        return self.survey.prob.MeI * (self._MeMu * self._hDeriv_m(tInd, src, v))
+
+    def _dbdt(self, hSolution, srcList, tInd):
+        dhdt = self._dhdt(hSolution, srcList, tInd)
+        return self.survey.prob.MeI * (self._MeMu * dhdt)
+
+    def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint:
+            return self._dhdtDeriv_u(
+                tInd, src, self._MeMu.T * (self.survey.prob.MeI.T * dun_dm_v),
+                adjoint=adjoint
+            )
+        return self.survey.prob.MeI * (self._MeMu * self._dhdtDeriv_u(tInd, src, dun_dm_v))
+
+    def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
+        if adjoint:
+            return self._dhdtDeriv_m(
+                tInd, src, self._MeMu.T * (self.survey.prob.MeI.T * v), adjoint=adjoint
+            )
+        return self.survey.prob.MeI * (self._MeMu * self._dhdtDeriv_m(tInd, src, v))
+
+    def _e(self, hSolution, srcList, tInd):
+        return self.survey.prob.MfI * (
+            self._MfRho * self._j(hSolution, srcList, tInd)
+        )
+
+    def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint:
+            return self._jDeriv_u(
+                tInd, src,
+                self._MfRho.T * (self.survey.prob.MfI.T * dun_dm_v),
+                adjoint=True
+            )
+        return self.survey.prob.MfI * (
+            self._MfRho * self._jDeriv_u(tInd, src, dun_dm_v)
+        )
+
+    def _eDeriv_m(self, tInd, src, v, adjoint=False):
+        j = Utils.mkvc(self[src, 'j', tInd])
+        if adjoint is True:
+            return (
+                self._MfRhoDeriv(j, self.survey.prob.MfI.T * v, adjoint) +
+                self._jDeriv_m(tInd, src, self._MfRho * v)
+            )
+        return self.survey.prob.MfI * (
+            self._MfRhoDeriv(j, v) +
+            self._MfRho * self._jDeriv_m(tInd, src, v)
+        )
+
+    def _charge(self, hSolution, srcList, tInd):
+        vol = sdiag(self.survey.prob.mesh.vol)
+        return epsilon_0*vol*(
+            self.survey.prob.mesh.faceDiv*self._e(hSolution, srcList, tInd)
+        )
+
 
 class Fields3D_j(FieldsTDEM):
     """Fancy Field Storage for a TDEM survey."""
     knownFields = {'jSolution': 'F'}
     aliasFields = {
                     'dhdt': ['jSolution', 'E', '_dhdt'],
+                    'dbdt': ['jSolution', 'E', '_dbdt'],
                     'j': ['jSolution', 'F', '_j'],
+                    'e': ['jSolution', 'F', '_e'],
+                    'charge': ['jSolution', 'CC', '_charge']
                   }
 
     def startup(self):
@@ -419,10 +650,61 @@ class Fields3D_j(FieldsTDEM):
 
     def _dhdtDeriv_m(self, tInd, src, v, adjoint=False):
         jSolution = self[[src], 'jSolution', tInd].flatten()
-        # MfRhoDeriv = self._MfRhoDeriv(jSolution)
         C = self._edgeCurl
         MeMuI = self._MeMuI
 
         if adjoint is True:
             return -self._MfRhoDeriv(jSolution, C * (MeMuI * v), adjoint)
-        return -MeMuI * (C.T * self._MfRhoDeriv(jSolution, v, adjoint))
+        return -MeMuI * (C.T * (self._MfRhoDeriv(jSolution, v)))
+
+    def _e(self, jSolution, srcList, tInd):
+        return self.survey.prob.MfI * (
+            self._MfRho * self._j(jSolution, srcList, tInd)
+        )
+
+    def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint is True:
+            return self._MfRho.T * (self.survey.prob.MfI.T * dun_dm_v)
+        return self.survey.prob.MfI * (self._MfRho * dun_dm_v)
+
+    def _eDeriv_m(self, tInd, src, v, adjoint=False):
+        jSolution = Utils.mkvc(self[src, 'jSolution', tInd])
+        if adjoint:
+            return self._MfRhoDeriv(
+                jSolution, self.survey.prob.MfI.T * v, adjoint
+            )
+        return self.survey.prob.MfI * self._MfRhoDeriv(jSolution, v)
+
+    def _charge(self, jSolution, srcList, tInd):
+        vol = sdiag(self.survey.prob.mesh.vol)
+        return epsilon_0*vol*(
+            self.survey.prob.mesh.faceDiv*self._e(jSolution, srcList, tInd)
+        )
+
+    def _dbdt(self, jSolution, srcList, tInd):
+        dhdt = Utils.mkvc(self._dhdt(jSolution, srcList, tInd))
+        return self.survey.prob.Me * (self.survey.prob.MeMuI * dhdt)
+
+    def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        # dhdt = Utils.mkvc(self[src, 'dhdt', tInd])
+        if adjoint:
+            return self._dhdtDeriv_u(
+                tInd, src,
+                self.survey.prob.MeMuI.T * (self.survey.prob.Me.T * dun_dm_v),
+                adjoint
+            )
+        return self.survey.prob.Me * (
+            self.survey.prob.MeMuI * self._dhdtDeriv_u(tInd, src, dun_dm_v)
+        )
+
+    def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
+        if adjoint:
+            return self._dhdtDeriv_m(
+                tInd, src,
+                self.survey.prob.MeMuI.T * (self.survey.prob.Me.T * v),
+                adjoint
+            )
+        return self.survey.prob.Me * (
+            self.survey.prob.MeMuI * self._dhdtDeriv_m(tInd, src, v)
+        )
+
