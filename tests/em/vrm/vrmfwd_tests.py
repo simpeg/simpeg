@@ -2,6 +2,7 @@ import unittest
 import SimPEG.VRM as VRM
 import numpy as np
 from SimPEG import Mesh
+from SimPEG.Utils import modelutils
 
 
 class VRM_fwd_tests(unittest.TestCase):
@@ -234,17 +235,21 @@ class VRM_fwd_tests(unittest.TestCase):
         meshObj_Tensor = Mesh.TensorMesh((h1, h1, h1), x0='000')
         meshObj_OcTree = Mesh.TreeMesh([h2, h2, h2], x0='000')
 
-        meshObj_OcTree.refine(2)
+        # meshObj_OcTree.refine(2)
 
-        def refinefcn(cell):
-            xyz = cell.center
-            dist = ((xyz - [4., 4., 8.])**2).sum()**0.5
-            if dist < 2.65:
-                return 4
-            return 2
+        # def refinefcn(cell):
+        #     xyz = cell.center
+        #     dist = ((xyz - [4., 4., 8.])**2).sum()**0.5
+        #     if dist < 2.65:
+        #         return 4
+        #     return 2
 
-        meshObj_OcTree.refine(refinefcn)
-
+        # meshObj_OcTree.refine(refinefcn)
+        loc_rx = np.c_[4., 4., 8.0]
+        meshObj_OcTree = modelutils.refineTree(meshObj_OcTree, loc_rx, finalize=True, dtype="point", nCpad=[4, 4, 4])
+        Mesh.TreeMesh.writeUBC(meshObj_OcTree, 'OctreeMesh.msh',
+                               models={'ActiveOctree.dat': np.ones(meshObj_OcTree.nC)})
+        meshObj_Tensor.writeUBC('Tensor.msh')
         chi0 = 0.
         dchi = 0.01
         tau1 = 1e-8
@@ -267,7 +272,7 @@ class VRM_fwd_tests(unittest.TestCase):
         times = np.array([1e-3])
         waveObj = VRM.WaveformVRM.SquarePulse(0.02)
 
-        loc_rx = np.c_[4., 4., 8.25]
+
         # rxList = [VRM.Rx.Point_dhdt(loc_rx, times, 'z')]
         rxList = [VRM.Rx.Point(loc_rx, times, 'dhdt', 'z')]
         txList = [VRM.Src.MagDipole(rxList, np.r_[4., 4., 8.25], [0., 0., 1.], waveObj)]
@@ -288,6 +293,7 @@ class VRM_fwd_tests(unittest.TestCase):
         Fields2 = Problem2.fields()
         Fields3 = Problem3.fields(mod_b)
         Fields4 = Problem4.fields()
+
         dpred1 = Survey1.dpred(mod_a)
         dpred2 = Survey2.dpred(mod_a)
 
@@ -297,11 +303,11 @@ class VRM_fwd_tests(unittest.TestCase):
         Err4 = np.abs((Fields4-Fields1)/Fields4)
         Err5 = np.abs((dpred1-dpred2)/dpred1)
 
-        Test1 = Err1 < 0.001
-        Test2 = Err2 < 0.001
-        Test3 = Err3 < 0.001
-        Test4 = Err4 < 0.001
-        Test5 = Err5 < 0.001
+        Test1 = Err1 < 0.005
+        Test2 = Err2 < 0.005
+        Test3 = Err3 < 0.005
+        Test4 = Err4 < 0.005
+        Test5 = Err5 < 0.005
 
         self.assertTrue(Test1 and Test2 and Test3 and Test4 and Test5)
 
