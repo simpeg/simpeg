@@ -335,8 +335,8 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
 
             dx = mesh.hx.min()*2**ii
 
-            nCx = int(limx[0]-limx[1]) / dx
-            nCy = int(limy[0]-limy[1]) / dx
+            nCx = int((limx[0]-limx[1]) / dx)
+            nCy = int((limy[0]-limy[1]) / dx)
 
             # Create a grid at the octree level in xy
             CCx, CCy = np.meshgrid(
