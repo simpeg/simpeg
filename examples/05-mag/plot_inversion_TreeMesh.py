@@ -1,3 +1,17 @@
+"""
+Magnetic inversion on a TreeMesh
+================================
+
+In this example, we demonstrate the use of a 3D TreeMesh
+for the inversion of magnetic. The mesh is auto-generate based
+on the position of the observation locations and topography.
+
+The inverse problem uses the :class:'SimPEG.Regularization.Sparse'
+that
+
+"""
+
+
 from SimPEG import (Mesh, Directives, Maps,
                     InvProblem, Optimization, DataMisfit,
                     Inversion, Utils, Regularization)
@@ -94,14 +108,15 @@ nC = int(actv.sum())
 # Forward modeling data
 # ---------------------
 #
-# We can now create a susceptibility model and generate data
-# Lets start with a simple block below topography
+# We can now create a magnetization model and generate data
+# Lets start with two blocks below topography
 #
 
-model = Utils.ModelBuilder.addBlock(
+ind = Utils.ModelBuilder.getIndicesBlock(
+    np.r_[-40, -40, -50], np.r_[40, 40, 0],
     mesh.gridCC, np.zeros(mesh.nC),
-    np.r_[-40, -40, -50], np.r_[40, 40, 0], 0.05
-)[actv]
+)
+
 
 # Create active map to go from reduce set to full
 actvMap = Maps.InjectActiveCells(mesh, actv, np.nan)

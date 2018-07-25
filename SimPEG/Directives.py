@@ -715,7 +715,7 @@ class Update_IRLS(InversionDirective):
         ]):
 
             if self.fix_Jmatrix:
-                print (">> Fix Jmatrix")
+                print(">> Fix Jmatrix")
                 self.invProb.dmisfit.prob.fix_Jmatrix = True
 
             # Check for maximum number of IRLS cycles
@@ -924,8 +924,12 @@ class UpdatePreconditioner(InversionDirective):
 
             # Update the pre-conditioner
             reg_diag = np.zeros_like(self.invProb.model)
+            m = self.invProb.model
             for reg in self.reg.objfcts:
-                reg_diag += self.invProb.beta*(reg.W.T*reg.W).diagonal()
+                reg_diag += self.invProb.beta*(
+                    (reg.mapping.deriv(m).T*reg.W.T) *
+                    (reg.W*reg.mapping.deriv(m))
+                ).diagonal()
 
             Hdiag = self.opt.JtJdiag + reg_diag
 
@@ -941,8 +945,12 @@ class UpdatePreconditioner(InversionDirective):
 
             # Update the pre-conditioner
             reg_diag = np.zeros_like(self.invProb.model)
+            m = self.invProb.model
             for reg in self.reg.objfcts:
-                reg_diag += self.invProb.beta*(reg.W.T*reg.W).diagonal()
+                reg_diag += self.invProb.beta*(
+                    (reg.mapping.deriv(m).T*reg.W.T) *
+                    (reg.W*reg.mapping.deriv(m))
+                ).diagonal()
 
             Hdiag = self.opt.JtJdiag + reg_diag
 
