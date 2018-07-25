@@ -734,10 +734,10 @@ class Update_IRLS(InversionDirective):
 
                 if reg.eps_p > self.floorEps_p and self.coolEps_p:
                     reg.eps_p /= self.coolEpsFact
-                    print('Eps_p: ' + str(reg.eps_p))
+
                 if reg.eps_q > self.floorEps_q and self.coolEps_q:
                     reg.eps_q /= self.coolEpsFact
-                    print('Eps_q: ' + str(reg.eps_q))
+
 
             # Remember the value of the norm from previous R matrices
             # self.f_old = self.reg(self.invProb.model)
@@ -902,39 +902,39 @@ class UpdatePreconditioner(InversionDirective):
 
     def initialize(self):
 
-        if getattr(self.opt, 'approxHinv', None) is None:
+        # if getattr(self.opt, 'approxHinv', None) is None:
 
-            if getattr(self.opt, 'JtJdiag', None) is None:
+        if getattr(self.opt, 'JtJdiag', None) is None:
 
-                JtJdiag = np.zeros_like(self.invProb.model)
-                for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
+            JtJdiag = np.zeros_like(self.invProb.model)
+            for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
 
-                    m = self.invProb.model
+                m = self.invProb.model
 
-                    if getattr(prob, 'getJtJdiag', None) is None:
-                        assert getattr(prob, 'getJ', None) is not None, (
-                        "Problem does not have a getJ attribute." +
-                        "Cannot form the sensitivity explicitely"
-                        )
-                        JtJdiag += np.sum(np.power((dmisfit.W*prob.getJ(m)), 2), axis=0)
-                    else:
-                        JtJdiag += prob.getJtJdiag(m)
+                if getattr(prob, 'getJtJdiag', None) is None:
+                    assert getattr(prob, 'getJ', None) is not None, (
+                    "Problem does not have a getJ attribute." +
+                    "Cannot form the sensitivity explicitely"
+                    )
+                    JtJdiag += np.sum(np.power((dmisfit.W*prob.getJ(m)), 2), axis=0)
+                else:
+                    JtJdiag += prob.getJtJdiag(m)
 
-                self.opt.JtJdiag = JtJdiag
+            self.opt.JtJdiag = JtJdiag
 
-            # Update the pre-conditioner
-            reg_diag = np.zeros_like(self.invProb.model)
-            m = self.invProb.model
-            for reg in self.reg.objfcts:
-                reg_diag += self.invProb.beta*(
-                    (reg.mapping.deriv(m).T*reg.W.T) *
-                    (reg.W*reg.mapping.deriv(m))
-                ).diagonal()
+        # Update the pre-conditioner
+        reg_diag = np.zeros_like(self.invProb.model)
+        m = self.invProb.model
+        for reg in self.reg.objfcts:
+            reg_diag += self.invProb.beta*(
+                (reg.mapping.deriv(m).T*reg.W.T) *
+                (reg.W*reg.mapping.deriv(m))
+            ).diagonal()
 
-            Hdiag = self.opt.JtJdiag + reg_diag
+        Hdiag = self.opt.JtJdiag + reg_diag
 
-            PC = Utils.sdiag(Hdiag**-1.)
-            self.opt.approxHinv = PC
+        PC = Utils.sdiag(Hdiag**-1.)
+        self.opt.approxHinv = PC
 
     def endIter(self):
         # Cool the threshold parameter
