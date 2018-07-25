@@ -2,6 +2,7 @@ import unittest
 import SimPEG.VRM as VRM
 import numpy as np
 from SimPEG import Mesh
+from SimPEG.Utils import modelutils
 
 
 class VRM_fwd_tests(unittest.TestCase):
@@ -235,17 +236,16 @@ class VRM_fwd_tests(unittest.TestCase):
         meshObj_Tensor = Mesh.TensorMesh((h1, h1, h1), x0='000')
         meshObj_OcTree = Mesh.TreeMesh([h2, h2, h2], x0='000')
 
-        meshObj_OcTree.refine(2)
+        loc_ref = np.c_[
+            [3.25, 4.75, 4.75, 3.25],
+            [3.25, 3.25, 4.75, 4.75],
+            [7.25, 7.25, 7.25, 7.25]]
+        meshObj_OcTree = modelutils.refineTree(meshObj_OcTree, loc_ref, finalize=True, dtype="point", nCpad=[2,0,0])
+        # Mesh.TreeMesh.writeUBC(meshObj_OcTree, 'OctreeMesh.msh',
+        #                        models={'ActiveOctree.dat': np.ones(meshObj_OcTree.nC)})
+        # meshObj_Tensor.writeUBC('Tensor.msh')
 
-        def refinefcn(cell):
-            xyz = cell.center
-            dist = ((xyz - [4., 4., 8.])**2).sum()**0.5
-            if dist < 2.65:
-                return 4
-            return 2
-
-        meshObj_OcTree.refine(refinefcn)
-
+        chi0 = 0.
         dchi = 0.01
         tau1 = 1e-8
         tau2 = 1e0
@@ -293,6 +293,7 @@ class VRM_fwd_tests(unittest.TestCase):
         Fields2 = Problem2.fields()
         Fields3 = Problem3.fields(mod_b)
         Fields4 = Problem4.fields()
+
         dpred1 = Survey1.dpred(mod_a)
         dpred2 = Survey2.dpred(mod_a)
 
@@ -363,7 +364,7 @@ class VRM_fwd_tests(unittest.TestCase):
 
         Err = np.abs(Fields1-Fields2)
 
-        Test = np.all(Err < 1e-7)
+        Test = np.all(Err < 1e-6)
 
         self.assertTrue(Test)
 
