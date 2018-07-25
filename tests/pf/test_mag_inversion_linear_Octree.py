@@ -156,18 +156,18 @@ class MagInvLinProblemTest(unittest.TestCase):
         mrec = self.inv.run(self.model)
 
         residual = np.linalg.norm(mrec-self.model) / np.linalg.norm(self.model)
-        print(residual)
+        # print(residual)
 
-        plt.figure()
-        ax = plt.subplot(1, 2, 1)
-        midx = 65
-        self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(0, 0.02))
+        # plt.figure()
+        # ax = plt.subplot(1, 2, 1)
+        # midx = 65
+        # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
+        #                grid=True, clim=(0, 0.02))
 
-        ax = plt.subplot(1, 2, 2)
-        self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(0, 0.02))
-        plt.show()
+        # ax = plt.subplot(1, 2, 2)
+        # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
+        #                grid=True, clim=(0, 0.02))
+        # plt.show()
 
         self.assertTrue(residual < 0.1)
         # self.assertTrue(residual < 0.05)
