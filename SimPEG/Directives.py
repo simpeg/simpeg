@@ -652,12 +652,12 @@ class Update_IRLS(InversionDirective):
                     self.sphericalDomain = True
 
         if self.sphericalDomain:
-            self._angleScale()
+            self._angleScale
 
     def endIter(self):
 
         if self.sphericalDomain:
-            self._angleScale()
+            self._angleScale
 
         # Check if misfit is within the tolerance, otherwise scale beta
         if np.all([
@@ -1091,3 +1091,44 @@ class UpdateSensitivityWeights(InversionDirective):
             JtJdiag += JtJ
 
         self.opt.JtJdiag = JtJdiag
+
+
+class ProjSpherical(InversionDirective):
+    """
+        Trick for spherical coordinate system.
+        Project \theta and \phi angles back to [-\pi,\pi] using
+        back and forth conversion.
+        spherical->cartesian->spherical
+    """
+    def initialize(self):
+
+        x = self.invProb.model
+        # Convert to cartesian than back to avoid over rotation
+        nC = int(len(x)/3)
+
+        xyz = Utils.matutils.atp2xyz(x.reshape((nC, 3), order='F'))
+        m = Utils.matutils.xyz2atp(xyz.reshape((nC, 3), order='F'))
+
+        self.invProb.model = m
+
+        for prob in self.prob:
+            prob.model = m
+
+        self.opt.xc = m
+
+    def endIter(self):
+
+        x = self.invProb.model
+        nC = int(len(x)/3)
+
+        # Convert to cartesian than back to avoid over rotation
+        xyz = Utils.matutils.atp2xyz(x.reshape((nC, 3), order='F'))
+        m = Utils.matutils.xyz2atp(xyz.reshape((nC, 3), order='F'))
+
+        self.invProb.model = m
+        self.invProb.phi_m_last = self.reg(m)
+
+        for prob in self.prob:
+            prob.model = m
+
+        self.opt.xc = m
