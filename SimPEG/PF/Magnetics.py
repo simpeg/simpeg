@@ -179,10 +179,10 @@ class MagneticIntegral(Problem.LinearProblem):
         if isinstance(self.mesh, Mesh.TreeMesh):
             # Get upper and lower corners of each cell
             bsw = (self.mesh.gridCC -
-                   np.kron(self.mesh.vol.T**(1/3)/2,
+                   np.kron(self.mesh.vol.T**(1./3.)/2.,
                            np.ones(3)).reshape((self.mesh.nC, 3)))
             tne = (self.mesh.gridCC +
-                   np.kron(self.mesh.vol.T**(1/3)/2,
+                   np.kron(self.mesh.vol.T**(1./3.)/2.,
                            np.ones(3)).reshape((self.mesh.nC, 3)))
 
             xn1, xn2 = bsw[:, 0], tne[:, 0]
@@ -1213,19 +1213,19 @@ def calcRow(Xn, Yn, Zn, rxLoc):
     dx2 = Xn[:, 1] - rxLoc[0]
     dx1 = Xn[:, 0] - rxLoc[0]
 
-    R1 = (dy2**2 + dx2**2)
-    R2 = (dy2**2 + dx1**2)
-    R3 = (dy1**2 + dx2**2)
-    R4 = (dy1**2 + dx1**2)
+    R1 = (dy2**2. + dx2**2.)
+    R2 = (dy2**2. + dx1**2.)
+    R3 = (dy1**2. + dx2**2.)
+    R4 = (dy1**2. + dx1**2.)
 
-    arg1 = np.sqrt(dz2**2 + R2)
-    arg2 = np.sqrt(dz2**2 + R1)
-    arg3 = np.sqrt(dz1**2 + R1)
-    arg4 = np.sqrt(dz1**2 + R2)
-    arg5 = np.sqrt(dz2**2 + R3)
-    arg6 = np.sqrt(dz2**2 + R4)
-    arg7 = np.sqrt(dz1**2 + R4)
-    arg8 = np.sqrt(dz1**2 + R3)
+    arg1 = np.sqrt(dz2**2. + R2)
+    arg2 = np.sqrt(dz2**2. + R1)
+    arg3 = np.sqrt(dz1**2. + R1)
+    arg4 = np.sqrt(dz1**2. + R2)
+    arg5 = np.sqrt(dz2**2. + R3)
+    arg6 = np.sqrt(dz2**2. + R4)
+    arg7 = np.sqrt(dz1**2. + R4)
+    arg8 = np.sqrt(dz1**2. + R3)
 
     Tx[0, 0:nC] = (
         np.arctan2(dy1 * dz2, (dx2 * arg5 + eps)) -
@@ -1237,6 +1237,16 @@ def calcRow(Xn, Yn, Zn, rxLoc):
         np.arctan2(dy1 * dz1, (dx1 * arg7 + eps)) -
         np.arctan2(dy2 * dz1, (dx1 * arg4 + eps))
     )
+    temp = (
+        np.arctan2(dy1 * dz2, (dx2 * arg5 + eps)) -
+        np.arctan2(dy2 * dz2, (dx2 * arg2 + eps)) +
+        np.arctan2(dy2 * dz1, (dx2 * arg3 + eps)) -
+        np.arctan2(dy1 * dz1, (dx2 * arg8 + eps)) +
+        np.arctan2(dy2 * dz2, (dx1 * arg1 + eps)) -
+        np.arctan2(dy1 * dz2, (dx1 * arg6 + eps)) +
+        np.arctan2(dy1 * dz1, (dx1 * arg7 + eps)) -
+        np.arctan2(dy2 * dz1, (dx1 * arg4 + eps))
+        )
 
     Ty[0, 0:nC] = (
         np.log((dz2 + arg2) / (dz1 + arg3 + eps)) -
@@ -1256,36 +1266,36 @@ def calcRow(Xn, Yn, Zn, rxLoc):
         np.arctan2(dx2 * dz1, (dy1 * arg8 + eps))
     )
 
-    R1 = (dy2**2 + dz1**2)
-    R2 = (dy2**2 + dz2**2)
-    R3 = (dy1**2 + dz1**2)
-    R4 = (dy1**2 + dz2**2)
+    R1 = (dy2**2. + dz1**2.)
+    R2 = (dy2**2. + dz2**2.)
+    R3 = (dy1**2. + dz1**2.)
+    R4 = (dy1**2. + dz2**2.)
 
     Ty[0, 2*nC:] = (
-        np.log((dx1 + np.sqrt(dx1**2 + R1) + eps) /
-               (dx2 + np.sqrt(dx2**2 + R1) + eps)) -
-        np.log((dx1 + np.sqrt(dx1**2 + R2) + eps) /
-               (dx2 + np.sqrt(dx2**2 + R2) + eps)) +
-        np.log((dx1 + np.sqrt(dx1**2 + R4) + eps) /
-               (dx2 + np.sqrt(dx2**2 + R4) + eps)) -
-        np.log((dx1 + np.sqrt(dx1**2 + R3) + eps) /
-               (dx2 + np.sqrt(dx2**2 + R3) + eps))
+        np.log((dx1 + np.sqrt(dx1**2. + R1) + eps) /
+               (dx2 + np.sqrt(dx2**2. + R1) + eps)) -
+        np.log((dx1 + np.sqrt(dx1**2. + R2) + eps) /
+               (dx2 + np.sqrt(dx2**2. + R2) + eps)) +
+        np.log((dx1 + np.sqrt(dx1**2. + R4) + eps) /
+               (dx2 + np.sqrt(dx2**2. + R4) + eps)) -
+        np.log((dx1 + np.sqrt(dx1**2. + R3) + eps) /
+               (dx2 + np.sqrt(dx2**2. + R3) + eps))
     )
 
-    R1 = (dx2**2 + dz1**2)
-    R2 = (dx2**2 + dz2**2)
-    R3 = (dx1**2 + dz1**2)
-    R4 = (dx1**2 + dz2**2)
+    R1 = (dx2**2. + dz1**2.)
+    R2 = (dx2**2. + dz2**2.)
+    R3 = (dx1**2. + dz1**2.)
+    R4 = (dx1**2. + dz2**2.)
 
     Tx[0, 2*nC:] = (
-        np.log((dy1 + np.sqrt(dy1**2 + R1) + eps) /
-               (dy2 + np.sqrt(dy2**2 + R1) + eps)) -
-        np.log((dy1 + np.sqrt(dy1**2 + R2) + eps) /
-               (dy2 + np.sqrt(dy2**2 + R2) + eps)) +
-        np.log((dy1 + np.sqrt(dy1**2 + R4) + eps) /
-               (dy2 + np.sqrt(dy2**2 + R4) + eps)) -
-        np.log((dy1 + np.sqrt(dy1**2 + R3) + eps) /
-               (dy2 + np.sqrt(dy2**2 + R3) + eps))
+        np.log((dy1 + np.sqrt(dy1**2. + R1) + eps) /
+               (dy2 + np.sqrt(dy2**2. + R1) + eps)) -
+        np.log((dy1 + np.sqrt(dy1**2. + R2) + eps) /
+               (dy2 + np.sqrt(dy2**2. + R2) + eps)) +
+        np.log((dy1 + np.sqrt(dy1**2. + R4) + eps) /
+               (dy2 + np.sqrt(dy2**2. + R4) + eps)) -
+        np.log((dy1 + np.sqrt(dy1**2. + R3) + eps) /
+               (dy2 + np.sqrt(dy2**2. + R3) + eps))
     )
 
     Tz[0, 2*nC:] = -(Ty[0, nC:2*nC] + Tx[0, 0:nC])
@@ -1293,9 +1303,9 @@ def calcRow(Xn, Yn, Zn, rxLoc):
     Tx[0, nC:2*nC] = Ty[0, 0:nC]
     Tz[0, 0:nC] = Tx[0, 2*nC:]
 
-    Tx = Tx/(4*np.pi)
-    Ty = Ty/(4*np.pi)
-    Tz = Tz/(4*np.pi)
+    Tx = Tx/(4.*np.pi)
+    Ty = Ty/(4.*np.pi)
+    Tz = Tz/(4.*np.pi)
 
     return Tx, Ty, Tz
 
@@ -1311,7 +1321,7 @@ def progress(iter, prog, final):
 
     @author: dominiquef
     """
-    arg = np.floor(float(iter)/float(final)*10.)
+    arg = int(float(iter)/float(final)*10.)
 
     if arg > prog:
 

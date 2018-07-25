@@ -34,8 +34,8 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Create grid of points for topography
         # Lets create a simple Gaussian topo and set the active cells
         [xx, yy] = np.meshgrid(
-            np.linspace(-200, 200, 50),
-            np.linspace(-200, 200, 50)
+            np.linspace(-200., 200., 50),
+            np.linspace(-200., 200., 50)
         )
 
         b = 100
@@ -101,7 +101,8 @@ class MagInvLinProblemTest(unittest.TestCase):
         data = prob.fields(self.model)
 
         # Add noise and uncertainties (1nT)
-        data += np.random.randn(len(data))
+        noise = np.random.randn(len(data))
+        data += noise
         wd = np.ones(len(data))*1.
 
         survey.dobs = data
@@ -120,6 +121,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         reg = Regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
         reg.norms = np.c_[0, 0, 0, 0]
         reg.cell_weights = wr
+
         reg.mref = np.zeros(nC)
 
         # Data misfit function
@@ -132,7 +134,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             maxIterLS=20, maxIterCG=20, tolCG=1e-4
         )
 
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e+3)
+        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e+4)
         betaest = Directives.BetaEstimate_ByEig()
 
         # Here is where the norms are applied

@@ -151,10 +151,10 @@ class GravityIntegral(Problem.LinearProblem):
         if isinstance(self.mesh, Mesh.TreeMesh):
             # Get upper and lower corners of each cell
             bsw = (self.mesh.gridCC -
-                   np.kron(self.mesh.vol.T**(1/3)/2,
+                   np.kron(self.mesh.vol.T**(1./3.)/2.,
                            np.ones(3)).reshape((self.mesh.nC, 3)))
             tne = (self.mesh.gridCC +
-                   np.kron(self.mesh.vol.T**(1/3)/2,
+                   np.kron(self.mesh.vol.T**(1./3.)/2.,
                            np.ones(3)).reshape((self.mesh.nC, 3)))
 
             xn1, xn2 = bsw[:, 0], tne[:, 0]
