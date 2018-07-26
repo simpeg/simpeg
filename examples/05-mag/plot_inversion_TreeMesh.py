@@ -29,8 +29,8 @@ import matplotlib.pyplot as plt
 #
 # First we need to define the direction of the inducing field
 # As a simple case, we pick a vertical inducing field of magnitude 50,000 nT.
-# From old convention, field orientation is given as an azimuth from North
-# (positive clockwise) and dip from the horizontal (positive downward).
+#
+#
 
 H0 = (50000., 90., 0.)
 
@@ -116,7 +116,8 @@ def plotVectorSectionsOctree(
     mesh, m, normal='X', ind=0, vmin=None, vmax=None,
     subFact=2, scale=1., xlim=None, ylim=None, vec='k',
     title=None, axs=None, actvMap=None, contours=None, fill=True,
-    orientation='vertical', cmap='pink_r'):
+        orientation='vertical', cmap='pink_r'
+):
 
     """
     Plot section through a 3D tensor model
@@ -147,8 +148,9 @@ def plotVectorSectionsOctree(
     level_diff = mesh.max_level - temp_mesh.max_level
 
     XS = [None, None, None]
-    XS[antiNormalInd[0]], XS[antiNormalInd[1]] = np.meshgrid(cc_tensor[antiNormalInd[0]],
-                                                             cc_tensor[antiNormalInd[1]])
+    XS[antiNormalInd[0]], XS[antiNormalInd[1]] = np.meshgrid(
+        cc_tensor[antiNormalInd[0]], cc_tensor[antiNormalInd[1]]
+    )
     XS[normalInd] = np.ones_like(XS[antiNormalInd[0]])*slice_loc
     loc_grid = np.c_[XS[0].reshape(-1), XS[1].reshape(-1), XS[2].reshape(-1)]
     inds = np.unique(mesh._get_containing_cell_indexes(loc_grid))
@@ -344,6 +346,8 @@ mrec_MVIC = inv.run(m0)
 #
 # Re-run the MVI in spherical domain so we can impose
 # sparsity in the vectors.
+#
+#
 
 mstart = Utils.matutils.xyz2atp(mrec_MVIC.reshape((nC, 3), order='F'))
 beta = invProb.beta
@@ -353,36 +357,32 @@ dmis.prob.model = mstart
 # Create a block diagonal regularization
 wires = Maps.Wires(('amp', nC), ('theta', nC), ('phi', nC))
 
-# Create a regularization
+# Create a Combo Regularization
+# Regularize the amplitude of the vectors
 reg_a = Regularization.Sparse(mesh, indActive=actv,
                               mapping=wires.amp)
-reg_a.norms = np.c_[0, 1, 1, 1]
+reg_a.norms = np.c_[0, 0, 0, 0]
 reg_a.mref = np.zeros(3*nC)
 
-
+# Regularize the vertical angle of the vectors
 reg_t = Regularization.Sparse(mesh, indActive=actv,
                               mapping=wires.theta)
 reg_t.alpha_s = 0.  # No reference angle
 reg_t.space = 'spherical'
-reg_t.norms = np.c_[2, 0, 0, 0]
-reg_t.eps_q = 1e-2
+reg_t.norms = np.c_[2, 0, 0, 0]  # Only norm on gradients used
 
-# reg_t.alpha_x, reg_t.alpha_y, reg_t.alpha_z = 0.25, 0.25, 0.25
-
+# Regularize the horizontal angle of the vectors
 reg_p = Regularization.Sparse(mesh, indActive=actv,
                               mapping=wires.phi)
 reg_p.alpha_s = 0.  # No reference angle
 reg_p.space = 'spherical'
-reg_p.norms = np.c_[2, 0, 0, 0]
-reg_p.eps_q = 1e-2
-
+reg_p.norms = np.c_[2, 0, 0, 0]  # Only norm on gradients used
 
 reg = reg_a + reg_t + reg_p
 reg.mref = np.zeros(3*nC)
 
 Lbound = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
 Ubound = np.kron(np.asarray([10, np.inf, np.inf]), np.ones(nC))
-
 
 # Add directives to the inversion
 opt = Optimization.ProjectedGNCG(maxIter=40,
@@ -394,12 +394,12 @@ opt = Optimization.ProjectedGNCG(maxIter=40,
                                  )
 opt.approxHinv = None
 
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta*2.)
+invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta*5.)
 #  betaest = Directives.BetaEstimate_ByEig()
 
 # Here is where the norms are applied
 IRLS = Directives.Update_IRLS(f_min_change=1e-4, maxIRLSiter=40,
-                              minGNiter=1, beta_tol=0.5, prctile=98,
+                              minGNiter=1, beta_tol=0.5,
                               coolingRate=1, coolEps_q=True,
                               betaSearch=True)
 
@@ -409,9 +409,12 @@ ProjSpherical = Directives.ProjSpherical()
 update_SensWeight = Directives.UpdateSensitivityWeights()
 update_Jacobi = Directives.UpdatePreconditioner()
 
-inv = Inversion.BaseInversion(invProb,
-                              directiveList=[ProjSpherical, IRLS, update_SensWeight,
-                                             update_Jacobi])
+inv = Inversion.BaseInversion(
+    invProb,
+    directiveList=[
+        ProjSpherical, IRLS, update_SensWeight, update_Jacobi
+    ]
+)
 
 mrec_MVI_S = inv.run(mstart)
 
@@ -425,23 +428,32 @@ mrec_MVI_S = inv.run(mstart)
 #
 
 plt.figure()
-ax = plt.subplot(2,1,1)
-# out = mesh.plotSlice(actvPlot*np.sum(model**2.,axis=1)**0.5, ax = ax, normal = 'Y', ind=66)
-plotVectorSectionsOctree(mesh, mrec_MVIC.reshape((nC,3), order="F"), axs = ax, normal = 'Y', ind=65, actvMap = actvPlot, scale=0.1, vmin=0., vmax=0.005)
-ax.set_xlim([-200,200])
-ax.set_ylim([-100,75])
+ax = plt.subplot(2, 1, 1)
+plotVectorSectionsOctree(
+    mesh, mrec_MVIC.reshape((nC, 3), order="F"),
+    axs=ax, normal='Y', ind=65, actvMap=actvPlot,
+    scale=0.1, vmin=0., vmax=0.005)
+
+ax.set_xlim([-200, 200])
+ax.set_ylim([-100, 75])
 ax.set_title('A simple block model.')
-ax.set_xlabel('x');ax.set_ylabel('y')
+ax.set_xlabel('x')
+ax.set_ylabel('y')
 plt.gca().set_aspect('equal', adjustable='box')
 
-ax = plt.subplot(2,1,2)
-vec_xyz = Utils.matutils.atp2xyz(mrec_MVI_S.reshape((nC, 3), order='F')).reshape((nC, 3), order='F')
-# out = mesh.plotSlice(actvPlot*np.sum(model**2.,axis=1)**0.5, ax = ax, normal = 'Y', ind=66)
-plotVectorSectionsOctree(mesh, vec_xyz, axs = ax, normal = 'Y', ind=65, actvMap = actvPlot, scale=0.2, vmin=0., vmax=0.01)
-ax.set_xlim([-200,200])
-ax.set_ylim([-100,75])
+ax = plt.subplot(2, 1, 2)
+vec_xyz = Utils.matutils.atp2xyz(
+    mrec_MVI_S.reshape((nC, 3), order='F')).reshape((nC, 3), order='F')
+
+plotVectorSectionsOctree(
+    mesh, vec_xyz, axs=ax, normal='Y', ind=65,
+    actvMap=actvPlot, scale=0.4, vmin=0., vmax=0.01
+)
+ax.set_xlim([-200, 200])
+ax.set_ylim([-100, 75])
 ax.set_title('A simple block model.')
-ax.set_xlabel('x');ax.set_ylabel('y')
+ax.set_xlabel('x')
+ax.set_ylabel('y')
 plt.gca().set_aspect('equal', adjustable='box')
 
 plt.show()

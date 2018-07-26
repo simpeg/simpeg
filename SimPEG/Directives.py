@@ -737,7 +737,7 @@ class Update_IRLS(InversionDirective):
 
                 if reg.eps_q > self.floorEps_q and self.coolEps_q:
                     reg.eps_q /= self.coolEpsFact
-
+                    print(reg.eps_q)
 
             # Remember the value of the norm from previous R matrices
             # self.f_old = self.reg(self.invProb.model)
