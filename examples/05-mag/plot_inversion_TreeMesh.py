@@ -92,49 +92,153 @@ mesh = Utils.modelutils.meshBuilder(topo, h, padDist,
                                     meshType='TREE',
                                     verticalAlignment='center')
 
-# Discretize around topography, only 2th and 3th level for now
+# Refine the mesh around topography
 mesh = Utils.modelutils.refineTree(mesh, topo, dtype='surface',
-                                   nCpad=[0, 3, 1], finalize=False)
+                                   nCpad=[0, 5, 3], finalize=False)
 
-# Dsicretize finer around the observation locations...finalize here
 mesh = Utils.modelutils.refineTree(mesh, xyzLoc, dtype='surface',
-                                   nCpad=[4, 0, 0], finalize=True)
-
+                                   nCpad=[2, 0, 0], finalize=True)
 # Define an active cells from topo
 actv = Utils.surface2ind_topo(mesh, topo)
 nC = int(actv.sum())
+
+###########################################################################
+# A simple function to plot vectors in TreeMesh
+#
+#
+#
+#
+#
+#
+
+
+def plotVectorSectionsOctree(
+    mesh, m, normal='X', ind=0, vmin=None, vmax=None,
+    subFact=2, scale=1., xlim=None, ylim=None, vec='k',
+    title=None, axs=None, actvMap=None, contours=None, fill=True,
+    orientation='vertical', cmap='pink_r'):
+
+    """
+    Plot section through a 3D tensor model
+    """
+    # plot recovered model
+    normalInd = {'X': 0, 'Y': 1, 'Z': 2}[normal]
+    antiNormalInd = {'X': [1, 2], 'Y': [0, 2], 'Z': [0, 1]}[normal]
+
+    h2d = (mesh.h[antiNormalInd[0]], mesh.h[antiNormalInd[1]])
+    x2d = (mesh.x0[antiNormalInd[0]], mesh.x0[antiNormalInd[1]])
+
+    #: Size of the sliced dimension
+    szSliceDim = len(mesh.h[normalInd])
+    if ind is None:
+        ind = int(szSliceDim//2)
+
+    cc_tensor = [None, None, None]
+    for i in range(3):
+        cc_tensor[i] = np.cumsum(np.r_[mesh.x0[i], mesh.h[i]])
+        cc_tensor[i] = (cc_tensor[i][1:] + cc_tensor[i][:-1])*0.5
+    slice_loc = cc_tensor[normalInd][ind]
+
+#     if type(ind) not in integer_types:
+#         raise ValueError('ind must be an integer')
+
+    # Create a temporary TreeMesh with the slice through
+    temp_mesh = Mesh.TreeMesh(h2d, x2d)
+    level_diff = mesh.max_level - temp_mesh.max_level
+
+    XS = [None, None, None]
+    XS[antiNormalInd[0]], XS[antiNormalInd[1]] = np.meshgrid(cc_tensor[antiNormalInd[0]],
+                                                             cc_tensor[antiNormalInd[1]])
+    XS[normalInd] = np.ones_like(XS[antiNormalInd[0]])*slice_loc
+    loc_grid = np.c_[XS[0].reshape(-1), XS[1].reshape(-1), XS[2].reshape(-1)]
+    inds = np.unique(mesh._get_containing_cell_indexes(loc_grid))
+
+    grid2d = mesh.gridCC[inds][:, antiNormalInd]
+    levels = mesh._cell_levels_by_indexes(inds) - level_diff
+    temp_mesh.insert_cells(grid2d, levels)
+    tm_gridboost = np.empty((temp_mesh.nC, 3))
+    tm_gridboost[:, antiNormalInd] = temp_mesh.gridCC
+    tm_gridboost[:, normalInd] = slice_loc
+
+    # Interpolate values to mesh.gridCC if not 'CC'
+    mx = (actvMap*m[:, 0])
+    my = (actvMap*m[:, 1])
+    mz = (actvMap*m[:, 2])
+
+    m = np.c_[mx, my, mz]
+
+    # Interpolate values from mesh.gridCC to grid2d
+    ind_3d_to_2d = mesh._get_containing_cell_indexes(tm_gridboost)
+    v2d = m[ind_3d_to_2d, :]
+    amp = np.sum(v2d**2., axis=1)**0.5
+
+    if axs is None:
+        fig = plt.figure()
+        axs = plt.subplot(111)
+
+    if fill:
+        im2 = temp_mesh.plotImage(amp, ax=axs, clim=[vmin, vmax], grid=True)
+
+    axs.quiver(temp_mesh.gridCC[:, 0],
+               temp_mesh.gridCC[:, 1],
+               v2d[:, antiNormalInd[0]],
+               v2d[:, antiNormalInd[1]],
+               pivot='mid',
+               scale_units="inches", scale=scale, linewidths=(1,),
+               edgecolors=(vec),
+               headaxislength=0.1, headwidth=10, headlength=30)
 
 ###########################################################################
 # Forward modeling data
 # ---------------------
 #
 # We can now create a magnetization model and generate data
-# Lets start with two blocks below topography
+# Lets start with a block below topography
 #
 
+
+model = np.zeros((mesh.nC, 3))
+
+# first Block magnetized down towards West
 ind = Utils.ModelBuilder.getIndicesBlock(
-    np.r_[-40, -40, -50], np.r_[40, 40, 0],
-    mesh.gridCC, np.zeros(mesh.nC),
+    np.r_[-20, -20, -10], np.r_[20, 20, 25],
+    mesh.gridCC,
+)[0]
+model[ind, :] = np.kron(
+    np.ones((ind.shape[0], 1)), np.c_[1, 0, 0]*0.05
 )
+
+# # Second Block magnetized up towards West
+# ind = Utils.ModelBuilder.getIndicesBlock(
+#     np.r_[20, -20, -10], np.r_[55, 20, 25],
+#     mesh.gridCC,
+# )[0]
+# model[ind,:] = np.kron(np.ones((ind.shape[0],1)), np.c_[0, 0, -1]*0.05)
+
+# Remove air cells
+model = model[actv, :]
 
 
 # Create active map to go from reduce set to full
 actvMap = Maps.InjectActiveCells(mesh, actv, np.nan)
 
 # Creat reduced identity map
-idenMap = Maps.IdentityMap(nP=nC)
+idenMap = Maps.IdentityMap(nP=nC*3)
 
 # Create the forward model operator
-prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap, actInd=actv)
+prob = PF.Magnetics.MagneticVector(
+    mesh, chiMap=idenMap, actInd=actv
+)
 
 # Pair the survey and problem
 survey.pair(prob)
 
-# Compute linear forward operator and compute some data
-data = prob.fields(model)
+# Compute some data and add some random noise
+data = prob.fields(Utils.mkvc(model))
 
-data += np.random.randn(len(data))
-wd = np.ones(len(data))*1.
+std = 5  # nT
+data += np.random.randn(len(data))*std
+wd = np.ones(len(data))*std
 
 survey.dobs = data
 survey.std = wd
@@ -143,20 +247,26 @@ survey.std = wd
 actvPlot = Maps.InjectActiveCells(mesh, actv, np.nan)
 # Create a few models
 plt.figure()
-ax = plt.subplot()
-mesh.plotSlice(actvPlot*model, ax=ax, normal='Y', ind=65)
-ax.set_xlim([-300, 300])
-ax.set_ylim([-300, 75])
-ax.set_title('A simple block model.')
+ax = plt.subplot(2, 1, 1)
+im = Utils.PlotUtils.plot2Ddata(xyzLoc, data, ax=ax)
+plt.colorbar(im[0])
+ax.set_title('Predicted data.')
+plt.gca().set_aspect('equal', adjustable='box')
+
+# Plot the vector model
+ax = plt.subplot(2, 1, 2)
+plotVectorSectionsOctree(
+    mesh, model, axs=ax, normal='Y', ind=66,
+    actvMap=actvPlot, scale=0.5, vmin=0., vmax=0.01
+)
+ax.set_xlim([-200, 200])
+ax.set_ylim([-100, 75])
 ax.set_xlabel('x')
 ax.set_ylabel('y')
 plt.gca().set_aspect('equal', adjustable='box')
+
 plt.show()
 
-
-Utils.PlotUtils.plot2Ddata(xyzLoc, data)
-ax.set_title('Predicted data.')
-plt.gca().set_aspect('equal', adjustable='box')
 
 ######################################################################
 # Inversion
@@ -172,59 +282,178 @@ plt.gca().set_aspect('equal', adjustable='box')
 
 # Create sensitivity weights from our linear forward operator
 rxLoc = survey.srcField.rxList[0].locs
-wr = np.zeros(prob.G.shape[1])
-for ii in range(survey.nD):
-    wr += (prob.G[ii, :]/survey.std[ii])**2.
 
-# wr = (wr/np.max(wr))
-wr = wr**0.5
+# This Mapping connects all the regularizations together
+wires = Maps.Wires(('p', nC), ('s', nC), ('t', nC))
 
-# Create a regularization with sparse norms on the model and its
-# gradients.
-reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-reg.norms = np.c_[0, 0, 0, 0]
-reg.cell_weights = wr  # Apply sensitivity weights
+# Create sensitivity weights from our linear forward operator
+# so that all cells get equal chance to contribute to the solution
+wr = np.sum(prob.G**2., axis=0)**0.5
+wr = (wr/np.max(wr))
 
-reg.mref = np.zeros(nC)
+
+# Create three regularization for the different components
+# of magnetization
+reg_p = Regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
+reg_p.cell_weights = (wires.p * wr)
+reg_p.mref = np.zeros(3*nC)
+
+reg_s = Regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
+reg_s.cell_weights = (wires.s * wr)
+reg_s.mref = np.zeros(3*nC)
+
+reg_t = Regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
+reg_t.cell_weights = (wires.t * wr)
+reg_t.mref = np.zeros(3*nC)
+
+reg = reg_p + reg_s + reg_t
+reg.mref = np.zeros(3*nC)
 
 # Data misfit function
 dmis = DataMisfit.l2_DataMisfit(survey)
 dmis.W = 1./survey.std
 
 # Add directives to the inversion
-opt = Optimization.ProjectedGNCG(maxIter=30, lower=0., upper=10.,
+opt = Optimization.ProjectedGNCG(maxIter=30, lower=-10, upper=10.,
                                  maxIterLS=20, maxIterCG=20, tolCG=1e-4)
+
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
 betaest = Directives.BetaEstimate_ByEig()
 
 # Here is where the norms are applied
 # Use pick a treshold parameter empirically based on the distribution of
 #  model parameters
-IRLS = Directives.Update_IRLS(f_min_change=1e-3, maxIRLSiter=30, beta_tol=5e-1)
+IRLS = Directives.Update_IRLS(
+    f_min_change=1e-3, maxIRLSiter=0, beta_tol=5e-1
+)
 update_Jacobi = Directives.UpdatePreconditioner()
 
 saveOuput = Directives.SaveOutputEveryIteration()
 # saveModel.fileName = work_dir + out_dir + 'ModelSus'
 
-inv = Inversion.BaseInversion(
-    invProb, directiveList=[betaest, saveOuput, IRLS, update_Jacobi]
-)
+inv = Inversion.BaseInversion(invProb,
+                              directiveList=[IRLS, update_Jacobi, betaest])
 
 # Run the inversion
-m0 = np.ones(nC) * 1e-4  # Starting model
-prob.model = m0
-mrec = inv.run(m0)
+m0 = np.ones(3*nC) * 1e-4  # Starting model
+mrec_MVIC = inv.run(m0)
 
+###############################################################
+# Sparse Vector Inversion
+# -----------------------
+#
+# Re-run the MVI in spherical domain so we can impose
+# sparsity in the vectors.
+
+mstart = Utils.matutils.xyz2atp(mrec_MVIC.reshape((nC, 3), order='F'))
+beta = invProb.beta
+dmis.prob.coordinate_system = 'spherical'
+dmis.prob.model = mstart
+
+# Create a block diagonal regularization
+wires = Maps.Wires(('amp', nC), ('theta', nC), ('phi', nC))
+
+# Create a regularization
+reg_a = Regularization.Sparse(mesh, indActive=actv,
+                              mapping=wires.amp)
+reg_a.norms = np.c_[0, 1, 1, 1]
+reg_a.mref = np.zeros(3*nC)
+
+
+reg_t = Regularization.Sparse(mesh, indActive=actv,
+                              mapping=wires.theta)
+reg_t.alpha_s = 0.  # No reference angle
+reg_t.space = 'spherical'
+reg_t.norms = np.c_[2, 0, 0, 0]
+reg_t.eps_q = 1e-2
+
+# reg_t.alpha_x, reg_t.alpha_y, reg_t.alpha_z = 0.25, 0.25, 0.25
+
+reg_p = Regularization.Sparse(mesh, indActive=actv,
+                              mapping=wires.phi)
+reg_p.alpha_s = 0.  # No reference angle
+reg_p.space = 'spherical'
+reg_p.norms = np.c_[2, 0, 0, 0]
+reg_p.eps_q = 1e-2
+
+
+reg = reg_a + reg_t + reg_p
+reg.mref = np.zeros(3*nC)
+
+Lbound = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
+Ubound = np.kron(np.asarray([10, np.inf, np.inf]), np.ones(nC))
+
+
+# Add directives to the inversion
+opt = Optimization.ProjectedGNCG(maxIter=40,
+                                 lower=Lbound,
+                                 upper=Ubound,
+                                 maxIterLS=10,
+                                 maxIterCG=30, tolCG=1e-3,
+                                 stepOffBoundsFact=1e-8,
+                                 )
+opt.approxHinv = None
+
+invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta*2.)
+#  betaest = Directives.BetaEstimate_ByEig()
+
+# Here is where the norms are applied
+IRLS = Directives.Update_IRLS(f_min_change=1e-4, maxIRLSiter=40,
+                              minGNiter=1, beta_tol=0.5, prctile=98,
+                              coolingRate=1, coolEps_q=True,
+                              betaSearch=True)
+
+# Special directive specific to the mag amplitude problem. The sensitivity
+# weights are update between each iteration.
+ProjSpherical = Directives.ProjSpherical()
+update_SensWeight = Directives.UpdateSensitivityWeights()
+update_Jacobi = Directives.UpdatePreconditioner()
+
+inv = Inversion.BaseInversion(invProb,
+                              directiveList=[ProjSpherical, IRLS, update_SensWeight,
+                                             update_Jacobi])
+
+mrec_MVI_S = inv.run(mstart)
+
+#############################################################
+# Final Plot
+# ----------
+#
+# Let's compare the smooth and compact model
+#
+#
+#
 
 plt.figure()
-ax = plt.subplot()
-mesh.plotSlice(actvMap*mrec, ax=ax, normal='Y', ind=65)
-ax.set_xlim([-300, 300])
-ax.set_ylim([-300, 75])
-ax.set_title('Recovered model.')
-ax.set_xlabel('x')
-ax.set_ylabel('y')
+ax = plt.subplot(2,1,1)
+# out = mesh.plotSlice(actvPlot*np.sum(model**2.,axis=1)**0.5, ax = ax, normal = 'Y', ind=66)
+plotVectorSectionsOctree(mesh, mrec_MVIC.reshape((nC,3), order="F"), axs = ax, normal = 'Y', ind=65, actvMap = actvPlot, scale=0.1, vmin=0., vmax=0.005)
+ax.set_xlim([-200,200])
+ax.set_ylim([-100,75])
+ax.set_title('A simple block model.')
+ax.set_xlabel('x');ax.set_ylabel('y')
 plt.gca().set_aspect('equal', adjustable='box')
+
+ax = plt.subplot(2,1,2)
+vec_xyz = Utils.matutils.atp2xyz(mrec_MVI_S.reshape((nC, 3), order='F')).reshape((nC, 3), order='F')
+# out = mesh.plotSlice(actvPlot*np.sum(model**2.,axis=1)**0.5, ax = ax, normal = 'Y', ind=66)
+plotVectorSectionsOctree(mesh, vec_xyz, axs = ax, normal = 'Y', ind=65, actvMap = actvPlot, scale=0.2, vmin=0., vmax=0.01)
+ax.set_xlim([-200,200])
+ax.set_ylim([-100,75])
+ax.set_title('A simple block model.')
+ax.set_xlabel('x');ax.set_ylabel('y')
+plt.gca().set_aspect('equal', adjustable='box')
+
 plt.show()
 
-saveOuput.plot_misfit_curves()
+# Plot the final predicted data and the residual
+plt.figure()
+ax = plt.subplot(1, 2, 1)
+Utils.PlotUtils.plot2Ddata(xyzLoc, invProb.dpred, ax=ax)
+ax.set_title('Predicted data.')
+plt.gca().set_aspect('equal', adjustable='box')
+
+ax = plt.subplot(1, 2, 2)
+Utils.PlotUtils.plot2Ddata(xyzLoc, data-invProb.dpred, ax=ax)
+ax.set_title('Data residual.')
+plt.gca().set_aspect('equal', adjustable='box')
