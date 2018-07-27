@@ -6,19 +6,16 @@ from scipy.constants import mu_0
 
 from SimPEG import Utils
 from SimPEG import Problem
+from SimPEG import Solver as SimpegSolver   # mag inversion test breaks without this
 from SimPEG import Solver
 from SimPEG import Props
 from SimPEG import mkvc
 from SimPEG.Utils.matutils import atp2xyz, dipazm_2_xyz, xyz2atp
-import matplotlib.pyplot as plt
-import gc
 from SimPEG import Mesh
 import multiprocessing
 from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
 import properties
-from scipy.interpolate import griddata
-from SimPEG import Solver as SimpegSolver
 
 
 class MagneticIntegral(Problem.LinearProblem):
@@ -400,7 +397,7 @@ class Forward(object):
 
     def progress(self, iter, nRows):
         """
-        progress(iter,prog,final)
+        progress(self, iter, nRows)
 
         Function measuring the progress of a process and print to screen the %.
         Useful to estimate the remaining runtime of a large problem.
@@ -1237,16 +1234,6 @@ def calcRow(Xn, Yn, Zn, rxLoc):
         np.arctan2(dy1 * dz1, (dx1 * arg7 + eps)) -
         np.arctan2(dy2 * dz1, (dx1 * arg4 + eps))
     )
-    temp = (
-        np.arctan2(dy1 * dz2, (dx2 * arg5 + eps)) -
-        np.arctan2(dy2 * dz2, (dx2 * arg2 + eps)) +
-        np.arctan2(dy2 * dz1, (dx2 * arg3 + eps)) -
-        np.arctan2(dy1 * dz1, (dx2 * arg8 + eps)) +
-        np.arctan2(dy2 * dz2, (dx1 * arg1 + eps)) -
-        np.arctan2(dy1 * dz2, (dx1 * arg6 + eps)) +
-        np.arctan2(dy1 * dz1, (dx1 * arg7 + eps)) -
-        np.arctan2(dy2 * dz1, (dx1 * arg4 + eps))
-        )
 
     Ty[0, 0:nC] = (
         np.log((dz2 + arg2) / (dz1 + arg3 + eps)) -
@@ -1484,7 +1471,7 @@ def readMagneticsObservations(obs_file):
 
         # Second line has the magnetization orientation and a flag
         line = fid.readline()
-        M = np.array(line.split(), dtype=float)
+        # M = np.array(line.split(), dtype=float)
 
         # Third line has the number of rows
         line = fid.readline()
@@ -1517,6 +1504,7 @@ def readMagneticsObservations(obs_file):
         survey.dobs = d
         survey.std = wd
         return survey
+
 
 def readVectorModel(mesh, modelFile):
     """

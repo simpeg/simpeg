@@ -1,13 +1,11 @@
 from __future__ import print_function
 import unittest
-from SimPEG import (Mesh, Directives, Maps,
+from SimPEG import (Directives, Maps,
                     InvProblem, Optimization, DataMisfit,
                     Inversion, Utils, Regularization)
 
 import SimPEG.PF as PF
-import scipy as sp
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 class MagInvLinProblemTest(unittest.TestCase):
@@ -23,9 +21,6 @@ class MagInvLinProblemTest(unittest.TestCase):
         # azimuth from North (positive clockwise)
         # and dip from the horizontal (positive downward).
         H0 = (50000., 90., 0.)
-
-        # Assume all induced so the magnetization M is in the same direction
-        M = np.array([90, 0])
 
         # Create a mesh
         h = [5, 5, 5]
@@ -135,7 +130,6 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
         invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e+4)
-        betaest = Directives.BetaEstimate_ByEig()
 
         # Here is where the norms are applied
         # Use pick a treshold parameter empirically based on the distribution of

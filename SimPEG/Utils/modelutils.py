@@ -58,7 +58,10 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.n
             elif gridLoc == 'N':
 
                 XY = ndgrid(mesh.vectorNx, mesh.vectorNy)
-                gridTopo = griddata(topo[:, :2], topo[:, 2], XY, method=method, fill_value=fill_value)
+                gridTopo = griddata(
+                    topo[:, :2], topo[:, 2], XY, method=method,
+                    fill_value=fill_value)
+
                 gridTopo = gridTopo.reshape(mesh.vnN[:2], order='F')
 
                 if mesh._meshType not in ['TENSOR', 'CYL', 'BASETENSOR']:
@@ -346,6 +349,7 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
 
             z = F(mkvc(CCx), mkvc(CCy))
 
+            # level means number of layers in current OcTree level
             for level in range(int(nCpad[ii])):
 
                 mesh.insert_cells(

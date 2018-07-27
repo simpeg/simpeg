@@ -10,7 +10,6 @@ import re
 import numpy as np
 import multiprocessing
 import scipy.constants as constants
-import os
 import time
 
 
@@ -331,7 +330,7 @@ class Forward(object):
 
     def progress(self, iter, nRows):
         """
-        progress(iter,prog,final)
+        progress(self, iter, nRows)
 
         Function measuring the progress of a process and print to screen the %.
         Useful to estimate the remaining runtime of a large problem.
@@ -372,7 +371,9 @@ def writeUBCobs(filename, survey, d=None):
     data = np.c_[rxLoc, d, wd]
 
     head = '%i' % len(d)
-    np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n', header=head,comments='')
+    np.savetxt(
+        filename, data, fmt='%e', delimiter=' ',
+        newline='\n', header=head, comments='')
 
     print("Observation file saved to: " + filename)
 
@@ -456,7 +457,6 @@ class Problem3D_PDE(Problem.BaseProblem):
 
         self._Div = self.mesh.cellGrad
 
-
     @property
     def MfI(self): return self._MfI
 
@@ -464,7 +464,7 @@ class Problem3D_PDE(Problem.BaseProblem):
     def Mfi(self): return self._Mfi
 
     def makeMassMatrices(self, m):
-        #rho = self.rhoMap*m
+        # rho = self.rhoMap*m
         self._Mfi = self.mesh.getFaceInnerProduct()
         self._MfI = Utils.sdiag(1./self._Mfi.diagonal())
 
@@ -525,7 +525,6 @@ class Problem3D_PDE(Problem.BaseProblem):
 
         nFx = self.mesh.nFx
         nFy = self.mesh.nFy
-        nFz = self.mesh.nFz
 
         aveF2CCgx = self.mesh.aveFx2CC * gField[0:nFx]
         aveF2CCgy = self.mesh.aveFy2CC * gField[nFx:(nFx+nFy)]
