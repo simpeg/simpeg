@@ -1,29 +1,19 @@
 import numpy as np
 import scipy.special as spec
+import properties
 
 ###################################################
 #           STEP OFF WAVEFORM
 ###################################################
 
 
-class StepOff():
+class StepOff(properties.HasProperties):
 
     """
 
     """
 
-    def __init__(self, **kwargs):
-
-        self._t0 = kwargs.get('t0', 0.)
-
-    @property
-    def t0(self):
-        return self._t0
-
-    @t0.setter
-    def t0(self, Val):
-        assert isinstance(Val, (int, float)), "Must be a number"
-        self._t0 = Val
+    t0 = properties.Float('Start of off-time', default=0.)
 
     def getCharDecay(self, fieldType, times):
 
@@ -46,7 +36,9 @@ class StepOff():
 
         """
 
-        assert fieldType in ["dhdt", "dbdt"], "For step-off, fieldType must be one of 'dhdt' or 'dbdt' and cannot be 'h' or 'b'"
+        assert fieldType in ["dhdt", "dbdt"], (
+            "For step-off, fieldType must be one of 'dhdt' or 'dbdt' and cannot be 'h' or 'b'")
+
         assert self.t0 < np.min(times), "Earliest time channel must be after beginning of off-time"
 
         t0 = self.t0
@@ -90,7 +82,8 @@ class StepOff():
 
         """
 
-        assert fieldType in ["h", "dhdt", "b", "dbdt"], "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' "
+        assert fieldType in ["h", "dhdt", "b", "dbdt"], (
+            "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' ")
 
         nT = len(times)
         nC = len(dchi)
@@ -137,34 +130,14 @@ class StepOff():
 ###################################################
 
 
-class SquarePulse():
+class SquarePulse(properties.HasProperties):
 
     """
 
     """
 
-    def __init__(self, delt, **kwargs):
-
-        self._delt = delt
-        self._t0 = kwargs.get('t0', 0.)
-
-    @property
-    def delt(self):
-        return self._delt
-
-    @delt.setter
-    def delt(self, Val):
-        assert isinstance(Val, (int, float)), "Must be a number"
-        self._t0 = Val
-
-    @property
-    def t0(self):
-        return self._t0
-
-    @t0.setter
-    def t0(self, Val):
-        assert isinstance(Val, (int, float)), "Must be a number"
-        self._t0 = Val
+    t0 = properties.Float('Start of off-time', default=0.)
+    delt = properties.Float('Pulse width')
 
     def getCharDecay(self, fieldType, times):
 
@@ -187,7 +160,9 @@ class SquarePulse():
 
         """
 
-        assert fieldType in ["h", "dhdt", "b", "dbdt"], "For square-pulse, fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
+        assert self.delt is not None, "Pulse width 'delt' must be set"
+        assert fieldType in ["h", "dhdt", "b", "dbdt"], (
+            "For square-pulse, fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'")
         assert self.t0 < np.min(times), "Earliest time channel must be after beginning of off-time"
 
         t0 = self.t0
@@ -236,7 +211,9 @@ class SquarePulse():
 
         """
 
-        assert fieldType in ["h", "dhdt", "b", "dbdt"], "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' "
+        assert self.delt is not None, "Pulse width 'delt' must be set"
+        assert fieldType in ["h", "dhdt", "b", "dbdt"], (
+            "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt'")
 
         nT = len(times)
         nC = len(dchi)
@@ -293,19 +270,30 @@ class SquarePulse():
 ###################################################
 
 
-class ArbitraryDiscrete():
+class ArbitraryDiscrete(properties.HasProperties):
 
     """
 
     """
 
-    def __init__(self, t, I):
+    t_wave = properties.Array('Waveform times', dtype=float)
+    I_wave = properties.Array('Waveform current', dtype=float)
 
-        assert np.abs(I[0]) < 1e-10 and np.abs(I[-1]) < 1e-10, "Current at t0 and tmax should be 0"
-        assert len(t) == len(I), "Time values and current values must have same length"
+    @properties.validator('t_wave')
+    def _t_wave_validator(self, change):
+        assert len(change['value']) > 2, "Waveform must be defined by at least 3 points"
+        if self.I_wave is not None:
+            if len(change['value']) != len(self.I_wave):
+                print('Length of time vector no longer matches length of current vector')
 
-        self.t = t
-        self.I = I
+    @properties.validator('I_wave')
+    def _I_wave_validator(self, change):
+        assert len(change['value']) > 2, "Waveform must be defined by at least 3 points"
+        assert np.abs(change['value'][0]) < 1e-10 and np.abs(change['value'][-1]) < 1e-10, (
+            "Current waveform should begin and end at 0")
+        if self.t_wave is not None:
+            if len(change['value']) != len(self.t_wave):
+                print('Length of time vector no longer matches length of current vector')
 
     def getCharDecay(self, fieldType, times):
 
@@ -327,15 +315,21 @@ class ArbitraryDiscrete():
 
         """
 
-        assert fieldType in ["h", "dhdt", "b", "dbdt"], "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
-        assert np.max(self.t) < np.min(times), "Earliest time channel must be after beginning of off-time"
+        assert self.t_wave is not None and self.I_wave is not None, (
+            "Times and current for waveform must be set")
+        assert fieldType in ["h", "dhdt", "b", "dbdt"], (
+            "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'")
+        assert np.max(self.t_wave) < np.min(times), (
+            "Earliest time channel must be after beginning of off-time")
+        assert len(self.t_wave) == len(self.I_wave), (
+            "Length of t_wave and I_wave must be the same")
 
-        k = np.where(self.I > 1e-10)
+        k = np.where(self.I_wave > 1e-10)
         j = k[0][0]-1
         k = k[0][-1]+1
 
-        twave = self.t[j:k+1]
-        Iwave = self.I[j:k+1]/np.max(np.abs(self.I[j:k+1]))
+        twave = self.t_wave[j:k+1]
+        Iwave = self.I_wave[j:k+1]/np.max(np.abs(self.I_wave[j:k+1]))
 
         N = int(np.ceil(25*(np.max(twave)-np.min(twave))/np.min(times)))
 
@@ -352,10 +346,17 @@ class ArbitraryDiscrete():
 
         if fieldType in ["h", "b"]:
             for tt in range(0, len(eta)):
-                eta[tt] = np.sum((g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*np.log(1 + dt/(times[tt] - tvec)) - g[1:] + g[0:-1])
+                eta[tt] = np.sum(
+                    (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt) *
+                    np.log(1 + dt/(times[tt] - tvec)) - g[1:] + g[0:-1]
+                    )
         elif fieldType in ["dhdt", "dbdt"]:
             for tt in range(0, len(eta)):
-                eta[tt] = np.sum((((g[1:]-g[0:-1])/dt)*np.log(1 + dt/(times[tt] - tvec)) - (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*(1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec))))
+                eta[tt] = np.sum(
+                    ((g[1:]-g[0:-1])/dt)*np.log(1 + dt/(times[tt] - tvec)) -
+                    (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt) *
+                    (1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec))
+                    )
 
         if fieldType in ["b", "dbdt"]:
             mu0 = 4*np.pi*1e-7
@@ -368,19 +369,36 @@ class ArbitraryDiscrete():
 ###################################################
 
 
-class ArbitraryPiecewise():
+class ArbitraryPiecewise(properties.HasProperties):
 
     """
 
     """
 
-    def __init__(self, t, I):
+    t_wave = properties.Array('Waveform times', dtype=float)
+    I_wave = properties.Array('Waveform current', dtype=float)
 
-        assert np.abs(I[0]) < 1e-10 and np.abs(I[-1]) < 1e-10, "Current at t0 and tmax should be 0"
-        assert len(t) == len(I), "Time values and current values must have same length"
+    @properties.validator('t_wave')
+    def _t_wave_validator(self, change):
+        assert len(change['value']) > 2, "Waveform must be defined by at least 3 points"
 
-        self.t = t
-        self.I = I
+    @properties.observer('t_wave')
+    def _t_wave_observer(self, change):
+        if self.I_wave is not None:
+            if len(change['value']) != len(self.I_wave):
+                print('Length of time vector no longer matches length of current vector')
+
+    @properties.validator('I_wave')
+    def _I_wave_validator(self, change):
+        assert len(change['value']) > 2, "Waveform must be defined by at least 3 points"
+        assert np.abs(change['value'][0]) < 1e-10 and np.abs(change['value'][-1]) < 1e-10, (
+            "Current waveform should begin and end at 0")
+
+    @properties.observer('I_wave')
+    def _I_wave_observer(self, change):
+        if self.t_wave is not None:
+            if len(change['value']) != len(self.t_wave):
+                print('Length of time vector no longer matches length of current vector')
 
     def getCharDecay(self, fieldType, times):
 
@@ -402,26 +420,37 @@ class ArbitraryPiecewise():
 
         """
 
-        assert fieldType in ["h", "dhdt", "b", "dbdt"], "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'"
-        assert np.max(self.t) < np.min(times), "Earliest time channel must be after beginning of off-time"
+        assert self.t_wave is not None and self.I_wave is not None, (
+            "Times and current for waveform must be set")
+        assert fieldType in ["h", "dhdt", "b", "dbdt"], (
+            "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'")
+        assert np.max(self.t_wave) < np.min(times), (
+            "Earliest time channel must be after beginning of off-time")
 
-        k = np.where(self.I > 1e-10)
+        k = np.where(self.I_wave > 1e-10)
         j = k[0][0]-1
         k = k[0][-1]+1
 
-        tvec = self.t[j:k+1]
+        tvec = self.t_wave[j:k+1]
         dt = tvec[1:] - tvec[0:-1]
-        g = self.I[j:k+1]/np.max(np.abs(self.I[j:k+1]))
+        g = self.I_wave[j:k+1]/np.max(np.abs(self.I_wave[j:k+1]))
         tvec = tvec[1:]
 
         eta = np.zeros(len(times))
 
         if fieldType in ["h", "b"]:
             for tt in range(0, len(eta)):
-                eta[tt] = np.sum((g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*np.log(1 + dt/(times[tt] - tvec)) - g[1:] + g[0:-1])
+                eta[tt] = np.sum(
+                    (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt) *
+                    np.log(1 + dt/(times[tt] - tvec)) - g[1:] + g[0:-1]
+                    )
         elif fieldType in ["dhdt", "dbdt"]:
             for tt in range(0, len(eta)):
-                eta[tt] = np.sum((((g[1:]-g[0:-1])/dt)*np.log(1 + dt/(times[tt] - tvec)) - (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt)*(1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec))))
+                eta[tt] = np.sum(
+                    ((g[1:]-g[0:-1])/dt)*np.log(1 + dt/(times[tt] - tvec)) -
+                    (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt) *
+                    (1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec))
+                    )
 
         if fieldType in ["b", "dbdt"]:
             mu0 = 4*np.pi*1e-7
@@ -434,20 +463,31 @@ class ArbitraryPiecewise():
 ###################################################
 
 
-class Custom():
+class Custom(properties.HasProperties):
 
     """
 
     """
 
-    def __init__(self, t, eta):
+    times = properties.Array(
+        'Times at which characteristic decay function is evaluated', dtype=float)
+    eta = properties.Array(
+        'Characteristic decay function at evaluation times', dtype=float)
 
-        assert len(t) == len(eta), "Observed times and decay values must be same length."
+    @properties.observer('times')
+    def _times_observer(self, change):
+        if self.eta is not None:
+            if len(change['value']) != len(self.eta):
+                print('Length of time vector no longer matches length of eta vector')
 
-        self.t = t
-        self.eta = eta
+    @properties.observer('eta')
+    def _eta_observer(self, change):
+        if self.times is not None:
+            if len(change['value']) != len(self.times):
+                print('Length of eta vector no longer matches length of time vector')
 
     def getCharDecay(self):
         """Returns characteristic decay function at specified times"""
 
+        assert self.eta is not None, "Characteristic decay must be set"
         return self.eta
