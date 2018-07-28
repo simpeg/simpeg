@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import warnings
 from .Utils import mkvc
 
+
 class InversionDirective(object):
     """InversionDirective"""
 
@@ -557,6 +558,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
             np.savez('{:03d}-{:s}'.format(self.opt.iter, self.fileName), iterDict)
 
         self.outDict[self.opt.iter] = iterDict
+
 
 class Update_IRLS(InversionDirective):
 

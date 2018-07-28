@@ -83,10 +83,9 @@ def uniqueRows(M):
     unqM = M[unqInd]
     return unqM, unqInd, invInd
 
+
 def atp2xyz(m):
     """ Convert from spherical to cartesian """
-
-    nC = int(len(m)/3)
 
     a = m[:, 0] + 1e-8
     t = m[:, 1]
