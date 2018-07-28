@@ -47,12 +47,12 @@ class MagFwdProblemTests(unittest.TestCase):
         self.prob_xyz = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
                                                       actInd=sph_ind,
                                                       forwardOnly=True,
-                                                      rtype='xyz')
+                                                      rxType='xyz')
 
         self.prob_tmi = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
                                                       actInd=sph_ind,
                                                       forwardOnly=True,
-                                                      rtype='tmi')
+                                                      rxType='tmi')
 
     def test_ana_forward(self):
 

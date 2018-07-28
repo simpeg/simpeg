@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import warnings
 from .Utils import mkvc
 
+
 class InversionDirective(object):
     """InversionDirective"""
 
@@ -558,6 +559,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
         self.outDict[self.opt.iter] = iterDict
 
+
 class Update_IRLS(InversionDirective):
 
     updateGamma = False
@@ -652,12 +654,12 @@ class Update_IRLS(InversionDirective):
                     self.sphericalDomain = True
 
         if self.sphericalDomain:
-            self._angleScale()
+            self._angleScale
 
     def endIter(self):
 
         if self.sphericalDomain:
-            self._angleScale()
+            self._angleScale
 
         # Check if misfit is within the tolerance, otherwise scale beta
         if np.all([
@@ -682,6 +684,7 @@ class Update_IRLS(InversionDirective):
                 # Re-use previous model and continue with new beta
                 self.invProb.model = self.reg.objfcts[0].model
                 self.opt.xc = self.reg.objfcts[0].model
+                self.opt.iter -= 1
                 return
 
         elif np.all([self.mode == 1, self.opt.iter % self.coolingRate == 0]):
@@ -704,6 +707,7 @@ class Update_IRLS(InversionDirective):
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if np.all([self.invProb.phi_d < self.start, self.mode == 1]):
+
             self.startIRLS()
 
         # Only update after GN iterations
@@ -713,7 +717,7 @@ class Update_IRLS(InversionDirective):
         ]):
 
             if self.fix_Jmatrix:
-                print (">> Fix Jmatrix")
+                print(">> Fix Jmatrix")
                 self.invProb.dmisfit.prob.fix_Jmatrix = True
 
             # Check for maximum number of IRLS cycles
@@ -732,10 +736,10 @@ class Update_IRLS(InversionDirective):
 
                 if reg.eps_p > self.floorEps_p and self.coolEps_p:
                     reg.eps_p /= self.coolEpsFact
-                    print('Eps_p: ' + str(reg.eps_p))
+
                 if reg.eps_q > self.floorEps_q and self.coolEps_q:
                     reg.eps_q /= self.coolEpsFact
-                    print('Eps_q: ' + str(reg.eps_q))
+                    print(reg.eps_q)
 
             # Remember the value of the norm from previous R matrices
             # self.f_old = self.reg(self.invProb.model)
@@ -900,35 +904,39 @@ class UpdatePreconditioner(InversionDirective):
 
     def initialize(self):
 
-        if getattr(self.opt, 'approxHinv', None) is None:
+        # if getattr(self.opt, 'approxHinv', None) is None:
 
-            if getattr(self.opt, 'JtJdiag', None) is None:
+        if getattr(self.opt, 'JtJdiag', None) is None:
 
-                JtJdiag = np.zeros_like(self.invProb.model)
-                for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
+            JtJdiag = np.zeros_like(self.invProb.model)
+            for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
 
-                    m = self.invProb.model
+                m = self.invProb.model
 
-                    if getattr(prob, 'getJtJdiag', None) is None:
-                        assert getattr(prob, 'getJ', None) is not None, (
-                        "Problem does not have a getJ attribute." +
-                        "Cannot form the sensitivity explicitely"
-                        )
-                        JtJdiag += np.sum(np.power((dmisfit.W*prob.getJ(m)), 2), axis=0)
-                    else:
-                        JtJdiag += prob.getJtJdiag(m)
+                if getattr(prob, 'getJtJdiag', None) is None:
+                    assert getattr(prob, 'getJ', None) is not None, (
+                    "Problem does not have a getJ attribute." +
+                    "Cannot form the sensitivity explicitely"
+                    )
+                    JtJdiag += np.sum(np.power((dmisfit.W*prob.getJ(m)), 2), axis=0)
+                else:
+                    JtJdiag += prob.getJtJdiag(m)
 
-                self.opt.JtJdiag = JtJdiag
+            self.opt.JtJdiag = JtJdiag
 
-            # Update the pre-conditioner
-            reg_diag = np.zeros_like(self.invProb.model)
-            for reg in self.reg.objfcts:
-                reg_diag += self.invProb.beta*(reg.W.T*reg.W).diagonal()
+        # Update the pre-conditioner
+        reg_diag = np.zeros_like(self.invProb.model)
+        m = self.invProb.model
+        for reg in self.reg.objfcts:
+            reg_diag += self.invProb.beta*(
+                (reg.mapping.deriv(m).T*reg.W.T) *
+                (reg.W*reg.mapping.deriv(m))
+            ).diagonal()
 
-            Hdiag = self.opt.JtJdiag + reg_diag
+        Hdiag = self.opt.JtJdiag + reg_diag
 
-            PC = Utils.sdiag(Hdiag**-1.)
-            self.opt.approxHinv = PC
+        PC = Utils.sdiag(Hdiag**-1.)
+        self.opt.approxHinv = PC
 
     def endIter(self):
         # Cool the threshold parameter
@@ -939,8 +947,12 @@ class UpdatePreconditioner(InversionDirective):
 
             # Update the pre-conditioner
             reg_diag = np.zeros_like(self.invProb.model)
+            m = self.invProb.model
             for reg in self.reg.objfcts:
-                reg_diag += self.invProb.beta*(reg.W.T*reg.W).diagonal()
+                reg_diag += self.invProb.beta*(
+                    (reg.mapping.deriv(m).T*reg.W.T) *
+                    (reg.W*reg.mapping.deriv(m))
+                ).diagonal()
 
             Hdiag = self.opt.JtJdiag + reg_diag
 
@@ -1081,3 +1093,44 @@ class UpdateSensitivityWeights(InversionDirective):
             JtJdiag += JtJ
 
         self.opt.JtJdiag = JtJdiag
+
+
+class ProjSpherical(InversionDirective):
+    """
+        Trick for spherical coordinate system.
+        Project \theta and \phi angles back to [-\pi,\pi] using
+        back and forth conversion.
+        spherical->cartesian->spherical
+    """
+    def initialize(self):
+
+        x = self.invProb.model
+        # Convert to cartesian than back to avoid over rotation
+        nC = int(len(x)/3)
+
+        xyz = Utils.matutils.atp2xyz(x.reshape((nC, 3), order='F'))
+        m = Utils.matutils.xyz2atp(xyz.reshape((nC, 3), order='F'))
+
+        self.invProb.model = m
+
+        for prob in self.prob:
+            prob.model = m
+
+        self.opt.xc = m
+
+    def endIter(self):
+
+        x = self.invProb.model
+        nC = int(len(x)/3)
+
+        # Convert to cartesian than back to avoid over rotation
+        xyz = Utils.matutils.atp2xyz(x.reshape((nC, 3), order='F'))
+        m = Utils.matutils.xyz2atp(xyz.reshape((nC, 3), order='F'))
+
+        self.invProb.model = m
+        self.invProb.phi_m_last = self.reg(m)
+
+        for prob in self.prob:
+            prob.model = m
+
+        self.opt.xc = m
