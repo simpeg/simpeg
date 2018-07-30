@@ -99,7 +99,8 @@ minit = m0
 
 # Petrophyically constrained regularization
 reg = Regularization.MakeSimplePetroRegularization(
-    GMmref=clf, GMmodel=clf, mesh=mesh, mref=m0, maplist=None
+    GMmref=clf, GMmodel=clf, mesh=mesh, mref=m0, maplist=None,
+    cell_weights_list=[np.ones(mesh.nC)]
 )
 
 # Include the reference model in the smoothness term
@@ -114,6 +115,7 @@ opt.remember('xc')
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
 
 # Directives
+
 Alphas = Directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=1e-2, ninit=10)
 beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
 betaIt = Directives.PetroBetaReWeighting(
@@ -139,7 +141,7 @@ addmref = Directives.AddMrefInSmooth(verbose=True, wait_till_stable=True)
 invProb.reg.gamma = gamma_petro
 
 # Setup Inversion
-inv = Inversion.BaseInversion(invProb, directiveList=[Alphas, beta,
+inv = Inversion.BaseInversion(invProb, directiveList=[ScalingJoint, Alphas, beta,
                                                       petrodir, targets,
                                                       betaIt, addmref])
 

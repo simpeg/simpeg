@@ -915,7 +915,6 @@ class UpdatePreconditioner(InversionDirective):
     onlyOnStart = False
     mapping = None
     ComboObjFun = False
-    misfitDiag = None
 
     def initialize(self):
 
@@ -959,7 +958,6 @@ class UpdatePreconditioner(InversionDirective):
             for reg in self.reg.objfcts:
                 W = reg.deriv2(m)
                 reg_diag += self.invProb.beta * W.diagonal()
-
             Hdiag = self.opt.JtJdiag + reg_diag
 
             PC = Utils.sdiag(Hdiag**-1.)
@@ -1057,11 +1055,13 @@ class GaussianMixtureUpdateModel(InversionDirective):
         model = np.c_[
             [a * b for a, b in zip(self.petroregularizer.maplist, modellist)]].T
 
-        if (self.alphadir is None) or (self.nu is None) or (self.kappa is None):
+        if (self.alphadir is None):
             self.alphadir = (self.petroregularizer.gamma) * \
                 np.ones(self.petroregularizer.GMmref.n_components)
+        if (self.nu is None):
             self.nu = self.petroregularizer.gamma * \
                 np.ones(self.petroregularizer.GMmref.n_components)
+        if (self.kappa is None):
             self.kappa = self.petroregularizer.gamma * \
                 np.ones(self.petroregularizer.GMmref.n_components)
 

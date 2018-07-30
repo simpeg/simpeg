@@ -148,18 +148,18 @@ def UpdateGaussianMixtureModel(GMmodel, GMref, alphadir=0., nu=0., kappa=0., ver
         print('before update precisions: ', GMmodel.precisions_)
 
     for k in range(GMmodel.n_components):
-        GMmodel.means_[k] = (1. / (GMmodel.weights_[k] + GMref.weights_[k] * nu[k])) * (
-            GMmodel.weights_[k] * GMmodel.means_[k] + GMref.weights_[k] * nu[k] * GMref.means_[k])
+        GMmodel.means_[k] = (1. / (GMmodel.weights_[k] + GMref.weights_[k] * kappa[k])) * (
+            GMmodel.weights_[k] * GMmodel.means_[k] + GMref.weights_[k] * kappa[k] * GMref.means_[k])
 
         if GMref.covariance_type == 'tied':
             pass
         elif update_covariances:
-            GMmodel.covariances_[k] = (1. / (GMmodel.weights_[k] + GMref.weights_[k] * kappa[k])) * (
-                GMmodel.weights_[k] * GMmodel.covariances_[k] + GMref.weights_[k] * kappa[k] * GMref.covariances_[k])
+            GMmodel.covariances_[k] = (1. / (GMmodel.weights_[k] + GMref.weights_[k] * nu[k])) * (
+                GMmodel.weights_[k] * GMmodel.covariances_[k] + GMref.weights_[k] * nu[k] * GMref.covariances_[k])
         else:
             GMmodel.precisions_[k] = (
-                1. / (GMmodel.weights_[k] + GMref.weights_[k] * kappa[k])) * (
-                GMmodel.weights_[k] * GMmodel.precisions_[k] + GMref.weights_[k] * kappa[k] * GMref.precisions_[k])
+                1. / (GMmodel.weights_[k] + GMref.weights_[k] * nu[k])) * (
+                GMmodel.weights_[k] * GMmodel.precisions_[k] + GMref.weights_[k] * nu[k] * GMref.precisions_[k])
 
         GMmodel.weights_[k] = (1. / (1. + np.sum(alphadir * GMref.weights_))) * (
             GMmodel.weights_[k] + alphadir[k] * GMref.weights_[k])
@@ -167,13 +167,13 @@ def UpdateGaussianMixtureModel(GMmodel, GMref, alphadir=0., nu=0., kappa=0., ver
     if GMref.covariance_type == 'tied':
         if update_covariances:
             GMmodel.covariances_ = (
-                1. / (1. + np.sum(GMref.weights_ * kappa))) * (GMmodel.covariances_ + np.sum(GMref.weights_ * kappa) * GMref.covariances_)
+                1. / (1. + np.sum(GMref.weights_ * nu))) * (GMmodel.covariances_ + np.sum(GMref.weights_ * nu) * GMref.covariances_)
             GMmodel.precisions_cholesky_ = _compute_precision_cholesky(
                 GMmodel.covariances_, GMmodel.covariance_type)
             computePrecision(GMmodel)
         else:
             GMmodel.precisions_ = (
-                1. / (1. + np.sum(GMref.weights_ * kappa))) * (GMmodel.precisions_ + np.sum(GMref.weights_ * kappa) * GMref.precisions_)
+                1. / (1. + np.sum(GMref.weights_ * nu))) * (GMmodel.precisions_ + np.sum(GMref.weights_ * nu) * GMref.precisions_)
             GMmodel.covariances_cholesky_ = _compute_precision_cholesky(
                 GMmodel.precisions_, GMmodel.covariance_type)
             computeCovariance(GMmodel)

@@ -55,6 +55,9 @@ clfmapping = Utils.GaussianMixtureWithMapping(
     n_components=3, covariance_type='full', tol=1e-3,
     reg_covar=1e-3, max_iter=100, n_init=10, init_params='kmeans',
     random_state=None, warm_start=False,
+    means_init=np.array([[2.40064183e-04,  3.98802975e-04],
+       [5.00861978e-01,  9.99999975e-01],
+       [-4.96127654e-01, -9.99801451e-01]]),
     verbose=0, verbose_interval=10, cluster_mapping=cluster_mapping
 )
 clfmapping = clfmapping.fit(model2d)
@@ -105,16 +108,19 @@ reg_simple = Regularization.SimplePetroWithMappingRegularization(
     wiresmap=wires,
     evaltype='approx')
 reg_simple.objfcts[0].cell_weights = wr
+reg_simple.objfcts[1].cell_weights = wr1[0:100]
+reg_simple.objfcts[2].cell_weights = wr2[100:200]
 
 opt = Optimization.ProjectedGNCG(
-    maxIter=20, tolX=1e-6, maxIterCG=100, tolCG=1e-3
+    maxIter=50, tolX=1e-6, maxIterCG=100, tolCG=1e-3,
+    lower=-2, upper=2,
 )
 
 invProb = InvProblem.BaseInvProblem(dmis, reg_simple, opt)
 
 # Directives
 Alphas = Directives.AlphasSmoothEstimate_ByEig(
-    alpha0_ratio=5e-2, ninit=10, verbose=True)
+    alpha0_ratio=6e-2, ninit=10, verbose=True)
 Scales = Directives.ScalingEstimate_ByEig(
     Chi0_ratio=.1, verbose=True, ninit=100)
 beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
@@ -128,8 +134,12 @@ betaIt = Directives.PetroBetaReWeighting(
     alphadir_rateCooling=1.,
     kappa_rateCooling=1.,
     nu_rateCooling=1.,)
-targets = Directives.PetroTargetMisfit(chiSmall=1.,
-                                       TriggerSmall=True, TriggerTheta=False, verbose=True)
+targets = Directives.PetroTargetMisfit(
+    chiSmall=1.,
+    TriggerSmall=True,
+    TriggerTheta=False,
+    verbose=True
+)
 gamma_petro = np.ones(clfmapping.n_components) * 1e8
 #membership = np.zeros_like(mtrue, dtype='int')
 petrodir = Directives.UpdateReference()
@@ -153,16 +163,19 @@ reg_simple_no_map = Regularization.SimplePetroRegularization(
     wiresmap=wires,
     evaltype='approx')
 reg_simple.objfcts[0].cell_weights = wr
+reg_simple.objfcts[1].cell_weights = wr1[0:100]
+reg_simple.objfcts[2].cell_weights = wr2[100:200]
 
 opt = Optimization.ProjectedGNCG(
-    maxIter=20, tolX=1e-6, maxIterCG=100, tolCG=1e-3
+    maxIter=50, tolX=1e-6, maxIterCG=100, tolCG=1e-3,
+    lower=-2, upper=2,
 )
 
 invProb = InvProblem.BaseInvProblem(dmis, reg_simple_no_map, opt)
 
 # Directives
 Alphas = Directives.AlphasSmoothEstimate_ByEig(
-    alpha0_ratio=5e-2, ninit=10, verbose=True)
+    alpha0_ratio=6e-2, ninit=10, verbose=True)
 Scales = Directives.ScalingEstimate_ByEig(
     Chi0_ratio=.1, verbose=True, ninit=100)
 beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
@@ -196,20 +209,23 @@ mcluster_no_map = inv.run(minit)
 reg1 = Regularization.Tikhonov(
     mesh, alpha_s=1., alpha_x=1., mapping=wires.m1
 )
+reg1.cell_weights = wr1[0:100]
 reg2 = Regularization.Tikhonov(
     mesh, alpha_s=1., alpha_x=1., mapping=wires.m2
 )
+reg2.cell_weights = wr2[100:200]
 reg = reg1 + reg2
 
 opt = Optimization.ProjectedGNCG(
-    maxIter=20, tolX=1e-6, maxIterCG=100, tolCG=1e-3
+    maxIter=50, tolX=1e-6, maxIterCG=100, tolCG=1e-3,
+    lower=-2, upper=2,
 )
 
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
 
 # Directives
 Alphas = Directives.AlphasSmoothEstimate_ByEig(
-    alpha0_ratio=5e-2, ninit=10, verbose=True)
+    alpha0_ratio=6e-2, ninit=10, verbose=True)
 Scales = Directives.ScalingEstimate_ByEig(
     Chi0_ratio=.1, verbose=True, ninit=100)
 beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
@@ -217,7 +233,7 @@ targets = Directives.PetroTargetMisfit(
     chiSmall=1.,
     TriggerSmall=False,
     TriggerTheta=False,
-    verbose=False
+    verbose=False,
 )
 
 # Setup Inversion
@@ -367,5 +383,5 @@ axes[11].legend(
 axes[11].set_xlabel('Property 1')
 axes[11].set_ylabel('Property 2')
 plt.subplots_adjust(wspace=0.3, hspace=0.3, top=0.85)
-fig.savefig("LinearWithMapping.png", dpi=300, bbox_inches='tight')
+#fig.savefig("LinearWithMapping.png", dpi=300, bbox_inches='tight')
 plt.show()
