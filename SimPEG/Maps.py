@@ -17,12 +17,11 @@ from scipy.interpolate import UnivariateSpline
 from scipy.constants import mu_0
 from scipy.spatial import cKDTree
 
-
 import properties
-
+from discretize.Tests import checkDerivative
 from .Utils import setKwargs, Identity, Zero, sdiag, mkvc
 from .Tests import checkDerivative
-
+from . import Utils
 
 class IdentityMap(object):
     """
@@ -127,7 +126,7 @@ class IdentityMap(object):
 
             :param numpy.array m: model
             :param kwargs: key word arguments of
-                           :meth:`SimPEG.Tests.checkDerivative`
+                           :meth:`discretize.Tests.checkDerivative`
             :rtype: bool
             :return: passed the test?
 
@@ -151,7 +150,7 @@ class IdentityMap(object):
 
             :param numpy.array m: model
             :param kwargs: key word arguments of
-                           :meth:`SimPEG.Tests.checkDerivative`
+                           :meth:`discretize.Tests.checkDerivative`
             :rtype: bool
             :return: passed the test?
 
@@ -539,15 +538,21 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         return W
 
     def getQ(self, alpha):
-        if alpha < 1.:
-            Chi = np.sqrt((1. / alpha**2.) - 1.)
-            return 1. / 2. * (1. + 1. / (alpha**2. - 1.) * (1. - np.arctan(Chi) / Chi))
-        elif alpha > 1.:
-            raise NotImplementedError(
-                'Aspect ratios > 1 have not been implemeted'
+        if alpha < 1.:  # oblate spheroid
+            chi = np.sqrt((1./alpha**2.) - 1)
+            return 1./2. * (
+                1 + 1./(alpha**2. - 1) * (1. - np.arctan(chi)/chi)
             )
-        elif alpha == 1:
-            return 1. / 3.
+        elif alpha > 1.:  # prolate spheroid
+            chi = np.sqrt(1 - (1./alpha**2.))
+            return 1./2. * (
+                1 + 1./(alpha**2. - 1) * (1. - 1./(2.*chi) * np.log((1 + chi)/(1-chi)))
+            )
+            # raise NotImplementedError(
+            #     'Aspect ratios > 1 have not been implemeted'
+            # )
+        elif alpha == 1:  # sphere
+            return 1./3.
 
     def getR(self, sj, se, alpha):
         if alpha == 1.:

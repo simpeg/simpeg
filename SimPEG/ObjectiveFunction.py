@@ -8,8 +8,9 @@ import scipy.sparse as sp
 from six import integer_types
 import warnings
 
+from discretize.Tests import checkDerivative
+
 from . import Utils
-from .Tests import checkDerivative
 from . import Maps
 from . import Props
 

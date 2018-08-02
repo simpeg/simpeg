@@ -1,11 +1,13 @@
 from __future__ import print_function
 import unittest
+
 import numpy as np
+
+from discretize.Tests import checkDerivative
+
 from SimPEG import Mesh
 from SimPEG import Maps
-from SimPEG.Tests import checkDerivative
 from SimPEG.FLOW import Richards
-
 
 TOL = 1E-8
 

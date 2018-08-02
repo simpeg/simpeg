@@ -1,9 +1,12 @@
 from __future__ import print_function
-from . import Utils
+
 import numpy as np
 import scipy.sparse as sp
 from six import string_types
+
 from .Utils.SolverUtils import *
+from . import Utils
+
 norm = np.linalg.norm
 
 

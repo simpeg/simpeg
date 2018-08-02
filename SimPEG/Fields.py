@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 from six import string_types
 import numpy as np
+
 from . import Utils
 
 
@@ -16,12 +17,13 @@ class Fields(object):
 
     """
 
-    #: Known fields,   a dict with locations, e.g. {"e": "E", "phi": "CC"}
+    #: Known fields, a dict with locations, e.g. ``{"e": "E", "phi": "CC"}``
     knownFields = None
-    #: Aliased fields, a dict with [alias, location, function], e.g. {"b":["e","F",lambda(F,e,ind)]}
+    #: Aliased fields, a dict with [alias, location, function], e.g. ``{"b": ["e", "F", lambda(F,e,ind)]}``
     aliasFields = None
     #: dtype is the type of the storage matrix. This can be a dictionary.
     dtype = float
+
 
     def __init__(self, mesh, survey, **kwargs):
         self.survey = survey
