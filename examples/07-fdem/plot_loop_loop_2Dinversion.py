@@ -20,7 +20,7 @@ from pymatsolver import Pardiso as Solver
 from SimPEG import (
     Mesh, Maps, Optimization,
     DataMisfit, Regularization, InvProblem,
-    Inversion, Directives
+    Inversion, Directives, versions
 )
 from SimPEG.EM import FDEM
 from SimPEG.Utils import mkvc
@@ -335,6 +335,13 @@ cb.set_label("$\log(\sigma)$")
 
 plt.tight_layout()
 plt.show()
+
+###############################################################################
+# Print the version of SimPEG and dependencies
+# --------------------------------------------
+#
+
+versions()
 
 ###############################################################################
 # Moving Forward

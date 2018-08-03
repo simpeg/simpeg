@@ -11,6 +11,7 @@ from SimPEG import Directives
 from SimPEG import Inversion
 import numpy as np
 import SimPEG.PF as PF
+import matplotlib.pyplot as plt
 
 
 class MagInvLinProblemTest(unittest.TestCase):
@@ -29,24 +30,24 @@ class MagInvLinProblemTest(unittest.TestCase):
         hyind = [(dx, 5, -1.3), (dx, 5), (dx, 5, 1.3)]
         hzind = [(dx, 5, -1.3), (dx, 6)]
 
-        mesh = Mesh.TensorMesh([hxind, hyind, hzind], 'CCC')
+        self.mesh = Mesh.TensorMesh([hxind, hyind, hzind], 'CCC')
 
         # Get index of the center
-        midx = int(mesh.nCx/2)
-        midy = int(mesh.nCy/2)
+        midx = int(self.mesh.nCx/2)
+        midy = int(self.mesh.nCy/2)
 
         # Lets create a simple Gaussian topo and set the active cells
-        [xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
-        zz = -np.exp((xx**2 + yy**2) / 75**2) + mesh.vectorNz[-1]
+        [xx, yy] = np.meshgrid(self.mesh.vectorNx, self.mesh.vectorNy)
+        zz = -np.exp((xx**2 + yy**2) / 75**2) + self.mesh.vectorNz[-1]
 
         # Go from topo to actv cells
         topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
-        actv = Utils.surface2ind_topo(mesh, topo, 'N')
+        actv = Utils.surface2ind_topo(self.mesh, topo, 'N')
         actv = np.asarray([inds for inds, elem in enumerate(actv, 1)
                           if elem], dtype=int) - 1
 
         # Create active map to go from reduce space to full
-        actvMap = Maps.InjectActiveCells(mesh, actv, -100)
+        self.actvMap = Maps.InjectActiveCells(self.mesh, actv, -100)
         nC = len(actv)
 
         # Create and array of observation points
@@ -55,7 +56,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         X, Y = np.meshgrid(xr, yr)
 
         # Move the observation points 5m above the topo
-        Z = -np.exp((X**2 + Y**2) / 75**2) + mesh.vectorNz[-1] + 5.
+        Z = -np.exp((X**2 + Y**2) / 75**2) + self.mesh.vectorNz[-1] + 5.
 
         # Create a MAGsurvey
         rxLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
@@ -65,19 +66,19 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # We can now create a susceptibility model and generate data
         # Here a simple block in half-space
-        model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
+        model = np.zeros((self.mesh.nCx, self.mesh.nCy, self.mesh.nCz))
         model[(midx-2):(midx+2), (midy-2):(midy+2), -6:-2] = 0.02
         model = Utils.mkvc(model)
         self.model = model[actv]
 
         # Create active map to go from reduce set to full
-        actvMap = Maps.InjectActiveCells(mesh, actv, -100)
+        self.actvMap = Maps.InjectActiveCells(self.mesh, actv, -100)
 
         # Creat reduced identity map
         idenMap = Maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
+        prob = PF.Magnetics.MagneticIntegral(self.mesh, chiMap=idenMap,
                                              actInd=actv)
 
         # Pair the survey and problem
@@ -98,7 +99,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         wr = (wr/np.max(wr))
 
         # Create a regularization
-        reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+        reg = Regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
         reg.cell_weights = wr
         reg.norms = np.c_[0, 0, 0, 0]
         reg.gradientType = 'component'
@@ -130,6 +131,19 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         residual = np.linalg.norm(mrec-self.model) / np.linalg.norm(self.model)
         print(residual)
+
+        # plt.figure()
+        # ax = plt.subplot(1, 2, 1)
+        # midx = int(self.mesh.nCx/2)
+        # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
+        #                grid=True, clim=(0, 0.02))
+
+        # ax = plt.subplot(1, 2, 2)
+        # midx = int(self.mesh.nCx/2)
+        # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
+        #                grid=True, clim=(0, 0.02))
+        # plt.show()
+
         self.assertTrue(residual < 0.05)
         # self.assertTrue(residual < 0.05)
 
