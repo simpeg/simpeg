@@ -389,10 +389,10 @@ class Wires(object):
 class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
     """
         Two phase self-consistent effective medium theory mapping for
-        ellipsoidal inclusions. The model is the concentration
+        ellipsoidal inclusions. The inversion model is the concentration
         (volume fraction) of the phase 2 material.
 
-        The model is :math:`\\varphi`. We solve for :math:`\sigma`
+        The inversion model is :math:`\\varphi`. We solve for :math:`\sigma`
         given :math:`\sigma_0`, :math:`\sigma_1` and :math:`\\varphi` . Each of
         the following are implicit expressions of the effective conductivity.
         They are solved using a fixed point iteration.
@@ -499,7 +499,8 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
     )
 
     random = properties.Bool(
-        "are the inclusions randomly oriented (True) or preferentially aligned (False)?",
+        "are the inclusions randomly oriented (True) or preferentially "
+        "aligned (False)?",
         default=True
     )
 
@@ -618,6 +619,8 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         return [sigHSlo, sigHSup]
 
     def getQ(self, alpha):
+        """Geometric factor in the depolarization tensor
+        """
         if alpha < 1.:  # oblate spheroid
             chi = np.sqrt((1./alpha**2.) - 1)
             return 1./2. * (
@@ -640,7 +643,8 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         return (R.T).dot(A).dot(R)
 
     def getR(self, sj, se, alpha, orientation=None):
-
+        """Electric field concentration tensor
+        """
         if self.random is True:  # isotropic
             if alpha == 1.:
                 return 3.0*se/(2.0*se+sj)
@@ -656,7 +660,10 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
 
     def getdR(self, sj, se, alpha, orientation=None):
-
+        """
+        Derivative of the electric field concentration tensor with respect
+        to the concentration of the second phase material.
+        """
         if self.random is True:
             Q = self.getQ(alpha)
             return (
@@ -672,7 +679,6 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         """
         Self Consistent Effective Medium Theory Model Transform,
         alpha = aspect ratio (c/a <= 1)
-
         """
 
         if not (np.all(0 <= phi1) and np.all(phi1 <= 1)):
@@ -744,10 +750,17 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         return self._sc2phaseEMTSpheroidstransform(m)
 
     def deriv(self, m):
+        """
+        Derivative of the effective conductivity with respect to the
+        volume fraction of phase 2 material
+        """
         sige = self._transform(m)
         return self._sc2phaseEMTSpheroidstransformDeriv(sige, m)
 
     def inverse(self, sige):
+        """
+        Compute the concentration given the effective conductivity
+        """
         return self._sc2phaseEMTSpheroidsinversetransform(sige)
 
 
