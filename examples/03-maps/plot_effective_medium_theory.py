@@ -78,4 +78,6 @@ ax.legend(["{:1.0e} S/m".format(s) for s in sigma1])
 ax.set_xlabel("Volume fraction of proppant $\phi$")
 ax.set_ylabel("Effective conductivity (S/m)")
 
+plt.tight_layout()
+
 
