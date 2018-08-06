@@ -131,6 +131,27 @@ class MuTests(unittest.TestCase):
             sigmaInInversion=sigmaInInversion, invertMui=invertMui
         )
 
+    def test_mats_cleared(self):
+        self.setUpProb()
+        u = self.prob.fields(self.m0)
+
+        MeMu = self.prob.MeMu
+        MeMuI = self.prob.MeMuI
+        MfMui = self.prob.MfMui
+        MfMuiI = self.prob.MfMuiI
+        MeMuDeriv = self.prob.MeMuDeriv(u[:, 'e'])
+        MfMuiDeriv = self.prob.MfMuiDeriv(u[:, 'b'])
+
+        m1 = np.random.rand(self.mesh.nC)
+        self.prob.model = m1
+
+        self.assertTrue(getattr(self, '_MeMu', None) is None)
+        self.assertTrue(getattr(self, '_MeMuI', None) is None)
+        self.assertTrue(getattr(self, '_MfMui', None) is None)
+        self.assertTrue(getattr(self, '_MfMuiI', None) is None)
+        self.assertTrue(getattr(self, '_MfMuiDeriv', None) is None)
+        self.assertTrue(getattr(self, '_MeMuDeriv', None) is None)
+
     def JvecTest(self, prbtype='e', sigmaInInversion=False, invertMui=False):
         self.setUpProb(prbtype, sigmaInInversion, invertMui)
         print('Testing Jvec {}'.format(prbtype))

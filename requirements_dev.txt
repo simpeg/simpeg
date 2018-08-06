@@ -10,12 +10,7 @@ scikit-learn>=0.19.1
 scipy>=1.0.0
 seaborn
 sympy
-cython
-pymatsolver>=0.1.2
-ipython
-matplotlib
-properties>=0.3.6b0
-vectormath
 wheel
 pytest
-geoana
+jupyter
+sphinxcontrib-napoleon

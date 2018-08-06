@@ -1,10 +1,12 @@
 from __future__ import print_function
-from . import Utils
-from . import Props
+
 import numpy as np
 import scipy.sparse as sp
 import uuid
 import gc
+
+from . import Utils
+from . import Props
 
 
 class BaseRx(object):
@@ -20,7 +22,7 @@ class BaseRx(object):
 
     def __init__(self, locs, rxType, **kwargs):
         self.uid = str(uuid.uuid4())
-        self.locs = locs
+        self.locs = np.atleast_2d(locs)
         self.rxType = rxType
         self._Ps = {}
         Utils.setKwargs(self, **kwargs)

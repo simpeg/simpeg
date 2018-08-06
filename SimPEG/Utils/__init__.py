@@ -26,7 +26,6 @@ from .coordutils import rotatePointsFromNormals, rotationMatrixFromNormals
 from .modelutils import surface2ind_topo
 from .PlotUtils import plot2Ddata, plotLayer
 from .io_utils import download
-
 from .petroutils import (
     ComputeDistances,
     order_clusters_GM_weight, order_cluster,
@@ -36,3 +35,4 @@ from .petroutils import (
     GaussianMixtureWithMapping, GaussianMixtureWithMappingWithPrior,
     GibbsSampling_PottsDenoising, ICM_PottsDenoising
 )
+from .printinfo import versions

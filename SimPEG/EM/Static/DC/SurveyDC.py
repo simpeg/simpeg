@@ -69,7 +69,6 @@ class Survey(BaseEMSurvey, properties.HasProperties):
     topo_function = None
 
     def __init__(self, srcList, **kwargs):
-        self.srcList = srcList
         BaseEMSurvey.__init__(self, srcList, **kwargs)
 
     def getABMN_locations(self):
@@ -304,7 +303,6 @@ class Survey_ky(Survey):
     srcPair = Src.BaseSrc
 
     def __init__(self, srcList, **kwargs):
-        self.srcList = srcList
         BaseEMSurvey.__init__(self, srcList, **kwargs)
 
     def eval(self, f):
