@@ -17,7 +17,7 @@ mesh = Mesh.TensorMesh([N])
 
 # Survey design parameters
 nk = 30
-jk = np.linspace(1., 60., nk)
+jk = np.linspace(1., 59., nk)
 p = -0.25
 q = 0.25
 
