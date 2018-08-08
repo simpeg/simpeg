@@ -243,10 +243,6 @@ class VRM_fwd_tests(unittest.TestCase):
             loc_rx, 2*np.ones((4**3)), finalize=False
         )
 
-        x, y, z = np.meshgrid(
-            np.c_[1., 3., 5., 7.],
-            np.c_[1., 3., 5., 7.],
-            np.c_[5., 7.])
         x = x.reshape((32, 1))
         y = y.reshape((32, 1))
         z = z.reshape((32, 1))
@@ -254,6 +250,7 @@ class VRM_fwd_tests(unittest.TestCase):
         meshObj_OcTree.insert_cells(
             loc_rx, 3*np.ones((32)), finalize=False
         )
+
 
         x, y, z = np.meshgrid(
             np.c_[3.5, 4.0, 4.5, 5.0, 5.5],
