@@ -92,6 +92,7 @@ class Fields_CC(FieldsDC):
     def startup(self):
         # self.prob = self.survey.prob
         self._MfRhoI = self.survey.prob.MfRhoI
+        self._MfRhoIDeriv = self.survey.prob.MfRhoIDeriv
         self._MfRho = self.survey.prob.MfRho
         self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
         self._nC = self.survey.prob.mesh.nC
@@ -125,14 +126,33 @@ class Fields_CC(FieldsDC):
         """
         return self._MfRhoI*self._Grad*phiSolution
 
+    def _jDeriv_u(self, src, v, adjoint=False):
+        if adjoint:
+            return self._Grad.T * (self._MfRhoI.T * v)
+        return self._MfRhoI * (self._Grad * v)
+
+    def _jDeriv_m(self, src, v, adjoint=False):
+        if adjoint:
+            return self._Grad.T * self._MfRhoIDeriv(v, adjoint=True)
+        return self._MfRhoIDeriv(self._Grad * v)
+
     def _e(self, phiSolution, srcList):
         """
             .. math::
 
                 \vec{e} = \rho \vec{j}
         """
-        return self._MfI*self._MfRho * self._j(phiSolution, srcList)
+        # return self._MfI * self._MfRho * self._j(phiSolution, srcList)
+        return self._MfI * self._Grad * phiSolution
         # prob._MfI * cart_mesh.faceDiv.T * p
+
+    def _eDeriv_u(self, src, v, adjoint=False):
+        if adjoint:
+            return self._Grad.T * (self._MfI.T * v)
+        return self._MfI * (self._Grad * v)
+
+    def _eDeriv_m(self, src, v, adjoint=False):
+        return Zero()
 
     def _charge(self, phiSolution, srcList):
         """
