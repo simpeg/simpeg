@@ -18,7 +18,7 @@ from sklearn.mixture.base import (
 )
 import warnings
 from .matutils import mkvc
-from ..Maps import IdentityMap
+from ..Maps import *  # IdentityMap
 
 
 def ComputeDistances(a, b):
