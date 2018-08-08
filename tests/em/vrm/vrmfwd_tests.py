@@ -234,16 +234,44 @@ class VRM_fwd_tests(unittest.TestCase):
         meshObj_Tensor = Mesh.TensorMesh((h1, h1, h1), x0='000')
         meshObj_OcTree = Mesh.TreeMesh([h2, h2, h2], x0='000')
 
-        meshObj_OcTree.refine(2)
+        # meshObj_OcTree.refine(2)
 
-        def refinefcn(cell):
-            xyz = cell.center
-            dist = ((xyz - [4., 4., 8.])**2).sum()**0.5
-            if dist < 2.65:
-                return 4
-            return 2
+        # def refinefcn(cell):
+        #     xyz = cell.center
+        #     dist = ((xyz - [4., 4., 8.])**2).sum()**0.5
+        #     if dist < 2.65:
+        #         return 4
+        #     return 2
 
-        meshObj_OcTree.refine(refinefcn)
+        # meshObj_OcTree.refine(refinefcn)
+
+        x,y,z = np.meshgrid(np.c_[1.,3.,5.,7.],np.c_[1.,3.,5.,7.],np.c_[1.,3.,5.,7.])
+        x = x.reshape((4**3,1))
+        y = y.reshape((4**3,1))
+        z = z.reshape((4**3,1))
+        loc_rx = np.c_[x,y,z]
+        meshObj_OcTree.insert_cells(
+            loc_rx, 2*np.ones((4**3)), finalize=False
+        )
+
+        x,y,z = np.meshgrid(np.c_[1.,3.,5.,7.],np.c_[1.,3.,5.,7.],np.c_[5.,7.])
+        x = x.reshape((32,1))
+        y = y.reshape((32,1))
+        z = z.reshape((32,1))
+        loc_rx = np.c_[x,y,z]
+        meshObj_OcTree.insert_cells(
+            loc_rx, 3*np.ones((32)), finalize=False
+        )
+
+
+        x,y,z = np.meshgrid(np.c_[3.5,4.0,4.5,5.0,5.5],np.c_[3.5,4.0,4.5,5.0,5.5],np.c_[6.0,6.5,7.0,7.5])
+        x = x.reshape((100,1))
+        y = y.reshape((100,1))
+        z = z.reshape((100,1))
+        loc_rx = np.c_[x,y,z]
+        meshObj_OcTree.insert_cells(
+            loc_rx, 4*np.ones((100)), finalize=True
+        )
 
         chi0 = 0.
         dchi = 0.01
@@ -297,11 +325,11 @@ class VRM_fwd_tests(unittest.TestCase):
         Err4 = np.abs((Fields4-Fields1)/Fields4)
         Err5 = np.abs((dpred1-dpred2)/dpred1)
 
-        Test1 = Err1 < 0.001
-        Test2 = Err2 < 0.001
-        Test3 = Err3 < 0.001
-        Test4 = Err4 < 0.001
-        Test5 = Err5 < 0.001
+        Test1 = Err1 < 0.01
+        Test2 = Err2 < 0.01
+        Test3 = Err3 < 0.01
+        Test4 = Err4 < 0.01
+        Test5 = Err5 < 0.01
 
         self.assertTrue(Test1 and Test2 and Test3 and Test4 and Test5)
 
