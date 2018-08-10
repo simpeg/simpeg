@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from SimPEG import (Mesh, Maps, DataMisfit, Regularization, Inversion,
                     Optimization, InvProblem, Tests, Utils)
-import simpegSP as SP
+from SimPEG.EM.Static import SP
 from pymatsolver import PardisoSolver
 
 np.random.seed(40)
