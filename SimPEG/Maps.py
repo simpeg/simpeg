@@ -253,10 +253,15 @@ class ComboMap(IdentityMap):
                     )
                 )
 
-            if isinstance(m, ComboMap):
-                self.maps += m.maps
-            elif isinstance(m, IdentityMap):
+            if np.any([isinstance(m, SumMap), isinstance(m, IdentityMap)]):
                 self.maps += [m]
+            elif isinstance(m, ComboMap):
+                self.maps += m.maps
+            else:
+                raise ValueError(
+                    'Map[{0!s}] not supported',
+                    m.__class__.__name__
+                )
 
     @property
     def shape(self):
