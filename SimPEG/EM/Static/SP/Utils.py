@@ -44,8 +44,10 @@ def readSeepageModel(fname, mesh=None, xsurf=None, ysurf=None):
         yup = np.ones_like(ysurf)*45
         actind = Utils.surface2ind_topo(mesh, np.c_[xsurf, ysurf])
         waterheight = 40.
-        waterind = (np.logical_and(~actind, mesh.gridCC[:, 1] < 40.)) &
-        (mesh.gridCC[:, 0] < 90.)
+        waterind = (
+            (np.logical_and(~actind, mesh.gridCC[:, 1] < 40.)) &
+            (mesh.gridCC[:, 0] < 90.)
+        )
 
     F_hlin = LinearNDInterpolator(xyz, h)
     hccIn = F_hlin(mesh.gridCC[actind, :])
