@@ -367,13 +367,16 @@ class SumMap(ComboMap):
 
         self.maps = []
         for ii, m in enumerate(maps):
-            assert isinstance(m, IdentityMap), "Unrecognized data type, "
-            "inherit from an IdentityMap or ComboMap!"
+            if not isinstance(m, IdentityMap):
+                raise TypeError(
+                    "Unrecognized data type {}, inherit from an "
+                    "IdentityMap!".format(type(m))
+                )
 
             if (
                 ii > 0 and not (self.shape == '*' or m.shape == '*') and
                 not self.shape == m.shape
-               ):
+           ):
 
                 raise ValueError(
                     'Dimension mismatch in map[{0!s}] ({1!s}, {2!s}) '
@@ -391,7 +394,6 @@ class SumMap(ComboMap):
 
     @property
     def shape(self):
-
         return (self.maps[0].shape[0], self.maps[0].shape[1])
 
     @property
@@ -405,9 +407,7 @@ class SumMap(ComboMap):
     def _transform(self, m):
 
         for ii, map_i in enumerate(self.maps):
-
             m0 = m.copy()
-
             m0 = map_i * m0
 
             if ii == 0:
@@ -436,46 +436,47 @@ class SumMap(ComboMap):
         return sumDeriv
 
 
-class HomogeneousMap(IdentityMap):
+class SurjectUnits(IdentityMap):
     """
-        A map to group model cells into an homogeneous unit
+    A map to group model cells into homogeneous units
 
-        :param list index: list of bool for each homogeneous unit
-
+    :param list indices: list of bool for each homogeneous unit
     """
-    nBlock = 1  # Variable allowing to stack same Map over multiple sets
 
-    def __init__(self, index, **kwargs):
-        assert isinstance(index, (list)), (
-            'index must be a list, not {}'.format(type(index)))
+    indices = properties.List(
+        "list of indices for each unit to be surjected into",
+        properties.Array(
+            "indices for the unit to be mapped to", dtype=bool,
+            shape=('*',)
+        ),
+        required=True
+    )
 
+    # n_blocks = properties.Integer(
+    #     "number of times to repeat the mapping", default=1, min=1
+    # )
+
+    def __init__(self, indices, **kwargs):
         super(HomogeneousMap, self).__init__(**kwargs)
-
-        self.index = index
-        self._shape = self.P.shape
 
     @property
     def P(self):
-
         if getattr(self, '_P', None) is None:
-            nP = len(self.index[0])
             # sparse projection matrix
             row = []
             col = []
             val = []
-            for ii, ind in enumerate(self.index):
+            for ii, ind in enumerate(self.indices):
 
                 row += [ii]*ind.sum()
                 col += np.where(ind)[0].tolist()
                 val += [1]*ind.sum()
 
-            P = sp.csr_matrix(
-                (val, (row, col)), shape=(len(self.index), nP)
+            P = self.sp.csr_matrix(
+                (val, (row, col)), shape=(len(self.indices), self.nP)
             ).T
 
-            self._P = sp.block_diag([P for ii in range(self.nBlock)])
-
-            self._shape = self.nBlock*nP, self.nBlock*len(self.index),
+            # self._P = sp.block_diag([P for ii in range(self.nBlock)])
 
         return self._P
 
@@ -483,11 +484,16 @@ class HomogeneousMap(IdentityMap):
         return self.P * m
 
     @property
+    def nP(self):
+        return len(self.indices)
+
+    @property
     def shape(self):
         """
         Shape of the matrix operation (number of indices x nP)
         """
-        return self._shape
+        # return self.n_block*len(self.indices[0]), self.n_block*len(self.indices)
+        return (len(self.indices[0]), self.nP)
 
     def deriv(self, m, v=None):
         """
