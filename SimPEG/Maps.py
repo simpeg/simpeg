@@ -319,6 +319,11 @@ class Projection(IdentityMap):
 
         if isinstance(index, slice):
             index = list(range(*index.indices(self.nP)))
+
+        if isinstance(index, np.ndarray):
+            if index.dtype is np.dtype('bool'):
+                index = np.where(index)[0]
+
         self.index = index
         self._shape = nI, nP = len(self.index), self.nP
 
