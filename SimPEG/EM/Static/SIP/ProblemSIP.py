@@ -16,7 +16,7 @@ from SimPEG.EM.Static.IP import Problem3D_CC as BaseProblem3D_CC
 from SimPEG.EM.Static.IP import Problem3D_N as BaseProblem3D_N
 from .SurveySIP import Survey, Data
 import gc
-from profilehooks import profile
+# from profilehooks import profile
 
 
 class BaseSIPProblem(BaseEMProblem):
