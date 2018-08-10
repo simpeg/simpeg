@@ -681,7 +681,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         alpha = aspect ratio (c/a <= 1)
         """
 
-        if not (np.all(0 >= phi1) and np.all(phi1 <= 1)):
+        if not (np.all(0 <= phi1) and np.all(phi1 <= 1)):
             warnings.warn('there are phis outside bounds of 0 and 1')
             phi1 = np.median(np.c_[phi1*0, phi1, phi1*0+1.])
 
@@ -723,11 +723,11 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
     def _sc2phaseEMTSpheroidsinversetransform(self, sige):
 
-        R0 = getR(self.sigma0, sige, self.alpha0, self.orientation0)
-        R1 = getR(self.sigma1, sige, self.alpha1, self.orientation1)
+        R0 = self.getR(self.sigma0, sige, self.alpha0, self.orientation0)
+        R1 = self.getR(self.sigma1, sige, self.alpha1, self.orientation1)
 
-        num = -(sigma0 - sige)*R0
-        den = (sigma1-sige)*R1 - (sigma0-sige)*R0
+        num = -(self.sigma0 - sige)*R0
+        den = (self.sigma1-sige)*R1 - (self.sigma0-sige)*R0
 
         return num/den
 
