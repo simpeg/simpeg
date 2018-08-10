@@ -475,7 +475,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
     sigma0 = properties.Float(
         "physical property value for phase-0 material",
         min=0., required=True
-    )
+    )  # this should also be allowed to be an array
 
     sigma1 = properties.Float(
         "physical property value for phase-1 material",
@@ -681,7 +681,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         alpha = aspect ratio (c/a <= 1)
         """
 
-        if not (np.all(0 <= phi1) and np.all(phi1 <= 1)):
+        if not (np.all(0 >= phi1) and np.all(phi1 <= 1)):
             warnings.warn('there are phis outside bounds of 0 and 1')
             phi1 = np.median(np.c_[phi1*0, phi1, phi1*0+1.])
 
@@ -1213,26 +1213,38 @@ class Mesh2Mesh(IdentityMap):
         Takes a model on one mesh are translates it to another mesh.
     """
 
+    indActive = properties.Array(
+        "active indices on target mesh"
+    )
+
     def __init__(self, meshes, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
         assert type(meshes) is list, "meshes must be a list of two meshes"
         assert len(meshes) == 2, "meshes must be a list of two meshes"
-        assert meshes[0].dim == meshes[1].dim, ("The two meshes must be the "
-                                                "same dimension")
+        assert meshes[0].dim == meshes[1].dim, (
+            "The two meshes must be the same dimension"
+        )
 
         self.mesh = meshes[0]
         self.mesh2 = meshes[1]
 
-        self.P = self.mesh2.getInterpolationMat(
-            self.mesh.gridCC,
-            'CC',
-            zerosOutside=True
-        )
+    @property
+    def P(self):
+        if getattr(self, '_P', None) is None:
+            self._P = self.mesh2.getInterpolationMat(
+                self.mesh.gridCC[self.indActive, :] if
+                self.indActive is not None else self.mesh.gridCC,
+                'CC',
+                zerosOutside=True
+            )
+        return self._P
 
     @property
     def shape(self):
         """Number of parameters in the model."""
+        if self.indActive is not None:
+            return (self.indActive.sum(), self.mesh2.nC)
         return (self.mesh.nC, self.mesh2.nC)
 
     @property
