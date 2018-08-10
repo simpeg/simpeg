@@ -36,10 +36,11 @@ class StreamingCurrents(Src.BaseSrc):
 
         if self.mesh is None:
             raise Exception("SP source requires mesh")
+
     def getq_from_j(self, j):
         q = self.Grad.T*self.mesh.aveCCV2F*j
         return q
-        
+
     def eval(self, prob):
         """
 
