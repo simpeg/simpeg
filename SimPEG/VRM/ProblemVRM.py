@@ -18,13 +18,13 @@ class Problem_BaseVRM(Problem.BaseProblem):
     _AisSet = False
     ref_factor = properties.Integer('Sensitivity refinement factor', min=0)
     ref_radius = properties.Array('Sensitivity refinement radii from sources', dtype=float)
-    indActive = properties.Array('Topography active cells', dtype=bool)
+    ind_active = properties.Array('Topography active cells', dtype=bool)
 
     def __init__(self, mesh, **kwargs):
 
         ref_factor = kwargs.pop('ref_factor', None)
         ref_radius = kwargs.pop('ref_radius', None)
-        indActive = kwargs.pop('indActive', None)
+        ind_active = kwargs.pop('ind_active', None)
         assert len(mesh.h) == 3, 'Problem requires 3D tensor or OcTree mesh'
 
         super(Problem_BaseVRM, self).__init__(mesh, **kwargs)
@@ -42,10 +42,10 @@ class Problem_BaseVRM(Problem.BaseProblem):
             self.ref_factor = ref_factor
             self.ref_radius = ref_radius
 
-        if indActive is None:
-            self.indActive = np.ones(mesh.nC, dtype=bool)
+        if ind_active is None:
+            self.ind_active = np.ones(mesh.nC, dtype=bool)
         else:
-            self.indActive = indActive
+            self.ind_active = ind_active
 
     @properties.observer('ref_factor')
     def _ref_factor_observer(self, change):
@@ -59,7 +59,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
         if self.ref_factor is not None and len(change['value']) != self.ref_factor:
             print("Number of refinement radii current DOES NOT match ref_factor")
 
-    @properties.validator('indActive')
+    @properties.validator('ind_active')
     def _ind_active_validator(self, change):
         assert len(change['value']) == self.mesh.nC, (
             "Length of active topo cells array must equal number of mesh cells")
@@ -631,12 +631,12 @@ class Problem_BaseVRM(Problem.BaseProblem):
 
         """Returns the full geometric operator"""
 
-        indActive = self.indActive
+        ind_active = self.ind_active
 
         # GET CELL INFORMATION FOR FORWARD MODELING
         meshObj = self.mesh
-        xyzc = meshObj.gridCC[indActive, :]
-        xyzh = meshObj.h_gridded[indActive, :]
+        xyzc = meshObj.gridCC[ind_active, :]
+        xyzh = meshObj.h_gridded[ind_active, :]
 
         # GET LIST OF A MATRICIES
         A = []
@@ -733,7 +733,7 @@ class Problem_Linear(Problem_BaseVRM):
 
         super(Problem_Linear, self).__init__(mesh, **kwargs)
 
-        nAct = list(self.indActive).count(True)
+        nAct = list(self.ind_active).count(True)
         if self.xiMap is None:
             self.xiMap = Maps.IdentityMap(nP=nAct)
 
