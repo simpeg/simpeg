@@ -95,6 +95,10 @@ class MagneticIntegral(Problem.LinearProblem):
             raise Exception('Need to pair!')
 
         if getattr(self, '_G', None) is None:
+
+            if self.modelType == 'vector':
+                self.magType = 'full'
+
             self._G = self.Intrgl_Fwr_Op(magType=self.magType,
                                          rxType=self.rxType)
 
@@ -327,8 +331,8 @@ class MagneticIntegral(Problem.LinearProblem):
         # (lower and upper coners for each cell)
         if isinstance(self.mesh, Mesh.TreeMesh):
             # Get upper and lower corners of each cell
-            bsw = (self.mesh.gridCC - mesh.h_gridded/2.)
-            tne = (self.mesh.gridCC + mesh.h_gridded/2.)
+            bsw = (self.mesh.gridCC - self.mesh.h_gridded/2.)
+            tne = (self.mesh.gridCC + self.mesh.h_gridded/2.)
 
             xn1, xn2 = bsw[:, 0], tne[:, 0]
             yn1, yn2 = bsw[:, 1], tne[:, 1]

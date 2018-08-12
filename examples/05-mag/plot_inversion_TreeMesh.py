@@ -20,7 +20,8 @@ import SimPEG.PF as PF
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
-
+from scipy.interpolate import NearestNDInterpolator
+from SimPEG.Utils import mkvc
 ###############################################################################
 # Setup
 # -----
@@ -86,18 +87,81 @@ plt.show()
 # Create a mesh
 h = [5, 5, 5]
 padDist = np.ones((3, 2)) * 100
+nCpad = [5, 4, 3]
 
-# Create a topography
-mesh = Utils.modelutils.meshBuilder(topo, h, padDist,
-                                    meshType='TREE',
-                                    verticalAlignment='center')
+# Get extent of points
+limx = np.r_[topo[:, 0].max(), topo[:, 0].min()]
+limy = np.r_[topo[:, 1].max(), topo[:, 1].min()]
+limz = np.r_[topo[:, 2].max(), topo[:, 2].min()]
+
+# Get center of the mesh
+midX = np.mean(limx)
+midY = np.mean(limy)
+midZ = np.mean(limz)
+
+nCx = int(limx[0]-limx[1]) / h[0]
+nCy = int(limy[0]-limy[1]) / h[1]
+nCz = int(limz[0]-limz[1]+int(np.min(np.r_[nCx, nCy])/3)) / h[2]
+# Figure out full extent required from input
+extent = np.max(np.r_[nCx * h[0] + padDist[0, :].sum(),
+                      nCy * h[1] + padDist[1, :].sum(),
+                      nCz * h[2] + padDist[2, :].sum()])
+
+maxLevel = int(np.log2(extent/h[0]))+1
+
+# Number of cells at the small octree level
+# For now equal in 3D
+
+nCx, nCy, nCz = 2**(maxLevel), 2**(maxLevel), 2**(maxLevel)
+# nCy = 2**(int(np.log2(extent/h[1]))+1)
+# nCz = 2**(int(np.log2(extent/h[2]))+1)
+
+# Define the mesh and origin
+# For now cubic cells
+mesh = Mesh.TreeMesh([np.ones(nCx)*h[0],
+                      np.ones(nCx)*h[1],
+                      np.ones(nCx)*h[2]])
+
+# Set origin
+mesh.x0 = np.r_[-nCx*h[0]/2.+midX, -nCy*h[1]/2.+midY, -nCz*h[2]/2.+midZ]
+
+# mesh = Utils.modelutils.meshBuilder(topo, h, padDist,
+#                                     meshType='TREE',
+#                                     verticalAlignment='center')
+
 
 # Refine the mesh around topography
-mesh = Utils.modelutils.refineTree(mesh, topo, dtype='surface',
-                                   nCpad=[0, 5, 3], finalize=False)
+# Get extent of points
+F = NearestNDInterpolator(topo[:, :2], topo[:, 2])
+zOffset = 0
+# Cycle through the first 3 octree levels
+for ii in range(3):
 
-mesh = Utils.modelutils.refineTree(mesh, xyzLoc, dtype='surface',
-                                   nCpad=[2, 0, 0], finalize=True)
+    dx = mesh.hx.min()*2**ii
+
+    nCx = int((limx[0]-limx[1]) / dx)
+    nCy = int((limy[0]-limy[1]) / dx)
+
+    # Create a grid at the octree level in xy
+    CCx, CCy = np.meshgrid(
+        np.linspace(limx[1], limx[0], nCx),
+        np.linspace(limy[1], limy[0], nCy)
+    )
+
+    z = F(mkvc(CCx), mkvc(CCy))
+
+    # level means number of layers in current OcTree level
+    for level in range(int(nCpad[ii])):
+
+        mesh.insert_cells(
+            np.c_[mkvc(CCx), mkvc(CCy), z-zOffset], np.ones_like(z)*maxLevel-ii,
+            finalize=False
+        )
+
+        zOffset += dx
+
+mesh.finalize()
+
 # Define an active cells from topo
 actv = Utils.surface2ind_topo(mesh, topo)
 nC = int(actv.sum())
@@ -228,8 +292,9 @@ actvMap = Maps.InjectActiveCells(mesh, actv, np.nan)
 idenMap = Maps.IdentityMap(nP=nC*3)
 
 # Create the forward model operator
-prob = PF.Magnetics.MagneticVector(
-    mesh, chiMap=idenMap, actInd=actv
+prob = PF.Magnetics.MagneticIntegral(
+    mesh, chiMap=idenMap, actInd=actv,
+    modelType='vector'
 )
 
 # Pair the survey and problem
