@@ -450,7 +450,7 @@ Lbound = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
 Ubound = np.kron(np.asarray([10, np.inf, np.inf]), np.ones(nC))
 
 # Add directives to the inversion
-opt = Optimization.ProjectedGNCG(maxIter=40,
+opt = Optimization.ProjectedGNCG(maxIter=20,
                                  lower=Lbound,
                                  upper=Ubound,
                                  maxIterLS=10,
@@ -463,7 +463,7 @@ invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta*5.)
 #  betaest = Directives.BetaEstimate_ByEig()
 
 # Here is where the norms are applied
-IRLS = Directives.Update_IRLS(f_min_change=1e-4, maxIRLSiter=40,
+IRLS = Directives.Update_IRLS(f_min_change=1e-4, maxIRLSiter=20,
                               minGNiter=1, beta_tol=0.5,
                               coolingRate=1, coolEps_q=True,
                               betaSearch=True)
@@ -492,12 +492,12 @@ mrec_MVI_S = inv.run(mstart)
 #
 #
 
-plt.figure()
+plt.figure(figsize=(8,8))
 ax = plt.subplot(2, 1, 1)
 plotVectorSectionsOctree(
     mesh, mrec_MVIC.reshape((nC, 3), order="F"),
     axs=ax, normal='Y', ind=65, actvMap=actvPlot,
-    scale=0.1, vmin=0., vmax=0.005)
+    scale=0.05, vmin=0., vmax=0.005)
 
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
@@ -508,7 +508,7 @@ plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(2, 1, 2)
 vec_xyz = Utils.matutils.atp2xyz(
-    mrec_MVI_S.reshape((nC, 3), order='F')).reshape((nC, 3), order='F')
+    invProb.model.reshape((nC, 3), order='F')).reshape((nC, 3), order='F')
 
 plotVectorSectionsOctree(
     mesh, vec_xyz, axs=ax, normal='Y', ind=65,
