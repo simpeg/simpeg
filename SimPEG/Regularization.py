@@ -131,7 +131,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                         )
                     else:
                         indActive_Fx = (
-                            (self.mesh.aveCC2Fx * self.indActive) >= 1
+                            (self.mesh._aveCC2FxStencil() * self.indActive) >= 1
                         )
                         self._Pafx = (
                             Utils.speye(self.mesh.ntFx)[:, indActive_Fx]
@@ -168,7 +168,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     else:
                         print ("Use Simple")
                         indActive_Fy = (
-                            (self.mesh.aveCC2Fy * self.indActive) >= 1
+                            (self.mesh._aveCC2FyStencil() * self.indActive) >= 1
                         )
                         self._Pafy = (
                             Utils.speye(self.mesh.ntFy)[:, indActive_Fy]
@@ -202,7 +202,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                         )
                     else:
                         indActive_Fz = (
-                            (self.mesh.aveCC2Fz * self.indActive) >= 1
+                            (self.mesh._aveCC2FzStencil() * self.indActive) >= 1
                         )
                         self._Pafz = (
                             Utils.speye(self.mesh.ntFz)[:, indActive_Fz]
@@ -221,7 +221,23 @@ class RegularizationMesh(Props.BaseSimPEG):
         :return: averaging from active cell centers to active x-faces
         """
         if getattr(self, '_aveFx2CC', None) is None:
-            self._aveFx2CC = self.Pac.T * self.mesh.aveFx2CC * self.Pafx
+            if self.mesh._meshType == "TREE":
+                if self.regularization_type == "Tikhonov":
+                    self._aveFx2CC = (
+                        self.Pac.T * self.mesh.aveFx2CC * self.Pafx
+                    )
+
+                else:
+                    nCinRow = mkvc((self.aveCC2Fx.T).sum(1))
+                    nCinRow[nCinRow > 0] = 1./nCinRow[nCinRow > 0]
+                    self._aveFx2CC = (
+                        Utils.sdiag(nCinRow) *
+                        self.aveCC2Fx.T
+                    )
+
+            else:
+                self._aveFx2CC = self.Pac.T * self.mesh.aveFx2CC * self.Pafx
+
         return self._aveFx2CC
 
     @property
@@ -243,7 +259,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
                 else:
                     self._aveCC2Fx = (
-                        self.Pafx.T * self.mesh.aveCC2Fx * self.Pac
+                        self.Pafx.T * self.mesh._aveCC2FxStencil() * self.Pac
                     )
             else:
                 self._aveCC2Fx = (
@@ -260,7 +276,23 @@ class RegularizationMesh(Props.BaseSimPEG):
         :return: averaging from active cell centers to active y-faces
         """
         if getattr(self, '_aveFy2CC', None) is None:
-            self._aveFy2CC = self.Pac.T * self.mesh.aveFy2CC * self.Pafy
+            if self.mesh._meshType == "TREE":
+                if self.regularization_type == "Tikhonov":
+                    self._aveFy2CC = (
+                        self.Pac.T * self.mesh.aveFy2CC * self.Pafy
+                    )
+
+                else:
+                    nCinRow = mkvc((self.aveCC2Fy.T).sum(1))
+                    nCinRow[nCinRow > 0] = 1./nCinRow[nCinRow > 0]
+                    self._aveFy2CC = (
+                        Utils.sdiag(nCinRow) *
+                        self.aveCC2Fy.T
+                    )
+
+            else:
+                self._aveFy2CC = self.Pac.T * self.mesh.aveFy2CC * self.Pafy
+
         return self._aveFy2CC
 
     @property
@@ -281,7 +313,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
                 else:
                     self._aveCC2Fy = (
-                        self.Pafy.T * self.mesh.aveCC2Fy * self.Pac
+                        self.Pafy.T * self.mesh._aveCC2FyStencil() * self.Pac
                     )
             else:
                 self._aveCC2Fy = (
@@ -298,7 +330,23 @@ class RegularizationMesh(Props.BaseSimPEG):
         :return: averaging from active cell centers to active z-faces
         """
         if getattr(self, '_aveFz2CC', None) is None:
-            self._aveFz2CC = self.Pac.T * self.mesh.aveFz2CC * self.Pafz
+            if self.mesh._meshType == "TREE":
+                if self.regularization_type == "Tikhonov":
+                    self._aveFz2CC = (
+                        self.Pac.T * self.mesh.aveFz2CC * self.Pafz
+                    )
+
+                else:
+                    nCinRow = mkvc((self.aveCC2Fz.T).sum(1))
+                    nCinRow[nCinRow > 0] = 1./nCinRow[nCinRow > 0]
+                    self._aveFz2CC = (
+                        Utils.sdiag(nCinRow) *
+                        self.aveCC2Fz.T
+                    )
+
+            else:
+                self._aveFz2CC = self.Pac.T * self.mesh.aveFz2CC * self.Pafz
+
         return self._aveFz2CC
 
     @property
@@ -319,7 +367,7 @@ class RegularizationMesh(Props.BaseSimPEG):
                     )
                 else:
                     self._aveCC2Fz = (
-                        self.Pafz.T * self.mesh.aveCC2Fz * self.Pac
+                        self.Pafz.T * self.mesh._aveCC2FzStencil() * self.Pac
                     )
             else:
                 self._aveCC2Fz = (
