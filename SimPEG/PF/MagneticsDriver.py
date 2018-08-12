@@ -182,7 +182,7 @@ class MagneticsDriver_Inv(object):
     @property
     def survey(self):
         if getattr(self, '_survey', None) is None:
-            self._survey = self.readMagneticsObservations(
+            self._survey, M = Utils.io_utils.readUBCmagneticsObservations(
                 self.basePath + self.obsfile
             )
         return self._survey
@@ -345,59 +345,3 @@ class MagneticsDriver_Inv(object):
         self._M = M
 
         return self._M
-
-    def readMagneticsObservations(self, obs_file):
-        """
-        Read and write UBC mag file format
-
-        INPUT:
-        :param fileName, path to the UBC obs mag file
-
-        OUTPUT:
-        :param survey
-        :param M, magnetization orentiaton (MI, MD)
-        """
-
-        fid = open(obs_file, 'r')
-
-        # First line has the inclination,declination and amplitude of B0
-        line = fid.readline()
-        B = np.array(line.split(), dtype=float)
-
-        # Second line has the magnetization orientation and a flag
-        line = fid.readline()
-        M = np.array(line.split(), dtype=float)
-
-        # Third line has the number of rows
-        line = fid.readline()
-        ndat = int(line.strip())
-
-        # Pre-allocate space for obsx, obsy, obsz, data, uncert
-        line = fid.readline()
-        temp = np.array(line.split(), dtype=float)
-
-        d = np.zeros(ndat, dtype=float)
-        wd = np.zeros(ndat, dtype=float)
-        locXYZ = np.zeros((ndat, 3), dtype=float)
-
-        ii = 0
-        while ii < ndat:
-
-            temp = np.array(line.split(), dtype=float)
-            if len(temp) > 0:
-                locXYZ[ii, :] = temp[:3]
-
-                if len(temp) > 3:
-                    d[ii] = temp[3]
-
-                    if len(temp) == 5:
-                        wd[ii] = temp[4]
-                ii += 1
-            line = fid.readline()
-
-        rxLoc = BaseMag.RxObs(locXYZ)
-        srcField = BaseMag.SrcField([rxLoc], param=(B[2], B[0], B[1]))
-        survey = BaseMag.LinearSurvey(srcField)
-        survey.dobs = d
-        survey.std = wd
-        return survey

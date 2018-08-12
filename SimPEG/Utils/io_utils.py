@@ -4,7 +4,6 @@ import time as tm
 import re
 import warnings
 
-
 def read_GOCAD_ts(tsfile):
     """
 
@@ -246,7 +245,7 @@ def readUBCmagneticsObservations(obs_file):
         :param survey
         :param M, magnetization orentiaton (MI, MD)
     """
-
+    from SimPEG.PF import BaseMag
     fid = open(obs_file, 'r')
 
     # First line has the inclination,declination and amplitude of B0
@@ -284,9 +283,9 @@ def readUBCmagneticsObservations(obs_file):
             ii += 1
         line = fid.readline()
 
-    rxLoc = MAG.RxObs(locXYZ)
-    srcField = MAG.SrcField([rxLoc], param=(B[2], B[0], B[1]))
-    survey = MAG.LinearSurvey(srcField)
+    rxLoc = BaseMag.RxObs(locXYZ)
+    srcField = BaseMag.SrcField([rxLoc], param=(B[2], B[0], B[1]))
+    survey = BaseMag.LinearSurvey(srcField)
     survey.dobs = d
     survey.std = wd
     return survey, M
@@ -327,3 +326,46 @@ def writeUBCmagneticsObservations(filename, survey, d):
     )
 
     print("Observation file saved to: " + filename)
+
+
+def readUBCgravityObservations(obs_file):
+    """
+    Read UBC grav file format
+
+    INPUT:
+    :param fileName, path to the UBC obs grav file
+
+    OUTPUT:
+    :param survey
+
+    """
+    from SimPEG.PF import BaseGrav
+    fid = open(obs_file, 'r')
+
+    # First line has the number of rows
+    line = fid.readline()
+    ndat = int(line.split()[0])
+
+    # Pre-allocate space for obsx, obsy, obsz, data, uncert
+    line = fid.readline()
+
+    d = np.zeros(ndat, dtype=float)
+    wd = np.zeros(ndat, dtype=float)
+    locXYZ = np.zeros((ndat, 3), dtype=float)
+
+    ii = 0
+    while ii < ndat:
+        temp = np.array(line.split(), dtype=float)
+        if len(temp) > 0:
+            locXYZ[ii, :] = temp[:3]
+            d[ii] = temp[3]
+            wd[ii] = temp[4]
+            ii += 1
+        line = fid.readline()
+
+    rxLoc = BaseGrav.RxObs(locXYZ)
+    srcField = BaseGrav.SrcField([rxLoc])
+    survey = BaseGrav.LinearSurvey(srcField)
+    survey.dobs = d
+    survey.std = wd
+    return survey

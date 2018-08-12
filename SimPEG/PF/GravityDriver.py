@@ -171,7 +171,7 @@ class GravityDriver_Inv(object):
     @property
     def survey(self):
         if getattr(self, '_survey', None) is None:
-            self._survey = self.readGravityObservations(
+            self._survey = Utils.io_utils.readUBCgravityObservations(
                 self.basePath + self.obsfile
             )
         return self._survey
@@ -284,45 +284,3 @@ class GravityDriver_Inv(object):
                 self._activeModel = np.ones(self._mesh.nC)
 
         return self._activeModel
-
-    def readGravityObservations(self, obs_file):
-        """
-        Read UBC grav file format
-
-        INPUT:
-        :param fileName, path to the UBC obs grav file
-
-        OUTPUT:
-        :param survey
-
-        """
-
-        fid = open(obs_file, 'r')
-
-        # First line has the number of rows
-        line = fid.readline()
-        ndat = int(line.split()[0])
-
-        # Pre-allocate space for obsx, obsy, obsz, data, uncert
-        line = fid.readline()
-
-        d = np.zeros(ndat, dtype=float)
-        wd = np.zeros(ndat, dtype=float)
-        locXYZ = np.zeros((ndat, 3), dtype=float)
-
-        ii = 0
-        while ii < ndat:
-            temp = np.array(line.split(), dtype=float)
-            if len(temp) > 0:
-                locXYZ[ii, :] = temp[:3]
-                d[ii] = temp[3]
-                wd[ii] = temp[4]
-                ii += 1
-            line = fid.readline()
-
-        rxLoc = BaseGrav.RxObs(locXYZ)
-        srcField = BaseGrav.SrcField([rxLoc])
-        survey = BaseGrav.LinearSurvey(srcField)
-        survey.dobs = d
-        survey.std = wd
-        return survey
