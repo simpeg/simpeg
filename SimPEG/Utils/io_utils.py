@@ -233,3 +233,97 @@ def download(
 
     print("Download completed!")
     return downloadpath if isinstance(url, list) else downloadpath[0]
+
+
+def readUBCmagneticsObservations(obs_file):
+    """
+        Read and write UBC mag file format
+
+        INPUT:
+        :param fileName, path to the UBC obs mag file
+
+        OUTPUT:
+        :param survey
+        :param M, magnetization orentiaton (MI, MD)
+    """
+
+    fid = open(obs_file, 'r')
+
+    # First line has the inclination,declination and amplitude of B0
+    line = fid.readline()
+    B = np.array(line.split(), dtype=float)
+
+    # Second line has the magnetization orientation and a flag
+    line = fid.readline()
+    M = np.array(line.split(), dtype=float)
+
+    # Third line has the number of rows
+    line = fid.readline()
+    ndat = int(line.strip())
+
+    # Pre-allocate space for obsx, obsy, obsz, data, uncert
+    line = fid.readline()
+    temp = np.array(line.split(), dtype=float)
+
+    d = np.zeros(ndat, dtype=float)
+    wd = np.zeros(ndat, dtype=float)
+    locXYZ = np.zeros((ndat, 3), dtype=float)
+
+    ii = 0
+    while ii < ndat:
+
+        temp = np.array(line.split(), dtype=float)
+        if len(temp) > 0:
+            locXYZ[ii, :] = temp[:3]
+
+            if len(temp) > 3:
+                d[ii] = temp[3]
+
+                if len(temp) == 5:
+                    wd[ii] = temp[4]
+            ii += 1
+        line = fid.readline()
+
+    rxLoc = MAG.RxObs(locXYZ)
+    srcField = MAG.SrcField([rxLoc], param=(B[2], B[0], B[1]))
+    survey = MAG.LinearSurvey(srcField)
+    survey.dobs = d
+    survey.std = wd
+    return survey, M
+
+
+def writeUBCmagneticsObservations(filename, survey, d):
+    """
+    writeUBCobs(filename,B,M,rxLoc,d,wd)
+
+    Function writing an observation file in UBC-MAG3D format.
+
+    INPUT
+    filename    : Name of out file including directory
+    survey
+    flag          : dobs | dpred
+
+    OUTPUT
+    Obsfile
+
+    Created on Dec, 27th 2015
+
+    @author: dominiquef
+    """
+
+    B = survey.srcField.param
+
+    rxLoc = survey.srcField.rxList[0].locs
+
+    wd = survey.std
+
+    data = np.c_[rxLoc, d, wd]
+    head = ('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0]) +
+            '%6.2f %6.2f %6.2f\n' % (B[1], B[2], 1) +
+            '%i\n' % len(d))
+    np.savetxt(
+        filename, data, fmt='%e', delimiter=' ',
+        newline='\n', header=head, comments=''
+    )
+
+    print("Observation file saved to: " + filename)

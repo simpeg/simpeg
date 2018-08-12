@@ -158,7 +158,6 @@ class RegularizationMesh(Props.BaseSimPEG):
                 # if getattr(self.mesh, 'aveCC2Fy', None) is not None:
                 if self.mesh._meshType == "TREE":
                     if self.regularization_type == "Tikhonov":
-                        print ("Use Tikhonov")
                         indActive_Fy = (
                             (self.mesh.aveFy2CC.T * self.indActive) >= 1
                         )
@@ -166,7 +165,6 @@ class RegularizationMesh(Props.BaseSimPEG):
                             Utils.speye(self.mesh.nFy)[:, indActive_Fy]
                         )
                     else:
-                        print ("Use Simple")
                         indActive_Fy = (
                             (self.mesh._aveCC2FyStencil() * self.indActive) >= 1
                         )
