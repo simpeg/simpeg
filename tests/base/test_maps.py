@@ -13,20 +13,22 @@ MAPS_TO_EXCLUDE_2D = [
     "LogMap", "ReciprocalMap",
     "Surject2Dto3D", "Map2Dto3D", "Mesh2Mesh",
     "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
-    "SplineMap", "BaseParametric", "ParametricBlock",
+    "SplineMap", "BaseParametric", "ParametricBlock", "ParametricEllipsoid",
     "ParametricCasingAndLayer",
     "ParametricLayer", "ParametricBlockInLayer",
-    "Projection", "SelfConsistentEffectiveMedium"
+    "Projection", "SelfConsistentEffectiveMedium",
+    "SumMap", "SurjectUnits"
 ]
 MAPS_TO_EXCLUDE_3D = [
     "ComboMap", "ActiveCells", "InjectActiveCells",
     "LogMap", "ReciprocalMap",
     "CircleMap", "ParametricCircleMap", "Mesh2Mesh",
-    "BaseParametric", "ParametricBlock",
+    "BaseParametric", "ParametricBlock", "ParametricEllipsoid",
     "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
     "SplineMap", "ParametricCasingAndLayer",
     "ParametricLayer", "ParametricBlockInLayer",
-    "Projection", "SelfConsistentEffectiveMedium"
+    "Projection", "SelfConsistentEffectiveMedium",
+    "SumMap", "SurjectUnits"
 ]
 
 

@@ -22,7 +22,7 @@ from discretize.Tests import checkDerivative
 from . import Utils
 
 
-class IdentityMap(object):
+class IdentityMap(properties.HasProperties):
     """
         SimPEG Map
     """
@@ -2199,6 +2199,303 @@ class ParametricLayer(BaseParametric):
             ]).T)
 
 
+# class ParametricBlock(BaseParametric):
+#     """
+#         Parametric Block in a Homogeneous Space
+
+#         For 2D:
+
+#         .. code:: python
+
+#             m = [
+#                 val_background,
+#                 val_block,
+#                 block_x0,
+#                 block_dx,
+#                 block_y0,
+#                 block_dy
+#             ]
+
+#         For 3D:
+
+#         .. code:: python
+
+#             m = [
+#                 val_background,
+#                 val_block,
+#                 block_x0,
+#                 block_dx,
+#                 block_y0,
+#                 block_dy
+#                 block_z0,
+#                 block_dz
+#             ]
+
+#         **Required**
+
+#         :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+
+#         **Optional**
+
+#         :param float slopeFact: arctan slope factor - divided by the minimum h
+#                                 spacing to give the slope of the arctan
+#                                 functions
+#         :param float slope: slope of the arctan function
+#         :param numpy.ndarray indActive: bool vector with active indices
+
+#     """
+
+#     def __init__(self, mesh, **kwargs):
+
+#         super(ParametricBlock, self).__init__(mesh, **kwargs)
+
+#     @property
+#     def nP(self):
+#         if self.mesh.dim == 2:
+#             return 6
+#         elif self.mesh.dim == 3:
+#             return 8
+
+#     @property
+#     def shape(self):
+#         if self.indActive is not None:
+#             return (sum(self.indActive), self.nP)
+#         return (self.mesh.nC, self.nP)
+
+#     def _mDict2d(self, m):
+#         return {
+#             'val_background': m[0],
+#             'val_block': m[1],
+#             'x0_block': m[2],
+#             'dx_block': m[3],
+#             'y0_block': m[4],
+#             'dy_block': m[5],
+#         }
+
+#     def _mDict3d(self, m):
+#         return {
+#             'val_background': m[0],
+#             'val_block': m[1],
+#             'x0_block': m[2],
+#             'dx_block': m[3],
+#             'y0_block': m[4],
+#             'dy_block': m[5],
+#             'z0_block': m[6],
+#             'dz_block': m[7],
+#         }
+
+#     def mDict(self, m):
+#         if self.mesh.dim == 2:
+#             return self._mDict2d(m)
+#         elif self.mesh.dim == 3:
+#             return self._mDict3d(m)
+
+#     def xleft(self, mDict):
+#         return mDict['x0_block'] - 0.5*mDict['dx_block']
+
+#     def xright(self, mDict):
+#         return mDict['x0_block'] + 0.5*mDict['dx_block']
+
+#     def yleft(self, mDict):
+#         return mDict['y0_block'] - 0.5*mDict['dy_block']
+
+#     def yright(self, mDict):
+#         return mDict['y0_block'] + 0.5*mDict['dy_block']
+
+#     def zleft(self, mDict):
+#         return mDict['z0_block'] - 0.5*mDict['dz_block']
+
+#     def zright(self, mDict):
+#         return mDict['z0_block'] + 0.5*mDict['dz_block']
+
+#     def _atanBlock2d(self, mDict):
+#         return (
+#             self._atanfct(self.x - self.xleft(mDict), self.slope) *
+#             self._atanfct(self.x - self.xright(mDict), -self.slope) *
+#             self._atanfct(self.y - self.yleft(mDict), self.slope) *
+#             self._atanfct(self.y - self.yright(mDict), -self.slope)
+#         )
+
+#     def _atanBlockDeriv_center(self, mDict, direction):
+#         grid = getattr(self, direction)
+#         left = getattr(self, '{}left'.format(direction))(mDict)
+#         right = getattr(self, '{}right'.format(direction))(mDict)
+#         return (
+#             (
+#                 self._atanfctDeriv(grid - left, self.slope) *
+#                 self._atanfct(grid - right, -self.slope)
+#             ) +
+#             (
+#                 self._atanfct(grid - left, self.slope) *
+#                 self._atanfctDeriv(grid - right, -self.slope)
+#             )
+#         )
+
+#     def _atanBlockDeriv_width(self, mDict, direction):
+#         grid = getattr(self, direction)
+#         left = getattr(self, '{}left'.format(direction))(mDict)
+#         right = getattr(self, '{}right'.format(direction))(mDict)
+#         return (
+#             (
+#                 self._atanfctDeriv(grid - left, self.slope) *
+#                 -0.5 * self._atanfct(grid - right, -self.slope)
+#             ) +
+#             (
+#                 self._atanfct(grid - left, self.slope) *
+#                 0.5 * self._atanfctDeriv(grid - right, -self.slope)
+#             )
+#         )
+
+#     def _atanBlock2dDeriv_x0(self, mDict):
+#         return (
+#             self._atanBlockDeriv_center(mDict, 'x') *
+#             self._atanfct(self.y - self.yleft(mDict), self.slope) *
+#             self._atanfct(self.y - self.yright(mDict), -self.slope)
+#         )
+
+#     def _atanBlock2dDeriv_dx(self, mDict):
+#         return (
+#             self._atanBlockDeriv_width(mDict, 'x') *
+#             self._atanfct(self.y - self.yleft(mDict), self.slope) *
+#             self._atanfct(self.y - self.yright(mDict), -self.slope)
+#         )
+
+#     def _atanBlock2dDeriv_y0(self, mDict):
+#         return (
+#             self._atanfct(self.x - self.xleft(mDict), self.slope) *
+#             self._atanfct(self.x - self.xright(mDict), -self.slope) *
+#             self._atanBlockDeriv_center(mDict, 'y')
+#         )
+
+#     def _atanBlock2dDeriv_dy(self, mDict):
+#         return (
+#             self._atanfct(self.x - self.xleft(mDict), self.slope) *
+#             self._atanfct(self.x - self.xright(mDict), -self.slope) *
+#             self._atanBlockDeriv_width(mDict, 'y')
+#         )
+
+#     def _atanBlock3d(self, mDict):
+#         return (
+#             self._atanBlock2d(self, mDict) *
+#             self._atanfct(self.z - self.zleft(mDict), self.slope) *
+#             self._atanfct(self.z - self.zright(mDict), -self.slope)
+#         )
+
+#     def _atanBlock3dDeriv_x0(self, mDict):
+#         return self._atanBlock2dDeriv_x0(self, mDict) * (
+#             self._atanfct(self.z - self.zleft(mDict), self.slope) *
+#             self._atanfct(self.z - self.zright(mDict), -self.slope)
+#         )
+
+#     def _atanBlock3dDeriv_dx(self, mDict):
+#         return self._atanBlock2dDeriv_dx(self, mDict) * (
+#             self._atanfct(self.z - self.zleft(mDict), self.slope) *
+#             self._atanfct(self.z - self.zright(mDict), -self.slope)
+#         )
+
+#     def _atanBlock3dDeriv_y0(self, mDict):
+#         return self._atanBlock2dDeriv_y0(self, mDict) * (
+#             self._atanfct(self.z - self.zleft(mDict), self.slope) *
+#             self._atanfct(self.z - self.zright(mDict), -self.slope)
+#         )
+
+#     def _atanBlock3dDeriv_dy(self, mDict):
+#         return self._atanBlock2d(self, mDict) * (
+#             self._atanfct(self.z - self.zleft(mDict), self.slope) *
+#             self._atanfct(self.z - self.zright(mDict), -self.slope)
+#         )
+
+#     def _atanBlock3dDeriv_z0(self, mDict):
+#         return (
+#             self._atanBlock2d(self, mDict) *
+#             self._atanBlockDeriv_center(mDict, 'z')
+#         )
+
+#     def _atanBlock3dDeriv_dz(self, mDict):
+#         return (
+#             self._atanBlock2d(self, mDict) *
+#             self._atanBlockDeriv_width(mDict, 'z')
+#         )
+
+#     def _transform(self, m):
+#         mDict = self.mDict(m)
+#         return (
+#             mDict['val_background'] +
+#             (mDict['val_block'] - mDict['val_background']) *
+#             getattr(self, '_atanBlock{}d'.format(self.mesh.dim))(mDict)
+#         )
+
+#     def _deriv_val_background(self, mDict):
+#         return (
+#             np.ones_like(self.x) -
+#             getattr(self, '_atanBlock{}d'.format(self.mesh.dim))(mDict)
+#         )
+
+#     def _deriv_val_block(self, mDict):
+#         return getattr(self, '_atanBlock{}d'.format(self.mesh.dim))(mDict)
+
+#     def _deriv_x0_block(self, mDict):
+#         return (
+#             (mDict['val_block'] - mDict['val_background']) *
+#             getattr(self, '_atanBlock{}dDeriv_x0'.format(self.mesh.dim))(mDict)
+#         )
+
+#     def _deriv_dx_block(self, mDict):
+#         return (
+#             (mDict['val_block'] - mDict['val_background']) *
+#             getattr(self, '_atanBlock{}dDeriv_dx'.format(self.mesh.dim))(mDict)
+#         )
+
+#     def _deriv_y0_block(self, mDict):
+#         return (
+#             (mDict['val_block'] - mDict['val_background']) *
+#             getattr(self, '_atanBlock{}dDeriv_y0'.format(self.mesh.dim))(mDict)
+#         )
+
+#     def _deriv_dy_block(self, mDict):
+#         return (
+#             (mDict['val_block'] - mDict['val_background']) *
+#             getattr(self, '_atanBlock{}dDeriv_dy'.format(self.mesh.dim))(mDict)
+#         )
+
+#     def _deriv_z0_block(self, mDict):
+#         if self.mesh.dim > 2:
+#             return None
+#         return (
+#             (mDict['val_block'] - mDict['val_background']) *
+#             getattr(self, '_atanBlock{}dDeriv_z0'.format(self.mesh.dim))(mDict)
+#         )
+
+#     def _deriv_dz_block(self, mDict):
+#         if self.mesh.dim > 2:
+#             return None
+#         return (
+#             (mDict['val_block'] - mDict['val_background']) *
+#             getattr(self, '_atanBlock{}dDeriv_dz'.format(self.mesh.dim))(mDict)
+#         )
+
+#     def deriv(self, m):
+#         mDict = self.mDict(m)
+
+#         deriv = np.vstack([
+#             self._deriv_val_background(mDict),
+#             self._deriv_val_block(mDict),
+#             self._deriv_x0_block(mDict),
+#             self._deriv_dx_block(mDict),
+#             self._deriv_y0_block(mDict),
+#             self._deriv_dy_block(mDict),
+#         ])
+
+#         if self.mesh.dim == 3:
+#             deriv = np.vstack([
+#                 deriv,
+#                 self._deriv_z0_block(mDict),
+#                 self._deriv_dz_block(mDict),
+#             ])
+
+#         return sp.csr_matrix(deriv.T)
+
+
 class ParametricBlock(BaseParametric):
     """
         Parametric Block in a Homogeneous Space
@@ -2245,8 +2542,17 @@ class ParametricBlock(BaseParametric):
 
     """
 
-    def __init__(self, mesh, **kwargs):
+    epsilon = properties.Float(
+        "epsilon value used in the ekblom representation of the block",
+        default=1e-6
+    )
 
+    p = properties.Integer(
+        "p-value used in the ekblom representation of the block",
+        default=10
+    )
+
+    def __init__(self, mesh, **kwargs):
         super(ParametricBlock, self).__init__(mesh, **kwargs)
 
     @property
@@ -2290,211 +2596,99 @@ class ParametricBlock(BaseParametric):
         elif self.mesh.dim == 3:
             return self._mDict3d(m)
 
-    def xleft(self, mDict):
-        return mDict['x0_block'] - 0.5*mDict['dx_block']
+    def _ekblom(self, val):
+        return (val**2 + self.epsilon**2)**self.p
 
-    def xright(self, mDict):
-        return mDict['x0_block'] + 0.5*mDict['dx_block']
+    def _ekblomDeriv(self, val):
+        return self.p*(val**2 + self.epsilon**2)**(self.p - 1)*2*val
 
-    def yleft(self, mDict):
-        return mDict['y0_block'] - 0.5*mDict['dy_block']
-
-    def yright(self, mDict):
-        return mDict['y0_block'] + 0.5*mDict['dy_block']
-
-    def zleft(self, mDict):
-        return mDict['z0_block'] - 0.5*mDict['dz_block']
-
-    def zright(self, mDict):
-        return mDict['z0_block'] + 0.5*mDict['dz_block']
-
-    def _atanBlock2d(self, mDict):
-        return (
-            self._atanfct(self.x - self.xleft(mDict), self.slope) *
-            self._atanfct(self.x - self.xright(mDict), -self.slope) *
-            self._atanfct(self.y - self.yleft(mDict), self.slope) *
-            self._atanfct(self.y - self.yright(mDict), -self.slope)
+    def _block2D(self, mDict):
+        return 1 - (
+            self._ekblom((self.x - mDict['x0_block']) / mDict['dx_block']) +
+            self._ekblom((self.y - mDict['y0_block']) / mDict['dy_block'])
         )
 
-    def _atanBlockDeriv_center(self, mDict, direction):
-        grid = getattr(self, direction)
-        left = getattr(self, '{}left'.format(direction))(mDict)
-        right = getattr(self, '{}right'.format(direction))(mDict)
-        return (
-            (
-                self._atanfctDeriv(grid - left, self.slope) *
-                self._atanfct(grid - right, -self.slope)
-            ) +
-            (
-                self._atanfct(grid - left, self.slope) *
-                self._atanfctDeriv(grid - right, -self.slope)
-            )
-        )
-
-    def _atanBlockDeriv_width(self, mDict, direction):
-        grid = getattr(self, direction)
-        left = getattr(self, '{}left'.format(direction))(mDict)
-        right = getattr(self, '{}right'.format(direction))(mDict)
-        return (
-            (
-                self._atanfctDeriv(grid - left, self.slope) *
-                -0.5 * self._atanfct(grid - right, -self.slope)
-            ) +
-            (
-                self._atanfct(grid - left, self.slope) *
-                0.5 * self._atanfctDeriv(grid - right, -self.slope)
-            )
-        )
-
-    def _atanBlock2dDeriv_x0(self, mDict):
-        return (
-            self._atanBlockDeriv_center(mDict, 'x') *
-            self._atanfct(self.y - self.yleft(mDict), self.slope) *
-            self._atanfct(self.y - self.yright(mDict), -self.slope)
-        )
-
-    def _atanBlock2dDeriv_dx(self, mDict):
-        return (
-            self._atanBlockDeriv_width(mDict, 'x') *
-            self._atanfct(self.y - self.yleft(mDict), self.slope) *
-            self._atanfct(self.y - self.yright(mDict), -self.slope)
-        )
-
-    def _atanBlock2dDeriv_y0(self, mDict):
-        return (
-            self._atanfct(self.x - self.xleft(mDict), self.slope) *
-            self._atanfct(self.x - self.xright(mDict), -self.slope) *
-            self._atanBlockDeriv_center(mDict, 'y')
-        )
-
-    def _atanBlock2dDeriv_dy(self, mDict):
-        return (
-            self._atanfct(self.x - self.xleft(mDict), self.slope) *
-            self._atanfct(self.x - self.xright(mDict), -self.slope) *
-            self._atanBlockDeriv_width(mDict, 'y')
-        )
-
-    def _atanBlock3d(self, mDict):
-        return (
-            self._atanBlock2d(self, mDict) *
-            self._atanfct(self.z - self.zleft(mDict), self.slope) *
-            self._atanfct(self.z - self.zright(mDict), -self.slope)
-        )
-
-    def _atanBlock3dDeriv_x0(self, mDict):
-        return self._atanBlock2dDeriv_x0(self, mDict) * (
-            self._atanfct(self.z - self.zleft(mDict), self.slope) *
-            self._atanfct(self.z - self.zright(mDict), -self.slope)
-        )
-
-    def _atanBlock3dDeriv_dx(self, mDict):
-        return self._atanBlock2dDeriv_dx(self, mDict) * (
-            self._atanfct(self.z - self.zleft(mDict), self.slope) *
-            self._atanfct(self.z - self.zright(mDict), -self.slope)
-        )
-
-    def _atanBlock3dDeriv_y0(self, mDict):
-        return self._atanBlock2dDeriv_y0(self, mDict) * (
-            self._atanfct(self.z - self.zleft(mDict), self.slope) *
-            self._atanfct(self.z - self.zright(mDict), -self.slope)
-        )
-
-    def _atanBlock3dDeriv_dy(self, mDict):
-        return self._atanBlock2d(self, mDict) * (
-            self._atanfct(self.z - self.zleft(mDict), self.slope) *
-            self._atanfct(self.z - self.zright(mDict), -self.slope)
-        )
-
-    def _atanBlock3dDeriv_z0(self, mDict):
-        return (
-            self._atanBlock2d(self, mDict) *
-            self._atanBlockDeriv_center(mDict, 'z')
-        )
-
-    def _atanBlock3dDeriv_dz(self, mDict):
-        return (
-            self._atanBlock2d(self, mDict) *
-            self._atanBlockDeriv_width(mDict, 'z')
+    def _block3D(self, mDict):
+        return 1 - (
+            self._ekblom((self.x - mDict['x0_block']) / mDict['dx_block']) +
+            self._ekblom((self.y - mDict['y0_block']) / mDict['dy_block']) +
+            self._ekblom((self.z - mDict['z0_block']) / mDict['dz_block'])
         )
 
     def _transform(self, m):
         mDict = self.mDict(m)
         return (
             mDict['val_background'] +
-            (mDict['val_block'] - mDict['val_background']) *
-            getattr(self, '_atanBlock{}d'.format(self.mesh.dim))(mDict)
+            (mDict['val_block'] - mDict['val_background'])*self._atanfct(
+                getattr(self, "_block{}D".format(self.mesh.dim))(mDict),
+                slope=self.slope
+            )
         )
 
     def _deriv_val_background(self, mDict):
         return (
-            np.ones_like(self.x) -
-            getattr(self, '_atanBlock{}d'.format(self.mesh.dim))(mDict)
+            1 - self._atanfct(
+                getattr(self, "_block{}D".format(self.mesh.dim))(mDict),
+                slope=self.slope
+            )
         )
 
     def _deriv_val_block(self, mDict):
-        return getattr(self, '_atanBlock{}d'.format(self.mesh.dim))(mDict)
-
-    def _deriv_x0_block(self, mDict):
-        return (
-            (mDict['val_block'] - mDict['val_background']) *
-            getattr(self, '_atanBlock{}dDeriv_x0'.format(self.mesh.dim))(mDict)
+        return self._atanfct(
+            getattr(self, "_block{}D".format(self.mesh.dim))(mDict),
+            slope=self.slope
         )
 
-    def _deriv_dx_block(self, mDict):
-        return (
-            (mDict['val_block'] - mDict['val_background']) *
-            getattr(self, '_atanBlock{}dDeriv_dx'.format(self.mesh.dim))(mDict)
+    def _deriv_center_block(self, mDict, orientation):
+        x = getattr(self, orientation)
+        x0 = mDict["{}0_block".format(orientation)]
+        dx = mDict["d{}_block".format(orientation)]
+        return (mDict['val_block'] - mDict['val_background'])*(
+            self._atanfctDeriv(
+                getattr(self, "_block{}D".format(self.mesh.dim))(mDict),
+                slope=self.slope
+            ) * (self._ekblomDeriv((x - x0) / dx)) / -dx
         )
 
-    def _deriv_y0_block(self, mDict):
-        return (
-            (mDict['val_block'] - mDict['val_background']) *
-            getattr(self, '_atanBlock{}dDeriv_y0'.format(self.mesh.dim))(mDict)
+    def _deriv_width_block(self, mDict, orientation):
+        x = getattr(self, orientation)
+        x0 = mDict["{}0_block".format(orientation)]
+        dx = mDict["d{}_block".format(orientation)]
+        return (mDict['val_block'] - mDict['val_background'])*(
+            self._atanfctDeriv(
+                getattr(self, "_block{}D".format(self.mesh.dim))(mDict),
+                slope=self.slope
+            ) * (
+                self._ekblomDeriv((x - x0) / dx) * (-(x - x0) / dx**2)
+            )
         )
 
-    def _deriv_dy_block(self, mDict):
-        return (
-            (mDict['val_block'] - mDict['val_background']) *
-            getattr(self, '_atanBlock{}dDeriv_dy'.format(self.mesh.dim))(mDict)
-        )
-
-    def _deriv_z0_block(self, mDict):
-        if self.mesh.dim > 2:
-            return None
-        return (
-            (mDict['val_block'] - mDict['val_background']) *
-            getattr(self, '_atanBlock{}dDeriv_z0'.format(self.mesh.dim))(mDict)
-        )
-
-    def _deriv_dz_block(self, mDict):
-        if self.mesh.dim > 2:
-            return None
-        return (
-            (mDict['val_block'] - mDict['val_background']) *
-            getattr(self, '_atanBlock{}dDeriv_dz'.format(self.mesh.dim))(mDict)
-        )
-
-    def deriv(self, m):
-        mDict = self.mDict(m)
-
-        deriv = np.vstack([
+    def _deriv2D(self, mDict):
+        return np.vstack([
             self._deriv_val_background(mDict),
             self._deriv_val_block(mDict),
-            self._deriv_x0_block(mDict),
-            self._deriv_dx_block(mDict),
-            self._deriv_y0_block(mDict),
-            self._deriv_dy_block(mDict),
-        ])
+            self._deriv_center_block(mDict, 'x'),
+            self._deriv_width_block(mDict, 'x'),
+            self._deriv_center_block(mDict, 'y'),
+            self._deriv_width_block(mDict, 'y'),
+        ]).T
 
-        if self.mesh.dim == 3:
-            deriv = np.vstack([
-                deriv,
-                self._deriv_z0_block(mDict),
-                self._deriv_dz_block(mDict),
-            ])
+    def _deriv3D(self, mDict):
+        return np.vstack([
+            self._deriv_val_background(mDict),
+            self._deriv_val_block(mDict),
+            self._deriv_center_block(mDict, 'x'),
+            self._deriv_width_block(mDict, 'x'),
+            self._deriv_center_block(mDict, 'y'),
+            self._deriv_width_block(mDict, 'y'),
+            self._deriv_center_block(mDict, 'z'),
+            self._deriv_width_block(mDict, 'z')
+        ]).T
 
-        return sp.csr_matrix(deriv.T)
-
+    def deriv(self, m):
+        return sp.csr_matrix(
+            getattr(self, '_deriv{}D'.format(self.mesh.dim))(self.mDict(m))
+        )
 
 class ParametricEllipsoid(BaseParametric):
     """
@@ -2566,9 +2760,9 @@ class ParametricEllipsoid(BaseParametric):
             'val_background': m[0],
             'val_ellipsoid': m[1],
             'x0_ellipsoid': m[2],
-            'a_ellipsoid': m[3],
+            'rx_ellipsoid': m[3],
             'y0_ellipsoid': m[4],
-            'b_ellipsoid': m[5],
+            'ry_ellipsoid': m[5],
         }
 
     def _mDict3d(self, m):
@@ -2576,11 +2770,11 @@ class ParametricEllipsoid(BaseParametric):
             'val_background': m[0],
             'val_ellipsoid': m[1],
             'x0_ellipsoid': m[2],
-            'a_ellipsoid': m[3],
+            'rx_ellipsoid': m[3],
             'y0_ellipsoid': m[4],
-            'b_ellipsoid': m[5],
+            'ry_ellipsoid': m[5],
             'z0_ellipsoid': m[6],
-            'c_ellipsoid': m[7],
+            'rz_ellipsoid': m[7],
         }
 
     def mDict(self, m):
@@ -2591,15 +2785,15 @@ class ParametricEllipsoid(BaseParametric):
 
     def _ellipsoid2D(self, mDict):
         return 1 - (
-            ((self.x - mDict['x0_ellipsoid']) / mDict['a_ellipsoid'])**2 +
-            ((self.y - mDict['y0_ellipsoid']) / mDict['b_ellipsoid'])**2
+            ((self.x - mDict['x0_ellipsoid']) / mDict['rx_ellipsoid'])**2 +
+            ((self.y - mDict['y0_ellipsoid']) / mDict['ry_ellipsoid'])**2
         )
 
     def _ellipsoid3D(self, mDict):
         return 1 - (
-            ((self.x - mDict['x0_ellipsoid']) / mDict['a_ellipsoid'])**2 +
-            ((self.y - mDict['y0_ellipsoid']) / mDict['b_ellipsoid'])**2 +
-            ((self.z - mDict['z0_ellipsoid']) / mDict['c_ellipsoid'])**2
+            ((self.x - mDict['x0_ellipsoid']) / mDict['rx_ellipsoid'])**2 +
+            ((self.y - mDict['y0_ellipsoid']) / mDict['ry_ellipsoid'])**2 +
+            ((self.z - mDict['z0_ellipsoid']) / mDict['rz_ellipsoid'])**2
         )
 
     def _transform(self, m):
@@ -2626,86 +2820,48 @@ class ParametricEllipsoid(BaseParametric):
             slope=self.slope
         )
 
-    def _deriv_x0_ellipsoid(self, mDict):
-        return (
+    def _deriv_center_ellipsoid(self, mDict, orientation):
+        x = getattr(self, orientation)
+        x0 = mDict['{}0_ellipsoid'.format(orientation)]
+        rx = mDict['r{}_ellipsoid'.format(orientation)]
+        return (mDict['val_ellipsoid'] - mDict['val_background'])*(
             self._atanfctDeriv(
                 getattr(self, "_ellipsoid{}D".format(self.mesh.dim))(mDict),
                 slope=self.slope
-            ) * (
-                2 * mDict['x0_ellipsoid'] / mDict['a_ellipsoid']**2
-            )
+            ) * (-2 * (x - x0) / rx**2)
         )
 
-    def _deriv_a_ellipsoid(self, mDict):
-        return (
+    def _deriv_semiaxis_ellipsoid(self, mDict, orientation):
+        x = getattr(self, orientation)
+        x0 = mDict['{}0_ellipsoid'.format(orientation)]
+        rx = mDict['r{}_ellipsoid'.format(orientation)]
+        return (mDict['val_ellipsoid'] - mDict['val_background'])*(
             self._atanfctDeriv(
                 getattr(self, "_ellipsoid{}D".format(self.mesh.dim))(mDict),
                 slope=self.slope
-            ) * (
-                -2 * mDict['x0_ellipsoid']**2 / mDict['a_ellipsoid']**3
-            )
-        )
-
-    def _deriv_y0_ellipsoid(self, mDict):
-        return (
-            self._atanfctDeriv(
-                getattr(self, "_ellipsoid{}D".format(self.mesh.dim))(mDict),
-                slope=self.slope
-            ) * (
-                2 * mDict['y0_ellipsoid'] / mDict['b_ellipsoid']**2
-            )
-        )
-
-    def _deriv_b_ellipsoid(self, mDict):
-        return (
-            self._atanfctDeriv(
-                getattr(self, "_ellipsoid{}D".format(self.mesh.dim))(mDict),
-                slope=self.slope
-            ) * (
-                -2 * mDict['y0_ellipsoid']**2 / mDict['b_ellipsoid']**3
-            )
-        )
-
-    def _deriv_z0_ellipsoid(self, mDict):
-        return (
-            self._atanfctDeriv(
-                getattr(self, "_ellipsoid{}D".format(self.mesh.dim))(mDict),
-                slope=self.slope
-            ) * (
-                2 * mDict['z0_ellipsoid'] / mDict['c_ellipsoid']**2
-            )
-        )
-
-    def _deriv_c_ellipsoid(self, mDict):
-        return (
-            self._atanfctDeriv(
-                getattr(self, "_ellipsoid{}D".format(self.mesh.dim))(mDict),
-                slope=self.slope
-            ) * (
-                -2 * mDict['z0_ellipsoid']**2 / mDict['c_ellipsoid']**3
-            )
+            ) * (-2 * (x - x0)**2 / rx**3)
         )
 
     def _deriv2D(self, mDict):
         return np.vstack([
             self._deriv_val_background(mDict),
             self._deriv_val_ellipsoid(mDict),
-            self._deriv_x0_ellipsoid(mDict),
-            self._deriv_a_ellipsoid(mDict),
-            self._deriv_y0_ellipsoid(mDict),
-            self._deriv_b_ellipsoid(mDict),
+            self._deriv_center_ellipsoid(mDict, 'x'),
+            self._deriv_semiaxis_ellipsoid(mDict, 'x'),
+            self._deriv_center_ellipsoid(mDict, 'y'),
+            self._deriv_semiaxis_ellipsoid(mDict, 'y'),
         ]).T
 
     def _deriv3D(self, mDict):
         return np.vstack([
             self._deriv_val_background(mDict),
             self._deriv_val_ellipsoid(mDict),
-            self._deriv_x0_ellipsoid(mDict),
-            self._deriv_a_ellipsoid(mDict),
-            self._deriv_y0_ellipsoid(mDict),
-            self._deriv_b_ellipsoid(mDict),
-            self._deriv_z0_ellipsoid(mDict),
-            self._deriv_c_ellipsoid(mDict),
+            self._deriv_center_ellipsoid(mDict, 'x'),
+            self._deriv_semiaxis_ellipsoid(mDict, 'x'),
+            self._deriv_center_ellipsoid(mDict, 'y'),
+            self._deriv_semiaxis_ellipsoid(mDict, 'y'),
+            self._deriv_center_ellipsoid(mDict, 'z'),
+            self._deriv_semiaxis_ellipsoid(mDict, 'z')
         ]).T
 
     def deriv(self, m):
