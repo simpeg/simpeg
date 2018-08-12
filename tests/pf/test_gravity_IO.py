@@ -43,14 +43,14 @@ class GravSensProblemTests(unittest.TestCase):
         print(driver.eps)
 
         # Write obs to file
-        PF.Gravity.writeUBCobs(
+        io_utils.writeUBCgravityObservations(
             os.path.sep.join(
                 [self.basePath, 'FWR_data.dat']
             ),
             driver.survey, driver.survey.dobs
         )
         # Read it back
-        data = PF.Gravity.readGravityObservations(
+        data = io_utils.readUBCgravityObservations(
                 os.path.sep.join(
                     [self.basePath, 'FWR_data.dat']
                 )

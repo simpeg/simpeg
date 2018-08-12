@@ -41,13 +41,13 @@ class MagSensProblemTests(unittest.TestCase):
         print(driver.eps)
 
         # Write obs to file
-        PF.Magnetics.writeUBCobs(
+        io_utils.writeUBCmagneticsObservations(
             os.path.sep.join([self.basePath, 'FWR_data.dat']),
             driver.survey, driver.survey.dobs
         )
 
         # Read it back
-        data, _ = PF.Magnetics.readMagneticsObservations(
+        data, _ = io_utils.readUBCmagneticsObservations(
                 os.path.sep.join(
                     [self.basePath, 'FWR_data.dat']
                 )
