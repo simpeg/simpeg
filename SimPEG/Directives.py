@@ -733,10 +733,10 @@ class Update_IRLS(InversionDirective):
 
                 if reg.eps_p > self.floorEps_p and self.coolEps_p:
                     reg.eps_p /= self.coolEpsFact
-                    print('Eps_p: ' + str(reg.eps_p))
+                    # print('Eps_p: ' + str(reg.eps_p))
                 if reg.eps_q > self.floorEps_q and self.coolEps_q:
                     reg.eps_q /= self.coolEpsFact
-                    print('Eps_q: ' + str(reg.eps_q))
+                    # print('Eps_q: ' + str(reg.eps_q))
 
             # Remember the value of the norm from previous R matrices
             # self.f_old = self.reg(self.invProb.model)
@@ -881,18 +881,30 @@ class UpdatePreconditioner(InversionDirective):
     """
     onlyOnStart = False
     mapping = None
-    ComboObjFun = False
+    misfitDiag = None
+    epsilon = 1e-8
 
     def initialize(self):
 
-        if getattr(self.opt, 'approxHinv', None) is None:
+        # Create the pre-conditioner
+        regDiag = np.zeros_like(self.invProb.model)
 
+        for reg in self.reg.objfcts:
+            # Check if regularization has a projection
+            if getattr(reg.mapping, 'P', None) is None:
+                regDiag += (reg.W.T*reg.W).diagonal()
+            else:
+                P = reg.mapping.P
+                regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
+
+        # Deal with the linear case
+        if getattr(self.opt, 'JtJdiag', None) is None:
+
+            print("Approximated diag(JtJ) with linear operator")
+
+            JtJdiag = np.zeros_like(self.invProb.model)
             m = self.invProb.model
-
-            if getattr(self.opt, 'JtJdiag', None) is None:
-
-                JtJdiag = np.zeros_like(m)
-                for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
+            for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
 
                     if getattr(prob, 'getJtJdiag', None) is None:
                         assert getattr(prob, 'getJ', None) is not None, (
@@ -901,36 +913,35 @@ class UpdatePreconditioner(InversionDirective):
                         )
                         JtJdiag += np.sum(np.power((dmisfit.W*prob.getJ(m)), 2), axis=0)
                     else:
-                        JtJdiag += prob.getJtJdiag(m)
+                        JtJdiag += prob.getJtJdiag(m, W=dmisfit.W)
+            self.opt.JtJdiag = JtJdiag
 
-                self.opt.JtJdiag = JtJdiag
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
-            # Update the pre-conditioner
-            reg_diag = np.zeros_like(m)
-            for reg in self.reg.objfcts:
-                W = reg.deriv2(m)
-                reg_diag += self.invProb.beta * W.diagonal()
-            Hdiag = self.opt.JtJdiag + reg_diag
+        PC = Utils.sdiag((diagA)**-1.)
 
-            PC = Utils.sdiag(Hdiag**-1.)
-            self.opt.approxHinv = PC
+        self.opt.approxHinv = PC
 
     def endIter(self):
         # Cool the threshold parameter
         if self.onlyOnStart is True:
             return
 
-        if getattr(self.opt, 'approxHinv', None) is not None:
-            m = self.invProb.model
-            # Update the pre-conditioner
-            reg_diag = np.zeros_like(m)
-            for reg in self.reg.objfcts:
-                W = reg.deriv2(m)
-                reg_diag += self.invProb.beta * W.diagonal()
-            Hdiag = self.opt.JtJdiag + reg_diag
+        # Create the pre-conditioner
+        regDiag = np.zeros_like(self.invProb.model)
 
-            PC = Utils.sdiag(Hdiag**-1.)
-            self.opt.approxHinv = PC
+        for reg in self.reg.objfcts:
+            # Check if he has wire
+            if getattr(reg.mapping, 'P', None) is None:
+                regDiag += (reg.W.T*reg.W).diagonal()
+            else:
+                P = reg.mapping.P
+                regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
+        # Assumes that opt.JtJdiag has been updated or static
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
+
+        PC = Utils.sdiag((diagA)**-1.)
+        self.opt.approxHinv = PC
 
 
 class Update_Wj(InversionDirective):
@@ -1005,9 +1016,8 @@ class UpdateSensitivityWeights(InversionDirective):
         """
         self.JtJdiag = []
 
-        for prob, survey, dmisfit in zip(
+        for prob, dmisfit in zip(
             self.prob,
-            self.survey,
             self.dmisfit.objfcts
         ):
             m = self.invProb.model
@@ -1022,7 +1032,7 @@ class UpdateSensitivityWeights(InversionDirective):
 
                 self.JtJdiag += [mkvc(np.sum((dmisfit.W*prob.getJ(m))**(2.), axis=0))]
             else:
-                self.JtJdiag += [prob.getJtJdiag(m)]
+                self.JtJdiag += [prob.getJtJdiag(m, W=dmisfit.W)]
 
         return self.JtJdiag
 
