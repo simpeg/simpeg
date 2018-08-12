@@ -11,7 +11,7 @@ from SimPEG import Props
 from SimPEG import Mesh
 import multiprocessing
 import properties
-from SimPEG.Utils.matutils import dipazm_2_xyz
+from SimPEG.Utils import mkvc, matutils, sdiag
 from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
 
@@ -57,7 +57,7 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.coordinate_system == 'cartesian':
             m = self.chiMap*(chi)
         else:
-            m = self.chiMap*(atp2xyz(chi.reshape((int(len(chi)/3), 3), order='F')))
+            m = self.chiMap*(matutils.atp2xyz(chi.reshape((int(len(chi)/3), 3), order='F')))
 
         if self.forwardOnly:
             # Compute the linear operation without forming the full dense F
@@ -124,7 +124,7 @@ class MagneticIntegral(Problem.LinearProblem):
             D = (450.-float(self.survey.srcField.param[2])) % 360.
             I = self.survey.srcField.param[1]
             # Projection matrix
-            self._ProjTMI = Utils.mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
+            self._ProjTMI = mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
                               np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
                               np.sin(np.deg2rad(I))], 2).T
 
@@ -134,7 +134,7 @@ class MagneticIntegral(Problem.LinearProblem):
         """
             Return the diagonal of JtJ
         """
-
+        dmudm = self.chiMap.deriv(m)
         if self.gtgdiag is None:
 
             if W is None:
@@ -142,7 +142,6 @@ class MagneticIntegral(Problem.LinearProblem):
             else:
                 w = W.diagonal()
 
-            dmudm = self.chiMap.deriv(m)
             self.gtgdiag = np.zeros(dmudm.shape[1])
 
             for ii in range(self.G.shape[0]):
@@ -159,7 +158,7 @@ class MagneticIntegral(Problem.LinearProblem):
             if self.modelType == 'amplitude':
                 return np.sum(((W * self.dfdm) * self.G * (self.dSdm * dmudm))**2., axis=0)
             else:
-                Japprox = Utils.sdiag(mkvc(self.gtgdiag)**0.5*dmudm.T) * (self.dSdm * dmudm)
+                Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm.T) * (self.dSdm * dmudm)
                 return mkvc(np.sum(Japprox.power(2), axis=0))
 
     def getJ(self, m, f):
@@ -181,7 +180,7 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.coordinate_system == 'cartesian':
             dmudm = self.chiMap.deriv(m)
         else:
-            dmudm = self.dSsm * self.chiMap.deriv(m)
+            dmudm = self.dSdm * self.chiMap.deriv(m)
 
         if getattr(self, '_Mxyz', None) is not None:
 
@@ -226,10 +225,10 @@ class MagneticIntegral(Problem.LinearProblem):
 
             nC = int(len(self.model)/3)
 
-            m_xyz = self.chiMap * atp2xyz(self.model.reshape((nC, 3), order='F'))
+            m_xyz = self.chiMap * matutils.atp2xyz(self.model.reshape((nC, 3), order='F'))
 
             nC = int(m_xyz.shape[0]/3.)
-            m_atp = xyz2atp(m_xyz.reshape((nC, 3), order='F'))
+            m_atp = matutils.xyz2atp(m_xyz.reshape((nC, 3), order='F'))
 
             a = m_atp[:nC]
             t = m_atp[nC:2*nC]
@@ -283,7 +282,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         # Get field data
         if self.coordinate_system == 'spherical':
-            m = atp2xyz(m)
+            m = matutils.atp2xyz(m)
 
         if getattr(self, '_Mxyz', None) is not None:
             Bxyz = np.dot(self.G, (self.Mxyz*m).astype(np.float32))
@@ -351,21 +350,21 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.equiSourceLayer:
             zn1 -= 1000.
 
-        self.Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
-        self.Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
-        self.Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
+        self.Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
+        self.Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
+        self.Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
 
         # survey = self.survey
         self.rxLoc = self.survey.srcField.rxList[0].locs
 
         if magType == 'H0':
             if getattr(self, 'M', None) is None:
-                self.M = dipazm_2_xyz(np.ones(nC) * self.survey.srcField.param[1],
+                self.M = matutils.dipazm_2_xyz(np.ones(nC) * self.survey.srcField.param[1],
                                       np.ones(nC) * self.survey.srcField.param[2])
 
-            Mx = Utils.sdiag(self.M[:, 0] * self.survey.srcField.param[0])
-            My = Utils.sdiag(self.M[:, 1] * self.survey.srcField.param[0])
-            Mz = Utils.sdiag(self.M[:, 2] * self.survey.srcField.param[0])
+            Mx = sdiag(self.M[:, 0] * self.survey.srcField.param[0])
+            My = sdiag(self.M[:, 1] * self.survey.srcField.param[0])
+            Mz = sdiag(self.M[:, 2] * self.survey.srcField.param[0])
 
             self.Mxyz = sp.vstack((Mx, My, Mz))
 
@@ -538,7 +537,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
             self.mesh.getBCProjWF('neumann', discretization='CC')
 
         Dface = self.mesh.faceDiv
-        Mc = Utils.sdiag(self.mesh.vol)
+        Mc = sdiag(self.mesh.vol)
         self._Div = Mc * Dface * Pin.T * Pin
 
     @property
@@ -555,7 +554,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         self._MfMui = self.mesh.getFaceInnerProduct(1. / mu) / self.mesh.dim
         # self._MfMui = self.mesh.getFaceInnerProduct(1./mu)
         # TODO: this will break if tensor mu
-        self._MfMuI = Utils.sdiag(1. / self._MfMui.diagonal())
+        self._MfMuI = sdiag(1. / self._MfMui.diagonal())
         self._MfMu0 = self.mesh.getFaceInnerProduct(1. / mu_0) / self.mesh.dim
         # self._MfMu0 = self.mesh.getFaceInnerProduct(1/mu_0)
 
@@ -579,7 +578,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         """
         B0 = self.getB0()
         Dface = self.mesh.faceDiv
-        Mc = Utils.sdiag(self.mesh.vol)
+        Mc = sdiag(self.mesh.vol)
 
         mu = self.muMap * m
         chi = mu / mu_0 - 1
@@ -622,7 +621,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         A = self.getA(m)
         rhs = self.getRHS(m)
         m1 = sp.linalg.interface.aslinearoperator(
-            Utils.sdiag(1 / A.diagonal())
+            sdiag(1 / A.diagonal())
         )
         u, info = sp.linalg.bicgstab(A, rhs, tol=1e-6, maxiter=1000, M=m1)
         B0 = self.getB0()
@@ -710,7 +709,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         B, u = u['B'], u['u']
         mu = self.muMap * (m)
         dmudm = self.muDeriv
-        # dchidmu = Utils.sdiag(1 / mu_0 * np.ones(self.mesh.nC))
+        # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
         vol = self.mesh.vol
         Div = self._Div
@@ -719,8 +718,8 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         B0 = self.getB0()
 
         MfMuIvec = 1 / self.MfMui.diagonal()
-        dMfMuI = Utils.sdiag(MfMuIvec**2) * \
-            self.mesh.aveF2CC.T * Utils.sdiag(vol * 1. / mu**2)
+        dMfMuI = sdiag(MfMuIvec**2) * \
+            self.mesh.aveF2CC.T * sdiag(vol * 1. / mu**2)
 
         # A = self._Div*self.MfMuI*self._Div.T
         # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
@@ -728,10 +727,10 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         # dudm = -(dCdu)^(-1)dCdm
 
         dCdu = self.getA(m)
-        dCdm_A = Div * (Utils.sdiag(Div.T * u) * dMfMuI * dmudm)
-        dCdm_RHS1 = Div * (Utils.sdiag(self.MfMu0 * B0) * dMfMuI)
+        dCdm_A = Div * (sdiag(Div.T * u) * dMfMuI * dmudm)
+        dCdm_RHS1 = Div * (sdiag(self.MfMu0 * B0) * dMfMuI)
         # temp1 = (Dface * (self._Pout.T * self.Bbc_const * self.Bbc))
-        # dCdm_RHS2v = (Utils.sdiag(vol) * temp1) * \
+        # dCdm_RHS2v = (sdiag(vol) * temp1) * \
         #    np.inner(vol, dchidmu * dmudm * v)
 
         # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
@@ -739,7 +738,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         dCdm_v = dCdm_A * v - dCdm_RHSv
 
         m1 = sp.linalg.interface.aslinearoperator(
-            Utils.sdiag(1 / dCdu.diagonal())
+            sdiag(1 / dCdu.diagonal())
         )
         sol, info = sp.linalg.bicgstab(dCdu, dCdm_v,
                                        tol=1e-6, maxiter=1000, M=m1)
@@ -753,12 +752,12 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
 
         dudm = -sol
         dBdmv = (
-            Utils.sdiag(self.MfMu0 * B0) * (dMfMuI * (dmudm * v))
-            - Utils.sdiag(Div.T * u) * (dMfMuI * (dmudm * v))
+            sdiag(self.MfMu0 * B0) * (dMfMuI * (dmudm * v))
+            - sdiag(Div.T * u) * (dMfMuI * (dmudm * v))
             - self.MfMuI * (Div.T * (dudm))
         )
 
-        return Utils.mkvc(P * dBdmv)
+        return mkvc(P * dBdmv)
 
     @Utils.timeIt
     def Jtvec(self, m, v, u=None):
@@ -796,7 +795,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         B, u = u['B'], u['u']
         mu = self.mapping * (m)
         dmudm = self.mapping.deriv(m)
-        # dchidmu = Utils.sdiag(1 / mu_0 * np.ones(self.mesh.nC))
+        # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
         vol = self.mesh.vol
         Div = self._Div
@@ -806,8 +805,8 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         B0 = self.getB0()
 
         MfMuIvec = 1 / self.MfMui.diagonal()
-        dMfMuI = Utils.sdiag(MfMuIvec**2) * \
-            self.mesh.aveF2CC.T * Utils.sdiag(vol * 1. / mu**2)
+        dMfMuI = sdiag(MfMuIvec**2) * \
+            self.mesh.aveF2CC.T * sdiag(vol * 1. / mu**2)
 
         # A = self._Div*self.MfMuI*self._Div.T
         # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
@@ -818,7 +817,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         s = Div * (self.MfMuI.T * (P.T * v))
 
         m1 = sp.linalg.interface.aslinearoperator(
-            Utils.sdiag(1 / (dCdu.T).diagonal())
+            sdiag(1 / (dCdu.T).diagonal())
         )
         sol, info = sp.linalg.bicgstab(dCdu.T, s, tol=1e-6, maxiter=1000, M=m1)
 
@@ -826,22 +825,22 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
             print("Iterative solver did not work well (Jtvec)")
             # raise Exception ("Iterative solver did not work well")
 
-        # dCdm_A = Div * ( Utils.sdiag( Div.T * u )* dMfMuI *dmudm  )
-        # dCdm_Atsol = ( dMfMuI.T*( Utils.sdiag( Div.T * u ) * (Div.T * dmudm)) ) * sol
+        # dCdm_A = Div * ( sdiag( Div.T * u )* dMfMuI *dmudm  )
+        # dCdm_Atsol = ( dMfMuI.T*( sdiag( Div.T * u ) * (Div.T * dmudm)) ) * sol
         dCdm_Atsol = (dmudm.T * dMfMuI.T *
-                      (Utils.sdiag(Div.T * u) * Div.T)) * sol
+                      (sdiag(Div.T * u) * Div.T)) * sol
 
-        # dCdm_RHS1 = Div * (Utils.sdiag( self.MfMu0*B0  ) * dMfMuI)
-        # dCdm_RHS1tsol = (dMfMuI.T*( Utils.sdiag( self.MfMu0*B0  ) ) * Div.T * dmudm) * sol
+        # dCdm_RHS1 = Div * (sdiag( self.MfMu0*B0  ) * dMfMuI)
+        # dCdm_RHS1tsol = (dMfMuI.T*( sdiag( self.MfMu0*B0  ) ) * Div.T * dmudm) * sol
         dCdm_RHS1tsol = (
             dmudm.T * dMfMuI.T *
-            (Utils.sdiag(self.MfMu0 * B0)) * Div.T
+            (sdiag(self.MfMu0 * B0)) * Div.T
         ) * sol
 
         # temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
-        # temp1sol = (Dface.T * (Utils.sdiag(vol) * sol))
+        # temp1sol = (Dface.T * (sdiag(vol) * sol))
         # temp2 = self.Bbc_const * (self._Pout.T * self.Bbc).T
-        # dCdm_RHS2v  = (Utils.sdiag(vol)*temp1)*np.inner(vol, dchidmu*dmudm*v)
+        # dCdm_RHS2v  = (sdiag(vol)*temp1)*np.inner(vol, dchidmu*dmudm*v)
         # dCdm_RHS2tsol = (dmudm.T * dchidmu.T * vol) * np.inner(temp2, temp1sol)
 
         # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
@@ -859,11 +858,11 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         # dBdm = d\mudm*dBd\mu
         # dPBdm^T*v = Atemp^T*P^T*v - Btemp^T*P^T*v - Ctv
 
-        Atemp = Utils.sdiag(self.MfMu0 * B0) * (dMfMuI * (dmudm))
-        Btemp = Utils.sdiag(Div.T * u) * (dMfMuI * (dmudm))
+        Atemp = sdiag(self.MfMu0 * B0) * (dMfMuI * (dmudm))
+        Btemp = sdiag(Div.T * u) * (dMfMuI * (dmudm))
         Jtv = Atemp.T * (P.T * v) - Btemp.T * (P.T * v) - Ctv
 
-        return Utils.mkvc(Jtv)
+        return mkvc(Jtv)
 
 
 def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
@@ -1106,15 +1105,15 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
     hY, hX, hZ = np.meshgrid(mesh.hy, mesh.hx, mesh.hz)
 
     # Remove air cells
-    Xm = P.T * Utils.mkvc(Xm)
-    Ym = P.T * Utils.mkvc(Ym)
-    Zm = P.T * Utils.mkvc(Zm)
+    Xm = P.T * mkvc(Xm)
+    Ym = P.T * mkvc(Ym)
+    Zm = P.T * mkvc(Zm)
 
-    hX = P.T * Utils.mkvc(hX)
-    hY = P.T * Utils.mkvc(hY)
-    hZ = P.T * Utils.mkvc(hZ)
+    hX = P.T * mkvc(hX)
+    hY = P.T * mkvc(hY)
+    hZ = P.T * mkvc(hZ)
 
-    V = P.T * Utils.mkvc(mesh.vol)
+    V = P.T * mkvc(mesh.vol)
     wr = np.zeros(nC)
 
     ndata = rxLoc.shape[0]
@@ -1150,7 +1149,7 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
         count = progress(dd, count, ndata)
 
     wr = np.sqrt(wr) / V
-    wr = Utils.mkvc(wr)
+    wr = mkvc(wr)
     wr = np.sqrt(wr / (np.max(wr)))
 
     print("Done 100% ...distance weighting completed!!\n")

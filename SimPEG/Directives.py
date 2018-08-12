@@ -652,12 +652,12 @@ class Update_IRLS(InversionDirective):
                     self.sphericalDomain = True
 
         if self.sphericalDomain:
-            self._angleScale()
+            self.angleScale()
 
     def endIter(self):
 
         if self.sphericalDomain:
-            self._angleScale()
+            self.angleScale()
 
         # Check if misfit is within the tolerance, otherwise scale beta
         if np.all([
@@ -682,6 +682,7 @@ class Update_IRLS(InversionDirective):
                 # Re-use previous model and continue with new beta
                 self.invProb.model = self.reg.objfcts[0].model
                 self.opt.xc = self.reg.objfcts[0].model
+                self.opt.iter -= 1
                 return
 
         elif np.all([self.mode == 1, self.opt.iter % self.coolingRate == 0]):
@@ -772,27 +773,14 @@ class Update_IRLS(InversionDirective):
                 np.abs(1. - self.invProb.phi_d / self.target) < self.beta_tol
             ]):
 
-                print("Minimum decrease in regularization. End of IRLS")
+                print(
+                    "Minimum decrease in regularization." +
+                    "End of IRLS"
+                    )
                 self.opt.stopNextIteration = True
                 return
 
             self.f_old = phim_new
-
-            # Update gamma to scale the regularization between IRLS iterations
-            for reg, phim_old, phim_now in zip(self.reg.objfcts,
-                                               phi_m_last, phi_m_new
-                                               ):
-                # Now optional for extra care
-                if self.updateGamma:
-
-                    gamma = phim_old / phim_now
-
-                else:
-                    gamma = 1
-
-                # If comboObj, go down one more level
-                for comp in reg.objfcts:
-                    comp.gamma = gamma
 
             self.updateBeta = True
             self.invProb.phi_m_last = self.reg(self.invProb.model)
@@ -833,7 +821,6 @@ class Update_IRLS(InversionDirective):
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms in zip(self.reg.objfcts, self.norms):
-
             reg.norms = norms
 
         # Save l2-model
@@ -845,13 +832,11 @@ class Update_IRLS(InversionDirective):
                 print("eps_p: " + str(reg.eps_p) +
                       " eps_q: " + str(reg.eps_q))
 
-    @property
-    def _angleScale(self):
+    def angleScale(self):
         """
             Update the scales used by regularization for the
             different block of models
         """
-
         # Currently implemented for MVI-S only
         max_p = []
         for reg in self.reg.objfcts[0].objfcts:
@@ -865,7 +850,7 @@ class Update_IRLS(InversionDirective):
 
         max_s = [np.pi, np.pi]
         for obj, var in zip(self.reg.objfcts[1:], max_s):
-            obj.scale = max_p.max()/var
+            obj.scales = np.ones(obj.scales.shape)*max_p.max()/var
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
