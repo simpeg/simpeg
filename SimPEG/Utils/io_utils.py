@@ -369,3 +369,30 @@ def readUBCgravityObservations(obs_file):
     survey.dobs = d
     survey.std = wd
     return survey
+
+
+def writeUBCgravityObservations(filename, survey, d):
+    """
+    Write UBC grav file format
+
+    INPUT:
+    :param fileName, path to the UBC obs grav file
+
+    OUTPUT:
+    :param survey
+
+    """
+    from SimPEG.PF import BaseGrav
+
+    rxLoc = survey.srcField.rxList[0].locs
+
+    wd = survey.std
+
+    data = np.c_[rxLoc, d, wd]
+    head = ('%i\n' % len(d))
+    np.savetxt(
+        filename, data, fmt='%e', delimiter=' ',
+        newline='\n', header=head, comments=''
+    )
+
+    print("Observation file saved to: " + filename)
