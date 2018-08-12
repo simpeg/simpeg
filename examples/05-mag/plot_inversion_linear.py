@@ -109,7 +109,7 @@ def run(plotIt=True):
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.cell_weights = wr
     reg.mref = np.zeros(nC)
-    reg.norms = np.c_[0, 1, 1, 1]
+    reg.norms = np.c_[0, 0, 0, 0]
     # reg.eps_p, reg.eps_q = 1e-0, 1e-0
 
     # Data misfit function
@@ -118,7 +118,7 @@ def run(plotIt=True):
 
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
-                                     maxIterLS=20, maxIterCG=10, tolCG=1e-3)
+                                     maxIterLS=20, maxIterCG=20, tolCG=1e-3)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 
@@ -152,7 +152,7 @@ def run(plotIt=True):
         m_true[m_true == -100] = np.nan
 
         # Plot the data
-        PF.Magnetics.plot_obs_2D(rxLoc, d=d)
+        Utils.PlotUtils.plot2Ddata(rxLoc, d)
 
         plt.figure()
 

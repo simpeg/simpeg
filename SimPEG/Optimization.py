@@ -1064,8 +1064,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
     maxIterCG = 5
     tolCG = 1e-1
     cgCount = 0
-
-    stepOffBoundsFact = 1e-8 # perturbation of the inactive set off the bounds
+    stepOffBoundsFact = 1e-2 # perturbation of the inactive set off the bounds
     stepActiveset = True
     lower = -np.inf
     upper = np.inf
@@ -1160,6 +1159,16 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
             sold = snew
             # End CG Iterations
         self.cgCount += count
+        # if self.ComboObjFun:
+
+        #     reg = self.parent.reg.objfcts[1]
+        #     if reg.space == 'spherical':
+
+        #         # Check if the angle update is larger than pi/2
+        #         max_ang = np.max(np.abs(reg.mapping*delx))
+        #         if max_ang > np.pi/2.:
+
+        #             delx = delx/max_ang*np.pi/2.
 
         # Take a gradient step on the active cells if exist
         if temp != self.xc.size:
