@@ -74,7 +74,7 @@ class GravityIntegral(Problem.LinearProblem):
 
         return self.gtgdiag
 
-    def getJ(self, m, f):
+    def getJ(self, m, f=None):
         """
             Sensitivity matrix
         """
@@ -226,17 +226,6 @@ class Forward(object):
 
             pool = multiprocessing.Pool(self.n_cpu)
 
-            # rowInd = np.linspace(0, self.nD, self.n_cpu+1).astype(int)
-
-            # job_args = []
-
-            # for ii in range(self.n_cpu):
-
-            #     nRows = int(rowInd[ii+1]-rowInd[ii])
-            #     job_args += [(rowInd[ii], nRows, m)]
-
-            # result = pool.map(self.getTblock, job_args)
-
             result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
             pool.close()
             pool.join()
@@ -324,9 +313,9 @@ class Forward(object):
         else:
             return row
 
-    def progress(self, iter, nRows):
+    def progress(self, ind, total):
         """
-        progress(iter,prog,final)
+        progress(ind,prog,final)
 
         Function measuring the progress of a process and print to screen the %.
         Useful to estimate the remaining runtime of a large problem.
@@ -335,7 +324,7 @@ class Forward(object):
 
         @author: dominiquef
         """
-        arg = np.floor(iter/nRows*10.)
+        arg = np.floor(ind/total*10.)
         if arg > self.progressIndex:
             print("Done " + str(arg*10) + " %")
             self.progressIndex = arg

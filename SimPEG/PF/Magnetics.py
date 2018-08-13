@@ -52,7 +52,7 @@ class MagneticIntegral(Problem.LinearProblem):
         assert mesh.dim == 3, 'Integral formulation only available for 3D mesh'
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
-    def fields(self, chi, **kwargs):
+    def fields(self, chi):
 
         if self.coordinate_system == 'cartesian':
             m = self.chiMap*(chi)
@@ -161,7 +161,7 @@ class MagneticIntegral(Problem.LinearProblem):
                 Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm.T) * (self.dSdm * dmudm)
                 return mkvc(np.sum(Japprox.power(2), axis=0))
 
-    def getJ(self, m, f):
+    def getJ(self, m, f=None):
         """
             Sensitivity matrix
         """
@@ -441,34 +441,19 @@ class Forward(object):
 
     def calcTrow(self, xyzLoc):
         """
-        Load in the active nodes of a tensor mesh and computes the gravity tensor
-        for a given observation location xyzLoc[obsx, obsy, obsz]
+            Load in the active nodes of a tensor mesh and computes the magnetic
+            forward relation between a cuboid and a given observation
+            location outside the Earth [obsx, obsy, obsz]
 
-        INPUT:
-        Xn, Yn, Zn: Node location matrix for the lower and upper most corners of
-                    all cells in the mesh shape[nC,2]
-        M
-        OUTPUT:
-        Tx = [Txx Txy Txz]
-        Ty = [Tyx Tyy Tyz]
-        Tz = [Tzx Tzy Tzz]
+            INPUT:
+            xyzLoc:  [obsx, obsy, obsz] nC x 3 Array
 
-        where each elements have dimension 1-by-nC.
-        Only the upper half 5 elements have to be computed since symetric.
-        Currently done as for-loops but will eventually be changed to vector
-        indexing, once the topography has been figured out.
+            OUTPUT:
+            Tx = [Txx Txy Txz]
+            Ty = [Tyx Tyy Tyz]
+            Tz = [Tzx Tzy Tzz]
 
         """
-
-        # Pre-allocate space and create Magnetization matrix if required
-        # If assumes uniform Magnetization direction
-
-
-        # Check if we need to store the forward operator and pre-allocate memory
-        # Add counter to dsiplay progress. Good for large problems
-        count = -1
-        # for ii in range(self.nD):
-
         tx, ty, tz = calcRow(self.Xn, self.Yn, self.Zn, xyzLoc)
 
         if self.rxType == 'tmi':

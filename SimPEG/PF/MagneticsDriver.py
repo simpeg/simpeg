@@ -182,7 +182,7 @@ class MagneticsDriver_Inv(object):
     @property
     def survey(self):
         if getattr(self, '_survey', None) is None:
-            self._survey, M = Utils.io_utils.readUBCmagneticsObservations(
+            self._survey, _ = Utils.io_utils.readUBCmagneticsObservations(
                 self.basePath + self.obsfile
             )
         return self._survey

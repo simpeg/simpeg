@@ -237,11 +237,10 @@ def plotVectorSectionsOctree(
     amp = np.sum(v2d**2., axis=1)**0.5
 
     if axs is None:
-        fig = plt.figure()
         axs = plt.subplot(111)
 
     if fill:
-        im2 = temp_mesh.plotImage(amp, ax=axs, clim=[vmin, vmax], grid=True)
+        temp_mesh.plotImage(amp, ax=axs, clim=[vmin, vmax], grid=True)
 
     axs.quiver(temp_mesh.gridCC[:, 0],
                temp_mesh.gridCC[:, 1],
@@ -357,12 +356,15 @@ wr = (wr/np.max(wr))
 # Create three regularization for the different components
 # of magnetization
 reg_p = Regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
+reg_p.mref = np.zeros(3*nC)
 reg_p.cell_weights = (wires.p * wr)
 
 reg_s = Regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
+reg_s.mref = np.zeros(3*nC)
 reg_s.cell_weights = (wires.s * wr)
 
 reg_t = Regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
+reg_t.mref = np.zeros(3*nC)
 reg_t.cell_weights = (wires.t * wr)
 
 reg = reg_p + reg_s + reg_t
@@ -419,7 +421,7 @@ wires = Maps.Wires(('amp', nC), ('theta', nC), ('phi', nC))
 # Regularize the amplitude of the vectors
 reg_a = Regularization.Sparse(mesh, indActive=actv,
                               mapping=wires.amp)
-reg_a.norms = np.c_[0, 0, 0, 0]  # Sparse on the model and its gradients
+reg_a.norms = np.c_[0., 0., 0., 0.]  # Sparse on the model and its gradients
 reg_a.mref = np.zeros(3*nC)
 
 # Regularize the vertical angle of the vectors
@@ -427,14 +429,14 @@ reg_t = Regularization.Sparse(mesh, indActive=actv,
                               mapping=wires.theta)
 reg_t.alpha_s = 0.  # No reference angle
 reg_t.space = 'spherical'
-reg_t.norms = np.c_[2, 0, 0, 0]  # Only norm on gradients used
+reg_t.norms = np.c_[2., 0., 0., 0.]  # Only norm on gradients used
 
 # Regularize the horizontal angle of the vectors
 reg_p = Regularization.Sparse(mesh, indActive=actv,
                               mapping=wires.phi)
 reg_p.alpha_s = 0.  # No reference angle
 reg_p.space = 'spherical'
-reg_p.norms = np.c_[2, 0, 0, 0]  # Only norm on gradients used
+reg_p.norms = np.c_[2., 0., 0., 0.]  # Only norm on gradients used
 
 reg = reg_a + reg_t + reg_p
 reg.mref = np.zeros(3*nC)
@@ -486,7 +488,7 @@ mrec_MVI_S = inv.run(mstart)
 #
 #
 
-plt.figure(figsize=(8,8))
+plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 1, 1)
 plotVectorSectionsOctree(
     mesh, mrec_MVIC.reshape((nC, 3), order="F"),

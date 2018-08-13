@@ -1111,7 +1111,13 @@ class ProjSpherical(InversionDirective):
         m = Utils.matutils.xyz2atp(xyz.reshape((nC, 3), order='F'))
 
         self.invProb.model = m
-        self.invProb.phi_m_last = self.reg(m)
+
+        phi_m_last = []
+        for reg in self.reg.objfcts:
+            reg.model = self.invProb.model
+            phi_m_last += [reg(self.invProb.model)]
+
+        self.invProb.phi_m_last = phi_m_last
 
         for prob in self.prob:
             prob.model = m

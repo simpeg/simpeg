@@ -106,8 +106,6 @@ def xyz2pst(m, param):
         param: List of parameters [A, I, D] as given by survey.SrcList.param
     """
 
-    nC = int(len(m)/3)
-
     Rz = np.vstack((np.r_[np.cos(np.deg2rad(-param[2])),
                           -np.sin(np.deg2rad(-param[2])), 0],
                    np.r_[np.sin(np.deg2rad(-param[2])),

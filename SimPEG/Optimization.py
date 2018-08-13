@@ -1134,7 +1134,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         p = self.approxHinv*r
 
         sold = np.dot(r, p)
-        s0 = sold
 
         count = 0
 
@@ -1159,16 +1158,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
             sold = snew
             # End CG Iterations
         self.cgCount += count
-        # if self.ComboObjFun:
-
-        #     reg = self.parent.reg.objfcts[1]
-        #     if reg.space == 'spherical':
-
-        #         # Check if the angle update is larger than pi/2
-        #         max_ang = np.max(np.abs(reg.mapping*delx))
-        #         if max_ang > np.pi/2.:
-
-        #             delx = delx/max_ang*np.pi/2.
 
         # Take a gradient step on the active cells if exist
         if temp != self.xc.size:

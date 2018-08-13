@@ -373,17 +373,14 @@ def readUBCgravityObservations(obs_file):
 
 def writeUBCgravityObservations(filename, survey, d):
     """
-    Write UBC grav file format
+        Write UBC grav file format
 
-    INPUT:
-    :param fileName, path to the UBC obs grav file
-
-    OUTPUT:
-    :param survey
+        INPUT:
+        :param: fileName, path to the UBC obs grav file
+        :param: survey Gravity object
+        :param: data array
 
     """
-    from SimPEG.PF import BaseGrav
-
     rxLoc = survey.srcField.rxList[0].locs
 
     wd = survey.std
