@@ -266,7 +266,8 @@ intersphinx_mapping = {
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'matplotlib': ('http://matplotlib.org/', None),
-    'properties': ('http://propertiespy.readthedocs.io/en/latest/', None)
+    'properties': ('http://propertiespy.readthedocs.io/en/latest/', None),
+    'discretize': ('http://discretize.simpeg.xyz/en/latest/', None)
 }
 
 
@@ -385,5 +386,6 @@ nitpick_ignore = [
     ('py:class', 'SimPEG.VRM.WaveformVRM.ArbitraryDiscrete'),
     ('py:class', 'SimPEG.VRM.WaveformVRM.ArbitraryPiecewise'),
     ('py:class', 'SimPEG.VRM.WaveformVRM.Custom'),
-    ('py:class', 'SimPEG.Props.LocationVector')
+    ('py:class', 'SimPEG.Props.LocationVector'),
+    ('py:class', 'SurveyVRM'),
 ]
