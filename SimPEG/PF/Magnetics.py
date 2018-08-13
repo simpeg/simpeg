@@ -306,6 +306,8 @@ class MagneticIntegral(Problem.LinearProblem):
         _G = Linear forward operator | (forwardOnly)=data
 
          """
+        if m is not None:
+            self.model = m
 
         # Find non-zero cells
         if getattr(self, 'actInd', None) is not None:
