@@ -33,10 +33,11 @@ from SimPEG.Utils import mkvc
 #
 #
 
+# We will assume a vertical inducing field
 H0 = (50000., 90., 0.)
 
-# Assume all induced so the magnetization M is also in the same direction
-M = np.array([90, 0])
+# The magnetization is set along a different direction (induced + remanence)
+M = np.array([45., 90.])
 
 # Create grid of points for topography
 # Lets create a simple Gaussian topo and set the active cells
@@ -87,7 +88,7 @@ plt.show()
 # Create a mesh
 h = [5, 5, 5]
 padDist = np.ones((3, 2)) * 100
-nCpad = [5, 4, 3]
+nCpad = [2, 4, 2]
 
 # Get extent of points
 limx = np.r_[topo[:, 0].max(), topo[:, 0].min()]
@@ -169,10 +170,7 @@ nC = int(actv.sum())
 ###########################################################################
 # A simple function to plot vectors in TreeMesh
 #
-#
-#
-#
-#
+# Should eventually end up on discretize
 #
 
 
@@ -231,7 +229,7 @@ def plotVectorSectionsOctree(
     my = (actvMap*m[:, 1])
     mz = (actvMap*m[:, 2])
 
-    m = np.c_[mx, my, mz]
+    m = np.c_[mx, my, -mz]
 
     # Interpolate values from mesh.gridCC to grid2d
     ind_3d_to_2d = mesh._get_containing_cell_indexes(tm_gridboost)
@@ -262,28 +260,24 @@ def plotVectorSectionsOctree(
 # Lets start with a block below topography
 #
 
-
 model = np.zeros((mesh.nC, 3))
 
-# first Block magnetized down towards West
+# Convert the inclination declination to vector in Cartesian
+M_xyz = Utils.matutils.dipazm_2_xyz(M[0], M[1])
+
+# Get the indicies of the magnetized block
 ind = Utils.ModelBuilder.getIndicesBlock(
     np.r_[-20, -20, -10], np.r_[20, 20, 25],
     mesh.gridCC,
 )[0]
-model[ind, :] = np.kron(
-    np.ones((ind.shape[0], 1)), np.c_[1, 0, 0]*0.05
-)
 
-# # Second Block magnetized up towards West
-# ind = Utils.ModelBuilder.getIndicesBlock(
-#     np.r_[20, -20, -10], np.r_[55, 20, 25],
-#     mesh.gridCC,
-# )[0]
-# model[ind,:] = np.kron(np.ones((ind.shape[0],1)), np.c_[0, 0, -1]*0.05)
+# Assign magnetization values
+model[ind, :] = np.kron(
+    np.ones((ind.shape[0], 1)), M_xyz*0.05
+)
 
 # Remove air cells
 model = model[actv, :]
-
 
 # Create active map to go from reduce set to full
 actvMap = Maps.InjectActiveCells(mesh, actv, np.nan)
@@ -302,17 +296,18 @@ survey.pair(prob)
 
 # Compute some data and add some random noise
 data = prob.fields(Utils.mkvc(model))
-
 std = 5  # nT
 data += np.random.randn(len(data))*std
 wd = np.ones(len(data))*std
 
+# Assigne data and uncertainties to the survey
 survey.dobs = data
 survey.std = wd
 
-
+# Create an projection matrix for plotting later
 actvPlot = Maps.InjectActiveCells(mesh, actv, np.nan)
-# Create a few models
+
+# Plot the model and data
 plt.figure()
 ax = plt.subplot(2, 1, 1)
 im = Utils.PlotUtils.plot2Ddata(xyzLoc, data, ax=ax)
@@ -341,16 +336,17 @@ plt.show()
 #
 # We can now attempt the inverse calculations. We put some great care
 # in design an inversion methology that would yield geologically
-# reasonable solution, even when non-uniform discretization
-# is used, such as TreeMesh.
-#
-# We will run the sparse inversion.
+# reasonable solution for the non-induced problem.
+# The inversion is done in two stages, first we compute a smooth
+# solution using a Cartesian coordinate system, then a sparse
+#  inversion in the Spherical domain.
 #
 
 # Create sensitivity weights from our linear forward operator
 rxLoc = survey.srcField.rxList[0].locs
 
-# This Mapping connects all the regularizations together
+# This Mapping connects the regularizations for the three-component
+# vector model
 wires = Maps.Wires(('p', nC), ('s', nC), ('t', nC))
 
 # Create sensitivity weights from our linear forward operator
@@ -358,20 +354,16 @@ wires = Maps.Wires(('p', nC), ('s', nC), ('t', nC))
 wr = np.sum(prob.G**2., axis=0)**0.5
 wr = (wr/np.max(wr))
 
-
 # Create three regularization for the different components
 # of magnetization
 reg_p = Regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
 reg_p.cell_weights = (wires.p * wr)
-reg_p.mref = np.zeros(3*nC)
 
 reg_s = Regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
 reg_s.cell_weights = (wires.s * wr)
-reg_s.mref = np.zeros(3*nC)
 
 reg_t = Regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
 reg_t.cell_weights = (wires.t * wr)
-reg_t.mref = np.zeros(3*nC)
 
 reg = reg_p + reg_s + reg_t
 reg.mref = np.zeros(3*nC)
@@ -385,6 +377,8 @@ opt = Optimization.ProjectedGNCG(maxIter=30, lower=-10, upper=10.,
                                  maxIterLS=20, maxIterCG=20, tolCG=1e-4)
 
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+
+# A list of directive to control the inverson
 betaest = Directives.BetaEstimate_ByEig()
 
 # Here is where the norms are applied
@@ -393,10 +387,9 @@ betaest = Directives.BetaEstimate_ByEig()
 IRLS = Directives.Update_IRLS(
     f_min_change=1e-3, maxIRLSiter=0, beta_tol=5e-1
 )
-update_Jacobi = Directives.UpdatePreconditioner()
 
-saveOuput = Directives.SaveOutputEveryIteration()
-# saveModel.fileName = work_dir + out_dir + 'ModelSus'
+# Pre-conditioner
+update_Jacobi = Directives.UpdatePreconditioner()
 
 inv = Inversion.BaseInversion(invProb,
                               directiveList=[IRLS, update_Jacobi, betaest])
@@ -426,7 +419,7 @@ wires = Maps.Wires(('amp', nC), ('theta', nC), ('phi', nC))
 # Regularize the amplitude of the vectors
 reg_a = Regularization.Sparse(mesh, indActive=actv,
                               mapping=wires.amp)
-reg_a.norms = np.c_[0, 0, 0, 0]
+reg_a.norms = np.c_[0, 0, 0, 0]  # Sparse on the model and its gradients
 reg_a.mref = np.zeros(3*nC)
 
 # Regularize the vertical angle of the vectors
@@ -453,20 +446,21 @@ Ubound = np.kron(np.asarray([10, np.inf, np.inf]), np.ones(nC))
 opt = Optimization.ProjectedGNCG(maxIter=20,
                                  lower=Lbound,
                                  upper=Ubound,
-                                 maxIterLS=10,
-                                 maxIterCG=30, tolCG=1e-3,
-                                 stepOffBoundsFact=1e-8,
+                                 maxIterLS=20,
+                                 maxIterCG=30,
+                                 tolCG=1e-3,
+                                 stepOffBoundsFact=1e-3,
                                  )
 opt.approxHinv = None
 
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta*5.)
+invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta*10.)
 #  betaest = Directives.BetaEstimate_ByEig()
 
 # Here is where the norms are applied
 IRLS = Directives.Update_IRLS(f_min_change=1e-4, maxIRLSiter=20,
                               minGNiter=1, beta_tol=0.5,
                               coolingRate=1, coolEps_q=True,
-                              betaSearch=True)
+                              betaSearch=False)
 
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are update between each iteration.
@@ -501,7 +495,7 @@ plotVectorSectionsOctree(
 
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
-ax.set_title('A simple block model.')
+ax.set_title('Smooth model (Cartesian)')
 ax.set_xlabel('x')
 ax.set_ylabel('y')
 plt.gca().set_aspect('equal', adjustable='box')
@@ -516,7 +510,7 @@ plotVectorSectionsOctree(
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
-ax.set_title('A simple block model.')
+ax.set_title('Sparse model (Spherical)')
 ax.set_xlabel('x')
 ax.set_ylabel('y')
 plt.gca().set_aspect('equal', adjustable='box')
