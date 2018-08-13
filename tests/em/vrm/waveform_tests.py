@@ -15,10 +15,14 @@ class VRM_waveform_tests(unittest.TestCase):
 
         times = np.logspace(-4, -2, 3)
 
-        waveObj1 = VRM.WaveformVRM.SquarePulse(0.002, t0=0.)
-        waveObj2 = VRM.WaveformVRM.ArbitraryDiscrete(np.r_[-0.00200001, -0.002, -0.0000000001, 0.], np.r_[0., 1., 1., 0.])
-        waveObj3 = VRM.WaveformVRM.ArbitraryPiecewise(np.r_[-0.00200001, -0.002, -0.0000000001, 0.], np.r_[0., 1., 1., 0.])
-        waveObj4 = VRM.WaveformVRM.Custom(times, waveObj1.getCharDecay('b', times))
+        t = np.r_[-0.00200001, -0.002, -0.0000000001, 0.]
+        I = np.r_[0., 1., 1., 0.]
+
+        waveObj1 = VRM.WaveformVRM.SquarePulse(delt=0.002, t0=0.)
+        waveObj2 = VRM.WaveformVRM.ArbitraryDiscrete(t_wave=t, I_wave=I)
+        waveObj3 = VRM.WaveformVRM.ArbitraryPiecewise(t_wave=t, I_wave=I)
+        waveObj4 = VRM.WaveformVRM.Custom(
+            times=times, eta=waveObj1.getCharDecay('b', times))
 
         decay1b = waveObj1.getCharDecay('b', times)
         decay2b = waveObj2.getCharDecay('b', times)
@@ -35,7 +39,9 @@ class VRM_waveform_tests(unittest.TestCase):
         err4 = np.max(np.abs((decay2dbdt-decay1dbdt)/decay1dbdt))
         err5 = np.max(np.abs((decay3dbdt-decay1dbdt)/decay1dbdt))
 
-        self.assertTrue(err1 < 0.01 and err2 < 0.01 and err3 < 0.01 and err4 < 0.025 and err5 < 0.01)
+        self.assertTrue(
+            err1 < 0.01 and err2 < 0.01 and err3 < 0.01 and err4 < 0.025 and err5 < 0.01
+            )
 
     def test_loguniform(self):
 
@@ -47,7 +53,7 @@ class VRM_waveform_tests(unittest.TestCase):
         times = np.logspace(-4, -2, 3)
 
         waveObj1 = VRM.WaveformVRM.StepOff(t0=0.)
-        waveObj2 = VRM.WaveformVRM.SquarePulse(0.02)
+        waveObj2 = VRM.WaveformVRM.SquarePulse(delt=0.02)
 
         chi0 = np.array([0.])
         dchi = np.array([0.01])
