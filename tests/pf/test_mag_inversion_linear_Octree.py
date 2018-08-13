@@ -26,7 +26,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Create a mesh
         h = [5, 5, 5]
         padDist = np.ones((3, 2)) * 100
-        nCpad = [2, 2, 2]
+        nCpad = [2, 4, 2]
 
         # Create grid of points for topography
         # Lets create a simple Gaussian topo and set the active cells
@@ -132,7 +132,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Lets start with a simple block in half-space
         self.model = Utils.ModelBuilder.addBlock(
             self.mesh.gridCC, np.zeros(self.mesh.nC),
-            np.r_[-20, -20, -10], np.r_[20, 20, 25], 0.05
+            np.r_[-20, -20, -5], np.r_[20, 20, 30], 0.05
         )[actv]
 
         # Create active map to go from reduce set to full
@@ -182,8 +182,9 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Add directives to the inversion
         opt = Optimization.ProjectedGNCG(
-            maxIter=30, lower=0., upper=10.,
-            maxIterLS=20, maxIterCG=20, tolCG=1e-4
+            maxIter=20, lower=0., upper=10.,
+            maxIterLS=20, maxIterCG=20, tolCG=1e-4,
+            stepOffBoundsFact=1e-4
         )
 
         invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e+4)
@@ -192,7 +193,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Use pick a treshold parameter empirically based on the distribution of
         #  model parameters
         IRLS = Directives.Update_IRLS(
-            f_min_change=1e-3, maxIRLSiter=30, beta_tol=5e-1
+            f_min_change=1e-3, maxIRLSiter=20, beta_tol=5e-1
         )
         update_Jacobi = Directives.UpdatePreconditioner()
 
@@ -210,21 +211,22 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         residual = np.linalg.norm(mrec-self.model) / np.linalg.norm(self.model)
         # print(residual)
-        import matplotlib.pyplot as plt
-        plt.figure()
-        ax = plt.subplot(1, 2, 1)
-        midx = 65
-        self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(0, 0.02))
-        ax.set_xlim(self.mesh.gridCC[:, 0].min(), self.mesh.gridCC[:, 0].max())
-        ax.set_ylim(self.mesh.gridCC[:, 2].min(), self.mesh.gridCC[:, 2].max())
+        # import matplotlib.pyplot as plt
+        # plt.figure()
+        # ax = plt.subplot(1, 2, 1)
+        # midx = 65
+        # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
+        #                grid=True, clim=(0, 0.02))
+        # ax.set_xlim(self.mesh.gridCC[:, 0].min(), self.mesh.gridCC[:, 0].max())
+        # ax.set_ylim(self.mesh.gridCC[:, 2].min(), self.mesh.gridCC[:, 2].max())
 
-        ax = plt.subplot(1, 2, 2)
-        self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(0, 0.02))
-        ax.set_xlim(self.mesh.gridCC[:, 0].min(), self.mesh.gridCC[:, 0].max())
-        ax.set_ylim(self.mesh.gridCC[:, 2].min(), self.mesh.gridCC[:, 2].max())
-        plt.show()
+        # ax = plt.subplot(1, 2, 2)
+        # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
+        #                grid=True, clim=(0, 0.02))
+        # ax.set_xlim(self.mesh.gridCC[:, 0].min(), self.mesh.gridCC[:, 0].max())
+        # ax.set_ylim(self.mesh.gridCC[:, 2].min(), self.mesh.gridCC[:, 2].max())
+        # plt.show()
+
 
         self.assertTrue(residual < 0.1)
         # self.assertTrue(residual < 0.05)
