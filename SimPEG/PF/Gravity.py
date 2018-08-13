@@ -43,7 +43,7 @@ class GravityIntegral(Problem.LinearProblem):
             return mkvc(fields)
 
         else:
-            vec = np.dot(self.F, (self.model).astype(np.float32))
+            vec = np.dot(self.G, (self.model).astype(np.float32))
 
             return vec.astype(np.float64)
 
@@ -61,16 +61,16 @@ class GravityIntegral(Problem.LinearProblem):
         if self.gtgdiag is None:
 
             if W is None:
-                w = np.ones(self.F.shape[1])
+                w = np.ones(self.G.shape[1])
             else:
                 w = W.diagonal()
 
             dmudm = self.rhoMap.deriv(m)
             self.gtgdiag = np.zeros(dmudm.shape[1])
 
-            for ii in range(self.F.shape[0]):
+            for ii in range(self.G.shape[0]):
 
-                self.gtgdiag += (w[ii]*self.F[ii, :]*dmudm)**2.
+                self.gtgdiag += (w[ii]*self.G[ii, :]*dmudm)**2.
 
         return self.gtgdiag
 
@@ -78,27 +78,27 @@ class GravityIntegral(Problem.LinearProblem):
         """
             Sensitivity matrix
         """
-        return self.F
+        return self.G
 
     def Jvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
-        return self.F.dot(dmudm*v)
+        return self.G.dot(dmudm*v)
 
     def Jtvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
-        return dmudm.T * (self.F.T.dot(v))
+        return dmudm.T * (self.G.T.dot(v))
 
     @property
-    def F(self):
+    def G(self):
         if not self.ispaired:
             raise Exception('Need to pair!')
 
-        if getattr(self, '_F', None) is None:
+        if getattr(self, '_G', None) is None:
             print("Begin linear forward calculation: " + self.rxType)
             start = time.time()
-            self._F = self.Intrgl_Fwr_Op()
+            self._G = self.Intrgl_Fwr_Op()
             print("Linear forward calculation ended in: " + str(time.time()-start) + " sec")
-        return self._F
+        return self._G
 
     def Intrgl_Fwr_Op(self, m=None, rxType='z'):
 
@@ -109,7 +109,7 @@ class GravityIntegral(Problem.LinearProblem):
         flag        = 'z' | 'xyz'
 
         Return
-        _F        = Linear forward modeling operation
+        _G        = Linear forward modeling operation
 
         Created on March, 15th 2016
 
@@ -183,9 +183,9 @@ class GravityIntegral(Problem.LinearProblem):
                 parallelized=self.parallelized
                 )
 
-        F = job.calculate()
+        G = job.calculate()
 
-        return F
+        return G
 
     @property
     def mapPair(self):
