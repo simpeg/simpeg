@@ -345,37 +345,6 @@ def progress(iter, prog, final):
     return prog
 
 
-def writeUBCobs(filename, survey, d):
-    """
-    writeUBCobs(filename,survey,d)
-
-    Function writing an observation file in UBC-GRAV3D format.
-
-    INPUT
-    filename    : Name of out file including directory
-    survey
-    flag          : dobs | dpred
-
-    OUTPUT
-    Obsfile
-
-    """
-
-    rxLoc = survey.srcField.rxList[0].locs
-
-    wd = survey.std
-
-    data = np.c_[rxLoc, d, wd]
-
-    head = '%i\n' % len(d)
-    np.savetxt(
-        filename, data, fmt='%e', delimiter=' ',
-        newline='\n', header=head, comments=''
-    )
-
-    print("Observation file saved to: " + filename)
-
-
 class Problem3D_Diff(Problem.BaseProblem):
     """
         Gravity in differential equations!
