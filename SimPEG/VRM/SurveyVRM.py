@@ -2,74 +2,61 @@ import SimPEG
 from SimPEG import Survey
 from SimPEG.VRM import RxVRM, SrcVRM
 import numpy as np
-
+import properties
 
 ############################################
 # BASE VRM SURVEY CLASS
 ############################################
 
-class SurveyVRM(Survey.BaseSurvey):
+
+class SurveyVRM(Survey.BaseSurvey, properties.HasProperties):
 
     """
 
     """
 
-    _tActive = None
-    _tActIsSet = False
-    _tInterval = None
+    t_active = properties.Array(
+        'Boolean array where True denotes active data in the inversion', dtype=bool)
 
     def __init__(self, srcList, **kwargs):
-        super(SurveyVRM, self).__init__(**kwargs)
+
+        t_active = kwargs.pop('t_active', None)
+
         self.srcList = srcList
         self.srcPair = SrcVRM.BaseSrcVRM
         self.rxPair = RxVRM.BaseRxVRM
 
-        self._tInterval = kwargs.get('ActiveTimeInterval', [-np.inf, np.inf])
-        assert isinstance(self._tInterval, list), "Active time interval must be a list of length 2 (i.e. [t1, t2])"
-        assert len(self._tInterval) == 2, "Active time interval must be a list of length 2 (i.e. [t1, t2])"
+        super(SurveyVRM, self).__init__(**kwargs)
 
-    @property
-    def ActiveTimeInterval(self):
-        return self._tInterval
-
-    @ActiveTimeInterval.setter
-    def ActiveTimeInterval(self, List):
-        assert isinstance(List, list), "Active time interval must be a list of length 2 (i.e. [t1, t2])"
-        assert len(List) == 2, "Active time interval must be a list of length 2 (i.e. [t1, t2])"
-        self._tActIsSet = False
-        self._tInterval = List
-
-    @property
-    def tActive(self):
-        if self._tActIsSet:
-            return self._tActive
+        if t_active is None:
+            self.t_active = np.ones(self.nD, dtype=bool)
         else:
-            srcList = self.srcList
-            nSrc = len(srcList)
-            tActBool = np.array([])
+            self.t_active = t_active
 
-            for pp in range(0, nSrc):
+    @properties.validator('t_active')
+    def _t_active_validator(self, change):
+        assert self.nD == len(change['value']), (
+            "Length of t_active boolean array must equal number of data")
 
-                rxList = srcList[pp].rxList
-                nRx = len(rxList)
+    def set_active_interval(self, tmin, tmax):
+        """Set active times using an interval"""
 
-                for qq in range(0, nRx):
+        srcList = self.srcList
+        nSrc = len(srcList)
+        tActBool = np.array([])
 
-                    times = rxList[qq].times
-                    nLoc = np.shape(rxList[qq].locs)[0]
-                    tActBool = np.r_[tActBool, np.kron(np.ones(nLoc), times)]
+        for pp in range(0, nSrc):
 
-            self._tActIsSet = True
-            self.tActive = (tActBool >= self._tInterval[0]) & (tActBool <= self._tInterval[1])
-            return self._tActive
+            rxList = srcList[pp].rxList
+            nRx = len(rxList)
 
-    @tActive.setter
-    def tActive(self, BoolArgs):
+            for qq in range(0, nRx):
 
-        assert len(BoolArgs) == self.nD, "Must be an array or list of boolean arguments with length equal to total number of data"
-        print('SETTING NEW ACTIVE TIMES')
-        self._tActIsSet = True
-        self._tActive = BoolArgs
+                times = rxList[qq].times
+                nLoc = np.shape(rxList[qq].locs)[0]
+                tActBool = np.r_[tActBool, np.kron(np.ones(nLoc), times)]
+
+        self.t_active = (tActBool >= tmin) & (tActBool <= tmax)
 
     def dpred(self, m=None, f=None):
 
@@ -81,16 +68,16 @@ class SurveyVRM(Survey.BaseSurvey):
 
         if f is not None:
 
-            return f[self.tActive]
+            return f[self.t_active]
 
         elif f is None and isinstance(self.prob, SimPEG.VRM.ProblemVRM.Problem_Linear):
 
             f = self.prob.fields(m)
 
-            return f[self.tActive]
+            return f[self.t_active]
 
         elif f is None and isinstance(self.prob, SimPEG.VRM.ProblemVRM.Problem_LogUniform):
 
             f = self.prob.fields()
 
-            return f[self.tActive]
+            return f[self.t_active]
