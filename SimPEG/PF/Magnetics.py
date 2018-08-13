@@ -307,7 +307,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
          """
         if m is not None:
-            self.model = m
+            self.model = self.chiMap*m
 
         # Find non-zero cells
         if getattr(self, 'actInd', None) is not None:
