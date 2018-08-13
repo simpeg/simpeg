@@ -202,9 +202,6 @@ def plotVectorSectionsOctree(
         cc_tensor[i] = (cc_tensor[i][1:] + cc_tensor[i][:-1])*0.5
     slice_loc = cc_tensor[normalInd][ind]
 
-#     if type(ind) not in integer_types:
-#         raise ValueError('ind must be an integer')
-
     # Create a temporary TreeMesh with the slice through
     temp_mesh = Mesh.TreeMesh(h2d, x2d)
     level_diff = mesh.max_level - temp_mesh.max_level
@@ -456,7 +453,6 @@ opt = Optimization.ProjectedGNCG(maxIter=20,
 opt.approxHinv = None
 
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta*10.)
-#  betaest = Directives.BetaEstimate_ByEig()
 
 # Here is where the norms are applied
 IRLS = Directives.Update_IRLS(f_min_change=1e-4, maxIRLSiter=20,
