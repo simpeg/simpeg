@@ -19,8 +19,8 @@ import os
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
 
-sys.path.append(os.path.abspath('../'))
-sys.path.append(os.path.abspath('./_ext'))
+sys.path.append(os.path.abspath('..{}'.format(os.path.sep)))
+sys.path.append(os.path.abspath('.{}_ext'.format(os.path.sep)))
 
 # -- General configuration -----------------------------------------------------
 
@@ -155,7 +155,7 @@ except Exception, e:
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = './images/logo-block.ico'
+html_favicon = os.path.sep.join(['.','images','logo-block.ico'])
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -285,8 +285,8 @@ texinfo_documents = [
 # Sphinx Gallery
 sphinx_gallery_conf = {
     # path to your examples scripts
-    'examples_dirs' : '../examples',
-    'gallery_dirs'  : 'content/examples',
+    'examples_dirs' : os.path.sep.join(['..','examples']),
+    'gallery_dirs'  : os.path.sep.join(['content','examples']),
     'backreferences_dir' : False
 }
 
