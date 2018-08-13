@@ -355,6 +355,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     if saveFig is True:
         fig.savefig("obspred_resolve.png", dpi=200)
 
+    resolve.close()
     if cleanup:
         os.remove(downloads)
         shutil.rmtree(directory)
