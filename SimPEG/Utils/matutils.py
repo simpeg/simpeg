@@ -82,6 +82,7 @@ def uniqueRows(M):
     unqM = M[unqInd]
     return unqM, unqInd, invInd
 
+
 def atp2xyz(m):
     """ Convert from spherical to cartesian """
 
@@ -143,8 +144,6 @@ def pst2xyz(m, param):
         m : nC-by-3 array for [x,y,z] components
         param: List of parameters [A, I, D] as given by survey.SrcList.param
     """
-
-    nC = int(len(m)/3)
 
     Rz = np.vstack((np.r_[np.cos(np.deg2rad(-param[2])),
                           -np.sin(np.deg2rad(-param[2])), 0],

@@ -52,12 +52,12 @@ class MagneticIntegral(Problem.LinearProblem):
         assert mesh.dim == 3, 'Integral formulation only available for 3D mesh'
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
-    def fields(self, chi):
+    def fields(self, m):
 
         if self.coordinate_system == 'cartesian':
-            m = self.chiMap*(chi)
+            m = self.chiMap*(m)
         else:
-            m = self.chiMap*(matutils.atp2xyz(chi.reshape((int(len(chi)/3), 3), order='F')))
+            m = self.chiMap*(matutils.atp2xyz(m.reshape((int(len(m)/3), 3), order='F')))
 
         if self.forwardOnly:
             # Compute the linear operation without forming the full dense F
@@ -481,9 +481,9 @@ class Forward(object):
         else:
             return np.float32(row)
 
-    def progress(self, iter, nRows):
+    def progress(self, ind, total):
         """
-        progress(iter,prog,final)
+        progress(ind,prog,final)
 
         Function measuring the progress of a process and print to screen the %.
         Useful to estimate the remaining runtime of a large problem.
@@ -492,7 +492,7 @@ class Forward(object):
 
         @author: dominiquef
         """
-        arg = np.floor(iter/nRows*10.)
+        arg = np.floor(ind/total*10.)
         if arg > self.progressIndex:
             print("Done " + str(arg*10) + " %")
             self.progressIndex = arg
