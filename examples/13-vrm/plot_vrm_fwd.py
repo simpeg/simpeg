@@ -35,33 +35,50 @@ def run(plotIt=True):
     # Only active cells have a model value.
     xyzc = mesh.gridCC[topoCells, :]
     C = 2*np.pi*8**2
-    xi_true = (
-        4e-4*np.exp(-(xyzc[:, 0]-50)**2/(3*C)) *
-        np.exp(-(xyzc[:, 1])**2/(20*C)) *
-        np.exp(-(xyzc[:, 2])**2/C) +
-        4e-4*np.exp(-(xyzc[:, 0]+50)**2/(3*C)) *
-        np.exp(-(xyzc[:, 1])**2/(20*C)) *
-        np.exp(-(xyzc[:, 2])**2/C) +
-        4e-4*np.exp(-(xyzc[:, 0]+40)**2/(3*C)) *
-        np.exp(-(xyzc[:, 1]-40)**2/C) *
-        np.exp(-(xyzc[:, 2])**2/C) +
-        6e-4*np.exp(-(xyzc[:, 0]+20)**2/C) *
-        np.exp(-(xyzc[:, 1]-10)**2/C) *
-        np.exp(-(xyzc[:, 2])**2/C) +
-        8e-4*np.exp(-(xyzc[:, 0]+15)**2/(3*C)) *
-        np.exp(-(xyzc[:, 1]+20)**2/(0.4*C)) *
-        np.exp(-(xyzc[:, 2])**2/C) +
-        6e-4*np.exp(-(xyzc[:, 0]-20)**2/(0.5*C)) *
-        np.exp(-(xyzc[:, 1]-15)**2/(0.5*C)) *
-        np.exp(-(xyzc[:, 2])**2/C) +
-        8e-4*np.exp(-(xyzc[:, 0]+10)**2/(0.1*C)) *
-        np.exp(-(xyzc[:, 1])**2/(0.1*C)) *
-        np.exp(-(xyzc[:, 2])**2/C) +
-        8e-4*np.exp(-(xyzc[:, 0]-25)**2/(0.1*C)) *
-        np.exp(-(xyzc[:, 1])**2/(0.4*C)) *
-        np.exp(-(xyzc[:, 2])**2/C) +
-        1e-5
-        )
+    pc = np.c_[4e-4, 4e-4, 4e-4, 6e-4, 8e-4, 6e-4, 8e-4, 8e-4]
+    x_0 = np.c_[50., -50., -40., -20., -15., 20., -10., 25.]
+    y_0 = np.c_[0., 0., 40., 10., -20., 15., 0., 0.]
+    z_0 = np.c_[0., 0., 0., 0., 0., 0., 0., 0.]
+    var_x = C*np.c_[3., 3., 3., 1., 3., 0.5, 0.1, 0.1]
+    var_y = C*np.c_[20., 20., 1., 1., 0.4, 0.5, 0.1, 0.4]
+    var_z = C*np.c_[1., 1., 1., 1., 1., 1., 1., 1.]
+
+    xi_true = np.ones(np.shape(xyzc[:, 0]))
+
+    for ii in range(0, 9):
+        xi_true += pc[ii]*np.exp(-(xyzc[:, 0]-x_0[ii])**2/var_x[ii]) *
+        np.exp(-(xyzc[:, 1]-y_0[ii])**2/var_y[ii]) *
+        np.exp(-(xyzc[:, 2]-z_0[ii])**2/var_z[ii])
+
+    xi_true += 1e-5
+
+    # xi_true = (
+    #     4e-4*np.exp(-(xyzc[:, 0]-50)**2/(3*C)) *
+    #     np.exp(-(xyzc[:, 1])**2/(20*C)) *
+    #     np.exp(-(xyzc[:, 2])**2/C) +
+    #     4e-4*np.exp(-(xyzc[:, 0]+50)**2/(3*C)) *
+    #     np.exp(-(xyzc[:, 1])**2/(20*C)) *
+    #     np.exp(-(xyzc[:, 2])**2/C) +
+    #     4e-4*np.exp(-(xyzc[:, 0]+40)**2/(3*C)) *
+    #     np.exp(-(xyzc[:, 1]-40)**2/C) *
+    #     np.exp(-(xyzc[:, 2])**2/C) +
+    #     6e-4*np.exp(-(xyzc[:, 0]+20)**2/C) *
+    #     np.exp(-(xyzc[:, 1]-10)**2/C) *
+    #     np.exp(-(xyzc[:, 2])**2/C) +
+    #     8e-4*np.exp(-(xyzc[:, 0]+15)**2/(3*C)) *
+    #     np.exp(-(xyzc[:, 1]+20)**2/(0.4*C)) *
+    #     np.exp(-(xyzc[:, 2])**2/C) +
+    #     6e-4*np.exp(-(xyzc[:, 0]-20)**2/(0.5*C)) *
+    #     np.exp(-(xyzc[:, 1]-15)**2/(0.5*C)) *
+    #     np.exp(-(xyzc[:, 2])**2/C) +
+    #     8e-4*np.exp(-(xyzc[:, 0]+10)**2/(0.1*C)) *
+    #     np.exp(-(xyzc[:, 1])**2/(0.1*C)) *
+    #     np.exp(-(xyzc[:, 2])**2/C) +
+    #     8e-4*np.exp(-(xyzc[:, 0]-25)**2/(0.1*C)) *
+    #     np.exp(-(xyzc[:, 1])**2/(0.4*C)) *
+    #     np.exp(-(xyzc[:, 2])**2/C) +
+    #     1e-5
+    #     )
 
     # SET THE TRANSMITTER WAVEFORM
     # This determines the off-time decay behaviour of the VRM response
@@ -88,7 +105,7 @@ def run(plotIt=True):
 
     # DEFINE THE PROBLEM
     ProblemVRM = VRM.Problem_Linear(
-        mesh, indActive=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75])
+        mesh, ind_active=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75])
     ProblemVRM.pair(SurveyVRM)
 
     # PREDICT THE FIELDS

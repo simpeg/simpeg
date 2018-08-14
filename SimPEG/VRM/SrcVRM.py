@@ -14,8 +14,8 @@ class BaseSrcVRM(Survey.BaseSrc):
 
     def __init__(self, rxList, waveform, **kwargs):
 
-        assert isinstance(waveform, (StepOff, SquarePulse, ArbitraryDiscrete, ArbitraryPiecewise)), (
-            "waveform must be an instance of a VRM waveform class: StepOff, SquarePulse or Arbitrary")
+        if is not isinstance(waveform, (StepOff, SquarePulse, ArbitraryDiscrete, ArbitraryPiecewise)):
+            AttributeError("Waveform must be an instance of a VRM waveform class: StepOff, SquarePulse or Arbitrary")
 
         super(BaseSrcVRM, self).__init__(rxList, **kwargs)
         self.waveform = waveform
@@ -49,8 +49,12 @@ class MagDipole(BaseSrcVRM):
 
     def __init__(self, rxList, loc, moment, waveform, **kwargs):
 
-        assert len(loc) is 3, 'Tx location must be given as a column vector np.r_[x,y,z]'
-        assert len(moment) is 3, 'Dipole moment given as column vector np.r_[mx,my,mz]'
+        if len(loc) != 3:
+            raise ValueError('Tx location (x,y,z) must be given as a column vector of length 3.')
+
+        if len(moment) != 3:
+            raise ValueError('Dipole moment (mx,my,mz) must be given as a column vector of length 3.')
+
         super(MagDipole, self).__init__(rxList, waveform, **kwargs)
 
         self.loc = loc
@@ -131,8 +135,12 @@ class CircLoop(BaseSrcVRM):
 
     def __init__(self, rxList, loc, radius, orientation, Imax, waveform, **kwargs):
 
-        assert len(loc) is 3, 'Tx location must be given as a column vector np.r[x,y,z]'
-        assert len(orientation) is 2, 'Two angles (theta, alpha) required to define orientation'
+        if len(loc) != 3:
+            raise ValueError('Tx location (x,y,z) must be given as a column vector of length 3.')
+
+        if len(orientation) != 2:
+            raise ValueError('Circular loop transmitter orientation orientation defined by two angles (theta, alpha).')
+
         super(CircLoop, self).__init__(rxList, waveform, **kwargs)
 
         self.loc = loc
@@ -264,8 +272,11 @@ class LineCurrent(BaseSrcVRM):
 
     def __init__(self, rxList, loc, Imax, waveform, **kwargs):
 
-        assert np.shape(loc)[1] == 3 and np.shape(loc)[0] > 1, (
-            'locs is a N+1 by 3 array where N is the number of transmitter segments')
+        if np.shape(loc)[1] != 3:
+            raise ValueError("Attribute 'loc' must be np.array(N+1,3) where N is the number of line segments.")
+
+        if np.shape(loc)[0] < 4:
+            raise ValueError("Attribute 'loc' must be np.array(N+1,3) where N is the number of line segments.")
 
         self.loc = loc
         self.Imax = Imax

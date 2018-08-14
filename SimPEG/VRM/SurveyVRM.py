@@ -35,8 +35,9 @@ class SurveyVRM(Survey.BaseSurvey, properties.HasProperties):
 
     @properties.validator('t_active')
     def _t_active_validator(self, change):
-        assert self.nD == len(change['value']), (
-            "Length of t_active boolean array must equal number of data")
+        if self.nD != len(change['value']):
+            raise ValueError(
+                'Length of t_active boolean array must equal number of data. Number of data is %i' % self.nD)
 
     def set_active_interval(self, tmin, tmax):
         """Set active times using an interval"""
@@ -64,7 +65,8 @@ class SurveyVRM(Survey.BaseSurvey, properties.HasProperties):
 
         """
 
-        assert self.ispaired, "Survey must be paired with a VRM problem"
+        if self.ispaired is False:
+            raise AssertionError('Survey must be paired with a VRM problem.')
 
         if f is not None:
 

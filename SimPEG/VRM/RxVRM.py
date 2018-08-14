@@ -26,7 +26,10 @@ class Point(BaseRxVRM):
 
     # def __init__(self, locs, times, fieldType, fieldComp, **kwargs):
     def __init__(self, locs, **kwargs):
-        assert locs.shape[1] == 3, 'locs must in 3-D (x,y,z).'
+
+        if len(locs.shape[1]) != 3:
+            raise ValueError('Rx locations (xi,yi,zi) must be np.array(N,3) where N is the number of stations')
+
         super(Point, self).__init__(locs, **kwargs)
 
     @property
@@ -71,7 +74,9 @@ class SquareLoop(BaseRxVRM):
 
         # self._quad_order = kwargs.get('quad_order', 4)
 
-        assert locs.shape[1] == 3, 'locs must in 3-D (x,y,z).'
+        if len(locs.shape[1]) != 3:
+            raise ValueError('Rx locations (xi,yi,zi) must be np.array(N,3) where N is the number of stations')
+
         super(SquareLoop, self).__init__(locs, **kwargs)
 
     @property

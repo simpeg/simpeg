@@ -36,10 +36,11 @@ class StepOff(properties.HasProperties):
 
         """
 
-        assert fieldType in ["dhdt", "dbdt"], (
-            "For step-off, fieldType must be one of 'dhdt' or 'dbdt' and cannot be 'h' or 'b'")
+        if fieldType not in ["dhdt", "dbdt"]:
+            raise NameError('For step-off, fieldType must be one of "dhdt" or "dbdt"')
 
-        assert self.t0 < np.min(times), "Earliest time channel must be after beginning of off-time"
+        if self.t0 >= np.min(times):
+            raise ValueError('Earliest time channel must be after beginning of off-time (t0 = %.2e s)' %self.t0)
 
         t0 = self.t0
 
@@ -82,8 +83,8 @@ class StepOff(properties.HasProperties):
 
         """
 
-        assert fieldType in ["h", "dhdt", "b", "dbdt"], (
-            "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt' ")
+        if fieldType not in ["dhdt", "dbdt"]:
+            raise NameError('For step-off, fieldType must be one of "dhdt" or "dbdt". Cannot be "h" or "dbdt".')
 
         nT = len(times)
         nC = len(dchi)
@@ -160,10 +161,14 @@ class SquarePulse(properties.HasProperties):
 
         """
 
-        assert self.delt is not None, "Pulse width 'delt' must be set"
-        assert fieldType in ["h", "dhdt", "b", "dbdt"], (
-            "For square-pulse, fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'")
-        assert self.t0 < np.min(times), "Earliest time channel must be after beginning of off-time"
+        if self.delt is None:
+            raise AssertionError('Pulse width property delt must be set.')
+
+        if fieldType not in ["h", "b", "dhdt", "dbdt"]:
+            raise NameError('For square pulse, fieldType must be one of "h", "b", "dhdt" or "dbdt".')
+
+        if self.t0 >= np.min(times):
+            raise ValueError('Earliest time channel must be after beginning of off-time (t0 = %.2e s)' %self.t0)
 
         t0 = self.t0
         delt = self.delt
@@ -211,9 +216,11 @@ class SquarePulse(properties.HasProperties):
 
         """
 
-        assert self.delt is not None, "Pulse width 'delt' must be set"
-        assert fieldType in ["h", "dhdt", "b", "dbdt"], (
-            "For step-off, fieldType must be one of 'h', dhdt', 'b' or 'dbdt'")
+        if self.delt is None:
+            raise AssertionError('Pulse width property delt must be set.')
+
+        if fieldType not in ["h", "b", "dhdt", "dbdt"]:
+            raise NameError('For square pulse, fieldType must be one of "h", "b", "dhdt" or "dbdt".')
 
         nT = len(times)
         nC = len(dchi)
@@ -281,16 +288,25 @@ class ArbitraryDiscrete(properties.HasProperties):
 
     @properties.validator('t_wave')
     def _t_wave_validator(self, change):
-        assert len(change['value']) > 2, "Waveform must be defined by at least 3 points"
+
+        if len(change['value']) < 3:
+            ValueError("Waveform must be defined by at least 3 points.")
+
         if self.I_wave is not None:
             if len(change['value']) != len(self.I_wave):
                 print('Length of time vector no longer matches length of current vector')
 
     @properties.validator('I_wave')
     def _I_wave_validator(self, change):
-        assert len(change['value']) > 2, "Waveform must be defined by at least 3 points"
-        assert np.abs(change['value'][0]) < 1e-10 and np.abs(change['value'][-1]) < 1e-10, (
-            "Current waveform should begin and end at 0")
+
+        if len(change['value']) < 3:
+            ValueError("Waveform must be defined by at least 3 points.")
+
+        if (np.abs(change['value'][0]) > 1e-10) | (np.abs(change['value'][-1]) > 1e-10):
+            raise ValueError('Current waveform should begin and end with amplitude of 0. Right now I_1 = {0:.2e} and I_end = {1:.2e}'.format(
+                change['value'][0], change['value'][-1])
+            )
+
         if self.t_wave is not None:
             if len(change['value']) != len(self.t_wave):
                 print('Length of time vector no longer matches length of current vector')
@@ -315,14 +331,19 @@ class ArbitraryDiscrete(properties.HasProperties):
 
         """
 
-        assert self.t_wave is not None and self.I_wave is not None, (
-            "Times and current for waveform must be set")
-        assert fieldType in ["h", "dhdt", "b", "dbdt"], (
-            "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'")
-        assert np.max(self.t_wave) < np.min(times), (
-            "Earliest time channel must be after beginning of off-time")
-        assert len(self.t_wave) == len(self.I_wave), (
-            "Length of t_wave and I_wave must be the same")
+        if self.t_wave is None:
+            raise AssertionError('Waveform times (Property: t_wave) are not set.')
+
+        if self.I_wave is None:
+            raise AssertionError('Waveform current (Property: I_wave) is not set.')
+
+        if fieldType not in ["h", "b", "dhdt", "dbdt"]:
+            raise NameError('For square pulse, fieldType must be one of "h", "b", "dhdt" or "dbdt".')
+
+        if len(self.t_wave) != len(self.I_wave):
+            raise ValueError('Length of t_wave and I_wave properties must be the same. Currently len(t_wave) = {0: i} and len(I_wave) = {1: i}'.format(
+                self.t_wave, self.I_wave)
+            )
 
         k = np.where(self.I_wave > 1e-10)
         j = k[0][0]-1
@@ -380,7 +401,8 @@ class ArbitraryPiecewise(properties.HasProperties):
 
     @properties.validator('t_wave')
     def _t_wave_validator(self, change):
-        assert len(change['value']) > 2, "Waveform must be defined by at least 3 points"
+        if len(change['value']) < 3:
+            ValueError("Waveform must be defined by at least 3 points.")
 
     @properties.observer('t_wave')
     def _t_wave_observer(self, change):
@@ -390,9 +412,13 @@ class ArbitraryPiecewise(properties.HasProperties):
 
     @properties.validator('I_wave')
     def _I_wave_validator(self, change):
-        assert len(change['value']) > 2, "Waveform must be defined by at least 3 points"
-        assert np.abs(change['value'][0]) < 1e-10 and np.abs(change['value'][-1]) < 1e-10, (
-            "Current waveform should begin and end at 0")
+        if len(change['value']) < 3:
+            ValueError("Waveform must be defined by at least 3 points.")
+
+        if (np.abs(change['value'][0]) > 1e-10) | (np.abs(change['value'][-1]) > 1e-10):
+            raise ValueError('Current waveform should begin and end with amplitude of 0. Right now I_1 = {0:.2e} and I_end = {1:.2e}'.format(
+                change['value'][0], change['value'][-1])
+            )
 
     @properties.observer('I_wave')
     def _I_wave_observer(self, change):
@@ -420,12 +446,17 @@ class ArbitraryPiecewise(properties.HasProperties):
 
         """
 
-        assert self.t_wave is not None and self.I_wave is not None, (
-            "Times and current for waveform must be set")
-        assert fieldType in ["h", "dhdt", "b", "dbdt"], (
-            "fieldType must be one of 'h', 'dhdt', 'b' or 'dbdt'")
-        assert np.max(self.t_wave) < np.min(times), (
-            "Earliest time channel must be after beginning of off-time")
+        if self.t_wave is None:
+            raise AssertionError('Waveform times (Property: t_wave) are not set.')
+
+        if self.I_wave is None:
+            raise AssertionError('Waveform current (Property: I_wave) is not set.')
+
+        if fieldType not in ["h", "b", "dhdt", "dbdt"]:
+            raise NameError('For square pulse, fieldType must be one of "h", "b", "dhdt" or "dbdt".')
+
+        if np.max(self.t_wave) >= np.min(times):
+            raise ValueError('Earliest time channel must be after beginning of off-time (t0 = %.2e s)' % np.max(self.t_wave))
 
         k = np.where(self.I_wave > 1e-10)
         j = k[0][0]-1
@@ -489,5 +520,7 @@ class Custom(properties.HasProperties):
     def getCharDecay(self):
         """Returns characteristic decay function at specified times"""
 
-        assert self.eta is not None, "Characteristic decay must be set"
+        if self.eta is None:
+            raise AssertionError('Characteristic decay (Property: eta) must be set.')
+
         return self.eta

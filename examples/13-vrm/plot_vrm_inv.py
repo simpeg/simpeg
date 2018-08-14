@@ -86,7 +86,7 @@ def run(plotIt=True):
 
     # DEFINE THE VRM PROBLEM
     ProblemVRM = VRM.Problem_Linear(
-        mesh, indActive=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75])
+        mesh, ind_active=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75])
     ProblemVRM.pair(SurveyVRM)
 
     # PREDICT THE FIELDS
@@ -119,7 +119,7 @@ def run(plotIt=True):
     SurveyINV = VRM.Survey(srcListVRM)
     actCells = (mesh.gridCC[:, 2] < 0.) & (mesh.gridCC[:, 2] > -2.)
     ProblemINV = VRM.Problem_Linear(
-        mesh, indActive=actCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75])
+        mesh, ind_active=actCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75])
     ProblemINV.pair(SurveyINV)
     SurveyINV.set_active_interval(1e-3, 1e-2)
     SurveyINV.dobs = FieldsTOT[SurveyINV.t_active]
@@ -130,7 +130,7 @@ def run(plotIt=True):
     dmis = DataMisfit.l2_DataMisfit(SurveyINV)
     W = mkvc((np.sum(np.array(ProblemINV.A)**2, axis=0)))**0.5
     W = W/np.max(W)
-    reg = Regularization.Simple(mesh=mesh, indActive=actCells, alpha_s=0.25,  cell_weights=W)
+    reg = Regularization.Simple(mesh=mesh, ind_active=actCells, alpha_s=0.25,  cell_weights=W)
     opt = Optimization.ProjectedGNCG(maxIter=20, lower=0., upper=1e-2, maxIterLS=20, tolCG=1e-4)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     directives = [

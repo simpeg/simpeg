@@ -25,7 +25,9 @@ class Problem_BaseVRM(Problem.BaseProblem):
         ref_factor = kwargs.pop('ref_factor', None)
         ref_radius = kwargs.pop('ref_radius', None)
         ind_active = kwargs.pop('ind_active', None)
-        assert len(mesh.h) == 3, 'Problem requires 3D tensor or OcTree mesh'
+
+        if len(mesh.h) != 3:
+            raise ValueError('Mesh must be 3D tensor or 3D tree. Current mesh is {}'.format(len(mesh.h)))
 
         super(Problem_BaseVRM, self).__init__(mesh, **kwargs)
 
@@ -61,8 +63,9 @@ class Problem_BaseVRM(Problem.BaseProblem):
 
     @properties.validator('ind_active')
     def _ind_active_validator(self, change):
-        assert len(change['value']) == self.mesh.nC, (
-            "Length of active topo cells array must equal number of mesh cells")
+
+        if len(change['value']) != self.mesh.nC:
+            raise ValueError("Length of active topo cells array must equal number of mesh cells (nC = {})".format(self.mesh.nC))
 
     def _getH0matrix(self, xyz, pp):
 
@@ -748,7 +751,8 @@ class Problem_Linear(Problem_BaseVRM):
 
         if self._AisSet is False:
 
-            assert self.ispaired, "Problem must be paired with survey to generate A matrix"
+            if self.ispaired is False:
+                AssertionError("Problem must be paired with survey to generate A matrix")
 
             # Remove any previously stored A matrix
             if self._A is not None:
@@ -777,7 +781,8 @@ class Problem_Linear(Problem_BaseVRM):
 
         if self._TisSet is False:
 
-            assert self.ispaired, "Problem must be paired with survey to generate T matrix"
+            if self.ispaired is False:
+                AssertionError("Problem must be paired with survey to generate A matrix")
 
             # Remove any previously stored T matrix
             if self._T is not None:
@@ -819,7 +824,8 @@ class Problem_Linear(Problem_BaseVRM):
 
         """Computes the fields d = T*A*m"""
 
-        assert self.ispaired, "Problem must be paired with survey to predict data"
+        if self.ispaired is False:
+            AssertionError("Problem must be paired with survey to generate A matrix")
 
         self.model = m   # Initiates/updates model and initiates mapping
 
@@ -834,7 +840,8 @@ class Problem_Linear(Problem_BaseVRM):
 
         """Compute Pd*T*A*dxidm*v"""
 
-        assert self.ispaired, "Problem must be paired with survey to predict data"
+        if self.ispaired is False:
+            AssertionError("Problem must be paired with survey to generate A matrix")
 
         # Jacobian of xi wrt model
         dxidm = self.xiMap.deriv(m)
@@ -855,7 +862,8 @@ class Problem_Linear(Problem_BaseVRM):
 
         """Compute (Pd*T*A*dxidm)^T * v"""
 
-        assert self.ispaired, "Problem must be paired with survey to predict data"
+        if self.ispaired is False:
+            AssertionError("Problem must be paired with survey to generate A matrix")
 
         # Define v as a column vector
         v = np.matrix(v).T
@@ -918,7 +926,8 @@ class Problem_LogUniform(Problem_BaseVRM):
 
         if self._AisSet is False:
 
-            assert self.ispaired, "Problem must be paired with survey to generate A matrix"
+            if self.ispaired is False:
+                AssertionError("Problem must be paired with survey to generate A matrix")
 
             # Remove any previously stored A matrix
             if self._A is not None:
@@ -940,7 +949,8 @@ class Problem_LogUniform(Problem_BaseVRM):
 
         """Computes the fields at every time d(t) = G*M(t)"""
 
-        assert self.ispaired, "Problem must be paired with survey to predict data"
+        if self.ispaired is False:
+            AssertionError("Problem must be paired with survey to generate A matrix")
 
         # Fields from each source
         srcList = self.survey.srcList
