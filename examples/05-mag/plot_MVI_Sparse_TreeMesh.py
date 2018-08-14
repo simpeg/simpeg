@@ -340,7 +340,7 @@ plt.show()
 # reasonable solution for the non-induced problem.
 # The inversion is done in two stages, first we compute a smooth
 # solution using a Cartesian coordinate system, then a sparse
-#  inversion in the Spherical domain.
+# inversion in the Spherical domain.
 #
 
 # Create sensitivity weights from our linear forward operator
