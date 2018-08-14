@@ -76,7 +76,6 @@ def run(N=100, plotIt=True):
     reg = Regularization.Sparse(mesh, mapping=idenMap)
     reg.mref = mref
     reg.cell_weights = wr
-    reg.eps_p, reg.eps_q = 1e-1, 1e-1
     reg.norms = np.c_[0., 0., 2., 2.]
     reg.mref = np.zeros(mesh.nC)
 
@@ -91,7 +90,7 @@ def run(N=100, plotIt=True):
     # Start with an l2-l2, then switch to lp-norms
 
     IRLS = Directives.Update_IRLS(
-        maxIRLSiter=20, minGNiter=1, f_min_change=1e-4)
+        maxIRLSiter=40, minGNiter=1, f_min_change=1e-4)
     saveDict = Directives.SaveOutputEveryIteration(save_txt=False)
     inv = Inversion.BaseInversion(
         invProb,

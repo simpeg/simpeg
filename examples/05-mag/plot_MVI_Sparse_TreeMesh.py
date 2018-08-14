@@ -2,9 +2,14 @@
 Magnetic inversion on a TreeMesh
 ================================
 
-In this example, we demonstrate the use of a 3D TreeMesh
-for the inversion of magnetic. The mesh is auto-generate based
+In this example, we demonstrate the use of a Magnetic Vector Inverison
+on 3D TreeMesh for the inversion of magnetic affected by remanence.
+The mesh is auto-generate based
 on the position of the observation locations and topography.
+
+We invert the data twice, first for a smooth starting model using the
+Cartesian coordinate system, and second for a compact model using
+the Spherical formulation.
 
 The inverse problem uses the :class:'SimPEG.Regularization.Sparse'
 that

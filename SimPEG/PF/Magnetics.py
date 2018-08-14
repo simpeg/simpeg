@@ -565,7 +565,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         """
         B0 = self.getB0()
         Dface = self.mesh.faceDiv
-        Mc = sdiag(self.mesh.vol)
+        # Mc = sdiag(self.mesh.vol)
 
         mu = self.muMap * m
         chi = mu / mu_0 - 1

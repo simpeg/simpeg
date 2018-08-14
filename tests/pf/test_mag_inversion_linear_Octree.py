@@ -113,7 +113,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             z = F(mkvc(CCx), mkvc(CCy))
 
             # level means number of layers in current OcTree level
-            for level in range(int(nCpad[ii])):
+            for _ in range(int(nCpad[ii])):
 
                 self.mesh.insert_cells(
                     np.c_[mkvc(CCx), mkvc(CCy), z-zOffset],

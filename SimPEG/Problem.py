@@ -280,18 +280,22 @@ class BaseTimeProblem(BaseProblem):
 
 class LinearProblem(BaseProblem):
 
-    # surveyPair = Survey.LinearSurvey
+    # model, modelMap, modelDeriv = Props.Invertible(
+    #     "Generic model parameters",
+    #     default=1.
+    # )
 
     G = None
 
     def __init__(self, mesh, **kwargs):
         BaseProblem.__init__(self, mesh, **kwargs)
-        # self.mapping = kwargs.pop('mapping', Maps.IdentityMap(mesh))
+        self.modelMap = kwargs.pop('mapping', Maps.IdentityMap(mesh))
 
     @property
     def modelMap(self):
         "A SimPEG.Map instance."
         return getattr(self, '_modelMap', None)
+
 
     @modelMap.setter
     def modelMap(self, val):
