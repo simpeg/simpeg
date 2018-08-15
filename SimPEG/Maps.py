@@ -812,9 +812,11 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         """
         if self.random is True:  # isotropic
             if alpha == 1.:
-                return 3.0*se/(2.0*se+sj)
+                return 3.*se/(2.*se+sj)
             Q = self.getQ(alpha)
-            return se/3.*(2./(se + Q*(sj-se)) + 1./(sj - 2.*Q*(sj-se)))
+            return se/3.* (
+                2./(se + Q*(sj-se)) + 1./(sj - 2.*Q*(sj-se))
+            )
         else:  # anisotropic
             if orientation is None:
                 raise Exception("orientation must be provided if random=False")
@@ -830,10 +832,14 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         to the concentration of the second phase material.
         """
         if self.random is True:
+            if alpha == 1.:
+                return 3./(2.*se+sj) - 6.*se/(2.*se+sj)**2
             Q = self.getQ(alpha)
-            return (
-                sj/3. *
-                (2.*Q/(se + Q*(sj-se))**2 + (1. - 2.*Q)/(sj - 2.*Q*(sj-se))**2)
+            return 1/3 * (
+                2./(se + Q*(sj-se)) + 1./(sj - 2.*Q*(sj-se)) +
+                se * (
+                    -2*(1-Q)/(se + Q*(sj-se))**2 - 2*Q/(sj - 2.*Q*(sj-se))**2
+                )
             )
         else:
             if orientation is None:
