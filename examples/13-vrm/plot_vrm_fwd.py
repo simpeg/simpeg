@@ -35,57 +35,31 @@ def run(plotIt=True):
     # Only active cells have a model value.
     xyzc = mesh.gridCC[topoCells, :]
     C = 2*np.pi*8**2
-    pc = np.c_[4e-4, 4e-4, 4e-4, 6e-4, 8e-4, 6e-4, 8e-4, 8e-4]
-    x_0 = np.c_[50., -50., -40., -20., -15., 20., -10., 25.]
-    y_0 = np.c_[0., 0., 40., 10., -20., 15., 0., 0.]
-    z_0 = np.c_[0., 0., 0., 0., 0., 0., 0., 0.]
-    var_x = C*np.c_[3., 3., 3., 1., 3., 0.5, 0.1, 0.1]
-    var_y = C*np.c_[20., 20., 1., 1., 0.4, 0.5, 0.1, 0.4]
-    var_z = C*np.c_[1., 1., 1., 1., 1., 1., 1., 1.]
+    pc = np.r_[4e-4, 4e-4, 4e-4, 6e-4, 8e-4, 6e-4, 8e-4, 8e-4]
+    x_0 = np.r_[50., -50., -40., -20., -15., 20., -10., 25.]
+    y_0 = np.r_[0., 0., 40., 10., -20., 15., 0., 0.]
+    z_0 = np.r_[0., 0., 0., 0., 0., 0., 0., 0.]
+    var_x = C*np.r_[3., 3., 3., 1., 3., 0.5, 0.1, 0.1]
+    var_y = C*np.r_[20., 20., 1., 1., 0.4, 0.5, 0.1, 0.4]
+    var_z = C*np.r_[1., 1., 1., 1., 1., 1., 1., 1.]
 
-    xi_true = np.ones(np.shape(xyzc[:, 0]))
+    xi_true = np.zeros(np.shape(xyzc[:, 0]))
 
-    for ii in range(0, 9):
-        xi_true += pc[ii]*np.exp(-(xyzc[:, 0]-x_0[ii])**2/var_x[ii]) *
-        np.exp(-(xyzc[:, 1]-y_0[ii])**2/var_y[ii]) *
-        np.exp(-(xyzc[:, 2]-z_0[ii])**2/var_z[ii])
+    for ii in range(0, 8):
+        xi_true += (
+            pc[ii]*np.exp(-(xyzc[:, 0]-x_0[ii])**2/var_x[ii]) *
+            np.exp(-(xyzc[:, 1]-y_0[ii])**2/var_y[ii]) *
+            np.exp(-(xyzc[:, 2]-z_0[ii])**2/var_z[ii])
+            )
 
     xi_true += 1e-5
-
-    # xi_true = (
-    #     4e-4*np.exp(-(xyzc[:, 0]-50)**2/(3*C)) *
-    #     np.exp(-(xyzc[:, 1])**2/(20*C)) *
-    #     np.exp(-(xyzc[:, 2])**2/C) +
-    #     4e-4*np.exp(-(xyzc[:, 0]+50)**2/(3*C)) *
-    #     np.exp(-(xyzc[:, 1])**2/(20*C)) *
-    #     np.exp(-(xyzc[:, 2])**2/C) +
-    #     4e-4*np.exp(-(xyzc[:, 0]+40)**2/(3*C)) *
-    #     np.exp(-(xyzc[:, 1]-40)**2/C) *
-    #     np.exp(-(xyzc[:, 2])**2/C) +
-    #     6e-4*np.exp(-(xyzc[:, 0]+20)**2/C) *
-    #     np.exp(-(xyzc[:, 1]-10)**2/C) *
-    #     np.exp(-(xyzc[:, 2])**2/C) +
-    #     8e-4*np.exp(-(xyzc[:, 0]+15)**2/(3*C)) *
-    #     np.exp(-(xyzc[:, 1]+20)**2/(0.4*C)) *
-    #     np.exp(-(xyzc[:, 2])**2/C) +
-    #     6e-4*np.exp(-(xyzc[:, 0]-20)**2/(0.5*C)) *
-    #     np.exp(-(xyzc[:, 1]-15)**2/(0.5*C)) *
-    #     np.exp(-(xyzc[:, 2])**2/C) +
-    #     8e-4*np.exp(-(xyzc[:, 0]+10)**2/(0.1*C)) *
-    #     np.exp(-(xyzc[:, 1])**2/(0.1*C)) *
-    #     np.exp(-(xyzc[:, 2])**2/C) +
-    #     8e-4*np.exp(-(xyzc[:, 0]-25)**2/(0.1*C)) *
-    #     np.exp(-(xyzc[:, 1])**2/(0.4*C)) *
-    #     np.exp(-(xyzc[:, 2])**2/C) +
-    #     1e-5
-    #     )
 
     # SET THE TRANSMITTER WAVEFORM
     # This determines the off-time decay behaviour of the VRM response
     waveform = VRM.WaveformVRM.StepOff()
 
     # CREATE SURVEY
-    # Similar to an EM-63 survey by all 3 components of the field are measured
+    # Similar to an EM-63 survey
     times = np.logspace(-5, -2, 31)  # Observation times
     x, y = np.meshgrid(np.linspace(-30, 30, 21), np.linspace(-30, 30, 21))
     z = 0.5*np.ones(x.shape)
@@ -135,140 +109,98 @@ def run(plotIt=True):
     C = np.kron(np.reshape(C, (len(C), 1)), np.ones((1, n_times)))
     FieldsTEM = C*FieldsTEM
 
-    # PLOT MODEL
     if plotIt:
 
         Fig = plt.figure(figsize=(10, 10))
-        Ax11 = Fig.add_axes([0.07, 0.7, 0.23, 0.23])
-        Ax12 = Fig.add_axes([0.36, 0.7, 0.23, 0.23])
-        Ax13 = Fig.add_axes([0.65, 0.7, 0.23, 0.23])
-        Ax14 = Fig.add_axes([0.89, 0.7, 0.01, 0.24])
-
-        Ax21 = Fig.add_axes([0.1, 0.335, 0.38, 0.29])
-        Ax22 = Fig.add_axes([0.57, 0.335, 0.38, 0.29])
-
-        Ax31 = Fig.add_axes([0.07, 0.05, 0.24, 0.21])
-        Ax32 = Fig.add_axes([0.38, 0.05, 0.24, 0.21])
-        Ax33 = Fig.add_axes([0.69, 0.05, 0.24, 0.21])
         FS = 12
-        N = x.shape[0]
 
+        # PLOT MODEL
         plotMap = Maps.InjectActiveCells(mesh, topoCells, 0.)  # Maps to mesh
+        Ax1 = 4*[None]
+        Cplot1 = 3*[None]
+        view_str = ['X', 'Y', 'Z']
+        param_1 = [ncx, ncy, ncz]
+        param_2 = [6, 0, 1]
+        param_3 = [-12, 0, 0]
 
-        Cplot11 = mesh.plotSlice(
-            plotMap*xi_true, normal='X', ind=int((ncx+2*npad)/2-6),
-            ax=Ax11, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
-        Cplot11[0].set_clim((0., np.max(xi_true)))
-        Ax11.set_xlabel('Y [m]', fontsize=FS)
-        Ax11.set_ylabel('Z [m]', fontsize=FS, labelpad=-10)
-        Ax11.tick_params(labelsize=FS-2)
-        titlestr11 = "True Model (x = -12 m)"
-        Ax11.set_title(titlestr11, fontsize=FS+2)
+        for qq in range(0, 3):
+            Ax1[qq] = Fig.add_axes([0.07+qq*0.29, 0.7, 0.23, 0.23])
+            Cplot1[qq] = mesh.plotSlice(
+                plotMap*xi_true, normal=view_str[qq],
+                ind=int((param_1[qq]+2*npad)/2-param_2[qq]),
+                ax=Ax1[qq], grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
+            Cplot1[qq][0].set_clim((0., np.max(xi_true)))
+            Ax1[qq].set_xlabel('Y [m]', fontsize=FS)
+            Ax1[qq].set_ylabel('Z [m]', fontsize=FS, labelpad=-10)
+            Ax1[qq].tick_params(labelsize=FS-2)
+            Ax1[qq].set_title('True Model (x = {} m)'.format(
+                param_3[qq]), fontsize=FS+2
+            )
 
-        Cplot12 = mesh.plotSlice(
-            plotMap*xi_true, normal='Y', ind=int((ncy+2*npad)/2),
-            ax=Ax12, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
-        Cplot12[0].set_clim((0., np.max(xi_true)))
-        Ax12.set_xlabel('X [m]', fontsize=FS)
-        Ax12.set_ylabel('Z [m]', fontsize=FS, labelpad=-10)
-        Ax12.tick_params(labelsize=FS-2)
-        titlestr12 = "True Model (y = 0 m)"
-        Ax12.set_title(titlestr12, fontsize=FS+2)
-
-        Cplot13 = mesh.plotSlice(
-            plotMap*xi_true, normal='Z', ind=int((ncz+2*npad)/2-1),
-            ax=Ax13, grid=True, pcolorOpts={'cmap': 'gist_heat_r'})
-        Cplot13[0].set_clim((0., np.max(xi_true)))
-        Ax13.set_xlabel('X [m]', fontsize=FS)
-        Ax13.set_ylabel('Y [m]', fontsize=FS, labelpad=-10)
-        Ax13.tick_params(labelsize=FS-2)
-        titlestr13 = "True Model (z = 0 m)"
-        Ax13.set_title(titlestr13, fontsize=FS+2)
-
+        Ax1[3] = Fig.add_axes([0.89, 0.7, 0.01, 0.24])
         norm = mpl.colors.Normalize(vmin=0., vmax=np.max(xi_true))
         cbar14 = mpl.colorbar.ColorbarBase(
-            Ax14, cmap='gist_heat_r', norm=norm, orientation='vertical')
+            Ax1[3], cmap='gist_heat_r', norm=norm, orientation='vertical')
         cbar14.set_label(
             '$\Delta \chi /$ln$(\lambda_2 / \lambda_1 )$ [SI]',
             rotation=270, labelpad=15, size=FS)
 
         # PLOT DECAY
-        j1 = int((N**2-1)/2 - 3*N)
-        di_vrm = mkvc(np.abs(FieldsVRM[j1, :]))
-        di_tem = mkvc(np.abs(FieldsTEM[j1, :]))
-        Ax21.loglog(times, di_tem, 'r.-')
-        Ax21.loglog(times, di_vrm, 'b.-')
-        Ax21.loglog(times, di_tem+di_vrm, 'k.-')
-        Ax21.set_xlabel('t [s]', fontsize=FS)
-        Ax21.set_ylabel('|dBz/dt| [T/s]', fontsize=FS)
-        Ax21.tick_params(labelsize=FS-2)
-        Ax21.set_xbound(np.min(times), np.max(times))
-        Ax21.set_ybound(1.2*np.max(di_tem+di_vrm), 1e-5*np.max(di_tem+di_vrm))
-        titlestr21 = (
-            "Decay at X = " + '{:.2f}'.format(loc[j1, 0]) +
-            " m and Y = " + '{:.2f}'.format(loc[j1, 1]) + " m")
-        Ax21.set_title(titlestr21, fontsize=FS+2)
-        Ax21.text(1.2e-5, 18*np.max(di_tem)/1e5, "TEM", fontsize=FS, color='r')
-        Ax21.text(1.2e-5, 6*np.max(di_tem)/1e5, "VRM", fontsize=FS, color='b')
-        Ax21.text(1.2e-5, 2*np.max(di_tem)/1e5, "TEM + VRM", fontsize=FS, color='k')
-
-        j2 = int((N**2-1)/2 + 3*N)
-        di_vrm = mkvc(np.abs(FieldsVRM[j2, :]))
-        di_tem = mkvc(np.abs(FieldsTEM[j2, :]))
-        Ax22.loglog(times, di_tem, 'r.-')
-        Ax22.loglog(times, di_vrm, 'b.-')
-        Ax22.loglog(times, di_tem+di_vrm, 'k.-')
-        Ax22.set_xlabel('t [s]', fontsize=FS)
-        Ax22.axes.get_yaxis().set_visible(False)
-        Ax22.tick_params(labelsize=FS-2)
-        Ax22.set_xbound(np.min(times), np.max(times))
-        Ax22.set_ybound(1.2*np.max(di_tem+di_vrm), 1e-5*np.max(di_tem+di_vrm))
-        titlestr22 = (
-            "Decay at X = " + '{:.2f}'.format(loc[j2, 0]) +
-            " m and Y = " + '{:.2f}'.format(loc[j2, 1]) + " m")
-        Ax22.set_title(titlestr22, fontsize=FS+2)
+        Ax2 = 2*[None]
+        N = x.shape[0]
+        for qq in range(0, 2):
+            Ax2[qq] = Fig.add_axes([0.1+0.47*qq, 0.335, 0.38, 0.29])
+            k = int((N**2-1)/2 - 3*N*(-1)**qq)
+            di_vrm = mkvc(np.abs(FieldsVRM[k, :]))
+            di_tem = mkvc(np.abs(FieldsTEM[k, :]))
+            Ax2[qq].loglog(times, di_tem, 'r.-')
+            Ax2[qq].loglog(times, di_vrm, 'b.-')
+            Ax2[qq].loglog(times, di_tem+di_vrm, 'k.-')
+            Ax2[qq].set_xlabel('t [s]', fontsize=FS)
+            if qq == 0:
+                Ax2[qq].set_ylabel('|dBz/dt| [T/s]', fontsize=FS)
+            else:
+                Ax2[qq].axes.get_yaxis().set_visible(False)
+            Ax2[qq].tick_params(labelsize=FS-2)
+            Ax2[qq].set_xbound(np.min(times), np.max(times))
+            Ax2[qq].set_ybound(1.2*np.max(di_tem+di_vrm), 1e-5*np.max(di_tem+di_vrm))
+            titlestr2 = (
+                "Decay at X = " + '{:.2f}'.format(loc[k, 0]) +
+                " m and Y = " + '{:.2f}'.format(loc[k, 1]) + " m")
+            Ax2[qq].set_title(titlestr2, fontsize=FS+2)
+            if qq == 0:
+                Ax2[qq].text(
+                    1.2e-5, 18*np.max(di_tem)/1e5, "TEM", fontsize=FS, color='r'
+                    )
+                Ax2[qq].text(
+                    1.2e-5, 6*np.max(di_tem)/1e5, "VRM", fontsize=FS, color='b'
+                    )
+                Ax2[qq].text(
+                    1.2e-5, 2*np.max(di_tem)/1e5, "TEM + VRM", fontsize=FS, color='k'
+                    )
 
         # PLOT ANOMALIES
-        d2 = np.reshape(np.abs(FieldsTEM[:, 0]+FieldsVRM[:, 0]), (N, N))
-        d3 = np.reshape(np.abs(FieldsTEM[:, 10]+FieldsVRM[:, 10]), (N, N))
-        d4 = np.reshape(np.abs(FieldsTEM[:, 20]+FieldsVRM[:, 20]), (N, N))
-
-        Cplot31 = Ax31.contourf(x, y, d2.T, 40, cmap='magma_r')
-        cbar31 = plt.colorbar(Cplot31, ax=Ax31, pad=0.02, format='%.2e')
-        cbar31.set_label('[T/s]', rotation=270, labelpad=12, size=FS)
-        cbar31.ax.tick_params(labelsize=FS-2)
-        Ax31.set_xlabel('X [m]', fontsize=FS)
-        Ax31.set_ylabel('Y [m]', fontsize=FS, labelpad=-8)
-        Ax31.tick_params(labelsize=FS-2)
-        Ax31.scatter(x, y, color=(0, 0, 0), s=4)
-        Ax31.set_xbound(np.min(x), np.max(x))
-        Ax31.set_ybound(np.min(y), np.max(y))
-        titlestr31 = "dBz/dt at t=" + '{:.1e}'.format(times[0]) + " s"
-        Ax31.set_title(titlestr31, fontsize=FS+2)
-
-        Cplot32 = Ax32.contourf(x, y, d3.T, 40, cmap='magma_r')
-        cbar32 = plt.colorbar(Cplot32, ax=Ax32, pad=0.02, format='%.2e')
-        cbar32.set_label('[T/s]', rotation=270, labelpad=12, size=FS)
-        cbar32.ax.tick_params(labelsize=FS-2)
-        Ax32.set_xlabel('X [m]', fontsize=FS)
-        Ax32.axes.get_yaxis().set_visible(False)
-        Ax32.tick_params(labelsize=FS-2)
-        Ax32.set_xbound(np.min(x), np.max(x))
-        Ax32.set_ybound(np.min(y), np.max(y))
-        titlestr32 = "dBz/dt at t=" + '{:.1e}'.format(times[10]) + " s"
-        Ax32.set_title(titlestr32, fontsize=FS+2)
-
-        Cplot33 = Ax33.contourf(x, y, d4.T, 40, cmap='magma_r')
-        cbar33 = plt.colorbar(Cplot33, ax=Ax33, pad=0.02, format='%.2e')
-        cbar33.set_label('[T/s]', rotation=270, labelpad=12, size=FS)
-        cbar33.ax.tick_params(labelsize=FS-2)
-        Ax33.set_xlabel('X [m]', fontsize=FS)
-        Ax33.axes.get_yaxis().set_visible(False)
-        Ax33.tick_params(labelsize=FS-2)
-        Ax33.set_xbound(np.min(x), np.max(x))
-        Ax33.set_ybound(np.min(y), np.max(y))
-        titlestr33 = "dBz/dt at t=" + '{:.1e}'.format(times[20]) + " s"
-        Ax33.set_title(titlestr33, fontsize=FS+2)
+        Ax3 = 3*[None]
+        Cplot3 = 3*[None]
+        cbar3 = 3*[None]
+        for qq in range(0, 3):
+            Ax3[qq] = Fig.add_axes([0.07+0.31*qq, 0.05, 0.24, 0.21])
+            d = np.reshape(np.abs(FieldsTEM[:, 10*qq]+FieldsVRM[:, 10*qq]), (N, N))
+            Cplot3[qq] = Ax3[qq].contourf(x, y, d.T, 40, cmap='magma_r')
+            cbar3[qq] = plt.colorbar(Cplot3[qq], ax=Ax3[qq], pad=0.02, format='%.2e')
+            cbar3[qq].set_label('[T/s]', rotation=270, labelpad=12, size=FS)
+            cbar3[qq].ax.tick_params(labelsize=FS-2)
+            Ax3[qq].set_xlabel('X [m]', fontsize=FS)
+            if qq == 0:
+                Ax3[qq].scatter(x, y, color=(0, 0, 0), s=4)
+                Ax3[qq].set_ylabel('Y [m]', fontsize=FS, labelpad=-8)
+            else:
+                Ax3[qq].axes.get_yaxis().set_visible(False)
+            Ax3[qq].tick_params(labelsize=FS-2)
+            Ax3[qq].set_xbound(np.min(x), np.max(x))
+            Ax3[qq].set_ybound(np.min(y), np.max(y))
+            titlestr3 = "dBz/dt at t=" + '{:.1e}'.format(times[10*qq]) + " s"
+            Ax3[qq].set_title(titlestr3, fontsize=FS+2)
 
 if __name__ == '__main__':
     run()

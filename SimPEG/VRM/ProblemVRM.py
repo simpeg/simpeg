@@ -18,13 +18,13 @@ class Problem_BaseVRM(Problem.BaseProblem):
     _AisSet = False
     ref_factor = properties.Integer('Sensitivity refinement factor', min=0)
     ref_radius = properties.Array('Sensitivity refinement radii from sources', dtype=float)
-    ind_active = properties.Array('Topography active cells', dtype=bool)
+    indActive = properties.Array('Topography active cells', dtype=bool)
 
     def __init__(self, mesh, **kwargs):
 
         ref_factor = kwargs.pop('ref_factor', None)
         ref_radius = kwargs.pop('ref_radius', None)
-        ind_active = kwargs.pop('ind_active', None)
+        indActive = kwargs.pop('indActive', None)
 
         if len(mesh.h) != 3:
             raise ValueError('Mesh must be 3D tensor or 3D tree. Current mesh is {}'.format(len(mesh.h)))
@@ -44,10 +44,10 @@ class Problem_BaseVRM(Problem.BaseProblem):
             self.ref_factor = ref_factor
             self.ref_radius = ref_radius
 
-        if ind_active is None:
-            self.ind_active = np.ones(mesh.nC, dtype=bool)
+        if indActive is None:
+            self.indActive = np.ones(mesh.nC, dtype=bool)
         else:
-            self.ind_active = ind_active
+            self.indActive = indActive
 
     @properties.observer('ref_factor')
     def _ref_factor_observer(self, change):
@@ -61,8 +61,8 @@ class Problem_BaseVRM(Problem.BaseProblem):
         if self.ref_factor is not None and len(change['value']) != self.ref_factor:
             print("Number of refinement radii current DOES NOT match ref_factor")
 
-    @properties.validator('ind_active')
-    def _ind_active_validator(self, change):
+    @properties.validator('indActive')
+    def _indActive_validator(self, change):
 
         if len(change['value']) != self.mesh.nC:
             raise ValueError("Length of active topo cells array must equal number of mesh cells (nC = {})".format(self.mesh.nC))
@@ -634,12 +634,12 @@ class Problem_BaseVRM(Problem.BaseProblem):
 
         """Returns the full geometric operator"""
 
-        ind_active = self.ind_active
+        indActive = self.indActive
 
         # GET CELL INFORMATION FOR FORWARD MODELING
         meshObj = self.mesh
-        xyzc = meshObj.gridCC[ind_active, :]
-        xyzh = meshObj.h_gridded[ind_active, :]
+        xyzc = meshObj.gridCC[indActive, :]
+        xyzh = meshObj.h_gridded[indActive, :]
 
         # GET LIST OF A MATRICIES
         A = []
@@ -736,7 +736,7 @@ class Problem_Linear(Problem_BaseVRM):
 
         super(Problem_Linear, self).__init__(mesh, **kwargs)
 
-        nAct = list(self.ind_active).count(True)
+        nAct = list(self.indActive).count(True)
         if self.xiMap is None:
             self.xiMap = Maps.IdentityMap(nP=nAct)
 

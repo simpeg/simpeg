@@ -5,12 +5,15 @@ import properties
 # BASE RECEIVER CLASS FOR VRM
 #########################################
 
+
 class BaseRxVRM(Survey.BaseRx, properties.HasProperties):
     """Base VRM receiver class"""
 
     def __init__(self, locs, **kwargs):
 
-        super(BaseRxVRM, self).__init__(locs, 'None', storeProjections=False, **kwargs)
+        super(BaseRxVRM, self).__init__(
+            locs, 'None', storeProjections=False, **kwargs
+            )
 
 
 #########################################
@@ -21,13 +24,17 @@ class Point(BaseRxVRM):
     """Point receiver"""
 
     times = properties.Array('Observation times', dtype=float)
-    fieldType = properties.StringChoice('Field type', choices=["h", "b", "dhdt", "dbdt"])
-    fieldComp = properties.StringChoice('Component of response', choices=["x", "y", "z"])
+    fieldType = properties.StringChoice(
+        'Field type', choices=["h", "b", "dhdt", "dbdt"]
+        )
+    fieldComp = properties.StringChoice(
+        'Component of response', choices=["x", "y", "z"]
+        )
 
     # def __init__(self, locs, times, fieldType, fieldComp, **kwargs):
     def __init__(self, locs, **kwargs):
 
-        if len(locs.shape[1]) != 3:
+        if locs.shape[1] != 3:
             raise ValueError('Rx locations (xi,yi,zi) must be np.array(N,3) where N is the number of stations')
 
         super(Point, self).__init__(locs, **kwargs)
@@ -69,12 +76,9 @@ class SquareLoop(BaseRxVRM):
     fieldType = properties.StringChoice('Field type', choices=["h", "b", "dhdt", "dbdt"])
     fieldComp = properties.StringChoice('Component of response', choices=["x", "y", "z"])
 
-    # def __init__(self, locs, times, width, nTurns, fieldType, fieldComp, **kwargs):
     def __init__(self, locs, **kwargs):
 
-        # self._quad_order = kwargs.get('quad_order', 4)
-
-        if len(locs.shape[1]) != 3:
+        if locs.shape[1] != 3:
             raise ValueError('Rx locations (xi,yi,zi) must be np.array(N,3) where N is the number of stations')
 
         super(SquareLoop, self).__init__(locs, **kwargs)

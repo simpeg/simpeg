@@ -14,7 +14,7 @@ class BaseSrcVRM(Survey.BaseSrc):
 
     def __init__(self, rxList, waveform, **kwargs):
 
-        if is not isinstance(waveform, (StepOff, SquarePulse, ArbitraryDiscrete, ArbitraryPiecewise)):
+        if isinstance(waveform, (StepOff, SquarePulse, ArbitraryDiscrete, ArbitraryPiecewise)) == False:
             AttributeError("Waveform must be an instance of a VRM waveform class: StepOff, SquarePulse or Arbitrary")
 
         super(BaseSrcVRM, self).__init__(rxList, **kwargs)
