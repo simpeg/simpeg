@@ -1385,7 +1385,7 @@ class Mesh2Mesh(IdentityMap):
     """
 
     indActive = properties.Array(
-        "active indices on target mesh"
+        "active indices on target mesh", dtype=bool
     )
 
     def __init__(self, meshes, **kwargs):
