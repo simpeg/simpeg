@@ -904,14 +904,18 @@ class Update_IRLS(InversionDirective):
 
                     if self.floorEpsEnforced:
                         self.forceIter = True
-                    print('Eps_p: ' + str(reg.eps_p))
+                elif reg.eps_p < self.floorEps_p:
+                    reg.eps_p = self.floorEps_p
+                print('Eps_p: ' + str(reg.eps_p))
                 if reg.eps_q > self.floorEps_q and self.coolEps_q and reg.space!='spherical' and self.IRLSiter > 1:
                     reg.eps_q /= self.coolEpsFact
 
                     if self.floorEpsEnforced:
                         self.forceIter = True
+                elif reg.eps_q < self.floorEps_q:
+                    reg.eps_q = self.floorEps_q
 
-                    print('Eps_q: ' + str(reg.eps_q))
+                print('Eps_q: ' + str(reg.eps_q))
 
             # Remember the value of the norm from previous R matrices
             # self.f_old = self.reg(self.invProb.model)
