@@ -60,6 +60,7 @@ class Model(SphinxProp, properties.Array):
 
     class_info = 'a numpy array'
     _required = False
+    _shape = {('*',), ('*', '*')}
 
 
 class Mapping(SphinxProp, properties.Property):
