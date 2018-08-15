@@ -2011,7 +2011,7 @@ class SplineMap(ParametricSplineMap):
 
 class BaseParametric(IdentityMap):
 
-    slopeFact = 1e1  # will be scaled by the mesh.
+    slopeFact = 1  # will be scaled by the mesh.
     slope = None
     indActive = None
 
@@ -2198,10 +2198,20 @@ class ParametricLayer(BaseParametric):
                 self._deriv_layer_thickness(mDict),
             ]).T)
 
-
 class ParametricBlock(BaseParametric):
     """
         Parametric Block in a Homogeneous Space
+
+         For 1D:
+
+        .. code:: python
+
+            m = [
+                val_background,
+                val_block,
+                block_x0,
+                block_dx,
+            ]
 
         For 2D:
 
@@ -2250,7 +2260,7 @@ class ParametricBlock(BaseParametric):
         default=1e-6
     )
 
-    p = properties.Integer(
+    p = properties.Float(
         "p-value used in the ekblom representation of the block",
         default=10
     )
@@ -2260,6 +2270,8 @@ class ParametricBlock(BaseParametric):
 
     @property
     def nP(self):
+        if self.mesh.dim == 1:
+            return 4
         if self.mesh.dim == 2:
             return 6
         elif self.mesh.dim == 3:
@@ -2271,60 +2283,74 @@ class ParametricBlock(BaseParametric):
             return (sum(self.indActive), self.nP)
         return (self.mesh.nC, self.nP)
 
-    def _mDict2d(self, m):
+    def _mDict1d(self, m):
         return {
             'val_background': m[0],
             'val_block': m[1],
-            'x0_block': m[2],
-            'dx_block': m[3],
-            'y0_block': m[4],
-            'dy_block': m[5],
+            'x0': m[2],
+            'dx': m[3],
         }
+
+    def _mDict2d(self, m):
+        mDict = self._mDict1d(m)
+        mDict.update({
+            # 'theta_x': m[4],
+            'y0': m[4],
+            'dy': m[5],
+            # 'theta_y': m[7]
+        })
+        return mDict
 
     def _mDict3d(self, m):
-        return {
-            'val_background': m[0],
-            'val_block': m[1],
-            'x0_block': m[2],
-            'dx_block': m[3],
-            'y0_block': m[4],
-            'dy_block': m[5],
-            'z0_block': m[6],
-            'dz_block': m[7],
-        }
+        mDict = self._mDict2d(m)
+        mDict.update({
+            'z0': m[6],
+            'dz': m[7],
+            # 'theta_z': m[10]
+        })
+        return mDict
 
     def mDict(self, m):
-        if self.mesh.dim == 2:
-            return self._mDict2d(m)
-        elif self.mesh.dim == 3:
-            return self._mDict3d(m)
+        return getattr(self, '_mDict{}d'.format(self.mesh.dim))(m)
 
     def _ekblom(self, val):
-        return (val**2 + self.epsilon**2)**self.p
+        return (val**2 + self.epsilon**2)**(self.p/2.)
 
     def _ekblomDeriv(self, val):
-        return self.p*(val**2 + self.epsilon**2)**(self.p - 1)*2*val
+        return (self.p/2)*(val**2 + self.epsilon**2)**((self.p/2) - 1)*2*val
+
+    # def _rotation(self, mDict):
+    #     if self.mesh.dim == 2:
+
+    #     elif self.mesh.dim == 3:
+
+    def _block1D(self, mDict):
+        return 1 - (
+            self._ekblom(
+                (self.x - mDict['x0']) / (0.5*mDict['dx'])
+            )
+        )
 
     def _block2D(self, mDict):
         return 1 - (
             self._ekblom(
-                (self.x - mDict['x0_block']) / (0.5*mDict['dx_block'])
+                (self.x - mDict['x0']) / (0.5*mDict['dx'])
             ) +
             self._ekblom(
-                (self.y - mDict['y0_block']) / (0.5*mDict['dy_block'])
+                (self.y - mDict['y0']) / (0.5*mDict['dy'])
             )
         )
 
     def _block3D(self, mDict):
         return 1 - (
             self._ekblom(
-                (self.x - mDict['x0_block']) / (0.5*mDict['dx_block'])
+                (self.x - mDict['x0']) / (0.5*mDict['dx'])
             ) +
             self._ekblom(
-                (self.y - mDict['y0_block']) / (0.5*mDict['dy_block'])
+                (self.y - mDict['y0']) / (0.5*mDict['dy'])
             ) +
             self._ekblom(
-                (self.z - mDict['z0_block']) / (0.5*mDict['dz_block'])
+                (self.z - mDict['z0']) / (0.5*mDict['dz'])
             )
         )
 
@@ -2354,8 +2380,8 @@ class ParametricBlock(BaseParametric):
 
     def _deriv_center_block(self, mDict, orientation):
         x = getattr(self, orientation)
-        x0 = mDict["{}0_block".format(orientation)]
-        dx = mDict["d{}_block".format(orientation)]
+        x0 = mDict["{}0".format(orientation)]
+        dx = mDict["d{}".format(orientation)]
         return (mDict['val_block'] - mDict['val_background'])*(
             self._atanfctDeriv(
                 getattr(self, "_block{}D".format(self.mesh.dim))(mDict),
@@ -2365,8 +2391,8 @@ class ParametricBlock(BaseParametric):
 
     def _deriv_width_block(self, mDict, orientation):
         x = getattr(self, orientation)
-        x0 = mDict["{}0_block".format(orientation)]
-        dx = mDict["d{}_block".format(orientation)]
+        x0 = mDict["{}0".format(orientation)]
+        dx = mDict["d{}".format(orientation)]
         return (mDict['val_block'] - mDict['val_background'])*(
             self._atanfctDeriv(
                 getattr(self, "_block{}D".format(self.mesh.dim))(mDict),
@@ -2405,185 +2431,27 @@ class ParametricBlock(BaseParametric):
             getattr(self, '_deriv{}D'.format(self.mesh.dim))(self.mDict(m))
         )
 
-class ParametricEllipsoid(BaseParametric):
-    """
-        Parametric Ellipsoid in a Homogeneous Space
+class ParametricEllipsoid(ParametricBlock):
 
-        For 2D:
+    # """
+    #     Parametric Ellipsoid in a Homogeneous Space
 
-        .. code:: python
+    #     **Required**
 
-            m = [
-                val_background,
-                val_ellipsoid,
-                ellipsoid_x0,
-                ellipsoid_a,
-                ellipsoid_y0,
-                ellipsoid_b
-            ]
+    #     :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
-        For 3D:
+    #     **Optional**
 
-        .. code:: python
+    #     :param float slopeFact: arctan slope factor - divided by the minimum h
+    #                             spacing to give the slope of the arctan
+    #                             functions
+    #     :param float slope: slope of the arctan function
+    #     :param numpy.ndarray indActive: bool vector with active indices
 
-            m = [
-                val_background,
-                val_ellipsoid,
-                ellipsoid_x0,
-                ellipsoid_a,
-                ellipsoid_y0,
-                ellipsoid_b
-                ellipsoid_z0,
-                ellipsoid_c
-            ]
-
-        **Required**
-
-        :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
-
-        **Optional**
-
-        :param float slopeFact: arctan slope factor - divided by the minimum h
-                                spacing to give the slope of the arctan
-                                functions
-        :param float slope: slope of the arctan function
-        :param numpy.ndarray indActive: bool vector with active indices
-
-
-        .. todo:: include rotations
-
-    """
+    # """
 
     def __init__(self, mesh, **kwargs):
-        super(ParametricEllipsoid, self).__init__(mesh, **kwargs)
-
-    @property
-    def nP(self):
-        if self.mesh.dim == 2:
-            return 6
-        elif self.mesh.dim == 3:
-            return 8
-
-    @property
-    def shape(self):
-        if self.indActive is not None:
-            return (sum(self.indActive), self.nP)
-        return (self.mesh.nC, self.nP)
-
-    def _mDict2d(self, m):
-        return {
-            'val_background': m[0],
-            'val_ellipsoid': m[1],
-            'x0_ellipsoid': m[2],
-            'rx_ellipsoid': m[3],
-            'y0_ellipsoid': m[4],
-            'ry_ellipsoid': m[5],
-        }
-
-    def _mDict3d(self, m):
-        return {
-            'val_background': m[0],
-            'val_ellipsoid': m[1],
-            'x0_ellipsoid': m[2],
-            'rx_ellipsoid': m[3],
-            'y0_ellipsoid': m[4],
-            'ry_ellipsoid': m[5],
-            'z0_ellipsoid': m[6],
-            'rz_ellipsoid': m[7],
-        }
-
-    def mDict(self, m):
-        if self.mesh.dim == 2:
-            return self._mDict2d(m)
-        elif self.mesh.dim == 3:
-            return self._mDict3d(m)
-
-    def _ellipsoid2D(self, mDict):
-        return 1 - (
-            ((self.x - mDict['x0_ellipsoid']) / mDict['rx_ellipsoid'])**2 +
-            ((self.y - mDict['y0_ellipsoid']) / mDict['ry_ellipsoid'])**2
-        )
-
-    def _ellipsoid3D(self, mDict):
-        return 1 - (
-            ((self.x - mDict['x0_ellipsoid']) / mDict['rx_ellipsoid'])**2 +
-            ((self.y - mDict['y0_ellipsoid']) / mDict['ry_ellipsoid'])**2 +
-            ((self.z - mDict['z0_ellipsoid']) / mDict['rz_ellipsoid'])**2
-        )
-
-    def _transform(self, m):
-        mDict = self.mDict(m)
-        return (
-            mDict['val_background'] +
-            (mDict['val_ellipsoid'] - mDict['val_background'])*self._atanfct(
-                getattr(self, "_ellipsoid{}D".format(self.mesh.dim))(mDict),
-                slope=self.slope
-            )
-        )
-
-    def _deriv_val_background(self, mDict):
-        return (
-            1 - self._atanfct(
-                getattr(self, "_ellipsoid{}D".format(self.mesh.dim))(mDict),
-                slope=self.slope
-            )
-        )
-
-    def _deriv_val_ellipsoid(self, mDict):
-        return self._atanfct(
-            getattr(self, "_ellipsoid{}D".format(self.mesh.dim))(mDict),
-            slope=self.slope
-        )
-
-    def _deriv_center_ellipsoid(self, mDict, orientation):
-        x = getattr(self, orientation)
-        x0 = mDict['{}0_ellipsoid'.format(orientation)]
-        rx = mDict['r{}_ellipsoid'.format(orientation)]
-        return (mDict['val_ellipsoid'] - mDict['val_background'])*(
-            self._atanfctDeriv(
-                getattr(self, "_ellipsoid{}D".format(self.mesh.dim))(mDict),
-                slope=self.slope
-            ) * (-2 * (x - x0) / rx**2)
-        )
-
-    def _deriv_semiaxis_ellipsoid(self, mDict, orientation):
-        x = getattr(self, orientation)
-        x0 = mDict['{}0_ellipsoid'.format(orientation)]
-        rx = mDict['r{}_ellipsoid'.format(orientation)]
-        return (mDict['val_ellipsoid'] - mDict['val_background'])*(
-            self._atanfctDeriv(
-                getattr(self, "_ellipsoid{}D".format(self.mesh.dim))(mDict),
-                slope=self.slope
-            ) * (-2 * (x - x0)**2 / rx**3)
-        )
-
-    def _deriv2D(self, mDict):
-        return np.vstack([
-            self._deriv_val_background(mDict),
-            self._deriv_val_ellipsoid(mDict),
-            self._deriv_center_ellipsoid(mDict, 'x'),
-            self._deriv_semiaxis_ellipsoid(mDict, 'x'),
-            self._deriv_center_ellipsoid(mDict, 'y'),
-            self._deriv_semiaxis_ellipsoid(mDict, 'y'),
-        ]).T
-
-    def _deriv3D(self, mDict):
-        return np.vstack([
-            self._deriv_val_background(mDict),
-            self._deriv_val_ellipsoid(mDict),
-            self._deriv_center_ellipsoid(mDict, 'x'),
-            self._deriv_semiaxis_ellipsoid(mDict, 'x'),
-            self._deriv_center_ellipsoid(mDict, 'y'),
-            self._deriv_semiaxis_ellipsoid(mDict, 'y'),
-            self._deriv_center_ellipsoid(mDict, 'z'),
-            self._deriv_semiaxis_ellipsoid(mDict, 'z')
-        ]).T
-
-    def deriv(self, m):
-        return sp.csr_matrix(
-            getattr(self, '_deriv{}D'.format(self.mesh.dim))(self.mDict(m))
-        )
-
+        super(ParametricEllipsoid, self).__init__(mesh, p=2, **kwargs)
 
 class ParametricCasingAndLayer(ParametricLayer):
     """
@@ -2996,8 +2864,8 @@ class ParametricBlockInLayer(ParametricLayer):
             'val_block': m[2],
             'layer_center': m[3],
             'layer_thickness': m[4],
-            'x0_block': m[5],
-            'dx_block': m[6]
+            'x0': m[5],
+            'dx': m[6]
         }
 
     def _mDict3d(self, m):
@@ -3007,10 +2875,10 @@ class ParametricBlockInLayer(ParametricLayer):
             'val_block': m[2],
             'layer_center': m[3],
             'layer_thickness': m[4],
-            'x0_block': m[5],
-            'y0_block': m[6],
-            'dx_block': m[7],
-            'dy_block': m[8]
+            'x0': m[5],
+            'y0': m[6],
+            'dx': m[7],
+            'dy': m[8]
         }
 
     def mDict(self, m):
@@ -3020,16 +2888,16 @@ class ParametricBlockInLayer(ParametricLayer):
             return self._mDict3d(m)
 
     def xleft(self, mDict):
-        return mDict['x0_block'] - 0.5*mDict['dx_block']
+        return mDict['x0'] - 0.5*mDict['dx']
 
     def xright(self, mDict):
-        return mDict['x0_block'] + 0.5*mDict['dx_block']
+        return mDict['x0'] + 0.5*mDict['dx']
 
     def yleft(self, mDict):
-        return mDict['y0_block'] - 0.5*mDict['dy_block']
+        return mDict['y0'] - 0.5*mDict['dy']
 
     def yright(self, mDict):
-        return mDict['y0_block'] + 0.5*mDict['dy_block']
+        return mDict['y0'] + 0.5*mDict['dy']
 
     def _atanBlock2d(self, mDict):
         return (
@@ -3256,7 +3124,7 @@ class ParametricBlockInLayer(ParametricLayer):
         )
         return d_layer_dlayer_thickness + d_block_dlayer_thickness
 
-    def _deriv2d_x0_block(self, mDict):
+    def _deriv2d_x0(self, mDict):
         d_layer_dx0 = 0.
         d_block_dx0 = (
             (mDict['val_block']-self.layer_cont(mDict)) *
@@ -3264,7 +3132,7 @@ class ParametricBlockInLayer(ParametricLayer):
         )
         return d_layer_dx0 + d_block_dx0
 
-    def _deriv2d_dx_block(self, mDict):
+    def _deriv2d_dx(self, mDict):
         d_layer_ddx = 0.
         d_block_ddx = (
             (mDict['val_block']-self.layer_cont(mDict)) *
@@ -3281,8 +3149,8 @@ class ParametricBlockInLayer(ParametricLayer):
             self._deriv2d_val_block(mDict),
             self._deriv2d_layer_center(mDict),
             self._deriv2d_layer_thickness(mDict),
-            self._deriv2d_x0_block(mDict),
-            self._deriv2d_dx_block(mDict)
+            self._deriv2d_x0(mDict),
+            self._deriv2d_dx(mDict)
         ]).T
 
     def _transform3d(self, m):
@@ -3344,7 +3212,7 @@ class ParametricBlockInLayer(ParametricLayer):
         )
         return d_layer_dlayer_thickness + d_block_dlayer_thickness
 
-    def _deriv3d_x0_block(self, mDict):
+    def _deriv3d_x0(self, mDict):
         d_layer_dx0 = 0.
         d_block_dx0 = (
             (mDict['val_block'] - self.layer_cont(mDict)) *
@@ -3352,7 +3220,7 @@ class ParametricBlockInLayer(ParametricLayer):
         )
         return d_layer_dx0 + d_block_dx0
 
-    def _deriv3d_y0_block(self, mDict):
+    def _deriv3d_y0(self, mDict):
         d_layer_dy0 = 0.
         d_block_dy0 = (
             (mDict['val_block']-self.layer_cont(mDict)) *
@@ -3360,7 +3228,7 @@ class ParametricBlockInLayer(ParametricLayer):
         )
         return d_layer_dy0 + d_block_dy0
 
-    def _deriv3d_dx_block(self, mDict):
+    def _deriv3d_dx(self, mDict):
         d_layer_ddx = 0.
         d_block_ddx = (
             (mDict['val_block']-self.layer_cont(mDict)) *
@@ -3368,7 +3236,7 @@ class ParametricBlockInLayer(ParametricLayer):
         )
         return d_layer_ddx + d_block_ddx
 
-    def _deriv3d_dy_block(self, mDict):
+    def _deriv3d_dy(self, mDict):
         d_layer_ddy = 0.
         d_block_ddy = (
             (mDict['val_block']-self.layer_cont(mDict)) *
@@ -3386,10 +3254,10 @@ class ParametricBlockInLayer(ParametricLayer):
             self._deriv3d_val_block(mDict),
             self._deriv3d_layer_center(mDict),
             self._deriv3d_layer_thickness(mDict),
-            self._deriv3d_x0_block(mDict),
-            self._deriv3d_y0_block(mDict),
-            self._deriv3d_dx_block(mDict),
-            self._deriv3d_dy_block(mDict),
+            self._deriv3d_x0(mDict),
+            self._deriv3d_y0(mDict),
+            self._deriv3d_dx(mDict),
+            self._deriv3d_dy(mDict),
         ]).T
 
     def _transform(self, m):
