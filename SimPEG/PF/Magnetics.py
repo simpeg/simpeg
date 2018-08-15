@@ -178,12 +178,8 @@ class MagneticIntegral(Problem.LinearProblem):
         # (lower and upper coners for each cell)
         if isinstance(self.mesh, Mesh.TreeMesh):
             # Get upper and lower corners of each cell
-            bsw = (self.mesh.gridCC -
-                   np.kron(self.mesh.vol.T**(1/3)/2,
-                           np.ones(3)).reshape((self.mesh.nC, 3)))
-            tne = (self.mesh.gridCC +
-                   np.kron(self.mesh.vol.T**(1/3)/2,
-                           np.ones(3)).reshape((self.mesh.nC, 3)))
+            bsw = (self.mesh.gridCC - self.mesh.h_gridded/2.)
+            tne = (self.mesh.gridCC + self.mesh.h_gridded/2.)
 
             xn1, xn2 = bsw[:, 0], tne[:, 0]
             yn1, yn2 = bsw[:, 1], tne[:, 1]
