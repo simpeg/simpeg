@@ -38,7 +38,7 @@ setup(
         'cython',
         'pymatsolver>=0.1.1',
         'ipython',
-        'matplotlib',,
+        'matplotlib',
         'scikit-learn>=0.19.1',
         'seaborn',
         'properties>=0.5.2',
