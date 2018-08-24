@@ -87,7 +87,7 @@ script:
 
 # Calculate coverage
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - bash <(curl -s https://codecov.io/bash) -t 47faa207-a3c4-4507-a08c-669258959286
 
   # early exit if not on a deplotment branch
   - if ! [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" -o "$TRAVIS_TAG" = "true" ]; then
