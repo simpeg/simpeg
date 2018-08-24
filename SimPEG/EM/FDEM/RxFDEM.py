@@ -12,6 +12,7 @@ class BaseRx(SimPEG.Survey.BaseRx):
     """
 
     def __init__(self, locs, orientation=None, component=None):
+        orientation = orientation.lower()
         assert(
             orientation in ['x', 'y', 'z']
         ), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'."
