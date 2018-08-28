@@ -31,7 +31,7 @@ SimPEG
     :target: http://slack.simpeg.xyz
 
 .. image:: https://img.shields.io/badge/Google%20group-simpeg-da5247.svg
-    https://groups.google.com/forum/#!forum/simpeg
+    :target: https://groups.google.com/forum/#!forum/simpeg
 
 Simulation and Parameter Estimation in Geophysics  -  A python package for simulation and gradient based parameter estimation in the context of geophysical applications.
 
