@@ -422,7 +422,7 @@ def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
 
 
 def plotProfile(xyzd, a, b, npts, data=None,
-                fig=None, ax=None, plotStr=None,
+                fig=None, ax=None, plotStr='k',
                 coordinate_system='local'):
     """
     Plot the data and line profile inside the spcified limits
@@ -453,7 +453,7 @@ def plotProfile(xyzd, a, b, npts, data=None,
 
     x, y = linefun(a[0], b[0], a[1], b[1], npts)
     distance = np.sqrt((x-a[0])**2.+(y-a[1])**2.)
-    dline = griddata(xyzd[:, :2], xyzd[:, -1], (x, y), method='linear')
+    dline = griddata(xyzd[:, :2], xyzd[:, -1], (x, y), method='cubic')
 
     if coordinate_system == 'xProfile':
         distance += a[0]
@@ -467,7 +467,7 @@ def plotProfile(xyzd, a, b, npts, data=None,
         # if len(plotStr) == len(data):
         for ii, d in enumerate(data):
 
-            dline = griddata(xyzd[:, :2], d, (x, y), method='linear')
+            dline = griddata(xyzd[:, :2], d, (x, y), method='cubic')
 
             if plotStr[ii]:
                 ax.plot(distance, dline, plotStr[ii])
