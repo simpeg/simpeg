@@ -1,9 +1,9 @@
 import re
 import os
-from SimPEG import Mesh, Utils, mkvc
+from SimPEG import Mesh, Utils
+import numpy as np
 from . import BaseMag
 from . import Magnetics
-import numpy as np
 
 
 class MagneticsDriver_Inv(object):
@@ -143,7 +143,7 @@ class MagneticsDriver_Inv(object):
         line = fid.readline()
         l_input = re.split('[!\s]', line)
         if l_input[0] == 'VALUE':
-            val = np.array(l_input[1:13])
+            val = np.array(l_input[1:6])
             lpnorms = val.astype(np.float)
 
         elif l_input[0] == 'FILE':
@@ -153,9 +153,8 @@ class MagneticsDriver_Inv(object):
         line = fid.readline()
         l_input = re.split('[!\s]', line)
         if l_input[0] == 'VALUE':
-
-            eps = [float(i) for i in l_input[1:3]]
-
+            val = np.array(l_input[1:3])
+            eps = val.astype(np.float)
 
         elif l_input[0] == 'DEFAULT':
             eps = None
@@ -183,15 +182,18 @@ class MagneticsDriver_Inv(object):
     @property
     def survey(self):
         if getattr(self, '_survey', None) is None:
-            self._survey = readMagneticsObservations(self.basePath + self.obsfile)
+            self._survey, _ = Utils.io_utils.readUBCmagneticsObservations(
+                self.basePath + self.obsfile
+            )
         return self._survey
 
     @property
     def activeCells(self):
         if getattr(self, '_activeCells', None) is None:
             if getattr(self, 'topofile', None) is not None:
-                topo = np.genfromtxt(self.basePath + self.topofile,
-                                     skip_header=1)
+                topo = np.genfromtxt(
+                    self.basePath + self.topofile, skip_header=1
+                )
 
                 # Find the active cells
                 active = Utils.surface2ind_topo(self.mesh, topo, 'N')
@@ -203,7 +205,14 @@ class MagneticsDriver_Inv(object):
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
                 active = self.activeModel != 0
 
-            self._activeCells = np.asarray(np.where(mkvc(active))[0], dtype=int)
+            inds = np.asarray(
+                [
+                    inds for inds, elem in enumerate(active, 1) if elem
+                ],
+                dtype=int
+            ) - 1
+
+            self._activeCells = inds
 
             # Reduce m0 to active space
             if len(self.m0) > len(self._activeCells):
@@ -218,9 +227,12 @@ class MagneticsDriver_Inv(object):
             # Cells with value 1 in active model are dynamic
             staticCells = self.activeModel[self.activeCells] == -1
 
-            inds = np.asarray([inds for inds,
-                               elem in enumerate(staticCells, 1)
-                               if elem], dtype=int) - 1
+            inds = np.asarray(
+                [
+                    inds for inds, elem in enumerate(staticCells, 1) if elem
+                ],
+                dtype=int
+            ) - 1
 
             self._staticCells = inds
 
@@ -233,9 +245,12 @@ class MagneticsDriver_Inv(object):
             # Cells with value 1 in active model are dynamic
             dynamicCells = self.activeModel[self.activeCells] == 1
 
-            inds = np.asarray([inds for inds,
-                               elem in enumerate(dynamicCells, 1)
-                               if elem], dtype=int) - 1
+            inds = np.asarray(
+                [
+                    inds for inds, elem in enumerate(dynamicCells, 1) if elem
+                ],
+                dtype=int
+            ) - 1
 
             self._dynamicCells = inds
 
@@ -253,9 +268,9 @@ class MagneticsDriver_Inv(object):
             if isinstance(self.mstart, float):
                 self._m0 = np.ones(self.nC) * self.mstart
             else:
-                self._m0 = Mesh.TensorMesh.readModelUBC(self.mesh,
-                                                        self.basePath +
-                                                        self.mstart)
+                self._m0 = Mesh.TensorMesh.readModelUBC(
+                    self.mesh, self.basePath + self.mstart
+                )
 
         return self._m0
 
@@ -265,9 +280,9 @@ class MagneticsDriver_Inv(object):
             if isinstance(self._mrefInput, float):
                 self._mref = np.ones(self.nC) * self._mrefInput
             else:
-                self._mref = Mesh.TensorMesh.readModelUBC(self.mesh,
-                                                          self.basePath +
-                                                          self._mrefInput)
+                self._mref = Mesh.TensorMesh.readModelUBC(
+                    self.mesh, self.basePath + self._mrefInput
+                )
 
                 # Reduce to active space
                 self._mref = self._mref[self.activeCells]
@@ -275,26 +290,13 @@ class MagneticsDriver_Inv(object):
         return self._mref
 
     @property
-    def cell_weights(self):
-        if getattr(self, '_cell_weights', None) is None:
-            if isinstance(self.wgtfile, float):
-                self._cell_weights = np.ones(self.nC) * self.wgtfile
-            else:
-                self._cell_weights = Mesh.TensorMesh.readModelUBC(self.mesh,
-                                                          self.basePath +
-                                                          self.wgtfile)
-
-                # Reduce to active space
-                self._cell_weights = self._cell_weights[self._activeCells]
-
-        return self._cell_weights
-
-    @property
     def activeModel(self):
         if getattr(self, '_activeModel', None) is None:
             if self._staticInput == 'FILE':
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
-                self._activeModel = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self._staticInput)
+                self._activeModel = Mesh.TensorMesh.readModelUBC(
+                    self.mesh, self.basePath + self._staticInput
+                )
 
             else:
                 self._activeModel = np.ones(self._mesh.nC)
@@ -309,10 +311,10 @@ class MagneticsDriver_Inv(object):
 
         if getattr(self, 'magfile', None) is None:
 
-            M = Magnetics.dipazm_2_xyz(np.ones(self.nC) *
-                                       self.survey.srcField.param[1],
-                                       np.ones(self.nC) *
-                                       self.survey.srcField.param[2])
+            M = Magnetics.dipazm_2_xyz(
+                np.ones(self.nC) * self.survey.srcField.param[1],
+                np.ones(self.nC) * self.survey.srcField.param[2]
+            )
 
         else:
 
@@ -330,9 +332,11 @@ class MagneticsDriver_Inv(object):
 
             # Cycle through three components and permute from UBC to SimPEG
             for ii in range(3):
-                m = np.reshape(M[:, ii],
-                               (self.mesh.nCz, self.mesh.nCx, self.mesh.nCy),
-                               order='F')
+                m = np.reshape(
+                    M[:, ii],
+                    (self.mesh.nCz, self.mesh.nCx, self.mesh.nCy),
+                    order='F'
+                )
 
                 m = m[::-1, :, :]
                 m = np.transpose(m, (1, 2, 0))
@@ -341,142 +345,3 @@ class MagneticsDriver_Inv(object):
         self._M = M
 
         return self._M
-
-
-def readMagneticsObservations(obs_file):
-    """
-        Read and write UBC mag file format
-
-        INPUT:
-        :param fileName, path to the UBC obs mag file
-
-        OUTPUT:
-        :param survey
-        :param M, magnetization orentiaton (MI, MD)
-    """
-
-    fid = open(obs_file, 'r')
-
-    # First line has the inclination,declination and amplitude of B0
-    line = fid.readline()
-    B = np.array(line.split(), dtype=float)
-
-    # Second line has the magnetization orientation and a flag
-    line = fid.readline()
-    M = np.array(line.split(), dtype=float)
-
-    # Third line has the number of rows
-    line = fid.readline()
-    ndat = np.array(line.split(), dtype=int)[0]
-
-    # Pre-allocate space for obsx, obsy, obsz, data, uncert
-    line = fid.readline()
-    temp = np.array(line.split(), dtype=float)
-
-    d = np.zeros(ndat, dtype=float)
-    wd = np.zeros(ndat, dtype=float)
-    locXYZ = np.zeros((ndat, 3), dtype=float)
-
-    for ii in range(ndat):
-
-        temp = np.array(line.split(), dtype=float)
-        locXYZ[ii, :] = temp[:3]
-
-        if len(temp) > 3:
-            d[ii] = temp[3]
-
-            if len(temp) == 5:
-                wd[ii] = temp[4]
-
-        line = fid.readline()
-
-    rxLoc = BaseMag.RxObs(locXYZ)
-    srcField = BaseMag.SrcField([rxLoc], param=(B[2], B[0], B[1]))
-    survey = BaseMag.LinearSurvey(srcField)
-    survey.dobs = d
-    survey.std = wd
-    return survey
-
-
-def actIndFull2layer(mesh, actInd):
-    """
-    Function to extract upper layer (topo) of an
-    active index vector
-    """
-
-    # Convert the actind to bool
-    if not isinstance(actInd, bool):
-
-        actIndFull = np.zeros(mesh.nC, dtype=bool)
-        actIndFull[actInd] = True
-
-    actIndFull = actIndFull.reshape(mesh.vnC, order='F')
-
-    actIndLayer = np.zeros(mesh.vnC, dtype=bool)
-    for ii in range(mesh.nCx):
-        for jj in range(mesh.nCy):
-
-            zcol = actIndFull[ii, jj, :]
-            actIndLayer[ii, jj, np.where(zcol)[0][-1]] = True
-
-    return np.asarray(np.where(mkvc(actIndLayer))[0], dtype=int)
-
-
-def writeVectorUBC(mesh, fileName, model):
-    """
-        Writes a vector model associated with a SimPEG TensorMesh
-        to a UBC-GIF format model file.
-
-        :param string fileName: File to write to
-        :param numpy.ndarray model: The model
-    """
-
-    modelMatTR = np.zeros_like(model)
-
-    for ii in range(3):
-
-        if isinstance(mesh, Mesh.TreeMesh):
-            modelMatTR[:, ii] = model[:, ii][mesh._ubc_order]
-
-        else:
-            # Reshape model to a matrix
-            modelMat = mesh.r(model[:, ii], 'CC', 'CC', 'M')
-            # Transpose the axes
-            modelMatT = modelMat.transpose((2, 0, 1))
-            # Flip z to positive down
-            modelMatTR[:, ii] = Utils.mkvc(modelMatT[::-1, :, :])
-
-    np.savetxt(fileName, modelMatTR)
-
-
-def readVectorUBC(mesh, fileName):
-    """Read UBC 3DVector model and generate 3D Vector mesh model
-
-    Input:
-    :param string fileName: path to the UBC GIF mesh file to read
-
-    Output:
-    :rtype: numpy.ndarray
-    :return: model with TensorMesh ordered x3 nC
-    """
-    model = np.loadtxt(fileName)
-    # Fist line is the size of the model
-    # model = np.array(model.ravel()[0].split(), dtype=float)
-
-    vx = np.reshape(model[:, 0], (mesh.nCz, mesh.nCx, mesh.nCy), order='F')
-    vx = vx[::-1, :, :]
-    vx = np.transpose(vx, (1, 2, 0))
-    vx = mkvc(vx)
-
-    vy = np.reshape(model[:, 1], (mesh.nCz, mesh.nCx, mesh.nCy), order='F')
-    vy = vy[::-1, :, :]
-    vy = np.transpose(vy, (1, 2, 0))
-    vy = mkvc(vy)
-
-    vz = np.reshape(model[:, 2], (mesh.nCz, mesh.nCx, mesh.nCy), order='F')
-    vz = vz[::-1, :, :]
-    vz = np.transpose(vz, (1, 2, 0))
-    vz = mkvc(vz)
-
-    model = np.r_[vx, vy, -vz]
-    return model

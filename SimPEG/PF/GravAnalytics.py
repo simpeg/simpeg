@@ -6,7 +6,7 @@ import numpy as np
 
 def GravSphereFreeSpace(x, y, z, R, xc, yc, zc, rho):
     """
-        Computing the gravity response of a sphere in free-space.
+        Computing the induced response of magnetic sphere in free-space.
         >> Input
         x, y, z:   Observation locations
         R:     radius of the sphere
@@ -21,36 +21,26 @@ def GravSphereFreeSpace(x, y, z, R, xc, yc, zc, rho):
         print("Specify same size of x, y, z")
         return
 
-    unit_conv_g = 1e+8  # Unit conversion from SI to (mgal*g/cc)
-    unit_conv_gg = 1e+12  # Unit conversion from SI to (mgal*g/cc)
-
+    unit_conv = 1e+8  # Unit conversion from SI to (mgal*g/cc)
     x = mkvc(x)
     y = mkvc(y)
     z = mkvc(z)
 
+    nobs = len(x)
+
     M = R**3. * 4. / 3. * np.pi * rho
 
-    dx = (x - xc)
-    dy = (y - yc)
-    dz = (z - zc)
+    rx = (x - xc)
+    ry = (y - yc)
+    rz = (zc - z)
 
-    r = np.sqrt((dx)**2.+(dy)**2.+(dz)**2.)
+    rvec = np.c_[rx, ry, rz]
+    r = np.sqrt((rx)**2 + (ry)**2 + (rz)**2)
 
-    g = -G*(1./r**2.)*M * unit_conv_g
+    g = -G * (1. / r**2) * M * unit_conv
 
-    gx = g * (dx / r)
-    gy = g * (dy / r)
-    gz = -g * (dz / r)
+    gx = g * (rx / r)
+    gy = g * (ry / r)
+    gz = g * (rz / r)
 
-    gxx = -G * M * unit_conv_gg * (r**2. - 3.*dx**2.)/r**5.
-    gxy = -G * M * unit_conv_gg * (-3.*dx*dy)/r**5.
-    gxz = -G * M * unit_conv_gg * (-3.*dx*dz)/r**5.
-
-    gyy = -G * M * unit_conv_gg * (r**2. - 3.*dy**2.)/r**5.
-    gyz = -G * M * unit_conv_gg * (-3.*dy*dz)/r**5.
-
-    gzz = -G * M * unit_conv_gg * (r**2. - 3.*dz**2.)/r**5.
-
-    return {'gx': gx, 'gy': gy, 'gz': gz,
-            'gxx': gxx, 'gxy': gxy, 'gxz': gxz,
-            'gyy': gyy, 'gyz': gyz, 'gzz': gzz}
+    return gx, gy, gz

@@ -1,18 +1,13 @@
 from __future__ import print_function
-from SimPEG import Problem
+from SimPEG import Problem, Mesh
 from SimPEG import Utils
-from SimPEG import Props, Mesh
 from SimPEG.Utils import mkvc
+from SimPEG import Props
 import scipy as sp
-from . import BaseGrav as GRAV
-# from . import Forward
-import re
-import numpy as np
-import multiprocessing
 import scipy.constants as constants
 import os
 import time
-
+import numpy as np
 
 class GravityIntegral(Problem.LinearProblem):
 
@@ -48,7 +43,7 @@ class GravityIntegral(Problem.LinearProblem):
             return mkvc(fields)
 
         else:
-            vec = np.dot(self.F, (self.model).astype(np.float32))
+            vec = np.dot(self.G, (self.model).astype(np.float32))
 
             return vec.astype(np.float64)
 
@@ -66,44 +61,44 @@ class GravityIntegral(Problem.LinearProblem):
         if self.gtgdiag is None:
 
             if W is None:
-                w = np.ones(self.F.shape[1])
+                w = np.ones(self.G.shape[1])
             else:
                 w = W.diagonal()
 
             dmudm = self.rhoMap.deriv(m)
             self.gtgdiag = np.zeros(dmudm.shape[1])
 
-            for ii in range(self.F.shape[0]):
+            for ii in range(self.G.shape[0]):
 
-                self.gtgdiag += (w[ii]*self.F[ii, :]*dmudm)**2.
+                self.gtgdiag += (w[ii]*self.G[ii, :]*dmudm)**2.
 
         return self.gtgdiag
 
-    def getJ(self, m, f):
+    def getJ(self, m, f=None):
         """
             Sensitivity matrix
         """
-        return self.F
+        return self.G
 
     def Jvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
-        return self.F.dot(dmudm*v)
+        return self.G.dot(dmudm*v)
 
     def Jtvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
-        return dmudm.T * (self.F.T.dot(v))
+        return dmudm.T * (self.G.T.dot(v))
 
     @property
-    def F(self):
+    def G(self):
         if not self.ispaired:
             raise Exception('Need to pair!')
 
-        if getattr(self, '_F', None) is None:
+        if getattr(self, '_G', None) is None:
             print("Begin linear forward calculation: " + self.rxType)
             start = time.time()
-            self._F = self.Intrgl_Fwr_Op()
+            self._G = self.Intrgl_Fwr_Op()
             print("Linear forward calculation ended in: " + str(time.time()-start) + " sec")
-        return self._F
+        return self._G
 
     def Intrgl_Fwr_Op(self, m=None, rxType='z'):
 
@@ -114,7 +109,7 @@ class GravityIntegral(Problem.LinearProblem):
         flag        = 'z' | 'xyz'
 
         Return
-        _F        = Linear forward modeling operation
+        _G        = Linear forward modeling operation
 
         Created on March, 15th 2016
 
@@ -188,9 +183,9 @@ class GravityIntegral(Problem.LinearProblem):
                 parallelized=self.parallelized
                 )
 
-        F = job.calculate()
+        G = job.calculate()
 
-        return F
+        return G
 
     @property
     def mapPair(self):
@@ -230,17 +225,6 @@ class Forward(object):
                 self.n_cpu = int(multiprocessing.cpu_count()/2)
 
             pool = multiprocessing.Pool(self.n_cpu)
-
-            # rowInd = np.linspace(0, self.nD, self.n_cpu+1).astype(int)
-
-            # job_args = []
-
-            # for ii in range(self.n_cpu):
-
-            #     nRows = int(rowInd[ii+1]-rowInd[ii])
-            #     job_args += [(rowInd[ii], nRows, m)]
-
-            # result = pool.map(self.getTblock, job_args)
 
             result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
             pool.close()
@@ -304,14 +288,14 @@ class Forward(object):
                         ) ** (0.50)
 
                     if self.rxType == 'x':
-                        row = row - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                        row -= NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             dy[:, bb] * np.log(dz[:, cc] + r + eps) +
                             dz[:, cc] * np.log(dy[:, bb] + r + eps) -
                             dx[:, aa] * np.arctan(dy[:, bb] * dz[:, cc] /
                                                   (dx[:, aa] * r + eps)))
 
                     elif self.rxType == 'y':
-                        row = row - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                        row -= NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             dx[:, aa] * np.log(dz[:, cc] + r + eps) +
                             dz[:, cc] * np.log(dx[:, aa] + r + eps) -
                             dy[:, bb] * np.arctan(dx[:, aa] * dz[:, cc] /
@@ -329,9 +313,9 @@ class Forward(object):
         else:
             return row
 
-    def progress(self, iter, nRows):
+    def progress(self, ind, total):
         """
-        progress(iter,prog,final)
+        progress(ind,prog,final)
 
         Function measuring the progress of a process and print to screen the %.
         Useful to estimate the remaining runtime of a large problem.
@@ -340,102 +324,13 @@ class Forward(object):
 
         @author: dominiquef
         """
-        arg = np.floor(iter/nRows*10.)
+        arg = np.floor(ind/total*10.)
         if arg > self.progressIndex:
             print("Done " + str(arg*10) + " %")
             self.progressIndex = arg
 
 
-def writeUBCobs(filename, survey, d=None):
-    """
-    writeUBCobs(filename,survey,d)
-
-    Function writing an observation file in UBC-GRAV3D format.
-
-    INPUT
-    filename    : Name of out file including directory
-    survey
-    flag          : dobs | dpred
-
-    OUTPUT
-    Obsfile
-
-    """
-
-    rxLoc = survey.srcField.rxList[0].locs
-
-    wd = survey.std
-
-    if d is None:
-        d = survey.dobs
-
-    data = np.c_[rxLoc, d, wd]
-
-    head = '%i' % len(d)
-    np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n', header=head,comments='')
-
-    print("Observation file saved to: " + filename)
-
-
-def readUBCgravObs(obs_file, gravGrad=False):
-
-    """
-    Read UBC grav file format
-
-    INPUT:
-    :param fileName, path to the UBC obs grav file
-
-    OUTPUT:
-    :param survey
-
-    """
-
-    fid = open(obs_file, 'r')
-
-    if gravGrad:
-        line = fid.readline()
-        nComp = len(line.split(','))
-
-    # First line has the number of rows
-    line = fid.readline()
-    ndat = int(line.split()[0])
-
-    # Pre-allocate space for obsx, obsy, obsz, data, uncert
-    line = fid.readline()
-    temp = np.array(line.split(), dtype=float)
-
-    if gravGrad:
-        d = np.zeros((ndat, nComp), dtype=float)
-
-    else:
-        d = np.zeros(ndat, dtype=float)
-
-    wd = np.zeros(ndat, dtype=float)
-    locXYZ = np.zeros((ndat, 3), dtype=float)
-
-    for ii in range(ndat):
-
-        temp = np.array(line.split(), dtype=float)
-        locXYZ[ii, :] = temp[:3]
-
-        if gravGrad:
-            d[ii, :] = temp[3:]
-
-        else:
-            d[ii] = temp[3]
-            wd[ii] = temp[4]
-
-        line = fid.readline()
-
-    rxLoc = GRAV.RxObs(locXYZ)
-    srcField = GRAV.SrcField([rxLoc])
-    survey = GRAV.LinearSurvey(srcField)
-    survey.dobs = d
-    survey.std = wd
-    return survey
-
-
-class Problem3D_PDE(Problem.BaseProblem):
+class Problem3D_Diff(Problem.BaseProblem):
     """
         Gravity in differential equations!
     """
@@ -456,7 +351,6 @@ class Problem3D_PDE(Problem.BaseProblem):
 
         self._Div = self.mesh.cellGrad
 
-
     @property
     def MfI(self): return self._MfI
 
@@ -464,9 +358,9 @@ class Problem3D_PDE(Problem.BaseProblem):
     def Mfi(self): return self._Mfi
 
     def makeMassMatrices(self, m):
-        #rho = self.rhoMap*m
+        self.model = m
         self._Mfi = self.mesh.getFaceInnerProduct()
-        self._MfI = Utils.sdiag(1./self._Mfi.diagonal())
+        self._MfI = Utils.sdiag(1. / self._Mfi.diagonal())
 
     def getRHS(self, m):
         """
@@ -476,9 +370,10 @@ class Problem3D_PDE(Problem.BaseProblem):
 
         Mc = Utils.sdiag(self.mesh.vol)
 
-#        rho = self.rhoMap*m
-        rho = m
-        return Mc*rho
+        self.model = m
+        rho = self.rho
+
+        return Mc * rho
 
     def getA(self, m):
         """
@@ -491,19 +386,19 @@ class Problem3D_PDE(Problem.BaseProblem):
             \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
 
         """
-        return self._Div.T*self.Mfi*self._Div
+        return -self._Div.T * self.Mfi * self._Div
 
     def fields(self, m):
         """
-            Return gravity potential (u) and field (G)
+            Return magnetic potential (u) and flux (B)
             u: defined on the cell nodes [nC x 1]
             gField: defined on the cell faces [nF x 1]
 
-            After we compute u, then we update G.
+            After we compute u, then we update B.
 
             .. math ::
 
-                \mathbf{G}_s =
+                \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
         from scipy.constants import G as NewtG
@@ -513,26 +408,16 @@ class Problem3D_PDE(Problem.BaseProblem):
         RHS = self.getRHS(m)
 
         if self.solver is None:
-            m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/A.diagonal()))
+            m1 = sp.linalg.interface.aslinearoperator(
+                Utils.sdiag(1 / A.diagonal())
+            )
             u, info = sp.linalg.bicgstab(A, RHS, tol=1e-6, maxiter=1000, M=m1)
 
         else:
             print("Solving with Paradiso")
             Ainv = self.solver(A)
-            u = Ainv*RHS
+            u = Ainv * RHS
 
-        gField = 4.*np.pi*NewtG*1e+8*self._Div*u
+        gField = 4. * np.pi * NewtG * 1e+8 * self._Div * u
 
-        nFx = self.mesh.nFx
-        nFy = self.mesh.nFy
-        nFz = self.mesh.nFz
-
-        aveF2CCgx = self.mesh.aveFx2CC * gField[0:nFx]
-        aveF2CCgy = self.mesh.aveFy2CC * gField[nFx:(nFx+nFy)]
-        aveF2CCgz = self.mesh.aveFz2CC * gField[(nFx+nFy):]
-
-        ggx = 1e+4*self.mesh.cellGrad * aveF2CCgx
-        ggy = 1e+4*self.mesh.cellGrad * aveF2CCgy
-        ggz = 1e+4*self.mesh.cellGrad * aveF2CCgz
-
-        return {'G': gField, 'ggx': ggx, 'ggy': ggy, 'ggz': ggz, 'u': u}
+        return {'G': gField, 'u': u}

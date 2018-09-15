@@ -15,9 +15,9 @@ class BaseMagSurvey(Survey.BaseSurvey):
 
     def setBackgroundField(self, Inc, Dec, Btot):
 
-        Bx = Btot*np.cos(Inc/180.*np.pi)*np.sin(Dec/180.*np.pi)
-        By = Btot*np.cos(Inc/180.*np.pi)*np.cos(Dec/180.*np.pi)
-        Bz = -Btot*np.sin(Inc/180.*np.pi)
+        Bx = Btot * np.cos(Inc / 180. * np.pi) * np.sin(Dec / 180. * np.pi)
+        By = Btot * np.cos(Inc / 180. * np.pi) * np.cos(Dec / 180. * np.pi)
+        Bz = -Btot * np.sin(Inc / 180. * np.pi)
 
         self.B0 = np.r_[Bx, By, Bz]
 
@@ -38,7 +38,6 @@ class BaseMagSurvey(Survey.BaseSurvey):
         if getattr(self, '_Qfz', None) is None:
             self._Qfz = self.prob.mesh.getInterpolationMat(self.rxLoc, 'Fz')
         return self._Qfz
-
 
     def projectFields(self, u):
         """
@@ -62,19 +61,19 @@ class BaseMagSurvey(Survey.BaseSurvey):
         """
         # TODO: There can be some different tyes of data like |B| or B
 
-        bfx = self.Qfx*u['B']
-        bfy = self.Qfy*u['B']
-        bfz = self.Qfz*u['B']
+        bfx = self.Qfx * u['B']
+        bfy = self.Qfy * u['B']
+        bfz = self.Qfz * u['B']
 
         # Generate unit vector
         B0 = self.prob.survey.B0
-        Bot = np.sqrt(B0[0]**2+B0[1]**2+B0[2]**2)
-        box = B0[0]/Bot
-        boy = B0[1]/Bot
-        boz = B0[2]/Bot
+        Bot = np.sqrt(B0[0]**2 + B0[1]**2 + B0[2]**2)
+        box = B0[0] / Bot
+        boy = B0[1] / Bot
+        boz = B0[2] / Bot
 
         # return bfx*box + bfx*boy + bfx*boz
-        return bfx*box + bfy*boy + bfz*boz
+        return bfx * box + bfy * boy + bfz * boz
 
     @Utils.count
     def projectFieldsDeriv(self, B):
@@ -90,18 +89,18 @@ class BaseMagSurvey(Survey.BaseSurvey):
         """
         # Generate unit vector
         B0 = self.prob.survey.B0
-        Bot = np.sqrt(B0[0]**2+B0[1]**2+B0[2]**2)
-        box = B0[0]/Bot
-        boy = B0[1]/Bot
-        boz = B0[2]/Bot
+        Bot = np.sqrt(B0[0]**2 + B0[1]**2 + B0[2]**2)
+        box = B0[0] / Bot
+        boy = B0[1] / Bot
+        boz = B0[2] / Bot
 
-        return self.Qfx*box+self.Qfy*boy+self.Qfz*boz
+        return self.Qfx * box + self.Qfy * boy + self.Qfz * boz
 
     def projectFieldsAsVector(self, B):
 
-        bfx = self.Qfx*B
-        bfy = self.Qfy*B
-        bfz = self.Qfz*B
+        bfx = self.Qfx * B
+        bfy = self.Qfy * B
+        bfz = self.Qfz * B
 
         return np.r_[bfx, bfy, bfz]
 
@@ -109,8 +108,7 @@ class BaseMagSurvey(Survey.BaseSurvey):
 class LinearSurvey(Survey.BaseSurvey):
     """Base Magnetics Survey"""
 
-    rxLoc = None  #: receiver locations
-    rxType = None  #: receiver type
+    rxType = 'tmi'  #: receiver type
 
     def __init__(self, srcField, **kwargs):
         self.srcField = srcField
@@ -121,7 +119,10 @@ class LinearSurvey(Survey.BaseSurvey):
 
     @property
     def nD(self):
-        return self.srcField.rxList[0].locs.shape[0]
+        if self.prob is None or self.prob.G is None:
+            return len(self.rxLoc)
+        else:
+            return self.prob.G.shape[0]
 
     @property
     def nRx(self):
@@ -132,6 +133,10 @@ class LinearSurvey(Survey.BaseSurvey):
     #         self._B0 = SrcField.param[0] * dipazm_2_xyz(SrcField.param[1],SrcField.param[2])
 
     #     return self._B0
+
+    @property
+    def rxLoc(self):
+        return self.srcField.rxList[0].locs
 
 
 class SrcField(Survey.BaseSrc):
@@ -145,6 +150,7 @@ class SrcField(Survey.BaseSrc):
 
 class RxObs(Survey.BaseRx):
     """A station location must have be located in 3-D"""
+
     def __init__(self, locsXYZ, **kwargs):
         locs = locsXYZ
         assert locsXYZ.shape[1] == 3, 'locs must in 3-D (x,y,z).'
@@ -159,11 +165,12 @@ class RxObs(Survey.BaseRx):
 
 class MagSurveyBx(object):
     """docstring for MagSurveyBx"""
+
     def __init__(self, **kwargs):
         Survey.BaseData.__init__(self, **kwargs)
 
     def projectFields(self, B):
-        bfx = self.Qfx*B
+        bfx = self.Qfx * B
         return bfx
 
 
@@ -175,11 +182,11 @@ class BaseMagMap(Maps.IdentityMap):
 
     def _transform(self, m):
 
-        return mu_0*(1 + m)
+        return mu_0 * (1 + m)
 
     def deriv(self, m):
 
-        return mu_0*sp.identity(self.nP)
+        return mu_0 * sp.identity(self.nP)
 
 
 class WeightMap(Maps.IdentityMap):
@@ -191,7 +198,7 @@ class WeightMap(Maps.IdentityMap):
         self.weight = weight
 
     def _transform(self, m):
-        return m*self.weight
+        return m * self.weight
 
     def deriv(self, m):
         return Utils.sdiag(self.weight)
