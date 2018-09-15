@@ -2,6 +2,7 @@ import re
 import os
 from SimPEG import Mesh, Utils
 import numpy as np
+from SimPEG.Utils import mkvc
 from . import BaseMag
 from . import Magnetics
 
@@ -345,3 +346,27 @@ class MagneticsDriver_Inv(object):
         self._M = M
 
         return self._M
+
+def actIndFull2layer(mesh, actInd):
+    """
+    Function to extract upper layer (topo) of an
+    active index vector
+    """
+
+    # Convert the actind to bool
+    if not isinstance(actInd, bool):
+
+        actIndFull = np.zeros(mesh.nC, dtype=bool)
+        actIndFull[actInd] = True
+
+    actIndFull = actIndFull.reshape(mesh.vnC, order='F')
+
+    actIndLayer = np.zeros(mesh.vnC, dtype=bool)
+    for ii in range(mesh.nCx):
+        for jj in range(mesh.nCy):
+
+            zcol = actIndFull[ii, jj, :]
+            actIndLayer[ii, jj, np.where(zcol)[0][-1]] = True
+
+    return np.asarray(np.where(mkvc(actIndLayer))[0], dtype=int)
+

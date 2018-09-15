@@ -844,10 +844,10 @@ class Update_IRLS(InversionDirective):
             ratio = (self.target / self.phi_d_last)
 
             if ratio > 1:
-                ratio = np.mean([2.0, ratio])
+                ratio = np.min([2.0, ratio])
 
             else:
-                ratio = np.mean([0.75, ratio])
+                ratio = np.max([0.75, ratio])
 
             self.invProb.beta = self.invProb.beta * ratio
 

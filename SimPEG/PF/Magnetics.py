@@ -30,6 +30,7 @@ class MagneticIntegral(Problem.LinearProblem):
     equiSourceLayer = False
     silent = False  # Don't display progress on screen
     W = None
+    rxType = 'tmi'
     gtgdiag = None
     memory_saving_mode = False
     n_cpu = None
@@ -142,7 +143,7 @@ class MagneticIntegral(Problem.LinearProblem):
             Return the diagonal of JtJ
         """
         dmudm = self.chiMap.deriv(m)
-        if self.gtgdiag is None:
+        if (self.gtgdiag is None) and (self.modelType != 'amplitude'):
 
             if W is None:
                 w = np.ones(self.G.shape[1])
@@ -268,7 +269,7 @@ class MagneticIntegral(Problem.LinearProblem):
     def dfdm(self):
 
         if self.model is None:
-            raise Exception('Problem needs a chi chi')
+            self.model = np.zeros(self.G.shape[1])
 
         if getattr(self, '_dfdm', None) is None:
 
@@ -385,13 +386,13 @@ class MagneticIntegral(Problem.LinearProblem):
             raise Exception('magType must be: "H0" or "full"')
 
                 # Loop through all observations and create forward operator (nD-by-nC)
-        print("Begin forward: M=" + magType + ", Rx type= " + self.survey.rxType)
+        print("Begin forward: M=" + magType + ", Rx type= " + self.rxType)
 
         # Switch to determine if the process has to be run in parallel
         job = Forward(
                 rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
-                model=self.model, rxType=self.survey.rxType, Mxyz=self.Mxyz,
+                model=self.model, rxType=self.rxType, Mxyz=self.Mxyz,
                 P=self.ProjTMI, parallelized=self.parallelized
                 )
 
