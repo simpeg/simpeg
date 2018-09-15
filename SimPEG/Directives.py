@@ -1145,52 +1145,29 @@ class UpdateJacobiPrecond(InversionDirective):
         self.opt.approxHinv = PC
 
 
-class UpdateSensWeighting(InversionDirective):
+class UpdateSensitivityWeights(InversionDirective):
     """
     Directive to take care of re-weighting
     the non-linear magnetic problems.
-
     """
-    # coordinate_system = 'Amp'
-    # test = False
+
     mapping = None
-    ComboRegFun = False
-    ComboMisfitFun = False
     JtJdiag = None
     everyIter = True
-    epsilon = 1e-10
+    threshold = 1e-12
+    switch = True
 
     def initialize(self):
 
-        # Update inverse problem
+        # Calculate and update sensitivity
+        # for optimization and regularization
         self.update()
-
-        if self.everyIter:
-            # Update the regularization
-            self.updateReg()
 
     def endIter(self):
 
-        # Re-initialize the problem for update
-        # if self.ComboMisfitFun:
-        for prob in self.prob:
-
-            if isinstance(prob, Magnetics.MagneticVector):
-                if prob.coordinate_system == 'spherical':
-                    prob._S = None
-                    prob.model = self.invProb.model
-
-            if isinstance(prob, Magnetics.MagneticAmplitude):
-                prob._dfdm = None
-                prob._S = None
-                prob.model = self.invProb.model
-
-        # Update inverse problem
-        self.update()
-
         if self.everyIter:
-            # Update the regularization
-            self.updateReg()
+            # Update inverse problem
+            self.update()
 
     def update(self):
 
@@ -1203,6 +1180,9 @@ class UpdateSensWeighting(InversionDirective):
         # Send a copy of JtJdiag for the preconditioner
         self.updateOpt()
 
+        # Update the regularization
+        self.updateReg()
+
     def getJtJdiag(self):
         """
             Compute explicitely the main diagonal of JtJ
@@ -1210,30 +1190,23 @@ class UpdateSensWeighting(InversionDirective):
         """
         self.JtJdiag = []
 
-        for prob, survey, dmisfit in zip(self.prob,
-                                         self.survey,
-                                         self.dmisfit.objfcts):
-
-            nC = prob.chiMap.shape[1]
-            JtJdiag = np.zeros(nC)
-
+        for prob, dmisfit in zip(
+            self.prob,
+            self.dmisfit.objfcts
+        ):
             m = self.invProb.model
-            f = prob.fields(m)
-            wd = dmisfit.W.diagonal()
 
-            # for ii in range(prob.getJ(m, f).shape[0]):
-            #         JtJdiag += ((wd[ii] * prob.getJ(m, f)[ii, :])**2.)
+            if getattr(prob, 'getJtJdiag', None) is None:
+                assert getattr(prob, 'getJ', None) is not None, (
+                    "Problem does not have a getJ attribute." +
+                    "Cannot form the sensitivity explicitely"
+                )
 
-            JtJdiag += prob.getJtJdiag(m, W=dmisfit.W)
 
-            # Apply scale to the deriv and deriv2
-            # dmisfit.scale = scale
 
-            if prob.W is not None:
-
-                JtJdiag *= prob.W
-
-            self.JtJdiag += [JtJdiag]
+                self.JtJdiag += [mkvc(np.sum((dmisfit.W*prob.getJ(m))**(2.), axis=0))]
+            else:
+                self.JtJdiag += [prob.getJtJdiag(m, W=dmisfit.W)]
 
         return self.JtJdiag
 
@@ -1244,46 +1217,15 @@ class UpdateSensWeighting(InversionDirective):
         """
 
         wr = np.zeros_like(self.invProb.model)
+        if self.switch:
+            for prob_JtJ, prob, dmisfit in zip(self.JtJdiag, self.prob, self.dmisfit.objfcts):
 
-        for prob_JtJ, prob in zip(self.JtJdiag, self.prob):
+                wr += prob_JtJ + self.threshold
 
-            nC = prob.chiMap.shape[1]
-            wr_prob = np.zeros(nC)
-            if isinstance(prob, Magnetics.MagneticVector):
-
-                nC = int(nC/3)
-
-                # NEED MORE RESEARCH ON HOW TO FIX THE THRESHOLD
-                # JUST TAKE A FRACTION OF THE MAX J VALUE FOR NOW
-                # if prob.threshold is None:
-                prob.threshold = np.ones(3)
-                prob.threshold[0] = prob_JtJ[:nC].max()*self.epsilon
-                prob.threshold[1] = prob_JtJ[nC:2*nC].max()*self.epsilon
-                prob.threshold[2] = prob_JtJ[2*nC:].max()*self.epsilon
-
-                wr_prob[:nC] += (prob_JtJ[:nC] + prob.threshold[0])
-
-                wr_prob[nC:2*nC] += (prob_JtJ[nC:2*nC] + prob.threshold[1])
-
-                wr_prob[2*nC:] += (prob_JtJ[2*nC:] + prob.threshold[2])
-
-            else:
-                # if prob.threshold is None:
-                prob.threshold = prob_JtJ[:nC].max()*self.epsilon
-                wr_prob = prob_JtJ + prob.threshold
-
-            # print(wr_prob.min(),wr_prob.max(),prob.threshold)
-            # Check if it is a Combo problem
-#            if getattr(prob.chiMap, 'index', None) is None:
-            wr += wr_prob
-
-#            else:
-
-#                wr[prob.chiMap.index] += wr_prob
-
-        wr = wr**0.5
-        wr /= wr.max()
-
+            wr = wr**0.5
+            wr /= wr.max()
+        else:
+            wr += 1.
 
         return wr
 
@@ -1293,7 +1235,6 @@ class UpdateSensWeighting(InversionDirective):
         """
 
         for reg in self.reg.objfcts:
-
             reg.cell_weights = reg.mapping * (self.wr)
 
     def updateOpt(self):
@@ -1302,14 +1243,11 @@ class UpdateSensWeighting(InversionDirective):
         """
         # if self.ComboMisfitFun:
         JtJdiag = np.zeros_like(self.invProb.model)
-        for prob, JtJ, dmisfit in zip(self.prob, self.JtJdiag, self.dmisfit.objfcts):
+        for prob, JtJ, dmisfit in zip(
+            self.prob, self.JtJdiag, self.dmisfit.objfcts
+        ):
 
-            # Check if he has wire
-#            if getattr(prob.chiMap, 'index', None) is None:
             JtJdiag += JtJ
-#            else:
-                # He is a snitch!
-#                JtJdiag[prob.chiMap.index] += JtJ
 
         self.opt.JtJdiag = JtJdiag
 
