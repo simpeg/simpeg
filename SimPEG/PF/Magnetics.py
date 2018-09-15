@@ -143,6 +143,9 @@ class MagneticIntegral(Problem.LinearProblem):
             Return the diagonal of JtJ
         """
         dmudm = self.chiMap.deriv(m)
+        self._dSdm = None
+        self._dfdm = None
+        self.model = m
         if (self.gtgdiag is None) and (self.modelType != 'amplitude'):
 
             if W is None:
@@ -173,6 +176,7 @@ class MagneticIntegral(Problem.LinearProblem):
         """
             Sensitivity matrix
         """
+
         if self.coordinate_system == 'cartesian':
             dmudm = self.chiMap.deriv(m)
         else:  # spherical
@@ -275,11 +279,14 @@ class MagneticIntegral(Problem.LinearProblem):
 
             Bxyz = self.Bxyz_a(self.chiMap * self.model)
 
-            Bx = sp.spdiags(Bxyz[:, 0], 0, self.nD, self.nD)
-            By = sp.spdiags(Bxyz[:, 1], 0, self.nD, self.nD)
-            Bz = sp.spdiags(Bxyz[:, 2], 0, self.nD, self.nD)
-
-            self._dfdm = sp.hstack((Bx, By, Bz))
+            # Bx = sp.spdiags(Bxyz[:, 0], 0, self.nD, self.nD)
+            # By = sp.spdiags(Bxyz[:, 1], 0, self.nD, self.nD)
+            # Bz = sp.spdiags(Bxyz[:, 2], 0, self.nD, self.nD)
+            ii = np.kron(np.asarray(range(self.survey.nD), dtype='int'), np.ones(3))
+            jj = np.asarray(range(3*self.survey.nD), dtype='int')
+            # (data, (row, col)), shape=(3, 3))
+            # P = s
+            self._dfdm = sp.csr_matrix(( mkvc(Bxyz), (ii,jj)), shape=(self.survey.nD, 3*self.survey.nD))
 
         return self._dfdm
 
@@ -300,7 +307,7 @@ class MagneticIntegral(Problem.LinearProblem):
         amp = self.calcAmpData(Bxyz.astype(np.float64))
         Bamp = sp.spdiags(1./amp, 0, self.nD, self.nD)
 
-        return Bamp*Bxyz.reshape((3, self.nD), order='F').T
+        return (Bxyz.reshape((3, self.nD), order='F')*Bamp)
 
     def Intrgl_Fwr_Op(self, m=None, magType='H0'):
         """
