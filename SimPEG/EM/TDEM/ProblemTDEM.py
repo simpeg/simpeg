@@ -1044,6 +1044,14 @@ class Problem3D_h(BaseTDEMProblem):
         # assumes no source derivs
         return C.T * self.MfRhoDeriv(s_e, v, adjoint)
 
+    def getRHSDeriv(self, tInd, src, v, adjoint=False):
+        return Utils.Zero()  # assumes no derivs on sources
+
+    def getAdc(self):
+        D = Utils.sdiag(self.mesh.vol) * self.mesh.faceDiv
+        G = D.T
+        MfRhoI = self.MfRhoI
+        return D * MfRhoI * G
 
 # ------------------------------- Problem3D_j ------------------------------- #
 

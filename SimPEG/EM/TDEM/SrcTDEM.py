@@ -394,8 +394,9 @@ class MagDipole(BaseTDEMSrc):
                 )
 
     def _phiSrc(self, prob):
-        Ainv = prob.Solver(self._getAmagnetostatic(prob))
+        Ainv = prob.Solver(self._getAmagnetostatic(prob))  # todo: store these
         rhs = self._rhs_magnetostatic(prob)
+        Ainv.clean()
         return Ainv * rhs
 
     def _bSrc(self, prob):
@@ -611,19 +612,55 @@ class RawVec_Grounded(BaseTDEMSrc):
             return Zero()
 
     def jInitial(self, prob):
-        if prob._fieldType != 'j':
+        if prob._fieldType not in ['j', 'h']:
             raise NotImplementedError
 
-        if self.waveform.hasInitialFields:
-            phi = self.phiInitial(prob)
-            Div = Utils.sdiag(prob.mesh.vol) * prob.mesh.faceDiv
-            return - prob.MfRhoI * (Div.T * phi)
-
-        else:
+        if self.waveform.hasInitialFields is False:
             return Zero()
 
+        phi = self.phiInitial(prob)
+        Div = Utils.sdiag(prob.mesh.vol) * prob.mesh.faceDiv
+        return - prob.MfRhoI * (Div.T * phi)
+
+    def _getAmmr(self, prob):
+        if prob._fieldType not in ['j', 'h']:
+            raise NotImplementedError
+
+        return prob.mesh.edgeCurl * prob.MeMuI * prob.mesh.edgeCurl.T
+
+    def _aInitial(self, prob):
+        A = self._getAmmr(prob)
+        Ainv = prob.Solver(A)  # todo: store this
+        s_e = self.s_e(prob, 0)
+        rhs = s_e - self.jInitial(prob)
+        return Ainv * rhs
+
+    def hInitial(self, prob):
+        if prob._fieldType not in ['j', 'h']:
+            raise NotImplementedError
+
+        if self.waveform.hasInitialFields is False:
+            return Zero()
+
+        b = self.bInitial(prob)
+        return prob.MeMuI * b
+
+    def bInitial(self, prob):
+        if prob._fieldType not in ['j', 'h']:
+            raise NotImplementedError
+
+        if self.waveform.hasInitialFields is False:
+            return Zero()
+
+        a = self._aInitial(prob)
+        return prob.mesh.edgeCurl.T * a
+
+
     def s_e(self, prob, time):
+        # if prob._fieldType == 'h':
+        #     return prob.Mf * self._s_e * self.waveform.eval(time)
         return self._s_e * self.waveform.eval(time)
+
 
 
 
