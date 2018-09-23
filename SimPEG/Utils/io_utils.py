@@ -3,6 +3,7 @@ import numpy as np
 import time as tm
 import re
 import warnings
+from SimPEG.PF import BaseMag
 
 
 def read_GOCAD_ts(tsfile):
@@ -235,3 +236,58 @@ def download(
 
     print("Download completed!")
     return downloadpath if isinstance(url, list) else downloadpath[0]
+
+
+def readUBCmagneticsObservations(obs_file):
+        """
+            Read and write UBC mag file format
+
+            INPUT:
+            :param fileName, path to the UBC obs mag file
+
+            OUTPUT:
+            :param survey
+            :param M, magnetization orentiaton (MI, MD)
+        """
+
+        fid = open(obs_file, 'r')
+
+        # First line has the inclination,declination and amplitude of B0
+        line = fid.readline()
+        B = np.array(line.split(), dtype=float)
+
+        # Second line has the magnetization orientation and a flag
+        line = fid.readline()
+        M = np.array(line.split(), dtype=float)
+
+        # Third line has the number of rows
+        line = fid.readline()
+        ndat = int(line.strip())
+
+        # Pre-allocate space for obsx, obsy, obsz, data, uncert
+        line = fid.readline()
+        temp = np.array(line.split(), dtype=float)
+
+        d = np.zeros(ndat, dtype=float)
+        wd = np.zeros(ndat, dtype=float)
+        locXYZ = np.zeros((ndat, 3), dtype=float)
+
+        for ii in range(ndat):
+
+            temp = np.array(line.split(), dtype=float)
+            locXYZ[ii, :] = temp[:3]
+
+            if len(temp) > 3:
+                d[ii] = temp[3]
+
+                if len(temp) == 5:
+                    wd[ii] = temp[4]
+
+            line = fid.readline()
+
+        rxLoc = BaseMag.RxObs(locXYZ)
+        srcField = BaseMag.SrcField([rxLoc], param=(B[2], B[0], B[1]))
+        survey = BaseMag.LinearSurvey(srcField)
+        survey.dobs = d
+        survey.std = wd
+        return survey
