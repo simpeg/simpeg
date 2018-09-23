@@ -1,10 +1,11 @@
 import re
 import os
-from SimPEG import Mesh, Utils
+from SimPEG import Utils
 import numpy as np
 from SimPEG.Utils import mkvc
 from . import BaseMag
 from . import Magnetics
+from discretize import TensorMesh
 
 
 class MagneticsDriver_Inv(object):
@@ -177,7 +178,7 @@ class MagneticsDriver_Inv(object):
     @property
     def mesh(self):
         if getattr(self, '_mesh', None) is None:
-            self._mesh = Mesh.TensorMesh.readUBC(self.basePath + self.mshfile)
+            self._mesh = TensorMesh.readUBC(self.basePath + self.mshfile)
         return self._mesh
 
     @property
@@ -269,7 +270,7 @@ class MagneticsDriver_Inv(object):
             if isinstance(self.mstart, float):
                 self._m0 = np.ones(self.nC) * self.mstart
             else:
-                self._m0 = Mesh.TensorMesh.readModelUBC(
+                self._m0 = TensorMesh.readModelUBC(
                     self.mesh, self.basePath + self.mstart
                 )
 
@@ -281,7 +282,7 @@ class MagneticsDriver_Inv(object):
             if isinstance(self._mrefInput, float):
                 self._mref = np.ones(self.nC) * self._mrefInput
             else:
-                self._mref = Mesh.TensorMesh.readModelUBC(
+                self._mref = TensorMesh.readModelUBC(
                     self.mesh, self.basePath + self._mrefInput
                 )
 
@@ -295,7 +296,7 @@ class MagneticsDriver_Inv(object):
         if getattr(self, '_activeModel', None) is None:
             if self._staticInput == 'FILE':
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
-                self._activeModel = Mesh.TensorMesh.readModelUBC(
+                self._activeModel = TensorMesh.readModelUBC(
                     self.mesh, self.basePath + self._staticInput
                 )
 

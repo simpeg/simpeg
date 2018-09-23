@@ -6,7 +6,7 @@ from scipy.constants import mu_0
 
 from SimPEG import Utils
 from SimPEG import Problem
-from SimPEG import Solver
+#from SimPEG import Solver
 from SimPEG import Props
 from SimPEG import Mesh
 import multiprocessing
