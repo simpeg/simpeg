@@ -8,7 +8,8 @@ from .Fields import Fields, TimeFields
 from . import Mesh
 from . import Props
 import properties
-import time
+
+
 Solver = Utils.SolverUtils.Solver
 
 
@@ -121,6 +122,9 @@ class BaseProblem(Props.HasModel):
     #: List of strings, e.g. ['_MeSigma', '_MeSigmaI']
     deleteTheseOnModelUpdate = []
 
+    #: List of matrix names to have their factors cleared on a model update
+    clean_on_model_update = []
+
     @properties.observer('model')
     def _on_model_update(self, change):
         if change['previous'] is change['value']:
@@ -131,9 +135,17 @@ class BaseProblem(Props.HasModel):
             np.allclose(change['previous'], change['value'])
         ):
             return
+
         for prop in self.deleteTheseOnModelUpdate:
             if hasattr(self, prop):
                 delattr(self, prop)
+
+        # matrix factors to clear
+        for mat in self.clean_on_model_update:
+            if getattr(self, mat, None) is not None:
+                getattr(self, mat).clean()  # clean factors
+                setattr(self, mat, None)  # set to none
+
 
     @property
     def ispaired(self):
@@ -268,18 +280,22 @@ class BaseTimeProblem(BaseProblem):
 
 class LinearProblem(BaseProblem):
 
-    # surveyPair = Survey.LinearSurvey
+    # model, modelMap, modelDeriv = Props.Invertible(
+    #     "Generic model parameters",
+    #     default=1.
+    # )
 
-    F = None
+    G = None
 
     def __init__(self, mesh, **kwargs):
         BaseProblem.__init__(self, mesh, **kwargs)
-        self.modelMap = kwargs.pop('modelMap', Maps.IdentityMap(mesh))
+        self.modelMap = kwargs.pop('mapping', Maps.IdentityMap(mesh))
 
     @property
     def modelMap(self):
         "A SimPEG.Map instance."
         return getattr(self, '_modelMap', None)
+
 
     @modelMap.setter
     def modelMap(self, val):
@@ -287,55 +303,21 @@ class LinearProblem(BaseProblem):
         self._modelMap = val
 
     def fields(self, m):
+        return self.G.dot(m)
 
-        # Check possible dtype for linear operator
-        # Important to avoid memory copies of dense matrix
-        if self.F.dtype is np.dtype('float32'):
-            y = np.dot(self.F, m.astype(np.float32))
-            y.astype(np.float64)
+    def getJ(self, m, f=None):
+        """
+            Sensitivity matrix
+        """
 
+        if self.modelMap is not None:
+            dmudm = self.modelMap.deriv(m)
+            return self.G*dmudm
         else:
-            y = np.dot(self.F, self.modelMap*m)
-
-        return y
-
-    def getJ(self, m, v):
-        return self.G
-
-    def getJtJdiag(self, m, W=None):
-        """
-            Returns the diagonal of approximated Hessian, JtJ
-        """
-        if W is None:
-            W = Utils.speye(self.F.shape[0])
-
-        dmudm = self.modelMap.deriv(m)
-
-        return np.sum((W * self.F * dmudm)**2., axis=0)
+            return self.G
 
     def Jvec(self, m, v, f=None):
-
-        # Check possible dtype for linear operator
-        # Important to avoid memory copies of dense matrix
-        if self.F.dtype is np.dtype('float32'):
-            y = np.dot(self.F, (self.modelMap.deriv(m)*v).astype(np.float32))
-            y.astype(np.float64)
-
-        else:
-            y = np.dot(self.F, self.modelMap.deriv(m)*v)
-
-        return y
+        return self.G.dot(self.modelMap.deriv(m) * v)
 
     def Jtvec(self, m, v, f=None):
-
-        # Check possible dtype for linear operator
-        # Important to avoid memory copies of dense matrix
-        if self.F.dtype is np.dtype('float32'):
-
-            y = np.dot(self.F.T, v.astype(np.float32))
-            y.astype(np.float64)
-
-        else:
-            y = np.dot(self.F.T, v)
-
-        return self.modelMap.deriv(m).T*y
+        return self.modelMap.deriv(m).T*self.G.T.dot(v)
