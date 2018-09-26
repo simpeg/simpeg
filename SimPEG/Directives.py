@@ -319,6 +319,7 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
     replace = True
     saveComp = True
     mapping = None
+    vector = False
 
     def initialize(self):
 
@@ -354,7 +355,7 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
             #     Magnetics.writeUBCobs(fileName + '.pre', survey, survey.dpred(m=self.opt.xc))
 
             # Save model
-            if not isinstance(prob, Magnetics.MagneticVector):
+            if not self.vector:
 
                 if isinstance(reg.regmesh.mesh, Mesh.TreeMesh):
                         Mesh.TreeMesh.writeUBC(

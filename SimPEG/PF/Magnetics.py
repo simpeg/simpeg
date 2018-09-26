@@ -934,14 +934,14 @@ def calcRow(Xn, Yn, Zn, rxLoc):
     Ty = np.zeros((1, 3*nC))
     Tz = np.zeros((1, 3*nC))
 
-    dz2 = Zn[:, 1] - rxLoc[2]
-    dz1 = Zn[:, 0] - rxLoc[2]
+    dz2 = Zn[:, 1] - rxLoc[2] + eps
+    dz1 = Zn[:, 0] - rxLoc[2] + eps
 
-    dy2 = Yn[:, 1] - rxLoc[1]
-    dy1 = Yn[:, 0] - rxLoc[1]
+    dy2 = Yn[:, 1] - rxLoc[1] + eps
+    dy1 = Yn[:, 0] - rxLoc[1] + eps
 
-    dx2 = Xn[:, 1] - rxLoc[0]
-    dx1 = Xn[:, 0] - rxLoc[0]
+    dx2 = Xn[:, 1] - rxLoc[0] + eps
+    dx1 = Xn[:, 0] - rxLoc[0] + eps
 
     dx2dx2 = dx2**2.
     dx1dx1 = dx1**2.
