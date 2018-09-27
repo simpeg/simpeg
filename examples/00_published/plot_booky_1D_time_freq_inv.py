@@ -457,6 +457,8 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     if plotIt:
         plt.show()
 
+    resolve.close()
+    skytem.close()
     if cleanup:
         print( os.path.split(directory)[:-1])
         os.remove(
