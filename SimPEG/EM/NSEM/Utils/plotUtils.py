@@ -8,7 +8,7 @@ import numpy as np
 import properties
 from SimPEG.EM.Utils.EMUtils import mu_0, omega
 from SimPEG.EM.NSEM.RxNSEM import (
-    Point_tipper3D, Point_impedance3D)
+    Point_tipper3D, Point_impedance3D, Point_horizontalmagvar3D)
 
 # Define the default component dictionaries
 DEFAULT_COMP_DICT = {
@@ -243,6 +243,7 @@ class tip_complex_station_plot(Base_DataNSEM_plots):
         axes[1].legend(
             loc='center left', bbox_to_anchor=(1, 0.5))
 
+
 class app_res_phs_imp_station_plot(Base_DataNSEM_plots):
     """
     Class for setting up 4 axes figure with:
@@ -437,6 +438,7 @@ class hmv_complex_station_plot(Base_DataNSEM_plots):
 
         axes[1].legend(
             loc='center left', bbox_to_anchor=(1, 0.5))
+
 
 class DataNSEM_plot_functions(object):
     """
@@ -956,6 +958,9 @@ def _get_map_data(
         else:
             freqs, locs, plot_data = _extract_frequency_data(
                 data, frequency, tensor, orientation, component, return_uncert=plot_error)
+    # Adding this to make the ploting work for HMV
+    if len(locs.shape) == 3:
+        locs = locs[:, :, 0]
     if plot_error:
         return (locs, plot_data, error)
     else:
@@ -1048,8 +1053,10 @@ def _extract_frequency_data(
     loc_arr = rx.locs
     data_arr = data[src, rx]
     if return_uncert:
-        std_arr = data.standard_deviation[src, rx]
-        floor_arr = data.floor[src, rx]
+        std_arr = data._get_data_properties(
+            (src, rx), 'standard_deviation')
+        floor_arr = data._get_data_properties(
+            (src, rx), 'noise_floor')
         return (frequency, loc_arr, data_arr, std_arr, floor_arr)
     return (frequency, loc_arr, data_arr)
 
@@ -1088,8 +1095,14 @@ def _extract_section_data(
                 loc_list.append(locs[ind_loc, :])
 
                 if return_uncert:
-                    std_list.append(data.standard_deviation[src, rx][ind_loc])
-                    floor_list.append(data.floor[src, rx][ind_loc])
+                    std_list.append(
+                        data._get_data_properties(
+                            (src, rx),
+                            'standard_deviation')[ind_loc])
+                    floor_list.append(
+                        data._get_data_properties(
+                            (src, rx),
+                            'noise_floor')[ind_loc])
 
     if len(data_list) == 0:
         if return_uncert:
@@ -1134,8 +1147,14 @@ def _extract_location_data(
             data_list.append(data[src, rx][ind_loc])
 
             if return_uncert:
-                std_list.append(data.standard_deviation[src, rx][ind_loc])
-                floor_list.append(data.floor[src, rx][ind_loc])
+                std_list.append(
+                    data._get_data_properties(
+                        (src, rx),
+                        'standard_deviation')[ind_loc])
+                floor_list.append(
+                    data._get_data_properties(
+                        (src, rx),
+                        'noise_floor')[ind_loc])
     if return_uncert:
         return (np.array(freq_list), np.concatenate(data_list),
                 np.concatenate(std_list), np.concatenate(floor_list))

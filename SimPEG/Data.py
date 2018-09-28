@@ -203,6 +203,8 @@ class Data(properties.HasProperties):
             "has to be one of the settable array's: dobs, standard_deviation" +
             " or noise_floor")
         # Get the inds
+        if len(self._data_dict) == 0:
+            self._create_data_dict({'value': self.survey})
         inds = self._data_dict[src][rx]
         # Get the array
         arr = getattr(self, arr_name, None)
@@ -225,6 +227,9 @@ class Data(properties.HasProperties):
 
         src, rx = self._ensureCorrectKey(key)
         arr = getattr(self, arr_name, None)
+        # Get the inds
+        if len(self._data_dict) == 0:
+            self._create_data_dict({'value': self.survey})
         if rx is not None:
             if rx not in self._data_dict[src]:
                 raise Exception('Data for receiver has not yet been set.')
