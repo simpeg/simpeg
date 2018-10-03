@@ -1359,7 +1359,8 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     (np.r_[
                         i, j,
                         ((isinstance(regpart, Regularization.SmoothDeriv) or
-                          isinstance(regpart, Regularization.SimpleSmoothDeriv)) and not
+                          isinstance(regpart, Regularization.SimpleSmoothDeriv) or
+                          isinstance(regpart, Regularization.SparseDeriv)) and not
                          (isinstance(regobjcts, Regularization.SimplePetroRegularization) or
                           isinstance(regobjcts, Regularization.PetroRegularization) or
                           isinstance(regobjcts, Regularization.SimplePetroWithMappingRegularization))
@@ -1375,7 +1376,8 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                 [
                     (
                         isinstance(regpart, Regularization.SmoothDeriv) or
-                        isinstance(regpart, Regularization.SimpleSmoothDeriv)
+                        isinstance(regpart, Regularization.SimpleSmoothDeriv) or
+                          isinstance(regpart, Regularization.SparseDeriv)
                     )
                     for regpart in self.invProb.reg.objfcts
                 ]
@@ -1909,6 +1911,14 @@ class PetroBetaReWeighting(InversionDirective):
                         self.updategaussianclass.nu
                     )
 
+                    if self.verbose:
+                        print(
+                            'Decreased GMM Prior. New confidences:\n',
+                            'nu: ', self.updategaussianclass.nu,
+                            '\nkappa: ', self.updategaussianclass.kappa,
+                            '\nalphadir: ', self.updategaussianclass.alphadir
+                        )
+
                 elif np.all([
                     self.update_prior_confidence,
                     self.score > self.CLtarget,
@@ -2038,7 +2048,8 @@ class AddMrefInSmooth(InversionDirective):
                     (np.r_[
                         i, j,
                         ((isinstance(regpart, Regularization.SmoothDeriv) or
-                          isinstance(regpart, Regularization.SimpleSmoothDeriv)) and not
+                          isinstance(regpart, Regularization.SimpleSmoothDeriv) or
+                          isinstance(regpart, Regularization.SparseDeriv)) and not
                          (isinstance(regobjcts, Regularization.SimplePetroRegularization) or
                           isinstance(regobjcts, Regularization.PetroRegularization) or
                           isinstance(regobjcts, Regularization.SimplePetroWithMappingRegularization))
@@ -2054,7 +2065,8 @@ class AddMrefInSmooth(InversionDirective):
                 [
                     (
                         isinstance(regpart, Regularization.SmoothDeriv) or
-                        isinstance(regpart, Regularization.SimpleSmoothDeriv)
+                        isinstance(regpart, Regularization.SimpleSmoothDeriv) or
+                          isinstance(regpart, Regularization.SparseDeriv)
                     )
                     for regpart in self.invProb.reg.objfcts
                 ]
