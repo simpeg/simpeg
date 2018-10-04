@@ -1840,7 +1840,6 @@ class PetroSmallness(BaseRegularization):
 
         self.approx_gradient = approx_gradient
         self.evaltype = evaltype
-
         super(PetroSmallness, self).__init__(
             mesh=mesh, **kwargs
         )
@@ -1862,12 +1861,12 @@ class PetroSmallness(BaseRegularization):
             if len(self.cell_weights) == self.wiresmap.nP:
                 return sp.kron(
                     speye(len(self.wiresmap.maps)),
-                    sdiag(np.sqrt(self.mesh.vol))
+                    sdiag(np.sqrt(self.regmesh.vol[self.indActive]))
                     ) * sdiag(np.sqrt(self.cell_weights))
             else:
                 return sp.kron(
                     speye(len(self.wiresmap.maps)),
-                    sdiag(np.sqrt(self.mesh.vol))
+                    sdiag(np.sqrt(self.regmesh.vol[self.indActive]))
                     ) * sp.kron(
                     speye(len(self.wiresmap.maps)),
                     sdiag(np.sqrt(self.cell_weights))
