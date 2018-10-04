@@ -1848,6 +1848,10 @@ class PetroSmallness(BaseRegularization):
         self.wiresmap = wiresmap
         self.maplist = maplist
 
+        # TODO: Save repetitive computations (see withmapping implementation)
+        self._r_first_deriv = None
+        self._r_second_deriv = None
+
     @property
     def W(self):
         """
@@ -1855,16 +1859,21 @@ class PetroSmallness(BaseRegularization):
         Need to change the size to match self.wiresmap.maps * mesh.nC
         """
         if self.cell_weights is not None:
-            return sp.kron(speye(len(self.wiresmap.maps)),
-                           sdiag(np.sqrt(self.regmesh.vol))) * self.cell_weights
+            if len(self.cell_weights) == self.wiresmap.nP:
+                return sp.kron(
+                    speye(len(self.wiresmap.maps)),
+                    sdiag(np.sqrt(self.mesh.vol))
+                    ) * sdiag(np.sqrt(self.cell_weights))
+            else:
+                return sp.kron(
+                    speye(len(self.wiresmap.maps)),
+                    sdiag(np.sqrt(self.mesh.vol))
+                    ) * sp.kron(
+                    speye(len(self.wiresmap.maps)),
+                    sdiag(np.sqrt(self.cell_weights))
+                )
         else:
-            return sp.kron(speye(len(self.wiresmap.maps)),
-                           sdiag(np.sqrt(self.regmesh.vol)))
-
-    def membership(self, m):
-        modellist = self.wiresmap * m
-        model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-        return self.GMmodel.predict(model)
+            return Identity()
 
     @properties.validator('cell_weights')
     def _validate_cell_weights(self, change):
@@ -1878,6 +1887,11 @@ class PetroSmallness(BaseRegularization):
                             len(change['value'])
                         )
                     )
+
+    def membership(self, m):
+        modellist = self.wiresmap * m
+        model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
+        return self.GMmodel.predict(model)  # mkvc(m, numDims=2))
 
     @timeIt
     def __call__(self, m, externalW=True):
@@ -1949,7 +1963,6 @@ class PetroSmallness(BaseRegularization):
                 r = self.W * \
                     mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
                                membership[i]], dm[i]) for i in range(len(dm))]])
-
             return mkvc(mD.T * (self.W.T * r))
 
         else:
@@ -2004,6 +2017,7 @@ class PetroSmallness(BaseRegularization):
                        np.eye(len(self.wiresmap.maps)) for memb in membership]]
         else:
             r = self.GMmodel.precisions_[membership]
+
         if v is not None:
             mDv = self.wiresmap * (mD * v)
             mDv = np.c_[mDv]
@@ -2046,51 +2060,51 @@ class PetroRegularization(SimpleComboRegularization):
         self.mesh = mesh
         self._approx_gradient = approx_gradient
         self._evaltype = evaltype
+        self.mapping = Maps.IdentityMap(mesh, nP=self.wiresmap.nP)
 
         objfcts = [
             PetroSmallness(mesh=mesh, GMmodel=self.GMmodel,
-                           wiresmap=self.wiresmap,
-                           maplist=self.maplist,
-                           mapping=Maps.IdentityMap(mesh, nP=self.wiresmap.nP),
-                           approx_gradient=approx_gradient,
-                           evaltype=evaltype,
-                           **kwargs),
+                wiresmap=self.wiresmap,
+                maplist=self.maplist,
+                approx_gradient=approx_gradient,
+                evaltype=evaltype,
+                mapping=self.mapping, **kwargs)
         ]
-
         objfcts += [
             SmoothDeriv(mesh=mesh, orientation='x',
                         mapping=maps * wire[1], **kwargs)
-            for wire, maps in zip(self.wiresmap.maps, self.maplist)]
+            for wire, maps in zip(self._wiresmap.maps, self._maplist)]
         objfcts += [
             SmoothDeriv2(mesh=mesh, orientation='x',
                          mapping=maps * wire[1], **kwargs)
-            for wire, maps in zip(self.wiresmap.maps, self.maplist)]
+            for wire, maps in zip(self._wiresmap.maps, self._maplist)]
 
         if mesh.dim > 1:
             objfcts += [
                 SmoothDeriv(mesh=mesh, orientation='y',
                             mapping=maps * wire[1], **kwargs)
-                for wire, maps in zip(self.wiresmap.maps, self.maplist)]
+                for wire, maps in zip(self._wiresmap.maps, self._maplist)]
             objfcts += [
                 SmoothDeriv2(mesh=mesh, orientation='y',
                              mapping=maps * wire[1], **kwargs)
-                for wire, maps in zip(self.wiresmap.maps, self.maplist)]
+                for wire, maps in zip(self._wiresmap.maps, self._maplist)]
 
         if mesh.dim > 2:
             objfcts += [
                 SmoothDeriv(mesh=mesh, orientation='z',
                             mapping=maps * wire[1], **kwargs)
-                for wire, maps in zip(self.wiresmap.maps, self.maplist)]
+                for wire, maps in zip(self._wiresmap.maps, self._maplist)]
             objfcts += [
                 SmoothDeriv2(mesh=mesh, orientation='z',
                              mapping=maps * wire[1], **kwargs)
-                for wire, maps in zip(self.wiresmap.maps, self.maplist)]
+                for wire, maps in zip(self._wiresmap.maps, self._maplist)]
 
         super(PetroRegularization, self).__init__(
             mesh=mesh,
             alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
             alpha_xx=alpha_xx, alpha_yy=alpha_yy, alpha_zz=alpha_zz,
             objfcts=objfcts, **kwargs)
+
         # setKwargs(self, **kwargs)
 
     # Properties
@@ -2126,8 +2140,8 @@ class PetroRegularization(SimpleComboRegularization):
     @property
     def maplist(self):
         if getattr(self, '_maplist', None) is None:
-            self._maplist = [Maps.IdentityMap(self._mesh)
-                             for maps in self.wiresmap.maps]
+            self._maplist = [Maps.IdentityMap(
+                self._mesh) for maps in self.wiresmap.maps]
         return self._maplist
 
     @maplist.setter
@@ -2135,6 +2149,18 @@ class PetroRegularization(SimpleComboRegularization):
         if mp is not None:
             self._maplist = mp
         self.objfcts[0].maplist = self.maplist
+
+    @property
+    def approx_gradient(self):
+        if getattr(self, '_approx_gradient', None) is None:
+            self._approx_gradient = True
+        return self._approx_gradient
+
+    @approx_gradient.setter
+    def approx_gradient(self, ap):
+        if ap is not None:
+            self._approx_gradient = ap
+        self.objfcts[0].approx_gradient = self.approx_gradient
 
 # Simple Petrophysical Regularization
 #####################################
@@ -2879,6 +2905,77 @@ def MakeSimplePetroRegularization(
 
     for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
         reg += Simple(
+            mesh=mesh,
+            mapping=maps * wire[1],
+            alpha_s=0.,
+            alpha_x=alph_x[i],
+            alpha_y=alph_y[i],
+            alpha_z=alph_z[i],
+            cell_weights=clwhtlst[i],
+            ** kwargs
+        )
+
+    return reg
+
+
+def MakePetroRegularization(
+    mesh, GMmref, GMmodel=None,
+    wiresmap=None, maplist=None,
+    approx_gradient=True,
+    evaltype='approx',
+    gamma=1.,
+    alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
+    alpha_xx=0., alpha_yy=0., alpha_zz=0.,
+    cell_weights_list=None,
+    **kwargs
+):
+
+    if wiresmap is None:
+        wrmp = Maps.Wires(('m', mesh.nC))
+    else:
+        wrmp = wiresmap
+
+    if maplist is None:
+        mplst = [Maps.IdentityMap(mesh) for maps in wrmp.maps]
+    else:
+        mplst = maplist
+
+    if cell_weights_list is None:
+        clwhtlst = [Identity() for maps in wrmp.maps]
+    else:
+        clwhtlst = cell_weights_list
+
+
+    reg = PetroRegularization(
+        mesh=mesh, GMmref=GMmref, GMmodel=GMmodel,
+        wiresmap=wiresmap, maplist=maplist,
+        approx_gradient=approx_gradient,
+        evaltype=evaltype,
+        alpha_s=alpha_s,
+        alpha_x=0., alpha_y=0., alpha_z=0.,
+        **kwargs
+    )
+    reg.gamma = gamma
+    if cell_weights_list is not None:
+        reg.objfcts[0].cell_weights = np.hstack(clwhtlst)
+
+    if isinstance(alpha_x, float):
+        alph_x = alpha_x * np.ones(len(wrmp.maps))
+    else:
+        alph_x = alpha_x
+
+    if isinstance(alpha_y, float):
+        alph_y = alpha_y * np.ones(len(wrmp.maps))
+    else:
+        alph_y = alpha_y
+
+    if isinstance(alpha_z, float):
+        alph_z = alpha_z * np.ones(len(wrmp.maps))
+    else:
+        alph_z = alpha_z
+
+    for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
+        reg += Tikhonov(
             mesh=mesh,
             mapping=maps * wire[1],
             alpha_s=0.,
