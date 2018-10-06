@@ -143,78 +143,6 @@ inv = Inversion.BaseInversion(invProb,  directiveList=[beta, Target,
 
 mnormal = inv.run(m0)
 
-#########################################
-# Petrophysically constrained inversion #
-#########################################
-
-# fit a Gaussian Mixture Model with n components
-# on the true model to simulate the laboratory
-# petrophysical measurements
-m0 = np.median(ln_sigback) * np.ones(mapping.nP)
-dmis = DataMisfit.l2_DataMisfit(survey)
-
-n = 3
-clf = GaussianMixture(
-    n_components=n,  covariance_type='tied', reg_covar=5e-3
-)
-clf.fit(mtrue[actind].reshape(-1, 1))
-Utils.order_clusters_GM_weight(clf)
-print(clf.covariances_)
-print(clf.means_)
-idenMap = Maps.IdentityMap(nP=m0.shape[0])
-wires = Maps.Wires(('m', m0.shape[0]))
-reg = Regularization.SimplePetroRegularization(
-    GMmref=clf,  mesh=mesh,
-    wiresmap=wires,
-    maplist=[idenMap],
-    mref=m0,
-    indActive=actind
-)
-reg.mrefInSmooth = False
-reg.approx_gradient = True
-gamma_petro = np.r_[1., 3., 3.]
-reg.gamma = gamma_petro
-
-opt = Optimization.ProjectedGNCG(
-    maxIter=30, lower=-10, upper=10,
-    maxIterLS=20, maxIterCG=50, tolCG=1e-4
-)
-opt.remember('xc')
-
-invProb = InvProblem.BaseInvProblem(dmis,  reg,  opt)
-
-Alphas = Directives.AlphasSmoothEstimate_ByEig(
-    alpha0_ratio=1e-3, ninit=10, verbose=True
-)
-beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e2, ninit=10)
-betaIt = Directives.PetroBetaReWeighting(
-    verbose=True, rateCooling=8.,
-    rateWarming=1., tolerance=0.05
-)
-targets = Directives.PetroTargetMisfit(
-    TriggerSmall=True,
-    TriggerTheta=False,
-    verbose=True,
-)
-MrefInSmooth = Directives.AddMrefInSmooth(verbose=True, wait_till_stable=True)
-petrodir = Directives.GaussianMixtureUpdateModel()
-updateSensW = Directives.Update_DC_Wr(
-    wrType='sensitivityW',
-    changeMref=False, eps=1e-7
-)
-# updateSensW = Directives.UpdateSensitivityWeights(threshold=1e-7)
-# update_Jacobi = Directives.UpdatePreconditioner()
-
-inv = Inversion.BaseInversion(invProb,
-                              directiveList=[Alphas, beta,
-                                             petrodir,
-                                             targets, betaIt,
-                                             MrefInSmooth,
-                                             updateSensW,
-                                             ])
-
-
-mcluster = inv.run(m0)
 
 #########################################
 # Petrophysically constrained inversion #
@@ -223,7 +151,7 @@ mcluster = inv.run(m0)
 # fit a Gaussian Mixture Model with n components
 # on the true model to simulate the laboratory
 # petrophysical measurements
-m0 = np.median(ln_sigback) * np.ones(mapping.nP)
+m0 = -4.5 * np.ones(mapping.nP)
 dmis = DataMisfit.l2_DataMisfit(survey)
 
 n = 3
@@ -249,7 +177,7 @@ gamma_petro = np.r_[1., 1., 1.]
 reg.gamma = gamma_petro
 
 opt = Optimization.ProjectedGNCG(
-    maxIter=4, lower=-10, upper=10,
+    maxIter=10, lower=-10, upper=10,
     maxIterLS=20, maxIterCG=50, tolCG=1e-4
 )
 opt.remember('xc')
@@ -290,7 +218,7 @@ inv = Inversion.BaseInversion(invProb,
                                              updateSensW,
                                              ])
 
-mcluster_nomean = inv.run(m0)
+mcluster = inv.run(m0)
 
 print('All stopping Criteria: ', targets.AllStop)
 print('Final Data Misfit: ', dmis(mcluster))
@@ -319,11 +247,11 @@ ax[1].set_aspect('equal')
 ax[1].set_title('Tikhonov')
 
 meshCore.plotImage(mcluster, ax=ax[2], clim=clim)
-ax[2].set_title('Petrophysically constrained\nwith full Information')
+ax[2].set_title('Petrophysically constrained\nwith No Mean Information')
 ax[2].set_aspect('equal')
 
-meshCore.plotImage(mcluster_nomean, ax=ax[3], clim=clim)
-ax[3].set_title('Petrophysically constrained\nwith No Mean Information')
+meshCore.plotImage(invProb.reg.mref, ax=ax[3], clim=clim)
+ax[3].set_title('Learned Reference model')
 ax[3].set_aspect('equal')
 
 for i in range(4):
@@ -336,10 +264,10 @@ cb = plt.colorbar(dat[0], ax=cbar_ax)
 cb.set_label('ln conductivity')
 
 cbar_ax.axis('off')
-fig.savefig('DC2D_NoMean.png', dpi=600, bbox_inches='tight', pad_inches=0)
+
 plt.show()
 
-testXplot = np.linspace(-7, 0, 1000)[:,np.newaxis]
+testXplot = np.linspace(-7,0,1000)[:,np.newaxis]
 plt.plot(testXplot, np.exp(reg.objfcts[0].GMmodel.score_samples(testXplot)))
 plt.plot(testXplot, np.exp(reg.GMmref.score_samples(testXplot)))
 plt.hist(mcluster,bins=100,density=True);
