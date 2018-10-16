@@ -1069,7 +1069,8 @@ class UpdatePreconditioner(InversionDirective):
 
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
-        PC = Utils.sdiag((diagA)**-1.)
+        diagA[diagA != 0] = diagA[diagA != 0] ** -1.
+        PC = Utils.sdiag(diagA)
 
         self.opt.approxHinv = PC
 
@@ -1091,7 +1092,8 @@ class UpdatePreconditioner(InversionDirective):
         # Assumes that opt.JtJdiag has been updated or static
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
-        PC = Utils.sdiag((diagA)**-1.)
+        diagA[diagA != 0] = diagA[diagA != 0] ** -1.
+        PC = Utils.sdiag(diagA)
         self.opt.approxHinv = PC
 
 

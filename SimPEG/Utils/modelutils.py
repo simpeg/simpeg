@@ -233,7 +233,11 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
     # Get center of the mesh
     midX = np.mean(limx)
     midY = np.mean(limy)
-    midZ = np.mean(limz)
+
+    if verticalAlignment == 'center':
+        midZ = np.mean(limz)
+    else:
+        midZ = limz[0]
 
     nCx = int(limx[0]-limx[1]) / h[0]
     nCy = int(limy[0]-limy[1]) / h[1]
@@ -282,9 +286,9 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
         # Re-set the mesh at the center of input locations
         # Set origin
         if verticalAlignment == 'center':
-            mesh.x0 = [midX-np.sum(mesh.hx)/2., midY-np.sum(mesh.hy)/2., midZ-np.sum(mesh.hz)/2.]
+            mesh.x0 = [midX-np.sum(mesh.hx)/2., midY-np.sum(mesh.hy)/2., midZ - np.sum(mesh.hz)/2.]
         elif verticalAlignment == 'top':
-            mesh.x0 = [midX-np.sum(mesh.hx)/2., midY-np.sum(mesh.hy)/2., limz[0]-np.sum(mesh.hz)]
+            mesh.x0 = [midX-np.sum(mesh.hx)/2., midY-np.sum(mesh.hy)/2., midZ - np.sum(mesh.hz)]
         else:
             assert NotImplementedError("verticalAlignment must be 'center' | 'top'")
 
@@ -305,19 +309,30 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
         # nCz = 2**(int(np.log2(extent/h[2]))+1)
 
         # Define the mesh and origin
-        # For now cubic cells
         mesh = Mesh.TreeMesh([np.ones(nCx)*h[0],
                               np.ones(nCx)*h[1],
                               np.ones(nCx)*h[2]])
 
+        # Shift mesh if global mesh is used
+        center = np.r_[midX, midY, midZ]
+        if meshGlobal is not None:
+
+            tree = cKDTree(meshGlobal.gridCC)
+            _, ind = tree.query(center, k=1)
+
+            print(meshGlobal.gridCC[ind, :], center)
+            center = meshGlobal.gridCC[ind, :]
+            print(center)
+
         # Set origin
         if verticalAlignment == 'center':
-            mesh.x0 = np.r_[-nCx*h[0]/2.+midX, -nCy*h[1]/2.+midY, -nCz*h[2]/2.+midZ]
+            mesh.x0 = np.r_[center[0] - (nCx-1)*h[0]/2., center[1] - (nCy-1)*h[1]/2., center[2] - (nCz-1)*h[2]/2.]
         elif verticalAlignment == 'top':
-            mesh.x0 = np.r_[-nCx*h[0]/2.+midX, -nCy*h[1]/2.+midY, -(nCz-1)*h[2] + limz.max()]
+            mesh.x0 = np.r_[center[0] - (nCx-1)*h[0]/2., center[1] - (nCy-1)*h[1]/2., center[2] - (nCz-1)*h[2]]
         else:
             assert NotImplementedError("verticalAlignment must be 'center' | 'top'")
 
+        print(nCx, h[0], nCx*h[0]/2., mesh.x0)
     return mesh
 
 
