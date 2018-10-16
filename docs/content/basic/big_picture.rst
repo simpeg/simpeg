@@ -2,7 +2,7 @@ Why SimPEG?
 ===========
 
 Our essential functions as researchers are the pursuit and dissemination of knowledge through research and education. As scientists we
-seek to find models that reproduce the observations that we make in the world. In geophysics, we use inverse theory to mathematically
+seek to find models that reproduce the observations that we make in the world. In geophysics, we use inverse theory, hence iterative forward modeling, to mathematically
 create models of the earth from measured data. It is a difficult problem with many moving pieces: physics, discretization, simulation,
 regularization, optimization, computer science, linear algebra, geology. Exploring each of these disciplines can take a career, if you
 are so inclined, but as geophysicists we care about the combination: how to pull these disciplines together to answer our questions.
@@ -20,6 +20,21 @@ implementations are hidden, obfuscated, or difficult to manipulate, do not promo
 a framework that exposes the details of the implementation to the geophysicist in a manner that promotes productivity and question
 based interrogation. This framework can be easily extended to encompass many geophysical problems and is built with the inverse problem
 as the fundamental goal.
+
+Inversion is the cornerstone of low-frequency and potential-field geophysical
+methods. There are geophysical methods where you can get a subsurface property
+directly from the measured data, an example being the calculation of velocity
+through the normal-moveout (NMO) calculation in seismic data. In low-frequency
+and potential-field methods this is, as of today, not possible. The way this
+data is interpreted is by creating a geologically feasible starting model,
+calculating the response of that starting model, and comparing the calculated
+responses to the measured data. Depending on the differences between the two
+we update our model according to some defined rules, and repeat the whole
+process until a termination criterion is reached. This iterative modeling to
+generate a model which response matches the measured data as good as possible
+is what geophysicist call inversion of data. It is important to note that in
+this process we only adjust our model of the subsurface and never touch the
+data, which is very distinct to data-processing methods such as migration.
 
 The future we see is a mix of tools that span our disciplines, and a framework that allows us to integrate many different types of
 geophysical data so that we can communicate effectively and experiment efficiently. A toolbox combined with a framework that allows you
