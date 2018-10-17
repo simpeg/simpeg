@@ -646,13 +646,12 @@ class Tile(IdentityMap):
         """
         if getattr(self, '_P', None) is None:
 
-            # self.level = level
             indx = self.getTreeIndex(self.tree, self.meshLocal, self.actvLocal)
-            local2Global = np.c_[np.kron(np.ones(self.nCell), np.where(self.actvLocal)[0]).astype('int'), mkvc(indx)]
+            local2Global = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.actvLocal.sum()))).astype('int'), mkvc(indx)]
 
             tree = cKDTree(self.meshLocal.gridCC[self.actvLocal, :])
             r, ind = tree.query(self.meshGlobal.gridCC[self.actvGlobal], k=self.nCell)
-            global2Local = np.c_[np.kron(np.ones(self.nCell), np.where(self.actvGlobal)[0]).astype('int'), mkvc(ind)]
+            global2Local = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.actvGlobal.sum()))).astype('int'), mkvc(ind)]
 
             full = np.unique(np.vstack([local2Global, global2Local[:, [1, 0]]]), axis=0)
 
@@ -721,8 +720,6 @@ class Tile(IdentityMap):
                               shape=(self.actvLocal.sum(), self.actvGlobal.sum()))
 
             sumRow = Utils.mkvc(np.sum(P, axis=1) + self.tol)
-
-            self.totVol = Utils.sdiag(sumRow)
 
             self.scaleJ = Utils.sdiag(sumRow/self.meshLocal.vol[self.actvLocal])
 

@@ -28,7 +28,7 @@ class MagneticIntegral(Problem.LinearProblem):
     M = None  #: Magnetization matrix provided, otherwise all induced
     magType = 'H0'
     equiSourceLayer = False
-    silent = False  # Don't display progress on screen
+    verbose = True  # Don't display progress on screen
     W = None
     rxType = 'tmi'
     gtgdiag = None
@@ -393,14 +393,17 @@ class MagneticIntegral(Problem.LinearProblem):
             raise Exception('magType must be: "H0" or "full"')
 
                 # Loop through all observations and create forward operator (nD-by-nC)
-        print("Begin forward: M=" + magType + ", Rx type= " + self.rxType)
+
+        if self.verbose:
+            print("Begin forward: M=" + magType + ", Rx type= " + self.rxType)
 
         # Switch to determine if the process has to be run in parallel
         job = Forward(
                 rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
                 model=self.model, rxType=self.rxType, Mxyz=self.Mxyz,
-                P=self.ProjTMI, parallelized=self.parallelized
+                P=self.ProjTMI, parallelized=self.parallelized,
+                verbose=self.verbose
                 )
 
         G = job.calculate()
@@ -420,6 +423,7 @@ class Forward(object):
     rxType = 'z'
     Mxyz = None
     P = None
+    verbose = True
 
     def __init__(self, **kwargs):
         super(Forward, self).__init__()
@@ -509,7 +513,9 @@ class Forward(object):
         """
         arg = np.floor(ind/total*10.)
         if arg > self.progressIndex:
-            print("Done " + str(arg*10) + " %")
+
+            if self.verbose:
+                print("Done " + str(arg*10) + " %")
             self.progressIndex = arg
 
 
