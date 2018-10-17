@@ -586,17 +586,17 @@ class Tile(IdentityMap):
         """
         if getattr(self, '_tree', None) is None:
 
-            if self.meshGlobal.dim == 1:
-                ccMat = np.c_[self.meshGlobal.gridCC[self.actvGlobal, 0]]
-            elif self.meshGlobal.dim == 2:
-                ccMat = np.c_[self.meshGlobal.gridCC[self.actvGlobal, 0],
-                              self.meshGlobal.gridCC[self.actvGlobal, 1]]
-            elif self.meshGlobal.dim == 3:
-                ccMat = np.c_[self.meshGlobal.gridCC[self.actvGlobal, 0],
-                              self.meshGlobal.gridCC[self.actvGlobal, 1],
-                              self.meshGlobal.gridCC[self.actvGlobal, 2]]
+            # if self.meshGlobal.dim == 1:
+            #     ccMat = np.c_[self.meshGlobal.gridCC[self.actvGlobal, 0]]
+            # elif self.meshGlobal.dim == 2:
+            #     ccMat = np.c_[self.meshGlobal.gridCC[self.actvGlobal, 0],
+            #                   self.meshGlobal.gridCC[self.actvGlobal, 1]]
+            # elif self.meshGlobal.dim == 3:
+            #     ccMat = np.c_[self.meshGlobal.gridCC[self.actvGlobal, 0],
+            #                   self.meshGlobal.gridCC[self.actvGlobal, 1],
+            #                   self.meshGlobal.gridCC[self.actvGlobal, 2]]
 
-            self._tree = cKDTree(ccMat)
+            self._tree = cKDTree(self.meshGlobal.gridCC[self.actvGlobal, :])
 
         return self._tree
 
@@ -609,7 +609,6 @@ class Tile(IdentityMap):
     def index(self, index):
         if getattr(self, '_index', None) is not None:
             self._S = None
-
 
         if not isinstance(index, bool):
             temp = np.zeros(self.actvGlobal.sum(), dtype='bool')
@@ -647,12 +646,6 @@ class Tile(IdentityMap):
         """
         if getattr(self, '_P', None) is None:
 
-            # level = []
-            # for ii, ind in enumerate(self._sortedCells):
-
-            #     p = self.meshLocal._pointer[ind]
-            #     level += meshLocal._levelWidth[p[-1]]
-
             # self.level = level
             indx = self.getTreeIndex(self.tree, self.meshLocal, self.actvLocal)
             local2Global = np.c_[np.kron(np.ones(self.nCell), np.where(self.actvLocal)[0]).astype('int'), mkvc(indx)]
@@ -668,6 +661,7 @@ class Tile(IdentityMap):
             tree = None
 
             # Get the node coordinates (bottom-SW) and (top-NE) of cells
+            # in the global and local mesh
             global_bsw, global_tne = self.getNodeExtent(self.meshGlobal,
                                                         self.actvGlobal)
 
@@ -675,33 +669,34 @@ class Tile(IdentityMap):
                                                       self.actvLocal)
 
             nactv = full.shape[0]
-            # indL = np.where(self.actvLocal)[0]
-            # indG = np.asarray(range(nactv))
-            # Calculate interesected volume
-            # V = []
-            # I = []
-            # J = []
-            # indx = np.r_[indx]
-            # for ii in range(indx.shape[1]):
 
-            # Grab corners for ith nearest cell
+            # Compute intersecting cell volumes
             if self.meshLocal.dim == 1:
-                # nbsw = global_bsw[indx[:, ii]]
-                # ntne = global_tne[indx[:, ii]]
 
-                dV = np.max([(np.min([global_tne[full[:, 1]], local_tne[full[:, 0]]], axis=0) -
-                              np.max([global_bsw[full[:, 1]], local_bsw[full[:, 0]]], axis=0)),
-                             np.zeros(nactv)], axis=0)
+                dV = np.max(
+                    [(np.min(
+                        [global_tne[full[:, 1]],
+                         local_tne[full[:, 0]]], axis=0
+                      ) -
+                      np.max(
+                        [global_bsw[full[:, 1]],
+                         local_bsw[full[:, 0]]], axis=0)
+                      ), np.zeros(nactv)
+                     ], axis=0
+                )
 
             elif self.meshLocal.dim >= 2:
-                # global_bsw = global_bsw[indx[:, ii], :]
-                # global_tne = global_tne[indx[:, ii], :]
 
-                dV = np.max([(np.min([global_tne[full[:, 1], 0], local_tne[full[:, 0], 0]],
-                                     axis=0) -
-                              np.max([global_bsw[full[:, 1], 0], local_bsw[full[:, 0], 0]],
-                                     axis=0)),
-                             np.zeros(nactv)], axis=0)
+                dV = np.max(
+                    [(np.min(
+                        [global_tne[full[:, 1], 0],
+                         local_tne[full[:, 0], 0]], axis=0
+                       ) -
+                      np.max(
+                        [global_bsw[full[:, 1], 0],
+                         local_bsw[full[:, 0], 0]], axis=0)
+                      ), np.zeros(nactv)], axis=0
+                    )
 
                 dV *= np.max([(np.min([global_tne[full[:, 1], 1], local_tne[full[:, 0], 1]],
                                       axis=0) -
@@ -717,16 +712,12 @@ class Tile(IdentityMap):
                                       axis=0)),
                               np.zeros(nactv)], axis=0)
 
+            # Select only cells with non-zero intersecting volumes
             nzV = dV > 0
-            print(np.sum(dV==0))
-            # if nzV.sum() > 0:
-            V = [dV[nzV]]
-            I = [full[nzV, 0]]
-            J = [full[nzV, 1]]
 
-            self.V = np.hstack(V)
+            self.V = dV[nzV]
 
-            P = sp.csr_matrix((self.V, (np.hstack(I), np.hstack(J))),
+            P = sp.csr_matrix((self.V, (full[nzV, 0], full[nzV, 1])),
                               shape=(self.actvLocal.sum(), self.actvGlobal.sum()))
 
             sumRow = Utils.mkvc(np.sum(P, axis=1) + self.tol)

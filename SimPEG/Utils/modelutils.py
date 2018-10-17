@@ -305,6 +305,7 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
         # For now equal in 3D
 
         nCx, nCy, nCz = 2**(maxLevel), 2**(maxLevel), 2**(maxLevel)
+
         # nCy = 2**(int(np.log2(extent/h[1]))+1)
         # nCz = 2**(int(np.log2(extent/h[2]))+1)
 
@@ -319,10 +320,7 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
 
             tree = cKDTree(meshGlobal.gridCC)
             _, ind = tree.query(center, k=1)
-
-            print(meshGlobal.gridCC[ind, :], center)
             center = meshGlobal.gridCC[ind, :]
-            print(center)
 
         # Set origin
         if verticalAlignment == 'center':
@@ -332,7 +330,6 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
         else:
             assert NotImplementedError("verticalAlignment must be 'center' | 'top'")
 
-        print(nCx, h[0], nCx*h[0]/2., mesh.x0)
     return mesh
 
 

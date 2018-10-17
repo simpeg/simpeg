@@ -195,16 +195,16 @@ class BaseInvProblem(Props.BaseSimPEG):
 
         out = (phi,)
         if return_g:
-            phi_dDeriv = self.dmisfit.deriv(m, f=f)
-            phi_mDeriv = self.reg.deriv(m)
+            phi_dDeriv = np.squeeze(self.dmisfit.deriv(m, f=f))
+            phi_mDeriv = np.squeeze(self.reg.deriv(m))
 
             g = phi_dDeriv + self.beta * phi_mDeriv
             out += (g,)
 
         if return_H:
             def H_fun(v):
-                phi_d2Deriv = self.dmisfit.deriv2(m, v, f=f)
-                phi_m2Deriv = self.reg.deriv2(m, v=v)
+                phi_d2Deriv = np.squeeze(self.dmisfit.deriv2(m, v, f=f))
+                phi_m2Deriv = np.squeeze(self.reg.deriv2(m, v=v))
 
                 return phi_d2Deriv + self.beta * phi_m2Deriv
 
