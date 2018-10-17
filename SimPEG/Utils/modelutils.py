@@ -350,17 +350,17 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
         # Reflect in the opposite direction
         vec = np.r_[stencil[::-1], 1, stencil]
         vecX, vecY, vecZ = np.meshgrid(vec, vec, vec)
-        gridLevel = np.maximum(np.maximum(vecX,
-                               vecY), vecZ)
+        gridLevel = np.maximum(np.maximum(np.abs(vecX),
+                               np.abs(vecY)), np.abs(vecZ))
         gridLevel = np.kron(np.ones((xyz.shape[0], 1)), gridLevel)
 
         # Grid the coordinates
-        vec = np.r_[-stencil[::-1], 0, stencil]
+        vec = np.r_[-np.cumsum(stencil)[::-1], 0, np.cumsum(stencil)]
         vecX, vecY, vecZ = np.meshgrid(vec, vec, vec)
         offset = np.c_[
-            mkvc(np.sign(vecX)*2**np.abs(vecX) * mesh.hx.min()),
-            mkvc(np.sign(vecY)*2**np.abs(vecY) * mesh.hx.min()),
-            mkvc(np.sign(vecZ)*2**np.abs(vecZ) * mesh.hx.min())
+            mkvc(np.sign(vecX)*np.abs(vecX) * mesh.hx.min()),
+            mkvc(np.sign(vecY)*np.abs(vecY) * mesh.hy.min()),
+            mkvc(np.sign(vecZ)*np.abs(vecZ) * mesh.hz.min())
         ]
 
         # Replicate the point locations in each offseted grid points

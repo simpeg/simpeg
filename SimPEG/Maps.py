@@ -722,11 +722,11 @@ class Tile(IdentityMap):
 
             sumRow = Utils.mkvc(np.sum(P, axis=1) + self.tol)
 
-            self.AveV = Utils.sdiag(1./sumRow)
+            self.totVol = Utils.sdiag(sumRow)
 
-            self.invVol = Utils.sdiag(1./self.meshGlobal.vol[self.actvGlobal])
+            self.scaleJ = Utils.sdiag(sumRow/self.meshLocal.vol[self.actvLocal])
 
-            self._P = self.AveV * sp.block_diag([P for ii in range(self.nBlock)])
+            self._P = Utils.sdiag(1./sumRow) * sp.block_diag([P for ii in range(self.nBlock)])
 
             self._shape = self.actvLocal.sum(), self.actvGlobal.sum()
 
@@ -778,9 +778,10 @@ class Tile(IdentityMap):
             :return: derivative of transformed model
         """
 
+        self.P
         if v is not None:
-            return self.P * v
-        return self.P
+            return self.scaleJ * self.P * v
+        return self.scaleJ * self.P
 
 
 class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
