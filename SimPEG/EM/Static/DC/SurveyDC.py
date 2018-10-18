@@ -111,7 +111,7 @@ class Survey(BaseEMSurvey, properties.HasProperties):
         self.m_locations = np.vstack(m_locations)
         self.n_locations = np.vstack(n_locations)
 
-    def drapeTopo(self, mesh, actind, option='top'):
+    def drapeTopo(self, mesh, actind, option='top', topography=None):
         if self.a_locations is None:
             self.getABMN_locations()
 
@@ -217,12 +217,22 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                             self.n_locations[:, :2],
                             ))
                         )
-                    self.electrode_locations = SimPEG.EM.Static.Utils.drapeTopotoLoc(
-                        mesh, self.electrodes_info[0], actind=actind
+                    if mesh._meshType == 'TREE':
+                        # Make interpolation function
+                        self.topo_function = NearestNDInterpolator(
+                            topography[:, :2],
+                            topography[:, 2]
                         )
+                        topo = self.topo_function(self.electrodes_info[0])
+                    else:
+                        topo = None
+                    self.electrode_locations = SimPEG.EM.Static.Utils.drapeTopotoLoc(
+                        mesh, self.electrodes_info[0],
+                        actind=actind, topo=topo
+                    )
                 temp = (
                     self.electrode_locations[self.electrodes_info[2], 1]
-                    ).reshape((self.a_locations.shape[0], 4), order="F")
+                ).reshape((self.a_locations.shape[0], 4), order="F")
 
                 self.a_locations = np.c_[self.a_locations[:, :2], temp[:, 0]]
                 self.b_locations = np.c_[self.b_locations[:, :2], temp[:, 1]]
@@ -233,7 +243,7 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                 self.topo_function = NearestNDInterpolator(
                     self.electrode_locations[:, :2],
                     self.electrode_locations[:, 2]
-                    )
+                )
                 # Loop over all Src and Rx locs and Drape topo
                 for src in self.srcList:
                     # Pole Src

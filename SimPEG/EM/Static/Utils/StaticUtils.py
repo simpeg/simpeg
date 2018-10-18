@@ -1533,9 +1533,16 @@ def gettopoCC(mesh, actind, option="top"):
 
     elif mesh._meshType == "TREE":
         if mesh.dim == 3:
-            uniqXY = uniqueRows(mesh.gridCC[:, :2])
+            core_inds = np.isin(
+                mesh.h_gridded,
+                np.r_[mesh.hx.min(), mesh.hy.min(), mesh.hz.min()]
+            ).all(axis=1)
+
+            act_core_inds = actind[core_inds]
+
+            uniqXY = uniqueRows(mesh.gridCC[core_inds, :2])
             npts = uniqXY[0].shape[0]
-            ZC = mesh.gridCC[:, 2]
+            ZC = mesh.gridCC[core_inds, 2]
             topoCC = np.zeros(npts)
             if option == "top":
                 # TODO: this assume same hz, need to be modified
@@ -1544,7 +1551,7 @@ def gettopoCC(mesh, actind, option="top"):
                 dz = 0.
             for i in range(npts):
                 inds = uniqXY[2] == i
-                actind_z = actind[inds]
+                actind_z = act_core_inds[inds]
                 if actind_z.sum() > 0.:
                     topoCC[i] = (ZC[inds][actind_z]).max() + dz
                 else:
@@ -1566,6 +1573,7 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
     elif mesh.dim == 3:
         if pts.shape[1] == 3:
             raise Exception("shape of pts should be (x,3)")
+        pass
     else:
         raise NotImplementedError()
     if actind is None:
@@ -1573,16 +1581,18 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
     if mesh._meshType == "TENSOR":
         meshtemp, topoCC = gettopoCC(mesh, actind, option=option)
         inds = Utils.closestPoints(meshtemp, pts)
-
+        topo = topoCC[inds]
+        out = np.c_[pts[:, :2], topo]
     elif mesh._meshType == "TREE":
         if mesh.dim == 3:
             uniqXYlocs, topoCC = gettopoCC(mesh, actind, option=option)
             inds = closestPointsGrid(uniqXYlocs, pts)
+            out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
         else:
             raise NotImplementedError()
     else:
         raise NotImplementedError()
-    out = np.c_[pts, topoCC[inds]]
+
     return out
 
 
