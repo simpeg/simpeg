@@ -52,7 +52,7 @@ Checkout the docs on `unittest
 Compare with known values
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In a simple case, you might now the exact value of what the output should be
+In a simple case, you might know the exact value of what the output should be
 and you can :code:`assert` that this is in fact the case. For example, in
 `test_basemesh.py
 <https://github.com/simpeg/discretize/blob/master/tests/base/test_basemesh.py>`_,
