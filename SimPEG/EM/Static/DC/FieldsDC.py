@@ -182,6 +182,7 @@ class Fields_N(FieldsDC):
         'phi': ['phiSolution', 'N', '_phi'],
         'j': ['phiSolution', 'E', '_j'],
         'e': ['phiSolution', 'E', '_e'],
+        'charge_density': : ['phiSolution', 'N', '_charge_density'],
         'charge': ['phiSolution', 'N', '_charge'],
     }
     # primary - secondary
@@ -231,6 +232,11 @@ class Fields_N(FieldsDC):
             .. math::
                 \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
-        return - epsilon_0*(self.mesh.nodalGrad.T *
-                            self.mesh.getEdgeInnerProduct() *
-                            self._e(phiSolution, srcList))
+        return -epsilon_0*(
+            self.mesh.nodalGrad.T *
+            self.mesh.getEdgeInnerProduct() *
+            self._e(phiSolution, srcList)
+        )
+
+    def _charge_density(self, phiSolution, srcList):
+        return self._charge(phiSolution, srcList) / self.mesh.vol
