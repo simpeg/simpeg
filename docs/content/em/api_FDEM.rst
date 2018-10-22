@@ -85,18 +85,19 @@ where:
 - :math:`\mu` : magnetic permeability (:math:`H/m`)
 - :math:`\varepsilon` : dielectric permittivity (:math:`F/m`)
 
-:math:`\sigma`, :math:`\mu`, :math:`\varepsilon` are physical properties which depend on the material. :math:`\sigma` describes how easily electric current passes through a material, :math:`\mu` describes how easily a material is magnetized, and :math:`\varepsilon` describes how easily a material is electrically polarized. In most geophysical applications of EM, :math:`\sigma` is the the primary physical property of interest, and :math:`\mu`, :math:`\varepsilon` are assumed to have their free-space values :math:`\mu_0 = 4\pi \times 10^{-7} H/m` , :math:`\varepsilon_0 = 8.85 \times 10^{-12} F/m`
+:math:`\sigma`, :math:`\mu`, :math:`\varepsilon` are physical properties which depend on the material. :math:`\sigma` describes how easily electric current passes through a material, :math:`\mu` describes how easily a material is magnetized, and :math:`\varepsilon` describes how easily a material is electrically polarized. In most low-frequency geophysical applications of EM, :math:`\sigma` is the primary physical property of interest, and :math:`\mu`, :math:`\varepsilon` are assumed to have their free-space values :math:`\mu_0 = 4\pi \times 10^{-7} H/m` , :math:`\varepsilon_0 = 1/(\mu_0 c^2) \approx 8.85 \times 10^{-12} F/m`, where :math:`c` is the speed of light in free space.
 
 
 Quasi-static Approximation
 --------------------------
 
-For the frequency range typical of most geophysical surveys, the contribution of the electric displacement is negligible compared to the electric current density. In this case, we use the Quasi-static approximation and assume that this term can be neglected, giving
+For the frequency range typical of most geophysical surveys, the contribution of the electric displacement is negligible compared to the electric current density. In this case, we use the quasi-static approximation and assume that this term can be neglected, giving
 
 .. math ::
     \nabla \times \vec{E} + i \omega \vec{B} = \vec{S_m} \\
     \nabla \times \vec{H} - \vec{J} = \vec{S_e}
 
+Geophysical methods where the quasi-static approximation, often called diffusive approximation, does not hold are high-frequency methods such as ground-penetrating radar or dielectric well-log measurements.
 
 Implementation in SimPEG.EM
 ===========================
