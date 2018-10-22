@@ -205,6 +205,11 @@ class IdentityMap(properties.HasProperties):
             )
         )
 
+    __numpy_ufunc__ = True
+
+    def __add__(self, map2):
+        return SumMap([self, map2]) # error-checking done inside of the SumMap
+
     def __str__(self):
         return "{0!s}({1!s},{2!s})".format(
             self.__class__.__name__,
@@ -462,7 +467,8 @@ class SurjectUnits(IdentityMap):
     # )
 
     def __init__(self, indices, **kwargs):
-        super(HomogeneousMap, self).__init__(**kwargs)
+        super(SurjectUnits, self).__init__(**kwargs)
+        self.indices = indices
 
     @property
     def P(self):
@@ -472,14 +478,13 @@ class SurjectUnits(IdentityMap):
             col = []
             val = []
             for ii, ind in enumerate(self.indices):
-
-                row += [ii]*ind.sum()
-                col += np.where(ind)[0].tolist()
+                col += [ii]*ind.sum()
+                row += np.where(ind)[0].tolist()
                 val += [1]*ind.sum()
 
-            P = self.sp.csr_matrix(
-                (val, (row, col)), shape=(len(self.indices), self.nP)
-            ).T
+            self._P = sp.csr_matrix(
+                (val, (row, col)), shape=(len(self.indices[0]), self.nP)
+            )
 
             # self._P = sp.block_diag([P for ii in range(self.nBlock)])
 
@@ -2030,10 +2035,16 @@ class BaseParametric(IdentityMap):
     @property
     def x(self):
         if getattr(self, '_x', None) is None:
-            self._x = [
-                self.mesh.gridCC[:, 0] if self.indActive is None else
-                self.mesh.gridCC[self.indActive, 0]
-            ][0]
+            if self.mesh.dim == 1:
+                self._x = [
+                    self.mesh.gridCC if self.indActive is None else
+                    self.mesh.gridCC[self.indActive]
+                ][0]
+            else:
+                self._x = [
+                    self.mesh.gridCC[:, 0] if self.indActive is None else
+                    self.mesh.gridCC[self.indActive, 0]
+                ][0]
         return self._x
 
     @property
@@ -2208,7 +2219,7 @@ class ParametricBlock(BaseParametric):
     """
         Parametric Block in a Homogeneous Space
 
-         For 1D:
+        For 1D:
 
         .. code:: python
 
@@ -2409,6 +2420,14 @@ class ParametricBlock(BaseParametric):
                 )
             )
         )
+
+    def _deriv1D(self, mDict):
+        return np.vstack([
+            self._deriv_val_background(mDict),
+            self._deriv_val_block(mDict),
+            self._deriv_center_block(mDict, 'x'),
+            self._deriv_width_block(mDict, 'x'),
+        ]).T
 
     def _deriv2D(self, mDict):
         return np.vstack([

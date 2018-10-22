@@ -274,6 +274,119 @@ class MapTests(unittest.TestCase):
         self.assertTrue(mParamSpline.test())
         self.assertTrue(mParamSpline.testVec())
 
+    def test_parametric_block(self):
+        M1 = Mesh.TensorMesh([np.ones(10)], "C")
+        block = Maps.ParametricBlock(M1)
+        self.assertTrue(
+            block.test(
+                m=np.hstack(
+                    [np.random.rand(2), np.r_[M1.x0, 2*M1.hx.min()]]
+                )
+            )
+        )
+
+        M2 = Mesh.TensorMesh([np.ones(10), np.ones(20)], "CC")
+        block = Maps.ParametricBlock(M2)
+        self.assertTrue(
+            block.test(
+                m=np.hstack(
+                    [
+                        np.random.rand(2),
+                        np.r_[M2.x0[0], 2*M2.hx.min()],
+                        np.r_[M2.x0[1], 4*M2.hy.min()]
+                    ]
+                )
+            )
+        )
+
+        M3 = Mesh.TensorMesh([np.ones(10), np.ones(20), np.ones(30)], "CCC")
+        block = Maps.ParametricBlock(M3)
+        self.assertTrue(
+            block.test(
+                m=np.hstack(
+                    [
+                        np.random.rand(2),
+                        np.r_[M3.x0[0], 2*M3.hx.min()],
+                        np.r_[M3.x0[1], 4*M3.hy.min()],
+                        np.r_[M3.x0[2], 5*M3.hz.min()]
+                    ]
+                )
+            )
+        )
+
+    def test_parametric_ellipsoid(self):
+        M2 = Mesh.TensorMesh([np.ones(10), np.ones(20)], "CC")
+        block = Maps.ParametricEllipsoid(M2)
+        self.assertTrue(
+            block.test(
+                m=np.hstack(
+                    [
+                        np.random.rand(2),
+                        np.r_[M2.x0[0], 2*M2.hx.min()],
+                        np.r_[M2.x0[1], 4*M2.hy.min()]
+                    ]
+                )
+            )
+        )
+
+        M3 = Mesh.TensorMesh([np.ones(10), np.ones(20), np.ones(30)], "CCC")
+        block = Maps.ParametricEllipsoid(M3)
+        self.assertTrue(
+            block.test(
+                m=np.hstack(
+                    [
+                        np.random.rand(2),
+                        np.r_[M3.x0[0], 2*M3.hx.min()],
+                        np.r_[M3.x0[1], 4*M3.hy.min()],
+                        np.r_[M3.x0[2], 5*M3.hz.min()]
+                    ]
+                )
+            )
+        )
+
+    def test_sum(self):
+        M2 = Mesh.TensorMesh([np.ones(10), np.ones(20)], "CC")
+        block = (
+            Maps.ParametricEllipsoid(M2) *
+            Maps.Projection(7, np.r_[1, 2, 3, 4, 5, 6])
+        )
+        background = (
+            Maps.ExpMap(M2) * Maps.SurjectFull(M2) *
+            Maps.Projection(7, np.r_[0])
+        )
+
+        summap0 = Maps.SumMap([block, background])
+        summap1 = block + background
+
+        m0 = np.hstack([
+            np.random.rand(3),
+            np.r_[M2.x0[0], 2*M2.hx.min()],
+            np.r_[M2.x0[1], 4*M2.hy.min()]
+        ])
+
+        self.assertTrue(
+            np.all(summap0 * m0 == summap1 * m0)
+        )
+
+        self.assertTrue(summap0.test(m0))
+        self.assertTrue(summap1.test(m0))
+
+    def test_surject_units(self):
+        M2 = Mesh.TensorMesh([np.ones(10), np.ones(20)], "CC")
+        unit1 = M2.gridCC[:, 0] < 0
+        unit2 = M2.gridCC[:, 0] >= 0
+
+        surject_units = Maps.SurjectUnits([unit1, unit2])
+
+        m0 = np.r_[0, 1]
+        m1 = surject_units * m0
+
+        self.assertTrue(np.all(m1[unit1] == 0))
+        self.assertTrue(np.all(m1[unit2] == 1))
+        self.assertTrue(surject_units.test(m0))
+
+
+
     def test_Projection(self):
         nP = 10
         m = np.arange(nP)
