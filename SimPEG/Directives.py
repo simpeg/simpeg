@@ -284,6 +284,12 @@ class TargetMisfit(InversionDirective):
 
 
 class SaveEveryIteration(InversionDirective):
+    """SaveEveryIteration
+
+    This directive saves an array at each iteration. The default
+    direcroty is the current directoy and the models are saved as
+    `InversionModel-YYYY-MM-DD-HH-MM-iter.npy`
+    """
 
     directory = properties.String(
         "directory to save results in",
@@ -294,16 +300,6 @@ class SaveEveryIteration(InversionDirective):
         "root of the filename to be saved",
         default="InversionModel"
     )
-
-    # @property
-    # def name(self):
-    #     if getattr(self, '_name', None) is None:
-    #         self._name = 'InversionModel'
-    #     return self._name
-
-    # @name.setter
-    # def name(self, value):
-    #     self._name = value
 
     @properties.validator('directory')
     def _ensure_abspath(self, change):
@@ -322,13 +318,14 @@ class SaveEveryIteration(InversionDirective):
             )
         return self._fileName
 
-    # @fileName.setter
-    # def fileName(self, value):
-    #     self._fileName = value
-
 
 class SaveModelEveryIteration(SaveEveryIteration):
-    """SaveModelEveryIteration"""
+    """SaveModelEveryIteration
+
+    This directive saves the model as a numpy array at each iteration. The
+    default direcroty is the current directoy and the models are saved as
+    `InversionModel-YYYY-MM-DD-HH-MM-iter.npy`
+    """
 
     def initialize(self):
         print(
@@ -347,7 +344,7 @@ class SaveModelEveryIteration(SaveEveryIteration):
 
 
 class SaveOutputEveryIteration(SaveEveryIteration):
-    """SaveModelEveryIteration"""
+    """SaveOutputEveryIteration"""
 
     header = None
     save_txt = True
