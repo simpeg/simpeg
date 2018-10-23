@@ -182,7 +182,7 @@ class Fields_N(FieldsDC):
         'phi': ['phiSolution', 'N', '_phi'],
         'j': ['phiSolution', 'E', '_j'],
         'e': ['phiSolution', 'E', '_e'],
-        'charge_density': : ['phiSolution', 'N', '_charge_density'],
+        'charge_density': ['phiSolution', 'N', '_charge_density'],
         'charge': ['phiSolution', 'N', '_charge'],
     }
     # primary - secondary
