@@ -16,7 +16,7 @@ from SimPEG.EM.Static.IP import Problem3D_CC as BaseProblem3D_CC
 from SimPEG.EM.Static.IP import Problem3D_N as BaseProblem3D_N
 from .SurveySIP import Survey, Data
 import gc
-# from profilehooks import profile
+from profilehooks import profile
 
 
 class BaseSIPProblem(BaseEMProblem):
@@ -130,7 +130,6 @@ class BaseSIPProblem(BaseEMProblem):
             return self.get_peta_step_off(exponent)
         else:
             return self.get_multi_pulse_response(t, self.get_peta_pulse_off)
-
 
     def get_peta_eta_deriv_step_off(self, exponent):
         return np.exp(-exponent)
@@ -322,12 +321,11 @@ class BaseSIPProblem(BaseEMProblem):
                     istrt += rx.nD
 
             self._Jmatrix = Jt.T
+            collected = gc.collect()
             if self.verbose:
-                collected = gc.collect()
                 print (
                     "Garbage collector: collected %d objects." % (collected)
                 )
-
             # clean field object
             self._f = []
             # clean all factorization
@@ -359,7 +357,7 @@ class BaseSIPProblem(BaseEMProblem):
             )
         return JtJdiag
 
-    # @profile
+    @profile
     def forward(self, m, f=None):
 
         if self.verbose:
@@ -417,7 +415,7 @@ class BaseSIPProblem(BaseEMProblem):
 
             return self.sign*np.hstack(Jv)
 
-    # @profile
+    @profile
     def Jvec(self, m, v, f=None):
 
         self.model = m
@@ -462,19 +460,17 @@ class BaseSIPProblem(BaseEMProblem):
                         )
 
                     for rx in src.rxList:
-                        timeindex = rx.getTimeP(self.survey.times)
-                        if timeindex[tind]:
-                            Jv_temp = (
-                                rx.evalDeriv(src, self.mesh, f, du_dm_v)
-                                )
-                            if rx.nD == 1:
-                                Jv_temp = Jv_temp.reshape([-1, 1])
-
-                            Jv.append(Jv_temp)
+                        # Assume same # of time
+                        # timeindex = rx.getTimeP(self.survey.times)
+                        # if timeindex[tind]:
+                        Jv_temp = (
+                            rx.evalDeriv(src, self.mesh, f, du_dm_v)
+                            )
+                        Jv.append(Jv_temp)
 
             return self.sign*np.hstack(Jv)
 
-    # @profile
+    @profile
     def Jtvec(self, m, v, f=None):
 
         self.model = m
@@ -511,43 +507,46 @@ class BaseSIPProblem(BaseEMProblem):
 
             for tind in range(len(self.survey.times)):
                 t = self.survey.times[tind]
+                du_dmT = np.zeros(self.mesh.nC, dtype=float)
                 for src in self.survey.srcList:
                     u_src = f[src, self._solutionType]
                     for rx in src.rxList:
-                        timeindex = rx.getTimeP(self.survey.times)
-                        if timeindex[tind]:
-                            # wrt f, need possibility wrt m
-                            PTv = rx.evalDeriv(
-                                src, self.mesh, f, v[src, rx, t], adjoint=True
-                            )
-                            df_duTFun = getattr(
-                                f, '_{0!s}Deriv'.format(rx.projField), None
-                            )
-                            df_duT, _ = df_duTFun(
-                                src, None, PTv, adjoint=True
-                            )
-                            ATinvdf_duT = self.Ainv * df_duT
-                            dA_dmT = self.getADeriv(
-                                u_src, ATinvdf_duT, adjoint=True
-                            )
-                            dRHS_dmT = self.getRHSDeriv(
-                                src, ATinvdf_duT, adjoint=True
-                            )
-                            du_dmT = -dA_dmT + dRHS_dmT
-                            Jtv += (
-                                self.PetaEtaDeriv(
-                                    self.survey.times[tind], du_dmT,
-                                    adjoint=True
-                                ) +
-                                self.PetaTauiDeriv(
-                                    self.survey.times[tind], du_dmT,
-                                    adjoint=True
-                                ) +
-                                self.PetaCDeriv(
-                                    self.survey.times[tind], du_dmT,
-                                    adjoint=True
-                                )
-                            )
+                        # Assume same # of time
+                        # timeindex = rx.getTimeP(self.survey.times)
+                        # if timeindex[tind]:
+                        # wrt f, need possibility wrt m
+                        PTv = rx.evalDeriv(
+                            src, self.mesh, f, v[src, rx, t], adjoint=True
+                        )
+                        df_duTFun = getattr(
+                            f, '_{0!s}Deriv'.format(rx.projField), None
+                        )
+                        df_duT, _ = df_duTFun(
+                            src, None, PTv, adjoint=True
+                        )
+                        ATinvdf_duT = self.Ainv * df_duT
+                        dA_dmT = self.getADeriv(
+                            u_src, ATinvdf_duT, adjoint=True
+                        )
+                        dRHS_dmT = self.getRHSDeriv(
+                            src, ATinvdf_duT, adjoint=True
+                        )
+                        du_dmT += -dA_dmT + dRHS_dmT
+
+                Jtv += (
+                    self.PetaEtaDeriv(
+                        self.survey.times[tind], du_dmT,
+                        adjoint=True
+                    ) +
+                    self.PetaTauiDeriv(
+                        self.survey.times[tind], du_dmT,
+                        adjoint=True
+                    ) +
+                    self.PetaCDeriv(
+                        self.survey.times[tind], du_dmT,
+                        adjoint=True
+                    )
+                )
 
             return self.sign*Jtv
 
@@ -680,7 +679,7 @@ class Problem3D_CC(BaseSIPProblem, BaseProblem3D_CC):
     def __init__(self, mesh, **kwargs):
         BaseSIPProblem.__init__(self, mesh, **kwargs)
         self.setBC()
-
+        self.n = self.mesh.nC
         if self.storeJ:
             if self.actinds is None:
                 print ("You did not put Active indices")
@@ -699,7 +698,7 @@ class Problem3D_N(BaseSIPProblem, BaseProblem3D_N):
 
     def __init__(self, mesh, **kwargs):
         BaseSIPProblem.__init__(self, mesh, **kwargs)
-
+        self.n = self.mesh.nN
         if self.storeJ:
             if self.actinds is None:
                 print ("You did not put Active indices")

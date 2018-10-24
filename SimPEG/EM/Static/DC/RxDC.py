@@ -14,6 +14,7 @@ class BaseRx(SimPEG.Survey.BaseRx):
     """
     locs = None
     rxType = None
+    dataType = 'voltage'
 
     knownRxTypes = {
         'phi': ['phi', None],

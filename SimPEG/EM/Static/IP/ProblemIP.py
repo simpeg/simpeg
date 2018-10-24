@@ -13,6 +13,8 @@ from SimPEG.EM.Static.DC import Problem3D_N as BaseProblem3D_N
 from .SurveyIP import Survey
 from SimPEG import Props
 import sys
+from profilehooks import profile
+import scipy.sparse as sp
 
 
 class BaseIPProblem(BaseEMProblem):
@@ -83,6 +85,7 @@ class BaseIPProblem(BaseEMProblem):
 
         return self._Jmatrix
 
+    @profile
     def Jvec(self, m, v, f=None):
 
         self.model = m
@@ -101,10 +104,11 @@ class BaseIPProblem(BaseEMProblem):
             Jv = []
 
             for src in self.survey.srcList:
-                u_src = f[src, self._solutionType] # solution vector
+                # solution vector
+                u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(u_src.flatten(), v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(src, v)
-                du_dm_v = self.Ainv * ( - dA_dm_v + dRHS_dm_v )
+                du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
 
                 for rx in src.rxList:
                     df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
@@ -118,6 +122,7 @@ class BaseIPProblem(BaseEMProblem):
     def forward(self, m, f=None):
         return self.Jvec(m, m, f=f)
 
+    @profile
     def Jtvec(self, m, v, f=None):
         """
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.

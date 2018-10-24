@@ -217,19 +217,10 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                             self.n_locations[:, :2],
                             ))
                         )
-                    if mesh._meshType == 'TREE':
-                        # Make interpolation function
-                        self.topo_function = NearestNDInterpolator(
-                            topography[:, :2],
-                            topography[:, 2]
-                        )
-                        topo = self.topo_function(self.electrodes_info[0])
-                    else:
-                        topo = None
-                    self.electrode_locations = SimPEG.EM.Static.Utils.drapeTopotoLoc(
-                        mesh, self.electrodes_info[0],
-                        actind=actind, topo=topo
-                    )
+                self.electrode_locations = SimPEG.EM.Static.Utils.drapeTopotoLoc(
+                    mesh, self.electrodes_info[0],
+                    actind=actind, topo=topo
+                )
                 temp = (
                     self.electrode_locations[self.electrodes_info[2], 1]
                 ).reshape((self.a_locations.shape[0], 4), order="F")
