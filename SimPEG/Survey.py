@@ -432,4 +432,4 @@ class LinearSurvey(BaseSurvey):
 
     @property
     def nD(self):
-        return self.prob.F.shape[0]
+        return self.prob.G.shape[0]

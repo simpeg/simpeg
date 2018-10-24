@@ -402,8 +402,6 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                     m_rem, self.survey[0].srcField.param
                 )
 
-                MagneticsDriver.writeVectorUBC(
-                    reg.regmesh.mesh, fileName + '_VEC.fld', self.mapping.P * vec)
 
                 if self.saveComp:
                     if isinstance(reg.regmesh.mesh, Mesh.TreeMesh):
@@ -453,6 +451,10 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                             reg.regmesh.mesh,
                             fileName + '_REM.amp', self.mapping.P * np.sum(m_rem**2, axis=1)**0.5
                         )
+                        # Utils.io_utils.writeVectorUBC(
+                        #     reg.regmesh.mesh,
+                        #     fileName + '_VEC.fld', self.mapping.P * vec
+                        # )
 
 
 class SaveOutputEveryIteration(SaveEveryIteration):
@@ -739,6 +741,7 @@ class Update_IRLS(InversionDirective):
     coolEps_q = True
     floorEps_p = 1e-8
     floorEps_q = 1e-8
+    floorEpsEnforced = True
     coolEpsFact = 1.2
     silent = False
     fix_Jmatrix = False
@@ -884,9 +887,14 @@ class Update_IRLS(InversionDirective):
 
                 if reg.eps_p > self.floorEps_p and self.coolEps_p:
                     reg.eps_p /= self.coolEpsFact
+
+                elif self.floorEpsEnforced:
+                    reg.eps_p = self.floorEps_p
                     # print('Eps_p: ' + str(reg.eps_p))
                 if reg.eps_q > self.floorEps_q and self.coolEps_q:
                     reg.eps_q /= self.coolEpsFact
+                elif self.floorEpsEnforced:
+                    reg.eps_q = self.floorEps_q
                     # print('Eps_q: ' + str(reg.eps_q))
 
             # Remember the value of the norm from previous R matrices

@@ -984,10 +984,10 @@ def calcRow(Xn, Yn, Zn, rxLoc):
     )
 
     Ty[0, 0:nC] = (
-        np.log((dz2 + arg2) / (dz1 + arg3 + eps)) -
-        np.log((dz2 + arg1) / (dz1 + arg4 + eps)) +
-        np.log((dz2 + arg6) / (dz1 + arg7 + eps)) -
-        np.log((dz2 + arg5) / (dz1 + arg8 + eps))
+        np.log((dz2 + arg2 + eps) / (dz1 + arg3 + eps)) -
+        np.log((dz2 + arg1 + eps) / (dz1 + arg4 + eps)) +
+        np.log((dz2 + arg6 + eps) / (dz1 + arg7 + eps)) -
+        np.log((dz2 + arg5 + eps) / (dz1 + arg8 + eps))
     )
 
     Ty[0, nC:2*nC] = (

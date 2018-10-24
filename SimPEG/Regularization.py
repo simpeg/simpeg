@@ -1933,8 +1933,6 @@ class Sparse(BaseComboRegularization):
     # Save the l2 result during the IRLS
     l2model = None
 
-
-
     @properties.validator('norms')
     def _validate_norms(self, change):
         if change['value'].shape[0] == 1:
@@ -1952,7 +1950,7 @@ class Sparse(BaseComboRegularization):
     @properties.observer('norms')
     def _mirror_norms_to_objfcts(self, change):
 
-        self.objfcts[0].norm = change['value'][:,0]
+        self.objfcts[0].norm = change['value'][:, 0]
         for i, objfct in enumerate(self.objfcts[1:]):
             Ave = getattr(objfct.regmesh, 'aveCC2F{}'.format(objfct.orientation))
             objfct.norm = Ave*change['value'][:,i+1]
@@ -2039,120 +2037,231 @@ def ddx(n, vals):
 
 
 def getDiffOpRot(mesh, psi, theta, phi, vec, forward=True):
+    assert mesh.dim > 1, 'Only for mesh 2D and 3D'
 
-    hz = np.kron(mesh.hz, np.kron(np.ones(mesh.vnC[1]), np.ones(mesh.vnC[0])))
-    hy = np.kron(np.ones(mesh.vnC[2]), np.kron(mesh.hy, np.ones(mesh.vnC[0])))
-    hx = np.kron(np.ones(mesh.vnC[2]), np.kron(np.ones(mesh.vnC[1]), mesh.hx))
+    def getCellNeighbors(mesh):
+        Dx = mesh._cellGradxStencil
+        Dy = mesh._cellGradyStencil
+        # Get the current IJ of the stencil derive
+        Ix, Jx, _ = sp.find(Dx)
+        Iy, Jy, _ = sp.find(Dy)
+        jx = np.sort(Jx[np.argsort(Ix)].reshape((int(Ix.shape[0]/2), 2)), axis=1)
+        jy = np.sort(Jy[np.argsort(Iy)].reshape((int(Iy.shape[0]/2), 2)), axis=1)
+        jx_bck = np.c_[jx[:, 1], jx[:, 0]]
+        jy_bck = np.c_[jy[:, 1], jy[:, 0]]
 
-    unitMesh = Mesh.TensorMesh([np.ones(3), np.ones(3), np.ones(3)], x0='CCC')
+        maxInd = np.max([jx.max(), jy.max()])
 
-    stencil = []
-    for ii in range(unitMesh.nC):
-        stencil += [np.kron(np.r_[-1, 1], [0.5, 0.5, 0.5]).reshape((2, 3)) +
-                    np.kron(
-                        np.ones(2),
-                        unitMesh.gridCC[ii, :]).reshape((2, 3))
-                    ]
+        if mesh.dim == 3:
+            Dz = mesh._cellGradzStencil
+            Iz, Jz, _ = sp.find(Dz)
+            jz = np.sort(Jz[np.argsort(Iz)].reshape((int(Iz.shape[0]/2), 2)), axis=1)
+            jz_bck = np.c_[jz[:, 1], jz[:, 0]]
 
-    if isinstance(theta, float):
-        theta = np.ones(mesh.nC) * theta
+            maxInd = np.max([jz.max(), maxInd])
+
+        # Cycle through the gradients forward and backward to deal with multiple
+        # levels on Tree mesh
+        # Pre-allocate index arrays
+        jAll = []  # Store
+        div_xy = np.ones(maxInd+1, dtype='int')*-1
+        div_yx = np.ones(maxInd+1, dtype='int')*-1
+        div_xyb = np.ones(maxInd+1, dtype='int')*-1
+        div_yxb = np.ones(maxInd+1, dtype='int')*-1
+
+        div_xy[jy[:, 0]] = jy[:, 1]  # Find y neigbour of x adjacent
+        div_yx[jx[:, 1]] = jx[:, 0]  # Find x neigbour of y adjacent
+
+        div_xyb[jy_bck[:, 0]] = jy_bck[:, 1]  # Find y neigbour of x adjacent backward
+        div_yxb[jx_bck[:, 1]] = jx_bck[:, 0]  # Find x neigbour of y adjacent backward
+
+        jAll += [jx]
+        jAll += [jy]
+
+        jAll += [np.c_[jx[:, 0], div_xy[jx[:, 1]]]]
+        jAll += [np.c_[jx[:, 1], div_xy[jx[:, 0]]]]
+
+        jAll += [np.c_[div_yx[jy[:, 0]], jy[:, 1]]]
+        jAll += [np.c_[div_yx[jy[:, 1]], jy[:, 0]]]
+
+        # Repeat backward for Treemesh
+        jAll += [jx_bck]
+        jAll += [jy_bck]
+
+        jAll += [np.c_[jx_bck[:, 0], div_xyb[jx_bck[:, 1]]]]
+        jAll += [np.c_[jx_bck[:, 1], div_xyb[jx_bck[:, 0]]]]
+
+        # Stack all and keep only unique pairs
+        jAll = np.vstack(jAll)
+        jAll = np.unique(jAll, axis=0)
+
+        # Remove all the -1 for TreeMesh
+        jAll = jAll[(jAll[:, 0] != -1) & (jAll[:, 1] != -1), :]
+
+        # Use all the neighbours on the xy plane to find neighbours in z
+        if mesh.dim == 3:
+            jAllz = []
+            div_z = np.ones(maxInd+1, dtype='int')*-1
+            div_zb = np.ones(maxInd+1, dtype='int')*-1
+
+            div_z[jz[:, 0]] = jz[:, 1]
+            div_zb[jz_bck[:, 0]] = jz_bck[:, 1]
+
+            jAllz += [jz]
+            jAllz += [jz_bck]
+
+            jAllz += [np.c_[jAll[:, 0], div_z[jAll[:, 1]]]]
+            jAllz += [np.c_[jAll[:, 1], div_z[jAll[:, 0]]]]
+
+            jAllz += [np.c_[jAll[:, 0], div_zb[jAll[:, 1]]]]
+            jAllz += [np.c_[jAll[:, 1], div_zb[jAll[:, 0]]]]
+
+            # Stack all and keep only unique pairs
+            jAll = np.vstack([jAll, np.vstack(jAllz)])
+            jAll = np.unique(jAll, axis=0)
+
+            # Remove all the -1 for TreeMesh
+            jAll = jAll[(jAll[:, 0] != -1) & (jAll[:, 1] != -1), :]
+
+        return jAll
+
+    hx = mesh.h_gridded[:, 0]
+    hy = mesh.h_gridded[:, 1]
 
     if isinstance(phi, float):
         phi = np.ones(mesh.nC) * phi
+    phi = np.arctan2((np.sin(phi)/hy), (np.cos(phi)/hx))
 
-    if isinstance(psi, float):
-        psi = np.ones(mesh.nC) * psi
+    if mesh.dim == 3:
+        hz = mesh.h_gridded[:, 2]
+
+        if isinstance(theta, float):
+            theta = np.ones(mesh.nC) * theta
+        theta = np.arctan2((np.sin(theta)/hz), (np.cos(theta)/hx))
+
+        if isinstance(psi, float):
+            psi = np.ones(mesh.nC) * psi
+        psi = np.arctan2((np.sin(psi)/hz), (np.cos(psi)/hy))
 
     if forward:
         ind = 1
     else:
         ind = -1
 
-    if vec == 'X':
-        px = np.kron(np.ones(mesh.nC), np.c_[ind, 0, 0])
-        theta = np.arctan2((np.sin(theta)/hz), (np.cos(theta)/hx))
-        phi = np.arctan2((np.sin(phi)/hy), (np.cos(phi)/hx))
-        psi = np.arctan2((np.sin(psi)/hz), (np.cos(psi)/hy))
+    if mesh.dim == 2:
+        if vec == 'X':
+            px = np.kron(np.ones(mesh.nC), np.c_[ind, 0])
 
-    elif vec == 'Y':
-        px = np.kron(np.ones(mesh.nC), np.c_[0, ind, 0])
-        theta = np.arctan2((np.sin(theta)/hz), (np.cos(theta)/hx))
-        phi = np.arctan2((np.sin(phi)/hx), (np.cos(phi)/hy))
-        psi = np.arctan2((np.sin(psi)/hz), (np.cos(psi)/hy))
+        elif vec == 'Y':
+            px = np.kron(np.ones(mesh.nC), np.c_[0, ind])
 
+    if mesh.dim == 3:
+
+        if vec == 'X':
+            px = np.kron(np.ones(mesh.nC), np.c_[ind, 0, 0])
+        elif vec == 'Y':
+            px = np.kron(np.ones(mesh.nC), np.c_[0, ind, 0])
+        else:
+            px = np.kron(np.ones(mesh.nC), np.c_[0, 0, ind])
+
+    if mesh.dim == 2:
+        rza = mkvc(np.c_[np.cos(phi), np.cos(phi)].T)
+        rzb = mkvc(np.c_[np.sin(phi), np.zeros(mesh.nC)].T)
+        rzc = mkvc(np.c_[-np.sin(phi), np.zeros(mesh.nC)].T)
+        Rz = sp.diags([rzb[:-1], rza, rzc[:-1]], [-1, 0, 1])
+        rx = (Rz*px.T).reshape((mesh.nC, 2))
     else:
-        px = np.kron(np.ones(mesh.nC), np.c_[0, 0, ind])
-        theta = np.arctan2((np.sin(theta)/hx), (np.cos(theta)/hz))
-        phi = np.arctan2((np.sin(phi)/hy), (np.cos(phi)/hx))
-        psi = np.arctan2((np.sin(psi)/hy), (np.cos(psi)/hz))
+        # Create sparse rotation operators
+        rxa = mkvc(np.c_[np.ones(mesh.nC), np.cos(psi), np.cos(psi)].T)
+        rxb = mkvc(np.c_[np.zeros(mesh.nC), np.sin(psi), np.zeros(mesh.nC)].T)
+        rxc = mkvc(np.c_[np.zeros(mesh.nC), -np.sin(psi), np.zeros(mesh.nC)].T)
+        Rx = sp.diags([rxb[:-1], rxa, rxc[:-1]], [-1, 0, 1])
 
-    # Create sparse rotation operators
-    rxa = mkvc(np.c_[np.ones(mesh.nC), np.cos(psi), np.cos(psi)].T)
-    rxb = mkvc(np.c_[np.zeros(mesh.nC), np.sin(psi), np.zeros(mesh.nC)].T)
-    rxc = mkvc(np.c_[np.zeros(mesh.nC), -np.sin(psi), np.zeros(mesh.nC)].T)
-    Rx = sp.diags([rxb[:-1], rxa, rxc[:-1]], [-1, 0, 1])
+        rya = mkvc(np.c_[np.cos(theta), np.ones(mesh.nC), np.cos(theta)].T)
+        ryb = mkvc(np.c_[np.sin(theta), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
+        ryc = mkvc(np.c_[-np.sin(theta), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
+        Ry = sp.diags([ryb[:-2], rya, ryc[:-2]], [-2, 0, 2])
 
-    rya = mkvc(np.c_[np.cos(theta), np.ones(mesh.nC), np.cos(theta)].T)
-    ryb = mkvc(np.c_[np.sin(theta), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
-    ryc = mkvc(np.c_[-np.sin(theta), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
-    Ry = sp.diags([ryb[:-2], rya, ryc[:-2]], [-2, 0, 2])
+        rza = mkvc(np.c_[np.cos(phi), np.cos(phi), np.ones(mesh.nC)].T)
+        rzb = mkvc(np.c_[np.sin(phi), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
+        rzc = mkvc(np.c_[-np.sin(phi), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
+        Rz = sp.diags([rzb[:-1], rza, rzc[:-1]], [-1, 0, 1])
 
-    rza = mkvc(np.c_[np.cos(phi), np.cos(phi), np.ones(mesh.nC)].T)
-    rzb = mkvc(np.c_[np.sin(phi), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
-    rzc = mkvc(np.c_[-np.sin(phi), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
-    Rz = sp.diags([rzb[:-1], rza, rzc[:-1]], [-1, 0, 1])
+        # Rotate all cell vectors
+        rx = (Rz*(Ry*(Rx*px.T))).reshape((mesh.nC, 3))
 
-    # Rotate all cell vectors
-    rx = (Rz*(Ry*(Rx*px.T))).reshape((mesh.nC, 3))
+    jd = getCellNeighbors(mesh)
+    # Move the bottom-SW and top-NE nodes of stencil cell
+    nBSW = mesh.gridCC[jd[:, 0], :] - mesh.h_gridded[jd[:, 0], :]/2 + rx[jd[:, 0], :]*mesh.h_gridded[jd[:, 0], :]
+    nTNE = mesh.gridCC[jd[:, 0], :] + mesh.h_gridded[jd[:, 0], :]/2 + rx[jd[:, 0], :]*mesh.h_gridded[jd[:, 0], :]
 
-    # Move the bottom-SW and top-NE nodes
-    nBSW = np.kron(stencil[13][0], np.ones((mesh.nC, 1)))+rx
-    nTNE = np.kron(stencil[13][1], np.ones((mesh.nC, 1)))+rx
+    # Get corners for neighbours
+    sBSW = mesh.gridCC[jd[:, 1], :] - mesh.h_gridded[jd[:, 1], :]/2
+    sTNE = mesh.gridCC[jd[:, 1], :] + mesh.h_gridded[jd[:, 1], :]/2
 
     # Compute fractional volumes with base stencil
-    V = []
-    for s in stencil:
+    V = (
+            np.max([
+                np.min([sTNE[:, 0], nTNE[:, 0]], axis=0) -
+                np.max([sBSW[:, 0], nBSW[:, 0]], axis=0),
+                np.zeros(jd.shape[0])], axis=0) *
+            np.max([
+                np.min([sTNE[:, 1], nTNE[:, 1]], axis=0) -
+                np.max([sBSW[:, 1], nBSW[:, 1]], axis=0),
+                np.zeros(jd.shape[0])], axis=0)
+        )
 
-        sBSW = np.kron(s[0], np.ones((mesh.nC, 1)))
-        sTNE = np.kron(s[1], np.ones((mesh.nC, 1)))
+    if mesh.dim == 3:
+        V *= np.max([
+                np.min([sTNE[:, 2], nTNE[:, 2]], axis=0) -
+                np.max([sBSW[:, 2], nBSW[:, 2]], axis=0),
+                np.zeros(jd.shape[0])], axis=0)
 
-        V += [(
-                np.max([
-                    np.min([sTNE[:, 0], nTNE[:, 0]], axis=0) -
-                    np.max([sBSW[:, 0], nBSW[:, 0]], axis=0),
-                    np.zeros(mesh.nC)], axis=0) *
-                np.max([
-                    np.min([sTNE[:, 1], nTNE[:, 1]], axis=0) -
-                    np.max([sBSW[:, 1], nBSW[:, 1]], axis=0),
-                    np.zeros(mesh.nC)], axis=0) *
-                np.max([
-                    np.min([sTNE[:, 2], nTNE[:, 2]], axis=0) -
-                    np.max([sBSW[:, 2], nBSW[:, 2]], axis=0),
-                    np.zeros(mesh.nC)], axis=0))]
+    # Remove all rows of zero
+    jd = jd[V > 0, :]
+    V = V[V > 0]
 
-    count = -1
-    Gx = speye(mesh.nC)
+    Dx2 = sp.csr_matrix((-V, (jd[:, 0], jd[:, 1])), shape=(mesh.nC, mesh.nC))
 
-    for ii in range(3):
-        flagz = [0, 0, 0]
-        flagz[ii] = 1
+    _, ind = np.unique(jd[:, 0], return_index=True)
+    # Move the bottom-SW and top-NE nodes of stencil cell
+    nBSW = mesh.gridCC[jd[ind, 0], :] - mesh.h_gridded[jd[ind, 0], :]/2 + rx[jd[ind, 0], :]*mesh.h_gridded[jd[ind, 0], :]
+    nTNE = mesh.gridCC[jd[ind, 0], :] + mesh.h_gridded[jd[ind, 0], :]/2 + rx[jd[ind, 0], :]*mesh.h_gridded[jd[ind, 0], :]
 
-        for jj in range(3):
-            flagy = [0, 0, 0]
-            flagy[jj] = 1
+    # Get the remaining cells and compute partial volume
+    sBSW = mesh.gridCC[jd[ind, 0], :] - mesh.h_gridded[jd[ind, 0], :]/2
+    sTNE = mesh.gridCC[jd[ind, 0], :] + mesh.h_gridded[jd[ind, 0], :]/2
 
-            for kk in range(3):
+    # Compute fractional volumes with base stencil
+    V = (
+            np.max([
+                np.min([sTNE[:, 0], nTNE[:, 0]], axis=0) -
+                np.max([sBSW[:, 0], nBSW[:, 0]], axis=0),
+                np.zeros(sTNE.shape[0])], axis=0) *
+            np.max([
+                np.min([sTNE[:, 1], nTNE[:, 1]], axis=0) -
+                np.max([sBSW[:, 1], nBSW[:, 1]], axis=0),
+                np.zeros(sTNE.shape[0])], axis=0))
 
-                flagx = [0, 0, 0]
-                flagx[kk] = 1
+    if mesh.dim == 3:
+        V *= np.max([
+                np.min([sTNE[:, 2], nTNE[:, 2]], axis=0) -
+                np.max([sBSW[:, 2], nBSW[:, 2]], axis=0),
+                np.zeros(sTNE.shape[0])], axis=0)
 
-                count += 1
-                Gx -= (sdiag(np.ones(mesh.nC)*V[count]) *
-                       kron3(
-                            ddx(mesh.nCz, flagz),
-                            ddx(mesh.nCy, flagy),
-                            ddx(mesh.nCx, flagx)
-                            )
-                       )
+    V = mesh.vol[jd[ind, 0]] - V
+    Dx1 = sp.csr_matrix((V, (jd[ind, 0], jd[ind, 0])), shape=(mesh.nC, mesh.nC))
 
-    return Gx, rx
+    V = sp.csr_matrix((1./mesh.vol[jd[ind, 0]], (jd[ind, 0], jd[ind, 0])), shape=(mesh.nC,mesh.nC))
+    # Normalize the rows
+    rows = np.unique(jd[:, 0])
+
+
+#     print((np.max(Dx, axis=1)).shape)
+#     print(normV[ind])
+#     normV = np.zeros(mesh.nC)
+#     print(normV[ind])
+#     normV[ind] = 1./((np.max(Dx, axis=1))[ind])
+
+    Dx = V * (Dx1 + Dx2)
+    return Dx

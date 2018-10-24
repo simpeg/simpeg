@@ -145,7 +145,7 @@ class MagneticsDriver_Inv(object):
         line = fid.readline()
         l_input = re.split('[!\s]', line)
         if l_input[0] == 'VALUE':
-            val = np.array(l_input[1:6])
+            val = np.array(l_input[1:13])
             lpnorms = val.astype(np.float)
 
         elif l_input[0] == 'FILE':
