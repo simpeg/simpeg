@@ -428,7 +428,7 @@ class SumMap(ComboMap):
         return sumDeriv
 
 
-class HomogeneousMap(IdentityMap):
+class SurjectUnits(IdentityMap):
     """
         A map to group model cells into an homogeneous unit
 
@@ -441,7 +441,7 @@ class HomogeneousMap(IdentityMap):
         assert isinstance(index, (list)), (
             'index must be a list, not {}'.format(type(index)))
 
-        super(HomogeneousMap, self).__init__(**kwargs)
+        super(SurjectUnits, self).__init__(**kwargs)
 
         self.index = index
         self._shape = self.P.shape
