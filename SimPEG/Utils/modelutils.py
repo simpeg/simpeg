@@ -352,7 +352,7 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
         vecX, vecY, vecZ = np.meshgrid(vec, vec, vec)
         gridLevel = np.maximum(np.maximum(np.abs(vecX),
                                np.abs(vecY)), np.abs(vecZ))
-        gridLevel = np.kron(np.ones((xyz.shape[0], 1)), gridLevel)
+        gridLevel = np.kron(np.ones(xyz.shape[0]), mkvc(gridLevel))
 
         # Grid the coordinates
         vec = np.r_[-np.cumsum(stencil)[::-1], 0, np.cumsum(stencil)]
