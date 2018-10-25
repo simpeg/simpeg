@@ -947,12 +947,18 @@ class UpdatePreconditioner(InversionDirective):
 
                 self.opt.JtJdiag = JtJdiag
 
-            # Update the pre-conditioner
-            reg_diag = np.zeros_like(self.invProb.model)
-            for reg in self.reg.objfcts:
-                reg_diag += self.invProb.beta*(reg.W.T*reg.W).diagonal()
+            # Create the pre-conditioner
+            regDiag = np.zeros_like(self.invProb.model)
 
-            Hdiag = self.opt.JtJdiag + reg_diag
+            for reg in self.reg.objfcts:
+                # Check if regularization has a projection
+                if getattr(reg.mapping, 'P', None) is None:
+                    regDiag += (reg.W.T*reg.W).diagonal()
+                else:
+                    P = reg.mapping.P
+                    regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
+
+            Hdiag = self.opt.JtJdiag + regDiag
 
             PC = Utils.sdiag(Hdiag**-1.)
             self.opt.approxHinv = PC
@@ -964,12 +970,18 @@ class UpdatePreconditioner(InversionDirective):
 
         if getattr(self.opt, 'approxHinv', None) is not None:
 
-            # Update the pre-conditioner
-            reg_diag = np.zeros_like(self.invProb.model)
-            for reg in self.reg.objfcts:
-                reg_diag += self.invProb.beta*(reg.W.T*reg.W).diagonal()
+            # Create the pre-conditioner
+            regDiag = np.zeros_like(self.invProb.model)
 
-            Hdiag = self.opt.JtJdiag + reg_diag
+            for reg in self.reg.objfcts:
+                # Check if regularization has a projection
+                if getattr(reg.mapping, 'P', None) is None:
+                    regDiag += (reg.W.T*reg.W).diagonal()
+                else:
+                    P = reg.mapping.P
+                    regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
+
+            Hdiag = self.opt.JtJdiag + regDiag
 
             PC = Utils.sdiag(Hdiag**-1.)
             self.opt.approxHinv = PC
