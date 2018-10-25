@@ -9,7 +9,8 @@ from pymatsolver import PardisoSolver
 from scipy.stats import norm
 from sklearn.mixture import GaussianMixture
 import copy
-
+import seaborn
+seaborn.set()
 # Reproducible science
 # Python Version
 import sys
@@ -342,6 +343,6 @@ plt.show()
 testXplot = np.linspace(-7, 0, 1000)[:,np.newaxis]
 plt.plot(testXplot, np.exp(reg.objfcts[0].GMmodel.score_samples(testXplot)))
 plt.plot(testXplot, np.exp(reg.GMmref.score_samples(testXplot)))
-plt.hist(mcluster,bins=100,density=True);
-
+plt.hist(mcluster_nomean,bins=100,density=True);
+plt.gca().set_xlabel('ln conductivity(S/m)')
 plt.show()
