@@ -53,7 +53,7 @@ class MagneticIntegral(Problem.LinearProblem):
         else:
             u = np.zeros(3*self.survey.nRx)
 
-        u = self.fwr_ind(m=m)
+        u = self.fwr_ind(m=self.chiMap*m)
         # rem = self.rem
 
         # if induced is not None:
@@ -86,11 +86,18 @@ class MagneticIntegral(Problem.LinearProblem):
     #     dmudm = self.chiMap.deriv(self.chi)
     #     return self.G*dmudm
 
+    @property
+    def modelMap(self):
+        """
+            Call for general mapping of the problem
+        """
+        return self.chiMap
+
     def getJ(self, m, f=None):
         """
             Sensitivity matrix
         """
-        dmudm = self.chiMap.deriv(self.chi)
+        dmudm = self.chiMap.deriv(m)
         return self.G*dmudm
 
     def Intrgl_Fwr_Op(self, m=None, Magnetization="ind"):
