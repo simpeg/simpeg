@@ -35,7 +35,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
-    'sphinxcontrib.napoleon',
+    # 'sphinxcontrib.napoleon',
     'matplotlib.sphinxext.plot_directive',
     'sphinx_gallery.gen_gallery',
     'edit_on_github',
