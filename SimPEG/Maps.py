@@ -394,14 +394,12 @@ class SumMap(ComboMap):
 
            The number of cells in the
            last dimension of the mesh."""
-        return self.maps[0][-1].nP
+        return self.maps[-1].shape[1]
 
     def _transform(self, m):
 
         for ii, map_i in enumerate(self.maps):
-
             m0 = m.copy()
-
             m0 = map_i * m0
 
             if ii == 0:
@@ -419,10 +417,9 @@ class SumMap(ComboMap):
             if v is not None:
                 deriv = v
             else:
-                deriv = 1
+                deriv = sp.eye(self.nP)
 
             deriv = map_i.deriv(m0, v=deriv)
-
             if ii == 0:
                 sumDeriv = deriv
             else:
