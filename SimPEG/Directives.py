@@ -958,11 +958,12 @@ class UpdatePreconditioner(InversionDirective):
                     P = reg.mapping.P
                     regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
 
-            Hdiag = self.opt.JtJdiag + regDiag
-
-            PC = Utils.sdiag(Hdiag**-1.)
+            diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
+    
+            diagA[diagA != 0] = diagA[diagA != 0] ** -1.
+            PC = Utils.sdiag(diagA)
+    
             self.opt.approxHinv = PC
-
     def endIter(self):
         # Cool the threshold parameter
         if self.onlyOnStart is True:
@@ -981,9 +982,11 @@ class UpdatePreconditioner(InversionDirective):
                     P = reg.mapping.P
                     regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
 
-            Hdiag = self.opt.JtJdiag + regDiag
-
-            PC = Utils.sdiag(Hdiag**-1.)
+            # Assumes that opt.JtJdiag has been updated or static
+            diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
+    
+            diagA[diagA != 0] = diagA[diagA != 0] ** -1.
+            PC = Utils.sdiag(diagA)
             self.opt.approxHinv = PC
 
 
