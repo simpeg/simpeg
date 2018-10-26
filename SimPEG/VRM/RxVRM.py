@@ -35,7 +35,9 @@ class Point(BaseRxVRM):
     def __init__(self, locs, **kwargs):
 
         if locs.shape[1] != 3:
-            raise ValueError('Rx locations (xi,yi,zi) must be np.array(N,3) where N is the number of stations')
+            raise ValueError(
+                'Rx locations (xi,yi,zi) must be np.array(N,3) where N is the number of stations'
+            )
 
         super(Point, self).__init__(locs, **kwargs)
 
@@ -79,7 +81,9 @@ class SquareLoop(BaseRxVRM):
     def __init__(self, locs, **kwargs):
 
         if locs.shape[1] != 3:
-            raise ValueError('Rx locations (xi,yi,zi) must be np.array(N,3) where N is the number of stations')
+            raise ValueError(
+                'Rx locations (xi,yi,zi) must be np.array(N,3) where N is the number of stations'
+            )
 
         super(SquareLoop, self).__init__(locs, **kwargs)
 
