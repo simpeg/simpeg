@@ -13,7 +13,7 @@ class BaseRxVRM(Survey.BaseRx, properties.HasProperties):
 
         super(BaseRxVRM, self).__init__(
             locs, 'None', storeProjections=False, **kwargs
-            )
+        )
 
 
 #########################################
@@ -26,10 +26,10 @@ class Point(BaseRxVRM):
     times = properties.Array('Observation times', dtype=float)
     fieldType = properties.StringChoice(
         'Field type', choices=["h", "b", "dhdt", "dbdt"]
-        )
+    )
     fieldComp = properties.StringChoice(
         'Component of response', choices=["x", "y", "z"]
-        )
+    )
 
     # def __init__(self, locs, times, fieldType, fieldComp, **kwargs):
     def __init__(self, locs, **kwargs):
@@ -72,7 +72,7 @@ class SquareLoop(BaseRxVRM):
     nTurns = properties.Integer('Number of loop turns', min=1, default=1)
     quadOrder = properties.Integer(
         'Order for numerical quadrature integration over loop', min=1, max=7, default=3
-        )
+    )
     fieldType = properties.StringChoice('Field type', choices=["h", "b", "dhdt", "dbdt"])
     fieldComp = properties.StringChoice('Component of response', choices=["x", "y", "z"])
 

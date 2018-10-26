@@ -101,26 +101,26 @@ class StepOff(properties.HasProperties):
                 0.5*(1-np.sign(times-t0))*chi0 +
                 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
                 (spec.expi(-(times-t0)/tau2) - spec.expi(-(times-t0)/tau1))
-                )
+            )
         elif fieldType is "b":
             mu0 = 4*np.pi*1e-7
             eta = (
                 0.5*(1-np.sign(times-t0))*chi0 +
                 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
                 (spec.expi(-(times-t0)/tau2) - spec.expi(-(times-t0)/tau1))
-                )
+            )
             eta = mu0*eta
         elif fieldType is "dhdt":
             eta = (
                 0. + 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
                 (np.exp(-(times-t0)/tau1)-np.exp(-(times-t0)/tau2))/(times-t0)
-                )
+            )
         elif fieldType is "dbdt":
             mu0 = 4*np.pi*1e-7
             eta = (
                 0. + 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
                 (np.exp(-(times-t0)/tau1)-np.exp(-(times-t0)/tau2))/(times-t0)
-                )
+            )
             eta = mu0*eta
 
         return eta
@@ -241,7 +241,7 @@ class SquarePulse(properties.HasProperties):
                     spec.expi(-(times-t0)/tau1) -
                     spec.expi(-(times-t0+delt)/tau2) +
                     spec.expi(-(times-t0+delt)/tau1))
-                )
+            )
         elif fieldType is "b":
             mu0 = 4*np.pi*1e-7
             eta = (
@@ -251,7 +251,7 @@ class SquarePulse(properties.HasProperties):
                     spec.expi(-(times-t0)/tau1) -
                     spec.expi(-(times-t0+delt)/tau2) +
                     spec.expi(-(times-t0+delt)/tau1))
-                )
+            )
             eta = mu0*eta
         elif fieldType is "dhdt":
             eta = (
@@ -259,7 +259,7 @@ class SquarePulse(properties.HasProperties):
                 (np.exp(-(times-t0)/tau1) - np.exp(-(times-t0)/tau2))/(times-t0) -
                 0.5*(1+np.sign(times-t0+delt))*(dchi/np.log(tau2/tau1)) *
                 (np.exp(-(times-t0+delt)/tau1) - np.exp(-(times-t0+delt)/tau2))/(times-t0+delt)
-                )
+            )
         elif fieldType is "dbdt":
             mu0 = 4*np.pi*1e-7
             eta = (
@@ -352,13 +352,13 @@ class ArbitraryDiscrete(properties.HasProperties):
         twave = self.t_wave[j:k+1]
         Iwave = self.I_wave[j:k+1]/np.max(np.abs(self.I_wave[j:k+1]))
 
-        N = int(np.ceil(25*(np.max(twave)-np.min(twave))/np.min(times)))
+        n_pts = int(np.ceil(25*(np.max(twave)-np.min(twave))/np.min(times)))
 
-        if N > 25000:
-            N = 25000
+        if n_pts > 25000:
+            n_pts = 25000
 
-        dt = (np.max(twave) - np.min(twave))/np.float64(N)
-        tvec = np.linspace(np.min(twave), np.max(twave), N+1)
+        dt = (np.max(twave) - np.min(twave))/np.float64(n_pts)
+        tvec = np.linspace(np.min(twave), np.max(twave), n_pts+1)
 
         g = np.r_[Iwave[0], np.interp(tvec[1:-1], twave, Iwave), Iwave[-1]]
         tvec = tvec[1:]
@@ -370,14 +370,14 @@ class ArbitraryDiscrete(properties.HasProperties):
                 eta[tt] = np.sum(
                     (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt) *
                     np.log(1 + dt/(times[tt] - tvec)) - g[1:] + g[0:-1]
-                    )
+                )
         elif fieldType in ["dhdt", "dbdt"]:
             for tt in range(0, len(eta)):
                 eta[tt] = np.sum(
                     ((g[1:]-g[0:-1])/dt)*np.log(1 + dt/(times[tt] - tvec)) -
                     (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt) *
                     (1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec))
-                    )
+                )
 
         if fieldType in ["b", "dbdt"]:
             mu0 = 4*np.pi*1e-7
@@ -474,14 +474,14 @@ class ArbitraryPiecewise(properties.HasProperties):
                 eta[tt] = np.sum(
                     (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt) *
                     np.log(1 + dt/(times[tt] - tvec)) - g[1:] + g[0:-1]
-                    )
+                )
         elif fieldType in ["dhdt", "dbdt"]:
             for tt in range(0, len(eta)):
                 eta[tt] = np.sum(
                     ((g[1:]-g[0:-1])/dt)*np.log(1 + dt/(times[tt] - tvec)) -
                     (g[1:] + (g[1:]-g[0:-1])*(times[tt]-tvec)/dt) *
                     (1/(times[tt] - tvec + dt) - 1/(times[tt] - tvec))
-                    )
+                )
 
         if fieldType in ["b", "dbdt"]:
             mu0 = 4*np.pi*1e-7
