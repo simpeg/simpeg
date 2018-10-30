@@ -56,5 +56,6 @@ setup(
     download_url="http://github.com/simpeg/simpeg",
     classifiers=CLASSIFIERS,
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
-    use_2to3=False
+    use_2to3=False,
+    python_requires=">=3.6"
 )
