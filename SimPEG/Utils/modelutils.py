@@ -92,9 +92,11 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest',
                                          for kk in range(len(Nz))]
 
     elif mesh.dim == 2:
-
-        Ftopo = interp1d(topo[:, 0], topo[:, 1], fill_value=fill_value,
-                         kind=method)
+        if method == 'nearest':
+            Ftopo = NearestNDInterpolator(topo[:, 0], topo[:, 1])
+        else:
+            Ftopo = interp1d(topo[:, 0], topo[:, 1], fill_value=fill_value,
+                             kind=method)
 
         if gridLoc == 'CC':
             gridTopo = Ftopo(mesh.gridCC[:, 0])
