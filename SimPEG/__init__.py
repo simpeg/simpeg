@@ -1,5 +1,4 @@
-from __future__ import print_function
-from __future__ import absolute_import
+import datetime as _datetime
 
 import discretize as Mesh
 from discretize import Tests
@@ -26,4 +25,4 @@ from .Utils.SolverUtils import (
 __version__   = '0.9.2'
 __author__    = 'SimPEG Team'
 __license__   = 'MIT'
-__copyright__ = '2013 - 2018, SimPEG Team, http://simpeg.xyz'
+__copyright__ = f"2013 - {_datetime.datetime.now().year}, {__author__}, http://simpeg.xyz"
