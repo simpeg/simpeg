@@ -1582,7 +1582,10 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
         meshtemp, topoCC = gettopoCC(mesh, actind, option=option)
         inds = Utils.closestPoints(meshtemp, pts)
         topo = topoCC[inds]
-        out = np.c_[pts[:, :2], topo]
+        if mesh.dim == 3:
+            out = np.c_[pts[:, :2], topo]
+        else:
+            out = np.c_[pts, topo]
     elif mesh._meshType == "TREE":
         if mesh.dim == 3:
             uniqXYlocs, topoCC = gettopoCC(mesh, actind, option=option)
