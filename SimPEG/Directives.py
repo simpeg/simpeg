@@ -704,8 +704,14 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
             iterDict['eps_q'] = self.reg.objfcts[0].eps_q
 
         if hasattr(self.reg.objfcts[0], 'norms') is True:
+            for objfct in self.reg.objfcts[0].objfcts:
+                objfct.stashedR = None
+
             iterDict['lps'] = self.reg.objfcts[0].norms[0][0]
             iterDict['lpx'] = self.reg.objfcts[0].norms[0][1]
+
+        iterDict['dphisdm'] = self.reg.objfcts[0].alpha_s * self.reg.objfcts[0].objfcts[0].deriv(self.invProb.model)
+        iterDict['dphixdm'] = self.reg.objfcts[0].alpha_x * self.reg.objfcts[0].objfcts[1].deriv(self.invProb.model)
 
         # Save the file as a npz
         self.outDict[self.opt.iter] = iterDict
@@ -783,10 +789,18 @@ class Update_IRLS(InversionDirective):
         if self.mode == 1:
 
             self.norms = []
+            self.alpha = []
             for reg in self.reg.objfcts:
                 self.norms.append(reg.norms)
+                self.alpha.append(reg.alpha_s)
                 reg.norms = np.c_[2., 2., 2., 2.]
                 reg.model = self.invProb.model
+
+                # Check if using non-simple difference
+                dx = sp.find(reg.regmesh.cellDiffxStencil)[2].max()
+                if dx != 1:
+                    print(dx)
+                    reg.alpha_s = dx**2. #/np.min(reg.regmesh.mesh.hx)**2.
 
         # Update the model used by the regularization
         for reg in self.reg.objfcts:
@@ -979,8 +993,10 @@ class Update_IRLS(InversionDirective):
                             )
 
         # Re-assign the norms supplied by user l2 -> lp
-        for reg, norms in zip(self.reg.objfcts, self.norms):
+        for reg, norms, alpha in zip(self.reg.objfcts, self.norms, self.alpha):
             reg.norms = norms
+
+            reg.alpha_s = alpha
 
         # Save l2-model
         self.invProb.l2model = self.invProb.model.copy()

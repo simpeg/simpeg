@@ -14,6 +14,8 @@ import properties
 from SimPEG.Utils import mkvc, matutils, sdiag
 from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
+import dask
+import dask.array as da
 
 
 class MagneticIntegral(Problem.LinearProblem):
@@ -67,16 +69,16 @@ class MagneticIntegral(Problem.LinearProblem):
 
             if getattr(self, '_Mxyz', None) is not None:
 
-                fields = np.dot(self.G, (self.Mxyz*m).astype(np.float32))
+                fields = da.dot(self.G, (self.Mxyz*m).astype(np.float32))
 
             else:
-                fields = np.dot(self.G, m.astype(np.float32))
+                fields = da.dot(self.G, m.astype(np.float32))
 
             if self.modelType == 'amplitude':
 
                 fields = self.calcAmpData(fields.astype(np.float64))
 
-        return fields.astype(np.float64)
+        return np.array(fields, dtype='float')
 
     def calcAmpData(self, Bxyz):
         """
@@ -153,21 +155,23 @@ class MagneticIntegral(Problem.LinearProblem):
             else:
                 w = W.diagonal()
 
-            self.gtgdiag = np.zeros(dmudm.shape[1])
+            # self.gtgdiag = np.zeros(dmudm.shape[1])
 
-            for ii in range(self.G.shape[0]):
+            # for ii in range(self.G.shape[0]):
 
-                self.gtgdiag += (w[ii]*self.G[ii, :]*dmudm)**2.
+            #     self.gtgdiag += (w[ii]*self.G[ii, :]*dmudm)**2.
+
+            self.gtgdiag = np.array(da.sum(da.power(self.G, 2), axis=0))
 
         if self.coordinate_system == 'cartesian':
             if self.modelType == 'amplitude':
-                return np.sum((W * self.dfdm * self.G * dmudm)**2., axis=0)
+                return np.sum((W * self.dfdm * sdiag(mkvc(self.gtgdiag)**0.5) * dmudm)**2., axis=0)
             else:
                 return self.gtgdiag
 
         else:  # spherical
             if self.modelType == 'amplitude':
-                return np.sum(((W * self.dfdm) * self.G * (self.dSdm * dmudm))**2., axis=0)
+                return np.sum(((W * self.dfdm) * da.dot(self.G, (self.dSdm * dmudm)))**2., axis=0)
             else:
                 Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm.T) * (self.dSdm * dmudm)
                 return mkvc(np.sum(Japprox.power(2), axis=0))
@@ -216,14 +220,14 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.modelType == 'amplitude':
             if getattr(self, '_Mxyz', None) is not None:
 
-                vec = self.Mxyz.T*np.dot(self.G.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
+                vec = self.Mxyz.T*da.dot(self.G.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
 
             else:
-                vec = np.dot(self.G.T, (self.dfdm.T*v).astype(np.float32))
+                vec = da.dot(self.G.T, (self.dfdm.T*v).astype(np.float32))
 
         else:
 
-            vec = np.dot(self.G.T, v.astype(np.float32))
+            vec = da.dot(self.G.T, v.astype(np.float32))
 
         return dmudm.T * vec.astype(np.float64)
 
@@ -300,9 +304,9 @@ class MagneticIntegral(Problem.LinearProblem):
             m = matutils.atp2xyz(m)
 
         if getattr(self, '_Mxyz', None) is not None:
-            Bxyz = np.dot(self.G, (self.Mxyz*m).astype(np.float32))
+            Bxyz = da.dot(self.G, (self.Mxyz*m).astype(np.float32))
         else:
-            Bxyz = np.dot(self.G, m.astype(np.float32))
+            Bxyz = da.dot(self.G, m.astype(np.float32))
 
         amp = self.calcAmpData(Bxyz.astype(np.float64))
         Bamp = sp.spdiags(1./amp, 0, self.nD, self.nD)
@@ -432,31 +436,45 @@ class Forward(object):
     def calculate(self):
         self.nD = self.rxLoc.shape[0]
 
-        if self.parallelized:
-            if self.n_cpu is None:
+        # if self.parallelized:
+        #     if self.n_cpu is None:
 
-                # By default take half the cores, turns out be faster
-                # than running full threads
-                self.n_cpu = int(multiprocessing.cpu_count()/2)
+        #         # By default take half the cores, turns out be faster
+        #         # than running full threads
+        #         self.n_cpu = int(multiprocessing.cpu_count()/2)
 
-            pool = multiprocessing.Pool(self.n_cpu)
 
-            result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
-            pool.close()
-            pool.join()
+            # pool = multiprocessing.Pool(self.n_cpu)
 
-        else:
+            # result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
+            # pool.close()
+            # pool.join()
+        mat = []
+        for ii in range(self.nD):
+            row = dask.delayed(self.calcTrow)(self.rxLoc[ii, :])
+            mat.append(row)
 
-            result = []
-            for ii in range(self.nD):
-                result += [self.calcTrow(self.rxLoc[ii, :])]
-                self.progress(ii, self.nD)
+        G = dask.delayed(da.vstack)(mat).compute()
 
         if self.forwardOnly:
-            return mkvc(np.vstack(result))
+            return np.array(G)
 
         else:
-            return np.vstack(result)
+            return G
+
+        # else:
+
+        #     result = []
+        #     for ii in range(self.nD):
+        #         result += [self.calcTrow(self.rxLoc[ii, :])]
+        #         self.progress(ii, self.nD)
+
+
+        #     if self.forwardOnly:
+        #         return mkvc(np.vstack(result))
+
+        #     else:
+        #         return np.vstack(result)
 
     def calcTrow(self, xyzLoc):
         """
