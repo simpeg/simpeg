@@ -382,7 +382,7 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
         F = NearestNDInterpolator(xyz[:, :2], xyz[:, 2])
         zOffset = 0
         # Cycle through the first 3 octree levels
-        for ii in range(3):
+        for ii in range(len(nCpad)):
 
             dx = mesh.hx.min()*2**ii
 

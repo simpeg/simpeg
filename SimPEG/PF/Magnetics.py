@@ -18,6 +18,7 @@ import dask
 import dask.array as da
 import os
 import shutil
+from dask.diagnostics import ProgressBar
 
 class MagneticIntegral(Problem.LinearProblem):
 
@@ -44,6 +45,7 @@ class MagneticIntegral(Problem.LinearProblem):
         default='cartesian'
     )
     Jpath = "./sensitivity.zarr"
+    maxRam = 2  # Maximum memory usage
 
     modelType = properties.StringChoice(
         "Type of magnetization model",
@@ -126,21 +128,11 @@ class MagneticIntegral(Problem.LinearProblem):
         if getattr(self, '_ProjTMI', None) is None:
 
             # Convert Bdecination from north to cartesian
-            # dec = (450.-float(self.survey.srcField.param[2])) % 360.
-            # inc = self.survey.srcField.param[1]
-
             self._ProjTMI = Utils.matutils.dipazm_2_xyz(
                 self.survey.srcField.param[1],
                 self.survey.srcField.param[0]
             )
-            # Projection matrix
-            # self._ProjTMI = mkvc(
-            #     np.r_[
-            #         np.cos(np.deg2rad(inc))*np.cos(np.deg2rad(dec)),
-            #         np.cos(np.deg2rad(inc))*np.sin(np.deg2rad(dec)),
-            #         np.sin(np.deg2rad(inc))
-            #     ], 2
-            #     ).T
+
 
         return self._ProjTMI
 
@@ -412,7 +404,7 @@ class MagneticIntegral(Problem.LinearProblem):
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
                 model=self.model, rxType=self.rxType, Mxyz=self.Mxyz,
                 P=self.ProjTMI, parallelized=self.parallelized,
-                verbose=self.verbose, Jpath=self.Jpath
+                verbose=self.verbose, Jpath=self.Jpath, maxRam=self.maxRam
                 )
 
         G = job.calculate()
@@ -434,6 +426,7 @@ class Forward(object):
     Mxyz = None
     P = None
     verbose = True
+    maxRam = 2
     Jpath = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
@@ -448,7 +441,7 @@ class Forward(object):
 
         #         # By default take half the cores, turns out be faster
         #         # than running full threads
-        #         self.n_cpu = int(multiprocessing.cpu_count()/2)
+        self.n_cpu = int(multiprocessing.cpu_count())
 
 
             # pool = multiprocessing.Pool(self.n_cpu)
@@ -462,12 +455,17 @@ class Forward(object):
         buildMat = [da.from_delayed(makeRow, dtype=float, shape=(1, self.nC)) for makeRow in makeRows]
 
         stack = da.vstack(buildMat)
-
+        chunkSize = int(np.ceil(self.maxRam / (self.nC*8*self.n_cpu*1e-9)))
+        # print(chunkSize)
         if self.storeG:
             if os.path.exists(self.Jpath):
-                  shutil.rmtree(self.Jpath)
-            da.to_zarr(stack, self.Jpath)
-            G = da.from_zarr(self.Jpath, chunks=(20, self.nC))
+                print("Load G from zarr. Chunks:" + str(chunkSize))
+                G = da.from_zarr(self.Jpath, chunks=(chunkSize, self.nC))
+
+            else:
+                with ProgressBar():
+                    da.to_zarr(stack, self.Jpath)
+                G = da.from_zarr(self.Jpath, chunks=(chunkSize, self.nC))
         else:
             G = stack.compute()
         # mat = []

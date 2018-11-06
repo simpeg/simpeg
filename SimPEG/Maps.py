@@ -646,8 +646,8 @@ class Tile(IdentityMap):
             if self.meshLocal._meshType == "TREE":
                 print("In treeMesh")
                 indx = self.meshLocal._get_containing_cell_indexes(self.meshGlobal.gridCC[self.actvGlobal])
-                print(indx.shape, np.where(self.actvGlobal)[0].shape)
-                full = np.c_[indx, np.where(self.actvGlobal)[0]]
+                # print(indx.shape, np.where(self.actvGlobal)[0].shape)
+                full = np.c_[indx, np.asarray(range(self.actvGlobal.sum()))]
             else:
                 indx = self.getTreeIndex(self.tree, self.meshLocal, self.actvLocal)
                 local2Global = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.actvLocal.sum()))).astype('int'), mkvc(indx)]
@@ -726,11 +726,11 @@ class Tile(IdentityMap):
 
             self.scaleJ = Utils.sdiag(sumRow/self.meshLocal.vol[self.actvLocal])
 
-            self._P = Utils.sdiag(1./sumRow) * sp.block_diag([P for ii in range(self.nBlock)])
+            self._P = Utils.sdiag(1./sumRow) * sp.block_diag([P for ii in range(self.nBlock)]) * self.S
 
             self._shape = self.actvLocal.sum(), self.actvGlobal.sum()
 
-        return self._P * self.S
+        return self._P
 
     def getTreeIndex(self, tree, mesh, actvCell):
         """
