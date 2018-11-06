@@ -643,14 +643,20 @@ class Tile(IdentityMap):
         """
         if getattr(self, '_P', None) is None:
 
-            indx = self.getTreeIndex(self.tree, self.meshLocal, self.actvLocal)
-            local2Global = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.actvLocal.sum()))).astype('int'), mkvc(indx)]
+            if self.meshLocal._meshType == "TREE":
+                print("In treeMesh")
+                indx = self.meshLocal._get_containing_cell_indexes(self.meshGlobal.gridCC[self.actvGlobal])
+                print(indx.shape, np.where(self.actvGlobal)[0].shape)
+                full = np.c_[indx, np.where(self.actvGlobal)[0]]
+            else:
+                indx = self.getTreeIndex(self.tree, self.meshLocal, self.actvLocal)
+                local2Global = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.actvLocal.sum()))).astype('int'), mkvc(indx)]
 
-            tree = cKDTree(self.meshLocal.gridCC[self.actvLocal, :])
-            r, ind = tree.query(self.meshGlobal.gridCC[self.actvGlobal], k=self.nCell)
-            global2Local = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.actvGlobal.sum()))).astype('int'), mkvc(ind)]
+                tree = cKDTree(self.meshLocal.gridCC[self.actvLocal, :])
+                r, ind = tree.query(self.meshGlobal.gridCC[self.actvGlobal], k=self.nCell)
+                global2Local = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.actvGlobal.sum()))).astype('int'), mkvc(ind)]
 
-            full = np.unique(np.vstack([local2Global, global2Local[:, [1, 0]]]), axis=0)
+                full = np.unique(np.vstack([local2Global, global2Local[:, [1, 0]]]), axis=0)
 
             # Free up memory
             self._tree = None

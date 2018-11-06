@@ -74,11 +74,13 @@ class MagneticIntegral(Problem.LinearProblem):
                 fields = da.dot(self.G, (self.Mxyz*m).astype(np.float32))
 
             else:
-                fields = da.dot(self.G, m.astype(np.float32))
+
+                fields = da.dot(self.G, m)
 
             if self.modelType == 'amplitude':
 
                 fields = self.calcAmpData(fields.astype(np.float64))
+
 
         return np.array(fields, dtype='float')
 
@@ -157,26 +159,26 @@ class MagneticIntegral(Problem.LinearProblem):
             else:
                 w = W.diagonal()
 
-            # self.gtgdiag = np.zeros(dmudm.shape[1])
+            self.gtgdiag = np.zeros(dmudm.shape[1])
 
-            # for ii in range(self.G.shape[0]):
+            for ii in range(self.G.shape[0]):
+                # print(self.G[ii, :])
+                self.gtgdiag += (w[ii]*(dmudm.T*self.G[ii, :]).T)**2.
 
-            #     self.gtgdiag += (w[ii]*self.G[ii, :]*dmudm)**2.
-
-            self.gtgdiag = np.array(da.sum(da.power(self.G, 2), axis=0))
+            print(self.gtgdiag.min(), self.gtgdiag.max())
+            # self.gtgdiag = np.array(da.sum(da.power(self.G, 2), axis=0))
 
         if self.coordinate_system == 'cartesian':
             if self.modelType == 'amplitude':
                 return np.sum((W * self.dfdm * sdiag(mkvc(self.gtgdiag)**0.5) * dmudm)**2., axis=0)
             else:
-                Japprox = (sdiag(mkvc(self.gtgdiag)**0.5)*dmudm).T * dmudm
-                return mkvc(np.sum(Japprox.power(2), axis=0))
+                return self.gtgdiag
 
         else:  # spherical
             if self.modelType == 'amplitude':
                 return np.sum(((W * self.dfdm) * da.dot(self.G, (self.dSdm * dmudm)))**2., axis=0)
             else:
-                Japprox = (sdiag(mkvc(self.gtgdiag)**0.5)*dmudm).T * (self.dSdm * dmudm)
+                Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm.T) * (self.dSdm * dmudm)
                 return mkvc(np.sum(Japprox.power(2), axis=0))
 
     def getJ(self, m, f=None):
