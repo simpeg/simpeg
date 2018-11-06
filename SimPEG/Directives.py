@@ -720,7 +720,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 class Update_IRLS(InversionDirective):
 
     updateGamma = False
-    f_old = 0
+    f_old = np.inf
     f_min_change = 1e-2
     beta_tol = 1e-1
     beta_ratio_l2 = None

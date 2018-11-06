@@ -16,7 +16,8 @@ from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
 import dask
 import dask.array as da
-
+import os
+import shutil
 
 class MagneticIntegral(Problem.LinearProblem):
 
@@ -42,6 +43,7 @@ class MagneticIntegral(Problem.LinearProblem):
         choices=['cartesian', 'spherical'],
         default='cartesian'
     )
+    Jpath = "./sensitivity.zarr"
 
     modelType = properties.StringChoice(
         "Type of magnetization model",
@@ -167,13 +169,14 @@ class MagneticIntegral(Problem.LinearProblem):
             if self.modelType == 'amplitude':
                 return np.sum((W * self.dfdm * sdiag(mkvc(self.gtgdiag)**0.5) * dmudm)**2., axis=0)
             else:
-                return self.gtgdiag
+                Japprox = (sdiag(mkvc(self.gtgdiag)**0.5)*dmudm).T * dmudm
+                return mkvc(np.sum(Japprox.power(2), axis=0))
 
         else:  # spherical
             if self.modelType == 'amplitude':
                 return np.sum(((W * self.dfdm) * da.dot(self.G, (self.dSdm * dmudm)))**2., axis=0)
             else:
-                Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm.T) * (self.dSdm * dmudm)
+                Japprox = (sdiag(mkvc(self.gtgdiag)**0.5)*dmudm).T * (self.dSdm * dmudm)
                 return mkvc(np.sum(Japprox.power(2), axis=0))
 
     def getJ(self, m, f=None):
@@ -407,7 +410,7 @@ class MagneticIntegral(Problem.LinearProblem):
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
                 model=self.model, rxType=self.rxType, Mxyz=self.Mxyz,
                 P=self.ProjTMI, parallelized=self.parallelized,
-                verbose=self.verbose
+                verbose=self.verbose, Jpath=self.Jpath
                 )
 
         G = job.calculate()
@@ -418,7 +421,8 @@ class MagneticIntegral(Problem.LinearProblem):
 class Forward(object):
 
     progressIndex = -1
-    parallelized = False
+    parallelized = True
+    storeG = True
     rxLoc = None
     Xn, Yn, Zn = None, None, None
     n_cpu = None
@@ -428,6 +432,7 @@ class Forward(object):
     Mxyz = None
     P = None
     verbose = True
+    Jpath = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
         super(Forward, self).__init__()
@@ -435,7 +440,7 @@ class Forward(object):
 
     def calculate(self):
         self.nD = self.rxLoc.shape[0]
-
+        self.nC = self.Xn.shape[0]
         # if self.parallelized:
         #     if self.n_cpu is None:
 
@@ -449,17 +454,34 @@ class Forward(object):
             # result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
             # pool.close()
             # pool.join()
-        mat = []
-        for ii in range(self.nD):
-            row = dask.delayed(self.calcTrow)(self.rxLoc[ii, :])
-            mat.append(row)
+        row = dask.delayed(self.calcTrow, pure=True)
 
-        G = dask.delayed(da.vstack)(mat).compute()
+        makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
+        buildMat = [da.from_delayed(makeRow, dtype=float, shape=(1, self.nC)) for makeRow in makeRows]
+
+        stack = da.vstack(buildMat)
+
+        if self.storeG:
+            if os.path.exists(self.Jpath):
+                  shutil.rmtree(self.Jpath)
+            da.to_zarr(stack, self.Jpath)
+            G = da.from_zarr(self.Jpath, chunks=(20, self.nC))
+        else:
+            G = stack.compute()
+        # mat = []
+        # for ii in range(self.nD):
+        #     row = dask.delayed(self.calcTrow)(self.rxLoc[ii, :])
+        #     mat.append(row)
+
+        # G = dask.delayed(da.vstack)(mat)
 
         if self.forwardOnly:
-            return np.array(G)
+            return np.array(np.dot(G, model))
 
         else:
+            # print("To hdf5: " + self.path + '/sensitivity.hdf5')
+            # G.to_hdf5(self.path + '\\sensitivity.hdf5', '/sens')
+            # print(G)
             return G
 
         # else:
