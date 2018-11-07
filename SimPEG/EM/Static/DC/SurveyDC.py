@@ -219,7 +219,7 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                         )
                 self.electrode_locations = SimPEG.EM.Static.Utils.drapeTopotoLoc(
                     mesh, self.electrodes_info[0],
-                    actind=actind, topo=topo
+                    actind=actind, topo=topography
                 )
                 temp = (
                     self.electrode_locations[self.electrodes_info[2], 1]
