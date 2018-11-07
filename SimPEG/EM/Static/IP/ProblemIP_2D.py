@@ -13,6 +13,7 @@ from SimPEG.EM.Static.DC import Problem2D_N as BaseProblem2D_N
 import numpy as np
 from .SurveyIP import Survey
 from SimPEG import Props
+from SimPEG.Survey import Data
 
 
 class BaseIPProblem_2D(BaseDCProblem_2D):
@@ -37,13 +38,25 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
     _f = None
     sign = None
 
-    def set_dc_data(self, dc_voltage, data_type='apparent_chargeability'):
-        dc_data = self.dataPair(self.survey, dc_voltage)
-        for src in self.survey.srcList:
-            for rx in src.rxList:
-                rx._dc_voltage = dc_data[src, rx]
-                rx.data_type = data_type
-        self.mesh._Ps = None
+    def set_dc_data(
+        self, dc_voltage, data_type='apparent_chargeability', dc_survey=None
+    ):
+        if dc_survey is None:
+            dc_data = Data(self.survey, dc_voltage)
+            for src in self.survey.srcList:
+                for rx in src.rxList:
+                    rx._dc_voltage = dc_data[src, rx]
+                    rx.data_type = data_type
+                    rx._Ps = {}
+        else:
+            dc_data = Data(dc_survey, dc_voltage)
+            for isrc, src in enumerate(self.survey.srcList):
+                dc_src = dc_survey.srcList[isrc]
+                for irx, rx in enumerate(src.rxList):
+                    dc_rx = dc_src.rxList[irx]
+                    rx._dc_voltage = dc_data[dc_src, dc_rx]
+                    rx.data_type = data_type
+                    rx._Ps = {}
         return dc_data
 
     def fields(self, m):
