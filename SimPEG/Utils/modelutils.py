@@ -380,22 +380,27 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
         limy = np.r_[xyz[:, 1].max(), xyz[:, 1].min()]
 
         F = NearestNDInterpolator(xyz[:, :2], xyz[:, 2])
+
+
         zOffset = 0
         # Cycle through the first 3 octree levels
         for ii in range(len(nCpad)):
 
             dx = mesh.hx.min()*2**ii
+            dy = mesh.hy.min()*2**ii
+            dz = mesh.hz.min()*2**ii
 
             # Horizontal offset
-            xyOff = dx * 2
+            xOff = dx * 2
+            yOff = dy * 2
 
-            nCx = int(limx[0]-limx[1] + 2 * xyOff) / dx
-            nCy = int(limy[0]-limy[1] + 2 * xyOff) / dx
+            nCx = int(limx[0]-limx[1] + 2 * xOff) / dx
+            nCy = int(limy[0]-limy[1] + 2 * yOff) / dy
 
             # Create a grid at the octree level in xy
             CCx, CCy = np.meshgrid(
-                np.linspace(limx[1]-xyOff, limx[0]+xyOff, nCx),
-                np.linspace(limy[1]-xyOff, limy[0]+xyOff, nCy)
+                np.linspace(limx[1]-xOff, limx[0]+xOff, nCx),
+                np.linspace(limy[1]-yOff, limy[0]+yOff, nCy)
             )
 
             z = F(mkvc(CCx), mkvc(CCy))
@@ -407,7 +412,7 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
                     finalize=False
                 )
 
-                zOffset += dx
+                zOffset += dz
 
         if finalize:
             mesh.finalize()

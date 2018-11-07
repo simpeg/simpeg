@@ -154,7 +154,7 @@ class MagneticIntegral(Problem.LinearProblem):
             self.gtgdiag = np.zeros(dmudm.shape[1])
 
             for ii in range(self.G.shape[0]):
-                # print(self.G[ii, :])
+
                 self.gtgdiag += (w[ii]*(dmudm.T*self.G[ii, :]).T)**2.
 
             print(self.gtgdiag.min(), self.gtgdiag.max())
