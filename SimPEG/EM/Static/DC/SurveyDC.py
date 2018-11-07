@@ -71,6 +71,26 @@ class Survey(BaseEMSurvey, properties.HasProperties):
     def __init__(self, srcList, **kwargs):
         BaseEMSurvey.__init__(self, srcList, **kwargs)
 
+    def set_geometric_factor(
+        self,
+        data_type="volt",
+        survey_type='dipole-dipole',
+        space_type='half-space'
+    ):
+
+        geometric_factor = SimPEG.EM.Static.Utils.geometric_factor(
+            self,
+            survey_type=survey_type,
+            space_type=space_type
+        )
+
+        geometric_factor = SimPEG.Survey.Data(self, geometric_factor)
+        for src in self.srcList:
+            for rx in src.rxList:
+                rx._geometric_factor = geometric_factor[src, rx]
+                rx.data_type = data_type
+        return geometric_factor
+
     def getABMN_locations(self):
         a_locations = []
         b_locations = []

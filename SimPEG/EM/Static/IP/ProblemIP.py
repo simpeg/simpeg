@@ -41,6 +41,11 @@ class BaseIPProblem(BaseEMProblem):
     _Jmatrix = None
     sign = None
 
+    def set_dc_data(self, f):
+        for src in self.survey.srcList:
+            for rx in src.rxList:
+                rx.dc_voltage = rx.eval(src, self.mesh, f)
+
     def fields(self, m):
         if self.verbose is True:
             print (">> Compute fields")
@@ -54,7 +59,7 @@ class BaseIPProblem(BaseEMProblem):
             u = self.Ainv * RHS
             Srcs = self.survey.srcList
             self._f[Srcs, self._solutionType] = u
-
+            self.set_dc_data(self._f)
         self.survey._pred = self.forward(m, f=self._f)
 
         return self._f
