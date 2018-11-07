@@ -26,22 +26,21 @@ def run_inversion(
     # Related to inversion
     if use_sensitivity_weight:
         reg = Regularization.Sparse(
-            mesh, indActive=actind, mapping=regmap, cell_weights=mesh.vol
+            mesh, indActive=actind, mapping=regmap
         )
         reg.alpha_s = alpha_s
         reg.alpha_x = alpha_x
         reg.alpha_y = alpha_y
         reg.alpha_z = alpha_z
-        reg.gradientType = 'total'
     else:
         reg = Regularization.Sparse(
-            mesh, indActive=actind, mapping=regmap, cell_weights=mesh.vol
+            mesh, indActive=actind, mapping=regmap,
+            cell_weights=mesh.vol[actind]
         )
         reg.alpha_s = alpha_s
         reg.alpha_x = alpha_x
         reg.alpha_y = alpha_y
         reg.alpha_z = alpha_z
-        reg.gradientType = 'total'
     opt = Optimization.ProjectedGNCG(maxIter=maxIter, upper=upper, lower=lower)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
     beta = Directives.BetaSchedule(
@@ -55,7 +54,7 @@ def run_inversion(
         updateSensW = Directives.UpdateSensitivityWeights()
         update_Jacobi = Directives.UpdatePreconditioner()
         directiveList = [
-            beta, betaest, target, updateSensW, update_Jacobi
+            beta, betaest, target, update_Jacobi
         ]
     else:
         directiveList = [

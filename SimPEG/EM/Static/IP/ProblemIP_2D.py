@@ -37,10 +37,18 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
     _f = None
     sign = None
 
+    def set_dc_data(self, dc_voltage, data_type='apparent_chargeability'):
+        dc_data = self.dataPair(self.survey, dc_voltage)
+        for src in self.survey.srcList:
+            for rx in src.rxList:
+                rx._dc_voltage = dc_data[src, rx]
+                rx.data_type = data_type
+        self.mesh._Ps = None
+        return dc_data
+
     def fields(self, m):
         if self.verbose:
-            print (">> Compute DC fields")
-
+            print(">> Compute DC fields")
         if self._f is None:
             self._f = self.fieldsPair(self.mesh, self.survey)
             Srcs = self.survey.srcList

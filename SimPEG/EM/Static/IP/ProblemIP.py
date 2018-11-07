@@ -40,15 +40,11 @@ class BaseIPProblem(BaseEMProblem):
     storeJ = False
     _Jmatrix = None
     sign = None
-
-    def set_dc_data(self, f):
-        for src in self.survey.srcList:
-            for rx in src.rxList:
-                rx.dc_voltage = rx.eval(src, self.mesh, f)
+    data_type = 'volt'
 
     def fields(self, m):
         if self.verbose is True:
-            print (">> Compute fields")
+            print(">> Compute fields")
 
         if self._f is None:
             self._f = self.fieldsPair(self.mesh, self.survey)
@@ -59,7 +55,17 @@ class BaseIPProblem(BaseEMProblem):
             u = self.Ainv * RHS
             Srcs = self.survey.srcList
             self._f[Srcs, self._solutionType] = u
-            self.set_dc_data(self._f)
+
+            # Compute DC voltage
+            if self.data_type == 'apparent_chargeability':
+                if self.verbose is True:
+                    print(">> Data type is apparaent chargeability")
+                for src in self.survey.srcList:
+                    for rx in src.rxList:
+                        rx._dc_voltage = rx.eval(src, self.mesh, self._f)
+                        rx.data_type = self.data_type
+                        rx._Ps = {}
+
         self.survey._pred = self.forward(m, f=self._f)
 
         return self._f
@@ -196,9 +202,9 @@ class BaseIPProblem(BaseEMProblem):
 
                     iend = istrt + rx.nD
                     if rx.nD == 1:
-                        Jtv[:, istrt] = dA_dmT
+                        Jtv[:, istrt] = -dA_dmT
                     else:
-                        Jtv[:, istrt:iend] = dA_dmT
+                        Jtv[:, istrt:iend] = -dA_dmT
                     istrt += rx.nD
 
         # Conductivity ((d u / d log sigma).T) - EB form

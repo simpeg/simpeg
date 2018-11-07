@@ -118,7 +118,7 @@ class Dipole(BaseRx):
         if self.data_type == 'apparent_resistivity':
             P = sdiag(1./self.geometric_factor) * P
         elif self.data_type == 'apparent_chargeability':
-            P = sdiag(self.dc_voltage) * P
+            P = sdiag(1./self.dc_voltage) * P
 
         if self.storeProjections:
             self._Ps[mesh] = P
@@ -154,8 +154,7 @@ class Dipole_ky(BaseRx):
         if self.data_type == 'apparent_resistivity':
             P = sdiag(1./self.geometric_factor) * P
         elif self.data_type == 'apparent_chargeability':
-            P = sdiag(self.dc_voltage) * P
-
+            P = sdiag(1./self.dc_voltage) * P
         if self.storeProjections:
             self._Ps[mesh] = P
         return P
@@ -211,8 +210,7 @@ class Pole(BaseRx):
         if self.data_type == 'apparent_resistivity':
             P = sdiag(1./self.geometric_factor) * P
         elif self.data_type == 'apparent_chargeability':
-            P = sdiag(self.dc_voltage) * P
-
+            P = sdiag(1./self.dc_voltage) * P
         if self.storeProjections:
             self._Ps[mesh] = P
 
@@ -244,8 +242,7 @@ class Pole_ky(BaseRx):
         if self.data_type == 'apparent_resistivity':
             P = sdiag(1./self.geometric_factor) * P
         elif self.data_type == 'apparent_chargeability':
-            P = sdiag(self.dc_voltage) * P
-
+            P = sdiag(1./self.dc_voltage) * P
         if self.storeProjections:
             self._Ps[mesh] = P
 
