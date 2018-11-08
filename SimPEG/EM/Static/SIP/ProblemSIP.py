@@ -277,6 +277,16 @@ class BaseSIPProblem(BaseEMProblem):
             Srcs = self.survey.srcList
             self._f[Srcs, self._solutionType] = u
 
+            # Compute DC voltage
+            if self.data_type == 'apparent_chargeability':
+                if self.verbose is True:
+                    print(">> Data type is apparaent chargeability")
+                for src in self.survey.srcList:
+                    for rx in src.rxList:
+                        rx._dc_voltage = rx.eval(src, self.mesh, self._f)
+                        rx.data_type = self.data_type
+                        rx._Ps = {}
+
         self.survey._pred = self.forward(m, f=self._f)
 
         return self._f

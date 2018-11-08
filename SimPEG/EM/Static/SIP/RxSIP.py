@@ -66,6 +66,10 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
         time_inds = np.in1d(timesall, self.times)
         return time_inds
 
+    def eval(self, src, mesh, f):
+        P = self.getP(mesh, self.projGLoc(f))
+        return P*f[src, self.projField]
+
     def evalDeriv(self, src, mesh, f, v, adjoint=False):
         P = self.getP(mesh, self.projGLoc(f))
         if not adjoint:
