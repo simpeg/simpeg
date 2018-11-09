@@ -45,7 +45,7 @@ class MagneticIntegral(Problem.LinearProblem):
         default='cartesian'
     )
     Jpath = "./sensitivity.zarr"
-    maxRam = 2  # Maximum memory usage
+    maxRAM = 8  # Maximum memory usage
 
     modelType = properties.StringChoice(
         "Type of magnetization model",
@@ -184,9 +184,9 @@ class MagneticIntegral(Problem.LinearProblem):
             dmudm = self.dSdm * self.chiMap.deriv(m)
 
         if self.modelType == 'amplitude':
-            return self.dfdm * (self.G * dmudm)
+            return self.dfdm * da.dot(self.G, dmudm)
         else:
-            return self.G * dmudm
+            return da.dot(self.G, dmudm)
 
     def Jvec(self, m, v, f=None):
 
@@ -197,10 +197,10 @@ class MagneticIntegral(Problem.LinearProblem):
 
         if getattr(self, '_Mxyz', None) is not None:
 
-            vec = np.dot(self.G, (self.Mxyz*(dmudm*v)).astype(np.float32))
+            vec = da.dot(self.G, (self.Mxyz*(dmudm*v)).astype(np.float32))
 
         else:
-            vec = np.dot(self.G, (dmudm*v).astype(np.float32))
+            vec = da.dot(self.G, (dmudm*v).astype(np.float32))
 
         if self.modelType == 'amplitude':
             return self.dfdm*vec.astype(np.float64)
@@ -404,7 +404,7 @@ class MagneticIntegral(Problem.LinearProblem):
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
                 model=self.model, rxType=self.rxType, Mxyz=self.Mxyz,
                 P=self.ProjTMI, parallelized=self.parallelized,
-                verbose=self.verbose, Jpath=self.Jpath, maxRam=self.maxRam
+                verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM
                 )
 
         G = job.calculate()
@@ -426,7 +426,7 @@ class Forward(object):
     Mxyz = None
     P = None
     verbose = True
-    maxRam = 2
+    maxRAM = 8
     Jpath = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
@@ -436,38 +436,63 @@ class Forward(object):
     def calculate(self):
         self.nD = self.rxLoc.shape[0]
         self.nC = self.Xn.shape[0]
-        # if self.parallelized:
-        #     if self.n_cpu is None:
-
-        #         # By default take half the cores, turns out be faster
-        #         # than running full threads
         self.n_cpu = int(multiprocessing.cpu_count())
 
 
-            # pool = multiprocessing.Pool(self.n_cpu)
+        nChunks = 1 # Number of chunks
+        cSa, cSb = int(self.nD/nChunks), int(self.nC/nChunks) # Chunk sizes
+        totRAM = cSa*cSb*8*self.n_cpu*1e-9
+        while totRAM > self.maxRAM:
+            nChunks += 1
+            cSa, cSb = int(np.ceil(M/nChunks)), int(np.ceil(N/nChunks)) # Chunk sizes
+            totRAM = cSa*cSb*8*nCPU*1e-9
 
-            # result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
-            # pool.close()
-            # pool.join()
-        row = dask.delayed(self.calcTrow, pure=True)
+        print(nChunks, cSa, cSb, totRAM)
 
-        makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
-        buildMat = [da.from_delayed(makeRow, dtype=float, shape=(1, self.nC)) for makeRow in makeRows]
+        if self.parallelized:
 
-        stack = da.vstack(buildMat)
-        chunkSize = int(np.ceil(self.maxRam / (self.nC*8*self.n_cpu*1e-9)))
-        # print(chunkSize)
-        if self.storeG:
-            if os.path.exists(self.Jpath):
-                print("Load G from zarr. Chunks:" + str(chunkSize))
-                G = da.from_zarr(self.Jpath, chunks=(chunkSize, self.nC))
+            # print(chunkSize)
 
-            else:
-                with ProgressBar():
-                    da.to_zarr(stack, self.Jpath)
-                G = da.from_zarr(self.Jpath, chunks=(chunkSize, self.nC))
+                if os.path.exists(self.Jpath):
+                    print("Load G from zarr")
+                    G = da.from_zarr(self.Jpath)
+
+                else:
+
+                    row = dask.delayed(self.calcTrow, pure=True)
+
+                    makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
+                    buildMat = [da.from_delayed(makeRow, dtype=float, shape=(1, self.nC)) for makeRow in makeRows]
+
+                    stack = da.vstack(buildMat)
+
+                    # TO-DO: Find a way to create in chunks instead
+                    stack = stack.rechunk((cSa, cSb))
+
+                    if self.storeG:
+                        with ProgressBar():
+                            print("Saving G to zarr: "+ self.Jpath)
+                            da.to_zarr(stack, self.Jpath)
+
+                        G = da.from_zarr(self.Jpath)
+
+                    else:
+                        G = stack.compute()
+
         else:
-            G = stack.compute()
+
+            result = []
+            for ii in range(self.nD):
+                result += [self.calcTrow(self.rxLoc[ii, :])]
+                self.progress(ii, self.nD)
+
+            G = np.vstack(result)
+        #     if self.forwardOnly:
+        #         return mkvc(np.vstack(result))
+
+        #     else:
+        #         return np.vstack(result)
+
         # mat = []
         # for ii in range(self.nD):
         #     row = dask.delayed(self.calcTrow)(self.rxLoc[ii, :])
@@ -479,9 +504,6 @@ class Forward(object):
             return np.array(np.dot(G, model))
 
         else:
-            # print("To hdf5: " + self.path + '/sensitivity.hdf5')
-            # G.to_hdf5(self.path + '\\sensitivity.hdf5', '/sens')
-            # print(G)
             return G
 
         # else:

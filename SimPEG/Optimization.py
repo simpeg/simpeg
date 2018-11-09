@@ -6,6 +6,7 @@ from six import string_types
 from .Utils.SolverUtils import *
 norm = np.linalg.norm
 from SimPEG import Regularization
+from time import time
 
 __all__ = [
     'Minimize', 'Remember', 'SteepestDescent', 'BFGS', 'GaussNewton',
@@ -1156,7 +1157,8 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         s0 = sold
 
         count = 0
-
+        print("Start CG solve")
+        tc = time()
         while np.all([np.linalg.norm(r) > self.tolCG, count < self.maxIterCG]):
 
             count += 1
@@ -1208,5 +1210,5 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
             ((self.xc >= self.upper) & (delx > 0))
         )
         delx[indx] = 0.
-
+        print("CG solve time: " + str(time()-tc))
         return delx
