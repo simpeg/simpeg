@@ -113,9 +113,10 @@ class Data(SimPEG.Survey.Data):
             'v must have the correct number of data.'
         )
         indBot, indTop = 0, 0
-        for src in self.survey.srcList:
-            for rx in src.rxList:
-                for t in rx.times:
+
+        for t in self.survey.times:
+            for src in self.survey.srcList:
+                for rx in src.rxList:
                     indTop += rx.nRx
                     self[src, rx, t] = v[indBot:indTop]
                     indBot += rx.nRx

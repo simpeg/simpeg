@@ -515,17 +515,17 @@ class BaseSIPProblem(BaseEMProblem):
             if not isinstance(v, self.dataPair):
                 v = self.dataPair(self.survey, v)
 
-            ntime = self.survey.times.size
-            # du_dmT = np.zeros((self.mesh.nC, ntime), dtype=float, order="F")
             Jtv = np.zeros(m.size, dtype=float)
+            n_time = len(self.survey.times)
+            du_dmT = np.zeros((self.mesh.nC, n_time), dtype=float, order='F')
 
-            for tind in range(ntime):
+            for tind in range(n_time):
                 t = self.survey.times[tind]
-                du_dmT = np.zeros(self.mesh.nC, dtype=float)
+
                 for src in self.survey.srcList:
                     u_src = f[src, self._solutionType]
                     for rx in src.rxList:
-                        # Assume same # of time
+                        # Ignore case when each rx has different # of times
                         # timeindex = rx.getTimeP(self.survey.times)
                         # if timeindex[tind]:
                         # wrt f, need possibility wrt m
@@ -542,25 +542,31 @@ class BaseSIPProblem(BaseEMProblem):
                         dA_dmT = self.getADeriv(
                             u_src, ATinvdf_duT, adjoint=True
                         )
-                        dRHS_dmT = self.getRHSDeriv(
-                            src, ATinvdf_duT, adjoint=True
-                        )
-                        du_dmT += -dA_dmT + dRHS_dmT
+                        # Unecessary at the moment
+                        # dRHS_dmT = self.getRHSDeriv(
+                        #     src, ATinvdf_duT, adjoint=True
+                        # )
+                        # du_dmT[:, tind] = -dA_dmT + dRHS_dmT
 
-                        Jtv += (
-                            self.PetaEtaDeriv(
-                                t, du_dmT,
-                                adjoint=True
-                            ) +
-                            self.PetaTauiDeriv(
-                                t, du_dmT,
-                                adjoint=True
-                            ) +
-                            self.PetaCDeriv(
-                                t, du_dmT,
-                                adjoint=True
-                            )
+                        du_dmT[:, tind] += -self.getADeriv(
+                            u_src, ATinvdf_duT, adjoint=True
                         )
+
+                Jtv += (
+                    self.PetaEtaDeriv(
+                        self.survey.times[tind], du_dmT[:, tind],
+                        adjoint=True
+                    ) +
+                    self.PetaTauiDeriv(
+                        self.survey.times[tind], du_dmT[:, tind],
+                        adjoint=True
+                    ) +
+                    self.PetaCDeriv(
+                        self.survey.times[tind], du_dmT[:, tind],
+                        adjoint=True
+                    )
+                )
+
             return self.sign*Jtv
 
     def getSourceTerm(self):
