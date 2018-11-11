@@ -52,7 +52,7 @@ class SIPProblemTestsCC(unittest.TestCase):
             rho=1./sigma,
             etaMap=wires.eta,
             tauiMap=wires.taui,
-            storeJ = True
+            storeJ=False
         )
         problem.Solver = Solver
         problem.pair(survey)
@@ -256,7 +256,7 @@ class IPProblemTestsN_air(unittest.TestCase):
             tauiMap=actmaptau*wires.taui,
             cMap=actmapc*wires.c,
             actinds=~airind,
-            storeJ = True,
+            storeJ=False,
             verbose=False
         )
 

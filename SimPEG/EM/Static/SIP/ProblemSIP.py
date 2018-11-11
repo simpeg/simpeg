@@ -264,10 +264,12 @@ class BaseSIPProblem(BaseEMProblem):
             return dpetadc * (cDeriv*v)
 
     def fields(self, m):
-        if self.verbose:
-            print (">> Compute DC fields")
 
         if self._f is None:
+
+            if self.verbose:
+                print (">> Compute DC fields")
+
             self._f = self.fieldsPair(self.mesh, self.survey)
             if self.Ainv is None:
                 A = self.getA()
@@ -513,9 +515,11 @@ class BaseSIPProblem(BaseEMProblem):
             if not isinstance(v, self.dataPair):
                 v = self.dataPair(self.survey, v)
 
-            Jtv = np.zeros(m.size)
+            ntime = self.survey.times.size
+            # du_dmT = np.zeros((self.mesh.nC, ntime), dtype=float, order="F")
+            Jtv = np.zeros(m.size, dtype=float)
 
-            for tind in range(len(self.survey.times)):
+            for tind in range(ntime):
                 t = self.survey.times[tind]
                 du_dmT = np.zeros(self.mesh.nC, dtype=float)
                 for src in self.survey.srcList:
@@ -543,21 +547,20 @@ class BaseSIPProblem(BaseEMProblem):
                         )
                         du_dmT += -dA_dmT + dRHS_dmT
 
-                Jtv += (
-                    self.PetaEtaDeriv(
-                        self.survey.times[tind], du_dmT,
-                        adjoint=True
-                    ) +
-                    self.PetaTauiDeriv(
-                        self.survey.times[tind], du_dmT,
-                        adjoint=True
-                    ) +
-                    self.PetaCDeriv(
-                        self.survey.times[tind], du_dmT,
-                        adjoint=True
-                    )
-                )
-
+                        Jtv += (
+                            self.PetaEtaDeriv(
+                                t, du_dmT,
+                                adjoint=True
+                            ) +
+                            self.PetaTauiDeriv(
+                                t, du_dmT,
+                                adjoint=True
+                            ) +
+                            self.PetaCDeriv(
+                                t, du_dmT,
+                                adjoint=True
+                            )
+                        )
             return self.sign*Jtv
 
     def getSourceTerm(self):
