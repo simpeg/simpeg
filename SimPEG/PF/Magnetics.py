@@ -439,12 +439,12 @@ class Forward(object):
         self.n_cpu = int(multiprocessing.cpu_count())
 
 
-        nChunks = 1 # Number of chunks
+        nChunks = self.n_cpu # Number of chunks
         cSa, cSb = int(self.nD/nChunks), int(self.nC/nChunks) # Chunk sizes
         totRAM = cSa*cSb*8*self.n_cpu*1e-9
         while totRAM > self.maxRAM:
-            nChunks += 1
-            cSa, cSb = int(np.ceil(M/nChunks)), int(np.ceil(N/nChunks)) # Chunk sizes
+            nChunks *= 2
+            cSa, cSb = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
             totRAM = cSa*cSb*8*nCPU*1e-9
 
         print(nChunks, cSa, cSb, totRAM)
