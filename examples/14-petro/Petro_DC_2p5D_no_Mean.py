@@ -9,7 +9,8 @@ from pymatsolver import PardisoSolver
 from scipy.stats import norm
 from sklearn.mixture import GaussianMixture
 import copy
-
+import seaborn
+seaborn.set()
 # Reproducible science
 # Python Version
 import sys
@@ -96,7 +97,7 @@ zmin, zmax = 0, 0
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
 survey = DCUtils.gen_DCIPsurvey(
     endl, survey_type="dipole-dipole", dim=mesh.dim,
-    a=1, b=1, n=10, d2flag='2D'
+    a=1, b=1, n=10, d2flag='2.5D'
 )
 
 # Setup Problem with exponential mapping and Active cells only in the core mesh
@@ -106,7 +107,7 @@ mapactive = Maps.InjectActiveCells(
     valInactive=-5.
 )
 mapping = expmap * mapactive
-problem = DC.Problem3D_CC(mesh,  sigmaMap=mapping, storeJ=True)
+problem = DC.Problem2D_N(mesh,  sigmaMap=mapping, storeJ=True)
 problem.pair(survey)
 problem.Solver = PardisoSolver
 
@@ -143,7 +144,6 @@ inv = Inversion.BaseInversion(invProb,  directiveList=[beta, Target,
 
 mnormal = inv.run(m0)
 
-
 #########################################
 # Petrophysically constrained inversion #
 #########################################
@@ -164,6 +164,79 @@ print(clf.covariances_)
 print(clf.means_)
 idenMap = Maps.IdentityMap(nP=m0.shape[0])
 wires = Maps.Wires(('m', m0.shape[0]))
+reg = Regularization.SimplePetroRegularization(
+    GMmref=clf,  mesh=mesh,
+    wiresmap=wires,
+    maplist=[idenMap],
+    mref=m0,
+    indActive=actind
+)
+reg.mrefInSmooth = False
+reg.approx_gradient = True
+gamma_petro = np.r_[1., 3., 3.]
+reg.gamma = gamma_petro
+
+opt = Optimization.ProjectedGNCG(
+    maxIter=30, lower=-10, upper=10,
+    maxIterLS=20, maxIterCG=50, tolCG=1e-4
+)
+opt.remember('xc')
+
+invProb = InvProblem.BaseInvProblem(dmis,  reg,  opt)
+
+Alphas = Directives.AlphasSmoothEstimate_ByEig(
+    alpha0_ratio=1e-3, ninit=10, verbose=True
+)
+beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e2, ninit=10)
+betaIt = Directives.PetroBetaReWeighting(
+    verbose=True, rateCooling=8.,
+    rateWarming=1., tolerance=0.05
+)
+targets = Directives.PetroTargetMisfit(
+    TriggerSmall=True,
+    TriggerTheta=False,
+    verbose=True,
+)
+MrefInSmooth = Directives.AddMrefInSmooth(verbose=True, wait_till_stable=True)
+petrodir = Directives.GaussianMixtureUpdateModel()
+updateSensW = Directives.Update_DC_Wr(
+    wrType='sensitivityW',
+    changeMref=False, eps=1e-7
+)
+# updateSensW = Directives.UpdateSensitivityWeights(threshold=1e-7)
+# update_Jacobi = Directives.UpdatePreconditioner()
+
+inv = Inversion.BaseInversion(invProb,
+                              directiveList=[Alphas, beta,
+                                             petrodir,
+                                             targets, betaIt,
+                                             MrefInSmooth,
+                                             updateSensW,
+                                             ])
+
+
+mcluster = inv.run(m0)
+
+#########################################
+# Petrophysically constrained inversion #
+#########################################
+
+# fit a Gaussian Mixture Model with n components
+# on the true model to simulate the laboratory
+# petrophysical measurements
+m0 = np.median(ln_sigback) * np.ones(mapping.nP)
+dmis = DataMisfit.l2_DataMisfit(survey)
+
+n = 3
+clf = GaussianMixture(
+    n_components=n,  covariance_type='full', reg_covar=5e-3
+)
+clf.fit(mtrue[actind].reshape(-1, 1))
+Utils.order_clusters_GM_weight(clf)
+print(clf.covariances_)
+print(clf.means_)
+idenMap = Maps.IdentityMap(nP=m0.shape[0])
+wires = Maps.Wires(('m', m0.shape[0]))
 reg = Regularization.PetroRegularization(
     GMmref=clf,  mesh=mesh,
     wiresmap=wires,
@@ -177,7 +250,7 @@ gamma_petro = np.r_[1., 1., 1.]
 reg.gamma = gamma_petro
 
 opt = Optimization.ProjectedGNCG(
-    maxIter=10, lower=-10, upper=10,
+    maxIter=4, lower=-10, upper=10,
     maxIterLS=20, maxIterCG=50, tolCG=1e-4
 )
 opt.remember('xc')
@@ -193,7 +266,7 @@ betaIt = Directives.PetroBetaReWeighting(
     rateWarming=1., tolerance=1.
 )
 targets = Directives.PetroTargetMisfit(
-    chifact=1.,
+    chifact = 1.,
     TriggerSmall=True,
     TriggerTheta=False,
     verbose=True,
@@ -218,7 +291,7 @@ inv = Inversion.BaseInversion(invProb,
                                              updateSensW,
                                              ])
 
-mcluster = inv.run(m0)
+mcluster_nomean = inv.run(m0)
 
 print('All stopping Criteria: ', targets.AllStop)
 print('Final Data Misfit: ', dmis(mcluster))
@@ -226,6 +299,7 @@ print(
     'Final Cluster Scorce: ',
     invProb.reg.objfcts[0](mcluster, externalW=False)
 )
+
 
 
 # Final Plot
@@ -246,11 +320,11 @@ ax[1].set_aspect('equal')
 ax[1].set_title('Tikhonov')
 
 meshCore.plotImage(mcluster, ax=ax[2], clim=clim)
-ax[2].set_title('Petrophysically constrained\nwith No Mean Information')
+ax[2].set_title('Petrophysically constrained\nwith full Information')
 ax[2].set_aspect('equal')
 
-meshCore.plotImage(invProb.reg.mref, ax=ax[3], clim=clim)
-ax[3].set_title('Learned Reference model')
+meshCore.plotImage(mcluster_nomean, ax=ax[3], clim=clim)
+ax[3].set_title('Petrophysically constrained\nwith No Mean Information')
 ax[3].set_aspect('equal')
 
 for i in range(4):
@@ -263,12 +337,12 @@ cb = plt.colorbar(dat[0], ax=cbar_ax)
 cb.set_label('ln conductivity')
 
 cbar_ax.axis('off')
-
+fig.savefig('DC2D_NoMean.png', dpi=600, bbox_inches='tight', pad_inches=0)
 plt.show()
 
-testXplot = np.linspace(-7, 0, 1000)[:, np.newaxis]
+testXplot = np.linspace(-7, 0, 1000)[:,np.newaxis]
 plt.plot(testXplot, np.exp(reg.objfcts[0].GMmodel.score_samples(testXplot)))
 plt.plot(testXplot, np.exp(reg.GMmref.score_samples(testXplot)))
-plt.hist(mcluster, bins=100, density=True)
-
+plt.hist(mcluster_nomean,bins=100,density=True);
+plt.gca().set_xlabel('ln conductivity(S/m)')
 plt.show()

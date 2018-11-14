@@ -173,11 +173,11 @@ reg = Regularization.PetroRegularization(
 )
 reg.mrefInSmooth = False
 reg.approx_gradient = True
-gamma_petro = np.r_[1., 1., 1.]
+gamma_petro = np.r_[1., 3., 3.]
 reg.gamma = gamma_petro
 
 opt = Optimization.ProjectedGNCG(
-    maxIter=10, lower=-10, upper=10,
+    maxIter=20, lower=-10, upper=10,
     maxIterLS=20, maxIterCG=50, tolCG=1e-4
 )
 opt.remember('xc')
@@ -185,24 +185,24 @@ opt.remember('xc')
 invProb = InvProblem.BaseInvProblem(dmis,  reg,  opt)
 
 Alphas = Directives.AlphasSmoothEstimate_ByEig(
-    alpha0_ratio=1e-4, ninit=10, verbose=True
+    alpha0_ratio=1e-3, ninit=10, verbose=True
 )
-beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e3, ninit=10)
+beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e2, ninit=10)
 betaIt = Directives.PetroBetaReWeighting(
-    verbose=True, rateCooling=2.,
-    rateWarming=1., tolerance=1.
+    verbose=True, rateCooling=5.,
+    rateWarming=1., tolerance=0.05,
+    progress=0.1
 )
 targets = Directives.PetroTargetMisfit(
-    chifact=1.,
     TriggerSmall=True,
     TriggerTheta=False,
     verbose=True,
 )
-MrefInSmooth = Directives.AddMrefInSmooth(verbose=True, wait_till_stable=False)
-petrodir = Directives.GaussianMixtureUpdateModel(
-    kappa=0.,
-    nu=gamma_petro,
-    alphadir=gamma_petro)
+MrefInSmooth = Directives.AddMrefInSmooth(
+                verbose=True, wait_till_stable=True,
+                tolerance=0.01
+)
+petrodir = Directives.GaussianMixtureUpdateModel()
 updateSensW = Directives.Update_DC_Wr(
     wrType='sensitivityW',
     changeMref=False, eps=1e-7
@@ -218,6 +218,7 @@ inv = Inversion.BaseInversion(invProb,
                                              updateSensW,
                                              ])
 
+
 mcluster = inv.run(m0)
 
 print('All stopping Criteria: ', targets.AllStop)
@@ -226,7 +227,6 @@ print(
     'Final Cluster Scorce: ',
     invProb.reg.objfcts[0](mcluster, externalW=False)
 )
-
 
 # Final Plot
 fig, ax = plt.subplots(2, 2, figsize=(12, 6))
@@ -246,7 +246,7 @@ ax[1].set_aspect('equal')
 ax[1].set_title('Tikhonov')
 
 meshCore.plotImage(mcluster, ax=ax[2], clim=clim)
-ax[2].set_title('Petrophysically constrained\nwith No Mean Information')
+ax[2].set_title('Petrophysically constrained')
 ax[2].set_aspect('equal')
 
 meshCore.plotImage(invProb.reg.mref, ax=ax[3], clim=clim)
@@ -263,12 +263,5 @@ cb = plt.colorbar(dat[0], ax=cbar_ax)
 cb.set_label('ln conductivity')
 
 cbar_ax.axis('off')
-
-plt.show()
-
-testXplot = np.linspace(-7, 0, 1000)[:, np.newaxis]
-plt.plot(testXplot, np.exp(reg.objfcts[0].GMmodel.score_samples(testXplot)))
-plt.plot(testXplot, np.exp(reg.GMmref.score_samples(testXplot)))
-plt.hist(mcluster, bins=100, density=True)
 
 plt.show()

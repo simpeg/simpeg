@@ -370,24 +370,44 @@ class SaveOutputEveryIteration(SaveEveryIteration):
     def endIter(self):
 
         phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
-        for reg in self.reg.objfcts:
+        if getattr(reg.objfcts[0].objfcts, None) is not None:
+            for reg in self.reg.objfcts:
+                phi_s += (
+                    reg.objfcts[0](self.invProb.model) * reg.alpha_s
+                )
+                phi_x += (
+                    reg.objfcts[1](self.invProb.model) * reg.alpha_x
+                )
+
+                if reg.regmesh.dim == 2:
+                    phi_y += (
+                        reg.objfcts[2](self.invProb.model) * reg.alpha_y
+                    )
+                elif reg.regmesh.dim == 3:
+                    phi_y += (
+                        reg.objfcts[2](self.invProb.model) * reg.alpha_y
+                    )
+                    phi_z += (
+                        reg.objfcts[3](self.invProb.model) * reg.alpha_z
+                    )
+        elif getattr(reg.objfcts[0].objfcts, None) is None:
             phi_s += (
-                reg.objfcts[0](self.invProb.model) * reg.alpha_s
+                self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
             )
             phi_x += (
-                reg.objfcts[1](self.invProb.model) * reg.alpha_x
+                self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
             )
 
-            if reg.regmesh.dim == 2:
+            if self.reg.regmesh.dim == 2:
                 phi_y += (
-                    reg.objfcts[2](self.invProb.model) * reg.alpha_y
+                    self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
                 )
-            elif reg.regmesh.dim == 3:
+            elif self.reg.regmesh.dim == 3:
                 phi_y += (
-                    reg.objfcts[2](self.invProb.model) * reg.alpha_y
+                    self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
                 )
                 phi_z += (
-                    reg.objfcts[3](self.invProb.model) * reg.alpha_z
+                    self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
                 )
 
         self.beta.append(self.invProb.beta)
@@ -443,7 +463,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
             self.i_target = i_target
 
     def plot_misfit_curves(
-        self, fname=None, dpi=300,
+        self, fname=None, dpi=None,
         plot_phi_m=True, plot_small=False,
         plot_smooth=False):
 
@@ -456,31 +476,33 @@ class SaveOutputEveryIteration(SaveEveryIteration):
                 i_target += 1
             self.i_target = i_target
 
-        fig = plt.figure(figsize=(5, 2))
+        fig = plt.figure(figsize=(10, 4))
         ax = plt.subplot(111)
         ax_1 = ax.twinx()
-        ax.semilogy(np.arange(len(self.phi_d)), self.phi_d, 'k-', lw=2, label="$\phi_d$")
+        ax.semilogy(np.arange(len(self.phi_d)), self.phi_d, 'ko-', lw=2, label="$\phi_d$")
         if plot_phi_m:
-            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m, 'r', lw=2,label="$\phi_m$")
+            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m, 'bo-', lw=2,label="$\phi_m$")
         if plot_small:
-            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m_small, 'ro', label="small")
+            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m_small, 'ro-', label="small")
         if plot_smooth:
-            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m_smooth_x, 'rx',label="smooth_x")
-            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m_smooth_y, 'rx',label="smooth_y")
-            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m_smooth_z, 'rx',label="smooth_z")
-        ax.legend(loc=1)
-        ax_1.legend(loc=2)
+            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m_smooth_x, 'gx-',label="smooth_x")
+            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m_smooth_y, 'gx-',label="smooth_y")
+            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m_smooth_z, 'gx-',label="smooth_z")
+
 
         ax.plot(np.r_[ax.get_xlim()[0], ax.get_xlim()[1]],
-                np.ones(2) * self.target_misfit, 'k:')
+                np.ones(2) * self.target_misfit, 'k:', label='target misfit')
         ax.set_xlabel("Iteration")
         ax.set_ylabel("$\phi_d$")
         ax_1.set_ylabel("$\phi_m$", color='r')
         ax_1.tick_params(axis='y', which='both', colors='red')
 
+        ax.legend(loc=1)
+        ax_1.legend(loc=2)
+
         plt.show()
         if fname is not None:
-            fig.savefig(fname, dpi=dpi)
+            fig.savefig(fname, dpi=dpi, bbox_inches='tight', pad_inches=0)
 
     def plot_tikhonov_curves(self, fname=None, dpi=200):
 
@@ -2101,6 +2123,9 @@ class AddMrefInSmooth(InversionDirective):
             self.petroregularizer.mref)
 
         same_mref = np.all(self.membership == self.previous_membership)
+        percent_diff = (len(self.membership) - np.count_nonzero(
+                    self.previous_membership == self.membership
+                ))/len(self.membership)
         if self.verbose:
             print(
                 'mref changes in ',
@@ -2109,12 +2134,12 @@ class AddMrefInSmooth(InversionDirective):
                 ),
                 ' places'
             )
-        if self.DM and (same_mref or not self.wait_till_stable):
+        if self.DM and (same_mref or not self.wait_till_stable or percent_diff<=self.tolerance):
             self.invProb.reg.mrefInSmooth = True
             self.petroregularizer.mrefInSmooth = True
 
             if self.verbose:
-                print('add mref to Smoothness')
+                print('add mref to Smoothness. Percent_diff is ', percent_diff)
 
             if self._regmode == 2:
                 for i in range(self.nbr):
