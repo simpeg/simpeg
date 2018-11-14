@@ -151,11 +151,11 @@ class MagneticIntegral(Problem.LinearProblem):
             else:
                 w = W.diagonal()
 
-            self.gtgdiag = np.zeros(dmudm.shape[1])
+            # self.gtgdiag = np.zeros(dmudm.shape[1])
 
-            for ii in range(self.G.shape[0]):
+            # for ii in range(self.G.shape[0]):
 
-                self.gtgdiag += (w[ii]*(dmudm.T*self.G[ii, :]).T)**2.
+            self.gtgdiag = da.sum(self.G**2., 0).compute()
 
             print(self.gtgdiag.min(), self.gtgdiag.max())
             # self.gtgdiag = np.array(da.sum(da.power(self.G, 2), axis=0))
@@ -164,7 +164,7 @@ class MagneticIntegral(Problem.LinearProblem):
             if self.modelType == 'amplitude':
                 return np.sum((W * self.dfdm * sdiag(mkvc(self.gtgdiag)**0.5) * dmudm)**2., axis=0)
             else:
-                return self.gtgdiag
+                return mkvc(np.sum((sdiag(mkvc(self.gtgdiag)**0.5) * dmudm).power(2.), axis=0))
 
         else:  # spherical
             if self.modelType == 'amplitude':
