@@ -8,7 +8,7 @@ import numpy as np
 import properties
 from SimPEG.EM.Utils.EMUtils import mu_0, omega
 from SimPEG.EM.NSEM.RxNSEM import (
-    Point_tipper3D, Point_impedance3D, Point_horizontalmagvar3D)
+    Point_tipper3D, Point_impedance1D, Point_impedance3D, Point_horizontalmagvar3D)
 
 # Define the default component dictionaries
 DEFAULT_COMP_DICT = {
@@ -1132,6 +1132,7 @@ def _extract_location_data(
     for src in data.survey.srcList:
         rx = _get_rx(src, tensor, orientation, component)
         if rx is None:
+            print('None rx found')
             if return_uncert:
                 return (np.array([]), np.array([]),
                         np.array([]), np.array([]))
@@ -1174,7 +1175,10 @@ def _unique_rows(array):
 def _get_rx(src, tensor_type, orientation, component):
 
     if 'Z' in tensor_type:
-        class_type = Point_impedance3D
+        if '1d' in orientation:
+            class_type = Point_impedance1D
+        else:
+            class_type = Point_impedance3D
     elif 'T' in tensor_type:
         class_type = Point_tipper3D
     elif 'M' in tensor_type:

@@ -5,6 +5,7 @@ from . import Maps
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
+from collections import OrderedDict
 
 
 class InversionDirective(object):
@@ -508,6 +509,62 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         if fname is not None:
             fig.savefig(fname, dpi=dpi)
 
+
+class StoreOutputDict(SaveEveryIteration):
+    """
+        Store inversion parameters as a Pandas Dataframes
+    """
+
+    inversion_progress = OrderedDict(
+        iter=[], beta=[], phi_d=[], phi_m=[], f=[],
+        phi_ms=[], phi_mr=[], phi_mx=[], phi_my=[], phi_mz=[])
+    predicted_model = OrderedDict()
+    predicted_data = OrderedDict()
+
+    def initialize(self):
+        print('StoreOutputDataframe will store inversion pregreas as a Pandas Dataframe')
+
+        ## Save initial state (iter 0)
+
+    def endIter(self):
+
+        # Collect the data.
+        iter_nr = self.opt.iter
+        self.inversion_progress['iter'].append(iter_nr)
+        self.inversion_progress['beta'].append(self.invProb.beta)
+        self.inversion_progress['phi_d'].append(self.invProb.phi_d)
+        self.inversion_progress['phi_m'].append(self.invProb.phi_m)
+
+        # Set default value to 0
+        phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
+        for reg in self.reg.objfcts:
+            phi_s += (
+                reg.objfcts[0](self.invProb.model) * reg.alpha_s
+            )
+            phi_x += (
+                reg.objfcts[1](self.invProb.model) * reg.alpha_x
+            )
+            if reg.regmesh.dim > 1:
+                phi_y += (
+                    reg.objfcts[2](self.invProb.model) * reg.alpha_y
+                )
+
+            if reg.regmesh.dim > 2:
+                phi_z += (
+                    reg.objfcts[3](self.invProb.model) * reg.alpha_z
+                )
+
+        self.inversion_progress['phi_ms'].append(phi_s)
+        self.inversion_progress['phi_mr'].append(phi_x + phi_y + phi_z)
+        self.inversion_progress['phi_mx'].append(phi_x)
+        self.inversion_progress['phi_my'].append(phi_y)
+        self.inversion_progress['phi_mz'].append(phi_z)
+        self.inversion_progress['f'].append(self.opt.f)
+        # Add to the
+        self.predicted_model[iter_nr] = self.invProb.model
+        self.predicted_data[iter_nr] = self.invProb.dmisfit.simulation.dataPair(
+            survey=self.invProb.dmisfit.simulation.survey,
+            dobs=self.invProb.dpred)
 
 class SaveOutputDictEveryIteration(SaveEveryIteration):
     """

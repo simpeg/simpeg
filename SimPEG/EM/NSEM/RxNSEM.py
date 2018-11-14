@@ -366,8 +366,8 @@ class Point_impedance1D(BaseFDEMRx):
     """
 
     orientation = properties.GettableProperty(
-        "The tensor orientation of the receiver. Default as 'yx'",
-        default='yx'
+        "The tensor orientation of the receiver. Default as '1d'",
+        default='1d'
     )
 
     component = properties.StringChoice(
