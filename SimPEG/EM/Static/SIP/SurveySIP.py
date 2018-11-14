@@ -150,7 +150,6 @@ def from_dc_to_sip_survey(survey_dc, times):
                 rxList_sip, src.loc[0], src.loc[1]
             )
         else:
-            print (src)
             raise NotImplementedError()
         srcList_sip.append(src_sip)
 

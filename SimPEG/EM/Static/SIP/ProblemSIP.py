@@ -525,7 +525,9 @@ class BaseSIPProblem(BaseEMProblem):
                 for src in self.survey.srcList:
                     u_src = f[src, self._solutionType]
                     for rx in src.rxList:
+
                         # Ignore case when each rx has different # of times
+
                         # timeindex = rx.getTimeP(self.survey.times)
                         # if timeindex[tind]:
                         # wrt f, need possibility wrt m
@@ -543,6 +545,7 @@ class BaseSIPProblem(BaseEMProblem):
                             u_src, ATinvdf_duT, adjoint=True
                         )
                         # Unecessary at the moment
+
                         # dRHS_dmT = self.getRHSDeriv(
                         #     src, ATinvdf_duT, adjoint=True
                         # )
