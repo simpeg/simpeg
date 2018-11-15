@@ -182,6 +182,17 @@ class MagneticsDriver_Inv(object):
         return self._mesh
 
     @property
+    def topo(self):
+        if getattr(self, '_topo', None) is None:
+
+            if getattr(self, 'topofile', None) is not None:
+                self._topo = np.genfromtxt(
+                    self.basePath + self.topofile, skip_header=1
+                )
+
+        return self._topo
+
+    @property
     def survey(self):
         if getattr(self, '_survey', None) is None:
             self._survey, _ = Utils.io_utils.readUBCmagneticsObservations(
@@ -192,13 +203,9 @@ class MagneticsDriver_Inv(object):
     @property
     def activeCells(self):
         if getattr(self, '_activeCells', None) is None:
-            if getattr(self, 'topofile', None) is not None:
-                topo = np.genfromtxt(
-                    self.basePath + self.topofile, skip_header=1
-                )
-
+            if getattr(self, 'topo', None) is not None:
                 # Find the active cells
-                active = Utils.surface2ind_topo(self.mesh, topo, 'N')
+                active = Utils.surface2ind_topo(self.mesh, self.topo, 'N')
 
             elif isinstance(self._staticInput, float):
                 active = self.m0 != self._staticInput
