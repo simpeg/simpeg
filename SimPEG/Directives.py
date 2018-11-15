@@ -370,7 +370,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
     def endIter(self):
 
         phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
-        if getattr(reg.objfcts[0].objfcts, None) is not None:
+        if getattr(self.reg.objfcts[0], 'objfcts', None) is not None:
             for reg in self.reg.objfcts:
                 phi_s += (
                     reg.objfcts[0](self.invProb.model) * reg.alpha_s
@@ -390,7 +390,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
                     phi_z += (
                         reg.objfcts[3](self.invProb.model) * reg.alpha_z
                     )
-        elif getattr(reg.objfcts[0].objfcts, None) is None:
+        elif getattr(self.reg.objfcts[0], 'objfcts', None) is None:
             phi_s += (
                 self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
             )
