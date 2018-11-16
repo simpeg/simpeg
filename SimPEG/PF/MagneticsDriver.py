@@ -189,6 +189,8 @@ class MagneticsDriver_Inv(object):
                 self._topo = np.genfromtxt(
                     self.basePath + self.topofile, skip_header=1
                 )
+            else:
+                self._topo = None
 
         return self._topo
 
