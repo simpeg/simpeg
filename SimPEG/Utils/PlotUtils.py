@@ -80,7 +80,7 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
 
         cont = ax.contourf(
             X, Y, DATA, levels=levels,
-            #vmin=vmin, vmax=vmax,
+            vmin=vmin, vmax=vmax,
             **contourOpts
         )
         if level is not None:
@@ -138,7 +138,7 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
 
         cont = ax.contourf(
             X, Y, DATA, levels=levels,
-            #vmin=vmin, vmax=vmax,
+            vmin=vmin, vmax=vmax,
             **contourOpts
         )
         ax.streamplot(X, Y, DATAx, DATAy, color="w")
