@@ -47,7 +47,46 @@ def plot2Ddata(
         DATA = DATA.reshape(X.shape)
         if scale == "log":
             DATA = np.log10(abs(DATA))
-        cont = ax.contourf(X, Y, DATA, ncontour, **contourOpts)
+
+        # Levels definitions
+        dataselection = np.logical_and(
+            ~np.isnan(DATA),
+            np.abs(DATA) != np.inf
+            )
+        if clim is None:
+            vmin = DATA[dataselection].min()
+            vmax = DATA[dataselection].max()
+        else:
+            vmin = np.min(clim)
+            vmax = np.max(clim)
+            if scale == "log":
+                vmin = np.log10(vmin)
+                vmax = np.log10(vmax)
+        if np.logical_or(
+            np.logical_or(
+                np.isnan(vmin),
+                np.isnan(vmax)
+            ),
+            np.logical_or(
+                np.abs(vmin) == np.inf,
+                np.abs(vmax) == np.inf
+            )
+        ):
+            raise Exception(
+                """clim must be sctrictly positive in log scale"""
+            )
+        vstep = np.abs((vmin-vmax)/(ncontour+1))
+        levels = np.arange(vmin, vmax+vstep, vstep)
+        if DATA[dataselection].min() < vmin:
+                levels = np.r_[DATA[dataselection].min(), levels]
+        if DATA[dataselection].max() > vmax:
+                levels = np.r_[levels, DATA[dataselection].max()]
+
+        cont = ax.contourf(
+            X, Y, DATA, levels=levels,
+            vmin=vmin, vmax=vmax,
+            **contourOpts
+        )
         if level is not None:
             if scale == "log":
                 level = np.log10(level)
@@ -67,7 +106,45 @@ def plot2Ddata(
         if scale == "log":
             DATA = np.log10(abs(DATA))
 
-        cont = ax.contourf(X, Y, DATA, ncontour, **contourOpts)
+        # Levels definitions
+        dataselection = np.logical_and(
+            ~np.isnan(DATA),
+            np.abs(DATA) != np.inf
+            )
+        if clim is None:
+            vmin = DATA[dataselection].min()
+            vmax = DATA[dataselection].max()
+        else:
+            vmin = np.min(clim)
+            vmax = np.max(clim)
+            if scale == "log":
+                vmin = np.log10(vmin)
+                vmax = np.log10(vmax)
+        if np.logical_or(
+            np.logical_or(
+                np.isnan(vmin),
+                np.isnan(vmax)
+            ),
+            np.logical_or(
+                np.abs(vmin) == np.inf,
+                np.abs(vmax) == np.inf
+            )
+        ):
+            raise Exception(
+                """clim must be sctrictly positive in log scale"""
+            )
+        vstep = np.abs((vmin-vmax)/(ncontour+1))
+        levels = np.arange(vmin, vmax+vstep, vstep)
+        if DATA[dataselection].min() < vmin:
+                levels = np.r_[DATA[dataselection].min(), levels]
+        if DATA[dataselection].max() > vmax:
+                levels = np.r_[levels, DATA[dataselection].max()]
+
+        cont = ax.contourf(
+            X, Y, DATA, levels=levels,
+            vmin=vmin, vmax=vmax,
+            **contourOpts
+        )
         ax.streamplot(X, Y, DATAx, DATAy, color="w")
         if level is not None:
             CS = ax.contour(X, Y, DATA, level, **levelOpts)
