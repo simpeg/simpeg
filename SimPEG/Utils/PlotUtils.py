@@ -73,9 +73,9 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
             )
         vstep = np.abs((vmin-vmax)/(ncontour+1))
         levels = np.arange(vmin, vmax+vstep, vstep)
-        if DATA[dataselection].min() < vmin:
+        if DATA[dataselection].min() < levels.min():
                 levels = np.r_[DATA[dataselection].min(), levels]
-        if DATA[dataselection].max() > vmax:
+        if DATA[dataselection].max() > levels.max():
                 levels = np.r_[levels, DATA[dataselection].max()]
 
         cont = ax.contourf(
@@ -131,9 +131,9 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
             )
         vstep = np.abs((vmin-vmax)/(ncontour+1))
         levels = np.arange(vmin, vmax+vstep, vstep)
-        if DATA[dataselection].min() < vmin:
+        if DATA[dataselection].min() < levels.min():
                 levels = np.r_[DATA[dataselection].min(), levels]
-        if DATA[dataselection].max() > vmax:
+        if DATA[dataselection].max() > levels.max():
                 levels = np.r_[levels, DATA[dataselection].max()]
 
         cont = ax.contourf(
