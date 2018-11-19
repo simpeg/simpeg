@@ -1,6 +1,6 @@
 """
-Plotting Pseudosections with DC.IO class
-========================================
+Reading and Plotting data with DC.IO class
+==========================================
 
 The DC.IO class is a convenient way to handle DC data and
 carry inversions within a same class. It also has several plotting utils
