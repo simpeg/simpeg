@@ -3,10 +3,12 @@ from scipy.interpolate import LinearNDInterpolator
 import matplotlib.pyplot as plt
 
 
-def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
-               ax=None, mask=None, level=None, figname=None,
-               ncontour=10, dataloc=False, contourOpts={},
-               scale="linear", clim=None):
+def plot2Ddata(
+    xyz, data, vec=False, nx=100, ny=100,
+    ax=None, mask=None, level=False, figname=None,
+    ncontour=10, dataloc=False, contourOpts={},
+    levelOpts={}, scale="linear", clim=None
+):
     """
 
         Take unstructured xy points, interpolate, then plot in 2D
@@ -18,12 +20,14 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
         :param float ny: number of y grid locations
         :param matplotlib.axes ax: axes
         :param numpy.array mask: mask for the array
-        :param float level: level at which to draw a contour
+        :param boolean level: boolean to plot (or not)
+                                :meth:`matplotlib.pyplot.contour`
         :param string figname: figure name
         :param float ncontour: number of :meth:`matplotlib.pyplot.contourf`
-                               contours
+                                contours
         :param bool dataloc: plot the data locations
         :param dict controuOpts: :meth:`matplotlib.pyplot.contourf` options
+        :param dict levelOpts: :meth:`matplotlib.pyplot.contour` options
         :param numpy.array clim: colorbar limits
 
     """
@@ -83,10 +87,8 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
             vmin=vmin, vmax=vmax,
             **contourOpts
         )
-        if level is not None:
-            if scale == "log":
-                level = np.log10(level)
-            CS = ax.contour(X, Y, DATA, level, colors="k", linewidths=2)
+        if level:
+            CS = ax.contour(X, Y, DATA, levels=levels, **levelOpts)
 
     else:
         # Assume size of data is (N,2)
@@ -142,8 +144,8 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
             **contourOpts
         )
         ax.streamplot(X, Y, DATAx, DATAy, color="w")
-        if level is not None:
-            CS = ax.contour(X, Y, DATA, level, colors="k", linewidths=2)
+        if level:
+            CS = ax.contour(X, Y, DATA, levels=levels, **levelOpts)
 
     if dataloc:
         ax.plot(xyz[:, 0], xyz[:, 1], 'k.', ms=2)
@@ -151,10 +153,10 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
     if figname:
         plt.axis("off")
         fig.savefig(figname, dpi=200)
-    if level is None:
-        return cont, ax
-    else:
+    if level:
         return cont, ax, CS
+    else:
+        return cont, ax
 
 
 def plotLayer(sig, LocSigZ, xscale='log', ax=None,
