@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.interpolate import LinearNDInterpolator
+from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
 import matplotlib.pyplot as plt
 
 
@@ -7,7 +7,8 @@ def plot2Ddata(
     xyz, data, vec=False, nx=100, ny=100,
     ax=None, mask=None, level=False, figname=None,
     ncontour=10, dataloc=False, contourOpts={},
-    levelOpts={}, scale="linear", clim=None
+    levelOpts={}, scale="linear", clim=None,
+    method='linear'
 ):
     """
 
@@ -19,7 +20,7 @@ def plot2Ddata(
         :param float nx: number of x grid locations
         :param float ny: number of y grid locations
         :param matplotlib.axes ax: axes
-        :param numpy.array mask: mask for the array
+        :param boolean numpy.array mask: mask for the array
         :param boolean level: boolean to plot (or not)
                                 :meth:`matplotlib.pyplot.contour`
         :param string figname: figure name
@@ -29,6 +30,7 @@ def plot2Ddata(
         :param dict controuOpts: :meth:`matplotlib.pyplot.contourf` options
         :param dict levelOpts: :meth:`matplotlib.pyplot.contour` options
         :param numpy.array clim: colorbar limits
+        :param str method: interpolation method, either 'linear' or 'nearest'
 
     """
     if ax is None:
@@ -42,7 +44,10 @@ def plot2Ddata(
     X, Y = np.meshgrid(x, y)
     xy = np.c_[X.flatten(), Y.flatten()]
     if vec is False:
-        F = LinearNDInterpolator(xyz[:, :2], data)
+        if method == 'nearest':
+            F = NearestNDInterpolator(xyz[:, :2], data)
+        else:
+            F = LinearNDInterpolator(xyz[:, :2], data)
         DATA = F(xy)
         DATA = DATA.reshape(X.shape)
         if scale == "log":
@@ -82,6 +87,12 @@ def plot2Ddata(
         if DATA[dataselection].max() > levels.max():
                 levels = np.r_[levels, DATA[dataselection].max()]
 
+        if mask is not None:
+            Fmask = NearestNDInterpolator(xyz[:, :2], mask)
+            MASK = Fmask(xy)
+            MASK = MASK.reshape(X.shape)
+            DATA = np.ma.masked_array(DATA, mask=MASK)
+
         cont = ax.contourf(
             X, Y, DATA, levels=levels,
             vmin=vmin, vmax=vmax,
@@ -94,8 +105,12 @@ def plot2Ddata(
         # Assume size of data is (N,2)
         datax = data[:, 0]
         datay = data[:, 1]
-        Fx = LinearNDInterpolator(xyz[:, :2], datax)
-        Fy = LinearNDInterpolator(xyz[:, :2], datay)
+        if method == 'nearest':
+            Fx = NearestNDInterpolator(xyz[:, :2], datax)
+            Fy = NearestNDInterpolator(xyz[:, :2], datay)
+        else:
+            Fx = LinearNDInterpolator(xyz[:, :2], datax)
+            Fy = LinearNDInterpolator(xyz[:, :2], datay)
         DATAx = Fx(xy)
         DATAy = Fy(xy)
         DATA = np.sqrt(DATAx**2+DATAy**2).reshape(X.shape)
@@ -137,6 +152,12 @@ def plot2Ddata(
                 levels = np.r_[DATA[dataselection].min(), levels]
         if DATA[dataselection].max() > levels.max():
                 levels = np.r_[levels, DATA[dataselection].max()]
+
+        if mask is not None:
+            Fmask = NearestNDInterpolator(xyz[:, :2], mask)
+            MASK = Fmask(xy)
+            MASK = MASK.reshape(X.shape)
+            DATA = np.ma.masked_array(DATA, mask=MASK)
 
         cont = ax.contourf(
             X, Y, DATA, levels=levels,
