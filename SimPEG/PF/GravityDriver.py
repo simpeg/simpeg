@@ -133,7 +133,7 @@ class GravityDriver_Inv(object):
         line = fid.readline()
         l_input = re.split('[!\s]', line)
         if l_input[0] == 'VALUE':
-            val = np.array(l_input[1:6])
+            val = np.array(l_input[1:5])
             lpnorms = val.astype(np.float)
 
         elif l_input[0] == 'FILE':
@@ -169,6 +169,19 @@ class GravityDriver_Inv(object):
         return self._mesh
 
     @property
+    def topo(self):
+        if getattr(self, '_topo', None) is None:
+
+            if getattr(self, 'topofile', None) is not None:
+                self._topo = np.genfromtxt(
+                    self.basePath + self.topofile, skip_header=1
+                )
+            else:
+                self._topo = None
+
+        return self._topo
+
+    @property
     def survey(self):
         if getattr(self, '_survey', None) is None:
             self._survey = Utils.io_utils.readUBCgravityObservations(
@@ -179,12 +192,9 @@ class GravityDriver_Inv(object):
     @property
     def activeCells(self):
         if getattr(self, '_activeCells', None) is None:
-            if getattr(self, 'topofile', None) is not None:
-                topo = np.genfromtxt(
-                    self.basePath + self.topofile, skip_header=1
-                )
+            if getattr(self, 'topo', None) is not None:
                 # Find the active cells
-                active = Utils.surface2ind_topo(self.mesh, topo, 'N')
+                active = Utils.surface2ind_topo(self.mesh, self.topo, 'N')
 
             elif isinstance(self._staticInput, float):
                 active = self.m0 != self._staticInput
@@ -199,6 +209,7 @@ class GravityDriver_Inv(object):
                 ],
                 dtype=int
             ) - 1
+
             self._activeCells = inds
 
             # Reduce m0 to active space

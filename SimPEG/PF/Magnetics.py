@@ -77,7 +77,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
             else:
 
-                fields = da.dot(self.G, m)
+                fields = da.dot(self.G, m.astype(np.float32))
 
             if self.modelType == 'amplitude':
 
@@ -440,14 +440,14 @@ class Forward(object):
 
 
         nChunks = self.n_cpu # Number of chunks
-        cSa, cSb = int(self.nD/nChunks), int(self.nC/nChunks) # Chunk sizes
-        totRAM = cSa*cSb*8*self.n_cpu*1e-9
+        rowChunk, colChunk = int(self.nD/nChunks), int(self.nC/nChunks) # Chunk sizes
+        totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
         while totRAM > self.maxRAM:
             nChunks *= 2
-            cSa, cSb = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-            totRAM = cSa*cSb*8*nCPU*1e-9
+            rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+            totRAM = rowChunk*colChunk*8*nCPU*1e-9
 
-        print(nChunks, cSa, cSb, totRAM)
+        print(nChunks, rowChunk, colChunk, totRAM)
 
         if self.parallelized:
 
@@ -467,7 +467,7 @@ class Forward(object):
                     stack = da.vstack(buildMat)
 
                     # TO-DO: Find a way to create in chunks instead
-                    stack = stack.rechunk((cSa, cSb))
+                    stack = stack.rechunk((rowChunk, colChunk))
 
                     if self.storeG:
                         with ProgressBar():
@@ -501,7 +501,7 @@ class Forward(object):
         # G = dask.delayed(da.vstack)(mat)
 
         if self.forwardOnly:
-            return np.array(np.dot(G, model))
+            return np.array(da.dot(G, model))
 
         else:
             return G

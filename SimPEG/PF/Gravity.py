@@ -1,13 +1,17 @@
 from __future__ import print_function
 from SimPEG import Problem, Mesh
 from SimPEG import Utils
-from SimPEG.Utils import mkvc
+from SimPEG.Utils import mkvc, matutils, sdiag
 from SimPEG import Props
 import scipy as sp
 import scipy.constants as constants
 import os
 import time
 import numpy as np
+import dask
+import dask.array as da
+from dask.diagnostics import ProgressBar
+import multiprocessing
 
 class GravityIntegral(Problem.LinearProblem):
 
@@ -21,35 +25,37 @@ class GravityIntegral(Problem.LinearProblem):
     actInd = None  #: Active cell indices provided
     rxType = 'z'
     silent = False
+    equiSourceLayer = False
     memory_saving_mode = False
     parallelized = False
     n_cpu = None
     progressIndex = -1
     gtgdiag = None
-
-    aa = []
+    Jpath = "./sensitivity.zarr"
+    maxRAM = 8  # Maximum memory usage
+    verbose = True
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     def fields(self, m):
-        self.model = self.rhoMap*m
-
+        # self.model = self.rhoMap*m
+        m = self.rhoMap*m
         if self.forwardOnly:
 
             # Compute the linear operation without forming the full dense G
-            fields = self.Intrgl_Fwr_Op()
+            fields = self.Intrgl_Fwr_Op(m=m)
 
             return mkvc(fields)
 
         else:
-            vec = np.dot(self.G, (self.model).astype(np.float32))
+            fields = da.dot(self.G, m)
 
-            return vec.astype(np.float64)
+            return np.array(fields, dtype='float')
 
-    def mapping(self):
+    def modelMap(self):
         """
-            Return rhoMap
+            Call for general mapping of the problem
         """
         return self.rhoMap
 
@@ -58,6 +64,9 @@ class GravityIntegral(Problem.LinearProblem):
             Return the diagonal of JtJ
         """
 
+        dmudm = self.rhoMap.deriv(m)
+        self.model = m
+
         if self.gtgdiag is None:
 
             if W is None:
@@ -65,28 +74,35 @@ class GravityIntegral(Problem.LinearProblem):
             else:
                 w = W.diagonal()
 
-            dmudm = self.rhoMap.deriv(m)
-            self.gtgdiag = np.zeros(dmudm.shape[1])
+            self.gtgdiag = da.sum(self.G**2., 0).compute()
 
-            for ii in range(self.G.shape[0]):
+            # for ii in range(self.G.shape[0]):
 
-                self.gtgdiag += (w[ii]*self.G[ii, :]*dmudm)**2.
+            #     self.gtgdiag += (w[ii]*self.G[ii, :]*dmudm)**2.
 
-        return self.gtgdiag
+        return mkvc(np.sum((sdiag(mkvc(self.gtgdiag)**0.5) * dmudm).power(2.), axis=0))
 
     def getJ(self, m, f=None):
         """
             Sensitivity matrix
         """
-        return self.G
+
+        dmudm = self.rhoMap.deriv(m)
+
+        return da.dot(self.G, dmudm)
 
     def Jvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
-        return self.G.dot(dmudm*v)
+
+        vec = da.dot(self.G, (dmudm*v).astype(np.float32))
+
+        return vec.astype(np.float64)
 
     def Jtvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
-        return dmudm.T * (self.G.T.dot(v))
+
+        vec = da.dot(self.G.T, v.astype(np.float32))
+        return dmudm.T * vec.astype(np.float64)
 
     @property
     def G(self):
@@ -94,10 +110,9 @@ class GravityIntegral(Problem.LinearProblem):
             raise Exception('Need to pair!')
 
         if getattr(self, '_G', None) is None:
-            print("Begin linear forward calculation: " + self.rxType)
-            start = time.time()
+
             self._G = self.Intrgl_Fwr_Op()
-            print("Linear forward calculation ended in: " + str(time.time()-start) + " sec")
+
         return self._G
 
     def Intrgl_Fwr_Op(self, m=None, rxType='z'):
@@ -145,12 +160,8 @@ class GravityIntegral(Problem.LinearProblem):
         # (lower and upper corners for each cell)
         if isinstance(self.mesh, Mesh.TreeMesh):
             # Get upper and lower corners of each cell
-            bsw = (self.mesh.gridCC -
-                   np.kron(self.mesh.vol.T**(1/3)/2,
-                           np.ones(3)).reshape((self.mesh.nC, 3)))
-            tne = (self.mesh.gridCC +
-                   np.kron(self.mesh.vol.T**(1/3)/2,
-                           np.ones(3)).reshape((self.mesh.nC, 3)))
+            bsw = (self.mesh.gridCC - self.mesh.h_gridded/2.)
+            tne = (self.mesh.gridCC + self.mesh.h_gridded/2.)
 
             xn1, xn2 = bsw[:, 0], tne[:, 0]
             yn1, yn2 = bsw[:, 1], tne[:, 1]
@@ -164,6 +175,10 @@ class GravityIntegral(Problem.LinearProblem):
 
             yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
             yn1, xn1, zn1 = np.meshgrid(yn[:-1], xn[:-1], zn[:-1])
+
+        # If equivalent source, use semi-infite prism
+        if self.equiSourceLayer:
+            zn1 -= 1000.
 
         self.Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
         self.Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
@@ -180,19 +195,20 @@ class GravityIntegral(Problem.LinearProblem):
                 rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
                 model=self.model, rxType=self.rxType,
-                parallelized=self.parallelized
+                parallelized=self.parallelized,
+                verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM
                 )
 
         G = job.calculate()
 
         return G
 
-    @property
-    def mapPair(self):
-        """
-            Call for general mapping of the problem
-        """
-        return self.rhoMap
+    # @property
+    # def mapPair(self):
+    #     """
+    #         Call for general mapping of the problem
+    #     """
+    #     return self.rhoMap
 
 
 class Forward(object):
@@ -208,6 +224,10 @@ class Forward(object):
     forwardOnly = False
     model = None
     rxType = 'z'
+    verbose = True
+    maxRAM = 8
+    storeG = True
+    Jpath = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
         super(Forward, self).__init__()
@@ -216,19 +236,46 @@ class Forward(object):
     def calculate(self):
 
         self.nD = self.rxLoc.shape[0]
+        self.nC = self.Xn.shape[0]
+        self.n_cpu = int(multiprocessing.cpu_count())
+
+        nChunks = self.n_cpu  # Number of chunks
+        rowChunk, colChunk = int(self.nD/nChunks), int(self.nC/nChunks)  # Chunk sizes
+        totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
+        while totRAM > self.maxRAM:
+            nChunks *= 2
+            rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+            totRAM = rowChunk*colChunk*8*nCPU*1e-9
 
         if self.parallelized:
-            if self.n_cpu is None:
 
-                # By default take half the cores, turns out be faster
-                # than running full threads
-                self.n_cpu = int(multiprocessing.cpu_count()/2)
+            # print(chunkSize)
 
-            pool = multiprocessing.Pool(self.n_cpu)
+                if os.path.exists(self.Jpath):
+                    print("Load G from zarr")
+                    G = da.from_zarr(self.Jpath)
 
-            result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
-            pool.close()
-            pool.join()
+                else:
+
+                    row = dask.delayed(self.calcTrow, pure=True)
+
+                    makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
+                    buildMat = [da.from_delayed(makeRow, dtype=float, shape=(1, self.nC)) for makeRow in makeRows]
+
+                    stack = da.vstack(buildMat)
+
+                    # TO-DO: Find a way to create in chunks instead
+                    stack = stack.rechunk((rowChunk, colChunk))
+
+                    if self.storeG:
+                        with ProgressBar():
+                            print("Saving G to zarr: "+ self.Jpath)
+                            da.to_zarr(stack, self.Jpath)
+
+                        G = da.from_zarr(self.Jpath)
+
+                    else:
+                        G = stack.compute()
 
         else:
 
@@ -237,11 +284,13 @@ class Forward(object):
                 result += [self.calcTrow(self.rxLoc[ii, :])]
                 self.progress(ii, self.nD)
 
+            G = np.vstack(result)
+
         if self.forwardOnly:
-            return mkvc(np.vstack(result))
+            return np.array(da.dot(G, model))
 
         else:
-            return np.vstack(result)
+            return G
 
     def calcTrow(self, xyzLoc):
         """
