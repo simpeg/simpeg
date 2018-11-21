@@ -64,6 +64,28 @@ def order_clusters_GM_weight(GMmodel, outputindex=False):
         return indx
 
 
+def order_clusters_GM_mean(GMmodel, outputindex=False):
+    '''
+    order cluster by increasing mean for Gaussian Mixture scikit object
+    '''
+
+    indx = np.argsort(GMmodel.means_, axis=0)[::-1]
+    GMmodel.means_ = GMmodel.means_[indx].reshape(GMmodel.means_.shape)
+    GMmodel.weights_ = GMmodel.weights_[indx].reshape(GMmodel.weights_.shape)
+    if GMmodel.covariance_type == 'tied':
+        pass
+    else:
+        GMmodel.precisions_ = GMmodel.precisions_[
+            indx].reshape(GMmodel.precisions_.shape)
+        GMmodel.covariances_ = GMmodel.covariances_[
+            indx].reshape(GMmodel.covariances_.shape)
+    GMmodel.precisions_cholesky_ = _compute_precision_cholesky(
+        GMmodel.covariances_, GMmodel.covariance_type)
+
+    if outputindex:
+        return indx
+
+
 def order_cluster(GMmodel, GMref, outputindex=False):
     order_clusters_GM_weight(GMmodel)
 
