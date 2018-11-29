@@ -2037,14 +2037,16 @@ def ddx(n, vals):
 
 
 def getDiffOpRot(mesh, psi, theta, phi, vec, forward=True):
+
+    import scipy as sp
     assert mesh.dim > 1, 'Only for mesh 2D and 3D'
 
     def getCellNeighbors(mesh):
         Dx = mesh._cellGradxStencil
         Dy = mesh._cellGradyStencil
         # Get the current IJ of the stencil derive
-        Ix, Jx, _ = sp.find(Dx)
-        Iy, Jy, _ = sp.find(Dy)
+        Ix, Jx, _ = sp.sparse.find(Dx)
+        Iy, Jy, _ = sp.sparse.find(Dy)
         jx = np.sort(Jx[np.argsort(Ix)].reshape((int(Ix.shape[0]/2), 2)), axis=1)
         jy = np.sort(Jy[np.argsort(Iy)].reshape((int(Iy.shape[0]/2), 2)), axis=1)
         jx_bck = np.c_[jx[:, 1], jx[:, 0]]
@@ -2054,11 +2056,12 @@ def getDiffOpRot(mesh, psi, theta, phi, vec, forward=True):
 
         if mesh.dim == 3:
             Dz = mesh._cellGradzStencil
-            Iz, Jz, _ = sp.find(Dz)
+            Iz, Jz, _ = sp.sparse.find(Dz)
             jz = np.sort(Jz[np.argsort(Iz)].reshape((int(Iz.shape[0]/2), 2)), axis=1)
             jz_bck = np.c_[jz[:, 1], jz[:, 0]]
 
             maxInd = np.max([jz.max(), maxInd])
+
 
         # Cycle through the gradients forward and backward to deal with multiple
         # levels on Tree mesh
@@ -2168,24 +2171,24 @@ def getDiffOpRot(mesh, psi, theta, phi, vec, forward=True):
         rza = mkvc(np.c_[np.cos(phi), np.cos(phi)].T)
         rzb = mkvc(np.c_[np.sin(phi), np.zeros(mesh.nC)].T)
         rzc = mkvc(np.c_[-np.sin(phi), np.zeros(mesh.nC)].T)
-        Rz = sp.diags([rzb[:-1], rza, rzc[:-1]], [-1, 0, 1])
+        Rz = sp.sparse.diags([rzb[:-1], rza, rzc[:-1]], [-1, 0, 1])
         rx = (Rz*px.T).reshape((mesh.nC, 2))
     else:
         # Create sparse rotation operators
         rxa = mkvc(np.c_[np.ones(mesh.nC), np.cos(psi), np.cos(psi)].T)
         rxb = mkvc(np.c_[np.zeros(mesh.nC), np.sin(psi), np.zeros(mesh.nC)].T)
         rxc = mkvc(np.c_[np.zeros(mesh.nC), -np.sin(psi), np.zeros(mesh.nC)].T)
-        Rx = sp.diags([rxb[:-1], rxa, rxc[:-1]], [-1, 0, 1])
+        Rx = sp.sparse.diags([rxb[:-1], rxa, rxc[:-1]], [-1, 0, 1])
 
         rya = mkvc(np.c_[np.cos(theta), np.ones(mesh.nC), np.cos(theta)].T)
         ryb = mkvc(np.c_[np.sin(theta), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
         ryc = mkvc(np.c_[-np.sin(theta), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
-        Ry = sp.diags([ryb[:-2], rya, ryc[:-2]], [-2, 0, 2])
+        Ry = sp.sparse.diags([ryb[:-2], rya, ryc[:-2]], [-2, 0, 2])
 
         rza = mkvc(np.c_[np.cos(phi), np.cos(phi), np.ones(mesh.nC)].T)
         rzb = mkvc(np.c_[np.sin(phi), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
         rzc = mkvc(np.c_[-np.sin(phi), np.zeros(mesh.nC), np.zeros(mesh.nC)].T)
-        Rz = sp.diags([rzb[:-1], rza, rzc[:-1]], [-1, 0, 1])
+        Rz = sp.sparse.diags([rzb[:-1], rza, rzc[:-1]], [-1, 0, 1])
 
         # Rotate all cell vectors
         rx = (Rz*(Ry*(Rx*px.T))).reshape((mesh.nC, 3))
@@ -2208,8 +2211,7 @@ def getDiffOpRot(mesh, psi, theta, phi, vec, forward=True):
             np.max([
                 np.min([sTNE[:, 1], nTNE[:, 1]], axis=0) -
                 np.max([sBSW[:, 1], nBSW[:, 1]], axis=0),
-                np.zeros(jd.shape[0])], axis=0)
-        )
+                np.zeros(jd.shape[0])], axis=0))
 
     if mesh.dim == 3:
         V *= np.max([
@@ -2218,50 +2220,20 @@ def getDiffOpRot(mesh, psi, theta, phi, vec, forward=True):
                 np.zeros(jd.shape[0])], axis=0)
 
     # Remove all rows of zero
-    jd = jd[V > 0, :]
-    V = V[V > 0]
+    ind = (V > 0) * (jd[:, 0] != jd[:, 1])
+    print(sum(ind))
+    jd = jd[ind, :]
+    V = V[ind]
 
-    Dx2 = sp.csr_matrix((-V, (jd[:, 0], jd[:, 1])), shape=(mesh.nC, mesh.nC))
+    Dx2 = sp.sparse.csr_matrix((V, (jd[:, 0], jd[:, 1])), shape=(mesh.nC, mesh.nC))
 
-    _, ind = np.unique(jd[:, 0], return_index=True)
-    # Move the bottom-SW and top-NE nodes of stencil cell
-    nBSW = mesh.gridCC[jd[ind, 0], :] - mesh.h_gridded[jd[ind, 0], :]/2 + rx[jd[ind, 0], :]*mesh.h_gridded[jd[ind, 0], :]
-    nTNE = mesh.gridCC[jd[ind, 0], :] + mesh.h_gridded[jd[ind, 0], :]/2 + rx[jd[ind, 0], :]*mesh.h_gridded[jd[ind, 0], :]
+    # Normalize rows
+    V = mkvc(sp.sum(Dx2, axis=1))
+    V[V > 0] = 1. / V[V > 0]
+    Dx2 = -sdiag(V) * Dx2
 
-    # Get the remaining cells and compute partial volume
-    sBSW = mesh.gridCC[jd[ind, 0], :] - mesh.h_gridded[jd[ind, 0], :]/2
-    sTNE = mesh.gridCC[jd[ind, 0], :] + mesh.h_gridded[jd[ind, 0], :]/2
+    diag = np.ones(mesh.nC)
+    diag[V == 0] = 0
 
-    # Compute fractional volumes with base stencil
-    V = (
-            np.max([
-                np.min([sTNE[:, 0], nTNE[:, 0]], axis=0) -
-                np.max([sBSW[:, 0], nBSW[:, 0]], axis=0),
-                np.zeros(sTNE.shape[0])], axis=0) *
-            np.max([
-                np.min([sTNE[:, 1], nTNE[:, 1]], axis=0) -
-                np.max([sBSW[:, 1], nBSW[:, 1]], axis=0),
-                np.zeros(sTNE.shape[0])], axis=0))
-
-    if mesh.dim == 3:
-        V *= np.max([
-                np.min([sTNE[:, 2], nTNE[:, 2]], axis=0) -
-                np.max([sBSW[:, 2], nBSW[:, 2]], axis=0),
-                np.zeros(sTNE.shape[0])], axis=0)
-
-    V = mesh.vol[jd[ind, 0]] - V
-    Dx1 = sp.csr_matrix((V, (jd[ind, 0], jd[ind, 0])), shape=(mesh.nC, mesh.nC))
-
-    V = sp.csr_matrix((1./mesh.vol[jd[ind, 0]], (jd[ind, 0], jd[ind, 0])), shape=(mesh.nC,mesh.nC))
-    # Normalize the rows
-    rows = np.unique(jd[:, 0])
-
-
-#     print((np.max(Dx, axis=1)).shape)
-#     print(normV[ind])
-#     normV = np.zeros(mesh.nC)
-#     print(normV[ind])
-#     normV[ind] = 1./((np.max(Dx, axis=1))[ind])
-
-    Dx = V * (Dx1 + Dx2)
+    Dx = (sdiag(diag) + Dx2)
     return Dx
