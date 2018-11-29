@@ -406,7 +406,7 @@ def writeVectorUBC(mesh, fileName, model):
         :param string fileName: File to write to
         :param numpy.ndarray model: The model
     """
-
+    from SimPEG import Utils
     modelMatTR = np.zeros_like(model)
 
     for ii in range(3):

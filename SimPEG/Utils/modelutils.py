@@ -8,7 +8,6 @@ from scipy.spatial import cKDTree
 import discretize as Mesh
 from discretize.utils import closestPoints, kron3, speye
 
-
 def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest',
                      fill_value=np.nan):
     """
@@ -241,7 +240,10 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
 
     nCx = int(limx[0]-limx[1]) / h[0]
     nCy = int(limy[0]-limy[1]) / h[1]
-    nCz = int(limz[0]-limz[1]+int(np.min(np.r_[nCx, nCy])/3)) / h[2]
+    nCz = int(np.max([
+            limz[0]-limz[1], 
+            int(np.min(np.r_[nCx*h[0], nCy*h[1]])/3)
+            ]) / h[2])
 
     if meshType == 'TENSOR':
         # Make sure the core has odd number of cells for centereing
@@ -302,8 +304,7 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
         maxLevel = int(np.log2(extent/h[0]))+1
 
         # Number of cells at the small octree level
-        # For now equal in 3D
-
+        # equal in 3D
         nCx, nCy, nCz = 2**(maxLevel), 2**(maxLevel), 2**(maxLevel)
 
         # nCy = 2**(int(np.log2(extent/h[1]))+1)
@@ -379,36 +380,45 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
         limx = np.r_[xyz[:, 0].max(), xyz[:, 0].min()]
         limy = np.r_[xyz[:, 1].max(), xyz[:, 1].min()]
 
-        F = NearestNDInterpolator(xyz[:, :2], xyz[:, 2])
+        # Get center of the mesh
+        midX = np.mean(limx)
+        midY = np.mean(limy)
 
+        dx = mesh.hx.min()
+        dy = mesh.hy.min()
+        dz = mesh.hz.min()
 
+        nCx = int(limx[0]-limx[1]) / dx
+        nCy = int(limy[0]-limy[1]) / dy
+
+        # Create a grid at the octree level in xy
+        CCx, CCy = np.meshgrid(
+            np.linspace(limx[1], limx[0], nCx),
+            np.linspace(limy[1], limy[0], nCy)
+        )
+
+        z = griddata(xyz[:, :2], xyz[:, 2], (mkvc(CCx), mkvc(CCy)), method='linear')
+
+        # Only keep points inside the convex hull
+        CCx, CCy, z = mkvc(CCx)[~np.isnan(z)], mkvc(CCy)[~np.isnan(z)], z[~np.isnan(z)]
+
+        # Increment the vertical offset
         zOffset = 0
-        # Cycle through the first 3 octree levels
+        # Cycle through the Tree levels
         for ii in range(len(nCpad)):
 
-            dx = mesh.hx.min()*2**ii
-            dy = mesh.hy.min()*2**ii
-            dz = mesh.hz.min()*2**ii
+            # Increase the horizontal extent of the surface
+            # as a function of Tree level
+            r = ((CCx-midX)**2. + (CCy-midY)**2.)**0.5
+            expFact = (r.max() + 2*mesh.hx.min()*2**ii)/r.max()
 
-            # Horizontal offset
-            xOff = dx * 2
-            yOff = dy * 2
-
-            nCx = int(limx[0]-limx[1] + 2 * xOff) / dx
-            nCy = int(limy[0]-limy[1] + 2 * yOff) / dy
-
-            # Create a grid at the octree level in xy
-            CCx, CCy = np.meshgrid(
-                np.linspace(limx[1]-xOff, limx[0]+xOff, nCx),
-                np.linspace(limy[1]-yOff, limy[0]+yOff, nCy)
-            )
-
-            z = F(mkvc(CCx), mkvc(CCy))
+            x = (CCx-midX) * expFact + midX
+            y = (CCy-midY) * expFact + midY
 
             for level in range(int(nCpad[ii])):
 
                 mesh.insert_cells(
-                    np.c_[mkvc(CCx), mkvc(CCy), z-zOffset], np.ones_like(z)*maxLevel-ii,
+                    np.c_[x, y, z-zOffset], np.ones_like(z)*maxLevel-ii,
                     finalize=False
                 )
 
@@ -418,15 +428,15 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
             mesh.finalize()
 
     else:
-        NotImplementedError("Only dtype='points' has been implemented")
+        NotImplementedError("Only dtype= 'surface' | 'points' has been implemented")
 
     return mesh
 
 
 def minCurvatureInterp(
-    locs, data,
+    locs, data, mesh=None,
     vectorX=None, vectorY=None, vectorZ=None, gridSize=10,
-    tol=1e-5, iterMax=None, method='spline'
+    tol=1e-5, iterMax=200, method='spline'
 ):
     """
     Interpolate properties with a minimum curvature interpolation
@@ -498,30 +508,52 @@ def minCurvatureInterp(
     ndim = locs.shape[1]
 
     # Define a new grid based on data extent
-    if vectorX is None:
-        xmin, xmax = locs[:, 0].min(), locs[:, 0].max()
-        nCx = int((xmax-xmin)/gridSize)
-        vectorX = xmin+np.cumsum(np.ones(nCx) * gridSize)
+    if mesh is None:
+        if vectorX is None:
+            xmin, xmax = locs[:, 0].min(), locs[:, 0].max()
+            nCx = int((xmax-xmin)/gridSize)
+            vectorX = xmin+np.cumsum(np.ones(nCx) * gridSize)
 
-    if vectorY is None and ndim >= 2:
-        ymin, ymax = locs[:, 1].min(), locs[:, 1].max()
-        nCy = int((ymax-ymin)/gridSize)
-        vectorY = ymin+np.cumsum(np.ones(nCy) * gridSize)
+        if vectorY is None and ndim >= 2:
+            ymin, ymax = locs[:, 1].min(), locs[:, 1].max()
+            nCy = int((ymax-ymin)/gridSize)
+            vectorY = ymin+np.cumsum(np.ones(nCy) * gridSize)
 
-    if vectorZ is None and ndim == 3:
-        zmin, zmax = locs[:, 2].min(), locs[:, 2].max()
-        nCz = int((zmax-zmin)/gridSize)
-        vectorZ = zmin+np.cumsum(np.ones(nCz) * gridSize)
+        if vectorZ is None and ndim == 3:
+            zmin, zmax = locs[:, 2].min(), locs[:, 2].max()
+            nCz = int((zmax-zmin)/gridSize)
+            vectorZ = zmin+np.cumsum(np.ones(nCz) * gridSize)
 
-    if ndim == 3:
-        gridCy, gridCx, gridCz = np.meshgrid(vectorY, vectorX, vectorZ)
-        gridCC = np.c_[mkvc(gridCx), mkvc(gridCy), mkvc(gridCz)]
-    elif ndim == 2:
-        gridCy, gridCx = np.meshgrid(vectorY, vectorX)
-        gridCC = np.c_[mkvc(gridCx), mkvc(gridCy)]
+        if ndim == 3:
+
+            mesh = Mesh.TensorMesh([
+                np.ones(nCx) * gridSize,
+                np.ones(nCy) * gridSize,
+                np.ones(nCz) * gridSize
+                ])
+            mesh.x0 = [xmin, ymin, zmin]
+
+            # gridCy, gridCx, gridCz = np.meshgrid(vectorY, vectorX, vectorZ)
+            # gridCC = np.c_[mkvc(gridCx), mkvc(gridCy), mkvc(gridCz)]
+        elif ndim == 2:
+
+            mesh = Mesh.TensorMesh([
+                np.ones(nCx) * gridSize,
+                np.ones(nCy) * gridSize
+                ])
+            mesh.x0 = [xmin, ymin]
+            # gridCy, gridCx = np.meshgrid(vectorY, vectorX)
+            # gridCC = np.c_[mkvc(gridCx), mkvc(gridCy)]
+        else:
+            mesh = Mesh.TensorMesh([
+                np.ones(nCx) * gridSize
+                ])
+            mesh.x0 = xmin
     else:
-        gridCC = vectorX
 
+        gridSize = mesh.h_gridded.min()
+
+    gridCC = mesh.gridCC
     # Build the cKDTree for distance lookup
     tree = cKDTree(locs)
     # Get the grid location
@@ -531,15 +563,13 @@ def minCurvatureInterp(
         data = np.c_[data]
 
     if method == 'relaxation':
-
-        Ave = aveCC2F(gridCx)
+        # Ave = aveCC2F(gridCC)
+        Ave = mesh.aveCC2F
 
         count = 0
         residual = 1.
 
-
         m = np.zeros((gridCC.shape[0], data.shape[1]))
-
         # Begin with neighrest primers
         for ii in range(m.shape[1]):
             # F = NearestNDInterpolator(mesh.gridCC[ijk], data[:, ii])
@@ -548,7 +578,7 @@ def minCurvatureInterp(
         while np.all([count < iterMax, residual > tol]):
             for ii in range(m.shape[1]):
                 # Reset the closest cell grid to the contraints
-                m[d < 1.1*gridSize, ii] = data[ind[d < 1.1*gridSize], ii]
+                m[d < gridSize, ii] = data[ind[d < gridSize], ii]
             mtemp = m
             m = Ave.T * (Ave * m)
             residual = np.linalg.norm(m-mtemp)/np.linalg.norm(mtemp)
@@ -572,7 +602,7 @@ def minCurvatureInterp(
 
         # Solve system for the weights
         for dd in range(data.shape[1]):
-            w = bicgstab(A, data[:, dd], tol=1e-6)
+            w = bicgstab(A, data[:, dd], tol=tol)
 
             # We can parallelize this part later
             for i in range(nC):
@@ -580,4 +610,4 @@ def minCurvatureInterp(
                 r = (gridCC[i, 0] - locs[:, 0])**2. + (gridCC[i, 1] - locs[:, 1])**2.
                 m[i, dd] = np.sum(w[0] * r.T * (np.log((r.T + 1e-8)**0.5) - 1.))
 
-    return gridCC, m, gridCx.shape
+    return mesh, m
