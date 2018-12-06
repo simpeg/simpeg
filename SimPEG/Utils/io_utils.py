@@ -27,24 +27,19 @@ def read_GOCAD_ts(tsfile):
 
     """
 
-    import re
-    import vtk
-    import vtk.util.numpy_support as npsup
-
     fid = open(tsfile, 'r')
     line = fid.readline()
 
     # Skip all the lines until the vertices
     VRTX, TRGL = [], []
-    while re.match('END', line) == True:
-        line = fid.readline()
+    while 'END' not in line:
 
-        if re.match('END', line) == True:
+        while 'VRTX' not in line:
             line = fid.readline()
-        vrtx = []
 
+        vrtx = []
         # Run down all the vertices and save in array
-        while re.match('VRTX', line):
+        while np.any(['VRTX' in line, 'PVRTX' in line]):
             l_input = re.split('[\s*]', line)
             temp = np.array(l_input[2:5])
             vrtx.append(temp.astype(np.float))
@@ -52,17 +47,17 @@ def read_GOCAD_ts(tsfile):
             # Read next line
             line = fid.readline()
 
-        vrtx = np.asarray(vrtx)
+        VRTX += [np.asarray(vrtx)]
 
         # Skip lines to the triangles
-        while re.match('TRGL', line) == None:
+        while 'TRGL' not in line:
             line = fid.readline()
 
         # Run down the list of triangles
         trgl = []
 
         # Run down all the vertices and save in array
-        while re.match('TRGL', line):
+        while 'TRGL' in line:
             l_input = re.split('[\s*]', line)
             temp = np.array(l_input[1:4])
             trgl.append(temp.astype(np.int))
@@ -70,9 +65,74 @@ def read_GOCAD_ts(tsfile):
             # Read next line
             line = fid.readline()
 
-        trgl = np.asarray(trgl)
+        TRGL += [np.asarray(segs)]
 
-    return vrtx, trgl
+    return VRTX, TRGL
+
+
+def read_GOCAD_pl(plFile):
+    """
+
+    Read GOCAD polyline file (*.pl)
+    INPUT:
+    plFile: Polyline object
+
+    OUTPUT:
+    vrts : List Array of vertices in XYZ coordinates [n x 3]
+    segs : List Array of index for segments [m x 3]. The order of the vertices
+            is important and describes the normal
+            n = cross( (P2 - P1 ) , (P3 - P1) )
+
+    Author: @fourndo
+
+
+    .. note::
+
+        Remove all attributes from the GoCAD surface before exporting it!
+
+    """
+
+    fid = open(plFile, 'r')
+    line = fid.readline()
+
+    # Skip all the lines until the vertices
+    VRTX, SEGS = [], []
+    while 'END' not in line:
+
+        while 'VRTX' not in line:
+            line = fid.readline()
+
+        vrtx = []
+        # Run down all the vertices and save in array
+        while np.any(['VRTX' in line, 'PVRTX' in line]):
+            l_input = re.split('[\s*]', line)
+            temp = np.array(l_input[2:5])
+            vrtx.append(temp.astype(np.float))
+
+            # Read next line
+            line = fid.readline()
+
+        VRTX += [np.asarray(vrtx)]
+
+        # Skip lines to the triangles
+        while 'SEG' not in line:
+            line = fid.readline()
+
+        # Run down the list of triangles
+        segs = []
+
+        # Run down all the vertices and save in array
+        while 'SEG' in line:
+            l_input = re.split('[\s*]', line)
+            temp = np.array(l_input[1:3])
+            segs.append(temp.astype(np.int))
+
+            # Read next line
+            line = fid.readline()
+
+        SEGS += [np.asarray(segs)]
+
+    return VRTX, SEGS
 
 
 def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
