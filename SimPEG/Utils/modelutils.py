@@ -241,7 +241,7 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
     nCx = int(limx[0]-limx[1]) / h[0]
     nCy = int(limy[0]-limy[1]) / h[1]
     nCz = int(np.max([
-            limz[0]-limz[1], 
+            limz[0]-limz[1],
             int(np.min(np.r_[nCx*h[0], nCy*h[1]])/3)
             ]) / h[2])
 
@@ -611,3 +611,38 @@ def minCurvatureInterp(
                 m[i, dd] = np.sum(w[0] * r.T * (np.log((r.T + 1e-8)**0.5) - 1.))
 
     return mesh, m
+
+
+def activeTopoLayer(mesh, topo, index=0):
+    """
+        Find the ith layer below topo
+    """
+
+    actv = np.zeros(mesh.nC, dtype='bool')
+    # Get cdkTree to find top layer
+    tree = cKDTree(mesh.gridCC)
+
+    def ismember(a, b):
+        bind = {}
+        for i, elt in enumerate(b):
+            if elt not in bind:
+                bind[elt] = i
+        return np.vstack([bind.get(itm, None) for itm in a])
+
+    grid_x, grid_y = np.meshgrid(mesh.vectorCCx, mesh.vectorCCy)
+    zInterp = mkvc(griddata(topo[:, :2], topo[:, 2], (grid_x, grid_y), method='nearest'))
+    r, inds = tree.query(np.c_[mkvc(grid_x), mkvc(grid_y), zInterp])
+    inds = np.unique(inds)
+
+    # Extract neighbors from operators
+    Dz = mesh._cellGradzStencil
+    Iz, Jz, _ = sp.find(Dz)
+    jz = np.sort(Jz[np.argsort(Iz)].reshape((int(Iz.shape[0]/2), 2)), axis=1)
+    for ii in range(index):
+
+        members = ismember(inds, jz[:, 1])
+        inds = np.squeeze(jz[members, 0])
+
+    actv[inds] = True
+
+    return actv
