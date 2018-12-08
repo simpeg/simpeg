@@ -61,6 +61,12 @@ def plot2Ddata(
         if clim is None:
             vmin = DATA[dataselection].min()
             vmax = DATA[dataselection].max()
+        elif np.logical_and(
+            'vmin' in contourOpts.keys(),
+            'vmax' in contourOpts.keys()
+        ):
+            vmin = contourOpts['vmin']
+            vmax = contourOpts['vmax']
         else:
             vmin = np.min(clim)
             vmax = np.max(clim)
