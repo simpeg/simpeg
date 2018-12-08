@@ -466,7 +466,7 @@ def writeVectorUBC(mesh, fileName, model):
         :param string fileName: File to write to
         :param numpy.ndarray model: The model
     """
-    from SimPEG import Utils
+
     modelMatTR = np.zeros_like(model)
 
     for ii in range(3):
@@ -477,4 +477,33 @@ def writeVectorUBC(mesh, fileName, model):
         # Flip z to positive down
         modelMatTR[:, ii] = Utils.mkvc(modelMatT[::-1, :, :])
 
+    # Flip Z for UBC file format
+    modelMatTR[:, 2] *= -1
+
     np.savetxt(fileName, modelMatTR)
+
+
+def readVectorUBC(mesh, fileName):
+    """
+        Read a vector model associated with a SimPEG TensorMesh
+        to a UBC-GIF format model file.
+
+        :param string fileName: File to write to
+        :param numpy.ndarray model: The model
+    """
+
+    # f = open(fileName, 'r')
+    model = np.loadtxt(fileName)
+    # f.close()
+
+    vModel = np.zeros((mesh.nC, 3))
+    for ii in range(3):
+        comp = np.reshape(model[:, ii], (mesh.nCz, mesh.nCx, mesh.nCy), order='F')
+        comp = comp[::-1, :, :]
+        comp = np.transpose(comp, (1, 2, 0))
+        vModel[:, ii] = Utils.mkvc(comp)
+
+    # Flip the z vector
+    vModel[:, 2] *= -1
+    return vModel
+
