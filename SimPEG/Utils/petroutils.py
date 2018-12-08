@@ -137,7 +137,13 @@ def ComputeConstantTerm(GMmodel):
     return cste
 
 
-def UpdateGaussianMixtureModel(GMmodel, GMref, alphadir=0., nu=0., kappa=0., verbose=False, update_covariances=False):
+def UpdateGaussianMixtureModel(
+    GMmodel, GMref,
+    alphadir=0., nu=0., kappa=0.,
+    verbose=False,
+    update_covariances=False,
+    prior_type="semi"
+):
 
     computePrecision(GMmodel)
     order_cluster(GMmodel, GMref)
@@ -148,6 +154,14 @@ def UpdateGaussianMixtureModel(GMmodel, GMref, alphadir=0., nu=0., kappa=0., ver
         print('before update precisions: ', GMmodel.precisions_)
 
     for k in range(GMmodel.n_components):
+        if prior_type == 'full':
+                smu = (kappa[k]*GMmodel.weights_[k]) * ((GMref.means_[k]-GMmodel.means_[k])**2.)
+                print('1',smu)
+                smu /= (kappa[k] + GMmodel.weights_[k])
+                print('2',smu)
+                smu *= (1. / (GMmodel.weights_[k] + GMref.weights_[k] * nu[k]))
+                print('3',smu)
+
         GMmodel.means_[k] = (1. / (GMmodel.weights_[k] + GMref.weights_[k] * kappa[k])) * (
             GMmodel.weights_[k] * GMmodel.means_[k] + GMref.weights_[k] * kappa[k] * GMref.means_[k])
 
@@ -156,6 +170,11 @@ def UpdateGaussianMixtureModel(GMmodel, GMref, alphadir=0., nu=0., kappa=0., ver
         elif update_covariances:
             GMmodel.covariances_[k] = (1. / (GMmodel.weights_[k] + GMref.weights_[k] * nu[k])) * (
                 GMmodel.weights_[k] * GMmodel.covariances_[k] + GMref.weights_[k] * nu[k] * GMref.covariances_[k])
+
+            if prior_type == 'full':
+                GMmodel.covariances_[k] += smu
+                print('full',smu)
+
         else:
             GMmodel.precisions_[k] = (
                 1. / (GMmodel.weights_[k] + GMref.weights_[k] * nu[k])) * (
@@ -384,7 +403,7 @@ class GaussianMixtureWithPrior(GaussianMixture):
 
     def __init__(
         self, GMref, kappa=0., nu=0., alphadir=0.,
-        prior_type='semi',  # semi or conjuguate
+        prior_type='semi',  # semi or full
         init_params='kmeans', max_iter=100,
         means_init=None, n_init=10, precisions_init=None,
         random_state=None, reg_covar=1e-06, tol=0.001, verbose=0,
@@ -481,6 +500,7 @@ class GaussianMixtureWithPrior(GaussianMixture):
                     kappa=self.kappa,
                     verbose=self.verbose,
                     update_covariances=self.update_covariances,
+                    prior_type=self.prior_type
                 )
                 self.lower_bound_ = self._compute_lower_bound(
                     log_resp, log_prob_norm)
@@ -736,7 +756,7 @@ class GaussianMixtureWithMappingWithPrior(GaussianMixtureWithPrior):
 
     def __init__(
         self, GMref, kappa=0., nu=0., alphadir=0.,
-        prior_type='semi',  # semi or conjuguate
+        prior_type='semi',  # semi or conjugate
         cluster_mapping=None,
         init_params='kmeans', max_iter=100,
         means_init=None, n_init=10, precisions_init=None,
