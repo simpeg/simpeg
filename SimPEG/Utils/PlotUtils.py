@@ -93,9 +93,13 @@ def plot2Ddata(
             MASK = MASK.reshape(X.shape)
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
+        if 'vmin' not in contourOpts.keys():
+            contourOpts['vmin'] = vmin
+        if 'vmax' not in contourOpts.keys():
+            contourOpts['vmax'] = vmax
+
         cont = ax.contourf(
             X, Y, DATA, levels=levels,
-            vmin=vmin, vmax=vmax,
             **contourOpts
         )
         if level:
