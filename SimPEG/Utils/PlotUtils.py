@@ -78,9 +78,13 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
         if DATA[dataselection].max() > vmax:
                 levels = np.r_[levels, DATA[dataselection].max()]
 
+        if 'vmin' not in contourOpts.keys():
+            contourOpts['vmin'] = vmin
+        if 'vmax' not in contourOpts.keys():
+            contourOpts['vmax'] = vmax
+
         cont = ax.contourf(
             X, Y, DATA, levels=levels,
-            vmin=vmin, vmax=vmax,
             **contourOpts
         )
         if level is not None:
