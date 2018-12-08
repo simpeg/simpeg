@@ -61,6 +61,12 @@ def plot2Ddata(
         if clim is None:
             vmin = DATA[dataselection].min()
             vmax = DATA[dataselection].max()
+        elif np.logical_and(
+            'vmin' in contourOpts.keys(),
+            'vmax' in contourOpts.keys()
+        ):
+            vmin = contourOpts['vmin']
+            vmax = contourOpts['vmax']
         else:
             vmin = np.min(clim)
             vmax = np.max(clim)
@@ -93,9 +99,13 @@ def plot2Ddata(
             MASK = MASK.reshape(X.shape)
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
+        if 'vmin' not in contourOpts.keys():
+            contourOpts['vmin'] = vmin
+        if 'vmax' not in contourOpts.keys():
+            contourOpts['vmax'] = vmax
+
         cont = ax.contourf(
             X, Y, DATA, levels=levels,
-            vmin=vmin, vmax=vmax,
             **contourOpts
         )
         if level:

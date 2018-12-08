@@ -36,15 +36,30 @@ def run(plotIt=True):
         ax1 = plt.subplot(121)
         ax2 = plt.subplot(122)
         # Plot Real Ex (scalar)
-        cont1, ax1 = Utils.plot2Ddata(xyz, Ex.real, dataloc=True,
-                                      ax=ax1, contourOpts={"cmap": "viridis"})
+        cont1, ax1, cont1l = Utils.plot2Ddata(
+            xyz, Ex.real, dataloc=True,
+            ax=ax1, contourOpts={"cmap": "viridis"},
+            ncontour=5, level=True,
+            levelOpts={'colors': 'k', 'linestyles': 'dashed', 'linewidths': 1}
+        )
         # Make it as (ndata,2) matrix
         E = np.c_[Ex, Ey]
         # Plot Real E (vector)
-        cont2, ax2 = Utils.plot2Ddata(xyz, E.real, vec=True,
-                                      ax=ax2, contourOpts={"cmap": "viridis"})
-        plt.colorbar(cont1, ax=ax1, orientation="horizontal")
-        plt.colorbar(cont2, ax=ax2, orientation="horizontal")
+        cont2, ax2 = Utils.plot2Ddata(
+            xyz, E.real, vec=True,
+            ax=ax2, contourOpts={"cmap": "viridis"},
+            ncontour=5
+        )
+        cb1 = plt.colorbar(
+            cont1, ax=ax1, orientation="horizontal",
+            format='%.1e'
+        )
+        cb1.ax.set_xticklabels(cb1.ax.get_xticklabels(), rotation=45)
+        cb2 = plt.colorbar(
+            cont2, ax=ax2, orientation="horizontal",
+            format='%.1e'
+        )
+        cb2.ax.set_xticklabels(cb2.ax.get_xticklabels(), rotation=45)
         ax1.set_xlabel("x")
         ax1.set_ylabel("y")
         ax2.set_xlabel("x")
