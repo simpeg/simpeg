@@ -386,7 +386,7 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
 
         dx = mesh.hx.min()
         dy = mesh.hy.min()
-        dz = mesh.hz.min()
+
 
         nCx = int(limx[0]-limx[1]) / dx
         nCy = int(limy[0]-limy[1]) / dy
@@ -406,7 +406,7 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
         zOffset = 0
         # Cycle through the Tree levels
         for ii in range(len(nCpad)):
-
+            dz = mesh.hz.min() * 2**ii
             # Increase the horizontal extent of the surface
             # as a function of Tree level
             r = ((CCx-midX)**2. + (CCy-midY)**2.)**0.5
