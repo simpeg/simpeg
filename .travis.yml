@@ -33,7 +33,6 @@ env:
     # - TEST_DIR=tests/em/vrm
     # - TEST_DIR=tests/pf
     - TEST_DIR=tests/docs;
-      GAE_PYTHONPATH=${HOME}/.cache/google_appengine;
       PATH=$PATH:${HOME}/google-cloud-sdk/bin;
       PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH};
       CLOUDSDK_CORE_DISABLE_PROMPTS=1
@@ -62,10 +61,7 @@ install:
   - pip install -r requirements_dev.txt
   - python setup.py install
   - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      export PATH=${PATH%:/usr/lib/google-cloud-sdk/bin/git-credential-gcloud.sh};
-      export PATH=${PATH%:usr/lib/google-cloud-sdk/bin/gsutil};
-      export PATH=${PATH%:usr/lib/google-cloud-sdk/bin/bq};
-      export PATH=${PATH%:usr/lib/google-cloud-sdk/bin/gcloud};
+      export PATH=${PATH%:usr/lib/google-cloud-sdk/bin};
       if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi ;
       openssl aes-256-cbc -K $encrypted_7e0a8632ac3f_key -iv $encrypted_7e0a8632ac3f_iv -in credentials.tar.gz.enc -out credentials.tar.gz -d ;
       tar -xzf credentials.tar.gz ;
