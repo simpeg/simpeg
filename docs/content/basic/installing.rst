@@ -68,7 +68,7 @@ Success?
 ========
 
 If you have been successful at downloading and installing SimPEG, you should
-be able to download and run any of the :ref:`Examples`.
+be able to download and run any of the `Examples <http://docs.simpeg.xyz/content/examples/index.html>`_.
 
 If not, you can reach out to other people developing and using SimPEG on the
 `google forum <https://groups.google.com/forum/#!forum/simpeg>`_ or on
