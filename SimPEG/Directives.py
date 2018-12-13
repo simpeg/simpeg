@@ -1128,7 +1128,7 @@ class GaussianMixtureUpdateModel(InversionDirective):
             fixed_membership=self.fixed_membership,
         )
         clfupdate = clfupdate.fit(model)
-
+        #Utils.order_cluster(clfupdate, self.petroregularizer.GMmref)
         self.petroregularizer.GMmodel = clfupdate
         if self.fixed_membership is None:
             membership = clfupdate.predict(model)
@@ -1144,6 +1144,8 @@ class GaussianMixtureUpdateModel(InversionDirective):
         else:
             self.petroregularizer.mref = Utils.mkvc(
                 clfupdate.means_[self.fixed_membership])
+
+
 
 
 class UpdateReference(InversionDirective):
@@ -1270,12 +1272,17 @@ class SmoothUpdateReferenceModel(InversionDirective):
 
 class BoreholeLithologyConstraints(InversionDirective):
 
-    borehole_weight_mesh = None
+    borehole_index = None
+    borehole_lithology = None
 
     def endIter(self):
+        Utils.order_cluster(
+            self.invProb.reg.GMmodel,
+            self.invProb.reg.GMmref
+        )
         membership = self.invProb.reg.membership(self.invProb.reg.mref)
-
-        membership[self.borehole_index] = self.borehole_lithology
+        for bidx, lth in zip(self.borehole_index,self.borehole_lithology):
+            membership[bidx] = lth
 
         self.invProb.reg.mref = Utils.mkvc(
             self.invProb.reg.GMmodel.means_[membership]
@@ -2138,14 +2145,13 @@ class AddMrefInSmooth(InversionDirective):
             self.invProb.reg.mrefInSmooth = True
             self.petroregularizer.mrefInSmooth = True
 
-            if self.verbose:
-                print('add mref to Smoothness. Percent_diff is ', percent_diff)
-
             if self._regmode == 2:
                 for i in range(self.nbr):
                     if self.Smooth[i]:
                         self.invProb.reg.objfcts[
                             i].mref = self.petroregularizer.mref
+                if self.verbose:
+                    print('add mref to Smoothness. Percent_diff is ', percent_diff)
 
             elif self._regmode == 1:
                 for i in range(self.nbr):
@@ -2156,6 +2162,8 @@ class AddMrefInSmooth(InversionDirective):
                                   idx[0]].objfcts[idx[1]]))
                         self.invProb.reg.objfcts[idx[0]].objfcts[
                             idx[1]].mref = self.petroregularizer.mref
+                if self.verbose:
+                    print('add mref to Smoothness. Percent_diff is ', percent_diff)
 
         self.previous_membership = copy.deepcopy(self.membership)
 

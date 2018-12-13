@@ -63,19 +63,21 @@ class l2_DataMisfit(BaseDataMisfit):
 
     """
 
-    std = 0.05  #: default standard deviation if not provided by survey
+    std = None  #: default standard deviation if not provided by survey
     eps = None  #: default floor
     eps_factor = 1e-5  #: factor to multiply by the norm of the data to create floor
     scale = 1.
+
     def __init__(self, survey, **kwargs):
         BaseDataMisfit.__init__(self, survey, **kwargs)
 
         if self.std is None:
-            if getattr(self.survey, 'std', None) is not None:
+            if getattr(self.survey, 'std', None) is None:
                 print(
                     'SimPEG.DataMisfit.l2_DataMisfit assigning default std '
                     'of 5%'
                 )
+                self.std = 0.05
             else:
                 self.std = self.survey.std
 
