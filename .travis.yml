@@ -78,6 +78,7 @@ install:
 # Run test
 script:
   # - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s
+  - travis_wait 30 sleep 1800 &
   - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "3" ]; then
       cd docs; travis_wait 30 make html-noplot ; cd ../ ;
     else
