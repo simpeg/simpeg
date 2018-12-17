@@ -237,7 +237,9 @@ class Forward(object):
 
         self.nD = self.rxLoc.shape[0]
         self.nC = self.Xn.shape[0]
-        self.n_cpu = int(multiprocessing.cpu_count())
+
+        if self.n_cpu is None:
+            self.n_cpu = int(multiprocessing.cpu_count())
 
         nChunks = self.n_cpu  # Number of chunks
         rowChunk, colChunk = int(self.nD/nChunks), int(self.nC/nChunks)  # Chunk sizes
@@ -245,8 +247,8 @@ class Forward(object):
         while totRAM > self.maxRAM:
             nChunks *= 2
             rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-            totRAM = rowChunk*colChunk*8*nCPU*1e-9
-
+            totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
+        print(self.n_cpu, rowChunk,  colChunk, totRAM,  self.maxRAM)
         if self.parallelized:
 
             # print(chunkSize)

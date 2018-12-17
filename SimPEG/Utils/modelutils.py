@@ -334,7 +334,7 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
     return mesh
 
 
-def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
+def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1], distMax=200):
 
     maxLevel = int(np.log2(mesh.hx.shape[0]))
 
@@ -397,10 +397,17 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1]):
             np.linspace(limy[1], limy[0], nCy)
         )
 
-        z = griddata(xyz[:, :2], xyz[:, 2], (mkvc(CCx), mkvc(CCy)), method='linear')
+        # z = griddata(xyz[:, :2], xyz[:, 2], (mkvc(CCx), mkvc(CCy)), method='linear')
+
+        tree = cKDTree(xyz[:,:2])
+        # xi = _ndim_coords_from_arrays((gridCC[:,0], gridCC[:,1]), ndim=2)
+        dists, indexes = tree.query(np.c_[mkvc(CCx), mkvc(CCy)])
+
+        # Copy original result but mask missing values with NaNs
+        maskRadius = dists < distMax
 
         # Only keep points inside the convex hull
-        CCx, CCy, z = mkvc(CCx)[~np.isnan(z)], mkvc(CCy)[~np.isnan(z)], z[~np.isnan(z)]
+        CCx, CCy, z = mkvc(CCx)[maskRadius], mkvc(CCy)[maskRadius], xyz[indexes[maskRadius],2]
 
         # Increment the vertical offset
         zOffset = 0
