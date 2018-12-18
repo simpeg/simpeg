@@ -45,7 +45,6 @@ class DataMisfitTest(unittest.TestCase):
         self.dobs = dobs
         self.dmis = dmis
 
-
     def test_Wd_depreciation(self):
         with self.assertRaises(Exception):
             print(self.dmis.Wd)
