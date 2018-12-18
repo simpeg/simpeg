@@ -482,6 +482,7 @@ class BaseSurvey(object):
             )
         self.mtrue = m
         self.dtrue = self.dpred(m, f=f)
+
         if std is None and self.std is None:
             stddev = 0.05
             print(
@@ -490,12 +491,13 @@ class BaseSurvey(object):
                 )
         elif std is None:
             stddev = self.std
+        else:
+            stddev = std
             print(
                     'SimPEG.Survey assigned new std '
                     'of {:.2f}%'.format(100.*stddev)
                 )
-        else:
-            stddev = std
+
         noise = stddev*abs(self.dtrue)*np.random.randn(*self.dtrue.shape)
         self.dobs = self.dtrue+noise
         self.std = self.dobs*0 + stddev
