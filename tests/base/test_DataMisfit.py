@@ -44,8 +44,7 @@ class DataMisfitTest(unittest.TestCase):
         self.prob = prob
         self.dobs = dobs
         self.dmis = dmis
-        import SimPEG
-        print(SimPEG.__path__)
+
 
     def test_Wd_depreciation(self):
         with self.assertRaises(Exception):
