@@ -644,7 +644,7 @@ class Tile(IdentityMap):
         if getattr(self, '_P', None) is None:
 
             if self.meshLocal._meshType == "TREE":
-                print("In treeMesh")
+
                 indx = self.meshLocal._get_containing_cell_indexes(self.meshGlobal.gridCC[self.actvGlobal])
                 # print(indx.shape, np.where(self.actvGlobal)[0].shape)
                 full = np.c_[indx, np.asarray(range(self.actvGlobal.sum()))]
