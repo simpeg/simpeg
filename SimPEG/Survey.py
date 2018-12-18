@@ -465,7 +465,7 @@ class BaseSurvey(object):
         "Check if the data is synthetic."
         return self.mtrue is not None
 
-    def makeSyntheticData(self, m, std=0.05, f=None, force=False):
+    def makeSyntheticData(self, m, std=None, f=None, force=False):
         """
             Make synthetic data given a model, and a standard deviation.
 
@@ -482,9 +482,23 @@ class BaseSurvey(object):
             )
         self.mtrue = m
         self.dtrue = self.dpred(m, f=f)
-        noise = std*abs(self.dtrue)*np.random.randn(*self.dtrue.shape)
+        if std is None and self.std is None:
+            stddev = 0.05
+            print(
+                    'SimPEG.Survey assigned default std '
+                    'of 5%'
+                )
+        elif std is None:
+            stddev = self.std
+            print(
+                    'SimPEG.Survey assigned new std '
+                    'of {:.2f}%'.format(100.*stddev)
+                )
+        else:
+            stddev = std
+        noise = stddev*abs(self.dtrue)*np.random.randn(*self.dtrue.shape)
         self.dobs = self.dtrue+noise
-        self.std = self.dobs*0 + std
+        self.std = self.dobs*0 + stddev
         return self.dobs
 
 
