@@ -157,7 +157,6 @@ class MagneticIntegral(Problem.LinearProblem):
 
             self.gtgdiag = da.sum(self.G**2., 0).compute()
 
-            print(self.gtgdiag.min(), self.gtgdiag.max())
             # self.gtgdiag = np.array(da.sum(da.power(self.G, 2), axis=0))
 
         if self.coordinate_system == 'cartesian':
@@ -170,6 +169,7 @@ class MagneticIntegral(Problem.LinearProblem):
             if self.modelType == 'amplitude':
                 return np.sum(((W * self.dfdm) * da.dot(self.G, (self.dSdm * dmudm)))**2., axis=0)
             else:
+
                 Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm.T) * (self.dSdm * dmudm)
                 return mkvc(np.sum(Japprox.power(2), axis=0))
 
@@ -389,7 +389,6 @@ class MagneticIntegral(Problem.LinearProblem):
         elif magType == 'full':
 
             self.Mxyz = sp.identity(3*nC) * self.survey.srcField.param[0]
-
         else:
             raise Exception('magType must be: "H0" or "full"')
 
@@ -435,9 +434,8 @@ class Forward(object):
 
     def calculate(self):
         self.nD = self.rxLoc.shape[0]
-        self.nC = self.Xn.shape[0]
+        self.nC = self.Mxyz.shape[1]
         self.n_cpu = int(multiprocessing.cpu_count())
-
 
         nChunks = self.n_cpu # Number of chunks
         rowChunk, colChunk = int(self.nD/nChunks), int(self.nC/nChunks) # Chunk sizes

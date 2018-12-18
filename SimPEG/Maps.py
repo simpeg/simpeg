@@ -633,7 +633,7 @@ class Tile(IdentityMap):
                 (np.ones(nI), (np.where(self.index)[0], range(nI))), shape=(nP, nI)
             )
 
-            self._S = sp.block_diag([S for ii in range(self.nBlock)])
+            self._S = S
         return self._S
 
     @property
@@ -724,11 +724,15 @@ class Tile(IdentityMap):
 
             sumRow = Utils.mkvc(np.sum(P, axis=1) + self.tol)
 
-            self.scaleJ = Utils.sdiag(sumRow/self.meshLocal.vol[self.actvLocal])
+            self.scaleJ = sp.block_diag([
+                Utils.sdiag(sumRow/self.meshLocal.vol[self.actvLocal])
+                for ii in range(self.nBlock)])
 
-            self._P = Utils.sdiag(1./sumRow) * sp.block_diag([P for ii in range(self.nBlock)]) * self.S
+            self._P = sp.block_diag([
+                Utils.sdiag(1./sumRow) * P * self.S
+                for ii in range(self.nBlock)])
 
-            self._shape = self.actvLocal.sum(), self.actvGlobal.sum()
+            self._shape = int(self.actvLocal.sum()*self.nBlock), int(self.actvGlobal.sum()*self.nBlock)
 
         return self._P
 
