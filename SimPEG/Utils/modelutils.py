@@ -122,12 +122,12 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest',
     return mkvc(actind)
 
 
-def tileSurveyPoints(locs, maxNpoints):
+def tileSurveyPoints(locs, nRefine, minimize=True):
     """
         Function to tile an survey points into smaller square subsets of points
 
         :param numpy.ndarray locs: n x 2 array of locations [x,y]
-        :param integer maxNpoints: maximum number of points in each tile
+        :param integer nRefine: maximum number of points in each tile
 
         RETURNS:
         :param numpy.ndarray: Return a list of arrays  for the SW and NE
@@ -136,61 +136,55 @@ def tileSurveyPoints(locs, maxNpoints):
     """
 
     # Initialize variables
-    nNx = 2
-    nNy = 1
-    nObs = 1e+8
-    countx = 0
-    county = 0
-    xlim = [locs[:, 0].min(), locs[:, 0].max()]
-    ylim = [locs[:, 1].min(), locs[:, 1].max()]
+    # Test each refinement level for maximum space coverage
+    nTx = 0
+    nTy = 0
+    for ii in range(nRefine+1):
 
-    # Refine the brake recursively
-    while nObs > maxNpoints:
+        nTx += 1
+        nTy += 1
 
-        nObs = 0
+        testx = np.percentile(locs[:, 0], np.arange(0, 100, 100/nTx))
+        testy = np.percentile(locs[:, 1], np.arange(0, 100, 100/nTy))
 
-        if countx > county:
-            nNx += 1
-        else:
-            nNy += 1
+        if ii > 0:
+            dx = testx[:-1] - testx[1:]
+            dy = testy[:-1] - testy[1:]
 
-        countx = 0
-        county = 0
-        xtiles = np.linspace(xlim[0], xlim[1], nNx)
-        ytiles = np.linspace(ylim[0], ylim[1], nNy)
+            if np.mean(dx) > np.mean(dy):
+                nTx -= 1
+            else:
+                nTy -= 1
 
-        # Remove tiles without points in
-        filt = np.ones((nNx-1)*(nNy-1), dtype='bool')
+    tilex = np.percentile(locs[:, 0], np.arange(0, 100, 100/nTx))
+    tiley = np.percentile(locs[:, 1], np.arange(0, 100, 100/nTy))
 
-        for ii in range(xtiles.shape[0]-1):
-            for jj in range(ytiles.shape[0]-1):
-                # Mask along x axis
-                maskx = np.all([locs[:, 0] >= xtiles[ii],
-                               locs[:, 0] <= xtiles[int(ii+1)]], axis=0)
+    X1, Y1 = np.meshgrid(tilex, tiley)
+    X2, Y2 = np.meshgrid(
+            np.r_[tilex[1:], locs[:, 0].max()],
+            np.r_[tiley[1:], locs[:, 1].max()]
+    )
 
-                # Mask along y axis
-                masky = np.all([locs[:, 1] >= ytiles[jj],
-                               locs[:, 1] <= ytiles[int(jj+1)]], axis=0)
+    # Plot data and tiles
+    X1, Y1, X2, Y2 = mkvc(X1), mkvc(Y1), mkvc(X2), mkvc(Y2)
+    binCount = np.zeros_like(X1)
+    tile = []
+    for ii in range(X1.shape[0]):
 
-                # Remember which axis has the most points (for next split)
-                countx = np.max([np.sum(maskx), countx])
-                county = np.max([np.sum(masky), county])
+        mask = (
+            (locs[:, 0] >= X1[ii]) * (locs[:, 0] <= X2[ii]) *
+            (locs[:, 1] >= Y1[ii]) * (locs[:, 1] <= Y2[ii])
+        ) == 1
 
-                # Full mask
-                mask = np.all([maskx, masky], axis=0)
-                nObs = np.max([nObs, np.sum(mask)])
+        # Re-adjust the window size for tight fit
+        if minimize:
+            X1[ii], X2[ii] = locs[:, 0][mask].min(), locs[:, 0][mask].max()
+            Y1[ii], Y2[ii] = locs[:, 1][mask].min(), locs[:, 1][mask].max()
 
-                # Check if at least one point is picked
-                if np.sum(mask) == 0:
-                    filt[jj + ii*(nNy-1)] = False
+        binCount = mask.sum()
 
-    x1, x2 = xtiles[:-1], xtiles[1:]
-    y1, y2 = ytiles[:-1], ytiles[1:]
-
-    X1, Y1 = np.meshgrid(x1, y1)
-    xy1 = np.c_[mkvc(X1)[filt], mkvc(Y1)[filt]]
-    X2, Y2 = np.meshgrid(x2, y2)
-    xy2 = np.c_[mkvc(X2)[filt], mkvc(Y2)[filt]]
+    xy1 = np.r_[X1[binCount > 0], Y1[binCount > 0]].T
+    xy2 = np.r_[X2[binCount > 0], Y2[binCount > 0]].T
 
     return [xy1, xy2]
 
@@ -334,7 +328,11 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
     return mesh
 
 
-def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1], distMax=200):
+def refineTree(
+            mesh, xyz,
+            finalize=False, dtype="point",
+            nCpad=[1, 1, 1], distMax=200,
+            padRatio=2):
 
     maxLevel = int(np.log2(mesh.hx.shape[0]))
 
@@ -391,38 +389,49 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1], distMa
         nCx = int(limx[0]-limx[1]) / dx
         nCy = int(limy[0]-limy[1]) / dy
 
-        # Create a grid at the octree level in xy
-        CCx, CCy = np.meshgrid(
-            np.linspace(limx[1], limx[0], nCx),
-            np.linspace(limy[1], limy[0], nCy)
-        )
+
 
         # z = griddata(xyz[:, :2], xyz[:, 2], (mkvc(CCx), mkvc(CCy)), method='linear')
 
-        tree = cKDTree(xyz[:,:2])
+        tree = cKDTree(xyz[:, :2])
         # xi = _ndim_coords_from_arrays((gridCC[:,0], gridCC[:,1]), ndim=2)
-        dists, indexes = tree.query(np.c_[mkvc(CCx), mkvc(CCy)])
 
-        # Copy original result but mask missing values with NaNs
-        maskRadius = dists < distMax
-
-        # Only keep points inside the convex hull
-        CCx, CCy, z = mkvc(CCx)[maskRadius], mkvc(CCy)[maskRadius], xyz[indexes[maskRadius],2]
 
         # Increment the vertical offset
         zOffset = 0
-        # Cycle through the Tree levels
-        for ii in range(len(nCpad)):
+        depth = 0
+
+        # Compute maximum depth of refinement
+        dz = np.repeat(mesh.hz.min() * 2**np.arange(len(nCpad)), np.r_[nCpad])
+        depth = dz.sum()
+
+        # Cycle through the Tree levels backward
+        for ii in range(len(nCpad)-1, -1, -1):
             dz = mesh.hz.min() * 2**ii
+
             # Increase the horizontal extent of the surface
             # as a function of Tree level
-            r = ((CCx-midX)**2. + (CCy-midY)**2.)**0.5
-            expFact = (r.max() + 2*mesh.hx.min()*2**ii)/r.max()
+            # r = ((CCx-midX)**2. + (CCy-midY)**2.)**0.5
+            # expFact = (r.max() + 2*mesh.hx.min()*2**ii)/r.max()
+            # Create a grid at the octree level in xy
+            CCx, CCy = np.meshgrid(
+                np.linspace(
+                    limx[1] - depth/padRatio, limx[0] + depth/padRatio, nCx
+                    ),
+                np.linspace(
+                    limy[1] - depth/padRatio, limy[0] + depth/padRatio, nCy
+                    )
+            )
 
-            x = (CCx-midX) * expFact + midX
-            y = (CCy-midY) * expFact + midY
+            dists, indexes = tree.query(np.c_[mkvc(CCx), mkvc(CCy)])
 
-            for level in range(int(nCpad[ii])):
+            # Copy original result but mask missing values with NaNs
+            maskRadius = dists < (distMax + depth/padRatio)
+
+            # Only keep points inside the convex hull
+            x, y, z = mkvc(CCx)[maskRadius], mkvc(CCy)[maskRadius], xyz[indexes[maskRadius],2]
+            zOffset = 0
+            while zOffset < depth:
 
                 mesh.insert_cells(
                     np.c_[x, y, z-zOffset], np.ones_like(z)*maxLevel-ii,
@@ -430,6 +439,8 @@ def refineTree(mesh, xyz, finalize=False, dtype="point", nCpad=[1, 1, 1], distMa
                 )
 
                 zOffset += dz
+
+            depth -= dz * nCpad[ii]
 
         if finalize:
             mesh.finalize()
