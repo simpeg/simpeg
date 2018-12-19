@@ -139,7 +139,7 @@ def tileSurveyPoints(locs, nRefine, minimize=True):
     # Test each refinement level for maximum space coverage
     nTx = 0
     nTy = 0
-    for ii in range(nRefine+1):
+    for ii in range(int(nRefine+1)):
 
         nTx += 1
         nTy += 1
@@ -176,10 +176,13 @@ def tileSurveyPoints(locs, nRefine, minimize=True):
             (locs[:, 1] >= Y1[ii]) * (locs[:, 1] <= Y2[ii])
         ) == 1
 
+
         # Re-adjust the window size for tight fit
         if minimize:
-            X1[ii], X2[ii] = locs[:, 0][mask].min(), locs[:, 0][mask].max()
-            Y1[ii], Y2[ii] = locs[:, 1][mask].min(), locs[:, 1][mask].max()
+
+            if mask.sum():
+                X1[ii], X2[ii] = locs[:, 0][mask].min(), locs[:, 0][mask].max()
+                Y1[ii], Y2[ii] = locs[:, 1][mask].min(), locs[:, 1][mask].max()
 
         binCount = mask.sum()
 
