@@ -77,12 +77,12 @@ install:
 
 # Run test
 script:
-  # - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s
-  - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "3" ]; then
-      cd docs; travis_wait 30 make html-noplot ; cd ../ ;
-    else
-      nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
-    fi
+  - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s
+  # - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
+  #     cd docs; travis_wait 30 make html-noplot ; cd ../ ;
+  #   else
+  #     nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
+  #   fi
 
 
 # Calculate coverage
