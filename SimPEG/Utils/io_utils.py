@@ -36,6 +36,8 @@ def read_GOCAD_ts(tsfile):
 
         while 'VRTX' not in line:
             line = fid.readline()
+            if 'END\n' in line:
+                return VRTX, TRGL
 
         vrtx = []
         # Run down all the vertices and save in array
@@ -65,7 +67,7 @@ def read_GOCAD_ts(tsfile):
             # Read next line
             line = fid.readline()
 
-        TRGL += [np.asarray(segs)]
+        TRGL += [np.asarray(trgl)]
 
     return VRTX, TRGL
 
