@@ -402,34 +402,19 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                     m_rem, self.survey[0].srcField.param
                 )
 
-
                 if self.saveComp:
                     if isinstance(reg.regmesh.mesh, Mesh.TreeMesh):
                         Mesh.TreeMesh.writeUBC(
                             reg.regmesh.mesh,
                             fileName + '.msh',
-                            models={fileName + '.dip': (self.mapping.P * np.rad2deg(theta)) }
+                            models={
+                                fileName + '.dip': (self.mapping.P * np.rad2deg(theta)),
+                                fileName + '.azm': self.mapping.P * ((450 - np.rad2deg(phi)) % 360),
+                                fileName + '_TOT.amp': self.mapping.P * np.sum(vec**2, axis=1)**0.5,
+                                fileName + '_IND.amp': self.mapping.P * np.sum(m_ind**2, axis=1)**0.5,
+                                fileName + '_REM.amp': self.mapping.P * np.sum(m_rem**2, axis=1)**0.5 }
                         )
-                        Mesh.TreeMesh.writeUBC(
-                            reg.regmesh.mesh,
-                            fileName + '.msh',
-                            models={fileName + '.azm': self.mapping.P * ((450 - np.rad2deg(phi)) % 360)}
-                        )
-                        Mesh.TreeMesh.writeUBC(
-                            reg.regmesh.mesh,
-                            fileName + '.msh',
-                            models={fileName + '_TOT.amp': self.mapping.P * np.sum(vec**2, axis=1)**0.5}
-                        )
-                        Mesh.TreeMesh.writeUBC(
-                            reg.regmesh.mesh,
-                            fileName + '.msh',
-                            models={fileName + '_IND.amp': self.mapping.P * np.sum(m_ind**2, axis=1)**0.5}
-                        )
-                        Mesh.TreeMesh.writeUBC(
-                            reg.regmesh.mesh,
-                            fileName + '.msh',
-                            models={fileName + '_REM.amp': self.mapping.P * np.sum(m_rem**2, axis=1)**0.5}
-                        )
+
                     else:
                         Mesh.TensorMesh.writeModelUBC(
                             reg.regmesh.mesh,
