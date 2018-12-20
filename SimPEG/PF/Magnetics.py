@@ -161,17 +161,17 @@ class MagneticIntegral(Problem.LinearProblem):
 
         if self.coordinate_system == 'cartesian':
             if self.modelType == 'amplitude':
-                return np.sum((W * self.dfdm * sdiag(mkvc(self.gtgdiag)**0.5) * dmudm)**2., axis=0)
+                return np.sum((W * self.dfdm * sdiag(mkvc(self.gtgdiag)**0.5) * dmudm).power(2.), axis=0)
             else:
                 return mkvc(np.sum((sdiag(mkvc(self.gtgdiag)**0.5) * dmudm).power(2.), axis=0))
 
         else:  # spherical
             if self.modelType == 'amplitude':
-                return np.sum(((W * self.dfdm) * da.dot(self.G, (self.dSdm * dmudm)))**2., axis=0)
+                return mkvc(np.sum(((W * self.dfdm) * sdiag(mkvc(self.gtgdiag)**0.5) * (self.dSdm * dmudm)).power(2.), axis=0))
             else:
 
-                Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm.T) * (self.dSdm * dmudm)
-                return mkvc(np.sum(Japprox.power(2), axis=0))
+                #Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm) * (self.dSdm * dmudm)
+                return mkvc(np.sum((sdiag(mkvc(self.gtgdiag)**0.5) * self.dSdm * dmudm).power(2), axis=0))
 
     def getJ(self, m, f=None):
         """
