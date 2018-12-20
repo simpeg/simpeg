@@ -20,7 +20,7 @@ env:
     - MASTER_BRANCH=master
     - GAE_PROJECT=simpegdocs
     - DOCS_PY=3.6  # deploy docs from 3.6
-    - PYPI_PY=3.6 # deploy to pypi from python 3.6
+    - PYPI_PY=3.6  # deploy to pypi from python 3.6
 
   matrix:
     - TEST_DIR=tests/em/fdem/inverse/derivs
