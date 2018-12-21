@@ -2,6 +2,7 @@ language: python
 
 python:
   - 3.6
+  - 2.7
 
 sudo: false
 
@@ -18,6 +19,8 @@ env:
     - DEPLOY_DIR=tests/docs
     - MASTER_BRANCH=master
     - GAE_PROJECT=simpegdocs
+    - DOCS_PY=3.6  # deploy docs from 3.6
+    - PYPI_PY=3.6  # deploy to pypi from python 3.6
 
   matrix:
     - TEST_DIR=tests/em/fdem/inverse/derivs
@@ -58,8 +61,6 @@ install:
   - pip install -r requirements_dev.txt
   - python setup.py install
   - if [ "$TEST_DIR" = "$DEPLOY_DIR" ]; then
-      conda create -y -n py27 python=2.7 ;
-      source activate py27 ;
       if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi ;
       pip install google-compute-engine;
       openssl aes-256-cbc -K $encrypted_7e0a8632ac3f_key -iv $encrypted_7e0a8632ac3f_iv -in credentials.tar.gz.enc -out credentials.tar.gz -d ;
@@ -67,7 +68,6 @@ install:
       gcloud auth activate-service-account --key-file credentials/client-secret-docs.json ;
       gsutil cp gs://simpeg/_build.tar.gz $PWD/docs ;
       gsutil cp gs://simpeg/examples.tar.gz $PWD/docs/content ;
-      source deactivate ;
       cd docs ;
       tar -xzf _build.tar.gz _build;
       cd content ;
@@ -77,7 +77,8 @@ install:
 
 # Run test
 script:
-  - if [ "$TEST_DIR" = "$DEPLOY_DIR" ]; then
+  # - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s
+  - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
       cd docs; travis_wait 30 make html-noplot ; cd ../ ;
     else
       nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
@@ -103,16 +104,18 @@ after_success:
     fi
 
   # deploy docs
-  - cd docs; tar -cvzf _build.tar.gz _build ;
-  - cd content; tar -cvzf examples.tar.gz examples ; cd ../../ ;
-  - source activate py27
-  - gsutil cp docs/_build.tar.gz gs://simpeg ;
-  - gsutil cp docs/content/examples.tar.gz gs://simpeg ;
-  - gcloud auth activate-service-account --key-file credentials/client-secret.json ;
-  - export GAE_PROJECT=$GAE_PROJECT ;
-  - gcloud config set project $GAE_PROJECT;
-  - gcloud app deploy ./docs/app.yaml --version ${TRAVIS_COMMIT} --promote;
-  - source deactivate
+  - if [ $TRAVIS_PYTHON_VERSION == $DOCS_PY ]; then
+      if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" ]; then
+        cd docs; tar -cvzf _build.tar.gz _build ;
+        cd content; tar -cvzf examples.tar.gz examples ; cd ../../ ;
+        gsutil cp docs/_build.tar.gz gs://simpeg ;
+        gsutil cp docs/content/examples.tar.gz gs://simpeg ;
+        gcloud auth activate-service-account --key-file credentials/client-secret.json ;
+        export GAE_PROJECT=$GAE_PROJECT ;
+      fi ;
+      gcloud config set project $GAE_PROJECT;
+      gcloud app deploy ./docs/app.yaml --version ${TRAVIS_COMMIT} --promote;
+    fi;
 
   #deploy to pypi
   - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY ]; then
