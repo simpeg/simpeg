@@ -58,9 +58,9 @@ def plot2Ddata(
             ~np.isnan(DATA),
             np.abs(DATA) != np.inf
             )
-        if clim is None:
-            vmin = DATA[dataselection].min()
-            vmax = DATA[dataselection].max()
+        if clim is not None:
+            vmin = np.min(clim)
+            vmax = np.max(clim)
         elif np.logical_and(
             'vmin' in contourOpts.keys(),
             'vmax' in contourOpts.keys()
@@ -68,8 +68,8 @@ def plot2Ddata(
             vmin = contourOpts['vmin']
             vmax = contourOpts['vmax']
         else:
-            vmin = np.min(clim)
-            vmax = np.max(clim)
+            vmin = DATA[dataselection].min()
+            vmax = DATA[dataselection].max()
             if scale == "log":
                 vmin = np.log10(vmin)
                 vmax = np.log10(vmax)
