@@ -184,12 +184,12 @@ def tileSurveyPoints(locs, nRefine, minimize=True):
                 X1[ii], X2[ii] = locs[:, 0][mask].min(), locs[:, 0][mask].max()
                 Y1[ii], Y2[ii] = locs[:, 1][mask].min(), locs[:, 1][mask].max()
 
-        binCount = mask.sum()
+        binCount[ii] = mask.sum()
 
-    xy1 = np.r_[X1[binCount > 0], Y1[binCount > 0]].T
-    xy2 = np.r_[X2[binCount > 0], Y2[binCount > 0]].T
+    xy1 = np.c_[X1[binCount > 0], Y1[binCount > 0]]
+    xy2 = np.c_[X2[binCount > 0], Y2[binCount > 0]]
 
-    return [xy1, xy2]
+    return [xy1, xy2], binCount
 
 
 def meshBuilder(xyz, h, padDist, meshGlobal=None,
