@@ -3,7 +3,7 @@ import numpy as np
 import time as tm
 import re
 import warnings
-
+from SimPEG import Utils
 
 def read_GOCAD_ts(tsfile):
     """
