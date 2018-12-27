@@ -123,7 +123,7 @@ class MagneticIntegral(Problem.LinearProblem):
             # Convert Bdecination from north to cartesian
             self._ProjTMI = Utils.matutils.dipazm2xyz(
                 self.survey.srcField.param[1],
-                self.survey.srcField.param[0]
+                self.survey.srcField.param[2]
             )
 
         return self._ProjTMI
