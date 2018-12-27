@@ -264,7 +264,7 @@ def plotVectorSectionsOctree(
 model = np.zeros((mesh.nC, 3))
 
 # Convert the inclination declination to vector in Cartesian
-M_xyz = Utils.matutils.dipazm_2_xyz(M[0], M[1])
+M_xyz = Utils.matutils.dipazm2xyz(M[0], M[1])
 
 # Get the indicies of the magnetized block
 ind = Utils.ModelBuilder.getIndicesBlock(
@@ -411,7 +411,7 @@ mrec_MVIC = inv.run(m0)
 #
 #
 
-mstart = Utils.matutils.xyz2atp(mrec_MVIC.reshape((nC, 3), order='F'))
+mstart = Utils.matutils.xyz2spherical(mrec_MVIC.reshape((nC, 3), order='F'))
 beta = invProb.beta
 dmis.prob.coordinate_system = 'spherical'
 dmis.prob.model = mstart
@@ -467,7 +467,7 @@ IRLS = Directives.Update_IRLS(f_min_change=1e-4, maxIRLSiter=20,
 
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are update between each iteration.
-ProjSpherical = Directives.ProjSpherical()
+ProjSpherical = Directives.ProjectSphericalBounds()
 update_SensWeight = Directives.UpdateSensitivityWeights()
 update_Jacobi = Directives.UpdatePreconditioner()
 
@@ -504,7 +504,7 @@ ax.set_ylabel('y')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(2, 1, 2)
-vec_xyz = Utils.matutils.atp2xyz(
+vec_xyz = Utils.matutils.spherical2xyz(
     invProb.model.reshape((nC, 3), order='F')).reshape((nC, 3), order='F')
 
 plotVectorSectionsOctree(
