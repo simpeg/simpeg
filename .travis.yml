@@ -19,8 +19,8 @@ env:
     - DEPLOY_DIR=tests/docs
     - MASTER_BRANCH=master
     - GAE_PROJECT=simpegdocs
-    - DOCS_PY=2.7  # deploy docs from 2.7
-    - PYPI_PY=3.6 # deploy to pypi from python 3.6
+    - DOCS_PY=3.6  # deploy docs from 3.6
+    - PYPI_PY=3.6  # deploy to pypi from python 3.6
 
   matrix:
     - TEST_DIR=tests/em/fdem/inverse/derivs
@@ -33,7 +33,6 @@ env:
     - TEST_DIR=tests/em/vrm
     - TEST_DIR=tests/pf
     - TEST_DIR=tests/docs;
-      GAE_PYTHONPATH=${HOME}/.cache/google_appengine;
       PATH=$PATH:${HOME}/google-cloud-sdk/bin;
       PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH};
       CLOUDSDK_CORE_DISABLE_PROMPTS=1
@@ -61,8 +60,9 @@ install:
 
   - pip install -r requirements_dev.txt
   - python setup.py install
-  - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
+  - if [ "$TEST_DIR" = "$DEPLOY_DIR" ]; then
       if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi ;
+      pip install google-compute-engine;
       openssl aes-256-cbc -K $encrypted_7e0a8632ac3f_key -iv $encrypted_7e0a8632ac3f_iv -in credentials.tar.gz.enc -out credentials.tar.gz -d ;
       tar -xzf credentials.tar.gz ;
       gcloud auth activate-service-account --key-file credentials/client-secret-docs.json ;
@@ -78,7 +78,7 @@ install:
 # Run test
 script:
   # - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s
-  - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "3" ]; then
+  - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
       cd docs; travis_wait 30 make html-noplot ; cd ../ ;
     else
       nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
