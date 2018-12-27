@@ -1563,7 +1563,7 @@ class SparseDeriv(BaseSparse):
                 ) * R
 
             theta = self.cellDiffStencil * (self.mapping * f_m)
-            dmdx = coterminal(theta)
+            dmdx = Utils.matutils.coterminal(theta)
             r = W * dmdx
 
         else:
@@ -1653,7 +1653,7 @@ class SparseDeriv(BaseSparse):
                 ) * R
 
             theta = self.cellDiffStencil * (self.mapping * model)
-            dmdx = coterminal(theta)
+            dmdx = Utils.matutils.coterminal(theta)
 
             r = W * dmdx
 
@@ -1679,7 +1679,7 @@ class SparseDeriv(BaseSparse):
 
         if self.space == 'spherical':
             theta = self.cellDiffStencil * (self.mapping * f_m)
-            dmdx = coterminal(theta)
+            dmdx = Utils.matutils.coterminal(theta)
 
         else:
 
@@ -1921,13 +1921,3 @@ class Sparse(BaseComboRegularization):
         for i, objfct in enumerate(self.objfcts):
             objfct.scale = change['value'][:, i]
 
-
-def coterminal(theta):
-    """ Compute coterminal angle so that [-pi < theta < pi]"""
-
-    sub = theta[np.abs(theta) >= np.pi]
-    sub = -np.sign(sub) * (2*np.pi-np.abs(sub))
-
-    theta[np.abs(theta) >= np.pi] = sub
-
-    return theta
