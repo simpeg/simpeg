@@ -19,12 +19,12 @@ class GravityIntegral(Problem.LinearProblem):
     # surveyPair = Survey.LinearSurvey
     forwardOnly = False  # Is TRUE, forward matrix not stored to memory
     actInd = None  #: Active cell indices provided
-    rxType = 'z'
+    rx_type = 'z'
     silent = False
     memory_saving_mode = False
     parallelized = False
     n_cpu = None
-    progressIndex = -1
+    progress_index = -1
     gtgdiag = None
 
     aa = []
@@ -94,13 +94,13 @@ class GravityIntegral(Problem.LinearProblem):
             raise Exception('Need to pair!')
 
         if getattr(self, '_G', None) is None:
-            print("Begin linear forward calculation: " + self.rxType)
+            print("Begin linear forward calculation: " + self.rx_type)
             start = time.time()
             self._G = self.Intrgl_Fwr_Op()
             print("Linear forward calculation ended in: " + str(time.time()-start) + " sec")
         return self._G
 
-    def Intrgl_Fwr_Op(self, m=None, rxType='z'):
+    def Intrgl_Fwr_Op(self, m=None, rx_type='z'):
 
         """
 
@@ -179,7 +179,7 @@ class GravityIntegral(Problem.LinearProblem):
         job = Forward(
                 rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
-                model=self.model, rxType=self.rxType,
+                model=self.model, rx_type=self.rx_type,
                 parallelized=self.parallelized
                 )
 
@@ -200,14 +200,14 @@ class Forward(object):
         Add docstring once it works
     """
 
-    progressIndex = -1
+    progress_index = -1
     parallelized = False
     rxLoc = None
     Xn, Yn, Zn = None, None, None
     n_cpu = None
     forwardOnly = False
     model = None
-    rxType = 'z'
+    rx_type = 'z'
 
     def __init__(self, **kwargs):
         super(Forward, self).__init__()
@@ -287,14 +287,14 @@ class Forward(object):
                             mkvc(dz[:, cc]) ** 2
                         ) ** (0.50)
 
-                    if self.rxType == 'x':
+                    if self.rx_type == 'x':
                         row -= NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             dy[:, bb] * np.log(dz[:, cc] + r + eps) +
                             dz[:, cc] * np.log(dy[:, bb] + r + eps) -
                             dx[:, aa] * np.arctan(dy[:, bb] * dz[:, cc] /
                                                   (dx[:, aa] * r + eps)))
 
-                    elif self.rxType == 'y':
+                    elif self.rx_type == 'y':
                         row -= NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             dx[:, aa] * np.log(dz[:, cc] + r + eps) +
                             dz[:, cc] * np.log(dx[:, aa] + r + eps) -
@@ -325,9 +325,9 @@ class Forward(object):
         @author: dominiquef
         """
         arg = np.floor(ind/total*10.)
-        if arg > self.progressIndex:
+        if arg > self.progress_index:
             print("Done " + str(arg*10) + " %")
-            self.progressIndex = arg
+            self.progress_index = arg
 
 
 class Problem3D_Diff(Problem.BaseProblem):
