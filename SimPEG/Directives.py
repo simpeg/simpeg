@@ -691,12 +691,12 @@ class Update_IRLS(InversionDirective):
                     self.sphericalDomain = True
 
         if self.sphericalDomain:
-            self.angleScale()
+            selfangleScale()
 
     def endIter(self):
 
         if self.sphericalDomain:
-            self.angleScale()
+            selfangleScale()
 
         # Check if misfit is within the tolerance, otherwise scale beta
         if np.all([
@@ -880,16 +880,14 @@ class Update_IRLS(InversionDirective):
         max_p = []
         for reg in self.reg.objfcts[0].objfcts:
             eps_p = reg.epsilon
-            norm_p = 2  # self.reg.objfcts[0].norms[0]
             f_m = abs(reg.f_m)
-            max_p += [np.max(eps_p**(1-norm_p/2.)*f_m /
-                      (f_m**2. + eps_p**2.)**(1-norm_p/2.))]
+            max_p += [np.max(f_m)]
 
-        max_p = np.asarray(max_p)
+        max_p = np.asarray(max_p).max()
 
         max_s = [np.pi, np.pi]
-        for obj, var in zip(self.reg.objfcts[1:], max_s):
-            obj.scales = np.ones(obj.scales.shape)*max_p.max()/var
+        for obj, var in zip(self.reg.objfcts[1:3], max_s):
+            obj.scales = np.ones(obj.scales.shape)*max_p/var
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
@@ -918,10 +916,8 @@ class UpdatePreconditioner(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
     """
-    onlyOnStart = False
-    mapping = None
-    misfitDiag = None
-    epsilon = 1e-8
+
+    onlyOnStart = False  #: Update every iterations if False
 
     def initialize(self):
 
