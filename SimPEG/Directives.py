@@ -691,12 +691,12 @@ class Update_IRLS(InversionDirective):
                     self.sphericalDomain = True
 
         if self.sphericalDomain:
-            selfangleScale()
+            self.angleScale()
 
     def endIter(self):
 
         if self.sphericalDomain:
-            selfangleScale()
+            self.angleScale()
 
         # Check if misfit is within the tolerance, otherwise scale beta
         if np.all([
@@ -1113,7 +1113,7 @@ class UpdateSensitivityWeights(InversionDirective):
         self.opt.JtJdiag = JtJdiag
 
 
-class ProjSpherical(InversionDirective):
+class ProjectSphericalBounds(InversionDirective):
     """
         Trick for spherical coordinate system.
         Project \theta and \phi angles back to [-\pi,\pi] using
@@ -1126,8 +1126,8 @@ class ProjSpherical(InversionDirective):
         # Convert to cartesian than back to avoid over rotation
         nC = int(len(x)/3)
 
-        xyz = Utils.matutils.atp2xyz(x.reshape((nC, 3), order='F'))
-        m = Utils.matutils.xyz2atp(xyz.reshape((nC, 3), order='F'))
+        xyz = Utils.matutils.spherical2xyz(x.reshape((nC, 3), order='F'))
+        m = Utils.matutils.xyz2spherical(xyz.reshape((nC, 3), order='F'))
 
         self.invProb.model = m
 
@@ -1142,8 +1142,8 @@ class ProjSpherical(InversionDirective):
         nC = int(len(x)/3)
 
         # Convert to cartesian than back to avoid over rotation
-        xyz = Utils.matutils.atp2xyz(x.reshape((nC, 3), order='F'))
-        m = Utils.matutils.xyz2atp(xyz.reshape((nC, 3), order='F'))
+        xyz = Utils.matutils.spherical2xyz(x.reshape((nC, 3), order='F'))
+        m = Utils.matutils.xyz2spherical(xyz.reshape((nC, 3), order='F'))
 
         self.invProb.model = m
 
