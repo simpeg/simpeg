@@ -65,24 +65,23 @@ class MagneticIntegral(Problem.LinearProblem):
         else:
             m = self.chiMap*(matutils.atp2xyz(m.reshape((int(len(m)/3), 3), order='F')))
 
-        if self.forwardOnly:
-            # Compute the linear operation without forming the full dense F
-            fields = self.Intrgl_Fwr_Op(m=m)
+        # if self.forwardOnly:
+        #     # Compute the linear operation without forming the full dense F
+        #     fields = self.Intrgl_Fwr_Op(m=m)
+
+        # else:
+
+        if getattr(self, '_Mxyz', None) is not None:
+
+            fields = da.dot(self.G, (self.Mxyz*m).astype(np.float32))
 
         else:
 
-            if getattr(self, '_Mxyz', None) is not None:
+            fields = da.dot(self.G, m.astype(np.float32))
 
-                fields = da.dot(self.G, (self.Mxyz*m).astype(np.float32))
+        if self.modelType == 'amplitude':
 
-            else:
-
-                fields = da.dot(self.G, m.astype(np.float32))
-
-            if self.modelType == 'amplitude':
-
-                fields = self.calcAmpData(fields.astype(np.float64))
-
+            fields = self.calcAmpData(fields.astype(np.float64))
 
         return np.array(fields, dtype='float')
 
@@ -130,7 +129,7 @@ class MagneticIntegral(Problem.LinearProblem):
             # Convert Bdecination from north to cartesian
             self._ProjTMI = Utils.matutils.dipazm_2_xyz(
                 self.survey.srcField.param[1],
-                self.survey.srcField.param[0]
+                self.survey.srcField.param[2]
             )
 
 
@@ -498,11 +497,7 @@ class Forward(object):
 
         # G = dask.delayed(da.vstack)(mat)
 
-        if self.forwardOnly:
-            return np.array(da.dot(G, model))
-
-        else:
-            return G
+        return G
 
         # else:
 
@@ -554,11 +549,11 @@ class Forward(object):
         else:
             raise Exception('rxType must be: "tmi", "x", "y" or "z"')
 
-        if self.forwardOnly:
+        # if self.forwardOnly:
 
-            return np.dot(row, self.model)
-        else:
-            return np.float32(row)
+        #     return np.dot(row, self.model)
+        # else:
+        return np.float32(row)
 
     def progress(self, ind, total):
         """
