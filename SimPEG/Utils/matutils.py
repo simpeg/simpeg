@@ -83,24 +83,10 @@ def uniqueRows(M):
     return unqM, unqInd, invInd
 
 
-def atp2xyz(m):
-    """ Convert from spherical to cartesian """
-
-    a = m[:, 0] + 1e-8
-    t = m[:, 1]
-    p = m[:, 2]
-
-    m_xyz = np.r_[a*np.cos(t)*np.cos(p),
-                  a*np.cos(t)*np.sin(p),
-                  a*np.sin(t)]
-
-    return m_xyz
-
-
-def xyz2pst(m, param):
+def xyz2local(m, param):
     """
-    Rotates from cartesian to pst
-    pst coordinates along the primary field H0
+    Used to rotate from  cartesian coordinate system [x, y, z] to
+    local frame along the primary field [A,Inc,Dec]
 
     INPUT:
         m : nC-by-3 array for [x,y,z] components
@@ -135,10 +121,10 @@ def xyz2pst(m, param):
     return m_pst
 
 
-def pst2xyz(m, param):
+def local2xyz(m, param):
     """
-    Rotates from pst to cartesian
-    pst coordinates along the primary field H0
+    Used to rotate from local along the primary field [A,Inc,Dec]
+    to cartesian coordinate system [x, y, z].
 
     INPUT:
         m : nC-by-3 array for [x,y,z] components
@@ -173,7 +159,7 @@ def pst2xyz(m, param):
     return m_xyz
 
 
-def xyz2atp(m):
+def xyz2spherical(m):
     """ Convert from cartesian to spherical """
 
     # nC = int(len(m)/3)
@@ -195,7 +181,21 @@ def xyz2atp(m):
     return m_atp
 
 
-def dipazm_2_xyz(dip, azm_N):
+def spherical2xyz(m):
+    """ Convert from spherical to cartesian """
+
+    a = m[:, 0] + 1e-8
+    t = m[:, 1]
+    p = m[:, 2]
+
+    m_xyz = np.r_[a*np.cos(t)*np.cos(p),
+                  a*np.cos(t)*np.sin(p),
+                  a*np.sin(t)]
+
+    return m_xyz
+
+
+def dipazm2xyz(dip, azm_N):
     """
     dipazm_2_xyz(dip,azm_N)
 
@@ -232,3 +232,16 @@ def dipazm_2_xyz(dip, azm_N):
     M[:, 2] = np.sin(inc)
 
     return M
+
+
+def coterminal(theta):
+    """
+    Compute coterminal angle so that [-pi < theta < pi]
+    """
+
+    sub = theta[np.abs(theta) >= np.pi]
+    sub = -np.sign(sub) * (2*np.pi-np.abs(sub))
+
+    theta[np.abs(theta) >= np.pi] = sub
+
+    return theta
