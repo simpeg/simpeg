@@ -1063,7 +1063,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
     maxIterCG = 5
     tolCG = 1e-1
-    cgCount = 0
+    cg_count = 0
     stepOffBoundsFact = 1e-2 # perturbation of the inactive set off the bounds
     stepActiveset = True
     lower = -np.inf
@@ -1120,11 +1120,10 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
         """
             findSearchDirection()
-            Finds the search direction based on either CG or steepest descent.
+            Finds the search direction based on projected CG
         """
         Active = self.activeSet(self.xc)
         temp = sum((np.ones_like(self.xc.size)-Active))
-        allBoundsAreActive = temp == self.xc.size
 
         delx = np.zeros(self.g.size)
         resid = -(1-Active) * self.g
@@ -1137,7 +1136,10 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
         count = 0
 
-        while np.all([np.linalg.norm(r) > self.tolCG, count < self.maxIterCG]):
+        while np.all([
+            np.linalg.norm(r) > self.tolCG,
+            count < self.maxIterCG
+        ]):
 
             count += 1
 
@@ -1157,7 +1159,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
             sold = snew
             # End CG Iterations
-        self.cgCount += count
+        self.cg_count += count
 
         # Take a gradient step on the active cells if exist
         if temp != self.xc.size:
