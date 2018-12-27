@@ -8,7 +8,7 @@ class BaseMagSurvey(Survey.BaseSurvey):
     """Base Magnetics Survey"""
 
     rxLoc = None   #: receiver locations
-    rxType = None   #: receiver type
+    rx_type = None   #: receiver type
 
     def __init__(self, **kwargs):
         Survey.BaseSurvey.__init__(self, **kwargs)
@@ -108,7 +108,7 @@ class BaseMagSurvey(Survey.BaseSurvey):
 class LinearSurvey(Survey.BaseSurvey):
     """Base Magnetics Survey"""
 
-    rxType = None  #: receiver type
+    rx_type = None  #: receiver type
 
     def __init__(self, srcField, **kwargs):
         self.srcField = srcField

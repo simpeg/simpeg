@@ -26,7 +26,7 @@ class MagneticIntegral(Problem.LinearProblem):
     forwardOnly = False  # If false, matrix is store to memory (watch your RAM)
     actInd = None  #: Active cell indices provided
     M = None  #: Magnetization matrix provided, otherwise all induced
-    rxType = 'tmi'  #: Receiver type either "tmi" | "xyz"
+    rx_type = 'tmi'  #: Receiver type either "tmi" | "xyz"
     magType = 'H0'
     equiSourceLayer = False
     silent = False  # Don't display progress on screen
@@ -100,7 +100,7 @@ class MagneticIntegral(Problem.LinearProblem):
                 self.magType = 'full'
 
             self._G = self.Intrgl_Fwr_Op(magType=self.magType,
-                                         rxType=self.rxType)
+                                         rx_type=self.rx_type)
 
         return self._G
 
@@ -292,13 +292,13 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return Bamp*Bxyz.reshape((self.nD, 3), order='F')
 
-    def Intrgl_Fwr_Op(self, m=None, magType='H0', rxType='tmi'):
+    def Intrgl_Fwr_Op(self, m=None, magType='H0', rx_type='tmi'):
         """
 
         Magnetic forward operator in integral form
 
         magType  = 'H0' | 'x' | 'y' | 'z'
-        rxType  = 'tmi' | 'x' | 'y' | 'z'
+        rx_type  = 'tmi' | 'x' | 'y' | 'z'
 
         Return
         _G = Linear forward operator | (forwardOnly)=data
@@ -376,13 +376,13 @@ class MagneticIntegral(Problem.LinearProblem):
             raise Exception('magType must be: "H0" or "full"')
 
                 # Loop through all observations and create forward operator (nD-by-nC)
-        print("Begin forward: M=" + magType + ", Rx type= " + self.rxType)
+        print("Begin forward: M=" + magType + ", Rx type= " + self.rx_type)
 
         # Switch to determine if the process has to be run in parallel
         job = Forward(
                 rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
-                model=self.model, rxType=self.rxType, Mxyz=self.Mxyz,
+                model=self.model, rx_type=self.rx_type, Mxyz=self.Mxyz,
                 P=self.ProjTMI, parallelized=self.parallelized
                 )
 
@@ -400,7 +400,7 @@ class Forward(object):
     n_cpu = None
     forwardOnly = False
     model = None
-    rxType = 'z'
+    rx_type = 'z'
     Mxyz = None
     P = None
 
@@ -454,24 +454,24 @@ class Forward(object):
         """
         tx, ty, tz = calcRow(self.Xn, self.Yn, self.Zn, xyzLoc)
 
-        if self.rxType == 'tmi':
+        if self.rx_type == 'tmi':
             row = self.P.dot(np.vstack((tx, ty, tz)))*self.Mxyz
 
-        elif self.rxType == 'x':
+        elif self.rx_type == 'x':
             row = tx*self.Mxyz
 
-        elif self.rxType == 'y':
+        elif self.rx_type == 'y':
             row = ty*self.Mxyz
 
-        elif self.rxType == 'z':
+        elif self.rx_type == 'z':
             row = tz*self.Mxyz
 
-        elif self.rxType == 'xyz':
+        elif self.rx_type == 'xyz':
             row = tx*self.Mxyz
             row = np.r_[row, ty*self.Mxyz]
             row = np.r_[row, tz*self.Mxyz]
         else:
-            raise Exception('rxType must be: "tmi", "x", "y" or "z"')
+            raise Exception('rx_type must be: "tmi", "x", "y" or "z"')
 
         if self.forwardOnly:
 

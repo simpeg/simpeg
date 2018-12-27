@@ -44,17 +44,17 @@ class GravFwdProblemTests(unittest.TestCase):
         self.prob_x = PF.Gravity.GravityIntegral(mesh, rhoMap=idenMap,
                                                  actInd=sph_ind,
                                                  forwardOnly=True,
-                                                 rxType='x')
+                                                 rx_type='x')
 
         self.prob_y = PF.Gravity.GravityIntegral(mesh, rhoMap=idenMap,
                                                  actInd=sph_ind,
                                                  forwardOnly=True,
-                                                 rxType='y')
+                                                 rx_type='y')
 
         self.prob_z = PF.Gravity.GravityIntegral(mesh, rhoMap=idenMap,
                                                  actInd=sph_ind,
                                                  forwardOnly=True,
-                                                 rxType='z')
+                                                 rx_type='z')
 
     def test_ana_forward(self):
 
