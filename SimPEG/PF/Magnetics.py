@@ -121,12 +121,10 @@ class MagneticIntegral(Problem.LinearProblem):
         if getattr(self, '_ProjTMI', None) is None:
 
             # Convert Bdecination from north to cartesian
-            D = (450.-float(self.survey.srcField.param[2])) % 360.
-            I = self.survey.srcField.param[1]
-            # Projection matrix
-            self._ProjTMI = mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
-                              np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
-                              np.sin(np.deg2rad(I))], 2).T
+            self._ProjTMI = Utils.matutils.dipazm_2_xyz(
+                self.survey.srcField.param[1],
+                self.survey.srcField.param[0]
+            )
 
         return self._ProjTMI
 
@@ -919,14 +917,14 @@ def calcRow(Xn, Yn, Zn, rxLoc):
     Ty = np.zeros((1, 3*nC))
     Tz = np.zeros((1, 3*nC))
 
-    dz2 = rxLoc[2] - Zn[:, 0]
-    dz1 = rxLoc[2] - Zn[:, 1]
+    dz2 = Zn[:, 1] - rxLoc[2] + eps
+    dz1 = Zn[:, 0] - rxLoc[2] + eps
 
-    dy2 = Yn[:, 1] - rxLoc[1]
-    dy1 = Yn[:, 0] - rxLoc[1]
+    dy2 = Yn[:, 1] - rxLoc[1] + eps
+    dy1 = Yn[:, 0] - rxLoc[1] + eps
 
-    dx2 = Xn[:, 1] - rxLoc[0]
-    dx1 = Xn[:, 0] - rxLoc[0]
+    dx2 = Xn[:, 1] - rxLoc[0] + eps
+    dx1 = Xn[:, 0] - rxLoc[0] + eps
 
     dx2dx2 = dx2**2.
     dx1dx1 = dx1**2.
@@ -963,10 +961,10 @@ def calcRow(Xn, Yn, Zn, rxLoc):
     )
 
     Ty[0, 0:nC] = (
-        np.log((dz2 + arg2) / (dz1 + arg3 + eps)) -
-        np.log((dz2 + arg1) / (dz1 + arg4 + eps)) +
-        np.log((dz2 + arg6) / (dz1 + arg7 + eps)) -
-        np.log((dz2 + arg5) / (dz1 + arg8 + eps))
+        np.log((dz2 + arg2 + eps) / (dz1 + arg3 + eps)) -
+        np.log((dz2 + arg1 + eps) / (dz1 + arg4 + eps)) +
+        np.log((dz2 + arg6 + eps) / (dz1 + arg7 + eps)) -
+        np.log((dz2 + arg5 + eps) / (dz1 + arg8 + eps))
     )
 
     Ty[0, nC:2*nC] = (

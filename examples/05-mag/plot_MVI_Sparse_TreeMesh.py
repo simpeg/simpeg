@@ -231,7 +231,7 @@ def plotVectorSectionsOctree(
     my = (actvMap*m[:, 1])
     mz = (actvMap*m[:, 2])
 
-    m = np.c_[mx, my, -mz]
+    m = np.c_[mx, my, mz]
 
     # Interpolate values from mesh.gridCC to grid2d
     ind_3d_to_2d = mesh._get_containing_cell_indexes(tm_gridboost)
@@ -338,7 +338,7 @@ plt.show()
 # We can now attempt the inverse calculations. We put some great care
 # in design an inversion methology that would yield geologically
 # reasonable solution for the non-induced problem.
-# The inversion is done in two stages, first we compute a smooth
+# The inversion is done in two stages. First we compute a smooth
 # solution using a Cartesian coordinate system, then a sparse
 # inversion in the Spherical domain.
 #

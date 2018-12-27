@@ -214,22 +214,21 @@ def dipazm_2_xyz(dip, azm_N):
     @author: dominiquef
     """
 
-    if isinstance(azm_N, float):
-        nC = 1
+    azm_N = np.asarray(azm_N)
+    dip = np.asarray(dip)
 
-    else:
-        nC = len(azm_N)
+    # Number of elements
+    nC = azm_N.size
 
     M = np.zeros((nC, 3))
 
     # Modify azimuth from North to cartesian-X
     azm_X = (450. - np.asarray(azm_N)) % 360.
+    inc = -np.deg2rad(np.asarray(dip))
+    dec = np.deg2rad(azm_X)
 
-    dec = np.deg2rad(np.asarray(dip))
-    inc = np.deg2rad(azm_X)
-
-    M[:, 0] = np.cos(dec) * np.cos(inc)
-    M[:, 1] = np.cos(dec) * np.sin(inc)
-    M[:, 2] = np.sin(dec)
+    M[:, 0] = np.cos(inc) * np.cos(dec)
+    M[:, 1] = np.cos(inc) * np.sin(dec)
+    M[:, 2] = np.sin(inc)
 
     return M
