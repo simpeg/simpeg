@@ -197,7 +197,7 @@ def spherical2xyz(m):
 
 def dipazm2xyz(dip, azm_N):
     """
-    dipazm_2_xyz(dip,azm_N)
+    dipazm2xyz(dip,azm_N)
 
     Function converting degree angles for dip and azimuth from north to a
     3-components in cartesian coordinates.

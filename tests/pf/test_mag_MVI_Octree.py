@@ -8,7 +8,7 @@ import SimPEG.PF as PF
 import numpy as np
 from scipy.interpolate import NearestNDInterpolator
 from SimPEG.Utils import mkvc
-import scipy as sp
+
 
 class MVIProblemTest(unittest.TestCase):
 
@@ -16,12 +16,17 @@ class MVIProblemTest(unittest.TestCase):
         np.random.seed(0)
         H0 = (50000., 90., 0.)
 
-        # The magnetization is set along a different direction (induced + remanence)
+        # The magnetization is set along a different
+        # direction (induced + remanence)
         M = np.array([45., 90.])
 
         # Create grid of points for topography
-        # Lets create a simple Gaussian topo and set the active cells
-        [xx, yy] = np.meshgrid(np.linspace(-200, 200, 50), np.linspace(-200, 200, 50))
+        # Lets create a simple Gaussian topo
+        # and set the active cells
+        [xx, yy] = np.meshgrid(
+            np.linspace(-200, 200, 50),
+            np.linspace(-200, 200, 50)
+        )
         b = 100
         A = 50
         zz = A*np.exp(-0.5*((xx/b)**2. + (yy/b)**2.))
@@ -76,7 +81,11 @@ class MVIProblemTest(unittest.TestCase):
                               np.ones(nCx)*h[2]])
 
         # Set origin
-        mesh.x0 = np.r_[-nCx*h[0]/2.+midX, -nCy*h[1]/2.+midY, -nCz*h[2]/2.+midZ]
+        mesh.x0 = np.r_[
+            -nCx*h[0]/2.+midX,
+            -nCy*h[1]/2.+midY,
+            -nCz*h[2]/2.+midZ
+        ]
 
         # Refine the mesh around topography
         # Get extent of points
@@ -102,14 +111,18 @@ class MVIProblemTest(unittest.TestCase):
             for level in range(int(nCpad[ii])):
 
                 mesh.insert_cells(
-                    np.c_[mkvc(CCx), mkvc(CCy), z-zOffset], np.ones_like(z)*maxLevel-ii,
+                    np.c_[
+                        mkvc(CCx),
+                        mkvc(CCy),
+                        z-zOffset
+                    ], np.ones_like(z)*maxLevel-ii,
                     finalize=False
                 )
 
                 zOffset += dx
 
         mesh.finalize()
-        self.mesh=mesh
+        self.mesh = mesh
         # Define an active cells from topo
         actv = Utils.surface2ind_topo(mesh, topo)
         nC = int(actv.sum())
@@ -117,7 +130,7 @@ class MVIProblemTest(unittest.TestCase):
         model = np.zeros((mesh.nC, 3))
 
         # Convert the inclination declination to vector in Cartesian
-        M_xyz = Utils.matutils.dipazm_2_xyz(M[0], M[1])
+        M_xyz = Utils.matutils.dipazm2xyz(M[0], M[1])
 
         # Get the indicies of the magnetized block
         ind = Utils.ModelBuilder.getIndicesBlock(
@@ -220,7 +233,7 @@ class MVIProblemTest(unittest.TestCase):
         m0 = np.ones(3*nC) * 1e-4  # Starting model
         mrec_MVIC = inv.run(m0)
 
-        self.mstart = Utils.matutils.xyz2atp(mrec_MVIC.reshape((nC, 3), order='F'))
+        self.mstart = Utils.matutils.xyz2spherical(mrec_MVIC.reshape((nC, 3), order='F'))
         beta = invProb.beta
         dmis.prob.coordinate_system = 'spherical'
         dmis.prob.model = self.mstart
@@ -276,7 +289,7 @@ class MVIProblemTest(unittest.TestCase):
 
         # Special directive specific to the mag amplitude problem. The sensitivity
         # weights are update between each iteration.
-        ProjSpherical = Directives.ProjSpherical()
+        ProjSpherical = Directives.ProjectSphericalBounds()
         update_SensWeight = Directives.UpdateSensitivityWeights()
         update_Jacobi = Directives.UpdatePreconditioner()
 
@@ -293,7 +306,7 @@ class MVIProblemTest(unittest.TestCase):
         mrec_MVI_S = self.inv.run(self.mstart)
 
         nC = int(mrec_MVI_S.shape[0]/3)
-        vec_xyz = Utils.matutils.atp2xyz(
+        vec_xyz = Utils.matutils.spherical2xyz(
                 mrec_MVI_S.reshape((nC, 3), order='F')).reshape((nC, 3), order='F')
 
         residual = np.linalg.norm(vec_xyz-self.model) / np.linalg.norm(self.model)

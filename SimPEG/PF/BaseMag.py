@@ -127,12 +127,6 @@ class LinearSurvey(Survey.BaseSurvey):
     @property
     def nRx(self):
         return self.srcField.rxList[0].locs.shape[0]
-    # def setBackgroundField(self, SrcField):
-
-    #     if getattr(self, 'B0', None) is None:
-    #         self._B0 = SrcField.param[0] * dipazm_2_xyz(SrcField.param[1],SrcField.param[2])
-
-    #     return self._B0
 
     @property
     def rxLoc(self):
