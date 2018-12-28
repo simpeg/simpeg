@@ -244,10 +244,10 @@ ax = plot_data(dclean)
 # Set up data for inversion
 # -------------------------
 #
-# We will invert the clean data, and assign a standard deviation of 0.03, and
+# We will invert the clean data, and assign a standard deviation of 0.05, and
 # a floor of 1e-11.
 
-survey.std = 0.03
+survey.std = 0.05
 survey.eps = 1e-11
 survey.dobs = dclean
 
