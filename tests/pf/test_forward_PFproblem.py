@@ -32,7 +32,7 @@ class MagFwdProblemTests(unittest.TestCase):
         Dec = 45.
         Btot = 51000
 
-        b0 = PF.MagAnalytics.IDTtoxyz(Inc, Dec, Btot)
+        b0 = PF.MagAnalytics.IDTtoxyz(-Inc, Dec, Btot)
         survey.setBackgroundField(Inc, Dec, Btot)
         xr = np.linspace(-300, 300, 41)
         yr = np.linspace(-300, 300, 41)
