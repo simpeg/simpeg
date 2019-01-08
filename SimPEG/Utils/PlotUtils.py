@@ -33,10 +33,37 @@ def plot2Ddata(
         :param str method: interpolation method, either 'linear' or 'nearest'
 
     """
+
+    # Error checking and set vmin, vmax
+    vmin = None
+    vmax = None
+
+    if clim is not None:
+        vmin = np.min(clim)
+        vmax = np.max(clim)
+
+    for key, attr in zip(["vmin", "vmax"], [vmin, vmax]):
+        if key in contourOpts.keys():
+            if attr is None:
+                attr = contourOpts.pop(key)
+            else:
+                if not np.isclose(contourOpts[key], attr):
+                    raise Exception(
+                        "The values provided in the colorbar limit, clim {} "
+                        "does not match the value of {} provided in the "
+                        "contourOpts: {}. Only one value should be provided or "
+                        "the two values must be equal.".format(
+                            attr, key, contourOpts[key]
+                        )
+                    )
+                contourOpts.pop(key)
+
+    # create a figure if it doesn't exist
     if ax is None:
         fig = plt.figure()
         ax = plt.subplot(111)
 
+    # interpolate data to grid locations
     xmin, xmax = xyz[:, 0].min(), xyz[:, 0].max()
     ymin, ymax = xyz[:, 1].min(), xyz[:, 1].max()
     x = np.linspace(xmin, xmax, nx)
@@ -58,34 +85,18 @@ def plot2Ddata(
             ~np.isnan(DATA),
             np.abs(DATA) != np.inf
             )
-        if clim is None:
-            vmin = DATA[dataselection].min()
-            vmax = DATA[dataselection].max()
-        elif np.logical_and(
-            'vmin' in contourOpts.keys(),
-            'vmax' in contourOpts.keys()
-        ):
-            vmin = contourOpts['vmin']
-            vmax = contourOpts['vmax']
-        else:
-            vmin = np.min(clim)
-            vmax = np.max(clim)
-            if scale == "log":
-                vmin = np.log10(vmin)
-                vmax = np.log10(vmax)
-        if np.logical_or(
-            np.logical_or(
-                np.isnan(vmin),
-                np.isnan(vmax)
-            ),
-            np.logical_or(
-                np.abs(vmin) == np.inf,
-                np.abs(vmax) == np.inf
-            )
-        ):
-            raise Exception(
-                """clim must be sctrictly positive in log scale"""
-            )
+
+        # set vmin, vmax if they are not already set
+        vmin = DATA[dataselection].min() if vmin is None else vmin
+        vmax = DATA[dataselection].max() if vmax is None else vmax
+        if scale == "log":
+            if vmin <= 0 or vmax <= 0:
+                raise Exception(
+                    "All values must be strictly positive in order to use the log-scale"
+                )
+            vmin = np.log10(vmin)
+            vmax = np.log10(vmax)
+
         vstep = np.abs((vmin-vmax)/(ncontour+1))
         levels = np.arange(vmin, vmax+vstep, vstep)
         if DATA[dataselection].min() < levels.min():
@@ -99,13 +110,8 @@ def plot2Ddata(
             MASK = MASK.reshape(X.shape)
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
-        if 'vmin' not in contourOpts.keys():
-            contourOpts['vmin'] = vmin
-        if 'vmax' not in contourOpts.keys():
-            contourOpts['vmax'] = vmax
-
         cont = ax.contourf(
-            X, Y, DATA, levels=levels,
+            X, Y, DATA, levels=levels, vmin=vmin, vmax=vmax,
             **contourOpts
         )
         if level:
@@ -134,28 +140,19 @@ def plot2Ddata(
             ~np.isnan(DATA),
             np.abs(DATA) != np.inf
             )
-        if clim is None:
-            vmin = DATA[dataselection].min()
-            vmax = DATA[dataselection].max()
-        else:
-            vmin = np.min(clim)
-            vmax = np.max(clim)
-            if scale == "log":
-                vmin = np.log10(vmin)
-                vmax = np.log10(vmax)
-        if np.logical_or(
-            np.logical_or(
-                np.isnan(vmin),
-                np.isnan(vmax)
-            ),
-            np.logical_or(
-                np.abs(vmin) == np.inf,
-                np.abs(vmax) == np.inf
-            )
-        ):
-            raise Exception(
-                """clim must be sctrictly positive in log scale"""
-            )
+
+
+        # set vmin, vmax
+        vmin = DATA[dataselection].min() if vmin is None else vmin
+        vmax = DATA[dataselection].max() if vmax is None else vmax
+        if scale == "log":
+            if vmin <= 0 or vmax <= 0:
+                raise Exception(
+                    "All values must be strictly positive in order to use the log-scale"
+                )
+            vmin = np.log10(vmin)
+            vmax = np.log10(vmax)
+
         vstep = np.abs((vmin-vmax)/(ncontour+1))
         levels = np.arange(vmin, vmax+vstep, vstep)
         if DATA[dataselection].min() < levels.min():
