@@ -47,12 +47,14 @@ def plot2Ddata(
             if attr is None:
                 attr = contourOpts.pop(key)
             else:
-                if not np.isclose(contourOpts[key], vmin):
+                if not np.isclose(contourOpts[key], attr):
                     raise Exception(
                         "The values provided in the colorbar limit, clim {} "
                         "does not match the value of {} provided in the "
-                        "contourOpts {}. Only one value should be provided or "
-                        "the two values must be equal."
+                        "contourOpts: {}. Only one value should be provided or "
+                        "the two values must be equal.".format(
+                            attr, key, contourOpts[key]
+                        )
                     )
                 contourOpts.pop(key)
 
@@ -88,7 +90,7 @@ def plot2Ddata(
         vmin = DATA[dataselection].min() if vmin is None else vmin
         vmax = DATA[dataselection].max() if vmax is None else vmax
         if scale == "log":
-            if vmin < 0 or vmax < 0:
+            if vmin <= 0 or vmax <= 0:
                 raise Exception(
                     "All values must be strictly positive in order to use the log-scale"
                 )
@@ -144,7 +146,7 @@ def plot2Ddata(
         vmin = DATA[dataselection].min() if vmin is None else vmin
         vmax = DATA[dataselection].max() if vmax is None else vmax
         if scale == "log":
-            if vmin < 0 or vmax < 0:
+            if vmin <= 0 or vmax <= 0:
                 raise Exception(
                     "All values must be strictly positive in order to use the log-scale"
                 )

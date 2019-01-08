@@ -22,7 +22,7 @@ from .Utils.SolverUtils import (
     _checkAccuracy, SolverWrapD, SolverWrapI,
     Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
 )
-__version__   = '0.10.0'
+__version__   = '0.10.1'
 __author__    = 'SimPEG Team'
 __license__   = 'MIT'
 __copyright__ = f"2013 - {_datetime.datetime.now().year}, {__author__}, http://simpeg.xyz"
