@@ -256,7 +256,8 @@ def plotDataHillside(x, y, z, axs=None, fill=True, contour=0,
 def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
                       subFact=2, scale=1., xlim=None, ylim=None, vec='k',
                       title=None, axs=None, actv=None, contours=None, fill=True,
-                      orientation='vertical', cmap='pink_r'):
+                      orientation='vertical', cmap='pink_r',
+                      contourf=False, colorbar=False):
 
     """
     Plot section through a 3D tensor model
@@ -351,13 +352,24 @@ def plotModelSections(mesh, m, normal='x', ind=0, vmin=None, vmax=None,
 
     im2, cbar = [], []
     if fill:
-        im2 = axs.contourf(xx, yy, model,
-                           30, vmin=vmin, vmax=vmax,
-                           cmap=cmap)
+        if contourf:
+            im2 = axs.contourf(xx, yy, amp,
+                               10, vmin=vmin, vmax=vmax,
+                               cmap=cmap)
+        else:
+            if mesh.dim == 3:
+                im2 = mesh.plotSlice(mkvc(amp), ind=ind, normal=normal.upper(), ax=axs, clim=[vmin, vmax],
+                                     pcolorOpts={'clim':[vmin, vmax] ,'cmap':cmap})[0]
+            else:
+                im2 = mesh.plotImage(mkvc(amp), ax=axs, clim=[vmin, vmax],
+                                     pcolorOpts={'clim':[vmin, vmax] ,'cmap':cmap, 'alpha':alpha})[0]
 
-        cbar = plt.colorbar(im2, orientation=orientation, ax=axs,
-                 ticks=np.linspace(vmin, vmax, 4),
-                 format="${%.3f}$", shrink=0.5)
+
+        if colorbar:
+            cbar = plt.colorbar(im2, orientation=orientation, ax=axs,
+                     ticks=np.linspace(vmin, vmax, 4),
+                     format="${%.3f}$", shrink=0.5)
+
     if contours is not None:
         axs.contour(xx, yy, model, contours, colors='k')
 
