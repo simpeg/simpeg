@@ -181,9 +181,9 @@ def run(plotIt=True):
     mrecSum = inv.run(m0)
     if plotIt:
 
-        mesh.plot3DSlicer(actvMap * model, aspect="equal", zslice=30, pcolorOpts={"cmap":'inferno_r'}, transparent='slider')
+        mesh.plot_3d_slicer(actvMap * model, aspect="equal", zslice=30, pcolorOpts={"cmap":'inferno_r'}, transparent='slider')
 
-        mesh.plot3DSlicer(actvMap * sumMap * mrecSum, aspect="equal", zslice=30, pcolorOpts={"cmap":'inferno_r'}, transparent='slider')
+        mesh.plot_3d_slicer(actvMap * sumMap * mrecSum, aspect="equal", zslice=30, pcolorOpts={"cmap":'inferno_r'}, transparent='slider')
 
 
 
