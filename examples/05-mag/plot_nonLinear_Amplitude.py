@@ -353,12 +353,12 @@ plt.show()
 
 # Create active map to go from reduce space to full
 actvMap = Maps.InjectActiveCells(mesh, actv, -100)
-nC = len(actv)
+nC = int(actv.sum())
 
 # Create identity map
 idenMap = Maps.IdentityMap(nP=nC)
 
-mstart= np.ones(len(actv))*1e-4
+mstart= np.ones(nC)*1e-4
 
 # Create the forward model operator
 prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
@@ -366,16 +366,15 @@ prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
                                     rx_type='xyz')
 prob.model = mstart
 # Change the survey to xyz components
-survey_xyz = PF.BaseMag.LinearSurvey(survey.srcField)
-survey_xyz.srcField.rxList[0].rxType = 'xyz'
+surveyAmp = PF.BaseMag.LinearSurvey(survey.srcField)
 
 # Pair the survey and problem
-survey_xyz.pair(prob)
+surveyAmp.pair(prob)
 # Create a regularization function, in this case l2l2
 wr = np.sum(prob.G**2., axis=0)**0.5
 wr = (wr/np.max(wr))
 # Re-set the observations to |B|
-survey_xyz.dobs = bAmp
+surveyAmp.dobs = bAmp
 
 # Create a sparse regularization
 reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
@@ -383,7 +382,7 @@ reg.norms = np.c_[1,2,2,2]
 reg.mref = np.zeros(nC)
 reg.cell_weights= wr
 # Data misfit function
-dmis = DataMisfit.l2_DataMisfit(survey_xyz)
+dmis = DataMisfit.l2_DataMisfit(surveyAmp)
 dmis.W = wd
 
 # Add directives to the inversion
@@ -391,7 +390,7 @@ opt = Optimization.ProjectedGNCG(maxIter=10, lower=0., upper=1.,
                                  maxIterLS=20, maxIterCG=20,
                                  tolCG=1e-3)
 
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e+5)
 
 # Here is the list of directives
 betaest = Directives.BetaEstimate_ByEig()
@@ -402,12 +401,12 @@ IRLS = Directives.Update_IRLS(f_min_change=1e-3,
 
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are update between each iteration.
-update_SensWeight = Directives.UpdateSensitivityWeights(everyIter=True)
-update_Jacobi = Directives.UpdatePreconditioner(epsilon=1e-3)
+update_SensWeight = Directives.UpdateSensitivityWeights()
+update_Jacobi = Directives.UpdatePreconditioner()
 
 # Put all together
 inv = Inversion.BaseInversion(invProb,
-                                   directiveList=[betaest, IRLS, update_SensWeight, update_Jacobi,])
+                                   directiveList=[IRLS, update_SensWeight, update_Jacobi,])
 
 # Invert
 mrec_Amp = inv.run(mstart)
