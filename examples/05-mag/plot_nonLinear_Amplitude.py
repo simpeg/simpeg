@@ -110,6 +110,7 @@ midZ = np.mean(limz)
 nCx = int(limx[0]-limx[1]) / h[0]
 nCy = int(limy[0]-limy[1]) / h[1]
 nCz = int(limz[0]-limz[1]+int(np.min(np.r_[nCx, nCy])/3)) / h[2]
+
 # Figure out full extent required from input
 extent = np.max(np.r_[nCx * h[0] + padDist[0, :].sum(),
                       nCy * h[1] + padDist[1, :].sum(),
@@ -219,7 +220,7 @@ survey.std = wd
 
 
 # Plot the model and data
-plt.figure()
+plt.figure(figsize=(12,8))
 ax = plt.subplot(2, 1, 1)
 im = Utils.PlotUtils.plot2Ddata(rxLoc, data, ax=ax)
 plt.colorbar(im[0])
@@ -327,7 +328,7 @@ bAmp = (bx**2. + by**2. + bz**2.)**0.5
 
 
 # Plot the layer model and data
-plt.figure()
+plt.figure(figsize=(12,8))
 ax = plt.subplot(2, 1, 1)
 im = Utils.PlotUtils.plot2Ddata(rxLoc, bAmp, ax=ax)
 plt.colorbar(im[0])
@@ -398,12 +399,13 @@ betaest = Directives.BetaEstimate_ByEig()
 
 # Specify the sparse norms
 IRLS = Directives.Update_IRLS(f_min_change=1e-3,
-                              minGNiter=1, coolingRate=1)
+                              minGNiter=1, coolingRate=1,
+                              betaSearch=False)
 
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are update between each iteration.
 update_SensWeight = Directives.UpdateSensitivityWeights()
-update_Jacobi = Directives.UpdatePreconditioner()
+update_Jacobi = Directives.UpdatePreconditioner(threshold=1-3)
 
 # Put all together
 inv = Inversion.BaseInversion(invProb,
@@ -422,15 +424,27 @@ mrec_Amp = inv.run(mstart)
 #
 
 # Plot the layer model and data
-plt.figure()
-ax = plt.subplot(2, 1, 1)
+plt.figure(figsize=(12,8))
+ax = plt.subplot(3, 1, 1)
 im = Utils.PlotUtils.plot2Ddata(rxLoc, invProb.dpred, ax=ax)
 plt.colorbar(im[0])
 ax.set_title('Predicted data.')
 plt.gca().set_aspect('equal', adjustable='box')
 
 # Plot the vector model
-ax = plt.subplot(2, 1, 2)
+ax = plt.subplot(3, 1, 2)
+im = mesh.plotSlice(actvPlot*invProb.l2model, ax=ax, normal='Y', ind=66,
+    pcolorOpts={"vmin":0., "vmax":0.01}
+)
+plt.colorbar(im[0])
+ax.set_xlim([-200, 200])
+ax.set_ylim([-100, 75])
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+plt.gca().set_aspect('equal', adjustable='box')
+
+# Plot the vector model
+ax = plt.subplot(3, 1, 3)
 im = mesh.plotSlice(actvPlot*mrec_Amp, ax=ax, normal='Y', ind=66,
     pcolorOpts={"vmin":0., "vmax":0.01}
 )
