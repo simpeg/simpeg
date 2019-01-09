@@ -390,7 +390,7 @@ opt = Optimization.ProjectedGNCG(maxIter=10, lower=0., upper=1.,
                                  maxIterLS=20, maxIterCG=20,
                                  tolCG=1e-3)
 
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e+5)
+invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
 
 # Here is the list of directives
 betaest = Directives.BetaEstimate_ByEig()
@@ -406,7 +406,7 @@ update_Jacobi = Directives.UpdatePreconditioner()
 
 # Put all together
 inv = Inversion.BaseInversion(invProb,
-                                   directiveList=[IRLS, update_SensWeight, update_Jacobi,])
+                                   directiveList=[betaest, IRLS, update_SensWeight, update_Jacobi,])
 
 # Invert
 mrec_Amp = inv.run(mstart)

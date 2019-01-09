@@ -144,7 +144,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
             for ii in range(self.G.shape[0]):
 
-                self.gtgdiag += (w[ii]*self.G[ii, :]*dmudm)**2.
+                self.gtgdiag += (self.G[ii, :]*dmudm)**2.
 
         if self.coordinate_system == 'cartesian':
             if self.modelType == 'amplitude':
