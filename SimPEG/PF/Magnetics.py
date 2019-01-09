@@ -133,18 +133,18 @@ class MagneticIntegral(Problem.LinearProblem):
             Return the diagonal of JtJ
         """
         dmudm = self.chiMap.deriv(m)
+
+        if W is None:
+            W = sdiag(np.ones(self.G.shape[1]))
+
         if self.gtgdiag is None:
 
-            if W is None:
-                w = np.ones(self.G.shape[1])
-            else:
-                w = W.diagonal()
 
             self.gtgdiag = np.zeros(dmudm.shape[1])
 
             for ii in range(self.G.shape[0]):
 
-                self.gtgdiag += (self.G[ii, :]*dmudm)**2.
+                self.gtgdiag += self.G[ii, :]**2.
 
         if self.coordinate_system == 'cartesian':
             if self.modelType == 'amplitude':
