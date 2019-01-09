@@ -740,7 +740,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         "regularization weights applied at cell centers", dtype=float
     )
     scale = properties.Float(
-        "General nob for scaling", default=1.
+        "function scaling applied inside the norm", default=1.
     )
     regmesh = properties.Instance(
         "regularization mesh", RegularizationMesh, required=True
