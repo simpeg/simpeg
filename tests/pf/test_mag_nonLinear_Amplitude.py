@@ -182,7 +182,7 @@ class AmpProblemTest(unittest.TestCase):
         # Create static map
         prob = PF.Magnetics.MagneticIntegral(
                 mesh, chiMap=idenMap, actInd=surf,
-                parallelized=True, equiSourceLayer=True)
+                parallelized=False, equiSourceLayer=True)
 
         prob.solverOpts['accuracyTol'] = 1e-4
 
