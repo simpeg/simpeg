@@ -1351,10 +1351,6 @@ class BaseSparse(BaseRegularization):
         "current model", dtype=float
     )
 
-    # gamma = properties.Float(
-    #     "Model norm scaling to smooth out convergence", default=1.
-    # )
-
     epsilon = properties.Float(
         "Threshold value for the model norm", default=1e-3,
         required=True
@@ -1813,10 +1809,6 @@ class Sparse(BaseComboRegularization):
 
     model = properties.Array("current model", dtype=float)
 
-    # gamma = properties.Float(
-    #     "Model norm scaling to smooth out convergence", default=1.
-    # )
-
     space = properties.String(
         "type of model", default='linear'
     )
@@ -1866,11 +1858,6 @@ class Sparse(BaseComboRegularization):
     def _mirror_model_to_objfcts(self, change):
         for objfct in self.objfcts:
             objfct.model = change['value']
-
-    # @properties.observer('gamma')
-    # def _mirror_gamma_to_objfcts(self, change):
-    #     for objfct in self.objfcts:
-    #         objfct.gamma = change['value']
 
     @properties.observer('eps_p')
     def _mirror_eps_p_to_smallness(self, change):
