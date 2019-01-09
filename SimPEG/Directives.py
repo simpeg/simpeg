@@ -597,6 +597,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
         self.outDict[self.opt.iter] = iterDict
 
+
 class Update_IRLS(InversionDirective):
 
     f_old = 0
@@ -917,6 +918,7 @@ class UpdatePreconditioner(InversionDirective):
     """
 
     update_every_iteration = True  #: Update every iterations if False
+    threshold = 1e-8
 
     def initialize(self):
 
@@ -948,7 +950,8 @@ class UpdatePreconditioner(InversionDirective):
                         JtJdiag += np.sum(np.power((dmisfit.W*prob.getJ(m)), 2), axis=0)
                     else:
                         JtJdiag += prob.getJtJdiag(m, W=dmisfit.W)
-            self.opt.JtJdiag = JtJdiag
+
+            self.opt.JtJdiag = JtJdiag + self.threshold
 
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
