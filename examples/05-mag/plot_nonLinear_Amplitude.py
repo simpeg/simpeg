@@ -363,7 +363,7 @@ mstart= np.ones(len(actv))*1e-4
 # Create the forward model operator
 prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
                                      actInd=actv, modelType='amplitude',
-                                    rxType='xyz')
+                                    rx_type='xyz')
 prob.model = mstart
 # Change the survey to xyz components
 survey_xyz = PF.BaseMag.LinearSurvey(survey.srcField)
@@ -375,13 +375,7 @@ survey_xyz.pair(prob)
 wr = np.sum(prob.G**2., axis=0)**0.5
 wr = (wr/np.max(wr))
 # Re-set the observations to |B|
-survey_xyz.dobs = damp
-
-# Create a regularization function, in this case l2l2
-
-# Create a regularization function, in this case l2l2
-wr = np.sum(prob.G**2., axis=0)**0.5
-wr = (wr/np.max(wr))
+survey_xyz.dobs = bAmp
 
 # Create a sparse regularization
 reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
@@ -390,7 +384,7 @@ reg.mref = np.zeros(nC)
 reg.cell_weights= wr
 # Data misfit function
 dmis = DataMisfit.l2_DataMisfit(survey_xyz)
-dmis.W = 1/survey.std
+dmis.W = wd
 
 # Add directives to the inversion
 opt = Optimization.ProjectedGNCG(maxIter=10, lower=0., upper=1.,
