@@ -916,7 +916,7 @@ class UpdatePreconditioner(InversionDirective):
     Create a Jacobi preconditioner for the linear problem
     """
 
-    onlyOnStart = False  #: Update every iterations if False
+    update_every_iteration = True  #: Update every iterations if False
 
     def initialize(self):
 
@@ -958,7 +958,7 @@ class UpdatePreconditioner(InversionDirective):
 
     def endIter(self):
         # Cool the threshold parameter
-        if self.onlyOnStart is True:
+        if ~self.update_every_iteration:
             return
 
         # Create the pre-conditioner
