@@ -76,7 +76,7 @@ ax.plot_trisurf(
     topo[:, 0], topo[:, 1], topo[:, 2],
     triangles=tri.simplices, cmap=plt.cm.Spectral
 )
-ax.scatter3D(xyzLoc[:, 0], xyzLoc[:, 1], xyzLoc[:, 2], c='k')
+ax.scatter3D(rxLoc[:, 0], rxLoc[:, 1], rxLoc[:, 2], c='k')
 plt.show()
 
 ###############################################################################
@@ -221,7 +221,7 @@ survey.std = wd
 # Plot the model and data
 plt.figure()
 ax = plt.subplot(2, 1, 1)
-im = Utils.PlotUtils.plot2Ddata(rxLoc, bAmp, ax=ax)
+im = Utils.PlotUtils.plot2Ddata(rxLoc, data, ax=ax)
 plt.colorbar(im[0])
 ax.set_title('Predicted data.')
 plt.gca().set_aspect('equal', adjustable='box')
@@ -250,11 +250,12 @@ plt.show()
 #
 
 # Get the active cells for equivalent source is the top only
-surf = PF.MagneticsDriver.actIndFull2layer(mesh, actv)
+surf = Utils.modelutils.surfaceLayerIndex(mesh, topo)
 
 # Get the layer of cells directyl below topo
 #surf = Utils.actIndFull2layer(mesh, active)
-nC = len(surf)  # Number of active cells
+nC = np.count_nonzero(surf)  # Number of active cells
+print(nC)
 
 # Create active map to go from reduce set to full
 surfMap = Maps.InjectActiveCells(mesh, surf, np.nan)
@@ -264,8 +265,8 @@ idenMap = Maps.IdentityMap(nP=nC)
 
 # Create static map
 prob = PF.Magnetics.MagneticIntegral(
-        mesh, chiMap = idenMap, actInd=surf, 
-        parallelized = True, equiSourceLayer = True)
+        mesh, chiMap=idenMap, actInd=surf, 
+        parallelized=False, equiSourceLayer = True)
 
 prob.solverOpts['accuracyTol'] = 1e-4
 
@@ -312,14 +313,15 @@ mrec = inv.run(mstart)
 
 # Won't store the sensitivity and output 'xyz' data.
 prob.forwardOnly=True
-prob.rxType='xyz'
+prob.rx_type='xyz'
+prob._G = None
 prob.modelType = 'amplitude'
 prob.model = mrec
 pred = prob.fields(mrec)
 
-bx = data[::3]
-by = data[1::3]
-bz = data[2::3]
+bx = pred[:nD]
+by = pred[nD:2*nD]
+bz = pred[2*nD:]
 
 bAmp = (bx**2. + by**2. + bz**2.)**0.5
 
@@ -345,140 +347,76 @@ plt.gca().set_aspect('equal', adjustable='box')
 
 plt.show()
 
+#%% STEP 3: RUN AMPLITUDE INVERSION
+# Now that we have |B| data, we can invert. This is a non-linear inversion,
+# which requires some special care for the sensitivity weights (see Directives)
 
-# This Mapping connects the regularizations for the three-component
-# vector model
-wires = Maps.Wires(('p', nC), ('s', nC), ('t', nC))
+# Create active map to go from reduce space to full
+actvMap = Maps.InjectActiveCells(mesh, actv, -100)
+nC = len(actv)
 
-# Create sensitivity weights from our linear forward operator
-# so that all cells get equal chance to contribute to the solution
+# Create identity map
+idenMap = Maps.IdentityMap(nP=nC)
+
+mstart= np.ones(len(actv))*1e-4
+
+# Create the forward model operator
+prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
+                                     actInd=actv, modelType='amplitude',
+                                    rxType='xyz')
+prob.model = mstart
+# Change the survey to xyz components
+survey_xyz = PF.BaseMag.LinearSurvey(survey.srcField)
+survey_xyz.srcField.rxList[0].rxType = 'xyz'
+
+# Pair the survey and problem
+survey_xyz.pair(prob)
+# Create a regularization function, in this case l2l2
+wr = np.sum(prob.G**2., axis=0)**0.5
+wr = (wr/np.max(wr))
+# Re-set the observations to |B|
+survey_xyz.dobs = damp
+
+# Create a regularization function, in this case l2l2
+
+# Create a regularization function, in this case l2l2
 wr = np.sum(prob.G**2., axis=0)**0.5
 wr = (wr/np.max(wr))
 
-# Create three regularization for the different components
-# of magnetization
-reg_p = Regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
-reg_p.mref = np.zeros(3*nC)
-reg_p.cell_weights = (wires.p * wr)
-
-reg_s = Regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
-reg_s.mref = np.zeros(3*nC)
-reg_s.cell_weights = (wires.s * wr)
-
-reg_t = Regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
-reg_t.mref = np.zeros(3*nC)
-reg_t.cell_weights = (wires.t * wr)
-
-reg = reg_p + reg_s + reg_t
-reg.mref = np.zeros(3*nC)
-
+# Create a sparse regularization
+reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+reg.norms = np.c_[1,2,2,2]
+reg.mref = np.zeros(nC)
+reg.cell_weights= wr
 # Data misfit function
-dmis = DataMisfit.l2_DataMisfit(survey)
-dmis.W = 1./survey.std
+dmis = DataMisfit.l2_DataMisfit(survey_xyz)
+dmis.W = 1/survey.std
 
 # Add directives to the inversion
-opt = Optimization.ProjectedGNCG(maxIter=30, lower=-10, upper=10.,
-                                 maxIterLS=20, maxIterCG=20, tolCG=1e-4)
+opt = Optimization.ProjectedGNCG(maxIter=10, lower=0., upper=1.,
+                                 maxIterLS=20, maxIterCG=20,
+                                 tolCG=1e-3)
 
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
 
-# A list of directive to control the inverson
+# Here is the list of directives
 betaest = Directives.BetaEstimate_ByEig()
 
-# Here is where the norms are applied
-# Use pick a treshold parameter empirically based on the distribution of
-#  model parameters
-IRLS = Directives.Update_IRLS(
-    f_min_change=1e-3, maxIRLSiter=0, beta_tol=5e-1
-)
-
-# Pre-conditioner
-update_Jacobi = Directives.UpdatePreconditioner()
-
-inv = Inversion.BaseInversion(invProb,
-                              directiveList=[IRLS, update_Jacobi, betaest])
-
-# Run the inversion
-m0 = np.ones(3*nC) * 1e-4  # Starting model
-mrec_MVIC = inv.run(m0)
-
-###############################################################
-# Sparse Vector Inversion
-# -----------------------
-#
-# Re-run the MVI in spherical domain so we can impose
-# sparsity in the vectors.
-#
-#
-
-mstart = Utils.matutils.xyz2spherical(mrec_MVIC.reshape((nC, 3), order='F'))
-beta = invProb.beta
-dmis.prob.coordinate_system = 'spherical'
-dmis.prob.model = mstart
-
-# Create a block diagonal regularization
-wires = Maps.Wires(('amp', nC), ('theta', nC), ('phi', nC))
-
-# Create a Combo Regularization
-# Regularize the amplitude of the vectors
-reg_a = Regularization.Sparse(mesh, indActive=actv,
-                              mapping=wires.amp)
-reg_a.norms = np.c_[0., 0., 0., 0.]  # Sparse on the model and its gradients
-reg_a.mref = np.zeros(3*nC)
-
-# Regularize the vertical angle of the vectors
-reg_t = Regularization.Sparse(mesh, indActive=actv,
-                              mapping=wires.theta)
-reg_t.alpha_s = 0.  # No reference angle
-reg_t.space = 'spherical'
-reg_t.norms = np.c_[2., 0., 0., 0.]  # Only norm on gradients used
-
-# Regularize the horizontal angle of the vectors
-reg_p = Regularization.Sparse(mesh, indActive=actv,
-                              mapping=wires.phi)
-reg_p.alpha_s = 0.  # No reference angle
-reg_p.space = 'spherical'
-reg_p.norms = np.c_[2., 0., 0., 0.]  # Only norm on gradients used
-
-reg = reg_a + reg_t + reg_p
-reg.mref = np.zeros(3*nC)
-
-Lbound = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
-Ubound = np.kron(np.asarray([10, np.inf, np.inf]), np.ones(nC))
-
-# Add directives to the inversion
-opt = Optimization.ProjectedGNCG(maxIter=20,
-                                 lower=Lbound,
-                                 upper=Ubound,
-                                 maxIterLS=20,
-                                 maxIterCG=30,
-                                 tolCG=1e-3,
-                                 stepOffBoundsFact=1e-3,
-                                 )
-opt.approxHinv = None
-
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta*10.)
-
-# Here is where the norms are applied
-IRLS = Directives.Update_IRLS(f_min_change=1e-4, maxIRLSiter=20,
-                              minGNiter=1, beta_tol=0.5,
-                              coolingRate=1, coolEps_q=True,
-                              betaSearch=False)
+# Specify the sparse norms
+IRLS = Directives.Update_IRLS(f_min_change=1e-3,
+                              minGNiter=3, coolingRate=1)
 
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are update between each iteration.
-ProjSpherical = Directives.ProjectSphericalBounds()
-update_SensWeight = Directives.UpdateSensitivityWeights()
-update_Jacobi = Directives.UpdatePreconditioner()
+update_SensWeight = Directives.UpdateSensitivityWeights(everyIter=True)
+update_Jacobi = Directives.UpdatePreconditioner(epsilon=1e-3)
 
-inv = Inversion.BaseInversion(
-    invProb,
-    directiveList=[
-        ProjSpherical, IRLS, update_SensWeight, update_Jacobi
-    ]
-)
+# Put all together
+inv = Inversion.BaseInversion(invProb,
+                                   directiveList=[betaest, IRLS, update_SensWeight, update_Jacobi,])
 
-mrec_MVI_S = inv.run(mstart)
+# Invert
+mrec_Amp = inv.run(mstart)
 
 #############################################################
 # Final Plot
