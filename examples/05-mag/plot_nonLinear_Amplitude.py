@@ -17,17 +17,17 @@ assumption in order to improve the recovery of a cube prism.
 
 """
 
-
+import scipy as sp
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.interpolate import NearestNDInterpolator
 from SimPEG import (Mesh, Directives, Maps,
                     InvProblem, Optimization, DataMisfit,
                     Inversion, Utils, Regularization)
 
 import SimPEG.PF as PF
-import scipy as sp
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.interpolate import NearestNDInterpolator
 from SimPEG.Utils import mkvc
+
 ###############################################################################
 # Setup
 # -----
@@ -87,9 +87,7 @@ plt.show()
 # utility function to center the mesh around points and to figure out the
 # outer most dimension for adequate padding distance.
 # The second stage allows to refine the mesh around points or surfaces
-# (point assumed to follow some horiontal trend)
-# The refinement process is repeated twice to allow for a finer level around
-# the survey locations.
+# (point assumed to follow an horiontal interface such as topo)
 #
 
 # Create a mesh
@@ -154,7 +152,8 @@ for ii in range(3):
     for level in range(int(nCpad[ii])):
 
         mesh.insert_cells(
-            np.c_[mkvc(CCx), mkvc(CCy), z-zOffset], np.ones_like(z)*maxLevel-ii,
+            np.c_[mkvc(CCx), mkvc(CCy), z-zOffset],
+            np.ones_like(z)*maxLevel-ii,
             finalize=False
         )
 
@@ -190,9 +189,6 @@ model[ind] = chi_e
 # Remove air cells
 model = model[actv]
 
-# Create active map to go from reduce set to full
-actvPlot = Maps.InjectActiveCells(mesh, actv, np.nan)
-
 # Creat reduced identity map
 idenMap = Maps.IdentityMap(nP=nC)
 
@@ -220,17 +216,23 @@ survey.std = wd
 
 
 # Plot the model and data
-plt.figure(figsize=(12,8))
+plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 1, 1)
-im = Utils.PlotUtils.plot2Ddata(rxLoc, data, ax=ax)
+im = Utils.PlotUtils.plot2Ddata(
+        rxLoc, data, ax=ax, contourOpts={"cmap": "RdBu_r"}
+)
 plt.colorbar(im[0])
 ax.set_title('Predicted data.')
 plt.gca().set_aspect('equal', adjustable='box')
 
 # Plot the vector model
 ax = plt.subplot(2, 1, 2)
-mesh.plotSlice(actvPlot*model, ax=ax, normal='Y', ind=66,
-    pcolorOpts={"vmin":0., "vmax":0.01}
+
+# Create active map to go from reduce set to full
+actvPlot = Maps.InjectActiveCells(mesh, actv, np.nan)
+mesh.plotSlice(
+    actvPlot*model, ax=ax, normal='Y', ind=66,
+    pcolorOpts={"vmin": 0., "vmax": 0.01}
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
@@ -252,11 +254,7 @@ plt.show()
 
 # Get the active cells for equivalent source is the top only
 surf = Utils.modelutils.surfaceLayerIndex(mesh, topo)
-
-# Get the layer of cells directyl below topo
-#surf = Utils.actIndFull2layer(mesh, active)
 nC = np.count_nonzero(surf)  # Number of active cells
-print(nC)
 
 # Create active map to go from reduce set to full
 surfMap = Maps.InjectActiveCells(mesh, surf, np.nan)
@@ -266,8 +264,8 @@ idenMap = Maps.IdentityMap(nP=nC)
 
 # Create static map
 prob = PF.Magnetics.MagneticIntegral(
-        mesh, chiMap=idenMap, actInd=surf, 
-        parallelized=False, equiSourceLayer = True)
+        mesh, chiMap=idenMap, actInd=surf,
+        parallelized=False, equiSourceLayer=True)
 
 prob.solverOpts['accuracyTol'] = 1e-4
 
@@ -278,13 +276,16 @@ survey.pair(prob)
 
 
 # Create a regularization function, in this case l2l2
-reg = Regularization.Sparse(mesh, indActive=surf, mapping=Maps.IdentityMap(nP=nC), scaledIRLS=False)
+reg = Regularization.Sparse(
+    mesh, indActive=surf, mapping=Maps.IdentityMap(nP=nC), scaledIRLS=False
+)
 reg.mref = np.zeros(nC)
 
 # Specify how the optimization will proceed, set susceptibility bounds to inf
-opt = Optimization.ProjectedGNCG(maxIter=20, lower=-np.inf,
-                                 upper=np.inf, maxIterLS=20,
-                                 maxIterCG=20, tolCG=1e-3)
+opt = Optimization.ProjectedGNCG(
+    maxIter=20, lower=-np.inf, upper=np.inf, maxIterLS=20,
+    maxIterCG=20, tolCG=1e-3
+)
 
 # Define misfit function (obs-calc)
 dmis = DataMisfit.l2_DataMisfit(survey)
@@ -299,7 +300,7 @@ betaest = Directives.BetaEstimate_ByEig()
 # Target misfit to stop the inversion,
 # try to fit as much as possible of the signal, we don't want to lose anything
 IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=1,
-                              beta_tol = 1e-1)
+                              beta_tol=1e-1)
 update_Jacobi = Directives.UpdatePreconditioner()
 # Put all the parts together
 inv = Inversion.BaseInversion(invProb,
@@ -309,12 +310,16 @@ inv = Inversion.BaseInversion(invProb,
 mstart = np.ones(nC)*1e-4
 mrec = inv.run(mstart)
 
+########################################################
+# Forward Amplitude Data
+# ----------------------
+#
 # Now that we have an equialent source layer, we can forward model alh three
 # components of the field and add them up: |B| = ( Bx**2 + Bx**2 + Bx**2 )**0.5
 
 # Won't store the sensitivity and output 'xyz' data.
-prob.forwardOnly=True
-prob.rx_type='xyz'
+prob.forwardOnly = True
+prob.rx_type = 'xyz'
 prob._G = None
 prob.modelType = 'amplitude'
 prob.model = mrec
@@ -328,17 +333,28 @@ bAmp = (bx**2. + by**2. + bz**2.)**0.5
 
 
 # Plot the layer model and data
-plt.figure(figsize=(12,8))
-ax = plt.subplot(2, 1, 1)
-im = Utils.PlotUtils.plot2Ddata(rxLoc, bAmp, ax=ax)
+plt.figure(figsize=(8, 8))
+ax = plt.subplot(2, 2, 1)
+im = Utils.PlotUtils.plot2Ddata(
+        rxLoc, invProb.dpred, ax=ax, contourOpts={"cmap": "RdBu_r"}
+)
 plt.colorbar(im[0])
 ax.set_title('Predicted data.')
 plt.gca().set_aspect('equal', adjustable='box')
 
-# Plot the vector model
+ax = plt.subplot(2, 2, 2)
+im = Utils.PlotUtils.plot2Ddata(
+        rxLoc, bAmp, ax=ax, contourOpts={"cmap": "RdBu_r"}
+)
+plt.colorbar(im[0])
+ax.set_title('Calculated amplitude')
+plt.gca().set_aspect('equal', adjustable='box')
+
+# Plot the equivalent layer model
 ax = plt.subplot(2, 1, 2)
-mesh.plotSlice(surfMap*mrec, ax=ax, normal='Y', ind=66,
-    pcolorOpts={"vmin":0., "vmax":0.01}
+mesh.plotSlice(
+    surfMap*mrec, ax=ax, normal='Y', ind=66,
+    pcolorOpts={"vmin": 0., "vmax": 0.01}
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
@@ -348,9 +364,14 @@ plt.gca().set_aspect('equal', adjustable='box')
 
 plt.show()
 
-#%% STEP 3: RUN AMPLITUDE INVERSION
-# Now that we have |B| data, we can invert. This is a non-linear inversion,
-# which requires some special care for the sensitivity weights (see Directives)
+######################################################################
+# AMPLITUDE INVERSION
+# -------------------
+#
+# Now that we have amplitude data, we can invert for an effective
+# susceptibility. This is a non-linear inversion.
+#
+
 
 # Create active map to go from reduce space to full
 actvMap = Maps.InjectActiveCells(mesh, actv, -100)
@@ -359,12 +380,13 @@ nC = int(actv.sum())
 # Create identity map
 idenMap = Maps.IdentityMap(nP=nC)
 
-mstart= np.ones(nC)*1e-4
+mstart = np.ones(nC)*1e-4
 
 # Create the forward model operator
-prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
-                                     actInd=actv, modelType='amplitude',
-                                    rx_type='xyz')
+prob = PF.Magnetics.MagneticIntegral(
+    mesh, chiMap=idenMap, actInd=actv,
+    modelType='amplitude', rx_type='xyz'
+)
 prob.model = mstart
 # Change the survey to xyz components
 surveyAmp = PF.BaseMag.LinearSurvey(survey.srcField)
@@ -376,16 +398,16 @@ wr = np.sum(prob.G**2., axis=0)**0.5
 wr = (wr/np.max(wr))
 # Re-set the observations to |B|
 surveyAmp.dobs = bAmp
-surveyAmp.std = (wd**2. * 3)**0.5
+surveyAmp.std = wd
 
 # Create a sparse regularization
 reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-reg.norms = np.c_[1,0,0,0]
+reg.norms = np.c_[1, 0, 0, 0]
 reg.mref = np.zeros(nC)
-reg.cell_weights= wr
+reg.cell_weights = wr
 # Data misfit function
 dmis = DataMisfit.l2_DataMisfit(surveyAmp)
-dmis.W = 1./surveyAmp.std 
+dmis.W = 1./surveyAmp.std
 
 # Add directives to the inversion
 opt = Optimization.ProjectedGNCG(maxIter=30, lower=0., upper=1.,
@@ -408,8 +430,11 @@ update_SensWeight = Directives.UpdateSensitivityWeights()
 update_Jacobi = Directives.UpdatePreconditioner(threshold=1-3)
 
 # Put all together
-inv = Inversion.BaseInversion(invProb,
-                                   directiveList=[betaest, IRLS, update_SensWeight, update_Jacobi,])
+inv = Inversion.BaseInversion(
+    invProb, directiveList=[
+        betaest, IRLS, update_SensWeight, update_Jacobi
+        ]
+)
 
 # Invert
 mrec_Amp = inv.run(mstart)
@@ -419,22 +444,28 @@ mrec_Amp = inv.run(mstart)
 # ----------
 #
 # Let's compare the smooth and compact model
-#
-#
+# Note that the recovered effective susceptibility block is slightly offseted
+# to the left of the true model. This is due to the wrong assumption of a
+# vertical magnetization. Important to remember that the amplitude inversion
+# is *weakly* sensitive to the magnetization direction, but can still have
+# an impact.
 #
 
 # Plot the layer model and data
-plt.figure(figsize=(12,8))
+plt.figure(figsize=(12, 8))
 ax = plt.subplot(3, 1, 1)
-im = Utils.PlotUtils.plot2Ddata(rxLoc, invProb.dpred, ax=ax)
+im = Utils.PlotUtils.plot2Ddata(
+        rxLoc, invProb.dpred, ax=ax, contourOpts={"cmap": "RdBu_r"}
+ )
 plt.colorbar(im[0])
 ax.set_title('Predicted data.')
 plt.gca().set_aspect('equal', adjustable='box')
 
 # Plot the vector model
 ax = plt.subplot(3, 1, 2)
-im = mesh.plotSlice(actvPlot*invProb.l2model, ax=ax, normal='Y', ind=66,
-    pcolorOpts={"vmin":0., "vmax":0.01}
+im = mesh.plotSlice(
+    actvPlot*invProb.l2model, ax=ax, normal='Y', ind=66,
+    pcolorOpts={"vmin": 0., "vmax": 0.01}
 )
 plt.colorbar(im[0])
 ax.set_xlim([-200, 200])
@@ -443,10 +474,11 @@ ax.set_xlabel('x')
 ax.set_ylabel('y')
 plt.gca().set_aspect('equal', adjustable='box')
 
-# Plot the vector model
+# Plot the amplitude model
 ax = plt.subplot(3, 1, 3)
-im = mesh.plotSlice(actvPlot*mrec_Amp, ax=ax, normal='Y', ind=66,
-    pcolorOpts={"vmin":0., "vmax":0.01}
+im = mesh.plotSlice(
+    actvPlot*mrec_Amp, ax=ax, normal='Y', ind=66,
+    pcolorOpts={"vmin": 0., "vmax": 0.01}
 )
 plt.colorbar(im[0])
 ax.set_xlim([-200, 200])
@@ -454,5 +486,4 @@ ax.set_ylim([-100, 75])
 ax.set_xlabel('x')
 ax.set_ylabel('y')
 plt.gca().set_aspect('equal', adjustable='box')
-
 plt.show()
