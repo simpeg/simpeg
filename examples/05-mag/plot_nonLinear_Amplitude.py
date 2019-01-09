@@ -95,7 +95,7 @@ plt.show()
 # Create a mesh
 h = [5, 5, 5]
 padDist = np.ones((3, 2)) * 100
-nCpad = [2, 4, 2]
+nCpad = [4, 4, 2]
 
 # Get extent of points
 limx = np.r_[topo[:, 0].max(), topo[:, 0].min()]
@@ -375,18 +375,19 @@ wr = np.sum(prob.G**2., axis=0)**0.5
 wr = (wr/np.max(wr))
 # Re-set the observations to |B|
 surveyAmp.dobs = bAmp
+surveyAmp.std = (wd**2. * 3)**0.5
 
 # Create a sparse regularization
 reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-reg.norms = np.c_[1,2,2,2]
+reg.norms = np.c_[1,0,0,0]
 reg.mref = np.zeros(nC)
 reg.cell_weights= wr
 # Data misfit function
 dmis = DataMisfit.l2_DataMisfit(surveyAmp)
-dmis.W = wd
+dmis.W = 1./surveyAmp.std 
 
 # Add directives to the inversion
-opt = Optimization.ProjectedGNCG(maxIter=10, lower=0., upper=1.,
+opt = Optimization.ProjectedGNCG(maxIter=30, lower=0., upper=1.,
                                  maxIterLS=20, maxIterCG=20,
                                  tolCG=1e-3)
 
@@ -397,7 +398,7 @@ betaest = Directives.BetaEstimate_ByEig()
 
 # Specify the sparse norms
 IRLS = Directives.Update_IRLS(f_min_change=1e-3,
-                              minGNiter=3, coolingRate=1)
+                              minGNiter=1, coolingRate=1)
 
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are update between each iteration.
@@ -420,45 +421,24 @@ mrec_Amp = inv.run(mstart)
 #
 #
 
-plt.figure(figsize=(8, 8))
+# Plot the layer model and data
+plt.figure()
 ax = plt.subplot(2, 1, 1)
-plotVectorSectionsOctree(
-    mesh, mrec_MVIC.reshape((nC, 3), order="F"),
-    axs=ax, normal='Y', ind=65, actvMap=actvPlot,
-    scale=0.05, vmin=0., vmax=0.005)
-
-ax.set_xlim([-200, 200])
-ax.set_ylim([-100, 75])
-ax.set_title('Smooth model (Cartesian)')
-ax.set_xlabel('x')
-ax.set_ylabel('y')
+im = Utils.PlotUtils.plot2Ddata(rxLoc, invProb.dpred, ax=ax)
+plt.colorbar(im[0])
+ax.set_title('Predicted data.')
 plt.gca().set_aspect('equal', adjustable='box')
 
+# Plot the vector model
 ax = plt.subplot(2, 1, 2)
-vec_xyz = Utils.matutils.spherical2xyz(
-    invProb.model.reshape((nC, 3), order='F')).reshape((nC, 3), order='F')
-
-plotVectorSectionsOctree(
-    mesh, vec_xyz, axs=ax, normal='Y', ind=65,
-    actvMap=actvPlot, scale=0.4, vmin=0., vmax=0.01
+im = mesh.plotSlice(actvPlot*mrec_Amp, ax=ax, normal='Y', ind=66,
+    pcolorOpts={"vmin":0., "vmax":0.01}
 )
+plt.colorbar(im[0])
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
-ax.set_title('Sparse model (Spherical)')
 ax.set_xlabel('x')
 ax.set_ylabel('y')
 plt.gca().set_aspect('equal', adjustable='box')
 
 plt.show()
-
-# Plot the final predicted data and the residual
-plt.figure()
-ax = plt.subplot(1, 2, 1)
-Utils.PlotUtils.plot2Ddata(xyzLoc, invProb.dpred, ax=ax)
-ax.set_title('Predicted data.')
-plt.gca().set_aspect('equal', adjustable='box')
-
-ax = plt.subplot(1, 2, 2)
-Utils.PlotUtils.plot2Ddata(xyzLoc, data-invProb.dpred, ax=ax)
-ax.set_title('Data residual.')
-plt.gca().set_aspect('equal', adjustable='box')
