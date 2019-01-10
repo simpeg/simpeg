@@ -11,8 +11,8 @@ First we invert the TMI for an equivalent source layer, from which we
 recover 3-component magnetic data. This data is then transformed to amplitude
 
 Secondly, we invert the non-linear inverse problem with
-:class:'SimPEG.Directive.UpdateSensitivityWeights`. We also
-uses the :class:'SimPEG.Regularization.Sparse' to apply sparsity
+:class:`SimPEG.Directive.UpdateSensitivityWeights`. We also
+uses the :class:`SimPEG.Regularization.Sparse` to apply sparsity
 assumption in order to improve the recovery of a cube prism.
 
 """
@@ -315,9 +315,9 @@ mrec = inv.run(mstart)
 # ----------------------
 #
 # Now that we have an equialent source layer, we can forward model alh three
-# components of the field and add them up: |B| = ( Bx**2 + Bx**2 + Bx**2 )**0.5
+# components of the field and add them up: :math:`|B| = \sqrt{( Bx^2 + Bx^2 + Bx^2 )}`
+#
 
-# Won't store the sensitivity and output 'xyz' data.
 prob.forwardOnly = True
 prob.rx_type = 'xyz'
 prob._G = None
@@ -365,7 +365,7 @@ plt.gca().set_aspect('equal', adjustable='box')
 plt.show()
 
 ######################################################################
-# AMPLITUDE INVERSION
+# Amplitude Inversion
 # -------------------
 #
 # Now that we have amplitude data, we can invert for an effective
@@ -447,7 +447,7 @@ mrec_Amp = inv.run(mstart)
 # Note that the recovered effective susceptibility block is slightly offseted
 # to the left of the true model. This is due to the wrong assumption of a
 # vertical magnetization. Important to remember that the amplitude inversion
-# is *weakly* sensitive to the magnetization direction, but can still have
+# is weakly sensitive to the magnetization direction, but can still have
 # an impact.
 #
 
