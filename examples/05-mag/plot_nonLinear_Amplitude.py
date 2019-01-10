@@ -11,7 +11,7 @@ First we invert the TMI for an equivalent source layer, from which we
 recover 3-component magnetic data. This data is then transformed to amplitude
 
 Secondly, we invert the non-linear inverse problem with
-:class:`SimPEG.Directive.UpdateSensitivityWeights`. We also
+:class:`SimPEG.Directives.UpdateSensitivityWeights`. We also
 uses the :class:`SimPEG.Regularization.Sparse` to apply sparsity
 assumption in order to improve the recovery of a cube prism.
 
