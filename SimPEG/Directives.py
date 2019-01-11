@@ -463,9 +463,12 @@ class SaveOutputEveryIteration(SaveEveryIteration):
             self.i_target = i_target
 
     def plot_misfit_curves(
-        self, fname=None, dpi=None,
-        plot_phi_m=True, plot_small=False,
-        plot_smooth=False):
+        self, fname=None, dpi=300,
+        plot_small_smooth=False,
+        plot_phi_m=True,
+        plot_small=False,
+        plot_smooth=False
+    ):
 
         self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
         self.i_target = None
@@ -476,33 +479,58 @@ class SaveOutputEveryIteration(SaveEveryIteration):
                 i_target += 1
             self.i_target = i_target
 
-        fig = plt.figure(figsize=(10, 4))
+        fig = plt.figure(figsize=(5, 2))
         ax = plt.subplot(111)
         ax_1 = ax.twinx()
-        ax.semilogy(np.arange(len(self.phi_d)), self.phi_d, 'ko-', lw=2, label="$\phi_d$")
-        if plot_phi_m:
-            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m, 'bo-', lw=2,label="$\phi_m$")
-        if plot_small:
-            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m_small, 'ro-', label="small")
-        if plot_smooth:
-            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m_smooth_x, 'gx-',label="smooth_x")
-            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m_smooth_y, 'gx-',label="smooth_y")
-            ax_1.semilogy(np.arange(len(self.phi_d)), self.phi_m_smooth_z, 'gx-',label="smooth_z")
+        ax.semilogy(
+            np.arange(len(self.phi_d)),
+            self.phi_d, 'k-', lw=2,
+            label="$\phi_d$"
+        )
 
+        if plot_phi_m:
+            ax_1.semilogy(
+                np.arange(len(self.phi_d)),
+                self.phi_m, 'r', lw=2,
+                label="$\phi_m$"
+            )
+
+        if plot_small_smooth or plot_small:
+            ax_1.semilogy(np.arange(
+                len(self.phi_d)),
+                self.phi_m_small, 'ro',
+                label="small"
+            )
+        if plot_small_smooth or plot_smooth:
+            ax_1.semilogy(np.arange(
+                len(self.phi_d)),
+                self.phi_m_smooth_x, 'rx',
+                label="smooth_x"
+            )
+            ax_1.semilogy(np.arange(
+                len(self.phi_d)),
+                self.phi_m_smooth_y, 'rx',
+                label="smooth_y"
+            )
+            ax_1.semilogy(np.arange(
+                len(self.phi_d)),
+                self.phi_m_smooth_z, 'rx',
+                label="smooth_z"
+            )
+
+        ax.legend(loc=1)
+        ax_1.legend(loc=2)
 
         ax.plot(np.r_[ax.get_xlim()[0], ax.get_xlim()[1]],
-                np.ones(2) * self.target_misfit, 'k:', label='target misfit')
+                np.ones(2) * self.target_misfit, 'k:')
         ax.set_xlabel("Iteration")
         ax.set_ylabel("$\phi_d$")
         ax_1.set_ylabel("$\phi_m$", color='r')
         ax_1.tick_params(axis='y', which='both', colors='red')
 
-        ax.legend(loc=1)
-        ax_1.legend(loc=2)
-
         plt.show()
         if fname is not None:
-            fig.savefig(fname, dpi=dpi, bbox_inches='tight', pad_inches=0)
+            fig.savefig(fname, dpi=dpi)
 
     def plot_tikhonov_curves(self, fname=None, dpi=200):
 
