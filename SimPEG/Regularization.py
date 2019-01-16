@@ -1653,8 +1653,44 @@ class SparseDeriv(BaseSparse):
             else:
                 W = Utils.sdiag((Ave * self.scale)**0.5) * R
 
-            theta = self.cellDiffStencil * (self.mapping * f_m)
-            dmdx = coterminal(theta)
+
+            if self.mrefInSmooth:
+
+                f_m = self._delta_m(self.model)
+
+            else:
+                f_m = self.model
+
+            if self.gradientType == 'total':
+
+
+
+                Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
+                dmdx = np.abs(self.regmesh.aveFx2CC *
+                              self.regmesh.cellDiffxStencil *
+                              (self.mapping * f_m)
+                              )
+
+                if self.regmesh.dim > 1:
+
+                    dmdx += np.abs(self.regmesh.aveFy2CC *
+                                   self.regmesh.cellDiffyStencil *
+                                   (self.mapping * f_m)
+                                   )
+
+                if self.regmesh.dim > 2:
+
+                    dmdx += np.abs(self.regmesh.aveFz2CC *
+                                   self.regmesh.cellDiffzStencil *
+                                   (self.mapping * f_m)
+                                   )
+
+                dmdx = Ave * dmdx
+
+            else:
+                dmdx = self.cellDiffStencil * (self.mapping * f_m)
+            dmdx = coterminal(dmdx)
             r = W * dmdx
 
         else:
@@ -1746,8 +1782,44 @@ class SparseDeriv(BaseSparse):
             else:
                 W = Utils.sdiag((Ave * self.scale)**0.5) * R
 
-            theta = self.cellDiffStencil * (self.mapping * model)
-            dmdx = coterminal(theta)
+
+            if self.mrefInSmooth:
+
+                f_m = self._delta_m(self.model)
+
+            else:
+                f_m = self.model
+
+            if self.gradientType == 'total':
+
+
+
+                Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
+                dmdx = np.abs(self.regmesh.aveFx2CC *
+                              self.regmesh.cellDiffxStencil *
+                              (self.mapping * f_m)
+                              )
+
+                if self.regmesh.dim > 1:
+
+                    dmdx += np.abs(self.regmesh.aveFy2CC *
+                                   self.regmesh.cellDiffyStencil *
+                                   (self.mapping * f_m)
+                                   )
+
+                if self.regmesh.dim > 2:
+
+                    dmdx += np.abs(self.regmesh.aveFz2CC *
+                                   self.regmesh.cellDiffzStencil *
+                                   (self.mapping * f_m)
+                                   )
+
+                dmdx = Ave * dmdx
+
+            else:
+                dmdx = self.cellDiffStencil * (self.mapping * f_m)
+            dmdx = coterminal(dmdx)
 
             r = self.gamma * W * dmdx
 
@@ -1774,39 +1846,37 @@ class SparseDeriv(BaseSparse):
         if self.scale is None:
             self.scale = np.ones(self.mapping.shape[0])
 
+        if self.gradientType == 'total':
+            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
-        if self.space == 'spherical':
-            theta = self.cellDiffStencil * (self.mapping * f_m)
-            dmdx = coterminal(theta)
+            dmdx = np.abs(self.regmesh.aveFx2CC *
+                          self.regmesh.cellDiffxStencil *
+                          (self.mapping * f_m)
+                          )
+
+            if self.regmesh.dim > 1:
+
+                dmdx += np.abs(self.regmesh.aveFy2CC *
+                               self.regmesh.cellDiffyStencil *
+                               (self.mapping * f_m)
+                               )
+
+            if self.regmesh.dim > 2:
+
+                dmdx += np.abs(self.regmesh.aveFz2CC *
+                               self.regmesh.cellDiffzStencil *
+                               (self.mapping * f_m)
+                               )
+
+            dmdx = Ave * dmdx
 
         else:
+            dmdx = self.cellDiffStencil * (self.mapping * f_m)
 
-            if self.gradientType == 'total':
-                Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+        if self.space == 'spherical':
+            # theta = self.cellDiffStencil * (self.mapping * f_m)
+            dmdx = coterminal(dmdx)
 
-                dmdx = np.abs(self.regmesh.aveFx2CC *
-                              self.regmesh.cellDiffxStencil *
-                              (self.mapping * f_m)
-                              )
-
-                if self.regmesh.dim > 1:
-
-                    dmdx += np.abs(self.regmesh.aveFy2CC *
-                                   self.regmesh.cellDiffyStencil *
-                                   (self.mapping * f_m)
-                                   )
-
-                if self.regmesh.dim > 2:
-
-                    dmdx += np.abs(self.regmesh.aveFz2CC *
-                                   self.regmesh.cellDiffzStencil *
-                                   (self.mapping * f_m)
-                                   )
-
-                dmdx = Ave * dmdx
-
-            else:
-                dmdx = self.cellDiffStencil * (self.mapping * f_m)
 
         return dmdx
 
