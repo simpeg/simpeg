@@ -1117,18 +1117,18 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
     @Utils.timeIt
     def findSearchDirection(self):
-
         """
             findSearchDirection()
             Finds the search direction based on projected CG
         """
+
         Active = self.activeSet(self.xc)
         temp = sum((np.ones_like(self.xc.size)-Active))
 
-        delx = np.zeros(self.g.size)
+        step = np.zeros(self.g.size)
         resid = -(1-Active) * self.g
 
-        r = (resid - (1-Active)*(self.H * delx))
+        r = (resid - (1-Active)*(self.H * step))
 
         p = self.approxHinv*r
 
@@ -1147,7 +1147,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
             alpha = sold / (np.dot(p, q))
 
-            delx += alpha * p
+            step += alpha * p
 
             r -= alpha * q
 
@@ -1166,19 +1166,19 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
             rhs_a = (Active) * -self.g
 
-            dm_i = max(abs(delx))
+            dm_i = max(abs(step))
             dm_a = max(abs(rhs_a))
 
             # perturb inactive set off of bounds so that they are included
             # in the step
-            delx = delx + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
+            step = step + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
 
         # Only keep gradients going in the right direction on the active
         # set
         indx = (
-            ((self.xc <= self.lower) & (delx < 0)) |
-            ((self.xc >= self.upper) & (delx > 0))
+            ((self.xc <= self.lower) & (step < 0)) |
+            ((self.xc >= self.upper) & (step > 0))
         )
-        delx[indx] = 0.
+        step[indx] = 0.
 
-        return delx
+        return step
