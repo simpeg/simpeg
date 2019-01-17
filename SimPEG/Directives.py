@@ -1128,8 +1128,8 @@ class ProjectSphericalBounds(InversionDirective):
         # Convert to cartesian than back to avoid over rotation
         nC = int(len(x)/3)
 
-        xyz = Utils.matutils.spherical2xyz(x.reshape((nC, 3), order='F'))
-        m = Utils.matutils.xyz2spherical(xyz.reshape((nC, 3), order='F'))
+        xyz = Utils.matutils.spherical2cartesian(x.reshape((nC, 3), order='F'))
+        m = Utils.matutils.cartesian2spherical(xyz.reshape((nC, 3), order='F'))
 
         self.invProb.model = m
 
@@ -1144,8 +1144,8 @@ class ProjectSphericalBounds(InversionDirective):
         nC = int(len(x)/3)
 
         # Convert to cartesian than back to avoid over rotation
-        xyz = Utils.matutils.spherical2xyz(x.reshape((nC, 3), order='F'))
-        m = Utils.matutils.xyz2spherical(xyz.reshape((nC, 3), order='F'))
+        xyz = Utils.matutils.spherical2cartesian(x.reshape((nC, 3), order='F'))
+        m = Utils.matutils.cartesian2spherical(xyz.reshape((nC, 3), order='F'))
 
         self.invProb.model = m
 

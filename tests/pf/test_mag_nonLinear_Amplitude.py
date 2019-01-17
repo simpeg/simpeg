@@ -120,7 +120,7 @@ class AmpProblemTest(unittest.TestCase):
         nC = int(actv.sum())
 
         # Convert the inclination declination to vector in Cartesian
-        M_xyz = Utils.matutils.dipazm2xyz(np.ones(nC)*M[0], np.ones(nC)*M[1])
+        M_xyz = Utils.matutils.dip_azimuth2cartesian(np.ones(nC)*M[0], np.ones(nC)*M[1])
 
         # Get the indicies of the magnetized block
         ind = Utils.ModelBuilder.getIndicesBlock(

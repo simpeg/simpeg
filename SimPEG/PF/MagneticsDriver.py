@@ -311,7 +311,7 @@ class MagneticsDriver_Inv(object):
 
         if getattr(self, 'magfile', None) is None:
 
-            M = Magnetics.dipazm2xyz(
+            M = Magnetics.dip_azimuth2cartesian(
                 np.ones(self.nC) * self.survey.srcField.param[1],
                 np.ones(self.nC) * self.survey.srcField.param[2]
             )

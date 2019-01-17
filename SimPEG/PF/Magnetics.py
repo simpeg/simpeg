@@ -57,7 +57,7 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.coordinate_system == 'cartesian':
             m = self.chiMap*(m)
         else:
-            m = self.chiMap*(matutils.spherical2xyz(m.reshape((int(len(m)/3), 3), order='F')))
+            m = self.chiMap*(matutils.spherical2cartesian(m.reshape((int(len(m)/3), 3), order='F')))
 
         if self.forwardOnly:
             # Compute the linear operation without forming the full dense F
@@ -121,7 +121,7 @@ class MagneticIntegral(Problem.LinearProblem):
         if getattr(self, '_ProjTMI', None) is None:
 
             # Convert Bdecination from north to cartesian
-            self._ProjTMI = Utils.matutils.dipazm2xyz(
+            self._ProjTMI = Utils.matutils.dip_azimuth2cartesian(
                 self.survey.srcField.param[1],
                 self.survey.srcField.param[2]
             )
@@ -226,10 +226,10 @@ class MagneticIntegral(Problem.LinearProblem):
 
             nC = int(len(self.model)/3)
 
-            m_xyz = self.chiMap * matutils.spherical2xyz(self.model.reshape((nC, 3), order='F'))
+            m_xyz = self.chiMap * matutils.spherical2cartesian(self.model.reshape((nC, 3), order='F'))
 
             nC = int(m_xyz.shape[0]/3.)
-            m_atp = matutils.xyz2spherical(m_xyz.reshape((nC, 3), order='F'))
+            m_atp = matutils.cartesian2spherical(m_xyz.reshape((nC, 3), order='F'))
 
             a = m_atp[:nC]
             t = m_atp[nC:2*nC]
@@ -365,7 +365,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         if magType == 'H0':
             if getattr(self, 'M', None) is None:
-                self.M = matutils.dipazm2xyz(np.ones(nC) * self.survey.srcField.param[1],
+                self.M = matutils.dip_azimuth2cartesian(np.ones(nC) * self.survey.srcField.param[1],
                                       np.ones(nC) * self.survey.srcField.param[2])
 
             Mx = sdiag(self.M[:, 0] * self.survey.srcField.param[0])

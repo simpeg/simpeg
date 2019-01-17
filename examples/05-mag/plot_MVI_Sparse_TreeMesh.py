@@ -264,7 +264,7 @@ def plotVectorSectionsOctree(
 model = np.zeros((mesh.nC, 3))
 
 # Convert the inclination declination to vector in Cartesian
-M_xyz = Utils.matutils.dipazm2xyz(M[0], M[1])
+M_xyz = Utils.matutils.dip_azimuth2cartesian(M[0], M[1])
 
 # Get the indicies of the magnetized block
 ind = Utils.ModelBuilder.getIndicesBlock(
@@ -411,7 +411,7 @@ mrec_MVIC = inv.run(m0)
 #
 #
 
-mstart = Utils.matutils.xyz2spherical(mrec_MVIC.reshape((nC, 3), order='F'))
+mstart = Utils.matutils.cartisian2spherical(mrec_MVIC.reshape((nC, 3), order='F'))
 beta = invProb.beta
 dmis.prob.coordinate_system = 'spherical'
 dmis.prob.model = mstart
@@ -504,7 +504,7 @@ ax.set_ylabel('y')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(2, 1, 2)
-vec_xyz = Utils.matutils.spherical2xyz(
+vec_xyz = Utils.matutils.spherical2cartesian(
     invProb.model.reshape((nC, 3), order='F')).reshape((nC, 3), order='F')
 
 plotVectorSectionsOctree(
