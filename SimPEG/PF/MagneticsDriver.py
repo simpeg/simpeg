@@ -225,9 +225,9 @@ class MagneticsDriver_Inv(object):
 
             self._activeCells = inds
 
-            # Reduce m0 to active space
-            if len(self.m0) > len(self._activeCells):
-                self._m0 = self.m0[self._activeCells]
+            # # Reduce m0 to active space
+            # if len(self.m0) > len(self._activeCells):
+            #     self._m0 = self.m0[self._activeCells]
 
         return self._activeCells
 
@@ -295,8 +295,8 @@ class MagneticsDriver_Inv(object):
                     self.mesh, self.basePath + self._mrefInput
                 )
 
-                # Reduce to active space
-                self._mref = self._mref[self.activeCells]
+                # # Reduce to active space
+                # self._mref = self._mref[self.activeCells]
 
         return self._mref
 
