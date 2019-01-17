@@ -83,7 +83,7 @@ def uniqueRows(M):
     return unqM, unqInd, invInd
 
 
-def xyz2spherical(m):
+def cartesian2spherical(m):
     """ Convert from cartesian to spherical """
 
     # nC = int(len(m)/3)
@@ -105,7 +105,7 @@ def xyz2spherical(m):
     return m_atp
 
 
-def spherical2xyz(m):
+def spherical2cartesian(m):
     """ Convert from spherical to cartesian """
 
     a = m[:, 0] + 1e-8
@@ -119,9 +119,9 @@ def spherical2xyz(m):
     return m_xyz
 
 
-def dipazm2xyz(dip, azm_N):
+def dip_azimuth2cartesian(dip, azm_N):
     """
-    dipazm2xyz(dip,azm_N)
+    dip_azimuth2cartesian(dip,azm_N)
 
     Function converting degree angles for dip and azimuth from north to a
     3-components in cartesian coordinates.
