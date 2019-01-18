@@ -149,7 +149,7 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.n
     return mkvc(actind)
 
 
-def surfaceLayerIndex(mesh, topo, index=0):
+def surface_layer_index(mesh, topo, index=0):
     """
         Find the ith layer below topo
     """

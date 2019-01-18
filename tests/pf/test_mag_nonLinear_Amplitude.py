@@ -168,7 +168,7 @@ class AmpProblemTest(unittest.TestCase):
         # Equivalent Source
 
         # Get the active cells for equivalent source is the top only
-        surf = Utils.modelutils.surfaceLayerIndex(mesh, topo)
+        surf = Utils.modelutils.surface_layer_index(mesh, topo)
 
         # Get the layer of cells directyl below topo
         nC = np.count_nonzero(surf)  # Number of active cells

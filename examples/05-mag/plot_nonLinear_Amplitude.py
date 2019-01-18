@@ -253,7 +253,7 @@ plt.show()
 #
 
 # Get the active cells for equivalent source is the top only
-surf = Utils.modelutils.surfaceLayerIndex(mesh, topo)
+surf = Utils.modelutils.surface_layer_index(mesh, topo)
 nC = np.count_nonzero(surf)  # Number of active cells
 
 # Create active map to go from reduce set to full
