@@ -411,7 +411,7 @@ mrec_MVIC = inv.run(m0)
 #
 #
 
-mstart = Utils.matutils.cartisian2spherical(mrec_MVIC.reshape((nC, 3), order='F'))
+mstart = Utils.matutils.cartesian2spherical(mrec_MVIC.reshape((nC, 3), order='F'))
 beta = invProb.beta
 dmis.prob.coordinate_system = 'spherical'
 dmis.prob.model = mstart
