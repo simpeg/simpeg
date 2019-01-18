@@ -459,7 +459,11 @@ class Forward(object):
                     row = dask.delayed(self.calcTrow, pure=True)
 
                     makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
-                    buildMat = [da.from_delayed(makeRow, dtype=float, shape=(1, self.nC)) for makeRow in makeRows]
+
+                    if self.rxType == 'xyz':
+                        buildMat = [da.from_delayed(makeRow, dtype=float, shape=(3, self.nC)) for makeRow in makeRows]
+                    else:
+                        buildMat = [da.from_delayed(makeRow, dtype=float, shape=(1, self.nC)) for makeRow in makeRows]
 
                     stack = da.vstack(buildMat)
 
