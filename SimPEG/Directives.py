@@ -1136,6 +1136,7 @@ class GaussianMixtureUpdateModel(InversionDirective):
         self.petroregularizer.GMmodel.weights_ = self.petroregularizer.GMmref.weights_
 
         clfupdate = Utils.GaussianMixtureWithPrior(
+            mesh=self.petroregularizer.regmesh,
             GMref=self.petroregularizer.GMmref,
             alphadir=self.alphadir,
             kappa=self.kappa,
@@ -1848,6 +1849,43 @@ class PetroBetaReWeighting(InversionDirective):
             self.updategaussianclass = self.inversion.directiveList.dList[
                 updategaussianclass]
 
+        if getattr(
+            self.invProb.reg.objfcts[0],
+            'objfcts',
+            None
+        ) is not None:
+            petrosmallness = np.where(np.r_[
+                [
+                    (
+                        isinstance(
+                            regpart,
+                            Regularization.SimplePetroRegularization
+                        ) or
+                        isinstance(
+                            regpart,
+                            Regularization.PetroRegularization
+                        ) or
+                        isinstance(
+                            regpart,
+                            Regularization.SimplePetroWithMappingRegularization
+                        )
+                    )
+                    for regpart in self.invProb.reg.objfcts
+                ]
+            ])[0][0]
+            self.petrosmallness = petrosmallness
+            if self.debug:
+                print(type(self.invProb.reg.objfcts[self.petrosmallness]))
+            self._regmode = 1
+        else:
+            self._regmode = 2
+
+        if self._regmode == 1:
+            self.petroregularizer = self.invProb.reg.objfcts[
+                self.petrosmallness]
+        else:
+            self.petroregularizer = self.invProb.reg
+
     def endIter(self):
 
         self.DM = self.inversion.directiveList.dList[self.targetclass].DM
@@ -1931,8 +1969,10 @@ class PetroBetaReWeighting(InversionDirective):
                         ratio = np.max(
                             [self.dmlist[indx] / self.DMtarget[indx]])
                     self.invProb.beta /= (self.rateCooling * ratio)
+                    #self.petroregularizer.alpha_s /= (self.rateCooling * ratio)
 
                     if self.verbose:
+                        #print('update beta for countering plateau')
                         print('update beta for countering plateau')
 
             elif np.all([self.DM,
@@ -1941,10 +1981,12 @@ class PetroBetaReWeighting(InversionDirective):
                 if np.all([self.invProb.beta < self.betamax]):
 
                     ratio = np.min(self.DMtarget / self.dmlist)
-                    self.invProb.beta = self.rateWarming * self.invProb.beta * ratio
+                    #self.invProb.beta = self.rateWarming * self.invProb.beta * ratio
+                    self.petroregularizer.alpha_s *= self.rateWarming * ratio
 
                     if self.verbose:
-                        print('update beta for clustering')
+                        print('update alpha_s for clustering: ',
+                            self.petroregularizer.alpha_s)
 
                 if np.all([
                     self.update_prior_confidence,
@@ -2032,7 +2074,7 @@ class PetroBetaReWeighting(InversionDirective):
                         ratio = np.max(
                             [self.dmlist[indx] / self.DMtarget[indx]])
                     self.invProb.beta /= (self.rateCooling * ratio)
-
+                    self.petroregularizer.alpha_s /= (self.rateCooling * ratio)
                     if self.verbose:
                         print('update beta for countering plateau')
 

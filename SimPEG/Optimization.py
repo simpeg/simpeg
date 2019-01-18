@@ -497,7 +497,7 @@ class Minimize(object):
             :return: (xt, passLS) numpy.ndarray, bool
         """
         # Projected Armijo linesearch
-        self._LS_t = 1
+        self._LS_t = 1.
         self.iterLS = 0
         while self.iterLS < self.maxIterLS:
             self._LS_xt = self.projection(self.xc + self._LS_t*p)

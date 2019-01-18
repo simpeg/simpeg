@@ -420,11 +420,93 @@ class FuzzyGaussianMixtureWithPrior(GaussianMixture):
             it += +1
         self.n_iter_ = it
 
-
-class GaussianMixtureWithPrior(GaussianMixture):
+class WeightedGaussianMixture(GaussianMixture):
 
     def __init__(
-        self, GMref, kappa=0., nu=0., alphadir=0.,
+        self, n_components, mesh, covariance_type='full',
+        init_params='kmeans', max_iter=100,
+        means_init=None, n_init=10, precisions_init=None,
+        random_state=None, reg_covar=1e-06, tol=0.001, verbose=0,
+        verbose_interval=10, warm_start=False, weights_init=None,
+        update_covariances=False,
+        fixed_membership=None,
+        #**kwargs
+    ):
+        self.mesh = mesh
+
+        super(WeightedGaussianMixture, self).__init__(
+            covariance_type=covariance_type,
+            init_params=init_params,
+            max_iter=max_iter,
+            means_init=means_init,
+            n_components=n_components,
+            n_init=n_init,
+            precisions_init=precisions_init,
+            random_state=random_state,
+            reg_covar=reg_covar,
+            tol=tol,
+            verbose=verbose,
+            verbose_interval=verbose_interval,
+            warm_start=warm_start,
+            weights_init=weights_init,
+            #**kwargs
+        )
+        # setKwargs(self, **kwargs)
+
+    def _m_step(self, X, log_resp):
+        """M step.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+        log_resp : array-like, shape (n_samples, n_components)
+            Logarithm of the posterior probabilities (or responsibilities) of
+            the point of each sample in X.
+        """
+        n_samples, _ = X.shape
+        Volume = np.mean(self.mesh.vol)
+        self.weights_, self.means_, self.covariances_ = (
+            self._estimate_gaussian_parameters(X, self.mesh, np.exp(log_resp), self.reg_covar,
+                                          self.covariance_type))
+        self.weights_ /= (n_samples*Volume)
+        self.precisions_cholesky_ = _compute_precision_cholesky(
+            self.covariances_, self.covariance_type)
+
+    def _estimate_gaussian_parameters(self, X, mesh, resp, reg_covar, covariance_type):
+        """Estimate the Gaussian distribution parameters.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            The input data array.
+        resp : array-like, shape (n_samples, n_components)
+            The responsibilities for each data sample in X.
+        reg_covar : float
+            The regularization added to the diagonal of the covariance matrices.
+        covariance_type : {'full', 'tied', 'diag', 'spherical'}
+            The type of precision matrices.
+        Returns
+        -------
+        nk : array-like, shape (n_components,)
+            The numbers of data samples in the current components.
+        means : array-like, shape (n_components, n_features)
+            The centers of the current components.
+        covariances : array-like
+            The covariance matrix of the current components.
+            The shape depends of the covariance_type.
+        """
+        respVol = (mesh.vol.reshape(-1,1) * resp)
+        nk = respVol.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
+        means = np.dot(respVol.T, X) / nk[:, np.newaxis]
+        covariances = {"full": _estimate_gaussian_covariances_full,
+                       "tied": _estimate_gaussian_covariances_tied,
+                       "diag": _estimate_gaussian_covariances_diag,
+                       "spherical": _estimate_gaussian_covariances_spherical
+                       }[covariance_type](respVol, X, nk, means, reg_covar)
+        return nk, means, covariances
+
+class GaussianMixtureWithPrior(WeightedGaussianMixture):
+
+    def __init__(
+        self, mesh, GMref, kappa=0., nu=0., alphadir=0.,
         prior_type='semi',  # semi or full
         init_params='kmeans', max_iter=100,
         means_init=None, n_init=10, precisions_init=None,
@@ -434,7 +516,7 @@ class GaussianMixtureWithPrior(GaussianMixture):
         fixed_membership=None,
         #**kwargs
     ):
-
+        self.mesh = mesh
         self.n_components = GMref.n_components
         self.GMref = GMref
         self.covariance_type = GMref.covariance_type
@@ -447,6 +529,7 @@ class GaussianMixtureWithPrior(GaussianMixture):
 
         super(GaussianMixtureWithPrior, self).__init__(
             covariance_type=self.covariance_type,
+            mesh=self.mesh,
             init_params=init_params,
             max_iter=max_iter,
             means_init=means_init,
@@ -772,6 +855,8 @@ class GaussianMixtureWithMapping(GaussianMixture):
         self.weights_ /= n_samples
         self.precisions_cholesky_ = _compute_precision_cholesky(
             self.covariances_, self.covariance_type)
+
+
 
 
 class GaussianMixtureWithMappingWithPrior(GaussianMixtureWithPrior):
