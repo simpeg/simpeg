@@ -5,7 +5,7 @@ class LinearSurvey(Survey.BaseSurvey):
     """Base Magnetics Survey"""
 
     rxLoc = None  #: receiver locations
-    rxType = None  #: receiver type
+    rx_type = None  #: receiver type
 
     def __init__(self, srcField, **kwargs):
         self.srcField = srcField
@@ -16,7 +16,10 @@ class LinearSurvey(Survey.BaseSurvey):
 
     @property
     def nD(self):
-        return self.prob.G.shape[0]
+        if self.prob is None or self.prob.G is None:
+            return len(self.rxLoc)
+        else:
+            return self.prob.G.shape[0]
 
     @property
     def rxLoc(self):
@@ -63,12 +66,13 @@ class LinearSurvey(Survey.BaseSurvey):
         """
         # TODO: There can be some different tyes of data like |B| or B
 
-        gfx = self.Qfx*u['G']
-        gfy = self.Qfy*u['G']
-        gfz = self.Qfz*u['G']
+        gfx = self.Qfx * u['G']
+        gfy = self.Qfy * u['G']
+        gfz = self.Qfz * u['G']
 
         fields = {'gx': gfx, 'gy': gfy, 'gz': gfz}
         return fields
+
 
 class SrcField(Survey.BaseSrc):
     """ Define the inducing field """
@@ -81,6 +85,7 @@ class SrcField(Survey.BaseSrc):
 
 class RxObs(Survey.BaseRx):
     """A station location must have be located in 3-D"""
+
     def __init__(self, locsXYZ, **kwargs):
         locs = locsXYZ
         assert locsXYZ.shape[1] == 3, 'locs must in 3-D (x,y,z).'
@@ -91,6 +96,7 @@ class RxObs(Survey.BaseRx):
     def nD(self):
         """Number of data in the receiver."""
         return self.locs[0].shape[0]
+
 
 class BaseGravMap(Maps.IdentityMap):
     """BaseGravMap"""
