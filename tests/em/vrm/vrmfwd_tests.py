@@ -4,15 +4,13 @@ import numpy as np
 from SimPEG import Mesh
 
 
-
-
 class VRM_fwd_tests(unittest.TestCase):
 
     """
     Computed vs analytic dipole field
     """
 
-    #random seed
+    # random seed
     seed = 518936
 
     def test_predict_dipolar(self):
