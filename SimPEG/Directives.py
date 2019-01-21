@@ -436,10 +436,10 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                             reg.regmesh.mesh,
                             fileName + '_REM.amp', self.mapping.P * np.sum(m_rem**2, axis=1)**0.5
                         )
-                        # Utils.io_utils.writeVectorUBC(
-                        #     reg.regmesh.mesh,
-                        #     fileName + '_VEC.fld', self.mapping.P * vec
-                        # )
+                        Utils.io_utils.writeVectorUBC(
+                            reg.regmesh.mesh,
+                            fileName + '_VEC.fld', self.mapping.P * vec
+                        )
 
 
 class SaveOutputEveryIteration(SaveEveryIteration):
@@ -1007,10 +1007,10 @@ class Update_IRLS(InversionDirective):
 
         max_p = np.asarray(max_p).max()
 
-        max_s = [np.pi, np.pi]
+        max_s = [np.pi/2., np.pi/2.]
         for obj, var in zip(self.reg.objfcts[1:3], max_s):
             obj.scales = np.ones(obj.scales.shape)*max_p/var
-
+        self.reg.objfcts[0].scales = np.ones(self.reg.objfcts[0].scales.shape)
         # Probably doing rotated obj fun
         if len(self.reg) > 3:
 
