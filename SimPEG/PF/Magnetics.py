@@ -442,7 +442,7 @@ class Forward(object):
         while totRAM > self.maxRAM:
             nChunks *= 2
             rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-            totRAM = rowChunk*colChunk*8*nCPU*1e-9
+            totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
 
         print(nChunks, rowChunk, colChunk, totRAM)
 
