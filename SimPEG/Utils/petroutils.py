@@ -531,6 +531,36 @@ class WeightedGaussianMixture(GaussianMixture):
                        }[covariance_type](respVol, X, nk, means, reg_covar)
         return nk, means, covariances
 
+    def _e_step(self, X):
+        """E step.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+        Returns
+        -------
+        log_prob_norm : float
+            Mean of the logarithms of the probabilities of each sample in X
+        log_responsibility : array, shape (n_samples, n_components)
+            Logarithm of the posterior probabilities (or responsibilities) of
+            the point of each sample in X.
+        """
+        log_prob_norm, log_resp = self._estimate_log_prob_resp(X)
+        return np.average(log_prob_norm, weights=self.mesh.vol), log_resp
+
+    def score(self, X, y=None):
+        """Compute the per-sample average log-likelihood of the given data X.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_dimensions)
+            List of n_features-dimensional data points. Each row
+            corresponds to a single data point.
+        Returns
+        -------
+        log_likelihood : float
+            Log likelihood of the Gaussian mixture given X.
+        """
+        return np.average(self.score_samples(X), weights=self.mesh.vol)
+
 class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
     def __init__(
