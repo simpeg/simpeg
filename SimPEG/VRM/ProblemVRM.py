@@ -25,7 +25,9 @@ class Problem_BaseVRM(Problem.BaseProblem):
         ref_factor = kwargs.pop('ref_factor', None)
         ref_radius = kwargs.pop('ref_radius', None)
         indActive = kwargs.pop('indActive', None)
-        assert len(mesh.h) == 3, 'Problem requires 3D tensor or OcTree mesh'
+
+        if len(mesh.h) != 3:
+            raise ValueError('Mesh must be 3D tensor or 3D tree. Current mesh is {}'.format(len(mesh.h)))
 
         super(Problem_BaseVRM, self).__init__(mesh, **kwargs)
 
@@ -60,9 +62,10 @@ class Problem_BaseVRM(Problem.BaseProblem):
             print("Number of refinement radii current DOES NOT match ref_factor")
 
     @properties.validator('indActive')
-    def _ind_active_validator(self, change):
-        assert len(change['value']) == self.mesh.nC, (
-            "Length of active topo cells array must equal number of mesh cells")
+    def _indActive_validator(self, change):
+
+        if len(change['value']) != self.mesh.nC:
+            raise ValueError("Length of active topo cells array must equal number of mesh cells (nC = {})".format(self.mesh.nC))
 
     def _getH0matrix(self, xyz, pp):
 
@@ -82,17 +85,17 @@ class Problem_BaseVRM(Problem.BaseProblem):
 ..
         """
 
-        SrcObj = self.survey.srcList[pp]
+        srcObj = self.survey.srcList[pp]
 
-        H0 = SrcObj.getH0(xyz)
+        h0 = srcObj.getH0(xyz)
 
-        Hx0 = sp.diags(H0[:, 0], format="csr")
-        Hy0 = sp.diags(H0[:, 1], format="csr")
-        Hz0 = sp.diags(H0[:, 2], format="csr")
+        hx0 = sp.diags(h0[:, 0], format="csr")
+        hy0 = sp.diags(h0[:, 1], format="csr")
+        hz0 = sp.diags(h0[:, 2], format="csr")
 
-        H0 = sp.vstack([Hx0, Hy0, Hz0])
+        h0 = sp.vstack([hx0, hy0, hz0])
 
-        return H0
+        return h0
 
     def _getGeometryMatrix(self, xyzc, xyzh, pp):
 
@@ -116,18 +119,18 @@ class Problem_BaseVRM(Problem.BaseProblem):
 
         srcObj = self.survey.srcList[pp]
 
-        N = np.shape(xyzc)[0]   # Number of cells
-        K = srcObj.nRx          # Number of receiver in all rxList
+        nC = np.shape(xyzc)[0]   # Number of cells
+        nRx = srcObj.nRx          # Number of receiver in all rxList
 
-        ax = np.reshape(xyzc[:, 0] - xyzh[:, 0]/2, (1, N))
-        bx = np.reshape(xyzc[:, 0] + xyzh[:, 0]/2, (1, N))
-        ay = np.reshape(xyzc[:, 1] - xyzh[:, 1]/2, (1, N))
-        by = np.reshape(xyzc[:, 1] + xyzh[:, 1]/2, (1, N))
-        az = np.reshape(xyzc[:, 2] - xyzh[:, 2]/2, (1, N))
-        bz = np.reshape(xyzc[:, 2] + xyzh[:, 2]/2, (1, N))
+        ax = np.reshape(xyzc[:, 0] - xyzh[:, 0]/2, (1, nC))
+        bx = np.reshape(xyzc[:, 0] + xyzh[:, 0]/2, (1, nC))
+        ay = np.reshape(xyzc[:, 1] - xyzh[:, 1]/2, (1, nC))
+        by = np.reshape(xyzc[:, 1] + xyzh[:, 1]/2, (1, nC))
+        az = np.reshape(xyzc[:, 2] - xyzh[:, 2]/2, (1, nC))
+        bz = np.reshape(xyzc[:, 2] + xyzh[:, 2]/2, (1, nC))
 
-        G = np.zeros((K, 3*N))
-        C = -(1/(4*np.pi))
+        G = np.zeros((nRx, 3*nC))
+        c = -(1/(4*np.pi))
         tol = 1e-10   # Tolerance constant for numerical stability
         tol2 = 1000.  # Tolerance constant for numerical stability
 
@@ -138,12 +141,12 @@ class Problem_BaseVRM(Problem.BaseProblem):
             rxObj = srcObj.rxList[qq]
             dComp = rxObj.fieldComp
             locs = rxObj.locs
-            M = np.shape(locs)[0]
+            nLoc = np.shape(locs)[0]
 
             if isinstance(rxObj, Point):
 
                 if dComp.lower() == 'x':
-                    for rr in range(0, M):
+                    for rr in range(0, nLoc):
                         u1 = locs[rr, 0] - ax
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
                         u2 = locs[rr, 0] - bx
@@ -157,44 +160,53 @@ class Problem_BaseVRM(Problem.BaseProblem):
                         w2 = locs[rr, 2] - bz
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2])/tol2
 
+                        d111 = np.sqrt(u1**2+v1**2+w1**2)
+                        d211 = np.sqrt(u2**2+v1**2+w1**2)
+                        d221 = np.sqrt(u2**2+v2**2+w1**2)
+                        d121 = np.sqrt(u1**2+v2**2+w1**2)
+                        d122 = np.sqrt(u1**2+v2**2+w2**2)
+                        d112 = np.sqrt(u1**2+v1**2+w2**2)
+                        d212 = np.sqrt(u2**2+v1**2+w2**2)
+                        d222 = np.sqrt(u2**2+v2**2+w2**2)
+
                         Gxx = (
-                            np.arctan((v1*w1)/(u1*np.sqrt(u1**2+v1**2+w1**2)+tol)) -
-                            np.arctan((v1*w1)/(u2*np.sqrt(u2**2+v1**2+w1**2)+tol)) +
-                            np.arctan((v2*w1)/(u2*np.sqrt(u2**2+v2**2+w1**2)+tol)) -
-                            np.arctan((v2*w1)/(u1*np.sqrt(u1**2+v2**2+w1**2)+tol)) +
-                            np.arctan((v2*w2)/(u1*np.sqrt(u1**2+v2**2+w2**2)+tol)) -
-                            np.arctan((v1*w2)/(u1*np.sqrt(u1**2+v1**2+w2**2)+tol)) +
-                            np.arctan((v1*w2)/(u2*np.sqrt(u2**2+v1**2+w2**2)+tol)) -
-                            np.arctan((v2*w2)/(u2*np.sqrt(u2**2+v2**2+w2**2)+tol))
+                            np.arctan((v1*w1)/(u1*d111+tol)) -
+                            np.arctan((v1*w1)/(u2*d211+tol)) +
+                            np.arctan((v2*w1)/(u2*d221+tol)) -
+                            np.arctan((v2*w1)/(u1*d121+tol)) +
+                            np.arctan((v2*w2)/(u1*d122+tol)) -
+                            np.arctan((v1*w2)/(u1*d112+tol)) +
+                            np.arctan((v1*w2)/(u2*d212+tol)) -
+                            np.arctan((v2*w2)/(u2*d222+tol))
                         )
 
                         Gyx = (
-                            np.log(np.sqrt(u1**2+v1**2+w1**2)-w1) -
-                            np.log(np.sqrt(u2**2+v1**2+w1**2)-w1) +
-                            np.log(np.sqrt(u2**2+v2**2+w1**2)-w1) -
-                            np.log(np.sqrt(u1**2+v2**2+w1**2)-w1) +
-                            np.log(np.sqrt(u1**2+v2**2+w2**2)-w2) -
-                            np.log(np.sqrt(u1**2+v1**2+w2**2)-w2) +
-                            np.log(np.sqrt(u2**2+v1**2+w2**2)-w2) -
-                            np.log(np.sqrt(u2**2+v2**2+w2**2)-w2)
+                            np.log(d111-w1) -
+                            np.log(d211-w1) +
+                            np.log(d221-w1) -
+                            np.log(d121-w1) +
+                            np.log(d122-w2) -
+                            np.log(d112-w2) +
+                            np.log(d212-w2) -
+                            np.log(d222-w2)
                         )
 
                         Gzx = (
-                            np.log(np.sqrt(u1**2+v1**2+w1**2)-v1) -
-                            np.log(np.sqrt(u2**2+v1**2+w1**2)-v1) +
-                            np.log(np.sqrt(u2**2+v2**2+w1**2)-v2) -
-                            np.log(np.sqrt(u1**2+v2**2+w1**2)-v2) +
-                            np.log(np.sqrt(u1**2+v2**2+w2**2)-v2) -
-                            np.log(np.sqrt(u1**2+v1**2+w2**2)-v1) +
-                            np.log(np.sqrt(u2**2+v1**2+w2**2)-v1) -
-                            np.log(np.sqrt(u2**2+v2**2+w2**2)-v2)
+                            np.log(d111-v1) -
+                            np.log(d211-v1) +
+                            np.log(d221-v2) -
+                            np.log(d121-v2) +
+                            np.log(d122-v2) -
+                            np.log(d112-v1) +
+                            np.log(d212-v1) -
+                            np.log(d222-v2)
                         )
 
-                        G[COUNT, :] = C*np.c_[Gxx, Gyx, Gzx]
+                        G[COUNT, :] = c*np.c_[Gxx, Gyx, Gzx]
                         COUNT = COUNT + 1
 
                 elif dComp.lower() == 'y':
-                    for rr in range(0, M):
+                    for rr in range(0, nLoc):
                         u1 = locs[rr, 0] - ax
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
                         u2 = locs[rr, 0] - bx
@@ -208,44 +220,53 @@ class Problem_BaseVRM(Problem.BaseProblem):
                         w2 = locs[rr, 2] - bz
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2])/tol2
 
+                        d111 = np.sqrt(u1**2+v1**2+w1**2)
+                        d211 = np.sqrt(u2**2+v1**2+w1**2)
+                        d221 = np.sqrt(u2**2+v2**2+w1**2)
+                        d121 = np.sqrt(u1**2+v2**2+w1**2)
+                        d122 = np.sqrt(u1**2+v2**2+w2**2)
+                        d112 = np.sqrt(u1**2+v1**2+w2**2)
+                        d212 = np.sqrt(u2**2+v1**2+w2**2)
+                        d222 = np.sqrt(u2**2+v2**2+w2**2)
+
                         Gxy = (
-                            np.log(np.sqrt(u1**2+v1**2+w1**2)-w1) -
-                            np.log(np.sqrt(u2**2+v1**2+w1**2)-w1) +
-                            np.log(np.sqrt(u2**2+v2**2+w1**2)-w1) -
-                            np.log(np.sqrt(u1**2+v2**2+w1**2)-w1) +
-                            np.log(np.sqrt(u1**2+v2**2+w2**2)-w2) -
-                            np.log(np.sqrt(u1**2+v1**2+w2**2)-w2) +
-                            np.log(np.sqrt(u2**2+v1**2+w2**2)-w2) -
-                            np.log(np.sqrt(u2**2+v2**2+w2**2)-w2)
+                            np.log(d111-w1) -
+                            np.log(d211-w1) +
+                            np.log(d221-w1) -
+                            np.log(d121-w1) +
+                            np.log(d122-w2) -
+                            np.log(d112-w2) +
+                            np.log(d212-w2) -
+                            np.log(d222-w2)
                         )
 
                         Gyy = (
-                            np.arctan((u1*w1)/(v1*np.sqrt(u1**2+v1**2+w1**2)+tol)) -
-                            np.arctan((u2*w1)/(v1*np.sqrt(u2**2+v1**2+w1**2)+tol)) +
-                            np.arctan((u2*w1)/(v2*np.sqrt(u2**2+v2**2+w1**2)+tol)) -
-                            np.arctan((u1*w1)/(v2*np.sqrt(u1**2+v2**2+w1**2)+tol)) +
-                            np.arctan((u1*w2)/(v2*np.sqrt(u1**2+v2**2+w2**2)+tol)) -
-                            np.arctan((u1*w2)/(v1*np.sqrt(u1**2+v1**2+w2**2)+tol)) +
-                            np.arctan((u2*w2)/(v1*np.sqrt(u2**2+v1**2+w2**2)+tol)) -
-                            np.arctan((u2*w2)/(v2*np.sqrt(u2**2+v2**2+w2**2)+tol))
+                            np.arctan((u1*w1)/(v1*d111+tol)) -
+                            np.arctan((u2*w1)/(v1*d211+tol)) +
+                            np.arctan((u2*w1)/(v2*d221+tol)) -
+                            np.arctan((u1*w1)/(v2*d121+tol)) +
+                            np.arctan((u1*w2)/(v2*d122+tol)) -
+                            np.arctan((u1*w2)/(v1*d112+tol)) +
+                            np.arctan((u2*w2)/(v1*d212+tol)) -
+                            np.arctan((u2*w2)/(v2*d222+tol))
                         )
 
                         Gzy = (
-                            np.log(np.sqrt(u1**2+v1**2+w1**2)-u1) -
-                            np.log(np.sqrt(u2**2+v1**2+w1**2)-u2) +
-                            np.log(np.sqrt(u2**2+v2**2+w1**2)-u2) -
-                            np.log(np.sqrt(u1**2+v2**2+w1**2)-u1) +
-                            np.log(np.sqrt(u1**2+v2**2+w2**2)-u1) -
-                            np.log(np.sqrt(u1**2+v1**2+w2**2)-u1) +
-                            np.log(np.sqrt(u2**2+v1**2+w2**2)-u2) -
-                            np.log(np.sqrt(u2**2+v2**2+w2**2)-u2)
+                            np.log(d111-u1) -
+                            np.log(d211-u2) +
+                            np.log(d221-u2) -
+                            np.log(d121-u1) +
+                            np.log(d122-u1) -
+                            np.log(d112-u1) +
+                            np.log(d212-u2) -
+                            np.log(d222-u2)
                         )
 
-                        G[COUNT, :] = C*np.c_[Gxy, Gyy, Gzy]
+                        G[COUNT, :] = c*np.c_[Gxy, Gyy, Gzy]
                         COUNT = COUNT + 1
 
                 elif dComp.lower() == 'z':
-                    for rr in range(0, M):
+                    for rr in range(0, nLoc):
                         u1 = locs[rr, 0] - ax
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
                         u2 = locs[rr, 0] - bx
@@ -259,52 +280,61 @@ class Problem_BaseVRM(Problem.BaseProblem):
                         w2 = locs[rr, 2] - bz
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2])/tol2
 
+                        d111 = np.sqrt(u1**2+v1**2+w1**2)
+                        d211 = np.sqrt(u2**2+v1**2+w1**2)
+                        d221 = np.sqrt(u2**2+v2**2+w1**2)
+                        d121 = np.sqrt(u1**2+v2**2+w1**2)
+                        d122 = np.sqrt(u1**2+v2**2+w2**2)
+                        d112 = np.sqrt(u1**2+v1**2+w2**2)
+                        d212 = np.sqrt(u2**2+v1**2+w2**2)
+                        d222 = np.sqrt(u2**2+v2**2+w2**2)
+
                         Gxz = (
-                            np.log(np.sqrt(u1**2+v1**2+w1**2)-v1) -
-                            np.log(np.sqrt(u2**2+v1**2+w1**2)-v1) +
-                            np.log(np.sqrt(u2**2+v2**2+w1**2)-v2) -
-                            np.log(np.sqrt(u1**2+v2**2+w1**2)-v2) +
-                            np.log(np.sqrt(u1**2+v2**2+w2**2)-v2) -
-                            np.log(np.sqrt(u1**2+v1**2+w2**2)-v1) +
-                            np.log(np.sqrt(u2**2+v1**2+w2**2)-v1) -
-                            np.log(np.sqrt(u2**2+v2**2+w2**2)-v2)
+                            np.log(d111-v1) -
+                            np.log(d211-v1) +
+                            np.log(d221-v2) -
+                            np.log(d121-v2) +
+                            np.log(d122-v2) -
+                            np.log(d112-v1) +
+                            np.log(d212-v1) -
+                            np.log(d222-v2)
                         )
 
                         Gyz = (
-                            np.log(np.sqrt(u1**2+v1**2+w1**2)-u1) -
-                            np.log(np.sqrt(u2**2+v1**2+w1**2)-u2) +
-                            np.log(np.sqrt(u2**2+v2**2+w1**2)-u2) -
-                            np.log(np.sqrt(u1**2+v2**2+w1**2)-u1) +
-                            np.log(np.sqrt(u1**2+v2**2+w2**2)-u1) -
-                            np.log(np.sqrt(u1**2+v1**2+w2**2)-u1) +
-                            np.log(np.sqrt(u2**2+v1**2+w2**2)-u2) -
-                            np.log(np.sqrt(u2**2+v2**2+w2**2)-u2)
+                            np.log(d111-u1) -
+                            np.log(d211-u2) +
+                            np.log(d221-u2) -
+                            np.log(d121-u1) +
+                            np.log(d122-u1) -
+                            np.log(d112-u1) +
+                            np.log(d212-u2) -
+                            np.log(d222-u2)
                         )
 
                         Gzz = (
-                            - np.arctan((v1*w1)/(u1*np.sqrt(u1**2+v1**2+w1**2)+tol)) +
-                            np.arctan((v1*w1)/(u2*np.sqrt(u2**2+v1**2+w1**2)+tol)) -
-                            np.arctan((v2*w1)/(u2*np.sqrt(u2**2+v2**2+w1**2)+tol)) +
-                            np.arctan((v2*w1)/(u1*np.sqrt(u1**2+v2**2+w1**2)+tol)) -
-                            np.arctan((v2*w2)/(u1*np.sqrt(u1**2+v2**2+w2**2)+tol)) +
-                            np.arctan((v1*w2)/(u1*np.sqrt(u1**2+v1**2+w2**2)+tol)) -
-                            np.arctan((v1*w2)/(u2*np.sqrt(u2**2+v1**2+w2**2)+tol)) +
-                            np.arctan((v2*w2)/(u2*np.sqrt(u2**2+v2**2+w2**2)+tol))
+                            - np.arctan((v1*w1)/(u1*d111+tol)) +
+                            np.arctan((v1*w1)/(u2*d211+tol)) -
+                            np.arctan((v2*w1)/(u2*d221+tol)) +
+                            np.arctan((v2*w1)/(u1*d121+tol)) -
+                            np.arctan((v2*w2)/(u1*d122+tol)) +
+                            np.arctan((v1*w2)/(u1*d112+tol)) -
+                            np.arctan((v1*w2)/(u2*d212+tol)) +
+                            np.arctan((v2*w2)/(u2*d222+tol))
                         )
 
                         Gzz = (
                             Gzz -
-                            np.arctan((u1*w1)/(v1*np.sqrt(u1**2+v1**2+w1**2)+tol)) +
-                            np.arctan((u2*w1)/(v1*np.sqrt(u2**2+v1**2+w1**2)+tol)) -
-                            np.arctan((u2*w1)/(v2*np.sqrt(u2**2+v2**2+w1**2)+tol)) +
-                            np.arctan((u1*w1)/(v2*np.sqrt(u1**2+v2**2+w1**2)+tol)) -
-                            np.arctan((u1*w2)/(v2*np.sqrt(u1**2+v2**2+w2**2)+tol)) +
-                            np.arctan((u1*w2)/(v1*np.sqrt(u1**2+v1**2+w2**2)+tol)) -
-                            np.arctan((u2*w2)/(v1*np.sqrt(u2**2+v1**2+w2**2)+tol)) +
-                            np.arctan((u2*w2)/(v2*np.sqrt(u2**2+v2**2+w2**2)+tol))
+                            np.arctan((u1*w1)/(v1*d111+tol)) +
+                            np.arctan((u2*w1)/(v1*d211+tol)) -
+                            np.arctan((u2*w1)/(v2*d221+tol)) +
+                            np.arctan((u1*w1)/(v2*d121+tol)) -
+                            np.arctan((u1*w2)/(v2*d122+tol)) +
+                            np.arctan((u1*w2)/(v1*d112+tol)) -
+                            np.arctan((u2*w2)/(v1*d212+tol)) +
+                            np.arctan((u2*w2)/(v2*d222+tol))
                         )
 
-                        G[COUNT, :] = C*np.c_[Gxz, Gyz, Gzz]
+                        G[COUNT, :] = c*np.c_[Gxz, Gyz, Gzz]
                         COUNT = COUNT + 1
 
             elif isinstance(rxObj, SquareLoop):
@@ -318,7 +348,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
                     np.r_[0.236927, 0.478629, 0.568889, 0.478629, 0.236927],
                     np.r_[0.171324, 0.467914, 0.360762, 0.360762, 0.467914, 0.171324],
                     np.r_[0.129485, 0.279705, 0.381830, 0.417959, 0.381830, 0.279705, 0.129485]
-                    ]
+                ]
                 wt = wt[rxObj.quadOrder-1]
                 nw = len(wt)
                 wt = rxObj.nTurns*(rxObj.width/2)**2*np.reshape(np.outer(wt, wt), (1, nw**2))
@@ -332,19 +362,19 @@ class Problem_BaseVRM(Problem.BaseProblem):
                     np.r_[-0.906180, -0.538469, 0, 0.538469, 0.906180],
                     np.r_[-0.932470, -0.238619, -0.661209, 0.661209, 0.238619, 0.932470],
                     np.r_[-0.949108, -0.741531, -0.405845, 0., 0.405845, 0.741531, 0.949108]
-                    ]
+                ]
 
                 s1 = (
                     0.5*rxObj.width *
                     np.reshape(np.kron(ds[rxObj.quadOrder-1], np.ones(nw)), (nw**2, 1))
-                    )
+                )
                 s2 = (
                     0.5*rxObj.width *
                     np.reshape(np.kron(np.ones(nw), ds[rxObj.quadOrder-1]), (nw**2, 1))
-                    )
+                )
 
                 if dComp.lower() == 'x':
-                    for rr in range(0, M):
+                    for rr in range(0, nLoc):
 
                         u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax)
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
@@ -353,80 +383,89 @@ class Problem_BaseVRM(Problem.BaseProblem):
 
                         v1 = (
                             np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay) +
-                            np.kron(s1, np.ones((1, N)))
-                            )
+                            np.kron(s1, np.ones((1, nC)))
+                        )
                         v1[np.abs(v1) < tol] = np.min(xyzh[:, 1])/tol2
                         v2 = (
                             np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by) +
-                            np.kron(s1, np.ones((1, N)))
-                            )
+                            np.kron(s1, np.ones((1, nC)))
+                        )
                         v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1])/tol2
 
                         w1 = (
                             np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az) +
-                            np.kron(s2, np.ones((1, N)))
-                            )
+                            np.kron(s2, np.ones((1, nC)))
+                        )
                         w1[np.abs(w1) < tol] = np.min(xyzh[:, 2])/tol2
                         w2 = (
                             np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz) +
-                            np.kron(s2, np.ones((1, N)))
-                            )
+                            np.kron(s2, np.ones((1, nC)))
+                        )
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2])/tol2
 
+                        d111 = np.sqrt(u1**2+v1**2+w1**2)
+                        d211 = np.sqrt(u2**2+v1**2+w1**2)
+                        d221 = np.sqrt(u2**2+v2**2+w1**2)
+                        d121 = np.sqrt(u1**2+v2**2+w1**2)
+                        d122 = np.sqrt(u1**2+v2**2+w2**2)
+                        d112 = np.sqrt(u1**2+v1**2+w2**2)
+                        d212 = np.sqrt(u2**2+v1**2+w2**2)
+                        d222 = np.sqrt(u2**2+v2**2+w2**2)
+
                         Gxx = (
-                            np.arctan((v1*w1)/(u1*np.sqrt(u1**2+v1**2+w1**2)+tol)) -
-                            np.arctan((v1*w1)/(u2*np.sqrt(u2**2+v1**2+w1**2)+tol)) +
-                            np.arctan((v2*w1)/(u2*np.sqrt(u2**2+v2**2+w1**2)+tol)) -
-                            np.arctan((v2*w1)/(u1*np.sqrt(u1**2+v2**2+w1**2)+tol)) +
-                            np.arctan((v2*w2)/(u1*np.sqrt(u1**2+v2**2+w2**2)+tol)) -
-                            np.arctan((v1*w2)/(u1*np.sqrt(u1**2+v1**2+w2**2)+tol)) +
-                            np.arctan((v1*w2)/(u2*np.sqrt(u2**2+v1**2+w2**2)+tol)) -
-                            np.arctan((v2*w2)/(u2*np.sqrt(u2**2+v2**2+w2**2)+tol))
+                            np.arctan((v1*w1)/(u1*d111+tol)) -
+                            np.arctan((v1*w1)/(u2*d211+tol)) +
+                            np.arctan((v2*w1)/(u2*d221+tol)) -
+                            np.arctan((v2*w1)/(u1*d121+tol)) +
+                            np.arctan((v2*w2)/(u1*d122+tol)) -
+                            np.arctan((v1*w2)/(u1*d112+tol)) +
+                            np.arctan((v1*w2)/(u2*d212+tol)) -
+                            np.arctan((v2*w2)/(u2*d222+tol))
                         )
 
                         Gxx = np.dot(wt, Gxx)
 
                         Gyx = (
-                            np.log(np.sqrt(u1**2+v1**2+w1**2)-w1) -
-                            np.log(np.sqrt(u2**2+v1**2+w1**2)-w1) +
-                            np.log(np.sqrt(u2**2+v2**2+w1**2)-w1) -
-                            np.log(np.sqrt(u1**2+v2**2+w1**2)-w1) +
-                            np.log(np.sqrt(u1**2+v2**2+w2**2)-w2) -
-                            np.log(np.sqrt(u1**2+v1**2+w2**2)-w2) +
-                            np.log(np.sqrt(u2**2+v1**2+w2**2)-w2) -
-                            np.log(np.sqrt(u2**2+v2**2+w2**2)-w2)
+                            np.log(d111-w1) -
+                            np.log(d211-w1) +
+                            np.log(d221-w1) -
+                            np.log(d121-w1) +
+                            np.log(d122-w2) -
+                            np.log(d112-w2) +
+                            np.log(d212-w2) -
+                            np.log(d222-w2)
                         )
 
                         Gyx = np.dot(wt, Gyx)
 
                         Gzx = (
-                            np.log(np.sqrt(u1**2+v1**2+w1**2)-v1) -
-                            np.log(np.sqrt(u2**2+v1**2+w1**2)-v1) +
-                            np.log(np.sqrt(u2**2+v2**2+w1**2)-v2) -
-                            np.log(np.sqrt(u1**2+v2**2+w1**2)-v2) +
-                            np.log(np.sqrt(u1**2+v2**2+w2**2)-v2) -
-                            np.log(np.sqrt(u1**2+v1**2+w2**2)-v1) +
-                            np.log(np.sqrt(u2**2+v1**2+w2**2)-v1) -
-                            np.log(np.sqrt(u2**2+v2**2+w2**2)-v2)
+                            np.log(d111-v1) -
+                            np.log(d211-v1) +
+                            np.log(d221-v2) -
+                            np.log(d121-v2) +
+                            np.log(d122-v2) -
+                            np.log(d112-v1) +
+                            np.log(d212-v1) -
+                            np.log(d222-v2)
                         )
 
                         Gzx = np.dot(wt, Gzx)
 
-                        G[COUNT, :] = C*np.c_[Gxx, Gyx, Gzx]
+                        G[COUNT, :] = c*np.c_[Gxx, Gyx, Gzx]
                         COUNT = COUNT + 1
 
                 elif dComp.lower() == 'y':
-                    for rr in range(0, M):
+                    for rr in range(0, nLoc):
 
                         u1 = (
                             np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) +
-                            np.kron(s1, np.ones((1, N)))
-                            )
+                            np.kron(s1, np.ones((1, nC)))
+                        )
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
                         u2 = (
                             np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx) +
-                            np.kron(s1, np.ones((1, N)))
-                            )
+                            np.kron(s1, np.ones((1, nC)))
+                        )
                         u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0])/tol2
 
                         v1 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay)
@@ -436,80 +475,89 @@ class Problem_BaseVRM(Problem.BaseProblem):
 
                         w1 = (
                             np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az) +
-                            np.kron(s2, np.ones((1, N)))
-                            )
+                            np.kron(s2, np.ones((1, nC)))
+                        )
                         w1[np.abs(w1) < tol] = np.min(xyzh[:, 2])/tol2
                         w2 = (
                             np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz) +
-                            np.kron(s2, np.ones((1, N)))
-                            )
+                            np.kron(s2, np.ones((1, nC)))
+                        )
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2])/tol2
 
+                        d111 = np.sqrt(u1**2+v1**2+w1**2)
+                        d211 = np.sqrt(u2**2+v1**2+w1**2)
+                        d221 = np.sqrt(u2**2+v2**2+w1**2)
+                        d121 = np.sqrt(u1**2+v2**2+w1**2)
+                        d122 = np.sqrt(u1**2+v2**2+w2**2)
+                        d112 = np.sqrt(u1**2+v1**2+w2**2)
+                        d212 = np.sqrt(u2**2+v1**2+w2**2)
+                        d222 = np.sqrt(u2**2+v2**2+w2**2)
+
                         Gxy = (
-                            np.log(np.sqrt(u1**2+v1**2+w1**2)-w1) -
-                            np.log(np.sqrt(u2**2+v1**2+w1**2)-w1) +
-                            np.log(np.sqrt(u2**2+v2**2+w1**2)-w1) -
-                            np.log(np.sqrt(u1**2+v2**2+w1**2)-w1) +
-                            np.log(np.sqrt(u1**2+v2**2+w2**2)-w2) -
-                            np.log(np.sqrt(u1**2+v1**2+w2**2)-w2) +
-                            np.log(np.sqrt(u2**2+v1**2+w2**2)-w2) -
-                            np.log(np.sqrt(u2**2+v2**2+w2**2)-w2)
+                            np.log(d111-w1) -
+                            np.log(d211-w1) +
+                            np.log(d221-w1) -
+                            np.log(d121-w1) +
+                            np.log(d122-w2) -
+                            np.log(d112-w2) +
+                            np.log(d212-w2) -
+                            np.log(d222-w2)
                         )
 
                         Gxy = np.dot(wt, Gxy)
 
                         Gyy = (
-                            np.arctan((u1*w1)/(v1*np.sqrt(u1**2+v1**2+w1**2)+tol)) -
-                            np.arctan((u2*w1)/(v1*np.sqrt(u2**2+v1**2+w1**2)+tol)) +
-                            np.arctan((u2*w1)/(v2*np.sqrt(u2**2+v2**2+w1**2)+tol)) -
-                            np.arctan((u1*w1)/(v2*np.sqrt(u1**2+v2**2+w1**2)+tol)) +
-                            np.arctan((u1*w2)/(v2*np.sqrt(u1**2+v2**2+w2**2)+tol)) -
-                            np.arctan((u1*w2)/(v1*np.sqrt(u1**2+v1**2+w2**2)+tol)) +
-                            np.arctan((u2*w2)/(v1*np.sqrt(u2**2+v1**2+w2**2)+tol)) -
-                            np.arctan((u2*w2)/(v2*np.sqrt(u2**2+v2**2+w2**2)+tol))
+                            np.arctan((u1*w1)/(v1*d111+tol)) -
+                            np.arctan((u2*w1)/(v1*d211+tol)) +
+                            np.arctan((u2*w1)/(v2*d221+tol)) -
+                            np.arctan((u1*w1)/(v2*d121+tol)) +
+                            np.arctan((u1*w2)/(v2*d122+tol)) -
+                            np.arctan((u1*w2)/(v1*d112+tol)) +
+                            np.arctan((u2*w2)/(v1*d212+tol)) -
+                            np.arctan((u2*w2)/(v2*d222+tol))
                         )
 
                         Gyy = np.dot(wt, Gyy)
 
                         Gzy = (
-                            np.log(np.sqrt(u1**2+v1**2+w1**2)-u1) -
-                            np.log(np.sqrt(u2**2+v1**2+w1**2)-u2) +
-                            np.log(np.sqrt(u2**2+v2**2+w1**2)-u2) -
-                            np.log(np.sqrt(u1**2+v2**2+w1**2)-u1) +
-                            np.log(np.sqrt(u1**2+v2**2+w2**2)-u1) -
-                            np.log(np.sqrt(u1**2+v1**2+w2**2)-u1) +
-                            np.log(np.sqrt(u2**2+v1**2+w2**2)-u2) -
-                            np.log(np.sqrt(u2**2+v2**2+w2**2)-u2)
+                            np.log(d111-u1) -
+                            np.log(d211-u2) +
+                            np.log(d221-u2) -
+                            np.log(d121-u1) +
+                            np.log(d122-u1) -
+                            np.log(d112-u1) +
+                            np.log(d212-u2) -
+                            np.log(d222-u2)
                         )
 
                         Gzy = np.dot(wt, Gzy)
 
-                        G[COUNT, :] = C*np.c_[Gxy, Gyy, Gzy]
+                        G[COUNT, :] = c*np.c_[Gxy, Gyy, Gzy]
                         COUNT = COUNT + 1
 
                 elif dComp.lower() == 'z':
-                    for rr in range(0, M):
+                    for rr in range(0, nLoc):
 
                         u1 = (
                             np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) +
-                            np.kron(s1, np.ones((1, N)))
-                            )
+                            np.kron(s1, np.ones((1, nC)))
+                        )
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0])/tol2
                         u2 = (
                             np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx) +
-                            np.kron(s1, np.ones((1, N)))
-                            )
+                            np.kron(s1, np.ones((1, nC)))
+                        )
 
                         u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0])/tol2
                         v1 = (
                             np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay) +
-                            np.kron(s2, np.ones((1, N)))
-                            )
+                            np.kron(s2, np.ones((1, nC)))
+                        )
                         v1[np.abs(v1) < tol] = np.min(xyzh[:, 1])/tol2
                         v2 = (
                             np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by) +
-                            np.kron(s2, np.ones((1, N)))
-                            )
+                            np.kron(s2, np.ones((1, nC)))
+                        )
                         v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1])/tol2
 
                         w1 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az)
@@ -517,58 +565,67 @@ class Problem_BaseVRM(Problem.BaseProblem):
                         w2 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz)
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2])/tol2
 
+                        d111 = np.sqrt(u1**2+v1**2+w1**2)
+                        d211 = np.sqrt(u2**2+v1**2+w1**2)
+                        d221 = np.sqrt(u2**2+v2**2+w1**2)
+                        d121 = np.sqrt(u1**2+v2**2+w1**2)
+                        d122 = np.sqrt(u1**2+v2**2+w2**2)
+                        d112 = np.sqrt(u1**2+v1**2+w2**2)
+                        d212 = np.sqrt(u2**2+v1**2+w2**2)
+                        d222 = np.sqrt(u2**2+v2**2+w2**2)
+
                         Gxz = (
-                            np.log(np.sqrt(u1**2+v1**2+w1**2)-v1) -
-                            np.log(np.sqrt(u2**2+v1**2+w1**2)-v1) +
-                            np.log(np.sqrt(u2**2+v2**2+w1**2)-v2) -
-                            np.log(np.sqrt(u1**2+v2**2+w1**2)-v2) +
-                            np.log(np.sqrt(u1**2+v2**2+w2**2)-v2) -
-                            np.log(np.sqrt(u1**2+v1**2+w2**2)-v1) +
-                            np.log(np.sqrt(u2**2+v1**2+w2**2)-v1) -
-                            np.log(np.sqrt(u2**2+v2**2+w2**2)-v2)
+                            np.log(d111-v1) -
+                            np.log(d211-v1) +
+                            np.log(d221-v2) -
+                            np.log(d121-v2) +
+                            np.log(d122-v2) -
+                            np.log(d112-v1) +
+                            np.log(d212-v1) -
+                            np.log(d222-v2)
                         )
 
                         Gxz = np.dot(wt, Gxz)
 
                         Gyz = (
-                            np.log(np.sqrt(u1**2+v1**2+w1**2)-u1) -
-                            np.log(np.sqrt(u2**2+v1**2+w1**2)-u2) +
-                            np.log(np.sqrt(u2**2+v2**2+w1**2)-u2) -
-                            np.log(np.sqrt(u1**2+v2**2+w1**2)-u1) +
-                            np.log(np.sqrt(u1**2+v2**2+w2**2)-u1) -
-                            np.log(np.sqrt(u1**2+v1**2+w2**2)-u1) +
-                            np.log(np.sqrt(u2**2+v1**2+w2**2)-u2) -
-                            np.log(np.sqrt(u2**2+v2**2+w2**2)-u2)
+                            np.log(d111-u1) -
+                            np.log(d211-u2) +
+                            np.log(d221-u2) -
+                            np.log(d121-u1) +
+                            np.log(d122-u1) -
+                            np.log(d112-u1) +
+                            np.log(d212-u2) -
+                            np.log(d222-u2)
                         )
 
                         Gyz = np.dot(wt, Gyz)
 
                         Gzz = (
-                            - np.arctan((v1*w1)/(u1*np.sqrt(u1**2+v1**2+w1**2)+tol)) +
-                            np.arctan((v1*w1)/(u2*np.sqrt(u2**2+v1**2+w1**2)+tol)) -
-                            np.arctan((v2*w1)/(u2*np.sqrt(u2**2+v2**2+w1**2)+tol)) +
-                            np.arctan((v2*w1)/(u1*np.sqrt(u1**2+v2**2+w1**2)+tol)) -
-                            np.arctan((v2*w2)/(u1*np.sqrt(u1**2+v2**2+w2**2)+tol)) +
-                            np.arctan((v1*w2)/(u1*np.sqrt(u1**2+v1**2+w2**2)+tol)) -
-                            np.arctan((v1*w2)/(u2*np.sqrt(u2**2+v1**2+w2**2)+tol)) +
-                            np.arctan((v2*w2)/(u2*np.sqrt(u2**2+v2**2+w2**2)+tol))
+                            - np.arctan((v1*w1)/(u1*d111+tol)) +
+                            np.arctan((v1*w1)/(u2*d211+tol)) -
+                            np.arctan((v2*w1)/(u2*d221+tol)) +
+                            np.arctan((v2*w1)/(u1*d121+tol)) -
+                            np.arctan((v2*w2)/(u1*d122+tol)) +
+                            np.arctan((v1*w2)/(u1*d112+tol)) -
+                            np.arctan((v1*w2)/(u2*d212+tol)) +
+                            np.arctan((v2*w2)/(u2*d222+tol))
                         )
 
                         Gzz = (
                             Gzz -
-                            np.arctan((u1*w1)/(v1*np.sqrt(u1**2+v1**2+w1**2)+tol)) +
-                            np.arctan((u2*w1)/(v1*np.sqrt(u2**2+v1**2+w1**2)+tol)) -
-                            np.arctan((u2*w1)/(v2*np.sqrt(u2**2+v2**2+w1**2)+tol)) +
-                            np.arctan((u1*w1)/(v2*np.sqrt(u1**2+v2**2+w1**2)+tol)) -
-                            np.arctan((u1*w2)/(v2*np.sqrt(u1**2+v2**2+w2**2)+tol)) +
-                            np.arctan((u1*w2)/(v1*np.sqrt(u1**2+v1**2+w2**2)+tol)) -
-                            np.arctan((u2*w2)/(v1*np.sqrt(u2**2+v1**2+w2**2)+tol)) +
-                            np.arctan((u2*w2)/(v2*np.sqrt(u2**2+v2**2+w2**2)+tol))
+                            np.arctan((u1*w1)/(v1*d111+tol)) +
+                            np.arctan((u2*w1)/(v1*d211+tol)) -
+                            np.arctan((u2*w1)/(v2*d221+tol)) +
+                            np.arctan((u1*w1)/(v2*d121+tol)) -
+                            np.arctan((u1*w2)/(v2*d122+tol)) +
+                            np.arctan((u1*w2)/(v1*d112+tol)) -
+                            np.arctan((u2*w2)/(v1*d212+tol)) +
+                            np.arctan((u2*w2)/(v2*d222+tol))
                         )
 
                         Gzz = np.dot(wt, Gzz)
 
-                        G[COUNT, :] = C*np.c_[Gxz, Gyz, Gzz]
+                        G[COUNT, :] = c*np.c_[Gxz, Gyz, Gzz]
                         COUNT = COUNT + 1
 
         return np.matrix(G)
@@ -694,7 +751,8 @@ class Problem_Linear(Problem_BaseVRM):
 
         if self._AisSet is False:
 
-            assert self.ispaired, "Problem must be paired with survey to generate A matrix"
+            if self.ispaired is False:
+                AssertionError("Problem must be paired with survey to generate A matrix")
 
             # Remove any previously stored A matrix
             if self._A is not None:
@@ -723,7 +781,8 @@ class Problem_Linear(Problem_BaseVRM):
 
         if self._TisSet is False:
 
-            assert self.ispaired, "Problem must be paired with survey to generate T matrix"
+            if self.ispaired is False:
+                AssertionError("Problem must be paired with survey to generate A matrix")
 
             # Remove any previously stored T matrix
             if self._T is not None:
@@ -765,7 +824,8 @@ class Problem_Linear(Problem_BaseVRM):
 
         """Computes the fields d = T*A*m"""
 
-        assert self.ispaired, "Problem must be paired with survey to predict data"
+        if self.ispaired is False:
+            AssertionError("Problem must be paired with survey to generate A matrix")
 
         self.model = m   # Initiates/updates model and initiates mapping
 
@@ -780,7 +840,8 @@ class Problem_Linear(Problem_BaseVRM):
 
         """Compute Pd*T*A*dxidm*v"""
 
-        assert self.ispaired, "Problem must be paired with survey to predict data"
+        if self.ispaired is False:
+            AssertionError("Problem must be paired with survey to generate A matrix")
 
         # Jacobian of xi wrt model
         dxidm = self.xiMap.deriv(m)
@@ -801,7 +862,8 @@ class Problem_Linear(Problem_BaseVRM):
 
         """Compute (Pd*T*A*dxidm)^T * v"""
 
-        assert self.ispaired, "Problem must be paired with survey to predict data"
+        if self.ispaired is False:
+            AssertionError("Problem must be paired with survey to generate A matrix")
 
         # Define v as a column vector
         v = np.matrix(v).T
@@ -864,7 +926,8 @@ class Problem_LogUniform(Problem_BaseVRM):
 
         if self._AisSet is False:
 
-            assert self.ispaired, "Problem must be paired with survey to generate A matrix"
+            if self.ispaired is False:
+                AssertionError("Problem must be paired with survey to generate A matrix")
 
             # Remove any previously stored A matrix
             if self._A is not None:
@@ -886,7 +949,8 @@ class Problem_LogUniform(Problem_BaseVRM):
 
         """Computes the fields at every time d(t) = G*M(t)"""
 
-        assert self.ispaired, "Problem must be paired with survey to predict data"
+        if self.ispaired is False:
+            AssertionError("Problem must be paired with survey to generate A matrix")
 
         # Fields from each source
         srcList = self.survey.srcList
@@ -904,7 +968,7 @@ class Problem_LogUniform(Problem_BaseVRM):
                 times = rxList[qq].times
                 eta = waveObj.getLogUniformDecay(
                     rxList[qq].fieldType, times, self.chi0, self.dchi, self.tau1, self.tau2
-                    )
+                )
 
                 f.append(mkvc((self.A[qq] * np.matrix(eta)).T))
 
