@@ -38,7 +38,7 @@ class MagneticIntegral(Problem.LinearProblem):
     gtgdiag = None
     memory_saving_mode = False
     n_cpu = None
-    parallelized = False
+    parallelized = "dask"
     coordinate_system = properties.StringChoice(
         "Type of coordinate system we are regularizing in",
         choices=['cartesian', 'spherical'],
@@ -413,7 +413,7 @@ class MagneticIntegral(Problem.LinearProblem):
 class Forward(object):
 
     progressIndex = -1
-    parallelized = True
+    parallelized = "dask"
     storeG = True
     rxLoc = None
     Xn, Yn, Zn = None, None, None
@@ -448,7 +448,10 @@ class Forward(object):
 
         if self.parallelized:
 
+            assert self.parallelized in ["dask", "multiprocessing"]
+
             # print(chunkSize)
+            if self.parallelized == "dask":
 
                 if os.path.exists(self.Jpath):
                     print("Load G from zarr")
@@ -480,6 +483,14 @@ class Forward(object):
                     else:
                         G = stack.compute()
 
+            elif self.parallelized == "multiprocessing":
+
+                pool = multiprocessing.Pool(self.n_cpu)
+
+                result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
+                pool.close()
+                pool.join()
+
         else:
 
             result = []
@@ -488,34 +499,8 @@ class Forward(object):
                 self.progress(ii, self.nD)
 
             G = np.vstack(result)
-        #     if self.forwardOnly:
-        #         return mkvc(np.vstack(result))
-
-        #     else:
-        #         return np.vstack(result)
-
-        # mat = []
-        # for ii in range(self.nD):
-        #     row = dask.delayed(self.calcTrow)(self.rxLoc[ii, :])
-        #     mat.append(row)
-
-        # G = dask.delayed(da.vstack)(mat)
 
         return G
-
-        # else:
-
-        #     result = []
-        #     for ii in range(self.nD):
-        #         result += [self.calcTrow(self.rxLoc[ii, :])]
-        #         self.progress(ii, self.nD)
-
-
-        #     if self.forwardOnly:
-        #         return mkvc(np.vstack(result))
-
-        #     else:
-        #         return np.vstack(result)
 
     def calcTrow(self, xyzLoc):
         """
