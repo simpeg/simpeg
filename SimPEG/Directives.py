@@ -1007,15 +1007,15 @@ class Update_IRLS(InversionDirective):
 
         max_p = np.asarray(max_p).max()
 
-        max_s = [np.pi/2., np.pi/2.]
-        for obj, var in zip(self.reg.objfcts[1:3], max_s):
-            obj.scales = np.ones(obj.scales.shape)*max_p/var
-        self.reg.objfcts[0].scales = np.ones(self.reg.objfcts[0].scales.shape)
+        scales = [max_p/2., max_p/2.]
+        for obj, scale in zip(self.reg.objfcts[1:3], scales):
+            obj.scales = np.ones(obj.scales.shape)*scale
+        # self.reg.objfcts[0].scales = np.ones(self.reg.objfcts[0].scales.shape)
         # Probably doing rotated obj fun
         if len(self.reg) > 3:
 
-            for obj, var in zip(self.reg.objfcts[4:], max_s):
-                obj.scales = np.ones(obj.scales.shape)*max_p/var
+            for obj, scale in zip(self.reg.objfcts[4:], scales):
+                obj.scales = np.ones(obj.scales.shape)*scale
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
