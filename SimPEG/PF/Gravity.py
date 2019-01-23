@@ -27,7 +27,7 @@ class GravityIntegral(Problem.LinearProblem):
     silent = False
     equiSourceLayer = False
     memory_saving_mode = False
-    parallelized = False
+    parallelized = "dask"
     n_cpu = None
     progressIndex = -1
     gtgdiag = None
@@ -217,7 +217,7 @@ class Forward(object):
     """
 
     progressIndex = -1
-    parallelized = False
+    parallelized = "dask"
     rxLoc = None
     Xn, Yn, Zn = None, None, None
     n_cpu = None
@@ -252,6 +252,15 @@ class Forward(object):
         if self.parallelized:
 
             # print(chunkSize)
+            assert self.parallelized in ["dask", "multiprocessing"], (
+                "'parallelization' must be 'dask', 'multiprocessing' or None"
+                "Value provided -> "
+                "{}".format(
+                    self.parallelized)
+
+            )
+
+            if self.parallelized == "dask":
 
                 if os.path.exists(self.Jpath):
                     print("Load G from zarr")
@@ -279,6 +288,16 @@ class Forward(object):
                     else:
                         G = stack.compute()
 
+            elif self.parallelized == "multiprocessing":
+
+                pool = multiprocessing.Pool(self.n_cpu)
+
+                result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
+                pool.close()
+                pool.join()
+
+                G = np.vstack(result)
+
         else:
 
             result = []
@@ -288,11 +307,7 @@ class Forward(object):
 
             G = np.vstack(result)
 
-        if self.forwardOnly:
-            return np.array(da.dot(G, model))
-
-        else:
-            return G
+        return G
 
     def calcTrow(self, xyzLoc):
         """

@@ -448,9 +448,14 @@ class Forward(object):
 
         if self.parallelized:
 
-            assert self.parallelized in ["dask", "multiprocessing"]
+            assert self.parallelized in ["dask", "multiprocessing"], (
+                "'parallelization' must be 'dask', 'multiprocessing' or None"
+                "Value provided -> "
+                "{}".format(
+                    self.parallelized)
 
-            # print(chunkSize)
+            )
+
             if self.parallelized == "dask":
 
                 if os.path.exists(self.Jpath):
@@ -490,6 +495,8 @@ class Forward(object):
                 result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
                 pool.close()
                 pool.join()
+
+                G = np.vstack(result)
 
         else:
 
