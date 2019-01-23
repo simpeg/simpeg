@@ -106,7 +106,7 @@ def run(plotIt=True):
     # Create a regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.cell_weights = wr
-    reg.norms = np.c_[1, 0, 0, 0]
+    reg.norms = np.c_[0, 0, 0, 0]
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
@@ -117,7 +117,7 @@ def run(plotIt=True):
                                      maxIterLS=20, maxIterCG=10,
                                      tolCG=1e-3)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    betaest = Directives.BetaEstimate_ByEig()
+    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of
@@ -151,7 +151,7 @@ def run(plotIt=True):
         vmin, vmax = mrec.min(), mrec.max()
 
         # Plot the data
-        PF.Gravity.plot_obs_2D(rxLoc, d=data)
+        Utils.PlotUtils.plot2Ddata(rxLoc, data)
 
         plt.figure()
 
