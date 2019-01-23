@@ -434,7 +434,9 @@ class Forward(object):
     def calculate(self):
         self.nD = self.rxLoc.shape[0]
         self.nC = self.Mxyz.shape[1]
-        self.n_cpu = int(multiprocessing.cpu_count())
+
+        if self.n_cpu is None:
+            self.n_cpu = int(multiprocessing.cpu_count())
 
         nChunks = self.n_cpu # Number of chunks
         rowChunk, colChunk = int(self.nD/nChunks), int(self.nC/nChunks) # Chunk sizes
