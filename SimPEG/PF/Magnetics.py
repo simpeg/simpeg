@@ -438,16 +438,12 @@ class Forward(object):
         if self.n_cpu is None:
             self.n_cpu = int(multiprocessing.cpu_count())
 
-        nChunks = self.n_cpu # Number of chunks
-        rowChunk, colChunk = int(self.nD/nChunks), int(self.nC/nChunks) # Chunk sizes
-        totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
-        while totRAM > self.maxRAM:
-            nChunks *= 2
-            rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-            totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
-
-        print(nChunks, rowChunk, colChunk, totRAM)
-
+        # Set this early so we can get a better memory estimate for dask chunking
+        if self.rxType == 'xyz':
+            nModelParams = 3
+        else:
+            nModelParams = 1
+            
         if self.parallelized:
 
             assert self.parallelized in ["dask", "multiprocessing"], (
@@ -460,20 +456,31 @@ class Forward(object):
 
             if self.parallelized == "dask":
 
+                # chunking only required for dask
+                nChunks = self.n_cpu # Number of chunks
+                rowChunk, colChunk = int(self.nD/nChunks), int(self.nC/nChunks) # Chunk sizes
+                totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
+                # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
+                while totRAM > self.maxRAM or (totRAM/nChunks) >= 2.0:
+                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
+                    nChunks *= 2
+                    rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                    totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
+        
+                print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
+
                 if os.path.exists(self.Jpath):
                     print("Load G from zarr")
                     G = da.from_zarr(self.Jpath)
 
+                    # TO-DO: should add check that loaded G matches supplied data and mesh
                 else:
 
                     row = dask.delayed(self.calcTrow, pure=True)
 
                     makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
 
-                    if self.rxType == 'xyz':
-                        buildMat = [da.from_delayed(makeRow, dtype=float, shape=(3, self.nC)) for makeRow in makeRows]
-                    else:
-                        buildMat = [da.from_delayed(makeRow, dtype=float, shape=(1, self.nC)) for makeRow in makeRows]
+                    buildMat = [da.from_delayed(makeRow, dtype=float, shape=(nModelParams, self.nC)) for makeRow in makeRows]
 
                     stack = da.vstack(buildMat)
 
@@ -491,6 +498,9 @@ class Forward(object):
                         G = stack.compute()
 
             elif self.parallelized == "multiprocessing":
+
+                totRAM = nModelParams*self.nD*self.nC*8*1e-9
+                print("Multiprocessing:", self.n_cpu, self.nD, self.nC, totRAM, self.maxRAM)
 
                 pool = multiprocessing.Pool(self.n_cpu)
 
