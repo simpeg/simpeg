@@ -66,7 +66,8 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
             (1e-3, 20), (1e-2, 17)
         ]
         prob = getattr(TDEM, "Problem3D_{}".format(self.prob_type))(
-            mesh, timeSteps=timeSteps, mu=mu, sigmaMap=Maps.ExpMap(mesh)
+            mesh, timeSteps=timeSteps, mu=mu, sigmaMap=Maps.ExpMap(mesh),
+            Solver=Pardiso
         )
         survey = TDEM.Survey([src])
 
@@ -82,11 +83,11 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
 
         print("Testing problem {} \n\n".format(self.prob_type))
 
-    def deriv_test(self, deriv_fct):
+    def derivtest(self, deriv_fct):
         m0 = np.log(self.sigma) + np.random.rand(self.mesh.nC)
         self.prob.model = m0
 
-        Tests.checkDerivative(deriv_fct, np.log(self.sigma), num=4, plotIt=False)
+        return Tests.checkDerivative(deriv_fct, np.log(self.sigma), num=3, plotIt=False)
 
     def test_deriv_phi(self):
 
@@ -96,7 +97,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
                 self.src.phiInitial(self.prob),
                 lambda mx: self.src._phiInitialDeriv(self.prob, v=mx)
             ]
-        self.deriv_test(deriv_check)
+        self.derivtest(deriv_check)
 
     def test_deriv_j(self):
 
@@ -106,7 +107,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
                 self.src.jInitial(self.prob),
                 lambda mx: self.src.jInitialDeriv(self.prob, v=mx)
             ]
-        self.deriv_test(deriv_check)
+        self.derivtest(deriv_check)
 
     def test_deriv_h(self):
 
@@ -116,7 +117,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
                 self.src.hInitial(self.prob),
                 lambda mx: self.src.hInitialDeriv(self.prob, v=mx)
             ]
-        self.deriv_test(deriv_check)
+        self.derivtest(deriv_check)
 
     def test_adjoint_phi(self):
 
