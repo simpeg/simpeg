@@ -454,8 +454,7 @@ class BaseEMProblem(Problem.BaseProblem):
 
         if adjoint is True:
             return self.MfRhoDeriv(
-                dMfRhoI_dI.T*u, v=v if v is not None else dMfRhoI_dI.T,
-                adjoint=adjoint
+                dMfRhoI_dI.T*u, v=v, adjoint=adjoint
             )
         else:
             return dMfRhoI_dI * self.MfRhoDeriv(u, v=v)

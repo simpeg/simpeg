@@ -1059,9 +1059,9 @@ class Problem3D_h(BaseTDEMProblem):
 
         if adjoint:
             # This is the same as
-            #      G.T * self.MfRhoIDeriv(u, D.T * v, adjoint=True)
-            return D * self.MfRhoIDeriv(u, G * v, adjoint=True)
-        return D * self.MfRhoIDeriv(u, G * v)
+            #      self.MfRhoIDeriv(G * u, D.T * v, adjoint=True)
+            return self.MfRhoIDeriv(G * u, G * v, adjoint=True)
+        return D * self.MfRhoIDeriv(G * u, v)
 
 # ------------------------------- Problem3D_j ------------------------------- #
 
@@ -1166,8 +1166,8 @@ class Problem3D_j(BaseTDEMProblem):
 
         if adjoint:
             # This is the same as
-            #      G.T * self.MfRhoIDeriv(u, D.T * v, adjoint=True)
-            return D * self.MfRhoIDeriv(G * u, v, adjoint=True)
+            #      self.MfRhoIDeriv(G * u, D.T * v, adjoint=True)
+            return self.MfRhoIDeriv(G * u, G * v, adjoint=True)
         return D * self.MfRhoIDeriv(G * u, v)
 
 

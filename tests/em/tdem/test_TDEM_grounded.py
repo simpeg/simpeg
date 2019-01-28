@@ -12,13 +12,16 @@ from SimPEG import Utils, Maps, Tests
 from pymatsolver import Pardiso
 
 
-class TestGroundedSourceTDEM(unittest.TestCase):
+class TestGroundedSourceTDEM_j(unittest.TestCase):
+
+    prob_type = "j"
 
     @classmethod
     def setUpClass(self):
+
         # mesh
         cs = 10
-        npad = 5
+        npad = 4
         ncore = 5
         h = [(cs, npad, -1.5), (cs, ncore), (cs, npad, 1.5)]
         mesh = discretize.TensorMesh([h, h, h], x0="CCC")
@@ -62,8 +65,12 @@ class TestGroundedSourceTDEM(unittest.TestCase):
             (1e-6, 20), (1e-5, 30), (3e-5, 30), (1e-4, 40), (3e-4, 30),
             (1e-3, 20), (1e-2, 17)
         ]
-        prob = TDEM.Problem3D_j(mesh, timeSteps=timeSteps, mu=mu, sigmaMap=Maps.ExpMap(mesh))
+        prob = getattr(TDEM, "Problem3D_{}".format(self.prob_type))(
+            mesh, timeSteps=timeSteps, mu=mu, sigmaMap=Maps.ExpMap(mesh)
+        )
         survey = TDEM.Survey([src])
+
+        prob.model = sigma
 
         self.mesh = mesh
         self.prob = prob
@@ -72,6 +79,8 @@ class TestGroundedSourceTDEM(unittest.TestCase):
 
         self.sigma = sigma
         self.mu = mu
+
+        print("Testing problem {} \n\n".format(self.prob_type))
 
     def deriv_test(self, deriv_fct):
         m0 = np.log(self.sigma) + np.random.rand(self.mesh.nC)
@@ -109,6 +118,33 @@ class TestGroundedSourceTDEM(unittest.TestCase):
             ]
         self.deriv_test(deriv_check)
 
+    def test_adjoint_phi(self):
+
+        v = np.random.rand(self.mesh.nC)
+        w = np.random.rand(self.mesh.nC)
+        a = w.T.dot(self.src._phiInitialDeriv(self.prob, v=v))
+        b = v.T.dot(self.src._phiInitialDeriv(self.prob, v=w, adjoint=True))
+        self.assertTrue(np.allclose(a, b))
+
+    def test_adjoint_j(self):
+
+        v = np.random.rand(self.mesh.nC)
+        w = np.random.rand(self.mesh.nF)
+        a = w.T.dot(self.src.jInitialDeriv(self.prob, v=v))
+        b = v.T.dot(self.src.jInitialDeriv(self.prob, v=w, adjoint=True))
+        self.assertTrue(np.allclose(a, b))
+
+    def test_adjoint_h(self):
+        v = np.random.rand(self.mesh.nC)
+        w = np.random.rand(self.mesh.nE)
+        a = w.T.dot(self.src.hInitialDeriv(self.prob, v=v))
+        b = v.T.dot(self.src.hInitialDeriv(self.prob, v=w, adjoint=True))
+        self.assertTrue(np.allclose(a, b))
+
+
+class TestGroundedSourceTDEM_h(TestGroundedSourceTDEM_j):
+
+    prob_type = "h"
 
 
 if __name__ == '__main__':

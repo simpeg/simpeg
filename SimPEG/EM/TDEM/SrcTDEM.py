@@ -647,8 +647,8 @@ class RawVec_Grounded(BaseTDEMSrc):
 
         if adjoint is True:
             return - (
-                Div * prob.MfRhoIDeriv(phi, v=v, adjoint=True) +
-                self._phiInitialDeriv(prob, prob.MfRhoI.T * (Div * v), adjoint=True)
+                prob.MfRhoIDeriv(Div.T * phi, v=v, adjoint=True) +
+                self._phiInitialDeriv(prob, Div * (prob.MfRhoI.T * v), adjoint=True)
             )
         phiDeriv = self._phiInitialDeriv(prob, v)
         return - (prob.MfRhoIDeriv(Div.T * phi, v=v) + prob.MfRhoI * (Div.T * phiDeriv))
