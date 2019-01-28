@@ -34,10 +34,6 @@ def run(plotIt=True):
 
     mesh = Mesh.TensorMesh([hxind, hyind, hzind], 'CCC')
 
-    # Get index of the center
-    midx = int(mesh.nCx/2)
-    midy = int(mesh.nCy/2)
-
     # Lets create a simple Gaussian topo and set the active cells
     [xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
     zz = -np.exp((xx**2 + yy**2) / 75**2) + mesh.vectorNz[-1]

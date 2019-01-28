@@ -126,5 +126,7 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_adjoint_e_ey(self):
             self.JvecVsJtvecTest('e', 'ey')
 
+class TestRawVecGroundedSrc(unittest.TestCase)
+
 if __name__ == '__main__':
     unittest.main()
