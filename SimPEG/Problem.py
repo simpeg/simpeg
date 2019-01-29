@@ -303,7 +303,7 @@ class LinearProblem(BaseProblem):
         self._modelMap = val
 
     def fields(self, m):
-        return self.G.dot(m)
+        return self.G.dot(self.modelMap * m)
 
     def getJ(self, m, f=None):
         """

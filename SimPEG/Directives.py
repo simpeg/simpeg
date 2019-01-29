@@ -1,13 +1,18 @@
 from __future__ import print_function
-from . import Utils
-from . import Regularization, DataMisfit, ObjectiveFunction
-from . import Maps
+
+import properties
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
+import os
+
+from . import Utils
+from . import Regularization, DataMisfit, ObjectiveFunction
+from . import Maps
 from .Utils import mkvc
 
-class InversionDirective(object):
+
+class InversionDirective(properties.HasProperties):
     """InversionDirective"""
 
     debug = False    #: Print debugging information
@@ -279,16 +284,30 @@ class TargetMisfit(InversionDirective):
 
 
 class SaveEveryIteration(InversionDirective):
+    """SaveEveryIteration
 
-    @property
-    def name(self):
-        if getattr(self, '_name', None) is None:
-            self._name = 'InversionModel'
-        return self._name
+    This directive saves an array at each iteration. The default
+    direcroty is the current directoy and the models are saved as
+    `InversionModel-YYYY-MM-DD-HH-MM-iter.npy`
+    """
 
-    @name.setter
-    def name(self, value):
-        self._name = value
+    directory = properties.String(
+        "directory to save results in",
+        default = "."
+    )
+
+    name = properties.String(
+        "root of the filename to be saved",
+        default="InversionModel"
+    )
+
+    @properties.validator('directory')
+    def _ensure_abspath(self, change):
+        val = change['value']
+        fullpath = os.path.abspath(os.path.expanduser(val))
+
+        if not os.path.isdir(fullpath):
+            os.mkdir(fullpath)
 
     @property
     def fileName(self):
@@ -299,25 +318,33 @@ class SaveEveryIteration(InversionDirective):
             )
         return self._fileName
 
-    @fileName.setter
-    def fileName(self, value):
-        self._fileName = value
-
 
 class SaveModelEveryIteration(SaveEveryIteration):
-    """SaveModelEveryIteration"""
+    """SaveModelEveryIteration
+
+    This directive saves the model as a numpy array at each iteration. The
+    default direcroty is the current directoy and the models are saved as
+    `InversionModel-YYYY-MM-DD-HH-MM-iter.npy`
+    """
 
     def initialize(self):
-        print("SimPEG.SaveModelEveryIteration will save your models as: '###-{0!s}.npy'".format(self.fileName))
+        print(
+            "SimPEG.SaveModelEveryIteration will save your models as: "
+            "'{0!s}###-{1!s}.npy'".format(
+                self.directory + os.path.sep, self.fileName
+            )
+        )
 
     def endIter(self):
-        np.save('{0:03d}-{1!s}'.format(
-            self.opt.iter, self.fileName), self.opt.xc
+        np.save(
+            '{0!s}{1:03d}-{2!s}'.format(
+                self.directory + os.path.sep, self.opt.iter, self.fileName
+            ), self.opt.xc
         )
 
 
 class SaveOutputEveryIteration(SaveEveryIteration):
-    """SaveModelEveryIteration"""
+    """SaveOutputEveryIteration"""
 
     header = None
     save_txt = True
