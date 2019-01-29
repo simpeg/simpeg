@@ -564,17 +564,18 @@ class Tile(IdentityMap):
             self.actvGlobal = temp
 
         self.meshLocal = args[1][0]
-        self.actvLocal = args[1][1]
+        self.activeLocal = args[1][1]
 
-        if not isinstance(self.actvLocal, bool):
-            temp = np.zeros(self.meshLocal.nC, dtype='bool')
-            temp[self.actvLocal] = True
-            self.actvLocal = temp
+        # if not isinstance(self.activeLocal, bool):
+        #     temp = np.zeros(self.meshLocal.nC, dtype='bool')
+        #     temp[self.activeLocal] = True
+        #     self.activeLocal = temp
 
         if self.nCell > self.meshGlobal.nC:
             self.nCell = self.meshGlobal.nC
 
         self.index = np.ones(self.actvGlobal.sum(), dtype='bool')
+        self.P
 
     @property
     def tree(self):
@@ -596,6 +597,22 @@ class Tile(IdentityMap):
             self._tree = cKDTree(self.meshGlobal.gridCC[self.actvGlobal, :])
 
         return self._tree
+
+    @property
+    def activeLocal(self):
+        """This is the activeLocal of the actvGlobal used in the global problem."""
+        return getattr(self, '_activeLocal', None)
+
+    @activeLocal.setter
+    def activeLocal(self, activeLocal):
+
+        if not isinstance(activeLocal, bool):
+            temp = np.zeros(self.meshLocal.nC, dtype='bool')
+            temp[activeLocal] = True
+            activeLocal = temp
+
+        self._activeLocal = activeLocal
+
 
     @property
     def index(self):
@@ -646,13 +663,27 @@ class Tile(IdentityMap):
             if self.meshLocal._meshType == "TREE":
 
                 indx = self.meshLocal._get_containing_cell_indexes(self.meshGlobal.gridCC[self.actvGlobal])
-                # print(indx.shape, np.where(self.actvGlobal)[0].shape)
-                full = np.c_[indx, np.asarray(range(self.actvGlobal.sum()))]
-            else:
-                indx = self.getTreeIndex(self.tree, self.meshLocal, self.actvLocal)
-                local2Global = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.actvLocal.sum()))).astype('int'), mkvc(indx)]
+                #
 
-                tree = cKDTree(self.meshLocal.gridCC[self.actvLocal, :])
+                # Create new index based on unique active
+                [ua, ind] = np.unique(indx, return_index=True)
+                newCellInd = np.arange(ua.shape[0])
+
+                activeLocal = np.zeros(self.meshLocal.nC, dtype='bool')
+                activeLocal[ua] = True
+
+                self.activeLocal = activeLocal
+
+                # Transfer old index to new
+                indx = np.asarray([int(np.where(ii == ua)[0]) for ii in indx.tolist()])
+
+                full = np.c_[indx, np.asarray(range(self.actvGlobal.sum()))]
+
+            else:
+                indx = self.getTreeIndex(self.tree, self.meshLocal, self.activeLocal)
+                local2Global = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.activeLocal.sum()))).astype('int'), mkvc(indx)]
+
+                tree = cKDTree(self.meshLocal.gridCC[self.activeLocal, :])
                 r, ind = tree.query(self.meshGlobal.gridCC[self.actvGlobal], k=self.nCell)
                 global2Local = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.actvGlobal.sum()))).astype('int'), mkvc(ind)]
 
@@ -668,7 +699,7 @@ class Tile(IdentityMap):
                                                         self.actvGlobal)
 
             local_bsw, local_tne = self.getNodeExtent(self.meshLocal,
-                                                      self.actvLocal)
+                                                      self.activeLocal)
 
             nactv = full.shape[0]
 
@@ -720,19 +751,19 @@ class Tile(IdentityMap):
             self.V = dV[nzV]
 
             P = sp.csr_matrix((self.V, (full[nzV, 0], full[nzV, 1])),
-                              shape=(self.actvLocal.sum(), self.actvGlobal.sum()))
+                              shape=(self.activeLocal.sum(), self.actvGlobal.sum()))
 
             sumRow = Utils.mkvc(np.sum(P, axis=1) + self.tol)
 
             self.scaleJ = sp.block_diag([
-                Utils.sdiag(sumRow/self.meshLocal.vol[self.actvLocal])
+                Utils.sdiag(sumRow/self.meshLocal.vol[self.activeLocal])
                 for ii in range(self.nBlock)])
 
             self._P = sp.block_diag([
                 Utils.sdiag(1./sumRow) * P * self.S
                 for ii in range(self.nBlock)])
 
-            self._shape = int(self.actvLocal.sum()*self.nBlock), int(self.actvGlobal.sum()*self.nBlock)
+            self._shape = int(self.activeLocal.sum()*self.nBlock), int(self.actvGlobal.sum()*self.nBlock)
 
         return self._P
 
