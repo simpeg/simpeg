@@ -675,7 +675,7 @@ class Tile(IdentityMap):
                 self.activeLocal = activeLocal
 
                 # Transfer old index to new
-                indx = np.asarray([int(np.where(ii == ua)[0]) for ii in indx.tolist()])
+                indx = np.asarray([int(np.where(ua == ii)[0]) for ii in indx.tolist()])
 
                 full = np.c_[indx, np.asarray(range(self.actvGlobal.sum()))]
 

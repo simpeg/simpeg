@@ -177,8 +177,8 @@ class GravityIntegral(Problem.LinearProblem):
             yn1, xn1, zn1 = np.meshgrid(yn[:-1], xn[:-1], zn[:-1])
 
         # If equivalent source, use semi-infite prism
-        if self.equiSourceLayer:
-            zn1 -= 1000.
+        # if self.equiSourceLayer:
+        #     zn1 -= 1000.
 
         self.Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
         self.Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]

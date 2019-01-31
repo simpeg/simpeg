@@ -326,7 +326,7 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
         if getattr(self, 'mapping', None) is None:
             return self.mapPair()
         print("SimPEG.SaveModelEveryIteration will save your models" +
-              " in UBC format as: '###-{0!s}.sus'".format(self.fileName))
+              " in UBC format as: '###-{0!s}.mod'".format(self.fileName))
 
     def endIter(self):
 

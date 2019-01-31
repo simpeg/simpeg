@@ -65,9 +65,9 @@ class MagneticIntegral(Problem.LinearProblem):
         else:
             m = self.chiMap*(matutils.atp2xyz(m.reshape((int(len(m)/3), 3), order='F')))
 
-        # if self.forwardOnly:
-        #     # Compute the linear operation without forming the full dense F
-        #     fields = self.Intrgl_Fwr_Op(m=m)
+        if self.forwardOnly:
+            # Compute the linear operation without forming the full dense F
+            return np.array(self.Intrgl_Fwr_Op(m=m), dtype='float')
 
         # else:
 
@@ -364,8 +364,8 @@ class MagneticIntegral(Problem.LinearProblem):
             yn1, xn1, zn1 = np.meshgrid(yn[:-1], xn[:-1], zn[:-1])
 
         # If equivalent source, use semi-infite prism
-        if self.equiSourceLayer:
-            zn1 -= 1000.
+        # if self.equiSourceLayer:
+        #     zn1 -= 1000.
 
         self.Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
         self.Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
@@ -443,7 +443,7 @@ class Forward(object):
             nModelParams = 3
         else:
             nModelParams = 1
-            
+
         if self.parallelized:
 
             assert self.parallelized in ["dask", "multiprocessing"], (
@@ -466,7 +466,7 @@ class Forward(object):
                     nChunks *= 2
                     rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
                     totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
-        
+
                 print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
 
                 if os.path.exists(self.Jpath):
@@ -557,9 +557,9 @@ class Forward(object):
         else:
             raise Exception('rxType must be: "tmi", "x", "y" or "z"')
 
-        # if self.forwardOnly:
+        if self.forwardOnly:
 
-        #     return np.dot(row, self.model)
+            return np.dot(row, self.model)
         # else:
         return np.float32(row)
 
