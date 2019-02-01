@@ -261,7 +261,7 @@ class GravityDriver_Inv(object):
     def m0(self):
         if getattr(self, '_m0', None) is None:
             if isinstance(self.mstart, float):
-                self._m0 = np.ones(self.nC) * self.mstart
+                self._m0 = np.ones(self.mesh.nC) * self.mstart
             else:
 
                 self._m0 = Mesh.TensorMesh.readModelUBC(

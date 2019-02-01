@@ -357,15 +357,15 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
             # Save model
             if not self.vector:
 
-                if isinstance(reg.regmesh.mesh, Mesh.TreeMesh):
+                if isinstance(prob.mesh, Mesh.TreeMesh):
                         Mesh.TreeMesh.writeUBC(
-                            reg.regmesh.mesh,
+                            prob.mesh,
                             fileName + '.msh',
                             models={fileName + '.mod': self.mapping * xc}
                         )
 
                 else:
-                    Mesh.TensorMesh.writeModelUBC(reg.regmesh.mesh,
+                    Mesh.TensorMesh.writeModelUBC(prob.mesh,
                                               fileName + '.mod', self.mapping * xc)
             else:
 
@@ -403,9 +403,9 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                 )
 
                 if self.saveComp:
-                    if isinstance(reg.regmesh.mesh, Mesh.TreeMesh):
+                    if isinstance(prob.mesh, Mesh.TreeMesh):
                         Mesh.TreeMesh.writeUBC(
-                            reg.regmesh.mesh,
+                            prob.mesh,
                             fileName + '.msh',
                             models={
                                 fileName + '.dip': (self.mapping.P * np.rad2deg(theta)),
@@ -417,27 +417,27 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
 
                     else:
                         Mesh.TensorMesh.writeModelUBC(
-                            reg.regmesh.mesh,
+                            prob.mesh,
                             fileName + '.dip', self.mapping.P * (np.rad2deg(theta))
                         )
                         Mesh.TensorMesh.writeModelUBC(
-                            reg.regmesh.mesh,
+                            prob.mesh,
                             fileName + '.azm', self.mapping.P * (450 - np.rad2deg(phi)) % 360
                         )
                         Mesh.TensorMesh.writeModelUBC(
-                            reg.regmesh.mesh,
+                            prob.mesh,
                             fileName + '_TOT.amp', self.mapping.P * np.sum(vec**2, axis=1)**0.5
                         )
                         Mesh.TensorMesh.writeModelUBC(
-                            reg.regmesh.mesh,
+                            prob.mesh,
                             fileName + '_IND.amp', self.mapping.P * np.sum(m_ind**2, axis=1)**0.5
                         )
                         Mesh.TensorMesh.writeModelUBC(
-                            reg.regmesh.mesh,
+                            prob.mesh,
                             fileName + '_REM.amp', self.mapping.P * np.sum(m_rem**2, axis=1)**0.5
                         )
                         Utils.io_utils.writeVectorUBC(
-                            reg.regmesh.mesh,
+                            prob.mesh,
                             fileName + '_VEC.fld', self.mapping.P * vec
                         )
 
@@ -781,11 +781,11 @@ class Update_IRLS(InversionDirective):
                 reg.norms = np.c_[2., 2., 2., 2.]
                 reg.model = self.invProb.model
 
-                # Check if using non-simple difference
-                dx = sp.find(reg.regmesh.cellDiffxStencil)[2].max()
-                if dx != 1:
-                    print(dx)
-                    reg.alpha_s = dx**2. #/np.min(reg.regmesh.mesh.hx)**2.
+                # # Check if using non-simple difference
+                # dx = sp.find(reg.regmesh.cellDiffxStencil)[2].max()
+                # if dx != 1:
+                #     print(dx)
+                #     reg.alpha_s = dx**2. #/np.min(reg.regmesh.mesh.hx)**2.
 
         # Update the model used by the regularization
         for reg in self.reg.objfcts:
