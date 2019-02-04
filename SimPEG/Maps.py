@@ -2096,7 +2096,7 @@ class ParametricLayer(BaseParametric):
 
         **Required**
 
-        :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+        :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
         **Optional**
 

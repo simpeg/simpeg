@@ -1,11 +1,14 @@
 from __future__ import print_function
+
+from discretize.base import BaseMesh
+from discretize import TensorMesh
+
 from . import Utils
 from . import Survey
 from . import Models
 import numpy as np
 from . import Maps
 from .Fields import Fields, TimeFields
-from . import Mesh
 from . import Props
 import properties
 
@@ -47,7 +50,7 @@ class BaseProblem(Props.HasModel):
             )
 
         super(BaseProblem, self).__init__(**kwargs)
-        assert isinstance(mesh, Mesh.BaseMesh), (
+        assert isinstance(mesh, BaseMesh), (
             "mesh must be a discretize object."
         )
         self.mesh = mesh
@@ -269,7 +272,7 @@ class BaseTimeProblem(BaseProblem):
     @property
     def timeMesh(self):
         if getattr(self, '_timeMesh', None) is None:
-            self._timeMesh = Mesh.TensorMesh([self.timeSteps], x0=[self.t0])
+            self._timeMesh = TensorMesh([self.timeSteps], x0=[self.t0])
         return self._timeMesh
 
     @timeMesh.deleter

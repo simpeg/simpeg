@@ -4,8 +4,11 @@ import matplotlib
 import properties
 import warnings
 
+import discretize as Mesh
+from discretize.base import BaseMesh
+
 import SimPEG
-from SimPEG import Utils, Mesh
+from SimPEG import Utils
 from . import SrcDC as Src
 from . import RxDC as Rx
 from .SurveyDC import Survey_ky, Survey
@@ -160,7 +163,7 @@ class IO(properties.HasProperties):
 
     # Related to Physics and Discretization
     mesh = properties.Instance(
-        "Mesh for discretization", Mesh.BaseMesh, required=True
+        "Mesh for discretization", BaseMesh, required=True
     )
 
     dx = properties.Float(
