@@ -1,6 +1,7 @@
 from __future__ import print_function
 from . import Utils
 import scipy.sparse as sp
+import dask.array as da
 from . import Regularization, DataMisfit, ObjectiveFunction
 from . import Maps
 import numpy as np
@@ -223,8 +224,8 @@ class BetaEstimate_ByEig(InversionDirective):
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
         x0 = np.random.rand(m.shape[0])
-        t = x0.dot(self.dmisfit.deriv2(m, x0, f=f))
-        b = x0.dot(self.reg.deriv2(m, v=x0))
+        t = da.dot(x0, self.dmisfit.deriv2(m, x0, f=f))
+        b = da.dot(x0, self.reg.deriv2(m, v=x0))
         self.beta0 = self.beta0_ratio*(t/b)
 
         self.invProb.beta = self.beta0

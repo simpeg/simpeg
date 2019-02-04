@@ -49,9 +49,9 @@ class GravityIntegral(Problem.LinearProblem):
             return mkvc(fields)
 
         else:
-            fields = da.dot(self.G, m)
+            # fields = da.dot(self.G, m)
 
-            return np.array(fields, dtype='float')
+            return da.dot(self.G, m) #np.array(fields, dtype='float')
 
     def modelMap(self):
         """
@@ -94,15 +94,15 @@ class GravityIntegral(Problem.LinearProblem):
     def Jvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
 
-        vec = da.dot(self.G, (dmudm*v).astype(np.float32))
+        # vec = da.dot(self.G, (dmudm*v).astype(np.float32))
 
-        return vec.astype(np.float64)
+        return da.dot(self.G, (dmudm*v).astype(np.float32)) #vec.astype(np.float64)
 
     def Jtvec(self, m, v, f=None):
         dmudm = self.rhoMap.deriv(m)
 
-        vec = da.dot(self.G.T, v.astype(np.float32))
-        return dmudm.T * vec.astype(np.float64)
+        # vec = da.dot(self.G.T, v.astype(np.float32))
+        return da.dot(dmudm.T, da.dot(self.G.T, v.astype(np.float32))) #vec.astype(np.float64)
 
     @property
     def G(self):

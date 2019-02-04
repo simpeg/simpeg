@@ -8,6 +8,7 @@ import scipy.sparse as sp
 from six import integer_types
 import warnings
 
+import dask.array as da
 from . import Utils
 from .Tests import checkDerivative
 from . import Maps
@@ -318,17 +319,18 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     def __call__(self, m, f=None):
 
-        fct = 0.
+        fct = []
         for i, phi in enumerate(self):
             multiplier, objfct = phi
             if multiplier == 0.: # don't evaluate the fct
                 continue
             else:
                 if f is not None and objfct._hasFields:
-                    fct += multiplier * objfct(m, f=f[i])
+                    fct += [multiplier * objfct(m, f=f[i])]
                 else:
-                    fct += multiplier * objfct(m)
-        return fct
+                    fct += [multiplier * objfct(m)]
+
+        return da.sum(da.vstack(fct), axis=0).compute()
 
     def deriv(self, m, f=None):
         """
@@ -339,17 +341,17 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         :param numpy.ndarray m: model
         :param SimPEG.Fields f: Fields object (if applicable)
         """
-        g = Utils.Zero()
+        g = []
         for i, phi in enumerate(self):
             multiplier, objfct = phi
             if multiplier == 0.: # don't evaluate the fct
                 continue
             else:
                 if f is not None and objfct._hasFields:
-                    g += multiplier * objfct.deriv(m, f=f[i])
+                    g += [multiplier * objfct.deriv(m, f=f[i])]
                 else:
-                    g += multiplier * objfct.deriv(m)
-        return g
+                    g += [multiplier * objfct.deriv(m)]
+        return da.sum(da.vstack(g), axis=0).compute()
 
     def deriv2(self, m, v=None, f=None):
         """
@@ -361,18 +363,19 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         :param numpy.ndarray v: vector we are multiplying by
         :param SimPEG.Fields f: Fields object (if applicable)
         """
-        H = Utils.Zero()
+        H = []
         for i, phi in enumerate(self):
             multiplier, objfct = phi
             if multiplier == 0.: # don't evaluate the fct
                 continue
             else:
                 if f is not None and objfct._hasFields:
-                    objfct_H = objfct.deriv2(m, v, f=f[i])
+
+                    H += [multiplier * objfct.deriv2(m, v, f=f[i])]
                 else:
-                    objfct_H = objfct.deriv2(m, v)
-                H = H + multiplier * objfct_H
-        return H
+                    H += [multiplier * objfct.deriv2(m, v)]
+
+        return da.sum(da.vstack(H)).compute()
 
     # This assumes all objective functions have a W.
     # The base class currently does not.
