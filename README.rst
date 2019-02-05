@@ -27,11 +27,14 @@ SimPEG
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.596373.svg
    :target: https://doi.org/10.5281/zenodo.596373
 
-.. image:: https://img.shields.io/badge/Slack-simpeg-4B0082.svg?logo=slack
+.. image:: https://img.shields.io/badge/Slack-simpeg-4A154B.svg?logo=slack
     :target: http://slack.simpeg.xyz
 
-.. image:: https://img.shields.io/badge/Google%20group-simpeg-da5247.svg
+.. image:: https://img.shields.io/badge/Google%20group-simpeg-4385f4.svg?logo=google
     :target: https://groups.google.com/forum/#!forum/simpeg
+    
+.. image:: https://img.shields.io/badge/Youtube%20channel-GeoSci.xyz-FF0000.svg?logo=youtube
+    :target: https://www.youtube.com/channel/UCBrC4M8_S4GXhyHht7FyQqw
 
 Simulation and Parameter Estimation in Geophysics  -  A python package for simulation and gradient based parameter estimation in the context of geophysical applications.
 
