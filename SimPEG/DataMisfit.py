@@ -143,9 +143,19 @@ class l2_DataMisfit(BaseDataMisfit):
         """
         if f is None:
             f = self.prob.fields(m)
-        return self.prob.Jtvec(
-            m, self.W.T * (self.scale * self.W * self.survey.residual(m, f=f)), f=f
-        )
+
+        row = dask.delayed(
+            sp.csr_matrix.dot)(
+                self.W, self.survey.residual(m, f=f)
+            )
+
+        row = dask.delayed(
+            sp.csr_matrix.dot)(
+                self.W.T, self.scale * row
+            )
+
+        row = da.from_delayed(row, dtype=float, shape=(1, N))
+        return self.prob.Jtvec(row, f=f)
 
     @Utils.timeIt
     def deriv2(self, m, v, f=None):

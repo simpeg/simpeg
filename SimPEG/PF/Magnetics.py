@@ -19,6 +19,7 @@ import dask.array as da
 import os
 import shutil
 from dask.diagnostics import ProgressBar
+from scipy.sparse import csr_matrix as csr
 
 class MagneticIntegral(Problem.LinearProblem):
 
@@ -83,7 +84,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
             fields = self.calcAmpData(fields.astype(np.float64))
 
-        return np.array(fields, dtype='float')
+        return fields
 
     def calcAmpData(self, Bxyz):
         """
@@ -131,7 +132,6 @@ class MagneticIntegral(Problem.LinearProblem):
                 self.survey.srcField.param[1],
                 self.survey.srcField.param[2]
             )
-
 
         return self._ProjTMI
 
@@ -185,7 +185,15 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.modelType == 'amplitude':
             return self.dfdm * da.dot(self.G, dmudm)
         else:
-            return da.dot(self.G, dmudm)
+
+            prod = dask.delayed(
+                sp.csr_matrix.dot)(
+                    self.G, dmudm
+                )
+            return da.from_delayed(
+                prod, dtype=float,
+                shape=(self.G.shape[0], dmudm.shape[1])
+            )
 
     def Jvec(self, m, v, f=None):
 
@@ -225,7 +233,11 @@ class MagneticIntegral(Problem.LinearProblem):
 
             vec = da.dot(self.G.T, v.astype(np.float32))
 
-        return dmudm.T * vec.astype(np.float64)
+            Jtvec = dask.delayed(
+                sp.csr_matrix.dot)(
+                    dmudm.T, vec
+                )
+        return da.from_delayed(Jtvec, dtype=float, shape=(1, dmudm.shape[1]))
 
     @property
     def dSdm(self):
