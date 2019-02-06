@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 import copy
+import scipy.sparse as sp
 
 class InversionDirective(object):
     """InversionDirective"""
@@ -1507,6 +1508,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
 class PetroTargetMisfit(InversionDirective):
 
+    WeightsInTarget = 0
     verbose = False
     # Chi factor for Data Misfit
     chifact = 1.
@@ -1620,10 +1622,36 @@ class PetroTargetMisfit(InversionDirective):
             if self.phi_ms_star is None:
                 # Expected value is number of active cells * number of physical
                 # properties
-                self.phi_ms_star = 0.5 * len(self.invProb.model)
+                if self.WeightsInTarget:
+                    self.phi_ms_star = 0.5
+                else:
+                    self.phi_ms_star = 0.5 * len(self.invProb.model)
 
             self._CLtarget = self.chiSmall * self.phi_ms_star
         return self._CLtarget
+
+    @property
+    def CLnormalizedConstant(self):
+        if ~self.WeightsInTarget:
+            return 1.
+        elif np.any(self.Small == -1):
+            return np.sum(
+                sp.csr_matrix.diagonal(
+                    self.invProb.reg.objfcts[0].W
+                    )**2.
+            )
+        elif self._regmode == 2:
+            return np.sum(
+                sp.csr_matrix.diagonal(
+                    self.invProb.reg.objfcts[self.Small[0]].W
+                )**2.
+            )
+        else:
+            return np.sum(
+                sp.csr_matrix.diagonal(
+                    self.invProb.reg.objfcts[self.Small[0]].objfcts[self.Small[1]].W
+                )**2.
+            )
 
     @CLtarget.setter
     def CLtarget(self, val):
@@ -1634,12 +1662,12 @@ class PetroTargetMisfit(InversionDirective):
             return self.invProb.reg.objfcts[0](self.invProb.model)
         elif self._regmode == 2:
             return self.invProb.reg.objfcts[self.Small[0]](
-                self.invProb.model, externalW=False
-            )
+                self.invProb.model, externalW= self.WeightsInTarget
+            ) / self.CLnormalizedConstant
         else:
             return self.invProb.reg.objfcts[self.Small[0]].objfcts[self.Small[1]](
-                self.invProb.model, externalW=False
-            )
+                self.invProb.model, externalW= self.WeightsInTarget
+            ) / self.CLnormalizedConstant
 
     def ThetaTarget(self):
         maxdiff = 0.
