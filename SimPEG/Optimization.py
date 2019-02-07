@@ -1149,8 +1149,13 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         delx = np.zeros(self.g.size)
         resid = -(1-Active) * self.g
 
-        r = (resid - (1-Active)*(self.H * delx))
-
+        
+        r = np.asarray(resid - (1-Active)*(self.H * delx))
+        
+#        if isinstance(r, dask.array.Array):
+#            
+#            r = r.compute()
+        
         p = self.approxHinv*r
 
         sold = np.dot(r, p)
@@ -1163,8 +1168,12 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
             count += 1
 
-            q = (1-Active)*(self.H * p)
+            q = np.asarray((1-Active)*(self.H * p))
 
+#            if isinstance(q, dask.array.Array):
+#                        
+#                q = q.compute()
+                
             alpha = sold / (np.dot(p, q))
 
             delx += alpha * p

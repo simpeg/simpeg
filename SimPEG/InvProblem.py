@@ -10,7 +10,7 @@ import properties
 import numpy as np
 import scipy.sparse as sp
 import gc
-
+import dask
 
 class BaseInvProblem(Props.BaseSimPEG):
     """BaseInvProblem(dmisfit, reg, opt)"""
@@ -203,9 +203,14 @@ class BaseInvProblem(Props.BaseSimPEG):
 
         if return_H:
             def H_fun(v):
-                phi_d2Deriv = np.squeeze(self.dmisfit.deriv2(m, v, f=f))
+                
                 phi_m2Deriv = np.squeeze(self.reg.deriv2(m, v=v))
-
+                if isinstance(self.dmisfit.deriv2(m, v, f=f), dask.array.Array):
+                    phi_d2Deriv = self.dmisfit.deriv2(m, v, f=f)
+                else:
+                    
+                    phi_d2Deriv = np.squeeze(self.dmisfit.deriv2(m, v, f=f))
+                
                 return phi_d2Deriv + self.beta * phi_m2Deriv
 
             H = sp.linalg.LinearOperator( (m.size, m.size), H_fun, dtype=m.dtype )
