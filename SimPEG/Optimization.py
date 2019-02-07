@@ -1149,13 +1149,10 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         delx = np.zeros(self.g.size)
         resid = -(1-Active) * self.g
 
-        
+        # Currently not fully dask parallel as resid and H*x seperate operations
         r = np.asarray(resid - (1-Active)*(self.H * delx))
         
-#        if isinstance(r, dask.array.Array):
-#            
-#            r = r.compute()
-        
+
         p = self.approxHinv*r
 
         sold = np.dot(r, p)
@@ -1169,10 +1166,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
             count += 1
 
             q = np.asarray((1-Active)*(self.H * p))
-
-#            if isinstance(q, dask.array.Array):
-#                        
-#                q = q.compute()
                 
             alpha = sold / (np.dot(p, q))
 
@@ -1189,16 +1182,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
             sold = snew
             # End CG Iterations
         self.cgCount += count
-        # if self.ComboObjFun:
-
-        #     reg = self.parent.reg.objfcts[1]
-        #     if reg.space == 'spherical':
-
-        #         # Check if the angle update is larger than pi/2
-        #         max_ang = np.max(np.abs(reg.mapping*delx))
-        #         if max_ang > np.pi/2.:
-
-        #             delx = delx/max_ang*np.pi/2.
 
         # Take a gradient step on the active cells if exist
         if temp != self.xc.size:
