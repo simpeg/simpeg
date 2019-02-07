@@ -354,7 +354,7 @@ class BaseSurvey(object):
         """
         if f is None:
             f = self.prob.fields(m)
-        return Utils.mkvc(self.eval(f))
+        return Utils.mkvc(np.asarray(self.eval(f)))
 
     @Utils.count
     def eval(self, f):

@@ -16,10 +16,11 @@ from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
 import dask
 import dask.array as da
+from scipy.sparse import csr_matrix as csr
 import os
 import shutil
 from dask.diagnostics import ProgressBar
-from scipy.sparse import csr_matrix as csr
+
 
 class MagneticIntegral(Problem.LinearProblem):
 
@@ -207,12 +208,14 @@ class MagneticIntegral(Problem.LinearProblem):
             vec = da.dot(self.G, (self.Mxyz*(dmudm*v)).astype(np.float32))
 
         else:
-            vec = da.dot(self.G, (dmudm*v).astype(np.float32))
+
+            dmudm_v = dask.delayed(csr.dot)(dmudm, v)
+            jvec = da.dot(self.G, dmudm_v.astype(np.float32))
 
         if self.modelType == 'amplitude':
             return self.dfdm*vec.astype(np.float64)
         else:
-            return vec.astype(np.float64)
+            return da.from_delayed(jvec, dtype=float, shape=[self.G.shape[0]])
 
     def Jtvec(self, m, v, f=None):
 
@@ -230,14 +233,10 @@ class MagneticIntegral(Problem.LinearProblem):
                 vec = da.dot(self.G.T, (self.dfdm.T*v).astype(np.float32))
 
         else:
+            dmudm_v = dask.delayed(csr.dot)(dmudm, v)
+            jtvec = da.dot(self.G.T, dmudm_v.astype(np.float32))
 
-            vec = da.dot(self.G.T, v.astype(np.float32))
-
-            Jtvec = dask.delayed(
-                sp.csr_matrix.dot)(
-                    dmudm.T, vec
-                )
-        return da.from_delayed(Jtvec, dtype=float, shape=(1, dmudm.shape[1]))
+        return da.from_delayed(jtvec, dtype=float, shape=[dmudm.shape[1]])
 
     @property
     def dSdm(self):

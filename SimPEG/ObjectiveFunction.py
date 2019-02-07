@@ -7,12 +7,13 @@ import numpy as np
 import scipy.sparse as sp
 from six import integer_types
 import warnings
-
+import dask
 import dask.array as da
 from . import Utils
 from .Tests import checkDerivative
 from . import Maps
 from . import Props
+
 
 __all__ = [
     'BaseObjectiveFunction', 'ComboObjectiveFunction', 'L2ObjectiveFunction'
@@ -319,6 +320,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     def __call__(self, m, f=None):
 
+        @dask.delayed
+        def rowSum(arr):
+            sumIt = 0
+            for i in range(len(arr)):
+                sumIt += arr[i]
+            return sumIt
+
         fct = []
         for i, phi in enumerate(self):
             multiplier, objfct = phi
@@ -330,7 +338,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                 else:
                     fct += [multiplier * objfct(m)]
 
-        return da.sum(da.vstack(fct), axis=0).compute()
+        return rowSum(fct).compute()
+
 
     def deriv(self, m, f=None):
         """
@@ -341,6 +350,14 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         :param numpy.ndarray m: model
         :param SimPEG.Fields f: Fields object (if applicable)
         """
+
+        @dask.delayed
+        def rowSum(arr):
+            sumIt = 0
+            for i in range(len(arr)):
+                sumIt += arr[i]
+            return sumIt
+
         g = []
         for i, phi in enumerate(self):
             multiplier, objfct = phi
@@ -351,7 +368,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                     g += [multiplier * objfct.deriv(m, f=f[i])]
                 else:
                     g += [multiplier * objfct.deriv(m)]
-        return da.sum(da.vstack(g), axis=0).compute()
+        return rowSum(g).compute()
 
     def deriv2(self, m, v=None, f=None):
         """
@@ -363,6 +380,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         :param numpy.ndarray v: vector we are multiplying by
         :param SimPEG.Fields f: Fields object (if applicable)
         """
+        @dask.delayed
+        def rowSum(arr):
+            sumIt = 0
+            for i in range(len(arr)):
+                sumIt += arr[i]
+            return sumIt
+
         H = []
         for i, phi in enumerate(self):
             multiplier, objfct = phi
@@ -375,7 +399,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                 else:
                     H += [multiplier * objfct.deriv2(m, v)]
 
-        return da.sum(da.vstack(H)).compute()
+        return rowSum(H).compute()
 
     # This assumes all objective functions have a W.
     # The base class currently does not.

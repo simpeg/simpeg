@@ -10,6 +10,7 @@ import time
 import numpy as np
 import dask
 import dask.array as da
+from scipy.sparse import csr_matrix as csr
 from dask.diagnostics import ProgressBar
 import multiprocessing
 
@@ -95,14 +96,20 @@ class GravityIntegral(Problem.LinearProblem):
         dmudm = self.rhoMap.deriv(m)
 
         # vec = da.dot(self.G, (dmudm*v).astype(np.float32))
-
-        return da.dot(self.G, (dmudm*v).astype(np.float32)) #vec.astype(np.float64)
+        vec = dask.delayed(csr.dot)(dmudm, v)
+        dmudm_v = da.from_delayed(vec, dtype=float, shape=[dmudm.shape[0]])
+        
+        return da.dot(self.G, dmudm_v.astype(np.float32))
 
     def Jtvec(self, m, v, f=None):
+
         dmudm = self.rhoMap.deriv(m)
 
-        # vec = da.dot(self.G.T, v.astype(np.float32))
-        return da.dot(dmudm.T, da.dot(self.G.T, v.astype(np.float32))) #vec.astype(np.float64)
+        jt_v = da.dot(self.G.T, v.astype(np.float32))
+
+        dmudm_jt_v = dask.delayed(csr.dot)(dmudm.T, jt_v)
+
+        return da.from_delayed(dmudm_jt_v, dtype=float, shape=[dmudm.shape[1]])
 
     @property
     def G(self):
