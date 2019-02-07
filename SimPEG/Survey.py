@@ -354,7 +354,7 @@ class BaseSurvey(object):
         """
         if f is None:
             f = self.prob.fields(m)
-        return Utils.mkvc(np.asarray(self.eval(f)))
+        return self.eval(f)
 
     @Utils.count
     def eval(self, f):
@@ -396,7 +396,7 @@ class BaseSurvey(object):
                 \mu_\\text{data} = \mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}
 
         """
-        return Utils.mkvc(self.dpred(m, f=f) - self.dobs)
+        return self.dpred(m, f=f) - self.dobs
 
     @property
     def isSynthetic(self):

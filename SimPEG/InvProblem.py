@@ -11,6 +11,8 @@ import numpy as np
 import scipy.sparse as sp
 import gc
 import dask
+import dask.array as da
+
 
 class BaseInvProblem(Props.BaseSimPEG):
     """BaseInvProblem(dmisfit, reg, opt)"""
@@ -160,16 +162,24 @@ class BaseInvProblem(Props.BaseSimPEG):
         return f
 
     def get_dpred(self, m, f):
+        
         if isinstance(self.dmisfit, DataMisfit.BaseDataMisfit):
             return self.dmisfit.survey.dpred(m, f=f)
         elif isinstance(self.dmisfit, ObjectiveFunction.BaseObjectiveFunction):
             dpred = []
+            index = []
             for i, objfct in enumerate(self.dmisfit.objfcts):
                 if hasattr(objfct, 'survey'):
                     dpred += [objfct.survey.dpred(m, f=f[i])]
+                    index += [np.where(objfct.survey.ind)]
                 else:
                     dpred += []
-                return dpred
+                    index += []
+                    
+            dpred = da.hstack(dpred).compute()  
+            index = np.hstack(index)
+
+            return dpred[index]
 
     @Utils.timeIt
     def evalFunction(self, m, return_g=True, return_H=True):

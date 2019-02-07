@@ -10,6 +10,7 @@ from scipy.sparse import csr_matrix as csr
 import dask
 import dask.array as da
 
+
 class BaseDataMisfit(ObjectiveFunction.L2ObjectiveFunction):
     """
     BaseDataMisfit
@@ -125,8 +126,11 @@ class l2_DataMisfit(BaseDataMisfit):
         "__call__(m, f=None)"
         if f is None:
             f = self.prob.fields(m)
-        R = self.W * self.survey.residual(m, f)
-        return 0.5*np.vdot(R, R)
+            
+        W_res = dask.delayed(csr.dot)(self.W, self.survey.residual(m, f))
+        vec = da.from_delayed(W_res, dtype=float, shape=[self.W.shape[1]])
+#        R = self.W * self.survey.residual(m, f)
+        return 0.5*da.dot(vec,vec)
 
     @Utils.timeIt
     def deriv(self, m, f=None):
