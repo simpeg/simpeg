@@ -75,7 +75,9 @@ class MagneticIntegral(Problem.LinearProblem):
 
         if getattr(self, '_Mxyz', None) is not None:
 
-            fields = da.dot(self.G, (self.Mxyz*m).astype(np.float32))
+            vec = dask.delayed(csr.dot)(self.Mxyz, m)
+            M = da.from_delayed(vec, dtype=float, shape=[m.shape[0]])
+            fields = da.dot(self.G, M)
 
         else:
 
@@ -83,7 +85,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         if self.modelType == 'amplitude':
 
-            fields = self.calcAmpData(fields.astype(np.float64))
+            fields = self.calcAmpData(fields)
 
         return fields
 
@@ -92,7 +94,7 @@ class MagneticIntegral(Problem.LinearProblem):
             Compute amplitude of the field
         """
 
-        amplitude = np.sum(
+        amplitude = da.sum(
             Bxyz.reshape((3, self.nD), order='F')**2., axis=0
         )**0.5
 
@@ -201,28 +203,39 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.coordinate_system == 'cartesian':
             dmudm = self.chiMap.deriv(m)
         else:
-            dmudm = self.dSdm * self.chiMap.deriv(m)
+            mat = dask.delayed(csr.dot)(self.dSdm, self.chiMap.deriv(m))
+            dmudm = da.from_delayed(mat, dtype=float, shape=[self.dSdm.shape[0], m.shape[0]])
 
         if getattr(self, '_Mxyz', None) is not None:
 
-            vec = da.dot(self.G, (self.Mxyz*(dmudm*v)).astype(np.float32))
+            mat = dask.delayed(csr.dot)(dmudm, v)
+            dmudm_v = da.from_delayed(mat, dtype=float, shape=[dmudm.shape[0]])
+
+            vec = dask.delayed(csr.dot)(self.Mxyz, dmudm_v)
+            M_dmudm_v = da.from_delayed(vec, dtype=float, shape=[self.Mxyz.shape[0]])
+
+            Jvec = da.dot(self.G, M_dmudm_v.astype(np.float32))
 
         else:
 
-            dmudm_v = dask.delayed(csr.dot)(dmudm, v)
-            jvec = da.dot(self.G, dmudm_v.astype(np.float32))
+            vec = dask.delayed(csr.dot)(dmudm, v)
+            dmudm_v = da.from_delayed(vec, dtype=float, shape=[dmudm.shape[0]])
+            Jvec = da.dot(self.G, dmudm_v.astype(np.float32))
 
         if self.modelType == 'amplitude':
-            return self.dfdm*vec.astype(np.float64)
+            dfdm_Jvec = dask.delayed(csr.dot)(self.dfdm, Jvec)
+
+            return da.from_delayed(dfdm_Jvec, dtype=float, shape=[self.dfdm.shape[0]])
         else:
-            return da.from_delayed(jvec, dtype=float, shape=[self.G.shape[0]])
+            return Jvec
 
     def Jtvec(self, m, v, f=None):
 
-        if self.coordinate_system == 'spherical':
-            dmudm = self.dSdm * self.chiMap.deriv(m)
-        else:
+        if self.coordinate_system == 'cartesian':
             dmudm = self.chiMap.deriv(m)
+        else:
+            mat = dask.delayed(csr.dot)(self.dSdm, self.chiMap.deriv(m))
+            dmudm = da.from_delayed(mat, dtype=float, shape=[self.dSdm.shape[0], m.shape[0]])
 
         if self.modelType == 'amplitude':
             if getattr(self, '_Mxyz', None) is not None:

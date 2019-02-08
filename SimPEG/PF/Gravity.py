@@ -98,7 +98,7 @@ class GravityIntegral(Problem.LinearProblem):
         # vec = da.dot(self.G, (dmudm*v).astype(np.float32))
         vec = dask.delayed(csr.dot)(dmudm, v)
         dmudm_v = da.from_delayed(vec, dtype=float, shape=[dmudm.shape[0]])
-        
+
         return da.dot(self.G, dmudm_v.astype(np.float32))
 
     def Jtvec(self, m, v, f=None):
