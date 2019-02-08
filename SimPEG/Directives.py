@@ -358,15 +358,15 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
             # Save model
             if not self.vector:
 
-                if isinstance(prob.mesh, Mesh.TreeMesh):
+                if isinstance(self.mapping.mesh, Mesh.TreeMesh):
                         Mesh.TreeMesh.writeUBC(
-                            prob.mesh,
+                            self.mapping.mesh,
                             fileName + '.msh',
                             models={fileName + '.mod': self.mapping * xc}
                         )
 
                 else:
-                    Mesh.TensorMesh.writeModelUBC(prob.mesh,
+                    Mesh.TensorMesh.writeModelUBC(self.mapping.mesh,
                                               fileName + '.mod', self.mapping * xc)
             else:
 
@@ -404,9 +404,9 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                 )
 
                 if self.saveComp:
-                    if isinstance(prob.mesh, Mesh.TreeMesh):
+                    if isinstance(self.mapping.mesh, Mesh.TreeMesh):
                         Mesh.TreeMesh.writeUBC(
-                            prob.mesh,
+                            self.mapping.mesh,
                             fileName + '.msh',
                             models={
                                 fileName + '.dip': (self.mapping.P * np.rad2deg(theta)),
@@ -418,27 +418,27 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
 
                     else:
                         Mesh.TensorMesh.writeModelUBC(
-                            prob.mesh,
+                            self.mapping.mesh,
                             fileName + '.dip', self.mapping.P * (np.rad2deg(theta))
                         )
                         Mesh.TensorMesh.writeModelUBC(
-                            prob.mesh,
+                            self.mapping.mesh,
                             fileName + '.azm', self.mapping.P * (450 - np.rad2deg(phi)) % 360
                         )
                         Mesh.TensorMesh.writeModelUBC(
-                            prob.mesh,
+                            self.mapping.mesh,
                             fileName + '_TOT.amp', self.mapping.P * np.sum(vec**2, axis=1)**0.5
                         )
                         Mesh.TensorMesh.writeModelUBC(
-                            prob.mesh,
+                            self.mapping.mesh,
                             fileName + '_IND.amp', self.mapping.P * np.sum(m_ind**2, axis=1)**0.5
                         )
                         Mesh.TensorMesh.writeModelUBC(
-                            prob.mesh,
+                            self.mapping.mesh,
                             fileName + '_REM.amp', self.mapping.P * np.sum(m_rem**2, axis=1)**0.5
                         )
                         Utils.io_utils.writeVectorUBC(
-                            prob.mesh,
+                            self.mapping.mesh,
                             fileName + '_VEC.fld', self.mapping.P * vec
                         )
 

@@ -547,7 +547,7 @@ class Tile(IdentityMap):
         assert len(args) == 2, ('Mapping requires a tuple' +
                                 '(MeshGlobal, ActiveGlobal),' +
                                 '(MeshLocal, ActiveLocal)')
-
+        super(Tile, self).__init__(**kwargs)
         # check if tree in kwargs
         if 'tree' in kwargs.keys():   # kwargs is a dict
             tree = kwargs.pop('tree')
