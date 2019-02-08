@@ -232,7 +232,7 @@ class Forward(object):
     model = None
     rxType = 'z'
     verbose = True
-    maxRAM = 8
+    maxRAM = 1.
     storeG = True
     Jpath = "./sensitivity.zarr"
 
@@ -254,8 +254,8 @@ class Forward(object):
         while totRAM > self.maxRAM:
             nChunks *= 2
             rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-            totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
-        print(self.n_cpu, rowChunk,  colChunk, totRAM,  self.maxRAM)
+            totRAM = rowChunk*colChunk*8*1e-9
+        print(self.n_cpu, nChunks, rowChunk,  colChunk, totRAM*self.n_cpu,  self.maxRAM)
         if self.parallelized:
 
             # print(chunkSize)
