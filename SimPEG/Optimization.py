@@ -1186,7 +1186,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         # Take a gradient step on the active cells if exist
         if temp != self.xc.size:
 
-            rhs_a = (Active) * -self.g
+            rhs_a = np.asarray((Active) * -self.g)
 
             dm_i = max(abs(delx))
             dm_a = max(abs(rhs_a))

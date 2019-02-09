@@ -47,7 +47,7 @@ class MagneticIntegral(Problem.LinearProblem):
         default='cartesian'
     )
     Jpath = "./sensitivity.zarr"
-    maxRAM = 8  # Maximum memory usage
+    maxRAM = 1  # Maximum memory usage
 
     modelType = properties.StringChoice(
         "Type of magnetization model",
@@ -203,14 +203,11 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.coordinate_system == 'cartesian':
             dmudm = self.chiMap.deriv(m)
         else:
-            mat = dask.delayed(csr.dot)(self.dSdm, self.chiMap.deriv(m))
-            dmudm = da.from_delayed(mat, dtype=float, shape=[self.dSdm.shape[0], m.shape[0]])
+            dmudm = dask.delayed(csr.dot)(self.dSdm, self.chiMap.deriv(m))
 
         if getattr(self, '_Mxyz', None) is not None:
 
-            mat = dask.delayed(csr.dot)(dmudm, v)
-            dmudm_v = da.from_delayed(mat, dtype=float, shape=[dmudm.shape[0]])
-
+            dmudm_v = dask.delayed(csr.dot)(dmudm, v)
             vec = dask.delayed(csr.dot)(self.Mxyz, dmudm_v)
             M_dmudm_v = da.from_delayed(vec, dtype=float, shape=[self.Mxyz.shape[0]])
 
@@ -234,22 +231,29 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.coordinate_system == 'cartesian':
             dmudm = self.chiMap.deriv(m)
         else:
-            mat = dask.delayed(csr.dot)(self.dSdm, self.chiMap.deriv(m))
-            dmudm = da.from_delayed(mat, dtype=float, shape=[self.dSdm.shape[0], m.shape[0]])
+            dmudm = dask.delayed(csr.dot)(self.dSdm, self.chiMap.deriv(m))
 
         if self.modelType == 'amplitude':
+
+            dfdm_v = dask.delayed(csr.dot)(self.dfdm.T, v)
+            vec = da.from_delayed(dfdm_v, dtype=float, shape=[self.dfdm.shape[0]])
+
             if getattr(self, '_Mxyz', None) is not None:
 
-                vec = self.Mxyz.T*da.dot(self.G.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
+                jtvec = da.dot(self.G.T, vec.astype(np.float32))
+
+                Jtvec = dask.delayed(csr.dot)(self.Mxyz.T, jtvec)
 
             else:
-                vec = da.dot(self.G.T, (self.dfdm.T*v).astype(np.float32))
+                Jtvec = da.dot(self.G.T, vec.astype(np.float32))
 
         else:
-            dmudm_v = dask.delayed(csr.dot)(dmudm, v)
-            jtvec = da.dot(self.G.T, dmudm_v.astype(np.float32))
 
-        return da.from_delayed(jtvec, dtype=float, shape=[dmudm.shape[1]])
+            Jtvec = da.dot(self.G.T, v.astype(np.float32))
+
+        dmudm_v = dask.delayed(csr.dot)(dmudm.T, Jtvec)
+
+        return da.from_delayed(dmudm_v, dtype=float, shape=[dmudm.shape[1]])
 
     @property
     def dSdm(self):
@@ -448,7 +452,7 @@ class Forward(object):
     Mxyz = None
     P = None
     verbose = True
-    maxRAM = 8
+    maxRAM = 1
     Jpath = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
@@ -489,9 +493,9 @@ class Forward(object):
                     print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
                     nChunks *= 2
                     rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                    totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
+                    totRAM = nModelParams*rowChunk*colChunk*8*1e-9
 
-                print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
+                print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM*self.n_cpu, self.maxRAM)
 
                 if os.path.exists(self.Jpath):
                     print("Load G from zarr")
