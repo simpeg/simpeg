@@ -39,6 +39,56 @@ class GravityIntegral(Problem.LinearProblem):
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
+        if getattr(self, 'actInd', None) is not None:
+
+            if self.actInd.dtype == 'bool':
+                inds = np.asarray([inds for inds,
+                                  elem in enumerate(self.actInd, 1)
+                                  if elem], dtype=int) - 1
+            else:
+                inds = self.actInd
+
+        else:
+
+            inds = np.asarray(range(self.mesh.nC))
+
+        self.nC = len(inds)
+
+        # Create active cell projector
+        P = sp.sparse.csr_matrix(
+            (np.ones(self.nC), (inds, range(self.nC))),
+            shape=(self.mesh.nC, self.nC)
+        )
+
+        # Create vectors of nodal location
+        # (lower and upper corners for each cell)
+        if isinstance(self.mesh, Mesh.TreeMesh):
+            # Get upper and lower corners of each cell
+            bsw = (self.mesh.gridCC - self.mesh.h_gridded/2.)
+            tne = (self.mesh.gridCC + self.mesh.h_gridded/2.)
+
+            xn1, xn2 = bsw[:, 0], tne[:, 0]
+            yn1, yn2 = bsw[:, 1], tne[:, 1]
+            zn1, zn2 = bsw[:, 2], tne[:, 2]
+
+        else:
+
+            xn = self.mesh.vectorNx
+            yn = self.mesh.vectorNy
+            zn = self.mesh.vectorNz
+
+            yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+            yn1, xn1, zn1 = np.meshgrid(yn[:-1], xn[:-1], zn[:-1])
+
+        # If equivalent source, use semi-infite prism
+        # if self.equiSourceLayer:
+        #     zn1 -= 1000.
+
+        self.Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+        self.Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+        self.Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
+
+
     def fields(self, m):
         # self.model = self.rhoMap*m
         m = self.rhoMap*m
@@ -141,55 +191,6 @@ class GravityIntegral(Problem.LinearProblem):
 
         if m is not None:
             self.model = self.rhoMap*m
-
-        if getattr(self, 'actInd', None) is not None:
-
-            if self.actInd.dtype == 'bool':
-                inds = np.asarray([inds for inds,
-                                  elem in enumerate(self.actInd, 1)
-                                  if elem], dtype=int) - 1
-            else:
-                inds = self.actInd
-
-        else:
-
-            inds = np.asarray(range(self.mesh.nC))
-
-        self.nC = len(inds)
-
-        # Create active cell projector
-        P = sp.sparse.csr_matrix(
-            (np.ones(self.nC), (inds, range(self.nC))),
-            shape=(self.mesh.nC, self.nC)
-        )
-
-        # Create vectors of nodal location
-        # (lower and upper corners for each cell)
-        if isinstance(self.mesh, Mesh.TreeMesh):
-            # Get upper and lower corners of each cell
-            bsw = (self.mesh.gridCC - self.mesh.h_gridded/2.)
-            tne = (self.mesh.gridCC + self.mesh.h_gridded/2.)
-
-            xn1, xn2 = bsw[:, 0], tne[:, 0]
-            yn1, yn2 = bsw[:, 1], tne[:, 1]
-            zn1, zn2 = bsw[:, 2], tne[:, 2]
-
-        else:
-
-            xn = self.mesh.vectorNx
-            yn = self.mesh.vectorNy
-            zn = self.mesh.vectorNz
-
-            yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
-            yn1, xn1, zn1 = np.meshgrid(yn[:-1], xn[:-1], zn[:-1])
-
-        # If equivalent source, use semi-infite prism
-        # if self.equiSourceLayer:
-        #     zn1 -= 1000.
-
-        self.Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
-        self.Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
-        self.Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
         self.rxLoc = self.survey.srcField.rxList[0].locs
         self.nD = int(self.rxLoc.shape[0])
