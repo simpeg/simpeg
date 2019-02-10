@@ -1180,6 +1180,9 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
             p = h + (snew / sold * p)
 
             sold = snew
+            
+            print("CG solve time: " + str(time()-tc))
+            tc = time()
             # End CG Iterations
         self.cgCount += count
 
@@ -1202,5 +1205,5 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
             ((self.xc >= self.upper) & (delx > 0))
         )
         delx[indx] = 0.
-        print("CG solve time: " + str(time()-tc))
+
         return delx

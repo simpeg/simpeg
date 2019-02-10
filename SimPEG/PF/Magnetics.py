@@ -40,6 +40,7 @@ class MagneticIntegral(Problem.LinearProblem):
     gtgdiag = None
     memory_saving_mode = False
     n_cpu = None
+    n_chunks = 1
     parallelized = "dask"
     coordinate_system = properties.StringChoice(
         "Type of coordinate system we are regularizing in",
@@ -76,7 +77,7 @@ class MagneticIntegral(Problem.LinearProblem):
         self.nC = len(inds)
 
         # Create active cell projector
-        P = sp.csr_matrix((np.ones(self.nC), (inds, range(self.nC))),
+        P = csr((np.ones(self.nC), (inds, range(self.nC))),
                           shape=(self.mesh.nC, self.nC))
 
         # Create vectors of nodal location
@@ -238,7 +239,7 @@ class MagneticIntegral(Problem.LinearProblem):
         else:
 
             prod = dask.delayed(
-                sp.csr_matrix.dot)(
+                csr.dot)(
                     self.G, dmudm
                 )
             return da.from_delayed(
@@ -332,7 +333,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
             Sz = sp.hstack([sp.diags(np.sin(t), 0),
                             sp.diags(a*np.cos(t), 0),
-                            sp.csr_matrix((nC, nC))])
+                            csr((nC, nC))])
 
             self._dSdm = sp.vstack([Sx, Sy, Sz])
 
@@ -362,7 +363,7 @@ class MagneticIntegral(Problem.LinearProblem):
             jj = np.asarray(range(3*self.survey.nD), dtype='int')
             # (data, (row, col)), shape=(3, 3))
             # P = s
-            self._dfdm = sp.csr_matrix(( mkvc(Bxyz), (ii,jj)), shape=(self.survey.nD, 3*self.survey.nD))
+            self._dfdm = csr((mkvc(Bxyz), (ii, jj)), shape=(self.survey.nD, 3*self.survey.nD))
 
         return self._dfdm
 
@@ -431,6 +432,7 @@ class MagneticIntegral(Problem.LinearProblem):
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
                 model=self.model, rxType=self.rxType, Mxyz=self.Mxyz,
                 P=self.ProjTMI, parallelized=self.parallelized,
+                n_chunks=self.n_chunks,
                 verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM
                 )
 
@@ -452,6 +454,7 @@ class Forward(object):
     rxType = 'z'
     Mxyz = None
     P = None
+    n_chunks = 1
     verbose = True
     maxRAM = 1
     Jpath = "./sensitivity.zarr"
@@ -486,17 +489,22 @@ class Forward(object):
             if self.parallelized == "dask":
 
                 # chunking only required for dask
-                nChunks = self.n_cpu # Number of chunks
-                rowChunk, colChunk = int(self.nD/nChunks), int(self.nC/nChunks) # Chunk sizes
+                nChunks = self.n_chunks # Number of chunks
+                rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
                 totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
                 # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
                 while totRAM > self.maxRAM or (totRAM/nChunks) >= 2.0:
-                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
-                    nChunks *= 2
+#                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
+                    nChunks += 1
                     rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
                     totRAM = nModelParams*rowChunk*colChunk*8*1e-9
 
-                print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM*self.n_cpu, self.maxRAM)
+                print("Dask:")
+                print("n_cpu: ", self.n_cpu)
+                print("n_chunks: ", nChunks)
+                print("Chunk sizes: ", rowChunk, colChunk)
+                print("RAM/tile: ", totRAM)
+                print("Total RAM (x n_cpu): ", totRAM*self.n_cpu)
 
                 if os.path.exists(self.Jpath):
                     print("Load G from zarr")
@@ -518,7 +526,7 @@ class Forward(object):
 
                     if self.storeG:
                         with ProgressBar():
-                            print("Saving G to zarr: "+ self.Jpath)
+                            print("Saving G to zarr: " + self.Jpath)
                             da.to_zarr(stack, self.Jpath)
 
                         G = da.from_zarr(self.Jpath)
@@ -1194,7 +1202,7 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
     nC = len(inds)
 
     # Create active cell projector
-    P = sp.csr_matrix((np.ones(nC), (inds, range(nC))),
+    P = csr((np.ones(nC), (inds, range(nC))),
                       shape=(mesh.nC, nC))
 
     # Geometrical constant
