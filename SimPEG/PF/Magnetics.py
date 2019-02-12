@@ -265,7 +265,7 @@ class MagneticIntegral(Problem.LinearProblem):
         else:
 
             vec = dask.delayed(csr.dot)(dmudm, v)
-            dmudm_v = da.from_delayed(vec, dtype=float, shape=[dmudm.shape[0]])
+            dmudm_v = da.from_delayed(vec, dtype=float, shape=[self.dSdm.shape[0]])
             Jvec = da.dot(self.G, dmudm_v.astype(np.float32))
 
         if self.modelType == 'amplitude':
@@ -302,7 +302,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         dmudm_v = dask.delayed(csr.dot)(dmudm.T, Jtvec)
 
-        return da.from_delayed(dmudm_v, dtype=float, shape=[dmudm.shape[1]])
+        return da.from_delayed(dmudm_v, dtype=float, shape=[self.chiMap.deriv(m).shape[1]])
 
     @property
     def dSdm(self):
