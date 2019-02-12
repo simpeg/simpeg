@@ -1151,7 +1151,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
         # Currently not fully dask parallel as resid and H*x seperate operations
         r = np.asarray(resid - (1-Active)*(self.H * delx))
-        
+
 
         p = self.approxHinv*r
 
@@ -1166,7 +1166,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
             count += 1
 
             q = np.asarray((1-Active)*(self.H * p))
-                
+
             alpha = sold / (np.dot(p, q))
 
             delx += alpha * p
@@ -1180,12 +1180,10 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
             p = h + (snew / sold * p)
 
             sold = snew
-            
-            print("CG solve time: " + str(time()-tc))
-            tc = time()
+
             # End CG Iterations
         self.cgCount += count
-
+        print("CG solve time: " + str(time()-tc))
         # Take a gradient step on the active cells if exist
         if temp != self.xc.size:
 
