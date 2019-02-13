@@ -497,7 +497,7 @@ class Forward(object):
 #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
                     nChunks += 1
                     rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                    totRAM = nModelParams*rowChunk*colChunk*8*1e-9
+                    totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
 
                 print("Dask:")
                 print("n_cpu: ", self.n_cpu)
