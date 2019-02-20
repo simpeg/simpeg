@@ -30,6 +30,7 @@ class GravityIntegral(Problem.LinearProblem):
     memory_saving_mode = False
     parallelized = "dask"
     n_cpu = None
+    n_chunks = 1
     progressIndex = -1
     gtgdiag = None
     Jpath = "./sensitivity.zarr"
@@ -203,20 +204,13 @@ class GravityIntegral(Problem.LinearProblem):
                 rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
                 model=self.model, rxType=self.rxType,
-                parallelized=self.parallelized,
+                parallelized=self.parallelized, n_chunks=self.n_chunks,
                 verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM
                 )
 
         G = job.calculate()
 
         return G
-
-    # @property
-    # def mapPair(self):
-    #     """
-    #         Call for general mapping of the problem
-    #     """
-    #     return self.rhoMap
 
 
 class Forward(object):
@@ -229,12 +223,12 @@ class Forward(object):
     rxLoc = None
     Xn, Yn, Zn = None, None, None
     n_cpu = None
+    n_chunks = None
     forwardOnly = False
     model = None
     rxType = 'z'
     verbose = True
     maxRAM = 1.
-    storeG = True
     Jpath = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
@@ -249,62 +243,71 @@ class Forward(object):
         if self.n_cpu is None:
             self.n_cpu = int(multiprocessing.cpu_count())
 
-        nChunks = self.n_cpu  # Number of chunks
-        rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks))  # Chunk sizes
-        totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
-        while totRAM > self.maxRAM:
-            nChunks *= 2
-            rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-            totRAM = rowChunk*colChunk*8*1e-9
-        print(self.n_cpu, nChunks, rowChunk,  colChunk, totRAM*self.n_cpu,  self.maxRAM)
-        if self.parallelized:
-
-            # print(chunkSize)
-            assert self.parallelized in ["dask", "multiprocessing"], (
-                "'parallelization' must be 'dask', 'multiprocessing' or None"
-                "Value provided -> "
-                "{}".format(
-                    self.parallelized)
-
-            )
-
             if self.parallelized == "dask":
+
 
                 if os.path.exists(self.Jpath):
                     print("Load G from zarr")
                     G = da.from_zarr(self.Jpath)
 
+                    # TO-DO: should add check that loaded G matches supplied data and mesh
                 else:
+
+                    # chunking only required for dask
+                    nChunks = self.n_chunks  # Number of chunks
+                    rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                    totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
+                    # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
+                    while totRAM > self.maxRAM or (totRAM/nChunks) >= 2.0:
+    #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
+                        nChunks += 1
+                        rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                        totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
+
+                    print("Dask:")
+                    print("n_cpu: ", self.n_cpu)
+                    print("n_chunks: ", nChunks)
+                    print("Chunk sizes: ", rowChunk, colChunk)
+                    print("RAM/tile: ", totRAM)
+                    print("Total RAM (x n_cpu): ", totRAM*self.n_cpu)
 
                     row = dask.delayed(self.calcTrow, pure=True)
 
                     makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
-                    buildMat = [da.from_delayed(makeRow, dtype=float, shape=(1, self.nC)) for makeRow in makeRows]
+
+                    buildMat = [da.from_delayed(makeRow, dtype=float, shape=(nModelParams, self.nC)) for makeRow in makeRows]
 
                     stack = da.vstack(buildMat)
 
-                    # TO-DO: Find a way to create in chunks instead
-                    stack = stack.rechunk((rowChunk, colChunk))
+                    if self.forwardOnly:
 
-                    if self.storeG:
+                        G = stack.compute()
+
+                        return da.dot(G, self.model).compute()
+
+                    else:
+                        # TO-DO: Find a way to create in
+                        # chunks instead
+                        stack = stack.rechunk((rowChunk, colChunk))
+
                         with ProgressBar():
-                            print("Saving G to zarr: "+ self.Jpath)
+                            print("Saving G to zarr: " + self.Jpath)
                             da.to_zarr(stack, self.Jpath)
 
                         G = da.from_zarr(self.Jpath)
 
-                    else:
-                        G = stack.compute()
+            # elif self.parallelized == "multiprocessing":
 
-            elif self.parallelized == "multiprocessing":
+            #     totRAM = nModelParams*self.nD*self.nC*8*1e-9
+            #     print("Multiprocessing:", self.n_cpu, self.nD, self.nC, totRAM, self.maxRAM)
 
-                pool = multiprocessing.Pool(self.n_cpu)
+            #     pool = multiprocessing.Pool(self.n_cpu)
 
-                result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
-                pool.close()
-                pool.join()
+            #     result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
+            #     pool.close()
+            #     pool.join()
 
-                G = np.vstack(result)
+            #     G = np.vstack(result)
 
         else:
 
@@ -382,10 +385,7 @@ class Forward(object):
                             dz[:, cc] * np.arctan(dx[:, aa] * dy[:, bb] /
                                                   (dz[:, cc] * r + eps)))
 
-        if self.forwardOnly:
-            return np.dot(row, self.model)
-        else:
-            return row
+        return np.float32(row)
 
     def progress(self, ind, total):
         """

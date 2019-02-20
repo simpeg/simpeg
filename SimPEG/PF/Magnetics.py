@@ -445,7 +445,6 @@ class Forward(object):
 
     progressIndex = -1
     parallelized = "dask"
-    storeG = True
     rxLoc = None
     Xn, Yn, Zn = None, None, None
     n_cpu = None
@@ -478,8 +477,8 @@ class Forward(object):
 
         if self.parallelized:
 
-            assert self.parallelized in ["dask", "multiprocessing"], (
-                "'parallelization' must be 'dask', 'multiprocessing' or None"
+            assert self.parallelized in ["dask", None], (
+                "'parallelization' must be 'dask', or None"
                 "Value provided -> "
                 "{}".format(
                     self.parallelized)
@@ -488,23 +487,6 @@ class Forward(object):
 
             if self.parallelized == "dask":
 
-                # chunking only required for dask
-                nChunks = self.n_chunks # Number of chunks
-                rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
-                # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
-                while totRAM > self.maxRAM or (totRAM/nChunks) >= 2.0:
-#                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
-                    nChunks += 1
-                    rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                    totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
-
-                print("Dask:")
-                print("n_cpu: ", self.n_cpu)
-                print("n_chunks: ", nChunks)
-                print("Chunk sizes: ", rowChunk, colChunk)
-                print("RAM/tile: ", totRAM)
-                print("Total RAM (x n_cpu): ", totRAM*self.n_cpu)
 
                 if os.path.exists(self.Jpath):
                     print("Load G from zarr")
@@ -512,6 +494,25 @@ class Forward(object):
 
                     # TO-DO: should add check that loaded G matches supplied data and mesh
                 else:
+
+                    # chunking only required for dask
+                    nChunks = self.n_chunks # Number of chunks
+                    rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                    totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
+                    # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
+                    while totRAM > self.maxRAM or (totRAM/nChunks) >= 2.0:
+    #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
+                        nChunks += 1
+                        rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                        totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
+
+                    print("Dask:")
+                    print("n_cpu: ", self.n_cpu)
+                    print("n_chunks: ", nChunks)
+                    print("Chunk sizes: ", rowChunk, colChunk)
+                    print("RAM/tile: ", totRAM)
+                    print("Total RAM (x n_cpu): ", totRAM*self.n_cpu)
+
 
                     row = dask.delayed(self.calcTrow, pure=True)
 
@@ -521,31 +522,35 @@ class Forward(object):
 
                     stack = da.vstack(buildMat)
 
-                    # TO-DO: Find a way to create in chunks instead
-                    stack = stack.rechunk((rowChunk, colChunk))
+                    if self.forwardOnly:
 
-                    if self.storeG:
+                        G = stack.compute()
+
+                        return da.dot(G, self.model).compute()
+
+                    else:
+                        # TO-DO: Find a way to create in
+                        # chunks instead
+                        stack = stack.rechunk((rowChunk, colChunk))
+
                         with ProgressBar():
                             print("Saving G to zarr: " + self.Jpath)
                             da.to_zarr(stack, self.Jpath)
 
                         G = da.from_zarr(self.Jpath)
 
-                    else:
-                        G = stack.compute()
+            # elif self.parallelized == "multiprocessing":
 
-            elif self.parallelized == "multiprocessing":
+            #     totRAM = nModelParams*self.nD*self.nC*8*1e-9
+            #     print("Multiprocessing:", self.n_cpu, self.nD, self.nC, totRAM, self.maxRAM)
 
-                totRAM = nModelParams*self.nD*self.nC*8*1e-9
-                print("Multiprocessing:", self.n_cpu, self.nD, self.nC, totRAM, self.maxRAM)
+            #     pool = multiprocessing.Pool(self.n_cpu)
 
-                pool = multiprocessing.Pool(self.n_cpu)
+            #     result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
+            #     pool.close()
+            #     pool.join()
 
-                result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
-                pool.close()
-                pool.join()
-
-                G = np.vstack(result)
+            #     G = np.vstack(result)
 
         else:
 
@@ -594,9 +599,9 @@ class Forward(object):
         else:
             raise Exception('rxType must be: "tmi", "x", "y" or "z"')
 
-        if self.forwardOnly:
+        # if self.forwardOnly:
 
-            return np.dot(row, self.model)
+        #     return np.dot(row, self.model)
         # else:
         return np.float32(row)
 
