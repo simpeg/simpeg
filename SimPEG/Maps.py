@@ -444,7 +444,6 @@ class SurjectUnits(IdentityMap):
         super(SurjectUnits, self).__init__(**kwargs)
 
         self.index = index
-        self._shape = self.P.shape
 
     @property
     def P(self):
