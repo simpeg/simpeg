@@ -487,57 +487,66 @@ class Forward(object):
 
             if self.parallelized == "dask":
 
-
-                if os.path.exists(self.Jpath):
-                    print("Load G from zarr")
-                    G = da.from_zarr(self.Jpath)
-
-                    # TO-DO: should add check that loaded G matches supplied data and mesh
-                else:
-
-                    # chunking only required for dask
-                    nChunks = self.n_chunks # Number of chunks
+                # Chunking only required for dask
+                nChunks = self.n_chunks # Number of chunks
+                rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
+                # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
+                while totRAM > self.maxRAM or (totRAM/nChunks) >= 2.0:
+#                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
+                    nChunks += 1
                     rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
                     totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
-                    # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
-                    while totRAM > self.maxRAM or (totRAM/nChunks) >= 2.0:
-    #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
-                        nChunks += 1
-                        rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                        totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
 
-                    print("Dask:")
-                    print("n_cpu: ", self.n_cpu)
-                    print("n_chunks: ", nChunks)
-                    print("Chunk sizes: ", rowChunk, colChunk)
-                    print("RAM/tile: ", totRAM)
-                    print("Total RAM (x n_cpu): ", totRAM*self.n_cpu)
+                print("Dask:")
+                print("n_cpu: ", self.n_cpu)
+                print("n_chunks: ", nChunks)
+                print("Chunk sizes: ", rowChunk, colChunk)
+                print("RAM/tile: ", totRAM)
+                print("Total RAM (x n_cpu): ", totRAM*self.n_cpu)
 
+                row = dask.delayed(self.calcTrow, pure=True)
 
-                    row = dask.delayed(self.calcTrow, pure=True)
+                makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
 
-                    makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
+                buildMat = [da.from_delayed(makeRow, dtype=float, shape=(1, nModelParams * self.nC)) for makeRow in makeRows]
 
-                    buildMat = [da.from_delayed(makeRow, dtype=float, shape=(nModelParams, self.nC)) for makeRow in makeRows]
+                stack = da.vstack(buildMat)
 
-                    stack = da.vstack(buildMat)
+                if self.forwardOnly:
 
-                    if self.forwardOnly:
+                    G = stack.compute()
 
-                        G = stack.compute()
+                    return da.dot(G, self.model).compute()
 
-                        return da.dot(G, self.model).compute()
+                else:
 
-                    else:
-                        # TO-DO: Find a way to create in
-                        # chunks instead
-                        stack = stack.rechunk((rowChunk, colChunk))
-
-                        with ProgressBar():
-                            print("Saving G to zarr: " + self.Jpath)
-                            da.to_zarr(stack, self.Jpath)
+                    if os.path.exists(self.Jpath):
 
                         G = da.from_zarr(self.Jpath)
+
+                        if np.all([
+                                np.r_[G.chunks] == np.r_[rowChunk, colChunk],
+                                np.r_[G.shape] == np.r_[self.nD, nModelParams * self.nC]]):
+                            # Check that loaded G matches supplied data and mesh
+                            print("Zarr file detected with same shape and chunksize ... re-loading")
+                            return G
+
+                        else:
+                            del G
+                            shutil.rmtree(self.Jpath)
+                            print("Zarr file detected with wrong shape and chunksize ... over-writting")
+                        # TO-DO: should add
+
+                    # TO-DO: Find a way to create in
+                    # chunks instead
+                    stack = stack.rechunk((rowChunk, colChunk))
+
+                    with ProgressBar():
+                        print("Saving G to zarr: " + self.Jpath)
+                        da.to_zarr(stack, self.Jpath)
+
+                    G = da.from_zarr(self.Jpath)
 
             # elif self.parallelized == "multiprocessing":
 
