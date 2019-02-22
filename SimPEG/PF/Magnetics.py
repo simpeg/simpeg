@@ -471,9 +471,9 @@ class Forward(object):
 
         # Set this early so we can get a better memory estimate for dask chunking
         if self.rxType == 'xyz':
-            nModelParams = 3
+            nDataComps = 3
         else:
-            nModelParams = 1
+            nDataComps = 1
 
         if self.parallelized:
 
@@ -489,14 +489,14 @@ class Forward(object):
 
                 # Chunking only required for dask
                 nChunks = self.n_chunks # Number of chunks
-                rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
+                rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                totRAM = nDataComps*rowChunk*colChunk*8*self.n_cpu*1e-9
                 # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
                 while totRAM > self.maxRAM or (totRAM/nChunks) >= 2.0:
 #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
                     nChunks += 1
-                    rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                    totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
+                    rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                    totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
 
                 print("Dask:")
                 print("n_cpu: ", self.n_cpu)
@@ -509,7 +509,7 @@ class Forward(object):
 
                 makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
 
-                buildMat = [da.from_delayed(makeRow, dtype=float, shape=(1, nModelParams * self.nC)) for makeRow in makeRows]
+                buildMat = [da.from_delayed(makeRow, dtype=float, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
 
                 stack = da.vstack(buildMat)
 
@@ -527,7 +527,7 @@ class Forward(object):
 
                         if np.all([
                                 np.r_[G.chunks] == np.r_[rowChunk, colChunk],
-                                np.r_[G.shape] == np.r_[self.nD, nModelParams * self.nC]]):
+                                np.r_[G.shape] == np.r_[nDataComps*self.nD,  self.nC]]):
                             # Check that loaded G matches supplied data and mesh
                             print("Zarr file detected with same shape and chunksize ... re-loading")
                             return G
@@ -550,7 +550,7 @@ class Forward(object):
 
             # elif self.parallelized == "multiprocessing":
 
-            #     totRAM = nModelParams*self.nD*self.nC*8*1e-9
+            #     totRAM = nDataComps*self.nD*self.nC*8*1e-9
             #     print("Multiprocessing:", self.n_cpu, self.nD, self.nC, totRAM, self.maxRAM)
 
             #     pool = multiprocessing.Pool(self.n_cpu)
