@@ -61,6 +61,9 @@ class MagneticIntegral(Problem.LinearProblem):
         assert mesh.dim == 3, 'Integral formulation only available for 3D mesh'
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
+        if self.modelType == 'vector':
+            self.magType = 'full'
+
         # Find non-zero cells
         if getattr(self, 'actInd', None) is not None:
             if self.actInd.dtype == 'bool':
@@ -118,7 +121,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         if self.forwardOnly:
             # Compute the linear operation without forming the full dense F
-            return np.array(self.Intrgl_Fwr_Op(m=m), dtype='float')
+            return np.array(self.Intrgl_Fwr_Op(m=m, magType=self.magType), dtype='float')
 
         # else:
 
@@ -155,9 +158,6 @@ class MagneticIntegral(Problem.LinearProblem):
             raise Exception('Need to pair!')
 
         if getattr(self, '_G', None) is None:
-
-            if self.modelType == 'vector':
-                self.magType = 'full'
 
             self._G = self.Intrgl_Fwr_Op(magType=self.magType)
 
