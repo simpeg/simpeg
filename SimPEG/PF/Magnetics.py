@@ -525,8 +525,9 @@ class Forward(object):
 
                         G = da.from_zarr(self.Jpath)
 
-                        if np.all([
-                                np.r_[G.chunks] == np.r_[rowChunk, colChunk],
+                        if np.all(np.r_[
+                                np.any(np.r_[G.chunks[0]] == rowChunk), 
+                                np.any(np.r_[G.chunks[1]] == colChunk),
                                 np.r_[G.shape] == np.r_[nDataComps*self.nD,  self.nC]]):
                             # Check that loaded G matches supplied data and mesh
                             print("Zarr file detected with same shape and chunksize ... re-loading")
