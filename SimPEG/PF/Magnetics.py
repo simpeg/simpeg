@@ -490,9 +490,9 @@ class Forward(object):
                 # Chunking only required for dask
                 nChunks = self.n_chunks # Number of chunks
                 rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                totRAM = nDataComps*rowChunk*colChunk*8*self.n_cpu*1e-9
+                totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
                 # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
-                while totRAM > self.maxRAM or (totRAM/nChunks) >= 2.0:
+                while (totRAM > self.maxRAM) or (totRAM/n_cpu) >= 2.0:
 #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
                     nChunks += 1
                     rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
@@ -515,9 +515,9 @@ class Forward(object):
 
                 if self.forwardOnly:
 
-                    G = stack.compute()
+                    # G = stack.compute()
 
-                    return da.dot(G, self.model).compute()
+                    return da.dot(stack, self.model).compute()
 
                 else:
 
@@ -526,7 +526,7 @@ class Forward(object):
                         G = da.from_zarr(self.Jpath)
 
                         if np.all(np.r_[
-                                np.any(np.r_[G.chunks[0]] == rowChunk), 
+                                np.any(np.r_[G.chunks[0]] == rowChunk),
                                 np.any(np.r_[G.chunks[1]] == colChunk),
                                 np.r_[G.shape] == np.r_[nDataComps*self.nD,  self.nC]]):
                             # Check that loaded G matches supplied data and mesh

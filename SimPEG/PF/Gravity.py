@@ -243,13 +243,55 @@ class Forward(object):
         if self.n_cpu is None:
             self.n_cpu = int(multiprocessing.cpu_count())
 
+        # Set this early so we can get a better memory estimate for dask chunking
+        if self.rxType == 'xyz':
+            nDataComps = 3
+        else:
+            nDataComps = 1
+
+        if self.parallelized:
+
+            assert self.parallelized in ["dask", None], (
+                "'parallelization' must be 'dask', or None"
+                "Value provided -> "
+                "{}".format(
+                    self.parallelized)
+
+            )
+
             if self.parallelized == "dask":
+
+                # Chunking only required for dask
+                nChunks = self.n_chunks # Number of chunks
+                rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
+                # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
+                while (totRAM > self.maxRAM) or (totRAM/self.n_cpu) >= 2.0:
+#                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
+                    nChunks += 1
+                    rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                    totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
+
+                print("Dask:")
+                print("n_cpu: ", self.n_cpu)
+                print("n_chunks: ", nChunks)
+                print("Chunk sizes: ", rowChunk, colChunk)
+                print("RAM/tile: ", totRAM)
+                print("Total RAM (x n_cpu): ", totRAM*self.n_cpu)
+
+                row = dask.delayed(self.calcTrow, pure=True)
+
+                makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
+
+                buildMat = [da.from_delayed(makeRow, dtype=float, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
+
+                stack = da.vstack(buildMat)
 
                 if self.forwardOnly:
 
-                    G = stack.compute()
+                    # G = stack.compute()
 
-                    return da.dot(G, self.model).compute()
+                    return da.dot(stack, self.model).compute()
 
                 else:
 
@@ -280,9 +322,10 @@ class Forward(object):
                         da.to_zarr(stack, self.Jpath)
 
                     G = da.from_zarr(self.Jpath)
+
             # elif self.parallelized == "multiprocessing":
 
-            #     totRAM = nModelParams*self.nD*self.nC*8*1e-9
+            #     totRAM = nDataComps*self.nD*self.nC*8*1e-9
             #     print("Multiprocessing:", self.n_cpu, self.nD, self.nC, totRAM, self.maxRAM)
 
             #     pool = multiprocessing.Pool(self.n_cpu)
