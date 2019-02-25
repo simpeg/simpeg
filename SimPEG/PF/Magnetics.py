@@ -492,7 +492,9 @@ class Forward(object):
                 rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
                 totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
                 # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
-                while (totRAM > self.maxRAM) or (totRAM/n_cpu) >= 2.0:
+
+                while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= 2.0:
+
 #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
                     nChunks += 1
                     rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
@@ -502,8 +504,8 @@ class Forward(object):
                 print("n_cpu: ", self.n_cpu)
                 print("n_chunks: ", nChunks)
                 print("Chunk sizes: ", rowChunk, colChunk)
-                print("RAM/tile: ", totRAM)
-                print("Total RAM (x n_cpu): ", totRAM*self.n_cpu)
+                print("RAM/tile: ", totRAM/self.n_cpu)
+                print("Total RAM (x n_cpu): ", totRAM)
 
                 row = dask.delayed(self.calcTrow, pure=True)
 
@@ -515,7 +517,11 @@ class Forward(object):
 
                 if self.forwardOnly:
 
+<<<<<<< HEAD
                     # G = stack.compute()
+=======
+#                    G = stack.compute()
+>>>>>>> b303480de07497aada7b14cb661b8bd94a0f6ab8
 
                     return da.dot(stack, self.model).compute()
 
