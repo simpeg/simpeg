@@ -284,13 +284,16 @@ class BaseTimeProblem(BaseProblem):
 
 class LinearProblem(BaseProblem):
 
-    # surveyPair = Survey.LinearSurvey
+    # model, modelMap, modelDeriv = Props.Invertible(
+    #     "Generic model parameters",
+    #     default=1.
+    # )
 
     G = None
 
     def __init__(self, mesh, **kwargs):
         BaseProblem.__init__(self, mesh, **kwargs)
-        # self.mapping = kwargs.pop('mapping', Maps.IdentityMap(mesh))
+        self.modelMap = kwargs.pop('mapping', Maps.IdentityMap(mesh))
 
     @property
     def modelMap(self):
@@ -299,23 +302,14 @@ class LinearProblem(BaseProblem):
             self._modelMap = Maps.IdentityMap(self.mesh)
         return self._modelMap
 
+
     @modelMap.setter
     def modelMap(self, val):
         val._assertMatchesPair(self.mapPair)
         self._modelMap = val
 
     def fields(self, m):
-
-        # Check possible dtype for linear operator
-        # Important to avoid memory copies of dense matrix
-        if self.G.dtype is np.dtype('float32'):
-            y = np.dot(self.G, m.astype(np.float32))
-            y.astype(np.float64)
-
-        else:
-            y = np.dot(self.G, self.modelMap*m)
-
-        return y
+        return self.G.dot(self.modelMap * m)
 
     def getJ(self, m, f=None):
         """
@@ -329,29 +323,7 @@ class LinearProblem(BaseProblem):
             return self.G
 
     def Jvec(self, m, v, f=None):
-
-        # Check possible dtype for linear operator
-        # Important to avoid memory copies of dense matrix
-        if self.G.dtype is np.dtype('float32'):
-            y = np.dot(self.G, self.modelMap.deriv(m)*(v.astype(np.float32)))
-            y.astype(np.float64)
-
-        else:
-            y = np.dot(self.G, self.modelMap.deriv(m)*v)
-
-        return y
+        return self.G.dot(self.modelMap.deriv(m) * v)
 
     def Jtvec(self, m, v, f=None):
-
-        # Check possible dtype for linear operator
-        # Important to avoid memory copies of dense matrix
-        if self.G.dtype is np.dtype('float32'):
-
-            y = self.modelMap.deriv(m).T * np.dot(self.G.T, v.astype(np.float32))
-            y.astype(np.float64)
-
-        else:
-            y = self.modelMap.deriv(m).T * np.dot(self.G.T, v)
-
-        return y
-
+        return self.modelMap.deriv(m).T*self.G.T.dot(v)

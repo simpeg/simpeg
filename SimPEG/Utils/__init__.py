@@ -7,7 +7,7 @@ from .matutils import (
     av_extrap, ndgrid, ind2sub, sub2ind, getSubArray,
     inv3X3BlockDiagonal, inv2X2BlockDiagonal, TensorType,
     makePropertyTensor, invPropertyTensor, diagEst, Zero,
-    Identity, uniqueRows
+    Identity, uniqueRows, coterminal
 )
 from .codeutils import (
     memProfileWrapper, hook, setKwargs,

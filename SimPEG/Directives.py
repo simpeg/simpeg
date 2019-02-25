@@ -1,16 +1,20 @@
 from __future__ import print_function
+
+import properties
+import numpy as np
+import matplotlib.pyplot as plt
+import warnings
+import os
+import copy
+import scipy.sparse as sp
+
 from . import (
     Utils, Regularization,
     ObjectiveFunction, DataMisfit
 )
 
-import numpy as np
-import matplotlib.pyplot as plt
-import warnings
-import copy
-import scipy.sparse as sp
 
-class InversionDirective(object):
+class InversionDirective(properties.HasProperties):
     """InversionDirective"""
 
     debug = False    #: Print debugging information
@@ -294,16 +298,30 @@ class TargetMisfit(InversionDirective):
 
 
 class SaveEveryIteration(InversionDirective):
+    """SaveEveryIteration
 
-    @property
-    def name(self):
-        if getattr(self, '_name', None) is None:
-            self._name = 'InversionModel'
-        return self._name
+    This directive saves an array at each iteration. The default
+    direcroty is the current directoy and the models are saved as
+    `InversionModel-YYYY-MM-DD-HH-MM-iter.npy`
+    """
 
-    @name.setter
-    def name(self, value):
-        self._name = value
+    directory = properties.String(
+        "directory to save results in",
+        default = "."
+    )
+
+    name = properties.String(
+        "root of the filename to be saved",
+        default="InversionModel"
+    )
+
+    @properties.validator('directory')
+    def _ensure_abspath(self, change):
+        val = change['value']
+        fullpath = os.path.abspath(os.path.expanduser(val))
+
+        if not os.path.isdir(fullpath):
+            os.mkdir(fullpath)
 
     @property
     def fileName(self):
@@ -314,26 +332,33 @@ class SaveEveryIteration(InversionDirective):
             )
         return self._fileName
 
-    @fileName.setter
-    def fileName(self, value):
-        self._fileName = value
-
 
 class SaveModelEveryIteration(SaveEveryIteration):
-    """SaveModelEveryIteration"""
+    """SaveModelEveryIteration
+
+    This directive saves the model as a numpy array at each iteration. The
+    default direcroty is the current directoy and the models are saved as
+    `InversionModel-YYYY-MM-DD-HH-MM-iter.npy`
+    """
 
     def initialize(self):
         print(
-            "SimPEG.SaveModelEveryIteration will save your models as: '###-{0!s}.npy'".format(self.fileName))
+            "SimPEG.SaveModelEveryIteration will save your models as: "
+            "'{0!s}###-{1!s}.npy'".format(
+                self.directory + os.path.sep, self.fileName
+            )
+        )
 
     def endIter(self):
-        np.save('{0:03d}-{1!s}'.format(
-            self.opt.iter, self.fileName), self.opt.xc
+        np.save(
+            '{0!s}{1:03d}-{2!s}'.format(
+                self.directory + os.path.sep, self.opt.iter, self.fileName
+            ), self.opt.xc
         )
 
 
 class SaveOutputEveryIteration(SaveEveryIteration):
-    """SaveModelEveryIteration"""
+    """SaveOutputEveryIteration"""
 
     header = None
     save_txt = True
@@ -637,9 +662,9 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
         self.outDict[self.opt.iter] = iterDict
 
+
 class Update_IRLS(InversionDirective):
 
-    updateGamma = False
     f_old = 0
     f_min_change = 1e-2
     beta_tol = 1e-1
@@ -732,12 +757,12 @@ class Update_IRLS(InversionDirective):
                     self.sphericalDomain = True
 
         if self.sphericalDomain:
-            self._angleScale()
+            self.angleScale()
 
     def endIter(self):
 
         if self.sphericalDomain:
-            self._angleScale()
+            self.angleScale()
 
         # Check if misfit is within the tolerance, otherwise scale beta
         if np.all([
@@ -762,6 +787,7 @@ class Update_IRLS(InversionDirective):
                 # Re-use previous model and continue with new beta
                 self.invProb.model = self.reg.objfcts[0].model
                 self.opt.xc = self.reg.objfcts[0].model
+                self.opt.iter -= 1
                 return
 
         elif np.all([self.mode == 1, self.opt.iter % self.coolingRate == 0]):
@@ -812,10 +838,10 @@ class Update_IRLS(InversionDirective):
 
                 if reg.eps_p > self.floorEps_p and self.coolEps_p:
                     reg.eps_p /= self.coolEpsFact
-                    print('Eps_p: ' + str(reg.eps_p))
+                    # print('Eps_p: ' + str(reg.eps_p))
                 if reg.eps_q > self.floorEps_q and self.coolEps_q:
                     reg.eps_q /= self.coolEpsFact
-                    print('Eps_q: ' + str(reg.eps_q))
+                    # print('Eps_q: ' + str(reg.eps_q))
 
             # Remember the value of the norm from previous R matrices
             # self.f_old = self.reg(self.invProb.model)
@@ -852,27 +878,14 @@ class Update_IRLS(InversionDirective):
                 np.abs(1. - self.invProb.phi_d / self.target) < self.beta_tol
             ]):
 
-                print("Minimum decrease in regularization. End of IRLS")
+                print(
+                    "Minimum decrease in regularization." +
+                    "End of IRLS"
+                    )
                 self.opt.stopNextIteration = True
                 return
 
             self.f_old = phim_new
-
-            # Update gamma to scale the regularization between IRLS iterations
-            for reg, phim_old, phim_now in zip(self.reg.objfcts,
-                                               phi_m_last, phi_m_new
-                                               ):
-                # Now optional for extra care
-                if self.updateGamma:
-
-                    gamma = phim_old / phim_now
-
-                else:
-                    gamma = 1
-
-                # If comboObj, go down one more level
-                for comp in reg.objfcts:
-                    comp.gamma = gamma
 
             self.updateBeta = True
             self.invProb.phi_m_last = self.reg(self.invProb.model)
@@ -913,7 +926,6 @@ class Update_IRLS(InversionDirective):
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms in zip(self.reg.objfcts, self.norms):
-
             reg.norms = norms
 
         # Save l2-model
@@ -925,27 +937,24 @@ class Update_IRLS(InversionDirective):
                 print("eps_p: " + str(reg.eps_p) +
                       " eps_q: " + str(reg.eps_q))
 
-    @property
-    def _angleScale(self):
+    def angleScale(self):
         """
             Update the scales used by regularization for the
             different block of models
         """
-
         # Currently implemented for MVI-S only
         max_p = []
         for reg in self.reg.objfcts[0].objfcts:
             eps_p = reg.epsilon
-            norm_p = 2  # self.reg.objfcts[0].norms[0]
             f_m = abs(reg.f_m)
-            max_p += [np.max(eps_p**(1 - norm_p / 2.) * f_m /
-                             (f_m**2. + eps_p**2.)**(1 - norm_p / 2.))]
+            max_p += [np.max(f_m)]
 
-        max_p = np.asarray(max_p)
+        max_p = np.asarray(max_p).max()
 
         max_s = [np.pi, np.pi]
-        for obj, var in zip(self.reg.objfcts[1:], max_s):
-            obj.scale = max_p.max() / var
+
+        for obj, var in zip(self.reg.objfcts[1:3], max_s):
+            obj.scales = np.ones(obj.scales.shape)*max_p/var
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
@@ -974,20 +983,31 @@ class UpdatePreconditioner(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
     """
-    onlyOnStart = False
-    mapping = None
-    ComboObjFun = False
+
+    update_every_iteration = True  #: Update every iterations if False
+    threshold = 1e-8
 
     def initialize(self):
 
-        if getattr(self.opt, 'approxHinv', None) is None:
+        # Create the pre-conditioner
+        regDiag = np.zeros_like(self.invProb.model)
 
+        for reg in self.reg.objfcts:
+            # Check if regularization has a projection
+            if getattr(reg.mapping, 'P', None) is None:
+                regDiag += (reg.W.T*reg.W).diagonal()
+            else:
+                P = reg.mapping.P
+                regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
+
+        # Deal with the linear case
+        if getattr(self.opt, 'JtJdiag', None) is None:
+
+            print("Approximated diag(JtJ) with linear operator")
+
+            JtJdiag = np.zeros_like(self.invProb.model)
             m = self.invProb.model
-
-            if getattr(self.opt, 'JtJdiag', None) is None:
-
-                JtJdiag = np.zeros_like(self.invProb.model)
-                for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
+            for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
 
                     if getattr(prob, 'getJtJdiag', None) is None:
                         assert getattr(prob, 'getJ', None) is not None, (
@@ -996,36 +1016,36 @@ class UpdatePreconditioner(InversionDirective):
                         )
                         JtJdiag += np.sum(np.power((dmisfit.W*prob.getJ(m)), 2), axis=0)
                     else:
-                        JtJdiag += prob.getJtJdiag(m)
+                        JtJdiag += prob.getJtJdiag(m, W=dmisfit.W)
 
-                self.opt.JtJdiag = JtJdiag
+            self.opt.JtJdiag = JtJdiag + self.threshold
 
-            # Update the pre-conditioner
-            reg_diag = np.zeros_like(self.invProb.model)
-            for reg in self.reg.objfcts:
-                W = reg.deriv2(m)
-                reg_diag += self.invProb.beta * W.diagonal()
-            Hdiag = self.opt.JtJdiag + reg_diag
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
-            PC = Utils.sdiag(Hdiag**-1.)
-            self.opt.approxHinv = PC
+        PC = Utils.sdiag((diagA)**-1.)
+
+        self.opt.approxHinv = PC
 
     def endIter(self):
         # Cool the threshold parameter
-        if self.onlyOnStart is True:
+        if ~self.update_every_iteration:
             return
 
-        if getattr(self.opt, 'approxHinv', None) is not None:
-            m = self.invProb.model
-            # Update the pre-conditioner
-            reg_diag = np.zeros_like(self.invProb.model)
-            for reg in self.reg.objfcts:
-                W = reg.deriv2(m)
-                reg_diag += self.invProb.beta * W.diagonal()
-            Hdiag = self.opt.JtJdiag + reg_diag
+        # Create the pre-conditioner
+        regDiag = np.zeros_like(self.invProb.model)
 
-            PC = Utils.sdiag(Hdiag**-1.)
-            self.opt.approxHinv = PC
+        for reg in self.reg.objfcts:
+            # Check if he has wire
+            if getattr(reg.mapping, 'P', None) is None:
+                regDiag += (reg.W.T*reg.W).diagonal()
+            else:
+                P = reg.mapping.P
+                regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
+        # Assumes that opt.JtJdiag has been updated or static
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
+
+        PC = Utils.sdiag((diagA)**-1.)
+        self.opt.approxHinv = PC
 
 
 class Update_Wj(InversionDirective):
@@ -2317,11 +2337,8 @@ class UpdateSensitivityWeights(InversionDirective):
         """
         self.JtJdiag = []
 
-        m = self.invProb.model
-
-        for prob, survey, dmisfit in zip(
+        for prob, dmisfit in zip(
             self.prob,
-            self.survey,
             self.dmisfit.objfcts
         ):
 
@@ -2333,7 +2350,7 @@ class UpdateSensitivityWeights(InversionDirective):
 
                 self.JtJdiag += [Utils.mkvc(np.sum((dmisfit.W*prob.getJ(m))**(2.), axis=0))]
             else:
-                self.JtJdiag += [prob.getJtJdiag(m)]
+                self.JtJdiag += [prob.getJtJdiag(m, W=dmisfit.W)]
 
         return self.JtJdiag
 
@@ -2377,82 +2394,48 @@ class UpdateSensitivityWeights(InversionDirective):
         self.opt.JtJdiag = JtJdiag
 
 
-class Update_DC_Wr(InversionDirective):
+class ProjectSphericalBounds(InversionDirective):
     """
-        Update the sensitivity wegithing for the DC2D problem
+        Trick for spherical coordinate system.
+        Project \theta and \phi angles back to [-\pi,\pi] using
+        back and forth conversion.
+        spherical->cartesian->spherical
     """
-
-    wrType = 'sensitivityW'
-    changeMref = False
-    eps = 1e-8
-
     def initialize(self):
 
-        m = self.invProb.model
-        Jmat = self.prob[0].getJ(m, self.prob[0].fields(m))
+        x = self.invProb.model
+        # Convert to cartesian than back to avoid over rotation
+        nC = int(len(x)/3)
 
-        if self.wrType == 'sensitivityW':
-            wr = np.sum((Jmat)**2., axis=0)**0.5 + self.eps
-            wr = wr / wr.max()
-            # for reg in self.reg.objfcts:
-            self.reg.objfcts[0].cell_weights = self.reg.mapping * wr
+        xyz = Utils.matutils.spherical2cartesian(x.reshape((nC, 3), order='F'))
+        m = Utils.matutils.cartesian2spherical(xyz.reshape((nC, 3), order='F'))
 
-        # self.opt.approxHinv = None
-        JtJdiag = np.sum((self.dmisfit.W * Jmat)**2., axis=0)
+        self.invProb.model = m
 
-        # Create the pre-conditioner
-        self.regDiag = np.zeros_like(self.invProb.model)
+        for prob in self.prob:
+            prob.model = m
 
-        for reg in self.reg.objfcts:
-            # Check if he has wire
-            if getattr(reg.mapping, 'P', None) is None:
-                self.regDiag += (reg.W.T * reg.W).diagonal()
-            else:
-                # He is a snitch!
-                self.regDiag += reg.mapping.P.T * (reg.W.T * reg.W).diagonal()
-
-        diagA = JtJdiag + self.invProb.beta * self.regDiag
-
-        PC = Utils.sdiag((diagA)**-1.)
-        self.opt.approxHinv = PC
+        self.opt.xc = m
 
     def endIter(self):
 
-        m = self.invProb.model
-        Jmat = self.prob[0].getJ(m, self.prob[0].fields(m))
+        x = self.invProb.model
+        nC = int(len(x)/3)
 
-        wr = np.sum((Jmat)**2. + self.eps**2., axis=0)**0.5
-        wr = wr / wr.max()
-        if self.wrType == 'sensitivityW':
-            # for reg in self.reg.objfcts:
-            self.reg.objfcts[0].cell_weights = self.reg.mapping * wr
+        # Convert to cartesian than back to avoid over rotation
+        xyz = Utils.matutils.spherical2cartesian(x.reshape((nC, 3), order='F'))
+        m = Utils.matutils.cartesian2spherical(xyz.reshape((nC, 3), order='F'))
 
-        if self.changeMref:
+        self.invProb.model = m
 
-            # mref = np.median(m)
-            mref = np.sum(wr * m) / np.sum(wr)
-            # print(self.reg.objfcts[0].cell_weights.min())
-
-            print('Updating mref:' + str(np.exp(mref)) + 'S/m')
-
-            for reg in self.reg.objfcts:
-                reg.mref = np.ones_like(m) * mref
-
-        # self.opt.approxHinv = None
-        JtJdiag = np.sum((self.dmisfit.W * Jmat)**2., axis=0)
-
-        # Create the pre-conditioner
-        self.regDiag = np.zeros_like(self.invProb.model)
-
+        phi_m_last = []
         for reg in self.reg.objfcts:
-            # Check if he has wire
-            if getattr(reg.mapping, 'P', None) is None:
-                self.regDiag += (reg.W.T * reg.W).diagonal()
-            else:
-                # He is a snitch!
-                self.regDiag += reg.mapping.P.T * (reg.W.T * reg.W).diagonal()
+            reg.model = self.invProb.model
+            phi_m_last += [reg(self.invProb.model)]
 
-        diagA = JtJdiag + self.invProb.beta * self.regDiag
+        self.invProb.phi_m_last = phi_m_last
 
-        PC = Utils.sdiag((diagA)**-1.)
-        self.opt.approxHinv = PC
+        for prob in self.prob:
+            prob.model = m
+
+        self.opt.xc = m

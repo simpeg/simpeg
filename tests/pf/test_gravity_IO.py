@@ -1,5 +1,6 @@
 from __future__ import print_function
 import unittest
+import numpy as np
 from SimPEG import Mesh, PF
 from SimPEG.Utils import io_utils
 from scipy.constants import mu_0
@@ -7,7 +8,7 @@ import shutil
 import os
 
 
-class MagSensProblemTests(unittest.TestCase):
+class GravSensProblemTests(unittest.TestCase):
 
     def setUp(self):
         url = 'https://storage.googleapis.com/simpeg/tests/potential_fields/'
@@ -21,7 +22,7 @@ class MagSensProblemTests(unittest.TestCase):
             overwrite=True
         )
 
-    def test_magnetics_inversion(self):
+    def test_gravity_inversion(self):
 
         inp_file = os.path.sep.join([self.basePath, 'SimPEG_Grav_Input.inp'])
 
@@ -42,12 +43,21 @@ class MagSensProblemTests(unittest.TestCase):
         print(driver.eps)
 
         # Write obs to file
-        PF.Gravity.writeUBCobs(
+        io_utils.writeUBCgravityObservations(
             os.path.sep.join(
                 [self.basePath, 'FWR_data.dat']
             ),
             driver.survey, driver.survey.dobs
         )
+        # Read it back
+        data = io_utils.readUBCgravityObservations(
+                os.path.sep.join(
+                    [self.basePath, 'FWR_data.dat']
+                )
+        )
+        # Check similarity
+        passed = np.all(data.dobs == driver.survey.dobs)
+        self.assertTrue(passed, True)
 
         # Clean up the working directory
         shutil.rmtree(self.basePath)
