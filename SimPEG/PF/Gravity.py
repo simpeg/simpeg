@@ -13,6 +13,7 @@ import dask.array as da
 from scipy.sparse import csr_matrix as csr
 from dask.diagnostics import ProgressBar
 import multiprocessing
+import shutil
 
 class GravityIntegral(Problem.LinearProblem):
 
