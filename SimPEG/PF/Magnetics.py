@@ -517,12 +517,6 @@ class Forward(object):
 
                 if self.forwardOnly:
 
-<<<<<<< HEAD
-                    # G = stack.compute()
-=======
-#                    G = stack.compute()
->>>>>>> b303480de07497aada7b14cb661b8bd94a0f6ab8
-
                     return da.dot(stack, self.model).compute()
 
                 else:
