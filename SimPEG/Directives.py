@@ -1079,20 +1079,18 @@ class UpdateSensitivityWeights(InversionDirective):
             Good for any problem where J is formed explicitely
         """
         self.JtJdiag = []
+        m = self.invProb.model
 
         for prob, dmisfit in zip(
             self.prob,
             self.dmisfit.objfcts
         ):
-            m = self.invProb.model
 
             if getattr(prob, 'getJtJdiag', None) is None:
                 assert getattr(prob, 'getJ', None) is not None, (
                     "Problem does not have a getJ attribute." +
                     "Cannot form the sensitivity explicitely"
                 )
-
-
 
                 self.JtJdiag += [mkvc(np.sum((dmisfit.W*prob.getJ(m))**(2.), axis=0))]
             else:
