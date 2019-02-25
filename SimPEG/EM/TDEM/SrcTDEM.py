@@ -394,8 +394,9 @@ class MagDipole(BaseTDEMSrc):
                 )
 
     def _phiSrc(self, prob):
-        Ainv = prob.Solver(self._getAmagnetostatic(prob))
+        Ainv = prob.Solver(self._getAmagnetostatic(prob))  # todo: store these
         rhs = self._rhs_magnetostatic(prob)
+        Ainv.clean()
         return Ainv * rhs
 
     def _bSrc(self, prob):
@@ -589,9 +590,9 @@ class LineCurrent(BaseTDEMSrc):
 # on faces
 class RawVec_Grounded(BaseTDEMSrc):
 
-    mu = properties.Float(
-        "permeability of the background", default=mu_0, min=0.
-    )
+    # mu = properties.Float(
+    #     "permeability of the background", default=mu_0, min=0.
+    # )
 
     def __init__(self, rxList, s_e, **kwargs):
         self.integrate = False
@@ -610,20 +611,122 @@ class RawVec_Grounded(BaseTDEMSrc):
         else:
             return Zero()
 
-    def jInitial(self, prob):
-        if prob._fieldType != 'j':
-            raise NotImplementedError
-
+    def _phiInitialDeriv(self, prob, v, adjoint=False):
         if self.waveform.hasInitialFields:
             phi = self.phiInitial(prob)
-            Div = Utils.sdiag(prob.mesh.vol) * prob.mesh.faceDiv
-            return - prob.MfRhoI * (Div.T * phi)
+
+            if adjoint is True:
+                return -1. * prob.getAdcDeriv(phi, prob.Adcinv * v, adjoint=True)  # A is symmetric
+
+            Adc_deriv = prob.getAdcDeriv(phi, v)
+            return -1. * ( prob.Adcinv * Adc_deriv )
 
         else:
             return Zero()
 
+    def jInitial(self, prob):
+        if prob._fieldType not in ['j', 'h']:
+            raise NotImplementedError
+
+        if self.waveform.hasInitialFields is False:
+            return Zero()
+
+        phi = self.phiInitial(prob)
+        Div = Utils.sdiag(prob.mesh.vol) * prob.mesh.faceDiv
+        return - prob.MfRhoI * (Div.T * phi)
+
+    def jInitialDeriv(self, prob, v, adjoint=False):
+        if prob._fieldType not in ['j', 'h']:
+            raise NotImplementedError
+
+        if self.waveform.hasInitialFields is False:
+            return Zero()
+
+        phi = self.phiInitial(prob)
+        Div = Utils.sdiag(prob.mesh.vol) * prob.mesh.faceDiv
+
+        if adjoint is True:
+            return - (
+                prob.MfRhoIDeriv(Div.T * phi, v=v, adjoint=True) +
+                self._phiInitialDeriv(prob, Div * (prob.MfRhoI.T * v), adjoint=True)
+            )
+        phiDeriv = self._phiInitialDeriv(prob, v)
+        return - (prob.MfRhoIDeriv(Div.T * phi, v=v) + prob.MfRhoI * (Div.T * phiDeriv))
+
+    def _getAmmr(self, prob):
+        if prob._fieldType not in ['j', 'h']:
+            raise NotImplementedError
+
+        vol = prob.mesh.vol
+
+        return (
+            prob.mesh.edgeCurl * prob.MeMuI * prob.mesh.edgeCurl.T
+            - prob.mesh.faceDiv.T * Utils.sdiag(1./vol * prob.mui) * prob.mesh.faceDiv  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
+        )
+
+    def _aInitial(self, prob):
+        A = self._getAmmr(prob)
+        Ainv = prob.Solver(A)  # todo: store this
+        s_e = self.s_e(prob, 0)
+        rhs = s_e - self.jInitial(prob)
+        return Ainv * rhs
+
+    def _aInitialDeriv(self, prob, v, adjoint=False):
+        A = self._getAmmr(prob)
+        Ainv = prob.Solver(A)  # todo: store this - move it to the problem
+
+        if adjoint is True:
+            return -1 * (self.jInitialDeriv(prob, Ainv * v, adjoint=True))  # A is symmetric
+
+        return -1 * (Ainv * self.jInitialDeriv(prob, v))
+
+    def hInitial(self, prob):
+        if prob._fieldType not in ['j', 'h']:
+            raise NotImplementedError
+
+        if self.waveform.hasInitialFields is False:
+            return Zero()
+
+        b = self.bInitial(prob)
+        return prob.MeMuI * b
+
+    def hInitialDeriv(self, prob, v, adjoint=False, f=None):
+        if prob._fieldType not in ['j', 'h']:
+            raise NotImplementedError
+
+        if self.waveform.hasInitialFields is False:
+            return Zero()
+
+        if adjoint is True:
+            return self.bInitialDeriv(prob, prob.MeMuI.T * v, adjoint=True)
+        return prob.MeMuI * self.bInitialDeriv(prob, v)
+
+    def bInitial(self, prob):
+        if prob._fieldType not in ['j', 'h']:
+            raise NotImplementedError
+
+        if self.waveform.hasInitialFields is False:
+            return Zero()
+
+        a = self._aInitial(prob)
+        return prob.mesh.edgeCurl.T * a
+
+    def bInitialDeriv(self, prob, v, adjoint=False, f=None):
+        if prob._fieldType not in ['j', 'h']:
+            raise NotImplementedError
+
+        if self.waveform.hasInitialFields is False:
+            return Zero()
+
+        if adjoint is True:
+            return self._aInitialDeriv(prob, prob.mesh.edgeCurl * v, adjoint=True)
+        return prob.mesh.edgeCurl.T * self._aInitialDeriv(prob, v)
+
     def s_e(self, prob, time):
+        # if prob._fieldType == 'h':
+        #     return prob.Mf * self._s_e * self.waveform.eval(time)
         return self._s_e * self.waveform.eval(time)
+
 
 
 

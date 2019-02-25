@@ -35,10 +35,11 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
+        field = self.knownRxTypes[self.rxType][0]
         comp = self.knownRxTypes[self.rxType][1]
         if comp is not None:
-            return f._GLoc(self.rxType) + comp
-        return f._GLoc(self.rxType)
+            return f._GLoc(field) + comp
+        return f._GLoc(field)
 
     def eval(self, src, mesh, f):
         P = self.getP(mesh, self.projGLoc(f))
