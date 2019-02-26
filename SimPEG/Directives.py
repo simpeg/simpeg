@@ -955,11 +955,7 @@ class UpdatePreconditioner(InversionDirective):
 
         for reg in self.reg.objfcts:
             # Check if regularization has a projection
-            if getattr(reg.mapping, 'P', None) is None:
-                regDiag += reg.deriv2(m).diagonal()
-            else:
-                P = reg.mapping.P
-                regDiag += (P.T * (reg.deriv2(m) * P)).diagonal()
+            regDiag += reg.deriv2(m).diagonal()
 
         # Deal with the linear case
         if getattr(self.opt, 'JtJdiag', None) is None:
@@ -996,11 +992,7 @@ class UpdatePreconditioner(InversionDirective):
 
         for reg in self.reg.objfcts:
             # Check if he has wire
-            if getattr(reg.mapping, 'P', None) is None:
-                regDiag += reg.deriv2(m).diagonal()
-            else:
-                P = reg.mapping.P
-                regDiag += (P.T * (reg.deriv2(m) * P)).diagonal()
+            regDiag += reg.deriv2(m).diagonal()
         # Assumes that opt.JtJdiag has been updated or static
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
