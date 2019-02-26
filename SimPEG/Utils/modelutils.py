@@ -333,47 +333,37 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
 
 def refineTree(
             mesh, xyz,
-            finalize=False, dtype="point",
+            finalize=False, dtype="radial",
             nCpad=[1, 1, 1], distMax=200,
             padRatio=2):
 
     maxLevel = int(np.log2(mesh.hx.shape[0]))
 
-    if dtype == "point":
+    tree = cKDTree(xyz)
 
-        mesh.insert_cells(xyz, np.ones(xyz.shape[0])*maxLevel, finalize=False)
+    if dtype == "radial":
 
-        stencil = np.r_[
-                np.ones(nCpad[0]),
-                np.ones(nCpad[1])*2,
-                np.ones(nCpad[2])*3
-            ]
-
-        # Reflect in the opposite direction
-        vec = np.r_[stencil[::-1], 1, stencil]
-        vecX, vecY, vecZ = np.meshgrid(vec, vec, vec)
-        gridLevel = np.maximum(np.maximum(np.abs(vecX),
-                               np.abs(vecY)), np.abs(vecZ))
-        gridLevel = np.kron(np.ones(xyz.shape[0]), mkvc(gridLevel))
-
-        # Grid the coordinates
-        vec = np.r_[-np.cumsum(stencil)[::-1], 0, np.cumsum(stencil)]
-        vecX, vecY, vecZ = np.meshgrid(vec, vec, vec)
-        offset = np.c_[
-            mkvc(np.sign(vecX)*np.abs(vecX) * mesh.hx.min()),
-            mkvc(np.sign(vecY)*np.abs(vecY) * mesh.hy.min()),
-            mkvc(np.sign(vecZ)*np.abs(vecZ) * mesh.hz.min())
-        ]
-
-        # Replicate the point locations in each offseted grid points
-        newLoc = (
-            np.kron(xyz, np.ones((offset.shape[0], 1))) +
-            np.kron(np.ones((xyz.shape[0], 1)), offset)
+        # Compute the outer limits of each octree level
+        rMax = np.cumsum(
+            mesh.hx.min() *
+            np.asarray(nCpad) *
+            2**np.arange(len(nCpad))
         )
 
-        mesh.insert_cells(
-            newLoc, maxLevel-mkvc(gridLevel)+1, finalize=finalize
-        )
+        def inBall(cell):
+            xyz = cell.center
+            r, ind = tree.query(xyz)
+
+            for ii, nC in enumerate(nCpad):
+
+                if r < rMax[ii]:
+
+                    return maxLevel-ii
+
+            return 0
+
+        mesh.refine(inBall)
+
 
     elif dtype == 'surface':
 
