@@ -1052,16 +1052,18 @@ class UpdatePreconditioner(InversionDirective):
 
     def initialize(self):
 
+        m = self.invProb.model
         # Create the pre-conditioner
         regDiag = np.zeros_like(self.invProb.model)
 
         for reg in self.reg.objfcts:
-            # Check if regularization has a projection
-            if getattr(reg.mapping, 'P', None) is None:
-                regDiag += (reg.W.T*reg.W).diagonal()
-            else:
-                P = reg.mapping.P
-                regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
+            # # Check if regularization has a projection
+            # if getattr(reg.mapping, 'P', None) is None:
+            #     regDiag += (reg.W.T*reg.W).diagonal()
+            # else:
+            #     P = reg.mapping.P
+            #     regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
+            regDiag += reg.deriv2(m).diagonal()
 
         # Deal with the linear case
         if getattr(self.opt, 'JtJdiag', None) is None:
@@ -1090,20 +1092,24 @@ class UpdatePreconditioner(InversionDirective):
         self.opt.approxHinv = PC
 
     def endIter(self):
+
         # Cool the threshold parameter
         if self.onlyOnStart is True:
             return
 
+        m = self.invProb.model
         # Create the pre-conditioner
         regDiag = np.zeros_like(self.invProb.model)
 
         for reg in self.reg.objfcts:
-            # Check if he has wire
-            if getattr(reg.mapping, 'P', None) is None:
-                regDiag += (reg.W.T*reg.W).diagonal()
-            else:
-                P = reg.mapping.P
-                regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
+            regDiag += reg.deriv2(m).diagonal()
+        #     # Check if he has wire
+        #     if getattr(reg.mapping, 'P', None) is None:
+        #         regDiag += (reg.W.T*reg.W).diagonal()
+        #     else:
+        #         P = reg.mapping.P
+        #         regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
+
         # Assumes that opt.JtJdiag has been updated or static
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
 
