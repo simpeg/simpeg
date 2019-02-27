@@ -3,8 +3,10 @@ import numpy as np
 from scipy.interpolate import griddata, interp1d, interp2d, NearestNDInterpolator
 import numpy as np
 import scipy.sparse as sp
+from scipy.spatial import Delaunay
 from scipy.sparse.linalg import bicgstab
 from scipy.spatial import cKDTree
+from scipy.interpolate import LinearNDInterpolator
 import discretize as Mesh
 from discretize.utils import closestPoints, kron3, speye
 
@@ -334,8 +336,17 @@ def meshBuilder(xyz, h, padDist, meshGlobal=None,
 def refineTree(
             mesh, xyz,
             finalize=False, dtype="radial",
-            nCpad=[1, 1, 1], distMax=200,
-            padRatio=2):
+            octreeLevels=[1, 1, 1],
+            octreeLevels_XY=None,
+):
+
+    if octreeLevels_XY is not None:
+
+        assert(len(octreeLevels_XY) == len(octreeLevels), "Arguments 'octreeLevels' and 'octreeLevels_XY' must be the same length")
+
+    else:
+
+        octreeLevels_XY = np.zeros_like(octreeLevels)
 
     maxLevel = int(np.log2(mesh.hx.shape[0]))
 
@@ -362,78 +373,92 @@ def refineTree(
 
             return 0
 
-        mesh.refine(inBall)
-
+        mesh.refine(inBall, finalize=finalize)
 
     elif dtype == 'surface':
 
-        # Get extent of points
-        limx = np.r_[xyz[:, 0].max(), xyz[:, 0].min()]
-        limy = np.r_[xyz[:, 1].max(), xyz[:, 1].min()]
+        # Compute centroid and
+        centroid = np.mean(xyz, axis=0)
 
-        # Get center of the mesh
-        midX = np.mean(limx)
-        midY = np.mean(limy)
+        # Largest outer point distance
+        rOut = np.linalg.norm(np.r_[
+            np.abs(centroid[0]-xyz[:, 0]).max(),
+            np.abs(centroid[1]-xyz[:, 1]).max()
+            ]
+        )
 
-        dx = mesh.hx.min()
-        dy = mesh.hy.min()
+        # Compute maximum depth of refinement
+        zmax = np.cumsum(
+            mesh.hz.min() *
+            np.asarray(octreeLevels) *
+            2**np.arange(len(octreeLevels))
+        )
+        padWidth = np.cumsum(
+            mesh.hx.min() *
+            np.asarray(octreeLevels_XY) *
+            2**np.arange(len(octreeLevels_XY))
+        )
 
-
-        nCx = int(limx[0]-limx[1]) / dx
-        nCy = int(limy[0]-limy[1]) / dy
-
-
-
-        # z = griddata(xyz[:, :2], xyz[:, 2], (mkvc(CCx), mkvc(CCy)), method='linear')
-
-        tree = cKDTree(xyz[:, :2])
-        # xi = _ndim_coords_from_arrays((gridCC[:,0], gridCC[:,1]), ndim=2)
-
+        depth = zmax[-1]
 
         # Increment the vertical offset
         zOffset = 0
-        depth = 0
-
-        # Compute maximum depth of refinement
-        dz = np.repeat(mesh.hz.min() * 2**np.arange(len(nCpad)), np.r_[nCpad])
-        depth = dz.sum()
-
+        xyPad = -1
         # Cycle through the Tree levels backward
-        for ii in range(len(nCpad)-1, -1, -1):
+        for ii in range(len(octreeLevels)-1, -1, -1):
+
+            dx = mesh.hx.min() * 2**ii
+            dy = mesh.hy.min() * 2**ii
             dz = mesh.hz.min() * 2**ii
 
             # Increase the horizontal extent of the surface
-            # as a function of Tree level
-            # r = ((CCx-midX)**2. + (CCy-midY)**2.)**0.5
-            # expFact = (r.max() + 2*mesh.hx.min()*2**ii)/r.max()
+            if xyPad != padWidth[ii]:
+                xyPad = padWidth[ii]
+
+                # Calculate expansion for padding XY cells
+                expFactor = (rOut + xyPad) / rOut
+                xLoc = (xyz - centroid)*expFactor + centroid
+
+                # Create a new triangulated surface
+                tri2D = Delaunay(xLoc[:, :2])
+                F = LinearNDInterpolator(tri2D, xLoc[:, 2])
+
+            limx = np.r_[xLoc[:, 0].max(), xLoc[:, 0].min()]
+            limy = np.r_[xLoc[:, 1].max(), xLoc[:, 1].min()]
+
+            nCx = int(np.ceil((limx[0]-limx[1]) / dx))
+            nCy = int(np.ceil((limy[0]-limy[1]) / dy))
+
             # Create a grid at the octree level in xy
             CCx, CCy = np.meshgrid(
                 np.linspace(
-                    limx[1] - depth/padRatio, limx[0] + depth/padRatio, nCx
+                    limx[1], limx[0], nCx
                     ),
                 np.linspace(
-                    limy[1] - depth/padRatio, limy[0] + depth/padRatio, nCy
+                    limy[1], limy[0], nCy
                     )
             )
 
-            dists, indexes = tree.query(np.c_[mkvc(CCx), mkvc(CCy)])
+            xy = np.c_[CCx.reshape(-1), CCy.reshape(-1)]
 
-            # Copy original result but mask missing values with NaNs
-            maskRadius = dists < (distMax + depth/padRatio)
+            # Only keep points within triangulation
+            indexTri = tri2D.find_simplex(xy)
 
-            # Only keep points inside the convex hull
-            x, y, z = mkvc(CCx)[maskRadius], mkvc(CCy)[maskRadius], xyz[indexes[maskRadius],2]
+            z = F(xy[indexTri != -1])
+
+            # Apply vertical padding for current octree level
             zOffset = 0
             while zOffset < depth:
 
                 mesh.insert_cells(
-                    np.c_[x, y, z-zOffset], np.ones_like(z)*maxLevel-ii,
+                    np.c_[xy[indexTri != -1], z-zOffset],
+                    np.ones_like(z)*maxLevel-ii,
                     finalize=False
                 )
 
                 zOffset += dz
 
-            depth -= dz * nCpad[ii]
+            depth -= dz * octreeLevels[ii]
 
         if finalize:
             mesh.finalize()
