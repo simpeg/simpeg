@@ -2,7 +2,6 @@ language: python
 
 python:
   - 3.6
-  - 2.7
 
 sudo: false
 
@@ -52,12 +51,7 @@ before_install:
   - conda update --yes conda
 
 install:
-  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py vtk;
-    else
-      conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
-    fi
-
+  - conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
   - pip install -r requirements_dev.txt
   - python setup.py install
   - if [ "$TEST_DIR" = "$DEPLOY_DIR" ]; then
@@ -104,25 +98,21 @@ after_success:
     fi
 
   # deploy docs
-  - if [ $TRAVIS_PYTHON_VERSION == $DOCS_PY ]; then
-      if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" ]; then
-        cd docs; tar -cvzf _build.tar.gz _build ;
-        cd content; tar -cvzf examples.tar.gz examples ; cd ../../ ;
-        gsutil cp docs/_build.tar.gz gs://simpeg ;
-        gsutil cp docs/content/examples.tar.gz gs://simpeg ;
-        gcloud auth activate-service-account --key-file credentials/client-secret.json ;
-        export GAE_PROJECT=$GAE_PROJECT ;
-      fi ;
+  - if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" ]; then
+      cd docs; tar -cvzf _build.tar.gz _build ;
+      cd content; tar -cvzf examples.tar.gz examples ; cd ../../ ;
+      gsutil cp docs/_build.tar.gz gs://simpeg ;
+      gsutil cp docs/content/examples.tar.gz gs://simpeg ;
+      gcloud auth activate-service-account --key-file credentials/client-secret.json ;
+      export GAE_PROJECT=$GAE_PROJECT ;
       gcloud config set project $GAE_PROJECT;
       gcloud app deploy ./docs/app.yaml --version ${TRAVIS_COMMIT} --promote;
     fi;
 
   #deploy to pypi
-  - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY ]; then
-      if [ "$TRAVIS_TAG" = "true" ]; then
-        mv credentials/.pypirc ~/.pypirc ;
-        python setup.py sdist bdist_wheel --universal upload;
-      fi
+  - if [ "$TRAVIS_TAG" = "true" ]; then
+      mv credentials/.pypirc ~/.pypirc ;
+      python setup.py sdist bdist_wheel --universal upload;
     fi
 
 notifications:
