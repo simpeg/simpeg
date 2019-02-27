@@ -10,7 +10,7 @@ from scipy.interpolate import LinearNDInterpolator
 import discretize as Mesh
 from discretize.utils import closestPoints, kron3, speye
 
-def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest',
+def surface2ind_topo(mesh, topo, gridLoc='CC', method='linear',
                      fill_value=np.nan):
     """
     Get active indices from topography
@@ -42,14 +42,20 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest',
 
                 if method == 'nearest':
                     F = NearestNDInterpolator(topo[:, :2], topo[:, 2])
-
+                    zTopo = F(mesh.gridCC[:, :2])
                 else:
-                    F = interp2d(topo[:, 0], topo[:, 1], topo[:, 2])
+                    tri2D = Delaunay(topo[:, :2])
+                    F = LinearNDInterpolator(tri2D, topo[:, 2])
+                    zTopo = F(mesh.gridCC[:, :2])
+
+                    if any(np.isnan(zTopo)):
+                        F = NearestNDInterpolator(topo[:, :2], topo[:, 2])
+                        zTopo[np.isnan(zTopo)] = F(mesh.gridCC[np.isnan(zTopo), :2])
 
                 # actind = np.zeros(mesh.nC, dtype='bool')
 
                 # Fetch elevation at all points
-                zTopo = F(mesh.gridCC[:, :2])
+
                 # for ii, ind in enumerate(mesh._sortedCells):
                 actind = mesh.gridCC[:, 2] < zTopo
 
@@ -342,7 +348,7 @@ def refineTree(
 
     if octreeLevels_XY is not None:
 
-        assert(len(octreeLevels_XY) == len(octreeLevels), "Arguments 'octreeLevels' and 'octreeLevels_XY' must be the same length")
+        assert len(octreeLevels_XY) == len(octreeLevels), "Arguments 'octreeLevels' and 'octreeLevels_XY' must be the same length"
 
     else:
 
