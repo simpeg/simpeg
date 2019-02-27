@@ -363,15 +363,15 @@ def refineTree(
         # Compute the outer limits of each octree level
         rMax = np.cumsum(
             mesh.hx.min() *
-            np.asarray(nCpad) *
-            2**np.arange(len(nCpad))
+            np.asarray(octreeLevels) *
+            2**np.arange(len(octreeLevels))
         )
 
         def inBall(cell):
             xyz = cell.center
             r, ind = tree.query(xyz)
 
-            for ii, nC in enumerate(nCpad):
+            for ii, nC in enumerate(octreeLevels):
 
                 if r < rMax[ii]:
 
