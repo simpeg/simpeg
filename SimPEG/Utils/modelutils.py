@@ -358,7 +358,43 @@ def refineTree(
 
     tree = cKDTree(xyz)
 
-    if dtype == "radial":
+    if dtype == "point":
+
+        mesh.insert_cells(xyz, np.ones(xyz.shape[0])*maxLevel, finalize=False)
+
+        stencil = np.r_[
+                np.ones(octreeLevels[0]),
+                np.ones(octreeLevels[1])*2,
+                np.ones(octreeLevels[2])*3
+            ]
+
+        # Reflect in the opposite direction
+        vec = np.r_[stencil[::-1], 1, stencil]
+        vecX, vecY, vecZ = np.meshgrid(vec, vec, vec)
+        gridLevel = np.maximum(np.maximum(np.abs(vecX),
+                               np.abs(vecY)), np.abs(vecZ))
+        gridLevel = np.kron(np.ones(xyz.shape[0]), mkvc(gridLevel))
+
+        # Grid the coordinates
+        vec = np.r_[-np.cumsum(stencil)[::-1], 0, np.cumsum(stencil)]
+        vecX, vecY, vecZ = np.meshgrid(vec, vec, vec)
+        offset = np.c_[
+            mkvc(np.sign(vecX)*np.abs(vecX) * mesh.hx.min()),
+            mkvc(np.sign(vecY)*np.abs(vecY) * mesh.hy.min()),
+            mkvc(np.sign(vecZ)*np.abs(vecZ) * mesh.hz.min())
+        ]
+
+        # Replicate the point locations in each offseted grid points
+        newLoc = (
+            np.kron(xyz, np.ones((offset.shape[0], 1))) +
+            np.kron(np.ones((xyz.shape[0], 1)), offset)
+        )
+
+        mesh.insert_cells(
+            newLoc, maxLevel-mkvc(gridLevel)+1, finalize=finalize
+        )
+
+    elif dtype == "radial":
 
         # Compute the outer limits of each octree level
         rMax = np.cumsum(
@@ -469,8 +505,66 @@ def refineTree(
         if finalize:
             mesh.finalize()
 
+    elif dtype == 'box':
+
+        hx = mesh.hx.min()
+        hy = mesh.hy.min()
+        hz = mesh.hz.min()
+
+        # Define the data extend [bottom SW, top NE]
+        bsw = np.min(xLoc, axis=0)
+        tne = np.max(xLoc, axis=0)
+
+        # Pre-calculate max depth of each level
+        zmax = np.cumsum(
+            mesh.hz.min() *
+            np.asarray(octreeLevels) *
+            2**np.arange(len(octreeLevels))
+        )
+
+        # Pre-calculate outer extent of each level
+        padWidth = np.cumsum(
+                    mesh.hx.min() *
+                    np.asarray(octreeLevels_XY) *
+                    2**np.arange(len(octreeLevels_XY))
+                )
+
+        # Make a list of outer limits
+        BSW = [
+            bsw - np.r_[padWidth[ii], padWidth[ii], zmax[ii]]
+            for ii, (octZ, octXY) in enumerate(
+                    zip(octreeLevels, octreeLevels_XY)
+            )
+        ]
+
+        TNE = [
+            tne + np.r_[padWidth[ii], padWidth[ii], zmax[ii]]
+            for ii, (octZ, octXY) in enumerate(
+                zip(octreeLevels, octreeLevels_XY)
+            )
+        ]
+
+        def inBox(cell):
+
+            xyz = cell.center
+
+            for ii, (nC, bsw, tne) in enumerate(zip(octreeLevels, BSW, TNE)):
+
+                if np.all([xyz > bsw, xyz < tne]):
+                    return maxLevel-ii
+
+            return cell._level
+
+        mesh.refine(inBox)
+
+        if finalize:
+            mesh.finalize()
+
     else:
-        NotImplementedError("Only dtype= 'surface' | 'points' has been implemented")
+        NotImplementedError(
+            "Only dtype= 'surface' | 'points' "
+            " | 'radial' | 'box' has been implemented"
+        )
 
     return mesh
 
