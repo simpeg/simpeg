@@ -344,6 +344,7 @@ def refineTree(
             finalize=False, dtype="radial",
             octreeLevels=[1, 1, 1],
             octreeLevels_XY=None,
+            maxDist=np.inf
 ):
 
     if octreeLevels_XY is not None:
@@ -390,9 +391,15 @@ def refineTree(
             np.kron(np.ones((xyz.shape[0], 1)), offset)
         )
 
+        # Apply max distance
+        r, ind = tree.query(newLoc)
+
         mesh.insert_cells(
-            newLoc, maxLevel-mkvc(gridLevel)+1, finalize=finalize
+            newLoc[r < maxDist], maxLevel-mkvc(gridLevel)[r < maxDist]+1, finalize=False
         )
+
+        if finalize:
+            mesh.finalize()
 
     elif dtype == "radial":
 
@@ -507,42 +514,75 @@ def refineTree(
 
     elif dtype == 'box':
 
-        hx = mesh.hx.min()
-        hy = mesh.hy.min()
-        hz = mesh.hz.min()
-
         # Define the data extend [bottom SW, top NE]
-        bsw = np.min(xLoc, axis=0)
-        tne = np.max(xLoc, axis=0)
+        bsw = np.min(xyz, axis=0)
+        tne = np.max(xyz, axis=0)
+
+        hx = mesh.hx.min()
+
+        if mesh.dim == 2:
+            hz = mesh.hy.min()
+        else:
+            hz = mesh.hz.min()
 
         # Pre-calculate max depth of each level
         zmax = np.cumsum(
-            mesh.hz.min() *
-            np.asarray(octreeLevels) *
+            hz * np.asarray(octreeLevels) *
             2**np.arange(len(octreeLevels))
         )
 
-        # Pre-calculate outer extent of each level
-        padWidth = np.cumsum(
+        if mesh.dim == 2:
+            # Pre-calculate outer extent of each level
+            padWidth = np.cumsum(
                     mesh.hx.min() *
                     np.asarray(octreeLevels_XY) *
                     2**np.arange(len(octreeLevels_XY))
                 )
 
-        # Make a list of outer limits
-        BSW = [
-            bsw - np.r_[padWidth[ii], padWidth[ii], zmax[ii]]
-            for ii, (octZ, octXY) in enumerate(
-                    zip(octreeLevels, octreeLevels_XY)
-            )
-        ]
+            # Make a list of outer limits
+            BSW = [
+                bsw - np.r_[padWidth[ii], zmax[ii]]
+                for ii, (octZ, octXY) in enumerate(
+                        zip(octreeLevels, octreeLevels_XY)
+                )
+            ]
 
-        TNE = [
-            tne + np.r_[padWidth[ii], padWidth[ii], zmax[ii]]
-            for ii, (octZ, octXY) in enumerate(
-                zip(octreeLevels, octreeLevels_XY)
-            )
-        ]
+            TNE = [
+                tne + np.r_[padWidth[ii], zmax[ii]]
+                for ii, (octZ, octXY) in enumerate(
+                    zip(octreeLevels, octreeLevels_XY)
+                )
+            ]
+
+        else:
+            hy = mesh.hy.min()
+
+            # Pre-calculate outer X extent of each level
+            padWidth_x = np.cumsum(
+                    hx * np.asarray(octreeLevels_XY) *
+                    2**np.arange(len(octreeLevels_XY))
+                )
+
+            # Pre-calculate outer Y extent of each level
+            padWidth_y = np.cumsum(
+                    hy * np.asarray(octreeLevels_XY) *
+                    2**np.arange(len(octreeLevels_XY))
+                )
+
+            # Make a list of outer limits
+            BSW = [
+                bsw - np.r_[padWidth_x[ii], padWidth_y[ii], zmax[ii]]
+                for ii, (octZ, octXY) in enumerate(
+                        zip(octreeLevels, octreeLevels_XY)
+                )
+            ]
+
+            TNE = [
+                tne + np.r_[padWidth_x[ii], padWidth_y[ii], zmax[ii]]
+                for ii, (octZ, octXY) in enumerate(
+                    zip(octreeLevels, octreeLevels_XY)
+                )
+            ]
 
         def inBox(cell):
 
@@ -555,10 +595,7 @@ def refineTree(
 
             return cell._level
 
-        mesh.refine(inBox)
-
-        if finalize:
-            mesh.finalize()
+        mesh.refine(inBox, finalize=finalize)
 
     else:
         NotImplementedError(
