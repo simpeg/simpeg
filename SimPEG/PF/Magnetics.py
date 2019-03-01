@@ -566,7 +566,18 @@ class Forward(object):
 
             result = []
             for ii in range(self.nD):
-                result += [self.calcTrow(self.rxLoc[ii, :])]
+
+                if self.forwardOnly:
+                    result += [
+                            np.c_[
+                                np.dot(
+                                    self.calcTrow(self.rxLoc[ii, :]),
+                                    self.model
+                                )
+                            ]
+                        ]
+                else:
+                    result += [self.calcTrow(self.rxLoc[ii, :])]
                 self.progress(ii, self.nD)
 
             G = np.vstack(result)
