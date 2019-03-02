@@ -444,6 +444,8 @@ class SurjectUnits(IdentityMap):
         super(SurjectUnits, self).__init__(**kwargs)
 
         self.index = index
+        nP = len(self.index[0])
+        self._shape = self.nBlock*nP, self.nBlock*len(self.index),
 
     @property
     def P(self):
@@ -465,8 +467,6 @@ class SurjectUnits(IdentityMap):
             ).T
 
             self._P = sp.block_diag([P for ii in range(self.nBlock)])
-
-            self._shape = self.nBlock*nP, self.nBlock*len(self.index),
 
         return self._P
 
