@@ -1639,6 +1639,7 @@ class SparseDeriv(BaseSparse):
                 R = Utils.speye(self.cellDiffStencil.shape[0])
 
             else:
+
                 r = self.R(self.f_m)
                 R = Utils.sdiag(r)
 
@@ -1651,19 +1652,9 @@ class SparseDeriv(BaseSparse):
                 )
 
             else:
-                W = Utils.sdiag((Ave * self.scale)**0.5) * R
-
-
-            if self.mrefInSmooth:
-
-                f_m = self._delta_m(self.model)
-
-            else:
-                f_m = self.model
+                W = Utils.sdiag((Ave * self.scale)**0.5) * Rs
 
             if self.gradientType == 'total':
-
-
 
                 Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
