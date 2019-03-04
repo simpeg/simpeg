@@ -1743,10 +1743,10 @@ class SparseDeriv(BaseSparse):
 
         if self.mrefInSmooth:
 
-            model = self._delta_m(m)
+            f_m = self._delta_m(m)
 
         else:
-            model = m
+            f_m = m
 
         if self.scale is None:
             self.scale = np.ones(self.mapping.shape[0])
@@ -1808,7 +1808,7 @@ class SparseDeriv(BaseSparse):
             r = self.gamma * W * dmdx
 
         else:
-            r = self.gamma * self.W * (self.mapping * model)
+            r = self.gamma * self.W * (self.mapping * f_m)
 
         mD = self.mapping.deriv(f_m)
         return mD.T * (self.W.T * r)
