@@ -1774,13 +1774,6 @@ class SparseDeriv(BaseSparse):
                 W = Utils.sdiag((Ave * self.scale)**0.5) * R
 
 
-            if self.mrefInSmooth:
-
-                f_m = self._delta_m(self.model)
-
-            else:
-                f_m = self.model
-
             if self.gradientType == 'total':
 
 
@@ -1817,7 +1810,7 @@ class SparseDeriv(BaseSparse):
         else:
             r = self.gamma * self.W * (self.mapping * model)
 
-        mD = self.mapping.deriv(model)
+        mD = self.mapping.deriv(f_m)
         return mD.T * (self.W.T * r)
 
     @property
