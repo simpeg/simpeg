@@ -188,7 +188,7 @@ class GravityIntegral(Problem.LinearProblem):
         return G
 
     @property
-    def mapPair(self):
+    def modelMap(self):
         """
             Call for general mapping of the problem
         """
