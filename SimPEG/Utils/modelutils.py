@@ -495,15 +495,25 @@ def refineTree(
 
             z = F(xy[indexTri != -1])
 
+            newLoc = np.c_[xy[indexTri != -1], z]
+
+            # Only keep points within maxDist
+            # Apply max distance
+            r, ind = tree.query(newLoc)
+
             # Apply vertical padding for current octree level
             zOffset = 0
             while zOffset < depth:
-
-                mesh.insert_cells(
-                    np.c_[xy[indexTri != -1], z-zOffset],
-                    np.ones_like(z)*maxLevel-ii,
-                    finalize=False
-                )
+                indIn = r < (maxDist + padWidth[ii])
+                nnz = int(np.sum(indIn))
+                if nnz > 0:
+                    mesh.insert_cells(
+                        np.c_[
+                            newLoc[indIn, :2],
+                            newLoc[indIn, 2]-zOffset],
+                        np.ones(nnz)*maxLevel-ii,
+                        finalize=False
+                    )
 
                 zOffset += dz
 
