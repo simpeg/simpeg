@@ -39,7 +39,7 @@ class GravityIntegral(Problem.LinearProblem):
         if self.forwardOnly:
 
             # Compute the linear operation without forming the full dense G
-            fields = self.Intrgl_Fwr_Op()
+            fields = self.Intrgl_Fwr_Op(m=m)
 
             return mkvc(fields)
 
