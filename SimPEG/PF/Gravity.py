@@ -33,7 +33,8 @@ class GravityIntegral(Problem.LinearProblem):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     def fields(self, m):
-        self.model = self.rhoMap*m
+
+        model = self.rhoMap*m
 
         if self.forwardOnly:
 
@@ -43,15 +44,10 @@ class GravityIntegral(Problem.LinearProblem):
             return mkvc(fields)
 
         else:
-            vec = np.dot(self.G, (self.model).astype(np.float32))
+            vec = np.dot(self.G, model.astype(np.float32))
 
             return vec.astype(np.float64)
 
-    def mapping(self):
-        """
-            Return rhoMap
-        """
-        return self.rhoMap
 
     def getJtJdiag(self, m, W=None):
         """
