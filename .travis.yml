@@ -2,7 +2,6 @@ language: python
 
 python:
   - 3.6
-  - 2.7
 
 sudo: false
 
@@ -41,23 +40,14 @@ env:
 # Setup anaconda
 before_install:
 # Install packages
-  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
-    else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-    fi
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH=/home/travis/anaconda/bin:/home/travis/miniconda/bin:$PATH
   - conda update --yes conda
 
 install:
-  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py vtk;
-    else
-      conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
-    fi
-
+  - conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
   - pip install -r requirements_dev.txt
   - python setup.py install
   - if [ "$TEST_DIR" = "$DEPLOY_DIR" ]; then
@@ -78,16 +68,12 @@ install:
 # Run test
 script:
   # - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s
-  - if [ "$TEST_DIR" = "$DEPLOY_DIR" -a ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      cd docs; travis_wait 30 make html-noplot ; cd ../ ;
-    else
-      nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
-    fi
+  - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
 
 
 # Calculate coverage
 after_success:
-  - bash <(curl -s https://codecov.io/bash) -t 47faa207-a3c4-4507-a08c-669258959286
+  - bash <(curl -s https://codecov.io/bash)
 
   # early exit if not on a deplotment branch
   - if ! [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" -o "$TRAVIS_TAG" = "true" ]; then
@@ -104,25 +90,21 @@ after_success:
     fi
 
   # deploy docs
-  - if [ $TRAVIS_PYTHON_VERSION == $DOCS_PY ]; then
-      if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" ]; then
-        cd docs; tar -cvzf _build.tar.gz _build ;
-        cd content; tar -cvzf examples.tar.gz examples ; cd ../../ ;
-        gsutil cp docs/_build.tar.gz gs://simpeg ;
-        gsutil cp docs/content/examples.tar.gz gs://simpeg ;
-        gcloud auth activate-service-account --key-file credentials/client-secret.json ;
-        export GAE_PROJECT=$GAE_PROJECT ;
-      fi ;
+  - if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" ]; then
+      cd docs; tar -cvzf _build.tar.gz _build ;
+      cd content; tar -cvzf examples.tar.gz examples ; cd ../../ ;
+      gsutil cp docs/_build.tar.gz gs://simpeg ;
+      gsutil cp docs/content/examples.tar.gz gs://simpeg ;
+      gcloud auth activate-service-account --key-file credentials/client-secret.json ;
+      export GAE_PROJECT=$GAE_PROJECT ;
       gcloud config set project $GAE_PROJECT;
       gcloud app deploy ./docs/app.yaml --version ${TRAVIS_COMMIT} --promote;
     fi;
 
   #deploy to pypi
-  - if [ $TRAVIS_PYTHON_VERSION == $PYPI_PY ]; then
-      if [ "$TRAVIS_TAG" = "true" ]; then
-        mv credentials/.pypirc ~/.pypirc ;
-        python setup.py sdist bdist_wheel --universal upload;
-      fi
+  - if [ "$TRAVIS_TAG" = "true" ]; then
+      mv credentials/.pypirc ~/.pypirc ;
+      python setup.py sdist bdist_wheel --universal upload;
     fi
 
 notifications:
