@@ -15,7 +15,9 @@ It installs `python <https://www.python.org/>`_,
 `Jupyter <http://jupyter.org/>`_ and other core
 python libraries for scientific computing.
 
-We also recommend installing the latest version of Python 3.
+As of version 0.11.0, we will no longer ensure compatibility with Python 2.7. Please use
+the latest version of Python 3 with SimPEG. For more ingormation on the transition of the
+Python ecosystem to Python 3, please see the `Python 3 Statement <https://python3statement.org/>`_.
 
 
 .. _installing_simpeg:
