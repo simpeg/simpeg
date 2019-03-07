@@ -10,7 +10,8 @@ from scipy.interpolate import LinearNDInterpolator
 import discretize as Mesh
 from discretize.utils import closestPoints, kron3, speye
 
-def surface2ind_topo(mesh, topo, gridLoc='CC', method='linear',
+
+def surface2ind_topo(mesh, topo, gridLoc='N', method='linear',
                      fill_value=np.nan):
     """
     Get active indices from topography
@@ -36,9 +37,7 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='linear',
 
     if mesh.dim == 3:
 
-        if gridLoc == 'CC':
-
-            if mesh._meshType in ['TREE']:
+        if mesh._meshType in ['TREE']:
 
                 if method == 'nearest':
                     F = NearestNDInterpolator(topo[:, :2], topo[:, 2])
@@ -52,11 +51,11 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='linear',
                         F = NearestNDInterpolator(topo[:, :2], topo[:, 2])
                         zTopo[np.isnan(zTopo)] = F(mesh.gridCC[np.isnan(zTopo), :2])
 
-                # actind = np.zeros(mesh.nC, dtype='bool')
+        if gridLoc == 'CC':
 
-                # Fetch elevation at all points
+            if mesh._meshType in ['TREE']:
 
-                # for ii, ind in enumerate(mesh._sortedCells):
+                # Fetch elevation at cell centers
                 actind = mesh.gridCC[:, 2] < zTopo
 
             else:
@@ -76,27 +75,28 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='linear',
 
         elif gridLoc == 'N':
 
-            if mesh._meshType not in ['TENSOR', 'CYL', 'BASETENSOR']:
-                raise NotImplementedError('Nodal surface2ind_topo not ' +
-                                          'implemented for' +
-                                          '{0!s} mesh'.format(mesh._meshType))
+            if mesh._meshType in ['TENSOR', 'CYL', 'BASETENSOR']:
 
-            XY = ndgrid(mesh.vectorNx, mesh.vectorNy)
-            gridTopo = griddata(topo[:, :2], topo[:, 2], XY,
-                                method=method,
-                                fill_value=fill_value)
+                XY = ndgrid(mesh.vectorNx, mesh.vectorNy)
+                gridTopo = griddata(topo[:, :2], topo[:, 2], XY,
+                                    method=method,
+                                    fill_value=fill_value)
 
-            gridTopo = gridTopo.reshape(mesh.vnN[:2], order='F')
+                gridTopo = gridTopo.reshape(mesh.vnN[:2], order='F')
 
-            # TODO: this will only work for tensor meshes
-            Nz = mesh.vectorNz[1:]
-            actind = np.array([False]*mesh.nC).reshape(mesh.vnC, order='F')
+                # TODO: this will only work for tensor meshes
+                Nz = mesh.vectorNz[1:]
+                actind = np.array([False]*mesh.nC).reshape(mesh.vnC, order='F')
 
-            for ii in range(mesh.nCx):
-                for jj in range(mesh.nCy):
-                    actind[ii, jj, :] = [np.all(gridTopo[ii:ii+2, jj:jj+2] >=
-                                                Nz[kk])
-                                         for kk in range(len(Nz))]
+                for ii in range(mesh.nCx):
+                    for jj in range(mesh.nCy):
+                        actind[ii, jj, :] = [np.all(gridTopo[ii:ii+2, jj:jj+2] >=
+                                                    Nz[kk])
+                                             for kk in range(len(Nz))]
+            else:
+
+                # Fetch elevation at cell centers
+                actind = (mesh.gridCC[:, 2] + mesh.h_gridded[:, 2]) < zTopo
 
     elif mesh.dim == 2:
 
