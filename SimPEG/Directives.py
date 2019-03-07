@@ -1077,7 +1077,7 @@ class GaussianMixtureUpdateModel(InversionDirective):
 
     coolingFactor = 1.
     coolingRate = 1
-    update_covariances = False
+    update_covariances = True
     verbose = False
     alphadir = None
     nu = None

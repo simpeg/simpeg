@@ -33,25 +33,20 @@ class GravityIntegral(Problem.LinearProblem):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     def fields(self, m):
-        self.model = self.rhoMap*m
 
         if self.forwardOnly:
 
             # Compute the linear operation without forming the full dense G
-            fields = self.Intrgl_Fwr_Op()
+            fields = self.Intrgl_Fwr_Op(m=m)
 
             return mkvc(fields)
 
         else:
-            vec = np.dot(self.G, (self.model).astype(np.float32))
+            model = self.rhoMap*m
+            vec = np.dot(self.G, (model).astype(np.float32))
 
             return vec.astype(np.float64)
 
-    def mapping(self):
-        """
-            Return rhoMap
-        """
-        return self.rhoMap
 
     def getJtJdiag(self, m, W=None):
         """
@@ -188,7 +183,7 @@ class GravityIntegral(Problem.LinearProblem):
         return G
 
     @property
-    def mapPair(self):
+    def modelMap(self):
         """
             Call for general mapping of the problem
         """
