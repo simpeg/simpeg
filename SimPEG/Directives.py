@@ -2340,7 +2340,6 @@ class UpdateSensitivityWeights(InversionDirective):
                     "Problem does not have a getJ attribute." +
                     "Cannot form the sensitivity explicitely"
                 )
-
                 self.JtJdiag += [Utils.mkvc(np.sum((dmisfit.W*prob.getJ(m))**(2.), axis=0))]
             else:
                 self.JtJdiag += [prob.getJtJdiag(m, W=dmisfit.W)]
