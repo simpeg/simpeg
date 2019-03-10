@@ -96,7 +96,7 @@ def surface2ind_topo(mesh, topo, gridLoc='N', method='linear',
             else:
 
                 # Fetch elevation at cell centers
-                actind = (mesh.gridCC[:, 2] + mesh.h_gridded[:, 2]) < zTopo
+                actind = (mesh.gridCC[:, 2] + mesh.h_gridded[:, 2]/2.) < zTopo
 
     elif mesh.dim == 2:
 

@@ -46,7 +46,10 @@ class GravityDriver_Inv(object):
         # Line 1: Mesh
         line = fid.readline()
         l_input = re.split('[!\s]', line)
-        mshfile = l_input[1].rstrip()
+        if l_input[0] == 'FILE':
+            mshfile = l_input[1].rstrip()
+        else:
+            mshfile = None
 
         # Line 2: Observation file
         line = fid.readline()
@@ -164,8 +167,11 @@ class GravityDriver_Inv(object):
 
     @property
     def mesh(self):
-        if getattr(self, '_mesh', None) is None:
+        if (getattr(self, '_mesh', None) is None) and (self.mshfile is not None):
             self._mesh = Mesh.TensorMesh.readUBC(self.basePath + self.mshfile)
+        else:
+            self._mesh = None
+
         return self._mesh
 
     @property
