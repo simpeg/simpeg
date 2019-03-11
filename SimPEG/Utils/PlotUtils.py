@@ -1,12 +1,15 @@
 import numpy as np
-from scipy.interpolate import LinearNDInterpolator
+from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
 import matplotlib.pyplot as plt
 
 
-def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
-               ax=None, mask=None, level=None, figname=None,
-               ncontour=10, dataloc=False, contourOpts={},
-               scale="linear", clim=None):
+def plot2Ddata(
+    xyz, data, vec=False, nx=100, ny=100,
+    ax=None, mask=None, level=False, figname=None,
+    ncontour=10, dataloc=False, contourOpts={},
+    levelOpts={}, scale="linear", clim=None,
+    method='linear'
+):
     """
 
         Take unstructured xy points, interpolate, then plot in 2D
@@ -17,20 +20,50 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
         :param float nx: number of x grid locations
         :param float ny: number of y grid locations
         :param matplotlib.axes ax: axes
-        :param numpy.array mask: mask for the array
-        :param float level: level at which to draw a contour
+        :param boolean numpy.array mask: mask for the array
+        :param boolean level: boolean to plot (or not)
+                                :meth:`matplotlib.pyplot.contour`
         :param string figname: figure name
         :param float ncontour: number of :meth:`matplotlib.pyplot.contourf`
-                               contours
+                                contours
         :param bool dataloc: plot the data locations
         :param dict controuOpts: :meth:`matplotlib.pyplot.contourf` options
+        :param dict levelOpts: :meth:`matplotlib.pyplot.contour` options
         :param numpy.array clim: colorbar limits
+        :param str method: interpolation method, either 'linear' or 'nearest'
 
     """
+
+    # Error checking and set vmin, vmax
+    vmin = None
+    vmax = None
+
+    if clim is not None:
+        vmin = np.min(clim)
+        vmax = np.max(clim)
+
+    for key, attr in zip(["vmin", "vmax"], [vmin, vmax]):
+        if key in contourOpts.keys():
+            if attr is None:
+                attr = contourOpts.pop(key)
+            else:
+                if not np.isclose(contourOpts[key], attr):
+                    raise Exception(
+                        "The values provided in the colorbar limit, clim {} "
+                        "does not match the value of {} provided in the "
+                        "contourOpts: {}. Only one value should be provided or "
+                        "the two values must be equal.".format(
+                            attr, key, contourOpts[key]
+                        )
+                    )
+                contourOpts.pop(key)
+
+    # create a figure if it doesn't exist
     if ax is None:
         fig = plt.figure()
         ax = plt.subplot(111)
 
+    # interpolate data to grid locations
     xmin, xmax = xyz[:, 0].min(), xyz[:, 0].max()
     ymin, ymax = xyz[:, 1].min(), xyz[:, 1].max()
     x = np.linspace(xmin, xmax, nx)
@@ -38,23 +71,62 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
     X, Y = np.meshgrid(x, y)
     xy = np.c_[X.flatten(), Y.flatten()]
     if vec is False:
-        F = LinearNDInterpolator(xyz[:, :2], data)
+        if method == 'nearest':
+            F = NearestNDInterpolator(xyz[:, :2], data)
+        else:
+            F = LinearNDInterpolator(xyz[:, :2], data)
         DATA = F(xy)
         DATA = DATA.reshape(X.shape)
         if scale == "log":
             DATA = np.log10(abs(DATA))
-        cont = ax.contourf(X, Y, DATA, ncontour, **contourOpts)
-        if level is not None:
-            if scale == "log":
-                level = np.log10(level)
-            CS = ax.contour(X, Y, DATA, level, colors="k", linewidths=2)
+
+        # Levels definitions
+        dataselection = np.logical_and(
+            ~np.isnan(DATA),
+            np.abs(DATA) != np.inf
+            )
+
+        # set vmin, vmax if they are not already set
+        vmin = DATA[dataselection].min() if vmin is None else vmin
+        vmax = DATA[dataselection].max() if vmax is None else vmax
+        if scale == "log":
+            if vmin <= 0 or vmax <= 0:
+                raise Exception(
+                    "All values must be strictly positive in order to use the log-scale"
+                )
+            vmin = np.log10(vmin)
+            vmax = np.log10(vmax)
+
+        vstep = np.abs((vmin-vmax)/(ncontour+1))
+        levels = np.arange(vmin, vmax+vstep, vstep)
+        if DATA[dataselection].min() < levels.min():
+                levels = np.r_[DATA[dataselection].min(), levels]
+        if DATA[dataselection].max() > levels.max():
+                levels = np.r_[levels, DATA[dataselection].max()]
+
+        if mask is not None:
+            Fmask = NearestNDInterpolator(xyz[:, :2], mask)
+            MASK = Fmask(xy)
+            MASK = MASK.reshape(X.shape)
+            DATA = np.ma.masked_array(DATA, mask=MASK)
+
+        cont = ax.contourf(
+            X, Y, DATA, levels=levels, vmin=vmin, vmax=vmax,
+            **contourOpts
+        )
+        if level:
+            CS = ax.contour(X, Y, DATA, levels=levels, **levelOpts)
 
     else:
         # Assume size of data is (N,2)
         datax = data[:, 0]
         datay = data[:, 1]
-        Fx = LinearNDInterpolator(xyz[:, :2], datax)
-        Fy = LinearNDInterpolator(xyz[:, :2], datay)
+        if method == 'nearest':
+            Fx = NearestNDInterpolator(xyz[:, :2], datax)
+            Fy = NearestNDInterpolator(xyz[:, :2], datay)
+        else:
+            Fx = LinearNDInterpolator(xyz[:, :2], datax)
+            Fy = LinearNDInterpolator(xyz[:, :2], datay)
         DATAx = Fx(xy)
         DATAy = Fy(xy)
         DATA = np.sqrt(DATAx**2+DATAy**2).reshape(X.shape)
@@ -63,10 +135,45 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
         if scale == "log":
             DATA = np.log10(abs(DATA))
 
-        cont = ax.contourf(X, Y, DATA, ncontour, **contourOpts)
+        # Levels definitions
+        dataselection = np.logical_and(
+            ~np.isnan(DATA),
+            np.abs(DATA) != np.inf
+            )
+
+
+        # set vmin, vmax
+        vmin = DATA[dataselection].min() if vmin is None else vmin
+        vmax = DATA[dataselection].max() if vmax is None else vmax
+        if scale == "log":
+            if vmin <= 0 or vmax <= 0:
+                raise Exception(
+                    "All values must be strictly positive in order to use the log-scale"
+                )
+            vmin = np.log10(vmin)
+            vmax = np.log10(vmax)
+
+        vstep = np.abs((vmin-vmax)/(ncontour+1))
+        levels = np.arange(vmin, vmax+vstep, vstep)
+        if DATA[dataselection].min() < levels.min():
+                levels = np.r_[DATA[dataselection].min(), levels]
+        if DATA[dataselection].max() > levels.max():
+                levels = np.r_[levels, DATA[dataselection].max()]
+
+        if mask is not None:
+            Fmask = NearestNDInterpolator(xyz[:, :2], mask)
+            MASK = Fmask(xy)
+            MASK = MASK.reshape(X.shape)
+            DATA = np.ma.masked_array(DATA, mask=MASK)
+
+        cont = ax.contourf(
+            X, Y, DATA, levels=levels,
+            vmin=vmin, vmax=vmax,
+            **contourOpts
+        )
         ax.streamplot(X, Y, DATAx, DATAy, color="w")
-        if level is not None:
-            CS = ax.contour(X, Y, DATA, level, colors="k", linewidths=2)
+        if level:
+            CS = ax.contour(X, Y, DATA, levels=levels, **levelOpts)
 
     if dataloc:
         ax.plot(xyz[:, 0], xyz[:, 1], 'k.', ms=2)
@@ -74,10 +181,10 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
     if figname:
         plt.axis("off")
         fig.savefig(figname, dpi=200)
-    if level is None:
-        return cont, ax
-    else:
+    if level:
         return cont, ax, CS
+    else:
+        return cont, ax
 
 
 def plotLayer(sig, LocSigZ, xscale='log', ax=None,

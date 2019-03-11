@@ -10,12 +10,14 @@ Prerequisite: Installing Python
 ===============================
 
 We highly recommend installing python using
-`Anaconda <https://www.continuum.io/downloads>`_.
+`Anaconda <https://anaconda.com/download/>`_.
 It installs `python <https://www.python.org/>`_,
 `Jupyter <http://jupyter.org/>`_ and other core
 python libraries for scientific computing.
 
-We also recommend installing the latest version of Python 3.
+As of version 0.11.0, we will no longer ensure compatibility with Python 2.7. Please use
+the latest version of Python 3 with SimPEG. For more ingormation on the transition of the
+Python ecosystem to Python 3, please see the `Python 3 Statement <https://python3statement.org/>`_.
 
 
 .. _installing_simpeg:
@@ -68,7 +70,7 @@ Success?
 ========
 
 If you have been successful at downloading and installing SimPEG, you should
-be able to download and run any of the :ref:`Examples`.
+be able to download and run any of the `Examples <http://docs.simpeg.xyz/content/examples/index.html>`_.
 
 If not, you can reach out to other people developing and using SimPEG on the
 `google forum <https://groups.google.com/forum/#!forum/simpeg>`_ or on

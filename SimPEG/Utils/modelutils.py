@@ -2,6 +2,8 @@ from .matutils import mkvc, ndgrid, uniqueRows
 import numpy as np
 from scipy.interpolate import griddata, interp1d
 from scipy.interpolate import NearestNDInterpolator, LinearNDInterpolator
+from scipy.spatial import cKDTree
+import scipy.sparse as sp
 
 
 def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.nan):
@@ -145,3 +147,44 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.n
             raise NotImplementedError('surface2ind_topo not implemented for Quadtree or 1D mesh')
 
     return mkvc(actind)
+
+
+def surface_layer_index(mesh, topo, index=0):
+    """
+        Find the ith layer below topo
+    """
+
+    actv = np.zeros(mesh.nC, dtype='bool')
+    # Get cdkTree to find top layer
+    tree = cKDTree(mesh.gridCC)
+
+    def ismember(a, b):
+        bind = {}
+        for i, elt in enumerate(b):
+            if elt not in bind:
+                bind[elt] = i
+        return np.vstack([bind.get(itm, None) for itm in a])
+
+    grid_x, grid_y = np.meshgrid(mesh.vectorCCx, mesh.vectorCCy)
+    zInterp = mkvc(
+        griddata(
+            topo[:, :2], topo[:, 2], (grid_x, grid_y), method='nearest'
+        )
+    )
+
+    # Get nearest cells
+    r, inds = tree.query(np.c_[mkvc(grid_x), mkvc(grid_y), zInterp])
+    inds = np.unique(inds)
+
+    # Extract vertical neighbors from Gradz operator
+    Dz = mesh._cellGradzStencil
+    Iz, Jz, _ = sp.find(Dz)
+    jz = np.sort(Jz[np.argsort(Iz)].reshape((int(Iz.shape[0]/2), 2)), axis=1)
+    for ii in range(index):
+
+        members = ismember(inds, jz[:, 1])
+        inds = np.squeeze(jz[members, 0])
+
+    actv[inds] = True
+
+    return actv

@@ -10,7 +10,12 @@ class VRM_fwd_tests(unittest.TestCase):
     Computed vs analytic dipole field
     """
 
+    # random seed
+    seed = 518936
+
     def test_predict_dipolar(self):
+
+        np.random.seed(self.seed)
 
         h = [0.05, 0.05]
         meshObj = Mesh.TensorMesh((h, h, h), x0='CCC')
@@ -65,6 +70,8 @@ class VRM_fwd_tests(unittest.TestCase):
         same orientation and dipole moment. Test ensures the same fields are
         computed.
         """
+
+        np.random.seed(self.seed)
 
         h = [0.5, 0.5]
         meshObj = Mesh.TensorMesh((h, h, h), x0='CCC')
@@ -337,6 +344,8 @@ class VRM_fwd_tests(unittest.TestCase):
         Test ensures the fields predicted for each receiver type
         are correct.
         """
+
+        np.random.seed(self.seed)
 
         h1 = [0.25, 0.25]
         meshObj_Tensor = Mesh.TensorMesh((h1, h1, h1), x0='CCN')
