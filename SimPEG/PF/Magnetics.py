@@ -517,7 +517,10 @@ class Forward(object):
 
                 if self.forwardOnly:
 
-                    return da.dot(stack, self.model).compute()
+                    with ProgressBar():
+                        pred = da.dot(stack, self.model).compute()
+
+                    return pred
 
                 else:
 
