@@ -220,7 +220,7 @@ class Minimize(object):
         if self.callback is not None:
             print(
                 'The callback on the {0!s} Optimization was '
-                'replaced.'.format(self.__name__)
+                'replaced.'.format(self.__class__.__name__)
             )
         self._callback = value
 
