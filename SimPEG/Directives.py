@@ -1838,7 +1838,7 @@ class PetroBetaReWeighting(InversionDirective):
     rateWarming = 1.
     mode = 1
     mode2_iter = 0
-    betamax = 1e10
+    alphasmax = 1e10
     betamin = 1e-10
     UpdateRate = 1
     ratio_in_cooling = False
@@ -1937,7 +1937,8 @@ class PetroBetaReWeighting(InversionDirective):
             np.r_[self.dmisfit.multipliers] * self.inversion.directiveList.dList[self.targetclass].DMtarget)
         self.score = self.inversion.directiveList.dList[
             self.targetclass].phims()
-
+        self.targetlist = self.inversion.directiveList.dList[
+            self.targetclass].targetlist
         if self.DM:
             self.mode = 2
             self.mode2_iter += 1
@@ -1976,14 +1977,19 @@ class PetroBetaReWeighting(InversionDirective):
         if self.opt.iter > 0 and self.opt.iter % self.UpdateRate == 0:
             if self.verbose:
                 print('progress', self.dmlist, '><',
-                      (1. - self.progress) * self.previous_dmlist)
+                    np.maximum(
+                        (1. - self.progress) * self.previous_dmlist[~self.targetlist],
+                        self.DMtarget[~self.targetlist]
+                    )
+                )
             if np.any(
                 [
                     np.all(
                         [
                             np.all(
-                                self.dmlist > (1. - self.progress) *
-                                self.previous_dmlist
+                                self.dmlist[~self.targetlist] > np.maximum(
+                                    (1. - self.progress) * self.previous_dmlist[~self.targetlist],
+                                    self.DMtarget[~self.targetlist])
                             ),
                             not self.DM,
                             self.mode == 1
@@ -2018,7 +2024,7 @@ class PetroBetaReWeighting(InversionDirective):
             elif np.all([self.DM,
                          self.mode == 2]):
 
-                if np.all([self.invProb.beta < self.betamax]):
+                if np.all([self.petroregularizer.alpha_s < self.alphasmax]):
 
                     ratio = np.min(self.DMtarget / self.dmlist)
                     #self.invProb.beta = self.rateWarming * self.invProb.beta * ratio
@@ -2114,7 +2120,7 @@ class PetroBetaReWeighting(InversionDirective):
                         ratio = np.max(
                             [self.dmlist[indx] / self.DMtarget[indx]])
                     self.invProb.beta /= (self.rateCooling * ratio)
-                    self.petroregularizer.alpha_s /= (self.rateCooling * ratio)
+                    # self.petroregularizer.alpha_s /= (self.rateCooling * ratio)
                     if self.verbose:
                         print('update beta for countering plateau')
 
