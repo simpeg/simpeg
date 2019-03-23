@@ -1978,8 +1978,8 @@ class PetroBetaReWeighting(InversionDirective):
             if self.verbose:
                 print('progress', self.dmlist, '><',
                     np.maximum(
-                        (1. - self.progress) * self.previous_dmlist[~self.targetlist],
-                        self.DMtarget[~self.targetlist]
+                        (1. - self.progress) * self.previous_dmlist,
+                        self.DMtarget
                     )
                 )
             if np.any(
