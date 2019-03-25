@@ -46,9 +46,11 @@ class TestVersion(unittest.TestCase):
 
         # Check the 'text'-version, providing a package as tuple
         out2 = self.catch_version_stdout('print', add_pckg=(pip, ))
+        Va = Versions(add_pckg=(pip, )).__repr__()
 
         # They have to be the same, except time (run at slightly different times)
         assert out1b[75:] == out2[75:]
+        assert Va[85:200] == out2[85:200]  # Line-wrapping is different at end.
 
         # Check the 'Pretty'/'plain'-version, providing a package as list
         out3 = versions('plain', add_pckg=[pip, ])
@@ -72,6 +74,8 @@ class TestVersion(unittest.TestCase):
         out4 = versions('html', add_pckg=[pip])
         out4b = printinfo.versions_html(add_pckg=[pip])
         out4c = versions('HTML', add_pckg=[pip])
+        Vb = Versions(add_pckg=[pip])._repr_html_()
+        assert out4b == Vb
 
         assert 'numpy' in out4
         assert 'td style=' in out4
