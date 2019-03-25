@@ -9,7 +9,7 @@ try:
 except ImportError:
     IPython = False
 
-from SimPEG import versions
+from SimPEG import versions, Versions
 from SimPEG.Utils import printinfo
 
 
