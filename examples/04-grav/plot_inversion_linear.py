@@ -43,10 +43,9 @@ def run(plotIt=True):
     # We would usually load a topofile
     topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
 
-    # Go from topo to actv cells
+    # Go from topo to array of indices of active cells
     actv = Utils.surface2ind_topo(mesh, topo, 'N')
-    actv = np.asarray([inds for inds, elem in enumerate(actv, 1) if elem],
-                      dtype=int) - 1
+    actv = np.where(actv)[0]
 
     # Create active map to go from reduce space to full
     actvMap = Maps.InjectActiveCells(mesh, actv, -100)

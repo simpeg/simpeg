@@ -193,12 +193,7 @@ class GravityDriver_Inv(object):
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
                 active = self.activeModel != 0
 
-            inds = np.asarray(
-                [
-                    inds for inds, elem in enumerate(active, 1) if elem
-                ],
-                dtype=int
-            ) - 1
+            inds = np.where(active)[0]
             self._activeCells = inds
 
             # Reduce m0 to active space
@@ -214,12 +209,7 @@ class GravityDriver_Inv(object):
             # Cells with value 1 in active model are dynamic
             staticCells = self.activeModel[self._activeCells] == -1
 
-            inds = np.asarray(
-                [
-                    inds for inds, elem in enumerate(staticCells, 1) if elem
-                ],
-                dtype=int
-            ) - 1
+            inds = np.where(staticCells)[0]
             self._staticCells = inds
 
         return self._staticCells
@@ -231,10 +221,7 @@ class GravityDriver_Inv(object):
             # Cells with value 1 in active model are dynamic
             dynamicCells = self.activeModel[self._activeCells] == 1
 
-            inds = np.asarray(
-                [inds for inds, elem in enumerate(
-                 dynamicCells, 1) if elem], dtype=int
-            ) - 1
+            inds = np.where(dynamicCells)[0]
 
             self._dynamicCells = inds
 
