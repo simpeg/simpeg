@@ -279,7 +279,7 @@ class MVIProblemTest(unittest.TestCase):
                                          )
         opt.approxHinv = None
 
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta*10.)
+        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta)
 
         # Here is where the norms are applied
         IRLS = Directives.Update_IRLS(f_min_change=1e-4, maxIRLSiter=20,
