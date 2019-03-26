@@ -6,7 +6,7 @@ import numpy as np
 
 def GravSphereFreeSpace(x, y, z, R, xc, yc, zc, rho):
     """
-        Computing the induced response of magnetic sphere in free-space.
+        Computing the induced response of gravity sphere in free-space.
         >> Input
         x, y, z:   Observation locations
         R:     radius of the sphere

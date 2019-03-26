@@ -386,15 +386,9 @@ class Problem3D_Diff(Problem.BaseProblem):
 
     def fields(self, m):
         """
-            Return magnetic potential (u) and flux (B)
+            Return gravity potential (u) and field (g)
             u: defined on the cell nodes [nC x 1]
             gField: defined on the cell faces [nF x 1]
-
-            After we compute u, then we update B.
-
-            .. math ::
-
-                \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
         from scipy.constants import G as NewtG
