@@ -46,9 +46,6 @@ def run(plotIt=True):
     # Go from topo to array of indices of active cells
     actv = Utils.surface2ind_topo(mesh, topo, 'N')
     actv = np.where(actv)[0]
-
-    # Create active map to go from reduce space to full
-    actvMap = Maps.InjectActiveCells(mesh, actv, -100)
     nC = len(actv)
 
     # Create and array of observation points
@@ -59,13 +56,13 @@ def run(plotIt=True):
     # Move the observation points 5m above the topo
     Z = -np.exp((X**2 + Y**2) / 75**2) + mesh.vectorNz[-1] + 0.1
 
-    # Create a MAGsurvey
+    # Create a GRAVsurvey
     rxLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
     rxLoc = PF.BaseGrav.RxObs(rxLoc)
     srcField = PF.BaseGrav.SrcField([rxLoc])
     survey = PF.BaseGrav.LinearSurvey(srcField)
 
-    # We can now create a susceptibility model and generate data
+    # We can now create a density model and generate data
     # Here a simple block in half-space
     model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
     model[(midx-5):(midx-1), (midy-2):(midy+2), -10:-6] = 0.75
@@ -119,7 +116,7 @@ def run(plotIt=True):
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 
     # Here is where the norms are applied
-    # Use pick a treshold parameter empirically based on the distribution of
+    # Use pick a threshold parameter empirically based on the distribution of
     # model parameters
     IRLS = Directives.Update_IRLS(
         f_min_change=1e-4, maxIRLSiter=30, coolEpsFact=1.5, beta_tol=1e-1,
@@ -166,7 +163,7 @@ def run(plotIt=True):
         ax.xaxis.set_visible(False)
         plt.gca().set_aspect('equal', adjustable='box')
 
-        # Vertica section
+        # Vertical section
         ax = plt.subplot(322)
         mesh.plotSlice(m_l2, ax=ax, normal='Y', ind=midx,
                        grid=True, clim=(vmin, vmax))

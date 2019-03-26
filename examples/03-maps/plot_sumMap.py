@@ -45,10 +45,6 @@ def run(plotIt=True):
     actv = Utils.surface2ind_topo(mesh, topo, 'N')
     actv = np.where(actv)[0]
 
-    # Create active map to go from reduce space to full
-    actvMap = Maps.InjectActiveCells(mesh, actv, -100)
-    nC = len(actv)
-
     # Create and array of observation points
     xr = np.linspace(-20., 20., 20)
     yr = np.linspace(-20., 20., 20)
@@ -79,8 +75,8 @@ def run(plotIt=True):
     # Create active map to go from reduce set to full
     actvMap = Maps.InjectActiveCells(mesh, actv, np.nan)
 
-    # Creat reduced identity map
-    idenMap = Maps.IdentityMap(nP=nC)
+    # Create reduced identity map
+    idenMap = Maps.IdentityMap(nP=len(actv))
 
     # Create the forward model operator
     prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap, actInd=actv)
@@ -103,7 +99,7 @@ def run(plotIt=True):
     # Plot the data
     rxLoc = survey.srcField.rxList[0].locs
 
-    # Creat a homogenous maps for the two domains
+    # Create a homogenous maps for the two domains
     domains = [mesh.gridCC[actv,0] < 0, mesh.gridCC[actv,0] >= 0]
     homogMap = Maps.SurjectUnits(domains)
 
@@ -124,7 +120,7 @@ def run(plotIt=True):
     wr = np.zeros(sumMap.shape[1])
 
     # Take the cell number out of the scaling.
-    # Want to keep high sens for large volumnes
+    # Want to keep high sens for large volumes
     scale = Utils.sdiag(np.r_[Utils.mkvc(1./homogMap.P.sum(axis=0)),np.ones_like(actv)])
 
     for ii in range(survey.nD):
@@ -163,7 +159,7 @@ def run(plotIt=True):
     betaest = Directives.BetaEstimate_ByEig()
 
     # Here is where the norms are applied
-    # Use pick a treshold parameter empirically based on the distribution of
+    # Use pick a threshold parameter empirically based on the distribution of
     #  model parameters
     IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=1)
     update_Jacobi = Directives.UpdatePreconditioner()
