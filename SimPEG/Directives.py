@@ -1979,7 +1979,7 @@ class PetroBetaReWeighting(InversionDirective):
                 print('progress', self.dmlist, '><',
                     np.maximum(
                         (1. - self.progress) * self.previous_dmlist,
-                        self.DMtarget
+                        (1. + self.tolerance) * self.DMtarget
                     )
                 )
             if np.any(
@@ -2109,8 +2109,10 @@ class PetroBetaReWeighting(InversionDirective):
                             '\nkappa: ', self.updategaussianclass.kappa,
                             '\nalphadir: ', self.updategaussianclass.alphadir
                         )
-            elif np.all([not self.DM,
-                         self.mode == 2]):
+            elif np.all([
+                    np.any(self.dmlist > (1. + self.tolerance) * self.DMtarget),
+                         self.mode == 2
+                ]):
 
                 if np.all([self.invProb.beta > self.betamin]):
 

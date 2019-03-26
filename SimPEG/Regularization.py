@@ -3109,3 +3109,74 @@ def MakePetroRegularization(
         )
 
     return reg
+
+
+def MakeSimplePetroWithMappingRegularization(
+    mesh, GMmref, GMmodel=None,
+    wiresmap=None, maplist=None,
+    approx_gradient=True,
+    evaltype='approx',
+    gamma=1.,
+    alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
+    alpha_xx=0., alpha_yy=0., alpha_zz=0.,
+    cell_weights_list=None,
+    **kwargs
+):
+
+    if wiresmap is None:
+        wrmp = Maps.Wires(('m', mesh.nC))
+    else:
+        wrmp = wiresmap
+
+    if maplist is None:
+        mplst = [Maps.IdentityMap(mesh) for maps in wrmp.maps]
+    else:
+        mplst = maplist
+
+    if cell_weights_list is None:
+        clwhtlst = [Identity() for maps in wrmp.maps]
+    else:
+        clwhtlst = cell_weights_list
+
+
+    reg = SimplePetroWithMappingRegularization(
+        mesh=mesh, GMmref=GMmref, GMmodel=GMmodel,
+        wiresmap=wiresmap, maplist=maplist,
+        approx_gradient=approx_gradient,
+        evaltype=evaltype,
+        alpha_s=alpha_s,
+        alpha_x=0., alpha_y=0., alpha_z=0.,
+        **kwargs
+    )
+    reg.gamma = gamma
+    if cell_weights_list is not None:
+        reg.objfcts[0].cell_weights = np.hstack(clwhtlst)
+
+    if isinstance(alpha_x, float):
+        alph_x = alpha_x * np.ones(len(wrmp.maps))
+    else:
+        alph_x = alpha_x
+
+    if isinstance(alpha_y, float):
+        alph_y = alpha_y * np.ones(len(wrmp.maps))
+    else:
+        alph_y = alpha_y
+
+    if isinstance(alpha_z, float):
+        alph_z = alpha_z * np.ones(len(wrmp.maps))
+    else:
+        alph_z = alpha_z
+
+    for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
+        reg += Simple(
+            mesh=mesh,
+            mapping=maps * wire[1],
+            alpha_s=0.,
+            alpha_x=alph_x[i],
+            alpha_y=alph_y[i],
+            alpha_z=alph_z[i],
+            cell_weights=clwhtlst[i],
+            ** kwargs
+        )
+
+    return reg
