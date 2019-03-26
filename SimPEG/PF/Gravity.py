@@ -33,25 +33,21 @@ class GravityIntegral(Problem.LinearProblem):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     def fields(self, m):
-        self.model = self.rhoMap*m
+
+        model = self.rhoMap*m
 
         if self.forwardOnly:
 
             # Compute the linear operation without forming the full dense G
-            fields = self.Intrgl_Fwr_Op()
+            fields = self.Intrgl_Fwr_Op(m=m)
 
             return mkvc(fields)
 
         else:
-            vec = np.dot(self.G, (self.model).astype(np.float32))
+            vec = np.dot(self.G, model.astype(np.float32))
 
             return vec.astype(np.float64)
 
-    def mapping(self):
-        """
-            Return rhoMap
-        """
-        return self.rhoMap
 
     def getJtJdiag(self, m, W=None):
         """
@@ -188,7 +184,7 @@ class GravityIntegral(Problem.LinearProblem):
         return G
 
     @property
-    def mapPair(self):
+    def modelMap(self):
         """
             Call for general mapping of the problem
         """
@@ -390,15 +386,9 @@ class Problem3D_Diff(Problem.BaseProblem):
 
     def fields(self, m):
         """
-            Return magnetic potential (u) and flux (B)
+            Return gravity potential (u) and field (g)
             u: defined on the cell nodes [nC x 1]
             gField: defined on the cell faces [nF x 1]
-
-            After we compute u, then we update B.
-
-            .. math ::
-
-                \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
         from scipy.constants import G as NewtG
