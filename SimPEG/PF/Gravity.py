@@ -90,21 +90,18 @@ class GravityIntegral(Problem.LinearProblem):
         self.Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
         self.Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
-
     def fields(self, m):
         # self.model = self.rhoMap*m
-        m = self.rhoMap*m
+
         if self.forwardOnly:
 
             # Compute the linear operation without forming the full dense G
-            fields = self.Intrgl_Fwr_Op(m=m)
-
-            return mkvc(fields)
+            return np.array(self.Intrgl_Fwr_Op(m=m), dtype='float')
 
         else:
             # fields = da.dot(self.G, m)
 
-            return da.dot(self.G, m) #np.array(fields, dtype='float')
+            return da.dot(self.G, self.rhoMap*m) #np.array(fields, dtype='float')
 
     def modelMap(self):
         """
@@ -190,10 +187,8 @@ class GravityIntegral(Problem.LinearProblem):
         @author: dominiquef
 
          """
-
         if m is not None:
             self.model = self.rhoMap*m
-
         self.rxLoc = self.survey.srcField.rxList[0].locs
         self.nD = int(self.rxLoc.shape[0])
 
@@ -290,9 +285,10 @@ class Forward(object):
 
                 if self.forwardOnly:
 
-                    # G = stack.compute()
+                    with ProgressBar():
+                        pred = da.dot(stack, self.model).compute()
 
-                    return da.dot(stack, self.model).compute()
+                    return pred
 
                 else:
 
