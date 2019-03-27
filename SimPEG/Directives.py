@@ -1781,7 +1781,7 @@ class JointScalingSchedule(InversionDirective):
 
     verbose = False
     tolerance = 0.02
-    progress = 0.02
+    progress = 0.
     rateCooling = 1.
     rateWarming = 1.
     mode = 1

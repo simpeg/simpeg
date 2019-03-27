@@ -273,7 +273,7 @@ axes[0].text(
 )
 
 axes[1].plot(mesh.vectorCCx, wires.m1 * mcluster_map, 'b.-', ms=5, marker='v')
-axes[1].plot(mesh.vectorCCx, wires.m1 * reg_simple.objfcts[0].mref, 'g--')
+#axes[1].plot(mesh.vectorCCx, wires.m1 * reg_simple.objfcts[0].mref, 'g--')
 axes[1].plot(mesh.vectorCCx, wires.m1 * m, 'k--')
 axes[1].set_title('Problem 1')
 axes[1].legend(['Recovered Model', 'True Model'])
@@ -282,7 +282,7 @@ axes[1].set_ylabel('Property 1')
 
 axes[2].plot(mesh.vectorCCx, wires.m2 * mcluster_map, 'r.-', ms=5, marker='v')
 axes[2].plot(mesh.vectorCCx, wires.m2 * m, 'k--')
-axes[2].plot(mesh.vectorCCx, wires.m2 * reg_simple.objfcts[0].mref, 'g--')
+#axes[2].plot(mesh.vectorCCx, wires.m2 * reg_simple.objfcts[0].mref, 'g--')
 
 axes[2].set_title('Problem 2')
 axes[2].legend(['Recovered Model', 'True Model'])
@@ -321,7 +321,7 @@ axes[4].text(
 
 axes[5].plot(mesh.vectorCCx, wires.m1 *
              mcluster_no_map, 'b.-', ms=5, marker='v')
-axes[5].plot(mesh.vectorCCx, wires.m1 * reg_simple_no_map.objfcts[0].mref, 'g--')
+#axes[5].plot(mesh.vectorCCx, wires.m1 * reg_simple_no_map.objfcts[0].mref, 'g--')
 
 axes[5].plot(mesh.vectorCCx, wires.m1 * m, 'k--')
 axes[5].set_title('Problem 1')
@@ -331,7 +331,7 @@ axes[5].set_ylabel('Property 1')
 
 axes[6].plot(mesh.vectorCCx, wires.m2 *
              mcluster_no_map, 'r.-', ms=5, marker='v')
-axes[6].plot(mesh.vectorCCx, wires.m2 * reg_simple_no_map.objfcts[0].mref, 'g--')
+#axes[6].plot(mesh.vectorCCx, wires.m2 * reg_simple_no_map.objfcts[0].mref, 'g--')
 
 axes[6].plot(mesh.vectorCCx, wires.m2 * m, 'k--')
 axes[6].set_title('Problem 2')
