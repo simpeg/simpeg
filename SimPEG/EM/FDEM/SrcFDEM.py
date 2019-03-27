@@ -6,7 +6,7 @@ import warnings
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
 from SimPEG.Utils import Zero
-from SimPEG import Survey, Problem, Utils
+from SimPEG import Mesh, Survey, Problem, Utils
 
 from .. import Utils as emutils
 from ..Base import BaseEMSrc
@@ -123,6 +123,53 @@ class BaseFDEMSrc(BaseEMSrc):
         :return: primary magnetic flux density
         """
         return Zero()
+
+
+class LineCurrent(BaseFDEMSrc):
+    """
+    Grounded line current source. Given the wire path provided by the (n,3) loc
+    array the cells intersected by the wire path are identified and integrated
+    src terms are computed
+
+    :param list rxList: receiver list
+    :param bool integrate: Integrate the source term (multiply by Me) [False]
+    """
+
+    loc = properties.Array("location of the source", shape=('*', 3))
+
+    def __init__(self, rxList, freq, loc, **kwargs):
+        super(LineCurrent, self).__init__(
+            rxList, freq, loc, **kwargs
+        )
+
+    def Mejs(self, prob):
+        if getattr(self, '_Mejs', None) is None:
+            x0 = prob.mesh.x0
+            hx = prob.mesh.hx
+            hy = prob.mesh.hy
+            hz = prob.mesh.hz
+            px = self.loc[:, 0]
+            py = self.loc[:, 1]
+            pz = self.loc[:, 2]
+            if(isinstance(prob.mesh, Mesh.TensorMesh)):
+                self._Mejs = getSourceTermLineCurrentPolygon(
+                    x0, hx, hy, hz, px, py, pz
+                )
+            elif(isinstance(prob.mesh, Mesh.TreeMesh)):
+                self._Mejs = getSourceTermLineCurrentPolygon_Octree(
+                    x0, hx, hy, hz, px, py, pz
+                )
+        return self._Mejs
+
+    def getRHSdc(self, prob):
+        Grad = prob.mesh.nodalGrad
+        return Grad.T*self.Mejs(prob)
+
+    def s_m(self, prob, time):
+        return Zero()
+
+    def s_e(self, prob, time):
+        return self.Mejs(prob) * self._s_e
 
 
 class RawVec_e(BaseFDEMSrc):
