@@ -9,8 +9,7 @@ try:
 except ImportError:
     IPython = False
 
-from SimPEG import versions, Versions
-from SimPEG.Utils import printinfo
+from SimPEG import Versions
 
 
 class TestVersion(unittest.TestCase):
@@ -21,71 +20,48 @@ class TestVersion(unittest.TestCase):
         stdout = sys.stdout
         sys.stdout = io.StringIO()
 
-        # print the versions
-        versions(*args, **kwargs)
+        # Print text version
+        print(Versions(*args, **kwargs).__repr__())
 
         # catch the output
         out1 = sys.stdout.getvalue()
         sys.stdout = stdout
 
-        return out1
+        # Check the default
+        stdout = sys.stdout
+        sys.stdout = io.StringIO()
+
+        # Print html version
+        print(Versions(*args, **kwargs)._repr_html_())
+
+        # catch the output
+        out2 = sys.stdout.getvalue()
+        sys.stdout = stdout
+
+        return out1, out2
 
     def test_version_defaults(self):
 
         # Check the default
-        out1 = self.catch_version_stdout()
+        out1_text, out1_html = self.catch_version_stdout(pip)
 
         # Check one of the standard packages
-        assert 'numpy' in out1
+        assert 'numpy' in out1_text
+        assert 'numpy' in out1_html
 
-        # Check the 'auto'-version, providing a package
-        out1b = self.catch_version_stdout(add_pckg=pip)
-
-        # Check the provided package, with number
-        assert pip.__version__ + ' : pip' in out1b
-
-        # Check the 'text'-version, providing a package as tuple
-        out2 = self.catch_version_stdout('print', add_pckg=(pip, ))
-        Va = Versions(add_pckg=(pip, )).__repr__()
-
-        # They have to be the same, except time (run at slightly different times)
-        assert out1b[75:] == out2[75:]
-        assert Va[85:200] == out2[85:200]  # Line-wrapping is different at end.
-
-        # Check the 'Pretty'/'plain'-version, providing a package as list
-        out3 = versions('plain', add_pckg=[pip, ])
-        out3b = printinfo.versions_text(add_pckg=[pip, ])
-        out3c = versions('Pretty', add_pckg=[pip, ])
-
-        # They have to be the same, except time (run at slightly different times)
-        assert out3[75:] == out3b[75:]
-        if IPython:
-            assert out3[75:] == out3c.data[75:]
-        else:
-            assert out3c is None
-
-        # Check one of the standard packages
-        assert 'numpy' in out3
+        # Providing a package as a tuple
+        out2_text, out2_html = self.catch_version_stdout(add_pckg=(pip,))
 
         # Check the provided package, with number
-        assert pip.__version__ + ' : pip' in out3
+        assert pip.__version__ + ' : pip' in out2_text
+        assert pip.__version__  in out2_html
+        assert ">pip</td>" in out2_html
 
-        # Check 'HTML'/'html'-version, providing a package as a list
-        out4 = versions('html', add_pckg=[pip])
-        out4b = printinfo.versions_html(add_pckg=[pip])
-        out4c = versions('HTML', add_pckg=[pip])
-        Vb = Versions(add_pckg=[pip])._repr_html_()
-        assert out4b == Vb
+        # Providing a package as a list
+        out3_text, out3_html = self.catch_version_stdout(add_pckg=[pip])
 
-        assert 'numpy' in out4
-        assert 'td style=' in out4
-
-        # They have to be the same, except time (run at slightly different times)
-        assert out4[50:] == out4b[50:]
-        if IPython:
-            assert out4[50:] == out4c.data[50:]
-        else:
-            assert out4c is None
+        assert 'numpy' in out3_text
+        assert 'td style=' in out3_html
 
         # Check row of provided package, with number
         teststr = "<td style='text-align: right; background-color: #ccc; "
@@ -93,7 +69,7 @@ class TestVersion(unittest.TestCase):
         teststr += pip.__version__
         teststr += "</td>\n    <td style='"
         teststr += "text-align: left; border: 2px solid #fff;'>pip</td>"
-        assert teststr in out4
+        assert teststr in out3_html
 
 if __name__ == '__main__':
     unittest.main()
