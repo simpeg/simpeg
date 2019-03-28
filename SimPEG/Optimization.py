@@ -893,6 +893,18 @@ class GaussNewton(Minimize, Remember):
 
     @Utils.timeIt
     def findSearchDirection(self):
+        # Solver uses scipy.sparse.linalg.spsolve direct solver
+        #   to invert H
+        # The input needs to be an array or sparse matrix
+        #   however SolverWrapperD (used for Solver and SolverLU) assumes the input is a sparse matrix
+        # evalfunction defines H as a LinearOperator
+        # Need to do some checks and conversions before calling
+        #  the Solver
+        if isinstance(self.H, sp.linalg.LinearOperator):
+            self.H = sp.csr_matrix(self.H.dot(np.identity(self.g.size)))
+        elif isinstance(self.H, np.ndarray):
+            self.H = sp.csr_matrix(self.H)
+
         return Solver(self.H) * (-self.g)
 
 
