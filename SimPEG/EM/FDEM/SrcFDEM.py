@@ -7,7 +7,7 @@ from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
 from SimPEG.Utils import Zero
 from SimPEG import Mesh, Survey, Problem, Utils
-
+from SimPEG.EM.Utils import CurrentUtils
 from .. import Utils as emutils
 from ..Base import BaseEMSrc
 from ...Props import LocationVector
@@ -127,20 +127,21 @@ class BaseFDEMSrc(BaseEMSrc):
 
 class LineCurrent(BaseFDEMSrc):
     """
-    Grounded line current source. Given the wire path provided by the (n,3) loc
+    Line current source. Given the wire path provided by the (n,3) loc
     array the cells intersected by the wire path are identified and integrated
     src terms are computed
 
     :param list rxList: receiver list
+    :param float freq: src frequency
+    :param (n,3) array loc: points defining src path
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
 
     loc = properties.Array("location of the source", shape=('*', 3))
 
-    def __init__(self, rxList, freq, loc, **kwargs):
-        super(LineCurrent, self).__init__(
-            rxList, freq, loc, **kwargs
-        )
+    def __init__(self, rxList, **kwargs):
+        self.integrate = False
+        super(LineCurrent, self).__init__(rxList, **kwargs)
 
     def Mejs(self, prob):
         if getattr(self, '_Mejs', None) is None:
@@ -152,12 +153,12 @@ class LineCurrent(BaseFDEMSrc):
             py = self.loc[:, 1]
             pz = self.loc[:, 2]
             if(isinstance(prob.mesh, Mesh.TensorMesh)):
-                self._Mejs = getSourceTermLineCurrentPolygon(
+                self._Mejs = CurrentUtils.getSourceTermLineCurrentPolygon(
                     x0, hx, hy, hz, px, py, pz
                 )
             elif(isinstance(prob.mesh, Mesh.TreeMesh)):
-                self._Mejs = getSourceTermLineCurrentPolygon_Octree(
-                    x0, hx, hy, hz, px, py, pz
+                self._Mejs = CurrentUtils.getSourceTermLineCurrentPolygon_Octree(
+                    prob.mesh, px, py, pz
                 )
         return self._Mejs
 
@@ -165,11 +166,11 @@ class LineCurrent(BaseFDEMSrc):
         Grad = prob.mesh.nodalGrad
         return Grad.T*self.Mejs(prob)
 
-    def s_m(self, prob, time):
+    def s_m(self, prob):
         return Zero()
 
-    def s_e(self, prob, time):
-        return self.Mejs(prob) * self._s_e
+    def s_e(self, prob):
+        return self.Mejs(prob)
 
 
 class RawVec_e(BaseFDEMSrc):
