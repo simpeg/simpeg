@@ -661,22 +661,42 @@ class Tile(IdentityMap):
 
             if self.meshLocal._meshType == "TREE":
 
-                indx = self.meshLocal._get_containing_cell_indexes(self.meshGlobal.gridCC[self.actvGlobal])
-                #
+                actvIndGlobal = np.where(self.actvGlobal)[0].tolist()
 
+                indL = self.meshLocal._get_containing_cell_indexes(self.meshGlobal.gridCC)
+
+                full = np.c_[indL, np.arange(self.meshGlobal.nC)]
                 # Create new index based on unique active
-                [ua, ind] = np.unique(indx, return_index=True)
-                newCellInd = np.arange(ua.shape[0])
+                # [ua, ind] = np.unique(indL, return_index=True)
+
+                check = np.where(self.meshLocal.vol[indL] < self.meshGlobal.vol)[0].tolist()
+
+                # Reverse inside global to local
+                indG = self.meshGlobal._get_containing_cell_indexes(self.meshLocal.gridCC)
+
+                model = np.zeros(self.meshLocal.nC)
+
+                rows = []
+                for ind in check:
+
+                    if ind in actvIndGlobal:
+                        indAdd = np.where(ind == indG)[0]
+                        rows += [np.c_[indAdd, np.ones_like(indAdd)*ind]]
+                        # model[indAdd] = 0.5
+
+                # indL = indL[actv]
+                full = np.r_[full[actvIndGlobal, :], np.vstack(rows)]
+
+                # model[full[:,0]]=0.5
+
+                actvIndLocal = np.unique(full[:, 0])
+
+                full = np.c_[np.searchsorted(actvIndLocal, full[:, 0]), np.searchsorted(actvIndGlobal, full[:, 1])]
 
                 activeLocal = np.zeros(self.meshLocal.nC, dtype='bool')
-                activeLocal[ua] = True
+                activeLocal[actvIndLocal] = True
 
                 self.activeLocal = activeLocal
-
-                # Transfer old index to new
-                indx = np.searchsorted(ua, indx)
-
-                full = np.c_[indx, np.asarray(range(self.actvGlobal.sum()))]
 
             else:
                 indx = self.getTreeIndex(self.tree, self.meshLocal, self.activeLocal)
