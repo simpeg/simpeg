@@ -685,7 +685,10 @@ class Tile(IdentityMap):
                         # model[indAdd] = 0.5
 
                 # indL = indL[actv]
-                full = np.r_[full[actvIndGlobal, :], np.vstack(rows)]
+                if len(rows) > 0:
+                    full = np.r_[full[actvIndGlobal, :], np.vstack(rows)]
+                else:
+                    full = full[actvIndGlobal, :]
 
                 # model[full[:,0]]=0.5
 
