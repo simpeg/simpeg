@@ -355,9 +355,15 @@ def refineTree(
 
         octreeLevels_XY = np.zeros_like(octreeLevels)
 
-    maxLevel = int(np.log2(mesh.hx.shape[0]))
+    maxLevel = mesh.max_level
 
     tree = cKDTree(xyz)
+
+    mesh.insert_cells(
+        xyz,
+        [mesh.max_level - np.nonzero(octreeLevels)[0][0]]*xyz.shape[0],
+        finalize=False
+    )
 
     if dtype == "point":
 
