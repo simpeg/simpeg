@@ -42,21 +42,32 @@ def plot2Ddata(
         vmin = np.min(clim)
         vmax = np.max(clim)
 
-    for key, attr in zip(["vmin", "vmax"], [vmin, vmax]):
-        if key in contourOpts.keys():
-            if attr is None:
-                attr = contourOpts.pop(key)
-            else:
-                if not np.isclose(contourOpts[key], attr):
-                    raise Exception(
-                        "The values provided in the colorbar limit, clim {} "
-                        "does not match the value of {} provided in the "
-                        "contourOpts: {}. Only one value should be provided or "
-                        "the two values must be equal.".format(
-                            attr, key, contourOpts[key]
-                        )
+    if 'vmax' in contourOpts.keys():
+        if vmax is None:
+            vmax = contourOpts.pop('vmax')
+        else:
+            if not np.isclose(contourOpts['vmax'], vmax):
+                raise Exception(
+                    "The values provided in the colorbar limit, clim {} "
+                    "does not match the value of {} provided in the "
+                    "contourOpts: {}. Only one value should be provided or "
+                    "the two values must be equal.".format(
+                        vmax, 'vmax', contourOpts.pop('vmax')
                     )
-                contourOpts.pop(key)
+                )
+    if 'vmin' in contourOpts.keys():
+        if vmin is None:
+            vmin = contourOpts.pop('vmin')
+        else:
+            if not np.isclose(contourOpts['vmax'], vmax):
+                raise Exception(
+                    "The values provided in the colorbar limit, clim {} "
+                    "does not match the value of {} provided in the "
+                    "contourOpts: {}. Only one value should be provided or "
+                    "the two values must be equal.".format(
+                        vmin, 'vmin', contourOpts.pop('vmin')
+                    )
+                )
 
     # create a figure if it doesn't exist
     if ax is None:
@@ -92,7 +103,7 @@ def plot2Ddata(
         if scale == "log":
             if vmin <= 0 or vmax <= 0:
                 raise Exception(
-                    "All values must be strictly positive in order to use the log-scale"
+                    "All values must be strictly positive in order to use the log-scale. The given values are {} and {}".format(vmin,vmax)
                 )
             vmin = np.log10(vmin)
             vmax = np.log10(vmax)
