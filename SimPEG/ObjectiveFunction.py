@@ -347,9 +347,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                 continue
             else:
                 if f is not None and objfct._hasFields:
-                    g += multiplier * objfct.deriv(m, f=f[i])
+                    aux = objfct.deriv(m, f=f[i])
+                    if not isinstance(aux,Utils.Zero):
+                        g += multiplier * aux
                 else:
-                    g += multiplier * objfct.deriv(m)
+                    aux = objfct.deriv(m)
+                    if not isinstance(aux,Utils.Zero):
+                        g += multiplier * objfct.deriv(m)
         return g
 
     def deriv2(self, m, v=None, f=None):

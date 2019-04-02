@@ -8,6 +8,7 @@ import unittest
 from SimPEG import Mesh, Maps, Regularization, Utils
 from scipy.stats import multivariate_normal
 from scipy.sparse.linalg import LinearOperator, bicgstab
+from pymatsolver import PardisoSolver
 
 
 class TestPetroRegularization(unittest.TestCase):
@@ -39,8 +40,11 @@ class TestPetroRegularization(unittest.TestCase):
             self.s0) * self.means[0], np.ones_like(self.s1) * self.means[1]]
         self.mesh = Mesh.TensorMesh([self.samples.shape[0]])
         self.wires = Maps.Wires(('s0', self.mesh.nC), ('s1', self.mesh.nC))
-
-        self.PlotIt = False
+        self.cell_weights_list = [
+        np.random.randn(self.mesh.nC)**2.,
+        np.random.randn(self.mesh.nC)**2.
+        ]
+        self.PlotIt = True
 
     def test_full_covariances(self):
 
@@ -57,20 +61,24 @@ class TestPetroRegularization(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg Simple
-        reg_simple = Regularization.SimplePetroRegularization(
+        reg_simple = Regularization.MakeSimplePetroRegularization(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
-            evaltype='approx'
+            evaltype='approx',
+            cell_weights_list=self.cell_weights_list
+
         )
         # Define reg with volumes
-        reg = Regularization.PetroRegularization(
+        reg = Regularization.MakePetroRegularization(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
-            evaltype='approx'
+            evaltype='approx',
+            cell_weights_list=self.cell_weights_list
+
         )
 
         # check score value
@@ -109,15 +117,17 @@ class TestPetroRegularization(unittest.TestCase):
             np.max(np.abs(deriv_simple_full - deriv_simple))
         )
         deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
-        Hessian_simple = lambda x: reg_simple.deriv2(
-            Utils.mkvc(self.samples), x)
-        HV_simple = LinearOperator(
-            [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
-            matvec=Hessian_simple,
-            rmatvec=Hessian_simple
-        )
-        p_simple = bicgstab(HV_simple, deriv_simple)
-        direction2_simple = np.c_[self.wires * p_simple[0]]
+        # Hessian_simple = lambda x: reg_simple.deriv2(
+        #     Utils.mkvc(self.samples), x)
+        # HV_simple = LinearOperator(
+        #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
+        #     matvec=Hessian_simple,
+        #     rmatvec=Hessian_simple
+        # )
+        # p_simple = bicgstab(HV_simple, deriv_simple,tol=1e-10)
+        Hinv = PardisoSolver(reg_simple.deriv2(Utils.mkvc(self.samples)))
+        p_simple = Hinv * deriv_simple
+        direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
             Utils.mkvc(self.samples - direction2_simple),
             Utils.mkvc(reference), rtol=1e-1
@@ -143,14 +153,16 @@ class TestPetroRegularization(unittest.TestCase):
             '1st derivatives for Petro are ok. Difference is: ',
             np.max(np.abs(deriv_full - deriv))
         )
-        Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
-        HV = LinearOperator(
-            [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
-            matvec=Hessian,
-            rmatvec=Hessian
-        )
-        p = bicgstab(HV, deriv)
-        direction2 = np.c_[self.wires * p[0]]
+        # Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
+        # HV = LinearOperator(
+        #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
+        #     matvec=Hessian,
+        #     rmatvec=Hessian
+        # )
+        # p = bicgstab(HV, deriv,tol=1e-10)
+        Hinv = PardisoSolver(reg.deriv2(Utils.mkvc(self.samples)))
+        p = Hinv * deriv
+        direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
             Utils.mkvc(self.samples - direction2),
             Utils.mkvc(reference), rtol=1e-1
@@ -190,8 +202,8 @@ class TestPetroRegularization(unittest.TestCase):
                 color='green', s=5., alpha=0.25
             )
             axfull[0].quiver(
-                self.samples[:, 0], self.samples[:, 1], -
-                (self.wires.s0 * deriv_simple),
+                self.samples[:, 0], self.samples[:, 1],
+                -(self.wires.s0 * deriv_simple),
                 -(self.wires.s1 * deriv_simple), color='red', alpha=0.25
             )
             axfull[0].quiver(
@@ -254,20 +266,24 @@ class TestPetroRegularization(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg Simple
-        reg_simple = Regularization.SimplePetroRegularization(
+        reg_simple = Regularization.MakeSimplePetroRegularization(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
-            evaltype='approx'
+            evaltype='approx',
+            cell_weights_list=self.cell_weights_list
+
         )
         # Define reg with volumes
-        reg = Regularization.PetroRegularization(
+        reg = Regularization.MakePetroRegularization(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
-            evaltype='approx'
+            evaltype='approx',
+            cell_weights_list=self.cell_weights_list
+
         )
 
         # check score value
@@ -306,15 +322,17 @@ class TestPetroRegularization(unittest.TestCase):
             np.max(np.abs(deriv_simple_full - deriv_simple))
         )
         deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
-        Hessian_simple = lambda x: reg_simple.deriv2(
-            Utils.mkvc(self.samples), x)
-        HV_simple = LinearOperator(
-            [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
-            matvec=Hessian_simple,
-            rmatvec=Hessian_simple
-        )
-        p_simple = bicgstab(HV_simple, deriv_simple)
-        direction2_simple = np.c_[self.wires * p_simple[0]]
+        # Hessian_simple = lambda x: reg_simple.deriv2(
+        #     Utils.mkvc(self.samples), x)
+        # HV_simple = LinearOperator(
+        #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
+        #     matvec=Hessian_simple,
+        #     rmatvec=Hessian_simple
+        # )
+        # p_simple = bicgstab(HV_simple, deriv_simple,tol=1e-10)
+        Hinv = PardisoSolver(reg_simple.deriv2(Utils.mkvc(self.samples)))
+        p_simple = Hinv * deriv_simple
+        direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
             Utils.mkvc(self.samples - direction2_simple),
             Utils.mkvc(reference), rtol=1e-1
@@ -340,14 +358,16 @@ class TestPetroRegularization(unittest.TestCase):
             '1st derivatives for Petro are ok. Difference is: ',
             np.max(np.abs(deriv_full - deriv))
         )
-        Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
-        HV = LinearOperator(
-            [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
-            matvec=Hessian,
-            rmatvec=Hessian
-        )
-        p = bicgstab(HV, deriv)
-        direction2 = np.c_[self.wires * p[0]]
+        # Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
+        # HV = LinearOperator(
+        #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
+        #     matvec=Hessian,
+        #     rmatvec=Hessian
+        # )
+        # p = bicgstab(HV, deriv,tol=1e-10)
+        Hinv = PardisoSolver(reg.deriv2(Utils.mkvc(self.samples)))
+        p = Hinv * deriv
+        direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
             Utils.mkvc(self.samples - direction2),
             Utils.mkvc(reference), rtol=1e-1
@@ -451,20 +471,24 @@ class TestPetroRegularization(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg Simple
-        reg_simple = Regularization.SimplePetroRegularization(
+        reg_simple = Regularization.MakeSimplePetroRegularization(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
-            evaltype='approx'
+            evaltype='approx',
+            cell_weights_list=self.cell_weights_list
+
         )
         # Define reg with volumes
-        reg = Regularization.PetroRegularization(
+        reg = Regularization.MakePetroRegularization(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
-            evaltype='approx'
+            evaltype='approx',
+            cell_weights_list=self.cell_weights_list
+
         )
 
         # check score value
@@ -503,15 +527,17 @@ class TestPetroRegularization(unittest.TestCase):
             np.max(np.abs(deriv_simple_full - deriv_simple))
         )
         deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
-        Hessian_simple = lambda x: reg_simple.deriv2(
-            Utils.mkvc(self.samples), x)
-        HV_simple = LinearOperator(
-            [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
-            matvec=Hessian_simple,
-            rmatvec=Hessian_simple
-        )
-        p_simple = bicgstab(HV_simple, deriv_simple)
-        direction2_simple = np.c_[self.wires * p_simple[0]]
+        # Hessian_simple = lambda x: reg_simple.deriv2(
+        #     Utils.mkvc(self.samples), x)
+        # HV_simple = LinearOperator(
+        #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
+        #     matvec=Hessian_simple,
+        #     rmatvec=Hessian_simple
+        # )
+        # p_simple = bicgstab(HV_simple, deriv_simple,tol=1e-10)
+        Hinv = PardisoSolver(reg_simple.deriv2(Utils.mkvc(self.samples)))
+        p_simple = Hinv * deriv_simple
+        direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
             Utils.mkvc(self.samples - direction2_simple),
             Utils.mkvc(reference), rtol=1e-1
@@ -537,14 +563,16 @@ class TestPetroRegularization(unittest.TestCase):
             '1st derivatives for Petro are ok. Difference is: ',
             np.max(np.abs(deriv_full - deriv))
         )
-        Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
-        HV = LinearOperator(
-            [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
-            matvec=Hessian,
-            rmatvec=Hessian
-        )
-        p = bicgstab(HV, deriv)
-        direction2 = np.c_[self.wires * p[0]]
+        # Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
+        # HV = LinearOperator(
+        #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
+        #     matvec=Hessian,
+        #     rmatvec=Hessian
+        # )
+        # p = bicgstab(HV, deriv,tol=1e-10)
+        Hinv = PardisoSolver(reg.deriv2(Utils.mkvc(self.samples)))
+        p = Hinv * deriv
+        direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
             Utils.mkvc(self.samples - direction2),
             Utils.mkvc(reference), rtol=1e-1
@@ -648,20 +676,23 @@ class TestPetroRegularization(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg Simple
-        reg_simple = Regularization.SimplePetroRegularization(
+        reg_simple = Regularization.MakeSimplePetroRegularization(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
-            evaltype='approx'
+            evaltype='approx',
+            cell_weights_list=self.cell_weights_list
+
         )
         # Define reg with volumes
-        reg = Regularization.PetroRegularization(
+        reg = Regularization.MakePetroRegularization(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
-            evaltype='approx'
+            evaltype='approx',
+            cell_weights_list=self.cell_weights_list
         )
 
         # check score value
@@ -700,15 +731,17 @@ class TestPetroRegularization(unittest.TestCase):
             np.max(np.abs(deriv_simple_full - deriv_simple))
         )
         deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
-        Hessian_simple = lambda x: reg_simple.deriv2(
-            Utils.mkvc(self.samples), x)
-        HV_simple = LinearOperator(
-            [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
-            matvec=Hessian_simple,
-            rmatvec=Hessian_simple
-        )
-        p_simple = bicgstab(HV_simple, deriv_simple)
-        direction2_simple = np.c_[self.wires * p_simple[0]]
+        # Hessian_simple = lambda x: reg_simple.deriv2(
+        #     Utils.mkvc(self.samples), x)
+        # HV_simple = LinearOperator(
+        #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
+        #     matvec=Hessian_simple,
+        #     rmatvec=Hessian_simple
+        # )
+        # p_simple = bicgstab(HV_simple, deriv_simple,tol=1e-10)
+        Hinv = PardisoSolver(reg_simple.deriv2(Utils.mkvc(self.samples)))
+        p_simple = Hinv * deriv_simple
+        direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
             Utils.mkvc(self.samples - direction2_simple),
             Utils.mkvc(reference), rtol=1e-1
@@ -734,14 +767,16 @@ class TestPetroRegularization(unittest.TestCase):
             '1st derivatives for Petro are ok. Difference is: ',
             np.max(np.abs(deriv_full - deriv))
         )
-        Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
-        HV = LinearOperator(
-            [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
-            matvec=Hessian,
-            rmatvec=Hessian
-        )
-        p = bicgstab(HV, deriv)
-        direction2 = np.c_[self.wires * p[0]]
+        # Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
+        # HV = LinearOperator(
+        #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
+        #     matvec=Hessian,
+        #     rmatvec=Hessian
+        # )
+        # p = bicgstab(HV, deriv,tol=1e-10)
+        Hinv = PardisoSolver(reg.deriv2(Utils.mkvc(self.samples)))
+        p = Hinv * deriv
+        direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
             Utils.mkvc(self.samples - direction2),
             Utils.mkvc(reference), rtol=1e-1

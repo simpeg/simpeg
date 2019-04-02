@@ -1780,8 +1780,8 @@ class ScalingEstimate_ByEig(InversionDirective):
 class JointScalingSchedule(InversionDirective):
 
     verbose = False
-    tolerance = 0.02
-    progress = 0.
+    tolerance = 0.
+    progress = 0.02
     rateCooling = 1.
     rateWarming = 1.
     mode = 1
@@ -1832,7 +1832,7 @@ class JointScalingSchedule(InversionDirective):
 class PetroBetaReWeighting(InversionDirective):
 
     verbose = False
-    tolerance = 0.02
+    tolerance = 0.
     progress = 0.02
     rateCooling = 2.
     rateWarming = 1.
