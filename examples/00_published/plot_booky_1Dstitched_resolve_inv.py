@@ -288,7 +288,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     temp = (temp.flatten()[d_inds] * w).sum(axis=1)
     Utils.plot2Ddata(
         xy, temp, ncontour=100, scale="log", dataloc=False,
-        contourOpts={"cmap": cmap, "vmin": np.exp(1e-2.), "vmax": np.exp(10.)},
+        contourOpts={"cmap": cmap, "vmin": np.exp(0.01), "vmax": np.exp(10.)},
         ax=ax0
     )
     ax0.plot(
