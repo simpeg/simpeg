@@ -178,11 +178,8 @@ def UpdateGaussianMixtureModel(
     for k in range(GMmodel.n_components):
         if prior_type == 'full':
                 smu = (kappa[k]*GMmodel.weights_[k]) * ((GMref.means_[k]-GMmodel.means_[k])**2.)
-                print('1',smu)
                 smu /= (kappa[k] + GMmodel.weights_[k])
-                print('2',smu)
                 smu *= (1. / (GMmodel.weights_[k] + GMref.weights_[k] * nu[k]))
-                print('3',smu)
 
         GMmodel.means_[k] = (1. / (GMmodel.weights_[k] + GMref.weights_[k] * kappa[k])) * (
             GMmodel.weights_[k] * GMmodel.means_[k] + GMref.weights_[k] * kappa[k] * GMref.means_[k])
