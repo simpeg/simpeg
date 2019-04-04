@@ -109,19 +109,23 @@ def surface2ind_topo(mesh, topo, gridLoc='N', method='linear',
 
         elif gridLoc == 'N':
 
-            gridTopo = Ftopo(mesh.vectorNx)
-            if mesh._meshType not in ['TENSOR', 'CYL', 'BASETENSOR']:
-                raise NotImplementedError('Nodal surface2ind_topo not' +
-                                          'implemented for {0!s} ' +
-                                          'mesh'.format(mesh._meshType))
+            if mesh._meshType in ['TENSOR', 'CYL', 'BASETENSOR']:
+                gridTopo = Ftopo(mesh.vectorNx)
+                    # raise NotImplementedError('Nodal surface2ind_topo not' +
+                    #                           'implemented for {0!s} ' +
+                    #                           'mesh'.format(mesh._meshType))
 
-            # TODO: this will only work for tensor meshes
-            Ny = mesh.vectorNy[1:]
-            actind = np.array([False]*mesh.nC).reshape(mesh.vnC, order='F')
+                # TODO: this will only work for tensor meshes
+                Ny = mesh.vectorNy[1:]
+                actind = np.array([False]*mesh.nC).reshape(mesh.vnC, order='F')
 
-            for ii in range(mesh.nCx):
-                actind[ii, :] = [np.all(gridTopo[ii: ii+2] > Ny[kk])
-                                 for kk in range(len(Ny))]
+                for ii in range(mesh.nCx):
+                    actind[ii, :] = [np.all(gridTopo[ii: ii+2] > Ny[kk])
+                                     for kk in range(len(Ny))]
+
+            else:
+                zTopo = Ftopo(mesh.gridCC[:, 0])
+                actind = (mesh.gridCC[:, 1] + mesh.h_gridded[:, 1]/2.) < zTopo
 
     else:
         raise NotImplementedError('surface2ind_topo not implemented' +
