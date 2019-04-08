@@ -828,14 +828,25 @@ def activeTopoLayer(mesh, topo, index=0):
     inds = np.unique(inds)
 
     # Extract neighbors from operators
-    Dz = mesh._cellGradzStencil
-    Iz, Jz, _ = sp.find(Dz)
-    jz = np.sort(Jz[np.argsort(Iz)].reshape((int(Iz.shape[0]/2), 2)), axis=1)
-    for ii in range(index):
+    # Dz = mesh._cellGradzStencil
+    # Iz, Jz, _ = sp.find(Dz)
+    # jz = np.sort(Jz[np.argsort(Iz)].reshape((int(Iz.shape[0]/2), 2)), axis=1)
+    # for ii in range(index):
 
-        members = ismember(inds, jz[:, 1])
-        inds = np.squeeze(jz[members, 0])
+    #     members = ismember(inds, jz[:, 1])
+    #     inds = np.squeeze(jz[members, 0])
 
-    actv[inds] = True
+    # actv[inds] = True
+
+    for layer in range(index+1):
+
+        nn = []
+        for ind in inds.tolist():
+
+            nn += [mesh[int(ind)].neighbors[4]]
+
+        inds = np.hstack(nn)
+
+    actv[np.hstack(nn)] = True
 
     return actv

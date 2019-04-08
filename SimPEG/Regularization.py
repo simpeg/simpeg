@@ -2239,7 +2239,6 @@ def getDiffOpRot(mesh, psi, theta, phi, vec, forward=True):
 
     # Remove all rows of zero
     ind = (V > 0) * (jd[:, 0] != jd[:, 1])
-    print(sum(ind))
     jd = jd[ind, :]
     V = V[ind]
 
