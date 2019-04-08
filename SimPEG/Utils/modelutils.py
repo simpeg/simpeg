@@ -134,74 +134,114 @@ def surface2ind_topo(mesh, topo, gridLoc='N', method='linear',
     return mkvc(actind)
 
 
-def tileSurveyPoints(locs, nRefine, minimize=True):
+def tileSurveyPoints(locs, nTargetTiles, method='cluster'):
     """
         Function to tile an survey points into smaller square subsets of points
 
         :param numpy.ndarray locs: n x 2 array of locations [x,y]
-        :param integer nRefine: maximum number of points in each tile
+        :param integer nTargetTiles: number of tiles
 
         RETURNS:
-        :param numpy.ndarray: Return a list of arrays  for the SW and NE
+        :param numpy.ndarray: Return a list of arrays with the for the SW and NE
                             limits of each tiles
+        :param integer binCount: Number of points in each tile
+        :param numpy.array labels: Cluster index of each point n=0:(nTargetTiles-1)
+                 
+        NOTE: All X Y and xy products are legacy now values, and are only used
+        for plotting functions. They are not used in any calculations and could
+        be dropped from the return calls in future versions.
+           
 
     """
+    
+    if method is 'cluster':
+        from sklearn.cluster import AgglomerativeClustering
+        
+        # Cluster
+        cluster = AgglomerativeClustering(n_clusters=nTargetTiles, affinity='euclidean', linkage='ward')
+        cluster.fit_predict(locs[:,:2])
+        
+        # nData in each tile
+        binCount = np.zeros(int(nTargetTiles))
+        
+        # x and y limits on each tile
+        X1 = np.zeros_like(binCount)
+        X2 = np.zeros_like(binCount)
+        Y1 = np.zeros_like(binCount)
+        Y2 = np.zeros_like(binCount)
+        
+        for ii in range(int(nTargetTiles)):
+            
+            mask = cluster.labels_ == ii
+            X1[ii] = locs[mask, 0].min()
+            X2[ii] = locs[mask, 0].max()
+            Y1[ii] = locs[mask, 1].min()
+            Y2[ii] = locs[mask, 1].max()
+            binCount[ii] = mask.sum()
+            
+        xy1 = np.c_[X1[binCount > 0], Y1[binCount > 0]]
+        xy2 = np.c_[X2[binCount > 0], Y2[binCount > 0]]
+    
+        return [xy1, xy2], binCount, cluster.labels_
 
-    # Initialize variables
-    # Test each refinement level for maximum space coverage
-    nTx = 0
-    nTy = 0
-    for ii in range(int(nRefine+1)):
+    else:
+        # Initialize variables
+        # Test each refinement level for maximum space coverage
+        nTx = 1
+        nTy = 1
+        for ii in range(int(nRefine+1)):
+    
+            nTx += 1
+            nTy += 1
+    
+            testx = np.percentile(locs[:, 0], np.arange(0, 100, 100/nTx))
+            testy = np.percentile(locs[:, 1], np.arange(0, 100, 100/nTy))
+    
+            if ii > 0:
+                dx = testx[:-1] - testx[1:]
+                dy = testy[:-1] - testy[1:]
+    
+                if np.mean(dx) > np.mean(dy):
+                    nTx -= 1
+                else:
+                    nTy -= 1
+    
+        tilex = np.percentile(locs[:, 0], np.arange(0, 100, 100/nTx))
+        tiley = np.percentile(locs[:, 1], np.arange(0, 100, 100/nTy))
+    
+        X1, Y1 = np.meshgrid(tilex, tiley)
+        X2, Y2 = np.meshgrid(
+                np.r_[tilex[1:], locs[:, 0].max()],
+                np.r_[tiley[1:], locs[:, 1].max()]
+        )
+    
+        # Plot data and tiles
+        X1, Y1, X2, Y2 = mkvc(X1), mkvc(Y1), mkvc(X2), mkvc(Y2)
+        binCount = np.zeros_like(X1)
+        cluster.labels_ = np.zeros_like(locs[:, 0])
+        tile = []
+        for ii in range(X1.shape[0]):
+    
+            mask = (
+                (locs[:, 0] >= X1[ii]) * (locs[:, 0] <= X2[ii]) *
+                (locs[:, 1] >= Y1[ii]) * (locs[:, 1] <= Y2[ii])
+            ) == 1
+    
+    
+            # Re-adjust the window size for tight fit
+            if minimize:
+    
+                if mask.sum():
+                    X1[ii], X2[ii] = locs[:, 0][mask].min(), locs[:, 0][mask].max()
+                    Y1[ii], Y2[ii] = locs[:, 1][mask].min(), locs[:, 1][mask].max()
+    
+            cluster.labels_[mask] = ii
+            binCount[ii] = mask.sum()
+    
+        xy1 = np.c_[X1[binCount > 0], Y1[binCount > 0]]
+        xy2 = np.c_[X2[binCount > 0], Y2[binCount > 0]]
 
-        nTx += 1
-        nTy += 1
-
-        testx = np.percentile(locs[:, 0], np.arange(0, 100, 100/nTx))
-        testy = np.percentile(locs[:, 1], np.arange(0, 100, 100/nTy))
-
-        if ii > 0:
-            dx = testx[:-1] - testx[1:]
-            dy = testy[:-1] - testy[1:]
-
-            if np.mean(dx) > np.mean(dy):
-                nTx -= 1
-            else:
-                nTy -= 1
-
-    tilex = np.percentile(locs[:, 0], np.arange(0, 100, 100/nTx))
-    tiley = np.percentile(locs[:, 1], np.arange(0, 100, 100/nTy))
-
-    X1, Y1 = np.meshgrid(tilex, tiley)
-    X2, Y2 = np.meshgrid(
-            np.r_[tilex[1:], locs[:, 0].max()],
-            np.r_[tiley[1:], locs[:, 1].max()]
-    )
-
-    # Plot data and tiles
-    X1, Y1, X2, Y2 = mkvc(X1), mkvc(Y1), mkvc(X2), mkvc(Y2)
-    binCount = np.zeros_like(X1)
-    tile = []
-    for ii in range(X1.shape[0]):
-
-        mask = (
-            (locs[:, 0] >= X1[ii]) * (locs[:, 0] <= X2[ii]) *
-            (locs[:, 1] >= Y1[ii]) * (locs[:, 1] <= Y2[ii])
-        ) == 1
-
-
-        # Re-adjust the window size for tight fit
-        if minimize:
-
-            if mask.sum():
-                X1[ii], X2[ii] = locs[:, 0][mask].min(), locs[:, 0][mask].max()
-                Y1[ii], Y2[ii] = locs[:, 1][mask].min(), locs[:, 1][mask].max()
-
-        binCount[ii] = mask.sum()
-
-    xy1 = np.c_[X1[binCount > 0], Y1[binCount > 0]]
-    xy2 = np.c_[X2[binCount > 0], Y2[binCount > 0]]
-
-    return [xy1, xy2], binCount
+    return [xy1, xy2], binCount, cluster.labels_
 
 
 def meshBuilder(xyz, h, padDist, meshGlobal=None,
