@@ -134,7 +134,7 @@ def surface2ind_topo(mesh, topo, gridLoc='N', method='linear',
     return mkvc(actind)
 
 
-def tileSurveyPoints(locs, nTargetTiles, method='cluster'):
+def tileSurveyPoints(locs, nRefine, method='cluster'):
     """
         Function to tile an survey points into smaller square subsets of points
 
@@ -158,11 +158,11 @@ def tileSurveyPoints(locs, nTargetTiles, method='cluster'):
         from sklearn.cluster import AgglomerativeClustering
         
         # Cluster
-        cluster = AgglomerativeClustering(n_clusters=nTargetTiles, affinity='euclidean', linkage='ward')
+        cluster = AgglomerativeClustering(n_clusters=nRefine, affinity='euclidean', linkage='ward')
         cluster.fit_predict(locs[:,:2])
         
         # nData in each tile
-        binCount = np.zeros(int(nTargetTiles))
+        binCount = np.zeros(int(nRefine))
         
         # x and y limits on each tile
         X1 = np.zeros_like(binCount)
@@ -170,7 +170,7 @@ def tileSurveyPoints(locs, nTargetTiles, method='cluster'):
         Y1 = np.zeros_like(binCount)
         Y2 = np.zeros_like(binCount)
         
-        for ii in range(int(nTargetTiles)):
+        for ii in range(int(nRefine)):
             
             mask = cluster.labels_ == ii
             X1[ii] = locs[mask, 0].min()
