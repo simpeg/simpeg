@@ -487,28 +487,6 @@ class Forward(object):
 
             if self.parallelized == "dask":
 
-                # Chunking only required for dask
-                nChunks = self.n_chunks # Number of chunks in each dimension (total number is nChunks^2)
-                rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
-                # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
-
-                while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= 1.0:
-
-                    nChunks += 1
-                    rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                    totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
-
-                print("Dask:")
-                print("n_cpu: ", self.n_cpu)
-                print("n_chunks: ", nChunks)
-                print("Chunk sizes: ", rowChunk, colChunk)
-                print("RAM/chunk: ", totRAM/self.n_cpu)
-                if (totRAM/self.n_cpu) < 0.01:
-                    print("WARNING: chunks are smaller than 10 MB. Reduce number of tiles?")
-                    
-                print("Total RAM (x n_cpu): ", totRAM)
-
                 row = dask.delayed(self.calcTrow, pure=True)
 
                 makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
@@ -526,14 +504,24 @@ class Forward(object):
 
                 else:
 
+                    # TO-DO: Find a way to create in
+                    # chunks instead
+                    stack = stack.rechunk('auto')
+                    print('DASK: ')
+                    print('Tile size (nD, nC): ', stack.shape)
+                    print('Chunk sizes (nD, nC): ', stack.chunks)
+                    print('Number of chunks: ', len(stack.chunks[0]), ' x ', len(stack.chunks[1]), ' = ', len(stack.chunks[0]) * len(stack.chunks[1]))
+                    print('Max chunk size (GB): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9)
+                    print('Max RAM (GB x CPU): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu)
+
                     if os.path.exists(self.Jpath):
 
                         G = da.from_zarr(self.Jpath)
 
                         if np.all(np.r_[
-                                np.any(np.r_[G.chunks[0]] == rowChunk),
-                                np.any(np.r_[G.chunks[1]] == colChunk),
-                                np.r_[G.shape] == np.r_[nDataComps*self.nD,  self.nC]]):
+                                np.any(np.r_[G.chunks[0]] == stack.chunks[0]),
+                                np.any(np.r_[G.chunks[1]] == stack.chunks[1]),
+                                np.r_[G.shape] == np.r_[stack.shape]]):
                             # Check that loaded G matches supplied data and mesh
                             print("Zarr file detected with same shape and chunksize ... re-loading")
                             return G
@@ -541,12 +529,7 @@ class Forward(object):
                         else:
                             del G
                             shutil.rmtree(self.Jpath)
-                            print("Zarr file detected with wrong shape and chunksize ... over-writting")
-                        # TO-DO: should add
-
-                    # TO-DO: Find a way to create in
-                    # chunks instead
-                    stack = stack.rechunk((rowChunk, colChunk))
+                            print("Zarr file detected with wrong shape and chunksize ... over-writing")
 
                     with ProgressBar():
                         print("Saving G to zarr: " + self.Jpath)
