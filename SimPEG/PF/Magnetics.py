@@ -488,14 +488,13 @@ class Forward(object):
             if self.parallelized == "dask":
 
                 # Chunking only required for dask
-                nChunks = self.n_chunks # Number of chunks
+                nChunks = self.n_chunks # Number of chunks in each dimension (total number is nChunks^2)
                 rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
                 totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
                 # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
 
-                while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= 2.0:
+                while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= 1.0:
 
-#                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
                     nChunks += 1
                     rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
                     totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
@@ -504,7 +503,10 @@ class Forward(object):
                 print("n_cpu: ", self.n_cpu)
                 print("n_chunks: ", nChunks)
                 print("Chunk sizes: ", rowChunk, colChunk)
-                print("RAM/tile: ", totRAM/self.n_cpu)
+                print("RAM/chunk: ", totRAM/self.n_cpu)
+                if (totRAM/self.n_cpu) < 0.01:
+                    print("WARNING: chunks are smaller than 10 MB. Reduce number of tiles?")
+                    
                 print("Total RAM (x n_cpu): ", totRAM)
 
                 row = dask.delayed(self.calcTrow, pure=True)
