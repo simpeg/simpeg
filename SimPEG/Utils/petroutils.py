@@ -6,12 +6,16 @@ from scipy.special import logsumexp
 from scipy.sparse import diags
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
+from sklearn.utils import check_array
 from sklearn.mixture.gaussian_mixture import (
     _compute_precision_cholesky, _compute_log_det_cholesky,
     _estimate_gaussian_covariances_full,
     _estimate_gaussian_covariances_tied,
     _estimate_gaussian_covariances_diag,
-    _estimate_gaussian_covariances_spherical
+    _estimate_gaussian_covariances_spherical,
+    _check_means,
+    _check_precisions,
+    _check_shape,
 )
 from sklearn.mixture.base import (
     _check_X, check_random_state, ConvergenceWarning
@@ -46,10 +50,14 @@ def order_clusters_GM_weight(GMmodel, outputindex=False):
     '''
     order cluster by increasing mean for Gaussian Mixture scikit object
     '''
+    if GMmodel.weights_.ndim == 1:
+        indx = np.argsort(GMmodel.weights_, axis=0)[::-1]
+        GMmodel.weights_ = GMmodel.weights_[indx].reshape(GMmodel.weights_.shape)
 
-    indx = np.argsort(GMmodel.weights_, axis=0)[::-1]
+    else:
+        indx = np.argsort(GMmodel.weights_.sum(axis=0), axis=0)[::-1]
+        GMmodel.weights_ = GMmodel.weights_[:,indx].reshape(GMmodel.weights_.shape)
     GMmodel.means_ = GMmodel.means_[indx].reshape(GMmodel.means_.shape)
-    GMmodel.weights_ = GMmodel.weights_[indx].reshape(GMmodel.weights_.shape)
     if GMmodel.covariance_type == 'tied':
         pass
     else:
@@ -71,7 +79,11 @@ def order_clusters_GM_mean(GMmodel, outputindex=False):
 
     indx = np.argsort(GMmodel.means_, axis=0)[::-1]
     GMmodel.means_ = GMmodel.means_[indx].reshape(GMmodel.means_.shape)
-    GMmodel.weights_ = GMmodel.weights_[indx].reshape(GMmodel.weights_.shape)
+    if GMmodel.weights_.ndim == 1:
+        GMmodel.weights_ = GMmodel.weights_[indx].reshape(GMmodel.weights_.shape)
+    else:
+        GMmodel.weights_ = GMmodel.weights_[:, indx].reshape(GMmodel.weights_.shape)
+
     if GMmodel.covariance_type == 'tied':
         pass
     else:
@@ -102,7 +114,12 @@ def order_cluster(GMmodel, GMref, outputindex=False):
         idx_ref[idrefmean] = False
 
     GMmodel.means_ = GMmodel.means_[indx].reshape(GMmodel.means_.shape)
-    GMmodel.weights_ = GMmodel.weights_[indx].reshape(GMmodel.weights_.shape)
+
+    if GMmodel.weights_.ndim == 1:
+        GMmodel.weights_ = GMmodel.weights_[indx].reshape(GMmodel.weights_.shape)
+    else:
+        GMmodel.weights_ = GMmodel.weights_[:,indx].reshape(GMmodel.weights_.shape)
+
     if GMmodel.covariance_type == 'tied':
         pass
     else:
@@ -175,20 +192,25 @@ def UpdateGaussianMixtureModel(
         print('before update weights: ', GMmodel.weights_)
         print('before update precisions: ', GMmodel.precisions_)
 
+    if GMmodel.weights_.ndim == 1:
+        weights_ = GMmodel.weights_
+    else:
+        weights_= (np.c_[GMmodel.vol]*GMmodel.weights_).sum(axis=0)/(np.c_[GMmodel.vol]*GMmodel.weights_).sum()
+
     for k in range(GMmodel.n_components):
         if prior_type == 'full':
-                smu = (kappa[k]*GMmodel.weights_[k]) * ((GMref.means_[k]-GMmodel.means_[k])**2.)
-                smu /= (kappa[k] + GMmodel.weights_[k])
-                smu *= (1. / (GMmodel.weights_[k] + GMref.weights_[k] * nu[k]))
+                smu = (kappa[k]*weights_[k]) * ((GMref.means_[k]-GMmodel.means_[k])**2.)
+                smu /= (kappa[k] + weights_[k])
+                smu *= (1. / (weights_[k] + GMref.weights_[k] * nu[k]))
 
-        GMmodel.means_[k] = (1. / (GMmodel.weights_[k] + GMref.weights_[k] * kappa[k])) * (
-            GMmodel.weights_[k] * GMmodel.means_[k] + GMref.weights_[k] * kappa[k] * GMref.means_[k])
+        GMmodel.means_[k] = (1. / (weights_[k] + GMref.weights_[k] * kappa[k])) * (
+            weights_[k] * GMmodel.means_[k] + GMref.weights_[k] * kappa[k] * GMref.means_[k])
 
         if GMref.covariance_type == 'tied':
             pass
         elif update_covariances:
-            GMmodel.covariances_[k] = (1. / (GMmodel.weights_[k] + GMref.weights_[k] * nu[k])) * (
-                GMmodel.weights_[k] * GMmodel.covariances_[k] + GMref.weights_[k] * nu[k] * GMref.covariances_[k])
+            GMmodel.covariances_[k] = (1. / (weights_[k] + GMref.weights_[k] * nu[k])) * (
+                weights_[k] * GMmodel.covariances_[k] + GMref.weights_[k] * nu[k] * GMref.covariances_[k])
 
             if prior_type == 'full':
                 GMmodel.covariances_[k] += smu
@@ -196,11 +218,11 @@ def UpdateGaussianMixtureModel(
 
         else:
             GMmodel.precisions_[k] = (
-                1. / (GMmodel.weights_[k] + GMref.weights_[k] * nu[k])) * (
-                GMmodel.weights_[k] * GMmodel.precisions_[k] + GMref.weights_[k] * nu[k] * GMref.precisions_[k])
+                1. / (weights_[k] + GMref.weights_[k] * nu[k])) * (
+                weights_[k] * GMmodel.precisions_[k] + GMref.weights_[k] * nu[k] * GMref.precisions_[k])
 
-        GMmodel.weights_[k] = (1. / (1. + np.sum(alphadir * GMref.weights_))) * (
-            GMmodel.weights_[k] + alphadir[k] * GMref.weights_[k])
+    GMmodel.weights_ = (1. / (1. + np.sum(alphadir * GMref.weights_))) * (
+            GMmodel.weights_ + alphadir * GMref.weights_)
 
     if GMref.covariance_type == 'tied':
         if update_covariances:
@@ -420,7 +442,7 @@ class FuzzyGaussianMixtureWithPrior(GaussianMixture):
 class WeightedGaussianMixture(GaussianMixture):
 
     def __init__(
-        self, n_components, mesh, covariance_type='full',
+        self, n_components, mesh, actv=None, covariance_type='full',
         init_params='kmeans', max_iter=100,
         means_init=None, n_init=10, precisions_init=None,
         random_state=None, reg_covar=1e-06, tol=0.001, verbose=0,
@@ -430,6 +452,11 @@ class WeightedGaussianMixture(GaussianMixture):
         #**kwargs
     ):
         self.mesh = mesh
+        self.actv = actv
+        if self.actv is None:
+            self.vol = self.mesh.vol
+        else:
+            self.vol = self.mesh.vol[self.actv]
 
         super(WeightedGaussianMixture, self).__init__(
             covariance_type=covariance_type,
@@ -465,7 +492,7 @@ class WeightedGaussianMixture(GaussianMixture):
             label = KMeans(
                 n_clusters=self.n_components, n_init=1,
                 random_state=random_state).fit(
-                X, sample_weight=self.mesh.vol
+                X, sample_weight=self.vol
             ).labels_
             resp[np.arange(n_samples), label] = 1
         elif self.init_params == 'random':
@@ -488,7 +515,7 @@ class WeightedGaussianMixture(GaussianMixture):
             the point of each sample in X.
         """
         n_samples, _ = X.shape
-        Volume = np.mean(self.mesh.vol)
+        Volume = np.mean(self.vol)
         self.weights_, self.means_, self.covariances_ = (
             self._estimate_gaussian_parameters(X, self.mesh, np.exp(log_resp), self.reg_covar,
                                           self.covariance_type))
@@ -518,7 +545,7 @@ class WeightedGaussianMixture(GaussianMixture):
             The covariance matrix of the current components.
             The shape depends of the covariance_type.
         """
-        respVol = (mesh.vol.reshape(-1,1) * resp)
+        respVol = (self.vol.reshape(-1,1) * resp)
         nk = respVol.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
         means = np.dot(respVol.T, X) / nk[:, np.newaxis]
         covariances = {"full": _estimate_gaussian_covariances_full,
@@ -556,19 +583,20 @@ class WeightedGaussianMixture(GaussianMixture):
         log_likelihood : float
             Log likelihood of the Gaussian mixture given X.
         """
-        return np.average(self.score_samples(X), weights=self.mesh.vol)
+        return np.average(self.score_samples(X), weights=self.vol)
 
 class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
     def __init__(
         self, mesh, GMref, kappa=0., nu=0., alphadir=0.,
+        actv=None,
         prior_type='semi',  # semi or full
+        update_covariances=False,
+        fixed_membership=None,
         init_params='kmeans', max_iter=100,
         means_init=None, n_init=10, precisions_init=None,
         random_state=None, reg_covar=1e-06, tol=0.001, verbose=0,
         verbose_interval=10, warm_start=False, weights_init=None,
-        update_covariances=False,
-        fixed_membership=None,
         #**kwargs
     ):
         self.mesh = mesh
@@ -585,6 +613,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         super(GaussianMixtureWithPrior, self).__init__(
             covariance_type=self.covariance_type,
             mesh=self.mesh,
+            actv=actv,
             init_params=init_params,
             max_iter=max_iter,
             means_init=means_init,
@@ -691,6 +720,177 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         self.last_step_change = change
 
         return self
+
+
+class GaussianMixtureMarkovRandomField(GaussianMixtureWithPrior):
+
+    def __init__(
+        self, mesh, GMref, kappa=0., nu=0., alphadir=0.,
+        actv=None, kdtree=None, indexneighbors=None,
+        prior_type='semi',  # semi or full
+        update_covariances=False,
+        fixed_membership=None,
+        T=12., kneighbors=0,
+        init_params='kmeans', max_iter=100,
+        means_init=None, n_init=10, precisions_init=None,
+        random_state=None, reg_covar=1e-06, tol=0.001, verbose=0,
+        verbose_interval=10, warm_start=False, weights_init=None,
+        #**kwargs
+    ):
+
+        super(GaussianMixtureMarkovRandomField, self).__init__(
+            mesh=mesh,
+            GMref=GMref,
+            actv=None,
+            kappa=kappa, nu=nu, alphadir=alphadir,
+            prior_type=prior_type,
+            update_covariances=update_covariances,
+            fixed_membership=fixed_membership,
+            init_params=init_params,
+            max_iter=max_iter,
+            means_init=means_init,
+            n_init=n_init,
+            precisions_init=precisions_init,
+            random_state=random_state,
+            reg_covar=reg_covar,
+            tol=tol,
+            verbose=verbose,
+            verbose_interval=verbose_interval,
+            warm_start=warm_start,
+            weights_init=weights_init,
+            # **kwargs
+        )
+        # setKwargs(self, **kwargs)
+        self.kneighbors = kneighbors
+        self.T = T
+
+        if self.mesh.mesh.gridCC.ndim == 1:
+            xyz = np.c_[self.mesh.mesh.gridCC]
+        else:
+            xyz = self.mesh.mesh.gridCC
+        if self.actv is None:
+            self.xyz = xyz
+        else:
+            self.xyz = xyz[actv]
+        if kdtree is None:
+            print('Computing KDTree, it may take several minutes.')
+            self.kdtree = spatial.KDTree(self.xyz)
+        else:
+            self.kdtree = kdtree
+        if indexneighbors is None:
+            _, self.indexneighbors = self.kdtree.query(self.xyz, k=self.kneighbors+1)
+        else:
+            self.indexneighbors=indexneighbors
+
+
+    def computeG(self, z, w):
+            logG = (self.T/(2.*(self.kneighbors+1))) * (
+                (z[self.indexneighbors] + w[self.indexneighbors]).sum(
+                    axis=1
+                )
+            )
+            return logG
+
+    def _m_step(self, X, log_resp):
+        """M step.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+        log_resp : array-like, shape (n_samples, n_components)
+            Logarithm of the posterior probabilities (or responsibilities) of
+            the point of each sample in X.
+        """
+        n_samples, _ = X.shape
+        _, self.means_, self.covariances_ = (
+            self._estimate_gaussian_parameters(X, self.mesh, np.exp(log_resp), self.reg_covar,self.covariance_type)
+        )
+        #self.weights_ /= n_samples
+        self.precisions_cholesky_ = _compute_precision_cholesky(
+            self.covariances_, self.covariance_type)
+
+        logweights = logsumexp(np.c_[[log_resp, self.computeG(np.exp(log_resp), self.weights_)]], axis=0)
+        logweights = logweights - logsumexp(
+            logweights, axis=1, keepdims=True
+        )
+        self.weights_ = np.exp(logweights)
+
+
+    def _check_weights(self, weights, n_components, n_samples):
+        """Check the user provided 'weights'.
+        Parameters
+        ----------
+        weights : array-like, shape (n_components,)
+            The proportions of components of each mixture.
+        n_components : int
+            Number of components.
+        Returns
+        -------
+        weights : array, shape (n_components,)
+        """
+        weights = check_array(
+            weights, dtype=[np.float64, np.float32],
+            ensure_2d=True
+        )
+        _check_shape(weights, (n_components, n_samples), 'weights')
+
+    def _check_parameters(self, X):
+        """Check the Gaussian mixture parameters are well defined."""
+        n_samples, n_features = X.shape
+        if self.covariance_type not in ['spherical', 'tied', 'diag', 'full']:
+            raise ValueError("Invalid value for 'covariance_type': %s "
+                             "'covariance_type' should be in "
+                             "['spherical', 'tied', 'diag', 'full']"
+                             % self.covariance_type)
+
+        if self.weights_init is not None:
+            self.weights_init = self._check_weights(
+                self.weights_init,
+                n_samples,
+                self.n_components
+            )
+
+        if self.means_init is not None:
+            self.means_init = _check_means(self.means_init,
+                                           self.n_components, n_features)
+
+        if self.precisions_init is not None:
+            self.precisions_init = _check_precisions(self.precisions_init,
+                                                     self.covariance_type,
+                                                     self.n_components,
+                                                     n_features)
+
+
+    def _initialize(self, X, resp):
+        """Initialization of the Gaussian mixture parameters.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+        resp : array-like, shape (n_samples, n_components)
+        """
+        n_samples, _ = X.shape
+
+        weights, means, covariances = self._estimate_gaussian_parameters(
+            X, self.mesh, resp, self.reg_covar, self.covariance_type)
+        weights /= n_samples
+
+        self.weights_ = (weights*np.ones((n_samples,self.n_components)) if self.weights_init is None
+                         else self.weights_init)
+        self.means_ = means if self.means_init is None else self.means_init
+
+        if self.precisions_init is None:
+            self.covariances_ = covariances
+            self.precisions_cholesky_ = _compute_precision_cholesky(
+                covariances, self.covariance_type)
+        elif self.covariance_type == 'full':
+            self.precisions_cholesky_ = np.array(
+                [linalg.cholesky(prec_init, lower=True)
+                 for prec_init in self.precisions_init])
+        elif self.covariance_type == 'tied':
+            self.precisions_cholesky_ = linalg.cholesky(self.precisions_init,
+                                                        lower=True)
+        else:
+            self.precisions_cholesky_ = self.precisions_init
+
 
 
 class GaussianMixtureWithMapping(GaussianMixture):

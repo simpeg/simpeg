@@ -31,7 +31,8 @@ from .petroutils import (
     order_clusters_GM_weight, order_cluster,
     computePrecision, computeCovariance, ComputeConstantTerm,
     _compute_precision_cholesky, GaussianMixture, WeightedGaussianMixture,
-    GaussianMixtureWithPrior, FuzzyGaussianMixtureWithPrior,
+    GaussianMixtureWithPrior, GaussianMixtureMarkovRandomField,
+    FuzzyGaussianMixtureWithPrior,
     GaussianMixtureWithMapping, GaussianMixtureWithMappingWithPrior,
     GibbsSampling_PottsDenoising, ICM_PottsDenoising
 )

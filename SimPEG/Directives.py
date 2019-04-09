@@ -1188,6 +1188,127 @@ class GaussianMixtureUpdateModel(InversionDirective):
                 clfupdate.means_[self.fixed_membership])
 
 
+class GMMRFUpdateModel(InversionDirective):
+
+    coolingFactor = 1.
+    coolingRate = 1
+    update_covariances = True
+    verbose = False
+    alphadir = None
+    nu = None
+    kappa = None
+    fixed_membership = None
+    keep_ref_fixed_in_Smooth = True
+    neighbors = 8
+    temperature = 12.
+
+    def initialize(self):
+        if getattr(
+            self.invProb.reg.objfcts[0],
+            'objfcts',
+            None
+        ) is not None:
+            petrosmallness = np.where(np.r_[
+                [
+                    (
+                        isinstance(
+                            regpart,
+                            Regularization.SimplePetroRegularization
+                        ) or
+                        isinstance(
+                            regpart,
+                            Regularization.PetroRegularization
+                        ) or
+                        isinstance(
+                            regpart,
+                            Regularization.SimplePetroWithMappingRegularization
+                        )
+                    )
+                    for regpart in self.invProb.reg.objfcts
+                ]
+            ])[0][0]
+            self.petrosmallness = petrosmallness
+            if self.debug:
+                print(type(self.invProb.reg.objfcts[self.petrosmallness]))
+            self._regmode = 1
+        else:
+            self._regmode = 2
+
+    def endIter(self):
+
+        m = self.invProb.model
+        if self._regmode == 1:
+            self.petroregularizer = self.invProb.reg.objfcts[
+                self.petrosmallness]
+            modellist = self.invProb.reg.objfcts[
+                self.petrosmallness].wiresmap * m
+        else:
+            self.petroregularizer = self.invProb.reg
+            modellist = self.invProb.reg.wiresmap * m
+        model = np.c_[
+            [a * b for a, b in zip(self.petroregularizer.maplist, modellist)]].T
+
+        if (self.alphadir is None):
+            self.alphadir = (self.petroregularizer.gamma) * \
+                np.ones(self.petroregularizer.GMmref.n_components)
+        if (self.nu is None):
+            self.nu = self.petroregularizer.gamma * \
+                np.ones(self.petroregularizer.GMmref.n_components)
+        if (self.kappa is None):
+            self.kappa = self.petroregularizer.gamma * \
+                np.ones(self.petroregularizer.GMmref.n_components)
+
+        if self.petroregularizer.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
+            self.fixed_membership = self.petroregularizer.membership(
+                self.petroregularizer.mref)
+
+        # TEMPORARY FOR WEIGHTS ACCROSS THE MESH
+        # self.petroregularizer.GMmodel.weights_ = self.petroregularizer.GMmref.weights_
+
+        clfupdate = Utils.GaussianMixtureMarkovRandomField(
+            mesh=self.petroregularizer.regmesh,
+            GMref=self.petroregularizer.GMmref,
+            kneighbors=self.neighbors,
+            kdtree=getattr(self.petroregularizer.GMmodel, "kdtree", None),
+            indexneighbors=getattr(self.petroregularizer.GMmodel, "indexneighbors", None),
+            T=self.temperature,
+            alphadir=self.alphadir,
+            kappa=self.kappa,
+            nu=self.nu,
+            verbose=self.verbose,
+            prior_type='semi',
+            update_covariances=self.update_covariances,
+            max_iter=self.petroregularizer.GMmodel.max_iter,
+            n_init=self.petroregularizer.GMmodel.n_init,
+            reg_covar=self.petroregularizer.GMmodel.reg_covar,
+            weights_init=self.petroregularizer.GMmodel.weights_*np.ones(
+                (len(model),self.petroregularizer.GMmref.n_components)
+            ),
+            means_init=self.petroregularizer.GMmodel.means_,
+            precisions_init=self.petroregularizer.GMmodel.precisions_,
+            random_state=self.petroregularizer.GMmodel.random_state,
+            tol=self.petroregularizer.GMmodel.tol,
+            verbose_interval=self.petroregularizer.GMmodel.verbose_interval,
+            warm_start=self.petroregularizer.GMmodel.warm_start,
+            fixed_membership=self.fixed_membership,
+        )
+        clfupdate = clfupdate.fit(model)
+        #Utils.order_cluster(clfupdate, self.petroregularizer.GMmref)
+        self.petroregularizer.GMmodel = clfupdate
+        if self.fixed_membership is None:
+            membership = clfupdate.predict(model)
+            if self._regmode == 1:
+                self.invProb.reg.objfcts[self.petrosmallness].mref = Utils.mkvc(
+                    clfupdate.means_[membership])
+                self.invProb.reg.objfcts[
+                    self.petrosmallness]._r_second_deriv = None
+            else:
+                self.invProb.reg.mref = Utils.mkvc(
+                    clfupdate.means_[membership])
+                self.invProb.reg._r_second_deriv = None
+        else:
+            self.petroregularizer.mref = Utils.mkvc(
+                clfupdate.means_[self.fixed_membership])
 
 
 class UpdateReference(InversionDirective):
