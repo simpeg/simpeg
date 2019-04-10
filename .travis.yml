@@ -49,6 +49,7 @@ before_install:
 install:
   - conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
   - pip install -r requirements_dev.txt
+  - pip install git+https://github.com/simpeg/discretize.git@repo-cleanup
   - python setup.py install
   - if [ "$TEST_DIR" = "$DEPLOY_DIR" ]; then
       if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi ;
