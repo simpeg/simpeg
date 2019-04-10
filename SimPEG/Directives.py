@@ -1149,7 +1149,6 @@ class GaussianMixtureUpdateModel(InversionDirective):
         self.petroregularizer.GMmodel.weights_ = self.petroregularizer.GMmref.weights_
 
         clfupdate = Utils.GaussianMixtureWithPrior(
-            mesh=self.petroregularizer.regmesh,
             GMref=self.petroregularizer.GMmref,
             alphadir=self.alphadir,
             kappa=self.kappa,
@@ -1201,6 +1200,9 @@ class GMMRFUpdateModel(InversionDirective):
     keep_ref_fixed_in_Smooth = True
     neighbors = 8
     temperature = 12.
+    boreholeidx = None
+    unit_anisotropy = None  # Dictionary with unit, anisotropy
+    index_anisotropy = None  # Dictionary with index, anisotropy, TODOs: to implement
 
     def initialize(self):
         if getattr(
@@ -1264,19 +1266,26 @@ class GMMRFUpdateModel(InversionDirective):
 
         # TEMPORARY FOR WEIGHTS ACCROSS THE MESH
         # self.petroregularizer.GMmodel.weights_ = self.petroregularizer.GMmref.weights_
+        if self.unit_anisotropy is not None:
+            self.unit_anisotropy['index'] = []
+            for i, unit in enumerate(self.unit_anisotropy['unit']):
+                self.unit_anisotropy['index'].append(self.petroregularizer.membership(
+                self.petroregularizer.mref) == unit)
 
         clfupdate = Utils.GaussianMixtureMarkovRandomField(
-            mesh=self.petroregularizer.regmesh,
             GMref=self.petroregularizer.GMmref,
             kneighbors=self.neighbors,
             kdtree=getattr(self.petroregularizer.GMmodel, "kdtree", None),
             indexneighbors=getattr(self.petroregularizer.GMmodel, "indexneighbors", None),
+            index_anisotropy=self.unit_anisotropy,
+            index_kdtree=getattr(self.petroregularizer.GMmodel, "index_kdtree", None),
             T=self.temperature,
             alphadir=self.alphadir,
             kappa=self.kappa,
             nu=self.nu,
             verbose=self.verbose,
             prior_type='semi',
+            boreholeidx=self.boreholeidx,
             update_covariances=self.update_covariances,
             max_iter=self.petroregularizer.GMmodel.max_iter,
             n_init=self.petroregularizer.GMmodel.n_init,

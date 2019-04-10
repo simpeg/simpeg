@@ -569,7 +569,7 @@ class WeightedGaussianMixture(GaussianMixture):
             the point of each sample in X.
         """
         log_prob_norm, log_resp = self._estimate_log_prob_resp(X)
-        return np.average(log_prob_norm, weights=self.mesh.vol), log_resp
+        return np.average(log_prob_norm, weights=self.vol), log_resp
 
     def score(self, X, y=None):
         """Compute the per-sample average log-likelihood of the given data X.
@@ -588,8 +588,7 @@ class WeightedGaussianMixture(GaussianMixture):
 class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
     def __init__(
-        self, mesh, GMref, kappa=0., nu=0., alphadir=0.,
-        actv=None,
+        self, GMref, kappa=0., nu=0., alphadir=0.,
         prior_type='semi',  # semi or full
         update_covariances=False,
         fixed_membership=None,
@@ -599,7 +598,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         verbose_interval=10, warm_start=False, weights_init=None,
         #**kwargs
     ):
-        self.mesh = mesh
+        self.mesh = GMref.mesh
         self.n_components = GMref.n_components
         self.GMref = GMref
         self.covariance_type = GMref.covariance_type
@@ -613,7 +612,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         super(GaussianMixtureWithPrior, self).__init__(
             covariance_type=self.covariance_type,
             mesh=self.mesh,
-            actv=actv,
+            actv=self.GMref.actv,
             init_params=init_params,
             max_iter=max_iter,
             means_init=means_init,
@@ -682,6 +681,10 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
                         np.arange(len(new_log_resp)), self.fixed_membership] = 0.
                     log_resp = new_log_resp
                 self._m_step(X, log_resp)
+                if self.boreholeidx is not None:
+                    aux = -(np.inf) * np.ones((self.boreholeidx.shape[0],self.n_components))
+                    aux[np.arange(len(aux)), self.boreholeidx[:,1]]=0.
+                    log_resp[self.boreholeidx[:,0]] = aux
                 UpdateGaussianMixtureModel(
                     self, self.GMref,
                     alphadir=self.alphadir,
@@ -691,6 +694,10 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
                     update_covariances=self.update_covariances,
                     prior_type=self.prior_type
                 )
+                if self.boreholeidx is not None:
+                    aux = np.zeros((self.boreholeidx.shape[0],self.n_components))
+                    aux[np.arange(len(aux)), self.boreholeidx[:,1]]=1
+                    self.weights_[self.boreholeidx[:,0]] = aux
                 self.lower_bound_ = self._compute_lower_bound(
                     log_resp, log_prob_norm)
 
@@ -725,23 +732,27 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 class GaussianMixtureMarkovRandomField(GaussianMixtureWithPrior):
 
     def __init__(
-        self, mesh, GMref, kappa=0., nu=0., alphadir=0.,
-        actv=None, kdtree=None, indexneighbors=None,
+        self, GMref, kappa=0., nu=0., alphadir=0.,
+        kdtree=None, indexneighbors=None,
         prior_type='semi',  # semi or full
         update_covariances=False,
         fixed_membership=None,
+        boreholeidx=None,
         T=12., kneighbors=0,
         init_params='kmeans', max_iter=100,
         means_init=None, n_init=10, precisions_init=None,
         random_state=None, reg_covar=1e-06, tol=0.001, verbose=0,
         verbose_interval=10, warm_start=False, weights_init=None,
+        anisotropy=None,
+        #unit_anistropy=None, # Dictionary with unit, anisotropy and index
+        #unit_kdtree=None, # List of KDtree
+        index_anisotropy=None, # Dictionary with anisotropy and index
+        index_kdtree=None,# List of KDtree
         #**kwargs
     ):
 
         super(GaussianMixtureMarkovRandomField, self).__init__(
-            mesh=mesh,
             GMref=GMref,
-            actv=None,
             kappa=kappa, nu=nu, alphadir=alphadir,
             prior_type=prior_type,
             update_covariances=update_covariances,
@@ -763,24 +774,47 @@ class GaussianMixtureMarkovRandomField(GaussianMixtureWithPrior):
         # setKwargs(self, **kwargs)
         self.kneighbors = kneighbors
         self.T = T
+        self.boreholeidx = boreholeidx
 
-        if self.mesh.mesh.gridCC.ndim == 1:
-            xyz = np.c_[self.mesh.mesh.gridCC]
+        self.anisotropy = anisotropy
+        if self.mesh.gridCC.ndim == 1:
+            xyz = np.c_[self.mesh.gridCC]
+        elif self.anisotropy is not None:
+            xyz = self.anisotropy.dot(self.mesh.gridCC.T).T
         else:
-            xyz = self.mesh.mesh.gridCC
+            xyz = self.mesh.gridCC
         if self.actv is None:
             self.xyz = xyz
         else:
-            self.xyz = xyz[actv]
+            self.xyz = xyz[self.actv]
         if kdtree is None:
             print('Computing KDTree, it may take several minutes.')
             self.kdtree = spatial.KDTree(self.xyz)
         else:
             self.kdtree = kdtree
         if indexneighbors is None:
+            print('Computing neighbors, it may take several minutes.')
             _, self.indexneighbors = self.kdtree.query(self.xyz, k=self.kneighbors+1)
         else:
             self.indexneighbors=indexneighbors
+
+        self.index_anisotropy = index_anisotropy
+        self.index_kdtree = index_kdtree
+        if self.index_anisotropy is not None and self.mesh.gridCC.ndim != 1:
+
+            self.unitxyz = []
+            for i, anis in enumerate(self.index_anisotropy['anistropy']):
+                self.unitxyz.append((anis).dot(self.xyz.T).T)
+
+            if self.index_kdtree is None:
+                self.index_kdtree = []
+                print('Computing rock unit specific KDTree, it may take several minutes.')
+                for i, anis in enumerate(self.index_anisotropy['anistropy']):
+                    self.index_kdtree.append(spatial.KDTree(self.unitxyz[i]))
+
+            print('Computing new neighbors based on rock units, it may take several minutes.')
+            for i, unitindex in enumerate(self.index_anisotropy['index']):
+                _, self.indexneighbors[unitindex] = self.index_kdtree[i].query(self.unitxyz[i][unitindex], k=self.kneighbors+1)
 
 
     def computeG(self, z, w):
@@ -812,7 +846,12 @@ class GaussianMixtureMarkovRandomField(GaussianMixtureWithPrior):
         logweights = logweights - logsumexp(
             logweights, axis=1, keepdims=True
         )
+
         self.weights_ = np.exp(logweights)
+        if self.boreholeidx is not None:
+            aux = np.zeros((self.boreholeidx.shape[0],self.n_components))
+            aux[np.arange(len(aux)), self.boreholeidx[:,1]]=1
+            self.weights_[self.boreholeidx[:,0]] = aux
 
 
     def _check_weights(self, weights, n_components, n_samples):
