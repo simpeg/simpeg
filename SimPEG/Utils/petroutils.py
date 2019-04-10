@@ -746,7 +746,7 @@ class GaussianMixtureMarkovRandomField(GaussianMixtureWithPrior):
         random_state=None, reg_covar=1e-06, tol=0.001, verbose=0,
         verbose_interval=10, warm_start=False, weights_init=None,
         anisotropy=None,
-        #unit_anistropy=None, # Dictionary with unit, anisotropy and index
+        #unit_anisotropy=None, # Dictionary with unit, anisotropy and index
         #unit_kdtree=None, # List of KDtree
         index_anisotropy=None, # Dictionary with anisotropy and index
         index_kdtree=None,# List of KDtree
@@ -805,13 +805,13 @@ class GaussianMixtureMarkovRandomField(GaussianMixtureWithPrior):
         if self.index_anisotropy is not None and self.mesh.gridCC.ndim != 1:
 
             self.unitxyz = []
-            for i, anis in enumerate(self.index_anisotropy['anistropy']):
+            for i, anis in enumerate(self.index_anisotropy['anisotropy']):
                 self.unitxyz.append((anis).dot(self.xyz.T).T)
 
             if self.index_kdtree is None:
                 self.index_kdtree = []
                 print('Computing rock unit specific KDTree, it may take several minutes.')
-                for i, anis in enumerate(self.index_anisotropy['anistropy']):
+                for i, anis in enumerate(self.index_anisotropy['anisotropy']):
                     self.index_kdtree.append(spatial.KDTree(self.unitxyz[i]))
 
             print('Computing new neighbors based on rock units, it may take several minutes.')
