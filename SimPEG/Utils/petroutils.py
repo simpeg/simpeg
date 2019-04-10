@@ -596,6 +596,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         means_init=None, n_init=10, precisions_init=None,
         random_state=None, reg_covar=1e-06, tol=0.001, verbose=0,
         verbose_interval=10, warm_start=False, weights_init=None,
+        boreholeidx=None,
         #**kwargs
     ):
         self.mesh = GMref.mesh
@@ -608,6 +609,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         self.prior_type = prior_type
         self.update_covariances = update_covariances
         self.fixed_membership = fixed_membership
+        self.boreholeidx=boreholeidx
 
         super(GaussianMixtureWithPrior, self).__init__(
             covariance_type=self.covariance_type,
@@ -769,12 +771,12 @@ class GaussianMixtureMarkovRandomField(GaussianMixtureWithPrior):
             verbose_interval=verbose_interval,
             warm_start=warm_start,
             weights_init=weights_init,
+            boreholeidx=boreholeidx
             # **kwargs
         )
         # setKwargs(self, **kwargs)
         self.kneighbors = kneighbors
         self.T = T
-        self.boreholeidx = boreholeidx
 
         self.anisotropy = anisotropy
         if self.mesh.gridCC.ndim == 1:
