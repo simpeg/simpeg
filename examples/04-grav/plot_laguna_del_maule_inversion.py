@@ -146,7 +146,7 @@ def run(plotIt=True, cleanAfterRun=True):
         Utils.PlotUtils.plot2Ddata(rxLoc, d)
 
         # %%
-        # Write output model and data files and print misft stats.
+        # Write output model and data files and print misfit stats.
 
         # reconstructing l2 model mesh with air cells and active dynamic cells
         L2out = activeMap * invProb.l2model

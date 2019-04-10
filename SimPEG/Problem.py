@@ -292,7 +292,7 @@ class LinearProblem(BaseProblem):
 
     def __init__(self, mesh, **kwargs):
         BaseProblem.__init__(self, mesh, **kwargs)
-        self.modelMap = kwargs.pop('mapping', Maps.IdentityMap(mesh))
+        self.modelMap = kwargs.pop('modelMap', Maps.IdentityMap(mesh))
 
     @property
     def modelMap(self):
