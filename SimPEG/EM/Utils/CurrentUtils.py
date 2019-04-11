@@ -314,8 +314,8 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
 
             # Assign integrated source terms to the proper edges
 
-            # Deal with paths which already follow edges
-            if(np.all(np.equal(sxloc, np.array([1., 0., 0., 0.])))):
+            # Deal with paths which follow edges
+            if(len(np.where(sxloc)[0]) == 1):
                 print('Path follows x edge.')
                 xEdgeLocs = mesh.gridEx
                 d_xEdge = np.sqrt((xEdgeLocs[:,0] - cx)**2 +
@@ -325,7 +325,7 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
 
                 sx[xEdgeInd] += sxloc[0]
 
-            elif(np.all(np.equal(syloc, np.array([1., 0., 0., 0.])))):
+            elif(len(np.where(syloc)[0]) == 1):
                 print('Path follows y edge.')
                 yEdgeLocs = mesh.gridEy
                 d_yEdge = np.sqrt((yEdgeLocs[:,0] - cx)**2 +
@@ -335,7 +335,7 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
 
                 sy[yEdgeInd] += syloc[0]
 
-            elif(np.all(np.equal(szloc, np.array([1., 0., 0., 0.])))):
+            elif(len(np.where(szloc)[0]) == 1):
                 print('Path follows z edge.')
                 zEdgeLocs = mesh.gridEz
                 d_zEdge = np.sqrt((zEdgeLocs[:,0] - cx)**2 +
@@ -345,7 +345,44 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
 
                 sz[zEdgeInd] += szloc[0]
 
-            # Find edges for paths which do not follow edges
+            # Deal with paths which follow faces
+            elif(len(np.where(sxloc)[0]) == 2):
+                print('Path follows a y or z face.')
+                xEdgeLocs = mesh.gridEx
+                d_xEdge = np.sqrt((xEdgeLocs[:,0] - cx)**2 +
+                    (xEdgeLocs[:,1] - cy)**2 + (xEdgeLocs[:,2] - cz)**2)
+
+                xEdgeInd = np.argsort(d_xEdge)[0:2]
+                sxlocInd = np.argsort(np.abs(sxloc))[2:]
+
+                sx[xEdgeInd[0]] += sxloc[sxlocInd[1]]
+                sx[xEdgeInd[1]] += sxloc[sxlocInd[0]]
+
+            elif(len(np.where(syloc)[0]) == 2):
+                print('Path follows a x or z face.')
+                yEdgeLocs = mesh.gridEy
+                d_yEdge = np.sqrt((yEdgeLocs[:,0] - cx)**2 +
+                    (yEdgeLocs[:,1] - cy)**2 + (yEdgeLocs[:,2] - cz)**2)
+
+                yEdgeInd = np.argsort(d_yEdge)[0:2]
+                sylocInd = np.argsort(np.abs(syloc))[2:]
+
+                sy[yEdgeInd[0]] += syloc[sylocInd[1]]
+                sy[yEdgeInd[1]] += syloc[sylocInd[0]]
+
+            elif(len(np.where(szloc)[0]) == 2):
+                print('Path follows a x or y face.')
+                zEdgeLocs = mesh.gridEz
+                d_zEdge = np.sqrt((zEdgeLocs[:,0] - cx)**2 +
+                    (zEdgeLocs[:,1] - cy)**2 + (zEdgeLocs[:,2] - cz)**2)
+
+                zEdgeInd = np.argsort(d_zEdge)[0:2]
+                szlocInd = np.argsort(np.abs(szloc))[2:]
+
+                sz[zEdgeInd[0]] += szloc[szlocInd[1]]
+                sz[zEdgeInd[1]] += szloc[szlocInd[0]]
+
+            # Find edges for paths which do not follow edges or faces
             else:
                 cID =  mesh._get_containing_cell_index([cx,cy,cz])
                 CC = mesh.gridCC[cID,:]
