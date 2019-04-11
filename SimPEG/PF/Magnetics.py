@@ -16,11 +16,10 @@ from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
 import dask
 import dask.array as da
+from dask.diagnostics import ProgressBar
 from scipy.sparse import csr_matrix as csr
 import os
 import shutil
-#from dask.diagnostics import ProgressBar
-from dask.distributed import Client
 
 class MagneticIntegral(Problem.LinearProblem):
 
@@ -40,7 +39,6 @@ class MagneticIntegral(Problem.LinearProblem):
     gtgdiag = None
     memory_saving_mode = False
     n_cpu = None
-    n_chunks = 1
     parallelized = "dask"
     coordinate_system = properties.StringChoice(
         "Type of coordinate system we are regularizing in",
@@ -432,7 +430,6 @@ class MagneticIntegral(Problem.LinearProblem):
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
                 model=self.model, rxType=self.rxType, Mxyz=self.Mxyz,
                 P=self.ProjTMI, parallelized=self.parallelized,
-                n_chunks=self.n_chunks,
                 verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM
                 )
 
@@ -453,7 +450,6 @@ class Forward(object):
     rxType = 'z'
     Mxyz = None
     P = None
-    n_chunks = 1
     verbose = True
     maxRAM = 1
     Jpath = "./sensitivity.zarr"
@@ -468,7 +464,6 @@ class Forward(object):
 
         if self.n_cpu is None:
             self.n_cpu = int(multiprocessing.cpu_count())
-        n_workers = 4 # Good for Azure: needs testing on other systems
 
         # Set this early so we can get a better memory estimate for dask chunking
         if self.rxType == 'xyz':
@@ -488,8 +483,6 @@ class Forward(object):
 
             if self.parallelized == "dask":
 
-                client = Client(n_workers=n_workers)
-                
                 row = dask.delayed(self.calcTrow, pure=True)
 
                 makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
@@ -533,8 +526,9 @@ class Forward(object):
                             shutil.rmtree(self.Jpath)
                             print("Zarr file detected with wrong shape and chunksize ... over-writing")
 
-                    print("Saving G to zarr: " + self.Jpath)
-                    da.to_zarr(stack, self.Jpath)
+                    with ProgressBar():
+                        print("Saving G to zarr: " + self.Jpath)
+                        da.to_zarr(stack, self.Jpath)
                     
                     G = da.from_zarr(self.Jpath)
 
