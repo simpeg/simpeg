@@ -19,8 +19,8 @@ import dask.array as da
 from scipy.sparse import csr_matrix as csr
 import os
 import shutil
-from dask.diagnostics import ProgressBar
-
+#from dask.diagnostics import ProgressBar
+from dask.distributed import Client
 
 class MagneticIntegral(Problem.LinearProblem):
 
@@ -456,6 +456,7 @@ class Forward(object):
     n_chunks = 1
     verbose = True
     maxRAM = 1
+    n_workers = 4 # Good for Azure: needs testing on other systems
     Jpath = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
@@ -487,6 +488,8 @@ class Forward(object):
 
             if self.parallelized == "dask":
 
+                client = Client(n_workers=n_workers)
+                
                 row = dask.delayed(self.calcTrow, pure=True)
 
                 makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
@@ -495,24 +498,23 @@ class Forward(object):
 
                 stack = da.vstack(buildMat)
 
+                # TO-DO: Find a way to create in
+                # chunks instead
+                stack = stack.rechunk('auto')
+                print('DASK: ')
+                print('Tile size (nD, nC): ', stack.shape)
+                print('Chunk sizes (nD, nC): ', stack.chunks)
+                print('Number of chunks: ', len(stack.chunks[0]), ' x ', len(stack.chunks[1]), ' = ', len(stack.chunks[0]) * len(stack.chunks[1]))
+                print('Max chunk size (GB): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9)
+                print('Max RAM (GB x CPU): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu)
+
                 if self.forwardOnly:
 
-                    with ProgressBar():
-                        pred = da.dot(stack, self.model).compute()
+                    pred = da.dot(stack, self.model).compute()
 
                     return pred
 
                 else:
-
-                    # TO-DO: Find a way to create in
-                    # chunks instead
-                    stack = stack.rechunk('auto')
-                    print('DASK: ')
-                    print('Tile size (nD, nC): ', stack.shape)
-                    print('Chunk sizes (nD, nC): ', stack.chunks)
-                    print('Number of chunks: ', len(stack.chunks[0]), ' x ', len(stack.chunks[1]), ' = ', len(stack.chunks[0]) * len(stack.chunks[1]))
-                    print('Max chunk size (GB): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9)
-                    print('Max RAM (GB x CPU): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu)
 
                     if os.path.exists(self.Jpath):
 
@@ -531,10 +533,9 @@ class Forward(object):
                             shutil.rmtree(self.Jpath)
                             print("Zarr file detected with wrong shape and chunksize ... over-writing")
 
-                    with ProgressBar():
-                        print("Saving G to zarr: " + self.Jpath)
-                        da.to_zarr(stack, self.Jpath)
-
+                    print("Saving G to zarr: " + self.Jpath)
+                    da.to_zarr(stack, self.Jpath)
+                    
                     G = da.from_zarr(self.Jpath)
 
             # elif self.parallelized == "multiprocessing":
