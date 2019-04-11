@@ -41,6 +41,7 @@ class MagneticIntegral(Problem.LinearProblem):
     memory_saving_mode = False
     n_cpu = None
     n_chunks = 1
+    store_zarr = True
     parallelized = "dask"
     coordinate_system = properties.StringChoice(
         "Type of coordinate system we are regularizing in",
@@ -432,7 +433,7 @@ class MagneticIntegral(Problem.LinearProblem):
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
                 model=self.model, rxType=self.rxType, Mxyz=self.Mxyz,
                 P=self.ProjTMI, parallelized=self.parallelized,
-                n_chunks=self.n_chunks,
+                n_chunks=self.n_chunks, store_zarr=self.store_zarr,
                 verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM
                 )
 
@@ -456,6 +457,7 @@ class Forward(object):
     n_chunks = 1
     verbose = True
     maxRAM = 1
+    store_zarr = True
     Jpath = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
@@ -507,35 +509,40 @@ class Forward(object):
                     # TO-DO: Find a way to create in
                     # chunks instead
                     stack = stack.rechunk('auto')
-                    print('DASK: ')
-                    print('Tile size (nD, nC): ', stack.shape)
-                    print('Chunk sizes (nD, nC): ', stack.chunks)
-                    print('Number of chunks: ', len(stack.chunks[0]), ' x ', len(stack.chunks[1]), ' = ', len(stack.chunks[0]) * len(stack.chunks[1]))
-                    print('Max chunk size (GB): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9)
-                    print('Max RAM (GB x CPU): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu)
 
-                    if os.path.exists(self.Jpath):
+                    if self.store_zarr:
+                        print('DASK: ')
+                        print('Tile size (nD, nC): ', stack.shape)
+                        print('Chunk sizes (nD, nC): ', stack.chunks)
+                        print('Number of chunks: ', len(stack.chunks[0]), ' x ', len(stack.chunks[1]), ' = ', len(stack.chunks[0]) * len(stack.chunks[1]))
+                        print('Max chunk size (GB): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9)
+                        print('Max RAM (GB x CPU): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu)
+
+                        if os.path.exists(self.Jpath):
+
+                            G = da.from_zarr(self.Jpath)
+
+                            if np.all(np.r_[
+                                    np.any(np.r_[G.chunks[0]] == stack.chunks[0]),
+                                    np.any(np.r_[G.chunks[1]] == stack.chunks[1]),
+                                    np.r_[G.shape] == np.r_[stack.shape]]):
+                                # Check that loaded G matches supplied data and mesh
+                                print("Zarr file detected with same shape and chunksize ... re-loading")
+                                return G
+
+                            else:
+                                del G
+                                shutil.rmtree(self.Jpath)
+                                print("Zarr file detected with wrong shape and chunksize ... over-writing")
+
+                        with ProgressBar():
+                            print("Saving G to zarr: " + self.Jpath)
+                            da.to_zarr(stack, self.Jpath)
 
                         G = da.from_zarr(self.Jpath)
-
-                        if np.all(np.r_[
-                                np.any(np.r_[G.chunks[0]] == stack.chunks[0]),
-                                np.any(np.r_[G.chunks[1]] == stack.chunks[1]),
-                                np.r_[G.shape] == np.r_[stack.shape]]):
-                            # Check that loaded G matches supplied data and mesh
-                            print("Zarr file detected with same shape and chunksize ... re-loading")
-                            return G
-
-                        else:
-                            del G
-                            shutil.rmtree(self.Jpath)
-                            print("Zarr file detected with wrong shape and chunksize ... over-writing")
-
-                    with ProgressBar():
-                        print("Saving G to zarr: " + self.Jpath)
-                        da.to_zarr(stack, self.Jpath)
-
-                    G = da.from_zarr(self.Jpath)
+                    else:
+                        with ProgressBar():
+                            G = stack.compute()
 
             # elif self.parallelized == "multiprocessing":
 
