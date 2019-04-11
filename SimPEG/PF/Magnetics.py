@@ -456,7 +456,6 @@ class Forward(object):
     n_chunks = 1
     verbose = True
     maxRAM = 1
-    n_workers = 4 # Good for Azure: needs testing on other systems
     Jpath = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
@@ -469,6 +468,7 @@ class Forward(object):
 
         if self.n_cpu is None:
             self.n_cpu = int(multiprocessing.cpu_count())
+        n_workers = 4 # Good for Azure: needs testing on other systems
 
         # Set this early so we can get a better memory estimate for dask chunking
         if self.rxType == 'xyz':
