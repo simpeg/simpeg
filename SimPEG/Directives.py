@@ -1084,6 +1084,7 @@ class GaussianMixtureUpdateModel(InversionDirective):
     kappa = None
     fixed_membership = None
     keep_ref_fixed_in_Smooth = True
+    boreholeidx = None
 
     def initialize(self):
         if getattr(
@@ -1167,6 +1168,7 @@ class GaussianMixtureUpdateModel(InversionDirective):
             verbose_interval=self.petroregularizer.GMmodel.verbose_interval,
             warm_start=self.petroregularizer.GMmodel.warm_start,
             fixed_membership=self.fixed_membership,
+            boreholeidx=self.boreholeidx,
         )
         clfupdate = clfupdate.fit(model)
         #Utils.order_cluster(clfupdate, self.petroregularizer.GMmref)
@@ -1447,17 +1449,55 @@ class BoreholeLithologyConstraints(InversionDirective):
     borehole_index = None
     borehole_lithology = None
 
+    def initialize(self):
+        if getattr(
+            self.invProb.reg.objfcts[0],
+            'objfcts',
+            None
+        ) is not None:
+            petrosmallness = np.where(np.r_[
+                [
+                    (
+                        isinstance(
+                            regpart,
+                            Regularization.SimplePetroRegularization
+                        ) or
+                        isinstance(
+                            regpart,
+                            Regularization.PetroRegularization
+                        ) or
+                        isinstance(
+                            regpart,
+                            Regularization.SimplePetroWithMappingRegularization
+                        )
+                    )
+                    for regpart in self.invProb.reg.objfcts
+                ]
+            ])[0][0]
+            self.petrosmallness = petrosmallness
+            if self.debug:
+                print(type(self.invProb.reg.objfcts[self.petrosmallness]))
+            self._regmode = 1
+        else:
+            self._regmode = 2
+
+        if self._regmode == 1:
+            self.petroregularizer = self.invProb.reg.objfcts[
+                self.petrosmallness]
+        else:
+            self.petroregularizer = self.invProb.reg
+
     def endIter(self):
         Utils.order_cluster(
-            self.invProb.reg.GMmodel,
-            self.invProb.reg.GMmref
+            self.petroregularizer.GMmodel,
+            self.petroregularizer.GMmref
         )
-        membership = self.invProb.reg.membership(self.invProb.reg.mref)
-        for bidx, lth in zip(self.borehole_index,self.borehole_lithology):
+        membership = self.petroregularizer.membership(self.petroregularizer.mref)
+        for bidx, lth in zip(self.borehole_index, self.borehole_lithology):
             membership[bidx] = lth
 
-        self.invProb.reg.mref = Utils.mkvc(
-            self.invProb.reg.GMmodel.means_[membership]
+        self.petroregularizer.mref = Utils.mkvc(
+            self.petroregularizer.GMmodel.means_[membership]
         )
 
 
