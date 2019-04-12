@@ -798,8 +798,9 @@ class GaussianMixtureMarkovRandomField(GaussianMixtureWithPrior):
             print('Computing neighbors, it may take several minutes.')
             _, self.indexneighbors = self.kdtree.query(self.xyz, k=self.kneighbors+1)
         else:
-            self.indexneighbors=indexneighbors
+            self.indexneighbors = indexneighbors
 
+        self.indexpoint = copy.deepcopy(self.indexneighbors)
         self.index_anisotropy = index_anisotropy
         self.index_kdtree = index_kdtree
         if self.index_anisotropy is not None and self.mesh.gridCC.ndim != 1:
@@ -816,12 +817,12 @@ class GaussianMixtureMarkovRandomField(GaussianMixtureWithPrior):
 
             print('Computing new neighbors based on rock units, it may take several minutes.')
             for i, unitindex in enumerate(self.index_anisotropy['index']):
-                _, self.indexneighbors[unitindex] = self.index_kdtree[i].query(self.unitxyz[i][unitindex], k=self.kneighbors+1)
+                _, self.indexpoint[unitindex] = self.index_kdtree[i].query(self.unitxyz[i][unitindex], k=self.kneighbors+1)
 
 
     def computeG(self, z, w):
             logG = (self.T/(2.*(self.kneighbors+1))) * (
-                (z[self.indexneighbors] + w[self.indexneighbors]).sum(
+                (z[self.indexpoint] + w[self.indexpoint]).sum(
                     axis=1
                 )
             )

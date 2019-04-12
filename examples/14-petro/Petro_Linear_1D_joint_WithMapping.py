@@ -401,5 +401,5 @@ axes[11].legend(
 axes[11].set_xlabel('Property 1')
 axes[11].set_ylabel('Property 2')
 plt.subplots_adjust(wspace=0.3, hspace=0.3, top=0.85)
-#fig.savefig("LinearWithMapping.png", dpi=300, bbox_inches='tight')
+fig.savefig("LinearWithMapping.png", dpi=300, bbox_inches='tight')
 plt.show()
