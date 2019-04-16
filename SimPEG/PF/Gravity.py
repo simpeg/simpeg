@@ -312,7 +312,7 @@ class Forward(object):
 
                     # TO-DO: Find a way to create in
                     # chunks instead
-                    stack = stack.rechunk((rowChunk, colChunk))
+                    stack = stack.rechunk('auto')
 
                     with ProgressBar():
                         print("Saving G to zarr: " + self.Jpath)

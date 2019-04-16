@@ -146,42 +146,42 @@ def tileSurveyPoints(locs, nRefine, method='cluster'):
                             limits of each tiles
         :param integer binCount: Number of points in each tile
         :param numpy.array labels: Cluster index of each point n=0:(nTargetTiles-1)
-                 
+
         NOTE: All X Y and xy products are legacy now values, and are only used
         for plotting functions. They are not used in any calculations and could
         be dropped from the return calls in future versions.
-           
+
 
     """
-    
+
     if method is 'cluster':
         from sklearn.cluster import AgglomerativeClustering
-        
+
         # Cluster
         cluster = AgglomerativeClustering(n_clusters=nRefine, affinity='euclidean', linkage='ward')
         cluster.fit_predict(locs[:,:2])
-        
+
         # nData in each tile
         binCount = np.zeros(int(nRefine))
-        
+
         # x and y limits on each tile
         X1 = np.zeros_like(binCount)
         X2 = np.zeros_like(binCount)
         Y1 = np.zeros_like(binCount)
         Y2 = np.zeros_like(binCount)
-        
+
         for ii in range(int(nRefine)):
-            
+
             mask = cluster.labels_ == ii
             X1[ii] = locs[mask, 0].min()
             X2[ii] = locs[mask, 0].max()
             Y1[ii] = locs[mask, 1].min()
             Y2[ii] = locs[mask, 1].max()
             binCount[ii] = mask.sum()
-            
+
         xy1 = np.c_[X1[binCount > 0], Y1[binCount > 0]]
         xy2 = np.c_[X2[binCount > 0], Y2[binCount > 0]]
-    
+
         return [xy1, xy2], binCount, cluster.labels_
 
     else:
@@ -190,54 +190,54 @@ def tileSurveyPoints(locs, nRefine, method='cluster'):
         nTx = 1
         nTy = 1
         for ii in range(int(nRefine+1)):
-    
+
             nTx += 1
             nTy += 1
-    
+
             testx = np.percentile(locs[:, 0], np.arange(0, 100, 100/nTx))
             testy = np.percentile(locs[:, 1], np.arange(0, 100, 100/nTy))
-    
+
             if ii > 0:
                 dx = testx[:-1] - testx[1:]
                 dy = testy[:-1] - testy[1:]
-    
+
                 if np.mean(dx) > np.mean(dy):
                     nTx -= 1
                 else:
                     nTy -= 1
-    
+
         tilex = np.percentile(locs[:, 0], np.arange(0, 100, 100/nTx))
         tiley = np.percentile(locs[:, 1], np.arange(0, 100, 100/nTy))
-    
+
         X1, Y1 = np.meshgrid(tilex, tiley)
         X2, Y2 = np.meshgrid(
                 np.r_[tilex[1:], locs[:, 0].max()],
                 np.r_[tiley[1:], locs[:, 1].max()]
         )
-    
+
         # Plot data and tiles
         X1, Y1, X2, Y2 = mkvc(X1), mkvc(Y1), mkvc(X2), mkvc(Y2)
         binCount = np.zeros_like(X1)
         cluster.labels_ = np.zeros_like(locs[:, 0])
         tile = []
         for ii in range(X1.shape[0]):
-    
+
             mask = (
                 (locs[:, 0] >= X1[ii]) * (locs[:, 0] <= X2[ii]) *
                 (locs[:, 1] >= Y1[ii]) * (locs[:, 1] <= Y2[ii])
             ) == 1
-    
-    
+
+
             # Re-adjust the window size for tight fit
             if minimize:
-    
+
                 if mask.sum():
                     X1[ii], X2[ii] = locs[:, 0][mask].min(), locs[:, 0][mask].max()
                     Y1[ii], Y2[ii] = locs[:, 1][mask].min(), locs[:, 1][mask].max()
-    
+
             cluster.labels_[mask] = ii
             binCount[ii] = mask.sum()
-    
+
         xy1 = np.c_[X1[binCount > 0], Y1[binCount > 0]]
         xy2 = np.c_[X2[binCount > 0], Y2[binCount > 0]]
 
@@ -878,12 +878,18 @@ def activeTopoLayer(mesh, topo, index=0):
 
     # actv[inds] = True
 
-    for layer in range(index+1):
+    max_level = mesh.max_level
+
+    for layer in range(index):
 
         nn = []
         for ind in inds.tolist():
 
-            nn += [mesh[int(ind)].neighbors[4]]
+            skip = 2 ** (max_level - mesh[int(ind)]._level)
+            if (np.floor(layer/skip) % 2) > 0:
+                nn += [mesh[int(ind)].neighbors[4]]
+            else:
+                nn += [int(ind)]
 
         inds = np.hstack(nn)
 
