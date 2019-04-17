@@ -200,7 +200,7 @@ class GravityDriver_Inv(object):
         if getattr(self, '_activeCells', None) is None:
             if getattr(self, 'topo', None) is not None:
                 # Find the active cells
-                active = Utils.surface2ind_topo(self.mesh, self.topo, 'N')
+                active = Utils.surface2ind_topo(self.mesh, self.topo, gridLoc='N')
 
             elif isinstance(self._staticInput, float):
                 active = self.m0 != self._staticInput
