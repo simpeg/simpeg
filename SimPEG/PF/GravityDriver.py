@@ -167,10 +167,12 @@ class GravityDriver_Inv(object):
 
     @property
     def mesh(self):
-        if (getattr(self, '_mesh', None) is None) and (self.mshfile is not None):
-            self._mesh = Mesh.TensorMesh.readUBC(self.basePath + self.mshfile)
-        else:
-            self._mesh = None
+        if getattr(self, '_mesh', None) is None:
+
+            if self.mshfile is not None:
+                self._mesh = Mesh.TensorMesh.readUBC(self.basePath + self.mshfile)
+            else:
+                self._mesh = None
 
         return self._mesh
 
