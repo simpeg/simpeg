@@ -7,9 +7,8 @@ import properties
 import numpy as np
 import warnings
 
-from . import Maps
-from . import Utils
-
+from .Maps import IdentityMap, ReciprocalMap
+from .Utils import Zero, Identity
 
 class SphinxProp(object):
     """
@@ -28,7 +27,7 @@ class Array(SphinxProp, properties.Array):
     class_info = 'a numpy, Zero or Identity array'
 
     def validate(self, instance, value):
-        if isinstance(value, (Utils.Zero, Utils.Identity)):
+        if isinstance(value, (Zero, Identity)):
             return value
         return super(Array, self).validate(instance, value)
 
@@ -38,7 +37,7 @@ class Float(SphinxProp, properties.Float):
     class_info = 'a float, Zero or Identity'
 
     def validate(self, instance, value):
-        if isinstance(value, (Utils.Zero, Utils.Identity)):
+        if isinstance(value, (Zero, Identity)):
             return value
         return super(Float, self).validate(instance, value)
 
@@ -97,7 +96,7 @@ class Mapping(SphinxProp, properties.Property):
                     setattr(instance, prop.name, None)
 
     def validate(self, instance, value):
-        if not isinstance(value, Maps.IdentityMap):
+        if not isinstance(value, IdentityMap):
             self.error(instance, value)
         return value
 
@@ -114,7 +113,7 @@ class Mapping(SphinxProp, properties.Property):
             reciprocal = self._get(scope.reciprocal.name)
             if reciprocal is None:
                 return None
-            return Maps.ReciprocalMap() * reciprocal
+            return ReciprocalMap() * reciprocal
 
         def fset(self, value):
             if value is not properties.utils.undefined:
@@ -308,14 +307,14 @@ class Derivative(SphinxProp, properties.GettableProperty):
 
         def fget(self):
             if scope.physical_property is None:
-                return Utils.Zero()
+                return Zero()
             if scope.mapping is None:
-                return Utils.Zero()
+                return Zero()
             mapping = getattr(self, scope.mapping.name)
             if mapping is None:
-                return Utils.Zero()
+                return Zero()
             if self.model is None:
-                return Utils.Zero()
+                return Zero()
 
             return mapping.deriv(self.model)
 

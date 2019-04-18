@@ -3,7 +3,7 @@ import scipy.sparse as sp
 import numpy as np
 from . import Utils
 from .Optimization import Remember, IterationPrinters, StoppingCriteria
-from . import Directives
+from .Directives import DirectiveList
 
 
 class BaseInversion(object):
@@ -20,15 +20,15 @@ class BaseInversion(object):
     @property
     def directiveList(self):
         if getattr(self, '_directiveList', None) is None:
-            self._directiveList = Directives.DirectiveList(inversion=self)
+            self._directiveList = DirectiveList(inversion=self)
             self._directiveList.validate()  # validate if we skip setter
         return self._directiveList
 
     @directiveList.setter
     def directiveList(self, value):
         if type(value) is list:
-            value = Directives.DirectiveList(*value)
-        assert isinstance(value, Directives.DirectiveList), (
+            value = DirectiveList(*value)
+        assert isinstance(value, DirectiveList), (
             'Must be a DirectiveList'
         )
         value.validate()  # validate before setting

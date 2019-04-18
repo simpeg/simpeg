@@ -1,17 +1,18 @@
 from __future__ import print_function
-from . import Utils
-from . import Props
-from . import DataMisfit
-from . import Regularization
-from . import ObjectiveFunction
 
 import properties
 import numpy as np
 import scipy.sparse as sp
 import gc
 
+from .data_misfit import BaseDataMisfit
+from .Utils import callHooks, timeIt
+from .Props import BaseSimPEG, Model
+from .Regularization import BaseRegularization
+from .ObjectiveFunction import BaseObjectiveFunction, ComboObjectiveFunction
 
-class BaseInvProblem(Props.BaseSimPEG):
+
+class BaseInvProblem(BaseSimPEG):
     """BaseInvProblem(dmisfit, reg, opt)"""
 
     #: Trade-off parameter
@@ -35,7 +36,7 @@ class BaseInvProblem(Props.BaseSimPEG):
     #: List of strings, e.g. ['_MeSigma', '_MeSigmaI']
     deleteTheseOnModelUpdate = []
 
-    model = Props.Model("Inversion model.")
+    model = Model("Inversion model.")
 
     @properties.observer('model')
     def _on_model_update(self, value):
@@ -49,12 +50,12 @@ class BaseInvProblem(Props.BaseSimPEG):
     def __init__(self, dmisfit, reg, opt, **kwargs):
         super(BaseInvProblem, self).__init__(**kwargs)
         assert(
-            isinstance(dmisfit, DataMisfit.BaseDataMisfit) or
-            isinstance(dmisfit, ObjectiveFunction.BaseObjectiveFunction)
+            isinstance(dmisfit, BaseDataMisfit) or
+            isinstance(dmisfit, BaseObjectiveFunction)
         ), 'dmisfit must be a DataMisfit or ObjectiveFunction class.'
         assert(
-            isinstance(reg, Regularization.BaseRegularization) or
-            isinstance(reg, ObjectiveFunction.BaseObjectiveFunction)
+            isinstance(reg, BaseRegularization) or
+            isinstance(reg, BaseObjectiveFunction)
         ), 'reg must be a Regularization or Objective Function class.'
         self.dmisfit = dmisfit
         self.reg = reg
@@ -64,7 +65,7 @@ class BaseInvProblem(Props.BaseSimPEG):
         self.reg.parent = self
         self.dmisfit.parent = self
 
-    @Utils.callHooks('startup')
+    @callHooks('startup')
     def startup(self, m0):
         """startup(m0)
 
@@ -78,7 +79,7 @@ class BaseInvProblem(Props.BaseSimPEG):
             self.reg.mref = m0
 
         if (
-            isinstance(self.reg, ObjectiveFunction.ComboObjectiveFunction) and
+            isinstance(self.reg, ComboObjectiveFunction) and
             not isinstance(self.reg, Regularization.BaseComboRegularization)
         ):
             for fct in self.reg.objfcts:
@@ -91,7 +92,7 @@ class BaseInvProblem(Props.BaseSimPEG):
 
         self.model = m0
 
-        if isinstance(self.dmisfit, DataMisfit.BaseDataMisfit):
+        if isinstance(self.dmisfit, BaseDataMisfit):
             print("""
     SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
     ***Done using same Solver and solverOpts as the problem***"""
@@ -99,9 +100,9 @@ class BaseInvProblem(Props.BaseSimPEG):
             self.opt.bfgsH0 = self.dmisfit.prob.Solver(
                 self.reg.deriv2(self.model), **self.dmisfit.prob.solverOpts
             )
-        elif isinstance(self.dmisfit, ObjectiveFunction.BaseObjectiveFunction):
+        elif isinstance(self.dmisfit, BaseObjectiveFunction):
             for objfct in self.dmisfit.objfcts:
-                if isinstance(objfct, DataMisfit.BaseDataMisfit):
+                if isinstance(objfct, BaseDataMisfit):
                     print("""
     SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
     ***Done using same Solver and solverOpts as the {} problem***""".format(
@@ -138,9 +139,9 @@ class BaseInvProblem(Props.BaseSimPEG):
                 break
 
         if f is None:
-            if isinstance(self.dmisfit, DataMisfit.BaseDataMisfit):
+            if isinstance(self.dmisfit, BaseDataMisfit):
                 f = self.dmisfit.prob.fields(m)
-            elif isinstance(self.dmisfit, ObjectiveFunction.BaseObjectiveFunction):
+            elif isinstance(self.dmisfit, BaseObjectiveFunction):
                 f = []
                 for objfct in self.dmisfit.objfcts:
                     if hasattr(objfct, 'prob'):
@@ -156,9 +157,9 @@ class BaseInvProblem(Props.BaseSimPEG):
         return f
 
     def get_dpred(self, m, f):
-        if isinstance(self.dmisfit, DataMisfit.BaseDataMisfit):
+        if isinstance(self.dmisfit, BaseDataMisfit):
             return self.dmisfit.survey.dpred(m, f=f)
-        elif isinstance(self.dmisfit, ObjectiveFunction.BaseObjectiveFunction):
+        elif isinstance(self.dmisfit, BaseObjectiveFunction):
             dpred = []
             for i, objfct in enumerate(self.dmisfit.objfcts):
                 if hasattr(objfct, 'survey'):
@@ -167,7 +168,7 @@ class BaseInvProblem(Props.BaseSimPEG):
                     dpred += []
             return dpred
 
-    @Utils.timeIt
+    @timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
         """evalFunction(m, return_g=True, return_H=True)
         """
@@ -178,7 +179,7 @@ class BaseInvProblem(Props.BaseSimPEG):
         # Store fields if doing a line-search
         f = self.getFields(m, store=(return_g is False and return_H is False))
 
-        # if isinstance(self.dmisfit, DataMisfit.BaseDataMisfit):
+        # if isinstance(self.dmisfit, BaseDataMisfit):
         phi_d = self.dmisfit(m, f=f)
         self.dpred = self.get_dpred(m, f=f)
 

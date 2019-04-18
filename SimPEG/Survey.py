@@ -3,7 +3,6 @@ from __future__ import print_function
 import numpy as np
 import scipy.sparse as sp
 import uuid
-import gc
 import properties
 
 from . import Utils
@@ -25,8 +24,8 @@ class BaseRx(properties.HasProperties):
 
     # TODO: write a validator that checks against mesh dimension in the
     # BaseSimulation
-    # TODO: locations
-    locs = RxLocationArray(
+    # TODO: location
+    locations = RxLocationArray(
         "Locations of the receivers (nRx x nDim)",
         shape=("*", "*"),
         required=True
@@ -37,18 +36,20 @@ class BaseRx(properties.HasProperties):
     #     "Set this to a list of strings to ensure that srcType is known",
     # )
 
+    # TODO: project_grid?
     projGLoc = properties.StringChoice(
         "Projection grid location, default is CC",
         choices=["CC", "Fx", "Fy", "Fz", "Ex", "Ey", "Ez", "N"],
         default="CC"
     )
 
+    # TODO: store_projections
     storeProjections = properties.Bool(
         "Store calls to getP (organized by mesh)",
         default=True
     )
 
-    uid = properties.Uuid(
+    _uid = properties.Uuid(
         "unique ID for the receiver"
     )
 
@@ -74,6 +75,24 @@ class BaseRx(properties.HasProperties):
     #             "rxType must be in ['{0!s}']".format(("', '".join(known)))
     #         )
     #     self._rxType = value
+
+    @property
+    def locs(self):
+        warnings.warn(
+            "BaseRx.locs will be deprecaited and replaced with "
+            "BaseRx.locations. Please update your code accordingly",
+            DeprecationWarning
+        )
+        return self.locations
+
+    @locs.setter
+    def locs(self, value):
+        warnings.warn(
+            "BaseRx.locs will be deprecaited and replaced with "
+            "BaseRx.locations. Please update your code accordingly",
+            DeprecationWarning
+        )
+        self.locations = value
 
     @property
     def nD(self):
@@ -164,7 +183,7 @@ class BaseTimeRx(BaseRx):
 class BaseSrc(Props.BaseSimPEG):
     """SimPEG Source Object"""
 
-    loc = properties.Array(
+    location = properties.Array(
         "Location [x, y, z]",
         shape=("*",)
     )
@@ -178,9 +197,28 @@ class BaseSrc(Props.BaseSimPEG):
         default=[]
     )
 
-    uid = properties.Uuid(
+    _uid = properties.Uuid(
         "unique identifier for the source"
     )
+
+    @property
+    def loc(self):
+        warnings.warn(
+            "BaseSrc.locs will be deprecaited and replaced with "
+            "BaseSrc.locations. Please update your code accordingly",
+            DeprecationWarning
+        )
+        return self.location
+
+    @loc.setter
+    def loc(self, value):
+        warnings.warn(
+            "BaseSrc.locs will be deprecaited and replaced with "
+            "BaseSrc.locations. Please update your code accordingly",
+            DeprecationWarning
+        )
+        self.location = value
+
 
     @properties.validator('rxList')
     def _rxList_validator(self, change):
@@ -188,7 +226,7 @@ class BaseSrc(Props.BaseSimPEG):
         assert len(set(value)) == len(value), 'The rxList must be unique'
         self._rxOrder = dict()
         [
-            self._rxOrder.setdefault(rx.uid, ii) for ii, rx in
+            self._rxOrder.setdefault(rx._uid, ii) for ii, rx in
             enumerate(value)
         ]
 
@@ -196,12 +234,12 @@ class BaseSrc(Props.BaseSimPEG):
         if type(receiver) is not list:
             receiver = [receiver]
         for rx in receiver:
-            if getattr(rx, 'uid', None) is None:
+            if getattr(rx, '_uid', None) is None:
                 raise KeyError(
-                    'Source does not have a uid: {0!s}'.format(str(rx))
+                    'Source does not have a _uid: {0!s}'.format(str(rx))
                 )
         inds = list(map(
-            lambda rx: self._rxOrder.get(rx.uid, None), receiver
+            lambda rx: self._rxOrder.get(rx._uid, None), receiver
         ))
         if None in inds:
             raise KeyError(
@@ -251,7 +289,7 @@ class BaseSurvey(properties.HasProperties):
         assert len(set(value)) == len(value), 'The srcList must be unique'
         self._sourceOrder = dict()
         [
-            self._sourceOrder.setdefault(src.uid, ii) for ii, src in
+            self._sourceOrder.setdefault(src._uid, ii) for ii, src in
             enumerate(value)
         ]
 
@@ -260,12 +298,12 @@ class BaseSurvey(properties.HasProperties):
             sources = [sources]
 
         for src in sources:
-            if getattr(src, 'uid', None) is None:
+            if getattr(src, '_uid', None) is None:
                 raise KeyError(
-                    'Source does not have a uid: {0!s}'.format(str(src))
+                    'Source does not have a _uid: {0!s}'.format(str(src))
                 )
         inds = list(map(
-            lambda src: self._sourceOrder.get(src.uid, None), sources
+            lambda src: self._sourceOrder.get(src._uid, None), sources
         ))
         if None in inds:
             raise KeyError(

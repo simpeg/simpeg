@@ -1,75 +1,48 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from six import string_types
 import numpy as np
-import properties
-import discretize
 
-from .simulation import BaseSimulation, BaseTimeSimulation
-from .Utils import mkvc
+from . import Utils
 
 
-class Fields(properties.HasProperties):
+class Fields(object):
     """Fancy Field Storage
-    .. code::python
-        fields = Fields(
-            simulation=simulation, knownFields={"phi": "CC"}
-        )
-        fields[:,'phi'] = phi
-        print(fields[src0,'phi'])
+
+    u[:,'phi'] = phi
+    print(u[src0,'phi'])
+
     """
 
-    simulation = properties.Instance(
-        "a SimPEG simulation",
-        BaseSimulation
-    )
-
-    knownFields = properties.Dictionary(
-        """
-        a dictionary with the names of the know fields and their location on
-        a mesh e.g. {"e": "E", "phi": "CC"}
-        """,
-        required=True
-    )
-
-    aliasFields = properties.Dictionary(
-        """
-        a dictionary of the aliased fields with [alias, location, function],
-        e.g. {"b":["e","F",lambda(F,e,ind)]}
-        """,
-        default={}
-    )
+    #: Known fields, a dict with locations, e.g. ``{"e": "E", "phi": "CC"}``
+    knownFields = None
+    #: Aliased fields, a dict with [alias, location, function], e.g. ``{"b": ["e", "F", lambda(F,e,ind)]}``
+    aliasFields = None
     #: dtype is the type of the storage matrix. This can be a dictionary.
     dtype = float
 
-    def __init__(self, **kwargs):
-        super(Fields, self).__init__(**kwargs)
+
+    def __init__(self, mesh, survey, **kwargs):
+        self.survey = survey
+        self.mesh = mesh
+        Utils.setKwargs(self, **kwargs)
         self._fields = {}
+
+        if self.knownFields is None:
+            raise Exception('knownFields cannot be set to None')
+        if self.aliasFields is None:
+            self.aliasFields = {}
+
+        allFields = (
+            [k for k in self.knownFields] + [a for a in self.aliasFields]
+        )
+        assert len(allFields) == len(set(allFields)), (
+            'Aliased fields and Known Fields have overlapping definitions.'
+        )
         self.startup()
-
-    @properties.validator('knownFields')
-    def _check_overlap_with_aliased(self, change):
-        allFields = (
-            [k for k in change['value']] + [a for a in self.aliasFields]
-        )
-        assert len(allFields) == len(set(allFields)), (
-            'Aliased fields and Known Fields have overlapping definitions.'
-        )
-
-    @properties.validator('aliasFields')
-    def _check_overlap_with_known(self, change):
-        allFields = (
-            [k for k in self.knownFields] + [a for a in change['value']]
-        )
-        assert len(allFields) == len(set(allFields)), (
-            'Aliased fields and Known Fields have overlapping definitions.'
-        )
-
-    @property
-    def mesh(self):
-        return self.simulation.mesh
-
-    @property
-    def survey(self):
-        return self.simulation.survey
 
     def startup(self):
         pass
@@ -180,10 +153,11 @@ class Fields(properties.HasProperties):
 
     def _setField(self, field, val, name, ind):
         if isinstance(val, np.ndarray) and (field.shape[0] == field.size or val.ndim == 1):
-            val = mkvc(val, 2)
+            val = Utils.mkvc(val, 2)
         field[:, ind] = val
 
     def _getField(self, name, ind):
+
         if name in self._fields:
             out = self._fields[name][:, ind]
         else:
@@ -201,7 +175,7 @@ class Fields(properties.HasProperties):
                 func = getattr(self, func)
             out = func(self._fields[alias][:, ind], srcII)
         if out.shape[0] == out.size or out.ndim == 1:
-            out = mkvc(out, 2)
+            out = Utils.mkvc(out, 2)
         return out
 
     def __contains__(self, other):
@@ -212,27 +186,19 @@ class Fields(properties.HasProperties):
 
 class TimeFields(Fields):
     """Fancy Field Storage for time domain problems
-    .. code:: python
-        fields = TimeFields(simulation=simulation, knownFields={'phi':'CC'})
-        fields[:,'phi', timeInd] = phi
-        print(fields[src0,'phi'])
+
+        u[:,'phi', timeInd] = phi
+        print(u[src0,'phi'])
+
     """
-
-    simulation = properties.Instance(
-        "a SimPEG time simulation",
-        BaseTimeSimulation
-    )
-
-    def __init__(self, **kwargs):
-        super(TimeFields, self).__init__(**kwargs)
 
     def _storageShape(self, loc):
         nP = {'CC': self.mesh.nC,
               'N':  self.mesh.nN,
               'F':  self.mesh.nF,
               'E':  self.mesh.nE}[loc]
-        nSrc = self.simulation.survey.nSrc
-        nT = self.simulation.nT + 1
+        nSrc = self.survey.nSrc
+        nT = self.survey.prob.nT + 1
         return (nP, nSrc, nT)
 
     def _indexAndNameFromKey(self, key, accessType):
@@ -283,7 +249,6 @@ class TimeFields(Fields):
 
     def _getField(self, name, ind):
         srcInd, timeInd = ind
-
         if name in self._fields:
             out = self._fields[name][:, srcInd, timeInd]
         else:
@@ -299,7 +264,7 @@ class TimeFields(Fields):
             pointerShape = self._correctShape(alias, ind)
             pointerFields = pointerFields.reshape(pointerShape, order='F')
 
-            timeII = np.arange(self.simulation.nT + 1)[timeInd]
+            timeII = np.arange(self.survey.prob.nT + 1)[timeInd]
             srcII = np.array(self.survey.srcList)[srcInd]
             srcII = srcII.tolist()
 
@@ -317,7 +282,7 @@ class TimeFields(Fields):
                 for i, TIND_i in enumerate(timeII):
                     fieldI = pointerFields[:, :, i]
                     if fieldI.shape[0] == fieldI.size:
-                        fieldI = mkvc(fieldI, 2)
+                        fieldI = Utils.mkvc(fieldI, 2)
                     out[i] = func(fieldI, srcII, TIND_i)
                     if out[i].ndim == 1:
                         out[i] = out[i][:, np.newaxis, np.newaxis]

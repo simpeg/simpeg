@@ -6,10 +6,13 @@ import matplotlib.pyplot as plt
 import warnings
 import os
 
-from . import Utils
-from . import Regularization, DataMisfit, ObjectiveFunction
-from . import Maps
-from .Utils import mkvc
+from .data_misfit import BaseDataMisfit
+from .ObjectiveFunction import ComboObjectiveFunction
+from .Regularization import BaseComboRegularization, BaseRegularization
+from .Utils import (
+    mkvc, setKwargs, sdiag, diagEst, spherical2cartesian, cartesian2spherical
+)
+
 
 
 class InversionDirective(properties.HasProperties):
@@ -17,17 +20,17 @@ class InversionDirective(properties.HasProperties):
 
     debug = False    #: Print debugging information
     _regPair = [
-        Regularization.BaseComboRegularization,
-        Regularization.BaseRegularization,
-        ObjectiveFunction.ComboObjectiveFunction
+        BaseComboRegularization,
+        BaseRegularization,
+        ComboObjectiveFunction
     ]
     _dmisfitPair = [
-        DataMisfit.BaseDataMisfit,
-        ObjectiveFunction.ComboObjectiveFunction
+        BaseDataMisfit,
+        ComboObjectiveFunction
     ]
 
     def __init__(self, **kwargs):
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
     @property
     def inversion(self):
@@ -65,7 +68,7 @@ class InversionDirective(properties.HasProperties):
             )
         )
 
-        if isinstance(value, Regularization.BaseComboRegularization):
+        if isinstance(value, BaseComboRegularization):
             value = 1*value  # turn it into a combo objective function
         self._reg = value
 
@@ -85,7 +88,7 @@ class InversionDirective(properties.HasProperties):
                 self._dmisfitPair, type(value)
         )
 
-        if not isinstance(value, ObjectiveFunction.ComboObjectiveFunction):
+        if not isinstance(value, ComboObjectiveFunction):
             value = 1*value  # turn it into a combo objective function
         self._dmisfit = value
 
@@ -130,7 +133,7 @@ class DirectiveList(object):
                 .format(type(d))
             )
             self.dList.append(d)
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
     @property
     def debug(self):
@@ -977,7 +980,7 @@ class UpdatePreconditioner(InversionDirective):
 
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.
-        PC = Utils.sdiag((diagA))
+        PC = sdiag((diagA))
 
         self.opt.approxHinv = PC
 
@@ -996,7 +999,7 @@ class UpdatePreconditioner(InversionDirective):
         # Assumes that opt.JtJdiag has been updated or static
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.
-        PC = Utils.sdiag((diagA))
+        PC = sdiag((diagA))
         self.opt.approxHinv = PC
 
 
@@ -1021,7 +1024,7 @@ class Update_Wj(InversionDirective):
 
                 return self.prob.Jtvec(m, Jv)
 
-            JtJdiag = Utils.diagEst(JtJv, len(m), k=self.k)
+            JtJdiag = diagEst(JtJv, len(m), k=self.k)
             JtJdiag = JtJdiag / max(JtJdiag)
 
             self.reg.wght = JtJdiag
@@ -1145,8 +1148,8 @@ class ProjectSphericalBounds(InversionDirective):
         # Convert to cartesian than back to avoid over rotation
         nC = int(len(x)/3)
 
-        xyz = Utils.matutils.spherical2cartesian(x.reshape((nC, 3), order='F'))
-        m = Utils.matutils.cartesian2spherical(xyz.reshape((nC, 3), order='F'))
+        xyz = spherical2cartesian(x.reshape((nC, 3), order='F'))
+        m = cartesian2spherical(xyz.reshape((nC, 3), order='F'))
 
         self.invProb.model = m
 
@@ -1161,8 +1164,8 @@ class ProjectSphericalBounds(InversionDirective):
         nC = int(len(x)/3)
 
         # Convert to cartesian than back to avoid over rotation
-        xyz = Utils.matutils.spherical2cartesian(x.reshape((nC, 3), order='F'))
-        m = Utils.matutils.cartesian2spherical(xyz.reshape((nC, 3), order='F'))
+        xyz = spherical2cartesian(x.reshape((nC, 3), order='F'))
+        m = cartesian2spherical(xyz.reshape((nC, 3), order='F'))
 
         self.invProb.model = m
 

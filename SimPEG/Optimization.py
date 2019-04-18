@@ -4,8 +4,11 @@ import numpy as np
 import scipy.sparse as sp
 from six import string_types
 
-from .Utils.SolverUtils import *
-from . import Utils
+from .Utils.SolverUtils import SolverWrapI, Solver
+from .Utils import (
+    callHooks, checkStoppers, count, setKwargs, timeIt, printTitles, printLine,
+    printStoppers
+)
 
 norm = np.linalg.norm
 
@@ -209,7 +212,7 @@ class Minimize(object):
             IterationPrinters.LS_t, IterationPrinters.LS_armijoGoldstein
         ]
 
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
     @property
     def callback(self):
@@ -225,7 +228,7 @@ class Minimize(object):
         self._callback = value
 
 
-    @Utils.timeIt
+    @timeIt
     def minimize(self, evalFunction, x0):
         """minimize(evalFunction, x0)
 
@@ -300,7 +303,7 @@ class Minimize(object):
 
         return self.xc
 
-    @Utils.callHooks('startup')
+    @callHooks('startup')
     def startup(self, x0):
         """
             **startup** is called at the start of any new minimize call.
@@ -326,8 +329,8 @@ class Minimize(object):
         self.f_last = np.nan
         self.x_last = x0
 
-    @Utils.count
-    @Utils.callHooks('doStartIteration')
+    @count
+    @callHooks('doStartIteration')
     def doStartIteration(self):
         """doStartIteration()
 
@@ -351,11 +354,11 @@ class Minimize(object):
         """
         pad = ' '*10 if inLS else ''
         name = self.name if not inLS else self.nameLS
-        Utils.printTitles(
+        printTitles(
             self, self.printers if not inLS else self.printersLS, name, pad
         )
 
-    @Utils.callHooks('printIter')
+    @callHooks('printIter')
     def printIter(self, inLS=False):
         """
             **printIter** is called directly after function evaluations.
@@ -365,7 +368,7 @@ class Minimize(object):
 
         """
         pad = ' '*10 if inLS else ''
-        Utils.printLine(
+        printLine(
             self, self.printers if not inLS else self.printersLS, pad=pad
         )
 
@@ -383,10 +386,10 @@ class Minimize(object):
             ('----------------', ' End Linesearch ')
         )
         stoppers = self.stoppers if not inLS else self.stoppersLS
-        Utils.printStoppers(self, stoppers, pad='', stop=stop, done=done)
+        printStoppers(self, stoppers, pad='', stop=stop, done=done)
 
 
-    @Utils.callHooks('finish')
+    @callHooks('finish')
     def finish(self):
         """finish()
 
@@ -402,12 +405,12 @@ class Minimize(object):
         if self.iter == 0:
             self.f0 = self.f
             self.g0 = self.g
-        return Utils.checkStoppers(
+        return checkStoppers(
             self, self.stoppers if not inLS else self.stoppersLS
         )
 
-    @Utils.timeIt
-    @Utils.callHooks('projection')
+    @timeIt
+    @callHooks('projection')
     def projection(self, p):
         """projection(p)
 
@@ -421,7 +424,7 @@ class Minimize(object):
         """
         return p
 
-    @Utils.timeIt
+    @timeIt
     def findSearchDirection(self):
         """findSearchDirection()
 
@@ -452,7 +455,7 @@ class Minimize(object):
         """
         return -self.g
 
-    @Utils.count
+    @count
     def scaleSearchDirection(self, p):
         """scaleSearchDirection(p)
 
@@ -473,7 +476,7 @@ class Minimize(object):
 
     nameLS = "Armijo linesearch" #: The line-search name
 
-    @Utils.timeIt
+    @timeIt
     def modifySearchDirection(self, p):
         """modifySearchDirection(p)
 
@@ -518,7 +521,7 @@ class Minimize(object):
 
         return self._LS_xt, self.iterLS < self.maxIterLS
 
-    @Utils.count
+    @count
     def modifySearchDirectionBreak(self, p):
         """modifySearchDirectionBreak(p)
 
@@ -540,8 +543,8 @@ class Minimize(object):
         print('The linesearch got broken. Boo.')
         return p, False
 
-    @Utils.count
-    @Utils.callHooks('doEndIteration')
+    @count
+    @callHooks('doEndIteration')
     def doEndIteration(self, xt):
         """doEndIteration(xt)
 
@@ -668,7 +671,7 @@ class ProjectedGradient(Minimize, Remember):
 
         self.aSet_prev = self.activeSet(x0)
 
-    @Utils.count
+    @count
     def projection(self, x):
         """projection(x)
 
@@ -677,7 +680,7 @@ class ProjectedGradient(Minimize, Remember):
         """
         return np.median(np.c_[self.lower, x, self.upper], axis=1)
 
-    @Utils.count
+    @count
     def activeSet(self, x):
         """activeSet(x)
 
@@ -686,7 +689,7 @@ class ProjectedGradient(Minimize, Remember):
         """
         return np.logical_or(x == self.lower, x == self.upper)
 
-    @Utils.count
+    @count
     def inactiveSet(self, x):
         """inactiveSet(x)
 
@@ -695,7 +698,7 @@ class ProjectedGradient(Minimize, Remember):
         """
         return np.logical_not(self.activeSet(x))
 
-    @Utils.count
+    @count
     def bindingSet(self, x):
         """bindingSet(x)
 
@@ -709,7 +712,7 @@ class ProjectedGradient(Minimize, Remember):
         bind_low = np.logical_and(x == self.upper, self.g <= 0)
         return np.logical_or(bind_up, bind_low)
 
-    @Utils.timeIt
+    @timeIt
     def findSearchDirection(self):
         """findSearchDirection()
 
@@ -771,7 +774,7 @@ class ProjectedGradient(Minimize, Remember):
             # aSet_after = self.activeSet(self.xc+p)
         return p
 
-    @Utils.timeIt
+    @timeIt
     def _doEndIteration_ProjectedGradient(self, xt):
         """_doEndIteration_ProjectedGradient(xt)"""
         aSet = self.activeSet(xt)
@@ -891,7 +894,7 @@ class GaussNewton(Minimize, Remember):
     def __init__(self, **kwargs):
         Minimize.__init__(self, **kwargs)
 
-    @Utils.timeIt
+    @timeIt
     def findSearchDirection(self):
         return Solver(self.H) * (-self.g)
 
@@ -942,7 +945,7 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
     def approxHinv(self, value):
         self._approxHinv = value
 
-    @Utils.timeIt
+    @timeIt
     def findSearchDirection(self):
         Hinv = SolverICG(
             self.H, M=self.approxHinv, tol=self.tolCG, maxiter=self.maxIterCG
@@ -957,7 +960,7 @@ class SteepestDescent(Minimize, Remember):
     def __init__(self, **kwargs):
         Minimize.__init__(self, **kwargs)
 
-    @Utils.timeIt
+    @timeIt
     def findSearchDirection(self):
         return -self.g
 
@@ -992,7 +995,7 @@ class NewtonRoot(object):
     solverOpts = {}
 
     def __init__(self, **kwargs):
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
     def root(self, fun, x):
         """root(fun, x)
@@ -1076,7 +1079,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         if type(self.upper) is not np.ndarray:
             self.upper = np.ones_like(x0)*self.upper
 
-    @Utils.count
+    @count
     def projection(self, x):
         """projection(x)
 
@@ -1085,7 +1088,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         """
         return np.median(np.c_[self.lower, x, self.upper], axis=1)
 
-    @Utils.count
+    @count
     def activeSet(self, x):
         """activeSet(x)
 
@@ -1115,7 +1118,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
     def approxHinv(self, value):
         self._approxHinv = value
 
-    @Utils.timeIt
+    @timeIt
     def findSearchDirection(self):
         """
             findSearchDirection()

@@ -10,16 +10,16 @@ import warnings
 
 from discretize.Tests import checkDerivative
 
-from . import Utils
-from . import Maps
-from . import Props
+from .Maps import IdentityMap
+from .Props import BaseSimPEG
+from .Utils import setKwargs, timeIt, Zero, Identity
 
 __all__ = [
     'BaseObjectiveFunction', 'ComboObjectiveFunction', 'L2ObjectiveFunction'
 ]
 
 
-class BaseObjectiveFunction(Props.BaseSimPEG):
+class BaseObjectiveFunction(BaseSimPEG):
     """
     Base Objective Function
 
@@ -33,7 +33,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
     counter = None
     debug = False
 
-    mapPair = Maps.IdentityMap  #: Base class of expected maps
+    mapPair = IdentityMap  #: Base class of expected maps
     _mapping = None  #: An IdentityMap instance.
     _hasFields = False  #: should we have the option to store fields
 
@@ -42,7 +42,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
     def __init__(self, nP=None, **kwargs):
         if nP is not None:
             self._nP = nP
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
     def __call__(self, x, f=None):
         raise NotImplementedError(
@@ -92,7 +92,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
         self._mapping = value
 
 
-    @Utils.timeIt
+    @timeIt
     def __call__(self, x, f=None):
         raise NotImplementedError(
             "The method __call__ has not been implemented for {}".format(
@@ -100,7 +100,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
             )
         )
 
-    @Utils.timeIt
+    @timeIt
     def deriv(self, x, **kwargs):
         """
         First derivative of the objective function with respect to the model
@@ -111,7 +111,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
             )
         )
 
-    @Utils.timeIt
+    @timeIt
     def deriv2(self, x, v=None, **kwargs):
         """
         Second derivative of the objective function with respect to the model
@@ -162,7 +162,7 @@ class BaseObjectiveFunction(Props.BaseSimPEG):
 
     def __add__(self, objfct2):
 
-        if isinstance(objfct2, Utils.Zero):
+        if isinstance(objfct2, Zero):
             return self
 
         if not isinstance(objfct2, BaseObjectiveFunction):
@@ -232,7 +232,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             )
 
     """
-    _multiplier_types = (float, None, Utils.Zero, np.float64) + integer_types # Directive
+    _multiplier_types = (float, None, Zero, np.float64) + integer_types # Directive
     _multipliers = None
 
     def __init__(self, objfcts=[], multipliers=None, **kwargs):
@@ -340,7 +340,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         :param numpy.ndarray m: model
         :param SimPEG.Fields f: Fields object (if applicable)
         """
-        g = Utils.Zero()
+        g = Zero()
         for i, phi in enumerate(self):
             multiplier, objfct = phi
             if multiplier == 0.: # don't evaluate the fct
@@ -362,7 +362,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         :param numpy.ndarray v: vector we are multiplying by
         :param SimPEG.Fields f: Fields object (if applicable)
         """
-        H = Utils.Zero()
+        H = Zero()
         for i, phi in enumerate(self):
             multiplier, objfct = phi
             if multiplier == 0.: # don't evaluate the fct
@@ -386,7 +386,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         W = []
         for mult, fct in self:
             curW = np.sqrt(mult) * fct.W
-            if not isinstance(curW, Utils.Zero):
+            if not isinstance(curW, Zero):
                 W.append(curW)
         return sp.vstack(W)
 
@@ -416,7 +416,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
             if self._nC_residual != '*':
                 self._W = sp.eye(self._nC_residual)
             else:
-                self._W = Utils.Identity()
+                self._W = Identity()
         return self._W
 
     def __call__(self, m):

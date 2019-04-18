@@ -3,7 +3,7 @@ import numpy as np
 import properties
 
 from . import Utils
-from . import survey
+from . import Survey
 from . import ObjectiveFunction
 
 
