@@ -6,8 +6,8 @@ from discretize import Tests
 
 from . import Maps
 from . import Models
-from . import Problem
-from . import Survey
+# from . import Problem
+# from . import Survey
 from . import Regularization
 from . import DataMisfit
 from . import InvProblem
@@ -15,6 +15,10 @@ from . import Optimization
 from . import Directives
 from . import Inversion
 from . import Tests
+
+from . import survey
+from . import data
+from . import simulation
 
 from . import Utils
 from .Utils import mkvc
