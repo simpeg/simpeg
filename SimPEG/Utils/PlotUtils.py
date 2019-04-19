@@ -35,28 +35,27 @@ def plot2Ddata(
     """
 
     # Error checking and set vmin, vmax
-    vmin = None
-    vmax = None
+    vlimits = [None, None]
 
     if clim is not None:
-        vmin = np.min(clim)
-        vmax = np.max(clim)
+        vlimits = [np.min(clim), np.max(clim)]
 
-    for key, attr in zip(["vmin", "vmax"], [vmin, vmax]):
+    for i, key in enumerate(["vmin", "vmax"]):
         if key in contourOpts.keys():
-            if attr is None:
-                attr = contourOpts.pop(key)
+            if vlimits[i] is None:
+                vlimits[i] = contourOpts.pop(key)
             else:
-                if not np.isclose(contourOpts[key], attr):
+                if not np.isclose(contourOpts[key], vlimits[i]):
                     raise Exception(
                         "The values provided in the colorbar limit, clim {} "
                         "does not match the value of {} provided in the "
                         "contourOpts: {}. Only one value should be provided or "
                         "the two values must be equal.".format(
-                            attr, key, contourOpts[key]
+                            vlimits[i], key, contourOpts[key]
                         )
                     )
                 contourOpts.pop(key)
+    vmin, vmax = vlimits[0], vlimits[1]
 
     # create a figure if it doesn't exist
     if ax is None:
@@ -70,6 +69,7 @@ def plot2Ddata(
     y = np.linspace(ymin, ymax, ny)
     X, Y = np.meshgrid(x, y)
     xy = np.c_[X.flatten(), Y.flatten()]
+
     if vec is False:
         if method == 'nearest':
             F = NearestNDInterpolator(xyz[:, :2], data)
@@ -77,25 +77,21 @@ def plot2Ddata(
             F = LinearNDInterpolator(xyz[:, :2], data)
         DATA = F(xy)
         DATA = DATA.reshape(X.shape)
-        if scale == "log":
-            DATA = np.log10(abs(DATA))
 
         # Levels definitions
         dataselection = np.logical_and(
             ~np.isnan(DATA),
             np.abs(DATA) != np.inf
-            )
+        )
 
-        # set vmin, vmax if they are not already set
+        if scale == "log":
+            DATA = np.log10(abs(DATA))
+
+            vmin = np.log10(vmin) if vmin is not None else vmin
+            vmax = np.log10(vmax) if vmax is not None else vmax
+
         vmin = DATA[dataselection].min() if vmin is None else vmin
         vmax = DATA[dataselection].max() if vmax is None else vmax
-        if scale == "log":
-            if vmin <= 0 or vmax <= 0:
-                raise Exception(
-                    "All values must be strictly positive in order to use the log-scale"
-                )
-            vmin = np.log10(vmin)
-            vmax = np.log10(vmax)
 
         vstep = np.abs((vmin-vmax)/(ncontour+1))
         levels = np.arange(vmin, vmax+vstep, vstep)
