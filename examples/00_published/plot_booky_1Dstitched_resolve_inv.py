@@ -286,7 +286,6 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     w = Utils.sdiag(1./np.sum(w, axis=1)) * (w)
     xy = resolve["xy"]
     temp = (temp.flatten()[d_inds] * w).sum(axis=1)
-    print(temp.min(), temp.max())
     Utils.plot2Ddata(
         xy, temp, ncontour=100, scale="log", dataloc=False,
         contourOpts={"cmap": cmap, "vmin": 1e-2, "vmax": 1e1}, ax=ax0
