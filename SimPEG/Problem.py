@@ -4,7 +4,7 @@ from discretize.base import BaseMesh
 from discretize import TensorMesh
 
 from . import Utils
-from . import Survey
+import OldSurvey as Survey
 from . import Models
 import numpy as np
 from . import Maps
