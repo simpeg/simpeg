@@ -220,7 +220,7 @@ class Minimize(object):
         if self.callback is not None:
             print(
                 'The callback on the {0!s} Optimization was '
-                'replaced.'.format(self.__name__)
+                'replaced.'.format(self.__class__.__name__)
             )
         self._callback = value
 
@@ -1058,36 +1058,23 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
     def __init__(self, **kwargs):
         Minimize.__init__(self, **kwargs)
-        BFGS.__init__(self, **kwargs)
 
     name = 'Projected GNCG'
 
     maxIterCG = 5
     tolCG = 1e-1
-
-
-    # perturbation of the inactive set off the bounds
-    stepOffBoundsFact = 1e-8
-    lower = [-np.inf]
-    upper = [np.inf]
-
-    ComboObjFun = False
-    LSalwaysPass = False
-
+    cg_count = 0
+    stepOffBoundsFact = 1e-2 # perturbation of the inactive set off the bounds
+    stepActiveset = True
+    lower = -np.inf
+    upper = np.inf
 
     def _startup(self, x0):
-
         # ensure bound vectors are the same size as the model
         if type(self.lower) is not np.ndarray:
-
             self.lower = np.ones_like(x0)*self.lower
-
         if type(self.upper) is not np.ndarray:
-
             self.upper = np.ones_like(x0)*self.upper
-
-        assert self.lower.shape[0] == x0.shape[0], "Lower bound must be a list or vector"
-        assert self.upper.shape[0] == x0.shape[0], "Upper bound must be a list or vector"
 
     @Utils.count
     def projection(self, x):
@@ -1130,28 +1117,29 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
     @Utils.timeIt
     def findSearchDirection(self):
-
         """
             findSearchDirection()
-            Finds the search direction based on either CG or steepest descent.
+            Finds the search direction based on projected CG
         """
+
         Active = self.activeSet(self.xc)
         temp = sum((np.ones_like(self.xc.size)-Active))
-        allBoundsAreActive = temp == self.xc.size
 
-        delx = np.zeros(self.g.size)
+        step = np.zeros(self.g.size)
         resid = -(1-Active) * self.g
 
-        r = (resid - (1-Active)*(self.H * delx))
+        r = (resid - (1-Active)*(self.H * step))
 
         p = self.approxHinv*r
 
         sold = np.dot(r, p)
-        s0 = sold
 
         count = 0
 
-        while np.all([np.linalg.norm(r) > self.tolCG, count < self.maxIterCG]):
+        while np.all([
+            np.linalg.norm(r) > self.tolCG,
+            count < self.maxIterCG
+        ]):
 
             count += 1
 
@@ -1159,7 +1147,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
             alpha = sold / (np.dot(p, q))
 
-            delx += alpha * p
+            step += alpha * p
 
             r -= alpha * q
 
@@ -1171,37 +1159,26 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
             sold = snew
             # End CG Iterations
-
-        if self.ComboObjFun:
-
-            reg = self.parent.reg.objfcts[1]
-            if reg.space == 'spherical':
-
-                # Check if the angle update is larger than pi/2
-                max_ang = np.max(np.abs(reg.mapping*delx))
-                if max_ang > np.pi/2.:
-
-                    delx = delx/max_ang*np.pi/2.
+        self.cg_count += count
 
         # Take a gradient step on the active cells if exist
         if temp != self.xc.size:
 
             rhs_a = (Active) * -self.g
 
-            dm_i = max(abs(delx))
+            dm_i = max(abs(step))
             dm_a = max(abs(rhs_a))
 
             # perturb inactive set off of bounds so that they are included
             # in the step
-            delx = delx + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
+            step = step + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
 
         # Only keep gradients going in the right direction on the active
         # set
         indx = (
-            ((self.xc <= self.lower) & (delx < 0)) |
-            ((self.xc >= self.upper) & (delx > 0))
+            ((self.xc <= self.lower) & (step < 0)) |
+            ((self.xc >= self.upper) & (step > 0))
         )
-        delx[indx] = 0.
+        step[indx] = 0.
 
-        return delx
-
+        return step

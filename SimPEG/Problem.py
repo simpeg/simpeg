@@ -280,18 +280,22 @@ class BaseTimeProblem(BaseProblem):
 
 class LinearProblem(BaseProblem):
 
-    # surveyPair = Survey.LinearSurvey
+    # model, modelMap, modelDeriv = Props.Invertible(
+    #     "Generic model parameters",
+    #     default=1.
+    # )
 
     G = None
 
     def __init__(self, mesh, **kwargs):
         BaseProblem.__init__(self, mesh, **kwargs)
-        # self.mapping = kwargs.pop('mapping', Maps.IdentityMap(mesh))
+        self.modelMap = kwargs.pop('modelMap', Maps.IdentityMap(mesh))
 
     @property
     def modelMap(self):
         "A SimPEG.Map instance."
         return getattr(self, '_modelMap', None)
+
 
     @modelMap.setter
     def modelMap(self, val):
@@ -299,7 +303,7 @@ class LinearProblem(BaseProblem):
         self._modelMap = val
 
     def fields(self, m):
-        return self.G.dot(m)
+        return self.G.dot(self.modelMap * m)
 
     def getJ(self, m, f=None):
         """
@@ -313,7 +317,7 @@ class LinearProblem(BaseProblem):
             return self.G
 
     def Jvec(self, m, v, f=None):
-        return self.G.dot(v)
+        return self.G.dot(self.modelMap.deriv(m) * v)
 
     def Jtvec(self, m, v, f=None):
-        return self.G.T.dot(v)
+        return self.modelMap.deriv(m).T*self.G.T.dot(v)

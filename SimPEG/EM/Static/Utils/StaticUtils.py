@@ -4,6 +4,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import numpy as np
+from numpy import matlib
 
 from SimPEG import Utils, Mesh
 from SimPEG.EM.Static import DC
@@ -53,8 +54,8 @@ def electrode_separations(
         nDTx = dc_survey.srcList[ii].rxList[0].nD
 
         if survey_type == 'dipole-dipole':
-            A = np.matlib.repmat(Tx[0], nDTx, 1)
-            B = np.matlib.repmat(Tx[1], nDTx, 1)
+            A = matlib.repmat(Tx[0], nDTx, 1)
+            B = matlib.repmat(Tx[1], nDTx, 1)
             M = Rx[0]
             N = Rx[1]
 
@@ -66,7 +67,7 @@ def electrode_separations(
             BN.append(np.sqrt(np.sum((B[:, :] - N[:, :])**2., axis=1)))
 
         elif survey_type == 'pole-dipole':
-            A = np.matlib.repmat(Tx, nDTx, 1)
+            A = matlib.repmat(Tx, nDTx, 1)
             M = Rx[0]
             N = Rx[1]
 
@@ -75,8 +76,8 @@ def electrode_separations(
             AN.append(np.sqrt(np.sum((A[:, :] - N[:, :])**2., axis=1)))
 
         elif survey_type == 'dipole-pole':
-            A = np.matlib.repmat(Tx[0], nDTx, 1)
-            B = np.matlib.repmat(Tx[1], nDTx, 1)
+            A = matlib.repmat(Tx[0], nDTx, 1)
+            B = matlib.repmat(Tx[1], nDTx, 1)
             M = Rx
 
             AB.append(np.sqrt(np.sum((A[:, :] - B[:, :])**2., axis=1)))
@@ -84,7 +85,7 @@ def electrode_separations(
             BM.append(np.sqrt(np.sum((B[:, :] - M[:, :])**2., axis=1)))
 
         elif survey_type == 'pole-pole':
-            A = np.matlib.repmat(Tx, nDTx, 1)
+            A = matlib.repmat(Tx, nDTx, 1)
             M = Rx
 
             AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2., axis=1)))

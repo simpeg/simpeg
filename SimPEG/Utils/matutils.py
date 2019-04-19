@@ -83,14 +83,34 @@ def uniqueRows(M):
     return unqM, unqInd, invInd
 
 
-def atp2xyz(m):
+def cartesian2spherical(m):
+    """ Convert from cartesian to spherical """
+
+    # nC = int(len(m)/3)
+
+    x = m[:, 0]
+    y = m[:, 1]
+    z = m[:, 2]
+
+    a = (x**2. + y**2. + z**2.)**0.5
+
+    t = np.zeros_like(x)
+    t[a > 0] = np.arcsin(z[a > 0]/a[a > 0])
+
+    p = np.zeros_like(x)
+    p[a > 0] = np.arctan2(y[a > 0], x[a > 0])
+
+    m_atp = np.r_[a, t, p]
+
+    return m_atp
+
+
+def spherical2cartesian(m):
     """ Convert from spherical to cartesian """
 
-    nC = int(len(m)/3)
-
-    a = m[:nC]
-    t = m[nC:2*nC]
-    p = m[2*nC:]
+    a = m[:, 0] + 1e-8
+    t = m[:, 1]
+    p = m[:, 2]
 
     m_xyz = np.r_[a*np.cos(t)*np.cos(p),
                   a*np.cos(t)*np.sin(p),
@@ -99,23 +119,53 @@ def atp2xyz(m):
     return m_xyz
 
 
-def xyz2atp(m):
-    """ Convert from cartesian to spherical """
+def dip_azimuth2cartesian(dip, azm_N):
+    """
+    dip_azimuth2cartesian(dip,azm_N)
 
-    nC = int(len(m)/3)
+    Function converting degree angles for dip and azimuth from north to a
+    3-components in cartesian coordinates.
 
-    x = m[:nC]
-    y = m[nC:2*nC]
-    z = m[2*nC:]
+    INPUT
+    dip     : Value or vector of dip from horizontal in DEGREE
+    azm_N   : Value or vector of azimuth from north in DEGREE
 
-    a = (x**2. + y**2. + z**2.)**0.5
+    OUTPUT
+    M       : [n-by-3] Array of xyz components of a unit vector in cartesian
 
-    t = np.zeros(nC)
-    t[a > 0] = np.arcsin(z[a > 0]/a[a > 0])
+    Created on Dec, 20th 2015
 
-    p = np.zeros(nC)
-    p[a > 0] = np.arctan2(y[a > 0], x[a > 0])
+    @author: dominiquef
+    """
 
-    m_atp = np.r_[a, t, p]
+    azm_N = np.asarray(azm_N)
+    dip = np.asarray(dip)
 
-    return m_atp
+    # Number of elements
+    nC = azm_N.size
+
+    M = np.zeros((nC, 3))
+
+    # Modify azimuth from North to cartesian-X
+    azm_X = (450. - np.asarray(azm_N)) % 360.
+    inc = -np.deg2rad(np.asarray(dip))
+    dec = np.deg2rad(azm_X)
+
+    M[:, 0] = np.cos(inc) * np.cos(dec)
+    M[:, 1] = np.cos(inc) * np.sin(dec)
+    M[:, 2] = np.sin(inc)
+
+    return M
+
+
+def coterminal(theta):
+    """
+    Compute coterminal angle so that [-pi < theta < pi]
+    """
+
+    sub = theta[np.abs(theta) >= np.pi]
+    sub = -np.sign(sub) * (2*np.pi-np.abs(sub))
+
+    theta[np.abs(theta) >= np.pi] = sub
+
+    return theta

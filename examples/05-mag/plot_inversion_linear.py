@@ -46,13 +46,9 @@ def run(plotIt=True):
     # We would usually load a topofile
     topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
 
-    # Go from topo to actv cells
+    # Go from topo to array of indices of active cells
     actv = Utils.surface2ind_topo(mesh, topo, 'N')
-    actv = np.asarray([inds for inds, elem in enumerate(actv, 1) if elem],
-                      dtype=int) - 1
-
-    # Create active map to go from reduce space to full
-    actvMap = Maps.InjectActiveCells(mesh, actv, -100)
+    actv = np.where(actv)[0]
     nC = len(actv)
 
     # Create and array of observation points
@@ -79,7 +75,7 @@ def run(plotIt=True):
     # Create active map to go from reduce set to full
     actvMap = Maps.InjectActiveCells(mesh, actv, -100)
 
-    # Creat reduced identity map
+    # Create reduced identity map
     idenMap = Maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
@@ -109,7 +105,7 @@ def run(plotIt=True):
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.cell_weights = wr
     reg.mref = np.zeros(nC)
-    reg.norms = np.c_[0, 1, 1, 1]
+    reg.norms = np.c_[0, 0, 0, 0]
     # reg.eps_p, reg.eps_q = 1e-0, 1e-0
 
     # Data misfit function
@@ -118,12 +114,12 @@ def run(plotIt=True):
 
     # Add directives to the inversion
     opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
-                                     maxIterLS=20, maxIterCG=10, tolCG=1e-3)
+                                     maxIterLS=20, maxIterCG=20, tolCG=1e-3)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 
     # Here is where the norms are applied
-    # Use pick a treshold parameter empirically based on the distribution of
+    # Use pick a threshold parameter empirically based on the distribution of
     #  model parameters
     IRLS = Directives.Update_IRLS(
         f_min_change=1e-4, maxIRLSiter=40
@@ -152,7 +148,7 @@ def run(plotIt=True):
         m_true[m_true == -100] = np.nan
 
         # Plot the data
-        PF.Magnetics.plot_obs_2D(rxLoc, d=d)
+        Utils.PlotUtils.plot2Ddata(rxLoc, d)
 
         plt.figure()
 
