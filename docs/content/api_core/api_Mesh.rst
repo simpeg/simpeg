@@ -191,6 +191,4 @@ other types of meshes in this SimPEG framework.
 The API
 =======
 
-.. autoclass:: discretize.base.BaseMesh
-    :members:
-    :undoc-members:
+See the `discretize docs <http://discretize.simpeg.xyz/>`_
