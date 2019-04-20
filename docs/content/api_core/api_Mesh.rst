@@ -10,7 +10,7 @@ between different meshes relatively simple.
 Overview of Meshes Available
 ============================
 
-Please see the `discretize docs <https://discretize.simpeg.xyz>`_
+Please see the `discretize docs <http://discretize.simpeg.xyz>`_
 
 Each mesh code follows the guiding principles that are present in this
 tutorial, but the details, advantages and disadvantages differ between
