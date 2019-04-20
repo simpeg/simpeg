@@ -69,7 +69,7 @@ class Data(properties.HasProperties):
         BaseSurvey
     )
 
-    uid = properties.Uuid("unique ID for the data")
+    _uid = properties.Uuid("unique ID for the data")
 
     _data_dict = properties.Instance(
         "data dictionary so data can be accessed by [src, rx]. "

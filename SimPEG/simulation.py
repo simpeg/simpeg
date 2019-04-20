@@ -1,10 +1,13 @@
 from __future__ import print_function
 
 import numpy as np
-import discretize
 import properties
 import pymatsolver
 import warnings
+
+from discretize.base import BaseMesh
+from discretize import TensorMesh
+from discretize.utils import meshTensor
 
 from .Utils import Counter, timeIt, count, mkvc
 from . import Models
@@ -29,7 +32,7 @@ class TimeStepArray(properties.Array):
 
     def validate(self, instance, value):
         if isinstance(value, list):
-            value = discretize.utils.meshTensor(value)
+            value = meshTensor(value)
         return super(TimeStepArray, self).validate(instance, value)
 
 
@@ -45,11 +48,15 @@ class BaseSimulation(Props.HasModel):
     SimPEG.
     """
 
+
+    ###########################################################################
+    # Properties
+
     _REGISTRY = {}
 
     mesh = properties.Instance(
         "a discretize mesh instance",
-        discretize.base.BaseMesh
+        BaseMesh
     )
 
     survey = properties.Instance(
@@ -82,7 +89,11 @@ class BaseSimulation(Props.HasModel):
         self._REGISTRY.update(change['value']._REGISTRY)
 
     #: List of strings, e.g. ['_MeSigma', '_MeSigmaI']
+    # TODO: rename to _delete_on_model_update
     deleteTheseOnModelUpdate = []
+
+    #: List of matrix names to have their factors cleared on a model update
+    clean_on_model_update = []
 
     @properties.observer('model')
     def _on_model_update(self, change):
@@ -94,9 +105,17 @@ class BaseSimulation(Props.HasModel):
             np.allclose(change['previous'], change['value'])
         ):
             return
+
+        # cached properties to delete
         for prop in self.deleteTheseOnModelUpdate:
             if hasattr(self, prop):
                 delattr(self, prop)
+
+        # matrix factors to clear
+        for mat in self.clean_on_model_update:
+            if getattr(self, mat, None) is not None:
+                getattr(self, mat).clean()  # clean factors
+                setattr(self, mat, None)  # set to none
 
     @property
     def Solver(self):
@@ -133,6 +152,27 @@ class BaseSimulation(Props.HasModel):
             DeprecationWarning
         )
         self.solver_opts = value
+
+    ###########################################################################
+    # Instantiation
+
+    def __init__(self, mesh=None, **kwargs):
+        # raise exception if user tries to set "mapping"
+        if 'mapping' in kwargs:
+            raise Exception(
+                'Depreciated (in 0.4.0): use one of {}'.format(
+                    [p for p in self._props.keys() if 'Map' in p]
+                )
+            )
+
+        super(BaseSimulation, self).__init__(**kwargs)
+        assert isinstance(mesh, BaseMesh), (
+            "mesh must be a discretize object."
+        )
+        self.mesh = mesh
+
+    ###########################################################################
+    # Methods
 
     def pair(self, survey):
         warnings.warn(
@@ -295,9 +335,7 @@ class BaseTimeSimulation(BaseSimulation):
     @property
     def time_mesh(self):
         if getattr(self, '_time_mesh', None) is None:
-            self._time_mesh = discretize.TensorMesh(
-                [self.time_steps], x0=[self.t0]
-            )
+            self._time_mesh = TensorMesh([self.time_steps], x0=[self.t0])
         return self._time_mesh
 
     @time_mesh.deleter
@@ -362,7 +400,7 @@ class LinearSimulation(BaseSimulation):
 
     mesh = properties.Instance(
         "a discretize mesh instance",
-        discretize.base.BaseMesh,
+        BaseMesh,
         required=True
     )
 

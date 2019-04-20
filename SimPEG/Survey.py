@@ -185,7 +185,8 @@ class BaseSrc(Props.BaseSimPEG):
 
     location = properties.Array(
         "Location [x, y, z]",
-        shape=("*",)
+        shape=("*",),
+        required=False
     )
 
     rxList = properties.List(
@@ -277,7 +278,8 @@ class BaseSurvey(properties.HasProperties):
             "A SimPEG source",
             BaseSrc
         ),
-        required=True
+        required=False, # TODO: I don't think this should be required
+        default=[]
     )
 
     def __init__(self, **kwargs):
@@ -320,7 +322,9 @@ class BaseSurvey(properties.HasProperties):
     @property
     def vnD(self):
         """Vector number of data"""
-        return np.array([src.nD for src in self.srcList])
+        if getattr(self, '_vnD', None) is None:
+            self._vnD = np.array([src.nD for src in self.srcList])
+        return self._vnD
 
     @property
     def nSrc(self):
@@ -334,10 +338,10 @@ class BaseSurvey(properties.HasProperties):
         )
 
 
-# class LinearSurvey(BaseSurvey):
-#     """
-#     Survey for a linear problem
-#     """
-#     @property
-#     def nD(self):
-#         return self.simulation.G.shape[0]
+class LinearSurvey(BaseSurvey):
+    """
+    Survey for a linear problem
+    """
+    @property
+    def nD(self):
+        return self.simulation.G.shape[0]
