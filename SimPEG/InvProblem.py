@@ -9,7 +9,7 @@ from .data_misfit import BaseDataMisfit
 from .Utils import callHooks, timeIt
 from .Props import BaseSimPEG, Model
 from .Regularization import BaseRegularization
-from .ObjectiveFunction import BaseObjectiveFunction, ComboObjectiveFunction
+from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 
 
 class BaseInvProblem(BaseSimPEG):

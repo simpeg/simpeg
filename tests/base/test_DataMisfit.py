@@ -5,7 +5,8 @@ import unittest
 import numpy as np
 import scipy.sparse as sp
 
-from SimPEG import Mesh, DataMisfit, Maps, Utils
+from SimPEG import Mesh, Maps, Utils
+from SimPEG import data_misfit
 from SimPEG.EM.Static import DC
 
 np.random.seed(17)
@@ -36,7 +37,7 @@ class DataMisfitTest(unittest.TestCase):
         dobs = survey.makeSyntheticData(model)
         self.eps = 1e-8 * np.min(np.abs(dobs))
         survey.eps = self.eps
-        dmis = DataMisfit.l2_DataMisfit(survey)
+        dmis = data_misfit.L2DataMisfit(survey)
 
         self.model = model
         self.mesh = mesh

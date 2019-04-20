@@ -4,7 +4,7 @@ import properties
 
 from . import Utils
 from . import Survey
-from . import ObjectiveFunction
+from . import objective_function as ObjectiveFunction
 
 
 class BaseDataMisfit(ObjectiveFunction.L2ObjectiveFunction):

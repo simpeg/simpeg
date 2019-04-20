@@ -4,7 +4,7 @@ import properties
 from . import Utils
 from .data import Data
 from .simulation import BaseSimulation
-from .ObjectiveFunction import L2ObjectiveFunction
+from .objective_function import L2ObjectiveFunction
 
 
 class BaseDataMisfit(L2ObjectiveFunction):
@@ -116,7 +116,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
     #     return self.data.uncertainty
 
 
-class l2_DataMisfit(BaseDataMisfit):
+class L2DataMisfit(BaseDataMisfit):
     """
     The data misfit with an l_2 norm:
     .. math::
@@ -166,3 +166,15 @@ class l2_DataMisfit(BaseDataMisfit):
         return self.simulation.Jtvec_approx(
             m, self.W * (self.W * self.simulation.Jvec_approx(m, v, f=f)), f=f
         )
+
+class l2_DataMisfit(L2DataMisfit):
+    """
+    This class will be deprecated in the next release of SimPEG. Please use
+    `L2DataMisfit` instead.
+    """
+    def __init__(self, **kwargs):
+        warnings.warn(
+            "l2_DataMisfit has been depreciated in favor of L2DataMisfit. Please "
+            "update your code to use 'L2DataMisfit'", DeprecationWarning
+        )
+        super(l2_DataMisfit, self).__init__(**kwargs)
