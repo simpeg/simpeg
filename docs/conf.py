@@ -388,5 +388,4 @@ nitpick_ignore = [
     ('py:class', 'SimPEG.VRM.WaveformVRM.Custom'),
     ('py:class', 'SimPEG.Props.LocationVector'),
     ('py:class', 'SurveyVRM'),
-    ('py:module', 'discretize.base'),
 ]

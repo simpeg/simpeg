@@ -2260,7 +2260,7 @@ class ParametricBlock(BaseParametric):
 
         **Required**
 
-        :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+        :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
         **Optional**
 
@@ -2463,7 +2463,7 @@ class ParametricEllipsoid(ParametricBlock):
 
     #     **Required**
 
-    #     :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+    #     :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
     #     **Optional**
 
@@ -2853,7 +2853,7 @@ class ParametricBlockInLayer(ParametricLayer):
 
         **Required**
 
-        :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+        :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
         **Optional**
 
