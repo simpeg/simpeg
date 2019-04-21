@@ -6,7 +6,7 @@ import warnings
 import properties
 
 from .Maps import IdentityMap
-from .ObjectiveFunction import BaseObjectiveFunction, ComboObjectiveFunction
+from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .Props import Array, BaseSimPEG, Float
 from .Utils import (
     coterminal, setKwargs, speye, sdiag, mkvc, timeIt, Identity, Zero
