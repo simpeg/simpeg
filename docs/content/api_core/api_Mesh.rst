@@ -3,6 +3,8 @@
 SimPEG Meshes
 *************
 
+.. _discretize docs: http://discretize.simpeg.xyz
+
 The Mesh objects in SimPEG provide a numerical grid on which to solve
 differential equations. Each mesh type has a similar API to make switching
 between different meshes relatively simple.
@@ -10,7 +12,7 @@ between different meshes relatively simple.
 Overview of Meshes Available
 ============================
 
-Please see the `discretize docs <http://discretize.simpeg.xyz>`_
+Please see the `discretize docs`_
 
 Each mesh code follows the guiding principles that are present in this
 tutorial, but the details, advantages and disadvantages differ between
@@ -186,4 +188,4 @@ other types of meshes in this SimPEG framework.
 The API
 =======
 
-See the `discretize docs <http://discretize.simpeg.xyz/>`_
+See the `discretize docs`_
