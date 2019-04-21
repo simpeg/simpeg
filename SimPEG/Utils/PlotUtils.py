@@ -14,13 +14,13 @@ def plot2Ddata(
 
         Take unstructured xy points, interpolate, then plot in 2D
 
-        :param numpy.array xyz: data locations
-        :param numpy.array data: data values
+        :param numpy.ndarray xyz: data locations
+        :param numpy.ndarray data: data values
         :param bool vec: plot streamplot?
         :param float nx: number of x grid locations
         :param float ny: number of y grid locations
         :param matplotlib.axes ax: axes
-        :param boolean numpy.array mask: mask for the array
+        :param boolean numpy.ndarray mask: mask for the array
         :param boolean level: boolean to plot (or not)
                                 :meth:`matplotlib.pyplot.contour`
         :param string figname: figure name
@@ -29,7 +29,7 @@ def plot2Ddata(
         :param bool dataloc: plot the data locations
         :param dict controuOpts: :meth:`matplotlib.pyplot.contourf` options
         :param dict levelOpts: :meth:`matplotlib.pyplot.contour` options
-        :param numpy.array clim: colorbar limits
+        :param numpy.ndarray clim: colorbar limits
         :param str method: interpolation method, either 'linear' or 'nearest'
 
     """

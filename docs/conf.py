@@ -130,7 +130,7 @@ try:
     html_theme = 'sphinx_rtd_theme'
     html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
     pass
-except Exception, e:
+except Exception:
     html_theme = 'default'
 
 # Theme options are theme-specific and customize the look and feel of a theme
@@ -253,8 +253,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'simpeg', u'SimPEG Documentation',
-     [u'SimPEG Team'], 1)
+    ('index', 'simpeg', u'SimPEG Documentation', [u'SimPEG Team'], 1)
 ]
 
 # If true, show URL addresses after external links.

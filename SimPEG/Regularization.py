@@ -33,7 +33,7 @@ class RegularizationMesh(Props.BaseSimPEG):
     a SimPEG Mesh.
 
     :param discretize.base.BaseMesh mesh: problem mesh
-    :param numpy.array indActive: bool array, size nC, that is True where we have active cells. Used to reduce the operators so we regularize only on active cells
+    :param numpy.ndarray indActive: bool array, size nC, that is True where we have active cells. Used to reduce the operators so we regularize only on active cells
 
     """
 
@@ -60,7 +60,7 @@ class RegularizationMesh(Props.BaseSimPEG):
         """
         reduced volume vector
 
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: reduced cell volume
         """
         if getattr(self, '_vol', None) is None:
@@ -659,8 +659,8 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         """
         Second derivative
 
-        :param numpy.array m: geophysical model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: geophysical model
+        :param numpy.ndarray v: vector to multiply
         :rtype: scipy.sparse.csr_matrix
         :return: WtW, or if v is supplied WtW*v (numpy.ndarray)
 

@@ -161,10 +161,10 @@ class BaseProblem(Props.HasModel):
 
         Effect of J(m) on a vector v.
 
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: Jv
         """
         raise NotImplementedError('J is not yet implemented.')
@@ -175,10 +175,10 @@ class BaseProblem(Props.HasModel):
 
         Effect of transpose of J(m) on a vector v.
 
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: JTv
         """
         raise NotImplementedError('Jt is not yet implemented.')
@@ -189,10 +189,10 @@ class BaseProblem(Props.HasModel):
 
         Approximate effect of J(m) on a vector v
 
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: approxJv
         """
         return self.Jvec(m, v, f)
@@ -203,10 +203,10 @@ class BaseProblem(Props.HasModel):
 
         Approximate effect of transpose of J(m) on a vector v.
 
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: JTv
         """
         return self.Jtvec(m, v, f)
@@ -214,8 +214,8 @@ class BaseProblem(Props.HasModel):
     def fields(self, m):
         """The field given the model.
 
-        :param numpy.array m: model
-        :rtype: numpy.array
+        :param numpy.ndarray m: model
+        :rtype: numpy.ndarray
         :return: u, the fields
         """
         raise NotImplementedError('fields is not yet implemented.')

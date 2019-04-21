@@ -77,7 +77,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         if err < 0.05:
             passed = True
             print(">> IP forward test for Problem2D_N is passed")
-            print (err)
+            print(err)
         else:
             passed = False
             print(">> IP forward test for Problem2D_N is failed")
@@ -111,7 +111,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
             import matplotlib.pyplot as plt
             passed = False
             print(">> IP forward test for Problem2D_CC is failed")
-            print (err)
+            print(err)
             plt.plot(data_full)
             plt.plot(data, 'k.')
             plt.show()
