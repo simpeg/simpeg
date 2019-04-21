@@ -8,7 +8,7 @@ import gc
 from .data_misfit import BaseDataMisfit
 from .Utils import callHooks, timeIt
 from .Props import BaseSimPEG, Model
-from .Regularization import BaseRegularization
+from .regularization import BaseRegularization
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 
 

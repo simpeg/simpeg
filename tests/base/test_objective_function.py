@@ -7,20 +7,21 @@ import numpy as np
 import scipy.sparse as sp
 import unittest
 
-from SimPEG import ObjectiveFunction, Utils, Maps
+from SimPEG import Utils, Maps
+from SimPEG import objective_function
 
 np.random.seed(130)
 
 EPS = 1e-9
 
 
-class Empty_ObjFct(ObjectiveFunction.BaseObjectiveFunction):
+class Empty_ObjFct(objective_function.BaseObjectiveFunction):
 
     def __init__(self):
         super(Empty_ObjFct, self).__init__()
 
 
-class Error_if_Hit_ObjFct(ObjectiveFunction.BaseObjectiveFunction):
+class Error_if_Hit_ObjFct(objective_function.BaseObjectiveFunction):
 
     def __init__(self):
         super(Error_if_Hit_ObjFct, self).__init__()
@@ -38,7 +39,7 @@ class Error_if_Hit_ObjFct(ObjectiveFunction.BaseObjectiveFunction):
 class TestBaseObjFct(unittest.TestCase):
 
     def test_derivs(self):
-        objfct = ObjectiveFunction.L2ObjectiveFunction()
+        objfct = objective_function.L2ObjectiveFunction()
         self.assertTrue(objfct.test(eps=1e-9))
 
     def test_deriv2(self):
@@ -46,7 +47,7 @@ class TestBaseObjFct(unittest.TestCase):
         mapping=Maps.ExpMap(nP=nP)
         m = np.random.rand(nP)
         v = np.random.rand(nP)
-        objfct = ObjectiveFunction.L2ObjectiveFunction(nP=nP, mapping=mapping)
+        objfct = objective_function.L2ObjectiveFunction(nP=nP, mapping=mapping)
         self.assertTrue(
             np.allclose(objfct.deriv2(m=m, v=v), objfct.deriv2(m=m)*v)
         )
@@ -54,7 +55,7 @@ class TestBaseObjFct(unittest.TestCase):
     def test_scalarmul(self):
         scalar = 10.
         nP = 100
-        objfct_a = ObjectiveFunction.L2ObjectiveFunction(
+        objfct_a = objective_function.L2ObjectiveFunction(
             W=Utils.sdiag(np.random.randn(nP))
         )
         objfct_b = scalar * objfct_a
@@ -74,8 +75,8 @@ class TestBaseObjFct(unittest.TestCase):
         scalar = 10.
         nP = 100.
         objfct = (
-            ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP)) +
-            scalar * ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP))
+            objective_function.L2ObjectiveFunction(W=sp.eye(nP)) +
+            scalar * objective_function.L2ObjectiveFunction(W=sp.eye(nP))
         )
         self.assertTrue(objfct.test(eps=1e-9))
 
@@ -87,10 +88,10 @@ class TestBaseObjFct(unittest.TestCase):
         alpha2 = 200
 
         phi1 = (
-            ObjectiveFunction.L2ObjectiveFunction(W=Utils.sdiag(np.random.rand(nP))) +
-            alpha1 * ObjectiveFunction.L2ObjectiveFunction()
+            objective_function.L2ObjectiveFunction(W=Utils.sdiag(np.random.rand(nP))) +
+            alpha1 * objective_function.L2ObjectiveFunction()
         )
-        phi2 = ObjectiveFunction.L2ObjectiveFunction() + alpha2 * phi1
+        phi2 = objective_function.L2ObjectiveFunction() + alpha2 * phi1
         self.assertTrue(phi2.test(eps=EPS))
 
         self.assertTrue(len(phi1.multipliers) == 2)
@@ -113,9 +114,9 @@ class TestBaseObjFct(unittest.TestCase):
         alpha2 = 0.6
         alpha3inv = 9
 
-        phi1 = ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP))
-        phi2 = ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP))
-        phi3 = ObjectiveFunction.L2ObjectiveFunction(W=sp.eye(nP))
+        phi1 = objective_function.L2ObjectiveFunction(W=sp.eye(nP))
+        phi2 = objective_function.L2ObjectiveFunction(W=sp.eye(nP))
+        phi3 = objective_function.L2ObjectiveFunction(W=sp.eye(nP))
 
         phi = alpha1 * phi1 + alpha2 * phi2 + phi3 / alpha3inv
 
@@ -137,11 +138,11 @@ class TestBaseObjFct(unittest.TestCase):
         nP1 = 10
         nP2 = 30
 
-        phi1 = ObjectiveFunction.L2ObjectiveFunction(
+        phi1 = objective_function.L2ObjectiveFunction(
                     W=Utils.sdiag(np.random.rand(nP1))
         )
 
-        phi2 = ObjectiveFunction.L2ObjectiveFunction(
+        phi2 = objective_function.L2ObjectiveFunction(
                     W=Utils.sdiag(np.random.rand(nP2))
                 )
 
@@ -167,8 +168,8 @@ class TestBaseObjFct(unittest.TestCase):
         nP = 20
         alpha = 2.
         phi = alpha*(
-            ObjectiveFunction.L2ObjectiveFunction(W = sp.eye(nP)) +
-            Utils.Zero()*ObjectiveFunction.L2ObjectiveFunction()
+            objective_function.L2ObjectiveFunction(W = sp.eye(nP)) +
+            Utils.Zero()*objective_function.L2ObjectiveFunction()
         )
         self.assertTrue(len(phi.objfcts) == 1)
         self.assertTrue(phi.test())
@@ -181,8 +182,8 @@ class TestBaseObjFct(unittest.TestCase):
         W1 = Utils.sdiag(np.random.rand(nP))
         W2 = Utils.sdiag(np.random.rand(nP))
 
-        phi1 = ObjectiveFunction.L2ObjectiveFunction(W=W1)
-        phi2 = ObjectiveFunction.L2ObjectiveFunction(W=W2)
+        phi1 = objective_function.L2ObjectiveFunction(W=W1)
+        phi2 = objective_function.L2ObjectiveFunction(W=W2)
 
         phi = phi1 + phi2
 
@@ -207,7 +208,7 @@ class TestBaseObjFct(unittest.TestCase):
         v = np.random.rand(nP)
 
         W1 = Utils.sdiag(np.random.rand(nP))
-        phi1 = ObjectiveFunction.L2ObjectiveFunction(W=W1)
+        phi1 = objective_function.L2ObjectiveFunction(W=W1)
 
         phi2 = Error_if_Hit_ObjFct()
 
@@ -234,12 +235,12 @@ class TestBaseObjFct(unittest.TestCase):
 
         wires = Maps.Wires(('sigma', nP), ('mu', nP))
 
-        objfct1 = ObjectiveFunction.L2ObjectiveFunction(mapping=wires.sigma)
-        objfct2 = ObjectiveFunction.L2ObjectiveFunction(mapping=wires.mu)
+        objfct1 = objective_function.L2ObjectiveFunction(mapping=wires.sigma)
+        objfct2 = objective_function.L2ObjectiveFunction(mapping=wires.mu)
 
         objfct3 = objfct1 + objfct2
 
-        objfct4 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+        objfct4 = objective_function.L2ObjectiveFunction(nP=nP)
 
         self.assertTrue(objfct1.nP == 2*nP)
         self.assertTrue(objfct2.nP == 2*nP)
@@ -259,8 +260,8 @@ class TestBaseObjFct(unittest.TestCase):
         nP = 15
         m = np.random.rand(nP)
 
-        phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
-        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+        phi1 = objective_function.L2ObjectiveFunction(nP=nP)
+        phi2 = objective_function.L2ObjectiveFunction(nP=nP)
 
         alpha1 = 2.
         alpha2 = 0.5
@@ -284,12 +285,12 @@ class TestBaseObjFct(unittest.TestCase):
         m = np.random.rand(nP)
         v = np.random.rand(nP)
 
-        phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
-        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+        phi1 = objective_function.L2ObjectiveFunction(nP=nP)
+        phi2 = objective_function.L2ObjectiveFunction(nP=nP)
 
         phi3 = 2*phi1 + 3*phi2
 
-        phi4 = ObjectiveFunction.ComboObjectiveFunction(
+        phi4 = objective_function.ComboObjectiveFunction(
             [phi1, phi2], [2, 3]
         )
 
@@ -300,8 +301,8 @@ class TestBaseObjFct(unittest.TestCase):
     def test_updating_multipliers(self):
         nP = 20
 
-        phi1 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
-        phi2 = ObjectiveFunction.L2ObjectiveFunction(nP=nP)
+        phi1 = objective_function.L2ObjectiveFunction(nP=nP)
+        phi2 = objective_function.L2ObjectiveFunction(nP=nP)
 
         phi3 = 2*phi1 + 4*phi2
 

@@ -8,7 +8,7 @@ from . import Maps
 from . import Models
 # from . import Problem
 # from . import Survey
-from . import Regularization
+# from . import Regularization
 # from . import DataMisfit
 from . import InvProblem
 from . import Optimization
@@ -17,9 +17,11 @@ from . import Inversion
 from . import Tests
 
 from . import data
+from . import data_misfit
+from . import regularization
 from . import survey
 from . import simulation
-from . import data_misfit
+
 
 from . import Utils
 from .Utils import mkvc

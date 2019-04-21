@@ -3,18 +3,19 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import SimPEG
-from SimPEG.Utils import Zero, closestPoints, mkvc
 import numpy as np
 
+from SimPEG.Utils import Zero, closestPoints, mkvc
+from SimPEG import OldSurvey as Survey
 
-class BaseSrc(SimPEG.Survey.BaseSrc):
+
+class BaseSrc(Survey.BaseSrc):
 
     current = 1.0
     loc = None
 
     def __init__(self, rxList, **kwargs):
-        SimPEG.Survey.BaseSrc.__init__(self, rxList, **kwargs)
+        Survey.BaseSrc.__init__(self, rxList, **kwargs)
 
     def eval(self, prob):
         raise NotImplementedError

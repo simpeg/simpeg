@@ -6,9 +6,10 @@ from __future__ import unicode_literals
 import SimPEG
 import numpy as np
 from SimPEG.Utils import closestPoints
+from SimPEG import OldSurvey as Survey
 
 
-class BaseRx(SimPEG.Survey.BaseRx):
+class BaseRx(Survey.BaseRx):
     """
     Base DC receiver
     """
@@ -26,7 +27,7 @@ class BaseRx(SimPEG.Survey.BaseRx):
     }
 
     def __init__(self, locs, rxType, **kwargs):
-        SimPEG.Survey.BaseRx.__init__(self, locs, rxType, **kwargs)
+        Survey.BaseRx.__init__(self, locs, rxType, **kwargs)
 
     @property
     def projField(self):

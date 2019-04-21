@@ -5,10 +5,11 @@ from __future__ import unicode_literals
 
 import SimPEG
 from SimPEG.Utils import Zero, closestPoints, mkvc
+from SimPEG import OldSurvey as Survey
 import numpy as np
 
 
-class BaseSrc(SimPEG.Survey.BaseSrc):
+class BaseSrc(Survey.BaseSrc):
     """
     Base DC source
     """
@@ -18,7 +19,7 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
     _q = None
 
     def __init__(self, rxList, **kwargs):
-        SimPEG.Survey.BaseSrc.__init__(self, rxList, **kwargs)
+        Survey.BaseSrc.__init__(self, rxList, **kwargs)
 
     def eval(self, prob):
         raise NotImplementedError

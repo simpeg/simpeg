@@ -3,13 +3,13 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import SimPEG
+from SimPEG.OldFields import Fields
 from SimPEG.Utils import Identity, Zero
 import numpy as np
 from scipy.constants import epsilon_0
 
 
-class FieldsDC(SimPEG.Problem.Fields):
+class FieldsDC(Fields):
     knownFields = {}
     dtype = float
 

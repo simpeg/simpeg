@@ -3,11 +3,12 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import SimPEG
 import numpy as np
 
+from SimPEG import OldSurvey as Survey
 
-class BaseRx(SimPEG.Survey.BaseTimeRx):
+
+class BaseRx(Survey.BaseTimeRx):
     locs = None
     rxType = None
 
@@ -22,7 +23,7 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
                     }
 
     def __init__(self, locs, times, rxType, **kwargs):
-        SimPEG.Survey.BaseTimeRx.__init__(self, locs, times, rxType, **kwargs)
+        Survey.BaseTimeRx.__init__(self, locs, times, rxType, **kwargs)
 
     @property
     def projField(self):

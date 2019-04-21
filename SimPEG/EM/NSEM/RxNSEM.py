@@ -12,9 +12,10 @@ from scipy.constants import mu_0
 import SimPEG
 import numpy as np
 from SimPEG import mkvc
+from SimPEG.OldSurvey import BaseRx
 
 
-class BaseRxNSEM_Point(SimPEG.Survey.BaseRx):
+class BaseRxNSEM_Point(BaseRx):
     """
     Natural source receiver base class.
 
@@ -32,7 +33,7 @@ class BaseRxNSEM_Point(SimPEG.Survey.BaseRx):
         self.orientation = orientation
         self.component = component
 
-        SimPEG.Survey.BaseRx.__init__(self, locs, rxType=None) # TODO: remove rxType from baseRx
+        BaseRx.__init__(self, locs, rxType=None) # TODO: remove rxType from baseRx
 
     # Set a mesh property
     @property
@@ -331,7 +332,7 @@ class BaseRxNSEM_Point(SimPEG.Survey.BaseRx):
         raise NotImplementedError('SimPEG.EM.NSEM receiver has to have an evalDeriv method')
 
 
-class Point_impedance1D(SimPEG.Survey.BaseRx):
+class Point_impedance1D(BaseRx):
     """
     Natural source 1D impedance receiver class
 
@@ -344,7 +345,7 @@ class Point_impedance1D(SimPEG.Survey.BaseRx):
         assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not {0!s}".format(component)
 
         self.component = component
-        SimPEG.Survey.BaseRx.__init__(self, locs, rxType=None)
+        BaseRx.__init__(self, locs, rxType=None)
 
     @property
     def mesh(self):

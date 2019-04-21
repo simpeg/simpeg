@@ -7,7 +7,7 @@ import properties
 from scipy.constants import mu_0
 import numpy as np
 
-from SimPEG import Survey
+from SimPEG import OldSurvey as Survey
 from SimPEG import Problem
 from SimPEG import Utils
 from SimPEG import Maps

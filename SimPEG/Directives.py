@@ -7,8 +7,8 @@ import warnings
 import os
 
 from .data_misfit import BaseDataMisfit
-from .ObjectiveFunction import ComboObjectiveFunction
-from .Regularization import BaseComboRegularization, BaseRegularization
+from .objective_function import ComboObjectiveFunction
+from .regularization import BaseComboRegularization, BaseRegularization
 from .Utils import (
     mkvc, setKwargs, sdiag, diagEst, spherical2cartesian, cartesian2spherical
 )

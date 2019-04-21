@@ -1,9 +1,10 @@
 import SimPEG
 from SimPEG import Utils
+from SimPEG.OldSurvey import BaseTimeRx
 import scipy.sparse as sp
 
 
-class BaseRx(SimPEG.Survey.BaseTimeRx):
+class BaseRx(BaseTimeRx):
     """
     Time domain receiver base class
 
@@ -19,7 +20,7 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
             "implemented.".format(orientation)
         )
         self.projComp = orientation
-        SimPEG.Survey.BaseTimeRx.__init__(self, locs, times, rxType=None) #TODO: remove rxType from baseRx
+        BaseTimeRx.__init__(self, locs, times, rxType=None) #TODO: remove rxType from baseRx
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""

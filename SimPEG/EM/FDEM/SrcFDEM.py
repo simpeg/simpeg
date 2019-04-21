@@ -6,7 +6,8 @@ import warnings
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
 from SimPEG.Utils import Zero
-from SimPEG import Survey, Problem, Utils
+from SimPEG import OldSurvey as Survey
+from SimPEG import Problem, Utils
 
 from .. import Utils as emutils
 from ..Base import BaseEMSrc

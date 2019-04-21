@@ -1,6 +1,9 @@
 import numpy as np
-from SimPEG import (Maps, DataMisfit, Regularization,
-                    Optimization, Inversion, InvProblem, Directives)
+from SimPEG import (
+    Maps, Optimization, Inversion, InvProblem, Directives
+)
+from SimPEG import Old_DataMisfit as DataMisfit
+from SimPEG import regularization as Regularization
 
 
 def run_inversion(
