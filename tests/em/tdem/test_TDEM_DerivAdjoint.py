@@ -152,7 +152,7 @@ class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
         f = self.fields
         v = np.random.rand(prb.mesh.nF)
 
-        print ('\n Testing eDeriv_m Adjoint')
+        print('\n Testing eDeriv_m Adjoint')
 
         m = np.random.rand(len(self.m))
         e = np.random.randn(prb.mesh.nE)
@@ -161,11 +161,11 @@ class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
         passed = np.abs(V1-V2) < tol
 
-        print ('    ', V1, V2, np.abs(V1-V2), tol, passed)
+        print('    ', V1, V2, np.abs(V1-V2), tol, passed)
         self.assertTrue(passed)
 
     def test_eDeriv_u_adjoint(self):
-        print ('\n Testing eDeriv_u Adjoint')
+        print('\n Testing eDeriv_u Adjoint')
 
         prb = self.prob
         f = self.fields
@@ -177,7 +177,7 @@ class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
         passed = np.abs(V1-V2) < tol
 
-        print ('    ', V1, V2, np.abs(V1-V2), tol, passed)
+        print('    ', V1, V2, np.abs(V1-V2), tol, passed)
         self.assertTrue(passed)
 
 

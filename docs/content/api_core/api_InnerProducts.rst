@@ -297,6 +297,5 @@ and returned.
 The API
 -------
 
-.. autoclass:: discretize.InnerProducts.InnerProducts
-    :members:
-    :undoc-members:
+See the `discretize docs <http://discretize.simpeg.xyz/>`_
+

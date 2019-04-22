@@ -39,7 +39,7 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
 
     def fields(self, m):
         if self.verbose:
-            print (">> Compute DC fields")
+            print(">> Compute DC fields")
 
         if self._f is None:
             self._f = self.fieldsPair(self.mesh, self.survey)

@@ -27,6 +27,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import NearestNDInterpolator
 from SimPEG.Utils import mkvc
+
+# sphinx_gallery_thumbnail_number = 3
+
 ###############################################################################
 # Setup
 # -----
@@ -37,7 +40,7 @@ from SimPEG.Utils import mkvc
 # As a simple case, we pick a vertical inducing field of magnitude 50,000 nT.
 #
 #
-
+sp.random.seed(1)
 # We will assume a vertical inducing field
 H0 = (50000., 90., 0.)
 
@@ -457,7 +460,7 @@ opt = Optimization.ProjectedGNCG(maxIter=20,
                                  )
 opt.approxHinv = None
 
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta*10.)
+invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta)
 
 # Here is where the norms are applied
 IRLS = Directives.Update_IRLS(f_min_change=1e-4, maxIRLSiter=20,

@@ -30,7 +30,7 @@ class BaseDCProblem_2D(BaseEMProblem):
     fix_Jmatrix = False
 
     def fields(self, m):
-        print ("Compute fields")
+        print("Compute fields")
         if m is not None:
             self.model = m
         if self.Ainv[0] is not None:
@@ -561,7 +561,7 @@ class Problem2D_N(BaseDCProblem_2D):
         # This seems not required for 2.5D problem
         # Handling Null space of A
         # A[0, 0] = A[0, 0] + 1.
-        # print (A.shape, 'N')
+        # print(A.shape, 'N')
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
