@@ -84,8 +84,8 @@ class IdentityMap(properties.HasProperties):
                 This can be called by the __mul__ property against a
                 :meth:numpy.ndarray.
 
-            :param numpy.array m: model
-            :rtype: numpy.array
+            :param numpy.ndarray m: model
+            :rtype: numpy.ndarray
             :return: transformed model
 
         """
@@ -99,8 +99,8 @@ class IdentityMap(properties.HasProperties):
 
                 The *transformInverse* may not be easy to create in general.
 
-            :param numpy.array D: physical property
-            :rtype: numpy.array
+            :param numpy.ndarray D: physical property
+            :rtype: numpy.ndarray
             :return: model
 
         """
@@ -110,7 +110,7 @@ class IdentityMap(properties.HasProperties):
         """
             The derivative of the transformation.
 
-            :param numpy.array m: model
+            :param numpy.ndarray m: model
             :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
 
@@ -124,7 +124,7 @@ class IdentityMap(properties.HasProperties):
     def test(self, m=None, num=4, **kwargs):
         """Test the derivative of the mapping.
 
-            :param numpy.array m: model
+            :param numpy.ndarray m: model
             :param kwargs: key word arguments of
                            :meth:`discretize.Tests.checkDerivative`
             :rtype: bool
@@ -148,7 +148,7 @@ class IdentityMap(properties.HasProperties):
     def testVec(self, m=None, **kwargs):
         """Test the derivative of the mapping times a vector.
 
-            :param numpy.array m: model
+            :param numpy.ndarray m: model
             :param kwargs: key word arguments of
                            :meth:`discretize.Tests.checkDerivative`
             :rtype: bool
@@ -315,7 +315,7 @@ class Projection(IdentityMap):
         A map to rearrange / select parameters
 
         :param int nP: number of model parameters
-        :param numpy.array index: indices to select
+        :param numpy.ndarray index: indices to select
     """
 
     def __init__(self, nP, index, **kwargs):
@@ -353,7 +353,7 @@ class Projection(IdentityMap):
 
     def deriv(self, m, v=None):
         """
-            :param numpy.array m: model
+            :param numpy.ndarray m: model
             :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
         """
@@ -508,7 +508,7 @@ class SurjectUnits(IdentityMap):
 
     def deriv(self, m, v=None):
         """
-            :param numpy.array m: model
+            :param numpy.ndarray m: model
             :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
         """
@@ -978,8 +978,8 @@ class ExpMap(IdentityMap):
 
     def inverse(self, D):
         """
-            :param numpy.array D: physical property
-            :rtype: numpy.array
+            :param numpy.ndarray D: physical property
+            :rtype: numpy.ndarray
             :return: model
 
             The *transformInverse* changes the physical property into the
@@ -994,7 +994,7 @@ class ExpMap(IdentityMap):
 
     def deriv(self, m, v=None):
         """
-            :param numpy.array m: model
+            :param numpy.ndarray m: model
             :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
 
@@ -1246,15 +1246,15 @@ class SurjectFull(IdentityMap):
     def _transform(self, m):
         """
             :param m: model (scalar)
-            :rtype: numpy.array
+            :rtype: numpy.ndarray
             :return: transformed model
         """
         return np.ones(self.mesh.nC) * m
 
     def deriv(self, m, v=None):
         """
-            :param numpy.array m: model
-            :rtype: numpy.array
+            :param numpy.ndarray m: model
+            :rtype: numpy.ndarray
             :return: derivative of transformed model
         """
         deriv = sp.csr_matrix(np.ones([self.mesh.nC, 1]))
@@ -1284,8 +1284,8 @@ class SurjectVertical1D(IdentityMap):
 
     def _transform(self, m):
         """
-            :param numpy.array m: model
-            :rtype: numpy.array
+            :param numpy.ndarray m: model
+            :rtype: numpy.ndarray
             :return: transformed model
         """
         repNum = self.mesh.vnC[:self.mesh.dim - 1].prod()
@@ -1293,7 +1293,7 @@ class SurjectVertical1D(IdentityMap):
 
     def deriv(self, m, v=None):
         """
-            :param numpy.array m: model
+            :param numpy.ndarray m: model
             :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
         """
@@ -1339,8 +1339,8 @@ class Surject2Dto3D(IdentityMap):
 
     def _transform(self, m):
         """
-            :param numpy.array m: model
-            :rtype: numpy.array
+            :param numpy.ndarray m: model
+            :rtype: numpy.ndarray
             :return: transformed model
         """
         m = mkvc(m)
@@ -1374,7 +1374,7 @@ class Surject2Dto3D(IdentityMap):
 
     def deriv(self, m, v=None):
         """
-            :param numpy.array m: model
+            :param numpy.ndarray m: model
             :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
         """
@@ -2199,7 +2199,7 @@ class ParametricLayer(BaseParametric):
 
         **Required**
 
-        :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+        :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
         **Optional**
 
@@ -2362,7 +2362,7 @@ class ParametricBlock(BaseParametric):
 
         **Required**
 
-        :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+        :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
         **Optional**
 
@@ -2565,7 +2565,7 @@ class ParametricEllipsoid(ParametricBlock):
 
     #     **Required**
 
-    #     :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+    #     :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
     #     **Optional**
 
@@ -2955,7 +2955,7 @@ class ParametricBlockInLayer(ParametricLayer):
 
         **Required**
 
-        :param discretize.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+        :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
         **Optional**
 

@@ -324,7 +324,7 @@ class Fields3D_e(FieldsFDEM):
     """
     Fields object for Problem3D_e.
 
-    :param discretize.BaseMesh.BaseMesh mesh: mesh
+    :param discretize.base.BaseMesh mesh: mesh
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
@@ -641,7 +641,7 @@ class Fields3D_b(FieldsFDEM):
     """
     Fields object for Problem3D_b.
 
-    :param discretize.BaseMesh.BaseMesh mesh: mesh
+    :param discretize.base.BaseMesh mesh: mesh
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
@@ -965,7 +965,7 @@ class Fields3D_j(FieldsFDEM):
     """
     Fields object for Problem3D_j.
 
-    :param discretize.BaseMesh.BaseMesh mesh: mesh
+    :param discretize.base.BaseMesh mesh: mesh
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
@@ -1312,7 +1312,7 @@ class Fields3D_h(FieldsFDEM):
     """
     Fields object for Problem3D_h.
 
-    :param discretize.BaseMesh.BaseMesh mesh: mesh
+    :param discretize.base.BaseMesh mesh: mesh
     :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 

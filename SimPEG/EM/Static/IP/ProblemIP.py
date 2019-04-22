@@ -41,7 +41,7 @@ class BaseIPProblem(BaseEMProblem):
 
     def fields(self, m):
         if self.verbose is True:
-            print (">> Compute fields")
+            print(">> Compute fields")
 
         if self._f is None:
             self._f = self.fieldsPair(self.mesh, self.survey)

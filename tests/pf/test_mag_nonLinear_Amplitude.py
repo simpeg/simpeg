@@ -297,7 +297,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # The sensitivity weights are update between each iteration.
         update_SensWeight = Directives.UpdateSensitivityWeights()
-        update_Jacobi = Directives.UpdatePreconditioner(threshold=1-3)
+        update_Jacobi = Directives.UpdatePreconditioner()
 
         # Put all together
         self.inv = Inversion.BaseInversion(

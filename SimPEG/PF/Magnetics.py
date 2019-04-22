@@ -316,9 +316,7 @@ class MagneticIntegral(Problem.LinearProblem):
         # Find non-zero cells
         if getattr(self, 'actInd', None) is not None:
             if self.actInd.dtype == 'bool':
-                inds = np.asarray([inds for inds,
-                                  elem in enumerate(self.actInd, 1) if elem],
-                                  dtype=int) - 1
+                inds = np.where(self.actInd)[0]
             else:
                 inds = self.actInd
 
@@ -1073,12 +1071,7 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
 
     # Find non-zero cells
     if actv.dtype == 'bool':
-        inds = np.asarray(
-            [
-                inds for inds, elem in enumerate(actv, 1) if elem
-            ],
-            dtype=int
-        ) - 1
+        inds = np.where(actv)[0]
     else:
         inds = actv
 
