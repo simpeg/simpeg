@@ -53,7 +53,7 @@ m = Utils.mkvc(model2d)
 print(m0[20:41].mean(),m1[20:41].mean())
 clfmapping = Utils.GaussianMixtureWithMapping(
     n_components=3, covariance_type='full', tol=1e-6,
-    reg_covar=4e-4, max_iter=100, n_init=100, init_params='kmeans',
+    reg_covar=1e-3, max_iter=100, n_init=100, init_params='kmeans',
     random_state=None, warm_start=False,
     means_init=np.array([[0,  0],
        [m0[20:41].mean(), m1[20:41].mean()],
@@ -65,7 +65,7 @@ print(clfmapping.covariances_)
 
 clfnomapping = Utils.GaussianMixture(
     n_components=3, covariance_type='full', tol=1e-6,
-    reg_covar=4e-4, max_iter=100, n_init=100, init_params='kmeans',
+    reg_covar=1e-3, max_iter=100, n_init=100, init_params='kmeans',
     random_state=None, warm_start=False,
     #means_init=np.array([[0,  0],
     #   [m0[20:41].mean(), m1[20:41].mean()],
@@ -119,7 +119,7 @@ reg_simple = Regularization.MakeSimplePetroWithMappingRegularization(
 #reg_simple.objfcts[2].cell_weights = wr2[100:200]
 
 opt = Optimization.ProjectedGNCG(
-    maxIter=30, tolX=1e-6, maxIterCG=100, tolCG=1e-4,
+    maxIter=30, tolX=1e-6, maxIterCG=100, tolCG=1e-3,
     lower=-10, upper=10,
 )
 
@@ -128,15 +128,15 @@ invProb = InvProblem.BaseInvProblem(dmis, reg_simple, opt)
 # Directives
 alpha0_ratio = np.r_[np.zeros(len(reg_simple.objfcts[0].objfcts)),
                      10. * np.ones(len(reg_simple.objfcts[1].objfcts)),
-                     1e-1 * np.ones(len(reg_simple.objfcts[2].objfcts))]
+                     .4 * np.ones(len(reg_simple.objfcts[2].objfcts))]
 Alphas = Directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, ninit=10, verbose=True)
 Scales = Directives.ScalingEstimate_ByEig(
     Chi0_ratio=.4, verbose=True, ninit=10)
 beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
 betaIt = Directives.PetroBetaReWeighting(
-    verbose=True, rateCooling=5., rateWarming=1.,
-    tolerance=0.0, UpdateRate=1,
+    verbose=True, rateCooling=2., rateWarming=1.,
+    tolerance=0., UpdateRate=1,
     ratio_in_cooling=False,
     progress=0.2,
     update_prior_confidence=False,
@@ -178,7 +178,7 @@ reg_simple_no_map = Regularization.MakeSimplePetroRegularization(
 # reg_simple.objfcts[2].cell_weights = wr2[100:200]
 
 opt = Optimization.ProjectedGNCG(
-    maxIter=20, tolX=1e-6, maxIterCG=100, tolCG=1e-4,
+    maxIter=20, tolX=1e-6, maxIterCG=100, tolCG=1e-3,
     lower=-10, upper=10,
 )
 
@@ -191,7 +191,7 @@ Scales = Directives.ScalingEstimate_ByEig(
     Chi0_ratio=.4, verbose=True, ninit=100)
 beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
 betaIt = Directives.PetroBetaReWeighting(
-    verbose=True, rateCooling=5., rateWarming=1.,
+    verbose=True, rateCooling=2., rateWarming=1.,
     tolerance=0.0, UpdateRate=1,
     ratio_in_cooling=False,
     progress=0.2,
@@ -228,7 +228,7 @@ reg2.cell_weights = wr2
 reg = reg1 + reg2
 
 opt = Optimization.ProjectedGNCG(
-    maxIter=20, tolX=1e-6, maxIterCG=100, tolCG=1e-4,
+    maxIter=20, tolX=1e-6, maxIterCG=100, tolCG=1e-3,
     lower=-10, upper=10,
 )
 
@@ -401,5 +401,5 @@ axes[11].legend(
 axes[11].set_xlabel('Property 1')
 axes[11].set_ylabel('Property 2')
 plt.subplots_adjust(wspace=0.3, hspace=0.3, top=0.85)
-fig.savefig("LinearWithMapping.png", dpi=300, bbox_inches='tight')
+#fig.savefig("LinearWithMapping.png", dpi=300, bbox_inches='tight')
 plt.show()
