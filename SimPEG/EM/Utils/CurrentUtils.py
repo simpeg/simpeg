@@ -115,7 +115,7 @@ def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
 
         if (ix < 0) or (iy < 0) or (iz < 0):
             msg = "Polygon vertex (%.1f, %.1f, %.1f) is outside the mesh"
-            print ((msg) % (ax, ay, az))
+            print((msg) % (ax, ay, az))
 
     # integrate each line segment
     for ip in range(nP):

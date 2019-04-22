@@ -35,9 +35,9 @@ exactly what we think about as our model, \\\(m\\\). In code, this looks like
     m = np.zeros(M.nC)         # Create a model vector
     m[M.vectorCCx>0.5] = 1.0   # Set half of it to 1.0
     sig = expMap * m           # Apply the mapping using *
-    print m
+    print(m)
     # [ 0.    0.    0.    1.     1.     1. ]
-    print sig
+    print(sig)
     # [ 1.    1.    1.  2.718  2.718  2.718]
 
 Combining Maps

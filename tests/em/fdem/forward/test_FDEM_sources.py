@@ -59,7 +59,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             elif orient.upper() == 'Z':
                 orient_vec = np.r_[0., 0., 1.]
 
-            print (
+            print(
                 ' {0} component. src: {1}, expected: {2}'.format(
                     orient, src.orientation, orient_vec
                 )
