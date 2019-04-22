@@ -134,12 +134,16 @@ def surface2ind_topo(mesh, topo, gridLoc='N', method='linear',
     return mkvc(actind)
 
 
-def tileSurveyPoints(locs, nRefine, method='cluster'):
+def tileSurveyPoints(locs, nRefine, minimize=True, method='cluster'):
     """
         Function to tile an survey points into smaller square subsets of points
 
         :param numpy.ndarray locs: n x 2 array of locations [x,y]
-        :param integer nTargetTiles: number of tiles
+        :param integer nRefine: number of tiles (for 'cluster'), or number of
+            refinement steps ('other')
+        :param Bool minimize: shrink tile sizes to minimum
+        :param string method: set to 'cluster' to use better quality clustering, or anything
+            else to use more memory efficient method for large problems
 
         RETURNS:
         :param numpy.ndarray: Return a list of arrays with the for the SW and NE
@@ -155,6 +159,7 @@ def tileSurveyPoints(locs, nRefine, method='cluster'):
     """
 
     if method is 'cluster':
+        # Best for smaller problems
         from sklearn.cluster import AgglomerativeClustering
 
         # Cluster
@@ -181,10 +186,10 @@ def tileSurveyPoints(locs, nRefine, method='cluster'):
 
         xy1 = np.c_[X1[binCount > 0], Y1[binCount > 0]]
         xy2 = np.c_[X2[binCount > 0], Y2[binCount > 0]]
-
         return [xy1, xy2], binCount, cluster.labels_
 
     else:
+        # Works on larger problems
         # Initialize variables
         # Test each refinement level for maximum space coverage
         nTx = 1
@@ -218,8 +223,7 @@ def tileSurveyPoints(locs, nRefine, method='cluster'):
         # Plot data and tiles
         X1, Y1, X2, Y2 = mkvc(X1), mkvc(Y1), mkvc(X2), mkvc(Y2)
         binCount = np.zeros_like(X1)
-        cluster.labels_ = np.zeros_like(locs[:, 0])
-        tile = []
+        cluster_labels = np.zeros_like(locs[:, 0])
         for ii in range(X1.shape[0]):
 
             mask = (
@@ -235,13 +239,13 @@ def tileSurveyPoints(locs, nRefine, method='cluster'):
                     X1[ii], X2[ii] = locs[:, 0][mask].min(), locs[:, 0][mask].max()
                     Y1[ii], Y2[ii] = locs[:, 1][mask].min(), locs[:, 1][mask].max()
 
-            cluster.labels_[mask] = ii
+            cluster_labels[mask] = ii
             binCount[ii] = mask.sum()
 
         xy1 = np.c_[X1[binCount > 0], Y1[binCount > 0]]
         xy2 = np.c_[X2[binCount > 0], Y2[binCount > 0]]
 
-    return [xy1, xy2], binCount, cluster.labels_
+    return [xy1, xy2], binCount, cluster_labels
 
 
 def meshBuilder(xyz, h, padDist, meshGlobal=None,
