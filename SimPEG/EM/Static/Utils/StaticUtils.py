@@ -1466,7 +1466,7 @@ def getSrc_locs(survey):
         :rtype: SimPEG.EM.Static.DC.SurveyDC.Survey
 
         Output:
-        :return numpy.array srcMat: Array containing the locations of sources
+        :return numpy.ndarray srcMat: Array containing the locations of sources
 
     """
 

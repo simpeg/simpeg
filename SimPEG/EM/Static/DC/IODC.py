@@ -650,7 +650,7 @@ class IO(properties.HasProperties):
                 val = self.voltages_ip.copy()[inds] * 1e3
             label = "Secondary voltage. (mV)"
         else:
-            print (data_type)
+            print(data_type)
             raise NotImplementedError()
         if scale == "log":
             fmt = "10$^{%.1f}$"

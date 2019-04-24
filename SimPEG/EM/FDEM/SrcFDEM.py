@@ -132,7 +132,7 @@ class RawVec_e(BaseFDEMSrc):
 
     :param list rxList: receiver list
     :param float freq: frequency
-    :param numpy.array s_e: electric source term
+    :param numpy.ndarray s_e: electric source term
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
 
@@ -161,7 +161,7 @@ class RawVec_m(BaseFDEMSrc):
 
     :param float freq: frequency
     :param rxList: receiver list
-    :param numpy.array s_m: magnetic source term
+    :param numpy.ndarray s_m: magnetic source term
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
 
@@ -189,8 +189,8 @@ class RawVec(BaseFDEMSrc):
 
     :param rxList: receiver list
     :param float freq: frequency
-    :param numpy.array s_m: magnetic source term
-    :param numpy.array s_e: electric source term
+    :param numpy.ndarray s_m: magnetic source term
+    :param numpy.ndarray s_e: electric source term
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
     def __init__(self, rxList, freq, s_m, s_e, **kwargs):

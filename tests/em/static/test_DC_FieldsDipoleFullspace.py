@@ -112,14 +112,14 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         )
         if errE < tolerance and errJ < tolerance:
             print('\n')
-            print ('E field error =', errE)
-            print ('J field error =', errJ)
+            print('E field error =', errE)
+            print('J field error =', errJ)
             passed = True
             print(">> DC analytic test for Problem3D_CC_Dirichlet passed")
         else:
             print('\n')
-            print ('E field error =', errE)
-            print ('J field error =', errJ)
+            print('E field error =', errE)
+            print('J field error =', errJ)
             passed = False
             print(">> DC analytic test for Problem3D_CC_Dirchlet failed")
         self.assertTrue(passed)
@@ -144,14 +144,14 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         )
         if errE < tolerance and errJ < tolerance:
             print('\n')
-            print ('E field error =', errE)
-            print ('J field error =', errJ)
+            print('E field error =', errE)
+            print('J field error =', errJ)
             passed = True
             print(">> DC analytic test for Problem3D_CC_Mixed passed")
         else:
             print('\n')
-            print ('E field error =', errE)
-            print ('J field error =', errJ)
+            print('E field error =', errE)
+            print('J field error =', errJ)
             passed = False
             print(">> DC analytic test for Problem3D_CC_Mixed failed")
         self.assertTrue(passed)
@@ -176,14 +176,14 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         )
         if errE < tolerance and errJ < tolerance:
             print('\n')
-            print ('E field error =', errE)
-            print ('J field error =', errJ)
+            print('E field error =', errE)
+            print('J field error =', errJ)
             passed = True
             print(">> DC analytic test for Problem3D_CC_Neumann passed")
         else:
             print('\n')
-            print ('E field error =', errE)
-            print ('J field error =', errJ)
+            print('E field error =', errE)
+            print('J field error =', errJ)
             passed = False
             print(">> DC analytic test for Problem3D_CC_Neumann failed")
         self.assertTrue(passed)
@@ -287,14 +287,14 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
         )
         if errE < tolerance and errJ < tolerance:
             print('\n')
-            print ('E field error =', errE)
-            print ('J field error =', errJ)
+            print('E field error =', errE)
+            print('J field error =', errJ)
             passed = True
             print(">> DC analytic test for Problem3D_N passed")
         else:
             print('\n')
-            print ('E field error =', errE)
-            print ('J field error =', errJ)
+            print('E field error =', errE)
+            print('J field error =', errJ)
             passed = False
             print(">> DC analytic test for Problem3D_N failed")
         self.assertTrue(passed)

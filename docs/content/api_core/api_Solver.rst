@@ -16,7 +16,7 @@ The interface is as follows::
     A # Where A is a sparse matrix (or linear operator)
     Ainv = Solver(A, **solverOpts) # Create a solver object with key word arguments
     x = Ainv * b # Where b is a numpy array of shape (n,) or (n,*)
-    Ainv.clean() # This cleans the memory footprint (if any)
+    Ainv.clean() # This cleans the memory footprint(if any)
 
 .. note::
 

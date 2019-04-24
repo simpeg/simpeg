@@ -64,8 +64,8 @@ class BaseFDEMProblem(BaseEMProblem):
         """
         Solve the forward problem for the fields.
 
-        :param numpy.array m: inversion model (nP,)
-        :rtype: numpy.array
+        :param numpy.ndarray m: inversion model (nP,)
+        :rtype: numpy.ndarray
         :return f: forward solution
         """
 
@@ -88,11 +88,11 @@ class BaseFDEMProblem(BaseEMProblem):
         """
         Sensitivity times a vector.
 
-        :param numpy.array m: inversion model (nP,)
-        :param numpy.array v: vector which we take sensitivity product with
+        :param numpy.ndarray m: inversion model (nP,)
+        :param numpy.ndarray v: vector which we take sensitivity product with
             (nP,)
         :param SimPEG.EM.FDEM.FieldsFDEM.FieldsFDEM u: fields object
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: Jv (ndata,)
         """
 
@@ -126,10 +126,10 @@ class BaseFDEMProblem(BaseEMProblem):
         """
         Sensitivity transpose times a vector
 
-        :param numpy.array m: inversion model (nP,)
-        :param numpy.array v: vector which we take adjoint product with (nP,)
+        :param numpy.ndarray m: inversion model (nP,)
+        :param numpy.ndarray v: vector which we take adjoint product with (nP,)
         :param SimPEG.EM.FDEM.FieldsFDEM.FieldsFDEM u: fields object
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: Jv (ndata,)
         """
 

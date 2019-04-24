@@ -2,6 +2,11 @@ import subprocess
 import unittest
 import os
 
+import subprocess
+import unittest
+import os
+
+
 class Doc_Test(unittest.TestCase):
 
     @property
@@ -25,6 +30,7 @@ class Doc_Test(unittest.TestCase):
         print(response.returncode)
         self.assertTrue(response.returncode == 0)
         os.chdir(wd)
+
 
 if __name__ == '__main__':
     unittest.main()

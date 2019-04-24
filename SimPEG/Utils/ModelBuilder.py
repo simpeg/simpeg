@@ -16,13 +16,13 @@ def addBlock(gridCC, modelCC, p0, p1, blockProp):
     """
         Add a block to an exsisting cell centered model, modelCC
 
-        :param numpy.array gridCC: mesh.gridCC is the cell centered grid
-        :param numpy.array modelCC: cell centered model
-        :param numpy.array p0: bottom, southwest corner of block
-        :param numpy.array p1: top, northeast corner of block
+        :param numpy.ndarray gridCC: mesh.gridCC is the cell centered grid
+        :param numpy.ndarray modelCC: cell centered model
+        :param numpy.ndarray p0: bottom, southwest corner of block
+        :param numpy.ndarray p1: top, northeast corner of block
         :blockProp float blockProp: property to assign to the model
 
-        :return numpy.array, modelBlock: model with block
+        :return numpy.ndarray, modelBlock: model with block
     """
     ind = getIndicesBlock(p0, p1, gridCC)
     modelBlock = modelCC.copy()
@@ -234,10 +234,10 @@ def layeredModel(ccMesh, layerTops, layerValues):
     """
         Define a layered model from layerTops (z-positive up)
 
-        :param numpy.array ccMesh: cell-centered mesh
-        :param numpy.array layerTops: z-locations of the tops of each layer
-        :param numpy.array layerValue: values of the property to assign for each layer (starting at the top)
-        :rtype: numpy.array
+        :param numpy.ndarray ccMesh: cell-centered mesh
+        :param numpy.ndarray layerTops: z-locations of the tops of each layer
+        :param numpy.ndarray layerValue: values of the property to assign for each layer (starting at the top)
+        :rtype: numpy.ndarray
         :return: M, layered model on the mesh
     """
 
@@ -355,7 +355,7 @@ def PolygonInd(mesh, pts):
             plt.show()
 
 
-    """    
+    """
     if mesh.dim == 1:
         assert "Only works for a mesh greater than 1-dimension"
     elif mesh.dim == 2:
