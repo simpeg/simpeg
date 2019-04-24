@@ -1,4 +1,5 @@
 from __future__ import print_function
+from discretize.base import BaseMesh
 from . import Utils
 from . import Survey
 from . import Models
@@ -47,7 +48,7 @@ class BaseProblem(Props.HasModel):
             )
 
         super(BaseProblem, self).__init__(**kwargs)
-        assert isinstance(mesh, Mesh.BaseMesh), (
+        assert isinstance(mesh, BaseMesh), (
             "mesh must be a discretize object."
         )
         self.mesh = mesh
