@@ -483,7 +483,6 @@ class Forward(object):
 
             if self.parallelized == "dask":
 
-                print("Dask chunk set: ", dask.config.get('array.chunk-size'))
                 row = dask.delayed(self.calcTrow, pure=True)
 
                 makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
@@ -497,8 +496,9 @@ class Forward(object):
                 stack = stack.rechunk('auto')
                 print('DASK: ')
                 print('Tile size (nD, nC): ', stack.shape)
-                print('Chunk sizes (nD, nC): ', stack.chunks)
+#                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
                 print('Number of chunks: ', len(stack.chunks[0]), ' x ', len(stack.chunks[1]), ' = ', len(stack.chunks[0]) * len(stack.chunks[1]))
+                print("Target chunk size: ", dask.config.get('array.chunk-size'))
                 print('Max chunk size (GB): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9)
                 print('Max RAM (GB x CPU): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu)
                 print('Tile size (GB): ', stack.shape[0] * stack.shape[1] * 8*1e-9)
@@ -506,7 +506,7 @@ class Forward(object):
                 if self.forwardOnly:
 
                     with ProgressBar():
-                        print("Calculating predicted: ")
+                        print("Forward calculation: ")
                         pred = da.dot(stack, self.model).compute()
                     
                     return pred
