@@ -25,7 +25,7 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.n
     Returns
     -------
 
-    :param numpy.array actind: index vector for the active cells on the mesh
+    :param numpy.ndarray actind: index vector for the active cells on the mesh
                                below the topography
     """
     if mesh._meshType == "TENSOR":

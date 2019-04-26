@@ -27,6 +27,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import NearestNDInterpolator
 from SimPEG.Utils import mkvc
+
+# sphinx_gallery_thumbnail_number = 3
+
 ###############################################################################
 # Setup
 # -----

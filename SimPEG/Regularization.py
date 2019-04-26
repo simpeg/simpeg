@@ -32,8 +32,8 @@ class RegularizationMesh(Props.BaseSimPEG):
     are not necessarily true differential operators, but are constructed from
     a SimPEG Mesh.
 
-    :param BaseMesh mesh: problem mesh
-    :param numpy.array indActive: bool array, size nC, that is True where we have active cells. Used to reduce the operators so we regularize only on active cells
+    :param discretize.base.BaseMesh mesh: problem mesh
+    :param numpy.ndarray indActive: bool array, size nC, that is True where we have active cells. Used to reduce the operators so we regularize only on active cells
 
     """
 
@@ -60,7 +60,7 @@ class RegularizationMesh(Props.BaseSimPEG):
         """
         reduced volume vector
 
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: reduced cell volume
         """
         if getattr(self, '_vol', None) is None:
@@ -521,7 +521,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
     methods :meth:`__call__`, :meth:`deriv` and :meth:`deriv2` can be
     over-written
 
-    :param BaseMesh mesh: SimPEG mesh
+    :param discretize.base.BaseMesh mesh: SimPEG mesh
 
     """
 
@@ -659,8 +659,8 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         """
         Second derivative
 
-        :param numpy.array m: geophysical model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: geophysical model
+        :param numpy.ndarray v: vector to multiply
         :rtype: scipy.sparse.csr_matrix
         :return: WtW, or if v is supplied WtW*v (numpy.ndarray)
 
@@ -896,7 +896,7 @@ class SimpleSmall(BaseRegularization):
 
     **Optional Inputs**
 
-    :param BaseMesh mesh: SimPEG mesh
+    :param discretize.base.BaseMesh mesh: SimPEG mesh
     :param int nP: number of parameters
     :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
     :param numpy.ndarray mref: reference model
@@ -934,7 +934,7 @@ class SimpleSmoothDeriv(BaseRegularization):
 
     **Optional Inputs**
 
-    :param BaseMesh mesh: SimPEG mesh
+    :param discretize.base.BaseMesh mesh: SimPEG mesh
     :param int nP: number of parameters
     :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
     :param numpy.ndarray mref: reference model
@@ -1020,7 +1020,7 @@ class Simple(BaseComboRegularization):
 
     **Required Inputs**
 
-    :param BaseMesh mesh: a SimPEG mesh
+    :param discretize.base.BaseMesh mesh: a SimPEG mesh
 
     **Optional Inputs**
 
@@ -1101,7 +1101,7 @@ class Small(BaseRegularization):
 
     **Optional Inputs**
 
-    :param BaseMesh mesh: SimPEG mesh
+    :param discretize.base.BaseMesh mesh: SimPEG mesh
     :param int nP: number of parameters
     :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
     :param numpy.ndarray mref: reference model
@@ -1135,7 +1135,7 @@ class SmoothDeriv(BaseRegularization):
 
     **Optional Inputs**
 
-    :param BaseMesh mesh: SimPEG mesh
+    :param discretize.base.BaseMesh mesh: SimPEG mesh
     :param int nP: number of parameters
     :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
     :param numpy.ndarray mref: reference model
@@ -1211,7 +1211,7 @@ class SmoothDeriv2(BaseRegularization):
 
     **Optional Inputs**
 
-    :param BaseMesh mesh: SimPEG mesh
+    :param discretize.base.BaseMesh mesh: SimPEG mesh
     :param int nP: number of parameters
     :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
     :param numpy.ndarray mref: reference model
@@ -1292,7 +1292,7 @@ class Tikhonov(BaseComboRegularization):
     Note if the key word argument `mrefInSmooth` is False, then mref is not
     included in the smoothness contribution.
 
-    :param BaseMesh mesh: SimPEG mesh
+    :param discretize.base.BaseMesh mesh: SimPEG mesh
     :param IdentityMap mapping: regularization mapping, takes the model from model space to the thing you want to regularize
     :param numpy.ndarray indActive: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
     :param bool mrefInSmooth: (default = False) put mref in the smoothness component?

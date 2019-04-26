@@ -89,7 +89,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         """
 
         if self.verbose:
-            print (">> Compute Sensitivity matrix")
+            print(">> Compute Sensitivity matrix")
 
         if self._Jmatrix is not None:
             return self._Jmatrix
@@ -398,8 +398,8 @@ class Problem2D_CC(BaseSIPProblem_2D, BaseProblem2D_CC):
     def __init__(self, mesh, **kwargs):
         BaseSIPProblem_2D.__init__(self, mesh, **kwargs)
         if self.actinds is None:
-            print ("You did not put Active indices")
-            print ("So, set actMap = IdentityMap(mesh)")
+            print("You did not put Active indices")
+            print("So, set actMap = IdentityMap(mesh)")
             self.actinds = np.ones(mesh.nC, dtype=bool)
 
         self.actMap = Maps.InjectActiveCells(mesh, self.actinds, 0.)
@@ -419,8 +419,8 @@ class Problem2D_N(BaseSIPProblem_2D, BaseProblem2D_N):
         BaseSIPProblem_2D.__init__(self, mesh, **kwargs)
         # self.setBC()
         if self.actinds is None:
-            print ("You did not put Active indices")
-            print ("So, set actMap = IdentityMap(mesh)")
+            print("You did not put Active indices")
+            print("So, set actMap = IdentityMap(mesh)")
             self.actinds = np.ones(mesh.nC, dtype=bool)
 
         self.actMap = Maps.InjectActiveCells(mesh, self.actinds, 0.)
