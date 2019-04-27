@@ -5,10 +5,10 @@ import scipy.sparse as sp
 import warnings
 import properties
 
-from .Maps import IdentityMap
+from .maps import IdentityMap
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .Props import Array, BaseSimPEG, Float
-from .Utils import (
+from .utils import (
     coterminal, setKwargs, speye, sdiag, mkvc, timeIt, Identity, Zero
 )
 

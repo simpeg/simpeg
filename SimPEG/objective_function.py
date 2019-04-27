@@ -10,9 +10,9 @@ import warnings
 
 from discretize.Tests import checkDerivative
 
-from .Maps import IdentityMap
+from .maps import IdentityMap
 from .Props import BaseSimPEG
-from .Utils import setKwargs, timeIt, Zero, Identity
+from .utils import setKwargs, timeIt, Zero, Identity
 
 __all__ = [
     'BaseObjectiveFunction', 'ComboObjectiveFunction', 'L2ObjectiveFunction'

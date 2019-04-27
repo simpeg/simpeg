@@ -5,7 +5,7 @@ import scipy.sparse as sp
 import uuid
 import properties
 
-from . import Utils
+from .utils import mkvc, Counter
 from . import Props
 
 
@@ -15,7 +15,7 @@ class RxLocationArray(properties.Array):
 
     def validate(self, instance, value):
         if len(value.shape) == 1:
-            value = Utils.mkvc(value, 2).T
+            value = mkvc(value, 2).T
         return super(RxLocationArray, self).validate(instance, value)
 
 
@@ -269,7 +269,7 @@ class BaseSurvey(properties.HasProperties):
 
     counter = properties.Instance(
         "A SimPEG counter object",
-        Utils.Counter
+        Counter
     )
 
     srcList = properties.List(

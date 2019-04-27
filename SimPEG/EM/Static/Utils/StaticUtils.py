@@ -5,8 +5,9 @@ from __future__ import unicode_literals
 
 import numpy as np
 from numpy import matlib
+import discretize
 
-from SimPEG import Utils, Mesh
+from SimPEG import Utils
 from SimPEG.EM.Static import DC
 from SimPEG.Utils import asArray_N_x_Dim, uniqueRows
 
@@ -1490,7 +1491,7 @@ def gettopoCC(mesh, actind, option="top"):
 
         if mesh.dim == 3:
 
-            mesh2D = Mesh.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
+            mesh2D = discretize.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
             zc = mesh.gridCC[:, 2]
             ACTIND = actind.reshape(
                 (mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]),
@@ -1514,7 +1515,7 @@ def gettopoCC(mesh, actind, option="top"):
 
         elif mesh.dim == 2:
 
-            mesh1D = Mesh.TensorMesh([mesh.hx], [mesh.x0[0]])
+            mesh1D = discretize.TensorMesh([mesh.hx], [mesh.x0[0]])
             yc = mesh.gridCC[:, 1]
             ACTIND = actind.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
             YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
@@ -1589,7 +1590,7 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
 
 def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
     if mesh.dim == 3:
-        mesh2D = Mesh.TensorMesh(
+        mesh2D = discretize.TensorMesh(
             [mesh.hx, mesh.hy], x0=[mesh.x0[0], mesh.x0[1]]
             )
         out = Utils.ModelBuilder.randomModel(
@@ -1598,7 +1599,7 @@ def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
             )
         return out, mesh2D
     elif mesh.dim == 2:
-        mesh1D = Mesh.TensorMesh([mesh.hx], x0=[mesh.x0[0]])
+        mesh1D = discretize.TensorMesh([mesh.hx], x0=[mesh.x0[0]])
         out = Utils.ModelBuilder.randomModel(
             mesh.vnC[:1], bounds=[zmin, zmax], its=its,
             seed=seed, anisotropy=anisotropy

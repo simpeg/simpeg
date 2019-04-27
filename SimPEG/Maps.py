@@ -19,7 +19,7 @@ from scipy.spatial import cKDTree
 import properties
 from discretize.Tests import checkDerivative
 
-from .Utils import (
+from .utils import (
     setKwargs, mkvc, rotationMatrixFromNormals, Zero, Identity, sdiag
 )
 

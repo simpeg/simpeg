@@ -4,10 +4,11 @@ import unittest
 
 import numpy as np
 import scipy.sparse as sp
+import discretize
 
-from SimPEG import Mesh, Maps, Utils
-from SimPEG import data_misfit
-from SimPEG.EM.Static import DC
+from SimPEG import maps, utils
+from SimPEG import data_misfit, simulation
+# from SimPEG.EM.Static import DC
 
 np.random.seed(17)
 
@@ -15,29 +16,30 @@ np.random.seed(17)
 class DataMisfitTest(unittest.TestCase):
 
     def setUp(self):
-        mesh = Mesh.TensorMesh([30, 30], x0=[-0.5, -1.])
+        mesh = discretize.TensorMesh([30])
         sigma = np.ones(mesh.nC)
         model = np.log(sigma)
 
-        prob = DC.Problem3D_CC(mesh, rhoMap=Maps.ExpMap(mesh))
+        # prob = DC.Problem3D_CC(mesh, rhoMap=Maps.ExpMap(mesh))
+        sim = simulation.ExponentialSinusoidSimulation(mesh=mesh, model_map=maps.ExpMap(mesh))
 
-        rx = DC.Rx.Pole(
-            Utils.ndgrid([mesh.vectorCCx, np.r_[mesh.vectorCCy.max()]])
-        )
-        src = DC.Src.Dipole(
-            [rx], np.r_[-0.25, mesh.vectorCCy.max()],
-            np.r_[0.25, mesh.vectorCCy.max()]
-        )
-        survey = DC.Survey([src])
+        # rx = DC.Rx.Pole(
+        #     utils.ndgrid([mesh.vectorCCx, np.r_[mesh.vectorCCy.max()]])
+        # )
+        # src = DC.Src.Dipole(
+        #     [rx], np.r_[-0.25, mesh.vectorCCy.max()],
+        #     np.r_[0.25, mesh.vectorCCy.max()]
+        # )
+        # survey = DC.Survey([src])
 
-        prob.pair(survey)
+        # prob.pair(survey)
 
         self.std = 0.01
-        survey.std = self.std
-        dobs = survey.makeSyntheticData(model)
+        sim.survey.std = self.std
+        dobs = sim.makeSyntheticData(model)
         self.eps = 1e-8 * np.min(np.abs(dobs))
-        survey.eps = self.eps
-        dmis = data_misfit.L2DataMisfit(survey)
+        sim.survey.eps = self.eps
+        dmis = data_misfit.L2DataMisfit(simulation=sim)
 
         self.model = model
         self.mesh = mesh
@@ -51,7 +53,7 @@ class DataMisfitTest(unittest.TestCase):
             print(self.dmis.Wd)
 
         with self.assertRaises(Exception):
-            self.dmis.Wd = Utils.Identity()
+            self.dmis.Wd = utils.Identity()
 
     def test_DataMisfit_nP(self):
         self.assertTrue(self.dmis.nP == self.mesh.nC)

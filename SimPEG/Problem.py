@@ -3,11 +3,11 @@ from __future__ import print_function
 from discretize.base import BaseMesh
 from discretize import TensorMesh
 
-from . import Utils
+from . import utils as Utils
 from . import OldSurvey as Survey
 from . import Models
 import numpy as np
-from . import Maps
+from . import maps as Maps
 from .Fields import Fields, TimeFields
 from . import Props
 import properties

@@ -1,10 +1,10 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
-import discretize as Mesh
+# import discretize as Mesh
 from discretize import Tests
 
-from . import Maps
+# from . import Maps
 from . import Models
 # from . import Problem
 # from . import Survey
@@ -18,15 +18,16 @@ from . import Tests
 
 from . import data
 from . import data_misfit
+from . import maps
 from . import regularization
 from . import survey
 from . import simulation
 
 
-from . import Utils
-from .Utils import mkvc
-from .Utils import versions
-from .Utils.SolverUtils import (
+from . import utils
+from .utils import mkvc
+from .utils import versions
+from .utils.SolverUtils import (
     _checkAccuracy, SolverWrapD, SolverWrapI,
     Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
 )

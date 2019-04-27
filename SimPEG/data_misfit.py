@@ -1,7 +1,7 @@
 import numpy as np
 import properties
 
-from . import Utils
+from .utils import Counter, sdiag, timeIt
 from .data import Data
 from .simulation import BaseSimulation
 from .objective_function import L2ObjectiveFunction
@@ -34,7 +34,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     counter = properties.Instance(
         "Set this to a SimPEG.Utils.Counter() if you want to count things",
-        Utils.Counter
+        Counter
     )
 
     _has_fields = properties.Bool(
@@ -42,7 +42,9 @@ class BaseDataMisfit(L2ObjectiveFunction):
         default=True
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, simulation=None, **kwargs):
+        if simulation is not None:
+            kwargs['simulation'] = simulation
         super(BaseDataMisfit, self).__init__(**kwargs)
 
     @property
@@ -94,13 +96,13 @@ class BaseDataMisfit(L2ObjectiveFunction):
                     "data.noise_floor = 1e-5), alternatively, the W matrix "
                     "can be set directly (dmisfit.W = 1./uncertainty)"
                 )
-            self._W = Utils.sdiag(1/(uncertainty))
+            self._W = sdiag(1/(uncertainty))
         return self._W
 
     @W.setter
     def W(self, value):
         if len(value.shape) < 2:
-            value = Utils.sdiag(value)
+            value = sdiag(value)
         assert value.shape == (self.data.nD, self.data.nD), (
             'W must have shape ({nD},{nD}), not ({val0}, val{1})'.format(
                 nD=self.data.nD, val0=value.shape[0], val1=value.shape[1]
@@ -128,13 +130,13 @@ class L2DataMisfit(BaseDataMisfit):
     def __init__(self, **kwargs):
         BaseDataMisfit.__init__(self, **kwargs)
 
-    @Utils.timeIt
+    @timeIt
     def __call__(self, m, f=None):
         "__call__(m, f=None)"
         R = self.W * self.residual(m, f=f)
         return 0.5*np.vdot(R, R)
 
-    @Utils.timeIt
+    @timeIt
     def deriv(self, m, f=None):
         """
         deriv(m, f=None)
@@ -151,7 +153,7 @@ class L2DataMisfit(BaseDataMisfit):
             m, self.W.T * (self.W * self.residual(m, f=f)), f=f
         )
 
-    @Utils.timeIt
+    @timeIt
     def deriv2(self, m, v, f=None):
         """
         deriv2(m, v, f=None)

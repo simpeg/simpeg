@@ -4,8 +4,8 @@ import numpy as np
 import scipy.sparse as sp
 from six import string_types
 
-from .Utils.SolverUtils import SolverWrapI, Solver
-from .Utils import (
+from .utils.SolverUtils import SolverWrapI, Solver
+from .utils import (
     callHooks, checkStoppers, count, setKwargs, timeIt, printTitles, printLine,
     printStoppers
 )

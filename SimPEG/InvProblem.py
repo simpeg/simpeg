@@ -6,11 +6,10 @@ import scipy.sparse as sp
 import gc
 
 from .data_misfit import BaseDataMisfit
-from .Utils import callHooks, timeIt
 from .Props import BaseSimPEG, Model
 from .regularization import BaseRegularization
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
-
+from .utils import callHooks, timeIt
 
 class BaseInvProblem(BaseSimPEG):
     """BaseInvProblem(dmisfit, reg, opt)"""

@@ -7,8 +7,8 @@ import properties
 import numpy as np
 import warnings
 
-from .Maps import IdentityMap, ReciprocalMap
-from .Utils import Zero, Identity
+from .maps import IdentityMap, ReciprocalMap
+from .utils import Zero, Identity
 
 class SphinxProp(object):
     """

@@ -2,7 +2,7 @@ import properties
 import numpy as np
 
 from .survey import BaseSurvey
-from .Utils import mkvc
+from .utils import mkvc
 
 __all__ = ['Data', 'SyntheticData']
 

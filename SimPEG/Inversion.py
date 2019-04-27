@@ -1,10 +1,10 @@
 from __future__ import print_function
 import scipy.sparse as sp
 import numpy as np
-from . import Utils
+
 from .Optimization import Remember, IterationPrinters, StoppingCriteria
 from .Directives import DirectiveList
-
+from .utils import setKwargs, timeIt
 
 class BaseInversion(object):
     """Inversion Class"""
@@ -14,7 +14,7 @@ class BaseInversion(object):
     #: Print debugging information
     debug = False
 
-    #: Set this to a SimPEG.Utils.Counter() if you want to count things
+    #: Set this to a SimPEG.utils.Counter() if you want to count things
     counter = None
 
     @property
@@ -39,7 +39,7 @@ class BaseInversion(object):
         if directiveList is None:
             directiveList = []
         self.directiveList = directiveList
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
         self.invProb = invProb
 
@@ -54,7 +54,7 @@ class BaseInversion(object):
             self.opt.printers.insert(2, IterationPrinters.phi_d)
             self.opt.printers.insert(3, IterationPrinters.phi_m)
 
-    @Utils.timeIt
+    @timeIt
     def run(self, m0):
         """run(m0)
 

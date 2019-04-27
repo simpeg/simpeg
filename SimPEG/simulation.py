@@ -9,13 +9,12 @@ from discretize.base import BaseMesh
 from discretize import TensorMesh
 from discretize.utils import meshTensor
 
-from .Utils import Counter, timeIt, count, mkvc
 from . import Models
-from . import Maps
 from . import Props
 # from . import Source
 from .data import SyntheticData
 from .survey import BaseSurvey
+from .utils import Counter, timeIt, count, mkvc
 
 __all__ = ['LinearSimulation', 'ExponentialSinusoidSimulation']
 
