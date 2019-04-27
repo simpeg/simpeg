@@ -7,7 +7,7 @@ import properties
 
 from .maps import IdentityMap
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
-from .Props import Array, BaseSimPEG, Float
+from .props import Array, BaseSimPEG, Float
 from .utils import (
     coterminal, setKwargs, speye, sdiag, mkvc, timeIt, Identity, Zero
 )

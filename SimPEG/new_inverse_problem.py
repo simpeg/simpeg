@@ -6,7 +6,7 @@ import scipy.sparse as sp
 import gc
 
 from .data_misfit import BaseDataMisfit
-from .Props import BaseSimPEG, Model
+from .props import BaseSimPEG, Model
 from .regularization import BaseRegularization
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .utils import callHooks, timeIt

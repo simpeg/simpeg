@@ -11,7 +11,7 @@ import warnings
 from discretize.Tests import checkDerivative
 
 from .maps import IdentityMap
-from .Props import BaseSimPEG
+from .props import BaseSimPEG
 from .utils import setKwargs, timeIt, Zero, Identity
 
 __all__ = [

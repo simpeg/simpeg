@@ -36,15 +36,16 @@ class DataMisfitTest(unittest.TestCase):
 
         self.std = 0.01
         sim.survey.std = self.std
-        dobs = sim.makeSyntheticData(model)
+        synthetic_data = sim.makeSyntheticData(model)
+        dobs = synthetic_data.dobs
         self.eps = 1e-8 * np.min(np.abs(dobs))
         sim.survey.eps = self.eps
         dmis = data_misfit.L2DataMisfit(simulation=sim)
 
         self.model = model
         self.mesh = mesh
-        self.survey = survey
-        self.prob = prob
+        # self.survey = survey
+        # self.prob = prob
         self.dobs = dobs
         self.dmis = dmis
 

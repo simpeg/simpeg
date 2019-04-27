@@ -2,7 +2,7 @@ from __future__ import print_function
 import unittest
 from SimPEG import Solver
 from discretize import TensorMesh
-from SimPEG.Utils import sdiag
+from SimPEG.utils import sdiag
 import numpy as np
 import scipy.sparse as sp
 from SimPEG import Optimization

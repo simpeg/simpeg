@@ -9,8 +9,8 @@ from discretize.base import BaseMesh
 from discretize import TensorMesh
 from discretize.utils import meshTensor
 
-from . import Models
-from . import Props
+# from . import Models
+from . import props
 # from . import Source
 from .data import SyntheticData
 from .survey import BaseSurvey
@@ -41,7 +41,7 @@ class TimeStepArray(properties.Array):
 #                                                                            #
 ##############################################################################
 
-class BaseSimulation(Props.HasModel):
+class BaseSimulation(props.HasModel):
     """
     BaseSimulation is the base class for all geophysical forward simulations in
     SimPEG.
@@ -393,7 +393,7 @@ class LinearSimulation(BaseSimulation):
     Inherit this class to build a linear simulatio.
     """
 
-    linear_model, model_map, model_deriv = Props.Invertible(
+    linear_model, model_map, model_deriv = props.Invertible(
         "The model for a linear problem"
     )
 
