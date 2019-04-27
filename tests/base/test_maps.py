@@ -1,6 +1,7 @@
 import numpy as np
 import unittest
-from SimPEG import Mesh, Maps, Models, Utils
+import discretize
+from SimPEG import maps, models, utils
 import inspect
 
 TOL = 1e-14

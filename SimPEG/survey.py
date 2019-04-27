@@ -6,7 +6,7 @@ import uuid
 import properties
 
 from .utils import mkvc, Counter
-from . import Props
+from .props import BaseSimPEG
 
 
 class RxLocationArray(properties.Array):
@@ -180,7 +180,7 @@ class BaseTimeRx(BaseRx):
         return P
 
 
-class BaseSrc(Props.BaseSimPEG):
+class BaseSrc(BaseSimPEG):
     """SimPEG Source Object"""
 
     location = properties.Array(

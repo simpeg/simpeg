@@ -351,7 +351,7 @@ class BaseSimPEG(properties.HasProperties):
     """"""
 
 
-class HasModel(BaseSimPEG):
+class HasModel(properties.HasProperties):
 
     model = Model("Inversion model.")
 

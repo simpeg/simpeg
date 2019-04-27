@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from discretize import Tests
 
 # from . import Maps
-from . import Models
+# from . import Models
 # from . import Problem
 # from . import Survey
 # from . import Regularization
@@ -19,6 +19,7 @@ from . import Tests
 from . import data
 from . import data_misfit
 from . import maps
+from . import models
 from . import regularization
 from . import survey
 from . import simulation

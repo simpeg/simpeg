@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import unittest
+
 from SimPEG import Mesh, Maps, Regularization, Utils, Tests, ObjectiveFunction
 from scipy.sparse.linalg import dsolve
 import inspect
