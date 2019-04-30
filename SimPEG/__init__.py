@@ -10,16 +10,19 @@ from discretize import Tests as tests
 # from . import Survey
 # from . import Regularization
 # from . import DataMisfit
-from . import InvProblem
-from . import Optimization
-from . import Directives
-from . import Inversion
+# from . import InvProblem
+# from . import Optimization
+# from . import Directives
+# from . import Inversion
 # from . import Tests
 
 from . import data
 from . import data_misfit
+from . import directives
 from . import maps
 from . import models
+from . import inverse_problem
+from . import inversion
 from . import regularization
 from . import survey
 from . import simulation

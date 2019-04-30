@@ -1,12 +1,15 @@
 import unittest
-from SimPEG import Mesh, Problem, Maps
+import discretize
+import discretize
+from SimPEG import maps
+from SimPEG import Problem
 import numpy as np
 
 
 class TestTimeProblem(unittest.TestCase):
 
     def setUp(self):
-        mesh = Mesh.TensorMesh([10, 10])
+        mesh = discretize.TensorMesh([10, 10])
         self.prob = Problem.BaseTimeProblem(mesh)
 
     def test_timeProblem_setTimeSteps(self):
@@ -31,7 +34,7 @@ class TestTimeProblem(unittest.TestCase):
         with self.assertRaises(Exception):
             self.prob.mapping
         with self.assertRaises(Exception):
-            self.prob.mapping = Maps.IdentityMap(self.mesh)
+            self.prob.mapping = maps.IdentityMap(self.mesh)
 
 
 if __name__ == '__main__':

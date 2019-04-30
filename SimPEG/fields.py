@@ -4,7 +4,7 @@ import properties
 import discretize
 
 from .simulation import BaseSimulation, BaseTimeSimulation
-from .Utils import mkvc
+from .utils import mkvc
 
 
 class Fields(properties.HasProperties):

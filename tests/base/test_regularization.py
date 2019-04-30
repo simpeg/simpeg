@@ -43,7 +43,7 @@ class RegularizationTests(unittest.TestCase):
                 r = getattr(regularization, R)
                 if not inspect.isclass(r):
                     continue
-                if not issubclass(r, ObjectiveFunction.BaseObjectiveFunction):
+                if not issubclass(r, objective_function.BaseObjectiveFunction):
                     continue
                 if r.__name__ in IGNORE_ME:
                     continue
@@ -80,7 +80,7 @@ class RegularizationTests(unittest.TestCase):
                 r = getattr(regularization, R)
                 if not inspect.isclass(r):
                     continue
-                if not issubclass(r, ObjectiveFunction.BaseObjectiveFunction):
+                if not issubclass(r, objective_function.BaseObjectiveFunction):
                     continue
                 if r.__name__ in IGNORE_ME:
                     continue
@@ -90,13 +90,13 @@ class RegularizationTests(unittest.TestCase):
                     print('Testing Active Cells {0:d}D'.format((mesh.dim)))
 
                     if mesh.dim == 1:
-                        indActive = Utils.mkvc(mesh.gridCC <= 0.8)
+                        indActive = utils.mkvc(mesh.gridCC <= 0.8)
                     elif mesh.dim == 2:
-                        indActive = Utils.mkvc(mesh.gridCC[:, -1] <= (
+                        indActive = utils.mkvc(mesh.gridCC[:, -1] <= (
                             2*np.sin(2*np.pi*mesh.gridCC[:, 0])+0.5)
                         )
                     elif mesh.dim == 3:
-                        indActive = Utils.mkvc(mesh.gridCC[:, -1] <= (
+                        indActive = utils.mkvc(mesh.gridCC[:, -1] <= (
                                 2 * np.sin(2*np.pi*mesh.gridCC[:, 0])+0.5 *
                                 2 * np.sin(2*np.pi*mesh.gridCC[:, 1])+0.5)
                             )
@@ -140,17 +140,17 @@ class RegularizationTests(unittest.TestCase):
                 # m = np.random.rand(mapping.nP)
 
                 if mesh.dim == 1:
-                    indAct = Utils.mkvc(mesh.gridCC <= 0.8)
+                    indAct = utils.mkvc(mesh.gridCC <= 0.8)
                 elif mesh.dim == 2:
                     indAct = (
-                        Utils.mkvc(
+                        utils.mkvc(
                             mesh.gridCC[:,-1] <=
                             2*np.sin(2*np.pi*mesh.gridCC[:, 0]) + 0.5
                         )
                     )
                 elif mesh.dim == 3:
                     indAct = (
-                        Utils.mkvc(
+                        utils.mkvc(
                             mesh.gridCC[:, -1] <=
                             2*np.sin(2*np.pi*mesh.gridCC[:, 0]) +
                             0.5 * 2*np.sin(2*np.pi*mesh.gridCC[:, 1]) + 0.5
@@ -285,8 +285,8 @@ class RegularizationTests(unittest.TestCase):
             mesh, mapping=wires.sigma, cell_weights=cell_weights
         )
 
-        objfct = ObjectiveFunction.L2ObjectiveFunction(
-            W=Utils.sdiag(np.sqrt(cell_weights)), mapping=wires.sigma
+        objfct = objective_function.L2ObjectiveFunction(
+            W=utils.sdiag(np.sqrt(cell_weights)), mapping=wires.sigma
         )
 
         self.assertTrue(reg(m) == objfct(m))

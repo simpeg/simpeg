@@ -5,11 +5,10 @@ from discretize import TensorMesh
 
 from . import utils as Utils
 from . import OldSurvey as Survey
-from . import Models
 import numpy as np
 from . import maps as Maps
-from .Fields import Fields, TimeFields
-from . import Props
+from .fields import Fields, TimeFields
+from . import props as Props
 import properties
 
 

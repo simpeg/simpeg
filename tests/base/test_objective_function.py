@@ -7,7 +7,7 @@ import numpy as np
 import scipy.sparse as sp
 import unittest
 
-from SimPEG import Utils, Maps
+from SimPEG import utils, maps
 from SimPEG import objective_function
 
 np.random.seed(130)
@@ -44,7 +44,7 @@ class TestBaseObjFct(unittest.TestCase):
 
     def test_deriv2(self):
         nP=100
-        mapping=Maps.ExpMap(nP=nP)
+        mapping=maps.ExpMap(nP=nP)
         m = np.random.rand(nP)
         v = np.random.rand(nP)
         objfct = objective_function.L2ObjectiveFunction(nP=nP, mapping=mapping)
@@ -56,7 +56,7 @@ class TestBaseObjFct(unittest.TestCase):
         scalar = 10.
         nP = 100
         objfct_a = objective_function.L2ObjectiveFunction(
-            W=Utils.sdiag(np.random.randn(nP))
+            W=utils.sdiag(np.random.randn(nP))
         )
         objfct_b = scalar * objfct_a
         m = np.random.rand(nP)
@@ -88,7 +88,7 @@ class TestBaseObjFct(unittest.TestCase):
         alpha2 = 200
 
         phi1 = (
-            objective_function.L2ObjectiveFunction(W=Utils.sdiag(np.random.rand(nP))) +
+            objective_function.L2ObjectiveFunction(W=utils.sdiag(np.random.rand(nP))) +
             alpha1 * objective_function.L2ObjectiveFunction()
         )
         phi2 = objective_function.L2ObjectiveFunction() + alpha2 * phi1
@@ -139,11 +139,11 @@ class TestBaseObjFct(unittest.TestCase):
         nP2 = 30
 
         phi1 = objective_function.L2ObjectiveFunction(
-                    W=Utils.sdiag(np.random.rand(nP1))
+                    W=utils.sdiag(np.random.rand(nP1))
         )
 
         phi2 = objective_function.L2ObjectiveFunction(
-                    W=Utils.sdiag(np.random.rand(nP2))
+                    W=utils.sdiag(np.random.rand(nP2))
                 )
 
         with self.assertRaises(Exception):
@@ -169,7 +169,7 @@ class TestBaseObjFct(unittest.TestCase):
         alpha = 2.
         phi = alpha*(
             objective_function.L2ObjectiveFunction(W = sp.eye(nP)) +
-            Utils.Zero()*objective_function.L2ObjectiveFunction()
+            utils.Zero()*objective_function.L2ObjectiveFunction()
         )
         self.assertTrue(len(phi.objfcts) == 1)
         self.assertTrue(phi.test())
@@ -179,8 +179,8 @@ class TestBaseObjFct(unittest.TestCase):
 
         m = np.random.rand(nP)
 
-        W1 = Utils.sdiag(np.random.rand(nP))
-        W2 = Utils.sdiag(np.random.rand(nP))
+        W1 = utils.sdiag(np.random.rand(nP))
+        W2 = utils.sdiag(np.random.rand(nP))
 
         phi1 = objective_function.L2ObjectiveFunction(W=W1)
         phi2 = objective_function.L2ObjectiveFunction(W=W2)
@@ -189,11 +189,11 @@ class TestBaseObjFct(unittest.TestCase):
 
         self.assertTrue(phi(m) == phi1(m) + phi2(m))
 
-        phi.multipliers[0] = Utils.Zero()
+        phi.multipliers[0] = utils.Zero()
         self.assertTrue(phi(m) == phi2(m))
 
         phi.multipliers[0] = 1.
-        phi.multipliers[1] = Utils.Zero()
+        phi.multipliers[1] = utils.Zero()
 
         self.assertTrue(len(phi.objfcts) == 2)
         self.assertTrue(len(phi.multipliers) == 2)
@@ -207,7 +207,7 @@ class TestBaseObjFct(unittest.TestCase):
         m = np.random.rand(nP)
         v = np.random.rand(nP)
 
-        W1 = Utils.sdiag(np.random.rand(nP))
+        W1 = utils.sdiag(np.random.rand(nP))
         phi1 = objective_function.L2ObjectiveFunction(W=W1)
 
         phi2 = Error_if_Hit_ObjFct()
@@ -220,7 +220,7 @@ class TestBaseObjFct(unittest.TestCase):
         self.assertTrue(np.all(objfct.deriv(m) == phi1.deriv(m)))
         self.assertTrue(np.all(objfct.deriv2(m, v) == phi1.deriv2(m, v)))
 
-        objfct.multipliers[1] = Utils.Zero()
+        objfct.multipliers[1] = utils.Zero()
 
         self.assertTrue(len(objfct) == 2)
         self.assertTrue(np.all(objfct.multipliers == np.r_[1, 0]))
@@ -233,7 +233,7 @@ class TestBaseObjFct(unittest.TestCase):
         nP = 10
         m = np.random.rand(2*nP)
 
-        wires = Maps.Wires(('sigma', nP), ('mu', nP))
+        wires = maps.Wires(('sigma', nP), ('mu', nP))
 
         objfct1 = objective_function.L2ObjectiveFunction(mapping=wires.sigma)
         objfct2 = objective_function.L2ObjectiveFunction(mapping=wires.mu)

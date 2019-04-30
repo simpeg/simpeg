@@ -44,6 +44,8 @@ class DataMisfitTest(unittest.TestCase):
 
         self.model = model
         self.mesh = mesh
+        self.sim = sim
+        self.survey = sim.survey
         # self.survey = survey
         # self.prob = prob
         self.dobs = dobs

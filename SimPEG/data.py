@@ -8,6 +8,9 @@ __all__ = ['Data', 'SyntheticData']
 
 
 class UncertaintyArray(properties.Array):
+    """
+    An array that has constraints on minimum values
+    """
 
     class_info = 'a numpy, Zero or Identity array'
 

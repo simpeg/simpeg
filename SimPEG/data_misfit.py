@@ -113,9 +113,12 @@ class BaseDataMisfit(L2ObjectiveFunction):
     def residual(self, m, f=None):
         return self.simulation.residual(m, self.data.dobs, f=f)
 
-    # @property
-    # def uncertainty(self):
-    #     return self.data.uncertainty
+    @property
+    def std(self):
+        raise Exception(
+            "L2DataMisfit no longer has the attribute 'std'. Please use "
+            "data.standard_deviation"
+        )
 
 
 class L2DataMisfit(BaseDataMisfit):

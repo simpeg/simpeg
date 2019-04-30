@@ -530,8 +530,9 @@ class BaseRegularization(BaseObjectiveFunction):
         super(BaseRegularization, self).__init__()
         self.regmesh = RegularizationMesh(mesh)
         if "indActive" in kwargs.keys():
-            indActive = kwargs.pop("indActive")
-            self.regmesh.indActive = indActive
+            self.indActive = indActive
+            # indActive = kwargs.pop("indActive")
+            # self.regmesh.indActive = indActive
         setKwargs(self, **kwargs)
 
     counter = None
@@ -703,8 +704,9 @@ class BaseComboRegularization(ComboObjectiveFunction):
         )
         self.regmesh = RegularizationMesh(mesh)
         if "indActive" in kwargs.keys():
-            indActive = kwargs.pop("indActive")
-            self.regmesh.indActive = indActive
+            self.indActive = indActive
+            # indActive = kwargs.pop("indActive")
+            # self.regmesh.indActive = indActive
         setKwargs(self, **kwargs)
 
         # link these attributes

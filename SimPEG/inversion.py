@@ -2,8 +2,8 @@ from __future__ import print_function
 import scipy.sparse as sp
 import numpy as np
 
-from .Optimization import Remember, IterationPrinters, StoppingCriteria
-from .Directives import DirectiveList
+from .optimization import Remember, IterationPrinters, StoppingCriteria
+from .directives import DirectiveList
 from .utils import setKwargs, timeIt
 
 class BaseInversion(object):

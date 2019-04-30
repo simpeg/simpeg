@@ -2,7 +2,7 @@ from __future__ import print_function
 import unittest
 
 import discretize
-from SimPEG import survey, simulation, Utils
+from SimPEG import survey, simulation, utils
 
 import numpy as np
 import sys
@@ -22,18 +22,18 @@ class FieldsTest(unittest.TestCase):
             [np.ones(n)*5 for n in [10, 11, 12]], [0, 0, -30]
         )
         x = np.linspace(5, 10, 3)
-        XYZ = Utils.ndgrid(x, x, np.r_[0.])
+        XYZ = utils.ndgrid(x, x, np.r_[0.])
         srcLoc = np.r_[0., 0., 0.]
-        rxList0 = survey.BaseRx(XYZ, 'exi')
+        rxList0 = survey.BaseRx(XYZ)
         Src0 = survey.BaseSrc([rxList0], loc=srcLoc)
 
-        rxList1 = survey.BaseRx(XYZ, 'bxi')
+        rxList1 = survey.BaseRx(XYZ)
         Src1 = survey.BaseSrc([rxList1], loc=srcLoc)
 
-        rxList2 = survey.BaseRx(XYZ, 'bxi')
+        rxList2 = survey.BaseRx(XYZ)
         Src2 = survey.BaseSrc([rxList2], loc=srcLoc)
 
-        rxList3 = survey.BaseRx(XYZ, 'bxi')
+        rxList3 = survey.BaseRx(XYZ)
         Src3 = survey.BaseSrc([rxList3], loc=srcLoc)
         Src4 = survey.BaseSrc([rxList0, rxList1, rxList2, rxList3], loc=srcLoc)
         srcList = [Src0, Src1, Src2, Src3, Src4]
@@ -105,8 +105,8 @@ class FieldsTest(unittest.TestCase):
         F[[self.Src0, self.Src1], 'b'] = b
         self.assertTrue(F[self.Src0]['b'].shape == (F.mesh.nF, 1))
         self.assertTrue(F[self.Src0, 'b'].shape == (F.mesh.nF, 1))
-        self.assertTrue(np.all(F[self.Src0, 'b'] == Utils.mkvc(b[:, 0], 2)))
-        self.assertTrue(np.all(F[self.Src1, 'b'] == Utils.mkvc(b[:, 1], 2)))
+        self.assertTrue(np.all(F[self.Src0, 'b'] == utils.mkvc(b[:, 0], 2)))
+        self.assertTrue(np.all(F[self.Src1, 'b'] == utils.mkvc(b[:, 1], 2)))
 
     def test_assertions(self):
         freq = [self.Src0, self.Src1]
@@ -132,18 +132,18 @@ class FieldsTest_Alias(unittest.TestCase):
             np.ones(n)*5 for n in [10, 11, 12]], [0, 0, -30]
         )
         x = np.linspace(5, 10, 3)
-        XYZ = Utils.ndgrid(x, x, np.r_[0.])
+        XYZ = utils.ndgrid(x, x, np.r_[0.])
         srcLoc = np.r_[0, 0, 0.]
-        rxList0 = survey.BaseRx(XYZ, 'exi')
+        rxList0 = survey.BaseRx(XYZ)
         Src0 = survey.BaseSrc([rxList0], loc=srcLoc)
 
-        rxList1 = survey.BaseRx(XYZ, 'bxi')
+        rxList1 = survey.BaseRx(XYZ)
         Src1 = survey.BaseSrc([rxList1], loc=srcLoc)
 
-        rxList2 = survey.BaseRx(XYZ, 'bxi')
+        rxList2 = survey.BaseRx(XYZ)
         Src2 = survey.BaseSrc([rxList2], loc=srcLoc)
 
-        rxList3 = survey.BaseRx(XYZ, 'bxi')
+        rxList3 = survey.BaseRx(XYZ)
         Src3 = survey.BaseSrc([rxList3], loc=srcLoc)
         Src4 = survey.BaseSrc([rxList0, rxList1, rxList2, rxList3], loc=srcLoc)
 
@@ -219,15 +219,15 @@ class FieldsTest_Time(unittest.TestCase):
             [np.ones(n)*5 for n in [10, 11, 12]], [0, 0, -30]
         )
         x = np.linspace(5, 10, 3)
-        XYZ = Utils.ndgrid(x, x, np.r_[0.])
+        XYZ = utils.ndgrid(x, x, np.r_[0.])
         srcLoc = np.r_[0, 0, 0.]
-        rxList0 = survey.BaseRx(XYZ, 'exi')
+        rxList0 = survey.BaseRx(XYZ)
         Src0 = survey.BaseSrc([rxList0], loc=srcLoc)
-        rxList1 = survey.BaseRx(XYZ, 'bxi')
+        rxList1 = survey.BaseRx(XYZ)
         Src1 = survey.BaseSrc([rxList1], loc=srcLoc)
-        rxList2 = survey.BaseRx(XYZ, 'bxi')
+        rxList2 = survey.BaseRx(XYZ)
         Src2 = survey.BaseSrc([rxList2], loc=srcLoc)
-        rxList3 = survey.BaseRx(XYZ, 'bxi')
+        rxList3 = survey.BaseRx(XYZ)
         Src3 = survey.BaseSrc([rxList3], loc=srcLoc)
         Src4 = survey.BaseSrc([rxList0, rxList1, rxList2, rxList3], loc=srcLoc)
         srcList = [Src0, Src1, Src2, Src3, Src4]
@@ -281,7 +281,7 @@ class FieldsTest_Time(unittest.TestCase):
 
         b = np.random.rand(F.mesh.nF, 1, nT)
         F[self.Src0, 'b', 0] = b[:, :, 0]
-        self.assertTrue(np.all(F[self.Src0, 'b', 0] == Utils.mkvc(b[:, 0, 0],
+        self.assertTrue(np.all(F[self.Src0, 'b', 0] == utils.mkvc(b[:, 0, 0],
                                                                   2)))
 
         phi = np.random.rand(F.mesh.nC, 2, nT)
@@ -299,13 +299,13 @@ class FieldsTest_Time(unittest.TestCase):
         self.assertTrue(np.all(F[self.Src0, 'b'] == b[:, 0, :]))
         self.assertTrue(np.all(F[self.Src1, 'b'] == b[:, 1, :]))
         self.assertTrue(np.all(F[self.Src0, 'b', 1] ==
-                        Utils.mkvc(b[:, 0, 1], 2)))
+                        utils.mkvc(b[:, 0, 1], 2)))
         self.assertTrue(np.all(F[self.Src1, 'b', 1] ==
-                        Utils.mkvc(b[:, 1, 1], 2)))
+                        utils.mkvc(b[:, 1, 1], 2)))
         self.assertTrue(np.all(F[self.Src0, 'b', 4] ==
-                        Utils.mkvc(b[:, 0, 4], 2)))
+                        utils.mkvc(b[:, 0, 4], 2)))
         self.assertTrue(np.all(F[self.Src1, 'b', 4] ==
-                        Utils.mkvc(b[:, 1, 4], 2)))
+                        utils.mkvc(b[:, 1, 4], 2)))
 
         b = np.random.rand(F.mesh.nF, 2, nT)
         F[[self.Src0, self.Src1], 'b', 0] = b[:, :, 0]
@@ -333,21 +333,21 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         mesh = discretize.TensorMesh([np.ones(n)*5 for n in [10, 11, 12]],
                                [0, 0, -30])
         x = np.linspace(5, 10, 3)
-        XYZ = Utils.ndgrid(x, x, np.r_[0.])
+        XYZ = utils.ndgrid(x, x, np.r_[0.])
         srcLoc = np.r_[0, 0, 0.]
-        rxList0 = survey.BaseRx(XYZ, 'exi')
-        Src0 = survey.BaseSrc([rxList0], loc=srcLoc)
-        rxList1 = survey.BaseRx(XYZ, 'bxi')
-        Src1 = survey.BaseSrc([rxList1], loc=srcLoc)
-        rxList2 = survey.BaseRx(XYZ, 'bxi')
-        Src2 = survey.BaseSrc([rxList2], loc=srcLoc)
-        rxList3 = survey.BaseRx(XYZ, 'bxi')
-        Src3 = survey.BaseSrc([rxList3], loc=srcLoc)
-        Src4 = survey.BaseSrc([rxList0, rxList1, rxList2, rxList3], loc=srcLoc)
+        rxList0 = survey.BaseRx(XYZ)
+        Src0 = survey.BaseSrc(rx_list=[rxList0], loc=srcLoc)
+        rxList1 = survey.BaseRx(XYZ)
+        Src1 = survey.BaseSrc(rx_list=[rxList1], loc=srcLoc)
+        rxList2 = survey.BaseRx(XYZ)
+        Src2 = survey.BaseSrc(rx_list=[rxList2], loc=srcLoc)
+        rxList3 = survey.BaseRx(XYZ)
+        Src3 = survey.BaseSrc(rx_list=[rxList3], loc=srcLoc)
+        Src4 = survey.BaseSrc(rx_list=[rxList0, rxList1, rxList2, rxList3], loc=srcLoc)
         srcList = [Src0, Src1, Src2, Src3, Src4]
-        survey = survey.BaseSurvey(srcList=srcList)
+        mysurvey = survey.BaseSurvey(srcList=srcList)
         prob = simulation.BaseTimesimulation(mesh, timeSteps=[(10., 3), (20., 2)])
-        survey.pair(prob)
+        mysurvey.pair(prob)
 
         def alias(b, srcInd, timeInd):
             return self.F.mesh.edgeCurl.T * b + timeInd
@@ -387,7 +387,7 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         self.assertTrue(np.all(F[self.Src1, 'e', :] == e[:, 1, :]))
         for t in range(nT):
             self.assertTrue(np.all(F[self.Src1, 'e', t] ==
-                            Utils.mkvc(e[:, 1, t], 2)))
+                            utils.mkvc(e[:, 1, t], 2)))
 
         b = np.random.rand(F.mesh.nF, nT)
         F[self.Src0, 'b', :] = b

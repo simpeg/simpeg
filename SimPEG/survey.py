@@ -4,6 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 import uuid
 import properties
+import warnings
 
 from .utils import mkvc, Counter
 from .props import BaseSimPEG
@@ -57,8 +58,10 @@ class BaseRx(properties.HasProperties):
         "dictonary for storing projections",
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, locations=None, **kwargs):
         super(BaseRx, self).__init__(**kwargs)
+        if locations is not None:
+            self.locations = locations
         if getattr(self, '_Ps', None) is None:
             self._Ps = {}
 
@@ -189,7 +192,7 @@ class BaseSrc(BaseSimPEG):
         required=False
     )
 
-    rxList = properties.List(
+    rx_list = properties.List(
         "receiver list",
         properties.Instance(
             "a SimPEG receiver",
@@ -220,11 +223,28 @@ class BaseSrc(BaseSimPEG):
         )
         self.location = value
 
+    @property
+    def rxList(self):
+        warnings.warn(
+            "source.rxList will be deprecaited and replaced with "
+            "source.rx_list. Please update your code accordingly",
+            DeprecationWarning
+        )
+        return self.rx_list
 
-    @properties.validator('rxList')
-    def _rxList_validator(self, change):
+    @rxList.setter
+    def rxList(self, value):
+        warnings.warn(
+            "source.rxList will be deprecaited and replaced with "
+            "source.rx_list. Please update your code accordingly",
+            DeprecationWarning
+        )
+        self.rx_list = value
+
+    @properties.validator('rx_list')
+    def _rx_list_validator(self, change):
         value = change['value']
-        assert len(set(value)) == len(value), 'The rxList must be unique'
+        assert len(set(value)) == len(value), 'The rx_list must be unique'
         self._rxOrder = dict()
         [
             self._rxOrder.setdefault(rx._uid, ii) for ii, rx in
@@ -257,7 +277,14 @@ class BaseSrc(BaseSimPEG):
     @property
     def vnD(self):
         """Vector number of data"""
-        return np.array([rx.nD for rx in self.rxList])
+        return np.array([rx.nD for rx in self.rx_list])
+
+    def __init__(self, rx_list=None, location=None, **kwargs):
+        super(BaseSrc, self).__init__(**kwargs)
+        if rx_list is not None:
+            self.rx_list = rx_list
+        if location is not None:
+            self.location = location
 
 
 # TODO: allow a reciever list to be provided and assume it is used for all

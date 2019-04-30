@@ -5,8 +5,8 @@ import scipy.sparse as sp
 import uuid
 import gc
 
-from . import Utils
-from . import Props
+from . import utils
+from . import props
 
 
 class BaseRx(object):
@@ -25,7 +25,7 @@ class BaseRx(object):
         self.locs = np.atleast_2d(locs)
         self.rxType = rxType
         self._Ps = {}
-        Utils.setKwargs(self, **kwargs)
+        utils.setKwargs(self, **kwargs)
 
     @property
     def rxType(self):
@@ -126,7 +126,7 @@ class BaseTimeRx(BaseRx):
         return P
 
 
-class BaseSrc(Props.BaseSimPEG):
+class BaseSrc(props.BaseSimPEG):
     """SimPEG Source Object"""
 
     loc    = None #: Location [x,y,z]
@@ -143,7 +143,7 @@ class BaseSrc(Props.BaseSimPEG):
         assert len(set(rxList)) == len(rxList), 'The rxList must be unique'
         self.uid = str(uuid.uuid4())
         self.rxList = rxList
-        Utils.setKwargs(self, **kwargs)
+        utils.setKwargs(self, **kwargs)
 
 
     @property
@@ -192,7 +192,7 @@ class BaseData(object):
         assert value.size == rx.nD, (
             "value must have the same number of data as the source."
         )
-        self._dataDict[src][rx] = Utils.mkvc(value)
+        self._dataDict[src][rx] = utils.mkvc(value)
 
     def __getitem__(self, key):
         src, rx = self._ensureCorrectKey(key)
@@ -207,7 +207,7 @@ class BaseData(object):
         return np.concatenate([self[src] for src in self.survey.srcList])
 
     def fromvec(self, v):
-        v = Utils.mkvc(v)
+        v = utils.mkvc(v)
         assert v.size == self.survey.nD, (
             'v must have the correct number of data.'
         )
@@ -288,10 +288,10 @@ class BaseSurvey(object):
     dtrue = None     #: True data, if data is synthetic
     mtrue = None     #: True model, if data is synthetic
 
-    counter = None   #: A SimPEG.Utils.Counter object
+    counter = None   #: A SimPEG.utils.Counter object
 
     def __init__(self, **kwargs):
-        Utils.setKwargs(self, **kwargs)
+        utils.setKwargs(self, **kwargs)
 
     srcPair = BaseSrc  #: Source Pair
 
@@ -399,8 +399,8 @@ class BaseSurvey(object):
         """Number of Sources"""
         return len(self.srcList)
 
-    @Utils.count
-    @Utils.requires('prob')
+    @utils.count
+    @utils.requires('prob')
     def dpred(self, m=None, f=None):
         """dpred(m, f=None)
 
@@ -416,9 +416,9 @@ class BaseSurvey(object):
         """
         if f is None:
             f = self.prob.fields(m)
-        return Utils.mkvc(self.eval(f))
+        return utils.mkvc(self.eval(f))
 
-    @Utils.count
+    @utils.count
     def eval(self, f):
         """eval(f)
 
@@ -430,7 +430,7 @@ class BaseSurvey(object):
         """
         raise NotImplementedError('eval is not yet implemented.')
 
-    @Utils.count
+    @utils.count
     def evalDeriv(self, f):
         """evalDeriv(f)
 
@@ -442,7 +442,7 @@ class BaseSurvey(object):
         """
         raise NotImplementedError('eval is not yet implemented.')
 
-    @Utils.count
+    @utils.count
     def residual(self, m, f=None):
         """residual(m, f=None)
 
@@ -458,7 +458,7 @@ class BaseSurvey(object):
                 \mu_\\text{data} = \mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}
 
         """
-        return Utils.mkvc(self.dpred(m, f=f) - self.dobs)
+        return utils.mkvc(self.dpred(m, f=f) - self.dobs)
 
     @property
     def isSynthetic(self):
