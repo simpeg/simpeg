@@ -3,6 +3,4 @@
 Differential Operators
 ======================
 
-.. automodule:: discretize.DiffOperators
-    :members:
-    :undoc-members:
+See the `discretize docs <http://discretize.simpeg.xyz/>`_

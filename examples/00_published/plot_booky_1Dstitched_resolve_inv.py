@@ -158,16 +158,16 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
         "r"
     )
 
-    river_path = resolve["river_path"].value    # River path
+    river_path = resolve["river_path"][()]    # River path
     nSounding = resolve["data"].shape[0]    # the # of soundings
 
     # Bird height from surface
-    b_height_resolve = resolve["src_elevation"].value
+    b_height_resolve = resolve["src_elevation"][()]
 
     # fetch the frequencies we are considering
     cpi_inds = [0, 2, 6, 8, 10]  # Indices for HCP in-phase
     cpq_inds = [1, 3, 7, 9, 11]  # Indices for HCP quadrature
-    frequency_cp = resolve["frequency_cp"].value
+    frequency_cp = resolve["frequency_cp"][()]
 
     # build a mesh
     cs, ncx, ncz, npad = 1., 10., 10., 20
@@ -246,9 +246,9 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
             np.save("dpred_re_final", dpred_re)
 
 
-    mopt_re = resolve["mopt"].value
-    dobs_re = resolve["dobs"].value
-    dpred_re = resolve["dpred"].value
+    mopt_re = resolve["mopt"][()]
+    dobs_re = resolve["dobs"][()]
+    dpred_re = resolve["dpred"][()]
 
     sigma = np.exp(mopt_re)
     indz = -7  # depth index
@@ -288,7 +288,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     temp = (temp.flatten()[d_inds] * w).sum(axis=1)
     Utils.plot2Ddata(
         xy, temp, ncontour=100, scale="log", dataloc=False,
-        contourOpts={"cmap": cmap, "vmin": -2, "vmax": 1.}, ax=ax0
+        contourOpts={"cmap": cmap, "vmin": 1e-2, "vmax": 1e1}, ax=ax0
     )
     ax0.plot(
         resolve["xy"][:, 0], resolve["xy"][:, 1], 'k.', alpha=0.02, ms=1
@@ -307,7 +307,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     temp_dobs = dobs_re[:, freq_ind].copy()
     ax1.plot(river_path[:, 0], river_path[:, 1], 'k-', lw=0.5)
     out = Utils.plot2Ddata(
-        resolve["xy"].value, temp_dobs/abs(bp)*1e6, ncontour=100,
+        resolve["xy"][()], temp_dobs/abs(bp)*1e6, ncontour=100,
         scale="log", dataloc=False, ax=ax1, contourOpts={"cmap": "viridis"}
     )
     vmin, vmax = out[0].get_clim()
@@ -317,9 +317,9 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     # temp_dpred[mask_:_data] = np.nan
     ax2.plot(river_path[:, 0], river_path[:, 1], 'k-', lw=0.5)
     Utils.plot2Ddata(
-        resolve["xy"].value, temp_dpred/abs(bp)*1e6, ncontour=100,
+        resolve["xy"][()], temp_dpred/abs(bp)*1e6, ncontour=100,
         scale="log", dataloc=False,
-        contourOpts={"vmin": vmin, "vmax": vmax, "cmap": "viridis"}, ax=ax2
+        contourOpts={"vmin": 10**vmin, "vmax": 10**vmax, "cmap": "viridis"}, ax=ax2
     )
     cb = plt.colorbar(
         out[0], ticks=np.linspace(vmin, vmax, 3), ax=ax2,

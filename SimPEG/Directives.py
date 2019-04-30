@@ -780,7 +780,7 @@ class Update_IRLS(InversionDirective):
         ]):
 
             if self.fix_Jmatrix:
-                print (">> Fix Jmatrix")
+                print(">> Fix Jmatrix")
                 self.invProb.dmisfit.prob.fix_Jmatrix = True
 
             # Check for maximum number of IRLS cycles
@@ -945,7 +945,6 @@ class UpdatePreconditioner(InversionDirective):
     """
 
     update_every_iteration = True  #: Update every iterations if False
-    threshold = 1e-8
 
     def initialize(self):
 
@@ -974,29 +973,30 @@ class UpdatePreconditioner(InversionDirective):
                     else:
                         JtJdiag += prob.getJtJdiag(m, W=dmisfit.W)
 
-            self.opt.JtJdiag = JtJdiag + self.threshold
+            self.opt.JtJdiag = JtJdiag
 
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
-
-        PC = Utils.sdiag((diagA)**-1.)
+        diagA[diagA != 0] = diagA[diagA != 0] ** -1.
+        PC = Utils.sdiag((diagA))
 
         self.opt.approxHinv = PC
 
     def endIter(self):
         # Cool the threshold parameter
-        if ~self.update_every_iteration:
+        if self.update_every_iteration is False:
             return
 
         # Create the pre-conditioner
         regDiag = np.zeros_like(self.invProb.model)
+        m = self.invProb.model
 
         for reg in self.reg.objfcts:
             # Check if he has wire
             regDiag += reg.deriv2(m).diagonal()
         # Assumes that opt.JtJdiag has been updated or static
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
-
-        PC = Utils.sdiag((diagA)**-1.)
+        diagA[diagA != 0] = diagA[diagA != 0] ** -1.
+        PC = Utils.sdiag((diagA))
         self.opt.approxHinv = PC
 
 

@@ -126,7 +126,7 @@ def from_dc_to_sip_survey(survey_dc, times):
             elif isinstance(rx, DC.Rx.Dipole_ky) or isinstance(rx, DC.Rx.Dipole):
                 rx_sip = Rx.Dipole(rx.locs[0], rx.locs[1], times=times)
             else:
-                print (rx)
+                print(rx)
                 raise NotImplementedError()
             rxList_sip.append(rx_sip)
 
@@ -139,7 +139,7 @@ def from_dc_to_sip_survey(survey_dc, times):
                 rxList_sip, src.loc[0], src.loc[1]
             )
         else:
-            print (src)
+            print(src)
             raise NotImplementedError()
         srcList_sip.append(src_sip)
 

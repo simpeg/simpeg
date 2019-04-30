@@ -2,7 +2,7 @@ from SimPEG import Survey, Maps
 
 
 class LinearSurvey(Survey.BaseSurvey):
-    """Base Magnetics Survey"""
+    """Base Gravity Survey"""
 
     rxLoc = None  #: receiver locations
     rx_type = None  #: receiver type

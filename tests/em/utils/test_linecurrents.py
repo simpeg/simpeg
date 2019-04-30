@@ -29,12 +29,12 @@ class LineCurrentTests(unittest.TestCase):
         s_true = np.r_[sx_true, sy_true, sz_true]
         s = np.r_[sx, sy, sz]
         err = np.linalg.norm(s_true-s) / np.linalg.norm(s_true)
-        print (">> Test getStraightLineCurrentIntegral")
+        print(">> Test getStraightLineCurrentIntegral")
         if err < 1e-5:
             passed = True
         else:
             passed = False
-            print (("Failed, Error = %d") % (err))
+            print(("Failed, Error = %d") % (err))
 
         self.assertTrue(passed)
 
@@ -53,13 +53,13 @@ class LineCurrentTests(unittest.TestCase):
         fname = self.basePath + "currents.npy"
         out_true = np.load(fname)
         err = np.linalg.norm(out-out_true)
-        print (">> Test getSourceTermLineCurrentPolygon")
+        print(">> Test getSourceTermLineCurrentPolygon")
 
         if err < 1e-5:
             passed = True
         else:
             passed = False
-            print (("Failed, Error = %d") % (err))
+            print(("Failed, Error = %d") % (err))
 
         self.assertTrue(passed)
 
