@@ -257,7 +257,6 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
 
         t = []
         for cell in srcCellIds:
-            print('cellInd = ', cell)
 
             # Find the nodes of current cell
             cellNodeInds = list(mesh[cell].nodes)
@@ -390,9 +389,10 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
             # print('(cell_sx, cell_sy, cell_sz) =', cell_sx, cell_sy, cell_sz)
 
 
+            # Assign integrated src values to the correct edges
             # Deal with paths which follow x edges
             if(len(np.where(cell_sx)[0]) == 1):
-                print('Path follows x edge.')
+                # print('Path follows x edge.')
                 xEdgeLocs = mesh.gridEx
                 d_xEdge = np.sqrt((xEdgeLocs[:,0] - cx)**2 + (xEdgeLocs[:,1] - cy)**2 + (xEdgeLocs[:,2] - cz)**2)
                 xEdgeInd = np.argmin(d_xEdge)
@@ -401,7 +401,7 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
 
             # Deal with paths which follow y edges
             elif(len(np.where(cell_sy)[0]) == 1):
-                print('Path follows y edge.')
+                # print('Path follows y edge.')
                 yEdgeLocs = mesh.gridEy
                 d_yEdge = np.sqrt((yEdgeLocs[:,0] - cx)**2 + (yEdgeLocs[:,1] - cy)**2 + (yEdgeLocs[:,2] - cz)**2)
                 yEdgeInd = np.argmin(d_yEdge)
@@ -410,7 +410,7 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
 
             # Deal with paths which follow z edges
             elif(len(np.where(cell_sz)[0]) == 1):
-                print('Path follows z edge.')
+                # print('Path follows z edge.')
                 zEdgeLocs = mesh.gridEz
                 d_zEdge = np.sqrt((zEdgeLocs[:,0] - cx)**2 + (zEdgeLocs[:,1] - cy)**2 + (zEdgeLocs[:,2] - cz)**2)
                 zEdgeInd = np.argmin(d_zEdge)
@@ -419,7 +419,7 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
 
             # Deal with paths which follow y or z faces
             elif(len(np.where(cell_sx)[0]) == 2):
-                print('Path follows a y or z face.')
+                # print('Path follows a y or z face.')
                 xEdgeLocs = mesh.gridEx
                 d_xEdge = np.sqrt((xEdgeLocs[:,0] - cx)**2 + (xEdgeLocs[:,1] - cy)**2 + (xEdgeLocs[:,2] - cz)**2)
                 xEdgeInd = np.argsort(d_xEdge)[0:2]
@@ -430,7 +430,7 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
 
             # Deal with paths which follow x or z faces
             elif(len(np.where(cell_sy)[0]) == 2):
-                print('Path follows a x or z face.')
+                # print('Path follows a x or z face.')
                 yEdgeLocs = mesh.gridEy
                 d_yEdge = np.sqrt((yEdgeLocs[:,0] - cx)**2 + (yEdgeLocs[:,1] - cy)**2 + (yEdgeLocs[:,2] - cz)**2)
                 yEdgeInd = np.argsort(d_yEdge)[0:2]
@@ -441,7 +441,7 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
 
             # Deal with paths which follow x or y faces
             elif(len(np.where(cell_sz)[0]) == 2):
-                print('Path follows a x or y face.')
+                # print('Path follows a x or y face.')
                 zEdgeLocs = mesh.gridEz
                 d_zEdge = np.sqrt((zEdgeLocs[:,0] - cx)**2 + (zEdgeLocs[:,1] - cy)**2 + (zEdgeLocs[:,2] - cz)**2)
                 zEdgeInd = np.argsort(d_zEdge)[0:2]
