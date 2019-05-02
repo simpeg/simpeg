@@ -456,7 +456,6 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
                 CCx = CC[0]
                 CCy = CC[1]
                 CCz = CC[2]
-                print('CC =', CC)
 
                 xEdgeLocs = mesh.gridEx
                 d_xEdge = np.sqrt((xEdgeLocs[:,0] - CCx)**2 + (xEdgeLocs[:,1] - CCy)**2 + (xEdgeLocs[:,2] - CCz)**2)
