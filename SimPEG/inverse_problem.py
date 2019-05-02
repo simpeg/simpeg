@@ -7,7 +7,7 @@ import gc
 
 from .data_misfit import BaseDataMisfit
 from .props import BaseSimPEG, Model
-from .regularization import BaseRegularization
+from .regularization import BaseRegularization, BaseComboRegularization
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .utils import callHooks, timeIt
 
@@ -79,7 +79,7 @@ class BaseInvProblem(BaseSimPEG):
 
         if (
             isinstance(self.reg, ComboObjectiveFunction) and
-            not isinstance(self.reg, Regularization.BaseComboRegularization)
+            not isinstance(self.reg, BaseComboRegularization)
         ):
             for fct in self.reg.objfcts:
                 if hasattr(fct, 'mref') and getattr(fct, 'mref', None) is None:
@@ -96,20 +96,20 @@ class BaseInvProblem(BaseSimPEG):
     SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
     ***Done using same Solver and solverOpts as the problem***"""
             )
-            self.opt.bfgsH0 = self.dmisfit.prob.Solver(
-                self.reg.deriv2(self.model), **self.dmisfit.prob.solverOpts
+            self.opt.bfgsH0 = self.dmisfit.simulation.Solver(
+                self.reg.deriv2(self.model), **self.dmisfit.simulation.solver_opts
             )
         elif isinstance(self.dmisfit, BaseObjectiveFunction):
             for objfct in self.dmisfit.objfcts:
                 if isinstance(objfct, BaseDataMisfit):
                     print("""
     SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-    ***Done using same Solver and solverOpts as the {} problem***""".format(
-                            objfct.prob.__class__.__name__
+    ***Done using same Solver and solver_opts as the {} problem***""".format(
+                            objfct.simulation.__class__.__name__
                         )
                     )
-                    self.opt.bfgsH0 = objfct.prob.Solver(
-                        self.reg.deriv2(self.model), **objfct.prob.solverOpts
+                    self.opt.bfgsH0 = objfct.simulation.Solver(
+                        self.reg.deriv2(self.model), **objfct.simulation.solver_opts
                     )
                     break
 
@@ -139,12 +139,12 @@ class BaseInvProblem(BaseSimPEG):
 
         if f is None:
             if isinstance(self.dmisfit, BaseDataMisfit):
-                f = self.dmisfit.prob.fields(m)
+                f = self.dmisfit.simulation.fields(m)
             elif isinstance(self.dmisfit, BaseObjectiveFunction):
                 f = []
                 for objfct in self.dmisfit.objfcts:
                     if hasattr(objfct, 'prob'):
-                        f += [objfct.prob.fields(m)]
+                        f += [objfct.simulation.fields(m)]
                     else:
                         f += []
 
@@ -157,7 +157,7 @@ class BaseInvProblem(BaseSimPEG):
 
     def get_dpred(self, m, f):
         if isinstance(self.dmisfit, BaseDataMisfit):
-            return self.dmisfit.survey.dpred(m, f=f)
+            return self.dmisfit.simulation.dpred(m, f=f)
         elif isinstance(self.dmisfit, BaseObjectiveFunction):
             dpred = []
             for i, objfct in enumerate(self.dmisfit.objfcts):

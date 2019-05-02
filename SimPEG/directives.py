@@ -98,7 +98,7 @@ class InversionDirective(properties.HasProperties):
            Assuming that dmisfit is always a ComboObjectiveFunction,
            return a list of surveys for each dmisfit [survey1, survey2, ... ]
         """
-        return [objfcts.survey for objfcts in self.dmisfit.objfcts]
+        return [objfcts.simulation.survey for objfcts in self.dmisfit.objfcts]
 
     @property
     def prob(self):

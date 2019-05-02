@@ -284,7 +284,7 @@ class BaseSimulation(props.HasModel):
             dobs=dobs,
             dclean=dclean,
             survey=self.survey,
-            standard_deviation=standard_deviation
+            standard_deviation=standard_deviation,
         )
 
     def makeSyntheticData(self, m, standard_deviation=0.05, f=None):
@@ -472,7 +472,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
             G = np.empty((self.n_kernels, self.mesh.nC))
 
             for i in range(self.n_kernels):
-                G[i, :] = self._g(i)
+                G[i, :] = self._g(i) * self.mesh.hx
 
             self._G = G
         return self._G
