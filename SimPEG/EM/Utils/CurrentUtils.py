@@ -202,9 +202,9 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
     """
 
     # discrete edge vectors
-    sx = np.zeros(mesh.nEx)
-    sy = np.zeros(mesh.nEy)
-    sz = np.zeros(mesh.nEz)
+    sx = np.zeros(mesh.ntEx)
+    sy = np.zeros(mesh.ntEy)
+    sz = np.zeros(mesh.ntEz)
 
     # number of line segments
     nP = len(px) - 1
@@ -283,13 +283,13 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
 
             cell_s = getStraightLineCurrentIntegral(*h, *cA, *cB)
 
-            try:
-                sx[edges_x] += cell_s[0]
-                sy[edges_y] += cell_s[1]
-                sz[edges_z] += cell_s[2]
-            except IndexError:
-                raise IndexError("Cannot project on to hanging edge")
+            sx[edges_x] += cell_s[0]
+            sy[edges_y] += cell_s[1]
+            sz[edges_z] += cell_s[2]
 
             p0 = p1
+    s = np.r_[sx, sy, sz]
+    R = mesh._deflate_edges()
+    s = R.T.dot(s)
 
-    return np.r_[sx, sy, sz]
+    return s
