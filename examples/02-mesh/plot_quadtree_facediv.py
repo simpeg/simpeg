@@ -21,7 +21,7 @@ def run(plotIt=True, n=60):
     if plotIt:
         fig, axes = plt.subplots(2, 1, figsize=(10, 10))
 
-        M.plotGrid(cells=True, nodes=False, ax=axes[0])
+        M.plotGrid(centers=True, nodes=False, ax=axes[0])
         axes[0].axis('off')
         axes[0].set_title('Simple QuadTree Mesh')
         axes[0].set_xlim([-1, 17])
