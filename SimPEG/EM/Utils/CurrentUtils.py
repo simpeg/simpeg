@@ -39,9 +39,9 @@ def getStraightLineCurrentIntegral(hx, hy, hz, ax, ay, az, bx, by, bz):
     l = np.sqrt(lx**2+ly**2+lz**2)
 
     if l == 0:
-        sx = np.zeros(4, 1)
-        sy = np.zeros(4, 1)
-        sz = np.zeros(4, 1)
+        sx = np.zeros((4, 1))
+        sy = np.zeros((4, 1))
+        sz = np.zeros((4, 1))
 
     # integration using Simpson's rule
     wx0 = weight(0., ay, ly, hy, az, lz, hz)
@@ -85,7 +85,6 @@ def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
             Christoph Schwarzbach, February 2014
 
     """
-    import numpy as np
     # number of cells
     nx = len(hx)
     ny = len(hy)
@@ -201,8 +200,6 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
         The 3-D arrays sx, sy, sz contain the source terms for all x/y/z-edges
         of the octree mesh.
     """
-    import numpy as np
-
 
     # discrete edge vectors
     sx = np.zeros(mesh.nEx)
@@ -211,30 +208,20 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
 
     # number of line segments
     nP = len(px) - 1
-
-    # check that all polygon vertices are inside the mesh
-    minX = np.min(mesh.gridN[:,0])
-    maxX = np.max(mesh.gridN[:,0])
-    minY = np.min(mesh.gridN[:,1])
-    maxY = np.max(mesh.gridN[:,1])
-    minZ = np.min(mesh.gridN[:,2])
-    maxZ = np.max(mesh.gridN[:,2])
-
-    outXInd = np.where(np.logical_or(px > maxX, px < minX))[0]
-    outYInd = np.where(np.logical_or(py > maxY, py < minY))[0]
-    outZInd = np.where(np.logical_or(pz > maxZ, pz < minZ))[0]
-
-    outPointInd = np.hstack([outXInd,outYInd,outZInd])
-
-    if(len(outPointInd) != 0):
-        for ind in outPointInd:
-            msg = "Polygon vertex (%.1f, %.1f, %.1f) is outside the mesh"
-            print ((msg) % (px[ind], py[ind], pz[ind]))
+    for ip in range(nP+1):
+        ax = px[ip]
+        ay = py[ip]
+        az = pz[ip]
+        A = np.array([ax, ay, az])
+        x0 = mesh.x0
+        xF = np.array([mesh.vectorNx[-1], mesh.vectorNy[-1], mesh.vectorNz[-1]])
+        if np.any(A < x0) or np.any(A > xF):
+            msg = "Polygon vertex ({.1f}, {.1f}, {.1f}) is outside the mesh".format(*A)
+            raise ValueError(msg)
 
     # Loop over each line segment
     for ip in range(nP):
         # Start and end vertices
-
         ax = px[ip]
         ay = py[ip]
         az = pz[ip]
@@ -248,230 +235,61 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
         dx = bx-ax
         dy = by-ay
         dz = bz-az
-
-        # Overall length of the wirepath
-        d = np.sqrt(dx**2+dy**2+dz**2)
+        ds = B-A
 
         # Find indices of all cells intersected by the wirepath
         srcCellIds = mesh.get_cells_along_line(A, B)
 
-        t = []
-        for cell in srcCellIds:
+        # Starts at point A!
+        p0 = A
+        for cell_id in srcCellIds:
+            cell = mesh[cell_id]
 
-            # Find the nodes of current cell
-            cellNodeInds = list(mesh[cell].nodes)
-            cellNodes = mesh.gridN[cellNodeInds]
+            x0 = cell.x0
+            h = cell.h
+            xF = x0+h
 
+            edges = cell.edges
+            edges_x = edges[0:4]
+            edges_y = edges[4:8]
+            edges_z = edges[8:12]
 
-            # Calculate x, y, and z limits of current cell
-            cell_xmin = np.min(cellNodes[:,0])
-            cell_xmax = np.max(cellNodes[:,0])
-            cell_ymin = np.min(cellNodes[:,1])
-            cell_ymax = np.max(cellNodes[:,1])
-            cell_zmin = np.min(cellNodes[:,2])
-            cell_zmax = np.max(cellNodes[:,2])
-
-
-            # Find the points where the wirepath pierces the current cell
-
-            # Form equations for the intersection of the wirepath with
-            # the bounding planes of the current cell
-            # t0x = (cell_xmin - ax) / dx
-            # t1x = (cell_xmax - ax) / dx
-            # t0y = (cell_ymin - ay) / dy
-            # t1y = (cell_ymax - ay) / dy
-            # t0z = (cell_zmin - az) / dz
-            # t1z = (cell_zmax - az) / dz
-
-            # set tolerance to identify cases where dx, dy, or dz = 0
-            tol = d * np.finfo(float).eps
-
-            if abs(dx) > tol:
-                cell_x = np.array([cell_xmin, cell_xmax])
-                tx = (cell_x - ax) / dx
-
-                txNegInd = np.where(tx < 0)[0]
-                tx_gt1Ind = np.where(tx > 1)[0]
-
-                if(len(txNegInd) > 0):
-                    tx[txNegInd] = 0.
-                elif(len(tx_gt1Ind) > 0):
-                    tx[tx_gt1Ind] = 1.
-
+            # find next intersection along path
+            if dx > 0:
+                tx = (xF[0]-ax)/dx
+            elif dx < 0:
+                tx = (x0[0]-ax)/dx
             else:
-                tx = np.array([0.,0.])
+                tx = np.inf
 
-            if abs(dy) > tol:
-                cell_y = np.array([cell_ymin, cell_ymax])
-                ty = (cell_y - ay) / dy
-
-                tyNegInd = np.where(ty < 0)[0]
-                ty_gt1Ind = np.where(ty > 1)[0]
-
-                if(len(tyNegInd) > 0):
-                    ty[tyNegInd] = 0.
-                elif(len(ty_gt1Ind) > 0):
-                    ty[ty_gt1Ind] = 1.
-
+            if dy > 0:
+                ty = (xF[1]-ay)/dy
+            elif dy < 0:
+                ty = (x0[1]-ay)/dy
             else:
-                ty = np.array([0.,0.])
+                ty = np.inf
 
-            if abs(dz) > tol:
-                cell_z = np.array([cell_zmin, cell_zmax])
-                tz = (cell_z - az) / dz
-
-                tzNegInd = np.where(tz < 0)[0]
-                tz_gt1Ind = np.where(tz > 1)[0]
-
-                if(len(tzNegInd) > 0):
-                    tz[tzNegInd] = 0.
-                elif(len(tz_gt1Ind) > 0):
-                    tz[tz_gt1Ind] = 1.
-
+            if dz > 0:
+                tz = (xF[2]-az)/dz
+            elif dz < 0:
+                tz = (x0[2]-az)/dz
             else:
-                tz = np.array([0.,0.])
+                tz = np.inf
+            t = min(tx, ty, tz, 1)  # the last value should be 1
+            p1 = A + t*ds  # the next intersection point
 
+            cA = p0 - x0
+            cB = p1 - x0
 
-            t = np.unique(np.hstack([t, tx, ty, tz]))
+            cell_s = getStraightLineCurrentIntegral(*h, *cA, *cB)
 
-        nq = len(t) - 1
-        tc = 0.5 * (t[:nq] + t[1:nq+1])
+            try:
+                sx[edges_x] += cell_s[0]
+                sy[edges_y] += cell_s[1]
+                sz[edges_z] += cell_s[2]
+            except IndexError:
+                raise IndexError("Cannot project on to hanging edge")
 
-        for iq in range(nq):
-
-            cx = ax + tc[iq] * dx
-            cy = ay + tc[iq] * dy
-            cz = az + tc[iq] * dz
-
-            cID = mesh._get_containing_cell_index([cx,cy,cz])
-
-            cellNodeInds = list(mesh[cID].nodes)
-            cellNodes = mesh.gridN[cellNodeInds]
-
-            cell_xN = cellNodes[:,0]
-            xInds = np.where(cx >= cell_xN)[0]
-
-            cell_yN = cellNodes[:,1]
-            yInds = np.where(cy >= cell_yN)[0]
-
-            cell_zN = cellNodes[:,2]
-            zInds = np.where(cz >= cell_zN)[0]
-
-            nodeInd = np.intersect1d(np.intersect1d(xInds, yInds), zInds)
-
-            # If there is more than 1 smaller node location select closest
-            if(len(nodeInd) > 1):
-                d = np.sqrt((cell_xN[nodeInd] - cx)**2 +
-                    (cell_yN[nodeInd] - cy)**2 + (cell_zN[nodeInd] - cz)**2)
-
-                nodeInd = nodeInd[np.argmin(d)]
-
-
-            # local coordinates
-            cell_h = mesh.h_gridded[cID,:]
-            cell_hx = cell_h[0]
-            cell_hy = cell_h[1]
-            cell_hz = cell_h[2]
-            # print('(cell_hx, cell_hy, cell_hz) =', cell_hx, cell_hy, cell_hz)
-            cell_ax = ax + t[iq]   * dx - cell_xN[nodeInd]
-            cell_ay = ay + t[iq]   * dy - cell_yN[nodeInd]
-            cell_az = az + t[iq]   * dz - cell_zN[nodeInd]
-            # print('(cell_ax, cell_ay, cell_az) =', cell_ax, cell_ay, cell_az)
-            cell_bx = ax + t[iq+1] * dx - cell_xN[nodeInd]
-            cell_by = ay + t[iq+1] * dy - cell_yN[nodeInd]
-            cell_bz = az + t[iq+1] * dz - cell_zN[nodeInd]
-            # print('(cell_bx, cell_by, cell_bz) =', cell_bx, cell_by, cell_bz)
-
-            # Integrate source current to edges
-            cell_sx, cell_sy, cell_sz = getStraightLineCurrentIntegral(cell_hx,
-                cell_hy, cell_hz, cell_ax, cell_ay, cell_az, cell_bx, cell_by,
-                cell_bz)
-            # print('(cell_sx, cell_sy, cell_sz) =', cell_sx, cell_sy, cell_sz)
-
-
-            # Assign integrated src values to the correct edges
-            # Deal with paths which follow x edges
-            if(len(np.where(cell_sx)[0]) == 1):
-                # print('Path follows x edge.')
-                xEdgeLocs = mesh.gridEx
-                d_xEdge = np.sqrt((xEdgeLocs[:,0] - cx)**2 + (xEdgeLocs[:,1] - cy)**2 + (xEdgeLocs[:,2] - cz)**2)
-                xEdgeInd = np.argmin(d_xEdge)
-
-                sx[xEdgeInd] += cell_sx[0]
-
-            # Deal with paths which follow y edges
-            elif(len(np.where(cell_sy)[0]) == 1):
-                # print('Path follows y edge.')
-                yEdgeLocs = mesh.gridEy
-                d_yEdge = np.sqrt((yEdgeLocs[:,0] - cx)**2 + (yEdgeLocs[:,1] - cy)**2 + (yEdgeLocs[:,2] - cz)**2)
-                yEdgeInd = np.argmin(d_yEdge)
-
-                sy[yEdgeInd] += cell_sy[0]
-
-            # Deal with paths which follow z edges
-            elif(len(np.where(cell_sz)[0]) == 1):
-                # print('Path follows z edge.')
-                zEdgeLocs = mesh.gridEz
-                d_zEdge = np.sqrt((zEdgeLocs[:,0] - cx)**2 + (zEdgeLocs[:,1] - cy)**2 + (zEdgeLocs[:,2] - cz)**2)
-                zEdgeInd = np.argmin(d_zEdge)
-
-                sz[zEdgeInd] += cell_sz[0]
-
-            # Deal with paths which follow y or z faces
-            elif(len(np.where(cell_sx)[0]) == 2):
-                # print('Path follows a y or z face.')
-                xEdgeLocs = mesh.gridEx
-                d_xEdge = np.sqrt((xEdgeLocs[:,0] - cx)**2 + (xEdgeLocs[:,1] - cy)**2 + (xEdgeLocs[:,2] - cz)**2)
-                xEdgeInd = np.argsort(d_xEdge)[0:2]
-                cell_sxInd = np.argsort(np.abs(cell_sx))[2:]
-
-                sx[xEdgeInd[0]] += cell_sx[cell_sxInd[1]]
-                sx[xEdgeInd[1]] += cell_sx[cell_sxInd[0]]
-
-            # Deal with paths which follow x or z faces
-            elif(len(np.where(cell_sy)[0]) == 2):
-                # print('Path follows a x or z face.')
-                yEdgeLocs = mesh.gridEy
-                d_yEdge = np.sqrt((yEdgeLocs[:,0] - cx)**2 + (yEdgeLocs[:,1] - cy)**2 + (yEdgeLocs[:,2] - cz)**2)
-                yEdgeInd = np.argsort(d_yEdge)[0:2]
-                cell_syInd = np.argsort(np.abs(cell_sy))[2:]
-
-                sy[yEdgeInd[0]] += cell_sy[cell_syInd[1]]
-                sy[yEdgeInd[1]] += cell_sy[cell_syInd[0]]
-
-            # Deal with paths which follow x or y faces
-            elif(len(np.where(cell_sz)[0]) == 2):
-                # print('Path follows a x or y face.')
-                zEdgeLocs = mesh.gridEz
-                d_zEdge = np.sqrt((zEdgeLocs[:,0] - cx)**2 + (zEdgeLocs[:,1] - cy)**2 + (zEdgeLocs[:,2] - cz)**2)
-                zEdgeInd = np.argsort(d_zEdge)[0:2]
-                cell_szInd = np.argsort(np.abs(cell_sz))[2:]
-
-                sz[zEdgeInd[0]] += cell_sz[cell_szInd[1]]
-                sz[zEdgeInd[1]] += cell_sz[cell_szInd[0]]
-
-            # Deal with paths which cut across the cell
-            else:
-                CC = mesh.gridCC[cID,:]
-                CCx = CC[0]
-                CCy = CC[1]
-                CCz = CC[2]
-
-                xEdgeLocs = mesh.gridEx
-                d_xEdge = np.sqrt((xEdgeLocs[:,0] - CCx)**2 + (xEdgeLocs[:,1] - CCy)**2 + (xEdgeLocs[:,2] - CCz)**2)
-                xEdgeInd = np.where(d_xEdge < min(mesh.hx))
-
-                yEdgeLocs = mesh.gridEy
-                d_yEdge = np.sqrt((yEdgeLocs[:,0] - CCx)**2 + (yEdgeLocs[:,1] - CCy)**2 + (yEdgeLocs[:,2] - CCz)**2)
-                yEdgeInd = np.where(d_yEdge < min(mesh.hy))
-
-                zEdgeLocs = mesh.gridEz
-                d_zEdge = np.sqrt((zEdgeLocs[:,0] - CCx)**2 + (zEdgeLocs[:,1] - CCy)**2 + (zEdgeLocs[:,2] - CCz)**2)
-                zEdgeInd = np.where(d_zEdge < min(mesh.hz))
-
-                sx[xEdgeInd] += cell_sx[[0, 2, 1, 3]]
-                sy[yEdgeInd] += cell_sy[[0, 2, 1, 3]]
-                sz[zEdgeInd] += cell_sz
+            p0 = p1
 
     return np.r_[sx, sy, sz]
-
