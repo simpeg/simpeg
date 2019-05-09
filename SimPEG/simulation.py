@@ -69,19 +69,19 @@ class BaseSimulation(props.HasModel):
         Counter
     )
 
-    # TODO: Solver code needs to be cleaned up so this is either a pymatsolver
-    # solver or a SimPEG solver (or similar)
-    # solver = properties.Instance(
-    #     "a pymatsolver class",
-    #     pymatsolver,
-    #     default=pymatsolver.Solver
-    # )
+    # TODO: need to implement a serializer for this
     solver = pymatsolver.Solver
 
     solver_opts = properties.Dictionary(
         "solver options as a kwarg dict",
         default={}
     )
+
+    def __init__(self, mesh=None, **kwargs):
+        if mesh is not None:
+            kwargs['mesh'] = mesh
+        super(BaseSimulation, self).__init__(**kwargs)
+
 
     @properties.observer('mesh')
     def _update_registry(self, change):
@@ -320,8 +320,8 @@ class BaseTimeSimulation(BaseSimulation):
         default=0.0
     )
 
-    def __init__(self, **kwargs):
-        super(BaseTimeSimulation, self).__init__(**kwargs)
+    def __init__(self, mesh=None, **kwargs):
+        super(BaseTimeSimulation, self).__init__(mesh=mesh, **kwargs)
 
     @properties.observer('time_steps')
     def _remove_time_mesh_on_time_step_update(self, change):
@@ -403,8 +403,8 @@ class LinearSimulation(BaseSimulation):
         required=True
     )
 
-    def __init__(self, **kwargs):
-        super(LinearSimulation, self).__init__(**kwargs)
+    def __init__(self, mesh=None, **kwargs):
+        super(LinearSimulation, self).__init__(mesh=mesh, **kwargs)
 
         # set the number of data
         if getattr(self, 'G', None) is not None:

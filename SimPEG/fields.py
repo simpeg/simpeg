@@ -40,8 +40,10 @@ class Fields(properties.HasProperties):
     #: dtype is the type of the storage matrix. This can be a dictionary.
     dtype = float
 
-    def __init__(self, **kwargs):
+    def __init__(self, simulation=None, **kwargs):
         super(Fields, self).__init__(**kwargs)
+        if simulation is not None:
+            self.simulation = simulation
         self._fields = {}
         self.startup()
 
@@ -223,8 +225,8 @@ class TimeFields(Fields):
         BaseTimeSimulation
     )
 
-    def __init__(self, **kwargs):
-        super(TimeFields, self).__init__(**kwargs)
+    def __init__(self, simulation=None, **kwargs):
+        super(TimeFields, self).__init__(simulation=simulation, **kwargs)
 
     def _storageShape(self, loc):
         nP = {'CC': self.mesh.nC,

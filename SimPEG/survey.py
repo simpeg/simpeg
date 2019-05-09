@@ -386,6 +386,13 @@ class BaseSurvey(properties.HasProperties):
         )
         self.source_list = value
 
+    def pair(self, simulation):
+        warnings.warn(
+            "survey.pair(simulation) will be depreciated. Please update your code "
+            "to instead use simulation.survey = survey"
+        )
+        simulation.survey = self
+
 
 
 ###############################################################################
