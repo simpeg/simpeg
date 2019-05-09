@@ -193,12 +193,23 @@ def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
 
 
 def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
-    """
-        Given a octree mesh with origin at (x0,y0,z0) and cell sizes
-        hx, hy, hz, compute the source vector for a unit current flowing along
-        the polygon with vertices px, py, pz.
-        The 3-D arrays sx, sy, sz contain the source terms for all x/y/z-edges
-        of the octree mesh.
+    """Calculate a source term for a line current source on a OctTreeMesh
+
+    Given an OcTreeMesh compute the source vector for a unit current flowing
+    along the polygon with vertices px, py, pz.
+
+    Parameters
+    ----------
+    mesh : discretize.TreeMesh
+        The OctTreeMesh (3D) for the system.
+    px, py, pz : 1D numpy.array
+        The 1D arrays contain the x, y, and z, locations of consecutive points
+        along the polygonal path
+
+    Returns
+    -------
+    numpy.array of length (mesh.nE)
+        Contains the source term for all x, y, and z edges of the OcTreeMesh.
     """
 
     # discrete edge vectors
@@ -206,14 +217,13 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
     sy = np.zeros(mesh.ntEy)
     sz = np.zeros(mesh.ntEz)
 
+    points = np.c_[px, py, pz]
     # number of line segments
-    nP = len(px) - 1
+    nP = len(points) - 1
+    x0 = mesh.x0
+    dim = mesh.dim
     for ip in range(nP+1):
-        ax = px[ip]
-        ay = py[ip]
-        az = pz[ip]
-        A = np.array([ax, ay, az])
-        x0 = mesh.x0
+        A = points[0]
         xF = np.array([mesh.vectorNx[-1], mesh.vectorNy[-1], mesh.vectorNz[-1]])
         if np.any(A < x0) or np.any(A > xF):
             msg = "Polygon vertex ({.1f}, {.1f}, {.1f}) is outside the mesh".format(*A)
@@ -222,19 +232,10 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
     # Loop over each line segment
     for ip in range(nP):
         # Start and end vertices
-        ax = px[ip]
-        ay = py[ip]
-        az = pz[ip]
-        A = np.array([ax, ay, az])
-        bx = px[ip+1]
-        by = py[ip+1]
-        bz = pz[ip+1]
-        B = np.array([bx, by, bz])
+        A = points[ip]
+        B = points[ip+1]
 
         # Components of vector (dx, dy, dz) along the wirepath
-        dx = bx-ax
-        dy = by-ay
-        dz = bz-az
         ds = B-A
 
         # Find indices of all cells intersected by the wirepath
@@ -255,27 +256,15 @@ def getSourceTermLineCurrentPolygon_Octree(mesh, px, py, pz):
             edges_z = edges[8:12]
 
             # find next intersection along path
-            if dx > 0:
-                tx = (xF[0]-ax)/dx
-            elif dx < 0:
-                tx = (x0[0]-ax)/dx
-            else:
-                tx = np.inf
-
-            if dy > 0:
-                ty = (xF[1]-ay)/dy
-            elif dy < 0:
-                ty = (x0[1]-ay)/dy
-            else:
-                ty = np.inf
-
-            if dz > 0:
-                tz = (xF[2]-az)/dz
-            elif dz < 0:
-                tz = (x0[2]-az)/dz
-            else:
-                tz = np.inf
-            t = min(tx, ty, tz, 1)  # the last value should be 1
+            ts = np.ones(dim)
+            for i in range(dim):
+                if ds[i] > 0:
+                    ts[i] = (xF[i]-A[i])/ds[i]
+                elif ds[i] < 0:
+                    ts[i] = (x0[i]-A[i])/ds[i]
+                else:
+                    ts[i] = np.inf
+            t = min(*ts, 1)  # the last value should be 1
             p1 = A + t*ds  # the next intersection point
 
             cA = p0 - x0
