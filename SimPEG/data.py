@@ -80,8 +80,6 @@ class BaseDataArray(properties.HasProperties):
             self._set_data_dict()
 
         inds = self._data_dict[src][rx]
-        if getattr(self, 'data', None) is not None:
-            self.data = np.empty(self.survey.nD)
         self.data[inds] = mkvc(value)
 
     def __getitem__(self, key):

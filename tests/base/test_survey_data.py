@@ -51,28 +51,27 @@ class TestData(unittest.TestCase):
             for rx in src.receiver_list:
                 v = np.random.rand(rx.nD)
                 V += [v]
-                print(v)
-                self.D.standard_deviation[src, rx] = v
-                self.assertTrue(np.all(v == self.D.standard_deviation[src, rx]))
+                self.D._standard_deviation[src, rx] = v
+                self.assertTrue(np.all(v == self.D._standard_deviation[src, rx]))
         V = np.concatenate(V)
-        self.assertTrue(np.all(V == utils.mkvc(self.D.standard_deviation)))
+        self.assertTrue(np.all(V == self.D.standard_deviation))
 
-        D2 = survey.Data(self.D.survey, standard_deviation=V)
-        self.assertTrue(np.all(utils.mkvc(D2.standard_deviation) == utils.mkvc(self.D.standard_deviation)))
+        D2 = data.Data(self.D.survey, standard_deviation=V)
+        self.assertTrue(np.all(D2.standard_deviation == self.D.standard_deviation))
 
-    # def test_uniqueSrcs(self):
-    #     srcs = self.D.survey.source_list
-    #     srcs += [srcs[0]]
-    #     self.assertRaises(AssertionError, survey.BaseSurvey, srcList=srcs)
+    def test_uniqueSrcs(self):
+        srcs = self.D.survey.source_list
+        srcs += [srcs[0]]
+        self.assertRaises(AssertionError, survey.BaseSurvey, source_list=srcs)
 
-    # def test_sourceIndex(self):
-    #     survey = self.D.survey
-    #     srcs = survey.source_list
-    #     assert survey.getSourceIndex([srcs[1],srcs[0]]) == [1,0]
-    #     assert survey.getSourceIndex([srcs[1],srcs[2],srcs[2]]) == [1,2,2]
-    #     SrcNotThere = survey.BaseSrc(srcs[0].rxList, loc=np.r_[0,0,0])
-        # self.assertRaises(KeyError, survey.getSourceIndex, [SrcNotThere])
-        # self.assertRaises(KeyError, survey.getSourceIndex, [srcs[1],srcs[2],SrcNotThere])
+    def test_sourceIndex(self):
+        mysurvey = self.D.survey
+        srcs = mysurvey.source_list
+        assert mysurvey.getSourceIndex([srcs[1],srcs[0]]) == [1,0]
+        assert mysurvey.getSourceIndex([srcs[1],srcs[2],srcs[2]]) == [1,2,2]
+        SrcNotThere = survey.BaseSrc(srcs[0].receiver_list, location=np.r_[0,0,0])
+        self.assertRaises(KeyError, mysurvey.getSourceIndex, [SrcNotThere])
+        self.assertRaises(KeyError, mysurvey.getSourceIndex, [srcs[1],srcs[2],SrcNotThere])
 
 if __name__ == '__main__':
     unittest.main()

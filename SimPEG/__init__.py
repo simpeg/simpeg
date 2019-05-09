@@ -16,7 +16,7 @@ from discretize import Tests as tests
 # from . import Inversion
 # from . import Tests
 
-from . import data
+from . import data  # actually, we can probably just import the Data class
 from . import data_misfit
 from . import directives
 from . import maps

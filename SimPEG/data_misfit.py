@@ -6,13 +6,15 @@ from .data import Data
 from .simulation import BaseSimulation
 from .objective_function import L2ObjectiveFunction
 
+__all__ = ["L2DataMisfit"]
 
 class BaseDataMisfit(L2ObjectiveFunction):
     """
     BaseDataMisfit
-        .. note::
-            You should inherit from this class to create your own data misfit
-            term.
+
+    .. note::
+        You should inherit from this class to create your own data misfit
+        term.
     """
 
     data = properties.Instance(
