@@ -99,9 +99,6 @@ class BaseDataArray(properties.HasProperties):
             self.data[self._data_dict[src][rx]] for rx in src.receiver_list
         ])
 
-    def __call__(self):
-        return self.tovec()
-
     @property
     def nD(self):
         return len(self.data)
@@ -158,14 +155,13 @@ class Data(properties.HasProperties):
         self, survey, dobs=None, standard_deviation=None, noise_floor=None
     ):
         super(Data, self).__init__()
-        print("Data")
         self.survey = survey
 
         # Observed data
         self._dobs = BaseDataArray(survey=survey)
         if dobs is not None:
-            self.dobs.data = dobs
-            self.dobs._set_data_dict()
+            self._dobs.data = dobs
+            self._dobs._set_data_dict()
 
         # Standard deviation (use the data dict from the observed data)
         self._standard_deviation = BaseDataArray(survey=survey)
@@ -180,7 +176,7 @@ class Data(properties.HasProperties):
 
     @property
     def dobs(self):
-        return self._dobs
+        return self._dobs.tovec()
 
     @dobs.setter
     def dobs(self, value):
@@ -192,7 +188,7 @@ class Data(properties.HasProperties):
 
     @property
     def standard_deviation(self):
-        return self._standard_deviation
+        return self._standard_deviation.tovec()
 
     @standard_deviation.setter
     def standard_deviation(self, value):
@@ -200,14 +196,14 @@ class Data(properties.HasProperties):
             self._standard_deviation = value
         else:
             if isinstance(value, float):  # set this to a vector the same length as the data
-                value = value * np.abs(self.dobs())
-            self.standard_deviation = BaseDataArray(data=value, survey=self.survey)
+                value = value * np.abs(self.dobs)
+            self._standard_deviation = BaseDataArray(data=value, survey=self.survey)
         if getattr(self.dobs, '_data_dict', None) is not None:  # skip creating the data_dict and assign it
-            self._standard_deviation._data_dict = self.dobs._data_dict
+            self._standard_deviation._data_dict = self._dobs._data_dict
 
     @property
     def noise_floor(self):
-        return self._noise_floor
+        return self._noise_floor.tovec()
 
     @noise_floor.setter
     def noise_floor(self, value):
@@ -215,9 +211,9 @@ class Data(properties.HasProperties):
             self._noise_floor = value
         elif isinstance(value, float):
             value = value * np.ones(self.nD)  # set this to a vector the same length as the data
-        self.noise_floor = BaseDataArray(data=value, survey=self.survey)
+        self._noise_floor = BaseDataArray(data=value, survey=self.survey)
         if getattr(self, 'dobs', None) is not None: # skip creating the data_dict and assign it
-            self.noise_floor._data_dict = self.dobs._data_dict
+            self._noise_floor._data_dict = self._dobs._data_dict
 
 
     @property
@@ -249,7 +245,7 @@ class Data(properties.HasProperties):
 
         uncert = np.zeros(self.nD)
         if self.standard_deviation is not None:
-            uncert = uncert + self.standard_deviation.tovec * np.absolute(self.dobs)
+            uncert = uncert + self.standard_deviation * np.absolute(self.dobs)
         if self.noise_floor is not None:
             uncert = uncert + self.noise_floor
 
@@ -262,21 +258,23 @@ class Data(properties.HasProperties):
 
     @property
     def nD(self):
-        return len(self.dobs)
+        return self._dobs.nD
 
     def __setitem__(self, key, value):
-        print("setting self")
-        return self.dobs.__setitem__(key, value)
+        return self._dobs.__setitem__(key, value)
 
     def __getitem__(self, key):
-        return self.dobs.__getitem__(key)
+        return self._dobs.__getitem__(key)
 
     def tovec(self):
-        return self.dobs.tovec()
+        return self._dobs.tovec()
 
     def fromvec(self, v):
-        return self.dobs.fromvec(v)
+        return self._dobs.fromvec(v)
 
+    ##########################
+    # Depreciated properties #
+    ##########################
     @property
     def std(self):
         warnings.warn(
@@ -328,11 +326,10 @@ class SyntheticData(Data):
         self._dclean = BaseDataArray(survey=survey)
         if dclean is not None:
             self.dclean = dclean
-            self.dclean._data_dict = self.dobs._data_dict
 
     @property
     def dclean(self):
-        return self._dclean
+        return self._dclean.data.tovec()
 
     @dclean.setter
     def dclean(self, value):
@@ -340,7 +337,7 @@ class SyntheticData(Data):
             self._dclean = value
         else:
             if isinstance(value, float):  # set this to a vector the same length as the data
-                value = value * np.abs(self.dobs())
-            self.dclean = BaseDataArray(data=value, survey=self.survey)
-        if getattr(self.dobs, '_data_dict', None) is not None:  # skip creating the data_dict and assign it
-            self._dclean._data_dict = self.dobs._data_dict
+                value = value * np.abs(self.dobs)
+            self._dclean = BaseDataArray(data=value, survey=self.survey)
+        if getattr(self._dobs, '_data_dict', None) is not None:  # skip creating the data_dict and assign it
+            self._dclean._data_dict = self._dobs._data_dict
