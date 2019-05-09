@@ -58,10 +58,15 @@ class BaseRx(properties.HasProperties):
         "dictonary for storing projections",
     )
 
-    def __init__(self, locations=None, **kwargs):
+    def __init__(self, locations=None, rxType=None, **kwargs):
         super(BaseRx, self).__init__(**kwargs)
         if locations is not None:
             self.locations = locations
+        if rxType is not None:
+            warnings.warn(
+                "BaseRx no longer has an rxType. Each rxType should instead "
+                "be a different receiver class."
+            )
         if getattr(self, '_Ps', None) is None:
             self._Ps = {}
 
@@ -100,7 +105,7 @@ class BaseRx(properties.HasProperties):
     @property
     def nD(self):
         """Number of data in the receiver."""
-        return self.locs.shape[0]
+        return self.locations.shape[0]
 
     def getP(self, mesh, projGLoc=None):
         """
@@ -192,7 +197,7 @@ class BaseSrc(BaseSimPEG):
         required=False
     )
 
-    rx_list = properties.List(
+    receiver_list = properties.List(
         "receiver list",
         properties.Instance(
             "a SimPEG receiver",
@@ -227,24 +232,24 @@ class BaseSrc(BaseSimPEG):
     def rxList(self):
         warnings.warn(
             "source.rxList will be deprecaited and replaced with "
-            "source.rx_list. Please update your code accordingly",
+            "source.receiver_list. Please update your code accordingly",
             DeprecationWarning
         )
-        return self.rx_list
+        return self.receiver_list
 
     @rxList.setter
     def rxList(self, value):
         warnings.warn(
             "source.rxList will be deprecaited and replaced with "
-            "source.rx_list. Please update your code accordingly",
+            "source.receiver_list. Please update your code accordingly",
             DeprecationWarning
         )
-        self.rx_list = value
+        self.receiver_list = value
 
-    @properties.validator('rx_list')
-    def _rx_list_validator(self, change):
+    @properties.validator('receiver_list')
+    def _receiver_list_validator(self, change):
         value = change['value']
-        assert len(set(value)) == len(value), 'The rx_list must be unique'
+        assert len(set(value)) == len(value), 'The receiver_list must be unique'
         self._rxOrder = dict()
         [
             self._rxOrder.setdefault(rx._uid, ii) for ii, rx in
@@ -277,12 +282,12 @@ class BaseSrc(BaseSimPEG):
     @property
     def vnD(self):
         """Vector number of data"""
-        return np.array([rx.nD for rx in self.rx_list])
+        return np.array([rx.nD for rx in self.receiver_list])
 
-    def __init__(self, rx_list=None, location=None, **kwargs):
+    def __init__(self, receiver_list=None, location=None, **kwargs):
         super(BaseSrc, self).__init__(**kwargs)
-        if rx_list is not None:
-            self.rx_list = rx_list
+        if receiver_list is not None:
+            self.receiver_list = receiver_list
         if location is not None:
             self.location = location
 
@@ -299,23 +304,24 @@ class BaseSurvey(properties.HasProperties):
         Counter
     )
 
-    srcList = properties.List(
+    source_list = properties.List(
         "A list of sources for the survey",
         properties.Instance(
             "A SimPEG source",
             BaseSrc
         ),
-        required=False, # TODO: I don't think this should be required
         default=[]
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, source_list=None, **kwargs):
         super(BaseSurvey, self).__init__(**kwargs)
+        if source_list is not None:
+            self.source_list = source_list
 
-    @properties.validator('srcList')
-    def _srcList_validator(self, change):
+    @properties.validator('source_list')
+    def _source_list_validator(self, change):
         value = change['value']
-        assert len(set(value)) == len(value), 'The srcList must be unique'
+        assert len(set(value)) == len(value), 'The source_list must be unique'
         self._sourceOrder = dict()
         [
             self._sourceOrder.setdefault(src._uid, ii) for ii, src in
@@ -350,13 +356,13 @@ class BaseSurvey(properties.HasProperties):
     def vnD(self):
         """Vector number of data"""
         if getattr(self, '_vnD', None) is None:
-            self._vnD = np.array([src.nD for src in self.srcList])
+            self._vnD = np.array([src.nD for src in self.source_list])
         return self._vnD
 
     @property
     def nSrc(self):
         """Number of Sources"""
-        return len(self.srcList)
+        return len(self.source_list)
 
     def dpred(self, m, f=None):
         raise Exception(
@@ -364,11 +370,45 @@ class BaseSurvey(properties.HasProperties):
             "simulation.dpred instead"
         )
 
+    @property
+    def srcList(self):
+        warnings.warn(
+            "srcList has been renamed to source_list. Please update your code "
+            "accordingly"
+        )
+        return self.source_list
 
-class LinearSurvey(BaseSurvey):
+    @srcList.setter
+    def srcList(self, value):
+        warnings.warn(
+            "srcList has been renamed to source_list. Please update your code "
+            "accordingly"
+        )
+        self.source_list = value
+
+
+
+###############################################################################
+#
+# Classes to be depreciated
+#
+###############################################################################
+
+class LinearSurvey:
     """
     Survey for a linear problem
     """
-    @property
-    def nD(self):
-        return self.simulation.G.shape[0]
+    def __init__(self, source_list=None, **kwargs):
+        warnings.warn(
+            "LinearSurvey will be depreciated. Please use survey.BaseSurvey "
+            "instead", DeprecationWarning
+        )
+        BaseSurvey.__init__(self, source_list, **kwargs)
+
+
+class Data:
+    def __init__(self, survey=None, data=None, **kwargs):
+        raise Exception(
+            "survey.Data has been depreciated. To access the data class. To "
+            "import the data class, please use SimPEG.data.Data"
+        )

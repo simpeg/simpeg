@@ -281,9 +281,9 @@ class BaseSimulation(props.HasModel):
         dobs = dclean + noise
 
         return SyntheticData(
+            survey=self.survey,
             dobs=dobs,
             dclean=dclean,
-            survey=self.survey,
             standard_deviation=standard_deviation,
         )
 
@@ -406,9 +406,14 @@ class LinearSimulation(BaseSimulation):
     def __init__(self, **kwargs):
         super(LinearSimulation, self).__init__(**kwargs)
 
+        # set the number of data
+        if getattr(self, 'G', None) is not None:
+            self.survey._vnD = np.r_[self.G.shape[0]]
+
     @property
     def G(self):
-        raise NotImplementedError('G must be implemented for this simulation')
+        warnings.warn("G has not been implemented for the simulation")
+        return None
 
     def fields(self, m):
         self.model = m
@@ -436,7 +441,11 @@ class LinearSimulation(BaseSimulation):
 class ExponentialSinusoidSimulation(LinearSimulation):
     """
     This is the simulation class for the linear problem consisting of
-    exponentially decaying sinusoids
+    exponentially decaying sinusoids. The rows of the G matrix are
+
+    .. math::
+
+        \\int_x e^{p j_k x} \\cos(\\pi q j_k x) \\quad, j_k \\in [j_0, ..., j_n]
     """
     n_kernels = properties.Integer(
         "number of kernels defining the linear problem",
@@ -453,17 +462,29 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         default = 0.25
     )
 
+    j0 = properties.Float(
+        "maximum value for :math:`j_k = j_0`",
+        default = 0.
+    )
+
+    jn = properties.Float(
+        "maximum value for :math:`j_k = j_n`",
+        default = 60.
+    )
+
     def __init__(self, **kwargs):
         super(ExponentialSinusoidSimulation, self).__init__(**kwargs)
 
     @property
-    def _jk(self):
-        return np.linspace(1., 60., self.n_kernels)
+    def jk(self):
+        if getattr(self, '_jk', None) is None:
+            self._jk = np.linspace(self.j0, self.jn, self.n_kernels)
+        return self._jk
 
-    def _g(self, k):
+    def g(self, k):
         return (
-            np.exp(self.p*self._jk[k]*self.mesh.vectorCCx) *
-            np.cos(np.pi*self.q*self._jk[k]*self.mesh.vectorCCx)
+            np.exp(self.p*self.jk[k]*self.mesh.vectorCCx) *
+            np.cos(np.pi*self.q*self.jk[k]*self.mesh.vectorCCx)
         )
 
     @property
@@ -472,7 +493,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
             G = np.empty((self.n_kernels, self.mesh.nC))
 
             for i in range(self.n_kernels):
-                G[i, :] = self._g(i) * self.mesh.hx
+                G[i, :] = self.g(i) * self.mesh.hx
 
             self._G = G
         return self._G

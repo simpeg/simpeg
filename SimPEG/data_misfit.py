@@ -124,6 +124,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
 class L2DataMisfit(BaseDataMisfit):
     """
     The data misfit with an l_2 norm:
+
     .. math::
         \mu_\\text{data} = {1\over 2}\left|
         \mathbf{W}_d (\mathbf{d}_\\text{pred} -
