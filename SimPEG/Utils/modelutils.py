@@ -186,7 +186,7 @@ def tileSurveyPoints(locs, nRefine, minimize=True, method='cluster'):
 
         xy1 = np.c_[X1[binCount > 0], Y1[binCount > 0]]
         xy2 = np.c_[X2[binCount > 0], Y2[binCount > 0]]
-        return [xy1, xy2], binCount, cluster.labels_
+        return [xy1, xy2], binCount[binCount > 0], cluster.labels_
 
     else:
         # Works on larger problems
@@ -231,7 +231,6 @@ def tileSurveyPoints(locs, nRefine, minimize=True, method='cluster'):
                 (locs[:, 1] >= Y1[ii]) * (locs[:, 1] <= Y2[ii])
             ) == 1
 
-
             # Re-adjust the window size for tight fit
             if minimize:
 
@@ -245,7 +244,7 @@ def tileSurveyPoints(locs, nRefine, minimize=True, method='cluster'):
         xy1 = np.c_[X1[binCount > 0], Y1[binCount > 0]]
         xy2 = np.c_[X2[binCount > 0], Y2[binCount > 0]]
 
-    return [xy1, xy2], binCount, cluster_labels
+    return [xy1, xy2], binCount[binCount > 0], cluster_labels
 
 
 def meshBuilder(xyz, h, padDist, meshGlobal=None,
