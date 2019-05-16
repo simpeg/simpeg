@@ -150,6 +150,7 @@ def tileSurveyPoints(locs, nRefine, minimize=True, method='cluster'):
                             limits of each tiles
         :param integer binCount: Number of points in each tile
         :param numpy.array labels: Cluster index of each point n=0:(nTargetTiles-1)
+        :param numpy.array tile_numbers: Vector of tile numbers for each count in binCount
 
         NOTE: All X Y and xy products are legacy now values, and are only used
         for plotting functions. They are not used in any calculations and could
@@ -186,7 +187,10 @@ def tileSurveyPoints(locs, nRefine, minimize=True, method='cluster'):
 
         xy1 = np.c_[X1[binCount > 0], Y1[binCount > 0]]
         xy2 = np.c_[X2[binCount > 0], Y2[binCount > 0]]
-        return [xy1, xy2], binCount[binCount > 0], cluster.labels_
+        
+        # Get the tile numbers that exist, for compatibility with the next method 
+        tile_numbers = np.unique(cluster.labels_)
+        return [xy1, xy2], binCount[binCount > 0], cluster.labels_, tile_numbers
 
     else:
         # Works on larger problems
@@ -223,7 +227,7 @@ def tileSurveyPoints(locs, nRefine, minimize=True, method='cluster'):
         # Plot data and tiles
         X1, Y1, X2, Y2 = mkvc(X1), mkvc(Y1), mkvc(X2), mkvc(Y2)
         binCount = np.zeros_like(X1)
-        cluster_labels = np.zeros_like(locs[:, 0])
+        tile_labels = np.zeros_like(locs[:, 0])
         for ii in range(X1.shape[0]):
 
             mask = (
@@ -238,13 +242,17 @@ def tileSurveyPoints(locs, nRefine, minimize=True, method='cluster'):
                     X1[ii], X2[ii] = locs[:, 0][mask].min(), locs[:, 0][mask].max()
                     Y1[ii], Y2[ii] = locs[:, 1][mask].min(), locs[:, 1][mask].max()
 
-            cluster_labels[mask] = ii
+            tile_labels[mask] = ii
             binCount[ii] = mask.sum()
 
         xy1 = np.c_[X1[binCount > 0], Y1[binCount > 0]]
         xy2 = np.c_[X2[binCount > 0], Y2[binCount > 0]]
 
-    return [xy1, xy2], binCount[binCount > 0], cluster_labels
+        # Get the tile numbers that exist
+        # Since some tiles may have 0 data locations, and are removed by
+        # [binCount > 0], the tile numbers are no longer contiguous 0:nTiles
+        tile_numbers = np.unique(tile_labels)
+        return [xy1, xy2], binCount[binCount > 0], tile_labels, tile_numbers
 
 
 def meshBuilder(xyz, h, padDist, meshGlobal=None,
