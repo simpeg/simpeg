@@ -97,7 +97,7 @@ class BaseSIPProblem(BaseEMProblem):
 
     def fields(self, m):
         if self.verbose:
-            print (">> Compute DC fields")
+            print(">> Compute DC fields")
         if self._f is None:
             self._f = self.fieldsPair(self.mesh, self.survey)
             if self.Ainv is None:
@@ -152,7 +152,7 @@ class BaseSIPProblem(BaseEMProblem):
             self._Jmatrix = Jt.T
             if self.verbose:
                 collected = gc.collect()
-                print (
+                print(
                     "Garbage collector: collected %d objects." % (collected)
                 )
 
@@ -476,8 +476,8 @@ class Problem3D_CC(BaseSIPProblem, BaseProblem3D_CC):
 
         if self.storeJ:
             if self.actinds is None:
-                print ("You did not put Active indices")
-                print ("So, set actMap = IdentityMap(mesh)")
+                print("You did not put Active indices")
+                print("So, set actMap = IdentityMap(mesh)")
                 self.actinds = np.ones(mesh.nC, dtype=bool)
 
             self.actMap = Maps.InjectActiveCells(mesh, self.actinds, 0.)
@@ -495,8 +495,8 @@ class Problem3D_N(BaseSIPProblem, BaseProblem3D_N):
 
         if self.storeJ:
             if self.actinds is None:
-                print ("You did not put Active indices")
-                print ("So, set actMap = IdentityMap(mesh)")
+                print("You did not put Active indices")
+                print("So, set actMap = IdentityMap(mesh)")
                 self.actinds = np.ones(mesh.nC, dtype=bool)
 
             self.actMap = Maps.InjectActiveCells(mesh, self.actinds, 0.)

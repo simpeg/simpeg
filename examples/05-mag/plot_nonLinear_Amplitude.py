@@ -28,6 +28,8 @@ from SimPEG import (Mesh, Directives, Maps,
 import SimPEG.PF as PF
 from SimPEG.Utils import mkvc
 
+# sphinx_gallery_thumbnail_number = 4
+
 ###############################################################################
 # Setup
 # -----
@@ -232,7 +234,7 @@ ax = plt.subplot(2, 1, 2)
 actvPlot = Maps.InjectActiveCells(mesh, actv, np.nan)
 mesh.plotSlice(
     actvPlot*model, ax=ax, normal='Y', ind=66,
-    pcolorOpts={"vmin": 0., "vmax": 0.01}
+    pcolorOpts={"vmin": 0., "vmax": 0.01}, grid=True,
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
@@ -354,7 +356,7 @@ plt.gca().set_aspect('equal', adjustable='box')
 ax = plt.subplot(2, 1, 2)
 mesh.plotSlice(
     surfMap*mrec, ax=ax, normal='Y', ind=66,
-    pcolorOpts={"vmin": 0., "vmax": 0.01}
+    pcolorOpts={"vmin": 0., "vmax": 0.01}, grid=True
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
@@ -427,7 +429,7 @@ IRLS = Directives.Update_IRLS(f_min_change=1e-3,
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are update between each iteration.
 update_SensWeight = Directives.UpdateSensitivityWeights()
-update_Jacobi = Directives.UpdatePreconditioner(threshold=1-3)
+update_Jacobi = Directives.UpdatePreconditioner()
 
 # Put all together
 inv = Inversion.BaseInversion(
@@ -465,7 +467,7 @@ plt.gca().set_aspect('equal', adjustable='box')
 ax = plt.subplot(3, 1, 2)
 im = mesh.plotSlice(
     actvPlot*invProb.l2model, ax=ax, normal='Y', ind=66,
-    pcolorOpts={"vmin": 0., "vmax": 0.01}
+    pcolorOpts={"vmin": 0., "vmax": 0.01}, grid=True,
 )
 plt.colorbar(im[0])
 ax.set_xlim([-200, 200])
@@ -478,7 +480,7 @@ plt.gca().set_aspect('equal', adjustable='box')
 ax = plt.subplot(3, 1, 3)
 im = mesh.plotSlice(
     actvPlot*mrec_Amp, ax=ax, normal='Y', ind=66,
-    pcolorOpts={"vmin": 0., "vmax": 0.01}
+    pcolorOpts={"vmin": 0., "vmax": 0.01}, grid=True
 )
 plt.colorbar(im[0])
 ax.set_xlim([-200, 200])

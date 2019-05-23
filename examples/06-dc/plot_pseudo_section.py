@@ -171,12 +171,12 @@ def run(loc=None, sig=None, radi=None, param=None, survey_type='dipole-dipole',
         dtemp = (P1*phi - P2*phi)*np.pi
 
         data.append(dtemp)
-        print ('\rTransmitter {0} of {1} -> Time:{2} sec'.format(
+        print('\rTransmitter {0} of {1} -> Time:{2} sec'.format(
             ii, len(Tx), time.time() - start_time)
         )
 
-    print ('Transmitter {0} of {1}'.format(ii, len(Tx)))
-    print ('Forward completed')
+    print('Transmitter {0} of {1}'.format(ii, len(Tx)))
+    print('Forward completed')
 
     # Let's just convert the 3D format into 2D (distance along line) and plot
     survey2D = convertObs_DC3D_to_2D(survey, np.ones(survey.nSrc), 'Xloc')

@@ -91,7 +91,7 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
         Project fields to receivers to get data.
 
         :param SimPEG.EM.TDEM.SrcTDEM.BaseSrc src: TDEM source
-        :param BaseMesh mesh: mesh used
+        :param discretize.base.BaseMesh mesh: mesh used
         :param Fields f: fields object
         :rtype: numpy.ndarray
         :return: fields projected to recievers
@@ -106,8 +106,8 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
         Derivative of projected fields with respect to the inversion model times a vector.
 
         :param SimPEG.EM.TDEM.SrcTDEM.BaseSrc src: TDEM source
-        :param BaseMesh mesh: mesh used
-        :param BaseMesh timeMesh: time mesh
+        :param discretize.base.BaseMesh mesh: mesh used
+        :param discretize.base.BaseMesh timeMesh: time mesh
         :param Fields f: fields object
         :param numpy.ndarray v: vector to multiply
         :rtype: numpy.ndarray
