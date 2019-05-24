@@ -287,7 +287,9 @@ sphinx_gallery_conf = {
     # path to your examples scripts
     'examples_dirs' : os.path.sep.join(['..','examples']),
     'gallery_dirs'  : os.path.sep.join(['content','examples']),
-    'backreferences_dir' : False
+    'backreferences_dir' : False,
+    # Regex pattern to search for example files
+    "filename_pattern": r"(.+)plot(.+)\.py",
 }
 
 
