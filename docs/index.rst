@@ -15,6 +15,15 @@ About SimPEG
    content/basic/practices
    content/examples/index
 
+Tutorials
+*********
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Tutorials
+
+   content/tutorials/models_mapping/index
+
 
 
 Packages
