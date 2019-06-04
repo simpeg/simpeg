@@ -73,7 +73,7 @@ Fig = plt.figure(figsize=(5, 5))
 Ax = Fig.add_subplot(111)
 mesh.plotSlice(modMap*mod, normal='Y', ax=Ax, ind=int(mesh.nCy/2), grid=True)
 Ax.set_title('Model slice at y = -2.5 m')
-
+plt.show()
 
 #############################################
 # Topography, a block and a vertical dyke
@@ -116,7 +116,7 @@ Fig = plt.figure(figsize=(5, 5))
 Ax = Fig.add_subplot(111)
 mesh.plotSlice(modMap*mod, normal='Y', ax=Ax, ind=int(mesh.nCy/2), grid=True)
 Ax.set_title('Model slice at y = -2.5 m')
-
+plt.show()
 
 
 #############################################
@@ -166,6 +166,7 @@ Fig = plt.figure(figsize=(5, 5))
 Ax = Fig.add_subplot(111)
 mesh.plotSlice(modMap*mod, normal='Y', ax=Ax, ind=int(mesh.nCy/2), grid=True)
 Ax.set_title('Model slice at y = -2.5 m')
+plt.show()
 
 
 #############################################
@@ -217,7 +218,7 @@ Fig = plt.figure(figsize=(5, 5))
 Ax = Fig.add_subplot(111)
 mesh.plotSlice(modMap*mod, normal='Y', ax=Ax, ind=int(mesh.nCy/2), grid=True)
 Ax.set_title('Model slice at y = -2.5 m')
-
+plt.show()
 
 
 #############################################
@@ -259,6 +260,7 @@ Fig = plt.figure(figsize=(5, 5))
 Ax = Fig.add_subplot(111)
 mesh.plotSlice(modMap*mod, normal='Y', ax=Ax, ind=int(mesh.nCy/2), grid=True)
 Ax.set_title('Model slice at y = -2.5 m')
+plt.show()
 
 
 #############################################
@@ -326,3 +328,4 @@ Fig = plt.figure(figsize=(5, 5))
 Ax = Fig.add_subplot(111)
 mesh.plotSlice(sigMap*mod, normal='Y', ax=Ax, ind=int(mesh.nCy/2), grid=True)
 Ax.set_title('Model slice at y = -2.5 m')
+plt.show()

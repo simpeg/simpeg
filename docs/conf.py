@@ -38,6 +38,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     # 'sphinxcontrib.napoleon',
     'matplotlib.sphinxext.plot_directive',
+    'nbsphinx',
     'sphinx_gallery.gen_gallery',
     'edit_on_github',
 ]
@@ -286,11 +287,11 @@ texinfo_documents = [
 # Sphinx Gallery
 sphinx_gallery_conf = {
     # path to your examples scripts
-    'examples_dirs' : [os.path.sep.join(['..','examples']),
-                       os.path.sep.join(['..','tutorials/models_mapping'])
+    'examples_dirs' : ['../examples',
+                       '../tutorials/models_mapping'
                        ],
-    'gallery_dirs'  : [os.path.sep.join(['content','examples']),
-                       os.path.sep.join(['content','tutorials','models_mapping'])
+    'gallery_dirs'  : ['content/examples',
+                       'content/tutorials/models_mapping'
                        ],
     'within_subsection_order': FileNameSortKey,
     'backreferences_dir' : False

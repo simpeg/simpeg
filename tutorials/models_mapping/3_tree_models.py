@@ -10,7 +10,7 @@ OcTree meshes. Some things we consider are:
     - Adding structures of various shape to the model
     - Parameterized models
     - Models with 2 or more physical properties
-
+    
 
 """
 
@@ -127,6 +127,7 @@ Ax = Fig.add_subplot(111)
 mesh.plotSlice(modMap*mod, normal='Y', ax=Ax,
                ind=int(mesh.hy.size/2), grid=True)
 Ax.set_title('Model slice at y = -2.5 m')
+plt.show()
 
 
 #############################################
@@ -180,6 +181,7 @@ Ax = Fig.add_subplot(111)
 mesh.plotSlice(modMap*mod, normal='Y', ax=Ax,
                ind=int(mesh.hy.size/2), grid=True)
 Ax.set_title('Model slice at y = -2.5 m')
+plt.show()
 
 
 #############################################
@@ -235,6 +237,7 @@ Ax = Fig.add_subplot(111)
 mesh.plotSlice(modMap*mod, normal='Y', ax=Ax,
                ind=int(mesh.hy.size/2), grid=True)
 Ax.set_title('Model slice at y = -2.5 m')
+plt.show()
 
 
 #############################################
@@ -280,6 +283,7 @@ Ax = Fig.add_subplot(111)
 mesh.plotSlice(modMap*mod, normal='Y', ax=Ax,
                ind=int(mesh.hy.size/2), grid=True)
 Ax.set_title('Model slice at y = -2.5 m')
+plt.show()
 
 
 #############################################
@@ -351,3 +355,4 @@ Ax = Fig.add_subplot(111)
 mesh.plotSlice(sigMap*mod, normal='Y', ax=Ax,
                ind=int(mesh.hy.size/2), grid=True)
 Ax.set_title('Model slice at y = -2.5 m')
+plt.show()
