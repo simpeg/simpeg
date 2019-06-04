@@ -27,6 +27,7 @@ from discretize.utils import meshutils
 import numpy as np
 import matplotlib.pyplot as plt
 
+# sphinx_gallery_thumbnail_number = 3
 
 #############################################
 # Defining the mesh
