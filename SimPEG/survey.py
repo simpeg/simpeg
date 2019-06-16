@@ -88,8 +88,7 @@ class BaseRx(properties.HasProperties):
     def locs(self):
         warnings.warn(
             "BaseRx.locs will be deprecaited and replaced with "
-            "BaseRx.locations. Please update your code accordingly",
-            DeprecationWarning
+            "BaseRx.locations. Please update your code accordingly"
         )
         return self.locations
 
@@ -97,8 +96,7 @@ class BaseRx(properties.HasProperties):
     def locs(self, value):
         warnings.warn(
             "BaseRx.locs will be deprecaited and replaced with "
-            "BaseRx.locations. Please update your code accordingly",
-            DeprecationWarning
+            "BaseRx.locations. Please update your code accordingly"
         )
         self.locations = value
 
@@ -214,8 +212,7 @@ class BaseSrc(BaseSimPEG):
     def loc(self):
         warnings.warn(
             "BaseSrc.locs will be deprecaited and replaced with "
-            "BaseSrc.locations. Please update your code accordingly",
-            DeprecationWarning
+            "BaseSrc.locations. Please update your code accordingly"
         )
         return self.location
 
@@ -223,8 +220,7 @@ class BaseSrc(BaseSimPEG):
     def loc(self, value):
         warnings.warn(
             "BaseSrc.locs will be deprecaited and replaced with "
-            "BaseSrc.locations. Please update your code accordingly",
-            DeprecationWarning
+            "BaseSrc.locations. Please update your code accordingly"
         )
         self.location = value
 
@@ -232,8 +228,7 @@ class BaseSrc(BaseSimPEG):
     def rxList(self):
         warnings.warn(
             "source.rxList will be deprecaited and replaced with "
-            "source.receiver_list. Please update your code accordingly",
-            DeprecationWarning
+            "source.receiver_list. Please update your code accordingly"
         )
         return self.receiver_list
 
@@ -241,8 +236,7 @@ class BaseSrc(BaseSimPEG):
     def rxList(self, value):
         warnings.warn(
             "source.rxList will be deprecaited and replaced with "
-            "source.receiver_list. Please update your code accordingly",
-            DeprecationWarning
+            "source.receiver_list. Please update your code accordingly"
         )
         self.receiver_list = value
 

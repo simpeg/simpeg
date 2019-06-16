@@ -23,22 +23,11 @@ class DataMisfitTest(unittest.TestCase):
         # prob = DC.Problem3D_CC(mesh, rhoMap=Maps.ExpMap(mesh))
         sim = simulation.ExponentialSinusoidSimulation(mesh=mesh, model_map=maps.ExpMap(mesh))
 
-        # rx = DC.Rx.Pole(
-        #     utils.ndgrid([mesh.vectorCCx, np.r_[mesh.vectorCCy.max()]])
-        # )
-        # src = DC.Src.Dipole(
-        #     [rx], np.r_[-0.25, mesh.vectorCCy.max()],
-        #     np.r_[0.25, mesh.vectorCCy.max()]
-        # )
-        # survey = DC.Survey([src])
-
-        # prob.pair(survey)
-
         synthetic_data = sim.make_synthetic_data(model)
         dobs = synthetic_data.dobs
 
         self.std = 0.01
-        self.eps = 1e-8 * np.min(np.abs(dobs))
+        self.eps = 1e-8
 
         synthetic_data.standard_deviation = self.std
         synthetic_data.noise_floor = self.eps
@@ -64,7 +53,15 @@ class DataMisfitTest(unittest.TestCase):
     def test_DataMisfit_nP(self):
         self.assertTrue(self.dmis.nP == self.mesh.nC)
 
+    def test_zero_uncertainties(self):
+        self.data.standard_deviation = 0.
+        self.data.noise_floor = 0.
+        with self.assertRaises(Exception):
+            Worig = self.dmis.W
+
     def test_setting_W(self):
+        self.data.standard_deviation = self.std
+        self.data.noise_floor = self.eps
         Worig = self.dmis.W
         v = np.random.rand(self.survey.nD)
 
@@ -78,18 +75,9 @@ class DataMisfitTest(unittest.TestCase):
         self.dmis.W = Worig
 
     def test_DataMisfitOrder(self):
+        self.data.standard_deviation = self.std
+        self.data.noise_floor = self.eps
         self.dmis.test(x=self.model)
-
-    # def test_std_eps(self):
-    #     Wtest = np.allclose(
-    #         np.abs(np.dot(self.dmis.W.todense(), self.data.dobs)),
-    #         1./self.std,
-    #         atol=self.eps
-    #     )
-
-    #     # self.assertTrue(stdtest)
-    #     # self.assertTrue(epstest)
-    #     self.assertTrue(Wtest)
 
 if __name__ == '__main__':
     unittest.main()

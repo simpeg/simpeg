@@ -51,7 +51,8 @@ class TestData(unittest.TestCase):
             for rx in src.receiver_list:
                 v = np.random.rand(rx.nD)
                 V += [v]
-                self.D._standard_deviation[src, rx] = v
+                index = self.D.index_dict[src][rx]
+                self.D.standard_deviation[index] = v
                 self.assertTrue(np.all(v == self.D._standard_deviation[src, rx]))
         V = np.concatenate(V)
         self.assertTrue(np.all(V == self.D.standard_deviation))

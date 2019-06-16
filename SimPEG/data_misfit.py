@@ -98,6 +98,12 @@ class BaseDataMisfit(L2ObjectiveFunction):
                     "data.noise_floor = 1e-5), alternatively, the W matrix "
                     "can be set directly (dmisfit.W = 1./uncertainty)"
                 )
+            if any(uncertainty <= 0):
+                raise Exception(
+                    "data.uncertainty musy be strictly positive to construct "
+                    "the W matrix. Please set data.standard_deviation and or "
+                    "data.noise_floor."
+                )
             self._W = sdiag(1/(uncertainty))
         return self._W
 

@@ -1,5 +1,6 @@
-import properties
 import numpy as np
+import properties
+from six import integer_types
 import warnings
 
 from .survey import BaseSurvey
@@ -8,147 +9,93 @@ from .utils import mkvc
 __all__ = ['Data', 'SyntheticData']
 
 
-class BaseDataArray(properties.HasProperties):
+class UncertaintyArray(properties.Array):
 
-    class_info = "Base class for a data array that can be indexed by a source, receiver pair"
+    class_info = "An array that can be set by a scalar value or numpy array"
 
-    data = properties.Array(
-        "data that can be indexed by a source receiver pair",
-        shape=('*',),
-        required=True,
-    )
-
-    survey = properties.Instance(
-        "a SimPEG survey object",
-        BaseSurvey
-    )
-
-    def __init__(self, survey, data=None):
-        super(BaseDataArray, self).__init__()
-        self.survey = survey
-        if data is None:
-            data = np.empty(survey.nD)
-        self.data = data
-
-    def _set_data_dict(self):
-        if self.survey is None:
-            raise Exception(
-                "To set or get values by source-receiver pairs, a survey must "
-                "first be set. `data.survey = survey`"
-            )
-
-        # create an empty dict
-        self._data_dict = {}
-
-        # create an empty dict associated with each source
-        for src in self.survey.source_list:
-            self._data_dict[src] = {}
-
-        # loop over sources and find the associated data indices
-        indBot, indTop = 0, 0
-        for src in self.survey.source_list:
-            for rx in src.receiver_list:
-                indTop += rx.nD
-                self._data_dict[src][rx] = np.arange(indBot, indTop)
-                indBot += rx.nD
-
-
-    def _ensureCorrectKey(self, key):
-        if type(key) is tuple:
-            if len(key) is not 2:
-                raise KeyError('Key must be [Src, Rx]')
-            if key[0] not in self.survey.source_list:
-                raise KeyError('Src Key must be a source in the survey.')
-            if key[1] not in key[0].receiver_list:
-                raise KeyError('Rx Key must be a receiver for the source.')
-            return key
-
-        elif key not in self.survey.source_list:
-            raise KeyError('Key must be a source in the survey.')
-        return key, None
-
-    def __setitem__(self, key, value):
-        "set item"
-        src, rx = self._ensureCorrectKey(key)
-        assert rx is not None, 'set data using [Src, Rx]'
-        assert isinstance(value, np.ndarray), 'value must by ndarray'
-        assert value.size == rx.nD, (
-            "value must have the same number of data as the source."
-        )
-
-        if getattr(self, '_data_dict', None) is None:
-            self._set_data_dict()
-
-        inds = self._data_dict[src][rx]
-        self.data[inds] = mkvc(value)
-
-    def __getitem__(self, key):
-        src, rx = self._ensureCorrectKey(key)
-
-        if getattr(self, '_data_dict', None) is None:
-            self._set_data_dict()
-
-        if rx is not None:
-            if rx not in self._data_dict[src]:
-                raise Exception('Data for receiver has not yet been set.')
-            return self.data[self._data_dict[src][rx]]
-
-        return np.concatenate([
-            self.data[self._data_dict[src][rx]] for rx in src.receiver_list
-        ])
-
-    @property
-    def nD(self):
-        return len(self.data)
-
-    def tovec(self):
-        if len(self.survey.source_list) == 0:
-            return self.data
-        return np.concatenate([self[src] for src in self.survey.source_list])
-
-    def fromvec(self, v):
-        v = utils.mkvc(v)
-        assert v.size == self.survey.nD, (
-            'v must have the correct number of data.'
-        )
-        indBot, indTop = 0, 0
-        for src in self.survey.source_list:
-            for rx in src.receiver_list:
-                indTop += rx.nD
-                self[src, rx] = v[indBot:indTop]
-                indBot += rx.nD
+    def validate(self, instance, value):
+        if isinstance(value, integer_types):
+            return float(value)
+        elif isinstance(value, float):
+            return value
+        return super(properties.Array, self).validate(instance, value)
 
 
 class Data(properties.HasProperties):
     """
-    Data storage
+    Data storage. This class keeps track of observed data, standard deviation
+    of those data and the noise floor.
     """
 
-    _dobs = properties.Instance(
-        "Observed data",
-        BaseDataArray,
-        required=True
+    dobs = properties.Array(
+        """
+        Vector of the observed data. The data can be set using the survey
+        parameters:
+
+        .. code:: python
+            data = Data(survey)
+            for src in survey.srcList:
+                for rx in src.rxList:
+                    index = data.index_dict[src][rx]
+                    data.dobs[index] = datum
+
+        """,
+        shape=('*',), required=True
     )
 
-    _standard_deviation = properties.Instance(
-        "standard deviation of the data",
-        BaseDataArray,
-        required=True
+    standard_deviation = UncertaintyArray(
+        """
+        Standard deviation of the data. This can be set using an array of the
+        same size as the data (e.g. if you want to assign a different standard
+        deviation to each datum) or as a scalar if you would like to assign a
+        the same standard deviation to all data.
+
+        For example, if you set
+
+        .. code:: python
+            data = Data(survey, dobs=dobs)
+            data.standard_deviation = 0.05
+
+        then the contribution to the uncertainty is equal to
+
+        .. code:: python
+            data.standard_deviation * np.abs(data.dobs)
+
+        """,
+        shape=('*',)
     )
 
-    _noise_floor = properties.Instance(
-        "noise floor of the data",
-        BaseDataArray,
-        required=True
+    noise_floor = UncertaintyArray(
+        """
+        Noise floor of the data. This can be set using an array of the
+        same size as the data (e.g. if you want to assign a different noise
+        floor to each datum) or as a scalar if you would like to assign a
+        the same noise floor to all data.
+
+        For example, if you set
+
+        .. code:: python
+            data = Data(survey, dobs=dobs)
+            data.noise_floor = 1e-10
+
+        then the contribution to the uncertainty is equal to
+
+        .. code:: python
+            data.noise_floor
+
+        """,
+        shape=('*',)
     )
 
     survey = properties.Instance(
-        "a SimPEG survey object",
-        BaseSurvey
+        "a SimPEG survey object", BaseSurvey, required=True
     )
 
     _uid = properties.Uuid("unique ID for the data")
 
+    #######################
+    # Instantiate the class
+    #######################
     def __init__(
         self, survey, dobs=None, standard_deviation=None, noise_floor=None
     ):
@@ -156,64 +103,23 @@ class Data(properties.HasProperties):
         self.survey = survey
 
         # Observed data
-        self._dobs = BaseDataArray(survey=survey)
-        if dobs is not None:
-            self._dobs.data = dobs
-            self._dobs._set_data_dict()
+        if dobs is None:
+            dobs = np.nan*np.ones(survey.nD)  # initialize data as nans
+        self.dobs = dobs
 
-        # Standard deviation (use the data dict from the observed data)
-        self._standard_deviation = BaseDataArray(survey=survey)
-        if standard_deviation is not None:
-            self.standard_deviation = standard_deviation  # go through the setter
+        # Standard deviation (initialize as zero)
+        if standard_deviation is None:
+            standard_deviation = np.zeros(survey.nD)
+        self.standard_deviation = standard_deviation
 
-        # Noise floor (use the data dict from the observed data)
-        self._noise_floor = BaseDataArray(survey=survey)
-        if noise_floor is not None:
-            self.noise_floor = noise_floor  # go through the setter
+        # Noise floor (initialize as zero)
+        if noise_floor is None:
+            noise_floor = np.zeros(survey.nD)
+        self.noise_floor = noise_floor
 
-
-    @property
-    def dobs(self):
-        return self._dobs.tovec()
-
-    @dobs.setter
-    def dobs(self, value):
-        if isinstance(value, BaseDataArray):
-            self._dobs = value
-        else:
-            self._dobs.data = value
-        self._dobs._set_data_dict()
-
-    @property
-    def standard_deviation(self):
-        return self._standard_deviation.tovec()
-
-    @standard_deviation.setter
-    def standard_deviation(self, value):
-        if isinstance(value, BaseDataArray):
-            self._standard_deviation = value
-        else:
-            if isinstance(value, float):  # set this to a vector the same length as the data
-                value = value * np.abs(self.dobs)
-            self._standard_deviation = BaseDataArray(data=value, survey=self.survey)
-        if getattr(self.dobs, '_data_dict', None) is not None:  # skip creating the data_dict and assign it
-            self._standard_deviation._data_dict = self._dobs._data_dict
-
-    @property
-    def noise_floor(self):
-        return self._noise_floor.tovec()
-
-    @noise_floor.setter
-    def noise_floor(self, value):
-        if isinstance(value, BaseDataArray):
-            self._noise_floor = value
-        elif isinstance(value, float):
-            value = value * np.ones(self.nD)  # set this to a vector the same length as the data
-        self._noise_floor = BaseDataArray(data=value, survey=self.survey)
-        if getattr(self, 'dobs', None) is not None: # skip creating the data_dict and assign it
-            self._noise_floor._data_dict = self._dobs._data_dict
-
-
+    #######################
+    # Properties
+    #######################
     @property
     def uncertainty(self):
         """
@@ -233,6 +139,9 @@ class Data(properties.HasProperties):
 
             data.uncertainty = 0.05 * np.absolute(self.dobs) + 1e-12
 
+        Note that setting the uncertainty directly will clear the :code:`standard_deviation`
+        and set the value to the `noise_floor` property.
+
         """
         if self.standard_deviation is None and self.noise_floor is None:
             raise Exception(
@@ -251,33 +160,81 @@ class Data(properties.HasProperties):
 
     @uncertainty.setter
     def uncertainty(self, value):
-        del self.standard_deviation
+        self.self.standard_deviation = np.zeros(self.nD)
         self.noise_floor = value
 
     @property
     def nD(self):
-        return self._dobs.nD
-
-    def __setitem__(self, key, value):
-        return self._dobs.__setitem__(key, value)
-
-    def __getitem__(self, key):
-        return self._dobs.__getitem__(key)
-
-    def tovec(self):
-        return self._dobs.tovec()
-
-    def fromvec(self, v):
-        return self._dobs.fromvec(v)
+        return len(self.dobs)
 
     ##########################
-    # Depreciated properties #
+    # Observers and validators
+    ##########################
+
+    @properties.validator('dobs')
+    def _dobs_validator(self, change):
+        if self.survey.nD != len(change['value']):
+            raise ValueError(
+                "{} must have the same length as the number of data. The "
+                "provided input has len {}, while the survey expects "
+                "survey.nD = {}".format(
+                    change["name"], len(change["value"]), self.survey.nD
+                )
+            )
+
+    @properties.validator(['standard_deviation', 'noise_floor'])
+    def _uncertainty_validator(self, change):
+        if isinstance(change['value'], float):
+            change['value'] = change['value'] * np.ones(self.nD)
+        self._dobs_validator(change)
+
+
+    @property
+    def index_dict(self):
+        """
+        Dictionary of data indices by sources and receivers. To set data using
+        survey parameters:
+
+        .. code::
+            data = Data(survey)
+            for src in survey.srcList:
+                for rx in src.rxList:
+                    index = data.index_dict[src][rx]
+                    data.dobs[index] = datum
+
+        """
+        if getattr(self, '_index_dict', None) is None:
+            if self.survey is None:
+                raise Exception(
+                    "To set or get values by source-receiver pairs, a survey must "
+                    "first be set. `data.survey = survey`"
+                )
+
+            # create an empty dict
+            self._index_dict = {}
+
+            # create an empty dict associated with each source
+            for src in self.survey.source_list:
+                self._index_dict[src] = {}
+
+            # loop over sources and find the associated data indices
+            indBot, indTop = 0, 0
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
+                    indTop += rx.nD
+                    self._index_dict[src][rx] = np.arange(indBot, indTop)
+                    indBot += rx.nD
+
+        return self._index_dict
+
+    ##########################
+    # Depreciated
     ##########################
     @property
     def std(self):
         warnings.warn(
             "std has been depreciated in favor of standard_deviation. Please "
-            "update your code to use 'standard_deviation'", DeprecationWarning
+            "update your code to use 'standard_deviation'"
         )
         return self.standard_deviation
 
@@ -285,7 +242,7 @@ class Data(properties.HasProperties):
     def std(self, value):
         warnings.warn(
             "std has been depreciated in favor of standard_deviation. Please "
-            "update your code to use 'standard_deviation'", DeprecationWarning
+            "update your code to use 'standard_deviation'"
         )
         self.standard_deviation = value
 
@@ -293,7 +250,7 @@ class Data(properties.HasProperties):
     def eps(self):
         warnings.warn(
             "eps has been depreciated in favor of noise_floor. Please "
-            "update your code to use 'noise_floor'", DeprecationWarning
+            "update your code to use 'noise_floor'"
         )
         return self.noise_floor
 
@@ -301,41 +258,93 @@ class Data(properties.HasProperties):
     def eps(self, value):
         warnings.warn(
             "eps has been depreciated in favor of noise_floor. Please "
-            "update your code to use 'noise_floor'", DeprecationWarning
+            "update your code to use 'noise_floor'"
         )
         self.noise_floor = value
 
+    def __setitem__(self, key, value):
+        warnings.warn(
+            """
+            Treating the data object as a dictionary has been depreciated in
+            in favor of working with the index_dict. Please update your code to
+            use
+
+            .. code::
+
+                index = data.index_dict[src][rx]
+                data.dobs[index] = datum
+
+            """
+        )
+        index = self.index_dict[key[0]][key[1]]
+        self.dobs[index] = value
+
+    def __getitem__(self, key):
+        warnings.warn(
+            """
+            Treating the data object as a dictionary has been depreciated in
+            in favor of working with the index_dict. Please update your code to
+            use
+
+            .. code::
+
+                index = data.index_dict[src][rx]
+                datum = data.dobs[index]
+
+            """
+        )
+        index = self.index_dict[key[0]][key[1]]
+        return self.dobs[index]
+
+    def tovec(self):
+        warnings.warn(
+            """
+            data.tovec is no longer necessary. Please update your code to call
+            data.dobs directly.
+            """
+        )
+        return self.dobs
+
+    def fromvec(self, v):
+        raise Exception(
+            "fromvec has been depreciated. Please use the index_dict to "
+            "interact with the data as a dictionary"
+        )
 
 class SyntheticData(Data):
     """
     Data class for synthetic data. It keeps track of observed and clean data
     """
-    _dclean = properties.Instance(
-        "Observed data",
-        BaseDataArray,
-        required=True
+
+    dclean = properties.Array(
+        """
+        Vector of the clean synthetic data. The data can be set using the survey
+        parameters:
+
+        .. code:: python
+            data = Data(survey)
+            for src in survey.srcList:
+                for rx in src.rxList:
+                    index = data.inices_by_survey(src, rx)
+                    data.dclean[indices] = datum
+
+        """,
+        shape=('*',), required=True
     )
 
-    def __init__(self, survey, dobs=None, dclean=None, standard_deviation=None, noise_floor=None):
+    def __init__(
+        self, survey, dobs=None, dclean=None, standard_deviation=None,
+        noise_floor=None
+    ):
         super(SyntheticData, self).__init__(
             survey=survey, dobs=dobs,
             standard_deviation=standard_deviation, noise_floor=noise_floor
         )
-        self._dclean = BaseDataArray(survey=survey)
-        if dclean is not None:
-            self.dclean = dclean
 
-    @property
-    def dclean(self):
-        return self._dclean.data.tovec()
+        if dclean is None:
+            dclean = np.nan*np.ones(self.survey.nD)
+        self.dclean = dclean
 
-    @dclean.setter
-    def dclean(self, value):
-        if isinstance(value, BaseDataArray):
-            self._dclean = value
-        else:
-            if isinstance(value, float):  # set this to a vector the same length as the data
-                value = value * np.abs(self.dobs)
-            self._dclean = BaseDataArray(data=value, survey=self.survey)
-        if getattr(self._dobs, '_data_dict', None) is not None:  # skip creating the data_dict and assign it
-            self._dclean._data_dict = self._dobs._data_dict
+    @properties.validator('dclean')
+    def _dclean_validator(self, change):
+        self._dobs_validator(change)
