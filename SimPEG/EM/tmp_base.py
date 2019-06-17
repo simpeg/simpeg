@@ -19,7 +19,7 @@ try:
 except ImportError:
     from SimPEG import Solver
 
-__all__ = ['BaseEMProblem', 'BaseEMSurvey', 'BaseEMSrc']
+__all__ = ['BaseEMSimulation', 'BaseEMSurvey', 'BaseEMSrc']
 
 
 
@@ -29,7 +29,7 @@ __all__ = ['BaseEMProblem', 'BaseEMSurvey', 'BaseEMSrc']
 #                                                                             #
 ###############################################################################
 
-class BaseEMProblem(BaseSimulation):
+class BaseEMSimulation(BaseSimulation):
 
     sigma, sigmaMap, sigmaDeriv = props.Invertible(
         "Electrical conductivity (S/m)"
