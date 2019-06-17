@@ -3,16 +3,19 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import SimPEG
-from . import RxDC as Rx
-from . import SrcDC as Src
-from SimPEG.EM.Base import BaseEMSurvey
 import numpy as np
 from scipy.interpolate import interp1d, NearestNDInterpolator
 import properties
 
+from ....data import Data
+from ....utils import uniqueRows
+from ...Base import BaseEMSurvey
+from ..Utils import drapeTopotoLoc
+from . import RxDC as Rx
+from . import SrcDC as Src
 
-class Survey(BaseEMSurvey, properties.HasProperties):
+
+class Survey(BaseEMSurvey):
     """
     Base DC survey
     """
@@ -119,7 +122,7 @@ class Survey(BaseEMSurvey, properties.HasProperties):
         if mesh.dim == 2:
             if self.survey_geometry == "surface":
                 if self.electrodes_info is None:
-                    self.electrodes_info = SimPEG.Utils.uniqueRows(
+                    self.electrodes_info = uniqueRows(
                         np.hstack((
                             self.a_locations[:, 0],
                             self.b_locations[:, 0],
@@ -127,7 +130,7 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                             self.n_locations[:, 0],
                             )).reshape([-1, 1])
                         )
-                    self.electrode_locations = SimPEG.EM.Static.Utils.drapeTopotoLoc(
+                    self.electrode_locations = drapeTopotoLoc(
                         mesh,
                         self.electrodes_info[0].flatten(),
                         actind=actind,
@@ -209,7 +212,7 @@ class Survey(BaseEMSurvey, properties.HasProperties):
         if mesh.dim == 3:
             if self.survey_geometry == "surface":
                 if self.electrodes_info is None:
-                    self.electrodes_info = SimPEG.Utils.uniqueRows(
+                    self.electrodes_info = uniqueRows(
                         np.vstack((
                             self.a_locations[:, :2],
                             self.b_locations[:, :2],
@@ -217,7 +220,7 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                             self.n_locations[:, :2],
                             ))
                         )
-                    self.electrode_locations = SimPEG.EM.Static.Utils.drapeTopotoLoc(
+                    self.electrode_locations = drapeTopotoLoc(
                         mesh, self.electrodes_info[0], actind=actind
                         )
                 temp = (
@@ -312,7 +315,7 @@ class Survey_ky(Survey):
         :rtype: numpy.ndarray
         :return: data
         """
-        data = SimPEG.Survey.Data(self)
+        data = Data(self)
         kys = self.prob.kys
         for src in self.srcList:
             for rx in src.rxList:

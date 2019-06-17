@@ -1,10 +1,5 @@
-from __future__ import division, print_function
-import SimPEG
-from SimPEG import Utils
-from SimPEG.Utils import Zero, Identity
-from SimPEG.OldSurvey import BaseSurvey, Data
-from scipy.constants import mu_0
-from SimPEG.EM.Utils import *
+from ...survey import BaseSurvey
+from ...data import Data
 from . import SrcTDEM as Src
 from . import RxTDEM as Rx
 
@@ -30,7 +25,7 @@ class Survey(BaseSurvey):
         data = Data(self)
         for src in self.srcList:
             for rx in src.rxList:
-                data[src, rx] = rx.eval(src, self.mesh, self.prob.timeMesh, u)
+                data.dobs[src, rx] = rx.eval(src, self.mesh, self.prob.timeMesh, u)
         return data
 
     def evalDeriv(self, u, v=None, adjoint=False):

@@ -1,9 +1,7 @@
-import SimPEG
-import SimPEG.OldSurvey as Survey
+from ... import survey
 
 
-
-class BaseRx(Survey.BaseRx):
+class BaseRx(survey.BaseRx):
     """
     Frequency domain receiver base class
 

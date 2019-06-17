@@ -1,8 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import unittest
 import discretize
 import numpy as np
@@ -37,13 +32,13 @@ class TestData(unittest.TestCase):
             for rx in src.receiver_list:
                 v = np.random.rand(rx.nD)
                 V += [v]
-                self.D[src, rx] = v
-                self.assertTrue(np.all(v == self.D[src, rx]))
+                index = self.D.index_dict[src][rx]
+                self.D.dobs[index] = v
         V = np.concatenate(V)
-        self.assertTrue(np.all(V == utils.mkvc(self.D))) # TODO: think about this
+        self.assertTrue(np.all(V == self.D.dobs))
 
         D2 = data.Data(self.D.survey, V)
-        self.assertTrue(np.all(utils.mkvc(D2) == utils.mkvc(self.D)))
+        self.assertTrue(np.all(D2.dobs == self.D.dobs))
 
     def test_standard_dev(self):
         V = []
@@ -53,7 +48,7 @@ class TestData(unittest.TestCase):
                 V += [v]
                 index = self.D.index_dict[src][rx]
                 self.D.standard_deviation[index] = v
-                self.assertTrue(np.all(v == self.D._standard_deviation[src, rx]))
+                self.assertTrue(np.all(v == self.D.standard_deviation[index]))
         V = np.concatenate(V)
         self.assertTrue(np.all(V == self.D.standard_deviation))
 

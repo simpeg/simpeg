@@ -1,17 +1,12 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import numpy as np
 
+from . import RxDC as Rx
+from . import SrcDC as Src
 
 def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
     """
     Source list for a Wenner Array
     """
-
-    import SimPEG.EM.Static.DC as DC
 
     elocs = np.arange(0, aSpacing*nElecs, aSpacing)
     elocs -= (nElecs*aSpacing - aSpacing)/2
@@ -41,9 +36,9 @@ def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
             return np.r_[elocs[WENNER[ii, abmn]], 0, 0]
     srcList = []
     for i in range(WENNER.shape[0]):
-        rx = DC.Rx.Dipole(getLoc(i, 1).reshape([1, -1]),
+        rx = Rx.Dipole(getLoc(i, 1).reshape([1, -1]),
                           getLoc(i, 2).reshape([1, -1]))
-        src = DC.Src.Dipole([rx], getLoc(i, 0), getLoc(i, 3))
+        src = Src.Dipole([rx], getLoc(i, 0), getLoc(i, 3))
         srcList += [src]
 
     return srcList

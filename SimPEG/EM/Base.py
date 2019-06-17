@@ -7,13 +7,17 @@ import properties
 from scipy.constants import mu_0
 import numpy as np
 
-from SimPEG import OldSurvey as Survey
-from SimPEG import Problem
-from SimPEG import Utils
-from SimPEG import Maps
-from SimPEG import Props
-from SimPEG import Solver as SimpegSolver
+from ..data import Data
+from ..maps import IdentityMap
+from ..simulation import BaseSimulation
+from ..survey import BaseSurvey, BaseSrc
+from ..utils import sdiag, Zero
+from .. import props
 
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from SimPEG import Solver
 
 __all__ = ['BaseEMProblem', 'BaseEMSurvey', 'BaseEMSrc']
 
@@ -25,35 +29,35 @@ __all__ = ['BaseEMProblem', 'BaseEMSurvey', 'BaseEMSrc']
 #                                                                             #
 ###############################################################################
 
-class BaseEMProblem(Problem.BaseProblem):
+class BaseEMProblem(BaseSimulation):
 
-    sigma, sigmaMap, sigmaDeriv = Props.Invertible(
+    sigma, sigmaMap, sigmaDeriv = props.Invertible(
         "Electrical conductivity (S/m)"
     )
 
-    rho, rhoMap, rhoDeriv = Props.Invertible(
+    rho, rhoMap, rhoDeriv = props.Invertible(
         "Electrical resistivity (Ohm m)"
     )
 
-    Props.Reciprocal(sigma, rho)
+    props.Reciprocal(sigma, rho)
 
-    mu = Props.PhysicalProperty(
+    mu = props.PhysicalProperty(
         "Magnetic Permeability (H/m)",
         default=mu_0
     )
-    mui = Props.PhysicalProperty(
+    mui = props.PhysicalProperty(
         "Inverse Magnetic Permeability (m/H)"
     )
 
-    Props.Reciprocal(mu, mui)
+    props.Reciprocal(mu, mui)
 
-    surveyPair = Survey.BaseSurvey  #: The survey to pair with.
-    dataPair = Survey.Data  #: The data to pair with.
+    # surveyPair = BaseSurvey  #: The survey to pair with.
+    # dataPair = Data  #: The data to pair with.
 
-    mapPair = Maps.IdentityMap  #: Type of mapping to pair with
+    mapPair = IdentityMap  #: Type of mapping to pair with
 
-    Solver = SimpegSolver  #: Type of solver to pair with
-    solverOpts = {}  #: Solver options
+    Solver = Solver  #: Type of solver to pair with
+    # solverOpts = {}  #: Solver options
 
     verbose = False
     storeInnerProduct = True
@@ -202,7 +206,7 @@ class BaseEMProblem(Problem.BaseProblem):
     @property
     def Vol(self):
         if getattr(self, '_Vol', None) is None:
-            self._Vol = Utils.sdiag(self.mesh.vol)
+            self._Vol = sdiag(self.mesh.vol)
         return self._Vol
 
     ####################################################
@@ -223,7 +227,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of :code:`MfMui` with respect to the model.
         """
         if self.muiMap is None:
-            return Utils.Zero()
+            return Zero()
 
         if getattr(self, '_MfMuiDeriv', None) is None:
             self._MfMuiDeriv = self.mesh.getFaceInnerProductDeriv(
@@ -232,12 +236,12 @@ class BaseEMProblem(Problem.BaseProblem):
 
         if v is not None:
             if adjoint is True:
-                return self._MfMuiDeriv.T*(Utils.sdiag(u)*v)
-            return Utils.sdiag(u)*(self._MfMuiDeriv*v)
+                return self._MfMuiDeriv.T*(sdiag(u)*v)
+            return sdiag(u)*(self._MfMuiDeriv*v)
         else:
             if adjoint is True:
-                return self._MfMuiDeriv.T*(Utils.sdiag(u))
-            return Utils.sdiag(u)*(self._MfMuiDeriv)
+                return self._MfMuiDeriv.T*(sdiag(u))
+            return sdiag(u)*(self._MfMuiDeriv)
 
     @property
     def MfMuiI(self):
@@ -254,7 +258,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
 
         if self.muiMap is None:
-            return Utils.Zero()
+            return Zero()
 
         if len(self.mui.shape) > 1:
             if self.mui.shape[1] > self.mesh.dim:
@@ -285,7 +289,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of :code:`MeMu` with respect to the model.
         """
         if self.muMap is None:
-            return Utils.Zero()
+            return Zero()
 
         if getattr(self, '_MeMuDeriv', None) is None:
             self._MeMuDeriv = self.mesh.getEdgeInnerProductDeriv(
@@ -294,12 +298,12 @@ class BaseEMProblem(Problem.BaseProblem):
 
         if v is not None:
             if adjoint:
-                return self._MeMuDeriv.T * (Utils.sdiag(u)*v)
-            return Utils.sdiag(u)*(self._MeMuDeriv * v)
+                return self._MeMuDeriv.T * (sdiag(u)*v)
+            return sdiag(u)*(self._MeMuDeriv * v)
         else:
             if adjoint is True:
-                return self._MeMuDeriv.T * Utils.sdiag(u)
-            return Utils.sdiag(u) * self._MeMuDeriv
+                return self._MeMuDeriv.T * sdiag(u)
+            return sdiag(u) * self._MeMuDeriv
 
     @property
     def MeMuI(self):
@@ -316,7 +320,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
 
         if self.muMap is None:
-            return Utils.Zero()
+            return Zero()
 
         if len(self.mu.shape) > 1:
             if self.mu.shape[1] > self.mesh.dim:
@@ -350,7 +354,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of MeSigma with respect to the model times a vector (u)
         """
         if self.sigmaMap is None:
-            return Utils.Zero()
+            return Zero()
 
         if getattr(self, '_MeSigmaDeriv', None) is None:
             self._MeSigmaDeriv = self.mesh.getEdgeInnerProductDeriv(
@@ -359,12 +363,12 @@ class BaseEMProblem(Problem.BaseProblem):
 
         if v is not None:
             if adjoint:
-                return self._MeSigmaDeriv.T * (Utils.sdiag(u)*v)
-            return Utils.sdiag(u)*(self._MeSigmaDeriv * v)
+                return self._MeSigmaDeriv.T * (sdiag(u)*v)
+            return sdiag(u)*(self._MeSigmaDeriv * v)
         else:
             if adjoint is True:
-                return self._MeSigmaDeriv.T * Utils.sdiag(u)
-            return Utils.sdiag(u) * self._MeSigmaDeriv
+                return self._MeSigmaDeriv.T * sdiag(u)
+            return sdiag(u) * self._MeSigmaDeriv
 
     @property
     def MeSigmaI(self):
@@ -382,7 +386,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of :code:`MeSigmaI` with respect to the model
         """
         if self.sigmaMap is None:
-            return Utils.Zero()
+            return Zero()
 
         if len(self.sigma.shape) > 1:
             if self.sigma.shape[1] > self.mesh.dim:
@@ -413,7 +417,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of :code:`MfRho` with respect to the model.
         """
         if self.rhoMap is None:
-            return Utils.Zero()
+            return Zero()
 
         if getattr(self, '_MfRhoDeriv', None) is None:
             self._MfRhoDeriv = self.mesh.getFaceInnerProductDeriv(
@@ -422,12 +426,12 @@ class BaseEMProblem(Problem.BaseProblem):
 
         if v is not None:
             if adjoint is True:
-                return self._MfRhoDeriv.T*(Utils.sdiag(u)*v)
-            return Utils.sdiag(u)*(self._MfRhoDeriv*v)
+                return self._MfRhoDeriv.T*(sdiag(u)*v)
+            return sdiag(u)*(self._MfRhoDeriv*v)
         else:
             if adjoint is True:
-                return self._MfRhoDeriv.T*(Utils.sdiag(u))
-            return Utils.sdiag(u)*(self._MfRhoDeriv)
+                return self._MfRhoDeriv.T*(sdiag(u))
+            return sdiag(u)*(self._MfRhoDeriv)
 
     @property
     def MfRhoI(self):
@@ -443,7 +447,7 @@ class BaseEMProblem(Problem.BaseProblem):
             Derivative of :code:`MfRhoI` with respect to the model.
         """
         if self.rhoMap is None:
-            return Utils.Zero()
+            return Zero()
 
         if len(self.rho.shape) > 1:
             if self.rho.shape[1] > self.mesh.dim:
@@ -466,12 +470,12 @@ class BaseEMProblem(Problem.BaseProblem):
 #                                                                             #
 ###############################################################################
 
-class BaseEMSurvey(Survey.BaseSurvey):
+class BaseEMSurvey(BaseSurvey):
 
     def __init__(self, srcList, **kwargs):
         # Sort these by frequency
         self.srcList = srcList
-        Survey.BaseSurvey.__init__(self, **kwargs)
+        super(BaseEMSurvey, self).__init__(**kwargs)
 
     def eval(self, f):
         """Project fields to receiver locations
@@ -496,7 +500,7 @@ class BaseEMSurvey(Survey.BaseSurvey):
 #                                                                             #
 ###############################################################################
 
-class BaseEMSrc(Survey.BaseSrc):
+class BaseEMSrc(BaseSrc):
 
     loc = properties.Array("location of the source", shape={(3,), ('*', 3)})
 
@@ -548,7 +552,7 @@ class BaseEMSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
-        return Utils.Zero()
+        return Zero()
 
     def s_e(self, prob):
         """
@@ -558,7 +562,7 @@ class BaseEMSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
-        return Utils.Zero()
+        return Zero()
 
     def s_mDeriv(self, prob, v, adjoint=False):
         """
@@ -571,7 +575,7 @@ class BaseEMSrc(Survey.BaseSrc):
         :return: product of magnetic source term derivative with a vector
         """
 
-        return Utils.Zero()
+        return Zero()
 
     def s_eDeriv(self, prob, v, adjoint=False):
         """
@@ -583,4 +587,4 @@ class BaseEMSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: product of electric source term derivative with a vector
         """
-        return Utils.Zero()
+        return Zero()

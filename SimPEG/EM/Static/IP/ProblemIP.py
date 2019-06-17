@@ -1,33 +1,30 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-from SimPEG import Utils
-from SimPEG.EM.Base import BaseEMProblem
-from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
 import numpy as np
-from SimPEG.Utils import Zero
-from SimPEG.EM.Static.DC import Problem3D_CC as BaseProblem3D_CC
-from SimPEG.EM.Static.DC import Problem3D_N as BaseProblem3D_N
-from .SurveyIP import Survey
-from SimPEG import Props
 import sys
+
+from .... import props
+from ....utils import mkvc, sdiag, Zero
+
+from ...Base import BaseEMProblem
+
+from ..DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
+from ..DC import Problem3D_CC as BaseProblem3D_CC
+from ..DC import Problem3D_N as BaseProblem3D_N
+from .SurveyIP import Survey
 
 
 class BaseIPProblem(BaseEMProblem):
 
-    sigma = Props.PhysicalProperty(
+    sigma = props.PhysicalProperty(
         "Electrical conductivity (S/m)"
     )
 
-    rho = Props.PhysicalProperty(
+    rho = props.PhysicalProperty(
         "Electrical resistivity (Ohm m)"
     )
 
-    Props.Reciprocal(sigma, rho)
+    props.Reciprocal(sigma, rho)
 
-    eta, etaMap, etaDeriv = Props.Invertible(
+    eta, etaMap, etaDeriv = props.Invertible(
         "Electrical Chargeability"
     )
 
@@ -89,7 +86,7 @@ class BaseIPProblem(BaseEMProblem):
         # When sensitivity matrix J is stored
         if self.storeJ:
             J = self.getJ(m, f=f)
-            Jv = Utils.mkvc(np.dot(J, v))
+            Jv = mkvc(np.dot(J, v))
             return self.sign * Jv
 
         else:
@@ -123,7 +120,7 @@ class BaseIPProblem(BaseEMProblem):
         # When sensitivity matrix J is stored
         if self.storeJ:
             J = self.getJ(m, f=f)
-            Jtv = Utils.mkvc(np.dot(J.T, v))
+            Jtv = mkvc(np.dot(J.T, v))
             return self.sign * Jtv
 
         else:
@@ -191,7 +188,7 @@ class BaseIPProblem(BaseEMProblem):
         # Resistivity ((d u / d log rho).T) - HJ form
 
         if v is not None:
-            return self.sign*Utils.mkvc(Jtv)
+            return self.sign*mkvc(Jtv)
         else:
             return Jtv
         return
@@ -236,7 +233,7 @@ class BaseIPProblem(BaseEMProblem):
         Derivative of MfRho with respect to the model
         """
         if getattr(self, '_MfRhoDerivMat', None) is None:
-            drho_dlogrho = Utils.sdiag(self.rho)*self.etaDeriv
+            drho_dlogrho = sdiag(self.rho)*self.etaDeriv
             self._MfRhoDerivMat = self.mesh.getFaceInnerProductDeriv(
                 np.ones(self.mesh.nC)
             )(np.ones(self.mesh.nF)) * drho_dlogrho
@@ -250,13 +247,13 @@ class BaseIPProblem(BaseEMProblem):
         if self.storeInnerProduct:
             if adjoint:
                 return self.MfRhoDerivMat.T * (
-                    Utils.sdiag(u) * (dMfRhoI_dI.T * v)
+                    sdiag(u) * (dMfRhoI_dI.T * v)
                 )
             else:
-                return dMfRhoI_dI * (Utils.sdiag(u) * (self.MfRhoDerivMat*v))
+                return dMfRhoI_dI * (sdiag(u) * (self.MfRhoDerivMat*v))
         else:
             dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
-            drho_dlogrho = Utils.sdiag(self.rho)*self.etaDeriv
+            drho_dlogrho = sdiag(self.rho)*self.etaDeriv
             if adjoint:
                 return drho_dlogrho.T * (dMf_drho.T * (dMfRhoI_dI.T*v))
             else:
@@ -269,7 +266,7 @@ class BaseIPProblem(BaseEMProblem):
         """
 
         if getattr(self, '_MeSigmaDerivMat', None) is None:
-            dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.etaDeriv
+            dsigma_dlogsigma = sdiag(self.sigma)*self.etaDeriv
             self._MeSigmaDerivMat = self.mesh.getEdgeInnerProductDeriv(
                 np.ones(self.mesh.nC)
             )(np.ones(self.mesh.nE)) * dsigma_dlogsigma
@@ -282,11 +279,11 @@ class BaseIPProblem(BaseEMProblem):
         """
         if self.storeInnerProduct:
             if adjoint:
-                return self.MeSigmaDerivMat.T * (Utils.sdiag(u)*v)
+                return self.MeSigmaDerivMat.T * (sdiag(u)*v)
             else:
-                return Utils.sdiag(u)*(self.MeSigmaDerivMat * v)
+                return sdiag(u)*(self.MeSigmaDerivMat * v)
         else:
-            dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.etaDeriv
+            dsigma_dlogsigma = sdiag(self.sigma)*self.etaDeriv
             if adjoint:
                 return (
                     dsigma_dlogsigma.T * (

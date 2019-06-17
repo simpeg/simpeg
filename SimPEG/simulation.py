@@ -69,7 +69,7 @@ class BaseSimulation(props.HasModel):
         Counter
     )
 
-    # TODO: need to implement a serializer for this
+    # TODO: need to implement a serializer for this & setter
     solver = pymatsolver.Solver
 
     solver_opts = properties.Dictionary(
@@ -305,7 +305,7 @@ class BaseTimeSimulation(BaseSimulation):
 
     time_steps = TimeStepArray(
         """
-        Sets/gets the timeSteps for the time domain simulation.
+        Sets/gets the time steps for the time domain simulation.
         You can set as an array of dt's or as a list of tuples/floats.
         Tuples must be length two with [..., (dt, repeat), ...]
         For example, the following setters are the same::
@@ -369,7 +369,6 @@ class BaseTimeSimulation(BaseSimulation):
 
     @property
     def timeMesh(self):
-        raise Exception
         warnings.warn(
             "timeMesh will be depreciated in favor of time_mesh. "
             "Please update your code accordingly"

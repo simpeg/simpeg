@@ -1,14 +1,9 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import numpy as np
 
-from SimPEG import OldSurvey as Survey
+from ....survey import BaseTimeRx
 
 
-class BaseRx(Survey.BaseTimeRx):
+class BaseRx(BaseTimeRx):
     locs = None
     rxType = None
 
@@ -23,7 +18,7 @@ class BaseRx(Survey.BaseTimeRx):
                     }
 
     def __init__(self, locs, times, rxType, **kwargs):
-        Survey.BaseTimeRx.__init__(self, locs, times, rxType, **kwargs)
+        super(BaseRx, self).__init__(locs, times, rxType, **kwargs)
 
     @property
     def projField(self):
@@ -67,7 +62,7 @@ class Dipole(BaseRx):
         )
         locs = [np.atleast_2d(locsM), np.atleast_2d(locsN)]
         # We may not need this ...
-        BaseRx.__init__(self, locs, times, rxType)
+        super(BaseRx, self).__init__(locs, times, rxType)
 
     @property
     def nD(self):
@@ -105,7 +100,7 @@ class Pole(BaseRx):
     def __init__(self, locsM, times, rxType='phi', **kwargs):
         locs = np.atleast_2d(locsM)
         # We may not need this ...
-        BaseRx.__init__(self, locs, times, rxType)
+        super(Pole, self).__init__(locs, times, rxType)
 
     @property
     def nD(self):

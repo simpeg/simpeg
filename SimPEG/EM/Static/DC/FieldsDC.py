@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-from SimPEG.OldFields import Fields
-from SimPEG.Utils import Identity, Zero
 import numpy as np
 from scipy.constants import epsilon_0
+
+from ....fields import Fields
+from ....utils import Identity, Zero
+
 
 
 class FieldsDC(Fields):

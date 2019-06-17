@@ -3,13 +3,12 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.constants import epsilon_0
 
-import SimPEG
-from SimPEG import Utils
-from SimPEG.EM.Utils import omega
-from SimPEG.Utils import Zero, sdiag
+from ...fields import TimeFields
+from ...utils import mkvc, sdiag, Zero
+from ..Utils import omega
 
 
-class FieldsTDEM(SimPEG.Problem.TimeFields):
+class FieldsTDEM(TimeFields):
     """
 
     Fancy Field Storage for a TDEM survey. Only one field type is stored for
@@ -361,7 +360,7 @@ class Fields3D_e(FieldsTDEM):
         # s_mDeriv = src.s_mDeriv(
         #     self._times[tInd], self, adjoint=adjoint
         # )
-        return Utils.Zero()  # assumes source doesn't depend on model
+        return Zero()  # assumes source doesn't depend on model
 
     def _b(self, eSolution, srcList, tInd):
         """
@@ -576,7 +575,7 @@ class Fields3D_h(FieldsTDEM):
         )
 
     def _eDeriv_m(self, tInd, src, v, adjoint=False):
-        j = Utils.mkvc(self[src, 'j', tInd])
+        j = mkvc(self[src, 'j', tInd])
         if adjoint is True:
             return (
                 self._MfRhoDeriv(j, self.survey.prob.MfI.T * v, adjoint) +
@@ -669,7 +668,7 @@ class Fields3D_j(FieldsTDEM):
         return self.survey.prob.MfI * (self._MfRho * dun_dm_v)
 
     def _eDeriv_m(self, tInd, src, v, adjoint=False):
-        jSolution = Utils.mkvc(self[src, 'jSolution', tInd])
+        jSolution = mkvc(self[src, 'jSolution', tInd])
         if adjoint:
             return self._MfRhoDeriv(
                 jSolution, self.survey.prob.MfI.T * v, adjoint
@@ -686,11 +685,11 @@ class Fields3D_j(FieldsTDEM):
         )
 
     def _dbdt(self, jSolution, srcList, tInd):
-        dhdt = Utils.mkvc(self._dhdt(jSolution, srcList, tInd))
+        dhdt = mkvc(self._dhdt(jSolution, srcList, tInd))
         return self.survey.prob.MeI * (self.survey.prob.MeMu * dhdt)
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        # dhdt = Utils.mkvc(self[src, 'dhdt', tInd])
+        # dhdt = mkvc(self[src, 'dhdt', tInd])
         if adjoint:
             return self._dhdtDeriv_u(
                 tInd, src,

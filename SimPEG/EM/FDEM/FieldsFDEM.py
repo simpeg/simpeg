@@ -1,12 +1,10 @@
 import numpy as np
 import scipy.sparse as sp
-import SimPEG
-from SimPEG import Utils
-from SimPEG.EM.Utils import omega
-from SimPEG.Utils import Zero, Identity, sdiag
+from ...fields import Fields
+from ...utils import mkvc, Zero, Identity, sdiag
+from ..Utils import omega
 
-
-class FieldsFDEM(SimPEG.Problem.Fields):
+class FieldsFDEM(Fields):
     """
 
     Fancy Field Storage for a FDEM survey. Only one field type is stored for
@@ -810,7 +808,7 @@ class Fields3D_b(FieldsFDEM):
             to the model with a vector
         """
 
-        bSolution = Utils.mkvc(self[src, 'bSolution'])
+        bSolution = mkvc(self[src, 'bSolution'])
         s_e = src.s_e(self.prob)
 
         w = -s_e + self._edgeCurl.T * (self._MfMui * bSolution)
@@ -1150,7 +1148,7 @@ class Fields3D_j(FieldsFDEM):
             to the model with a vector
         """
 
-        jSolution = Utils.mkvc(self[[src], 'jSolution'])
+        jSolution = mkvc(self[[src], 'jSolution'])
         MeMuI = self._MeMuI
         MeMuIDeriv = self._MeMuIDeriv
         C = self._edgeCurl
@@ -1221,7 +1219,7 @@ class Fields3D_j(FieldsFDEM):
         :return: product of the derivative of the electric field with respect
             to the model with a vector
         """
-        jSolution = Utils.mkvc(self[src, 'jSolution'])
+        jSolution = mkvc(self[src, 'jSolution'])
         if adjoint:
             return (
                 self._MfRhoDeriv(jSolution).T * (self._MfI.T * v) +
@@ -1526,7 +1524,7 @@ class Fields3D_h(FieldsFDEM):
         :return: product of the electric field derivative with respect to the
             inversion model with a vector
         """
-        hSolution = Utils.mkvc(self[src, 'hSolution'])
+        hSolution = mkvc(self[src, 'hSolution'])
         s_e = src.s_e(self.prob)
 
         if adjoint:

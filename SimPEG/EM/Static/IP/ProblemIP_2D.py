@@ -1,33 +1,32 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-from SimPEG import Utils
-from SimPEG.EM.Static.DC.FieldsDC_2D import (
-    Fields_ky, Fields_ky_CC, Fields_ky_N
-    )
-from SimPEG.EM.Static.DC import BaseDCProblem_2D
-from SimPEG.EM.Static.DC import Problem2D_CC as BaseProblem2D_CC
-from SimPEG.EM.Static.DC import Problem2D_N as BaseProblem2D_N
 import numpy as np
+
+from .... import props
+from ....utils import sdiag
+
+from ..DC.FieldsDC_2D import (
+    Fields_ky, Fields_ky_CC, Fields_ky_N
+)
+
+from ..DC import BaseDCProblem_2D
+from ..DC import Problem2D_CC as BaseProblem2D_CC
+from ..DC import Problem2D_N as BaseProblem2D_N
+
 from .SurveyIP import Survey
-from SimPEG import Props
 
 
 class BaseIPProblem_2D(BaseDCProblem_2D):
 
-    sigma = Props.PhysicalProperty(
+    sigma = props.PhysicalProperty(
         "Electrical conductivity (S/m)"
     )
 
-    rho = Props.PhysicalProperty(
+    rho = props.PhysicalProperty(
         "Electrical resistivity (Ohm m)"
     )
 
-    Props.Reciprocal(sigma, rho)
+    props.Reciprocal(sigma, rho)
 
-    eta, etaMap, etaDeriv = Props.Invertible(
+    eta, etaMap, etaDeriv = props.Invertible(
         "Electrical Chargeability (V/V)"
     )
 
@@ -76,7 +75,7 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
         Derivative of MeSigma with respect to the model
         """
         if getattr(self, '_MeSigmaDerivMat', None) is None:
-            dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.etaDeriv
+            dsigma_dlogsigma = sdiag(self.sigma)*self.etaDeriv
             self._MeSigmaDerivMat = self.mesh.getEdgeInnerProductDeriv(
                 np.ones(self.mesh.nC)
             )(np.ones(self.mesh.nE)) * dsigma_dlogsigma
@@ -89,11 +88,11 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
         """
         if self.storeInnerProduct:
             if adjoint:
-                return self.MeSigmaDerivMat.T * (Utils.sdiag(u)*v)
+                return self.MeSigmaDerivMat.T * (sdiag(u)*v)
             else:
-                return Utils.sdiag(u)*(self.MeSigmaDerivMat * v)
+                return sdiag(u)*(self.MeSigmaDerivMat * v)
         else:
-            dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.etaDeriv
+            dsigma_dlogsigma = sdiag(self.sigma)*self.etaDeriv
             if adjoint:
                 return (
                     dsigma_dlogsigma.T * (
@@ -114,9 +113,9 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
         if getattr(self, '_MccRhoiDerivMat', None) is None:
             rho = self.rho
             vol = self.mesh.vol
-            drho_dlogrho = Utils.sdiag(rho)*self.etaDeriv
+            drho_dlogrho = sdiag(rho)*self.etaDeriv
             self._MccRhoiDerivMat = (
-                Utils.sdiag(vol*(-1./rho**2))*drho_dlogrho
+                sdiag(vol*(-1./rho**2))*drho_dlogrho
             )
         return self._MccRhoiDerivMat
 
@@ -131,17 +130,17 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
                 )
         if self.storeInnerProduct:
             if adjoint:
-                return self.MccRhoiDerivMat.T * (Utils.sdiag(u) * v)
+                return self.MccRhoiDerivMat.T * (sdiag(u) * v)
             else:
-                return Utils.sdiag(u) * (self.MccRhoiDerivMat * v)
+                return sdiag(u) * (self.MccRhoiDerivMat * v)
         else:
             vol = self.mesh.vol
             rho = self.rho
-            drho_dlogrho = Utils.sdiag(rho)*self.etaDeriv
+            drho_dlogrho = sdiag(rho)*self.etaDeriv
             if adjoint:
-                return drho_dlogrho.T * (Utils.sdia(u*vol*(-1./rho**2)) * v)
+                return drho_dlogrho.T * (sdia(u*vol*(-1./rho**2)) * v)
             else:
-                return Utils.sdiag(u*vol*(-1./rho**2))*(drho_dlogrho * v)
+                return sdiag(u*vol*(-1./rho**2))*(drho_dlogrho * v)
 
     @property
     def MnSigmaDerivMat(self):
@@ -151,9 +150,9 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
         if getattr(self, '_MnSigmaDerivMat', None) is None:
             sigma = self.sigma
             vol = self.mesh.vol
-            dsigma_dlogsigma = Utils.sdiag(sigma)*self.etaDeriv
+            dsigma_dlogsigma = sdiag(sigma)*self.etaDeriv
             self._MnSigmaDerivMat = (
-                self.mesh.aveN2CC.T * Utils.sdiag(vol) * dsigma_dlogsigma
+                self.mesh.aveN2CC.T * sdiag(vol) * dsigma_dlogsigma
                 )
         return self._MnSigmaDerivMat
 
@@ -163,13 +162,13 @@ class BaseIPProblem_2D(BaseDCProblem_2D):
         """
         if self.storeInnerProduct:
             if adjoint:
-                return self.MnSigmaDerivMat.T * (Utils.sdiag(u)*v)
+                return self.MnSigmaDerivMat.T * (sdiag(u)*v)
             else:
-                return Utils.sdiag(u)*(self.MnSigmaDerivMat * v)
+                return sdiag(u)*(self.MnSigmaDerivMat * v)
         else:
             sigma = self.sigma
             vol = self.mesh.vol
-            dsigma_dlogsigma = Utils.sdiag(sigma)*self.etaDeriv
+            dsigma_dlogsigma = sdiag(sigma)*self.etaDeriv
             if adjoint:
                 return dsigma_dlogsigma.T * (vol * (self.mesh.aveN2CC * (u*v)))
             else:
@@ -211,7 +210,7 @@ class Problem2D_CC(BaseIPProblem_2D, BaseProblem2D_CC):
         if getattr(self, '_MfRhoDerivMat', None) is None:
             self._MfRhoDerivMat = self.mesh.getFaceInnerProductDeriv(
                 np.ones(self.mesh.nC)
-            )(np.ones(self.mesh.nF)) * Utils.sdiag(self.rho) * self.etaDeriv
+            )(np.ones(self.mesh.nF)) * sdiag(self.rho) * self.etaDeriv
         return self._MfRhoDerivMat
 
     def MfRhoIDeriv(self, u, v, adjoint=False):
@@ -222,13 +221,13 @@ class Problem2D_CC(BaseIPProblem_2D, BaseProblem2D_CC):
         if self.storeInnerProduct:
             if adjoint:
                 return self.MfRhoDerivMat.T * (
-                    Utils.sdiag(u) * (dMfRhoI_dI.T * v)
+                    sdiag(u) * (dMfRhoI_dI.T * v)
                 )
             else:
-                return dMfRhoI_dI * (Utils.sdiag(u) * (self.MfRhoDerivMat*v))
+                return dMfRhoI_dI * (sdiag(u) * (self.MfRhoDerivMat*v))
         else:
             dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
-            drho_dlogrho = Utils.sdiag(self.rho)*self.etaDeriv
+            drho_dlogrho = sdiag(self.rho)*self.etaDeriv
             if adjoint:
                 return drho_dlogrho.T * (dMf_drho.T * (dMfRhoI_dI.T*v))
             else:

@@ -7,9 +7,11 @@ import numpy as np
 from numpy import matlib
 import discretize
 
-from SimPEG import Utils
-from SimPEG.EM.Static import DC
-from SimPEG.Utils import asArray_N_x_Dim, uniqueRows
+from .. import DC
+from ....utils import (
+    asArray_N_x_Dim, closestPoints, mkvc, surface2ind_topo, uniqueRows,
+    ModelBuilder
+)
 
 
 def electrode_separations(
@@ -719,7 +721,7 @@ def writeUBC_DCobs(
 
             if format_type == 'SIMPLE':
 
-                # fid.writelines("%e " % ii for ii in Utils.mkvc(tx[0, :]))
+                # fid.writelines("%e " % ii for ii in mkvc(tx[0, :]))
                 A = np.repeat(tx[0, 0], M.shape[0], axis=0)
 
                 if survey_type == 'pole-dipole':
@@ -746,7 +748,7 @@ def writeUBC_DCobs(
                 fid = open(fileName, 'a')
                 if format_type == 'SURFACE':
 
-                    fid.writelines("%f " % ii for ii in Utils.mkvc(tx[:, 0]))
+                    fid.writelines("%f " % ii for ii in mkvc(tx[:, 0]))
                     M = M[:, 0]
                     N = N[:, 0]
 
@@ -788,13 +790,13 @@ def writeUBC_DCobs(
 
             if format_type == 'SURFACE':
 
-                fid.writelines("%e " % ii for ii in Utils.mkvc(tx[:, 0:2].T))
+                fid.writelines("%e " % ii for ii in mkvc(tx[:, 0:2].T))
                 M = M[:, 0:2]
                 N = N[:, 0:2]
 
             if format_type == 'GENERAL':
 
-                fid.writelines("%e " % ii for ii in Utils.mkvc(tx.T))
+                fid.writelines("%e " % ii for ii in mkvc(tx.T))
 
             fid.write('%i\n' % nD)
 
@@ -916,7 +918,7 @@ def writeUBC_DClocs(
 
             if format_type == 'SIMPLE':
 
-                # fid.writelines("%e " % ii for ii in Utils.mkvc(tx[0, :]))
+                # fid.writelines("%e " % ii for ii in mkvc(tx[0, :]))
                 A = np.repeat(tx[0, 0], M.shape[0], axis=0)
 
                 if survey_type == 'pole-dipole':
@@ -941,7 +943,7 @@ def writeUBC_DClocs(
                 fid = open(fileName, 'a')
                 if format_type == 'SURFACE':
 
-                    fid.writelines("%f " % ii for ii in Utils.mkvc(tx[:, 0]))
+                    fid.writelines("%f " % ii for ii in mkvc(tx[:, 0]))
                     M = M[:, 0]
                     N = N[:, 0]
 
@@ -981,13 +983,13 @@ def writeUBC_DClocs(
 
             if format_type == 'SURFACE':
 
-                fid.writelines("%e " % ii for ii in Utils.mkvc(tx[:, 0:2].T))
+                fid.writelines("%e " % ii for ii in mkvc(tx[:, 0:2].T))
                 M = M[:, 0:2]
                 N = N[:, 0:2]
 
             if format_type == 'GENERAL':
 
-                fid.writelines("%e " % ii for ii in Utils.mkvc(tx.T))
+                fid.writelines("%e " % ii for ii in mkvc(tx.T))
 
             fid.write('%i\n' % nD)
 
@@ -1571,10 +1573,10 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
     else:
         raise NotImplementedError()
     if actind is None:
-        actind = Utils.surface2ind_topo(mesh, topo)
+        actind = surface2ind_topo(mesh, topo)
     if mesh._meshType == "TENSOR":
         meshtemp, topoCC = gettopoCC(mesh, actind, option=option)
-        inds = Utils.closestPoints(meshtemp, pts)
+        inds = closestPoints(meshtemp, pts)
 
     elif mesh._meshType == "TREE":
         if mesh.dim == 3:
@@ -1593,14 +1595,14 @@ def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
         mesh2D = discretize.TensorMesh(
             [mesh.hx, mesh.hy], x0=[mesh.x0[0], mesh.x0[1]]
             )
-        out = Utils.ModelBuilder.randomModel(
+        out = ModelBuilder.randomModel(
             mesh.vnC[:2], bounds=[zmin, zmax], its=its,
             seed=seed, anisotropy=anisotropy
             )
         return out, mesh2D
     elif mesh.dim == 2:
         mesh1D = discretize.TensorMesh([mesh.hx], x0=[mesh.x0[0]])
-        out = Utils.ModelBuilder.randomModel(
+        out = ModelBuilder.randomModel(
             mesh.vnC[:1], bounds=[zmin, zmax], its=its,
             seed=seed, anisotropy=anisotropy
             )

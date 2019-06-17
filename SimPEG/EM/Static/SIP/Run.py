@@ -1,10 +1,8 @@
 import numpy as np
 from SimPEG import (
-    Maps, Optimization, Inversion, InvProblem, Directives
+    maps, optimization, inversion, inverse_problem, directives, data_misfit,
+    regularization
 )
-
-from SimPEG import Old_DataMisfit as DataMisfit
-from SimPEG import regularization as Regularization
 
 
 def spectral_ip_mappings(
@@ -36,34 +34,34 @@ def spectral_ip_mappings(
     if indActive is None:
         indActive = np.ones(mesh.nC, dtype=bool)
 
-    actmap_eta = Maps.InjectActiveCells(
+    actmap_eta = maps.InjectActiveCells(
         mesh, indActive=indActive, valInactive=inactive_eta
     )
-    actmap_tau = Maps.InjectActiveCells(
+    actmap_tau = maps.InjectActiveCells(
         mesh, indActive=indActive, valInactive=inactive_tau
     )
-    actmap_c = Maps.InjectActiveCells(
+    actmap_c = maps.InjectActiveCells(
         mesh, indActive=indActive, valInactive=inactive_c
     )
 
-    wires = Maps.Wires(
+    wires = maps.Wires(
         ('eta', indActive.sum()),
         ('tau', indActive.sum()),
         ('c', indActive.sum())
     )
 
     if is_log_eta:
-        eta_map = actmap_eta*Maps.ExpMap(nP=actmap_eta.nP)*wires.eta
+        eta_map = actmap_eta*maps.ExpMap(nP=actmap_eta.nP)*wires.eta
     else:
         eta_map = actmap_eta*wires.eta
 
     if is_log_tau:
-        tau_map = actmap_tau*Maps.ExpMap(nP=actmap_tau.nP)*wires.tau
+        tau_map = actmap_tau*maps.ExpMap(nP=actmap_tau.nP)*wires.tau
     else:
         tau_map = actmap_tau*wires.tau
 
     if is_log_c:
-        c_map = actmap_c*Maps.ExpMap(nP=actmap_c.nP)*wires.c
+        c_map = actmap_c*maps.ExpMap(nP=actmap_c.nP)*wires.c
     else:
         c_map = actmap_c*wires.c
 
@@ -91,7 +89,7 @@ def run_inversion(
     """
     Run Spectral Spectral IP inversion
     """
-    dmisfit = DataMisfit.l2_DataMisfit(survey)
+    dmisfit = data_misfit.L2DataMisfit(survey)
     uncert = abs(survey.dobs) * std + eps
     dmisfit.W = 1./uncert
     # Map for a regularization
@@ -130,14 +128,14 @@ def run_inversion(
     m_lower = np.r_[eta_lower, tau_lower, c_lower]
 
     # Set up regularization
-    reg_eta = Regularization.Tikhonov(
+    reg_eta = regularization.Tikhonov(
         mesh, mapping=wires.eta, indActive=actind
         )
-    reg_tau = Regularization.Tikhonov(
+    reg_tau = regularization.Tikhonov(
         mesh, mapping=wires.tau, indActive=actind
         )
 
-    reg_c = Regularization.Tikhonov(mesh, mapping=wires.c, indActive=actind)
+    reg_c = regularization.Tikhonov(mesh, mapping=wires.c, indActive=actind)
 
     # Todo:
 
@@ -160,22 +158,22 @@ def run_inversion(
     reg = reg_eta + reg_tau + reg_c
 
     # Use Projected Gauss Newton scheme
-    opt = Optimization.ProjectedGNCG(
+    opt = optimization.ProjectedGNCG(
         maxIter=maxIter, upper=m_upper, lower=m_lower,
         maxIterLS=maxIterLS, maxIterCG=maxIterCG, LSshorten=LSshorten
         )
-    invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
-    beta = Directives.BetaSchedule(
+    invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
+    beta = directives.BetaSchedule(
         coolingFactor=coolingFactor, coolingRate=coolingRate
     )
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio)
-    target = Directives.TargetMisfit()
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio)
+    target = directives.TargetMisfit()
 
     directiveList = [
             beta, betaest, target
     ]
 
-    inv = Inversion.BaseInversion(
+    inv = inversion.BaseInversion(
         invProb, directiveList=directiveList
         )
     opt.LSshorten = 0.5

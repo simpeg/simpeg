@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 from scipy.constants import mu_0, pi, epsilon_0
 from scipy.special import erf
-from SimPEG import Utils
+from SimPEG import utils
 
 omega = lambda f: 2.*np.pi*f
 # TODO:
@@ -20,7 +20,7 @@ def E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
     epsilon = epsilon_0*epsr
     sig_hat = sig + 1j*omega(f)*epsilon
 
-    XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
     # Check
     if XYZ.shape[0] > 1 & f.shape[0] > 1:
         raise Exception("I/O type error: For multiple field locations only a single frequency can be specified.")
@@ -68,7 +68,7 @@ def E_galvanic_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., le
     epsilon = epsilon_0*epsr
     sig_hat = sig + 1j*omega(f)*epsilon
 
-    XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
     # Check
     if XYZ.shape[0] > 1 & f.shape[0] > 1:
         raise Exception("I/O type error: For multiple field locations only a single frequency can be specified.")
@@ -116,7 +116,7 @@ def E_inductive_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., l
     epsilon = epsilon_0*epsr
     sig_hat = sig + 1j*omega(f)*epsilon
 
-    XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
     # Check
     if XYZ.shape[0] > 1 & f.shape[0] > 1:
         raise Exception("I/O type error: For multiple field locations only a single frequency can be specified.")
@@ -206,7 +206,7 @@ def H_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
     """
     mu = mu_0*(1+kappa)
     epsilon = epsilon_0*epsr
-    XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
     # Check
     if XYZ.shape[0] > 1 & f.shape[0] > 1:
         raise Exception("I/O type error: For multiple field locations only a single frequency can be specified.")
@@ -264,7 +264,7 @@ def A_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
     """
     mu = mu_0*(1+kappa)
     epsilon = epsilon_0*epsr
-    XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
     # Check
     if XYZ.shape[0] > 1 & f.shape[0] > 1:
         raise Exception("I/O type error: For multiple field locations only a single frequency can be specified.")

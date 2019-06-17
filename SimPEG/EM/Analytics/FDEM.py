@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 from scipy.constants import mu_0, pi
 from scipy.special import erf
-from SimPEG import Utils
+from SimPEG import utils
 
 
 def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
@@ -37,7 +37,7 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
         hz = hz-hp
 
     if hz.ndim == 1:
-        hz = Utils.mkvc(hz,2)
+        hz = utils.mkvc(hz,2)
 
     return hz
 
@@ -79,7 +79,7 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment=1., orientation='X', mu
         else:
             raise NotImplementedError('arbitrary orientations not implemented')
 
-    XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
 
     dx = XYZ[:,0]-srcLoc[0]
     dy = XYZ[:,1]-srcLoc[1]
@@ -112,19 +112,19 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment=1., orientation='X', mu
     Bz = mu*Hz
 
     if Bx.ndim is 1:
-        Bx = Utils.mkvc(Bx,2)
+        Bx = utils.mkvc(Bx,2)
 
     if By.ndim is 1:
-        By = Utils.mkvc(By,2)
+        By = utils.mkvc(By,2)
 
     if Bz.ndim is 1:
-        Bz = Utils.mkvc(Bz,2)
+        Bz = utils.mkvc(Bz,2)
 
     return Bx, By, Bz
 
 
 def ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
-    XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
 
     dx = XYZ[:,0]-srcLoc[0]
     dy = XYZ[:,1]-srcLoc[1]

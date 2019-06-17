@@ -3,16 +3,12 @@
 Receivers for the NSEM problem
 
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
 
+import numpy as np
 from scipy.constants import mu_0
 
-import SimPEG
-import numpy as np
-from SimPEG import mkvc
-from SimPEG.OldSurvey import BaseRx
+from ...utils import sdiag, mkvc
+from ...survey import BaseRx
 
 
 class BaseRxNSEM_Point(BaseRx):
@@ -110,7 +106,7 @@ class BaseRxNSEM_Point(BaseRx):
 
     # Utility for convienece
     def _sDiag(self, t):
-        return SimPEG.Utils.sdiag(mkvc(t,2))
+        return sdiag(mkvc(t,2))
 
     # Get the components of the fields
     # px: x-polaration and py: y-polaration.
@@ -360,7 +356,7 @@ class Point_impedance1D(BaseRx):
 
     # Utility for convienece
     def _sDiag(self, t):
-        return SimPEG.Utils.sdiag(mkvc(t, 2))
+        return sdiag(mkvc(t, 2))
 
     @property
     def src(self):

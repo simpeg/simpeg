@@ -1,14 +1,10 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-import SimPEG
-from SimPEG.Utils import Identity, Zero
 import numpy as np
 
+from ....fields import TimeFields
+from ....utils import Identity, Zero
 
-class Fields_ky(SimPEG.Problem.TimeFields):
+
+class Fields_ky(TimeFields):
 
     """
 

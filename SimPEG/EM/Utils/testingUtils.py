@@ -1,10 +1,14 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-from SimPEG import Mesh, Maps, Utils, SolverLU
-from SimPEG import EM
 import sys
 from scipy.constants import mu_0
+
+from discretize import TensorMesh
+from ... import maps, utils
+
+from SimPEG import SolverLU
+from SimPEG import EM
 
 FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
@@ -19,15 +23,15 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     hx = [(cs,npad,-1.3), (cs,ncx), (cs,npad,1.3)]
     hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
     hz = [(cs,npad,-1.3), (cs,ncz), (cs,npad,1.3)]
-    mesh = Mesh.TensorMesh([hx,hy,hz],['C','C','C'])
+    mesh = TensorMesh([hx,hy,hz],['C','C','C'])
 
     if useMu is True:
-        mapping = [('sigma', Maps.ExpMap(mesh)), ('mu', Maps.IdentityMap(mesh))]
+        mapping = [('sigma', maps.ExpMap(mesh)), ('mu', maps.IdentityMap(mesh))]
     else:
-        mapping = Maps.ExpMap(mesh)
+        mapping = maps.ExpMap(mesh)
 
     x = np.array([np.linspace(-5.*cs,-2.*cs,3),np.linspace(5.*cs,2.*cs,3)]) + cs/4. #don't sample right by the source, slightly off alignment from either staggered grid
-    XYZ = Utils.ndgrid(x,x,np.linspace(-2.*cs,2.*cs,5))
+    XYZ = utils.ndgrid(x,x,np.linspace(-2.*cs,2.*cs,5))
     Rx0 = getattr(EM.FDEM.Rx, 'Point_' + comp[0])
     if comp[2] == 'r':
         real_or_imag = 'real'
@@ -48,15 +52,15 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
             if fdemType is 'e' or fdemType is 'b':
                 S_m = np.zeros(mesh.nF)
                 S_e = np.zeros(mesh.nE)
-                S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1e-3
-                S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1e-3
+                S_m[utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1e-3
+                S_e[utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1e-3
                 Src.append(EM.FDEM.Src.RawVec([rx0], freq, S_m, mesh.getEdgeInnerProduct()*S_e))
 
             elif fdemType is 'h' or fdemType is 'j':
                 S_m = np.zeros(mesh.nE)
                 S_e = np.zeros(mesh.nF)
-                S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1e-3
-                S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1e-3
+                S_m[utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1e-3
+                S_e[utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1e-3
                 Src.append(EM.FDEM.Src.RawVec([rx0], freq, mesh.getEdgeInnerProduct()*S_m, S_e))
 
     if verbose:

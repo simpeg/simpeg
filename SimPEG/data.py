@@ -264,44 +264,32 @@ class Data(properties.HasProperties):
 
     def __setitem__(self, key, value):
         warnings.warn(
-            """
-            Treating the data object as a dictionary has been depreciated in
-            in favor of working with the index_dict. Please update your code to
-            use
+            "Treating the data object as a dictionary has been depreciated in "
+            "in favor of working with the index_dict. Please update your code to "
+            "use \n"
+            "    index = data.index_dict[src][rx]"
+            "    data.dobs[index] = datum"
 
-            .. code::
-
-                index = data.index_dict[src][rx]
-                data.dobs[index] = datum
-
-            """
         )
         index = self.index_dict[key[0]][key[1]]
         self.dobs[index] = value
 
     def __getitem__(self, key):
         warnings.warn(
-            """
-            Treating the data object as a dictionary has been depreciated in
-            in favor of working with the index_dict. Please update your code to
-            use
-
-            .. code::
-
-                index = data.index_dict[src][rx]
-                datum = data.dobs[index]
-
-            """
+            "Treating the data object as a dictionary has been depreciated in "
+            "in favor of working with the index_dict. Please update your code to "
+            "use \n"
+            "    index = data.index_dict[src][rx]"
+            "    datum = data.dobs[index]"
         )
         index = self.index_dict[key[0]][key[1]]
         return self.dobs[index]
 
     def tovec(self):
+        raise Exception
         warnings.warn(
-            """
-            data.tovec is no longer necessary. Please update your code to call
-            data.dobs directly.
-            """
+            "data.tovec is no longer necessary. Please update your code to "
+            "call data.dobs directly."
         )
         return self.dobs
 

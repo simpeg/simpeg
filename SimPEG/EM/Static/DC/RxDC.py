@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-import SimPEG
 import numpy as np
-from SimPEG.Utils import closestPoints
-from SimPEG import OldSurvey as Survey
+
+# import SimPEG
+
+from ....utils import closestPoints
+from ....survey import BaseRx as BaseSimPEGRx
 
 # Trapezoidal integration for 2D DC problem
 def IntTrapezoidal(kys, Pf, y=0.):
@@ -23,7 +20,7 @@ def IntTrapezoidal(kys, Pf, y=0.):
     return phi
 
 # Receiver classes
-class BaseRx(SimPEG.Survey.BaseRx):
+class BaseRx(BaseSimPEGRx):
     """
     Base DC receiver
     """
@@ -41,7 +38,7 @@ class BaseRx(SimPEG.Survey.BaseRx):
     }
 
     def __init__(self, locs, rxType, **kwargs):
-        Survey.BaseRx.__init__(self, locs, rxType, **kwargs)
+        super(BaseRx, self).__init__(locs, rxType, **kwargs)
 
     @property
     def projField(self):

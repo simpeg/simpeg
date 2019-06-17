@@ -1,14 +1,15 @@
-from SimPEG import Problem, Utils, Props, Solver as SimpegSolver
+import numpy as np
+import scipy.sparse as sp
+from scipy.constants import mu_0
+
+from ... import props
+from ...utils import mkvc
+from ..Base import BaseEMProblem
+from ..Utils import omega
 from .SurveyFDEM import Survey as SurveyFDEM
 from .FieldsFDEM import (
     FieldsFDEM, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
 )
-from SimPEG.EM.Base import BaseEMProblem
-from SimPEG.EM.Utils import omega
-
-import numpy as np
-import scipy.sparse as sp
-from scipy.constants import mu_0
 
 
 class BaseFDEMProblem(BaseEMProblem):
@@ -49,16 +50,16 @@ class BaseFDEMProblem(BaseEMProblem):
     surveyPair = SurveyFDEM
     fieldsPair = FieldsFDEM
 
-    mu, muMap, muDeriv = Props.Invertible(
+    mu, muMap, muDeriv = props.Invertible(
         "Magnetic Permeability (H/m)",
         default=mu_0
     )
 
-    mui, muiMap, muiDeriv = Props.Invertible(
+    mui, muiMap, muiDeriv = props.Invertible(
         "Inverse Magnetic Permeability (m/H)"
     )
 
-    Props.Reciprocal(mu, mui)
+    props.Reciprocal(mu, mui)
 
     def fields(self, m=None):
         """
@@ -178,7 +179,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
             ATinv.clean()
 
-        return Utils.mkvc(Jtv)
+        return mkvc(Jtv)
 
     def getSourceTerm(self, freq):
         """

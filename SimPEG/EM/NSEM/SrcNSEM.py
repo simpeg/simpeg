@@ -1,13 +1,10 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import numpy as np
 import scipy.sparse as sp
 
-from SimPEG import Maps, mkvc
-from SimPEG.EM.FDEM.SrcFDEM import BaseFDEMSrc as FDEMBaseSrc
-from SimPEG.EM.Utils import omega
+from ... import maps
+from ...utils import mkvc
+from ..FDEM.SrcFDEM import BaseFDEMSrc as FDEMBaseSrc
+from ..Utils import omega
 from .Utils.sourceUtils import homo1DModelSource
 
 #################
@@ -92,7 +89,7 @@ class Planewave_xy_1Dprimary(BaseNSEMSrc):
         Get the electrical field source
         """
         e_p = self.ePrimary(problem)
-        Map_sigma_p = Maps.SurjectVertical1D(problem.mesh)
+        Map_sigma_p = maps.SurjectVertical1D(problem.mesh)
         sigma_p = Map_sigma_p._transform(self.sigma1d)
         # Make mass matrix
         # Note: M(sig) - M(sig_p) = M(sig - sig_p)
@@ -196,7 +193,7 @@ class Planewave_xy_3Dprimary(BaseNSEMSrc):
         Get the electrical field source
         """
         e_p = self.ePrimary(problem)
-        Map_sigma_p = Maps.SurjectVertical1D(problem.mesh)
+        Map_sigma_p = maps.SurjectVertical1D(problem.mesh)
         sigma_p = Map_sigma_p._transform(self.sigma1d)
         # Make mass matrix
         # Note: M(sig) - M(sig_p) = M(sig - sig_p)

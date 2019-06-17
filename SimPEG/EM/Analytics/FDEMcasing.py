@@ -1,5 +1,5 @@
 import numpy as np
-from SimPEG import Utils
+
 from scipy.constants import mu_0, epsilon_0
 from SimPEG.EM.Utils.EMUtils import k
 

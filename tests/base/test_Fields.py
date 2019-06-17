@@ -238,7 +238,7 @@ class FieldsTest_Time(unittest.TestCase):
         source_list = [Src0, Src1, Src2, Src3, Src4]
         mysurvey = survey.BaseSurvey(source_list=source_list)
         sim = simulation.BaseTimeSimulation(
-            mesh, timeSteps=[(10., 3), (20., 2)], survey=mysurvey
+            mesh, time_steps=[(10., 3), (20., 2)], survey=mysurvey
         )
         self.F = fields.TimeFields(
             simulation=sim, knownFields={'phi': 'CC', 'e': 'E', 'b': 'F'}
@@ -351,7 +351,7 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         Src4 = survey.BaseSrc(receiver_list=[rxList0, rxList1, rxList2, rxList3], location=srcLoc)
         source_list = [Src0, Src1, Src2, Src3, Src4]
         mysurvey = survey.BaseSurvey(source_list=source_list)
-        sim = simulation.BaseTimeSimulation(mesh, timeSteps=[(10., 3), (20., 2)], survey=mysurvey)
+        sim = simulation.BaseTimeSimulation(mesh, time_steps=[(10., 3), (20., 2)], survey=mysurvey)
 
         def alias(b, srcInd, timeInd):
             return self.F.mesh.edgeCurl.T * b + timeInd

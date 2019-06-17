@@ -1,5 +1,5 @@
 import numpy as np
-from SimPEG import Utils
+from ...utils import mkvc
 
 
 def line(a, t, l):
@@ -190,5 +190,5 @@ def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
             sy[ix:ix+2, iy, iz:iz+2] += np.reshape(syloc, (2, 2), order="F")
             sz[ix:ix+2, iy:iy+2, iz] += np.reshape(szloc, (2, 2), order="F")
 
-    return np.r_[Utils.mkvc(sx), Utils.mkvc(sy), Utils.mkvc(sz)]
+    return np.r_[mkvc(sx), mkvc(sy), mkvc(sz)]
 

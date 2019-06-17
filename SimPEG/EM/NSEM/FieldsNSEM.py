@@ -1,18 +1,15 @@
-from SimPEG import Utils
-from SimPEG import Problem
-
-from SimPEG.Utils import Zero
-from SimPEG.Utils import Identity
-
 import numpy as np
 import scipy.sparse as sp
-from SimPEG.EM.Utils import omega
+
+from ...fields import Fields
+from ...utils import spzeros, Identity, Zero
+from ..Utils import omega
 
 
 ##############
 #   Fields   #
 ##############
-class BaseNSEMFields(Problem.Fields):
+class BaseNSEMFields(Fields):
     """Field Storage for a NSEM method."""
     knownFields = {}
     dtype = complex
@@ -507,7 +504,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :return: The calculated derivative, size (nU,) when adjoint=True. (nF,) when adjoint=False
         """
         # Primary does not depend on u
-        C = sp.hstack((self.mesh.edgeCurl,Utils.spzeros(self.mesh.nF, self.mesh.nE))) # This works for adjoint = None
+        C = sp.hstack((self.mesh.edgeCurl,spzeros(self.mesh.nF, self.mesh.nE))) # This works for adjoint = None
         if adjoint:
             return - 1./(1j*omega(src.freq)) * (C.T * du_dm_v)
         return - 1./(1j*omega(src.freq)) * (C * du_dm_v)
@@ -522,7 +519,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :return: The calculated derivative, size (nU,) when adjoint=True. (nF,) when adjoint=False
         """
         # Primary does not depend on u
-        C = sp.hstack((Utils.spzeros(self.mesh.nF, self.mesh.nE), self.mesh.edgeCurl)) # This works for adjoint = None
+        C = sp.hstack((spzeros(self.mesh.nF, self.mesh.nE), self.mesh.edgeCurl)) # This works for adjoint = None
         if adjoint:
             return - 1./(1j*omega(src.freq)) * (C.T * du_dm_v)
         return - 1./(1j*omega(src.freq)) * (C * du_dm_v)

@@ -1,7 +1,7 @@
-import SimPEG
-from SimPEG import Utils
-from SimPEG.OldSurvey import BaseTimeRx
 import scipy.sparse as sp
+
+from ...utils import mkvc
+from ...survey import BaseTimeRx
 
 
 class BaseRx(BaseTimeRx):
@@ -99,7 +99,7 @@ class BaseRx(BaseTimeRx):
         """
 
         P = self.getP(mesh, timeMesh, f)
-        f_part = Utils.mkvc(f[src, self.projField, :])
+        f_part = mkvc(f[src, self.projField, :])
         return P*f_part
 
     def evalDeriv(self, src, mesh, timeMesh, f, v, adjoint=False):
@@ -117,7 +117,7 @@ class BaseRx(BaseTimeRx):
 
         P = self.getP(mesh, timeMesh, f)
         if not adjoint:
-            return P * v # Utils.mkvc(v[src, self.projField+'Deriv', :])
+            return P * v
         elif adjoint:
             # dP_dF_T = P.T * v #[src, self]
             # newshape = (len(dP_dF_T)/timeMesh.nN, timeMesh.nN )
@@ -171,7 +171,7 @@ class Point_dbdt(BaseRx):
             return super(Point_dbdt, self).eval(src, mesh, timeMesh, f)
 
         P = self.getP(mesh, timeMesh, f)
-        f_part = Utils.mkvc(f[src, 'b', :])
+        f_part = mkvc(f[src, 'b', :])
         return P*f_part
 
     def projGLoc(self, f):

@@ -7,11 +7,10 @@ import warnings
 
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
-from SimPEG import Utils
-from SimPEG.Utils import Zero, Identity
-from SimPEG.EM.Utils import *
+from ...utils import setKwargs, sdiag, Zero, Identity
+from ..Utils import *
 from ..Base import BaseEMSrc
-from ...Props import LocationVector
+from ...props import LocationVector
 
 
 ###############################################################################
@@ -37,7 +36,7 @@ class BaseWaveform(properties.HasProperties):
     )
 
     def __init__(self, **kwargs):
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
     def _assertMatchesPair(self, pair):
         assert isinstance(self, pair), (
@@ -602,7 +601,7 @@ class RawVec_Grounded(BaseTDEMSrc):
         )
 
     def getRHSdc(self, prob):
-        return Utils.sdiag(prob.mesh.vol) * prob.mesh.faceDiv * self._s_e
+        return sdiag(prob.mesh.vol) * prob.mesh.faceDiv * self._s_e
 
     def phiInitial(self, prob):
         if self.waveform.hasInitialFields:
@@ -632,7 +631,7 @@ class RawVec_Grounded(BaseTDEMSrc):
             return Zero()
 
         phi = self.phiInitial(prob)
-        Div = Utils.sdiag(prob.mesh.vol) * prob.mesh.faceDiv
+        Div = sdiag(prob.mesh.vol) * prob.mesh.faceDiv
         return - prob.MfRhoI * (Div.T * phi)
 
     def jInitialDeriv(self, prob, v, adjoint=False):
@@ -643,7 +642,7 @@ class RawVec_Grounded(BaseTDEMSrc):
             return Zero()
 
         phi = self.phiInitial(prob)
-        Div = Utils.sdiag(prob.mesh.vol) * prob.mesh.faceDiv
+        Div = sdiag(prob.mesh.vol) * prob.mesh.faceDiv
 
         if adjoint is True:
             return - (
@@ -661,7 +660,7 @@ class RawVec_Grounded(BaseTDEMSrc):
 
         return (
             prob.mesh.edgeCurl * prob.MeMuI * prob.mesh.edgeCurl.T
-            - prob.mesh.faceDiv.T * Utils.sdiag(1./vol * prob.mui) * prob.mesh.faceDiv  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
+            - prob.mesh.faceDiv.T * sdiag(1./vol * prob.mui) * prob.mesh.faceDiv  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
         )
 
     def _aInitial(self, prob):

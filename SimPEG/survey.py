@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import numpy as np
 import scipy.sparse as sp
 import uuid
@@ -358,7 +356,7 @@ class BaseSurvey(properties.HasProperties):
         """Number of Sources"""
         return len(self.source_list)
 
-    def dpred(self, m, f=None):
+    def dpred(self, m=None, f=None):
         raise Exception(
             "Survey no longer has the dpred method. Please use "
             "simulation.dpred instead"

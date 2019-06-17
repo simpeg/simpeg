@@ -1,18 +1,12 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-from SimPEG.EM.Base import BaseEMSurvey
-from SimPEG.EM.Static.DC import Survey as SurveyDC
-from SimPEG.EM.Static import DC
+from ..DC import Survey as SurveyDC
+from ..DC import Rx, Src
 
 
 class Survey(SurveyDC):
 
     def __init__(self, srcList, **kwargs):
         self.srcList = srcList
-        SurveyDC.__init__(self, srcList, **kwargs)
+        Survey__init__(self, srcList, **kwargs)
 
     def dpred(self, m=None, f=None):
         """
@@ -34,21 +28,21 @@ def from_dc_to_ip_survey(dc_survey, dim="2.5D"):
             rxList_ip = []
             src_ip = []
             for rx in src.rxList:
-                if isinstance(rx, DC.Rx.Pole_ky):
-                    rx_ip = DC.Rx.Pole(rx.locs)
-                elif isinstance(rx, DC.Rx.Dipole_ky):
-                    rx_ip = DC.Rx.Dipole(rx.locs[0], rx.locs[1])
+                if isinstance(rx, Rx.Pole_ky):
+                    rx_ip = Rx.Pole(rx.locs)
+                elif isinstance(rx, Rx.Dipole_ky):
+                    rx_ip = Rx.Dipole(rx.locs[0], rx.locs[1])
                 else:
                     print(rx)
                     raise NotImplementedError()
                 rxList_ip.append(rx_ip)
 
-            if isinstance(src, DC.Src.Pole):
-                src_ip = DC.Src.Pole(
+            if isinstance(src, Src.Pole):
+                src_ip = Src.Pole(
                     rxList_ip, src_ip.loc
                 )
-            elif isinstance(src, DC.Src.Dipole):
-                src_ip = DC.Src.Dipole(
+            elif isinstance(src, Src.Dipole):
+                src_ip = Src.Dipole(
                     rxList_ip, src.loc[0], src.loc[1]
                 )
             else:

@@ -1,13 +1,9 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import sys
 import numpy as np
 from numpy.lib import recfunctions as recFunc
 
-from SimPEG.OldSurvey import BaseSurvey, Data
-from SimPEG.Utils import mkvc
+from ...survey import BaseSurvey, Data
+from ...utils import mkvc
 from .SrcNSEM import BaseNSEMSrc, Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
 from .RxNSEM import Point_impedance3D, Point_tipper3D
 from .Utils.plotUtils import DataNSEMPlotMethods

@@ -1,17 +1,16 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+import numpy as np
+from scipy.special import kn
 
-from SimPEG import Utils
-from SimPEG.EM.Base import BaseEMProblem
+from ....utils import mkvc, sdiag, Zero
+from ...Base import BaseEMProblem
+
 from .SurveyDC import Survey_ky
 from .FieldsDC_2D import Fields_ky, Fields_ky_CC, Fields_ky_N
 from .FieldsDC import FieldsDC, Fields_CC, Fields_N
-import numpy as np
-from SimPEG.Utils import Zero
 from .BoundaryUtils import getxBCyBC_CC
-from scipy.special import kn
+
+
+
 
 
 class BaseDCProblem_2D(BaseEMProblem):
@@ -83,7 +82,7 @@ class BaseDCProblem_2D(BaseEMProblem):
         """
         if self.storeJ:
             J = self.getJ(m, f=f)
-            Jv = Utils.mkvc(np.dot(J, v))
+            Jv = mkvc(np.dot(J, v))
             return Jv
 
         self.model = m
@@ -123,7 +122,7 @@ class BaseDCProblem_2D(BaseEMProblem):
                         Jv[src, rx] += Jv1_temp*dky[iky]/2.*np.cos(ky*y)
                         Jv[src, rx] += Jv0[src, rx]*dky[iky]/2.*np.cos(ky*y)
                     Jv0[src, rx] = Jv1_temp.copy()
-        return Utils.mkvc(Jv)
+        return mkvc(Jv)
 
     def Jtvec(self, m, v, f=None):
         """
@@ -131,7 +130,7 @@ class BaseDCProblem_2D(BaseEMProblem):
         """
         if self.storeJ:
             J = self.getJ(m, f=f)
-            Jtv = Utils.mkvc(np.dot(J.T, v))
+            Jtv = mkvc(np.dot(J.T, v))
             return Jtv
 
         self.model = m
@@ -192,7 +191,7 @@ class BaseDCProblem_2D(BaseEMProblem):
                             Jtv += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
                             Jtv += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
                         Jtv_temp0 = Jtv_temp1.copy()
-            return Utils.mkvc(Jtv)
+            return mkvc(Jtv)
 
         # This is for forming full sensitivity
         else:
@@ -296,8 +295,8 @@ class BaseDCProblem_2D(BaseEMProblem):
         if getattr(self, '_MnSigma', None) is None:
             sigma = self.sigma
             vol = self.mesh.vol
-            self._MnSigma = Utils.sdiag(
-                self.mesh.aveN2CC.T*(Utils.sdiag(vol)*sigma)
+            self._MnSigma = sdiag(
+                self.mesh.aveN2CC.T*(sdiag(vol)*sigma)
             )
         return self._MnSigma
 
@@ -310,7 +309,7 @@ class BaseDCProblem_2D(BaseEMProblem):
             sigma = self.sigma
             vol = self.mesh.vol
             self._MnSigmaDerivMat = (
-                self.mesh.aveN2CC.T * Utils.sdiag(vol) * self.sigmaDeriv
+                self.mesh.aveN2CC.T * sdiag(vol) * self.sigmaDeriv
                 )
         return self._MnSigmaDerivMat
 
@@ -321,7 +320,7 @@ class BaseDCProblem_2D(BaseEMProblem):
         if self.storeInnerProduct:
             if adjoint:
                 return self.MnSigmaDerivMat.T * (
-                    Utils.sdiag(u)*v
+                    sdiag(u)*v
                 )
             else:
                 return u*(self.MnSigmaDerivMat * v)
@@ -330,7 +329,7 @@ class BaseDCProblem_2D(BaseEMProblem):
             vol = self.mesh.vol
             if adjoint:
                 return self.sigmaDeriv.T * (
-                    Utils.sdiag(vol) * (self.mesh.aveN2CC * (Utils.sdiag(u)*v))
+                    sdiag(vol) * (self.mesh.aveN2CC * (sdiag(u)*v))
                 )
             else:
                 dsig_dm_v = self.sigmaDeriv * v
@@ -346,7 +345,7 @@ class BaseDCProblem_2D(BaseEMProblem):
         """
         # TODO: only works isotropic rho
         if getattr(self, '_MccRhoi', None) is None:
-            self._MccRhoi = Utils.sdiag(
+            self._MccRhoi = sdiag(
                 self.mesh.vol/self.rho
             )
         return self._MccRhoi
@@ -360,7 +359,7 @@ class BaseDCProblem_2D(BaseEMProblem):
             rho = self.rho
             vol = self.mesh.vol
             self._MccRhoiDerivMat = (
-                Utils.sdiag(vol*(-1./rho**2))*self.rhoDeriv
+                sdiag(vol*(-1./rho**2))*self.rhoDeriv
             )
         return self._MccRhoiDerivMat
 
@@ -369,7 +368,7 @@ class BaseDCProblem_2D(BaseEMProblem):
             Derivative of :code:`MccRhoi` with respect to the model.
         """
         if self.rhoMap is None:
-            return Utils.Zero()
+            return Zero()
 
         if len(self.rho.shape) > 1:
             if self.rho.shape[1] > self.mesh.dim:
@@ -378,16 +377,16 @@ class BaseDCProblem_2D(BaseEMProblem):
                 )
         if self.storeInnerProduct:
             if adjoint:
-                return self.MccRhoiDerivMat.T * (Utils.sdiag(u) * v)
+                return self.MccRhoiDerivMat.T * (sdiag(u) * v)
             else:
-                return Utils.sdiag(u) * (self.MccRhoiDerivMat * v)
+                return sdiag(u) * (self.MccRhoiDerivMat * v)
         else:
             vol = self.mesh.vol
             rho = self.rho
             if adjoint:
-                return self.rhoDeriv.T * (Utils.sdiag(u*vol*(-1./rho**2)) * v)
+                return self.rhoDeriv.T * (sdiag(u*vol*(-1./rho**2)) * v)
             else:
-                return (Utils.sdiag(u*vol*(-1./rho**2)))*(self.rhoDeriv * v)
+                return (sdiag(u*vol*(-1./rho**2)))*(self.rhoDeriv * v)
 
 
 class Problem2D_CC(BaseDCProblem_2D):
@@ -529,7 +528,7 @@ class Problem2D_CC(BaseDCProblem_2D):
         self.Div = V * self.mesh.faceDiv
         P_BC, B = self.mesh.getBCProjWF_simple()
         M = B*self.mesh.aveCC2F
-        self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
+        self.Grad = self.Div.T - P_BC*sdiag(y_BC)*M
 
 
 class Problem2D_N(BaseDCProblem_2D):

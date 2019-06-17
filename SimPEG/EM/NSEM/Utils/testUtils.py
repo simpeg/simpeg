@@ -5,7 +5,7 @@ from __future__ import division
 import numpy as np
 
 import SimPEG as simpeg
-from SimPEG.Utils import meshTensor
+from ....utils import meshTensor
 from SimPEG.EM.NSEM.RxNSEM import Point_impedance1D, Point_impedance3D, Point_tipper3D
 from SimPEG.EM.NSEM.SurveyNSEM import Survey
 from SimPEG.EM.NSEM.SrcNSEM import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD

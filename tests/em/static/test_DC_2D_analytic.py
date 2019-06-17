@@ -1,9 +1,11 @@
-from __future__ import print_function
-import unittest
-from SimPEG import Mesh, Utils, EM, SolverLU
 import numpy as np
-import SimPEG.EM.Static.DC as DC
+import unittest
 import matplotlib.pyplot as plt
+
+from discretize import TensorMesh
+
+from SimPEG import utils, EM, SolverLU
+import SimPEG.EM.Static.DC as DC
 
 
 class DCProblemAnalyticTests_PDP(unittest.TestCase):
@@ -13,12 +15,12 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         cs = 12.5
         hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
         hy = [(cs, 7, -1.3), (cs, 20)]
-        mesh = Mesh.TensorMesh([hx, hy], x0="CN")
+        mesh = TensorMesh([hx, hy], x0="CN")
         sighalf = 1e-2
         sigma = np.ones(mesh.nC)*sighalf
         x = np.linspace(-135, 250., 20)
-        M = Utils.ndgrid(x-12.5, np.r_[0.])
-        N = Utils.ndgrid(x+12.5, np.r_[0.])
+        M = utils.ndgrid(x-12.5, np.r_[0.])
+        N = utils.ndgrid(x+12.5, np.r_[0.])
         A0loc = np.r_[-150, 0.]
         # A1loc = np.r_[-130, 0.]
         rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
@@ -87,12 +89,12 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         cs = 12.5
         hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
         hy = [(cs, 7, -1.3), (cs, 20)]
-        mesh = Mesh.TensorMesh([hx, hy], x0="CN")
+        mesh = TensorMesh([hx, hy], x0="CN")
         sighalf = 1e-2
         sigma = np.ones(mesh.nC)*sighalf
         x = np.linspace(0, 250., 20)
-        M = Utils.ndgrid(x-12.5, np.r_[0.])
-        N = Utils.ndgrid(x+12.5, np.r_[0.])
+        M = utils.ndgrid(x-12.5, np.r_[0.])
+        N = utils.ndgrid(x+12.5, np.r_[0.])
         A0loc = np.r_[-150, 0.]
         A1loc = np.r_[-125, 0.]
         rxloc = np.c_[M, np.zeros(20)]
@@ -170,11 +172,11 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         cs = 12.5
         hx = [(cs, 7, -1.5), (cs, 61), (cs, 7, 1.5)]
         hy = [(cs, 7, -1.5), (cs, 20)]
-        mesh = Mesh.TensorMesh([hx, hy], x0="CN")
+        mesh = TensorMesh([hx, hy], x0="CN")
         sighalf = 1e-2
         sigma = np.ones(mesh.nC)*sighalf
         x = np.linspace(0, 250., 20)
-        M = Utils.ndgrid(x-12.5, np.r_[0.])
+        M = utils.ndgrid(x-12.5, np.r_[0.])
         A0loc = np.r_[-150, 0.]
         rxloc = np.c_[M, np.zeros(20)]
         data_ana = EM.Analytics.DCAnalytic_Pole_Pole(

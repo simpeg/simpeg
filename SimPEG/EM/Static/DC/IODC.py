@@ -4,11 +4,12 @@ import matplotlib
 import properties
 import warnings
 
-import discretize as Mesh
+from discretize import TensorMesh
 from discretize.base import BaseMesh
 
-import SimPEG
-from SimPEG import Utils
+from ....data import Data
+from ....utils import sdiag, uniqueRows, surface2ind_topo, plot2Ddata
+from ..Utils import geometric_factor
 from . import SrcDC as Src
 from . import RxDC as Rx
 from .SurveyDC import Survey_ky, Survey
@@ -303,7 +304,7 @@ class IO(properties.HasProperties):
                 raise Exception(
                     "DC voltages must be set to compute IP voltages"
                     )
-            return Utils.sdiag(self.voltages) * self.data_sip
+            return sdiag(self.voltages) * self.data_sip
         else:
             raise NotImplementedError()
 
@@ -336,7 +337,7 @@ class IO(properties.HasProperties):
                 raise Exception(
                     "DC voltages must be set to compute Apparent Chargeability"
                     )
-            return Utils.sdiag(1./self.voltages) * self.data_sip
+            return sdiag(1./self.voltages) * self.data_sip
         else:
             raise NotImplementedError()
 
@@ -345,7 +346,6 @@ class IO(properties.HasProperties):
         Compute geometric factor, G, using locational informaition
         in survey object
         """
-        geometric_factor = SimPEG.EM.Static.Utils.StaticUtils.geometric_factor
         G = geometric_factor(
             survey, survey_type=self.survey_type, space_type=self.space_type
             )
@@ -373,8 +373,8 @@ class IO(properties.HasProperties):
         if times_ip is not None:
             self.times_ip = times_ip
 
-        uniqSrc = Utils.uniqueRows(np.c_[self.a_locations, self.b_locations])
-        uniqElec = SimPEG.Utils.uniqueRows(
+        uniqSrc = uniqueRows(np.c_[self.a_locations, self.b_locations])
+        uniqElec = uniqueRows(
             np.vstack(
                 (
                     self.a_locations, self.b_locations,
@@ -585,8 +585,8 @@ class IO(properties.HasProperties):
                     np.r_[ymin-dy*3, ymax+dy*3],
                     np.r_[zmax-corezlength, zmax]
                 ))
-            mesh = Mesh.TensorMesh(h, x0=x0_for_mesh)
-            actind = Utils.surface2ind_topo(mesh, locs, method=method)
+            mesh = TensorMesh(h, x0=x0_for_mesh)
+            actind = surface2ind_topo(mesh, locs, method=method)
         else:
             raise NotImplementedError()
 
@@ -659,7 +659,7 @@ class IO(properties.HasProperties):
         else:
             raise NotImplementedError()
 
-        out = Utils.plot2Ddata(
+        out = plot2Ddata(
             grids, val,
             contourOpts={'cmap': cmap},
             ax=ax,

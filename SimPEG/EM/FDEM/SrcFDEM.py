@@ -5,13 +5,11 @@ import warnings
 
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
-from SimPEG.Utils import Zero
-from SimPEG import OldSurvey as Survey
-from SimPEG import Problem, Utils
+from ...props import LocationVector
+from ...utils import mkvc, Zero
 
 from .. import Utils as emutils
 from ..Base import BaseEMSrc
-from ...Props import LocationVector
 
 
 class BaseFDEMSrc(BaseEMSrc):
@@ -510,7 +508,7 @@ class MagDipole_Bfield(MagDipole):
             bz = self._srcFct(gridZ, coordinates=coordinates)[:, 2]
             b = np.concatenate((bx, by, bz))
 
-        return Utils.mkvc(b)
+        return mkvc(b)
 
 
 class CircularLoop(MagDipole):
@@ -669,7 +667,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         A = self.primaryProblem.getA(freq)
         src = self.primarySurvey.srcList[0]
-        u_src = Utils.mkvc(f[src, self.primaryProblem._solutionType])
+        u_src = mkvc(f[src, self.primaryProblem._solutionType])
 
         if adjoint is True:
             Jtv = np.zeros(prob.sigmaMap.nP, dtype=complex)
@@ -699,7 +697,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
             ATinv.clean()
 
-            return Utils.mkvc(Jtv)
+            return mkvc(Jtv)
 
         # create the concept of Ainv (actually a solve)
         Ainv = self.primaryProblem.Solver(A, **self.primaryProblem.solverOpts)
@@ -738,7 +736,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
                         self.primaryProblem.MfRho * f[:, 'j'])
                     )
 
-        return Utils.mkvc(ep)
+        return mkvc(ep)
 
     def ePrimaryDeriv(self, prob, v, adjoint=False, f=None):
 
@@ -788,7 +786,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
                     )
                 )
 
-        return Utils.mkvc(epDeriv)
+        return mkvc(epDeriv)
 
     def bPrimary(self, prob, f=None):
         if f is None:
@@ -807,12 +805,12 @@ class PrimSecMappedSigma(BaseFDEMSrc):
                 )
             )
 
-        return Utils.mkvc(bp)
+        return mkvc(bp)
 
     def s_e(self, prob, f=None):
         sigmaPrimary = self.map2meshSecondary * prob.model
 
-        return Utils.mkvc(
+        return mkvc(
             (prob.MeSigma - prob.mesh.getEdgeInnerProduct(sigmaPrimary)) *
             self.ePrimary(prob, f=f)
         )

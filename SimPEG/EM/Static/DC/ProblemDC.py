@@ -1,17 +1,11 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-from SimPEG import Utils
-from SimPEG.EM.Base import BaseEMProblem
-from .SurveyDC import Survey
-from .FieldsDC import FieldsDC, Fields_CC, Fields_N
 import numpy as np
 import scipy as sp
-from SimPEG.Utils import Zero
-from .BoundaryUtils import getxBCyBC_CC
 
+from ....utils import mkvc, sdiag, Zero
+from ...Base import BaseEMProblem
+from .BoundaryUtils import getxBCyBC_CC
+from .SurveyDC import Survey
+from .FieldsDC import FieldsDC, Fields_CC, Fields_N
 
 class BaseDCProblem(BaseEMProblem):
     """
@@ -62,7 +56,7 @@ class BaseDCProblem(BaseEMProblem):
         """
         if self.storeJ:
             J = self.getJ(m, f=f)
-            Jv = Utils.mkvc(np.dot(J, v))
+            Jv = mkvc(np.dot(J, v))
             return Jv
 
         self.model = m
@@ -90,7 +84,7 @@ class BaseDCProblem(BaseEMProblem):
         """
         if self.storeJ:
             J = self.getJ(m, f=f)
-            Jtv = Utils.mkvc(np.dot(J.T, v))
+            Jtv = mkvc(np.dot(J.T, v))
             return Jtv
 
         self.model = m
@@ -148,7 +142,7 @@ class BaseDCProblem(BaseEMProblem):
                     istrt += rx.nD
 
         if v is not None:
-            return Utils.mkvc(Jtv)
+            return mkvc(Jtv)
         else:
             # return np.hstack(Jtv)
             return Jtv
@@ -258,7 +252,7 @@ class Problem3D_CC(BaseDCProblem):
     def setBC(self):
         if self.bc_type == 'Dirichlet':
             print('Homogeneous Dirichlet is the natural BC for this CC discretization.')
-            self.Div = Utils.sdiag(self.mesh.vol) * self.mesh.faceDiv
+            self.Div = sdiag(self.mesh.vol) * self.mesh.faceDiv
             self.Grad = self.Div.T
 
         else:
@@ -392,7 +386,7 @@ class Problem3D_CC(BaseDCProblem):
             self.Div = V * self.mesh.faceDiv
             P_BC, B = self.mesh.getBCProjWF_simple()
             M = B*self.mesh.aveCC2F
-            self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
+            self.Grad = self.Div.T - P_BC*sdiag(y_BC)*M
 
 
 class Problem3D_N(BaseDCProblem):

@@ -1,15 +1,16 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import time
 import sys
 import scipy.sparse as sp
 import numpy as np
 
-from SimPEG.EM.Utils.EMUtils import omega, mu_0
-from SimPEG import SolverLU as SimpegSolver, Utils, mkvc
+try:
+    from pymatsolver import Pardiso as SimpegSolver
+except ImportError:
+    from SimPEG import SolverLU as SimpegSolver
+
+from ...utils import mkvc, setKwargs
 from ..FDEM.ProblemFDEM import BaseFDEMProblem
+from ..Utils.EMUtils import omega, mu_0
 from .SurveyNSEM import Survey, Data
 from .FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields3D_ePrimSec
 
@@ -21,7 +22,7 @@ class BaseNSEMProblem(BaseFDEMProblem):
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
-        Utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
     # Set the default pairs of the problem
     surveyPair = Survey
     dataPair = Data

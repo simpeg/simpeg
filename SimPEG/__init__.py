@@ -4,18 +4,6 @@ from __future__ import absolute_import
 # import discretize as Mesh
 from discretize import Tests as tests
 
-# from . import Maps
-# from . import Models
-# from . import Problem
-# from . import Survey
-# from . import Regularization
-# from . import DataMisfit
-# from . import InvProblem
-# from . import Optimization
-# from . import Directives
-# from . import Inversion
-# from . import Tests
-
 from .data import Data, SyntheticData
 from . import data_misfit
 from . import directives

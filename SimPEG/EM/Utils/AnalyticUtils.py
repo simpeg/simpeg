@@ -7,8 +7,7 @@ import properties
 from discretize.base import BaseMesh
 from discretize import TensorMesh
 
-from SimPEG import Utils
-
+from ...utils import mkvc
 
 orientationDict = {'X': np.r_[1., 0., 0.],
                    'Y': np.r_[0., 1., 0.],
@@ -179,7 +178,7 @@ def MagneticDipoleFields(
         # dot product with rx orientation
         inside_dot_rx = (inside * rx).sum(axis=1)
         front = (mu/(4.* np.pi * r**3))
-        B.append(Utils.mkvc(np.multiply(front, inside_dot_rx)))
+        B.append(mkvc(np.multiply(front, inside_dot_rx)))
 
     return np.vstack(B).T
 

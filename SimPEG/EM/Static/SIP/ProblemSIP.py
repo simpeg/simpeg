@@ -1,54 +1,51 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import numpy as np
 import sys
-
-from SimPEG import Utils
-from SimPEG import Props
-from SimPEG import Maps
-
-from SimPEG.EM.Base import BaseEMProblem
-from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
-from SimPEG.EM.Static.IP import Problem3D_CC as BaseProblem3D_CC
-from SimPEG.EM.Static.IP import Problem3D_N as BaseProblem3D_N
-from .SurveySIP import Survey, Data
 import gc
+
+from .... import props
+from .... import maps
+from ....data import Data
+from ....utils import sdiag
+
+from ...Base import BaseEMProblem
+from ..DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
+from ..IP import Problem3D_CC as BaseProblem3D_CC
+from ..IP import Problem3D_N as BaseProblem3D_N
+from .SurveySIP import Survey
+
 
 
 class BaseSIPProblem(BaseEMProblem):
 
-    sigma = Props.PhysicalProperty(
+    sigma = props.PhysicalProperty(
         "Electrical conductivity (S/m)"
     )
 
-    rho = Props.PhysicalProperty(
+    rho = props.PhysicalProperty(
         "Electrical resistivity (Ohm m)"
     )
 
-    Props.Reciprocal(sigma, rho)
+    props.Reciprocal(sigma, rho)
 
-    eta, etaMap, etaDeriv = Props.Invertible(
+    eta, etaMap, etaDeriv = props.Invertible(
         "Electrical Chargeability (V/V)"
     )
 
-    tau, tauMap, tauDeriv = Props.Invertible(
+    tau, tauMap, tauDeriv = props.Invertible(
         "Time constant (s)",
         default=0.1
     )
 
-    taui, tauiMap, tauiDeriv = Props.Invertible(
+    taui, tauiMap, tauiDeriv = props.Invertible(
         "Inverse of time constant (1/s)"
     )
 
-    c, cMap, cDeriv = Props.Invertible(
+    c, cMap, cDeriv = props.Invertible(
         "Frequency dependency",
         default=0.5
     )
 
-    Props.Reciprocal(tau, taui)
+    props.Reciprocal(tau, taui)
 
     surveyPair = Survey
     fieldsPair = FieldsDC

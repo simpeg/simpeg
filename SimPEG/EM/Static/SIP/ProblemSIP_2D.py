@@ -1,42 +1,38 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import numpy as np
-
-from SimPEG import Utils
-from SimPEG import Props
-from SimPEG import Maps
-
-from SimPEG.EM.Static.DC.FieldsDC_2D import (
-    Fields_ky, Fields_ky_CC, Fields_ky_N
-    )
-from SimPEG.EM.Static.IP import BaseIPProblem_2D
-from SimPEG.EM.Static.IP import Problem2D_N as BaseProblem2D_N
-from SimPEG.EM.Static.IP import Problem2D_CC as BaseProblem2D_CC
-from .SurveySIP import Survey
 from scipy.special import kn
+
+from .... import props
+from .... import maps
+from ....utils import sdiag
+
+from ..DC.FieldsDC_2D import (
+    Fields_ky, Fields_ky_CC, Fields_ky_N
+)
+from ..IP import BaseIPProblem_2D
+from ..IP import Problem2D_N as BaseProblem2D_N
+from ..IP import Problem2D_CC as BaseProblem2D_CC
+from .SurveySIP import Survey
+
 
 
 class BaseSIPProblem_2D(BaseIPProblem_2D):
 
-    eta, etaMap, etaDeriv = Props.Invertible(
+    eta, etaMap, etaDeriv = props.Invertible(
         "Electrical Chargeability (V/V)"
     )
 
-    tau, tauMap, tauDeriv = Props.Invertible(
+    tau, tauMap, tauDeriv = props.Invertible(
         "Time constant (s)",
         default=0.1
     )
 
-    taui, tauiMap, tauiDeriv = Props.Invertible(
+    taui, tauiMap, tauiDeriv = props.Invertible(
         "Inverse of time constant (1/s)"
     )
 
-    Props.Reciprocal(tau, taui)
+    props.Reciprocal(tau, taui)
 
-    c, cMap, cDeriv = Props.Invertible(
+    c, cMap, cDeriv = props.Invertible(
         "Frequency dependency",
         default=1.
     )
@@ -57,7 +53,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         taui_t_c = (self.taui*t)**self.c
         dpetadeta = np.exp(-taui_t_c)
         if adjoint:
-            return self.etaDeriv.T * (Utils.sdiag(dpetadeta) * v)
+            return self.etaDeriv.T * (sdiag(dpetadeta) * v)
         else:
             return dpetadeta * (self.etaDeriv*v)
 
@@ -68,7 +64,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
             - self.c * self.eta / self.taui * taui_t_c * np.exp(-taui_t_c)
             )
         if adjoint:
-            return self.tauiDeriv.T * (Utils.sdiag(dpetadtaui)*v)
+            return self.tauiDeriv.T * (sdiag(dpetadtaui)*v)
         else:
             return dpetadtaui * (self.tauiDeriv*v)
 
@@ -79,7 +75,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
             -self.eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(self.taui*t)
             )
         if adjoint:
-            return self.cDeriv.T * (Utils.sdiag(dpetadc)*v)
+            return self.cDeriv.T * (sdiag(dpetadc)*v)
         else:
             return dpetadc * (self.cDeriv*v)
 
@@ -231,7 +227,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         J = self.getJ(self.model, f=None)
         for tind in range(ntime):
             t = self.survey.times[tind]
-            Jtv = self.actMap.P*Utils.sdiag(1./self.mesh.vol)*J.T
+            Jtv = self.actMap.P*sdiag(1./self.mesh.vol)*J.T
             JtJdiag += (
                 (self.PetaEtaDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
                 (self.PetaTauiDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
@@ -245,7 +241,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         Derivative of MfRho with respect to the model
         """
         if getattr(self, '_MfRhoDerivMat', None) is None:
-            drho_dlogrho = Utils.sdiag(self.rho)*self.actMap.P
+            drho_dlogrho = sdiag(self.rho)*self.actMap.P
             self._MfRhoDerivMat = self.mesh.getFaceInnerProductDeriv(
                 np.ones(self.mesh.nC)
             )(np.ones(self.mesh.nF)) * drho_dlogrho
@@ -261,13 +257,13 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
             if adjoint:
                 return (
                     self.MfRhoDerivMat.T * (
-                        Utils.sdiag(u) * (dMfRhoI_dI.T * v)
+                        sdiag(u) * (dMfRhoI_dI.T * v)
                     )
                 )
             else:
-                return dMfRhoI_dI * (Utils.sdiag(u) * (self.MfRhoDerivMat*v))
+                return dMfRhoI_dI * (sdiag(u) * (self.MfRhoDerivMat*v))
         else:
-            drho_dlogrho = Utils.sdiag(self.rho)*self.actMap.P
+            drho_dlogrho = sdiag(self.rho)*self.actMap.P
             dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
             if adjoint:
                 return drho_dlogrho.T * (dMf_drho.T * (dMfRhoI_dI.T*v))
@@ -280,7 +276,7 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         Derivative of MeSigma with respect to the model
         """
         if getattr(self, '_MeSigmaDerivMat', None) is None:
-            dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.actMap.P
+            dsigma_dlogsigma = sdiag(self.sigma)*self.actMap.P
             self._MeSigmaDerivMat = self.mesh.getEdgeInnerProductDeriv(
                 np.ones(self.mesh.nC)
             )(np.ones(self.mesh.nE)) * dsigma_dlogsigma
@@ -294,11 +290,11 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
 
         if self.storeInnerProduct:
             if adjoint:
-                return self.MeSigmaDerivMat.T * (Utils.sdiag(u)*v)
+                return self.MeSigmaDerivMat.T * (sdiag(u)*v)
             else:
-                return Utils.sdiag(u)*(self.MeSigmaDerivMat * v)
+                return sdiag(u)*(self.MeSigmaDerivMat * v)
         else:
-            dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.actMap.P
+            dsigma_dlogsigma = sdiag(self.sigma)*self.actMap.P
             if adjoint:
                 return (
                     dsigma_dlogsigma.T * (
@@ -319,9 +315,9 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         if getattr(self, '_MnSigmaDerivMat', None) is None:
             sigma = self.sigma
             vol = self.mesh.vol
-            dsigma_dlogsigma = Utils.sdiag(sigma)*self.actMap.P
+            dsigma_dlogsigma = sdiag(sigma)*self.actMap.P
             self._MnSigmaDerivMat = (
-                self.mesh.aveN2CC.T * Utils.sdiag(vol) * dsigma_dlogsigma
+                self.mesh.aveN2CC.T * sdiag(vol) * dsigma_dlogsigma
                 )
         return self._MnSigmaDerivMat
 
@@ -331,13 +327,13 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         """
         if self.storeInnerProduct:
             if adjoint:
-                return self.MnSigmaDerivMat.T * (Utils.sdiag(u)*v)
+                return self.MnSigmaDerivMat.T * (sdiag(u)*v)
             else:
                 return u*(self.MnSigmaDerivMat * v)
         else:
             sigma = self.sigma
             vol = self.mesh.vol
-            dsigma_dlogsigma = Utils.sdiag(sigma)*self.actMap.P
+            dsigma_dlogsigma = sdiag(sigma)*self.actMap.P
             if adjoint:
                 return dsigma_dlogsigma.T * (vol * (self.mesh.aveN2CC * (u*v)))
             else:
@@ -354,9 +350,9 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
         if getattr(self, '_MccRhoiDerivMat', None) is None:
             rho = self.rho
             vol = self.mesh.vol
-            drho_dlogrho = Utils.sdiag(rho)*self.actMap.P
+            drho_dlogrho = sdiag(rho)*self.actMap.P
             self._MccRhoiDerivMat = (
-                Utils.sdiag(vol*(-1./rho**2))*drho_dlogrho
+                sdiag(vol*(-1./rho**2))*drho_dlogrho
             )
         return self._MccRhoiDerivMat
 
@@ -371,13 +367,13 @@ class BaseSIPProblem_2D(BaseIPProblem_2D):
                 )
         if self.storeInnerProduct:
             if adjoint:
-                return self.MccRhoiDerivMat.T * (Utils.sdiag(u) * v)
+                return self.MccRhoiDerivMat.T * (sdiag(u) * v)
             else:
-                return Utils.sdiag(u) * (self.MccRhoiDerivMat * v)
+                return sdiag(u) * (self.MccRhoiDerivMat * v)
         else:
             vol = self.mesh.vol
             rho = self.rho
-            drho_dlogrho = Utils.sdiag(rho)*self.actMap.P
+            drho_dlogrho = sdiag(rho)*self.actMap.P
             if adjoint:
                 return drho_dlogrho.T * (u*vol*(-1./rho**2) * v)
             else:
@@ -402,7 +398,7 @@ class Problem2D_CC(BaseSIPProblem_2D, BaseProblem2D_CC):
             print("So, set actMap = IdentityMap(mesh)")
             self.actinds = np.ones(mesh.nC, dtype=bool)
 
-        self.actMap = Maps.InjectActiveCells(mesh, self.actinds, 0.)
+        self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)
 
 
 class Problem2D_N(BaseSIPProblem_2D, BaseProblem2D_N):
@@ -423,4 +419,4 @@ class Problem2D_N(BaseSIPProblem_2D, BaseProblem2D_N):
             print("So, set actMap = IdentityMap(mesh)")
             self.actinds = np.ones(mesh.nC, dtype=bool)
 
-        self.actMap = Maps.InjectActiveCells(mesh, self.actinds, 0.)
+        self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)

@@ -1,10 +1,9 @@
 import numpy as np
-from SimPEG import (
-    Maps, Optimization, Inversion, InvProblem, Directives
-)
 
-from SimPEG import Old_DataMisfit as DataMisfit
-from SimPEG import regularization as Regularization
+from SimPEG import (
+    maps, optimization, inversion, inverse_problem, directives,
+    data_misfit, regularization
+)
 
 
 def run_inversion(
@@ -22,36 +21,36 @@ def run_inversion(
     """
     Run IP inversion
     """
-    dmisfit = DataMisfit.l2_DataMisfit(survey)
+    dmisfit = data_misfit.L2DataMisfit(survey)
     uncert = abs(survey.dobs) * std + eps
     dmisfit.W = 1./uncert
     # Map for a regularization
-    regmap = Maps.IdentityMap(nP=int(actind.sum()))
+    regmap = maps.IdentityMap(nP=int(actind.sum()))
     # Related to inversion
     if use_sensitivity_weight:
-        reg = Regularization.Simple(mesh, indActive=actind, mapping=regmap)
+        reg = regularization.Simple(mesh, indActive=actind, mapping=regmap)
         reg.alpha_s = alpha_s
         reg.alpha_x = alpha_x
         reg.alpha_y = alpha_y
         reg.alpha_z = alpha_z
     else:
-        reg = Regularization.Tikhonov(mesh, indActive=actind, mapping=regmap)
+        reg = regularization.Tikhonov(mesh, indActive=actind, mapping=regmap)
         reg.alpha_s = alpha_s
         reg.alpha_x = alpha_x
         reg.alpha_y = alpha_y
         reg.alpha_z = alpha_z
-    opt = Optimization.ProjectedGNCG(maxIter=maxIter, upper=upper, lower=lower)
-    invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
-    beta = Directives.BetaSchedule(
+    opt = optimization.ProjectedGNCG(maxIter=maxIter, upper=upper, lower=lower)
+    invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
+    beta = directives.BetaSchedule(
         coolingFactor=coolingFactor, coolingRate=coolingRate
     )
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio)
-    target = Directives.TargetMisfit()
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio)
+    target = directives.TargetMisfit()
 
     # Need to have basice saving function
     if use_sensitivity_weight:
-        updateSensW = Directives.UpdateSensitivityWeights()
-        update_Jacobi = Directives.UpdatePreconditioner()
+        updateSensW = directives.UpdateSensitivityWeights()
+        update_Jacobi = directives.UpdatePreconditioner()
         directiveList = [
             beta, betaest, target, updateSensW, update_Jacobi
         ]
@@ -59,7 +58,7 @@ def run_inversion(
         directiveList = [
             beta, betaest, target
         ]
-    inv = Inversion.BaseInversion(
+    inv = inversion.BaseInversion(
         invProb, directiveList=directiveList
         )
     opt.LSshorten = 0.5
