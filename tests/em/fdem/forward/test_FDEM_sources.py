@@ -1,12 +1,11 @@
 from __future__ import print_function
 import unittest
 
-# import matplotlib
-# matplotlib.use('Agg')
+import discretize
 
 from SimPEG.EM import FDEM, Analytics, mu_0
 import numpy as np
-from SimPEG import Mesh, Maps, Utils
+from SimPEG import maps, utils
 import warnings
 
 TOL = 0.5 # relative tolerance (to norm of soln)
@@ -24,8 +23,8 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
         hx = [(cs, npad, -1.5), (cs, ncx), (cs, npad, 1.5)]
         hy = [(cs, npad, -1.5), (cs, ncy), (cs, npad, 1.5)]
         hz = [(cs, npad, -1.5), (cs, ncz), (cs, npad, 1.5)]
-        self.mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
-        mapping = Maps.ExpMap(self.mesh)
+        self.mesh = discretize.TensorMesh([hx, hy, hz], 'CCC')
+        mapping = maps.ExpMap(self.mesh)
 
         self.freq = 1.
 
@@ -35,8 +34,8 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
         self.prob_j = FDEM.Problem3D_j(self.mesh, sigmaMap=mapping)
 
         loc = np.r_[0., 0., 0.]
-        self.loc = Utils.mkvc(
-            self.mesh.gridCC[Utils.closestPoints(self.mesh, loc, 'CC'), :]
+        self.loc = utils.mkvc(
+            self.mesh.gridCC[utils.closestPoints(self.mesh, loc, 'CC'), :]
         )
 
     def test_MagDipole(self):
@@ -143,7 +142,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
         look_at_these = np.hstack([look_at_these,
                                   np.array(ignore_these == False,
                                   dtype=bool)])
-        bPrimary_ana = Utils.mkvc(np.vstack([bx, by, bz]))
+        bPrimary_ana = utils.mkvc(np.vstack([bx, by, bz]))
         bPrimary = bPrimary
 
         check = np.linalg.norm(bPrimary[look_at_these] -
