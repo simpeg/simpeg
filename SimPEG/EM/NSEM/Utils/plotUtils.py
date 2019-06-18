@@ -511,6 +511,26 @@ class DataNSEMPlotMethods(object):
 
         return (fig, ax)
 
+    def station_component_data(
+        self, location, orientation, component):
+        """
+
+        :param numpy.ndarray location: Coordnaties of the station to plot
+        :param str orientation: The orientation of the data
+        :param str component: The data component to plot
+        :param matplotlib.axes ax (optional):
+        :param matplotlib.lines.Line2D keyword_arguments plot_kwargs)
+
+        """
+
+        # Plot the data
+        freqs, plot_data = _get_plot_data(self,
+                                          location, orientation,
+                                          component)
+        # Plot
+        # plot_obj = ax.plot(freqs, plot_data, **plot_kwargs)
+        return (freqs, plot_data)
+
     def station_component(
         self, location, orientation, component,
             ax=None, **plot_kwargs):
@@ -536,8 +556,6 @@ class DataNSEMPlotMethods(object):
                                           component)
         # Plot
         plot_obj = ax.plot(freqs, plot_data, **plot_kwargs)
-
-
         return (fig, ax, plot_obj)
 
     def station_errorbars(
