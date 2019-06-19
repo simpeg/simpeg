@@ -4,9 +4,12 @@ from __future__ import division
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.constants import mu_0
 
 import properties
-from SimPEG.EM.Utils.EMUtils import mu_0, omega
+
+from ...Utils import omega
+
 
 # Define the default component dictionaries
 DEFAULT_COMP_DICT = {

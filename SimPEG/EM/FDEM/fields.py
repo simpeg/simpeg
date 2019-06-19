@@ -14,8 +14,8 @@ class FieldsFDEM(Fields):
     .. code-block:: python
 
         f = problem.fields(m)
-        e = f[srcList,'e']
-        b = f[srcList,'b']
+        e = f[source_list,'e']
+        b = f[source_list,'b']
 
     If accessing all sources for a given field, use the :code:`:`
 
@@ -36,12 +36,12 @@ class FieldsFDEM(Fields):
         """Grid location of the fieldType"""
         return self.aliasFields[fieldType][1]
 
-    def _e(self, solution, srcList):
+    def _e(self, solution, source_list):
         """
         Total electric field is sum of primary and secondary
 
         :param numpy.ndarray solution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: total electric field
         """
@@ -56,16 +56,16 @@ class FieldsFDEM(Fields):
             )
 
         return (
-            self._ePrimary(solution, srcList) +
-            self._eSecondary(solution, srcList)
+            self._ePrimary(solution, source_list) +
+            self._eSecondary(solution, source_list)
         )
 
-    def _b(self, solution, srcList):
+    def _b(self, solution, source_list):
         """
         Total magnetic flux density is sum of primary and secondary
 
         :param numpy.ndarray solution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: total magnetic flux density
         """
@@ -80,16 +80,16 @@ class FieldsFDEM(Fields):
             )
 
         return (
-            self._bPrimary(solution, srcList) +
-            self._bSecondary(solution, srcList)
+            self._bPrimary(solution, source_list) +
+            self._bSecondary(solution, source_list)
             )
 
-    def _bSecondary(self, solution, srcList):
+    def _bSecondary(self, solution, source_list):
         """
         Total magnetic flux density is sum of primary and secondary
 
         :param numpy.ndarray solution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: total magnetic flux density
         """
@@ -100,14 +100,14 @@ class FieldsFDEM(Fields):
                     )
                 )
 
-        return self._bSecondary(solution, srcList)
+        return self._bSecondary(solution, source_list)
 
-    def _h(self, solution, srcList):
+    def _h(self, solution, source_list):
         """
         Total magnetic field is sum of primary and secondary
 
         :param numpy.ndarray solution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: total magnetic field
         """
@@ -121,16 +121,16 @@ class FieldsFDEM(Fields):
                 )
 
         return (
-            self._hPrimary(solution, srcList) +
-            self._hSecondary(solution, srcList)
+            self._hPrimary(solution, source_list) +
+            self._hSecondary(solution, source_list)
             )
 
-    def _j(self, solution, srcList):
+    def _j(self, solution, source_list):
         """
         Total current density is sum of primary and secondary
 
         :param numpy.ndarray solution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: total current density
         """
@@ -145,8 +145,8 @@ class FieldsFDEM(Fields):
                 )
 
         return (
-                self._jPrimary(solution, srcList) +
-                self._jSecondary(solution, srcList)
+                self._jPrimary(solution, source_list) +
+                self._jSecondary(solution, source_list)
             )
 
     def _eDeriv(self, src, du_dm_v, v, adjoint=False):
@@ -358,28 +358,28 @@ class Fields3D_e(FieldsFDEM):
         else:
             raise Exception('Field type must be e, b, h, j')
 
-    def _ePrimary(self, eSolution, srcList):
+    def _ePrimary(self, eSolution, source_list):
         """
         Primary electric field from source
 
         :param numpy.ndarray eSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: primary electric field as defined by the sources
         """
 
-        ePrimary = np.zeros([self.simulation.mesh.nE, len(srcList)], dtype=complex)
-        for i, src in enumerate(srcList):
+        ePrimary = np.zeros([self.simulation.mesh.nE, len(source_list)], dtype=complex)
+        for i, src in enumerate(source_list):
             ep = src.ePrimary(self.simulation)
             ePrimary[:, i] = ePrimary[:, i] + ep
         return ePrimary
 
-    def _eSecondary(self, eSolution, srcList):
+    def _eSecondary(self, eSolution, source_list):
         """
         Secondary electric field is the thing we solved for
 
         :param numpy.ndarray eSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: secondary electric field
         """
@@ -417,12 +417,12 @@ class Fields3D_e(FieldsFDEM):
 
         return src.ePrimaryDeriv(self.simulation, v, adjoint)
 
-    def _bPrimary(self, eSolution, srcList):
+    def _bPrimary(self, eSolution, source_list):
         """
         Primary magnetic flux density from source
 
         :param numpy.ndarray eSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: primary magnetic flux density as defined by the sources
         """
@@ -431,24 +431,24 @@ class Fields3D_e(FieldsFDEM):
                 [self._edgeCurl.shape[0], eSolution.shape[1]], dtype=complex
         )
 
-        for i, src in enumerate(srcList):
+        for i, src in enumerate(source_list):
             bp = src.bPrimary(self.simulation)
             bPrimary[:, i] = bPrimary[:, i] + bp
         return bPrimary
 
-    def _bSecondary(self, eSolution, srcList):
+    def _bSecondary(self, eSolution, source_list):
         """
         Secondary magnetic flux density from eSolution
 
         :param numpy.ndarray eSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: secondary magnetic flux density
         """
 
         C = self._edgeCurl
         b = (C * eSolution)
-        for i, src in enumerate(srcList):
+        for i, src in enumerate(source_list):
             b[:, i] *= - 1./(1j*omega(src.freq))  # freq depends on the source
             s_m = src.s_m(self.simulation)
             b[:, i] = b[:, i] + 1./(1j*omega(src.freq)) * s_m
@@ -494,16 +494,16 @@ class Fields3D_e(FieldsFDEM):
             src.bPrimaryDeriv(self.simulation, v, adjoint)
         )
 
-    def _j(self,  eSolution, srcList):
+    def _j(self,  eSolution, source_list):
         """
         Current density from eSolution
 
         :param numpy.ndarray eSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: current density
         """
-        return self._MeI * (self._MeSigma * self._e(eSolution, srcList))
+        return self._MeI * (self._MeSigma * self._e(eSolution, source_list))
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -560,18 +560,18 @@ class Fields3D_e(FieldsFDEM):
             )
         ) + src.jPrimaryDeriv(self.simulation, v, adjoint)
 
-    def _h(self, eSolution, srcList):
+    def _h(self, eSolution, source_list):
         """
         Magnetic field from eSolution
 
         :param numpy.ndarray eSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: magnetic field
         """
 
         return (
-            self._MfI * (self._MfMui * self._b(eSolution, srcList))
+            self._MfI * (self._MfMui * self._b(eSolution, source_list))
         )
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -679,28 +679,28 @@ class Fields3D_b(FieldsFDEM):
         else:
             raise Exception('Field type must be e, b, h, j')
 
-    def _bPrimary(self, bSolution, srcList):
+    def _bPrimary(self, bSolution, source_list):
         """
         Primary magnetic flux density from source
 
         :param numpy.ndarray bSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: primary electric field as defined by the sources
         """
 
-        bPrimary = np.zeros([self.simulation.mesh.nF, len(srcList)], dtype=complex)
-        for i, src in enumerate(srcList):
+        bPrimary = np.zeros([self.simulation.mesh.nF, len(source_list)], dtype=complex)
+        for i, src in enumerate(source_list):
             bp = src.bPrimary(self.simulation)
             bPrimary[:, i] = bPrimary[:, i] + bp
         return bPrimary
 
-    def _bSecondary(self, bSolution, srcList):
+    def _bSecondary(self, bSolution, source_list):
         """
         Secondary magnetic flux density is the thing we solved for
 
         :param numpy.ndarray bSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: secondary magnetic flux density
         """
@@ -740,12 +740,12 @@ class Fields3D_b(FieldsFDEM):
         # assuming primary does not depend on the model
         return Zero()
 
-    def _ePrimary(self, bSolution, srcList):
+    def _ePrimary(self, bSolution, source_list):
         """
         Primary electric field from source
 
         :param numpy.ndarray bSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: primary electric field as defined by the sources
         """
@@ -753,23 +753,23 @@ class Fields3D_b(FieldsFDEM):
         ePrimary = np.zeros(
             [self._edgeCurl.shape[1], bSolution.shape[1]], dtype=complex
         )
-        for i, src in enumerate(srcList):
+        for i, src in enumerate(source_list):
             ep = src.ePrimary(self.simulation)
             ePrimary[:, i] = ePrimary[:, i] + ep
         return ePrimary
 
-    def _eSecondary(self, bSolution, srcList):
+    def _eSecondary(self, bSolution, source_list):
         """
         Secondary electric field from bSolution
 
         :param numpy.ndarray bSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: secondary electric field
         """
 
         e = (self._edgeCurl.T * (self._MfMui * bSolution))
-        for i, src in enumerate(srcList):
+        for i, src in enumerate(source_list):
             s_e = src.s_e(self.simulation)
             e[:, i] = e[:, i] + - s_e
 
@@ -831,12 +831,12 @@ class Fields3D_b(FieldsFDEM):
             src.ePrimaryDeriv(self.simulation, v, adjoint)
         )
 
-    def _j(self, bSolution, srcList):
+    def _j(self, bSolution, source_list):
         """
         Secondary current density from bSolution
 
         :param numpy.ndarray bSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: primary current density
         """
@@ -846,7 +846,7 @@ class Fields3D_b(FieldsFDEM):
 
         j = (self._edgeCurl.T * (self._MfMui * bSolution))
 
-        for i, src in enumerate(srcList):
+        for i, src in enumerate(source_list):
             s_e = src.s_e(self.simulation)
             j[:, i] = j[:, i] - s_e
 
@@ -907,16 +907,16 @@ class Fields3D_b(FieldsFDEM):
             self._jDeriv_mui(src, v, adjoint)
         )
 
-    def _h(self, bSolution, srcList):
+    def _h(self, bSolution, source_list):
         """
         Magnetic field from bSolution
 
         :param numpy.ndarray bSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: magnetic field
         """
-        return self._MfI * (self._MfMui * self._b(bSolution, srcList))
+        return self._MfI * (self._MfMui * self._b(bSolution, source_list))
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -1000,47 +1000,47 @@ class Fields3D_j(FieldsFDEM):
         else:
             raise Exception('Field type must be e, b, h, j')
 
-    def _jPrimary(self, jSolution, srcList):
+    def _jPrimary(self, jSolution, source_list):
         """
         Primary current density from source
 
         :param numpy.ndarray jSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: primary current density as defined by the sources
         """
 
         jPrimary = np.zeros_like(jSolution, dtype=complex)
-        for i, src in enumerate(srcList):
+        for i, src in enumerate(source_list):
             jp = src.jPrimary(self.simulation)
             jPrimary[:, i] = jPrimary[:, i] + jp
         return jPrimary
 
-    def _jSecondary(self, jSolution, srcList):
+    def _jSecondary(self, jSolution, source_list):
         """
         Secondary current density is the thing we solved for
 
         :param numpy.ndarray jSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: secondary current density
         """
 
         return jSolution
 
-    def _j(self, jSolution, srcList):
+    def _j(self, jSolution, source_list):
         """
         Total current density is sum of primary and secondary
 
         :param numpy.ndarray jSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: total current density
         """
 
         return (
-            self._jPrimary(jSolution, srcList) +
-            self._jSecondary(jSolution, srcList)
+            self._jPrimary(jSolution, source_list) +
+            self._jSecondary(jSolution, source_list)
         )
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -1075,12 +1075,12 @@ class Fields3D_j(FieldsFDEM):
         # assuming primary does not depend on the model
         return src.jPrimaryDeriv(self.simulation, v, adjoint)
 
-    def _hPrimary(self, jSolution, srcList):
+    def _hPrimary(self, jSolution, source_list):
         """
         Primary magnetic field from source
 
         :param numpy.ndarray hSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: primary magnetic field as defined by the sources
         """
@@ -1088,23 +1088,23 @@ class Fields3D_j(FieldsFDEM):
         hPrimary = np.zeros(
             [self._edgeCurl.shape[1], jSolution.shape[1]], dtype=complex
         )
-        for i, src in enumerate(srcList):
+        for i, src in enumerate(source_list):
             hp = src.hPrimary(self.simulation)
             hPrimary[:, i] = hPrimary[:, i] + hp
         return hPrimary
 
-    def _hSecondary(self, jSolution, srcList):
+    def _hSecondary(self, jSolution, source_list):
         """
         Secondary magnetic field from bSolution
 
         :param numpy.ndarray jSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: secondary magnetic field
         """
 
         h = (self._edgeCurl.T * (self._MfRho * jSolution))
-        for i, src in enumerate(srcList):
+        for i, src in enumerate(source_list):
             h[:, i] *= -1./(1j*omega(src.freq))
             s_m = src.s_m(self.simulation)
             h[:, i] = h[:, i] + 1./(1j*omega(src.freq)) * (s_m)
@@ -1178,16 +1178,16 @@ class Fields3D_j(FieldsFDEM):
 
         return hDeriv_m + src.hPrimaryDeriv(self.simulation, v, adjoint)
 
-    def _e(self, jSolution, srcList):
+    def _e(self, jSolution, source_list):
         """
         Electric field from jSolution
 
         :param numpy.ndarray hSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: electric field
         """
-        return self._MfI * (self._MfRho * self._j(jSolution, srcList))
+        return self._MfI * (self._MfRho * self._j(jSolution, source_list))
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -1227,17 +1227,17 @@ class Fields3D_j(FieldsFDEM):
             src.ePrimaryDeriv(self.simulation, v, adjoint)
         )
 
-    def _b(self, jSolution, srcList):
+    def _b(self, jSolution, source_list):
         """
         Secondary magnetic flux density from jSolution
 
         :param numpy.ndarray hSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: secondary magnetic flux density
         """
 
-        return self._MeI * (self._MeMu * self._h(jSolution, srcList))
+        return self._MeI * (self._MeMu * self._h(jSolution, source_list))
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -1346,28 +1346,28 @@ class Fields3D_h(FieldsFDEM):
         else:
             raise Exception('Field type must be e, b, h, j')
 
-    def _hPrimary(self, hSolution, srcList):
+    def _hPrimary(self, hSolution, source_list):
         """
         Primary magnetic field from source
 
         :param numpy.ndarray eSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: primary magnetic field as defined by the sources
         """
 
         hPrimary = np.zeros_like(hSolution, dtype=complex)
-        for i, src in enumerate(srcList):
+        for i, src in enumerate(source_list):
             hp = src.hPrimary(self.simulation)
             hPrimary[:, i] = hPrimary[:, i] + hp
         return hPrimary
 
-    def _hSecondary(self, hSolution, srcList):
+    def _hSecondary(self, hSolution, source_list):
         """
         Secondary magnetic field is the thing we solved for
 
         :param numpy.ndarray hSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: secondary magnetic field
         """
@@ -1406,12 +1406,12 @@ class Fields3D_h(FieldsFDEM):
 
         return src.hPrimaryDeriv(self.simulation, v, adjoint)
 
-    def _jPrimary(self, hSolution, srcList):
+    def _jPrimary(self, hSolution, source_list):
         """
         Primary current density from source
 
         :param numpy.ndarray hSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: primary current density as defined by the sources
         """
@@ -1419,23 +1419,23 @@ class Fields3D_h(FieldsFDEM):
         jPrimary = np.zeros(
             [self._edgeCurl.shape[0], hSolution.shape[1]], dtype=complex
         )
-        for i, src in enumerate(srcList):
+        for i, src in enumerate(source_list):
             jp = src.jPrimary(self.simulation)
             jPrimary[:, i] = jPrimary[:, i] + jp
         return jPrimary
 
-    def _jSecondary(self, hSolution, srcList):
+    def _jSecondary(self, hSolution, source_list):
         """
         Secondary current density from hSolution
 
         :param numpy.ndarray hSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: secondary current density
         """
 
         j = self._edgeCurl*hSolution
-        for i, src in enumerate(srcList):
+        for i, src in enumerate(source_list):
             s_e = src.s_e(self.simulation)
             j[:, i] = j[:, i] + -s_e
         return j
@@ -1475,18 +1475,18 @@ class Fields3D_h(FieldsFDEM):
             src.jPrimaryDeriv(self.simulation, v, adjoint)
         )
 
-    def _e(self, hSolution, srcList):
+    def _e(self, hSolution, source_list):
         """
         Electric field from hSolution
 
         :param numpy.ndarray hSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: electric field
         """
 
         return (
-            self._MfI * (self._MfRho * self._j(hSolution, srcList))
+            self._MfI * (self._MfRho * self._j(hSolution, source_list))
         )
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -1538,16 +1538,16 @@ class Fields3D_h(FieldsFDEM):
             src.ePrimaryDeriv(self.simulation, v, adjoint)
         )
 
-    def _b(self, hSolution, srcList):
+    def _b(self, hSolution, source_list):
         """
         Magnetic flux density from hSolution
 
         :param numpy.ndarray hSolution: field we solved for
-        :param list srcList: list of sources
+        :param list source_list: list of sources
         :rtype: numpy.ndarray
         :return: magnetic flux density
         """
-        h = self._h(hSolution, srcList)
+        h = self._h(hSolution, source_list)
         return self._MeI * (self._MeMu * h)
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):

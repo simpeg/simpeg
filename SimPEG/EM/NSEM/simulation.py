@@ -9,30 +9,28 @@ except ImportError:
     from SimPEG import SolverLU as SimpegSolver
 
 from ...utils import mkvc, setKwargs
-from ..FDEM.simulationFDEM import BaseFDEMSimulation
+from ..FDEM.simulation import BaseFDEMSimulation
 from ..Utils.EMUtils import omega, mu_0
-from .SurveyNSEM import Survey, Data
-from .FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields3D_ePrimSec
+from .survey import Survey, Data
+from .fields import Fields1D_ePrimSec, Fields3D_ePrimSec
 
 
-class BaseNSEMProblem(BaseFDEMSimulation):
+class BaseNSEMSimulation(BaseFDEMSimulation):
     """
     Base class for all Natural source problems.
     """
 
-    def __init__(self, mesh, **kwargs):
-        BaseFDEMProblem.__init__(self, mesh, **kwargs)
-        setKwargs(self, **kwargs)
-    # Set the default pairs of the problem
-    surveyPair = Survey
-    dataPair = Data
-    fieldsPair = BaseNSEMFields
+    # fieldsPair = BaseNSEMFields
 
-    # Set the solver
-    Solver = SimpegSolver
-    solverOpts = {}
+    # def __init__(self, mesh, **kwargs):
+    #     super(BaseNSEMSimulation, self).__init__()
+    #     BaseFDEMProblem.__init__(self, mesh, **kwargs)
+    #     setKwargs(self, **kwargs)
+    # # Set the default pairs of the problem
+    # surveyPair = Survey
+    # dataPair = Data
 
-    verbose = False
+
     # Notes:
     # Use the fields and devs methods from BaseFDEMProblem
 
@@ -54,14 +52,14 @@ class BaseNSEMProblem(BaseFDEMSimulation):
         # Set current model
         self.model = m
         # Initiate the Jv object
-        Jv = self.dataPair(self.survey)
+        Jv = Data(self.survey)
 
         # Loop all the frequenies
         for freq in self.survey.freqs:
             # Get the system
             A = self.getA(freq)
             # Factor
-            Ainv = self.Solver(A, **self.solverOpts)
+            Ainv = self.Solver(A, **self.solver_opts)
 
             for src in self.survey.getSrcByFreq(freq):
                 # We need fDeriv_m = df/du*du/dm + df/dm
@@ -99,15 +97,15 @@ class BaseNSEMProblem(BaseFDEMSimulation):
         self.model = m
 
         # Ensure v is a data object.
-        if not isinstance(v, self.dataPair):
-            v = self.dataPair(self.survey, v)
+        if not isinstance(v, Data):
+            v = Data(self.survey, v)
 
         Jtv = np.zeros(m.size)
 
         for freq in self.survey.freqs:
             AT = self.getA(freq).T
 
-            ATinv = self.Solver(AT, **self.solverOpts)
+            ATinv = self.Solver(AT, **self.solver_opts)
 
             for src in self.survey.getSrcByFreq(freq):
                 # u_src needs to have both polarizations
@@ -141,7 +139,7 @@ class BaseNSEMProblem(BaseFDEMSimulation):
 ###################################
 
 
-class Problem1D_ePrimSec(BaseNSEMProblem):
+class Problem1D_ePrimSec(BaseNSEMSimulation):
     """
     A NSEM problem soving a e formulation and primary/secondary fields decomposion.
 
@@ -173,7 +171,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
     _sigmaPrimary = None
 
     def __init__(self, mesh, **kwargs):
-        BaseNSEMProblem.__init__(self, mesh, **kwargs)
+        BaseNSEMSimulation.__init__(self, mesh, **kwargs)
         # self._sigmaPrimary = sigmaPrimary
 
     @property
@@ -284,7 +282,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         if m is not None:
             self.model = m
         # Make the fields object
-        F = self.fieldsPair(self.mesh, self.survey)
+        F = self.fieldsPair(self)
         # Loop over the frequencies
         for freq in self.survey.freqs:
             if self.verbose:
@@ -293,7 +291,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs  = self.getRHS(freq)
-            Ainv = self.Solver(A, **self.solverOpts)
+            Ainv = self.Solver(A, **self.solver_opts)
             e_s = Ainv * rhs
 
             # Store the fields
@@ -310,7 +308,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
 ###################################
 # 3D problems
 ###################################
-class Problem3D_ePrimSec(BaseNSEMProblem):
+class Problem3D_ePrimSec(BaseNSEMSimulation):
     """
     A NSEM problem solving a e formulation and a primary/secondary fields decompostion.
 
@@ -342,7 +340,7 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
     _sigmaPrimary = None
 
     def __init__(self, mesh, **kwargs):
-        BaseNSEMProblem.__init__(self, mesh, **kwargs)
+        super(Problem3D_ePrimSec, self).__init__(mesh, **kwargs)
 
     @property
     def sigmaPrimary(self):
@@ -452,7 +450,7 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
         if m is not None:
             self.model = m
 
-        F = self.fieldsPair(self.mesh, self.survey)
+        F = self.fieldsPair(self)
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()
@@ -461,7 +459,7 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
             A = self.getA(freq)
             rhs = self.getRHS(freq)
             # Solve the system
-            Ainv = self.Solver(A, **self.solverOpts)
+            Ainv = self.Solver(A, **self.solver_opts)
             e_s = Ainv * rhs
 
             # Store the fields

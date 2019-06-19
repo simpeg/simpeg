@@ -495,13 +495,11 @@ class HasModel(properties.HasProperties):
 
 class LocationVector(properties.Array):
 
-    class_info = ''
+    class_info = "A location array (1-dimensional numpy array)"
 
     def validate(self, instance, value):
-        """
-        coerce the shape to a 1D vector if an array is input. See
-        https://github.com/seequent/properties/issues/250
-        """
+        if not isinstance(value, np.ndarray) and not isinstance(value, list):
+                value = np.array(value)
         if len(value.shape) > 1:
             value = value.flatten()
 

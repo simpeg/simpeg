@@ -1,5 +1,7 @@
 import numpy as np
-import SimPEG as simpeg
+import discretize
+
+from ....utils import mkvc
 
 
 def homo1DModelSource(mesh, freq, sigma_1d):
@@ -18,21 +20,21 @@ def homo1DModelSource(mesh, freq, sigma_1d):
     if mesh.dim == 1:
         mesh1d = mesh
     elif mesh.dim == 2:
-        mesh1d = simpeg.Mesh.TensorMesh([mesh.hy], np.array([mesh.x0[1]]))
+        mesh1d = discretize.TensorMesh([mesh.hy], np.array([mesh.x0[1]]))
     elif mesh.dim == 3:
-        mesh1d = simpeg.Mesh.TensorMesh([mesh.hz], np.array([mesh.x0[2]]))
+        mesh1d = discretize.TensorMesh([mesh.hz], np.array([mesh.x0[2]]))
 
     # # Note: Everything is using e^iwt
     e0_1d = get1DEfields(mesh1d, sigma_1d, freq)
     if mesh.dim == 1:
-        eBG_px = simpeg.mkvc(e0_1d, 2)
-        eBG_py = -simpeg.mkvc(e0_1d, 2) # added a minus to make the results in the correct quadrents.
+        eBG_px = mkvc(e0_1d, 2)
+        eBG_py = -mkvc(e0_1d, 2) # added a minus to make the results in the correct quadrents.
     elif mesh.dim == 2:
         ex_px = np.zeros(mesh.vnEx, dtype=complex)
         ey_px = np.zeros((mesh.nEy, 1), dtype=complex)
         for i in np.arange(mesh.vnEx[0]):
             ex_px[i, :] = -e0_1d
-        eBG_px = np.vstack((simpeg.Utils.mkvc(ex_px, 2), ey_px))
+        eBG_px = np.vstack((mkvc(ex_px, 2), ey_px))
         # Setup y (north) polarization (_py)
         ex_py = np.zeros((mesh.nEx, 1), dtype='complex128')
         ey_py = np.zeros(mesh.vnEy, dtype='complex128')
@@ -40,7 +42,7 @@ def homo1DModelSource(mesh, freq, sigma_1d):
         for i in np.arange(mesh.vnEy[0]):
             ey_py[i, :] = e0_1d
         # ey_py[1:-1, 1:-1, 1:-1] = 0
-        eBG_py = np.vstack((ex_py, simpeg.Utils.mkvc(ey_py, 2), ez_py))
+        eBG_py = np.vstack((ex_py, mkvc(ey_py, 2), ez_py))
     elif mesh.dim == 3:
         # Setup x (east) polarization (_x)
         ex_px = np.zeros(mesh.vnEx, dtype=complex)
@@ -50,7 +52,7 @@ def homo1DModelSource(mesh, freq, sigma_1d):
         for i in np.arange(mesh.vnEx[0]):
             for j in np.arange(mesh.vnEx[1]):
                 ex_px[i, j, :] = -e0_1d
-        eBG_px = np.vstack((simpeg.Utils.mkvc(ex_px, 2), ey_px, ez_px))
+        eBG_px = np.vstack((mkvc(ex_px, 2), ey_px, ez_px))
         # Setup y (north) polarization (_py)
         ex_py = np.zeros((mesh.nEx, 1), dtype='complex128')
         ey_py = np.zeros(mesh.vnEy, dtype='complex128')
@@ -60,7 +62,7 @@ def homo1DModelSource(mesh, freq, sigma_1d):
             for j in np.arange(mesh.vnEy[1]):
                 ey_py[i, j, :] = e0_1d
         # ey_py[1:-1, 1:-1, 1:-1] = 0
-        eBG_py = np.vstack((ex_py, simpeg.Utils.mkvc(ey_py, 2), ez_py))
+        eBG_py = np.vstack((ex_py, mkvc(ey_py, 2), ez_py))
 
     # Return the electric fields
     eBG_bp = np.hstack((eBG_px, eBG_py))
@@ -83,9 +85,9 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
     if mesh.dim == 1:
         mesh1d = mesh
     elif mesh.dim == 2:
-        mesh1d = simpeg.Mesh.TensorMesh([mesh.hy], np.array([mesh.x0[1]]))
+        mesh1d = discretize.TensorMesh([mesh.hy], np.array([mesh.x0[1]]))
     elif mesh.dim == 3:
-        mesh1d = simpeg.Mesh.TensorMesh([mesh.hz], np.array([mesh.x0[2]]))
+        mesh1d = discretize.TensorMesh([mesh.hz], np.array([mesh.x0[2]]))
 
     # # Note: Everything is using e^iwt
     Eu, Ed, _, _ = getEHfields(mesh1d, sigma_1d, freq, mesh.vectorNz)
@@ -93,14 +95,14 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
     e0_1d = Eu+Ed
     E1dFieldDict = dict(zip(mesh.vectorNz, e0_1d))
     if mesh.dim == 1:
-        eBG_px = simpeg.mkvc(e0_1d, 2)
-        eBG_py = -simpeg.mkvc(e0_1d, 2) # added a minus to make the results in the correct quadrents.
+        eBG_px = mkvc(e0_1d, 2)
+        eBG_py = -mkvc(e0_1d, 2) # added a minus to make the results in the correct quadrents.
     elif mesh.dim == 2:
         ex_px = np.zeros(mesh.vnEx, dtype=complex)
         ey_px = np.zeros((mesh.nEy, 1), dtype=complex)
         for i in np.arange(mesh.vnEx[0]):
             ex_px[i, :] = -e0_1d
-        eBG_px = np.vstack((simpeg.Utils.mkvc(ex_px, 2), ey_px))
+        eBG_px = np.vstack((mkvc(ex_px, 2), ey_px))
         # Setup y (north) polarization (_py)
         ex_py = np.zeros((mesh.nEx, 1), dtype='complex128')
         ey_py = np.zeros(mesh.vnEy, dtype='complex128')
@@ -108,7 +110,7 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
         for i in np.arange(mesh.vnEy[0]):
             ey_py[i, :] = e0_1d
         # ey_py[1:-1, 1:-1, 1:-1] = 0
-        eBG_py = np.vstack((ex_py, simpeg.Utils.mkvc(ey_py, 2), ez_py))
+        eBG_py = np.vstack((ex_py, mkvc(ey_py, 2), ez_py))
     elif mesh.dim == 3:
         # Setup x (east) polarization (_x)
         ex_px = -np.array([E1dFieldDict[i] for i in mesh.gridEx[:, 2]]).reshape(-1, 1)
@@ -121,7 +123,7 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
         ey_py = np.array([E1dFieldDict[i] for i in mesh.gridEy[:, 2]]).reshape(-1, 1)
         ez_py = np.zeros((mesh.nEz, 1), dtype='complex128')
         # Construct the full fields
-        eBG_py = np.vstack((ex_py, simpeg.Utils.mkvc(ey_py, 2), ez_py))
+        eBG_py = np.vstack((ex_py, mkvc(ey_py, 2), ez_py))
 
     # Return the electric fields
     eBG_bp = np.hstack((eBG_px, eBG_py))
@@ -162,7 +164,7 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
 #         for i in np.arange(mesh.vnEx[0]):
 #             for j in np.arange(mesh.vnEx[1]):
 #                 ex_px[i, j, :] = -e0_1d
-#         eBG_px = np.vstack((simpeg.Utils.mkvc(ex_px, 2), ey_px, ez_px))
+#         eBG_px = np.vstack((mkvc(ex_px, 2), ey_px, ez_px))
 #         # Setup y (north) polarization (_py)
 #         ex_py = np.zeros((mesh.nEx, 1), dtype='complex128')
 #         ey_py = np.zeros(mesh.vnEy, dtype='complex128')
@@ -172,7 +174,7 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
 #             for j in np.arange(mesh.vnEy[1]):
 #                 ey_py[i, j, :] = e0_1d
 #         # ey_py[1:-1, 1:-1, 1:-1] = 0
-#         eBG_py = np.vstack((ex_py, simpeg.Utils.mkvc(ey_py, 2), ez_py))
+#         eBG_py = np.vstack((ex_py, mkvc(ey_py, 2), ez_py))
 
 #     # Return the electric fields
 #     eBG_bp = np.hstack((eBG_px, eBG_py))

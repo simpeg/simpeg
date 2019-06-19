@@ -1,6 +1,6 @@
 from __future__ import print_function
 import unittest
-import SimPEG as simpeg
+from SimPEG import mkvc
 from SimPEG.EM import NSEM
 import numpy as np
 # Define the tolerances
@@ -57,13 +57,13 @@ def dataMis_AnalyticPrimarySecondary(sigmaHalf):
         sigmaHalf, False, structure=True
     )
     # Analytic data
-    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary=sig, sigma=sig)
-    problem.pair(survey)
+    simulation = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary=sig, sigma=sig, survey=survey)
+    # simulation.pair(survey)
 
     dataAnaObj = calculateAnalyticSolution(survey.srcList, mesh, sig)
 
-    data = survey.dpred()
-    dataAna = simpeg.mkvc(dataAnaObj)
+    data = simulation.dpred()
+    dataAna = mkvc(dataAnaObj)
     return np.all((data - dataAna)/dataAna < 2.)
 
 

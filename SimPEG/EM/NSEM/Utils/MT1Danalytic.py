@@ -1,7 +1,7 @@
 from __future__ import print_function
 # Analytic solution of EM fields due to a plane wave
 
-import numpy as np, SimPEG as simpeg
+import numpy as np
 from scipy.constants import mu_0, epsilon_0 as eps_0
 
 def getEHfields(m1d,sigma,freq,zd,scaleUD=True,scaleValue=1):

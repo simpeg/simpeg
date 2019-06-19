@@ -7,7 +7,7 @@ import unittest
 from scipy.constants import mu_0
 
 from SimPEG.EM import NSEM
-from SimPEG import Maps
+from SimPEG import maps
 
 
 TOL = 1e-4
@@ -22,7 +22,7 @@ def JvecAdjointTest(sigmaHalf, formulation='PrimSec'):
     print('Adjoint test of e formulation for {:s} comp \n'.format(formulation))
 
     if 'PrimSec' in formulation:
-        problem = NSEM.Problem1D_ePrimSec(m1d, sigmaPrimary=sigBG, sigmaMap=Maps.IdentityMap(m1d))
+        problem = NSEM.Problem1D_ePrimSec(m1d, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(m1d))
     else:
         raise NotImplementedError('Only {} formulations are implemented.'.format(formulation))
     problem.pair(survey)

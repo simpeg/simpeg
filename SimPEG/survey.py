@@ -17,6 +17,15 @@ class RxLocationArray(properties.Array):
             value = mkvc(value, 2).T
         return super(RxLocationArray, self).validate(instance, value)
 
+class SourceLocationArray(properties.Array):
+
+    class_info = "a 1D array denoting the source location"
+
+    def validate(self, instance, value):
+        if not isinstance(value, np.ndarray):
+            value = np.atleast_1d(np.array(value))
+        return super(SourceLocationArray, self).validate(instance, value)
+
 
 class BaseRx(properties.HasProperties):
     """SimPEG Receiver Object"""
@@ -187,8 +196,8 @@ class BaseTimeRx(BaseRx):
 class BaseSrc(BaseSimPEG):
     """SimPEG Source Object"""
 
-    location = properties.Array(
-        "Location [x, y, z]", shape=("*",), required=False
+    location = SourceLocationArray(
+        "Location of the source [x, y, z] in 3D", shape=("*",), required=False
     )
 
     receiver_list = properties.List(

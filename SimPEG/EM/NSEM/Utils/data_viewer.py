@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .. import RxNSEM
+from .. import receiver as RxNSEM
 import properties
 
 from plotUtils import ApperentResPhsStationPlot, TipperAmplitudeStationPlot

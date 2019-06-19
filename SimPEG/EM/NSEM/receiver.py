@@ -29,9 +29,9 @@ class BaseRxNSEM_Point(BaseRx):
         self.orientation = orientation
         self.component = component
 
-        BaseRx.__init__(self, locs, rxType=None) # TODO: remove rxType from baseRx
+        BaseRx.__init__(self, locs)
 
-    # Set a mesh property
+    # Set a mesh property - TODO: remove the following properties
     @property
     def mesh(self):
         return self._mesh
@@ -341,7 +341,7 @@ class Point_impedance1D(BaseRx):
         assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not {0!s}".format(component)
 
         self.component = component
-        BaseRx.__init__(self, locs, rxType=None)
+        BaseRx.__init__(self, locs)
 
     @property
     def mesh(self):

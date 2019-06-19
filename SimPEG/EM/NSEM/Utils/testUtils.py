@@ -4,14 +4,13 @@ from __future__ import division
 
 import numpy as np
 
-# import SimPEG as simpeg
 import discretize
-from SimPEG import maps, mkvc, utils
+from SimPEG import maps, mkvc, utils, Data
 from ....utils import meshTensor
-from SimPEG.EM.NSEM.RxNSEM import Point_impedance1D, Point_impedance3D, Point_tipper3D
-from SimPEG.EM.NSEM.SurveyNSEM import Survey
-from SimPEG.EM.NSEM.SrcNSEM import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
-from SimPEG.EM.NSEM.ProblemNSEM import Problem3D_ePrimSec
+from ..receiver import Point_impedance1D, Point_impedance3D, Point_tipper3D
+from ..survey import Survey
+from ..source import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
+from ..simulation import Problem3D_ePrimSec
 from .dataUtils import appResPhs
 
 np.random.seed(1100)
@@ -20,11 +19,11 @@ TOLr = 5e-2
 TOLp = 5e-2
 
 
-def getAppResPhs(NSEMdata):
+def getAppResPhs(NSEMdata, survey):
+    NSEMdata = Data(dobs=NSEMdata, survey=survey)
     # Make impedance
-
     zList = []
-    for src in NSEMdata.survey.srcList:
+    for src in survey.srcList:
         zc = [src.freq]
         for rx in src.rxList:
             if 'imag' in rx.component:

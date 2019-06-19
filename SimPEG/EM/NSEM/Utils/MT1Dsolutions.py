@@ -1,6 +1,11 @@
-import numpy as np, SimPEG as simpeg
-from .MT1Danalytic import getEHfields
+import numpy as np
 from scipy.constants import mu_0
+
+from .... import Solver
+from ....utils import mkvc, sdiag
+
+from .MT1Danalytic import getEHfields
+
 
 def get1DEfields(m1d,sigma,freq,sourceAmp=1.0):
     """Function to get 1D electrical fields"""
@@ -9,7 +14,7 @@ def get1DEfields(m1d,sigma,freq,sourceAmp=1.0):
     G = m1d.nodalGrad
     # Mass matrices
     # Magnetic permeability
-    Mmu = simpeg.Utils.sdiag(m1d.vol*(1.0/mu_0))
+    Mmu = sdiag(m1d.vol*(1.0/mu_0))
     # Conductivity
     Msig = m1d.getFaceInnerProduct(sigma)
     # Set up the solution matrix
@@ -29,17 +34,10 @@ def get1DEfields(m1d,sigma,freq,sourceAmp=1.0):
     # The right hand side
     rhs = Aio*bc
     # Solve the system
-    Aii_inv = simpeg.Solver(Aii)
+    Aii_inv = Solver(Aii)
     eii = Aii_inv*rhs
     # Assign the boundary conditions
     e = np.r_[bc[0],eii,bc[1]]
     # Return the electrical fields
     return e
 
-
-if __name__ == '__main__':
-
-    hz = [(100.,18)]
-    M = simpeg.Mesh.TensorMesh([hz],'C')
-    sig = np.zeros(M.nC) + 1e-8
-    sig[M.vectorCCx<=0] = sigHalf

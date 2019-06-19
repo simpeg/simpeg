@@ -8,8 +8,8 @@ from ...data import Data
 from ...utils import mkvc
 from ..base import BaseEMSimulation
 from ..Utils import omega
-from .surveyFDEM import Survey
-from .FieldsFDEM import (
+from .survey import Survey
+from .fields import (
     FieldsFDEM, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
 )
 

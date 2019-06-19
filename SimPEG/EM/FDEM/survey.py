@@ -4,8 +4,7 @@ import properties
 from ...utils import Zero, Identity
 from ..Utils import omega
 from ...survey import BaseSurvey
-from .SrcFDEM import BaseFDEMSrc
-from . import RxFDEM as Rx
+from .source import BaseFDEMSrc
 
 import warnings
 

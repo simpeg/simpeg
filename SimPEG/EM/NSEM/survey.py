@@ -5,8 +5,8 @@ from numpy.lib import recfunctions as recFunc
 from ..FDEM.survey import Survey
 from ...data import Data as BaseData
 from ...utils import mkvc
-from .SrcNSEM import BaseNSEMSrc, Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
-from .RxNSEM import Point_impedance3D, Point_tipper3D
+from .source import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
+from .receiver import Point_impedance3D, Point_tipper3D
 from .Utils.plotUtils import DataNSEMPlotMethods
 
 #########
