@@ -1,7 +1,7 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-from SimPEG import Tests
+from SimPEG import tests
 from scipy.constants import mu_0
 from SimPEG.EM.Utils.testingUtils import getFDEMProblem
 
@@ -38,8 +38,8 @@ def derivTest(fdemType, comp):
     survey = prb.survey
 
     def fun(x):
-        return survey.dpred(x), lambda x: prb.Jvec(x0, x)
-    return Tests.checkDerivative(fun, x0, num=2, plotIt=False, eps=FLR)
+        return prb.dpred(x), lambda x: prb.Jvec(x0, x)
+    return tests.checkDerivative(fun, x0, num=2, plotIt=False, eps=FLR)
 
 
 class FDEM_DerivTests(unittest.TestCase):

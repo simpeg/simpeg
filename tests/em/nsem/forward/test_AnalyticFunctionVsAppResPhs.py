@@ -1,7 +1,7 @@
 from __future__ import print_function
 import unittest
 from SimPEG.EM import NSEM
-from SimPEG import Mesh
+from SimPEG import discretize
 import numpy as np
 
 
@@ -11,7 +11,7 @@ TOL = 1e-6
 def appResNorm(sigmaHalf):
     nFreq = 26
 
-    m1d = Mesh.TensorMesh(
+    m1d = discretize.TensorMesh(
         [[(100, 5, 1.5), (100., 10), (100, 5, 1.5)]], x0=['C']
     )
     sigma = np.zeros(m1d.nC) + sigmaHalf
