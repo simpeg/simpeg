@@ -48,6 +48,8 @@ class BaseFDEMProblem(BaseEMProblem):
 
     surveyPair = SurveyFDEM
     fieldsPair = FieldsFDEM
+    nFreq = len(SurveyFDEM.freqs)
+    Ainv = [None for i in range(nFreq)]
 
     mu, muMap, muDeriv = Props.Invertible(
         "Magnetic Permeability (H/m)",
@@ -72,16 +74,19 @@ class BaseFDEMProblem(BaseEMProblem):
         if m is not None:
             self.model = m
 
+        if self.Ainv[0] is not None:
+            for i in range(self.nFreq):
+                self.Ainv[i].clean()
+
         f = self.fieldsPair(self.mesh, self.survey)
 
         for freq in self.survey.freqs:
             A = self.getA(freq)
             rhs = self.getRHS(freq)
-            Ainv = self.Solver(A, **self.solverOpts)
-            u = Ainv * rhs
+            self.Ainv[freq] = self.Solver(A, **self.solverOpts)
+            u = self.Ainv[freq] * rhs
             Srcs = self.survey.getSrcByFreq(freq)
             f[Srcs, self._solutionType] = u
-            Ainv.clean()
         return f
 
     def Jvec(self, m, v, f=None):
@@ -105,21 +110,21 @@ class BaseFDEMProblem(BaseEMProblem):
         Jv = []
 
         for freq in self.survey.freqs:
-            A = self.getA(freq)
-            # create the concept of Ainv (actually a solve)
-            Ainv = self.Solver(A, **self.solverOpts)
+            # A = self.getA(freq)
+            # # create the concept of Ainv (actually a solve)
+            # Ainv = self.Solver(A, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(freq, u_src, v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
-                du_dm_v = Ainv * (- dA_dm_v + dRHS_dm_v)
+                du_dm_v = self.Ainv[freq] * (- dA_dm_v + dRHS_dm_v)
 
                 for rx in src.rxList:
                     Jv.append(
                         rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
                     )
-            Ainv.clean()
+            # Ainv.clean()
         return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
@@ -145,8 +150,9 @@ class BaseFDEMProblem(BaseEMProblem):
         Jtv = np.zeros(m.size)
 
         for freq in self.survey.freqs:
-            AT = self.getA(freq).T
-            ATinv = self.Solver(AT, **self.solverOpts)
+            # AT = self.getA(freq).T
+            # ATinv = self.Solver(AT, **self.solverOpts)
+            ATinv = self.Ainv[freq].T
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = f[src, self._solutionType]
@@ -176,7 +182,7 @@ class BaseFDEMProblem(BaseEMProblem):
                     else:
                         raise Exception('Must be real or imag')
 
-            ATinv.clean()
+            # ATinv.clean()
 
         return Utils.mkvc(Jtv)
 
