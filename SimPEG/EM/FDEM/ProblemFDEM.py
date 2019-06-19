@@ -72,20 +72,26 @@ class BaseFDEMProblem(BaseEMProblem):
         if m is not None:
             self.model = m
 
-        if self.Ainv[0] is not None:
-            for i in range(self.nFreq):
-                self.Ainv[i].clean()
-        else:
+        try:
+            self.Ainv
+        except AttributeError:
             nFreq = len(self.survey.freqs)
             self.Ainv = [None for i in range(nFreq)]
 
+        if self.Ainv[0] is not None:
+            for i in range(self.nFreq):
+                self.Ainv[i].clean()
+        # else:
+        #     nFreq = len(self.survey.freqs)
+        #     self.Ainv = [None for i in range(nFreq)]
+
         f = self.fieldsPair(self.mesh, self.survey)
 
-        for freq in self.survey.freqs:
+        for nf, freq in enumerate(self.survey.freqs):
             A = self.getA(freq)
             rhs = self.getRHS(freq)
-            self.Ainv[freq] = self.Solver(A, **self.solverOpts)
-            u = self.Ainv[freq] * rhs
+            self.Ainv[nf] = self.Solver(A, **self.solverOpts)
+            u = self.Ainv[nf] * rhs
             Srcs = self.survey.getSrcByFreq(freq)
             f[Srcs, self._solutionType] = u
         return f
@@ -110,7 +116,7 @@ class BaseFDEMProblem(BaseEMProblem):
         # Jv = self.dataPair(self.survey)
         Jv = []
 
-        for freq in self.survey.freqs:
+        for nf, freq in enumerate(self.survey.freqs):
             # A = self.getA(freq)
             # # create the concept of Ainv (actually a solve)
             # Ainv = self.Solver(A, **self.solverOpts)
@@ -119,7 +125,7 @@ class BaseFDEMProblem(BaseEMProblem):
                 u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(freq, u_src, v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
-                du_dm_v = self.Ainv[freq] * (- dA_dm_v + dRHS_dm_v)
+                du_dm_v = self.Ainv[nf] * (- dA_dm_v + dRHS_dm_v)
 
                 for rx in src.rxList:
                     Jv.append(
@@ -150,10 +156,10 @@ class BaseFDEMProblem(BaseEMProblem):
 
         Jtv = np.zeros(m.size)
 
-        for freq in self.survey.freqs:
+        for nf, freq in enumerate(self.survey.freqs):
             # AT = self.getA(freq).T
             # ATinv = self.Solver(AT, **self.solverOpts)
-            ATinv = self.Ainv[freq].T
+            ATinv = self.Ainv[nf].T
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = f[src, self._solutionType]
