@@ -1,58 +1,58 @@
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
+import properties
 
 from ... import props
+from ...data import Data
 from ...utils import mkvc
-from ..Base import BaseEMProblem
+from ..base import BaseEMSimulation
 from ..Utils import omega
-from .SurveyFDEM import Survey as SurveyFDEM
+from .surveyFDEM import Survey
 from .FieldsFDEM import (
     FieldsFDEM, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
 )
 
 
-class BaseFDEMProblem(BaseEMProblem):
+class BaseFDEMSimulation(BaseEMSimulation):
     """
-        We start by looking at Maxwell's equations in the electric
-        field \\\(\\\mathbf{e}\\\) and the magnetic flux
-        density \\\(\\\mathbf{b}\\\)
+    We start by looking at Maxwell's equations in the electric
+    field \\\(\\\mathbf{e}\\\) and the magnetic flux
+    density \\\(\\\mathbf{b}\\\)
 
-        .. math ::
+    .. math ::
 
-            \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\\\
-            {\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
-            \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
+        \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\\\
+        {\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
+        \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
 
-        if using the E-B formulation (:code:`Problem3D_e`
-        or :code:`Problem3D_b`). Note that in this case,
-        :math:`\mathbf{s_e}` is an integrated quantity.
+    if using the E-B formulation (:code:`Problem3D_e`
+    or :code:`Problem3D_b`). Note that in this case,
+    :math:`\mathbf{s_e}` is an integrated quantity.
 
-        If we write Maxwell's equations in terms of
-        \\\(\\\mathbf{h}\\\) and current density \\\(\\\mathbf{j}\\\)
+    If we write Maxwell's equations in terms of
+    \\\(\\\mathbf{h}\\\) and current density \\\(\\\mathbf{j}\\\)
 
-        .. math ::
+    .. math ::
 
-            \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j} +
-            i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
-            \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
+        \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j} +
+        i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
+        \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
-        if using the H-J formulation (:code:`Problem3D_j` or
-        :code:`Problem3D_h`). Note that here, :math:`\mathbf{s_m}` is an
-        integrated quantity.
+    if using the H-J formulation (:code:`Problem3D_j` or
+    :code:`Problem3D_h`). Note that here, :math:`\mathbf{s_m}` is an
+    integrated quantity.
 
-        The problem performs the elimination so that we are solving the system
-        for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or
-        \\\(\\\mathbf{h}\\\)
+    The problem performs the elimination so that we are solving the system
+    for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or
+    \\\(\\\mathbf{h}\\\)
 
     """
 
-    surveyPair = SurveyFDEM
     fieldsPair = FieldsFDEM
 
     mu, muMap, muDeriv = props.Invertible(
-        "Magnetic Permeability (H/m)",
-        default=mu_0
+        "Magnetic Permeability (H/m)", default=mu_0
     )
 
     mui, muiMap, muiDeriv = props.Invertible(
@@ -60,6 +60,10 @@ class BaseFDEMProblem(BaseEMProblem):
     )
 
     props.Reciprocal(mu, mui)
+
+    survey = properties.Instance(
+        "a survey object", Survey, required=True
+    )
 
     def fields(self, m=None):
         """
@@ -73,12 +77,12 @@ class BaseFDEMProblem(BaseEMProblem):
         if m is not None:
             self.model = m
 
-        f = self.fieldsPair(self.mesh, self.survey)
+        f = self.fieldsPair(self)
 
         for freq in self.survey.freqs:
             A = self.getA(freq)
             rhs = self.getRHS(freq)
-            Ainv = self.Solver(A, **self.solverOpts)
+            Ainv = self.Solver(A, **self.solver_opts)
             u = Ainv * rhs
             Srcs = self.survey.getSrcByFreq(freq)
             f[Srcs, self._solutionType] = u
@@ -102,13 +106,13 @@ class BaseFDEMProblem(BaseEMProblem):
 
         self.model = m
 
-        # Jv = self.dataPair(self.survey)
+        # Jv = Data(self.survey)
         Jv = []
 
         for freq in self.survey.freqs:
             A = self.getA(freq)
             # create the concept of Ainv (actually a solve)
-            Ainv = self.Solver(A, **self.solverOpts)
+            Ainv = self.Solver(A, **self.solver_opts)
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = f[src, self._solutionType]
@@ -140,14 +144,14 @@ class BaseFDEMProblem(BaseEMProblem):
         self.model = m
 
         # Ensure v is a data object.
-        if not isinstance(v, self.dataPair):
-            v = self.dataPair(self.survey, v)
+        if not isinstance(v, Data):
+            v = Data(self.survey, v)
 
         Jtv = np.zeros(m.size)
 
         for freq in self.survey.freqs:
             AT = self.getA(freq).T
-            ATinv = self.Solver(AT, **self.solverOpts)
+            ATinv = self.Solver(AT, **self.solver_opts)
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = f[src, self._solutionType]
@@ -211,7 +215,7 @@ class BaseFDEMProblem(BaseEMProblem):
 #                               E-B Formulation                               #
 ###############################################################################
 
-class Problem3D_e(BaseFDEMProblem):
+class Problem3D_e(BaseFDEMSimulation):
     """
     By eliminating the magnetic flux density using
 
@@ -241,7 +245,7 @@ class Problem3D_e(BaseFDEMProblem):
     fieldsPair    = Fields3D_e
 
     def __init__(self, mesh, **kwargs):
-        BaseFDEMProblem.__init__(self, mesh, **kwargs)
+        super(Problem3D_e, self).__init__(mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -356,7 +360,7 @@ class Problem3D_e(BaseFDEMProblem):
         )
 
 
-class Problem3D_b(BaseFDEMProblem):
+class Problem3D_b(BaseFDEMSimulation):
     """
     We eliminate :math:`\mathbf{e}` using
 
@@ -384,7 +388,7 @@ class Problem3D_b(BaseFDEMProblem):
     fieldsPair = Fields3D_b
 
     def __init__(self, mesh, **kwargs):
-        BaseFDEMProblem.__init__(self, mesh, **kwargs)
+        super(Problem3D_b, self).__init__(mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -535,7 +539,7 @@ class Problem3D_b(BaseFDEMProblem):
 ###############################################################################
 
 
-class Problem3D_j(BaseFDEMProblem):
+class Problem3D_j(BaseFDEMSimulation):
     """
     We eliminate \\\(\\\mathbf{h}\\\) using
 
@@ -566,7 +570,7 @@ class Problem3D_j(BaseFDEMProblem):
     fieldsPair    = Fields3D_j
 
     def __init__(self, mesh, **kwargs):
-        BaseFDEMProblem.__init__(self, mesh, **kwargs)
+        super(Problem3D_j, self).__init__(mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -733,7 +737,7 @@ class Problem3D_j(BaseFDEMProblem):
             return RHSDeriv
 
 
-class Problem3D_h(BaseFDEMProblem):
+class Problem3D_h(BaseFDEMSimulation):
     """
     We eliminate \\\(\\\mathbf{j}\\\) using
 
@@ -757,7 +761,7 @@ class Problem3D_h(BaseFDEMProblem):
     fieldsPair    = Fields3D_h
 
     def __init__(self, mesh, **kwargs):
-        BaseFDEMProblem.__init__(self, mesh, **kwargs)
+        super(Problem3D_h, self).__init__(mesh, **kwargs)
 
     def getA(self, freq):
         """

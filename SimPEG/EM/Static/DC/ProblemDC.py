@@ -2,12 +2,12 @@ import numpy as np
 import scipy as sp
 
 from ....utils import mkvc, sdiag, Zero
-from ...Base import BaseEMProblem
+from ...base import BaseEMSimulation
 from .BoundaryUtils import getxBCyBC_CC
 from .SurveyDC import Survey
 from .FieldsDC import FieldsDC, Fields_CC, Fields_N
 
-class BaseDCProblem(BaseEMProblem):
+class BaseDCProblem(BaseEMSimulation):
     """
     Base DC Problem
     """

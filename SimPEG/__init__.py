@@ -2,6 +2,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 # import discretize as Mesh
+import discretize
 from discretize import Tests as tests
 
 from .data import Data, SyntheticData

@@ -508,7 +508,7 @@ class LocationVector(properties.Array):
         if value.shape not in self.shape:
         # if len(value) != self.shape[0]:
             raise Exception(
-                'loc must be length {}, the provided input is length {}'.format(
+                'location must be length {}, the provided input is length {}'.format(
                     self.shape, len(value)
                 )
             )

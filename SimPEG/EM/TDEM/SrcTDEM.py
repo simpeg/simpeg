@@ -9,7 +9,7 @@ from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
 from ...utils import setKwargs, sdiag, Zero, Identity
 from ..Utils import *
-from ..Base import BaseEMSrc
+from ..base import BaseEMSrc
 from ...props import LocationVector
 
 

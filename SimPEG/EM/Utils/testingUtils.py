@@ -116,7 +116,7 @@ def crossCheckTest(SrcList, fdemType1, fdemType2, comp, addrandoms = False, useM
         m = logsig
 
     survey1 = prb1.survey
-    d1 = survey1.dpred(m)
+    d1 = prb1.dpred(m)
 
     if verbose:
         print('  Problem 1 solved')
@@ -125,7 +125,7 @@ def crossCheckTest(SrcList, fdemType1, fdemType2, comp, addrandoms = False, useM
     prb2 = getFDEMProblem(fdemType2, comp, SrcList, freq, useMu, verbose)
 
     survey2 = prb2.survey
-    d2 = survey2.dpred(m)
+    d2 = prb2.dpred(m)
 
     if verbose:
         print('  Problem 2 solved')

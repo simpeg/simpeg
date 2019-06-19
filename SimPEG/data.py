@@ -36,8 +36,7 @@ class Data(properties.HasProperties):
             data = Data(survey)
             for src in survey.srcList:
                 for rx in src.rxList:
-                    index = data.index_dict[src][rx]
-                    data.dobs[index] = datum
+                    data[src, rx] = datum
 
         """,
         shape=('*',), required=True
@@ -228,6 +227,25 @@ class Data(properties.HasProperties):
         return self._index_dict
 
     ##########################
+    # Methods
+    ##########################
+
+    def __setitem__(self, key, value):
+        index = self.index_dict[key[0]][key[1]]
+        self.dobs[index] = mkvc(value)
+
+    def __getitem__(self, key):
+        index = self.index_dict[key[0]][key[1]]
+        return self.dobs[index]
+
+    def tovec(self):
+        return self.dobs
+
+    def fromvec(self, v):
+        v = mkvc(v)
+        self.dobs = v
+
+    ##########################
     # Depreciated
     ##########################
     @property
@@ -262,42 +280,6 @@ class Data(properties.HasProperties):
         )
         self.noise_floor = value
 
-    def __setitem__(self, key, value):
-        warnings.warn(
-            "Treating the data object as a dictionary has been depreciated in "
-            "in favor of working with the index_dict. Please update your code to "
-            "use \n"
-            "    index = data.index_dict[src][rx]"
-            "    data.dobs[index] = datum"
-
-        )
-        index = self.index_dict[key[0]][key[1]]
-        self.dobs[index] = value
-
-    def __getitem__(self, key):
-        warnings.warn(
-            "Treating the data object as a dictionary has been depreciated in "
-            "in favor of working with the index_dict. Please update your code to "
-            "use \n"
-            "    index = data.index_dict[src][rx]"
-            "    datum = data.dobs[index]"
-        )
-        index = self.index_dict[key[0]][key[1]]
-        return self.dobs[index]
-
-    def tovec(self):
-        raise Exception
-        warnings.warn(
-            "data.tovec is no longer necessary. Please update your code to "
-            "call data.dobs directly."
-        )
-        return self.dobs
-
-    def fromvec(self, v):
-        raise Exception(
-            "fromvec has been depreciated. Please use the index_dict to "
-            "interact with the data as a dictionary"
-        )
 
 class SyntheticData(Data):
     """

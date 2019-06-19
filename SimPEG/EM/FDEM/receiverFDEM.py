@@ -28,7 +28,7 @@ class BaseRx(survey.BaseRx):
         self.component = component
 
         # TODO: remove rxType from baseRx
-        Survey.BaseRx.__init__(self, locs, rxType=None)
+        super(BaseRx, self).__init__(locs, rxType=None)
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""

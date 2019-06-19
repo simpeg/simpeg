@@ -4,7 +4,9 @@ from __future__ import division
 
 import numpy as np
 
-import SimPEG as simpeg
+# import SimPEG as simpeg
+import discretize
+from SimPEG import maps, mkvc, utils
 from ....utils import meshTensor
 from SimPEG.EM.NSEM.RxNSEM import Point_impedance1D, Point_impedance3D, Point_tipper3D
 from SimPEG.EM.NSEM.SurveyNSEM import Survey
@@ -47,7 +49,7 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
     core = np.concatenate((np.kron(meshTensor([(ct, 15, -1.2)]), np.ones((10, ))), meshTensor([(ct, 20)])))
     bot = meshTensor([(core[0], 20, -1.3)])
     x0 = -np.array([np.sum(np.concatenate((core, bot)))])
-    m1d = simpeg.Mesh.TensorMesh([np.concatenate((bot, core, air))], x0=x0)
+    m1d = discretize.TensorMesh([np.concatenate((bot, core, air))], x0=x0)
     # Make the model
     sigma = np.zeros(m1d.nC) + sigmaHalf
     sigma[m1d.gridCC > 0 ] = 1e-8
@@ -61,8 +63,8 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
     rxList = []
     for rxType in ['z1d', 'z1d']:
-        rxList.append(Point_impedance1D(simpeg.mkvc(np.array([0.0]), 2).T, 'real'))
-        rxList.append(Point_impedance1D(simpeg.mkvc(np.array([0.0]), 2).T, 'imag'))
+        rxList.append(Point_impedance1D(mkvc(np.array([0.0]), 2).T, 'real'))
+        rxList.append(Point_impedance1D(mkvc(np.array([0.0]), 2).T, 'imag'))
     # Source list
     srcList = []
     if tD:
@@ -114,11 +116,11 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp='Imp', singleFreq=False, expMap=Tr
 
     if expMap:
         problem = Problem3D_ePrimSec(M, sigmaPrimary=np.log(sigma1d))
-        problem.sigmaMap = simpeg.Maps.ExpMap(problem.mesh)
+        problem.sigmaMap = maps.ExpMap(problem.mesh)
         problem.model = np.log(sig)
     else:
         problem = Problem3D_ePrimSec(M, sigmaPrimary=sigma1d)
-        problem.sigmaMap = simpeg.Maps.IdentityMap(problem.mesh)
+        problem.sigmaMap = maps.IdentityMap(problem.mesh)
         problem.model = sig
     problem.pair(survey)
     problem.verbose = False
@@ -136,7 +138,7 @@ def getInputs():
     Function that returns Mesh, freqs, rx_loc, elev.
     """
     # Make a mesh
-    M = simpeg.Mesh.TensorMesh([[(200, 6, -1.5), (200., 4), (200, 6, 1.5)], [(200, 6, -1.5), (200., 4), (200, 6, 1.5)], [(200, 8, -1.5), (200., 8), (200, 8, 1.5)]],  x0=['C', 'C', 'C'])# Setup the model
+    M = discretize.TensorMesh([[(200, 6, -1.5), (200., 4), (200, 6, 1.5)], [(200, 6, -1.5), (200., 4), (200, 6, 1.5)], [(200, 8, -1.5), (200., 8), (200, 8, 1.5)]],  x0=['C', 'C', 'C'])# Setup the model
     # Set the frequencies
     freqs = np.logspace(1, -3, 5)
     elev = 0
@@ -144,7 +146,7 @@ def getInputs():
     # Setup the the survey object
     # Receiver locations
     rx_x, rx_y = np.meshgrid(np.arange(-350, 350, 200), np.arange(-350, 350, 200))
-    rx_loc = np.hstack((simpeg.Utils.mkvc(rx_x, 2), simpeg.Utils.mkvc(rx_y, 2), elev+np.zeros((np.prod(rx_x.shape), 1))))
+    rx_loc = np.hstack((mkvc(rx_x, 2), mkvc(rx_y, 2), elev+np.zeros((np.prod(rx_x.shape), 1))))
 
     return M, freqs, rx_loc, elev
 
@@ -186,7 +188,7 @@ def blockInhalfSpace(conds):
     ccM = M.gridCC
     # conds = [1e-2]
     groundInd = ccM[:,2] < elev
-    sig = simpeg.Utils.ModelBuilder.defineBlock(M.gridCC,np.array([-1000,-1000,-1500]),np.array([1000,1000,-1000]),conds)
+    sig = utils.ModelBuilder.defineBlock(M.gridCC,np.array([-1000,-1000,-1500]),np.array([1000,1000,-1000]),conds)
     sig[~groundInd] = 1e-8
     # Set the background, not the same as the model
     sigBG = np.zeros(M.nC) + 1e-8

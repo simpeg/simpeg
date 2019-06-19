@@ -9,13 +9,13 @@ except ImportError:
     from SimPEG import SolverLU as SimpegSolver
 
 from ...utils import mkvc, setKwargs
-from ..FDEM.ProblemFDEM import BaseFDEMProblem
+from ..FDEM.simulationFDEM import BaseFDEMSimulation
 from ..Utils.EMUtils import omega, mu_0
 from .SurveyNSEM import Survey, Data
 from .FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields3D_ePrimSec
 
 
-class BaseNSEMProblem(BaseFDEMProblem):
+class BaseNSEMProblem(BaseFDEMSimulation):
     """
     Base class for all Natural source problems.
     """

@@ -7,7 +7,7 @@ from .... import maps
 from ....data import Data
 from ....utils import sdiag
 
-from ...Base import BaseEMProblem
+from ...base import BaseEMSimulation
 from ..DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
 from ..IP import Problem3D_CC as BaseProblem3D_CC
 from ..IP import Problem3D_N as BaseProblem3D_N
@@ -15,7 +15,7 @@ from .SurveySIP import Survey
 
 
 
-class BaseSIPProblem(BaseEMProblem):
+class BaseSIPProblem(BaseEMSimulation):
 
     sigma = props.PhysicalProperty(
         "Electrical conductivity (S/m)"

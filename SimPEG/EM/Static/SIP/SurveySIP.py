@@ -2,13 +2,13 @@ import numpy as np
 import uuid
 
 # from ....data import Data as BaseData
-from ...Base import BaseEMSurvey
+from ....survey import BaseSurvey
 from . import RxSIP as Rx
 from . import SrcSIP as Src
 from .. import DC
 
 
-class Survey(BaseEMSurvey):
+class Survey(BaseSurvey):
     rxPair = Rx.BaseRx
     srcPair = Src.BaseSrc
     times = None

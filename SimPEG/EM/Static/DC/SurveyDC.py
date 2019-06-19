@@ -9,13 +9,13 @@ import properties
 
 from ....data import Data
 from ....utils import uniqueRows
-from ...Base import BaseEMSurvey
+from ....survey import BaseSurvey
 from ..Utils import drapeTopotoLoc
 from . import RxDC as Rx
 from . import SrcDC as Src
 
 
-class Survey(BaseEMSurvey):
+class Survey(BaseSurvey):
     """
     Base DC survey
     """

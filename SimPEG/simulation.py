@@ -12,7 +12,7 @@ from discretize.utils import meshTensor
 # from . import Models
 from . import props
 # from . import Source
-from .data import SyntheticData
+from .data import SyntheticData, Data
 from .survey import BaseSurvey
 from .utils import Counter, timeIt, count, mkvc
 
@@ -54,27 +54,22 @@ class BaseSimulation(props.HasModel):
     _REGISTRY = {}
 
     mesh = properties.Instance(
-        "a discretize mesh instance",
-        BaseMesh
+        "a discretize mesh instance", BaseMesh
     )
 
     survey = properties.Instance(
-        "a list of sources",
-        BaseSurvey,
-        default=BaseSurvey()
+        "a survey object", BaseSurvey, default=BaseSurvey()
     )
 
     counter = properties.Instance(
-        "A SimPEG.Utils.Counter object",
-        Counter
+        "A SimPEG.Utils.Counter object", Counter
     )
 
     # TODO: need to implement a serializer for this & setter
     solver = pymatsolver.Solver
 
     solver_opts = properties.Dictionary(
-        "solver options as a kwarg dict",
-        default={}
+        "solver options as a kwarg dict", default={}
     )
 
     def __init__(self, mesh=None, **kwargs):
@@ -118,6 +113,10 @@ class BaseSimulation(props.HasModel):
 
     @property
     def Solver(self):
+        """
+        Deprecated solver property. Please use :code:`simulation.solver`
+        instead
+        """
         warnings.warn(
             "simulation.Solver will be deprecaited and replaced with "
             "simulation.solver. Please update your code accordingly",
@@ -136,6 +135,10 @@ class BaseSimulation(props.HasModel):
 
     @property
     def solverOpts(self):
+        """
+        Deprecated solver options. Please use :code:`simulation.solver_opts`
+        instead
+        """
         warnings.warn(
             "simulation.solverOpts will be deprecaited and replaced with "
             "simulation.solver_opts. Please update your code accordingly",
@@ -174,6 +177,10 @@ class BaseSimulation(props.HasModel):
     # Methods
 
     def pair(self, survey):
+        """
+        Deprecated pairing method. Please use :code:`simulation.survey=survey`
+        instead
+        """
         warnings.warn(
             "simulation.pair(survey) will be depreciated. Please use "
             "simulation.survey = survey",
@@ -203,7 +210,21 @@ class BaseSimulation(props.HasModel):
             d_\\text{pred} = P(f(m))
         Where P is a projection of the fields onto the data space.
         """
-        raise NotImplementedError('dpred is not yet implemented')
+        if self.survey is None:
+            raise AttributeError(
+                "The survey has not yet been set and is required to compute "
+                "data. Please set the survey for the simulation: "
+                "simulation.survey = survey"
+            )
+
+        if f is None:
+            f = self.fields(m)
+
+        data = Data(self.survey)
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
+                data[src, rx] = rx.eval(src, self.mesh, f)
+        return data.dobs
 
     @timeIt
     def Jvec(self, m, v, f=None):
@@ -281,9 +302,7 @@ class BaseSimulation(props.HasModel):
         dobs = dclean + noise
 
         return SyntheticData(
-            survey=self.survey,
-            dobs=dobs,
-            dclean=dclean,
+            survey=self.survey, dobs=dobs, dclean=dclean,
             standard_deviation=standard_deviation,
         )
 
@@ -476,11 +495,17 @@ class ExponentialSinusoidSimulation(LinearSimulation):
 
     @property
     def jk(self):
+        """
+        Parameters controlling the spread of kernel functions
+        """
         if getattr(self, '_jk', None) is None:
             self._jk = np.linspace(self.j0, self.jn, self.n_kernels)
         return self._jk
 
     def g(self, k):
+        """
+        Kernel functions for the decaying oscillating exponential functions.
+        """
         return (
             np.exp(self.p*self.jk[k]*self.mesh.vectorCCx) *
             np.cos(np.pi*self.q*self.jk[k]*self.mesh.vectorCCx)
@@ -488,6 +513,9 @@ class ExponentialSinusoidSimulation(LinearSimulation):
 
     @property
     def G(self):
+        """
+        Matrix whose rows are the kernel functions
+        """
         if getattr(self, '_G', None) is None:
             G = np.empty((self.n_kernels, self.mesh.nC))
 

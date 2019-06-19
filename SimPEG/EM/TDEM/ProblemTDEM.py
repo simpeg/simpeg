@@ -5,7 +5,7 @@ import time
 
 from ...simulation import BaseTimeSimulation
 from ...utils import mkvc, sdiag, speye, Zero
-from ..Base import BaseEMProblem
+from ..base import BaseEMSimulation
 from .SurveyTDEM import Survey as SurveyTDEM
 from .FieldsTDEM import (
     FieldsTDEM, Fields3D_b, Fields3D_e, Fields3D_h, Fields3D_j,
@@ -14,7 +14,7 @@ from .FieldsTDEM import (
 
 
 
-class BaseTDEMProblem(BaseTimeSimulation, BaseEMProblem):
+class BaseTDEMProblem(BaseTimeSimulation, BaseEMSimulation):
     """
     We start with the first order form of Maxwell's equations, eliminate and
     solve the second order form. For the time discretization, we use backward

@@ -4,7 +4,7 @@ import uuid
 import properties
 import warnings
 
-from .utils import mkvc, Counter
+from .utils import mkvc, Counter, setKwargs
 from .props import BaseSimPEG
 
 
@@ -188,17 +188,11 @@ class BaseSrc(BaseSimPEG):
     """SimPEG Source Object"""
 
     location = properties.Array(
-        "Location [x, y, z]",
-        shape=("*",),
-        required=False
+        "Location [x, y, z]", shape=("*",), required=False
     )
 
     receiver_list = properties.List(
-        "receiver list",
-        properties.Instance(
-            "a SimPEG receiver",
-            BaseRx
-        ),
+        "receiver list", properties.Instance("a SimPEG receiver", BaseRx),
         default=[]
     )
 
@@ -209,16 +203,16 @@ class BaseSrc(BaseSimPEG):
     @property
     def loc(self):
         warnings.warn(
-            "BaseSrc.locs will be deprecaited and replaced with "
-            "BaseSrc.locations. Please update your code accordingly"
+            "BaseSrc.loc will be deprecaited and replaced with "
+            "BaseSrc.location. Please update your code accordingly"
         )
         return self.location
 
     @loc.setter
     def loc(self, value):
         warnings.warn(
-            "BaseSrc.locs will be deprecaited and replaced with "
-            "BaseSrc.locations. Please update your code accordingly"
+            "BaseSrc.loc will be deprecaited and replaced with "
+            "BaseSrc.location. Please update your code accordingly"
         )
         self.location = value
 
@@ -298,10 +292,7 @@ class BaseSurvey(properties.HasProperties):
 
     source_list = properties.List(
         "A list of sources for the survey",
-        properties.Instance(
-            "A SimPEG source",
-            BaseSrc
-        ),
+        properties.Instance("A SimPEG source", BaseSrc),
         default=[]
     )
 

@@ -2,7 +2,7 @@ import numpy as np
 from scipy.special import kn
 
 from ....utils import mkvc, sdiag, Zero
-from ...Base import BaseEMProblem
+from ...base import BaseEMSimulation
 
 from .SurveyDC import Survey_ky
 from .FieldsDC_2D import Fields_ky, Fields_ky_CC, Fields_ky_N
@@ -10,10 +10,7 @@ from .FieldsDC import FieldsDC, Fields_CC, Fields_N
 from .BoundaryUtils import getxBCyBC_CC
 
 
-
-
-
-class BaseDCProblem_2D(BaseEMProblem):
+class BaseDCProblem_2D(BaseEMSimulation):
     """
     Base 2.5D DC problem
     """

@@ -1,3 +1,6 @@
+from discretize import Tests
+import discretize as Mesh
+
 from . import maps as Maps
 from . import models as Models
 from . import simulation as Problem
@@ -8,7 +11,6 @@ from . import inverse_problem as InvProblem
 from . import optimization as Optimization
 from . import directives as Directives
 from . import inversion as Inversion
-from discretize import Tests
 
 from .utils import mkvc
 from .utils import versions
