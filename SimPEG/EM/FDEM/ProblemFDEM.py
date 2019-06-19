@@ -48,8 +48,6 @@ class BaseFDEMProblem(BaseEMProblem):
 
     surveyPair = SurveyFDEM
     fieldsPair = FieldsFDEM
-    nFreq = len(SurveyFDEM.freqs)
-    Ainv = [None for i in range(nFreq)]
 
     mu, muMap, muDeriv = Props.Invertible(
         "Magnetic Permeability (H/m)",
@@ -77,6 +75,9 @@ class BaseFDEMProblem(BaseEMProblem):
         if self.Ainv[0] is not None:
             for i in range(self.nFreq):
                 self.Ainv[i].clean()
+        else:
+            nFreq = len(self.survey.freqs)
+            self.Ainv = [None for i in range(nFreq)]
 
         f = self.fieldsPair(self.mesh, self.survey)
 
