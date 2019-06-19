@@ -11,8 +11,8 @@ from scipy.constants import mu_0, inch, foot
 import time
 
 from SimPEG.EM import TDEM
-from SimPEG import Utils, Maps
-from SimPEG.Utils import Zero
+from SimPEG import utils, maps
+from SimPEG.utils import Zero
 
 from pymatsolver import Pardiso
 
@@ -143,11 +143,11 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         src_list_late_ontime = [src_ramp_on]
 
         prob = TDEM.Problem3D_b(
-            mesh=mesh, timeSteps=timeSteps, sigmaMap=Maps.IdentityMap(mesh),
+            mesh=mesh, timeSteps=timeSteps, sigmaMap=maps.IdentityMap(mesh),
             Solver=Pardiso
         )
         prob_late_ontime = TDEM.Problem3D_b(
-            mesh=mesh, timeSteps=timeSteps, sigmaMap=Maps.IdentityMap(mesh),
+            mesh=mesh, timeSteps=timeSteps, sigmaMap=maps.IdentityMap(mesh),
             Solver=Pardiso
         )
 

@@ -1,7 +1,8 @@
 from __future__ import division, print_function
 import unittest
 import numpy as np
-from SimPEG import Mesh, Maps, SolverLU, Tests
+import discretize
+from SimPEG import maps, SolverLU, tests
 from SimPEG import EM
 from pymatsolver import Pardiso as Solver
 
@@ -23,7 +24,7 @@ def setUp_TDEM(prbtype='e', rxcomp='ex'):
     npad = 0
     # hx = [(cs, ncx), (cs, npad, 1.3)]
     # hz = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
-    mesh = Mesh.TensorMesh(
+    mesh = discretize.TensorMesh(
         [
             [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)],
             [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)],
@@ -32,8 +33,8 @@ def setUp_TDEM(prbtype='e', rxcomp='ex'):
     )
 #
     active = mesh.vectorCCz < 0.
-    activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-    mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
+    activeMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
     rxOffset = 0.
     rxlocs = np.array([[20, 20., 0.]])
@@ -74,11 +75,11 @@ class TDEM_DerivTests(unittest.TestCase):
             prb, m, mesh = setUp_TDEM(prbtype, rxcomp)
 
             def derChk(m):
-                return [prb.survey.dpred(m), lambda mx: prb.Jvec(m, mx)]
+                return [prb.dpred(m), lambda mx: prb.Jvec(m, mx)]
             print('test_Jvec_{prbtype}_{rxcomp}'.format(
                 prbtype=prbtype, rxcomp=rxcomp)
             )
-            Tests.checkDerivative(derChk, m, plotIt=False, num=2, eps=1e-20)
+            tests.checkDerivative(derChk, m, plotIt=False, num=2, eps=1e-20)
 
         def test_Jvec_e_dbzdt(self):
             self.JvecTest('e', 'dbdtz')

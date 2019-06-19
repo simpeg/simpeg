@@ -1,7 +1,8 @@
 from __future__ import division, print_function
 import unittest
 import numpy as np
-from SimPEG import Mesh, Maps, SolverLU
+import discretize
+from SimPEG import maps, SolverLU
 from SimPEG import EM
 from scipy.constants import mu_0
 import matplotlib.pyplot as plt
@@ -19,18 +20,18 @@ def halfSpaceProblemAnaDiff(
         cs, ncx, ncz, npad = 5., 30, 10, 15
         hx = [(cs, ncx), (cs, npad, 1.3)]
         hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-        mesh = Mesh.CylMesh([hx, 1, hz], '00C')
+        mesh = discretize.CylMesh([hx, 1, hz], '00C')
 
     elif meshType == 'TENSOR':
         cs, nc, npad = 20., 13, 5
         hx = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
         hy = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
         hz = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
-        mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
+        mesh = discretize.TensorMesh([hx, hy, hz], 'CCC')
 
     active = mesh.vectorCCz < 0.
-    actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-    mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
     rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxType[:-1]))(
         np.array([[rxOffset, 0., 0.]]), np.logspace(-5, -4, 21), rxType[-1]
@@ -64,7 +65,7 @@ def halfSpaceProblemAnaDiff(
     elif srctype == "CircularLoop":
         bz_ana = mu_0*EM.Analytics.hzAnalyticDipoleT(13, rx.times, sig_half)
 
-    bz_calc = survey.dpred(sigma)
+    bz_calc = prb.dpred(sigma)
     ind = np.logical_and(rx.times > bounds[0], rx.times < bounds[1])
     log10diff = (np.linalg.norm(np.log10(np.abs(bz_calc[ind])) -
                  np.log10(np.abs(bz_ana[ind]))) /

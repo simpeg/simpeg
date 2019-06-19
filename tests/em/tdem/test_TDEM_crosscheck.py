@@ -1,6 +1,8 @@
 from __future__ import division, print_function
 import unittest
-from SimPEG import Maps, Mesh
+import discretize
+
+from SimPEG import maps
 from SimPEG import EM
 import numpy as np
 
@@ -22,7 +24,7 @@ def setUp_TDEM(prbtype='b', rxcomp='bz', waveform='stepoff'):
     npad = 4
     # hx = [(cs, ncx), (cs, npad, 1.3)]
     # hz = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
-    mesh = Mesh.TensorMesh(
+    mesh = discretize.TensorMesh(
         [
             [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)],
             [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)],
@@ -31,8 +33,8 @@ def setUp_TDEM(prbtype='b', rxcomp='bz', waveform='stepoff'):
     )
 
     active = mesh.vectorCCz < 0.
-    activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-    mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
+    activeMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
     prb = getattr(EM.TDEM, 'Problem3D_{}'.format(prbtype))(mesh, sigmaMap=mapping)
 
@@ -78,8 +80,8 @@ def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz', waveform='stepoff'):
     prb1, m1, mesh1 = setUp_TDEM(prbtype1, rxcomp, waveform)
     prb2, _, mesh2 = setUp_TDEM(prbtype2, rxcomp, waveform)
 
-    d1 = prb1.survey.dpred(m1)
-    d2 = prb2.survey.dpred(m1)
+    d1 = prb1.dpred(m1)
+    d2 = prb2.dpred(m1)
 
     check = np.linalg.norm(d1 - d2)
     tol = 0.5 * (np.linalg.norm(d1) + np.linalg.norm(d2)) * TOL

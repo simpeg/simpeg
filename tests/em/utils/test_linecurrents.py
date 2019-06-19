@@ -3,7 +3,7 @@ from SimPEG.EM.Utils.CurrentUtils import (
     getStraightLineCurrentIntegral, getSourceTermLineCurrentPolygon
     )
 import unittest
-from SimPEG.Utils import io_utils
+from SimPEG.utils import io_utils
 
 
 class LineCurrentTests(unittest.TestCase):

@@ -65,10 +65,11 @@ class BaseRx(properties.HasProperties):
         "dictonary for storing projections",
     )
 
-    def __init__(self, locations=None, rxType=None, **kwargs):
+    def __init__(self, locations=None, **kwargs):
         super(BaseRx, self).__init__(**kwargs)
         if locations is not None:
             self.locations = locations
+        rxType = kwargs.pop("rxType", None)
         if rxType is not None:
             warnings.warn(
                 "BaseRx no longer has an rxType. Each rxType should instead "
@@ -147,13 +148,15 @@ class BaseTimeRx(BaseRx):
         default="N"
     )
 
-    def __init__(self, **kwargs):
-        super(BaseTimeRx, self).__init__(**kwargs)
+    def __init__(self, locations=None, times=None, **kwargs):
+        super(BaseTimeRx, self).__init__(locations=locations, **kwargs)
+        if times is not None:
+            self.times=times
 
     @property
     def nD(self):
         """Number of data in the receiver."""
-        return self.locs.shape[0] * len(self.times)
+        return self.locations.shape[0] * len(self.times)
 
     def getSpatialP(self, mesh):
         """
@@ -320,6 +323,7 @@ class BaseSurvey(properties.HasProperties):
             enumerate(value)
         ]
 
+    # TODO: this should be private
     def getSourceIndex(self, sources):
         if type(sources) is not list:
             sources = [sources]

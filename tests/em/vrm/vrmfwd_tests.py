@@ -1,7 +1,7 @@
 import unittest
 import SimPEG.VRM as VRM
 import numpy as np
-from SimPEG import Mesh
+from SimPEG import discretize
 
 
 class VRM_fwd_tests(unittest.TestCase):
@@ -18,7 +18,7 @@ class VRM_fwd_tests(unittest.TestCase):
         np.random.seed(self.seed)
 
         h = [0.05, 0.05]
-        meshObj = Mesh.TensorMesh((h, h, h), x0='CCC')
+        meshObj = discretize.TensorMesh((h, h, h), x0='CCC')
 
         dchi = 0.01
         tau1 = 1e-8
@@ -74,7 +74,7 @@ class VRM_fwd_tests(unittest.TestCase):
         np.random.seed(self.seed)
 
         h = [0.5, 0.5]
-        meshObj = Mesh.TensorMesh((h, h, h), x0='CCC')
+        meshObj = discretize.TensorMesh((h, h, h), x0='CCC')
 
         dchi = 0.01
         tau1 = 1e-8
@@ -126,7 +126,7 @@ class VRM_fwd_tests(unittest.TestCase):
         """
 
         h = [(2, 20)]
-        meshObj = Mesh.TensorMesh((h, h, h), x0='CCN')
+        meshObj = discretize.TensorMesh((h, h, h), x0='CCN')
 
         dchi = 0.01
         tau1 = 1e-8
@@ -177,7 +177,7 @@ class VRM_fwd_tests(unittest.TestCase):
         """
 
         h = [(2, 30)]
-        meshObj = Mesh.TensorMesh((h, h, [(2, 20)]), x0='CCN')
+        meshObj = discretize.TensorMesh((h, h, [(2, 20)]), x0='CCN')
 
         dchi = 0.01
         tau1 = 1e-8
@@ -235,8 +235,8 @@ class VRM_fwd_tests(unittest.TestCase):
 
         h1 = [(2, 4)]
         h2 = 0.5*np.ones(16)
-        meshObj_Tensor = Mesh.TensorMesh((h1, h1, h1), x0='000')
-        meshObj_OcTree = Mesh.TreeMesh([h2, h2, h2], x0='000')
+        meshObj_Tensor = discretize.TensorMesh((h1, h1, h1), x0='000')
+        meshObj_OcTree = discretize.TreeMesh([h2, h2, h2], x0='000')
 
         x, y, z = np.meshgrid(
             np.c_[1., 3., 5., 7.],
@@ -348,7 +348,7 @@ class VRM_fwd_tests(unittest.TestCase):
         np.random.seed(self.seed)
 
         h1 = [0.25, 0.25]
-        meshObj_Tensor = Mesh.TensorMesh((h1, h1, h1), x0='CCN')
+        meshObj_Tensor = discretize.TensorMesh((h1, h1, h1), x0='CCN')
 
         chi0 = 0.
         dchi = 0.01

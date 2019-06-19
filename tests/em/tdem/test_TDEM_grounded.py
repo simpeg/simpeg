@@ -8,7 +8,7 @@ import unittest
 import discretize
 from discretize import utils
 from SimPEG.EM import TDEM
-from SimPEG import Utils, Maps, Tests
+from SimPEG import maps, tests
 from pymatsolver import Pardiso
 
 
@@ -66,7 +66,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
             (1e-3, 20), (1e-2, 17)
         ]
         prob = getattr(TDEM, "Problem3D_{}".format(self.prob_type))(
-            mesh, timeSteps=timeSteps, mu=mu, sigmaMap=Maps.ExpMap(mesh),
+            mesh, timeSteps=timeSteps, mu=mu, sigmaMap=maps.ExpMap(mesh),
             Solver=Pardiso
         )
         survey = TDEM.Survey([src])
@@ -87,7 +87,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         m0 = np.log(self.sigma) + np.random.rand(self.mesh.nC)
         self.prob.model = m0
 
-        return Tests.checkDerivative(deriv_fct, np.log(self.sigma), num=3, plotIt=False)
+        return tests.checkDerivative(deriv_fct, np.log(self.sigma), num=3, plotIt=False)
 
     def test_deriv_phi(self):
 

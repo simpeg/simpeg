@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 import unittest
-from SimPEG import Mesh, Maps
+import discretize
+from SimPEG import maps
 from SimPEG import EM
 import numpy as np
 from scipy.constants import mu_0
@@ -20,18 +21,18 @@ def halfSpaceProblemAnaDiff(
         cs, ncx, ncz, npad = 15., 30, 10, 15
         hx = [(cs, ncx), (cs, npad, 1.3)]
         hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-        mesh = Mesh.CylMesh([hx, 1, hz], '00C')
+        mesh = discretize.CylMesh([hx, 1, hz], '00C')
 
     elif meshType == 'TENSOR':
         cs, nc, npad = 20., 13, 5
         hx = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
         hy = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
         hz = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
-        mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
+        mesh = discretize.TensorMesh([hx, hy, hz], 'CCC')
 
     active = mesh.vectorCCz < 0.
-    actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-    mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
     prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
     prb.Solver = Solver
@@ -68,7 +69,7 @@ def halfSpaceProblemAnaDiff(
         bz_ana = mu_0*EM.Analytics.hzAnalyticCentLoopT(13, rx.times-t0,
                                                        sig_half)
 
-    bz_calc = survey.dpred(sigma)
+    bz_calc = prb.dpred(sigma)
     ind = np.logical_and(rx.times-t0 > bounds[0], rx.times-t0 < bounds[1])
     log10diff = (np.linalg.norm(np.log10(np.abs(bz_calc[ind])) -
                  np.log10(np.abs(bz_ana[ind]))) /

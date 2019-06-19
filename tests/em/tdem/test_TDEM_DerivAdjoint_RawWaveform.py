@@ -2,7 +2,8 @@ from __future__ import division, print_function
 import unittest
 import numpy as np
 import time
-from SimPEG import Mesh, Maps, Tests
+import discretize
+from SimPEG import maps, tests
 from SimPEG import EM
 from scipy.interpolate import interp1d
 from pymatsolver import Pardiso as Solver
@@ -24,7 +25,7 @@ def get_mesh():
     ncz = 8
     npad = 4
 
-    return Mesh.TensorMesh(
+    return discretize.TensorMesh(
         [
             [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)],
             [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)],
@@ -35,8 +36,8 @@ def get_mesh():
 
 def get_mapping(mesh):
     active = mesh.vectorCCz < 0.
-    activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-    return Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
+    activeMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    return maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
 
 def get_prob(mesh, mapping, formulation):
@@ -112,13 +113,13 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
         def derChk(m):
             return [
-                self.probfwd.survey.dpred(m),
+                self.probfwd.dpred(m),
                 lambda mx: self.prob.Jvec(self.m, mx, f=self.fields)
             ]
         print('test_Jvec_{prbtype}_{rxcomp}'.format(
             prbtype=self.formulation, rxcomp=rxcomp)
         )
-        Tests.checkDerivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
+        tests.checkDerivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
 
     def JvecVsJtvecTest(self, rxcomp):
         self.set_rxList(rxcomp)
@@ -261,7 +262,7 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
             self.JvecVsJtvecTest('dhdtz')
 
 
-# class TDEM_DerivTests(unittest.TestCase):
+# class TDEM_Derivtests(unittest.TestCase):
 
 # # ====== TEST A ========== #
 
@@ -286,7 +287,7 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 #             return Av, ADeriv_dm
 
 #         print('\n Testing ADeriv {}'.format(prbtype))
-#         Tests.checkDerivative(AderivFun, m0, plotIt=False, num=4, eps=EPS)
+#         tests.checkDerivative(AderivFun, m0, plotIt=False, num=4, eps=EPS)
 
 #     def A_adjointTest(self, prbtype):
 #         prb, m0, mesh = setUp_TDEM(prbtype)

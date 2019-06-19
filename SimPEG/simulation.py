@@ -394,6 +394,32 @@ class BaseTimeSimulation(BaseSimulation):
         )
         return self.time_mesh
 
+    def dpred(self, m=None, f=None):
+        """
+        dpred(m, f=None)
+        Create the projected data from a model.
+        The fields, f, (if provided) will be used for the predicted data
+        instead of recalculating the fields (which may be expensive!).
+        .. math::
+            d_\\text{pred} = P(f(m))
+        Where P is a projection of the fields onto the data space.
+        """
+        if self.survey is None:
+            raise AttributeError(
+                "The survey has not yet been set and is required to compute "
+                "data. Please set the survey for the simulation: "
+                "simulation.survey = survey"
+            )
+
+        if f is None:
+            f = self.fields(m)
+
+        data = Data(self.survey)
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
+                data[src, rx] = rx.eval(src, self.mesh, self.time_mesh, f)
+        return data.dobs
+
 
 ##############################################################################
 #                                                                            #
