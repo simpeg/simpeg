@@ -81,10 +81,10 @@ class BaseFDEMProblem(BaseEMProblem):
 
         if self.Ainv[0] is not None:
             for i in range(self.survey.nFreq):
-                print('Ainv size =', self.Ainv.nbytes)
+                print('Ainv size =', self.Ainv[i].nbytes)
                 print('Cleaning Ainv.')
                 self.Ainv[i].clean()
-                print('Ainv size =', self.Ainv.nbytes)
+                print('Ainv size =', self.Ainv[i].nbytes)
 
         f = self.fieldsPair(self.mesh, self.survey)
 
