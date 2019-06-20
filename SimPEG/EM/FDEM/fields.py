@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 from ...fields import Fields
 from ...utils import mkvc, Zero, Identity, sdiag
-from ..Utils import omega
+from ..utils import omega
 
 class FieldsFDEM(Fields):
     """

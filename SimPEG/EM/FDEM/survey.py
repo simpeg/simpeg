@@ -2,7 +2,7 @@ from scipy.constants import mu_0
 import properties
 
 from ...utils import Zero, Identity
-from ..Utils import omega
+from ..utils import omega
 from ...survey import BaseSurvey
 from .source import BaseFDEMSrc
 

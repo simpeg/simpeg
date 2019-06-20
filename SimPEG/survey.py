@@ -291,7 +291,7 @@ class BaseSrc(BaseSimPEG):
 
 
 # TODO: allow a reciever list to be provided and assume it is used for all
-# sources (and store the projections)
+# sources? (and store the projections)
 class BaseSurvey(properties.HasProperties):
     """
     Survey holds the sources and receivers for a survey
@@ -316,7 +316,8 @@ class BaseSurvey(properties.HasProperties):
     @properties.validator('source_list')
     def _source_list_validator(self, change):
         value = change['value']
-        assert len(set(value)) == len(value), 'The source_list must be unique'
+        if len(set(value)) != len(value):
+            raise Exception('The source_list must be unique')
         self._sourceOrder = dict()
         [
             self._sourceOrder.setdefault(src._uid, ii) for ii, src in

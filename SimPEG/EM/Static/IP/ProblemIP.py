@@ -6,7 +6,7 @@ from ....utils import mkvc, sdiag, Zero
 
 from ...base import BaseEMSimulation
 
-from ..DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
+from ..DC.fields import FieldsDC, Fields_CC, Fields_N
 from ..DC import Problem3D_CC as BaseProblem3D_CC
 from ..DC import Problem3D_N as BaseProblem3D_N
 from .SurveyIP import Survey

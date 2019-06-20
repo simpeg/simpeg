@@ -3,18 +3,18 @@ import numpy as np
 from .... import props
 from ....utils import sdiag
 
-from ..DC.FieldsDC_2D import (
+from ..DC.fields_2d import (
     Fields_ky, Fields_ky_CC, Fields_ky_N
 )
 
-from ..DC import BaseDCProblem_2D
+from ..DC.simulation_2d import BaseDCSimulation_2D
 from ..DC import Problem2D_CC as BaseProblem2D_CC
 from ..DC import Problem2D_N as BaseProblem2D_N
 
 from .SurveyIP import Survey
 
 
-class BaseIPProblem_2D(BaseDCProblem_2D):
+class BaseIPProblem_2D(BaseDCSimulation_2D):
 
     sigma = props.PhysicalProperty(
         "Electrical conductivity (S/m)"

@@ -5,7 +5,7 @@ from scipy.constants import epsilon_0
 
 from ...fields import TimeFields
 from ...utils import mkvc, sdiag, Zero
-from ..Utils import omega
+from ..utils import omega
 
 
 class FieldsTDEM(TimeFields):

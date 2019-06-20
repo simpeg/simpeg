@@ -7,20 +7,23 @@ import numpy as np
 from scipy.interpolate import interp1d, NearestNDInterpolator
 import properties
 
-from ....data import Data
 from ....utils import uniqueRows
 from ....survey import BaseSurvey
-from ..Utils import drapeTopotoLoc
-from . import RxDC as Rx
-from . import SrcDC as Src
+from ..utils import drapeTopotoLoc
+from . import receiver as Rx
+from . import source as Src
 
 
 class Survey(BaseSurvey):
     """
     Base DC survey
     """
-    rxPair = Rx.BaseRx
-    srcPair = Src.BaseSrc
+
+    source_list = properties.List(
+        "A list of sources for the survey",
+        properties.Instance("A DC source", Src.BaseSrc),
+        default=[]
+    )
 
     # Survey
     survey_geometry = properties.StringChoice(
@@ -72,7 +75,7 @@ class Survey(BaseSurvey):
     topo_function = None
 
     def __init__(self, srcList, **kwargs):
-        BaseEMSurvey.__init__(self, srcList, **kwargs)
+        super(Survey, self).__init__(srcList, **kwargs)
 
     def getABMN_locations(self):
         a_locations = []
@@ -302,22 +305,7 @@ class Survey_ky(Survey):
     """
     2.5D survey
     """
-    rxPair = Rx.BaseRx
-    srcPair = Src.BaseSrc
+    # TODO: we should depreciate this and just use the above survey class as they are identical
 
     def __init__(self, srcList, **kwargs):
-        BaseEMSurvey.__init__(self, srcList, **kwargs)
-
-    def eval(self, f):
-        """
-        Project fields to receiver locations
-        :param Fields u: fields object
-        :rtype: numpy.ndarray
-        :return: data
-        """
-        data = Data(self)
-        kys = self.prob.kys
-        for src in self.srcList:
-            for rx in src.rxList:
-                data[src, rx] = rx.eval(kys, src, self.mesh, f)
-        return data
+        super(Survey_ky, self).__init__(srcList, **kwargs)

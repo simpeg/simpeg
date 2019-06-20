@@ -1,3 +1,5 @@
+import properties
+
 from ... import survey
 
 
@@ -10,25 +12,25 @@ class BaseRx(survey.BaseRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
-        orientation = orientation.lower()
-        assert(
-            orientation in ['x', 'y', 'z']
-        ), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'."
-        " Arbitrary orientations have not yet been implemented.".format(
-            orientation
-        )
-        assert(
-            component in ['real', 'imag']
-            ), "'component' must be 'real' or 'imag', not {0!s}".format(
-                component
-            )
+    orientation = properties.StringChoice(
+        "orientation of the receiver. Must currently be 'x', 'y', 'z'",
+        ["x", "y", "z"]
+    )
+
+    component = properties.StringChoice(
+        "component of the field (real or imag)", {
+            "real": ["re", "in-phase", "in phase"],
+            "imag": ["imaginary", "im", "out-of-phase", "out of phase"]
+        }
+
+    )
+
+    def __init__(self, locs, orientation=None, component=None, **kwargs):
 
         self.projComp = orientation
         self.component = component
 
-        # TODO: remove rxType from baseRx
-        super(BaseRx, self).__init__(locs, rxType=None)
+        super(BaseRx, self).__init__(locs, **kwargs)
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""

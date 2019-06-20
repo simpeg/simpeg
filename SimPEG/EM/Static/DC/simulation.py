@@ -1,20 +1,28 @@
 import numpy as np
 import scipy as sp
+import properties
 
 from ....utils import mkvc, sdiag, Zero
 from ...base import BaseEMSimulation
-from .BoundaryUtils import getxBCyBC_CC
-from .SurveyDC import Survey
-from .FieldsDC import FieldsDC, Fields_CC, Fields_N
+from .boundary_utils import getxBCyBC_CC
+from .survey import Survey
+from .fields import Fields_CC, Fields_N
+
 
 class BaseDCProblem(BaseEMSimulation):
     """
     Base DC Problem
     """
-    surveyPair = Survey
-    fieldsPair = FieldsDC
+
+    survey = properties.Instance(
+        "a DC survey object", Survey, required=True
+    )
+
+    storeJ = properties.Bool(
+        "store the sensitivity matrix?", default=False
+    )
+
     Ainv = None
-    storeJ = False
     _Jmatrix = None
 
     def fields(self, m=None):

@@ -8,7 +8,7 @@ from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 from ...props import LocationVector
 from ...utils import mkvc, Zero
 
-from .. import Utils as emutils
+from ..utils import omega
 from ..base import BaseEMSrc
 
 
@@ -405,7 +405,7 @@ class MagDipole(BaseFDEMSrc):
         b_p = self.bPrimary(simulation)
         if simulation._formulation == 'HJ':
             b_p = simulation.Me * b_p
-        return -1j*emutils.omega(self.frequency)*b_p
+        return -1j*omega(self.frequency)*b_p
 
     def s_e(self, simulation):
         """

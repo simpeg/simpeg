@@ -1,7 +1,7 @@
 import numpy as np
 
-from . import RxDC as Rx
-from . import SrcDC as Src
+from . import receiver as Rx
+from . import source as Src
 
 def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
     """

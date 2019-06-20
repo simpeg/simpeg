@@ -7,7 +7,7 @@ SimPEG implementation of the natural source problem
 
 """
 
-from . import Utils
+from . import utils
 from . import source as Src
 from . import receiver as Rx
 from .survey import Survey, Data

@@ -10,7 +10,7 @@ except ImportError:
 
 from ...utils import mkvc, setKwargs
 from ..FDEM.simulation import BaseFDEMSimulation
-from ..Utils.EMUtils import omega, mu_0
+from ..utils.EMUtils import omega, mu_0
 from .survey import Survey, Data
 from .fields import Fields1D_ePrimSec, Fields3D_ePrimSec
 

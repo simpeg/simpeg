@@ -167,11 +167,11 @@ class BaseSimulation(props.HasModel):
                 )
             )
 
-        super(BaseSimulation, self).__init__(**kwargs)
-        assert isinstance(mesh, BaseMesh), (
-            "mesh must be a discretize object."
-        )
-        self.mesh = mesh
+        super(BaseSimulation, self).__init__(mesh=mesh, **kwargs)
+        # assert isinstance(mesh, BaseMesh), (
+        #     "mesh must be a discretize object."
+        # )
+        # self.mesh = mesh
 
     ###########################################################################
     # Methods
@@ -188,7 +188,7 @@ class BaseSimulation(props.HasModel):
         )
         self.survey = survey
 
-    def fields(self, m):
+    def fields(self, m=None):
         """
         u = fields(m)
         The field given the model.
@@ -218,13 +218,15 @@ class BaseSimulation(props.HasModel):
             )
 
         if f is None:
+            if m is None:
+                m = self.model
             f = self.fields(m)
 
         data = Data(self.survey)
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 data[src, rx] = rx.eval(src, self.mesh, f)
-        return data.dobs
+        return mkvc(data)
 
     @timeIt
     def Jvec(self, m, v, f=None):
@@ -464,7 +466,8 @@ class LinearSimulation(BaseSimulation):
         return self.G.dot(self.model)
 
     def dpred(self, m=None, f=None):
-        self.model = m
+        if m is not None:
+            self.model = m
         if f is not None:
             return f
         return self.fields(self.model)

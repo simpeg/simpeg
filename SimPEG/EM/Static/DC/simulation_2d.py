@@ -1,27 +1,36 @@
 import numpy as np
 from scipy.special import kn
+import properties
 
 from ....utils import mkvc, sdiag, Zero
 from ...base import BaseEMSimulation
+from ....data import Data
 
-from .SurveyDC import Survey_ky
-from .FieldsDC_2D import Fields_ky, Fields_ky_CC, Fields_ky_N
-from .FieldsDC import FieldsDC, Fields_CC, Fields_N
-from .BoundaryUtils import getxBCyBC_CC
+from .survey import Survey_ky
+from .fields_2d import Fields_ky, Fields_ky_CC, Fields_ky_N
+from .fields import FieldsDC, Fields_CC, Fields_N
+from .boundary_utils import getxBCyBC_CC
 
 
-class BaseDCProblem_2D(BaseEMSimulation):
+class BaseDCSimulation_2D(BaseEMSimulation):
     """
     Base 2.5D DC problem
     """
-    surveyPair = Survey_ky
+
+    survey = properties.Instance(
+        "a DC survey object", Survey_ky, required=True
+    )
+
+    storeJ = properties.Bool(
+        "store the sensitivity", default=False
+    )
+
     fieldsPair = Fields_ky  # SimPEG.EM.Static.Fields_2D
     fieldsPair_fwd = FieldsDC
     nky = 15
     kys = np.logspace(-4, 1, nky)
     Ainv = [None for i in range(nky)]
     nT = nky  # Only for using TimeFields
-    storeJ = False
     _Jmatrix = None
     fix_Jmatrix = False
 
@@ -31,12 +40,12 @@ class BaseDCProblem_2D(BaseEMSimulation):
         if self.Ainv[0] is not None:
             for i in range(self.nky):
                 self.Ainv[i].clean()
-        f = self.fieldsPair(self.mesh, self.survey)
+        f = self.fieldsPair(self)
         Srcs = self.survey.srcList
         for iky in range(self.nky):
             ky = self.kys[iky]
             A = self.getA(ky)
-            self.Ainv[iky] = self.Solver(A, **self.solverOpts)
+            self.Ainv[iky] = self.Solver(A, **self.solver_opts)
             RHS = self.getRHS(ky)
             u = self.Ainv[iky] * RHS
             f[Srcs, self._solutionType, iky] = u
@@ -57,6 +66,25 @@ class BaseDCProblem_2D(BaseEMSimulation):
             phi0 = phi1.copy()
         f_fwd[:, self._solutionType] = phi
         return f_fwd
+
+    def dpred(self, m=None, f=None):
+        """
+        Project fields to receiver locations
+        :param Fields u: fields object
+        :rtype: numpy.ndarray
+        :return: data
+        """
+        if f is None:
+            if m is None:
+                m = self.model
+            f = self.fields(m)
+
+        data = Data(self.survey)
+        kys = self.kys
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
+                data[src, rx] = rx.eval(kys, src, self.mesh, f)
+        return mkvc(data)
 
     def getJ(self, m, f=None):
         """
@@ -264,7 +292,7 @@ class BaseDCProblem_2D(BaseEMSimulation):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = super(BaseDCProblem_2D, self).deleteTheseOnModelUpdate
+        toDelete = super(BaseDCSimulation_2D, self).deleteTheseOnModelUpdate
         if self.sigmaMap is not None:
             toDelete += [
                 '_MnSigma', '_MnSigmaDerivMat',
@@ -386,7 +414,7 @@ class BaseDCProblem_2D(BaseEMSimulation):
                 return (sdiag(u*vol*(-1./rho**2)))*(self.rhoDeriv * v)
 
 
-class Problem2D_CC(BaseDCProblem_2D):
+class Problem2D_CC(BaseDCSimulation_2D):
     """
     2.5D cell centered DC problem
     """
@@ -398,7 +426,7 @@ class Problem2D_CC(BaseDCProblem_2D):
     bc_type = 'Mixed'
 
     def __init__(self, mesh, **kwargs):
-        BaseDCProblem_2D.__init__(self, mesh, **kwargs)
+        BaseDCSimulation_2D.__init__(self, mesh, **kwargs)
 
     def getA(self, ky):
         """
@@ -528,7 +556,7 @@ class Problem2D_CC(BaseDCProblem_2D):
         self.Grad = self.Div.T - P_BC*sdiag(y_BC)*M
 
 
-class Problem2D_N(BaseDCProblem_2D):
+class Problem2D_N(BaseDCSimulation_2D):
     """
     2.5D nodal DC problem
     """
@@ -539,7 +567,7 @@ class Problem2D_N(BaseDCProblem_2D):
     fieldsPair_fwd = Fields_N
 
     def __init__(self, mesh, **kwargs):
-        BaseDCProblem_2D.__init__(self, mesh, **kwargs)
+        BaseDCSimulation_2D.__init__(self, mesh, **kwargs)
         # self.setBC()
 
     def getA(self, ky):

@@ -13,7 +13,7 @@ from SimPEG.EM.NSEM.survey import Survey, Data
 from SimPEG.EM.NSEM.receiver import (Point_impedance1D,
     Point_impedance3D, Point_tipper3D)
 from SimPEG.EM.NSEM.source import Planewave_xy_1Dprimary
-from SimPEG.EM.NSEM.Utils import MT1Danalytic, plotDataTypes as pDt
+from SimPEG.EM.NSEM.utils import MT1Danalytic, plotDataTypes as pDt
 
 
 

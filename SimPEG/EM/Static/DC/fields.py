@@ -75,9 +75,9 @@ class Fields_CC(FieldsDC):
     def __init__(self, mesh, survey, **kwargs):
         FieldsDC.__init__(self, mesh, survey, **kwargs)
 
-        if getattr(self.survey.prob, 'bc_type', None) == 'Dirichlet':
+        if getattr(self.simulation, 'bc_type', None) == 'Dirichlet':
             self.cellGrad = -mesh.faceDiv.T
-        elif getattr(self.survey.prob, 'bc_type', None) == 'Neumann':
+        elif getattr(self.simulation, 'bc_type', None) == 'Neumann':
             if self.mesh._meshType == "TREE":
                 raise NotImplementedError()
             mesh.setCellGradBC("neumann")
@@ -87,16 +87,16 @@ class Fields_CC(FieldsDC):
             self.cellGrad = mesh.cellGrad
 
     def startup(self):
-        # self.prob = self.survey.prob
-        self._MfRhoI = self.survey.prob.MfRhoI
-        self._MfRhoIDeriv = self.survey.prob.MfRhoIDeriv
-        self._MfRho = self.survey.prob.MfRho
-        self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
-        self._nC = self.survey.prob.mesh.nC
-        self._Grad = self.survey.prob.Grad
-        self._MfI = self.survey.prob.MfI
-        self._Vol = self.survey.prob.Vol
-        self._faceDiv = self.survey.prob.mesh.faceDiv
+        # self.simulation = self.simulation
+        self._MfRhoI = self.simulation.MfRhoI
+        self._MfRhoIDeriv = self.simulation.MfRhoIDeriv
+        self._MfRho = self.simulation.MfRho
+        self._aveF2CCV = self.simulation.mesh.aveF2CCV
+        self._nC = self.simulation.mesh.nC
+        self._Grad = self.simulation.Grad
+        self._MfI = self.simulation.MfI
+        self._Vol = self.simulation.Vol
+        self._faceDiv = self.simulation.mesh.faceDiv
 
     def _GLoc(self, fieldType):
         if fieldType == 'phi':
@@ -141,7 +141,7 @@ class Fields_CC(FieldsDC):
         """
         # return self._MfI * self._MfRho * self._j(phiSolution, srcList)
         return self._MfI * self._Grad * phiSolution
-        # prob._MfI * cart_mesh.faceDiv.T * p
+        # simulation._MfI * cart_mesh.faceDiv.T * p
 
     def _eDeriv_u(self, src, v, adjoint=False):
         if adjoint:
@@ -188,9 +188,6 @@ class Fields_N(FieldsDC):
     def __init__(self, mesh, survey, **kwargs):
         FieldsDC.__init__(self, mesh, survey, **kwargs)
 
-    def startup(self):
-        self.prob = self.survey.prob
-
     def _GLoc(self, fieldType):
         if fieldType == 'phi':
             return 'N'
@@ -214,7 +211,7 @@ class Fields_N(FieldsDC):
             .. math::
                 \mathbf{j} = - \mathbf{M}^{e}_{\sigma} \mathbf{G} \phi
         """
-        return self.prob.MeI * self.prob.MeSigma * self._e(phiSolution, srcList)
+        return self.simulation.MeI * self.simulation.MeSigma * self._e(phiSolution, srcList)
 
     def _e(self, phiSolution, srcList):
         """

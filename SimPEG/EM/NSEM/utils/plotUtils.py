@@ -8,7 +8,7 @@ from scipy.constants import mu_0
 
 import properties
 
-from ...Utils import omega
+from ...utils import omega
 
 
 # Define the default component dictionaries

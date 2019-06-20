@@ -9,10 +9,10 @@ from discretize.base import BaseMesh
 
 from ....data import Data
 from ....utils import sdiag, uniqueRows, surface2ind_topo, plot2Ddata
-from ..Utils import geometric_factor
-from . import SrcDC as Src
-from . import RxDC as Rx
-from .SurveyDC import Survey_ky, Survey
+from ..utils import geometric_factor
+from . import source as Src
+from . import receiver as Rx
+from .survey import Survey_ky, Survey
 
 class IO(properties.HasProperties):
     """

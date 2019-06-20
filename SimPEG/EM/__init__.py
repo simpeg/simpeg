@@ -7,5 +7,5 @@ from . import FDEM
 from . import NSEM
 from . import Static
 # from . import Base
-from . import Analytics
-from . import Utils
+from . import analytics
+from . import utils

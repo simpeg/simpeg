@@ -4,7 +4,7 @@ import scipy.sparse as sp
 from ...fields import Fields
 from ..FDEM.fields import FieldsFDEM
 from ...utils import spzeros, Identity, Zero
-from ..Utils import omega
+from ..utils import omega
 
 
 # ##############

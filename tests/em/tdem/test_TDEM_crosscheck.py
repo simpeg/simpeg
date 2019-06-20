@@ -89,7 +89,7 @@ def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz', waveform='stepoff'):
 
     print(
         'Checking {}, {} for {} data, {} waveform'.format(
-        prbtype1, prbtype2, rxcomp, waveform
+            prbtype1, prbtype2, rxcomp, waveform
         )
     )
     print(

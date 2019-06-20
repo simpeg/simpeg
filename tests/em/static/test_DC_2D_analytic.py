@@ -24,7 +24,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         A0loc = np.r_[-150, 0.]
         # A1loc = np.r_[-130, 0.]
         rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
-        data_ana = EM.Analytics.DCAnalytic_Pole_Dipole(
+        data_ana = EM.analytics.DCAnalytic_Pole_Dipole(
             np.r_[A0loc, 0.], rxloc, sighalf, earth_type="halfspace"
         )
 
@@ -49,7 +49,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         problem = DC.Problem2D_N(self.mesh, sigma=self.sigma)
         problem.Solver = self.Solver
         problem.pair(self.survey)
-        data = self.survey.dpred()
+        data = problem.dpred()
         err = (
             np.linalg.norm((data-self.data_ana) / self.data_ana)**2 /
             self.data_ana.size
@@ -67,7 +67,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         problem = DC.Problem2D_CC(self.mesh, sigma=self.sigma)
         problem.Solver = self.Solver
         problem.pair(self.survey)
-        data = self.survey.dpred()
+        data = problem.dpred()
         err = (
             np.linalg.norm((data-self.data_ana)/self.data_ana)**2 /
             self.data_ana.size
@@ -98,7 +98,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         A0loc = np.r_[-150, 0.]
         A1loc = np.r_[-125, 0.]
         rxloc = np.c_[M, np.zeros(20)]
-        data_ana = EM.Analytics.DCAnalytic_Dipole_Pole(
+        data_ana = EM.analytics.DCAnalytic_Dipole_Pole(
                     [np.r_[A0loc, 0.], np.r_[A1loc, 0.]],
                     rxloc, sighalf, earth_type="halfspace")
 
@@ -123,7 +123,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         problem = DC.Problem2D_N(self.mesh, sigma=self.sigma)
         problem.Solver = self.Solver
         problem.pair(self.survey)
-        data = self.survey.dpred()
+        data = problem.dpred()
         err = (
             np.linalg.norm((data-self.data_ana) / self.data_ana)**2 /
             self.data_ana.size
@@ -145,7 +145,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         problem = DC.Problem2D_CC(self.mesh, sigma=self.sigma)
         problem.Solver = self.Solver
         problem.pair(self.survey)
-        data = self.survey.dpred()
+        data = problem.dpred()
         err = (
             np.linalg.norm((data-self.data_ana)/self.data_ana)**2 /
             self.data_ana.size
@@ -179,7 +179,7 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         M = utils.ndgrid(x-12.5, np.r_[0.])
         A0loc = np.r_[-150, 0.]
         rxloc = np.c_[M, np.zeros(20)]
-        data_ana = EM.Analytics.DCAnalytic_Pole_Pole(
+        data_ana = EM.analytics.DCAnalytic_Pole_Pole(
                     np.r_[A0loc, 0.],
                     rxloc, sighalf, earth_type="halfspace")
 
@@ -202,7 +202,7 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         problem = DC.Problem2D_CC(self.mesh, sigma=self.sigma, bc_type="Mixed")
         problem.Solver = self.Solver
         problem.pair(self.survey)
-        data = self.survey.dpred()
+        data = problem.dpred()
         err = (
             np.linalg.norm((data-self.data_ana)/self.data_ana)**2 /
             self.data_ana.size

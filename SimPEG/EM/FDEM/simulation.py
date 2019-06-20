@@ -7,7 +7,7 @@ from ... import props
 from ...data import Data
 from ...utils import mkvc
 from ..base import BaseEMSimulation
-from ..Utils import omega
+from ..utils import omega
 from .survey import Survey
 from .fields import (
     FieldsFDEM, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j

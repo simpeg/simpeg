@@ -4,8 +4,8 @@ import scipy.sparse as sp
 from ... import maps
 from ...utils import mkvc
 from ..FDEM.source import BaseFDEMSrc
-from ..Utils import omega
-from .Utils.sourceUtils import homo1DModelSource
+from ..utils import omega
+from .utils.sourceUtils import homo1DModelSource
 
 #################
 ###   Sources ###

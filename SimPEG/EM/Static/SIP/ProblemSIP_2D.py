@@ -5,7 +5,7 @@ from .... import props
 from .... import maps
 from ....utils import sdiag
 
-from ..DC.FieldsDC_2D import (
+from ..DC.fields_2d import (
     Fields_ky, Fields_ky_CC, Fields_ky_N
 )
 from ..IP import BaseIPProblem_2D

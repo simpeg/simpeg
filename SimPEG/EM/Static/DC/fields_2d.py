@@ -1,7 +1,12 @@
 import numpy as np
+import properties
 
 from ....fields import TimeFields
 from ....utils import Identity, Zero
+
+# TODO: this should be the BaseDCSimulation_2D --> but circular imports at the
+# moment, so we can settle for its base at the moment
+from ...base import BaseEMSimulation
 
 
 class Fields_ky(TimeFields):
@@ -36,6 +41,8 @@ class Fields_ky(TimeFields):
     nFrequencies)
 
     """
+
+    simulation = properties.Instance("2D DC simulation", BaseEMSimulation)
 
     knownFields = {}
     dtype = float
@@ -115,12 +122,6 @@ class Fields_ky_CC(Fields_ky):
     # primary - secondary
     # CC variables
 
-    def __init__(self, mesh, survey, **kwargs):
-        Fields_ky.__init__(self, mesh, survey, **kwargs)
-
-    def startup(self):
-        self.prob = self.survey.prob
-
     def _GLoc(self, fieldType):
         if fieldType == 'phi':
             return 'CC'
@@ -157,12 +158,6 @@ class Fields_ky_N(Fields_ky):
     }
     # primary - secondary
     # CC variables
-
-    def __init__(self, mesh, survey, **kwargs):
-        Fields_ky.__init__(self, mesh, survey, **kwargs)
-
-    def startup(self):
-        self.prob = self.survey.prob
 
     def _GLoc(self, fieldType):
         if fieldType == 'phi':
