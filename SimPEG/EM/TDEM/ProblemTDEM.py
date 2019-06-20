@@ -30,9 +30,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
     #     """
     #     Solve the forward problem without storing fields
 
-    #     :param numpy.array m: inversion model (nP,)
-    #     :rtype: numpy.array
-    #     :return numpy.array: numpy.array (nD,)
+    #     :param numpy.ndarray m: inversion model (nP,)
+    #     :rtype: numpy.ndarray
+    #     :return numpy.ndarray: numpy.ndarray (nD,)
 
     #     """
 
@@ -40,7 +40,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         """
         Solve the forward problem for the fields.
 
-        :param numpy.array m: inversion model (nP,)
+        :param numpy.ndarray m: inversion model (nP,)
         :rtype: SimPEG.EM.TDEM.FieldsTDEM
         :return f: fields object
         """
@@ -387,7 +387,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             ifields = np.zeros((self.mesh.nE, len(Srcs)))
 
         if self.verbose:
-            print ("Calculating Initial fields")
+            print("Calculating Initial fields")
 
         for i, src in enumerate(Srcs):
             ifields[:, i] = (

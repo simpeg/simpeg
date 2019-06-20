@@ -21,7 +21,7 @@ tol_EBdipole = 1e-2
 class FDEM_analyticTests(unittest.TestCase):
 
     def setUp(self):
-        print ('\nTesting Transect for analytic')
+        print('\nTesting Transect for analytic')
 
         cs = 10.
         ncx, ncy, ncz = 10, 10, 10
@@ -103,7 +103,7 @@ class FDEM_analyticTests(unittest.TestCase):
             tol = tol_Transect*(norm_num + norm_ana)/2.
 
             passed = diff < tol
-            print ('analytic: {}, numeric {}, difference {} < tolerance {} ? '
+            print('analytic: {}, numeric {}, difference {} < tolerance {} ? '
                    ' {}'.format(norm_ana, norm_num, diff,
                                 tol, passed))
 
@@ -113,7 +113,7 @@ class FDEM_analyticTests(unittest.TestCase):
 class TestDipoles(unittest.TestCase):
 
     def test_CylMeshEBDipoles(self, plotIt=plotIt):
-        print ("Testing CylMesh Electric and Magnetic Dipoles in a wholespace-"
+        print("Testing CylMesh Electric and Magnetic Dipoles in a wholespace-"
                " Analytic: J-formulation")
         sigmaback = 1.
         mur = 2.

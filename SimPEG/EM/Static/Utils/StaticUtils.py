@@ -441,7 +441,7 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
 
         Input:
         :param numpy.ndarray endl: input endpoints [x1, y1, z1, x2, y2, z2]
-        :param discretize.BaseMesh mesh: discretize mesh object
+        :param discretize.base.BaseMesh mesh: discretize mesh object
         :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
             'dipole-pole' | 'pole-pole' | 'gradient'
         :param int a: pole seperation
@@ -1466,7 +1466,7 @@ def getSrc_locs(survey):
         :rtype: SimPEG.EM.Static.DC.SurveyDC.Survey
 
         Output:
-        :return numpy.array srcMat: Array containing the locations of sources
+        :return numpy.ndarray srcMat: Array containing the locations of sources
 
     """
 

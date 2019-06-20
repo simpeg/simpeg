@@ -79,7 +79,7 @@ is appropriate in the current context. Inversions are experimental and
 empirical by nature and our software package is designed to facilitate this
 iterative process. To accomplish this, we have divided the inversion
 methodology into eight major components (See figure above). The
-:class:`discretize.BaseMesh.BaseMesh` class handles the discretization of the
+:class:`discretize.base.BaseMesh` class handles the discretization of the
 earth and also provides numerical operators. The forward simulation is split
 into two classes, the :class:`SimPEG.Survey.BaseSurvey` and the
 :class:`SimPEG.Problem.BaseProblem`. The :class:`SimPEG.Survey.BaseSurvey`
@@ -108,9 +108,9 @@ dispatch of directives between all of the various pieces of the framework.
 The arrows in the figure above indicate what each class takes as a primary
 argument. For example, both the :class:`SimPEG.Problem.BaseProblem` and
 :class:`SimPEG.Regularization.BaseRegularization` classes take a
-:class:`discretize.BaseMesh.BaseMesh` class as an argument. The diagram does
+:class:`discretize.base.BaseMesh` class as an argument. The diagram does
 not show class inheritance, as each of the base classes outlined have many
-subtypes that can be interchanged. The :class:`discretize.BaseMesh.BaseMesh`
+subtypes that can be interchanged. The :class:`discretize.base.BaseMesh`
 class, for example, could be a regular Cartesian mesh
 :class:`discretize.TensorMesh` or a cylindrical coordinate mesh
 :class:`discretize.CylMesh`, which have many properties in common. These

@@ -23,11 +23,11 @@ def diagEst(matFun, n, k=None, approach='Probing'):
         2. Ones: random +/- 1 entries
         3. Random: random vectors
 
-        :param callable matFun: takes a (numpy.array) and multiplies it by a matrix to estimate the diagonal
+        :param callable matFun: takes a (numpy.ndarray) and multiplies it by a matrix to estimate the diagonal
         :param int n: size of the vector that should be used to compute matFun(v)
         :param int k: number of vectors to be used to estimate the diagonal
         :param str approach: approach to be used for getting vectors
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: est_diag(A)
 
         Based on Saad http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf,

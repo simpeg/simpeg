@@ -446,9 +446,9 @@ class BaseSurvey(object):
     def residual(self, m, f=None):
         """residual(m, f=None)
 
-            :param numpy.array m: geophysical model
-            :param numpy.array f: fields
-            :rtype: numpy.array
+            :param numpy.ndarray m: geophysical model
+            :param numpy.ndarray f: fields
+            :rtype: numpy.ndarray
             :return: data residual
 
             The data residual:
@@ -469,9 +469,9 @@ class BaseSurvey(object):
         """
             Make synthetic data given a model, and a standard deviation.
 
-            :param numpy.array m: geophysical model
-            :param numpy.array std: standard deviation
-            :param numpy.array u: fields for the given model (if pre-calculated)
+            :param numpy.ndarray m: geophysical model
+            :param numpy.ndarray std: standard deviation
+            :param numpy.ndarray u: fields for the given model (if pre-calculated)
             :param bool force: force overwriting of dobs
 
         """

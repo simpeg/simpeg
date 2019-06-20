@@ -265,6 +265,8 @@ class BaseSIPProblem(BaseEMProblem):
 
     def fields(self, m):
 
+        if self.verbose:
+            print(">> Compute DC fields")
         if self._f is None:
 
             if self.verbose:
@@ -335,7 +337,8 @@ class BaseSIPProblem(BaseEMProblem):
             self._Jmatrix = Jt.T
             collected = gc.collect()
             if self.verbose:
-                print (
+                collected = gc.collect()
+                print(
                     "Garbage collector: collected %d objects." % (collected)
                 )
             # clean field object

@@ -1,8 +1,14 @@
 import numpy as np
-from SimPEG import Mesh, Utils
 from scipy.special import ellipk, ellipe
 from scipy.constants import mu_0
+
 import properties
+
+from discretize.base import BaseMesh
+from discretize import TensorMesh
+
+from SimPEG import Utils
+
 
 orientationDict = {'X': np.r_[1., 0., 0.],
                    'Y': np.r_[0., 1., 0.],
@@ -43,7 +49,7 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1.,
                                                    mu=mu)
         return np.concatenate(out)
 
-    if isinstance(obsLoc, Mesh.BaseMesh):
+    if isinstance(obsLoc, BaseMesh):
         mesh = obsLoc
         assert component in ['Ex', 'Ey', 'Ez', 'Fx', 'Fy', 'Fz'], ("Components"
                                  "must be in: ['Ex','Ey','Ez','Fx','Fy','Fz']")
@@ -227,7 +233,7 @@ def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, orientation='
                                                  orientation, mu)
         return np.concatenate(out)
 
-    if isinstance(obsLoc, Mesh.BaseMesh):
+    if isinstance(obsLoc, BaseMesh):
         mesh = obsLoc
         assert component in ['Ex','Ey','Ez','Fx','Fy','Fz'], "Components must be in: ['Ex','Ey','Ez','Fx','Fy','Fz']"
         return MagneticLoopVectorPotential(srcLoc, getattr(mesh,'grid'+component), component[1], radius, mu)
@@ -284,7 +290,7 @@ if __name__ == '__main__':
     hx = np.ones(ncx)*cs
     hy = np.ones(ncy)*cs
     hz = np.ones(ncz)*cs
-    mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
+    mesh = TensorMesh([hx, hy, hz], 'CCC')
     srcLoc = np.r_[0., 0., 0.]
     Ax = MagneticLoopVectorPotential(srcLoc, mesh.gridEx, 'x', 200)
     Ay = MagneticLoopVectorPotential(srcLoc, mesh.gridEy, 'y', 200)

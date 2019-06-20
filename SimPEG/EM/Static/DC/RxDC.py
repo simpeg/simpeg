@@ -8,7 +8,21 @@ import numpy as np
 from SimPEG.Utils import closestPoints, sdiag
 import properties
 
+# Trapezoidal integration for 2D DC problem
+def IntTrapezoidal(kys, Pf, y=0.):
+    phi = np.zeros(Pf.shape[0])
+    nky = kys.size
+    dky = np.diff(kys)
+    dky = np.r_[dky[0], dky]
+    phi0 = 1./np.pi*Pf[:, 0]
+    for iky in range(nky):
+        phi1 = 1./np.pi*Pf[:, iky]
+        phi += phi1*dky[iky]/2.*np.cos(kys[iky]*y)
+        phi += phi0*dky[iky]/2.*np.cos(kys[iky]*y)
+        phi0 = phi1.copy()
+    return phi
 
+# Receiver classes
 class BaseRx(SimPEG.Survey.BaseRx):
     """
     Base DC receiver
@@ -163,7 +177,7 @@ class Dipole_ky(BaseRx):
     def eval(self, kys, src, mesh, f):
         P = self.getP(mesh, self.projGLoc(f))
         Pf = P*f[src, self.projField, :]
-        return self.IntTrapezoidal(kys, Pf, y=0.)
+        return IntTrapezoidal(kys, Pf, y=0.)
 
     def evalDeriv(self, ky, src, mesh, f, v, adjoint=False):
         P = self.getP(mesh, self.projGLoc(f))
@@ -171,19 +185,6 @@ class Dipole_ky(BaseRx):
             return P*v
         elif adjoint:
             return P.T*v
-
-    def IntTrapezoidal(self, kys, Pf, y=0.):
-        phi = np.zeros(Pf.shape[0])
-        nky = kys.size
-        dky = np.diff(kys)
-        dky = np.r_[dky[0], dky]
-        phi0 = 1./np.pi*Pf[:, 0]
-        for iky in range(nky):
-            phi1 = 1./np.pi*Pf[:, iky]
-            phi += phi1*dky[iky]/2.*np.cos(kys[iky]*y)
-            phi += phi0*dky[iky]/2.*np.cos(kys[iky]*y)
-            phi0 = phi1.copy()
-        return phi
 
 
 class Pole(BaseRx):
@@ -252,7 +253,7 @@ class Pole_ky(BaseRx):
     def eval(self, kys, src, mesh, f):
         P = self.getP(mesh, self.projGLoc(f))
         Pf = P*f[src, self.projField, :]
-        return self.IntTrapezoidal(kys, Pf, y=0.)
+        return IntTrapezoidal(kys, Pf, y=0.)
 
     def evalDeriv(self, ky, src, mesh, f, v, adjoint=False):
         P = self.getP(mesh, self.projGLoc(f))
@@ -260,16 +261,3 @@ class Pole_ky(BaseRx):
             return P*v
         elif adjoint:
             return P.T*v
-
-    def IntTrapezoidal(self, kys, Pf, y=0.):
-        phi = np.zeros(Pf.shape[0])
-        nky = kys.size
-        dky = np.diff(kys)
-        dky = np.r_[dky[0], dky]
-        phi0 = 1./np.pi*Pf[:, 0]
-        for iky in range(nky):
-            phi1 = 1./np.pi*Pf[:, iky]
-            phi += phi1*dky[iky]/2.*np.cos(kys[iky]*y)
-            phi += phi0*dky[iky]/2.*np.cos(kys[iky]*y)
-            phi0 = phi1.copy()
-        return phi

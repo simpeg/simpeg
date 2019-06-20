@@ -426,7 +426,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :param SimPEG.NSEM.src src: The source of the problem
         :param numpy.ndarray du_dm_v: vector to take product with Size (nE,) when adjoint=True, (nU,) when adjoint=False
         :param bool adjoint: adjoint?
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: The calculated derivative, size (nU,) when adjoint=True (nE,) when adjoint=False
         """
         # e_pxPrimary doesn't depend on u, only e_pxSecondary
@@ -443,7 +443,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :param SimPEG.NSEM.src src: The source of the problem
         :param numpy.ndarray du_dm_v: vector to take product with Size (nE,) when adjoint=True, (nU,) when adjoint=False
         :param bool adjoint: adjoint?
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: The calculated derivative, size (nU,) when adjoint=True (nE,) when adjoint=False
 
         """
@@ -461,7 +461,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :param SimPEG.NSEM.src src: The source of the problem
         :param numpy.ndarray v: vector to take product with Size (nE,) when adjoint=True, (nU,) when adjoint=False
         :param bool adjoint: adjoint?
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: The calculated derivative, size (nU,) when adjoint=True (nE,) when adjoint=False
 
 
@@ -476,7 +476,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :param SimPEG.NSEM.src src: The source of the problem
         :param numpy.ndarray v: vector to take product with Size (nE,) when adjoint=True, (nU,) when adjoint=False
         :param bool adjoint: adjoint?
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: The calculated derivative, size (nU,) when adjoint=True (nE,) when adjoint=False
 
 
@@ -503,7 +503,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :param SimPEG.NSEM.src src: The source of the problem
         :param numpy.ndarray du_dm_v: vector to take product with. Size (nF,) when adjoint=True, (nU,) when adjoint=False
         :param bool adjoint: adjoint?
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: The calculated derivative, size (nU,) when adjoint=True. (nF,) when adjoint=False
         """
         # Primary does not depend on u
@@ -518,7 +518,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :param SimPEG.NSEM.src src: The source of the problem
         :param numpy.ndarray du_dm_v: vector to take product with. Size (nF,) when adjoint=True, (nU,) when adjoint=False
         :param bool adjoint: adjoint?
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: The calculated derivative, size (nU,) when adjoint=True. (nF,) when adjoint=False
         """
         # Primary does not depend on u
