@@ -75,15 +75,14 @@ class BaseFDEMProblem(BaseEMProblem):
         try:
             self.Ainv
         except AttributeError:
-            self.nFreq = len(self.survey.freqs)
-            self.Ainv = [None for i in range(self.nFreq)]
+            print('nFreq =', self.survey.nFreq)
+            self.Ainv = [None for i in range(self.survey.nFreq)]
+            print(Ainv.shape)
 
         if self.Ainv[0] is not None:
-            for i in range(self.nFreq):
+            for i in range(self.survey.nFreq):
+                print('Cleaning Ainv.')
                 self.Ainv[i].clean()
-        # else:
-        #     nFreq = len(self.survey.freqs)
-        #     self.Ainv = [None for i in range(nFreq)]
 
         f = self.fieldsPair(self.mesh, self.survey)
 
@@ -159,7 +158,7 @@ class BaseFDEMProblem(BaseEMProblem):
         for nf, freq in enumerate(self.survey.freqs):
             # AT = self.getA(freq).T
             # ATinv = self.Solver(AT, **self.solverOpts)
-            ATinv = self.Ainv[nf].T
+            # ATinv = self.Ainv[nf].T
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = f[src, self._solutionType]
@@ -169,7 +168,7 @@ class BaseFDEMProblem(BaseEMProblem):
                         src, self.mesh, f, v=v[src, rx], adjoint=True
                     )
 
-                    ATinvdf_duT = ATinv * df_duT
+                    ATinvdf_duT = self.Ainv[nf].T * df_duT
 
                     dA_dmT = self.getADeriv(
                         freq, u_src, ATinvdf_duT, adjoint=True
