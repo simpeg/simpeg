@@ -75,7 +75,7 @@ class BaseFDEMProblem(BaseEMProblem):
         try:
             self.Ainv
         except AttributeError:
-            nFreq = len(self.survey.freqs)
+            self.nFreq = len(self.survey.freqs)
             self.Ainv = [None for i in range(nFreq)]
 
         if self.Ainv[0] is not None:
