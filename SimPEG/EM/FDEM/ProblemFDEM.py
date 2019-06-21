@@ -9,6 +9,7 @@ from SimPEG.EM.Utils import omega
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
+import time
 
 
 class BaseFDEMProblem(BaseEMProblem):
@@ -60,7 +61,6 @@ class BaseFDEMProblem(BaseEMProblem):
 
     Props.Reciprocal(mu, mui)
 
-    @profile
     def fields(self, m=None):
         """
         Solve the forward problem for the fields.
@@ -90,13 +90,17 @@ class BaseFDEMProblem(BaseEMProblem):
         for nf, freq in enumerate(self.survey.freqs):
             A = self.getA(freq)
             rhs = self.getRHS(freq)
+
+            time0 = time.time()
             self.Ainv[nf] = self.Solver(A, **self.solverOpts)
+            time1 = time.time()
+            print('Ainv Factorization time:' + str(time1-time0))
+
             u = self.Ainv[nf] * rhs
             Srcs = self.survey.getSrcByFreq(freq)
             f[Srcs, self._solutionType] = u
         return f
 
-    @profile
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector.
@@ -135,7 +139,6 @@ class BaseFDEMProblem(BaseEMProblem):
             # Ainv.clean()
         return np.hstack(Jv)
 
-    @profile
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transpose times a vector
