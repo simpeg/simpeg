@@ -16,7 +16,7 @@ from SimPEG.EM.Static.IP import Problem3D_CC as BaseProblem3D_CC
 from SimPEG.EM.Static.IP import Problem3D_N as BaseProblem3D_N
 from .SurveySIP import Survey, Data
 import gc
-from profilehooks import profile
+# from profilehooks import profile
 
 
 class BaseSIPProblem(BaseEMProblem):
@@ -372,7 +372,7 @@ class BaseSIPProblem(BaseEMProblem):
             )
         return JtJdiag
 
-    @profile
+    # @profile
     def forward(self, m, f=None):
 
         if self.verbose:
@@ -430,7 +430,7 @@ class BaseSIPProblem(BaseEMProblem):
 
             return self.sign*np.hstack(Jv)
 
-    @profile
+    # @profile
     def Jvec(self, m, v, f=None):
 
         self.model = m
@@ -485,7 +485,7 @@ class BaseSIPProblem(BaseEMProblem):
 
             return self.sign*np.hstack(Jv)
 
-    @profile
+    # @profile
     def Jtvec(self, m, v, f=None):
 
         self.model = m
