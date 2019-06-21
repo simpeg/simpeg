@@ -12,6 +12,7 @@ from scipy.constants import mu_0
 import time
 from profilehooks import profile
 
+
 class BaseFDEMProblem(BaseEMProblem):
     """
         We start by looking at Maxwell's equations in the electric
