@@ -10,7 +10,7 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
 import time
-
+from profilehooks import profile
 
 class BaseFDEMProblem(BaseEMProblem):
     """
@@ -61,6 +61,8 @@ class BaseFDEMProblem(BaseEMProblem):
 
     Props.Reciprocal(mu, mui)
 
+
+    @profile
     def fields(self, m=None):
         """
         Solve the forward problem for the fields.
@@ -76,14 +78,16 @@ class BaseFDEMProblem(BaseEMProblem):
         try:
             self.Ainv
         except AttributeError:
-            print('nFreq =', self.survey.nFreq)
+            if self.verbose:
+                print('nFreq =', self.survey.nFreq)
             self.Ainv = [None for i in range(self.survey.nFreq)]
-            print(len(self.Ainv))
 
         if self.Ainv[0] is not None:
             for i in range(self.survey.nFreq):
-                print('Cleaning Ainv.')
                 self.Ainv[i].clean()
+
+            if self.verbose:
+                print('Cleaning Ainv')
 
         f = self.fieldsPair(self.mesh, self.survey)
 
@@ -94,13 +98,14 @@ class BaseFDEMProblem(BaseEMProblem):
             time0 = time.time()
             self.Ainv[nf] = self.Solver(A, **self.solverOpts)
             time1 = time.time()
-            print('Ainv Factorization time:' + str(time1-time0))
-
+            if self.verbose:
+                print(freq, 'Ainv Factorization time:' + str(time1-time0))
             u = self.Ainv[nf] * rhs
             Srcs = self.survey.getSrcByFreq(freq)
             f[Srcs, self._solutionType] = u
         return f
 
+    @profile
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector.
@@ -139,6 +144,7 @@ class BaseFDEMProblem(BaseEMProblem):
             # Ainv.clean()
         return np.hstack(Jv)
 
+    @profile
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transpose times a vector
@@ -174,7 +180,7 @@ class BaseFDEMProblem(BaseEMProblem):
                         src, self.mesh, f, v=v[src, rx], adjoint=True
                     )
 
-                    ATinvdf_duT = self.Ainv[nf].T * df_duT
+                    ATinvdf_duT = self.Ainv[nf] * df_duT
 
                     dA_dmT = self.getADeriv(
                         freq, u_src, ATinvdf_duT, adjoint=True
@@ -198,6 +204,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
         return Utils.mkvc(Jtv)
 
+    @profile
     def getSourceTerm(self, freq):
         """
         Evaluates the sources for a given frequency and puts them in matrix
