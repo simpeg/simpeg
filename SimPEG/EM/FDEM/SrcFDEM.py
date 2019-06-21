@@ -513,10 +513,8 @@ class MagDipole(BaseFDEMSrc):
     def s_eDeriv(self, prob, v, adjoint=False):
         if prob.muMap is None or prob.muiMap is None:
         # if not hasattr(prob, 'muMap') or not hasattr(prob, 'muiMap'):
-            print ('a')
             return Zero()
         else:
-            print ('b')
             formulation = prob._formulation
 
             if formulation == 'EB':
