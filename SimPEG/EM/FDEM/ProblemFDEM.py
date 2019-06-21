@@ -10,6 +10,7 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
 import time
+from profilehooks import profile
 
 
 class BaseFDEMProblem(BaseEMProblem):
@@ -61,6 +62,8 @@ class BaseFDEMProblem(BaseEMProblem):
 
     Props.Reciprocal(mu, mui)
 
+
+    @profile
     def fields(self, m=None):
         """
         Solve the forward problem for the fields.
@@ -101,6 +104,7 @@ class BaseFDEMProblem(BaseEMProblem):
             f[Srcs, self._solutionType] = u
         return f
 
+    @profile
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector.
@@ -139,6 +143,7 @@ class BaseFDEMProblem(BaseEMProblem):
             # Ainv.clean()
         return np.hstack(Jv)
 
+    @profile
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transpose times a vector
