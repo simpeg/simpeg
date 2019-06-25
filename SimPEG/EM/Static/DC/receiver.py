@@ -87,11 +87,11 @@ class Dipole(BaseRx):
     threshold = 1e-5
 
     # see: https://github.com/seequent/properties/issues/285
-    # locations = properties.List(
-    #     "list of locations of each electrode in a dipole receiver",
-    #     properties.Instance("electrode locations", RxLocationArray),
-    #     min_length=1, max_length=2
-    # )
+    locations = properties.List(
+        "list of locations of each electrode in a dipole receiver",
+        RxLocationArray("location of electrode"),
+        min_length=1, max_length=2
+    )
     locations = []
 
     def __init__(self, locationsM, locationsN, **kwargs):
