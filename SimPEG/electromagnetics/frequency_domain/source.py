@@ -322,7 +322,7 @@ class MagDipole(BaseFDEMSrc):
     def __init__(
         self, receiver_list=None, frequency=None, location=None, **kwargs
     ):
-        super(MagDipole, self).__init__(receiver_list, frequency, **kwargs)
+        super(MagDipole, self).__init__(receiver_list, frequency=frequency, **kwargs)
         if location is not None:
             self.location = location
 
