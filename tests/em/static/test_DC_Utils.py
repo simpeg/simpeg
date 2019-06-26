@@ -3,7 +3,7 @@ from __future__ import print_function
 # matplotlib.use('Agg')
 import unittest
 import numpy as np
-from SimPEG.EM.Static import DC, Utils as DCUtils
+from SimPEG.electromagnetics.Static import DC, Utils as DCUtils
 from SimPEG import Mesh, Maps
 from SimPEG.Utils import io_utils
 import shutil

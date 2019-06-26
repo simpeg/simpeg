@@ -1,13 +1,15 @@
 from __future__ import division, print_function
 import unittest
 import discretize
-from SimPEG import maps
-from SimPEG import EM
 import numpy as np
 from scipy.constants import mu_0
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from pymatsolver import Pardiso as Solver
+
+from SimPEG import maps
+from SimPEG.electromagnetics import time_domain as tdem
+from SimPEG.electromagnetics import utils
 
 
 def halfSpaceProblemAnaDiff(
@@ -34,28 +36,28 @@ def halfSpaceProblemAnaDiff(
     actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
-    prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
+    prb = tdem.Problem3D_b(mesh, sigmaMap=mapping)
     prb.Solver = Solver
     prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
-    out = EM.Utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
+    out = utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
     wavefun = interp1d(prb.times, out)
     t0 = 0.006
-    waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
+    waveform = tdem.Src.RawWaveform(offTime=t0, waveFct=wavefun)
 
-    rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxType[:-1]))(
+    rx = getattr(tdem.Rx, 'Point_{}'.format(rxType[:-1]))(
         np.array([[rxOffset, 0., 0.]]), np.logspace(-4, -3, 31)+t0, rxType[-1]
     )
 
     if srctype == "MagDipole":
-        src = EM.TDEM.Src.MagDipole(
+        src = tdem.Src.MagDipole(
             [rx], waveform=waveform, loc=np.array([0, 0., 0.])
         )
     elif srctype == "CircularLoop":
-        src = EM.TDEM.Src.CircularLoop(
+        src = tdem.Src.CircularLoop(
             [rx], waveform=waveform, loc=np.array([0., 0., 0.]), radius=13.
         )
 
-    survey = EM.TDEM.Survey([src])
+    survey = tdem.Survey([src])
     prb.pair(survey)
 
     sigma = np.ones(mesh.nCz)*1e-8
@@ -92,7 +94,7 @@ def halfSpaceProblemAnaDiff(
 
 class TDEM_SimpleSrcTests(unittest.TestCase):
     def test_source(self):
-        waveform = EM.TDEM.Src.StepOffWaveform()
+        waveform = tdem.Src.StepOffWaveform()
         assert waveform.eval(0.) == 1.
 
 

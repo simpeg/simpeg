@@ -2,8 +2,8 @@ from __future__ import print_function
 import unittest
 from SimPEG import Mesh, Utils, Maps
 import numpy as np
-import SimPEG.EM.Static.DC as DC
-import SimPEG.EM.Static.IP as IP
+import SimPEG.electromagnetics.Static.DC as DC
+import SimPEG.electromagnetics.Static.IP as IP
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:

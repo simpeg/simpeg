@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from SimPEG import (Mesh, Maps, Utils, DataMisfit, Regularization,
                     Optimization, Tests, Inversion, InvProblem)
-import SimPEG.EM.Static.DC as DC
+import SimPEG.electromagnetics.Static.DC as DC
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:

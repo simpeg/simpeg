@@ -6,7 +6,7 @@ import unittest
 from scipy.constants import mu_0
 
 import numpy as np
-from SimPEG.EM import NSEM
+from SimPEG.electromagnetics import natural_source as nsem
 
 
 np.random.seed(1100)
@@ -28,11 +28,11 @@ def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf, appR=True, expMap=False):
     print('Apparent {:s} test of eFormulation primary/secondary at {:g}\n\n'.format(label, sigmaHalf))
 
     # Calculate the app  phs
-    survey, simulation = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(NSEM.Utils.testUtils.halfSpace(sigmaHalf), expMap=expMap)
-    data = NSEM.Data(survey=survey, dobs=simulation.dpred(simulation.model))
+    survey, simulation = nsem.utils.testUtils.setupSimpegnsem_ePrimSec(nsem.utils.testUtils.halfSpace(sigmaHalf), expMap=expMap)
+    data = nsem.Data(survey=survey, dobs=simulation.dpred(simulation.model))
     recData = data.toRecArray('Complex')
-    app_rpxy = NSEM.Utils.appResPhs(recData['freq'], recData['zxy'])[0]
-    # app_rpyx = NSEM.Utils.appResPhs(recData['freq'], recData['zyx'])[0]
+    app_rpxy = nsem.utils.appResPhs(recData['freq'], recData['zxy'])[0]
+    # app_rpyx = nsem.utils.appResPhs(recData['freq'], recData['zyx'])[0]
     if appR:
         return np.linalg.norm( np.abs(np.log10(app_rpxy[0]) - np.log10(1./sigmaHalf)) * np.log10(sigmaHalf ))
     else:

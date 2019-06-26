@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import discretize
 from SimPEG import maps, SolverLU
-from SimPEG import EM
+from SimPEG.electromagnetics import time_domain as tdem
 from scipy.constants import mu_0
 import matplotlib.pyplot as plt
 from pymatsolver import Pardiso as Solver
@@ -33,23 +33,23 @@ def halfSpaceProblemAnaDiff(
     actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
-    rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxType[:-1]))(
+    rx = getattr(tdem.Rx, 'Point_{}'.format(rxType[:-1]))(
         np.array([[rxOffset, 0., 0.]]), np.logspace(-5, -4, 21), rxType[-1]
     )
 
     if srctype == "MagDipole":
-        src = EM.TDEM.Src.MagDipole(
-            [rx], waveform=EM.TDEM.Src.StepOffWaveform(),
+        src = tdem.Src.MagDipole(
+            [rx], waveform=tdem.Src.StepOffWaveform(),
             loc=np.array([0., 0., 0.])
         )
     elif srctype == "CircularLoop":
-        src = EM.TDEM.Src.CircularLoop(
-            [rx], waveform=EM.TDEM.Src.StepOffWaveform(),
+        src = tdem.Src.CircularLoop(
+            [rx], waveform=tdem.Src.StepOffWaveform(),
             loc=np.array([0., 0., 0.]), radius=0.1
         )
 
-    survey = EM.TDEM.Survey([src])
-    prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
+    survey = tdem.Survey([src])
+    prb = tdem.Problem3D_b(mesh, sigmaMap=mapping)
     prb.Solver = Solver
 
     prb.timeSteps = [(1e-06, 40), (5e-06, 40), (1e-05, 40), (5e-05, 40),
@@ -88,7 +88,7 @@ def halfSpaceProblemAnaDiff(
 
 class TDEM_SimpleSrcTests(unittest.TestCase):
     def test_source(self):
-        waveform = EM.TDEM.Src.StepOffWaveform()
+        waveform = tdem.Src.StepOffWaveform()
         assert waveform.eval(0.) == 1.
 
 

@@ -7,6 +7,7 @@ import discretize
 from SimPEG import utils
 from SimPEG import SolverLU
 from SimPEG.electromagnetics import frequency_domain as fdem
+from SimPEG.electromagnetics import analytics
 from scipy.constants import mu_0
 
 # import matplotlib
@@ -86,7 +87,7 @@ class FDEM_analyticTests(unittest.TestCase):
             P = self.mesh.getInterpolationMat(XYZ, 'Fz')
 
             ana = mu_0*np.imag(
-                EM.Analytics.FDEM.hzAnalyticDipoleF(x, src.freq, self.sig)
+                analytics.FDEM.hzAnalyticDipoleF(x, src.freq, self.sig)
             )
             num = P*np.imag(self.u[src, 'b'])
 
@@ -196,7 +197,7 @@ class TestDipoles(unittest.TestCase):
         bx, bz = Pfx*bn, Pfz*bn
 
         # get analytic solution
-        exa, eya, eza = EM.Analytics.FDEM.ElectricDipoleWholeSpace(
+        exa, eya, eza = analytics.FDEM.ElectricDipoleWholeSpace(
             XYZ, src_loc, sigmaback, freq, orientation='Z', mu=mur*mu_0
         )
 
@@ -204,7 +205,7 @@ class TestDipoles(unittest.TestCase):
         eya = utils.mkvc(eya, 2)
         eza = utils.mkvc(eza, 2)
 
-        bxa, bya, bza = EM.Analytics.FDEM.MagneticDipoleWholeSpace(
+        bxa, bya, bza = analytics.FDEM.MagneticDipoleWholeSpace(
             XYZ, src_loc, sigmaback, freq, orientation='Z', mu=mur*mu_0
         )
         bxa = utils.mkvc(bxa, 2)

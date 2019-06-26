@@ -1,5 +1,5 @@
 import numpy as np
-from SimPEG.EM.Utils.CurrentUtils import (
+from SimPEG.electromagnetics.Utils.CurrentUtils import (
     getStraightLineCurrentIntegral, getSourceTermLineCurrentPolygon
     )
 import unittest

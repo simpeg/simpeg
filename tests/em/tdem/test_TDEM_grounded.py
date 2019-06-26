@@ -7,7 +7,7 @@ import unittest
 # SimPEG, discretize
 import discretize
 from discretize import utils
-from SimPEG.EM import TDEM
+from SimPEG.electromagnetics import time_domain as tdem
 from SimPEG import maps, tests
 from pymatsolver import Pardiso
 
@@ -59,7 +59,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         mu = mu0 * np.ones(mesh.nC)
         mu[target_inds] = mu1
 
-        src = TDEM.Src.RawVec_Grounded([], s_e=s_e)
+        src = tdem.Src.RawVec_Grounded([], s_e=s_e)
 
         timeSteps = [
             (1e-6, 20), (1e-5, 30), (3e-5, 30), (1e-4, 40), (3e-4, 30),
@@ -69,7 +69,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
             mesh, timeSteps=timeSteps, mu=mu, sigmaMap=maps.ExpMap(mesh),
             Solver=Pardiso
         )
-        survey = TDEM.Survey([src])
+        survey = tdem.Survey([src])
 
         prob.model = sigma
 

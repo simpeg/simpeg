@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from discretize import TensorMesh
 
 from SimPEG import utils, EM, SolverLU
-import SimPEG.EM.Static.DC as DC
+import SimPEG.electromagnetics.Static.DC as DC
 
 
 class DCProblemAnalyticTests_PDP(unittest.TestCase):

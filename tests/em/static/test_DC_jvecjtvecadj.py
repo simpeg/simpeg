@@ -5,7 +5,7 @@ from SimPEG import (
     Mesh, Maps, DataMisfit, Regularization, Inversion,
     Optimization, InvProblem, Tests, Utils
 )
-import SimPEG.EM.Static.DC as DC
+import SimPEG.electromagnetics.Static.DC as DC
 from pymatsolver import Pardiso
 
 np.random.seed(40)

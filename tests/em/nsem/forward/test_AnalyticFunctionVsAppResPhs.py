@@ -1,6 +1,6 @@
 from __future__ import print_function
 import unittest
-from SimPEG.EM import NSEM
+from SimPEG.electromagnetics import natural_source as nsem
 from SimPEG import discretize
 import numpy as np
 
@@ -22,14 +22,14 @@ def appResNorm(sigmaHalf):
     Z = []
 
     for freq in freqs:
-        Ed, Eu, Hd, Hu = NSEM.Utils.getEHfields(
+        Ed, Eu, Hd, Hu = nsem.utils.getEHfields(
             m1d, sigma, freq, np.array([200])
         )
         Z.append((Ed + Eu)/(Hd + Hu))
 
     Zarr = np.concatenate(Z)
 
-    app_r, app_p = NSEM.Utils.appResPhs(freqs, Zarr)
+    app_r, app_p = nsem.utils.appResPhs(freqs, Zarr)
 
     return (
         np.linalg.norm(np.abs(app_r - np.ones(nFreq)/sigmaHalf)) /

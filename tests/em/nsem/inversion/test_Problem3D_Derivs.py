@@ -5,7 +5,8 @@ from __future__ import division
 # Test functions
 import unittest
 import numpy as np
-from SimPEG import NSEM, tests, mkvc
+from SimPEG import tests, mkvc
+from SimPEG.electromagnetics import natural_source as nsem
 from scipy.constants import mu_0
 
 TOLr = 5e-2
@@ -17,7 +18,7 @@ MU = mu_0
 # Test the Jvec derivative
 def DerivJvecTest(inputSetup, comp='All', freq=False, expMap=True):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
-    survey, simulation = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(inputSetup, comp=comp, singleFreq=freq, expMap=expMap)
+    survey, simulation = nsem.utils.testUtils.setupSimpegNSEM_ePrimSec(inputSetup, comp=comp, singleFreq=freq, expMap=expMap)
     print('Using {0} solver for the simulation'.format(simulation.Solver))
     print('Derivative test of Jvec for eForm primary/secondary for {} comp at {}\n'.format(comp, survey.freqs))
     # simulation.mapping = Maps.ExpMap(simulation.mesh)
@@ -37,7 +38,7 @@ def DerivJvecTest(inputSetup, comp='All', freq=False, expMap=True):
 
 def DerivProjfieldsTest(inputSetup, comp='All', freq=False):
 
-    survey, simulation = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(inputSetup, comp, freq)
+    survey, simulation = nsem.utils.testUtils.setupSimpegNSEM_ePrimSec(inputSetup, comp, freq)
     print('Derivative test of data projection for eFormulation primary/secondary\n')
     # simulation.mapping = Maps.ExpMap(simulation.mesh)
     # Initate things for the derivs Test
@@ -67,17 +68,17 @@ class NSEM_DerivTests(unittest.TestCase):
 
     # Do a derivative test of Jvec
     def test_derivJvec_impedanceAll(self):
-        self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2), 'Imp', .1))
-    def test_derivJvec_zxxr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'xx',.1))
-    def test_derivJvec_zxyi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'xy',.1))
-    def test_derivJvec_zyxr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'yx',.1))
-    def test_derivJvec_zyyi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'yy',.1))
+        self.assertTrue(DerivJvecTest(nsem.utils.testUtils.halfSpace(1e-2), 'Imp', .1))
+    def test_derivJvec_zxxr(self):self.assertTrue(DerivJvecTest(nsem.utils.testUtils.halfSpace(1e-2),'xx',.1))
+    def test_derivJvec_zxyi(self):self.assertTrue(DerivJvecTest(nsem.utils.testUtils.halfSpace(1e-2),'xy',.1))
+    def test_derivJvec_zyxr(self):self.assertTrue(DerivJvecTest(nsem.utils.testUtils.halfSpace(1e-2),'yx',.1))
+    def test_derivJvec_zyyi(self):self.assertTrue(DerivJvecTest(nsem.utils.testUtils.halfSpace(1e-2),'yy',.1))
 
     # Tipper
     def test_derivJvec_tipperAll(self):
-        self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2), 'Tip', .1))
-    def test_derivJvec_tzxr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zx',.1))
-    def test_derivJvec_tzyi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zy',.1))
+        self.assertTrue(DerivJvecTest(nsem.utils.testUtils.halfSpace(1e-2), 'Tip', .1))
+    def test_derivJvec_tzxr(self):self.assertTrue(DerivJvecTest(nsem.utils.testUtils.halfSpace(1e-2),'zx',.1))
+    def test_derivJvec_tzyi(self):self.assertTrue(DerivJvecTest(nsem.utils.testUtils.halfSpace(1e-2),'zy',.1))
 
 if __name__ == '__main__':
     unittest.main()

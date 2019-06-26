@@ -1,6 +1,6 @@
 import discretize
 from SimPEG import maps, utils, tests
-from SimPEG.EM import FDEM
+from SimPEG.electromagnetics import frequency_domain as fdem
 import numpy as np
 from scipy.constants import mu_0
 
@@ -46,7 +46,7 @@ def setupProblem(
         rxfields_xz = ['e', 'j']
 
     rxList_edge = [
-        getattr(FDEM.Rx, 'Point_{f}'.format(f=f))(
+        getattr(fdem.Rx, 'Point_{f}'.format(f=f))(
             loc, component=comp, orientation=orient
         )
         for f in rxfields_y
@@ -55,7 +55,7 @@ def setupProblem(
     ]
 
     rxList_face = [
-        getattr(FDEM.Rx, 'Point_{f}'.format(f=f))(
+        getattr(fdem.Rx, 'Point_{f}'.format(f=f))(
             loc, component=comp, orientation=orient
         )
         for f in rxfields_xz
@@ -68,7 +68,7 @@ def setupProblem(
     src_loc = np.r_[0., 0., 0.]
 
     if prbtype in ['e', 'b']:
-        src = FDEM.Src.MagDipole(
+        src = fdem.Src.MagDipole(
             rxList=rxList, loc=src_loc, freq=freq
         )
 
@@ -77,9 +77,9 @@ def setupProblem(
         vec = np.zeros(mesh.nF)
         vec[ind] = 1.
 
-        src = FDEM.Src.RawVec_e(rxList=rxList, freq=freq, s_e=vec)
+        src = fdem.Src.RawVec_e(rxList=rxList, freq=freq, s_e=vec)
 
-    survey = FDEM.Survey([src])
+    survey = fdem.Survey([src])
 
     if sigmaInInversion:
 

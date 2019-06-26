@@ -6,7 +6,7 @@ import unittest
 import numpy as np
 from scipy.constants import mu_0
 from SimPEG import maps, mkvc, tests
-from SimPEG.EM import NSEM
+from SimPEG.electromagnetics import natural_source as nsem
 
 TOL = 1e-4
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
@@ -16,8 +16,8 @@ MU = mu_0
 
 def DerivJvecTest(halfspace_value, freq=False, expMap=True):
 
-    survey, sig, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(halfspace_value,False,structure=True)
-    simulation = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(mesh), survey=survey)
+    survey, sig, sigBG, mesh = nsem.utils.testUtils.setup1DSurvey(halfspace_value,False,structure=True)
+    simulation = nsem.Problem1D_ePrimSec(mesh, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(mesh), survey=survey)
     print('Using {0} solver for the simulation'.format(simulation.Solver))
     print('Derivative test of Jvec for eForm primary/secondary for 1d comp from {0} to {1} Hz\n'.format(survey.freqs[0],survey.freqs[-1]))
     # simulation.mapping = maps.ExpMap(simulation.mesh)
@@ -39,7 +39,7 @@ def DerivJvecTest(halfspace_value, freq=False, expMap=True):
 
 def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
 
-    survey, simulation = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(inputSetup,comp,freq)
+    survey, simulation = nsem.utils.testUtils.setupSimpegNSEM_ePrimSec(inputSetup,comp,freq)
     print('Derivative test of data projection for eFormulation primary/secondary\n')
     # simulation.mapping = maps.ExpMap(simulation.mesh)
     # Initate things for the derivs Test

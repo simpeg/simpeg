@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import discretize
 from SimPEG import maps, SolverLU, tests
-from SimPEG import EM
+from SimPEG.electromagnetics import time_domain as tdem
 from pymatsolver import Pardiso as Solver
 
 plotIt = False
@@ -39,17 +39,17 @@ def setUp_TDEM(prbtype='e', rxcomp='ex'):
     rxOffset = 0.
     rxlocs = np.array([[20, 20., 0.]])
     rxtimes = np.logspace(-4, -3, 20)
-    rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxcomp[:-1]))(
+    rx = getattr(tdem.Rx, 'Point_{}'.format(rxcomp[:-1]))(
         locs=rxlocs, times=rxtimes, orientation=rxcomp[-1]
     )
     Aloc = np.r_[-10., 0., 0.]
     Bloc = np.r_[10., 0., 0.]
     srcloc = np.vstack((Aloc, Bloc))
 
-    src = EM.TDEM.Src.LineCurrent([rx], loc=srcloc, waveform = EM.TDEM.Src.StepOffWaveform())
-    survey = EM.TDEM.Survey([src])
+    src = tdem.Src.LineCurrent([rx], loc=srcloc, waveform = tdem.Src.StepOffWaveform())
+    survey = tdem.Survey([src])
 
-    prb = getattr(EM.TDEM, 'Problem3D_{}'.format(prbtype))(mesh, sigmaMap=mapping)
+    prb = getattr(tdem, 'Problem3D_{}'.format(prbtype))(mesh, sigmaMap=mapping)
 
     prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
 

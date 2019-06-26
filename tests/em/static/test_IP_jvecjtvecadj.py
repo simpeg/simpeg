@@ -9,8 +9,8 @@ from SimPEG import Inversion
 from SimPEG import InvProblem
 from SimPEG import Tests
 import numpy as np
-import SimPEG.EM.Static.DC as DC
-import SimPEG.EM.Static.IP as IP
+import SimPEG.electromagnetics.Static.DC as DC
+import SimPEG.electromagnetics.Static.IP as IP
 
 np.random.seed(30)
 

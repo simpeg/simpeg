@@ -4,7 +4,7 @@ import numpy as np
 import time
 import discretize
 from SimPEG import maps, tests
-from SimPEG import EM
+from SimPEG.electromagnetics import time_domain as tdem
 from scipy.interpolate import interp1d
 from pymatsolver import Pardiso as Solver
 
@@ -41,7 +41,7 @@ def get_mapping(mesh):
 
 
 def get_prob(mesh, mapping, formulation):
-    prb = getattr(EM.TDEM, 'Problem3D_{}'.format(formulation))(
+    prb = getattr(tdem, 'Problem3D_{}'.format(formulation))(
         mesh, sigmaMap=mapping
     )
     prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
@@ -54,12 +54,12 @@ def get_survey(prob, t0):
     out = EM.Utils.VTEMFun(prob.times, 0.00595, 0.006, 100)
     wavefun = interp1d(prob.times, out)
 
-    waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
-    src = EM.TDEM.Src.MagDipole(
+    waveform = tdem.Src.RawWaveform(offTime=t0, waveFct=wavefun)
+    src = tdem.Src.MagDipole(
         [], waveform=waveform, loc=np.array([0., 0., 0.])
     )
 
-    return EM.TDEM.Survey([src])
+    return tdem.Survey([src])
 
 
 class Base_DerivAdjoint_Test(unittest.TestCase):
@@ -92,7 +92,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         rxOffset = 15.
 
         timerx = self.t0 + np.logspace(-5, -3, 20)
-        return getattr(EM.TDEM.Rx, 'Point_{}'.format(rxcomp[:-1]))(
+        return getattr(tdem.Rx, 'Point_{}'.format(rxcomp[:-1]))(
             np.array([[rxOffset, 0., 0.]]), timerx, rxcomp[-1]
         )
 
