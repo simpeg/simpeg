@@ -505,26 +505,26 @@ class BaseEMSrc(BaseSrc):
 
     integrate = properties.Bool("integrate the source term?", default=False)
 
-    def eval(self, prob):
+    def eval(self, simulation):
         """
         - :math:`s_m` : magnetic source term
         - :math:`s_e` : electric source term
 
-        :param BaseFDEMProblem prob: FDEM Problem
+        :param BaseFDEMSimulation simulation: FDEM Problem
         :rtype: tuple
         :return: tuple with magnetic source term and electric source term
         """
-        s_m = self.s_m(prob)
-        s_e = self.s_e(prob)
+        s_m = self.s_m(simulation)
+        s_e = self.s_e(simulation)
         return s_m, s_e
 
-    def evalDeriv(self, prob, v=None, adjoint=False):
+    def evalDeriv(self, simulation, v=None, adjoint=False):
         """
         Derivatives of the source terms with respect to the inversion model
         - :code:`s_mDeriv` : derivative of the magnetic source term
         - :code:`s_eDeriv` : derivative of the electric source term
 
-        :param BaseFDEMProblem prob: FDEM Problem
+        :param BaseFDEMSimulation simulation: FDEM Problem
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: tuple
@@ -534,40 +534,40 @@ class BaseEMSrc(BaseSrc):
         """
         if v is not None:
             return (
-                self.s_mDeriv(prob, v, adjoint),
-                self.s_eDeriv(prob, v, adjoint)
+                self.s_mDeriv(simulation, v, adjoint),
+                self.s_eDeriv(simulation, v, adjoint)
             )
         else:
             return (
-                lambda v: self.s_mDeriv(prob, v, adjoint),
-                lambda v: self.s_eDeriv(prob, v, adjoint)
+                lambda v: self.s_mDeriv(simulation, v, adjoint),
+                lambda v: self.s_eDeriv(simulation, v, adjoint)
             )
 
-    def s_m(self, prob):
+    def s_m(self, simulation):
         """
         Magnetic source term
 
-        :param BaseFDEMProblem prob: FDEM Problem
+        :param BaseFDEMSimulation simulation: FDEM Problem
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
         return Zero()
 
-    def s_e(self, prob):
+    def s_e(self, simulation):
         """
         Electric source term
 
-        :param BaseFDEMProblem prob: FDEM Problem
+        :param BaseFDEMSimulation simulation: FDEM Problem
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
         return Zero()
 
-    def s_mDeriv(self, prob, v, adjoint=False):
+    def s_mDeriv(self, simulation, v, adjoint=False):
         """
         Derivative of magnetic source term with respect to the inversion model
 
-        :param BaseFDEMProblem prob: FDEM Problem
+        :param BaseFDEMSimulation simulation: FDEM Problem
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -576,11 +576,11 @@ class BaseEMSrc(BaseSrc):
 
         return Zero()
 
-    def s_eDeriv(self, prob, v, adjoint=False):
+    def s_eDeriv(self, simulation, v, adjoint=False):
         """
         Derivative of electric source term with respect to the inversion model
 
-        :param BaseFDEMProblem prob: FDEM Problem
+        :param BaseFDEMSimulation simulation: FDEM Problem
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray

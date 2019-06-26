@@ -315,9 +315,6 @@ class MagDipole(BaseFDEMSrc):
     orientation = properties.Vector3(
         "orientation of the source", default='Z', length=1., required=True
     )
-    # freq = properties.Float(
-    #     "frequency of the source (Hz)", required=True
-    # )
     location = LocationVector(
         "location of the source", default=np.r_[0.,0.,0.], shape=(3,)
     )
@@ -549,8 +546,6 @@ class CircularLoop(MagDipole):
     :param float moment: magnetic dipole moment
     :param float mu: background magnetic permeability
     """
-
-    # default moment is 1
 
     radius = properties.Float("radius of the loop", default=1., min=0.)
 

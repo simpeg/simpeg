@@ -5,6 +5,7 @@ import time
 import discretize
 from SimPEG import maps, tests
 from SimPEG.electromagnetics import time_domain as tdem
+from SimPEG.electromagnetics import utils
 from scipy.interpolate import interp1d
 from pymatsolver import Pardiso as Solver
 
@@ -51,7 +52,7 @@ def get_prob(mesh, mapping, formulation):
 
 def get_survey(prob, t0):
 
-    out = EM.Utils.VTEMFun(prob.times, 0.00595, 0.006, 100)
+    out = utils.VTEMFun(prob.times, 0.00595, 0.006, 100)
     wavefun = interp1d(prob.times, out)
 
     waveform = tdem.Src.RawWaveform(offTime=t0, waveFct=wavefun)

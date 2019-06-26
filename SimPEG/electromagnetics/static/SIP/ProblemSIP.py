@@ -8,7 +8,7 @@ from ....data import Data
 from ....utils import sdiag
 
 from ...base import BaseEMSimulation
-from ..DC.fields import FieldsDC, Fields_CC, Fields_N
+from ..resistivity.fields import FieldsDC, Fields_CC, Fields_N
 from ..IP import Problem3D_CC as BaseProblem3D_CC
 from ..IP import Problem3D_N as BaseProblem3D_N
 from .SurveySIP import Survey

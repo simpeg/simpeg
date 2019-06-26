@@ -2,6 +2,7 @@ import time
 import sys
 import scipy.sparse as sp
 import numpy as np
+from scipy.constants import mu_0
 
 try:
     from pymatsolver import Pardiso as SimpegSolver
@@ -10,7 +11,7 @@ except ImportError:
 
 from ...utils import mkvc, setKwargs
 from ..frequency_domain.simulation import BaseFDEMSimulation
-from ..utils import omega, mu_0
+from ..utils import omega
 from .survey import Survey, Data
 from .fields import Fields1D_ePrimSec, Fields3D_ePrimSec
 

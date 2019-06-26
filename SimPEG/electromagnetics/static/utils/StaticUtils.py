@@ -7,7 +7,7 @@ import numpy as np
 from numpy import matlib
 import discretize
 
-from .. import DC
+from .. import resistivity as dc
 from ....utils import (
     asArray_N_x_Dim, closestPoints, mkvc, surface2ind_topo, uniqueRows,
     ModelBuilder
@@ -21,7 +21,7 @@ def electrode_separations(
         Calculate electrode separation distances.
 
         Input:
-        :param SimPEG.EM.Static.DC.SurveyDC.Survey dc_survey: DC survey object
+        :param SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
         :param str survey_type: Either 'pole-dipole' | 'dipole-dipole'
                                       | 'dipole-pole' | 'pole-pole'
 
@@ -133,7 +133,7 @@ def source_receiver_midpoints(dc_survey, survey_type='dipole-dipole', dim=2):
         Calculate source receiver midpoints.
 
         Input:
-        :param SimPEG.EM.Static.DC.SurveyDC.Survey dc_survey: DC survey object
+        :param SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
         :param str survey_type: Either 'pole-dipole' | 'dipole-dipole'
                                       | 'dipole-pole' | 'pole-pole'
 
@@ -214,7 +214,7 @@ def geometric_factor(
         Calculate Geometric Factor. Assuming that data are normalized voltages
 
         Input:
-        :param SimPEG.EM.Static.DC.SurveyDC.Survey dc_survey: DC survey object
+        :param SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
         :param str survey_type: Either 'dipole-dipole' | 'pole-dipole'
                                | 'dipole-pole' | 'pole-pole'
         :param str space_type: Assuming whole-space or half-space
@@ -276,7 +276,7 @@ def apparent_resistivity(
         assumed in SimPEG.
 
         Input:
-        :param SimPEG.EM.Static.DC.SurveyDC.Survey dc_survey: DC survey object
+        :param SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
         :param numpy.ndarray dobs: normalized voltage measurements [V/A]
         :param str survey_type: Either 'dipole-dipole' | 'pole-dipole' |
             'dipole-pole' | 'pole-pole'
@@ -317,7 +317,7 @@ def plot_pseudoSection(
         Assumes flat topo for now...
 
         Input:
-        :param SimPEG.EM.Static.DC.SurveyDC.Survey dc_survey: DC survey object
+        :param SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
         :param matplotlib.pyplot.axes ax: figure axes on which to plot
         :param str survey_type: Either 'dipole-dipole' | 'pole-dipole' |
             'dipole-pole' | 'pole-pole'
@@ -453,7 +453,7 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
         :param str d2flag: choose for 2D mesh between a '2D' or a '2.5D' survey
 
         Output:
-        :return SimPEG.EM.Static.DC.SurveyDC.Survey dc_survey: DC survey object
+        :return SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
     """
 
     def xy_2_r(x1, x2, y1, y2):
@@ -534,9 +534,9 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
                 # Create line of P2 locations
                 P2 = np.c_[stn_x+a*dl_x, stn_y+a*dl_y, stn_z]
                 if survey_type == 'dipole-dipole' or survey_type == 'pole-dipole':
-                    rxClass = DC.Rx.Dipole(P1, P2)
+                    rxClass = dc.Rx.Dipole(P1, P2)
                 elif survey_type == 'dipole-pole' or survey_type == 'pole-pole':
-                    rxClass = DC.Rx.Pole(P1)
+                    rxClass = dc.Rx.Pole(P1)
 
             elif dim == 2:
                 ztop = np.linspace(endl[0, 1], endl[0, 1], nstn)
@@ -546,19 +546,19 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
                 P2 = np.c_[stn_x+a*dl_x, np.ones(nstn).T*ztop]
                 if survey_type == 'dipole-dipole' or survey_type == 'pole-dipole':
                     if d2flag == '2.5D':
-                        rxClass = DC.Rx.Dipole_ky(P1, P2)
+                        rxClass = dc.Rx.Dipole_ky(P1, P2)
                     elif d2flag == '2D':
-                        rxClass = DC.Rx.Dipole(P1, P2)
+                        rxClass = dc.Rx.Dipole(P1, P2)
                 elif survey_type == 'dipole-pole' or survey_type == 'pole-pole':
                     if d2flag == '2.5D':
-                        rxClass = DC.Rx.Pole_ky(P1)
+                        rxClass = dc.Rx.Pole_ky(P1)
                     elif d2flag == '2D':
-                        rxClass = DC.Rx.Pole(P1)
+                        rxClass = dc.Rx.Pole(P1)
 
             if survey_type == 'dipole-dipole' or survey_type == 'dipole-pole':
-                srcClass = DC.Src.Dipole([rxClass], M[ii, :], N[ii, :])
+                srcClass = dc.Src.Dipole([rxClass], M[ii, :], N[ii, :])
             elif survey_type == 'pole-dipole' or survey_type == 'pole-pole':
-                srcClass = DC.Src.Pole([rxClass], M[ii, :])
+                srcClass = dc.Src.Pole([rxClass], M[ii, :])
             SrcList.append(srcClass)
 
     elif survey_type == 'gradient':
@@ -623,9 +623,9 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
             " not {}".format(survey_type)
         )
     if (d2flag == '2.5D') and (dim == 2):
-        survey = DC.Survey_ky(SrcList)
+        survey = dc.Survey_ky(SrcList)
     else:
-        survey = DC.Survey(SrcList)
+        survey = dc.Survey(SrcList)
 
     return survey
 
@@ -640,7 +640,7 @@ def writeUBC_DCobs(
 
         Input:
         :param str fileName: including path where the file is written out
-        :param SimPEG.EM.Static.DC.SurveyDC.Survey dc_survey: DC survey object
+        :param SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
         :param int dim:  either 2 | 3
         :param str format_type:  either 'SURFACE' | 'GENERAL'
         :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
@@ -849,7 +849,7 @@ def writeUBC_DClocs(
 
         Input:
         :param str fileName: including path where the file is written out
-        :param SimPEG.EM.Static.DC.SurveyDC.Survey dc_survey: DC survey object
+        :param SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
         :param int dim:  either 2 | 3
         :param str survey_type:  either 'SURFACE' | 'GENERAL'
 
@@ -1020,11 +1020,11 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
 
         Input:
         :param survey: 3D DC survey class object
-        :rtype: SimPEG.EM.Static.DC.SurveyDC.Survey
+        :rtype: SimPEG.EM.Static.resistivity.SurveyDC.Survey
 
         Output:
         :param survey: 2D DC survey class object
-        :rtype: SimPEG.EM.Static.DC.SurveyDC.Survey
+        :rtype: SimPEG.EM.Static.resistivity.SurveyDC.Survey
     """
 
     def stn_id(v0, v1, r):
@@ -1133,12 +1133,12 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
                 M = Rx[0][:, 0]
                 N = Rx[1][:, 0]
 
-            rxClass = DC.Rx.Dipole(np.c_[M, np.zeros(nrx), Rx[0][:, 2]],
+            rxClass = dc.Rx.Dipole(np.c_[M, np.zeros(nrx), Rx[0][:, 2]],
                                    np.c_[N, np.zeros(nrx), Rx[1][:, 2]])
 
             if survey_type == 'pole-dipole':
                 srcList2D.append(
-                    DC.Src.Pole(
+                    dc.Src.Pole(
                         [rxClass],
                         np.asarray([A, 0, Tx[ii][2]])
                     )
@@ -1146,14 +1146,14 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
 
             elif survey_type == 'dipole-dipole':
                 srcList2D.append(
-                    DC.Src.Dipole(
+                    dc.Src.Dipole(
                         [rxClass],
                         np.r_[A, 0, Tx[ii][2]],
                         np.r_[B, 0, Tx[ii][5]]
                     )
                 )
 
-    survey2D = DC.SurveyDC.Survey(srcList2D)
+    survey2D = dc.SurveyDC.Survey(srcList2D)
     survey2D.dobs = survey.dobs
     survey2D.std = survey.std
 
@@ -1170,7 +1170,7 @@ def readUBC_DC2Dpre(fileName):
 
         Output:
         :return survey: 2D DC survey class object
-        :rtype: SimPEG.EM.Static.DC.SurveyDC.Survey
+        :rtype: SimPEG.EM.Static.resistivity.SurveyDC.Survey
 
         Created on Mon March 9th, 2016 << Doug's 70th Birthday !! >>
 
@@ -1216,11 +1216,11 @@ def readUBC_DC2Dpre(fileName):
 
         d.append(temp[-1])
 
-        Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
-        srcLists.append(DC.Src.Dipole([Rx], tx[:3], tx[3:]))
+        Rx = dc.Rx.Dipole(rx[:, :3], rx[:, 3:])
+        srcLists.append(dc.Src.Dipole([Rx], tx[:3], tx[3:]))
 
     # Create survey class
-    survey = DC.SurveyDC.Survey(srcLists)
+    survey = dc.SurveyDC.Survey(srcLists)
 
     survey.dobs = np.asarray(d)
 
@@ -1331,15 +1331,15 @@ def readUBC_DC3Dobs(fileName):
         if count == 0:
             rx = np.asarray(rx)
             if polerx:
-                Rx = DC.Rx.Pole(rx[:, :3])
+                Rx = dc.Rx.Pole(rx[:, :3])
             else:
-                Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
+                Rx = dc.Rx.Dipole(rx[:, :3], rx[:, 3:])
             if poletx:
-                srcLists.append(DC.Src.Pole([Rx], tx[:3]))
+                srcLists.append(dc.Src.Pole([Rx], tx[:3]))
             else:
-                srcLists.append(DC.Src.Dipole([Rx], tx[:3], tx[3:]))
+                srcLists.append(dc.Src.Dipole([Rx], tx[:3], tx[3:]))
 
-    survey = DC.SurveyDC.Survey(srcLists)
+    survey = dc.SurveyDC.Survey(srcLists)
     survey.dobs = np.asarray(d)
     survey.std = np.asarray(wd)
     survey.eps = 0.
@@ -1466,7 +1466,7 @@ def getSrc_locs(survey):
 
         Input:
         :param survey: DC survey class object
-        :rtype: SimPEG.EM.Static.DC.SurveyDC.Survey
+        :rtype: SimPEG.EM.Static.resistivity.SurveyDC.Survey
 
         Output:
         :return numpy.ndarray srcMat: Array containing the locations of sources

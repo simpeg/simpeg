@@ -1,17 +1,16 @@
 import numpy as np
-from SimPEG.electromagnetics.Utils.CurrentUtils import (
+from SimPEG.electromagnetics.utils import (
     getStraightLineCurrentIntegral, getSourceTermLineCurrentPolygon
     )
 import unittest
-from SimPEG.utils import io_utils
+from SimPEG.utils import download
 
 
 class LineCurrentTests(unittest.TestCase):
 
     def setUp(self):
-        url = 'https://storage.googleapis.com/simpeg/tests/em_utils/'
-        cloudfiles = ['currents.npy']
-        self.basePath = io_utils.remoteDownload(url, cloudfiles)
+        url = 'https://storage.googleapis.com/simpeg/tests/em_utils/currents.npy'
+        self.basePath = download(url)
 
     def test(self):
 
@@ -50,7 +49,7 @@ class LineCurrentTests(unittest.TestCase):
         xorig = np.r_[0., 0., 0.]
 
         out = getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz)
-        fname = self.basePath + "currents.npy"
+        fname = self.basePath
         out_true = np.load(fname)
         err = np.linalg.norm(out-out_true)
         print(">> Test getSourceTermLineCurrentPolygon")

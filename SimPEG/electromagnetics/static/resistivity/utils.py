@@ -1,7 +1,7 @@
 import numpy as np
 
-from . import receiver as Rx
-from . import source as Src
+from . import receiver
+from . import source
 
 def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
     """
@@ -36,9 +36,9 @@ def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
             return np.r_[elocs[WENNER[ii, abmn]], 0, 0]
     srcList = []
     for i in range(WENNER.shape[0]):
-        rx = Rx.Dipole(getLoc(i, 1).reshape([1, -1]),
+        rx = receiver.Dipole(getLoc(i, 1).reshape([1, -1]),
                           getLoc(i, 2).reshape([1, -1]))
-        src = Src.Dipole([rx], getLoc(i, 0), getLoc(i, 3))
+        src = source.Dipole([rx], getLoc(i, 0), getLoc(i, 3))
         srcList += [src]
 
     return srcList

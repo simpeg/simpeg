@@ -5,7 +5,7 @@ import uuid
 from ....survey import BaseSurvey
 from . import RxSIP as Rx
 from . import SrcSIP as Src
-from .. import DC
+from .. import resistivity as dc
 
 
 class Survey(BaseSurvey):
@@ -116,20 +116,20 @@ def from_dc_to_sip_survey(survey_dc, times):
     for src in srcList:
         rxList_sip = []
         for rx in src.rxList:
-            if isinstance(rx, DC.Rx.Pole_ky) or isinstance(rx, DC.Rx.Pole):
+            if isinstance(rx, dc.Rx.Pole_ky) or isinstance(rx, dc.Rx.Pole):
                 rx_sip = Rx.Pole(rx.locs, times=times)
-            elif isinstance(rx, DC.Rx.Dipole_ky) or isinstance(rx, DC.Rx.Dipole):
+            elif isinstance(rx, dc.Rx.Dipole_ky) or isinstance(rx, dc.Rx.Dipole):
                 rx_sip = Rx.Dipole(rx.locs[0], rx.locs[1], times=times)
             else:
                 print(rx)
                 raise NotImplementedError()
             rxList_sip.append(rx_sip)
 
-        if isinstance(src, DC.Src.Pole):
+        if isinstance(src, dc.Src.Pole):
             src_sip = Src.Pole(
                 rxList_sip, src.loc
             )
-        elif isinstance(src, DC.Src.Dipole):
+        elif isinstance(src, dc.Src.Dipole):
             src_sip = Src.Dipole(
                 rxList_sip, src.loc[0], src.loc[1]
             )

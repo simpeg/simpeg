@@ -1,2 +1,2 @@
-from SimPEG.EM.Static.DC import *
-from SimPEG.EM.Static.Utils import StaticUtils as Utils
+from SimPEG.electromagnetics.static.resistivity import *
+from SimPEG.electromagnetics.static.utils import StaticUtils as utils

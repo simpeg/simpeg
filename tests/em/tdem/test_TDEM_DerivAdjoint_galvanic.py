@@ -51,9 +51,9 @@ def setUp_TDEM(prbtype='e', rxcomp='ex'):
 
     prb = getattr(tdem, 'Problem3D_{}'.format(prbtype))(mesh, sigmaMap=mapping)
 
-    prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
+    prb.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
 
-    prb.Solver = Solver
+    prb.solver = Solver
 
     m = (
         np.log(1e-1)*np.ones(prb.sigmaMap.nP) +

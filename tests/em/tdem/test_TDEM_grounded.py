@@ -65,7 +65,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
             (1e-6, 20), (1e-5, 30), (3e-5, 30), (1e-4, 40), (3e-4, 30),
             (1e-3, 20), (1e-2, 17)
         ]
-        prob = getattr(TDEM, "Problem3D_{}".format(self.prob_type))(
+        prob = getattr(tdem, "Problem3D_{}".format(self.prob_type))(
             mesh, timeSteps=timeSteps, mu=mu, sigmaMap=maps.ExpMap(mesh),
             Solver=Pardiso
         )

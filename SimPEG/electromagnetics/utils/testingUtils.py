@@ -8,7 +8,7 @@ from discretize import TensorMesh
 from ... import maps, utils
 
 from SimPEG import SolverLU
-from SimPEG import electromagnetics
+from SimPEG.electromagnetics import frequency_domain as fdem
 
 FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
@@ -32,7 +32,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
 
     x = np.array([np.linspace(-5.*cs,-2.*cs,3),np.linspace(5.*cs,2.*cs,3)]) + cs/4. #don't sample right by the source, slightly off alignment from either staggered grid
     XYZ = utils.ndgrid(x,x,np.linspace(-2.*cs,2.*cs,5))
-    Rx0 = getattr(EM.FDEM.Rx, 'Point_' + comp[0])
+    Rx0 = getattr(fdem.Rx, 'Point_' + comp[0])
     if comp[2] == 'r':
         real_or_imag = 'real'
     elif comp[2] == 'i':
@@ -43,44 +43,44 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
 
     for SrcType in SrcList:
         if SrcType is 'MagDipole':
-            Src.append(EM.FDEM.Src.MagDipole([rx0], freq=freq, loc=np.r_[0.,0.,0.]))
+            Src.append(fdem.Src.MagDipole([rx0], freq=freq, loc=np.r_[0.,0.,0.]))
         elif SrcType is 'MagDipole_Bfield':
-            Src.append(EM.FDEM.Src.MagDipole_Bfield([rx0], freq=freq, loc=np.r_[0.,0.,0.]))
+            Src.append(fdem.Src.MagDipole_Bfield([rx0], freq=freq, loc=np.r_[0.,0.,0.]))
         elif SrcType is 'CircularLoop':
-            Src.append(EM.FDEM.Src.CircularLoop([rx0], freq=freq, loc=np.r_[0.,0.,0.]))
+            Src.append(fdem.Src.CircularLoop([rx0], freq=freq, loc=np.r_[0.,0.,0.]))
         elif SrcType is 'RawVec':
             if fdemType is 'e' or fdemType is 'b':
                 S_m = np.zeros(mesh.nF)
                 S_e = np.zeros(mesh.nE)
                 S_m[utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1e-3
                 S_e[utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1e-3
-                Src.append(EM.FDEM.Src.RawVec([rx0], freq, S_m, mesh.getEdgeInnerProduct()*S_e))
+                Src.append(fdem.Src.RawVec([rx0], freq, S_m, mesh.getEdgeInnerProduct()*S_e))
 
             elif fdemType is 'h' or fdemType is 'j':
                 S_m = np.zeros(mesh.nE)
                 S_e = np.zeros(mesh.nF)
                 S_m[utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1e-3
                 S_e[utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1e-3
-                Src.append(EM.FDEM.Src.RawVec([rx0], freq, mesh.getEdgeInnerProduct()*S_m, S_e))
+                Src.append(fdem.Src.RawVec([rx0], freq, mesh.getEdgeInnerProduct()*S_m, S_e))
 
     if verbose:
         print('  Fetching {0!s} problem'.format((fdemType)))
 
     if fdemType == 'e':
-        survey = EM.FDEM.Survey(Src)
-        prb = EM.FDEM.Problem3D_e(mesh, sigmaMap=mapping)
+        survey = fdem.Survey(Src)
+        prb = fdem.Problem3D_e(mesh, sigmaMap=mapping)
 
     elif fdemType == 'b':
-        survey = EM.FDEM.Survey(Src)
-        prb = EM.FDEM.Problem3D_b(mesh, sigmaMap=mapping)
+        survey = fdem.Survey(Src)
+        prb = fdem.Problem3D_b(mesh, sigmaMap=mapping)
 
     elif fdemType == 'j':
-        survey = EM.FDEM.Survey(Src)
-        prb = EM.FDEM.Problem3D_j(mesh, sigmaMap=mapping)
+        survey = fdem.Survey(Src)
+        prb = fdem.Problem3D_j(mesh, sigmaMap=mapping)
 
     elif fdemType == 'h':
-        survey = EM.FDEM.Survey(Src)
-        prb = EM.FDEM.Problem3D_h(mesh, sigmaMap=mapping)
+        survey = fdem.Survey(Src)
+        prb = fdem.Problem3D_h(mesh, sigmaMap=mapping)
 
     else:
         raise NotImplementedError()

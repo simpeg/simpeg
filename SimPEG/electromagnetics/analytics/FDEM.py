@@ -12,9 +12,9 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
     .. plot::
 
         import matplotlib.pyplot as plt
-        from SimPEG import EM
+        from SimPEG.electromagnetics import frequency_domain as fdem
         freq = np.logspace(-1, 6, 61)
-        test = EM.Analytics.FDEM.hzAnalyticDipoleF(100, freq, 0.001, secondary=False)
+        test = fdem.hzAnalyticDipoleF(100, freq, 0.001, secondary=False)
         plt.loglog(freq, abs(test.real))
         plt.loglog(freq, abs(test.imag))
         plt.title('Response at $r$=100m')

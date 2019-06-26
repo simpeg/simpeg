@@ -4,6 +4,7 @@ import numpy as np
 import discretize
 from SimPEG import maps, SolverLU
 from SimPEG.electromagnetics import time_domain as tdem
+from SimPEG.electromagnetics import analytics
 from scipy.constants import mu_0
 import matplotlib.pyplot as plt
 from pymatsolver import Pardiso as Solver
@@ -60,10 +61,10 @@ def halfSpaceProblemAnaDiff(
     sigma = np.log(sigma[active])
     prb.pair(survey)
     if srctype == "MagDipole":
-        bz_ana = mu_0*EM.Analytics.hzAnalyticDipoleT(rx.locs[0][0]+1e-3,
+        bz_ana = mu_0*analytics.hzAnalyticDipoleT(rx.locs[0][0]+1e-3,
                                                      rx.times, sig_half)
     elif srctype == "CircularLoop":
-        bz_ana = mu_0*EM.Analytics.hzAnalyticDipoleT(13, rx.times, sig_half)
+        bz_ana = mu_0*analytics.hzAnalyticDipoleT(13, rx.times, sig_half)
 
     bz_calc = prb.dpred(sigma)
     ind = np.logical_and(rx.times > bounds[0], rx.times < bounds[1])
