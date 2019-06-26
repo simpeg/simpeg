@@ -11,3 +11,4 @@
 - Eldad Haber, (`@eldadhaber <https://github.com/eldadhaber/>`_)
 - Doug Oldenburg, (`@dougoldenburg <https://github.com/dougoldenburg/>`_)
 - Adam Pidlisecky, (`@aPid1 <https://github.com/aPid1/>`_)
+- Dieter Werthmüller, (`@prisae <https://github.com/prisae/>`_)
