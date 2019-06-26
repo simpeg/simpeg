@@ -2,10 +2,9 @@ from __future__ import absolute_import
 
 from scipy.constants import mu_0, epsilon_0
 
-from . import TDEM
-from . import FDEM
-from . import NSEM
-from . import Static
-# from . import Base
+from . import time_domain
+from . import frequency_domain
+from . import natural_source
+from .static import resistivity, IP, SIP
 from . import analytics
 from . import utils
