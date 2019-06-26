@@ -9,11 +9,11 @@ from scipy.constants import mu_0
 from scipy import interpolate as sciint
 
 import SimPEG as simpeg
-from SimPEG.EM.NSEM.survey import Survey, Data
-from SimPEG.EM.NSEM.receiver import (Point_impedance1D,
+from SimPEG.electromagnetics.natural_source.survey import Survey, Data
+from SimPEG.electromagnetics.natural_source.receiver import (Point_impedance1D,
     Point_impedance3D, Point_tipper3D)
-from SimPEG.EM.NSEM.source import Planewave_xy_1Dprimary
-from SimPEG.EM.NSEM.utils import MT1Danalytic, plotDataTypes as pDt
+from SimPEG.electromagnetics.natural_source.source import Planewave_xy_1Dprimary
+from SimPEG.electromagnetics.natural_source.utils import MT1Danalytic, plotDataTypes as pDt
 
 
 
@@ -23,7 +23,7 @@ def rotate_data(NSEMdata, rot_angle):
         (- negative for a counter-clockwise rotation)
 
     **Required**
-    :param SimPEG.EM.NSEM.Data NSEMdata: NSEM data object to process
+    :param SimPEG.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
     :param float rot_angle: Rotation angel in degrees,
         positive for clockwise rotation
     '''
@@ -58,7 +58,7 @@ def extract_data_info(NSEMdata):
     receiver types.
 
     **Required**
-    :param SimPEG.EM.NSEM.Data NSEMdata: NSEM data object to process
+    :param SimPEG.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
 
     """
     dL, freqL, rxTL = [], [], []
@@ -81,7 +81,7 @@ def resample_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
     of selecting frequencies and receiver.
 
     **Required**
-    :param SimPEG.EM.NSEM.Data NSEMdata: NSEM data object to process
+    :param SimPEG.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
 
     **Optional**
     :param numpy.ndarray locs: receiver locations to use (default is 'All' locations)
@@ -184,7 +184,7 @@ def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
     1D NSEMdata objects for running 1D inversions for.
 
     **Required**
-    :param SimPEG.EM.NSEM.Data NSEMdata: NSEM data object to process
+    :param SimPEG.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
 
     **Optional**
     :param string rxType3D: component of the NSEMdata to use

@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 
 from ...fields import Fields
-from ..FDEM.fields import FieldsFDEM
+from ..frequency_domain.fields import FieldsFDEM
 from ...utils import spzeros, Identity, Zero
 from ..utils import omega
 

@@ -8,7 +8,7 @@ from discretize import TensorMesh
 from ... import maps, utils
 
 from SimPEG import SolverLU
-from SimPEG import EM
+from SimPEG import electromagnetics
 
 FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1

@@ -2,7 +2,7 @@ import sys
 import numpy as np
 from numpy.lib import recfunctions as recFunc
 
-from ..FDEM.survey import Survey
+from ..frequency_domain.survey import Survey
 from ...data import Data as BaseData
 from ...utils import mkvc
 from .source import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD

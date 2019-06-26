@@ -9,8 +9,8 @@ except ImportError:
     from SimPEG import SolverLU as SimpegSolver
 
 from ...utils import mkvc, setKwargs
-from ..FDEM.simulation import BaseFDEMSimulation
-from ..utils.EMUtils import omega, mu_0
+from ..frequency_domain.simulation import BaseFDEMSimulation
+from ..utils import omega, mu_0
 from .survey import Survey, Data
 from .fields import Fields1D_ePrimSec, Fields3D_ePrimSec
 

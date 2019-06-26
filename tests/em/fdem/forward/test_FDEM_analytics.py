@@ -6,7 +6,7 @@ import scipy.sparse as sp
 import discretize
 from SimPEG import utils
 from SimPEG import SolverLU
-from SimPEG import EM
+from SimPEG.electromagnetics import frequency_domain as fdem
 from scipy.constants import mu_0
 
 # import matplotlib
@@ -36,29 +36,29 @@ class FDEM_analyticTests(unittest.TestCase):
 
         x = np.linspace(-10, 10, 5)
         XYZ = utils.ndgrid(x, np.r_[0], np.r_[0])
-        rxList = EM.FDEM.Rx.Point_e(XYZ, orientation='x', component='imag')
+        rxList = fdem.Rx.Point_e(XYZ, orientation='x', component='imag')
         SrcList = [
-            EM.FDEM.Src.MagDipole(
+            fdem.Src.MagDipole(
                 [rxList], location=np.r_[0., 0., 0.],
                 frequency=freq
             ),
-            EM.FDEM.Src.CircularLoop(
+            fdem.Src.CircularLoop(
                 [rxList], location=np.r_[0., 0., 0.],
                 frequency=freq, radius=np.sqrt(1./np.pi)
             ),
-            # EM.FDEM.Src.MagDipole_Bfield(
+            # fdem.Src.MagDipole_Bfield(
             #     [rxList], loc=np.r_[0., 0., 0.],
             #     freq=freq
             # ), # less accurate
         ]
 
-        survey = EM.FDEM.Survey(SrcList)
+        survey = fdem.Survey(SrcList)
 
         sig = 1e-1
         sigma = np.ones(mesh.nC)*sig
         sigma[mesh.gridCC[:, 2] > 0] = 1e-8
 
-        prb = EM.FDEM.Problem3D_b(mesh, sigma=sigma)
+        prb = fdem.Problem3D_b(mesh, sigma=sigma)
         prb.pair(survey)
 
         try:
@@ -148,16 +148,16 @@ class TestDipoles(unittest.TestCase):
 
         de = np.zeros(mesh.nF, dtype=complex)
         de[s_ind] = 1./csz
-        de_p = [EM.FDEM.Src.RawVec_e([], freq, de/mesh.area)]
+        de_p = [fdem.Src.RawVec_e([], freq, de/mesh.area)]
 
-        dm_p = [EM.FDEM.Src.MagDipole([], freq, src_loc)]
+        dm_p = [fdem.Src.MagDipole([], freq, src_loc)]
 
         # Pair the problem and survey
-        surveye = EM.FDEM.Survey(de_p)
-        surveym = EM.FDEM.Survey(dm_p)
+        surveye = fdem.Survey(de_p)
+        surveym = fdem.Survey(dm_p)
 
-        prbe = EM.FDEM.Problem3D_h(mesh, sigma=sigmaback, mu=mur*mu_0)
-        prbm = EM.FDEM.Problem3D_e(mesh, sigma=sigmaback, mu=mur*mu_0)
+        prbe = fdem.Problem3D_h(mesh, sigma=sigmaback, mu=mur*mu_0)
+        prbm = fdem.Problem3D_e(mesh, sigma=sigmaback, mu=mur*mu_0)
 
         # pair problem and survey
         prbe.pair(surveye)

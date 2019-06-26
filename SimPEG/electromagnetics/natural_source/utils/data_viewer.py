@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .. import receiver as RxNSEM
+from .. import receiver as rx
 import properties
 
 from plotUtils import ApperentResPhsStationPlot, TipperAmplitudeStationPlot
@@ -64,9 +64,9 @@ class NSEM_data_viewer(properties.HasProperties):
         self.station_figs = []
         unique_rx = np.unique(
             np.array([rx.__class__ for src in self._data.survey.srcList for rx in src.rxList]))
-        if RxNSEM.Point_impedance3D in unique_rx:
+        if rx.Point_impedance3D in unique_rx:
             self.station_figs.append(ApperentResPhsStationPlot())
-        if RxNSEM.Point_tipper3D in unique_rx:
+        if rx.Point_tipper3D in unique_rx:
             self.station_figs.append(TipperAmplitudeStationPlot())
 
         self.freqency_figs = []

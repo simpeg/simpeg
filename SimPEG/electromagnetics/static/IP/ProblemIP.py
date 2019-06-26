@@ -6,9 +6,9 @@ from ....utils import mkvc, sdiag, Zero
 
 from ...base import BaseEMSimulation
 
-from ..DC.fields import FieldsDC, Fields_CC, Fields_N
-from ..DC import Problem3D_CC as BaseProblem3D_CC
-from ..DC import Problem3D_N as BaseProblem3D_N
+from ..resistivity.fields import FieldsDC, Fields_CC, Fields_N
+from ..resistivity import Problem3D_CC as BaseProblem3D_CC
+from ..resistivity import Problem3D_N as BaseProblem3D_N
 from .SurveyIP import Survey
 
 

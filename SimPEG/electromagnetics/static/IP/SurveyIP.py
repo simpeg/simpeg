@@ -1,5 +1,5 @@
-from ..DC import Survey as SurveyDC
-from ..DC import Rx, Src
+from ..resistivity import Survey as SurveyDC
+from ..resistivity import Rx, Src
 
 
 class Survey(SurveyDC):

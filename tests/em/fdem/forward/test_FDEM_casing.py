@@ -1,6 +1,6 @@
 from SimPEG import tests, utils
 import numpy as np
-import SimPEG.EM.Analytics.FDEMcasing as Casing
+import SimPEG.electromagnetics.analytics.FDEMcasing as Casing
 import unittest
 from scipy.constants import mu_0
 

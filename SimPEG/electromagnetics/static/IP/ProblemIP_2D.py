@@ -7,9 +7,9 @@ from ..DC.fields_2d import (
     Fields_ky, Fields_ky_CC, Fields_ky_N
 )
 
-from ..DC.simulation_2d import BaseDCSimulation_2D
-from ..DC import Problem2D_CC as BaseProblem2D_CC
-from ..DC import Problem2D_N as BaseProblem2D_N
+from ..resistivity.simulation_2d import BaseDCSimulation_2D
+from ..resistivity import Problem2D_CC as BaseProblem2D_CC
+from ..resistivity import Problem2D_N as BaseProblem2D_N
 
 from .SurveyIP import Survey
 
