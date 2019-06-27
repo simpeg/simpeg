@@ -66,14 +66,20 @@ class BaseRxNSEM_Point(SimPEG.Survey.BaseRx):
         if self.locs.ndim == 3:
             loc = self.locs[:, :, 0]
         else:
-            loc = self.locs[:, 3:]
+            if self.locs.shape[1] == 6:
+                loc = self.locs[:, 3:]
+            else:
+                loc = self.locs
         return loc
 
     def _locs_b(self):
         if self.locs.ndim == 3:
             loc = self.locs[:, :, 1]
         else:
-            loc = self.locs[:, :3]
+            if self.locs.shape[1] == 6:
+                loc = self.locs[:, :3]
+            else:
+                loc = self.locs
         return loc
 
     # Location projection
