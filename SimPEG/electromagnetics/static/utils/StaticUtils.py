@@ -57,7 +57,6 @@ def electrode_separations(
         nDTx = src.receiver_list[0].nD
 
         if survey_type.lower() == 'dipole-dipole':
-            print(Tx[0], nDTx, 1)
             A = matlib.repmat(Tx[0], nDTx, 1)
             B = matlib.repmat(Tx[1], nDTx, 1)
             M = Rx[0]
@@ -289,7 +288,7 @@ def apparent_resistivity(
             "provided as the second input. The provided input is a "
             "{providedcls} <{providedpref}.{providedcls}>".format(
                 datacls=Data.__name__, datapref=Data.__module__,
-                providedcls=data.__name__, providedpref=data.__module__
+                providedcls=data.__class__.__name__, providedpref=data.__module__
             )
         )
 
@@ -658,7 +657,7 @@ def writeUBC_DCobs(
             "provided as the second input. The provided input is a "
             "{providedcls} <{providedpref}.{providedcls}>".format(
                 datacls=Data.__name__, datapref=Data.__module__,
-                providedcls=data.__name__, providedpref=data.__module__
+                providedcls=data.__class__.__name__, providedpref=data.__module__
             )
         )
 
@@ -705,16 +704,16 @@ def writeUBC_DCobs(
 
     count = 0
 
-    for ii in range(data.survey.nSrc):
+    for src in data.survey.source_list:
 
-        rx = data.survey.srcList[ii].rxList[0].locs
-        nD = data.survey.srcList[ii].nD
+        rx = src.receiver_list[0].locations
+        nD = src.nD
 
         if survey_type.lower() in ['pole-dipole', 'pole-pole']:
-            tx = np.r_[data.survey.srcList[ii].loc]
+            tx = np.r_[src.location]
             tx = np.repeat(np.r_[[tx]], 2, axis=0)
         elif survey_type.lower() in ['dipole-dipole', 'dipole-pole']:
-            tx = np.c_[data.survey.srcList[ii].loc]
+            tx = np.c_[src.location]
 
         if survey_type.lower() in ['pole-dipole', 'dipole-dipole']:
             M = rx[0]
@@ -791,13 +790,13 @@ def writeUBC_DCobs(
             # M[:, 2] = -M[:, 2]
             # N[:, 2] = -N[:, 2]
 
-            if format_type == 'surface':
+            if format_type.lower() == 'surface':
 
                 fid.writelines("%e " % ii for ii in mkvc(tx[:, 0:2].T))
                 M = M[:, 0:2]
                 N = N[:, 0:2]
 
-            if format_type == 'general':
+            if format_type.lower() == 'general':
 
                 fid.writelines("%e " % ii for ii in mkvc(tx.T))
 
@@ -1237,8 +1236,7 @@ def readUBC_DC3Dobs(fileName):
 
     # Load file
     obsfile = np.genfromtxt(
-        fileName, delimiter=' \n',
-        dtype=np.str, comments='!'
+        fileName, delimiter=' \n', dtype=np.str, comments='!'
     )
 
     # Pre-allocate
