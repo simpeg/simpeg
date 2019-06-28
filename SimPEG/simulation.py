@@ -291,13 +291,17 @@ class BaseSimulation(props.HasModel):
         """
         return mkvc(self.dpred(m, f=f) - dobs)
 
-    def make_synthetic_data(self, m, standard_deviation=0.05, f=None):
+    def make_synthetic_data(self, m, standard_deviation=0.05, f=None, **kwargs):
         """
         Make synthetic data given a model, and a standard deviation.
         :param numpy.array m: geophysical model
         :param numpy.array standard_deviation: standard deviation
         :param numpy.array f: fields for the given model (if pre-calculated)
         """
+
+        std =  kwargs.pop('std', None)
+        if std is not None:
+            standard_deviation = std
 
         dclean = self.dpred(m, f=f)
         noise = standard_deviation*abs(dclean)*np.random.randn(*dclean.shape)

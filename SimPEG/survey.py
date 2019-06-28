@@ -361,6 +361,10 @@ class BaseSurvey(properties.HasProperties):
         """Number of Sources"""
         return len(self.source_list)
 
+    #############
+    # Depreciated
+    #############
+
     def dpred(self, m=None, f=None):
         raise Exception(
             "Survey no longer has the dpred method. Please use "
@@ -389,6 +393,12 @@ class BaseSurvey(properties.HasProperties):
             "to instead use simulation.survey = survey"
         )
         simulation.survey = self
+
+    def makeSyntheticData(self, m, std=None, f=None, force=False, **kwargs):
+        raise Exception(
+            "Survey no longer has the makeSyntheticData method. Please use "
+            "simulation.make_synthetic_data instead."
+        )
 
 
 

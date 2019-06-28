@@ -11,10 +11,10 @@ from ..resistivity.simulation_2d import BaseDCSimulation_2D
 from ..resistivity import Problem2D_CC as BaseProblem2D_CC
 from ..resistivity import Problem2D_N as BaseProblem2D_N
 
-from .SurveyIP import Survey
+from .survey import Survey
 
 
-class BaseIPProblem_2D(BaseDCSimulation_2D):
+class BaseIPSimulation_2D(BaseDCSimulation_2D):
 
     sigma = props.PhysicalProperty(
         "Electrical conductivity (S/m)"
@@ -41,12 +41,12 @@ class BaseIPProblem_2D(BaseDCSimulation_2D):
             print(">> Compute DC fields")
 
         if self._f is None:
-            self._f = self.fieldsPair(self.mesh, self.survey)
+            self._f = self.fieldsPair(self)
             Srcs = self.survey.srcList
             for iky in range(self.nky):
                 ky = self.kys[iky]
                 A = self.getA(ky)
-                self.Ainv[iky] = self.Solver(A, **self.solverOpts)
+                self.Ainv[iky] = self.Solver(A, **self.solver_opts)
                 RHS = self.getRHS(ky)
                 u = self.Ainv[iky] * RHS
                 self._f[Srcs, self._solutionType, iky] = u
@@ -178,7 +178,7 @@ class BaseIPProblem_2D(BaseDCSimulation_2D):
                 )
 
 
-class Problem2D_CC(BaseIPProblem_2D, BaseProblem2D_CC):
+class Problem2D_CC(BaseIPSimulation_2D, BaseProblem2D_CC):
     """
     2.5D cell centered IP problem
     """
@@ -190,7 +190,7 @@ class Problem2D_CC(BaseIPProblem_2D, BaseProblem2D_CC):
     sign = 1.
 
     def __init__(self, mesh, **kwargs):
-        BaseIPProblem_2D.__init__(self, mesh, **kwargs)
+        BaseIPSimulation_2D.__init__(self, mesh, **kwargs)
 
     def delete_these_for_sensitivity(self, sigma=None, rho=None):
         if self._Jmatrix is not None:
@@ -234,7 +234,7 @@ class Problem2D_CC(BaseIPProblem_2D, BaseProblem2D_CC):
                 return dMfRhoI_dI * (dMf_drho * (drho_dlogrho*v))
 
 
-class Problem2D_N(BaseIPProblem_2D, BaseProblem2D_N):
+class Problem2D_N(BaseIPSimulation_2D, BaseProblem2D_N):
     """
     2.5D nodal IP problem
     """
@@ -245,7 +245,7 @@ class Problem2D_N(BaseIPProblem_2D, BaseProblem2D_N):
     sign = -1.
 
     def __init__(self, mesh, **kwargs):
-        BaseIPProblem_2D.__init__(self, mesh, **kwargs)
+        BaseIPSimulation_2D.__init__(self, mesh, **kwargs)
 
     def delete_these_for_sensitivity(self, sigma=None, rho=None):
         if self._Jmatrix is not None:

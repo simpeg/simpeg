@@ -9,10 +9,10 @@ from ...base import BaseEMSimulation
 from ..resistivity.fields import FieldsDC, Fields_CC, Fields_N
 from ..resistivity import Problem3D_CC as BaseProblem3D_CC
 from ..resistivity import Problem3D_N as BaseProblem3D_N
-from .SurveyIP import Survey
+from .survey import Survey
 
 
-class BaseIPProblem(BaseEMSimulation):
+class BaseIPSimulation(BaseEMSimulation):
 
     sigma = props.PhysicalProperty(
         "Electrical conductivity (S/m)"
@@ -41,10 +41,10 @@ class BaseIPProblem(BaseEMSimulation):
             print(">> Compute fields")
 
         if self._f is None:
-            self._f = self.fieldsPair(self.mesh, self.survey)
+            self._f = self.fieldsPair(self)
             if self.Ainv is None:
                 A = self.getA()
-                self.Ainv = self.Solver(A, **self.solverOpts)
+                self.Ainv = self.Solver(A, **self.solver_opts)
             RHS = self.getRHS()
             u = self.Ainv * RHS
             Srcs = self.survey.srcList
@@ -297,7 +297,7 @@ class BaseIPProblem(BaseEMSimulation):
                 )
 
 
-class Problem3D_CC(BaseIPProblem, BaseProblem3D_CC):
+class Problem3D_CC(BaseIPSimulation, BaseProblem3D_CC):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
@@ -306,11 +306,11 @@ class Problem3D_CC(BaseIPProblem, BaseProblem3D_CC):
     bc_type = 'Neumann'
 
     def __init__(self, mesh, **kwargs):
-        BaseIPProblem.__init__(self, mesh, **kwargs)
+        super(Problem3D_CC, self).__init__(mesh, **kwargs)
         self.setBC()
 
 
-class Problem3D_N(BaseIPProblem, BaseProblem3D_N):
+class Problem3D_N(BaseIPSimulation, BaseProblem3D_N):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # N potentials means B is on faces
@@ -318,7 +318,7 @@ class Problem3D_N(BaseIPProblem, BaseProblem3D_N):
     sign = -1.
 
     def __init__(self, mesh, **kwargs):
-        BaseIPProblem.__init__(self, mesh, **kwargs)
+        super(Problem3D_N, self).__init__(mesh, **kwargs)
 
 
 

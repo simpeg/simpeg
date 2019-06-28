@@ -4,8 +4,9 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-from SimPEG import utils, EM, SolverLU
-import SimPEG.electromagnetics.Static.DC as DC
+from SimPEG import utils, SolverLU
+from SimPEG.electromagnetics import resistivity as dc
+from SimPEG.electromagnetics import analytics
 
 
 class DCProblemAnalyticTests_PDP(unittest.TestCase):
@@ -24,13 +25,13 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         A0loc = np.r_[-150, 0.]
         # A1loc = np.r_[-130, 0.]
         rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
-        data_ana = EM.analytics.DCAnalytic_Pole_Dipole(
+        data_ana = analytics.DCAnalytic_Pole_Dipole(
             np.r_[A0loc, 0.], rxloc, sighalf, earth_type="halfspace"
         )
 
-        rx = DC.Rx.Dipole_ky(M, N)
-        src0 = DC.Src.Pole([rx], A0loc)
-        survey = DC.Survey_ky([src0])
+        rx = dc.Rx.Dipole_ky(M, N)
+        src0 = dc.Src.Pole([rx], A0loc)
+        survey = dc.Survey_ky([src0])
 
         self.survey = survey
         self.mesh = mesh
@@ -46,7 +47,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
 
     def test_Problem2D_N(self, tolerance=0.05):
 
-        problem = DC.Problem2D_N(self.mesh, sigma=self.sigma)
+        problem = dc.Problem2D_N(self.mesh, sigma=self.sigma)
         problem.Solver = self.Solver
         problem.pair(self.survey)
         data = problem.dpred()
@@ -64,7 +65,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_Problem2D_CC(self, tolerance=0.05):
-        problem = DC.Problem2D_CC(self.mesh, sigma=self.sigma)
+        problem = dc.Problem2D_CC(self.mesh, sigma=self.sigma)
         problem.Solver = self.Solver
         problem.pair(self.survey)
         data = problem.dpred()
@@ -98,13 +99,13 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         A0loc = np.r_[-150, 0.]
         A1loc = np.r_[-125, 0.]
         rxloc = np.c_[M, np.zeros(20)]
-        data_ana = EM.analytics.DCAnalytic_Dipole_Pole(
+        data_ana = analytics.DCAnalytic_Dipole_Pole(
                     [np.r_[A0loc, 0.], np.r_[A1loc, 0.]],
                     rxloc, sighalf, earth_type="halfspace")
 
-        rx = DC.Rx.Pole_ky(M)
-        src0 = DC.Src.Dipole([rx], A0loc, A1loc)
-        survey = DC.Survey_ky([src0])
+        rx = dc.Rx.Pole_ky(M)
+        src0 = dc.Src.Dipole([rx], A0loc, A1loc)
+        survey = dc.Survey_ky([src0])
 
         self.survey = survey
         self.mesh = mesh
@@ -120,7 +121,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
 
     def test_Problem2D_N(self, tolerance=0.05):
 
-        problem = DC.Problem2D_N(self.mesh, sigma=self.sigma)
+        problem = dc.Problem2D_N(self.mesh, sigma=self.sigma)
         problem.Solver = self.Solver
         problem.pair(self.survey)
         data = problem.dpred()
@@ -142,7 +143,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_Problem2D_CC(self, tolerance=0.05):
-        problem = DC.Problem2D_CC(self.mesh, sigma=self.sigma)
+        problem = dc.Problem2D_CC(self.mesh, sigma=self.sigma)
         problem.Solver = self.Solver
         problem.pair(self.survey)
         data = problem.dpred()
@@ -179,13 +180,13 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         M = utils.ndgrid(x-12.5, np.r_[0.])
         A0loc = np.r_[-150, 0.]
         rxloc = np.c_[M, np.zeros(20)]
-        data_ana = EM.analytics.DCAnalytic_Pole_Pole(
+        data_ana = analytics.DCAnalytic_Pole_Pole(
                     np.r_[A0loc, 0.],
                     rxloc, sighalf, earth_type="halfspace")
 
-        rx = DC.Rx.Pole_ky(M)
-        src0 = DC.Src.Pole([rx], A0loc)
-        survey = DC.Survey_ky([src0])
+        rx = dc.Rx.Pole_ky(M)
+        src0 = dc.Src.Pole([rx], A0loc)
+        survey = dc.Survey_ky([src0])
 
         self.survey = survey
         self.mesh = mesh
@@ -199,7 +200,7 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
             self.Solver = SolverLU
 
     def test_Problem2D_CC(self, tolerance=0.05):
-        problem = DC.Problem2D_CC(self.mesh, sigma=self.sigma, bc_type="Mixed")
+        problem = dc.Problem2D_CC(self.mesh, sigma=self.sigma, bc_type="Mixed")
         problem.Solver = self.Solver
         problem.pair(self.survey)
         data = problem.dpred()

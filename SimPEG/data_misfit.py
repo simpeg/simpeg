@@ -8,6 +8,7 @@ from .objective_function import L2ObjectiveFunction
 
 __all__ = ["L2DataMisfit"]
 
+
 class BaseDataMisfit(L2ObjectiveFunction):
     """
     BaseDataMisfit
@@ -44,10 +45,14 @@ class BaseDataMisfit(L2ObjectiveFunction):
         default=True
     )
 
-    def __init__(self, simulation=None, **kwargs):
+    def __init__(self, simulation=None, data=None, **kwargs):
         if simulation is not None:
             kwargs['simulation'] = simulation
+
         super(BaseDataMisfit, self).__init__(**kwargs)
+
+        if data is not None:
+            self.data = data
 
     @property
     def nP(self):
@@ -90,6 +95,13 @@ class BaseDataMisfit(L2ObjectiveFunction):
         """
 
         if getattr(self, '_W', None) is None:
+            if self.data is None:
+                raise Exception(
+                    "data with uncertainties must be set before the data "
+                    "misfit can be constructed. Please set the data: "
+                    "dmis.data = Data(dobs=dobs, standard_deviation=std"
+                    ", noise_floor=eps)"
+                )
             uncertainty = self.data.uncertainty
             if uncertainty is None:
                 raise Exception(
@@ -119,6 +131,10 @@ class BaseDataMisfit(L2ObjectiveFunction):
         self._W = value
 
     def residual(self, m, f=None):
+        if self.data is None:
+            raise Exception(
+                "data must be set before a residual can be calculated."
+            )
         return self.simulation.residual(m, self.data.dobs, f=f)
 
     @property
@@ -138,9 +154,6 @@ class L2DataMisfit(BaseDataMisfit):
         \mathbf{W}_d (\mathbf{d}_\\text{pred} -
         \mathbf{d}_\\text{obs}) \\right|_2^2
     """
-
-    def __init__(self, **kwargs):
-        BaseDataMisfit.__init__(self, **kwargs)
 
     @timeIt
     def __call__(self, m, f=None):

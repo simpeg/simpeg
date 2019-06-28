@@ -8,14 +8,14 @@ from ....utils import sdiag
 from ..resistivity.fields_2d import (
     Fields_ky, Fields_ky_CC, Fields_ky_N
 )
-from ..IP import BaseIPProblem_2D
-from ..IP import Problem2D_N as BaseProblem2D_N
-from ..IP import Problem2D_CC as BaseProblem2D_CC
+from ..induced_polarization.simulation_2d import BaseIPSimulation_2D
+from ..induced_polarization import Problem2D_N as BaseProblem2D_N
+from ..induced_polarization import Problem2D_CC as BaseProblem2D_CC
 from .SurveySIP import Survey
 
 
 
-class BaseSIPProblem_2D(BaseIPProblem_2D):
+class BaseSIPProblem_2D(BaseIPSimulation_2D):
 
     eta, etaMap, etaDeriv = props.Invertible(
         "Electrical Chargeability (V/V)"

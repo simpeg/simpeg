@@ -7,6 +7,7 @@ import numpy as np
 from numpy import matlib
 import discretize
 
+from ....data import Data
 from .. import resistivity as dc
 from ....utils import (
     asArray_N_x_Dim, closestPoints, mkvc, surface2ind_topo, uniqueRows,
@@ -15,31 +16,31 @@ from ....utils import (
 
 
 def electrode_separations(
-    dc_survey, survey_type='dipole-dipole', electrode_pair='All'
+    dc_survey, survey_type='dipole-dipole', electrode_pair='all'
 ):
     """
-        Calculate electrode separation distances.
+    Calculate electrode separation distances.
 
-        Input:
-        :param SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
-        :param str survey_type: Either 'pole-dipole' | 'dipole-dipole'
-                                      | 'dipole-pole' | 'pole-pole'
+    Input:
+    :param SimPEG.electromagnetics.static.resistivity.survey.Survey dc_survey: DC survey object
+    :param str survey_type: Either 'pole-dipole' | 'dipole-dipole'
+                                  | 'dipole-pole' | 'pole-pole'
 
-        Output:
-        :return list ***: electrodes [A,B] separation distances
+    Output:
+    :return list ***: electrodes [A,B] separation distances
 
     """
 
-    if not isinstance(electrode_pair, np.ndarray):
-        if electrode_pair == 'All':
-            electrode_pair = np.r_[['AB', 'MN', 'AM', 'AN', 'BM', 'BN']]
-        elif isinstance(electrode_pair, list) or isinstance(electrode_pair, str):
-                electrode_pair = np.r_[electrode_pair]
+    if not isinstance(electrode_pair, list):
+        if electrode_pair.lower() == 'all':
+            electrode_pair = ['AB', 'MN', 'AM', 'AN', 'BM', 'BN']
+        elif isinstance(electrode_pair, str):
+            electrode_pair = [electrode_pair]
         else:
             raise Exception(
-                """electrode_pair must be either a string, list of strings, or an
-                ndarray containing the electrode separation distances you would
-                like to calculate""" " not {}".format(type(electrode_pair))
+                "electrode_pair must be either a string, list of strings, or an "
+                "ndarray containing the electrode separation distances you would "
+                "like to calculate not {}".format(type(electrode_pair))
             )
 
     elecSepDict = {}
@@ -50,13 +51,13 @@ def electrode_separations(
     BM = []
     BN = []
 
-    for ii in range(dc_survey.nSrc):
+    for ii, src in enumerate(dc_survey.source_list):
+        Tx = src.location
+        Rx = src.receiver_list[0].locations
+        nDTx = src.receiver_list[0].nD
 
-        Tx = dc_survey.srcList[ii].loc
-        Rx = dc_survey.srcList[ii].rxList[0].locs
-        nDTx = dc_survey.srcList[ii].rxList[0].nD
-
-        if survey_type == 'dipole-dipole':
+        if survey_type.lower() == 'dipole-dipole':
+            print(Tx[0], nDTx, 1)
             A = matlib.repmat(Tx[0], nDTx, 1)
             B = matlib.repmat(Tx[1], nDTx, 1)
             M = Rx[0]
@@ -69,7 +70,7 @@ def electrode_separations(
             BM.append(np.sqrt(np.sum((B[:, :] - M[:, :])**2., axis=1)))
             BN.append(np.sqrt(np.sum((B[:, :] - N[:, :])**2., axis=1)))
 
-        elif survey_type == 'pole-dipole':
+        elif survey_type.lower() == 'pole-dipole':
             A = matlib.repmat(Tx, nDTx, 1)
             M = Rx[0]
             N = Rx[1]
@@ -78,7 +79,7 @@ def electrode_separations(
             AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2., axis=1)))
             AN.append(np.sqrt(np.sum((A[:, :] - N[:, :])**2., axis=1)))
 
-        elif survey_type == 'dipole-pole':
+        elif survey_type.lower() == 'dipole-pole':
             A = matlib.repmat(Tx[0], nDTx, 1)
             B = matlib.repmat(Tx[1], nDTx, 1)
             M = Rx
@@ -87,7 +88,7 @@ def electrode_separations(
             AM.append(np.sqrt(np.sum((A[:, :] - M[:, :])**2., axis=1)))
             BM.append(np.sqrt(np.sum((B[:, :] - M[:, :])**2., axis=1)))
 
-        elif survey_type == 'pole-pole':
+        elif survey_type.lower() == 'pole-pole':
             A = matlib.repmat(Tx, nDTx, 1)
             M = Rx
 
@@ -95,32 +96,31 @@ def electrode_separations(
 
         else:
             raise Exception(
-                """survey_type must be 'dipole-dipole' | 'pole-dipole' |
-                'dipole-pole' | 'pole-pole'"""
-                " not {}".format(survey_type)
+                "survey_type must be 'dipole-dipole' | 'pole-dipole' | "
+                "'dipole-pole' | 'pole-pole' not {}".format(survey_type)
             )
 
-    if np.any(electrode_pair == 'AB'):
+    if 'AB' in electrode_pair:
         if AB:
             AB = np.hstack(AB)
         elecSepDict['AB'] = AB
-    if np.any(electrode_pair == 'MN'):
+    if 'MN' in electrode_pair:
         if MN:
             MN = np.hstack(MN)
         elecSepDict['MN'] = MN
-    if np.any(electrode_pair == 'AM'):
+    if 'AM' in electrode_pair:
         if AM:
             AM = np.hstack(AM)
         elecSepDict['AM'] = AM
-    if np.any(electrode_pair == 'AN'):
+    if 'AN' in electrode_pair:
         if AN:
             AN = np.hstack(AN)
         elecSepDict['AN'] = AN
-    if np.any(electrode_pair == 'BM'):
+    if 'BM' in electrode_pair:
         if BM:
             BM = np.hstack(BM)
         elecSepDict['BM'] = BM
-    if np.any(electrode_pair == 'BN'):
+    if 'BN' in electrode_pair:
         if BN:
             BN = np.hstack(BN)
         elecSepDict['BN'] = BN
@@ -133,7 +133,7 @@ def source_receiver_midpoints(dc_survey, survey_type='dipole-dipole', dim=2):
         Calculate source receiver midpoints.
 
         Input:
-        :param SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
+        :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
         :param str survey_type: Either 'pole-dipole' | 'dipole-dipole'
                                       | 'dipole-pole' | 'pole-pole'
 
@@ -147,11 +147,11 @@ def source_receiver_midpoints(dc_survey, survey_type='dipole-dipole', dim=2):
     midz = []
 
     for ii in range(dc_survey.nSrc):
-        Tx = dc_survey.srcList[ii].loc
-        Rx = dc_survey.srcList[ii].rxList[0].locs
+        Tx = dc_survey.source_list[ii].location
+        Rx = dc_survey.source_list[ii].receiver_list[0].locations
 
         # Get distances between each poles A-B-M-N
-        if survey_type == 'pole-dipole':
+        if survey_type.lower() == 'pole-dipole':
             # Create mid-point location
             Cmid = Tx[0]
             Pmid = (Rx[0][:, 0] + Rx[1][:, 0])/2
@@ -162,7 +162,7 @@ def source_receiver_midpoints(dc_survey, survey_type='dipole-dipole', dim=2):
             else:
                 raise Exception()
 
-        elif survey_type == 'dipole-dipole':
+        elif survey_type.lower() == 'dipole-dipole':
             # Create mid-point location
             Cmid = (Tx[0][0] + Tx[1][0])/2
             Pmid = (Rx[0][:, 0] + Rx[1][:, 0])/2
@@ -173,7 +173,7 @@ def source_receiver_midpoints(dc_survey, survey_type='dipole-dipole', dim=2):
             else:
                 raise Exception()
 
-        elif survey_type == 'pole-pole':
+        elif survey_type.lower() == 'pole-pole':
             # Create mid-point location
             Cmid = Tx[0]
             Pmid = Rx[:, 0]
@@ -184,7 +184,7 @@ def source_receiver_midpoints(dc_survey, survey_type='dipole-dipole', dim=2):
             else:
                 raise Exception()
 
-        elif survey_type == 'dipole-pole':
+        elif survey_type.lower() == 'dipole-pole':
             # Create mid-point location
             Cmid = (Tx[0][0] + Tx[1][0])/2
             Pmid = Rx[:, 0]
@@ -214,7 +214,7 @@ def geometric_factor(
         Calculate Geometric Factor. Assuming that data are normalized voltages
 
         Input:
-        :param SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
+        :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
         :param str survey_type: Either 'dipole-dipole' | 'pole-dipole'
                                | 'dipole-pole' | 'pole-pole'
         :param str space_type: Assuming whole-space or half-space
@@ -225,16 +225,16 @@ def geometric_factor(
 
     """
     # Set factor for whole-space or half-space assumption
-    if space_type == 'whole-space':
+    if space_type.lower() in ['whole-space', 'wholespace']:
         spaceFact = 4.
-    elif space_type == 'half-space':
+    elif space_type.lower() in ['half-space', 'halfspace']:
         spaceFact = 2.
     else:
-        raise Exception("""'space_type must be 'whole-space' | 'half-space'""")
+        raise Exception("'space_type must be 'whole-space' | 'half-space'")
 
     elecSepDict = electrode_separations(
-            dc_survey, survey_type=survey_type,
-            electrode_pair=['AM', 'BM', 'AN', 'BN']
+        dc_survey, survey_type=survey_type,
+        electrode_pair=['AM', 'BM', 'AN', 'BN']
     )
     AM = elecSepDict['AM']
     BM = elecSepDict['BM']
@@ -242,70 +242,75 @@ def geometric_factor(
     BN = elecSepDict['BN']
 
     # Determine geometric factor G based on electrode separation distances
-    if survey_type == 'dipole-dipole':
+    if survey_type.lower() == 'dipole-dipole':
         G = 1/AM - 1/BM - 1/AN + 1/BN
 
-    elif survey_type == 'pole-dipole':
+    elif survey_type.lower() == 'pole-dipole':
         G = 1/AM - 1/AN
 
-    elif survey_type == 'dipole-pole':
+    elif survey_type.lower() == 'dipole-pole':
         G = 1/AM - 1/BM
 
-    elif survey_type == 'pole-pole':
+    elif survey_type.lower() == 'pole-pole':
         G = 1/AM
 
     else:
         raise Exception(
-                """survey_type must be 'dipole-dipole' | 'pole-dipole' |
-                'dipole-pole' | 'pole-pole'"""
-                " not {}".format(survey_type)
-            )
+            "survey_type must be 'dipole-dipole' | 'pole-dipole' | "
+            "'dipole-pole' | 'pole-pole' not {}".format(survey_type)
+        )
 
     return (G/(spaceFact*np.pi))
 
 
 def apparent_resistivity(
-    dc_survey, survey_type='dipole-dipole',
-    space_type='half-space', dobs=None,
+    data, survey_type='dipole-dipole', space_type='half-space', dobs=None,
     eps=1e-10
 ):
     """
-        Calculate apparent resistivity. Assuming that data are normalized
-        voltages - Vmn/I (Potential difference [V] divided by injection
-        current [A]). For fwd modelled data an injection current of 1A is
-        assumed in SimPEG.
+    Calculate apparent resistivity. Assuming that data are normalized
+    voltages - Vmn/I (Potential difference [V] divided by injection
+    current [A]). For fwd modelled data an injection current of 1A is
+    assumed in SimPEG.
 
-        Input:
-        :param SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
-        :param numpy.ndarray dobs: normalized voltage measurements [V/A]
-        :param str survey_type: Either 'dipole-dipole' | 'pole-dipole' |
-            'dipole-pole' | 'pole-pole'
-        :param float eps: Regularizer in case of a null geometric factor
+    Input:
+    :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+    :param numpy.ndarray dobs: normalized voltage measurements [V/A]
+    :param str survey_type: Either 'dipole-dipole' | 'pole-dipole' |
+        'dipole-pole' | 'pole-pole'
+    :param float eps: Regularizer in case of a null geometric factor
 
-        Output:
-        :return rhoApp: apparent resistivity
+    Output:
+    :return rhoApp: apparent resistivity
     """
-    # Use dobs in survey if dobs is None
+    if not isinstance(data, Data):
+        raise Exception(
+            "A Data instance ({datacls}: <{datapref}.{datacls}>) must be "
+            "provided as the second input. The provided input is a "
+            "{providedcls} <{providedpref}.{providedcls}>".format(
+                datacls=Data.__name__, datapref=Data.__module__,
+                providedcls=data.__name__, providedpref=data.__module__
+            )
+        )
+
     if dobs is None:
-        if dc_survey.dobs is None:
-            raise Exception()
-        else:
-            dobs = dc_survey.dobs
+        dobs = data.dobs
+
 
     # Calculate Geometric Factor
     G = geometric_factor(
-        dc_survey, survey_type=survey_type, space_type=space_type
+        data.survey, survey_type=survey_type, space_type=space_type
     )
 
     # Calculate apparent resistivity
     # absolute value is required because of the regularizer
-    rhoApp = np.abs(dobs*(1./(G+eps)))
+    rhoApp = np.abs(data.dobs*(1./(G+eps)))
 
     return rhoApp
 
 
 def plot_pseudoSection(
-    dc_survey, ax=None, survey_type='dipole-dipole',
+    data, ax=None, survey_type='dipole-dipole',
     data_type="appConductivity", space_type='half-space',
     clim=None, scale="linear", sameratio=True,
     pcolorOpts={}, data_location=False, dobs=None, dim=2
@@ -317,7 +322,7 @@ def plot_pseudoSection(
         Assumes flat topo for now...
 
         Input:
-        :param SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
+        :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
         :param matplotlib.pyplot.axes ax: figure axes on which to plot
         :param str survey_type: Either 'dipole-dipole' | 'pole-dipole' |
             'dipole-pole' | 'pole-pole'
@@ -335,22 +340,24 @@ def plot_pseudoSection(
     z0 = 0.
     rho = []
 
+    if not isinstance(data, Data):
+        raise Exception(
+            "A Data instance ({datacls}: <{datapref}.{datacls}>) must be "
+            "provided as the second input. The provided input is a "
+            "{providedcls} <{providedpref}.{providedcls}>".format(
+                datacls=Data.__name__, datapref=Data.__module__,
+                providedcls=data.__name__, providedpref=data.__module__
+            )
+        )
     # Use dobs in survey if dobs is None
     if dobs is None:
-        if dc_survey.dobs is None:
-            raise Exception()
-        else:
-            dobs = dc_survey.dobs
+        dobs = data.dobs
 
     rhoApp = apparent_resistivity(
-                dc_survey, dobs=dobs,
-                survey_type=survey_type,
-                space_type=space_type
+        data, dobs=dobs, survey_type=survey_type, space_type=space_type
     )
     midx, midz = source_receiver_midpoints(
-                    dc_survey,
-                    survey_type=survey_type,
-                    dim=dim
+        data.survey, survey_type=survey_type, dim=dim
     )
 
     if data_type == 'volt':
@@ -380,11 +387,13 @@ def plot_pseudoSection(
         )
 
     # Grid points
-    grid_x, grid_z = np.mgrid[np.min(midx):np.max(midx),
-                              np.min(midz):np.max(midz)]
+    grid_x, grid_z = np.mgrid[
+        np.min(midx):np.max(midx), np.min(midz):np.max(midz)
+    ]
 
-    grid_rho = griddata(np.c_[midx, midz], rho.T, (grid_x, grid_z),
-                        method='linear')
+    grid_rho = griddata(
+        np.c_[midx, midz], rho.T, (grid_x, grid_z), method='linear'
+    )
 
     if clim is None:
         vmin, vmax = rho.min(), rho.max()
@@ -396,19 +405,19 @@ def plot_pseudoSection(
 
     grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
     ph = ax.pcolormesh(
-         grid_x[:, 0], grid_z[0, :], grid_rho.T,
-         clim=(vmin, vmax), vmin=vmin, vmax=vmax, **pcolorOpts
+        grid_x[:, 0], grid_z[0, :], grid_rho.T,
+        clim=(vmin, vmax), vmin=vmin, vmax=vmax, **pcolorOpts
     )
 
     if scale == "log":
         cbar = plt.colorbar(
-               ph, format="$10^{%.1f}$",
-               fraction=0.04, orientation="horizontal"
+            ph, format="$10^{%.1f}$",
+            fraction=0.04, orientation="horizontal"
         )
     elif scale == "linear":
         cbar = plt.colorbar(
-               ph, format="%.1f",
-               fraction=0.04, orientation="horizontal"
+            ph, format="%.1f",
+            fraction=0.04, orientation="horizontal"
         )
 
     if data_type == 'appConductivity':
@@ -453,7 +462,7 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
         :param str d2flag: choose for 2D mesh between a '2D' or a '2.5D' survey
 
         Output:
-        :return SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
+        :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
     """
 
     def xy_2_r(x1, x2, y1, y2):
@@ -496,19 +505,18 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
 
         for ii in range(0, int(nstn)-1):
 
-            if survey_type == 'dipole-dipole' or survey_type == 'dipole-pole':
+            if survey_type.lower() in ['dipole-dipole', 'dipole-pole']:
                 tx = np.c_[M[ii, :], N[ii, :]]
                 # Current elctrode separation
                 AB = xy_2_r(tx[0, 1], endl[1, 0], tx[1, 1], endl[1, 1])
-            elif survey_type == 'pole-dipole' or survey_type == 'pole-pole':
+            elif survey_type.lower() in ['pole-dipole', 'pole-pole']:
                 tx = np.r_[M[ii, :]]
                 # Current elctrode separation
                 AB = xy_2_r(tx[0], endl[1, 0], tx[1], endl[1, 1])
             else:
                 raise Exception(
-                    """survey_type must be 'dipole-dipole' | 'pole-dipole' |
-                    'dipole-pole' | 'pole-pole'"""
-                    " not {}".format(survey_type)
+                    "survey_type must be 'dipole-dipole' | 'pole-dipole' | "
+                    "'dipole-pole' | 'pole-pole' not {}".format(survey_type)
                 )
 
             # Rx.append(np.c_[M[ii+1:indx, :], N[ii+1:indx, :]])
@@ -533,9 +541,9 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
                 P1 = np.c_[stn_x, stn_y, stn_z]
                 # Create line of P2 locations
                 P2 = np.c_[stn_x+a*dl_x, stn_y+a*dl_y, stn_z]
-                if survey_type == 'dipole-dipole' or survey_type == 'pole-dipole':
+                if survey_type.lower() in ['dipole-dipole', 'pole-dipole']:
                     rxClass = dc.Rx.Dipole(P1, P2)
-                elif survey_type == 'dipole-pole' or survey_type == 'pole-pole':
+                elif survey_type.lower() in ['dipole-pole', 'pole-pole']:
                     rxClass = dc.Rx.Pole(P1)
 
             elif dim == 2:
@@ -544,24 +552,24 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
                 P1 = np.c_[stn_x, np.ones(nstn).T*ztop]
                 # Create line of P2 locations
                 P2 = np.c_[stn_x+a*dl_x, np.ones(nstn).T*ztop]
-                if survey_type == 'dipole-dipole' or survey_type == 'pole-dipole':
+                if survey_type.lower() in['dipole-dipole', 'pole-dipole']:
                     if d2flag == '2.5D':
                         rxClass = dc.Rx.Dipole_ky(P1, P2)
                     elif d2flag == '2D':
                         rxClass = dc.Rx.Dipole(P1, P2)
-                elif survey_type == 'dipole-pole' or survey_type == 'pole-pole':
+                elif survey_type.lower() in ['dipole-pole', 'pole-pole']:
                     if d2flag == '2.5D':
                         rxClass = dc.Rx.Pole_ky(P1)
                     elif d2flag == '2D':
                         rxClass = dc.Rx.Pole(P1)
 
-            if survey_type == 'dipole-dipole' or survey_type == 'dipole-pole':
+            if survey_type.lower() in['dipole-dipole', 'dipole-pole']:
                 srcClass = dc.Src.Dipole([rxClass], M[ii, :], N[ii, :])
-            elif survey_type == 'pole-dipole' or survey_type == 'pole-pole':
+            elif survey_type.lower() in ['pole-dipole', 'pole-pole']:
                 srcClass = dc.Src.Pole([rxClass], M[ii, :])
             SrcList.append(srcClass)
 
-    elif survey_type == 'gradient':
+    elif survey_type.lower() == 'gradient':
 
         # Gradient survey takes the "b" parameter to define the limits of a
         # square survey grid. The pole seperation within the receiver grid is
@@ -612,16 +620,9 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
                     rxClass = DC.Rx.Dipole_ky(rx[:, [0, 2]], rx[:, [3, 5]])
                 elif d2flag == '2D':
                     rxClass = DC.Rx.Dipole(rx[:, [0, 2]], rx[:, [3, 5]])
-            srcClass = DC.Src.Dipole([rxClass],
-                                     (endl[0, :]),
-                                     (endl[1, :]))
+            srcClass = DC.Src.Dipole([rxClass], (endl[0, :]), (endl[1, :]))
         SrcList.append(srcClass)
-    else:
-        raise Exception(
-            """survey_type must be either 'pole-dipole', 'dipole-dipole',
-            'dipole-pole','pole-pole' or 'gradient'"""
-            " not {}".format(survey_type)
-        )
+
     if (d2flag == '2.5D') and (dim == 2):
         survey = dc.Survey_ky(SrcList)
     else:
@@ -631,25 +632,35 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
 
 
 def writeUBC_DCobs(
-    fileName, dc_survey, dim, format_type,
+    fileName, data, dim, format_type,
     survey_type='dipole-dipole', ip_type=0,
     comment_lines=''
 ):
     """
-        Write UBC GIF DCIP 2D or 3D observation file
+    Write UBC GIF DCIP 2D or 3D observation file
 
-        Input:
-        :param str fileName: including path where the file is written out
-        :param SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
-        :param int dim:  either 2 | 3
-        :param str format_type:  either 'SURFACE' | 'GENERAL'
-        :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-            'dipole-pole' | 'pole-pole' | 'gradient'
+    Input:
+    :param str fileName: including path where the file is written out
+    :param SimPEG.Data data: DC data object
+    :param int dim:  either 2 | 3
+    :param str format_type:  either 'surface' | 'general' | 'simple'
+    :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
+        'dipole-pole' | 'pole-pole' | 'gradient'
 
-        Output:
-        :return: UBC2D-Data file
-        :rtype: file
+    Output:
+    :return: UBC2D-Data file
+    :rtype: file
     """
+
+    if not isinstance(data, Data):
+        raise Exception(
+            "A Data instance ({datacls}: <{datapref}.{datacls}>) must be "
+            "provided as the second input. The provided input is a "
+            "{providedcls} <{providedpref}.{providedcls}>".format(
+                datacls=Data.__name__, datapref=Data.__module__,
+                providedcls=data.__name__, providedpref=data.__module__
+            )
+        )
 
     if not((dim == 2) | (dim == 3)):
         raise Exception(
@@ -657,30 +668,26 @@ def writeUBC_DCobs(
             " not {}".format(dim)
         )
 
-    if not (
-        (format_type == 'SURFACE') |
-        (format_type == 'GENERAL') |
-        (format_type == 'SIMPLE')
-    ):
+    format_type = format_type.lower()
+    if format_type not in ['surface', 'general', 'simple']:
         raise Exception(
-            """format_type must be 'SURFACE' | 'GENERAL' |
-            'SIMPLE' | 'pole-pole'"""
+            "format_type must be 'surface' | 'general' | 'simple' "
             " not {}".format(format_type)
         )
 
-    if(isinstance(dc_survey.std, float)):
-        print(
-            """survey.std was a float computing uncertainty vector
-            (survey.std*survey.dobs + survey.eps)"""
-        )
+    # if(isinstance(dc_survey.std, float)):
+    #     print(
+    #         """survey.std was a float computing uncertainty vector
+    #         (survey.std*survey.dobs + survey.eps)"""
+    #     )
 
-    if(isinstance(dc_survey.eps, float)):
-        epsValue = dc_survey.eps
-        dc_survey.eps = epsValue*np.ones_like(dc_survey.dobs)
+    # if(isinstance(dc_survey.eps, float)):
+    #     epsValue = dc_survey.eps
+    #     dc_survey.eps = epsValue*np.ones_like(dc_survey.dobs)
 
     fid = open(fileName, 'w')
 
-    if format_type in ['SURFACE', 'GENERAL'] and dim == 2:
+    if format_type.lower() in ['surface', 'general'] and dim == 2:
         fid.write('COMMON_CURRENT\n')
 
     fid.write('! ' + format_type + ' FORMAT\n')
@@ -689,7 +696,7 @@ def writeUBC_DCobs(
         fid.write(comment_lines)
 
     if dim == 2:
-        fid.write('{:d}\n'.format(dc_survey.nSrc))
+        fid.write('{:d}\n'.format(data.survey.nSrc))
 
     if ip_type != 0:
         fid.write('IPTYPE=%i\n' % ip_type)
@@ -698,29 +705,27 @@ def writeUBC_DCobs(
 
     count = 0
 
-    for ii in range(dc_survey.nSrc):
+    for ii in range(data.survey.nSrc):
 
-        rx = dc_survey.srcList[ii].rxList[0].locs
-        nD = dc_survey.srcList[ii].nD
+        rx = data.survey.srcList[ii].rxList[0].locs
+        nD = data.survey.srcList[ii].nD
 
-        if survey_type == 'pole-dipole' or survey_type == 'pole-pole':
-            tx = np.r_[dc_survey.srcList[ii].loc]
+        if survey_type.lower() in ['pole-dipole', 'pole-pole']:
+            tx = np.r_[data.survey.srcList[ii].loc]
             tx = np.repeat(np.r_[[tx]], 2, axis=0)
-        elif survey_type == 'dipole-dipole' or survey_type == 'dipole-pole':
-            tx = np.c_[dc_survey.srcList[ii].loc]
+        elif survey_type.lower() in ['dipole-dipole', 'dipole-pole']:
+            tx = np.c_[data.survey.srcList[ii].loc]
 
-        if survey_type == 'pole-dipole' or survey_type == 'dipole-dipole':
+        if survey_type.lower() in ['pole-dipole', 'dipole-dipole']:
             M = rx[0]
             N = rx[1]
-        elif survey_type == 'pole-pole' or survey_type == 'dipole-pole':
+        elif survey_type.lower() in ['pole-pole', 'dipole-pole']:
             M = rx
             N = rx
 
         # Adapt source-receiver location for dim and survey_type
         if dim == 2:
-
-            if format_type == 'SIMPLE':
-
+            if format_type == 'simple':
                 # fid.writelines("%e " % ii for ii in mkvc(tx[0, :]))
                 A = np.repeat(tx[0, 0], M.shape[0], axis=0)
 
@@ -738,22 +743,20 @@ def writeUBC_DCobs(
                     fid,
                     np.c_[
                         A, B, M, N,
-                        dc_survey.dobs[count:count+nD],
-                        dc_survey.std[count:count+nD]
+                        data.dobs[count:count+nD],
+                        data.standard_deviation[count:count+nD]
                     ],
                     delimiter=str(' '), newline=str('\n'))
                 fid.close()
 
             else:
                 fid = open(fileName, 'a')
-                if format_type == 'SURFACE':
-
+                if format_type == 'surface':
                     fid.writelines("%f " % ii for ii in mkvc(tx[:, 0]))
                     M = M[:, 0]
                     N = N[:, 0]
 
-                if format_type == 'GENERAL':
-
+                if format_type == 'general':
                     # Flip sign for z-elevation to depth
                     tx[2::2, :] = -tx[2::2, :]
 
@@ -773,8 +776,8 @@ def writeUBC_DCobs(
                     fid,
                     np.c_[
                         M, N,
-                        dc_survey.dobs[count:count+nD],
-                        dc_survey.std[count:count+nD]
+                        data.dobs[count:count+nD],
+                        data.standard_deviation[count:count+nD]
                     ],
                     delimiter=str(' '), newline=str('\n'))
 
@@ -788,13 +791,13 @@ def writeUBC_DCobs(
             # M[:, 2] = -M[:, 2]
             # N[:, 2] = -N[:, 2]
 
-            if format_type == 'SURFACE':
+            if format_type == 'surface':
 
                 fid.writelines("%e " % ii for ii in mkvc(tx[:, 0:2].T))
                 M = M[:, 0:2]
                 N = N[:, 0:2]
 
-            if format_type == 'GENERAL':
+            if format_type == 'general':
 
                 fid.writelines("%e " % ii for ii in mkvc(tx.T))
 
@@ -803,34 +806,35 @@ def writeUBC_DCobs(
             fid.close()
 
             fid = open(fileName, 'ab')
-            if isinstance(dc_survey.std, np.ndarray):
+            if isinstance(data.standard_deviation, np.ndarray):
                 np.savetxt(
                     fid,
                     np.c_[
-                        M, N,
-                        dc_survey.dobs[count:count+nD],
-                        dc_survey.std[count:count+nD] + dc_survey.eps[count:count+nD]
+                        M, N, data.dobs[count:count+nD],
+                        (
+                            data.standard_deviation[count:count+nD] +
+                            data.noise_floor[count:count+nD]
+                        )
                     ],
                     fmt=str('%e'), delimiter=str(' '), newline=str('\n')
                 )
-            elif (isinstance(dc_survey.std, float)):
-                np.savetxt(
-                    fid,
-                    np.c_[
-                        M, N,
-                        dc_survey.dobs[count:count+nD],
-                        dc_survey.std*np.abs(dc_survey.dobs[count:count+nD]) + dc_survey.eps[count:count+nD]
-                    ],
-                    fmt=str('%e'), delimiter=str(' '), newline=str('\n')
-                )
+            # elif (isinstance(data.survey.std, float)):
+            #     np.savetxt(
+            #         fid,
+            #         np.c_[
+            #             M, N,
+            #             data.survey.dobs[count:count+nD],
+            #             data.survey.std*np.abs(data.survey.dobs[count:count+nD]) + data.survey.eps[count:count+nD]
+            #         ],
+            #         fmt=str('%e'), delimiter=str(' '), newline=str('\n')
+            #     )
             else:
                 raise Exception(
                     """Uncertainities SurveyObject.std should be set.
                     Either float or nunmpy.ndarray is expected, """
-                    "not {}".format(type(dc_survey.std)))
+                    "not {}".format(type(data.standard_deviation)))
 
             fid.close()
-
             fid = open(fileName, 'a')
             fid.write('\n')
             fid.close()
@@ -849,7 +853,7 @@ def writeUBC_DClocs(
 
         Input:
         :param str fileName: including path where the file is written out
-        :param SimPEG.EM.Static.resistivity.SurveyDC.Survey dc_survey: DC survey object
+        :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
         :param int dim:  either 2 | 3
         :param str survey_type:  either 'SURFACE' | 'GENERAL'
 
@@ -864,20 +868,15 @@ def writeUBC_DClocs(
             " not {}".format(dim)
         )
 
-    if not (
-        (format_type == 'SURFACE') |
-        (format_type == 'GENERAL') |
-        (format_type == 'SIMPLE')
-    ):
+    if format_type.lower() not in ['surface', 'general', 'simple']:
         raise Exception(
-            """format_type must be 'SURFACE' | 'GENERAL' |
-            'SIMPLE' | 'pole-pole'"""
+            "format_type must be 'SURFACE' | 'GENERAL' | 'SIMPLE' "
             " not {}".format(format_type)
         )
 
     fid = open(fileName, 'w')
 
-    if format_type in ['SURFACE', 'GENERAL'] and dim == 2:
+    if format_type.lower() in ['surface', 'general'] and dim == 2:
         fid.write('COMMON_CURRENT\n')
 
     fid.write('! ' + format_type + ' FORMAT\n')
@@ -897,31 +896,30 @@ def writeUBC_DClocs(
 
     for ii in range(dc_survey.nSrc):
 
-        rx = dc_survey.srcList[ii].rxList[0].locs
-        nD = dc_survey.srcList[ii].nD
+        rx = dc_survey.source_list[ii].rxList[0].locs
+        nD = dc_survey.source_list[ii].nD
 
-        if survey_type == 'pole-dipole' or survey_type == 'pole-pole':
-            tx = np.r_[dc_survey.srcList[ii].loc]
+        if survey_type.lower() in ['pole-dipole', 'pole-pole']:
+            tx = np.r_[dc_survey.source_list[ii].loc]
             tx = np.repeat(np.r_[[tx]], 2, axis=0)
-        elif survey_type == 'dipole-dipole' or survey_type == 'dipole-pole':
-            tx = np.c_[dc_survey.srcList[ii].loc]
+        elif survey_type.lower() in ['dipole-dipole', 'dipole-pole']:
+            tx = np.c_[dc_survey.source_list[ii].loc]
 
-        if survey_type == 'pole-dipole' or survey_type == 'dipole-dipole':
+        if survey_type.lower() in ['pole-dipole', 'dipole-dipole']:
             M = rx[0]
             N = rx[1]
-        elif survey_type == 'pole-pole' or survey_type == 'dipole-pole':
+        elif survey_type.lower() in ['pole-pole', 'dipole-pole']:
             M = rx
             N = rx
 
         # Adapt source-receiver location for dim and survey_type
         if dim == 2:
 
-            if format_type == 'SIMPLE':
-
+            if format_type.lower() == 'simple':
                 # fid.writelines("%e " % ii for ii in mkvc(tx[0, :]))
                 A = np.repeat(tx[0, 0], M.shape[0], axis=0)
 
-                if survey_type == 'pole-dipole':
+                if survey_type.lower() == 'pole-dipole':
                     B = np.repeat(tx[0, 0], M.shape[0], axis=0)
 
                 else:
@@ -933,21 +931,20 @@ def writeUBC_DClocs(
                 fid = open(fileName, 'ab')
                 np.savetxt(
                     fid,
-                    np.c_[
-                        A, B, M, N,
-                    ],
-                    delimiter=str(' '), newline=str('\n'))
+                    np.c_[A, B, M, N],
+                    delimiter=str(' '), newline=str('\n')
+                )
                 fid.close()
 
             else:
                 fid = open(fileName, 'a')
-                if format_type == 'SURFACE':
+                if format_type.lower() == 'surface':
 
                     fid.writelines("%f " % ii for ii in mkvc(tx[:, 0]))
                     M = M[:, 0]
                     N = N[:, 0]
 
-                if format_type == 'GENERAL':
+                if format_type.lower() == 'general':
 
                     # Flip sign for z-elevation to depth
                     tx[2::2, :] = -tx[2::2, :]
@@ -981,13 +978,13 @@ def writeUBC_DClocs(
             M[:, 2] = -M[:, 2]
             N[:, 2] = -N[:, 2]
 
-            if format_type == 'SURFACE':
+            if format_type.lower() == 'surface':
 
                 fid.writelines("%e " % ii for ii in mkvc(tx[:, 0:2].T))
                 M = M[:, 0:2]
                 N = N[:, 0:2]
 
-            if format_type == 'GENERAL':
+            if format_type.lower() == 'general':
 
                 fid.writelines("%e " % ii for ii in mkvc(tx.T))
 
@@ -996,8 +993,10 @@ def writeUBC_DClocs(
             fid.close()
 
             fid = open(fileName, 'ab')
-            np.savetxt(fid, np.c_[M, N], fmt=str('%e'), delimiter=str(' '),
-                newline=str('\n'))
+            np.savetxt(
+                fid, np.c_[M, N], fmt=str('%e'), delimiter=str(' '),
+                newline=str('\n')
+            )
             fid.close()
 
             fid = open(fileName, 'a')
@@ -1020,11 +1019,11 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
 
         Input:
         :param survey: 3D DC survey class object
-        :rtype: SimPEG.EM.Static.resistivity.SurveyDC.Survey
+        :rtype: SimPEG.electromagnetics.static.resistivity.Survey
 
         Output:
         :param survey: 2D DC survey class object
-        :rtype: SimPEG.EM.Static.resistivity.SurveyDC.Survey
+        :rtype: SimPEG.electromagnetics.static.resistivity.Survey
     """
 
     def stn_id(v0, v1, r):
@@ -1153,7 +1152,7 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
                     )
                 )
 
-    survey2D = dc.SurveyDC.Survey(srcList2D)
+    survey2D = dc.Survey(srcList2D)
     survey2D.dobs = survey.dobs
     survey2D.std = survey.std
 
@@ -1170,7 +1169,7 @@ def readUBC_DC2Dpre(fileName):
 
         Output:
         :return survey: 2D DC survey class object
-        :rtype: SimPEG.EM.Static.resistivity.SurveyDC.Survey
+        :rtype: SimPEG.electromagnetics.static.resistivity.Survey
 
         Created on Mon March 9th, 2016 << Doug's 70th Birthday !! >>
 
@@ -1180,8 +1179,7 @@ def readUBC_DC2Dpre(fileName):
 
     # Load file
     obsfile = np.genfromtxt(
-        fileName, delimiter=' \n',
-        dtype=np.str, comments='!'
+        fileName, delimiter=' \n', dtype=np.str, comments='!'
     )
 
     # Pre-allocate
@@ -1220,11 +1218,10 @@ def readUBC_DC2Dpre(fileName):
         srcLists.append(dc.Src.Dipole([Rx], tx[:3], tx[3:]))
 
     # Create survey class
-    survey = dc.SurveyDC.Survey(srcLists)
+    survey = dc.Survey(srcLists)
+    data = Data(survey=survey, dobs=np.asarray(d))
 
-    survey.dobs = np.asarray(d)
-
-    return {'dc_survey': survey}
+    return data
 
 
 def readUBC_DC3Dobs(fileName):
@@ -1339,12 +1336,11 @@ def readUBC_DC3Dobs(fileName):
             else:
                 srcLists.append(dc.Src.Dipole([Rx], tx[:3], tx[3:]))
 
-    survey = dc.SurveyDC.Survey(srcLists)
-    survey.dobs = np.asarray(d)
-    survey.std = np.asarray(wd)
-    survey.eps = 0.
-
-    return {'dc_survey': survey}
+    survey = dc.Survey(srcLists)
+    data = Data(
+        survey=survey, dobs=np.asarray(d), standard_deviation=np.asarray(wd)
+    )
+    return data
 
 
 def xy_2_lineID(dc_survey):
@@ -1394,17 +1390,11 @@ def xy_2_lineID(dc_survey):
 
         xin = np.mean([A[0:2], B[0:2]], axis=0)
 
-        # Compute vector between neighbours
-        vec1, r1 = r_unit(xout, xin)
 
-        # Compute vector between current stn and mid-point
-        vec2, r2 = r_unit(xym, xin)
-
-        # Compute vector between current stn and start line
-        vec3, r3 = r_unit(xy0, xin)
-
-        # Compute vector between mid-point and start line
-        vec4, r4 = r_unit(xym, xy0)
+        vec1, r1 = r_unit(xout, xin)  # Compute vector between neighbours
+        vec2, r2 = r_unit(xym, xin)  # Compute vector between current stn and mid-point
+        vec3, r3 = r_unit(xy0, xin)  # Compute vector between current stn and start line
+        vec4, r4 = r_unit(xym, xy0)   # Compute vector between mid-point and start line
 
         # Compute dot product
         ang1 = np.abs(vec1.dot(vec2))
@@ -1466,7 +1456,7 @@ def getSrc_locs(survey):
 
         Input:
         :param survey: DC survey class object
-        :rtype: SimPEG.EM.Static.resistivity.SurveyDC.Survey
+        :rtype: SimPEG.electromagnetics.static.resistivity.Survey
 
         Output:
         :return numpy.ndarray srcMat: Array containing the locations of sources
@@ -1557,7 +1547,7 @@ def gettopoCC(mesh, actind, option="top"):
         else:
             raise NotImplementedError(
                 "gettopoCC is not implemented for Quad tree mesh"
-                )
+            )
 
 
 def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):

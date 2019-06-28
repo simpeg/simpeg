@@ -1,21 +1,6 @@
-from ..resistivity import Survey as SurveyDC
-from ..resistivity import Rx, Src
+from ..resistivity import Survey
+from ..resistivity import receiver, source
 
-
-class Survey(SurveyDC):
-
-    def __init__(self, srcList, **kwargs):
-        self.srcList = srcList
-        Survey__init__(self, srcList, **kwargs)
-
-    def dpred(self, m=None, f=None):
-        """
-            Predicted data.
-
-            .. math::
-                d_\\text{pred} = Pf(m)
-        """
-        return self.prob.Jvec(m, m, f=f)
 
 
 def from_dc_to_ip_survey(dc_survey, dim="2.5D"):
@@ -28,21 +13,21 @@ def from_dc_to_ip_survey(dc_survey, dim="2.5D"):
             rxList_ip = []
             src_ip = []
             for rx in src.rxList:
-                if isinstance(rx, Rx.Pole_ky):
-                    rx_ip = Rx.Pole(rx.locs)
-                elif isinstance(rx, Rx.Dipole_ky):
-                    rx_ip = Rx.Dipole(rx.locs[0], rx.locs[1])
+                if isinstance(rx, receiver.Pole_ky):
+                    rx_ip = receiver.Pole(rx.locs)
+                elif isinstance(rx, receiver.Dipole_ky):
+                    rx_ip = receiver.Dipole(rx.locs[0], rx.locs[1])
                 else:
                     print(rx)
                     raise NotImplementedError()
                 rxList_ip.append(rx_ip)
 
-            if isinstance(src, Src.Pole):
-                src_ip = Src.Pole(
+            if isinstance(src, source.Pole):
+                src_ip = source.Pole(
                     rxList_ip, src_ip.loc
                 )
-            elif isinstance(src, Src.Dipole):
-                src_ip = Src.Dipole(
+            elif isinstance(src, source.Dipole):
+                src_ip = source.Dipole(
                     rxList_ip, src.loc[0], src.loc[1]
                 )
             else:

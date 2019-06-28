@@ -3,13 +3,14 @@ import scipy as sp
 import properties
 
 from ....utils import mkvc, sdiag, Zero
+from ....data import Data
 from ...base import BaseEMSimulation
 from .boundary_utils import getxBCyBC_CC
 from .survey import Survey
 from .fields import Fields_CC, Fields_N
 
 
-class BaseDCProblem(BaseEMSimulation):
+class BaseDCSimulation(BaseEMSimulation):
     """
     Base DC Problem
     """
@@ -32,9 +33,9 @@ class BaseDCProblem(BaseEMSimulation):
         if self.Ainv is not None:
             self.Ainv.clean()
 
-        f = self.fieldsPair(self.mesh, self.survey)
+        f = self.fieldsPair(self)
         A = self.getA()
-        self.Ainv = self.Solver(A, **self.solverOpts)
+        self.Ainv = self.Solver(A, **self.solver_opts)
         RHS = self.getRHS()
         u = self.Ainv * RHS
         Srcs = self.survey.srcList
@@ -110,8 +111,8 @@ class BaseDCProblem(BaseEMSimulation):
 
         if v is not None:
             # Ensure v is a data object.
-            if not isinstance(v, self.dataPair):
-                v = self.dataPair(self.survey, v)
+            if not isinstance(v, Data):
+                v = Data(self.survey, v)
             Jtv = np.zeros(m.size)
         else:
             # This is for forming full sensitivity matrix
@@ -179,13 +180,13 @@ class BaseDCProblem(BaseEMSimulation):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = super(BaseDCProblem, self).deleteTheseOnModelUpdate
+        toDelete = super(BaseDCSimulation, self).deleteTheseOnModelUpdate
         if self._Jmatrix is not None:
             toDelete += ['_Jmatrix']
         return toDelete
 
 
-class Problem3D_CC(BaseDCProblem):
+class Problem3D_CC(BaseDCSimulation):
     """
     3D cell centered DC problem
     """
@@ -197,7 +198,7 @@ class Problem3D_CC(BaseDCProblem):
 
     def __init__(self, mesh, **kwargs):
 
-        BaseDCProblem.__init__(self, mesh, **kwargs)
+        BaseDCSimulation.__init__(self, mesh, **kwargs)
         self.setBC()
 
     def getA(self):
@@ -397,7 +398,7 @@ class Problem3D_CC(BaseDCProblem):
             self.Grad = self.Div.T - P_BC*sdiag(y_BC)*M
 
 
-class Problem3D_N(BaseDCProblem):
+class Problem3D_N(BaseDCSimulation):
     """
     3D nodal DC problem
     """
@@ -407,7 +408,7 @@ class Problem3D_N(BaseDCProblem):
     fieldsPair = Fields_N
 
     def __init__(self, mesh, **kwargs):
-        BaseDCProblem.__init__(self, mesh, **kwargs)
+        BaseDCSimulation.__init__(self, mesh, **kwargs)
         # Not sure why I need to do this
         # To evaluate mesh.aveE2CC, this is required....
         if mesh._meshType == "TREE":

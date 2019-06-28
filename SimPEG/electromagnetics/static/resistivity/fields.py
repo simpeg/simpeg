@@ -72,9 +72,11 @@ class Fields_CC(FieldsDC):
     # primary - secondary
     # CC variables
 
-    def __init__(self, mesh, survey, **kwargs):
-        FieldsDC.__init__(self, mesh, survey, **kwargs)
+    # def __init__(self, mesh, survey, **kwargs):
+    #     FieldsDC.__init__(self, mesh, survey, **kwargs)
 
+    def startup(self):
+        mesh = self.simulation.mesh
         if getattr(self.simulation, 'bc_type', None) == 'Dirichlet':
             self.cellGrad = -mesh.faceDiv.T
         elif getattr(self.simulation, 'bc_type', None) == 'Neumann':
@@ -86,8 +88,6 @@ class Fields_CC(FieldsDC):
             mesh.setCellGradBC("neumann")
             self.cellGrad = mesh.cellGrad
 
-    def startup(self):
-        # self.simulation = self.simulation
         self._MfRhoI = self.simulation.MfRhoI
         self._MfRhoIDeriv = self.simulation.MfRhoIDeriv
         self._MfRho = self.simulation.MfRho
@@ -185,8 +185,8 @@ class Fields_N(FieldsDC):
     # primary - secondary
     # N variables
 
-    def __init__(self, mesh, survey, **kwargs):
-        FieldsDC.__init__(self, mesh, survey, **kwargs)
+    # def __init__(self, mesh, survey, **kwargs):
+    #     FieldsDC.__init__(self, mesh, survey, **kwargs)
 
     def _GLoc(self, fieldType):
         if fieldType == 'phi':

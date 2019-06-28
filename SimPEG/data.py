@@ -106,15 +106,11 @@ class Data(properties.HasProperties):
             dobs = np.nan*np.ones(survey.nD)  # initialize data as nans
         self.dobs = dobs
 
-        # Standard deviation (initialize as zero)
-        if standard_deviation is None:
-            standard_deviation = np.zeros(survey.nD)
-        self.standard_deviation = standard_deviation
+        if standard_deviation is not None:
+            self.standard_deviation = standard_deviation
 
-        # Noise floor (initialize as zero)
-        if noise_floor is None:
-            noise_floor = np.zeros(survey.nD)
-        self.noise_floor = noise_floor
+        if noise_floor is not None:
+            self.noise_floor = noise_floor
 
     #######################
     # Properties

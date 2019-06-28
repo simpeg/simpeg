@@ -1,4 +1,5 @@
 import numpy as np
+import properties
 
 from .... import survey
 from ....utils import Zero, closestPoints, mkvc
@@ -9,12 +10,14 @@ class BaseSrc(survey.BaseSrc):
     Base DC source
     """
 
-    current = 1.0
-    loc = None
+    current = properties.Float(
+        "amplitude of the current", default=1.
+    )
+
     _q = None
 
     def __init__(self, rxList, **kwargs):
-        survey.BaseSrc.__init__(self, rxList, **kwargs)
+        super(BaseSrc, self).__init__(rxList, **kwargs)
 
     def eval(self, prob):
         raise NotImplementedError
@@ -28,11 +31,16 @@ class Dipole(BaseSrc):
     Dipole source
     """
 
+    location = properties.List(
+        "location of the source electrodes",
+        survey.SourceLocationArray("location of electrode")
+    )
+
     def __init__(self, rxList, locA, locB, **kwargs):
-        assert locA.shape == locB.shape, ('Shape of locA and locB should be '
-                                          'the same')
-        self.loc = [locA, locB]
-        BaseSrc.__init__(self, rxList, **kwargs)
+        if locA.shape != locB.shape:
+            raise Exception('Shape of locA and locB should be the same')
+        self.location = [locA, locB]
+        super(Dipole, self).__init__(rxList, **kwargs)
 
     def eval(self, prob):
         if self._q is not None:
@@ -53,8 +61,8 @@ class Dipole(BaseSrc):
 
 class Pole(BaseSrc):
 
-    def __init__(self, rxList, loc, **kwargs):
-        BaseSrc.__init__(self, rxList, loc=loc, **kwargs)
+    def __init__(self, rxList, location, **kwargs):
+        BaseSrc.__init__(self, rxList, location=location, **kwargs)
 
     def eval(self, prob):
         if self._q is not None:
