@@ -273,7 +273,7 @@ def apparent_resistivity(
     assumed in SimPEG.
 
     Input:
-    :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+    :param SimPEG.Data: DC data object
     :param numpy.ndarray dobs: normalized voltage measurements [V/A]
     :param str survey_type: Either 'dipole-dipole' | 'pole-dipole' |
         'dipole-pole' | 'pole-pole'
@@ -321,7 +321,7 @@ def plot_pseudoSection(
         Assumes flat topo for now...
 
         Input:
-        :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+        :param SimPEG.Data: DC data
         :param matplotlib.pyplot.axes ax: figure axes on which to plot
         :param str survey_type: Either 'dipole-dipole' | 'pole-dipole' |
             'dipole-pole' | 'pole-pole'
@@ -817,16 +817,6 @@ def writeUBC_DCobs(
                     ],
                     fmt=str('%e'), delimiter=str(' '), newline=str('\n')
                 )
-            # elif (isinstance(data.survey.std, float)):
-            #     np.savetxt(
-            #         fid,
-            #         np.c_[
-            #             M, N,
-            #             data.survey.dobs[count:count+nD],
-            #             data.survey.std*np.abs(data.survey.dobs[count:count+nD]) + data.survey.eps[count:count+nD]
-            #         ],
-            #         fmt=str('%e'), delimiter=str(' '), newline=str('\n')
-            #     )
             else:
                 raise Exception(
                     """Uncertainities SurveyObject.std should be set.

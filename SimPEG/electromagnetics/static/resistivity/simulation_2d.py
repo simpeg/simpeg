@@ -116,8 +116,8 @@ class BaseDCSimulation_2D(BaseEMSimulation):
             f = self.fields(m)
 
         # TODO: This is not a good idea !! should change that as a list
-        Jv = self.dataPair(self.survey)  # same size as the data
-        Jv0 = self.dataPair(self.survey)
+        Jv = Data(self.survey)  # same size as the data
+        Jv0 = Data(self.survey)
 
         # Assume y=0.
         # This needs some thoughts to implement in general when src is dipole
@@ -173,8 +173,8 @@ class BaseDCSimulation_2D(BaseEMSimulation):
 
         if v is not None:
             # Ensure v is a data object.
-            if not isinstance(v, self.dataPair):
-                v = self.dataPair(self.survey, v)
+            if not isinstance(v, Data):
+                v = Data(self.survey, v)
             Jtv = np.zeros(m.size, dtype=float)
 
             # Assume y=0.
