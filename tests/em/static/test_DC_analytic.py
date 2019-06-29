@@ -2,7 +2,7 @@ from __future__ import print_function
 import unittest
 from SimPEG import Mesh, Utils, EM
 import numpy as np
-import SimPEG.electromagnetics.Static.DC as DC
+from SimPEG.electromagnetics import resistivity as dc
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
@@ -36,9 +36,9 @@ class DCProblemAnalyticTests(unittest.TestCase):
         )
         data_ana = phiA-phiB
 
-        rx = DC.Rx.Dipole(M, N)
-        src = DC.Src.Dipole([rx], Aloc, Bloc)
-        survey = DC.Survey([src])
+        rx = dc.Rx.Dipole(M, N)
+        src = dc.Src.Dipole([rx], Aloc, Bloc)
+        survey = dc.Survey([src])
 
         self.survey = survey
         self.mesh = mesh
@@ -46,7 +46,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         self.data_ana = data_ana
 
     def test_Problem3D_N(self, tolerance=0.2):
-        problem = DC.Problem3D_N(self.mesh, sigma=self.sigma)
+        problem = dc.Problem3D_N(self.mesh, sigma=self.sigma)
         problem.Solver = Solver
         problem.pair(self.survey)
         data = self.survey.dpred()
@@ -65,7 +65,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_Problem3D_CC_Mixed(self, tolerance=0.2):
-        problem = DC.Problem3D_CC(
+        problem = dc.Problem3D_CC(
             self.mesh, sigma=self.sigma, bc_type='Mixed'
         )
         problem.Solver = Solver
@@ -86,7 +86,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_Problem3D_CC_Neumann(self, tolerance=0.2):
-        problem = DC.Problem3D_CC(
+        problem = dc.Problem3D_CC(
             self.mesh, sigma=self.sigma, bc_type='Neumann'
             )
         problem.Solver = Solver
@@ -135,9 +135,9 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         )
         data_ana = phiA-phiB
 
-        rx = DC.Rx.Dipole(M, N)
-        src = DC.Src.Dipole([rx], Aloc, Bloc)
-        survey = DC.Survey([src])
+        rx = dc.Rx.Dipole(M, N)
+        src = dc.Src.Dipole([rx], Aloc, Bloc)
+        survey = dc.Survey([src])
 
         self.survey = survey
         self.mesh = mesh
@@ -145,7 +145,7 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         self.data_ana = data_ana
 
     def test_Problem3D_CC_Dirichlet(self, tolerance=0.2):
-        problem = DC.Problem3D_CC(
+        problem = dc.Problem3D_CC(
             self.mesh, sigma=self.sigma, bc_type='Dirichlet'
         )
 
@@ -190,9 +190,9 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
         )
         data_ana = phiA
 
-        rx = DC.Rx.Pole(M)
-        src = DC.Src.Pole([rx], Aloc)
-        survey = DC.Survey([src])
+        rx = dc.Rx.Pole(M)
+        src = dc.Src.Pole([rx], Aloc)
+        survey = dc.Survey([src])
 
         self.survey = survey
         self.mesh = mesh
@@ -200,7 +200,7 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
         self.data_ana = data_ana
 
     def test_Problem3D_CC_Mixed(self, tolerance=0.2):
-        problem = DC.Problem3D_CC(self.mesh, sigma=self.sigma, bc_type='Mixed')
+        problem = dc.Problem3D_CC(self.mesh, sigma=self.sigma, bc_type='Mixed')
         problem.Solver = Solver
         problem.pair(self.survey)
         data = self.survey.dpred()
