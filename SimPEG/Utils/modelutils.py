@@ -187,8 +187,8 @@ def tileSurveyPoints(locs, nRefine, minimize=True, method='cluster'):
 
         xy1 = np.c_[X1[binCount > 0], Y1[binCount > 0]]
         xy2 = np.c_[X2[binCount > 0], Y2[binCount > 0]]
-        
-        # Get the tile numbers that exist, for compatibility with the next method 
+
+        # Get the tile numbers that exist, for compatibility with the next method
         tile_numbers = np.unique(cluster.labels_)
         return [xy1, xy2], binCount[binCount > 0], cluster.labels_, tile_numbers
 
@@ -206,15 +206,16 @@ def tileSurveyPoints(locs, nRefine, minimize=True, method='cluster'):
             testx = np.percentile(locs[:, 0], np.arange(0, 100, 100/nTx))
             testy = np.percentile(locs[:, 1], np.arange(0, 100, 100/nTy))
 
-            if ii > 0:
-                dx = testx[:-1] - testx[1:]
-                dy = testy[:-1] - testy[1:]
+            # if ii > 0:
+            dx = testx[:-1] - testx[1:]
+            dy = testy[:-1] - testy[1:]
 
-                if np.mean(dx) > np.mean(dy):
-                    nTx -= 1
-                else:
-                    nTy -= 1
+            if np.mean(dx) > np.mean(dy):
+                nTx -= 1
+            else:
+                nTy -= 1
 
+            print(nTx, nTy)
         tilex = np.percentile(locs[:, 0], np.arange(0, 100, 100/nTx))
         tiley = np.percentile(locs[:, 1], np.arange(0, 100, 100/nTy))
 
