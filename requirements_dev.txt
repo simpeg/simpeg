@@ -12,3 +12,4 @@ wheel
 pytest
 jupyter
 sphinxcontrib-napoleon
+scooby
