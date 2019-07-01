@@ -5,13 +5,72 @@ EM: TDEM: 1D: Inversion
 Here we will create and run a TDEM 1D inversion.
 """
 import numpy as np
-from SimPEG import (Mesh, Maps, SolverLU, DataMisfit, Regularization,
-                    Optimization, InvProblem, Inversion, Directives, Utils)
-import SimPEG.EM as EM
+from SimPEG.electromagnetics import frequency_domain, time_domain
+from SimPEG import (
+    optimization, discretize, maps, data_misfit,
+    regularization, inverse_problem,
+    inversion, directives, utils
+)
 import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
+
+    cs, ncx, ncz, npad = 5., 25, 15, 15
+    hx = [(cs, ncx),  (cs, npad, 1.3)]
+    hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
+    mesh = discretize.CylMesh([hx, 1, hz], '00C')
+
+    active = mesh.vectorCCz < 0.
+    layer = (mesh.vectorCCz < 0.) & (mesh.vectorCCz >= -100.)
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
+    sig_half = 2e-3
+    sig_air = 1e-8
+    sig_layer = 1e-3
+    sigma = np.ones(mesh.nCz)*sig_air
+    sigma[active] = sig_half
+    sigma[layer] = sig_layer
+    mtrue = np.log(sigma[active])
+
+    rxOffset = 1e-3
+    rx = time_domain.Rx.Point_dbdt(
+        np.array([[rxOffset, 0., 30]]),
+        np.logspace(-5, -3, 31),
+        'z'
+    )
+    src = time_domain.Src.MagDipole([rx], loc=np.array([0., 0., 80]))
+    survey = time_domain.Survey([src])
+    time_steps = [(1e-06, 20), (1e-05, 20), (0.0001, 20)]
+    prb = time_domain.Problem3D_e(
+        mesh,
+        sigmaMap=mapping,
+        survey=survey,
+        time_steps=time_steps
+    )
+    # d_true = prb.dpred(mtrue)
+
+
+    # create observed data
+    std = 0.05
+    data = prb.make_synthetic_data(mtrue, standard_deviation=std)
+
+
+    dmisfit = data_misfit.L2DataMisfit(prb, data)
+    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+    reg = regularization.Tikhonov(regMesh, alpha_s=1e-2, alpha_x=1.)
+    opt = optimization.InexactGaussNewton(maxIter=5, LSshorten=0.5)
+    invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
+
+    # Create an inversion object
+    beta = directives.BetaSchedule(coolingFactor=5, coolingRate=2)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+    inv = inversion.BaseInversion(invProb, directiveList=[beta, betaest])
+    m0 = np.log(np.ones(mtrue.size)*sig_half)
+    prb.counter = opt.counter = utils.Counter()
+    opt.remember('xc')
+
+    mopt = inv.run(m0)
 
     cs, ncx, ncz, npad = 5., 25, 15, 15
     hx = [(cs, ncx),  (cs, npad, 1.3)]
@@ -69,8 +128,8 @@ def run(plotIt=True):
 
     if plotIt:
         fig, ax = plt.subplots(1, 2, figsize=(10, 6))
-        ax[0].loglog(rx.times, survey.dtrue, 'b.-')
-        ax[0].loglog(rx.times, survey.dobs, 'r.-')
+        ax[0].loglog(rx.times, -invProb.dpred, 'b.-')
+        ax[0].loglog(rx.times, -data.dobs, 'r.-')
         ax[0].legend(('Noisefree', '$d^{obs}$'), fontsize=16)
         ax[0].set_xlabel('Time (s)', fontsize=14)
         ax[0].set_ylabel('$B_z$ (T)', fontsize=16)
