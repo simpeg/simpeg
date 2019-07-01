@@ -25,11 +25,14 @@ class Versions(scooby.Report):
         imported beforehand).
 
     ncol : int, optional
-        Number of package-columns in html table; only has effect if
-        ``mode='HTML'`` or ``mode='html'``. Defaults to 3.
+        Number of package-columns in html table (no effect in text-version);
+        Defaults to 3.
 
-    **kwargs : dict
-        Passed through to scooby.
+    text_width : int, optional
+        The text width for non-HTML display modes
+
+    sort : bool, optional
+        Sort the packages when the report is shown
 
 
     Examples
@@ -44,7 +47,7 @@ class Versions(scooby.Report):
 
     """
 
-    def __init__(self, add_pckg=None, ncol=4, **kwargs):
+    def __init__(self, add_pckg=None, ncol=3, text_width=80, sort=False):
         """Initiate a scooby.Report instance."""
 
         # Mandatory packages.
@@ -54,4 +57,4 @@ class Versions(scooby.Report):
         # Optional packages.
         optional = ['IPython', 'matplotlib', 'ipywidgets']
 
-        super().__init__(add_pckg, core, optional, ncol=ncol, **kwargs)
+        super().__init__(add_pckg, core, optional, ncol, text_width, sort)
