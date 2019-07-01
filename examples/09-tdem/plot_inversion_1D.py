@@ -42,21 +42,21 @@ def run(plotIt=True):
     src = time_domain.Src.MagDipole([rx], loc=np.array([0., 0., 80]))
     survey = time_domain.Survey([src])
     time_steps = [(1e-06, 20), (1e-05, 20), (0.0001, 20)]
-    prb = time_domain.Problem3D_e(
+    simulation = time_domain.Problem3D_e(
         mesh,
         sigmaMap=mapping,
         survey=survey,
         time_steps=time_steps
     )
-    # d_true = prb.dpred(mtrue)
+    # d_true = simulation.dpred(mtrue)
 
 
     # create observed data
     std = 0.05
-    data = prb.make_synthetic_data(mtrue, standard_deviation=std)
+    data = simulation.make_synthetic_data(mtrue, standard_deviation=std)
 
 
-    dmisfit = data_misfit.L2DataMisfit(prb, data)
+    dmisfit = data_misfit.L2DataMisfit(simulation, data)
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
     reg = regularization.Tikhonov(regMesh, alpha_s=1e-2, alpha_x=1.)
     opt = optimization.InexactGaussNewton(maxIter=5, LSshorten=0.5)
@@ -67,61 +67,7 @@ def run(plotIt=True):
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
     inv = inversion.BaseInversion(invProb, directiveList=[beta, betaest])
     m0 = np.log(np.ones(mtrue.size)*sig_half)
-    prb.counter = opt.counter = utils.Counter()
-    opt.remember('xc')
-
-    mopt = inv.run(m0)
-
-    cs, ncx, ncz, npad = 5., 25, 15, 15
-    hx = [(cs, ncx),  (cs, npad, 1.3)]
-    hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-    mesh = Mesh.CylMesh([hx, 1, hz], '00C')
-
-    active = mesh.vectorCCz < 0.
-    layer = (mesh.vectorCCz < 0.) & (mesh.vectorCCz >= -100.)
-    actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-    mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
-    sig_half = 2e-3
-    sig_air = 1e-8
-    sig_layer = 1e-3
-    sigma = np.ones(mesh.nCz)*sig_air
-    sigma[active] = sig_half
-    sigma[layer] = sig_layer
-    mtrue = np.log(sigma[active])
-
-    rxOffset = 1e-3
-    rx = EM.TDEM.Rx.Point_dbdt(
-        np.array([[rxOffset, 0., 30]]),
-        np.logspace(-5, -3, 31),
-        'z'
-    )
-    src = EM.TDEM.Src.MagDipole([rx], loc=np.array([0., 0., 80]))
-    survey = EM.TDEM.Survey([src])
-    prb = EM.TDEM.Problem3D_e(mesh, sigmaMap=mapping)
-
-    prb.Solver = SolverLU
-    prb.timeSteps = [(1e-06, 20), (1e-05, 20), (0.0001, 20)]
-    prb.pair(survey)
-
-    # create observed data
-    std = 0.05
-
-    survey.dobs = survey.makeSyntheticData(mtrue, std)
-    survey.std = std
-    survey.eps = 1e-5*np.linalg.norm(survey.dobs)
-
-    dmisfit = DataMisfit.l2_DataMisfit(survey)
-    regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = Regularization.Tikhonov(regMesh, alpha_s=1e-2, alpha_x=1.)
-    opt = Optimization.InexactGaussNewton(maxIter=5, LSshorten=0.5)
-    invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
-
-    # Create an inversion object
-    beta = Directives.BetaSchedule(coolingFactor=5, coolingRate=2)
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e0)
-    inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaest])
-    m0 = np.log(np.ones(mtrue.size)*sig_half)
-    prb.counter = opt.counter = Utils.Counter()
+    simulation.counter = opt.counter = utils.Counter()
     opt.remember('xc')
 
     mopt = inv.run(m0)
