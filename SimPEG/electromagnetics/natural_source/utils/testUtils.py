@@ -7,9 +7,9 @@ import numpy as np
 import discretize
 from SimPEG import maps, mkvc, utils, Data
 from ....utils import meshTensor
-from ..receiver import Point_impedance1D, Point_impedance3D, Point_tipper3D
+from ..receivers import Point_impedance1D, Point_impedance3D, Point_tipper3D
 from ..survey import Survey
-from ..source import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
+from ..sources import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
 from ..simulation import Problem3D_ePrimSec
 from .dataUtils import appResPhs
 

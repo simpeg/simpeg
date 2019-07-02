@@ -28,7 +28,7 @@ def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf, appR=True, expMap=False):
     print('Apparent {:s} test of eFormulation primary/secondary at {:g}\n\n'.format(label, sigmaHalf))
 
     # Calculate the app  phs
-    survey, simulation = nsem.utils.testUtils.setupSimpegnsem_ePrimSec(nsem.utils.testUtils.halfSpace(sigmaHalf), expMap=expMap)
+    survey, simulation = nsem.utils.testUtils.setupSimpegNSEM_ePrimSec(nsem.utils.testUtils.halfSpace(sigmaHalf), expMap=expMap)
     data = nsem.Data(survey=survey, dobs=simulation.dpred(simulation.model))
     recData = data.toRecArray('Complex')
     app_rpxy = nsem.utils.appResPhs(recData['freq'], recData['zxy'])[0]

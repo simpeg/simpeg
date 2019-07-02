@@ -7,10 +7,10 @@ import warnings
 
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
-from ...utils import setKwargs, sdiag, Zero, Identity
 from ..base import BaseEMSrc
+from ..utils import getSourceTermLineCurrentPolygon
 from ...props import LocationVector
-
+from ...utils import setKwargs, sdiag, Zero, Identity
 
 ###############################################################################
 #                                                                             #

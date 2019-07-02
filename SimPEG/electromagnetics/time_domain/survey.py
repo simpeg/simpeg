@@ -1,6 +1,6 @@
 import properties
 from ...survey import BaseSurvey
-from .source import BaseTDEMSrc
+from .sources import BaseTDEMSrc
 
 
 ####################################################

@@ -3,7 +3,7 @@ import scipy.sparse as sp
 
 from ... import maps
 from ...utils import mkvc
-from ..frequency_domain.source import BaseFDEMSrc
+from ..frequency_domain.sources import BaseFDEMSrc
 from ..utils import omega
 from .utils.sourceUtils import homo1DModelSource
 

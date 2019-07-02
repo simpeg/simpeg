@@ -6,7 +6,7 @@ from ....utils import mkvc, sdiag, Zero
 from ...base import BaseEMSimulation
 from ....data import Data
 
-from .survey import Survey_ky
+from .survey import Survey
 from .fields_2d import Fields_ky, Fields_ky_CC, Fields_ky_N
 from .fields import FieldsDC, Fields_CC, Fields_N
 from .boundary_utils import getxBCyBC_CC
@@ -18,7 +18,7 @@ class BaseDCSimulation_2D(BaseEMSimulation):
     """
 
     survey = properties.Instance(
-        "a DC survey object", Survey_ky, required=True
+        "a DC survey object", Survey, required=True
     )
 
     storeJ = properties.Bool(

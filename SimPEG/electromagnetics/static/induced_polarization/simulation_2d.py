@@ -11,7 +11,7 @@ from ..resistivity.simulation_2d import BaseDCSimulation_2D
 from ..resistivity import Problem2D_CC as BaseProblem2D_CC
 from ..resistivity import Problem2D_N as BaseProblem2D_N
 
-from .survey import Survey
+# from .survey import Survey
 
 
 class BaseIPSimulation_2D(BaseDCSimulation_2D):
@@ -30,7 +30,6 @@ class BaseIPSimulation_2D(BaseDCSimulation_2D):
         "Electrical Chargeability (V/V)"
     )
 
-    surveyPair = Survey
     fieldsPair = Fields_ky
     _Jmatrix = None
     _f = None
@@ -51,6 +50,14 @@ class BaseIPSimulation_2D(BaseDCSimulation_2D):
                 u = self.Ainv[iky] * RHS
                 self._f[Srcs, self._solutionType, iky] = u
         return self._f
+
+    def dpred(self, m=None, f=None):
+        """
+            Predicted data.
+            .. math::
+                d_\\text{pred} = Pf(m)
+        """
+        return self.Jvec(m, m, f=f)
 
     def Jvec(self, m, v, f=None):
         self.model = m

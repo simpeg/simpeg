@@ -53,17 +53,11 @@ class BaseSimulation(props.HasModel):
 
     _REGISTRY = {}
 
-    mesh = properties.Instance(
-        "a discretize mesh instance", BaseMesh
-    )
+    mesh = properties.Instance("a discretize mesh instance", BaseMesh)
 
-    survey = properties.Instance(
-        "a survey object", BaseSurvey, default=BaseSurvey()
-    )
+    survey = properties.Instance("a survey object", BaseSurvey)
 
-    counter = properties.Instance(
-        "A SimPEG.Utils.Counter object", Counter
-    )
+    counter = properties.Instance("A SimPEG.Utils.Counter object", Counter)
 
     # TODO: need to implement a serializer for this & setter
     solver = pymatsolver.Solver
@@ -455,6 +449,7 @@ class LinearSimulation(BaseSimulation):
 
     def __init__(self, mesh=None, **kwargs):
         super(LinearSimulation, self).__init__(mesh=mesh, **kwargs)
+        self.survey = BaseSurvey()
 
         # set the number of data
         if getattr(self, 'G', None) is not None:

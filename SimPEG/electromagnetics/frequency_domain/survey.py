@@ -4,7 +4,7 @@ import properties
 from ...utils import Zero, Identity
 from ..utils import omega
 from ...survey import BaseSurvey
-from .source import BaseFDEMSrc
+from .sources import BaseFDEMSrc
 
 import warnings
 

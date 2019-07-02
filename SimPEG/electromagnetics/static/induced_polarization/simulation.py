@@ -2,6 +2,7 @@ import numpy as np
 import sys
 
 from .... import props
+from ....data import Data
 from ....utils import mkvc, sdiag, Zero
 
 from ...base import BaseEMSimulation
@@ -9,7 +10,7 @@ from ...base import BaseEMSimulation
 from ..resistivity.fields import FieldsDC, Fields_CC, Fields_N
 from ..resistivity import Problem3D_CC as BaseProblem3D_CC
 from ..resistivity import Problem3D_N as BaseProblem3D_N
-from .survey import Survey
+# from .survey import Survey
 
 
 class BaseIPSimulation(BaseEMSimulation):
@@ -28,7 +29,7 @@ class BaseIPSimulation(BaseEMSimulation):
         "Electrical Chargeability"
     )
 
-    surveyPair = Survey
+    # surveyPair = Survey
     fieldsPair = FieldsDC
     Ainv = None
     _f = None
@@ -50,6 +51,14 @@ class BaseIPSimulation(BaseEMSimulation):
             Srcs = self.survey.srcList
             self._f[Srcs, self._solutionType] = u
         return self._f
+
+    def dpred(self, m=None, f=None):
+        """
+            Predicted data.
+            .. math::
+                d_\\text{pred} = Pf(m)
+        """
+        return self.Jvec(m, m, f=f)
 
     def getJ(self, m, f=None):
         """
@@ -138,8 +147,8 @@ class BaseIPSimulation(BaseEMSimulation):
 
         if v is not None:
             # Ensure v is a data object.
-            if not isinstance(v, self.dataPair):
-                v = self.dataPair(self.survey, v)
+            if not isinstance(v, Data):
+                v = Data(self.survey, v)
             Jtv = np.zeros(m.size)
         else:
             # This is for forming full sensitivity matrix

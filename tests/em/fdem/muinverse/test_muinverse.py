@@ -93,12 +93,12 @@ def setupProblem(
 
         if invertMui:
             muiMap = maps.ReciprocalMap(mesh)*muMap
-            prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(
+            prob = getattr(fdem, 'Problem3D_{}'.format(prbtype))(
                 mesh, muiMap=muiMap, sigmaMap=sigmaMap
             )
             # m0 = np.hstack([1./muMod, sigmaMod])
         else:
-            prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(
+            prob = getattr(fdem, 'Problem3D_{}'.format(prbtype))(
                 mesh, muMap=muMap, sigmaMap=sigmaMap
             )
         m0 = np.hstack([muMod, sigmaMod])
@@ -108,12 +108,12 @@ def setupProblem(
 
         if invertMui:
             muiMap = maps.ReciprocalMap(mesh) * muMap
-            prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(
+            prob = getattr(fdem, 'Problem3D_{}'.format(prbtype))(
                     mesh, sigma=sigmaMod, muiMap=muiMap
                 )
             # m0 = 1./muMod
         else:
-            prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(
+            prob = getattr(fdem, 'Problem3D_{}'.format(prbtype))(
                     mesh, sigma=sigmaMod, muMap=muMap
                 )
         m0 = muMod

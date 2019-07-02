@@ -1,9 +1,11 @@
 from __future__ import print_function
 import unittest
-from SimPEG import Mesh, Utils, Maps
+import discretize
+
+from SimPEG import utils, maps
 import numpy as np
-import SimPEG.electromagnetics.Static.DC as DC
-import SimPEG.electromagnetics.Static.IP as IP
+from SimPEG.electromagnetics import resistivity as dc
+from SimPEG.electromagnetics import induced_polarization as ip
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
@@ -17,29 +19,29 @@ class IPProblemAnalyticTests(unittest.TestCase):
         cs = 12.5
         hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
         hy = [(cs, 7, -1.3), (cs, 20)]
-        mesh = Mesh.TensorMesh([hx, hy], x0="CN")
+        mesh = discretize.TensorMesh([hx, hy], x0="CN")
 
         x = np.linspace(-200, 200., 20)
-        M = Utils.ndgrid(x-12.5, np.r_[0.])
-        N = Utils.ndgrid(x+12.5, np.r_[0.])
+        M = utils.ndgrid(x-12.5, np.r_[0.])
+        N = utils.ndgrid(x+12.5, np.r_[0.])
         A0loc = np.r_[-150, 0.]
         A1loc = np.r_[-130, 0.]
         B0loc = np.r_[-130, 0.]
         B1loc = np.r_[-110, 0.]
 
-        rx = DC.Rx.Dipole_ky(M, N)
-        src0 = DC.Src.Dipole([rx], A0loc, B0loc)
-        src1 = DC.Src.Dipole([rx], A1loc, B1loc)
+        rx = dc.Rx.Dipole_ky(M, N)
+        src0 = dc.Src.Dipole([rx], A0loc, B0loc)
+        src1 = dc.Src.Dipole([rx], A1loc, B1loc)
 
-        src0_ip = DC.Src.Dipole([rx], A0loc, B0loc)
-        src1_ip = DC.Src.Dipole([rx], A1loc, B1loc)
+        src0_ip = dc.Src.Dipole([rx], A0loc, B0loc)
+        src1_ip = dc.Src.Dipole([rx], A1loc, B1loc)
 
         srcLists = [src0, src1]
         srcLists_ip = [src0_ip, src1_ip]
-        surveyDC = DC.Survey_ky([src0, src1])
+        surveyDC = dc.Survey_ky([src0, src1])
 
         sigmaInf = np.ones(mesh.nC) * 1.
-        blkind = Utils.ModelBuilder.getIndicesSphere(
+        blkind = utils.ModelBuilder.getIndicesSphere(
             np.r_[0, -150], 40, mesh.gridCC)
 
         eta = np.zeros(mesh.nC)
@@ -56,23 +58,23 @@ class IPProblemAnalyticTests(unittest.TestCase):
 
     def test_Problem2D_N(self):
 
-        problemDC = DC.Problem2D_N(
-            self.mesh, sigmaMap=Maps.IdentityMap(self.mesh)
+        problemDC = dc.Problem2D_N(
+            self.mesh, sigmaMap=maps.IdentityMap(self.mesh)
         )
         problemDC.Solver = Solver
         problemDC.pair(self.surveyDC)
-        data0 = self.surveyDC.dpred(self.sigma0)
-        datainf = self.surveyDC.dpred(self.sigmaInf)
-        problemIP = IP.Problem2D_N(
+        data0 = problemDC.dpred(self.sigma0)
+        datainf = problemDC.dpred(self.sigmaInf)
+        problemIP = ip.Problem2D_N(
             self.mesh,
             sigma=self.sigmaInf,
-            etaMap=Maps.IdentityMap(self.mesh),
+            etaMap=maps.IdentityMap(self.mesh),
         )
         problemIP.Solver = Solver
-        surveyIP = IP.Survey(self.srcLists_ip)
+        surveyIP = ip.Survey(self.srcLists_ip)
         problemIP.pair(surveyIP)
         data_full = data0 - datainf
-        data = surveyIP.dpred(self.eta)
+        data = problemIP.dpred(self.eta)
         err = np.linalg.norm((data-data_full)/data_full)**2 / data_full.size
         if err < 0.05:
             passed = True
@@ -85,24 +87,26 @@ class IPProblemAnalyticTests(unittest.TestCase):
 
     def test_Problem2D_CC(self):
 
-        problemDC = DC.Problem2D_CC(
-            self.mesh, rhoMap=Maps.IdentityMap(self.mesh)
+        problemDC = dc.Problem2D_CC(
+            self.mesh, rhoMap=maps.IdentityMap(self.mesh)
         )
         problemDC.Solver = Solver
         problemDC.pair(self.surveyDC)
-        data0 = self.surveyDC.dpred(1./self.sigma0)
+        data0 = problemDC.dpred(1./self.sigma0)
         finf = problemDC.fields(1./self.sigmaInf)
-        datainf = self.surveyDC.dpred(1./self.sigmaInf, f=finf)
-        problemIP = IP.Problem2D_CC(
+        datainf = problemDC.dpred(1./self.sigmaInf, f=finf)
+        problemIP = ip.Problem2D_CC(
             self.mesh,
             rho=1./self.sigmaInf,
-            etaMap=Maps.IdentityMap(self.mesh)
+            etaMap=maps.IdentityMap(self.mesh)
         )
         problemIP.Solver = Solver
-        surveyIP = IP.Survey(self.srcLists_ip)
+        print("\n\n\n")
+        print(self.srcLists_ip)
+        surveyIP = ip.Survey(self.srcLists_ip)
         problemIP.pair(surveyIP)
         data_full = data0 - datainf
-        data = surveyIP.dpred(self.eta)
+        data = problemIP.dpred(self.eta)
         err = np.linalg.norm((data-data_full)/data_full)**2 / data_full.size
         if err < 0.05:
             passed = True

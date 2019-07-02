@@ -10,8 +10,8 @@ import properties
 from ....utils import uniqueRows
 from ....survey import BaseSurvey
 from ..utils import drapeTopotoLoc
-from . import receiver as Rx
-from . import source as Src
+from . import receivers as Rx
+from . import sources as Src
 
 
 class Survey(BaseSurvey):
@@ -74,8 +74,10 @@ class Survey(BaseSurvey):
     electrodes_info = None
     topo_function = None
 
-    def __init__(self, srcList, **kwargs):
-        super(Survey, self).__init__(srcList, **kwargs)
+    def __init__(self, source_list, **kwargs):
+        print("\n\n\n")
+        print(source_list)
+        super(Survey, self).__init__(source_list, **kwargs)
 
     def getABMN_locations(self):
         a_locations = []
@@ -89,10 +91,10 @@ class Survey(BaseSurvey):
                 if isinstance(src, Src.Pole):
                     a_locations.append(
                         src.loc.reshape([1, -1]).repeat(nRx, axis=0)
-                        )
+                    )
                     b_locations.append(
                         src.loc.reshape([1, -1]).repeat(nRx, axis=0)
-                        )
+                    )
                 # Dipole Source
                 elif isinstance(src, Src.Dipole):
                     a_locations.append(
@@ -307,5 +309,3 @@ class Survey_ky(Survey):
     """
     # TODO: we should depreciate this and just use the above survey class as they are identical
 
-    def __init__(self, srcList, **kwargs):
-        super(Survey_ky, self).__init__(srcList, **kwargs)

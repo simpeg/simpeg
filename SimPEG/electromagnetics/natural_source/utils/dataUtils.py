@@ -10,9 +10,9 @@ from scipy import interpolate as sciint
 
 import SimPEG as simpeg
 from SimPEG.electromagnetics.natural_source.survey import Survey, Data
-from SimPEG.electromagnetics.natural_source.receiver import (Point_impedance1D,
+from SimPEG.electromagnetics.natural_source.receivers import (Point_impedance1D,
     Point_impedance3D, Point_tipper3D)
-from SimPEG.electromagnetics.natural_source.source import Planewave_xy_1Dprimary
+from SimPEG.electromagnetics.natural_source.sources import Planewave_xy_1Dprimary
 from SimPEG.electromagnetics.natural_source.utils import MT1Danalytic, plotDataTypes as pDt
 
 

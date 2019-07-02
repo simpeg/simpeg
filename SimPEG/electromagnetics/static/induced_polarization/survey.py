@@ -1,10 +1,10 @@
 from ..resistivity import Survey
-from ..resistivity import receiver, source
+from ..resistivity import receivers, sources
 
 
 
 def from_dc_to_ip_survey(dc_survey, dim="2.5D"):
-    srcList = dc_survey.srcList
+    srcList = dc_survey.source_list
 
     # for 2.5D
     if dim == "2.5D":
@@ -14,20 +14,20 @@ def from_dc_to_ip_survey(dc_survey, dim="2.5D"):
             src_ip = []
             for rx in src.rxList:
                 if isinstance(rx, receiver.Pole_ky):
-                    rx_ip = receiver.Pole(rx.locs)
+                    rx_ip = receivers.Pole(rx.locs)
                 elif isinstance(rx, receiver.Dipole_ky):
-                    rx_ip = receiver.Dipole(rx.locs[0], rx.locs[1])
+                    rx_ip = receivers.Dipole(rx.locs[0], rx.locs[1])
                 else:
                     print(rx)
                     raise NotImplementedError()
                 rxList_ip.append(rx_ip)
 
             if isinstance(src, source.Pole):
-                src_ip = source.Pole(
+                src_ip = sources.Pole(
                     rxList_ip, src_ip.loc
                 )
             elif isinstance(src, source.Dipole):
-                src_ip = source.Dipole(
+                src_ip = sources.Dipole(
                     rxList_ip, src.loc[0], src.loc[1]
                 )
             else:
