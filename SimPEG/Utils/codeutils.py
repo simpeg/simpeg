@@ -272,7 +272,7 @@ def requires_module(modules):
     return decorated_function
 
 
-@requires({'scooby': scooby})
+@requires_module({'scooby': scooby})
 class Report(Report):
     """Print date, time, and version information.
 
