@@ -7,9 +7,9 @@ from discretize.utils import asArray_N_x_Dim
 
 # scooby is a soft dependency for SimPEG
 try:
-    from scooby import Report
+    from scooby import Report as ScoobyReport
 except ImportError:
-    class Report:
+    class ScoobyReport:
         def __init__(self, additional, core, optional, ncol, text_width, sort):
             print('\n  *ERROR*: `SimPEG.Report` requires `scooby`.'
                   '\n           Install it via `pip install scooby`.\n')
@@ -231,7 +231,7 @@ def requires(var):
     return requiresVar
 
 
-class Report(Report):
+class Report(ScoobyReport):
     """Print date, time, and version information.
 
     Use scooby to print date, time, and package version information in any
