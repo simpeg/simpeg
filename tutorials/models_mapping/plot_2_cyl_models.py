@@ -70,19 +70,19 @@ pipe_val = 40.
 
 # Find cells below topography and define mapping
 air_val = 0.
-actv = mesh.gridCC[:, 2] < 0.
-mod_map = Maps.InjectActiveCells(mesh, actv, air_val)
+ind_active = mesh.gridCC[:, 2] < 0.
+mod_map = Maps.InjectActiveCells(mesh, ind_active, air_val)
 
 # Define the model
-mod = background_val*np.ones(actv.sum())
-k_layer = ((mesh.gridCC[actv, 2] > -20.) & (mesh.gridCC[actv, 2] < -0))
-mod[k_layer] = layer_val
-k_pipe = (
-    (mesh.gridCC[actv, 0] < 10.) &
-    (mesh.gridCC[actv, 2] > -50.) &
-    (mesh.gridCC[actv, 2] < 0.)
+mod = background_val*np.ones(ind_active.sum())
+ind_layer = ((mesh.gridCC[ind_active, 2] > -20.) & (mesh.gridCC[ind_active, 2] < -0))
+mod[ind_layer] = layer_val
+ind_pipe = (
+    (mesh.gridCC[ind_active, 0] < 10.) &
+    (mesh.gridCC[ind_active, 2] > -50.) &
+    (mesh.gridCC[ind_active, 2] < 0.)
 )
-mod[k_pipe] = pipe_val
+mod[ind_pipe] = pipe_val
 
 
 # Plotting
@@ -112,23 +112,23 @@ pipe_val = np.log(1./40.)
 
 # Find cells below topography and define mapping
 air_val = 0.
-actv = mesh.gridCC[:, 2] < 0.
-actv_map = Maps.InjectActiveCells(mesh, actv, air_val)
+ind_active = mesh.gridCC[:, 2] < 0.
+active_map = Maps.InjectActiveCells(mesh, ind_active, air_val)
 
 # Define the model
-mod = background_val*np.ones(actv.sum())
-k_layer = ((mesh.gridCC[actv, 2] > -20.) & (mesh.gridCC[actv, 2] < -0))
-mod[k_layer] = layer_val
-k_pipe = (
-    (mesh.gridCC[actv, 0] < 10.) &
-    (mesh.gridCC[actv, 2] > -50.) & (mesh.gridCC[actv, 2] < 0.)
+mod = background_val*np.ones(ind_active.sum())
+ind_layer = ((mesh.gridCC[ind_active, 2] > -20.) & (mesh.gridCC[ind_active, 2] < -0))
+mod[ind_layer] = layer_val
+ind_pipe = (
+    (mesh.gridCC[ind_active, 0] < 10.) &
+    (mesh.gridCC[ind_active, 2] > -50.) & (mesh.gridCC[ind_active, 2] < 0.)
 )
-mod[k_pipe] = pipe_val
+mod[ind_pipe] = pipe_val
 
 # Define a single mapping from model to mesh
 exp_map = Maps.ExpMap()
 rec_map = Maps.ReciprocalMap()
-mod_map = Maps.ComboMap([actv_map, rec_map, exp_map])
+mod_map = Maps.ComboMap([active_map, rec_map, exp_map])
 
 # Plotting
 fig = plt.figure(figsize=(5, 5))
@@ -156,15 +156,15 @@ dr, dz = 20., 50.            # dimensions in r, z
 
 # Find cells below topography and define mapping
 air_val = 0.
-actv = mesh.gridCC[:, 2] < 0.
-actv_map = Maps.InjectActiveCells(mesh, actv, air_val)
+ind_active = mesh.gridCC[:, 2] < 0.
+active_map = Maps.InjectActiveCells(mesh, ind_active, air_val)
 
 # Define the model on subsurface cells
 mod = np.r_[background_val, pipe_val, rc, dr, 0., 1., zc, dz]  # add dummy values for phi
-param_map = Maps.ParametricBlock(mesh, indActive=actv, epsilon=1e-10, p=8.)
+param_map = Maps.ParametricBlock(mesh, indActive=ind_active, epsilon=1e-10, p=8.)
 
 # Define a single mapping from model to mesh
-mod_map = Maps.ComboMap([actv_map, param_map])
+mod_map = Maps.ComboMap([active_map, param_map])
 
 # Plotting
 fig = plt.figure(figsize=(5, 5))
@@ -198,32 +198,32 @@ mu_pipe = 5.
 
 # Find cells below topography and define mapping
 air_val = 0.
-actv = mesh.gridCC[:, 2] < 0.
-actv_map = Maps.InjectActiveCells(mesh, actv, air_val)
+ind_active = mesh.gridCC[:, 2] < 0.
+active_map = Maps.InjectActiveCells(mesh, ind_active, air_val)
 
 # Define model for cells under the surface topography
-N = int(actv.sum())
+N = int(ind_active.sum())
 mod = np.kron(np.ones((N, 1)), np.c_[sig_back, mu_back])
 
 # Add a conductive and non-permeable layer
-k_layer = ((mesh.gridCC[actv, 2] > -20.) & (mesh.gridCC[actv, 2] < -0))
-mod[k_layer, 0] = sig_layer
+ind_layer = ((mesh.gridCC[ind_active, 2] > -20.) & (mesh.gridCC[ind_active, 2] < -0))
+mod[ind_layer, 0] = sig_layer
 
 # Add a conductive and permeable pipe
-k_pipe = (
-    (mesh.gridCC[actv, 0] < 10.) &
-    (mesh.gridCC[actv, 2] > -50.) &
-    (mesh.gridCC[actv, 2] < 0.)
+ind_pipe = (
+    (mesh.gridCC[ind_active, 0] < 10.) &
+    (mesh.gridCC[ind_active, 2] > -50.) &
+    (mesh.gridCC[ind_active, 2] < 0.)
 )
-mod[k_pipe] = np.c_[sig_pipe, mu_pipe]
+mod[ind_pipe] = np.c_[sig_pipe, mu_pipe]
 
 # Create model vector and wires
 mod = mkvc(mod)
 wire_map = Maps.Wires(('logsig', N), ('mu', N))
 
 # Use combo maps to map from model to mesh
-sig_map = Maps.ComboMap([actv_map, Maps.ExpMap(), wire_map.logsig])
-mu_map = Maps.ComboMap([actv_map, wire_map.mu])
+sig_map = Maps.ComboMap([active_map, Maps.ExpMap(), wire_map.logsig])
+mu_map = Maps.ComboMap([active_map, wire_map.mu])
 
 # Plotting
 fig = plt.figure(figsize=(5, 5))
