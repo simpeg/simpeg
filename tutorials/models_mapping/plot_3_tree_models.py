@@ -20,10 +20,10 @@ OcTree meshes. Some things we consider are:
 #
 
 
-from SimPEG import Mesh
-from SimPEG import Utils
+from discretize import TreeMesh
+from discretize.utils.meshutils import refine_tree_xyz
+from SimPEG.Utils import mkvc, ModelBuilder, surface2ind_topo
 from SimPEG import Maps
-from discretize.utils import meshutils
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -36,14 +36,15 @@ import matplotlib.pyplot as plt
 # Here, we create the OcTree mesh that will be used for all examples.
 #
 
-def makeExampleMesh():
+
+def make_example_mesh():
 
     # Base mesh parameters
     dh = 5.   # base cell size
     nbc = 32  # total width of mesh in terms of number of base mesh cells
     h = dh*np.ones(nbc)
 
-    mesh = Mesh.TreeMesh([h, h, h], x0='CCC')
+    mesh = TreeMesh([h, h, h], x0='CCC')
 
     # Refine to largest possible cell size
     mesh.refine(3, finalize=False)
@@ -51,33 +52,35 @@ def makeExampleMesh():
     return mesh
 
 
-def refineTopography(mesh):
+def refine_topography(mesh):
 
     # Define topography and refine
     [xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
     zz = -3*np.exp((xx**2 + yy**2) / 60**2) + 45.
-    topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
+    topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
-    mesh = meshutils.refine_tree_xyz(mesh, topo,
-                                     octree_levels=[3, 2],
-                                     method='surface',
-                                     finalize=False
-                                     )
+    mesh = refine_tree_xyz(
+        mesh, topo,
+        octree_levels=[3, 2],
+        method='surface',
+        finalize=False
+    )
 
     return mesh
 
 
-def refineBox(mesh):
+def refine_box(mesh):
 
     # Refine for sphere
     xp, yp, zp = np.meshgrid([-55., 50.], [-50., 50.], [-40., 20.])
-    xyz = np.c_[Utils.mkvc(xp), Utils.mkvc(yp), Utils.mkvc(zp)]
+    xyz = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
 
-    mesh = meshutils.refine_tree_xyz(mesh, xyz,
-                                     octree_levels=[2],
-                                     method='box',
-                                     finalize=False
-                                     )
+    mesh = refine_tree_xyz(
+        mesh, xyz,
+        octree_levels=[2],
+        method='box',
+        finalize=False
+    )
 
     return mesh
 
@@ -92,42 +95,44 @@ def refineBox(mesh):
 # The model consists of all cells which lie below the surface.
 #
 
-mesh = makeExampleMesh()
-mesh = refineTopography(mesh)
-mesh = refineBox(mesh)
+mesh = make_example_mesh()
+mesh = refine_topography(mesh)
+mesh = refine_box(mesh)
 mesh.finalize()
 
-m_back = 100.
-m_dyke = 40.
-m_block = 70.
+background_val = 100.
+dyke_val = 40.
+block_val = 70.
 
 # Define surface topography as an (N, 3) np.array. You could also load a file
 # containing the xyz points
 [xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
 zz = -3*np.exp((xx**2 + yy**2) / 60**2) + 45.
-topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
+topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Find cells below topography and define mapping
 m_air = 0.
-actv = Utils.surface2ind_topo(mesh, topo)
-modMap = Maps.InjectActiveCells(mesh, actv, m_air)
+actv = surface2ind_topo(mesh, topo)
+mod_map = Maps.InjectActiveCells(mesh, actv, m_air)
 
 # Define the model on subsurface cells
-mod = m_back*np.ones(actv.sum())
+mod = background_val*np.ones(actv.sum())
 k_dyke = (mesh.gridCC[actv, 0] > 20.) & (mesh.gridCC[actv, 0] < 40.)
-mod[k_dyke] = m_dyke
-k_block = ((mesh.gridCC[actv, 0] > -40.) & (mesh.gridCC[actv, 0] < -10.) &
-           (mesh.gridCC[actv, 1] > -30.) & (mesh.gridCC[actv, 1] < 30.) &
-           (mesh.gridCC[actv, 2] > -40.) & (mesh.gridCC[actv, 2] < 0.)
-           )
-mod[k_block] = m_block
+mod[k_dyke] = dyke_val
+k_block = (
+    (mesh.gridCC[actv, 0] > -40.) & (mesh.gridCC[actv, 0] < -10.) &
+    (mesh.gridCC[actv, 1] > -30.) & (mesh.gridCC[actv, 1] < 30.) &
+    (mesh.gridCC[actv, 2] > -40.) & (mesh.gridCC[actv, 2] < 0.)
+)
+mod[k_block] = block_val
 
 # We can plot a slice of the model at Y=-2.5
-Fig = plt.figure(figsize=(5, 5))
-Ax = Fig.add_subplot(111)
-mesh.plotSlice(modMap*mod, normal='Y', ax=Ax,
-               ind=int(mesh.hy.size/2), grid=True)
-Ax.set_title('Model slice at y = -2.5 m')
+fig = plt.figure(figsize=(5, 5))
+ax = fig.add_subplot(111)
+mesh.plotSlice(
+    mod_map*mod, normal='Y', ax=ax, ind=int(mesh.hy.size/2), grid=True
+)
+ax.set_title('Model slice at y = -2.5 m')
 plt.show()
 
 
@@ -142,46 +147,48 @@ plt.show()
 # then map from below surface cell to the mesh.
 #
 
-mesh = makeExampleMesh()
-mesh = refineTopography(mesh)
-mesh = refineBox(mesh)
+mesh = make_example_mesh()
+mesh = refine_topography(mesh)
+mesh = refine_box(mesh)
 mesh.finalize()
 
-m_back = np.log(1./100.)
-m_dyke = np.log(1./40.)
-m_block = np.log(1./70.)
+background_val = np.log(1./100.)
+dyke_val = np.log(1./40.)
+block_val = np.log(1./70.)
 
 # Define surface topography
 [xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
 zz = -3*np.exp((xx**2 + yy**2) / 60**2) + 45.
-topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
+topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Find cells below topography
 m_air = 0.
-actv = Utils.surface2ind_topo(mesh, topo)
-actvMap = Maps.InjectActiveCells(mesh, actv, m_air)
+actv = surface2ind_topo(mesh, topo)
+actv_map = Maps.InjectActiveCells(mesh, actv, m_air)
 
 # Define the model on subsurface cells
-mod = m_back*np.ones(actv.sum())
-k_dyke = (mesh.gridCC[actv, 0] > 20.) & (mesh.gridCC[actv, 0] < 40.) 
-mod[k_dyke] = m_dyke
-k_block = ((mesh.gridCC[actv, 0] > -40.) & (mesh.gridCC[actv, 0] < -10.) &
-           (mesh.gridCC[actv, 1] > -30.) & (mesh.gridCC[actv, 1] < 30.) &
-           (mesh.gridCC[actv, 2] > -40.) & (mesh.gridCC[actv, 2] < 0.)
-           )
-mod[k_block] = m_block
+mod = background_val*np.ones(actv.sum())
+k_dyke = (mesh.gridCC[actv, 0] > 20.) & (mesh.gridCC[actv, 0] < 40.)
+mod[k_dyke] = dyke_val
+k_block = (
+    (mesh.gridCC[actv, 0] > -40.) & (mesh.gridCC[actv, 0] < -10.) &
+    (mesh.gridCC[actv, 1] > -30.) & (mesh.gridCC[actv, 1] < 30.) &
+    (mesh.gridCC[actv, 2] > -40.) & (mesh.gridCC[actv, 2] < 0.)
+)
+mod[k_block] = block_val
 
 # Define a single mapping from model to mesh
-expMap = Maps.ExpMap()
-recMap = Maps.ReciprocalMap()
-modMap = Maps.ComboMap([actvMap, recMap, expMap])
+exp_map = Maps.ExpMap()
+rec_map = Maps.ReciprocalMap()
+mod_map = Maps.ComboMap([actv_map, rec_map, exp_map])
 
 # Plot
-Fig = plt.figure(figsize=(5, 5))
-Ax = Fig.add_subplot(111)
-mesh.plotSlice(modMap*mod, normal='Y', ax=Ax,
-               ind=int(mesh.hy.size/2), grid=True)
-Ax.set_title('Model slice at y = -2.5 m')
+fig = plt.figure(figsize=(5, 5))
+ax = fig.add_subplot(111)
+mesh.plotSlice(
+    mod_map*mod, normal='Y', ax=ax, ind=int(mesh.hy.size/2), grid=True
+)
+ax.set_title('Model slice at y = -2.5 m')
 plt.show()
 
 
@@ -195,49 +202,51 @@ plt.show()
 # replace the prexisting physical property value for those cells.
 #
 
-mesh = makeExampleMesh()
-mesh = refineTopography(mesh)
-mesh = refineBox(mesh)
+mesh = make_example_mesh()
+mesh = refine_topography(mesh)
+mesh = refine_box(mesh)
 mesh.finalize()
 
-m_back = 100.
-m_dyke = 40.
+background_val = 100.
+dyke_val = 40.
 m_sph = 70.
 
 # Define surface topography
 [xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
 zz = -3*np.exp((xx**2 + yy**2) / 60**2) + 45.
-topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
+topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Set active cells and define unit values
 m_air = 0.
-actv = Utils.surface2ind_topo(mesh, topo)
-modMap = Maps.InjectActiveCells(mesh, actv, m_air)
+actv = surface2ind_topo(mesh, topo)
+mod_map = Maps.InjectActiveCells(mesh, actv, m_air)
 
 # Define model for cells under the surface topography
-mod = m_back*np.ones(actv.sum())
+mod = background_val*np.ones(actv.sum())
 
 # Add a sphere
-sphInd = Utils.ModelBuilder.getIndicesSphere(np.r_[-25., 0., -15.],
-                                             20., mesh.gridCC)
-sphInd = sphInd[actv]  # So same size and order as model
-mod[sphInd] = m_sph
+sphere_ind = ModelBuilder.getIndicesSphere(
+    np.r_[-25., 0., -15.], 20., mesh.gridCC
+)
+sphere_ind = sphere_ind[actv]  # So same size and order as model
+mod[sphere_ind] = m_sph
 
 # Add dyke defined by a set of points
 xp = np.kron(np.ones((2)), [-10., 10., 55., 35.])
 yp = np.kron([-1000., 1000.], np.ones((4)))
 zp = np.kron(np.ones((2)), [-120., -120., 45., 45.])
-xyz_pts = np.c_[Utils.mkvc(xp), Utils.mkvc(yp), Utils.mkvc(zp)]
-polyInd = Utils.ModelBuilder.PolygonInd(mesh, xyz_pts)
-polyInd = polyInd[actv]  # So same size and order as model
-mod[polyInd] = m_dyke
+xyz_pts = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
+poly_ind = ModelBuilder.PolygonInd(mesh, xyz_pts)
+poly_ind = poly_ind[actv]  # So same size and order as model
+mod[poly_ind] = dyke_val
 
 # Plot
-Fig = plt.figure(figsize=(5, 5))
-Ax = Fig.add_subplot(111)
-mesh.plotSlice(modMap*mod, normal='Y', ax=Ax,
-               ind=int(mesh.hy.size/2), grid=True)
-Ax.set_title('Model slice at y = -2.5 m')
+fig = plt.figure(figsize=(5, 5))
+ax = fig.add_subplot(111)
+mesh.plotSlice(
+    mod_map*mod, normal='Y', ax=ax, ind=int(mesh.hy.size/2), grid=True
+)
+ax.set_title('Model slice at y = -2.5 m')
 plt.show()
 
 
@@ -251,39 +260,40 @@ plt.show()
 # this model onto the mesh.
 #
 
-mesh = makeExampleMesh()
-mesh = refineTopography(mesh)
-mesh = refineBox(mesh)
+mesh = make_example_mesh()
+mesh = refine_topography(mesh)
+mesh = refine_box(mesh)
 mesh.finalize()
 
-m_0 = 100.                   # background value
-m_blk = 40.                  # block value
+background_val = 100.                   # background value
+block_val = 40.                  # block value
 xc, yc, zc = -20., 0., -20.  # center of block
 dx, dy, dz = 25., 40., 30.   # dimensions in x,y,z
 
 # Define surface topography
 [xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
 zz = -3*np.exp((xx**2 + yy**2) / 60**2) + 45.
-topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
+topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Set active cells and define unit values
 m_air = 0.
-actv = Utils.surface2ind_topo(mesh, topo)
-actvMap = Maps.InjectActiveCells(mesh, actv, m_air)
+actv = surface2ind_topo(mesh, topo)
+actv_map = Maps.InjectActiveCells(mesh, actv, m_air)
 
 # Define the model on subsurface cells
-mod = np.r_[m_0, m_blk, xc, dx, yc, dy, zc, dz]
-paramMap = Maps.ParametricBlock(mesh, indActive=actv, epsilon=1e-10, p=5.)
+mod = np.r_[background_val, block_val, xc, dx, yc, dy, zc, dz]
+param_map = Maps.ParametricBlock(mesh, indActive=actv, epsilon=1e-10, p=5.)
 
 # Define a single mapping from model to mesh
-modMap = Maps.ComboMap([actvMap, paramMap])
+mod_map = Maps.ComboMap([actv_map, param_map])
 
 # Plot
-Fig = plt.figure(figsize=(5, 5))
-Ax = Fig.add_subplot(111)
-mesh.plotSlice(modMap*mod, normal='Y', ax=Ax,
-               ind=int(mesh.hy.size/2), grid=True)
-Ax.set_title('Model slice at y = -2.5 m')
+fig = plt.figure(figsize=(5, 5))
+ax = fig.add_subplot(111)
+mesh.plotSlice(
+    mod_map*mod, normal='Y', ax=ax, ind=int(mesh.hy.size/2), grid=True
+)
+ax.set_title('Model slice at y = -2.5 m')
 plt.show()
 
 
@@ -302,9 +312,9 @@ plt.show()
 # between the model vector and a particular physical property type.
 #
 
-mesh = makeExampleMesh()
-mesh = refineTopography(mesh)
-mesh = refineBox(mesh)
+mesh = make_example_mesh()
+mesh = refine_topography(mesh)
+mesh = refine_box(mesh)
 mesh.finalize()
 
 sig_back = np.log(100.)
@@ -316,44 +326,46 @@ mu_sph = 1.25
 # Define surface topography
 [xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
 zz = -3*np.exp((xx**2 + yy**2) / 60**2) + 45.
-topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
+topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Set active cells
 m_air = 0.
-actv = Utils.surface2ind_topo(mesh, topo)
-actvMap = Maps.InjectActiveCells(mesh, actv, m_air)
+actv = surface2ind_topo(mesh, topo)
+actv_map = Maps.InjectActiveCells(mesh, actv, m_air)
 
 # Define model for cells under the surface topography
 N = int(actv.sum())
 mod = np.kron(np.ones((N, 1)), np.c_[sig_back, mu_back])
 
 # Add a conductive and permeable sphere
-sphInd = Utils.ModelBuilder.getIndicesSphere(np.r_[-20., 0., -15.],
-                                             20., mesh.gridCC)
-sphInd = sphInd[actv]  # So same size and order as model
-mod[sphInd, :] = np.c_[sig_sph, mu_sph]
+sphere_ind = ModelBuilder.getIndicesSphere(
+    np.r_[-20., 0., -15.], 20., mesh.gridCC
+)
+sphere_ind = sphere_ind[actv]  # So same size and order as model
+mod[sphere_ind, :] = np.c_[sig_sph, mu_sph]
 
 # Add a conductive and non-permeable dyke
 xp = np.kron(np.ones((2)), [-10., 10., 55., 35.])
 yp = np.kron([-1000., 1000.], np.ones((4)))
 zp = np.kron(np.ones((2)), [-120., -120., 45., 45.])
-xyz_pts = np.c_[Utils.mkvc(xp), Utils.mkvc(yp), Utils.mkvc(zp)]
-polyInd = Utils.ModelBuilder.PolygonInd(mesh, xyz_pts)
-polyInd = polyInd[actv]  # So same size and order as model
-mod[polyInd, 0] = sig_dyke
+xyz_pts = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
+poly_ind = ModelBuilder.PolygonInd(mesh, xyz_pts)
+poly_ind = poly_ind[actv]  # So same size and order as model
+mod[poly_ind, 0] = sig_dyke
 
 # Create model vector and wires
-mod = Utils.mkvc(mod)
-wireMap = Maps.Wires(('logsig', N), ('mu', N))
+mod = mkvc(mod)
+wire_map = Maps.Wires(('logsig', N), ('mu', N))
 
 # Use combo maps to map from model to mesh
-sigMap = Maps.ComboMap([actvMap, Maps.ExpMap(), wireMap.logsig])
-muMap = Maps.ComboMap([actvMap, wireMap.mu])
+sig_map = Maps.ComboMap([actv_map, Maps.ExpMap(), wire_map.logsig])
+mu_map = Maps.ComboMap([actv_map, wire_map.mu])
 
 # Plot
-Fig = plt.figure(figsize=(5, 5))
-Ax = Fig.add_subplot(111)
-mesh.plotSlice(sigMap*mod, normal='Y', ax=Ax,
-               ind=int(mesh.hy.size/2), grid=True)
-Ax.set_title('Model slice at y = -2.5 m')
+fig = plt.figure(figsize=(5, 5))
+ax = fig.add_subplot(111)
+mesh.plotSlice(
+    sig_map*mod, normal='Y', ax=ax, ind=int(mesh.hy.size/2), grid=True
+)
+ax.set_title('Model slice at y = -2.5 m')
 plt.show()

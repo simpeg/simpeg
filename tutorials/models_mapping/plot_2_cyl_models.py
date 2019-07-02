@@ -22,8 +22,8 @@ defined and mapped to cylindrical meshes. Some things we consider are:
 # --------------
 #
 
-from SimPEG import Mesh
-from SimPEG import Utils
+from discretize import CylMesh
+from SimPEG.Utils import mkvc
 from SimPEG import Maps
 import numpy as np
 import matplotlib.pyplot as plt
@@ -36,7 +36,7 @@ import matplotlib.pyplot as plt
 #
 
 
-def makeExampleMesh():
+def make_example_mesh():
 
     ncr = 20     # number of mesh cells in r
     ncz = 20     # number of mesh cells in z
@@ -46,7 +46,7 @@ def makeExampleMesh():
     hz = [(dh, 5, -1.3), (dh, ncz), (dh, 5, 1.3)]
 
     # Use flag of 1 to denote perfect rotational symmetry
-    mesh = Mesh.CylMesh([hr, 1, hz], '0CC')
+    mesh = CylMesh([hr, 1, hz], '0CC')
 
     return mesh
 
@@ -62,32 +62,34 @@ def makeExampleMesh():
 # blocks.
 #
 
-mesh = makeExampleMesh()
+mesh = make_example_mesh()
 
-m_back = 100.
-m_layer = 70.
-m_pipe = 40.
+background_val = 100.
+layer_val = 70.
+pipe_val = 40.
 
 # Find cells below topography and define mapping
-m_air = 0.
+air_val = 0.
 actv = mesh.gridCC[:, 2] < 0.
-modMap = Maps.InjectActiveCells(mesh, actv, m_air)
+mod_map = Maps.InjectActiveCells(mesh, actv, air_val)
 
 # Define the model
-mod = m_back*np.ones(actv.sum())
+mod = background_val*np.ones(actv.sum())
 k_layer = ((mesh.gridCC[actv, 2] > -20.) & (mesh.gridCC[actv, 2] < -0))
-mod[k_layer] = m_layer
-k_pipe = ((mesh.gridCC[actv, 0] < 10.) &
-          (mesh.gridCC[actv, 2] > -50.) & (mesh.gridCC[actv, 2] < 0.)
-          )
-mod[k_pipe] = m_pipe
+mod[k_layer] = layer_val
+k_pipe = (
+    (mesh.gridCC[actv, 0] < 10.) &
+    (mesh.gridCC[actv, 2] > -50.) &
+    (mesh.gridCC[actv, 2] < 0.)
+)
+mod[k_pipe] = pipe_val
 
 
 # Plotting
-Fig = plt.figure(figsize=(5, 5))
-Ax = Fig.add_subplot(111)
-mesh.plotImage(modMap*mod, ax=Ax, grid=True)
-Ax.set_title('Cylindrically Symmetric Model')
+fig = plt.figure(figsize=(5, 5))
+ax = fig.add_subplot(111)
+mesh.plotImage(mod_map*mod, ax=ax, grid=True)
+ax.set_title('Cylindrically Symmetric Model')
 
 
 #############################################
@@ -101,37 +103,38 @@ Ax.set_title('Cylindrically Symmetric Model')
 # then map from below surface cell to the mesh.
 #
 
-mesh = makeExampleMesh()
+mesh = make_example_mesh()
 
-m_back = np.log(1./100.)
-m_layer = np.log(1./70.)
-m_pipe = np.log(1./40.)
+background_val = np.log(1./100.)
+layer_val = np.log(1./70.)
+pipe_val = np.log(1./40.)
 
 
 # Find cells below topography and define mapping
-m_air = 0.
+air_val = 0.
 actv = mesh.gridCC[:, 2] < 0.
-actvMap = Maps.InjectActiveCells(mesh, actv, m_air)
+actv_map = Maps.InjectActiveCells(mesh, actv, air_val)
 
 # Define the model
-mod = m_back*np.ones(actv.sum())
+mod = background_val*np.ones(actv.sum())
 k_layer = ((mesh.gridCC[actv, 2] > -20.) & (mesh.gridCC[actv, 2] < -0))
-mod[k_layer] = m_layer
-k_pipe = ((mesh.gridCC[actv, 0] < 10.) &
-          (mesh.gridCC[actv, 2] > -50.) & (mesh.gridCC[actv, 2] < 0.)
-          )
-mod[k_pipe] = m_pipe
+mod[k_layer] = layer_val
+k_pipe = (
+    (mesh.gridCC[actv, 0] < 10.) &
+    (mesh.gridCC[actv, 2] > -50.) & (mesh.gridCC[actv, 2] < 0.)
+)
+mod[k_pipe] = pipe_val
 
 # Define a single mapping from model to mesh
-expMap = Maps.ExpMap()
-recMap = Maps.ReciprocalMap()
-modMap = Maps.ComboMap([actvMap, recMap, expMap])
+exp_map = Maps.ExpMap()
+rec_map = Maps.ReciprocalMap()
+mod_map = Maps.ComboMap([actv_map, rec_map, exp_map])
 
 # Plotting
-Fig = plt.figure(figsize=(5, 5))
-Ax = Fig.add_subplot(111)
-mesh.plotImage(modMap*mod, ax=Ax, grid=True)
-Ax.set_title('Cylindrically Symmetric Model')
+fig = plt.figure(figsize=(5, 5))
+ax = fig.add_subplot(111)
+mesh.plotImage(mod_map*mod, ax=ax, grid=True)
+ax.set_title('Cylindrically Symmetric Model')
 
 
 #############################################
@@ -144,30 +147,30 @@ Ax.set_title('Cylindrically Symmetric Model')
 # this model onto the mesh.
 #
 
-mesh = makeExampleMesh()
+mesh = make_example_mesh()
 
-m_0 = 100.                   # background value
-m_pipe = 40.                 # pipe value
+background_val = 100.        # background value
+pipe_val = 40.               # pipe value
 rc, zc = 0., -25.            # center of pipe
 dr, dz = 20., 50.            # dimensions in r, z
 
 # Find cells below topography and define mapping
-m_air = 0.
+air_val = 0.
 actv = mesh.gridCC[:, 2] < 0.
-actvMap = Maps.InjectActiveCells(mesh, actv, m_air)
+actv_map = Maps.InjectActiveCells(mesh, actv, air_val)
 
 # Define the model on subsurface cells
-mod = np.r_[m_0, m_pipe, rc, dr, 0., 1., zc, dz]  # add dummy values for phi
-paramMap = Maps.ParametricBlock(mesh, indActive=actv, epsilon=1e-10, p=8.)
+mod = np.r_[background_val, pipe_val, rc, dr, 0., 1., zc, dz]  # add dummy values for phi
+param_map = Maps.ParametricBlock(mesh, indActive=actv, epsilon=1e-10, p=8.)
 
 # Define a single mapping from model to mesh
-modMap = Maps.ComboMap([actvMap, paramMap])
+mod_map = Maps.ComboMap([actv_map, param_map])
 
 # Plotting
-Fig = plt.figure(figsize=(5, 5))
-Ax = Fig.add_subplot(111)
-mesh.plotImage(modMap*mod, ax=Ax, grid=True)
-Ax.set_title('Cylindrically Symmetric Model')
+fig = plt.figure(figsize=(5, 5))
+ax = fig.add_subplot(111)
+mesh.plotImage(mod_map*mod, ax=ax, grid=True)
+ax.set_title('Cylindrically Symmetric Model')
 
 
 #############################################
@@ -185,7 +188,7 @@ Ax.set_title('Cylindrically Symmetric Model')
 # between the model vector and a particular physical property type.
 #
 
-mesh = makeExampleMesh()
+mesh = make_example_mesh()
 
 sig_back = np.log(100.)
 sig_layer = np.log(70.)
@@ -194,9 +197,9 @@ mu_back = 1.
 mu_pipe = 5.
 
 # Find cells below topography and define mapping
-m_air = 0.
+air_val = 0.
 actv = mesh.gridCC[:, 2] < 0.
-actvMap = Maps.InjectActiveCells(mesh, actv, m_air)
+actv_map = Maps.InjectActiveCells(mesh, actv, air_val)
 
 # Define model for cells under the surface topography
 N = int(actv.sum())
@@ -207,21 +210,23 @@ k_layer = ((mesh.gridCC[actv, 2] > -20.) & (mesh.gridCC[actv, 2] < -0))
 mod[k_layer, 0] = sig_layer
 
 # Add a conductive and permeable pipe
-k_pipe = ((mesh.gridCC[actv, 0] < 10.) &
-          (mesh.gridCC[actv, 2] > -50.) & (mesh.gridCC[actv, 2] < 0.)
-          )
+k_pipe = (
+    (mesh.gridCC[actv, 0] < 10.) &
+    (mesh.gridCC[actv, 2] > -50.) &
+    (mesh.gridCC[actv, 2] < 0.)
+)
 mod[k_pipe] = np.c_[sig_pipe, mu_pipe]
 
 # Create model vector and wires
-mod = Utils.mkvc(mod)
-wireMap = Maps.Wires(('logsig', N), ('mu', N))
+mod = mkvc(mod)
+wire_map = Maps.Wires(('logsig', N), ('mu', N))
 
 # Use combo maps to map from model to mesh
-sigMap = Maps.ComboMap([actvMap, Maps.ExpMap(), wireMap.logsig])
-muMap = Maps.ComboMap([actvMap, wireMap.mu])
+sig_map = Maps.ComboMap([actv_map, Maps.ExpMap(), wire_map.logsig])
+mu_map = Maps.ComboMap([actv_map, wire_map.mu])
 
 # Plotting
-Fig = plt.figure(figsize=(5, 5))
-Ax = Fig.add_subplot(111)
-mesh.plotImage(sigMap*mod, ax=Ax, grid=True)
-Ax.set_title('Cylindrically Symmetric Model')
+fig = plt.figure(figsize=(5, 5))
+ax = fig.add_subplot(111)
+mesh.plotImage(sig_map*mod, ax=ax, grid=True)
+ax.set_title('Cylindrically Symmetric Model')
