@@ -13,7 +13,9 @@ from .codeutils import (
     memProfileWrapper, hook, setKwargs,
     printTitles, printLine, checkStoppers, printStoppers,
     callHooks, dependentProperty,
-    asArray_N_x_Dim, requires
+    asArray_N_x_Dim, requires,
+    requires_module,
+    Report
 )
 from .meshutils import (
     exampleLrmGrid, meshTensor, closestPoints, ExtractCoreMesh
@@ -26,5 +28,3 @@ from .coordutils import rotatePointsFromNormals, rotationMatrixFromNormals
 from .modelutils import surface2ind_topo
 from .PlotUtils import plot2Ddata, plotLayer
 from .io_utils import download
-
-from .printinfo import Report
