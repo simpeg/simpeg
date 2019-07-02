@@ -1,15 +1,15 @@
 import scooby
 import unittest
-from SimPEG import Versions
+from SimPEG import Report
 
 
-class TestVersion(unittest.TestCase):
+class TestReport(unittest.TestCase):
 
     def test_version_defaults(self):
 
         # Reporting is now done by the external package scooby.
         # We just ensure the shown packages do not change (core and optional).
-        out1 = Versions()
+        out1 = Report()
         out2 = scooby.Report(
                 core=['SimPEG', 'discretize', 'pymatsolver', 'vectormath',
                       'properties', 'numpy', 'scipy', 'cython'],

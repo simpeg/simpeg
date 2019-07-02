@@ -18,7 +18,7 @@ from . import Tests
 
 from . import Utils
 from .Utils import mkvc
-from .Utils import Versions
+from .Utils import Report
 from .Utils.SolverUtils import (
     _checkAccuracy, SolverWrapD, SolverWrapI,
     Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,

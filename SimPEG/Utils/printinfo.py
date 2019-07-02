@@ -1,6 +1,56 @@
-import scooby
+try:  # scooby is a soft dependencies for discretize
+    import scooby
+    from scooby import Report
+except ImportError:
+    scooby = False
 
-class Versions(scooby.Report):
+    class Report:
+        pass
+
+
+def requires(modules):
+    """Decorator to wrap functions with soft dependencies.
+
+    This function was inspired by the `requires` function of pysal,
+    which is released under the 'BSD 3-Clause "New" or "Revised" License'.
+
+    https://github.com/pysal/pysal/blob/master/pysal/lib/common.py
+
+    Parameters
+    ----------
+    modules : dict
+        Dictionary containing soft dependencies, e.g.,
+        {'matplotlib': matplotlib}.
+
+    Returns
+    -------
+    decorated_function : function
+        Original function if all soft dependencies are met, otherwise
+        it returns an empty function which prints why it is not running.
+
+    """
+
+    # Check the required modules, add missing ones in the list `missing`.
+    missing = []
+    for key, item in modules.items():
+        if item is False:
+            missing.append(key)
+
+    def decorated_function(function):
+        """Wrap function."""
+        if not missing:
+            return function
+        else:
+            def passer(*args, **kwargs):
+                print(('Missing dependencies: {d}.'.format(d=missing)))
+                print(('Not running `{}`.'.format(function.__name__)))
+            return passer
+
+    return decorated_function
+
+
+@requires({'scooby': scooby})
+class Report(Report):
     """Print date, time, and version information.
 
     Use scooby to print date, time, and package version information in any
@@ -40,10 +90,10 @@ class Versions(scooby.Report):
 
     >>> import pytest
     >>> import dateutil
-    >>> from SimPEG import Versions
-    >>> Versions()                            # Default values
-    >>> Versions(pytest)                      # Provide additional package
-    >>> Versions([pytest, dateutil], ncol=5)  # Define nr of columns
+    >>> from SimPEG import Report
+    >>> Report()                            # Default values
+    >>> Report(pytest)                      # Provide additional package
+    >>> Report([pytest, dateutil], ncol=5)  # Define nr of columns
 
     """
 

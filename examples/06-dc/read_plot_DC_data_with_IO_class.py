@@ -13,7 +13,7 @@ import pandas as pd
 import shutil
 import os
 import matplotlib.pyplot as plt
-from SimPEG import DC, Versions
+from SimPEG import DC, Report
 from SimPEG.Utils.io_utils import download
 
 ###############################################################################
@@ -81,7 +81,7 @@ shutil.rmtree(os.path.expanduser('./test_url'))
 # --------------------------------------------
 #
 
-Versions()
+Report()
 
 ###############################################################################
 # Moving Forward

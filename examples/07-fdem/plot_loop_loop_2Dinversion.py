@@ -20,7 +20,7 @@ from pymatsolver import Pardiso as Solver
 from SimPEG import (
     Mesh, Maps, Optimization,
     DataMisfit, Regularization, InvProblem,
-    Inversion, Directives, Versions
+    Inversion, Directives, Report
 )
 from SimPEG.EM import FDEM
 from SimPEG.Utils import mkvc
@@ -341,7 +341,7 @@ plt.show()
 # --------------------------------------------
 #
 
-Versions()
+Report()
 
 ###############################################################################
 # Moving Forward
