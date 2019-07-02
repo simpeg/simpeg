@@ -5,7 +5,7 @@ from functools import wraps
 
 from discretize.utils import asArray_N_x_Dim
 
-# scooby is a soft dependencies for SimPEG
+# scooby is a soft dependency for SimPEG
 try:
     from scooby import Report
 except ImportError:
