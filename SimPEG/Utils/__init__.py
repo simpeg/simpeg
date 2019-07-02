@@ -14,7 +14,6 @@ from .codeutils import (
     printTitles, printLine, checkStoppers, printStoppers,
     callHooks, dependentProperty,
     asArray_N_x_Dim, requires,
-    requires_module,
     Report
 )
 from .meshutils import (
