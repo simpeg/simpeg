@@ -35,7 +35,7 @@ class MagneticIntegral(Problem.LinearProblem):
     equiSourceLayer = False
     verbose = True  # Don't display progress on screen
     W = None
-    rxType = 'tmi'
+    components = 'tmi'
     gtgdiag = None
     memory_saving_mode = False
     n_cpu = None
@@ -390,7 +390,7 @@ class MagneticIntegral(Problem.LinearProblem):
         Magnetic forward operator in integral form
 
         magType  = 'H0' | 'x' | 'y' | 'z'
-        rxType  = 'tmi' | 'x' | 'y' | 'z'
+        components  = 'tmi' | 'x' | 'y' | 'z'
 
         Return
         _G = Linear forward operator | (forwardOnly)=data
@@ -422,7 +422,7 @@ class MagneticIntegral(Problem.LinearProblem):
                 # Loop through all observations and create forward operator (nD-by-self.nC)
 
         if self.verbose:
-            print("Begin forward: M=" + magType + ", Rx type= " + self.rxType)
+            print("Begin forward: M=" + magType + ", Rx type= " + self.components)
 
         # Switch to determine if the process has to be run in parallel
         job = Forward(
@@ -446,8 +446,9 @@ class Forward(object):
     Xn, Yn, Zn = None, None, None
     n_cpu = None
     forwardOnly = False
+    components = ['tmi']
     model = None
-    rxType = 'z'
+    components = 'z'
     Mxyz = None
     P = None
     verbose = True
@@ -466,10 +467,10 @@ class Forward(object):
             self.n_cpu = int(multiprocessing.cpu_count())
 
         # Set this early so we can get a better memory estimate for dask chunking
-        if self.rxType == 'xyz':
-            nDataComps = 3
-        else:
-            nDataComps = 1
+        # if self.components == 'xyz':
+        #     nDataComps = 3
+        # else:
+        nDataComps = len(components)
 
         if self.parallelized:
 
@@ -508,7 +509,7 @@ class Forward(object):
                     with ProgressBar():
                         print("Forward calculation: ")
                         pred = da.dot(stack, self.model).compute()
-                    
+
                     return pred
 
                 else:
@@ -586,26 +587,29 @@ class Forward(object):
             Tz = [Tzx Tzy Tzz]
 
         """
-        tx, ty, tz = calcRow(self.Xn, self.Yn, self.Zn, xyzLoc)
 
-        if self.rxType == 'tmi':
-            row = self.P.dot(np.vstack((tx, ty, tz)))*self.Mxyz
 
-        elif self.rxType == 'x':
-            row = tx*self.Mxyz
+        rows = calcRow(self.Xn, self.Yn, self.Zn, xyzLoc, self.P, components=self.components)
+        # tx, ty, tz = calcRow(self.Xn, self.Yn, self.Zn, xyzLoc)
 
-        elif self.rxType == 'y':
-            row = ty*self.Mxyz
+        # if self.components == 'tmi':
+        #     row = self.P.dot(np.vstack((tx, ty, tz)))*self.Mxyz
 
-        elif self.rxType == 'z':
-            row = tz*self.Mxyz
+        # elif self.components == 'x':
+        #     row = tx*self.Mxyz
 
-        elif self.rxType == 'xyz':
-            row = tx*self.Mxyz
-            row = np.r_[row, ty*self.Mxyz]
-            row = np.r_[row, tz*self.Mxyz]
-        else:
-            raise Exception('rxType must be: "tmi", "x", "y" or "z"')
+        # elif self.components == 'y':
+        #     row = ty*self.Mxyz
+
+        # elif self.components == 'z':
+        #     row = tz*self.Mxyz
+
+        # elif self.components == 'xyz':
+        #     row = tx*self.Mxyz
+        #     row = np.r_[row, ty*self.Mxyz]
+        #     row = np.r_[row, tz*self.Mxyz]
+        # else:
+        #     raise Exception('components must be: "tmi", "x", "y" or "z"')
 
         # if self.forwardOnly:
 
@@ -1019,49 +1023,40 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     return inv, reg
 
 
-def calcRow(Xn, Yn, Zn, rxLoc):
+def calcRow(
+    Xn, Yn, Zn, rxlocation, P,
+    components=[
+        "dbx_dx", "dbx_dy", "dbx_dz", "dby_dy",
+        "dby_dz", "dbz_dz", "bx", "by", "bz"
+        ]
+):
     """
-    Load in the active nodes of a tensor mesh and computes the magnetic tensor
-    for a given observation location rxLoc[obsx, obsy, obsz]
+    calcRow
+    Takes in the lower SW and upper NE nodes of a tensor mesh,
+    observation location rxLoc[obsx, obsy, obsz] and computes the
+    magnetic tensor for the integral of a each prisms
 
     INPUT:
     Xn, Yn, Zn: Node location matrix for the lower and upper most corners of
                 all cells in the mesh shape[nC,2]
-    M
     OUTPUT:
-    Tx = [Txx Txy Txz]
-    Ty = [Tyx Tyy Tyz]
-    Tz = [Tzx Tzy Tzz]
 
-    where each elements have dimension 1-by-nC.
-    Only the upper half 5 elements have to be computed since symetric.
-    Currently done as for-loops but will eventually be changed to vector
-    indexing, once the topography has been figured out.
-
-    Created on Oct, 20th 2015
-
-    @author: dominiquef
-
-     """
-
+    """
     eps = 1e-8  # add a small value to the locations to avoid /0
-
+    # number of cells in mesh
     nC = Xn.shape[0]
 
-    # Pre-allocate space for 1D array
-    Tx = np.zeros((1, 3*nC))
-    Ty = np.zeros((1, 3*nC))
-    Tz = np.zeros((1, 3*nC))
+    # comp. pos. differences for tne, bsw nodes
+    dz2 = Zn[:, 1] - rxlocation[2] + eps
+    dz1 = Zn[:, 0] - rxlocation[2] + eps
 
-    dz2 = Zn[:, 1] - rxLoc[2] + eps
-    dz1 = Zn[:, 0] - rxLoc[2] + eps
+    dy2 = Yn[:, 1] - rxlocation[1] + eps
+    dy1 = Yn[:, 0] - rxlocation[1] + eps
 
-    dy2 = Yn[:, 1] - rxLoc[1] + eps
-    dy1 = Yn[:, 0] - rxLoc[1] + eps
+    dx2 = Xn[:, 1] - rxlocation[0] + eps
+    dx1 = Xn[:, 0] - rxlocation[0] + eps
 
-    dx2 = Xn[:, 1] - rxLoc[0] + eps
-    dx1 = Xn[:, 0] - rxLoc[0] + eps
-
+    # comp. squared diff
     dx2dx2 = dx2**2.
     dx1dx1 = dx1**2.
 
@@ -1071,91 +1066,320 @@ def calcRow(Xn, Yn, Zn, rxLoc):
     dz2dz2 = dz2**2.
     dz1dz1 = dz1**2.
 
+    # 2D radius compent squared of corner nodes
     R1 = (dy2dy2 + dx2dx2)
     R2 = (dy2dy2 + dx1dx1)
     R3 = (dy1dy1 + dx2dx2)
     R4 = (dy1dy1 + dx1dx1)
 
-    arg1 = np.sqrt(dz2dz2 + R2)
-    arg2 = np.sqrt(dz2dz2 + R1)
-    arg3 = np.sqrt(dz1dz1 + R1)
-    arg4 = np.sqrt(dz1dz1 + R2)
-    arg5 = np.sqrt(dz2dz2 + R3)
-    arg6 = np.sqrt(dz2dz2 + R4)
-    arg7 = np.sqrt(dz1dz1 + R4)
-    arg8 = np.sqrt(dz1dz1 + R3)
+    # radius to each cell node
+    r1 = np.sqrt(dz2dz2 + R2) + eps
+    r2 = np.sqrt(dz2dz2 + R1) + eps
+    r3 = np.sqrt(dz1dz1 + R1) + eps
+    r4 = np.sqrt(dz1dz1 + R2) + eps
+    r5 = np.sqrt(dz2dz2 + R3) + eps
+    r6 = np.sqrt(dz2dz2 + R4) + eps
+    r7 = np.sqrt(dz1dz1 + R4) + eps
+    r8 = np.sqrt(dz1dz1 + R3) + eps
 
-    Tx[0, 0:nC] = (
-        np.arctan2(dy1 * dz2, (dx2 * arg5 + eps)) -
-        np.arctan2(dy2 * dz2, (dx2 * arg2 + eps)) +
-        np.arctan2(dy2 * dz1, (dx2 * arg3 + eps)) -
-        np.arctan2(dy1 * dz1, (dx2 * arg8 + eps)) +
-        np.arctan2(dy2 * dz2, (dx1 * arg1 + eps)) -
-        np.arctan2(dy1 * dz2, (dx1 * arg6 + eps)) +
-        np.arctan2(dy1 * dz1, (dx1 * arg7 + eps)) -
-        np.arctan2(dy2 * dz1, (dx1 * arg4 + eps))
-    )
+    # compactify argument calculations
+    arg1_ = dx1 + dy2 + r1
+    arg1 = dy2 + dz2 + r1
+    arg2 = dx1 + dz2 + r1
+    arg3 = dx1 + r1
+    arg4 = dy2 + r1
+    arg5 = dz2 + r1
 
-    Ty[0, 0:nC] = (
-        np.log((dz2 + arg2 + eps) / (dz1 + arg3 + eps)) -
-        np.log((dz2 + arg1 + eps) / (dz1 + arg4 + eps)) +
-        np.log((dz2 + arg6 + eps) / (dz1 + arg7 + eps)) -
-        np.log((dz2 + arg5 + eps) / (dz1 + arg8 + eps))
-    )
+    arg6_ = dx2 + dy2 + r2
+    arg6 = dy2 + dz2 + r2
+    arg7 = dx2 + dz2 + r2
+    arg8 = dx2 + r2
+    arg9 = dy2 + r2
+    arg10 = dz2 + r2
 
-    Ty[0, nC:2*nC] = (
-        np.arctan2(dx1 * dz2, (dy2 * arg1 + eps)) -
-        np.arctan2(dx2 * dz2, (dy2 * arg2 + eps)) +
-        np.arctan2(dx2 * dz1, (dy2 * arg3 + eps)) -
-        np.arctan2(dx1 * dz1, (dy2 * arg4 + eps)) +
-        np.arctan2(dx2 * dz2, (dy1 * arg5 + eps)) -
-        np.arctan2(dx1 * dz2, (dy1 * arg6 + eps)) +
-        np.arctan2(dx1 * dz1, (dy1 * arg7 + eps)) -
-        np.arctan2(dx2 * dz1, (dy1 * arg8 + eps))
-    )
+    arg11_ = dx2 + dy2 + r3
+    arg11 = dy2 + dz1 + r3
+    arg12 = dx2 + dz1 + r3
+    arg13 = dx2 + r3
+    arg14 = dy2 + r3
+    arg15 = dz1 + r3
 
-    R1 = (dy2dy2 + dz1dz1)
-    R2 = (dy2dy2 + dz2dz2)
-    R3 = (dy1dy1 + dz1dz1)
-    R4 = (dy1dy1 + dz2dz2)
+    arg16_ = dx1 + dy2 + r4
+    arg16 = dy2 + dz1 + r4
+    arg17 = dx1 + dz1 + r4
+    arg18 = dx1 + r4
+    arg19 = dy2 + r4
+    arg20 = dz1 + r4
 
-    Ty[0, 2*nC:] = (
-        np.log((dx1 + np.sqrt(dx1dx1 + R1) + eps) /
-               (dx2 + np.sqrt(dx2dx2 + R1) + eps)) -
-        np.log((dx1 + np.sqrt(dx1dx1 + R2) + eps) /
-               (dx2 + np.sqrt(dx2dx2 + R2) + eps)) +
-        np.log((dx1 + np.sqrt(dx1dx1 + R4) + eps) /
-               (dx2 + np.sqrt(dx2dx2 + R4) + eps)) -
-        np.log((dx1 + np.sqrt(dx1dx1 + R3) + eps) /
-               (dx2 + np.sqrt(dx2dx2 + R3) + eps))
-    )
+    arg21_ = dx2 + dy1 + r5
+    arg21 = dy1 + dz2 + r5
+    arg22 = dx2 + dz2 + r5
+    arg23 = dx2 + r5
+    arg24 = dy1 + r5
+    arg25 = dz2 + r5
 
-    R1 = (dx2dx2 + dz1dz1)
-    R2 = (dx2dx2 + dz2dz2)
-    R3 = (dx1dx1 + dz1dz1)
-    R4 = (dx1dx1 + dz2dz2)
+    arg26_ = dx1 + dy1 + r6
+    arg26 = dy1 + dz2 + r6
+    arg27 = dx1 + dz2 + r6
+    arg28 = dx1 + r6
+    arg29 = dy1 + r6
+    arg30 = dz2 + r6
 
-    Tx[0, 2*nC:] = (
-        np.log((dy1 + np.sqrt(dy1dy1 + R1) + eps) /
-               (dy2 + np.sqrt(dy2dy2 + R1) + eps)) -
-        np.log((dy1 + np.sqrt(dy1dy1 + R2) + eps) /
-               (dy2 + np.sqrt(dy2dy2 + R2) + eps)) +
-        np.log((dy1 + np.sqrt(dy1dy1 + R4) + eps) /
-               (dy2 + np.sqrt(dy2dy2 + R4) + eps)) -
-        np.log((dy1 + np.sqrt(dy1dy1 + R3) + eps) /
-               (dy2 + np.sqrt(dy2dy2 + R3) + eps))
-    )
+    arg31_ = dx1 + dy1 + r7
+    arg31 = dy1 + dz1 + r7
+    arg32 = dx1 + dz1 + r7
+    arg33 = dx1 + r7
+    arg34 = dy1 + r7
+    arg35 = dz1 + r7
 
-    Tz[0, 2*nC:] = -(Ty[0, nC:2*nC] + Tx[0, 0:nC])
-    Tz[0, nC:2*nC] = Ty[0, 2*nC:]
-    Tx[0, nC:2*nC] = Ty[0, 0:nC]
-    Tz[0, 0:nC] = Tx[0, 2*nC:]
+    arg36_ = dx2 + dy1 + r8
+    arg36 = dy1 + dz1 + r8
+    arg37 = dx2 + dz1 + r8
+    arg38 = dx2 + r8
+    arg39 = dy1 + r8
+    arg40 = dz1 + r8
 
-    Tx = Tx/(4*np.pi)
-    Ty = Ty/(4*np.pi)
-    Tz = Tz/(4*np.pi)
+    rows = []
+    dbx_dx, dby_dy = [], []
+    for comp in components:
+        # m_x vector
+        if (comp == "dbx_dx") or ("dbz_dz" in components):
+            dbx_dx = np.zeros((1, 3 * nC))
 
-    return Tx, Ty, Tz
+            dbx_dx[0, 0:nC] = (
+                2 * (
+                    (
+                        (dx1**2 - r1 * arg1) /
+                        (r1 * arg1**2 + dx1**2 * r1 + eps)
+                    ) -
+                    (
+                        (dx2**2 - r2 * arg6) /
+                        (r2 * arg6**2 + dx2**2 * r2 + eps)
+                    ) +
+                    (
+                        (dx2**2 - r3 * arg11) /
+                        (r3 * arg11**2 + dx2**2 * r3 + eps)
+                    ) -
+                    (
+                        (dx1**2 - r4 * arg16) /
+                        (r4 * arg16**2 + dx1**2 * r4 + eps)
+                    ) +
+                    (
+                        (dx2**2 - r5 * arg21) /
+                        (r5 * arg21**2 + dx2**2 * r5 + eps)
+                    ) -
+                    (
+                        (dx1**2 - r6 * arg26) /
+                        (r6 * arg26**2 + dx1**2 * r6 + eps)
+                    ) +
+                    (
+                        (dx1**2 - r7 * arg31) /
+                        (r7 * arg31**2 + dx1**2 * r7 + eps)
+                    ) -
+                    (
+                        (dx2**2 - r8 * arg36) /
+                        (r8 * arg36**2 + dx2**2 * r8 + eps)
+                    )
+                )
+            )
+
+            dbx_dx[0, nC:2*nC] = (
+                dx2 / (r5 * arg25 + eps) - dx2 / (r2 * arg10 + eps) +
+                dx2 / (r3 * arg15 + eps) - dx2 / (r8 * arg40 + eps) +
+                dx1 / (r1 * arg5 + eps) - dx1 / (r6 * arg30 + eps) +
+                dx1 / (r7 * arg35 + eps) - dx1 / (r4 * arg20 + eps)
+            )
+
+            dbx_dx[0, 2*nC:] = (
+                dx1 / (r1 * arg4 + eps) - dx2 / (r2 * arg9 + eps) +
+                dx2 / (r3 * arg14 + eps) - dx1 / (r4 * arg19 + eps) +
+                dx2 / (r5 * arg24 + eps) - dx1 / (r6 * arg29 + eps) +
+                dx1 / (r7 * arg34 + eps) - dx2 / (r8 * arg39 + eps)
+            )
+
+            dbx_dx /= (4 * np.pi)
+
+        if (comp == "dby_dy") or ("dbz_dz" in components):
+            # dby_dy
+            dby_dy = np.zeros((1, 3 * nC))
+
+            dby_dy[0, 0:nC] = (dy2 / (r3 * arg15 + eps) - dy2 / (r2 * arg10 + eps) +
+                        dy1 / (r5 * arg25 + eps) - dy1 / (r8 * arg40 + eps) +
+                        dy2 / (r1 * arg5 + eps) - dy2 / (r4 * arg20 + eps) +
+                        dy1 / (r7 * arg35 + eps) - dy1 / (r6 * arg30 + eps))
+            dby_dy[0, nC:2*nC] = (2 * (((dy2**2 - r1 * arg2) / (r1 * arg2**2 + dy2**2 * r1 + eps)) -
+                       ((dy2**2 - r2 * arg7) / (r2 * arg7**2 + dy2**2 * r2 + eps)) +
+                       ((dy2**2 - r3 * arg12) / (r3 * arg12**2 + dy2**2 * r3 + eps)) -
+                       ((dy2**2 - r4 * arg17) / (r4 * arg17**2 + dy2**2 * r4 + eps)) +
+                       ((dy1**2 - r5 * arg22) / (r5 * arg22**2 + dy1**2 * r5 + eps)) -
+                       ((dy1**2 - r6 * arg27) / (r6 * arg27**2 + dy1**2 * r6 + eps)) +
+                       ((dy1**2 - r7 * arg32) / (r7 * arg32**2 + dy1**2 * r7 + eps)) -
+                       ((dy1**2 - r8 * arg37) / (r8 * arg37**2 + dy1**2 * r8 + eps))))
+            dby_dy[0, 2*nC:] = (dy2 / (r1 * arg3 + eps) - dy2 / (r2 * arg8 + eps) +
+                         dy2 / (r3 * arg13 + eps) - dy2 / (r4 * arg18 + eps) +
+                         dy1 / (r5 * arg23 + eps) - dy1 / (r6 * arg28 + eps) +
+                         dy1 / (r7 * arg33 + eps) - dy1 / (r8 * arg38 + eps))
+
+            dby_dy /= (4 * np.pi)
+
+        if comp == "dby_dy":
+
+            rows += [dby_dy]
+
+        if comp == "dbx_dx":
+
+            rows += [dbx_dx]
+
+        if comp == "dbz_dz":
+
+            dbz_dz = -dbx_dx - dby_dy
+            rows += [dbz_dz]
+
+        if comp == "dbx_dy":
+            dbx_dy = np.zeros((1, 3 * nC))
+
+            dbx_dy[0, 0:nC] = (2 * (((dx1 * arg4) / (r1 * arg1**2 + (dx1**2) * r1 + eps)) -
+                        ((dx2 * arg9) / (r2 * arg6**2 + (dx2**2) * r2 + eps)) +
+                        ((dx2 * arg14) / (r3 * arg11**2 + (dx2**2) * r3 + eps)) -
+                        ((dx1 * arg19) / (r4 * arg16**2 + (dx1**2) * r4 + eps)) +
+                        ((dx2 * arg24) / (r5 * arg21**2 + (dx2**2) * r5 + eps)) -
+                        ((dx1 * arg29) / (r6 * arg26**2 + (dx1**2) * r6 + eps)) +
+                        ((dx1 * arg34) / (r7 * arg31**2 + (dx1**2) * r7 + eps)) -
+                        ((dx2 * arg39) / (r8 * arg36**2 + (dx2**2) * r8 + eps))))
+            dbx_dy[0, nC:2*nC] = (dy2 / (r1 * arg5 + eps) - dy2 / (r2 * arg10 + eps) +
+                           dy2 / (r3 * arg15 + eps) - dy2 / (r4 * arg20 + eps) +
+                           dy1 / (r5 * arg25 + eps) - dy1 / (r6 * arg30 + eps) +
+                           dy1 / (r7 * arg35 + eps) - dy1 / (r8 * arg40 + eps))
+            dbx_dy[0, 2*nC:] = (1 / r1 - 1 / r2 +
+                         1 / r3 - 1 / r4 +
+                         1 / r5 - 1 / r6 +
+                         1 / r7 - 1 / r8)
+
+            dbx_dy /= (4 * np.pi)
+
+            rows += [dbx_dy]
+
+        if comp == "dbx_dz":
+            dbx_dz = np.zeros((1, 3 * nC))
+
+            dbx_dz[0, 0:nC] =(2 * (((dx1 * arg5) / (r1 * (arg1**2) + (dx1**2) * r1 + eps)) -
+                        ((dx2 * arg10) / (r2 * (arg6**2) + (dx2**2) * r2 + eps)) +
+                        ((dx2 * arg15) / (r3 * (arg11**2) + (dx2**2) * r3 + eps)) -
+                        ((dx1 * arg20) / (r4 * (arg16**2) + (dx1**2) * r4 + eps)) +
+                        ((dx2 * arg25) / (r5 * (arg21**2) + (dx2**2) * r5 + eps)) -
+                        ((dx1 * arg30) / (r6 * (arg26**2) + (dx1**2) * r6 + eps)) +
+                        ((dx1 * arg35) / (r7 * (arg31**2) + (dx1**2) * r7 + eps)) -
+                        ((dx2 * arg40) / (r8 * (arg36**2) + (dx2**2) * r8 + eps))))
+            dbx_dz[0, nC:2*nC] = (1 / r1 - 1 / r2 +
+                           1 / r3 - 1 / r4 +
+                           1 / r5 - 1 / r6 +
+                           1 / r7 - 1 / r8)
+            dbx_dz[0, 2*nC:] = (dz2 / (r1 * arg4 + eps) - dz2 / (r2 * arg9 + eps) +
+                         dz1 / (r3 * arg14 + eps) - dz1 / (r4 * arg19 + eps) +
+                         dz2 / (r5 * arg24 + eps) - dz2 / (r6 * arg29 + eps) +
+                         dz1 / (r7 * arg34 + eps) - dz1 / (r8 * arg39 + eps))
+
+            dbx_dz /= (4 * np.pi)
+
+            rows += [dbx_dz]
+
+        if comp == "dby_dz":
+            dby_dz = np.zeros((1, 3 * nC))
+
+            dby_dz[0, 0:nC] = (1 / r3 - 1 / r2 +
+                        1 / r5 - 1 / r8 +
+                        1 / r1 - 1 / r4 +
+                        1 / r7 - 1 / r6)
+            dby_dz[0, nC:2*nC] = (2 * ((((dy2 * arg5) / (r1 * (arg2**2) + (dy2**2) * r1 + eps))) -
+                    (((dy2 * arg10) / (r2 * (arg7**2) + (dy2**2) * r2 + eps))) +
+                    (((dy2 * arg15) / (r3 * (arg12**2) + (dy2**2) * r3 + eps))) -
+                    (((dy2 * arg20) / (r4 * (arg17**2) + (dy2**2) * r4 + eps))) +
+                    (((dy1 * arg25) / (r5 * (arg22**2) + (dy1**2) * r5 + eps))) -
+                    (((dy1 * arg30) / (r6 * (arg27**2) + (dy1**2) * r6 + eps))) +
+                    (((dy1 * arg35) / (r7 * (arg32**2) + (dy1**2) * r7 + eps))) -
+                    (((dy1 * arg40) / (r8 * (arg37**2) + (dy1**2) * r8 + eps)))))
+            dby_dz[0, 2*nC:] = (dz2 / (r1 * arg3  + eps) - dz2 / (r2 * arg8 + eps) +
+                     dz1 / (r3 * arg13 + eps) - dz1 / (r4 * arg18 + eps) +
+                     dz2 / (r5 * arg23 + eps) - dz2 / (r6 * arg28 + eps) +
+                     dz1 / (r7 * arg33 + eps) - dz1 / (r8 * arg38 + eps))
+
+            dby_dz /= (4 * np.pi)
+
+            rows += [dby_dz]
+
+        if (comp == "bx") or ("tmi" in components):
+            bx = np.zeros((1, 3 * nC))
+
+            bx[0, 0:nC] = ((-2 * np.arctan2(dx1, arg1 + eps)) - (-2 * np.arctan2(dx2, arg6 + eps)) +
+                       (-2 * np.arctan2(dx2, arg11 + eps)) - (-2 * np.arctan2(dx1, arg16 + eps)) +
+                       (-2 * np.arctan2(dx2, arg21 + eps)) - (-2 * np.arctan2(dx1, arg26 + eps)) +
+                       (-2 * np.arctan2(dx1, arg31 + eps)) - (-2 * np.arctan2(dx2, arg36 + eps)))
+            bx[0, nC:2*nC] = (np.log(arg5) - np.log(arg10) +
+                          np.log(arg15) - np.log(arg20) +
+                          np.log(arg25) - np.log(arg30) +
+                          np.log(arg35) - np.log(arg40))
+            bx[0, 2*nC:] = ((np.log(arg4) - np.log(arg9)) +
+                        (np.log(arg14) - np.log(arg19)) +
+                        (np.log(arg24) - np.log(arg29)) +
+                        (np.log(arg34) - np.log(arg39)))
+            bx /= (4 * np.pi)
+
+            # rows += [bx]
+
+        if (comp == "by") or ("tmi" in components):
+            by = np.zeros((1, 3 * nC))
+
+            by[0, 0:nC] = (np.log(arg5) - np.log(arg10) +
+                       np.log(arg15) - np.log(arg20) +
+                       np.log(arg25) - np.log(arg30) +
+                       np.log(arg35) - np.log(arg40))
+            by[0, nC:2*nC] = ((-2 * np.arctan2(dy2, arg2 + eps)) - (-2 * np.arctan2(dy2, arg7 + eps)) +
+                              (-2 * np.arctan2(dy2, arg12 + eps)) - (-2 * np.arctan2(dy2, arg17 + eps)) +
+                              (-2 * np.arctan2(dy1, arg22 + eps)) - (-2 * np.arctan2(dy1, arg27 + eps)) +
+                              (-2 * np.arctan2(dy1, arg32 + eps)) - (-2 * np.arctan2(dy1, arg37 + eps)))
+            by[0, 2*nC:] = ((np.log(arg3) - np.log(arg8)) +
+                            (np.log(arg13) - np.log(arg18)) +
+                            (np.log(arg23) - np.log(arg28)) +
+                            (np.log(arg33) - np.log(arg38)))
+
+            by /= (-4 * np.pi)
+
+            # rows += [by]
+
+        if (comp == "bz") or ("tmi" in components):
+            bz = np.zeros((1, 3 * nC))
+
+            bz[0, 0:nC] = (np.log(arg4) - np.log(arg9) +
+                       np.log(arg14) - np.log(arg19) +
+                       np.log(arg24) - np.log(arg29) +
+                       np.log(arg34) - np.log(arg39))
+            bz[0, nC:2*nC] = ((np.log(arg3) - np.log(arg8)) +
+                              (np.log(arg13) - np.log(arg18)) +
+                              (np.log(arg23) - np.log(arg28)) +
+                              (np.log(arg33) - np.log(arg38)))
+            bz[0, 2*nC:] = ((-2 * np.arctan2(dz2, arg1_ + eps)) - (-2 * np.arctan2(dz2, arg6_ + eps)) +
+                            (-2 * np.arctan2(dz1, arg11_ + eps)) - (-2 * np.arctan2(dz1, arg16_ + eps)) +
+                            (-2 * np.arctan2(dz2, arg21_ + eps)) - (-2 * np.arctan2(dz2, arg26_ + eps)) +
+                            (-2 * np.arctan2(dz1, arg31_ + eps)) - (-2 * np.arctan2(dz1, arg36_ + eps)))
+            bz /= (-4 * np.pi)
+
+        if comp == "bx":
+
+            rows += [bx]
+
+        if comp == "by":
+
+            rows += [by]
+
+        if comp == "bz":
+
+            rows += [bz]
+
+        if comp == "tmi":
+
+            rows += [np.dot(P, np.r_[bx, by, bz])]
+
+    return np.vstack(rows)
 
 
 def progress(iter, prog, final):
