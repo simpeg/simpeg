@@ -41,6 +41,15 @@ class Class(properties.Property):
 
     class_info = "a property that is an uninstantiated class"
 
+    def __init__(self, doc, **kwargs):
+        default = kwargs.pop('default', None)
+        super(Class, self).__init__(doc, **kwargs)
+        if default is not None:
+            self._parent_module = default.__module__
+            print(default)
+            print(self._parent_module)
+            self.default = default
+
     @property
     def default(self):
         """Default value of the Property"""
@@ -57,13 +66,12 @@ class Class(properties.Property):
                 "Expected an uninstantiated class. The provided value is not"
             )
             self.error(instance, value, TypeError, extra)
-
+        self._parent_module = value.__module__
         return value
 
     def serializer(self, value, **kwargs):
-        return "{}.{}".format(value.__module__, value.__name__)
+        return "{}.{}".format(self._parent_module, value.__name__)
 
-    @staticmethod
     def deserializer(self, value, **kwargs):
         name = value.split(".")
         try:
@@ -124,7 +132,7 @@ class BaseSimulation(props.HasModel):
     # TODO: need to implement a serializer for this & setter
     solver = Class(
         "Linear algebra solver (e.g. from pymatsolver)",
-        default=pymatsolver.Solver
+        # default=pymatsolver.Solver
     )
 
     solver_opts = properties.Dictionary(
@@ -240,7 +248,7 @@ class BaseSimulation(props.HasModel):
 
     def __init__(self, mesh=None, **kwargs):
         # raise exception if user tries to set "mapping"
-        if 'mapping' in kwargs:
+        if 'mapping' in kwargs.keys():
             raise Exception(
                 'Depreciated (in 0.4.0): use one of {}'.format(
                     [p for p in self._props.keys() if 'Map' in p]
@@ -248,6 +256,10 @@ class BaseSimulation(props.HasModel):
             )
 
         super(BaseSimulation, self).__init__(mesh=mesh, **kwargs)
+
+        if 'solver' not in kwargs.keys() and 'Solver' not in kwargs.keys():
+            self.solver = pymatsolver.Solver
+
 
 
     ###########################################################################
