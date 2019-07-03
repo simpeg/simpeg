@@ -428,7 +428,7 @@ class MagneticIntegral(Problem.LinearProblem):
         job = Forward(
                 rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
-                model=self.model, rxType=self.rxType, Mxyz=self.Mxyz,
+                model=self.model, components=self.survey.components, Mxyz=self.Mxyz,
                 P=self.ProjTMI, parallelized=self.parallelized,
                 verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM
                 )
