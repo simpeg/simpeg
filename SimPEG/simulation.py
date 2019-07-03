@@ -60,11 +60,11 @@ class Class(properties.Property):
 
         return value
 
-    def serializer(value, **kwargs):
+    def serializer(self, value, **kwargs):
         return "{}.{}".format(value.__module__, value.__name__)
 
     @staticmethod
-    def deserializer(value, **kwargs):
+    def deserializer(self, value, **kwargs):
         name = value.split(".")
         try:
             module = sys.modules[".".join(name[:-1])]
