@@ -687,9 +687,9 @@ class readFTMGdataFile:
                     dobs_list = []
                     components = self.getListOfAvailableComponents(force_comp=force_comp)
                     for comp in components:
-                        if comp is not 'TMI':
-                            print('component added: {0}'.format(comp))
-                            dobs_list.append(self.getComponentData(component=comp, inducing_field=inducing_field))
+                        # if comp is not 'TMI':
+                        print('component added: {0}'.format(comp))
+                        dobs_list.append(self.getComponentData(component=comp, inducing_field=inducing_field))
                     # now sort the data to SimPEG format
                     dobs = np.vstack(dobs_list)
                     size = dobs.shape[0] * dobs.shape[1]
@@ -712,9 +712,9 @@ class readFTMGdataFile:
                 dobs_list = []
                 components = self.getListOfAvailableComponents(force_comp=force_comp)
                 for comp in components:
-                    if comp is not 'TMI':
-                        print('component added: {0}'.format(comp))
-                        dobs_list.append(self.getComponentData(component=comp, limits=limits))
+                    # if comp is not 'TMI':
+                    print('component added: {0}'.format(comp))
+                    dobs_list.append(self.getComponentData(component=comp, limits=limits))
                 # now sort the data to SimPEG format
                 dobs = np.vstack(dobs_list)
                 size = dobs.shape[0] * dobs.shape[1]
@@ -733,13 +733,13 @@ class readFTMGdataFile:
         available_components = self.lines[0].stations[0].available_components
         if force_comp is not None:
             available_components = force_comp
-        list_ = []
-        if not keep_tmi:
-            for comp in available_components:
-                    if comp is not 'TMI':
-                        list_.append(comp)
-        else:
-            list_ = available_components
+        # list_ = []
+        # if not keep_tmi:
+        #     for comp in available_components:
+        #             # if comp is not 'TMI':
+        #             list_.append(comp)
+        # else:
+        list_ = available_components
 
         if format_type == 'simpeg':
             list_bu = list_
@@ -762,6 +762,8 @@ class readFTMGdataFile:
                 list_.append("bx")
             if 'By' in list_bu:
                 list_.append("by")
+            if 'TMI' in list_bu:
+                list_.append("tmi")
         return list_
 
 

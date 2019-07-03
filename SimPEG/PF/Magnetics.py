@@ -494,7 +494,19 @@ class Forward(object):
 
                 # TO-DO: Find a way to create in
                 # chunks instead
-                stack = stack.rechunk('auto')
+                # stack = stack.rechunk('auto')
+                nChunks = self.n_cpu # Number of chunks
+                rowChunk, colChunk = int(np.ceil(self.nD*nDataComps/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
+                # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
+#                 while totRAM > self.maxRAM or (totRAM/nChunks) >= 2.0:
+# #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
+#                     nChunks += 1
+#                     rowChunk, colChunk = int(np.ceil(self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+#                     totRAM = nModelParams*rowChunk*colChunk*8*self.n_cpu*1e-9
+
+                stack = stack.rechunk((rowChunk, colChunk))
+
                 print('DASK: ')
                 print('Tile size (nD, nC): ', stack.shape)
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
@@ -615,7 +627,7 @@ class Forward(object):
 
         #     return np.dot(row, self.model)
         # else:
-        return np.float32(row)
+        return np.float32(rows * self.Mxyz)
 
     def progress(self, ind, total):
         """
