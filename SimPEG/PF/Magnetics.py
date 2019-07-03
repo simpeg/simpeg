@@ -470,7 +470,7 @@ class Forward(object):
         # if self.components == 'xyz':
         #     nDataComps = 3
         # else:
-        nDataComps = len(components)
+        nDataComps = len(self.components)
 
         if self.parallelized:
 

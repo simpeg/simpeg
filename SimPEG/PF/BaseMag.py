@@ -108,7 +108,7 @@ class BaseMagSurvey(Survey.BaseSurvey):
 class LinearSurvey(Survey.BaseSurvey):
     """Base Magnetics Survey"""
 
-    rxType = 'tmi'  #: receiver type
+    components = ['tmi']  #: receiver type
 
     def __init__(self, srcField, **kwargs):
         self.srcField = srcField
@@ -120,7 +120,7 @@ class LinearSurvey(Survey.BaseSurvey):
     @property
     def nD(self):
         # if self.prob is None or self.prob.G is None:
-        return len(self.rxLoc)
+        return len(self.rxLoc) * len(self.components)
         # else:
         #     return self.prob.G.shape[0]
 
