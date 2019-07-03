@@ -41,13 +41,6 @@ class Class(properties.Property):
 
     class_info = "a property that is an uninstantiated class"
 
-    def __init__(self, doc, **kwargs):
-        default = kwargs.pop('default', None)
-        super(Class, self).__init__(doc, **kwargs)
-        if default is not None:
-            self.default = default
-
-
     @property
     def default(self):
         """Default value of the Property"""
@@ -100,30 +93,6 @@ class Class(properties.Property):
         prop_doc = super(properties.Property, self).sphinx()
         prop_doc = None
         return '{doc}{default}'.format(doc=prop_doc, default=default_str)
-
-    def _reset(self, name=None):
-        """Revert specified property to default value
-
-        If no property is specified, all properties are returned to default.
-        """
-        if name is None:
-            for key in self._props:
-                if isinstance(self._props[key], properties.Property):
-                    self._reset(key)
-            return
-        if name not in self._props:
-            raise AttributeError(
-                "Input name '{}' is not a known property or attribute".format(name)
-            )
-        if not isinstance(self._props[name], properties.Property):
-            raise AttributeError(
-                "Cannot reset GettableProperty '{}'".format(name))
-        if name in self._defaults:
-            val = self._defaults[name]
-        else:
-            val = self._props[name].default
-        setattr(self, name, val)
-
 
 
 
