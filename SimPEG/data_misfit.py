@@ -45,7 +45,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         default=True
     )
 
-    def __init__(self, simulation=None, data=None, **kwargs):
+    def __init__(self, data=None, simulation=None, **kwargs):
         if simulation is not None:
             kwargs['simulation'] = simulation
 

@@ -1,17 +1,19 @@
 from __future__ import print_function
 
+import inspect
 import numpy as np
-import properties
 import pymatsolver
+import sys
 import warnings
+
+import properties
+from properties.utils import undefined
 
 from discretize.base import BaseMesh
 from discretize import TensorMesh
 from discretize.utils import meshTensor
 
-# from . import Models
 from . import props
-# from . import Source
 from .data import SyntheticData, Data
 from .survey import BaseSurvey
 from .utils import Counter, timeIt, count, mkvc
@@ -33,6 +35,97 @@ class TimeStepArray(properties.Array):
         if isinstance(value, list):
             value = meshTensor(value)
         return super(TimeStepArray, self).validate(instance, value)
+
+
+class Class(properties.Property):
+
+    class_info = "a property that is an uninstantiated class"
+
+    def __init__(self, doc, **kwargs):
+        default = kwargs.pop('default', None)
+        super(Class, self).__init__(doc, **kwargs)
+        if default is not None:
+            self.default = default
+
+
+    @property
+    def default(self):
+        """Default value of the Property"""
+        return getattr(self, '_default', self._class_default)
+
+    @default.setter
+    def default(self, value):
+        self.validate(None, value)
+        self._default = value
+
+    def validate(self, instance, value):
+        if inspect.isclass(value) is False:
+            extra = (
+                "Expected an uninstantiated class. The provided value is not"
+            )
+            self.error(instance, value, TypeError, extra)
+
+        return value
+
+    def serializer(value, **kwargs):
+        return "{}.{}".format(value.__module__, value.__name__)
+
+    @staticmethod
+    def deserializer(value, **kwargs):
+        name = value.split(".")
+        try:
+            module = sys.modules[".".join(name[:-1])]
+        except KeyError:
+            raise ImportError(
+                "{} not found. Please install {}".format(
+                    ".".join(value, name[0])
+                )
+            )
+        return getattr(module, name[-1])
+
+    def sphinx(self):
+        """Basic docstring formatted for Sphinx docs"""
+        default_val = self.default
+        default_str = '{}'.format(self.default)
+        try:
+            if default_val is None or default_val is undefined:
+                default_str = ''
+            elif len(default_val) == 0:                                        #pylint: disable=len-as-condition
+                default_str = ''
+            else:
+                default_str = ', Default: {}'.format(default_str)
+        except TypeError:
+            default_str = ', Default: {}'.format(default_str)
+
+        prop_doc = super(properties.Property, self).sphinx()
+        prop_doc = None
+        return '{doc}{default}'.format(doc=prop_doc, default=default_str)
+
+    def _reset(self, name=None):
+        """Revert specified property to default value
+
+        If no property is specified, all properties are returned to default.
+        """
+        if name is None:
+            for key in self._props:
+                if isinstance(self._props[key], properties.Property):
+                    self._reset(key)
+            return
+        if name not in self._props:
+            raise AttributeError(
+                "Input name '{}' is not a known property or attribute".format(name)
+            )
+        if not isinstance(self._props[name], properties.Property):
+            raise AttributeError(
+                "Cannot reset GettableProperty '{}'".format(name))
+        if name in self._defaults:
+            val = self._defaults[name]
+        else:
+            val = self._props[name].default
+        setattr(self, name, val)
+
+
+
 
 
 ##############################################################################
@@ -60,17 +153,41 @@ class BaseSimulation(props.HasModel):
     counter = properties.Instance("A SimPEG.Utils.Counter object", Counter)
 
     # TODO: need to implement a serializer for this & setter
-    solver = pymatsolver.Solver
+    solver = Class(
+        "Linear algebra solver (e.g. from pymatsolver)",
+        default=pymatsolver.Solver
+    )
 
     solver_opts = properties.Dictionary(
         "solver options as a kwarg dict", default={}
     )
 
-    def __init__(self, mesh=None, **kwargs):
-        if mesh is not None:
-            kwargs['mesh'] = mesh
-        super(BaseSimulation, self).__init__(**kwargs)
+    def _reset(self, name=None):
+        """Revert specified property to default value
 
+        If no property is specified, all properties are returned to default.
+        """
+        if name is None:
+            for key in self._props:
+                if isinstance(self._props[key], properties.basic.Property):
+                    self._reset(key)
+            return
+        if name not in self._props:
+            raise AttributeError("Input name '{}' is not a known "
+                                 "property or attribute".format(name))
+        if not isinstance(self._props[name], properties.basic.Property):
+            raise AttributeError("Cannot reset GettableProperty "
+                                 "'{}'".format(name))
+        if name in self._defaults:
+            val = self._defaults[name]
+        else:
+            val = self._props[name].default
+        # if callable(val):
+        #     val = val()
+        setattr(self, name, val)
+
+    ###########################################################################
+    # Properties and observers
 
     @properties.observer('mesh')
     def _update_registry(self, change):
@@ -162,10 +279,7 @@ class BaseSimulation(props.HasModel):
             )
 
         super(BaseSimulation, self).__init__(mesh=mesh, **kwargs)
-        # assert isinstance(mesh, BaseMesh), (
-        #     "mesh must be a discretize object."
-        # )
-        # self.mesh = mesh
+
 
     ###########################################################################
     # Methods
@@ -285,7 +399,9 @@ class BaseSimulation(props.HasModel):
         """
         return mkvc(self.dpred(m, f=f) - dobs)
 
-    def make_synthetic_data(self, m, standard_deviation=0.05, f=None, **kwargs):
+    def make_synthetic_data(
+        self, m, standard_deviation=0.05, f=None, add_noise=False, **kwargs
+    ):
         """
         Make synthetic data given a model, and a standard deviation.
         :param numpy.array m: geophysical model
@@ -298,8 +414,11 @@ class BaseSimulation(props.HasModel):
             standard_deviation = std
 
         dclean = self.dpred(m, f=f)
-        noise = standard_deviation*abs(dclean)*np.random.randn(*dclean.shape)
-        dobs = dclean + noise
+        if add_noise is True:
+            noise = standard_deviation*abs(dclean)*np.random.randn(*dclean.shape)
+            dobs = dclean + noise
+        else:
+            dobs = dclean
 
         return SyntheticData(
             survey=self.survey, dobs=dobs, dclean=dclean,

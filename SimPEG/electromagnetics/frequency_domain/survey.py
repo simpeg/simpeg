@@ -26,9 +26,9 @@ class Survey(BaseSurvey):
 
         _frequency_dict = {}
         for src in source_list:
-            if src.freq not in _frequency_dict:
-                _frequency_dict[src.freq] = []
-            _frequency_dict[src.freq] += [src]
+            if src.frequency not in _frequency_dict:
+                _frequency_dict[src.frequency] = []
+            _frequency_dict[src.frequency] += [src]
 
         self._frequency_dict = _frequency_dict
         self._frequencies = sorted([f for f in self._frequency_dict])

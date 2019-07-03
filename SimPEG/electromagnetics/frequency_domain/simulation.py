@@ -79,12 +79,12 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         f = self.fieldsPair(self)
 
-        for freq in self.survey.freqs:
+        for freq in self.survey.frequencies:
             A = self.getA(freq)
             rhs = self.getRHS(freq)
             Ainv = self.Solver(A, **self.solver_opts)
             u = Ainv * rhs
-            Srcs = self.survey.getSrcByFreq(freq)
+            Srcs = self.survey.get_sources_by_frequency(freq)
             f[Srcs, self._solutionType] = u
             Ainv.clean()
         return f
@@ -109,12 +109,12 @@ class BaseFDEMSimulation(BaseEMSimulation):
         # Jv = Data(self.survey)
         Jv = []
 
-        for freq in self.survey.freqs:
+        for freq in self.survey.frequencies:
             A = self.getA(freq)
             # create the concept of Ainv (actually a solve)
             Ainv = self.Solver(A, **self.solver_opts)
 
-            for src in self.survey.getSrcByFreq(freq):
+            for src in self.survey.get_sources_by_frequency(freq):
                 u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(freq, u_src, v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
@@ -149,11 +149,11 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         Jtv = np.zeros(m.size)
 
-        for freq in self.survey.freqs:
+        for freq in self.survey.frequencies:
             AT = self.getA(freq).T
             ATinv = self.Solver(AT, **self.solver_opts)
 
-            for src in self.survey.getSrcByFreq(freq):
+            for src in self.survey.get_sources_by_frequency(freq):
                 u_src = f[src, self._solutionType]
 
                 for rx in src.rxList:
@@ -194,7 +194,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         :rtype: tuple
         :return: (s_m, s_e) (nE or nF, nSrc)
         """
-        Srcs = self.survey.getSrcByFreq(freq)
+        Srcs = self.survey.get_sources_by_frequency(freq)
         if self._formulation is 'EB':
             s_m = np.zeros((self.mesh.nF, len(Srcs)), dtype=complex)
             s_e = np.zeros((self.mesh.nE, len(Srcs)), dtype=complex)
