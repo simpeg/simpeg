@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.special import kn
+import properties
 
 from .... import props
 from .... import maps
@@ -11,11 +12,11 @@ from ..resistivity.fields_2d import (
 from ..induced_polarization.simulation_2d import BaseIPSimulation_2D
 from ..induced_polarization import Problem2D_N as BaseProblem2D_N
 from ..induced_polarization import Problem2D_CC as BaseProblem2D_CC
-from .SurveySIP import Survey
+from .survey import Survey
 
 
 
-class BaseSIPProblem_2D(BaseIPSimulation_2D):
+class BaseSIPSimulation_2D(BaseIPSimulation_2D):
 
     eta, etaMap, etaDeriv = props.Invertible(
         "Electrical Chargeability (V/V)"
@@ -37,7 +38,11 @@ class BaseSIPProblem_2D(BaseIPSimulation_2D):
         default=1.
     )
 
-    surveyPair = Survey
+    survey = properties.Instance(
+        "an SIP survey object", Survey, required=True
+    )
+
+    # surveyPair = Survey
     fieldsPair = Fields_ky
     _f = None
     _Jmatrix = None
@@ -178,6 +183,15 @@ class BaseSIPProblem_2D(BaseIPSimulation_2D):
                     self.actMap.P.T*self.getPeta(self.survey.times[tind]))
                 )
         return self.sign * np.hstack(Jv)
+
+    def dpred(self, m, f=None):
+        """
+            Predicted data.
+
+            .. math::
+                d_\\text{pred} = Pf(m)
+        """
+        return self.forward(m, f=f)
 
     def Jvec(self, m, v, f=None):
 
@@ -380,7 +394,7 @@ class BaseSIPProblem_2D(BaseIPSimulation_2D):
                 return (u*vol*(-1./rho**2))*(drho_dlogrho * v)
 
 
-class Problem2D_CC(BaseSIPProblem_2D, BaseProblem2D_CC):
+class Problem2D_CC(BaseSIPSimulation_2D, BaseProblem2D_CC):
     """
     2.5D cell centered Spectral IP problem
     """
@@ -392,7 +406,7 @@ class Problem2D_CC(BaseSIPProblem_2D, BaseProblem2D_CC):
     bc_type = "Mixed"
 
     def __init__(self, mesh, **kwargs):
-        BaseSIPProblem_2D.__init__(self, mesh, **kwargs)
+        BaseSIPSimulation_2D.__init__(self, mesh, **kwargs)
         if self.actinds is None:
             print("You did not put Active indices")
             print("So, set actMap = IdentityMap(mesh)")
@@ -401,7 +415,7 @@ class Problem2D_CC(BaseSIPProblem_2D, BaseProblem2D_CC):
         self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)
 
 
-class Problem2D_N(BaseSIPProblem_2D, BaseProblem2D_N):
+class Problem2D_N(BaseSIPSimulation_2D, BaseProblem2D_N):
     """
     2.5D nodal Spectral IP problem
     """
@@ -412,7 +426,7 @@ class Problem2D_N(BaseSIPProblem_2D, BaseProblem2D_N):
     sign = -1.
 
     def __init__(self, mesh, **kwargs):
-        BaseSIPProblem_2D.__init__(self, mesh, **kwargs)
+        BaseSIPSimulation_2D.__init__(self, mesh, **kwargs)
         # self.setBC()
         if self.actinds is None:
             print("You did not put Active indices")

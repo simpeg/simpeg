@@ -401,6 +401,18 @@ class BaseSurvey(properties.HasProperties):
         )
 
 
+class BaseTimeSurvey(BaseSurvey):
+
+    @property
+    def unique_times(self):
+        if getattr(self, '_unique_times', None) is None:
+            rx_times = []
+            for source in self.source_list:
+                for receiver in source.receiver_list:
+                    rx_times.append(receiver.times)
+            self._unique_times = np.unique(np.hstack(rx_times))
+        return self._unique_times
+
 
 ###############################################################################
 #

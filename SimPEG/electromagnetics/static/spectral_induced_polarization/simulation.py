@@ -1,21 +1,22 @@
 import numpy as np
 import sys
 import gc
+import properties
 
 from .... import props
 from .... import maps
-from ....data import Data
+from .data import Data
 from ....utils import sdiag
 
 from ...base import BaseEMSimulation
 from ..resistivity.fields import FieldsDC, Fields_CC, Fields_N
 from ..induced_polarization import Problem3D_CC as BaseProblem3D_CC
 from ..induced_polarization import Problem3D_N as BaseProblem3D_N
-from .SurveySIP import Survey
+from .survey import Survey
 
 
 
-class BaseSIPProblem(BaseEMSimulation):
+class BaseSIPSimulation(BaseEMSimulation):
 
     sigma = props.PhysicalProperty(
         "Electrical conductivity (S/m)"
@@ -47,9 +48,11 @@ class BaseSIPProblem(BaseEMSimulation):
 
     props.Reciprocal(tau, taui)
 
-    surveyPair = Survey
+    survey = properties.Instance(
+        "an SIP survey object", Survey, required=True
+    )
+
     fieldsPair = FieldsDC
-    dataPair = Data
     Ainv = None
     _f = None
     actinds = None
@@ -96,13 +99,13 @@ class BaseSIPProblem(BaseEMSimulation):
         if self.verbose:
             print(">> Compute DC fields")
         if self._f is None:
-            self._f = self.fieldsPair(self.mesh, self.survey)
+            self._f = self.fieldsPair(self)
             if self.Ainv is None:
                 A = self.getA()
-                self.Ainv = self.Solver(A, **self.solverOpts)
+                self.Ainv = self.Solver(A, **self.solver_opts)
             RHS = self.getRHS()
             u = self.Ainv * RHS
-            Srcs = self.survey.srcList
+            Srcs = self.survey.source_list
             self._f[Srcs, self._solutionType] = u
         return self._f
 
@@ -128,14 +131,14 @@ class BaseSIPProblem(BaseEMSimulation):
             istrt = int(0)
             iend = int(0)
 
-            for isrc, src in enumerate(self.survey.srcList):
+            for isrc, src in enumerate(self.survey.source_list):
                 if self.verbose:
                     sys.stdout.write(
                         ("\r %d / %d") % (isrc+1, self.survey.nSrc)
                     )
                     sys.stdout.flush()
                 u_src = f[src, self._solutionType]
-                for rx in src.rxList:
+                for rx in src.receiver_list:
                     P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
                     ATinvdf_duT = self.Ainv * (P.T)
                     dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
@@ -193,24 +196,33 @@ class BaseSIPProblem(BaseEMSimulation):
                 # Pseudo-chareability
                 t = self.survey.times[tind]
                 v = self.getPeta(t)
-                for src in self.survey.srcList:
+                for src in self.survey.source_list:
                     u_src = f[src, self._solutionType]  # solution vector
                     dA_dm_v = self.getADeriv(u_src, v)
                     dRHS_dm_v = self.getRHSDeriv(src, v)
                     du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
-                    for rx in src.rxList:
+                    for rx in src.receiver_list:
                         timeindex = rx.getTimeP(self.survey.times)
                         if timeindex[tind]:
                             df_dmFun = getattr(
                                 f, '_{0!s}Deriv'.format(rx.projField),
                                 None
-                                )
+                            )
                             df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
                             Jv.append(
                                 rx.evalDeriv(src, self.mesh, f, df_dm_v)
-                                )
+                            )
 
             return self.sign*np.hstack(Jv)
+
+    def dpred(self, m, f=None):
+        """
+            Predicted data.
+
+            .. math::
+                d_\\text{pred} = Pf(m)
+        """
+        return self.forward(m, f=f)
 
     def Jvec(self, m, v, f=None):
 
@@ -247,7 +259,7 @@ class BaseSIPProblem(BaseEMSimulation):
                 v1 = self.PetaTauiDeriv(t, v)
                 v2 = self.PetaCDeriv(t, v)
 
-                for src in self.survey.srcList:
+                for src in self.survey.source_list:
                     u_src = f[src, self._solutionType]  # solution vector
                     dA_dm_v = self.getADeriv(u_src, v0+v1+v2)
                     dRHS_dm_v = self.getRHSDeriv(src, v0+v1+v2)
@@ -255,7 +267,7 @@ class BaseSIPProblem(BaseEMSimulation):
                         - dA_dm_v + dRHS_dm_v
                         )
 
-                    for rx in src.rxList:
+                    for rx in src.receiver_list:
                         timeindex = rx.getTimeP(self.survey.times)
                         if timeindex[tind]:
                             Jv_temp = (
@@ -297,16 +309,16 @@ class BaseSIPProblem(BaseEMSimulation):
                 f = self.fields(m)
 
             # Ensure v is a data object.
-            if not isinstance(v, self.dataPair):
-                v = self.dataPair(self.survey, v)
+            if not isinstance(v, Data):
+                v = Data(self.survey, v)
 
             Jtv = np.zeros(m.size)
 
             for tind in range(len(self.survey.times)):
                 t = self.survey.times[tind]
-                for src in self.survey.srcList:
+                for src in self.survey.source_list:
                     u_src = f[src, self._solutionType]
-                    for rx in src.rxList:
+                    for rx in src.receiver_list:
                         timeindex = rx.getTimeP(self.survey.times)
                         if timeindex[tind]:
                             # wrt f, need possibility wrt m
@@ -355,7 +367,7 @@ class BaseSIPProblem(BaseEMSimulation):
         :return: q (nC or nN, nSrc)
         """
 
-        Srcs = self.survey.srcList
+        Srcs = self.survey.source_list
 
         if self._formulation == 'EB':
             n = self.mesh.nN
@@ -382,9 +394,9 @@ class BaseSIPProblem(BaseEMSimulation):
         """
         if getattr(self, '_MfRhoDerivMat', None) is None:
             if self.storeJ:
-                drho_dlogrho = Utils.sdiag(self.rho)*self.actMap.P
+                drho_dlogrho = sdiag(self.rho)*self.actMap.P
             else:
-                drho_dlogrho = Utils.sdiag(self.rho)
+                drho_dlogrho = sdiag(self.rho)
             self._MfRhoDerivMat = self.mesh.getFaceInnerProductDeriv(
                 np.ones(self.mesh.nC)
             )(np.ones(self.mesh.nF)) * drho_dlogrho
@@ -400,16 +412,16 @@ class BaseSIPProblem(BaseEMSimulation):
             if adjoint:
                 return (
                     self.MfRhoDerivMat.T * (
-                        Utils.sdiag(u) * (dMfRhoI_dI.T * v)
+                        sdiag(u) * (dMfRhoI_dI.T * v)
                     )
                 )
             else:
-                return dMfRhoI_dI * (Utils.sdiag(u) * (self.MfRhoDerivMat*v))
+                return dMfRhoI_dI * (sdiag(u) * (self.MfRhoDerivMat*v))
         else:
             if self.storeJ:
-                drho_dlogrho = Utils.sdiag(self.rho)*self.actMap.P
+                drho_dlogrho = sdiag(self.rho)*self.actMap.P
             else:
-                drho_dlogrho = Utils.sdiag(self.rho)
+                drho_dlogrho = sdiag(self.rho)
             dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
             if adjoint:
                 return drho_dlogrho.T * (dMf_drho.T * (dMfRhoI_dI.T*v))
@@ -423,9 +435,9 @@ class BaseSIPProblem(BaseEMSimulation):
         """
         if getattr(self, '_MeSigmaDerivMat', None) is None:
             if self.storeJ:
-                dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.actMap.P
+                dsigma_dlogsigma = sdiag(self.sigma)*self.actMap.P
             else:
-                dsigma_dlogsigma = Utils.sdiag(self.sigma)
+                dsigma_dlogsigma = sdiag(self.sigma)
             self._MeSigmaDerivMat = self.mesh.getEdgeInnerProductDeriv(
                 np.ones(self.mesh.nC)
             )(np.ones(self.mesh.nE)) * dsigma_dlogsigma
@@ -438,14 +450,14 @@ class BaseSIPProblem(BaseEMSimulation):
         """
         if self.storeInnerProduct:
             if adjoint:
-                return self.MeSigmaDerivMat.T * (Utils.sdiag(u)*v)
+                return self.MeSigmaDerivMat.T * (sdiag(u)*v)
             else:
-                return Utils.sdiag(u)*(self.MeSigmaDerivMat * v)
+                return sdiag(u)*(self.MeSigmaDerivMat * v)
         else:
             if self.storeJ:
-                dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.actMap.P
+                dsigma_dlogsigma = sdiag(self.sigma)*self.actMap.P
             else:
-                dsigma_dlogsigma = Utils.sdiag(self.sigma)
+                dsigma_dlogsigma = sdiag(self.sigma)
             if adjoint:
                 return (
                     dsigma_dlogsigma.T * (
@@ -459,7 +471,7 @@ class BaseSIPProblem(BaseEMSimulation):
                 )
 
 
-class Problem3D_CC(BaseSIPProblem, BaseProblem3D_CC):
+class Problem3D_CC(BaseSIPSimulation, BaseProblem3D_CC):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
@@ -468,7 +480,7 @@ class Problem3D_CC(BaseSIPProblem, BaseProblem3D_CC):
     bc_type = 'Neumann'
 
     def __init__(self, mesh, **kwargs):
-        BaseSIPProblem.__init__(self, mesh, **kwargs)
+        BaseSIPSimulation.__init__(self, mesh, **kwargs)
         self.setBC()
 
         if self.storeJ:
@@ -477,10 +489,10 @@ class Problem3D_CC(BaseSIPProblem, BaseProblem3D_CC):
                 print("So, set actMap = IdentityMap(mesh)")
                 self.actinds = np.ones(mesh.nC, dtype=bool)
 
-            self.actMap = Maps.InjectActiveCells(mesh, self.actinds, 0.)
+            self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)
 
 
-class Problem3D_N(BaseSIPProblem, BaseProblem3D_N):
+class Problem3D_N(BaseSIPSimulation, BaseProblem3D_N):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # N potentials means B is on faces
@@ -488,7 +500,7 @@ class Problem3D_N(BaseSIPProblem, BaseProblem3D_N):
     sign = -1.
 
     def __init__(self, mesh, **kwargs):
-        BaseSIPProblem.__init__(self, mesh, **kwargs)
+        BaseSIPSimulation.__init__(self, mesh, **kwargs)
 
         if self.storeJ:
             if self.actinds is None:
@@ -496,4 +508,4 @@ class Problem3D_N(BaseSIPProblem, BaseProblem3D_N):
                 print("So, set actMap = IdentityMap(mesh)")
                 self.actinds = np.ones(mesh.nC, dtype=bool)
 
-            self.actMap = Maps.InjectActiveCells(mesh, self.actinds, 0.)
+            self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)

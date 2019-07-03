@@ -162,6 +162,11 @@ class Data(properties.HasProperties):
     def nD(self):
         return len(self.dobs)
 
+    @property
+    def shape(self):
+        return self.dobs.shape
+
+
     ##########################
     # Observers and validators
     ##########################
@@ -185,7 +190,7 @@ class Data(properties.HasProperties):
 
 
     @property
-    def index_dict(self):
+    def index_dictionary(self):
         """
         Dictionary of data indices by sources and receivers. To set data using
         survey parameters:
@@ -194,11 +199,11 @@ class Data(properties.HasProperties):
             data = Data(survey)
             for src in survey.srcList:
                 for rx in src.rxList:
-                    index = data.index_dict[src][rx]
+                    index = data.index_dictionary[src][rx]
                     data.dobs[index] = datum
 
         """
-        if getattr(self, '_index_dict', None) is None:
+        if getattr(self, '_index_dictionary', None) is None:
             if self.survey is None:
                 raise Exception(
                     "To set or get values by source-receiver pairs, a survey must "
@@ -206,32 +211,32 @@ class Data(properties.HasProperties):
                 )
 
             # create an empty dict
-            self._index_dict = {}
+            self._index_dictionary = {}
 
             # create an empty dict associated with each source
             for src in self.survey.source_list:
-                self._index_dict[src] = {}
+                self._index_dictionary[src] = {}
 
             # loop over sources and find the associated data indices
             indBot, indTop = 0, 0
             for src in self.survey.source_list:
                 for rx in src.receiver_list:
                     indTop += rx.nD
-                    self._index_dict[src][rx] = np.arange(indBot, indTop)
+                    self._index_dictionary[src][rx] = np.arange(indBot, indTop)
                     indBot += rx.nD
 
-        return self._index_dict
+        return self._index_dictionary
 
     ##########################
     # Methods
     ##########################
 
     def __setitem__(self, key, value):
-        index = self.index_dict[key[0]][key[1]]
+        index = self.index_dictionary[key[0]][key[1]]
         self.dobs[index] = mkvc(value)
 
     def __getitem__(self, key):
-        index = self.index_dict[key[0]][key[1]]
+        index = self.index_dictionary[key[0]][key[1]]
         return self.dobs[index]
 
     def tovec(self):
@@ -291,7 +296,7 @@ class SyntheticData(Data):
             data = Data(survey)
             for src in survey.srcList:
                 for rx in src.rxList:
-                    index = data.inices_by_survey(src, rx)
+                    index = data.index_dictionary(src, rx)
                     data.dclean[indices] = datum
 
         """,

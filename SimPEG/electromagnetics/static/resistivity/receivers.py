@@ -24,18 +24,6 @@ class BaseRx(BaseSimPEGRx):
     """
     Base DC receiver
     """
-    # locations = None
-    # rxType = None
-
-    # knownRxTypes = {
-    #     'phi': ['phi', None],
-    #     'ex': ['e', 'x'],
-    #     'ey': ['e', 'y'],
-    #     'ez': ['e', 'z'],
-    #     'jx': ['j', 'x'],
-    #     'jy': ['j', 'y'],
-    #     'jz': ['j', 'z'],
-    # }
 
     orientation = properties.StringChoice(
         "orientation of the receiver. Must currently be 'x', 'y', 'z'",
@@ -86,13 +74,11 @@ class Dipole(BaseRx):
     # Threshold to be assumed as a pole receiver
     threshold = 1e-5
 
-    # see: https://github.com/seequent/properties/issues/285
     locations = properties.List(
         "list of locations of each electrode in a dipole receiver",
-        RxLocationArray("location of electrode"),
+        RxLocationArray("location of electrode", shape=("*", "*")),
         min_length=1, max_length=2
     )
-    locations = []
 
     def __init__(self, locationsM, locationsN, **kwargs):
         if locationsM.shape != locationsN.shape:
@@ -142,13 +128,7 @@ class Dipole_ky(Dipole):
         assert locationsM.shape == locationsN.shape, (
             'locationsM and locationsN need to be the same size'
         )
-        # locations = [np.atleast_2d(locationsM), np.atleast_2d(locationsN)]
         super(Dipole_ky, self).__init__(locationsM, locationsN, **kwargs)
-
-    # @property
-    # def nD(self):
-    #     """Number of data in the receiver."""
-    #     return self.locations[0].shape[0]
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:

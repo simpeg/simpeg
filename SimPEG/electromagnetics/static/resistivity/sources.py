@@ -10,14 +10,12 @@ class BaseSrc(survey.BaseSrc):
     Base DC source
     """
 
-    current = properties.Float(
-        "amplitude of the current", default=1.
-    )
+    current = properties.Float("amplitude of the source current", default=1.)
 
     _q = None
 
-    def __init__(self, rxList, **kwargs):
-        super(BaseSrc, self).__init__(rxList, **kwargs)
+    def __init__(self, receiver_list, **kwargs):
+        super(BaseSrc, self).__init__(receiver_list, **kwargs)
 
     def eval(self, prob):
         raise NotImplementedError
@@ -36,11 +34,11 @@ class Dipole(BaseSrc):
         survey.SourceLocationArray("location of electrode")
     )
 
-    def __init__(self, rxList, locA, locB, **kwargs):
-        if locA.shape != locB.shape:
-            raise Exception('Shape of locA and locB should be the same')
-        self.location = [locA, locB]
-        super(Dipole, self).__init__(rxList, **kwargs)
+    def __init__(self, receiver_list, locationA, locationB, **kwargs):
+        if locationA.shape != locationB.shape:
+            raise Exception('Shape of locationA and locationB should be the same')
+        super(Dipole, self).__init__(receiver_list, **kwargs)
+        self.location = [locationA, locationB]
 
     def eval(self, prob):
         if self._q is not None:
@@ -63,8 +61,8 @@ class Dipole(BaseSrc):
 
 class Pole(BaseSrc):
 
-    def __init__(self, rxList, location, **kwargs):
-        super(Pole, self).__init__(rxList, location=location, **kwargs)
+    def __init__(self, receiver_list, location, **kwargs):
+        super(Pole, self).__init__(receiver_list, location=location, **kwargs)
 
     def eval(self, prob):
         if self._q is not None:

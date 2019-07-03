@@ -48,3 +48,8 @@ examples/00_published/*.png
 
 # jupyter
 *.ipynb
+
+# results and testing files
+*.xyz
+*.npy
+*.mod
