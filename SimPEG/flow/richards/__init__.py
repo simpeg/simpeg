@@ -1,3 +1,4 @@
-from . import Empirical
-from .RichardsSurvey import *
-from .RichardsProblem import *
+from . import empirical
+from .survey import Survey
+from .simulation import RichardsSimulation
+from . import receivers

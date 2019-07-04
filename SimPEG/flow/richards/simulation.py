@@ -9,18 +9,18 @@ import time
 import properties
 import warnings
 
-from SimPEG import Utils
-from SimPEG import Problem
-from SimPEG import Optimization
-from SimPEG import Solver
+from ... import utils
+from ...simulation import BaseTimeSimulation
+from ... import optimization
+from ... import Solver
 
-from SimPEG.FLOW.Richards.RichardsSurvey import RichardsSurvey
-from SimPEG.FLOW.Richards.Empirical import BaseHydraulicConductivity
-from SimPEG.FLOW.Richards.Empirical import BaseWaterRetention
+from .survey import Survey
+from .empirical import BaseHydraulicConductivity
+from .empirical import BaseWaterRetention
 
 
-class RichardsProblem(Problem.BaseTimeProblem):
-    """RichardsProblem"""
+class RichardsSimulation(BaseTimeSimulation):
+    """Richards Simulation"""
 
     hydraulic_conductivity = properties.Instance(
         'hydraulic conductivity function',
@@ -71,9 +71,9 @@ class RichardsProblem(Problem.BaseTimeProblem):
         """
 
         if (
-                not self.hydraulic_conductivity.needs_model and
-                not self.water_retention.needs_model
-           ):
+            not self.hydraulic_conductivity.needs_model and
+            not self.water_retention.needs_model
+       ):
             warnings.warn('There is no model to set.')
             return
 
@@ -94,10 +94,8 @@ class RichardsProblem(Problem.BaseTimeProblem):
         return self.boundary_conditions(time, u_ii)
 
     @properties.observer([
-                          'do_newton',
-                          'root_finder_max_iter',
-                          'root_finder_tol'
-                        ])
+        'do_newton', 'root_finder_max_iter', 'root_finder_tol'
+    ])
     def _on_root_finder_update(self, change):
         """Setting do_newton etc. will clear the root_finder,
         which will be reinitialized when called
@@ -109,7 +107,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
     def root_finder(self):
         """Root-finding Algorithm"""
         if getattr(self, '_root_finder', None) is None:
-            self._root_finder = Optimization.NewtonRoot(
+            self._root_finder = optimization.NewtonRoot(
                 doLS=self.do_newton,
                 maxIter=self.root_finder_max_iter,
                 tol=self.root_finder_tol,
@@ -117,7 +115,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
             )
         return self._root_finder
 
-    @Utils.timeIt
+    @utils.timeIt
     def fields(self, m=None):
         if self.water_retention.needs_model or self.hydraulic_conductivity.needs_model:
             assert m is not None
@@ -148,6 +146,24 @@ class RichardsProblem(Problem.BaseTimeProblem):
                 )
         return u
 
+    def dpred(self, m, f=None):
+        """Create the projected data from a model.
+        The field, f, (if provided) will be used for the predicted data
+        instead of recalculating the fields (which may be expensive!).
+        .. math::
+            d_\\text{pred} = P(f(m), m)
+        Where P is a projection of the fields onto the data space.
+        """
+        if f is None:
+            f = self.fields(m)
+
+        Ds = list(range(len(self.survey.rxList)))
+
+        for ii, rx in enumerate(self.survey.rxList):
+            Ds[ii] = rx(f, self)
+
+        return np.concatenate(Ds)
+
     @property
     def Dz(self):
         if self.mesh.dim == 1:
@@ -155,17 +171,17 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
         if self.mesh.dim == 2:
             mats = (
-                Utils.spzeros(self.mesh.nC, self.mesh.vnF[0]),
+                utils.spzeros(self.mesh.nC, self.mesh.vnF[0]),
                 self.mesh.faceDivy
             )
         elif self.mesh.dim == 3:
             mats = (
-                Utils.spzeros(self.mesh.nC, self.mesh.vnF[0]+self.mesh.vnF[1]),
+                utils.spzeros(self.mesh.nC, self.mesh.vnF[0]+self.mesh.vnF[1]),
                 self.mesh.faceDivz
             )
         return sp.hstack(mats, format='csr')
 
-    @Utils.timeIt
+    @utils.timeIt
     def diagsJacobian(self, m, hn, hn1, dt, bc):
         """Diagonals and rhs of the jacobian system
 
@@ -201,10 +217,10 @@ class RichardsProblem(Problem.BaseTimeProblem):
         #
         #       DIV*diag(GRAD*hn1+BC*bc)*(AV*(1.0/K))^-1
 
-        DdiagGh1 = DIV*Utils.sdiag(GRAD*hn1+BC*bc)
+        DdiagGh1 = DIV*utils.sdiag(GRAD*hn1+BC*bc)
         diagAVk2_AVdiagK2 = (
-            Utils.sdiag((AV*(1./K1))**(-2)) *
-            AV*Utils.sdiag(K1**(-2))
+            utils.sdiag((AV*(1./K1))**(-2)) *
+            AV*utils.sdiag(K1**(-2))
         )
 
         Asub = (-1.0/dt)*dT
@@ -212,7 +228,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         Adiag = (
             (1.0/dt)*dT1 -
             DdiagGh1*diagAVk2_AVdiagK2*dK1 -
-            DIV*Utils.sdiag(1./(AV*(1./K1)))*GRAD -
+            DIV*utils.sdiag(1./(AV*(1./K1)))*GRAD -
             Dz*diagAVk2_AVdiagK2*dK1
         )
 
@@ -224,7 +240,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
         return Asub, Adiag, B
 
-    @Utils.timeIt
+    @utils.timeIt
     def getResidual(self, m, hn, h, dt, bc, return_g=True):
         """Used by the root finder when going between timesteps
 
@@ -247,7 +263,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
         aveK = 1./(AV*(1./K))
 
-        RHS = DIV*Utils.sdiag(aveK)*(GRAD*h+BC*bc) + Dz*aveK
+        RHS = DIV*utils.sdiag(aveK)*(GRAD*h+BC*bc) + Dz*aveK
         if self.method == 'mixed':
             r = (T-Tn)/dt - RHS
         elif self.method == 'head':
@@ -256,14 +272,14 @@ class RichardsProblem(Problem.BaseTimeProblem):
         if not return_g:
             return r
 
-        J = dT/dt - DIV*Utils.sdiag(aveK)*GRAD
+        J = dT/dt - DIV*utils.sdiag(aveK)*GRAD
         if self.do_newton:
-            DDharmAve = Utils.sdiag(aveK**2)*AV*Utils.sdiag(K**(-2)) * dK
-            J = J - DIV*Utils.sdiag(GRAD*h + BC*bc)*DDharmAve - Dz*DDharmAve
+            DDharmAve = utils.sdiag(aveK**2)*AV*utils.sdiag(K**(-2)) * dK
+            J = J - DIV*utils.sdiag(GRAD*h + BC*bc)*DDharmAve - Dz*DDharmAve
 
         return r, J
 
-    @Utils.timeIt
+    @utils.timeIt
     def Jfull(self, m=None, f=None):
         if f is None:
             f = self.fields(m)
@@ -277,10 +293,10 @@ class RichardsProblem(Problem.BaseTimeProblem):
                 m, f[ii], f[ii+1], dt, bc
             )
         Ad = sp.block_diag(Adiags)
-        zRight = Utils.spzeros(
+        zRight = utils.spzeros(
             (len(Asubs)-1)*Asubs[0].shape[0], Adiags[0].shape[1]
         )
-        zTop = Utils.spzeros(
+        zTop = utils.spzeros(
             Adiags[0].shape[0], len(Adiags)*Adiags[0].shape[1]
         )
         As = sp.vstack((zTop, sp.hstack((sp.block_diag(Asubs[1:]), zRight))))
@@ -291,10 +307,10 @@ class RichardsProblem(Problem.BaseTimeProblem):
         AinvB = Ainv * B
         z = np.zeros((self.mesh.nC, B.shape[1]))
         du_dm = np.vstack((z, AinvB))
-        J = self.survey.deriv(f, du_dm_v=du_dm)  # not multiplied by v
+        J = self.survey.deriv(self, f, du_dm_v=du_dm)  # not multiplied by v
         return J
 
-    @Utils.timeIt
+    @utils.timeIt
     def Jvec(self, m, v, f=None):
         if f is None:
             f = self.fields(m)
@@ -318,15 +334,15 @@ class RichardsProblem(Problem.BaseTimeProblem):
             JvC[ii] = Adiaginv * (B*v - Asub*JvC[ii-1])
 
         du_dm_v = np.concatenate([np.zeros(self.mesh.nC)] + JvC)
-        Jv = self.survey.deriv(f, du_dm_v=du_dm_v, v=v)
+        Jv = self.survey.deriv(self, f, du_dm_v=du_dm_v, v=v)
         return Jv
 
-    @Utils.timeIt
+    @utils.timeIt
     def Jtvec(self, m, v, f=None):
         if f is None:
             f = self.field(m)
 
-        PTv, PTdv = self.survey.derivAdjoint(f, v=v)
+        PTv, PTdv = self.survey.derivAdjoint(self, f, v=v)
 
         # This is done via backward substitution.
         minus = 0

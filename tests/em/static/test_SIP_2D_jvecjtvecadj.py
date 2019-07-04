@@ -97,7 +97,7 @@ class IPProblemTestsCC(unittest.TestCase):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
         v = np.random.rand(self.mesh.nC*2)
-        w = np.random.rand(self.dobs.shape[0])
+        w = np.random.rand(self.survey.dobs.shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -194,7 +194,7 @@ class IPProblemTestsN(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         v = np.random.rand(self.mesh.nC*2)
-        w = np.random.rand(self.dobs.shape[0])
+        w = np.random.rand(self.survey.dobs.shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -304,7 +304,7 @@ class IPProblemTestsN_air(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         v = np.random.rand(self.reg.mapping.nP)
-        w = np.random.rand(self.dobs.shape[0])
+        w = np.random.rand(self.survey.dobs.shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8

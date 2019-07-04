@@ -14,7 +14,7 @@ class RxLocationArray(properties.Array):
 
     def validate(self, instance, value):
         if len(value.shape) == 1:
-            value = mkvc(value, 2).T
+            value = mkvc(value, 2)
         return super(RxLocationArray, self).validate(instance, value)
 
 class SourceLocationArray(properties.Array):
@@ -38,11 +38,6 @@ class BaseRx(properties.HasProperties):
         shape=("*", "*"),
         required=True
     )
-
-    # TODO: get rid of this
-    # knownRxTypes = properties.String(
-    #     "Set this to a list of strings to ensure that srcType is known",
-    # )
 
     # TODO: project_grid?
     projGLoc = properties.StringChoice(
@@ -77,20 +72,6 @@ class BaseRx(properties.HasProperties):
             )
         if getattr(self, '_Ps', None) is None:
             self._Ps = {}
-
-    # @property
-    # def rxType(self):
-    #     """Receiver Type"""
-    #     return getattr(self, '_rxType', None)
-
-    # @rxType.setter
-    # def rxType(self, value):
-    #     known = self.knownRxTypes
-    #     if known is not None:
-    #         assert value in known, (
-    #             "rxType must be in ['{0!s}']".format(("', '".join(known)))
-    #         )
-    #     self._rxType = value
 
     @property
     def locs(self):
@@ -127,10 +108,21 @@ class BaseRx(properties.HasProperties):
         if (mesh, projGLoc) in self._Ps:
             return self._Ps[(mesh, projGLoc)]
 
-        P = mesh.getInterpolationMat(self.locs, projGLoc)
+        P = mesh.getInterpolationMat(self.locations, projGLoc)
         if self.storeProjections:
             self._Ps[(mesh, projGLoc)] = P
         return P
+
+    def eval(self, **kwargs):
+        raise NotImplementedError(
+            "the eval method for {} has not been implemented".format(self)
+        )
+
+    def evalDeriv(self, **kwargs):
+        raise NotImplementedError(
+            "the evalDeriv method for {} has not been implemented".format(self)
+        )
+
 
 
 class BaseTimeRx(BaseRx):
@@ -164,7 +156,7 @@ class BaseTimeRx(BaseRx):
             .. note::
                 This is not stored in memory, but is created on demand.
         """
-        return mesh.getInterpolationMat(self.locs, self.projGLoc)
+        return mesh.getInterpolationMat(self.locations, self.projGLoc)
 
     def getTimeP(self, timeMesh):
         """
