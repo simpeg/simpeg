@@ -27,8 +27,14 @@ from ..Maps import *  # IdentityMap
 
 def ComputeDistances(a, b):
 
-    x = mkvc(a, numDims=2)
-    y = mkvc(b, numDims=2)
+    if a.ndim == 1:
+        x = mkvc(a, numDims=2)
+    else:
+        x = a
+    if b.ndim == 1:
+        y = mkvc(b, numDims=2)
+    else:
+        y = b
 
     n, d = x.shape
     t, d1 = y.shape
@@ -101,15 +107,17 @@ def order_clusters_GM_mean(GMmodel, outputindex=False):
 def order_cluster(GMmodel, GMref, outputindex=False):
     order_clusters_GM_weight(GMmodel)
 
-    idx_ref = np.ones_like(GMref.means_, dtype=bool)
+    idx_ref = np.ones(len(GMref.means_), dtype=bool)
 
     indx = []
 
     for i in range(GMmodel.n_components):
-        _, id_dis = ComputeDistances(mkvc(GMmodel.means_[i], numDims=2),
-                                     mkvc(GMref.means_[idx_ref], numDims=2))
-        idrefmean = np.where(GMref.means_ == GMref.means_[
-            idx_ref][id_dis])[0][0]
+        dis = GMmodel.predict_proba(GMref.means_[idx_ref].reshape([-1]+[d for d in GMref.means_.shape[1:]]))
+        id_dis = dis.argmax(axis=0)[i]
+        #_, id_dis = ComputeDistances(mkvc(GMref.means_[i], numDims=2),
+        #                             mkvc(GMref.means_[idx_ref], numDims=2))
+        idrefmean = np.where(np.all(GMref.means_ == GMref.means_[
+                    idx_ref][id_dis], axis=1))[0][0]
         indx.append(idrefmean)
         idx_ref[idrefmean] = False
 
