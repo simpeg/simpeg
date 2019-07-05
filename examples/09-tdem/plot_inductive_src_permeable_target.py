@@ -21,7 +21,7 @@ from pymatsolver import Pardiso
 import time
 
 from SimPEG.EM import TDEM
-from SimPEG import Utils, Maps, versions
+from SimPEG import Utils, Maps, Versions
 
 ###############################################################################
 # Model Parameters
@@ -266,4 +266,4 @@ plt.tight_layout()
 # --------------------------------------------
 #
 
-versions()
+Versions()
