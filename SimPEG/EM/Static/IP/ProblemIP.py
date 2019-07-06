@@ -14,7 +14,6 @@ from .SurveyIP import Survey
 from SimPEG import Props
 import sys
 import scipy.sparse as sp
-# from profilehooks import profile
 
 class BaseIPProblem(BaseEMProblem):
 
