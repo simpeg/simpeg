@@ -485,7 +485,6 @@ class BaseSIPProblem(BaseEMProblem):
 
             return self.sign*np.hstack(Jv)
 
-    # @profile
     def Jtvec(self, m, v, f=None):
 
         self.model = m
