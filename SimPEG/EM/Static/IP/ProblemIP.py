@@ -132,7 +132,6 @@ class BaseIPProblem(BaseEMProblem):
     def forward(self, m, f=None):
         return self.Jvec(m, m, f=f)
 
-    # @profile
     def Jtvec(self, m, v, f=None):
         """
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
