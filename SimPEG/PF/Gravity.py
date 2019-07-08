@@ -148,13 +148,13 @@ class GravityIntegral(Problem.LinearProblem):
         vec = dask.delayed(csr.dot)(dmudm, v)
         dmudm_v = da.from_delayed(vec, dtype=float, shape=[dmudm.shape[0]])
 
-        return da.dot(self.G, dmudm_v.astype(np.float32))
+        return da.dot(self.G, dmudm_v)
 
     def Jtvec(self, m, v, f=None):
 
         dmudm = self.rhoMap.deriv(m)
 
-        jt_v = da.dot(self.G.T, v.astype(np.float32))
+        jt_v = da.dot(self.G.T, v)
 
         dmudm_jt_v = dask.delayed(csr.dot)(dmudm.T, jt_v)
 
@@ -262,7 +262,7 @@ class Forward(object):
                 rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
                 totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
                 # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
-                while (totRAM > self.maxRAM) or (totRAM/self.n_cpu) >= 2.0:
+                while (totRAM > self.maxRAM) or (totRAM/self.n_cpu) >= 0.128:
 #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
                     nChunks += 1
                     rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
@@ -272,8 +272,8 @@ class Forward(object):
                 print("n_cpu: ", self.n_cpu)
                 print("n_chunks: ", nChunks)
                 print("Chunk sizes: ", rowChunk, colChunk)
-                print("RAM/tile: ", totRAM)
-                print("Total RAM (x n_cpu): ", totRAM*self.n_cpu)
+                print("RAM/chunk: ", totRAM/self.n_cpu)
+                print("Total RAM (x n_cpu): ", totRAM)
 
                 row = dask.delayed(self.calcTrow, pure=True)
 
@@ -312,7 +312,7 @@ class Forward(object):
 
                     # TO-DO: Find a way to create in
                     # chunks instead
-                    stack = stack.rechunk('auto')
+                    stack = stack.rechunk((rowChunk, colChunk))
 
                     with ProgressBar():
                         print("Saving G to zarr: " + self.Jpath)
@@ -409,7 +409,7 @@ class Forward(object):
                             dz[:, cc] * np.arctan(dx[:, aa] * dy[:, bb] /
                                                   (dz[:, cc] * r + eps)))
 
-        return np.float32(row)
+        return row
 
     def progress(self, ind, total):
         """
