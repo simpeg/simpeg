@@ -9,6 +9,8 @@ from discretize import TensorMesh
 
 from ...utils import mkvc
 
+import warnings
+
 orientationDict = {'X': np.r_[1., 0., 0.],
                    'Y': np.r_[0., 1., 0.],
                    'Z': np.r_[0., 0., 1.]}
@@ -33,6 +35,12 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1.,
         :return: The vector potential each dipole at each observation location
     """
     # TODO: break this out!
+
+    warnings.warn(
+        "This code will be depreciated. Please use geoana instead. "
+        "\n >> pip install geoana "
+        "\n >> from geoana.electromagnetics.static import MagneticDipoleWholeSpace"
+    )
 
     if isinstance(orientation, str):
         orientation = orientationDict[orientation]
@@ -107,6 +115,12 @@ def MagneticDipoleFields(
         :rtype: numpy.ndarray
         :return: The vector potential each dipole at each observation location
     """
+
+    warnings.warn(
+        "This code will be depreciated. Please use geoana instead. "
+        "\n >> pip install geoana "
+        "\n >> from geoana.electromagnetics.static import MagneticDipoleWholeSpace"
+    )
 
     if isinstance(orientation, str):
         assert orientation.upper() in ['X', 'Y', 'Z'], ("orientation must be 'x', "
@@ -218,6 +232,12 @@ def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, orientation='
         :rtype: numpy.ndarray
         :return: The vector potential each dipole at each observation location
     """
+
+    warnings.warn(
+        "This code will be depreciated. Please use geoana instead. "
+        "\n >> pip install geoana "
+        "\n >> from geoana.electromagnetics.static import CircularLoopWholeSpace"
+    )
 
     if isinstance(orientation, str):
         if orientation.upper() != 'Z':
