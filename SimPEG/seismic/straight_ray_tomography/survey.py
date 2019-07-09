@@ -1,15 +1,15 @@
 import numpy as np
-from SimPEG import Survey
+from ...survey import BaseSurvey
 
 
-class StraightRaySurvey(Survey.LinearSurvey):
-    def __init__(self, txList):
-        self.txList = txList
+class StraightRaySurvey(BaseSurvey):
+    # def __init__(self, source_list):
+    #     self.source_list = source_list
 
     @property
     def nD(self):
         n = 0
-        for tx in self.txList:
+        for tx in self.source_list:
             n += np.sum([rx.nD for rx in tx.rxList])
         return n
 
@@ -20,7 +20,7 @@ class StraightRaySurvey(Survey.LinearSurvey):
         import matplotlib.pyplot as plt
         if ax is None:
             ax = plt.subplot(111)
-        for tx in self.txList:
+        for tx in self.source_list:
             ax.plot(tx.loc[0], tx.loc[1], 'ws', ms=8)
 
             for rx in tx.rxList:

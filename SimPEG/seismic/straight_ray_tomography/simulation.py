@@ -2,10 +2,9 @@ import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
 
-from SimPEG import Problem
-from SimPEG import Utils
-from SimPEG import Mesh
-from SimPEG import Props
+from ...simulation import LinearSimulation
+from ...utils import sub2ind
+from ... import props
 
 
 def lengthInCell(O, D, x, y, plotIt=False):
@@ -67,13 +66,13 @@ def lineintegral(M, Tx, Rx):
                 I += [i]
                 J += [j]
                 V += [v]
-    inds = Utils.sub2ind(M.vnC, np.array([I, J]).T)
+    inds = sub2ind(M.vnC, np.array([I, J]).T)
     return inds, V
 
 
-class StraightRayProblem(Problem.LinearProblem):
+class StraightRayProblem(LinearSimulation):
 
-    slowness, slownessMap, slownessDeriv = Props.Invertible(
+    slowness, slownessMap, slownessDeriv = props.Invertible(
         "Slowness model (1/v)"
     )
 
@@ -84,10 +83,10 @@ class StraightRayProblem(Problem.LinearProblem):
 
         self._A = sp.lil_matrix((self.survey.nD, self.mesh.nC))
         row = 0
-        for tx in self.survey.txList:
-            for rx in tx.rxList:
+        for src in self.survey.source_list:
+            for rx in src.rxList:
                 for loc_i in range(rx.locs.shape[0]):
-                    inds, V = lineintegral(self.mesh, tx.loc, rx.locs[loc_i, :])
+                    inds, V = lineintegral(self.mesh, src.loc, rx.locs[loc_i, :])
                     self._A[inds*0+row, inds] = V
                     row += 1
 
