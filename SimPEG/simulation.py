@@ -255,7 +255,10 @@ class BaseSimulation(props.HasModel):
                 )
             )
 
-        super(BaseSimulation, self).__init__(mesh=mesh, **kwargs)
+        if mesh is not None:
+            kwargs['mesh'] = mesh
+
+        super(BaseSimulation, self).__init__(**kwargs)
 
         if 'solver' not in kwargs.keys() and 'Solver' not in kwargs.keys():
             self.solver = pymatsolver.Solver
