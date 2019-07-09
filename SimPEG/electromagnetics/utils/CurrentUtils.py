@@ -10,7 +10,7 @@ def line(a, t, l):
     return a + t * l
 
 
-def weight(t, a1, l1, h1, a2, l2, h2):
+def edge_basis_function(t, a1, l1, h1, a2, l2, h2):
     """
         Edge basis functions
     """
@@ -44,17 +44,17 @@ def getStraightLineCurrentIntegral(hx, hy, hz, ax, ay, az, bx, by, bz):
         sz = np.zeros(4, 1)
 
     # integration using Simpson's rule
-    wx0 = weight(0., ay, ly, hy, az, lz, hz)
-    wx0_5 = weight(0.5, ay, ly, hy, az, lz, hz)
-    wx1 = weight(1., ay, ly, hy, az, lz, hz)
+    wx0 = edge_basis_function(0., ay, ly, hy, az, lz, hz)
+    wx0_5 = edge_basis_function(0.5, ay, ly, hy, az, lz, hz)
+    wx1 = edge_basis_function(1., ay, ly, hy, az, lz, hz)
 
-    wy0 = weight(0., ax, lx, hx, az, lz, hz)
-    wy0_5 = weight(0.5, ax, lx, hx, az, lz, hz)
-    wy1 = weight(1., ax, lx, hx, az, lz, hz)
+    wy0 = edge_basis_function(0., ax, lx, hx, az, lz, hz)
+    wy0_5 = edge_basis_function(0.5, ax, lx, hx, az, lz, hz)
+    wy1 = edge_basis_function(1., ax, lx, hx, az, lz, hz)
 
-    wz0 = weight(0., ax, lx, hx, ay, ly, hy)
-    wz0_5 = weight(0.5, ax, lx, hx, ay, ly, hy)
-    wz1 = weight(1., ax, lx, hx, ay, ly, hy)
+    wz0 = edge_basis_function(0., ax, lx, hx, ay, ly, hy)
+    wz0_5 = edge_basis_function(0.5, ax, lx, hx, ay, ly, hy)
+    wz1 = edge_basis_function(1., ax, lx, hx, ay, ly, hy)
 
     sx = (wx0 + 4. * wx0_5 + wx1) * (lx / 6.)
 
