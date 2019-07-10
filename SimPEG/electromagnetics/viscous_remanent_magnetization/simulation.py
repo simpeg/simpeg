@@ -1,16 +1,22 @@
-from SimPEG import Problem, mkvc, Maps, Props, Survey
-from SimPEG.VRM.SurveyVRM import SurveyVRM
-from SimPEG.VRM.RxVRM import Point, SquareLoop
 import numpy as np
 import scipy.sparse as sp
 import properties
+
+from ...simulation import BaseSimulation
+from ... import props
+from ... import maps
+from ...utils import mkvc
+
+from .survey import SurveyVRM
+from .receivers import Point, SquareLoop
+
 
 ############################################
 # BASE VRM PROBLEM CLASS
 ############################################
 
 
-class Problem_BaseVRM(Problem.BaseProblem):
+class Problem_BaseVRM(BaseSimulation):
     """
 
     """
@@ -20,7 +26,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
     ref_radius = properties.Array('Sensitivity refinement radii from sources', dtype=float)
     indActive = properties.Array('Topography active cells', dtype=bool)
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, mesh=None, **kwargs):
 
         ref_factor = kwargs.pop('ref_factor', None)
         ref_radius = kwargs.pop('ref_radius', None)
@@ -143,7 +149,7 @@ class Problem_BaseVRM(Problem.BaseProblem):
             locs = rxObj.locs
             nLoc = np.shape(locs)[0]
 
-            if isinstance(rxObj, Point):
+            if isinstance(rxObj, Point) and not isinstance(rxObj, SquareLoop):
 
                 if dComp.lower() == 'x':
                     for rr in range(0, nLoc):
@@ -710,6 +716,16 @@ class Problem_BaseVRM(Problem.BaseProblem):
 
         return Acols
 
+    def dpred(self, m=None, f=None):
+
+        """
+
+        """
+        if f is None:
+            f = self.fields(m)
+
+        return f[self.survey.t_active]
+
 
 #############################################################################
 # VRM CHARACTERISTIC DECAY FORMULATION (SINGLE MODEL PARAMETER AND INVERSION)
@@ -727,9 +743,11 @@ class Problem_Linear(Problem_BaseVRM):
     _TisSet = False
     _xiMap = None
 
-    surveyPair = SurveyVRM  # Only linear problem can have survey and be inverted
+    survey = properties.Instance(
+        "VRM Survey", SurveyVRM
+    )
 
-    xi, xiMap, xiDeriv = Props.Invertible(
+    xi, xiMap, xiDeriv = props.Invertible(
         "Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)")
 
     def __init__(self, mesh, **kwargs):
@@ -738,7 +756,7 @@ class Problem_Linear(Problem_BaseVRM):
 
         nAct = list(self.indActive).count(True)
         if self.xiMap is None:
-            self.xiMap = Maps.IdentityMap(nP=nAct)
+            self.xiMap = maps.IdentityMap(nP=nAct)
 
     @property
     def A(self):
@@ -751,8 +769,8 @@ class Problem_Linear(Problem_BaseVRM):
 
         if self._AisSet is False:
 
-            if self.ispaired is False:
-                AssertionError("Problem must be paired with survey to generate A matrix")
+            if self.survey is None:
+                AssertionError("A survey must be set to generate A matrix")
 
             # Remove any previously stored A matrix
             if self._A is not None:
@@ -781,8 +799,8 @@ class Problem_Linear(Problem_BaseVRM):
 
         if self._TisSet is False:
 
-            if self.ispaired is False:
-                AssertionError("Problem must be paired with survey to generate A matrix")
+            if self.survey is None:
+                AssertionError("A survey must be set to generate A matrix")
 
             # Remove any previously stored T matrix
             if self._T is not None:
@@ -824,8 +842,8 @@ class Problem_Linear(Problem_BaseVRM):
 
         """Computes the fields d = T*A*m"""
 
-        if self.ispaired is False:
-            AssertionError("Problem must be paired with survey to generate A matrix")
+        if self.survey is None:
+            AssertionError("A survey must be set to generate A matrix")
 
         self.model = m   # Initiates/updates model and initiates mapping
 
@@ -840,8 +858,8 @@ class Problem_Linear(Problem_BaseVRM):
 
         """Compute Pd*T*A*dxidm*v"""
 
-        if self.ispaired is False:
-            AssertionError("Problem must be paired with survey to generate A matrix")
+        if self.survey is None:
+            AssertionError("A survey must be set to generate A matrix")
 
         # Jacobian of xi wrt model
         dxidm = self.xiMap.deriv(m)
@@ -862,8 +880,8 @@ class Problem_Linear(Problem_BaseVRM):
 
         """Compute (Pd*T*A*dxidm)^T * v"""
 
-        if self.ispaired is False:
-            AssertionError("Problem must be paired with survey to generate A matrix")
+        if self.survey is None:
+            AssertionError("A survey must be set to generate A matrix")
 
         # Define v as a column vector
         v = np.matrix(v).T
@@ -904,12 +922,10 @@ class Problem_LogUniform(Problem_BaseVRM):
     _TisSet = False
     # _xiMap = None
 
-    surveyPair = Survey.BaseSurvey
-
-    chi0 = Props.PhysicalProperty("DC susceptibility")
-    dchi = Props.PhysicalProperty("Frequency dependence")
-    tau1 = Props.PhysicalProperty("Low bound time-relaxation constant")
-    tau2 = Props.PhysicalProperty("Upper bound time-relaxation constant")
+    chi0 = props.PhysicalProperty("DC susceptibility")
+    dchi = props.PhysicalProperty("Frequency dependence")
+    tau1 = props.PhysicalProperty("Low bound time-relaxation constant")
+    tau2 = props.PhysicalProperty("Upper bound time-relaxation constant")
 
     def __init__(self, mesh, **kwargs):
 
@@ -926,8 +942,8 @@ class Problem_LogUniform(Problem_BaseVRM):
 
         if self._AisSet is False:
 
-            if self.ispaired is False:
-                AssertionError("Problem must be paired with survey to generate A matrix")
+            if self.survey is None:
+                AssertionError("A survey must be set to generate A matrix")
 
             # Remove any previously stored A matrix
             if self._A is not None:
@@ -949,8 +965,8 @@ class Problem_LogUniform(Problem_BaseVRM):
 
         """Computes the fields at every time d(t) = G*M(t)"""
 
-        if self.ispaired is False:
-            AssertionError("Problem must be paired with survey to generate A matrix")
+        if self.survey is None:
+            AssertionError("A survey must be set to generate A matrix")
 
         # Fields from each source
         srcList = self.survey.srcList

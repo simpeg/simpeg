@@ -1,65 +1,87 @@
-from SimPEG import Survey
+from ...survey import BaseRx
 import properties
 
-#########################################
-# BASE RECEIVER CLASS FOR VRM
-#########################################
-
-
-class BaseRxVRM(Survey.BaseRx, properties.HasProperties):
-    """Base VRM receiver class"""
-
-    def __init__(self, locs, **kwargs):
-
-        super(BaseRxVRM, self).__init__(
-            locs, 'None', storeProjections=False, **kwargs
-        )
+import warnings
 
 
 #########################################
 # POINT RECEIVER CLASS FOR VRM
 #########################################
 
-class Point(BaseRxVRM):
+class Point(BaseRx):
     """Point receiver"""
 
     times = properties.Array('Observation times', dtype=float)
+
     fieldType = properties.StringChoice(
         'Field type', choices=["h", "b", "dhdt", "dbdt"]
     )
-    fieldComp = properties.StringChoice(
+
+    orientation = properties.StringChoice(
         'Component of response', choices=["x", "y", "z"]
     )
 
-    # def __init__(self, locs, times, fieldType, fieldComp, **kwargs):
-    def __init__(self, locs, **kwargs):
+    def __init__(self, locations=None, **kwargs):
 
-        if locs.shape[1] != 3:
+        if locations.shape[1] != 3:
             raise ValueError(
                 'Rx locations (xi,yi,zi) must be np.array(N,3) where N is the number of stations'
             )
 
-        super(Point, self).__init__(locs, **kwargs)
+        super(Point, self).__init__(locations, **kwargs)
 
     @property
-    def nTimes(self):
+    def n_times(self):
         """Number of measurements times."""
         if self.times is not None:
             return len(self.times)
 
     @property
-    def nLocs(self):
+    def nTimes(self):
+        warnings.warn(
+            "Point.nTimes will be depreciated in favour of "
+            "Point.n_times. Please update your code accordingly"
+        )
+        return self.n_times
+
+    @property
+    def n_locations(self):
         """Number of locations."""
         return self.locs.shape[0]
+
+    @property
+    def nLocs(self):
+        warnings.warn(
+            "Point.nLocs will be depreciated in favour of "
+            "Point.n_times. Please update your code accordingly"
+        )
+        return self.n_times
 
     @property
     def nD(self):
         """Number of data in the receiver."""
         if self.times is not None:
-            return self.locs.shape[0] * len(self.times)
+            return self.locations.shape[0] * len(self.times)
+
+    @property
+    def fieldComp(self):
+        warnings.warn(
+            "Point.fieldComp will be depreciated in favour of "
+            "Point.orientation. Please update your code accordingly"
+        )
+        return self.orientation
+
+    @fieldComp.setter
+    def fieldComp(self, value):
+        warnings.warn(
+            "Point.fieldComp will be depreciated in favour of "
+            "Point.orientation. Please update your code accordingly"
+        )
+        self.orientation = value
 
 
-class SquareLoop(BaseRxVRM):
+
+class SquareLoop(Point):
     """Square loop receiver
 
     Measurements with this type of receiver are the field, integrated over the
@@ -69,37 +91,17 @@ class SquareLoop(BaseRxVRM):
 
     """
 
-    times = properties.Array('Observation times', dtype=float)
     width = properties.Float('Square loop width', min=1e-6)
     nTurns = properties.Integer('Number of loop turns', min=1, default=1)
     quadOrder = properties.Integer(
         'Order for numerical quadrature integration over loop', min=1, max=7, default=3
     )
-    fieldType = properties.StringChoice('Field type', choices=["h", "b", "dhdt", "dbdt"])
-    fieldComp = properties.StringChoice('Component of response', choices=["x", "y", "z"])
 
-    def __init__(self, locs, **kwargs):
+    def __init__(self, locations, **kwargs):
 
-        if locs.shape[1] != 3:
+        if locations.shape[1] != 3:
             raise ValueError(
                 'Rx locations (xi,yi,zi) must be np.array(N,3) where N is the number of stations'
             )
 
-        super(SquareLoop, self).__init__(locs, **kwargs)
-
-    @property
-    def nTimes(self):
-        """Number of measurements times."""
-        if self.times is not None:
-            return len(self.times)
-
-    @property
-    def nLocs(self):
-        """Number of locations."""
-        return self.locs.shape[0]
-
-    @property
-    def nD(self):
-        """Number of data in the receiver."""
-        if self.times is not None:
-            return self.locs.shape[0] * len(self.times)
+        super(SquareLoop, self).__init__(locations, **kwargs)

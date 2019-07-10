@@ -1,32 +1,36 @@
-import SimPEG
-from SimPEG import Survey
-from SimPEG.VRM import RxVRM, SrcVRM
 import numpy as np
 import properties
+
+from ...survey import BaseSurvey
+from .sources import BaseSrcVRM
+
 
 ############################################
 # BASE VRM SURVEY CLASS
 ############################################
 
 
-class SurveyVRM(Survey.BaseSurvey, properties.HasProperties):
+class SurveyVRM(BaseSurvey):
 
     """
 
     """
+
+    source_list = properties.List(
+        "A list of sources for the survey",
+        properties.Instance("A SimPEG source", BaseSrcVRM),
+        default=[]
+    )
 
     t_active = properties.Array(
-        'Boolean array where True denotes active data in the inversion', dtype=bool)
+        'Boolean array where True denotes active data in the inversion', dtype=bool
+    )
 
-    def __init__(self, srcList, **kwargs):
+    def __init__(self, source_list=None, **kwargs):
 
         t_active = kwargs.pop('t_active', None)
 
-        self.srcList = srcList
-        self.srcPair = SrcVRM.BaseSrcVRM
-        self.rxPair = RxVRM.BaseRxVRM
-
-        super(SurveyVRM, self).__init__(**kwargs)
+        super(SurveyVRM, self).__init__(source_list=source_list, **kwargs)
 
         if t_active is None:
             self.t_active = np.ones(self.nD, dtype=bool)
@@ -59,28 +63,3 @@ class SurveyVRM(Survey.BaseSurvey, properties.HasProperties):
                 tActBool = np.r_[tActBool, np.kron(np.ones(nLoc), times)]
 
         self.t_active = (tActBool >= tmin) & (tActBool <= tmax)
-
-    def dpred(self, m=None, f=None):
-
-        """
-
-        """
-
-        if self.ispaired is False:
-            raise AssertionError('Survey must be paired with a VRM problem.')
-
-        if f is not None:
-
-            return f[self.t_active]
-
-        elif f is None and isinstance(self.prob, SimPEG.VRM.ProblemVRM.Problem_Linear):
-
-            f = self.prob.fields(m)
-
-            return f[self.t_active]
-
-        elif f is None and isinstance(self.prob, SimPEG.VRM.ProblemVRM.Problem_LogUniform):
-
-            f = self.prob.fields()
-
-            return f[self.t_active]

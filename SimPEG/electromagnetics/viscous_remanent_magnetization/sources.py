@@ -1,40 +1,36 @@
 import numpy as np
 import scipy.special as spec
-from SimPEG import Survey
-from .RxVRM import BaseRxVRM
-from .WaveformVRM import StepOff, SquarePulse, ArbitraryDiscrete, ArbitraryPiecewise
+import properties
+
+from ...survey import BaseSrc
+from .receivers import Point as BaseRxVRM
+from .waveforms import StepOff, SquarePulse, ArbitraryDiscrete, ArbitraryPiecewise
 
 #########################################
 # BASE VRM SOURCE CLASS
 #########################################
 
 
-class BaseSrcVRM(Survey.BaseSrc):
+class BaseSrcVRM(BaseSrc):
     """SimPEG Source Object"""
 
-    def __init__(self, rxList, waveform, **kwargs):
+    def __init__(self, receiver_list, location=None, waveform=None, **kwargs):
 
         if isinstance(waveform, (StepOff, SquarePulse, ArbitraryDiscrete, ArbitraryPiecewise)) == False:
             AttributeError("Waveform must be an instance of a VRM waveform class: StepOff, SquarePulse or Arbitrary")
 
-        super(BaseSrcVRM, self).__init__(rxList, **kwargs)
+        super(BaseSrcVRM, self).__init__(receiver_list, location, **kwargs)
         self.waveform = waveform
-        self.rxPair = BaseRxVRM  # Links base Src class to acceptable Rx class?
 
     @property
     def nRx(self):
         """Total number of receiver locations"""
-        return np.sum(np.array([np.shape(rx.locs)[0] for rx in self.rxList]))
+        return np.sum(np.array([np.shape(rx.locs)[0] for rx in self.receiver_list]))
 
     @property
     def vnRx(self):
         """Vector number of receiver locations"""
-        return np.array([np.shape(rx.locs)[0] for rx in self.rxList])
-
-    @property
-    def vnD(self):
-        """Vector number of data"""
-        return np.array([rx.nD for rx in self.rxList])
+        return np.array([np.shape(rx.locs)[0] for rx in self.receiver_list])
 
 
 #########################################
@@ -47,17 +43,16 @@ class MagDipole(BaseSrcVRM):
 
     """
 
-    def __init__(self, rxList, loc, moment, waveform, **kwargs):
+    def __init__(self, receiver_list, location, moment, waveform, **kwargs):
 
-        if len(loc) != 3:
+        if len(location) != 3:
             raise ValueError('Tx location (x,y,z) must be given as a column vector of length 3.')
 
         if len(moment) != 3:
             raise ValueError('Dipole moment (mx,my,mz) must be given as a column vector of length 3.')
 
-        super(MagDipole, self).__init__(rxList, waveform, **kwargs)
+        super(MagDipole, self).__init__(receiver_list, location, waveform, **kwargs)
 
-        self.loc = loc
         self.moment = moment
 
     def getH0(self, xyz):
@@ -133,17 +128,16 @@ class CircLoop(BaseSrcVRM):
 
     """
 
-    def __init__(self, rxList, loc, radius, orientation, Imax, waveform, **kwargs):
+    def __init__(self, receiver_list, location, radius, orientation, Imax, waveform, **kwargs):
 
-        if len(loc) != 3:
+        if len(location) != 3:
             raise ValueError('Tx location (x,y,z) must be given as a column vector of length 3.')
 
         if len(orientation) != 2:
             raise ValueError('Circular loop transmitter orientation orientation defined by two angles (theta, alpha).')
 
-        super(CircLoop, self).__init__(rxList, waveform, **kwargs)
+        super(CircLoop, self).__init__(receiver_list, location, waveform, **kwargs)
 
-        self.loc = loc
         self.orientation = orientation
         self.radius = radius
         self.Imax = Imax
@@ -270,18 +264,18 @@ class LineCurrent(BaseSrcVRM):
 
     """
 
-    def __init__(self, rxList, loc, Imax, waveform, **kwargs):
+    location = properties.Array(
+        "location of the source wire points", shape=('*', 3)
+    )
 
-        if np.shape(loc)[1] != 3:
-            raise ValueError("Attribute 'loc' must be np.array(N+1,3) where N is the number of line segments.")
+    def __init__(self, receiver_list, location, Imax, waveform, **kwargs):
 
-        if np.shape(loc)[0] < 4:
-            raise ValueError("Attribute 'loc' must be np.array(N+1,3) where N is the number of line segments.")
+        if np.shape(location)[0] < 4:
+            raise ValueError("Attribute 'location' must be np.array(N+1,3) where N is the number of line segments.")
 
-        self.loc = loc
+        super(LineCurrent, self).__init__(receiver_list, location, waveform, **kwargs)
+
         self.Imax = Imax
-
-        super(LineCurrent, self).__init__(rxList, waveform, **kwargs)
 
     def getH0(self, xyz):
 
