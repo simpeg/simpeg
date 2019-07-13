@@ -15,7 +15,7 @@ synthetic density contrast models. For this tutorial, we focus on the following:
 This tutorial contains two examples. In the first, we forward model gravity
 anomaly data using a tensor mesh. For the second example, we forward model
 gravity gradiometry data on an OcTree mesh.
-
+    
 
 """
 
