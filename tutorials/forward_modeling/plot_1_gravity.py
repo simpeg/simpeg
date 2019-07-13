@@ -5,7 +5,7 @@ Gravity
 
 Here we use the module *SimPEG.PF.Gravity* to predict gravity anomaly data for
 synthetic density contrast models. For this tutorial, we focus on the following:
-    
+
     - How to define the survey
     - How to define the problem
     - How to predict gravity anomaly data and gravity gradiometry data for a synthetic model
@@ -16,13 +16,13 @@ This tutorial contains two examples. In the first, we forward model gravity
 anomaly data using a tensor mesh. For the second example, we forward model
 gravity gradiometry data on an OcTree mesh.
 
+
 """
 
 #########################################################################
 # Import modules
 # --------------
 #
-
 
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator
@@ -35,12 +35,14 @@ from SimPEG.Utils import plot2Ddata, ModelBuilder, surface2ind_topo
 from SimPEG import Maps
 from SimPEG import PF
 
+# sphinx_gallery_thumbnail_number = 2
+
 #############################################
 # Defining Topography
 # -------------------
 #
 # Here we define surface topography as an (N, 3) numpy array. Topography could
-# also be loaded from a file
+# also be loaded from a file. This is used for both examples.
 #
 
 [xx, yy] = np.meshgrid(np.linspace(-120, 120, 25), np.linspace(-120, 120, 25))
@@ -80,7 +82,7 @@ survey2 = PF.BaseGrav.LinearSurvey(src_field)   # Define the survey
 # ----------------------
 #
 # Here, we create the tensor mesh that will be used to predict gravity anomaly
-# data on a tensor mesh.
+# data..
 #
 
 dh = 5.
@@ -90,10 +92,11 @@ hz = [(dh, 5, -1.3), (dh, 10)]
 mesh = TensorMesh([hx, hy, hz], 'CCN')
 
 #############################################
-# Model and Mapping on Tensor Mesh
-# --------------------------------
+# Density Contrast Model and Mapping on Tensor Mesh
+# -------------------------------------------------
 #
-# Here, we create the model that will be used to predict gravity anomaly data
+# Here, we create the density contrast model that will be used to predict
+# gravity anomaly data
 # and the mapping from the model to the mesh. The model
 # consists of a less dense block and a more dense sphere.
 #
@@ -103,12 +106,12 @@ background_val = 0.
 block_val = -0.04
 sphere_val = 0.04
 
-# Find the indecies of the active cells in forward model (one below surface)
+# Find the indecies of the active cells in forward model (ones below surface)
 ind_active = surface2ind_topo(mesh, topo, 'N')
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
-mod_map = Maps.IdentityMap(nP=nC)  # model will be value of active cells
+mod_map = Maps.IdentityMap(nP=nC)  # model consists of a value for each cell
 
 # Define model
 mod = background_val*np.ones(nC)
@@ -158,24 +161,26 @@ plt.show()
 # formulation.
 # 
 
-# Define the problem and include mapping
+# Define the problem. Define the cells below topography and the mapping
 prob = PF.Gravity.GravityIntegral(mesh, rhoMap=mod_map, actInd=ind_active)
 
 # Pair the survey and problem
 survey.pair(prob)
 
 # Compute predicted data for some model
-d = prob.fields(mod)
+dpred = prob.fields(mod)
 
 # Plot
-fig = plt.figure(figsize=(6, 5))
+fig = plt.figure(figsize=(7, 5))
 
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-plot2Ddata(rx_loc.locs, d, ax=ax1)
+ax1 = fig.add_axes([0.05, 0.05, 0.75, 0.9])
+plot2Ddata(rx_loc.locs, dpred, ax=ax1)
 ax1.set_title('Gravity Anomaly')
 
-ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
-norm = mpl.colors.Normalize(vmin=-np.max(np.abs(d)), vmax=np.max(np.abs(d)))
+ax2 = fig.add_axes([0.82, 0.05, 0.03, 0.9])
+norm = mpl.colors.Normalize(
+    vmin=-np.max(np.abs(dpred)), vmax=np.max(np.abs(dpred))
+)
 cbar = mpl.colorbar.ColorbarBase(
         ax2, norm=norm, orientation='vertical'
         )
@@ -191,7 +196,7 @@ plt.show()
 # Defining an OcTree Mesh
 # -----------------------
 #
-# Here, we create the OcTreer mesh that will be used to predict gravity
+# Here, we create the OcTree mesh that will be used to predict gravity
 # gradiometry data.
 # 
 
@@ -230,10 +235,10 @@ mesh = refine_tree_xyz(
 mesh.finalize()
 
 #############################################
-# Model and Mapping on OcTree Mesh
-# --------------------------------
+# Density Contrast Model and Mapping on OcTree Mesh
+# -------------------------------------------------
 #
-# Here, we create the model that will be used to predict gravity gradiometry
+# Here, we create the density contrast model that will be used to predict gravity gradiometry
 # data and the mapping from the model to the mesh. The model
 # consists of a less dense block and a more dense sphere.
 #
@@ -253,7 +258,8 @@ mod_map = Maps.IdentityMap(nP=nC)  # model will be value of active cells
 # Define model
 mod = background_val*np.ones(nC)
 
-ind_block = ((mesh.gridCC[ind_active, 0] > -40.) & (mesh.gridCC[ind_active, 0] < -10.) &
+ind_block = (
+    (mesh.gridCC[ind_active, 0] > -40.) & (mesh.gridCC[ind_active, 0] < -10.) &
     (mesh.gridCC[ind_active, 1] > -15.) & (mesh.gridCC[ind_active, 1] < 15.) &
     (mesh.gridCC[ind_active, 2] > -45.) & (mesh.gridCC[ind_active, 2] < -25.)
 )
@@ -264,7 +270,6 @@ ind_sphere = ModelBuilder.getIndicesSphere(
 )
 ind_sphere = ind_sphere[ind_active]
 mod[ind_sphere] = sphere_val
-
 
 # Plot Density Contrast Model
 fig = plt.figure(figsize=(9, 4))

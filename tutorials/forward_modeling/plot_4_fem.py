@@ -3,12 +3,12 @@ Frequency Domain EM
 ===================
 
 Here we use the module *SimPEG.EM.FDEM* to predict the fields that
-result from solving 3D frequency-domain EM problems. For this tutorial, we focus
-on the following:
-    
+result from solving 3D frequency-domain EM problems. For this tutorial, we
+focus on the following:
+
     - How to define the transmitters and receivers
     - How to define the survey
-    - How to solve the FEM problems on Cylindrical and OcTree meshes
+    - How to solve the FEM problem on Cylindrical and OcTree meshes
     - How to include topography
     - The units of the conductivity/resistivity model and resulting data
 
@@ -16,8 +16,14 @@ The tutorial contains 2 examples. In the first, we compute the FEM response for
 an airborne survey using a cylindrical mesh and a conductivity model. In the
 second example, we compute the FEM response using an OcTree mesh and a
 resistivity model.
+    
 
 """
+
+#########################################################################
+# Import modules
+# --------------
+#
 
 from discretize import CylMesh, TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
@@ -35,12 +41,15 @@ try:
 except ImportError:
     from SimPEG import SolverLU as Solver
 
+# sphinx_gallery_thumbnail_number = 2
 
 ###############################################################
 # CYL-MESH EXAMPLE
 # ----------------
 #
-# Here we solve the forward 3D FDEM problem on a cylindrical mesh.
+# Here we solve the forward 3D TDEM problem on a cylindrical mesh. We consider
+# a single line of airborne data for a vertical coplanar survey geometry. Here
+# the Earth's electrical properties are defined by a conductivity model
 #
 
 #####################################################################
@@ -68,16 +77,16 @@ src_list = []  # Create empty list to store sources
 
 # Each unique location and frequency defines a new transmitter
 for ii in range(ntx):
-    
+
     # Define receivers of different types at each location. Real and imaginary
     # measurements require separate receivers. You can define the orientation of
     # the transmitters and receivers for different survey geometries.
     bzr_rec = FDEM.Rx.Point_bSecondary(rx_locs[ii, :], 'z', 'real')
     bzi_rec = FDEM.Rx.Point_bSecondary(rx_locs[ii, :], 'z', 'imag')
     rx_list = [bzr_rec, bzi_rec]  # must be a list
-    
+
     for jj in range(len(freq)):
-        
+
         # Must define the transmitter properties and associated receivers
         src_list.append(
             FDEM.Src.MagDipole(rx_list, freq[jj], src_locs[ii], orientation='z')
@@ -139,17 +148,19 @@ log_mod = np.log10(mod)
 ax1 = fig.add_axes([0.05, 0.05, 0.7, 0.9])
 mesh.plotImage(
     plotting_map*log_mod, ax=ax1, grid=False,
-    clim=(np.log10(layer_val), np.log(pipe_val))
+    clim=(np.log10(layer_val), np.log10(pipe_val))
 )
-ax1.set_title('Log-Conductivity Model (Survey in red)')
+ax1.set_title('Conductivity Model (Survey in red)')
 
 ax1.plot(rx_locs[:, 0], rx_locs[:, 2], 'r.')
 
 ax2 = fig.add_axes([0.8, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(vmin=np.log10(layer_val), vmax=np.log10(pipe_val))
-cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation='vertical')
+cbar = mpl.colorbar.ColorbarBase(
+    ax2, norm=norm, orientation='vertical', format="$10^{%.1f}$"
+)
 cbar.set_label(
-    'Log-Conductivity (log[S/m])', rotation=270, labelpad=15, size=12
+    'Conductivity [S/m]', rotation=270, labelpad=15, size=12
 )
 
 
@@ -168,13 +179,13 @@ prob.pair(survey)
 # We defined receivers that measure the secondary B field. We must turn this
 # into the H-field in A/m
 mu0 = 4*np.pi*1e-7
-d = survey.dpred(mod)/mu0
+dpred = survey.dpred(mod)/mu0
 
 # Data are organized by transmitter then by receiver. We had nFreq transmitters
-# and each transmitter had 2 receivers (real and imaginary component). So 
+# and each transmitter had 2 receivers (real and imaginary component). So
 # first we will pick out the real and imaginary data
-h_real = d[0:len(d):2]
-h_imag = d[1:len(d):2]
+h_real = dpred[0:len(dpred):2]
+h_imag = dpred[1:len(dpred):2]
 
 # Then we will will reshape the data.
 h_real = np.reshape(h_real, (ntx, len(freq)))
@@ -192,7 +203,7 @@ ax1.set_xlim((0, np.max(xtx)))
 ax1.set_xlabel('Easting [m]')
 ax1.set_ylabel('H secondary [A/m]')
 ax1.set_title('Secondary field at 1 Hz')
-ax1.legend(['Real','Imaginary'], loc='lower right')
+ax1.legend(['Real', 'Imaginary'], loc='lower right')
 
 # Response over pipe for all frequencies
 ax2 = fig.add_axes([0.6, 0.05, 0.35, 0.85])
@@ -203,13 +214,14 @@ ax2.set_xlim((np.min(freq), np.max(freq)))
 ax2.set_xlabel('Frequency [Hz]')
 ax2.set_ylabel('H secondary [A/m]')
 ax2.set_title('Secondary field over pipe')
-ax2.legend(['Real','Imaginary'], loc='lower left')
+ax2.legend(['Real', 'Imaginary'], loc='lower left')
 
 ##############################################################
 # OCTREE EXAMPLE
 # --------------
 #
-# Here we solve the 3D FDEM forward problem on an OcTree mesh. To limit the
+# Here we solve the 3D FDEM forward problem on an OcTree mesh for a
+# resistivity model. To limit the
 # computational cost, we have limited the size of the mesh. This will
 # result in a decrease in numerical accuracy for the predicted fields.
 #
@@ -259,12 +271,12 @@ src_list = []  # Create empty list to store sources
 
 # Each unique location and frequency defines a new transmitter
 for ii in range(ntx):
-    
+
     # Define receivers of different type at each location
     bzr = FDEM.Rx.Point_bSecondary(rx_locs[ii, :], 'z', 'real')
     bzi = FDEM.Rx.Point_bSecondary(rx_locs[ii, :], 'z', 'imag')
     rxList = [bzr, bzi]
-    
+
     src_list.append(
         FDEM.Src.MagDipole(rxList, freq, src_locs[ii], orientation='z')
     )
@@ -343,13 +355,15 @@ mesh.plotSlice(
     plotting_map*log_mod, normal='Y', ax=ax1, ind=int(mesh.hx.size/2),
     grid=True, clim=(np.log10(pipe_val), np.log10(background_val))
 )
-ax1.set_title('Log-Resistivity Model at Y = 0 m')
+ax1.set_title('Resistivity Model at Y = 0 m')
 
 ax2 = fig.add_axes([0.8, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(vmin=np.log10(pipe_val), vmax=np.log10(background_val))
-cbar = mpl.colorbar.ColorbarBase( ax2, norm=norm, orientation='vertical')
+cbar = mpl.colorbar.ColorbarBase(
+    ax2, norm=norm, orientation='vertical', format="$10^{%.1f}$"
+)
 cbar.set_label(
-    'Log-Resistivity (log[Ohm m])', rotation=270, labelpad=15, size=12
+    'Resistivity (log[Ohm m])', rotation=270, labelpad=15, size=12
 )
 
 
@@ -367,11 +381,11 @@ prob2 = FDEM.Problem3D_b(mesh, rhoMap=mod_map, Solver=Solver)
 prob2.pair(survey2)
 
 mu0 = 4*np.pi*1e-7
-d = survey2.dpred(mod)/mu0
+dpred = survey2.dpred(mod)/mu0
 
 # Plot the response
-h_real = d[0:-1:2]
-h_imag = np.r_[d[1:-1:2], d[-1]]
+h_real = dpred[0:-1:2]
+h_imag = np.r_[dpred[1:-1:2], dpred[-1]]
 
 fig = plt.figure(figsize=(10, 4))
 
@@ -379,7 +393,7 @@ fig = plt.figure(figsize=(10, 4))
 v_max = np.max(np.abs(h_real))
 ax1 = fig.add_axes([0.05, 0.05, 0.35, 0.9])
 plot2Ddata(
-    rx_locs[:,0:2], h_real, ax=ax1, ncontour=30, clim=(-v_max, v_max),
+    rx_locs[:, 0:2], h_real, ax=ax1, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
     )
 ax1.set_title('Re[Hz] at 100 Hz')
@@ -395,7 +409,7 @@ cbar.set_label('$A/m$', rotation=270, labelpad=15, size=12)
 v_max = np.max(np.abs(h_imag))
 ax1 = fig.add_axes([0.55, 0.05, 0.35, 0.9])
 plot2Ddata(
-    rx_locs[:,0:2], h_imag, ax=ax1, ncontour=30, clim=(-v_max, v_max),
+    rx_locs[:, 0:2], h_imag, ax=ax1, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
 )
 ax1.set_title('Im[Hz] at 100 Hz')
@@ -405,15 +419,6 @@ norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', cmap='RdBu_r'
 )
-cbar.set_label('$A/m$',rotation=270, labelpad=15, size=12)
+cbar.set_label('$A/m$', rotation=270, labelpad=15, size=12)
 
 plt.show()
-
-
-
-
-
-
-
-
-

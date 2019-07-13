@@ -5,9 +5,10 @@ Time Domain EM
 Here we use the module *SimPEG.EM.TDEM* to predict the fields that
 result from solving 3D time-domain EM problems. For this tutorial, we focus
 on the following:
-    
+
     - How to define the transmitters and receivers
     - How to define the transmitter waveform
+    - How to define the time-stepping
     - How to define the survey
     - How to solve TDEM problems on Cylindrical and OcTree meshes
     - How to include topography
@@ -16,10 +17,14 @@ on the following:
 The tutorial contains 2 examples. In the first, we compute the TEM response for
 an airborne survey using a cylindrical mesh. In the second example, we compute
 the TEM response using an OcTree mesh.
+    
 
 """
 
-
+#########################################################################
+# Import modules
+# --------------
+#
 
 from discretize import CylMesh, TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
@@ -37,13 +42,15 @@ try:
 except ImportError:
     from SimPEG import SolverLU as Solver
 
+# sphinx_gallery_thumbnail_number = 2
+
 ###############################################################
 # CYL-MESH EXAMPLE
 # ----------------
 #
 # Here we solve the forward 3D TDEM problem on a cylindrical mesh. We consider
 # a single line of airborne data for a vertical coplanar survey geometry. Here
-# the Earth's electrical properties are defined by a resistivity model.
+# the Earth's electrical properties are defined by a conductivity model.
 #
 
 #####################################################################
@@ -76,11 +83,11 @@ src_list = []  # Create empty list to store sources
 
 # Each unique location defines a new transmitter
 for ii in range(ntx):
-    
+
     # Define receivers of different type at each location.
     dbzdt_rec = TDEM.Rx.Point_dbdt(rx_locs[ii, :], tc, 'z')
     rx_list = [dbzdt_rec]  # Make a list containing all receivers even if just one
-        
+
     # Must define the transmitter properties and associated receivers
     src_list.append(
         TDEM.Src.MagDipole(rx_list, loc=src_locs[ii], moment=1., orientation='z')
@@ -103,8 +110,8 @@ hz = [(10., 10, -1.5), (10., 100), (10., 10, 1.5)]
 mesh = CylMesh([hr, 1, hz], x0='00C')
 
 ###############################################################
-# Create Model and Mapping for Cylindrical Mesh
-# ---------------------------------------------
+# Create Conductivity Model and Mapping for Cylindrical Mesh
+# ----------------------------------------------------------
 #
 # Here, the model consists of a long vertical conductive pipe and a resistive
 # surface layer. For this example, we will have only flat topography.
@@ -150,9 +157,11 @@ ax1.plot(rx_locs[:, 0], rx_locs[:, 2], 'r.')
 
 ax2 = fig.add_axes([0.8, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(vmin=np.log10(layer_val), vmax=np.log10(pipe_val))
-cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation='vertical')
+cbar = mpl.colorbar.ColorbarBase(
+    ax2, norm=norm, orientation='vertical', format="$10^{%.1f}$"
+)
 cbar.set_label(
-    'Log-Conductivity (log[S/m])', rotation=270, labelpad=15, size=12
+    'Conductivity [S/m]', rotation=270, labelpad=15, size=12
 )
 
 
@@ -174,17 +183,17 @@ prob.pair(survey)
 
 # Predict data given a model. Data are organized by transmitter, then by
 # receiver then by observation time. dBdt data are in T/s.
-dbdt = survey.dpred(mod)
+dpred = survey.dpred(mod)
 
 # Plot the response
-dbdt = np.reshape(dbdt, (ntx, len(tc)))
+dpred = np.reshape(dpred, (ntx, len(tc)))
 
 fig = plt.figure(figsize=(8, 4))
 
 # TDEM Profile
 ax1 = fig.add_axes([0.1, 0.05, 0.35, 0.85])
 for ii in range(0, len(tc)):
-    ax1.plot(rx_locs[:, 0], -dbdt[:, ii], 'k')
+    ax1.plot(rx_locs[:, 0], -dpred[:, ii], 'k')  # -ve sign to plot -dBz/dt
 ax1.set_xlim((0, np.max(xtx)))
 ax1.set_xlabel('Easting [m]')
 ax1.set_ylabel('-dBz/dt [T/s]')
@@ -192,8 +201,8 @@ ax1.set_title('Airborne TDEM Profile')
 
 # Response over pipe for all time channels
 ax2 = fig.add_axes([0.6, 0.05, 0.35, 0.85])
-ax2.loglog(tc, -dbdt[0, :], 'b')
-ax2.loglog(tc, -dbdt[-1, :], 'r')
+ax2.loglog(tc, -dpred[0, :], 'b')
+ax2.loglog(tc, -dpred[-1, :], 'r')
 ax2.set_xlim((np.min(tc), np.max(tc)))
 ax2.set_xlabel('time [s]')
 ax2.set_ylabel('-dBz/dt [T/s]')
@@ -205,8 +214,8 @@ ax2.legend(['Over pipe','Background'], loc='upper right')
 # --------------
 #
 # Here we solve the 3D TDEM forward problem on an OcTree mesh. For this
-# example we define a log-resistivity model, predict the H-field at all
-# time channels and use the VTEM waveform. To limit the
+# example we define a resistivity model, predict the H-field at all
+# time channels and use a trangular waveform. To limit the
 # computational cost, we have reduced the size of the problem. This will
 # result in a decrease in numerical accuracy for the predicted fields.
 #
@@ -265,11 +274,11 @@ src_list = []  # Create empty list to store sources
 
 # Each unique location and tcuency defines a new transmitter
 for ii in range(ntx):
-    
+
     # Here we define receivers that measure the h-field in A/m
     h_rec = TDEM.Rx.Point_h(rx_locs[ii, :], tc, 'z')
     rx_list = [h_rec]  # Make a list containing all receivers even if just one
-        
+
     # Must define the transmitter properties and associated receivers
     src_list.append(
         TDEM.Src.MagDipole(rx_list, loc=src_locs[ii], moment=1., orientation='z')
@@ -313,8 +322,8 @@ mesh = refine_tree_xyz(
 mesh.finalize()
 
 ###############################################################
-# Create Model and Mapping for OcTree Mesh
-# ----------------------------------------
+# Create Resistivity Model and Mapping for OcTree Mesh
+# ----------------------------------------------------
 #
 # Here, we define the electrical properties of the Earth as a resistivity
 # model. The model consists of a long vertical conductive pipe within a more
@@ -351,13 +360,15 @@ mesh.plotSlice(
     plotting_map*log_mod, normal='Y', ax=ax1, ind=int(mesh.hx.size/2),
     grid=True, clim=(np.min(log_mod), np.max(log_mod))
 )
-ax1.set_title('Log-Resistivity Model at Y = 0 m')
+ax1.set_title('Resistivity Model at Y = 0 m')
 
 ax2 = fig.add_axes([0.8, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(vmin=np.min(log_mod), vmax=np.max(log_mod))
-cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation='vertical')
+cbar = mpl.colorbar.ColorbarBase(
+    ax2, norm=norm, orientation='vertical', format="$10^{%.1f}$"
+)
 cbar.set_label(
-    'Log-Resistivity (log[Ohm m])', rotation=270, labelpad=15, size=12
+    'Resistivity [Ohm m]', rotation=270, labelpad=15, size=12
 )
 
 
@@ -379,18 +390,18 @@ prob2.timeSteps = [(1e-4, 20), (1e-05, 10), (1e-4, 10)]
 
 prob2.pair(survey2)
 
-h = survey2.dpred(mod)
+dpred = survey2.dpred(mod)
 
 # Plot
-h = np.reshape(h, (n_tx**2, n_times))
+dpred = np.reshape(dpred, (n_tx**2, n_times))
 
 fig = plt.figure(figsize=(10, 4))
 
 # H field at early time
-v_max = np.max(np.abs(h[:, 0]))
+v_max = np.max(np.abs(dpred[:, 0]))
 ax11 = fig.add_axes([0.05, 0.05, 0.35, 0.9])
 plot2Ddata(
-    rx_locs[:,0:2], h[:, 0], ax=ax11, ncontour=30, clim=(-v_max, v_max),
+    rx_locs[:, 0:2], dpred[:, 0], ax=ax11, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
     )
 ax11.set_title('Hz at 0.0001 s')
@@ -403,10 +414,10 @@ cbar1 = mpl.colorbar.ColorbarBase(
 cbar1.set_label('$A/m$', rotation=270, labelpad=15, size=12)
 
 # H field at later times
-v_max = np.max(np.abs(h[:, -1]))
+v_max = np.max(np.abs(dpred[:, -1]))
 ax21 = fig.add_axes([0.55, 0.05, 0.35, 0.9])
 plot2Ddata(
-    rx_locs[:,0:2], h[:, -1], ax=ax21, ncontour=30, clim=(-v_max, v_max),
+    rx_locs[:, 0:2], dpred[:, -1], ax=ax21, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
     )
 ax21.set_title('Hz at 0.001 s')
@@ -419,12 +430,3 @@ cbar2 = mpl.colorbar.ColorbarBase(
 cbar2.set_label('$A/m$', rotation=270, labelpad=15, size=12)
 
 plt.show()
-
-
-
-
-
-
-
-
-
