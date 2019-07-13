@@ -305,7 +305,7 @@ def plot_pseudoSection(
     dc_survey, ax=None, survey_type='dipole-dipole',
     data_type="appConductivity", space_type='half-space',
     clim=None, scale="linear", sameratio=True,
-    pcolorOpts={}, data_location=False, dobs=None, dim=2
+    pcolorOpts={}, data_location=False, dobs=None, V0=None, dim=2
 ):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
@@ -332,6 +332,12 @@ def plot_pseudoSection(
     z0 = 0.
     rho = []
 
+    if data_type == 'appChargeability':
+        if V0 is None:
+            raise Exception("""Must include voltage for DC data""")
+        elif np.size(dobs) != np.size(V0):
+            raise Exception("""Size of DC and IP data vectors must be equal""")
+
     # Use dobs in survey if dobs is None
     if dobs is None:
         if dc_survey.dobs is None:
@@ -339,11 +345,15 @@ def plot_pseudoSection(
         else:
             dobs = dc_survey.dobs
 
-    rhoApp = apparent_resistivity(
+    if data_type == 'appChargeability':
+        rhoApp = np.abs(dobs/V0)
+    else:
+        rhoApp = apparent_resistivity(
                 dc_survey, dobs=dobs,
                 survey_type=survey_type,
                 space_type=space_type
-    )
+        )
+
     midx, midz = source_receiver_midpoints(
                     dc_survey,
                     survey_type=survey_type,
@@ -363,6 +373,12 @@ def plot_pseudoSection(
             rho = np.log10(1./rhoApp)
 
     elif data_type == 'appResistivity':
+        if scale == "linear":
+            rho = rhoApp
+        elif scale == "log":
+            rho = np.log10(rhoApp)
+
+    elif data_type == 'appChargeability':
         if scale == "linear":
             rho = rhoApp
         elif scale == "log":
@@ -402,9 +418,14 @@ def plot_pseudoSection(
                ph, format="$10^{%.1f}$",
                fraction=0.04, orientation="horizontal"
         )
-    elif scale == "linear":
+    elif (scale == "linear") & (data_type is not 'appChargeability'):
         cbar = plt.colorbar(
                ph, format="%.1f",
+               fraction=0.04, orientation="horizontal"
+        )
+    elif (scale == "linear") & (data_type == 'appChargeability'):
+        cbar = plt.colorbar(
+               ph, format="%.1e",
                fraction=0.04, orientation="horizontal"
         )
 
@@ -413,6 +434,9 @@ def plot_pseudoSection(
 
     elif data_type == 'appResistivity':
         cbar.set_label("App.Res.", size=12)
+
+    elif data_type == 'appChargeability':
+        cbar.set_label("App.Charge.", size=12)
 
     elif data_type == 'volt':
         cbar.set_label("Potential (V)", size=12)
