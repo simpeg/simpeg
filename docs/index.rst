@@ -22,6 +22,7 @@ Tutorials
    :maxdepth: 2
    :caption: Tutorials
 
+   content/tutorials/mesh_generation/index
    content/tutorials/models_mapping/index
    content/tutorials/forward_modeling/index
 
