@@ -288,12 +288,10 @@ texinfo_documents = [
 sphinx_gallery_conf = {
     # path to your examples scripts
     'examples_dirs' : ['../examples',
-                       '../tutorials/mesh_generation',
                        '../tutorials/models_mapping',
                        '../tutorials/forward_modeling'
                        ],
     'gallery_dirs'  : ['content/examples',
-                       'content/tutorials/mesh_generation',
                        'content/tutorials/models_mapping',
                        'content/tutorials/forward_modeling'
                        ],
