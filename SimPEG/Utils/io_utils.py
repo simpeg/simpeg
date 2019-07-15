@@ -4,7 +4,7 @@ import time as tm
 import re
 import warnings
 from SimPEG import Utils
-
+from discretize import TreeMesh
 
 
 def read_GOCAD_ts(tsfile):
@@ -473,13 +473,20 @@ def writeVectorUBC(mesh, fileName, model):
 
     modelMatTR = np.zeros_like(model)
 
-    for ii in range(3):
-        # Reshape model to a matrix
-        modelMat = mesh.r(model[:, ii], 'CC', 'CC', 'M')
-        # Transpose the axes
-        modelMatT = modelMat.transpose((2, 0, 1))
-        # Flip z to positive down
-        modelMatTR[:, ii] = Utils.mkvc(modelMatT[::-1, :, :])
+    if isinstance(mesh, TreeMesh):
+        ubc_order = mesh._ubc_order
+
+        for ii in range(3):
+            modelMatTR[:, ii] = model[ubc_order, ii]
+
+    else:
+        for ii in range(3):
+            # Reshape model to a matrix
+            modelMat = mesh.r(model[:, ii], 'CC', 'CC', 'M')
+            # Transpose the axes
+            modelMatT = modelMat.transpose((2, 0, 1))
+            # Flip z to positive down
+            modelMatTR[:, ii] = Utils.mkvc(modelMatT[::-1, :, :])
 
     # Flip Z for UBC file format
     modelMatTR[:, 2] *= -1
