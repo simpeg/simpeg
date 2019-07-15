@@ -416,6 +416,12 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                                 fileName + '_REM.amp': self.mapping.P * np.sum(m_rem**2, axis=1)**0.5 }
                         )
 
+                        Utils.io_utils.writeVectorUBC(
+                            self.mapping.mesh,
+                            fileName + '.fld',
+                            self.mapping.P * vec
+                        )
+
                     else:
                         Mesh.TensorMesh.writeModelUBC(
                             self.mapping.mesh,
