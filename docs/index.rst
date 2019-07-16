@@ -25,6 +25,7 @@ Tutorials
    content/tutorials/mesh_generation/index
    content/tutorials/models_mapping/index
    content/tutorials/forward_modeling/index
+   content/tutorials/basic_inversion/index
 
 
 

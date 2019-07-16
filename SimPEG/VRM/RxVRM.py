@@ -34,7 +34,9 @@ class Point(BaseRxVRM):
     # def __init__(self, locs, times, fieldType, fieldComp, **kwargs):
     def __init__(self, locs, **kwargs):
 
-        if locs.shape[1] != 3:
+        if len(locs) == 3:
+            locs.reshape((1, 3))
+        elif locs.shape[1] != 3:
             raise ValueError(
                 'Rx locations (xi,yi,zi) must be np.array(N,3) where N is the number of stations'
             )
@@ -80,7 +82,9 @@ class SquareLoop(BaseRxVRM):
 
     def __init__(self, locs, **kwargs):
 
-        if locs.shape[1] != 3:
+        if len(locs) == 3:
+            locs.reshape((1, 3))
+        elif locs.shape[1] != 3:
             raise ValueError(
                 'Rx locations (xi,yi,zi) must be np.array(N,3) where N is the number of stations'
             )

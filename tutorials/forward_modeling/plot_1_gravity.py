@@ -34,6 +34,7 @@ from discretize.utils import mkvc, refine_tree_xyz
 from SimPEG.Utils import plot2Ddata, ModelBuilder, surface2ind_topo
 from SimPEG import Maps
 from SimPEG import PF
+import os
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -45,11 +46,17 @@ from SimPEG import PF
 # also be loaded from a file. This is used for both examples.
 #
 
-[xx, yy] = np.meshgrid(np.linspace(-120, 120, 25), np.linspace(-120, 120, 25))
-zz = -15*np.exp(-(xx**2 + yy**2) / 75**2)
+[xx, yy] = np.meshgrid(np.linspace(-200, 200, 41), np.linspace(-200, 200, 41))
+zz = -15*np.exp(-(xx**2 + yy**2) / 80**2)
 xx, yy, zz = mkvc(xx), mkvc(yy), mkvc(zz)
 topo = np.c_[xx, yy, zz]
 
+fname = os.path.dirname(PF.__file__) + '\\..\\..\\tutorials\\assets\\gravity_topo.txt'
+np.savetxt(
+    fname,
+    np.c_[topo],
+    fmt='%.4e'
+)
 
 #############################################
 # Defining the Survey
@@ -62,17 +69,17 @@ topo = np.c_[xx, yy, zz]
 #
 
 # Define the observation locations as an (N, 3) numpy array or load them
-xr = np.linspace(-50., 50., 20)
-yr = np.linspace(-50., 50., 20)
+xr = np.linspace(-80., 80., 17)
+yr = np.linspace(-80., 80., 17)
 xr, yr = np.meshgrid(xr, yr)
 xr, yr = mkvc(xr.T), mkvc(yr.T)
 fun_interp = LinearNDInterpolator(np.c_[xx, yy], zz)
-zr = fun_interp(np.c_[xr, yr]) + 0.1
-rx_loc = np.c_[xr, yr, zr]
+zr = fun_interp(np.c_[xr, yr]) + 2.
+rx_locs = np.c_[xr, yr, zr]
 
 # Define the survey
-rx_loc = PF.BaseGrav.RxObs(rx_loc)              # Define receivers
-src_field = PF.BaseGrav.SrcField([rx_loc])      # Define the source field
+rx_list = PF.BaseGrav.RxObs(rx_locs)            # Define receivers
+src_field = PF.BaseGrav.SrcField([rx_list])     # Define the source field
 survey = PF.BaseGrav.LinearSurvey(src_field)    # Define the survey
 survey2 = PF.BaseGrav.LinearSurvey(src_field)   # Define the survey
 
@@ -86,9 +93,9 @@ survey2 = PF.BaseGrav.LinearSurvey(src_field)   # Define the survey
 #
 
 dh = 5.
-hx = [(dh, 5, -1.3), (dh, 20), (dh, 5, 1.3)]
-hy = [(dh, 5, -1.3), (dh, 20), (dh, 5, 1.3)]
-hz = [(dh, 5, -1.3), (dh, 10)]
+hx = [(dh, 5, -1.3), (dh, 40), (dh, 5, 1.3)]
+hy = [(dh, 5, -1.3), (dh, 40), (dh, 5, 1.3)]
+hz = [(dh, 5, -1.3), (dh, 15)]
 mesh = TensorMesh([hx, hy, hz], 'CCN')
 
 #############################################
@@ -103,11 +110,11 @@ mesh = TensorMesh([hx, hy, hz], 'CCN')
 
 # Define density contrast values for each unit in g/cc
 background_val = 0.
-block_val = -0.04
-sphere_val = 0.04
+block_val = -0.1
+sphere_val = 0.1
 
 # Find the indecies of the active cells in forward model (ones below surface)
-ind_active = surface2ind_topo(mesh, topo, 'N')
+ind_active = surface2ind_topo(mesh, topo)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
@@ -117,14 +124,14 @@ mod_map = Maps.IdentityMap(nP=nC)  # model consists of a value for each cell
 mod = background_val*np.ones(nC)
 
 ind_block = (
-    (mesh.gridCC[ind_active, 0] > -40.) & (mesh.gridCC[ind_active, 0] < -10.) &
+    (mesh.gridCC[ind_active, 0] > -50.) & (mesh.gridCC[ind_active, 0] < -20.) &
     (mesh.gridCC[ind_active, 1] > -15.) & (mesh.gridCC[ind_active, 1] < 15.) &
-    (mesh.gridCC[ind_active, 2] > -45.) & (mesh.gridCC[ind_active, 2] < -25.)
+    (mesh.gridCC[ind_active, 2] > -50.) & (mesh.gridCC[ind_active, 2] < -30.)
 )
 mod[ind_block] = block_val
 
 ind_sphere = ModelBuilder.getIndicesSphere(
-    np.r_[25., 0., -35.], 15., mesh.gridCC
+    np.r_[35., 0., -40.], 15., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]
 mod[ind_sphere] = sphere_val
@@ -133,17 +140,17 @@ mod[ind_sphere] = sphere_val
 fig = plt.figure(figsize=(9, 4))
 plotting_map = Maps.InjectActiveCells(mesh, ind_active, np.nan)
 
-ax1 = fig.add_axes([0.05, 0.05, 0.75, 0.9])
+ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
 mesh.plotSlice(
     plotting_map*mod, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
-    clim=(np.min(mod), np.max(mod))
+    clim=(np.min(mod), np.max(mod)), pcolorOpts={'cmap': 'jet'}
     )
 ax1.set_title('Model slice at y = 0 m')
 
 ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(vmin=np.min(mod), vmax=np.max(mod))
 cbar = mpl.colorbar.ColorbarBase(
-        ax2, norm=norm, orientation='vertical'
+        ax2, norm=norm, orientation='vertical', cmap='jet'
         )
 cbar.set_label(
     '$g/cm^3$',
@@ -170,11 +177,20 @@ survey.pair(prob)
 # Compute predicted data for some model
 dpred = prob.fields(mod)
 
+# THIS IS TO WRITE THE DATA OUT FOR NOW FOR INVERSION
+dpred = dpred + 5e-4*np.random.rand(len(dpred))
+fname = os.path.dirname(PF.__file__) + '\\..\\..\\tutorials\\assets\\gravity_data.txt'
+np.savetxt(
+    fname,
+    np.c_[rx_locs, dpred],
+    fmt='%.4e'
+)
+
 # Plot
 fig = plt.figure(figsize=(7, 5))
 
-ax1 = fig.add_axes([0.05, 0.05, 0.75, 0.9])
-plot2Ddata(rx_loc.locs, dpred, ax=ax1)
+ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+plot2Ddata(rx_list.locs, dpred, ax=ax1, contourOpts={"cmap": "RdBu_r"})
 ax1.set_title('Gravity Anomaly')
 
 ax2 = fig.add_axes([0.82, 0.05, 0.03, 0.9])
@@ -182,15 +198,11 @@ norm = mpl.colors.Normalize(
     vmin=-np.max(np.abs(dpred)), vmax=np.max(np.abs(dpred))
 )
 cbar = mpl.colorbar.ColorbarBase(
-        ax2, norm=norm, orientation='vertical'
+        ax2, norm=norm, orientation='vertical', cmap='RdBu_r', format='%.1e'
         )
-cbar.set_label(
-    '$mgal$',
-    rotation=270, labelpad=15, size=12
-)
+cbar.set_label('$mgal$', rotation=270, labelpad=15, size=12)
 
 plt.show()
-
 
 ##########################################################
 # Defining an OcTree Mesh
@@ -222,10 +234,10 @@ mesh = TreeMesh([hx, hy, hz], x0='CCN')
 # Refine based on surface topography
 mesh = refine_tree_xyz(
     mesh, topo, octree_levels=[2, 2], method='surface', finalize=False
-    )
+)
 
 # Refine box based on region of interest
-xp, yp, zp = np.meshgrid([-60., 60.], [-60., 60.], [-50., 0.])
+xp, yp, zp = np.meshgrid([-100., 100.], [-100., 100.], [-80., 0.])
 xyz = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
 
 mesh = refine_tree_xyz(
@@ -234,7 +246,7 @@ mesh = refine_tree_xyz(
 
 mesh.finalize()
 
-#############################################
+#######################################################
 # Density Contrast Model and Mapping on OcTree Mesh
 # -------------------------------------------------
 #
@@ -245,8 +257,8 @@ mesh.finalize()
 
 # Define density contrast values for each unit in g/cc
 background_val = 0.
-block_val = -0.04
-sphere_val = 0.04
+block_val = -0.1
+sphere_val = 0.1
 
 # Define active cells in the forward model (ones below surface)
 ind_active = surface2ind_topo(mesh, topo)
@@ -259,14 +271,14 @@ mod_map = Maps.IdentityMap(nP=nC)  # model will be value of active cells
 mod = background_val*np.ones(nC)
 
 ind_block = (
-    (mesh.gridCC[ind_active, 0] > -40.) & (mesh.gridCC[ind_active, 0] < -10.) &
+    (mesh.gridCC[ind_active, 0] > -50.) & (mesh.gridCC[ind_active, 0] < -20.) &
     (mesh.gridCC[ind_active, 1] > -15.) & (mesh.gridCC[ind_active, 1] < 15.) &
-    (mesh.gridCC[ind_active, 2] > -45.) & (mesh.gridCC[ind_active, 2] < -25.)
+    (mesh.gridCC[ind_active, 2] > -50.) & (mesh.gridCC[ind_active, 2] < -30.)
 )
 mod[ind_block] = block_val
 
 ind_sphere = ModelBuilder.getIndicesSphere(
-    np.r_[25., 0., -35.], 15., mesh.gridCC
+    np.r_[35., 0., -40.], 15., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]
 mod[ind_sphere] = sphere_val
@@ -278,14 +290,14 @@ plotting_map = Maps.InjectActiveCells(mesh, ind_active, np.nan)
 ax1 = fig.add_axes([0.05, 0.05, 0.75, 0.9])
 mesh.plotSlice(
     plotting_map*mod, normal='Y', ax=ax1, ind=int(mesh.hy.size/2), grid=True,
-    clim=(np.min(mod), np.max(mod))
+    clim=(np.min(mod), np.max(mod)), pcolorOpts={'cmap': 'jet'}
 )
 ax1.set_title('Model slice at y = 0 m')
 
 ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(vmin=np.min(mod), vmax=np.max(mod))
 cbar = mpl.colorbar.ColorbarBase(
-        ax2, norm=norm, orientation='vertical'
+        ax2, norm=norm, orientation='vertical', cmap='jet'
 )
 cbar.set_label('$g/cm^3$', rotation=270, labelpad=15, size=12)
 
