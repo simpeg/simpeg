@@ -349,8 +349,9 @@ survey2.pair(prob2)
 dpred_mvi = prob2.fields(mkvc(mod))
 
 dpred_mvi = dpred_mvi + 5e-5*np.random.rand(len(dpred_mvi))
+fname = os.path.dirname(PF.__file__) + '\\..\\..\\tutorials\\assets\\mvi_data.txt'
 np.savetxt(
-    'D:\\Documents\\Python\\simpeg_assets\\mvi_data.txt',
+    fname,
     np.c_[rx_locs, dpred_mvi],
     fmt='%.4e'
 )

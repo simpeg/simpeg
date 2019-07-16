@@ -39,7 +39,7 @@ from SimPEG import (
     Inversion, Utils
     )
 
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_number = 4
 
 #############################################
 # Load Data and Plot
@@ -194,9 +194,9 @@ dmis.W = Utils.sdiag(1/dunc)
 # Define the regularization (model objective function)
 reg = Regularization.Sparse(
     mesh, indActive=ind_active, mapping=mod_map,
-    alpha_s=0.04, alpha_x=1, alpha_y=1, alpha_z=1
+    alpha_s=1, alpha_x=1, alpha_y=1, alpha_z=1
 )
-reg.norms = np.c_[1, 0, 0, 0]  # Define sparse and blocky norms p=(0, 2)
+reg.norms = np.c_[0, 0, 0, 0]  # Define sparse and blocky norms p=(0, 2)
 
 # Create model weights based on sensitivity matrix (sensitivity weighting)
 wr = np.sum(prob.G**2., axis=0)**0.5
@@ -205,7 +205,7 @@ reg.cell_weights = wr  # include sensitivity weighting in regularization
 
 # Define how the optimization problem is solved.
 opt = Optimization.ProjectedGNCG(
-    maxIter=5, lower=-1., upper=1.,
+    maxIter=10, lower=-1., upper=1.,
     maxIterLS=20, maxIterCG=10, tolCG=1e-3
 )
 
