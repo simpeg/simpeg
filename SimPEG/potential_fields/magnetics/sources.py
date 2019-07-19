@@ -1,9 +1,10 @@
 import properties
 import numpy as np
 from scipy.constants import mu_0
+from ...survey import BaseSrc
 
 
-class SourceField(Survey.BaseSrc):
+class SourceField(BaseSrc):
     """ Define the inducing field """
 
     param = None  #: Inducing field param (Amp, Incl, Decl)

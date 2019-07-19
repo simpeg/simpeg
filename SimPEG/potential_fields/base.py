@@ -9,7 +9,7 @@ import numpy as np
 
 from ..data import Data
 from ..maps import IdentityMap
-from ..simulation import BaseSimulation
+from ..simulation import LinearSimulation
 from ..survey import BaseSurvey, BaseSrc
 from ..utils import sdiag, Zero
 from .. import props
@@ -31,12 +31,12 @@ __all__ = ['BaseEMSimulation', 'BaseEMSurvey', 'BaseEMSrc']
 
 class BasePFSimulation(LinearSimulation):
 
-    chi, chiMap, chiDeriv = Props.Invertible(
+    chi, chiMap, chiDeriv = props.Invertible(
         "Magnetic Susceptibility (SI)",
         default=1.
     )
 
-    rho, rhoMap, rhoDeriv = Props.Invertible(
+    rho, rhoMap, rhoDeriv = props.Invertible(
         "Specific density (g/cc)",
         default=1.
     )

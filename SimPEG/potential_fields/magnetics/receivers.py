@@ -15,18 +15,23 @@ class point_receiver(survey.BaseRx):
 
     receiver_index = None
 
-    component = properties.StringChoice(
-        "Must be a magnetic component of the type",
-        ["dbx_dx", "dbx_dy", "dbx_dz", "dby_dy",
-         "dby_dz", "dbz_dz", "bx", "by", "bz", "tmi"
-         ]
-    )
+    # component = properties.StringChoice(
+    #     "Must be a magnetic component of the type",
+    #     ["dbx_dx", "dbx_dy", "dbx_dz", "dby_dy",
+    #      "dby_dz", "dbz_dz", "bx", "by", "bz", "tmi"
+    #      ]
+    # )
 
-    def __init__(self, location_index=None, component="tmi", **kwargs):
+    component = [
+        "dbx_dx", "dbx_dy", "dbx_dz", "dby_dy",
+        "dby_dz", "dbz_dz", "bx", "by", "bz", "tmi"
+    ]
+
+    def __init__(self, component=["tmi"], **kwargs):
 
         self.component = component
 
-        super(BaseRx, self).__init__(location_index, **kwargs)
+        # super(point_receiver, self).__init__(location_index, **kwargs)
 
     def nD(self):
 

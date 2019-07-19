@@ -6,877 +6,492 @@ import properties
 from ... import props
 from ...data import Data
 from ...utils import mkvc
-from ..base import BaseEMSimulation
-from ..utils import omega
-from .survey import Survey
-from .fields import (
-    FieldsFDEM, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
-)
+from ..base import BasePFSimulation
+from .survey import MagneticSurvey
+from ...simulation import LinearSimulation
 
+class MagneticIntegralSimulation(BasePFSimulation):
 
-class BaseFDEMSimulation(BaseEMSimulation):
-    """
-    We start by looking at Maxwell's equations in the electric
-    field \\\(\\\mathbf{e}\\\) and the magnetic flux
-    density \\\(\\\mathbf{b}\\\)
-
-    .. math ::
-
-        \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\\\
-        {\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
-        \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
-
-    if using the E-B formulation (:code:`Problem3D_e`
-    or :code:`Problem3D_b`). Note that in this case,
-    :math:`\mathbf{s_e}` is an integrated quantity.
-
-    If we write Maxwell's equations in terms of
-    \\\(\\\mathbf{h}\\\) and current density \\\(\\\mathbf{j}\\\)
-
-    .. math ::
-
-        \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j} +
-        i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
-        \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
-
-    if using the H-J formulation (:code:`Problem3D_j` or
-    :code:`Problem3D_h`). Note that here, :math:`\mathbf{s_m}` is an
-    integrated quantity.
-
-    The problem performs the elimination so that we are solving the system
-    for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or
-    \\\(\\\mathbf{h}\\\)
-
-    """
-
-    fieldsPair = FieldsFDEM
-
-    mu, muMap, muDeriv = props.Invertible(
-        "Magnetic Permeability (H/m)", default=mu_0
+    chi, chiMap, chiDeriv = props.Invertible(
+        "Magnetic Susceptibility (SI)",
+        default=1.
     )
 
-    mui, muiMap, muiDeriv = props.Invertible(
-        "Inverse Magnetic Permeability (m/H)"
+    coordinate_system = properties.StringChoice(
+        "Type of coordinate system we are regularizing in",
+        choices=['cartesian', 'spherical'],
+        default='cartesian'
     )
 
-    props.Reciprocal(mu, mui)
+    modelType = properties.StringChoice(
+        "Type of magnetization model",
+        choices=['susceptibility', 'vector', 'amplitude'],
+        default='susceptibility'
+    )
 
     survey = properties.Instance(
-        "a survey object", Survey, required=True
+        "a survey object", MagneticSurvey, required=True
     )
 
-    def fields(self, m=None):
-        """
-        Solve the forward problem for the fields.
-
-        :param numpy.ndarray m: inversion model (nP,)
-        :rtype: numpy.ndarray
-        :return f: forward solution
-        """
-
-        if m is not None:
-            self.model = m
-
-        f = self.fieldsPair(self)
-
-        for freq in self.survey.frequencies:
-            A = self.getA(freq)
-            rhs = self.getRHS(freq)
-            Ainv = self.Solver(A, **self.solver_opts)
-            u = Ainv * rhs
-            Srcs = self.survey.get_sources_by_frequency(freq)
-            f[Srcs, self._solutionType] = u
-            Ainv.clean()
-        return f
-
-    def Jvec(self, m, v, f=None):
-        """
-        Sensitivity times a vector.
-
-        :param numpy.ndarray m: inversion model (nP,)
-        :param numpy.ndarray v: vector which we take sensitivity product with
-            (nP,)
-        :param SimPEG.EM.FDEM.FieldsFDEM.FieldsFDEM u: fields object
-        :rtype: numpy.ndarray
-        :return: Jv (ndata,)
-        """
-
-        if f is None:
-            f = self.fields(m)
-
-        self.model = m
-
-        # Jv = Data(self.survey)
-        Jv = []
-
-        for freq in self.survey.frequencies:
-            A = self.getA(freq)
-            # create the concept of Ainv (actually a solve)
-            Ainv = self.Solver(A, **self.solver_opts)
-
-            for src in self.survey.get_sources_by_frequency(freq):
-                u_src = f[src, self._solutionType]
-                dA_dm_v = self.getADeriv(freq, u_src, v, adjoint=False)
-                dRHS_dm_v = self.getRHSDeriv(freq, src, v)
-                du_dm_v = Ainv * (- dA_dm_v + dRHS_dm_v)
-
-                for rx in src.rxList:
-                    Jv.append(
-                        rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
-                    )
-            Ainv.clean()
-        return np.hstack(Jv)
-
-    def Jtvec(self, m, v, f=None):
-        """
-        Sensitivity transpose times a vector
-
-        :param numpy.ndarray m: inversion model (nP,)
-        :param numpy.ndarray v: vector which we take adjoint product with (nP,)
-        :param SimPEG.EM.FDEM.FieldsFDEM.FieldsFDEM u: fields object
-        :rtype: numpy.ndarray
-        :return: Jv (ndata,)
-        """
-
-        if f is None:
-            f = self.fields(m)
-
-        self.model = m
-
-        # Ensure v is a data object.
-        if not isinstance(v, Data):
-            v = Data(self.survey, v)
-
-        Jtv = np.zeros(m.size)
-
-        for freq in self.survey.frequencies:
-            AT = self.getA(freq).T
-            ATinv = self.Solver(AT, **self.solver_opts)
-
-            for src in self.survey.get_sources_by_frequency(freq):
-                u_src = f[src, self._solutionType]
-
-                for rx in src.rxList:
-                    df_duT, df_dmT = rx.evalDeriv(
-                        src, self.mesh, f, v=v[src, rx], adjoint=True
-                    )
-
-                    ATinvdf_duT = ATinv * df_duT
-
-                    dA_dmT = self.getADeriv(
-                        freq, u_src, ATinvdf_duT, adjoint=True
-                    )
-                    dRHS_dmT = self.getRHSDeriv(
-                        freq, src, ATinvdf_duT, adjoint=True
-                    )
-                    du_dmT = -dA_dmT + dRHS_dmT
-
-                    df_dmT = df_dmT + du_dmT
-
-                    # TODO: this should be taken care of by the reciever?
-                    if rx.component is 'real':
-                        Jtv +=   np.array(df_dmT, dtype=complex).real
-                    elif rx.component is 'imag':
-                        Jtv += - np.array(df_dmT, dtype=complex).real
-                    else:
-                        raise Exception('Must be real or imag')
-
-            ATinv.clean()
-
-        return mkvc(Jtv)
-
-    def getSourceTerm(self, freq):
-        """
-        Evaluates the sources for a given frequency and puts them in matrix
-        form
-
-        :param float freq: Frequency
-        :rtype: tuple
-        :return: (s_m, s_e) (nE or nF, nSrc)
-        """
-        Srcs = self.survey.get_sources_by_frequency(freq)
-        if self._formulation is 'EB':
-            s_m = np.zeros((self.mesh.nF, len(Srcs)), dtype=complex)
-            s_e = np.zeros((self.mesh.nE, len(Srcs)), dtype=complex)
-        elif self._formulation is 'HJ':
-            s_m = np.zeros((self.mesh.nE, len(Srcs)), dtype=complex)
-            s_e = np.zeros((self.mesh.nF, len(Srcs)), dtype=complex)
-
-        for i, src in enumerate(Srcs):
-            smi, sei = src.eval(self)
-
-            s_m[:, i] = s_m[:, i] + smi
-            s_e[:, i] = s_e[:, i] + sei
-
-        return s_m, s_e
-
-
-###############################################################################
-#                               E-B Formulation                               #
-###############################################################################
-
-class Problem3D_e(BaseFDEMSimulation):
-    """
-    By eliminating the magnetic flux density using
-
-        .. math ::
-
-            \mathbf{b} = \\frac{1}{i \omega}\\left(-\mathbf{C} \mathbf{e} +
-            \mathbf{s_m}\\right)
-
-
-    we can write Maxwell's equations as a second order system in
-    \\\(\\\mathbf{e}\\\) only:
-
-    .. math ::
-
-        \\left(\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C} +
-        i \omega \mathbf{M^e_{\sigma}} \\right)\mathbf{e} =
-        \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m}
-        - i\omega\mathbf{M^e}\mathbf{s_e}
-
-    which we solve for :math:`\mathbf{e}`.
-
-    :param discretize.base.BaseMesh mesh: mesh
-    """
-
-    _solutionType = 'eSolution'
-    _formulation  = 'EB'
-    fieldsPair    = Fields3D_e
+    forwardOnly = False  # If false, matrix is store to memory (watch your RAM)
+    actInd = None  #: Active cell indices provided
+    M = None  #: Magnetization matrix provided, otherwise all induced
+    magType = 'H0'
+    equiSourceLayer = False
+    silent = False  # Don't display progress on screen
+    W = None
+    gtgdiag = None
+    n_cpu = None
+    parallelized = False
 
     def __init__(self, mesh, **kwargs):
-        super(Problem3D_e, self).__init__(mesh, **kwargs)
 
-    def getA(self, freq):
-        """
-        System matrix
+        assert mesh.dim == 3, 'Integral formulation only available for 3D mesh'
+        super(LinearSimulation, self).__init__(mesh=mesh, **kwargs)
 
-        .. math ::
-            \mathbf{A} = \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C}
-            + i \omega \mathbf{M^e_{\sigma}}
+    def fields(self, m):
 
-        :param float freq: Frequency
-        :rtype: scipy.sparse.csr_matrix
-        :return: A
-        """
+        if self.coordinate_system == 'cartesian':
+            m = self.chiMap*(m)
+        else:
+            m = self.chiMap*(matutils.spherical2cartesian(m.reshape((int(len(m)/3), 3), order='F')))
 
-        MfMui = self.MfMui
-        MeSigma = self.MeSigma
-        C = self.mesh.edgeCurl
-
-        return C.T*MfMui*C + 1j*omega(freq)*MeSigma
-
-    # def getADeriv(self, freq, u, v, adjoint=False):
-    #     return
-
-    def getADeriv_sigma(self, freq, u, v, adjoint=False):
-        """
-        Product of the derivative of our system matrix with respect to the
-        conductivity model and a vector
-
-        .. math ::
-            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}_{\\sigma}} =
-            i \omega \\frac{d \mathbf{M^e_{\sigma}}(\mathbf{u})\mathbf{v} }{d\mathbf{m}}
-
-        :param float freq: frequency
-        :param numpy.ndarray u: solution vector (nE,)
-        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
-            adjoint
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or
-            adjoint (nD,)
-        """
-
-        dMe_dsig_v = self.MeSigmaDeriv(u, v, adjoint)
-        return 1j * omega(freq) * dMe_dsig_v
-
-    def getADeriv_mui(self, freq, u, v, adjoint=False):
-        """
-        Product of the derivative of the system matrix with respect to the
-        permeability model and a vector.
-
-        .. math ::
-            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}_{\\mu^{-1}} =
-            \mathbf{C}^{\top} \\frac{d \mathbf{M^f_{\\mu^{-1}}}\mathbf{v}}{d\mathbf{m}}
-
-        """
-
-        C = self.mesh.edgeCurl
-
-        if adjoint:
-            return (self.MfMuiDeriv(C*u).T * (C * v))
-
-        return C.T * (self.MfMuiDeriv(C*u) * v)
-
-    def getADeriv(self, freq, u, v, adjoint=False):
-
-        return (
-            self.getADeriv_sigma(freq, u, v, adjoint) +
-            self.getADeriv_mui(freq, u, v, adjoint)
-        )
-
-    def getRHS(self, freq):
-        """
-        Right hand side for the system
-
-        .. math ::
-            \mathbf{RHS} = \mathbf{C}^{\\top}
-            \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -
-            i\omega\mathbf{M_e}\mathbf{s_e}
-
-        :param float freq: Frequency
-        :rtype: numpy.ndarray
-        :return: RHS (nE, nSrc)
-        """
-
-        s_m, s_e = self.getSourceTerm(freq)
-        C = self.mesh.edgeCurl
-        MfMui = self.MfMui
-
-        return C.T * (MfMui * s_m) - 1j * omega(freq) * s_e
-
-    def getRHSDeriv(self, freq, src, v, adjoint=False):
-
-        """
-        Derivative of the Right-hand side with respect to the model. This
-        includes calls to derivatives in the sources
-        """
-
-        C = self.mesh.edgeCurl
-        MfMui = self.MfMui
-        s_m, s_e = self.getSourceTerm(freq)
-        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
-        MfMuiDeriv = self.MfMuiDeriv(s_m)
-
-        if adjoint:
-            return (
-                s_mDeriv(MfMui * (C * v)) + MfMuiDeriv.T * (C * v) -
-                1j * omega(freq) * s_eDeriv(v)
-            )
-        return (
-            C.T * (MfMui * s_mDeriv(v) + MfMuiDeriv * v) -
-            1j * omega(freq) * s_eDeriv(v)
-        )
-
-
-class Problem3D_b(BaseFDEMSimulation):
-    """
-    We eliminate :math:`\mathbf{e}` using
-
-    .. math ::
-
-         \mathbf{e} = \mathbf{M^e_{\sigma}}^{-1} \\left(\mathbf{C}^{\\top}
-         \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\\right)
-
-    and solve for :math:`\mathbf{b}` using:
-
-    .. math ::
-
-        \\left(\mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^{\\top}
-        \mathbf{M_{\mu^{-1}}^f}  + i \omega \\right)\mathbf{b} = \mathbf{s_m} +
-        \mathbf{M^e_{\sigma}}^{-1}\mathbf{M^e}\mathbf{s_e}
-
-    .. note ::
-        The inverse problem will not work with full anisotropy
-
-    :param discretize.base.BaseMesh mesh: mesh
-    """
-
-    _solutionType = 'bSolution'
-    _formulation = 'EB'
-    fieldsPair = Fields3D_b
-
-    def __init__(self, mesh, **kwargs):
-        super(Problem3D_b, self).__init__(mesh, **kwargs)
-
-    def getA(self, freq):
-        """
-        System matrix
-
-        .. math ::
-            \mathbf{A} = \mathbf{C} \mathbf{M^e_{\sigma}}^{-1}
-            \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}  + i \omega
-
-        :param float freq: Frequency
-        :rtype: scipy.sparse.csr_matrix
-        :return: A
-        """
-
-        MfMui = self.MfMui
-        MeSigmaI = self.MeSigmaI
-        C = self.mesh.edgeCurl
-        iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
-
-        A = C * (MeSigmaI * (C.T * MfMui)) + iomega
-
-        if self._makeASymmetric is True:
-            return MfMui.T*A
-        return A
-
-    def getADeriv_sigma(self, freq, u, v, adjoint=False):
-
-        """
-        Product of the derivative of our system matrix with respect to the
-        model and a vector
-
-        .. math ::
-            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} =
-            \mathbf{C} \\frac{\mathbf{M^e_{\sigma}} \mathbf{v}}{d\mathbf{m}}
-
-        :param float freq: frequency
-        :param numpy.ndarray u: solution vector (nF,)
-        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
-            adjoint
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or
-            adjoint (nD,)
-        """
-
-        MfMui = self.MfMui
-        C = self.mesh.edgeCurl
-        MeSigmaIDeriv = self.MeSigmaIDeriv
-        vec = C.T * (MfMui * u)
-
-        if adjoint:
-            return MeSigmaIDeriv(vec, C.T * v, adjoint)
-        return C * MeSigmaIDeriv(vec, v, adjoint)
-
-        # if adjoint:
-        #     return MeSigmaIDeriv.T * (C.T * v)
-        # return C * (MeSigmaIDeriv * v)
-
-    def getADeriv_mui(self, freq, u, v, adjoint=False):
-
-        MfMui = self.MfMui
-        MfMuiDeriv = self.MfMuiDeriv(u)
-        MeSigmaI = self.MeSigmaI
-        C = self.mesh.edgeCurl
-
-        if adjoint:
-            return MfMuiDeriv.T * (C * (MeSigmaI.T * (C.T * v)))
-        return C * (MeSigmaI * (C.T * (MfMuiDeriv * v)))
-
-    def getADeriv(self, freq, u, v, adjoint=False):
-        if adjoint is True and self._makeASymmetric:
-            v = self.MfMui * v
-
-        ADeriv =  (
-            self.getADeriv_sigma(freq, u, v, adjoint) +
-            self.getADeriv_mui(freq, u, v, adjoint)
-        )
-
-        if adjoint is False and self._makeASymmetric:
-            return self.MfMui.T * ADeriv
-
-        return ADeriv
-
-    def getRHS(self, freq):
-        """
-        Right hand side for the system
-
-        .. math ::
-            \mathbf{RHS} = \mathbf{s_m} +
-            \mathbf{M^e_{\sigma}}^{-1}\mathbf{s_e}
-
-        :param float freq: Frequency
-        :rtype: numpy.ndarray
-        :return: RHS (nE, nSrc)
-        """
-
-        s_m, s_e = self.getSourceTerm(freq)
-        C = self.mesh.edgeCurl
-        MeSigmaI = self.MeSigmaI
-
-        RHS = s_m + C * (MeSigmaI * s_e)
-
-        if self._makeASymmetric is True:
-            MfMui = self.MfMui
-            return MfMui.T * RHS
-
-        return RHS
-
-    def getRHSDeriv(self, freq, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
-
-        :param float freq: frequency
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: FDEM source
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of rhs deriv with a vector
-        """
-
-        C = self.mesh.edgeCurl
-        s_m, s_e = src.eval(self)
-        MfMui = self.MfMui
-
-        if self._makeASymmetric and adjoint:
-            v = self.MfMui * v
-
-        # MeSigmaIDeriv = self.MeSigmaIDeriv(s_e)
-        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
-
-        if not adjoint:
-            # RHSderiv = C * (MeSigmaIDeriv * v)
-            RHSderiv = C * self.MeSigmaIDeriv(s_e, v, adjoint)
-            SrcDeriv = s_mDeriv(v) + C * (self.MeSigmaI * s_eDeriv(v))
-        elif adjoint:
-            # RHSderiv = MeSigmaIDeriv.T * (C.T * v)
-            RHSderiv = self.MeSigmaIDeriv(s_e, C.T * v, adjoint)
-            SrcDeriv = s_mDeriv(v) + s_eDeriv(self.MeSigmaI.T * (C.T * v))
-
-        if self._makeASymmetric is True and not adjoint:
-            return MfMui.T * (SrcDeriv + RHSderiv)
-
-        return RHSderiv + SrcDeriv
-
-
-###############################################################################
-#                               H-J Formulation                               #
-###############################################################################
-
-
-class Problem3D_j(BaseFDEMSimulation):
-    """
-    We eliminate \\\(\\\mathbf{h}\\\) using
-
-    .. math ::
-
-        \mathbf{h} = \\frac{1}{i \omega} \mathbf{M_{\mu}^e}^{-1}
-        \\left(-\mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j} +
-        \mathbf{M^e} \mathbf{s_m} \\right)
-
-
-    and solve for \\\(\\\mathbf{j}\\\) using
-
-    .. math ::
-
-        \\left(\mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{C}^{\\top}
-        \mathbf{M_{\\rho}^f} + i \omega\\right)\mathbf{j} =
-        \mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{M^e} \mathbf{s_m} -
-        i\omega\mathbf{s_e}
-
-    .. note::
-        This implementation does not yet work with full anisotropy!!
-
-    :param discretize.base.BaseMesh mesh: mesh
-    """
-
-    _solutionType = 'jSolution'
-    _formulation  = 'HJ'
-    fieldsPair    = Fields3D_j
-
-    def __init__(self, mesh, **kwargs):
-        super(Problem3D_j, self).__init__(mesh, **kwargs)
-
-    def getA(self, freq):
-        """
-        System matrix
-
-        .. math ::
-                \\mathbf{A} = \\mathbf{C}  \\mathbf{M^e_{\\mu^{-1}}}
-                \\mathbf{C}^{\\top} \\mathbf{M^f_{\\sigma^{-1}}}  + i\\omega
-
-        :param float freq: Frequency
-        :rtype: scipy.sparse.csr_matrix
-        :return: A
-        """
-
-        MeMuI = self.MeMuI
-        MfRho = self.MfRho
-        C = self.mesh.edgeCurl
-        iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
-
-        A = C * MeMuI * C.T * MfRho + iomega
-
-        if self._makeASymmetric is True:
-            return MfRho.T*A
-        return A
-
-    def getADeriv_rho(self, freq, u, v, adjoint=False):
-        """
-        Product of the derivative of our system matrix with respect to the
-        model and a vector
-
-        In this case, we assume that electrical conductivity, :math:`\sigma`
-        is the physical property of interest (i.e. :math:`\sigma` =
-        model.transform). Then we want
-
-        .. math ::
-
-            \\frac{\mathbf{A(\sigma)} \mathbf{v}}{d \mathbf{m}} =
-            \mathbf{C} \mathbf{M^e_{mu^{-1}}} \mathbf{C^{\\top}}
-            \\frac{d \mathbf{M^f_{\sigma^{-1}}}\mathbf{v} }{d \mathbf{m}}
-
-        :param float freq: frequency
-        :param numpy.ndarray u: solution vector (nF,)
-        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
-            adjoint
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or
-            adjoint (nD,)
-        """
-
-        MeMuI = self.MeMuI
-        MfRho = self.MfRho
-        C = self.mesh.edgeCurl
-
-        if adjoint:
-            vec = C * (MeMuI.T * (C.T * v))
-            return self.MfRhoDeriv(u, vec, adjoint)
-        return C * (MeMuI * (C.T * (self.MfRhoDeriv(u, v, adjoint))))
-
-        # MfRhoDeriv = self.MfRhoDeriv(u)
-        # if adjoint:
-        #     return MfRhoDeriv.T * (C * (MeMuI.T * (C.T * v)))
-
-        # return C * (MeMuI * (C.T * (MfRhoDeriv * v)))
-
-    def getADeriv_mu(self, freq, u, v, adjoint=False):
-
-        C = self.mesh.edgeCurl
-        MfRho = self.MfRho
-
-        MeMuIDeriv = self.MeMuIDeriv(C.T * (MfRho * u))
-
-        if adjoint is True:
-            # if self._makeASymmetric:
-            #     v = MfRho * v
-            return MeMuIDeriv.T * (C.T * v)
-
-        Aderiv = C * (MeMuIDeriv * v)
-        # if self._makeASymmetric:
-        #     Aderiv = MfRho.T * Aderiv
-        return Aderiv
-
-    def getADeriv(self, freq, u, v, adjoint=False):
-        if adjoint and self._makeASymmetric:
-            v = self.MfRho * v
-
-        ADeriv = (
-            self.getADeriv_rho(freq, u, v, adjoint) +
-            self.getADeriv_mu(freq, u, v, adjoint)
-        )
-
-        if not adjoint and self._makeASymmetric:
-            return self.MfRho.T * ADeriv
-
-        return ADeriv
-
-    def getRHS(self, freq):
-        """
-        Right hand side for the system
-
-        .. math ::
-
-            \mathbf{RHS} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1}\mathbf{s_m}
-            - i\omega \mathbf{s_e}
-
-        :param float freq: Frequency
-        :rtype: numpy.ndarray
-        :return: RHS (nE, nSrc)
-        """
-
-        s_m, s_e = self.getSourceTerm(freq)
-        C = self.mesh.edgeCurl
-        MeMuI = self.MeMuI
-
-        RHS = C * (MeMuI * s_m) - 1j * omega(freq) * s_e
-        if self._makeASymmetric is True:
-            MfRho = self.MfRho
-            return MfRho.T*RHS
-
-        return RHS
-
-    def getRHSDeriv(self, freq, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
-
-        :param float freq: frequency
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: FDEM source
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of rhs deriv with a vector
-        """
-
-        # RHS = C * (MeMuI * s_m) - 1j * omega(freq) * s_e
-        # if self._makeASymmetric is True:
-        #     MfRho = self.MfRho
-        #     return MfRho.T*RHS
-
-        C = self.mesh.edgeCurl
-        MeMuI = self.MeMuI
-        MeMuIDeriv = self.MeMuIDeriv
-        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
-        s_m, _ = self.getSourceTerm(freq)
-
-        if adjoint:
-            if self._makeASymmetric:
-                MfRho = self.MfRho
-                v = MfRho*v
-            CTv = (C.T * v)
-            return (
-                s_mDeriv(MeMuI.T * CTv) + MeMuIDeriv(s_m).T * CTv -
-                1j * omega(freq) * s_eDeriv(v)
-            )
+        if self.forwardOnly:
+            # Compute the linear operation without forming the full dense F
+            fields = self.Intrgl_Fwr_Op(m=m)
 
         else:
-            RHSDeriv = (
-                C * (MeMuI * s_mDeriv(v) + MeMuIDeriv(s_m) * v) -
-                1j * omega(freq) * s_eDeriv(v)
+
+            if getattr(self, '_Mxyz', None) is not None:
+
+                fields = np.dot(self.G, (self.Mxyz*m).astype(np.float32))
+
+            else:
+                fields = np.dot(self.G, m.astype(np.float32))
+
+            if self.modelType == 'amplitude':
+
+                fields = self.calcAmpData(fields.astype(np.float64))
+
+        return fields.astype(np.float64)
+
+    def calcAmpData(self, Bxyz):
+        """
+            Compute amplitude of the field
+        """
+
+        amplitude = np.sum(
+            Bxyz.reshape((3, self.nD), order='F')**2., axis=0
+        )**0.5
+
+        return amplitude
+
+    @property
+    def G(self):
+        if not self.ispaired:
+            raise Exception('Need to pair!')
+
+        if getattr(self, '_G', None) is None:
+
+            if self.modelType == 'vector':
+                self.magType = 'full'
+
+            self._G = self.Intrgl_Fwr_Op(magType=self.magType,
+                                         rx_type=self.rx_type)
+
+        return self._G
+
+    @property
+    def nD(self):
+        """
+            Number of data
+        """
+        self._nD = self.survey.srcField.rxList[0].locs.shape[0]
+
+        return self._nD
+
+    @property
+    def ProjTMI(self):
+        if not self.ispaired:
+            raise Exception('Need to pair!')
+
+        if getattr(self, '_ProjTMI', None) is None:
+
+            # Convert Bdecination from north to cartesian
+            self._ProjTMI = Utils.matutils.dip_azimuth2cartesian(
+                self.survey.srcField.param[1],
+                self.survey.srcField.param[2]
             )
 
-            if self._makeASymmetric:
-                MfRho = self.MfRho
-                return MfRho.T * RHSDeriv
-            return RHSDeriv
+        return self._ProjTMI
 
-
-class Problem3D_h(BaseFDEMSimulation):
-    """
-    We eliminate \\\(\\\mathbf{j}\\\) using
-
-    .. math ::
-
-        \mathbf{j} = \mathbf{C} \mathbf{h} - \mathbf{s_e}
-
-    and solve for \\\(\\\mathbf{h}\\\) using
-
-    .. math ::
-
-        \\left(\mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{C} +
-        i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{M^e}
-        \mathbf{s_m} + \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{s_e}
-
-    :param discretize.base.BaseMesh mesh: mesh
-    """
-
-    _solutionType = 'hSolution'
-    _formulation  = 'HJ'
-    fieldsPair    = Fields3D_h
-
-    def __init__(self, mesh, **kwargs):
-        super(Problem3D_h, self).__init__(mesh, **kwargs)
-
-    def getA(self, freq):
+    def getJtJdiag(self, m, W=None):
         """
-        System matrix
+            Return the diagonal of JtJ
+        """
+        dmudm = self.chiMap.deriv(m)
+        self._dSdm = None
+        self._dfdm = None
+        self.model = m
+        if (self.gtgdiag is None) and (self.modelType != 'amplitude'):
 
-        .. math::
-            \mathbf{A} = \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{C} +
-            i \omega \mathbf{M_{\mu}^e}
+            if W is None:
+                w = np.ones(self.G.shape[1])
+            else:
+                w = W.diagonal()
 
+            self.gtgdiag = np.zeros(dmudm.shape[1])
 
-        :param float freq: Frequency
-        :rtype: scipy.sparse.csr_matrix
-        :return: A
+            for ii in range(self.G.shape[0]):
 
+                self.gtgdiag += (w[ii]*self.G[ii, :]*dmudm)**2.
+
+        if self.coordinate_system == 'cartesian':
+            if self.modelType == 'amplitude':
+                return np.sum((W * self.dfdm * self.G * dmudm)**2., axis=0)
+            else:
+                return self.gtgdiag
+
+        else:  # spherical
+            if self.modelType == 'amplitude':
+                return np.sum(((W * self.dfdm) * self.G * (self.dSdm * dmudm))**2., axis=0)
+            else:
+                Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm.T) * (self.dSdm * dmudm)
+                return mkvc(np.sum(Japprox.power(2), axis=0))
+
+    def getJ(self, m, f=None):
+        """
+            Sensitivity matrix
+        """
+        if self.coordinate_system == 'cartesian':
+            dmudm = self.chiMap.deriv(m)
+        else:  # spherical
+            dmudm = self.dSdm * self.chiMap.deriv(m)
+
+        if self.modelType == 'amplitude':
+            return self.dfdm * (self.G * dmudm)
+        else:
+            return self.G * dmudm
+
+    def Jvec(self, m, v, f=None):
+
+        if self.coordinate_system == 'cartesian':
+            dmudm = self.chiMap.deriv(m)
+        else:
+            dmudm = self.dSdm * self.chiMap.deriv(m)
+
+        if getattr(self, '_Mxyz', None) is not None:
+
+            vec = np.dot(self.G, (self.Mxyz*(dmudm*v)).astype(np.float32))
+
+        else:
+            vec = np.dot(self.G, (dmudm*v).astype(np.float32))
+
+        if self.modelType == 'amplitude':
+            return self.dfdm*vec.astype(np.float64)
+        else:
+            return vec.astype(np.float64)
+
+    def Jtvec(self, m, v, f=None):
+
+        if self.coordinate_system == 'spherical':
+            dmudm = self.dSdm * self.chiMap.deriv(m)
+        else:
+            dmudm = self.chiMap.deriv(m)
+
+        if self.modelType == 'amplitude':
+            if getattr(self, '_Mxyz', None) is not None:
+
+                vec = self.Mxyz.T*np.dot(self.G.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
+
+            else:
+                vec = np.dot(self.G.T, (self.dfdm.T*v).astype(np.float32))
+
+        else:
+
+            vec = np.dot(self.G.T, v.astype(np.float32))
+
+        return dmudm.T * vec.astype(np.float64)
+
+    @property
+    def dSdm(self):
+
+        if getattr(self, '_dSdm', None) is None:
+
+            if self.model is None:
+                raise Exception('Requires a chi')
+
+            nC = int(len(self.model)/3)
+
+            m_xyz = self.chiMap * matutils.spherical2cartesian(self.model.reshape((nC, 3), order='F'))
+
+            nC = int(m_xyz.shape[0]/3.)
+            m_atp = matutils.cartesian2spherical(m_xyz.reshape((nC, 3), order='F'))
+
+            a = m_atp[:nC]
+            t = m_atp[nC:2*nC]
+            p = m_atp[2*nC:]
+
+            Sx = sp.hstack([sp.diags(np.cos(t)*np.cos(p), 0),
+                            sp.diags(-a*np.sin(t)*np.cos(p), 0),
+                            sp.diags(-a*np.cos(t)*np.sin(p), 0)])
+
+            Sy = sp.hstack([sp.diags(np.cos(t)*np.sin(p), 0),
+                            sp.diags(-a*np.sin(t)*np.sin(p), 0),
+                            sp.diags(a*np.cos(t)*np.cos(p), 0)])
+
+            Sz = sp.hstack([sp.diags(np.sin(t), 0),
+                            sp.diags(a*np.cos(t), 0),
+                            sp.csr_matrix((nC, nC))])
+
+            self._dSdm = sp.vstack([Sx, Sy, Sz])
+
+        return self._dSdm
+
+    @property
+    def modelMap(self):
+        """
+            Call for general mapping of the problem
+        """
+        return self.chiMap
+
+    @property
+    def dfdm(self):
+
+        if self.model is None:
+            self.model = np.zeros(self.G.shape[1])
+
+        if getattr(self, '_dfdm', None) is None:
+
+            Bxyz = self.Bxyz_a(self.chiMap * self.model)
+
+            # Bx = sp.spdiags(Bxyz[:, 0], 0, self.nD, self.nD)
+            # By = sp.spdiags(Bxyz[:, 1], 0, self.nD, self.nD)
+            # Bz = sp.spdiags(Bxyz[:, 2], 0, self.nD, self.nD)
+            ii = np.kron(np.asarray(range(self.survey.nD), dtype='int'), np.ones(3))
+            jj = np.asarray(range(3*self.survey.nD), dtype='int')
+            # (data, (row, col)), shape=(3, 3))
+            # P = s
+            self._dfdm = sp.csr_matrix(( mkvc(Bxyz), (ii,jj)), shape=(self.survey.nD, 3*self.survey.nD))
+
+        return self._dfdm
+
+    def Bxyz_a(self, m):
+        """
+            Return the normalized B fields
         """
 
-        MeMu = self.MeMu
-        MfRho = self.MfRho
-        C = self.mesh.edgeCurl
+        # Get field data
+        if self.coordinate_system == 'spherical':
+            m = matutils.atp2xyz(m)
 
-        return C.T * (MfRho * C) + 1j*omega(freq)*MeMu
+        if getattr(self, '_Mxyz', None) is not None:
+            Bxyz = np.dot(self.G, (self.Mxyz*m).astype(np.float32))
+        else:
+            Bxyz = np.dot(self.G, m.astype(np.float32))
 
-    def getADeriv_rho(self, freq, u, v, adjoint=False):
-        """
-        Product of the derivative of our system matrix with respect to the
-        model and a vector
+        amp = self.calcAmpData(Bxyz.astype(np.float64))
+        Bamp = sp.spdiags(1./amp, 0, self.nD, self.nD)
 
-        .. math::
-            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} =
-            \mathbf{C}^{\\top}\\frac{d \mathbf{M^f_{\\rho}}\mathbf{v}}
-            {d\mathbf{m}}
+        return (Bxyz.reshape((3, self.nD), order='F')*Bamp)
 
-        :param float freq: frequency
-        :param numpy.ndarray u: solution vector (nE,)
-        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
-            adjoint
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or
-            adjoint (nD,)
+    def Intrgl_Fwr_Op(self, m=None, magType='H0', rx_type='tmi'):
         """
 
-        MeMu = self.MeMu
-        C = self.mesh.edgeCurl
-        if adjoint:
-            return self.MfRhoDeriv(C*u, C*v, adjoint)
-        return C.T * self.MfRhoDeriv(C*u, v, adjoint)
+        Magnetic forward operator in integral form
 
-        # MfRhoDeriv = self.MfRhoDeriv(C*u)
+        magType  = 'H0' | 'x' | 'y' | 'z'
+        rx_type  = 'tmi' | 'x' | 'y' | 'z'
 
-        # if adjoint:
-        #     return MfRhoDeriv.T * (C * v)
-        # return C.T * (MfRhoDeriv * v)
+        Return
+        _G = Linear forward operator | (forwardOnly)=data
 
-    def getADeriv_mu(self, freq, u, v, adjoint=False):
-        MeMuDeriv = self.MeMuDeriv(u)
+         """
+        if m is not None:
+            self.model = self.chiMap*m
 
-        if adjoint is True:
-            return 1j*omega(freq) * (MeMuDeriv.T * v)
+        # Find non-zero cells
+        if getattr(self, 'actInd', None) is not None:
+            if self.actInd.dtype == 'bool':
+                inds = np.where(self.actInd)[0]
+            else:
+                inds = self.actInd
 
-        return 1j*omega(freq) * (MeMuDeriv * v)
+        else:
 
-    def getADeriv(self, freq, u, v, adjoint=False):
-        return (
-            self.getADeriv_rho(freq, u, v, adjoint) +
-            self.getADeriv_mu(freq, u, v, adjoint)
-        )
+            inds = np.asarray(range(self.mesh.nC))
 
-    def getRHS(self, freq):
+        nC = len(inds)
+
+        # Create active cell projector
+        P = sp.csr_matrix((np.ones(nC), (inds, range(nC))),
+                          shape=(self.mesh.nC, nC))
+
+        # Create vectors of nodal location
+        # (lower and upper coners for each cell)
+        if isinstance(self.mesh, Mesh.TreeMesh):
+            # Get upper and lower corners of each cell
+            bsw = (self.mesh.gridCC - self.mesh.h_gridded/2.)
+            tne = (self.mesh.gridCC + self.mesh.h_gridded/2.)
+
+            xn1, xn2 = bsw[:, 0], tne[:, 0]
+            yn1, yn2 = bsw[:, 1], tne[:, 1]
+            zn1, zn2 = bsw[:, 2], tne[:, 2]
+
+        else:
+
+            xn = self.mesh.vectorNx
+            yn = self.mesh.vectorNy
+            zn = self.mesh.vectorNz
+
+            yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+            yn1, xn1, zn1 = np.meshgrid(yn[:-1], xn[:-1], zn[:-1])
+
+        # If equivalent source, use semi-infite prism
+        if self.equiSourceLayer:
+            zn1 -= 1000.
+
+        self.Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
+        self.Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
+        self.Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
+
+        # survey = self.survey
+        self.rxLoc = self.survey.srcField.rxList[0].locs
+
+        if magType == 'H0':
+            if getattr(self, 'M', None) is None:
+                self.M = matutils.dip_azimuth2cartesian(np.ones(nC) * self.survey.srcField.param[1],
+                                      np.ones(nC) * self.survey.srcField.param[2])
+
+            Mx = sdiag(self.M[:, 0] * self.survey.srcField.param[0])
+            My = sdiag(self.M[:, 1] * self.survey.srcField.param[0])
+            Mz = sdiag(self.M[:, 2] * self.survey.srcField.param[0])
+
+            self.Mxyz = sp.vstack((Mx, My, Mz))
+
+        elif magType == 'full':
+
+            self.Mxyz = sp.identity(3*nC) * self.survey.srcField.param[0]
+
+        else:
+            raise Exception('magType must be: "H0" or "full"')
+
+                # Loop through all observations and create forward operator (nD-by-nC)
+        print("Begin forward: M=" + magType + ", Rx type= " + self.rx_type)
+
+        # Switch to determine if the process has to be run in parallel
+        job = Forward(
+                rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
+                n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
+                model=self.model, rx_type=self.rx_type, Mxyz=self.Mxyz,
+                P=self.ProjTMI, parallelized=self.parallelized
+                )
+
+        G = job.calculate()
+
+        return G
+
+
+class Forward(object):
+
+    progressIndex = -1
+    parallelized = False
+    rxLoc = None
+    Xn, Yn, Zn = None, None, None
+    n_cpu = None
+    forwardOnly = False
+    model = None
+    rx_type = 'z'
+    Mxyz = None
+    P = None
+
+    def __init__(self, **kwargs):
+        super(Forward, self).__init__()
+        Utils.setKwargs(self, **kwargs)
+
+    def calculate(self):
+        self.nD = self.rxLoc.shape[0]
+
+        if self.parallelized:
+            if self.n_cpu is None:
+
+                # By default take half the cores, turns out be faster
+                # than running full threads
+                self.n_cpu = int(multiprocessing.cpu_count()/2)
+
+            pool = multiprocessing.Pool(self.n_cpu)
+
+            result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
+            pool.close()
+            pool.join()
+
+        else:
+
+            result = []
+            for ii in range(self.nD):
+                result += [self.calcTrow(self.rxLoc[ii, :])]
+                self.progress(ii, self.nD)
+
+        if self.forwardOnly:
+            return mkvc(np.vstack(result))
+
+        else:
+            return np.vstack(result)
+
+    def calcTrow(self, xyzLoc):
         """
-        Right hand side for the system
+            Load in the active nodes of a tensor mesh and computes the magnetic
+            forward relation between a cuboid and a given observation
+            location outside the Earth [obsx, obsy, obsz]
 
-        .. math ::
+            INPUT:
+            xyzLoc:  [obsx, obsy, obsz] nC x 3 Array
 
-            \mathbf{RHS} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^{\\top}
-            \mathbf{M_{\\rho}^f} \mathbf{s_e}
-
-        :param float freq: Frequency
-        :rtype: numpy.ndarray
-        :return: RHS (nE, nSrc)
+            OUTPUT:
+            Tx = [Txx Txy Txz]
+            Ty = [Tyx Tyy Tyz]
+            Tz = [Tzx Tzy Tzz]
 
         """
+        tx, ty, tz = calcRow(self.Xn, self.Yn, self.Zn, xyzLoc)
 
-        s_m, s_e = self.getSourceTerm(freq)
-        C = self.mesh.edgeCurl
-        MfRho = self.MfRho
+        if self.rx_type == 'tmi':
+            row = self.P.dot(np.vstack((tx, ty, tz)))*self.Mxyz
 
-        return s_m + C.T * (MfRho * s_e)
+        elif self.rx_type == 'x':
+            row = tx*self.Mxyz
 
-    def getRHSDeriv(self, freq, src, v, adjoint=False):
+        elif self.rx_type == 'y':
+            row = ty*self.Mxyz
+
+        elif self.rx_type == 'z':
+            row = tz*self.Mxyz
+
+        elif self.rx_type == 'xyz':
+            row = tx*self.Mxyz
+            row = np.r_[row, ty*self.Mxyz]
+            row = np.r_[row, tz*self.Mxyz]
+        else:
+            raise Exception('rx_type must be: "tmi", "x", "y" or "z"')
+
+        if self.forwardOnly:
+
+            return np.dot(row, self.model)
+        else:
+            return np.float32(row)
+
+    def progress(self, ind, total):
         """
-        Derivative of the right hand side with respect to the model
+        progress(ind,prog,final)
 
-        :param float freq: frequency
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseFDEMSrc src: FDEM source
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of rhs deriv with a vector
+        Function measuring the progress of a process and print to screen the %.
+        Useful to estimate the remaining runtime of a large problem.
+
+        Created on Dec, 20th 2015
+
+        @author: dominiquef
         """
-
-        _, s_e = src.eval(self)
-        C = self.mesh.edgeCurl
-        MfRho = self.MfRho
-
-        # MfRhoDeriv = self.MfRhoDeriv(s_e)
-        # if not adjoint:
-        #     RHSDeriv = C.T * (MfRhoDeriv * v)
-        # elif adjoint:
-        #     RHSDeriv = MfRhoDeriv.T * (C * v)
-        if not adjoint:
-            RHSDeriv = C.T * (self.MfRhoDeriv(s_e, v, adjoint))
-        elif adjoint:
-            RHSDeriv = self.MfRhoDeriv(s_e, C*v, adjoint)
-
-        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
-
-        return RHSDeriv + s_mDeriv(v) + C.T * (MfRho * s_eDeriv(v))
+        arg = np.floor(ind/total*10.)
+        if arg > self.progressIndex:
+            print("Done " + str(arg*10) + " %")
+            self.progressIndex = arg
