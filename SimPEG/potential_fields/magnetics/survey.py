@@ -11,10 +11,14 @@ import warnings
 class MagneticSurvey(BaseSurvey):
     """Base Magnetics Survey"""
 
-    rx_type = None  #: receiver type
+    # source_field = properties.Instance(
+    #     "The inducing field source for the survey",
+    #     properties.Instance("A SimPEG source", SourceField),
+    #     default=SourceField
+    # )
 
-    def __init__(self, sourceField, **kwargs):
-        self.sourceField = sourceField
+    def __init__(self, source_field, **kwargs):
+        self.source_field = source_field
         BaseSurvey.__init__(self, **kwargs)
 
     def eval(self, fields):
@@ -22,8 +26,13 @@ class MagneticSurvey(BaseSurvey):
 
     @property
     def nRx(self):
-        return self.sourceField.receiver_locations.shape[0]
+        return self.source_field.receiver_list[0].locations.shape[0]
 
     @property
     def receiver_locations(self):
-        return self.sourceField.receiver_locations
+        return self.source_field.receiver_list[0].locations
+
+    @property
+    def components(self):
+        return self.source_field.receiver_list[0].components
+

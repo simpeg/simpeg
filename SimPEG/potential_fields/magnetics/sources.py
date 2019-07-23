@@ -7,7 +7,8 @@ from ...survey import BaseSrc
 class SourceField(BaseSrc):
     """ Define the inducing field """
 
-    param = None  #: Inducing field param (Amp, Incl, Decl)
+    def __init__(self, receiver_list=None, parameters=[50000, 90, 0], **kwargs):
+        assert len(parameters) == 3, "Inducing field 'parameters' must be a list or tuple of length 3 (amplitude, inclination, declination"
 
-    def __init__(self, receiver_list=None, **kwargs):
-        super(SourceField, self).__init__(receiver_list=receiver_list, **kwargs)
+        self.parameters = parameters
+        super(SourceField, self).__init__(receiver_list=receiver_list, parameters=parameters, **kwargs)

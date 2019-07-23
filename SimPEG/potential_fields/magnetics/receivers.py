@@ -1,5 +1,5 @@
 import properties
-
+import numpy as np
 from ... import survey
 
 
@@ -13,23 +13,38 @@ class point_receiver(survey.BaseRx):
          "dby_dz", "dbz_dz", "bx", "by", "bz", "tmi" [default]
     """
 
-    receiver_index = None
+    # receiver_index = None
 
-    # component = properties.StringChoice(
+    # component = properties.List(
     #     "Must be a magnetic component of the type",
-    #     ["dbx_dx", "dbx_dy", "dbx_dz", "dby_dy",
-    #      "dby_dz", "dbz_dz", "bx", "by", "bz", "tmi"
-    #      ]
+
+
+    #     default=["tmi"]
     # )
 
-    component = [
-        "dbx_dx", "dbx_dy", "dbx_dz", "dby_dy",
-        "dby_dz", "dbz_dz", "bx", "by", "bz", "tmi"
-    ]
+    def __init__(self, locations, components=["tmi"], **kwargs):
 
-    def __init__(self, component=["tmi"], **kwargs):
+        if not isinstance(components, list):
+            components = [components]
 
-        self.component = component
+        assert np.all([component in [
+            "dbx_dx", "dbx_dy", "dbx_dz", "dby_dy",
+            "dby_dz", "dbz_dz", "bx", "by", "bz", "tmi"
+             ] for component in components]), (
+                "Components {0!s} not known. Components must be in "
+                "'dbx_dx', 'dbx_dy', 'dbx_dz', 'dby_dy',"
+                "'dby_dz', 'dbz_dz', 'bx', 'by', 'bz', 'tmi'. "
+                "Arbitrary orientations have not yet been "
+                "implemented.".format(components)
+            )
+        self.components = components
+
+        super(survey.BaseRx, self).__init__(locations=locations, components=components, **kwargs)
+
+
+    # def __init__(self, component=component, **kwargs):
+
+    #     self.component = component
 
         # super(point_receiver, self).__init__(location_index, **kwargs)
 
