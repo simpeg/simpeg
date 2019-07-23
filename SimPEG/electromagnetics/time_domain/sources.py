@@ -226,9 +226,6 @@ class BaseTDEMSrc(BaseEMSrc):
         choices=["inductive", "galvanic"],
     )
 
-    def __init__(self, rxList, **kwargs):
-        super(BaseTDEMSrc, self).__init__(rxList, **kwargs)
-
     @property
     def waveform(self):
         "A waveform instance is not None"
@@ -242,9 +239,12 @@ class BaseTDEMSrc(BaseEMSrc):
         else:
             self._waveform = self.StepOffWaveform(val)
 
-    def __init__(self, rxList, waveform=StepOffWaveform(), **kwargs):
+    def __init__(self, receiver_list=None, waveform=StepOffWaveform(), **kwargs):
+        if receiver_list is not None:
+            kwargs['receiver_list'] = receiver_list
+
+        super(BaseTDEMSrc, self).__init__(**kwargs)
         self.waveform = waveform
-        BaseEMSrc.__init__(self, rxList, **kwargs)
 
     def bInitial(self, prob):
         return Zero()
@@ -316,8 +316,9 @@ class MagDipole(BaseTDEMSrc):
         shape=(3,)
     )
 
-    def __init__(self, rxList, **kwargs):
-        BaseTDEMSrc.__init__(self, rxList, srcType="inductive", **kwargs)
+    def __init__(self, receiver_list=None, **kwargs):
+        kwargs.pop("srcType", None)
+        BaseTDEMSrc.__init__(self, receiver_list=receiver_list, srcType="inductive", **kwargs)
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, '_dipole', None) is None:
@@ -476,19 +477,9 @@ class CircularLoop(MagDipole):
     current = properties.Float(
         "current in the loop", default=1.
     )
-    # waveform = None
-    # loc = None
-    # orientation = 'Z'
-    # radius = None
-    # mu = mu_0
 
-    def __init__(self, rxList, **kwargs):
-        # assert(self.orientation in ['X', 'Y', 'Z']), (
-        #     "Orientation (right now) doesn't actually do anything! The methods"
-        #     " in SrcUtils should take care of this..."
-        #     )
-        # self.integrate = False
-        super(CircularLoop, self).__init__(rxList, **kwargs)
+    def __init__(self, receiver_list=None, **kwargs):
+        super(CircularLoop, self).__init__(receiver_list, **kwargs)
 
     @property
     def moment(self):
@@ -518,9 +509,12 @@ class LineCurrent(BaseTDEMSrc):
 
     loc = properties.Array("location of the source", shape=('*', 3))
 
-    def __init__(self, rxList, **kwargs):
+    def __init__(self, receiver_list=None, **kwargs):
         self.integrate = False
-        super(LineCurrent, self).__init__(rxList, srcType="galvanic", **kwargs)
+        kwargs.pop("srcType", None)
+        super(LineCurrent, self).__init__(
+            receiver_list, srcType="galvanic", **kwargs
+        )
 
     def Mejs(self, prob):
         if getattr(self, '_Mejs', None) is None:
@@ -592,12 +586,19 @@ class RawVec_Grounded(BaseTDEMSrc):
     #     "permeability of the background", default=mu_0, min=0.
     # )
 
-    def __init__(self, rxList, s_e, **kwargs):
+    _s_e = properties.Array(
+        "source term", shape=("*",)
+    )
+
+    def __init__(self, receiver_list=None, s_e=None, **kwargs):
         self.integrate = False
-        self._s_e = s_e
+        kwargs.pop("srcType", None)
         super(RawVec_Grounded, self).__init__(
-            rxList, srcType="galvanic", **kwargs
+            receiver_list, srcType="galvanic", **kwargs
         )
+
+        if s_e is not None:
+            self._s_e = s_e
 
     def getRHSdc(self, prob):
         return sdiag(prob.mesh.vol) * prob.mesh.faceDiv * self._s_e
