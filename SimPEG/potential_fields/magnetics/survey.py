@@ -36,3 +36,14 @@ class MagneticSurvey(BaseSurvey):
     def components(self):
         return self.source_field.receiver_list[0].components
 
+    # @property
+    # def nD(self):
+    #     """Number of data"""
+    #     return self.vnD.sum()
+
+    # @property
+    # def vnD(self):
+    #     """Vector number of data"""
+    #     if getattr(self, '_vnD', None) is None:
+    #         self._vnD = np.array([src.nD for src in self.source_list])
+    #     return self._vnD
