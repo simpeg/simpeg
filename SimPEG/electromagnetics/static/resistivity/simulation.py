@@ -8,12 +8,19 @@ from ...base import BaseEMSimulation
 from .boundary_utils import getxBCyBC_CC
 from .survey import Survey
 from .fields import Fields_CC, Fields_N
+import dask
+import dask.array as da
+import multiprocessing
+import os
 
 
 class BaseDCSimulation(BaseEMSimulation):
     """
     Base DC Problem
     """
+    Jpath = "./sensitivity.zarr"
+    n_cpu = None
+    maxRAM = 2
 
     survey = properties.Instance(
         "a DC survey object", Survey, required=True
@@ -26,6 +33,35 @@ class BaseDCSimulation(BaseEMSimulation):
     Ainv = None
     _Jmatrix = None
 
+    def testD(self):
+        test_list = []
+        for i in range(15):
+            test_list.append(self.calculateTest())
+        print(test_list[5])
+
+    @dask.delayed
+    def calculateTest(self):
+        A = self.getA()
+        self.Ainv = self.Solver(A, **self.solver_opts)
+        RHS = self.getRHS()
+        return self.Ainv * RHS
+
+    def fields2(self, m=None):
+        if m is not None:
+            self.model = m
+
+        if self.Ainv is not None:
+            self.Ainv.clean()
+
+        f = self.fieldsPair(self)
+        A = self.getA()
+        self.Ainv = dask.delayed(self.Solver)(A, **self.solver_opts)
+        RHS = self.getRHS()
+        u = self.Ainv.compute() * RHS
+        Srcs = self.survey.srcList
+        f[Srcs, self._solutionType] = u
+        return f
+
     def fields(self, m=None):
         if m is not None:
             self.model = m
@@ -35,9 +71,9 @@ class BaseDCSimulation(BaseEMSimulation):
 
         f = self.fieldsPair(self)
         A = self.getA()
-        self.Ainv = self.Solver(A, **self.solver_opts)
+        self.Ainv = dask.delayed(self.Solver)(A, **self.solver_opts)
         RHS = self.getRHS()
-        u = self.Ainv * RHS
+        u = self.Ainv.compute() * RHS.compute()
         Srcs = self.survey.srcList
         f[Srcs, self._solutionType] = u
         return f
@@ -156,6 +192,88 @@ class BaseDCSimulation(BaseEMSimulation):
             # return np.hstack(Jtv)
             return Jtv
 
+    def _Jtvec2(self, m, v=None, f=None):
+        """
+            Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+            Full J matrix can be computed by inputing v=None
+        """
+        self.n_cpu = int(multiprocessing.cpu_count())
+        if f is None:
+            f = self.fields(m)
+
+        if v is not None:
+            # Ensure v is a data object.
+            if not isinstance(v, Data):
+                v = Data(self.survey, v)
+            # Jtv = np.zeros(m.size)
+            Jtv = []
+        else:
+            # This is for forming full sensitivity matrix
+            # Jtv2 = da.zeros((self.model.size, self.survey.nD), order='F')
+            Jtv = []
+            istrt = int(0)
+            iend = int(0)
+        for src in self.survey.srcList:
+            u_src = f[src, self._solutionType].copy()
+            for rx in src.rxList:
+                # wrt f, need possibility wrt m
+                if v is not None:
+                    PTv = rx.evalDeriv(
+                        src, self.mesh, f, v[src, rx], adjoint=True
+                    )
+                else:
+                    # This is for forming full sensitivity matrix
+                    # PTv = dask.delayed(rx.getP)(self.mesh, rx.projGLoc(f), transpose=True)
+                    PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+                
+                # NEED TO CHECK WHAT DERIV TO BE USED LIKE PREVIOUS IMPLIMENTATION, NOT ALWAYS PHIDERIV
+                df_duT = dask.delayed(f._phiDeriv_u)(src, PTv, adjoint=True)
+                df_dmT = dask.delayed(f._phiDeriv_m)(src, PTv, adjoint=True)
+
+                ATinvdf_duT = self.Ainv * df_duT
+                dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
+                dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
+                du_dmT = -dA_dmT + dRHS_dmT
+                # type(df_dmT + du_dmT)
+                Jtv.append(da.from_delayed(df_dmT + du_dmT, (self.model.size, rx.nD), dtype=float))
+                if v is not None:
+                    Jtv.append(da.from_delayed(df_dmT + du_dmT, (self.model.size,), dtype=float))
+                    Jtv_ = da.sum(da.hstack(Jtv), axis=0)
+                else:
+                    Jtv.append(da.from_delayed(df_dmT + du_dmT, (self.model.size, rx.nD), dtype=float))
+                    nChunks = self.n_cpu  # Number of chunks
+                    nDataComps = 1
+                    rowChunk, colChunk = int(np.ceil(self.survey.nD*nDataComps/nChunks)), int(np.ceil(self.model.size/nChunks))  # Chunk sizes
+                    totRAM = rowChunk*colChunk * 8 * self.n_cpu * 1e-9
+                    # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
+                    while totRAM > self.maxRAM or (totRAM / self.n_cpu) >= 0.125:
+            #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
+                        nChunks += 1
+                        rowChunk, colChunk = int(np.ceil(self.survey.nD * nDataComps / nChunks)), int(np.ceil(self.model.size / nChunks))  # Chunk sizes
+                        totRAM = rowChunk * colChunk * 8 * self.n_cpu * 1e-9
+
+                    J = da.hstack(Jtv).T
+                    J.rechunk((rowChunk, colChunk))
+
+                    print('DASK: ')
+                    print('Tile size (nD, nC): ', J.shape)
+            #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
+                    print('Number of chunks: ', len(J.chunks[0]), ' x ', len(J.chunks[1]), ' = ', len(J.chunks[0]) * len(J.chunks[1]))
+                    print("Target chunk size: ", dask.config.get('array.chunk-size'))
+                    print('Max chunk size (GB): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9)
+                    print('Max RAM (GB x CPU): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9 * self.n_cpu)
+                    print('Tile size (GB): ', J.shape[0] * J.shape[1] * 8 * 1e-9)
+                    print("Saving G to zarr: " + self.Jpath)
+                    da.to_zarr(J, self.Jpath)
+                    Jtv_ = da.from_zarr(self.Jpath)
+        return Jtv_
+
+        # if v is not None:
+        #     return mkvc(Jtv)
+        # else:
+        #     # return np.hstack(Jtv)
+        #     return Jtv
+
     def getSourceTerm(self):
         """
         Evaluates the sources, and puts them in matrix form
@@ -201,6 +319,7 @@ class Problem3D_CC(BaseDCSimulation):
         BaseDCSimulation.__init__(self, mesh, **kwargs)
         self.setBC()
 
+    @dask.delayed
     def getA(self):
         """
         Make the A matrix for the cell centered DC resistivity problem
@@ -228,6 +347,7 @@ class Problem3D_CC(BaseDCSimulation):
         #     return V.T * A
         return A
 
+    @dask.delayed
     def getADeriv(self, u, v, adjoint=False):
 
         D = self.Div
@@ -239,6 +359,7 @@ class Problem3D_CC(BaseDCSimulation):
 
         return D * (MfRhoIDeriv(G * u, v, adjoint))
 
+    @dask.delayed
     def getRHS(self):
         """
         RHS for the DC problem
@@ -249,6 +370,7 @@ class Problem3D_CC(BaseDCSimulation):
 
         return RHS
 
+    @dask.delayed
     def getRHSDeriv(self, src, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model

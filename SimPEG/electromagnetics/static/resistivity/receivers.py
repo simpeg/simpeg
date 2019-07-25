@@ -1,7 +1,7 @@
 import numpy as np
 
 import properties
-
+import dask
 from ....utils import closestPoints
 from ....survey import BaseRx as BaseSimPEGRx, RxLocationArray
 
@@ -93,7 +93,7 @@ class Dipole(BaseRx):
         """Number of data in the receiver."""
         return self.locations[0].shape[0]
 
-    def getP(self, mesh, Gloc):
+    def getP(self, mesh, Gloc, transpose=False):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
@@ -115,6 +115,9 @@ class Dipole(BaseRx):
 
         if self.storeProjections:
             self._Ps[mesh] = P
+
+        if transpose:
+            P = P.toarray().T
 
         return P
 

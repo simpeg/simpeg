@@ -5,7 +5,6 @@ from ....fields import Fields
 from ....utils import Identity, Zero
 
 
-
 class FieldsDC(Fields):
     knownFields = {}
     dtype = float
