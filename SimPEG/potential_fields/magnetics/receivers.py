@@ -22,15 +22,21 @@ class point_receiver(survey.BaseRx):
     #     default=["tmi"]
     # )
 
-    def __init__(self, locations, components=["tmi"], **kwargs):
+    def __init__(self, locations, components={"tmi": []}, **kwargs):
 
-        if not isinstance(components, list):
-            components = [components]
+        if isinstance(components, str):
+            components = {components: []}
+
+        if isinstance(components, list):
+            componentList = components.copy()
+            components = {}
+            for component in componentList:
+                components = {component: []}
 
         assert np.all([component in [
             "dbx_dx", "dbx_dy", "dbx_dz", "dby_dy",
             "dby_dz", "dbz_dz", "bx", "by", "bz", "tmi"
-             ] for component in components]), (
+             ] for component in list(components.keys())]), (
                 "Components {0!s} not known. Components must be in "
                 "'dbx_dx', 'dbx_dy', 'dbx_dz', 'dby_dy',"
                 "'dby_dz', 'dbz_dz', 'bx', 'by', 'bz', 'tmi'. "

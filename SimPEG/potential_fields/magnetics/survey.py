@@ -1,4 +1,5 @@
 from scipy.constants import mu_0
+import numpy as np
 import properties
 
 from ...utils import Zero, Identity
@@ -26,6 +27,7 @@ class MagneticSurvey(BaseSurvey):
 
     @property
     def nRx(self):
+
         return self.source_field.receiver_list[0].locations.shape[0]
 
     @property
@@ -36,14 +38,28 @@ class MagneticSurvey(BaseSurvey):
     def components(self):
         return self.source_field.receiver_list[0].components
 
-    # @property
-    # def nD(self):
-    #     """Number of data"""
-    #     return self.vnD.sum()
 
-    # @property
-    # def vnD(self):
-    #     """Vector number of data"""
-    #     if getattr(self, '_vnD', None) is None:
-    #         self._vnD = np.array([src.nD for src in self.source_list])
-    #     return self._vnD
+    @property
+    def nD(self):
+        """Number of data"""
+        return self.vnD.sum()
+
+    @property
+    def vnD(self):
+        """Vector number of data"""
+
+        if getattr(self, '_vnD', None) is None:
+            self._vnD = []
+            for receiver in self.source_field.receiver_list:
+
+                for component in list(receiver.components.keys()):
+
+                    # If non-empty than logcial for empty entries
+                    if receiver.components[component]:
+                        self._vnD.append(int(receiver.components[component].sum()))
+
+                    else:
+                        self._vnD.append(self.nRx)
+            print(self._vnD)
+            self._vnD = np.asarray(self._vnD)
+        return self._vnD
