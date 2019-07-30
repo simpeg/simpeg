@@ -8,7 +8,7 @@ from . import Maps
 from . import Models
 from . import Problem
 from . import Survey
-from . import Regularization
+from . import regularization as Regularization
 from . import DataMisfit
 from . import InvProblem
 from . import Optimization
