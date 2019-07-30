@@ -22,16 +22,18 @@ class point_receiver(survey.BaseRx):
     #     default=["tmi"]
     # )
 
-    def __init__(self, locations, components={"tmi": []}, **kwargs):
+    def __init__(self, locations, components="tmi", **kwargs):
+
+        n_receivers = locations.shape[0]
 
         if isinstance(components, str):
-            components = {components: []}
+            components = [components]
 
         if isinstance(components, list):
             componentList = components.copy()
             components = {}
             for component in componentList:
-                components = {component: []}
+                components = {component: np.ones(n_receivers, dtype='bool')}
 
         assert np.all([component in [
             "dbx_dx", "dbx_dy", "dbx_dz", "dby_dy",

@@ -408,7 +408,7 @@ class MagneticIntegralSimulation(BasePFSimulation):
             raise Exception('magType must be: "H0" or "full"')
 
                 # Loop through all observations and create forward operator (nD-by-nC)
-        print("Begin forward: M=" + magType + ", components= %s" % self.survey.components)
+        print("Begin forward: M=" + magType + ", components= %s" % list(self.survey.components.keys()))
 
         # Switch to determine if the process has to be run in parallel
         job = Forward(
@@ -431,7 +431,7 @@ class Forward(object):
     Xn, Yn, Zn = None, None, None
     n_cpu = None
     forwardOnly = False
-    components = ['tmi']
+    components = {'tmi': []}
     model = None
     Mxyz = None
     P = None
@@ -450,19 +450,17 @@ class Forward(object):
         if self.n_cpu is None:
             self.n_cpu = int(multiprocessing.cpu_count())
 
-        # Set this early so we can get a better memory estimate for dask chunking
-        # if self.components == 'xyz':
-        #     nDataComps = 3
-        # else:
-        nDataComps = len(self.components)
+        components = list(self.components.keys())
+        # Stack all the components 'active' flag
+        activeComponents = np.hstack([self.components[component] for component in components])
 
         if self.parallelized:
 
             row = dask.delayed(self.calcTrow, pure=True)
+            print(components)
+            makeRows = [row(self.receiver_locations[ii, :], components[activeComponents[ii,:]]) for ii in range(self.nD)]
 
-            makeRows = [row(self.receiver_locations[ii, :]) for ii in range(self.nD)]
-
-            buildMat = [da.from_delayed(makeRow, dtype=float, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
+            buildMat = [da.from_delayed(makeRow, dtype=float, shape=(int(activeComponents[ind, :].sum()),  self.nC)) for (ind, makeRow) in enumerate(makeRows)]
 
             stack = da.vstack(buildMat)
 
@@ -544,7 +542,7 @@ class Forward(object):
 
         return G
 
-    def calcTrow(self, xyzLoc):
+    def calcTrow(self, xyzLoc, components):
         """
             Load in the active nodes of a tensor mesh and computes the magnetic
             forward relation between a cuboid and a given observation
@@ -560,7 +558,7 @@ class Forward(object):
 
         """
 
-        rows = calculateIntegralRows(self.Xn, self.Yn, self.Zn, xyzLoc, self.P, components=self.components)
+        rows = calculateIntegralRows(self.Xn, self.Yn, self.Zn, xyzLocation, self.P, components=components)
 
         return rows * self.Mxyz
 

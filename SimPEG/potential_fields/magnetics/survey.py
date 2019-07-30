@@ -38,7 +38,6 @@ class MagneticSurvey(BaseSurvey):
     def components(self):
         return self.source_field.receiver_list[0].components
 
-
     @property
     def nD(self):
         """Number of data"""
@@ -55,11 +54,8 @@ class MagneticSurvey(BaseSurvey):
                 for component in list(receiver.components.keys()):
 
                     # If non-empty than logcial for empty entries
-                    if receiver.components[component]:
-                        self._vnD.append(int(receiver.components[component].sum()))
+                    self._vnD.append(int(receiver.components[component].sum()))
 
-                    else:
-                        self._vnD.append(self.nRx)
             print(self._vnD)
             self._vnD = np.asarray(self._vnD)
         return self._vnD
