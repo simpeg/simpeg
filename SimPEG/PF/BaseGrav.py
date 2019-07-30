@@ -6,6 +6,7 @@ class LinearSurvey(Survey.BaseSurvey):
 
     rxLoc = None  #: receiver locations
     rxType = None  #: receiver type
+    components = ['gz']
 
     def __init__(self, srcField, **kwargs):
         self.srcField = srcField
