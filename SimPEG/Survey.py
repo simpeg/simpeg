@@ -446,9 +446,9 @@ class BaseSurvey(object):
     def residual(self, m, f=None):
         """residual(m, f=None)
 
-            :param numpy.array m: geophysical model
-            :param numpy.array f: fields
-            :rtype: numpy.array
+            :param numpy.ndarray m: geophysical model
+            :param numpy.ndarray f: fields
+            :rtype: numpy.ndarray
             :return: data residual
 
             The data residual:
@@ -465,13 +465,13 @@ class BaseSurvey(object):
         "Check if the data is synthetic."
         return self.mtrue is not None
 
-    def makeSyntheticData(self, m, std=0.05, f=None, force=False):
+    def makeSyntheticData(self, m, std=None, f=None, force=False):
         """
             Make synthetic data given a model, and a standard deviation.
 
-            :param numpy.array m: geophysical model
-            :param numpy.array std: standard deviation
-            :param numpy.array u: fields for the given model (if pre-calculated)
+            :param numpy.ndarray m: geophysical model
+            :param numpy.ndarray std: standard deviation
+            :param numpy.ndarray u: fields for the given model (if pre-calculated)
             :param bool force: force overwriting of dobs
 
         """
@@ -482,9 +482,25 @@ class BaseSurvey(object):
             )
         self.mtrue = m
         self.dtrue = self.dpred(m, f=f)
-        noise = std*abs(self.dtrue)*np.random.randn(*self.dtrue.shape)
+
+        if std is None and self.std is None:
+            stddev = 0.05
+            print(
+                    'SimPEG.Survey assigned default std '
+                    'of 5%'
+                )
+        elif std is None:
+            stddev = self.std
+        else:
+            stddev = std
+            print(
+                    'SimPEG.Survey assigned new std '
+                    'of {:.2f}%'.format(100.*stddev)
+                )
+
+        noise = stddev*abs(self.dtrue)*np.random.randn(*self.dtrue.shape)
         self.dobs = self.dtrue+noise
-        self.std = self.dobs*0 + std
+        self.std = self.dobs*0 + stddev
         return self.dobs
 
 

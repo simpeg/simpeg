@@ -220,7 +220,7 @@ class Minimize(object):
         if self.callback is not None:
             print(
                 'The callback on the {0!s} Optimization was '
-                'replaced.'.format(self.__name__)
+                'replaced.'.format(self.__class__.__name__)
             )
         self._callback = value
 
@@ -1063,8 +1063,8 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
     maxIterCG = 5
     tolCG = 1e-1
-
-    stepOffBoundsFact = 0.1 # perturbation of the inactive set off the bounds
+    cg_count = 0
+    stepOffBoundsFact = 1e-2 # perturbation of the inactive set off the bounds
     stepActiveset = True
     lower = -np.inf
     upper = np.inf
@@ -1117,81 +1117,68 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
     @Utils.timeIt
     def findSearchDirection(self):
-
         """
             findSearchDirection()
-            Finds the search direction based on either CG or steepest descent.
+            Finds the search direction based on projected CG
         """
+
         Active = self.activeSet(self.xc)
         temp = sum((np.ones_like(self.xc.size)-Active))
-        allBoundsAreActive = temp == self.xc.size
 
-        if allBoundsAreActive:
-            Hinv = SolverICG(
-                self.H, M=self.approxHinv, tol=self.tolCG,
-                maxiter=self.maxIterCG
-            )
-            p = Hinv * (-self.g)
-            return p
-        else:
-            delx = np.zeros(self.g.size)
-            resid = -(1-Active) * self.g
+        step = np.zeros(self.g.size)
+        resid = -(1-Active) * self.g
 
-            # Begin CG iterations.
-            cgiter = 0
-            cgFlag = 0
-            normResid0 = norm(resid)
+        r = (resid - (1-Active)*(self.H * step))
 
-            while cgFlag == 0:
+        p = self.approxHinv*r
 
-                cgiter = cgiter + 1
-                dc = (1-Active)*(self.approxHinv*resid)
-                rd = np.dot(resid, dc)
+        sold = np.dot(r, p)
 
-                #  Compute conjugate direction pc.
-                if cgiter == 1:
-                    pc = dc
-                else:
-                    betak = rd / rdlast
-                    pc = dc + betak * pc
+        count = 0
 
-                #  Form product Hessian*pc.
-                Hp = self.H*pc
-                Hp = (1-Active)*Hp
+        while np.all([
+            np.linalg.norm(r) > self.tolCG,
+            count < self.maxIterCG
+        ]):
 
-                #  Update delx and residual.
-                alphak = rd / np.dot(pc, Hp)
-                delx = delx + alphak*pc
-                resid = resid - alphak*Hp
-                rdlast = rd
+            count += 1
 
-                if np.logical_or(
-                    norm(resid)/normResid0 <= self.tolCG,
-                    cgiter == self.maxIterCG
-                ):
-                    cgFlag = 1
-                # End CG Iterations
+            q = (1-Active)*(self.H * p)
 
-            # Take a gradient step on the active cells if exist
-            if self.stepActiveset:
-                if temp != self.xc.size:
+            alpha = sold / (np.dot(p, q))
 
-                    rhs_a = (Active) * -self.g
+            step += alpha * p
 
-                    dm_i = max( abs( delx ) )
-                    dm_a = max( abs(rhs_a) )
+            r -= alpha * q
 
-                # perturb inactive set off of bounds so that they are included
-                # in the step
-                delx = delx + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
+            h = self.approxHinv * r
 
+            snew = np.dot(r, h)
 
-            # Only keep gradients going in the right direction on the active
-            # set
-            indx = (
-                ((self.xc<=self.lower) & (delx < 0)) |
-                ((self.xc>=self.upper) & (delx > 0))
-            )
-            delx[indx] = 0.
+            p = h + (snew / sold * p)
 
-            return delx
+            sold = snew
+            # End CG Iterations
+        self.cg_count += count
+
+        # Take a gradient step on the active cells if exist
+        if temp != self.xc.size:
+
+            rhs_a = (Active) * -self.g
+
+            dm_i = max(abs(step))
+            dm_a = max(abs(rhs_a))
+
+            # perturb inactive set off of bounds so that they are included
+            # in the step
+            step = step + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
+
+        # Only keep gradients going in the right direction on the active
+        # set
+        indx = (
+            ((self.xc <= self.lower) & (step < 0)) |
+            ((self.xc >= self.upper) & (step > 0))
+        )
+        step[indx] = 0.
+
+        return step

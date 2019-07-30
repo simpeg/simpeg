@@ -55,11 +55,11 @@ class DCProblemAnalyticTests(unittest.TestCase):
             np.linalg.norm(self.data_ana)
         )
         if err < 0.2:
-            print (err)
+            print(err)
             passed = True
             print(">> DC analytic test for Problem3D_N is passed")
         else:
-            print (err)
+            print(err)
             passed = False
             print(">> DC analytic test for Problem3D_N is failed")
         self.assertTrue(passed)
@@ -76,11 +76,11 @@ class DCProblemAnalyticTests(unittest.TestCase):
             np.linalg.norm(self.data_ana)
         )
         if err < tolerance:
-            print (err)
+            print(err)
             passed = True
             print(">> DC analytic test for Problem3D_CC is passed")
         else:
-            print (err)
+            print(err)
             passed = False
             print(">> DC analytic test for Problem3D_CC is failed")
         self.assertTrue(passed)
@@ -97,11 +97,11 @@ class DCProblemAnalyticTests(unittest.TestCase):
             np.linalg.norm(self.data_ana)
         )
         if err < tolerance:
-            print (err)
+            print(err)
             passed = True
             print(">> DC analytic test for Problem3D_CC is passed")
         else:
-            print (err)
+            print(err)
             passed = False
             print(">> DC analytic test for Problem3D_CC is failed")
         self.assertTrue(passed)
@@ -157,11 +157,11 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
             np.linalg.norm(self.data_ana)
         )
         if err < tolerance:
-            print (err)
+            print(err)
             passed = True
             print(">> DC analytic test for Problem3D_CC_Dirchlet is passed")
         else:
-            print (err)
+            print(err)
             passed = False
             print(">> DC analytic test for Problem3D_CC_Dirchlet is failed")
         self.assertTrue(passed)
@@ -209,11 +209,11 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
             np.linalg.norm(self.data_ana)
         )
         if err < tolerance:
-            print (err)
+            print(err)
             passed = True
             print(">> DC analytic test for Problem3D_CC_Mixed is passed")
         else:
-            print (err)
+            print(err)
             passed = False
             print(">> DC analytic test for Problem3D_CC_Mixed is failed")
         self.assertTrue(passed)

@@ -41,8 +41,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         # Go from topo to actv cells
         topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
         actv = Utils.surface2ind_topo(self.mesh, topo, 'N')
-        actv = np.asarray([inds for inds, elem in enumerate(actv, 1)
-                          if elem], dtype=int) - 1
+        actv = np.where(actv)[0]
 
         # Create active map to go from reduce space to full
         self.actvMap = Maps.InjectActiveCells(self.mesh, actv, -100)
@@ -121,7 +120,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         IRLS = Directives.Update_IRLS(f_min_change=1e-4,
                                       minGNiter=1)
-        update_Jacobi = Directives.UpdatePreconditioner(mapping=idenMap)
+        update_Jacobi = Directives.UpdatePreconditioner()
 
         self.inv = Inversion.BaseInversion(invProb,
                                            directiveList=[IRLS,

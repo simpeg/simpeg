@@ -15,8 +15,10 @@ import os
 import shutil
 import tarfile
 import SimPEG.PF as PF
-from SimPEG import Maps, Regularization, Optimization, DataMisfit,\
-                   InvProblem, Directives, Inversion
+from SimPEG import (
+    Maps, Regularization, Optimization, DataMisfit,
+    InvProblem, Directives, Inversion, Utils
+)
 from SimPEG.Utils.io_utils import download
 import matplotlib.pyplot as plt
 import numpy as np
@@ -141,10 +143,10 @@ def run(plotIt=True, cleanAfterRun=True):
     # %%
     if plotIt:
         # Plot observed data
-        PF.Magnetics.plot_obs_2D(rxLoc, d, 'Observed Data')
+        Utils.PlotUtils.plot2Ddata(rxLoc, d)
 
         # %%
-        # Write output model and data files and print misft stats.
+        # Write output model and data files and print misfit stats.
 
         # reconstructing l2 model mesh with air cells and active dynamic cells
         L2out = activeMap * invProb.l2model

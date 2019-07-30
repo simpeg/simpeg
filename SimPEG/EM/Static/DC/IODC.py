@@ -4,8 +4,11 @@ import matplotlib
 import properties
 import warnings
 
+import discretize as Mesh
+from discretize.base import BaseMesh
+
 import SimPEG
-from SimPEG import Utils, Mesh
+from SimPEG import Utils
 from . import SrcDC as Src
 from . import RxDC as Rx
 from .SurveyDC import Survey_ky, Survey
@@ -160,7 +163,7 @@ class IO(properties.HasProperties):
 
     # Related to Physics and Discretization
     mesh = properties.Instance(
-        "Mesh for discretization", Mesh.BaseMesh, required=True
+        "Mesh for discretization", BaseMesh, required=True
     )
 
     dx = properties.Float(
@@ -647,7 +650,7 @@ class IO(properties.HasProperties):
                 val = self.voltages_ip.copy()[inds] * 1e3
             label = "Secondary voltage. (mV)"
         else:
-            print (data_type)
+            print(data_type)
             raise NotImplementedError()
         if scale == "log":
             fmt = "10$^{%.1f}$"
@@ -669,8 +672,13 @@ class IO(properties.HasProperties):
         ax.set_xlabel("x (m)")
         ax.set_yticklabels([])
         ax.set_ylabel("n-spacing")
-        cb = plt.colorbar(out[0], fraction=0.01, format=fmt, ax=ax)
+        cb = plt.colorbar(
+            out[0],
+            fraction=0.01,
+            format=fmt, ax=ax
+        )
         cb.set_label(label)
+        cb.set_ticks(out[0].levels)
         ax.set_aspect(aspect_ratio)
         plt.tight_layout()
         if figname is not None:

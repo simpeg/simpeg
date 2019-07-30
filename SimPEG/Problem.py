@@ -1,11 +1,14 @@
 from __future__ import print_function
+
+from discretize.base import BaseMesh
+from discretize import TensorMesh
+
 from . import Utils
 from . import Survey
 from . import Models
 import numpy as np
 from . import Maps
 from .Fields import Fields, TimeFields
-from . import Mesh
 from . import Props
 import properties
 
@@ -47,7 +50,7 @@ class BaseProblem(Props.HasModel):
             )
 
         super(BaseProblem, self).__init__(**kwargs)
-        assert isinstance(mesh, Mesh.BaseMesh), (
+        assert isinstance(mesh, BaseMesh), (
             "mesh must be a discretize object."
         )
         self.mesh = mesh
@@ -158,10 +161,10 @@ class BaseProblem(Props.HasModel):
 
         Effect of J(m) on a vector v.
 
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: Jv
         """
         raise NotImplementedError('J is not yet implemented.')
@@ -172,10 +175,10 @@ class BaseProblem(Props.HasModel):
 
         Effect of transpose of J(m) on a vector v.
 
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: JTv
         """
         raise NotImplementedError('Jt is not yet implemented.')
@@ -186,10 +189,10 @@ class BaseProblem(Props.HasModel):
 
         Approximate effect of J(m) on a vector v
 
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: approxJv
         """
         return self.Jvec(m, v, f)
@@ -200,10 +203,10 @@ class BaseProblem(Props.HasModel):
 
         Approximate effect of transpose of J(m) on a vector v.
 
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: JTv
         """
         return self.Jtvec(m, v, f)
@@ -211,8 +214,8 @@ class BaseProblem(Props.HasModel):
     def fields(self, m):
         """The field given the model.
 
-        :param numpy.array m: model
-        :rtype: numpy.array
+        :param numpy.ndarray m: model
+        :rtype: numpy.ndarray
         :return: u, the fields
         """
         raise NotImplementedError('fields is not yet implemented.')
@@ -269,7 +272,7 @@ class BaseTimeProblem(BaseProblem):
     @property
     def timeMesh(self):
         if getattr(self, '_timeMesh', None) is None:
-            self._timeMesh = Mesh.TensorMesh([self.timeSteps], x0=[self.t0])
+            self._timeMesh = TensorMesh([self.timeSteps], x0=[self.t0])
         return self._timeMesh
 
     @timeMesh.deleter
@@ -280,18 +283,22 @@ class BaseTimeProblem(BaseProblem):
 
 class LinearProblem(BaseProblem):
 
-    # surveyPair = Survey.LinearSurvey
+    # model, modelMap, modelDeriv = Props.Invertible(
+    #     "Generic model parameters",
+    #     default=1.
+    # )
 
     G = None
 
     def __init__(self, mesh, **kwargs):
         BaseProblem.__init__(self, mesh, **kwargs)
-        # self.mapping = kwargs.pop('mapping', Maps.IdentityMap(mesh))
+        self.modelMap = kwargs.pop('modelMap', Maps.IdentityMap(mesh))
 
     @property
     def modelMap(self):
         "A SimPEG.Map instance."
         return getattr(self, '_modelMap', None)
+
 
     @modelMap.setter
     def modelMap(self, val):
@@ -299,7 +306,7 @@ class LinearProblem(BaseProblem):
         self._modelMap = val
 
     def fields(self, m):
-        return self.G.dot(m)
+        return self.G.dot(self.modelMap * m)
 
     def getJ(self, m, f=None):
         """
@@ -313,7 +320,7 @@ class LinearProblem(BaseProblem):
             return self.G
 
     def Jvec(self, m, v, f=None):
-        return self.G.dot(v)
+        return self.G.dot(self.modelMap.deriv(m) * v)
 
     def Jtvec(self, m, v, f=None):
-        return self.G.T.dot(v)
+        return self.modelMap.deriv(m).T*self.G.T.dot(v)
