@@ -8,8 +8,12 @@ import os
 
 from . import Utils
 from . import Regularization, DataMisfit, ObjectiveFunction
+from . import Optimization
 from . import Maps
 from .Utils import mkvc
+norm = np.linalg.norm
+IterationPrinters = Optimization.IterationPrinters
+StoppingCriteria = Optimization.StoppingCriteria
 
 
 class InversionDirective(properties.HasProperties):
@@ -1177,3 +1181,161 @@ class ProjectSphericalBounds(InversionDirective):
             prob.model = m
 
         self.opt.xc = m
+
+
+class JointInversion_Directive(InversionDirective):
+    '''
+        Directive for joint inversions. Sets Printers and StoppingCriteria.
+        
+        Methods assume we are working with two models.
+    '''
+    class JointInversionPrinters(IterationPrinters):
+        betas = {
+            "title": "betas", "value": lambda M: ["{:.2e}".format(elem) 
+            for elem in M.parent.betas], "width": 26,
+            "format":   "%s"
+        }
+        lambd = {
+            "title": "lambda", "value": lambda M: M.parent.lambd, "width": 10,
+            "format":   "%1.2e"
+        }
+        phi_d_joint = {
+            "title": "phi_d", "value": lambda M: ["{:.2e}".format(elem) 
+            for elem in M.parent.phi_d_joint], "width": 26,
+            "format":   "%s"
+        }
+        phi_m_joint = {
+            "title": "phi_m", "value": lambda M: ["{:.2e}".format(elem) 
+            for elem in M.parent.phi_m_joint], "width": 26,
+            "format":   "%s"
+        }
+        phi_c = {
+            "title": "phi_c", "value": lambda M: M.parent.phi_c, "width": 10,
+            "format":   "%1.2e"
+        }
+        ratio_x = {
+            "title": "ratio_x", "value": lambda M: 1 if M.iter==0 else norm(M.xc-M.x_last) / norm(M.x_last),
+            "width": 10, "format": "%1.2e"
+        }        
+        iterationCG = {
+            "title": "iterCG", "value": lambda M: M.cg_count, "width": 10, "format": "%3d"
+        }
+        
+    printers = [
+            IterationPrinters.iteration, JointInversionPrinters.betas, 
+            JointInversionPrinters.lambd, IterationPrinters.f, 
+            JointInversionPrinters.phi_d_joint, JointInversionPrinters.phi_m_joint,
+            JointInversionPrinters.phi_c, JointInversionPrinters.iterationCG, 
+            JointInversionPrinters.ratio_x
+        ]
+        
+    def initialize(self):
+        ### define relevant attributes
+        self.betas = self.reg.multipliers[:-1]
+        self.lambd = self.reg.multipliers[-1]
+        self.phi_d_joint = []
+        self.phi_m_joint = []
+        self.phi_c = 0.0
+        
+        ### pass attributes to invProb
+        self.invProb.betas = self.betas
+        self.invProb.lambd = self.lambd
+        self.invProb.phi_d_joint = self.phi_d_joint
+        self.invProb.phi_m_joint = self.phi_m_joint
+        self.invProb.phi_c = self.phi_c
+        self.opt.printers = self.printers
+        self.opt.stoppers = [StoppingCriteria.iteration]
+    
+    def validate(self, directiveList):
+        # check that this directive is first in the DirectiveList
+        dList = directiveList.dList
+        self_ind = dList.index(self)
+        assert(self_ind==0), ('The JointInversion_Directive must be first.')
+        
+        return True
+    
+    def endIter(self):
+        ### compute attribute values
+        phi_d = []
+        for dmis in self.dmisfit.objfcts:
+            phi_d.append(dmis(self.opt.xc))
+            
+        phi_m = []
+        for reg in self.reg.objfcts:
+            phi_m.append(reg(self.opt.xc))
+        
+        ### pass attributes values to invProb
+        ### Assume last reg.objfct is the coupling
+        self.invProb.phi_d_joint = phi_d
+        self.invProb.phi_m_joint = phi_m[:-1]
+        self.invProb.phi_c = phi_m[-1]
+        self.invProb.betas = self.reg.multipliers[:-1]
+        self.invProb.lambd = self.reg.multipliers[-1]
+            
+            
+class Adaptive_Beta_Reweighting(InversionDirective):
+    """
+    Adaptively update trade-off parameters in Joint Inversions.
+    
+    This directive will allow the inversion to run for a few iterations (default is 5),
+    and then starts checking if the current data misfits are close to the target.
+    
+    If data misfit is less than target, we will increase the tradeoff parameter.
+    Else, if the data misfit is greater than target, we will decrease the tradeoff parameter.
+    
+    The rate of increase or decrease can be adjusted (default is 0.01).
+    
+    We allow for a tolerance range for target misift (default is +- 0.1).
+    
+    If norm(self.opt.xc - self.opt.x_last) / norm(self.opt.x_last) < self.tol_ratioX,
+    it will stop the inversion.
+    """
+    chifact = 1.
+    phi_d_star = []   
+    start_iter = 5
+    alpha = 0.01 # reweighting coefficient
+    dmis_tol = 0.1 # tolerance rate from target data misfit
+    tol_ratioX = 1e-5
+    
+    @property
+    def targets(self):
+        if getattr(self, '_targets', None) is None:
+            if not self.phi_d_star:
+                self.phi_d_star = [0.5*survey.nD for survey in self.survey]
+        self._targets = [self.chifact*target for target in self.phi_d_star]            
+        return self._targets
+
+    @targets.setter
+    def targets(self, val):
+        assert len(val) == 2, 'val must have two targets.'
+        self._targets = val
+        
+    def initialize(self):
+        self._targets = self.targets
+        self.betas = self.invProb.betas
+        
+    def endIter(self):
+        ### allow inversion to run for a few iterations before adapting
+        ### tradeoff parameters
+        if self.opt.iter <= self.start_iter:
+            return
+        else:
+            target_met = []
+            for i, phid in enumerate(self.invProb.phi_d_joint):
+                if phid > (1+self.dmis_tol)*self._targets[i]:
+                    self.betas[i] = (1-self.alpha)*self.betas[i]
+                    target_met.append(False)
+                elif phid < (1-self.dmis_tol)*self._targets[i]:
+                    self.betas[i] = (1+self.alpha)*self.betas[i]
+                    target_met.append(False)
+                else:
+                    target_met.append(True)
+                    continue
+        self.invProb.betas = self.betas
+        self.reg.multipliers[:-1] = self.betas
+        
+        if all(target_met):
+            if norm(self.opt.xc - self.opt.x_last) / norm(self.opt.x_last) < self.tol_ratioX:
+                print("stopping criteria met: ", norm(self.opt.xc - self.opt.x_last) 
+                                                / norm(self.opt.x_last))
+                self.opt.stopNextIteration = True
