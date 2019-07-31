@@ -6,9 +6,12 @@ from __future__ import unicode_literals
 from SimPEG.EM.Base import BaseEMSurvey
 from SimPEG.EM.Static.DC import Survey as SurveyDC
 from SimPEG.EM.Static import DC
+from SimPEG.Survey import Data
 
 
 class Survey(SurveyDC):
+
+    _pred = None
 
     def __init__(self, srcList, **kwargs):
         self.srcList = srcList
@@ -21,7 +24,11 @@ class Survey(SurveyDC):
             .. math::
                 d_\\text{pred} = Pf(m)
         """
-        return self.prob.Jvec(m, m, f=f)
+        # return self.prob.Jvec(m, m, f=f)
+        if f is None:
+            f = self.prob.fields(m)
+
+        return self._pred
 
 
 def from_dc_to_ip_survey(dc_survey, dim="2.5D"):
@@ -66,3 +73,4 @@ def from_dc_to_ip_survey(dc_survey, dim="2.5D"):
         raise Exception(" dim must be '2.5D', '2D', or '3D' ")
 
     return ip_survey
+

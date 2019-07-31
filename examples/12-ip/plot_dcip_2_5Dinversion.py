@@ -142,6 +142,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     )
     survey_ip = IP.from_dc_to_ip_survey(survey_dc, dim="2.5D")
     prb_ip.pair(survey_ip)
+
     dtrue_ip = survey_ip.makeSyntheticData(mtrue_ip, std=0.05)
 
     IO.data_ip = dtrue_ip
