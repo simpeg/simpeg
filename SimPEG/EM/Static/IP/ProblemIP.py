@@ -13,7 +13,7 @@ from SimPEG.EM.Static.DC import Problem3D_N as BaseProblem3D_N
 from .SurveyIP import Survey
 from SimPEG import Props
 import sys
-
+import scipy.sparse as sp
 
 class BaseIPProblem(BaseEMProblem):
 
@@ -38,6 +38,7 @@ class BaseIPProblem(BaseEMProblem):
     storeJ = False
     _Jmatrix = None
     sign = None
+    data_type = 'volt'
 
     def fields(self, m):
         if self.verbose is True:
@@ -52,6 +53,19 @@ class BaseIPProblem(BaseEMProblem):
             u = self.Ainv * RHS
             Srcs = self.survey.srcList
             self._f[Srcs, self._solutionType] = u
+
+            # Compute DC voltage
+            if self.data_type == 'apparent_chargeability':
+                if self.verbose is True:
+                    print(">> Data type is apparaent chargeability")
+                for src in self.survey.srcList:
+                    for rx in src.rxList:
+                        rx._dc_voltage = rx.eval(src, self.mesh, self._f)
+                        rx.data_type = self.data_type
+                        rx._Ps = {}
+
+        self.survey._pred = self.forward(m, f=self._f)
+
         return self._f
 
     def getJ(self, m, f=None):
@@ -72,16 +86,15 @@ class BaseIPProblem(BaseEMProblem):
             self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
 
             # delete fields after computing sensitivity
-            del f
-            # Not sure why this is a problem
-            # if self._f is not None:
-            #     del self._f
+            # del f
+            self._f = []
             # clean all factorization
             if self.Ainv is not None:
                 self.Ainv.clean()
 
         return self._Jmatrix
 
+    # @profile
     def Jvec(self, m, v, f=None):
 
         self.model = m
@@ -100,10 +113,11 @@ class BaseIPProblem(BaseEMProblem):
             Jv = []
 
             for src in self.survey.srcList:
-                u_src = f[src, self._solutionType] # solution vector
+                # solution vector
+                u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(u_src.flatten(), v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(src, v)
-                du_dm_v = self.Ainv * ( - dA_dm_v + dRHS_dm_v )
+                du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
 
                 for rx in src.rxList:
                     df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
@@ -113,6 +127,9 @@ class BaseIPProblem(BaseEMProblem):
             # Conductivity (d u / d log sigma) - EB form
             # Resistivity (d u / d log rho) - HJ form
             return self.sign*np.hstack(Jv)
+
+    def forward(self, m, f=None):
+        return self.Jvec(m, m, f=f)
 
     def Jtvec(self, m, v, f=None):
         """
@@ -182,9 +199,9 @@ class BaseIPProblem(BaseEMProblem):
 
                     iend = istrt + rx.nD
                     if rx.nD == 1:
-                        Jtv[:, istrt] = dA_dmT
+                        Jtv[:, istrt] = -dA_dmT
                     else:
-                        Jtv[:, istrt:iend] = dA_dmT
+                        Jtv[:, istrt:iend] = -dA_dmT
                     istrt += rx.nD
 
         # Conductivity ((d u / d log sigma).T) - EB form
