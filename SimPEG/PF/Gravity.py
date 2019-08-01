@@ -64,31 +64,18 @@ class GravityIntegral(Problem.LinearProblem):
 
         # Create vectors of nodal location
         # (lower and upper corners for each cell)
-        if isinstance(self.mesh, Mesh.TreeMesh):
-            # Get upper and lower corners of each cell
-            bsw = (self.mesh.gridCC - self.mesh.h_gridded/2.)
-            tne = (self.mesh.gridCC + self.mesh.h_gridded/2.)
+        bsw = (self.mesh.gridCC - self.mesh.h_gridded/2.)
+        tne = (self.mesh.gridCC + self.mesh.h_gridded/2.)
 
-            xn1, xn2 = bsw[:, 0], tne[:, 0]
-            yn1, yn2 = bsw[:, 1], tne[:, 1]
+        xn1, xn2 = bsw[:, 0], tne[:, 0]
+        yn1, yn2 = bsw[:, 1], tne[:, 1]
+
+        self.Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
+        self.Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
+
+        if self.mesh.dim > 2:
             zn1, zn2 = bsw[:, 2], tne[:, 2]
-
-        else:
-
-            xn = self.mesh.vectorNx
-            yn = self.mesh.vectorNy
-            zn = self.mesh.vectorNz
-
-            yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
-            yn1, xn1, zn1 = np.meshgrid(yn[:-1], xn[:-1], zn[:-1])
-
-        # If equivalent source, use semi-infite prism
-        # if self.equiSourceLayer:
-        #     zn1 -= 1000.
-
-        self.Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
-        self.Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
-        self.Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
+            self.Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
 
     def fields(self, m):
         # self.model = self.rhoMap*m
