@@ -109,6 +109,12 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         survey.unpair()
         prb.pair(survey)
 
+    geometric_factor = survey.set_geometric_factor(
+        data_type="apparent_resistivity",
+        survey_type='dipole-dipole',
+        space_type='half-space'
+    )
+
     # Make synthetic DC data with 5% Gaussian noise
     dtrue = survey.makeSyntheticData(mtrue, std=0.05, force=True)
 
@@ -116,13 +122,13 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # Show apparent resisitivty pseudo-section
     if plotIt:
         IO.plotPseudoSection(
-            data=survey.dobs/IO.G, data_type='apparent_resistivity'
+            data=survey.dobs, data_type='apparent_resistivity'
         )
 
     # Show apparent resisitivty histogram
     if plotIt:
         fig = plt.figure()
-        out = hist(survey.dobs/IO.G, bins=20)
+        out = hist(survey.dobs, bins=20)
         plt.xlabel("Apparent Resisitivty ($\Omega$m)")
         plt.show()
 
@@ -130,8 +136,8 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     m0 = np.ones(actmap.nP)*np.log(100.)
 
     # Set uncertainty
-    # floor
-    eps = 10**(-3.2)
+    # floor (10 ohm-m)
+    eps = 1.
     # percentage
     std = 0.05
     dmisfit = DataMisfit.l2_DataMisfit(survey)
@@ -142,7 +148,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     regmap = Maps.IdentityMap(nP=int(actind.sum()))
 
     # Related to inversion
-    reg = Regularization.Simple(mesh, indActive=actind, mapping=regmap)
+    reg = Regularization.Sparse(mesh, indActive=actind, mapping=regmap)
     opt = Optimization.InexactGaussNewton(maxIter=15)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
     beta = Directives.BetaSchedule(coolingFactor=5, coolingRate=2)
