@@ -13,10 +13,11 @@ from ..induced_polarization.simulation_2d import BaseIPSimulation_2D
 from ..induced_polarization import Problem2D_N as BaseProblem2D_N
 from ..induced_polarization import Problem2D_CC as BaseProblem2D_CC
 from .survey import Survey
+from .simulation import BaseSIPSimulation
 
 
+class BaseSIPSimulation_2D(BaseIPSimulation_2D, BaseSIPSimulation):
 
-class BaseSIPSimulation_2D(BaseIPSimulation_2D):
 
     eta, etaMap, etaDeriv = props.Invertible(
         "Electrical Chargeability (V/V)"
@@ -49,40 +50,34 @@ class BaseSIPSimulation_2D(BaseIPSimulation_2D):
     actinds = None
     actMap = None
 
-    def getPeta(self, t):
-        peta = self.eta*np.exp(-(self.taui*t)**self.c)
-        return peta
+    _eta_store = None
+    _taui_store = None
+    _c_store = None
+    _pred = None
 
-    def PetaEtaDeriv(self, t, v, adjoint=False):
-        # v = np.array(v, dtype=float)
-        taui_t_c = (self.taui*t)**self.c
-        dpetadeta = np.exp(-taui_t_c)
-        if adjoint:
-            return self.etaDeriv.T * (sdiag(dpetadeta) * v)
-        else:
-            return dpetadeta * (self.etaDeriv*v)
+    @property
+    def etaDeriv_store(self):
+        if getattr(self, '_etaDeriv_store', None) is None:
+            self._etaDeriv_store = self.etaDeriv
+        return self._etaDeriv_store
 
-    def PetaTauiDeriv(self, t, v, adjoint=False):
-        # v = np.array(v, dtype=float)
-        taui_t_c = (self.taui*t)**self.c
-        dpetadtaui = (
-            - self.c * self.eta / self.taui * taui_t_c * np.exp(-taui_t_c)
-            )
-        if adjoint:
-            return self.tauiDeriv.T * (sdiag(dpetadtaui)*v)
-        else:
-            return dpetadtaui * (self.tauiDeriv*v)
+    @property
+    def tauiDeriv_store(self):
+        if getattr(self, '_tauiDeriv_store', None) is None:
+            self._tauiDeriv_store = self.tauiDeriv
+        return self._tauiDeriv_store
 
-    def PetaCDeriv(self, t, v, adjoint=False):
-        # v = np.array(v, dtype=float)
-        taui_t_c = (self.taui*t)**self.c
-        dpetadc = (
-            -self.eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(self.taui*t)
-            )
-        if adjoint:
-            return self.cDeriv.T * (sdiag(dpetadc)*v)
-        else:
-            return dpetadc * (self.cDeriv*v)
+    @property
+    def tauDeriv_store(self):
+        if getattr(self, '_tauDeriv_store', None) is None:
+            self._tauDeriv_store = self.tauDeriv
+        return self._tauDeriv_store
+
+    @property
+    def cDeriv_store(self):
+        if getattr(self, '_cDeriv_store', None) is None:
+            self._cDeriv_store = self.cDeriv
+        return self._cDeriv_store
 
     def getJ(self, m, f=None):
         """
@@ -163,7 +158,7 @@ class BaseSIPSimulation_2D(BaseIPSimulation_2D):
             # delete fields after computing sensitivity
             del f
             if self._f is not None:
-                del self._f
+                self._f = []
             # clean all factorization
             if self.Ainv[0] is not None:
                 for i in range(self.nky):
@@ -171,6 +166,12 @@ class BaseSIPSimulation_2D(BaseIPSimulation_2D):
             return self._Jmatrix
 
     def forward(self, m, f=None):
+
+        self.model = m
+
+        self._eta_store = self.eta
+        self._taui_store = self.taui
+        self._c_store = self.c
 
         J = self.getJ(m, f=f)
 
@@ -180,7 +181,7 @@ class BaseSIPSimulation_2D(BaseIPSimulation_2D):
         for tind in range(ntime):
             Jv.append(
                 J.dot(
-                    self.actMap.P.T*self.getPeta(self.survey.times[tind]))
+                    self.actMap.P.T*self.get_peta(self.survey.times[tind]))
                 )
         return self.sign * np.hstack(Jv)
 
@@ -191,7 +192,10 @@ class BaseSIPSimulation_2D(BaseIPSimulation_2D):
             .. math::
                 d_\\text{pred} = Pf(m)
         """
-        return self.forward(m, f=f)
+        if f is None:
+            f = self.fields(m)
+        return self._pred
+        # return self.forward(m, f=f)
 
     def Jvec(self, m, v, f=None):
 
@@ -227,26 +231,26 @@ class BaseSIPSimulation_2D(BaseIPSimulation_2D):
                 self.PetaEtaDeriv(t, Jtv, adjoint=True) +
                 self.PetaTauiDeriv(t, Jtv, adjoint=True) +
                 self.PetaCDeriv(t, Jtv, adjoint=True)
-                )
+            )
 
         return self.sign * Jtvec
 
-    def getJtJdiag(self):
+    def getJtJdiag(self, m):
         """
         Compute JtJ using adjoint problem. Still we never form
         JtJ
         """
         ntime = len(self.survey.times)
-        JtJdiag = np.zeros_like(self.model)
-        J = self.getJ(self.model, f=None)
+        JtJdiag = np.zeros_like(m)
+        J = self.getJ(m, f=None)
         for tind in range(ntime):
             t = self.survey.times[tind]
-            Jtv = self.actMap.P*sdiag(1./self.mesh.vol)*J.T
+            Jtv = self.actMap.P*J.T
             JtJdiag += (
                 (self.PetaEtaDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
                 (self.PetaTauiDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
                 (self.PetaCDeriv(t, Jtv, adjoint=True)**2).sum(axis=1)
-                )
+            )
         return JtJdiag
 
     @property
@@ -393,6 +397,13 @@ class BaseSIPSimulation_2D(BaseIPSimulation_2D):
             else:
                 return (u*vol*(-1./rho**2))*(drho_dlogrho * v)
 
+    @property
+    def deleteTheseOnModelUpdate(self):
+        toDelete = [
+            '_etaDeriv_store', '_tauiDeriv_store', '_cDeriv_store',
+            '_tauDeriv_store'
+        ]
+        return toDelete
 
 class Problem2D_CC(BaseSIPSimulation_2D, BaseProblem2D_CC):
     """

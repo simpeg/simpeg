@@ -30,7 +30,7 @@ with open("README.rst") as f:
 
 setup(
     name="SimPEG",
-    version="0.11.5",
+    version="0.12.0",
     packages=find_packages(exclude=['tests*']),
     install_requires=[
         'numpy>=1.7',

@@ -5,6 +5,7 @@ import properties
 from ....utils import closestPoints
 from ....survey import BaseRx as BaseSimPEGRx, RxLocationArray
 
+
 # Trapezoidal integration for 2D DC problem
 def IntTrapezoidal(kys, Pf, y=0.):
     phi = np.zeros(Pf.shape[0])
@@ -24,7 +25,6 @@ class BaseRx(BaseSimPEGRx):
     """
     Base DC receiver
     """
-
     orientation = properties.StringChoice(
         "orientation of the receiver. Must currently be 'x', 'y', 'z'",
         ["x", "y", "z"]
@@ -44,6 +44,37 @@ class BaseRx(BaseSimPEGRx):
     # def projField(self):
     #     """Field Type projection (e.g. e b ...)"""
     #     return self.knownRxTypes[self.rxType][0]
+
+    data_type = properties.StringChoice(
+        "Type of DC-IP survey",
+        required=True,
+        default="volt",
+        choices=[
+           "volt",
+           "apparent_resistivity",
+           "apparent_chargeability"
+        ]
+    )
+
+    # data_type = 'volt'
+
+    # knownRxTypes = {
+    #     'phi': ['phi', None],
+    #     'ex': ['e', 'x'],
+    #     'ey': ['e', 'y'],
+    #     'ez': ['e', 'z'],
+    #     'jx': ['j', 'x'],
+    #     'jy': ['j', 'y'],
+    #     'jz': ['j', 'z'],
+    # }
+
+    @property
+    def geometric_factor(self):
+        return self._geometric_factor
+
+    @property
+    def dc_voltage(self):
+        return self._dc_voltage
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
@@ -113,6 +144,11 @@ class Dipole(BaseRx):
             )
             P = sp.vstack((P, P0_pole))
 
+        if self.data_type == 'apparent_resistivity':
+            P = sdiag(1./self.geometric_factor) * P
+        elif self.data_type == 'apparent_chargeability':
+            P = sdiag(1./self.dc_voltage) * P
+
         if self.storeProjections:
             self._Ps[mesh] = P
 
@@ -137,6 +173,11 @@ class Dipole_ky(Dipole):
         P0 = mesh.getInterpolationMat(self.locations[0], Gloc)
         P1 = mesh.getInterpolationMat(self.locations[1], Gloc)
         P = P0 - P1
+
+        if self.data_type == 'apparent_resistivity':
+            P = sdiag(1./self.geometric_factor) * P
+        elif self.data_type == 'apparent_chargeability':
+            P = sdiag(1./self.dc_voltage) * P
         if self.storeProjections:
             self._Ps[mesh] = P
         return P
@@ -176,6 +217,10 @@ class Pole(BaseRx):
 
         P = mesh.getInterpolationMat(self.locations, Gloc)
 
+        if self.data_type == 'apparent_resistivity':
+            P = sdiag(1./self.geometric_factor) * P
+        elif self.data_type == 'apparent_chargeability':
+            P = sdiag(1./self.dc_voltage) * P
         if self.storeProjections:
             self._Ps[mesh] = P
 
@@ -204,6 +249,10 @@ class Pole_ky(BaseRx):
 
         P = mesh.getInterpolationMat(self.locations, Gloc)
 
+        if self.data_type == 'apparent_resistivity':
+            P = sdiag(1./self.geometric_factor) * P
+        elif self.data_type == 'apparent_chargeability':
+            P = sdiag(1./self.dc_voltage) * P
         if self.storeProjections:
             self._Ps[mesh] = P
 
