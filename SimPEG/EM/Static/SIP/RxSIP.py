@@ -5,11 +5,26 @@ from __future__ import unicode_literals
 
 import SimPEG
 import numpy as np
+import properties
+from SimPEG.Utils import sdiag
 
 
 class BaseRx(SimPEG.Survey.BaseTimeRx):
     locs = None
     rxType = None
+
+    data_type = properties.StringChoice(
+        "Type of DC-IP survey",
+        required=True,
+        default="volt",
+        choices=[
+           "volt",
+           "apparent_resistivity",
+           "apparent_chargeability"
+        ]
+    )
+
+    data_type = 'volt'
 
     knownRxTypes = {
                     'phi': ['phi', None],
@@ -23,6 +38,10 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
 
     def __init__(self, locs, times, rxType, **kwargs):
         SimPEG.Survey.BaseTimeRx.__init__(self, locs, times, rxType, **kwargs)
+
+    @property
+    def dc_voltage(self):
+        return self._dc_voltage
 
     @property
     def projField(self):
@@ -46,6 +65,10 @@ class BaseRx(SimPEG.Survey.BaseTimeRx):
         """
         time_inds = np.in1d(timesall, self.times)
         return time_inds
+
+    def eval(self, src, mesh, f):
+        P = self.getP(mesh, self.projGLoc(f))
+        return P*f[src, self.projField]
 
     def evalDeriv(self, src, mesh, f, v, adjoint=False):
         P = self.getP(mesh, self.projGLoc(f))
@@ -90,6 +113,11 @@ class Dipole(BaseRx):
         P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
         P = P0 - P1
 
+        if self.data_type == 'apparent_resistivity':
+            P = sdiag(1./self.geometric_factor) * P
+        elif self.data_type == 'apparent_chargeability':
+            P = sdiag(1./self.dc_voltage) * P
+
         if self.storeProjections:
             self._Ps[mesh] = P
 
@@ -125,6 +153,11 @@ class Pole(BaseRx):
             return self._Ps[mesh]
 
         P = mesh.getInterpolationMat(self.locs, Gloc)
+
+        if self.data_type == 'apparent_resistivity':
+            P = sdiag(1./self.geometric_factor) * P
+        elif self.data_type == 'apparent_chargeability':
+            P = sdiag(1./self.dc_voltage) * P
 
         if self.storeProjections:
             self._Ps[mesh] = P
