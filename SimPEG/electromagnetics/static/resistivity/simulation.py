@@ -57,9 +57,9 @@ class BaseDCSimulation(BaseEMSimulation):
         A = self.getA()
         self.Ainv = dask.delayed(self.Solver)(A, **self.solver_opts)
         RHS = self.getRHS()
-        u = self.Ainv.compute() * RHS
+        u = self.Ainv * RHS
         Srcs = self.survey.srcList
-        f[Srcs, self._solutionType] = u
+        f[Srcs, self._solutionType] = u.compute()
         return f
 
     def fields(self, m=None):
@@ -70,10 +70,10 @@ class BaseDCSimulation(BaseEMSimulation):
             self.Ainv.clean()
 
         f = self.fieldsPair(self)
-        A = self.getA()
-        self.Ainv = dask.delayed(self.Solver)(A, **self.solver_opts)
+        A = self.getA().compute()
+        self.Ainv = self.Solver(A, **self.solver_opts)
         RHS = self.getRHS()
-        u = self.Ainv.compute() * RHS.compute()
+        u = self.Ainv * RHS.compute()
         Srcs = self.survey.srcList
         f[Srcs, self._solutionType] = u
         return f
@@ -109,24 +109,24 @@ class BaseDCSimulation(BaseEMSimulation):
 
             self.model = m
             if f is None:
-                f = self.fields(m)
-            self._Jmatrix = (self._Jtvec2(m, v=None, f=f)).T
+                f = self.fields2(m)
+            J = (self._Jtvec2(m, v=None, f=f)).T
 
-            # nChunks = self.n_cpu  # Number of chunks
-            # nDataComps = 1
-            # rowChunk, colChunk = int(np.ceil(self.survey.nD*nDataComps/nChunks)), int(np.ceil(self.model.size/nChunks))  # Chunk sizes
+            nChunks = self.n_cpu  # Number of chunks
+            nDataComps = 1
+            rowChunk, colChunk = int(np.ceil(self.survey.nD*nDataComps/nChunks)), int(np.ceil(self.model.size/nChunks))  # Chunk sizes
             # J.rechunk((rowChunk, colChunk))
-            # print('DASK: ')
-            # print('Tile size (nD, nC): ', J.shape)
-            # print('Chunk sizes (nD, nC): ', J.chunks) # For debugging only
-            # print('Number of chunks: ', len(J.chunks[0]), ' x ', len(J.chunks[1]), ' = ', len(J.chunks[0]) * len(J.chunks[1]))
-            # print("Target chunk size: ", dask.config.get('array.chunk-size'))
-            # print('Max chunk size (GB): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9)
-            # print('Max RAM (GB x CPU): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9 * self.n_cpu)
-            # print('Tile size (GB): ', J.shape[0] * J.shape[1] * 8 * 1e-9)
-            # print("Saving G to zarr: " + self.Jpath)
-            # da.to_zarr(J, self.Jpath)
-            # self._Jmatrix = da.from_zarr(self.Jpath)
+            print('DASK: ')
+            print('Tile size (nD, nC): ', J.shape)
+            print('Chunk sizes (nD, nC): ', rowChunk, colChunk) # For debugging only
+            print('Number of chunks: ', len(J.chunks[0]), ' x ', len(J.chunks[1]), ' = ', len(J.chunks[0]) * len(J.chunks[1]))
+            print("Target chunk size: ", dask.config.get('array.chunk-size'))
+            print('Max chunk size (GB): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9)
+            print('Max RAM (GB x CPU): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9 * self.n_cpu)
+            print('Tile size (GB): ', J.shape[0] * J.shape[1] * 8 * 1e-9)
+            print("Saving G to zarr: " + self.Jpath)
+            da.to_zarr(J, self.Jpath)
+            self._Jmatrix = da.from_zarr(self.Jpath)
 
         return self._Jmatrix
 
@@ -208,8 +208,8 @@ class BaseDCSimulation(BaseEMSimulation):
 
                 ATinvdf_duT = self.Ainv * df_duT
 
-                dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
-                dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
+                dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True).compute()
+                dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True).compute()
                 du_dmT = -dA_dmT + dRHS_dmT
                 if v is not None:
                     Jtv += (df_dmT + du_dmT).astype(float)
@@ -232,9 +232,6 @@ class BaseDCSimulation(BaseEMSimulation):
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
             Full J matrix can be computed by inputing v=None
         """
-        if f is None:
-            f = self.fields(m)
-
         if v is not None:
             # Ensure v is a data object.
             if not isinstance(v, Data):
@@ -245,8 +242,6 @@ class BaseDCSimulation(BaseEMSimulation):
             # This is for forming full sensitivity matrix
             # Jtv2 = da.zeros((self.model.size, self.survey.nD), order='F')
             Jtv = []
-            istrt = int(0)
-            iend = int(0)
         for src in self.survey.srcList:
             u_src = f[src, self._solutionType].copy()
             for rx in src.rxList:
@@ -259,7 +254,7 @@ class BaseDCSimulation(BaseEMSimulation):
                     # This is for forming full sensitivity matrix
                     # PTv = dask.delayed(rx.getP)(self.mesh, rx.projGLoc(f), transpose=True)
                     PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
-                
+
                 # NEED TO CHECK WHAT DERIV TO BE USED LIKE PREVIOUS IMPLIMENTATION, NOT ALWAYS PHIDERIV
                 df_duT = dask.delayed(f._phiDeriv_u)(src, PTv, adjoint=True)
                 df_dmT = dask.delayed(f._phiDeriv_m)(src, PTv, adjoint=True)
@@ -271,15 +266,16 @@ class BaseDCSimulation(BaseEMSimulation):
                 # type(df_dmT + du_dmT)
                 if v is not None:
                     Jtv.append(da.from_delayed(df_dmT + du_dmT, (self.model.size,), dtype=float))
+                    # Jtv += (df_dmT.compute() + du_dmT..astype(float)
                 else:
                     Jtv.append(da.from_delayed(df_dmT + du_dmT, (self.model.size, rx.nD), dtype=float))
 
         if v is not None:
-            Jtv_ = da.sum(da.hstack(Jtv), axis=0)
+            # Jtv_ = da.sum(da.hstack(Jtv), axis=0)
+            return da.sum(da.hstack(Jtv), axis=0)
         else:
-            Jtv_ = da.hstack(Jtv)
-
-        return Jtv_
+            # return da.hstack(Jtv)
+            return da.hstack(Jtv)
 
     def getSourceTerm(self):
         """
