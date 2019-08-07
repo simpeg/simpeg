@@ -56,7 +56,7 @@ class SIPProblemTestsCC(unittest.TestCase):
             rho=1./sigma,
             etaMap=wires.eta,
             tauiMap=wires.taui,
-            storeJ = True
+            storeJ=False
         )
         problem.Solver = Solver
         problem.pair(survey)
@@ -115,7 +115,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
 
-class IPProblemTestsN(unittest.TestCase):
+class SIPProblemTestsN(unittest.TestCase):
 
     def setUp(self):
 
@@ -262,7 +262,7 @@ class IPProblemTestsN_air(unittest.TestCase):
             tauiMap=actmaptau*wires.taui,
             cMap=actmapc*wires.c,
             actinds=~airind,
-            storeJ = True,
+            storeJ=False,
             verbose=False
         )
 
@@ -272,9 +272,9 @@ class IPProblemTestsN_air(unittest.TestCase):
         dobs = problem.make_synthetic_data(mSynth)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
-        reg_eta = regularization.Simple(mesh, mapping=wires.eta, indActive=~airind)
-        reg_taui = regularization.Simple(mesh, mapping=wires.taui, indActive=~airind)
-        reg_c = regularization.Simple(mesh, mapping=wires.c, indActive=~airind)
+        reg_eta = regularization.Sparse(mesh, mapping=wires.eta, indActive=~airind)
+        reg_taui = regularization.Sparse(mesh, mapping=wires.taui, indActive=~airind)
+        reg_c = regularization.Sparse(mesh, mapping=wires.c, indActive=~airind)
         reg = reg_eta + reg_taui + reg_c
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,

@@ -14,6 +14,7 @@ from . import sources as Src
 from . import receivers as Rx
 from .survey import Survey_ky, Survey
 
+
 class IO(properties.HasProperties):
     """
 
@@ -509,7 +510,7 @@ class IO(properties.HasProperties):
                 )
             x0 = self.electrode_locations[:, 0].min()
             if topo is None:
-                locs = self.electrode_locations
+                locs = np.sort(self.electrode_locations, axis=0)
             else:
                 locs = np.vstack((topo, self.electrode_locations))
 
@@ -552,6 +553,7 @@ class IO(properties.HasProperties):
                     np.r_[x0, x0+lineLength],
                     np.r_[zmax-corezlength, zmax]
                 ))
+                fill_value = "extrapolate"
 
             # For 3D mesh
             else:
@@ -586,7 +588,8 @@ class IO(properties.HasProperties):
                     np.r_[zmax-corezlength, zmax]
                 ))
             mesh = TensorMesh(h, x0=x0_for_mesh)
-            actind = surface2ind_topo(mesh, locs, method=method)
+            actind = surface2ind_topo(mesh, locs, method=method, fill_value=np.nan)
+
         else:
             raise NotImplementedError()
 

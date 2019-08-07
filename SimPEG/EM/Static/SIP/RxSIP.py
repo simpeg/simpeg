@@ -1,20 +1,17 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+import SimPEG
 import numpy as np
 import properties
+from SimPEG.Utils import sdiag
 
-from ....survey import BaseTimeRx, RxLocationArray
 
-
-class BaseRx(BaseTimeRx):
-
-    orientation = properties.StringChoice(
-        "orientation of the receiver. Must currently be 'x', 'y', 'z'",
-        ["x", "y", "z"]
-    )
-
-    projField = properties.StringChoice(
-        "field to be projected in the calculation of the data",
-        choices=['phi', 'e', 'j'], default='phi'
-    )
+class BaseRx(SimPEG.Survey.BaseTimeRx):
+    locs = None
+    rxType = None
 
     data_type = properties.StringChoice(
         "Type of DC-IP survey",
@@ -27,26 +24,36 @@ class BaseRx(BaseTimeRx):
         ]
     )
 
+    data_type = 'volt'
 
-    def __init__(self, locations=None, times=None, **kwargs):
-        super(BaseRx, self).__init__(locations, times, **kwargs)
+    knownRxTypes = {
+                    'phi': ['phi', None],
+                    'ex': ['e', 'x'],
+                    'ey': ['e', 'y'],
+                    'ez': ['e', 'z'],
+                    'jx': ['j', 'x'],
+                    'jy': ['j', 'y'],
+                    'jz': ['j', 'z'],
+                    }
 
-    # @property
-    # def projField(self):
-    #     """Field Type projection (e.g. e b ...)"""
-    #     return self.knownRxTypes[self.rxType][0]
+    def __init__(self, locs, times, rxType, **kwargs):
+        SimPEG.Survey.BaseTimeRx.__init__(self, locs, times, rxType, **kwargs)
 
     @property
     def dc_voltage(self):
-        #todo : this is sketchy
         return self._dc_voltage
 
+    @property
+    def projField(self):
+        """Field Type projection (e.g. e b ...)"""
+        return self.knownRxTypes[self.rxType][0]
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
-        if self.orientation is not None:
-            return f._GLoc(self.projField) + self.orientation
-        return f._GLoc(self.projField)
+        comp = self.knownRxTypes[self.rxType][1]
+        if comp is not None:
+            return f._GLoc(self.rxType) + comp
+        return f._GLoc(self.rxType)
 
     def getTimeP(self, timesall):
         """
@@ -58,6 +65,10 @@ class BaseRx(BaseTimeRx):
         """
         time_inds = np.in1d(timesall, self.times)
         return time_inds
+
+    def eval(self, src, mesh, f):
+        P = self.getP(mesh, self.projGLoc(f))
+        return P*f[src, self.projField]
 
     def evalDeriv(self, src, mesh, f, v, adjoint=False):
         P = self.getP(mesh, self.projGLoc(f))
@@ -72,30 +83,27 @@ class Dipole(BaseRx):
     Dipole receiver
     """
 
-    locations = properties.List(
-        "list of locations of each electrode in a dipole receiver",
-        RxLocationArray("location of electrode", shape=("*", "*")),
-        min_length=1, max_length=2
-    )
-
-    def __init__(self, locationsM, locationsN, times, **kwargs):
-        if locationsM.shape != locationsN.shape:
-            raise ValueError(
-                'locationsM and locationsN need to be the same size')
-        locations = [np.atleast_2d(locationsM), np.atleast_2d(locationsN)]
-        super(Dipole, self).__init__(times=times, **kwargs)
-        self.locations = locations
+    def __init__(self, locsM, locsN, times, rxType='phi', **kwargs):
+        assert locsM.shape == locsN.shape, (
+            'locsM and locsN need to be the same size'
+        )
+        locs = [np.atleast_2d(locsM), np.atleast_2d(locsN)]
+        # We may not need this ...
+        BaseRx.__init__(self, locs, times, rxType)
 
     @property
     def nD(self):
         """Number of data in the receiver."""
-        return self.locations[0].shape[0]
+        # return self.locs[0].shape[0] * len(self.times)
+        return self.locs[0].shape[0]
 
     @property
     def nRx(self):
         """Number of data in the receiver."""
-        # return self.locations[0].shape[0]
-        raise Exception("nRx has depreciated. please use rx.nD instead")
+        return self.locs[0].shape[0]
+
+        # Not sure why ...
+        # return int(self.locs[0].size / 2)
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:
@@ -121,18 +129,24 @@ class Pole(BaseRx):
     Pole receiver
     """
 
-    def __init__(self, locations, times, **kwargs):
-        super(Pole, self).__init__(locations, times, **kwargs)
+    def __init__(self, locsM, times, rxType='phi', **kwargs):
+        locs = np.atleast_2d(locsM)
+        # We may not need this ...
+        BaseRx.__init__(self, locs, times, rxType)
 
     @property
     def nD(self):
         """Number of data in the receiver."""
-        return self.locations.shape[0]
+        # return self.locs[0].shape[0] * len(self.times)
+        return self.locs.shape[0]
 
     @property
     def nRx(self):
         """Number of data in the receiver."""
-        raise Exception("nRx has depreciated. please use rx.nD instead")
+        return self.locs.shape[0]
+
+        # Not sure why ...
+        # return int(self.locs[0].size / 2)
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:

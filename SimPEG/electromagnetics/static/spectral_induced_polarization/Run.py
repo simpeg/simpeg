@@ -128,20 +128,21 @@ def run_inversion(
     m_lower = np.r_[eta_lower, tau_lower, c_lower]
 
     # Set up regularization
-    reg_eta = regularization.Tikhonov(
+    reg_eta = regularization.Simple(
         mesh, mapping=wires.eta, indActive=actind
-        )
-    reg_tau = regularization.Tikhonov(
+    )
+    reg_tau = regularization.Simple(
         mesh, mapping=wires.tau, indActive=actind
-        )
-
-    reg_c = regularization.Tikhonov(mesh, mapping=wires.c, indActive=actind)
+    )
+    reg_c = regularization.Simple(
+        mesh, mapping=wires.c, indActive=actind
+    )
 
     # Todo:
 
     reg_eta.alpha_s = alpha_s
-    reg_tau.alpha_s = alpha_s
-    reg_c.alpha_s = alpha_s
+    reg_tau.alpha_s = 0.
+    reg_c.alpha_s = 0.
 
     reg_eta.alpha_x = alpha_x
     reg_tau.alpha_x = alpha_x
