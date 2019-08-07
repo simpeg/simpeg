@@ -112,23 +112,23 @@ class BaseDCSimulation(BaseEMSimulation):
                 f = self.fields2(m)
             J = (self._Jtvec2(m, v=None, f=f)).T
 
-            nChunks = self.n_cpu  # Number of chunks
-            nDataComps = 1
-            rowChunk, colChunk = int(np.ceil(self.survey.nD*nDataComps/nChunks)), int(np.ceil(self.model.size/nChunks))  # Chunk sizes
-            # J.rechunk((rowChunk, colChunk))
-            print('DASK: ')
-            print('Tile size (nD, nC): ', J.shape)
-            print('Chunk sizes (nD, nC): ', rowChunk, colChunk) # For debugging only
-            print('Number of chunks: ', len(J.chunks[0]), ' x ', len(J.chunks[1]), ' = ', len(J.chunks[0]) * len(J.chunks[1]))
-            print("Target chunk size: ", dask.config.get('array.chunk-size'))
-            print('Max chunk size (GB): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9)
-            print('Max RAM (GB x CPU): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9 * self.n_cpu)
-            print('Tile size (GB): ', J.shape[0] * J.shape[1] * 8 * 1e-9)
-            print("Saving G to zarr: " + self.Jpath)
-            da.to_zarr(J, self.Jpath)
-            self._Jmatrix = da.from_zarr(self.Jpath)
+            # nChunks = self.n_cpu  # Number of chunks
+            # nDataComps = 1
+            # rowChunk, colChunk = int(np.ceil(self.survey.nD*nDataComps/nChunks)), int(np.ceil(self.model.size/nChunks))  # Chunk sizes
+            # # J.rechunk((rowChunk, colChunk))
+            # print('DASK: ')
+            # print('Tile size (nD, nC): ', J.shape)
+            # print('Chunk sizes (nD, nC): ', rowChunk, colChunk) # For debugging only
+            # print('Number of chunks: ', len(J.chunks[0]), ' x ', len(J.chunks[1]), ' = ', len(J.chunks[0]) * len(J.chunks[1]))
+            # print("Target chunk size: ", dask.config.get('array.chunk-size'))
+            # print('Max chunk size (GB): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9)
+            # print('Max RAM (GB x CPU): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9 * self.n_cpu)
+            # print('Tile size (GB): ', J.shape[0] * J.shape[1] * 8 * 1e-9)
+            # print("Saving G to zarr: " + self.Jpath)
+            # da.to_zarr(J, self.Jpath)
+            # self._Jmatrix = da.from_zarr(self.Jpath)
 
-        return self._Jmatrix
+        return J
 
     def Jvec(self, m, v, f=None):
         """
