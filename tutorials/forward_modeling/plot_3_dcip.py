@@ -27,19 +27,19 @@ background conductivity model to compute IP data.
 #
 
 
-from discretize import TensorMesh, CylMesh, TreeMesh
+from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
-from SimPEG.Utils import plot2Ddata, ModelBuilder, surface2ind_topo, matutils
+from SimPEG.Utils import ModelBuilder, surface2ind_topo
 from SimPEG import Maps
 from SimPEG.EM.Static import DC, IP
-from SimPEG.EM.Static.Utils import gen_DCIPsurvey, convertObs_DC3D_to_2D, plot_pseudoSection
+from SimPEG.EM.Static.Utils import plot_pseudoSection
 
+import os
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from discretize.utils import meshutils
 
 try:
     from pymatsolver import Pardiso as Solver
@@ -62,6 +62,8 @@ zz = (1/np.pi)*80*(-np.pi/2 + np.arctan((np.abs(xx) - 500.)/30.))
 xx, yy, zz = mkvc(xx), mkvc(yy), mkvc(zz)
 topo_xyz = np.c_[xx, yy, zz]
 
+fname = os.path.dirname(DC.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip_topo.txt'
+np.savetxt(fname, topo_xyz, fmt='%.4e')
 
 #####################################################################
 # Create Dipole-Dipole Survey
@@ -76,7 +78,7 @@ topo_xyz = np.c_[xx, yy, zz]
 #
 
 # Define all electrode locations (Src and Rx) as an (N, 3) numpy array
-n_loc = 31  # Number of electrode locations along EW profile
+n_loc = 16  # Number of electrode locations along EW profile
 xr = np.linspace(-300., 300., n_loc)
 yr = 0.
 xr, yr = np.meshgrid(xr, yr)
@@ -153,7 +155,7 @@ mesh = refine_tree_xyz(
 )
 
 # Refine core mesh region
-xp, yp, zp = np.meshgrid([-600., 600.], [-300., 300.], [-300., 0.])
+xp, yp, zp = np.meshgrid([-600., 600.], [-300., 300.], [-500., 0.])
 xyz = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
 mesh = refine_tree_xyz(
     mesh, xyz, octree_levels=[0, 2, 2], method='box', finalize=False
@@ -250,6 +252,24 @@ ax1.set_title('Apparent Conductivity [S/m]')
 
 plt.show()
 
+#######################################################################
+# Write out dpred
+# ---------------
+#
+
+survey_dc.getABMN_locations()
+
+data_array = np.c_[
+    survey_dc.a_locations,
+    survey_dc.b_locations,
+    survey_dc.m_locations,
+    survey_dc.n_locations,
+    dpred_dc*(1 + 0.05*np.random.rand(len(dpred_dc)))
+    ]
+
+fname = os.path.dirname(DC.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dc_data.txt'
+np.savetxt(fname, data_array, fmt='%.4e')
+
 
 #######################################################################
 # Predict IP Resistivity Data
@@ -339,3 +359,21 @@ plot_pseudoSection(
 ax1.set_title('Apparent Chargeability (mV/V)')
 
 plt.show()
+
+#######################################################################
+# Write out dpred
+# ---------------
+#
+
+survey_ip.getABMN_locations()
+
+data_array = np.c_[
+    survey_ip.a_locations,
+    survey_ip.b_locations,
+    survey_ip.m_locations,
+    survey_ip.n_locations,
+    dpred_ip*(1 + 0.05*np.random.rand(len(dpred_ip)))
+    ]
+
+fname = os.path.dirname(DC.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\ip_data.txt'
+np.savetxt(fname, data_array, fmt='%.4e')

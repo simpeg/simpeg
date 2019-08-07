@@ -32,6 +32,7 @@ from SimPEG.Utils import plot2Ddata, surface2ind_topo
 from SimPEG import Maps
 from SimPEG.EM import FDEM
 
+import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -240,6 +241,8 @@ xx, yy = np.meshgrid(np.linspace(-3000, 3000, 101), np.linspace(-3000, 3000, 101
 zz = np.zeros(np.shape(xx))
 topo_xyz = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
+fname = os.path.dirname(FDEM.__file__) + '\\..\\..\\..\\tutorials\\assets\\fdem_topo.txt'
+np.savetxt(fname, topo_xyz, fmt='%.4e')
 
 #####################################################################
 # Create Airborne Survey
@@ -254,16 +257,16 @@ topo_xyz = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 freq = 100.
 
 # Defining transmitter locations
-N = 20
+N = 11
 xtx, ytx, ztx = np.meshgrid(
-    np.linspace(-190, 190, N), np.linspace(-190,190, N), [50]
+    np.linspace(-200, 200, N), np.linspace(-200,200, N), [50]
 )
 src_locs = np.c_[mkvc(xtx), mkvc(ytx), mkvc(ztx)]
 ntx = np.size(xtx)
 
 # Define receiver locations
 xrx, yrx, zrx = np.meshgrid(
-    np.linspace(-190, 190, N), np.linspace(-190,190, N), [30]
+    np.linspace(-200, 200, N), np.linspace(-200,200, N), [30]
 )
 rx_locs = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
 
@@ -278,7 +281,7 @@ for ii in range(ntx):
     rxList = [bzr, bzi]
 
     src_list.append(
-        FDEM.Src.MagDipole(rxList, freq, src_locs[ii], orientation='z')
+        FDEM.Src.MagDipole(rxList, freq, src_locs[ii, :], orientation='z')
     )
 
 survey2 = FDEM.Survey(src_list)
@@ -290,7 +293,7 @@ survey2 = FDEM.Survey(src_list)
 # Here we define the OcTree mesh that is used for this example.
 #
 
-dh = 25.                                                     # base cell width
+dh = 20.                                                     # base cell width
 dom_width = 3000.                                            # domain width
 nbc = 2**int(np.round(np.log(dom_width/dh)/np.log(2.)))      # num. base cells
 
@@ -309,7 +312,7 @@ mesh = refine_tree_xyz(
 )
 
 # Refine core mesh region
-xp, yp, zp = np.meshgrid([-300., 300.], [-300., 300.], [-300., 0.])
+xp, yp, zp = np.meshgrid([-300., 300.], [-300., 300.], [-400., 0.])
 xyz = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
 mesh = refine_tree_xyz(
     mesh, xyz, octree_levels=[0, 2, 4], method='box', finalize=False
@@ -322,14 +325,14 @@ mesh.finalize()
 # ----------------------------------------------------
 #
 # We can define the electrical properties of the model in terms of a 
-# resistivity model. Here, the model consists of a long vertical conductive
-# pipe within a more resistive background.
+# resistivity model. Here, the model consists of a conductive
+# block within a more resistive background.
 #
 
 # Resistivity in Ohm m
 air_val = 1e8
 background_val = 1e2
-pipe_val = 1e-1
+block_val = 1e-1
 
 # Active cells are cells below the surface
 ind_active = surface2ind_topo(mesh, topo_xyz)
@@ -337,12 +340,12 @@ mod_map = Maps.InjectActiveCells(mesh, ind_active, air_val)
 
 # Define the model
 mod = background_val*np.ones(ind_active.sum())
-ind_pipe = (
+ind_block = (
     (mesh.gridCC[ind_active, 0] < 100.) & (mesh.gridCC[ind_active, 0] > -100.) &
     (mesh.gridCC[ind_active, 1] < 100.) & (mesh.gridCC[ind_active, 1] > -100.) &
     (mesh.gridCC[ind_active, 2] > -260.) & (mesh.gridCC[ind_active, 2] < -60.)
 )
-mod[ind_pipe] = pipe_val
+mod[ind_block] = block_val
 
 # Plot Log of Resistivity Model
 fig = plt.figure(figsize=(4.5, 6))
@@ -353,17 +356,17 @@ log_mod = np.log10(mod)
 ax1 = fig.add_axes([0.05, 0.05, 0.7, 0.9])
 mesh.plotSlice(
     plotting_map*log_mod, normal='Y', ax=ax1, ind=int(mesh.hx.size/2),
-    grid=True, clim=(np.log10(pipe_val), np.log10(background_val))
+    grid=True, clim=(np.log10(block_val), np.log10(background_val))
 )
 ax1.set_title('Resistivity Model at Y = 0 m')
 
 ax2 = fig.add_axes([0.8, 0.05, 0.05, 0.9])
-norm = mpl.colors.Normalize(vmin=np.log10(pipe_val), vmax=np.log10(background_val))
+norm = mpl.colors.Normalize(vmin=np.log10(block_val), vmax=np.log10(background_val))
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', format="$10^{%.1f}$"
 )
 cbar.set_label(
-    'Resistivity (log[Ohm m])', rotation=270, labelpad=15, size=12
+    'Resistivity (Ohm m)', rotation=270, labelpad=15, size=12
 )
 
 
@@ -396,7 +399,7 @@ plot2Ddata(
     rx_locs[:, 0:2], h_real, ax=ax1, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
     )
-ax1.set_title('Re[Hz] at 100 Hz')
+ax1.set_title('Re[$H_z$] at 100 Hz')
 
 ax2 = fig.add_axes([0.41, 0.05, 0.02, 0.9])
 norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
@@ -412,7 +415,7 @@ plot2Ddata(
     rx_locs[:, 0:2], h_imag, ax=ax1, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
 )
-ax1.set_title('Im[Hz] at 100 Hz')
+ax1.set_title('Im[$H_z$] at 100 Hz')
 
 ax2 = fig.add_axes([0.91, 0.05, 0.02, 0.9])
 norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
@@ -422,3 +425,14 @@ cbar = mpl.colorbar.ColorbarBase(
 cbar.set_label('$A/m$', rotation=270, labelpad=15, size=12)
 
 plt.show()
+
+# PRINT FOR INVERSION TUTORIAL
+fname = os.path.dirname(FDEM.__file__) + '\\..\\..\\..\\tutorials\\assets\\fdem_data.txt'
+h_real = h_real + 1e-9*np.random.rand(len(h_real))
+h_imag = h_imag + 5e-10*np.random.rand(len(h_imag))
+f_vec = freq*np.ones(len(h_real))
+np.savetxt(
+    fname,
+    np.c_[f_vec, rx_locs, h_real, h_imag],
+    fmt='%.4e'
+)

@@ -55,11 +55,7 @@ xx, yy, zz = mkvc(xx), mkvc(yy), mkvc(zz)
 topo = np.c_[xx, yy, zz]
 
 fname = os.path.dirname(PF.__file__) + '\\..\\..\\tutorials\\assets\\magnetic_topo.txt'
-np.savetxt(
-    fname,
-    np.c_[topo],
-    fmt='%.4e'
-)
+np.savetxt(fname, np.c_[topo], fmt='%.4e')
 
 #############################################
 # Defining the Survey
