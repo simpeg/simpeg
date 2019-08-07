@@ -1534,9 +1534,16 @@ def gettopoCC(mesh, actind, option="top"):
 
     elif mesh._meshType == "TREE":
         if mesh.dim == 3:
-            uniqXY = uniqueRows(mesh.gridCC[:, :2])
+            core_inds = np.isin(
+                mesh.h_gridded,
+                np.r_[mesh.hx.min(), mesh.hy.min(), mesh.hz.min()]
+            ).all(axis=1)
+
+            act_core_inds = actind[core_inds]
+
+            uniqXY = uniqueRows(mesh.gridCC[core_inds, :2])
             npts = uniqXY[0].shape[0]
-            ZC = mesh.gridCC[:, 2]
+            ZC = mesh.gridCC[core_inds, 2]
             topoCC = np.zeros(npts)
             if option == "top":
                 # TODO: this assume same hz, need to be modified
@@ -1545,7 +1552,7 @@ def gettopoCC(mesh, actind, option="top"):
                 dz = 0.
             for i in range(npts):
                 inds = uniqXY[2] == i
-                actind_z = actind[inds]
+                actind_z = act_core_inds[inds]
                 if actind_z.sum() > 0.:
                     topoCC[i] = (ZC[inds][actind_z]).max() + dz
                 else:
@@ -1567,6 +1574,7 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
     elif mesh.dim == 3:
         if pts.shape[1] == 3:
             raise Exception("shape of pts should be (x,3)")
+        pass
     else:
         raise NotImplementedError()
     if actind is None:
@@ -1574,16 +1582,21 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
     if mesh._meshType == "TENSOR":
         meshtemp, topoCC = gettopoCC(mesh, actind, option=option)
         inds = Utils.closestPoints(meshtemp, pts)
-
+        topo = topoCC[inds]
+        if mesh.dim == 3:
+            out = np.c_[pts[:, :2], topo]
+        else:
+            out = np.c_[pts, topo]
     elif mesh._meshType == "TREE":
         if mesh.dim == 3:
             uniqXYlocs, topoCC = gettopoCC(mesh, actind, option=option)
             inds = closestPointsGrid(uniqXYlocs, pts)
+            out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
         else:
             raise NotImplementedError()
     else:
         raise NotImplementedError()
-    out = np.c_[pts, topoCC[inds]]
+
     return out
 
 
@@ -1628,3 +1641,67 @@ def closestPointsGrid(grid, pts, dim=2):
                     pt, (grid.shape[0], 1)) - grid)**2.).sum(axis=1).argmin()
 
     return nodeInds
+
+def gen_3d_survey_from_2d_lines(
+        survey_type,
+        a, b, n_spacing,
+        n_lines=5, line_length=200., line_spacing=20.,
+        x0=0, y0=0, z0=0,
+        src_offset_y=0.,
+        dim=3,
+        is_IO=True
+):
+    """
+        Generate 3D DC survey using gen_DCIPsurvey function.
+
+        Input:
+        :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
+            'dipole-pole' | 'pole-pole' | 'gradient'
+        :param int a: pole seperation
+        :param int b: dipole separation
+        :param int n_spacing: number of rx dipoles per tx
+
+        Output:
+        :return SimPEG.DC.SurveyDC.Survey survey_3d: 3D DC survey object
+    """
+    ylocs = np.arange(n_lines)*line_spacing + y0
+
+    survey_lists_2d = []
+    srcList = []
+    line_inds = []
+    for i, y in enumerate(ylocs):
+        # Generate DC survey object
+        xmin, xmax = x0, x0+line_length
+        ymin, ymax = y, y
+        zmin, zmax = 0, 0
+        IO_2d = DC.IO()
+        endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
+        survey_2d = gen_DCIPsurvey(
+            endl, survey_type, a, b, n_spacing, dim=3,
+        )
+
+        srcList.append(survey_2d.srcList)
+        survey_2d.getABMN_locations()
+        survey_2d = IO_2d.from_ambn_locations_to_survey(
+            survey_2d.a_locations[:, [0, 2]], survey_2d.b_locations[:, [0, 2]],
+            survey_2d.m_locations[:, [0, 2]], survey_2d.n_locations[:, [0, 2]],
+            survey_type, dimension=2
+        )
+        survey_lists_2d.append(survey_2d)
+        line_inds.append(np.ones(survey_2d.nD, dtype=int)*i)
+    line_inds = np.hstack(line_inds)
+    srcList = sum(srcList, [])
+    survey_3d = DC.Survey(srcList)
+    survey_3d.getABMN_locations()
+    IO_3d = DC.IO()
+
+    survey_3d.a_locations[:, 1] += src_offset_y
+    survey_3d.b_locations[:, 1] += src_offset_y
+
+    survey_3d = IO_3d.from_ambn_locations_to_survey(
+        survey_3d.a_locations, survey_3d.b_locations,
+        survey_3d.m_locations, survey_3d.n_locations,
+        survey_type, dimension=3,
+        line_inds=line_inds
+    )
+    return IO_3d, survey_3d

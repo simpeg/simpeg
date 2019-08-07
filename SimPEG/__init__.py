@@ -8,7 +8,7 @@ from . import Maps
 from . import Models
 from . import Problem
 from . import Survey
-from . import Regularization
+from . import regularization as Regularization
 from . import DataMisfit
 from . import InvProblem
 from . import Optimization
@@ -23,7 +23,7 @@ from .Utils.SolverUtils import (
     _checkAccuracy, SolverWrapD, SolverWrapI,
     Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
 )
-__version__   = '0.11.5'
+__version__   = '0.12.0'
 __author__    = 'SimPEG Team'
 __license__   = 'MIT'
 __copyright__ = '2013 - 2019, SimPEG Team, http://simpeg.xyz'
