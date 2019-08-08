@@ -162,7 +162,7 @@ class BaseInvProblem(Props.BaseSimPEG):
         return f
 
     def get_dpred(self, m, f):
-        
+
         if isinstance(self.dmisfit, DataMisfit.BaseDataMisfit):
             return self.dmisfit.survey.dpred(m, f=f)
         elif isinstance(self.dmisfit, ObjectiveFunction.BaseObjectiveFunction):
@@ -175,8 +175,8 @@ class BaseInvProblem(Props.BaseSimPEG):
                 else:
                     dpred += []
                     index += []
-                    
-            dpred = da.hstack(dpred).compute()  
+
+            dpred = da.hstack(dpred).compute()
             index = np.hstack(index)
 
             return dpred[index]
@@ -213,14 +213,15 @@ class BaseInvProblem(Props.BaseSimPEG):
 
         if return_H:
             def H_fun(v):
-                
+
                 phi_m2Deriv = np.squeeze(self.reg.deriv2(m, v=v))
+
                 if isinstance(self.dmisfit.deriv2(m, v, f=f), dask.array.Array):
-                    phi_d2Deriv = self.dmisfit.deriv2(m, v, f=f)
+                    phi_d2Deriv = self.dmisfit.deriv2(m, v, f=f).compute()
                 else:
-                    
+
                     phi_d2Deriv = np.squeeze(self.dmisfit.deriv2(m, v, f=f))
-                
+
                 return phi_d2Deriv + self.beta * phi_m2Deriv
 
             H = sp.linalg.LinearOperator( (m.size, m.size), H_fun, dtype=m.dtype )

@@ -399,7 +399,15 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                 else:
                     H += [multiplier * objfct.deriv2(m, v)]
 
-        return rowSum(H).compute()
+        if isinstance(H[0], dask.array.Array):
+
+            return rowSum(H).compute()
+
+        else:
+            sumIt = 0
+            for i in range(len(H)):
+                sumIt += H[i]
+            return sumIt
 
     # This assumes all objective functions have a W.
     # The base class currently does not.
