@@ -10,6 +10,7 @@ from .survey import Survey
 from .fields import Fields_CC, Fields_N
 import dask
 import dask.array as da
+from dask.diagnostics import ProgressBar
 import multiprocessing
 import os
 
@@ -106,29 +107,44 @@ class BaseDCSimulation(BaseEMSimulation):
         if self._Jmatrix is not None:
             return self._Jmatrix
         else:
+            if os.path.exists(self.Jpath):
+                self._Jmatrix = da.from_zarr(self.Jpath)
+            else:
+                self.model = m
+                if f is None:
+                    f = self.fields2(m)
+                J = (self._Jtvec2(m, v=None, f=f))
+                # J.compute()
+                # print(J)
+                # J.rechunk('auto')
+                # J.reshape(len(self.survey.srcList),self.model.size)
+                # print(J)
+                # J = da.zeros((100000, 15))
+                # k = J
+                # # print(J)
+                # print(k)
+                # J.rechunk((100000, 1))
+                # print(J)
+                nChunks = self.n_cpu  # Number of chunks
+                num_tx = len(self.survey.srcList)
+                nDataComps = 1
+                rowChunk, colChunk = int(np.ceil(15/nChunks)), int(np.ceil(100000/nChunks))  # Chunk sizes
+                J.rechunk((colChunk, rowChunk))
+                print('DASK: ')
+                print('Tile size (nD, nC): ', J.shape)
+                print('Chunk sizes (nD, nC): ', rowChunk, colChunk) # For debugging only
+                print('Number of chunks: ', len(J.chunks[0]), ' x ', len(J.chunks[1]), ' = ', len(J.chunks[0]) * len(J.chunks[1]))
+                print("Target chunk size: ", dask.config.get('array.chunk-size'))
+                print('Max chunk size (GB): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9)
+                print('Max RAM (GB x CPU): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9 * self.n_cpu)
+                print('Tile size (GB): ', J.shape[0] * J.shape[1] * 8 * 1e-9)
+                with ProgressBar():
+                    print("Saving G to zarr: " + self.Jpath)
+                    da.to_zarr(J, self.Jpath)
+                print("done saving to zarr")
+                self._Jmatrix = da.from_zarr(self.Jpath)
 
-            self.model = m
-            if f is None:
-                f = self.fields2(m)
-            J = (self._Jtvec2(m, v=None, f=f)).T
-
-            # nChunks = self.n_cpu  # Number of chunks
-            # nDataComps = 1
-            # rowChunk, colChunk = int(np.ceil(self.survey.nD*nDataComps/nChunks)), int(np.ceil(self.model.size/nChunks))  # Chunk sizes
-            # # J.rechunk((rowChunk, colChunk))
-            # print('DASK: ')
-            # print('Tile size (nD, nC): ', J.shape)
-            # print('Chunk sizes (nD, nC): ', rowChunk, colChunk) # For debugging only
-            # print('Number of chunks: ', len(J.chunks[0]), ' x ', len(J.chunks[1]), ' = ', len(J.chunks[0]) * len(J.chunks[1]))
-            # print("Target chunk size: ", dask.config.get('array.chunk-size'))
-            # print('Max chunk size (GB): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9)
-            # print('Max RAM (GB x CPU): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9 * self.n_cpu)
-            # print('Tile size (GB): ', J.shape[0] * J.shape[1] * 8 * 1e-9)
-            # print("Saving G to zarr: " + self.Jpath)
-            # da.to_zarr(J, self.Jpath)
-            # self._Jmatrix = da.from_zarr(self.Jpath)
-
-        return J
+        return self._Jmatrix 
 
     def Jvec(self, m, v, f=None):
         """
@@ -268,14 +284,17 @@ class BaseDCSimulation(BaseEMSimulation):
                     Jtv.append(da.from_delayed(df_dmT + du_dmT, (self.model.size,), dtype=float))
                     # Jtv += (df_dmT.compute() + du_dmT..astype(float)
                 else:
-                    Jtv.append(da.from_delayed(df_dmT + du_dmT, (self.model.size, rx.nD), dtype=float))
+                    Jtv_ = da.sum(da.from_delayed(df_dmT + du_dmT, (self.model.size, rx.nD), dtype=float), axis=1)
+                    Jtv.append(Jtv_)
 
         if v is not None:
             # Jtv_ = da.sum(da.hstack(Jtv), axis=0)
             return da.sum(da.hstack(Jtv), axis=0)
         else:
             # return da.hstack(Jtv)
-            return da.hstack(Jtv)
+            # tv = da.vstack(Jtv)
+            # print('shape: ', tv)
+            return da.stack(Jtv, axis=1)
 
     def getSourceTerm(self):
         """
