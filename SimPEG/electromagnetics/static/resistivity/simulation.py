@@ -12,7 +12,8 @@ import dask
 import dask.array as da
 import multiprocessing
 import os
-
+from scipy.sparse import csr_matrix as csr
+from scipy.sparse import linalg
 
 class BaseDCSimulation(BaseEMSimulation):
     """
@@ -197,6 +198,7 @@ class BaseDCSimulation(BaseEMSimulation):
             istrt = int(0)
             iend = int(0)
 
+
         for src in self.survey.srcList:
             u_src = f[src, self._solutionType].copy()
             for rx in src.rxList:
@@ -207,7 +209,7 @@ class BaseDCSimulation(BaseEMSimulation):
                     )
                 else:
                     # This is for forming full sensitivity matrix
-                    PTv = rx.getP(self.mesh, rx.projGLoc(f)).T
+                    PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
                 df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
                                     None)
                 df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
@@ -248,6 +250,13 @@ class BaseDCSimulation(BaseEMSimulation):
             # This is for forming full sensitivity matrix
             # Jtv2 = da.zeros((self.model.size, self.survey.nD), order='F')
             Jtv = []
+
+        A = self.getA()
+        AtA = csr.dot(A.T, A)
+
+        AtAdiag = csr.diagonal(AtA)
+        Ainv = sdiag(AtAdiag**-0.5)
+
         for src in self.survey.srcList:
             u_src = f[src, self._solutionType].copy()
             for rx in src.rxList:
@@ -269,24 +278,27 @@ class BaseDCSimulation(BaseEMSimulation):
                 df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
 
                 print(df_duT.shape)
-                ATinvDelayed = dask.delayed(self.Ainv._solve)(df_duT)
 
+                solver = linalg.bicgstab
+                # ATinvDelayed = dask.delayed(self.Ainv._solve)(csr.todense(df_duT))
+                ATinvDelayed = dask.delayed(solver)(A, csr.todense(df_duT))
+                # ATinvDelayed = dask.delayed(csr.dot)(Ainv, df_duT)
                 ATinvdf_duT = da.from_delayed(ATinvDelayed, shape=(df_duT.shape), dtype=float)
 
-                print(ATinvdf_duT)
                 dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
-                print(dA_dmT)
+
                 dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
-                print(dRHS_dmT)
-                du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size,), dtype=float) + da.from_delayed(dRHS_dmT, shape=(self.model.size,), dtype=float)
-                print(du_dmT)
-                # type(df_dmT + du_dmT)
+
+                du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size, rx.nD), dtype=float)# + da.from_delayed(dRHS_dmT, shape=(self.model.size, rx.nD), dtype=float)
+
                 if v is not None:
-                    Jtv.append(da.from_delayed(df_dmT + du_dmT, shape=(self.model.size,), dtype=float))
+                    Jtv.append(da.from_delayed(du_dmT, shape=(self.model.size, rx.nD), dtype=float))
                     # Jtv += (df_dmT.compute() + du_dmT..astype(float)
                 else:
-                    temp = dask.delayed(df_dmT + du_dmT)
-                    Jtv.append(da.from_delayed(temp, shape=(self.model.size,), dtype=float))
+                    temp = dask.delayed(du_dmT)
+                    block = da.from_delayed(temp, shape=(self.model.size, rx.nD), dtype=float)
+
+                    Jtv.append(da.from_delayed(dask.delayed(csr.todense)(block), shape=(self.model.size, rx.nD), dtype=float))
 
         if v is not None:
             # Jtv_ = da.sum(da.hstack(Jtv), axis=0)
@@ -298,7 +310,7 @@ class BaseDCSimulation(BaseEMSimulation):
             nChunks = self.n_cpu  # Number of chunks
             rowChunk, colChunk = int(np.ceil(self.survey.nD/nChunks)), int(np.ceil(m.shape[0]/nChunks))  # Chunk sizes
             print(rowChunk, colChunk)
-            J.rechunk((colChunk, rowChunk))
+            J = J.rechunk((colChunk, rowChunk))
             da.to_zarr(J, self.Jpath)
             self._Jmatrix = da.from_zarr(self.Jpath)
             return self._Jmatrix
