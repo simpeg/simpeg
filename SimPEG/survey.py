@@ -14,7 +14,7 @@ class RxLocationArray(properties.Array):
 
     def validate(self, instance, value):
         if len(value.shape) == 1:
-            value = mkvc(value, 2)
+            value = mkvc(value, 2).T
         return super(RxLocationArray, self).validate(instance, value)
 
 class SourceLocationArray(properties.Array):
