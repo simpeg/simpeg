@@ -55,9 +55,11 @@ class BaseDCSimulation(BaseEMSimulation):
 
         f = self.fieldsPair(self)
         A = self.getA()
-        self.Ainv = dask.delayed(self.Solver)(A, **self.solver_opts)
+        self.Ainv = self.Solver(A, **self.solver_opts)
         RHS = self.getRHS()
-        u = self.Ainv * RHS
+
+        AinvRHS = dask.delayed(self.Ainv._solve)(RHS)
+        u = da.from_delayed(AinvRHS, shape=(A.shape[0], RHS.shape[1]), dtype=float)
         Srcs = self.survey.srcList
         f[Srcs, self._solutionType] = u.compute()
         return f
@@ -70,12 +72,16 @@ class BaseDCSimulation(BaseEMSimulation):
             self.Ainv.clean()
 
         f = self.fieldsPair(self)
-        A = self.getA().compute()
+        A = self.getA()
+
+
         self.Ainv = self.Solver(A, **self.solver_opts)
         RHS = self.getRHS()
-        u = self.Ainv * RHS.compute()
+        print("RHS shape", RHS.shape)
+        AinvRHS = dask.delayed(self.Ainv._solve)(RHS)
+        u = da.from_delayed(AinvRHS, shape=(A.shape[0], RHS.shape[1]), dtype=float)
         Srcs = self.survey.srcList
-        f[Srcs, self._solutionType] = u
+        f[Srcs, self._solutionType] = u.compute()
         return f
 
     def getJ(self, m, f=None):
@@ -201,7 +207,7 @@ class BaseDCSimulation(BaseEMSimulation):
                     )
                 else:
                     # This is for forming full sensitivity matrix
-                    PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+                    PTv = rx.getP(self.mesh, rx.projGLoc(f)).T
                 df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
                                     None)
                 df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
@@ -253,22 +259,34 @@ class BaseDCSimulation(BaseEMSimulation):
                 else:
                     # This is for forming full sensitivity matrix
                     # PTv = dask.delayed(rx.getP)(self.mesh, rx.projGLoc(f), transpose=True)
-                    PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+                    PTv = rx.getP(self.mesh, rx.projGLoc(f)).T
 
                 # NEED TO CHECK WHAT DERIV TO BE USED LIKE PREVIOUS IMPLIMENTATION, NOT ALWAYS PHIDERIV
-                df_duT = dask.delayed(f._phiDeriv_u)(src, PTv, adjoint=True)
-                df_dmT = dask.delayed(f._phiDeriv_m)(src, PTv, adjoint=True)
+                # df_duT = f._phiDeriv_u(src, PTv, adjoint=True)
+                # df_dmT = f._phiDeriv_m(src, PTv, adjoint=True)
+                df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
+                                    None)
+                df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
 
-                ATinvdf_duT = self.Ainv * df_duT
+                print(df_duT.shape)
+                ATinvDelayed = dask.delayed(self.Ainv._solve)(df_duT)
+
+                ATinvdf_duT = da.from_delayed(ATinvDelayed, shape=(df_duT.shape), dtype=float)
+
+                print(ATinvdf_duT)
                 dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
+                print(dA_dmT)
                 dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
-                du_dmT = -dA_dmT + dRHS_dmT
+                print(dRHS_dmT)
+                du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size,), dtype=float) + da.from_delayed(dRHS_dmT, shape=(self.model.size,), dtype=float)
+                print(du_dmT)
                 # type(df_dmT + du_dmT)
                 if v is not None:
-                    Jtv.append(da.from_delayed(df_dmT + du_dmT, (self.model.size,), dtype=float))
+                    Jtv.append(da.from_delayed(df_dmT + du_dmT, shape=(self.model.size,), dtype=float))
                     # Jtv += (df_dmT.compute() + du_dmT..astype(float)
                 else:
-                    Jtv.append(da.from_delayed(df_dmT + du_dmT, (self.model.size, rx.nD), dtype=float))
+                    temp = dask.delayed(df_dmT + du_dmT)
+                    Jtv.append(da.from_delayed(temp, shape=(self.model.size,), dtype=float))
 
         if v is not None:
             # Jtv_ = da.sum(da.hstack(Jtv), axis=0)
@@ -276,11 +294,11 @@ class BaseDCSimulation(BaseEMSimulation):
         else:
 
             J = da.hstack(Jtv)
-
+            print(J)
             nChunks = self.n_cpu  # Number of chunks
             rowChunk, colChunk = int(np.ceil(self.survey.nD/nChunks)), int(np.ceil(m.shape[0]/nChunks))  # Chunk sizes
             print(rowChunk, colChunk)
-            J.rechunk((rowChunk, colChunk))
+            J.rechunk((colChunk, rowChunk))
             da.to_zarr(J, self.Jpath)
             self._Jmatrix = da.from_zarr(self.Jpath)
             return self._Jmatrix
@@ -330,7 +348,6 @@ class Problem3D_CC(BaseDCSimulation):
         BaseDCSimulation.__init__(self, mesh, **kwargs)
         self.setBC()
 
-    @dask.delayed
     def getA(self):
         """
         Make the A matrix for the cell centered DC resistivity problem
@@ -370,7 +387,6 @@ class Problem3D_CC(BaseDCSimulation):
 
         return D * (MfRhoIDeriv(G * u, v, adjoint))
 
-    @dask.delayed
     def getRHS(self):
         """
         RHS for the DC problem
