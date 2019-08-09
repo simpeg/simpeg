@@ -114,7 +114,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
             # nChunks = self.n_cpu  # Number of chunks
             # nDataComps = 1
-            # rowChunk, colChunk = int(np.ceil(self.survey.nD*nDataComps/nChunks)), int(np.ceil(self.model.size/nChunks))  # Chunk sizes
+            # rowChunk, colChunk = int(np.ceil(self.survey.nD/nChunks)), int(np.ceil(self.model.size/nChunks))  # Chunk sizes
             # # J.rechunk((rowChunk, colChunk))
             # print('DASK: ')
             # print('Tile size (nD, nC): ', J.shape)
@@ -164,7 +164,7 @@ class BaseDCSimulation(BaseEMSimulation):
         """
         if self.storeJ:
             J = self.getJ(m, f=f)
-            Jtv = mkvc(np.dot(J.T, v))
+            Jtv = mkvc(da.dot(J.T, v))
             return Jtv
 
         self.model = m
@@ -274,8 +274,16 @@ class BaseDCSimulation(BaseEMSimulation):
             # Jtv_ = da.sum(da.hstack(Jtv), axis=0)
             return da.sum(da.hstack(Jtv), axis=0)
         else:
-            # return da.hstack(Jtv)
-            return da.hstack(Jtv)
+
+            J = da.hstack(Jtv)
+
+            nChunks = self.n_cpu  # Number of chunks
+            rowChunk, colChunk = int(np.ceil(self.survey.nD/nChunks)), int(np.ceil(m.shape[0]/nChunks))  # Chunk sizes
+            print(rowChunk, colChunk)
+            J.rechunk((rowChunk, colChunk))
+            da.to_zarr(J, self.Jpath)
+            self._Jmatrix = da.from_zarr(self.Jpath)
+            return self._Jmatrix
 
     def getSourceTerm(self):
         """
