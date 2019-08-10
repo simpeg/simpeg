@@ -112,8 +112,6 @@ class Fields_CC(FieldsDC):
         return phiSolution
 
     def _phiDeriv_u(self, src, v, adjoint=False):
-        print("In fields")
-
         return v
 
     def _phiDeriv_m(self, src, v, adjoint=False):

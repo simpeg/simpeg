@@ -78,7 +78,6 @@ class BaseDCSimulation(BaseEMSimulation):
 
         self.Ainv = self.Solver(A, **self.solver_opts)
         RHS = self.getRHS()
-        print("RHS shape", RHS.shape)
         AinvRHS = dask.delayed(self.Ainv._solve)(RHS)
         u = da.from_delayed(AinvRHS, shape=(A.shape[0], RHS.shape[1]), dtype=float)
         Srcs = self.survey.srcList
@@ -117,25 +116,8 @@ class BaseDCSimulation(BaseEMSimulation):
             self.model = m
             if f is None:
                 f = self.fields2(m)
-            J = (self._Jtvec2(m, v=None, f=f)).T
-
-            # nChunks = self.n_cpu  # Number of chunks
-            # nDataComps = 1
-            # rowChunk, colChunk = int(np.ceil(self.survey.nD/nChunks)), int(np.ceil(self.model.size/nChunks))  # Chunk sizes
-            # # J.rechunk((rowChunk, colChunk))
-            # print('DASK: ')
-            # print('Tile size (nD, nC): ', J.shape)
-            # print('Chunk sizes (nD, nC): ', rowChunk, colChunk) # For debugging only
-            # print('Number of chunks: ', len(J.chunks[0]), ' x ', len(J.chunks[1]), ' = ', len(J.chunks[0]) * len(J.chunks[1]))
-            # print("Target chunk size: ", dask.config.get('array.chunk-size'))
-            # print('Max chunk size (GB): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9)
-            # print('Max RAM (GB x CPU): ', max(J.chunks[0]) * max(J.chunks[1]) * 8 * 1e-9 * self.n_cpu)
-            # print('Tile size (GB): ', J.shape[0] * J.shape[1] * 8 * 1e-9)
-            # print("Saving G to zarr: " + self.Jpath)
-            # da.to_zarr(J, self.Jpath)
-            # self._Jmatrix = da.from_zarr(self.Jpath)
-
-        return J
+            self._Jmatrix = (self._Jtvec2(m, v=None, f=f)).T
+        return self._Jmatrix
 
     def Jvec(self, m, v, f=None):
         """
@@ -251,12 +233,6 @@ class BaseDCSimulation(BaseEMSimulation):
             # Jtv2 = da.zeros((self.model.size, self.survey.nD), order='F')
             Jtv = []
 
-        A = self.getA()
-        AtA = csr.dot(A.T, A)
-
-        AtAdiag = csr.diagonal(AtA)
-        Ainv = sdiag(AtAdiag**-0.5)
-
         for src in self.survey.srcList:
             u_src = f[src, self._solutionType].copy()
             for rx in src.rxList:
@@ -268,7 +244,7 @@ class BaseDCSimulation(BaseEMSimulation):
                 else:
                     # This is for forming full sensitivity matrix
                     # PTv = dask.delayed(rx.getP)(self.mesh, rx.projGLoc(f), transpose=True)
-                    PTv = rx.getP(self.mesh, rx.projGLoc(f)).T
+                    PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
 
                 # NEED TO CHECK WHAT DERIV TO BE USED LIKE PREVIOUS IMPLIMENTATION, NOT ALWAYS PHIDERIV
                 # df_duT = f._phiDeriv_u(src, PTv, adjoint=True)
@@ -277,28 +253,43 @@ class BaseDCSimulation(BaseEMSimulation):
                                     None)
                 df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
 
-                print(df_duT.shape)
+                # solver = linalg.bicgstab
+                # RHS = csr.todense(df_duT)
 
-                solver = linalg.bicgstab
+                calcRHS = dask.delayed(self.solveA, pure=True)
+
+                # print(components)
+                makeRows = [calcRHS(df_duT[:, ii]) for ii in range(df_duT.shape[1])]
+
+                AinvRHS = [da.from_delayed(makeRow, dtype=float, shape=(df_duT.shape[0],)) for (ind, makeRow) in enumerate(makeRows)]
+
+                ATinvdf_duT = da.vstack(AinvRHS)
+
                 # ATinvDelayed = dask.delayed(self.Ainv._solve)(csr.todense(df_duT))
-                ATinvDelayed = dask.delayed(solver)(A, csr.todense(df_duT))
+                # ATinvDelayed = dask.delayed(solver)(A, csr.todense(df_duT))
                 # ATinvDelayed = dask.delayed(csr.dot)(Ainv, df_duT)
-                ATinvdf_duT = da.from_delayed(ATinvDelayed, shape=(df_duT.shape), dtype=float)
+#                ATinvdf_duT = da.from_delayed(ATinvdf_duT, shape=(df_duT.shape), dtype=float)
 
                 dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
 
                 dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
 
-                du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size, rx.nD), dtype=float)# + da.from_delayed(dRHS_dmT, shape=(self.model.size, rx.nD), dtype=float)
+                du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(dRHS_dmT, shape=(self.model.size, rx.nD), dtype=float)
 
-                if v is not None:
-                    Jtv.append(da.from_delayed(du_dmT, shape=(self.model.size, rx.nD), dtype=float))
-                    # Jtv += (df_dmT.compute() + du_dmT..astype(float)
-                else:
-                    temp = dask.delayed(du_dmT)
+                # if v is not None:
+                #     Jtv.append(da.from_delayed(du_dmT, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(df_dmT, shape=(self.model.size, rx.nD), dtype=float))
+                #     # Jtv += (df_dmT.compute() + du_dmT..astype(float)
+                # else:
+                temp = dask.delayed(du_dmT)
+
+                if isinstance(df_dmT, Zero):
                     block = da.from_delayed(temp, shape=(self.model.size, rx.nD), dtype=float)
 
-                    Jtv.append(da.from_delayed(dask.delayed(csr.todense)(block), shape=(self.model.size, rx.nD), dtype=float))
+                else:
+                    block = da.from_delayed(temp, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(df_dmT, shape=(self.model.size, rx.nD), dtype=float)
+
+
+                Jtv.append(block)
 
         if v is not None:
             # Jtv_ = da.sum(da.hstack(Jtv), axis=0)
@@ -314,6 +305,10 @@ class BaseDCSimulation(BaseEMSimulation):
             da.to_zarr(J, self.Jpath)
             self._Jmatrix = da.from_zarr(self.Jpath)
             return self._Jmatrix
+
+    def solveA(self, col):
+
+        return self.Ainv._solve(col)
 
     def getSourceTerm(self):
         """
