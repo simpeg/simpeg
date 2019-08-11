@@ -49,23 +49,23 @@ class BaseDCSimulation(BaseEMSimulation):
         RHS = self.getRHS()
         return self.Ainv * RHS
 
-    def fields2(self, m=None):
-        if m is not None:
-            self.model = m
+    # def fields2(self, m=None):
+    #     if m is not None:
+    #         self.model = m
 
-        if self.Ainv is not None:
-            self.Ainv.clean()
+    #     if self.Ainv is not None:
+    #         self.Ainv.clean()
 
-        f = self.fieldsPair(self)
-        A = self.getA()
-        self.Ainv = self.Solver(A, **self.solver_opts)
-        RHS = self.getRHS()
+    #     f = self.fieldsPair(self)
+    #     A = self.getA()
+    #     self.Ainv = self.Solver(A, **self.solver_opts)
+    #     RHS = self.getRHS()
 
-        AinvRHS = dask.delayed(self.Ainv._solve)(RHS)
-        u = da.from_delayed(AinvRHS, shape=(A.shape[0], RHS.shape[1]), dtype=float)
-        Srcs = self.survey.source_list
-        f[Srcs, self._solutionType] = u.compute()
-        return f
+    #     AinvRHS = dask.delayed(self.Ainv._solve)(RHS)
+    #     u = da.from_delayed(AinvRHS, shape=(A.shape[0], RHS.shape[1]), dtype=float)
+    #     Srcs = self.survey.source_list
+    #     f[Srcs, self._solutionType] = u.compute()
+    #     return f
 
     def fields(self, m=None):
         if m is not None:
@@ -84,63 +84,135 @@ class BaseDCSimulation(BaseEMSimulation):
 
         self.Ainv = self.Solver(A, **self.solver_opts)
         RHS = self.getRHS()
-        AinvRHS = dask.delayed(self.Ainv._solve)(RHS)
-        u = da.from_delayed(AinvRHS, shape=(A.shape[0], RHS.shape[1]), dtype=float)
+        # AinvRHS = dask.delayed(self.Ainv._solve)(RHS)
+        # u = da.from_delayed(AinvRHS, shape=(A.shape[0], RHS.shape[1]), dtype=float)
         Srcs = self.survey.source_list
-        f[Srcs, self._solutionType] = u.compute()
+        f[Srcs, self._solutionType] = self.Ainv * RHS
         return f
+
+    def getJtJdiag(self, m, W=None):
+        """
+            Return the diagonal of JtJ
+        """
+
+        if (self.gtgdiag is None):
+
+            # Need to check if multiplying weights makes sense
+            if W is None:
+                w = np.ones(self.survey.nD)
+            else:
+                w = W.diagonal()
+
+            self.gtgdiag = da.sum(self.getJ(self.model)**2., 0).compute()
+
+        return self.gtgdiag
 
     def getJ(self, m, f=None):
         """
             Generate Full sensitivity matrix
         """
-        if self.verbose:
-            print("Calculating J and storing")
 
         if self._Jmatrix is not None:
-            return self._Jmatrix.T
+            return self._Jmatrix
         else:
 
             self.model = m
             if f is None:
                 f = self.fields(m)
-            self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
-        return self._Jmatrix
 
-    def getJ2(self, m, f=None):
-        """
-            Generate Full sensitivity matrix
-        """
-        self.n_cpu = int(multiprocessing.cpu_count())
         if self.verbose:
             print("Calculating J and storing")
 
-        if self._Jmatrix is not None:
-            return self._Jmatrix.T
-        else:
+        self.n_cpu = int(multiprocessing.cpu_count())
+        Jtv = []
+        count = 0
+        for source in self.survey.source_list:
+            u_source = f[source, self._solutionType].copy()
+            for rx in source.receiver_list:
+                # wrt f, need possibility wrt m
+                PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
 
-            self.model = m
-            if f is None:
-                f = self.fields2(m)
-            self._Jmatrix = (self._Jtvec2(m, v=None, f=f)).T
+                df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
+                                    None)
+                df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
+
+                # Compute block of receivers
+                ATinvdf_duT = self.Ainv * df_duT
+
+                dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
+
+                dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
+
+                du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(dRHS_dmT, shape=(self.model.size, rx.nD), dtype=float)
+
+                if not isinstance(df_dmT, Zero):
+
+                    du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, rx.nD), dtype=float)
+
+                blockName = self.Jpath + "J" + str(count) + ".zarr"
+                if os.path.exists(blockName):
+
+                    shutil.rmtree(blockName)
+
+                nChunks = self.n_cpu  # Number of chunks
+                rowChunk = int(np.ceil(rx.nD/nChunks))
+                colChunk = int(np.ceil(self.model.size/nChunks))  # Chunk sizes
+                du_dmT = du_dmT.rechunk((colChunk, rowChunk))
+
+                da.to_zarr(du_dmT, blockName)
+
+                Jtv.append(du_dmT)
+                count += 1
+
+        # Stack all the source blocks in one big zarr
+        J = da.hstack(Jtv).T
+        nChunks = self.n_cpu  # Number of chunks
+        rowChunk = int(np.ceil(self.survey.nD/nChunks))# Chunk sizes
+        colChunk = int(np.ceil(m.shape[0]/nChunks))
+        J = J.rechunk((rowChunk, colChunk))
+
+        if os.path.exists(self.Jpath + "J.zarr"):
+
+            shutil.rmtree(self.Jpath + "J.zarr")
+
+        da.to_zarr(J, self.Jpath + "J.zarr")
+        self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
+
         return self._Jmatrix
+
+    # def getJ2(self, m, f=None):
+    #     """
+    #         Generate Full sensitivity matrix
+    #     """
+    #     self.n_cpu = int(multiprocessing.cpu_count())
+    #     if self.verbose:
+    #         print("Calculating J and storing")
+
+    #     if self._Jmatrix is not None:
+    #         return self._Jmatrix.T
+    #     else:
+
+    #         self.model = m
+    #         if f is None:
+    #             f = self.fields2(m)
+    #         self._Jmatrix = (self._Jtvec2(m, v=None, f=f)).T
+    #     return self._Jmatrix
 
     def Jvec(self, m, v, f=None):
         """
             Compute sensitivity matrix (J) and vector (v) product.
         """
-        if self.storeJ:
-            J = self.getJ(m, f=f)
-            Jv = mkvc(da.dot(J, v))
-            return Jv
 
         self.model = m
 
         if f is None:
             f = self.fields(m)
 
-        Jv = []
+        if self.storeJ:
+            J = self.getJ(m, f=f)
+            return mkvc(da.dot(J, v).compute())
 
+        Jv = []
         for source in self.survey.source_list:
             u_source = f[source, self._solutionType]  # solution vector
             dA_dm_v = self.getADeriv(u_source, v)
@@ -157,15 +229,16 @@ class BaseDCSimulation(BaseEMSimulation):
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
 
         """
-        if self.storeJ:
-            J = self.getJ(m, f=f)
-            Jtv = mkvc(da.dot(J.T, v))
-            return Jtv
-
-        self.model = m
 
         if f is None:
             f = self.fields(m)
+
+        self.model = m
+
+        if self.storeJ:
+            J = self.getJ(m, f=f)
+
+            return mkvc(da.dot(J.T, v).compute())
 
         return self._Jtvec(m, v=v, f=f)
 
@@ -222,119 +295,6 @@ class BaseDCSimulation(BaseEMSimulation):
         else:
             # return np.hstack(Jtv)
             return Jtv
-
-    def _Jtvec2(self, m, v=None, f=None):
-        """
-            Compute adjoint sensitivity matrix (J^T) and vector (v) product.
-            Full J matrix can be computed by inputing v=None
-        """
-        if v is not None:
-            # Ensure v is a data object.
-            if not isinstance(v, Data):
-                v = Data(self.survey, v)
-            # Jtv = np.zeros(m.size)
-            Jtv = []
-        else:
-            # This is for forming full sensitivity matrix
-            # Jtv2 = da.zeros((self.model.size, self.survey.nD), order='F')
-            Jtv = []
-
-        for source in self.survey.source_list:
-            u_source = f[source, self._solutionType].copy()
-            for rx in source.receiver_list:
-                # wrt f, need possibility wrt m
-                if v is not None:
-                    PTv = rx.evalDeriv(
-                        source, self.mesh, f, v[source, rx], adjoint=True
-                    )
-                else:
-                    # This is for forming full sensitivity matrix
-                    # PTv = dask.delayed(rx.getP)(self.mesh, rx.projGLoc(f), transpose=True)
-                    PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
-
-                # NEED TO CHECK WHAT DERIV TO BE USED LIKE PREVIOUS IMPLIMENTATION, NOT ALWAYS PHIDERIV
-                # df_duT = f._phiDeriv_u(source, PTv, adjoint=True)
-                # df_dmT = f._phiDeriv_m(source, PTv, adjoint=True)
-                df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
-                                    None)
-                df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
-
-                # calcRHS = dask.delayed(self.solveA, pure=True)
-
-                # # print(components)
-                # makeRows = [calcRHS(A, df_duT[:, ii], PreCon) for ii in range(df_duT.shape[1])]
-
-                # AinvRHS = [da.from_delayed(makeRow, dtype=float, shape=(df_duT.shape[0],)) for (ind, makeRow) in enumerate(makeRows)]
-
-#                ATinvdf_duT = da.vstack(AinvRHS).T
-
-                # Compute right away
-                ATinvdf_duT = self.Ainv * df_duT
-
-                # ATinvDelayed = dask.delayed(self.Ainv._solve)(csr.todense(df_duT))
-                # ATinvDelayed = dask.delayed(solver)(A, csr.todense(df_duT))
-                # ATinvDelayed = dask.delayed(csr.dot)(Ainv, df_duT)
-#                ATinvdf_duT = da.from_delayed(ATinvdf_duT, shape=(df_duT.shape), dtype=float)
-
-                dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
-
-                dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
-
-                du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(dRHS_dmT, shape=(self.model.size, rx.nD), dtype=float)
-
-                # if v is not None:
-                #     Jtv.append(da.from_delayed(du_dmT, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(df_dmT, shape=(self.model.size, rx.nD), dtype=float))
-                #     # Jtv += (df_dmT.compute() + du_dmT..astype(float)
-                # else:
-                temp = dask.delayed(du_dmT)
-
-                if isinstance(df_dmT, Zero):
-                    block = da.from_delayed(temp, shape=(self.model.size, rx.nD), dtype=float)
-
-                else:
-                    block = da.from_delayed(temp, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(df_dmT, shape=(self.model.size, rx.nD), dtype=float)
-
-                blockName = self.Jpath + "J" + str(count) + ".zarr"
-                if os.path.exists(blockName):
-
-                    shutil.rmtree(blockName)
-
-                nChunks = self.n_cpu  # Number of chunks
-                rowChunk = int(np.ceil(rx.nD/nChunks))
-                colChunk = int(np.ceil(self.model.size/nChunks))  # Chunk sizes
-                block = block.rechunk((colChunk, rowChunk))
-
-                da.to_zarr(block, blockName)
-
-                Jtv.append(block)
-                count += 1
-
-        # Stack all the source blocks in one big zarr
-        J = da.hstack(Jtv)
-
-        nChunks = self.n_cpu  # Number of chunks
-        rowChunk = int(np.ceil(self.survey.nD/nChunks))# Chunk sizes
-        colChunk = int(np.ceil(m.shape[0]/nChunks))
-        J = J.rechunk((colChunk, rowChunk))
-
-        if os.path.exists(self.Jpath + "J.zarr"):
-
-            shutil.rmtree(self.Jpath + "J.zarr")
-
-        da.to_zarr(J, self.Jpath + "J.zarr")
-        self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
-
-        if v is not None:
-            # Jtv_ = da.sum(da.hstack(Jtv), axis=0)
-            return da.dot(self._Jmatrix, v)
-        else:
-
-            return self._Jmatrix
-
-#     def solveA(self, A, b, M):
-
-# #            linalg.bicg(A, b, M=M, tol=1e-4)[0]
-#         return self.Ainv * b
 
     def getSourceTerm(self):
         """
