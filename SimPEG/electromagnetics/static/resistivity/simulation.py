@@ -1,6 +1,7 @@
 import numpy as np
 import scipy as sp
 import properties
+import shutil
 
 from ....utils import mkvc, sdiag, Zero
 from ....data import Data
@@ -14,12 +15,13 @@ import multiprocessing
 import os
 from scipy.sparse import csr_matrix as csr
 from scipy.sparse import linalg
+from pymatsolver import BicgJacobi
 
 class BaseDCSimulation(BaseEMSimulation):
     """
     Base DC Problem
     """
-    Jpath = "./sensitivity.zarr"
+    Jpath = "./sensitivity/"
     n_cpu = None
     maxRAM = 2
 
@@ -61,7 +63,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
         AinvRHS = dask.delayed(self.Ainv._solve)(RHS)
         u = da.from_delayed(AinvRHS, shape=(A.shape[0], RHS.shape[1]), dtype=float)
-        Srcs = self.survey.srcList
+        Srcs = self.survey.source_list
         f[Srcs, self._solutionType] = u.compute()
         return f
 
@@ -72,6 +74,10 @@ class BaseDCSimulation(BaseEMSimulation):
         if self.Ainv is not None:
             self.Ainv.clean()
 
+        # Will need to add this once testing is over
+        # if self._Jmatrix is not None:
+        #     self._Jmatrix = None
+
         f = self.fieldsPair(self)
         A = self.getA()
 
@@ -80,7 +86,7 @@ class BaseDCSimulation(BaseEMSimulation):
         RHS = self.getRHS()
         AinvRHS = dask.delayed(self.Ainv._solve)(RHS)
         u = da.from_delayed(AinvRHS, shape=(A.shape[0], RHS.shape[1]), dtype=float)
-        Srcs = self.survey.srcList
+        Srcs = self.survey.source_list
         f[Srcs, self._solutionType] = u.compute()
         return f
 
@@ -92,7 +98,7 @@ class BaseDCSimulation(BaseEMSimulation):
             print("Calculating J and storing")
 
         if self._Jmatrix is not None:
-            return self._Jmatrix
+            return self._Jmatrix.T
         else:
 
             self.model = m
@@ -110,7 +116,7 @@ class BaseDCSimulation(BaseEMSimulation):
             print("Calculating J and storing")
 
         if self._Jmatrix is not None:
-            return self._Jmatrix
+            return self._Jmatrix.T
         else:
 
             self.model = m
@@ -125,7 +131,7 @@ class BaseDCSimulation(BaseEMSimulation):
         """
         if self.storeJ:
             J = self.getJ(m, f=f)
-            Jv = mkvc(np.dot(J, v))
+            Jv = mkvc(da.dot(J, v))
             return Jv
 
         self.model = m
@@ -135,15 +141,15 @@ class BaseDCSimulation(BaseEMSimulation):
 
         Jv = []
 
-        for src in self.survey.srcList:
-            u_src = f[src, self._solutionType]  # solution vector
-            dA_dm_v = self.getADeriv(u_src, v)
-            dRHS_dm_v = self.getRHSDeriv(src, v)
+        for source in self.survey.source_list:
+            u_source = f[source, self._solutionType]  # solution vector
+            dA_dm_v = self.getADeriv(u_source, v)
+            dRHS_dm_v = self.getRHSDeriv(source, v)
             du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
-            for rx in src.rxList:
+            for rx in source.receiver_list:
                 df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
-                df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
+                df_dm_v = df_dmFun(source, du_dm_v, v, adjoint=False)
+                Jv.append(rx.evalDeriv(source, self.mesh, f, df_dm_v))
         return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
@@ -181,25 +187,25 @@ class BaseDCSimulation(BaseEMSimulation):
             iend = int(0)
 
 
-        for src in self.survey.srcList:
-            u_src = f[src, self._solutionType].copy()
-            for rx in src.rxList:
+        for source in self.survey.source_list:
+            u_source = f[source, self._solutionType].copy()
+            for rx in source.receiver_list:
                 # wrt f, need possibility wrt m
                 if v is not None:
                     PTv = rx.evalDeriv(
-                        src, self.mesh, f, v[src, rx], adjoint=True
+                        source, self.mesh, f, v[source, rx], adjoint=True
                     )
                 else:
                     # This is for forming full sensitivity matrix
                     PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
                 df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
                                     None)
-                df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+                df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
 
                 ATinvdf_duT = self.Ainv * df_duT
 
-                dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True).compute()
-                dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True).compute()
+                dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True).compute()
+                dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True).compute()
                 du_dmT = -dA_dmT + dRHS_dmT
                 if v is not None:
                     Jtv += (df_dmT + du_dmT).astype(float)
@@ -233,13 +239,13 @@ class BaseDCSimulation(BaseEMSimulation):
             # Jtv2 = da.zeros((self.model.size, self.survey.nD), order='F')
             Jtv = []
 
-        for src in self.survey.srcList:
-            u_src = f[src, self._solutionType].copy()
-            for rx in src.rxList:
+        for source in self.survey.source_list:
+            u_source = f[source, self._solutionType].copy()
+            for rx in source.receiver_list:
                 # wrt f, need possibility wrt m
                 if v is not None:
                     PTv = rx.evalDeriv(
-                        src, self.mesh, f, v[src, rx], adjoint=True
+                        source, self.mesh, f, v[source, rx], adjoint=True
                     )
                 else:
                     # This is for forming full sensitivity matrix
@@ -247,32 +253,32 @@ class BaseDCSimulation(BaseEMSimulation):
                     PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
 
                 # NEED TO CHECK WHAT DERIV TO BE USED LIKE PREVIOUS IMPLIMENTATION, NOT ALWAYS PHIDERIV
-                # df_duT = f._phiDeriv_u(src, PTv, adjoint=True)
-                # df_dmT = f._phiDeriv_m(src, PTv, adjoint=True)
+                # df_duT = f._phiDeriv_u(source, PTv, adjoint=True)
+                # df_dmT = f._phiDeriv_m(source, PTv, adjoint=True)
                 df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
                                     None)
-                df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+                df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
 
-                # solver = linalg.bicgstab
-                # RHS = csr.todense(df_duT)
+                # calcRHS = dask.delayed(self.solveA, pure=True)
 
-                calcRHS = dask.delayed(self.solveA, pure=True)
+                # # print(components)
+                # makeRows = [calcRHS(A, df_duT[:, ii], PreCon) for ii in range(df_duT.shape[1])]
 
-                # print(components)
-                makeRows = [calcRHS(df_duT[:, ii]) for ii in range(df_duT.shape[1])]
+                # AinvRHS = [da.from_delayed(makeRow, dtype=float, shape=(df_duT.shape[0],)) for (ind, makeRow) in enumerate(makeRows)]
 
-                AinvRHS = [da.from_delayed(makeRow, dtype=float, shape=(df_duT.shape[0],)) for (ind, makeRow) in enumerate(makeRows)]
+#                ATinvdf_duT = da.vstack(AinvRHS).T
 
-                ATinvdf_duT = da.vstack(AinvRHS)
+                # Compute right away
+                ATinvdf_duT = self.Ainv * df_duT
 
                 # ATinvDelayed = dask.delayed(self.Ainv._solve)(csr.todense(df_duT))
                 # ATinvDelayed = dask.delayed(solver)(A, csr.todense(df_duT))
                 # ATinvDelayed = dask.delayed(csr.dot)(Ainv, df_duT)
 #                ATinvdf_duT = da.from_delayed(ATinvdf_duT, shape=(df_duT.shape), dtype=float)
 
-                dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
+                dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
 
-                dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
+                dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
 
                 du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(dRHS_dmT, shape=(self.model.size, rx.nD), dtype=float)
 
@@ -288,27 +294,47 @@ class BaseDCSimulation(BaseEMSimulation):
                 else:
                     block = da.from_delayed(temp, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(df_dmT, shape=(self.model.size, rx.nD), dtype=float)
 
+                blockName = self.Jpath + "J" + str(count) + ".zarr"
+                if os.path.exists(blockName):
+
+                    shutil.rmtree(blockName)
+
+                nChunks = self.n_cpu  # Number of chunks
+                rowChunk = int(np.ceil(rx.nD/nChunks))
+                colChunk = int(np.ceil(self.model.size/nChunks))  # Chunk sizes
+                block = block.rechunk((colChunk, rowChunk))
+
+                da.to_zarr(block, blockName)
 
                 Jtv.append(block)
+                count += 1
+
+        # Stack all the source blocks in one big zarr
+        J = da.hstack(Jtv)
+
+        nChunks = self.n_cpu  # Number of chunks
+        rowChunk = int(np.ceil(self.survey.nD/nChunks))# Chunk sizes
+        colChunk = int(np.ceil(m.shape[0]/nChunks))
+        J = J.rechunk((colChunk, rowChunk))
+
+        if os.path.exists(self.Jpath + "J.zarr"):
+
+            shutil.rmtree(self.Jpath + "J.zarr")
+
+        da.to_zarr(J, self.Jpath + "J.zarr")
+        self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
 
         if v is not None:
             # Jtv_ = da.sum(da.hstack(Jtv), axis=0)
-            return da.sum(da.hstack(Jtv), axis=0)
+            return da.dot(self._Jmatrix, v)
         else:
 
-            J = da.hstack(Jtv)
-            print(J)
-            nChunks = self.n_cpu  # Number of chunks
-            rowChunk, colChunk = int(np.ceil(self.survey.nD/nChunks)), int(np.ceil(m.shape[0]/nChunks))  # Chunk sizes
-            print(rowChunk, colChunk)
-            J = J.rechunk((colChunk, rowChunk))
-            da.to_zarr(J, self.Jpath)
-            self._Jmatrix = da.from_zarr(self.Jpath)
             return self._Jmatrix
 
-    def solveA(self, col):
+#     def solveA(self, A, b, M):
 
-        return self.Ainv._solve(col)
+# #            linalg.bicg(A, b, M=M, tol=1e-4)[0]
+#         return self.Ainv * b
 
     def getSourceTerm(self):
         """
@@ -317,7 +343,7 @@ class BaseDCSimulation(BaseEMSimulation):
         :return: q (nC or nN, nSrc)
         """
 
-        Srcs = self.survey.srcList
+        Srcs = self.survey.source_list
 
         if self._formulation == 'EB':
             n = self.mesh.nN
@@ -328,8 +354,8 @@ class BaseDCSimulation(BaseEMSimulation):
 
         q = np.zeros((n, len(Srcs)))
 
-        for i, src in enumerate(Srcs):
-            q[:, i] = src.eval(self)
+        for i, source in enumerate(Srcs):
+            q[:, i] = source.eval(self)
         return q
 
     @property
@@ -405,12 +431,12 @@ class Problem3D_CC(BaseDCSimulation):
         return RHS
 
     @dask.delayed
-    def getRHSDeriv(self, src, v, adjoint=False):
+    def getRHSDeriv(self, source, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model
         """
         # TODO: add qDeriv for RHS depending on m
-        # qDeriv = src.evalDeriv(self, adjoint=adjoint)
+        # qDeriv = source.evalDeriv(self, adjoint=adjoint)
         # return qDeriv
         return Zero()
 
@@ -608,11 +634,11 @@ class Problem3D_N(BaseDCSimulation):
         RHS = self.getSourceTerm()
         return RHS
 
-    def getRHSDeriv(self, src, v, adjoint=False):
+    def getRHSDeriv(self, source, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model
         """
         # TODO: add qDeriv for RHS depending on m
-        # qDeriv = src.evalDeriv(self, adjoint=adjoint)
+        # qDeriv = source.evalDeriv(self, adjoint=adjoint)
         # return qDeriv
         return Zero()

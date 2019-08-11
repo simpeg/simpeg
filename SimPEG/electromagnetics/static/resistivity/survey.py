@@ -91,9 +91,9 @@ class Survey(BaseSurvey):
         )
 
         geometric_factor = SimPEG.Survey.Data(self, geometric_factor)
-        for src in self.srcList:
-            for rx in src.rxList:
-                rx._geometric_factor = geometric_factor[src, rx]
+        for source in self.source_list:
+            for rx in source.receiver_list:
+                rx._geometric_factor = geometric_factor[source, rx]
                 rx.data_type = data_type
         return geometric_factor
 
@@ -102,24 +102,24 @@ class Survey(BaseSurvey):
         b_locations = []
         m_locations = []
         n_locations = []
-        for src in self.srcList:
-            for rx in src.rxList:
+        for source in self.source_list:
+            for rx in source.receiver_list:
                 nRx = rx.nD
                 # Pole Source
-                if isinstance(src, Src.Pole):
+                if isinstance(source, Src.Pole):
                     a_locations.append(
-                        src.loc.reshape([1, -1]).repeat(nRx, axis=0)
+                        source.location.reshape([1, -1]).repeat(nRx, axis=0)
                     )
                     b_locations.append(
-                        src.loc.reshape([1, -1]).repeat(nRx, axis=0)
+                        source.location.reshape([1, -1]).repeat(nRx, axis=0)
                     )
                 # Dipole Source
-                elif isinstance(src, Src.Dipole):
+                elif isinstance(source, Src.Dipole):
                     a_locations.append(
-                        src.loc[0].reshape([1, -1]).repeat(nRx, axis=0)
+                        source.location[0].reshape([1, -1]).repeat(nRx, axis=0)
                     )
                     b_locations.append(
-                        src.loc[1].reshape([1, -1]).repeat(nRx, axis=0)
+                        source.location[1].reshape([1, -1]).repeat(nRx, axis=0)
                     )
 
                 # Pole RX
@@ -173,13 +173,13 @@ class Survey(BaseSurvey):
                     )
 
                 # Loop over all Src and Rx locs and Drape topo
-                for src in self.srcList:
+                for source in self.source_list:
                     # Pole Src
-                    if isinstance(src, Src.Pole):
-                        locA = src.loc.flatten()
+                    if isinstance(source, Src.Pole):
+                        locA = source.location.flatten()
                         z_SrcA = self.topo_function(locA[0])
-                        src.loc = np.array([locA[0], z_SrcA])
-                        for rx in src.rxList:
+                        source.location = np.array([locA[0], z_SrcA])
+                        for rx in source.receiver_list:
                             # Pole Rx
                             if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
                                 locM = rx.locs.copy()
@@ -197,16 +197,16 @@ class Survey(BaseSurvey):
                                 raise Exception()
 
                     # Dipole Src
-                    elif isinstance(src, Src.Dipole):
-                        locA = src.loc[0].flatten()
-                        locB = src.loc[1].flatten()
+                    elif isinstance(source, Src.Dipole):
+                        locA = source.location[0].flatten()
+                        locB = source.location[1].flatten()
                         z_SrcA = self.topo_function(locA[0])
                         z_SrcB = self.topo_function(locB[0])
 
-                        src.loc[0] = np.array([locA[0], z_SrcA])
-                        src.loc[1] = np.array([locB[0], z_SrcB])
+                        source.location[0] = np.array([locA[0], z_SrcA])
+                        source.location[1] = np.array([locB[0], z_SrcB])
 
-                        for rx in src.rxList:
+                        for rx in source.receiver_list:
                             # Pole Rx
                             if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
                                 locM = rx.locs.copy()
@@ -263,14 +263,14 @@ class Survey(BaseSurvey):
                     self.electrode_locations[:, 2]
                 )
                 # Loop over all Src and Rx locs and Drape topo
-                for src in self.srcList:
+                for source in self.source_list:
                     # Pole Src
-                    if isinstance(src, Src.Pole):
-                        locA = src.loc.reshape([1, -1])
+                    if isinstance(source, Src.Pole):
+                        locA = source.location.reshape([1, -1])
                         z_SrcA = self.topo_function(locA[0, :2])
-                        src.loc = np.r_[locA[0, :2].flatten(), z_SrcA]
+                        source.location = np.r_[locA[0, :2].flatten(), z_SrcA]
 
-                        for rx in src.rxList:
+                        for rx in source.receiver_list:
                             # Pole Rx
                             if isinstance(rx, Rx.Pole):
                                 locM = rx.locs.copy()
@@ -288,15 +288,15 @@ class Survey(BaseSurvey):
                                 raise Exception()
 
                     # Dipole Src
-                    elif isinstance(src, Src.Dipole):
-                        locA = src.loc[0].reshape([1, -1])
-                        locB = src.loc[1].reshape([1, -1])
+                    elif isinstance(source, Src.Dipole):
+                        locA = source.location[0].reshape([1, -1])
+                        locB = source.location[1].reshape([1, -1])
                         z_SrcA = self.topo_function(locA[0, :2])
                         z_SrcB = self.topo_function(locB[0, :2])
-                        src.loc[0] = np.r_[locA[0, :2].flatten(), z_SrcA]
-                        src.loc[1] = np.r_[locB[0, :2].flatten(), z_SrcB]
+                        source.location[0] = np.r_[locA[0, :2].flatten(), z_SrcA]
+                        source.location[1] = np.r_[locB[0, :2].flatten(), z_SrcB]
 
-                        for rx in src.rxList:
+                        for rx in source.receiver_list:
                             # Pole Rx
                             if isinstance(rx, Rx.Pole):
                                 locM = rx.locs.copy()
