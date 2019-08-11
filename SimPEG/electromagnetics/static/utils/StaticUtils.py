@@ -1077,7 +1077,7 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
         for ii in range(len(indx)):
 
             # Get all receivers
-            Rx = survey.srcList[indx[ii]].rxList[0].locs
+            Rx = survey.source_list[indx[ii]].rxList[0].locs
             nrx = Rx[0].shape[0]
 
             if flag == 'local':
@@ -1453,7 +1453,7 @@ def getSrc_locs(survey):
 
     srcMat = []
 
-    for src in survey.srcList:
+    for src in survey.sourc_list:
 
         srcMat.append(np.hstack(src.loc))
 

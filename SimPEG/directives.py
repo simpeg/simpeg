@@ -106,7 +106,7 @@ class InversionDirective(properties.HasProperties):
            Assuming that dmisfit is always a ComboObjectiveFunction,
            return a list of problems for each dmisfit [prob1, prob2, ...]
         """
-        return [objfcts.prob for objfcts in self.dmisfit.objfcts]
+        return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
 
     def initialize(self):
         pass
