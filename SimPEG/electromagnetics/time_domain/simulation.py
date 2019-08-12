@@ -39,6 +39,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     #     """
 
+    def fields2(self, m):
+        self.model = m
+
     def fields(self, m):
         """
         Solve the forward problem for the fields.
@@ -856,7 +859,7 @@ class Problem3D_e(BaseTDEMSimulation):
         MfMui = self.MfMui
         MeSigma = self.MeSigma
 
-        return C.T * (MfMui * C)+1./dt * MeSigma
+        return C.T * (MfMui * C) + 1./dt * MeSigma
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         """
@@ -906,14 +909,9 @@ class Problem3D_e(BaseTDEMSimulation):
         s_m, s_e = self.getSourceTerm(tInd)
         _, s_en1 = self.getSourceTerm(tInd-1)
 
-        # For spped up, ignore the second term in rhs when s_m is zero
-        rhs = -1./dt * (s_e - s_en1)
-        if s_m.all() != 0:
-            rhs += self.mesh.edgeCurl.T * self.MfMui * s_m
-        return rhs
-        # return (
-        #     -1./dt * (s_e - s_en1) + self.mesh.edgeCurl.T * self.MfMui * s_m
-        # )
+        return (
+            -1./dt * (s_e - s_en1) + self.mesh.edgeCurl.T * self.MfMui * s_m
+        )
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         # right now, we are assuming that s_e, s_m do not depend on the model.
