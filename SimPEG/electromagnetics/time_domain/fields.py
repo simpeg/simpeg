@@ -350,6 +350,7 @@ class Fields3D_e(FieldsTDEM):
                 self.simulation, self._times[tInd]
             )
             s_m[:, i] = s_m[:, i] + s_m_src
+        assert(np.all(s_m == 0))
         return s_m - self._edgeCurl * eSolution
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):

@@ -582,9 +582,9 @@ class LineCurrent(BaseTDEMSrc):
 # on faces
 class RawVec_Grounded(BaseTDEMSrc):
 
-    # mu = properties.Float(
-    #     "permeability of the background", default=mu_0, min=0.
-    # )
+    mu = properties.Float(
+        "permeability of the background", default=mu_0
+    )
 
     _s_e = properties.Array(
         "source term", shape=("*",)

@@ -142,44 +142,44 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         self.assertTrue(passed)
 
 
-class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
+# class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
 
-    formulation = 'b'
+#     formulation = 'b'
 
-    def test_eDeriv_m_adjoint(self):
-        tInd = 0
+#     def test_eDeriv_m_adjoint(self):
+#         tInd = 0
 
-        prb = self.prob
-        f = self.fields
-        v = np.random.rand(prb.mesh.nF)
+#         prb = self.prob
+#         f = self.fields
+#         v = np.random.rand(prb.mesh.nF)
 
-        print('\n Testing eDeriv_m Adjoint')
+#         print('\n Testing eDeriv_m Adjoint')
 
-        m = np.random.rand(len(self.m))
-        e = np.random.randn(prb.mesh.nE)
-        V1 = e.dot(f._eDeriv_m(1, prb.survey.srcList[0], m))
-        V2 = m.dot(f._eDeriv_m(1, prb.survey.srcList[0], e, adjoint=True))
-        tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
-        passed = np.abs(V1-V2) < tol
+#         m = np.random.rand(len(self.m))
+#         e = np.random.randn(prb.mesh.nE)
+#         V1 = e.dot(f._eDeriv_m(1, prb.survey.srcList[0], m))
+#         V2 = m.dot(f._eDeriv_m(1, prb.survey.srcList[0], e, adjoint=True))
+#         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
+#         passed = np.abs(V1-V2) < tol
 
-        print('    ', V1, V2, np.abs(V1-V2), tol, passed)
-        self.assertTrue(passed)
+#         print('    ', V1, V2, np.abs(V1-V2), tol, passed)
+#         self.assertTrue(passed)
 
-    def test_eDeriv_u_adjoint(self):
-        print('\n Testing eDeriv_u Adjoint')
+#     def test_eDeriv_u_adjoint(self):
+#         print('\n Testing eDeriv_u Adjoint')
 
-        prb = self.prob
-        f = self.fields
+#         prb = self.prob
+#         f = self.fields
 
-        b = np.random.rand(prb.mesh.nF)
-        e = np.random.randn(prb.mesh.nE)
-        V1 = e.dot(f._eDeriv_u(1, prb.survey.srcList[0], b))
-        V2 = b.dot(f._eDeriv_u(1, prb.survey.srcList[0], e, adjoint=True))
-        tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
-        passed = np.abs(V1-V2) < tol
+#         b = np.random.rand(prb.mesh.nF)
+#         e = np.random.randn(prb.mesh.nE)
+#         V1 = e.dot(f._eDeriv_u(1, prb.survey.srcList[0], b))
+#         V2 = b.dot(f._eDeriv_u(1, prb.survey.srcList[0], e, adjoint=True))
+#         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
+#         passed = np.abs(V1-V2) < tol
 
-        print('    ', V1, V2, np.abs(V1-V2), tol, passed)
-        self.assertTrue(passed)
+#         print('    ', V1, V2, np.abs(V1-V2), tol, passed)
+#         self.assertTrue(passed)
 
 
 class DerivAdjoint_E(Base_DerivAdjoint_Test):
@@ -225,181 +225,7 @@ class DerivAdjoint_E(Base_DerivAdjoint_Test):
             self.JvecVsJtvecTest('jy')
 
 
-class DerivAdjoint_B(Base_DerivAdjoint_Test):
-
-    formulation = 'b'
-
-    if testDeriv:
-        def test_Jvec_b_bx(self):
-            self.JvecTest('bx')
-
-        def test_Jvec_b_bz(self):
-            self.JvecTest('bz')
-
-        def test_Jvec_b_dbdtx(self):
-            self.JvecTest('dbdtx')
-
-        def test_Jvec_b_dbdtz(self):
-            self.JvecTest('dbdtz')
-
-        def test_Jvec_b_jy(self):
-            self.JvecTest('jy')
-
-        def test_Jvec_b_hx(self):
-            self.JvecTest('hx')
-
-        def test_Jvec_b_hz(self):
-            self.JvecTest('hz')
-
-        def test_Jvec_b_dhdtx(self):
-            self.JvecTest('dhdtx')
-
-        def test_Jvec_b_dhdtz(self):
-            self.JvecTest('dhdtz')
-
-        def test_Jvec_b_jy(self):
-            self.JvecTest('jy')
-
-    if testAdjoint:
-        def test_Jvec_adjoint_b_bx(self):
-            self.JvecVsJtvecTest('bx')
-
-        def test_Jvec_adjoint_b_bz(self):
-            self.JvecVsJtvecTest('bz')
-
-        def test_Jvec_adjoint_b_dbdtx(self):
-            self.JvecVsJtvecTest('dbdtx')
-
-        def test_Jvec_adjoint_b_dbdtz(self):
-            self.JvecVsJtvecTest('dbdtz')
-
-        def test_Jvec_adjoint_b_ey(self):
-            self.JvecVsJtvecTest('ey')
-
-        def test_Jvec_adjoint_b_hx(self):
-            self.JvecVsJtvecTest('hx')
-
-        def test_Jvec_adjoint_b_hz(self):
-            self.JvecVsJtvecTest('hz')
-
-        def test_Jvec_adjoint_b_dhdtx(self):
-            self.JvecVsJtvecTest('dhdtx')
-
-        def test_Jvec_adjoint_b_dhdtx(self):
-            self.JvecVsJtvecTest('dhdtz')
-
-        def test_Jvec_adjoint_b_ey(self):
-            self.JvecVsJtvecTest('jy')
-
-
-class DerivAdjoint_H(Base_DerivAdjoint_Test):
-
-    formulation = 'h'
-
-    if testDeriv:
-        def test_Jvec_h_hx(self):
-            self.JvecTest('hx')
-
-        def test_Jvec_h_hz(self):
-            self.JvecTest('hz')
-
-        def test_Jvec_h_dhdtx(self):
-            self.JvecTest('dhdtx')
-
-        def test_Jvec_h_dhdtz(self):
-            self.JvecTest('dhdtz')
-
-        def test_Jvec_h_jy(self):
-            self.JvecTest('jy')
-
-        def test_Jvec_h_bx(self):
-            self.JvecTest('bx')
-
-        def test_Jvec_h_bz(self):
-            self.JvecTest('bz')
-
-        def test_Jvec_h_dbdtx(self):
-            self.JvecTest('dbdtx')
-
-        def test_Jvec_h_dbdtz(self):
-            self.JvecTest('dbdtz')
-
-        def test_Jvec_h_ey(self):
-            self.JvecTest('ey')
-
-    if testAdjoint:
-        def test_Jvec_adjoint_h_hx(self):
-            self.JvecVsJtvecTest('hx')
-
-        def test_Jvec_adjoint_h_hz(self):
-            self.JvecVsJtvecTest('hz')
-
-        def test_Jvec_adjoint_h_dhdtx(self):
-            self.JvecVsJtvecTest('dhdtx')
-
-        def test_Jvec_adjoint_h_dhdtz(self):
-            self.JvecVsJtvecTest('dhdtz')
-
-        def test_Jvec_adjoint_h_jy(self):
-            self.JvecVsJtvecTest('jy')
-
-        def test_Jvec_adjoint_h_bx(self):
-            self.JvecVsJtvecTest('bx')
-
-        def test_Jvec_adjoint_h_bz(self):
-            self.JvecVsJtvecTest('bz')
-
-        def test_Jvec_adjoint_h_dbdtx(self):
-            self.JvecVsJtvecTest('dbdtx')
-
-        def test_Jvec_adjoint_h_dbdtz(self):
-            self.JvecVsJtvecTest('dbdtz')
-
-        def test_Jvec_adjoint_h_ey(self):
-            self.JvecVsJtvecTest('ey')
-
-
-class DerivAdjoint_J(Base_DerivAdjoint_Test):
-
-    formulation = 'j'
-
-    if testDeriv:
-        def test_Jvec_j_jy(self):
-            self.JvecTest('jy')
-
-        def test_Jvec_j_dhdtx(self):
-            self.JvecTest('dhdtx')
-
-        def test_Jvec_j_dhdtz(self):
-            self.JvecTest('dhdtz')
-
-        def test_Jvec_j_ey(self):
-            self.JvecTest('ey')
-
-        def test_Jvec_j_dbdtx(self):
-            self.JvecTest('dbdtx')
-
-        def test_Jvec_j_dbdtz(self):
-            self.JvecTest('dbdtz')
-
-    if testAdjoint:
-        def test_Jvec_adjoint_j_jy(self):
-            self.JvecVsJtvecTest('jy')
-
-        def test_Jvec_adjoint_j_dhdtx(self):
-            self.JvecVsJtvecTest('dhdtx')
-
-        def test_Jvec_adjoint_j_dhdtz(self):
-            self.JvecVsJtvecTest('dhdtz')
-
-        def test_Jvec_adjoint_j_ey(self):
-            self.JvecVsJtvecTest('ey')
-
-        def test_Jvec_adjoint_j_dbdtx(self):
-            self.JvecVsJtvecTest('dbdtx')
-
-        def test_Jvec_adjoint_j_dbdtz(self):
-            self.JvecVsJtvecTest('dbdtz')
+# clacVsJtvecTest('dbdtz')
 
 if __name__ == '__main__':
     unittest.main()

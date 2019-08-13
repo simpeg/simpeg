@@ -165,35 +165,35 @@ class Point_dbdt(BaseRx):
         self.projField = 'dbdt'
         super(Point_dbdt, self).__init__(locations, times, orientation, **kwargs)
 
-    def eval(self, src, mesh, time_mesh, f):
+    # def eval(self, src, mesh, time_mesh, f):
 
-        if self.projField in f.aliasFields:
-            return super(Point_dbdt, self).eval(src, mesh, time_mesh, f)
+    #     if self.projField in f.aliasFields:
+    #         return super(Point_dbdt, self).eval(src, mesh, time_mesh, f)
 
-        P = self.getP(mesh, time_mesh, f)
-        f_part = mkvc(f[src, 'b', :])
-        return P*f_part
+    #     P = self.getP(mesh, time_mesh, f)
+    #     f_part = mkvc(f[src, 'b', :])
+    #     return P*f_part
 
-    def projGLoc(self, f):
-        """Grid Location projection (e.g. Ex Fy ...)"""
-        if self.projField in f.aliasFields:
-            return super(Point_dbdt, self).projGLoc(f)
-        return f._GLoc(self.projField) + self.projComp
+    # def projGLoc(self, f):
+    #     """Grid Location projection (e.g. Ex Fy ...)"""
+    #     if self.projField in f.aliasFields:
+    #         return super(Point_dbdt, self).projGLoc(f)
+    #     return f._GLoc(self.projField) + self.projComp
 
-    def getTimeP(self, time_mesh, f):
-        """
-            Returns the time projection matrix.
+    # def getTimeP(self, time_mesh, f):
+    #     """
+    #         Returns the time projection matrix.
 
-            .. note::
+    #         .. note::
 
-                This is not stored in memory, but is created on demand.
-        """
-        if self.projField in f.aliasFields:
-            return super(Point_dbdt, self).getTimeP(time_mesh, f)
+    #             This is not stored in memory, but is created on demand.
+    #     """
+    #     if self.projField in f.aliasFields:
+    #         return super(Point_dbdt, self).getTimeP(time_mesh, f)
 
-        return time_mesh.getInterpolationMat(
-            self.times, 'CC'
-        )*time_mesh.faceDiv
+    #     return time_mesh.getInterpolationMat(
+    #         self.times, 'C'
+    #     )*time_mesh.faceDiv
 
 
 class Point_h(BaseRx):
