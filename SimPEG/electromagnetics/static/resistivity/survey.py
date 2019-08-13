@@ -124,13 +124,13 @@ class Survey(BaseSurvey):
 
                 # Pole RX
                 if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
-                    m_locations.append(rx.locs)
-                    n_locations.append(rx.locs)
+                    m_locations.append(rx.locations)
+                    n_locations.append(rx.locations)
 
                 # Dipole RX
                 elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
-                    m_locations.append(rx.locs[0])
-                    n_locations.append(rx.locs[1])
+                    m_locations.append(rx.locations[0])
+                    n_locations.append(rx.locations[1])
 
         self.a_locations = np.vstack(a_locations)
         self.b_locations = np.vstack(b_locations)
@@ -182,17 +182,17 @@ class Survey(BaseSurvey):
                         for rx in source.receiver_list:
                             # Pole Rx
                             if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
-                                locM = rx.locs.copy()
+                                locM = rx.locations.copy()
                                 z_RxM = self.topo_function(locM[:, 0])
-                                rx.locs = np.c_[locM[:, 0], z_RxM]
+                                rx.locations = np.c_[locM[:, 0], z_RxM]
                             # Dipole Rx
                             elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
-                                locM = rx.locs[0].copy()
-                                locN = rx.locs[1].copy()
+                                locM = rx.locations[0].copy()
+                                locN = rx.locations[1].copy()
                                 z_RxM = self.topo_function(locM[:, 0])
                                 z_RxN = self.topo_function(locN[:, 0])
-                                rx.locs[0] = np.c_[locM[:, 0], z_RxM]
-                                rx.locs[1] = np.c_[locN[:, 0], z_RxN]
+                                rx.locations[0] = np.c_[locM[:, 0], z_RxM]
+                                rx.locations[1] = np.c_[locN[:, 0], z_RxN]
                             else:
                                 raise Exception()
 
@@ -209,17 +209,17 @@ class Survey(BaseSurvey):
                         for rx in source.receiver_list:
                             # Pole Rx
                             if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
-                                locM = rx.locs.copy()
+                                locM = rx.locations.copy()
                                 z_RxM = self.topo_function(locM[:, 0])
-                                rx.locs = np.c_[locM[:, 0], z_RxM]
+                                rx.locations = np.c_[locM[:, 0], z_RxM]
                             # Dipole Rx
                             elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
-                                locM = rx.locs[0].copy()
-                                locN = rx.locs[1].copy()
+                                locM = rx.locations[0].copy()
+                                locN = rx.locations[1].copy()
                                 z_RxM = self.topo_function(locM[:, 0])
                                 z_RxN = self.topo_function(locN[:, 0])
-                                rx.locs[0] = np.c_[locM[:, 0], z_RxM]
-                                rx.locs[1] = np.c_[locN[:, 0], z_RxN]
+                                rx.locations[0] = np.c_[locM[:, 0], z_RxM]
+                                rx.locations[1] = np.c_[locN[:, 0], z_RxN]
                             else:
                                 raise Exception()
 
@@ -273,17 +273,17 @@ class Survey(BaseSurvey):
                         for rx in source.receiver_list:
                             # Pole Rx
                             if isinstance(rx, Rx.Pole):
-                                locM = rx.locs.copy()
+                                locM = rx.locations.copy()
                                 z_RxM = self.topo_function(locM[:, :2])
-                                rx.locs = np.c_[locM[:, 0], z_RxM]
+                                rx.locations = np.c_[locM[:, 0], z_RxM]
                             # Dipole Rx
                             elif isinstance(rx, Rx.Dipole):
-                                locM = rx.locs[0].copy()
-                                locN = rx.locs[1].copy()
+                                locM = rx.locations[0].copy()
+                                locN = rx.locations[1].copy()
                                 z_RxM = self.topo_function(locM[:, :2])
                                 z_RxN = self.topo_function(locN[:, :2])
-                                rx.locs[0] = np.c_[locM[:, :2], z_RxM]
-                                rx.locs[1] = np.c_[locN[:, :2], z_RxN]
+                                rx.locations[0] = np.c_[locM[:, :2], z_RxM]
+                                rx.locations[1] = np.c_[locN[:, :2], z_RxN]
                             else:
                                 raise Exception()
 
@@ -299,17 +299,17 @@ class Survey(BaseSurvey):
                         for rx in source.receiver_list:
                             # Pole Rx
                             if isinstance(rx, Rx.Pole):
-                                locM = rx.locs.copy()
+                                locM = rx.locations.copy()
                                 z_RxM = self.topo_function(locM[:, :2])
-                                rx.locs = np.c_[locM[:, :2], z_RxM]
+                                rx.locations = np.c_[locM[:, :2], z_RxM]
                             # Dipole Rx
                             elif isinstance(rx, Rx.Dipole):
-                                locM = rx.locs[0].copy()
-                                locN = rx.locs[1].copy()
+                                locM = rx.locations[0].copy()
+                                locN = rx.locations[1].copy()
                                 z_RxM = self.topo_function(locM[:, :2])
                                 z_RxN = self.topo_function(locN[:, :2])
-                                rx.locs[0] = np.c_[locM[:, :2], z_RxM]
-                                rx.locs[1] = np.c_[locN[:, :2], z_RxN]
+                                rx.locations[0] = np.c_[locM[:, :2], z_RxM]
+                                rx.locations[1] = np.c_[locN[:, :2], z_RxN]
                             else:
                                 raise Exception()
 

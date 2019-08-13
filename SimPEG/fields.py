@@ -192,7 +192,7 @@ class Fields(properties.HasProperties):
             # Aliased fields
             alias, loc, func = self.aliasFields[name]
 
-            srcII = np.array(self.survey.srcList)[ind]
+            srcII = np.array(self.survey.source_list)[ind]
             srcII = srcII.tolist()
 
             if isinstance(func, string_types):
