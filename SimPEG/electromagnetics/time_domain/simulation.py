@@ -510,14 +510,32 @@ class Problem3D_b(BaseTDEMSimulation):
         """
         Assemble the RHS
         """
+        source_list = self.survey.source_list
+        rhs = np.zeros((self.mesh.nF, len(source_list)))
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
-        MfMui = self.MfMui
 
-        s_m, s_e = self.getSourceTerm(tInd)
+        for i, src in enumerate(self.survey.source_list):
+            s_en = src.s_e(self, tInd+1)
+            s_mn = src.s_m(self, tInd+1)
 
-        rhs = (C * (MeSigmaI * s_e) + s_m)
+            rhs[:, i] = (
+                rhs[:, i] + (C * (MeSigmaI * s_en) + s_mn)
+            )
+
+            # handle the initial condition
+            if tInd == 0 and src.waveform.hasInitialFields:
+                if src.srcType == "galvanic":
+                    einitial = src.eInitial(self)
+                    rhs[:, i] = rhs[:, i] - C * einitial
+
+                elif src.srcType == "inductive":
+                    dt = self.timeSteps[tInd]
+                    binitial = src.bInitial(self)
+                    rhs[:, i] = rhs[:, i] + 1/dt * binitial
+
         if self._makeASymmetric is True:
+            MfMui = self.MfMui
             return MfMui.T * rhs
         return rhs
 
@@ -533,7 +551,7 @@ class Problem3D_b(BaseTDEMSimulation):
 
         MfMui = self.MfMui
 
-        _, s_e = src.eval(self, self.times[tInd])
+        s_e = src.s_e(self, self.times[tInd+1])
         s_mDeriv, s_eDeriv = src.evalDeriv(
             self, self.times[tInd], adjoint=adjoint
         )
@@ -542,7 +560,7 @@ class Problem3D_b(BaseTDEMSimulation):
             if self._makeASymmetric is True:
                 v = self.MfMui * v
             if isinstance(s_e,  Zero):
-                MeSigmaIDerivT_v =  Zero()
+                MeSigmaIDerivT_v = Zero()
             else:
                 MeSigmaIDerivT_v = self.MeSigmaIDeriv(s_e, C.T * v, adjoint)
 
@@ -551,6 +569,15 @@ class Problem3D_b(BaseTDEMSimulation):
                 s_mDeriv(v)
             )
 
+            # handle the initial condition
+            if tInd == 0 and src.waveform.hasInitialFields:
+                if src.srcType == "galvanic":
+                    einitial_deriv = src.eInitialDeriv(self, C.T * v, f=f, adjoint=True)
+                    RHSDeriv = RHSDeriv - einitial_deriv
+                elif src.srcType == "inductive":
+                    dt = self.timeSteps[tInd]
+                    binitial_deriv = src.bInitialDeriv(self, v, f=f, adjoint=True)
+                    RHSDeriv = RHSDeriv + 1/dt * binitial_deriv
             return RHSDeriv
 
         if isinstance(s_e,  Zero):
@@ -561,6 +588,17 @@ class Problem3D_b(BaseTDEMSimulation):
         RHSDeriv = (
             C * MeSigmaIDeriv_v + C * MeSigmaI * s_eDeriv(v) + s_mDeriv(v)
         )
+
+        # handle the initial condition
+        if tInd == 0 and src.waveform.hasInitialFields:
+            if src.srcType == "galvanic":
+                einitial_deriv = src.eInitialDeriv(self, v, f=f)
+                RHSDeriv = RHSDeriv - C * einitial_deriv
+            elif src.srcType == "inductive":
+                dt = self.timeSteps[tInd]
+                binitial_deriv = src.bInitialDeriv(self, v, f=f)
+                RHSDeriv = RHSDeriv + 1/dt * binitial_deriv
+
 
         if self._makeASymmetric is True:
             return self.MfMui.T * RHSDeriv

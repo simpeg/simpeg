@@ -142,44 +142,44 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         self.assertTrue(passed)
 
 
-# class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
+class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
 
-#     formulation = 'b'
+    formulation = 'b'
 
-#     def test_eDeriv_m_adjoint(self):
-#         tInd = 0
+    def test_eDeriv_m_adjoint(self):
+        tInd = 0
 
-#         prb = self.prob
-#         f = self.fields
-#         v = np.random.rand(prb.mesh.nF)
+        prb = self.prob
+        f = self.fields
+        v = np.random.rand(prb.mesh.nF)
 
-#         print('\n Testing eDeriv_m Adjoint')
+        print('\n Testing eDeriv_m Adjoint')
 
-#         m = np.random.rand(len(self.m))
-#         e = np.random.randn(prb.mesh.nE)
-#         V1 = e.dot(f._eDeriv_m(1, prb.survey.srcList[0], m))
-#         V2 = m.dot(f._eDeriv_m(1, prb.survey.srcList[0], e, adjoint=True))
-#         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
-#         passed = np.abs(V1-V2) < tol
+        m = np.random.rand(len(self.m))
+        e = np.random.randn(prb.mesh.nE)
+        V1 = e.dot(f._eDeriv_m(1, prb.survey.srcList[0], m))
+        V2 = m.dot(f._eDeriv_m(1, prb.survey.srcList[0], e, adjoint=True))
+        tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
+        passed = np.abs(V1-V2) < tol
 
-#         print('    ', V1, V2, np.abs(V1-V2), tol, passed)
-#         self.assertTrue(passed)
+        print('    ', V1, V2, np.abs(V1-V2), tol, passed)
+        self.assertTrue(passed)
 
-#     def test_eDeriv_u_adjoint(self):
-#         print('\n Testing eDeriv_u Adjoint')
+    def test_eDeriv_u_adjoint(self):
+        print('\n Testing eDeriv_u Adjoint')
 
-#         prb = self.prob
-#         f = self.fields
+        prb = self.prob
+        f = self.fields
 
-#         b = np.random.rand(prb.mesh.nF)
-#         e = np.random.randn(prb.mesh.nE)
-#         V1 = e.dot(f._eDeriv_u(1, prb.survey.srcList[0], b))
-#         V2 = b.dot(f._eDeriv_u(1, prb.survey.srcList[0], e, adjoint=True))
-#         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
-#         passed = np.abs(V1-V2) < tol
+        b = np.random.rand(prb.mesh.nF)
+        e = np.random.randn(prb.mesh.nE)
+        V1 = e.dot(f._eDeriv_u(1, prb.survey.srcList[0], b))
+        V2 = b.dot(f._eDeriv_u(1, prb.survey.srcList[0], e, adjoint=True))
+        tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
+        passed = np.abs(V1-V2) < tol
 
-#         print('    ', V1, V2, np.abs(V1-V2), tol, passed)
-#         self.assertTrue(passed)
+        print('    ', V1, V2, np.abs(V1-V2), tol, passed)
+        self.assertTrue(passed)
 
 
 class DerivAdjoint_E(Base_DerivAdjoint_Test):
@@ -225,7 +225,9 @@ class DerivAdjoint_E(Base_DerivAdjoint_Test):
             self.JvecVsJtvecTest('jy')
 
 
-# clacVsJtvecTest('dbdtz')
+class DerivAdjoint_B(DerivAdjoint_E):
+
+    formulation = 'b'
 
 if __name__ == '__main__':
     unittest.main()
