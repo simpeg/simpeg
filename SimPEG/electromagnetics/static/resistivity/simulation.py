@@ -69,12 +69,16 @@ class BaseDCSimulation(BaseEMSimulation):
 
             # Need to check if multiplying weights makes sense
             if W is None:
-                w = np.ones(self.survey.nD)
-                self.gtgdiag = da.sum((w * self.getJ(self.model))**2., 0).compute()
+                self.gtgdiag = da.sum((self.getJ(self.model))**2., 0).compute()
             else:
-                WJ = dask.delayed(csr.dot)(W, self.getJ(self.model)).compute()
+
+                WJ = da.from_delayed(
+                        dask.delayed(csr.dot)(W, self.getJ(self.model)), 
+                        shape=self.getJ(self.model).shape, 
+                        dtype=float
+                )
                 self.gtgdiag = da.sum(WJ**2., 0).compute()
-            
+
         return self.gtgdiag
 
     def getJ(self, m, f=None):
