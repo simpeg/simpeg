@@ -44,9 +44,8 @@ class BaseDCSimulation(BaseEMSimulation):
         if self.Ainv is not None:
             self.Ainv.clean()
 
-        # Will need to add this once testing is over
-        # if self._Jmatrix is not None:
-        #     self._Jmatrix = None
+        if self._Jmatrix is not None:
+            self._Jmatrix = None
 
         f = self.fieldsPair(self)
         A = self.getA()
@@ -73,8 +72,8 @@ class BaseDCSimulation(BaseEMSimulation):
             else:
 
                 WJ = da.from_delayed(
-                        dask.delayed(csr.dot)(W, self.getJ(self.model)), 
-                        shape=self.getJ(self.model).shape, 
+                        dask.delayed(csr.dot)(W, self.getJ(self.model)),
+                        shape=self.getJ(self.model).shape,
                         dtype=float
                 )
                 self.gtgdiag = da.sum(WJ**2., 0).compute()
