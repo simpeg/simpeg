@@ -229,10 +229,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 df_duT_fun = getattr(f, '_{}'.format(rx_field_deriv))
 
                 for time_ind in range(self.nT + 1):
+                    PT_vi = mkvc(PT_v[src, rx_field_deriv, time_ind])
                     deriv_u, deriv_m = df_duT_fun(
-                        time_ind, src, None,
-                        mkvc(PT_v[src, rx_field_deriv, time_ind]),
-                        adjoint=True
+                        time_ind, src, None, PT_vi, adjoint=True
                     )
 
                     df_duT_v[src, solution_field_deriv, time_ind] = (
@@ -241,7 +240,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                     )
                     JTv = deriv_m + JTv
 
-        del PT_v # no longer need this (captured in df_duT_v, deriv_m)
+        # del PT_v # no longer need this (captured in df_duT_v, deriv_m)
 
         ATinv = None
 
@@ -251,6 +250,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         for time_ind in reversed(range(self.nT)):
             # tInd = tIndP - 1
+            # if time_ind > -1:
             if ATinv is not None and (
                 self.timeSteps[time_ind] != self.timeSteps[time_ind+1]
             ):
@@ -270,30 +270,42 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
                 # solve against df_duT_v
                 # last timestep (first to be solved)
-                if time_ind >= self.nT-1:
-                    rhs = df_duT_v[src, solution_field_deriv, time_ind+1]
+                # if time_ind >= self.nT-1:
+                rhs = mkvc(df_duT_v[src, solution_field_deriv, time_ind+1])
 
-                elif time_ind > -1:
-                    rhs = (
-                        mkvc(df_duT_v[src, solution_field_deriv, time_ind+1]) -
-                        Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
-                    )
+                if time_ind < self.nT - 1:
+                    rhs = rhs - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
 
+                # if time_ind > -1:
                 ATinv_df_duT_v[isrc, :] = ATinv * rhs
+                # cell centered on time mesh
+                un_src = f[src, solution_field, time_ind+1]
+                dAT_dm_v = self.getAdiagDeriv(
+                    time_ind, un_src, ATinv_df_duT_v[isrc, :], adjoint=True
+                )
                 dAsubdiagT_dm_v = self.getAsubdiagDeriv(
                     time_ind, f[src, solution_field, time_ind],
                     ATinv_df_duT_v[isrc, :], adjoint=True
                 )
+                # else:
+                #     ATinv_df_duT_v[isrc, :] = rhs
+                #     dAT_dm_v = Zero()
+                #     dAsubdiag_dm_v = Zero()
 
                 dRHST_dm_v = self.getRHSDeriv(
                     time_ind, src, ATinv_df_duT_v[isrc, :], adjoint=True, f=f
                 )  # on nodes of time mesh
 
-                un_src = f[src, solution_field, time_ind+1]
-                # cell centered on time mesh
-                dAT_dm_v = self.getAdiagDeriv(
-                    time_ind, un_src, ATinv_df_duT_v[isrc, :], adjoint=True
-                )
+                if time_ind == 0:
+                    # PT_vi = mkvc(PT_v[src, solution_field_deriv, time_ind])
+                    deriv_mi = self.getInitialFieldsDeriv(
+                        src, mkvc(df_duT_v[
+                            src, '{}Deriv'.format(self._fieldType), time_ind+1
+                        ]
+                        ), f=f, adjoint=True
+                    )
+                    print(np.linalg.norm(deriv_mi))
+                    JTv = JTv + deriv_mi
 
                 JTv = JTv +  mkvc(-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v)
 
@@ -328,11 +340,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     def getInitialFieldsDeriv(self, src, v, adjoint=False, f=None):
 
-        ifieldsDeriv = mkvc(
-            getattr(
-                src, '{}InitialDeriv'.format(self._fieldType), None
-            )(self, v, adjoint, f)
-        )
+        ifieldsDeriv = getattr(
+            src, '{}InitialDeriv'.format(self._fieldType), None
+        )(self, v, adjoint, f)
 
         # take care of any utils.zero cases
         if adjoint is False:
@@ -342,11 +352,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 ifieldsDeriv += np.zeros(self.mesh.nE)
 
         elif adjoint is True:
-            if self._fieldType in ['b', 'j']:
-                ifieldsDeriv += np.zeros(self.mesh.nF)
-            elif self._fieldType in ['e', 'h']:
-                ifieldsDeriv[0] += np.zeros(self.mesh.nE)
-            ifieldsDeriv[1] += np.zeros_like(self.model) # take care of a  Zero() case
+            ifieldsDeriv += np.zeros_like(self.model)
 
         return ifieldsDeriv
 

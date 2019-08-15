@@ -561,11 +561,13 @@ class LineCurrent(BaseTDEMSrc):
         if self.waveform.hasInitialFields:
             edc = f[self, 'e', 0]
             Grad = prob.mesh.nodalGrad
+            print(f"einitial deriv: {np.linalg.norm(v)}, adjoint: {adjoint}")
             if adjoint is False:
                 AdcDeriv_v = prob.getAdcDeriv(edc, v, adjoint=adjoint)
                 edcDeriv = Grad * (prob.Adcinv * AdcDeriv_v)
                 return edcDeriv
             elif adjoint is True:
+
                 vec = prob.Adcinv * (Grad.T * v)
                 edcDerivT = prob.getAdcDeriv(edc, vec, adjoint=adjoint)
                 return edcDerivT
