@@ -70,8 +70,10 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
             Solver=Pardiso
         )
         survey = tdem.Survey([src])
+        prob.survey = survey
 
-        prob.model = sigma
+        self.model = np.log(sigma)
+        prob.model = self.model
 
         self.mesh = mesh
         self.prob = prob
@@ -81,13 +83,26 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         self.sigma = sigma
         self.mu = mu
 
-        print("Testing problem {} \n\n".format(self.prob_type))
+        print("----------- Testing problem {} ----------- \n\n".format(self.prob_type))
 
     def derivtest(self, deriv_fct):
         m0 = np.log(self.sigma) + np.random.rand(self.mesh.nC)
         self.prob.model = m0
 
         return tests.checkDerivative(deriv_fct, np.log(self.sigma), num=3, plotIt=False)
+
+    def JvecTest(self, rxcomp):
+        def derChk(m):
+            return [self.prob.dpred(m), lambda mx: self.prob.Jvec(m, mx)]
+        print('test_Jvec_{prbtype}_{rxcomp}'.format(
+            prbtype=self.prob_type, rxcomp=rxcomp)
+        )
+        m = self.prob.model
+        tests.checkDerivative(derChk, m, plotIt=False, num=2, eps=1e-20)
+
+    def test_Jvec_jx(self):
+        self.JvecTest('jx')
+
 
     def test_deriv_phi(self):
 
@@ -99,7 +114,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
             ]
         self.derivtest(deriv_check)
 
-    def test_deriv_j(self):
+    def test_deriv_jinitial(self):
 
         def deriv_check(m):
             self.prob.model = m
@@ -109,7 +124,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
             ]
         self.derivtest(deriv_check)
 
-    def test_deriv_h(self):
+    def test_deriv_hinitial(self):
 
         def deriv_check(m):
             self.prob.model = m

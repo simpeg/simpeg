@@ -173,7 +173,7 @@ class Fields3D_b(FieldsTDEM):
         # self._timeMesh.faceDiv
         dbdt = - self._edgeCurl * self._e(bSolution, source_list, tInd)
         for i, src in enumerate(source_list):
-            s_m = src.s_m(self.simulation, self._times[tInd])
+            s_m = src.s_m(self.simulation, tInd)
             dbdt[:, i] = dbdt[:, i] + s_m
         return dbdt
 
@@ -192,7 +192,7 @@ class Fields3D_b(FieldsTDEM):
     def _e(self, bSolution, source_list, tInd):
         e = self._MeSigmaI * (self._edgeCurl.T * (self._MfMui * bSolution))
         for i, src in enumerate(source_list):
-            s_e = src.s_e(self.simulation, self._times[tInd])
+            s_e = src.s_e(self.simulation, tInd)
             e[:, i] = e[:, i] - self._MeSigmaI * s_e
         return e
 
@@ -207,12 +207,10 @@ class Fields3D_b(FieldsTDEM):
         )
 
     def _eDeriv_m(self, tInd, src, v, adjoint=False):
-        _, s_e = src.eval(self.simulation, self._times[tInd])
+        _, s_e = src.eval(self.simulation, tInd)
         bSolution = self[[src], 'bSolution', tInd].flatten()
 
-        _, s_eDeriv = src.evalDeriv(
-            self._times[tInd], self, adjoint=adjoint
-        )
+        _, s_eDeriv = src.evalDeriv(tInd, self, adjoint=adjoint)
 
         if adjoint is True:
             return (
@@ -346,9 +344,7 @@ class Fields3D_e(FieldsTDEM):
     def _dbdt(self, eSolution, source_list, tInd):
         s_m = np.zeros((self.mesh.nF, len(source_list)))
         for i, src in enumerate(source_list):
-            s_m_src = src.s_m(
-                self.simulation, self._times[tInd]
-            )
+            s_m_src = src.s_m(self.simulation, tInd)
             s_m[:, i] = s_m[:, i] + s_m_src
         assert(np.all(s_m == 0))
         return s_m - self._edgeCurl * eSolution
@@ -474,7 +470,7 @@ class Fields3D_h(FieldsTDEM):
         dhdt = - MeMuI * (C.T * (MfRho * (C * hSolution)))
 
         for i, src in enumerate(source_list):
-            s_m, s_e = src.eval(self.simulation, self._times[tInd])
+            s_m, s_e = src.eval(self.simulation, tInd)
             dhdt[:, i] = MeMuI * (C.T * MfRho * s_e + s_m) +  dhdt[:, i]
         return dhdt
 
@@ -494,7 +490,7 @@ class Fields3D_h(FieldsTDEM):
         MfRhoDeriv = self._MfRhoDeriv
 
         hSolution = self[[src], 'hSolution', tInd].flatten()
-        s_e = src.s_e(self.simulation, self._times[tInd])
+        s_e = src.s_e(self.simulation, tInd)
 
         if adjoint:
             return - MfRhoDeriv(
@@ -507,9 +503,7 @@ class Fields3D_h(FieldsTDEM):
     def _j(self, hSolution, source_list, tInd):
         s_e = np.zeros((self.mesh.nF, len(source_list)))
         for i, src in enumerate(source_list):
-            s_e_src = src.s_e(
-                self.simulation, self._times[tInd]
-            )
+            s_e_src = src.s_e(self.simulation, tInd)
             s_e[:, i] = s_e[:, i] + s_e_src
 
         return self._edgeCurl * hSolution - s_e
@@ -637,7 +631,7 @@ class Fields3D_j(FieldsTDEM):
 
         dhdt = - MeMuI * (C.T * (MfRho * jSolution))
         for i, src in enumerate(source_list):
-            s_m = src.s_m(self.simulation, self.simulation.times[tInd])
+            s_m = src.s_m(self.simulation, tInd)
             dhdt[:, i] = MeMuI * s_m + dhdt[:, i]
         return dhdt
 

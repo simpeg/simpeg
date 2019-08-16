@@ -270,33 +270,33 @@ class BaseTDEMSrc(BaseEMSrc):
     def jInitialDeriv(self, prob, v=None, adjoint=False, f=None):
         return Zero()
 
-    def eval(self, prob, time):
-        s_m = self.s_m(prob, time)
-        s_e = self.s_e(prob, time)
+    def eval(self, prob, time_index):
+        s_m = self.s_m(prob, time_index)
+        s_e = self.s_e(prob, time_index)
         return s_m, s_e
 
-    def evalDeriv(self, prob, time, v=None, adjoint=False):
+    def evalDeriv(self, prob, time_index, v=None, adjoint=False):
         if v is not None:
             return (
-                self.s_mDeriv(prob, time, v, adjoint),
-                self.s_eDeriv(prob, time, v, adjoint)
+                self.s_mDeriv(prob, time_index, v, adjoint),
+                self.s_eDeriv(prob, time_index, v, adjoint)
             )
         else:
             return (
-                lambda v: self.s_mDeriv(prob, time, v, adjoint),
-                lambda v: self.s_eDeriv(prob, time, v, adjoint)
+                lambda v: self.s_mDeriv(prob, time_index, v, adjoint),
+                lambda v: self.s_eDeriv(prob, time_index, v, adjoint)
             )
 
-    def s_m(self, prob, time):
+    def s_m(self, prob, time_index):
         return Zero()
 
-    def s_e(self, prob, time):
+    def s_e(self, prob, time_index):
         return Zero()
 
-    def s_mDeriv(self, prob, time, v=None, adjoint=False):
+    def s_mDeriv(self, prob, time_index, v=None, adjoint=False):
         return Zero()
 
-    def s_eDeriv(self, prob, time, v=None, adjoint=False):
+    def s_eDeriv(self, prob, time_index, v=None, adjoint=False):
         return Zero()
 
 
@@ -318,7 +318,9 @@ class MagDipole(BaseTDEMSrc):
 
     def __init__(self, receiver_list=None, **kwargs):
         kwargs.pop("srcType", None)
-        BaseTDEMSrc.__init__(self, receiver_list=receiver_list, srcType="inductive", **kwargs)
+        BaseTDEMSrc.__init__(
+            self, receiver_list=receiver_list, srcType="inductive", **kwargs
+        )
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, '_dipole', None) is None:
@@ -433,19 +435,19 @@ class MagDipole(BaseTDEMSrc):
         #     return prob.MeMuI * self.bInitial(prob)
         return 1./self.mu * self.bInitial(prob)
 
-    def s_m(self, prob, time):
+    def s_m(self, prob, time_index):
         if self.waveform.hasInitialFields is False:
             return Zero()
         return Zero()
 
-    def s_e(self, prob, time):
+    def s_e(self, prob, time_index):
         C = prob.mesh.edgeCurl
         b = self._bSrc(prob)
 
         if prob._formulation == 'EB':
             MfMui = prob.mesh.getFaceInnerProduct(1./self.mu)
 
-            if self.waveform.hasInitialFields is True and time < prob.timeSteps[1]:
+            if self.waveform.hasInitialFields is True and time_index == 0:
                 return Zero()
                 # if prob._fieldType == 'b':
                 #     return Zero()
@@ -453,20 +455,20 @@ class MagDipole(BaseTDEMSrc):
                 #     # Compute s_e from vector potential
                 #     return C.T * (MfMui * b)
             else:
-                return C.T * (MfMui * b) * self.waveform.eval(time)
+                return C.T * (MfMui * b) * self.waveform.eval(prob.times[time_index])
 
         elif prob._formulation == 'HJ':
 
             h = 1./self.mu * b
 
-            if self.waveform.hasInitialFields is True and time < prob.timeSteps[1]:
+            if self.waveform.hasInitialFields is True and time_index == 0:
                 if prob._fieldType == 'h':
                     return Zero()
                 elif prob._fieldType == 'j':
                     # Compute s_e from vector potential
                     return C * h
             else:
-                return C * h * self.waveform.eval(time)
+                return C * h * self.waveform.eval(prob.times[time_index])
 
 
 class CircularLoop(MagDipole):
@@ -574,11 +576,11 @@ class LineCurrent(BaseTDEMSrc):
         else:
             return Zero()
 
-    def s_m(self, prob, time):
+    def s_m(self, prob, time_index):
         return Zero()
 
-    def s_e(self, prob, time):
-        return self.Mejs(prob) * self.waveform.eval(time)
+    def s_e(self, prob, time_index):
+        return self.Mejs(prob) * self.waveform.eval(prob.times[time_index])
 
 
 # TODO: this should be generalized and plugged into getting the Line current
@@ -724,10 +726,10 @@ class RawVec_Grounded(BaseTDEMSrc):
             return self._aInitialDeriv(prob, prob.mesh.edgeCurl * v, adjoint=True)
         return prob.mesh.edgeCurl.T * self._aInitialDeriv(prob, v)
 
-    def s_e(self, prob, time):
+    def s_e(self, prob, time_index):
         # if prob._fieldType == 'h':
         #     return prob.Mf * self._s_e * self.waveform.eval(time)
-        return self._s_e * self.waveform.eval(time)
+        return self._s_e * self.waveform.eval(prob.times[time_index])
 
 
 

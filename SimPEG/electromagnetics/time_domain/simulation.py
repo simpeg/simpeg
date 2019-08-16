@@ -521,7 +521,7 @@ class Problem3D_b(BaseTDEMSimulation):
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
 
-        for i, src in enumerate(self.survey.source_list):
+        for i, src in enumerate(source_list):
             s_en = src.s_e(self, tInd+1)
             s_mn = src.s_m(self, tInd+1)
 
@@ -557,7 +557,7 @@ class Problem3D_b(BaseTDEMSimulation):
 
         MfMui = self.MfMui
 
-        s_e = src.s_e(self, self.times[tInd+1])
+        s_e = src.s_e(self, tInd+1)
         s_mDeriv, s_eDeriv = src.evalDeriv(
             self, self.times[tInd], adjoint=adjoint
         )
@@ -1054,23 +1054,76 @@ class Problem3D_h(BaseTDEMSimulation):
 
     def getRHS(self, tInd):
 
+        source_list = self.survey.source_list
+        rhs = np.zeros((self.mesh.nE, len(source_list)))
+
         C = self.mesh.edgeCurl
         MfRho = self.MfRho
-        s_m, s_e = self.getSourceTerm(tInd)
 
-        return C.T * (MfRho * s_e) + s_m
+        for i, src in enumerate(source_list):
+            s_e = src.s_e(self, tInd+1)
+            s_m = src.s_m(self, tInd+1)
 
-    def getRHSDeriv(self, tInd, src, v, adjoint=False):
+            rhs[:, i] = C.T * (MfRho * s_e) + s_m
+
+            if tInd == 0 and src.waveform.hasInitialFields:
+                if src.srcType == "galvanic":
+                    jinitial = src.jInitial(self)
+                    rhs[:, i] = rhs[:, i] + C.T * (MfRho * jinitial)
+                elif src.srcType == "inductive":
+                    hinitial = src.hInitial(self)
+                    dt = self.timeSteps[i]
+                    MeMu = self.MeMu
+                    rhs[:, i] = rhs[:, i] + 1/dt * (MeMu * hinitial)
+
+        return rhs
+
+    def getRHSDeriv(self, tInd, src, v, adjoint=False, f=None):
         C = self.mesh.edgeCurl
-        s_m, s_e = src.eval(self, self.times[tInd])
 
-        if adjoint is True:
-            return self.MfRhoDeriv(s_e, C * v, adjoint)
+        s_e = src.s_e(self, tInd+1)
+        s_m = src.s_m(self, tInd+1)
+
         # assumes no source derivs
-        return C.T * self.MfRhoDeriv(s_e, v, adjoint)
+        if adjoint is True:
+            deriv = self.MfRhoDeriv(s_e, C * v, adjoint)
+        else:
+            deriv = C.T * self.MfRhoDeriv(s_e, v, adjoint)
 
-    def getRHSDeriv(self, tInd, src, v, adjoint=False):
-        return Zero()  # assumes no derivs on sources
+        if tInd == 0 and src.waveform.hasInitialFields:
+            MfRho = self.MfRho
+            if src.srcType == "galvanic":
+                jinitial = src.jInitial(self)
+
+                if adjoint:
+                    jinitial_deriv_T = src.jInitialDeriv(
+                        self, MfRho.T * C * v, adjoint=True
+                    )
+                    return (
+                        deriv +
+                        self.MfRhoDeriv(jinitial, C.T * v, adjoint=True) +
+                        jinitial_deriv_T
+                    )
+
+                jinitial_deriv = src.jInitialDeriv(self, v)
+                return (
+                    deriv +
+                    C.T * (
+                        self.MfRhoDeriv(jinitial, v) + MfRho * jinitial_deriv
+                    )
+                )
+
+            elif src.srcType == "inductive":
+                MeMu = self.MeMu
+                dt = self.timeSteps[i]
+                if adjoint:
+                    hinitial_deriv_T = src.hInitialDeriv(
+                        self, MeMu.T * v, adjoint=adjoint
+                    )
+                    return deriv + 1/dt * hinitial_deriv_T
+                hinitial_deriv = src.hInitialDeriv(self, v)
+                return deriv + 1/dt * (MeMu * hinitial_deriv)
+        return deriv
 
     def getAdc(self):
         D = sdiag(self.mesh.vol) * self.mesh.faceDiv
@@ -1158,21 +1211,41 @@ class Problem3D_j(BaseTDEMSimulation):
 
     def getRHS(self, tInd):
 
-        if tInd == len(self.timeSteps):
-            tInd = tInd - 1
-
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI
         dt = self.timeSteps[tInd]
-        s_m, s_e = self.getSourceTerm(tInd)
-        _, s_en1 = self.getSourceTerm(tInd-1)
 
-        rhs = -1./dt * (s_e - s_en1) + C * MeMuI * s_m
+        source_list = self.survey.source_list
+        rhs = np.zeros((self.mesh.nF, len(source_list)))
+
+        for i, src in enumerate(self.survey.source_list):
+            s_en = src.s_e(self, tInd+1)
+            s_en1 = src.s_e(self, tInd)
+            s_m = src.s_m(self, tInd)
+
+            rhs[:, i] = C * MeMuI * s_m - 1/dt * (s_en - s_en1)
+
+            if tInd == 0 and src.waveform.hasInitialFields:
+                if src.srcType == "galvanic":
+                    jinitial = src.jInitial(self)
+                    rhs[:, i] = rhs[:, i] + 1/dt * jinitial
+                elif src.srcType == "inductive":
+                    hinitial = src.hInitial(self)
+                    rhs[:, i] = rhs[:, i] + 1/dt * C * hinitial
+
         if self._makeASymmetric:
             return self.MfRho.T * rhs
         return rhs
 
-    def getRHSDeriv(self, tInd, src, v, adjoint=False):
+    def getRHSDeriv(self, tInd, src, v, adjoint=False, f=None):
+        # assumes no derivatives on source terms
+        if tInd == 0 and src.waveform.hasInitialFields:
+            if src.srcType == "galvanic":
+                return 1/dt * src.jInitialDeriv(self, v, adjoint, f=f)
+            elif src.srcType == "inductive":
+                if adjoint is True:
+                    return 1/dt * src.hInitialDeriv(self, C.T * v, adjoint, f=f)
+                return 1/dt * C * src.hInitialDeriv(self, v, adjoint, f=f)
         return Zero()  # assumes no derivs on sources
 
     def getAdc(self):
