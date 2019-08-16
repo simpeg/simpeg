@@ -31,8 +31,8 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh, TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
-from SimPEG.Utils import plot2Ddata, ModelBuilder, surface2ind_topo
-from SimPEG import Maps
+from SimPEG.utils import plot2Ddata, ModelBuilder, surface2ind_topo
+from SimPEG import maps
 from SimPEG import PF
 import os
 
@@ -118,7 +118,7 @@ ind_active = surface2ind_topo(mesh, topo)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
-mod_map = Maps.IdentityMap(nP=nC)  # model consists of a value for each cell
+mod_map = maps.IdentityMap(nP=nC)  # model consists of a value for each cell
 
 # Define model
 mod = background_val*np.ones(nC)
@@ -138,7 +138,7 @@ mod[ind_sphere] = sphere_val
 
 # Plot Density Contrast Model
 fig = plt.figure(figsize=(9, 4))
-plotting_map = Maps.InjectActiveCells(mesh, ind_active, np.nan)
+plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
 mesh.plotSlice(
@@ -265,7 +265,7 @@ ind_active = surface2ind_topo(mesh, topo)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
-mod_map = Maps.IdentityMap(nP=nC)  # model will be value of active cells
+mod_map = maps.IdentityMap(nP=nC)  # model will be value of active cells
 
 # Define model
 mod = background_val*np.ones(nC)
@@ -285,7 +285,7 @@ mod[ind_sphere] = sphere_val
 
 # Plot Density Contrast Model
 fig = plt.figure(figsize=(9, 4))
-plotting_map = Maps.InjectActiveCells(mesh, ind_active, np.nan)
+plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.05, 0.05, 0.75, 0.9])
 mesh.plotSlice(

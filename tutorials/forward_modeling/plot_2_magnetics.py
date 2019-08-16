@@ -34,8 +34,8 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh, TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
-from SimPEG.Utils import plot2Ddata, ModelBuilder, surface2ind_topo, matutils
-from SimPEG import Maps
+from SimPEG.utils import plot2Ddata, ModelBuilder, surface2ind_topo, matutils
+from SimPEG import maps
 from SimPEG import PF
 
 # sphinx_gallery_thumbnail_number = 4
@@ -123,7 +123,7 @@ ind_active = surface2ind_topo(mesh, topo)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
-mod_map = Maps.IdentityMap(nP=nC)  # model is a vlue for each active cell
+mod_map = maps.IdentityMap(nP=nC)  # model is a vlue for each active cell
 
 # Define model
 mod = background_val*np.ones(ind_active.sum())
@@ -136,7 +136,7 @@ mod[ind_sphere] = sphere_val
 # Plot Model
 fig = plt.figure(figsize=(9, 4))
 
-plotting_map = Maps.InjectActiveCells(mesh, ind_active, np.nan)
+plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
 mesh.plotSlice(
     plotting_map*mod, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
@@ -277,7 +277,7 @@ ind_active = surface2ind_topo(mesh, topo)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
-mod_map = Maps.IdentityMap(nP=3*nC)  # model has 3 parameters for each cell
+mod_map = maps.IdentityMap(nP=3*nC)  # model has 3 parameters for each cell
 
 # Define susceptibility for each cell
 mod = background_val*np.ones(ind_active.sum())
@@ -307,7 +307,7 @@ mod = mkvc(mod_sus + mod_rem)
 # Plot Effective Susceptibility Model
 fig = plt.figure(figsize=(9, 4))
 
-plotting_map = Maps.InjectActiveCells(mesh, ind_active, np.nan)
+plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 mod_plotting = np.sqrt(np.sum(mod_sus + mod_rem, axis=1)**2)
 ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
 mesh.plotSlice(

@@ -28,9 +28,9 @@ resistivity model.
 from discretize import CylMesh, TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
-from SimPEG.Utils import plot2Ddata, surface2ind_topo
-from SimPEG import Maps
-from SimPEG.EM import FDEM
+from SimPEG.utils import plot2Ddata, surface2ind_topo
+from SimPEG import maps
+from SimPEG.electromagnetics import frequency_domain
 
 import os
 import numpy as np
@@ -125,7 +125,7 @@ pipe_val = 1e1
 
 # Active cells are cells below the surface
 ind_active = mesh.gridCC[:, 2] < 0
-mod_map = Maps.InjectActiveCells(mesh, ind_active, air_val)
+mod_map = maps.InjectActiveCells(mesh, ind_active, air_val)
 
 # Define the model
 mod = background_val*np.ones(ind_active.sum())
@@ -143,7 +143,7 @@ mod[ind_pipe] = pipe_val
 # Plot Conductivity Model
 fig = plt.figure(figsize=(4.5, 6))
 
-plotting_map = Maps.InjectActiveCells(mesh, ind_active, np.nan)
+plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_mod = np.log10(mod)
 
 ax1 = fig.add_axes([0.05, 0.05, 0.7, 0.9])
@@ -336,7 +336,7 @@ block_val = 1e-1
 
 # Active cells are cells below the surface
 ind_active = surface2ind_topo(mesh, topo_xyz)
-mod_map = Maps.InjectActiveCells(mesh, ind_active, air_val)
+mod_map = maps.InjectActiveCells(mesh, ind_active, air_val)
 
 # Define the model
 mod = background_val*np.ones(ind_active.sum())
@@ -350,7 +350,7 @@ mod[ind_block] = block_val
 # Plot Log of Resistivity Model
 fig = plt.figure(figsize=(4.5, 6))
 
-plotting_map = Maps.InjectActiveCells(mesh, ind_active, np.nan)
+plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_mod = np.log10(mod)
 
 ax1 = fig.add_axes([0.05, 0.05, 0.7, 0.9])

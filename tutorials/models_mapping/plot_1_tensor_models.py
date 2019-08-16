@@ -21,8 +21,8 @@ tensor meshes. Some things we consider are:
 #
 
 from discretize import TensorMesh
-from SimPEG.Utils import mkvc, surface2ind_topo, ModelBuilder
-from SimPEG import Maps
+from SimPEG.utils import mkvc, surface2ind_topo, ModelBuilder
+from SimPEG import maps
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -65,7 +65,7 @@ halfspace_val = 100.
 # Find cells below topography and define mapping
 air_val = 0.
 ind_active = mesh.gridCC[:, 2] < 0.
-mod_map = Maps.InjectActiveCells(mesh, ind_active, air_val)
+mod_map = maps.InjectActiveCells(mesh, ind_active, air_val)
 
 # Define the model
 mod = halfspace_val*np.ones(ind_active.sum())
@@ -101,7 +101,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Find cells below topography and define mapping
 air_val = 0.
 ind_active = surface2ind_topo(mesh, topo, 'N')
-mod_map = Maps.InjectActiveCells(mesh, ind_active, air_val)
+mod_map = maps.InjectActiveCells(mesh, ind_active, air_val)
 
 # Define the model on subsurface cells
 mod = background_val*np.ones(ind_active.sum())
@@ -147,7 +147,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Find cells below topography
 air_val = 0.
 ind_active = surface2ind_topo(mesh, topo, 'N')
-active_map = Maps.InjectActiveCells(mesh, ind_active, air_val)
+active_map = maps.InjectActiveCells(mesh, ind_active, air_val)
 
 # Define the model on subsurface cells
 mod = background_val*np.ones(ind_active.sum())
@@ -161,9 +161,9 @@ ind_block = (
 mod[ind_block] = block_val
 
 # Define a single mapping from model to mesh
-exp_map = Maps.ExpMap()
-rec_map = Maps.ReciprocalMap()
-mod_map = Maps.ComboMap([active_map, rec_map, exp_map])
+exp_map = maps.ExpMap()
+rec_map = maps.ReciprocalMap()
+mod_map = maps.ComboMap([active_map, rec_map, exp_map])
 
 # Plot
 fig = plt.figure(figsize=(5, 5))
@@ -197,7 +197,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Set active cells and define unit values
 air_val = 0.
 ind_active = surface2ind_topo(mesh, topo, 'N')
-mod_map = Maps.InjectActiveCells(mesh, ind_active, air_val)
+mod_map = maps.InjectActiveCells(mesh, ind_active, air_val)
 
 # Define model for cells under the surface topography
 mod = background_val*np.ones(ind_active.sum())
@@ -251,14 +251,14 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Set active cells and define unit values
 air_val = 0.
 ind_active = surface2ind_topo(mesh, topo, 'N')
-active_map = Maps.InjectActiveCells(mesh, ind_active, air_val)
+active_map = maps.InjectActiveCells(mesh, ind_active, air_val)
 
 # Define the model on subsurface cells
 mod = np.r_[background_val, block_val, xc, dx, yc, dy, zc, dz]
-param_map = Maps.ParametricBlock(mesh, indActive=ind_active, epsilon=1e-10, p=5.)
+param_map = maps.ParametricBlock(mesh, indActive=ind_active, epsilon=1e-10, p=5.)
 
 # Define a single mapping from model to mesh
-mod_map = Maps.ComboMap([active_map, param_map])
+mod_map = maps.ComboMap([active_map, param_map])
 
 # Plot
 fig = plt.figure(figsize=(5, 5))
@@ -299,7 +299,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Set active cells
 air_val = 0.
 ind_active = surface2ind_topo(mesh, topo, 'N')
-active_map = Maps.InjectActiveCells(mesh, ind_active, air_val)
+active_map = maps.InjectActiveCells(mesh, ind_active, air_val)
 
 # Define model for cells under the surface topography
 N = int(ind_active.sum())
@@ -323,11 +323,11 @@ mod[ind_poly, 0] = sig_dyke
 
 # Create model vector and wires
 mod = mkvc(mod)
-wire_map = Maps.Wires(('logsig', N), ('mu', N))
+wire_map = maps.Wires(('logsig', N), ('mu', N))
 
 # Use combo maps to map from model to mesh
-sig_map = Maps.ComboMap([active_map, Maps.ExpMap(), wire_map.logsig])
-mu_map = Maps.ComboMap([active_map, wire_map.mu])
+sig_map = maps.ComboMap([active_map, maps.ExpMap(), wire_map.logsig])
+mu_map = maps.ComboMap([active_map, wire_map.mu])
 
 # Plot
 fig = plt.figure(figsize=(5, 5))

@@ -30,10 +30,10 @@ background conductivity model to compute IP data.
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
-from SimPEG.Utils import ModelBuilder, surface2ind_topo
-from SimPEG import Maps
+from SimPEG.utils import ModelBuilder, surface2ind_topo
+from SimPEG import maps
 from SimPEG.EM.Static import DC, IP
-from SimPEG.EM.Static.Utils import plot_pseudoSection
+from SimPEG.EM.Static.utils import plot_pseudoSection
 
 import os
 import numpy as np
@@ -184,7 +184,7 @@ ind_active = surface2ind_topo(mesh, topo_xyz)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
-mod_dc_map = Maps.InjectActiveCells(mesh, ind_active, air_val)
+mod_dc_map = maps.InjectActiveCells(mesh, ind_active, air_val)
 
 # Define model
 mod_dc = background_val*np.ones(nC)
@@ -205,7 +205,7 @@ mod_dc[ind_resistor] = resistor_val
 # Plot Conductivity Model
 fig = plt.figure(figsize=(8.5, 4))
 
-plotting_map = Maps.InjectActiveCells(mesh, ind_active, np.nan)
+plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_mod = np.log10(mod_dc)
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
@@ -301,7 +301,7 @@ ind_active = surface2ind_topo(mesh, topo_xyz)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
-mod_ip_map = Maps.InjectActiveCells(mesh, ind_active, air_val)
+mod_ip_map = maps.InjectActiveCells(mesh, ind_active, air_val)
 
 # Define chargeability model
 mod_ip = background_val*np.ones(nC)
