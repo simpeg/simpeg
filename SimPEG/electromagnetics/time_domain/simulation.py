@@ -39,9 +39,6 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     #     """
 
-    def fields2(self, m):
-        self.model = m
-
     def fields(self, m):
         """
         Solve the forward problem for the fields.

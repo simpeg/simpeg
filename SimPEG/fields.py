@@ -2,7 +2,6 @@ from six import string_types
 import numpy as np
 import properties
 import discretize
-import zarr
 import sys
 
 from .simulation import BaseSimulation, BaseTimeSimulation
