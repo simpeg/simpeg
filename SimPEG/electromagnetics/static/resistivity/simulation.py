@@ -114,7 +114,10 @@ class BaseDCSimulation(BaseEMSimulation):
 
                     # Compute block of receivers
                     ATinvdf_duT = self.Ainv * df_duT
-
+                    
+                    if len(ATinvdf_duT.shape) == 1:
+                        ATinvdf_duT = np.c_[ATinvdf_duT]
+                        
                     dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
 
                     dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
@@ -139,6 +142,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
                     Jtv.append(du_dmT)
                     count += 1
+                    
 
             # Stack all the source blocks in one big zarr
             J = da.hstack(Jtv).T
