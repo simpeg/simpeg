@@ -30,7 +30,9 @@ from discretize.utils import mkvc, refine_tree_xyz
 
 from SimPEG.utils import plot2Ddata, surface2ind_topo
 from SimPEG import maps
-from SimPEG.electromagnetics import frequency_domain
+from SimPEG.electromagnetics.frequency_domain import (
+    receivers, sources, survey, simulation
+    )
 
 import os
 import numpy as np
@@ -74,7 +76,7 @@ ntx = np.size(xtx)
 xrx, yrx, zrx = np.meshgrid(np.linspace(0, 200, 41), [0], [50])
 rx_locs = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
 
-src_list = []  # Create empty list to store sources
+source_list = []  # Create empty list to store sources
 
 # Each unique location and frequency defines a new transmitter
 for ii in range(ntx):
@@ -82,19 +84,19 @@ for ii in range(ntx):
     # Define receivers of different types at each location. Real and imaginary
     # measurements require separate receivers. You can define the orientation of
     # the transmitters and receivers for different survey geometries.
-    bzr_rec = FDEM.Rx.Point_bSecondary(rx_locs[ii, :], 'z', 'real')
-    bzi_rec = FDEM.Rx.Point_bSecondary(rx_locs[ii, :], 'z', 'imag')
+    bzr_rec = receivers.Point_bSecondary(rx_locs[ii, :], 'z', 'real')
+    bzi_rec = receivers.Point_bSecondary(rx_locs[ii, :], 'z', 'imag')
     rx_list = [bzr_rec, bzi_rec]  # must be a list
 
     for jj in range(len(freq)):
 
         # Must define the transmitter properties and associated receivers
-        src_list.append(
-            FDEM.Src.MagDipole(rx_list, freq[jj], src_locs[ii], orientation='z')
+        source_list.append(
+            sources.MagDipole(rx_list, freq[jj], src_locs[ii], orientation='z')
         )
 
 # Define the survey
-survey = FDEM.Survey(src_list)
+#survey = survey(src_list)
 
 ###############################################################
 # Create Cylindrical Mesh
@@ -174,13 +176,12 @@ cbar.set_label(
 #
 
 # Must define the mapping for the conductivity model
-prob = FDEM.Problem3D_b(mesh, sigmaMap=mod_map, Solver=Solver)
-prob.pair(survey)
+fwd_sim = simulation.Problem3D_b(mesh, survey=source_list, sigmaMap=mod_map, Solver=Solver)
 
 # We defined receivers that measure the secondary B field. We must turn this
 # into the H-field in A/m
 mu0 = 4*np.pi*1e-7
-dpred = survey.dpred(mod)/mu0
+dpred = fwd_sim.dpred(mod)/mu0
 
 # Data are organized by transmitter then by receiver. We had nFreq transmitters
 # and each transmitter had 2 receivers (real and imaginary component). So
@@ -241,7 +242,7 @@ xx, yy = np.meshgrid(np.linspace(-3000, 3000, 101), np.linspace(-3000, 3000, 101
 zz = np.zeros(np.shape(xx))
 topo_xyz = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
-fname = os.path.dirname(FDEM.__file__) + '\\..\\..\\..\\tutorials\\assets\\fdem_topo.txt'
+fname = os.path.dirname(receivers.__file__) + '\\..\\..\\..\\tutorials\\assets\\fdem_topo.txt'
 np.savetxt(fname, topo_xyz, fmt='%.4e')
 
 #####################################################################
@@ -270,21 +271,19 @@ xrx, yrx, zrx = np.meshgrid(
 )
 rx_locs = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
 
-src_list = []  # Create empty list to store sources
+source_list = []  # Create empty list to store sources
 
 # Each unique location and frequency defines a new transmitter
 for ii in range(ntx):
 
     # Define receivers of different type at each location
-    bzr = FDEM.Rx.Point_bSecondary(rx_locs[ii, :], 'z', 'real')
-    bzi = FDEM.Rx.Point_bSecondary(rx_locs[ii, :], 'z', 'imag')
+    bzr = receivers.Point_bSecondary(rx_locs[ii, :], 'z', 'real')
+    bzi = receivers.Point_bSecondary(rx_locs[ii, :], 'z', 'imag')
     rxList = [bzr, bzi]
 
-    src_list.append(
-        FDEM.Src.MagDipole(rxList, freq, src_locs[ii, :], orientation='z')
+    source_list.append(
+        sources.MagDipole(rxList, freq, src_locs[ii, :], orientation='z')
     )
-
-survey2 = FDEM.Survey(src_list)
 
 ###############################################################
 # Create OcTree Mesh
@@ -380,11 +379,10 @@ cbar.set_label(
 # problem accordingly.
 #
 
-prob2 = FDEM.Problem3D_b(mesh, rhoMap=mod_map, Solver=Solver)
-prob2.pair(survey2)
+fwd_sim_2 = simulation.Problem3D_b(mesh, survey=source_list, rhoMap=mod_map, Solver=Solver)
 
 mu0 = 4*np.pi*1e-7
-dpred = survey2.dpred(mod)/mu0
+dpred = fwd_sim_2.dpred(mod)/mu0
 
 # Plot the response
 h_real = dpred[0:-1:2]
@@ -427,7 +425,7 @@ cbar.set_label('$A/m$', rotation=270, labelpad=15, size=12)
 plt.show()
 
 # PRINT FOR INVERSION TUTORIAL
-fname = os.path.dirname(FDEM.__file__) + '\\..\\..\\..\\tutorials\\assets\\fdem_data.txt'
+fname = os.path.dirname(receivers.__file__) + '\\..\\..\\..\\tutorials\\assets\\fdem_data.txt'
 h_real = h_real + 1e-9*np.random.rand(len(h_real))
 h_imag = h_imag + 5e-10*np.random.rand(len(h_imag))
 f_vec = freq*np.ones(len(h_real))

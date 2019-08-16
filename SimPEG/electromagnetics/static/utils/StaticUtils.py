@@ -339,14 +339,12 @@ def plot_pseudoSection(
     z0 = 0.
     rho = []
 
-<<<<<<< HEAD:SimPEG/EM/Static/Utils/StaticUtils.py
     if data_type == 'appChargeability':
         if V0 is None:
             raise Exception("""Must include voltage for DC data""")
         elif np.size(dobs) != np.size(V0):
             raise Exception("""Size of DC and IP data vectors must be equal""")
 
-=======
     if not isinstance(data, Data):
         raise Exception(
             "A Data instance ({datacls}: <{datapref}.{datacls}>) must be "
@@ -356,12 +354,11 @@ def plot_pseudoSection(
                 providedcls=data.__name__, providedpref=data.__module__
             )
         )
->>>>>>> simulation:SimPEG/electromagnetics/static/utils/StaticUtils.py
+
     # Use dobs in survey if dobs is None
     if dobs is None:
         dobs = data.dobs
 
-<<<<<<< HEAD:SimPEG/EM/Static/Utils/StaticUtils.py
     if data_type == 'appChargeability':
         rhoApp = np.abs(dobs/V0)
     else:
@@ -370,12 +367,7 @@ def plot_pseudoSection(
                 survey_type=survey_type,
                 space_type=space_type
         )
-
-=======
-    rhoApp = apparent_resistivity(
-        data, dobs=dobs, survey_type=survey_type, space_type=space_type
-    )
->>>>>>> simulation:SimPEG/electromagnetics/static/utils/StaticUtils.py
+    
     midx, midz = source_receiver_midpoints(
         data.survey, survey_type=survey_type, dim=dim
     )
