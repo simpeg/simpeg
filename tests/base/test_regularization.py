@@ -5,9 +5,14 @@ from __future__ import unicode_literals
 
 import numpy as np
 import unittest
-from SimPEG import Mesh, Maps, Regularization, Utils, Tests, ObjectiveFunction
+
+
 from scipy.sparse.linalg import dsolve
 import inspect
+
+import discretize
+from SimPEG import maps, regularization, utils, tests, objective_function
+
 
 TOL = 1e-7
 testReg = True
@@ -18,7 +23,7 @@ np.random.seed(639)
 IGNORE_ME = [
     'BaseRegularization',
     'BaseComboRegularization',
-    'BaseSparse'
+    'BaseSparse',
 ]
 
 
@@ -27,18 +32,18 @@ class RegularizationTests(unittest.TestCase):
     def setUp(self):
         hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
         hx, hy, hz = hx/hx.sum(), hy/hy.sum(), hz/hz.sum()
-        mesh1 = Mesh.TensorMesh([hx])
-        mesh2 = Mesh.TensorMesh([hx, hy])
-        mesh3 = Mesh.TensorMesh([hx, hy, hz])
+        mesh1 = discretize.TensorMesh([hx])
+        mesh2 = discretize.TensorMesh([hx, hy])
+        mesh3 = discretize.TensorMesh([hx, hy, hz])
         self.meshlist = [mesh1, mesh2, mesh3]
 
     if testReg:
         def test_regularization(self):
-            for R in dir(Regularization):
-                r = getattr(Regularization, R)
+            for R in regularization.__all__:
+                r = getattr(regularization, R)
                 if not inspect.isclass(r):
                     continue
-                if not issubclass(r, ObjectiveFunction.BaseObjectiveFunction):
+                if not issubclass(r, objective_function.BaseObjectiveFunction):
                     continue
                 if r.__name__ in IGNORE_ME:
                     continue
@@ -52,7 +57,7 @@ class RegularizationTests(unittest.TestCase):
 
                     print('Testing {0:d}D'.format(mesh.dim))
 
-                    mapping = Maps.IdentityMap(mesh)
+                    mapping = maps.IdentityMap(mesh)
                     reg = r(mesh=mesh, mapping=mapping)
 
                     print(
@@ -71,27 +76,27 @@ class RegularizationTests(unittest.TestCase):
                     self.assertTrue(passed)
 
         def test_regularization_ActiveCells(self):
-            for R in dir(Regularization):
-                r = getattr(Regularization, R)
+            for R in regularization.__all__:
+                r = getattr(regularization, R)
                 if not inspect.isclass(r):
                     continue
-                if not issubclass(r, ObjectiveFunction.BaseObjectiveFunction):
+                if not issubclass(r, objective_function.BaseObjectiveFunction):
                     continue
                 if r.__name__ in IGNORE_ME:
                     continue
 
-                for i, mesh in enumerate(self.meshlist):
+                for i, mesh in enumerate(self.meshlist[:1]):
 
                     print('Testing Active Cells {0:d}D'.format((mesh.dim)))
 
                     if mesh.dim == 1:
-                        indActive = Utils.mkvc(mesh.gridCC <= 0.8)
+                        indActive = utils.mkvc(mesh.gridCC <= 0.8)
                     elif mesh.dim == 2:
-                        indActive = Utils.mkvc(mesh.gridCC[:, -1] <= (
+                        indActive = utils.mkvc(mesh.gridCC[:, -1] <= (
                             2*np.sin(2*np.pi*mesh.gridCC[:, 0])+0.5)
                         )
                     elif mesh.dim == 3:
-                        indActive = Utils.mkvc(mesh.gridCC[:, -1] <= (
+                        indActive = utils.mkvc(mesh.gridCC[:, -1] <= (
                                 2 * np.sin(2*np.pi*mesh.gridCC[:, 0])+0.5 *
                                 2 * np.sin(2*np.pi*mesh.gridCC[:, 1])+0.5)
                             )
@@ -108,7 +113,7 @@ class RegularizationTests(unittest.TestCase):
                             nP = int(indAct.sum())
 
                         reg = r(
-                            mesh, indActive=indAct, mapping=Maps.IdentityMap(nP=nP)
+                            mesh, indActive=indAct, mapping=maps.IdentityMap(nP=nP)
                         )
                         m = np.random.rand(mesh.nC)[indAct]
                         mref = np.ones_like(m)*np.mean(m)
@@ -135,34 +140,34 @@ class RegularizationTests(unittest.TestCase):
                 # m = np.random.rand(mapping.nP)
 
                 if mesh.dim == 1:
-                    indAct = Utils.mkvc(mesh.gridCC <= 0.8)
+                    indAct = utils.mkvc(mesh.gridCC <= 0.8)
                 elif mesh.dim == 2:
                     indAct = (
-                        Utils.mkvc(
+                        utils.mkvc(
                             mesh.gridCC[:,-1] <=
                             2*np.sin(2*np.pi*mesh.gridCC[:, 0]) + 0.5
                         )
                     )
                 elif mesh.dim == 3:
                     indAct = (
-                        Utils.mkvc(
+                        utils.mkvc(
                             mesh.gridCC[:, -1] <=
                             2*np.sin(2*np.pi*mesh.gridCC[:, 0]) +
                             0.5 * 2*np.sin(2*np.pi*mesh.gridCC[:, 1]) + 0.5
                         )
                     )
 
-                regmesh = Regularization.RegularizationMesh(
+                regmesh = regularization.RegularizationMesh(
                     mesh, indActive=indAct
                 )
 
                 assert (regmesh.vol == mesh.vol[indAct]).all()
 
     def test_property_mirroring(self):
-        mesh = Mesh.TensorMesh([8, 7, 6])
+        mesh = discretize.TensorMesh([8, 7, 6])
 
         for regType in ['Tikhonov', 'Sparse', 'Simple']:
-            reg = getattr(Regularization, regType)(mesh)
+            reg = getattr(regularization, regType)(mesh)
 
             print(reg.nP, mesh.nC)
             self.assertTrue(reg.nP == mesh.nC)
@@ -187,7 +192,7 @@ class RegularizationTests(unittest.TestCase):
             ]
 
             # test updated mappings
-            mapping = Maps.ExpMap(nP=int(indActive.sum()))
+            mapping = maps.ExpMap(nP=int(indActive.sum()))
             reg.mapping = mapping
             m = np.random.rand(mapping.nP)
             [
@@ -209,11 +214,11 @@ class RegularizationTests(unittest.TestCase):
             self.assertTrue(0.5*a == b)
 
     def test_addition(self):
-        mesh = Mesh.TensorMesh([8, 7, 6])
+        mesh = discretize.TensorMesh([8, 7, 6])
         m = np.random.rand(mesh.nC)
 
-        reg1 = Regularization.Tikhonov(mesh)
-        reg2 = Regularization.Simple(mesh)
+        reg1 = regularization.Tikhonov(mesh)
+        reg2 = regularization.Simple(mesh)
 
         reg_a = reg1 + reg2
         self.assertTrue(len(reg_a)==2)
@@ -231,14 +236,14 @@ class RegularizationTests(unittest.TestCase):
         reg_c.test(eps=TOL)
 
     def test_mappings(self):
-        mesh = Mesh.TensorMesh([8, 7, 6])
+        mesh = discretize.TensorMesh([8, 7, 6])
         m = np.random.rand(2*mesh.nC)
 
-        wires = Maps.Wires(('sigma', mesh.nC), ('mu', mesh.nC))
+        wires = maps.Wires(('sigma', mesh.nC), ('mu', mesh.nC))
 
         for regType in ['Tikhonov', 'Sparse', 'Simple']:
-            reg1 = getattr(Regularization, regType)(mesh, mapping=wires.sigma)
-            reg2 = getattr(Regularization, regType)(mesh, mapping=wires.mu)
+            reg1 = getattr(regularization, regType)(mesh, mapping=wires.sigma)
+            reg2 = getattr(regularization, regType)(mesh, mapping=wires.mu)
 
             reg3 = reg1 + reg2
 
@@ -255,12 +260,12 @@ class RegularizationTests(unittest.TestCase):
 
     def test_mref_is_zero(self):
 
-        mesh = Mesh.TensorMesh([10, 5, 8])
+        mesh = discretize.TensorMesh([10, 5, 8])
         mref = np.ones(mesh.nC)
 
         for regType in ['Tikhonov', 'Sparse', 'Simple']:
-            reg = getattr(Regularization, regType)(
-                mesh, mref=mref, mapping=Maps.IdentityMap(mesh)
+            reg = getattr(regularization, regType)(
+                mesh, mref=mref, mapping=maps.IdentityMap(mesh)
             )
 
             print('Check: phi_m (mref) = {0:f}'.format(reg(mref)))
@@ -268,20 +273,20 @@ class RegularizationTests(unittest.TestCase):
             self.assertTrue(passed)
 
     def test_mappings_and_cell_weights(self):
-        mesh = Mesh.TensorMesh([8, 7, 6])
+        mesh = discretize.TensorMesh([8, 7, 6])
         m = np.random.rand(2*mesh.nC)
         v = np.random.rand(2*mesh.nC)
 
         cell_weights = np.random.rand(mesh.nC)
 
-        wires = Maps.Wires(('sigma', mesh.nC), ('mu', mesh.nC))
+        wires = maps.Wires(('sigma', mesh.nC), ('mu', mesh.nC))
 
-        reg = Regularization.SimpleSmall(
+        reg = regularization.SimpleSmall(
             mesh, mapping=wires.sigma, cell_weights=cell_weights
         )
 
-        objfct = ObjectiveFunction.L2ObjectiveFunction(
-            W=Utils.sdiag(np.sqrt(cell_weights)), mapping=wires.sigma
+        objfct = objective_function.L2ObjectiveFunction(
+            W=utils.sdiag(np.sqrt(cell_weights)), mapping=wires.sigma
         )
 
         self.assertTrue(reg(m) == objfct(m))
@@ -289,13 +294,13 @@ class RegularizationTests(unittest.TestCase):
         self.assertTrue(np.all(reg.deriv2(m, v=v) == objfct.deriv2(m, v=v)))
 
     def test_update_of_sparse_norms(self):
-        mesh = Mesh.TensorMesh([8, 7, 6])
+        mesh = discretize.TensorMesh([8, 7, 6])
         m = np.random.rand(mesh.nC)
         v = np.random.rand(mesh.nC)
 
         cell_weights = np.random.rand(mesh.nC)
 
-        reg = Regularization.Sparse(
+        reg = regularization.Sparse(
             mesh, cell_weights=cell_weights
         )
         reg.norms = np.c_[2., 2., 2., 2.]
@@ -316,8 +321,8 @@ class RegularizationTests(unittest.TestCase):
         self.assertTrue(np.all(reg.objfcts[3].norm == 1.*np.ones(mesh.nFz)))
 
     def test_linked_properties(self):
-        mesh = Mesh.TensorMesh([8, 7, 6])
-        reg = Regularization.Tikhonov(mesh)
+        mesh = discretize.TensorMesh([8, 7, 6])
+        reg = regularization.Tikhonov(mesh)
 
         [self.assertTrue(reg.regmesh is fct.regmesh) for fct in reg.objfcts]
         [self.assertTrue(reg.mapping is fct.mapping) for fct in reg.objfcts]
@@ -356,15 +361,15 @@ class RegularizationTests(unittest.TestCase):
         temp = np.logspace(np.log10(1.), np.log10(12.), 19)
         temp_pad = temp[-1] * 1.3 ** np.arange(npad)
         hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-        mesh = Mesh.CylMesh([hx, 1, hz], '00C')
+        mesh = discretize.CylMesh([hx, 1, hz], '00C')
         active = mesh.vectorCCz < 0.
 
         active = mesh.vectorCCz < 0.
-        actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-        mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
+        actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+        mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
-        regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-        reg = Regularization.Simple(regMesh)
+        regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+        reg = regularization.Simple(regMesh)
 
         self.assertTrue(reg._nC_residual == regMesh.nC)
         self.assertTrue(all([fct._nC_residual == regMesh.nC for fct in reg.objfcts]))
@@ -379,10 +384,10 @@ class RegularizationTests(unittest.TestCase):
          temp = np.logspace(np.log10(1.), np.log10(12.), 19)
          temp_pad = temp[-1] * 1.3 ** np.arange(npad)
          hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-         mesh = Mesh.CylMesh([hx, 1, hz], '00C')
+         mesh = discretize.CylMesh([hx, 1, hz], '00C')
          active = mesh.vectorCCz < 0.
 
-         reg = Regularization.Simple(mesh, indActive=active)
+         reg = regularization.Simple(mesh, indActive=active)
          self.assertTrue(reg._nC_residual == len(active.nonzero()[0]))
 
 if __name__ == '__main__':

@@ -2,8 +2,9 @@ from __future__ import division, print_function
 import unittest
 import numpy as np
 import time
-from SimPEG import Mesh, Maps, SolverLU, Tests
-from SimPEG import EM
+import discretize
+from SimPEG import maps, SolverLU, tests
+from SimPEG.electromagnetics import time_domain as tdem
 
 from pymatsolver import Pardiso as Solver
 
@@ -25,7 +26,7 @@ def get_mesh():
     npad = 2
     # hx = [(cs, ncx), (cs, npad, 1.3)]
     # hz = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
-    return Mesh.TensorMesh(
+    return discretize.TensorMesh(
         [
             [(cs, npad, -1.5), (cs, ncx), (cs, npad, 1.5)],
             [(cs, npad, -1.5), (cs, ncy), (cs, npad, 1.5)],
@@ -36,16 +37,16 @@ def get_mesh():
 
 def get_mapping(mesh):
     active = mesh.vectorCCz < 0.
-    activeMap = Maps.InjectActiveCells(
+    activeMap = maps.InjectActiveCells(
         mesh, active, np.log(1e-8), nC=mesh.nCz
     )
     return (
-        Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
+        maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
     )
 
 
 def get_prob(mesh, mapping, formulation):
-    prb = getattr(EM.TDEM, 'Problem3D_{}'.format(formulation))(
+    prb = getattr(tdem, 'Problem3D_{}'.format(formulation))(
         mesh, sigmaMap=mapping
     )
     prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
@@ -54,9 +55,9 @@ def get_prob(mesh, mapping, formulation):
 
 
 def get_survey():
-    src1 = EM.TDEM.Src.MagDipole([], loc=np.array([0., 0., 0.]))
-    src2 = EM.TDEM.Src.MagDipole([], loc=np.array([0., 0., 8.]))
-    return EM.TDEM.Survey([src1, src2])
+    src1 = tdem.Src.MagDipole([], loc=np.array([0., 0., 0.]))
+    src2 = tdem.Src.MagDipole([], loc=np.array([0., 0., 8.]))
+    return tdem.Survey([src1, src2])
 
 
 # ====== TEST Jvec ========== #
@@ -92,7 +93,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         rxOffset = 15.
         rxlocs = np.array([[rxOffset, 0., -1e-2]])
         rxtimes = np.logspace(-4, -3, 20)
-        return getattr(EM.TDEM.Rx, 'Point_{}'.format(rxcomp[:-1]))(
+        return getattr(tdem.Rx, 'Point_{}'.format(rxcomp[:-1]))(
             locs=rxlocs, times=rxtimes, orientation=rxcomp[-1]
         )
 
@@ -113,13 +114,13 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
         def derChk(m):
             return [
-                self.probfwd.survey.dpred(m),
+                self.probfwd.dpred(m),
                 lambda mx: self.prob.Jvec(self.m, mx, f=self.fields)
             ]
         print('test_Jvec_{prbtype}_{rxcomp}'.format(
             prbtype=self.formulation, rxcomp=rxcomp)
         )
-        Tests.checkDerivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
+        tests.checkDerivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
 
     def JvecVsJtvecTest(self, rxcomp):
         self.set_rxList(rxcomp)

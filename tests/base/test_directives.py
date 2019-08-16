@@ -3,49 +3,50 @@ import warnings
 import pytest
 import numpy as np
 
+import discretize
 from SimPEG import (
-    Mesh, Maps, Directives, Regularization, DataMisfit, Optimization,
-    Inversion, InvProblem
+    maps, directives, regularization, data_misfit, optimization,
+    inversion, inverse_problem
 )
 from SimPEG import PF
 
 
-class DirectivesValidation(unittest.TestCase):
+class directivesValidation(unittest.TestCase):
 
     def test_validation_pass(self):
-        betaest = Directives.BetaEstimate_ByEig()
+        betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = Directives.Update_IRLS(
+        IRLS = directives.Update_IRLS(
             f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
         )
-        update_Jacobi = Directives.UpdatePreconditioner()
+        update_Jacobi = directives.UpdatePreconditioner()
         dList = [betaest, IRLS, update_Jacobi]
-        directiveList = Directives.DirectiveList(*dList)
+        directiveList = directives.DirectiveList(*dList)
 
         self.assertTrue(directiveList.validate())
 
     def test_validation_fail(self):
-        betaest = Directives.BetaEstimate_ByEig()
+        betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = Directives.Update_IRLS(
+        IRLS = directives.Update_IRLS(
             f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
         )
-        update_Jacobi = Directives.UpdatePreconditioner()
+        update_Jacobi = directives.UpdatePreconditioner()
         dList = [betaest, update_Jacobi, IRLS]
-        directiveList = Directives.DirectiveList(*dList)
+        directiveList = directives.DirectiveList(*dList)
 
         with self.assertRaises(AssertionError):
             self.assertTrue(directiveList.validate())
 
     def test_validation_warning(self):
-        betaest = Directives.BetaEstimate_ByEig()
+        betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = Directives.Update_IRLS(
+        IRLS = directives.Update_IRLS(
             f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
         )
-        update_Jacobi = Directives.UpdatePreconditioner()
+        update_Jacobi = directives.UpdatePreconditioner()
         dList = [betaest, IRLS]
-        directiveList = Directives.DirectiveList(*dList)
+        directiveList = directives.DirectiveList(*dList)
 
         with pytest.warns(UserWarning):
             self.assertTrue(directiveList.validate())
@@ -54,7 +55,7 @@ class DirectivesValidation(unittest.TestCase):
 class ValidationInInversion(unittest.TestCase):
 
     def setUp(self):
-        mesh = Mesh.TensorMesh([4, 4, 4])
+        mesh = discretize.TensorMesh([4, 4, 4])
 
         # Magnetic inducing field parameter (A,I,D)
         B = [50000, 90, 0]
@@ -68,7 +69,7 @@ class ValidationInInversion(unittest.TestCase):
 
         # Create the forward model operator
         prob = PF.Magnetics.MagneticIntegral(
-            mesh, chiMap=Maps.IdentityMap(mesh)
+            mesh, chiMap=maps.IdentityMap(mesh)
         )
 
         # Pair the survey and problem
@@ -78,7 +79,7 @@ class ValidationInInversion(unittest.TestCase):
         m = np.random.rand(mesh.nC)
         survey.makeSyntheticData(m)
 
-        reg = Regularization.Sparse(mesh)
+        reg = regularization.Sparse(mesh)
         reg.mref = np.zeros(mesh.nC)
 
         wr = np.sum(prob.G**2., axis=0)**0.5
@@ -87,41 +88,41 @@ class ValidationInInversion(unittest.TestCase):
         reg.eps_p, reg.eps_q = 1e-3, 1e-3
 
         # Data misfit function
-        dmis = DataMisfit.l2_DataMisfit(survey)
+        dmis = data_misfit.l2_data_misfit(survey)
         dmis.W = 1./survey.std
 
         # Add directives to the inversion
-        opt = Optimization.ProjectedGNCG(
+        opt = optimization.ProjectedGNCG(
             maxIter=2, lower=-10., upper=10.,
             maxIterCG=2
         )
 
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
         self.mesh = mesh
         self.invProb = invProb
 
     def test_validation_in_inversion(self):
-        betaest = Directives.BetaEstimate_ByEig()
+        betaest = directives.BetaEstimate_ByEig()
 
         # Here is where the norms are applied
-        IRLS = Directives.Update_IRLS(
+        IRLS = directives.Update_IRLS(
             f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
         )
 
-        update_Jacobi = Directives.UpdatePreconditioner()
+        update_Jacobi = directives.UpdatePreconditioner()
 
         with self.assertRaises(AssertionError):
             # validation should happen and this will fail
             # (IRLS needs to be before update_Jacobi)
-            inv = Inversion.BaseInversion(
+            inv = inversion.BaseInversion(
                 self.invProb, directiveList=[betaest, update_Jacobi, IRLS]
             )
 
         with self.assertRaises(AssertionError):
             # validation should happen and this will fail
             # (IRLS needs to be before update_Jacobi)
-            inv = Inversion.BaseInversion(self.invProb)
+            inv = inversion.BaseInversion(self.invProb)
             inv.directiveList = [betaest, update_Jacobi, IRLS]
 
 

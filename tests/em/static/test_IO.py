@@ -1,6 +1,8 @@
 # import matplotlib
 # matplotlib.use('Agg')
-from SimPEG import DC
+
+from SimPEG.electromagnetics import resistivity as dc
+from SimPEG.electromagnetics.static import utils
 import matplotlib.pyplot as plt
 import numpy as np
 import unittest
@@ -12,7 +14,7 @@ class TestsIO(unittest.TestCase):
         self.plotIt = False
         np.random.seed(1)
         # Initiate I/O class for DC
-        self.IO = DC.IO()
+        self.IO = dc.IO()
         # Obtain ABMN locations
 
         xmin, xmax = 0., 200.
@@ -22,7 +24,7 @@ class TestsIO(unittest.TestCase):
         # Generate DC survey object
 
     def test_flat_dpdp(self):
-        self.survey = DC.Utils.gen_DCIPsurvey(
+        self.survey = utils.gen_DCIPsurvey(
             self.endl, "dipole-dipole", dim=2, a=10, b=10, n=10
         )
         self.survey.getABMN_locations()
@@ -39,7 +41,7 @@ class TestsIO(unittest.TestCase):
         mesh, actind = self.IO.set_mesh()
 
     def test_topo_dpdp(self):
-        self.survey = DC.Utils.gen_DCIPsurvey(
+        self.survey = utils.gen_DCIPsurvey(
             self.endl, "dipole-dipole", dim=2, a=10, b=10, n=10
         )
         self.survey.getABMN_locations()
@@ -55,7 +57,7 @@ class TestsIO(unittest.TestCase):
             plt.show()
 
         mesh, actind = self.IO.set_mesh()
-        topo, mesh1D = DC.Utils.genTopography(mesh, -10, 0, its=100)
+        topo, mesh1D = utils.genTopography(mesh, -10, 0, its=100)
         mesh, actind = self.IO.set_mesh(topo=np.c_[mesh1D.vectorCCx, topo])
         self.survey.drapeTopo(mesh, actind, option="top")
         if self.plotIt:

@@ -1,5 +1,6 @@
-from SimPEG import Mesh, Maps, Utils, Tests
-from SimPEG.EM import FDEM
+import discretize
+from SimPEG import maps, utils, tests
+from SimPEG.electromagnetics import frequency_domain as fdem
 import numpy as np
 from scipy.constants import mu_0
 
@@ -19,7 +20,7 @@ def setupMeshModel():
     hx = [(cs, nc), (cs, npad, 1.3)]
     hz = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
 
-    mesh = Mesh.CylMesh([hx, 1., hz], '0CC')
+    mesh = discretize.CylMesh([hx, 1., hz], '0CC')
     muMod = 1+MuMax*np.random.randn(mesh.nC)
     sigmaMod = np.random.randn(mesh.nC)
 
@@ -32,7 +33,7 @@ def setupProblem(
 ):
     rxcomp = ['real', 'imag']
 
-    loc = Utils.ndgrid(
+    loc = utils.ndgrid(
         [mesh.vectorCCx, np.r_[0.], mesh.vectorCCz]
     )
 
@@ -45,7 +46,7 @@ def setupProblem(
         rxfields_xz = ['e', 'j']
 
     rxList_edge = [
-        getattr(FDEM.Rx, 'Point_{f}'.format(f=f))(
+        getattr(fdem.Rx, 'Point_{f}'.format(f=f))(
             loc, component=comp, orientation=orient
         )
         for f in rxfields_y
@@ -54,7 +55,7 @@ def setupProblem(
     ]
 
     rxList_face = [
-        getattr(FDEM.Rx, 'Point_{f}'.format(f=f))(
+        getattr(fdem.Rx, 'Point_{f}'.format(f=f))(
             loc, component=comp, orientation=orient
         )
         for f in rxfields_xz
@@ -67,52 +68,52 @@ def setupProblem(
     src_loc = np.r_[0., 0., 0.]
 
     if prbtype in ['e', 'b']:
-        src = FDEM.Src.MagDipole(
+        src = fdem.Src.MagDipole(
             rxList=rxList, loc=src_loc, freq=freq
         )
 
     elif prbtype in ['h', 'j']:
-        ind = Utils.closestPoints(mesh, src_loc, 'Fz') + mesh.vnF[0]
+        ind = utils.closestPoints(mesh, src_loc, 'Fz') + mesh.vnF[0]
         vec = np.zeros(mesh.nF)
         vec[ind] = 1.
 
-        src = FDEM.Src.RawVec_e(rxList=rxList, freq=freq, s_e=vec)
+        src = fdem.Src.RawVec_e(rxList=rxList, freq=freq, s_e=vec)
 
-    survey = FDEM.Survey([src])
+    survey = fdem.Survey([src])
 
     if sigmaInInversion:
 
-        wires = Maps.Wires(
+        wires = maps.Wires(
             ('mu', mesh.nC),
             ('sigma', mesh.nC)
         )
 
-        muMap = Maps.MuRelative(mesh) * wires.mu
-        sigmaMap = Maps.ExpMap(mesh) * wires.sigma
+        muMap = maps.MuRelative(mesh) * wires.mu
+        sigmaMap = maps.ExpMap(mesh) * wires.sigma
 
         if invertMui:
-            muiMap = Maps.ReciprocalMap(mesh)*muMap
-            prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(
+            muiMap = maps.ReciprocalMap(mesh)*muMap
+            prob = getattr(fdem, 'Problem3D_{}'.format(prbtype))(
                 mesh, muiMap=muiMap, sigmaMap=sigmaMap
             )
             # m0 = np.hstack([1./muMod, sigmaMod])
         else:
-            prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(
+            prob = getattr(fdem, 'Problem3D_{}'.format(prbtype))(
                 mesh, muMap=muMap, sigmaMap=sigmaMap
             )
         m0 = np.hstack([muMod, sigmaMod])
 
     else:
-        muMap = Maps.MuRelative(mesh)
+        muMap = maps.MuRelative(mesh)
 
         if invertMui:
-            muiMap = Maps.ReciprocalMap(mesh) * muMap
-            prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(
+            muiMap = maps.ReciprocalMap(mesh) * muMap
+            prob = getattr(fdem, 'Problem3D_{}'.format(prbtype))(
                     mesh, sigma=sigmaMod, muiMap=muiMap
                 )
             # m0 = 1./muMod
         else:
-            prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(
+            prob = getattr(fdem, 'Problem3D_{}'.format(prbtype))(
                     mesh, sigma=sigmaMod, muMap=muMap
                 )
         m0 = muMod
@@ -158,9 +159,9 @@ class MuTests(unittest.TestCase):
 
         def fun(x):
             return (
-                self.prob.survey.dpred(x), lambda x: self.prob.Jvec(self.m0, x)
+                self.prob.dpred(x), lambda x: self.prob.Jvec(self.m0, x)
             )
-        return Tests.checkDerivative(
+        return tests.checkDerivative(
             fun, self.m0, num=2, plotIt=False, eps=EPS
         )
 

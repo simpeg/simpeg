@@ -1,9 +1,14 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-from SimPEG import (Mesh, Maps, DataMisfit, Regularization, Inversion,
-                    Optimization, InvProblem, Tests, Utils)
-from SimPEG.EM.Static import SP
+
+import discretize
+
+from SimPEG import (
+    maps, data_misfit, regularization, inversion,
+    optimization, inverse_problem, tests, utils
+)
+from SimPEG.electromagnetics import spontaneous_potential as sp
 from pymatsolver import PardisoSolver
 
 np.random.seed(40)
@@ -13,15 +18,15 @@ class SPProblemTestsCC_CurrentSource(unittest.TestCase):
 
     def setUp(self):
 
-        mesh = Mesh.TensorMesh([20, 20, 20], "CCN")
+        mesh = discretize.TensorMesh([20, 20, 20], "CCN")
         sigma = np.ones(mesh.nC)*1./100.
         actind = mesh.gridCC[:, 2] < -0.2
-        # actMap = Maps.InjectActiveCells(mesh, actind, 0.)
+        # actMap = maps.InjectActiveCells(mesh, actind, 0.)
 
         xyzM = Utils.ndgrid(np.ones_like(mesh.vectorCCx[:-1])*-0.4, np.ones_like(mesh.vectorCCy)*-0.4, np.r_[-0.3])
         xyzN = Utils.ndgrid(mesh.vectorCCx[1:], mesh.vectorCCy, np.r_[-0.3])
 
-        problem = SP.Problem_CC(mesh, sigma=sigma, qMap=Maps.IdentityMap(mesh), Solver=PardisoSolver)
+        problem = SP.Problem_CC(mesh, sigma=sigma, qMap=maps.IdentityMap(mesh), Solver=PardisoSolver)
         rx = SP.Rx.Dipole(xyzN, xyzM)
         src = SP.Src.StreamingCurrents([rx], L=np.ones(mesh.nC), mesh=mesh,
                                        modelType="CurrentSource")
@@ -38,14 +43,14 @@ class SPProblemTestsCC_CurrentSource(unittest.TestCase):
         survey.makeSyntheticData(mSynth)
 
         # Now set up the problem to do some minimization
-        dmis = DataMisfit.l2_DataMisfit(survey)
-        reg = Regularization.Simple(mesh)
-        opt = Optimization.InexactGaussNewton(
+        dmis = data_misfit.L2DataMisfit(survey)
+        reg = regularization.Simple(mesh)
+        opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
             tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e-2)
-        inv = Inversion.BaseInversion(invProb)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e-2)
+        inv = inversion.BaseInversion(invProb)
 
         self.inv = inv
         self.reg = reg
@@ -56,7 +61,7 @@ class SPProblemTestsCC_CurrentSource(unittest.TestCase):
         self.dmis = dmis
 
     def test_misfit(self):
-        passed = Tests.checkDerivative(
+        passed = tests.checkDerivative(
             lambda m: [
                 self.survey.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
             ],

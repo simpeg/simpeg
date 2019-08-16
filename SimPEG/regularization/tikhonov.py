@@ -4,7 +4,7 @@ import warnings
 import properties
 
 from .base import BaseRegularization, BaseComboRegularization
-from .. import Utils
+from .. import utils
 
 
 ###############################################################################
@@ -55,11 +55,11 @@ class SimpleSmall(BaseRegularization):
         Weighting matrix
         """
         if self.cell_weights is not None:
-            return Utils.sdiag(np.sqrt(self.cell_weights))
+            return utils.sdiag(np.sqrt(self.cell_weights))
         elif self._nC_residual != '*':
             return sp.eye(self._nC_residual)
         else:
-            return Utils.Identity()
+            return utils.Identity()
 
 
 class SimpleSmoothDeriv(BaseRegularization):
@@ -128,7 +128,7 @@ class SimpleSmoothDeriv(BaseRegularization):
         if self.cell_weights is not None:
             Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
             W = (
-                Utils.sdiag(
+                utils.sdiag(
                     (Ave*self.cell_weights)**0.5
                 ) * W
             )
@@ -259,8 +259,8 @@ class Small(BaseRegularization):
         Weighting matrix
         """
         if self.cell_weights is not None:
-            return Utils.sdiag(np.sqrt(self.regmesh.vol * self.cell_weights))
-        return Utils.sdiag(np.sqrt(self.regmesh.vol))
+            return utils.sdiag(np.sqrt(self.regmesh.vol * self.cell_weights))
+        return utils.sdiag(np.sqrt(self.regmesh.vol))
 
 
 class SmoothDeriv(BaseRegularization):
@@ -311,7 +311,7 @@ class SmoothDeriv(BaseRegularization):
         )
 
         if self.mrefInSmooth is False:
-            self.mref = Utils.Zero()
+            self.mref = utils.Zero()
 
     @property
     def _multiplier_pair(self):
@@ -336,7 +336,7 @@ class SmoothDeriv(BaseRegularization):
 
         Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
 
-        return Utils.sdiag(np.sqrt(Ave * vol)) * D
+        return utils.sdiag(np.sqrt(Ave * vol)) * D
 
 
 class SmoothDeriv2(BaseRegularization):
@@ -396,7 +396,7 @@ class SmoothDeriv2(BaseRegularization):
             vol *= self.cell_weights
 
         W = (
-            Utils.sdiag(vol**0.5) *
+            utils.sdiag(vol**0.5) *
             getattr(
                 self.regmesh,
                 'faceDiff{orientation}'.format(

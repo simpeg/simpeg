@@ -1,28 +1,28 @@
 from __future__ import print_function
 import unittest
-import SimPEG as simpeg
-from SimPEG.EM import NSEM
+from SimPEG import mkvc
+from SimPEG.electromagnetics import natural_source as nsem
 import numpy as np
 # Define the tolerances
 TOLr = 5e-2
 TOLp = 5e-2
 
 
-def getAppResPhs(NSEMdata):
+def getAppResPhs(nsemdata):
     # Make impedance
     def appResPhs(freq, z):
         app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
         app_phs = np.arctan2(z.imag, z.real)*(180/np.pi)
         return app_res, app_phs
     zList = []
-    for src in NSEMdata.survey.srcList:
+    for src in nsemdata.survey.srcList:
         zc = [src.freq]
         for rx in src.rxList:
             if 'i' in rx.rxType:
                 m = 1j
             else:
                 m = 1
-            zc.append(m*NSEMdata[src, rx])
+            zc.append(m*nsemdata[src, rx])
         zList.append(zc)
     return [
         appResPhs(zList[i][0], np.sum(zList[i][1:3]))
@@ -31,11 +31,11 @@ def getAppResPhs(NSEMdata):
 
 
 def calculateAnalyticSolution(srcList, mesh, model):
-    surveyAna = NSEM.Survey(srcList)
-    data1D = NSEM.Data(surveyAna)
+    surveyAna = nsem.Survey(srcList)
+    data1D = nsem.Data(surveyAna)
     for src in surveyAna.srcList:
         elev = src.rxList[0].locs[0]
-        anaEd, anaEu, anaHd, anaHu = NSEM.Utils.MT1Danalytic.getEHfields(
+        anaEd, anaEu, anaHd, anaHu = nsem.utils.MT1Danalytic.getEHfields(
             mesh, model, src.freq, elev
         )
         anaE = anaEd+anaEu
@@ -53,17 +53,17 @@ def dataMis_AnalyticPrimarySecondary(sigmaHalf):
 
     # Make the survey
     # Primary secondary
-    survey, sig, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(
+    survey, sig, sigBG, mesh = nsem.utils.testUtils.setup1DSurvey(
         sigmaHalf, False, structure=True
     )
     # Analytic data
-    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary=sig, sigma=sig)
-    problem.pair(survey)
+    simulation = nsem.Problem1D_ePrimSec(mesh, sigmaPrimary=sig, sigma=sig, survey=survey)
+    # simulation.pair(survey)
 
     dataAnaObj = calculateAnalyticSolution(survey.srcList, mesh, sig)
 
-    data = survey.dpred()
-    dataAna = simpeg.mkvc(dataAnaObj)
+    data = simulation.dpred()
+    dataAna = mkvc(dataAnaObj)
     return np.all((data - dataAna)/dataAna < 2.)
 
 
