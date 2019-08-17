@@ -296,7 +296,7 @@ class Problem3D_CC(BaseDCSimulation):
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_CC
-    bc_type = 'Neumann'
+    bc_type = 'Dirichlet'
 
     def __init__(self, mesh, **kwargs):
 
@@ -536,6 +536,7 @@ class Problem3D_N(BaseDCSimulation):
 
         return A
 
+    @dask.delayed
     def getADeriv(self, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the
@@ -556,6 +557,7 @@ class Problem3D_N(BaseDCSimulation):
         RHS = self.getSourceTerm()
         return RHS
 
+    @dask.delayed
     def getRHSDeriv(self, source, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model
