@@ -96,67 +96,66 @@ class BaseDCSimulation(BaseEMSimulation):
         if self.verbose:
             print("Calculating J and storing")
 
+        # if os.path.exists(self.Jpath + "J.zarr"):
+        #     self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
+        # else:
+        self.n_cpu = int(multiprocessing.cpu_count())
+        Jtv = []
+        count = 0
+        for source in self.survey.source_list:
+            u_source = f[source, self._solutionType].copy()
+            for rx in source.receiver_list:
+                # wrt f, need possibility wrt m
+                PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+
+                df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
+                                    None)
+                df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
+
+                # Compute block of receivers
+                ATinvdf_duT = self.Ainv * df_duT
+
+                if len(ATinvdf_duT.shape) == 1:
+                    ATinvdf_duT = np.c_[ATinvdf_duT]
+
+                dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
+
+                dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
+
+                du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(dRHS_dmT, shape=(self.model.size, rx.nD), dtype=float)
+
+                if not isinstance(df_dmT, Zero):
+
+                    du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, rx.nD), dtype=float)
+
+                blockName = self.Jpath + "J" + str(count) + ".zarr"
+                if os.path.exists(blockName):
+
+                    shutil.rmtree(blockName)
+
+                nChunks = self.n_cpu  # Number of chunks
+                rowChunk = int(np.ceil(rx.nD/nChunks))
+                colChunk = int(np.ceil(self.model.size/nChunks))  # Chunk sizes
+                du_dmT = du_dmT.rechunk((colChunk, rowChunk))
+
+                da.to_zarr(du_dmT, blockName)
+
+                Jtv.append(du_dmT)
+                count += 1
+
+
+        # Stack all the source blocks in one big zarr
+        J = da.hstack(Jtv).T
+        nChunks = self.n_cpu  # Number of chunks
+        rowChunk = int(np.ceil(self.survey.nD/nChunks))# Chunk sizes
+        colChunk = int(np.ceil(m.shape[0]/nChunks))
+        J = J.rechunk((rowChunk, colChunk))
+
         if os.path.exists(self.Jpath + "J.zarr"):
-            self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
-        else:
-            self.n_cpu = int(multiprocessing.cpu_count())
-            Jtv = []
-            count = 0
-            for source in self.survey.source_list:
-                u_source = f[source, self._solutionType].copy()
-                for rx in source.receiver_list:
-                    # wrt f, need possibility wrt m
-                    PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+            shutil.rmtree(self.Jpath + "J.zarr")
 
-                    df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
-                                        None)
-                    df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
-
-                    # Compute block of receivers
-                    ATinvdf_duT = self.Ainv * df_duT
-                    
-                    if len(ATinvdf_duT.shape) == 1:
-                        ATinvdf_duT = np.c_[ATinvdf_duT]
-                        
-                    dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
-
-                    dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
-
-                    du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(dRHS_dmT, shape=(self.model.size, rx.nD), dtype=float)
-
-                    if not isinstance(df_dmT, Zero):
-
-                        du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, rx.nD), dtype=float)
-
-                    blockName = self.Jpath + "J" + str(count) + ".zarr"
-                    if os.path.exists(blockName):
-
-                        shutil.rmtree(blockName)
-
-                    nChunks = self.n_cpu  # Number of chunks
-                    rowChunk = int(np.ceil(rx.nD/nChunks))
-                    colChunk = int(np.ceil(self.model.size/nChunks))  # Chunk sizes
-                    du_dmT = du_dmT.rechunk((colChunk, rowChunk))
-
-                    da.to_zarr(du_dmT, blockName)
-
-                    Jtv.append(du_dmT)
-                    count += 1
-                    
-
-            # Stack all the source blocks in one big zarr
-            J = da.hstack(Jtv).T
-            nChunks = self.n_cpu  # Number of chunks
-            rowChunk = int(np.ceil(self.survey.nD/nChunks))# Chunk sizes
-            colChunk = int(np.ceil(m.shape[0]/nChunks))
-            J = J.rechunk((rowChunk, colChunk))
-
-            if os.path.exists(self.Jpath + "J.zarr"):
-
-                shutil.rmtree(self.Jpath + "J.zarr")
-
-            da.to_zarr(J, self.Jpath + "J.zarr")
-            self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
+        da.to_zarr(J, self.Jpath + "J.zarr")
+        self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
 
         return self._Jmatrix
 
