@@ -32,8 +32,9 @@ from discretize.utils import mkvc, refine_tree_xyz
 
 from SimPEG.utils import ModelBuilder, surface2ind_topo
 from SimPEG import maps
-from SimPEG.EM.Static import DC, IP
-from SimPEG.EM.Static.utils import plot_pseudoSection
+from SimPEG.electromagnetics.static import resistivity as dc
+from SimPEG.electromagnetics.static import induced_polarization as ip
+from SimPEG.electromagnetics.static.utils import plot_pseudoSection
 
 import os
 import numpy as np
@@ -62,7 +63,7 @@ zz = (1/np.pi)*80*(-np.pi/2 + np.arctan((np.abs(xx) - 500.)/30.))
 xx, yy, zz = mkvc(xx), mkvc(yy), mkvc(zz)
 topo_xyz = np.c_[xx, yy, zz]
 
-fname = os.path.dirname(DC.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip_topo.txt'
+fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip_topo.txt'
 np.savetxt(fname, topo_xyz, fmt='%.4e')
 
 #####################################################################
@@ -111,15 +112,15 @@ while ii < n_loc:
 
     # Create receivers list. Define as pole or dipole. Can choose to
     # measured potential or components of electric field.
-    rx_list = [DC.RxDC.Dipole(m_locs, n_locs, rxType='phi')]
+    rx_list = [dc.receivers.Dipole(m_locs, n_locs)]
 
     # Define the source properties and associated receivers
-    src_list.append(DC.SrcDC.Dipole(rx_list, a_loc, b_loc))
+    src_list.append(dc.sources.Dipole(rx_list, a_loc, b_loc))
 
     ii = ii + 1
 
 # Define survey
-survey_dc = DC.Survey(src_list)
+survey_dc = dc.Survey(src_list)
 
 
 ###############################################################
@@ -204,7 +205,7 @@ mod_dc[ind_resistor] = resistor_val
 
 # Plot Conductivity Model
 fig = plt.figure(figsize=(8.5, 4))
-
+6
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_mod = np.log10(mod_dc)
 
@@ -234,10 +235,9 @@ cbar.set_label(
 # argument *rhoMap* is defined, the simulation will expect a resistivity model.
 #
 
-prob = DC.Problem3D_N(mesh, sigmaMap=mod_dc_map, Solver=Solver)
-prob.pair(survey_dc)
+simulation_dc = dc.simulation.Problem3D_N(mesh, survey=survey_dc, sigmaMap=mod_dc_map, Solver=Solver)
 
-dpred_dc = survey_dc.dpred(mod_dc)
+dpred_dc = simulation_dc.dpred(mod_dc)
 
 # Plot apparent conductivity pseudo-section
 fig = plt.figure(figsize=(11, 5))
@@ -257,18 +257,18 @@ plt.show()
 # ---------------
 #
 
-survey_dc.getABMN_locations()
-
-data_array = np.c_[
-    survey_dc.a_locations,
-    survey_dc.b_locations,
-    survey_dc.m_locations,
-    survey_dc.n_locations,
-    dpred_dc*(1 + 0.05*np.random.rand(len(dpred_dc)))
-    ]
-
-fname = os.path.dirname(DC.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dc_data.txt'
-np.savetxt(fname, data_array, fmt='%.4e')
+#survey_dc.getABMN_locations()
+#
+#data_array = np.c_[
+#    survey_dc.a_locations,
+#    survey_dc.b_locations,
+#    survey_dc.m_locations,
+#    survey_dc.n_locations,
+#    dpred_dc*(1 + 0.05*np.random.rand(len(dpred_dc)))
+#    ]
+#
+#fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dc_data.txt'
+#np.savetxt(fname, data_array, fmt='%.4e')
 
 
 #######################################################################
@@ -279,7 +279,7 @@ np.savetxt(fname, data_array, fmt='%.4e')
 # to make a copy for predicting IP data.
 #
 
-survey_ip = IP.from_dc_to_ip_survey(survey_dc, dim="3D")
+survey_ip = ip.from_dc_to_ip_survey(survey_dc, dim="3D")
 
 
 ###############################################################
@@ -340,12 +340,11 @@ cbar.set_label(
 # We use the keyword argument *sigma* to define the background conductivity on
 # the mesh. We could use the keyword argument *rho* to accomplish the same thing
 # using a background resistivity model.
-prob_ip = IP.Problem3D_N(
-    mesh, etaMap=mod_ip_map, sigma=mod_dc_map*mod_dc, Solver=Solver
+simulation_ip = ip.simulation.Problem3D_N(
+    mesh, survey=survey_ip, etaMap=mod_ip_map, sigma=mod_dc_map*mod_dc, Solver=Solver
 )
-prob_ip.pair(survey_ip)
 
-dpred_ip = survey_ip.dpred(mod_ip)
+dpred_ip = simulation_ip.dpred(mod_ip)
 
 # Plot
 fig = plt.figure(figsize=(11, 5))
@@ -365,15 +364,15 @@ plt.show()
 # ---------------
 #
 
-survey_ip.getABMN_locations()
-
-data_array = np.c_[
-    survey_ip.a_locations,
-    survey_ip.b_locations,
-    survey_ip.m_locations,
-    survey_ip.n_locations,
-    dpred_ip*(1 + 0.05*np.random.rand(len(dpred_ip)))
-    ]
-
-fname = os.path.dirname(DC.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\ip_data.txt'
-np.savetxt(fname, data_array, fmt='%.4e')
+#survey_ip.getABMN_locations()
+#
+#data_array = np.c_[
+#    survey_ip.a_locations,
+#    survey_ip.b_locations,
+#    survey_ip.m_locations,
+#    survey_ip.n_locations,
+#    dpred_ip*(1 + 0.05*np.random.rand(len(dpred_ip)))
+#    ]
+#
+#fname = os.path.dirname(DC.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\ip_data.txt'
+#np.savetxt(fname, data_array, fmt='%.4e')

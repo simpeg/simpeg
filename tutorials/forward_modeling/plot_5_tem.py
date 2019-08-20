@@ -31,9 +31,7 @@ from discretize.utils import mkvc, refine_tree_xyz
 
 from SimPEG.utils import plot2Ddata, surface2ind_topo
 from SimPEG import maps
-from SimPEG.electromagnetics.time_domain import (
-    receivers, sources, survey, simulation
-    )
+import SimPEG.electromagnetics.time_domain as tdem
 
 import numpy as np
 import matplotlib as mpl
@@ -79,7 +77,7 @@ rx_locs = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
 
 # Defining the transmitter waveform. Under 'TDEM.Src', there are a multitude
 # of waveforms that can be defined with SimPEG (VTEM, Ramp-off etc...)
-waveform = sources.StepOffWaveform(offTime=0.)
+waveform = tdem.sources.StepOffWaveform(offTime=0.)
 
 source_list = []  # Create empty list to store sources
 
@@ -87,13 +85,15 @@ source_list = []  # Create empty list to store sources
 for ii in range(ntx):
 
     # Define receivers of different type at each location.
-    dbzdt_rec = receivers.Point_dbdt(rx_locs[ii, :], tc, 'z')
+    dbzdt_rec = tdem.receivers.Point_dbdt(rx_locs[ii, :], tc, 'z')
     rx_list = [dbzdt_rec]  # Make a list containing all receivers even if just one
 
     # Must define the transmitter properties and associated receivers
     source_list.append(
-        sources.MagDipole(rx_list, loc=src_locs[ii], moment=1., orientation='z')
+        tdem.sources.MagDipole(rx_list, loc=src_locs[ii], moment=1., orientation='z')
     )
+    
+survey = tdem.Survey(source_list)
 
 ###############################################################
 # Create Cylindrical Mesh
@@ -173,15 +173,15 @@ cbar.set_label(
 #
 
 # Create the problem
-fwd_sim = simulation.Problem3D_e(mesh, survey=source_list, sigmaMap=mod_map, Solver=Solver)
+simulation = tdem.simulation.Problem3D_e(mesh, survey=survey, sigmaMap=mod_map, Solver=Solver)
 
 # Define the backward Euler time-stepping. Each interval of time-stepping is
 # defined by (step width, n steps).
-fwd_sim.time_steps = [(1e-05, 20), (0.0001, 20), (0.001, 21)]
+simulation.time_steps = [(1e-05, 20), (0.0001, 20), (0.001, 21)]
 
 # Predict data given a model. Data are organized by transmitter, then by
 # receiver then by observation time. dBdt data are in T/s.
-dpred = fwd_sim.dpred(mod)
+dpred = simulation.dpred(mod)
 
 # Plot the response
 dpred = np.reshape(dpred, (ntx, len(tc)))
@@ -262,7 +262,7 @@ rx_locs = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
 
 # Defining the transmitter waveform
 t_wave = np.linspace(-0.002, 0, 21)
-waveform = sources.TrapezoidWaveform(
+waveform = tdem.sources.TrapezoidWaveform(
         ramp_on=np.r_[-0.002, -0.001],  ramp_off=np.r_[-0.001, 0.], offTime=0.
 )
 [waveform.eval(t) for t in t_wave]
@@ -274,13 +274,15 @@ source_list = []  # Create empty list to store sources
 for ii in range(ntx):
 
     # Here we define receivers that measure the h-field in A/m
-    h_rec = receivers.Point_h(rx_locs[ii, :], tc, 'z')
+    h_rec = tdem.receivers.Point_h(rx_locs[ii, :], tc, 'z')
     rx_list = [h_rec]  # Make a list containing all receivers even if just one
 
     # Must define the transmitter properties and associated receivers
     source_list.append(
-        sources.MagDipole(rx_list, loc=src_locs[ii], moment=1., orientation='z')
+        tdem.sources.MagDipole(rx_list, loc=src_locs[ii], moment=1., orientation='z')
     )
+
+survey = tdem.Survey(source_list)
 
 ###############################################################
 # Create OcTree Mesh
@@ -378,12 +380,12 @@ cbar.set_label(
 
 # We defined a waveform that is on from -0.002 s to 0 s. As a result, we need
 # to set the start time for the simulation at -0.002 s.
-fwd_sim_2 = simulation.Problem3D_b(mesh, survey=source_list, rhoMap=mod_map, Solver=Solver, t0=-0.002)
+simulation = tdem.simulation.Problem3D_b(mesh, survey=survey, rhoMap=mod_map, Solver=Solver, t0=-0.002)
 
 # Need to define time stepping for waveform and off-time
-fwd_sim_2.time_steps = [(1e-4, 20), (1e-05, 10), (1e-4, 10)]
+simulation.time_steps = [(1e-4, 20), (1e-05, 10), (1e-4, 10)]
 
-dpred = fwd_sim_2.dpred(mod)
+dpred = simulation.dpred(mod)
 
 # Plot
 dpred = np.reshape(dpred, (n_tx**2, n_times))
