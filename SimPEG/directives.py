@@ -448,7 +448,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
         self.f = results[:, 7]
 
-        self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
+        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
@@ -465,7 +465,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         plot_smooth=False
     ):
 
-        self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
+        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
@@ -529,7 +529,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
     def plot_tikhonov_curves(self, fname=None, dpi=200):
 
-        self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
+        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
