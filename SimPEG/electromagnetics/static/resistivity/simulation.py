@@ -97,7 +97,7 @@ class BaseDCSimulation(BaseEMSimulation):
             print("Calculating J and storing")
 
         if os.path.exists(self.Jpath):
-            shutil.rmtree(self.Jpath)
+            shutil.rmtree(self.Jpath, ignore_errors=True)
 
             # Wait for the system to clear out the directory
             while os.path.exists(self.Jpath):
