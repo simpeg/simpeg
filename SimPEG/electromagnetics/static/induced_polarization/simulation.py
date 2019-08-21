@@ -1,4 +1,7 @@
 import numpy as np
+import dask
+import dask.array as da
+import multiprocessing
 import scipy.sparse as sp
 import sys
 
@@ -126,8 +129,10 @@ class BaseIPSimulation(BaseEMSimulation):
                 # solution vector
                 u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(u_src.flatten(), v, adjoint=False)
+                dA_dm_v = da.from_delayed(dA_dm_v, shape=self.model.shape, dtype=float)
                 dRHS_dm_v = self.getRHSDeriv(src, v)
-                du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
+                dRHS_dm_v = da.from_delayed(dRHS_dm_v, shape=self.model.shape, dtype=float)
+                du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v).compute()
 
                 for rx in src.rxList:
                     df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
@@ -178,7 +183,6 @@ class BaseIPSimulation(BaseEMSimulation):
             iend = int(0)
 
         for isrc, src in enumerate(self.survey.srcList):
-            print(f, src, self._solutionType)
             u_src = f[src, self._solutionType]
             if self.storeJ:
                 # TODO: use logging package
@@ -198,8 +202,10 @@ class BaseIPSimulation(BaseEMSimulation):
                     dA_dmT = self.getADeriv(
                         u_src.flatten(), ATinvdf_duT, adjoint=True
                     )
+                    dA_dmT = da.from_delayed(dA_dmT, shape=self.model.shape, dtype=float)
                     dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
-                    du_dmT = -dA_dmT + dRHS_dmT
+                    dRHS_dmT = da.from_delayed(dRHS_dmT, shape=self.model.shape, dtype=float)
+                    du_dmT = (-dA_dmT + dRHS_dmT).compute()
                     Jtv += (df_dmT + du_dmT).astype(float)
                 else:
                     P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
@@ -334,7 +340,7 @@ class Problem3D_CC(BaseIPSimulation, BaseProblem3D_CC):
     _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_CC
     sign = 1.
-    bc_type = 'Neumann'
+    bc_type = 'Dirichlet'
 
     def __init__(self, mesh, **kwargs):
         super(Problem3D_CC, self).__init__(mesh, **kwargs)
