@@ -96,6 +96,13 @@ class BaseDCSimulation(BaseEMSimulation):
         if self.verbose:
             print("Calculating J and storing")
 
+        if os.path.exists(self.Jpath):
+            shutil.rmtree(self.Jpath)
+
+            # Wait for the system to clear out the directory
+            while os.path.exists(self.Jpath):
+                pass
+
         # if os.path.exists(self.Jpath + "J.zarr"):
         #     self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
         # else:
@@ -129,10 +136,6 @@ class BaseDCSimulation(BaseEMSimulation):
                     du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, rx.nD), dtype=float)
 
                 blockName = self.Jpath + "J" + str(count) + ".zarr"
-                if os.path.exists(blockName):
-
-                    shutil.rmtree(blockName)
-
                 nChunks = self.n_cpu  # Number of chunks
                 rowChunk = int(np.ceil(rx.nD/nChunks))
                 colChunk = int(np.ceil(self.model.size/nChunks))  # Chunk sizes
@@ -150,9 +153,6 @@ class BaseDCSimulation(BaseEMSimulation):
         rowChunk = int(np.ceil(self.survey.nD/nChunks))# Chunk sizes
         colChunk = int(np.ceil(m.shape[0]/nChunks))
         J = J.rechunk((rowChunk, colChunk))
-
-        if os.path.exists(self.Jpath + "J.zarr"):
-            shutil.rmtree(self.Jpath + "J.zarr")
 
         da.to_zarr(J, self.Jpath + "J.zarr")
         self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
