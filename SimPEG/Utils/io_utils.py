@@ -505,14 +505,20 @@ def readVectorUBC(mesh, fileName):
 
     # f = open(fileName, 'r')
     model = np.loadtxt(fileName)
-    # f.close()
-
     vModel = np.zeros((mesh.nC, 3))
-    for ii in range(3):
-        comp = np.reshape(model[:, ii], (mesh.nCz, mesh.nCx, mesh.nCy), order='F')
-        comp = comp[::-1, :, :]
-        comp = np.transpose(comp, (1, 2, 0))
-        vModel[:, ii] = Utils.mkvc(comp)
+    # f.close()
+    if isinstance(mesh, TreeMesh):
+        ubc_order = mesh._ubc_order
+
+        for ii in range(3):
+            vModel[:, ii] = model[ubc_order, ii]
+    else:
+
+        for ii in range(3):
+            comp = np.reshape(model[:, ii], (mesh.nCz, mesh.nCx, mesh.nCy), order='F')
+            comp = comp[::-1, :, :]
+            comp = np.transpose(comp, (1, 2, 0))
+            vModel[:, ii] = Utils.mkvc(comp)
 
     # Flip the z vector
     vModel[:, 2] *= -1
