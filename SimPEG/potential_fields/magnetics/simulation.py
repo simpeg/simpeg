@@ -198,17 +198,40 @@ class MagneticIntegralSimulation(BasePFSimulation):
 
         if self.coordinate_system == 'cartesian':
             if self.modelType == 'amplitude':
-                return np.sum((W * self.dfdm * sdiag(mkvc(self.gtgdiag)**0.5) * dmudm).power(2.), axis=0)
+                return np.sum(
+                    (
+                        W * self.dfdm *
+                        sdiag(mkvc(self.gtgdiag)**0.5) * dmudm
+                    ).power(2.), axis=0
+                )
+
             else:
-                return mkvc(np.sum((sdiag(mkvc(self.gtgdiag)**0.5) * dmudm).power(2.), axis=0))
+                return mkvc(
+                    np.sum(
+                        (
+                            sdiag(mkvc(self.gtgdiag)**0.5) * dmudm
+                        ).power(2.), axis=0)
+                    )
 
         else:  # spherical
             if self.modelType == 'amplitude':
-                return mkvc(np.sum(((W * self.dfdm) * sdiag(mkvc(self.gtgdiag)**0.5) * (self.dSdm * dmudm)).power(2.), axis=0))
+                return mkvc(
+                    np.sum(
+                        (
+                            (W * self.dfdm) *
+                            sdiag(mkvc(self.gtgdiag)**0.5) *
+                            (self.dSdm * dmudm)
+                        ).power(2.), axis=0
+                    ))
             else:
 
-                #Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm) * (self.dSdm * dmudm)
-                return mkvc(np.sum((sdiag(mkvc(self.gtgdiag)**0.5) * self.dSdm * dmudm).power(2), axis=0))
+                return mkvc(
+                    np.sum(
+                        (
+                            sdiag(mkvc(self.gtgdiag)**0.5) *
+                            self.dSdm * dmudm
+                        ).power(2), axis=0
+                    ))
 
     def getJ(self, m, f=None):
         """
@@ -244,14 +267,18 @@ class MagneticIntegralSimulation(BasePFSimulation):
 
             dmudm_v = dask.delayed(csr.dot)(dmudm, v)
             vec = dask.delayed(csr.dot)(self.Mxyz, dmudm_v)
-            M_dmudm_v = da.from_delayed(vec, dtype=float, shape=[self.Mxyz.shape[0]])
+            M_dmudm_v = da.from_delayed(
+                vec, dtype=float, shape=[self.Mxyz.shape[0]]
+            )
 
             Jvec = da.dot(self.G, M_dmudm_v).compute()
 
         else:
 
             vec = dask.delayed(csr.dot)(dmudm, v)
-            dmudm_v = da.from_delayed(vec, dtype=float, shape=[self.chiMap.deriv(m).shape[0]])
+            dmudm_v = da.from_delayed(
+                vec, dtype=float, shape=[self.chiMap.deriv(m).shape[0]]
+            )
             Jvec = da.dot(self.G, dmudm_v)
 
         if self.modelType == 'amplitude':
