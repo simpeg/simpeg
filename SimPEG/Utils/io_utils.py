@@ -511,7 +511,7 @@ def readVectorUBC(mesh, fileName):
         ubc_order = mesh._ubc_order
 
         for ii in range(3):
-            vModel[:, ii] = model[ubc_order, ii]
+            vModel[ubc_order, ii] = model[:, ii]
     else:
 
         for ii in range(3):
