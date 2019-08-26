@@ -17,7 +17,7 @@ class LinearSurvey(Survey.BaseSurvey):
 
     @property
     def nD(self):
-        return len(self.rxLoc)
+        return len(self.rxLoc) * len(self.components)
 
     @property
     def rxLoc(self):

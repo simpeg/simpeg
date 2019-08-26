@@ -25,7 +25,6 @@ class GravityIntegral(Problem.LinearProblem):
     # surveyPair = Survey.LinearSurvey
     forwardOnly = False  # Is TRUE, forward matrix not stored to memory
     actInd = None  #: Active cell indices provided
-    rxType = 'z'
     silent = False
     equiSourceLayer = False
     memory_saving_mode = False
@@ -158,7 +157,7 @@ class GravityIntegral(Problem.LinearProblem):
 
         return self._G
 
-    def Intrgl_Fwr_Op(self, m=None, rxType='z'):
+    def Intrgl_Fwr_Op(self, m=None):
 
         """
 
@@ -186,7 +185,7 @@ class GravityIntegral(Problem.LinearProblem):
         job = Forward(
                 rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
-                model=self.model, rxType=self.rxType,
+                model=self.model, components=self.survey.components,
                 parallelized=self.parallelized, n_chunks=self.n_chunks,
                 verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM
                 )
@@ -209,7 +208,7 @@ class Forward(object):
     n_chunks = None
     forwardOnly = False
     model = None
-    rxType = 'z'
+    components = ['gz']
     verbose = True
     maxRAM = 1.
     Jpath = "./sensitivity.zarr"
@@ -227,10 +226,7 @@ class Forward(object):
             self.n_cpu = int(multiprocessing.cpu_count())
 
         # Set this early so we can get a better memory estimate for dask chunking
-        if self.rxType == 'xyz':
-            nDataComps = 3
-        else:
-            nDataComps = 1
+        nDataComps = len(self.components)
 
         if self.parallelized:
 
@@ -244,15 +240,23 @@ class Forward(object):
 
             if self.parallelized == "dask":
 
+                row = dask.delayed(self.calcTrow, pure=True)
+
+                makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
+
+                buildMat = [da.from_delayed(makeRow, dtype=float, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
+
+                stack = da.vstack(buildMat)
+
                 # Chunking only required for dask
-                nChunks = self.n_chunks # Number of chunks
+                nChunks = self.n_cpu # Number of chunks
                 rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
                 totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
                 # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
-                while (totRAM > self.maxRAM) or (totRAM/self.n_cpu) >= 0.128:
+                while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= 0.128:
 #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
                     nChunks += 1
-                    rowChunk, colChunk = int(np.ceil(nDataComps*self.nD/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                    rowChunk, colChunk = int(np.ceil(self.nD*nDataComps/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
                     totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
 
                 print("Dask:")
@@ -262,13 +266,7 @@ class Forward(object):
                 print("RAM/chunk: ", totRAM/self.n_cpu)
                 print("Total RAM (x n_cpu): ", totRAM)
 
-                row = dask.delayed(self.calcTrow, pure=True)
-
-                makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
-
-                buildMat = [da.from_delayed(makeRow, dtype=float, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
-
-                stack = da.vstack(buildMat)
+                stack = stack.rechunk((rowChunk, colChunk))
 
                 if self.forwardOnly:
 
@@ -295,11 +293,6 @@ class Forward(object):
                             del G
                             shutil.rmtree(self.Jpath)
                             print("Zarr file detected with wrong shape and chunksize ... over-writting")
-                        # TO-DO: should add
-
-                    # TO-DO: Find a way to create in
-                    # chunks instead
-                    stack = stack.rechunk((rowChunk, colChunk))
 
                     with ProgressBar():
                         print("Saving G to zarr: " + self.Jpath)
@@ -331,40 +324,34 @@ class Forward(object):
 
         return G
 
-    def calcTrow(self, xyzLoc):
+    def calcTrow(self, receiver_location):
         """
-        Load in the active nodes of a tensor mesh and computes the gravity tensor
-        for a given observation location xyzLoc[obsx, obsy, obsz]
+            Load in the active nodes of a tensor mesh and computes the magnetic
+            forward relation between a cuboid and a given observation
+            location outside the Earth [obsx, obsy, obsz]
 
-        INPUT:
-        Xn, Yn, Zn: Node location matrix for the lower and upper most corners of
-                    all cells in the mesh shape[nC,2]
-        M
-        OUTPUT:
-        Tx = [Txx Txy Txz]
-        Ty = [Tyx Tyy Tyz]
-        Tz = [Tzx Tzy Tzz]
+            INPUT:
+            xyzLoc:  [obsx, obsy, obsz] nC x 3 Array
 
-        where each elements have dimension 1-by-nC.
-        Only the upper half 5 elements have to be computed since symetric.
-        Currently done as for-loops but will eventually be changed to vector
-        indexing, once the topography has been figured out.
+            OUTPUT:
+            Tx = [Txx Txy Txz]
+            Ty = [Tyx Tyy Tyz]
+            Tz = [Tzx Tzy Tzz]
 
         """
+        eps = 1e-8
 
-        NewtG = constants.G*1e+8  # Convertion from mGal (1e-5) and g/cc (1e-3)
-        eps = 1e-8  # add a small value to the locations to avoid
+        NewtG = constants.G*1e+8
 
-        # Pre-allocate space for 1D array
-        row = np.zeros((1, self.Xn.shape[0]))
+        dx = self.Xn - receiver_location[0]
+        dy = self.Yn - receiver_location[1]
+        dz = self.Zn - receiver_location[2]
 
-        dz = xyzLoc[2] - self.Zn
+        compDict = {key: np.zeros(self.Xn.shape[0]) for key in self.components}
 
-        dy = self.Yn - xyzLoc[1]
+        gxx = np.zeros(self.Xn.shape[0])
+        gyy = np.zeros(self.Xn.shape[0])
 
-        dx = self.Xn - xyzLoc[0]
-
-        # Compute contribution from each corners
         for aa in range(2):
             for bb in range(2):
                 for cc in range(2):
@@ -373,46 +360,102 @@ class Forward(object):
                             mkvc(dx[:, aa]) ** 2 +
                             mkvc(dy[:, bb]) ** 2 +
                             mkvc(dz[:, cc]) ** 2
-                        ) ** (0.50)
+                        ) ** (0.50) + eps
 
-                    if self.rxType == 'x':
-                        row -= NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                            dy[:, bb] * np.log(dz[:, cc] + r + eps) +
-                            dz[:, cc] * np.log(dy[:, bb] + r + eps) -
-                            dx[:, aa] * np.arctan(dy[:, bb] * dz[:, cc] /
-                                                  (dx[:, aa] * r + eps)))
+                    dz_r = dz[:, cc] + r + eps
+                    dy_r = dy[:, bb] + r + eps
+                    dx_r = dx[:, aa] + r + eps
 
-                    elif self.rxType == 'y':
-                        row -= NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                            dx[:, aa] * np.log(dz[:, cc] + r + eps) +
-                            dz[:, cc] * np.log(dx[:, aa] + r + eps) -
-                            dy[:, bb] * np.arctan(dx[:, aa] * dz[:, cc] /
-                                                  (dy[:, bb] * r + eps)))
+                    dxr = dx[:, aa] * r + eps
+                    dyr = dy[:, bb] * r + eps
+                    dzr = dz[:, cc] * r + eps
 
-                    else:
-                        row -= NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                            dx[:, aa] * np.log(dy[:, bb] + r + eps) +
-                            dy[:, bb] * np.log(dx[:, aa] + r + eps) -
-                            dz[:, cc] * np.arctan(dx[:, aa] * dy[:, bb] /
-                                                  (dz[:, cc] * r + eps)))
+                    dydz = dy[:, bb] * dz[:, cc]
+                    dxdy = dx[:, aa] * dy[:, bb]
+                    dxdz = dx[:, aa] * dz[:, cc]
 
-        return row
+                    if 'gx' in self.components:
+                        compDict['gx'] += (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                            dy[:, bb] * np.log(dz_r) +
+                            dz[:, cc] * np.log(dy_r) -
+                            dx[:, aa] * np.arctan(dydz /
+                                                  dxr)
+                        )
 
-    def progress(self, ind, total):
-        """
-        progress(ind,prog,final)
+                    if 'gy' in self.components:
+                        compDict['gy']  += (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                            dx[:, aa] * np.log(dz_r) +
+                            dz[:, cc] * np.log(dx_r) -
+                            dy[:, bb] * np.arctan(dxdz /
+                                                  dyr)
+                        )
 
-        Function measuring the progress of a process and print to screen the %.
-        Useful to estimate the remaining runtime of a large problem.
+                    if 'gz' in self.components:
+                        compDict['gz']  += (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                            dx[:, aa] * np.log(dy_r) +
+                            dy[:, bb] * np.log(dx_r) -
+                            dz[:, cc] * np.arctan(dxdy /
+                                                  dzr)
+                        )
 
-        Created on Dec, 20th 2015
+                    arg = dy[:, bb] * dz[:, cc] / dxr
 
-        @author: dominiquef
-        """
-        arg = np.floor(ind/total*10.)
-        if arg > self.progressIndex:
-            print("Done " + str(arg*10) + " %")
-            self.progressIndex = arg
+                    if ('gxx' in self.components) or ("gzz" in self.components):
+                        gxx -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                            dxdy / (r * dz_r + eps) +
+                            dxdz / (r * dy_r + eps) -
+                            np.arctan(arg+eps) +
+                            dx[:, aa] * (1./ (1+arg**2.)) *
+                            dydz/dxr**2. *
+                            (r + dx[:, aa]**2./r)
+                        )
+
+                    if 'gxy' in self.components:
+                        compDict['gxy'] -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                            np.log(dz_r) + dy[:, bb]**2./ (r*dz_r) +
+                            dz[:, cc] / r  -
+                            1. / (1+arg**2.+ eps) * (dz[:, cc]/r**2) * (r - dy[:, bb]**2./r)
+
+                        )
+
+                    if 'gxz' in self.components:
+                        compDict['gxz'] -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                            np.log(dy_r) + dz[:, cc]**2./ (r*dy_r) +
+                            dy[:, bb] / r  -
+                            1. / (1+arg**2.) * (dy[:, bb]/(r**2)) * (r - dz[:, cc]**2./r)
+
+                        )
+
+                    arg = dx[:, aa]*dz[:, cc]/dyr
+
+                    if ('gyy' in self.components) or ("gzz" in self.components):
+                        gyy -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                            dxdy / (r*dz_r+ eps) +
+                            dydz / (r*dx_r+ eps) -
+                            np.arctan(arg+eps) +
+                            dy[:, bb] * (1./ (1+arg**2.+ eps)) *
+                            dxdz/dyr**2. *
+                            (r + dy[:, bb]**2./r)
+                        )
+
+                    if 'gyz' in self.components:
+                        compDict['gyz'] -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                            np.log(dx_r) + dz[:, cc]**2./ (r*(dx_r)) +
+                            dx[:, aa] / r  -
+                            1. / (1+arg**2.) * (dx[:, aa]/(r**2)) * (r - dz[:, cc]**2./r)
+
+                        )
+
+        if 'gyy' in self.components:
+            compDict['gyy'] = gyy
+
+        if 'gxx' in self.components:
+            compDict['gxx'] = gxx
+
+        if 'gzz' in self.components:
+            compDict['gzz'] = -gxx - gyy
+
+        return np.vstack([NewtG * compDict[key] for key in list(compDict.keys())])
 
 
 class Problem3D_Diff(Problem.BaseProblem):
