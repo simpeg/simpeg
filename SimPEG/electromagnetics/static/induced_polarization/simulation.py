@@ -53,15 +53,15 @@ class BaseIPSimulation(BaseEMSimulation):
                 self.Ainv = self.Solver(A, **self.solver_opts)
             RHS = self.getRHS()
             u = self.Ainv * RHS
-            Srcs = self.survey.srcList
+            Srcs = self.survey.source_list
             self._f[Srcs, self._solutionType] = u
 
             # Compute DC voltage
             if self.data_type == 'apparent_chargeability':
                 if self.verbose is True:
                     print(">> Data type is apparaent chargeability")
-                for src in self.survey.srcList:
-                    for rx in src.rxList:
+                for src in self.survey.source_list:
+                    for rx in src.receiver_list:
                         rx._dc_voltage = rx.eval(src, self.mesh, self._f)
                         rx.data_type = self.data_type
                         rx._Ps = {}
@@ -125,7 +125,7 @@ class BaseIPSimulation(BaseEMSimulation):
 
             Jv = []
 
-            for src in self.survey.srcList:
+            for src in self.survey.source_list:
                 # solution vector
                 u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(u_src.flatten(), v, adjoint=False)
@@ -134,7 +134,7 @@ class BaseIPSimulation(BaseEMSimulation):
                 dRHS_dm_v = da.from_delayed(dRHS_dm_v, shape=self.model.shape, dtype=float)
                 du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v).compute()
 
-                for rx in src.rxList:
+                for rx in src.receiver_list:
                     df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                     df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
                     Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
@@ -182,14 +182,14 @@ class BaseIPSimulation(BaseEMSimulation):
             istrt = int(0)
             iend = int(0)
 
-        for isrc, src in enumerate(self.survey.srcList):
+        for isrc, src in enumerate(self.survey.source_list):
             u_src = f[src, self._solutionType]
             if self.storeJ:
                 # TODO: use logging package
                 sys.stdout.write(("\r %d / %d") % (isrc+1, self.survey.nSrc))
                 sys.stdout.flush()
 
-            for rx in src.rxList:
+            for rx in src.receiver_list:
                 if v is not None:
                     PTv = rx.evalDeriv(
                         src, self.mesh, f, v[src, rx], adjoint=True
