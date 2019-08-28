@@ -479,13 +479,16 @@ class Forward(object):
 
         components = list(self.components.keys())
         # Stack all the components 'active' flag
-        activeComponents = np.hstack([self.components[component] for component in components])
+        if len(components) == 1:
+            activeComponents = np.c_[self.components[components[0]]]
+        else:
+            activeComponents = np.hstack([self.components[component] for component in components])
 
         if self.parallelized:
 
             row = dask.delayed(self.calcTrow, pure=True)
             print(components)
-            makeRows = [row(self.receiver_locations[ii, :], components[activeComponents[ii,:]]) for ii in range(self.nD)]
+            makeRows = [row(self.receiver_locations[ii, :], np.array(components)[activeComponents[ii,:]].tolist()) for ii in range(self.nD)]
 
             buildMat = [da.from_delayed(makeRow, dtype=float, shape=(int(activeComponents[ind, :].sum()),  self.nC)) for (ind, makeRow) in enumerate(makeRows)]
 
@@ -495,13 +498,13 @@ class Forward(object):
             # chunks instead
             # stack = stack.rechunk('auto')
             nChunks = self.n_cpu # Number of chunks
-            rowChunk, colChunk = int(np.ceil(self.nD*nDataComps/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+            rowChunk, colChunk = int(np.ceil(self.nD*len(components)/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
             totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
             # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
             while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= 0.125:
 #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
                 nChunks += 1
-                rowChunk, colChunk = int(np.ceil(self.nD*nDataComps/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                rowChunk, colChunk = int(np.ceil(self.nD*len(components)/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
                 totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
 
             stack = stack.rechunk((rowChunk, colChunk))
@@ -569,7 +572,7 @@ class Forward(object):
 
         return G
 
-    def calcTrow(self, xyzLoc, components):
+    def calcTrow(self, xyzLocation, components):
         """
             Load in the active nodes of a tensor mesh and computes the magnetic
             forward relation between a cuboid and a given observation
