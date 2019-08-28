@@ -103,7 +103,7 @@ class IdentityMap(properties.HasProperties):
             :return: model
 
         """
-        raise NotImplementedError('The transformInverse is not implemented.')
+       return D
 
     def deriv(self, m, v=None):
         """
@@ -1216,6 +1216,104 @@ class ComplexMap(IdentityMap):
         return LinearOperator(shp, matvec=fwd, rmatvec=adj)
 
     # inverse = deriv
+
+class SphericalMap(IdentityMap):
+    """
+        Map to go from Spherical coordinates to Cartesian.
+        With an additional mapping for each k, theta and phi
+        stored in maplist
+
+    """
+
+    def __init__(self, mesh=None, nP=None, maplist=None, **kwargs):
+
+        if maplist is None:
+            mplst = [
+                IdentityMap(mesh=mesh, nP=nP, **kwargs),
+                IdentityMap(mesh=mesh, nP=nP, **kwargs),
+                IdentityMap(mesh=mesh, nP=nP, **kwargs)]
+        else:
+            mplst = maplist
+        self.maplist=mplst
+
+        super(SphericalMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+        if nP is not None:
+            assert nP % 3 == 0, 'nP must be divisible by 3.'
+        self._nP = nP or int(self.mesh.nC * 3)
+
+    def _transform(self, m):
+
+        model = m.reshape(3,-1)
+        modelmap = np.c_[[a * b for a, b in zip(self.maplist, model)]].T
+        return Utils.matutils.spherical2cartesian(modelmap)
+
+    def inverse(self, D):
+        """
+            :param numpy.ndarray D: physical property
+            :rtype: numpy.ndarray
+            :return: model
+
+            The *transformInverse* changes the physical property into the
+            model.
+
+        """
+        sphr = Utils.matutils.cartesian2spherical(D.reshape(-1,3,order='F'))
+        sphrmodel = sphr.reshape(3,-1)
+        sphmap = np.c_[[a.inverse(b) for a, b in zip(self.maplist, sphrmodel)]].T
+        return sphmap.reshape(-1,order='F')
+
+    def dSdm(self,m):
+
+        nC = int(len(m)/3)
+
+        model = m.reshape(3,-1)
+        modelmap = np.c_[[a * b for a, b in zip(self.maplist, model)]].T
+        m_xyz = Utils.matutils.spherical2cartesian(modelmap)
+
+        nC = int(m_xyz.shape[0]/3.)
+        m_atp = Utils.matutils.cartesian2spherical(m_xyz.reshape((nC, 3), order='F'))
+
+        a = m_atp[:nC]
+        t = m_atp[nC:2*nC]
+        p = m_atp[2*nC:]
+
+        Sx = sp.hstack([sp.diags(np.cos(t)*np.cos(p), 0),
+                        sp.diags(-a*np.sin(t)*np.cos(p), 0),
+                        sp.diags(-a*np.cos(t)*np.sin(p), 0)])
+
+        Sy = sp.hstack([sp.diags(np.cos(t)*np.sin(p), 0),
+                        sp.diags(-a*np.sin(t)*np.sin(p), 0),
+                        sp.diags(a*np.cos(t)*np.cos(p), 0)])
+
+        Sz = sp.hstack([sp.diags(np.sin(t), 0),
+                        sp.diags(a*np.cos(t), 0),
+                        sp.csr_matrix((nC, nC))])
+
+        dsdm = sp.vstack([Sx, Sy, Sz])
+
+        return dsdm
+
+    def dmapdm(self,m):
+
+        model = m.reshape(3,-1)
+        return sp.block_diag([mapl.deriv(b) for mapl,b in zip(self.maplist,model)])
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.ndarray m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+
+            The *transform* changes the model into the physical property.
+            The *transformDeriv* provides the derivative of the *transform*.
+
+        """
+        S = self.dSdm(m)
+        dmap = self.dmapdm(m)
+        deriv = S.dot(dmap)
+        if v is not None:
+            return deriv * v
+        return deriv
 
 
 ###############################################################################
