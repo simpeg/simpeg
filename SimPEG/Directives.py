@@ -1141,12 +1141,8 @@ class ProjectSphericalBounds(InversionDirective):
     """
     def initialize(self):
 
-        x = self.invProb.model
-        # Convert to cartesian than back to avoid over rotation
-        nC = int(len(x)/3)
-
-        xyz = Utils.matutils.spherical2cartesian(x.reshape((nC, 3), order='F'))
-        m = Utils.matutils.cartesian2spherical(xyz.reshape((nC, 3), order='F'))
+        x = self.invProb.dmisfit.prob.chiMap * self.invProb.model
+        m = self.invProb.dmisfit.prob.chiMap.inverse(x)
 
         self.invProb.model = m
 
@@ -1157,12 +1153,8 @@ class ProjectSphericalBounds(InversionDirective):
 
     def endIter(self):
 
-        x = self.invProb.model
-        nC = int(len(x)/3)
-
-        # Convert to cartesian than back to avoid over rotation
-        xyz = Utils.matutils.spherical2cartesian(x.reshape((nC, 3), order='F'))
-        m = Utils.matutils.cartesian2spherical(xyz.reshape((nC, 3), order='F'))
+        x = self.invProb.dmisfit.prob.chiMap * self.invProb.model
+        m = self.invProb.dmisfit.prob.chiMap.inverse(x)
 
         self.invProb.model = m
 
