@@ -1228,10 +1228,17 @@ class SphericalMap(IdentityMap):
     def __init__(self, mesh=None, nP=None, maplist=None, **kwargs):
 
         if maplist is None:
-            mplst = [
-                IdentityMap(mesh=mesh, nP=nP, **kwargs),
-                IdentityMap(mesh=mesh, nP=nP, **kwargs),
-                IdentityMap(mesh=mesh, nP=nP, **kwargs)]
+            if nP is not None:
+                assert nP % 3 == 0, 'nP must be divisible by 3.'
+                mplst = [
+                    IdentityMap(mesh=mesh,nP = int(nP/3),**kwargs),
+                    IdentityMap(mesh=mesh,nP = int(nP/3),**kwargs),
+                    IdentityMap(mesh=mesh,nP = int(nP/3),**kwargs)]
+            else:
+                mplst = [
+                    IdentityMap(mesh=mesh,nP = nP,**kwargs),
+                    IdentityMap(mesh=mesh,nP = nP,**kwargs),
+                    IdentityMap(mesh=mesh,nP = nP,**kwargs)]
         else:
             mplst = maplist
         self.maplist=mplst
