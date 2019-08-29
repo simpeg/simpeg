@@ -54,10 +54,10 @@ class MagneticIntegral(Problem.LinearProblem):
 
     def fields(self, m):
 
-        if self.coordinate_system == 'cartesian':
-            m = self.chiMap*(m)
-        else:
-            m = self.chiMap*(matutils.spherical2cartesian(m.reshape((int(len(m)/3), 3), order='F')))
+        #if self.coordinate_system == 'cartesian':
+        m = self.chiMap*(m)
+        #else:
+        #    m = self.chiMap*(matutils.spherical2cartesian(m.reshape((int(len(m)/3), 3), order='F')))
 
         if self.forwardOnly:
             # Compute the linear operation without forming the full dense F
@@ -157,19 +157,19 @@ class MagneticIntegral(Problem.LinearProblem):
 
         else:  # spherical
             if self.modelType == 'amplitude':
-                return np.sum(((W * self.dfdm) * self.G * (self.dSdm * dmudm))**2., axis=0)
+                return np.sum(((W * self.dfdm) * self.G * (dmudm))**2., axis=0)
             else:
-                Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm.T) * (self.dSdm * dmudm)
+                Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm.T) * (dmudm)
                 return mkvc(np.sum(Japprox.power(2), axis=0))
 
     def getJ(self, m, f=None):
         """
             Sensitivity matrix
         """
-        if self.coordinate_system == 'cartesian':
-            dmudm = self.chiMap.deriv(m)
-        else:  # spherical
-            dmudm = self.dSdm * self.chiMap.deriv(m)
+        #if self.coordinate_system == 'cartesian':
+        dmudm = self.chiMap.deriv(m)
+        #else:  # spherical
+        #    dmudm = self.dSdm * self.chiMap.deriv(m)
 
         if self.modelType == 'amplitude':
             return self.dfdm * (self.G * dmudm)
@@ -178,10 +178,10 @@ class MagneticIntegral(Problem.LinearProblem):
 
     def Jvec(self, m, v, f=None):
 
-        if self.coordinate_system == 'cartesian':
-            dmudm = self.chiMap.deriv(m)
-        else:
-            dmudm = self.dSdm * self.chiMap.deriv(m)
+        #if self.coordinate_system == 'cartesian':
+        dmudm = self.chiMap.deriv(m)
+        #else:
+        #    dmudm = self.dSdm * self.chiMap.deriv(m)
 
         if getattr(self, '_Mxyz', None) is not None:
 
@@ -197,10 +197,10 @@ class MagneticIntegral(Problem.LinearProblem):
 
     def Jtvec(self, m, v, f=None):
 
-        if self.coordinate_system == 'spherical':
-            dmudm = self.dSdm * self.chiMap.deriv(m)
-        else:
-            dmudm = self.chiMap.deriv(m)
+        #if self.coordinate_system == 'spherical':
+        #    dmudm = self.dSdm * self.chiMap.deriv(m)
+        #else:
+        dmudm = self.chiMap.deriv(m)
 
         if self.modelType == 'amplitude':
             if getattr(self, '_Mxyz', None) is not None:
