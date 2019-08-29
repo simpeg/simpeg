@@ -345,18 +345,6 @@ plt.show()
 # solution using a Cartesian coordinate system, then a sparse
 # inversion in the Spherical domain.
 #
-# Create a spherical map
-sphericalmap = Maps.SphericalMap(nP=3*nC)
-
-# Create the forward model operator
-prob = PF.Magnetics.MagneticIntegral(
-    mesh, chiMap=sphericalmap, actInd=actv,
-    modelType='vector'
-)
-
-# Pair the survey and problem
-survey.unpair()
-survey.pair(prob)
 
 # Create sensitivity weights from our linear forward operator
 rxLoc = survey.srcField.rxList[0].locs
@@ -425,10 +413,13 @@ mrec_MVIC = inv.run(m0)
 # sparsity in the vectors.
 #
 #
+# Create a spherical map
+sphericalmap = Maps.SphericalMap(nP=3*nC)
 
 mstart = Utils.matutils.cartesian2spherical(mrec_MVIC.reshape((nC, 3), order='F'))
 beta = invProb.beta
 dmis.prob.coordinate_system = 'spherical'
+dmis.prob.chiMap = sphericalmap
 dmis.prob.model = mstart
 
 # Create a block diagonal regularization
