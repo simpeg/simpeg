@@ -133,7 +133,6 @@ class MagneticIntegral(Problem.LinearProblem):
             Return the diagonal of JtJ
         """
         dmudm = self.chiMap.deriv(m)
-        self._dSdm = None
         self._dfdm = None
         self.model = m
         if (self.gtgdiag is None) and (self.modelType != 'amplitude'):
@@ -166,10 +165,7 @@ class MagneticIntegral(Problem.LinearProblem):
         """
             Sensitivity matrix
         """
-        #if self.coordinate_system == 'cartesian':
         dmudm = self.chiMap.deriv(m)
-        #else:  # spherical
-        #    dmudm = self.dSdm * self.chiMap.deriv(m)
 
         if self.modelType == 'amplitude':
             return self.dfdm * (self.G * dmudm)
@@ -178,10 +174,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
     def Jvec(self, m, v, f=None):
 
-        #if self.coordinate_system == 'cartesian':
         dmudm = self.chiMap.deriv(m)
-        #else:
-        #    dmudm = self.dSdm * self.chiMap.deriv(m)
 
         if getattr(self, '_Mxyz', None) is not None:
 
@@ -197,9 +190,6 @@ class MagneticIntegral(Problem.LinearProblem):
 
     def Jtvec(self, m, v, f=None):
 
-        #if self.coordinate_system == 'spherical':
-        #    dmudm = self.dSdm * self.chiMap.deriv(m)
-        #else:
         dmudm = self.chiMap.deriv(m)
 
         if self.modelType == 'amplitude':
@@ -215,41 +205,6 @@ class MagneticIntegral(Problem.LinearProblem):
             vec = np.dot(self.G.T, v.astype(np.float32))
 
         return dmudm.T * vec.astype(np.float64)
-
-    @property
-    def dSdm(self):
-
-        if getattr(self, '_dSdm', None) is None:
-
-            if self.model is None:
-                raise Exception('Requires a chi')
-
-            nC = int(len(self.model)/3)
-
-            m_xyz = self.chiMap * matutils.spherical2cartesian(self.model.reshape((nC, 3), order='F'))
-
-            nC = int(m_xyz.shape[0]/3.)
-            m_atp = matutils.cartesian2spherical(m_xyz.reshape((nC, 3), order='F'))
-
-            a = m_atp[:nC]
-            t = m_atp[nC:2*nC]
-            p = m_atp[2*nC:]
-
-            Sx = sp.hstack([sp.diags(np.cos(t)*np.cos(p), 0),
-                            sp.diags(-a*np.sin(t)*np.cos(p), 0),
-                            sp.diags(-a*np.cos(t)*np.sin(p), 0)])
-
-            Sy = sp.hstack([sp.diags(np.cos(t)*np.sin(p), 0),
-                            sp.diags(-a*np.sin(t)*np.sin(p), 0),
-                            sp.diags(a*np.cos(t)*np.cos(p), 0)])
-
-            Sz = sp.hstack([sp.diags(np.sin(t), 0),
-                            sp.diags(a*np.cos(t), 0),
-                            sp.csr_matrix((nC, nC))])
-
-            self._dSdm = sp.vstack([Sx, Sy, Sz])
-
-        return self._dSdm
 
     @property
     def modelMap(self):
