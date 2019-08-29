@@ -103,7 +103,7 @@ class IdentityMap(properties.HasProperties):
             :return: model
 
         """
-       return D
+        return D
 
     def deriv(self, m, v=None):
         """
