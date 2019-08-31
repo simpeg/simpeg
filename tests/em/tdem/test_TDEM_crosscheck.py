@@ -112,39 +112,51 @@ class TDEM_cross_check_EB(unittest.TestCase):
     def test_EB_dbdtz_stepoff(self):
         CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbdtz', waveform='stepoff')
 
-    def test_HJ_j_stepoff(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='jy', waveform='stepoff')
+    def test_BH_dbdtz_stepoff(self):
+        CrossCheck(prbtype1='b', prbtype2='h', rxcomp='dbdtz', waveform='stepoff')
+
+    def test_BJ_dbdtz_stepoff(self):
+        CrossCheck(prbtype1='b', prbtype2='j', rxcomp='dbdtz', waveform='stepoff')
+
+    def test_BH_ey_stepoff(self):
+        CrossCheck(prbtype1='b', prbtype2='h', rxcomp='ey', waveform='stepoff')
+
+    def test_BJ_ey_stepoff(self):
+        CrossCheck(prbtype1='b', prbtype2='j', rxcomp='ey', waveform='stepoff')
 
     def test_HJ_j_stepoff(self):
         CrossCheck(prbtype1='h', prbtype2='j', rxcomp='jy', waveform='stepoff')
 
-    def test_HJ_dhdtx_stepoff(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='stepoff')
+    # def test_HJ_j_stepoff(self):
+    #     CrossCheck(prbtype1='h', prbtype2='j', rxcomp='jy', waveform='stepoff')
 
-    def test_HJ_dhdtz_stepoff(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='stepoff')
+    # def test_HJ_dhdtx_stepoff(self):
+    #     CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='stepoff')
+
+    # def test_HJ_dhdtz_stepoff(self):
+    #     CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='stepoff')
 
 
-    def test_EB_ey_vtem(self):
-        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='ey', waveform='vtem')
+    # def test_EB_ey_vtem(self):
+    #     CrossCheck(prbtype1='b', prbtype2='e', rxcomp='ey', waveform='vtem')
 
-    def test_EB_dbdtx_vtem(self):
-        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbdtx', waveform='vtem')
+    # def test_EB_dbdtx_vtem(self):
+    #     CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbdtx', waveform='vtem')
 
-    def test_EB_dbdtz_vtem(self):
-        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbdtz', waveform='vtem')
+    # def test_EB_dbdtz_vtem(self):
+    #     CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbdtz', waveform='vtem')
 
-    def test_HJ_j_vtem(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='jy', waveform='vtem')
+    # def test_HJ_j_vtem(self):
+    #     CrossCheck(prbtype1='h', prbtype2='j', rxcomp='jy', waveform='vtem')
 
-    def test_HJ_j_vtem(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='jy', waveform='vtem')
+    # def test_HJ_j_vtem(self):
+    #     CrossCheck(prbtype1='h', prbtype2='j', rxcomp='jy', waveform='vtem')
 
-    def test_HJ_dhdtx_vtem(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='vtem')
+    # def test_HJ_dhdtx_vtem(self):
+    #     CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='vtem')
 
-    def test_HJ_dhdtz_vtem(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='vtem')
+    # def test_HJ_dhdtz_vtem(self):
+    #     CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='vtem')
 
 
     def test_MagDipoleSimpleFail(self):

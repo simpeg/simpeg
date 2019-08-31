@@ -1221,7 +1221,7 @@ class Problem3D_j(BaseTDEMSimulation):
         for i, src in enumerate(self.survey.source_list):
             s_en = src.s_e(self, tInd+1)
             s_en1 = src.s_e(self, tInd)
-            s_m = src.s_m(self, tInd)
+            s_m = src.s_m(self, tInd+1)
 
             rhs[:, i] = C * MeMuI * s_m - 1/dt * (s_en - s_en1)
 
