@@ -155,7 +155,7 @@ class SimpleSmoothDeriv(BaseRegularization):
                 self.regmesh.Pac.T*self.regmesh.mesh.h_gridded[:, index]
             )**2.
 
-            self._length_scales = length_scales.min() / length_scales
+            self._length_scales = self.regmesh.mesh.h_gridded.min()**2. / length_scales
 
         return self._length_scales
 
