@@ -1029,7 +1029,7 @@ class SimpleSmoothDeriv(BaseRegularization):
     def __init__(
         self, mesh, orientation='x', **kwargs
     ):
-
+        self.length_scales = None
         self.orientation = orientation
         assert self.orientation in ['x', 'y', 'z'], (
             "Orientation must be 'x', 'y' or 'z'"
@@ -1070,6 +1070,8 @@ class SimpleSmoothDeriv(BaseRegularization):
         Weighting matrix that takes the first spatial difference (no
         length scales considered) in the specified orientation
         """
+        Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
         W = getattr(
             self.regmesh,
             "cellDiff{orientation}Stencil".format(
@@ -1077,14 +1079,37 @@ class SimpleSmoothDeriv(BaseRegularization):
             )
         )
         if self.cell_weights is not None:
-            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
             W = (
                 Utils.sdiag(
-                    (Ave*self.cell_weights)**0.5
+                    (Ave*(self.cell_weights * self.length_scales))**0.5
+                ) * W
+            )
+        else:
+            W = (
+                Utils.sdiag(
+                    (Ave*(self.cell_weights * self.length_scales))**0.5
                 ) * W
             )
         return W
 
+    @property
+    def length_scales(self):
+
+        if getattr(self, '_length_scales', None) is None:
+            index = 'xyz'.index(self.orientation)
+
+            length_scales = (
+                self.regmesh.Pac.T*self.regmesh.mesh.h_gridded[:, index]
+            )**2.
+
+            self._length_scales = length_scales / length_scales.min()
+
+        return self._length_scales
+
+    @length_scales.setter
+    def length_scales(self, value):
+        self._length_scales = value
 
 class Simple(BaseComboRegularization):
 
@@ -1599,9 +1624,9 @@ class SparseDeriv(BaseSparse):
 
     def __init__(self, mesh, orientation='x', **kwargs):
 
+        self.length_scales = None
         self.orientation = orientation
         super(SparseDeriv, self).__init__(mesh=mesh, **kwargs)
-
 
     mrefInSmooth = properties.Bool(
         "include mref in the smoothness calculation?", default=False
@@ -1646,13 +1671,13 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 W = (
                     Utils.sdiag(
-                        (Ave*(self.scale * self.cell_weights))**0.5
+                        (Ave*(self.scale * self.cell_weights / self.length_scales))**0.5
                     ) *
                     R
                 )
 
             else:
-                W = Utils.sdiag((Ave * self.scale)**0.5) * R
+                W = Utils.sdiag((Ave * (self.scale / self.length_scales))**0.5) * R
 
 
             dmdx = self.cellDiffStencil * (self.mapping * f_m)
@@ -1835,6 +1860,12 @@ class SparseDeriv(BaseSparse):
         )
 
     @property
+    def cellDiffStencil(self):
+        return getattr(
+            self.regmesh, 'cellDiff{}Stencil'.format(self.orientation)
+        )
+
+    @property
     def W(self):
 
         Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
@@ -1852,12 +1883,29 @@ class SparseDeriv(BaseSparse):
         if self.cell_weights is not None:
             return (
                 Utils.sdiag(
-                    (Ave*(self.scale * self.cell_weights))**0.5
+                    (Ave*(self.scale * self.cell_weights / self.length_scales))**0.5
                 ) *
                 R * self.cellDiffStencil
             )
-        return Utils.sdiag((Ave*self.scale)**0.5) * R * self.cellDiffStencil
+        return Utils.sdiag((Ave*(self.scale / self.length_scales))**0.5) * R * self.cellDiffStencil
 
+    @property
+    def length_scales(self):
+
+        if getattr(self, '_length_scales', None) is None:
+            index = 'xyz'.index(self.orientation)
+
+            length_scales = (
+                self.regmesh.Pac.T*self.regmesh.mesh.h_gridded[:, index]
+            )**2.
+
+            self._length_scales = length_scales / length_scales.min()
+
+        return self._length_scales
+
+    @length_scales.setter
+    def length_scales(self, value):
+        self._length_scales = value
 
 class Sparse(BaseComboRegularization):
     """
