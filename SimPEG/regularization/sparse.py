@@ -423,7 +423,7 @@ class SparseDeriv(BaseSparse):
                 self.regmesh.Pac.T*self.regmesh.mesh.h_gridded[:, index]
             )**2.
 
-            self._length_scales = length_scales / length_scales.min()
+            self._length_scales = length_scales.min() / length_scales
 
         return self._length_scales
 
