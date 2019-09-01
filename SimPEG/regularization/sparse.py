@@ -171,7 +171,7 @@ class SparseDeriv(BaseSparse):
     """
 
     def __init__(self, mesh, orientation='x', **kwargs):
-
+        self._length_scales = None
         self.orientation = orientation
         super(SparseDeriv, self).__init__(mesh=mesh, **kwargs)
 
@@ -306,14 +306,14 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 W = (
                     Utils.sdiag(
-                        ((Ave * (self.scale * self.cell_weights)))**0.5
+                        ((Ave * (self.scale * self.cell_weights * self.length_scales)))**0.5
                     ) *
                     R
                 )
 
             else:
                 W = Utils.sdiag(
-                    (Ave * (self.scale * self.regmesh.vol))**0.5
+                    (Ave * (self.scale * self.regmesh.vol * self.length_scales))**0.5
                 ) * R
 
             theta = self.cellDiffStencil * (self.mapping * model)
@@ -401,15 +401,35 @@ class SparseDeriv(BaseSparse):
         if self.cell_weights is not None:
             return (
                 Utils.sdiag(
-                    (Ave*(self.scale * self.cell_weights))**0.5
+                    (Ave*(self.scale * self.cell_weights * self.length_scales))**0.5
                 ) *
                 R * self.cellDiffStencil
             )
         else:
             return Utils.sdiag(
-                (Ave*(self.scale * self.regmesh.vol))**0.5
+                (Ave*(self.scale * self.regmesh.vol * self.length_scales))**0.5
                 ) * R * self.cellDiffStencil
 
+    @property
+    def length_scales(self):
+        """
+            Normalized cell based weighting
+
+        """
+        if getattr(self, '_length_scales', None) is None:
+            index = 'xyz'.index(self.orientation)
+
+            length_scales = (
+                self.regmesh.Pac.T*self.regmesh.mesh.h_gridded[:, index]
+            )**2.
+
+            self._length_scales = length_scales / length_scales.min()
+
+        return self._length_scales
+
+    @length_scales.setter
+    def length_scales(self, value):
+        self._length_scales = value
 
 class Sparse(BaseComboRegularization):
     """

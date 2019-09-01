@@ -83,7 +83,7 @@ class SimpleSmoothDeriv(BaseRegularization):
     def __init__(
         self, mesh, orientation='x', **kwargs
     ):
-
+        self._length_scales = None
         self.orientation = orientation
         assert self.orientation in ['x', 'y', 'z'], (
             "Orientation must be 'x', 'y' or 'z'"
@@ -116,9 +116,10 @@ class SimpleSmoothDeriv(BaseRegularization):
     @property
     def W(self):
         """
-        Weighting matrix that takes the first spatial difference (no
-        length scales considered) in the specified orientation
+        Weighting matrix that takes the first spatial difference
+        with normalized length scales in the specified orientation
         """
+        Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
         W = getattr(
             self.regmesh,
             "cellDiff{orientation}Stencil".format(
@@ -126,14 +127,41 @@ class SimpleSmoothDeriv(BaseRegularization):
             )
         )
         if self.cell_weights is not None:
-            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
             W = (
                 Utils.sdiag(
-                    (Ave*self.cell_weights)**0.5
+                    (Ave*(self.cell_weights*self.length_scales))**0.5
                 ) * W
             )
+        else:
+            W = (
+                Utils.sdiag(
+                    (Ave*self.length_scales)**0.5
+                ) * W
+            )
+
         return W
 
+    @property
+    def length_scales(self):
+        """
+            Normalized cell based weighting
+
+        """
+        if getattr(self, '_length_scales', None) is None:
+            index = 'xyz'.index(self.orientation)
+
+            length_scales = (
+                self.regmesh.Pac.T*self.regmesh.mesh.h_gridded[:, index]
+            )**2.
+
+            self._length_scales = length_scales / length_scales.min()
+
+        return self._length_scales
+
+    @length_scales.setter
+    def length_scales(self, value):
+        self._length_scales = value
 
 class Simple(BaseComboRegularization):
 
