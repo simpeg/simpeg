@@ -205,7 +205,7 @@ def plot2Ddata(
 
     if dataloc:
         ax.plot(xyz[:, 0], xyz[:, 1], 'k.', ms=2)
-    plt.gca().set_aspect('equal', adjustable='box')
+    ax.set_aspect('equal', adjustable='box')
     if figname:
         plt.axis("off")
         fig.savefig(figname, dpi=200)
