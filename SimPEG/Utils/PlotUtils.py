@@ -113,10 +113,11 @@ def plot2Ddata(
 
         cont = ax.contourf(
             X, Y, DATA, levels=levels, vmin=vmin, vmax=vmax,
+            zorder=1,
             **contourOpts
         )
         if level:
-            CS = ax.contour(X, Y, DATA, levels=levels, **levelOpts)
+            CS = ax.contour(X, Y, DATA, levels=levels, zorder=3, **levelOpts)
 
     else:
         # Assume size of data is (N,2)
@@ -170,11 +171,12 @@ def plot2Ddata(
         cont = ax.contourf(
             X, Y, DATA, levels=levels,
             vmin=vmin, vmax=vmax,
+            zorder=1,
             **contourOpts
         )
-        ax.streamplot(X, Y, DATAx, DATAy, color="w")
+        ax.streamplot(X, Y, DATAx, DATAy, zorder=4, color="w")
         if level:
-            CS = ax.contour(X, Y, DATA, levels=levels, **levelOpts)
+            CS = ax.contour(X, Y, DATA, levels=levels, zorder=3, **levelOpts)
 
     if shade:
         def hillshade(array, azimuth, angle_altitude):
