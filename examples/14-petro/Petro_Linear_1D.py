@@ -89,7 +89,8 @@ mpetro = mtrue
 # on the true model to simulate the laboratory
 # petrophysical measurements
 n = 3
-clf = Utils.GaussianMixture(
+clf = Utils.WeightedGaussianMixture(
+    mesh=mesh,
     n_components=n, covariance_type='spherical', max_iter=1000,
     n_init=20, reg_covar=1e-3, warm_start=True
 )
@@ -131,8 +132,8 @@ betaIt = Directives.PetroBetaReWeighting(
 targets = Directives.PetroTargetMisfit(
     TriggerSmall=True, TriggerTheta=False, verbose=True)
 betaIt.gamma_min = 0.3
-targets.CLtarget = .1
-gamma_petro = np.ones(clf.n_components) * 1.
+#targets.CLtarget = .1
+gamma_petro = np.ones(clf.n_components) * 1e8
 #membership = np.zeros_like(mtrue, dtype='int')
 membership = clf.predict(mtrue[:, np.newaxis])
 petrodir = Directives.GaussianMixtureUpdateModel(
@@ -141,7 +142,7 @@ addmref = Directives.AddMrefInSmooth(verbose=True, wait_till_stable=True)
 invProb.reg.gamma = gamma_petro
 
 # Setup Inversion
-inv = Inversion.BaseInversion(invProb, directiveList=[ScalingJoint, Alphas, beta,
+inv = Inversion.BaseInversion(invProb, directiveList=[Alphas, beta,
                                                       petrodir, targets,
                                                       betaIt, addmref])
 

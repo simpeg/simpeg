@@ -36,4 +36,4 @@ from .petroutils import (
     GaussianMixtureWithMapping, GaussianMixtureWithMappingWithPrior,
     GibbsSampling_PottsDenoising, ICM_PottsDenoising
 )
-from .printinfo import versions
+from .printinfo import Versions
