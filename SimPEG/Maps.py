@@ -361,6 +361,8 @@ class Projection(IdentityMap):
             return self.P * v
         return self.P
 
+    def inverse(self, D):
+        raise NotImplementedError('The inverse of a Projection is not permitted.')
 
 class SumMap(ComboMap):
     """

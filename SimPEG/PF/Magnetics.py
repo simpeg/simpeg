@@ -54,10 +54,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
     def fields(self, m):
 
-        #if self.coordinate_system == 'cartesian':
-        m = self.chiMap*(m)
-        #else:
-        #    m = self.chiMap*(matutils.spherical2cartesian(m.reshape((int(len(m)/3), 3), order='F')))
+        m = self.chiMap * m
 
         if self.forwardOnly:
             # Compute the linear operation without forming the full dense F
