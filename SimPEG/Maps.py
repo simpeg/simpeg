@@ -19,9 +19,10 @@ from scipy.spatial import cKDTree
 
 import properties
 from discretize.Tests import checkDerivative
-from .Utils import setKwargs, Identity, Zero, sdiag, mkvc
+from .Utils import setKwargs, Identity, Zero, sdiag, mkvc, matutils
 from .Tests import checkDerivative
 from . import Utils
+
 
 class IdentityMap(properties.HasProperties):
     """
@@ -104,7 +105,7 @@ class IdentityMap(properties.HasProperties):
             :return: model
 
         """
-        raise NotImplementedError('The transformInverse is not implemented.')
+        return D
 
     def deriv(self, m, v=None):
         """
@@ -209,7 +210,7 @@ class IdentityMap(properties.HasProperties):
     __numpy_ufunc__ = True
 
     def __add__(self, map2):
-        return SumMap([self, map2]) # error-checking done inside of the SumMap
+        return SumMap([self, map2])  # error-checking done inside of the SumMap
 
     def __str__(self):
         return "{0!s}({1!s},{2!s})".format(
@@ -373,6 +374,7 @@ class SumMap(ComboMap):
         Allows to assume different things about the model m:
         i.e. parametric + voxel models
     """
+
     def __init__(self, maps, **kwargs):
         IdentityMap.__init__(self, None, **kwargs)
 
@@ -387,7 +389,7 @@ class SumMap(ComboMap):
             if (
                 ii > 0 and not (self.shape == '*' or m.shape == '*') and
                 not self.shape == m.shape
-           ):
+            ):
 
                 raise ValueError(
                     'Dimension mismatch in map[{0!s}] ({1!s}, {2!s}) '
@@ -479,9 +481,9 @@ class SurjectUnits(IdentityMap):
             col = []
             val = []
             for ii, ind in enumerate(self.indices):
-                col += [ii]*ind.sum()
+                col += [ii] * ind.sum()
                 row += np.where(ind)[0].tolist()
-                val += [1]*ind.sum()
+                val += [1] * ind.sum()
 
             self._P = sp.csr_matrix(
                 (val, (row, col)), shape=(len(self.indices[0]), self.nP)
@@ -503,7 +505,8 @@ class SurjectUnits(IdentityMap):
         """
         Shape of the matrix operation (number of indices x nP)
         """
-        # return self.n_block*len(self.indices[0]), self.n_block*len(self.indices)
+        # return self.n_block*len(self.indices[0]),
+        # self.n_block*len(self.indices)
         return (len(self.indices[0]), self.nP)
 
     def deriv(self, m, v=None):
@@ -712,9 +715,9 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
         See Torquato, 2002
         """
-        phi0 = 1.0-phi1
-        sigWup = phi0*self.sigma0 + phi1*self.sigma1
-        sigWlo = 1.0/(phi0/self.sigma0 + phi1/self.sigma1)
+        phi0 = 1.0 - phi1
+        sigWup = phi0 * self.sigma0 + phi1 * self.sigma1
+        sigWlo = 1.0 / (phi0 / self.sigma0 + phi1 / self.sigma1)
         W = np.array([sigWlo, sigWup])
 
         return W
@@ -728,7 +731,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
         phi0 = 1.0 - phi1
         sigWu = self.wiener_bounds(phi1)[1]
-        sig_tilde = phi0*self.sigma1 + phi1*self.sigma0
+        sig_tilde = phi0 * self.sigma1 + phi1 * self.sigma0
 
         sigma_min = np.min([self.sigma0, self.sigma1])
         sigma_max = np.max([self.sigma0, self.sigma1])
@@ -736,14 +739,14 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         sigHSlo = (
             sigWu -
             (
-                (phi0*phi1*(self.sigma0 - self.sigma1)**2) /
-                (sig_tilde + 2*sigma_max)
+                (phi0 * phi1 * (self.sigma0 - self.sigma1)**2) /
+                (sig_tilde + 2 * sigma_max)
             )
         )
         sigHSup = (
             sigWu - (
-                (phi0*phi1*(self.sigma0 - self.sigma1)**2) /
-                (sig_tilde + 2*sigma_min)
+                (phi0 * phi1 * (self.sigma0 - self.sigma1)**2) /
+                (sig_tilde + 2 * sigma_min)
             )
         )
 
@@ -763,27 +766,27 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         phi_min = phi0 if self.sigma1 > self.sigma0 else phi1
         phi_max = phi1 if self.sigma1 > self.sigma0 else phi0
 
-
-        amax = -phi0*phi1*self.getA(
+        amax = -phi0 * phi1 * self.getA(
             self.alpha1 if self.sigma1 > self.sigma0 else self.alpha0,
             self.orientation1 if self.sigma1 > self.sigma0 else
             self.orientation0
         )
         I = np.eye(3)
 
-
         sigHSlo = (
-            sigWu*I +
+            sigWu * I +
             (
-                (sigma_min - sigma_max)**2* amax *
-                np.linalg.inv(sigma_min*I + (sigma_min-sigma_max)/phi_max*amax)
+                (sigma_min - sigma_max)**2 * amax *
+                np.linalg.inv(sigma_min * I + (sigma_min -
+                                               sigma_max) / phi_max * amax)
             )
         )
         sigHSup = (
-            sigWu*I +
+            sigWu * I +
             (
-                (sigma_max - sigma_min)**2* amax *
-                np.linalg.inv(sigma_max*I + (sigma_max-sigma_min)/phi_min*amax)
+                (sigma_max - sigma_min)**2 * amax *
+                np.linalg.inv(sigma_max * I + (sigma_max -
+                                               sigma_min) / phi_min * amax)
             )
         )
 
@@ -793,23 +796,24 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         """Geometric factor in the depolarization tensor
         """
         if alpha < 1.:  # oblate spheroid
-            chi = np.sqrt((1./alpha**2.) - 1)
-            return 1./2. * (
-                1 + 1./(alpha**2. - 1) * (1. - np.arctan(chi)/chi)
+            chi = np.sqrt((1. / alpha**2.) - 1)
+            return 1. / 2. * (
+                1 + 1. / (alpha**2. - 1) * (1. - np.arctan(chi) / chi)
             )
         elif alpha > 1.:  # prolate spheroid
-            chi = np.sqrt(1 - (1./alpha**2.))
-            return 1./2. * (
-                1 + 1./(alpha**2. - 1) * (1. - 1./(2.*chi) * np.log((1 + chi)/(1-chi)))
+            chi = np.sqrt(1 - (1. / alpha**2.))
+            return 1. / 2. * (
+                1 + 1. / (alpha**2. - 1) * (1. - 1. / (2. * chi)
+                                            * np.log((1 + chi) / (1 - chi)))
             )
         elif alpha == 1:  # sphere
-            return 1./3.
+            return 1. / 3.
 
     def getA(self, alpha, orientation):
         """Depolarization tensor
         """
         Q = self.getQ(alpha)
-        A = np.diag([Q, Q, 1-2*Q])
+        A = np.diag([Q, Q, 1 - 2 * Q])
         R = Utils.rotationMatrixFromNormals(np.r_[0., 0., 1.], orientation)
         return (R.T).dot(A).dot(R)
 
@@ -818,17 +822,17 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         """
         if self.random is True:  # isotropic
             if alpha == 1.:
-                return 3.*se/(2.*se+sj)
+                return 3. * se / (2. * se + sj)
             Q = self.getQ(alpha)
-            return se/3.* (
-                2./(se + Q*(sj-se)) + 1./(sj - 2.*Q*(sj-se))
+            return se / 3. * (
+                2. / (se + Q * (sj - se)) + 1. / (sj - 2. * Q * (sj - se))
             )
         else:  # anisotropic
             if orientation is None:
                 raise Exception("orientation must be provided if random=False")
             I = np.eye(3)
             seinv = np.linalg.inv(se)
-            Rinv = I + self.getA(alpha, orientation)*seinv*(sj*I-se)
+            Rinv = I + self.getA(alpha, orientation) * seinv * (sj * I - se)
             return np.linalg.inv(Rinv)
 
     def getdR(self, sj, se, alpha, orientation=None):
@@ -838,12 +842,13 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         """
         if self.random is True:
             if alpha == 1.:
-                return 3./(2.*se+sj) - 6.*se/(2.*se+sj)**2
+                return 3. / (2. * se + sj) - 6. * se / (2. * se + sj)**2
             Q = self.getQ(alpha)
-            return 1/3 * (
-                2./(se + Q*(sj-se)) + 1./(sj - 2.*Q*(sj-se)) +
+            return 1 / 3 * (
+                2. / (se + Q * (sj - se)) + 1. / (sj - 2. * Q * (sj - se)) +
                 se * (
-                    -2*(1-Q)/(se + Q*(sj-se))**2 - 2*Q/(sj - 2.*Q*(sj-se))**2
+                    -2 * (1 - Q) / (se + Q * (sj - se))**2 -
+                    2 * Q / (sj - 2. * Q * (sj - se))**2
                 )
             )
         else:
@@ -880,11 +885,12 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
             num = phi0 * self.sigma0 * R0 + phi1 * self.sigma1 * R1
 
             if self.random is True:
-                sige2 = num/den
-                relerr = np.abs(sige2-sige1)
+                sige2 = num / den
+                relerr = np.abs(sige2 - sige1)
             else:
                 sige2 = num * np.linalg.inv(den)
-                relerr = np.linalg.norm(np.abs(sige2-sige1).flatten(), np.inf)
+                relerr = np.linalg.norm(
+                    np.abs(sige2 - sige1).flatten(), np.inf)
 
             if np.all(relerr <= self.tol):
                 if self.sigstart is None:
@@ -903,8 +909,8 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         R0 = self.getR(self.sigma0, sige, self.alpha0, self.orientation0)
         R1 = self.getR(self.sigma1, sige, self.alpha1, self.orientation1)
 
-        num = -(self.sigma0 - sige)*R0
-        den = (self.sigma1-sige)*R1 - (self.sigma0-sige)*R0
+        num = -(self.sigma0 - sige) * R0
+        den = (self.sigma1 - sige) * R1 - (self.sigma0 - sige) * R0
 
         return num / den
 
@@ -1016,6 +1022,113 @@ class ExpMap(IdentityMap):
                 \\frac{\partial \exp{m}}{\partial m} = \\text{sdiag}(\exp{m})
         """
         deriv = sdiag(np.exp(mkvc(m)))
+        if v is not None:
+            return deriv * v
+        return deriv
+
+
+class SphericalMap(IdentityMap):
+    """
+        Map to go from Spherical coordinates to Cartesian.
+        With an additional mapping for each k, theta and phi
+        stored in maplist
+
+    """
+
+    def __init__(self, mesh=None, nP=None, maplist=None, **kwargs):
+
+        if maplist is None:
+            if nP is not None:
+                assert nP % 3 == 0, 'nP must be divisible by 3.'
+                mplst = [
+                    IdentityMap(mesh=mesh, nP=int(nP / 3), **kwargs),
+                    IdentityMap(mesh=mesh, nP=int(nP / 3), **kwargs),
+                    IdentityMap(mesh=mesh, nP=int(nP / 3), **kwargs)]
+            else:
+                mplst = [
+                    IdentityMap(mesh=mesh, nP=nP, **kwargs),
+                    IdentityMap(mesh=mesh, nP=nP, **kwargs),
+                    IdentityMap(mesh=mesh, nP=nP, **kwargs)]
+        else:
+            mplst = maplist
+        self.maplist = mplst
+
+        super(SphericalMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+        if nP is not None:
+            assert nP % 3 == 0, 'nP must be divisible by 3.'
+        self._nP = nP or int(self.mesh.nC * 3)
+
+    def _transform(self, m):
+
+        model = m.reshape(3, -1)
+        modelmap = np.c_[[a * b for a, b in zip(self.maplist, model)]].T
+        return matutils.spherical2cartesian(modelmap)
+
+    def inverse(self, D):
+        """
+            :param numpy.ndarray D: physical property
+            :rtype: numpy.ndarray
+            :return: model
+
+            The *transformInverse* changes the physical property into the
+            model.
+
+        """
+        sphr = matutils.cartesian2spherical(D.reshape(-1, 3, order='F'))
+        sphrmodel = sphr.reshape(3, -1)
+        sphmap = np.c_[[a.inverse(b)
+                        for a, b in zip(self.maplist, sphrmodel)]].T
+        return sphmap.reshape(-1, order='F')
+
+    def dSdm(self, m):
+
+        nC = int(len(m) / 3)
+
+        model = m.reshape(3, -1)
+        modelmap = np.c_[[a * b for a, b in zip(self.maplist, model)]].T
+        m_xyz = matutils.spherical2cartesian(modelmap)
+
+        nC = int(m_xyz.shape[0] / 3.)
+        m_atp = matutils.cartesian2spherical(m_xyz.reshape((nC, 3), order='F'))
+
+        a = m_atp[:nC]
+        t = m_atp[nC:2 * nC]
+        p = m_atp[2 * nC:]
+
+        Sx = sp.hstack([sp.diags(np.cos(t) * np.cos(p), 0),
+                        sp.diags(-a * np.sin(t) * np.cos(p), 0),
+                        sp.diags(-a * np.cos(t) * np.sin(p), 0)])
+
+        Sy = sp.hstack([sp.diags(np.cos(t) * np.sin(p), 0),
+                        sp.diags(-a * np.sin(t) * np.sin(p), 0),
+                        sp.diags(a * np.cos(t) * np.cos(p), 0)])
+
+        Sz = sp.hstack([sp.diags(np.sin(t), 0),
+                        sp.diags(a * np.cos(t), 0),
+                        sp.csr_matrix((nC, nC))])
+
+        dsdm = sp.vstack([Sx, Sy, Sz])
+
+        return dsdm
+
+    def dmapdm(self, m):
+
+        model = m.reshape(3, -1)
+        return sp.block_diag([mapl.deriv(b) for mapl, b in zip(self.maplist, model)])
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.ndarray m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+
+            The *transform* changes the model into the physical property.
+            The *transformDeriv* provides the derivative of the *transform*.
+
+        """
+        S = self.dSdm(m)
+        dmap = self.dmapdm(m)
+        deriv = S.dot(dmap)
         if v is not None:
             return deriv * v
         return deriv
@@ -2175,7 +2288,7 @@ class BaseParametric(IdentityMap):
         return self._z
 
     def _atanfct(self, val, slope):
-        return np.arctan(slope * val)/np.pi + 0.5
+        return np.arctan(slope * val) / np.pi + 0.5
 
     def _atanfctDeriv(self, val, slope):
         # d/dx(atan(x)) = 1/(1+x**2)
@@ -2272,9 +2385,9 @@ class ParametricLayer(BaseParametric):
         layer_top = mDict['layer_center'] + mDict['layer_thickness'] / 2.
 
         return (
-            -0.5*self._atanfctDeriv(z - layer_bottom, self.slope) *
+            -0.5 * self._atanfctDeriv(z - layer_bottom, self.slope) *
             self._atanfct(z - layer_top, -self.slope) +
-            0.5*self._atanfct(z - layer_bottom, self.slope) *
+            0.5 * self._atanfct(z - layer_bottom, self.slope) *
             self._atanfctDeriv(z - layer_top, -self.slope)
         )
 
@@ -2316,6 +2429,7 @@ class ParametricLayer(BaseParametric):
                 self._deriv_layer_center(mDict),
                 self._deriv_layer_thickness(mDict),
             ]).T)
+
 
 class ParametricBlock(BaseParametric):
     """
@@ -2433,10 +2547,10 @@ class ParametricBlock(BaseParametric):
         return getattr(self, '_mDict{}d'.format(self.mesh.dim))(m)
 
     def _ekblom(self, val):
-        return (val**2 + self.epsilon**2)**(self.p/2.)
+        return (val**2 + self.epsilon**2)**(self.p / 2.)
 
     def _ekblomDeriv(self, val):
-        return (self.p/2)*(val**2 + self.epsilon**2)**((self.p/2) - 1)*2*val
+        return (self.p / 2) * (val**2 + self.epsilon**2)**((self.p / 2) - 1) * 2 * val
 
     # def _rotation(self, mDict):
     #     if self.mesh.dim == 2:
@@ -2446,30 +2560,30 @@ class ParametricBlock(BaseParametric):
     def _block1D(self, mDict):
         return 1 - (
             self._ekblom(
-                (self.x - mDict['x0']) / (0.5*mDict['dx'])
+                (self.x - mDict['x0']) / (0.5 * mDict['dx'])
             )
         )
 
     def _block2D(self, mDict):
         return 1 - (
             self._ekblom(
-                (self.x - mDict['x0']) / (0.5*mDict['dx'])
+                (self.x - mDict['x0']) / (0.5 * mDict['dx'])
             ) +
             self._ekblom(
-                (self.y - mDict['y0']) / (0.5*mDict['dy'])
+                (self.y - mDict['y0']) / (0.5 * mDict['dy'])
             )
         )
 
     def _block3D(self, mDict):
         return 1 - (
             self._ekblom(
-                (self.x - mDict['x0']) / (0.5*mDict['dx'])
+                (self.x - mDict['x0']) / (0.5 * mDict['dx'])
             ) +
             self._ekblom(
-                (self.y - mDict['y0']) / (0.5*mDict['dy'])
+                (self.y - mDict['y0']) / (0.5 * mDict['dy'])
             ) +
             self._ekblom(
-                (self.z - mDict['z0']) / (0.5*mDict['dz'])
+                (self.z - mDict['z0']) / (0.5 * mDict['dz'])
             )
         )
 
@@ -2477,7 +2591,7 @@ class ParametricBlock(BaseParametric):
         mDict = self.mDict(m)
         return (
             mDict['val_background'] +
-            (mDict['val_block'] - mDict['val_background'])*self._atanfct(
+            (mDict['val_block'] - mDict['val_background']) * self._atanfct(
                 getattr(self, "_block{}D".format(self.mesh.dim))(mDict),
                 slope=self.slope
             )
@@ -2501,25 +2615,25 @@ class ParametricBlock(BaseParametric):
         x = getattr(self, orientation)
         x0 = mDict["{}0".format(orientation)]
         dx = mDict["d{}".format(orientation)]
-        return (mDict['val_block'] - mDict['val_background'])*(
+        return (mDict['val_block'] - mDict['val_background']) * (
             self._atanfctDeriv(
                 getattr(self, "_block{}D".format(self.mesh.dim))(mDict),
                 slope=self.slope
-            ) * (self._ekblomDeriv((x - x0) / (0.5*dx))) / -(0.5*dx)
+            ) * (self._ekblomDeriv((x - x0) / (0.5 * dx))) / -(0.5 * dx)
         )
 
     def _deriv_width_block(self, mDict, orientation):
         x = getattr(self, orientation)
         x0 = mDict["{}0".format(orientation)]
         dx = mDict["d{}".format(orientation)]
-        return (mDict['val_block'] - mDict['val_background'])*(
+        return (mDict['val_block'] - mDict['val_background']) * (
             self._atanfctDeriv(
                 getattr(self, "_block{}D".format(self.mesh.dim))(mDict),
                 slope=self.slope
             ) * (
                 self._ekblomDeriv(
-                    (x - x0) / (0.5*dx)) * (-(x - x0) / (0.5*dx**2)
-                )
+                    (x - x0) / (0.5 * dx)) * (-(x - x0) / (0.5 * dx**2)
+                                              )
             )
         )
 
@@ -2558,6 +2672,7 @@ class ParametricBlock(BaseParametric):
             getattr(self, '_deriv{}D'.format(self.mesh.dim))(self.mDict(m))
         )
 
+
 class ParametricEllipsoid(ParametricBlock):
 
     # """
@@ -2579,6 +2694,7 @@ class ParametricEllipsoid(ParametricBlock):
 
     def __init__(self, mesh, **kwargs):
         super(ParametricEllipsoid, self).__init__(mesh, p=2, **kwargs)
+
 
 class ParametricCasingAndLayer(ParametricLayer):
     """
@@ -3015,16 +3131,16 @@ class ParametricBlockInLayer(ParametricLayer):
             return self._mDict3d(m)
 
     def xleft(self, mDict):
-        return mDict['x0'] - 0.5*mDict['dx']
+        return mDict['x0'] - 0.5 * mDict['dx']
 
     def xright(self, mDict):
-        return mDict['x0'] + 0.5*mDict['dx']
+        return mDict['x0'] + 0.5 * mDict['dx']
 
     def yleft(self, mDict):
-        return mDict['y0'] - 0.5*mDict['dy']
+        return mDict['y0'] - 0.5 * mDict['dy']
 
     def yright(self, mDict):
-        return mDict['y0'] + 0.5*mDict['dy']
+        return mDict['y0'] + 0.5 * mDict['dy']
 
     def _atanBlock2d(self, mDict):
         return (
@@ -3057,7 +3173,8 @@ class ParametricBlockInLayer(ParametricLayer):
                 ) +
                 (
                     self._atanfct(self.x - self.xleft(mDict), self.slope) *
-                    self._atanfctDeriv(self.x - self.xright(mDict), -self.slope)
+                    self._atanfctDeriv(
+                        self.x - self.xright(mDict), -self.slope)
                 )
             )
         )
@@ -3074,7 +3191,8 @@ class ParametricBlockInLayer(ParametricLayer):
                 (
                     self._atanfct(self.x - self.xleft(mDict), self.slope) *
                     0.5 *
-                    self._atanfctDeriv(self.x - self.xright(mDict), -self.slope)
+                    self._atanfctDeriv(
+                        self.x - self.xright(mDict), -self.slope)
                 )
             )
         )
@@ -3111,7 +3229,7 @@ class ParametricBlockInLayer(ParametricLayer):
             self._atanLayer(mDict) *
             (
                 (
-                    self._atanfctDeriv(self.x- self.xleft(mDict), self.slope) *
+                    self._atanfctDeriv(self.x - self.xleft(mDict), self.slope) *
                     self._atanfct(self.x - self.xright(mDict), -self.slope) *
                     self._atanfct(self.y - self.yleft(mDict), self.slope) *
                     self._atanfct(self.y - self.yright(mDict), -self.slope)
@@ -3141,7 +3259,8 @@ class ParametricBlockInLayer(ParametricLayer):
                     self._atanfct(self.x - self.xleft(mDict), self.slope) *
                     self._atanfct(self.x - self.xright(mDict), -self.slope) *
                     self._atanfct(self.y - self.yleft(mDict), self.slope) *
-                    self._atanfctDeriv(self.y - self.yright(mDict), -self.slope)
+                    self._atanfctDeriv(
+                        self.y - self.yright(mDict), -self.slope)
                 )
             )
         )

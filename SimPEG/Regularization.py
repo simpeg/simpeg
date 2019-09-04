@@ -1960,7 +1960,6 @@ class SimplePetroSmallness(BaseRegularization):
     _multiplier_pair = 'alpha_s'
 
     def __init__(self, GMmodel, wiresmap=None,
-                fixed_model_parameters = None,
                  maplist=None, mesh=None,
                  approx_gradient=True,
                  evaltype='approx',
@@ -1975,7 +1974,6 @@ class SimplePetroSmallness(BaseRegularization):
         self.GMmodel = GMmodel
         self.wiresmap = wiresmap
         self.maplist = maplist
-        self.fixed_model_parameters = fixed_model_parameters
 
         # TODO: Save repetitive computations (see withmapping implementation)
         self._r_first_deriv = None
@@ -1987,17 +1985,12 @@ class SimplePetroSmallness(BaseRegularization):
         Weighting matrix
         Need to change the size to match self.wiresmap.maps * mesh.nC
         """
-        #if self.fixed_model_parameters is not None:
-        #    fps = self.fixed_model_parameters.shape[1]
-        #else:
-        #    fps = 0
-
         if self.cell_weights is not None:
-            if len(self.cell_weights) == self.wiresmap.nP:#+fps
+            if len(self.cell_weights) == self.wiresmap.nP:
                 return sdiag(np.sqrt(self.cell_weights))
             else:
                 return sp.kron(
-                    speye(len(self.wiresmap.maps)), #+fps
+                    speye(len(self.wiresmap.maps)),
                     sdiag(np.sqrt(self.cell_weights))
                 )
         else:
@@ -2019,8 +2012,6 @@ class SimplePetroSmallness(BaseRegularization):
     def membership(self, m):
         modellist = self.wiresmap * m
         model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-        if self.fixed_model_parameters is not None:
-            model = np.c_[model, fixed_model_parameters]
         return self.GMmodel.predict(model)  # mkvc(m, numDims=2))
 
     @timeIt
@@ -2028,27 +2019,11 @@ class SimplePetroSmallness(BaseRegularization):
 
         if externalW:
             W = self.W
-            if self.fixed_model_parameters is not None:
-                if self.cell_weights is not None:
-                    if len(self.cell_weights) == self.wiresmap.nP+fps:#
-                        W = sdiag(np.sqrt(self.cell_weights))
-                    else:
-                        W = sp.kron(
-                            speye(len(self.wiresmap.maps)+fps), #
-                            sdiag(np.sqrt(self.cell_weights))
-                    )
-                else:
-                    W = Identity()
         else:
             W = Identity()
 
         if getattr(self, 'mref', None) is None:
-            if self.fixed_model_parameters is not None:
-                fps = self.fixed_model_parameters.shape[1]
-                self.mref = mkvc(self.GMmodel.means_[:,:-fps][self.membership(m)])
-            else:
-                self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
-
+            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
 
         if self.evaltype == 'approx':
             membership = self.membership(self.mref)
@@ -2056,10 +2031,6 @@ class SimplePetroSmallness(BaseRegularization):
             dmref = self.wiresmap * (self.mref)
             dmm = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
             dmmref = np.c_[[a for a in dmref]].T
-            if self.fixed_model_parameters is not None:
-                fps = self.fixed_model_parameters.shape[1]
-                dmm = np.c_[dmm, self.fixed_model_parameters]
-                dmmref = np.c_[dmmref, self.GMmodel.means_[:,fps][membership]]
             dmr = dmm - dmmref
             r0 = (W * mkvc(dmr)).reshape(dmr.shape,order='F')
 
@@ -2194,7 +2165,7 @@ class SimplePetroSmallness(BaseRegularization):
 class SimplePetroRegularization(SimpleComboRegularization):
 
     def __init__(
-        self, mesh, GMmref, GMmodel=None, fixed_model_parameters=None,
+        self, mesh, GMmref, GMmodel=None,
         wiresmap=None, maplist=None, approx_gradient=True,
         evaltype='approx',
         alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
@@ -2211,13 +2182,11 @@ class SimplePetroRegularization(SimpleComboRegularization):
         self._approx_gradient = approx_gradient
         self._evaltype = evaltype
         self.mapping = Maps.IdentityMap(mesh, nP=self.wiresmap.nP)
-        self.fixed_model_parameters = fixed_model_parameters
 
         objfcts = [
             SimplePetroSmallness(mesh=mesh, GMmodel=self.GMmodel, wiresmap=self.wiresmap,
                                  maplist=self.maplist, approx_gradient=approx_gradient,
                                  evaltype=evaltype,
-                                 fixed_model_parameters=self.fixed_model_parameters,
                                  mapping=self.mapping, **kwargs)
         ]
         objfcts += [
@@ -3152,7 +3121,6 @@ def MakeSimplePetroWithMappingRegularization(
     alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
     alpha_xx=0., alpha_yy=0., alpha_zz=0.,
     cell_weights_list=None,
-    fixed_model_parameters=None,
     **kwargs
 ):
 
@@ -3175,7 +3143,6 @@ def MakeSimplePetroWithMappingRegularization(
     reg = SimplePetroWithMappingRegularization(
         mesh=mesh, GMmref=GMmref, GMmodel=GMmodel,
         wiresmap=wiresmap, maplist=maplist,
-        fixed_model_parameters=fixed_model_parameters,
         approx_gradient=approx_gradient,
         evaltype=evaltype,
         alpha_s=alpha_s,

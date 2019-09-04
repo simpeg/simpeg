@@ -413,21 +413,26 @@ mrec_MVIC = inv.run(m0)
 # sparsity in the vectors.
 #
 #
-
-mstart = Utils.matutils.cartesian2spherical(mrec_MVIC.reshape((nC, 3), order='F'))
-beta = invProb.beta
-dmis.prob.coordinate_system = 'spherical'
-dmis.prob.model = mstart
+expmap = Maps.ExpMap(nP=nC)
+identitymap = Maps.IdentityMap(nP=nC)
+sphericalmap = Maps.SphericalMap(
+    nP=3*nC,
+    maplist = [identitymap,identitymap,identitymap]
+)
 
 # Create a block diagonal regularization
 wires = Maps.Wires(('amp', nC), ('theta', nC), ('phi', nC))
-
+dmis.prob.coordinate_system = 'spherical'
+dmis.prob.chiMap = sphericalmap
 # Create a Combo Regularization
 # Regularize the amplitude of the vectors
+mstart = np.r_[(1e-6)*np.ones(nC), -1.57079633*np.ones(nC),-1.57079633*np.ones(nC)]
+dmis.prob.model = mstart
+
 reg_a = Regularization.Sparse(mesh, indActive=actv,
                               mapping=wires.amp)
 reg_a.norms = np.c_[0., 0., 0., 0.]  # Sparse on the model and its gradients
-reg_a.mref = np.zeros(3*nC)
+reg_a.mref = mstart
 
 # Regularize the vertical angle of the vectors
 reg_t = Regularization.Sparse(mesh, indActive=actv,
@@ -435,6 +440,7 @@ reg_t = Regularization.Sparse(mesh, indActive=actv,
 reg_t.alpha_s = 0.  # No reference angle
 reg_t.space = 'spherical'
 reg_t.norms = np.c_[2., 0., 0., 0.]  # Only norm on gradients used
+reg_t.mref = mstart
 
 # Regularize the horizontal angle of the vectors
 reg_p = Regularization.Sparse(mesh, indActive=actv,
@@ -442,12 +448,13 @@ reg_p = Regularization.Sparse(mesh, indActive=actv,
 reg_p.alpha_s = 0.  # No reference angle
 reg_p.space = 'spherical'
 reg_p.norms = np.c_[2., 0., 0., 0.]  # Only norm on gradients used
+reg_p.mref = mstart
 
 reg = reg_a + reg_t + reg_p
-reg.mref = np.zeros(3*nC)
+reg.mref = mstart
 
-Lbound = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
-Ubound = np.kron(np.asarray([10, np.inf, np.inf]), np.ones(nC))
+Lbound = np.kron(np.asarray([-np.inf, -np.inf, -np.inf]), np.ones(nC))
+Ubound = np.kron(np.asarray([np.inf, np.inf, np.inf]), np.ones(nC))
 
 # Add directives to the inversion
 opt = Optimization.ProjectedGNCG(maxIter=20,
@@ -460,10 +467,10 @@ opt = Optimization.ProjectedGNCG(maxIter=20,
                                  )
 opt.approxHinv = None
 
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta)
+invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
 
 # Here is where the norms are applied
-IRLS = Directives.Update_IRLS(f_min_change=1e-4, maxIRLSiter=20,
+IRLS = Directives.Update_IRLS(f_min_change=1e-2, maxIRLSiter=20,
                               minGNiter=1, beta_tol=0.5,
                               coolingRate=1, coolEps_q=True,
                               betaSearch=False)
@@ -473,15 +480,18 @@ IRLS = Directives.Update_IRLS(f_min_change=1e-4, maxIRLSiter=20,
 ProjSpherical = Directives.ProjectSphericalBounds()
 update_SensWeight = Directives.UpdateSensitivityWeights()
 update_Jacobi = Directives.UpdatePreconditioner()
-
+betaest = Directives.BetaEstimate_ByEig()
 inv = Inversion.BaseInversion(
     invProb,
     directiveList=[
-        ProjSpherical, IRLS, update_SensWeight, update_Jacobi
+        ProjSpherical,
+        betaest,
+        IRLS, update_SensWeight, update_Jacobi
     ]
 )
 
 mrec_MVI_S = inv.run(mstart)
+
 
 #############################################################
 # Final Plot

@@ -994,7 +994,9 @@ class UpdatePreconditioner(InversionDirective):
 
         for reg in self.reg.objfcts:
             # Check if regularization has a projection
-            regDiag += reg.deriv2(m).diagonal()
+            rdg = reg.deriv2(m)
+            if  not isinstance(rdg, Utils.matutils.Zero):
+                regDiag += rdg.diagonal()
 
         # Deal with the linear case
         if getattr(self.opt, 'JtJdiag', None) is None:
@@ -1031,8 +1033,10 @@ class UpdatePreconditioner(InversionDirective):
         m = self.invProb.model
 
         for reg in self.reg.objfcts:
-            # Check if he has wire
-            regDiag += reg.deriv2(m).diagonal()
+            rdg = reg.deriv2(m)
+            if  not isinstance(rdg, Utils.matutils.Zero):
+                regDiag += rdg.diagonal()
+
         # Assumes that opt.JtJdiag has been updated or static
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.
@@ -1673,7 +1677,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                             Small[0]].objfcts[Small[1]].deriv2(m, v=x0))
                         b = x0.dot(self.invProb.reg.objfcts[
                             idx[0]].objfcts[idx[1]].deriv2(m, v=x0))
-                        ratio.append(t / b)
+                        ratio.append(np.divide(t, b, out=np.zeros_like(t), where=b!=0))
 
                     self.alpha0[i] *= self.alpha0_ratio[i] * np.median(ratio)
                     mtype = self.invProb.reg.objfcts[
@@ -2573,12 +2577,8 @@ class ProjectSphericalBounds(InversionDirective):
     """
     def initialize(self):
 
-        x = self.invProb.model
-        # Convert to cartesian than back to avoid over rotation
-        nC = int(len(x)/3)
-
-        xyz = Utils.matutils.spherical2cartesian(x.reshape((nC, 3), order='F'))
-        m = Utils.matutils.cartesian2spherical(xyz.reshape((nC, 3), order='F'))
+        x = self.invProb.dmisfit.prob.chiMap * self.invProb.model
+        m = self.invProb.dmisfit.prob.chiMap.inverse(x)
 
         self.invProb.model = m
 
@@ -2589,12 +2589,8 @@ class ProjectSphericalBounds(InversionDirective):
 
     def endIter(self):
 
-        x = self.invProb.model
-        nC = int(len(x)/3)
-
-        # Convert to cartesian than back to avoid over rotation
-        xyz = Utils.matutils.spherical2cartesian(x.reshape((nC, 3), order='F'))
-        m = Utils.matutils.cartesian2spherical(xyz.reshape((nC, 3), order='F'))
+        x = self.invProb.dmisfit.prob.chiMap * self.invProb.model
+        m = self.invProb.dmisfit.prob.chiMap.inverse(x)
 
         self.invProb.model = m
 

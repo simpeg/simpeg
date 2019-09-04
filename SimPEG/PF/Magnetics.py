@@ -54,10 +54,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
     def fields(self, m):
 
-        if self.coordinate_system == 'cartesian':
-            m = self.chiMap*(m)
-        else:
-            m = self.chiMap*(matutils.spherical2cartesian(m.reshape((int(len(m)/3), 3), order='F')))
+        m = self.chiMap * m
 
         if self.forwardOnly:
             # Compute the linear operation without forming the full dense F
@@ -67,7 +64,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
             if getattr(self, '_Mxyz', None) is not None:
 
-                fields = np.dot(self.G, (self.Mxyz*m).astype(np.float32))
+                fields = np.dot(self.G, (self.Mxyz * m).astype(np.float32))
 
             else:
                 fields = np.dot(self.G, m.astype(np.float32))
@@ -133,7 +130,6 @@ class MagneticIntegral(Problem.LinearProblem):
             Return the diagonal of JtJ
         """
         dmudm = self.chiMap.deriv(m)
-        self._dSdm = None
         self._dfdm = None
         self.model = m
         if (self.gtgdiag is None) and (self.modelType != 'amplitude'):
@@ -147,7 +143,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
             for ii in range(self.G.shape[0]):
 
-                self.gtgdiag += (w[ii]*self.G[ii, :]*dmudm)**2.
+                self.gtgdiag += (w[ii] * self.G[ii, :] * dmudm)**2.
 
         if self.coordinate_system == 'cartesian':
             if self.modelType == 'amplitude':
@@ -157,19 +153,16 @@ class MagneticIntegral(Problem.LinearProblem):
 
         else:  # spherical
             if self.modelType == 'amplitude':
-                return np.sum(((W * self.dfdm) * self.G * (self.dSdm * dmudm))**2., axis=0)
+                return np.sum(((W * self.dfdm) * self.G * (dmudm))**2., axis=0)
             else:
-                Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm.T) * (self.dSdm * dmudm)
+                Japprox = sdiag(mkvc(self.gtgdiag)**0.5 * dmudm.T) * (dmudm)
                 return mkvc(np.sum(Japprox.power(2), axis=0))
 
     def getJ(self, m, f=None):
         """
             Sensitivity matrix
         """
-        if self.coordinate_system == 'cartesian':
-            dmudm = self.chiMap.deriv(m)
-        else:  # spherical
-            dmudm = self.dSdm * self.chiMap.deriv(m)
+        dmudm = self.chiMap.deriv(m)
 
         if self.modelType == 'amplitude':
             return self.dfdm * (self.G * dmudm)
@@ -178,78 +171,39 @@ class MagneticIntegral(Problem.LinearProblem):
 
     def Jvec(self, m, v, f=None):
 
-        if self.coordinate_system == 'cartesian':
-            dmudm = self.chiMap.deriv(m)
-        else:
-            dmudm = self.dSdm * self.chiMap.deriv(m)
+        dmudm = self.chiMap.deriv(m)
 
         if getattr(self, '_Mxyz', None) is not None:
 
-            vec = np.dot(self.G, (self.Mxyz*(dmudm*v)).astype(np.float32))
+            vec = np.dot(self.G, (self.Mxyz * (dmudm * v)).astype(np.float32))
 
         else:
-            vec = np.dot(self.G, (dmudm*v).astype(np.float32))
+            vec = np.dot(self.G, (dmudm * v).astype(np.float32))
 
         if self.modelType == 'amplitude':
-            return self.dfdm*vec.astype(np.float64)
+            return self.dfdm * vec.astype(np.float64)
         else:
             return vec.astype(np.float64)
 
     def Jtvec(self, m, v, f=None):
 
-        if self.coordinate_system == 'spherical':
-            dmudm = self.dSdm * self.chiMap.deriv(m)
-        else:
-            dmudm = self.chiMap.deriv(m)
+        dmudm = self.chiMap.deriv(m)
 
         if self.modelType == 'amplitude':
             if getattr(self, '_Mxyz', None) is not None:
 
-                vec = self.Mxyz.T*np.dot(self.G.T, (self.dfdm.T*v).astype(np.float32)).astype(np.float64)
+                vec = self.Mxyz.T * \
+                    np.dot(self.G.T, (self.dfdm.T * v).astype(np.float32)
+                           ).astype(np.float64)
 
             else:
-                vec = np.dot(self.G.T, (self.dfdm.T*v).astype(np.float32))
+                vec = np.dot(self.G.T, (self.dfdm.T * v).astype(np.float32))
 
         else:
 
             vec = np.dot(self.G.T, v.astype(np.float32))
 
         return dmudm.T * vec.astype(np.float64)
-
-    @property
-    def dSdm(self):
-
-        if getattr(self, '_dSdm', None) is None:
-
-            if self.model is None:
-                raise Exception('Requires a chi')
-
-            nC = int(len(self.model)/3)
-
-            m_xyz = self.chiMap * matutils.spherical2cartesian(self.model.reshape((nC, 3), order='F'))
-
-            nC = int(m_xyz.shape[0]/3.)
-            m_atp = matutils.cartesian2spherical(m_xyz.reshape((nC, 3), order='F'))
-
-            a = m_atp[:nC]
-            t = m_atp[nC:2*nC]
-            p = m_atp[2*nC:]
-
-            Sx = sp.hstack([sp.diags(np.cos(t)*np.cos(p), 0),
-                            sp.diags(-a*np.sin(t)*np.cos(p), 0),
-                            sp.diags(-a*np.cos(t)*np.sin(p), 0)])
-
-            Sy = sp.hstack([sp.diags(np.cos(t)*np.sin(p), 0),
-                            sp.diags(-a*np.sin(t)*np.sin(p), 0),
-                            sp.diags(a*np.cos(t)*np.cos(p), 0)])
-
-            Sz = sp.hstack([sp.diags(np.sin(t), 0),
-                            sp.diags(a*np.cos(t), 0),
-                            sp.csr_matrix((nC, nC))])
-
-            self._dSdm = sp.vstack([Sx, Sy, Sz])
-
-        return self._dSdm
 
     @property
     def modelMap(self):
@@ -271,11 +225,13 @@ class MagneticIntegral(Problem.LinearProblem):
             # Bx = sp.spdiags(Bxyz[:, 0], 0, self.nD, self.nD)
             # By = sp.spdiags(Bxyz[:, 1], 0, self.nD, self.nD)
             # Bz = sp.spdiags(Bxyz[:, 2], 0, self.nD, self.nD)
-            ii = np.kron(np.asarray(range(self.survey.nD), dtype='int'), np.ones(3))
-            jj = np.asarray(range(3*self.survey.nD), dtype='int')
+            ii = np.kron(np.asarray(
+                range(self.survey.nD), dtype='int'), np.ones(3))
+            jj = np.asarray(range(3 * self.survey.nD), dtype='int')
             # (data, (row, col)), shape=(3, 3))
             # P = s
-            self._dfdm = sp.csr_matrix(( mkvc(Bxyz), (ii,jj)), shape=(self.survey.nD, 3*self.survey.nD))
+            self._dfdm = sp.csr_matrix((mkvc(Bxyz), (ii, jj)), shape=(
+                self.survey.nD, 3 * self.survey.nD))
 
         return self._dfdm
 
@@ -289,14 +245,14 @@ class MagneticIntegral(Problem.LinearProblem):
             m = matutils.atp2xyz(m)
 
         if getattr(self, '_Mxyz', None) is not None:
-            Bxyz = np.dot(self.G, (self.Mxyz*m).astype(np.float32))
+            Bxyz = np.dot(self.G, (self.Mxyz * m).astype(np.float32))
         else:
             Bxyz = np.dot(self.G, m.astype(np.float32))
 
         amp = self.calcAmpData(Bxyz.astype(np.float64))
-        Bamp = sp.spdiags(1./amp, 0, self.nD, self.nD)
+        Bamp = sp.spdiags(1. / amp, 0, self.nD, self.nD)
 
-        return (Bxyz.reshape((3, self.nD), order='F')*Bamp)
+        return (Bxyz.reshape((3, self.nD), order='F') * Bamp)
 
     def Intrgl_Fwr_Op(self, m=None, magType='H0', rx_type='tmi'):
         """
@@ -311,7 +267,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
          """
         if m is not None:
-            self.model = self.chiMap*m
+            self.model = self.chiMap * m
 
         # Find non-zero cells
         if getattr(self, 'actInd', None) is not None:
@@ -334,8 +290,8 @@ class MagneticIntegral(Problem.LinearProblem):
         # (lower and upper coners for each cell)
         if isinstance(self.mesh, Mesh.TreeMesh):
             # Get upper and lower corners of each cell
-            bsw = (self.mesh.gridCC - self.mesh.h_gridded/2.)
-            tne = (self.mesh.gridCC + self.mesh.h_gridded/2.)
+            bsw = (self.mesh.gridCC - self.mesh.h_gridded / 2.)
+            tne = (self.mesh.gridCC + self.mesh.h_gridded / 2.)
 
             xn1, xn2 = bsw[:, 0], tne[:, 0]
             yn1, yn2 = bsw[:, 1], tne[:, 1]
@@ -354,9 +310,9 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.equiSourceLayer:
             zn1 -= 1000.
 
-        self.Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
-        self.Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
-        self.Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
+        self.Yn = P.T * np.c_[mkvc(yn1), mkvc(yn2)]
+        self.Xn = P.T * np.c_[mkvc(xn1), mkvc(xn2)]
+        self.Zn = P.T * np.c_[mkvc(zn1), mkvc(zn2)]
 
         # survey = self.survey
         self.rxLoc = self.survey.srcField.rxList[0].locs
@@ -364,7 +320,7 @@ class MagneticIntegral(Problem.LinearProblem):
         if magType == 'H0':
             if getattr(self, 'M', None) is None:
                 self.M = matutils.dip_azimuth2cartesian(np.ones(nC) * self.survey.srcField.param[1],
-                                      np.ones(nC) * self.survey.srcField.param[2])
+                                                        np.ones(nC) * self.survey.srcField.param[2])
 
             Mx = sdiag(self.M[:, 0] * self.survey.srcField.param[0])
             My = sdiag(self.M[:, 1] * self.survey.srcField.param[0])
@@ -374,21 +330,22 @@ class MagneticIntegral(Problem.LinearProblem):
 
         elif magType == 'full':
 
-            self.Mxyz = sp.identity(3*nC) * self.survey.srcField.param[0]
+            self.Mxyz = sp.identity(3 * nC) * self.survey.srcField.param[0]
 
         else:
             raise Exception('magType must be: "H0" or "full"')
 
-                # Loop through all observations and create forward operator (nD-by-nC)
+            # Loop through all observations and create forward operator
+            # (nD-by-nC)
         print("Begin forward: M=" + magType + ", Rx type= " + self.rx_type)
 
         # Switch to determine if the process has to be run in parallel
         job = Forward(
-                rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
-                n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
-                model=self.model, rx_type=self.rx_type, Mxyz=self.Mxyz,
-                P=self.ProjTMI, parallelized=self.parallelized
-                )
+            rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
+            n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
+            model=self.model, rx_type=self.rx_type, Mxyz=self.Mxyz,
+            P=self.ProjTMI, parallelized=self.parallelized
+        )
 
         G = job.calculate()
 
@@ -420,11 +377,12 @@ class Forward(object):
 
                 # By default take half the cores, turns out be faster
                 # than running full threads
-                self.n_cpu = int(multiprocessing.cpu_count()/2)
+                self.n_cpu = int(multiprocessing.cpu_count() / 2)
 
             pool = multiprocessing.Pool(self.n_cpu)
 
-            result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
+            result = pool.map(
+                self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
             pool.close()
             pool.join()
 
@@ -459,21 +417,21 @@ class Forward(object):
         tx, ty, tz = calcRow(self.Xn, self.Yn, self.Zn, xyzLoc)
 
         if self.rx_type == 'tmi':
-            row = self.P.dot(np.vstack((tx, ty, tz)))*self.Mxyz
+            row = self.P.dot(np.vstack((tx, ty, tz))) * self.Mxyz
 
         elif self.rx_type == 'x':
-            row = tx*self.Mxyz
+            row = tx * self.Mxyz
 
         elif self.rx_type == 'y':
-            row = ty*self.Mxyz
+            row = ty * self.Mxyz
 
         elif self.rx_type == 'z':
-            row = tz*self.Mxyz
+            row = tz * self.Mxyz
 
         elif self.rx_type == 'xyz':
-            row = tx*self.Mxyz
-            row = np.r_[row, ty*self.Mxyz]
-            row = np.r_[row, tz*self.Mxyz]
+            row = tx * self.Mxyz
+            row = np.r_[row, ty * self.Mxyz]
+            row = np.r_[row, tz * self.Mxyz]
         else:
             raise Exception('rx_type must be: "tmi", "x", "y" or "z"')
 
@@ -494,9 +452,9 @@ class Forward(object):
 
         @author: dominiquef
         """
-        arg = np.floor(ind/total*10.)
+        arg = np.floor(ind / total * 10.)
         if arg > self.progressIndex:
-            print("Done " + str(arg*10) + " %")
+            print("Done " + str(arg * 10) + " %")
             self.progressIndex = arg
 
 
@@ -917,9 +875,9 @@ def calcRow(Xn, Yn, Zn, rxLoc):
     nC = Xn.shape[0]
 
     # Pre-allocate space for 1D array
-    Tx = np.zeros((1, 3*nC))
-    Ty = np.zeros((1, 3*nC))
-    Tz = np.zeros((1, 3*nC))
+    Tx = np.zeros((1, 3 * nC))
+    Ty = np.zeros((1, 3 * nC))
+    Tz = np.zeros((1, 3 * nC))
 
     dz2 = Zn[:, 1] - rxLoc[2] + eps
     dz1 = Zn[:, 0] - rxLoc[2] + eps
@@ -971,7 +929,7 @@ def calcRow(Xn, Yn, Zn, rxLoc):
         np.log((dz2 + arg5 + eps) / (dz1 + arg8 + eps))
     )
 
-    Ty[0, nC:2*nC] = (
+    Ty[0, nC:2 * nC] = (
         np.arctan2(dx1 * dz2, (dy2 * arg1 + eps)) -
         np.arctan2(dx2 * dz2, (dy2 * arg2 + eps)) +
         np.arctan2(dx2 * dz1, (dy2 * arg3 + eps)) -
@@ -987,7 +945,7 @@ def calcRow(Xn, Yn, Zn, rxLoc):
     R3 = (dy1dy1 + dz1dz1)
     R4 = (dy1dy1 + dz2dz2)
 
-    Ty[0, 2*nC:] = (
+    Ty[0, 2 * nC:] = (
         np.log((dx1 + np.sqrt(dx1dx1 + R1) + eps) /
                (dx2 + np.sqrt(dx2dx2 + R1) + eps)) -
         np.log((dx1 + np.sqrt(dx1dx1 + R2) + eps) /
@@ -1003,7 +961,7 @@ def calcRow(Xn, Yn, Zn, rxLoc):
     R3 = (dx1dx1 + dz1dz1)
     R4 = (dx1dx1 + dz2dz2)
 
-    Tx[0, 2*nC:] = (
+    Tx[0, 2 * nC:] = (
         np.log((dy1 + np.sqrt(dy1dy1 + R1) + eps) /
                (dy2 + np.sqrt(dy2dy2 + R1) + eps)) -
         np.log((dy1 + np.sqrt(dy1dy1 + R2) + eps) /
@@ -1014,14 +972,14 @@ def calcRow(Xn, Yn, Zn, rxLoc):
                (dy2 + np.sqrt(dy2dy2 + R3) + eps))
     )
 
-    Tz[0, 2*nC:] = -(Ty[0, nC:2*nC] + Tx[0, 0:nC])
-    Tz[0, nC:2*nC] = Ty[0, 2*nC:]
-    Tx[0, nC:2*nC] = Ty[0, 0:nC]
-    Tz[0, 0:nC] = Tx[0, 2*nC:]
+    Tz[0, 2 * nC:] = -(Ty[0, nC:2 * nC] + Tx[0, 0:nC])
+    Tz[0, nC:2 * nC] = Ty[0, 2 * nC:]
+    Tx[0, nC:2 * nC] = Ty[0, 0:nC]
+    Tz[0, 0:nC] = Tx[0, 2 * nC:]
 
-    Tx = Tx/(4*np.pi)
-    Ty = Ty/(4*np.pi)
-    Tz = Tz/(4*np.pi)
+    Tx = Tx / (4 * np.pi)
+    Ty = Ty / (4 * np.pi)
+    Tz = Tz / (4 * np.pi)
 
     return Tx, Ty, Tz
 
@@ -1037,11 +995,11 @@ def progress(iter, prog, final):
 
     @author: dominiquef
     """
-    arg = np.floor(float(iter)/float(final)*10.)
+    arg = np.floor(float(iter) / float(final) * 10.)
 
     if arg > prog:
 
-        print("Done " + str(arg*10) + " %")
+        print("Done " + str(arg * 10) + " %")
         prog = arg
 
     return prog
