@@ -652,7 +652,7 @@ def _get_map_data(
             errorbars = [attr_uncert, attr_uncert]
         else:
             freqs, plot_data = _extract_frequency_data(
-                data, frequency, orientation, component, return_uncert=error)
+                data, frequency, orientation, component, return_uncert=False)
     return (freqs, plot_data, errorbars)
 
 def _get_station_data(

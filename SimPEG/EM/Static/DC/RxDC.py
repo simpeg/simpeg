@@ -5,15 +5,43 @@ from __future__ import unicode_literals
 
 import SimPEG
 import numpy as np
-from SimPEG.Utils import closestPoints
+from SimPEG.Utils import closestPoints, sdiag
+import properties
 
+# Trapezoidal integration for 2D DC problem
+def IntTrapezoidal(kys, Pf, y=0.):
+    phi = np.zeros(Pf.shape[0])
+    nky = kys.size
+    dky = np.diff(kys)
+    dky = np.r_[dky[0], dky]
+    phi0 = 1./np.pi*Pf[:, 0]
+    for iky in range(nky):
+        phi1 = 1./np.pi*Pf[:, iky]
+        phi += phi1*dky[iky]/2.*np.cos(kys[iky]*y)
+        phi += phi0*dky[iky]/2.*np.cos(kys[iky]*y)
+        phi0 = phi1.copy()
+    return phi
 
+# Receiver classes
 class BaseRx(SimPEG.Survey.BaseRx):
     """
     Base DC receiver
     """
     locs = None
     rxType = None
+
+    data_type = properties.StringChoice(
+        "Type of DC-IP survey",
+        required=True,
+        default="volt",
+        choices=[
+           "volt",
+           "apparent_resistivity",
+           "apparent_chargeability"
+        ]
+    )
+
+    data_type = 'volt'
 
     knownRxTypes = {
         'phi': ['phi', None],
@@ -27,6 +55,14 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
     def __init__(self, locs, rxType, **kwargs):
         SimPEG.Survey.BaseRx.__init__(self, locs, rxType, **kwargs)
+
+    @property
+    def geometric_factor(self):
+        return self._geometric_factor
+
+    @property
+    def dc_voltage(self):
+        return self._dc_voltage
 
     @property
     def projField(self):
@@ -94,6 +130,11 @@ class Dipole(BaseRx):
             )
             P = sp.vstack((P, P0_pole))
 
+        if self.data_type == 'apparent_resistivity':
+            P = sdiag(1./self.geometric_factor) * P
+        elif self.data_type == 'apparent_chargeability':
+            P = sdiag(1./self.dc_voltage) * P
+
         if self.storeProjections:
             self._Ps[mesh] = P
 
@@ -124,6 +165,11 @@ class Dipole_ky(BaseRx):
         P0 = mesh.getInterpolationMat(self.locs[0], Gloc)
         P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
         P = P0 - P1
+
+        if self.data_type == 'apparent_resistivity':
+            P = sdiag(1./self.geometric_factor) * P
+        elif self.data_type == 'apparent_chargeability':
+            P = sdiag(1./self.dc_voltage) * P
         if self.storeProjections:
             self._Ps[mesh] = P
         return P
@@ -131,7 +177,7 @@ class Dipole_ky(BaseRx):
     def eval(self, kys, src, mesh, f):
         P = self.getP(mesh, self.projGLoc(f))
         Pf = P*f[src, self.projField, :]
-        return self.IntTrapezoidal(kys, Pf, y=0.)
+        return IntTrapezoidal(kys, Pf, y=0.)
 
     def evalDeriv(self, ky, src, mesh, f, v, adjoint=False):
         P = self.getP(mesh, self.projGLoc(f))
@@ -139,19 +185,6 @@ class Dipole_ky(BaseRx):
             return P*v
         elif adjoint:
             return P.T*v
-
-    def IntTrapezoidal(self, kys, Pf, y=0.):
-        phi = np.zeros(Pf.shape[0])
-        nky = kys.size
-        dky = np.diff(kys)
-        dky = np.r_[dky[0], dky]
-        phi0 = 1./np.pi*Pf[:, 0]
-        for iky in range(nky):
-            phi1 = 1./np.pi*Pf[:, iky]
-            phi += phi1*dky[iky]/2.*np.cos(kys[iky]*y)
-            phi += phi0*dky[iky]/2.*np.cos(kys[iky]*y)
-            phi0 = phi1.copy()
-        return phi
 
 
 class Pole(BaseRx):
@@ -176,6 +209,10 @@ class Pole(BaseRx):
 
         P = mesh.getInterpolationMat(self.locs, Gloc)
 
+        if self.data_type == 'apparent_resistivity':
+            P = sdiag(1./self.geometric_factor) * P
+        elif self.data_type == 'apparent_chargeability':
+            P = sdiag(1./self.dc_voltage) * P
         if self.storeProjections:
             self._Ps[mesh] = P
 
@@ -204,6 +241,10 @@ class Pole_ky(BaseRx):
 
         P = mesh.getInterpolationMat(self.locs, Gloc)
 
+        if self.data_type == 'apparent_resistivity':
+            P = sdiag(1./self.geometric_factor) * P
+        elif self.data_type == 'apparent_chargeability':
+            P = sdiag(1./self.dc_voltage) * P
         if self.storeProjections:
             self._Ps[mesh] = P
 
@@ -212,7 +253,7 @@ class Pole_ky(BaseRx):
     def eval(self, kys, src, mesh, f):
         P = self.getP(mesh, self.projGLoc(f))
         Pf = P*f[src, self.projField, :]
-        return self.IntTrapezoidal(kys, Pf, y=0.)
+        return IntTrapezoidal(kys, Pf, y=0.)
 
     def evalDeriv(self, ky, src, mesh, f, v, adjoint=False):
         P = self.getP(mesh, self.projGLoc(f))
@@ -220,16 +261,3 @@ class Pole_ky(BaseRx):
             return P*v
         elif adjoint:
             return P.T*v
-
-    def IntTrapezoidal(self, kys, Pf, y=0.):
-        phi = np.zeros(Pf.shape[0])
-        nky = kys.size
-        dky = np.diff(kys)
-        dky = np.r_[dky[0], dky]
-        phi0 = 1./np.pi*Pf[:, 0]
-        for iky in range(nky):
-            phi1 = 1./np.pi*Pf[:, iky]
-            phi += phi1*dky[iky]/2.*np.cos(kys[iky]*y)
-            phi += phi0*dky[iky]/2.*np.cos(kys[iky]*y)
-            phi0 = phi1.copy()
-        return phi
