@@ -1082,13 +1082,13 @@ class SimpleSmoothDeriv(BaseRegularization):
 
             W = (
                 Utils.sdiag(
-                    (Ave*(self.cell_weights * self.length_scales))**0.5
+                    (Ave*(self.cell_weights))**0.5
                 ) * W
             )
         else:
             W = (
                 Utils.sdiag(
-                    (Ave*(self.cell_weights * self.length_scales))**0.5
+                    (Ave*(self.cell_weights))**0.5
                 ) * W
             )
         return W
@@ -1671,13 +1671,13 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 W = (
                     Utils.sdiag(
-                        (Ave*(self.scale * self.cell_weights / self.length_scales))**0.5
+                        (Ave*(self.scale * self.cell_weights))**0.5
                     ) *
                     R
                 )
 
             else:
-                W = Utils.sdiag((Ave * (self.scale / self.length_scales))**0.5) * R
+                W = Utils.sdiag((Ave * (self.scale))**0.5) * R
 
 
             dmdx = self.cellDiffStencil * (self.mapping * f_m)
@@ -1703,11 +1703,11 @@ class SparseDeriv(BaseSparse):
             # Eta scaling is important for mix-norms...do not mess with it
             maxVal = np.ones_like(f_m) * np.abs(f_m).max()
             maxVal[self.norm < 1] = self.epsilon / np.sqrt(1.-self.norm[self.norm < 1])
-            maxGrad = maxVal / (maxVal**2. + self.epsilon**2.)**(1.-self.norm/2.)
+            maxGrad = maxVal / (maxVal**2. + (self.epsilon*self.length_scales)**2.)**(1.-self.norm/2.)
 
             eta[maxGrad != 0] = np.abs(f_m).max()/maxGrad[maxGrad != 0]
 
-        r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
+        r = (eta / (f_m**2. + (self.epsilon*self.length_scales)**2.)**(1.-self.norm/2.))**0.5
 
         # Theoritical full deriv for testing
         # r = (
@@ -1855,13 +1855,8 @@ class SparseDeriv(BaseSparse):
 
     @property
     def cellDiffStencil(self):
-        return getattr(
-            self.regmesh, 'cellDiff{}Stencil'.format(self.orientation)
-        )
 
-    @property
-    def cellDiffStencil(self):
-        return getattr(
+        return Utils.sdiag(self.length_scales) * getattr(
             self.regmesh, 'cellDiff{}Stencil'.format(self.orientation)
         )
 
@@ -1883,23 +1878,25 @@ class SparseDeriv(BaseSparse):
         if self.cell_weights is not None:
             return (
                 Utils.sdiag(
-                    (Ave*(self.scale * self.cell_weights / self.length_scales))**0.5
+                    (Ave*(self.scale * self.cell_weights))**0.5
                 ) *
                 R * self.cellDiffStencil
             )
-        return Utils.sdiag((Ave*(self.scale / self.length_scales))**0.5) * R * self.cellDiffStencil
+        return Utils.sdiag((Ave*(self.scale))**0.5) * R * self.cellDiffStencil
 
     @property
     def length_scales(self):
 
         if getattr(self, '_length_scales', None) is None:
+            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
             index = 'xyz'.index(self.orientation)
 
-            length_scales = (
-                self.regmesh.Pac.T*self.regmesh.mesh.h_gridded[:, index]
-            )**2.
+            length_scales = Ave * (
+                (self.regmesh.Pac.T*self.regmesh.mesh.h_gridded[:, index])
+            )
 
-            self._length_scales = length_scales / length_scales.min()
+            self._length_scales = length_scales.min()/length_scales
 
         return self._length_scales
 
