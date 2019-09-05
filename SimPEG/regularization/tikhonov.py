@@ -83,7 +83,6 @@ class SimpleSmoothDeriv(BaseRegularization):
     def __init__(
         self, mesh, orientation='x', **kwargs
     ):
-        self._length_scales = None
         self.orientation = orientation
         assert self.orientation in ['x', 'y', 'z'], (
             "Orientation must be 'x', 'y' or 'z'"
@@ -120,7 +119,7 @@ class SimpleSmoothDeriv(BaseRegularization):
         with normalized length scales in the specified orientation
         """
         Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
-        W = getattr(
+        W = Utils.sdiag(self.length_scales) * getattr(
             self.regmesh,
             "cellDiff{orientation}Stencil".format(
                 orientation=self.orientation
@@ -130,13 +129,13 @@ class SimpleSmoothDeriv(BaseRegularization):
 
             W = (
                 Utils.sdiag(
-                    (Ave*(self.cell_weights*self.length_scales))**0.5
+                    (Ave*(self.cell_weights))**0.5
                 ) * W
             )
         else:
             W = (
                 Utils.sdiag(
-                    (Ave*self.length_scales)**0.5
+                    (Ave*self.regmesh.vol)**0.5
                 ) * W
             )
 
@@ -149,13 +148,15 @@ class SimpleSmoothDeriv(BaseRegularization):
 
         """
         if getattr(self, '_length_scales', None) is None:
+            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
             index = 'xyz'.index(self.orientation)
 
-            length_scales = (
+            length_scales = Ave * (
                 self.regmesh.Pac.T*self.regmesh.mesh.h_gridded[:, index]
-            )**2.
+            )
 
-            self._length_scales = self.regmesh.mesh.h_gridded.min()**2. / length_scales
+            self._length_scales = length_scales.min() / length_scales
 
         return self._length_scales
 

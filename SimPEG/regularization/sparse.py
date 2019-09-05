@@ -171,7 +171,6 @@ class SparseDeriv(BaseSparse):
     """
 
     def __init__(self, mesh, orientation='x', **kwargs):
-        self._length_scales = None
         self.orientation = orientation
         super(SparseDeriv, self).__init__(mesh=mesh, **kwargs)
 
@@ -254,14 +253,14 @@ class SparseDeriv(BaseSparse):
             )
             maxGrad = (
                 maxVal /
-                (maxVal**2. + self.epsilon**2.)**(1.-self.norm/2.)
+                (maxVal**2. + (self.epsilon*self.length_scales)**2.)**(1.-self.norm/2.)
             )
 
             # Scaling Factor
             eta[maxGrad != 0] = np.abs(f_m).max()/maxGrad[maxGrad != 0]
 
         # Scaled-IRLS weights
-        r = (eta / (f_m**2. + self.epsilon**2.)**(1.-self.norm/2.))**0.5
+        r = (eta / (f_m**2. + (self.epsilon*self.length_scales)**2.)**(1.-self.norm/2.))**0.5
         self.stashedR = r  # stash on the first calculation
         return r
 
@@ -306,14 +305,14 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 W = (
                     Utils.sdiag(
-                        ((Ave * (self.scale * self.cell_weights * self.length_scales)))**0.5
+                        ((Ave * (self.scale * self.cell_weights)))**0.5
                     ) *
                     R
                 )
 
             else:
                 W = Utils.sdiag(
-                    (Ave * (self.scale * self.regmesh.vol * self.length_scales))**0.5
+                    (Ave * (self.scale * self.regmesh.vol))**0.5
                 ) * R
 
             theta = self.cellDiffStencil * (self.mapping * model)
@@ -381,7 +380,7 @@ class SparseDeriv(BaseSparse):
 
     @property
     def cellDiffStencil(self):
-        return getattr(
+        return Utils.sdiag(self.length_scales) * getattr(
             self.regmesh, 'cellDiff{}Stencil'.format(self.orientation)
         )
 
@@ -401,13 +400,13 @@ class SparseDeriv(BaseSparse):
         if self.cell_weights is not None:
             return (
                 Utils.sdiag(
-                    (Ave*(self.scale * self.cell_weights * self.length_scales))**0.5
+                    (Ave*(self.scale * self.cell_weights))**0.5
                 ) *
                 R * self.cellDiffStencil
             )
         else:
             return Utils.sdiag(
-                (Ave*(self.scale * self.regmesh.vol * self.length_scales))**0.5
+                (Ave*(self.scale * self.regmesh.vol))**0.5
                 ) * R * self.cellDiffStencil
 
     @property
@@ -416,14 +415,16 @@ class SparseDeriv(BaseSparse):
             Normalized cell based weighting
 
         """
+        Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
         if getattr(self, '_length_scales', None) is None:
             index = 'xyz'.index(self.orientation)
 
-            length_scales = (
+            length_scales = Ave * (
                 self.regmesh.Pac.T*self.regmesh.mesh.h_gridded[:, index]
-            )**2.
+            )
 
-            self._length_scales = self.regmesh.mesh.h_gridded.min()**2. / length_scales
+            self._length_scales = length_scales.min() / length_scales
 
         return self._length_scales
 
