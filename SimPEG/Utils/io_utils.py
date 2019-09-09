@@ -433,7 +433,7 @@ def readUBCgravityObservations(obs_file):
     rxLoc = BaseGrav.RxObs(locXYZ)
     srcField = BaseGrav.SrcField([rxLoc])
     survey = BaseGrav.LinearSurvey(srcField)
-    survey.dobs = d
+    survey.dobs = -d
     survey.std = wd
     return survey
 
@@ -452,7 +452,7 @@ def writeUBCgravityObservations(filename, survey, d):
 
     wd = survey.std
 
-    data = np.c_[rxLoc, d, wd]
+    data = np.c_[rxLoc, -d, wd]
     head = ('%i' % len(d))
     np.savetxt(
         filename, data, fmt='%e', delimiter=' ',
