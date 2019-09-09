@@ -795,12 +795,13 @@ class Update_IRLS(InversionDirective):
                 #     reg.alpha_s = dx**2. #/np.min(reg.regmesh.mesh.hx)**2.
 
         # Update the model used by the regularization
-        for reg in self.reg.objfcts:
-            reg.model = self.invProb.model
+        # for reg in self.reg.objfcts:
+        #     reg.model = self.invProb.model
 
         for reg in self.reg.objfcts:
+            reg.model = self.invProb.model
             for comp in reg.objfcts:
-                self.f_old += np.sum(comp.f_m**2. / (comp.f_m**2. + comp.epsilon**2.)**(1 - comp.norm/2.))
+                self.f_old += comp(reg.model)
 
         self.phi_dm = []
         self.phi_dmx = []
@@ -851,11 +852,14 @@ class Update_IRLS(InversionDirective):
 
         phim_new = 0
         for reg in self.reg.objfcts:
+            reg.model = self.invProb.model
             for comp in reg.objfcts:
-                phim_new += np.sum(
-                    comp.f_m**2. /
-                    (comp.f_m**2. + comp.epsilon**2.)**(1 - comp.norm/2.)
-                )
+                phim_new += comp(reg.model)
+            # for comp in reg.objfcts:
+            #     phim_new += np.sum(
+            #         comp.f_m**2. /
+            #         (comp.f_m**2. + comp.epsilon**2.)**(1 - comp.norm/2.)
+            #     )
 
         # Update the model used by the regularization
         phi_m_last = []
