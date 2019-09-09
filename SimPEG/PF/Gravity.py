@@ -281,7 +281,6 @@ class Forward(object):
                                 np.r_[G.shape] == np.r_[stack.shape]]):
                             # Check that loaded G matches supplied data and mesh
                             print("Zarr file detected with same shape and chunksize ... re-loading")
-                            return G
 
                         else:
 
@@ -290,7 +289,7 @@ class Forward(object):
                                 G = da.to_zarr(stack, self.Jpath, return_stored=True, overwrite=True)
 
                     else:
-                    
+
                         with ProgressBar():
                             print("Saving G to zarr: " + self.Jpath)
                             G = da.to_zarr(stack, self.Jpath, return_stored=True, overwrite=True)
