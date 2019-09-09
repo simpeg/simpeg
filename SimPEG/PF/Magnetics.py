@@ -497,21 +497,9 @@ class Forward(object):
 
                 stack = da.vstack(buildMat)
 
-                # TO-DO: Find a way to create in
-                # chunks instead
-                # stack = stack.rechunk('auto')
-                nChunks = self.n_cpu # Number of chunks
-                rowChunk, colChunk = int(np.ceil(self.nD*nDataComps/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
-                # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
-                while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= 0.125:
-#                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
-                    nChunks += 1
-                    rowChunk, colChunk = int(np.ceil(self.nD*nDataComps/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                    totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
-
-                stack = stack.rechunk((rowChunk, colChunk))
-
+                # Auto rechunk
+                stack = stack.rechunk({0: -1, 1: 'auto'}) # Auto rechunk by cols. Use {0: 'auto', 1: -1} to auto chunk by rows
+                
                 print('DASK: ')
                 print('Tile size (nD, nC): ', stack.shape)
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
@@ -544,15 +532,16 @@ class Forward(object):
                             return G
 
                         else:
-                            del G
-                            shutil.rmtree(self.Jpath)
-                            print("Zarr file detected with wrong shape and chunksize ... over-writing")
 
-                    with ProgressBar():
-                        print("Saving G to zarr: " + self.Jpath)
-                        da.to_zarr(stack, self.Jpath)
+                            with ProgressBar():
+                                print("Zarr file detected with wrong shape and chunksize ... over-writing: " + self.Jpath)
+                                G = da.to_zarr(stack, self.Jpath, return_stored=True, overwrite=True)
 
-                    G = da.from_zarr(self.Jpath)
+                    else:
+                    
+                        with ProgressBar():
+                            print("Saving G to zarr: " + self.Jpath)
+                            G = da.to_zarr(stack, self.Jpath, return_stored=True, overwrite=True)
 
             # elif self.parallelized == "multiprocessing":
 
