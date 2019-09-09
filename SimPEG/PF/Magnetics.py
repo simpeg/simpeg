@@ -498,6 +498,7 @@ class Forward(object):
                 stack = da.vstack(buildMat)
 
                 # Auto rechunk
+                # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
                 stack = stack.rechunk({0: -1, 1: 'auto'}) # Auto rechunk by cols. Use {0: 'auto', 1: -1} to auto chunk by rows
                 
                 print('DASK: ')
