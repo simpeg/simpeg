@@ -32,12 +32,9 @@ class MagneticIntegral(Problem.LinearProblem):
     actInd = None  #: Active cell indices provided
     M = None  #: Magnetization matrix provided, otherwise all induced
     magType = 'H0'
-    equiSourceLayer = False
     verbose = True  # Don't display progress on screen
     W = None
-    components = 'tmi'
     gtgdiag = None
-    memory_saving_mode = False
     n_cpu = None
     parallelized = "dask"
     coordinate_system = properties.StringChoice(
@@ -427,7 +424,7 @@ class MagneticIntegral(Problem.LinearProblem):
                 # Loop through all observations and create forward operator (nD-by-self.nC)
 
         if self.verbose:
-            print("Begin forward: M=" + magType + ", Rx type= " + self.components)
+            print("Begin forward: M=" + magType + ", Rx type= %s" % self.survey.components)
 
         # Switch to determine if the process has to be run in parallel
         job = Forward(
@@ -500,7 +497,7 @@ class Forward(object):
                 # Auto rechunk
                 # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
                 stack = stack.rechunk({0: -1, 1: 'auto'}) # Auto rechunk by cols. Use {0: 'auto', 1: -1} to auto chunk by rows
-                
+
                 print('DASK: ')
                 print('Tile size (nD, nC): ', stack.shape)
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
