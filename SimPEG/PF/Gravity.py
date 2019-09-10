@@ -251,7 +251,7 @@ class Forward(object):
                 # Auto rechunk
                 # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
                 stack = stack.rechunk({0: -1, 1: 'auto'}) # Auto rechunk by cols. Use {0: 'auto', 1: -1} to auto chunk by rows
-                
+
                 print('DASK: ')
                 print('Tile size (nD, nC): ', stack.shape)
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
@@ -394,7 +394,7 @@ class Forward(object):
 
                     arg = dy[:, bb] * dz[:, cc] / dxr
 
-                    if ('gxx' in self.components) or ("gzz" in self.components):
+                    if ('gxx' in self.components) or ("gzz" in self.components) or ("guv" in self.components):
                         gxx -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             dxdy / (r * dz_r + eps) +
                             dxdz / (r * dy_r + eps) -
@@ -422,7 +422,7 @@ class Forward(object):
 
                     arg = dx[:, aa]*dz[:, cc]/dyr
 
-                    if ('gyy' in self.components) or ("gzz" in self.components):
+                    if ('gyy' in self.components) or ("gzz" in self.components) or ("guv" in self.components):
                         gyy -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             dxdy / (r*dz_r+ eps) +
                             dydz / (r*dx_r+ eps) -
@@ -448,6 +448,9 @@ class Forward(object):
 
         if 'gzz' in self.components:
             compDict['gzz'] = -gxx - gyy
+
+        if 'guv' in self.components:
+            compDict['guv'] = 0.5*(gxx - gyy)
 
         return np.vstack([NewtG * compDict[key] for key in list(compDict.keys())])
 
