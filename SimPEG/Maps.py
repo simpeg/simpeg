@@ -663,45 +663,14 @@ class Tile(IdentityMap):
 
                 actvIndGlobal = np.where(self.actvGlobal)[0].tolist()
 
+                Pac = Utils.speye(self.meshGlobal.nC)[:, self.actvGlobal]
+
                 indL = self.meshLocal._get_containing_cell_indexes(self.meshGlobal.gridCC)
 
                 full = np.c_[indL, np.arange(self.meshGlobal.nC)]
-                # Create new index based on unique active
-                # [ua, ind] = np.unique(indL, return_index=True)
-
-                check = np.where(self.meshLocal.vol[indL] < self.meshGlobal.vol)[0].tolist()
-
-                # Reverse inside global to local
-                indG = self.meshGlobal._get_containing_cell_indexes(self.meshLocal.gridCC)
-
-                model = np.zeros(self.meshLocal.nC)
-
-                rows = []
-                for ind in check:
-
-                    if ind in actvIndGlobal:
-                        indAdd = np.where(ind == indG)[0]
-                        rows += [np.c_[indAdd, np.ones_like(indAdd)*ind]]
-                        # model[indAdd] = 0.5
-
-                # indL = indL[actv]
-                if len(rows) > 0:
-                    full = np.r_[full[actvIndGlobal, :], np.vstack(rows)]
-                else:
-                    full = full[actvIndGlobal, :]
-
-                # model[full[:,0]]=0.5
-
-                actvIndLocal = np.unique(full[:, 0])
-
-                full = np.c_[np.searchsorted(actvIndLocal, full[:, 0]), np.searchsorted(actvIndGlobal, full[:, 1])]
-
-                activeLocal = np.zeros(self.meshLocal.nC, dtype='bool')
-                activeLocal[actvIndLocal] = True
-
-                self.activeLocal = activeLocal
 
             else:
+                # Needs to be improved to makes all cells are included
                 indx = self.getTreeIndex(self.tree, self.meshLocal, self.activeLocal)
                 local2Global = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.activeLocal.sum()))).astype('int'), mkvc(indx)]
 
@@ -718,10 +687,10 @@ class Tile(IdentityMap):
             # Get the node coordinates (bottom-SW) and (top-NE) of cells
             # in the global and local mesh
             global_bsw, global_tne = self.getNodeExtent(self.meshGlobal,
-                                                        self.actvGlobal)
+                                                        np.ones(self.meshGlobal.nC, dtype='bool'))
 
             local_bsw, local_tne = self.getNodeExtent(self.meshLocal,
-                                                      self.activeLocal)
+                                                      np.ones(self.meshLocal.nC, dtype='bool'))
 
             nactv = full.shape[0]
 
@@ -773,12 +742,24 @@ class Tile(IdentityMap):
             self.V = dV[nzV]
 
             P = sp.csr_matrix((self.V, (full[nzV, 0], full[nzV, 1])),
-                              shape=(self.activeLocal.sum(), self.actvGlobal.sum()))
+                              shape=(self.meshLocal.nC, self.meshGlobal.nC))
+
+            # Jproj = sp.csr_matrix((np.ones_like(self.V), (full[nzV, 0], full[nzV, 1])),
+            #                   shape=(self.meshLocal.nC, self.meshGlobal.nC))
+            P = P * Pac
+
+
+            self.activeLocal = Utils.mkvc(np.sum(P, axis=1) > 0)
+
+            P = P[self.activeLocal, :]
+
+            # Jproj = Jproj * Pac
+            # Jproj = Jproj[self.activeLocal, :]
 
             sumRow = Utils.mkvc(np.sum(P, axis=1) + self.tol)
 
-            self.scaleJ = sp.block_diag([
-                Utils.sdiag(sumRow/self.meshLocal.vol[self.activeLocal])
+            self.P_deriv = sp.block_diag([
+                Utils.sdiag(1./self.meshLocal.vol[self.activeLocal]) * P * self.S
                 for ii in range(self.nBlock)])
 
             self._P = sp.block_diag([
@@ -837,8 +818,8 @@ class Tile(IdentityMap):
 
         self.P
         if v is not None:
-            return self.scaleJ * self.P * v
-        return self.scaleJ * self.P
+            return self.P_deriv * v
+        return self.P_deriv
 
 
 class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
