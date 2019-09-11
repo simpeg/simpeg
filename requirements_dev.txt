@@ -12,6 +12,6 @@ wheel
 pytest
 jupyter
 sphinxcontrib-napoleon
-"dask[array]"
-"dask[delayed]"
+dask
+toolz
 zarr
