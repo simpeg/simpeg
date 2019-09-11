@@ -36,6 +36,13 @@ def plot2Ddata(
         :param dict levelOpts: :meth:`matplotlib.pyplot.contour` options
         :param numpy.ndarray clim: colorbar limits
         :param str method: interpolation method, either 'linear' or 'nearest'
+        :param bool shade: add shading to the plot
+        :param float shade_ncontour: number of :meth:`matplotlib.pyplot.contourf`
+                                contours for the shading
+        :param float shade_azimuth: azimuth for the light source in shading
+        :param float shade_angle_altitude: angle altitude for the light source
+                                in shading
+        :param dict shaeOpts: :meth:`matplotlib.pyplot.contourf` options
 
     """
 
