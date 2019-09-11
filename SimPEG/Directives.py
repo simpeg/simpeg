@@ -2013,7 +2013,8 @@ class JointScalingSchedule(InversionDirective):
     def initialize(self):
 
         targetclass = np.r_[[isinstance(
-            dirpart, PetroTargetMisfit) for dirpart in self.inversion.directiveList.dList]]
+            dirpart, PetroTargetMisfit) or isinstance(
+            dirpart, JointTargetMisfit) for dirpart in self.inversion.directiveList.dList]]
         if ~np.any(targetclass):
             self.DMtarget = None
         else:
