@@ -716,8 +716,7 @@ class Update_IRLS(InversionDirective):
     f_min_change = 1e-2
     beta_tol = 1e-1
     beta_ratio_l2 = None
-    prctile = 100
-    chifact_start = 1.
+    prctile = 90
     chifact_target = 1.
 
     # Solving parameter for IRLS (mode:2)
@@ -758,23 +757,6 @@ class Update_IRLS(InversionDirective):
     @target.setter
     def target(self, val):
         self._target = val
-
-    @property
-    def start(self):
-        if getattr(self, '_start', None) is None:
-            if isinstance(self.survey, list):
-                self._start = 0
-                for survey in self.survey:
-                    self._start += survey.nD*0.5*self.chifact_start
-
-            else:
-
-                self._start = self.survey.nD*0.5*self.chifact_start
-        return self._start
-
-    @start.setter
-    def start(self, val):
-        self._start = val
 
     def initialize(self):
 
@@ -868,7 +850,7 @@ class Update_IRLS(InversionDirective):
             phi_m_last += [reg(self.invProb.model)]
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
-        if np.all([self.invProb.phi_d < self.start, self.mode == 1]):
+        if np.all([self.invProb.phi_d < self.target, self.mode == 1]):
             self.startIRLS()
 
         # Only update after GN iterations
@@ -979,14 +961,14 @@ class Update_IRLS(InversionDirective):
                                     self.invProb.model)
                                 ), self.prctile
                             )
-
+                print("Calculated eps_p %e" % reg.eps_p)
             if getattr(reg, 'eps_q', None) is None:
 
                 reg.eps_q = np.percentile(
-                                np.abs(reg.mapping*reg._delta_m(
-                                    self.invProb.model)
+                                np.abs(reg.objfcts[1].f_m
                                 ), self.prctile
                             )
+                print("Calculated eps_q %e" % reg.eps_q)
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms, alpha in zip(self.reg.objfcts, self.norms, self.alpha):

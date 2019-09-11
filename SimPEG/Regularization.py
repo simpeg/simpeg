@@ -1088,7 +1088,7 @@ class SimpleSmoothDeriv(BaseRegularization):
         else:
             W = (
                 Utils.sdiag(
-                    (Ave*(self.cell_weights))**0.5
+                    (Ave*(self.regmesh.vol))**0.5
                 ) * W
             )
         return W
@@ -1703,11 +1703,11 @@ class SparseDeriv(BaseSparse):
             # Eta scaling is important for mix-norms...do not mess with it
             maxVal = np.ones_like(f_m) * np.abs(f_m).max()
             maxVal[self.norm < 1] = self.epsilon / np.sqrt(1.-self.norm[self.norm < 1])
-            maxGrad = maxVal / (maxVal**2. + (self.epsilon*self.length_scales)**2.)**(1.-self.norm/2.)
+            maxGrad = maxVal / (maxVal**2. + (self.epsilon)**2.)**(1.-self.norm/2.)
 
             eta[maxGrad != 0] = np.abs(f_m).max()/maxGrad[maxGrad != 0]
 
-        r = (eta / (f_m**2. + (self.epsilon*self.length_scales)**2.)**(1.-self.norm/2.))**0.5
+        r = (eta / (f_m**2. + (self.epsilon)**2.)**(1.-self.norm/2.))**0.5
 
         # Theoritical full deriv for testing
         # r = (
