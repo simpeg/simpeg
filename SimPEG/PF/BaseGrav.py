@@ -2,10 +2,11 @@ from SimPEG import Survey, Maps
 
 
 class LinearSurvey(Survey.BaseSurvey):
-    """Base Gravity Survey"""
+    """Base Magnetics Survey"""
 
     rxLoc = None  #: receiver locations
-    rx_type = None  #: receiver type
+    rxType = None  #: receiver type
+    components = ['gz']
 
     def __init__(self, srcField, **kwargs):
         self.srcField = srcField
@@ -16,10 +17,7 @@ class LinearSurvey(Survey.BaseSurvey):
 
     @property
     def nD(self):
-        if self.prob is None or self.prob.G is None:
-            return len(self.rxLoc)
-        else:
-            return self.prob.G.shape[0]
+        return len(self.rxLoc) * len(self.components)
 
     @property
     def rxLoc(self):

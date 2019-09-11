@@ -1692,6 +1692,53 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     print('Alpha scales: ', objf.multipliers)
 
 
+class JointTargetMisfit(InversionDirective):
+
+    chifact = 1.
+    phi_d_star = None
+    verbose = False
+
+    @property
+    def DMtarget(self):
+        if getattr(self, '_DMtarget', None) is None:
+            # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+            if self.phi_d_star is None:
+                # Check if it is a ComboObjective
+                if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+                    self.phi_d_star = np.r_[
+                        [0.5 * survey.nD for survey in self.survey]]
+                else:
+                    self.phi_d_star = np.r_[
+                        [0.5 * self.invProb.dmisfit.survey.nD]]
+
+            self._DMtarget = self.chifact * self.phi_d_star
+        return self._DMtarget
+
+    @DMtarget.setter
+    def DMtarget(self, val):
+        self._DMtarget = val
+
+    def endIter(self):
+
+        self.DM = False
+
+        self.dmlist = np.r_[[dmis(self.invProb.model)
+                             for dmis in self.dmisfit.objfcts]]
+
+        self.targetlist = np.r_[
+            [dm < tgt for dm, tgt in zip(self.dmlist, self.DMtarget)]]
+
+        if np.all(self.targetlist):
+            self.DM = True
+
+        if self.verbose:
+            print(
+                'DM: ', self.dmlist, self.targetlist,
+            )
+        if self.DM:
+            self.opt.stopNextIteration = True
+
+
 class PetroTargetMisfit(InversionDirective):
 
     WeightsInTarget = 0
