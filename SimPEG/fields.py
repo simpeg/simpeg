@@ -197,7 +197,7 @@ class Fields(properties.HasProperties):
             # Aliased fields
             alias, loc, func = self.aliasFields[name]
 
-            srcII = np.array(self.survey.srcList)[ind]
+            srcII = np.array(self.survey.source_list)[ind]
             srcII = srcII.tolist()
 
             if isinstance(func, string_types):
@@ -307,7 +307,7 @@ class TimeFields(Fields):
             pointerFields = pointerFields.reshape(pointerShape, order='F')
 
             timeII = np.arange(self.simulation.nT + 1)[timeInd]
-            srcII = np.array(self.survey.srcList)[srcInd]
+            srcII = np.array(self.survey.source_list)[srcInd]
             srcII = srcII.tolist()
 
             if timeII.size == 1:

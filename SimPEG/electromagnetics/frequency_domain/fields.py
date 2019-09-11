@@ -449,9 +449,9 @@ class Fields3D_e(FieldsFDEM):
         C = self._edgeCurl
         b = (C * eSolution)
         for i, src in enumerate(source_list):
-            b[:, i] *= - 1./(1j*omega(src.freq))  # freq depends on the source
+            b[:, i] *= - 1./(1j*omega(src.frequency))  # freq depends on the source
             s_m = src.s_m(self.simulation)
-            b[:, i] = b[:, i] + 1./(1j*omega(src.freq)) * s_m
+            b[:, i] = b[:, i] + 1./(1j*omega(src.frequency)) * s_m
         return b
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -469,8 +469,8 @@ class Fields3D_e(FieldsFDEM):
 
         C = self._edgeCurl
         if adjoint:
-            return - 1./(1j*omega(src.freq)) * (C.T * du_dm_v)
-        return - 1./(1j*omega(src.freq)) * (C * du_dm_v)
+            return - 1./(1j*omega(src.frequency)) * (C.T * du_dm_v)
+        return - 1./(1j*omega(src.frequency)) * (C * du_dm_v)
 
     def _bDeriv_m(self, src, v, adjoint=False):
         """
@@ -490,7 +490,7 @@ class Fields3D_e(FieldsFDEM):
     def _bDeriv_src(self, src, v, adjoint=False):
         s_mDeriv = src.s_mDeriv(self.simulation, v, adjoint)
         return (
-            1./(1j * omega(src.freq)) * s_mDeriv +
+            1./(1j * omega(src.frequency)) * s_mDeriv +
             src.bPrimaryDeriv(self.simulation, v, adjoint)
         )
 
@@ -1105,9 +1105,9 @@ class Fields3D_j(FieldsFDEM):
 
         h = (self._edgeCurl.T * (self._MfRho * jSolution))
         for i, src in enumerate(source_list):
-            h[:, i] *= -1./(1j*omega(src.freq))
+            h[:, i] *= -1./(1j*omega(src.frequency))
             s_m = src.s_m(self.simulation)
-            h[:, i] = h[:, i] + 1./(1j*omega(src.freq)) * (s_m)
+            h[:, i] = h[:, i] + 1./(1j*omega(src.frequency)) * (s_m)
         return self._MeMuI * h
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -1125,11 +1125,11 @@ class Fields3D_j(FieldsFDEM):
 
         if adjoint:
             return (
-                -1./(1j*omega(src.freq)) * self._MfRho.T *
+                -1./(1j*omega(src.frequency)) * self._MfRho.T *
                 (self._edgeCurl * (self._MeMuI.T * du_dm_v))
             )
         return (
-            -1./(1j*omega(src.freq)) * self._MeMuI *
+            -1./(1j*omega(src.frequency)) * self._MeMuI *
             (self._edgeCurl.T * (self._MfRho * du_dm_v))
         )
 
@@ -1158,7 +1158,7 @@ class Fields3D_j(FieldsFDEM):
             return src.s_mDeriv(self.simulation, v, adjoint=adjoint)
 
         if not adjoint:
-            hDeriv_m = 1./(1j*omega(src.freq)) * (
+            hDeriv_m = 1./(1j*omega(src.frequency)) * (
                 -1. *  (
                     MeMuI * (C.T * (MfRhoDeriv(jSolution, v, adjoint))) +
                     MeMuIDeriv(C.T * (MfRho * jSolution)) *  v
@@ -1167,7 +1167,7 @@ class Fields3D_j(FieldsFDEM):
             )
 
         elif adjoint:
-            hDeriv_m = 1./(1j*omega(src.freq)) * (
+            hDeriv_m = 1./(1j*omega(src.frequency)) * (
                 (
                     -1. * (
                         MfRhoDeriv(jSolution).T * (C * (MeMuI.T * v)) +
@@ -1253,14 +1253,14 @@ class Fields3D_j(FieldsFDEM):
         """
         if adjoint:
             return (
-                -1./(1j*omega(src.freq)) *
+                -1./(1j*omega(src.frequency)) *
                 self._MfRho.T * (
                     self._edgeCurl * (self._MeI.T * du_dm_v)
                 )
             )
 
         return (
-            -1./(1j*omega(src.freq)) * (
+            -1./(1j*omega(src.frequency)) * (
                 self._MeI * (self._edgeCurl.T * (self._MfRho * du_dm_v))
             )
         )
@@ -1285,7 +1285,7 @@ class Fields3D_j(FieldsFDEM):
         if adjoint:
             v = self._MeI.T * v
             return (
-                1./(1j * omega(src.freq)) *
+                1./(1j * omega(src.frequency)) *
                 (
                     s_mDeriv(v) - self._MfRhoDeriv(
                         jSolution, self._edgeCurl * v, adjoint
@@ -1294,7 +1294,7 @@ class Fields3D_j(FieldsFDEM):
                 src.bPrimaryDeriv(self.simulation, v, adjoint)
             )
         return (
-            1./(1j * omega(src.freq)) *
+            1./(1j * omega(src.frequency)) *
             self._MeI * (
                 s_mDeriv(v) - self._edgeCurl.T *
                 self._MfRhoDeriv(jSolution, v, adjoint)
