@@ -40,7 +40,11 @@ def run(plotIt=True):
             xyz, Ex.real, dataloc=True,
             ax=ax1, contourOpts={"cmap": "viridis"},
             ncontour=5, level=True,
-            levelOpts={'colors': 'k', 'linestyles': 'dashed', 'linewidths': 1}
+            levelOpts={'colors': 'k', 'linestyles': 'dashed', 'linewidths': 1},
+            shade=True,
+            shadeOpts={'alpha':0.3},
+            shade_angle_altitude=10.,
+            shade_azimuth=-90.,
         )
         # Make it as (ndata,2) matrix
         E = np.c_[Ex, Ey]
@@ -48,7 +52,8 @@ def run(plotIt=True):
         cont2, ax2 = Utils.plot2Ddata(
             xyz, E.real, vec=True,
             ax=ax2, contourOpts={"cmap": "viridis"},
-            ncontour=5
+            ncontour=5,
+            shade=True,
         )
         cb1 = plt.colorbar(
             cont1, ax=ax1, orientation="horizontal",
