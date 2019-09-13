@@ -169,7 +169,7 @@ for qq in range(0, 3):
 ax1[3] = Fig.add_axes([0.89, 0.7, 0.01, 0.24])
 norm = mpl.colors.Normalize(vmin=0., vmax=np.max(xi_true))
 cbar14 = mpl.colorbar.ColorbarBase(
-    ax1[3], cmap='gist_heat_r', norm=norm, orientation='vertical'
+    ax1[3], cmap=mpl.cm.gist_heat_r, norm=norm, orientation='vertical'
 )
 cbar14.set_label(
     '$\Delta \chi /$ln$(\lambda_2 / \lambda_1 )$ [SI]',
