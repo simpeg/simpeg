@@ -83,7 +83,6 @@ class SimpleSmoothDeriv(BaseRegularization):
     def __init__(
         self, mesh, orientation='x', **kwargs
     ):
-
         self.orientation = orientation
         assert self.orientation in ['x', 'y', 'z'], (
             "Orientation must be 'x', 'y' or 'z'"
@@ -116,24 +115,54 @@ class SimpleSmoothDeriv(BaseRegularization):
     @property
     def W(self):
         """
-        Weighting matrix that takes the first spatial difference (no
-        length scales considered) in the specified orientation
+        Weighting matrix that takes the first spatial difference
+        with normalized length scales in the specified orientation
         """
-        W = getattr(
+        Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+        W = Utils.sdiag(self.length_scales) * getattr(
             self.regmesh,
             "cellDiff{orientation}Stencil".format(
                 orientation=self.orientation
             )
         )
         if self.cell_weights is not None:
-            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
             W = (
                 Utils.sdiag(
-                    (Ave*self.cell_weights)**0.5
+                    (Ave*(self.cell_weights))**0.5
                 ) * W
             )
+        else:
+            W = (
+                Utils.sdiag(
+                    (Ave*self.regmesh.vol)**0.5
+                ) * W
+            )
+
         return W
 
+    @property
+    def length_scales(self):
+        """
+            Normalized cell based weighting
+
+        """
+        if getattr(self, '_length_scales', None) is None:
+            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+
+            index = 'xyz'.index(self.orientation)
+
+            length_scales = Ave * (
+                self.regmesh.Pac.T*self.regmesh.mesh.h_gridded[:, index]
+            )
+
+            self._length_scales = length_scales.min() / length_scales
+
+        return self._length_scales
+
+    @length_scales.setter
+    def length_scales(self, value):
+        self._length_scales = value
 
 class Simple(BaseComboRegularization):
 

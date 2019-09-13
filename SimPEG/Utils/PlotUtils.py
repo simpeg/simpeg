@@ -8,7 +8,12 @@ def plot2Ddata(
     ax=None, mask=None, level=False, figname=None,
     ncontour=10, dataloc=False, contourOpts={},
     levelOpts={}, scale="linear", clim=None,
-    method='linear'
+    method='linear',
+    shade=False,
+    shade_ncontour=100,
+    shade_azimuth=-45.,
+    shade_angle_altitude=45.,
+    shadeOpts={},
 ):
     """
 
@@ -31,6 +36,13 @@ def plot2Ddata(
         :param dict levelOpts: :meth:`matplotlib.pyplot.contour` options
         :param numpy.ndarray clim: colorbar limits
         :param str method: interpolation method, either 'linear' or 'nearest'
+        :param bool shade: add shading to the plot
+        :param float shade_ncontour: number of :meth:`matplotlib.pyplot.contourf`
+                                contours for the shading
+        :param float shade_azimuth: azimuth for the light source in shading
+        :param float shade_angle_altitude: angle altitude for the light source
+                                in shading
+        :param dict shaeOpts: :meth:`matplotlib.pyplot.contourf` options
 
     """
 
@@ -108,10 +120,11 @@ def plot2Ddata(
 
         cont = ax.contourf(
             X, Y, DATA, levels=levels, vmin=vmin, vmax=vmax,
+            zorder=1,
             **contourOpts
         )
         if level:
-            CS = ax.contour(X, Y, DATA, levels=levels, **levelOpts)
+            CS = ax.contour(X, Y, DATA, levels=levels, zorder=3, **levelOpts)
 
     else:
         # Assume size of data is (N,2)
@@ -165,15 +178,41 @@ def plot2Ddata(
         cont = ax.contourf(
             X, Y, DATA, levels=levels,
             vmin=vmin, vmax=vmax,
+            zorder=1,
             **contourOpts
         )
-        ax.streamplot(X, Y, DATAx, DATAy, color="w")
+        ax.streamplot(X, Y, DATAx, DATAy, zorder=4, color="w")
         if level:
-            CS = ax.contour(X, Y, DATA, levels=levels, **levelOpts)
+            CS = ax.contour(X, Y, DATA, levels=levels, zorder=3, **levelOpts)
+
+    if shade:
+        def hillshade(array, azimuth, angle_altitude):
+            """
+            coded copied from https://www.neonscience.org/create-hillshade-py
+            """
+            azimuth = 360.0 - azimuth
+            x, y = np.gradient(array)
+            slope = np.pi/2. - np.arctan(np.sqrt(x*x + y*y))
+            aspect = np.arctan2(-x, y)
+            azimuthrad = azimuth*np.pi/180.
+            altituderad = angle_altitude*np.pi/180.
+            shaded = np.sin(altituderad)*np.sin(slope) + np.cos(altituderad)*np.cos(slope)*np.cos((azimuthrad - np.pi/2.) - aspect)
+            return 255*(shaded + 1)/2
+
+        defaultshadeOpts = {'cmap':'Greys','alpha':0.35,'antialiased':True,'zorder':2}
+        for key in shadeOpts.keys():
+            defaultshadeOpts[key] = shadeOpts[key]
+
+        ax.contourf(
+            X,Y,
+            hillshade(DATA, shade_azimuth, shade_angle_altitude),
+            shade_ncontour,
+            **defaultshadeOpts
+        )
 
     if dataloc:
         ax.plot(xyz[:, 0], xyz[:, 1], 'k.', ms=2)
-    plt.gca().set_aspect('equal', adjustable='box')
+    ax.set_aspect('equal', adjustable='box')
     if figname:
         plt.axis("off")
         fig.savefig(figname, dpi=200)
