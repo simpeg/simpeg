@@ -450,7 +450,7 @@ class Forward(object):
             compDict['gzz'] = -gxx - gyy
 
         if 'guv' in self.components:
-            compDict['guv'] = 0.5*(gxx - gyy)
+            compDict['guv'] = -0.5*(gxx - gyy)
 
         return np.vstack([NewtG * compDict[key] for key in list(compDict.keys())])
 
