@@ -1561,7 +1561,7 @@ class SparseSmall(BaseSparse):
         if self.cell_weights is not None:
             return Utils.sdiag((self.scale *
                                 self.cell_weights)**0.5) * R
-        return Utils.sdiag((self.scale)**0.5) * R
+        return Utils.sdiag((self.scale*self.regmesh.vol)**0.5) * R
 
     def R(self, f_m):
         # if R is stashed, return that instead
@@ -1677,7 +1677,7 @@ class SparseDeriv(BaseSparse):
                 )
 
             else:
-                W = Utils.sdiag((Ave * (self.scale))**0.5) * R
+                W = Utils.sdiag((Ave * (self.scale*self.regmesh.vol))**0.5) * R
 
 
             dmdx = self.cellDiffStencil * (self.mapping * f_m)
@@ -1771,7 +1771,7 @@ class SparseDeriv(BaseSparse):
                 )
 
             else:
-                W = Utils.sdiag((Ave * self.scale)**0.5) * R
+                W = Utils.sdiag((Ave * self.scale*self.regmesh.vol)**0.5) * R
 
 
             dmdx = self.cellDiffStencil * (self.mapping * f_m)
@@ -1882,7 +1882,7 @@ class SparseDeriv(BaseSparse):
                 ) *
                 R * self.cellDiffStencil
             )
-        return Utils.sdiag((Ave*(self.scale))**0.5) * R * self.cellDiffStencil
+        return Utils.sdiag((Ave*(self.scale*self.regmesh.vol))**0.5) * R * self.cellDiffStencil
 
     @property
     def length_scales(self):
