@@ -35,9 +35,7 @@ setup(
     install_requires=[
         'numpy>=1.7',
         'scipy>=0.13',
-        'cython',
         'pymatsolver>=0.1.1',
-        'ipython',
         'matplotlib',
         'properties>=0.5.2',
         'vectormath>=0.2.0',
