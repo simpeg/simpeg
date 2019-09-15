@@ -4,6 +4,7 @@ import dask.array as da
 import multiprocessing
 import scipy.sparse as sp
 import sys
+import shutil
 
 from .... import props
 from ....data import Data
@@ -13,6 +14,10 @@ from ...base import BaseEMSimulation
 from ..resistivity.fields import FieldsDC, Fields_CC, Fields_N
 from ..resistivity import Problem3D_CC as BaseProblem3D_CC
 from ..resistivity import Problem3D_N as BaseProblem3D_N
+import os
+import dask
+import dask.array as da
+from scipy.sparse import csr_matrix as csr
 # from .survey import Survey
 
 
@@ -38,37 +43,44 @@ class BaseIPSimulation(BaseEMSimulation):
     _f = None
     storeJ = False
     _Jmatrix = None
+    gtgdiag = None
     sign = None
     data_type = 'volt'
     _pred = None
+    Jpath = "./sensitivityip/"
 
     def fields(self, m):
         if self.verbose is True:
             print(">> Compute fields")
 
-        if self._f is None:
-            self._f = self.fieldsPair(self)
-            if self.Ainv is None:
-                A = self.getA()
-                self.Ainv = self.Solver(A, **self.solver_opts)
-            RHS = self.getRHS()
-            u = self.Ainv * RHS
-            Srcs = self.survey.source_list
-            self._f[Srcs, self._solutionType] = u
+        if self.Ainv is not None:
+            self.Ainv.clean()
 
-            # Compute DC voltage
-            if self.data_type == 'apparent_chargeability':
-                if self.verbose is True:
-                    print(">> Data type is apparaent chargeability")
-                for src in self.survey.source_list:
-                    for rx in src.receiver_list:
-                        rx._dc_voltage = rx.eval(src, self.mesh, self._f)
-                        rx.data_type = self.data_type
-                        rx._Ps = {}
+        if self._Jmatrix is not None:
+            self._Jmatrix = None
 
-        self._pred = self.forward(m, f=self._f)
+        # if self._f is None:
+        f = self.fieldsPair(self)
+        A = self.getA()
+        self.Ainv = self.Solver(A, **self.solver_opts)
+        RHS = self.getRHS()
+        Srcs = self.survey.source_list
+        f[Srcs, self._solutionType] = self.Ainv * RHS
 
-        return self._f
+        # Compute DC voltage
+        if self.data_type == 'apparent_chargeability':
+            if self.verbose is True:
+                print(">> Data type is apparaent chargeability")
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
+                    rx._dc_voltage = rx.eval(src, self.mesh, self._f)
+                    rx.data_type = self.data_type
+                    rx._Ps = {}
+
+        self._pred = self.forward(m, f=f)
+        self._f = f
+
+        return f
 
     def dpred(self, m=None, f=None):
         """
@@ -81,6 +93,28 @@ class BaseIPSimulation(BaseEMSimulation):
 
         return self._pred
 
+    def getJtJdiag(self, m, W=None):
+        """
+            Return the diagonal of JtJ
+        """
+
+        if (self.gtgdiag is None):
+
+            # Need to check if multiplying weights makes sense
+            if W is None:
+                self.gtgdiag = da.sum((self.getJ(self.model))**2., 0).compute()
+            else:
+
+                WJ = da.from_delayed(
+                        dask.delayed(csr.dot)(W, self.getJ(self.model)),
+                        shape=self.getJ(self.model).shape,
+                        dtype=float
+                )
+                print('made it here!')
+                self.gtgdiag = da.sum(WJ**2., 0).compute()
+
+        return self.gtgdiag
+
     def getJ(self, m, f=None):
         """
             Generate Full sensitivity matrix
@@ -89,21 +123,58 @@ class BaseIPSimulation(BaseEMSimulation):
 
         if self.verbose:
             print("Calculating J and storing")
-
-        if self._Jmatrix is not None:
-            return self._Jmatrix
         else:
+            if self._Jmatrix is not None:
+                return self._Jmatrix
+            else:
 
-            if f is None:
-                f = self.fields(m)
-            self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
+                if f is None:
+                    f = self.fields(m)
+                # self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
+                if os.path.exists(self.Jpath):
+                    shutil.rmtree(self.Jpath, ignore_errors=True)
 
-            # delete fields after computing sensitivity
-            # del f
-            self._f = []
-            # clean all factorization
-            if self.Ainv is not None:
-                self.Ainv.clean()
+                    # Wait for the system to clear out the directory
+                    while os.path.exists(self.Jpath):
+                        pass
+                # start of IP J
+                # This is for forming full sensitivity matrix
+                self.n_cpu = int(multiprocessing.cpu_count())
+                Jtv = []
+                count = 0
+                for source in self.survey.source_list:
+                    u_source = f[source, self._solutionType].copy()
+                    for rx in source.receiver_list:
+                        P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
+                        ATinvdf_duT = self.Ainv * P.T
+                        dA_dmT = -da.from_delayed(self.getADeriv(
+                            u_source, ATinvdf_duT, adjoint=True),
+                            shape=(self.model.size, rx.nD), dtype=float)
+                        blockName = self.Jpath + "J" + str(count) + ".zarr"
+                        # Number of chunks
+                        nChunks = self.n_cpu
+                        rowChunk = int(np.ceil(rx.nD / nChunks))
+                        # Chunk sizes
+                        colChunk = int(np.ceil(self.model.size / nChunks))
+                        dA_dmT = dA_dmT.rechunk((colChunk, rowChunk))
+                        da.to_zarr(dA_dmT, blockName)
+
+                        Jtv.append(dA_dmT)
+                        count += 1
+
+                self._f = []
+                # clean all factorization
+                if self.Ainv is not None:
+                    self.Ainv.clean()
+                # Stack all the source blocks in one big zarr
+                J = da.hstack(Jtv).T
+                nChunks = self.n_cpu  # Number of chunks
+                rowChunk = int(np.ceil(self.survey.nD/nChunks))# Chunk sizes
+                colChunk = int(np.ceil(m.shape[0]/nChunks))
+                J = J.rechunk((rowChunk, colChunk))
+
+                da.to_zarr(J, self.Jpath + "J.zarr")
+                self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
 
         return self._Jmatrix
 
@@ -184,10 +255,10 @@ class BaseIPSimulation(BaseEMSimulation):
 
         for isrc, src in enumerate(self.survey.source_list):
             u_src = f[src, self._solutionType]
-            if self.storeJ:
-                # TODO: use logging package
-                sys.stdout.write(("\r %d / %d") % (isrc+1, self.survey.nSrc))
-                sys.stdout.flush()
+            # if self.storeJ:
+            #     # TODO: use logging package
+            #     sys.stdout.write(("\r %d / %d") % (isrc+1, self.survey.nSrc))
+            #     sys.stdout.flush()
 
             for rx in src.receiver_list:
                 if v is not None:

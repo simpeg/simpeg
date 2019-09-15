@@ -50,7 +50,6 @@ class BaseDCSimulation(BaseEMSimulation):
         f = self.fieldsPair(self)
         A = self.getA()
 
-
         self.Ainv = self.Solver(A, **self.solver_opts)
         RHS = self.getRHS()
         # AinvRHS = dask.delayed(self.Ainv._solve)(RHS)
