@@ -1213,11 +1213,11 @@ def readUBC_DC2Dpre(fileName):
 
         d.append(temp[-1])
 
-        Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
+        Rx = DC.Rx.Dipole_ky(rx[:, :3], rx[:, 3:])
         srcLists.append(DC.Src.Dipole([Rx], tx[:3], tx[3:]))
 
     # Create survey class
-    survey = DC.SurveyDC.Survey(srcLists)
+    survey = DC.Survey_ky(srcLists)
 
     survey.dobs = np.asarray(d)
 

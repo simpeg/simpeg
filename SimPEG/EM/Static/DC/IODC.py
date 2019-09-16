@@ -686,3 +686,43 @@ class IO(properties.HasProperties):
         plt.tight_layout()
         if figname is not None:
             fig.savefig(figname, dpi=200)
+
+
+    def read_ubc_dc2d_obs_file(self, filename):
+        obsfile = np.genfromtxt(
+            filename, delimiter=' \n',
+            dtype=np.str, comments='!'
+        )
+        n_src = 0
+        n_rxs = []
+        src_info = []
+        abmn = []
+        for obs in obsfile:
+            temp = (np.fromstring(obs, dtype=float, sep=' ').T)
+            if len(temp) == 5:
+                n_src += 1
+                src_info = temp[:4]
+                n_rxs.append(int(temp[-1]))
+            else:
+                abmn.append(np.r_[src_info, temp])
+
+        abmn = np.vstack(abmn)
+        a = np.c_[abmn[:,0], -abmn[:,1]]
+        b = np.c_[abmn[:,2], -abmn[:,3]]
+        m = np.c_[abmn[:,4], -abmn[:,5]]
+        n = np.c_[abmn[:,6], -abmn[:,7]]
+        voltage = abmn[:,8]
+        if np.all(a==b):
+            if np.all (m==n):
+                survey_type = 'pole-pole'
+            else:
+                survey_type = 'pole-dipole'
+        else:
+            if np.all (m==n):
+                survey_type = 'dipole-pole'
+            else:
+                survey_type = 'dipole-dipole'
+        survey = self.from_ambn_locations_to_survey(
+            a, b, m, n, survey_type='pole-dipole', data_dc=voltage
+        )
+        return survey
