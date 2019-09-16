@@ -235,3 +235,4 @@ for qq in range(0, 3):
     ax3[qq].set_ybound(np.min(y), np.max(y))
     titlestr3 = "dBz/dt at t=" + '{:.1e}'.format(times[10*qq]) + " s"
     ax3[qq].set_title(titlestr3, fontsize=font_size+2)
+plt.show()

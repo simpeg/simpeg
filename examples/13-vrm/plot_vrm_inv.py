@@ -301,3 +301,4 @@ cbar34 = mpl.colorbar.ColorbarBase(
     ax3[3], cmap=mpl.cm.magma_r, norm=norm, orientation='vertical', format='%.1e'
 )
 cbar34.set_label('dBz/dt [T/s]', rotation=270, size=font_size, labelpad=15)
+plt.show()
