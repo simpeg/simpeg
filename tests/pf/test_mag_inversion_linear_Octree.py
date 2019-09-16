@@ -3,7 +3,7 @@ import unittest
 from SimPEG import (Directives, Maps,
                     InvProblem, Optimization, DataMisfit,
                     Inversion, Utils, Regularization, Mesh)
-
+from discretize.utils import meshutils
 import SimPEG.PF as PF
 import numpy as np
 from scipy.interpolate import NearestNDInterpolator
@@ -54,76 +54,19 @@ class MagInvLinProblemTest(unittest.TestCase):
         srcField = PF.BaseMag.SrcField([rxLoc], param=H0)
         survey = PF.BaseMag.LinearSurvey(srcField)
 
-        # Get extent of points
-        limx = np.r_[topo[:, 0].max(), topo[:, 0].min()]
-        limy = np.r_[topo[:, 1].max(), topo[:, 1].min()]
-        limz = np.r_[topo[:, 2].max(), topo[:, 2].min()]
+        # self.mesh.finalize()
+        self.mesh = meshutils.mesh_builder_xyz(
+            xyzLoc, h, padding_distance=padDist,
+            mesh_type='TREE',
+        )
 
-        # Get center of the mesh
-        midX = np.mean(limx)
-        midY = np.mean(limy)
-        midZ = np.mean(limz)
+        self.mesh = meshutils.refine_tree_xyz(
+            self.mesh, topo, method='surface',
+            octree_levels=nCpad,
+            octree_levels_padding=nCpad,
+            finalize=True,
+        )
 
-        nCx = int(limx[0]-limx[1]) / h[0]
-        nCy = int(limy[0]-limy[1]) / h[1]
-        nCz = int(limz[0]-limz[1]+int(np.min(np.r_[nCx, nCy])/3)) / h[2]
-        # Figure out full extent required from input
-        extent = np.max(np.r_[nCx * h[0] + padDist[0, :].sum(),
-                              nCy * h[1] + padDist[1, :].sum(),
-                              nCz * h[2] + padDist[2, :].sum()])
-
-        maxLevel = int(np.log2(extent/h[0]))+1
-
-        # Number of cells at the small octree level
-        # For now equal in 3D
-
-        nCx, nCy, nCz = 2**(maxLevel), 2**(maxLevel), 2**(maxLevel)
-        # nCy = 2**(int(np.log2(extent/h[1]))+1)
-        # nCz = 2**(int(np.log2(extent/h[2]))+1)
-
-        # Define the mesh and origin
-        # For now cubic cells
-        self.mesh = Mesh.TreeMesh([np.ones(nCx)*h[0],
-                                  np.ones(nCx)*h[1],
-                                  np.ones(nCx)*h[2]])
-
-        # Set origin
-        self.mesh.x0 = np.r_[
-            -nCx*h[0]/2.+midX, -nCy*h[1]/2.+midY, -nCz*h[2]/2.+midZ
-        ]
-
-        # Refine the mesh around topography
-        # Get extent of points
-        F = NearestNDInterpolator(topo[:, :2], topo[:, 2])
-        zOffset = 0
-        # Cycle through the first 3 octree levels
-        for ii in range(3):
-
-            dx = self.mesh.hx.min()*2**ii
-
-            nCx = int((limx[0]-limx[1]) / dx)
-            nCy = int((limy[0]-limy[1]) / dx)
-
-            # Create a grid at the octree level in xy
-            CCx, CCy = np.meshgrid(
-                np.linspace(limx[1], limx[0], nCx),
-                np.linspace(limy[1], limy[0], nCy)
-            )
-
-            z = F(mkvc(CCx), mkvc(CCy))
-
-            # level means number of layers in current OcTree level
-            for _ in range(int(nCpad[ii])):
-
-                self.mesh.insert_cells(
-                    np.c_[mkvc(CCx), mkvc(CCy), z-zOffset],
-                    np.ones_like(z)*maxLevel-ii,
-                    finalize=False
-                )
-
-                zOffset += dx
-
-        self.mesh.finalize()
         # Define an active cells from topo
         actv = Utils.surface2ind_topo(self.mesh, topo)
         nC = int(actv.sum())
@@ -132,7 +75,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Lets start with a simple block in half-space
         self.model = Utils.ModelBuilder.addBlock(
             self.mesh.gridCC, np.zeros(self.mesh.nC),
-            np.r_[-20, -20, -5], np.r_[20, 20, 30], 0.05
+            np.r_[-20, -20, -15], np.r_[20, 20, 20], 0.05
         )[actv]
 
         # Create active map to go from reduce set to full
@@ -162,12 +105,8 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Create sensitivity weights from our linear forward operator
         rxLoc = survey.srcField.rxList[0].locs
-        wr = np.zeros(prob.G.shape[1])
-        for ii in range(survey.nD):
-            wr += (prob.G[ii, :]/survey.std[ii])**2.
-
-        # wr = (wr/np.max(wr))
-        wr = wr**0.5
+        wr = prob.getJtJdiag(self.model)**0.5
+        wr /= np.max(wr)
 
         # Create a regularization
         reg = Regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
@@ -187,13 +126,14 @@ class MagInvLinProblemTest(unittest.TestCase):
             stepOffBoundsFact=1e-4
         )
 
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e+4)
+        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e+6)
 
         # Here is where the norms are applied
         # Use pick a treshold parameter empirically based on the distribution of
         #  model parameters
         IRLS = Directives.Update_IRLS(
-            f_min_change=1e-3, maxIRLSiter=20, beta_tol=5e-1
+            f_min_change=1e-3, maxIRLSiter=20, beta_tol=1e-1,
+            betaSearch=False
         )
         update_Jacobi = Directives.UpdatePreconditioner()
 
@@ -207,7 +147,7 @@ class MagInvLinProblemTest(unittest.TestCase):
     def test_mag_inverse(self):
 
         # Run the inversion
-        mrec = self.inv.run(self.model)
+        mrec = self.inv.run(np.ones_like(self.model)*1e-4)
 
         residual = np.linalg.norm(mrec-self.model) / np.linalg.norm(self.model)
         # print(residual)
@@ -227,8 +167,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # ax.set_ylim(self.mesh.gridCC[:, 2].min(), self.mesh.gridCC[:, 2].max())
         # plt.show()
 
-
-        self.assertTrue(residual < 0.1)
+        self.assertTrue(residual < 0.5)
         # self.assertTrue(residual < 0.05)
 
 
