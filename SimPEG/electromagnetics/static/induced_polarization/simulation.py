@@ -110,7 +110,6 @@ class BaseIPSimulation(BaseEMSimulation):
                         shape=self.getJ(self.model).shape,
                         dtype=float
                 )
-                print('made it here!')
                 self.gtgdiag = da.sum(WJ**2., 0).compute()
 
         return self.gtgdiag
@@ -186,7 +185,7 @@ class BaseIPSimulation(BaseEMSimulation):
         # When sensitivity matrix J is stored
         if self.storeJ:
             J = self.getJ(m, f=f)
-            Jv = mkvc(np.dot(J, v))
+            Jv = mkvc(da.dot(J, v).compute())
             return self.sign * Jv
 
         else:
@@ -226,7 +225,7 @@ class BaseIPSimulation(BaseEMSimulation):
         # When sensitivity matrix J is stored
         if self.storeJ:
             J = self.getJ(m, f=f)
-            Jtv = mkvc(np.dot(J.T, v))
+            Jtv = mkvc(da.dot(J.T, v).compute())
             return self.sign * Jtv
 
         else:
