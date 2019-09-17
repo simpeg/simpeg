@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 import properties
@@ -627,34 +628,38 @@ class IO(properties.HasProperties):
                 val = self.apparent_resistivity[inds]
             else:
                 val = data.copy()[inds]
-            label = "Apparent Res. ($\Omega$m)"
+            label_tmp = "Apparent Res. ($\Omega$m)"
         elif data_type == "volt":
             if data is None:
                 val = self.voltages[inds]
             else:
                 val = data.copy()[inds]
-            label = "Voltage (V)"
+            label_tmp = "Voltage (V)"
         elif data_type == "apparent_conductivity":
             if data is None:
                 val = self.apparent_conductivity[inds]
             else:
                 val = data.copy()[inds]
-            label = "Apparent Cond. (S/m)"
+            label_tmp = "Apparent Cond. (S/m)"
         elif data_type == "apparent_chargeability":
             if data is not None:
                 val = data.copy()[inds]
             else:
                 val = self.apparent_chargeability.copy()[inds] * 1e3
-            label = "Apparent Charg. (mV/V)"
+            label_tmp = "Apparent Charg. (mV/V)"
         elif data_type == "volt_ip":
             if data is not None:
                 val = data.copy()[inds]
             else:
                 val = self.voltages_ip.copy()[inds] * 1e3
-            label = "Secondary voltage. (mV)"
+            label_tmp = "Secondary voltage. (mV)"
         else:
             print(data_type)
             raise NotImplementedError()
+
+        if label is None:
+            label = label_tmp
+
         if scale == "log":
             fmt = "10$^{%.1f}$"
         elif scale == "linear":
@@ -726,3 +731,59 @@ class IO(properties.HasProperties):
             a, b, m, n, survey_type='pole-dipole', data_dc=voltage
         )
         return survey
+
+    def write_to_csv(self, fname, dobs, uncertainty=None):
+        if uncertainty is None:
+            uncertainty = np.ones(dobs.size) * np.nan
+        data = np.c_[
+            self.a_locations,
+            self.b_locations,
+            self.m_locations,
+            self.n_locations,
+            dobs,
+            uncertainty
+        ]
+        df = pd.DataFrame(data=data, columns=["Ax", "Az", "Bx", "Bz", "Mx", "Mz", "Nx", "Nz", 'Voltage', 'Uncertainty'])
+        df.to_csv(fname)
+
+    def read_dc_data_csv(self, fname, dim=2):
+        df = pd.read_csv(fname)
+        if dim == 2:
+            a_locations = df[["Ax", "Az"]].values
+            b_locations = df[["Bx", "Bz"]].values
+            m_locations = df[["Mx", "Mz"]].values
+            n_locations = df[["Nx", "Nz"]].values
+            dobs = df["Voltage"].values
+            uncertainty = df["Uncertainty"].values
+
+            if np.all(a_locations == b_locations):
+                src_type = 'pole-'
+            else:
+                src_type = 'dipole-'
+
+            if np.all(m_locations == n_locations):
+                rx_type = 'pole'
+            else:
+                rx_type = 'dipole'
+            survey_type = src_type + rx_type
+            survey = self.from_ambn_locations_to_survey(
+                a_locations, b_locations,
+                m_locations, n_locations,
+                survey_type,
+                data_dc=dobs,
+                data_dc_type='volt'
+            )
+            survey.std = uncertainty[self.sort_inds]
+            survey.dobs = dobs[self.sort_inds]
+        else:
+            raise NotImplementedError()
+        return survey
+
+    def read_topo_csv(self, fname, dim=2):
+        if dim == 2:
+            df = pd.read_csv(fname)
+            topo = df[['X', 'Z']].values
+        return topo
+
+
+
