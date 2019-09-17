@@ -43,6 +43,7 @@ setup(
         'vectormath>=0.2.0',
         'discretize>=0.4.0',
         'geoana>=0.0.4'
+        'pandas'
     ],
     author="Rowan Cockett",
     author_email="rowanc1@gmail.com",
