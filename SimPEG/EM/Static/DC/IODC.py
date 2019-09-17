@@ -533,7 +533,8 @@ class IO(properties.HasProperties):
             # 3 cells each for buffer
             corexlength = lineLength + dx * 6
             if corezlength is None:
-                corezlength = self.grids[:, z_ind].max()
+                dz_topo = locs[:,1].max()-locs[:,1].min()
+                corezlength = self.grids[:, z_ind].max() + dz_topo
 
             ncx = np.round(corexlength/dx)
             ncz = np.round(corezlength/dz)
@@ -717,6 +718,7 @@ class IO(properties.HasProperties):
         m = np.c_[abmn[:,4], -abmn[:,5]]
         n = np.c_[abmn[:,6], -abmn[:,7]]
         voltage = abmn[:,8]
+        uncertainty = abmn[:,9]
         if np.all(a==b):
             if np.all (m==n):
                 survey_type = 'pole-pole'
@@ -730,6 +732,8 @@ class IO(properties.HasProperties):
         survey = self.from_ambn_locations_to_survey(
             a, b, m, n, survey_type='pole-dipole', data_dc=voltage
         )
+        survey.dobs = voltage[self.sort_inds]
+        survey.std = voltage[self.sort_inds]
         return survey
 
     def write_to_csv(self, fname, dobs, uncertainty=None):
