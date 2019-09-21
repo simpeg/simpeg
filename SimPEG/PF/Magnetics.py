@@ -496,16 +496,23 @@ class Forward(object):
 
                 # Auto rechunk
                 # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
-                stack = stack.rechunk({0: -1, 1: 'auto'}) # Auto rechunk by cols. Use {0: 'auto', 1: -1} to auto chunk by rows
-
+                if self.forwardOnly:
+                    # Autochunking by rows is faster and avoids memory leak for forward models
+                    stack = stack.rechunk({0: 'auto', 1: -1}) 
+                else:
+                    # Autochunking by columns is faster for Inversions
+                    stack = stack.rechunk({0: -1, 1: 'auto'}) 
+                
                 print('DASK: ')
                 print('Tile size (nD, nC): ', stack.shape)
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
-                print('Number of chunks: ', len(stack.chunks[0]), ' x ', len(stack.chunks[1]), ' = ', len(stack.chunks[0]) * len(stack.chunks[1]))
+                print('Number of chunks: %.0f x %.0f = %.0f' % 
+                    (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
                 print("Target chunk size: ", dask.config.get('array.chunk-size'))
-                print('Max chunk size (GB): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9)
-                print('Max RAM (GB x CPU): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu)
-                print('Tile size (GB): ', stack.shape[0] * stack.shape[1] * 8*1e-9)
+                print('Max chunk size (GB): %.6f' % (max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9))
+                print('Max RAM (GB x %.0f CPU): %.6f' % 
+                    (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
+                print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
 
                 if self.forwardOnly:
 
