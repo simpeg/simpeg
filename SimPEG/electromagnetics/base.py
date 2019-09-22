@@ -503,7 +503,7 @@ class BaseEMSrc(BaseSrc):
     Base class for an EM sources
     """
 
-    integrate = properties.Bool("integrate the source term?", default=False)
+    integrate = properties.Boolean("integrate the source term?", default=False)
 
     def eval(self, simulation):
         """
