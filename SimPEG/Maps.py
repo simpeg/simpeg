@@ -23,7 +23,6 @@ from .Utils import setKwargs, Identity, Zero, sdiag, mkvc, matutils
 from .Tests import checkDerivative
 from . import Utils
 
-
 class IdentityMap(properties.HasProperties):
     """
         SimPEG Map

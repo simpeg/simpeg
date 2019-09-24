@@ -611,7 +611,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         self.n_components = GMref.n_components
         self.GMref = GMref
         self.covariance_type = GMref.covariance_type
-        self.kappa = kappa * np.ones(self.n_components)
+        self.kappa = kappa * np.ones((self.n_components,GMref.means_.shape[1]))
         self.nu = nu * np.ones(self.n_components)
         self.alphadir = alphadir * np.ones(self.n_components)
         self.prior_type = prior_type

@@ -2022,6 +2022,9 @@ class JointScalingSchedule(InversionDirective):
             self.DMtarget = self.inversion.directiveList.dList[
                 self.targetclass].DMtarget
 
+        if self.verbose:
+            print("initial data misfit scale: ", self.dmisfit.multipliers)
+
     def endIter(self):
 
         self.dmlist = self.inversion.directiveList.dList[
@@ -2041,13 +2044,13 @@ class JointScalingSchedule(InversionDirective):
                     # Assume only 2 data misfit
                     indx = self.dmlist > self.DMtarget
                     if np.any(indx):
+                        multipliers = self.rateWarming * (self.DMtarget[~indx] / self.dmlist[~indx])[0]
                         self.dmisfit.multipliers[np.where(
-                            indx)[0][0]] *= self.rateWarming * (self.DMtarget[~indx] / self.dmlist[~indx])[0]
-                        self.dmisfit.multipliers = self.dmisfit.multipliers / \
-                            np.sum(self.dmisfit.multipliers)
+                            indx)[0][0]] *= multipliers
+                        self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
 
                         if self.verbose:
-                            print('update scaling for data misfit')
+                            print('update scaling for data misfit by ', multipliers)
                             print('new scale:', self.dmisfit.multipliers)
 
 
@@ -2601,7 +2604,11 @@ class UpdateSensitivityWeights(InversionDirective):
         """
 
         for reg in self.reg.objfcts:
-            reg.cell_weights = reg.mapping * (self.wr)
+            if getattr(reg, objfcts, None) is not None:
+                for obj in reg.objfcts:
+                    obj.cell_weights = obj.mapping * (self.wr)
+            else:
+                reg.cell_weights = reg.mapping * (self.wr)
 
     def updateOpt(self):
         """
