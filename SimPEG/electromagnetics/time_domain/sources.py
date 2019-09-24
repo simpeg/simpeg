@@ -597,7 +597,6 @@ class RawVec_Grounded(BaseTDEMSrc):
 
     def __init__(self, receiver_list=None, s_e=None, **kwargs):
         self.integrate = False
-        kwargs.pop("integrate", None)
         kwargs.pop("srcType", None)
         super(RawVec_Grounded, self).__init__(
             receiver_list, srcType="galvanic", **kwargs
