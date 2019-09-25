@@ -964,10 +964,11 @@ class Update_IRLS(InversionDirective):
                 print("Calculated eps_p %e" % reg.eps_p)
             if getattr(reg, 'eps_q', None) is None:
 
-                reg.eps_q = np.percentile(
-                                np.abs(reg.objfcts[1].f_m
-                                ), self.prctile
-                            )
+                reg.eps_q = reg.eps_p
+                # reg.eps_q = np.percentile(
+                #                 np.abs(reg.objfcts[1].f_m
+                #                 ), self.prctile
+                #             )
                 print("Calculated eps_q %e" % reg.eps_q)
 
         # Re-assign the norms supplied by user l2 -> lp
