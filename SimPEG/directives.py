@@ -106,7 +106,7 @@ class InversionDirective(properties.HasProperties):
            Assuming that dmisfit is always a ComboObjectiveFunction,
            return a list of problems for each dmisfit [prob1, prob2, ...]
         """
-        return [objfcts.prob for objfcts in self.dmisfit.objfcts]
+        return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
 
     def initialize(self):
         pass
@@ -448,7 +448,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
         self.f = results[:, 7]
 
-        self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
+        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
@@ -465,7 +465,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         plot_smooth=False
     ):
 
-        self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
+        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
@@ -529,7 +529,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
     def plot_tikhonov_curves(self, fname=None, dpi=200):
 
-        self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
+        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
@@ -785,7 +785,6 @@ class Update_IRLS(InversionDirective):
             if self.fix_Jmatrix:
                 print(">> Fix Jmatrix")
                 self.invProb.dmisfit.prob.fix_Jmatrix = True
-
             # Check for maximum number of IRLS cycles
             if self.IRLSiter == self.maxIRLSiter:
                 if not self.silent:

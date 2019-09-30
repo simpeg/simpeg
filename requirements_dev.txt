@@ -12,3 +12,6 @@ wheel
 pytest
 jupyter
 sphinxcontrib-napoleon
+dask
+toolz
+zarr

@@ -18,7 +18,7 @@ def from_dc_to_ip_survey(dc_survey, dim="2.5D"):
                 elif isinstance(rx, receiver.Dipole_ky):
                     rx_ip = receivers.Dipole(rx.locs[0], rx.locs[1])
                 else:
-                    print(rx)
+                    # print(rx)
                     raise NotImplementedError()
                 rxList_ip.append(rx_ip)
 
@@ -31,7 +31,7 @@ def from_dc_to_ip_survey(dc_survey, dim="2.5D"):
                     rxList_ip, src.loc[0], src.loc[1]
                 )
             else:
-                print(src)
+                # print(src)
                 raise NotImplementedError()
             srcList_ip.append(src_ip)
 

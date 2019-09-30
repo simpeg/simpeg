@@ -4,7 +4,9 @@ from scipy.constants import epsilon_0
 from ....fields import Fields
 from ....utils import Identity, Zero
 
-
+import dask
+import dask.array as da
+from scipy.sparse import csr_matrix as csr
 
 class FieldsDC(Fields):
     knownFields = {}
@@ -110,7 +112,7 @@ class Fields_CC(FieldsDC):
         return phiSolution
 
     def _phiDeriv_u(self, src, v, adjoint=False):
-        return Identity()*v
+        return v
 
     def _phiDeriv_m(self, src, v, adjoint=False):
         return Zero()
