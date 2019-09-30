@@ -1961,7 +1961,7 @@ class PetroTargetMisfit(InversionDirective):
 class ScalingEstimate_ByEig(InversionDirective):
     """BetaEstimate"""
 
-    Chi0 = None       #: The initial Beta (regularization parameter)
+    Chi0 = 1       #: The initial Beta (regularization parameter)
     Chi0_ratio = 1  #: estimateBeta0 is used with this ratio
     ninit = 1
     verbose = False
@@ -1977,21 +1977,25 @@ class ScalingEstimate_ByEig(InversionDirective):
         if len(self.dmisfit.objfcts) == 1:
             raise Exception('This Directives only applies ot joint inversion')
 
+        ndm = len(self.dmisfit.objfcts)
+        self.Chi0 = self.Chi0 *np.ones(ndm)
+
         m = self.invProb.model
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
-        ratio = []
+        ratio = np.zeros((self.ninit,ndm-1))
         for i in range(self.ninit):
             x0 = np.random.rand(*m.shape)
-            t, b = 0, 0
-            t = x0.dot(self.dmisfit.objfcts[0].deriv2(m, x0, f=f[0]))
-            b = x0.dot(self.dmisfit.objfcts[1].deriv2(m, x0, f=f[1]))
-            ratio.append(t / b)
+            t = np.zeros(ndm)
+
+            for j in range(ndm):
+                t[j] = x0.dot(self.dmisfit.objfcts[j].deriv2(m, x0, f=f[0]))
+
+            ratio[i] = t[0]/t[1:]
 
         self.ratio = ratio
-        self.Chi0 = self.Chi0_ratio * np.median(ratio)
-        self.dmisfit.multipliers[0] = 1.
-        self.dmisfit.multipliers[1] = self.Chi0
+        self.Chi0[1:] = self.Chi0[1:] * np.median(ratio, axis=0)
+        self.dmisfit.multipliers = self.Chi0
         self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
 
         if self.verbose:
@@ -2044,9 +2048,10 @@ class JointScalingSchedule(InversionDirective):
                     # Assume only 2 data misfit
                     indx = self.dmlist > self.DMtarget
                     if np.any(indx):
-                        multipliers = self.rateWarming * (self.DMtarget[~indx] / self.dmlist[~indx])[0]
-                        self.dmisfit.multipliers[np.where(
-                            indx)[0][0]] *= multipliers
+                        multipliers = self.rateWarming * np.median(
+                            self.DMtarget[~indx] / self.dmlist[~indx]
+                        )
+                        self.dmisfit.multipliers[indx] *= multipliers
                         self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
 
                         if self.verbose:
@@ -2237,7 +2242,7 @@ class PetroBetaReWeighting(InversionDirective):
                     ratio = 1.
                     indx = self.dmlist > (1. + self.tolerance) * self.DMtarget
                     if np.any(indx) and self.ratio_in_cooling:
-                        ratio = np.max(
+                        ratio = np.median(
                             [self.dmlist[indx] / self.DMtarget[indx]])
                     self.invProb.beta /= (self.rateCooling * ratio)
                     #self.petroregularizer.alpha_s /= (self.rateCooling * ratio)
@@ -2251,7 +2256,7 @@ class PetroBetaReWeighting(InversionDirective):
 
                 if np.all([self.petroregularizer.alpha_s < self.alphasmax]):
 
-                    ratio = np.min(self.DMtarget / self.dmlist)
+                    ratio = np.median(self.DMtarget / self.dmlist)
                     #self.invProb.beta = self.rateWarming * self.invProb.beta * ratio
                     self.petroregularizer.alpha_s *= self.rateWarming * ratio
 
@@ -2344,7 +2349,7 @@ class PetroBetaReWeighting(InversionDirective):
                     ratio = 1.
                     indx = self.dmlist > (1. + self.tolerance) * self.DMtarget
                     if np.any(indx) and self.ratio_in_cooling:
-                        ratio = np.max(
+                        ratio = np.median(
                             [self.dmlist[indx] / self.DMtarget[indx]])
                     self.invProb.beta /= (self.rateCooling * ratio)
                     # self.petroregularizer.alpha_s /= (self.rateCooling * ratio)
@@ -2360,6 +2365,7 @@ class AddMrefInSmooth(InversionDirective):
 
     # Chi factor for Data Misfit
     chifact = 1.
+    tolerance_phid = 0.
     phi_d_target = None
     wait_till_stable = False
     tolerance = 0.
@@ -2469,6 +2475,9 @@ class AddMrefInSmooth(InversionDirective):
 
     def endIter(self):
         self.DM = self.inversion.directiveList.dList[self.targetclass].DM
+        self.dmlist = self.inversion.directiveList.dList[
+            self.targetclass].dmlist
+
         self.membership = self.petroregularizer.membership(
             self.petroregularizer.mref)
 
@@ -2484,7 +2493,7 @@ class AddMrefInSmooth(InversionDirective):
                 ),
                 ' places'
             )
-        if self.DM and (same_mref or not self.wait_till_stable or percent_diff<=self.tolerance):
+        if (self.DM or np.all(self.dmlist<(1+self.tolerance_phid)*self.DMtarget)) and (same_mref or not self.wait_till_stable or percent_diff<=self.tolerance):
             self.invProb.reg.mrefInSmooth = True
             self.petroregularizer.mrefInSmooth = True
 
@@ -2604,11 +2613,10 @@ class UpdateSensitivityWeights(InversionDirective):
         """
 
         for reg in self.reg.objfcts:
-            if getattr(reg, objfcts, None) is not None:
+            reg.cell_weights = reg.mapping * (self.wr)
+            if getattr(reg, "objfcts", None) is not None:
                 for obj in reg.objfcts:
                     obj.cell_weights = obj.mapping * (self.wr)
-            else:
-                reg.cell_weights = reg.mapping * (self.wr)
 
     def updateOpt(self):
         """
