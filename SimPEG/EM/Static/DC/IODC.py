@@ -693,32 +693,50 @@ class IO(properties.HasProperties):
         if figname is not None:
             fig.savefig(figname, dpi=200)
 
-
-    def read_ubc_dc2d_obs_file(self, filename):
+    def read_ubc_dc2d_obs_file(self, filename, input_type='simple', toponame=None):
         obsfile = np.genfromtxt(
             filename, delimiter=' \n',
             dtype=np.str, comments='!'
-        )
-        n_src = 0
-        n_rxs = []
-        src_info = []
-        abmn = []
-        for obs in obsfile:
-            temp = (np.fromstring(obs, dtype=float, sep=' ').T)
-            if len(temp) == 5:
-                n_src += 1
-                src_info = temp[:4]
-                n_rxs.append(int(temp[-1]))
-            else:
-                abmn.append(np.r_[src_info, temp])
+        )    
+        if input_type == "general":
+            n_src = 0
+            n_rxs = []
+            src_info = []
+            abmn = []        
+            for obs in obsfile:
+                temp = (np.fromstring(obs, dtype=float, sep=' ').T)
+                if len(temp) == 5:
+                    n_src += 1
+                    src_info = temp[:4]
+                    n_rxs.append(int(temp[-1]))
+                else:
+                    abmn.append(np.r_[src_info, temp])
 
-        abmn = np.vstack(abmn)
-        a = np.c_[abmn[:,0], -abmn[:,1]]
-        b = np.c_[abmn[:,2], -abmn[:,3]]
-        m = np.c_[abmn[:,4], -abmn[:,5]]
-        n = np.c_[abmn[:,6], -abmn[:,7]]
-        voltage = abmn[:,8]
-        uncertainty = abmn[:,9]
+            abmn = np.vstack(abmn)
+            a = np.c_[abmn[:,0], -abmn[:,1]]
+            b = np.c_[abmn[:,2], -abmn[:,3]]
+            m = np.c_[abmn[:,4], -abmn[:,5]]
+            n = np.c_[abmn[:,6], -abmn[:,7]]
+            voltage = abmn[:,8]
+            uncertainty = abmn[:,9]
+        
+        elif input_type == "simple":
+            if toponame is not None:
+                tmp_topo = np.loadtxt(toponame)
+                n_topo = tmp_topo[0, 0]
+                z_ref = tmp_topo[0, 1]
+                topo = tmp_topo[1:,:]
+                if topo.shape[0] != n_topo:
+                    print (">> # of points for the topography is not {0}, but {0}".format(n_topo, topo.shape[0]))            
+            tmp = np.loadtxt(filename, comments='!').astype(float)
+            e = np.zeros(tmp.shape[0], dtype=float)
+            a = np.c_[tmp[:,0], e]
+            b = np.c_[tmp[:,1], e]
+            m = np.c_[tmp[:,2], e]
+            n = np.c_[tmp[:,3], e]
+            voltage = tmp[:, 4]
+            uncertainty = tmp[:, 5]        
+
         if np.all(a==b):
             if np.all (m==n):
                 survey_type = 'pole-pole'
@@ -729,11 +747,13 @@ class IO(properties.HasProperties):
                 survey_type = 'dipole-pole'
             else:
                 survey_type = 'dipole-dipole'
+        
         survey = self.from_ambn_locations_to_survey(
-            a, b, m, n, survey_type='pole-dipole', data_dc=voltage
+            a, b, m, n, survey_type=survey_type, data_dc=voltage
         )
         survey.dobs = voltage[self.sort_inds]
         survey.std = voltage[self.sort_inds]
+        survey.topo = topo
         return survey
 
     def write_to_csv(self, fname, dobs, uncertainty=None):
