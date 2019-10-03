@@ -12,6 +12,7 @@ from .matutils import (
 from .codeutils import (
     memProfileWrapper, hook, setKwargs,
     printTitles, printLine, checkStoppers, printStoppers,
+    printDone,
     callHooks, dependentProperty,
     asArray_N_x_Dim, requires
 )

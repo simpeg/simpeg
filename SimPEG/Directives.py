@@ -281,7 +281,12 @@ class TargetMisfit(InversionDirective):
     def endIter(self):
         if self.invProb.phi_d < self.target:
             self.opt.stopNextIteration = True
+            self.print_final_misfit()
+            # print (("   >> Target misfit: %.1f (# of data) is achieved") % (self.target * self.invProb.opt.factor))
 
+    def print_final_misfit(self):
+        if self.opt.print_type == "ubc":
+            self.opt.print_target = (">> Target misfit: %.1f (# of data) is achieved") % (self.target * self.invProb.opt.factor)
 
 class SaveEveryIteration(InversionDirective):
     """SaveEveryIteration

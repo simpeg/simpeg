@@ -183,6 +183,33 @@ class BaseInvProblem(Props.BaseSimPEG):
         self.dpred = self.get_dpred(m, f=f)
 
         phi_m = self.reg(m)
+        
+        # for reg in self.reg.objfcts:
+        if self.opt.print_type == 'ubc':
+            self.phi_s = 0.
+            self.phi_x = 0.
+            self.phi_y = 0.
+            self.phi_z = 0.
+
+            self.phi_s += (
+                self.reg.objfcts[0](self.model) * self.reg.alpha_s
+            )
+            self.phi_x += (
+                self.reg.objfcts[1](self.model) * self.reg.alpha_x
+            )
+
+            if self.reg.regmesh.dim == 2:
+                self.phi_y += (
+                    self.reg.objfcts[2](self.model) * self.reg.alpha_y
+                )
+            elif self.reg.regmesh.dim == 3:
+                self.phi_y += (
+                    self.reg.objfcts[2](self.model) * self.reg.alpha_y
+                )
+                self.phi_z += (
+                    self.reg.objfcts[3](self.model) * self.reg.alpha_z
+                )
+
 
         self.phi_d, self.phi_d_last = phi_d, self.phi_d
         self.phi_m, self.phi_m_last = phi_m, self.phi_m

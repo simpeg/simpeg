@@ -155,14 +155,29 @@ class IterationPrinters(object):
         "format":   "%1.2e"
     }
     phi_d = {
-        "title": "phi_d", "value": lambda M: M.parent.phi_d, "width": 10,
+        "title": "phi_d", "value": lambda M: M.parent.phi_d*M.parent.opt.factor, "width": 10,
         "format":   "%1.2e"
     }
     phi_m = {
-        "title": "phi_m", "value": lambda M: M.parent.phi_m, "width": 10,
+        "title": "phi_m", "value": lambda M: M.parent.phi_m*M.parent.opt.factor, "width": 10,
         "format":   "%1.2e"
     }
-
+    phi_s = {
+        "title": "phi_s", "value": lambda M: M.parent.phi_s*M.parent.opt.factor, "width": 10,
+        "format":   "%1.2e"
+    }
+    phi_x = {
+        "title": "phi_x", "value": lambda M: M.parent.phi_x*M.parent.opt.factor, "width": 10,
+        "format":   "%1.2e"
+    }        
+    phi_y = {
+        "title": "phi_y", "value": lambda M: M.parent.phi_y*M.parent.opt.factor, "width": 10,
+        "format":   "%1.2e"
+    }
+    phi_z = {
+        "title": "phi_z", "value": lambda M: M.parent.phi_z*M.parent.opt.factor, "width": 10,
+        "format":   "%1.2e"
+    }    
 
 class Minimize(object):
     """
@@ -189,27 +204,45 @@ class Minimize(object):
     comment = ''  #: Used by some functions to indicate what is going on in the algorithm
     counter = None  #: Set this to a SimPEG.Utils.Counter() if you want to count things
     parent = None  #: This is the parent of the optimization routine.
+    print_type = None
+    factor = 1.
 
     def __init__(self, **kwargs):
-        self.stoppers = [
-            StoppingCriteria.tolerance_f, StoppingCriteria.moving_x,
-            StoppingCriteria.tolerance_g, StoppingCriteria.norm_g,
-            StoppingCriteria.iteration
-        ]
+
+        Utils.setKwargs(self, **kwargs)
+
         self.stoppersLS = [
             StoppingCriteria.armijoGoldstein, StoppingCriteria.iterationLS
         ]
 
-        self.printers = [
-            IterationPrinters.iteration, IterationPrinters.f,
-            IterationPrinters.norm_g, IterationPrinters.totalLS
-        ]
+        if self.print_type == 'ubc':
+            self.factor = 2.
+            self.stoppers = [
+                StoppingCriteria.iteration
+            ]
+            self.printers = [
+                IterationPrinters.iteration, 
+                IterationPrinters.phi_s, 
+                IterationPrinters.phi_x,             
+                IterationPrinters.phi_y, 
+                IterationPrinters.phi_z, 
+                IterationPrinters.totalLS
+            ]       
+        else:
+            self.stoppers = [
+                StoppingCriteria.tolerance_f, StoppingCriteria.moving_x,
+                StoppingCriteria.tolerance_g, StoppingCriteria.norm_g,
+                StoppingCriteria.iteration
+            ]
+            self.printers = [
+                IterationPrinters.iteration, IterationPrinters.f,
+                IterationPrinters.norm_g, IterationPrinters.totalLS
+            ]            
         self.printersLS = [
             IterationPrinters.iterationLS, IterationPrinters.LS_ft,
             IterationPrinters.LS_t, IterationPrinters.LS_armijoGoldstein
         ]
 
-        Utils.setKwargs(self, **kwargs)
 
     @property
     def callback(self):
@@ -274,7 +307,8 @@ class Minimize(object):
         self.evalFunction = evalFunction
         self.startup(x0)
         self.printInit()
-        print('x0 has any nan: {:b}'.format(np.any(np.isnan(x0))))
+        if self.print_type != 'ubc':
+            print('x0 has any nan: {:b}'.format(np.any(np.isnan(x0))))
         while True:
             self.doStartIteration()
             self.f, self.g, self.H = evalFunction(
@@ -383,7 +417,21 @@ class Minimize(object):
             ('----------------', ' End Linesearch ')
         )
         stoppers = self.stoppers if not inLS else self.stoppersLS
-        Utils.printStoppers(self, stoppers, pad='', stop=stop, done=done)
+        if self.print_type == "ubc":
+            try:
+                Utils.printLine(
+                    self, self.printers if not inLS else self.printersLS, pad=pad
+                )        
+                Utils.printDone(
+                    self, self.printers, pad=pad,
+                )                                            
+                print(self.print_target)                       
+            except:
+                Utils.printDone(
+                    self, self.printers, pad=pad,
+                )                                            
+        else:
+            Utils.printStoppers(self, stoppers, pad='', stop=stop, done=done)
 
 
     @Utils.callHooks('finish')
