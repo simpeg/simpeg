@@ -16,6 +16,7 @@ import os
 from scipy.sparse import csr_matrix as csr
 from scipy.sparse import linalg
 from pymatsolver import BicgJacobi
+from pyMKL import mkl_set_num_threads
 
 class BaseDCSimulation(BaseEMSimulation):
     """
@@ -36,6 +37,7 @@ class BaseDCSimulation(BaseEMSimulation):
     Ainv = None
     _Jmatrix = None
     gtgdiag = None
+    n_cpu = 1
 
     def fields(self, m=None):
         if m is not None:
@@ -79,7 +81,72 @@ class BaseDCSimulation(BaseEMSimulation):
 
         return self.gtgdiag
 
+    @dask.delayed(pure=True)
+    def AinvXvec(self, v, num_cores=1):
+        mkl_set_num_threads(num_cores)
+        A = self.getA()
+        Ainv = self.Solver(A, **self.solver_opts)
+        e_s = Ainv * v
+        # Ainv.clean()
+        return e_s
+
     def getJ(self, m, f=None):
+        """
+            Generate Full sensitivity matrix
+        """
+
+        if self._Jmatrix is not None:
+            return self._Jmatrix
+        else:
+
+            self.model = m
+            if f is None:
+                f = self.fields(m)
+
+        if self.verbose:
+            print("Calculating J and storing")
+
+        Jtv = []
+        count = 0
+        for source in self.survey.source_list:
+            u_source = f[source, self._solutionType].copy()
+            for rx in source.receiver_list:
+                # wrt f, need possibility wrt m
+                PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+
+                df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
+                                    None)
+                df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
+
+                # Compute block of receivers
+                # ATinvdf_duT = self.Ainv * df_duT
+                ATinvdf_duT = self.AinvXvec(df_duT, num_cores=self.n_cpu)
+
+                # if len(ATinvdf_duT.shape) == 1:
+                #     ATinvdf_duT = np.c_[ATinvdf_duT]
+
+                dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
+
+                dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
+
+                du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(dRHS_dmT, shape=(self.model.size, rx.nD), dtype=float)
+
+                if not isinstance(df_dmT, Zero):
+                    du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, rx.nD), dtype=float)
+
+                Jtv.append(du_dmT)
+                count += 1
+
+        # clean all factorization
+        if self.Ainv is not None:
+            self.Ainv.clean()
+        # Stack all the source blocks in one big zarr
+        J = da.hstack(Jtv).T
+        self._Jmatrix = J.compute()
+
+        return self._Jmatrix
+
+    def getJ2(self, m, f=None):
         """
             Generate Full sensitivity matrix
         """
