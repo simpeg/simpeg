@@ -23,7 +23,7 @@ class BaseDCSimulation(BaseEMSimulation):
     Base DC Problem
     """
     Jpath = "./sensitivity/"
-    n_cpu = None
+    # n_cpu = None
     maxRAM = 2
 
     survey = properties.Instance(
@@ -86,11 +86,11 @@ class BaseDCSimulation(BaseEMSimulation):
         mkl_set_num_threads(num_cores)
         A = self.getA()
         Ainv = self.Solver(A, **self.solver_opts)
-        e_s = Ainv * v
-        # Ainv.clean()
-        return e_s
+        _ainv_v = Ainv * v
+        Ainv.clean()
+        return _ainv_v
 
-    def getJ(self, m, f=None):
+    def getJ2(self, m, f=None):
         """
             Generate Full sensitivity matrix
         """
@@ -108,6 +108,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
         Jtv = []
         count = 0
+        print('J2')
         for source in self.survey.source_list:
             u_source = f[source, self._solutionType].copy()
             for rx in source.receiver_list:
@@ -119,11 +120,7 @@ class BaseDCSimulation(BaseEMSimulation):
                 df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
 
                 # Compute block of receivers
-                # ATinvdf_duT = self.Ainv * df_duT
-                ATinvdf_duT = self.AinvXvec(df_duT, num_cores=self.n_cpu)
-
-                # if len(ATinvdf_duT.shape) == 1:
-                #     ATinvdf_duT = np.c_[ATinvdf_duT]
+                ATinvdf_duT = da.from_delayed(self.AinvXvec(df_duT, num_cores=self.n_cpu), shape=(self.model.size, rx.nD), dtype=float)
 
                 dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
 
@@ -140,13 +137,13 @@ class BaseDCSimulation(BaseEMSimulation):
         # clean all factorization
         if self.Ainv is not None:
             self.Ainv.clean()
-        # Stack all the source blocks in one big zarr
+        # Stack all the sources
         J = da.hstack(Jtv).T
-        self._Jmatrix = J.compute()
+        self._Jmatrix = J
 
         return self._Jmatrix
 
-    def getJ2(self, m, f=None):
+    def getJ(self, m, f=None):
         """
             Generate Full sensitivity matrix
         """

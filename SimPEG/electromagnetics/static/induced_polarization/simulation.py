@@ -18,6 +18,7 @@ import os
 import dask
 import dask.array as da
 from scipy.sparse import csr_matrix as csr
+from pyMKL import mkl_set_num_threads
 # from .survey import Survey
 
 
@@ -48,6 +49,7 @@ class BaseIPSimulation(BaseEMSimulation):
     data_type = 'volt'
     _pred = None
     Jpath = "./sensitivityip/"
+    n_cpu = 1
 
     def fields(self, m):
         if self.verbose is True:
@@ -113,6 +115,55 @@ class BaseIPSimulation(BaseEMSimulation):
                 self.gtgdiag = da.sum(WJ**2., 0).compute()
 
         return self.gtgdiag
+
+    @dask.delayed(pure=True)
+    def AinvXvec(self, v, num_cores=1):
+        mkl_set_num_threads(num_cores)
+        A = self.getA()
+        Ainv = self.Solver(A, **self.solver_opts)
+        _ainv_v = Ainv * v
+        Ainv.clean()
+        return _ainv_v
+
+    def getJ2(self, m, f=None):
+        """
+            Generate Full sensitivity matrix
+        """
+        self.model = m
+
+        if self.verbose:
+            print("Calculating J and storing")
+        else:
+            if self._Jmatrix is not None:
+                return self._Jmatrix
+            else:
+
+                if f is None:
+                    f = self.fields(m)
+                # start of IP J
+                # This is for forming full sensitivity matrix
+                Jtv = []
+                count = 0
+                for source in self.survey.source_list:
+                    u_source = f[source, self._solutionType].copy()
+                    for rx in source.receiver_list:
+                        P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
+                        ATinvdf_duT = da.from_delayed(self.AinvXvec(P.T, num_cores=self.n_cpu), shape=(self.model.size, rx.nD), dtype=float)
+                        # self.AinvXvec(P.T, num_cores=self.n_cpu)
+                        dA_dmT = -da.from_delayed(self.getADeriv(
+                            u_source, ATinvdf_duT, adjoint=True),
+                            shape=(self.model.size, rx.nD), dtype=float)
+                        Jtv.append(dA_dmT)
+                        count += 1
+
+                self._f = []
+                # clean all factorization
+                if self.Ainv is not None:
+                    self.Ainv.clean()
+                J = da.hstack(Jtv).T
+                self._Jmatrix = J
+
+        return self._Jmatrix
 
     def getJ(self, m, f=None):
         """
