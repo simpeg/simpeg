@@ -101,12 +101,20 @@ class InversionDirective(properties.HasProperties):
         return [objfcts.simulation.survey for objfcts in self.dmisfit.objfcts]
 
     @property
-    def prob(self):
+    def simulation(self):
         """
            Assuming that dmisfit is always a ComboObjectiveFunction,
            return a list of problems for each dmisfit [prob1, prob2, ...]
         """
         return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
+
+    @property
+    def prob(self):
+        warnings.warn(
+            "The prob property will be depricated in favor of simulation. "
+            "Please update your code accordingly"
+        )
+        return self.simulation
 
     def initialize(self):
         pass
