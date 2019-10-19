@@ -250,16 +250,30 @@ class Forward(object):
 
                 # Auto rechunk
                 # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
-                stack = stack.rechunk({0: -1, 1: 'auto'}) # Auto rechunk by cols. Use {0: 'auto', 1: -1} to auto chunk by rows
+                # stack = stack.rechunk({0: -1, 1: 'auto'}) # Auto rechunk by cols. Use {0: 'auto', 1: -1} to auto chunk by rows
 
+                nChunks = 1
+                rowChunk, colChunk = int(np.ceil(self.nD*nDataComps/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
+                while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= 0.256:
+#                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
+                    nChunks += 1
+                    rowChunk, colChunk = int(np.ceil(self.nD*nDataComps)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                    totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
+
+                stack = stack.rechunk((rowChunk, colChunk))
                 print('DASK: ')
                 print('Tile size (nD, nC): ', stack.shape)
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
-                print('Number of chunks: ', len(stack.chunks[0]), ' x ', len(stack.chunks[1]), ' = ', len(stack.chunks[0]) * len(stack.chunks[1]))
+                print('Number of chunks: %.0f x %.0f = %.0f' %
+                    (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
                 print("Target chunk size: ", dask.config.get('array.chunk-size'))
-                print('Max chunk size (GB): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9)
-                print('Max RAM (GB x CPU): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu)
-                print('Tile size (GB): ', stack.shape[0] * stack.shape[1] * 8*1e-9)
+                print('Max chunk size %.6f x %.6f = %.6f (GB)' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9))
+                print('Min chunk size %.6f x %.6f = %.6f (GB)' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-9))
+                print('Max RAM (GB x %.0f CPU): %.6f' %
+                    (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
+                print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
+
 
                 if self.forwardOnly:
 
@@ -281,19 +295,17 @@ class Forward(object):
                                 np.r_[G.shape] == np.r_[stack.shape]]):
                             # Check that loaded G matches supplied data and mesh
                             print("Zarr file detected with same shape and chunksize ... re-loading")
-
+                            return G
                         else:
+                            del G
+                            shutil.rmtree(self.Jpath)
+                            print("Zarr file detected with wrong shape and chunksize ... over-writting")
 
-                            with ProgressBar():
-                                print("Zarr file detected with wrong shape and chunksize ... over-writing: " + self.Jpath)
-                                G = da.to_zarr(stack, self.Jpath, return_stored=True, overwrite=True)
+                    with ProgressBar():
+                        print("Saving G to zarr: " + self.Jpath)
+                        da.to_zarr(stack, self.Jpath)
 
-                    else:
-
-                        with ProgressBar():
-                            print("Saving G to zarr: " + self.Jpath)
-                            G = da.to_zarr(stack, self.Jpath, return_stored=True, overwrite=True)
-
+                    G = da.from_zarr(self.Jpath)
             # elif self.parallelized == "multiprocessing":
 
             #     totRAM = nDataComps*self.nD*self.nC*8*1e-9
