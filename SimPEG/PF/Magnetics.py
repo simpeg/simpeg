@@ -133,7 +133,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         else:
 
-            fields = da.dot(self.G, m.astype(np.float32))
+            fields = da.dot(self.G, m)
 
         if self.modelType == 'amplitude':
 
@@ -260,13 +260,13 @@ class MagneticIntegral(Problem.LinearProblem):
             vec = dask.delayed(csr.dot)(self.Mxyz, dmudm_v)
             M_dmudm_v = da.from_delayed(vec, dtype=float, shape=[self.Mxyz.shape[0]])
 
-            Jvec = da.dot(self.G, M_dmudm_v.astype(np.float32))
+            Jvec = da.dot(self.G, M_dmudm_v)
 
         else:
 
             vec = dask.delayed(csr.dot)(dmudm, v)
             dmudm_v = da.from_delayed(vec, dtype=float, shape=[self.chiMap.deriv(m).shape[0]])
-            Jvec = da.dot(self.G, dmudm_v.astype(np.float32))
+            Jvec = da.dot(self.G, dmudm_v)
 
         if self.modelType == 'amplitude':
             dfdm_Jvec = dask.delayed(csr.dot)(self.dfdm, Jvec)
@@ -284,23 +284,23 @@ class MagneticIntegral(Problem.LinearProblem):
 
         if self.modelType == 'amplitude':
 
-            dfdm_v = dask.delayed(csr.dot)(self.dfdm.T, v)
+            dfdm_v = dask.delayed(csr.dot)(v, self.dfdm)
             vec = da.from_delayed(dfdm_v, dtype=float, shape=[self.dfdm.shape[0]])
 
             if getattr(self, '_Mxyz', None) is not None:
 
-                jtvec = da.dot(self.G.T, vec.astype(np.float32))
+                jtvec = da.dot(vec, self.G)
 
-                Jtvec = dask.delayed(csr.dot)(self.Mxyz.T, jtvec)
+                Jtvec = dask.delayed(csr.dot)(jtvec, self.Mxyz)
 
             else:
-                Jtvec = da.dot(self.G.T, vec.astype(np.float32))
+                Jtvec = da.dot(vec, self.G)
 
         else:
 
-            Jtvec = da.dot(self.G.T, v.astype(np.float32))
+            Jtvec = da.dot(v, self.G)
 
-        dmudm_v = dask.delayed(csr.dot)(dmudm.T, Jtvec)
+        dmudm_v = dask.delayed(csr.dot)(Jtvec, dmudm)
 
         return da.from_delayed(dmudm_v, dtype=float, shape=[self.chiMap.deriv(m).shape[1]])
 
@@ -377,11 +377,11 @@ class MagneticIntegral(Problem.LinearProblem):
             m = matutils.atp2xyz(m)
 
         if getattr(self, '_Mxyz', None) is not None:
-            Bxyz = da.dot(self.G, (self.Mxyz*m).astype(np.float32))
+            Bxyz = da.dot(self.G, (self.Mxyz*m))
         else:
-            Bxyz = da.dot(self.G, m.astype(np.float32))
+            Bxyz = da.dot(self.G, m)
 
-        amp = self.calcAmpData(Bxyz.astype(np.float64))
+        amp = self.calcAmpData(Bxyz)
         Bamp = sp.spdiags(1./amp, 0, self.nD, self.nD)
 
         return (Bxyz.reshape((3, self.nD), order='F')*Bamp)
@@ -498,19 +498,19 @@ class Forward(object):
                 # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
                 if self.forwardOnly:
                     # Autochunking by rows is faster and avoids memory leak for forward models
-                    stack = stack.rechunk({0: 'auto', 1: -1}) 
+                    stack = stack.rechunk({0: 'auto', 1: -1})
                 else:
                     # Autochunking by columns is faster for Inversions
-                    stack = stack.rechunk({0: -1, 1: 'auto'}) 
-                
+                    stack = stack.rechunk({0: -1, 1: 'auto'})
+
                 print('DASK: ')
                 print('Tile size (nD, nC): ', stack.shape)
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
-                print('Number of chunks: %.0f x %.0f = %.0f' % 
+                print('Number of chunks: %.0f x %.0f = %.0f' %
                     (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
                 print("Target chunk size: ", dask.config.get('array.chunk-size'))
                 print('Max chunk size (GB): %.6f' % (max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9))
-                print('Max RAM (GB x %.0f CPU): %.6f' % 
+                print('Max RAM (GB x %.0f CPU): %.6f' %
                     (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
                 print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
 
@@ -625,7 +625,7 @@ class Forward(object):
 
         #     return np.dot(row, self.model)
         # else:
-        return np.float32(rows * self.Mxyz)
+        return rows * self.Mxyz
 
     def progress(self, ind, total):
         """
