@@ -37,6 +37,7 @@ class MagneticIntegral(Problem.LinearProblem):
     gtgdiag = None
     n_cpu = None
     parallelized = "dask"
+    rechunk_parameters = []
     coordinate_system = properties.StringChoice(
         "Type of coordinate system we are regularizing in",
         choices=['cartesian', 'spherical'],
@@ -129,11 +130,11 @@ class MagneticIntegral(Problem.LinearProblem):
 
             vec = dask.delayed(csr.dot)(self.Mxyz, m)
             M = da.from_delayed(vec, dtype=float, shape=[m.shape[0]])
-            fields = da.dot(self.G, M)
+            fields = da.dot(self.G, da.from_array(M, chunks=self.G.chunks[1]))
 
         else:
 
-            fields = da.dot(self.G, m)
+            fields = da.dot(self.G, da.from_array(m, chunks=self.G.chunks[1]))
 
         if self.modelType == 'amplitude':
 
@@ -258,14 +259,15 @@ class MagneticIntegral(Problem.LinearProblem):
 
             dmudm_v = dask.delayed(csr.dot)(dmudm, v)
             vec = dask.delayed(csr.dot)(self.Mxyz, dmudm_v)
-            M_dmudm_v = da.from_delayed(vec, dtype=float, shape=[self.Mxyz.shape[0]])
+            M_dmudm_v = da.from_array(self.Mxyz*(dmudm*v), chunks=self.G.chunks[1])
 
             Jvec = da.dot(self.G, M_dmudm_v)
 
         else:
 
             vec = dask.delayed(csr.dot)(dmudm, v)
-            dmudm_v = da.from_delayed(vec, dtype=float, shape=[self.chiMap.deriv(m).shape[0]])
+            dmudm_v = da.from_array(dmudm*v, chunks=self.G.chunks[1])
+
             Jvec = da.dot(self.G, dmudm_v)
 
         if self.modelType == 'amplitude':
@@ -285,9 +287,10 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.modelType == 'amplitude':
 
             dfdm_v = dask.delayed(csr.dot)(v, self.dfdm)
-            vec = da.from_delayed(dfdm_v, dtype=float, shape=[self.dfdm.shape[0]])
+            vec = da.from_array(da.from_delayed(dfdm_v, dtype=float, shape=[self.dfdm.shape[0]]), chunks=self.G.chunks[0])
 
             if getattr(self, '_Mxyz', None) is not None:
+
 
                 jtvec = da.dot(vec, self.G)
 
@@ -298,7 +301,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         else:
 
-            Jtvec = da.dot(v, self.G)
+            Jtvec = da.dot(da.from_array(v, chunks=self.G.chunks[0]), self.G)
 
         dmudm_v = dask.delayed(csr.dot)(Jtvec, dmudm)
 
@@ -432,7 +435,8 @@ class MagneticIntegral(Problem.LinearProblem):
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
                 model=self.model, components=self.survey.components, Mxyz=self.Mxyz,
                 P=self.ProjTMI, parallelized=self.parallelized,
-                verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM
+                verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM,
+                rechunk_parameters=rechunk_parameters
                 )
 
         G = job.calculate()
@@ -455,6 +459,7 @@ class Forward(object):
     P = None
     verbose = True
     maxRAM = 1
+    rechunk_parameters = []
     Jpath = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
@@ -496,33 +501,24 @@ class Forward(object):
 
                 # Auto rechunk
                 # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
-#                 if self.forwardOnly:
-#                     # Autochunking by rows is faster and avoids memory leak for forward models
-#                     stack = stack.rechunk({0: 'auto', 1: -1})
-#                 else:
-#                     # Autochunking by columns is faster for Inversions
-#                     stack = stack.rechunk({0: -1, 1: 'auto'})
+                if self.forwardOnly:
+                    # Autochunking by rows is faster and avoids memory leak for forward models
+                    stack = stack.rechunk({0: 'auto', 1: -1})
+                elif self.rechunk_parameters:
 
-#                 print('DASK: ')
-#                 print('Tile size (nD, nC): ', stack.shape)
-# #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
-#                 print('Number of chunks: %.0f x %.0f = %.0f' %
-#                     (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
-#                 print("Target chunk size: ", dask.config.get('array.chunk-size'))
-#                 print('Max chunk size (GB): %.6f' % (max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9))
-#                 print('Max RAM (GB x %.0f CPU): %.6f' %
-#                     (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
-#                 print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
-                nChunks = 1
-                rowChunk, colChunk = int(np.ceil(self.nD*nDataComps/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
-                while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= 0.256:
-#                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
-                    nChunks += 1
-                    rowChunk, colChunk = int(np.ceil(self.nD*nDataComps)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                    nChunks = 1
+                    rowChunk, colChunk = int(np.ceil(self.nD*nDataComps/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
                     totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
+                    while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= self.rechunk_parameters[0]:
+    #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
+                        nChunks += 1
+                        rowChunk, colChunk = int(np.ceil(self.nD*nDataComps)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                        totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
 
-                stack = stack.rechunk((rowChunk, colChunk))
+                    stack = stack.rechunk((rowChunk, colChunk))
+                else:
+                    # Autochunking by columns is faster for Inversions
+                    stack = stack.rechunk({0: -1, 1: 'auto'})
                 print('DASK: ')
                 print('Tile size (nD, nC): ', stack.shape)
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
