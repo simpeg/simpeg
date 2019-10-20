@@ -436,7 +436,7 @@ class MagneticIntegral(Problem.LinearProblem):
                 model=self.model, components=self.survey.components, Mxyz=self.Mxyz,
                 P=self.ProjTMI, parallelized=self.parallelized,
                 verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM,
-                rechunk_parameters=rechunk_parameters
+                rechunk_parameters=self.rechunk_parameters
                 )
 
         G = job.calculate()
@@ -502,12 +502,13 @@ class Forward(object):
                 # Auto rechunk
                 # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
                 if self.forwardOnly:
+                    print('DASK: Chunking by columns')
                     # Autochunking by rows is faster and avoids memory leak for forward models
                     stack = stack.rechunk({0: 'auto', 1: -1})
                 elif self.rechunk_parameters:
-
+                    print('DASK: Chunking using parameters')
                     nChunks = 1
-                    rowChunk, colChunk = int(np.ceil(self.nD*nDataComps/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                    rowChunk, colChunk = int(np.ceil(self.nD*nDataComps)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
                     totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
                     while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= self.rechunk_parameters[0]:
     #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
@@ -517,6 +518,7 @@ class Forward(object):
 
                     stack = stack.rechunk((rowChunk, colChunk))
                 else:
+                    print('DASK: Chunking by rows')
                     # Autochunking by columns is faster for Inversions
                     stack = stack.rechunk({0: -1, 1: 'auto'})
                 print('DASK: ')
