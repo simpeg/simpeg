@@ -502,8 +502,8 @@ class Forward(object):
                 # Auto rechunk
                 # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
                 if self.forwardOnly:
-                    print('DASK: Chunking by columns')
-                    # Autochunking by rows is faster and avoids memory leak for forward models
+                    print('DASK: Chunking by rows')
+                    # Autochunking by rows is faster and avoids memory leak for large forward models
                     stack = stack.rechunk({0: 'auto', 1: -1})
                 elif self.rechunk_parameters:
                     print('DASK: Chunking using parameters')
@@ -518,10 +518,10 @@ class Forward(object):
 
                     stack = stack.rechunk((rowChunk, colChunk))
                 else:
-                    print('DASK: Chunking by rows')
+                    print('DASK: Chunking by columns')
                     # Autochunking by columns is faster for Inversions
                     stack = stack.rechunk({0: -1, 1: 'auto'})
-                print('DASK: ')
+
                 print('Tile size (nD, nC): ', stack.shape)
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
                 print('Number of chunks: %.0f x %.0f = %.0f' %
