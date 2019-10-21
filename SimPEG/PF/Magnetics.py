@@ -301,7 +301,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         else:
 
-            Jtvec = da.dot(da.from_array(v, chunks=self.G.chunks[0]), self.G)
+            Jtvec = da.dot(da.asarray(v, chunks=self.G.chunks[0]), self.G)
 
         dmudm_v = dask.delayed(csr.dot)(Jtvec, dmudm)
 
