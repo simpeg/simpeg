@@ -2051,6 +2051,8 @@ class JointScalingSchedule(InversionDirective):
                         multipliers = self.rateWarming * np.median(
                             self.DMtarget[~indx] / self.dmlist[~indx]
                         )
+                        if np.sum(indx)==1:
+                            indx = np.where(indx)[0][0]
                         self.dmisfit.multipliers[indx] *= multipliers
                         self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
 
