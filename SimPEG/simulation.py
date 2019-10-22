@@ -5,7 +5,7 @@ import numpy as np
 import pymatsolver
 import sys
 import warnings
-
+import dask
 import properties
 from properties.utils import undefined
 
@@ -312,7 +312,7 @@ class BaseSimulation(props.HasModel):
         if f is None:
             if m is None:
                 m = self.model
-            f = self.fields(m)
+            f = dask.compute(self.fields(m))[0]
 
         data = Data(self.survey)
         for src in self.survey.source_list:
