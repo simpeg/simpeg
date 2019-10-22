@@ -3,7 +3,7 @@ import scipy as sp
 import properties
 import shutil
 
-from ....utils import mkvc, sdiag, Zero
+from ....utils import mkvc, sdiag, Zero, diagEst
 from ....data import Data
 from ...base import BaseEMSimulation
 from .boundary_utils import getxBCyBC_CC
@@ -17,6 +17,7 @@ from scipy.sparse import csr_matrix as csr
 from scipy.sparse import linalg
 from pymatsolver import BicgJacobi
 from pyMKL import mkl_set_num_threads
+from pyMKL import mkl_get_max_threads
 
 class BaseDCSimulation(BaseEMSimulation):
     """
@@ -64,6 +65,14 @@ class BaseDCSimulation(BaseEMSimulation):
         """
             Return the diagonal of JtJ
         """
+        # def JtJv(v):
+        #     Jv = self.Jvec(m, v)
+        #     return self.Jtvec(m, Jv)
+        # if (self.gtgdiag is None):
+        #     jtjdiag = diagEst(JtJv, len(m), k=10)
+        #     jtjdiag = jtjdiag / np.max(jtjdiag)
+        #     self.gtgdiag = jtjdiag
+        # return self.gtgdiag
 
         if (self.gtgdiag is None):
 
@@ -71,14 +80,13 @@ class BaseDCSimulation(BaseEMSimulation):
             if W is None:
                 self.gtgdiag = da.sum((self.getJ(self.model))**2., 0).compute()
             else:
-
-                WJ = da.from_delayed(
-                        dask.delayed(csr.dot)(W, self.getJ(self.model)),
-                        shape=self.getJ(self.model).shape,
-                        dtype=float
-                )
-                self.gtgdiag = da.sum(WJ**2., 0).compute()
-
+                # WJ = da.from_delayed(
+                #         dask.delayed(csr.dot)(W, self.getJ(self.model)),
+                #         shape=self.getJ(self.model).shape,
+                #         dtype=float
+                # )
+                # self.gtgdiag = da.sum(WJ**2., 0).compute()
+                self.gtgdiag = da.sum(self._JtJdiag(self.model, W), 0).compute()
         return self.gtgdiag
 
     @dask.delayed(pure=True)
@@ -89,6 +97,92 @@ class BaseDCSimulation(BaseEMSimulation):
         _ainv_v = Ainv * v
         Ainv.clean()
         return _ainv_v
+
+    def _JtJdiag(self, m, w, f=None):
+        """
+            Generate Full sensitivity matrix
+        """
+        print('_jtj')
+        if self._Jmatrix is not None:
+            return self._Jmatrix
+        else:
+
+            self.model = m
+            if f is None:
+                f = self.fields(m)
+
+        if self.verbose:
+            print("Calculating J and storing")
+
+        if os.path.exists(self.Jpath):
+            shutil.rmtree(self.Jpath, ignore_errors=True)
+
+            # Wait for the system to clear out the directory
+            while os.path.exists(self.Jpath):
+                pass
+        istrt = int(0)
+        iend = int(0)
+        # if os.path.exists(self.Jpath + "J.zarr"):
+        #     self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
+        # else:
+        self.n_cpu = int(multiprocessing.cpu_count())
+        Jtv = []
+        count = 0
+        for source in self.survey.source_list:
+            u_source = f[source, self._solutionType].copy()
+            for rx in source.receiver_list:
+                # wrt f, need possibility wrt m
+                PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+
+                df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
+                                    None)
+                df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
+
+                # Compute block of receivers
+                ATinvdf_duT = self.Ainv * df_duT
+
+                if len(ATinvdf_duT.shape) == 1:
+                    ATinvdf_duT = np.c_[ATinvdf_duT]
+
+                dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
+
+                dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
+
+                du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(dRHS_dmT, shape=(self.model.size, rx.nD), dtype=float)
+
+                if not isinstance(df_dmT, Zero):
+                    du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, rx.nD), dtype=float)
+
+                blockName = self.Jpath + "J" + str(count) + ".zarr"
+                nChunks = self.n_cpu  # Number of chunks
+                rowChunk = int(np.ceil(rx.nD/nChunks))
+                colChunk = int(np.ceil(self.model.size/nChunks))  # Chunk sizes
+                du_dmT = du_dmT.rechunk((colChunk, rowChunk))
+
+                da.to_zarr(du_dmT, blockName)
+                # here we apply the weights
+                iend = istrt + rx.nD
+                w_ = w[istrt:iend, istrt:iend]
+                WJ = da.from_delayed(
+                    dask.delayed(csr.dot)(du_dmT, w_),
+                    shape=du_dmT.shape,
+                    dtype=float
+                )
+                # print(da.sum(WJ**2, 1).shape)
+                Jtv.append(da.sum(WJ**2, 1))
+                istrt += rx.nD
+                count += 1
+
+        # Stack all the summed source blocks in one big zarr
+        J = da.vstack(Jtv)
+        nChunks = self.n_cpu  # Number of chunks
+        rowChunk = int(np.ceil(count/nChunks))# Chunk sizes
+        colChunk = int(np.ceil(m.shape[0]/nChunks))
+        J = J.rechunk((rowChunk, colChunk))
+
+        da.to_zarr(J, self.Jpath + "J.zarr")
+        # self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
+        return da.from_zarr(self.Jpath + "J.zarr")
 
     def getJ2(self, m, f=None):
         """
@@ -108,7 +202,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
         Jtv = []
         count = 0
-        print('J2')
+        # print('J2')
         for source in self.survey.source_list:
             u_source = f[source, self._solutionType].copy()
             for rx in source.receiver_list:
@@ -219,7 +313,6 @@ class BaseDCSimulation(BaseEMSimulation):
 
         da.to_zarr(J, self.Jpath + "J.zarr")
         self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
-
         return self._Jmatrix
 
     def Jvec(self, m, v, f=None):
@@ -228,7 +321,6 @@ class BaseDCSimulation(BaseEMSimulation):
         """
 
         self.model = m
-
         if f is None:
             f = self.fields(m)
 
@@ -253,7 +345,6 @@ class BaseDCSimulation(BaseEMSimulation):
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
 
         """
-
         if f is None:
             f = self.fields(m)
 
@@ -282,7 +373,6 @@ class BaseDCSimulation(BaseEMSimulation):
             Jtv = np.zeros((self.model.size, self.survey.nD), order='F')
             istrt = int(0)
             iend = int(0)
-
 
         for source in self.survey.source_list:
             u_source = f[source, self._solutionType].copy()
