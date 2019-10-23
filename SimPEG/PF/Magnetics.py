@@ -253,19 +253,19 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.coordinate_system == 'cartesian':
             dmudm = self.chiMap.deriv(m)
         else:
-            dmudm = dask.delayed(csr.dot)(self.dSdm, self.chiMap.deriv(m))
+            dmudm = self.dSdm * self.chiMap.deriv(m)
 
         if getattr(self, '_Mxyz', None) is not None:
 
-            dmudm_v = dask.delayed(csr.dot)(dmudm, v)
-            vec = dask.delayed(csr.dot)(self.Mxyz, dmudm_v)
+            # dmudm_v = dask.delayed(csr.dot)(dmudm, v)
+            # vec = dask.delayed(csr.dot)(self.Mxyz, dmudm_v)
             M_dmudm_v = da.from_array(self.Mxyz*(dmudm*v), chunks=self.G.chunks[1])
 
             Jvec = da.dot(self.G, M_dmudm_v)
 
         else:
 
-            vec = dask.delayed(csr.dot)(dmudm, v)
+#            vec = dask.delayed(csr.dot)(dmudm, v)
             dmudm_v = da.from_array(dmudm*v, chunks=self.G.chunks[1])
 
             Jvec = da.dot(self.G, dmudm_v)
@@ -282,7 +282,7 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.coordinate_system == 'cartesian':
             dmudm = self.chiMap.deriv(m)
         else:
-            dmudm = dask.delayed(csr.dot)(self.dSdm, self.chiMap.deriv(m))
+            dmudm = self.dSdm * self.chiMap.deriv(m)
 
         if self.modelType == 'amplitude':
 
