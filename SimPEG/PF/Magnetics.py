@@ -456,6 +456,7 @@ class Forward(object):
     verbose = True
     maxRAM = 1
     rechunk_parameters = []
+    chunk_by_rows = False
     Jpath = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
@@ -497,7 +498,7 @@ class Forward(object):
 
                 # Auto rechunk
                 # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
-                if self.forwardOnly:
+                if self.forwardOnly or self.chunk_by_rows:
                     print('DASK: Chunking by rows')
                     # Autochunking by rows is faster and avoids memory leak for large forward models
                     stack = stack.rechunk({0: 'auto', 1: -1})
