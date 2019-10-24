@@ -155,7 +155,7 @@ class l2_DataMisfit(BaseDataMisfit):
             )
 
         wtw_d = dask.delayed(csr.dot)(
-                self.W.T, self.scale * w_d
+                self.scale * w_d, self.W
             )
 
         row = da.from_delayed(wtw_d, dtype=float, shape=[self.W.shape[0]])
@@ -184,7 +184,7 @@ class l2_DataMisfit(BaseDataMisfit):
             )
 
         wtw_jtvec = dask.delayed(csr.dot)(
-                self.W.T, self.scale * w_jtvec
+                self.scale * w_jtvec, self.W
             )
 
         row = da.from_delayed(wtw_jtvec, dtype=float, shape=[self.W.shape[0]])
