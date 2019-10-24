@@ -455,6 +455,7 @@ class Forward(object):
     P = None
     verbose = True
     maxRAM = 1
+    rechunk_parameters = []
     Jpath = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
@@ -497,22 +498,37 @@ class Forward(object):
                 # Auto rechunk
                 # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
                 if self.forwardOnly:
-                    # Autochunking by rows is faster and avoids memory leak for forward models
-                    stack = stack.rechunk({0: 'auto', 1: -1}) 
+                    print('DASK: Chunking by rows')
+                    # Autochunking by rows is faster and avoids memory leak for large forward models
+                    stack = stack.rechunk({0: 'auto', 1: -1})
+                elif self.rechunk_parameters:
+                    print('DASK: Chunking using parameters')
+                    nChunks = 1
+                    rowChunk, colChunk = int(np.ceil(self.nD*nDataComps)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                    totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
+                    while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= self.rechunk_parameters[0]:
+    #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
+                        nChunks += 1
+                        rowChunk, colChunk = int(np.ceil(self.nD*nDataComps)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                        totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
+
+                    stack = stack.rechunk((rowChunk, colChunk))
                 else:
+                    print('DASK: Chunking by columns')
                     # Autochunking by columns is faster for Inversions
-                    stack = stack.rechunk({0: -1, 1: 'auto'}) 
-                
-                print('DASK: ')
+                    stack = stack.rechunk({0: -1, 1: 'auto'})
+
                 print('Tile size (nD, nC): ', stack.shape)
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
-                print('Number of chunks: %.0f x %.0f = %.0f' % 
+                print('Number of chunks: %.0f x %.0f = %.0f' %
                     (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
                 print("Target chunk size: ", dask.config.get('array.chunk-size'))
-                print('Max chunk size (GB): %.6f' % (max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9))
-                print('Max RAM (GB x %.0f CPU): %.6f' % 
+                print('Max chunk size %.0f x %.0f = %.6f (GB)' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9))
+                print('Min chunk size %.0f x %.0f = %.6f (GB)' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-9))
+                print('Max RAM (GB x %.0f CPU): %.6f' %
                     (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
                 print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
+
 
                 if self.forwardOnly:
 
@@ -535,30 +551,18 @@ class Forward(object):
                             # Check that loaded G matches supplied data and mesh
                             print("Zarr file detected with same shape and chunksize ... re-loading")
 
+                            return G
                         else:
 
-                            with ProgressBar():
-                                print("Zarr file detected with wrong shape and chunksize ... over-writing: " + self.Jpath)
-                                G = da.to_zarr(stack, self.Jpath, return_stored=True, overwrite=True)
+                            del G
+                            shutil.rmtree(self.Jpath)
+                            print("Zarr file detected with wrong shape and chunksize ... over-writting")
 
-                    else:
+                    with ProgressBar():
+                        print("Saving G to zarr: " + self.Jpath)
+                        da.to_zarr(stack, self.Jpath)
 
-                        with ProgressBar():
-                            print("Saving G to zarr: " + self.Jpath)
-                            G = da.to_zarr(stack, self.Jpath, return_stored=True, overwrite=True)
-
-            # elif self.parallelized == "multiprocessing":
-
-            #     totRAM = nDataComps*self.nD*self.nC*8*1e-9
-            #     print("Multiprocessing:", self.n_cpu, self.nD, self.nC, totRAM, self.maxRAM)
-
-            #     pool = multiprocessing.Pool(self.n_cpu)
-
-            #     result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
-            #     pool.close()
-            #     pool.join()
-
-            #     G = np.vstack(result)
+                    G = da.from_zarr(self.Jpath)
 
         else:
 
