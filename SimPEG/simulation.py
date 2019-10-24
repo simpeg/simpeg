@@ -5,7 +5,7 @@ import numpy as np
 import pymatsolver
 import sys
 import warnings
-import dask
+from dask.delayed import Delayed
 import properties
 from properties.utils import undefined
 
@@ -309,10 +309,19 @@ class BaseSimulation(props.HasModel):
                 "simulation.survey = survey"
             )
 
+        if isinstance(f, Delayed):
+            f = f.compute()
+
         if f is None:
             if m is None:
                 m = self.model
-            f = dask.compute(self.fields(m))[0]
+
+            f = self.fields(m)
+
+            if isinstance(f, Delayed):
+                f = f.compute()
+
+
 
         data = Data(self.survey)
         for src in self.survey.source_list:

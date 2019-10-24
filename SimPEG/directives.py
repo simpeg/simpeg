@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 import os
-
+from dask.delayed import Delayed
 from .data_misfit import BaseDataMisfit
 from .objective_function import ComboObjectiveFunction
 from .regularization import BaseComboRegularization, BaseRegularization
