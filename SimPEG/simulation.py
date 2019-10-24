@@ -321,8 +321,6 @@ class BaseSimulation(props.HasModel):
             if isinstance(f, Delayed):
                 f = f.compute()
 
-
-
         data = Data(self.survey)
         for src in self.survey.source_list:
             for rx in src.receiver_list:

@@ -177,9 +177,10 @@ class BaseDCSimulation(BaseEMSimulation):
         # if os.path.exists(self.Jpath + "J.zarr"):
         #     self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
         # else:
-        # self.n_cpu = int(multiprocessing.cpu_count())
+
         Jtv = []
         count = 0
+        mkl_set_num_threads(self.n_cpu)
 
         print("In get J %i"% mkl_get_max_threads())
         for source in self.survey.source_list:
@@ -191,6 +192,7 @@ class BaseDCSimulation(BaseEMSimulation):
                 df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
                                     None)
                 df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
+
 
                 # Compute block of receivers
                 ATinvdf_duT = self.Ainv * df_duT
@@ -208,13 +210,13 @@ class BaseDCSimulation(BaseEMSimulation):
 
                     du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, rx.nD), dtype=float)
 
-                blockName = self.Jpath + "J" + str(count) + ".zarr"
+                # blockName = self.Jpath + "J" + str(count) + ".zarr"
                 # nChunks = self.n_cpu  # Number of chunks
                 # rowChunk = int(np.ceil(rx.nD/nChunks))
                 # colChunk = int(np.ceil(self.model.size/nChunks))  # Chunk sizes
                 # du_dmT = du_dmT.rechunk((colChunk, rowChunk))
 
-                da.to_zarr(du_dmT, blockName)
+                # da.to_zarr(du_dmT, blockName)
 
                 Jtv.append(du_dmT)
                 count += 1
