@@ -37,7 +37,7 @@ class MagneticIntegral(Problem.LinearProblem):
     gtgdiag = None
     n_cpu = None
     parallelized = "dask"
-    rechunk_parameters = []
+    rechunk_size = 128
     coordinate_system = properties.StringChoice(
         "Type of coordinate system we are regularizing in",
         choices=['cartesian', 'spherical'],
@@ -436,7 +436,7 @@ class MagneticIntegral(Problem.LinearProblem):
                 model=self.model, components=self.survey.components, Mxyz=self.Mxyz,
                 P=self.ProjTMI, parallelized=self.parallelized,
                 verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM,
-                rechunk_parameters=self.rechunk_parameters
+                rechunk_size=self.rechunk_size
                 )
 
         G = job.calculate()
@@ -459,7 +459,7 @@ class Forward(object):
     P = None
     verbose = True
     maxRAM = 1
-    rechunk_parameters = []
+    rechunk_size = 128
     Jpath = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
@@ -505,12 +505,12 @@ class Forward(object):
                     print('DASK: Chunking by rows')
                     # Autochunking by rows is faster and avoids memory leak for large forward models
                     stack = stack.rechunk({0: 'auto', 1: -1})
-                elif self.rechunk_parameters:
+                elif self.rechunk_size:
                     print('DASK: Chunking using parameters')
                     nChunks = 1
                     rowChunk, colChunk = int(np.ceil(self.nD*nDataComps)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
                     totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
-                    while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= self.rechunk_parameters[0]:
+                    while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= self.rechunk_size:
     #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
                         nChunks += 1
                         rowChunk, colChunk = int(np.ceil(self.nD*nDataComps)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
