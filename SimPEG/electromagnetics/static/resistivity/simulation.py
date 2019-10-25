@@ -41,7 +41,7 @@ class BaseDCSimulation(BaseEMSimulation):
     max_chunk_size = None
 
     @dask.delayed(pure=True)
-    def fields(self, m=None):
+    def fields(self, m=None, calcJ=True):
 
         mkl_set_num_threads(self.n_cpu)
 
@@ -69,10 +69,9 @@ class BaseDCSimulation(BaseEMSimulation):
         print("Fields n_cpu %i" % self.n_cpu)
         f[Srcs, self._solutionType] = self.Ainv * RHS #, num_cores=self.n_cpu).compute()
 
-        if self.storeJ and self._Jmatrix is None:
-            self.getJ(m, f=f)
-
-        self.Ainv.clean()
+        if not self.storeJ:
+            # self.getJ(m, f=f)
+            self.Ainv.clean()
 
         return f
 
@@ -109,7 +108,6 @@ class BaseDCSimulation(BaseEMSimulation):
             self.model = m
             if f is None:
                 f = self.fields(m).compute()
-                return self._Jmatrix
 
         if self.verbose:
             print("Calculating J and storing")
@@ -200,6 +198,8 @@ class BaseDCSimulation(BaseEMSimulation):
 
         da.to_zarr(J, self.Jpath + "J.zarr")
         self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
+
+        self.Ainv.clean()
 
         return self._Jmatrix
 
