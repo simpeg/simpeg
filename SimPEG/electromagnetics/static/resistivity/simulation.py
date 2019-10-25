@@ -69,7 +69,7 @@ class BaseDCSimulation(BaseEMSimulation):
         print("Fields n_cpu %i" % self.n_cpu)
         f[Srcs, self._solutionType] = self.Ainv * RHS #, num_cores=self.n_cpu).compute()
 
-        if self._Jmatrix is None:
+        if self.storeJ and self._Jmatrix is None:
             self.getJ(m, f=f)
 
         self.Ainv.clean()
@@ -108,7 +108,8 @@ class BaseDCSimulation(BaseEMSimulation):
 
             self.model = m
             if f is None:
-                f = self.fields(m)
+                f = self.fields(m).compute()
+                return self._Jmatrix
 
         if self.verbose:
             print("Calculating J and storing")
