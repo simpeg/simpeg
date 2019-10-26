@@ -736,8 +736,8 @@ class Update_IRLS(InversionDirective):
     coolEpsOptimized = True
     coolEps_p = True
     coolEps_q = True
-    floorEps_p = 1e-8
-    floorEps_q = 1e-8
+    floorEps_p = [1e-8, 1e-8, 1e-8]
+    floorEps_q = [1e-8, 1e-8, 1e-8]
     floorEpsEnforced = True
     coolEpsFact = 1.2
     silent = False
@@ -875,19 +875,23 @@ class Update_IRLS(InversionDirective):
                 return
 
             # Print to screen
-            for reg in self.reg.objfcts:
+            for ii, reg in enumerate(self.reg.objfcts):
 
-                if reg.eps_p > self.floorEps_p and self.coolEps_p:
+                if reg.eps_p > self.floorEps_p[ii] and self.coolEps_p:
                     reg.eps_p /= self.coolEpsFact
 
                 elif self.floorEpsEnforced:
-                    reg.eps_p = self.floorEps_p
+                    reg.eps_p = self.floorEps_p[ii]
                     # print('Eps_p: ' + str(reg.eps_p))
-                if reg.eps_q > self.floorEps_q and self.coolEps_q:
+
+                if reg.eps_q > self.floorEps_q[ii] and self.coolEps_q:
+
                     reg.eps_q /= self.coolEpsFact
+
                 elif self.floorEpsEnforced:
-                    reg.eps_q = self.floorEps_q
-                    # print('Eps_q: ' + str(reg.eps_q))
+                    reg.eps_q = self.floorEps_q[ii]
+
+                print('Eps_q: ' + str(reg.eps_q))
 
             # Remember the value of the norm from previous R matrices
             # self.f_old = self.reg(self.invProb.model)
