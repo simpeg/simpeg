@@ -673,7 +673,7 @@ class Tile(IdentityMap):
                 # Needs to be improved to makes all cells are included
                 indx = self.getTreeIndex(self.tree, self.meshLocal, self.activeLocal)
                 local2Global = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.activeLocal.sum()))).astype('int'), mkvc(indx)]
-
+                Pac = Utils.speye(self.meshGlobal.nC)[:, self.actvGlobal]
                 tree = cKDTree(self.meshLocal.gridCC[self.activeLocal, :])
                 r, ind = tree.query(self.meshGlobal.gridCC[self.actvGlobal], k=self.nCell)
                 global2Local = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.actvGlobal.sum()))).astype('int'), mkvc(ind)]
