@@ -432,7 +432,8 @@ class MagneticIntegral(Problem.LinearProblem):
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
                 model=self.model, components=self.survey.components, Mxyz=self.Mxyz,
                 P=self.ProjTMI, parallelized=self.parallelized,
-                verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM
+                verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM,
+                max_chunk_size=self.max_chunk_size, chunk_by_rows=self.chunk_by_rows
                 )
 
         G = job.calculate()
@@ -457,6 +458,7 @@ class Forward(object):
     maxRAM = 1
     rechunk_parameters = []
     chunk_by_rows = False
+    max_chunk_size = None
     Jpath = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
@@ -502,16 +504,25 @@ class Forward(object):
                     print('DASK: Chunking by rows')
                     # Autochunking by rows is faster and avoids memory leak for large forward models
                     stack = stack.rechunk({0: 'auto', 1: -1})
-                elif self.rechunk_parameters:
+                elif self.max_chunk_size:
                     print('DASK: Chunking using parameters')
-                    nChunks = 1
-                    rowChunk, colChunk = int(np.ceil(self.nD*nDataComps)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                    totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
-                    while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= self.rechunk_parameters[0]:
-    #                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
-                        nChunks += 1
-                        rowChunk, colChunk = int(np.ceil(self.nD*nDataComps)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                        totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
+                    nChunks_col = 1
+                    nChunks_row = 1
+                    rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
+                    colChunk = int(np.ceil(stack.shape[1]/nChunks_col))
+                    chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+
+                    # Add more chunks until memory falls below target
+                    while chunk_size >= self.max_chunk_size:
+
+                        if rowChunk > colChunk:
+                            nChunks_row += 1
+                        else:
+                            nChunks_col += 1
+
+                        rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
+                        colChunk = int(np.ceil(stack.shape[1]/nChunks_col))
+                        chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
 
                     stack = stack.rechunk((rowChunk, colChunk))
                 else:
