@@ -4,7 +4,7 @@ import properties
 import numpy as np
 import scipy.sparse as sp
 import gc
-
+from dask.delayed import Delayed
 from .data_misfit import BaseDataMisfit
 from .props import BaseSimPEG, Model
 from .regularization import BaseRegularization, BaseComboRegularization
@@ -140,6 +140,9 @@ class BaseInvProblem(BaseSimPEG):
         if f is None:
             if isinstance(self.dmisfit, BaseDataMisfit):
                 f = self.dmisfit.simulation.fields(m)
+                
+                if isinstance(f, Delayed):
+                    f = f.compute()
             elif isinstance(self.dmisfit, BaseObjectiveFunction):
                 f = []
                 for objfct in self.dmisfit.objfcts:
