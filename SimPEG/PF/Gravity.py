@@ -25,12 +25,10 @@ class GravityIntegral(Problem.LinearProblem):
     # surveyPair = Survey.LinearSurvey
     forwardOnly = False  # Is TRUE, forward matrix not stored to memory
     actInd = None  #: Active cell indices provided
-    silent = False
-    equiSourceLayer = False
-    memory_saving_mode = False
     parallelized = "dask"
+    max_chunk_size = None
+    chunk_by_rows = False
     n_cpu = None
-    n_chunks = 1
     progressIndex = -1
     gtgdiag = None
     Jpath = "./sensitivity.zarr"

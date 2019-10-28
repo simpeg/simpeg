@@ -458,7 +458,6 @@ class Forward(object):
     P = None
     verbose = True
     maxRAM = 1
-    rechunk_parameters = []
     chunk_by_rows = False
     max_chunk_size = None
     Jpath = "./sensitivity.zarr"
