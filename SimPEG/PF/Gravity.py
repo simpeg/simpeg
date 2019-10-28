@@ -204,7 +204,6 @@ class Forward(object):
     rxLoc = None
     Xn, Yn, Zn = None, None, None
     n_cpu = None
-    n_chunks = None
     forwardOnly = False
     model = None
     components = ['gz']
