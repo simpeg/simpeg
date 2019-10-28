@@ -496,7 +496,7 @@ class Forward(object):
 
                 makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
 
-                buildMat = [da.from_delayed(makeRow, dtype=float, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
+                buildMat = [da.from_delayed(makeRow, dtype=np.float32, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
 
                 stack = da.vstack(buildMat)
 
@@ -574,9 +574,7 @@ class Forward(object):
 
                     with ProgressBar():
                         print("Saving G to zarr: " + self.Jpath)
-                        da.to_zarr(stack, self.Jpath)
-
-                    G = da.from_zarr(self.Jpath)
+                        G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True)
 
         else:
 
