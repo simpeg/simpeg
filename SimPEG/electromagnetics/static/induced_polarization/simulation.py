@@ -51,17 +51,17 @@ class BaseIPSimulation(BaseEMSimulation):
     Jpath = "./sensitivityip/"
     n_cpu = 1
 
-    def fields(self, m):
+    @dask.delayed(pure=True)
+    def fields(self, m=None, calcJ=True):
         if self.verbose is True:
             print(">> Compute fields")
 
-        if self.Ainv is not None:
-            self.Ainv.clean()
+        mkl_set_num_threads(self.n_cpu)
 
-        if self._Jmatrix is not None:
+        if m is not None:
+            self.model = m
             self._Jmatrix = None
 
-        # if self._f is None:
         f = self.fieldsPair(self)
         A = self.getA()
         self.Ainv = self.Solver(A, **self.solver_opts)
@@ -81,6 +81,9 @@ class BaseIPSimulation(BaseEMSimulation):
 
         self._pred = self.forward(m, f=f)
         self._f = f
+
+        if not self.storeJ:
+            self.Ainv.clean()
 
         return f
 
@@ -104,66 +107,17 @@ class BaseIPSimulation(BaseEMSimulation):
 
             # Need to check if multiplying weights makes sense
             if W is None:
-                self.gtgdiag = da.sum((self.getJ(self.model))**2., 0).compute()
+                self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
             else:
 
                 WJ = da.from_delayed(
-                        dask.delayed(csr.dot)(W, self.getJ(self.model)),
-                        shape=self.getJ(self.model).shape,
+                        dask.delayed(csr.dot)(W, self.getJ(m)),
+                        shape=self.getJ(m).shape,
                         dtype=float
                 )
                 self.gtgdiag = da.sum(WJ**2., 0).compute()
 
         return self.gtgdiag
-
-    @dask.delayed(pure=True)
-    def AinvXvec(self, v, num_cores=1):
-        mkl_set_num_threads(num_cores)
-        A = self.getA()
-        Ainv = self.Solver(A, **self.solver_opts)
-        _ainv_v = Ainv * v
-        Ainv.clean()
-        return _ainv_v
-
-    def getJ2(self, m, f=None):
-        """
-            Generate Full sensitivity matrix
-        """
-        self.model = m
-
-        if self.verbose:
-            print("Calculating J and storing")
-        else:
-            if self._Jmatrix is not None:
-                return self._Jmatrix
-            else:
-
-                if f is None:
-                    f = self.fields(m)
-                # start of IP J
-                # This is for forming full sensitivity matrix
-                Jtv = []
-                count = 0
-                for source in self.survey.source_list:
-                    u_source = f[source, self._solutionType].copy()
-                    for rx in source.receiver_list:
-                        P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
-                        ATinvdf_duT = da.from_delayed(self.AinvXvec(P.T, num_cores=self.n_cpu), shape=(self.model.size, rx.nD), dtype=float)
-                        # self.AinvXvec(P.T, num_cores=self.n_cpu)
-                        dA_dmT = -da.from_delayed(self.getADeriv(
-                            u_source, ATinvdf_duT, adjoint=True),
-                            shape=(self.model.size, rx.nD), dtype=float)
-                        Jtv.append(dA_dmT)
-                        count += 1
-
-                self._f = []
-                # clean all factorization
-                if self.Ainv is not None:
-                    self.Ainv.clean()
-                J = da.hstack(Jtv).T
-                self._Jmatrix = J
-
-        return self._Jmatrix
 
     def getJ(self, m, f=None):
         """
@@ -218,10 +172,33 @@ class BaseIPSimulation(BaseEMSimulation):
                     self.Ainv.clean()
                 # Stack all the source blocks in one big zarr
                 J = da.hstack(Jtv).T
-                nChunks = self.n_cpu  # Number of chunks
-                rowChunk = int(np.ceil(self.survey.nD/nChunks))# Chunk sizes
-                colChunk = int(np.ceil(m.shape[0]/nChunks))
-                J = J.rechunk((rowChunk, colChunk))
+                
+                if self.max_chunk_size is not None:
+                    # print('DASK: Chunking using parameters')
+                    nChunks_col = 1
+                    nChunks_row = 1
+                    rowChunk = int(np.ceil(J.shape[0]/nChunks_row))
+                    colChunk = int(np.ceil(J.shape[1]/nChunks_col))
+                    chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+
+                    # Add more chunks until memory falls below target
+                    while chunk_size >= self.max_chunk_size:
+
+                        if rowChunk > colChunk:
+                            nChunks_row += 1
+                        else:
+                            nChunks_col += 1
+
+                        rowChunk = int(np.ceil(J.shape[0]/nChunks_row))
+                        colChunk = int(np.ceil(J.shape[1]/nChunks_col))
+                        chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+
+                    J = J.rechunk((rowChunk, colChunk))
+
+                else:
+                    # print('DASK: Chunking by columns')
+                    # Autochunking by columns is faster for Inversions
+                    J = J.rechunk({0: -1, 1: 'auto'})
 
                 da.to_zarr(J, self.Jpath + "J.zarr")
                 self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")

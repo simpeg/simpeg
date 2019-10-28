@@ -52,25 +52,15 @@ class BaseDCSimulation(BaseEMSimulation):
         f = self.fieldsPair(self)
         A = self.getA()
 
-        # @dask.delayed(pure=True)
-        # def AinvXvec(v, num_cores=1):
-
         A = self.getA()
         self.Ainv = self.Solver(A, **self.solver_opts)
-            # _ainv_v = self.Ainv * v
-            # return _ainv_v
-
-        # self.Ainv = self.Solver(A, **self.solver_opts)
         RHS = self.getRHS()
-        # AinvRHS = dask.delayed(self.Ainv._solve)(RHS)
-        # u = da.from_delayed(AinvRHS, shape=(A.shape[0], RHS.shape[1]), dtype=float)
         Srcs = self.survey.source_list
 
         print("Fields n_cpu %i" % self.n_cpu)
         f[Srcs, self._solutionType] = self.Ainv * RHS #, num_cores=self.n_cpu).compute()
 
         if not self.storeJ:
-            # self.getJ(m, f=f)
             self.Ainv.clean()
 
         return f
