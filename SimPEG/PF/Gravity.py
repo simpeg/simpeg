@@ -138,9 +138,9 @@ class GravityIntegral(Problem.LinearProblem):
 
         dmudm = self.rhoMap.deriv(m)
 
-        jt_v = da.dot(self.G.T, v)
+        jt_v = da.dot(v, self.G)
 
-        dmudm_jt_v = dask.delayed(csr.dot)(dmudm.T, jt_v)
+        dmudm_jt_v = dask.delayed(csr.dot)(jt_v, dmudm)
 
         return da.from_delayed(dmudm_jt_v, dtype=float, shape=[dmudm.shape[1]])
 
