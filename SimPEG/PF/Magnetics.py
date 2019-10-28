@@ -37,6 +37,8 @@ class MagneticIntegral(Problem.LinearProblem):
     gtgdiag = None
     n_cpu = None
     parallelized = "dask"
+    max_chunk_size = None
+    chunk_by_rows = False
     coordinate_system = properties.StringChoice(
         "Type of coordinate system we are regularizing in",
         choices=['cartesian', 'spherical'],
