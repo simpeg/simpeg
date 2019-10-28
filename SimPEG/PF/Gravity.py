@@ -6,14 +6,12 @@ from SimPEG import Props
 import scipy as sp
 import scipy.constants as constants
 import os
-import time
 import numpy as np
 import dask
 import dask.array as da
 from scipy.sparse import csr_matrix as csr
 from dask.diagnostics import ProgressBar
 import multiprocessing
-import shutil
 
 class GravityIntegral(Problem.LinearProblem):
 
@@ -314,13 +312,11 @@ class Forward(object):
                             return G
                         else:
 
-                            del G
-                            shutil.rmtree(self.Jpath)
-                            print("Zarr file detected with wrong shape and chunksize ... over-writting")
+                            print("Zarr file detected with wrong shape and chunksize ... over-writing")
 
                     with ProgressBar():
                         print("Saving G to zarr: " + self.Jpath)
-                        G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True)
+                        G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True, overwrite=True)
 
         else:
 

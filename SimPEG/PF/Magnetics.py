@@ -19,7 +19,6 @@ import dask.array as da
 from dask.diagnostics import ProgressBar
 from scipy.sparse import csr_matrix as csr
 import os
-import shutil
 
 class MagneticIntegral(Problem.LinearProblem):
 
@@ -567,13 +566,11 @@ class Forward(object):
                             return G
                         else:
 
-                            del G
-                            shutil.rmtree(self.Jpath)
-                            print("Zarr file detected with wrong shape and chunksize ... over-writting")
+                            print("Zarr file detected with wrong shape and chunksize ... over-writing")
 
                     with ProgressBar():
                         print("Saving G to zarr: " + self.Jpath)
-                        G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True)
+                        G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True, overwrite=True)
 
         else:
 
