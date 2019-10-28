@@ -242,7 +242,7 @@ class Forward(object):
 
                 makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
 
-                buildMat = [da.from_delayed(makeRow, dtype=float, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
+                buildMat = [da.from_delayed(makeRow, dtype=np.float32, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
 
                 stack = da.vstack(buildMat)
 
@@ -311,30 +311,16 @@ class Forward(object):
                             # Check that loaded G matches supplied data and mesh
                             print("Zarr file detected with same shape and chunksize ... re-loading")
 
+                            return G
                         else:
 
-                            with ProgressBar():
-                                print("Zarr file detected with wrong shape and chunksize ... over-writing: " + self.Jpath)
-                                G = da.to_zarr(stack, self.Jpath, return_stored=True, overwrite=True)
+                            del G
+                            shutil.rmtree(self.Jpath)
+                            print("Zarr file detected with wrong shape and chunksize ... over-writting")
 
-                    else:
-
-                        with ProgressBar():
-                            print("Saving G to zarr: " + self.Jpath)
-                            G = da.to_zarr(stack, self.Jpath, return_stored=True, overwrite=True)
-
-            # elif self.parallelized == "multiprocessing":
-
-            #     totRAM = nDataComps*self.nD*self.nC*8*1e-9
-            #     print("Multiprocessing:", self.n_cpu, self.nD, self.nC, totRAM, self.maxRAM)
-
-            #     pool = multiprocessing.Pool(self.n_cpu)
-
-            #     result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
-            #     pool.close()
-            #     pool.join()
-
-            #     G = np.vstack(result)
+                    with ProgressBar():
+                        print("Saving G to zarr: " + self.Jpath)
+                        G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True)
 
         else:
 
