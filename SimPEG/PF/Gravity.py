@@ -24,7 +24,6 @@ class GravityIntegral(Problem.LinearProblem):
     forwardOnly = False  # Is TRUE, forward matrix not stored to memory
     actInd = None  #: Active cell indices provided
     parallelized = "dask"
-    max_chunk_size = None
     chunk_by_rows = False
     n_cpu = None
     progressIndex = -1
@@ -256,7 +255,7 @@ class Forward(object):
                     stack = stack.rechunk({0: 'auto', 1: -1})
                 elif self.max_chunk_size:
                     print('DASK: Chunking using parameters')
-                    target_size = max_chunk_size
+                    target_size = "{:.0f}MB".format(self.max_chunk_size)
                     nChunks_col = 1
                     nChunks_row = 1
                     rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
@@ -287,16 +286,9 @@ class Forward(object):
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
                 print('Number of chunks: %.0f x %.0f = %.0f' %
                     (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
-<<<<<<< HEAD
-                print("Target chunk size: ", target_size)
+                print("Target chunk size: %s" % target_size)
                 print('Max chunk size %.0f x %.0f = %.3f (MB)' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-6))
                 print('Min chunk size %.0f x %.0f = %.3f (MB)' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-6))
-=======
-                print("Target chunk size: ", dask.config.get('array.chunk-size'))
-
-                print('Max chunk size %.0f x %.0f = %.6f (GB)' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9))
-                print('Min chunk size %.0f x %.0f = %.6f (GB)' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-9))
->>>>>>> e11815ef2fad85fc4ea09021ac68252d10bcc40f
                 print('Max RAM (GB x %.0f CPU): %.6f' %
                     (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
                 print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
