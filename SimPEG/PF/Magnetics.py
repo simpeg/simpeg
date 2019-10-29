@@ -38,6 +38,7 @@ class MagneticIntegral(Problem.LinearProblem):
     parallelized = "dask"
     max_chunk_size = None
     chunk_by_rows = False
+
     coordinate_system = properties.StringChoice(
         "Type of coordinate system we are regularizing in",
         choices=['cartesian', 'spherical'],
@@ -130,11 +131,11 @@ class MagneticIntegral(Problem.LinearProblem):
 
             vec = dask.delayed(csr.dot)(self.Mxyz, m)
             M = da.from_delayed(vec, dtype=float, shape=[m.shape[0]])
-            fields = da.dot(self.G, M)
+            fields = da.dot(self.G, da.from_array(M, chunks=self.G.chunks[1]))
 
         else:
 
-            fields = da.dot(self.G, m.astype(np.float32))
+            fields = da.dot(self.G, da.from_array(m, chunks=self.G.chunks[1]))
 
         if self.modelType == 'amplitude':
 
@@ -253,21 +254,22 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.coordinate_system == 'cartesian':
             dmudm = self.chiMap.deriv(m)
         else:
-            dmudm = dask.delayed(csr.dot)(self.dSdm, self.chiMap.deriv(m))
+            dmudm = self.dSdm * self.chiMap.deriv(m)
 
         if getattr(self, '_Mxyz', None) is not None:
 
-            dmudm_v = dask.delayed(csr.dot)(dmudm, v)
-            vec = dask.delayed(csr.dot)(self.Mxyz, dmudm_v)
-            M_dmudm_v = da.from_delayed(vec, dtype=float, shape=[self.Mxyz.shape[0]])
+            # dmudm_v = dask.delayed(csr.dot)(dmudm, v)
+            # vec = dask.delayed(csr.dot)(self.Mxyz, dmudm_v)
+            M_dmudm_v = da.from_array(self.Mxyz*(dmudm*v), chunks=self.G.chunks[1])
 
-            Jvec = da.dot(self.G, M_dmudm_v.astype(np.float32))
+            Jvec = da.dot(self.G, M_dmudm_v)
 
         else:
 
-            vec = dask.delayed(csr.dot)(dmudm, v)
-            dmudm_v = da.from_delayed(vec, dtype=float, shape=[self.chiMap.deriv(m).shape[0]])
-            Jvec = da.dot(self.G, dmudm_v.astype(np.float32))
+#            vec = dask.delayed(csr.dot)(dmudm, v)
+            dmudm_v = da.from_array(dmudm*v, chunks=self.G.chunks[1])
+
+            Jvec = da.dot(self.G, dmudm_v)
 
         if self.modelType == 'amplitude':
             dfdm_Jvec = dask.delayed(csr.dot)(self.dfdm, Jvec)
@@ -281,11 +283,12 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.coordinate_system == 'cartesian':
             dmudm = self.chiMap.deriv(m)
         else:
-            dmudm = dask.delayed(csr.dot)(self.dSdm, self.chiMap.deriv(m))
+            dmudm = self.dSdm * self.chiMap.deriv(m)
 
         if self.modelType == 'amplitude':
 
             dfdm_v = dask.delayed(csr.dot)(v, self.dfdm)
+
             vec = da.from_delayed(dfdm_v, dtype=float, shape=[self.dfdm.shape[0]])
 
             if getattr(self, '_Mxyz', None) is not None:
@@ -300,6 +303,7 @@ class MagneticIntegral(Problem.LinearProblem):
         else:
 
             Jtvec = da.dot(v.astype(np.float32), self.G)
+
 
         dmudm_v = dask.delayed(csr.dot)(Jtvec, dmudm)
 
@@ -378,11 +382,11 @@ class MagneticIntegral(Problem.LinearProblem):
             m = matutils.atp2xyz(m)
 
         if getattr(self, '_Mxyz', None) is not None:
-            Bxyz = da.dot(self.G, (self.Mxyz*m).astype(np.float32))
+            Bxyz = da.dot(self.G, (self.Mxyz*m))
         else:
-            Bxyz = da.dot(self.G, m.astype(np.float32))
+            Bxyz = da.dot(self.G, m)
 
-        amp = self.calcAmpData(Bxyz.astype(np.float64))
+        amp = self.calcAmpData(Bxyz)
         Bamp = sp.spdiags(1./amp, 0, self.nD, self.nD)
 
         return (Bxyz.reshape((3, self.nD), order='F')*Bamp)
@@ -458,6 +462,7 @@ class Forward(object):
     verbose = True
     maxRAM = 1
     chunk_by_rows = False
+
     max_chunk_size = None
     Jpath = "./sensitivity.zarr"
 
@@ -501,6 +506,7 @@ class Forward(object):
                 # Auto rechunk
                 # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
                 if self.forwardOnly or self.chunk_by_rows:
+
                     print('DASK: Chunking by rows')
                     # Autochunking by rows is faster and avoids memory leak for large forward models
                     stack = stack.rechunk({0: 'auto', 1: -1})
@@ -572,6 +578,7 @@ class Forward(object):
                         print("Saving G to zarr: " + self.Jpath)
                         G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True, overwrite=True)
 
+
         else:
 
             result = []
@@ -612,32 +619,8 @@ class Forward(object):
 
 
         rows = calcRow(self.Xn, self.Yn, self.Zn, xyzLoc, self.P, components=self.components)
-        # tx, ty, tz = calcRow(self.Xn, self.Yn, self.Zn, xyzLoc)
 
-        # if self.components == 'tmi':
-        #     row = self.P.dot(np.vstack((tx, ty, tz)))*self.Mxyz
-
-        # elif self.components == 'x':
-        #     row = tx*self.Mxyz
-
-        # elif self.components == 'y':
-        #     row = ty*self.Mxyz
-
-        # elif self.components == 'z':
-        #     row = tz*self.Mxyz
-
-        # elif self.components == 'xyz':
-        #     row = tx*self.Mxyz
-        #     row = np.r_[row, ty*self.Mxyz]
-        #     row = np.r_[row, tz*self.Mxyz]
-        # else:
-        #     raise Exception('components must be: "tmi", "x", "y" or "z"')
-
-        # if self.forwardOnly:
-
-        #     return np.dot(row, self.model)
-        # else:
-        return np.float32(rows * self.Mxyz)
+        return rows * self.Mxyz
 
     def progress(self, ind, total):
         """
