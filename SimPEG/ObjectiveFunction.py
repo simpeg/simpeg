@@ -320,12 +320,12 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     def __call__(self, m, f=None):
 
-        @dask.delayed
-        def rowSum(arr):
-            sumIt = 0
-            for i in range(len(arr)):
-                sumIt += arr[i]
-            return sumIt
+        # @dask.delayed
+        # def rowSum(arr):
+        #     sumIt = 0
+        #     for i in range(len(arr)):
+        #         sumIt += arr[i]
+        #     return sumIt
 
         fct = []
         for i, phi in enumerate(self):
@@ -338,7 +338,9 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                 else:
                     fct += [multiplier * objfct(m)]
 
-        return rowSum(fct).compute()
+        stack = da.vstack(fct)
+
+        return da.sum(stack, axis=0).compute()
 
 
     def deriv(self, m, f=None):
@@ -351,12 +353,12 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         :param SimPEG.Fields f: Fields object (if applicable)
         """
 
-        @dask.delayed
-        def rowSum(arr):
-            sumIt = 0
-            for i in range(len(arr)):
-                sumIt += arr[i]
-            return sumIt
+        # @dask.delayed
+        # def rowSum(arr):
+        #     sumIt = 0
+        #     for i in range(len(arr)):
+        #         sumIt += arr[i]
+        #     return sumIt
 
         g = []
         for i, phi in enumerate(self):
@@ -368,7 +370,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                     g += [multiplier * objfct.deriv(m, f=f[i])]
                 else:
                     g += [multiplier * objfct.deriv(m)]
-        return rowSum(g).compute()
+
+        stack = da.vstack(g)
+
+        return da.sum(stack, axis=0).compute()
 
     def deriv2(self, m, v=None, f=None):
         """
@@ -380,12 +385,12 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         :param numpy.ndarray v: vector we are multiplying by
         :param SimPEG.Fields f: Fields object (if applicable)
         """
-        @dask.delayed
-        def rowSum(arr):
-            sumIt = 0
-            for i in range(len(arr)):
-                sumIt += arr[i]
-            return sumIt
+        # @dask.delayed
+        # def rowSum(arr):
+        #     sumIt = 0
+        #     for i in range(len(arr)):
+        #         sumIt += arr[i]
+        #     return sumIt
 
         H = []
         for i, phi in enumerate(self):
@@ -401,7 +406,9 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         if isinstance(H[0], dask.array.Array):
 
-            return rowSum(H).compute()
+            stack = da.vstack(H)
+
+            return da.sum(stack, axis=0).compute()
 
         else:
             sumIt = 0

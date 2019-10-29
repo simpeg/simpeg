@@ -126,7 +126,7 @@ class l2_DataMisfit(BaseDataMisfit):
         "__call__(m, f=None)"
         if f is None:
             f = self.prob.fields(m)
-            
+
         W_res = dask.delayed(csr.dot)(self.W, self.survey.residual(m, f))
         vec = da.from_delayed(W_res, dtype=float, shape=[self.W.shape[1]])
 #        R = self.W * self.survey.residual(m, f)

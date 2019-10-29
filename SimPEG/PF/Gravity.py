@@ -29,7 +29,9 @@ class GravityIntegral(Problem.LinearProblem):
     n_cpu = None
     progressIndex = -1
     gtgdiag = None
+    max_chunk_size = None
     Jpath = "./sensitivity.zarr"
+    chunk_by_rows = False
     maxRAM = 8  # Maximum memory usage
     verbose = True
 
@@ -83,7 +85,7 @@ class GravityIntegral(Problem.LinearProblem):
         else:
             # fields = da.dot(self.G, m)
 
-            return da.dot(self.G, self.rhoMap*m) #np.array(fields, dtype='float')
+            return da.dot(self.G, (self.rhoMap*m).astype(np.float32)) #np.array(fields, dtype='float')
 
     def modelMap(self):
         """
@@ -130,13 +132,14 @@ class GravityIntegral(Problem.LinearProblem):
         vec = dask.delayed(csr.dot)(dmudm, v)
         dmudm_v = da.from_delayed(vec, dtype=float, shape=[dmudm.shape[0]])
 
-        return da.dot(self.G, dmudm_v)
+        return da.dot(self.G, dmudm_v.astype(np.float32))
 
     def Jtvec(self, m, v, f=None):
 
         dmudm = self.rhoMap.deriv(m)
 
-        jt_v = da.dot(v, self.G)
+        jt_v = da.dot(v.astype(np.float32), self.G)
+
 
         dmudm_jt_v = dask.delayed(csr.dot)(jt_v, dmudm)
 
@@ -205,7 +208,9 @@ class Forward(object):
     forwardOnly = False
     model = None
     components = ['gz']
+    max_chunk_size = None
     verbose = True
+    chunk_by_rows = False
     maxRAM = 1.
     Jpath = "./sensitivity.zarr"
 
@@ -244,8 +249,6 @@ class Forward(object):
 
                 stack = da.vstack(buildMat)
 
-                # Auto rechunk
-                # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
                 if self.forwardOnly or self.chunk_by_rows:
                     print('DASK: Chunking by rows')
                     # Autochunking by rows is faster and avoids memory leak for large forward models
@@ -279,13 +282,21 @@ class Forward(object):
                     target_size = dask.config.get('array.chunk-size')
                     stack = stack.rechunk({0: -1, 1: 'auto'})
 
+
                 print('Tile size (nD, nC): ', stack.shape)
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
                 print('Number of chunks: %.0f x %.0f = %.0f' %
                     (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
+<<<<<<< HEAD
                 print("Target chunk size: ", target_size)
                 print('Max chunk size %.0f x %.0f = %.3f (MB)' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-6))
                 print('Min chunk size %.0f x %.0f = %.3f (MB)' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-6))
+=======
+                print("Target chunk size: ", dask.config.get('array.chunk-size'))
+
+                print('Max chunk size %.0f x %.0f = %.6f (GB)' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9))
+                print('Min chunk size %.0f x %.0f = %.6f (GB)' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-9))
+>>>>>>> e11815ef2fad85fc4ea09021ac68252d10bcc40f
                 print('Max RAM (GB x %.0f CPU): %.6f' %
                     (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
                 print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
@@ -313,12 +324,15 @@ class Forward(object):
 
                             return G
                         else:
+                            del G
+                            shutil.rmtree(self.Jpath)
+                            print("Zarr file detected with wrong shape and chunksize ... over-writting")
 
-                            print("Zarr file detected with wrong shape and chunksize ... over-writing")
 
                     with ProgressBar():
                         print("Saving G to zarr: " + self.Jpath)
                         G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True, overwrite=True)
+
 
         else:
 
