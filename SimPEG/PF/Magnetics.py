@@ -19,7 +19,6 @@ import dask.array as da
 from dask.diagnostics import ProgressBar
 from scipy.sparse import csr_matrix as csr
 import os
-import shutil
 
 class MagneticIntegral(Problem.LinearProblem):
 
@@ -458,7 +457,6 @@ class Forward(object):
     P = None
     verbose = True
     maxRAM = 1
-    rechunk_parameters = []
     chunk_by_rows = False
     max_chunk_size = None
     Jpath = "./sensitivity.zarr"
@@ -496,7 +494,7 @@ class Forward(object):
 
                 makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
 
-                buildMat = [da.from_delayed(makeRow, dtype=float, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
+                buildMat = [da.from_delayed(makeRow, dtype=np.float32, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
 
                 stack = da.vstack(buildMat)
 
@@ -568,15 +566,11 @@ class Forward(object):
                             return G
                         else:
 
-                            del G
-                            shutil.rmtree(self.Jpath)
-                            print("Zarr file detected with wrong shape and chunksize ... over-writting")
+                            print("Zarr file detected with wrong shape and chunksize ... over-writing")
 
                     with ProgressBar():
                         print("Saving G to zarr: " + self.Jpath)
-                        da.to_zarr(stack, self.Jpath)
-
-                    G = da.from_zarr(self.Jpath)
+                        G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True, overwrite=True)
 
         else:
 

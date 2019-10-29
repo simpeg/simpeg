@@ -6,14 +6,12 @@ from SimPEG import Props
 import scipy as sp
 import scipy.constants as constants
 import os
-import time
 import numpy as np
 import dask
 import dask.array as da
 from scipy.sparse import csr_matrix as csr
 from dask.diagnostics import ProgressBar
 import multiprocessing
-import shutil
 
 class GravityIntegral(Problem.LinearProblem):
 
@@ -25,12 +23,10 @@ class GravityIntegral(Problem.LinearProblem):
     # surveyPair = Survey.LinearSurvey
     forwardOnly = False  # Is TRUE, forward matrix not stored to memory
     actInd = None  #: Active cell indices provided
-    silent = False
-    equiSourceLayer = False
-    memory_saving_mode = False
     parallelized = "dask"
+    max_chunk_size = None
+    chunk_by_rows = False
     n_cpu = None
-    n_chunks = 1
     progressIndex = -1
     gtgdiag = None
     max_chunk_size = None
@@ -144,7 +140,7 @@ class GravityIntegral(Problem.LinearProblem):
 
         jt_v = da.dot(v.astype(np.float32), self.G)
 
-        dmudm_jt_v = dask.delayed(csr.dot)(dmudm.T, jt_v)
+        dmudm_jt_v = dask.delayed(csr.dot)(jt_v, dmudm)
 
         return da.from_delayed(dmudm_jt_v, dtype=float, shape=[dmudm.shape[1]])
 
@@ -188,9 +184,9 @@ class GravityIntegral(Problem.LinearProblem):
                 rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
                 model=self.model, components=self.survey.components,
-                parallelized=self.parallelized, n_chunks=self.n_chunks,
+                parallelized=self.parallelized,
                 verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM,
-                chunk_by_rows=self.chunk_by_rows
+                max_chunk_size=self.max_chunk_size, chunk_by_rows=self.chunk_by_rows
                 )
 
         G = job.calculate()
@@ -208,7 +204,6 @@ class Forward(object):
     rxLoc = None
     Xn, Yn, Zn = None, None, None
     n_cpu = None
-    n_chunks = None
     forwardOnly = False
     model = None
     components = ['gz']
@@ -249,7 +244,7 @@ class Forward(object):
 
                 makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
 
-                buildMat = [da.from_delayed(makeRow, dtype=float, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
+                buildMat = [da.from_delayed(makeRow, dtype=np.float32, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
 
                 stack = da.vstack(buildMat)
 
@@ -315,30 +310,14 @@ class Forward(object):
                             # Check that loaded G matches supplied data and mesh
                             print("Zarr file detected with same shape and chunksize ... re-loading")
 
+                            return G
                         else:
 
-                            with ProgressBar():
-                                print("Zarr file detected with wrong shape and chunksize ... over-writing: " + self.Jpath)
-                                G = da.to_zarr(stack, self.Jpath, return_stored=True, overwrite=True)
+                            print("Zarr file detected with wrong shape and chunksize ... over-writing")
 
-                    else:
-
-                        with ProgressBar():
-                            print("Saving G to zarr: " + self.Jpath)
-                            G = da.to_zarr(stack, self.Jpath, return_stored=True, overwrite=True)
-
-            # elif self.parallelized == "multiprocessing":
-
-            #     totRAM = nDataComps*self.nD*self.nC*8*1e-9
-            #     print("Multiprocessing:", self.n_cpu, self.nD, self.nC, totRAM, self.maxRAM)
-
-            #     pool = multiprocessing.Pool(self.n_cpu)
-
-            #     result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
-            #     pool.close()
-            #     pool.join()
-
-            #     G = np.vstack(result)
+                    with ProgressBar():
+                        print("Saving G to zarr: " + self.Jpath)
+                        G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True, overwrite=True)
 
         else:
 
