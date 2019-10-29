@@ -131,11 +131,11 @@ class MagneticIntegral(Problem.LinearProblem):
 
             vec = dask.delayed(csr.dot)(self.Mxyz, m)
             M = da.from_delayed(vec, dtype=float, shape=[m.shape[0]])
-            fields = da.dot(self.G, da.from_array(M, chunks=self.G.chunks[1]))
+            fields = da.dot(self.G, M)
 
         else:
 
-            fields = da.dot(self.G, da.from_array(m, chunks=self.G.chunks[1]))
+            fields = da.dot(self.G, m.astype(np.float32))
 
         if self.modelType == 'amplitude':
 
@@ -262,14 +262,14 @@ class MagneticIntegral(Problem.LinearProblem):
             # vec = dask.delayed(csr.dot)(self.Mxyz, dmudm_v)
             M_dmudm_v = da.from_array(self.Mxyz*(dmudm*v), chunks=self.G.chunks[1])
 
-            Jvec = da.dot(self.G, M_dmudm_v)
+            Jvec = da.dot(self.G, M_dmudm_v.astype(np.float32))
 
         else:
 
 #            vec = dask.delayed(csr.dot)(dmudm, v)
             dmudm_v = da.from_array(dmudm*v, chunks=self.G.chunks[1])
 
-            Jvec = da.dot(self.G, dmudm_v)
+            Jvec = da.dot(self.G, dmudm_v.astype(np.float32))
 
         if self.modelType == 'amplitude':
             dfdm_Jvec = dask.delayed(csr.dot)(self.dfdm, Jvec)
@@ -382,11 +382,11 @@ class MagneticIntegral(Problem.LinearProblem):
             m = matutils.atp2xyz(m)
 
         if getattr(self, '_Mxyz', None) is not None:
-            Bxyz = da.dot(self.G, (self.Mxyz*m))
+            Bxyz = da.dot(self.G, (self.Mxyz*m).astype(np.float32))
         else:
-            Bxyz = da.dot(self.G, m)
+            Bxyz = da.dot(self.G, m.astype(np.float32))
 
-        amp = self.calcAmpData(Bxyz)
+        amp = self.calcAmpData(Bxyz.astype(np.float64))
         Bamp = sp.spdiags(1./amp, 0, self.nD, self.nD)
 
         return (Bxyz.reshape((3, self.nD), order='F')*Bamp)
