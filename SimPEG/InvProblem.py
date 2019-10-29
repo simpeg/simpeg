@@ -193,8 +193,8 @@ class BaseInvProblem(Props.BaseSimPEG):
         f = self.getFields(m, store=(return_g is False and return_H is False))
 
         # if isinstance(self.dmisfit, DataMisfit.BaseDataMisfit):
-        phi_d = self.dmisfit(m, f=f)
-        self.dpred = self.get_dpred(m, f=f)
+        phi_d = da.compute(self.dmisfit(m, f=f))[0]
+        self.dpred = da.compute(self.get_dpred(m, f=f))[0]
 
         phi_m = self.reg(m)
 
@@ -205,7 +205,7 @@ class BaseInvProblem(Props.BaseSimPEG):
 
         out = (phi,)
         if return_g:
-            phi_dDeriv = np.squeeze(self.dmisfit.deriv(m, f=f))
+            phi_dDeriv = np.squeeze(da.compute(self.dmisfit.deriv(m, f=f)))
             phi_mDeriv = np.squeeze(self.reg.deriv(m))
 
             g = phi_dDeriv + self.beta * phi_mDeriv
