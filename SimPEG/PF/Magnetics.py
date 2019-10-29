@@ -506,14 +506,13 @@ class Forward(object):
                 # Auto rechunk
                 # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
                 if self.forwardOnly or self.chunk_by_rows:
-
                     print('DASK: Chunking by rows')
                     # Autochunking by rows is faster and avoids memory leak for large forward models
-                    target_size = dask.config.get('array.chunk-size')
+                    target_size = dask.config.get('array.chunk-size').replace('MiB',' MB')
                     stack = stack.rechunk({0: 'auto', 1: -1})
                 elif self.max_chunk_size:
                     print('DASK: Chunking using parameters')
-                    target_size = "{:.0f}MB".format(self.max_chunk_size)
+                    target_size = "{:.0f} MB".format(self.max_chunk_size)
                     nChunks_col = 1
                     nChunks_row = 1
                     rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
@@ -536,7 +535,7 @@ class Forward(object):
                 else:
                     print('DASK: Chunking by columns')
                     # Autochunking by columns is faster for Inversions
-                    target_size = dask.config.get('array.chunk-size')
+                    target_size = dask.config.get('array.chunk-size').replace('MiB',' MB')
                     stack = stack.rechunk({0: -1, 1: 'auto'})
 
                 print('Tile size (nD, nC): ', stack.shape)
@@ -544,8 +543,8 @@ class Forward(object):
                 print('Number of chunks: %.0f x %.0f = %.0f' %
                     (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
                 print("Target chunk size: %s" % target_size)
-                print('Max chunk size %.0f x %.0f = %.3f (MB)' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-6))
-                print('Min chunk size %.0f x %.0f = %.3f (MB)' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-6))
+                print('Max chunk size %.0f x %.0f = %.3f MB' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-6))
+                print('Min chunk size %.0f x %.0f = %.3f MB' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-6))
                 print('Max RAM (GB x %.0f CPU): %.6f' %
                     (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
                 print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
