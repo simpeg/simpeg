@@ -19,7 +19,6 @@ import dask.array as da
 from dask.diagnostics import ProgressBar
 from scipy.sparse import csr_matrix as csr
 import os
-import shutil
 
 class MagneticIntegral(Problem.LinearProblem):
 
@@ -38,6 +37,8 @@ class MagneticIntegral(Problem.LinearProblem):
     n_cpu = None
     parallelized = "dask"
     max_chunk_size = None
+    chunk_by_rows = False
+
     coordinate_system = properties.StringChoice(
         "Type of coordinate system we are regularizing in",
         choices=['cartesian', 'spherical'],
@@ -130,11 +131,11 @@ class MagneticIntegral(Problem.LinearProblem):
 
             vec = dask.delayed(csr.dot)(self.Mxyz, m)
             M = da.from_delayed(vec, dtype=float, shape=[m.shape[0]])
-            fields = da.dot(self.G, da.from_array(M, chunks=self.G.chunks[1]))
+            fields = da.dot(self.G, M)
 
         else:
 
-            fields = da.dot(self.G, da.from_array(m, chunks=self.G.chunks[1]))
+            fields = da.dot(self.G, m.astype(np.float32))
 
         if self.modelType == 'amplitude':
 
@@ -261,14 +262,14 @@ class MagneticIntegral(Problem.LinearProblem):
             # vec = dask.delayed(csr.dot)(self.Mxyz, dmudm_v)
             M_dmudm_v = da.from_array(self.Mxyz*(dmudm*v), chunks=self.G.chunks[1])
 
-            Jvec = da.dot(self.G, M_dmudm_v)
+            Jvec = da.dot(self.G, M_dmudm_v.astype(np.float32))
 
         else:
 
 #            vec = dask.delayed(csr.dot)(dmudm, v)
             dmudm_v = da.from_array(dmudm*v, chunks=self.G.chunks[1])
 
-            Jvec = da.dot(self.G, dmudm_v)
+            Jvec = da.dot(self.G, dmudm_v.astype(np.float32))
 
         if self.modelType == 'amplitude':
             dfdm_Jvec = dask.delayed(csr.dot)(self.dfdm, Jvec)
@@ -287,21 +288,22 @@ class MagneticIntegral(Problem.LinearProblem):
         if self.modelType == 'amplitude':
 
             dfdm_v = dask.delayed(csr.dot)(v, self.dfdm)
-            vec = da.from_array(da.from_delayed(dfdm_v, dtype=float, shape=[self.dfdm.shape[0]]), chunks=self.G.chunks[0])
+
+            vec = da.from_delayed(dfdm_v, dtype=float, shape=[self.dfdm.shape[0]])
 
             if getattr(self, '_Mxyz', None) is not None:
 
-
-                jtvec = da.dot(vec, self.G)
+                jtvec = da.dot(vec.astype(np.float32), self.G)
 
                 Jtvec = dask.delayed(csr.dot)(jtvec, self.Mxyz)
 
             else:
-                Jtvec = da.dot(vec, self.G)
+                Jtvec = da.dot(vec.astype(np.float32), self.G)
 
         else:
 
-            Jtvec = da.dot(da.asarray(v, chunks=self.G.chunks[0]), self.G)
+            Jtvec = da.dot(v.astype(np.float32), self.G)
+
 
         dmudm_v = dask.delayed(csr.dot)(Jtvec, dmudm)
 
@@ -380,11 +382,11 @@ class MagneticIntegral(Problem.LinearProblem):
             m = matutils.atp2xyz(m)
 
         if getattr(self, '_Mxyz', None) is not None:
-            Bxyz = da.dot(self.G, (self.Mxyz*m))
+            Bxyz = da.dot(self.G, (self.Mxyz*m).astype(np.float32))
         else:
-            Bxyz = da.dot(self.G, m)
+            Bxyz = da.dot(self.G, m.astype(np.float32))
 
-        amp = self.calcAmpData(Bxyz)
+        amp = self.calcAmpData(Bxyz.astype(np.float64))
         Bamp = sp.spdiags(1./amp, 0, self.nD, self.nD)
 
         return (Bxyz.reshape((3, self.nD), order='F')*Bamp)
@@ -436,7 +438,7 @@ class MagneticIntegral(Problem.LinearProblem):
                 model=self.model, components=self.survey.components, Mxyz=self.Mxyz,
                 P=self.ProjTMI, parallelized=self.parallelized,
                 verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM,
-                max_chunk_size=self.max_chunk_size
+                max_chunk_size=self.max_chunk_size, chunk_by_rows=self.chunk_by_rows
                 )
 
         G = job.calculate()
@@ -459,6 +461,8 @@ class Forward(object):
     P = None
     verbose = True
     maxRAM = 1
+    chunk_by_rows = False
+
     max_chunk_size = None
     Jpath = "./sensitivity.zarr"
 
@@ -495,19 +499,20 @@ class Forward(object):
 
                 makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
 
-                buildMat = [da.from_delayed(makeRow, dtype=float, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
+                buildMat = [da.from_delayed(makeRow, dtype=np.float32, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
 
                 stack = da.vstack(buildMat)
 
                 # Auto rechunk
                 # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
-                if self.forwardOnly:
+                if self.forwardOnly or self.chunk_by_rows:
                     print('DASK: Chunking by rows')
                     # Autochunking by rows is faster and avoids memory leak for large forward models
+                    target_size = dask.config.get('array.chunk-size').replace('MiB',' MB')
                     stack = stack.rechunk({0: 'auto', 1: -1})
                 elif self.max_chunk_size:
                     print('DASK: Chunking using parameters')
-                    # print('DASK: Chunking using parameters')
+                    target_size = "{:.0f} MB".format(self.max_chunk_size)
                     nChunks_col = 1
                     nChunks_row = 1
                     rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
@@ -530,19 +535,19 @@ class Forward(object):
                 else:
                     print('DASK: Chunking by columns')
                     # Autochunking by columns is faster for Inversions
+                    target_size = dask.config.get('array.chunk-size').replace('MiB',' MB')
                     stack = stack.rechunk({0: -1, 1: 'auto'})
 
                 print('Tile size (nD, nC): ', stack.shape)
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
                 print('Number of chunks: %.0f x %.0f = %.0f' %
                     (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
-                print("Target chunk size: ", dask.config.get('array.chunk-size'))
-                print('Max chunk size %.0f x %.0f = %.6f (GB)' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9))
-                print('Min chunk size %.0f x %.0f = %.6f (GB)' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-9))
+                print("Target chunk size: %s" % target_size)
+                print('Max chunk size %.0f x %.0f = %.3f MB' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-6))
+                print('Min chunk size %.0f x %.0f = %.3f MB' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-6))
                 print('Max RAM (GB x %.0f CPU): %.6f' %
                     (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
                 print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
-
 
                 if self.forwardOnly:
 
@@ -568,27 +573,12 @@ class Forward(object):
                             return G
                         else:
 
-                            del G
-                            shutil.rmtree(self.Jpath)
-                            print("Zarr file detected with wrong shape and chunksize ... over-writting")
+                            print("Zarr file detected with wrong shape and chunksize ... over-writing")
 
                     with ProgressBar():
                         print("Saving G to zarr: " + self.Jpath)
-                        da.to_zarr(stack, self.Jpath)
+                        G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True, overwrite=True)
 
-                    G = da.from_zarr(self.Jpath)
-            # elif self.parallelized == "multiprocessing":
-
-            #     totRAM = nDataComps*self.nD*self.nC*8*1e-9
-            #     print("Multiprocessing:", self.n_cpu, self.nD, self.nC, totRAM, self.maxRAM)
-
-            #     pool = multiprocessing.Pool(self.n_cpu)
-
-            #     result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
-            #     pool.close()
-            #     pool.join()
-
-            #     G = np.vstack(result)
 
         else:
 
@@ -630,31 +620,7 @@ class Forward(object):
 
 
         rows = calcRow(self.Xn, self.Yn, self.Zn, xyzLoc, self.P, components=self.components)
-        # tx, ty, tz = calcRow(self.Xn, self.Yn, self.Zn, xyzLoc)
 
-        # if self.components == 'tmi':
-        #     row = self.P.dot(np.vstack((tx, ty, tz)))*self.Mxyz
-
-        # elif self.components == 'x':
-        #     row = tx*self.Mxyz
-
-        # elif self.components == 'y':
-        #     row = ty*self.Mxyz
-
-        # elif self.components == 'z':
-        #     row = tz*self.Mxyz
-
-        # elif self.components == 'xyz':
-        #     row = tx*self.Mxyz
-        #     row = np.r_[row, ty*self.Mxyz]
-        #     row = np.r_[row, tz*self.Mxyz]
-        # else:
-        #     raise Exception('components must be: "tmi", "x", "y" or "z"')
-
-        # if self.forwardOnly:
-
-        #     return np.dot(row, self.model)
-        # else:
         return rows * self.Mxyz
 
     def progress(self, ind, total):

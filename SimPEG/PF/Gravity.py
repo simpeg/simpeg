@@ -6,14 +6,12 @@ from SimPEG import Props
 import scipy as sp
 import scipy.constants as constants
 import os
-import time
 import numpy as np
 import dask
 import dask.array as da
 from scipy.sparse import csr_matrix as csr
 from dask.diagnostics import ProgressBar
 import multiprocessing
-import shutil
 
 class GravityIntegral(Problem.LinearProblem):
 
@@ -25,15 +23,14 @@ class GravityIntegral(Problem.LinearProblem):
     # surveyPair = Survey.LinearSurvey
     forwardOnly = False  # Is TRUE, forward matrix not stored to memory
     actInd = None  #: Active cell indices provided
-    silent = False
-    equiSourceLayer = False
-    memory_saving_mode = False
     parallelized = "dask"
+    chunk_by_rows = False
     n_cpu = None
-    n_chunks = 1
     progressIndex = -1
     gtgdiag = None
+    max_chunk_size = None
     Jpath = "./sensitivity.zarr"
+    chunk_by_rows = False
     maxRAM = 8  # Maximum memory usage
     verbose = True
 
@@ -87,7 +84,7 @@ class GravityIntegral(Problem.LinearProblem):
         else:
             # fields = da.dot(self.G, m)
 
-            return da.dot(self.G, self.rhoMap*m) #np.array(fields, dtype='float')
+            return da.dot(self.G, (self.rhoMap*m).astype(np.float32)) #np.array(fields, dtype='float')
 
     def modelMap(self):
         """
@@ -134,13 +131,14 @@ class GravityIntegral(Problem.LinearProblem):
         vec = dask.delayed(csr.dot)(dmudm, v)
         dmudm_v = da.from_delayed(vec, dtype=float, shape=[dmudm.shape[0]])
 
-        return da.dot(self.G, dmudm_v)
+        return da.dot(self.G, dmudm_v.astype(np.float32))
 
     def Jtvec(self, m, v, f=None):
 
         dmudm = self.rhoMap.deriv(m)
 
-        jt_v = da.dot(v, self.G)
+        jt_v = da.dot(v.astype(np.float32), self.G)
+
 
         dmudm_jt_v = dask.delayed(csr.dot)(jt_v, dmudm)
 
@@ -186,8 +184,9 @@ class GravityIntegral(Problem.LinearProblem):
                 rxLoc=self.rxLoc, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
                 model=self.model, components=self.survey.components,
-                parallelized=self.parallelized, n_chunks=self.n_chunks,
-                verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM
+                parallelized=self.parallelized,
+                verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM,
+                max_chunk_size=self.max_chunk_size, chunk_by_rows=self.chunk_by_rows
                 )
 
         G = job.calculate()
@@ -205,11 +204,12 @@ class Forward(object):
     rxLoc = None
     Xn, Yn, Zn = None, None, None
     n_cpu = None
-    n_chunks = None
     forwardOnly = False
     model = None
     components = ['gz']
+    max_chunk_size = None
     verbose = True
+    chunk_by_rows = False
     maxRAM = 1.
     Jpath = "./sensitivity.zarr"
 
@@ -244,36 +244,54 @@ class Forward(object):
 
                 makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
 
-                buildMat = [da.from_delayed(makeRow, dtype=float, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
+                buildMat = [da.from_delayed(makeRow, dtype=np.float32, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
 
                 stack = da.vstack(buildMat)
 
-                # Auto rechunk
-                # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
-                # stack = stack.rechunk({0: -1, 1: 'auto'}) # Auto rechunk by cols. Use {0: 'auto', 1: -1} to auto chunk by rows
+                if self.forwardOnly or self.chunk_by_rows:
+                    print('DASK: Chunking by rows')
+                    # Autochunking by rows is faster and avoids memory leak for large forward models
+                    target_size = dask.config.get('array.chunk-size').replace('MiB',' MB')
+                    stack = stack.rechunk({0: 'auto', 1: -1})
+                elif self.max_chunk_size:
+                    print('DASK: Chunking using parameters')
+                    target_size = "{:.0f} MB".format(self.max_chunk_size)
+                    nChunks_col = 1
+                    nChunks_row = 1
+                    rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
+                    colChunk = int(np.ceil(stack.shape[1]/nChunks_col))
+                    chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
 
-                nChunks = 1
-                rowChunk, colChunk = int(np.ceil(self.nD*nDataComps/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
-                while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= 0.256:
-#                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
-                    nChunks += 1
-                    rowChunk, colChunk = int(np.ceil(self.nD*nDataComps)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
-                    totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
+                    # Add more chunks until memory falls below target
+                    while chunk_size >= self.max_chunk_size:
 
-                stack = stack.rechunk((rowChunk, colChunk))
-                print('DASK: ')
+                        if rowChunk > colChunk:
+                            nChunks_row += 1
+                        else:
+                            nChunks_col += 1
+
+                        rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
+                        colChunk = int(np.ceil(stack.shape[1]/nChunks_col))
+                        chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+
+                    stack = stack.rechunk((rowChunk, colChunk))
+                else:
+                    print('DASK: Chunking by columns')
+                    # Autochunking by columns is faster for Inversions
+                    target_size = dask.config.get('array.chunk-size').replace('MiB',' MB')
+                    stack = stack.rechunk({0: -1, 1: 'auto'})
+
+
                 print('Tile size (nD, nC): ', stack.shape)
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
                 print('Number of chunks: %.0f x %.0f = %.0f' %
                     (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
-                print("Target chunk size: ", dask.config.get('array.chunk-size'))
-                print('Max chunk size %.6f x %.6f = %.6f (GB)' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9))
-                print('Min chunk size %.6f x %.6f = %.6f (GB)' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-9))
+                print("Target chunk size: %s" % target_size)
+                print('Max chunk size %.0f x %.0f = %.3f MB' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-6))
+                print('Min chunk size %.0f x %.0f = %.3f MB' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-6))
                 print('Max RAM (GB x %.0f CPU): %.6f' %
                     (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
                 print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
-
 
                 if self.forwardOnly:
 
@@ -295,29 +313,18 @@ class Forward(object):
                                 np.r_[G.shape] == np.r_[stack.shape]]):
                             # Check that loaded G matches supplied data and mesh
                             print("Zarr file detected with same shape and chunksize ... re-loading")
+
                             return G
                         else:
                             del G
                             shutil.rmtree(self.Jpath)
                             print("Zarr file detected with wrong shape and chunksize ... over-writting")
 
+
                     with ProgressBar():
                         print("Saving G to zarr: " + self.Jpath)
-                        da.to_zarr(stack, self.Jpath)
+                        G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True, overwrite=True)
 
-                    G = da.from_zarr(self.Jpath)
-            # elif self.parallelized == "multiprocessing":
-
-            #     totRAM = nDataComps*self.nD*self.nC*8*1e-9
-            #     print("Multiprocessing:", self.n_cpu, self.nD, self.nC, totRAM, self.maxRAM)
-
-            #     pool = multiprocessing.Pool(self.n_cpu)
-
-            #     result = pool.map(self.calcTrow, [self.rxLoc[ii, :] for ii in range(self.nD)])
-            #     pool.close()
-            #     pool.join()
-
-            #     G = np.vstack(result)
 
         else:
 
