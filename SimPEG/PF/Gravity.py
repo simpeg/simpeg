@@ -33,7 +33,9 @@ class GravityIntegral(Problem.LinearProblem):
     n_chunks = 1
     progressIndex = -1
     gtgdiag = None
+    max_chunk_size = None
     Jpath = "./sensitivity.zarr"
+    chunk_by_rows = False
     maxRAM = 8  # Maximum memory usage
     verbose = True
 
@@ -87,7 +89,7 @@ class GravityIntegral(Problem.LinearProblem):
         else:
             # fields = da.dot(self.G, m)
 
-            return da.dot(self.G, self.rhoMap*m) #np.array(fields, dtype='float')
+            return da.dot(self.G, (self.rhoMap*m).astype(np.float32)) #np.array(fields, dtype='float')
 
     def modelMap(self):
         """
@@ -134,13 +136,13 @@ class GravityIntegral(Problem.LinearProblem):
         vec = dask.delayed(csr.dot)(dmudm, v)
         dmudm_v = da.from_delayed(vec, dtype=float, shape=[dmudm.shape[0]])
 
-        return da.dot(self.G, dmudm_v)
+        return da.dot(self.G, dmudm_v.astype(np.float32))
 
     def Jtvec(self, m, v, f=None):
 
         dmudm = self.rhoMap.deriv(m)
 
-        jt_v = da.dot(self.G.T, v)
+        jt_v = da.dot(v.astype(np.float32), self.G)
 
         dmudm_jt_v = dask.delayed(csr.dot)(dmudm.T, jt_v)
 
@@ -187,7 +189,8 @@ class GravityIntegral(Problem.LinearProblem):
                 n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
                 model=self.model, components=self.survey.components,
                 parallelized=self.parallelized, n_chunks=self.n_chunks,
-                verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM
+                verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM,
+                chunk_by_rows=self.chunk_by_rows
                 )
 
         G = job.calculate()
@@ -209,7 +212,9 @@ class Forward(object):
     forwardOnly = False
     model = None
     components = ['gz']
+    max_chunk_size = None
     verbose = True
+    chunk_by_rows = False
     maxRAM = 1.
     Jpath = "./sensitivity.zarr"
 
@@ -248,18 +253,46 @@ class Forward(object):
 
                 stack = da.vstack(buildMat)
 
-                # Auto rechunk
-                # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
-                stack = stack.rechunk({0: -1, 1: 'auto'}) # Auto rechunk by cols. Use {0: 'auto', 1: -1} to auto chunk by rows
+                if self.forwardOnly or self.chunk_by_rows:
+                    print('DASK: Chunking by rows')
+                    # Autochunking by rows is faster and avoids memory leak for large forward models
+                    stack = stack.rechunk({0: 'auto', 1: -1})
+                elif self.max_chunk_size:
+                    print('DASK: Chunking using parameters')
+                    nChunks_col = 1
+                    nChunks_row = 1
+                    rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
+                    colChunk = int(np.ceil(stack.shape[1]/nChunks_col))
+                    chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
 
-                print('DASK: ')
+                    # Add more chunks until memory falls below target
+                    while chunk_size >= self.max_chunk_size:
+
+                        if rowChunk > colChunk:
+                            nChunks_row += 1
+                        else:
+                            nChunks_col += 1
+
+                        rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
+                        colChunk = int(np.ceil(stack.shape[1]/nChunks_col))
+                        chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+
+                    stack = stack.rechunk((rowChunk, colChunk))
+                else:
+                    print('DASK: Chunking by columns')
+                    # Autochunking by columns is faster for Inversions
+                    stack = stack.rechunk({0: -1, 1: 'auto'})
+
                 print('Tile size (nD, nC): ', stack.shape)
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
-                print('Number of chunks: ', len(stack.chunks[0]), ' x ', len(stack.chunks[1]), ' = ', len(stack.chunks[0]) * len(stack.chunks[1]))
+                print('Number of chunks: %.0f x %.0f = %.0f' %
+                    (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
                 print("Target chunk size: ", dask.config.get('array.chunk-size'))
-                print('Max chunk size (GB): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9)
-                print('Max RAM (GB x CPU): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu)
-                print('Tile size (GB): ', stack.shape[0] * stack.shape[1] * 8*1e-9)
+                print('Max chunk size %.0f x %.0f = %.6f (GB)' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9))
+                print('Min chunk size %.0f x %.0f = %.6f (GB)' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-9))
+                print('Max RAM (GB x %.0f CPU): %.6f' %
+                    (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
+                print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
 
                 if self.forwardOnly:
 
@@ -452,7 +485,7 @@ class Forward(object):
         if 'guv' in self.components:
             compDict['guv'] = -0.5*(gxx - gyy)
 
-        return np.vstack([NewtG * compDict[key] for key in list(compDict.keys())])
+        return np.float32(np.vstack([NewtG * compDict[key] for key in list(compDict.keys())]))
 
 
 class Problem3D_Diff(Problem.BaseProblem):
