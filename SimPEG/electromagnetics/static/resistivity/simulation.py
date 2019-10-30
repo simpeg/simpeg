@@ -74,12 +74,12 @@ class BaseDCSimulation(BaseEMSimulation):
 
             # Need to check if multiplying weights makes sense
             if W is None:
-                self.gtgdiag = da.sum((self.getJ(self.model))**2., 0).compute()
+                self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
             else:
 
                 WJ = da.from_delayed(
-                        dask.delayed(csr.dot)(W, self.getJ(self.model)),
-                        shape=self.getJ(self.model).shape,
+                        dask.delayed(csr.dot)(W, self.getJ(m)),
+                        shape=self.getJ(m).shape,
                         dtype=float
                 )
                 self.gtgdiag = da.sum(WJ**2., 0).compute()
@@ -145,7 +145,36 @@ class BaseDCSimulation(BaseEMSimulation):
 
                     du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, rx.nD), dtype=float)
 
-                Jtv.append(du_dmT)
+                if self.max_chunk_size is not None:
+                    # print('DASK: Chunking using parameters')
+                    nChunks_col = 1
+                    nChunks_row = 1
+                    rowChunk = int(np.ceil(du_dmT.shape[0]/nChunks_row))
+                    colChunk = int(np.ceil(du_dmT.shape[1]/nChunks_col))
+                    chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+
+                    # Add more chunks until memory falls below target
+                    while chunk_size >= self.max_chunk_size:
+
+                        if rowChunk > colChunk:
+                            nChunks_row += 1
+                        else:
+                            nChunks_col += 1
+
+                        rowChunk = int(np.ceil(du_dmT.shape[0]/nChunks_row))
+                        colChunk = int(np.ceil(du_dmT.shape[1]/nChunks_col))
+                        chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+
+                    du_dmT = du_dmT.rechunk((rowChunk, colChunk))
+
+                else:
+                    # print('DASK: Chunking by columns')
+                    # Autochunking by columns is faster for Inversions
+                    du_dmT = du_dmT.rechunk({0: -1, 1: 'auto'})
+
+                block_name = self.Jpath + "J" + str(count) + ".zarr"
+                da.to_zarr(du_dmT, block_name)
+                Jtv.append(da.from_zarr(block_name))
                 count += 1
 
         # Stack all the source blocks in one big zarr

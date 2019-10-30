@@ -404,7 +404,14 @@ class BaseSimulation(props.HasModel):
         if std is not None:
             standard_deviation = std
 
+        if f is None:
+            f = self.fields(m)
+
+        if isinstance(f, Delayed):
+            f = f.compute()
+
         dclean = self.dpred(m, f=f)
+
         if add_noise is True:
             noise = standard_deviation*abs(dclean)*np.random.randn(*dclean.shape)
             dobs = dclean + noise

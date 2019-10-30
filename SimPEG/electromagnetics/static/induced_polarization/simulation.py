@@ -94,7 +94,7 @@ class BaseIPSimulation(BaseEMSimulation):
                 d_\\text{pred} = Pf(m)
         """
         if f is None:
-            f = self.fields(m)
+            f = self.fields(m).compute()
 
         return self._pred
 
@@ -133,7 +133,7 @@ class BaseIPSimulation(BaseEMSimulation):
             else:
 
                 if f is None:
-                    f = self.fields(m)
+                    f = self.fields(m).compute()
                 # self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
                 if os.path.exists(self.Jpath):
                     shutil.rmtree(self.Jpath, ignore_errors=True)
@@ -260,7 +260,7 @@ class BaseIPSimulation(BaseEMSimulation):
             self.model = m
 
             if f is None:
-                f = self.fields(m)
+                f = self.fields(m).compute()
             return self._Jtvec(m, v=v, f=f)
 
     def _Jtvec(self, m, v=None, f=None):
