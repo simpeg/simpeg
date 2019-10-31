@@ -58,7 +58,7 @@ class BaseDCSimulation(BaseEMSimulation):
         Srcs = self.survey.source_list
 
         print("Fields n_cpu %i" % self.n_cpu)
-        f[Srcs, self._solutionType] = self.Ainv * RHS #, num_cores=self.n_cpu).compute()
+        f[Srcs, self._solutionType] = self.Ainv * RHS  #, num_cores=self.n_cpu).compute()
 
         if not self.storeJ:
             self.Ainv.clean()
@@ -76,13 +76,20 @@ class BaseDCSimulation(BaseEMSimulation):
             if W is None:
                 self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
             else:
+                self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
+            #     from dask.diagnostics import Profiler, ResourceProfiler, CacheProfiler
 
-                WJ = da.from_delayed(
-                        dask.delayed(csr.dot)(W, self.getJ(m)),
-                        shape=self.getJ(m).shape,
-                        dtype=float
-                )
-                self.gtgdiag = da.sum(WJ**2., 0).compute()
+            #     with Profiler() as prof, ResourceProfiler(dt=0.25) as rprof, CacheProfiler() as cprof:
+            #         self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
+
+            #     from dask.diagnostics import visualize
+            #     visualize([prof, rprof, cprof])
+                # WJ = da.from_delayed(
+                #         dask.delayed(csr.dot)(W, self.getJ(m)),
+                #         shape=self.getJ(m).shape,
+                #         dtype=float
+                # )
+                # self.gtgdiag = da.sum(WJ**2., 0).compute()
 
         return self.gtgdiag
 
@@ -115,8 +122,8 @@ class BaseDCSimulation(BaseEMSimulation):
 
         Jtv = []
         count = 0
-        mkl_set_num_threads(1)
-
+        mkl_set_num_threads(self.n_cpu)
+        print('check ram2')
         print("In get J %i"% mkl_get_max_threads())
         for source in self.survey.source_list:
             u_source = f[source, self._solutionType].copy()
@@ -130,14 +137,13 @@ class BaseDCSimulation(BaseEMSimulation):
 
 
                 # Compute block of receivers
-                ATinvdf_duT = dask.delayed(self.Ainv * df_duT)
+                ATinvdf_duT = da.from_delayed(dask.delayed(self.Ainv * df_duT), shape=(self.mesh.nC, rx.nD), dtype=float)
+                if len(ATinvdf_duT.shape) == 1:
+                    ATinvdf_duT = np.c_[ATinvdf_duT]
 
-                # if len(ATinvdf_duT.shape) == 1:
-                #     ATinvdf_duT = np.c_[ATinvdf_duT]
+                dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
 
-                dA_dmT = self.getADeriv(u_source, da.from_delayed(ATinvdf_duT, shape=(self.model.size, rx.nD), dtype=float), adjoint=True)
-
-                dRHS_dmT = self.getRHSDeriv(source, da.from_delayed(ATinvdf_duT, shape=(self.model.size, rx.nD), dtype=float), adjoint=True)
+                dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
 
                 du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(dRHS_dmT, shape=(self.model.size, rx.nD), dtype=float)
 
@@ -145,36 +151,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
                     du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, rx.nD), dtype=float)
 
-                if self.max_chunk_size is not None:
-                    # print('DASK: Chunking using parameters')
-                    nChunks_col = 1
-                    nChunks_row = 1
-                    rowChunk = int(np.ceil(du_dmT.shape[0]/nChunks_row))
-                    colChunk = int(np.ceil(du_dmT.shape[1]/nChunks_col))
-                    chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
-
-                    # Add more chunks until memory falls below target
-                    while chunk_size >= self.max_chunk_size:
-
-                        if rowChunk > colChunk:
-                            nChunks_row += 1
-                        else:
-                            nChunks_col += 1
-
-                        rowChunk = int(np.ceil(du_dmT.shape[0]/nChunks_row))
-                        colChunk = int(np.ceil(du_dmT.shape[1]/nChunks_col))
-                        chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
-
-                    du_dmT = du_dmT.rechunk((rowChunk, colChunk))
-
-                else:
-                    # print('DASK: Chunking by columns')
-                    # Autochunking by columns is faster for Inversions
-                    du_dmT = du_dmT.rechunk({0: -1, 1: 'auto'})
-
-                block_name = self.Jpath + "J" + str(count) + ".zarr"
-                da.to_zarr(du_dmT, block_name)
-                Jtv.append(da.from_zarr(block_name))
+                Jtv.append(du_dmT)
                 count += 1
 
         # Stack all the source blocks in one big zarr
