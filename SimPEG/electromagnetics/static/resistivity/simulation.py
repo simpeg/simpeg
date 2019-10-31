@@ -115,7 +115,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
         Jtv = []
         count = 0
-        mkl_set_num_threads(self.n_cpu)
+        mkl_set_num_threads(1)
 
         print("In get J %i"% mkl_get_max_threads())
         for source in self.survey.source_list:
@@ -130,14 +130,14 @@ class BaseDCSimulation(BaseEMSimulation):
 
 
                 # Compute block of receivers
-                ATinvdf_duT = self.Ainv * df_duT
+                ATinvdf_duT = dask.delayed(self.Ainv * df_duT)
 
-                if len(ATinvdf_duT.shape) == 1:
-                    ATinvdf_duT = np.c_[ATinvdf_duT]
+                # if len(ATinvdf_duT.shape) == 1:
+                #     ATinvdf_duT = np.c_[ATinvdf_duT]
 
-                dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
+                dA_dmT = self.getADeriv(u_source, da.from_delayed(ATinvdf_duT, shape=(self.model.size, rx.nD), dtype=float), adjoint=True)
 
-                dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
+                dRHS_dmT = self.getRHSDeriv(source, da.from_delayed(ATinvdf_duT, shape=(self.model.size, rx.nD), dtype=float), adjoint=True)
 
                 du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(dRHS_dmT, shape=(self.model.size, rx.nD), dtype=float)
 
