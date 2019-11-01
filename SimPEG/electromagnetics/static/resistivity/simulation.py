@@ -144,9 +144,6 @@ class BaseDCSimulation(BaseEMSimulation):
 
         J = []
         count = 0
-        mkl_set_num_threads(self.n_cpu)
-        print('check ram2')
-        print("In get J %i"% mkl_get_max_threads())
         for source in self.survey.source_list:
             u_source = f[source, self._solutionType].copy()
             for rx in source.receiver_list:
@@ -166,7 +163,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
                 dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
 
-                du_dmT = dA_dmT + dRHS_dmT
+                du_dmT = -dA_dmT + dRHS_dmT
 
                 if not isinstance(df_dmT, Zero):
 
