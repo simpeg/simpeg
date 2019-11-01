@@ -17,6 +17,7 @@ from scipy.sparse import csr_matrix as csr
 from scipy.sparse import linalg
 from pymatsolver import BicgJacobi
 from pyMKL import mkl_set_num_threads, mkl_get_max_threads
+import zarr
 
 class BaseDCSimulation(BaseEMSimulation):
     """
@@ -116,11 +117,32 @@ class BaseDCSimulation(BaseEMSimulation):
             while os.path.exists(self.Jpath):
                 pass
 
-        # if os.path.exists(self.Jpath + "J.zarr"):
-        #     self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
-        # else:
-
         Jtv = []
+
+        nD = self.survey.nD
+        nC = m.shape[0]
+
+
+        # print('DASK: Chunking using parameters')
+        nChunks_col = 1
+        nChunks_row = 1
+        rowChunk = int(np.ceil(nD/nChunks_row))
+        colChunk = int(np.ceil(nC/nChunks_col))
+        chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+
+        # Add more chunks until memory falls below target
+        while chunk_size >= self.max_chunk_size:
+
+            if rowChunk > colChunk:
+                nChunks_row += 1
+            else:
+                nChunks_col += 1
+
+            rowChunk = int(np.ceil(nD/nChunks_row))
+            colChunk = int(np.ceil(nC/nChunks_col))
+            chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+
+        J = []
         count = 0
         mkl_set_num_threads(self.n_cpu)
         print('check ram2')
@@ -135,9 +157,8 @@ class BaseDCSimulation(BaseEMSimulation):
                                     None)
                 df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
 
-
                 # Compute block of receivers
-                ATinvdf_duT = da.from_delayed(dask.delayed(self.Ainv * df_duT), shape=(self.mesh.nC, rx.nD), dtype=float)
+                ATinvdf_duT = self.Ainv * df_duT #da.from_delayed(dask.delayed(self.Ainv * df_duT), shape=(self.mesh.nC, rx.nD), dtype=float)
                 if len(ATinvdf_duT.shape) == 1:
                     ATinvdf_duT = np.c_[ATinvdf_duT]
 
@@ -145,55 +166,21 @@ class BaseDCSimulation(BaseEMSimulation):
 
                 dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
 
-                du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size, rx.nD), dtype=float) + da.from_delayed(dRHS_dmT, shape=(self.model.size, rx.nD), dtype=float)
+                du_dmT = dA_dmT + dRHS_dmT
 
                 if not isinstance(df_dmT, Zero):
 
-                    du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, rx.nD), dtype=float)
+                    du_dmT += df_dmT
 
-                Jtv.append(du_dmT)
-                count += 1
-
-        # Stack all the source blocks in one big zarr
-        J = da.hstack(Jtv).T
-
-        if self.max_chunk_size is not None:
-            # print('DASK: Chunking using parameters')
-            nChunks_col = 1
-            nChunks_row = 1
-            rowChunk = int(np.ceil(J.shape[0]/nChunks_row))
-            colChunk = int(np.ceil(J.shape[1]/nChunks_col))
-            chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
-
-            # Add more chunks until memory falls below target
-            while chunk_size >= self.max_chunk_size:
-
-                if rowChunk > colChunk:
-                    nChunks_row += 1
+                if not J:
+                    J = zarr.open(self.Jpath, mode='w', shape=du_dmT.T.shape, chunks=(rowChunk, colChunk))
+                    J[:] = du_dmT.T
                 else:
-                    nChunks_col += 1
+                    J.append(du_dmT.T, axis=0)
 
-                rowChunk = int(np.ceil(J.shape[0]/nChunks_row))
-                colChunk = int(np.ceil(J.shape[1]/nChunks_col))
-                chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+                count += rx.nD
 
-            J = J.rechunk((rowChunk, colChunk))
-
-        else:
-            # print('DASK: Chunking by columns')
-            # Autochunking by columns is faster for Inversions
-            J = J.rechunk({0: -1, 1: 'auto'})
-
-        # print('Tile size (nD, nC): ', J.shape)
-        # print(
-        #     'Number of chunks: %i x %i = %i' %
-        #     (len(J.chunks[0]), len(J.chunks[1]), len(J.chunks[0]) * len(J.chunks[1])))
-        # print('Max chunk size %i x %i => %.6f (Mb)' % (max(J.chunks[0]), max(J.chunks[1]), max(J.chunks[0]) * max(J.chunks[1]) * 8*1e-6))
-        # print('Min chunk size %i x %i => %.6f (Mb)' % (min(J.chunks[0]), min(J.chunks[1]), min(J.chunks[0]) * min(J.chunks[1]) * 8*1e-6))
-        # print('Full Sensitivity (GB): %.3f' % (J.shape[0] * J.shape[1] * 8*1e-9))
-
-        da.to_zarr(J, self.Jpath + "J.zarr")
-        self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
+        self._Jmatrix = da.from_zarr(self.Jpath)
 
         self.Ainv.clean()
 
@@ -376,7 +363,6 @@ class Problem3D_CC(BaseDCSimulation):
         #     return V.T * A
         return A
 
-    @dask.delayed
     def getADeriv(self, u, v, adjoint=False):
 
         D = self.Div
@@ -398,7 +384,6 @@ class Problem3D_CC(BaseDCSimulation):
 
         return RHS
 
-    @dask.delayed
     def getRHSDeriv(self, source, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model
@@ -582,7 +567,6 @@ class Problem3D_N(BaseDCSimulation):
 
         return A
 
-    @dask.delayed
     def getADeriv(self, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the
@@ -603,7 +587,6 @@ class Problem3D_N(BaseDCSimulation):
         RHS = self.getSourceTerm()
         return RHS
 
-    @dask.delayed
     def getRHSDeriv(self, source, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model
