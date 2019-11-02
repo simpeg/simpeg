@@ -18,6 +18,7 @@ from scipy.sparse import linalg
 from pymatsolver import BicgJacobi
 from pyMKL import mkl_set_num_threads, mkl_get_max_threads
 import zarr
+import time
 
 class BaseDCSimulation(BaseEMSimulation):
     """
@@ -143,42 +144,61 @@ class BaseDCSimulation(BaseEMSimulation):
             chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
 
         J = []
+
+        tc = time.time()
         count = 0
         for source in self.survey.source_list:
             u_source = f[source, self._solutionType].copy()
             for rx in source.receiver_list:
                 # wrt f, need possibility wrt m
-                PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+                PTv = rx.getP(self.mesh, rx.projGLoc(f)).T
 
                 df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
                                     None)
                 df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
 
-                # Compute block of receivers
-                ATinvdf_duT = self.Ainv * df_duT #da.from_delayed(dask.delayed(self.Ainv * df_duT), shape=(self.mesh.nC, rx.nD), dtype=float)
-                if len(ATinvdf_duT.shape) == 1:
-                    ATinvdf_duT = np.c_[ATinvdf_duT]
+                # Find a block of receivers
+                n_block_col = int(np.ceil(df_duT.shape[0]*df_duT.shape[1]*32*1e-9 / self.maxRAM))
 
-                dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
+                n_col = int(np.ceil(df_duT.shape[1] / n_block_col))
 
-                dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
+                print(df_duT.shape[0]*df_duT.shape[1]*32*1e-9, n_col, n_block_col)
+                ind = 0
+                for col in range(n_block_col):
+                    ATinvdf_duT = self.Ainv * df_duT[:, ind:ind+n_col].todense()
 
-                du_dmT = -dA_dmT + dRHS_dmT
+                    if len(ATinvdf_duT.shape) == 1:
+                        ATinvdf_duT = np.c_[ATinvdf_duT]
 
-                if not isinstance(df_dmT, Zero):
+                    dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
 
-                    du_dmT += df_dmT
+                    dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
 
-                if not J:
-                    J = zarr.open(self.Jpath, mode='w', shape=du_dmT.T.shape, chunks=(rowChunk, colChunk))
-                    J[:] = du_dmT.T
-                else:
-                    J.append(du_dmT.T, axis=0)
+                    du_dmT = -dA_dmT + dRHS_dmT
 
-                count += rx.nD
+                    if not isinstance(df_dmT, Zero):
 
-        self._Jmatrix = da.from_zarr(self.Jpath)
+                        du_dmT += df_dmT
 
+                    blockName = self.Jpath + "J" + str(count) + ".zarr"
+                    da.to_zarr(da.asarray(du_dmT.T).rechunk('auto'), blockName)
+                    ind += n_col
+                    # Jtv.append(du_dmT)
+                    count += 1
+
+        print("Block time: %f"%(time.time()-tc))
+        dask_arrays = []
+        for ii in range(count):
+            blockName = self.Jpath + "J" + str(ii) + ".zarr"
+            J = da.from_zarr(blockName)
+        # Stack all the source blocks in one big zarr
+            dask_arrays.append(J)
+
+            # J = da.hstack(Jtv).T
+            # J = J.rechunk((rowChunk, colChunk))
+
+        self._Jmatrix = da.concatenate(dask_arrays, axis=0).rechunk((rowChunk, colChunk))
+        print("Addpen time: %f"%(time.time()-tc))
         self.Ainv.clean()
 
         return self._Jmatrix
