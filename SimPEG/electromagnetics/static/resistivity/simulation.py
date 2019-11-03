@@ -158,14 +158,14 @@ class BaseDCSimulation(BaseEMSimulation):
                 df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
 
                 # Find a block of receivers
-                n_block_col = int(np.ceil(df_duT.shape[0]*df_duT.shape[1]*32*1e-9 / self.maxRAM))
+                n_block_col = int(np.ceil(df_duT.shape[0]*df_duT.shape[1]*8*1e-9 / self.maxRAM))
 
                 n_col = int(np.ceil(df_duT.shape[1] / n_block_col))
 
-                print(df_duT.shape[0]*df_duT.shape[1]*32*1e-9, n_col, n_block_col)
+                print(df_duT.shape[0]*df_duT.shape[1]*8*1e-9, n_col, n_block_col)
                 ind = 0
                 for col in range(n_block_col):
-                    ATinvdf_duT = self.Ainv * df_duT[:, ind:ind+n_col].todense()
+                    ATinvdf_duT = self.Ainv * np.asarray(df_duT[:, ind:ind+n_col].todense())
 
                     if len(ATinvdf_duT.shape) == 1:
                         ATinvdf_duT = np.c_[ATinvdf_duT]
@@ -174,14 +174,14 @@ class BaseDCSimulation(BaseEMSimulation):
 
                     dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
 
-                    du_dmT = -dA_dmT + dRHS_dmT
+                    du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size, n_col), dtype=float) + da.from_delayed(dRHS_dmT, shape=(self.model.size, n_col), dtype=float)
 
                     if not isinstance(df_dmT, Zero):
 
-                        du_dmT += df_dmT
+                        du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, n_col), dtype=float)
 
                     blockName = self.Jpath + "J" + str(count) + ".zarr"
-                    da.to_zarr(da.asarray(du_dmT.T).rechunk('auto'), blockName)
+                    da.to_zarr((du_dmT.T).rechunk('auto'), blockName)
                     ind += n_col
                     # Jtv.append(du_dmT)
                     count += 1
@@ -380,6 +380,7 @@ class Problem3D_CC(BaseDCSimulation):
         #     return V.T * A
         return A
 
+    @dask.delayed()
     def getADeriv(self, u, v, adjoint=False):
 
         D = self.Div
@@ -401,6 +402,7 @@ class Problem3D_CC(BaseDCSimulation):
 
         return RHS
 
+    @dask.delayed()
     def getRHSDeriv(self, source, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model
@@ -584,6 +586,7 @@ class Problem3D_N(BaseDCSimulation):
 
         return A
 
+    @dask.delayed()
     def getADeriv(self, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the
@@ -604,6 +607,7 @@ class Problem3D_N(BaseDCSimulation):
         RHS = self.getSourceTerm()
         return RHS
 
+    @dask.delayed()
     def getRHSDeriv(self, source, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model
