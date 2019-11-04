@@ -162,29 +162,40 @@ class BaseDCSimulation(BaseEMSimulation):
 
                 n_col = int(np.ceil(df_duT.shape[1] / n_block_col))
 
-                print(df_duT.shape[0]*df_duT.shape[1]*8*1e-9, n_col, n_block_col)
                 ind = 0
                 for col in range(n_block_col):
-                    ATinvdf_duT = self.Ainv * np.asarray(df_duT[:, ind:ind+n_col].todense())
+                    ATinvdf_duT = da.asarray(self.Ainv * np.asarray(df_duT[:, ind:ind+n_col].todense())).rechunk((df_duT.shape[0], 1))
 
-                    if len(ATinvdf_duT.shape) == 1:
-                        ATinvdf_duT = np.c_[ATinvdf_duT]
+                    stack = []
+                    for v in range(ATinvdf_duT.shape[1]):
 
-                    dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
+                        vec = ATinvdf_duT[:, v].reshape((df_duT.shape[0], 1))
+                        # if len(ATinvdf_duT.shape) == 1:
+                        #     ATinvdf_duT =
 
-                    dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
+                        dA_dmT = self.getADeriv(u_source, vec, adjoint=True)
 
-                    du_dmT = -da.from_delayed(dA_dmT, shape=(self.model.size, n_col), dtype=float) + da.from_delayed(dRHS_dmT, shape=(self.model.size, n_col), dtype=float)
+                        dRHS_dmT = self.getRHSDeriv(source, vec, adjoint=True)
 
-                    if not isinstance(df_dmT, Zero):
+                        du_dmT = -dA_dmT
 
-                        du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, n_col), dtype=float)
+                        if not isinstance(dRHS_dmT, Zero):
+                            du_dmT += da.from_delayed(da.delayed(dRHS_dmT), shape=(self.model.size, n_col), dtype=float)
+
+                        if not isinstance(df_dmT, Zero):
+
+                            du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, n_col), dtype=float)
+
+                        stack += [du_dmT]
 
                     blockName = self.Jpath + "J" + str(count) + ".zarr"
-                    da.to_zarr((du_dmT.T).rechunk('auto'), blockName)
+
+                    da.to_zarr((da.hstack(stack).T).rechunk('auto'), blockName)
+                    count += 1
+
                     ind += n_col
                     # Jtv.append(du_dmT)
-                    count += 1
+
 
         print("Block time: %f"%(time.time()-tc))
         dask_arrays = []
@@ -380,17 +391,29 @@ class Problem3D_CC(BaseDCSimulation):
         #     return V.T * A
         return A
 
-    @dask.delayed()
     def getADeriv(self, u, v, adjoint=False):
 
-        D = self.Div
-        G = self.Grad
+        # Gvec = da.from_delayed(
+        #     dask.delayed(csr.dot)(self.Grad, u),
+        #     dtype=float, shape=[self.Grad.shape[0]]
+        # )
+        Gvec = self.Grad * u
         MfRhoIDeriv = self.MfRhoIDeriv
-
         if adjoint:
-            return MfRhoIDeriv(G * u, D.T * v, adjoint)
+            Dvec = da.from_delayed(
+                dask.delayed(csr.dot)(self.Div.T, v),
+                dtype=float, shape=[self.Div.shape[1], v.shape[1]]
+            )
+            return MfRhoIDeriv(Gvec, Dvec, adjoint)
 
-        return D * (MfRhoIDeriv(G * u, v, adjoint))
+        vec = MfRhoIDeriv(Gvec, v, adjoint)
+
+        Dvec = da.from_delayed(
+            dask.delayed(csr.dot)(self.Div, vec),
+            dtype=float, shape=[self.Div.shape[0], vec.shape[1]]
+        )
+
+        return Dvec
 
     def getRHS(self):
         """
@@ -402,7 +425,6 @@ class Problem3D_CC(BaseDCSimulation):
 
         return RHS
 
-    @dask.delayed()
     def getRHSDeriv(self, source, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model
@@ -411,6 +433,86 @@ class Problem3D_CC(BaseDCSimulation):
         # qDeriv = source.evalDeriv(self, adjoint=adjoint)
         # return qDeriv
         return Zero()
+
+    def MfRhoIDeriv(self, u, v=None, adjoint=False):
+        """
+            Derivative of :code:`MfRhoI` with respect to the model.
+        """
+        if self.rhoMap is None:
+            return Zero()
+
+        if len(self.rho.shape) > 1:
+            if self.rho.shape[1] > self.mesh.dim:
+                raise NotImplementedError(
+                    "Full anisotropy is not implemented for MfRhoIDeriv."
+                )
+
+        if getattr(self, 'dMfRhoI_dI', None) is None:
+            self.dMfRhoI_dI = -self.MfRhoI.power(2.)
+
+        if adjoint is True:
+#            vec = da.from_delayed(
+#                dask.delayed(csr.dot)(self.dMfRhoI_dI.T, u),
+#                dtype=float, shape=[self.dMfRhoI_dI.shape[1]]
+#            )
+            vec = self.dMfRhoI_dI.T * u
+            return self.MfRhoDeriv(
+                vec, v=v, adjoint=adjoint
+            )
+        else:
+            vec = self.MfRhoDeriv(u, v=v)
+
+            return da.from_delayed(
+                dask.delayed(csr.dot)(self.dMfRhoI_dI, vec),
+                dtype=float, shape=[self.dMfRhoI_dI.shape[0], vec.shape[1]]
+            )
+            # return dMfRhoI_dI * self.MfRhoDeriv(u, v=v)
+
+    def MfRhoDeriv(self, u, v=None, adjoint=False):
+        """
+        Derivative of :code:`MfRho` with respect to the model.
+        """
+        if self.rhoMap is None:
+            return Zero()
+
+        if getattr(self, '_MfRhoDeriv', None) is None:
+            self._MfRhoDeriv = self.mesh.getFaceInnerProductDeriv(
+                np.ones(self.mesh.nC)
+            )(np.ones(self.mesh.nF)) * self.rhoDeriv
+
+        if v is not None:
+            if adjoint is True:
+                vec = da.from_delayed(
+                    dask.delayed(csr.dot)(sdiag(u), v),
+                    dtype=float, shape=[u.shape[0], v.shape[1]]
+                )
+                return da.from_delayed(
+                    dask.delayed(csr.dot)(self._MfRhoDeriv.T, vec),
+                    dtype=float, shape=[self._MfRhoDeriv.shape[1], vec.shape[1]]
+                )
+
+            vec = da.from_delayed(
+                dask.delayed(csr.dot)(self._MfRhoDeriv, v),
+                dtype=float, shape=[self._MfRhoDeriv.shape[0], v.shape[1]]
+            )
+            return da.from_delayed(
+                    dask.delayed(csr.dot)(sdiag(u), vec),
+                    dtype=float, shape=[u.shape[0], vec.shape[1]]
+                )
+        else:
+            if adjoint is True:
+
+                return da.from_delayed(
+                    dask.delayed(csr.dot)(self._MfRhoDeriv.T, sdiag(u)),
+                    dtype=float, shape=[self._MfRhoDeriv.shape[1], u.shape[0]]
+                )
+
+            return da.from_delayed(
+                    dask.delayed(csr.dot)(sdiag(u), self._MfRhoDeriv),
+                    dtype=float, shape=[u.shape[0], self._MfRhoDeriv.shape[1]]
+                )
+
+            # sdiag(u)*(self._MfRhoDeriv)
 
     def setBC(self):
         if self.bc_type == 'Dirichlet':
@@ -607,7 +709,6 @@ class Problem3D_N(BaseDCSimulation):
         RHS = self.getSourceTerm()
         return RHS
 
-    @dask.delayed()
     def getRHSDeriv(self, source, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model
