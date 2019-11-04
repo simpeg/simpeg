@@ -191,6 +191,7 @@ class BaseDCSimulation(BaseEMSimulation):
                     blockName = self.Jpath + "J" + str(count) + ".zarr"
 
                     da.to_zarr((da.hstack(stack).T).rechunk('auto'), blockName)
+                    del ATinvdf_duT
                     count += 1
 
                     ind += n_col
@@ -397,16 +398,19 @@ class Problem3D_CC(BaseDCSimulation):
         #     dask.delayed(csr.dot)(self.Grad, u),
         #     dtype=float, shape=[self.Grad.shape[0]]
         # )
-        Gvec = self.Grad * u
-        MfRhoIDeriv = self.MfRhoIDeriv
+        Gvec = da.from_delayed(
+                dask.delayed(csr.dot)(self.Grad, u),
+                dtype=float, shape=[self.Grad.shape[0]]
+            )
+
         if adjoint:
             Dvec = da.from_delayed(
                 dask.delayed(csr.dot)(self.Div.T, v),
                 dtype=float, shape=[self.Div.shape[1], v.shape[1]]
             )
-            return MfRhoIDeriv(Gvec, Dvec, adjoint)
+            return self.MfRhoIDeriv(Gvec, Dvec, adjoint)
 
-        vec = MfRhoIDeriv(Gvec, v, adjoint)
+        vec = self.MfRhoIDeriv(Gvec, v, adjoint)
 
         Dvec = da.from_delayed(
             dask.delayed(csr.dot)(self.Div, vec),
@@ -451,11 +455,10 @@ class Problem3D_CC(BaseDCSimulation):
             self.dMfRhoI_dI = -self.MfRhoI.power(2.)
 
         if adjoint is True:
-#            vec = da.from_delayed(
-#                dask.delayed(csr.dot)(self.dMfRhoI_dI.T, u),
-#                dtype=float, shape=[self.dMfRhoI_dI.shape[1]]
-#            )
-            vec = self.dMfRhoI_dI.T * u
+            vec = da.from_delayed(
+               dask.delayed(csr.dot)(self.dMfRhoI_dI.T, u),
+               dtype=float, shape=[self.dMfRhoI_dI.shape[1]]
+            )
             return self.MfRhoDeriv(
                 vec, v=v, adjoint=adjoint
             )
@@ -468,7 +471,7 @@ class Problem3D_CC(BaseDCSimulation):
             )
             # return dMfRhoI_dI * self.MfRhoDeriv(u, v=v)
 
-    def MfRhoDeriv(self, u, v=None, adjoint=False):
+    def MfRhoDeriv(self, uvec, v=None, adjoint=False):
         """
         Derivative of :code:`MfRho` with respect to the model.
         """
@@ -482,9 +485,10 @@ class Problem3D_CC(BaseDCSimulation):
 
         if v is not None:
             if adjoint is True:
-                vec = da.from_delayed(
-                    dask.delayed(csr.dot)(sdiag(u), v),
-                    dtype=float, shape=[u.shape[0], v.shape[1]]
+
+#                udiag = dask.delayed(sp.sparse.diags(uvec))
+                vec = da.from_delayed(dask.delayed(np.multiply(uvec, v)),
+                    dtype=float, shape=v.shape
                 )
                 return da.from_delayed(
                     dask.delayed(csr.dot)(self._MfRhoDeriv.T, vec),
@@ -496,19 +500,19 @@ class Problem3D_CC(BaseDCSimulation):
                 dtype=float, shape=[self._MfRhoDeriv.shape[0], v.shape[1]]
             )
             return da.from_delayed(
-                    dask.delayed(csr.dot)(sdiag(u), vec),
-                    dtype=float, shape=[u.shape[0], vec.shape[1]]
+                    dask.delayed(csr.dot)(sdiag(uvec), vec),
+                    dtype=float, shape=[uvec.shape[0], vec.shape[1]]
                 )
         else:
             if adjoint is True:
 
                 return da.from_delayed(
-                    dask.delayed(csr.dot)(self._MfRhoDeriv.T, sdiag(u)),
+                    dask.delayed(csr.dot)(self._MfRhoDeriv.T, sdiag(uvec)),
                     dtype=float, shape=[self._MfRhoDeriv.shape[1], u.shape[0]]
                 )
 
             return da.from_delayed(
-                    dask.delayed(csr.dot)(sdiag(u), self._MfRhoDeriv),
+                    dask.delayed(csr.dot)(sdiag(uvec), self._MfRhoDeriv),
                     dtype=float, shape=[u.shape[0], self._MfRhoDeriv.shape[1]]
                 )
 
