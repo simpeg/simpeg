@@ -8,9 +8,9 @@ from scipy.interpolate import LinearNDInterpolator
 from numpy import matlib
 import discretize
 
-from ....data import Data
+from .... data import Data
 from .. import resistivity as dc
-from ....utils import (
+from .... utils import (
     asArray_N_x_Dim, closestPoints, mkvc, surface2ind_topo, uniqueRows,
     ModelBuilder
 )
@@ -631,27 +631,33 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
     return survey
 
 
-def gen_DCIPsurvey_topo(survey_type, endl, topo, a, b, n, dim_flag='2.5D'):
+def generateSurveyDCIP(survey_type, endl, topo, ds, dh, n, dim_flag='2.5D'):
     """
-        Load in endpoints and survey specifications to generate Tx, Rx location
-        stations.
-
-        Assumes flat topo for now...
+        Generate DCIP survey for modeling in 2.5D or 3D. Takes into accounted true surface
+        topography. Shift to discretized topography done using active cells model.
 
         Input:
         :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
             'dipole-pole' | 'pole-pole' | 'gradient'
         :param np.array endl: horizontal end points [x1, x2] or [x1, x2, y1, y2]
         :param float , (N, 2) np.array or (N, 3) np.array: topography
-        :param int a: station seperation
-        :param int b: dipole separation
+        :param int ds: station seperation
+        :param int dh: dipole separation (unused if pole-pole)
         :param int n: number of rx per tx
         :param str dim: '2D', '2.5D' or '3D'
 
         Output:
         :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
     """
-
+    
+    accepted_surveys = ['gradient','pole-pole','pole-dipole','dipole-pole','dipole-dipole']
+    
+    if survey_type.lower() not in accepted_surveys:
+            raise Exception(
+            "survey_type must be 'gradient' | 'dipole-dipole' | 'pole-dipole' | "
+            "'dipole-pole' | 'pole-pole' not {}".format(survey_type)
+            )
+    
     def xy_2_r(x1, x2, y1, y2):
         r = np.sqrt(np.sum((x2 - x1)**2. + (y2 - y1)**2.))
         return r
@@ -666,23 +672,31 @@ def gen_DCIPsurvey_topo(survey_type, endl, topo, a, b, n, dim_flag='2.5D'):
         y1 = endl[2]
         y2 = endl[3]
         L = xy_2_r(x1, x2, y1, y2)
-        nstn = int(np.floor(L / a) + 1)
+        nstn = int(np.floor(L / ds) + 1)
         dl_x = (x2 - x1) / L
         dl_y = (y2 - y1) / L
-        stn_x = x1 + np.array(range(int(nstn)))*dl_x*a
-        stn_y = y1 + np.array(range(int(nstn)))*dl_y*a
+        stn_x = x1 + np.array(range(int(nstn)))*dl_x*ds
+        stn_y = y1 + np.array(range(int(nstn)))*dl_y*ds
 
-        # All electrode locations
-        M = np.c_[stn_x, stn_y]
-        N = np.c_[stn_x + dl_x*b, stn_y + dl_y*b]
+        # Locations of poles and dipoles
+        if survey_type.lower() in ['pole-pole','pole-dipole','dipole-pole']:
+            P = np.c_[stn_x, stn_y]
+            if np.size(topo) == 1:
+                P = np.c_[P, topo*np.ones((nstn))]
+            else:
+                fun_interp = LinearNDInterpolator(topo[:, 0:2], topo[:, -1])
+                P = np.c_[P, fun_interp(P)]
         
-        if np.size(topo) == 1:
-            M = np.c_[M, np.zeros((nstn))]
-            N = np.c_[N, np.zeros((nstn))]
-        else:
-            fun_interp = LinearNDInterpolator(topo[:, 0:2], topo[:, -1])
-            M = np.c_[M, fun_interp(M)]
-            N = np.c_[N, fun_interp(N)]
+        if survey_type.lower() in ['pole-dipole','dipole-pole','dipole-dipole']:
+            DP1 = np.c_[stn_x-0.5*dl_x*dh, stn_y-0.5*dl_y*dh]
+            DP2 = np.c_[stn_x+0.5*dl_x*dh, stn_y+0.5*dl_y*dh]
+            if np.size(topo) == 1:
+                DP1 = np.c_[DP1, topo*np.ones((nstn))]
+                DP2 = np.c_[DP2, topo*np.ones((nstn))]
+            else:
+                fun_interp = LinearNDInterpolator(topo[:, 0:2], topo[:, -1])
+                DP1 = np.c_[DP1, fun_interp(DP1)]
+                DP2 = np.c_[DP2, fun_interp(DP2)]
 
     else:
         
@@ -690,15 +704,28 @@ def gen_DCIPsurvey_topo(survey_type, endl, topo, a, b, n, dim_flag='2.5D'):
         y1 = 0.
         y2 = 0.
         L = xy_2_r(x1, x2, y1, y2)
-        nstn = int(np.floor(L / a))
-        stn_x = x1 + np.array(range(int(nstn + 1)))*a
+        nstn = int(np.floor(L / ds) + 1)
+        stn_x = x1 + np.array(range(int(nstn)))*ds
         
-        # All electrode locations
-        if np.size(topo) == 1:
-            M = np.c_[stn_x, np.zeros((nstn))]
-        else:
-            fun_interp = LinearNDInterpolator(topo[:,0], topo[:, -1])
-            M = np.c_[M, fun_interp(M)]
+        # Locations of poles and dipoles
+        if survey_type.lower() in ['pole-pole','pole-dipole','dipole-pole']:
+            P = np.c_[stn_x, stn_y]
+            if np.size(topo) == 1:
+                P = np.c_[stn_x, topo*np.ones((nstn))]
+            else:
+                fun_interp = LinearNDInterpolator(topo[:, 0:2], topo[:, -1])
+                P = np.c_[stn_x, fun_interp(stn_x)]
+        
+        if survey_type.lower() in ['pole-dipole','dipole-pole','dipole-dipole']:
+            DP1 = stn_x-0.5*dh
+            DP2 = stn_x+0.5*dh
+            if np.size(topo) == 1:
+                DP1 = np.c_[DP1, topo*np.ones((nstn))]
+                DP2 = np.c_[DP2, topo*np.ones((nstn))]
+            else:
+                fun_interp = LinearNDInterpolator(topo[:, 0:2], topo[:, -1])
+                DP1 = np.c_[DP1, fun_interp(DP1)]
+                DP2 = np.c_[DP2, fun_interp(DP2)]
 
 
     # Build list of Tx-Rx locations depending on survey type
@@ -707,68 +734,40 @@ def gen_DCIPsurvey_topo(survey_type, endl, topo, a, b, n, dim_flag='2.5D'):
     SrcList = []
 
     if survey_type != 'gradient':
-        
-        if survey_type.lower() in ['pole-pole', 'pole-dipole']:
-            N = M
-        elif survey_type.lower() not in ['dipole-pole', 'dipole-dipole']:
-            raise Exception(
-            "survey_type must be 'dipole-dipole' | 'pole-dipole' | "
-            "'dipole-pole' | 'pole-pole' not {}".format(survey_type)
-            )
 
         for ii in range(0, int(nstn)):
             
             if dim_flag is '3D':
-                D = xy_2_r(M[ii, 0], x2, M[ii, 1], y2)
+                D = xy_2_r(stn_x[ii], x2, stn_y[ii], y2)
             else:
-                D = xy_2_r(M[ii, 0], x2, y1, y2)
+                D = xy_2_r(stn_x[ii], x2, y1, y2)
             
             # Number of receivers to fit
-            nrec = int(np.min([np.floor(D / a), n]))
+            nrec = int(np.min([np.floor(D / ds), n]))
             
             # Check if there is enough space, else break the loop
             if nrec <= 0:
                 continue
             
-            # Create receiver poles
-
-            if dim_flag is '3D':
-                stn_x = M[ii+1, 0] + np.array(range(int(nrec)))*dl_x*a
-                stn_y = M[ii+1, 1] + np.array(range(int(nrec)))*dl_y*a
-
-                # Create line of P1 locations
-                P1 = np.c_[stn_x, stn_y, M[ii+1:ii+nrec+1, 2]]
-                
-                if survey_type.lower() in ['dipole-dipole', 'pole-dipole']:
-                    # Create line of P2 locations
-                    P2 = np.c_[stn_x+b*dl_x, stn_y+b*dl_y, N[ii+1:ii+nrec+1, 2]]
-                    rxClass = dc.receivers.Dipole(P1, P2)
-                elif survey_type.lower() in ['dipole-pole', 'pole-pole']:
-                    rxClass = dc.receivers.Pole(P1)
+            # Create receiveras
+            if dim_flag is '2.5D':
+                if survey_type.lower() in ['dipole-pole', 'pole-pole']:
+                    rxClass = dc.receivers.Pole_ky(P[ii+1:ii+nrec+1, :])
+                elif survey_type.lower() in ['dipole-dipole', 'pole-dipole']:
+                    rxClass = dc.receivers.Dipole_ky(DP1[ii+1:ii+nrec+1, :], DP2[ii+1:ii+nrec+1, :])
 
             else:
-                stn_x = M[ii+1, 0] + np.array(range(int(nrec)))*a
-                
-                # Create line of P1 locations
-                P1 = np.c_[stn_x, M[ii+1:ii+nrec+1, -1]]
-                
-                if survey_type.lower() in['dipole-dipole', 'pole-dipole']:
-                    # Create line of P2 locations
-                    P2 = np.c_[stn_x+b, N[ii+1:ii+nrec+1, -1]]
-                    if dim_flag == '2.5D':
-                        rxClass = dc.receivers.Dipole_ky(P1, P2)
-                    elif dim_flag == '2D':
-                        rxClass = dc.receivers.Dipole(P1, P2)
-                elif survey_type.lower() in ['dipole-pole', 'pole-pole']:
-                    if dim_flag == '2.5D':
-                        rxClass = dc.receivers.Pole_ky(P1)
-                    elif dim_flag == '2D':
-                        rxClass = dc.receivers.Pole(P1)
+                if survey_type.lower() in ['dipole-pole', 'pole-pole']:
+                    rxClass = dc.receivers.Pole(P[ii+1:ii+nrec+1, :])
+                elif survey_type.lower() in ['dipole-dipole', 'pole-dipole']:
+                    rxClass = dc.receivers.Dipole(DP1[ii+1:ii+nrec+1, :], DP2[ii+1:ii+nrec+1, :])
 
-            if survey_type.lower() in['dipole-dipole', 'dipole-pole']:
-                srcClass = dc.sources.Dipole([rxClass], M[ii, :], N[ii, :])
-            elif survey_type.lower() in ['pole-dipole', 'pole-pole']:
-                srcClass = dc.sources.Pole([rxClass], M[ii, :])
+            # Create sources
+            if survey_type.lower() in ['pole-dipole', 'pole-pole']:
+                srcClass = dc.sources.Pole([rxClass], P[ii, :])
+            elif survey_type.lower() in['dipole-dipole', 'dipole-pole']:
+                srcClass = dc.sources.Dipole([rxClass], DP1[ii, :], DP2[ii, :])
+            
             SrcList.append(srcClass)
 
     # elif survey_type.lower() == 'gradient':
@@ -825,7 +824,7 @@ def gen_DCIPsurvey_topo(survey_type, endl, topo, a, b, n, dim_flag='2.5D'):
     #         srcClass = DC.Src.Dipole([rxClass], (endl[0, :]), (endl[1, :]))
     #     SrcList.append(srcClass)
 
-    if dim_flag == '2.D':
+    if dim_flag == '2.5D':
         survey = dc.Survey_ky(SrcList)
     else:
         survey = dc.Survey(SrcList)
