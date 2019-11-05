@@ -19,6 +19,8 @@ from pymatsolver import BicgJacobi
 from pyMKL import mkl_set_num_threads, mkl_get_max_threads
 import zarr
 import time
+import sparse
+
 
 class BaseDCSimulation(BaseEMSimulation):
     """
@@ -40,7 +42,7 @@ class BaseDCSimulation(BaseEMSimulation):
     _Jmatrix = None
     gtgdiag = None
     n_cpu = int(multiprocessing.cpu_count())
-    max_chunk_size = None
+    max_chunk_size = 128
 
     @dask.delayed(pure=True)
     def fields(self, m=None, calcJ=True):
@@ -143,9 +145,6 @@ class BaseDCSimulation(BaseEMSimulation):
             colChunk = int(np.ceil(nC/nChunks_col))
             chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
 
-        J = []
-
-        tc = time.time()
         count = 0
         for source in self.survey.source_list:
             u_source = f[source, self._solutionType].copy()
@@ -162,43 +161,34 @@ class BaseDCSimulation(BaseEMSimulation):
 
                 n_col = int(np.ceil(df_duT.shape[1] / n_block_col))
 
+                nrows = int(self.model.size / np.ceil(self.model.size * n_col * 8 * 1e-6 / self.max_chunk_size))
                 ind = 0
                 for col in range(n_block_col):
-                    ATinvdf_duT = da.asarray(self.Ainv * np.asarray(df_duT[:, ind:ind+n_col].todense())).rechunk((df_duT.shape[0], 1))
+                    ATinvdf_duT = da.asarray(self.Ainv * np.asarray(df_duT[:, ind:ind+n_col].todense())).rechunk((nrows, n_col))
 
-                    stack = []
-                    for v in range(ATinvdf_duT.shape[1]):
+                    dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
 
-                        vec = ATinvdf_duT[:, v].reshape((df_duT.shape[0], 1))
-                        # if len(ATinvdf_duT.shape) == 1:
-                        #     ATinvdf_duT =
+                    dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
 
-                        dA_dmT = self.getADeriv(u_source, vec, adjoint=True)
+                    du_dmT = -dA_dmT
 
-                        dRHS_dmT = self.getRHSDeriv(source, vec, adjoint=True)
+                    if not isinstance(dRHS_dmT, Zero):
+                        du_dmT += da.from_delayed(da.delayed(dRHS_dmT), shape=(self.model.size, n_col), dtype=float)
 
-                        du_dmT = -dA_dmT
+                    if not isinstance(df_dmT, Zero):
 
-                        if not isinstance(dRHS_dmT, Zero):
-                            du_dmT += da.from_delayed(da.delayed(dRHS_dmT), shape=(self.model.size, n_col), dtype=float)
+                        du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, n_col), dtype=float)
 
-                        if not isinstance(df_dmT, Zero):
-
-                            du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, n_col), dtype=float)
-
-                        stack += [du_dmT]
+                        # stack += [du_dmT]
 
                     blockName = self.Jpath + "J" + str(count) + ".zarr"
 
-                    da.to_zarr((da.hstack(stack).T).rechunk('auto'), blockName)
+                    da.to_zarr((du_dmT.T).rechunk('auto'), blockName)
                     del ATinvdf_duT
                     count += 1
 
                     ind += n_col
-                    # Jtv.append(du_dmT)
 
-
-        print("Block time: %f"%(time.time()-tc))
         dask_arrays = []
         for ii in range(count):
             blockName = self.Jpath + "J" + str(ii) + ".zarr"
@@ -210,7 +200,6 @@ class BaseDCSimulation(BaseEMSimulation):
             # J = J.rechunk((rowChunk, colChunk))
 
         self._Jmatrix = da.concatenate(dask_arrays, axis=0).rechunk((rowChunk, colChunk))
-        print("Addpen time: %f"%(time.time()-tc))
         self.Ainv.clean()
 
         return self._Jmatrix
@@ -394,30 +383,26 @@ class Problem3D_CC(BaseDCSimulation):
 
     def getADeriv(self, u, v, adjoint=False):
 
-        # Gvec = da.from_delayed(
-        #     dask.delayed(csr.dot)(self.Grad, u),
-        #     dtype=float, shape=[self.Grad.shape[0]]
-        # )
-        Gvec = da.from_delayed(
-                dask.delayed(csr.dot)(self.Grad, u),
-                dtype=float, shape=[self.Grad.shape[0]]
-            )
+        Gvec = self.Grad * u
 
-        if adjoint:
-            Dvec = da.from_delayed(
-                dask.delayed(csr.dot)(self.Div.T, v),
-                dtype=float, shape=[self.Div.shape[1], v.shape[1]]
+        Div = da.from_array(
+                sparse.COO.from_scipy_sparse(self.Div.T),
+                chunks=(v.chunksize[0], v.chunksize[0]), asarray=False
             )
+        if adjoint:
+
+            Dvec = da.dot(Div, v)
+
             return self.MfRhoIDeriv(Gvec, Dvec, adjoint)
 
         vec = self.MfRhoIDeriv(Gvec, v, adjoint)
 
-        Dvec = da.from_delayed(
-            dask.delayed(csr.dot)(self.Div, vec),
-            dtype=float, shape=[self.Div.shape[0], vec.shape[1]]
-        )
+        # Dvec = da.from_delayed(
+        #     dask.delayed(csr.dot)(self.Div, vec),
+        #     dtype=float, shape=[self.Div.shape[0], vec.shape[1]]
+        # )
 
-        return Dvec
+        return da.dot(Div, vec)
 
     def getRHS(self):
         """
@@ -455,10 +440,8 @@ class Problem3D_CC(BaseDCSimulation):
             self.dMfRhoI_dI = -self.MfRhoI.power(2.)
 
         if adjoint is True:
-            vec = da.from_delayed(
-               dask.delayed(csr.dot)(self.dMfRhoI_dI.T, u),
-               dtype=float, shape=[self.dMfRhoI_dI.shape[1]]
-            )
+
+            vec = self.dMfRhoI_dI.T * u
             return self.MfRhoDeriv(
                 vec, v=v, adjoint=adjoint
             )
@@ -471,7 +454,7 @@ class Problem3D_CC(BaseDCSimulation):
             )
             # return dMfRhoI_dI * self.MfRhoDeriv(u, v=v)
 
-    def MfRhoDeriv(self, uvec, v=None, adjoint=False):
+    def MfRhoDeriv(self, u, v=None, adjoint=False):
         """
         Derivative of :code:`MfRho` with respect to the model.
         """
@@ -479,42 +462,37 @@ class Problem3D_CC(BaseDCSimulation):
             return Zero()
 
         if getattr(self, '_MfRhoDeriv', None) is None:
-            self._MfRhoDeriv = self.mesh.getFaceInnerProductDeriv(
+            MfRhoDeriv = self.mesh.getFaceInnerProductDeriv(
                 np.ones(self.mesh.nC)
             )(np.ones(self.mesh.nF)) * self.rhoDeriv
 
+            self._MfRhoDeriv = da.from_array(
+                    sparse.COO.from_scipy_sparse(MfRhoDeriv),
+                    chunks=(v.chunksize[0], v.chunksize[0]), asarray=False
+            )
+
         if v is not None:
+            udiag = da.from_array(
+                sparse.COO.from_scipy_sparse(sdiag(u)),
+                chunks=(v.chunksize[0], v.chunksize[0]), asarray=False
+            )
+
             if adjoint is True:
 
-#                udiag = dask.delayed(sp.sparse.diags(uvec))
-                vec = da.from_delayed(dask.delayed(np.multiply(uvec, v)),
-                    dtype=float, shape=v.shape
-                )
-                return da.from_delayed(
-                    dask.delayed(csr.dot)(self._MfRhoDeriv.T, vec),
-                    dtype=float, shape=[self._MfRhoDeriv.shape[1], vec.shape[1]]
-                )
+                uvec = da.dot(udiag, v)
 
-            vec = da.from_delayed(
-                dask.delayed(csr.dot)(self._MfRhoDeriv, v),
-                dtype=float, shape=[self._MfRhoDeriv.shape[0], v.shape[1]]
-            )
-            return da.from_delayed(
-                    dask.delayed(csr.dot)(sdiag(uvec), vec),
-                    dtype=float, shape=[uvec.shape[0], vec.shape[1]]
-                )
+                return da.dot(self._MfRhoDeriv.T, uvec)
+
+
+            vec = da.dot(self._MfRhoDeriv, v)
+            return da.dot(udiag, vec)
+
         else:
             if adjoint is True:
 
-                return da.from_delayed(
-                    dask.delayed(csr.dot)(self._MfRhoDeriv.T, sdiag(uvec)),
-                    dtype=float, shape=[self._MfRhoDeriv.shape[1], u.shape[0]]
-                )
+                return da.dot(self._MfRhoDeriv.T, udiag)
 
-            return da.from_delayed(
-                    dask.delayed(csr.dot)(sdiag(uvec), self._MfRhoDeriv),
-                    dtype=float, shape=[u.shape[0], self._MfRhoDeriv.shape[1]]
-                )
+            return da.dot(udiag, self._MfRhoDeriv)
 
             # sdiag(u)*(self._MfRhoDeriv)
 
