@@ -19,6 +19,9 @@ import dask
 import dask.array as da
 from scipy.sparse import csr_matrix as csr
 from pyMKL import mkl_set_num_threads
+import zarr
+import time
+import sparse
 # from .survey import Survey
 
 
@@ -49,7 +52,10 @@ class BaseIPSimulation(BaseEMSimulation):
     data_type = 'volt'
     _pred = None
     Jpath = "./sensitivityip/"
-    n_cpu = 1
+    gtgdiag = None
+    n_cpu = int(multiprocessing.cpu_count())
+    maxRAM = 2
+    max_chunk_size = 128
 
     @dask.delayed(pure=True)
     def fields(self, m=None, calcJ=True):
@@ -109,13 +115,13 @@ class BaseIPSimulation(BaseEMSimulation):
             if W is None:
                 self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
             else:
-
-                WJ = da.from_delayed(
-                        dask.delayed(csr.dot)(W, self.getJ(m)),
-                        shape=self.getJ(m).shape,
-                        dtype=float
-                )
-                self.gtgdiag = da.sum(WJ**2., 0).compute()
+                self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
+                # WJ = da.from_delayed(
+                #         dask.delayed(csr.dot)(W, self.getJ(m)),
+                #         shape=self.getJ(m).shape,
+                #         dtype=float
+                # )
+                # self.gtgdiag = da.sum(WJ**2., 0).compute()
 
         return self.gtgdiag
 
@@ -134,7 +140,7 @@ class BaseIPSimulation(BaseEMSimulation):
 
                 if f is None:
                     f = self.fields(m).compute()
-                # self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
+
                 if os.path.exists(self.Jpath):
                     shutil.rmtree(self.Jpath, ignore_errors=True)
 
@@ -143,65 +149,64 @@ class BaseIPSimulation(BaseEMSimulation):
                         pass
                 # start of IP J
                 # This is for forming full sensitivity matrix
-                self.n_cpu = int(multiprocessing.cpu_count())
-                Jtv = []
+                nD = self.survey.nD
+                nC = m.shape[0]
+
+                # print('DASK: Chunking using parameters')
+                nChunks_col = 1
+                nChunks_row = 1
+                rowChunk = int(np.ceil(nD / nChunks_row))
+                colChunk = int(np.ceil(nC / nChunks_col))
+                chunk_size = rowChunk * colChunk * 8 * 1e-6  # in Mb
+
+                # Add more chunks until memory falls below target
+                while chunk_size >= self.max_chunk_size:
+
+                    if rowChunk > colChunk:
+                        nChunks_row += 1
+                    else:
+                        nChunks_col += 1
+
+                    rowChunk = int(np.ceil(nD / nChunks_row))
+                    colChunk = int(np.ceil(nC / nChunks_col))
+                    chunk_size = rowChunk * colChunk * 8 * 1e-6  # in Mb
                 count = 0
                 for source in self.survey.source_list:
                     u_source = f[source, self._solutionType].copy()
                     for rx in source.receiver_list:
                         P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
-                        ATinvdf_duT = self.Ainv * P.T
-                        dA_dmT = -da.from_delayed(self.getADeriv(
-                            u_source, ATinvdf_duT, adjoint=True),
-                            shape=(self.model.size, rx.nD), dtype=float)
-                        blockName = self.Jpath + "J" + str(count) + ".zarr"
-                        # Number of chunks
-                        nChunks = self.n_cpu
-                        rowChunk = int(np.ceil(rx.nD / nChunks))
-                        # Chunk sizes
-                        colChunk = int(np.ceil(self.model.size / nChunks))
-                        dA_dmT = dA_dmT.rechunk((colChunk, rowChunk))
-                        da.to_zarr(dA_dmT, blockName)
+                        # Find a block of receivers
+                        n_block_col = int(np.ceil(P.T.shape[0] * P.T.shape[1] *
+                                                  8 * 1e-9 / self.maxRAM))
 
-                        Jtv.append(dA_dmT)
-                        count += 1
+                        n_col = int(np.ceil(P.T.shape[1] / n_block_col))
 
-                self._f = []
-                # clean all factorization
-                if self.Ainv is not None:
-                    self.Ainv.clean()
-                # Stack all the source blocks in one big zarr
-                J = da.hstack(Jtv).T
-                
-                if self.max_chunk_size is not None:
-                    # print('DASK: Chunking using parameters')
-                    nChunks_col = 1
-                    nChunks_row = 1
-                    rowChunk = int(np.ceil(J.shape[0]/nChunks_row))
-                    colChunk = int(np.ceil(J.shape[1]/nChunks_col))
-                    chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+                        nrows = int(self.model.size /
+                                    np.ceil(self.model.size *
+                                            n_col * 8 * 1e-6 /
+                                            self.max_chunk_size))
+                        ind = 0
+                        for col in range(n_block_col):
+                            ATinvdf_duT = da.asarray(self.Ainv * np.asarray(P.T[:, ind:ind + n_col])).rechunk((nrows, n_col))
+                            dA_dmT = self.getADeriv(
+                                u_source, ATinvdf_duT, adjoint=True)
 
-                    # Add more chunks until memory falls below target
-                    while chunk_size >= self.max_chunk_size:
+                            blockName = self.Jpath + "J" + str(count) + ".zarr"
+                            du_dmT = -da.from_delayed(dask.delayed(dA_dmT), shape=(self.model.size, n_col), dtype=float)
+                            da.to_zarr((du_dmT.T).rechunk('auto'), blockName)
+                            del ATinvdf_duT
+                            count += 1
+                            ind += n_col
 
-                        if rowChunk > colChunk:
-                            nChunks_row += 1
-                        else:
-                            nChunks_col += 1
+                dask_arrays = []
+                for ii in range(count):
+                    blockName = self.Jpath + "J" + str(ii) + ".zarr"
+                    J = da.from_zarr(blockName)
+                    # Stack all the source blocks in one big zarr
+                    dask_arrays.append(J)
 
-                        rowChunk = int(np.ceil(J.shape[0]/nChunks_row))
-                        colChunk = int(np.ceil(J.shape[1]/nChunks_col))
-                        chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
-
-                    J = J.rechunk((rowChunk, colChunk))
-
-                else:
-                    # print('DASK: Chunking by columns')
-                    # Autochunking by columns is faster for Inversions
-                    J = J.rechunk({0: -1, 1: 'auto'})
-
-                da.to_zarr(J, self.Jpath + "J.zarr")
-                self._Jmatrix = da.from_zarr(self.Jpath + "J.zarr")
+                self._Jmatrix = da.concatenate(dask_arrays, axis=0).rechunk((rowChunk, colChunk))
+                self.Ainv.clean()
 
         return self._Jmatrix
 

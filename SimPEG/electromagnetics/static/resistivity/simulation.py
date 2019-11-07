@@ -120,11 +120,8 @@ class BaseDCSimulation(BaseEMSimulation):
             while os.path.exists(self.Jpath):
                 pass
 
-        Jtv = []
-
         nD = self.survey.nD
         nC = m.shape[0]
-
 
         # print('DASK: Chunking using parameters')
         nChunks_col = 1
@@ -173,16 +170,12 @@ class BaseDCSimulation(BaseEMSimulation):
                     du_dmT = -dA_dmT
 
                     if not isinstance(dRHS_dmT, Zero):
-                        du_dmT += da.from_delayed(da.delayed(dRHS_dmT), shape=(self.model.size, n_col), dtype=float)
+                        du_dmT += da.from_delayed(dask.delayed(dRHS_dmT), shape=(self.model.size, n_col), dtype=float)
 
                     if not isinstance(df_dmT, Zero):
-
                         du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, n_col), dtype=float)
 
-                        # stack += [du_dmT]
-
                     blockName = self.Jpath + "J" + str(count) + ".zarr"
-
                     da.to_zarr((du_dmT.T).rechunk('auto'), blockName)
                     del ATinvdf_duT
                     count += 1
@@ -193,11 +186,8 @@ class BaseDCSimulation(BaseEMSimulation):
         for ii in range(count):
             blockName = self.Jpath + "J" + str(ii) + ".zarr"
             J = da.from_zarr(blockName)
-        # Stack all the source blocks in one big zarr
+            # Stack all the source blocks in one big zarr
             dask_arrays.append(J)
-
-            # J = da.hstack(Jtv).T
-            # J = J.rechunk((rowChunk, colChunk))
 
         self._Jmatrix = da.concatenate(dask_arrays, axis=0).rechunk((rowChunk, colChunk))
         self.Ainv.clean()
