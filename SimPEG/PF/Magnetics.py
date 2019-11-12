@@ -35,7 +35,7 @@ class MagneticIntegral(Problem.LinearProblem):
     W = None
     gtgdiag = None
     n_cpu = None
-    parallelized = "dask"
+    parallelized = True
     max_chunk_size = None
     chunk_by_rows = False
 
