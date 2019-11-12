@@ -449,7 +449,7 @@ class MagneticIntegral(Problem.LinearProblem):
 class Forward(object):
 
     progressIndex = -1
-    parallelized = "dask"
+    parallelized = True
     rxLoc = None
     Xn, Yn, Zn = None, None, None
     n_cpu = None
@@ -485,100 +485,89 @@ class Forward(object):
 
         if self.parallelized:
 
-            assert self.parallelized in ["dask", None], (
-                "'parallelization' must be 'dask', or None"
-                "Value provided -> "
-                "{}".format(
-                    self.parallelized)
+            row = dask.delayed(self.calcTrow, pure=True)
 
-            )
+            makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
 
-            if self.parallelized == "dask":
+            buildMat = [da.from_delayed(makeRow, dtype=np.float32, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
 
-                row = dask.delayed(self.calcTrow, pure=True)
+            stack = da.vstack(buildMat)
 
-                makeRows = [row(self.rxLoc[ii, :]) for ii in range(self.nD)]
+            # Auto rechunk
+            # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
+            if self.forwardOnly or self.chunk_by_rows:
+                print('DASK: Chunking by rows')
+                # Autochunking by rows is faster and avoids memory leak for large forward models
+                target_size = dask.config.get('array.chunk-size').replace('MiB',' MB')
+                stack = stack.rechunk({0: 'auto', 1: -1})
+            elif self.max_chunk_size:
+                print('DASK: Chunking using parameters')
+                target_size = "{:.0f} MB".format(self.max_chunk_size)
+                nChunks_col = 1
+                nChunks_row = 1
+                rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
+                colChunk = int(np.ceil(stack.shape[1]/nChunks_col))
+                chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
 
-                buildMat = [da.from_delayed(makeRow, dtype=np.float32, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
+                # Add more chunks until memory falls below target
+                while chunk_size >= self.max_chunk_size:
 
-                stack = da.vstack(buildMat)
+                    if rowChunk > colChunk:
+                        nChunks_row += 1
+                    else:
+                        nChunks_col += 1
 
-                # Auto rechunk
-                # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
-                if self.forwardOnly or self.chunk_by_rows:
-                    print('DASK: Chunking by rows')
-                    # Autochunking by rows is faster and avoids memory leak for large forward models
-                    target_size = dask.config.get('array.chunk-size').replace('MiB',' MB')
-                    stack = stack.rechunk({0: 'auto', 1: -1})
-                elif self.max_chunk_size:
-                    print('DASK: Chunking using parameters')
-                    target_size = "{:.0f} MB".format(self.max_chunk_size)
-                    nChunks_col = 1
-                    nChunks_row = 1
                     rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
                     colChunk = int(np.ceil(stack.shape[1]/nChunks_col))
                     chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
 
-                    # Add more chunks until memory falls below target
-                    while chunk_size >= self.max_chunk_size:
+                stack = stack.rechunk((rowChunk, colChunk))
+            else:
+                print('DASK: Chunking by columns')
+                # Autochunking by columns is faster for Inversions
+                target_size = dask.config.get('array.chunk-size').replace('MiB',' MB')
+                stack = stack.rechunk({0: -1, 1: 'auto'})
 
-                        if rowChunk > colChunk:
-                            nChunks_row += 1
-                        else:
-                            nChunks_col += 1
-
-                        rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
-                        colChunk = int(np.ceil(stack.shape[1]/nChunks_col))
-                        chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
-
-                    stack = stack.rechunk((rowChunk, colChunk))
-                else:
-                    print('DASK: Chunking by columns')
-                    # Autochunking by columns is faster for Inversions
-                    target_size = dask.config.get('array.chunk-size').replace('MiB',' MB')
-                    stack = stack.rechunk({0: -1, 1: 'auto'})
-
-                print('Tile size (nD, nC): ', stack.shape)
+            print('Tile size (nD, nC): ', stack.shape)
 #                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
-                print('Number of chunks: %.0f x %.0f = %.0f' %
-                    (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
-                print("Target chunk size: %s" % target_size)
-                print('Max chunk size %.0f x %.0f = %.3f MB' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-6))
-                print('Min chunk size %.0f x %.0f = %.3f MB' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-6))
-                print('Max RAM (GB x %.0f CPU): %.6f' %
-                    (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
-                print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
+            print('Number of chunks: %.0f x %.0f = %.0f' %
+                (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
+            print("Target chunk size: %s" % target_size)
+            print('Max chunk size %.0f x %.0f = %.3f MB' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-6))
+            print('Min chunk size %.0f x %.0f = %.3f MB' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-6))
+            print('Max RAM (GB x %.0f CPU): %.6f' %
+                (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
+            print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
 
-                if self.forwardOnly:
+            if self.forwardOnly:
 
-                    with ProgressBar():
-                        print("Forward calculation: ")
-                        pred = da.dot(stack, self.model).compute()
+                with ProgressBar():
+                    print("Forward calculation: ")
+                    pred = da.dot(stack, self.model).compute()
 
-                    return pred
+                return pred
 
-                else:
+            else:
 
-                    if os.path.exists(self.Jpath):
+                if os.path.exists(self.Jpath):
 
-                        G = da.from_zarr(self.Jpath)
+                    G = da.from_zarr(self.Jpath)
 
-                        if np.all(np.r_[
-                                np.any(np.r_[G.chunks[0]] == stack.chunks[0]),
-                                np.any(np.r_[G.chunks[1]] == stack.chunks[1]),
-                                np.r_[G.shape] == np.r_[stack.shape]]):
-                            # Check that loaded G matches supplied data and mesh
-                            print("Zarr file detected with same shape and chunksize ... re-loading")
+                    if np.all(np.r_[
+                            np.any(np.r_[G.chunks[0]] == stack.chunks[0]),
+                            np.any(np.r_[G.chunks[1]] == stack.chunks[1]),
+                            np.r_[G.shape] == np.r_[stack.shape]]):
+                        # Check that loaded G matches supplied data and mesh
+                        print("Zarr file detected with same shape and chunksize ... re-loading")
 
-                            return G
-                        else:
+                        return G
+                    else:
 
-                            print("Zarr file detected with wrong shape and chunksize ... over-writing")
+                        print("Zarr file detected with wrong shape and chunksize ... over-writing")
 
-                    with ProgressBar():
-                        print("Saving G to zarr: " + self.Jpath)
-                        G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True, overwrite=True)
-
+                with ProgressBar():
+                    print("Saving G to zarr: " + self.Jpath)
+                    G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True, overwrite=True)
 
         else:
 
