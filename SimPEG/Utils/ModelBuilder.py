@@ -3,6 +3,7 @@ import numpy as np
 import scipy.ndimage as ndi
 import scipy.sparse as sp
 from .matutils import mkvc
+from scipy.spatial import Delaunay
 
 import sys
 if sys.version_info < (3,):
