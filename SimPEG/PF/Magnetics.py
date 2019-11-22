@@ -307,7 +307,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
         dmudm_v = dask.delayed(csr.dot)(Jtvec, dmudm)
 
-        return da.from_delayed(dmudm_v, dtype=float, shape=[self.chiMap.deriv(m).shape[1]])
+        return da.from_delayed(dmudm_v, dtype=float, shape=[dmudm.shape[1]])
 
     @property
     def dSdm(self):
@@ -497,11 +497,13 @@ class Forward(object):
             # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
             if self.forwardOnly or self.chunk_by_rows:
                 print('DASK: Chunking by rows')
-                # Autochunking by rows is faster and avoids memory leak for large forward models
+                # Autochunking by rows is faster and more memory efficient for
+                # very large problems sensitivty and forward calculations
                 target_size = dask.config.get('array.chunk-size').replace('MiB',' MB')
                 stack = stack.rechunk({0: 'auto', 1: -1})
             elif self.max_chunk_size:
                 print('DASK: Chunking using parameters')
+                # Manual chunking is less sensitive to chunk sizes for some problems
                 target_size = "{:.0f} MB".format(self.max_chunk_size)
                 nChunks_col = 1
                 nChunks_row = 1
