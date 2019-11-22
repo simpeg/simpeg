@@ -20,19 +20,18 @@ class GravityIntegral(Problem.LinearProblem):
         default=1.
     )
 
-    # surveyPair = Survey.LinearSurvey
-    forwardOnly = False  # Is TRUE, forward matrix not stored to memory
+    forwardOnly = False  # If false, matrix is store to memory (watch your RAM)
     actInd = None  #: Active cell indices provided
-    parallelized = "dask"
-    chunk_by_rows = False
-    n_cpu = None
-    progressIndex = -1
-    gtgdiag = None
-    max_chunk_size = None
-    Jpath = "./sensitivity.zarr"
-    chunk_by_rows = False
-    maxRAM = 8  # Maximum memory usage
     verbose = True
+    gtgdiag = None
+    n_cpu = None
+    parallelized = True
+    progressIndex = -1
+    max_chunk_size = None
+    chunk_by_rows = False
+    Jpath = "./sensitivity.zarr"
+    maxRAM = 8  # Maximum memory usage
+
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
@@ -41,8 +40,8 @@ class GravityIntegral(Problem.LinearProblem):
 
             if self.actInd.dtype == 'bool':
                 inds = np.asarray([inds for inds,
-                                  elem in enumerate(self.actInd, 1)
-                                  if elem], dtype=int) - 1
+                                  elem in enumerate(self.actInd, 1) if elem],
+                                  dtype=int) - 1
             else:
                 inds = self.actInd
 
@@ -53,10 +52,8 @@ class GravityIntegral(Problem.LinearProblem):
         self.nC = len(inds)
 
         # Create active cell projector
-        P = sp.sparse.csr_matrix(
-            (np.ones(self.nC), (inds, range(self.nC))),
-            shape=(self.mesh.nC, self.nC)
-        )
+        P = csr((np.ones(self.nC), (inds, range(self.nC))),
+                          shape=(self.mesh.nC, self.nC))
 
         # Create vectors of nodal location
         # (lower and upper corners for each cell)
