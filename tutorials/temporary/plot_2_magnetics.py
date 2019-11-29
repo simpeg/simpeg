@@ -27,7 +27,6 @@ of magnetic remanence. This is done using an OcTree mesh.
 # --------------
 #
 
-import os
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator
 import matplotlib as mpl
@@ -50,13 +49,12 @@ from SimPEG.potential_fields import magnetics
 # also be loaded from a file. This topography is used for both examples.
 #
 
-[xx, yy] = np.meshgrid(np.linspace(-200, 200, 41), np.linspace(-200, 200, 41))
-zz = -15*np.exp(-(xx**2 + yy**2) / 80**2)
-xx, yy, zz = mkvc(xx), mkvc(yy), mkvc(zz)
-topo = np.c_[xx, yy, zz]
-
-#fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\tutorials\\assets\\magnetic_topo.txt'
-#np.savetxt(fname, np.c_[topo], fmt='%.4e')
+[x_topo, y_topo] = np.meshgrid(
+        np.linspace(-200, 200, 41), np.linspace(-200, 200, 41)
+        )
+z_topo = -15*np.exp(-(x_topo**2 + y_topo**2) / 80**2)
+x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
+xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
 #############################################
 # Defining the Survey
@@ -71,27 +69,31 @@ topo = np.c_[xx, yy, zz]
 #
 
 # Define the observation locations as an (N, 3) numpy array or load them.
-xr = np.linspace(-80., 80., 17)
-yr = np.linspace(-80., 80., 17)
-xr, yr = np.meshgrid(xr, yr)
-xr, yr = mkvc(xr.T), mkvc(yr.T)
-fun_interp = LinearNDInterpolator(np.c_[xx, yy], zz)
-zr = fun_interp(np.c_[xr, yr]) + 10  # Flight height 10 m above surface.
-rx_locs = np.c_[xr, yr, zr]
+x = np.linspace(-80., 80., 17)
+y = np.linspace(-80., 80., 17)
+x, y = np.meshgrid(x, y)
+x, y = mkvc(x.T), mkvc(y.T)
+fun_interp = LinearNDInterpolator(np.c_[x_topo, y_topo], z_topo)
+z = fun_interp(np.c_[x, y]) + 10  # Flight height 10 m above surface.
+receiver_locations = np.c_[x, y, z]
 
 # Define the receivers. Here the user may define the receiver to measure
 # total magnetic intensity, Cartesian components of the anomalous field or
 # gradient components of the magnetic field (for magnetic gradiometry)
-rx_list = magnetics.receivers.point_receiver(rx_locs, "tmi")
+receiver_list = magnetics.receivers.point_receiver(receiver_locations, "tmi")
 
 # Define the inducing field H0 = (intensity [nT], inclination [deg], declination [deg])
-H0 = (50000, 90, 0)
-src_field = magnetics.sources.SourceField(
-    receiver_list=[rx_list], parameters=H0
+inclination = 90
+declination = 0
+strength = 50000
+
+inducing_field = (strength, inclination, declination)
+source_field = magnetics.sources.SourceField(
+    receiver_list=[receiver_list], parameters=inducing_field
     )
 
 # Define the survey
-survey = magnetics.survey.MagneticSurvey(src_field)
+survey = magnetics.survey.MagneticSurvey(source_field)
 
 
 #############################################
@@ -119,23 +121,23 @@ mesh = TensorMesh([hx, hy, hz], 'CCN')
 #
 
 # Define susceptibility values for each unit in SI
-background_val = 0.0001
-sphere_val = 0.01
+background_value = 0.0001
+sphere_value = 0.01
 
 # Find cells that are active in the forward modeling (cells below surface)
-ind_active = surface2ind_topo(mesh, topo)
+ind_active = surface2ind_topo(mesh, xyz_topo)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
-mod_map = maps.IdentityMap(nP=nC)  # model is a vlue for each active cell
+model_map = maps.IdentityMap(nP=nC)  # model is a vlue for each active cell
 
 # Define model
-mod = background_val*np.ones(ind_active.sum())
+model = background_value*np.ones(ind_active.sum())
 ind_sphere = ModelBuilder.getIndicesSphere(
     np.r_[0., 0., -45.], 15., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]
-mod[ind_sphere] = sphere_val
+model[ind_sphere] = sphere_value
 
 # Plot Model
 fig = plt.figure(figsize=(9, 4))
@@ -143,13 +145,13 @@ fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
 mesh.plotSlice(
-    plotting_map*mod, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
-    clim=(np.min(mod), np.max(mod))
+    plotting_map*model, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
+    clim=(np.min(model), np.max(model))
 )
 ax1.set_title('Model slice at y = 0 m')
 
 ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
-norm = mpl.colors.Normalize(vmin=np.min(mod), vmax=np.max(mod))
+norm = mpl.colors.Normalize(vmin=np.min(model), vmax=np.max(model))
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical'
 )
@@ -170,38 +172,29 @@ plt.show()
 #
 
 # Define the forward simluation
-simulation_1 = magnetics.simulation.MagneticIntegralSimulation(
+mag_simulation = magnetics.simulation.MagneticIntegralSimulation(
     survey=survey, mesh=mesh,
-    modelType='susceptibility', chiMap=mod_map,
+    modelType='susceptibility', chiMap=model_map,
     actInd=ind_active, forwardOnly=True
 )
 
 # Compute predicted data for a susceptibility model
-dpred_1 = simulation_1.dpred(mod)
-
-# THIS IS TO WRITE THE DATA OUT FOR NOW FOR INVERSION
-dpred_1 = dpred_1 + 0.5*np.random.rand(len(dpred_1))
-#fname = os.path.dirname(PF.__file__) + '\\..\\..\\tutorials\\assets\\magnetic_data.txt'
-#np.savetxt(
-#    fname,
-#    np.c_[rx_locs, dpred_1],
-#    fmt='%.4e'
-#)
+dpred_mag = mag_simulation.dpred(model)
 
 # Plot
 fig = plt.figure(figsize=(6, 5))
-v_max = np.max(np.abs(dpred_1))
+v_max = np.max(np.abs(dpred_mag))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
 plot2Ddata(
-    rx_list.locs, dpred_1, ax=ax1, ncontour=30, clim=(-v_max, v_max),
+    receiver_list.locs, dpred_mag, ax=ax1, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
 )
 ax1.set_title('TMI Anomaly')
 
 ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(
-        vmin=-np.max(np.abs(dpred_1)), vmax=np.max(np.abs(dpred_1))
+        vmin=-np.max(np.abs(dpred_mag)), vmax=np.max(np.abs(dpred_mag))
 )
 cbar = mpl.colorbar.ColorbarBase(
         ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
@@ -240,7 +233,7 @@ mesh = TreeMesh([hx, hy, hz], x0='CCN')
 
 # Refine based on surface topography
 mesh = refine_tree_xyz(
-    mesh, topo, octree_levels=[2, 2], method='surface', finalize=False
+    mesh, xyz_topo, octree_levels=[2, 2], method='surface', finalize=False
 )
 
 # Refine box base on region of interest
@@ -271,56 +264,56 @@ mesh.finalize()
 #
 
 # Define susceptibility values for each unit in SI
-background_val = 0.0001
-sphere_val = 0.01
+background_value = 0.0001
+sphere_value = 0.01
 
 # Find cells active in the forward modeling (cells below surface)
-ind_active = surface2ind_topo(mesh, topo)
+ind_active = surface2ind_topo(mesh, xyz_topo)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
-mod_map = maps.IdentityMap(nP=3*nC)  # model has 3 parameters for each cell
+model_map = maps.IdentityMap(nP=3*nC)  # model has 3 parameters for each cell
 
 # Define susceptibility for each cell
-mod = background_val*np.ones(ind_active.sum())
+model = background_value*np.ones(ind_active.sum())
 ind_sphere = ModelBuilder.getIndicesSphere(
     np.r_[0.,  0., -45.], 15., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]
-mod[ind_sphere] = sphere_val
+model[ind_sphere] = sphere_value
 
 # Compute the unit direction of the inducing field in Cartesian coordinates
-u = matutils.dip_azimuth2cartesian(H0[1], H0[2])
+u = matutils.dip_azimuth2cartesian(inclination, declination)
 
 # Multiply susceptibility model to obtain the x, y, z components of the
 # effective susceptibility contribution from induced magnetization
-mod_sus = np.outer(mod, u)
+susceptibility_model = np.outer(model, u)
 
 # Define the effective susceptibility contribution for remanent magnetization to have a
 # magnitude of 0.006 SI, with inclination -45 and declination 90
-remanence_val = 0.006
-mod_rem = np.zeros(np.shape(mod_sus))
-chi_rem = remanence_val*matutils.dip_azimuth2cartesian(-45, 90)
-mod_rem[ind_sphere, :] = chi_rem
+remanence_value = 0.006
+remanence_model = np.zeros(np.shape(susceptibility_model))
+effective_susceptibility_sphere = remanence_value*matutils.dip_azimuth2cartesian(-45, 90)
+remanence_model[ind_sphere, :] = effective_susceptibility_sphere
 
 # Define effective susceptibility model as a vector np.r_[chi_x, chi_y, chi_z]
-mod = mkvc(mod_sus + mod_rem)
+model = mkvc(susceptibility_model + remanence_model)
 
 # Plot Effective Susceptibility Model
 fig = plt.figure(figsize=(9, 4))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
-mod_plotting = np.sqrt(np.sum(mod_sus + mod_rem, axis=1)**2)
+plotting_model = np.sqrt(np.sum(susceptibility_model + remanence_model, axis=1)**2)
 ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
 mesh.plotSlice(
-    plotting_map*mod_plotting, normal='Y', ax=ax1,
+    plotting_map*plotting_model, normal='Y', ax=ax1,
     ind=int(mesh.hy.size/2), grid=True,
-    clim=(np.min(mod_plotting), np.max(mod_plotting))
+    clim=(np.min(plotting_model), np.max(plotting_model))
 )
 ax1.set_title('MVI Model at y = 0 m')
 
 ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
-norm = mpl.colors.Normalize(vmin=np.min(mod_plotting), vmax=np.max(mod_plotting))
+norm = mpl.colors.Normalize(vmin=np.min(plotting_model), vmax=np.max(plotting_model))
 cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation='vertical')
 cbar.set_label(
     'Effective Susceptibility (SI)', rotation=270, labelpad=15, size=12
@@ -328,7 +321,7 @@ cbar.set_label(
 
 
 ###################################################################
-# Simulation 1: TMI Data for a MVI Model
+# Simulation 2: TMI Data for a MVI Model
 # --------------------------------------
 #
 # Here we predict magnetic data for an effective susceptibility model in the
@@ -336,27 +329,22 @@ cbar.set_label(
 #
 
 # Define the forward modeling problem. Set modelType to 'vector'
-simulation_2 = magnetics.simulation.MagneticIntegralSimulation(
-    survey=survey, mesh=mesh, chiMap=mod_map, actInd=ind_active, modelType='vector'
+mvi_simulation = magnetics.simulation.MagneticIntegralSimulation(
+    survey=survey, mesh=mesh, chiMap=model_map, actInd=ind_active,
+    modelType='vector'
 )
 
 # Compute predicted data for some model
-dpred_2 = simulation_2.dpred(mkvc(mod))
+dpred_mvi = mvi_simulation.dpred(mkvc(model))
 
-dpred_2 = dpred_2 + 5e-5*np.random.rand(len(dpred_2))
-#fname = os.path.dirname(PF.__file__) + '\\..\\..\\tutorials\\assets\\mvi_data.txt'
-#np.savetxt(
-#    fname,
-#    np.c_[rx_locs, dpred_2],
-#    fmt='%.4e'
-#)
+dpred_mvi = dpred_mvi + 5e-5*np.random.rand(len(dpred_mvi))
 
 # Plot
 fig = plt.figure(figsize=(10, 3))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.25, 0.9])
 cplot1 = plot2Ddata(
-    rx_list.locs, dpred_1, ax=ax1, ncontour=30, clim=(-v_max, v_max),
+    receiver_list.locs, dpred_mag, ax=ax1, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
 )
 cplot1[0].set_clim((-v_max, v_max))
@@ -364,7 +352,7 @@ ax1.set_title('Induced')
 
 ax2 = fig.add_axes([0.31, 0.05, 0.25, 0.9])
 cplot2 = plot2Ddata(
-    rx_list.locs, dpred_2 - dpred_1, ax=ax2, ncontour=30,
+    receiver_list.locs, dpred_mvi - dpred_mag, ax=ax2, ncontour=30,
     clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
 )
 cplot2[0].set_clim((-v_max, v_max))
@@ -373,7 +361,7 @@ ax2.set_yticks([])
 
 ax3 = fig.add_axes([0.57, 0.05, 0.25, 0.9])
 cplot3 = plot2Ddata(
-    rx_list.locs, dpred_2, ax=ax3, ncontour=30, clim=(-v_max, v_max),
+    receiver_list.locs, dpred_mvi, ax=ax3, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
 )
 cplot3[0].set_clim((-v_max, v_max))
