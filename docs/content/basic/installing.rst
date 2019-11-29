@@ -25,6 +25,19 @@ Python ecosystem to Python 3, please see the `Python 3 Statement <https://python
 Installing SimPEG
 =================
 
+Conda Forge
+-----------
+
+You can install SimPEG using the `conda package manager <https://conda.io/>`_ that comes with the Anaconda distribution:
+
+.. code::
+
+    conda install SimPEG --channel conda-forge
+
+
+PyPi
+----
+
 SimPEG is on `pypi <https://pypi.python.org/pypi/SimPEG>`_! First, make sure
 your version of pip is up-to-date
 
