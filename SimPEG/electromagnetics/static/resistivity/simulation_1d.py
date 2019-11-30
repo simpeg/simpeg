@@ -5,6 +5,7 @@ import properties
 from ....utils import mkvc, sdiag, Zero
 from ...base import BaseEMSimulation
 from ....data import Data
+from .... import props
 
 from .survey import Survey
 
@@ -17,6 +18,9 @@ class DCSimulation_1D(BaseEMSimulation):
     """
     1D DC Simulation
     """
+    t, tMap, tDeriv = props.Invertible(
+        "thickness of the layers"
+    )
 
     survey = properties.Instance(
         "a DC survey object", Survey, required=True
@@ -25,9 +29,10 @@ class DCSimulation_1D(BaseEMSimulation):
     storeJ = properties.Bool(
         "store the sensitivity", default=False
     )
+
     data_type = 'volt'
     hankel_pts_per_dec = None       # Default: Standard DLF
-    hankel_filter = 'key_81_2009'  # Default: Hankel filter
+    hankel_filter = 'key_51_2012'  # Default: Hankel filter
 
     _Jmatrix = None
     fix_Jmatrix = False
@@ -41,8 +46,12 @@ class DCSimulation_1D(BaseEMSimulation):
         self.n_filter = self.fhtfilt.base.size
 
     def fields(self, m):
+
         if m is not None:
             self.model = m
+
+        # if self.verbose:
+            # print (">> Compute fields")
 
         T1 = self.rho[self.n_layer-1] * np.ones_like(self.lambd)
         for ii in range(self.n_layer-1, 0, -1):
@@ -68,6 +77,10 @@ class DCSimulation_1D(BaseEMSimulation):
         :rtype: numpy.ndarray
         :return: data
         """
+
+        if self.verbose:
+            print("Calculating predicted data")
+
         if f is None:
             if m is None:
                 m = self.model
@@ -94,8 +107,8 @@ class DCSimulation_1D(BaseEMSimulation):
                 m0[ii] = m[ii] - dm*0.5
                 m1 = m.copy()
                 m1[ii] = m[ii] + dm*0.5
-                d0 = self.dpred(m0)
-                d1 = self.dpred(m1)
+                d0 = self.fields(m0)
+                d1 = self.fields(m1)
                 Jmatrix[:, ii] = (d1-d0) / (dm)
             self._Jmatrix = Jmatrix
         return self._Jmatrix
@@ -169,15 +182,15 @@ class DCSimulation_1D(BaseEMSimulation):
             )
         return self._lambd
 
-    @property
-    def t(self):
-        """
-            thickness of the layer
-        """
-        # TODO: only works isotropic sigma
-        if getattr(self, '_t', None) is None:
-            self._t = self.mesh.hx[:-1]
-        return self._t
+    # @property
+    # def t(self):
+    #     """
+    #         thickness of the layer
+    #     """
+    #     # TODO: only works isotropic sigma
+    #     if getattr(self, '_t', None) is None:
+    #         self._t = self.mesh.hx[:-1]
+    #     return self._t
 
     @property
     def n_layer(self):
@@ -200,5 +213,5 @@ class DCSimulation_1D(BaseEMSimulation):
             r_AN = self.electrode_separations['AN']
             r_BM = self.electrode_separations['BM']
             r_BN = self.electrode_separations['BM']
-            self._geometric_factor = 1/r_AM - 1/r_BM - 1/r_AN + 1/r_BN
+            self._geometric_factor = (1/r_AM - 1/r_BM - 1/r_AN + 1/r_BN) / (2*np.pi)
         return self._geometric_factor

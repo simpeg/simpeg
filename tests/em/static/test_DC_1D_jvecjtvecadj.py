@@ -48,6 +48,7 @@ class DC1DSimulation(unittest.TestCase):
         problem = dc.DCSimulation_1D(
             mesh=mesh,
             rhoMap=maps.ExpMap(mesh),
+            t=hz[:-1],
             survey=survey,
             data_type='apparent_resistivity'
         )
