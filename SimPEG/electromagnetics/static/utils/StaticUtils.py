@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 import numpy as np
 from numpy import matlib
 import discretize
+import matplotlib.pyplot as plt
 
 from ....data import Data
 from .. import resistivity as dc
@@ -1687,3 +1688,49 @@ def gen_3d_survey_from_2d_lines(
         line_inds=line_inds
     )
     return IO_3d, survey_3d
+
+def plot_layer(rho, mesh, xscale='log', ax=None, showlayers=False, xlim=None,**kwargs):
+    """
+        Plot Conductivity model for the layered earth model
+    """
+
+    z_grid = -mesh.vectorNx
+    n_rho = rho.size
+    resistivity = np.repeat(rho, 2)
+    z = []
+    for i in range(n_rho):
+        z.append(np.r_[z_grid[i], z_grid[i+1]])
+    z = np.hstack(z)
+    if xlim == None:
+        rho_min = rho[~np.isnan(rho)].min()*0.5
+        rho_max = rho[~np.isnan(rho)].max()*2
+    else:
+        rho_min, rho_max = xlim
+
+    if xscale == 'linear' and rho.min() == 0.:
+        if xlim == None:
+            rho_min = -rho[~np.isnan(rho)].max()*0.5
+            rho_max = rho[~np.isnan(rho)].max()*2
+
+    if ax==None:
+        plt.xscale(xscale)
+        plt.xlim(rho_min, rho_max)
+        plt.ylim(z.min(), z.max())
+        plt.xlabel('Resistivity ($\Omega$m)', fontsize = 14)
+        plt.ylabel('Depth (m)', fontsize = 14)
+        plt.ylabel('Depth (m)', fontsize = 14)
+        if showlayers == True:
+            for locz in z_grid:
+                plt.plot(np.linspace(rho_min, rho_max, 100), np.ones(100)*locz, 'b--', lw = 0.5)
+        return plt.plot(resistivity, z, 'k-', **kwargs)
+
+    else:
+        ax.set_xscale(xscale)
+        ax.set_xlim(rho_min, rho_max)
+        ax.set_ylim(z.min(), z.max())
+        ax.set_xlabel('Resistivity ($\Omega$m)', fontsize = 14)
+        ax.set_ylabel('Depth (m)', fontsize = 14)
+        if showlayers == True:
+            for locz in z_grid:
+                ax.plot(np.linspace(rho_min, rho_max, 100), np.ones(100)*locz, 'b--', lw = 0.5)
+        return ax.plot(resistivity, z, 'k-', **kwargs)
