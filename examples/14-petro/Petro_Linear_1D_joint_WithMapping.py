@@ -253,7 +253,8 @@ inv = Inversion.BaseInversion(invProb, directiveList=[Scales, beta,
                                                       ])
 
 mtik = inv.run(minit)
-
+import seaborn
+seaborn.set()
 fig, axes = plt.subplots(3, 4, figsize=(25, 15))
 axes = axes.reshape(12)
 
@@ -265,7 +266,7 @@ top = bottom + height
 axes[0].set_axis_off()
 axes[0].text(
     0.5 * (left + right), 0.5 * (bottom + top),
-    ('Using true nonlinear\npetrophysics clusters'),
+    ('Using true nonlinear\npetrophysical relationships'),
     horizontalalignment='center',
     verticalalignment='center',
     fontsize=20, color='black',
@@ -296,23 +297,23 @@ pos[:, :, 1] = y
 CS = axes[3].contour(x, y, np.exp(clfmapping.score_samples(
     pos.reshape(-1, 2)).reshape(x.shape)), 100, alpha=0.25, cmap='viridis')
 axes[3].scatter(wires.m1 * mcluster_map, wires.m2 * mcluster_map, marker='v')
-axes[3].set_title('Petro Distribution')
+axes[3].set_title('Petrophysical Distribution')
 CS.collections[0].set_label('')
-axes[3].legend(['True Petro Distribution', 'Recovered model crossplot'])
+axes[3].legend(['True Petrophysical Distribution', 'Recovered model crossplot'])
 axes[3].set_xlabel('Property 1')
 axes[3].set_ylabel('Property 2')
 
-fig.suptitle(
-    'Doodling with Mapping: one mapping per identified rock unit\n' +
-    'Joint inversion of 1D Linear Problems ' +
-    'with nonlinear petrophysical relationships',
-    fontsize=24
-)
+#fig.suptitle(
+#    'Doodling with Mapping: one mapping per identified rock unit\n' +
+#    'Joint inversion of 1D Linear Problems ' +
+#    'with nonlinear petrophysical relationships',
+#    fontsize=24
+#)
 
 axes[4].set_axis_off()
 axes[4].text(
     0.5 * (left + right), 0.5 * (bottom + top),
-    ('Using linear\npetrophysics clusters'),
+    ('Using a pure\nGaussian distribution'),
     horizontalalignment='center',
     verticalalignment='center',
     fontsize=20, color='black',
@@ -342,16 +343,16 @@ axes[6].set_ylabel('Property 2')
 CSF = axes[7].contour(x, y, np.exp(clfmapping.score_samples(
     pos.reshape(-1, 2)).reshape(x.shape)), 100, alpha=0.5)  # , cmap='viridis')
 CS = axes[7].contour(x, y, np.exp(clfnomapping.score_samples(
-    pos.reshape(-1, 2)).reshape(x.shape)), 500, alpha=0.25, cmap='viridis')
+    pos.reshape(-1, 2)).reshape(x.shape)), 500, cmap='viridis')
 axes[7].scatter(wires.m1 * mcluster_no_map,
                 wires.m2 * mcluster_no_map, marker='v')
-axes[7].set_title('Petro Distribution')
+axes[7].set_title('Petrophysical Distribution')
 CSF.collections[0].set_label('')
 CS.collections[0].set_label('')
 axes[7].legend(
     [
-        'True Petro Distribution',
-        'Modeled Petro Distribution',
+        'True Petro. Distribution',
+        'Modeled Petro. Distribution',
         'Recovered model crossplot'
     ]
 )
@@ -363,7 +364,7 @@ axes[7].set_ylabel('Property 2')
 axes[8].set_axis_off()
 axes[8].text(
     0.5 * (left + right), 0.5 * (bottom + top),
-    ('Tikhonov ~\nUsing a single cluster'),
+    ('Tikhonov\n~Using a single cluster'),
     horizontalalignment='center',
     verticalalignment='center',
     fontsize=20, color='black',
