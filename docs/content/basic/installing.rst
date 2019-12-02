@@ -16,7 +16,7 @@ It installs `python <https://www.python.org/>`_,
 python libraries for scientific computing.
 
 As of version 0.11.0, we will no longer ensure compatibility with Python 2.7. Please use
-the latest version of Python 3 with SimPEG. For more ingormation on the transition of the
+the latest version of Python 3 with SimPEG. For more information on the transition of the
 Python ecosystem to Python 3, please see the `Python 3 Statement <https://python3statement.org/>`_.
 
 
