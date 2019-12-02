@@ -13,6 +13,7 @@
 
 import sys
 import os
+from sphinx_gallery.sorting import FileNameSortKey
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -90,6 +91,7 @@ linkcheck_ignore = [
     'http://dx.doi.org/10.1016/j.cageo.2015.09.015',
     'http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf',
     'https://www.ngdc.noaa.gov/',
+    'http://discretize.simpeg.xyz/en/latest/objects.inv'
 ]
 
 linkcheck_retries = 3
@@ -285,8 +287,13 @@ texinfo_documents = [
 # Sphinx Gallery
 sphinx_gallery_conf = {
     # path to your examples scripts
-    'examples_dirs' : os.path.sep.join(['..','examples']),
-    'gallery_dirs'  : os.path.sep.join(['content','examples']),
+    'examples_dirs' : ['../examples',
+                       '../tutorials/models_mapping',
+                       ],
+    'gallery_dirs'  : ['content/examples',
+                       'content/tutorials/models_mapping',
+                       ],
+    'within_subsection_order': FileNameSortKey,
     'backreferences_dir' : False
 }
 
