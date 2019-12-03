@@ -175,7 +175,7 @@ plt.show()
 mag_simulation = magnetics.simulation.MagneticIntegralSimulation(
     survey=survey, mesh=mesh,
     modelType='susceptibility', chiMap=model_map,
-    actInd=ind_active, forwardOnly=True
+    actInd=ind_active, forward_only=True
 )
 
 # Compute predicted data for a susceptibility model
