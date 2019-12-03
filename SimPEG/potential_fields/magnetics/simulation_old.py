@@ -1,51 +1,36 @@
-from __future__ import print_function
-
+import os
+import shutil
 import numpy as np
 import scipy.sparse as sp
+from scipy.sparse import csr_matrix as csr
 from scipy.constants import mu_0
-
-from SimPEG import utils
-from ...simulation import BaseSimulation, LinearSimulation
-#from SimPEG import Solver
-from SimPEG import props
-# from SimPEG import Mesh
-import multiprocessing
 import properties
-from SimPEG.utils import mkvc, matutils, sdiag
-# from . import BaseMag as MAG
-from .analytics import spheremodel, CongruousMagBC
 import dask
 import dask.array as da
 from dask.diagnostics import ProgressBar
-from scipy.sparse import csr_matrix as csr
-import os
+import multiprocessing
 
-class MagneticIntegralSimulation(LinearSimulation):
+from ... import props
+from ...data import Data
+from ...utils import mkvc, matutils, sdiag, setKwargs
+from ..base import BasePFSimulation
+from .survey import MagneticSurvey
+from ...simulation import LinearSimulation
+from discretize import TreeMesh
+
+
+class MagneticIntegralSimulation(BasePFSimulation):
 
     chi, chiMap, chiDeriv = props.Invertible(
         "Magnetic Susceptibility (SI)",
         default=1.
     )
 
-    forward_only = False  # If false, matrix is store to memory (watch your RAM)
-    actInd = None  #: Active cell indices provided
-    M = None  #: Magnetization matrix provided, otherwise all induced
-    magType = 'H0'
-    verbose = True  # Don't display progress on screen
-    W = None
-    gtgdiag = None
-    n_cpu = None
-    parallelized = True
-    max_chunk_size = None
-    chunk_by_rows = False
-
     coordinate_system = properties.StringChoice(
         "Type of coordinate system we are regularizing in",
         choices=['cartesian', 'spherical'],
         default='cartesian'
     )
-    Jpath = "./sensitivity.zarr"
-    maxRAM = 1  # Maximum memory usage
 
     modelType = properties.StringChoice(
         "Type of magnetization model",
@@ -53,10 +38,25 @@ class MagneticIntegralSimulation(LinearSimulation):
         default='susceptibility'
     )
 
+    survey = properties.Instance(
+        "a survey object", MagneticSurvey, required=True
+    )
+
+    forwardOnly = False  # If false, matrix is store to memory (watch your RAM)
+    actInd = None  #: Active cell indices provided
+    M = None  #: Magnetization matrix provided, otherwise all induced
+    magType = 'H0'
+    equiSourceLayer = False
+    silent = False  # Don't display progress on screen
+    W = None
+    gtgdiag = None
+    n_cpu = None
+    parallelized = True
+
     def __init__(self, mesh, **kwargs):
 
         assert mesh.dim == 3, 'Integral formulation only available for 3D mesh'
-        BaseSimulation.__init__(self, mesh, **kwargs)
+        super(LinearSimulation, self).__init__(mesh=mesh, **kwargs)
 
         if self.modelType == 'vector':
             self.magType = 'full'
@@ -64,9 +64,7 @@ class MagneticIntegralSimulation(LinearSimulation):
         # Find non-zero cells
         if getattr(self, 'actInd', None) is not None:
             if self.actInd.dtype == 'bool':
-                inds = np.asarray([inds for inds,
-                                  elem in enumerate(self.actInd, 1) if elem],
-                                  dtype=int) - 1
+                inds = np.where(self.actInd)[0]
             else:
                 inds = self.actInd
 
@@ -82,37 +80,27 @@ class MagneticIntegralSimulation(LinearSimulation):
 
         # Create vectors of nodal location
         # (lower and upper coners for each cell)
-        # if isinstance(self.mesh, Mesh.TreeMesh):
+        if isinstance(self.mesh, TreeMesh):
             # Get upper and lower corners of each cell
-        bsw = (self.mesh.gridCC - self.mesh.h_gridded/2.)
-        tne = (self.mesh.gridCC + self.mesh.h_gridded/2.)
+            bsw = (self.mesh.gridCC - self.mesh.h_gridded/2.)
+            tne = (self.mesh.gridCC + self.mesh.h_gridded/2.)
 
-        xn1, xn2 = bsw[:, 0], tne[:, 0]
-        yn1, yn2 = bsw[:, 1], tne[:, 1]
+            xn1, xn2 = bsw[:, 0], tne[:, 0]
+            yn1, yn2 = bsw[:, 1], tne[:, 1]
+            zn1, zn2 = bsw[:, 2], tne[:, 2]
+
+        else:
+
+            xn = self.mesh.vectorNx
+            yn = self.mesh.vectorNy
+            zn = self.mesh.vectorNz
+
+            yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+            yn1, xn1, zn1 = np.meshgrid(yn[:-1], xn[:-1], zn[:-1])
 
         self.Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
         self.Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
-
-        if self.mesh.dim > 2:
-            zn1, zn2 = bsw[:, 2], tne[:, 2]
-            self.Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
-
-        # else:
-
-        #     xn = self.mesh.vectorNx
-        #     yn = self.mesh.vectorNy
-        #     zn = self.mesh.vectorNz
-
-        #     yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
-        #     yn1, xn1, zn1 = np.meshgrid(yn[:-1], xn[:-1], zn[:-1])
-
-        # If equivalent source, use semi-infite prism
-        # if self.equiSourceLayer:
-        #     zn1 -= 1000.
-
-
-
-
+        self.Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
 
     def fields(self, m):
 
@@ -121,7 +109,7 @@ class MagneticIntegralSimulation(LinearSimulation):
         else:
             m = self.chiMap*(matutils.atp2xyz(m.reshape((int(len(m)/3), 3), order='F')))
 
-        if self.forward_only:
+        if self.forwardOnly:
             # Compute the linear operation without forming the full dense F
             return np.array(self.Intrgl_Fwr_Op(m=m, magType=self.magType), dtype='float')
 
@@ -131,11 +119,11 @@ class MagneticIntegralSimulation(LinearSimulation):
 
             vec = dask.delayed(csr.dot)(self.Mxyz, m)
             M = da.from_delayed(vec, dtype=float, shape=[m.shape[0]])
-            fields = da.dot(self.G, M)
+            fields = da.dot(self.G, M).compute()
 
         else:
 
-            fields = da.dot(self.G, m.astype(np.float32))
+            fields = da.dot(self.G, m).compute()
 
         if self.modelType == 'amplitude':
 
@@ -174,7 +162,7 @@ class MagneticIntegralSimulation(LinearSimulation):
 
     @property
     def ProjTMI(self):
-        
+
         if getattr(self, '_ProjTMI', None) is None:
 
             # Convert Bdecination from north to cartesian
@@ -210,17 +198,40 @@ class MagneticIntegralSimulation(LinearSimulation):
 
         if self.coordinate_system == 'cartesian':
             if self.modelType == 'amplitude':
-                return np.sum((W * self.dfdm * sdiag(mkvc(self.gtgdiag)**0.5) * dmudm).power(2.), axis=0)
+                return np.sum(
+                    (
+                        W * self.dfdm *
+                        sdiag(mkvc(self.gtgdiag)**0.5) * dmudm
+                    ).power(2.), axis=0
+                )
+
             else:
-                return mkvc(np.sum((sdiag(mkvc(self.gtgdiag)**0.5) * dmudm).power(2.), axis=0))
+                return mkvc(
+                    np.sum(
+                        (
+                            sdiag(mkvc(self.gtgdiag)**0.5) * dmudm
+                        ).power(2.), axis=0)
+                    )
 
         else:  # spherical
             if self.modelType == 'amplitude':
-                return mkvc(np.sum(((W * self.dfdm) * sdiag(mkvc(self.gtgdiag)**0.5) * (self.dSdm * dmudm)).power(2.), axis=0))
+                return mkvc(
+                    np.sum(
+                        (
+                            (W * self.dfdm) *
+                            sdiag(mkvc(self.gtgdiag)**0.5) *
+                            (self.dSdm * dmudm)
+                        ).power(2.), axis=0
+                    ))
             else:
 
-                #Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm) * (self.dSdm * dmudm)
-                return mkvc(np.sum((sdiag(mkvc(self.gtgdiag)**0.5) * self.dSdm * dmudm).power(2), axis=0))
+                return mkvc(
+                    np.sum(
+                        (
+                            sdiag(mkvc(self.gtgdiag)**0.5) *
+                            self.dSdm * dmudm
+                        ).power(2), axis=0
+                    ))
 
     def getJ(self, m, f=None):
         """
@@ -250,60 +261,61 @@ class MagneticIntegralSimulation(LinearSimulation):
         if self.coordinate_system == 'cartesian':
             dmudm = self.chiMap.deriv(m)
         else:
-            dmudm = self.dSdm * self.chiMap.deriv(m)
+            dmudm = dask.delayed(csr.dot)(self.dSdm, self.chiMap.deriv(m))
 
         if getattr(self, '_Mxyz', None) is not None:
 
-            # dmudm_v = dask.delayed(csr.dot)(dmudm, v)
-            # vec = dask.delayed(csr.dot)(self.Mxyz, dmudm_v)
-            M_dmudm_v = da.from_array(self.Mxyz*(dmudm*v), chunks=self.G.chunks[1])
+            dmudm_v = dask.delayed(csr.dot)(dmudm, v)
+            vec = dask.delayed(csr.dot)(self.Mxyz, dmudm_v)
+            M_dmudm_v = da.from_delayed(
+                vec, dtype=float, shape=[self.Mxyz.shape[0]]
+            )
 
-            Jvec = da.dot(self.G, M_dmudm_v.astype(np.float32))
+            Jvec = da.dot(self.G, M_dmudm_v).compute()
 
         else:
 
-#            vec = dask.delayed(csr.dot)(dmudm, v)
-            dmudm_v = da.from_array(dmudm*v, chunks=self.G.chunks[1])
-
-            Jvec = da.dot(self.G, dmudm_v.astype(np.float32))
+            vec = dask.delayed(csr.dot)(dmudm, v)
+            dmudm_v = da.from_delayed(
+                vec, dtype=float, shape=[self.chiMap.deriv(m).shape[0]]
+            )
+            Jvec = da.dot(self.G, dmudm_v)
 
         if self.modelType == 'amplitude':
             dfdm_Jvec = dask.delayed(csr.dot)(self.dfdm, Jvec)
 
-            return da.from_delayed(dfdm_Jvec, dtype=float, shape=[self.dfdm.shape[0]])
+            return da.from_delayed(dfdm_Jvec, dtype=float, shape=[self.dfdm.shape[0]]).compute()
         else:
-            return Jvec
+            return Jvec.compute()
 
     def Jtvec(self, m, v, f=None):
 
         if self.coordinate_system == 'cartesian':
             dmudm = self.chiMap.deriv(m)
         else:
-            dmudm = self.dSdm * self.chiMap.deriv(m)
+            dmudm = dask.delayed(csr.dot)(self.dSdm, self.chiMap.deriv(m))
 
         if self.modelType == 'amplitude':
 
-            dfdm_v = dask.delayed(csr.dot)(v, self.dfdm)
-
+            dfdm_v = dask.delayed(csr.dot)(self.dfdm.T, v)
             vec = da.from_delayed(dfdm_v, dtype=float, shape=[self.dfdm.shape[0]])
 
             if getattr(self, '_Mxyz', None) is not None:
 
-                jtvec = da.dot(vec.astype(np.float32), self.G)
+                jtvec = da.dot(self.G.T, vec)
 
-                Jtvec = dask.delayed(csr.dot)(jtvec, self.Mxyz)
+                Jtvec = dask.delayed(csr.dot)(self.Mxyz.T, jtvec)
 
             else:
-                Jtvec = da.dot(vec.astype(np.float32), self.G)
+                Jtvec = da.dot(self.G.T, vec)
 
         else:
 
-            Jtvec = da.dot(v.astype(np.float32), self.G)
+            Jtvec = da.dot(self.G.T, v)
 
+        dmudm_v = dask.delayed(csr.dot)(dmudm.T, Jtvec)
 
-        dmudm_v = dask.delayed(csr.dot)(Jtvec, dmudm)
-
-        return da.from_delayed(dmudm_v, dtype=float, shape=[dmudm.shape[1]])
+        return da.from_delayed(dmudm_v, dtype=float, shape=[self.chiMap.deriv(m).shape[1]]).compute()
 
     @property
     def dSdm(self):
@@ -378,11 +390,11 @@ class MagneticIntegralSimulation(LinearSimulation):
             m = matutils.atp2xyz(m)
 
         if getattr(self, '_Mxyz', None) is not None:
-            Bxyz = da.dot(self.G, (self.Mxyz*m).astype(np.float32))
+            Bxyz = da.dot(self.G, (self.Mxyz*m))
         else:
-            Bxyz = da.dot(self.G, m.astype(np.float32))
+            Bxyz = da.dot(self.G, m)
 
-        amp = self.calcAmpData(Bxyz.astype(np.float64))
+        amp = self.calcAmpData(Bxyz)
         Bamp = sp.spdiags(1./amp, 0, self.nD, self.nD)
 
         return (Bxyz.reshape((3, self.nD), order='F')*Bamp)
@@ -393,17 +405,16 @@ class MagneticIntegralSimulation(LinearSimulation):
         Magnetic forward operator in integral form
 
         magType  = 'H0' | 'x' | 'y' | 'z'
-        components  = 'tmi' | 'x' | 'y' | 'z'
 
         Return
-        _G = Linear forward operator | (forward_only)=data
+        _G = Linear forward operator | (forwardOnly)=data
 
          """
         if m is not None:
             self.model = self.chiMap*m
 
         # survey = self.survey
-        self.receiver_locations = self.survey.source_field.receiver_list[0].locations
+        self.receiver_locations = self.survey.receiver_locations
 
         if magType == 'H0':
             if getattr(self, 'M', None) is None:
@@ -419,23 +430,19 @@ class MagneticIntegralSimulation(LinearSimulation):
         elif magType == 'full':
 
             self.Mxyz = sp.identity(3*self.nC) * self.survey.source_field.parameters[0]
+
         else:
             raise Exception('magType must be: "H0" or "full"')
 
-                # Loop through all observations and create forward operator (nD-by-self.nC)
-
-        if self.verbose:
-            # print("Begin forward: M=" + magType + ", Rx type= %s" % self.survey.components)
-            print("Begin forward:")
+                # Loop through all observations and create forward operator (nD-by-nC)
+        print("Begin forward: M=" + magType + ", components= %s" % list(self.survey.components.keys()))
 
         # Switch to determine if the process has to be run in parallel
         job = Forward(
                 receiver_locations=self.receiver_locations, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
-                n_cpu=self.n_cpu, forward_only=self.forward_only,
+                n_cpu=self.n_cpu, forwardOnly=self.forwardOnly,
                 model=self.model, components=self.survey.components, Mxyz=self.Mxyz,
-                P=self.ProjTMI, parallelized=self.parallelized,
-                verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM,
-                max_chunk_size=self.max_chunk_size, chunk_by_rows=self.chunk_by_rows
+                P=self.ProjTMI, parallelized=self.parallelized
                 )
 
         G = job.calculate()
@@ -450,22 +457,18 @@ class Forward(object):
     receiver_locations = None
     Xn, Yn, Zn = None, None, None
     n_cpu = None
-    forward_only = False
-    components = ['tmi']
+    forwardOnly = False
+    components = {'tmi': []}
     model = None
-    components = 'z'
     Mxyz = None
     P = None
     verbose = True
     maxRAM = 1
-    chunk_by_rows = False
-
-    max_chunk_size = None
     Jpath = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
         super(Forward, self).__init__()
-        utils.setKwargs(self, **kwargs)
+        setKwargs(self, **kwargs)
 
     def calculate(self):
         self.nD = self.receiver_locations.shape[0]
@@ -474,71 +477,47 @@ class Forward(object):
         if self.n_cpu is None:
             self.n_cpu = int(multiprocessing.cpu_count())
 
-        # Set this early so we can get a better memory estimate for dask chunking
-        # if self.components == 'xyz':
-        #     nDataComps = 3
-        # else:
-        nDataComps = len(self.components)
+        components = list(self.components.keys())
+        # Stack all the components 'active' flag
+        if len(components) == 1:
+            activeComponents = np.c_[self.components[components[0]]]
+        else:
+            activeComponents = np.hstack([self.components[component] for component in components])
 
         if self.parallelized:
 
             row = dask.delayed(self.calcTrow, pure=True)
+            print(components)
+            makeRows = [row(self.receiver_locations[ii, :], np.array(components)[activeComponents[ii,:]].tolist()) for ii in range(self.nD)]
 
-            makeRows = [row(self.receiver_locations[ii, :]) for ii in range(self.nD)]
-
-            buildMat = [da.from_delayed(makeRow, dtype=np.float32, shape=(nDataComps,  self.nC)) for makeRow in makeRows]
+            buildMat = [da.from_delayed(makeRow, dtype=float, shape=(int(activeComponents[ind, :].sum()),  self.nC)) for (ind, makeRow) in enumerate(makeRows)]
 
             stack = da.vstack(buildMat)
 
-            # Auto rechunk
-            # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
-            if self.forward_only or self.chunk_by_rows:
-                print('DASK: Chunking by rows')
-                # Autochunking by rows is faster and more memory efficient for
-                # very large problems sensitivty and forward calculations
-                target_size = dask.config.get('array.chunk-size').replace('MiB',' MB')
-                stack = stack.rechunk({0: 'auto', 1: -1})
-            elif self.max_chunk_size:
-                print('DASK: Chunking using parameters')
-                # Manual chunking is less sensitive to chunk sizes for some problems
-                target_size = "{:.0f} MB".format(self.max_chunk_size)
-                nChunks_col = 1
-                nChunks_row = 1
-                rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
-                colChunk = int(np.ceil(stack.shape[1]/nChunks_col))
-                chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+            # TO-DO: Find a way to create in
+            # chunks instead
+            # stack = stack.rechunk('auto')
+            nChunks = self.n_cpu # Number of chunks
+            rowChunk, colChunk = int(np.ceil(self.nD*len(components)/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+            totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
+            # Ensure total problem size fits in RAM, and avoid 2GB size limit on dask chunks
+            while totRAM > self.maxRAM or (totRAM/self.n_cpu) >= 0.125:
+#                    print("Dask:", self.n_cpu, nChunks, rowChunk, colChunk, totRAM, self.maxRAM)
+                nChunks += 1
+                rowChunk, colChunk = int(np.ceil(self.nD*len(components)/nChunks)), int(np.ceil(self.nC/nChunks)) # Chunk sizes
+                totRAM = rowChunk*colChunk*8*self.n_cpu*1e-9
 
-                # Add more chunks until memory falls below target
-                while chunk_size >= self.max_chunk_size:
+            stack = stack.rechunk((rowChunk, colChunk))
 
-                    if rowChunk > colChunk:
-                        nChunks_row += 1
-                    else:
-                        nChunks_col += 1
-
-                    rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
-                    colChunk = int(np.ceil(stack.shape[1]/nChunks_col))
-                    chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
-
-                stack = stack.rechunk((rowChunk, colChunk))
-            else:
-                print('DASK: Chunking by columns')
-                # Autochunking by columns is faster for Inversions
-                target_size = dask.config.get('array.chunk-size').replace('MiB',' MB')
-                stack = stack.rechunk({0: -1, 1: 'auto'})
-
+            print('DASK: ')
             print('Tile size (nD, nC): ', stack.shape)
-#                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
-            print('Number of chunks: %.0f x %.0f = %.0f' %
-                (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
-            print("Target chunk size: %s" % target_size)
-            print('Max chunk size %.0f x %.0f = %.3f MB' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-6))
-            print('Min chunk size %.0f x %.0f = %.3f MB' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-6))
-            print('Max RAM (GB x %.0f CPU): %.6f' %
-                (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
-            print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
+            print('Number of chunks: ', len(stack.chunks[0]), ' x ', len(stack.chunks[1]), ' = ', len(stack.chunks[0]) * len(stack.chunks[1]))
+            print("Target chunk size: ", dask.config.get('array.chunk-size'))
+            print('Max chunk size (GB): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9)
+            print('Max RAM (GB x CPU): ', max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu)
+            print('Tile size (GB): ', stack.shape[0] * stack.shape[1] * 8*1e-9)
 
-            if self.forward_only:
+            if self.forwardOnly:
 
                 with ProgressBar():
                     print("Forward calculation: ")
@@ -558,22 +537,25 @@ class Forward(object):
                             np.r_[G.shape] == np.r_[stack.shape]]):
                         # Check that loaded G matches supplied data and mesh
                         print("Zarr file detected with same shape and chunksize ... re-loading")
-
                         return G
-                    else:
 
+                    else:
+                        del G
+                        shutil.rmtree(self.Jpath)
                         print("Zarr file detected with wrong shape and chunksize ... over-writing")
 
                 with ProgressBar():
                     print("Saving G to zarr: " + self.Jpath)
-                    G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True, overwrite=True)
+                    da.to_zarr(stack, self.Jpath)
+
+                G = da.from_zarr(self.Jpath)
 
         else:
 
             result = []
             for ii in range(self.nD):
 
-                if self.forward_only:
+                if self.forwardOnly:
                     result += [
                             np.c_[
                                 np.dot(
@@ -590,7 +572,7 @@ class Forward(object):
 
         return G
 
-    def calcTrow(self, xyzLoc):
+    def calcTrow(self, xyzLocation, components):
         """
             Load in the active nodes of a tensor mesh and computes the magnetic
             forward relation between a cuboid and a given observation
@@ -606,418 +588,12 @@ class Forward(object):
 
         """
 
-
-        rows = calcRow(self.Xn, self.Yn, self.Zn, xyzLoc, self.P, components=self.components)
+        rows = calculateIntegralRows(self.Xn, self.Yn, self.Zn, xyzLocation, self.P, components=components)
 
         return rows * self.Mxyz
 
-    def progress(self, ind, total):
-        """
-        progress(ind,prog,final)
 
-        Function measuring the progress of a process and print to screen the %.
-        Useful to estimate the remaining runtime of a large problem.
-
-        Created on Dec, 20th 2015
-
-        @author: dominiquef
-        """
-        arg = np.floor(ind/total*10.)
-        if arg > self.progressIndex:
-
-            if self.verbose:
-                print("Done " + str(arg*10) + " %")
-            self.progressIndex = arg
-
-
-class DifferentialEquationSimulation(BaseSimulation):
-    """
-        Secondary field approach using differential equations!
-    """
-
-    # surveyPair = MAG.BaseMagSurvey
-    # modelPair = MAG.BaseMagMap
-
-    mu, muMap, muDeriv = props.Invertible(
-        "Magnetic Permeability (H/m)",
-        default=mu_0
-    )
-
-    mui, muiMap, muiDeriv = props.Invertible(
-        "Inverse Magnetic Permeability (m/H)"
-    )
-
-    props.Reciprocal(mu, mui)
-
-    def __init__(self, mesh, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, **kwargs)
-
-        Pbc, Pin, self._Pout = \
-            self.mesh.getBCProjWF('neumann', discretization='CC')
-
-        Dface = self.mesh.faceDiv
-        Mc = sdiag(self.mesh.vol)
-        self._Div = Mc * Dface * Pin.T * Pin
-
-    @property
-    def MfMuI(self): return self._MfMuI
-
-    @property
-    def MfMui(self): return self._MfMui
-
-    @property
-    def MfMu0(self): return self._MfMu0
-
-    def makeMassMatrices(self, m):
-        mu = self.muMap * m
-        self._MfMui = self.mesh.getFaceInnerProduct(1. / mu) / self.mesh.dim
-        # self._MfMui = self.mesh.getFaceInnerProduct(1./mu)
-        # TODO: this will break if tensor mu
-        self._MfMuI = sdiag(1. / self._MfMui.diagonal())
-        self._MfMu0 = self.mesh.getFaceInnerProduct(1. / mu_0) / self.mesh.dim
-        # self._MfMu0 = self.mesh.getFaceInnerProduct(1/mu_0)
-
-    @utils.requires('survey')
-    def getB0(self):
-        b0 = self.survey.B0
-        B0 = np.r_[
-            b0[0] * np.ones(self.mesh.nFx),
-            b0[1] * np.ones(self.mesh.nFy),
-            b0[2] * np.ones(self.mesh.nFz)
-        ]
-        return B0
-
-    def getRHS(self, m):
-        """
-
-        .. math ::
-
-            \mathbf{rhs} = \Div(\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0 - \Div\mathbf{B}_0+\diag(v)\mathbf{D} \mathbf{P}_{out}^T \mathbf{B}_{sBC}
-
-        """
-        B0 = self.getB0()
-        Dface = self.mesh.faceDiv
-        # Mc = sdiag(self.mesh.vol)
-
-        mu = self.muMap * m
-        chi = mu / mu_0 - 1
-
-        # Temporary fix
-        Bbc, Bbc_const = CongruousMagBC(self.mesh, self.survey.B0, chi)
-        self.Bbc = Bbc
-        self.Bbc_const = Bbc_const
-        # return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 +
-        # Mc*Dface*self._Pout.T*Bbc
-        return self._Div * self.MfMuI * self.MfMu0 * B0 - self._Div * B0
-
-    def getA(self, m):
-        """
-        GetA creates and returns the A matrix for the Magnetics problem
-
-        The A matrix has the form:
-
-        .. math ::
-
-            \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
-
-        """
-        return self._Div * self.MfMuI * self._Div.T
-
-    def fields(self, m):
-        """
-            Return magnetic potential (u) and flux (B)
-            u: defined on the cell center [nC x 1]
-            B: defined on the cell center [nG x 1]
-
-            After we compute u, then we update B.
-
-            .. math ::
-
-                \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
-
-        """
-        self.makeMassMatrices(m)
-        A = self.getA(m)
-        rhs = self.getRHS(m)
-        m1 = sp.linalg.interface.aslinearoperator(
-            sdiag(1 / A.diagonal())
-        )
-        u, info = sp.linalg.bicgstab(A, rhs, tol=1e-6, maxiter=1000, M=m1)
-        B0 = self.getB0()
-        B = self.MfMuI * self.MfMu0 * B0 - B0 - self.MfMuI * self._Div.T * u
-
-        return {'B': B, 'u': u}
-
-    @utils.timeIt
-    def Jvec(self, m, v, u=None):
-        """
-            Computing Jacobian multiplied by vector
-
-            By setting our problem as
-
-            .. math ::
-
-                \mathbf{C}(\mathbf{m}, \mathbf{u}) = \mathbf{A}\mathbf{u} - \mathbf{rhs} = 0
-
-            And taking derivative w.r.t m
-
-            .. math ::
-
-                \\nabla \mathbf{C}(\mathbf{m}, \mathbf{u}) = \\nabla_m \mathbf{C}(\mathbf{m}) \delta \mathbf{m} +
-                                                             \\nabla_u \mathbf{C}(\mathbf{u}) \delta \mathbf{u} = 0
-
-                \\frac{\delta \mathbf{u}}{\delta \mathbf{m}} = - [\\nabla_u \mathbf{C}(\mathbf{u})]^{-1}\\nabla_m \mathbf{C}(\mathbf{m})
-
-            With some linear algebra we can have
-
-            .. math ::
-
-                \\nabla_u \mathbf{C}(\mathbf{u}) = \mathbf{A}
-
-                \\nabla_m \mathbf{C}(\mathbf{m}) =
-                \\frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u} - \\frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}}
-
-            .. math ::
-
-                \\frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u} =
-                \\frac{\partial \mathbf{\mu}}{\partial \mathbf{m}} \left[\Div \diag (\Div^T \mathbf{u}) \dMfMuI \\right]
-
-                \dMfMuI = \diag(\MfMui)^{-1}_{vec} \mathbf{Av}_{F2CC}^T\diag(\mathbf{v})\diag(\\frac{1}{\mu^2})
-
-                \\frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}} =  \\frac{\partial \mathbf{\mu}}{\partial \mathbf{m}} \left[
-                \Div \diag(\M^f_{\mu_{0}^{-1}}\mathbf{B}_0) \dMfMuI \\right] - \diag(\mathbf{v})\mathbf{D} \mathbf{P}_{out}^T\\frac{\partial B_{sBC}}{\partial \mathbf{m}}
-
-            In the end,
-
-            .. math ::
-
-                \\frac{\delta \mathbf{u}}{\delta \mathbf{m}} =
-                - [ \mathbf{A} ]^{-1}\left[ \\frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u}
-                - \\frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}} \\right]
-
-            A little tricky point here is we are not interested in potential (u), but interested in magnetic flux (B).
-            Thus, we need sensitivity for B. Now we take derivative of B w.r.t m and have
-
-            .. math ::
-
-                \\frac{\delta \mathbf{B}} {\delta \mathbf{m}} = \\frac{\partial \mathbf{\mu} } {\partial \mathbf{m} }
-                \left[
-                \diag(\M^f_{\mu_{0}^{-1} } \mathbf{B}_0) \dMfMuI  \\
-                 -  \diag (\Div^T\mathbf{u})\dMfMuI
-                \\right ]
-
-                 -  (\MfMui)^{-1}\Div^T\\frac{\delta\mathbf{u}}{\delta \mathbf{m}}
-
-            Finally we evaluate the above, but we should remember that
-
-            .. note ::
-
-                We only want to evalute
-
-                .. math ::
-
-                    \mathbf{J}\mathbf{v} = \\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}}\mathbf{v}
-
-                Since forming sensitivity matrix is very expensive in that this monster is "big" and "dense" matrix!!
-
-
-        """
-        if u is None:
-            u = self.fields(m)
-
-        B, u = u['B'], u['u']
-        mu = self.muMap * (m)
-        dmudm = self.muDeriv
-        # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
-
-        vol = self.mesh.vol
-        Div = self._Div
-        Dface = self.mesh.faceDiv
-        P = self.survey.projectFieldsDeriv(B)  # Projection matrix
-        B0 = self.getB0()
-
-        MfMuIvec = 1 / self.MfMui.diagonal()
-        dMfMuI = sdiag(MfMuIvec**2) * \
-            self.mesh.aveF2CC.T * sdiag(vol * 1. / mu**2)
-
-        # A = self._Div*self.MfMuI*self._Div.T
-        # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
-        # C(m,u) = A*m-rhs
-        # dudm = -(dCdu)^(-1)dCdm
-
-        dCdu = self.getA(m)
-        dCdm_A = Div * (sdiag(Div.T * u) * dMfMuI * dmudm)
-        dCdm_RHS1 = Div * (sdiag(self.MfMu0 * B0) * dMfMuI)
-        # temp1 = (Dface * (self._Pout.T * self.Bbc_const * self.Bbc))
-        # dCdm_RHS2v = (sdiag(vol) * temp1) * \
-        #    np.inner(vol, dchidmu * dmudm * v)
-
-        # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
-        dCdm_RHSv = dCdm_RHS1 * (dmudm * v)
-        dCdm_v = dCdm_A * v - dCdm_RHSv
-
-        m1 = sp.linalg.interface.aslinearoperator(
-            sdiag(1 / dCdu.diagonal())
-        )
-        sol, info = sp.linalg.bicgstab(dCdu, dCdm_v,
-                                       tol=1e-6, maxiter=1000, M=m1)
-
-        if info > 0:
-            print("Iterative solver did not work well (Jvec)")
-            # raise Exception ("Iterative solver did not work well")
-
-        # B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*u
-        # dBdm = d\mudm*dBd\mu
-
-        dudm = -sol
-        dBdmv = (
-            sdiag(self.MfMu0 * B0) * (dMfMuI * (dmudm * v))
-            - sdiag(Div.T * u) * (dMfMuI * (dmudm * v))
-            - self.MfMuI * (Div.T * (dudm))
-        )
-
-        return mkvc(P * dBdmv)
-
-    @utils.timeIt
-    def Jtvec(self, m, v, u=None):
-        """
-            Computing Jacobian^T multiplied by vector.
-
-        .. math ::
-
-            (\\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} = \left[ \mathbf{P}_{deriv}\\frac{\partial \mathbf{\mu} } {\partial \mathbf{m} }
-            \left[
-            \diag(\M^f_{\mu_{0}^{-1} } \mathbf{B}_0) \dMfMuI  \\
-             -  \diag (\Div^T\mathbf{u})\dMfMuI
-            \\right ]\\right]^{T}
-
-             -  \left[\mathbf{P}_{deriv}(\MfMui)^{-1}\Div^T\\frac{\delta\mathbf{u}}{\delta \mathbf{m}} \\right]^{T}
-
-        where
-
-        .. math ::
-
-            \mathbf{P}_{derv} = \\frac{\partial \mathbf{P}}{\partial\mathbf{B}}
-
-        .. note ::
-
-            Here we only want to compute
-
-            .. math ::
-
-                \mathbf{J}^{T}\mathbf{v} = (\\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} \mathbf{v}
-
-        """
-        if u is None:
-            u = self.fields(m)
-
-        B, u = u['B'], u['u']
-        mu = self.mapping * (m)
-        dmudm = self.mapping.deriv(m)
-        # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
-
-        vol = self.mesh.vol
-        Div = self._Div
-        Dface = self.mesh.faceDiv
-        P = self.survey.projectFieldsDeriv(
-            B)                 # Projection matrix
-        B0 = self.getB0()
-
-        MfMuIvec = 1 / self.MfMui.diagonal()
-        dMfMuI = sdiag(MfMuIvec**2) * \
-            self.mesh.aveF2CC.T * sdiag(vol * 1. / mu**2)
-
-        # A = self._Div*self.MfMuI*self._Div.T
-        # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
-        # C(m,u) = A*m-rhs
-        # dudm = -(dCdu)^(-1)dCdm
-
-        dCdu = self.getA(m)
-        s = Div * (self.MfMuI.T * (P.T * v))
-
-        m1 = sp.linalg.interface.aslinearoperator(
-            sdiag(1 / (dCdu.T).diagonal())
-        )
-        sol, info = sp.linalg.bicgstab(dCdu.T, s, tol=1e-6, maxiter=1000, M=m1)
-
-        if info > 0:
-            print("Iterative solver did not work well (Jtvec)")
-            # raise Exception ("Iterative solver did not work well")
-
-        # dCdm_A = Div * ( sdiag( Div.T * u )* dMfMuI *dmudm  )
-        # dCdm_Atsol = ( dMfMuI.T*( sdiag( Div.T * u ) * (Div.T * dmudm)) ) * sol
-        dCdm_Atsol = (dmudm.T * dMfMuI.T *
-                      (sdiag(Div.T * u) * Div.T)) * sol
-
-        # dCdm_RHS1 = Div * (sdiag( self.MfMu0*B0  ) * dMfMuI)
-        # dCdm_RHS1tsol = (dMfMuI.T*( sdiag( self.MfMu0*B0  ) ) * Div.T * dmudm) * sol
-        dCdm_RHS1tsol = (
-            dmudm.T * dMfMuI.T *
-            (sdiag(self.MfMu0 * B0)) * Div.T
-        ) * sol
-
-        # temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
-        # temp1sol = (Dface.T * (sdiag(vol) * sol))
-        # temp2 = self.Bbc_const * (self._Pout.T * self.Bbc).T
-        # dCdm_RHS2v  = (sdiag(vol)*temp1)*np.inner(vol, dchidmu*dmudm*v)
-        # dCdm_RHS2tsol = (dmudm.T * dchidmu.T * vol) * np.inner(temp2, temp1sol)
-
-        # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
-
-        # temporary fix
-        # dCdm_RHStsol = dCdm_RHS1tsol - dCdm_RHS2tsol
-        dCdm_RHStsol = dCdm_RHS1tsol
-
-        # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
-        # dCdm_v = dCdm_A*v - dCdm_RHSv
-
-        Ctv = dCdm_Atsol - dCdm_RHStsol
-
-        # B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*u
-        # dBdm = d\mudm*dBd\mu
-        # dPBdm^T*v = Atemp^T*P^T*v - Btemp^T*P^T*v - Ctv
-
-        Atemp = sdiag(self.MfMu0 * B0) * (dMfMuI * (dmudm))
-        Btemp = sdiag(Div.T * u) * (dMfMuI * (dmudm))
-        Jtv = Atemp.T * (P.T * v) - Btemp.T * (P.T * v) - Ctv
-
-        return mkvc(Jtv)
-
-
-def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
-    """
-        Inversion module for MagneticsDiffSecondary
-
-    """
-    from SimPEG import (
-        Optimization, Regularization,
-        Parameters, ObjFunction, Inversion
-    )
-    prob = MagneticsDiffSecondary(mesh, model)
-
-    miter = kwargs.get('maxIter', 10)
-
-    if prob.ispaired:
-        prob.unpair()
-    if data.ispaired:
-        data.unpair()
-    prob.pair(data)
-
-    # Create an optimization program
-    opt = Optimization.InexactGaussNewton(maxIter=miter)
-    opt.bfgsH0 = Solver(sp.identity(model.nP), flag='D')
-    # Create a regularization program
-    reg = Regularization.Tikhonov(model)
-    # Create an objective function
-    beta = Parameters.BetaSchedule(beta0=1e0)
-    obj = ObjFunction.BaseObjFunction(data, reg, beta=beta)
-    # Create an inversion object
-    inv = Inversion.BaseInversion(obj, opt)
-
-    return inv, reg
-
-
-def calcRow(
+def calculateIntegralRows(
     Xn, Yn, Zn, rxlocation, P,
     components=[
         "dbx_dx", "dbx_dy", "dbx_dz", "dby_dy",
@@ -1374,123 +950,3 @@ def calcRow(
             rows += [np.dot(P, np.r_[bx, by, bz])]
 
     return np.vstack(rows)
-
-
-def progress(iter, prog, final):
-    """
-    progress(iter,prog,final)
-
-    Function measuring the progress of a process and print to screen the %.
-    Useful to estimate the remaining runtime of a large problem.
-
-    Created on Dec, 20th 2015
-
-    @author: dominiquef
-    """
-    arg = np.floor(float(iter)/float(final)*10.)
-
-    if arg > prog:
-
-        print("Done " + str(arg*10) + " %")
-        prog = arg
-
-    return prog
-
-
-def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
-    """
-    get_dist_wgt(xn,yn,zn,receiver_locations,R,R0)
-
-    Function creating a distance weighting function required for the magnetic
-    inverse problem.
-
-    INPUT
-    xn, yn, zn : Node location
-    receiver_locations       : Observation locations [obsx, obsy, obsz]
-    actv        : Active cell vector [0:air , 1: ground]
-    R           : Decay factor (mag=3, grav =2)
-    R0          : Small factor added (default=dx/4)
-
-    OUTPUT
-    wr       : [nC] Vector of distance weighting
-
-    Created on Dec, 20th 2015
-
-    @author: dominiquef
-    """
-
-    # Find non-zero cells
-    if actv.dtype == 'bool':
-        inds = np.asarray(
-            [
-                inds for inds, elem in enumerate(actv, 1) if elem
-            ],
-            dtype=int
-        ) - 1
-    else:
-        inds = actv
-
-    nC = len(inds)
-
-    # Create active cell projector
-    P = csr((np.ones(nC), (inds, range(nC))),
-                      shape=(mesh.nC, nC))
-
-    # Geometrical constant
-    p = 1 / np.sqrt(3)
-
-    # Create cell center location
-    Ym, Xm, Zm = np.meshgrid(mesh.vectorCCy, mesh.vectorCCx, mesh.vectorCCz)
-    hY, hX, hZ = np.meshgrid(mesh.hy, mesh.hx, mesh.hz)
-
-    # Remove air cells
-    Xm = P.T * mkvc(Xm)
-    Ym = P.T * mkvc(Ym)
-    Zm = P.T * mkvc(Zm)
-
-    hX = P.T * mkvc(hX)
-    hY = P.T * mkvc(hY)
-    hZ = P.T * mkvc(hZ)
-
-    V = P.T * mkvc(mesh.vol)
-    wr = np.zeros(nC)
-
-    ndata = receiver_locations.shape[0]
-    count = -1
-    print("Begin calculation of distance weighting for R= " + str(R))
-
-    for dd in range(ndata):
-
-        nx1 = (Xm - hX * p - receiver_locations[dd, 0])**2
-        nx2 = (Xm + hX * p - receiver_locations[dd, 0])**2
-
-        ny1 = (Ym - hY * p - receiver_locations[dd, 1])**2
-        ny2 = (Ym + hY * p - receiver_locations[dd, 1])**2
-
-        nz1 = (Zm - hZ * p - receiver_locations[dd, 2])**2
-        nz2 = (Zm + hZ * p - receiver_locations[dd, 2])**2
-
-        R1 = np.sqrt(nx1 + ny1 + nz1)
-        R2 = np.sqrt(nx1 + ny1 + nz2)
-        R3 = np.sqrt(nx2 + ny1 + nz1)
-        R4 = np.sqrt(nx2 + ny1 + nz2)
-        R5 = np.sqrt(nx1 + ny2 + nz1)
-        R6 = np.sqrt(nx1 + ny2 + nz2)
-        R7 = np.sqrt(nx2 + ny2 + nz1)
-        R8 = np.sqrt(nx2 + ny2 + nz2)
-
-        temp = (R1 + R0)**-R + (R2 + R0)**-R + (R3 + R0)**-R + \
-            (R4 + R0)**-R + (R5 + R0)**-R + (R6 + R0)**-R + \
-            (R7 + R0)**-R + (R8 + R0)**-R
-
-        wr = wr + (V * temp / 8.)**2.
-
-        count = progress(dd, count, ndata)
-
-    wr = np.sqrt(wr) / V
-    wr = mkvc(wr)
-    wr = np.sqrt(wr / (np.max(wr)))
-
-    print("Done 100% ...distance weighting completed!!\n")
-
-    return wr
