@@ -24,6 +24,7 @@ import numpy as np
 from scipy.interpolate import LinearNDInterpolator
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import os
 
 from discretize import TensorMesh
 from discretize.utils import mkvc
@@ -195,3 +196,24 @@ cbar = mpl.colorbar.ColorbarBase(
 cbar.set_label('$nT$', rotation=270, labelpad=15, size=12)
 
 plt.show()
+
+
+#######################################################
+# Optional: Export Data
+# ---------------------
+#
+# Write the data and topography
+# 
+
+
+fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_topo.txt'
+np.savetxt(fname, np.c_[xyz_topo], fmt='%.4e')
+
+noise = 0.5*np.random.rand(len(dpred))
+fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetic_data.obs'
+np.savetxt(
+    fname,
+    np.c_[receiver_locations, dpred + noise],
+    fmt='%.4e'
+)
+

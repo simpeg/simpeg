@@ -70,10 +70,12 @@ receiver_locations = np.c_[x, y, z]
 # Define the receivers. Here the user may define the receiver to measure
 # total gravity anomaly, Cartesian components of the anomaly or
 # gradient components of the anomaly (for gravity gradiometry)
-receiver_list = []
-receiver_list.append(gravity.receivers.point_receiver(receiver_locations, "gx"))
-receiver_list.append(gravity.receivers.point_receiver(receiver_locations, "gy"))
-receiver_list.append(gravity.receivers.point_receiver(receiver_locations, "gz"))
+#receiver_list = []
+#receiver_list.append(gravity.receivers.point_receiver(receiver_locations, "gx"))
+#receiver_list.append(gravity.receivers.point_receiver(receiver_locations, "gy"))
+#receiver_list.append(gravity.receivers.point_receiver(receiver_locations, "gz"))
+
+receiver_list = [gravity.receivers.point_receiver(receiver_locations, components=["gx", "gy", "gz"])]
 
 # Defining the source field.
 source_field = gravity.sources.SourceField(receiver_list=receiver_list)
@@ -218,25 +220,25 @@ cplot2 = plot2Ddata(
 cplot2[0].set_clim((-v_max, v_max))
 ax2.set_title('ddy')
 ax2.set_yticks([])
-#
-#ax3 = fig.add_axes([0.57, 0.05, 0.25, 0.9])
-#cplot3 = plot2Ddata(
-#    receiver_locations, dpred[2*n_locations:], ax=ax3, ncontour=30, clim=(-v_max, v_max),
-#    contourOpts={"cmap": "RdBu_r"}
-#)
-#cplot3[0].set_clim((-v_max, v_max))
-#ax3.set_title('ddz')
-#ax3.set_yticks([])
-#
-#ax4 = fig.add_axes([0.84, 0.08, 0.03, 0.83])
-#norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
-#cbar = mpl.colorbar.ColorbarBase(
-#    ax4, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
-#)
-#cbar.set_label(
-#    '$mgal/m$',
-#    rotation=270, labelpad=15, size=12
-#)
+
+ax3 = fig.add_axes([0.57, 0.05, 0.25, 0.9])
+cplot3 = plot2Ddata(
+    receiver_locations, dpred[2*n_locations:], ax=ax3, ncontour=30, clim=(-v_max, v_max),
+    contourOpts={"cmap": "RdBu_r"}
+)
+cplot3[0].set_clim((-v_max, v_max))
+ax3.set_title('ddz')
+ax3.set_yticks([])
+
+ax4 = fig.add_axes([0.84, 0.08, 0.03, 0.83])
+norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
+cbar = mpl.colorbar.ColorbarBase(
+    ax4, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
+)
+cbar.set_label(
+    '$mgal/m$',
+    rotation=270, labelpad=15, size=12
+)
 
 plt.show()
 

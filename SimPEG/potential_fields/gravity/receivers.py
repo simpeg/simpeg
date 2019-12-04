@@ -24,7 +24,7 @@ class point_receiver(survey.BaseRx):
 
     def __init__(self, locations, components="gz", **kwargs):
 
-        n_receivers = locations.shape[0]
+        n_locations = locations.shape[0]
 
         if isinstance(components, str):
             components = [components]
@@ -33,7 +33,7 @@ class point_receiver(survey.BaseRx):
             componentList = components.copy()
             components = {}
             for component in componentList:
-                components = {component: np.ones(n_receivers, dtype='bool')}
+                components = {component: np.ones(n_locations, dtype='bool')}
 
         assert np.all([component in [
             "gx", "gy", "gz", "gxx", "gxy", "gxz",

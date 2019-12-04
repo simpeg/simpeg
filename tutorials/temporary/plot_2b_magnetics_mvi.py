@@ -227,7 +227,7 @@ cbar.set_label(
 # Define the forward modeling problem. Set modelType to 'vector'
 simulation = magnetics.simulation.MagneticIntegralSimulation(
     survey=survey, mesh=mesh, chiMap=model_map, actInd=ind_active,
-    modelType='vector'
+    modelType='vector', forward_only=False
 )
 
 # Compute predicted data for some model

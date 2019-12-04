@@ -24,6 +24,7 @@ import numpy as np
 from scipy.interpolate import LinearNDInterpolator
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import os
 
 from discretize import TensorMesh
 from discretize.utils import mkvc
@@ -190,9 +191,27 @@ cbar.set_label('$mgal$', rotation=270, labelpad=15, size=12)
 plt.show()
 
 
+#######################################################
+# Optional: Export Data
+# ---------------------
+#
+# Write the data and topography
+# 
 
 
+fname = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\gravity_topo.txt'
+np.savetxt(
+    fname,
+    np.c_[xyz_topo],
+    fmt='%.4e'
+)
 
-
-
+# THIS IS TO WRITE THE DATA OUT FOR NOW FOR INVERSION
+noise = 5e-4*np.random.rand(len(dpred))
+fname = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\gravity_data.obs'
+np.savetxt(
+    fname,
+    np.c_[receiver_locations, dpred + noise],
+    fmt='%.4e'
+)
 
