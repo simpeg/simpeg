@@ -19,10 +19,10 @@ class point_receiver(survey.BaseRx):
     #     "Must be a magnetic component of the type",
 
 
-    #     default=["tmi"]
+    #     default=["gz"]
     # )
 
-    def __init__(self, locations, components="amp", **kwargs):
+    def __init__(self, locations, components="gz", **kwargs):
 
         n_receivers = locations.shape[0]
 
@@ -37,11 +37,11 @@ class point_receiver(survey.BaseRx):
 
         assert np.all([component in [
             "gx", "gy", "gz", "gxx", "gxy", "gxz",
-            "gyy", "gyz", "gzz", "guv", "amp"
+            "gyy", "gyz", "gzz", "guv"
              ] for component in list(components.keys())]), (
                 "Components {0!s} not known. Components must be in "
                 "'gx', 'gy', 'gz', 'gxx', 'gxy', 'gxz'"
-         	    "'gyy', 'gyz', 'gzz', 'guv', 'amp'"
+         	    "'gyy', 'gyz', 'gzz', 'guv'"
                 "Arbitrary orientations have not yet been "
                 "implemented.".format(components)
             )

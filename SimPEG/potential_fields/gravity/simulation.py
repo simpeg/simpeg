@@ -138,8 +138,6 @@ class GravityIntegralSimulation(LinearSimulation):
 
     @property
     def G(self):
-        if not self.ispaired:
-            raise Exception('Need to pair!')
 
         if getattr(self, '_G', None) is None:
 
