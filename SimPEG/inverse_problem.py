@@ -91,27 +91,28 @@ class BaseInvProblem(BaseSimPEG):
 
         self.model = m0
 
-        if isinstance(self.dmisfit, BaseDataMisfit):
-            print("""
-    SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-    ***Done using same Solver and solverOpts as the problem***"""
-            )
-            self.opt.bfgsH0 = self.dmisfit.simulation.Solver(
-                self.reg.deriv2(self.model), **self.dmisfit.simulation.solver_opts
-            )
-        elif isinstance(self.dmisfit, BaseObjectiveFunction):
-            for objfct in self.dmisfit.objfcts:
-                if isinstance(objfct, BaseDataMisfit):
-                    print("""
-    SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-    ***Done using same Solver and solver_opts as the {} problem***""".format(
-                            objfct.simulation.__class__.__name__
+        if getattr(self.dmisfit.simulation, "Solver", None) is not None:
+            if isinstance(self.dmisfit, BaseDataMisfit):
+                print("""
+        SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
+        ***Done using same Solver and solverOpts as the problem***"""
+                )
+                self.opt.bfgsH0 = self.dmisfit.simulation.Solver(
+                    self.reg.deriv2(self.model), **self.dmisfit.simulation.solver_opts
+                )
+            elif isinstance(self.dmisfit, BaseObjectiveFunction):
+                for objfct in self.dmisfit.objfcts:
+                    if isinstance(objfct, BaseDataMisfit):
+                        print("""
+        SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
+        ***Done using same Solver and solver_opts as the {} problem***""".format(
+                                objfct.simulation.__class__.__name__
+                            )
                         )
-                    )
-                    self.opt.bfgsH0 = objfct.simulation.Solver(
-                        self.reg.deriv2(self.model), **objfct.simulation.solver_opts
-                    )
-                    break
+                        self.opt.bfgsH0 = objfct.simulation.Solver(
+                            self.reg.deriv2(self.model), **objfct.simulation.solver_opts
+                        )
+                        break
 
 
     @property

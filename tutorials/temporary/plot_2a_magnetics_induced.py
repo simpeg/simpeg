@@ -210,7 +210,7 @@ fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\
 np.savetxt(fname, np.c_[xyz_topo], fmt='%.4e')
 
 noise = 0.5*np.random.rand(len(dpred))
-fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetic_data.obs'
+fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_data.obs'
 np.savetxt(
     fname,
     np.c_[receiver_locations, dpred + noise],

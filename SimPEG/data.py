@@ -155,7 +155,7 @@ class Data(properties.HasProperties):
 
     @uncertainty.setter
     def uncertainty(self, value):
-        self.self.standard_deviation = np.zeros(self.nD)
+        self.standard_deviation = np.zeros(self.nD)
         self.noise_floor = value
 
     @property
