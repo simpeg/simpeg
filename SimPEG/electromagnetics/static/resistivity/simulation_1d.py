@@ -32,6 +32,8 @@ class DCSimulation_1D(BaseEMSimulation):
 
     data_type = 'volt'
     hankel_pts_per_dec = None       # Default: Standard DLF
+
+    # TODO: using 51 filter coefficient could be overkill, use less if possible
     hankel_filter = 'key_51_2012'  # Default: Hankel filter
 
     _Jmatrix = None
@@ -50,9 +52,10 @@ class DCSimulation_1D(BaseEMSimulation):
         if m is not None:
             self.model = m
 
-        # if self.verbose:
-            # print (">> Compute fields")
+        if self.verbose:
+            print (">> Compute fields")
 
+        # TODO: this for loop can slow down the speed, cythonize below for loop
         T1 = self.rho[self.n_layer-1] * np.ones_like(self.lambd)
         for ii in range(self.n_layer-1, 0, -1):
             rho0 = self.rho[ii-1]
@@ -90,7 +93,7 @@ class DCSimulation_1D(BaseEMSimulation):
 
     def getJ(self, m, f=None, factor=1e-2):
         """
-            Generate Full sensitivity matrix
+            Generate Full sensitivity matrix using central difference
         """
         if self._Jmatrix is not None:
             return self._Jmatrix
@@ -98,6 +101,8 @@ class DCSimulation_1D(BaseEMSimulation):
             if self.verbose:
                 print("Calculating J and storing")
             self.model = m
+
+            # TODO: this makes code quite slow derive analytic sensitivity
             N = self.survey.nD
             M = self.model.size
             Jmatrix = np.zeros((N, M), dtype=float, order='F')
@@ -146,7 +151,7 @@ class DCSimulation_1D(BaseEMSimulation):
     @property
     def electrode_separations(self):
         """
-            electrode separations
+            Electrode separations
         """
         # TODO: only works isotropic sigma
         if getattr(self, '_electrode_separations', None) is None:
@@ -156,7 +161,7 @@ class DCSimulation_1D(BaseEMSimulation):
     @property
     def offset(self):
         """
-            electrode separations
+            Offset between a current electrode and a potential electrode
         """
         # TODO: only works isotropic sigma
         if getattr(self, '_offset', None) is None:
@@ -170,8 +175,7 @@ class DCSimulation_1D(BaseEMSimulation):
     @property
     def lambd(self):
         """
-
-            spatial frequency
+            Spatial frequency in Hankel domain
             np.sqrt(kx*2 + ky**2) = lamda
         """
         # TODO: only works isotropic sigma
