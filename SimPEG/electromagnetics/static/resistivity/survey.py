@@ -12,6 +12,8 @@ from ....survey import BaseSurvey
 from ..utils import drapeTopotoLoc
 from . import receivers as Rx
 from . import sources as Src
+from ..utils import StaticUtils
+from SimPEG import data
 
 
 class Survey(BaseSurvey):
@@ -84,13 +86,13 @@ class Survey(BaseSurvey):
         space_type='half-space'
     ):
 
-        geometric_factor = SimPEG.EM.Static.Utils.geometric_factor(
+        geometric_factor = StaticUtils.geometric_factor(
             self,
             survey_type=survey_type,
             space_type=space_type
         )
 
-        geometric_factor = SimPEG.Survey.Data(self, geometric_factor)
+        geometric_factor = data.Data(self, geometric_factor)
         for source in self.source_list:
             for rx in source.receiver_list:
                 rx._geometric_factor = geometric_factor[source, rx]

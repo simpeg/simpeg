@@ -631,10 +631,10 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
     return survey
 
 
-def generateSurveyDCIP(survey_type, endl, topo, ds, dh, n, dim_flag='2.5D'):
+def generate_dcip_survey_line(survey_type, endl, topo, ds, dh, n, dim_flag='2.5D', sources_only=False):
     """
-        Generate DCIP survey for modeling in 2.5D or 3D. Takes into accounted true surface
-        topography. Shift to discretized topography done using active cells model.
+        Generate DCIP survey line for modeling in 2.5D or 3D. Takes into accounted true surface
+        topography.
 
         Input:
         :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
@@ -645,16 +645,17 @@ def generateSurveyDCIP(survey_type, endl, topo, ds, dh, n, dim_flag='2.5D'):
         :param int dh: dipole separation (unused if pole-pole)
         :param int n: number of rx per tx
         :param str dim: '2D', '2.5D' or '3D'
+        :param bool sources_only: Outputs a survey object if False. Outputs sources list if True.
 
         Output:
         :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
     """
     
-    accepted_surveys = ['gradient','pole-pole','pole-dipole','dipole-pole','dipole-dipole']
+    accepted_surveys = ['pole-pole','pole-dipole','dipole-pole','dipole-dipole']
     
     if survey_type.lower() not in accepted_surveys:
             raise Exception(
-            "survey_type must be 'gradient' | 'dipole-dipole' | 'pole-dipole' | "
+            "survey_type must be 'dipole-dipole' | 'pole-dipole' | "
             "'dipole-pole' | 'pole-pole' not {}".format(survey_type)
             )
     
@@ -666,7 +667,7 @@ def generateSurveyDCIP(survey_type, endl, topo, ds, dh, n, dim_flag='2.5D'):
     x1 = endl[0]
     x2 = endl[1]
 
-    if dim_flag is '3D':
+    if dim_flag == '3D':
 
         # Station locations
         y1 = endl[2]
@@ -733,103 +734,54 @@ def generateSurveyDCIP(survey_type, endl, topo, ds, dh, n, dim_flag='2.5D'):
     # Pole-dipole: Moving pole on one end -> [A a MN1 a MN2 ... MNn a B]
     SrcList = []
 
-    if survey_type != 'gradient':
+    for ii in range(0, int(nstn)):
+        
+        if dim_flag == '3D':
+            D = xy_2_r(stn_x[ii], x2, stn_y[ii], y2)
+        else:
+            D = xy_2_r(stn_x[ii], x2, y1, y2)
+        
+        # Number of receivers to fit
+        nrec = int(np.min([np.floor(D / ds), n]))
+        
+        # Check if there is enough space, else break the loop
+        if nrec <= 0:
+            continue
+        
+        # Create receivers
+        if dim_flag == '2.5D':
+            if survey_type.lower() in ['dipole-pole', 'pole-pole']:
+                rxClass = dc.receivers.Pole_ky(P[ii+1:ii+nrec+1, :])
+            elif survey_type.lower() in ['dipole-dipole', 'pole-dipole']:
+                rxClass = dc.receivers.Dipole_ky(DP1[ii+1:ii+nrec+1, :], DP2[ii+1:ii+nrec+1, :])
 
-        for ii in range(0, int(nstn)):
-            
-            if dim_flag is '3D':
-                D = xy_2_r(stn_x[ii], x2, stn_y[ii], y2)
-            else:
-                D = xy_2_r(stn_x[ii], x2, y1, y2)
-            
-            # Number of receivers to fit
-            nrec = int(np.min([np.floor(D / ds), n]))
-            
-            # Check if there is enough space, else break the loop
-            if nrec <= 0:
-                continue
-            
-            # Create receiveras
-            if dim_flag is '2.5D':
-                if survey_type.lower() in ['dipole-pole', 'pole-pole']:
-                    rxClass = dc.receivers.Pole_ky(P[ii+1:ii+nrec+1, :])
-                elif survey_type.lower() in ['dipole-dipole', 'pole-dipole']:
-                    rxClass = dc.receivers.Dipole_ky(DP1[ii+1:ii+nrec+1, :], DP2[ii+1:ii+nrec+1, :])
+        else:
+            if survey_type.lower() in ['dipole-pole', 'pole-pole']:
+                rxClass = dc.receivers.Pole(P[ii+1:ii+nrec+1, :])
+            elif survey_type.lower() in ['dipole-dipole', 'pole-dipole']:
+                rxClass = dc.receivers.Dipole(DP1[ii+1:ii+nrec+1, :], DP2[ii+1:ii+nrec+1, :])
 
-            else:
-                if survey_type.lower() in ['dipole-pole', 'pole-pole']:
-                    rxClass = dc.receivers.Pole(P[ii+1:ii+nrec+1, :])
-                elif survey_type.lower() in ['dipole-dipole', 'pole-dipole']:
-                    rxClass = dc.receivers.Dipole(DP1[ii+1:ii+nrec+1, :], DP2[ii+1:ii+nrec+1, :])
+        # Create sources
+        if survey_type.lower() in ['pole-dipole', 'pole-pole']:
+            srcClass = dc.sources.Pole([rxClass], P[ii, :])
+        elif survey_type.lower() in['dipole-dipole', 'dipole-pole']:
+            srcClass = dc.sources.Dipole([rxClass], DP1[ii, :], DP2[ii, :])
+        
+        SrcList.append(srcClass)
 
-            # Create sources
-            if survey_type.lower() in ['pole-dipole', 'pole-pole']:
-                srcClass = dc.sources.Pole([rxClass], P[ii, :])
-            elif survey_type.lower() in['dipole-dipole', 'dipole-pole']:
-                srcClass = dc.sources.Dipole([rxClass], DP1[ii, :], DP2[ii, :])
-            
-            SrcList.append(srcClass)
+    if sources_only:
 
-    # elif survey_type.lower() == 'gradient':
+        return SrcList
 
-    #     # Gradient survey takes the "b" parameter to define the limits of a
-    #     # square survey grid. The pole seperation within the receiver grid is
-    #     # define the "a" parameter.
-
-    #     # Get the edge limit of survey area
-    #     min_x = endl[0, 0] + dl_x * b
-    #     min_y = endl[0, 1] + dl_y * b
-
-    #     max_x = endl[1, 0] - dl_x * b
-    #     max_y = endl[1, 1] - dl_y * b
-
-    #     # Define the size of the survey grid (square for now)
-    #     box_l = np.sqrt((min_x - max_x)**2. + (min_y - max_y)**2.)
-    #     box_w = box_l/2.
-
-    #     nstn = int(np.floor(box_l / a))
-
-    #     # Compute discrete pole location along line
-    #     stn_x = min_x + np.array(range(int(nstn)))*dl_x*a
-    #     stn_y = min_y + np.array(range(int(nstn)))*dl_y*a
-
-    #     # Define number of cross lines
-    #     nlin = int(np.floor(box_w / a))
-    #     lind = range(-nlin, nlin+1)
-
-    #     npoles = int(nstn * len(lind))
-
-    #     rx = np.zeros([npoles, 6])
-    #     for ii in range(len(lind)):
-
-    #         # Move station location to current survey line This is a
-    #         # perpendicular move then line survey orientation, hence the y, x
-    #         # switch
-    #         lxx = stn_x - lind[ii]*a*dl_y
-    #         lyy = stn_y + lind[ii]*a*dl_x
-
-    #         M = np.c_[lxx, lyy, np.ones(nstn).T*ztop]
-    #         N = np.c_[lxx+a*dl_x, lyy+a*dl_y, np.ones(nstn).T*ztop]
-    #         rx[(ii*nstn):((ii+1)*nstn), :] = np.c_[M, N]
-
-    #         if mesh.dim == 3:
-    #             rxClass = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
-    #         elif mesh.dim == 2:
-    #             M = M[:, [0, 2]]
-    #             N = N[:, [0, 2]]
-    #             if d2flag == '2.5D':
-    #                 rxClass = DC.Rx.Dipole_ky(rx[:, [0, 2]], rx[:, [3, 5]])
-    #             elif d2flag == '2D':
-    #                 rxClass = DC.Rx.Dipole(rx[:, [0, 2]], rx[:, [3, 5]])
-    #         srcClass = DC.Src.Dipole([rxClass], (endl[0, :]), (endl[1, :]))
-    #     SrcList.append(srcClass)
-
-    if dim_flag == '2.5D':
-        survey = dc.Survey_ky(SrcList)
     else:
-        survey = dc.Survey(SrcList)
 
-    return survey
+        if dim_flag == '2.5D':
+            survey = dc.Survey_ky(SrcList)
+        else:
+            survey = dc.Survey(SrcList)
+
+        return survey
+
 
 def writeUBC_DCobs(
     fileName, data, dim, format_type,
