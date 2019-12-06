@@ -70,6 +70,9 @@ class GravityIntegralSimulation(LinearSimulation):
             zn1, zn2 = bsw[:, 2], tne[:, 2]
             self.Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
 
+        self.receiver_locations = self.survey.source_field.receiver_list[0].locations
+        self.nD = int(self.receiver_locations.shape[0])
+
     def fields(self, m):
         # self.model = self.rhoMap*m
 
@@ -162,11 +165,6 @@ class GravityIntegralSimulation(LinearSimulation):
          """
         if m is not None:
             self.model = self.rhoMap*m
-        self.receiver_locations = self.survey.source_field.receiver_list[0].locations
-        self.nD = int(self.receiver_locations.shape[0])
-
-        # if self.n_cpu is None:
-        #     self.n_cpu = multiprocessing.cpu_count()
 
         # Switch to determine if the process has to be run in parallel
         job = Forward(
@@ -178,9 +176,7 @@ class GravityIntegralSimulation(LinearSimulation):
                 max_chunk_size=self.max_chunk_size, chunk_by_rows=self.chunk_by_rows
                 )
 
-        G = job.calculate()
-
-        return G
+        return job.calculate()
 
 
 class Forward(object):

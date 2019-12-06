@@ -95,6 +95,8 @@ class MagneticIntegralSimulation(LinearSimulation):
             zn1, zn2 = bsw[:, 2], tne[:, 2]
             self.Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
 
+        self.receiver_locations = self.survey.source_field.receiver_list[0].locations
+
     def fields(self, m):
 
         if self.coordinate_system == 'cartesian':
@@ -199,7 +201,6 @@ class MagneticIntegralSimulation(LinearSimulation):
                 return mkvc(np.sum(((W * self.dfdm) * sdiag(mkvc(self.gtgdiag)**0.5) * (self.dSdm * dmudm)).power(2.), axis=0))
             else:
 
-                #Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm) * (self.dSdm * dmudm)
                 return mkvc(np.sum((sdiag(mkvc(self.gtgdiag)**0.5) * self.dSdm * dmudm).power(2), axis=0))
 
     def getJ(self, m, f=None):
@@ -241,7 +242,6 @@ class MagneticIntegralSimulation(LinearSimulation):
 
         else:
 
-#            vec = dask.delayed(csr.dot)(dmudm, v)
             dmudm_v = da.from_array(dmudm*v, chunks=self.G.chunks[1])
 
             Jvec = da.dot(self.G, dmudm_v.astype(np.float32))
@@ -380,9 +380,6 @@ class MagneticIntegralSimulation(LinearSimulation):
         if m is not None:
             self.model = self.chiMap*m
 
-        # survey = self.survey
-        self.receiver_locations = self.survey.source_field.receiver_list[0].locations
-
         if magType == 'H0':
             if getattr(self, 'M', None) is None:
                 self.M = matutils.dip_azimuth2cartesian(np.ones(self.nC) * self.survey.source_field.parameters[1],
@@ -416,9 +413,7 @@ class MagneticIntegralSimulation(LinearSimulation):
                 max_chunk_size=self.max_chunk_size, chunk_by_rows=self.chunk_by_rows
                 )
 
-        G = job.calculate()
-
-        return G
+        return job.calculate()
 
 
 class Forward(object):
