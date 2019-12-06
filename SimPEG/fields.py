@@ -2,6 +2,7 @@ from six import string_types
 import numpy as np
 import properties
 import discretize
+import sys
 
 from .simulation import BaseSimulation, BaseTimeSimulation
 from .utils import mkvc
@@ -88,10 +89,12 @@ class Fields(properties.HasProperties):
     def _storageShape(self, loc):
         nSrc = self.survey.nSrc
 
-        nP = {'CC': self.mesh.nC,
-              'N':  self.mesh.nN,
-              'F':  self.mesh.nF,
-              'E':  self.mesh.nE}[loc]
+        nP = {
+            'CC': self.mesh.nC,
+            'N':  self.mesh.nN,
+            'F':  self.mesh.nF,
+            'E':  self.mesh.nE
+        }[loc]
 
         return (nP, nSrc)
 
@@ -107,6 +110,8 @@ class Fields(properties.HasProperties):
             dtype = self.dtype[name]
         else:
             dtype = self.dtype
+
+        # field = zarr.create(self._storageShape(loc), dtype=dtype)
         field = np.zeros(self._storageShape(loc), dtype=dtype)
 
         self._fields[name] = field
@@ -302,7 +307,7 @@ class TimeFields(Fields):
             pointerFields = pointerFields.reshape(pointerShape, order='F')
 
             timeII = np.arange(self.simulation.nT + 1)[timeInd]
-            srcII = np.array(self.survey.srcList)[srcInd]
+            srcII = np.array(self.survey.source_list)[srcInd]
             srcII = srcII.tolist()
 
             if timeII.size == 1:
