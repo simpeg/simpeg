@@ -71,7 +71,7 @@ receiver_locations = np.c_[x, y, z]
 # Define the receivers. Here the user may define the receiver to measure
 # total gravity anomaly, Cartesian components of the anomaly or
 # gradient components of the anomaly (for gravity gradiometry)
-receiver_list = [gravity.receivers.point_receiver(receiver_locations, components="gz")]
+receiver_list = [gravity.receivers.point_receiver(receiver_locations, components=["gz", "gxx"])]
 
 # Defining the source field.
 source_field = gravity.sources.SourceField(receiver_list=receiver_list)

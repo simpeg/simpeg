@@ -28,7 +28,7 @@ import os
 
 from discretize import TensorMesh
 from discretize.utils import mkvc
-from SimPEG.utils import plot2Ddata, ModelBuilder
+from SimPEG.utils import plot2Ddata, ModelBuilder, surface2ind_topo
 from SimPEG import maps
 from SimPEG.potential_fields import magnetics
 
@@ -74,7 +74,7 @@ receiver_locations = np.c_[x, y, z]
 # Define the receivers. Here the user may define the receiver to measure
 # total magnetic intensity, Cartesian components of the anomalous field or
 # gradient components of the magnetic field (for magnetic gradiometry)
-receiver_list = magnetics.receivers.point_receiver(receiver_locations, "tmi")
+receiver_list = magnetics.receivers.point_receiver(receiver_locations, components=["tmi", "dbx_dx"])
 
 # Define the inducing field H0 = (intensity [nT], inclination [deg], declination [deg])
 inclination = 90

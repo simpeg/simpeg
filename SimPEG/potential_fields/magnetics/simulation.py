@@ -82,8 +82,6 @@ class MagneticIntegralSimulation(LinearSimulation):
 
         # Create vectors of nodal location
         # (lower and upper coners for each cell)
-        # if isinstance(self.mesh, Mesh.TreeMesh):
-            # Get upper and lower corners of each cell
         bsw = (self.mesh.gridCC - self.mesh.h_gridded/2.)
         tne = (self.mesh.gridCC + self.mesh.h_gridded/2.)
 
@@ -97,23 +95,6 @@ class MagneticIntegralSimulation(LinearSimulation):
             zn1, zn2 = bsw[:, 2], tne[:, 2]
             self.Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
 
-        # else:
-
-        #     xn = self.mesh.vectorNx
-        #     yn = self.mesh.vectorNy
-        #     zn = self.mesh.vectorNz
-
-        #     yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
-        #     yn1, xn1, zn1 = np.meshgrid(yn[:-1], xn[:-1], zn[:-1])
-
-        # If equivalent source, use semi-infite prism
-        # if self.equiSourceLayer:
-        #     zn1 -= 1000.
-
-
-
-
-
     def fields(self, m):
 
         if self.coordinate_system == 'cartesian':
@@ -125,17 +106,16 @@ class MagneticIntegralSimulation(LinearSimulation):
             # Compute the linear operation without forming the full dense F
             return np.array(self.Intrgl_Fwr_Op(m=m, magType=self.magType), dtype='float')
 
-        # else:
-
+        # TO-DO: Delay the fields all the way to the objective function
         if getattr(self, '_Mxyz', None) is not None:
 
             vec = dask.delayed(csr.dot)(self.Mxyz, m)
             M = da.from_delayed(vec, dtype=float, shape=[m.shape[0]])
-            fields = da.dot(self.G, M)
+            fields = da.dot(self.G, M).compute()
 
         else:
 
-            fields = da.dot(self.G, m.astype(np.float32))
+            fields = da.dot(self.G, m.astype(np.float32)).compute()
 
         if self.modelType == 'amplitude':
 
@@ -174,7 +154,7 @@ class MagneticIntegralSimulation(LinearSimulation):
 
     @property
     def ProjTMI(self):
-        
+
         if getattr(self, '_ProjTMI', None) is None:
 
             # Convert Bdecination from north to cartesian
@@ -254,10 +234,9 @@ class MagneticIntegralSimulation(LinearSimulation):
 
         if getattr(self, '_Mxyz', None) is not None:
 
-            # dmudm_v = dask.delayed(csr.dot)(dmudm, v)
-            # vec = dask.delayed(csr.dot)(self.Mxyz, dmudm_v)
             M_dmudm_v = da.from_array(self.Mxyz*(dmudm*v), chunks=self.G.chunks[1])
 
+            # TO-DO: Delay the fields all the way to the objective function
             Jvec = da.dot(self.G, M_dmudm_v.astype(np.float32))
 
         else:
@@ -300,10 +279,9 @@ class MagneticIntegralSimulation(LinearSimulation):
 
             Jtvec = da.dot(v.astype(np.float32), self.G)
 
-
         dmudm_v = dask.delayed(csr.dot)(Jtvec, dmudm)
 
-        return da.from_delayed(dmudm_v, dtype=float, shape=[dmudm.shape[1]])
+        return da.from_delayed(dmudm_v, dtype=float, shape=[dmudm.shape[1]]).compute()
 
     @property
     def dSdm(self):

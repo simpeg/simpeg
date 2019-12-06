@@ -79,9 +79,8 @@ class GravityIntegralSimulation(LinearSimulation):
             return np.array(self.Intrgl_Fwr_Op(m=m), dtype='float')
 
         else:
-            # fields = da.dot(self.G, m)
 
-            return da.dot(self.G, (self.rhoMap*m).astype(np.float32)) #np.array(fields, dtype='float')
+            return da.dot(self.G, (self.rhoMap*m).astype(np.float32)).compute()
 
     def modelMap(self):
         """
@@ -134,7 +133,7 @@ class GravityIntegralSimulation(LinearSimulation):
         Jtvec = da.dot(v.astype(np.float32), self.G)
         dmudm_v = dask.delayed(csr.dot)(Jtvec, dmudm)
 
-        return da.from_delayed(dmudm_v, dtype=float, shape=[dmudm.shape[1]])
+        return da.from_delayed(dmudm_v, dtype=float, shape=[dmudm.shape[1]]).compute()
 
     @property
     def G(self):
@@ -197,7 +196,7 @@ class Forward(object):
     forward_only = False
     model = None
     components = ['gz']
-    
+
     verbose = True
     maxRAM = 1
     chunk_by_rows = False

@@ -13,48 +13,30 @@ class point_receiver(survey.BaseRx):
          "dby_dz", "dbz_dz", "bx", "by", "bz", "tmi" [default]
     """
 
-    # receiver_index = None
-
-    # component = properties.List(
-    #     "Must be a magnetic component of the type",
-
-
-    #     default=["tmi"]
-    # )
-
     def __init__(self, locations, components="tmi", **kwargs):
 
-        n_receivers = locations.shape[0]
+        n_locations = locations.shape[0]
 
         if isinstance(components, str):
             components = [components]
 
-        if isinstance(components, list):
-            componentList = components.copy()
-            components = {}
-            for component in componentList:
-                components = {component: np.ones(n_receivers, dtype='bool')}
+        component_dict = {}
+        for component in components:
+            component_dict[component] = np.ones(n_locations, dtype='bool')
 
         assert np.all([component in [
             "dbx_dx", "dbx_dy", "dbx_dz", "dby_dy",
             "dby_dz", "dbz_dz", "bx", "by", "bz", "tmi"
-             ] for component in list(components.keys())]), (
+             ] for component in list(component_dict.keys())]), (
                 "Components {0!s} not known. Components must be in "
                 "'dbx_dx', 'dbx_dy', 'dbx_dz', 'dby_dy',"
                 "'dby_dz', 'dbz_dz', 'bx', 'by', 'bz', 'tmi'. "
                 "Arbitrary orientations have not yet been "
-                "implemented.".format(components)
+                "implemented.".format(component)
             )
-        self.components = components
+        self.components = component_dict
 
         super(survey.BaseRx, self).__init__(locations=locations, components=components, **kwargs)
-
-
-    # def __init__(self, component=component, **kwargs):
-
-    #     self.component = component
-
-        # super(point_receiver, self).__init__(location_index, **kwargs)
 
     def nD(self):
 

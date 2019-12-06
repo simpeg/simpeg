@@ -1,12 +1,6 @@
-from scipy.constants import mu_0
 import numpy as np
-import properties
 
-from ...utils import Zero, Identity
 from ...survey import BaseSurvey
-from .sources import SourceField
-
-import warnings
 
 
 class MagneticSurvey(BaseSurvey):
@@ -35,13 +29,12 @@ class MagneticSurvey(BaseSurvey):
         return self.source_field.receiver_list[0].locations
 
     @property
-    def components(self):
-        return self.source_field.receiver_list[0].components
+    def nD(self):
+        return len(self.receiver_locations) * len(self.components)
 
     @property
-    def nD(self):
-        """Number of data"""
-        return self.vnD.sum()
+    def components(self):
+        return self.source_field.receiver_list[0].components
 
     @property
     def vnD(self):

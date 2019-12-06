@@ -29,32 +29,23 @@ class point_receiver(survey.BaseRx):
         if isinstance(components, str):
             components = [components]
 
-        if isinstance(components, list):
-            componentList = components.copy()
-            components = {}
-            for component in componentList:
-                components = {component: np.ones(n_locations, dtype='bool')}
+        component_dict = {}
+        for component in components:
+            component_dict[component] = np.ones(n_locations, dtype='bool')
 
         assert np.all([component in [
             "gx", "gy", "gz", "gxx", "gxy", "gxz",
             "gyy", "gyz", "gzz", "guv"
-             ] for component in list(components.keys())]), (
+             ] for component in list(component_dict.keys())]), (
                 "Components {0!s} not known. Components must be in "
                 "'gx', 'gy', 'gz', 'gxx', 'gxy', 'gxz'"
          	    "'gyy', 'gyz', 'gzz', 'guv'"
                 "Arbitrary orientations have not yet been "
-                "implemented.".format(components)
+                "implemented.".format(component)
             )
-        self.components = components
+        self.components = component_dict
 
         super(survey.BaseRx, self).__init__(locations=locations, components=components, **kwargs)
-
-
-    # def __init__(self, component=component, **kwargs):
-
-    #     self.component = component
-
-        # super(point_receiver, self).__init__(location_index, **kwargs)
 
     def nD(self):
 

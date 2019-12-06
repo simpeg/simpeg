@@ -1,12 +1,5 @@
-from scipy.constants import mu_0
-import numpy as np
-import properties
-
-from ...utils import Zero, Identity
 from ...survey import BaseSurvey
-from .sources import SourceField
 
-import warnings
 
 class GravitySurvey(BaseSurvey):
     """Base Magnetics Survey"""
