@@ -186,9 +186,9 @@ class MagneticIntegralSimulation(LinearSimulation):
 
             # for ii in range(self.G.shape[0]):
 
-            self.gtgdiag = da.sum(self.G**2., 0).compute()
+            # self.gtgdiag = da.sum(self.G**2., 0).compute()
 
-            # self.gtgdiag = np.array(da.sum(da.power(self.G, 2), axis=0))
+            self.gtgdiag = np.array(da.sum(da.power(self.G, 2), axis=0))
 
         if self.coordinate_system == 'cartesian':
             if self.modelType == 'amplitude':

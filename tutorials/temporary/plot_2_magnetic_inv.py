@@ -28,6 +28,7 @@ can be used to invert other types of geophysical data.
 #
 
 import os
+from shutil import rmtree
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -95,7 +96,7 @@ plt.show()
 # Assign Uncertainty
 # ------------------
 
-uncertainties = 0.2*np.ones(len(dobs))
+uncertainties = 1.2*np.ones(len(dobs))
 
 #############################################
 # Defining the Survey
@@ -220,7 +221,7 @@ reg.cell_weights = wr  # include in regularization
 
 # Define how the optimization problem is solved.
 opt = optimization.ProjectedGNCG(
-    maxIter=10, lower=-1., upper=1.,
+    maxIter=10, lower=0., upper=1.,
     maxIterLS=20, maxIterCG=10, tolCG=1e-3
 )
 
@@ -382,6 +383,7 @@ for ii in range(0, 3):
 
 plt.show()
 
+rmtree('.\Sensitivity.zarr')
 
 
 
