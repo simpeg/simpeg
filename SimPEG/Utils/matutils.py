@@ -238,3 +238,84 @@ def dipazm_2_xyz(dip, azm_N):
     M[:, 2] = np.sin(inc)
 
     return M
+
+
+def calculate_2D_trend(points, values, order=0, method='all'):
+    """
+    detrend2D(points, values, order=0, method='all')
+
+    Function to remove a trend from 2D scatter points with values
+
+    Parameters:
+    ----------
+
+    points: ndarray or floats, shape(npoints, 2)
+        Coordinates of input points
+
+    values: ndarray of floats, shape(npoints,)
+        Values to be detrended
+
+    order: int
+        Order of the polynomial to be used
+
+    method: str
+        Method to be used for the detrending
+            "all": USe all points
+            "corners": Only use points on the convex hull
+
+
+    Returns
+    -------
+
+    trend: ndarray of floats, shape(npoints,)
+        Calculated trend
+
+    """
+
+    assert method in ['all', 'corners'], (
+        "method must be 'all', or 'corners'"
+    )
+
+    assert order in [0, 1, 2], "order must be 0, 1, or 2"
+
+    if method == "corners":
+        hull = ConvexHull(points[:, :2])
+        # Extract only those points that make the ConvexHull
+        pts = np.c_[points[hull.vertices, :2], values[hull.vertices]]
+    else:
+        # Extract all points
+        pts = np.c_[points[:, :2], values]
+
+    if order == 0:
+        data_trend = np.mean(pts[:, 2]) * np.ones(points[:, 0].shape)
+        print('Removed data mean: {0:.6g}'.format(data_trend[0]))
+
+    elif order == 1:
+        # best-fit linear plane
+        A = np.c_[pts[:, 0], pts[:, 1], np.ones(pts.shape[0])]
+        C, _, _, _ = lstsq(A, pts[:, 2])    # coefficients
+
+        # evaluate at all data locations
+        data_trend = C[0]*points[:, 0] + C[1]*points[:, 1] + C[2]
+
+    elif order == 2:
+        # best-fit quadratic curve
+        A = np.c_[
+            np.ones(pts.shape[0]), pts[:, :2],
+            np.prod(pts[:, :2], axis=1),
+            pts[:, :2]**2
+        ]
+        C, _, _, _ = lstsq(A, pts[:, 2])
+
+        # evaluate at all data locations
+        data_trend = np.dot(np.c_[
+                np.ones(points[:, 0].shape),
+                points[:, 0],
+                points[:, 1],
+                points[:, 0]*points[:, 1],
+                points[:, 0]**2, points[:, 1]**2
+                ], C).reshape(points[:, 0].shape)
+
+    values -= data_trend
+
+    return trend
