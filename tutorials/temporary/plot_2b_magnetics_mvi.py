@@ -1,16 +1,16 @@
 
 """
-Magnetics
-=========
+Magnetic Gradiometry and Vector Models on a Tree Mesh
+=====================================================
 
 Here we use the module *SimPEG.potential_fields.magnetics* to predict magnetic
-data for magnetic vector models. The simulation is performed on a Tree mesh.
-For this tutorial, we focus on the following:
+gradiometry data for magnetic vector models. The simulation is performed on a
+Tree mesh. For this tutorial, we focus on the following:
 
-    - How to define the survey
-    - How to generate a tensor mesh or an OcTree mesh based on survey geometry
+    - How to define the survey when we want to measured multiple field components 
     - How to predict magnetic data in the case of remanence
     - How to include surface topography
+    - How to construct tree meshes based on topography and survey geometry
     - The units of the physical property model and resulting data
     
 
@@ -54,12 +54,10 @@ xyz_topo = np.c_[x_topo, y_topo, z_topo]
 # Defining the Survey
 # -------------------
 #
-# Here, we define the survey that will be used for both forward simulations.
-# Magnetic surveys are simple to create. The user needs an (N, 3) array to define
-# the xyz positions of the observation locations. The user also needs to
-# define the Earth's magnetic field intensity and orientation. Here, we
-# create a basic airborne survey with a flight height of 10 m above the
-# surface topography.
+# Here, we define survey that will be used for the simulation. Magnetic
+# surveys are simple to create. The user only needs an (N, 3) array to define
+# the xyz locations of the observation locations, the list of field components
+# which are to be modeled and the properties of the Earth's field.
 #
 
 # Define the observation locations as an (N, 3) numpy array or load them.
@@ -71,21 +69,27 @@ fun_interp = LinearNDInterpolator(np.c_[x_topo, y_topo], z_topo)
 z = fun_interp(np.c_[x, y]) + 10  # Flight height 10 m above surface.
 receiver_locations = np.c_[x, y, z]
 
-# Define the receivers. Here the user may define the receiver to measure
-# total magnetic intensity, Cartesian components of the anomalous field or
-# gradient components of the magnetic field (for magnetic gradiometry)
-receiver_list = magnetics.receivers.point_receiver(receiver_locations, "tmi")
+# Define the component(s) of the field we want to simulate as a list. Here we will
+# simulation total magnetic intensity data. Different components can be used
+# in the case of gradiometry. 
+components = ["dbx_dz", "dby_dz", "dbz_dz"]
+
+# Use the observation locations and components to define the receivers. To
+# simulate data, the receivers must be defined as a list.
+receiver_list = magnetics.receivers.point_receiver(
+        receiver_locations, components=components
+        )
+
+receiver_list = [receiver_list]
 
 # Define the inducing field H0 = (intensity [nT], inclination [deg], declination [deg])
-field_inclination = 90
-field_declination = 0
+field_inclination = 60
+field_declination = 30
 field_strength = 50000
+inducing_field = (field_strength, field_inclination, field_declination)
 
-inducing_field = (
-        field_strength, field_inclination, field_declination
-        )
 source_field = magnetics.sources.SourceField(
-    receiver_list=[receiver_list], parameters=inducing_field
+    receiver_list=receiver_list, parameters=inducing_field
     )
 
 # Define the survey
@@ -192,8 +196,6 @@ remanence_model[ind_sphere, :] = effective_susceptibility_sphere
 # Define effective susceptibility model as a vector np.r_[chi_x, chi_y, chi_z]
 plotting_model = susceptibility_model + remanence_model
 model = mkvc(plotting_model)
-susceptibility_model = mkvc(susceptibility_model)
-remanence_model = mkvc(remanence_model)
 
 # Plot Effective Susceptibility Model
 fig = plt.figure(figsize=(9, 4))
@@ -212,7 +214,7 @@ ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(vmin=np.min(plotting_model), vmax=np.max(plotting_model))
 cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation='vertical')
 cbar.set_label(
-    'Effective Susceptibility (SI)', rotation=270, labelpad=15, size=12
+    'Effective Susceptibility Amplitude (SI)', rotation=270, labelpad=15, size=12
 )
 
 
@@ -227,13 +229,12 @@ cbar.set_label(
 # Define the forward modeling problem. Set modelType to 'vector'
 simulation = magnetics.simulation.MagneticIntegralSimulation(
     survey=survey, mesh=mesh, chiMap=model_map, actInd=ind_active,
-    modelType='vector', forward_only=False
+    modelType='vector', forward_only=True
 )
 
 # Compute predicted data for some model
-dpred_induced = simulation.dpred(susceptibility_model)
-dpred_remanent = simulation.dpred(remanence_model)
 dpred = simulation.dpred(model)
+n_data = len(dpred)
 
 # Plot
 fig = plt.figure(figsize=(13, 4))
@@ -241,27 +242,27 @@ v_max = np.max(np.abs(dpred))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.25, 0.9])
 plot2Ddata(
-    receiver_list.locations, dpred_induced, ax=ax1, ncontour=30, clim=(-v_max, v_max),
+    receiver_list[0].locations, dpred[0:n_data:3], ax=ax1, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
 )
-ax1.set_title('TMI Anomaly (Induced)')
+ax1.set_title('$dBz/dx$')
 
 ax2 = fig.add_axes([0.31, 0.05, 0.25, 0.9])
 cplot2 = plot2Ddata(
-    receiver_list.locations, dpred_remanent, ax=ax2, ncontour=30,
+    receiver_list[0].locations, dpred[1:n_data:3], ax=ax2, ncontour=30,
     clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
 )
 cplot2[0].set_clim((-v_max, v_max))
-ax2.set_title('TMI Anomaly (Remanent)')
+ax2.set_title('$dBz/dy$')
 ax2.set_yticks([])
 
 ax3 = fig.add_axes([0.57, 0.05, 0.25, 0.9])
 cplot3 = plot2Ddata(
-    receiver_list.locations, dpred, ax=ax3, ncontour=30, clim=(-v_max, v_max),
+    receiver_list[0].locations, dpred[2:n_data:3], ax=ax3, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
 )
 cplot3[0].set_clim((-v_max, v_max))
-ax3.set_title('TMI Anomaly (Total)')
+ax3.set_title('$dBz/dz$')
 ax3.set_yticks([])
 
 ax4 = fig.add_axes([0.84, 0.08, 0.03, 0.83])
@@ -270,7 +271,7 @@ cbar = mpl.colorbar.ColorbarBase(
     ax4, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
 )
 cbar.set_label(
-    '$nT$',
+    '$nT/m$',
     rotation=270, labelpad=15, size=12
 )
 

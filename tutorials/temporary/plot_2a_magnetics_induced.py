@@ -39,8 +39,8 @@ from SimPEG.potential_fields import magnetics
 # Topography
 # ----------
 #
-# Here we define surface topography as an (N, 3) numpy array. Topography could
-# also be loaded from a file.
+# Surface topography is defined as an (N, 3) numpy array. We create it here but
+# topography could also be loaded from a file.
 #
 
 [x_topo, y_topo] = np.meshgrid(
@@ -54,12 +54,10 @@ xyz_topo = np.c_[x_topo, y_topo, z_topo]
 # Defining the Survey
 # -------------------
 #
-# Here, we define the survey that will be used for both forward simulations.
-# Magnetic surveys are simple to create. The user needs an (N, 3) array to define
-# the xyz positions of the observation locations. The user also needs to
-# define the Earth's magnetic field intensity and orientation. Here, we
-# create a basic airborne survey with a flight height of 10 m above the
-# surface topography.
+# Here, we define survey that will be used for the simulation. Magnetic
+# surveys are simple to create. The user only needs an (N, 3) array to define
+# the xyz locations of the observation locations, the list of field components
+# which are to be modeled and the properties of the Earth's field.
 #
 
 # Define the observation locations as an (N, 3) numpy array or load them.
@@ -71,19 +69,27 @@ fun_interp = LinearNDInterpolator(np.c_[x_topo, y_topo], z_topo)
 z = fun_interp(np.c_[x, y]) + 10  # Flight height 10 m above surface.
 receiver_locations = np.c_[x, y, z]
 
-# Define the receivers. Here the user may define the receiver to measure
-# total magnetic intensity, Cartesian components of the anomalous field or
-# gradient components of the magnetic field (for magnetic gradiometry)
-receiver_list = magnetics.receivers.point_receiver(receiver_locations, components=["tmi", "dbx_dx"])
+# Define the component(s) of the field we want to simulate as a list. Here we will
+# simulation total magnetic intensity data. Different components can be used
+# in the case of gradiometry. 
+components = ["tmi"]
+
+# Use the observation locations and components to define the receivers. To
+# simulate data, the receivers must be defined as a list.
+receiver_list = magnetics.receivers.point_receiver(
+        receiver_locations, components=components
+        )
+
+receiver_list = [receiver_list]
 
 # Define the inducing field H0 = (intensity [nT], inclination [deg], declination [deg])
 inclination = 90
 declination = 0
 strength = 50000
-
 inducing_field = (strength, inclination, declination)
+
 source_field = magnetics.sources.SourceField(
-    receiver_list=[receiver_list], parameters=inducing_field
+    receiver_list=receiver_list, parameters=inducing_field
     )
 
 # Define the survey
@@ -94,8 +100,7 @@ survey = magnetics.survey.MagneticSurvey(source_field)
 # Defining a Tensor Mesh
 # ----------------------
 #
-# Here, we create the tensor mesh that will be used to predict magnetic
-# for our first forward simulation.
+# Here, we create the tensor mesh that will be used for our simulation.
 #
 
 dh = 5.
@@ -115,8 +120,8 @@ mesh = TensorMesh([hx, hy, hz], 'CCN')
 #
 
 # Define susceptibility values for each unit in SI
-background_value = 0.0001
-sphere_value = 0.01
+background_susceptibility = 0.0001
+sphere_susceptibility = 0.01
 
 # Find cells that are active in the forward modeling (cells below surface)
 ind_active = surface2ind_topo(mesh, xyz_topo)
@@ -126,12 +131,12 @@ nC = int(ind_active.sum())
 model_map = maps.IdentityMap(nP=nC)  # model is a vlue for each active cell
 
 # Define model
-model = background_value*np.ones(ind_active.sum())
+model = background_susceptibility*np.ones(ind_active.sum())
 ind_sphere = ModelBuilder.getIndicesSphere(
     np.r_[0., 0., -45.], 15., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]
-model[ind_sphere] = sphere_value
+model[ind_sphere] = sphere_susceptibility
 
 # Plot Model
 fig = plt.figure(figsize=(9, 4))
@@ -181,7 +186,7 @@ v_max = np.max(np.abs(dpred))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
 plot2Ddata(
-    receiver_list.locs, dpred, ax=ax1, ncontour=30, clim=(-v_max, v_max),
+    receiver_list[0].locations, dpred, ax=ax1, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
 )
 ax1.set_title('TMI Anomaly')
@@ -209,11 +214,23 @@ plt.show()
 fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_topo.txt'
 np.savetxt(fname, np.c_[xyz_topo], fmt='%.4e')
 
-noise = 0.5*np.random.rand(len(dpred))
+noise = 0.2*np.random.rand(len(dpred))
 fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_data.obs'
 np.savetxt(
     fname,
     np.c_[receiver_locations, dpred + noise],
     fmt='%.4e'
 )
+
+output_model = plotting_map*model
+output_model[np.isnan(output_model)] = 0.
+
+fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\true_model.txt'
+np.savetxt(
+    fname,
+    output_model,
+    fmt='%.4e'
+)
+
+
 

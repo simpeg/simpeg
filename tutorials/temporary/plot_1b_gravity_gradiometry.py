@@ -7,9 +7,9 @@ Here we use the module *SimPEG.potential_fields.gravity* to predict gravity
 gradiometry data for a synthetic density contrast model. The simulation is
 carried out on a tree mesh. For this tutorial, we focus on the following:
 
-    - How to define the survey and receivers
+    - How to define the survey when we want multiple field components
     - How to predict gravity gradiometry data for a density contrast model
-    - How to include surface topography
+    - How to construct tree meshes based on topography and survey geometry
     - The units of the density contrast model and resulting data
 
 
@@ -37,8 +37,8 @@ from SimPEG.potential_fields import gravity
 # Defining Topography
 # -------------------
 #
-# Here we define surface topography as an (N, 3) numpy array. Topography could
-# also be loaded from a file. This is used for both simulations.
+# Surface topography is defined as an (N, 3) numpy array. We create it here but
+# topography could also be loaded from a file.
 #
 
 [x_topo, y_topo] = np.meshgrid(np.linspace(-200, 200, 41), np.linspace(-200, 200, 41))
@@ -51,10 +51,10 @@ xyz_topo = np.c_[x_topo, y_topo, z_topo]
 # Defining the Survey
 # -------------------
 #
-# Here, we define survey that will be used for the 1st simulation. Gravity
+# Here, we define survey that will be used for the simulation. Gravity
 # surveys are simple to create. The user only needs an (N, 3) array to define
-# the xyz locations of the observation locations. From this, the user can
-# define the receiver type and the source field.
+# the xyz locations of the observation locations and a list of field components
+# which are to be modeled.
 #
 
 # Define the observation locations as an (N, 3) numpy array or load them
@@ -66,16 +66,18 @@ fun_interp = LinearNDInterpolator(np.c_[x_topo, y_topo], z_topo)
 z = fun_interp(np.c_[x, y]) + 2.
 receiver_locations = np.c_[x, y, z]
 
+# Define the component(s) of the field we want to simulate. Here we will
+# simulation the vertical component of gravity. Gradiometry is covered in the
+# next tutorial. 
+components = ["gxz", "gyz", "gzz"]
 
-# Define the receivers. Here the user may define the receiver to measure
-# total gravity anomaly, Cartesian components of the anomaly or
-# gradient components of the anomaly (for gravity gradiometry)
-#receiver_list = []
-#receiver_list.append(gravity.receivers.point_receiver(receiver_locations, "gx"))
-#receiver_list.append(gravity.receivers.point_receiver(receiver_locations, "gy"))
-#receiver_list.append(gravity.receivers.point_receiver(receiver_locations, "gz"))
+# Use the observation locations and components to define the receivers. To
+# simulate data, the receivers must be defined as a list.
+receiver_list = gravity.receivers.point_receiver(
+        receiver_locations, components=components
+        )
 
-receiver_list = [gravity.receivers.point_receiver(receiver_locations, components=["gx", "gy", "gz"])]
+receiver_list = [receiver_list]
 
 # Defining the source field.
 source_field = gravity.sources.SourceField(receiver_list=receiver_list)
@@ -89,7 +91,8 @@ survey = gravity.survey.GravitySurvey(source_field)
 # -----------------------
 #
 # Here, we create the OcTree mesh that will be used to predict gravity
-# gradiometry data.
+# gradiometry data. Detailed construction of tree meshes is covered in a
+# separate tutorial.
 # 
 
 dx = 5    # minimum cell width (base mesh cell width) in x
@@ -198,6 +201,7 @@ simulation = gravity.simulation.GravityIntegralSimulation(
 )
 # Compute predicted data for some model
 dpred = simulation.dpred(model)
+n_data = len(dpred)
 
 # Plot
 fig = plt.figure(figsize=(10, 3))
@@ -206,28 +210,28 @@ v_max = np.max(np.abs(dpred))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.25, 0.9])
 cplot1 = plot2Ddata(
-    receiver_locations, dpred[0:n_locations], ax=ax1, ncontour=30, clim=(-v_max, v_max),
+    receiver_locations, dpred[0:n_data:3], ax=ax1, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
 )
 cplot1[0].set_clim((-v_max, v_max))
-ax1.set_title('ddx')
+ax1.set_title('$\partial g /\partial x$')
 
 ax2 = fig.add_axes([0.31, 0.05, 0.25, 0.9])
 cplot2 = plot2Ddata(
-    receiver_locations, dpred[n_locations:2*n_locations], ax=ax2, ncontour=30,
+    receiver_locations, dpred[1:n_data:3], ax=ax2, ncontour=30,
     clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
 )
 cplot2[0].set_clim((-v_max, v_max))
-ax2.set_title('ddy')
+ax2.set_title('$\partial g /\partial y$')
 ax2.set_yticks([])
 
 ax3 = fig.add_axes([0.57, 0.05, 0.25, 0.9])
 cplot3 = plot2Ddata(
-    receiver_locations, dpred[2*n_locations:], ax=ax3, ncontour=30, clim=(-v_max, v_max),
+    receiver_locations, dpred[2:n_data:3], ax=ax3, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
 )
 cplot3[0].set_clim((-v_max, v_max))
-ax3.set_title('ddz')
+ax3.set_title('$\partial g /\partial z$')
 ax3.set_yticks([])
 
 ax4 = fig.add_axes([0.84, 0.08, 0.03, 0.83])

@@ -7,7 +7,7 @@ Here we use the module *SimPEG.potential_fields.gravity* to predict gravity
 anomaly data for a synthetic density contrast model. The simulation is
 carried out on a tensor mesh. For this tutorial, we focus on the following:
 
-    - How to define the survey and receivers
+    - How to define gravity surveys
     - How to predict gravity anomaly data for a density contrast model
     - How to include surface topography
     - The units of the density contrast model and resulting data
@@ -39,8 +39,8 @@ from SimPEG.potential_fields import gravity
 # Defining Topography
 # -------------------
 #
-# Here we define surface topography as an (N, 3) numpy array. Topography could
-# also be loaded from a file. This is used for both simulations.
+# Surface topography is defined as an (N, 3) numpy array. We create it here but
+# topography could also be loaded from a file.
 #
 
 [x_topo, y_topo] = np.meshgrid(np.linspace(-200, 200, 41), np.linspace(-200, 200, 41))
@@ -55,8 +55,8 @@ xyz_topo = np.c_[x_topo, y_topo, z_topo]
 #
 # Here, we define survey that will be used for the simulation. Gravity
 # surveys are simple to create. The user only needs an (N, 3) array to define
-# the xyz locations of the observation locations. From this, the user can
-# define the receiver type and the source field.
+# the xyz locations of the observation locations and a list of field components
+# which are to be modeled.
 #
 
 # Define the observation locations as an (N, 3) numpy array or load them
@@ -68,10 +68,18 @@ fun_interp = LinearNDInterpolator(np.c_[x_topo, y_topo], z_topo)
 z = fun_interp(np.c_[x, y]) + 2.
 receiver_locations = np.c_[x, y, z]
 
-# Define the receivers. Here the user may define the receiver to measure
-# total gravity anomaly, Cartesian components of the anomaly or
-# gradient components of the anomaly (for gravity gradiometry)
-receiver_list = [gravity.receivers.point_receiver(receiver_locations, components=["gz", "gxx"])]
+# Define the component(s) of the field we want to simulate. Here we will
+# simulation the vertical component of gravity. Gradiometry is covered in the
+# next tutorial. 
+components = ["gz"]
+
+# Use the observation locations and components to define the receivers. To
+# simulate data, the receivers must be defined as a list.
+receiver_list = gravity.receivers.point_receiver(
+        receiver_locations, components=components
+        )
+
+receiver_list = [receiver_list]
 
 # Defining the source field.
 source_field = gravity.sources.SourceField(receiver_list=receiver_list)
@@ -99,8 +107,7 @@ mesh = TensorMesh([hx, hy, hz], 'CCN')
 # -------------------------------------------------
 #
 # Here, we create the density contrast model that will be used to predict
-# gravity anomaly data
-# and the mapping from the model to the mesh. The model
+# gravity anomaly data and the mapping from the model to the mesh. The model
 # consists of a less dense block and a more dense sphere.
 #
 
@@ -119,6 +126,8 @@ model_map = maps.IdentityMap(nP=nC)  # model consists of a value for each cell
 # Define model
 model = background_density*np.ones(nC)
 
+# You could find the indicies of cells within the model and change their value
+# to add structures
 ind_block = (
     (mesh.gridCC[ind_active, 0] > -50.) & (mesh.gridCC[ind_active, 0] < -20.) &
     (mesh.gridCC[ind_active, 1] > -15.) & (mesh.gridCC[ind_active, 1] < 15.) &
@@ -126,6 +135,7 @@ ind_block = (
 )
 model[ind_block] = block_density
 
+# You can use SimPEG utilities to add structures to the model more concisely
 ind_sphere = ModelBuilder.getIndicesSphere(
     np.r_[35., 0., -40.], 15., mesh.gridCC
 )
@@ -169,6 +179,7 @@ simulation = gravity.simulation.GravityIntegralSimulation(
     survey=survey, mesh=mesh, rhoMap=model_map,
     actInd=ind_active, forward_only=True
 )
+
 # Compute predicted data for some model
 dpred = simulation.dpred(model)
 
@@ -177,7 +188,7 @@ fig = plt.figure(figsize=(7, 5))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
 plot2Ddata(receiver_list[0].locations, dpred, ax=ax1, contourOpts={"cmap": "RdBu_r"})
-ax1.set_title('Gravity Anomaly')
+ax1.set_title('Gravity Anomaly (Z-component)')
 
 ax2 = fig.add_axes([0.82, 0.05, 0.03, 0.9])
 norm = mpl.colors.Normalize(
@@ -192,8 +203,8 @@ plt.show()
 
 
 #######################################################
-# Optional: Export Data
-# ---------------------
+# Optional: Exporting Results
+# ---------------------------
 #
 # Write the data and topography
 # 
@@ -206,12 +217,28 @@ np.savetxt(
     fmt='%.4e'
 )
 
-# THIS IS TO WRITE THE DATA OUT FOR NOW FOR INVERSION
-noise = 5e-4*np.random.rand(len(dpred))
+
+noise = 2e-4*np.random.rand(len(dpred))
 fname = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\gravity_data.obs'
 np.savetxt(
     fname,
     np.c_[receiver_locations, dpred + noise],
     fmt='%.4e'
 )
+
+
+output_model = plotting_map*model
+output_model[np.isnan(output_model)] = 0.
+
+fname = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\true_model.txt'
+np.savetxt(
+    fname,
+    output_model,
+    fmt='%.4e'
+)
+
+
+
+
+
 

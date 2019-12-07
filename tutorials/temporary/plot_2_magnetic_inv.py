@@ -35,13 +35,26 @@ import matplotlib.pyplot as plt
 from discretize import TensorMesh
 
 from SimPEG.potential_fields import magnetics
-from SimPEG.utils import plot2Ddata, ModelBuilder, surface2ind_topo
+from SimPEG.utils import plot2Ddata, surface2ind_topo
 from SimPEG import (
     maps, data, inverse_problem, data_misfit, regularization, optimization,
     directives, inversion, utils
     )
 
-# sphinx_gallery_thumbnail_number = 4
+# sphinx_gallery_thumbnail_number = 2
+
+#############################################
+# Load Data and Plot
+# ------------------
+#
+# File names for assets we are loading. Here we load the topography, observed
+# data and the true model define on the whole mesh.
+#
+
+topo_filename = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_topo.txt'
+data_filename = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_data.obs'
+model_filename = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\true_model.txt'
+
 
 #############################################
 # Load Data and Plot
@@ -50,8 +63,6 @@ from SimPEG import (
 # Here we load and plot synthetic TMI data.
 #
 
-topo_filename = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_topo.txt'
-data_filename = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_data.obs'
 xyz_topo = np.loadtxt(str(topo_filename))
 dobs = np.loadtxt(str(data_filename))
 
@@ -84,37 +95,49 @@ plt.show()
 # Assign Uncertainty
 # ------------------
 
-uncertainties = 0.5*np.ones(len(dobs))
+uncertainties = 0.2*np.ones(len(dobs))
 
 #############################################
 # Defining the Survey
 # -------------------
 #
-# Here, we define survey that will be used for all tutorial examples. Magnetic
-# surveys are simple to create. The user needs an (N, 3) array to define
-# the xyz positions of the observation locations. The user also needs to
-# define the Earth's magnetic field intensity and orientation. Here, we
-# create a basic airborne survey with a flight height of 10 m above the
-# surface topography.
+# Here, we define survey that will be used for the simulation. Magnetic
+# surveys are simple to create. The user only needs an (N, 3) array to define
+# the xyz locations of the observation locations, the list of field components
+# which are to be modeled and the properties of the Earth's field.
 #
 
-# Define the receivers
-receiver_list = magnetics.receivers.point_receiver(receiver_locations, components=["tmi"])
+# Define the component(s) of the field we are inverting as a list. Here we will
+# invert total magnetic intensity data.
+components = ["tmi"]
+
+# Use the observation locations and components to define the receivers. To
+# simulate data, the receivers must be defined as a list.
+receiver_list = magnetics.receivers.point_receiver(
+        receiver_locations, components=components
+        )
+
+receiver_list = [receiver_list]
 
 # Define the inducing field H0 = (intensity [nT], inclination [deg], declination [deg])
-field_inclination = 90
-field_declination = 0
-field_intensity = 50000
+inclination = 90
+declination = 0
+strength = 50000
+inducing_field = (strength, inclination, declination)
 
-H0 = (field_intensity, field_inclination, field_declination)
-source_field = magnetics.sources.SourceField([receiver_list], parameters=H0)   # Define the source field
+source_field = magnetics.sources.SourceField(
+    receiver_list=receiver_list, parameters=inducing_field
+    )
 
 # Define the survey
-survey = magnetics.survey.MagneticSurvey(source_field)              # Define the survey
+survey = magnetics.survey.MagneticSurvey(source_field)
 
 #############################################
 # Defining the Data
 # -----------------
+#
+# Here is where we define the data that is inverted. The data is defined by
+# the survey, the observation values and the uncertainties.
 #
 
 data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
@@ -156,24 +179,6 @@ model_map = maps.IdentityMap(nP=nC)  # model consists of a value for each cell
 
 # Define starting model
 starting_model = background_susceptibility*np.ones(nC)
-fig = plt.figure(figsize=(9, 4))
-plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
-
-ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
-mesh.plotSlice(
-    plotting_map*starting_model, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
-    clim=(-0.1, 0.1), pcolorOpts={'cmap': 'jet'}
-    )
-ax1.set_title('Starting model slice at y = 0 m')
-
-ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
-norm = mpl.colors.Normalize(vmin=-0.1, vmax=0.1)
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='%.1e'
-    )
-cbar.set_label('$SI$', rotation=270, labelpad=15, size=12)
-
-plt.show()
 
 ##############################################
 # Define the Physics
@@ -190,6 +195,7 @@ simulation = magnetics.simulation.MagneticIntegralSimulation(
 )
 
 
+
 #######################################################################
 # Define Inverse Problem
 # ----------------------
@@ -202,11 +208,10 @@ dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
 dmis.W = utils.sdiag(1/uncertainties)
 
 # Define the regularization (model objective function)
-reg = regularization.Sparse(
+reg = regularization.Simple(
     mesh, indActive=ind_active, mapping=model_map,
     alpha_s=1, alpha_x=1, alpha_y=1, alpha_z=1
 )
-reg.norms = np.c_[0, 0, 0, 0]  # Define sparse and blocky norms p=(0, 2)
 
 # Create model weights based on sensitivity matrix (sensitivity weighting)
 wr = simulation.getJtJdiag(starting_model)**0.5
@@ -222,40 +227,83 @@ opt = optimization.ProjectedGNCG(
 # Here we define the inverse problem that is to be solved
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
-# Here we define any directive that are carried out during the inversion. Here,
-# we apply the itertively re-weighted least squares.
-betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
-saveDict = directives.SaveOutputEveryIteration(save_txt=False)
-update_Jacobi = directives.UpdatePreconditioner()
-IRLS = directives.Update_IRLS(
-    f_min_change=1e-4, maxIRLSiter=30, coolEpsFact=1.5, beta_tol=1e-1,
-)
+# Here we define any directive that are carried out during the inversion
+beta_estimation = directives.BetaEstimate_ByEig(beta0_ratio=1)
+save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
+update_jacobi = directives.UpdatePreconditioner()
 
 # Here we combine the inverse problem and the set of directives
 inv = inversion.BaseInversion(
-    inv_prob, [IRLS, betaest, update_Jacobi, saveDict]
+    inv_prob, [beta_estimation, update_jacobi, save_iteration]
 )
 
-# Run the inversion
+# Run inversion
 recovered_model = inv.run(starting_model)
+
+
+
+
+
+
+
+
+#######################################################################
+# Define Inverse Problem
+# ----------------------
+#
+# Here we define the inverse problem.
+#
+
+## Define the data misfit (Here we use weighted L2-norm)
+#dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
+#dmis.W = utils.sdiag(1/uncertainties)
+#
+## Define the regularization (model objective function)
+#reg = regularization.Sparse(
+#    mesh, indActive=ind_active, mapping=model_map,
+#    alpha_s=1, alpha_x=1, alpha_y=1, alpha_z=1
+#)
+#reg.norms = np.c_[2,2,2,2]  # Define sparse and blocky norms p=(0, 2)
+#
+## Create model weights based on sensitivity matrix (sensitivity weighting)
+#wr = simulation.getJtJdiag(starting_model)**0.5
+#wr = (wr/np.max(np.abs(wr)))
+#reg.cell_weights = wr  # include in regularization
+#
+## Define how the optimization problem is solved.
+#opt = optimization.ProjectedGNCG(
+#    maxIter=10, lower=-1., upper=1.,
+#    maxIterLS=20, maxIterCG=10, tolCG=1e-3
+#)
+#
+## Here we define the inverse problem that is to be solved
+#inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
+#
+## Here we define any directive that are carried out during the inversion. Here,
+## we apply the itertively re-weighted least squares.
+#betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
+#saveDict = directives.SaveOutputEveryIteration(save_txt=False)
+#update_Jacobi = directives.UpdatePreconditioner()
+#IRLS = directives.Update_IRLS(
+#    f_min_change=1e-4, maxIRLSiter=30, coolEpsFact=1.5, beta_tol=1e-1,
+#)
+#
+## Here we combine the inverse problem and the set of directives
+#inv = inversion.BaseInversion(
+#    inv_prob, [IRLS, betaest, update_Jacobi, saveDict]
+#)
+#
+## Run the inversion
+#recovered_model = inv.run(starting_model)
 
 ############################################################
 # Plotting True Model and Recovered Model
 # ---------------------------------------
 #
 
-# Construct True Model
-
-# Define susceptibility values for each unit in SI
-background_susceptibility = 0.0001
-sphere_susceptibility = 0.01
-
-mtrue = background_susceptibility*np.ones(ind_active.sum())
-ind_sphere = ModelBuilder.getIndicesSphere(
-    np.r_[0., 0., -45.], 15., mesh.gridCC
-)
-ind_sphere = ind_sphere[ind_active]
-mtrue[ind_sphere] = sphere_susceptibility
+# Load the true model and keep only active cells
+true_model = np.loadtxt(str(model_filename))
+true_model = true_model[ind_active]
 
 # Plot True Model
 fig = plt.figure(figsize=(9, 4))
@@ -263,15 +311,15 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
 mesh.plotSlice(
-    plotting_map*mtrue, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
-    clim=(np.min(mtrue), np.max(mtrue)), pcolorOpts={'cmap': 'jet'}
+    plotting_map*true_model, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
+    clim=(np.min(true_model), np.max(true_model)), pcolorOpts={'cmap': 'jet'}
 )
 ax1.set_title('Model slice at y = 0 m')
 
 ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
-norm = mpl.colors.Normalize(vmin=np.min(mtrue), vmax=np.max(mtrue))
+norm = mpl.colors.Normalize(vmin=np.min(true_model), vmax=np.max(true_model))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap='jet', format='%.1e'
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='%.1e'
 )
 cbar.set_label('SI', rotation=270, labelpad=15, size=12)
 
@@ -291,7 +339,7 @@ ax1.set_title('Model slice at y = 0 m')
 ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(vmin=np.min(recovered_model), vmax=np.max(recovered_model))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap='jet', format='%.1e'
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='%.1e'
 )
 cbar.set_label('SI',rotation=270, labelpad=15, size=12)
 
@@ -320,7 +368,7 @@ for ii in range(0, 3):
     
     ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.05, 0.25, 0.9])
     cplot[ii] = plot2Ddata(
-        receiver_list.locs, data_array[:, ii], ax=ax1[ii], ncontour=30,
+        receiver_list[0].locations, data_array[:, ii], ax=ax1[ii], ncontour=30,
         clim=(-v_lim[ii], v_lim[ii]), contourOpts={"cmap": "RdBu_r"}
     )
     ax1[ii].set_title(plot_title[ii])

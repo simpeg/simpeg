@@ -32,14 +32,27 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-from SimPEG.utils import plot2Ddata, ModelBuilder, surface2ind_topo
+from SimPEG.utils import plot2Ddata, surface2ind_topo
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps, data, data_misfit, inverse_problem, regularization, optimization,
     directives, inversion, utils
     )
 
-# sphinx_gallery_thumbnail_number = 4
+# sphinx_gallery_thumbnail_number = 2
+
+#############################################
+# Load Data and Plot
+# ------------------
+#
+# File names for assets we are loading. Here we load the topography, observed
+# data and the true model define on the whole mesh.
+#
+
+topo_filename = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\gravity_topo.txt'
+data_filename = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\gravity_data.obs'
+model_filename = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\true_model.txt'
+
 
 #############################################
 # Load Data and Plot
@@ -78,7 +91,7 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 
-uncertainties = 5e-4*np.ones(np.shape(dobs))
+uncertainties = 2e-4*np.ones(np.shape(dobs))
 
 #############################################
 # Defining the Survey
@@ -90,14 +103,25 @@ uncertainties = 5e-4*np.ones(np.shape(dobs))
 # define the receivers and the source field.
 #
 
+# Define the receivers
+receiver_list = gravity.receivers.point_receiver(
+        receiver_locations, components="gz"
+        )
+
+receiver_list = [receiver_list]
+
+# Define the source field
+source_field = gravity.sources.SourceField(receiver_list=receiver_list)
+
 # Define the survey
-receiver_list = [gravity.receivers.point_receiver(receiver_locations, components="gz")]            # Define receivers
-source_field = gravity.sources.SourceField(receiver_list=receiver_list)     # Define the source field
-survey = gravity.survey.GravitySurvey(source_field)    # Define the survey
+survey = gravity.survey.GravitySurvey(source_field)
 
 #############################################
 # Defining the Data
 # -----------------
+#
+# Here is where we define the data that is inverted. The data is defined by
+# the survey, the observation values and the uncertainties.
 #
 
 data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
@@ -141,24 +165,6 @@ model_map = maps.IdentityMap(nP=nC)  # model consists of a value for each active
 
 # Define and plot starting model
 starting_model = background_density*np.ones(nC)
-fig = plt.figure(figsize=(9, 4))
-plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
-
-ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
-mesh.plotSlice(
-    plotting_map*starting_model, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
-    clim=(-0.1, 0.1), pcolorOpts={'cmap': 'jet'}
-    )
-ax1.set_title('Starting model slice at y = 0 m')
-
-ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
-norm = mpl.colors.Normalize(vmin=-0.1, vmax=0.1)
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='%.1e'
-    )
-cbar.set_label('$g/cm^3$', rotation=270, labelpad=15, size=12)
-
-plt.show()
 
 
 ##############################################
@@ -173,8 +179,6 @@ simulation = gravity.simulation.GravityIntegralSimulation(
     survey=survey, mesh=mesh, rhoMap=model_map,
     actInd=ind_active, forward_only=False
 )
-
-
 
 
 #######################################################################
@@ -227,27 +231,9 @@ recovered_model = inv.run(starting_model)
 # ---------------------------------------
 #
 
-# Construct True Model
-
-# Define density contrast values for each unit in g/cc
-background_density = 0.
-block_density = -0.1
-sphere_density = 0.1
-
-mtrue = background_density*np.ones(nC)
-
-ind_block = (
-    (mesh.gridCC[ind_active, 0] > -50.) & (mesh.gridCC[ind_active, 0] < -20.) &
-    (mesh.gridCC[ind_active, 1] > -15.) & (mesh.gridCC[ind_active, 1] < 15.) &
-    (mesh.gridCC[ind_active, 2] > -50.) & (mesh.gridCC[ind_active, 2] < -30.)
-)
-mtrue[ind_block] = block_density
-
-ind_sphere = ModelBuilder.getIndicesSphere(
-    np.r_[35., 0., -40.], 15., mesh.gridCC
-)
-ind_sphere = ind_sphere[ind_active]
-mtrue[ind_sphere] = sphere_density
+# Load the true model and keep only active cells
+true_model = np.loadtxt(str(model_filename))
+true_model = true_model[ind_active]
 
 # Plot True Model
 fig = plt.figure(figsize=(9, 4))
@@ -255,15 +241,15 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
 mesh.plotSlice(
-    plotting_map*mtrue, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
-    clim=(np.min(mtrue), np.max(mtrue)), pcolorOpts={'cmap': 'jet'}
+    plotting_map*true_model, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
+    clim=(np.min(true_model), np.max(true_model)), pcolorOpts={'cmap': 'jet'}
     )
 ax1.set_title('Model slice at y = 0 m')
 
 ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
-norm = mpl.colors.Normalize(vmin=np.min(mtrue), vmax=np.max(mtrue))
+norm = mpl.colors.Normalize(vmin=np.min(true_model), vmax=np.max(true_model))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap='jet', format='%.1e'
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='%.1e'
 )
 cbar.set_label(
     '$g/cm^3$',
@@ -286,7 +272,7 @@ ax1.set_title('Model slice at y = 0 m')
 ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(vmin=np.min(recovered_model), vmax=np.max(recovered_model))
 cbar = mpl.colorbar.ColorbarBase(
-        ax2, norm=norm, orientation='vertical', cmap='jet'
+        ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet
         )
 cbar.set_label('$g/cm^3$',rotation=270, labelpad=15, size=12)
 
@@ -310,13 +296,13 @@ ax2 = 3*[None]
 norm = 3*[None]
 cbar = 3*[None]
 cplot = 3*[None]
-v_lim = [np.max(np.abs(dobs)), np.max(np.abs(dobs)), 2]
+v_lim = [np.max(np.abs(dobs)), np.max(np.abs(dobs)), 3]
 
 for ii in range(0, 3):
     
     ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.05, 0.25, 0.9])
     cplot[ii] = plot2Ddata(
-        receiver_list.locs, data_array[:, ii], ax=ax1[ii], ncontour=30,
+        receiver_list[0].locations, data_array[:, ii], ax=ax1[ii], ncontour=30,
         clim=(-v_lim[ii], v_lim[ii]), contourOpts={"cmap": "RdBu_r"}
     )
     ax1[ii].set_title(plot_title[ii])
