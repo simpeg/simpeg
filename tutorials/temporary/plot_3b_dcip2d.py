@@ -308,7 +308,8 @@ cbar.set_label(
 # the mesh. We could use the keyword argument *rho* to accomplish the same thing
 # using a background resistivity model.
 simulation_ip = ip.simulation.Problem3D_N(
-    mesh, survey=ip_survey, etaMap=mod_ip_map, sigma=mod_dc_map*mod_dc, Solver=Solver
+    mesh, survey=ip_survey, etaMap=mod_ip_map, sigma=mod_dc_map*mod_dc,
+    Solver=Solver
 )
 
 dpred_ip = simulation_ip.dpred(mod_ip)

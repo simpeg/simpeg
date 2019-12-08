@@ -1,0 +1,211 @@
+# -*- coding: utf-8 -*-
+"""
+DC Resistivity Sounding
+=======================
+
+Here we use the module *SimPEG.electromangetics.static.resistivity* to predict
+DC resistivity data. In this tutorial, we focus on the following:
+
+    - How to define sources and receivers
+    - How to define the survey
+    - How to predict voltage or apparent resistivity data
+    - The units of the model and resulting data
+
+For this tutorial, we will simulation sounding data over a layered Earth using
+a Wenner array. The end product is a sounding curve which tells us how the
+electrical resistivity changes with depth.
+    
+
+"""
+
+#########################################################################
+# Import modules
+# --------------
+#
+
+import os
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+from discretize import TensorMesh
+
+from SimPEG import (maps, data, data_misfit, regularization,
+    optimization, inverse_problem, inversion, directives
+    )
+from SimPEG.electromagnetics.static import resistivity as dc
+from SimPEG.electromagnetics.static.utils.StaticUtils import plot_layer
+
+# sphinx_gallery_thumbnail_number = 2
+
+
+#############################################
+# Load Data, Define Survey and Plot
+# ---------------------------------
+#
+# Here we load and plot synthetic DCIP data.
+#
+
+# MAKE A LOAD UBC FORMAT HERE
+
+# Load data
+data_filename = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\app_res_1d_data.dobs'
+dobs = np.loadtxt(str(data_filename))
+
+a_locs = dobs[:, 0:3]
+b_locs = dobs[:, 3:6]
+m_locs = dobs[:, 6:9]
+n_locs = dobs[:, 9:12]
+dobs = dobs[:, -1]
+
+# Define survey
+unique_tx, k = np.unique(np.c_[a_locs, b_locs], axis=0, return_index=True)
+n_tx = len(k)
+k = np.r_[k, len(a_locs)+1]
+
+source_list = []
+for ii in range(0, n_tx):
+    
+    m_locations = m_locs[k[ii]:k[ii+1], :]
+    n_locations = n_locs[k[ii]:k[ii+1], :]
+    receiver_list = [dc.receivers.Dipole(m_locations, n_locations)]
+    
+    a_locations = a_locs[k[ii], :]
+    b_locations = b_locs[k[ii], :]
+    source_list.append(dc.sources.Dipole(receiver_list, a_locations, b_locations))
+
+# Define survey
+survey = dc.Survey(source_list)
+
+# Plot the data
+survey.getABMN_locations()
+electrode_separations = np.sqrt(
+        np.sum((survey.m_locations - survey.n_locations)**2, axis=1)
+        )
+
+# Plot apparent resistivities on sounding curve
+fig = plt.figure(figsize=(11, 5))
+
+ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1.semilogy(electrode_separations, dobs)
+
+plt.show()
+
+###############################################
+# Assign Uncertainties
+# --------------------
+
+uncertainties = 0.01*np.abs(dobs)
+
+
+###############################################
+# Define Data
+# --------------------
+
+data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
+
+
+###############################################
+# Defining a 1D Layered Earth (1D Tensor Mesh)
+# --------------------------------------------
+#
+# Here, we define the layer thicknesses for our 1D simulation. To do this, we use
+# the TensorMesh class.
+
+layer_thicknesses = np.r_[5*np.ones((50)), 500]
+mesh = TensorMesh([layer_thicknesses], 'N')
+
+print(mesh)
+
+###############################################################
+# Create Conductivity Model and Mapping for OcTree Mesh
+# -----------------------------------------------------
+#
+# Here we define the resistivity model that will be used to predict DC data.
+# For each layer in our 1D Earth, we must provide a resistivity value. For a
+# 1D simulation, we assume the bottom layer extends to infinity.
+#
+
+# Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
+starting_model = np.log(1e3*np.ones((len(layer_thicknesses))))
+
+# Define mapping from model to active cells.
+model_map = maps.IdentityMap(mesh)*maps.ExpMap()
+
+#plot_layer(model_map*model, mesh)
+
+
+#######################################################################
+# Predict DC Resistivity Data
+# ---------------------------
+#
+# Here we predict DC resistivity data. If the keyword argument *sigmaMap* is
+# defined, the simulation will expect a conductivity model. If the keyword
+# argument *rhoMap* is defined, the simulation will expect a resistivity model.
+#
+
+simulation = dc.simulation_1d.DCSimulation_1D(
+        mesh, survey=survey, rhoMap=model_map, t=layer_thicknesses,
+        data_type="apparent_resistivity"
+        )
+
+
+
+
+
+
+
+
+
+dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
+dmis.W = 1./uncertainties
+
+
+
+
+reg_rho = regularization.Simple(
+    mesh, alpha_s=1., alpha_x=1.,
+#    mapping=model_map
+)
+
+#mesh_t = TensorMesh([mesh_1d.hx.size-1])
+#reg_t = regularization.Simple(
+#    mesh_t, alpha_s=1., alpha_x=1.,
+#    mapping=wires.t    
+#)
+
+#reg = reg_rho + reg_t
+opt = optimization.InexactGaussNewton(
+    maxIter=30, maxIterCG=20
+)
+invProb = inverse_problem.BaseInvProblem(dmis, reg_rho, opt)
+target = directives.TargetMisfit()
+
+
+# Create an inversion object
+beta = directives.BetaSchedule(coolingFactor=2., coolingRate=1.)
+betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+#save =  directives.SaveOutputDictEveryIteration()
+inv = inversion.BaseInversion(invProb, directiveList=[beta, target, betaest])
+# inv = inversion.BaseInversion(invProb, directiveList=[beta, target, save])
+#opt.remember('xc')
+MOPT = []
+
+recovered_model = inv.run(starting_model)
+
+plot_layer(model_map*recovered_model, mesh)
+
+
+# Plot apparent resistivities on sounding curve
+fig = plt.figure(figsize=(11, 5))
+
+ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1.semilogy(electrode_separations, dobs)
+ax1.semilogy(electrode_separations, invProb.dpred)
+
+plt.show()
+
+
+
+
+

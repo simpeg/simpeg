@@ -30,15 +30,9 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-from SimPEG.utils import ModelBuilder
 from SimPEG import maps
 from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.StaticUtils import geometric_factor
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
+from SimPEG.electromagnetics.static.utils.StaticUtils import plot_layer
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -56,7 +50,7 @@ except ImportError:
 #
 
 # Define all electrode locations (Src and Rx) as an (N, 2) numpy array
-electrode_separations = np.linspace(40., 320., 15)  # Number of electrode locations along EW profile
+electrode_separations = np.linspace(10., 400., 20)  # Number of electrode locations along EW profile
 
 source_list = []  # create empty array for sources to live
 
@@ -65,17 +59,17 @@ for ii in range(0, len(electrode_separations)):
     a = electrode_separations[ii]
     
     # AB electrode locations for source
-    a_location = np.r_[-1.5*a, 0.]
-    b_location = np.r_[1.5*a, 0.]
+    a_location = np.r_[-1.5*a, 0., 0.]
+    b_location = np.r_[1.5*a, 0., 0.]
 
     # MN electrode locations for receivers
-    m_location = np.c_[-0.5*a, 0.]
-    n_location = np.c_[0.5*a, 0.]
+    m_location = np.c_[-0.5*a, 0., 0.]
+    n_location = np.c_[0.5*a, 0., 0.]
 
     # Create receivers list. Define as pole or dipole. Can choose to
     # measured potential or components of electric field.
-    receiver_list = dc.receivers.Dipole_ky(
-            m_location, n_location#, data_type="apparent_resistivity"
+    receiver_list = dc.receivers.Dipole(
+            m_location, n_location
             )
     receiver_list = [receiver_list]
 
@@ -88,62 +82,34 @@ for ii in range(0, len(electrode_separations)):
 survey = dc.Survey(source_list)
 
 
-#############################################
-# Defining a Tensor Mesh
-# ----------------------
+###############################################
+# Defining a 1D Layered Earth (1D Tensor Mesh)
+# --------------------------------------------
 #
-# Here, we create the tensor mesh
-#
+# Here, we define the layer thicknesses for our 1D simulation. To do this, we use
+# the TensorMesh class.
 
-dh = 5.
-hx = [(dh, 10, -1.3), (dh, 300), (dh, 10, 1.3)]
-hz = [(dh, 10, -1.3), (dh, 150)]
-mesh = TensorMesh([hx, hz], 'CN')
+layer_thicknesses = np.r_[50., 100., 100.]
+mesh = TensorMesh([layer_thicknesses], 'N')
 
-
+print(mesh)
 
 ###############################################################
 # Create Conductivity Model and Mapping for OcTree Mesh
 # -----------------------------------------------------
 #
-# Here we define the conductivity model that will be used to predict DC
-# resistivity data. The model consists of a conductive sphere and a
-# resistive sphere within a moderately conductive background. Note that
-# you can carry through this work flow with a resistivity model if desired.
+# Here we define the resistivity model that will be used to predict DC data.
+# For each layer in our 1D Earth, we must provide a resistivity value. For a
+# 1D simulation, we assume the bottom layer extends to infinity.
 #
 
-# Define conductivity model in S/m (or resistivity model in Ohm m)
-layer_tops = np.r_[0., -100., -200.]
-layer_resistivities = np.r_[1e3, 4e3, 1e2]
+# Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
+model = np.r_[1e3, 1e4, 1e2]
 
-# Define mapping from model to active cells
+# Define mapping from model to active cells.
 model_map = maps.IdentityMap(mesh)
 
-# Define model
-model = ModelBuilder.layeredModel(mesh.gridCC, layer_tops, layer_resistivities)
-
-
-# Plot Conductivity Model
-fig = plt.figure(figsize=(8.5, 4))
-
-#plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
-log_model = np.log10(model)
-
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-mesh.plotImage(
-    log_model, ax=ax1, grid=False,
-    clim=(2, 4)
-)
-ax1.set_title('Resistivity Model')
-
-ax2 = fig.add_axes([0.87, 0.05, 0.05, 0.9])
-norm = mpl.colors.Normalize(vmin=2, vmax=4)
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', format="$10^{%.1f}$"
-)
-cbar.set_label(
-    'Conductivity [S/m]', rotation=270, labelpad=15, size=12
-)
+plot_layer(model_map*model, mesh)
 
 
 #######################################################################
@@ -155,19 +121,38 @@ cbar.set_label(
 # argument *rhoMap* is defined, the simulation will expect a resistivity model.
 #
 
-simulation = dc.simulation_2d.Problem2D_N(
-        mesh, survey=survey, rhoMap=model_map, Solver=Solver
+simulation = dc.simulation_1d.DCSimulation_1D(
+        mesh, survey=survey, rhoMap=model_map, t=layer_thicknesses,
+        data_type="apparent_resistivity"
         )
 
 dpred = simulation.dpred(model)
 
-G = geometric_factor(survey, survey_type='dipole-dipole', space_type='half-space')
-
-# Plot apparent conductivity pseudo-section
+# Plot apparent resistivities on sounding curve
 fig = plt.figure(figsize=(11, 5))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-ax1.semilogy(electrode_separations, dpred/G)
+ax1.semilogy(electrode_separations, dpred)
 
 plt.show()
 
+
+#########################################################################
+# Optional: Export Data
+# ---------------------
+#
+
+# MAKE A WRITE TO UBC FORMAT HERE
+
+survey.getABMN_locations()
+
+data_array = np.c_[
+    survey.a_locations,
+    survey.b_locations,
+    survey.m_locations,
+    survey.n_locations,
+    dpred*(1 + 0.05*np.random.rand(len(dpred)))
+    ]
+
+fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\app_res_1d_data.dobs'
+np.savetxt(fname, data_array, fmt='%.4e')
