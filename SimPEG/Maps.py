@@ -1771,6 +1771,8 @@ class InjectActiveCells(IdentityMap):
                 np.ones(self.n_blocks),
                 self.valInactive
             )
+        else:
+            self.P = P
 
     @property
     def shape(self):
