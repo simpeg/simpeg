@@ -1739,9 +1739,9 @@ class InjectActiveCells(IdentityMap):
     indActive = None  #: Active Cells
     valInactive = None  #: Values of inactive Cells
 
-    def __init__(self, mesh, indActive, valInactive, nC=None):
+    def __init__(self, mesh, indActive, valInactive, nC=None, n_blocks=1):
         self.mesh = mesh
-
+        self.n_blocks = n_blocks
         self.nC = nC or mesh.nC
 
         if indActive.dtype is not bool:
@@ -1759,13 +1759,22 @@ class InjectActiveCells(IdentityMap):
         self.valInactive[self.indActive] = 0
 
         inds = np.nonzero(self.indActive)[0]
-        self.P = sp.csr_matrix((np.ones(inds.size), (inds, range(inds.size))),
-                               shape=(self.nC, self.nP)
-                               )
+        P = sp.csr_matrix(
+            (np.ones(inds.size), (inds, range(inds.size))),
+            shape=(self.nC, self.nP)
+        )
+
+        if self.n_blocks > 1:
+            self.P = sp.block_diag([P for ii in range(self.n_blocks)])
+
+            self.valInactive = np.kron(
+                np.ones(self.n_blocks),
+                self.valInactive
+            )
 
     @property
     def shape(self):
-        return (self.nC, self.nP)
+        return (self.P.shape)
 
     @property
     def nP(self):
