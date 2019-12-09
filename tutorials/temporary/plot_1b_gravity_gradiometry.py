@@ -63,7 +63,7 @@ y = np.linspace(-80., 80., 17)
 x, y = np.meshgrid(x, y)
 x, y = mkvc(x.T), mkvc(y.T)
 fun_interp = LinearNDInterpolator(np.c_[x_topo, y_topo], z_topo)
-z = fun_interp(np.c_[x, y]) + 2.
+z = fun_interp(np.c_[x, y]) + 5
 receiver_locations = np.c_[x, y, z]
 
 # Define the component(s) of the field we want to simulate. Here we will

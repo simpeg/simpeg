@@ -214,7 +214,8 @@ plt.show()
 fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_topo.txt'
 np.savetxt(fname, np.c_[xyz_topo], fmt='%.4e')
 
-noise = 0.2*np.random.rand(len(dpred))
+maximum_anomaly = np.max(np.abs(dpred))
+noise = 0.02*maximum_anomaly*np.random.rand(len(dpred))
 fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_data.obs'
 np.savetxt(
     fname,

@@ -25,7 +25,7 @@ can be used to invert other types of geophysical data.
 # --------------
 #
 
-import os
+import os, shutil
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -91,7 +91,9 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 
-uncertainties = 2e-4*np.ones(np.shape(dobs))
+maximum_anomaly = np.max(np.abs(dobs))
+
+uncertainties = 0.01*maximum_anomaly*np.ones(np.shape(dobs))
 
 #############################################
 # Defining the Survey
@@ -154,7 +156,7 @@ mesh = TensorMesh([hx, hy, hz], 'CCN')
 # Define density contrast values for each unit in g/cc. Don't make this 0!
 # Otherwise the gradient for the 1st iteration is zero and the inversion will
 # not converge.
-background_density = 1e-6
+background_density = 1e-4
 
 # Find the indecies of the active cells in forward model (ones below surface)
 ind_active = surface2ind_topo(mesh, xyz_topo)
@@ -213,17 +215,25 @@ opt = optimization.ProjectedGNCG(
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Here we define any directive that are carried out during the inversion
-beta_estimation = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1)
+beta_schedule = directives.BetaSchedule(coolingFactor=5, coolingRate=1)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
-update_jacobi = directives.UpdatePreconditioner()
+update_jacobi = directives.UpdatePreconditioner(update_every_iteration=False)
+target_misfit = directives.TargetMisfit(chifact=1)
+
+directives_list = [
+        starting_beta, beta_schedule, save_iteration, update_jacobi, target_misfit
+        ]
+
 
 # Here we combine the inverse problem and the set of directives
-inv = inversion.BaseInversion(
-    inv_prob, [beta_estimation, update_jacobi, save_iteration]
-)
+inv = inversion.BaseInversion(inv_prob, directives_list)
 
 # Run inversion
 recovered_model = inv.run(starting_model)
+
+# Remove directory storing sensitivities (optional)
+shutil.rmtree(".\\sensitivity.zarr")
 
 
 ############################################################

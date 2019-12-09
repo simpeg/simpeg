@@ -65,7 +65,7 @@ y = np.linspace(-80., 80., 17)
 x, y = np.meshgrid(x, y)
 x, y = mkvc(x.T), mkvc(y.T)
 fun_interp = LinearNDInterpolator(np.c_[x_topo, y_topo], z_topo)
-z = fun_interp(np.c_[x, y]) + 2.
+z = fun_interp(np.c_[x, y]) + 5.
 receiver_locations = np.c_[x, y, z]
 
 # Define the component(s) of the field we want to simulate. Here we will
@@ -113,8 +113,8 @@ mesh = TensorMesh([hx, hy, hz], 'CCN')
 
 # Define density contrast values for each unit in g/cc
 background_density = 0.
-block_density = -0.1
-sphere_density = 0.1
+block_density = -0.2
+sphere_density = 0.2
 
 # Find the indecies of the active cells in forward model (ones below surface)
 ind_active = surface2ind_topo(mesh, xyz_topo)
@@ -217,8 +217,8 @@ np.savetxt(
     fmt='%.4e'
 )
 
-
-noise = 2e-4*np.random.rand(len(dpred))
+maximum_anomaly = np.max(np.abs(dpred))
+noise = 0.01*maximum_anomaly*np.random.rand(len(dpred))
 fname = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\gravity_data.obs'
 np.savetxt(
     fname,

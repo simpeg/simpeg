@@ -27,8 +27,7 @@ can be used to invert other types of geophysical data.
 # --------------
 #
 
-import os
-from shutil import rmtree
+import os, shutil
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -96,7 +95,9 @@ plt.show()
 # Assign Uncertainty
 # ------------------
 
-uncertainties = 1.2*np.ones(len(dobs))
+maximum_anomaly = np.max(np.abs(dobs))
+
+uncertainties = 0.02*maximum_anomaly*np.ones(len(dobs))
 
 #############################################
 # Defining the Survey
@@ -168,7 +169,7 @@ mesh = TensorMesh([hx, hy, hz], 'CCN')
 # structures. Here, the background is 1e-4 SI.
 #
 
-# Define density contrast values for each unit in g/cc
+# Define background susceptibility model in SI
 background_susceptibility = 1e-4
 
 # Find the indecies of the active cells in forward model (ones below surface)
@@ -196,7 +197,6 @@ simulation = magnetics.simulation.MagneticIntegralSimulation(
 )
 
 
-
 #######################################################################
 # Define Inverse Problem
 # ----------------------
@@ -209,10 +209,11 @@ dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
 dmis.W = utils.sdiag(1/uncertainties)
 
 # Define the regularization (model objective function)
-reg = regularization.Simple(
-    mesh, indActive=ind_active, mapping=model_map,
+reg = regularization.Sparse(
+    mesh, indActive=ind_active, mapping=model_map, mref=starting_model,
     alpha_s=1, alpha_x=1, alpha_y=1, alpha_z=1
 )
+reg.norms = np.c_[0.5, 0.5, 0.5, 0.5]  # Define sparse and blocky norms p=(0, 2)
 
 # Create model weights based on sensitivity matrix (sensitivity weighting)
 wr = simulation.getJtJdiag(starting_model)**0.5
@@ -228,74 +229,33 @@ opt = optimization.ProjectedGNCG(
 # Here we define the inverse problem that is to be solved
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
-# Here we define any directive that are carried out during the inversion
-beta_estimation = directives.BetaEstimate_ByEig(beta0_ratio=1)
+# Here we define any directive that are carried out during the inversion. Here,
+# we apply the itertively re-weighted least squares.
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1)
+beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=3)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
+update_IRLS = directives.Update_IRLS(
+    f_min_change=1e-4, maxIRLSiter=30, coolEpsFact=1.5, beta_tol=1e-2,
+)
 update_jacobi = directives.UpdatePreconditioner()
+target_misfit = directives.TargetMisfit(chifact=1)
+
+directives_list = [
+    starting_beta, beta_schedule, save_iteration, update_IRLS, update_jacobi,
+    target_misfit
+    ]
 
 # Here we combine the inverse problem and the set of directives
-inv = inversion.BaseInversion(
-    inv_prob, [beta_estimation, update_jacobi, save_iteration]
-)
+inv = inversion.BaseInversion(inv_prob, directives_list)
 
-# Run inversion
+# Print target misfit to compare with convergence
+print("Target misfit is " + str(target_misfit.target))
+
+# Run the inversion
 recovered_model = inv.run(starting_model)
 
-
-
-
-
-
-
-
-#######################################################################
-# Define Inverse Problem
-# ----------------------
-#
-# Here we define the inverse problem.
-#
-
-## Define the data misfit (Here we use weighted L2-norm)
-#dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
-#dmis.W = utils.sdiag(1/uncertainties)
-#
-## Define the regularization (model objective function)
-#reg = regularization.Sparse(
-#    mesh, indActive=ind_active, mapping=model_map,
-#    alpha_s=1, alpha_x=1, alpha_y=1, alpha_z=1
-#)
-#reg.norms = np.c_[2,2,2,2]  # Define sparse and blocky norms p=(0, 2)
-#
-## Create model weights based on sensitivity matrix (sensitivity weighting)
-#wr = simulation.getJtJdiag(starting_model)**0.5
-#wr = (wr/np.max(np.abs(wr)))
-#reg.cell_weights = wr  # include in regularization
-#
-## Define how the optimization problem is solved.
-#opt = optimization.ProjectedGNCG(
-#    maxIter=10, lower=-1., upper=1.,
-#    maxIterLS=20, maxIterCG=10, tolCG=1e-3
-#)
-#
-## Here we define the inverse problem that is to be solved
-#inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
-#
-## Here we define any directive that are carried out during the inversion. Here,
-## we apply the itertively re-weighted least squares.
-#betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
-#saveDict = directives.SaveOutputEveryIteration(save_txt=False)
-#update_Jacobi = directives.UpdatePreconditioner()
-#IRLS = directives.Update_IRLS(
-#    f_min_change=1e-4, maxIRLSiter=30, coolEpsFact=1.5, beta_tol=1e-1,
-#)
-#
-## Here we combine the inverse problem and the set of directives
-#inv = inversion.BaseInversion(
-#    inv_prob, [IRLS, betaest, update_Jacobi, saveDict]
-#)
-#
-## Run the inversion
-#recovered_model = inv.run(starting_model)
+# Remove directory storing sensitivities
+shutil.rmtree(".\\sensitivity.zarr")
 
 ############################################################
 # Plotting True Model and Recovered Model
@@ -383,7 +343,6 @@ for ii in range(0, 3):
 
 plt.show()
 
-rmtree('.\Sensitivity.zarr')
 
 
 
