@@ -2,7 +2,7 @@ import numpy as np
 
 import properties
 import dask
-from ....utils import closestPoints
+from ....utils import closestPoints, sdiag
 from ....survey import BaseRx as BaseSimPEGRx, RxLocationArray
 
 

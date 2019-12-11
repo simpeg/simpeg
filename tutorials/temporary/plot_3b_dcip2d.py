@@ -72,31 +72,25 @@ xyz_topo = np.c_[x_topo, y_topo, z_topo]
 #
 # Here we define a single EW survey line that uses a dipole-dipole configuration.
 # For the source, we must define the AB electrode locations. For the receivers
-# we must define the MN electrode locations. When creating DCIP surveys, it
-# is important for the electrode locations NOT to lie within air cells. Here
-# we shift the vertical locations of the electrodes down by a constant. The
-# user may choose to do something more complex.
+# we must define the MN electrode locations. Instead of creating the survey
+# from scratch, we will use the *generat_dcip_survey_line* utility.
 #
 
-
+# Define survey line parameters
 survey_type = 'dipole-dipole'
+data_type = 'volt'
 end_locations = np.r_[-400., 400]
 xyz_topo = 0.
-station_separation = 40.
-dipole_separation = 20.
+station_separation = 50.
+dipole_separation = 25.
 n = 8 
 
-
+# Generate DC survey line
 dc_survey = generate_dcip_survey_line(
-    survey_type, end_locations, xyz_topo,
+    survey_type, data_type, end_locations, 0.,
     station_separation, dipole_separation, n,
     dim_flag='2.5D', sources_only=False
     )
-
-dc_survey.getABMN_locations()
-unique_locations = np.unique(
-        np.r_[dc_survey.a_locations, dc_survey.b_locations], axis=0
-        )
 
 ###############################################################
 # Create OcTree Mesh
@@ -106,9 +100,9 @@ unique_locations = np.unique(
 # resistivity and IP data.
 #
 
-dh = 5.                                                     # base cell width
-dom_width_x = 3000.                                         # domain width x
-dom_width_z = 1500.                                         # domain width z
+dh = 10.                                                     # base cell width
+dom_width_x = 4000.                                         # domain width x
+dom_width_z = 2000.                                         # domain width z
 nbcx = 2**int(np.round(np.log(dom_width_x/dh)/np.log(2.)))  # num. base cells x
 nbcz = 2**int(np.round(np.log(dom_width_z/dh)/np.log(2.)))  # num. base cells z
 
@@ -117,14 +111,24 @@ hx = [(dh, nbcx)]
 hz = [(dh, nbcz)]
 mesh = TreeMesh([hx, hz], x0='CN')
 
+# Mesh refinement based on topography (TO BE ADDED LATER)
+#mesh = refine_tree_xyz(
+#    mesh, topo_xyz, octree_levels=[0, 0, 0, 0, 1], method='surface', finalize=False
+#)
 
-# Mesh refinement near transmitters and receivers
+# Mesh refinement near transmitters and receivers. First we need to obtain the
+# set of unique electrode locations.
+dc_survey.getABMN_locations()
+unique_locations = np.unique(
+        np.r_[dc_survey.a_locations, dc_survey.b_locations], axis=0
+        )
+
 mesh = refine_tree_xyz(
     mesh, unique_locations, octree_levels=[2, 4], method='radial', finalize=False
-)
+    )
 
 # Refine core mesh region
-xp, zp = np.meshgrid([-600., 600.], [-500., 0.])
+xp, zp = np.meshgrid([-800., 800.], [-800., 0.])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
 mesh = refine_tree_xyz(
     mesh, xyz, octree_levels=[0, 2, 2], method='box', finalize=False
@@ -146,7 +150,7 @@ mesh.finalize()
 air_conductivity = 1e-8
 background_conductivity = 1e-2
 conductor_conductivity = 1e-1
-resistor_conductivity = 1e-5
+resistor_conductivity = 1e-3
 
 # Find active cells in forward modeling (cell below surface)
 ind_active = np.ones(mesh.nC, dtype="bool")
@@ -225,8 +229,8 @@ ax1.set_title('Apparent Conductivity [S/m]')
 plt.show()
 
 #######################################################################
-# Write out dpred
-# ---------------
+# Optional: Write out dpred
+# -------------------------
 #
 
 dc_noise = 0.05*dpred_dc*np.random.rand(len(dpred_dc))
@@ -243,6 +247,9 @@ data_array = np.c_[
 
 fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\dc_data.obs'
 np.savetxt(fname, data_array, fmt='%.4e')
+
+fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\true_conductivity.txt'
+np.savetxt(fname, conductivity_map*conductivity_model, fmt='%.4e')
 
 
 #######################################################################
@@ -353,3 +360,7 @@ data_array = np.c_[
 
 fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\ip_data.obs'
 np.savetxt(fname, data_array, fmt='%.4e')
+
+fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\true_chargeability.txt'
+np.savetxt(fname, chargeability_map*chargeability_model, fmt='%.4e')
+

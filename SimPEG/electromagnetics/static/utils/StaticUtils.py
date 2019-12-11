@@ -645,14 +645,16 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
     return survey
 
 
-def generate_dcip_survey_line(survey_type, endl, topo, ds, dh, n, dim_flag='2.5D', sources_only=False):
+def generate_dcip_survey_line(survey_type, data_type, endl, topo, ds, dh, n, dim_flag='2.5D', sources_only=False):
     """
         Generate DCIP survey line for modeling in 2.5D or 3D. Takes into accounted true surface
         topography.
 
         Input:
         :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-            'dipole-pole' | 'pole-pole' | 'gradient'
+            'dipole-pole' | 'pole-pole'
+        :param str data_type: 'volt' | 'apparent_conductivity' |
+        	'apparent_resistivity' | 'apparent_chargeability' 
         :param np.array endl: horizontal end points [x1, x2] or [x1, x2, y1, y2]
         :param float , (N, 2) np.array or (N, 3) np.array: topography
         :param int ds: station seperation
@@ -765,15 +767,23 @@ def generate_dcip_survey_line(survey_type, endl, topo, ds, dh, n, dim_flag='2.5D
         # Create receivers
         if dim_flag == '2.5D':
             if survey_type.lower() in ['dipole-pole', 'pole-pole']:
-                rxClass = dc.receivers.Pole_ky(P[ii+1:ii+nrec+1, :])
+                rxClass = dc.receivers.Pole_ky(
+                	P[ii+1:ii+nrec+1, :], data_type=data_type
+                	)
             elif survey_type.lower() in ['dipole-dipole', 'pole-dipole']:
-                rxClass = dc.receivers.Dipole_ky(DP1[ii+1:ii+nrec+1, :], DP2[ii+1:ii+nrec+1, :])
+                rxClass = dc.receivers.Dipole_ky(
+                	DP1[ii+1:ii+nrec+1, :], DP2[ii+1:ii+nrec+1, :], data_type=data_type
+                	)
 
         else:
             if survey_type.lower() in ['dipole-pole', 'pole-pole']:
-                rxClass = dc.receivers.Pole(P[ii+1:ii+nrec+1, :])
+                rxClass = dc.receivers.Pole(
+                	P[ii+1:ii+nrec+1, :], data_type=data_type
+                	)
             elif survey_type.lower() in ['dipole-dipole', 'pole-dipole']:
-                rxClass = dc.receivers.Dipole(DP1[ii+1:ii+nrec+1, :], DP2[ii+1:ii+nrec+1, :])
+                rxClass = dc.receivers.Dipole(
+                	DP1[ii+1:ii+nrec+1, :], DP2[ii+1:ii+nrec+1, :], data_type=data_type
+                	)
 
         # Create sources
         if survey_type.lower() in ['pole-dipole', 'pole-pole']:
