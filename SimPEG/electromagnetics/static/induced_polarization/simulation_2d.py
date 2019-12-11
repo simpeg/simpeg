@@ -40,17 +40,17 @@ class BaseIPSimulation_2D(BaseDCSimulation_2D):
     ):
         if dc_survey is None:
             dc_data = Data(self.survey, dc_voltage)
-            for src in self.survey.srcList:
-                for rx in src.rxList:
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
                     rx._dc_voltage = dc_data[src, rx]
                     rx.data_type = data_type
                     rx._Ps = {}
         else:
             dc_data = Data(dc_survey, dc_voltage)
-            for isrc, src in enumerate(self.survey.srcList):
-                dc_src = dc_survey.srcList[isrc]
-                for irx, rx in enumerate(src.rxList):
-                    dc_rx = dc_src.rxList[irx]
+            for isrc, src in enumerate(self.survey.source_list):
+                dc_src = dc_survey.source_list[isrc]
+                for irx, rx in enumerate(src.receiver_list):
+                    dc_rx = dc_src.receiver_list[irx]
                     rx._dc_voltage = dc_data[dc_src, dc_rx]
                     rx.data_type = data_type
                     rx._Ps = {}
@@ -62,7 +62,7 @@ class BaseIPSimulation_2D(BaseDCSimulation_2D):
 
         if self._f is None:
             self._f = self.fieldsPair(self)
-            Srcs = self.survey.srcList
+            Srcs = self.survey.source_list
             for iky in range(self.nky):
                 ky = self.kys[iky]
                 A = self.getA(ky)

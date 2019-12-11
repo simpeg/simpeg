@@ -314,7 +314,7 @@ def plot_pseudoSection(
     data, ax=None, survey_type='dipole-dipole',
     data_type="appConductivity", space_type='half-space',
     clim=None, scale="linear", sameratio=True,
-    pcolorOpts={}, data_location=False, dobs=None, dim=2
+    pcolorOpts={}, data_location=False, dobs=None, normalization=None, dim=2
 ):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
@@ -354,9 +354,7 @@ def plot_pseudoSection(
     if dobs is None:
         dobs = data.dobs
 
-    rhoApp = apparent_resistivity(
-        data, dobs=dobs, survey_type=survey_type, space_type=space_type
-    )
+    
     midx, midz = source_receiver_midpoints(
         data.survey, survey_type=survey_type, dim=dim
     )
@@ -368,22 +366,34 @@ def plot_pseudoSection(
             rho = np.log10(abs(dobs))
 
     elif data_type == 'appConductivity':
+        rhoApp = apparent_resistivity(
+            data, dobs=dobs, survey_type=survey_type, space_type=space_type
+            )
         if scale == "linear":
             rho = 1./rhoApp
         elif scale == "log":
             rho = np.log10(1./rhoApp)
 
     elif data_type == 'appResistivity':
+        rhoApp = apparent_resistivity(
+            data, dobs=dobs, survey_type=survey_type, space_type=space_type
+            )
         if scale == "linear":
             rho = rhoApp
         elif scale == "log":
             rho = np.log10(rhoApp)
 
+    elif data_type == 'appChargeability':
+        if scale == "linear":
+            rho = 1000.*dobs/normalization
+        elif scale == "log":
+            rho = np.log10(abs(1000.*dobs/normalization))
+
     else:
         print()
         raise Exception(
                 """data_type must be 'appResistivity' |
-                'appConductivity' | 'volt' """
+                'appConductivity' | 'volt' | 'appChargeability' """
                 " not {}".format(data_type)
         )
 
@@ -429,6 +439,9 @@ def plot_pseudoSection(
 
     elif data_type == 'volt':
         cbar.set_label("Potential (V)", size=12)
+
+    elif data_type == 'appChargeability':
+        cbar.set_label("App. Chrge (mV/V)", size=12)
 
     cmin, cmax = cbar.get_clim()
     ticks = np.linspace(cmin, cmax, 3)
@@ -1039,14 +1052,14 @@ def writeUBC_DClocs(
 
     for ii in range(dc_survey.nSrc):
 
-        rx = dc_survey.source_list[ii].rxList[0].locs
+        rx = dc_survey.source_list[ii].receiver_list[0].locations
         nD = dc_survey.source_list[ii].nD
 
         if survey_type.lower() in ['pole-dipole', 'pole-pole']:
-            tx = np.r_[dc_survey.source_list[ii].loc]
+            tx = np.r_[dc_survey.source_list[ii].locations]
             tx = np.repeat(np.r_[[tx]], 2, axis=0)
         elif survey_type.lower() in ['dipole-dipole', 'dipole-pole']:
-            tx = np.c_[dc_survey.source_list[ii].loc]
+            tx = np.c_[dc_survey.source_list[ii].locations]
 
         if survey_type.lower() in ['pole-dipole', 'dipole-dipole']:
             M = rx[0]
@@ -1156,7 +1169,7 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
         Read DC survey and projects the coordinate system
         according to the flag = 'Xloc' | 'Yloc' | 'local' (default)
         In the 'local' system, station coordinates are referenced
-        to distance from the first srcLoc[0].loc[0]
+        to distance from the first srcLoc[0].location[0]
 
         The Z value is preserved, but Y coordinates zeroed.
 
@@ -1231,7 +1244,7 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
         for ii in range(len(indx)):
 
             # Get all receivers
-            Rx = survey.source_list[indx[ii]].rxList[0].locs
+            Rx = survey.source_list[indx[ii]].receiver_list[0].locations
             nrx = Rx[0].shape[0]
 
             if flag == 'local':
@@ -1512,8 +1525,8 @@ def xy_2_lineID(dc_survey):
 
         if ii == 0:
 
-            A = dc_survey.srcList[ii].loc[0]
-            B = dc_survey.srcList[ii].loc[1]
+            A = dc_survey.srcList[ii].location[0]
+            B = dc_survey.srcList[ii].location[1]
 
             xout = np.mean([A[0:2], B[0:2]], axis=0)
 
@@ -1527,8 +1540,8 @@ def xy_2_lineID(dc_survey):
 
             continue
 
-        A = dc_survey.srcList[ii].loc[0]
-        B = dc_survey.srcList[ii].loc[1]
+        A = dc_survey.srcList[ii].location[0]
+        B = dc_survey.srcList[ii].location[1]
 
         xin = np.mean([A[0:2], B[0:2]], axis=0)
 
@@ -1607,9 +1620,9 @@ def getSrc_locs(survey):
 
     srcMat = []
 
-    for src in survey.sourc_list:
+    for src in survey.source_list:
 
-        srcMat.append(np.hstack(src.loc))
+        srcMat.append(np.hstack(src.location))
 
     srcMat = np.vstack(srcMat)
 

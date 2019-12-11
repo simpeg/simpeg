@@ -108,7 +108,7 @@ class Fields_CC(FieldsDC):
         else:
             raise Exception('Field type must be phi, e, j')
 
-    def _phi(self, phiSolution, srcList):
+    def _phi(self, phiSolution, source_list):
         return phiSolution
 
     def _phiDeriv_u(self, src, v, adjoint=False):
@@ -117,7 +117,7 @@ class Fields_CC(FieldsDC):
     def _phiDeriv_m(self, src, v, adjoint=False):
         return Zero()
 
-    def _j(self, phiSolution, srcList):
+    def _j(self, phiSolution, source_list):
         """
             .. math::
 
@@ -135,13 +135,13 @@ class Fields_CC(FieldsDC):
             return self._Grad.T * self._MfRhoIDeriv(v, adjoint=True)
         return self._MfRhoIDeriv(self._Grad * v)
 
-    def _e(self, phiSolution, srcList):
+    def _e(self, phiSolution, source_list):
         """
             .. math::
 
                 \vec{e} = \rho \vec{j}
         """
-        # return self._MfI * self._MfRho * self._j(phiSolution, srcList)
+        # return self._MfI * self._MfRho * self._j(phiSolution, source_list)
         return self._MfI * self._Grad * phiSolution
         # simulation._MfI * cart_mesh.faceDiv.T * p
 
@@ -153,17 +153,17 @@ class Fields_CC(FieldsDC):
     def _eDeriv_m(self, src, v, adjoint=False):
         return Zero()
 
-    def _charge(self, phiSolution, srcList):
+    def _charge(self, phiSolution, source_list):
         """
             .. math::
 
                 \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return epsilon_0*self._Vol*(
-            self._faceDiv*self._e(phiSolution, srcList)
+            self._faceDiv*self._e(phiSolution, source_list)
         )
 
-    def _charge_density(self, phiSolution, srcList):
+    def _charge_density(self, phiSolution, source_list):
         """
             .. math::
 
@@ -171,7 +171,7 @@ class Fields_CC(FieldsDC):
                 \frac{1}{V}\int \frac{\rho_v }{\epsillon_0}
         """
         return epsilon_0*(
-            self._faceDiv*self._e(phiSolution, srcList)
+            self._faceDiv*self._e(phiSolution, source_list)
         )
 
 
@@ -198,7 +198,7 @@ class Fields_N(FieldsDC):
         else:
             raise Exception('Field type must be phi, e, j')
 
-    def _phi(self, phiSolution, srcList):
+    def _phi(self, phiSolution, source_list):
         return phiSolution
 
     def _phiDeriv_u(self, src, v, adjoint=False):
@@ -207,15 +207,15 @@ class Fields_N(FieldsDC):
     def _phiDeriv_m(self, src, v, adjoint=False):
         return Zero()
 
-    def _j(self, phiSolution, srcList):
+    def _j(self, phiSolution, source_list):
         """
             In EB formulation j is not well-defined!!
             .. math::
                 \mathbf{j} = - \mathbf{M}^{e}_{\sigma} \mathbf{G} \phi
         """
-        return self.simulation.MeI * self.simulation.MeSigma * self._e(phiSolution, srcList)
+        return self.simulation.MeI * self.simulation.MeSigma * self._e(phiSolution, source_list)
 
-    def _e(self, phiSolution, srcList):
+    def _e(self, phiSolution, source_list):
         """
             In HJ formulation e is not well-defined!!
             .. math::
@@ -223,7 +223,7 @@ class Fields_N(FieldsDC):
         """
         return -self.mesh.nodalGrad * phiSolution
 
-    def _charge(self, phiSolution, srcList):
+    def _charge(self, phiSolution, source_list):
         """
             .. math::
                 \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
@@ -231,8 +231,8 @@ class Fields_N(FieldsDC):
         return -epsilon_0*(
             self.mesh.nodalGrad.T *
             self.mesh.getEdgeInnerProduct() *
-            self._e(phiSolution, srcList)
+            self._e(phiSolution, source_list)
         )
 
-    def _charge_density(self, phiSolution, srcList):
-        return self._charge(phiSolution, srcList) / self.mesh.vol
+    def _charge_density(self, phiSolution, source_list):
+        return self._charge(phiSolution, source_list) / self.mesh.vol

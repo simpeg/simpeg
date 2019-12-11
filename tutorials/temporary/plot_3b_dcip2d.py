@@ -106,7 +106,7 @@ unique_locations = np.unique(
 # resistivity and IP data.
 #
 
-dh = 5.                                                    # base cell width
+dh = 5.                                                     # base cell width
 dom_width_x = 3000.                                         # domain width x
 dom_width_z = 1500.                                         # domain width z
 nbcx = 2**int(np.round(np.log(dom_width_x/dh)/np.log(2.)))  # num. base cells x
@@ -143,49 +143,49 @@ mesh.finalize()
 #
 
 # Define conductivity model in S/m (or resistivity model in Ohm m)
-air_val = 1e-8
-background_val = 1e-2
-conductor_val = 1e-1
-resistor_val = 1e-5
+air_conductivity = 1e-8
+background_conductivity = 1e-2
+conductor_conductivity = 1e-1
+resistor_conductivity = 1e-5
 
 # Find active cells in forward modeling (cell below surface)
 ind_active = np.ones(mesh.nC, dtype="bool")
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
-mod_dc_map = maps.InjectActiveCells(mesh, ind_active, air_val)
+conductivity_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 
 # Define model
-mod_dc = background_val*np.ones(nC)
+conductivity_model = background_conductivity*np.ones(nC)
 
 ind_conductor = ModelBuilder.getIndicesSphere(
     np.r_[-120., -100.], 60., mesh.gridCC
 )
 ind_conductor = ind_conductor[ind_active]
-mod_dc[ind_conductor] = conductor_val
+conductivity_model[ind_conductor] = conductor_conductivity
 
 ind_resistor = ModelBuilder.getIndicesSphere(
     np.r_[120., -100.], 60., mesh.gridCC
 )
 ind_resistor = ind_resistor[ind_active]
-mod_dc[ind_resistor] = resistor_val
+conductivity_model[ind_resistor] = resistor_conductivity
 
 
 # Plot Conductivity Model
 fig = plt.figure(figsize=(8.5, 4))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
-log_mod = np.log10(mod_dc)
+log_mod = np.log10(conductivity_model)
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
 mesh.plotImage(
     plotting_map*log_mod, ax=ax1, grid=False,
-    clim=(np.log10(resistor_val), np.log10(conductor_val))
+    clim=(np.log10(resistor_conductivity), np.log10(conductor_conductivity))
 )
 ax1.set_title('Conductivity Model at Y = 0 m')
 
 ax2 = fig.add_axes([0.87, 0.05, 0.05, 0.9])
-norm = mpl.colors.Normalize(vmin=np.log10(resistor_val), vmax=np.log10(conductor_val))
+norm = mpl.colors.Normalize(vmin=np.log10(resistor_conductivity), vmax=np.log10(conductor_conductivity))
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', format="$10^{%.1f}$"
 )
@@ -203,9 +203,11 @@ cbar.set_label(
 # argument *rhoMap* is defined, the simulation will expect a resistivity model.
 #
 
-dc_simulation = dc.simulation_2d.Problem2D_N(mesh, survey=dc_survey, sigmaMap=mod_dc_map, Solver=Solver)
+dc_simulation = dc.simulation_2d.Problem2D_N(
+        mesh, survey=dc_survey, sigmaMap=conductivity_map, Solver=Solver
+        )
 
-dpred_dc = dc_simulation.dpred(mod_dc)
+dpred_dc = dc_simulation.dpred(conductivity_model)
 
 dc_data = data.Data(dc_survey, dobs=dpred_dc)
 
@@ -227,18 +229,20 @@ plt.show()
 # ---------------
 #
 
-#survey_dc.getABMN_locations()
-#
-#data_array = np.c_[
-#    survey_dc.a_locations,
-#    survey_dc.b_locations,
-#    survey_dc.m_locations,
-#    survey_dc.n_locations,
-#    dpred_dc*(1 + 0.05*np.random.rand(len(dpred_dc)))
-#    ]
-#
-#fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dc2D_data.txt'
-#np.savetxt(fname, data_array, fmt='%.4e')
+dc_noise = 0.05*dpred_dc*np.random.rand(len(dpred_dc))
+
+dc_survey.getABMN_locations()
+
+data_array = np.c_[
+    dc_survey.a_locations,
+    dc_survey.b_locations,
+    dc_survey.m_locations,
+    dc_survey.n_locations,
+    dpred_dc + dc_noise
+    ]
+
+fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\dc_data.obs'
+np.savetxt(fname, data_array, fmt='%.4e')
 
 
 #######################################################################
@@ -262,35 +266,35 @@ ip_survey = ip.from_dc_to_ip_survey(dc_survey, dim="2.5D")
 #
 
 # Define chargeability model in mV/V
-air_val = 0.
-background_val = 0.
-chargeable_val = 1e-1
+air_chargeability = 0.
+background_chargeability = 0.
+sphere_chargeability = 1e-1
 
 # Find active cells in forward modeling (cell below surface)
 ind_active = np.ones(mesh.nC, dtype="bool")
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
-mod_ip_map = maps.InjectActiveCells(mesh, ind_active, air_val)
+chargeability_map = maps.InjectActiveCells(mesh, ind_active, air_chargeability)
 
 # Define chargeability model
-mod_ip = background_val*np.ones(nC)
+chargeability_model = background_chargeability*np.ones(nC)
 
 ind_chargeable = ModelBuilder.getIndicesSphere(
     np.r_[-120., -180.], 60., mesh.gridCC
 )
 ind_chargeable = ind_chargeable[ind_active]
-mod_ip[ind_chargeable] = chargeable_val
+chargeability_model[ind_chargeable] = sphere_chargeability
 
 # Plot Chargeability Model
 fig = plt.figure(figsize=(8.5, 4))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-mesh.plotImage(plotting_map*mod_ip, ax=ax1, grid=False)
+mesh.plotImage(plotting_map*chargeability_model, ax=ax1, grid=False)
 ax1.set_title('Chargeability at Y = 0 m')
 
 ax2 = fig.add_axes([0.87, 0.05, 0.05, 0.9])
-norm = mpl.colors.Normalize(vmin=0, vmax=chargeable_val)
+norm = mpl.colors.Normalize(vmin=0, vmax=sphere_chargeability)
 cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation='vertical')
 cbar.set_label(
     'Chargeability (mV/V)', rotation=270, labelpad=15, size=12
@@ -307,23 +311,24 @@ cbar.set_label(
 # We use the keyword argument *sigma* to define the background conductivity on
 # the mesh. We could use the keyword argument *rho* to accomplish the same thing
 # using a background resistivity model.
-simulation_ip = ip.simulation.Problem3D_N(
-    mesh, survey=ip_survey, etaMap=mod_ip_map, sigma=mod_dc_map*mod_dc,
-    Solver=Solver
+simulation_ip = ip.simulation_2d.Problem2D_N(
+    mesh, survey=ip_survey, etaMap=chargeability_map,
+    sigma=conductivity_map*conductivity_model, Solver=Solver
 )
 
-dpred_ip = simulation_ip.dpred(mod_ip)
+dpred_ip = simulation_ip.dpred(chargeability_model)
 
 ip_data = data.Data(ip_survey, dobs=dpred_ip)
 
 # Plot
+
 fig = plt.figure(figsize=(11, 5))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
 plot_pseudoSection(
-    ip_survey, dobs=dpred_ip, V0=dpred_dc, ax=ax1, survey_type='dipole-dipole',
+    ip_data, ax=ax1, survey_type='dipole-dipole',
     data_type='appChargeability', space_type='half-space',
-    scale='linear', clim=None,
+    scale='linear', clim=None, normalization=dpred_dc
 )
 ax1.set_title('Apparent Chargeability (mV/V)')
 
@@ -334,15 +339,17 @@ plt.show()
 # ---------------
 #
 
-#survey_ip.getABMN_locations()
-#
-#data_array = np.c_[
-#    survey_ip.a_locations,
-#    survey_ip.b_locations,
-#    survey_ip.m_locations,
-#    survey_ip.n_locations,
-#    dpred_ip*(1 + 0.05*np.random.rand(len(dpred_ip)))
-#    ]
-#
-#fname = os.path.dirname(DC.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\ip_data.txt'
-#np.savetxt(fname, data_array, fmt='%.4e')
+ip_survey.getABMN_locations()
+
+ip_noise = 0.05*dpred_ip*np.random.rand(len(dpred_ip))
+
+data_array = np.c_[
+    ip_survey.a_locations,
+    ip_survey.b_locations,
+    ip_survey.m_locations,
+    ip_survey.n_locations,
+    dpred_ip + ip_noise
+    ]
+
+fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\ip_data.obs'
+np.savetxt(fname, data_array, fmt='%.4e')

@@ -12,11 +12,11 @@ def from_dc_to_ip_survey(dc_survey, dim="2.5D"):
         for src in srcList:
             rxList_ip = []
             src_ip = []
-            for rx in src.rxList:
+            for rx in src.receiver_list:
                 if isinstance(rx, receivers.Pole_ky):
                     rx_ip = receivers.Pole(rx.locations)
                 elif isinstance(rx, receivers.Dipole_ky):
-                    rx_ip = receivers.Dipole(rx.locs[0], rx.locations[1])
+                    rx_ip = receivers.Dipole(rx.locations[0], rx.locations[1])
                 else:
                     # print(rx)
                     raise NotImplementedError()
