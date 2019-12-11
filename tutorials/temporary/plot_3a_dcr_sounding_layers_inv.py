@@ -115,8 +115,8 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 # Here, we define the layer thicknesses for our 1D simulation. To do this, we use
 # the TensorMesh class.
 
-layer_thicknesses = np.r_[75., 75., 200., 1650.]
-resistivities = np.r_[1e3, 2e3, 1e3, 5e2]
+layer_thicknesses = np.r_[50., 200., 200]
+resistivities = np.r_[1e3, 1e3, 1e3]
 
 
 mesh = TensorMesh([layer_thicknesses], 'N')
@@ -134,7 +134,7 @@ print(mesh)
 
 wire_map = maps.Wires(('rho', mesh.nC), ('t', mesh.nC-1))
 resistivity_map = maps.ExpMap(nP=mesh.nC) * wire_map.rho
-layer_map = maps.ExpMap(nP=mesh.nC-1) * wire_map.t
+layer_map = maps.IdentityMap(nP=mesh.nC-1) * wire_map.t
 
 # Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
 starting_model = np.r_[np.log(resistivities), np.log(layer_thicknesses[:-1])]
@@ -183,7 +183,7 @@ reg = reg_rho + reg_t
 
 
 opt = optimization.InexactGaussNewton(
-    maxIter=30, maxIterCG=20
+    maxIter=50, maxIterCG=30
 )
 
 

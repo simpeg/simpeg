@@ -50,7 +50,10 @@ from SimPEG.electromagnetics.static.utils.StaticUtils import plot_layer
 #
 
 # Define all electrode locations (Src and Rx) as an (N, 2) numpy array
-electrode_separations = np.linspace(20., 400., 20)  # Number of electrode locations along EW profile
+
+# Can't have electrodes in same location
+
+electrode_separations = np.logspace(1., 2.6, 27)  # Number of electrode locations along EW profile
 
 source_list = []  # create empty array for sources to live
 
@@ -87,9 +90,10 @@ survey = dc.Survey(source_list)
 # --------------------------------------------
 #
 # Here, we define the layer thicknesses for our 1D simulation. To do this, we use
-# the TensorMesh class.
+# the TensorMesh class. The deepest cell is just for show. That unit will extend
+# to infinity.
 
-layer_thicknesses = np.r_[100., 100., 1800.]
+layer_thicknesses = np.r_[100., 100., 100.]
 mesh = TensorMesh([layer_thicknesses], 'N')
 
 print(mesh)
@@ -104,7 +108,7 @@ print(mesh)
 #
 
 # Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
-model = np.r_[1e3, 5e3, 1e2]
+model = np.r_[1e3, 1e4, 1e2]
 
 # Define mapping from model to active cells.
 model_map = maps.IdentityMap(mesh)

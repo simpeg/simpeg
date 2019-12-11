@@ -115,7 +115,7 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 # Here, we define the layer thicknesses for our 1D simulation. To do this, we use
 # the TensorMesh class.
 
-layer_thicknesses = np.r_[5.*np.ones(100), 5*1.3**np.linspace(1, 15, 15)]
+layer_thicknesses = 5.*np.ones((80))
 mesh = TensorMesh([layer_thicknesses], 'N')
 
 print(mesh)
@@ -130,11 +130,11 @@ print(mesh)
 #
 
 # Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
-starting_model = np.log(1e2*np.ones((len(layer_thicknesses))))
+starting_model = np.log(1e3*np.ones((len(layer_thicknesses))))
 
 # Define mapping from model to active cells.
 model_map = maps.IdentityMap(mesh)*maps.ExpMap()
-inversion_map = maps.IdentityMap(mesh)
+# inversion_map = maps.IdentityMap(mesh)
 
 #plot_layer(model_map*model, mesh)
 
@@ -169,25 +169,20 @@ dmis.W = 1./uncertainties
 
 reg_rho = regularization.Simple(
     mesh, alpha_s=1., alpha_x=1., mref=starting_model,
-    mapping=inversion_map
+    # mapping=inversion_map
 )
 
-#mesh_t = TensorMesh([mesh_1d.hx.size-1])
-#reg_t = regularization.Simple(
-#    mesh_t, alpha_s=1., alpha_x=1.,
-#    mapping=wires.t    
-#)
 
 #reg = reg_rho + reg_t
 opt = optimization.InexactGaussNewton(
-    maxIter=30, maxIterCG=20
+    maxIter=50, maxIterCG=30
 )
 invProb = inverse_problem.BaseInvProblem(dmis, reg_rho, opt)
 
 
 
 # Create an inversion object
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 beta_schedule = directives.BetaSchedule(coolingFactor=5., coolingRate=3.)
 target_misfit = directives.TargetMisfit(chifact=1.)
 
