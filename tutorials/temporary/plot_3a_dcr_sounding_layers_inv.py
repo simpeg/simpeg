@@ -109,19 +109,22 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 
 
 ###############################################
-# Defining a 1D Layered Earth (1D Tensor Mesh)
-# --------------------------------------------
+# Create starting model
+# ---------------------
 #
 # Here, we define the layer thicknesses for our 1D simulation. To do this, we use
 # the TensorMesh class.
 
-layer_thicknesses = np.r_[5.*np.ones(100), 5*1.3**np.linspace(1, 15, 15)]
+layer_thicknesses = np.r_[75., 75., 200., 1650.]
+resistivities = np.r_[1e3, 2e3, 1e3, 5e2]
+
+
 mesh = TensorMesh([layer_thicknesses], 'N')
 
 print(mesh)
 
 ###############################################################
-# Create Conductivity Model and Mapping for OcTree Mesh
+# Mapping
 # -----------------------------------------------------
 #
 # Here we define the resistivity model that will be used to predict DC data.
@@ -129,14 +132,12 @@ print(mesh)
 # 1D simulation, we assume the bottom layer extends to infinity.
 #
 
+wire_map = maps.Wires(('rho', mesh.nC), ('t', mesh.nC-1))
+resistivity_map = maps.ExpMap(nP=mesh.nC) * wire_map.rho
+layer_map = maps.ExpMap(nP=mesh.nC-1) * wire_map.t
+
 # Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
-starting_model = np.log(1e2*np.ones((len(layer_thicknesses))))
-
-# Define mapping from model to active cells.
-model_map = maps.IdentityMap(mesh)*maps.ExpMap()
-inversion_map = maps.IdentityMap(mesh)
-
-#plot_layer(model_map*model, mesh)
+starting_model = np.r_[np.log(resistivities), np.log(layer_thicknesses[:-1])]
 
 
 #######################################################################
@@ -149,7 +150,7 @@ inversion_map = maps.IdentityMap(mesh)
 #
 
 simulation = dc.simulation_1d.DCSimulation_1D(
-        mesh, survey=survey, rhoMap=model_map, t=layer_thicknesses,
+        mesh, survey=survey, rhoMap=resistivity_map, tMap=layer_map,
         data_type="apparent_resistivity"
         )
 
@@ -167,22 +168,27 @@ dmis.W = 1./uncertainties
 
 
 
+mesh_rho = TensorMesh([mesh.hx.size])
 reg_rho = regularization.Simple(
-    mesh, alpha_s=1., alpha_x=1., mref=starting_model,
-    mapping=inversion_map
+    mesh_rho, alpha_s=1., alpha_x=1.,
+    mapping=wire_map.rho
 )
+mesh_t = TensorMesh([mesh.hx.size-1])
+reg_t = regularization.Simple(
+    mesh_t, alpha_s=1., alpha_x=1.,
+    mapping=wire_map.t    
+)
+reg = reg_rho + reg_t
 
-#mesh_t = TensorMesh([mesh_1d.hx.size-1])
-#reg_t = regularization.Simple(
-#    mesh_t, alpha_s=1., alpha_x=1.,
-#    mapping=wires.t    
-#)
 
-#reg = reg_rho + reg_t
+
 opt = optimization.InexactGaussNewton(
     maxIter=30, maxIterCG=20
 )
-invProb = inverse_problem.BaseInvProblem(dmis, reg_rho, opt)
+
+
+
+invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 
 
@@ -209,7 +215,7 @@ true_layers = np.loadtxt(str(mesh_filename))
 true_layers = TensorMesh([true_layers], 'N')
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-plot_layer(model_map*recovered_model, mesh, ax=ax1, depth_axis=False)
+plot_layer(resistivity_map*recovered_model, mesh, ax=ax1, depth_axis=False)
 plot_layer(true_model, true_layers, ax=ax1, depth_axis=False, color='r')
 
 

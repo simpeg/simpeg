@@ -1842,18 +1842,22 @@ def gen_3d_survey_from_2d_lines(
     )
     return IO_3d, survey_3d
 
-def plot_layer(rho, mesh, xscale='log', ax=None, showlayers=False, xlim=None,**kwargs):
+def plot_layer(rho, mesh, xscale='log', ax=None, showlayers=False, xlim=None, depth_axis=True, **kwargs):
     """
         Plot Conductivity model for the layered earth model
     """
 
-    z_grid = -mesh.vectorNx
+
     n_rho = rho.size
+    
+    z_grid = -mesh.vectorNx
     resistivity = np.repeat(rho, 2)
+    
     z = []
     for i in range(n_rho):
         z.append(np.r_[z_grid[i], z_grid[i+1]])
     z = np.hstack(z)
+    z = z + mesh.x0[0]
     if xlim == None:
         rho_min = rho[~np.isnan(rho)].min()*0.5
         rho_max = rho[~np.isnan(rho)].max()*2

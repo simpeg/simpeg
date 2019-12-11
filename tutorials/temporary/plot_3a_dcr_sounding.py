@@ -50,7 +50,7 @@ from SimPEG.electromagnetics.static.utils.StaticUtils import plot_layer
 #
 
 # Define all electrode locations (Src and Rx) as an (N, 2) numpy array
-electrode_separations = np.linspace(10., 400., 20)  # Number of electrode locations along EW profile
+electrode_separations = np.linspace(20., 400., 20)  # Number of electrode locations along EW profile
 
 source_list = []  # create empty array for sources to live
 
@@ -89,7 +89,7 @@ survey = dc.Survey(source_list)
 # Here, we define the layer thicknesses for our 1D simulation. To do this, we use
 # the TensorMesh class.
 
-layer_thicknesses = np.r_[50., 100., 100.]
+layer_thicknesses = np.r_[100., 100., 1800.]
 mesh = TensorMesh([layer_thicknesses], 'N')
 
 print(mesh)
@@ -104,7 +104,7 @@ print(mesh)
 #
 
 # Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
-model = np.r_[1e3, 1e4, 1e2]
+model = np.r_[1e3, 5e3, 1e2]
 
 # Define mapping from model to active cells.
 model_map = maps.IdentityMap(mesh)
@@ -146,13 +146,27 @@ plt.show()
 
 survey.getABMN_locations()
 
+noise = 0.025*dpred*np.random.rand(len(dpred))
+
 data_array = np.c_[
     survey.a_locations,
     survey.b_locations,
     survey.m_locations,
     survey.n_locations,
-    dpred*(1 + 0.05*np.random.rand(len(dpred)))
+    dpred + noise
     ]
 
-fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\app_res_1d_data.dobs'
+fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\app_res_1d_data.dobs'
 np.savetxt(fname, data_array, fmt='%.4e')
+
+
+fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\true_model.txt'
+np.savetxt(fname, model, fmt='%.4e')
+
+
+fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\layers.txt'
+np.savetxt(fname, mesh.hx, fmt='%d')
+
+
+
+
