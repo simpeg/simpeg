@@ -1,6 +1,6 @@
 from __future__ import division
 import numpy as np
-
+from scipy.spatial import ConvexHull
 from discretize.utils import (
     Zero, Identity, mkvc, sdiag, sdInv, speye, kron3, spzeros, ddx, av,
     av_extrap, ndgrid, ind2sub, sub2ind, getSubArray, inv3X3BlockDiagonal,
@@ -270,6 +270,10 @@ def calculate_2D_trend(points, values, order=0, method='all'):
     trend: ndarray of floats, shape(npoints,)
         Calculated trend
 
+    coefficients: ndarray of floats, shape(order+1)
+        Coefficients for the polynomial describing the trend
+        trend = c[0] + points[:, 0] * c[1] +  points[:, 1] * c[2]
+
     """
 
     assert method in ['all', 'corners'], (
@@ -289,11 +293,12 @@ def calculate_2D_trend(points, values, order=0, method='all'):
     if order == 0:
         data_trend = np.mean(pts[:, 2]) * np.ones(points[:, 0].shape)
         print('Removed data mean: {0:.6g}'.format(data_trend[0]))
+        C = np.r_[0, 0, data_trend]
 
     elif order == 1:
         # best-fit linear plane
         A = np.c_[pts[:, 0], pts[:, 1], np.ones(pts.shape[0])]
-        C, _, _, _ = lstsq(A, pts[:, 2])    # coefficients
+        C, _, _, _ = np.linalg.lstsq(A, pts[:, 2], rcond=None)    # coefficients
 
         # evaluate at all data locations
         data_trend = C[0]*points[:, 0] + C[1]*points[:, 1] + C[2]
@@ -305,7 +310,7 @@ def calculate_2D_trend(points, values, order=0, method='all'):
             np.prod(pts[:, :2], axis=1),
             pts[:, :2]**2
         ]
-        C, _, _, _ = lstsq(A, pts[:, 2])
+        C, _, _, _ = np.linalg.lstsq(A, pts[:, 2], rcond=None)
 
         # evaluate at all data locations
         data_trend = np.dot(np.c_[
@@ -316,6 +321,4 @@ def calculate_2D_trend(points, values, order=0, method='all'):
                 points[:, 0]**2, points[:, 1]**2
                 ], C).reshape(points[:, 0].shape)
 
-    values -= data_trend
-
-    return trend
+    return data_trend, C
