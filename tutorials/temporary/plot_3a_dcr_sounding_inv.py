@@ -64,7 +64,8 @@ dobs = dobs[:, -1]
 # Define survey
 unique_tx, k = np.unique(np.c_[a_electrodes, b_electrodes], axis=0, return_index=True)
 n_tx = len(k)
-k = np.r_[k, len(a_electrodes)+1]
+k=np.sort(k)
+k = np.r_[k, len(k)+1]
 
 source_list = []
 for ii in range(0, n_tx):
@@ -116,7 +117,7 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 # the TensorMesh class.
 
 layer_thicknesses = 5.*np.ones((80))
-mesh = TensorMesh([layer_thicknesses], 'N')
+mesh = TensorMesh([layer_thicknesses], '0')
 
 print(mesh)
 
@@ -172,10 +173,21 @@ reg_rho = regularization.Simple(
     # mapping=inversion_map
 )
 
+#reg_rho = regularization.Tikhonov(
+#    mesh, alpha_s=0.2, alpha_x=1., mref=starting_model,
+#    # mapping=inversion_map
+#)
+
+
+# Create model weights based on sensitivity matrix (sensitivity weighting)
+wr = np.sum(simulation.getJ(starting_model)**2, axis=0)**0.5
+wr = (wr/np.max(np.abs(wr)))
+reg_rho.cell_weights = wr  # include in regularization
+#directives.UpdateSensitivityWeights(JtJdiag=wr)  # Don't think this is applied to this type of problem
 
 #reg = reg_rho + reg_t
 opt = optimization.InexactGaussNewton(
-    maxIter=50, maxIterCG=30
+    maxIter=30, maxIterCG=20
 )
 invProb = inverse_problem.BaseInvProblem(dmis, reg_rho, opt)
 

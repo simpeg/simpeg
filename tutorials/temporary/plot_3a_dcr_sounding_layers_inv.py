@@ -55,27 +55,28 @@ mesh_filename = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\ass
 # Load data
 dobs = np.loadtxt(str(data_filename))
 
-a_locs = dobs[:, 0:3]
-b_locs = dobs[:, 3:6]
-m_locs = dobs[:, 6:9]
-n_locs = dobs[:, 9:12]
+a_electrodes = dobs[:, 0:3]
+b_electrodes = dobs[:, 3:6]
+m_electrodes = dobs[:, 6:9]
+n_electrodes = dobs[:, 9:12]
 dobs = dobs[:, -1]
 
 # Define survey
-unique_tx, k = np.unique(np.c_[a_locs, b_locs], axis=0, return_index=True)
+unique_tx, k = np.unique(np.c_[a_electrodes, b_electrodes], axis=0, return_index=True)
 n_tx = len(k)
-k = np.r_[k, len(a_locs)+1]
+k=np.sort(k)
+k = np.r_[k, len(k)+1]
 
 source_list = []
 for ii in range(0, n_tx):
     
-    m_locations = m_locs[k[ii]:k[ii+1], :]
-    n_locations = n_locs[k[ii]:k[ii+1], :]
+    m_locations = m_electrodes[k[ii]:k[ii+1], :]
+    n_locations = n_electrodes[k[ii]:k[ii+1], :]
     receiver_list = [dc.receivers.Dipole(m_locations, n_locations)]
     
-    a_locations = a_locs[k[ii], :]
-    b_locations = b_locs[k[ii], :]
-    source_list.append(dc.sources.Dipole(receiver_list, a_locations, b_locations))
+    a_location = a_electrodes[k[ii], :]
+    b_location = b_electrodes[k[ii], :]
+    source_list.append(dc.sources.Dipole(receiver_list, a_location, b_location))
 
 # Define survey
 survey = dc.Survey(source_list)
@@ -116,10 +117,10 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 # the TensorMesh class.
 
 layer_thicknesses = np.r_[50., 200., 200]
-resistivities = np.r_[1e3, 1e3, 1e3]
+resistivities = np.r_[1e3, 1e4, 1e2]
 
 
-mesh = TensorMesh([layer_thicknesses], 'N')
+mesh = TensorMesh([layer_thicknesses], '0')
 
 print(mesh)
 
@@ -134,7 +135,7 @@ print(mesh)
 
 wire_map = maps.Wires(('rho', mesh.nC), ('t', mesh.nC-1))
 resistivity_map = maps.ExpMap(nP=mesh.nC) * wire_map.rho
-layer_map = maps.IdentityMap(nP=mesh.nC-1) * wire_map.t
+layer_map = maps.ExpMap(nP=mesh.nC-1) * wire_map.t
 
 # Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
 starting_model = np.r_[np.log(resistivities), np.log(layer_thicknesses[:-1])]
@@ -212,7 +213,7 @@ fig = plt.figure(figsize=(5, 5))
 
 true_model = np.loadtxt(str(model_filename))
 true_layers = np.loadtxt(str(mesh_filename))
-true_layers = TensorMesh([true_layers], 'N')
+true_layers = TensorMesh([true_layers], '0')
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
 plot_layer(resistivity_map*recovered_model, mesh, ax=ax1, depth_axis=False)

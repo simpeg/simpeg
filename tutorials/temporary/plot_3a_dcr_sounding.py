@@ -53,7 +53,8 @@ from SimPEG.electromagnetics.static.utils.StaticUtils import plot_layer
 
 # Can't have electrodes in same location
 
-electrode_separations = np.logspace(1., 2.6, 27)  # Number of electrode locations along EW profile
+#electrode_separations = np.logspace(1., 2.6, 27)  # Number of electrode locations along EW profile
+electrode_separations = np.linspace(10, 400, 27)  # Number of electrode locations along EW profile
 
 source_list = []  # create empty array for sources to live
 
@@ -93,8 +94,8 @@ survey = dc.Survey(source_list)
 # the TensorMesh class. The deepest cell is just for show. That unit will extend
 # to infinity.
 
-layer_thicknesses = np.r_[100., 100., 100.]
-mesh = TensorMesh([layer_thicknesses], 'N')
+layer_thicknesses = np.r_[100., 50., 100.]
+mesh = TensorMesh([layer_thicknesses])
 
 print(mesh)
 
