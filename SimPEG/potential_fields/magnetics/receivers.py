@@ -15,6 +15,8 @@ class point_receiver(survey.BaseRx):
 
     def __init__(self, locations, components="tmi", **kwargs):
 
+        super(survey.BaseRx, self).__init__(locations=locations, **kwargs)
+
         n_locations = locations.shape[0]
 
         if isinstance(components, str):
@@ -35,8 +37,6 @@ class point_receiver(survey.BaseRx):
                 "implemented.".format(component)
             )
         self.components = component_dict
-
-        super(survey.BaseRx, self).__init__(locations=locations, components=components, **kwargs)
 
     def nD(self):
 

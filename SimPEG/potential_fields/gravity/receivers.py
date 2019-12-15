@@ -12,17 +12,9 @@ class point_receiver(survey.BaseRx):
          "gx", "gy", "gz", "gxx", "gxy", "gxz",
          "gyy", "gyz", "gzz", "guv", "amp" [default]
     """
-
-    # receiver_index = None
-
-    # component = properties.List(
-    #     "Must be a magnetic component of the type",
-
-
-    #     default=["gz"]
-    # )
-
     def __init__(self, locations, components="gz", **kwargs):
+
+        super(survey.BaseRx, self).__init__(locations=locations, **kwargs)
 
         n_locations = locations.shape[0]
 
@@ -39,13 +31,11 @@ class point_receiver(survey.BaseRx):
              ] for component in list(component_dict.keys())]), (
                 "Components {0!s} not known. Components must be in "
                 "'gx', 'gy', 'gz', 'gxx', 'gxy', 'gxz'"
-         	    "'gyy', 'gyz', 'gzz', 'guv'"
+                "'gyy', 'gyz', 'gzz', 'guv'"
                 "Arbitrary orientations have not yet been "
                 "implemented.".format(component)
             )
         self.components = component_dict
-
-        super(survey.BaseRx, self).__init__(locations=locations, components=components, **kwargs)
 
     def nD(self):
 
