@@ -32,7 +32,7 @@ from SimPEG.utils import plot2Ddata, ModelBuilder, surface2ind_topo
 from SimPEG import maps
 from SimPEG.potential_fields import magnetics
 
-# sphinx_gallery_thumbnail_number = 4
+# sphinx_gallery_thumbnail_number = 2
 
 
 #############################################

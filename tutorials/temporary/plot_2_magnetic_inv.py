@@ -213,7 +213,7 @@ reg = regularization.Sparse(
     mesh, indActive=ind_active, mapping=model_map, mref=starting_model,
     alpha_s=1, alpha_x=1, alpha_y=1, alpha_z=1
 )
-reg.norms = np.c_[0.5, 0.5, 0.5, 0.5]  # Define sparse and blocky norms p=(0, 2)
+reg.norms = np.c_[0.1, 0.1, 0.1, 0.1]  # Define sparse and blocky norms p=(0, 2)
 
 # Create model weights based on sensitivity matrix (sensitivity weighting)
 wr = simulation.getJtJdiag(starting_model)**0.5
@@ -241,8 +241,7 @@ update_jacobi = directives.UpdatePreconditioner()
 target_misfit = directives.TargetMisfit(chifact=1)
 
 directives_list = [
-    starting_beta, beta_schedule, save_iteration, update_IRLS, update_jacobi,
-    target_misfit
+    starting_beta, save_iteration, update_IRLS, update_jacobi,
     ]
 
 # Here we combine the inverse problem and the set of directives
