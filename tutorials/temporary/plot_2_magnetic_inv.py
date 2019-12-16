@@ -235,7 +235,8 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1)
 beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=3)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 update_IRLS = directives.Update_IRLS(
-    f_min_change=1e-4, maxIRLSiter=30, coolEpsFact=1.5, beta_tol=1e-2,
+    f_min_change=1e-4, max_irls_iterations=30,
+    coolEpsFact=1.5, beta_tol=1e-2,
 )
 update_jacobi = directives.UpdatePreconditioner()
 target_misfit = directives.TargetMisfit(chifact=1)
@@ -248,7 +249,7 @@ directives_list = [
 inv = inversion.BaseInversion(inv_prob, directives_list)
 
 # Print target misfit to compare with convergence
-print("Target misfit is " + str(target_misfit.target))
+# print("Target misfit is " + str(target_misfit.target))
 
 # Run the inversion
 recovered_model = inv.run(starting_model)
