@@ -38,7 +38,7 @@ from SimPEG.potential_fields import gravity
 # -------------------
 #
 # Surface topography is defined as an (N, 3) numpy array. We create it here but
-# topography could also be loaded from a file.
+# the topography could also be loaded from a file.
 #
 
 [x_topo, y_topo] = np.meshgrid(np.linspace(-200, 200, 41), np.linspace(-200, 200, 41))
@@ -51,10 +51,10 @@ xyz_topo = np.c_[x_topo, y_topo, z_topo]
 # Defining the Survey
 # -------------------
 #
-# Here, we define survey that will be used for the simulation. Gravity
+# Here, we define survey that will be used for the forward simulation. Gravity
 # surveys are simple to create. The user only needs an (N, 3) array to define
-# the xyz locations of the observation locations and a list of field components
-# which are to be modeled.
+# the xyz locations of the observation locations, and a list of field components
+# which are to be measured.
 #
 
 # Define the observation locations as an (N, 3) numpy array or load them
@@ -66,9 +66,9 @@ fun_interp = LinearNDInterpolator(np.c_[x_topo, y_topo], z_topo)
 z = fun_interp(np.c_[x, y]) + 5
 receiver_locations = np.c_[x, y, z]
 
-# Define the component(s) of the field we want to simulate. Here we will
-# simulation the vertical component of gravity. Gradiometry is covered in the
-# next tutorial. 
+# Define the component(s) of the field we want to simulate as strings within
+# a list. Here we measure the x, y and z components of the gravity anomaly at
+# each observation location.
 components = ["gxz", "gyz", "gzz"]
 
 # Use the observation locations and components to define the receivers. To
@@ -90,9 +90,7 @@ survey = gravity.survey.GravitySurvey(source_field)
 # Defining an OcTree Mesh
 # -----------------------
 #
-# Here, we create the OcTree mesh that will be used to predict gravity
-# gradiometry data. Detailed construction of tree meshes is covered in a
-# separate tutorial.
+# Here, we create the OcTree mesh that will be used in the forward simulation.
 # 
 
 dx = 5    # minimum cell width (base mesh cell width) in x
@@ -133,7 +131,7 @@ mesh.finalize()
 # Density Contrast Model and Mapping on OcTree Mesh
 # -------------------------------------------------
 #
-# Here, we create the density contrast model that will be used to predict gravity
+# Here, we create the density contrast model that will be used to simulate gravity
 # gradiometry data and the mapping from the model to the mesh. The model
 # consists of a less dense block and a more dense sphere.
 #
@@ -143,16 +141,19 @@ background_density = 0.
 block_density = -0.1
 sphere_density = 0.1
 
-# Define active cells in the forward model (ones below surface)
+# Find the indecies for the active mesh cells (e.g. cells below surface)
 ind_active = surface2ind_topo(mesh, xyz_topo)
 
-# Define mapping from model to active cells
+# Define mapping from model to active cells. The model consists of a value for
+# each cell below the Earth's surface.
 nC = int(ind_active.sum())
 model_map = maps.IdentityMap(nP=nC)  # model will be value of active cells
 
-# Define model
+# Define model. Models in SimPEG are vector arrays.
 model = background_density*np.ones(nC)
 
+# You could find the indicies of specific cells within the model and change their
+# value to add structures.
 ind_block = (
     (mesh.gridCC[ind_active, 0] > -50.) & (mesh.gridCC[ind_active, 0] < -20.) &
     (mesh.gridCC[ind_active, 1] > -15.) & (mesh.gridCC[ind_active, 1] < 15.) &
@@ -160,6 +161,7 @@ ind_block = (
 )
 model[ind_block] = block_density
 
+# You can also use SimPEG utilities to add structures to the model more concisely
 ind_sphere = ModelBuilder.getIndicesSphere(
     np.r_[35., 0., -40.], 15., mesh.gridCC
 )
@@ -194,11 +196,13 @@ plt.show()
 # formulation.
 # 
 
-# Define the forward simulation
+# Define the forward simulation. By setting the 'forward_only' keyword argument
+# to false, we avoid storing a large dense matrix.
 simulation = gravity.simulation.GravityIntegralSimulation(
     survey=survey, mesh=mesh, rhoMap=model_map,
     actInd=ind_active, forward_only=True
 )
+
 # Compute predicted data for some model
 dpred = simulation.dpred(model)
 n_data = len(dpred)

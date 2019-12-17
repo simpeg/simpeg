@@ -69,9 +69,9 @@ fun_interp = LinearNDInterpolator(np.c_[x_topo, y_topo], z_topo)
 z = fun_interp(np.c_[x, y]) + 10  # Flight height 10 m above surface.
 receiver_locations = np.c_[x, y, z]
 
-# Define the component(s) of the field we want to simulate as a list. Here we will
-# simulation total magnetic intensity data. Different components can be used
-# in the case of gradiometry. 
+# Define the component(s) of the field we want to simulate as strings within
+# a list. Here we measure the x, y and z derivatives of the Bz anomaly at
+# each observation location.
 components = ["dbx_dz", "dby_dz", "dbz_dz"]
 
 # Use the observation locations and components to define the receivers. To
@@ -100,8 +100,8 @@ survey = magnetics.survey.MagneticSurvey(source_field)
 # Defining an OcTree Mesh
 # -----------------------
 #
-# Here, we create the OcTree mesh that will be used to predict magnetic anomaly
-# data for our second forward simuulation.
+# Here, we create the OcTree mesh that will be used to predict magnetic
+# gradiometry data for the forward simuulation.
 # 
 
 dx = 5    # minimum cell width (base mesh cell width) in x
@@ -148,7 +148,7 @@ mesh.finalize()
 #
 #     1) Define the magnetic susceptibility for each cell. Then multiply by the
 #     unit vector direction of the inducing field. (induced contribution)
-#     2) Define the remanent magnetization vector for each cell and normalized
+#     2) Define the remanent magnetization vector for each cell and normalize
 #     by the magnitude of the Earth's field (remanent contribution)
 #     3) Sum the induced and remanent contributions
 #     4) Define as a vector np.r_[chi_1, chi_2, chi_3]
@@ -178,7 +178,7 @@ susceptibility_model[ind_sphere] = sphere_susceptibility
 field_direction = matutils.dip_azimuth2cartesian(field_inclination, field_declination)
 
 # Multiply susceptibility model to obtain the x, y, z components of the
-# effective susceptibility contribution from induced magnetization
+# effective susceptibility contribution from induced magnetization.
 susceptibility_model = np.outer(susceptibility_model, field_direction)
 
 # Define the effective susceptibility contribution for remanent magnetization to have a
@@ -219,14 +219,15 @@ cbar.set_label(
 
 
 ###################################################################
-# Simulation: TMI Data for a MVI Model
-# ------------------------------------
+# Simulation: Gradiometry Data for an MVI Model
+# ---------------------------------------------
 #
-# Here we predict magnetic data for an effective susceptibility model in the
-# case of remanent magnetization.
+# Here we predict magnetic gradiometry data for an effective susceptibility model
+# in the case of remanent magnetization.
 #
 
-# Define the forward modeling problem. Set modelType to 'vector'
+# Define the forward simulation. Set modelType to 'vector'. By setting the 'forward_only'
+# keyword argument to false, we avoid storing a large dense matrix.
 simulation = magnetics.simulation.MagneticIntegralSimulation(
     survey=survey, mesh=mesh, chiMap=model_map, actInd=ind_active,
     modelType='vector', forward_only=True

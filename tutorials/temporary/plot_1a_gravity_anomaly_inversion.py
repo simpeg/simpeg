@@ -10,8 +10,8 @@ this tutorial, we focus on the following:
     - Defining the survey from xyz formatted data
     - Generating a mesh based on survey geometry
     - Including surface topography
-    - Defining the inverse problem (data misfit, regularization, directives)
-    - Applying sensitivity weighting
+    - Defining the inverse problem (data misfit, regularization, optimization)
+    - Specifying directives for the inversion
     - Plotting the recovered model and data misfit
 
 Although we consider gravity anomaly data in this tutorial, the same approach
@@ -42,11 +42,12 @@ from SimPEG import (
 # sphinx_gallery_thumbnail_number = 2
 
 #############################################
-# Load Data and Plot
-# ------------------
+# Define File Names
+# -----------------
 #
-# File names for assets we are loading. Here we load the topography, observed
-# data and the true model define on the whole mesh.
+# File paths for assets we are loading. To set up the inversion, we require
+# topography and field observations. The true model defined on the whole mesh
+# is loaded to compare with the inversion result.
 #
 
 topo_filename = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\gravity_topo.txt'
@@ -58,14 +59,18 @@ model_filename = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\a
 # Load Data and Plot
 # ------------------
 #
-# Here we load and plot synthetic gravity anomaly data.
+# Here we load and plot synthetic gravity anomaly data. Topography is generally
+# defined as an (N, 3) array. Gravity data is generally defined with 4 columns:
+# x, y, z and data.
 #
 
-topo_filename = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\gravity_topo.txt'
-data_filename = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\gravity_data.obs'
+# Load topography
 xyz_topo = np.loadtxt(str(topo_filename))
+
+# Load field data
 dobs = np.loadtxt(str(data_filename))
 
+# Define receiver locations and observed data
 receiver_locations = dobs[:, 0:3]
 dobs = dobs[:, -1]
 
@@ -90,6 +95,13 @@ plt.show()
 #############################################
 # Assign Uncertainties
 # --------------------
+#
+# Inversion with SimPEG requires that we define uncertainties on our data. The
+# uncertainty represents our estimate of the standard deviation of the noise on
+# our data. For gravity inversion, a constant floor value is generall applied to
+# all data. For this tutorial, the uncertainty on each datum will be 1% of the
+# maximum observed gravity anomaly value.
+#
 
 maximum_anomaly = np.max(np.abs(dobs))
 
@@ -105,7 +117,8 @@ uncertainties = 0.01*maximum_anomaly*np.ones(np.shape(dobs))
 # define the receivers and the source field.
 #
 
-# Define the receivers
+# Define the receivers. The data consist of vertical gravity anomaly measurements.
+# The set of receivers must be defined as a list.
 receiver_list = gravity.receivers.point_receiver(
         receiver_locations, components="gz"
         )
@@ -122,7 +135,7 @@ survey = gravity.survey.GravitySurvey(source_field)
 # Defining the Data
 # -----------------
 #
-# Here is where we define the data that is inverted. The data is defined by
+# Here is where we define the data that are inverted. The data are defined by
 # the survey, the observation values and the uncertainties.
 #
 
@@ -147,7 +160,7 @@ mesh = TensorMesh([hx, hy, hz], 'CCN')
 # Starting/Reference Model and Mapping on Tensor Mesh
 # ---------------------------------------------------
 #
-# Here, we would create starting and/or reference models for the inversion as
+# Here, we create starting and/or reference models for the inversion as
 # well as the mapping from the model space to the active cells. Starting and
 # reference models can be a constant background value or contain a-priori
 # structures. Here, the background is 1e-6 g/cc.
@@ -173,10 +186,10 @@ starting_model = background_density*np.ones(nC)
 # Define the Physics
 # ------------------
 #
-# Here, we define the physics of the gravity problem.
+# Here, we define the physics of the gravity problem by using the simulation
+# class.
 # 
 
-# Define the problem. Define the cells below topography and the mapping
 simulation = gravity.simulation.GravityIntegralSimulation(
     survey=survey, mesh=mesh, rhoMap=model_map,
     actInd=ind_active, forward_only=False
@@ -184,28 +197,37 @@ simulation = gravity.simulation.GravityIntegralSimulation(
 
 
 #######################################################################
-# Define Inverse Problem
-# ----------------------
+# Define the Inverse Problem
+# --------------------------
 #
-# Here we define the inverse problem.
+# The inverse problem is defined by 3 things:
+#
+#     1) Data Misfit: a measure of how well our recovered model explains the field data
+#     2) Regularization: constraints placed on the recovered model and a priori information
+#     3) Optimization: the numerical approach used to solve the inverse problem
 #
 
-# Define the data misfit (Here we use weighted L2-norm)
+# Define the data misfit. Here the data misfit is the L2 norm of the weighted
+# residual between the observed data and the data predicted for a given model.
+# The weighting is defined by the reciprocal of the uncertainties.
 dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
 dmis.W = utils.sdiag(1/uncertainties)
 
-# Define the regularization (model objective function)
+# Define the regularization (model objective function).
 reg = regularization.Simple(
     mesh, indActive=ind_active, mapping=model_map,
     alpha_s=1, alpha_x=1, alpha_y=1, alpha_z=1
 )
 
-# Create model weights based on sensitivity matrix (sensitivity weighting)
+# Create model weights based on sensitivity matrix (sensitivity weighting). This is
+# done when inverting potential field data to ensure structures are placed at the
+# appropriate depth.
 wr = simulation.getJtJdiag(starting_model)**0.5
 wr = (wr/np.max(np.abs(wr)))
 reg.cell_weights = wr  # include in regularization
 
-# Define how the optimization problem is solved.
+# Define how the optimization problem is solved. Here we will use a projected
+# Gauss-Newton approach that employs the conjugate gradient solver.
 opt = optimization.ProjectedGNCG(
     maxIter=10, lower=-1., upper=1.,
     maxIterLS=20, maxIterCG=10, tolCG=1e-3
@@ -214,17 +236,44 @@ opt = optimization.ProjectedGNCG(
 # Here we define the inverse problem that is to be solved
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
-# Here we define any directive that are carried out during the inversion
+#######################################################################
+# Define Inversion Directives
+# ---------------------------
+#
+# Here we define any directiveas that are carried out during the inversion. This
+# includes the cooling schedule for the trade-off parameter (beta), stopping
+# criteria for the inversion and saving inversion results at each iteration.
+#
+
+# Defining a starting value for the trade-off parameter (beta) between the data
+# misfit and the regularization.
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1)
+
+# Defining the fractional decrease in beta and the number of Gauss-Newton solves
+# for each beta value.
 beta_schedule = directives.BetaSchedule(coolingFactor=5, coolingRate=1)
+
+# Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
+
+# Updating the preconditionner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner(update_every_iteration=False)
+
+# Setting a stopping criteria for the inversion.
 target_misfit = directives.TargetMisfit(chifact=1)
 
+# The directives are defined as a list.
 directives_list = [
         starting_beta, beta_schedule, save_iteration, update_jacobi, target_misfit
         ]
 
+#####################################################################
+# Running the Inversion
+# ---------------------
+#
+# To define the inversion object, we need to define the inversion problem and
+# the set of directives. We can then run the inversion.
+#
 
 # Here we combine the inverse problem and the set of directives
 inv = inversion.BaseInversion(inv_prob, directives_list)
@@ -241,7 +290,8 @@ shutil.rmtree(".\\sensitivity.zarr")
 # ---------------------------------------
 #
 
-# Load the true model and keep only active cells
+# Load the true model (was defined on the whole mesh) and extract only the
+# values on active cells.
 true_model = np.loadtxt(str(model_filename))
 true_model = true_model[ind_active]
 
@@ -289,12 +339,14 @@ cbar.set_label('$g/cm^3$',rotation=270, labelpad=15, size=12)
 plt.show()
 
 ###################################################################
-# Plotting Predicted Data and Misfit
-# ----------------------------------
+# Plotting Predicted Data and Normalized Misfit
+# ---------------------------------------------
 #
 
+# Predicted data with final recovered model
 dpred = inv_prob.dpred
 
+# Observed data | Predicted data | Normalized data misfit
 data_array = np.c_[dobs, dpred, (dobs-dpred)/uncertainties]
 
 fig = plt.figure(figsize=(17, 4))

@@ -7,7 +7,7 @@ Here we use the module *SimPEG.potential_fields.gravity* to predict gravity
 anomaly data for a synthetic density contrast model. The simulation is
 carried out on a tensor mesh. For this tutorial, we focus on the following:
 
-    - How to define gravity surveys
+    - How to create gravity surveys
     - How to predict gravity anomaly data for a density contrast model
     - How to include surface topography
     - The units of the density contrast model and resulting data
@@ -40,7 +40,7 @@ from SimPEG.potential_fields import gravity
 # -------------------
 #
 # Surface topography is defined as an (N, 3) numpy array. We create it here but
-# topography could also be loaded from a file.
+# the topography could also be loaded from a file.
 #
 
 [x_topo, y_topo] = np.meshgrid(np.linspace(-200, 200, 41), np.linspace(-200, 200, 41))
@@ -53,13 +53,13 @@ xyz_topo = np.c_[x_topo, y_topo, z_topo]
 # Defining the Survey
 # -------------------
 #
-# Here, we define survey that will be used for the simulation. Gravity
+# Here, we define survey that will be used for the forward simulation. Gravity
 # surveys are simple to create. The user only needs an (N, 3) array to define
-# the xyz locations of the observation locations and a list of field components
-# which are to be modeled.
+# the xyz locations of the observation locations, and a list of field components
+# which are to be measured.
 #
 
-# Define the observation locations as an (N, 3) numpy array or load them
+# Define the observation locations as an (N, 3) numpy array or load them.
 x = np.linspace(-80., 80., 17)
 y = np.linspace(-80., 80., 17)
 x, y = np.meshgrid(x, y)
@@ -68,9 +68,8 @@ fun_interp = LinearNDInterpolator(np.c_[x_topo, y_topo], z_topo)
 z = fun_interp(np.c_[x, y]) + 5.
 receiver_locations = np.c_[x, y, z]
 
-# Define the component(s) of the field we want to simulate. Here we will
-# simulation the vertical component of gravity. Gradiometry is covered in the
-# next tutorial. 
+# Define the component(s) of the field we want to simulate as strings within
+# a list. Here we simulate only the vertical component of gravity anomaly.
 components = ["gz"]
 
 # Use the observation locations and components to define the receivers. To
@@ -116,18 +115,19 @@ background_density = 0.
 block_density = -0.2
 sphere_density = 0.2
 
-# Find the indecies of the active cells in forward model (ones below surface)
+# Find the indecies for the active mesh cells (e.g. cells below surface)
 ind_active = surface2ind_topo(mesh, xyz_topo)
 
-# Define mapping from model to active cells
+# Define mapping from model to active cells. The model consists of a value for
+# each cell below the Earth's surface.
 nC = int(ind_active.sum())
-model_map = maps.IdentityMap(nP=nC)  # model consists of a value for each cell
+model_map = maps.IdentityMap(nP=nC)
 
-# Define model
+# Define model. Models in SimPEG are vector arrays.
 model = background_density*np.ones(nC)
 
-# You could find the indicies of cells within the model and change their value
-# to add structures
+# You could find the indicies of specific cells within the model and change their
+# value to add structures.
 ind_block = (
     (mesh.gridCC[ind_active, 0] > -50.) & (mesh.gridCC[ind_active, 0] < -20.) &
     (mesh.gridCC[ind_active, 1] > -15.) & (mesh.gridCC[ind_active, 1] < 15.) &
@@ -135,7 +135,7 @@ ind_block = (
 )
 model[ind_block] = block_density
 
-# You can use SimPEG utilities to add structures to the model more concisely
+# You can also use SimPEG utilities to add structures to the model more concisely
 ind_sphere = ModelBuilder.getIndicesSphere(
     np.r_[35., 0., -40.], 15., mesh.gridCC
 )
@@ -174,7 +174,8 @@ plt.show()
 # formulation.
 # 
 
-# Define the forward simulation
+# Define the forward simulation. By setting the 'forward_only' keyword argument
+# to false, we avoid storing a large dense matrix.
 simulation = gravity.simulation.GravityIntegralSimulation(
     survey=survey, mesh=mesh, rhoMap=model_map,
     actInd=ind_active, forward_only=True

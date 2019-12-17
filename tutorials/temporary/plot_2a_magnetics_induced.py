@@ -69,9 +69,8 @@ fun_interp = LinearNDInterpolator(np.c_[x_topo, y_topo], z_topo)
 z = fun_interp(np.c_[x, y]) + 10  # Flight height 10 m above surface.
 receiver_locations = np.c_[x, y, z]
 
-# Define the component(s) of the field we want to simulate as a list. Here we will
-# simulation total magnetic intensity data. Different components can be used
-# in the case of gradiometry. 
+# Define the component(s) of the field we want to simulate as a list of strings.
+# Here we simulation total magnetic intensity data.
 components = ["tmi"]
 
 # Use the observation locations and components to define the receivers. To
@@ -100,7 +99,7 @@ survey = magnetics.survey.MagneticSurvey(source_field)
 # Defining a Tensor Mesh
 # ----------------------
 #
-# Here, we create the tensor mesh that will be used for our simulation.
+# Here, we create the tensor mesh that will be used for the forward simulation.
 #
 
 dh = 5.
@@ -130,7 +129,7 @@ ind_active = surface2ind_topo(mesh, xyz_topo)
 nC = int(ind_active.sum())
 model_map = maps.IdentityMap(nP=nC)  # model is a vlue for each active cell
 
-# Define model
+# Define model. Models in SimPEG are vector arrays
 model = background_susceptibility*np.ones(ind_active.sum())
 ind_sphere = ModelBuilder.getIndicesSphere(
     np.r_[0., 0., -45.], 15., mesh.gridCC
@@ -167,10 +166,11 @@ plt.show()
 # -----------------------------------------------
 #
 # Here we demonstrate how to predict magnetic data for a magnetic
-# susceptibility model.
+# susceptibility model using the integral formulation.
 #
 
-# Define the forward simluation
+# Define the forward simluation. By setting the 'forward_only' keyword argument
+# to false, we avoid storing a large dense matrix.
 simulation = magnetics.simulation.MagneticIntegralSimulation(
     survey=survey, mesh=mesh,
     modelType='susceptibility', chiMap=model_map,
