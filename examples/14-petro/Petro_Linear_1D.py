@@ -13,7 +13,7 @@ We explore it through the UBC linear example.
 #####################
 
 from SimPEG import (
-    Mesh, Problem, Survey, DataMisfit,
+    Mesh, Problem, Survey, DataMisfit, Maps,
     Regularization, Optimization, InvProblem,
     Directives, Inversion, Utils)
 import numpy as np
@@ -99,8 +99,9 @@ clf.fit(mpetro.reshape(-1, 1))
 minit = m0
 
 # Petrophyically constrained regularization
+idenMap = Maps.IdentityMap(nP=mesh.nC)
 reg = Regularization.MakeSimplePetroRegularization(
-    GMmref=clf, GMmodel=clf, mesh=mesh, mref=m0, maplist=None,
+    GMmref=clf, GMmodel=clf, mesh=mesh, mref=m0, maplist=[idenMap],
     cell_weights_list=[np.ones(mesh.nC)]
 )
 
@@ -137,7 +138,10 @@ gamma_petro = np.ones(clf.n_components) * 1e8
 #membership = np.zeros_like(mtrue, dtype='int')
 membership = clf.predict(mtrue[:, np.newaxis])
 petrodir = Directives.GaussianMixtureUpdateModel(
-    verbose=False)  # , fixed_membership=membership)
+    alphadir=1,
+    kappa=np.c_[1e8,0,0].T,
+    nu=1e8,
+    verbose=True)  # , fixed_membership=membership)
 addmref = Directives.AddMrefInSmooth(verbose=True, wait_till_stable=True)
 invProb.reg.gamma = gamma_petro
 

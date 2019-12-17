@@ -112,7 +112,7 @@ def order_cluster(GMmodel, GMref, outputindex=False):
     indx = []
 
     for i in range(GMmodel.n_components):
-        dis = GMmodel.predict_proba(GMref.means_[idx_ref].reshape([-1]+[d for d in GMref.means_.shape[1:]]))
+        dis = GMmodel._estimate_log_prob(GMref.means_[idx_ref].reshape([-1]+[d for d in GMref.means_.shape[1:]]))
         id_dis = dis.argmax(axis=0)[i]
         #_, id_dis = ComputeDistances(mkvc(GMref.means_[i], numDims=2),
         #                             mkvc(GMref.means_[idx_ref], numDims=2))
