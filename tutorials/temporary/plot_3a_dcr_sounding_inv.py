@@ -64,7 +64,7 @@ dobs = dobs[:, -1]
 # Define survey
 unique_tx, k = np.unique(np.c_[a_electrodes, b_electrodes], axis=0, return_index=True)
 n_tx = len(k)
-k=np.sort(k)
+k = np.sort(k)
 k = np.r_[k, len(k)+1]
 
 source_list = []
@@ -116,7 +116,7 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 # Here, we define the layer thicknesses for our 1D simulation. To do this, we use
 # the TensorMesh class.
 
-layer_thicknesses = 5.*np.ones((80))
+layer_thicknesses = 10.*np.ones((40))
 mesh = TensorMesh([layer_thicknesses], '0')
 
 print(mesh)

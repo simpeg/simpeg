@@ -4,14 +4,15 @@ DC Resistivity Sounding
 =======================
 
 Here we use the module *SimPEG.electromangetics.static.resistivity* to predict
-DC resistivity data. In this tutorial, we focus on the following:
+sounding data over a 1D layered Earth. In this tutorial, we focus on the following:
 
     - How to define sources and receivers
     - How to define the survey
     - How to predict voltage or apparent resistivity data
     - The units of the model and resulting data
+    - 1D simulation for DC resistivity
 
-For this tutorial, we will simulation sounding data over a layered Earth using
+For this tutorial, we will simulate sounding data over a layered Earth using
 a Wenner array. The end product is a sounding curve which tells us how the
 electrical resistivity changes with depth.
     
@@ -42,19 +43,13 @@ from SimPEG.electromagnetics.static.utils.StaticUtils import plot_layer
 # -------------
 #
 # Here we define the sources and receivers.
-# For the source, we must define the AB electrode locations. For the receivers
-# we must define the MN electrode locations. When creating DCIP surveys, it
-# is important for the electrode locations NOT to lie within air cells. Here
-# we shift the vertical locations of the electrodes down by a constant. The
-# user may choose to do something more complex.
+# For pole and dipole sources, we must define the A or AB electrode locations,
+# respectively. For the pole and dipoled receivers, we must define the M or
+# MN electrode locations, respectively.
 #
 
-# Define all electrode locations (Src and Rx) as an (N, 2) numpy array
-
-# Can't have electrodes in same location
-
 #electrode_separations = np.logspace(1., 2.6, 27)  # Number of electrode locations along EW profile
-electrode_separations = np.linspace(10, 400, 27)  # Number of electrode locations along EW profile
+electrode_separations = np.linspace(10, 400, 40)  # Number of electrode locations along EW profile
 
 source_list = []  # create empty array for sources to live
 

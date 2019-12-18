@@ -36,7 +36,7 @@ from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
 from SimPEG import (maps, data, data_misfit, regularization,
-    optimization, inverse_problem, inversion, directives
+    optimization, inverse_problem, inversion, directives, utils
     )
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
@@ -142,7 +142,8 @@ plt.show()
 #
 
 uncertainties_dc = 0.05*np.abs(dobs_dc)
-uncertainties_ip = 0.05*np.abs(dobs_ip)
+#uncertainties_ip = 0.025*np.max(np.abs(dobs_ip))*np.ones(len(dobs_ip))
+uncertainties_ip = 1e-8*np.ones(len(dobs_ip))
 
 dc_data.noise_floor = uncertainties_dc
 ip_data.noise_floor = uncertainties_ip
@@ -156,8 +157,8 @@ ip_data.noise_floor = uncertainties_ip
 #
 
 dh = 10.                                                    # base cell width
-dom_width_x = 4000.                                         # domain width x                                        # domain width y
-dom_width_z = 2000.                                         # domain width z
+dom_width_x = 2400.                                         # domain width x                                        # domain width y
+dom_width_z = 1200.                                         # domain width z
 nbcx = 2**int(np.round(np.log(dom_width_x/dh)/np.log(2.)))  # num. base cells x
 nbcz = 2**int(np.round(np.log(dom_width_z/dh)/np.log(2.)))  # num. base cells z
 
@@ -209,7 +210,7 @@ nC = int(ind_active.sum())
 conductivity_map = active_map*maps.ExpMap()
 
 # Define model
-starting_model = background_conductivity*np.ones(nC)
+starting_conductivity_model = background_conductivity*np.ones(nC)
 
 ##############################################
 # Define the Physics
@@ -231,45 +232,51 @@ dc_simulation = dc.simulation_2d.Problem2D_N(
 #
 
 # Define the data misfit (Here we use weighted L2-norm)
-dmis = data_misfit.L2DataMisfit(simulation=dc_simulation, data=dc_data)
-dmis.W = 1./uncertainties_dc
+dc_data_misfit = data_misfit.L2DataMisfit(data=dc_data, simulation=dc_simulation)
+dc_data_misfit.W = utils.sdiag(1./uncertainties_dc)
 
 # Define the regularization (model objective function)
-reg = regularization.Simple(
-    mesh, indActive=ind_active, mref=starting_model,# mapping=exp_map,
-    alpha_s=1, alpha_x=1, alpha_y=1
-)
+dc_regularization = regularization.Simple(
+        mesh, indActive=ind_active, mref=starting_conductivity_model,
+        alpha_s=1, alpha_x=1, alpha_y=1
+        )
 
 # Define how the optimization problem is solved.
-opt = optimization.ProjectedGNCG(
-    maxIter=5, lower=-10., upper=2.,
-    maxIterLS=20, maxIterCG=10, tolCG=1e-3
-)
+dc_optimization = optimization.ProjectedGNCG(
+        maxIter=5, lower=-10., upper=2.,
+        maxIterLS=20, maxIterCG=10, tolCG=1e-3
+        )
 
 # Here we define the inverse problem that is to be solved
-inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
+dc_inverse_problem = inverse_problem.BaseInvProblem(
+        dc_data_misfit, dc_regularization, dc_optimization
+        )
 
 # Here we define any directive that are carried out during the inversion
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
-beta_schedule = directives.BetaSchedule(coolingFactor=5., coolingRate=2)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
+beta_schedule = directives.BetaSchedule(coolingFactor=5, coolingRate=2)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 update_Jacobi = directives.UpdatePreconditioner()
 update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold=1e-3)
 target_misfit = directives.TargetMisfit(chifact=1.)
 
 directives_list = [
-        starting_beta, beta_schedule, save_iteration, update_Jacobi,
-        update_sensitivity_weighting, target_misfit
+        starting_beta, beta_schedule, save_iteration,
+        update_sensitivity_weighting,
+#        update_Jacobi,  # Don't do this!!!
+        target_misfit
         ]
 
 
 # Here we combine the inverse problem and the set of directives
-inv = inversion.BaseInversion(inv_prob, directiveList=directives_list)
+dc_inversion = inversion.BaseInversion(
+        dc_inverse_problem, directiveList=directives_list
+        )
 
 
 
 # Run inversion
-recovered_model = inv.run(starting_model)
+recovered_conductivity_model = dc_inversion.run(starting_conductivity_model)
 
 
 ############################################################
@@ -289,7 +296,7 @@ plotting_map = maps.ActiveCells(mesh, ind_active, np.nan)
 ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
 mesh.plotImage(
     plotting_map*true_conductivity_model, ax=ax1, grid=False,
-    clim=(np.min(true_conductivity_model), np.max(true_conductivity_model))
+    clim=(np.min(true_conductivity_model), np.max(true_conductivity_model)), pcolorOpts={'cmap': 'jet'}
 )
 ax1.set_title('True model at y = 0 m')
 
@@ -313,13 +320,13 @@ fig = plt.figure(figsize=(9, 4))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
 mesh.plotImage(
-    plotting_map*recovered_model, normal='Y', ax=ax1, grid=False,
-    clim=(np.min(recovered_model), np.max(recovered_model)), pcolorOpts={'cmap': 'jet'}
+    plotting_map*recovered_conductivity_model, normal='Y', ax=ax1, grid=False,
+    clim=(np.min(true_conductivity_model), np.max(true_conductivity_model)), pcolorOpts={'cmap': 'jet'}
 )
 ax1.set_title('Recovered model at y = 0 m')
 
 ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
-norm = mpl.colors.Normalize(vmin=np.min(recovered_model), vmax=np.max(recovered_model))
+norm = mpl.colors.Normalize(vmin=np.min(true_conductivity_model), vmax=np.max(true_conductivity_model))
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='10^%.1f'
     )
@@ -332,7 +339,7 @@ plt.show()
 # ----------------------------------
 #
 
-dpred_dc = inv_prob.dpred
+dpred_dc = dc_inverse_problem.dpred
 
 data_array = np.c_[dobs_dc, dpred_dc, (dobs_dc-dpred_dc)/uncertainties_dc]
 
@@ -358,5 +365,203 @@ for ii in range(0, 3):
     ax1[ii].set_title(plot_title[ii])
 
 plt.show()
+
+
+
+
+########################################################
+# Starting/Reference Model and Mapping on OcTree Mesh
+# ---------------------------------------------------
+#
+# Here, we would create starting and/or reference models for the inversion as
+# well as the mapping from the model space to the active cells. Starting and
+# reference models can be a constant background value or contain a-priori
+# structures. Here, the background is 1e-4 SI.
+#
+
+# Define conductivity model in S/m (or resistivity model in Ohm m)
+air_chargeability = 0.
+background_chargeability = 1e-6
+
+
+#ind_active = surface2ind_topo(mesh, topo_xyz)
+ind_active = np.ones(mesh.nC, dtype='bool')
+
+active_map = maps.InjectActiveCells(mesh, ind_active, air_chargeability)
+nC = int(ind_active.sum())
+
+nC = int(ind_active.sum())
+chargeability_map = maps.IdentityMap(nP=nC)
+
+# Define model
+starting_chargeability_model = background_chargeability*np.ones(nC)
+
+#true_chargeability_model = np.loadtxt(str(true_chargeability_filename))
+#starting_chargeability_model = 0.5*true_chargeability_model[ind_active]
+
+##############################################
+# Define the Physics
+# ------------------
+#
+# Here, we define the physics of the gravity problem.
+# 
+
+# Define the problem. Define the cells below topography and the mapping
+ip_simulation = ip.simulation_2d.Problem2D_N(
+        mesh, survey=ip_survey, etaMap=chargeability_map,
+        sigma=conductivity_map*recovered_conductivity_model, Solver=Solver
+        )
+
+#####################################################
+# Define Inverse Problem
+# ----------------------
+#
+# Here we define the inverse problem.
+#
+
+# Define the data misfit (Here we use weighted L2-norm)
+ip_data_misfit = data_misfit.L2DataMisfit(data=ip_data, simulation=ip_simulation)
+ip_data_misfit.W = utils.sdiag(1./uncertainties_ip)
+
+# Define the regularization (model objective function)
+ip_regularization = regularization.Simple(
+    mesh, indActive=ind_active, mapping=chargeability_map,
+#    mref=starting_chargeability_model,
+    alpha_s=1, alpha_x=1, alpha_y=1
+    )
+
+# Define how the optimization problem is solved.
+ip_optimization = optimization.ProjectedGNCG(
+    maxIter=10, lower=0., upper=1.,
+    maxIterLS=20, maxIterCG=10, tolCG=1e-3
+    )
+
+# Here we define the inverse problem that is to be solved
+ip_inverse_problem = inverse_problem.BaseInvProblem(
+        ip_data_misfit, ip_regularization, ip_optimization
+        )
+
+# Here we define any directive that are carried out during the inversion
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
+#update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold=1e-3)
+target_misfit = directives.TargetMisfit(chifact=1.)
+
+directives_list = [
+        starting_beta, beta_schedule, save_iteration,
+#        update_sensitivity_weighting,
+        target_misfit
+        ]
+
+
+# Here we combine the inverse problem and the set of directives
+ip_inversion = inversion.BaseInversion(
+        ip_inverse_problem, directiveList=directives_list
+        )
+
+
+
+# Run inversion
+recovered_chargeability_model = ip_inversion.run(starting_chargeability_model)
+
+
+############################################################
+# Plotting True Model and Recovered Model
+# ---------------------------------------
+#
+
+true_chargeability_model = np.loadtxt(str(true_chargeability_filename))
+true_chargeability_model = true_chargeability_model[ind_active]
+
+
+# Plot True Model
+fig = plt.figure(figsize=(9, 4))
+
+plotting_map = maps.ActiveCells(mesh, ind_active, np.nan)
+
+ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
+mesh.plotImage(
+    plotting_map*true_chargeability_model, ax=ax1, grid=False,
+    clim=(np.min(true_chargeability_model), np.max(true_chargeability_model))
+)
+ax1.set_title('True model at y = 0 m')
+
+ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
+norm = mpl.colors.Normalize(
+        vmin=np.min(true_chargeability_model), vmax=np.max(true_chargeability_model)
+        )
+cbar = mpl.colorbar.ColorbarBase(
+    ax2, norm=norm, orientation='vertical'
+)
+
+cbar.set_label(
+    'Intrinsic Chargeability',
+    rotation=270, labelpad=15, size=12
+)
+
+plt.show()
+
+# Plot Recovered Model
+fig = plt.figure(figsize=(9, 4))
+
+ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
+mesh.plotImage(
+    plotting_map*recovered_chargeability_model, normal='Y', ax=ax1, grid=False,
+    clim=(np.min(recovered_chargeability_model), np.max(recovered_chargeability_model))
+)
+ax1.set_title('Recovered model at y = 0 m')
+
+ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
+norm = mpl.colors.Normalize(
+        vmin=np.min(recovered_chargeability_model), vmax=np.max(recovered_conductivity_model)
+        )
+cbar = mpl.colorbar.ColorbarBase(
+    ax2, norm=norm, orientation='vertical'
+    )
+cbar.set_label('Intrinsic Chargeability',rotation=270, labelpad=15, size=12)
+
+plt.show()
+
+###################################################################
+# Plotting Predicted Data and Misfit
+# ----------------------------------
+#
+
+dpred_ip = ip_inverse_problem.dpred
+
+data_array = np.c_[dobs_ip, dpred_ip, (dobs_ip-dpred_ip)/uncertainties_ip]
+#data_array = np.c_[dobs_ip, ip_simulation.dpred(true_chargeability_model), (dobs_ip-dpred_ip)/uncertainties_ip]
+
+fig = plt.figure(figsize=(17, 4))
+plot_title=['Observed', 'Predicted', 'Normalized Misfit']
+plot_units=['mV/V', 'mV/V', '']
+plot_type=['appChargeability', 'appChargeability', 'volt']
+scale = ['linear', 'linear', 'linear']
+normalization = [dobs_dc, dobs_dc, 1.]
+
+ax1 = 3*[None]
+ax2 = 3*[None]
+norm = 3*[None]
+cbar = 3*[None]
+cplot = 3*[None]
+v_lim = [np.max(np.abs(dobs_ip)), np.max(np.abs(dobs_ip)), 2]
+for ii in range(0, 3):
+    
+    ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.05, 0.25, 0.9])
+    cplot[ii] = plot_pseudoSection(
+            ip_data, dobs=data_array[:, ii], ax=ax1[ii], survey_type='dipole-dipole',
+            data_type=plot_type[ii], space_type='half-space', normalization=normalization[ii]
+            )
+    ax1[ii].set_title(plot_title[ii])
+
+plt.show()
+
+
+
+
+
+
+
 
 

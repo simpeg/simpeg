@@ -100,9 +100,9 @@ dc_survey = generate_dcip_survey_line(
 # resistivity and IP data.
 #
 
-dh = 10.                                                     # base cell width
-dom_width_x = 4000.                                         # domain width x
-dom_width_z = 2000.                                         # domain width z
+dh = 10.                                                    # base cell width
+dom_width_x = 2400.                                         # domain width x
+dom_width_z = 1200.                                         # domain width z
 nbcx = 2**int(np.round(np.log(dom_width_x/dh)/np.log(2.)))  # num. base cells x
 nbcz = 2**int(np.round(np.log(dom_width_z/dh)/np.log(2.)))  # num. base cells z
 
@@ -348,7 +348,7 @@ plt.show()
 
 ip_survey.getABMN_locations()
 
-ip_noise = 0.05*dpred_ip*np.random.rand(len(dpred_ip))
+ip_noise = 1e-8*np.random.rand(len(dpred_ip))
 
 data_array = np.c_[
     ip_survey.a_locations,

@@ -64,7 +64,7 @@ dobs = dobs[:, -1]
 # Define survey
 unique_tx, k = np.unique(np.c_[a_electrodes, b_electrodes], axis=0, return_index=True)
 n_tx = len(k)
-k=np.sort(k)
+k = np.sort(k)
 k = np.r_[k, len(k)+1]
 
 source_list = []
@@ -116,9 +116,9 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 # Here, we define the layer thicknesses for our 1D simulation. To do this, we use
 # the TensorMesh class.
 
-layer_thicknesses = np.r_[50., 200., 200]
-resistivities = np.r_[1e3, 1e4, 1e2]
 
+resistivities = np.r_[1e3, 1e3, 1e3]
+layer_thicknesses = np.r_[50., 50., 50.]
 
 mesh = TensorMesh([layer_thicknesses], '0')
 
@@ -169,14 +169,17 @@ dmis.W = 1./uncertainties
 
 
 
+
+
+
 mesh_rho = TensorMesh([mesh.hx.size])
 reg_rho = regularization.Simple(
-    mesh_rho, alpha_s=1., alpha_x=1.,
+    mesh_rho, alpha_s=1., alpha_x=0.0001,
     mapping=wire_map.rho
 )
 mesh_t = TensorMesh([mesh.hx.size-1])
 reg_t = regularization.Simple(
-    mesh_t, alpha_s=1., alpha_x=1.,
+    mesh_t, alpha_s=1., alpha_x=0.01,
     mapping=wire_map.t    
 )
 reg = reg_rho + reg_t
@@ -208,15 +211,16 @@ MOPT = []
 
 recovered_model = inv.run(starting_model)
 
-#from SimPEG.electromagnetics.static.utils.StaticUtils import plot_layer
 fig = plt.figure(figsize=(5, 5))
+plotting_mesh = TensorMesh([np.r_[layer_map*recovered_model, layer_thicknesses[-1]]], '0')
+
 
 true_model = np.loadtxt(str(model_filename))
 true_layers = np.loadtxt(str(mesh_filename))
 true_layers = TensorMesh([true_layers], '0')
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-plot_layer(resistivity_map*recovered_model, mesh, ax=ax1, depth_axis=False)
+plot_layer(resistivity_map*recovered_model, plotting_mesh, ax=ax1, depth_axis=False)
 plot_layer(true_model, true_layers, ax=ax1, depth_axis=False, color='r')
 
 
