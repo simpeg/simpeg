@@ -47,7 +47,7 @@ try:
 except ImportError:
     from SimPEG import SolverLU as Solver
 
-# sphinx_gallery_thumbnail_number = 4
+# sphinx_gallery_thumbnail_number = 2
 
 
 #############################################
@@ -143,7 +143,7 @@ plt.show()
 
 uncertainties_dc = 0.05*np.abs(dobs_dc)
 #uncertainties_ip = 0.025*np.max(np.abs(dobs_ip))*np.ones(len(dobs_ip))
-uncertainties_ip = 1e-8*np.ones(len(dobs_ip))
+uncertainties_ip = 0.01*np.abs(dobs_dc)
 
 dc_data.noise_floor = uncertainties_dc
 ip_data.noise_floor = uncertainties_ip
@@ -514,7 +514,7 @@ ax1.set_title('Recovered model at y = 0 m')
 
 ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(
-        vmin=np.min(recovered_chargeability_model), vmax=np.max(recovered_conductivity_model)
+        vmin=np.min(recovered_chargeability_model), vmax=np.max(recovered_chargeability_model)
         )
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical'

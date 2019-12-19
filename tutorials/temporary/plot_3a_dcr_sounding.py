@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-DC Resistivity Sounding
-=======================
+DC Resistivity: 1D Sounding
+===========================
 
 Here we use the module *SimPEG.electromangetics.static.resistivity* to predict
 sounding data over a 1D layered Earth. In this tutorial, we focus on the following:
 
-    - How to define sources and receivers
+    - General definition of sources and receivers
     - How to define the survey
     - How to predict voltage or apparent resistivity data
     - The units of the model and resulting data
@@ -42,39 +42,43 @@ from SimPEG.electromagnetics.static.utils.StaticUtils import plot_layer
 # Create Survey
 # -------------
 #
-# Here we define the sources and receivers.
+# Here we demonstrate a general way to define sources and receivers.
 # For pole and dipole sources, we must define the A or AB electrode locations,
-# respectively. For the pole and dipoled receivers, we must define the M or
+# respectively. For the pole and dipole receivers, we must define the M or
 # MN electrode locations, respectively.
 #
 
-#electrode_separations = np.logspace(1., 2.6, 27)  # Number of electrode locations along EW profile
-electrode_separations = np.linspace(10, 400, 40)  # Number of electrode locations along EW profile
+a_min = 20.
+a_max = 500.
+n_stations = 25
+
+# Define the 'a' spacing for Wenner array measurements for each reading
+electrode_separations = np.linspace(a_min, a_max, n_stations)
 
 source_list = []  # create empty array for sources to live
 
 for ii in range(0, len(electrode_separations)):
     
+    # Extract separation parameter for sources and receivers
     a = electrode_separations[ii]
     
-    # AB electrode locations for source
-    a_location = np.r_[-1.5*a, 0., 0.]
-    b_location = np.r_[1.5*a, 0., 0.]
+    # AB electrode locations for source. Each is a (1, 3) numpy array
+    A_location = np.r_[-1.5*a, 0., 0.]
+    B_location = np.r_[1.5*a, 0., 0.]
 
-    # MN electrode locations for receivers
-    m_location = np.c_[-0.5*a, 0., 0.]
-    n_location = np.c_[0.5*a, 0., 0.]
+    # MN electrode locations for receivers. Each is an (N, 3) numpy array
+    M_location = np.r_[-0.5*a, 0., 0.]
+    N_location = np.r_[0.5*a, 0., 0.]
 
-    # Create receivers list. Define as pole or dipole. Can choose to
-    # measured potential or components of electric field.
+    # Create receivers list. Define as pole or dipole.
     receiver_list = dc.receivers.Dipole(
-            m_location, n_location
+            M_location, N_location
             )
     receiver_list = [receiver_list]
 
     # Define the source properties and associated receivers
     source_list.append(
-            dc.sources.Dipole(receiver_list, a_location, b_location)
+            dc.sources.Dipole(receiver_list, A_location, B_location)
             )
 
 # Define survey
@@ -86,39 +90,41 @@ survey = dc.Survey(source_list)
 # --------------------------------------------
 #
 # Here, we define the layer thicknesses for our 1D simulation. To do this, we use
-# the TensorMesh class. The deepest cell is just for show. That unit will extend
-# to infinity.
+# the TensorMesh class. The thickness of the n-th layer is just for show. 
+# We assume the bottom layer extends to infinity.
+#
 
-layer_thicknesses = np.r_[100., 50., 100.]
+layer_thicknesses = np.r_[100., 100., 300.]
 mesh = TensorMesh([layer_thicknesses])
 
 print(mesh)
 
 ###############################################################
-# Create Conductivity Model and Mapping for OcTree Mesh
-# -----------------------------------------------------
+# Create Resistivity Model and Mapping
+# ------------------------------------
 #
-# Here we define the resistivity model that will be used to predict DC data.
+# Here we define the resistivity model that will be used to predict DC sounding data.
 # For each layer in our 1D Earth, we must provide a resistivity value. For a
 # 1D simulation, we assume the bottom layer extends to infinity.
 #
 
-# Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
-model = np.r_[1e3, 1e4, 1e2]
+# Define model. A resistivity (Ohm meters) for each layer.
+model = np.r_[1e3, 4e3, 2e2]
 
-# Define mapping from model to active cells.
+# Define mapping from model to active cells. Here, all layers are use in the
+# forward simulation.
 model_map = maps.IdentityMap(mesh)
 
+# Plot the 1D model
 plot_layer(model_map*model, mesh)
 
-
 #######################################################################
-# Predict DC Resistivity Data
-# ---------------------------
+# Define the Forward Simulation and Predict DC Resistivity Data
+# -------------------------------------------------------------
 #
-# Here we predict DC resistivity data. If the keyword argument *sigmaMap* is
-# defined, the simulation will expect a conductivity model. If the keyword
-# argument *rhoMap* is defined, the simulation will expect a resistivity model.
+# Here we predict DC resistivity data. If the keyword argument *rhoMap* is
+# defined, the simulation will expect a resistivity model. If the keyword
+# argument *sigmaMap* is defined, the simulation will expect a conductivity model. 
 #
 
 simulation = dc.simulation_1d.DCSimulation_1D(
@@ -126,14 +132,15 @@ simulation = dc.simulation_1d.DCSimulation_1D(
         data_type="apparent_resistivity"
         )
 
+# Predict data for a given model
 dpred = simulation.dpred(model)
 
 # Plot apparent resistivities on sounding curve
 fig = plt.figure(figsize=(11, 5))
-
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-ax1.semilogy(electrode_separations, dpred)
-
+ax1.semilogy(electrode_separations, dpred, 'b')
+ax1.set_xlabel("Wenner Array Separation Parameter (m)")
+ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
 plt.show()
 
 

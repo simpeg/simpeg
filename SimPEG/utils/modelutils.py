@@ -1,7 +1,7 @@
 from .matutils import mkvc, ndgrid, uniqueRows
 import numpy as np
 from scipy.interpolate import griddata, interp1d
-from scipy.interpolate import NearestNDInterpolator, LinearNDInterpolator
+from scipy.interpolate import NearestNDInterpolator, LinearNDInterpolator, interp1d
 from scipy.spatial import cKDTree
 import scipy.sparse as sp
 
@@ -113,7 +113,7 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.n
                 elif method == "linear":
                     # Check if Topo points are inside of the mesh
                     xmin, xmax = mesh.x0[0], mesh.hx.sum()+mesh.x0[0]
-                    xminTopo, xmaxTopo = topo[:, 0].min(), topo[:, 1].min()
+                    xminTopo, xmaxTopo = topo[:, 0].min(), topo[:, 0].max()
                     ymin, ymax = mesh.x0[1], mesh.hy.sum()+mesh.x0[1]
                     yminTopo, ymaxTopo = topo[:, 1].min(), topo[:, 1].max()
                     if (xminTopo > xmin) or (xmaxTopo < xmax) or (yminTopo > ymin) or (ymaxTopo < ymax):
@@ -143,8 +143,50 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.n
                 raise NotImplementedError('gridLoc=N is not implemented for TREE mesh')
             else:
                 raise Exception("gridLoc must be either CC or N")
+        
+        elif mesh.dim == 2:
+
+            if gridLoc == "CC":
+                # Compute unique X location
+                uniqX = np.unique(mesh.gridCC[:, 0], return_index=True, return_inverse=True)
+
+                if method == "nearest":
+                    Ftopo = interp1d(topo[:, 0], topo[:, -1], kind='nearest')
+                elif method == "linear":
+                    # Check if Topo points are inside of the mesh
+                    xmin, xmax = mesh.x0[0], mesh.hx.sum()+mesh.x0[0]
+                    xminTopo, xmaxTopo = topo[:, 0].min(), topo[:, 0].max()
+                    if (xminTopo > xmin) or (xmaxTopo < xmax):
+                        # If not, use nearest neihbor to extrapolate them
+                        Ftopo = interp1d(topo[:, 0], topo[:, -1], kind='nearest')
+                        xinds =  np.logical_or(
+                            xminTopo < uniqX[0][:, 0], xmaxTopo > uniqX[0][:, 0]
+                            )
+                        # yinds =  np.logical_or(
+                        #     yminTopo < uniqXY[0][:, 1], ymaxTopo > uniqXY[0][:, 1]
+                        #     )
+                        # inds = np.logical_or(xinds, yinds)
+                        XOut = uniqX[0][xinds, :]
+                        topoOut = Ftopo(XOut)
+                        topo = np.vstack((topo, np.c_[XOut, topoOut]))
+                    Ftopo = interp1d(topo[:, 0], topo[:, -1], kind='nearest')
+                else:
+                    raise NotImplementedError('Only nearest and linear method are available for TREE mesh')
+                actind = np.zeros(mesh.nC, dtype='bool')
+                npts = uniqX[0].shape[0]
+                for i in range(npts):
+                    z = Ftopo(uniqX[0][i])
+                    inds = uniqX[2] == i
+                    actind[inds] = mesh.gridCC[inds, 1] < z
+            # Need to implement
+            elif gridLoc == "N":
+                raise NotImplementedError('gridLoc=N is not implemented for TREE mesh')
+            else:
+                raise Exception("gridLoc must be either CC or N")
+
+
         else:
-            raise NotImplementedError('surface2ind_topo not implemented for Quadtree or 1D mesh')
+            raise NotImplementedError('surface2ind_topo not implemented for 1D mesh')
 
     return mkvc(actind)
 

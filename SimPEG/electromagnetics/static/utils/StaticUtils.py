@@ -4,7 +4,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import numpy as np
-from scipy.interpolate import LinearNDInterpolator
+from scipy.interpolate import LinearNDInterpolator, interp1d
 from numpy import matlib
 import discretize
 import matplotlib.pyplot as plt
@@ -740,7 +740,7 @@ def generate_dcip_survey_line(survey_type, data_type, endl, topo, ds, dh, n, dim
                 DP1 = np.c_[DP1, topo*np.ones((nstn))]
                 DP2 = np.c_[DP2, topo*np.ones((nstn))]
             else:
-                fun_interp = LinearNDInterpolator(topo[:, 0:2], topo[:, -1])
+                fun_interp = interp1d(topo[:, 0], topo[:, -1])
                 DP1 = np.c_[DP1, fun_interp(DP1)]
                 DP2 = np.c_[DP2, fun_interp(DP2)]
 

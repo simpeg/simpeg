@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-DC Resistivity Sounding
-=======================
+DC Resistivity: 1D Resistivity Inversion
+========================================
 
-Here we use the module *SimPEG.electromangetics.static.resistivity* to predict
-DC resistivity data. In this tutorial, we focus on the following:
+Here we use the module *SimPEG.electromangetics.static.resistivity* to invert
+DC resistivity sounding data and recover a 1D electrical resistivity model.
+In this tutorial, we focus on the following:
 
-    - How to define sources and receivers
+    - How to define sources and receivers from a survey file
     - How to define the survey
-    - How to predict voltage or apparent resistivity data
-    - The units of the model and resulting data
+    - 1D inversion of DC resistivity data
 
-For this tutorial, we will simulation sounding data over a layered Earth using
-a Wenner array. The end product is a sounding curve which tells us how the
-electrical resistivity changes with depth.
+For this tutorial, we will invert sounding data collected over a layered Earth using
+a Wenner array. The end product is layered Earth model which explains the data.
     
 
 """
@@ -25,7 +24,6 @@ electrical resistivity changes with depth.
 
 import os
 import numpy as np
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
@@ -38,73 +36,95 @@ from SimPEG.electromagnetics.static.utils.StaticUtils import plot_layer
 
 # sphinx_gallery_thumbnail_number = 2
 
-
 #############################################
-# Load Data, Define Survey and Plot
-# ---------------------------------
+# Define File Names
+# -----------------
 #
-# Here we load and plot synthetic DCIP data. We a
+# Here we provide the file paths to assets we need to run the inversion. The
+# Path to the true model is also provided for comparison with the inversion
+# results.
 #
 
-# File names
 data_filename = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\app_res_1d_data.dobs'
 model_filename = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\true_model.txt'
 mesh_filename = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\layers.txt'
 
 
+#############################################
+# Load Data, Define Survey and Plot
+# ---------------------------------
+#
+# Here we load the observed data, define the DC survey geometry and plot the
+# data values.
+#
+
 # Load data
 dobs = np.loadtxt(str(data_filename))
 
-a_electrodes = dobs[:, 0:3]
-b_electrodes = dobs[:, 3:6]
-m_electrodes = dobs[:, 6:9]
-n_electrodes = dobs[:, 9:12]
+A_electrodes = dobs[:, 0:3]
+B_electrodes = dobs[:, 3:6]
+M_electrodes = dobs[:, 6:9]
+N_electrodes = dobs[:, 9:12]
 dobs = dobs[:, -1]
 
 # Define survey
-unique_tx, k = np.unique(np.c_[a_electrodes, b_electrodes], axis=0, return_index=True)
-n_tx = len(k)
+unique_tx, k = np.unique(np.c_[A_electrodes, B_electrodes], axis=0, return_index=True)
+n_sources = len(k)
 k = np.sort(k)
 k = np.r_[k, len(k)+1]
 
 source_list = []
-for ii in range(0, n_tx):
+for ii in range(0, n_sources):
     
-    m_locations = m_electrodes[k[ii]:k[ii+1], :]
-    n_locations = n_electrodes[k[ii]:k[ii+1], :]
-    receiver_list = [dc.receivers.Dipole(m_locations, n_locations)]
+    # MN electrode locations for receivers. Each is an (N, 3) numpy array
+    M_locations = M_electrodes[k[ii]:k[ii+1], :]
+    N_locations = N_electrodes[k[ii]:k[ii+1], :]
+    receiver_list = [dc.receivers.Dipole(M_locations, N_locations)]
     
-    a_location = a_electrodes[k[ii], :]
-    b_location = b_electrodes[k[ii], :]
-    source_list.append(dc.sources.Dipole(receiver_list, a_location, b_location))
+    # AB electrode locations for source. Each is a (1, 3) numpy array
+    A_location = A_electrodes[k[ii], :]
+    B_location = B_electrodes[k[ii], :]
+    source_list.append(dc.sources.Dipole(receiver_list, A_location, B_location))
 
 # Define survey
 survey = dc.Survey(source_list)
 
-# Plot the data
+# Compute the A, B, M and N electrode locations.
 survey.getABMN_locations()
+
+# Plot apparent resistivities on sounding curve as a function of Wenner separation
+# parameter.
 electrode_separations = np.sqrt(
         np.sum((survey.m_locations - survey.n_locations)**2, axis=1)
         )
 
-# Plot apparent resistivities on sounding curve
 fig = plt.figure(figsize=(11, 5))
-
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-ax1.semilogy(electrode_separations, dobs)
-
+ax1.semilogy(electrode_separations, dobs, 'b')
+ax1.set_xlabel("Wenner Array Separation Parameter (m)")
+ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
 plt.show()
 
 ###############################################
 # Assign Uncertainties
 # --------------------
+#
+# Inversion with SimPEG requires that we define uncertainties on our data. The
+# uncertainty represents our estimate of the standard deviation of the noise on
+# our data. For DC sounding data, a percent uncertainty is applied to each datum.
+# For this tutorial, the uncertainty on each datum will be 2.5%.
+#
 
-uncertainties = 0.025*dobs
+uncertainties = 0.025*np.abs(dobs)
 
 
 ###############################################
 # Define Data
 # --------------------
+#
+# Here is where we define the data that are inverted. The data are defined by
+# the survey, the observation values and the uncertainties.
+#
 
 data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 
@@ -115,38 +135,39 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 #
 # Here, we define the layer thicknesses for our 1D simulation. To do this, we use
 # the TensorMesh class.
+#
 
-layer_thicknesses = 10.*np.ones((40))
+#layer_thicknesses = 20.*np.ones((25))
+layer_thicknesses = 5*np.logspace(0,1,20)
 mesh = TensorMesh([layer_thicknesses], '0')
 
 print(mesh)
 
 ###############################################################
-# Create Conductivity Model and Mapping for OcTree Mesh
-# -----------------------------------------------------
+# Define a Starting and Reference Model
+# -------------------------------------
 #
-# Here we define the resistivity model that will be used to predict DC data.
-# For each layer in our 1D Earth, we must provide a resistivity value. For a
-# 1D simulation, we assume the bottom layer extends to infinity.
-#
+# Here, we create starting and/or reference models for the inversion as
+# well as the mapping from the model space to the active cells. Starting and
+# reference models can be a constant background value or contain a-priori
+# structures. Here, the background is log(1000) Ohm meters.
+
+# Define log-resistivity values for each layer since our model is the
+# log-resistivity. Don't make the values 0!
+# Otherwise the gradient for the 1st iteration is zero and the inversion will
+# not converge.
 
 # Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
 starting_model = np.log(1e3*np.ones((len(layer_thicknesses))))
 
 # Define mapping from model to active cells.
 model_map = maps.IdentityMap(mesh)*maps.ExpMap()
-# inversion_map = maps.IdentityMap(mesh)
-
-#plot_layer(model_map*model, mesh)
-
 
 #######################################################################
-# Predict DC Resistivity Data
-# ---------------------------
+# Define the Physics
+# ------------------
 #
-# Here we predict DC resistivity data. If the keyword argument *sigmaMap* is
-# defined, the simulation will expect a conductivity model. If the keyword
-# argument *rhoMap* is defined, the simulation will expect a resistivity model.
+# Here we define the physics of the problem using the DCSimulation_1D class.
 #
 
 simulation = dc.simulation_1d.DCSimulation_1D(
@@ -155,78 +176,121 @@ simulation = dc.simulation_1d.DCSimulation_1D(
         )
 
 
+#######################################################################
+# Define Inverse Problem
+# ----------------------
+#
+# The inverse problem is defined by 3 things:
+#
+#     1) Data Misfit: a measure of how well our recovered model explains the field data
+#     2) Regularization: constraints placed on the recovered model and a priori information
+#     3) Optimization: the numerical approach used to solve the inverse problem
+#
+#
 
-
-
-
-
-
-
+# Define the data misfit. Here the data misfit is the L2 norm of the weighted
+# residual between the observed data and the data predicted for a given model.
+# The weighting is defined by the reciprocal of the uncertainties.
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 dmis.W = 1./uncertainties
 
-
-
-
-reg_rho = regularization.Simple(
-    mesh, alpha_s=1., alpha_x=1., mref=starting_model,
-    # mapping=inversion_map
+# Define the regularization (model objective function)
+reg = regularization.Simple(
+    mesh, alpha_s=1., alpha_x=1., mref=starting_model
 )
 
-#reg_rho = regularization.Tikhonov(
-#    mesh, alpha_s=0.2, alpha_x=1., mref=starting_model,
-#    # mapping=inversion_map
-#)
-
-
-# Create model weights based on sensitivity matrix (sensitivity weighting)
+# Create model weights based on sensitivity matrix (sensitivity weighting). This is
+# done to counteract the inversion's desire to place structures only at regions
+# of very high sensitivity.
 wr = np.sum(simulation.getJ(starting_model)**2, axis=0)**0.5
 wr = (wr/np.max(np.abs(wr)))
-reg_rho.cell_weights = wr  # include in regularization
-#directives.UpdateSensitivityWeights(JtJdiag=wr)  # Don't think this is applied to this type of problem
+reg.cell_weights = wr  # include in regularization
 
-#reg = reg_rho + reg_t
+# Define how the optimization problem is solved. Here we will use an inexact
+# Gauss-Newton approach that employs the conjugate gradient solver.
 opt = optimization.InexactGaussNewton(
     maxIter=30, maxIterCG=20
 )
-invProb = inverse_problem.BaseInvProblem(dmis, reg_rho, opt)
 
+# Define the inverse problem
+inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
+#######################################################################
+# Define Inversion Directives
+# ---------------------------
+#
+# Here we define any directives that are carried out during the inversion. This
+# includes the cooling schedule for the trade-off parameter (beta), stopping
+# criteria for the inversion and saving inversion results at each iteration.
+#
 
-# Create an inversion object
+# Defining a starting value for the trade-off parameter (beta) between the data
+# misfit and the regularization.
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+
+# Set the rate of reduction in trade-off parameter (beta) each time the
+# the inverse problem is solved. And set the number of Gauss-Newton iterations
+# for each trade-off paramter value.
 beta_schedule = directives.BetaSchedule(coolingFactor=5., coolingRate=3.)
-target_misfit = directives.TargetMisfit(chifact=1.)
 
-#save =  directives.SaveOutputDictEveryIteration()
+# Apply and update sensitivity weighting as the model updates
+update_sensitivity_weights = directives.UpdateSensitivityWeights()
 
-directives_list = [starting_beta, beta_schedule, target_misfit]
+# Options for outputting recovered models and predicted data for each beta.
+save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
-inv = inversion.BaseInversion(invProb, directiveList=directives_list)
+# Setting a stopping criteria for the inversion.
+target_misfit = directives.TargetMisfit(chifact=1)
 
-MOPT = []
+# The directives are defined as a list.
+directives_list = [
+    starting_beta, beta_schedule, update_sensitivity_weights, save_iteration, target_misfit
+    ]
 
+
+#####################################################################
+# Running the Inversion
+# ---------------------
+#
+# To define the inversion object, we need to define the inversion problem and
+# the set of directives. We can then run the inversion.
+#
+
+# Here we combine the inverse problem and the set of directives
+inv = inversion.BaseInversion(inv_prob, directives_list)
+
+# Run the inversion
 recovered_model = inv.run(starting_model)
 
-#from SimPEG.electromagnetics.static.utils.StaticUtils import plot_layer
-fig = plt.figure(figsize=(5, 5))
+############################################################
+# Examining the Results
+# ---------------------
+#
 
+# Load the true model and layer thicknesses
 true_model = np.loadtxt(str(model_filename))
 true_layers = np.loadtxt(str(mesh_filename))
 true_layers = TensorMesh([true_layers], 'N')
 
+# Plot true model and recovered model
+fig = plt.figure(figsize=(5, 5))
+x_min = np.min([np.min(model_map*recovered_model), np.min(true_model)])
+x_max = np.max([np.max(model_map*recovered_model), np.max(true_model)])
+
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-plot_layer(model_map*recovered_model, mesh, ax=ax1, depth_axis=False)
-plot_layer(true_model, true_layers, ax=ax1, depth_axis=False, color='r')
+plot_layer(true_model, true_layers, ax=ax1, depth_axis=False, color='b')
+plot_layer(model_map*recovered_model, mesh, ax=ax1, depth_axis=False, color='r')
+ax1.set_xlim(0.9*x_min, 1.1*x_max)
+ax1.legend(['True Model','Recovered Model'])
 
-
-# Plot apparent resistivities on sounding curve
+# Plot the true and apparent resistivities on a sounding curve
 fig = plt.figure(figsize=(11, 5))
-
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-ax1.semilogy(electrode_separations, dobs)
-ax1.semilogy(electrode_separations, invProb.dpred)
-
+ax1.semilogy(electrode_separations, dobs, 'b')
+ax1.semilogy(electrode_separations, inv_prob.dpred, 'r')
+ax1.set_xlabel("Wenner Array Separation Parameter (m)")
+ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
+ax1.legend(['True Sounding Curve','Predicted Sounding Curve'])
 plt.show()
 
 

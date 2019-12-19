@@ -27,7 +27,6 @@ background conductivity model to compute IP data.
 # --------------
 #
 
-
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
@@ -73,21 +72,21 @@ xyz_topo = np.c_[x_topo, y_topo, z_topo]
 # Here we define a single EW survey line that uses a dipole-dipole configuration.
 # For the source, we must define the AB electrode locations. For the receivers
 # we must define the MN electrode locations. Instead of creating the survey
-# from scratch, we will use the *generat_dcip_survey_line* utility.
+# from scratch (see 1D example), we will use the *generat_dcip_survey_line* utility.
 #
 
 # Define survey line parameters
 survey_type = 'dipole-dipole'
 data_type = 'volt'
 end_locations = np.r_[-400., 400]
-xyz_topo = 0.
+#xyz_topo = 0.
 station_separation = 50.
 dipole_separation = 25.
 n = 8 
 
 # Generate DC survey line
 dc_survey = generate_dcip_survey_line(
-    survey_type, data_type, end_locations, 0.,
+    survey_type, data_type, end_locations, xyz_topo,
     station_separation, dipole_separation, n,
     dim_flag='2.5D', sources_only=False
     )
@@ -111,10 +110,10 @@ hx = [(dh, nbcx)]
 hz = [(dh, nbcz)]
 mesh = TreeMesh([hx, hz], x0='CN')
 
-# Mesh refinement based on topography (TO BE ADDED LATER)
-#mesh = refine_tree_xyz(
-#    mesh, topo_xyz, octree_levels=[0, 0, 0, 0, 1], method='surface', finalize=False
-#)
+# Mesh refinement based on topography
+mesh = refine_tree_xyz(
+    mesh, xyz_topo[:,[0, 2]], octree_levels=[0, 0, 0, 1], method='surface', finalize=False
+)
 
 # Mesh refinement near transmitters and receivers. First we need to obtain the
 # set of unique electrode locations.
@@ -137,6 +136,20 @@ mesh = refine_tree_xyz(
 mesh.finalize()
 
 ###############################################################
+# Project Survey to Discretized Topography
+# ----------------------------------------
+#
+# Here we define the conductivity model that will be used to predict DC
+# resistivity data. The model consists of a conductive sphere and a
+# resistive sphere within a moderately conductive background. Note that
+# you can carry through this work flow with a resistivity model if desired.
+#
+
+
+
+
+
+###############################################################
 # Create Conductivity Model and Mapping for OcTree Mesh
 # -----------------------------------------------------
 #
@@ -153,7 +166,7 @@ conductor_conductivity = 1e-1
 resistor_conductivity = 1e-3
 
 # Find active cells in forward modeling (cell below surface)
-ind_active = np.ones(mesh.nC, dtype="bool")
+ind_active = surface2ind_topo(mesh, xyz_topo[:,[0, 2]])
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
@@ -163,13 +176,13 @@ conductivity_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 conductivity_model = background_conductivity*np.ones(nC)
 
 ind_conductor = ModelBuilder.getIndicesSphere(
-    np.r_[-120., -100.], 60., mesh.gridCC
+    np.r_[-120., -180.], 60., mesh.gridCC
 )
 ind_conductor = ind_conductor[ind_active]
 conductivity_model[ind_conductor] = conductor_conductivity
 
 ind_resistor = ModelBuilder.getIndicesSphere(
-    np.r_[120., -100.], 60., mesh.gridCC
+    np.r_[120., -180.], 60., mesh.gridCC
 )
 ind_resistor = ind_resistor[ind_active]
 conductivity_model[ind_resistor] = resistor_conductivity
@@ -278,7 +291,7 @@ background_chargeability = 0.
 sphere_chargeability = 1e-1
 
 # Find active cells in forward modeling (cell below surface)
-ind_active = np.ones(mesh.nC, dtype="bool")
+ind_active = surface2ind_topo(mesh, xyz_topo[:,[0, 2]])
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
@@ -348,7 +361,7 @@ plt.show()
 
 ip_survey.getABMN_locations()
 
-ip_noise = 1e-8*np.random.rand(len(dpred_ip))
+ip_noise = 0.01*np.abs(dpred_dc)*np.random.rand(len(dpred_ip))
 
 data_array = np.c_[
     ip_survey.a_locations,
