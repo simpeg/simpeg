@@ -510,7 +510,7 @@ ip_inverse_problem = inverse_problem.BaseInvProblem(
 # Here we define the directives in the same manner as the DC inverse problem.
 #
 
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e2)
 beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold=1e-3)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
@@ -557,7 +557,7 @@ mesh.plotImage(
     clim=(np.min(true_chargeability_model), np.max(true_chargeability_model)),
     pcolorOpts={'cmap':'plasma'}
     )
-ax1.set_title('True model at y = 0 m')
+ax1.set_title('True Chargeability Model')
 
 ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(
@@ -568,7 +568,7 @@ cbar = mpl.colorbar.ColorbarBase(
 )
 
 cbar.set_label(
-    'Intrinsic Chargeability',
+    'Intrinsic Chargeability (V/V)',
     rotation=270, labelpad=15, size=12
 )
 
@@ -583,7 +583,7 @@ mesh.plotImage(
     clim=(np.min(recovered_chargeability_model), np.max(recovered_chargeability_model)),
     pcolorOpts={'cmap':'plasma'}
 )
-ax1.set_title('Recovered model at y = 0 m')
+ax1.set_title('Recovered Chargeability Model')
 
 ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(
@@ -592,7 +592,7 @@ norm = mpl.colors.Normalize(
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', cmap=mpl.cm.plasma
     )
-cbar.set_label('Intrinsic Chargeability',rotation=270, labelpad=15, size=12)
+cbar.set_label('Intrinsic Chargeability (V/V)',rotation=270, labelpad=15, size=12)
 
 plt.show()
 
