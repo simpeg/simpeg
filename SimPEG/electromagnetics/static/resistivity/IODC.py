@@ -13,7 +13,7 @@ from ....utils import sdiag, uniqueRows, surface2ind_topo, plot2Ddata
 from ..utils import geometric_factor
 from . import sources as Src
 from . import receivers as Rx
-from .survey import Survey_ky, Survey
+from .survey import Survey
 
 
 class IO(properties.HasProperties):
@@ -428,7 +428,7 @@ class IO(properties.HasProperties):
             self.sort_inds = np.hstack(sort_inds)
 
             if dimension == 2:
-                survey = Survey_ky(srcLists)
+                survey = Survey(srcLists)
             elif dimension == 3:
                 survey = Survey(srcLists)
             else:
@@ -699,6 +699,7 @@ class IO(properties.HasProperties):
             dtype=np.str, comments='!'
         )
         if input_type == "general":
+            topo=None
             n_src = 0
             n_rxs = []
             src_info = []
