@@ -140,7 +140,7 @@ class BaseInvProblem(BaseSimPEG):
         if f is None:
             if isinstance(self.dmisfit, BaseDataMisfit):
                 f = self.dmisfit.simulation.fields(m)
-                
+
                 if isinstance(f, Delayed):
                     f = f.compute()
             elif isinstance(self.dmisfit, BaseObjectiveFunction):
@@ -184,6 +184,32 @@ class BaseInvProblem(BaseSimPEG):
         # if isinstance(self.dmisfit, BaseDataMisfit):
         phi_d = self.dmisfit(m, f=f)
         self.dpred = self.get_dpred(m, f=f)
+
+        # for reg in self.reg.objfcts:
+        if self.opt.print_type == 'ubc':
+            self.phi_s = 0.
+            self.phi_x = 0.
+            self.phi_y = 0.
+            self.phi_z = 0.
+
+            self.phi_s += (
+                self.reg.objfcts[0](self.model) * self.reg.alpha_s
+            )
+            self.phi_x += (
+                self.reg.objfcts[1](self.model) * self.reg.alpha_x
+            )
+
+            if self.reg.regmesh.dim == 2:
+                self.phi_y += (
+                    self.reg.objfcts[2](self.model) * self.reg.alpha_y
+                )
+            elif self.reg.regmesh.dim == 3:
+                self.phi_y += (
+                    self.reg.objfcts[2](self.model) * self.reg.alpha_y
+                )
+                self.phi_z += (
+                    self.reg.objfcts[3](self.model) * self.reg.alpha_z
+                )
 
         phi_m = self.reg(m)
 

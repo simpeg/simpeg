@@ -354,7 +354,7 @@ def plot_pseudoSection(
     if dobs is None:
         dobs = data.dobs
 
-    
+
     midx, midz = source_receiver_midpoints(
         data.survey, survey_type=survey_type, dim=dim
     )
@@ -651,7 +651,7 @@ def generate_dcip_survey_line(survey_type, data_type, endl, topo, ds, dh, n, dim
         :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
             'dipole-pole' | 'pole-pole'
         :param str data_type: 'volt' | 'apparent_conductivity' |
-        	'apparent_resistivity' | 'apparent_chargeability' 
+        	'apparent_resistivity' | 'apparent_chargeability'
         :param np.array endl: horizontal end points [x1, x2] or [x1, x2, y1, y2]
         :param float , (N, 2) np.array or (N, 3) np.array: topography
         :param int ds: station seperation
@@ -663,15 +663,15 @@ def generate_dcip_survey_line(survey_type, data_type, endl, topo, ds, dh, n, dim
         Output:
         :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
     """
-    
+
     accepted_surveys = ['pole-pole','pole-dipole','dipole-pole','dipole-dipole']
-    
+
     if survey_type.lower() not in accepted_surveys:
             raise Exception(
             "survey_type must be 'dipole-dipole' | 'pole-dipole' | "
             "'dipole-pole' | 'pole-pole' not {}".format(survey_type)
             )
-    
+
     def xy_2_r(x1, x2, y1, y2):
         r = np.sqrt(np.sum((x2 - x1)**2. + (y2 - y1)**2.))
         return r
@@ -700,7 +700,7 @@ def generate_dcip_survey_line(survey_type, data_type, endl, topo, ds, dh, n, dim
             else:
                 fun_interp = LinearNDInterpolator(topo[:, 0:2], topo[:, -1])
                 P = np.c_[P, fun_interp(P)]
-        
+
         if survey_type.lower() in ['pole-dipole','dipole-pole','dipole-dipole']:
             DP1 = np.c_[stn_x-0.5*dl_x*dh, stn_y-0.5*dl_y*dh]
             DP2 = np.c_[stn_x+0.5*dl_x*dh, stn_y+0.5*dl_y*dh]
@@ -713,14 +713,14 @@ def generate_dcip_survey_line(survey_type, data_type, endl, topo, ds, dh, n, dim
                 DP2 = np.c_[DP2, fun_interp(DP2)]
 
     else:
-        
+
         # Station locations
         y1 = 0.
         y2 = 0.
         L = xy_2_r(x1, x2, y1, y2)
         nstn = int(np.floor(L / ds) + 1)
         stn_x = x1 + np.array(range(int(nstn)))*ds
-        
+
         # Locations of poles and dipoles
         if survey_type.lower() in ['pole-pole','pole-dipole','dipole-pole']:
             P = np.c_[stn_x, stn_y]
@@ -729,7 +729,7 @@ def generate_dcip_survey_line(survey_type, data_type, endl, topo, ds, dh, n, dim
             else:
                 fun_interp = LinearNDInterpolator(topo[:, 0:2], topo[:, -1])
                 P = np.c_[stn_x, fun_interp(stn_x)]
-        
+
         if survey_type.lower() in ['pole-dipole','dipole-pole','dipole-dipole']:
             DP1 = stn_x-0.5*dh
             DP2 = stn_x+0.5*dh
@@ -748,19 +748,19 @@ def generate_dcip_survey_line(survey_type, data_type, endl, topo, ds, dh, n, dim
     SrcList = []
 
     for ii in range(0, int(nstn)):
-        
+
         if dim_flag == '3D':
             D = xy_2_r(stn_x[ii], x2, stn_y[ii], y2)
         else:
             D = xy_2_r(stn_x[ii], x2, y1, y2)
-        
+
         # Number of receivers to fit
         nrec = int(np.min([np.floor(D / ds), n]))
-        
+
         # Check if there is enough space, else break the loop
         if nrec <= 0:
             continue
-        
+
         # Create receivers
         if dim_flag == '2.5D':
             if survey_type.lower() in ['dipole-pole', 'pole-pole']:
@@ -787,7 +787,7 @@ def generate_dcip_survey_line(survey_type, data_type, endl, topo, ds, dh, n, dim
             srcClass = dc.sources.Pole([rxClass], P[ii, :])
         elif survey_type.lower() in['dipole-dipole', 'dipole-pole']:
             srcClass = dc.sources.Dipole([rxClass], DP1[ii, :], DP2[ii, :])
-        
+
         SrcList.append(srcClass)
 
     if sources_only:
@@ -1377,7 +1377,7 @@ def readUBC_DC2Dpre(fileName):
 
         d.append(temp[-1])
 
-        Rx = dc.Rx.Dipole(rx[:, :3], rx[:, 3:])
+        Rx = dc.Rx.Dipole_ky(rx[:, :3], rx[:, 3:])
         srcLists.append(dc.Src.Dipole([Rx], tx[:3], tx[3:]))
 
     # Create survey class
@@ -1892,10 +1892,10 @@ def plot_layer(rho, mesh, xscale='log', ax=None, showlayers=False, xlim=None, de
 
 
     n_rho = rho.size
-    
+
     z_grid = -mesh.vectorNx
     resistivity = np.repeat(rho, 2)
-    
+
     z = []
     for i in range(n_rho):
         z.append(np.r_[z_grid[i], z_grid[i+1]])
