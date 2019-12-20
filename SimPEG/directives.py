@@ -292,6 +292,12 @@ class TargetMisfit(InversionDirective):
     def endIter(self):
         if self.invProb.phi_d < self.target:
             self.opt.stopNextIteration = True
+            self.print_final_misfit()
+            # print (("   >> Target misfit: %.1f (# of data) is achieved") % (self.target * self.invProb.opt.factor))
+
+    def print_final_misfit(self):
+        if self.opt.print_type == "ubc":
+            self.opt.print_target = (">> Target misfit: %.1f (# of data) is achieved") % (self.target * self.invProb.opt.factor)
 
 
 class SaveEveryIteration(InversionDirective):
@@ -587,10 +593,10 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
     # Initialize the output dict
     outDict = None
-    outDict = {}
     saveOnDisk = False
 
     def initialize(self):
+        self.outDict = {}
         print("SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(self.fileName))
 
     def endIter(self):
