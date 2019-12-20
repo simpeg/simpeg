@@ -140,7 +140,7 @@ def source_receiver_midpoints(dc_survey, survey_type='dipole-dipole', dim=2):
 
         Output:
         :return numpy.ndarray midx: midpoints x location
-        :return numpy.ndarray midz: midpoints  z location
+        :return numpy.ndarray midz: midpoints z location
     """
 
     # Pre-allocate
@@ -314,7 +314,7 @@ def plot_pseudoSection(
     data, ax=None, survey_type='dipole-dipole',
     data_type="appConductivity", space_type='half-space',
     clim=None, scale="linear", sameratio=True,
-    pcolorOpts={}, data_location=False, dobs=None, normalization=None, dim=2
+    pcolorOpts={}, data_location=False, dobs=None, normalization=None, dim=2,
 ):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
@@ -385,9 +385,9 @@ def plot_pseudoSection(
 
     elif data_type == 'appChargeability':
         if scale == "linear":
-            rho = 1000.*dobs/normalization
+            rho = dobs/normalization
         elif scale == "log":
-            rho = np.log10(abs(1000.*dobs/normalization))
+            rho = np.log10(abs(dobs/normalization))
 
     else:
         print()
@@ -422,12 +422,12 @@ def plot_pseudoSection(
 
     if scale == "log":
         cbar = plt.colorbar(
-            ph, format="$10^{%.1f}$",
+            ph, format="$10^{%.2f}$",
             fraction=0.04, orientation="horizontal"
         )
     elif scale == "linear":
         cbar = plt.colorbar(
-            ph, format="%.1f",
+            ph, format="%.2f",
             fraction=0.04, orientation="horizontal"
         )
 
@@ -441,7 +441,7 @@ def plot_pseudoSection(
         cbar.set_label("Potential (V)", size=12)
 
     elif data_type == 'appChargeability':
-        cbar.set_label("App. Chrge (mV/V)", size=12)
+        cbar.set_label("App. Chrge (V/V)", size=12)
 
     cmin, cmax = cbar.get_clim()
     ticks = np.linspace(cmin, cmax, 3)
@@ -647,7 +647,7 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
 
 def generate_dcip_survey_line(survey_type, data_type, endl, topo, ds, dh, n, dim_flag='2.5D', sources_only=False):
     """
-        Generate DCIP survey line for modeling in 2.5D or 3D. Takes into accounted true surface
+        Generate DCIP survey line for modeling in 2D, 2.5D or 3D. Takes into accounted true surface
         topography.
 
         Input:
@@ -1717,9 +1717,30 @@ def gettopoCC(mesh, actind, option="top"):
                     topoCC[i] = (ZC[inds]).max() + dz
             return uniqXY[0], topoCC
         else:
-            raise NotImplementedError(
-                "gettopoCC is not implemented for Quad tree mesh"
-            )
+            core_inds = np.isin(
+                mesh.h_gridded,
+                np.r_[mesh.hx.min(), mesh.hy.min()]
+            ).all(axis=1)
+
+            act_core_inds = actind[core_inds]
+
+            uniqX = np.unique(mesh.gridCC[core_inds, 0], return_index=True, return_inverse=True)
+            npts = uniqX[0].shape[0]
+            ZC = mesh.gridCC[core_inds, 1]
+            topoCC = np.zeros(npts)
+            if option == "top":
+                # TODO: this assume same hz, need to be modified
+                dy = mesh.hy.min() * 0.5
+            elif option == "center":
+                dy = 0.
+            for i in range(npts):
+                inds = uniqX[2] == i
+                actind_z = act_core_inds[inds]
+                if actind_z.sum() > 0.:
+                    topoCC[i] = (ZC[inds][actind_z]).max() + dy
+                else:
+                    topoCC[i] = (ZC[inds]).max() + dy
+            return uniqX[0], topoCC
 
 
 def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
@@ -1752,7 +1773,9 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
             inds = closestPointsGrid(uniqXYlocs, pts)
             out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
         else:
-            raise NotImplementedError()
+            uniqXlocs, topoCC = gettopoCC(mesh, actind, option=option)
+            inds = closestPointsGrid(uniqXlocs, pts, dim=1)
+            out = np.c_[uniqXlocs[inds], topoCC[inds]]
     else:
         raise NotImplementedError()
 
@@ -1914,3 +1937,4 @@ def plot_layer(rho, mesh, xscale='log', ax=None, showlayers=False, xlim=None, de
             for locz in z_grid:
                 ax.plot(np.linspace(rho_min, rho_max, 100), np.ones(100)*locz, 'b--', lw = 0.5)
         return ax.plot(resistivity, z, 'k-', **kwargs)
+

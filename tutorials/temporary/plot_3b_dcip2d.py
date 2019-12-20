@@ -34,7 +34,9 @@ from SimPEG.utils import ModelBuilder, surface2ind_topo
 from SimPEG import maps, data
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
-from SimPEG.electromagnetics.static.utils import generate_dcip_survey_line, plot_pseudoSection
+from SimPEG.electromagnetics.static.utils import (
+        generate_dcip_survey_line, plot_pseudoSection, gettopoCC, source_receiver_midpoints
+        )
 
 import os
 import numpy as np
@@ -60,7 +62,7 @@ except ImportError:
 #
 
 x_topo, y_topo = np.meshgrid(np.linspace(-3000, 3000, 101), np.linspace(-3000, 3000, 101))
-z_topo = (1/np.pi)*80*(-np.pi/2 + np.arctan((np.abs(x_topo) - 500.)/30.))
+z_topo = (1/np.pi)*85*(-np.pi/2 + np.arctan((np.abs(x_topo) - 600.)/50.))
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
@@ -79,7 +81,6 @@ xyz_topo = np.c_[x_topo, y_topo, z_topo]
 survey_type = 'dipole-dipole'
 data_type = 'volt'
 end_locations = np.r_[-400., 400]
-#xyz_topo = 0.
 station_separation = 50.
 dipole_separation = 25.
 n = 8 
@@ -112,15 +113,20 @@ mesh = TreeMesh([hx, hz], x0='CN')
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, xyz_topo[:,[0, 2]], octree_levels=[0, 0, 0, 1], method='surface', finalize=False
+    mesh, xyz_topo[:,[0, 2]], octree_levels=[1], method='surface', finalize=False
 )
 
 # Mesh refinement near transmitters and receivers. First we need to obtain the
 # set of unique electrode locations.
 dc_survey.getABMN_locations()
+electrode_locations = np.c_[
+    dc_survey.a_locations, dc_survey.b_locations,
+    dc_survey.m_locations, dc_survey.n_locations
+    ]
+
 unique_locations = np.unique(
-        np.r_[dc_survey.a_locations, dc_survey.b_locations], axis=0
-        )
+    np.reshape(electrode_locations, (4*dc_survey.nD, 2)), axis=0
+    )
 
 mesh = refine_tree_xyz(
     mesh, unique_locations, octree_levels=[2, 4], method='radial', finalize=False
@@ -134,20 +140,6 @@ mesh = refine_tree_xyz(
     )
 
 mesh.finalize()
-
-###############################################################
-# Project Survey to Discretized Topography
-# ----------------------------------------
-#
-# Here we define the conductivity model that will be used to predict DC
-# resistivity data. The model consists of a conductive sphere and a
-# resistive sphere within a moderately conductive background. Note that
-# you can carry through this work flow with a resistivity model if desired.
-#
-
-
-
-
 
 ###############################################################
 # Create Conductivity Model and Mapping for OcTree Mesh
@@ -197,18 +189,32 @@ log_mod = np.log10(conductivity_model)
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
 mesh.plotImage(
     plotting_map*log_mod, ax=ax1, grid=False,
-    clim=(np.log10(resistor_conductivity), np.log10(conductor_conductivity))
+    clim=(np.log10(resistor_conductivity), np.log10(conductor_conductivity)),
+    pcolorOpts={'cmap':'jet'}
 )
-ax1.set_title('Conductivity Model at Y = 0 m')
+ax1.set_title('Conductivity Model')
 
 ax2 = fig.add_axes([0.87, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(vmin=np.log10(resistor_conductivity), vmax=np.log10(conductor_conductivity))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', format="$10^{%.1f}$"
+    ax2, norm=norm, cmap=mpl.cm.jet, orientation='vertical', format="$10^{%.1f}$"
 )
 cbar.set_label(
     'Conductivity [S/m]', rotation=270, labelpad=15, size=12
 )
+
+
+###############################################################
+# Project Survey to Discretized Topography
+# ----------------------------------------
+#
+# It is important that electrodes are not model as being in the air. Even if the
+# electrodes are properly located along surface topography, they may lie above
+# the discretized topography. This step is carried out to ensure all electrodes
+# like on the discretized surface.
+#
+
+dc_survey.drapeTopo(mesh, ind_active, option='top')
 
 
 #######################################################################
@@ -224,10 +230,12 @@ dc_simulation = dc.simulation_2d.Problem2D_N(
         mesh, survey=dc_survey, sigmaMap=conductivity_map, Solver=Solver
         )
 
+# Predict the data by running the simulation. The data are the raw voltage in
+# units of volts.
 dpred_dc = dc_simulation.dpred(conductivity_model)
 
+# Define a data object (required for pseudo-section plot)
 dc_data = data.Data(dc_survey, dobs=dpred_dc)
-
 
 # Plot apparent conductivity pseudo-section
 fig = plt.figure(figsize=(11, 5))
@@ -235,7 +243,8 @@ fig = plt.figure(figsize=(11, 5))
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
 plot_pseudoSection(
     dc_data, ax=ax1, survey_type='dipole-dipole',
-    data_type='appConductivity', space_type='half-space', scale='log'
+    data_type='appConductivity', space_type='half-space', scale='log',
+    pcolorOpts={'cmap':'jet'}
 )
 ax1.set_title('Apparent Conductivity [S/m]')
 
@@ -246,15 +255,12 @@ plt.show()
 # -------------------------
 #
 
+# Add 5% Gaussian noise to each datum
 dc_noise = 0.05*dpred_dc*np.random.rand(len(dpred_dc))
 
-dc_survey.getABMN_locations()
-
+# Write out data at their original electrode locations (not shifted)
 data_array = np.c_[
-    dc_survey.a_locations,
-    dc_survey.b_locations,
-    dc_survey.m_locations,
-    dc_survey.n_locations,
+    electrode_locations,
     dpred_dc + dc_noise
     ]
 
@@ -264,6 +270,8 @@ np.savetxt(fname, data_array, fmt='%.4e')
 fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\true_conductivity.txt'
 np.savetxt(fname, conductivity_map*conductivity_model, fmt='%.4e')
 
+fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\xyz_topo.txt'
+np.savetxt(fname, xyz_topo, fmt='%.4e')
 
 #######################################################################
 # Predict IP Resistivity Data
@@ -285,12 +293,12 @@ ip_survey = ip.from_dc_to_ip_survey(dc_survey, dim="2.5D")
 # sphere is not. Here, the chargeability is defined as mV/V.
 #
 
-# Define chargeability model in mV/V
+# Define chargeability model as intrinsic chargeability (V/V).
 air_chargeability = 0.
 background_chargeability = 0.
 sphere_chargeability = 1e-1
 
-# Find active cells in forward modeling (cell below surface)
+# Find active cells in forward modeling (cells below surface)
 ind_active = surface2ind_topo(mesh, xyz_topo[:,[0, 2]])
 
 # Define mapping from model to active cells
@@ -310,14 +318,14 @@ chargeability_model[ind_chargeable] = sphere_chargeability
 fig = plt.figure(figsize=(8.5, 4))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-mesh.plotImage(plotting_map*chargeability_model, ax=ax1, grid=False)
-ax1.set_title('Chargeability at Y = 0 m')
+mesh.plotImage(plotting_map*chargeability_model, ax=ax1, grid=False, pcolorOpts={'cmap':'plasma'})
+ax1.set_title('Intrinsic Chargeability')
 
 ax2 = fig.add_axes([0.87, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(vmin=0, vmax=sphere_chargeability)
-cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation='vertical')
+cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation='vertical', cmap=mpl.cm.plasma)
 cbar.set_label(
-    'Chargeability (mV/V)', rotation=270, labelpad=15, size=12
+    'Intrinsic Chargeability (V/V)', rotation=270, labelpad=15, size=12
 )
 
 #######################################################################
@@ -336,19 +344,22 @@ simulation_ip = ip.simulation_2d.Problem2D_N(
     sigma=conductivity_map*conductivity_model, Solver=Solver
 )
 
+# Run forward simulation and predicted IP data. The data are the voltage (V)
 dpred_ip = simulation_ip.dpred(chargeability_model)
 
+# Define a data object. Required for pseudo-section plot
 ip_data = data.Data(ip_survey, dobs=dpred_ip)
 
-# Plot
-
+# Plot apparent chargeability. To accomplish this, we must normalize the IP
+# voltage by the DC voltage. This is then multiplied by 1000 so that our
+# apparent chargeability is in units mV/V.
 fig = plt.figure(figsize=(11, 5))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
 plot_pseudoSection(
     ip_data, ax=ax1, survey_type='dipole-dipole',
-    data_type='appChargeability', space_type='half-space',
-    scale='linear', clim=None, normalization=dpred_dc
+    data_type='appChargeability', space_type='half-space', scale='linear',
+    clim=None, normalization=dpred_dc, pcolorOpts={'cmap':'plasma'}
 )
 ax1.set_title('Apparent Chargeability (mV/V)')
 
@@ -359,15 +370,11 @@ plt.show()
 # ---------------
 #
 
-ip_survey.getABMN_locations()
-
+# Add 1% Gaussian noise based on the DC data (not the IP data)
 ip_noise = 0.01*np.abs(dpred_dc)*np.random.rand(len(dpred_ip))
 
 data_array = np.c_[
-    ip_survey.a_locations,
-    ip_survey.b_locations,
-    ip_survey.m_locations,
-    ip_survey.n_locations,
+    electrode_locations,
     dpred_ip + ip_noise
     ]
 

@@ -61,6 +61,7 @@ mesh_filename = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\ass
 # Load data
 dobs = np.loadtxt(str(data_filename))
 
+# Extract source and receiver electrode locations and the observed data
 A_electrodes = dobs[:, 0:3]
 B_electrodes = dobs[:, 3:6]
 M_electrodes = dobs[:, 6:9]
@@ -150,8 +151,8 @@ print(mesh)
 # Here, we create starting and/or reference models for the inversion as
 # well as the mapping from the model space to the active cells. Starting and
 # reference models can be a constant background value or contain a-priori
-# structures. Here, the background is log(1000) Ohm meters.
-
+# structures. Here, the starting model is log(1000) Ohm meters.
+#
 # Define log-resistivity values for each layer since our model is the
 # log-resistivity. Don't make the values 0!
 # Otherwise the gradient for the 1st iteration is zero and the inversion will
@@ -244,9 +245,9 @@ target_misfit = directives.TargetMisfit(chifact=1)
 
 # The directives are defined as a list.
 directives_list = [
-    starting_beta, beta_schedule, update_sensitivity_weights, save_iteration, target_misfit
+    starting_beta, beta_schedule, update_sensitivity_weights,
+    save_iteration, target_misfit
     ]
-
 
 #####################################################################
 # Running the Inversion

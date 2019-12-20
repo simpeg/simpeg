@@ -162,10 +162,6 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.n
                         xinds =  np.logical_or(
                             xminTopo < uniqX[0][:, 0], xmaxTopo > uniqX[0][:, 0]
                             )
-                        # yinds =  np.logical_or(
-                        #     yminTopo < uniqXY[0][:, 1], ymaxTopo > uniqXY[0][:, 1]
-                        #     )
-                        # inds = np.logical_or(xinds, yinds)
                         XOut = uniqX[0][xinds, :]
                         topoOut = Ftopo(XOut)
                         topo = np.vstack((topo, np.c_[XOut, topoOut]))
