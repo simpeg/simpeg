@@ -355,13 +355,17 @@ ip_data = data.Data(ip_survey, dobs=dpred_ip)
 # apparent chargeability is in units mV/V.
 fig = plt.figure(figsize=(11, 5))
 
+# Convert from voltage measurement to apparent chargeability by normalizing by
+# the DC voltage
+apparent_chargeability = dpred_ip/dpred_dc
+
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
 plot_pseudoSection(
-    ip_data, ax=ax1, survey_type='dipole-dipole',
+    ip_data, dobs=apparent_chargeability, ax=ax1, survey_type='dipole-dipole',
     data_type='appChargeability', space_type='half-space', scale='linear',
-    clim=None, normalization=dpred_dc, pcolorOpts={'cmap':'plasma'}
+    pcolorOpts={'cmap':'plasma'}
 )
-ax1.set_title('Apparent Chargeability (mV/V)')
+ax1.set_title('Apparent Chargeability (V/V)')
 
 plt.show()
 

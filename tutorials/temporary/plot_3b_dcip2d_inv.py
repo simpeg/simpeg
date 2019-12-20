@@ -129,11 +129,13 @@ plt.show()
 # Plot apparent chargeability in pseudo-section
 fig = plt.figure(figsize=(11, 5))
 
+apparent_chargeability = ip_data.dobs/dc_data.dobs
+
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
 plot_pseudoSection(
-    ip_data, ax=ax1, survey_type='dipole-dipole',
+    ip_data, dobs=apparent_chargeability, ax=ax1, survey_type='dipole-dipole',
     data_type='appChargeability', space_type='half-space', scale='linear',
-    normalization=dobs_dc, pcolorOpts={'cmap':'plasma'}
+    pcolorOpts={'cmap':'plasma'}
 )
 ax1.set_title('Apparent Chargeability (mV/V)')
 
@@ -405,28 +407,29 @@ plt.show()
 
 # Predicted data from recovered model
 dpred_dc = dc_inverse_problem.dpred
+dc_data_predicted = data.Data(dc_survey, dobs=dpred_dc)
 
-data_array = [None, None, (dobs_dc-dpred_dc)/uncertainties_dc]
+data_array = [dc_data, dc_data_predicted, dc_data]
+dobs_array = [None, None, (dobs_dc-dpred_dc)/uncertainties_dc]
 
 fig = plt.figure(figsize=(17, 4))
 plot_title=['Observed', 'Predicted', 'Normalized Misfit']
+plot_type=['appConductivity', 'appConductivity', 'misfitMap']
 plot_units=['S/m', 'S/m', '']
-plot_type=['appConductivity', 'appConductivity', 'volt']
 scale = ['log', 'log', 'linear']
 
 ax1 = 3*[None]
-ax2 = 3*[None]
 norm = 3*[None]
 cbar = 3*[None]
 cplot = 3*[None]
-v_lim = [np.max(np.abs(dobs_dc)), np.max(np.abs(dobs_dc)), 2]
 
 for ii in range(0, 3):
     
     ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.05, 0.25, 0.9])
     cplot[ii] = plot_pseudoSection(
-            dc_data, dobs=data_array[ii], ax=ax1[ii], survey_type='dipole-dipole',
-            data_type=plot_type[ii], space_type='half-space', pcolorOpts={'cmap':'jet'}
+            data_array[ii], dobs=dobs_array[ii], ax=ax1[ii], survey_type='dipole-dipole',
+            data_type=plot_type[ii], scale=scale[ii], space_type='half-space',
+            pcolorOpts={'cmap':'jet'}
             )
     ax1[ii].set_title(plot_title[ii])
 
@@ -599,31 +602,32 @@ plt.show()
 #
 
 dpred_ip = ip_inverse_problem.dpred
+ip_data_predicted = data.Data(ip_survey, dobs=dpred_ip)
 
-data_array = np.c_[dobs_ip, dpred_ip, (dobs_ip-dpred_ip)/uncertainties_ip]
-#data_array = np.c_[dobs_ip, ip_simulation.dpred(true_chargeability_model), (dobs_ip-dpred_ip)/uncertainties_ip]
+# Convert from voltage measurements to apparent chargeability by normalizing by
+# the DC voltage
+dobs_array = np.c_[
+    dobs_ip/dobs_dc, dpred_ip/dobs_dc, (dobs_ip-dpred_ip)/uncertainties_ip
+    ]
 
 fig = plt.figure(figsize=(17, 4))
 plot_title=['Observed', 'Predicted', 'Normalized Misfit']
-plot_units=['mV/V', 'mV/V', '']
 plot_type=['appChargeability', 'appChargeability', 'volt']
 scale = ['linear', 'linear', 'linear']
-normalization = [dobs_dc, dobs_dc, 1.]
 
 ax1 = 3*[None]
-ax2 = 3*[None]
 norm = 3*[None]
 cbar = 3*[None]
 cplot = 3*[None]
-v_lim = [np.max(np.abs(dobs_ip)), np.max(np.abs(dobs_ip)), 2]
+
 for ii in range(0, 3):
     
     ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.05, 0.25, 0.9])
     cplot[ii] = plot_pseudoSection(
-            ip_data, dobs=data_array[:, ii], ax=ax1[ii], survey_type='dipole-dipole',
-            data_type=plot_type[ii], space_type='half-space', normalization=normalization[ii],
-            pcolorOpts={'cmap':'plasma'}
-            )
+        ip_data, dobs=dobs_array[:, ii], ax=ax1[ii], survey_type='dipole-dipole',
+        data_type=plot_type[ii], space_type='half-space',
+        pcolorOpts={'cmap':'plasma'}
+        )
     ax1[ii].set_title(plot_title[ii])
 
 plt.show()

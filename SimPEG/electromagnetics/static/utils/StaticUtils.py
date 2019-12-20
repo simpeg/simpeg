@@ -314,7 +314,7 @@ def plot_pseudoSection(
     data, ax=None, survey_type='dipole-dipole',
     data_type="appConductivity", space_type='half-space',
     clim=None, scale="linear", sameratio=True,
-    pcolorOpts={}, data_location=False, dobs=None, normalization=None, dim=2,
+    pcolorOpts={}, data_location=False, dobs=None, dim=2,
 ):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
@@ -359,7 +359,7 @@ def plot_pseudoSection(
         data.survey, survey_type=survey_type, dim=dim
     )
 
-    if data_type == 'volt':
+    if data_type in ['volt', 'appChargeability', 'misfitMap']:
         if scale == "linear":
             rho = dobs
         elif scale == "log":
@@ -383,17 +383,11 @@ def plot_pseudoSection(
         elif scale == "log":
             rho = np.log10(rhoApp)
 
-    elif data_type == 'appChargeability':
-        if scale == "linear":
-            rho = dobs/normalization
-        elif scale == "log":
-            rho = np.log10(abs(dobs/normalization))
-
     else:
         print()
         raise Exception(
-                """data_type must be 'appResistivity' |
-                'appConductivity' | 'volt' | 'appChargeability' """
+                """data_type must be 'volt' | 'appResistivity' |
+                'appConductivity' | 'appChargeability' | misfitMap"""
                 " not {}".format(data_type)
         )
 
@@ -432,16 +426,19 @@ def plot_pseudoSection(
         )
 
     if data_type == 'appConductivity':
-        cbar.set_label("App.Cond", size=12)
+        cbar.set_label("Apparent Conductivity (S/m)", size=12)
 
     elif data_type == 'appResistivity':
-        cbar.set_label("App.Res.", size=12)
+        cbar.set_label("Apparent Resistivity ($\\Omega$m)", size=12)
 
     elif data_type == 'volt':
-        cbar.set_label("Potential (V)", size=12)
+        cbar.set_label("Voltage (V)", size=12)
 
     elif data_type == 'appChargeability':
-        cbar.set_label("App. Chrge (V/V)", size=12)
+        cbar.set_label("Apparent Chargeability (V/V)", size=12)
+
+    elif data_type == 'misfitMap':
+        cbar.set_label(None, size=12)
 
     cmin, cmax = cbar.get_clim()
     ticks = np.linspace(cmin, cmax, 3)
