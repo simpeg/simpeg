@@ -137,7 +137,7 @@ plot_pseudoSection(
     data_type='appChargeability', space_type='half-space', scale='linear',
     pcolorOpts={'cmap':'plasma'}
 )
-ax1.set_title('Apparent Chargeability (mV/V)')
+ax1.set_title('Apparent Chargeability (V/V)')
 
 plt.show()
 
