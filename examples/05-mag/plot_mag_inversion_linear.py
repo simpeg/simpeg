@@ -9,16 +9,14 @@ with a compact norm
 import matplotlib.pyplot as plt
 import numpy as np
 
-from SimPEG import Mesh
-from SimPEG import Utils
-from SimPEG import Maps
-from SimPEG import Regularization
-from SimPEG import DataMisfit
-from SimPEG import Optimization
-from SimPEG import InvProblem
-from SimPEG import Directives
-from SimPEG import Inversion
-from SimPEG import PF
+from discretize import TensorMesh
+from SimPEG.potential_fields import magnetics
+from SimPEG import utils
+from SimPEG import (
+    data, data_misfit, maps, regularization, optimization, inverse_problem,
+    directives, inversion
+    )
+
 
 
 def run(plotIt=True):
@@ -33,7 +31,7 @@ def run(plotIt=True):
     hyind = [(dx, 5, -1.3), (dx, 10), (dx, 5, 1.3)]
     hzind = [(dx, 5, -1.3), (dx, 10)]
 
-    mesh = Mesh.TensorMesh([hxind, hyind, hzind], 'CCC')
+    mesh = TensorMesh([hxind, hyind, hzind], 'CCC')
 
     # Get index of the center
     midx = int(mesh.nCx/2)
@@ -44,10 +42,10 @@ def run(plotIt=True):
     zz = -np.exp((xx**2 + yy**2) / 75**2) + mesh.vectorNz[-1]
 
     # We would usually load a topofile
-    topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
+    topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
     # Go from topo to array of indices of active cells
-    actv = Utils.surface2ind_topo(mesh, topo, 'N')
+    actv = utils.surface2ind_topo(mesh, topo, 'N')
     actv = np.where(actv)[0]
     nC = len(actv)
 
@@ -60,79 +58,78 @@ def run(plotIt=True):
     Z = -np.exp((X**2 + Y**2) / 75**2) + mesh.vectorNz[-1] + 5.
 
     # Create a MAGsurvey
-    rxLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
-    rxLoc = PF.BaseMag.RxObs(rxLoc)
-    srcField = PF.BaseMag.SrcField([rxLoc], param=H0)
-    survey = PF.BaseMag.LinearSurvey(srcField)
+    rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
+    rxLoc = magnetics.receivers.point_receiver(rxLoc, components=["tmi"])
+    srcField = magnetics.sources.SourceField(receiver_list=[rxLoc], parameters=H0)
+    survey = magnetics.survey.MagneticSurvey(srcField)
 
     # We can now create a susceptibility model and generate data
     # Here a simple block in half-space
     model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
     model[(midx-2):(midx+2), (midy-2):(midy+2), -6:-2] = 0.02
-    model = Utils.mkvc(model)
+    model = utils.mkvc(model)
     model = model[actv]
 
     # Create active map to go from reduce set to full
-    actvMap = Maps.InjectActiveCells(mesh, actv, -100)
+    actvMap = maps.InjectActiveCells(mesh, actv, -100)
 
     # Create reduced identity map
-    idenMap = Maps.IdentityMap(nP=nC)
+    idenMap = maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
-    prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap, actInd=actv)
-
-    # Pair the survey and problem
-    survey.pair(prob)
+    simulation = magnetics.simulation.MagneticIntegralSimulation(
+            survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv
+            )
 
     # Compute linear forward operator and compute some data
-    d = prob.fields(model)
+    d = simulation.dpred(model)
 
     # Add noise and uncertainties
     # We add some random Gaussian noise (1nT)
-    data = d + np.random.randn(len(d))
-    wd = np.ones(len(data))*1.  # Assign flat uncertainties
-
-    survey.dobs = data
-    survey.std = wd
-    survey.mtrue = model
-
-    # Create sensitivity weights from our linear forward operator
-    rxLoc = survey.srcField.rxList[0].locs
-    wr = np.sum(prob.G**2., axis=0)**0.5
-    wr = (wr/np.max(wr))
+    synthetic_data = d + np.random.randn(len(d))
+    wd = np.ones(len(synthetic_data))*1.  # Assign flat uncertainties
+    
+    data_object = data.Data(survey, dobs=synthetic_data, noise_floor=wd)
 
     # Create a regularization
-    reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-    reg.cell_weights = wr
+    reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.mref = np.zeros(nC)
     reg.norms = np.c_[0, 0, 0, 0]
     # reg.eps_p, reg.eps_q = 1e-0, 1e-0
-
+    
+    # Create sensitivity weights from our linear forward operator
+    rxLoc = survey.source_field.receiver_list[0].locations
+    m0 = np.ones(nC)*1e-4  # Starting model
+    wr = simulation.getJtJdiag(m0)**0.5
+    wr = (wr/np.max(np.abs(wr)))
+    reg.cell_weights = wr  # include in regularization
     # Data misfit function
-    dmis = DataMisfit.l2_DataMisfit(survey)
+    dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
     dmis.W = 1/wd
 
     # Add directives to the inversion
-    opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
+    opt = optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
                                      maxIterLS=20, maxIterCG=20, tolCG=1e-3)
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
+    invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 
     # Here is where the norms are applied
     # Use pick a threshold parameter empirically based on the distribution of
     #  model parameters
-    IRLS = Directives.Update_IRLS(
-        f_min_change=1e-4, maxIRLSiter=40
+    IRLS = directives.Update_IRLS(
+        f_min_change=1e-4, max_irls_iterations=40
     )
-    saveDict = Directives.SaveOutputEveryIteration(save_txt=False)
-    update_Jacobi = Directives.UpdatePreconditioner()
-    inv = Inversion.BaseInversion(
+    saveDict = directives.SaveOutputEveryIteration(save_txt=False)
+    update_Jacobi = directives.UpdatePreconditioner()
+    inv = inversion.BaseInversion(
         invProb, directiveList=[IRLS, betaest, update_Jacobi, saveDict]
     )
 
     # Run the inversion
-    m0 = np.ones(nC)*1e-4  # Starting model
+    
     mrec = inv.run(m0)
+
+    shutil.rmtree(".\\sensitivity.zarr")
 
     if plotIt:
         # Here is the recovered susceptibility model
@@ -148,7 +145,7 @@ def run(plotIt=True):
         m_true[m_true == -100] = np.nan
 
         # Plot the data
-        Utils.PlotUtils.plot2Ddata(rxLoc, d)
+        utils.PlotUtils.plot2Ddata(rxLoc, d)
 
         plt.figure()
 

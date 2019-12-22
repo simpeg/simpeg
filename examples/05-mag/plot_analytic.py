@@ -6,7 +6,7 @@ Comparing the magnetics field in Vancouver to Seoul
 
 """
 import numpy as np
-from SimPEG import PF
+from SimPEG.potential_fields.magnetics import analytics
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -22,9 +22,9 @@ def run(plotIt=True):
     inckr = -8. + 3./60
     deckr = 54. + 9./60
     btotkr = 50898.6
-    Bokr = PF.MagAnalytics.IDTtoxyz(inckr, deckr, btotkr)
+    Bokr = analytics.IDTtoxyz(inckr, deckr, btotkr)
 
-    bx, by, bz = PF.MagAnalytics.MagSphereAnaFunA(
+    bx, by, bz = analytics.MagSphereAnaFunA(
         X, Y, Z, 100., 0., 0., 0., 0.01, Bokr, 'secondary'
     )
     Bzkr = np.reshape(bz, (np.size(xr), np.size(yr)), order='F')
@@ -33,9 +33,9 @@ def run(plotIt=True):
     incca = 16. + 49./60
     decca = 70. + 19./60
     btotca = 54692.1
-    Boca = PF.MagAnalytics.IDTtoxyz(incca, decca, btotca)
+    Boca = analytics.IDTtoxyz(incca, decca, btotca)
 
-    bx, by, bz = PF.MagAnalytics.MagSphereAnaFunA(
+    bx, by, bz = analytics.MagSphereAnaFunA(
         X, Y, Z, 100., 0., 0., 0., 0.01, Boca, 'secondary'
     )
     Bzca = np.reshape(bz, (np.size(xr), np.size(yr)), order='F')

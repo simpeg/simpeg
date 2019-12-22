@@ -11,7 +11,7 @@ First we invert the TMI for an equivalent source layer, from which we
 recover 3-component magnetic data. This data is then transformed to amplitude
 
 Secondly, we invert the non-linear inverse problem with
-:class:`SimPEG.Directives.UpdateSensitivityWeights`. We also
+:class:`SimPEG.directives.UpdateSensitivityWeights`. We also
 uses the :class:`SimPEG.Regularization.Sparse` to apply sparsity
 assumption in order to improve the recovery of a cube prism.
 
@@ -19,14 +19,22 @@ assumption in order to improve the recovery of a cube prism.
 
 import scipy as sp
 import numpy as np
+import shutil
 import matplotlib.pyplot as plt
 from scipy.interpolate import NearestNDInterpolator
-from SimPEG import (Mesh, Directives, Maps,
-                    InvProblem, Optimization, DataMisfit,
-                    Inversion, Utils, Regularization)
+from discretize import TreeMesh
+from SimPEG import (
+    data, data_misfit, directives, maps, inverse_problem, optimization,
+    inversion, regularization
+    )
 
-import SimPEG.PF as PF
-from SimPEG.Utils import mkvc
+from SimPEG.potential_fields import magnetics
+try:
+    from SimPEG import utils
+    from SimPEG.utils import mkvc
+except:
+    from SimPEG import Utils as utils
+    from SimPEG.Utils import mkvc
 
 # sphinx_gallery_thumbnail_number = 4
 
@@ -56,7 +64,7 @@ chi_e = 0.05
 b = 100
 A = 50
 zz = A*np.exp(-0.5*((xx/b)**2. + (yy/b)**2.))
-topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
+topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Create and array of observation points
 xr = np.linspace(-100., 100., 20)
@@ -65,10 +73,10 @@ X, Y = np.meshgrid(xr, yr)
 Z = A*np.exp(-0.5*((X/b)**2. + (Y/b)**2.)) + 5
 
 # Create a MAGsurvey
-rxLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
-Rx = PF.BaseMag.RxObs(rxLoc)
-srcField = PF.BaseMag.SrcField([Rx], param=H0)
-survey = PF.BaseMag.LinearSurvey(srcField)
+rxLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
+rxList = magnetics.receivers.point_receiver(rxLoc)
+srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
+survey = magnetics.survey.MagneticSurvey(srcField)
 
 # Here how the topography looks with a quick interpolation, just a Gaussian...
 tri = sp.spatial.Delaunay(topo)
@@ -123,9 +131,9 @@ maxLevel = int(np.log2(extent/h[0]))+1
 nCx, nCy, nCz = 2**(maxLevel), 2**(maxLevel), 2**(maxLevel)
 
 # Define the mesh and origin
-mesh = Mesh.TreeMesh([np.ones(nCx)*h[0],
-                      np.ones(nCx)*h[1],
-                      np.ones(nCx)*h[2]])
+mesh = TreeMesh([np.ones(nCx)*h[0],
+                 np.ones(nCx)*h[1],
+                 np.ones(nCx)*h[2]])
 
 # Set origin
 mesh.x0 = np.r_[-nCx*h[0]/2.+midX, -nCy*h[1]/2.+midY, -nCz*h[2]/2.+midZ]
@@ -164,7 +172,7 @@ for ii in range(3):
 mesh.finalize()
 
 # Define an active cells from topo
-actv = Utils.surface2ind_topo(mesh, topo)
+actv = utils.surface2ind_topo(mesh, topo)
 nC = int(actv.sum())
 
 ###########################################################################
@@ -175,10 +183,10 @@ nC = int(actv.sum())
 #
 
 # Convert the inclination declination to vector in Cartesian
-M_xyz = Utils.matutils.dip_azimuth2cartesian(np.ones(nC)*M[0], np.ones(nC)*M[1])
+M_xyz = utils.matutils.dip_azimuth2cartesian(np.ones(nC)*M[0], np.ones(nC)*M[1])
 
 # Get the indicies of the magnetized block
-ind = Utils.ModelBuilder.getIndicesBlock(
+ind = utils.ModelBuilder.getIndicesBlock(
     np.r_[-20, -20, -10], np.r_[20, 20, 25],
     mesh.gridCC,
 )[0]
@@ -192,36 +200,32 @@ model[ind] = chi_e
 model = model[actv]
 
 # Creat reduced identity map
-idenMap = Maps.IdentityMap(nP=nC)
+idenMap = maps.IdentityMap(nP=nC)
 
 # Create the forward model operator
-prob = PF.Magnetics.MagneticIntegral(
-    mesh, M=M_xyz, chiMap=idenMap, actInd=actv
+simulation = magnetics.simulation.MagneticIntegralSimulation(
+    survey=survey, mesh=mesh, M=M_xyz, chiMap=idenMap, actInd=actv, forward_only=True
 )
 
-# Pair the survey and problem
-survey.pair(prob)
-
 # Compute some data and add some random noise
-data = prob.fields(model)
+synthetic_data = simulation.dpred(model)
 
 # Split the data in components
 nD = rxLoc.shape[0]
 
 std = 5  # nT
-data += np.random.randn(nD)*std
+synthetic_data += np.random.randn(nD)*std
 wd = np.ones(nD)*std
 
 # Assigne data and uncertainties to the survey
-survey.dobs = data
-survey.std = wd
+data_object = data.Data(survey, dobs=synthetic_data, noise_floor=wd)
 
 
 # Plot the model and data
 plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 1, 1)
-im = Utils.PlotUtils.plot2Ddata(
-        rxLoc, data, ax=ax, contourOpts={"cmap": "RdBu_r"}
+im = utils.PlotUtils.plot2Ddata(
+        rxLoc, synthetic_data, ax=ax, contourOpts={"cmap": "RdBu_r"}
 )
 plt.colorbar(im[0])
 ax.set_title('Predicted data.')
@@ -231,7 +235,7 @@ plt.gca().set_aspect('equal', adjustable='box')
 ax = plt.subplot(2, 1, 2)
 
 # Create active map to go from reduce set to full
-actvPlot = Maps.InjectActiveCells(mesh, actv, np.nan)
+actvPlot = maps.InjectActiveCells(mesh, actv, np.nan)
 mesh.plotSlice(
     actvPlot*model, ax=ax, normal='Y', ind=66,
     pcolorOpts={"vmin": 0., "vmax": 0.01}, grid=True,
@@ -255,57 +259,50 @@ plt.show()
 #
 
 # Get the active cells for equivalent source is the top only
-surf = Utils.modelutils.surface_layer_index(mesh, topo)
+surf = utils.modelutils.surface_layer_index(mesh, topo)
 nC = np.count_nonzero(surf)  # Number of active cells
 
 # Create active map to go from reduce set to full
-surfMap = Maps.InjectActiveCells(mesh, surf, np.nan)
+surfMap = maps.InjectActiveCells(mesh, surf, np.nan)
 
 # Create identity map
-idenMap = Maps.IdentityMap(nP=nC)
+idenMap = maps.IdentityMap(nP=nC)
 
 # Create static map
-prob = PF.Magnetics.MagneticIntegral(
-        mesh, chiMap=idenMap, actInd=surf,
-        parallelized=False, equiSourceLayer=True)
-
-prob.solverOpts['accuracyTol'] = 1e-4
-
-# Pair the survey and problem
-if survey.ispaired:
-    survey.unpair()
-survey.pair(prob)
-
+simulation = magnetics.simulation.MagneticIntegralSimulation(
+        mesh=mesh, survey=survey, chiMap=idenMap, actInd=surf,
+#        parallelized=False, equiSourceLayer=True
+        )
 
 # Create a regularization function, in this case l2l2
-reg = Regularization.Sparse(
-    mesh, indActive=surf, mapping=Maps.IdentityMap(nP=nC), scaledIRLS=False
+reg = regularization.Sparse(
+    mesh, indActive=surf, mapping=maps.IdentityMap(nP=nC), scaledIRLS=False
 )
 reg.mref = np.zeros(nC)
 
 # Specify how the optimization will proceed, set susceptibility bounds to inf
-opt = Optimization.ProjectedGNCG(
+opt = optimization.ProjectedGNCG(
     maxIter=20, lower=-np.inf, upper=np.inf, maxIterLS=20,
     maxIterCG=20, tolCG=1e-3
 )
 
 # Define misfit function (obs-calc)
-dmis = DataMisfit.l2_DataMisfit(survey)
-dmis.W = 1./survey.std
+dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
+dmis.W = 1./data_object.uncertainty
 
 # Create the default L2 inverse problem from the above objects
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Specify how the initial beta is found
-betaest = Directives.BetaEstimate_ByEig()
+betaest = directives.BetaEstimate_ByEig()
 
 # Target misfit to stop the inversion,
 # try to fit as much as possible of the signal, we don't want to lose anything
-IRLS = Directives.Update_IRLS(f_min_change=1e-3, minGNiter=1,
+IRLS = directives.Update_IRLS(f_min_change=1e-3, minGNiter=1,
                               beta_tol=1e-1)
-update_Jacobi = Directives.UpdatePreconditioner()
+update_Jacobi = directives.UpdatePreconditioner()
 # Put all the parts together
-inv = Inversion.BaseInversion(invProb,
+inv = inversion.BaseInversion(invProb,
                               directiveList=[betaest, IRLS, update_Jacobi])
 
 # Run the equivalent source inversion
@@ -320,12 +317,15 @@ mrec = inv.run(mstart)
 # components of the field and add them up: :math:`|B| = \sqrt{( Bx^2 + Bx^2 + Bx^2 )}`
 #
 
-prob.forwardOnly = True
-prob.rx_type = 'xyz'
-prob._G = None
-prob.modelType = 'amplitude'
-prob.model = mrec
-pred = prob.fields(mrec)
+rxList = magnetics.receivers.point_receiver(rxLoc, components=['bx', 'by', 'bz'])
+srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
+surveyAmp = magnetics.survey.MagneticSurvey(srcField)
+
+simulation = magnetics.simulation.MagneticIntegralSimulation(
+        mesh=mesh, survey=surveyAmp, chiMap=idenMap, actInd=surf, modelType='amplitude'
+        )
+
+pred = simulation.fields(mrec)
 
 bx = pred[:nD]
 by = pred[nD:2*nD]
@@ -337,7 +337,7 @@ bAmp = (bx**2. + by**2. + bz**2.)**0.5
 # Plot the layer model and data
 plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 2, 1)
-im = Utils.PlotUtils.plot2Ddata(
+im = utils.PlotUtils.plot2Ddata(
         rxLoc, invProb.dpred, ax=ax, contourOpts={"cmap": "RdBu_r"}
 )
 plt.colorbar(im[0])
@@ -345,7 +345,7 @@ ax.set_title('Predicted data.')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(2, 2, 2)
-im = Utils.PlotUtils.plot2Ddata(
+im = utils.PlotUtils.plot2Ddata(
         rxLoc, bAmp, ax=ax, contourOpts={"cmap": "RdBu_r"}
 )
 plt.colorbar(im[0])
@@ -376,63 +376,61 @@ plt.show()
 
 
 # Create active map to go from reduce space to full
-actvMap = Maps.InjectActiveCells(mesh, actv, -100)
+actvMap = maps.InjectActiveCells(mesh, actv, -100)
 nC = int(actv.sum())
 
 # Create identity map
-idenMap = Maps.IdentityMap(nP=nC)
+idenMap = maps.IdentityMap(nP=nC)
 
 mstart = np.ones(nC)*1e-4
 
 # Create the forward model operator
-prob = PF.Magnetics.MagneticIntegral(
-    mesh, chiMap=idenMap, actInd=actv,
-    modelType='amplitude', rx_type='xyz'
-)
-prob.model = mstart
-# Change the survey to xyz components
-surveyAmp = PF.BaseMag.LinearSurvey(survey.srcField)
+#simulation = magnetics.simulation.MagneticIntegralSimulation(
+#    survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv,
+#    modelType='amplitude'
+#)
 
-# Pair the survey and problem
-surveyAmp.pair(prob)
+# Change the survey to xyz components
+#surveyAmp = magnetics.survey.MagneticSurvey(survey.source_field)
+
 # Create a regularization function, in this case l2l2
-wr = np.sum(prob.G**2., axis=0)**0.5
-wr = (wr/np.max(wr))
+wr = simulation.getJtJdiag(mstart)**0.5
+wr = (wr/np.max(np.abs(wr)))
 # Re-set the observations to |B|
-surveyAmp.dobs = bAmp
-surveyAmp.std = wd
+
+data_obj = data.Data(survey, dobs=bAmp, noise_Floor=wd)
 
 # Create a sparse regularization
-reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
 reg.norms = np.c_[1, 0, 0, 0]
 reg.mref = np.zeros(nC)
 reg.cell_weights = wr
 # Data misfit function
-dmis = DataMisfit.l2_DataMisfit(surveyAmp)
-dmis.W = 1./surveyAmp.std
+dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
+dmis.W = 1./data_object.uncertainty
 
 # Add directives to the inversion
-opt = Optimization.ProjectedGNCG(maxIter=30, lower=0., upper=1.,
+opt = optimization.ProjectedGNCG(maxIter=30, lower=0., upper=1.,
                                  maxIterLS=20, maxIterCG=20,
                                  tolCG=1e-3)
 
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Here is the list of directives
-betaest = Directives.BetaEstimate_ByEig()
+betaest = directives.BetaEstimate_ByEig()
 
 # Specify the sparse norms
-IRLS = Directives.Update_IRLS(f_min_change=1e-3,
+IRLS = directives.Update_IRLS(f_min_change=1e-3,
                               minGNiter=1, coolingRate=1,
                               betaSearch=False)
 
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are update between each iteration.
-update_SensWeight = Directives.UpdateSensitivityWeights()
-update_Jacobi = Directives.UpdatePreconditioner()
+update_SensWeight = directives.UpdateSensitivityWeights()
+update_Jacobi = directives.UpdatePreconditioner()
 
 # Put all together
-inv = Inversion.BaseInversion(
+inv = inversion.BaseInversion(
     invProb, directiveList=[
         betaest, IRLS, update_SensWeight, update_Jacobi
         ]
@@ -456,7 +454,7 @@ mrec_Amp = inv.run(mstart)
 # Plot the layer model and data
 plt.figure(figsize=(12, 8))
 ax = plt.subplot(3, 1, 1)
-im = Utils.PlotUtils.plot2Ddata(
+im = utils.PlotUtils.plot2Ddata(
         rxLoc, invProb.dpred, ax=ax, contourOpts={"cmap": "RdBu_r"}
  )
 plt.colorbar(im[0])

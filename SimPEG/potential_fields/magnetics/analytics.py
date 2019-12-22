@@ -40,12 +40,12 @@ def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag='total'):
         print("Specify same size of x, y, z")
         return
     dim = x.shape
-    x = Utils.mkvc(x)
-    y = Utils.mkvc(y)
-    z = Utils.mkvc(z)
+    x = utils.mkvc(x)
+    y = utils.mkvc(y)
+    z = utils.mkvc(z)
 
     ind = np.sqrt((x-x0)**2+(y-y0)**2+(z-z0)**2) < R
-    r = Utils.mkvc(np.sqrt((x-x0)**2+(y-y0)**2+(z-z0)**2))
+    r = utils.mkvc(np.sqrt((x-x0)**2+(y-y0)**2+(z-z0)**2))
     Bx = np.zeros(x.size)
     By = np.zeros(x.size)
     Bz = np.zeros(x.size)
@@ -145,9 +145,9 @@ def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
         print("Specify same size of x, y, z")
         return
     dim = x.shape
-    x = Utils.mkvc(x)
-    y = Utils.mkvc(y)
-    z = Utils.mkvc(z)
+    x = utils.mkvc(x)
+    y = utils.mkvc(y)
+    z = utils.mkvc(z)
 
     Bot = np.sqrt(sum(Bo**2))
     mx = Bo[0]/Bot
@@ -171,7 +171,7 @@ def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
         By[ind] = Bo[1]*(rf2)-Bo[1]
         Bz[ind] = Bo[2]*(rf2)-Bo[2]
 
-    r = Utils.mkvc(np.sqrt((x-xc)**2+(y-yc)**2+(z-zc)**2 ))
+    r = utils.mkvc(np.sqrt((x-xc)**2+(y-yc)**2+(z-zc)**2 ))
     V = 4*np.pi*R**3/3
     mom = Bot/mu_0*chi/(1+chi/3)*V
     const = mu_0/(4*np.pi)*mom
@@ -208,9 +208,9 @@ def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
         print("Specify same size of x, y, z")
         return
 
-    x = Utils.mkvc(x)
-    y = Utils.mkvc(y)
-    z = Utils.mkvc(z)
+    x = utils.mkvc(x)
+    y = utils.mkvc(y)
+    z = utils.mkvc(z)
 
     nobs = len(x)
 
@@ -229,8 +229,8 @@ def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
     rvec = np.c_[rx, ry, rz]
     r = np.sqrt((rx)**2+(ry)**2+(rz)**2)
 
-    B = -Utils.sdiag(1./r**3)*M + \
-        Utils.sdiag((3 * np.sum(M*rvec, axis=1))/r**5)*rvec
+    B = -utils.sdiag(1./r**3)*M + \
+        utils.sdiag((3 * np.sum(M*rvec, axis=1))/r**5)*rvec
 
     Bx = B[:, 0]
     By = B[:, 1]

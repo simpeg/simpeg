@@ -102,7 +102,7 @@ class MagneticIntegralSimulation(LinearSimulation):
         if self.coordinate_system == 'cartesian':
             m = self.chiMap*(m)
         else:
-            m = self.chiMap*(matutils.atp2xyz(m.reshape((int(len(m)/3), 3), order='F')))
+            m = self.chiMap*(matutils.spherical2cartesian(m.reshape((int(len(m)/3), 3), order='F')))
 
         if self.forward_only:
             # Compute the linear operation without forming the full dense F
@@ -293,10 +293,10 @@ class MagneticIntegralSimulation(LinearSimulation):
 
             nC = int(len(self.model)/3)
 
-            m_xyz = self.chiMap * matutils.atp2xyz(self.model.reshape((nC, 3), order='F'))
+            m_xyz = self.chiMap * matutils.spherical2cartesian(self.model.reshape((nC, 3), order='F'))
 
             nC = int(m_xyz.shape[0]/3.)
-            m_atp = matutils.xyz2atp(m_xyz.reshape((nC, 3), order='F'))
+            m_atp = matutils.cartesian2spherical(m_xyz.reshape((nC, 3), order='F'))
 
             a = m_atp[:nC]
             t = m_atp[nC:2*nC]
@@ -353,7 +353,7 @@ class MagneticIntegralSimulation(LinearSimulation):
 
         # Get field data
         if self.coordinate_system == 'spherical':
-            m = matutils.atp2xyz(m)
+            m = matutils.spherical2cartesian(m)
 
         if getattr(self, '_Mxyz', None) is not None:
             Bxyz = da.dot(self.G, (self.Mxyz*m).astype(np.float32))

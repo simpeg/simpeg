@@ -245,7 +245,8 @@ def readUBCmagneticsObservations(obs_file):
         :param survey
         :param M, magnetization orentiaton (MI, MD)
     """
-    from SimPEG.PF import BaseMag
+    from SimPEG.potential_fields import magnetics
+    from SimPEG import data
     fid = open(obs_file, 'r')
 
     # First line has the inclination,declination and amplitude of B0
@@ -283,15 +284,15 @@ def readUBCmagneticsObservations(obs_file):
             ii += 1
         line = fid.readline()
 
-    rxLoc = BaseMag.RxObs(locXYZ)
-    srcField = BaseMag.SrcField([rxLoc], param=(B[2], B[0], B[1]))
-    survey = BaseMag.LinearSurvey(srcField)
-    survey.dobs = d
-    survey.std = wd
-    return survey, M
+    rxLoc = magnetics.receivers.point_receiver(locXYZ)
+    srcField = magnetics.sources.SourceField([rxLoc], param=(B[2], B[0], B[1]))
+    survey = magnetics.survey.MagneticSurvey(srcField)
+    data_object = data.Data(survey, dobs=d, noise_floor=wd)
+
+    return survey, data_object
 
 
-def writeUBCmagneticsObservations(filename, survey, d):
+def writeUBCmagneticsObservations(filename, survey, data_object):
     """
     writeUBCobs(filename,B,M,rxLoc,d,wd)
 
@@ -310,11 +311,12 @@ def writeUBCmagneticsObservations(filename, survey, d):
     @author: dominiquef
     """
 
-    B = survey.srcField.param
+    B = survey.source_field.parameters
 
-    rxLoc = survey.srcField.rxList[0].locs
+    rxLoc = survey.source_field.receiver_list[0].locationss
 
-    wd = survey.std
+    d = data_object.dobs
+    wd = data_object.uncertainty
 
     data = np.c_[rxLoc, d, wd]
     head = ('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0]) +
@@ -339,7 +341,8 @@ def readUBCgravityObservations(obs_file):
     :param survey
 
     """
-    from SimPEG.PF import BaseGrav
+    from SimPEG.potential_fields import gravity
+    from SimPEG import data
     fid = open(obs_file, 'r')
 
     # First line has the number of rows
@@ -363,15 +366,14 @@ def readUBCgravityObservations(obs_file):
             ii += 1
         line = fid.readline()
 
-    rxLoc = BaseGrav.RxObs(locXYZ)
-    srcField = BaseGrav.SrcField([rxLoc])
-    survey = BaseGrav.LinearSurvey(srcField)
-    survey.dobs = d
-    survey.std = wd
-    return survey
+    rxLoc = gravity.receivers.point_receiver(locXYZ)
+    srcField = gravity.sources.SourceField([rxLoc])
+    survey = gravity.survey.GravitySurvey(srcField)
+    data_object = data.Data(survey, dobs=d, noise_floor=wd)
+    return survey, data_object
 
 
-def writeUBCgravityObservations(filename, survey, d):
+def writeUBCgravityObservations(filename, survey, data_object):
     """
         Write UBC grav file format
 
@@ -381,9 +383,11 @@ def writeUBCgravityObservations(filename, survey, d):
         :param: data array
 
     """
-    rxLoc = survey.srcField.rxList[0].locs
+    rxLoc = survey.source_field.receiver_list[0].locations
 
-    wd = survey.std
+    d = data_object.dobs
+
+    wd = data_object.uncertainty
 
     data = np.c_[rxLoc, d, wd]
     head = ('%i\n' % len(d))
