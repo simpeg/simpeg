@@ -510,9 +510,28 @@ class IO(properties.HasProperties):
                 )
             x0 = self.electrode_locations[:, 0].min()
             if topo is None:
-                locs = np.sort(self.electrode_locations, axis=0)
+                # For 2D mesh
+                if dimension == 2:
+                    # sort by x, then by y
+                    row_idx = np.lexsort((self.electrode_locations[:, 1],
+                                          self.electrode_locations[:, 0]))
+                # For 3D mesh
+                else:
+                    # sort by x, then y, and finally by z
+                    row_idx = np.lexsort((self.electrode_locations[:, 2],
+                                          self.electrode_locations[:, 1],
+                                          self.electrode_locations[:, 0]))
+                locs = self.electrode_locations[row_idx, :]
             else:
-                locs = np.vstack((topo, self.electrode_locations))
+                # For 2D mesh
+                if dimension == 2:
+                    # sort by x, then by y
+                    row_idx = np.lexsort((topo[:, 1], topo[:, 0]))
+                # For 3D mesh
+                else:
+                    # sort by x, then y, and finally by z
+                    row_idx = np.lexsort((topo[:, 2], topo[:, 1], topo[:, 0]))
+                locs = topo[row_idx, :]
 
             if dx > dx_ideal:
                 # warnings.warn(
