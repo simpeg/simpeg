@@ -512,25 +512,23 @@ class IO(properties.HasProperties):
             if topo is None:
                 # For 2D mesh
                 if dimension == 2:
-                    # sort by x, then by y
-                    row_idx = np.lexsort((self.electrode_locations[:, 1],
-                                          self.electrode_locations[:, 0]))
+                    # sort by x
+                    row_idx = np.lexsort((self.electrode_locations[:, 0],))
                 # For 3D mesh
                 else:
-                    # sort by x, then y, and finally by z
-                    row_idx = np.lexsort((self.electrode_locations[:, 2],
-                                          self.electrode_locations[:, 1],
+                    # sort by x, then by y
+                    row_idx = np.lexsort((self.electrode_locations[:, 1],
                                           self.electrode_locations[:, 0]))
                 locs = self.electrode_locations[row_idx, :]
             else:
                 # For 2D mesh
                 if dimension == 2:
-                    # sort by x, then by y
-                    row_idx = np.lexsort((topo[:, 1], topo[:, 0]))
+                    # sort by x
+                    row_idx = np.lexsort((topo[:, 0],))
                 # For 3D mesh
                 else:
-                    # sort by x, then y, and finally by z
-                    row_idx = np.lexsort((topo[:, 2], topo[:, 1], topo[:, 0]))
+                    # sort by x, then by y
+                    row_idx = np.lexsort((topo[:, 1], topo[:, 0]))
                 locs = topo[row_idx, :]
 
             if dx > dx_ideal:
