@@ -1,10 +1,10 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-import discretize
+from discretize import TensorMesh
 from SimPEG import (
     maps, data_misfit, regularization,
-    inversion, optimization, inverse_problem, tests, utils
+    inversion, optimization, inverse_problem, tests
 )
 from SimPEG.utils import mkvc
 from SimPEG.electromagnetics import resistivity as dc
@@ -33,32 +33,31 @@ class DC1DSimulation(unittest.TestCase):
         # We generate tx and rx lists:
         srclist = []
         for i in range(ntx):
-            rx = dc.Rx.Dipole(np.r_[xtemp_rxP, ytemp_rx, -12.5], np.r_[xtemp_rxN, ytemp_rx, -12.5])
+            rx = dc.receivers.Dipole(
+                np.r_[xtemp_rxP, ytemp_rx, -12.5], np.r_[xtemp_rxN, ytemp_rx, -12.5]
+                )
             locA = np.r_[xtemp_txP[i], ytemp_tx[i], -12.5]
             locB = np.r_[xtemp_txN[i], ytemp_tx[i], -12.5]
-            src = dc.Src.Dipole([rx], locA, locB)
+            src = dc.sources.Dipole([rx], locA, locB)
             srclist.append(src)
-        survey = dc.Survey(srclist)
+        survey = dc.survey.Survey(srclist)
 
         rho = np.r_[10, 10, 10]
         dummy_hz = 100.
         hz = np.r_[10, 10, dummy_hz]
-        mesh = discretize.TensorMesh([hz])
+        mesh = TensorMesh([hz])
 
-        problem = dc.DCSimulation_1D(
-            mesh=mesh,
-            rhoMap=maps.ExpMap(mesh),
-            t=hz[:-1],
-            survey=survey,
-            data_type='apparent_resistivity'
+        simulation = dc.simulation_1d.DCSimulation_1D(
+            mesh, survey=survey, rhoMap=maps.ExpMap(mesh),
+            t=hz[:-1], data_type='apparent_resistivity'
         )
-        problem.dpred(np.log(rho))
+        simulation.dpred(np.log(rho))
 
         mSynth = np.log(rho)
-        dobs = problem.makeSyntheticData(mSynth)
+        dobs = simulation.makeSyntheticData(mSynth)
 
         # Now set up the problem to do some minimization
-        dmis = data_misfit.L2DataMisfit(simulation=problem, data=dobs)
+        dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
         reg = regularization.Tikhonov(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
@@ -69,7 +68,7 @@ class DC1DSimulation(unittest.TestCase):
 
         self.inv = inv
         self.reg = reg
-        self.p = problem
+        self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
         self.survey = survey
