@@ -33,19 +33,19 @@ class DCProblem_2DTestsCC(unittest.TestCase):
         A0loc = np.r_[-150, 0.]
         A1loc = np.r_[-130, 0.]
         # rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
-        rx = dc.Rx.Dipole_ky(M, N)
-        src0 = dc.Src.Pole([rx], A0loc)
-        src1 = dc.Src.Pole([rx], A1loc)
-        survey = dc.Survey_ky([src0, src1])
-        problem = getattr(dc, self.formulation)(
+        rx = dc.receivers.Dipole_ky(M, N)
+        src0 = dc.sources.Pole([rx], A0loc)
+        src1 = dc.sources.Pole([rx], A1loc)
+        survey = dc.survey.Survey_ky([src0, src1])
+        simulation = getattr(dc, self.formulation)(
             mesh, rhoMap=maps.IdentityMap(mesh), storeJ=self.storeJ,
             solver=Solver, survey=survey
         )
         mSynth = np.ones(mesh.nC)*1.
-        data = problem.make_synthetic_data(mSynth)
+        data = simulation.make_synthetic_data(mSynth)
 
         # Now set up the problem to do some minimization
-        dmis = data_misfit.L2DataMisfit(simulation=problem, data=data)
+        dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data)
         reg = regularization.Tikhonov(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
@@ -56,7 +56,7 @@ class DCProblem_2DTestsCC(unittest.TestCase):
 
         self.inv = inv
         self.reg = reg
-        self.p = problem
+        self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
         self.survey = survey
