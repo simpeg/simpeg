@@ -62,7 +62,7 @@ class BaseDCSimulation(BaseEMSimulation):
         RHS = self.getRHS()
         Srcs = self.survey.source_list
 
-        print("Fields n_cpu %i" % self.n_cpu)
+        # print("Fields n_cpu %i" % self.n_cpu)
         f[Srcs, self._solutionType] = self.Ainv * RHS  #, num_cores=self.n_cpu).compute()
 
         # if not self.storeJ:

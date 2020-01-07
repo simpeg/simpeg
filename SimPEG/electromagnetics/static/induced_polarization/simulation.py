@@ -88,8 +88,8 @@ class BaseIPSimulation(BaseEMSimulation):
         self._pred = self.forward(m, f=f)
         self._f = f
 
-        if not self.storeJ:
-            self.Ainv.clean()
+        # if not self.storeJ:
+        #     self.Ainv.clean()
 
         return f
 
@@ -224,7 +224,7 @@ class BaseIPSimulation(BaseEMSimulation):
         else:
 
             if f is None:
-                f = self.fields(m)
+                f = self.fields(m).compute()
 
             Jv = []
 
@@ -232,10 +232,8 @@ class BaseIPSimulation(BaseEMSimulation):
                 # solution vector
                 u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(u_src.flatten(), v, adjoint=False)
-                dA_dm_v = da.from_delayed(dA_dm_v, shape=self.model.shape, dtype=float)
                 dRHS_dm_v = self.getRHSDeriv(src, v)
-                dRHS_dm_v = da.from_delayed(dRHS_dm_v, shape=self.model.shape, dtype=float)
-                du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v).compute()
+                du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
 
                 for rx in src.receiver_list:
                     df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
@@ -305,10 +303,10 @@ class BaseIPSimulation(BaseEMSimulation):
                     dA_dmT = self.getADeriv(
                         u_src.flatten(), ATinvdf_duT, adjoint=True
                     )
-                    dA_dmT = da.from_delayed(dA_dmT, shape=self.model.shape, dtype=float)
+                    # dA_dmT = da.from_delayed(dA_dmT, shape=self.model.shape, dtype=float)
                     dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
-                    dRHS_dmT = da.from_delayed(dRHS_dmT, shape=self.model.shape, dtype=float)
-                    du_dmT = (-dA_dmT + dRHS_dmT).compute()
+                    # dRHS_dmT = da.from_delayed(dRHS_dmT, shape=self.model.shape, dtype=float)
+                    du_dmT = (-dA_dmT + dRHS_dmT)
                     Jtv += (df_dmT + du_dmT).astype(float)
                 else:
                     P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
@@ -328,7 +326,7 @@ class BaseIPSimulation(BaseEMSimulation):
         # Resistivity ((d u / d log rho).T) - HJ form
 
         if v is not None:
-            return self.sign*mkvc(Jtv)
+            return self.sign * mkvc(Jtv)
         else:
             return Jtv
         return
