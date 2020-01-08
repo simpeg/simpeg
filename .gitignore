@@ -41,6 +41,7 @@ docs/_build/
 docs/warnings.txt
 .DS_Store
 docs/content/examples/*
+docs/content/tutorials/models_mapping*
 docs/modules/*
 examples/00_published/bookpurnong_inversion/*
 examples/00_published/*.tar.gz

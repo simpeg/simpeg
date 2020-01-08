@@ -6,27 +6,32 @@ About SimPEG
 
 .. toctree::
    :maxdepth: 2
+   :caption: Getting Started
 
    content/basic/big_picture
    content/basic/contributing
    content/basic/installing
    content/basic/getting_started_developers
    content/basic/practices
+   content/examples/index
 
-
-Examples
-********
+Tutorials
+*********
 
 .. toctree::
    :maxdepth: 2
+   :caption: Tutorials
 
-   content/examples/index
+   content/tutorials/mesh_generation/index
+   content/tutorials/models_mapping/index
+   
 
 Packages
 ********
 
 .. toctree::
    :maxdepth: 3
+   :caption: Documentation
 
    content/em/index
    content/dc/index
@@ -35,44 +40,17 @@ Packages
    content/vrm/index
    content/flow/index
 
-Finite Volume
-*************
+API
+***
 
 .. toctree::
    :maxdepth: 3
+   :caption: API
 
    content/api_core/api_FiniteVolume
-
-Forward Problems
-****************
-
-.. toctree::
-   :maxdepth: 3
-
    content/api_core/api_ForwardProblem
-
-Inversion Components
-********************
-
-.. toctree::
-   :maxdepth: 3
-
    content/api_core/api_InversionComponents
-
-Maps
-****
-
-.. toctree::
-   :maxdepth: 3
-
    content/api_core/api_Maps
-
-Utility Codes
-*************
-
-.. toctree::
-   :maxdepth: 3
-
    content/api_core/api_Utilities
 
 
