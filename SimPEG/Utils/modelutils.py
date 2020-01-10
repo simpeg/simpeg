@@ -33,7 +33,7 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.n
         if mesh.dim == 3:
             # Check if Topo points are inside of the mesh
             xmin, xmax = mesh.vectorNx.min(), mesh.vectorNx.max()
-            xminTopo, xmaxTopo = topo[:, 0].min(), topo[:, 1].min()
+            xminTopo, xmaxTopo = topo[:, 0].min(), topo[:, 0].max()
             ymin, ymax = mesh.vectorNy.min(), mesh.vectorNy.max()
             yminTopo, ymaxTopo = topo[:, 1].min(), topo[:, 1].max()
             if (xminTopo > xmin) or (xmaxTopo < xmax) or (yminTopo > ymin) or (ymaxTopo < ymax):
@@ -76,7 +76,7 @@ def surface2ind_topo(mesh, topo, gridLoc='CC', method='nearest', fill_value=np.n
         elif mesh.dim == 2:
             # Check if Topo points are inside of the mesh
             xmin, xmax = mesh.vectorNx.min(), mesh.vectorNx.max()
-            xminTopo, xmaxTopo = topo[:, 0].min(), topo[:, 1].min()
+            xminTopo, xmaxTopo = topo[:, 0].min(), topo[:, 0].max()
             if (xminTopo > xmin) or (xmaxTopo < xmax):
                 fill_value = "extrapolate"
 
