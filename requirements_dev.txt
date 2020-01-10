@@ -16,3 +16,4 @@ dask
 toolz
 zarr
 sparse
+empymod

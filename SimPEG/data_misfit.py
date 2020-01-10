@@ -160,9 +160,9 @@ class L2DataMisfit(BaseDataMisfit):
         "__call__(m, f=None)"
         if isinstance(f, Delayed):
             f = f.compute()
-            
+
         R = self.W * self.residual(m, f=f)
-        return 0.5*np.vdot(R, R)
+        return 0.5 * np.vdot(R, R)
 
     @timeIt
     def deriv(self, m, f=None):
@@ -175,13 +175,13 @@ class L2DataMisfit(BaseDataMisfit):
         :param numpy.ndarray m: model
         :param SimPEG.Fields.Fields f: fields object
         """
-        
+
         if isinstance(f, Delayed):
             f = f.compute()
-            
+
         if f is None:
-            f = self.simulation.fields(m)
-            
+            f = self.simulation.fields(m).compute()
+
         return self.simulation.Jtvec(
             m, self.W.T * (self.W * self.residual(m, f=f)), f=f
         )
@@ -196,12 +196,12 @@ class L2DataMisfit(BaseDataMisfit):
         :param numpy.ndarray v: vector
         :param SimPEG.Fields.Fields f: fields object
         """
-        
+
         if isinstance(f, Delayed):
             f = f.compute()
-            
+
         if f is None:
-            f = self.simulation.fields(m)
+            f = self.simulation.fields(m).compute()
         return self.simulation.Jtvec_approx(
             m, self.W * (self.W * self.simulation.Jvec_approx(m, v, f=f)), f=f
         )

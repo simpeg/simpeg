@@ -138,7 +138,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
 
         m = -1 + 1e-1*np.random.rand(self.sigma_map.nP)
         u = self.prob.fields(m).compute()
-        u = u[self.survey.source_list,'e']
+        # u = u[self.survey.source_list,'e']
 
         v = np.random.rand(self.survey.nD)
         w = np.random.rand(self.sigma_map.nP)
@@ -249,8 +249,9 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
         survey = dc.survey.Survey(srcList)
         simulation = dc.simulation.Problem3D_CC(
-            mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh), storeJ=True
-            )
+            mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh),
+            storeJ=True
+        )
 
         mSynth = np.ones(mesh.nC)
         dobs = simulation.makeSyntheticData(mSynth)

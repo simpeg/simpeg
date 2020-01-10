@@ -20,6 +20,7 @@ from pyMKL import mkl_set_num_threads, mkl_get_max_threads
 import zarr
 import time
 import sparse
+from dask.delayed import Delayed
 
 
 class BaseDCSimulation(BaseEMSimulation):
@@ -93,10 +94,9 @@ class BaseDCSimulation(BaseEMSimulation):
         if self._Jmatrix is not None:
             return self._Jmatrix
         else:
-
             self.model = m
-            if f is None:
-                f = self.fields(m).compute()
+        if f is None:
+            f = self.fields(m).compute()
 
         if self.verbose:
             print("Calculating J and storing")
@@ -151,15 +151,20 @@ class BaseDCSimulation(BaseEMSimulation):
                 for col in range(n_block_col):
                     ATinvdf_duT = da.asarray(self.Ainv * np.asarray(df_duT[:, ind:ind+n_col].todense())).rechunk((nrows, n_col))
                     # dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
-                    adjoint = True
-                    Gvec = self.Grad * u_source
-                    Div = da.from_array(
-                        sparse.COO.from_scipy_sparse(self.Div.T),
-                        chunks=(ATinvdf_duT.chunksize[0], ATinvdf_duT.chunksize[0]),
-                        asarray=False
-                    )
-                    Dvec = da.dot(Div, ATinvdf_duT)
-                    dA_dmT = self.MfRhoIDerivDask(Gvec, Dvec, adjoint)
+                    if self._formulation == 'HJ':
+                        adjoint = True
+                        Gvec = self.Grad * u_source
+                        Div = da.from_array(
+                            sparse.COO.from_scipy_sparse(self.Div.T),
+                            chunks=(ATinvdf_duT.chunksize[0], ATinvdf_duT.chunksize[0]),
+                            asarray=False
+                        )
+                        Dvec = da.dot(Div, ATinvdf_duT)
+                        dA_dmT = self.MfRhoIDerivDask(Gvec, Dvec, adjoint)
+                    else:
+                        dA_dmT = da.from_delayed(dask.delayed(self.getADeriv(u_source, ATinvdf_duT,
+                                                              adjoint=True)),
+                                                 shape=(self.model.size, n_col), dtype=float)
 
                     dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
 
@@ -184,6 +189,7 @@ class BaseDCSimulation(BaseEMSimulation):
             # Stack all the source blocks in one big zarr
             dask_arrays.append(J)
 
+        print(len(dask_arrays))
         self._Jmatrix = da.concatenate(dask_arrays, axis=0).rechunk((rowChunk, colChunk))
         self.Ainv.clean()
 
@@ -193,18 +199,20 @@ class BaseDCSimulation(BaseEMSimulation):
         """
             Compute sensitivity matrix (J) and vector (v) product.
         """
+        if f is None:
+            f = self.fields(m)
+
+        if isinstance(f, Delayed):
+            f = f.compute()
+
         if self.storeJ:
-            J = self.getJ(m, f=f)
+            J = self.getJ(m, f=f).compute()
             Jv = mkvc(np.dot(J, v))
             return Jv
 
         self.model = m
 
-        if f is None:
-            f = self.fields(m).compute()
-
         Jv = []
-
         for src in self.survey.source_list:
             u_src = f[src, self._solutionType]  # solution vector
             dA_dm_v = self.getADeriv(u_src, v)
@@ -221,15 +229,17 @@ class BaseDCSimulation(BaseEMSimulation):
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
 
         """
+        if f is None:
+            f = self.fields(m)
+        if isinstance(f, Delayed):
+            f = f.compute()
+
         if self.storeJ:
-            J = self.getJ(m, f=f)
+            J = self.getJ(m, f=f).compute()
             Jtv = mkvc(np.dot(J.T, v))
             return Jtv
 
         self.model = m
-
-        if f is None:
-            f = self.fields(m).compute()
 
         return self._Jtvec(m, v=v, f=f)
 

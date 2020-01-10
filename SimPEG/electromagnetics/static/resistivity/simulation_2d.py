@@ -34,6 +34,13 @@ class BaseDCSimulation_2D(BaseEMSimulation):
     _Jmatrix = None
     fix_Jmatrix = False
 
+    def set_geometric_factor(self, geometric_factor):
+        index = 0
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
+                rx._geometric_factor = geometric_factor[index]
+                index += 1
+
     def fields(self, m):
         if self.verbose:
             print (">> Compute fields")
@@ -83,9 +90,11 @@ class BaseDCSimulation_2D(BaseEMSimulation):
 
         data = Data(self.survey)
         kys = self.kys
+        cnt = 0
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 data[src, rx] = rx.eval(kys, src, self.mesh, f)
+
         return mkvc(data)
 
     def getJ(self, m, f=None):
