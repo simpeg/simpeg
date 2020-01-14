@@ -176,11 +176,11 @@ class L2DataMisfit(BaseDataMisfit):
         :param SimPEG.Fields.Fields f: fields object
         """
 
+        if f is None:
+            f = self.simulation.fields(m)
+
         if isinstance(f, Delayed):
             f = f.compute()
-
-        if f is None:
-            f = self.simulation.fields(m).compute()
 
         return self.simulation.Jtvec(
             m, self.W.T * (self.W * self.residual(m, f=f)), f=f
@@ -197,11 +197,12 @@ class L2DataMisfit(BaseDataMisfit):
         :param SimPEG.Fields.Fields f: fields object
         """
 
+        if f is None:
+            f = self.simulation.fields(m)
+
         if isinstance(f, Delayed):
             f = f.compute()
 
-        if f is None:
-            f = self.simulation.fields(m).compute()
         return self.simulation.Jtvec_approx(
             m, self.W * (self.W * self.simulation.Jvec_approx(m, v, f=f)), f=f
         )

@@ -53,3 +53,15 @@ examples/00_published/*.png
 *.xyz
 *.npy
 *.mod
+tests/em/static/sensitivity/J0.zarr/0
+tests/em/static/sensitivity/J1.zarr/0
+tests/em/static/sensitivity/J10.zarr/0
+tests/em/static/sensitivity/J11.zarr/0
+tests/em/static/sensitivity/J2.zarr/0
+tests/em/static/sensitivity/J3.zarr/0
+tests/em/static/sensitivity/J4.zarr/0
+tests/em/static/sensitivity/J5.zarr/0
+tests/em/static/sensitivity/J6.zarr/0
+tests/em/static/sensitivity/J7.zarr/0
+tests/em/static/sensitivity/J8.zarr/0
+tests/em/static/sensitivity/J9.zarr/0

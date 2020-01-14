@@ -165,8 +165,15 @@ class BaseDCSimulation(BaseEMSimulation):
                     dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
 
                     dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
-
-                    du_dmT = -dA_dmT
+                    
+                    if n_col > 1:
+                        du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
+                                                 shape=(self.model.size, n_col),
+                                                 dtype=float)
+                    else:
+                        du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
+                                                 shape=(self.model.size,),
+                                                 dtype=float)
 
                     if not isinstance(dRHS_dmT, Zero):
                         du_dmT += da.from_delayed(dask.delayed(dRHS_dmT), shape=(self.model.size, n_col), dtype=float)
@@ -188,7 +195,8 @@ class BaseDCSimulation(BaseEMSimulation):
             # Stack all the source blocks in one big zarr
             dask_arrays.append(J)
 
-        self._Jmatrix = da.concatenate(dask_arrays, axis=0).rechunk((rowChunk, colChunk))
+        # self._Jmatrix = da.concatenate(dask_arrays, axis=0).rechunk((rowChunk, colChunk))
+        self._Jmatrix = da.vstack(dask_arrays).rechunk((rowChunk, colChunk))
         self.Ainv.clean()
 
         return self._Jmatrix
@@ -204,16 +212,16 @@ class BaseDCSimulation(BaseEMSimulation):
         if isinstance(f, Delayed):
             f = f.compute()
 
-        # if self.storeJ:
-        #     J = self.getJ(m, f=f).compute()
-        #     Jv = mkvc(np.dot(J, v))
-        #     return Jv
+        if self.storeJ:
+            J = self.getJ(m, f=f).compute()
+            Jv = mkvc(np.dot(J, v))
+            return Jv
 
         self.model = m
 
-        if self.storeJ:
-            J = self.getJ(m, f=f)
-            return da.dot(J, da.from_array(v, chunks=self._Jmatrix.chunks[1]))
+        # if self.storeJ:
+        #     J = self.getJ(m, f=f)
+        #     return da.dot(J, da.from_array(v, chunks=self._Jmatrix.chunks[1]))
 
         Jv = []
         for source in self.survey.source_list:
@@ -381,7 +389,7 @@ class Problem3D_CC(BaseDCSimulation):
 
         if self.storeJ:
             Gvec = self.Grad * u
-            print('heyo!')
+
             Div = da.from_array(
                     sparse.COO.from_scipy_sparse(self.Div.T),
                     chunks=(v.chunksize[0], v.chunksize[0]), asarray=False
@@ -676,7 +684,6 @@ class Problem3D_N(BaseDCSimulation):
 
         return A
 
-    @dask.delayed()
     def getADeriv(self, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the
