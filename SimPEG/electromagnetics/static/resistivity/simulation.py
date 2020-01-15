@@ -254,8 +254,8 @@ class BaseDCSimulation(BaseEMSimulation):
                 da.dot(
                     da.from_array(
                         v, chunks=self._Jmatrix.chunks[0]), self._Jmatrix
-                    ).compute()
-                )
+                ).compute()
+            )
 
         return self._Jtvec(m, v=v, f=f)
 
@@ -275,7 +275,6 @@ class BaseDCSimulation(BaseEMSimulation):
             Jtv = np.zeros((self.model.size, self.survey.nD), order='F')
             istrt = int(0)
             iend = int(0)
-
 
         for source in self.survey.source_list:
             u_source = f[source, self._solutionType].copy()

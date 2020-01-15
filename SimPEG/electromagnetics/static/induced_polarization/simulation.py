@@ -22,6 +22,7 @@ from pyMKL import mkl_set_num_threads
 import zarr
 import time
 import sparse
+from dask.delayed import Delayed
 # from .survey import Survey
 
 
@@ -100,7 +101,9 @@ class BaseIPSimulation(BaseEMSimulation):
                 d_\\text{pred} = Pf(m)
         """
         if f is None:
-            f = self.fields(m).compute()
+            f = self.fields(m)
+            if isinstance(f, Delayed):
+                f = f.compute()
 
         return self._pred
 
@@ -190,10 +193,20 @@ class BaseIPSimulation(BaseEMSimulation):
                             ATinvdf_duT = da.asarray(self.Ainv * np.asarray(P.T[:, ind:ind + n_col])).rechunk((nrows, n_col))
                             dA_dmT = self.getADeriv(
                                 u_source, ATinvdf_duT, adjoint=True)
+                            # du_dmT = -da.from_delayed(dask.delayed(dA_dmT), shape=(self.model.size, n_col), dtype=float)
 
+                            if n_col > 1:
+                                du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
+                                                         shape=(self.model.size, n_col),
+                                                         dtype=float)
+                            else:
+                                du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
+                                                         shape=(self.model.size,),
+                                                         dtype=float)
+
+                            print(du_dmT.T)
                             blockName = self.Jpath + "J" + str(count) + ".zarr"
-                            du_dmT = -da.from_delayed(dask.delayed(dA_dmT), shape=(self.model.size, n_col), dtype=float)
-                            da.to_zarr((du_dmT.T).rechunk('auto'), blockName)
+                            da.to_zarr((du_dmT.T), blockName)
                             del ATinvdf_duT
                             count += 1
                             ind += n_col
@@ -205,7 +218,7 @@ class BaseIPSimulation(BaseEMSimulation):
                     # Stack all the source blocks in one big zarr
                     dask_arrays.append(J)
 
-                self._Jmatrix = da.concatenate(dask_arrays, axis=0).rechunk((rowChunk, colChunk))
+                self._Jmatrix = da.vstack(dask_arrays).rechunk((rowChunk, colChunk))
                 self.Ainv.clean()
 
         return self._Jmatrix
@@ -215,17 +228,19 @@ class BaseIPSimulation(BaseEMSimulation):
 
         self.model = m
 
+        if f is None:
+            f = self.fields(m)
+
+        if isinstance(f, Delayed):
+            f = f.compute()
+
         # When sensitivity matrix J is stored
         if self.storeJ:
-            J = self.getJ(m, f=f)
-            Jv = mkvc(da.dot(J, v).compute())
+            J = self.getJ(m, f=f).compute()
+            Jv = mkvc(np.dot(J, v))
             return self.sign * Jv
 
         else:
-
-            if f is None:
-                f = self.fields(m).compute()
-
             Jv = []
 
             for src in self.survey.source_list:
@@ -252,6 +267,11 @@ class BaseIPSimulation(BaseEMSimulation):
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
 
         """
+        if f is None:
+            f = self.fields(m)
+
+        if isinstance(f, Delayed):
+            f = f.compute()
 
         # When sensitivity matrix J is stored
         if self.storeJ:

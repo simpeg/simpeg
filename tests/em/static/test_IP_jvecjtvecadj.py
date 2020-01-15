@@ -75,7 +75,7 @@ class IPProblemTestsCC(unittest.TestCase):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
         v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.Survey.nD)
+        w = np.random.rand(self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -131,7 +131,7 @@ class IPProblemTestsN(unittest.TestCase):
         self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
-        self.survey.Survey = survey
+        self.survey = survey
         self.dmis = dmis
 
     def test_misfit(self):
@@ -149,7 +149,7 @@ class IPProblemTestsN(unittest.TestCase):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
         v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.Survey.nD)
+        w = np.random.rand(self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -205,7 +205,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
         self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
-        self.survey.Survey = survey
+        self.survey = survey
         self.dmis = dmis
 
     def test_misfit(self):
@@ -223,7 +223,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
         v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.Survey.nD)
+        w = np.random.rand(self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -279,7 +279,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
         self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
-        self.survey.Survey = survey
+        self.survey = survey
         self.dmis = dmis
 
     def test_misfit(self):
@@ -297,7 +297,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
         v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.Survey.nD)
+        w = np.random.rand(self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
