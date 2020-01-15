@@ -25,6 +25,14 @@ class Data(properties.HasProperties):
     """
     Data storage. This class keeps track of observed data, standard deviation
     of those data and the noise floor.
+
+    .. code:: python
+        data = Data(survey, dobs=dobs, standard_deviation=std, noise_floor=floor)
+
+    or
+
+    .. code:: python
+        data = Data(survey, dobs=dobs, uncertainty=uncertainty)
     """
 
     dobs = properties.Array(
@@ -96,7 +104,8 @@ class Data(properties.HasProperties):
     # Instantiate the class
     #######################
     def __init__(
-        self, survey, dobs=None, standard_deviation=None, noise_floor=None
+        self, survey, dobs=None, standard_deviation=None, noise_floor=None,
+        uncertainty=None
     ):
         super(Data, self).__init__()
         self.survey = survey
@@ -111,6 +120,14 @@ class Data(properties.HasProperties):
 
         if noise_floor is not None:
             self.noise_floor = noise_floor
+
+        if uncertainty is not None:
+            if standard_deviation is not None or noise_floor is not None:
+                warnings.warn(
+                    "Setting the uncertainty overwrites the "
+                    "standard_deviation and noise floor"
+                )
+            self.uncertainty = uncertainty
 
     #######################
     # Properties
@@ -155,7 +172,7 @@ class Data(properties.HasProperties):
 
     @uncertainty.setter
     def uncertainty(self, value):
-        self.self.standard_deviation = np.zeros(self.nD)
+        self.standard_deviation = np.zeros(self.nD)
         self.noise_floor = value
 
     @property
