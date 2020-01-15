@@ -4,7 +4,7 @@ import uuid
 import properties
 import warnings
 
-from .utils import mkvc, Counter, setKwargs
+from .utils import mkvc, Counter
 from .props import BaseSimPEG
 
 
@@ -13,8 +13,7 @@ class RxLocationArray(properties.Array):
     class_info = "an array of receiver locations"
 
     def validate(self, instance, value):
-        if len(value.shape) == 1:
-            value = mkvc(value, 2).T
+        value = np.atleast_2d(value)
         return super(RxLocationArray, self).validate(instance, value)
 
 class SourceLocationArray(properties.Array):
