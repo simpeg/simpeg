@@ -1,6 +1,7 @@
 import numpy as np
 
 from .... import props
+from ....data import Data
 from ....utils import sdiag
 
 from ..resistivity.fields_2d import (
@@ -10,8 +11,6 @@ from ..resistivity.fields_2d import (
 from ..resistivity.simulation_2d import BaseDCSimulation_2D
 from ..resistivity import Problem2D_CC as BaseProblem2D_CC
 from ..resistivity import Problem2D_N as BaseProblem2D_N
-
-# from .survey import Survey
 
 
 class BaseIPSimulation_2D(BaseDCSimulation_2D):
@@ -34,6 +33,28 @@ class BaseIPSimulation_2D(BaseDCSimulation_2D):
     _Jmatrix = None
     _f = None
     sign = None
+    _pred = None
+
+    def set_dc_data(
+        self, dc_voltage, data_type='apparent_chargeability', dc_survey=None
+    ):
+        if dc_survey is None:
+            dc_data = Data(self.survey, dc_voltage)
+            for src in self.survey.srcList:
+                for rx in src.rxList:
+                    rx._dc_voltage = dc_data[src, rx]
+                    rx.data_type = data_type
+                    rx._Ps = {}
+        else:
+            dc_data = Data(dc_survey, dc_voltage)
+            for isrc, src in enumerate(self.survey.srcList):
+                dc_src = dc_survey.srcList[isrc]
+                for irx, rx in enumerate(src.rxList):
+                    dc_rx = dc_src.rxList[irx]
+                    rx._dc_voltage = dc_data[dc_src, dc_rx]
+                    rx.data_type = data_type
+                    rx._Ps = {}
+        return dc_data
 
     def fields(self, m):
         if self.verbose:
@@ -49,6 +70,9 @@ class BaseIPSimulation_2D(BaseDCSimulation_2D):
                 RHS = self.getRHS(ky)
                 u = self.Ainv[iky] * RHS
                 self._f[Srcs, self._solutionType, iky] = u
+
+        self._pred = self.forward(m, f=self._f)
+
         return self._f
 
     def dpred(self, m=None, f=None):
@@ -57,13 +81,20 @@ class BaseIPSimulation_2D(BaseDCSimulation_2D):
             .. math::
                 d_\\text{pred} = Pf(m)
         """
-        return self.Jvec(m, m, f=f)
+        # return self.Jvec(m, m, f=f)
+        if f is None:
+            f = self.fields(m)
+
+        return self._pred
 
     def Jvec(self, m, v, f=None):
         self.model = m
         J = self.getJ(m, f=f)
         Jv = J.dot(v)
         return self.sign * Jv
+
+    def forward(self, m, f=None):
+        return self.Jvec(m, m, f=f)
 
     def Jtvec(self, m, v, f=None):
         self.model = m

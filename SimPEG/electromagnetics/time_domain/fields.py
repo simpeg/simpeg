@@ -148,6 +148,7 @@ class Fields3D_b(FieldsTDEM):
                   }
 
     def startup(self):
+        self._times = self.simulation.times
         self._MeSigma = self.simulation.MeSigma
         self._MeSigmaI = self.simulation.MeSigmaI
         self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
@@ -172,7 +173,7 @@ class Fields3D_b(FieldsTDEM):
         # self._timeMesh.faceDiv
         dbdt = - self._edgeCurl * self._e(bSolution, source_list, tInd)
         for i, src in enumerate(source_list):
-            s_m = src.s_m(self.simulation, self.simulation.times[tInd])
+            s_m = src.s_m(self.simulation, self._times[tInd])
             dbdt[:, i] = dbdt[:, i] + s_m
         return dbdt
 
@@ -191,7 +192,7 @@ class Fields3D_b(FieldsTDEM):
     def _e(self, bSolution, source_list, tInd):
         e = self._MeSigmaI * (self._edgeCurl.T * (self._MfMui * bSolution))
         for i, src in enumerate(source_list):
-            s_e = src.s_e(self.simulation, self.simulation.times[tInd])
+            s_e = src.s_e(self.simulation, self._times[tInd])
             e[:, i] = e[:, i] - self._MeSigmaI * s_e
         return e
 
@@ -206,11 +207,11 @@ class Fields3D_b(FieldsTDEM):
         )
 
     def _eDeriv_m(self, tInd, src, v, adjoint=False):
-        _, s_e = src.eval(self.simulation, self.simulation.times[tInd])
+        _, s_e = src.eval(self.simulation, self._times[tInd])
         bSolution = self[[src], 'bSolution', tInd].flatten()
 
         _, s_eDeriv = src.evalDeriv(
-            self.simulation.times[tInd], self, adjoint=adjoint
+            self._times[tInd], self, adjoint=adjoint
         )
 
         if adjoint is True:
@@ -322,13 +323,13 @@ class Fields3D_e(FieldsTDEM):
                   }
 
     def startup(self):
+        self._times = self.simulation.times
         self._MeSigma = self.simulation.MeSigma
         self._MeSigmaI = self.simulation.MeSigmaI
         self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
         self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
         self._edgeCurl = self.simulation.mesh.edgeCurl
         self._MfMui = self.simulation.MfMui
-        self._times = self.simulation.times
 
     def _TLoc(self, fieldType):
         return 'N'
@@ -442,8 +443,8 @@ class Fields3D_h(FieldsTDEM):
                   }
 
     def startup(self):
-        self._edgeCurl = self.simulation.mesh.edgeCurl
         self._times = self.simulation.times
+        self._edgeCurl = self.simulation.mesh.edgeCurl
         self._MeMuI = self.simulation.MeMuI
         self._MeMu = self.simulation.MeMu
         self._MfRho = self.simulation.MfRho
@@ -606,8 +607,8 @@ class Fields3D_j(FieldsTDEM):
                   }
 
     def startup(self):
-        self._edgeCurl = self.simulation.mesh.edgeCurl
         self._times = self.simulation.times
+        self._edgeCurl = self.simulation.mesh.edgeCurl
         self._MeMuI = self.simulation.MeMuI
         self._MfRho = self.simulation.MfRho
         self._MfRhoDeriv = self.simulation.MfRhoDeriv

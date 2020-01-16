@@ -2,7 +2,6 @@ import numpy as np
 import properties
 import warnings
 
-from ....data import Data as BaseData
 from ....survey import BaseTimeSurvey
 from . import sources
 from .. import resistivity as dc
@@ -12,6 +11,8 @@ class Survey(BaseTimeSurvey):
     """
     Spectral induced polarization survey
     """
+    n_pulse = 2
+    T = 8.
 
     source_list = properties.List(
         "A list of sources for the survey",
@@ -29,6 +30,10 @@ class Survey(BaseTimeSurvey):
             " Please update your code accordingly"
         )
         return self.unique_times
+
+    @property
+    def n_locations(self):
+        return int(self.nD/self.times.size)
 
 
 def from_dc_to_sip_survey(survey_dc, times):

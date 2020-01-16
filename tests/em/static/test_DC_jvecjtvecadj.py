@@ -40,7 +40,7 @@ class DCProblemTestsCC(unittest.TestCase):
         dobs=problem.makeSyntheticData(mSynth)
 
         # Now set up the problem to do some minimization
-        dmis = data_misfit.L2DataMisfit(problem, dobs)
+        dmis = data_misfit.L2DataMisfit(simulation=problem, data=dobs)
         reg = regularization.Tikhonov(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
@@ -113,7 +113,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         src_a = np.r_[0., 0., -5.]
         src_b = np.r_[55., 0., -5.]
 
-        src_list = [dc.Src.Dipole(rx_list, locA=src_a, locB=src_b)]
+        src_list = [dc.Src.Dipole(rx_list, locationA=src_a, locationB=src_b)]
 
         self.mesh = mesh
         self.sigma_map = maps.ExpMap(mesh) * maps.InjectActiveCells(
@@ -178,7 +178,7 @@ class DCProblemTestsN(unittest.TestCase):
         dobs = problem.makeSyntheticData(mSynth)
 
         # Now set up the problem to do some minimization
-        dmis = data_misfit.L2DataMisfit(problem, dobs)
+        dmis = data_misfit.L2DataMisfit(simulation=problem, data=dobs)
         reg = regularization.Tikhonov(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
@@ -255,7 +255,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         dobs = problem.makeSyntheticData(mSynth)
 
         # Now set up the problem to do some minimization
-        dmis = data_misfit.L2DataMisfit(problem, data=dobs)
+        dmis = data_misfit.L2DataMisfit(simulation=problem, data=dobs)
         reg = regularization.Tikhonov(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
@@ -332,7 +332,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         dobs = problem.makeSyntheticData(mSynth)
 
         # Now set up the problem to do some minimization
-        dmis = data_misfit.L2DataMisfit(problem, data=dobs)
+        dmis = data_misfit.L2DataMisfit(simulation=problem, data=dobs)
         reg = regularization.Tikhonov(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
