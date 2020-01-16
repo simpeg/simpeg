@@ -1,6 +1,6 @@
 from __future__ import print_function
 from SimPEG import utils
-from SimPEG.utils import mkvc, matutils, sdiag
+from SimPEG.utils import mkvc, sdiag
 from SimPEG import props
 from ...simulation import BaseSimulation, LinearSimulation
 import scipy as sp
@@ -13,70 +13,90 @@ from scipy.sparse import csr_matrix as csr
 from dask.diagnostics import ProgressBar
 import multiprocessing
 
-class GravityIntegralSimulation(LinearSimulation):
 
+class GravityIntegralSimulation(LinearSimulation):
+    """
+    Gravity simulation in integral form.
+
+    Parameters
+    ----------
+    store_sensitivity: bool = True
+        Forward operator is stored on disk or in memory
+    active_indices: numpy.array (mesh.nC, dtype=bool)
+        Array of bool defining the active cell where True:Ground, False:Air
+    verbose: bool = True
+        Flag to display progress
+    n_cpu: int = None
+      Set the number of processors used by Dask
+    parallelized: bool = True
+        Use Dask to parallelize the computation and storage of sensitivities
+    max_chunk_size: int = None
+        Largest chunk size (Mb) used by Dask
+    chunk_by_rows: bool = False
+        Type of Dask chunking
+    sensitivity_path: str = "./sensitivity.zarr"
+        Directory used by Dask to store the sensitivity matrix
+    max_ram: int = 8
+        Target maximum memory usage (Gb)
+    """
     rho, rhoMap, rhoDeriv = props.Invertible(
         "Specific density (g/cc)",
         default=1.
     )
 
-    forward_only = False  # If false, matrix is store to memory (watch your RAM)
-    actInd = None  #: Active cell indices provided
+    store_sensitivity = True
+    active_indices = None
     verbose = True
-    gtgdiag = None
     n_cpu = None
     parallelized = True
-    progressIndex = -1
     max_chunk_size = None
     chunk_by_rows = False
-    Jpath = "./sensitivity.zarr"
-    maxRAM = 8  # Maximum memory usage
-
+    sensitivity_path = "./sensitivity.zarr"
+    max_ram = 8
 
     def __init__(self, mesh, **kwargs):
         BaseSimulation.__init__(self, mesh, **kwargs)
 
-        if getattr(self, 'actInd', None) is not None:
+        if getattr(self, 'active_indices', None) is not None:
 
-            if self.actInd.dtype == 'bool':
-                inds = np.asarray([inds for inds,
-                                  elem in enumerate(self.actInd, 1) if elem],
-                                  dtype=int) - 1
-            else:
-                inds = self.actInd
-
+            # Check if given indices
+            if self.active_indices.dtype != 'bool':
+                active_indices = np.zeros(self.mesh.nC, dtype='bool')
+                active_indices[self.active_indices] = True
+                self.active_indices = active_indices
         else:
+            self.active_indices = np.ones(self.mesh.nC, dtype='bool')
 
-            inds = np.asarray(range(self.mesh.nC))
-
-        self.nC = len(inds)
+        self.nC = int(self.active_indices.sum())
 
         # Create active cell projector
-        P = csr((np.ones(self.nC), (inds, range(self.nC))),
-                          shape=(self.mesh.nC, self.nC))
+        projection = csr(
+            (np.ones(self.nC), (np.where(self.active_indices), range(self.nC))),
+            shape=(self.mesh.nC, self.nC)
+        )
 
-        # Create vectors of nodal location
-        # (lower and upper corners for each cell)
+        # Create vectors of nodal location for the lower and upper corners for each cell
         bsw = (self.mesh.gridCC - self.mesh.h_gridded/2.)
         tne = (self.mesh.gridCC + self.mesh.h_gridded/2.)
 
         xn1, xn2 = bsw[:, 0], tne[:, 0]
         yn1, yn2 = bsw[:, 1], tne[:, 1]
 
-        self.Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
-        self.Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
+        self.Yn = projection.T*np.c_[mkvc(yn1), mkvc(yn2)]
+        self.Xn = projection.T*np.c_[mkvc(xn1), mkvc(xn2)]
 
+        # Allows for 2D mesh where Zn is defined by user
         if self.mesh.dim > 2:
             zn1, zn2 = bsw[:, 2], tne[:, 2]
-            self.Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
+            self.Zn = projection.T*np.c_[mkvc(zn1), mkvc(zn2)]
 
         self.receiver_locations = self.survey.source_field.receiver_list[0].locations
-        self.nD = int(self.receiver_locations.shape[0])
+        self.nD = self.receiver_locations.shape[0]
 
     def fields(self, m):
         # self.model = self.rhoMap*m
 
-        if self.forward_only:
+        if not self.store_sensitivity:
 
             # Compute the linear operation without forming the full dense G
             return np.array(self.Intrgl_Fwr_Op(m=m), dtype='float')
@@ -95,57 +115,63 @@ class GravityIntegralSimulation(LinearSimulation):
         """
             Return the diagonal of JtJ
         """
-
-        dmudm = self.rhoMap.deriv(m)
         self.model = m
 
-        if self.gtgdiag is None:
+        if self.gtg_diagonal is None:
 
             if W is None:
                 w = np.ones(self.G.shape[1])
             else:
                 w = W.diagonal()
 
-            self.gtgdiag = da.sum(self.G**2., 0).compute()
+            self._gtg_diagonal = da.sum(self.G**2., 0).compute()
 
-            # for ii in range(self.G.shape[0]):
-
-            #     self.gtgdiag += (w[ii]*self.G[ii, :]*dmudm)**2.
-
-        return mkvc(np.sum((sdiag(mkvc(self.gtgdiag)**0.5) * dmudm).power(2.), axis=0))
+        return mkvc(np.sum((sdiag(mkvc(self.gtg_diagonal)**0.5) * self.rhoMap.deriv(m)).power(2.), axis=0))
 
     def getJ(self, m, f=None):
         """
             Sensitivity matrix
         """
-
-        dmudm = self.rhoMap.deriv(m)
-
-        return da.dot(self.G, dmudm)
+        return da.dot(self.G, self.rhoMap.deriv(m))
 
     def Jvec(self, m, v, f=None):
-        dmudm = self.rhoMap.deriv(m)
+        """
+        Sensitivity times a vector
+        """
+        dmu_dm_v = da.from_array(self.rhoMap.deriv(m)*v, chunks=self.G.chunks[1])
 
-        dmudm_v = da.from_array(dmudm*v, chunks=self.G.chunks[1])
-
-        return da.dot(self.G, dmudm_v.astype(np.float32))
+        return da.dot(self.G, dmu_dm_v.astype(np.float32))
 
     def Jtvec(self, m, v, f=None):
-
-        dmudm = self.rhoMap.deriv(m)
+        """
+        Sensitivity transposed times a vector
+        """
         Jtvec = da.dot(v.astype(np.float32), self.G)
-        dmudm_v = dask.delayed(csr.dot)(Jtvec, dmudm)
+        dmudm_v = dask.delayed(csr.dot)(Jtvec, self.rhoMap.deriv(m))
 
-        return da.from_delayed(dmudm_v, dtype=float, shape=[dmudm.shape[1]]).compute()
+        return da.from_delayed(dmudm_v, dtype=float, shape=[self.rhoMap.deriv(m).shape[1]]).compute()
 
     @property
     def G(self):
-
+        """
+        Gravity forward operator
+        """
         if getattr(self, '_G', None) is None:
 
             self._G = self.Intrgl_Fwr_Op()
 
         return self._G
+
+    @property
+    def gtg_diagonal(self):
+        """
+        Diagonal of GtG
+        """
+        if getattr(self, '_gtg_diagonal', None) is None:
+
+            return None
+
+        return self._gtg_diagonal
 
     def Intrgl_Fwr_Op(self, m=None):
 
@@ -169,10 +195,10 @@ class GravityIntegralSimulation(LinearSimulation):
         # Switch to determine if the process has to be run in parallel
         job = Forward(
                 receiver_locations=self.receiver_locations, Xn=self.Xn, Yn=self.Yn, Zn=self.Zn,
-                n_cpu=self.n_cpu, forward_only=self.forward_only,
+                n_cpu=self.n_cpu, store_sensitivity=self.store_sensitivity,
                 model=self.model, components=self.survey.components,
                 parallelized=self.parallelized,
-                verbose=self.verbose, Jpath=self.Jpath, maxRAM=self.maxRAM,
+                verbose=self.verbose, sensitivity_path=self.sensitivity_path, max_ram=self.max_ram,
                 max_chunk_size=self.max_chunk_size, chunk_by_rows=self.chunk_by_rows
                 )
 
@@ -184,21 +210,20 @@ class Forward(object):
         Add docstring once it works
     """
 
-    progressIndex = -1
     parallelized = True
     receiver_locations = None
     Xn, Yn, Zn = None, None, None
     n_cpu = None
-    forward_only = False
+    store_sensitivity = False
     model = None
     components = ['gz']
 
     verbose = True
-    maxRAM = 1
+    max_ram = 1
     chunk_by_rows = False
 
     max_chunk_size = None
-    Jpath = "./sensitivity.zarr"
+    sensitivity_path = "./sensitivity.zarr"
 
     def __init__(self, **kwargs):
         super(Forward, self).__init__()
@@ -217,7 +242,7 @@ class Forward(object):
 
         if self.parallelized:
 
-            row = dask.delayed(self.calcTrow, pure=True)
+            row = dask.delayed(self.calculate_g_row, pure=True)
 
             makeRows = [row(self.receiver_locations[ii, :]) for ii in range(self.nD)]
 
@@ -227,53 +252,59 @@ class Forward(object):
 
             # Auto rechunk
             # To customise memory use set Dask config in calling scripts: dask.config.set({'array.chunk-size': '128MiB'})
-            if self.forward_only or self.chunk_by_rows:
-                print('DASK: Chunking by rows')
-                # Autochunking by rows is faster and more memory efficient for
-                # very large problems sensitivty and forward calculations
+            if not self.store_sensitivity or self.chunk_by_rows:
+                # Auto-chunking by rows is faster and more memory efficient for
+                # very large problems sensitivity and forward calculations
                 target_size = dask.config.get('array.chunk-size').replace('MiB',' MB')
                 stack = stack.rechunk({0: 'auto', 1: -1})
             elif self.max_chunk_size:
-                print('DASK: Chunking using parameters')
                 # Manual chunking is less sensitive to chunk sizes for some problems
                 target_size = "{:.0f} MB".format(self.max_chunk_size)
-                nChunks_col = 1
-                nChunks_row = 1
-                rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
-                colChunk = int(np.ceil(stack.shape[1]/nChunks_col))
-                chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+                n_chunk_col = 1
+                n_chunk_row = 1
+                row_chunk = int(np.ceil(stack.shape[0]/n_chunk_row))
+                col_chunk = int(np.ceil(stack.shape[1]/n_chunk_col))
+                chunk_size = row_chunk*col_chunk*8*1e-6  # in Mb
 
                 # Add more chunks until memory falls below target
                 while chunk_size >= self.max_chunk_size:
 
-                    if rowChunk > colChunk:
-                        nChunks_row += 1
+                    if row_chunk > col_chunk:
+                        n_chunk_row += 1
                     else:
-                        nChunks_col += 1
+                        n_chunk_col += 1
 
-                    rowChunk = int(np.ceil(stack.shape[0]/nChunks_row))
-                    colChunk = int(np.ceil(stack.shape[1]/nChunks_col))
-                    chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+                    row_chunk = int(np.ceil(stack.shape[0]/n_chunk_row))
+                    col_chunk = int(np.ceil(stack.shape[1]/n_chunk_col))
+                    chunk_size = row_chunk*col_chunk*8*1e-6  # in Mb
 
-                stack = stack.rechunk((rowChunk, colChunk))
+                stack = stack.rechunk((row_chunk, col_chunk))
             else:
-                print('DASK: Chunking by columns')
                 # Autochunking by columns is faster for Inversions
                 target_size = dask.config.get('array.chunk-size').replace('MiB',' MB')
                 stack = stack.rechunk({0: -1, 1: 'auto'})
 
-            print('Tile size (nD, nC): ', stack.shape)
-#                print('Chunk sizes (nD, nC): ', stack.chunks) # For debugging only
-            print('Number of chunks: %.0f x %.0f = %.0f' %
-                (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
-            print("Target chunk size: %s" % target_size)
-            print('Max chunk size %.0f x %.0f = %.3f MB' % (max(stack.chunks[0]), max(stack.chunks[1]), max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-6))
-            print('Min chunk size %.0f x %.0f = %.3f MB' % (min(stack.chunks[0]), min(stack.chunks[1]), min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-6))
-            print('Max RAM (GB x %.0f CPU): %.6f' %
-                (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
-            print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
+            if self.verbose:
+                print('Tile size (nD, nC): ', stack.shape)
+                print('Number of chunks: %.0f x %.0f = %.0f' %
+                    (len(stack.chunks[0]), len(stack.chunks[1]), len(stack.chunks[0]) * len(stack.chunks[1])))
+                print("Target chunk size: %s" % target_size)
+                print(
+                    'Max chunk size %.0f x %.0f = %.3f MB' % (
+                        max(stack.chunks[0]),
+                        max(stack.chunks[1]),
+                        max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-6)
+                )
+                print('Min chunk size %.0f x %.0f = %.3f MB' % (
+                    min(stack.chunks[0]),
+                    min(stack.chunks[1]),
+                    min(stack.chunks[0]) * min(stack.chunks[1]) * 8*1e-6)
+                )
+                print('Max RAM (GB x %.0f CPU): %.6f' %
+                    (self.n_cpu, max(stack.chunks[0]) * max(stack.chunks[1]) * 8*1e-9 * self.n_cpu))
+                print('Tile size (GB): %.3f' % (stack.shape[0] * stack.shape[1] * 8*1e-9))
 
-            if self.forward_only:
+            if not self.store_sensitivity:
 
                 with ProgressBar():
                     print("Forward calculation: ")
@@ -283,9 +314,9 @@ class Forward(object):
 
             else:
 
-                if os.path.exists(self.Jpath):
+                if os.path.exists(self.sensitivity_path):
 
-                    G = da.from_zarr(self.Jpath)
+                    G = da.from_zarr(self.sensitivity_path)
 
                     if np.all(np.r_[
                             np.any(np.r_[G.chunks[0]] == stack.chunks[0]),
@@ -300,28 +331,29 @@ class Forward(object):
                         print("Zarr file detected with wrong shape and chunksize ... over-writing")
 
                 with ProgressBar():
-                    print("Saving G to zarr: " + self.Jpath)
-                    G = da.to_zarr(stack, self.Jpath, compute=True, return_stored=True, overwrite=True)
+                    print("Saving G to zarr: " + self.sensitivity_path)
+                    G = da.to_zarr(stack, self.sensitivity_path, compute=True, return_stored=True, overwrite=True)
 
         else:
 
             result = []
             for ii in range(self.nD):
-                result += [self.calcTrow(self.receiver_locations[ii, :])]
+                result += [self.calculate_g_row(self.receiver_locations[ii, :])]
                 self.progress(ii, self.nD)
 
             G = np.vstack(result)
 
         return G
 
-    def calcTrow(self, receiver_location):
+    def calculate_g_row(self, receiver_location):
         """
             Load in the active nodes of a tensor mesh and computes the magnetic
             forward relation between a cuboid and a given observation
             location outside the Earth [obsx, obsy, obsz]
 
             INPUT:
-            xyzLoc:  [obsx, obsy, obsz] nC x 3 Array
+            receiver_location:  numpy.ndarray (n_receivers, 3)
+                Array of receiver locations as x, y, z columns.
 
             OUTPUT:
             Tx = [Txx Txy Txz]
@@ -331,13 +363,11 @@ class Forward(object):
         """
         eps = 1e-8
 
-        NewtG = constants.G*1e+8
-
         dx = self.Xn - receiver_location[0]
         dy = self.Yn - receiver_location[1]
         dz = self.Zn - receiver_location[2]
 
-        compDict = {key: np.zeros(self.Xn.shape[0]) for key in self.components}
+        components = {key: np.zeros(self.Xn.shape[0]) for key in self.components}
 
         gxx = np.zeros(self.Xn.shape[0])
         gyy = np.zeros(self.Xn.shape[0])
@@ -365,7 +395,7 @@ class Forward(object):
                     dxdz = dx[:, aa] * dz[:, cc]
 
                     if 'gx' in self.components:
-                        compDict['gx'] += (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                        components['gx'] += (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             dy[:, bb] * np.log(dz_r) +
                             dz[:, cc] * np.log(dy_r) -
                             dx[:, aa] * np.arctan(dydz /
@@ -373,7 +403,7 @@ class Forward(object):
                         )
 
                     if 'gy' in self.components:
-                        compDict['gy']  += (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                        components['gy']  += (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             dx[:, aa] * np.log(dz_r) +
                             dz[:, cc] * np.log(dx_r) -
                             dy[:, bb] * np.arctan(dxdz /
@@ -381,7 +411,7 @@ class Forward(object):
                         )
 
                     if 'gz' in self.components:
-                        compDict['gz']  += (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                        components['gz']  += (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             dx[:, aa] * np.log(dy_r) +
                             dy[:, bb] * np.log(dx_r) -
                             dz[:, cc] * np.arctan(dxdy /
@@ -401,7 +431,7 @@ class Forward(object):
                         )
 
                     if 'gxy' in self.components:
-                        compDict['gxy'] -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                        components['gxy'] -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             np.log(dz_r) + dy[:, bb]**2./ (r*dz_r) +
                             dz[:, cc] / r  -
                             1. / (1+arg**2.+ eps) * (dz[:, cc]/r**2) * (r - dy[:, bb]**2./r)
@@ -409,7 +439,7 @@ class Forward(object):
                         )
 
                     if 'gxz' in self.components:
-                        compDict['gxz'] -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                        components['gxz'] -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             np.log(dy_r) + dz[:, cc]**2./ (r*dy_r) +
                             dy[:, bb] / r  -
                             1. / (1+arg**2.) * (dy[:, bb]/(r**2)) * (r - dz[:, cc]**2./r)
@@ -429,7 +459,7 @@ class Forward(object):
                         )
 
                     if 'gyz' in self.components:
-                        compDict['gyz'] -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                        components['gyz'] -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             np.log(dx_r) + dz[:, cc]**2./ (r*(dx_r)) +
                             dx[:, aa] / r  -
                             1. / (1+arg**2.) * (dx[:, aa]/(r**2)) * (r - dz[:, cc]**2./r)
@@ -437,18 +467,18 @@ class Forward(object):
                         )
 
         if 'gyy' in self.components:
-            compDict['gyy'] = gyy
+            components['gyy'] = gyy
 
         if 'gxx' in self.components:
-            compDict['gxx'] = gxx
+            components['gxx'] = gxx
 
         if 'gzz' in self.components:
-            compDict['gzz'] = -gxx - gyy
+            components['gzz'] = -gxx - gyy
 
         if 'guv' in self.components:
-            compDict['guv'] = -0.5*(gxx - gyy)
+            components['guv'] = -0.5*(gxx - gyy)
 
-        return np.vstack([NewtG * compDict[key] for key in list(compDict.keys())])
+        return np.vstack([constants.G * 1e+8 * components[key] for key in list(components.keys())])
 
 
 class DifferentialEquationSimulation(BaseSimulation):
