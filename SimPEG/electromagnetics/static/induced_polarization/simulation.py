@@ -22,6 +22,7 @@ from pyMKL import mkl_set_num_threads
 import zarr
 import time
 import sparse
+from dask.delayed import Delayed
 # from .survey import Survey
 
 
@@ -88,8 +89,8 @@ class BaseIPSimulation(BaseEMSimulation):
         self._pred = self.forward(m, f=f)
         self._f = f
 
-        if not self.storeJ:
-            self.Ainv.clean()
+        # if not self.storeJ:
+        #     self.Ainv.clean()
 
         return f
 
@@ -100,7 +101,9 @@ class BaseIPSimulation(BaseEMSimulation):
                 d_\\text{pred} = Pf(m)
         """
         if f is None:
-            f = self.fields(m).compute()
+            f = self.fields(m)
+            if isinstance(f, Delayed):
+                f = f.compute()
 
         return self._pred
 
@@ -190,10 +193,20 @@ class BaseIPSimulation(BaseEMSimulation):
                             ATinvdf_duT = da.asarray(self.Ainv * np.asarray(P.T[:, ind:ind + n_col])).rechunk((nrows, n_col))
                             dA_dmT = self.getADeriv(
                                 u_source, ATinvdf_duT, adjoint=True)
+                            # du_dmT = -da.from_delayed(dask.delayed(dA_dmT), shape=(self.model.size, n_col), dtype=float)
 
+                            if n_col > 1:
+                                du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
+                                                         shape=(self.model.size, n_col),
+                                                         dtype=float)
+                            else:
+                                du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
+                                                         shape=(self.model.size,),
+                                                         dtype=float)
+
+                            print(du_dmT.T)
                             blockName = self.Jpath + "J" + str(count) + ".zarr"
-                            du_dmT = -da.from_delayed(dask.delayed(dA_dmT), shape=(self.model.size, n_col), dtype=float)
-                            da.to_zarr((du_dmT.T).rechunk('auto'), blockName)
+                            da.to_zarr((du_dmT.T), blockName)
                             del ATinvdf_duT
                             count += 1
                             ind += n_col
@@ -205,7 +218,7 @@ class BaseIPSimulation(BaseEMSimulation):
                     # Stack all the source blocks in one big zarr
                     dask_arrays.append(J)
 
-                self._Jmatrix = da.concatenate(dask_arrays, axis=0).rechunk((rowChunk, colChunk))
+                self._Jmatrix = da.vstack(dask_arrays).rechunk((rowChunk, colChunk))
                 self.Ainv.clean()
 
         return self._Jmatrix
@@ -215,27 +228,27 @@ class BaseIPSimulation(BaseEMSimulation):
 
         self.model = m
 
+        if f is None:
+            f = self.fields(m)
+
+        if isinstance(f, Delayed):
+            f = f.compute()
+
         # When sensitivity matrix J is stored
         if self.storeJ:
-            J = self.getJ(m, f=f)
-            Jv = mkvc(da.dot(J, v).compute())
+            J = self.getJ(m, f=f).compute()
+            Jv = mkvc(np.dot(J, v))
             return self.sign * Jv
 
         else:
-
-            if f is None:
-                f = self.fields(m)
-
             Jv = []
 
             for src in self.survey.source_list:
                 # solution vector
                 u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(u_src.flatten(), v, adjoint=False)
-                dA_dm_v = da.from_delayed(dA_dm_v, shape=self.model.shape, dtype=float)
                 dRHS_dm_v = self.getRHSDeriv(src, v)
-                dRHS_dm_v = da.from_delayed(dRHS_dm_v, shape=self.model.shape, dtype=float)
-                du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v).compute()
+                du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
 
                 for rx in src.receiver_list:
                     df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
@@ -254,6 +267,11 @@ class BaseIPSimulation(BaseEMSimulation):
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
 
         """
+        if f is None:
+            f = self.fields(m)
+
+        if isinstance(f, Delayed):
+            f = f.compute()
 
         # When sensitivity matrix J is stored
         if self.storeJ:
@@ -305,10 +323,10 @@ class BaseIPSimulation(BaseEMSimulation):
                     dA_dmT = self.getADeriv(
                         u_src.flatten(), ATinvdf_duT, adjoint=True
                     )
-                    dA_dmT = da.from_delayed(dA_dmT, shape=self.model.shape, dtype=float)
+                    # dA_dmT = da.from_delayed(dA_dmT, shape=self.model.shape, dtype=float)
                     dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
-                    dRHS_dmT = da.from_delayed(dRHS_dmT, shape=self.model.shape, dtype=float)
-                    du_dmT = (-dA_dmT + dRHS_dmT).compute()
+                    # dRHS_dmT = da.from_delayed(dRHS_dmT, shape=self.model.shape, dtype=float)
+                    du_dmT = (-dA_dmT + dRHS_dmT)
                     Jtv += (df_dmT + du_dmT).astype(float)
                 else:
                     P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
@@ -328,7 +346,7 @@ class BaseIPSimulation(BaseEMSimulation):
         # Resistivity ((d u / d log rho).T) - HJ form
 
         if v is not None:
-            return self.sign*mkvc(Jtv)
+            return self.sign * mkvc(Jtv)
         else:
             return Jtv
         return

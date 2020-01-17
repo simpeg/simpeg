@@ -15,3 +15,5 @@ sphinxcontrib-napoleon
 dask
 toolz
 zarr
+sparse
+empymod

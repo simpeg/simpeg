@@ -35,6 +35,8 @@ class BaseRx(BaseSimPEGRx):
         choices=['phi', 'e', 'j'], default='phi'
     )
 
+    _geometric_factor = None
+
     def __init__(self, locations=None, **kwargs):
         super(BaseRx, self).__init__(**kwargs)
         if locations is not None:
@@ -178,7 +180,7 @@ class Dipole_ky(Dipole):
         P = P0 - P1
 
         if self.data_type == 'apparent_resistivity':
-            P = sdiag(1./self.geometric_factor) * P
+            P = sdiag(1./(np.ones(P.shape[0]) * self.geometric_factor)) * P
         elif self.data_type == 'apparent_chargeability':
             P = sdiag(1./self.dc_voltage) * P
         if self.storeProjections:
