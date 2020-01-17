@@ -1,0 +1,47 @@
+# For more info on this file, a good reference is: 
+# https://github.com/sympy/sympy/wiki/Using-.mailmap
+
+# The format for each line can be:
+#
+# Proper Name <Proper@email> commit name <commit@email>
+# \-----------+------------/ \----------+-------------/
+#             |                         |
+#          replace                     find
+#
+# Though the "find" part can be omitted to declare a canonical name if only
+# email variations exist, and the "commit name" can be omitted in most cases.
+
+Lindsey Heagy <lindseyheagy@gmail.com>
+Lindsey Heagy <lindseyheagy@gmail.com> <lheagy@eos.ubc.ca>
+
+Rowan Cockett <rowan@visiblegeology.com>
+Rowan Cockett <rowan@visiblegeology.com> <rowanc1@gmail.com>
+Rowan Cockett <rowan@visiblegeology.com> <rowan@3ptscience.com>
+
+Seogi Kang <sgkang09@gmail.com>
+Seogi Kang <sgkang09@gmail.com> <sgkang09@github.com>
+Seogi Kang <sgkang09@gmail.com> <skang@eos.ubc.ca>
+
+Dom Fournier <fourndo@gmail.com>
+
+Gudni Karl Rosenkjaer <gkrosen@gmail.com>
+Gudni Karl Rosenkjaer <gkrosen@gmail.com> <grosenkj@eos.ubc.ca>
+Gudni Karl Rosenkjaer <gkrosen@gmail.com> <grosenkj@users.noreply.github.com>
+
+Thibaut Astic <thast@eos.ubc.ca>
+Thibaut Astic <thast@eos.ubc.ca> <thast@users.noreply.github.com>
+
+Devin Cowan <devinccowan@gmail.com>
+
+Dave Marchant <dwfmarchant@gmail.com>
+
+Michael Mitchell <micmitch44@gmail.com> <mmitchel@eos.ubc.ca>
+
+Lars Ruthotto <lruthotto@eos.ubc.ca> <lruthott@eos.ubc.ca>
+
+Dieter Werthmüller <mail@werthmuller.org>
+Dieter Werthmüller <mail@werthmuller.org> <prisae@users.noreply.github.com>
+
+Eldad Haber <ehaber99@gmail.com>
+
+Brendan Smithyman <smithyman@gmail.com> <brendan@bitsmithy.net>
