@@ -49,7 +49,7 @@ class DC1DSimulation(unittest.TestCase):
         mesh = TensorMesh([hz])
 
         simulation = dc.simulation_1d.DCSimulation_1D(
-            mesh, survey=survey, rhoMap=maps.ExpMap(mesh),
+            survey=survey, rhoMap=maps.ExpMap(mesh),
             thicknesses=hz[:-1], data_type='apparent_resistivity'
         )
         simulation.dpred(np.log(rho))

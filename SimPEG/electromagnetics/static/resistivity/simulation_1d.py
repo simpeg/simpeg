@@ -40,8 +40,8 @@ class DCSimulation_1D(BaseEMSimulation):
     _Jmatrix = None
     fix_Jmatrix = False
 
-    def __init__(self, mesh, **kwargs):
-        BaseEMSimulation.__init__(self, mesh, **kwargs)
+    def __init__(self, **kwargs):
+        BaseEMSimulation.__init__(self, **kwargs)
         ht, htarg = check_hankel('fht', [self.hankel_filter, self.hankel_pts_per_dec], 1)
         self.fhtfilt = htarg[0]                 # Store filter
         self.hankel_filter = self.fhtfilt.name  # Store name
@@ -54,7 +54,7 @@ class DCSimulation_1D(BaseEMSimulation):
             self.model = m
 
         if self.verbose:
-            print (">> Compute fields")
+            print(">> Compute fields")
 
         # TODO: this for loop can slow down the speed, cythonize below for loop
         T1 = self.rho[self.n_layer-1] * np.ones_like(self.lambd)
@@ -64,10 +64,14 @@ class DCSimulation_1D(BaseEMSimulation):
             T0 = (T1 + rho0 * np.tanh(self.lambd*t0)) / (1.+(T1*np.tanh(self.lambd*t0)/rho0))
             T1 = T0
         PJ = (T0, None, None)
-        voltage = dlf(PJ, self.lambd, self.offset, self.fhtfilt, self.hankel_pts_per_dec, factAng=None, ab=33).real / (2*np.pi)
+        voltage = dlf(
+            PJ, self.lambd,
+            self.offset, self.fhtfilt,
+            self.hankel_pts_per_dec, factAng=None, ab=33
+        ).real / (2*np.pi)
         # Assume dipole-dipole
         V = voltage.reshape((self.survey.nD, 4), order='F')
-        data = V[:,0]+V[:,1] - (V[:,2]+V[:,3])
+        data = V[:, 0]+V[:, 1] - (V[:, 2]+V[:, 3])
 
         if self.data_type == 'apparent_resistivity':
             data /= self.geometric_factor
@@ -204,7 +208,7 @@ class DCSimulation_1D(BaseEMSimulation):
         """
         # TODO: only works isotropic sigma
         if getattr(self, '_n_layer', None) is None:
-            self._n_layer = self.mesh.nC
+            self._n_layer = self.thicknesses.size + 1
         return self._n_layer
 
     @property
