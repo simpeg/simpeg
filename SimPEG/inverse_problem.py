@@ -193,22 +193,22 @@ class BaseInvProblem(BaseSimPEG):
             self.phi_z = 0.
 
             self.phi_s += (
-                self.reg.objfcts[0](self.model) * self.reg.objfcts[0].alpha_s
+                self.reg.objfcts[0](self.model) * self.reg.alpha_s
             )
             self.phi_x += (
-                self.reg.objfcts[1](self.model) * self.reg.objfcts[1].alpha_x
+                self.reg.objfcts[1](self.model) * self.reg.alpha_x
             )
 
-            if self.reg.objfcts[0].regmesh.dim == 2:
+            if self.reg.regmesh.dim == 2:
                 self.phi_y += (
-                    self.reg.objfcts[2](self.model) * self.reg.objfcts[2].alpha_y
+                    self.reg.objfcts[2](self.model) * self.reg.alpha_y
                 )
-            elif self.reg.objfcts[0].regmesh.dim == 3:
+            elif self.reg.regmesh.dim == 3:
                 self.phi_y += (
-                    self.reg.objfcts[2](self.model) * self.reg.objfcts[2].alpha_y
+                    self.reg.objfcts[2](self.model) * self.reg.alpha_y
                 )
                 self.phi_z += (
-                    self.reg.objfcts[3](self.model) * self.reg.objfcts[3].alpha_z
+                    self.reg.objfcts[3](self.model) * self.reg.alpha_z
                 )
 
         phi_m = self.reg(m)
