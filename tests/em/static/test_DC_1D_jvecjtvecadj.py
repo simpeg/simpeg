@@ -15,6 +15,7 @@ np.random.seed(40)
 TOL = 1e-5
 FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
 
+
 class DC1DSimulation(unittest.TestCase):
 
     def setUp(self):
@@ -49,7 +50,7 @@ class DC1DSimulation(unittest.TestCase):
 
         simulation = dc.simulation_1d.DCSimulation_1D(
             mesh, survey=survey, rhoMap=maps.ExpMap(mesh),
-            t=hz[:-1], data_type='apparent_resistivity'
+            thicknesses=hz[:-1], data_type='apparent_resistivity'
         )
         simulation.dpred(np.log(rho))
 

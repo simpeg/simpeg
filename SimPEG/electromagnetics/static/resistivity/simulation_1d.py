@@ -14,12 +14,13 @@ from empymod.transform import dlf, get_spline_values
 from empymod.utils import check_hankel
 from ..utils import StaticUtils
 
+
 class DCSimulation_1D(BaseEMSimulation):
     """
     1D DC Simulation
     """
-    t, tMap, tDeriv = props.Invertible(
-        "thickness of the layers"
+    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
+        "thicknesses of the layers"
     )
 
     survey = properties.Instance(
@@ -59,7 +60,7 @@ class DCSimulation_1D(BaseEMSimulation):
         T1 = self.rho[self.n_layer-1] * np.ones_like(self.lambd)
         for ii in range(self.n_layer-1, 0, -1):
             rho0 = self.rho[ii-1]
-            t0 = self.t[ii-1]
+            t0 = self.thicknesses[ii-1]
             T0 = (T1 + rho0 * np.tanh(self.lambd*t0)) / (1.+(T1*np.tanh(self.lambd*t0)/rho0))
             T1 = T0
         PJ = (T0, None, None)
