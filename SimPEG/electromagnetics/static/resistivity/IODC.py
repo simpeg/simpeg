@@ -604,7 +604,7 @@ class IO(properties.HasProperties):
         scale="log",
         cmap="viridis", ncontour=10, ax=None,
         figname=None, clim=None, label=None,
-        iline=0,
+        iline=0, orientation='vertical'
     ):
         """
             Plot 2D pseudo-section for DC-IP data
@@ -661,13 +661,6 @@ class IO(properties.HasProperties):
         if label is None:
             label = label_tmp
 
-        if scale == "log":
-            fmt = "10$^{%.1f}$"
-        elif scale == "linear":
-            fmt = "%.1e"
-        else:
-            raise NotImplementedError()
-
         out = plot2Ddata(
             grids, val,
             contourOpts={'cmap': cmap},
@@ -681,10 +674,15 @@ class IO(properties.HasProperties):
         ax.set_xlabel("x (m)")
         ax.set_yticklabels([])
         ax.set_ylabel("n-spacing")
+        if orientation == 'vertical':
+            frac = 0.01
+        elif orientation == 'horizontal':
+            frac = 0.03
+        else:
+            raise ValueError('Orientation must be either vertical or horizontal, not {}'.format(orientation))
         cb = plt.colorbar(
             out[0],
-            fraction=0.01,
-            format=fmt, ax=ax
+            format="%.1e", ax=ax, orientation=orientation, fraction=frac
         )
         cb.set_label(label)
         cb.set_ticks(out[0].levels)
