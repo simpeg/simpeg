@@ -192,24 +192,28 @@ class BaseInvProblem(BaseSimPEG):
             self.phi_y = 0.
             self.phi_z = 0.
 
-            self.phi_s += (
-                self.reg.objfcts[0](self.model) * self.reg.alpha_s
-            )
-            self.phi_x += (
-                self.reg.objfcts[1](self.model) * self.reg.alpha_x
-            )
-
-            if self.reg.regmesh.dim == 2:
-                self.phi_y += (
-                    self.reg.objfcts[2](self.model) * self.reg.alpha_y
+            if not isinstance(self.reg, BaseComboRegularization):
+                regs = self.reg.objfcts
+                mults = self.reg.multipliers
+            else:
+                regs = [self.reg]
+                mults = [1.0]
+            for reg, mult in zip(regs, mults):
+                dim = reg.regmesh.dim
+                self.phi_s += (
+                    mult * reg.objfcts[0](self.model) * reg.alpha_s
                 )
-            elif self.reg.regmesh.dim == 3:
-                self.phi_y += (
-                    self.reg.objfcts[2](self.model) * self.reg.alpha_y
+                self.phi_x += (
+                    mult * reg.objfcts[1](self.model) * reg.alpha_x
                 )
-                self.phi_z += (
-                    self.reg.objfcts[3](self.model) * self.reg.alpha_z
-                )
+                if dim > 1:
+                    self.phi_y += (
+                        mult * reg.objfcts[2](self.model) * reg.alpha_y
+                    )
+                if dim > 2:
+                    self.phi_z += (
+                        mult * reg.objfcts[3](self.model) * reg.alpha_y
+                    )
 
         phi_m = self.reg(m)
 
