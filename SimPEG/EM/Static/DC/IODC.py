@@ -524,12 +524,22 @@ class IO(properties.HasProperties):
                 # For 2D mesh
                 if dimension == 2:
                     # sort by x
-                    row_idx = np.lexsort((topo[:, 0],))
+                    mask = np.isin(self.electrode_locations[:, 0], topo[:, 0])
+                    if np.any(mask):
+                        raise RuntimeError("the x coordinates of some topo and electrodes are the same.")
+                    locs_tmp = np.vstack((topo, self.electrode_locations[~mask, :]))
+                    row_idx = np.lexsort((locs_tmp[:, 0],))
                 # For 3D mesh
                 else:
                     # sort by x, then by y
-                    row_idx = np.lexsort((topo[:, 1], topo[:, 0]))
-                locs = topo[row_idx, :]
+                    dtype = [('x', np.float64), ('y', np.float64)]
+                    mask = np.isin(self.electrode_locations[:, [0, 1]].copy().view(dtype),
+                                   topo[:, [0, 1]].copy().view(dtype)).flatten()
+                    if np.any(mask):
+                        raise RuntimeError("the x and y coordinates of some topo and electrodes are the same.")
+                    locs_tmp = np.vstack((topo, self.electrode_locations[~mask, :]))
+                    row_idx = np.lexsort((locs_tmp[:, 1], locs_tmp[:, 0]))
+                locs = locs_tmp[row_idx, :]
 
             if dx > dx_ideal:
                 # warnings.warn(
