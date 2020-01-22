@@ -131,14 +131,14 @@ class Survey(BaseEMSurvey, properties.HasProperties):
         self.m_locations = np.vstack(m_locations)
         self.n_locations = np.vstack(n_locations)
 
-    def drapeTopo(self, mesh, actind, option='top', topography=None):
+    def drapeTopo(self, mesh, actind, option='top', topography=None, force=False):
         if self.a_locations is None:
             self.getABMN_locations()
 
         # 2D
         if mesh.dim == 2:
             if self.survey_geometry == "surface":
-                if self.electrodes_info is None:
+                if self.electrodes_info is None or force:
                     self.electrodes_info = SimPEG.Utils.uniqueRows(
                         np.hstack((
                             self.a_locations[:, 0],
@@ -228,7 +228,7 @@ class Survey(BaseEMSurvey, properties.HasProperties):
 
         if mesh.dim == 3:
             if self.survey_geometry == "surface":
-                if self.electrodes_info is None:
+                if self.electrodes_info is None or force:
                     self.electrodes_info = SimPEG.Utils.uniqueRows(
                         np.vstack((
                             self.a_locations[:, :2],
