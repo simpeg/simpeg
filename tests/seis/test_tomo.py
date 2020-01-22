@@ -15,7 +15,7 @@ class TomoTest(unittest.TestCase):
 
         nC = 20
         M = Mesh.TensorMesh([nC, nC])
-        y = np.linspace(0., 1., nC/2)
+        y = np.linspace(0., 1., int(nC/2))
         rlocs = np.c_[y*0+M.vectorCCx[-1], y]
         rx = StraightRay.Rx(rlocs, None)
 
