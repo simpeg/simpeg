@@ -407,8 +407,8 @@ class BaseSimulation(props.HasModel):
         if f is None:
             f = self.fields(m)
 
-        # if isinstance(f, Delayed):
-        #     f = f.compute()
+        if isinstance(f, Delayed):
+            f = f.compute()
 
         dclean = self.dpred(m, f=f)
 

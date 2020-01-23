@@ -140,13 +140,12 @@ class BaseInvProblem(BaseSimPEG):
         if f is None:
             if isinstance(self.dmisfit, BaseDataMisfit):
                 f = self.dmisfit.simulation.fields(m)
-
                 if isinstance(f, Delayed):
                     f = f.compute()
             elif isinstance(self.dmisfit, BaseObjectiveFunction):
                 f = []
                 for objfct in self.dmisfit.objfcts:
-                    if hasattr(objfct, 'prob'):
+                    if hasattr(objfct, 'simulation'):
                         f += [objfct.simulation.fields(m)]
                     else:
                         f += []

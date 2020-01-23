@@ -102,8 +102,8 @@ class BaseIPSimulation(BaseEMSimulation):
         """
         if f is None:
             f = self.fields(m)
-            if isinstance(f, Delayed):
-                f = f.compute()
+        if isinstance(f, Delayed):
+            f = f.compute()
 
         return self._pred
 
@@ -203,10 +203,8 @@ class BaseIPSimulation(BaseEMSimulation):
                                 du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
                                                          shape=(self.model.size,),
                                                          dtype=float)
-
-                            print(du_dmT.T)
                             blockName = self.Jpath + "J" + str(count) + ".zarr"
-                            da.to_zarr((du_dmT.T), blockName)
+                            da.to_zarr((du_dmT.T).rechunk('auto'), blockName)
                             del ATinvdf_duT
                             count += 1
                             ind += n_col
