@@ -302,7 +302,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
             lambda m: [self.dmis(m), self.dmis.deriv(m)],
             self.m0,
             plotIt=False,
-            num=3
+            num=4
         )
         self.assertTrue(passed)
 
