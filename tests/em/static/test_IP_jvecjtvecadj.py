@@ -13,6 +13,7 @@ from SimPEG import tests
 
 from SimPEG.electromagnetics import resistivity as dc
 from SimPEG.electromagnetics import induced_polarization as ip
+import shutil
 
 np.random.seed(30)
 
@@ -239,6 +240,10 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
         )
         self.assertTrue(passed)
 
+    def tearDown(self):
+        # Clean up the working directory
+        shutil.rmtree(self.p.Jpath)
+
 
 class IPProblemTestsN_storeJ(unittest.TestCase):
 
@@ -312,6 +317,10 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
             num=3
         )
         self.assertTrue(passed)
+
+    def tearDown(self):
+        # Clean up the working directory
+        shutil.rmtree(self.p.Jpath)
 
 if __name__ == '__main__':
     unittest.main()

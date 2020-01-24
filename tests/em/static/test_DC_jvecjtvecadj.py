@@ -9,6 +9,7 @@ from SimPEG import (
 from SimPEG.utils import mkvc
 from SimPEG.electromagnetics import resistivity as dc
 from pymatsolver import Pardiso
+import shutil
 
 np.random.seed(40)
 
@@ -306,6 +307,10 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         )
         self.assertTrue(passed)
 
+    def tearDown(self):
+        # Clean up the working directory
+        shutil.rmtree(self.p.Jpath)
+
 
 class DCProblemTestsN_storeJ(unittest.TestCase):
 
@@ -381,6 +386,10 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
             num=3
         )
         self.assertTrue(passed)
+
+    def tearDown(self):
+        # Clean up the working directory
+        shutil.rmtree(self.p.Jpath)
 
 if __name__ == '__main__':
     unittest.main()
