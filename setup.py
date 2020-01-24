@@ -45,6 +45,7 @@ setup(
         'geoana>=0.0.4',
         'zarr',
         'dask',
+        'fsspec>=0.3.3'
         'sparse',
         'empymod',
         'pandas',
