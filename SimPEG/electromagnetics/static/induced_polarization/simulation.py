@@ -132,92 +132,91 @@ class BaseIPSimulation(BaseEMSimulation):
         """
             Generate Full sensitivity matrix
         """
+        if self._Jmatrix is not None:
+            return self._Jmatrix
+
         self.model = m
+        if f is None:
+            f = self.fields(m).compute()
 
         if self.verbose:
             print("Calculating J and storing")
-        else:
-            if self._Jmatrix is not None:
-                return self._Jmatrix
+
+        if os.path.exists(self.Jpath):
+            shutil.rmtree(self.Jpath, ignore_errors=True)
+
+            # Wait for the system to clear out the directory
+            while os.path.exists(self.Jpath):
+                pass
+        # start of IP J
+        # This is for forming full sensitivity matrix
+        nD = self.survey.nD
+        nC = m.shape[0]
+
+        # print('DASK: Chunking using parameters')
+        nChunks_col = 1
+        nChunks_row = 1
+        rowChunk = int(np.ceil(nD / nChunks_row))
+        colChunk = int(np.ceil(nC / nChunks_col))
+        chunk_size = rowChunk * colChunk * 8 * 1e-6  # in Mb
+
+        # Add more chunks until memory falls below target
+        while chunk_size >= self.max_chunk_size:
+
+            if rowChunk > colChunk:
+                nChunks_row += 1
             else:
+                nChunks_col += 1
 
-                if f is None:
-                    f = self.fields(m).compute()
+            rowChunk = int(np.ceil(nD / nChunks_row))
+            colChunk = int(np.ceil(nC / nChunks_col))
+            chunk_size = rowChunk * colChunk * 8 * 1e-6  # in Mb
+        count = 0
+        for source in self.survey.source_list:
+            u_source = f[source, self._solutionType].copy()
+            for rx in source.receiver_list:
+                PT = rx.getP(self.mesh, rx.projGLoc(f)).T
+                df_duT = PT.toarray()
+                # Find a block of receivers
+                n_block_col = int(np.ceil(df_duT.size *
+                                          8 * 1e-9 / self.maxRAM))
 
-                if os.path.exists(self.Jpath):
-                    shutil.rmtree(self.Jpath, ignore_errors=True)
+                n_col = int(np.ceil(df_duT.shape[1] / n_block_col))
 
-                    # Wait for the system to clear out the directory
-                    while os.path.exists(self.Jpath):
-                        pass
-                # start of IP J
-                # This is for forming full sensitivity matrix
-                nD = self.survey.nD
-                nC = m.shape[0]
-
-                # print('DASK: Chunking using parameters')
-                nChunks_col = 1
-                nChunks_row = 1
-                rowChunk = int(np.ceil(nD / nChunks_row))
-                colChunk = int(np.ceil(nC / nChunks_col))
-                chunk_size = rowChunk * colChunk * 8 * 1e-6  # in Mb
-
-                # Add more chunks until memory falls below target
-                while chunk_size >= self.max_chunk_size:
-
-                    if rowChunk > colChunk:
-                        nChunks_row += 1
+                nrows = int(self.model.size /
+                            np.ceil(self.model.size *
+                                    n_col * 8 * 1e-6 /
+                                    self.max_chunk_size))
+                ind = 0
+                for col in range(n_block_col):
+                    ATinvdf_duT = da.asarray(self.Ainv * np.asarray(df_duT[:, ind:ind + n_col])).rechunk((nrows, n_col))
+                    dA_dmT = self.getADeriv(
+                        u_source, ATinvdf_duT, adjoint=True)
+                    # du_dmT = -da.from_delayed(dask.delayed(dA_dmT), shape=(self.model.size, n_col), dtype=float)
+                    if n_col > 1:
+                        du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
+                                                 shape=(self.model.size, n_col),
+                                                 dtype=float)
                     else:
-                        nChunks_col += 1
+                        du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
+                                                 shape=(self.model.size,),
+                                                 dtype=float)
+                    blockName = self.Jpath + "J" + str(count) + ".zarr"
 
-                    rowChunk = int(np.ceil(nD / nChunks_row))
-                    colChunk = int(np.ceil(nC / nChunks_col))
-                    chunk_size = rowChunk * colChunk * 8 * 1e-6  # in Mb
-                count = 0
-                for source in self.survey.source_list:
-                    u_source = f[source, self._solutionType].copy()
-                    for rx in source.receiver_list:
-                        P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
-                        # Find a block of receivers
-                        n_block_col = int(np.ceil(P.T.shape[0] * P.T.shape[1] *
-                                                  8 * 1e-9 / self.maxRAM))
+                    da.to_zarr((du_dmT.T).rechunk('auto'), blockName)
+                    del ATinvdf_duT
+                    count += 1
+                    ind += n_col
 
-                        n_col = int(np.ceil(P.T.shape[1] / n_block_col))
+        dask_arrays = []
+        for ii in range(count):
+            blockName = self.Jpath + "J" + str(ii) + ".zarr"
+            J = da.from_zarr(blockName)
+            # Stack all the source blocks in one big zarr
+            dask_arrays.append(J)
 
-                        nrows = int(self.model.size /
-                                    np.ceil(self.model.size *
-                                            n_col * 8 * 1e-6 /
-                                            self.max_chunk_size))
-                        ind = 0
-                        for col in range(n_block_col):
-                            ATinvdf_duT = da.asarray(self.Ainv * np.asarray(P.T[:, ind:ind + n_col])).rechunk((nrows, n_col))
-                            dA_dmT = self.getADeriv(
-                                u_source, ATinvdf_duT, adjoint=True)
-                            # du_dmT = -da.from_delayed(dask.delayed(dA_dmT), shape=(self.model.size, n_col), dtype=float)
-
-                            if n_col > 1:
-                                du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
-                                                         shape=(self.model.size, n_col),
-                                                         dtype=float)
-                            else:
-                                du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
-                                                         shape=(self.model.size,),
-                                                         dtype=float)
-                            blockName = self.Jpath + "J" + str(count) + ".zarr"
-                            da.to_zarr((du_dmT.T).rechunk('auto'), blockName)
-                            del ATinvdf_duT
-                            count += 1
-                            ind += n_col
-
-                dask_arrays = []
-                for ii in range(count):
-                    blockName = self.Jpath + "J" + str(ii) + ".zarr"
-                    J = da.from_zarr(blockName)
-                    # Stack all the source blocks in one big zarr
-                    dask_arrays.append(J)
-
-                self._Jmatrix = da.vstack(dask_arrays).rechunk((rowChunk, colChunk))
-                self.Ainv.clean()
+        self._Jmatrix = da.vstack(dask_arrays).rechunk((rowChunk, colChunk))
+        self.Ainv.clean()
 
         return self._Jmatrix
 
@@ -360,7 +359,7 @@ class BaseIPSimulation(BaseEMSimulation):
         :return: q (nC or nN, nSrc)
         """
 
-        Srcs = self.survey.srcList
+        Srcs = self.survey.source_list
 
         if self._formulation == 'EB':
             n = self.mesh.nN
