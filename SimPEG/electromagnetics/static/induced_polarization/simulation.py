@@ -71,7 +71,7 @@ class BaseIPSimulation(BaseEMSimulation):
 
         f = self.fieldsPair(self)
         A = self.getA()
-        self.Ainv = self.Solver(A, **self.solver_opts)
+        self.Ainv = self.solver(A, **self.solver_opts)
         RHS = self.getRHS()
         Srcs = self.survey.source_list
         f[Srcs, self._solutionType] = self.Ainv * RHS

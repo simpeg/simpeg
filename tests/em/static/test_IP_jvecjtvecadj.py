@@ -33,8 +33,8 @@ class IPProblemTestsCC(unittest.TestCase):
             # [(cs, 5, -1.3), (cs, 10)]
         ], 'CN')
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = ip.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = ip.survey.Survey(source_list)
         sigma = np.ones(mesh.nC)
         simulation = ip.simulation.Problem3D_CC(
             mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh)
@@ -108,8 +108,8 @@ class IPProblemTestsN(unittest.TestCase):
                 # [(cs, 5, -1.3), (cs, 10)]
             ], 'CN')
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = ip.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = ip.survey.Survey(source_list)
         sigma = np.ones(mesh.nC)
         simulation = ip.simulation.Problem3D_N(
             mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh)
@@ -182,8 +182,8 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
             # [(cs, 5, -1.3), (cs, 10)]
         ], 'CN')
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = ip.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = ip.survey.Survey(source_list)
         sigma = np.ones(mesh.nC)
         simulation = ip.Problem3D_CC(
             mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh), storeJ=True
@@ -256,8 +256,8 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
                 # [(cs, 5, -1.3), (cs, 10)]
             ], 'CN')
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = ip.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = ip.survey.Survey(source_list)
         sigma = np.ones(mesh.nC)
         simulation = ip.simulation.Problem3D_N(
             mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh), storeJ=True
