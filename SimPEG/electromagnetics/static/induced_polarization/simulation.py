@@ -414,6 +414,8 @@ class BaseIPSimulation(BaseEMSimulation):
             else:
                 return dMfRhoI_dI * (dMf_drho * (drho_dlogrho*v))
 
+    MfRhoIDerivDask = MfRhoIDeriv
+
     @property
     def MeSigmaDerivMat(self):
         """
