@@ -2,6 +2,9 @@ import time
 import sys
 import scipy.sparse as sp
 import numpy as np
+import dask
+import dask.array as da
+import multiprocessing
 from scipy.constants import mu_0
 
 try:
@@ -56,13 +59,13 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         Jv = Data(self.survey)
 
         # Loop all the frequenies
-        for freq in self.survey.freqs:
+        for freq in self.survey.frequencies:
             # Get the system
             A = self.getA(freq)
             # Factor
             Ainv = self.Solver(A, **self.solver_opts)
 
-            for src in self.survey.getSrcByFreq(freq):
+            for src in self.survey.get_sources_by_frequency(freq):
                 # We need fDeriv_m = df/du*du/dm + df/dm
                 # Construct du/dm, it requires a solve
                 # NOTE: need to account for the 2 polarizations in the derivatives.
@@ -74,7 +77,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                 # Calculate du/dm*v
                 du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v)
                 # Calculate the projection derivatives
-                for rx in src.rxList:
+                for rx in src.receiver_list:
                     # Calculate dP/du*du/dm*v
                     Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, mkvc(du_dm_v)) # wrt uPDeriv_u(mkvc(du_dm))
             Ainv.clean()
@@ -103,16 +106,16 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
 
         Jtv = np.zeros(m.size)
 
-        for freq in self.survey.freqs:
+        for freq in self.survey.frequencies:
             AT = self.getA(freq).T
 
             ATinv = self.Solver(AT, **self.solver_opts)
 
-            for src in self.survey.getSrcByFreq(freq):
+            for src in self.survey.get_sources_by_frequency(freq):
                 # u_src needs to have both polarizations
                 u_src = f[src, :]
 
-                for rx in src.rxList:
+                for rx in src.receiver_list:
                     # Get the adjoint evalDeriv
                     # PTv needs to be nE,2
                     PTv = rx.evalDeriv(src, self.mesh, f, mkvc(v[src, rx]), adjoint=True) # wrt f, need possibility wrt m
@@ -256,7 +259,7 @@ class Problem1D_ePrimSec(BaseNSEMSimulation):
         """
 
         # Get sources for the frequncy(polarizations)
-        Src = self.survey.getSrcByFreq(freq)[0]
+        Src = self.survey.get_sources_by_frequency(freq)[0]
         # Only select the yx polarization
         S_e = mkvc(Src.S_e(self)[:, 1], 2)
         return -1j * omega(freq) * S_e
@@ -266,7 +269,7 @@ class Problem1D_ePrimSec(BaseNSEMSimulation):
         The derivative of the RHS wrt sigma
         """
 
-        Src = self.survey.getSrcByFreq(freq)[0]
+        Src = self.survey.get_sources_by_frequency(freq)[0]
 
         S_eDeriv = mkvc(Src.S_eDeriv_m(self, v, adjoint),)
         return -1j * omega(freq) * S_eDeriv
@@ -285,7 +288,7 @@ class Problem1D_ePrimSec(BaseNSEMSimulation):
         # Make the fields object
         F = self.fieldsPair(self)
         # Loop over the frequencies
-        for freq in self.survey.freqs:
+        for freq in self.survey.frequencies:
             if self.verbose:
                 startTime = time.time()
                 print('Starting work for {:.3e}'.format(freq))
@@ -296,7 +299,7 @@ class Problem1D_ePrimSec(BaseNSEMSimulation):
             e_s = Ainv * rhs
 
             # Store the fields
-            Src = self.survey.getSrcByFreq(freq)[0]
+            Src = self.survey.get_sources_by_frequency(freq)[0]
             # NOTE: only store the e_solution(secondary), all other components calculated in the fields object
             F[Src, 'e_1dSolution'] = e_s
 
@@ -414,7 +417,7 @@ class Problem3D_ePrimSec(BaseNSEMSimulation):
         """
 
         # Get sources for the frequncy(polarizations)
-        Src = self.survey.getSrcByFreq(freq)[0]
+        Src = self.survey.get_sources_by_frequency(freq)[0]
         S_e = Src.S_e(self)
         return -1j * omega(freq) * S_e
 
@@ -432,7 +435,7 @@ class Problem3D_ePrimSec(BaseNSEMSimulation):
         """
 
         # Note: the formulation of the derivative is the same for adjoint or not.
-        Src = self.survey.getSrcByFreq(freq)[0]
+        Src = self.survey.get_sources_by_frequency(freq)[0]
         S_eDeriv = Src.S_eDeriv(self, v, adjoint)
         dRHS_dm = -1j * omega(freq) * S_eDeriv
 
@@ -452,7 +455,7 @@ class Problem3D_ePrimSec(BaseNSEMSimulation):
             self.model = m
 
         F = self.fieldsPair(self)
-        for freq in self.survey.freqs:
+        for freq in self.survey.frequencies:
             if self.verbose:
                 startTime = time.time()
                 print('Starting work for {:.3e}'.format(freq))
@@ -464,7 +467,7 @@ class Problem3D_ePrimSec(BaseNSEMSimulation):
             e_s = Ainv * rhs
 
             # Store the fields
-            Src = self.survey.getSrcByFreq(freq)[0]
+            Src = self.survey.get_sources_by_frequency(freq)[0]
             # Store the fields
             # Use self._solutionType
             F[Src, 'e_pxSolution'] = e_s[:, 0]
@@ -476,3 +479,106 @@ class Problem3D_ePrimSec(BaseNSEMSimulation):
                 sys.stdout.flush()
             Ainv.clean()
         return F
+
+    def fields2(self, freq):
+        """
+        Function to calculate all the fields for the model m.
+
+        :param numpy.ndarray (nC,) m: Conductivity model
+        :rtype: SimPEG.EM.NSEM.FieldsNSEM
+        :return: Fields object with of the solution
+
+        """
+        """
+        Function to calculate all the fields for the model m.
+
+        :param numpy.ndarray (nC,) m: Conductivity model
+        :rtype: SimPEG.EM.NSEM.FieldsNSEM
+        :return: Fields object with of the solution
+
+        """
+        A = self.getA(freq)
+        rhs = self.getRHS(freq)
+        # Solve the system
+        Ainv = self.Solver(A, **self.solver_opts)
+        e_s = Ainv * rhs
+
+        # Store the fields
+        # Src = self.survey.get_sources_by_frequency(freq)[0]
+        # Store the fields
+        # Use self._solutionType
+        # self.F[Src, 'e_pxSolution'] = e_s[:, 0]
+        # self.F[Src, 'e_pySolution'] = e_s[:, 1]
+            # Note curl e = -iwb so b = -curl/iw
+
+        Ainv.clean()
+        return e_s
+
+    def fieldsMulti(self, freq):
+        """
+        Function to calculate all the fields for the model m.
+
+        :param numpy.ndarray (nC,) m: Conductivity model
+        :rtype: SimPEG.EM.NSEM.FieldsNSEM
+        :return: Fields object with of the solution
+
+        """
+        """
+        Function to calculate all the fields for the model m.
+
+        :param numpy.ndarray (nC,) m: Conductivity model
+        :rtype: SimPEG.EM.NSEM.FieldsNSEM
+        :return: Fields object with of the solution
+
+        """
+        A = self.getA(freq)
+        rhs = self.getRHS(freq)
+        # Solve the system
+        Ainv = self.Solver(A, **self.solver_opts)
+        e_s = Ainv * rhs
+
+        # Store the fields
+        Src = self.survey.get_sources_by_frequency(freq)[0]
+        # Store the fields
+        # Use self._solutionType
+        self.F[Src, 'e_pxSolution'] = e_s[:, 0]
+        self.F[Src, 'e_pySolution'] = e_s[:, 1]
+            # Note curl e = -iwb so b = -curl/iw
+        Ainv.clean()
+
+    def fieldsParallel(self, m=None):
+        parallel = 'dask'
+
+        if m is not None:
+            self.model = m
+
+        F = self.fieldsPair(self)
+
+        if parallel == 'dask':
+            output = []
+            f_ = dask.delayed(self.fields2, pure=True)
+            for freq in self.survey.frequencies:
+                output.append(da.from_delayed(f_(freq), (self.model.size, 2), dtype=float))
+
+            e_s = da.hstack(output).compute()
+            cnt = 0
+            for freq in self.survey.frequencies:
+                index = cnt * 2
+                # Store the fields
+                Src = self.survey.get_sources_by_frequency(freq)[0]
+                # Store the fields
+                # Use self._solutionType
+                F[Src, 'e_pxSolution'] = e_s[:, index]
+                F[Src, 'e_pySolution'] = e_s[:, index + 1]
+                cnt += 1
+
+        elif parallel == 'multipro':
+            self.F = F
+            pool = multiprocessing.Pool()
+            pool.map(self.fieldsMulti, self.survey.frequencies)
+            pool.close()
+            pool.join()
+
+        return F
+
+

@@ -38,9 +38,9 @@ class IPProblemAnalyticTests(unittest.TestCase):
         eta[blkind] = 0.1
         sigma0 = sigmaInf*(1.-eta)
 
-        rx = dc.Rx.Dipole(M, N)
-        src = dc.Src.Dipole([rx], Aloc, Bloc)
-        surveyDC = dc.Survey([src])
+        rx = dc.receivers.Dipole(M, N)
+        src = dc.sources.Dipole([rx], Aloc, Bloc)
+        surveyDC = dc.survey.Survey([src])
 
         self.surveyDC = surveyDC
         self.mesh = mesh
@@ -51,26 +51,25 @@ class IPProblemAnalyticTests(unittest.TestCase):
 
     def test_Problem3D_N(self):
 
-        problemdc = dc.Problem3D_N(
-            self.mesh, sigmaMap=maps.IdentityMap(self.mesh)
+        simulationdc = dc.simulation.Problem3D_N(
+            mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
-        problemdc.Solver = Solver
-        problemdc.pair(self.surveyDC)
-        data0 = problemdc.dpred(self.sigma0)
-        finf = problemdc.fields(self.sigmaInf)
-        datainf = problemdc.dpred(self.sigmaInf, f=finf)
-        problemip = ip.Problem3D_N(
-            self.mesh,
+        simulationdc.Solver = Solver
+        data0 = simulationdc.dpred(self.sigma0)
+        finf = simulationdc.fields(self.sigmaInf)
+        datainf = simulationdc.dpred(self.sigmaInf, f=finf)
+        surveyip = ip.survey.Survey([self.src])
+        simulationip = ip.simulation.Problem3D_N(
+            mesh=self.mesh,
+            survey=surveyip,
             sigma=self.sigmaInf,
             etaMap=maps.IdentityMap(self.mesh),
-            Ainv=problemdc.Ainv,
+            Ainv=simulationdc.Ainv,
             _f=finf
         )
-        problemip.Solver = Solver
-        surveyip = ip.Survey([self.src])
-        problemip.pair(surveyip)
+        simulationip.Solver = Solver
         data_full = data0 - datainf
-        data = problemip.dpred(self.eta)
+        data = simulationip.dpred(self.eta)
         err = np.linalg.norm((data-data_full)/data_full)**2 / data_full.size
         if err < 0.05:
             passed = True
@@ -82,26 +81,25 @@ class IPProblemAnalyticTests(unittest.TestCase):
 
     def test_Problem3D_CC(self):
 
-        problemdc = dc.Problem3D_CC(
-            self.mesh, sigmaMap=maps.IdentityMap(self.mesh)
+        simulationdc = dc.simulation.Problem3D_CC(
+            mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
-        problemdc.Solver = Solver
-        problemdc.pair(self.surveyDC)
-        data0 = problemdc.dpred(self.sigma0)
-        finf = problemdc.fields(self.sigmaInf)
-        datainf = problemdc.dpred(self.sigmaInf, f=finf)
-        problemip = ip.Problem3D_CC(
-            self.mesh,
+        simulationdc.Solver = Solver
+        data0 = simulationdc.dpred(self.sigma0)
+        finf = simulationdc.fields(self.sigmaInf)
+        datainf = simulationdc.dpred(self.sigmaInf, f=finf)
+        surveyip = ip.survey.Survey([self.src])
+        simulationip = ip.simulation.Problem3D_CC(
+            mesh=self.mesh,
+            survey=surveyip,
             rho=1./self.sigmaInf,
             etaMap=maps.IdentityMap(self.mesh),
-            Ainv=problemdc.Ainv,
+            Ainv=simulationdc.Ainv,
             _f=finf
         )
-        problemip.Solver = Solver
-        surveyip = ip.Survey([self.src])
-        problemip.pair(surveyip)
+        simulationip.Solver = Solver
         data_full = data0 - datainf
-        data = problemip.dpred(self.eta)
+        data = simulationip.dpred(self.eta)
         err = np.linalg.norm((data-data_full)/data_full)**2 / data_full.size
         if err < 0.05:
             passed = True

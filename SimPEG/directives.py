@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 import os
-
 from .data_misfit import BaseDataMisfit
 from .objective_function import ComboObjectiveFunction
 from .regularization import BaseComboRegularization, BaseRegularization
@@ -101,12 +100,20 @@ class InversionDirective(properties.HasProperties):
         return [objfcts.simulation.survey for objfcts in self.dmisfit.objfcts]
 
     @property
-    def prob(self):
+    def simulation(self):
         """
            Assuming that dmisfit is always a ComboObjectiveFunction,
            return a list of problems for each dmisfit [prob1, prob2, ...]
         """
-        return [objfcts.prob for objfcts in self.dmisfit.objfcts]
+        return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
+
+    @property
+    def prob(self):
+        warnings.warn(
+            "The prob property will be depricated in favor of simulation. "
+            "Please update your code accordingly"
+        )
+        return self.simulation
 
     def initialize(self):
         pass
@@ -284,6 +291,12 @@ class TargetMisfit(InversionDirective):
     def endIter(self):
         if self.invProb.phi_d < self.target:
             self.opt.stopNextIteration = True
+            self.print_final_misfit()
+            # print (("   >> Target misfit: %.1f (# of data) is achieved") % (self.target * self.invProb.opt.factor))
+
+    def print_final_misfit(self):
+        if self.opt.print_type == "ubc":
+            self.opt.print_target = (">> Target misfit: %.1f (# of data) is achieved") % (self.target * self.invProb.opt.factor)
 
 
 class SaveEveryIteration(InversionDirective):
@@ -448,7 +461,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
         self.f = results[:, 7]
 
-        self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
+        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
@@ -465,7 +478,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         plot_smooth=False
     ):
 
-        self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
+        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
@@ -529,7 +542,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
     def plot_tikhonov_curves(self, fname=None, dpi=200):
 
-        self.target_misfit = self.invProb.dmisfit.prob.survey.nD / 2.
+        self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.
         self.i_target = None
 
         if self.invProb.phi_d < self.target_misfit:
@@ -579,20 +592,20 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
     # Initialize the output dict
     outDict = None
-    outDict = {}
     saveOnDisk = False
 
     def initialize(self):
+        self.outDict = {}
         print("SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(self.fileName))
 
     def endIter(self):
 
         # regCombo = ["phi_ms", "phi_msx"]
 
-        # if self.prob[0].mesh.dim >= 2:
+        # if self.simulation[0].mesh.dim >= 2:
         #     regCombo += ["phi_msy"]
 
-        # if self.prob[0].mesh.dim == 3:
+        # if self.simulation[0].mesh.dim == 3:
         #     regCombo += ["phi_msz"]
 
         # Initialize the output dict
@@ -714,10 +727,10 @@ class Update_IRLS(InversionDirective):
         self.phi_dm = []
         self.phi_dmx = []
         # Look for cases where the block models in to be scaled
-        for prob in self.prob:
+        for sim in self.simulation:
 
-            if getattr(prob, 'coordinate_system', None) is not None:
-                if prob.coordinate_system == 'spherical':
+            if getattr(sim, 'coordinate_system', None) is not None:
+                if sim.coordinate_system == 'spherical':
                     self.sphericalDomain = True
 
         if self.sphericalDomain:
@@ -784,8 +797,7 @@ class Update_IRLS(InversionDirective):
 
             if self.fix_Jmatrix:
                 print(">> Fix Jmatrix")
-                self.invProb.dmisfit.prob.fix_Jmatrix = True
-
+                self.invProb.dmisfit.sim.fix_Jmatrix = True
             # Check for maximum number of IRLS cycles
             if self.IRLSiter == self.maxIRLSiter:
                 if not self.silent:
@@ -965,16 +977,16 @@ class UpdatePreconditioner(InversionDirective):
             print("Approximated diag(JtJ) with linear operator")
 
             JtJdiag = np.zeros_like(self.invProb.model)
-            for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
+            for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
 
-                    if getattr(prob, 'getJtJdiag', None) is None:
-                        assert getattr(prob, 'getJ', None) is not None, (
+                    if getattr(sim, 'getJtJdiag', None) is None:
+                        assert getattr(sim, 'getJ', None) is not None, (
                         "Problem does not have a getJ attribute." +
                         "Cannot form the sensitivity explicitely"
                         )
-                        JtJdiag += np.sum(np.power((dmisfit.W*prob.getJ(m)), 2), axis=0)
+                        JtJdiag += np.sum(np.power((dmisfit.W*sim.getJ(m)), 2), axis=0)
                     else:
-                        JtJdiag += prob.getJtJdiag(m, W=dmisfit.W)
+                        JtJdiag += sim.getJtJdiag(m, W=dmisfit.W)
 
             self.opt.JtJdiag = JtJdiag
 
@@ -1020,9 +1032,9 @@ class Update_Wj(InversionDirective):
 
             def JtJv(v):
 
-                Jv = self.prob.Jvec(m, v)
+                Jv = self.simulation.Jvec(m, v)
 
-                return self.prob.Jtvec(m, Jv)
+                return self.simulation.Jtvec(m, Jv)
 
             JtJdiag = diagEst(JtJv, len(m), k=self.k)
             JtJdiag = JtJdiag / max(JtJdiag)
@@ -1076,20 +1088,20 @@ class UpdateSensitivityWeights(InversionDirective):
         self.JtJdiag = []
         m = self.invProb.model
 
-        for prob, dmisfit in zip(
-            self.prob,
+        for sim, dmisfit in zip(
+            self.simulation,
             self.dmisfit.objfcts
         ):
 
-            if getattr(prob, 'getJtJdiag', None) is None:
-                assert getattr(prob, 'getJ', None) is not None, (
+            if getattr(sim, 'getJtJdiag', None) is None:
+                assert getattr(sim, 'getJ', None) is not None, (
                     "Problem does not have a getJ attribute." +
                     "Cannot form the sensitivity explicitely"
                 )
 
-                self.JtJdiag += [mkvc(np.sum((dmisfit.W*prob.getJ(m))**(2.), axis=0))]
+                self.JtJdiag += [mkvc(np.sum((dmisfit.W*sim.getJ(m))**(2.), axis=0))]
             else:
-                self.JtJdiag += [prob.getJtJdiag(m, W=dmisfit.W)]
+                self.JtJdiag += [sim.getJtJdiag(m, W=dmisfit.W)]
 
         return self.JtJdiag
 
@@ -1101,7 +1113,7 @@ class UpdateSensitivityWeights(InversionDirective):
 
         wr = np.zeros_like(self.invProb.model)
         if self.switch:
-            for prob_JtJ, prob, dmisfit in zip(self.JtJdiag, self.prob, self.dmisfit.objfcts):
+            for prob_JtJ, sim, dmisfit in zip(self.JtJdiag, self.simulation, self.dmisfit.objfcts):
 
                 wr += prob_JtJ + self.threshold
 
@@ -1126,8 +1138,8 @@ class UpdateSensitivityWeights(InversionDirective):
         """
         # if self.ComboMisfitFun:
         JtJdiag = np.zeros_like(self.invProb.model)
-        for prob, JtJ, dmisfit in zip(
-            self.prob, self.JtJdiag, self.dmisfit.objfcts
+        for sim, JtJ, dmisfit in zip(
+            self.simulation, self.JtJdiag, self.dmisfit.objfcts
         ):
 
             JtJdiag += JtJ
@@ -1153,8 +1165,8 @@ class ProjectSphericalBounds(InversionDirective):
 
         self.invProb.model = m
 
-        for prob in self.prob:
-            prob.model = m
+        for sim in self.simulation:
+            sim.model = m
 
         self.opt.xc = m
 
@@ -1176,7 +1188,7 @@ class ProjectSphericalBounds(InversionDirective):
 
         self.invProb.phi_m_last = phi_m_last
 
-        for prob in self.prob:
-            prob.model = m
+        for sim in self.simulation:
+            sim.model = m
 
         self.opt.xc = m

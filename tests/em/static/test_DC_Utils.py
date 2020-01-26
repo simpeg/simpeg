@@ -75,7 +75,10 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
             # Setup Problem with exponential mapping
             expmap = maps.ExpMap(self.mesh)
-            problem = dc.Problem3D_CC(self.mesh, sigmaMap=expmap, survey=survey)
+            problem = dc.Problem3D_CC(self.mesh,
+                        sigmaMap=expmap,
+                        survey=survey,
+                        bc_type='Neumann')
             problem.solver = Solver
 
             # Create synthetic data
@@ -96,7 +99,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                 # Test Pseudosections plotting
                 fig, ax = plt.subplots(1, 1, figsize=(15, 3))
                 ax = utils.plot_pseudoSection(
-                    survey, ax, survey_type=surveytype,
+                    survey, ax, survey_type=survey_type,
                     scale='log', clim=None,
                     data_type='appResistivity',
                     pcolorOpts={"cmap": "viridis"},

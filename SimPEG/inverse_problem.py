@@ -4,7 +4,7 @@ import properties
 import numpy as np
 import scipy.sparse as sp
 import gc
-
+from dask.delayed import Delayed
 from .data_misfit import BaseDataMisfit
 from .props import BaseSimPEG, Model
 from .regularization import BaseRegularization, BaseComboRegularization
@@ -140,10 +140,12 @@ class BaseInvProblem(BaseSimPEG):
         if f is None:
             if isinstance(self.dmisfit, BaseDataMisfit):
                 f = self.dmisfit.simulation.fields(m)
+                if isinstance(f, Delayed):
+                    f = f.compute()
             elif isinstance(self.dmisfit, BaseObjectiveFunction):
                 f = []
                 for objfct in self.dmisfit.objfcts:
-                    if hasattr(objfct, 'prob'):
+                    if hasattr(objfct, 'simulation'):
                         f += [objfct.simulation.fields(m)]
                     else:
                         f += []
@@ -181,6 +183,36 @@ class BaseInvProblem(BaseSimPEG):
         # if isinstance(self.dmisfit, BaseDataMisfit):
         phi_d = self.dmisfit(m, f=f)
         self.dpred = self.get_dpred(m, f=f)
+
+        # for reg in self.reg.objfcts:
+        if self.opt.print_type == 'ubc':
+            self.phi_s = 0.
+            self.phi_x = 0.
+            self.phi_y = 0.
+            self.phi_z = 0.
+
+            if not isinstance(self.reg, BaseComboRegularization):
+                regs = self.reg.objfcts
+                mults = self.reg.multipliers
+            else:
+                regs = [self.reg]
+                mults = [1.0]
+            for reg, mult in zip(regs, mults):
+                dim = reg.regmesh.dim
+                self.phi_s += (
+                    mult * reg.objfcts[0](self.model) * reg.alpha_s
+                )
+                self.phi_x += (
+                    mult * reg.objfcts[1](self.model) * reg.alpha_x
+                )
+                if dim > 1:
+                    self.phi_y += (
+                        mult * reg.objfcts[2](self.model) * reg.alpha_y
+                    )
+                if dim > 2:
+                    self.phi_z += (
+                        mult * reg.objfcts[3](self.model) * reg.alpha_y
+                    )
 
         phi_m = self.reg(m)
 

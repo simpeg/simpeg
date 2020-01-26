@@ -34,6 +34,13 @@ class BaseDCSimulation_2D(BaseEMSimulation):
     _Jmatrix = None
     fix_Jmatrix = False
 
+    def set_geometric_factor(self, geometric_factor):
+        index = 0
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
+                rx._geometric_factor = geometric_factor[index]
+                index += 1
+
     def fields(self, m):
         if self.verbose:
             print (">> Compute fields")
@@ -43,7 +50,7 @@ class BaseDCSimulation_2D(BaseEMSimulation):
             for i in range(self.nky):
                 self.Ainv[i].clean()
         f = self.fieldsPair(self)
-        Srcs = self.survey.srcList
+        Srcs = self.survey.source_list
         for iky in range(self.nky):
             ky = self.kys[iky]
             A = self.getA(ky)
@@ -83,9 +90,11 @@ class BaseDCSimulation_2D(BaseEMSimulation):
 
         data = Data(self.survey)
         kys = self.kys
+        cnt = 0
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 data[src, rx] = rx.eval(kys, src, self.mesh, f)
+
         return mkvc(data)
 
     def getJ(self, m, f=None):
@@ -130,12 +139,12 @@ class BaseDCSimulation_2D(BaseEMSimulation):
         # TODO: this loop is pretty slow .. (Parellize)
         for iky in range(self.nky):
             ky = self.kys[iky]
-            for src in self.survey.srcList:
+            for src in self.survey.source_list:
                 u_src = f[src, self._solutionType, iky]  # solution vector
                 dA_dm_v = self.getADeriv(ky, u_src, v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(ky, src, v)
                 du_dm_v = self.Ainv[iky] * (- dA_dm_v + dRHS_dm_v)
-                for rx in src.rxList:
+                for rx in src.receiver_list:
                     df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
                                        None)
                     df_dm_v = df_dmFun(iky, src, du_dm_v, v, adjoint=False)
@@ -184,8 +193,8 @@ class BaseDCSimulation_2D(BaseEMSimulation):
             dky = np.r_[dky[0], dky]
             y = 0.
 
-            for src in self.survey.srcList:
-                for rx in src.rxList:
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
                     Jtv_temp1 = np.zeros(m.size, dtype=float)
                     Jtv_temp0 = np.zeros(m.size, dtype=float)
 
@@ -232,8 +241,8 @@ class BaseDCSimulation_2D(BaseEMSimulation):
             dky = np.diff(self.kys)
             dky = np.r_[dky[0], dky]
             y = 0.
-            for src in self.survey.srcList:
-                for rx in src.rxList:
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
                     iend = istrt + rx.nD
                     Jtv_temp1 = np.zeros((m.size, rx.nD), dtype=float)
                     Jtv_temp0 = np.zeros((m.size, rx.nD), dtype=float)
@@ -277,7 +286,7 @@ class BaseDCSimulation_2D(BaseEMSimulation):
         :return: q (nC or nN, nSrc)
         """
 
-        Srcs = self.survey.srcList
+        Srcs = self.survey.source_list
 
         if self._formulation == 'EB':
             n = self.mesh.nN

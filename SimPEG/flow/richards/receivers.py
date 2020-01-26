@@ -7,7 +7,7 @@ from ...utils import Zero
 #     """Richards Receiver Object"""
 
 #     def __init__(self, locs, times):
-#         self.locs = locs
+#         self.locations = locs
 #         self.times = times
 #         self._Ps = {}
 
@@ -16,12 +16,12 @@ class Pressure(BaseTimeRx):
     """Richards Receiver Object"""
 
     def __call__(self, U, simulation):
-        P = self.getP(simulation.mesh, simulation.timeMesh)
+        P = self.getP(simulation.mesh, simulation.time_mesh)
         u = np.concatenate(U)
         return P * u
 
     def deriv(self, U, simulation, du_dm_v=None, v=None, adjoint=False):
-        P = self.getP(simulation.mesh, simulation.timeMesh)
+        P = self.getP(simulation.mesh, simulation.time_mesh)
         if not adjoint:
             return P * du_dm_v  # + 0 for dRx_dm contribution
         if v is None:
@@ -34,14 +34,14 @@ class Saturation(BaseTimeRx):
 
     def __call__(self, U, simulation):
         # The water retention curve model should have been updated in the prob
-        P = self.getP(simulation.mesh, simulation.timeMesh)
+        P = self.getP(simulation.mesh, simulation.time_mesh)
         usat = np.concatenate([simulation.water_retention(ui) for ui in U])
         return P * usat
 
     def deriv(self, U, simulation, du_dm_v=None, v=None, adjoint=False):
         # The water retention curve model should have been updated in the prob
 
-        P = self.getP(simulation.mesh, simulation.timeMesh)
+        P = self.getP(simulation.mesh, simulation.time_mesh)
         dT_du = sp.block_diag([simulation.water_retention.derivU(ui) for ui in U])
 
         if simulation.water_retention.needs_model:
