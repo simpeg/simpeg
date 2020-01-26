@@ -39,9 +39,9 @@ class DCProblemAnalyticTests(unittest.TestCase):
         )
         data_ana = phiA-phiB
 
-        rx = dc.Rx.Dipole(M, N)
-        src = dc.Src.Dipole([rx], Aloc, Bloc)
-        survey = dc.Survey([src])
+        rx = dc.receivers.Dipole(M, N)
+        src = dc.sources.Dipole([rx], Aloc, Bloc)
+        survey = dc.survey.Survey([src])
 
         self.survey = survey
         self.mesh = mesh
@@ -49,10 +49,9 @@ class DCProblemAnalyticTests(unittest.TestCase):
         self.data_ana = data_ana
 
     def test_Problem3D_N(self, tolerance=0.2):
-        problem = dc.Problem3D_N(self.mesh, sigma=self.sigma)
-        problem.Solver = Solver
-        problem.pair(self.survey)
-        data = problem.dpred()
+        simulation = dc.simulation.Problem3D_N(self.mesh, survey=self.survey, sigma=self.sigma)
+        simulation.Solver = Solver
+        data = simulation.dpred()
         err = (
             np.linalg.norm(data - self.data_ana) /
             np.linalg.norm(self.data_ana)
@@ -68,12 +67,11 @@ class DCProblemAnalyticTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_Problem3D_CC_Mixed(self, tolerance=0.2):
-        problem = dc.Problem3D_CC(
-            self.mesh, sigma=self.sigma, bc_type='Mixed'
+        simulation = dc.Problem3D_CC(
+            self.mesh, survey=self.survey, sigma=self.sigma, bc_type='Mixed'
         )
-        problem.Solver = Solver
-        problem.pair(self.survey)
-        data = problem.dpred()
+        simulation.Solver = Solver
+        data = simulation.dpred()
         err = (
             np.linalg.norm(data - self.data_ana) /
             np.linalg.norm(self.data_ana)
@@ -89,12 +87,11 @@ class DCProblemAnalyticTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_Problem3D_CC_Neumann(self, tolerance=0.2):
-        problem = dc.Problem3D_CC(
-            self.mesh, sigma=self.sigma, bc_type='Neumann'
+        simulation = dc.simulation.Problem3D_CC(
+            self.mesh, survey=self.survey, sigma=self.sigma, bc_type='Neumann'
             )
-        problem.Solver = Solver
-        problem.pair(self.survey)
-        data = problem.dpred()
+        simulation.Solver = Solver
+        data = simulation.dpred()
         err = (
             np.linalg.norm(data - self.data_ana) /
             np.linalg.norm(self.data_ana)
@@ -138,9 +135,9 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         )
         data_ana = phiA-phiB
 
-        rx = dc.Rx.Dipole(M, N)
-        src = dc.Src.Dipole([rx], Aloc, Bloc)
-        survey = dc.Survey([src])
+        rx = dc.receivers.Dipole(M, N)
+        src = dc.sources.Dipole([rx], Aloc, Bloc)
+        survey = dc.survey.Survey([src])
 
         self.survey = survey
         self.mesh = mesh
@@ -148,13 +145,12 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         self.data_ana = data_ana
 
     def test_Problem3D_CC_Dirichlet(self, tolerance=0.2):
-        problem = dc.Problem3D_CC(
-            self.mesh, sigma=self.sigma, bc_type='Dirichlet'
+        simulation = dc.simulation.Problem3D_CC(
+            self.mesh, survey=self.survey, sigma=self.sigma, bc_type='Dirichlet'
         )
 
-        problem.Solver = Solver
-        problem.pair(self.survey)
-        data = problem.dpred()
+        simulation.Solver = Solver
+        data = simulation.dpred()
         err = (
             np.linalg.norm(data - self.data_ana) /
             np.linalg.norm(self.data_ana)
@@ -193,9 +189,9 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
         )
         data_ana = phiA
 
-        rx = dc.Rx.Pole(M)
-        src = dc.Src.Pole([rx], Aloc)
-        survey = dc.Survey([src])
+        rx = dc.receivers.Pole(M)
+        src = dc.sources.Pole([rx], Aloc)
+        survey = dc.survey.Survey([src])
 
         self.survey = survey
         self.mesh = mesh
@@ -203,10 +199,10 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
         self.data_ana = data_ana
 
     def test_Problem3D_CC_Mixed(self, tolerance=0.2):
-        problem = dc.Problem3D_CC(self.mesh, sigma=self.sigma, bc_type='Mixed')
-        problem.Solver = Solver
-        problem.pair(self.survey)
-        data = problem.dpred()
+        simulation = dc.simulation.Problem3D_CC(
+                self.mesh, survey=self.survey, sigma=self.sigma, bc_type='Mixed')
+        simulation.Solver = Solver
+        data = simulation.dpred()
         err = (
             np.linalg.norm(data - self.data_ana) /
             np.linalg.norm(self.data_ana)

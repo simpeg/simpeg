@@ -1,6 +1,10 @@
 import numpy as np
+import dask
+import dask.array as da
+import multiprocessing
 import scipy.sparse as sp
 import sys
+import shutil
 
 from .... import props
 from ....data import Data
@@ -10,6 +14,15 @@ from ...base import BaseEMSimulation
 from ..resistivity.fields import FieldsDC, Fields_CC, Fields_N
 from ..resistivity import Problem3D_CC as BaseProblem3D_CC
 from ..resistivity import Problem3D_N as BaseProblem3D_N
+import os
+import dask
+import dask.array as da
+from scipy.sparse import csr_matrix as csr
+from pyMKL import mkl_set_num_threads
+import zarr
+import time
+import sparse
+from dask.delayed import Delayed
 # from .survey import Survey
 
 
@@ -35,37 +48,51 @@ class BaseIPSimulation(BaseEMSimulation):
     _f = None
     storeJ = False
     _Jmatrix = None
+    gtgdiag = None
     sign = None
     data_type = 'volt'
     _pred = None
+    Jpath = "./sensitivityip/"
+    gtgdiag = None
+    n_cpu = int(multiprocessing.cpu_count())
+    maxRAM = 2
+    max_chunk_size = 128
 
-    def fields(self, m):
+    @dask.delayed(pure=True)
+    def fields(self, m=None, calcJ=True):
         if self.verbose is True:
             print(">> Compute fields")
 
-        if self._f is None:
-            self._f = self.fieldsPair(self)
-            if self.Ainv is None:
-                A = self.getA()
-                self.Ainv = self.Solver(A, **self.solver_opts)
-            RHS = self.getRHS()
-            u = self.Ainv * RHS
-            Srcs = self.survey.srcList
-            self._f[Srcs, self._solutionType] = u
+        mkl_set_num_threads(self.n_cpu)
 
-            # Compute DC voltage
-            if self.data_type == 'apparent_chargeability':
-                if self.verbose is True:
-                    print(">> Data type is apparaent chargeability")
-                for src in self.survey.srcList:
-                    for rx in src.rxList:
-                        rx._dc_voltage = rx.eval(src, self.mesh, self._f)
-                        rx.data_type = self.data_type
-                        rx._Ps = {}
+        if m is not None:
+            self.model = m
+            self._Jmatrix = None
 
-        self._pred = self.forward(m, f=self._f)
+        f = self.fieldsPair(self)
+        A = self.getA()
+        self.Ainv = self.solver(A, **self.solver_opts)
+        RHS = self.getRHS()
+        Srcs = self.survey.source_list
+        f[Srcs, self._solutionType] = self.Ainv * RHS
 
-        return self._f
+        # Compute DC voltage
+        if self.data_type == 'apparent_chargeability':
+            if self.verbose is True:
+                print(">> Data type is apparaent chargeability")
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
+                    rx._dc_voltage = rx.eval(src, self.mesh, self._f)
+                    rx.data_type = self.data_type
+                    rx._Ps = {}
+
+        self._pred = self.forward(m, f=f)
+        self._f = f
+
+        # if not self.storeJ:
+        #     self.Ainv.clean()
+
+        return f
 
     def dpred(self, m=None, f=None):
         """
@@ -75,32 +102,121 @@ class BaseIPSimulation(BaseEMSimulation):
         """
         if f is None:
             f = self.fields(m)
+        if isinstance(f, Delayed):
+            f = f.compute()
 
         return self._pred
+
+    def getJtJdiag(self, m, W=None):
+        """
+            Return the diagonal of JtJ
+        """
+
+        if (self.gtgdiag is None):
+
+            # Need to check if multiplying weights makes sense
+            if W is None:
+                self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
+            else:
+                self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
+                # WJ = da.from_delayed(
+                #         dask.delayed(csr.dot)(W, self.getJ(m)),
+                #         shape=self.getJ(m).shape,
+                #         dtype=float
+                # )
+                # self.gtgdiag = da.sum(WJ**2., 0).compute()
+
+        return self.gtgdiag
 
     def getJ(self, m, f=None):
         """
             Generate Full sensitivity matrix
         """
+        if self._Jmatrix is not None:
+            return self._Jmatrix
+
         self.model = m
+        if f is None:
+            f = self.fields(m).compute()
 
         if self.verbose:
             print("Calculating J and storing")
 
-        if self._Jmatrix is not None:
-            return self._Jmatrix
-        else:
+        if os.path.exists(self.Jpath):
+            shutil.rmtree(self.Jpath, ignore_errors=True)
 
-            if f is None:
-                f = self.fields(m)
-            self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
+            # Wait for the system to clear out the directory
+            while os.path.exists(self.Jpath):
+                pass
+        # start of IP J
+        # This is for forming full sensitivity matrix
+        nD = self.survey.nD
+        nC = m.shape[0]
 
-            # delete fields after computing sensitivity
-            # del f
-            self._f = []
-            # clean all factorization
-            if self.Ainv is not None:
-                self.Ainv.clean()
+        # print('DASK: Chunking using parameters')
+        nChunks_col = 1
+        nChunks_row = 1
+        rowChunk = int(np.ceil(nD / nChunks_row))
+        colChunk = int(np.ceil(nC / nChunks_col))
+        chunk_size = rowChunk * colChunk * 8 * 1e-6  # in Mb
+
+        # Add more chunks until memory falls below target
+        while chunk_size >= self.max_chunk_size:
+
+            if rowChunk > colChunk:
+                nChunks_row += 1
+            else:
+                nChunks_col += 1
+
+            rowChunk = int(np.ceil(nD / nChunks_row))
+            colChunk = int(np.ceil(nC / nChunks_col))
+            chunk_size = rowChunk * colChunk * 8 * 1e-6  # in Mb
+        count = 0
+        for source in self.survey.source_list:
+            u_source = f[source, self._solutionType].copy()
+            for rx in source.receiver_list:
+                PT = rx.getP(self.mesh, rx.projGLoc(f)).T
+                df_duT = PT.toarray()
+                # Find a block of receivers
+                n_block_col = int(np.ceil(df_duT.size *
+                                          8 * 1e-9 / self.maxRAM))
+
+                n_col = int(np.ceil(df_duT.shape[1] / n_block_col))
+
+                nrows = int(self.model.size /
+                            np.ceil(self.model.size *
+                                    n_col * 8 * 1e-6 /
+                                    self.max_chunk_size))
+                ind = 0
+                for col in range(n_block_col):
+                    ATinvdf_duT = da.asarray(self.Ainv * np.asarray(df_duT[:, ind:ind + n_col])).rechunk((nrows, n_col))
+                    dA_dmT = self.getADeriv(
+                        u_source, ATinvdf_duT, adjoint=True)
+                    # du_dmT = -da.from_delayed(dask.delayed(dA_dmT), shape=(self.model.size, n_col), dtype=float)
+                    if n_col > 1:
+                        du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
+                                                 shape=(self.model.size, n_col),
+                                                 dtype=float)
+                    else:
+                        du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
+                                                 shape=(self.model.size,),
+                                                 dtype=float)
+                    blockName = self.Jpath + "J" + str(count) + ".zarr"
+
+                    da.to_zarr((du_dmT.T).rechunk('auto'), blockName)
+                    del ATinvdf_duT
+                    count += 1
+                    ind += n_col
+
+        dask_arrays = []
+        for ii in range(count):
+            blockName = self.Jpath + "J" + str(ii) + ".zarr"
+            J = da.from_zarr(blockName)
+            # Stack all the source blocks in one big zarr
+            dask_arrays.append(J)
+
+        self._Jmatrix = da.vstack(dask_arrays).rechunk((rowChunk, colChunk))
+        self.Ainv.clean()
 
         return self._Jmatrix
 
@@ -109,27 +225,29 @@ class BaseIPSimulation(BaseEMSimulation):
 
         self.model = m
 
+        if f is None:
+            f = self.fields(m)
+
+        if isinstance(f, Delayed):
+            f = f.compute()
+
         # When sensitivity matrix J is stored
         if self.storeJ:
-            J = self.getJ(m, f=f)
+            J = self.getJ(m, f=f).compute()
             Jv = mkvc(np.dot(J, v))
             return self.sign * Jv
 
         else:
-
-            if f is None:
-                f = self.fields(m)
-
             Jv = []
 
-            for src in self.survey.srcList:
+            for src in self.survey.source_list:
                 # solution vector
                 u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(u_src.flatten(), v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(src, v)
                 du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
 
-                for rx in src.rxList:
+                for rx in src.receiver_list:
                     df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                     df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
                     Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
@@ -146,18 +264,23 @@ class BaseIPSimulation(BaseEMSimulation):
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
 
         """
+        if f is None:
+            f = self.fields(m)
+
+        if isinstance(f, Delayed):
+            f = f.compute()
 
         # When sensitivity matrix J is stored
         if self.storeJ:
             J = self.getJ(m, f=f)
-            Jtv = mkvc(np.dot(J.T, v))
+            Jtv = mkvc(da.dot(J.T, v).compute())
             return self.sign * Jtv
 
         else:
             self.model = m
 
             if f is None:
-                f = self.fields(m)
+                f = self.fields(m).compute()
             return self._Jtvec(m, v=v, f=f)
 
     def _Jtvec(self, m, v=None, f=None):
@@ -177,15 +300,14 @@ class BaseIPSimulation(BaseEMSimulation):
             istrt = int(0)
             iend = int(0)
 
-        for isrc, src in enumerate(self.survey.srcList):
-            print(f, src, self._solutionType)
+        for isrc, src in enumerate(self.survey.source_list):
             u_src = f[src, self._solutionType]
-            if self.storeJ:
-                # TODO: use logging package
-                sys.stdout.write(("\r %d / %d") % (isrc+1, self.survey.nSrc))
-                sys.stdout.flush()
+            # if self.storeJ:
+            #     # TODO: use logging package
+            #     sys.stdout.write(("\r %d / %d") % (isrc+1, self.survey.nSrc))
+            #     sys.stdout.flush()
 
-            for rx in src.rxList:
+            for rx in src.receiver_list:
                 if v is not None:
                     PTv = rx.evalDeriv(
                         src, self.mesh, f, v[src, rx], adjoint=True
@@ -198,8 +320,10 @@ class BaseIPSimulation(BaseEMSimulation):
                     dA_dmT = self.getADeriv(
                         u_src.flatten(), ATinvdf_duT, adjoint=True
                     )
+                    # dA_dmT = da.from_delayed(dA_dmT, shape=self.model.shape, dtype=float)
                     dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
-                    du_dmT = -dA_dmT + dRHS_dmT
+                    # dRHS_dmT = da.from_delayed(dRHS_dmT, shape=self.model.shape, dtype=float)
+                    du_dmT = (-dA_dmT + dRHS_dmT)
                     Jtv += (df_dmT + du_dmT).astype(float)
                 else:
                     P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
@@ -219,7 +343,7 @@ class BaseIPSimulation(BaseEMSimulation):
         # Resistivity ((d u / d log rho).T) - HJ form
 
         if v is not None:
-            return self.sign*mkvc(Jtv)
+            return self.sign * mkvc(Jtv)
         else:
             return Jtv
         return
@@ -235,7 +359,7 @@ class BaseIPSimulation(BaseEMSimulation):
         :return: q (nC or nN, nSrc)
         """
 
-        Srcs = self.survey.srcList
+        Srcs = self.survey.source_list
 
         if self._formulation == 'EB':
             n = self.mesh.nN
@@ -290,6 +414,8 @@ class BaseIPSimulation(BaseEMSimulation):
             else:
                 return dMfRhoI_dI * (dMf_drho * (drho_dlogrho*v))
 
+    MfRhoIDerivDask = MfRhoIDeriv
+
     @property
     def MeSigmaDerivMat(self):
         """
@@ -334,7 +460,7 @@ class Problem3D_CC(BaseIPSimulation, BaseProblem3D_CC):
     _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_CC
     sign = 1.
-    bc_type = 'Neumann'
+    bc_type = 'Dirichlet'
 
     def __init__(self, mesh, **kwargs):
         super(Problem3D_CC, self).__init__(mesh, **kwargs)

@@ -10,7 +10,7 @@ from SimPEG import (
     data_misfit, maps, utils, regularization, inverse_problem, optimization,
     directives, inversion
 )
-from SimPEG.EM.Static import DC
+from SimPEG.electromagnetics import resistivity as DC
 
 np.random.seed(82)
 
@@ -22,8 +22,8 @@ class DataMisfitTest(unittest.TestCase):
         sigma = np.random.rand(mesh.nC)
         model = np.log(sigma)
 
-        prob = DC.Problem3D_CC(mesh, rhoMap=maps.ExpMap(mesh))
-        prob1 = DC.Problem3D_CC(mesh, rhoMap=maps.ExpMap(mesh))
+        # prob = DC.Problem3D_CC(mesh, rhoMap=maps.ExpMap(mesh))
+        # prob1 = DC.Problem3D_CC(mesh, rhoMap=maps.ExpMap(mesh))
 
         rx = DC.Rx.Pole(
             utils.ndgrid([mesh.vectorCCx, np.r_[mesh.vectorCCy.max()]])
@@ -40,25 +40,30 @@ class DataMisfitTest(unittest.TestCase):
             np.r_[0.25, mesh.vectorCCy.max()]
         )
         survey = DC.Survey([src])
-        prob.pair(survey)
+        simulation0 = DC.simulation.Problem3D_CC(
+            mesh=mesh, survey=survey, rhoMap=maps.ExpMap(mesh)
+        )
 
         survey1 = DC.Survey([src1])
-        prob1.pair(survey1)
+        simulation1 = DC.simulation.Problem3D_CC(
+            mesh=mesh, survey=survey1, rhoMap=maps.ExpMap(mesh)
+        )
 
-        dobs0 = survey.makeSyntheticData(model)
-        dobs1 = survey1.makeSyntheticData(model)
+        dobs0 = simulation0.make_synthetic_data(model)
+        dobs1 = simulation1.make_synthetic_data(model)
 
         self.mesh = mesh
         self.model = model
 
         self.survey0 = survey
-        self.prob0 = prob
+        self.sim0 = simulation0
 
         self.survey1 = survey1
-        self.prob1 = prob1
+        self.sim1 = simulation1
 
-        self.dmis0 = data_misfit.L2DataMisfit(self.survey0)
-        self.dmis1 = data_misfit.L2DataMisfit(self.survey1)
+        # self.dmis0 = data_misfit.L2DataMisfit(self.survey0)
+        self.dmis0 = data_misfit.L2DataMisfit(data=dobs0, simulation=simulation0)
+        self.dmis1 = data_misfit.L2DataMisfit(data=dobs1, simulation=simulation1)
 
         self.dmiscobmo = self.dmis0 + self.dmis1
 
@@ -71,10 +76,11 @@ class DataMisfitTest(unittest.TestCase):
         reg = regularization.Tikhonov(self.mesh)
         opt = optimization.InexactGaussNewton(maxIter=10)
         invProb = inverse_problem.BaseInvProblem(self.dmiscobmo, reg, opt)
-        directives = [
-            directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
+        directives_list = [
+            directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
         ]
-        inv = inversion.BaseInversion(invProb, directiveList=directives)
+        print(len(directives_list))
+        inv = inversion.BaseInversion(invProb, directiveList=directives_list)
         m0 = self.model.mean() * np.ones_like(self.model)
 
         mrec = inv.run(m0)
@@ -85,10 +91,10 @@ class DataMisfitTest(unittest.TestCase):
         reg = reg1+reg2
         opt = optimization.InexactGaussNewton(maxIter=10)
         invProb = inverse_problem.BaseInvProblem(self.dmiscobmo, reg, opt)
-        directives = [
-            directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
+        directives_list = [
+            directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
         ]
-        inv = inversion.BaseInversion(invProb, directiveList=directives)
+        inv = inversion.BaseInversion(invProb, directiveList=directives_list)
         m0 = self.model.mean() * np.ones_like(self.model)
 
         mrec = inv.run(m0)

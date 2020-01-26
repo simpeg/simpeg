@@ -9,6 +9,7 @@ from SimPEG import (
 from SimPEG.utils import mkvc
 from SimPEG.electromagnetics import resistivity as dc
 from pymatsolver import Pardiso
+import shutil
 
 np.random.seed(40)
 
@@ -32,15 +33,16 @@ class DCProblemTestsCC(unittest.TestCase):
         ], 'CN')
 
         srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.Survey(srcList)
-        problem = dc.Problem3D_CC(mesh, rhoMap=maps.IdentityMap(mesh))
-        problem.pair(survey)
+        survey = dc.survey.Survey(srcList)
+        simulation = dc.simulation.Problem3D_CC(
+                mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh)
+                )
 
         mSynth = np.ones(mesh.nC)
-        dobs=problem.makeSyntheticData(mSynth)
+        dobs = simulation.makeSyntheticData(mSynth)
 
         # Now set up the problem to do some minimization
-        dmis = data_misfit.L2DataMisfit(simulation=problem, data=dobs)
+        dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
         reg = regularization.Tikhonov(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
@@ -51,7 +53,7 @@ class DCProblemTestsCC(unittest.TestCase):
 
         self.inv = inv
         self.reg = reg
-        self.p = problem
+        self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
         self.survey = survey
@@ -107,23 +109,22 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         rx_x = np.linspace(10, 200, 20)
         rx_z = np.r_[-5]
         rx_locs = utils.ndgrid([rx_x, np.r_[0], rx_z])
-        rx_list = [dc.Rx.BaseRx(rx_locs, projField="e", orientation="x")]
+        rx_list = [dc.receivers.BaseRx(rx_locs, projField="e", orientation="x")]
 
         # sources
         src_a = np.r_[0., 0., -5.]
         src_b = np.r_[55., 0., -5.]
 
-        src_list = [dc.Src.Dipole(rx_list, locationA=src_a, locationB=src_b)]
+        src_list = [dc.sources.Dipole(rx_list, locationA=src_a, locationB=src_b)]
 
         self.mesh = mesh
+        self.survey = dc.survey.Survey(src_list)
         self.sigma_map = maps.ExpMap(mesh) * maps.InjectActiveCells(
             mesh, mesh.gridCC[:, 2] <=0, np.log(1e-8)
         )
-        self.prob = dc.Problem3D_CC(
-            mesh, sigmaMap=self.sigma_map, Solver=Pardiso, bc_type="Dirichlet"
+        self.prob = dc.simulation.Problem3D_CC(
+            mesh=mesh, survey=self.survey, sigmaMap=self.sigma_map, Solver=Pardiso, bc_type="Dirichlet"
         )
-        self.survey = dc.Survey(src_list)
-        self.prob.pair(self.survey)
 
 
     def test_e_deriv(self):
@@ -137,7 +138,8 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         print('Adjoint Test for e')
 
         m = -1 + 1e-1*np.random.rand(self.sigma_map.nP)
-        u = self.prob.fields(m)
+        u = self.prob.fields(m).compute()
+        # u = u[self.survey.source_list,'e']
 
         v = np.random.rand(self.survey.nD)
         w = np.random.rand(self.sigma_map.nP)
@@ -170,15 +172,16 @@ class DCProblemTestsN(unittest.TestCase):
         ], 'CN')
 
         srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.Survey(srcList)
-        problem = dc.Problem3D_N(mesh, rhoMap=maps.IdentityMap(mesh))
-        problem.pair(survey)
+        survey = dc.survey.Survey(srcList)
+        simulation = dc.simulation.Problem3D_N(
+                mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh)
+                )
 
         mSynth = np.ones(mesh.nC)
-        dobs = problem.makeSyntheticData(mSynth)
+        dobs = simulation.makeSyntheticData(mSynth)
 
         # Now set up the problem to do some minimization
-        dmis = data_misfit.L2DataMisfit(simulation=problem, data=dobs)
+        dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
         reg = regularization.Tikhonov(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
@@ -189,7 +192,7 @@ class DCProblemTestsN(unittest.TestCase):
 
         self.inv = inv
         self.reg = reg
-        self.p = problem
+        self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
         self.survey = survey
@@ -245,17 +248,17 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         ], 'CN')
 
         srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.Survey(srcList)
-        problem = dc.Problem3D_CC(
-            mesh, rhoMap=maps.IdentityMap(mesh), storeJ=True
-            )
-        problem.pair(survey)
+        survey = dc.survey.Survey(srcList)
+        simulation = dc.simulation.Problem3D_CC(
+            mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh),
+            storeJ=True
+        )
 
         mSynth = np.ones(mesh.nC)
-        dobs = problem.makeSyntheticData(mSynth)
+        dobs = simulation.makeSyntheticData(mSynth)
 
         # Now set up the problem to do some minimization
-        dmis = data_misfit.L2DataMisfit(simulation=problem, data=dobs)
+        dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
         reg = regularization.Tikhonov(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
@@ -266,7 +269,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
 
         self.inv = inv
         self.reg = reg
-        self.p = problem
+        self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
         self.survey = survey
@@ -300,9 +303,13 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
             lambda m: [self.dmis(m), self.dmis.deriv(m)],
             self.m0,
             plotIt=False,
-            num=3
+            num=4
         )
         self.assertTrue(passed)
+
+    def tearDown(self):
+        # Clean up the working directory
+        shutil.rmtree(self.p.Jpath)
 
 
 class DCProblemTestsN_storeJ(unittest.TestCase):
@@ -322,17 +329,16 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         ], 'CN')
 
         srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.Survey(srcList)
-        problem = dc.Problem3D_N(
-            mesh, rhoMap=maps.IdentityMap(mesh), storeJ=True
+        survey = dc.survey.Survey(srcList)
+        simulation = dc.simulation.Problem3D_N(
+            mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh), storeJ=True
             )
-        problem.pair(survey)
 
         mSynth = np.ones(mesh.nC)
-        dobs = problem.makeSyntheticData(mSynth)
+        dobs = simulation.makeSyntheticData(mSynth)
 
         # Now set up the problem to do some minimization
-        dmis = data_misfit.L2DataMisfit(simulation=problem, data=dobs)
+        dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
         reg = regularization.Tikhonov(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
@@ -343,7 +349,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
 
         self.inv = inv
         self.reg = reg
-        self.p = problem
+        self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
         self.survey = survey
@@ -380,6 +386,10 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
             num=3
         )
         self.assertTrue(passed)
+
+    def tearDown(self):
+        # Clean up the working directory
+        shutil.rmtree(self.p.Jpath)
 
 if __name__ == '__main__':
     unittest.main()

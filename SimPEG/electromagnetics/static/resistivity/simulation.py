@@ -1,6 +1,7 @@
 import numpy as np
 import scipy as sp
 import properties
+import shutil
 
 from ....utils import mkvc, sdiag, Zero
 from ....data import Data
@@ -8,12 +9,27 @@ from ...base import BaseEMSimulation
 from .boundary_utils import getxBCyBC_CC
 from .survey import Survey
 from .fields import Fields_CC, Fields_N
+import dask
+import dask.array as da
+import multiprocessing
+import os
+from scipy.sparse import csr_matrix as csr
+from scipy.sparse import linalg
+from pymatsolver import BicgJacobi
+from pyMKL import mkl_set_num_threads, mkl_get_max_threads
+import zarr
+import time
+import sparse
+from dask.delayed import Delayed
 
 
 class BaseDCSimulation(BaseEMSimulation):
     """
     Base DC Problem
     """
+    Jpath = "./sensitivity/"
+    # n_cpu = None
+    maxRAM = 2
 
     survey = properties.Instance(
         "a DC survey object", Survey, required=True
@@ -25,29 +41,65 @@ class BaseDCSimulation(BaseEMSimulation):
 
     Ainv = None
     _Jmatrix = None
+    gtgdiag = None
+    n_cpu = int(multiprocessing.cpu_count())
+    max_chunk_size = 128
 
-    def fields(self, m=None):
+    @dask.delayed(pure=True)
+    def fields(self, m=None, calcJ=True):
+
+        mkl_set_num_threads(self.n_cpu)
+
         if m is not None:
             self.model = m
-
-        if self.Ainv is not None:
-            self.Ainv.clean()
+            self._Jmatrix = None
 
         f = self.fieldsPair(self)
         A = self.getA()
+
         self.Ainv = self.Solver(A, **self.solver_opts)
         RHS = self.getRHS()
-        u = self.Ainv * RHS
-        Srcs = self.survey.srcList
-        f[Srcs, self._solutionType] = u
+        Srcs = self.survey.source_list
+
+        f[Srcs, self._solutionType] = self.Ainv * RHS  #, num_cores=self.n_cpu).compute()
+
+        # if not self.storeJ:
+        #     self.Ainv.clean()
+
         return f
+
+    def getJtJdiag(self, m, W=None):
+        """
+            Return the diagonal of JtJ
+        """
+
+        if (self.gtgdiag is None):
+
+            # Need to check if multiplying weights makes sense
+            if W is None:
+                self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
+            else:
+                self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
+            #     from dask.diagnostics import Profiler, ResourceProfiler, CacheProfiler
+
+            #     with Profiler() as prof, ResourceProfiler(dt=0.25) as rprof, CacheProfiler() as cprof:
+            #         self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
+
+            #     from dask.diagnostics import visualize
+            #     visualize([prof, rprof, cprof])
+                # WJ = da.from_delayed(
+                #         dask.delayed(csr.dot)(W, self.getJ(m)),
+                #         shape=self.getJ(m).shape,
+                #         dtype=float
+                # )
+                # self.gtgdiag = da.sum(WJ**2., 0).compute()
+
+        return self.gtgdiag
 
     def getJ(self, m, f=None):
         """
             Generate Full sensitivity matrix
         """
-        if self.verbose:
-            print("Calculating J and storing")
 
         if self._Jmatrix is not None:
             return self._Jmatrix
@@ -55,51 +107,155 @@ class BaseDCSimulation(BaseEMSimulation):
 
             self.model = m
             if f is None:
-                f = self.fields(m)
-            self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
+                f = self.fields(m).compute()
+
+        if self.verbose:
+            print("Calculating J and storing")
+
+        if os.path.exists(self.Jpath):
+            shutil.rmtree(self.Jpath, ignore_errors=True)
+
+            # Wait for the system to clear out the directory
+            while os.path.exists(self.Jpath):
+                pass
+
+        nD = self.survey.nD
+        nC = m.shape[0]
+
+        # print('DASK: Chunking using parameters')
+        nChunks_col = 1
+        nChunks_row = 1
+        rowChunk = int(np.ceil(nD/nChunks_row))
+        colChunk = int(np.ceil(nC/nChunks_col))
+        chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+
+        # Add more chunks until memory falls below target
+        while chunk_size >= self.max_chunk_size:
+
+            if rowChunk > colChunk:
+                nChunks_row += 1
+            else:
+                nChunks_col += 1
+
+            rowChunk = int(np.ceil(nD/nChunks_row))
+            colChunk = int(np.ceil(nC/nChunks_col))
+            chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
+
+        count = 0
+        for source in self.survey.source_list:
+            u_source = f[source, self._solutionType].copy()
+            for rx in source.receiver_list:
+                # wrt f, need possibility wrt m
+                PTv = rx.getP(self.mesh, rx.projGLoc(f)).T
+
+                df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
+                                    None)
+                df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
+
+                # Find a block of receivers
+                n_block_col = int(np.ceil(df_duT.shape[0]*df_duT.shape[1]*8*1e-9 / self.maxRAM))
+
+                n_col = int(np.ceil(df_duT.shape[1] / n_block_col))
+
+                nrows = int(self.model.size / np.ceil(self.model.size * n_col * 8 * 1e-6 / self.max_chunk_size))
+                ind = 0
+                for col in range(n_block_col):
+                    ATinvdf_duT = da.asarray(self.Ainv * np.asarray(df_duT[:, ind:ind+n_col].todense())).rechunk((nrows, n_col))
+
+                    dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
+
+                    dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
+                    
+                    if n_col > 1:
+                        du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
+                                                 shape=(self.model.size, n_col),
+                                                 dtype=float)
+                    else:
+                        du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
+                                                 shape=(self.model.size,),
+                                                 dtype=float)
+
+                    if not isinstance(dRHS_dmT, Zero):
+                        du_dmT += da.from_delayed(dask.delayed(dRHS_dmT), shape=(self.model.size, n_col), dtype=float)
+
+                    if not isinstance(df_dmT, Zero):
+                        du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, n_col), dtype=float)
+
+                    blockName = self.Jpath + "J" + str(count) + ".zarr"
+                    da.to_zarr((du_dmT.T).rechunk('auto'), blockName)
+                    del ATinvdf_duT
+                    count += 1
+
+                    ind += n_col
+
+        dask_arrays = []
+        for ii in range(count):
+            blockName = self.Jpath + "J" + str(ii) + ".zarr"
+            J = da.from_zarr(blockName)
+            # Stack all the source blocks in one big zarr
+            dask_arrays.append(J)
+
+        # self._Jmatrix = da.concatenate(dask_arrays, axis=0).rechunk((rowChunk, colChunk))
+        self._Jmatrix = da.vstack(dask_arrays).rechunk((rowChunk, colChunk))
+        self.Ainv.clean()
+
         return self._Jmatrix
 
     def Jvec(self, m, v, f=None):
         """
             Compute sensitivity matrix (J) and vector (v) product.
         """
+
+        if f is None:
+            f = self.fields(m)
+
+        if isinstance(f, Delayed):
+            f = f.compute()
+
         if self.storeJ:
-            J = self.getJ(m, f=f)
+            J = self.getJ(m, f=f).compute()
             Jv = mkvc(np.dot(J, v))
             return Jv
 
         self.model = m
 
-        if f is None:
-            f = self.fields(m)
+        # if self.storeJ:
+        #     J = self.getJ(m, f=f)
+        #     return da.dot(J, da.from_array(v, chunks=self._Jmatrix.chunks[1]))
 
         Jv = []
-
-        for src in self.survey.srcList:
-            u_src = f[src, self._solutionType]  # solution vector
-            dA_dm_v = self.getADeriv(u_src, v)
-            dRHS_dm_v = self.getRHSDeriv(src, v)
+        for source in self.survey.source_list:
+            u_source = f[source, self._solutionType]  # solution vector
+            dA_dm_v = self.getADeriv(u_source, v)
+            dRHS_dm_v = self.getRHSDeriv(source, v)
             du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
-            for rx in src.rxList:
+            for rx in source.receiver_list:
                 df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
-                df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
+                df_dm_v = df_dmFun(source, du_dm_v, v, adjoint=False)
+                Jv.append(rx.evalDeriv(source, self.mesh, f, df_dm_v))
         return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
         """
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
-
         """
-        if self.storeJ:
-            J = self.getJ(m, f=f)
-            Jtv = mkvc(np.dot(J.T, v))
-            return Jtv
-
-        self.model = m
 
         if f is None:
             f = self.fields(m)
+        if isinstance(f, Delayed):
+            f = f.compute()
+
+        self.model = m
+
+        if self.storeJ:
+            J = self.getJ(m, f=f)
+            self._Jmatrix = J
+            return mkvc(
+                da.dot(
+                    da.from_array(
+                        v, chunks=self._Jmatrix.chunks[0]), self._Jmatrix
+                ).compute()
+            )
 
         return self._Jtvec(m, v=v, f=f)
 
@@ -120,25 +276,25 @@ class BaseDCSimulation(BaseEMSimulation):
             istrt = int(0)
             iend = int(0)
 
-        for src in self.survey.srcList:
-            u_src = f[src, self._solutionType].copy()
-            for rx in src.rxList:
+        for source in self.survey.source_list:
+            u_source = f[source, self._solutionType].copy()
+            for rx in source.receiver_list:
                 # wrt f, need possibility wrt m
                 if v is not None:
                     PTv = rx.evalDeriv(
-                        src, self.mesh, f, v[src, rx], adjoint=True
+                        source, self.mesh, f, v[source, rx], adjoint=True
                     )
                 else:
                     # This is for forming full sensitivity matrix
                     PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
                 df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
                                     None)
-                df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+                df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
 
                 ATinvdf_duT = self.Ainv * df_duT
 
-                dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
-                dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
+                dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
+                dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
                 du_dmT = -dA_dmT + dRHS_dmT
                 if v is not None:
                     Jtv += (df_dmT + du_dmT).astype(float)
@@ -163,7 +319,7 @@ class BaseDCSimulation(BaseEMSimulation):
         :return: q (nC or nN, nSrc)
         """
 
-        Srcs = self.survey.srcList
+        Srcs = self.survey.source_list
 
         if self._formulation == 'EB':
             n = self.mesh.nN
@@ -174,8 +330,8 @@ class BaseDCSimulation(BaseEMSimulation):
 
         q = np.zeros((n, len(Srcs)))
 
-        for i, src in enumerate(Srcs):
-            q[:, i] = src.eval(self)
+        for i, source in enumerate(Srcs):
+            q[:, i] = source.eval(self)
         return q
 
     @property
@@ -194,7 +350,7 @@ class Problem3D_CC(BaseDCSimulation):
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_CC
-    bc_type = 'Neumann'
+    bc_type = 'Dirichlet'
 
     def __init__(self, mesh, **kwargs):
 
@@ -230,14 +386,36 @@ class Problem3D_CC(BaseDCSimulation):
 
     def getADeriv(self, u, v, adjoint=False):
 
-        D = self.Div
-        G = self.Grad
-        MfRhoIDeriv = self.MfRhoIDeriv
+        if self.storeJ:
+            Gvec = self.Grad * u
 
-        if adjoint:
-            return MfRhoIDeriv(G * u, D.T * v, adjoint)
+            Div = da.from_array(
+                    sparse.COO.from_scipy_sparse(self.Div.T),
+                    chunks=(v.chunksize[0], v.chunksize[0]), asarray=False
+                )
+            if adjoint:
 
-        return D * (MfRhoIDeriv(G * u, v, adjoint))
+                Dvec = da.dot(Div, v)
+
+                return self.MfRhoIDerivDask(Gvec, Dvec, adjoint)
+
+            vec = self.MfRhoIDerivDask(Gvec, v, adjoint)
+
+            # Dvec = da.from_delayed(
+            #     dask.delayed(csr.dot)(self.Div, vec),
+            #     dtype=float, shape=[self.Div.shape[0], vec.shape[1]]
+            # )
+
+            return da.dot(Div, vec)
+        else:
+            D = self.Div
+            G = self.Grad
+            MfRhoIDeriv = self.MfRhoIDeriv
+
+            if adjoint:
+                return MfRhoIDeriv(G * u, D.T * v, adjoint)
+
+            return D * (MfRhoIDeriv(G * u, v, adjoint))
 
     def getRHS(self):
         """
@@ -249,14 +427,87 @@ class Problem3D_CC(BaseDCSimulation):
 
         return RHS
 
-    def getRHSDeriv(self, src, v, adjoint=False):
+    def getRHSDeriv(self, source, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model
         """
         # TODO: add qDeriv for RHS depending on m
-        # qDeriv = src.evalDeriv(self, adjoint=adjoint)
+        # qDeriv = source.evalDeriv(self, adjoint=adjoint)
         # return qDeriv
         return Zero()
+
+    def MfRhoIDerivDask(self, u, v=None, adjoint=False):
+        """
+            Derivative of :code:`MfRhoI` with respect to the model.
+        """
+        if self.rhoMap is None:
+            return Zero()
+
+        if len(self.rho.shape) > 1:
+            if self.rho.shape[1] > self.mesh.dim:
+                raise NotImplementedError(
+                    "Full anisotropy is not implemented for MfRhoIDeriv."
+                )
+
+        if getattr(self, 'dMfRhoI_dI', None) is None:
+            self.dMfRhoI_dI = -self.MfRhoI.power(2.)
+
+        if adjoint is True:
+
+            vec = self.dMfRhoI_dI.T * u
+            return self.MfRhoDeriv(
+                vec, v=v, adjoint=adjoint
+            )
+        else:
+            vec = self.MfRhoDeriv(u, v=v)
+
+            return da.from_delayed(
+                dask.delayed(csr.dot)(self.dMfRhoI_dI, vec),
+                dtype=float, shape=[self.dMfRhoI_dI.shape[0], vec.shape[1]]
+            )
+            # return dMfRhoI_dI * self.MfRhoDeriv(u, v=v)
+
+    def MfRhoDerivDask(self, u, v=None, adjoint=False):
+        """
+        Derivative of :code:`MfRho` with respect to the model.
+        """
+        if self.rhoMap is None:
+            return Zero()
+
+        if getattr(self, '_MfRhoDeriv', None) is None:
+            MfRhoDeriv = self.mesh.getFaceInnerProductDeriv(
+                np.ones(self.mesh.nC)
+            )(np.ones(self.mesh.nF)) * self.rhoDeriv
+
+            self._MfRhoDeriv = da.from_array(
+                    sparse.COO.from_scipy_sparse(MfRhoDeriv),
+                    chunks=(v.chunksize[0], v.chunksize[0]), asarray=False
+            )
+
+        if v is not None:
+            udiag = da.from_array(
+                sparse.COO.from_scipy_sparse(sdiag(u)),
+                chunks=(v.chunksize[0], v.chunksize[0]), asarray=False
+            )
+
+            if adjoint is True:
+
+                uvec = da.dot(udiag, v)
+
+                return da.dot(self._MfRhoDeriv.T, uvec)
+
+
+            vec = da.dot(self._MfRhoDeriv, v)
+            return da.dot(udiag, vec)
+
+        else:
+            if adjoint is True:
+
+                return da.dot(self._MfRhoDeriv.T, udiag)
+
+            return da.dot(udiag, self._MfRhoDeriv)
+
+            # sdiag(u)*(self._MfRhoDeriv)
 
     def setBC(self):
         if self.bc_type == 'Dirichlet':
@@ -452,11 +703,11 @@ class Problem3D_N(BaseDCSimulation):
         RHS = self.getSourceTerm()
         return RHS
 
-    def getRHSDeriv(self, src, v, adjoint=False):
+    def getRHSDeriv(self, source, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model
         """
         # TODO: add qDeriv for RHS depending on m
-        # qDeriv = src.evalDeriv(self, adjoint=adjoint)
+        # qDeriv = source.evalDeriv(self, adjoint=adjoint)
         # return qDeriv
         return Zero()

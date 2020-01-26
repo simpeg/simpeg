@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
 import matplotlib.pyplot as plt
+from matplotlib import colors
 
 
 def plot2Ddata(
@@ -83,22 +84,18 @@ def plot2Ddata(
             ~np.isnan(DATA),
             np.abs(DATA) != np.inf
         )
-
         if scale == "log":
-            DATA = np.log10(abs(DATA))
-
-            vmin = np.log10(vmin) if vmin is not None else vmin
-            vmax = np.log10(vmax) if vmax is not None else vmax
+            DATA = np.abs(DATA)
 
         vmin = DATA[dataselection].min() if vmin is None else vmin
         vmax = DATA[dataselection].max() if vmax is None else vmax
 
-        vstep = np.abs((vmin-vmax)/(ncontour+1))
-        levels = np.arange(vmin, vmax+vstep, vstep)
-        if DATA[dataselection].min() < levels.min():
-                levels = np.r_[DATA[dataselection].min(), levels]
-        if DATA[dataselection].max() > levels.max():
-                levels = np.r_[levels, DATA[dataselection].max()]
+        if scale == "log":
+            levels = np.logspace(np.log10(vmin), np.log10(vmax), ncontour+1)
+            norm = colors.LogNorm(vmin=vmin, vmax=vmax)
+        else:
+            levels = np.linspace(vmin, vmax, ncontour+1)
+            norm = colors.Normalize(vmin=vmin, vmax=vmax)
 
         if mask is not None:
             Fmask = NearestNDInterpolator(xyz[:, :2], mask)
@@ -107,7 +104,7 @@ def plot2Ddata(
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
         cont = ax.contourf(
-            X, Y, DATA, levels=levels, vmin=vmin, vmax=vmax,
+            X, Y, DATA, levels=levels, norm=norm,
             **contourOpts
         )
         if level:
@@ -129,7 +126,7 @@ def plot2Ddata(
         DATAx = DATAx.reshape(X.shape)
         DATAy = DATAy.reshape(X.shape)
         if scale == "log":
-            DATA = np.log10(abs(DATA))
+            DATA = np.abs(DATA)
 
         # Levels definitions
         dataselection = np.logical_and(
@@ -137,24 +134,16 @@ def plot2Ddata(
             np.abs(DATA) != np.inf
             )
 
-
         # set vmin, vmax
         vmin = DATA[dataselection].min() if vmin is None else vmin
         vmax = DATA[dataselection].max() if vmax is None else vmax
-        if scale == "log":
-            if vmin <= 0 or vmax <= 0:
-                raise Exception(
-                    "All values must be strictly positive in order to use the log-scale"
-                )
-            vmin = np.log10(vmin)
-            vmax = np.log10(vmax)
 
-        vstep = np.abs((vmin-vmax)/(ncontour+1))
-        levels = np.arange(vmin, vmax+vstep, vstep)
-        if DATA[dataselection].min() < levels.min():
-                levels = np.r_[DATA[dataselection].min(), levels]
-        if DATA[dataselection].max() > levels.max():
-                levels = np.r_[levels, DATA[dataselection].max()]
+        if scale == "log":
+            levels = np.logspace(np.log10(vmin), np.log10(vmax), ncontour+1)
+            norm = colors.LogNorm(vmin=vmin, vmax=vmax)
+        else:
+            levels = np.linspace(vmin, vmax, ncontour+1)
+            norm = colors.Normalize(vmin=vmin, vmax=vmax)
 
         if mask is not None:
             Fmask = NearestNDInterpolator(xyz[:, :2], mask)
@@ -164,7 +153,7 @@ def plot2Ddata(
 
         cont = ax.contourf(
             X, Y, DATA, levels=levels,
-            vmin=vmin, vmax=vmax,
+            norm=norm,
             **contourOpts
         )
         ax.streamplot(X, Y, DATAx, DATAy, color="w")

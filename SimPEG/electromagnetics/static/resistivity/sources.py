@@ -45,15 +45,15 @@ class Dipole(BaseSrc):
             return self._q
         else:
             if prob._formulation == 'HJ':
-                inds = closestPoints(prob.mesh, self.loc, gridLoc='CC')
+                inds = closestPoints(prob.mesh, self.location, gridLoc='CC')
                 self._q = np.zeros(prob.mesh.nC)
                 self._q[inds] = self.current * np.r_[1., -1.]
             elif prob._formulation == 'EB':
                 qa = prob.mesh.getInterpolationMat(
-                    self.loc[0], locType='N'
+                    self.location[0], locType='N'
                 ).toarray()
                 qb = -prob.mesh.getInterpolationMat(
-                    self.loc[1], locType='N'
+                    self.location[1], locType='N'
                 ).toarray()
                 self._q = self.current * (qa+qb)
             return self._q
@@ -69,12 +69,12 @@ class Pole(BaseSrc):
             return self._q
         else:
             if prob._formulation == 'HJ':
-                inds = closestPoints(prob.mesh, self.loc)
+                inds = closestPoints(prob.mesh, self.location)
                 self._q = np.zeros(prob.mesh.nC)
                 self._q[inds] = self.current * np.r_[1.]
             elif prob._formulation == 'EB':
                 q = prob.mesh.getInterpolationMat(
-                    self.loc, locType='N'
+                    self.location, locType='N'
                 )
                 self._q = self.current * q.toarray()
             return self._q

@@ -223,7 +223,7 @@ class RegularizationMesh(props.BaseSimPEG):
                     )
 
                 else:
-                    nCinRow = mkvc((self.aveCC2Fx.T).sum(1))
+                    nCinRow = utils.mkvc((self.aveCC2Fx.T).sum(1))
                     nCinRow[nCinRow > 0] = 1./nCinRow[nCinRow > 0]
                     self._aveFx2CC = (
                         utils.sdiag(nCinRow) *
@@ -278,7 +278,7 @@ class RegularizationMesh(props.BaseSimPEG):
                     )
 
                 else:
-                    nCinRow = mkvc((self.aveCC2Fy.T).sum(1))
+                    nCinRow = utils.mkvc((self.aveCC2Fy.T).sum(1))
                     nCinRow[nCinRow > 0] = 1./nCinRow[nCinRow > 0]
                     self._aveFy2CC = (
                         utils.sdiag(nCinRow) *
@@ -332,7 +332,7 @@ class RegularizationMesh(props.BaseSimPEG):
                     )
 
                 else:
-                    nCinRow = mkvc((self.aveCC2Fz.T).sum(1))
+                    nCinRow = utils.mkvc((self.aveCC2Fz.T).sum(1))
                     nCinRow[nCinRow > 0] = 1./nCinRow[nCinRow > 0]
                     self._aveFz2CC = (
                         utils.sdiag(nCinRow) *

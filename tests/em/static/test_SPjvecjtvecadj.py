@@ -23,27 +23,29 @@ class SPProblemTestsCC_CurrentSource(unittest.TestCase):
         actind = mesh.gridCC[:, 2] < -0.2
         # actMap = maps.InjectActiveCells(mesh, actind, 0.)
 
-        xyzM = Utils.ndgrid(np.ones_like(mesh.vectorCCx[:-1])*-0.4, np.ones_like(mesh.vectorCCy)*-0.4, np.r_[-0.3])
-        xyzN = Utils.ndgrid(mesh.vectorCCx[1:], mesh.vectorCCy, np.r_[-0.3])
+        xyzM = utils.ndgrid(np.ones_like(mesh.vectorCCx[:-1])*-0.4, np.ones_like(mesh.vectorCCy)*-0.4, np.r_[-0.3])
+        xyzN = utils.ndgrid(mesh.vectorCCx[1:], mesh.vectorCCy, np.r_[-0.3])
 
-        problem = SP.Problem_CC(mesh, sigma=sigma, qMap=maps.IdentityMap(mesh), Solver=PardisoSolver)
-        rx = SP.Rx.Dipole(xyzN, xyzM)
-        src = SP.Src.StreamingCurrents([rx], L=np.ones(mesh.nC), mesh=mesh,
+        rx = sp.receivers.Dipole(xyzN, xyzM)
+        src = sp.sources.StreamingCurrents([rx], L=np.ones(mesh.nC), mesh=mesh,
                                        modelType="CurrentSource")
-        survey = SP.Survey([src])
-        survey.pair(problem)
+        survey = sp.survey.Survey([src])
 
+        simulation = sp.simulation.Problem_CC(
+                mesh=mesh, survey=survey, sigma=sigma, qMap=maps.IdentityMap(mesh), Solver=PardisoSolver
+                )
+        
         q = np.zeros(mesh.nC)
-        inda = Utils.closestPoints(mesh, np.r_[-0.5, 0., -0.8])
-        indb = Utils.closestPoints(mesh, np.r_[0.5, 0., -0.8])
+        inda = utils.closestPoints(mesh, np.r_[-0.5, 0., -0.8])
+        indb = utils.closestPoints(mesh, np.r_[0.5, 0., -0.8])
         q[inda] = 1.
         q[indb] = -1.
 
         mSynth = q.copy()
-        survey.makeSyntheticData(mSynth)
+        dpred = simulation.makeSyntheticData(mSynth)
 
         # Now set up the problem to do some minimization
-        dmis = data_misfit.L2DataMisfit(survey)
+        dmis = data_misfit.L2DataMisfit(data=dpred, simulation=simulation)
         reg = regularization.Simple(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
@@ -54,7 +56,7 @@ class SPProblemTestsCC_CurrentSource(unittest.TestCase):
 
         self.inv = inv
         self.reg = reg
-        self.p = problem
+        self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
         self.survey = survey
@@ -63,7 +65,7 @@ class SPProblemTestsCC_CurrentSource(unittest.TestCase):
     def test_misfit(self):
         passed = tests.checkDerivative(
             lambda m: [
-                self.survey.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
+                self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
             ],
             self.m0,
             plotIt=False,
@@ -83,7 +85,7 @@ class SPProblemTestsCC_CurrentSource(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = Tests.checkDerivative(
+        passed = tests.checkDerivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)],
             self.m0,
             plotIt=False,

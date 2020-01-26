@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 import properties
@@ -12,7 +13,7 @@ from ....utils import sdiag, uniqueRows, surface2ind_topo, plot2Ddata
 from ..utils import geometric_factor
 from . import sources as Src
 from . import receivers as Rx
-from .survey import Survey_ky, Survey
+from .survey import Survey
 
 
 class IO(properties.HasProperties):
@@ -427,7 +428,7 @@ class IO(properties.HasProperties):
             self.sort_inds = np.hstack(sort_inds)
 
             if dimension == 2:
-                survey = Survey_ky(srcLists)
+                survey = Survey(srcLists)
             elif dimension == 3:
                 survey = Survey(srcLists)
             else:
@@ -532,7 +533,8 @@ class IO(properties.HasProperties):
             # 3 cells each for buffer
             corexlength = lineLength + dx * 6
             if corezlength is None:
-                corezlength = self.grids[:, z_ind].max()
+                dz_topo = locs[:,1].max()-locs[:,1].min()
+                corezlength = self.grids[:, z_ind].max() + dz_topo
 
             ncx = np.round(corexlength/dx)
             ncz = np.round(corezlength/dz)
@@ -602,7 +604,7 @@ class IO(properties.HasProperties):
         scale="log",
         cmap="viridis", ncontour=10, ax=None,
         figname=None, clim=None, label=None,
-        iline=0,
+        iline=0, orientation='vertical'
     ):
         """
             Plot 2D pseudo-section for DC-IP data
@@ -627,40 +629,37 @@ class IO(properties.HasProperties):
                 val = self.apparent_resistivity[inds]
             else:
                 val = data.copy()[inds]
-            label = "Apparent Res. ($\Omega$m)"
+            label_tmp = "Apparent Res. ($\Omega$m)"
         elif data_type == "volt":
             if data is None:
                 val = self.voltages[inds]
             else:
                 val = data.copy()[inds]
-            label = "Voltage (V)"
+            label_tmp = "Voltage (V)"
         elif data_type == "apparent_conductivity":
             if data is None:
                 val = self.apparent_conductivity[inds]
             else:
                 val = data.copy()[inds]
-            label = "Apparent Cond. (S/m)"
+            label_tmp = "Apparent Cond. (S/m)"
         elif data_type == "apparent_chargeability":
             if data is not None:
                 val = data.copy()[inds]
             else:
                 val = self.apparent_chargeability.copy()[inds] * 1e3
-            label = "Apparent Charg. (mV/V)"
+            label_tmp = "Apparent Charg. (mV/V)"
         elif data_type == "volt_ip":
             if data is not None:
                 val = data.copy()[inds]
             else:
                 val = self.voltages_ip.copy()[inds] * 1e3
-            label = "Secondary voltage. (mV)"
+            label_tmp = "Secondary voltage. (mV)"
         else:
             print(data_type)
             raise NotImplementedError()
-        if scale == "log":
-            fmt = "10$^{%.1f}$"
-        elif scale == "linear":
-            fmt = "%.1e"
-        else:
-            raise NotImplementedError()
+
+        if label is None:
+            label = label_tmp
 
         out = plot2Ddata(
             grids, val,
@@ -675,10 +674,15 @@ class IO(properties.HasProperties):
         ax.set_xlabel("x (m)")
         ax.set_yticklabels([])
         ax.set_ylabel("n-spacing")
+        if orientation == 'vertical':
+            frac = 0.01
+        elif orientation == 'horizontal':
+            frac = 0.03
+        else:
+            raise ValueError('Orientation must be either vertical or horizontal, not {}'.format(orientation))
         cb = plt.colorbar(
             out[0],
-            fraction=0.01,
-            format=fmt, ax=ax
+            format="%.1e", ax=ax, orientation=orientation, fraction=frac
         )
         cb.set_label(label)
         cb.set_ticks(out[0].levels)
@@ -686,3 +690,120 @@ class IO(properties.HasProperties):
         plt.tight_layout()
         if figname is not None:
             fig.savefig(figname, dpi=200)
+
+    def read_ubc_dc2d_obs_file(self, filename, input_type='simple', toponame=None):
+        obsfile = np.genfromtxt(
+            filename, delimiter=' \n',
+            dtype=np.str, comments='!'
+        )
+        if input_type == "general":
+            topo=None
+            n_src = 0
+            n_rxs = []
+            src_info = []
+            abmn = []
+            for obs in obsfile:
+                temp = (np.fromstring(obs, dtype=float, sep=' ').T)
+                if len(temp) == 5:
+                    n_src += 1
+                    src_info = temp[:4]
+                    n_rxs.append(int(temp[-1]))
+                else:
+                    abmn.append(np.r_[src_info, temp])
+
+            abmn = np.vstack(abmn)
+            a = np.c_[abmn[:,0], -abmn[:,1]]
+            b = np.c_[abmn[:,2], -abmn[:,3]]
+            m = np.c_[abmn[:,4], -abmn[:,5]]
+            n = np.c_[abmn[:,6], -abmn[:,7]]
+            voltage = abmn[:,8]
+            uncertainty = abmn[:,9]
+
+        elif input_type == "simple":
+            if toponame is not None:
+                tmp_topo = np.loadtxt(toponame)
+                n_topo = tmp_topo[0, 0]
+                z_ref = tmp_topo[0, 1]
+                topo = tmp_topo[1:,:]
+                if topo.shape[0] != n_topo:
+                    print (">> # of points for the topography is not {0}, but {0}".format(n_topo, topo.shape[0]))
+            tmp = np.loadtxt(filename, comments='!').astype(float)
+            e = np.zeros(tmp.shape[0], dtype=float)
+            a = np.c_[tmp[:,0], e]
+            b = np.c_[tmp[:,1], e]
+            m = np.c_[tmp[:,2], e]
+            n = np.c_[tmp[:,3], e]
+            voltage = tmp[:, 4]
+            uncertainty = tmp[:, 5]
+
+        if np.all(a==b):
+            if np.all (m==n):
+                survey_type = 'pole-pole'
+            else:
+                survey_type = 'pole-dipole'
+        else:
+            if np.all (m==n):
+                survey_type = 'dipole-pole'
+            else:
+                survey_type = 'dipole-dipole'
+
+        survey = self.from_ambn_locations_to_survey(
+            a, b, m, n, survey_type=survey_type, data_dc=voltage
+        )
+        survey.dobs = voltage[self.sort_inds]
+        survey.std = voltage[self.sort_inds]
+        survey.topo = topo
+        return survey
+
+    def write_to_csv(self, fname, dobs, uncertainty=None):
+        if uncertainty is None:
+            uncertainty = np.ones(dobs.size) * np.nan
+        data = np.c_[
+            self.a_locations,
+            self.b_locations,
+            self.m_locations,
+            self.n_locations,
+            dobs,
+            uncertainty
+        ]
+        df = pd.DataFrame(data=data, columns=["Ax", "Az", "Bx", "Bz", "Mx", "Mz", "Nx", "Nz", 'Voltage', 'Uncertainty'])
+        df.to_csv(fname)
+
+    def read_dc_data_csv(self, fname, dim=2):
+        df = pd.read_csv(fname)
+        if dim == 2:
+            a_locations = df[["Ax", "Az"]].values
+            b_locations = df[["Bx", "Bz"]].values
+            m_locations = df[["Mx", "Mz"]].values
+            n_locations = df[["Nx", "Nz"]].values
+            dobs = df["Voltage"].values
+            uncertainty = df["Uncertainty"].values
+
+            if np.all(a_locations == b_locations):
+                src_type = 'pole-'
+            else:
+                src_type = 'dipole-'
+
+            if np.all(m_locations == n_locations):
+                rx_type = 'pole'
+            else:
+                rx_type = 'dipole'
+            survey_type = src_type + rx_type
+            survey = self.from_ambn_locations_to_survey(
+                a_locations, b_locations,
+                m_locations, n_locations,
+                survey_type,
+                data_dc=dobs,
+                data_dc_type='volt'
+            )
+            survey.std = uncertainty[self.sort_inds]
+            survey.dobs = dobs[self.sort_inds]
+        else:
+            raise NotImplementedError()
+        return survey
+
+    def read_topo_csv(self, fname, dim=2):
+        if dim == 2:
+            df = pd.read_csv(fname)
+            topo = df[['X', 'Z']].values
+        return topo

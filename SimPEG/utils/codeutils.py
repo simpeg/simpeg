@@ -74,6 +74,15 @@ def setKwargs(obj, ignore=None,  **kwargs):
     # hook(obj, hook, silent=True)
     # hook(obj, setKwargs, silent=True)
 
+def printDone(obj, printers, name='Done', pad=''):
+    titles = ''
+    widths = 0
+    for printer in printers:
+        titles += ('{{:^{0:d}}}'.format(printer['width'])).format(printer['title']) + ''
+        widths += printer['width']
+    print(pad + "{0} {1} {0}".format('='*((widths-1-len(name))//2), name))
+    # print(pad + "%s" % '-'*widths)
+
 
 def printTitles(obj, printers, name='Print Titles', pad=''):
     titles = ''
