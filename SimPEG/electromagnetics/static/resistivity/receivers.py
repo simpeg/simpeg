@@ -1,8 +1,8 @@
 import numpy as np
 
 import properties
-
-from ....utils import closestPoints
+import dask
+from ....utils import closestPoints, sdiag
 from ....survey import BaseRx as BaseSimPEGRx, RxLocationArray
 
 
@@ -34,6 +34,8 @@ class BaseRx(BaseSimPEGRx):
         "field to be projected in the calculation of the data",
         choices=['phi', 'e', 'j'], default='phi'
     )
+
+    _geometric_factor = None
 
     def __init__(self, locations=None, **kwargs):
         super(BaseRx, self).__init__(**kwargs)
@@ -124,7 +126,7 @@ class Dipole(BaseRx):
         """Number of data in the receiver."""
         return self.locations[0].shape[0]
 
-    def getP(self, mesh, Gloc):
+    def getP(self, mesh, Gloc, transpose=False):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
@@ -152,6 +154,9 @@ class Dipole(BaseRx):
         if self.storeProjections:
             self._Ps[mesh] = P
 
+        if transpose:
+            P = P.toarray().T
+
         return P
 
 
@@ -175,7 +180,7 @@ class Dipole_ky(Dipole):
         P = P0 - P1
 
         if self.data_type == 'apparent_resistivity':
-            P = sdiag(1./self.geometric_factor) * P
+            P = sdiag(1./(np.ones(P.shape[0]) * self.geometric_factor)) * P
         elif self.data_type == 'apparent_chargeability':
             P = sdiag(1./self.dc_voltage) * P
         if self.storeProjections:

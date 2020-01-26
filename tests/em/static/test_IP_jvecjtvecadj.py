@@ -13,6 +13,7 @@ from SimPEG import tests
 
 from SimPEG.electromagnetics import resistivity as dc
 from SimPEG.electromagnetics import induced_polarization as ip
+import shutil
 
 np.random.seed(30)
 
@@ -33,17 +34,16 @@ class IPProblemTestsCC(unittest.TestCase):
             # [(cs, 5, -1.3), (cs, 10)]
         ], 'CN')
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = ip.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = ip.survey.Survey(source_list)
         sigma = np.ones(mesh.nC)
-        problem = ip.Problem3D_CC(
-            mesh, sigma=sigma, etaMap=maps.IdentityMap(mesh)
+        simulation = ip.simulation.Problem3D_CC(
+            mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh)
         )
-        problem.pair(survey)
         mSynth = np.ones(mesh.nC)*0.1
-        dobs = problem.makeSyntheticData(mSynth)
+        dobs = simulation.makeSyntheticData(mSynth)
         # Now set up the problem to do some minimization
-        dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
+        dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.Tikhonov(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
@@ -54,7 +54,7 @@ class IPProblemTestsCC(unittest.TestCase):
 
         self.inv = inv
         self.reg = reg
-        self.p = problem
+        self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
         self.survey = survey
@@ -74,7 +74,7 @@ class IPProblemTestsCC(unittest.TestCase):
 
     def test_adjoint(self):
         # Adjoint Test
-        # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
+        # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
         v = np.random.rand(self.mesh.nC)
         w = np.random.rand(self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
@@ -109,17 +109,16 @@ class IPProblemTestsN(unittest.TestCase):
                 # [(cs, 5, -1.3), (cs, 10)]
             ], 'CN')
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = ip.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = ip.survey.Survey(source_list)
         sigma = np.ones(mesh.nC)
-        problem = ip.Problem3D_N(
-            mesh, sigma=sigma, etaMap=maps.IdentityMap(mesh)
+        simulation = ip.simulation.Problem3D_N(
+            mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh)
         )
-        problem.pair(survey)
         mSynth = np.ones(mesh.nC)*0.1
-        dobs = problem.make_synthetic_data(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth)
         # Now set up the problem to do some minimization
-        dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
+        dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.Tikhonov(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
@@ -130,7 +129,7 @@ class IPProblemTestsN(unittest.TestCase):
 
         self.inv = inv
         self.reg = reg
-        self.p = problem
+        self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
         self.survey = survey
@@ -149,7 +148,7 @@ class IPProblemTestsN(unittest.TestCase):
 
     def test_adjoint(self):
         # Adjoint Test
-        # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
+        # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
         v = np.random.rand(self.mesh.nC)
         w = np.random.rand(self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
@@ -184,17 +183,16 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
             # [(cs, 5, -1.3), (cs, 10)]
         ], 'CN')
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = ip.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = ip.survey.Survey(source_list)
         sigma = np.ones(mesh.nC)
-        problem = ip.Problem3D_CC(
-            mesh, sigma=sigma, etaMap=maps.IdentityMap(mesh), storeJ=True
+        simulation = ip.Problem3D_CC(
+            mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh), storeJ=True
         )
-        problem.pair(survey)
         mSynth = np.ones(mesh.nC)*0.1
-        dobs = problem.make_synthetic_data(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth)
         # Now set up the problem to do some minimization
-        dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
+        dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.Tikhonov(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
@@ -205,7 +203,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
 
         self.inv = inv
         self.reg = reg
-        self.p = problem
+        self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
         self.survey = survey
@@ -224,7 +222,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
 
     def test_adjoint(self):
         # Adjoint Test
-        # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
+        # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
         v = np.random.rand(self.mesh.nC)
         w = np.random.rand(self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
@@ -241,6 +239,10 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
             num=3
         )
         self.assertTrue(passed)
+
+    def tearDown(self):
+        # Clean up the working directory
+        shutil.rmtree(self.p.Jpath)
 
 
 class IPProblemTestsN_storeJ(unittest.TestCase):
@@ -259,17 +261,16 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
                 # [(cs, 5, -1.3), (cs, 10)]
             ], 'CN')
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = ip.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = ip.survey.Survey(source_list)
         sigma = np.ones(mesh.nC)
-        problem = ip.Problem3D_N(
-            mesh, sigma=sigma, etaMap=maps.IdentityMap(mesh), storeJ=True
+        simulation = ip.simulation.Problem3D_N(
+            mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh), storeJ=True
         )
-        problem.pair(survey)
         mSynth = np.ones(mesh.nC)*0.1
-        dobs = problem.make_synthetic_data(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth)
         # Now set up the problem to do some minimization
-        dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
+        dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.Tikhonov(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
@@ -280,7 +281,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
 
         self.inv = inv
         self.reg = reg
-        self.p = problem
+        self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
         self.survey = survey
@@ -299,7 +300,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
 
     def test_adjoint(self):
         # Adjoint Test
-        # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
+        # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
         v = np.random.rand(self.mesh.nC)
         w = np.random.rand(self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
@@ -316,6 +317,10 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
             num=3
         )
         self.assertTrue(passed)
+
+    def tearDown(self):
+        # Clean up the working directory
+        shutil.rmtree(self.p.Jpath)
 
 if __name__ == '__main__':
     unittest.main()

@@ -29,8 +29,8 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
             np.r_[A0loc, 0.], rxloc, sighalf, earth_type="halfspace"
         )
 
-        rx = dc.Rx.Dipole_ky(M, N)
-        src0 = dc.Src.Pole([rx], A0loc)
+        rx = dc.receivers.Dipole_ky(M, N)
+        src0 = dc.sources.Pole([rx], A0loc)
         survey = dc.Survey_ky([src0])
 
         self.survey = survey
@@ -47,10 +47,11 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
 
     def test_Problem2D_N(self, tolerance=0.05):
 
-        problem = dc.Problem2D_N(self.mesh, sigma=self.sigma)
-        problem.Solver = self.Solver
-        problem.pair(self.survey)
-        data = problem.dpred()
+        simulation = dc.simulation_2d.Problem2D_N(
+                self.mesh, survey=self.survey, sigma=self.sigma
+                )
+        simulation.Solver = self.Solver
+        data = simulation.dpred()
         err = (
             np.linalg.norm((data-self.data_ana) / self.data_ana)**2 /
             self.data_ana.size
@@ -65,10 +66,11 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_Problem2D_CC(self, tolerance=0.05):
-        problem = dc.Problem2D_CC(self.mesh, sigma=self.sigma)
-        problem.Solver = self.Solver
-        problem.pair(self.survey)
-        data = problem.dpred()
+        simulation = dc.simulation_2d.Problem2D_CC(
+                self.mesh, survey=self.survey, sigma=self.sigma
+                )
+        simulation.Solver = self.Solver
+        data = simulation.dpred()
         err = (
             np.linalg.norm((data-self.data_ana)/self.data_ana)**2 /
             self.data_ana.size
@@ -103,9 +105,9 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
                     [np.r_[A0loc, 0.], np.r_[A1loc, 0.]],
                     rxloc, sighalf, earth_type="halfspace")
 
-        rx = dc.Rx.Pole_ky(M)
-        src0 = dc.Src.Dipole([rx], A0loc, A1loc)
-        survey = dc.Survey_ky([src0])
+        rx = dc.receivers.Pole_ky(M)
+        src0 = dc.sources.Dipole([rx], A0loc, A1loc)
+        survey = dc.survey.Survey_ky([src0])
 
         self.survey = survey
         self.mesh = mesh
@@ -121,10 +123,11 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
 
     def test_Problem2D_N(self, tolerance=0.05):
 
-        problem = dc.Problem2D_N(self.mesh, sigma=self.sigma)
-        problem.Solver = self.Solver
-        problem.pair(self.survey)
-        data = problem.dpred()
+        simulation = dc.simulation_2d.Problem2D_N(
+                self.mesh, survey=self.survey, sigma=self.sigma)
+        simulation.Solver = self.Solver
+        simulation.pair(self.survey)
+        data = simulation.dpred()
         err = (
             np.linalg.norm((data-self.data_ana) / self.data_ana)**2 /
             self.data_ana.size
@@ -143,10 +146,11 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_Problem2D_CC(self, tolerance=0.05):
-        problem = dc.Problem2D_CC(self.mesh, sigma=self.sigma)
-        problem.Solver = self.Solver
-        problem.pair(self.survey)
-        data = problem.dpred()
+        simulation = dc.simulation_2d.Problem2D_CC(
+                self.mesh, survey=self.survey, sigma=self.sigma
+                )
+        simulation.Solver = self.Solver
+        data = simulation.dpred()
         err = (
             np.linalg.norm((data-self.data_ana)/self.data_ana)**2 /
             self.data_ana.size
@@ -184,9 +188,9 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
                     np.r_[A0loc, 0.],
                     rxloc, sighalf, earth_type="halfspace")
 
-        rx = dc.Rx.Pole_ky(M)
-        src0 = dc.Src.Pole([rx], A0loc)
-        survey = dc.Survey_ky([src0])
+        rx = dc.receivers.Pole_ky(M)
+        src0 = dc.sources.Pole([rx], A0loc)
+        survey = dc.survey.Survey_ky([src0])
 
         self.survey = survey
         self.mesh = mesh
@@ -200,10 +204,11 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
             self.Solver = SolverLU
 
     def test_Problem2D_CC(self, tolerance=0.05):
-        problem = dc.Problem2D_CC(self.mesh, sigma=self.sigma, bc_type="Mixed")
-        problem.Solver = self.Solver
-        problem.pair(self.survey)
-        data = problem.dpred()
+        simulation = dc.simulation_2d.Problem2D_CC(
+                self.mesh, survey=self.survey, sigma=self.sigma,
+                bc_type="Mixed")
+        simulation.Solver = self.Solver
+        data = simulation.dpred()
         err = (
             np.linalg.norm((data-self.data_ana)/self.data_ana)**2 /
             self.data_ana.size

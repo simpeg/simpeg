@@ -6,8 +6,8 @@ from scipy.constants import mu_0
 from SimPEG.electromagnetics.utils.testingUtils import getFDEMProblem
 
 testE = False
-testB = False
-testH = True
+testB = True
+testH = False
 testJ = False
 
 verbose = False
@@ -16,7 +16,7 @@ TOL = 1e-5
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
-freq = 1e-1
+freq = 3.16
 addrandoms = True
 
 SrcType = ['MagDipole', 'RawVec']  # or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'

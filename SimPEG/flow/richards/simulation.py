@@ -89,7 +89,7 @@ class RichardsSimulation(BaseTimeSimulation):
         if type(self.boundary_conditions) is np.ndarray:
             return self.boundary_conditions
 
-        time = self.timeMesh.vectorCCx[ii]
+        time = self.time_mesh.vectorCCx[ii]
 
         return self.boundary_conditions(time, u_ii)
 
@@ -125,7 +125,7 @@ class RichardsSimulation(BaseTimeSimulation):
         tic = time.time()
         u = list(range(self.nT+1))
         u[0] = self.initial_conditions
-        for ii, dt in enumerate(self.timeSteps):
+        for ii, dt in enumerate(self.time_steps):
             bc = self.getBoundaryConditions(ii, u[ii])
             u[ii+1] = self.root_finder.root(
                 lambda hn1m, return_g=True: self.getResidual(
@@ -157,9 +157,9 @@ class RichardsSimulation(BaseTimeSimulation):
         if f is None:
             f = self.fields(m)
 
-        Ds = list(range(len(self.survey.rxList)))
+        Ds = list(range(len(self.survey.receiver_list)))
 
-        for ii, rx in enumerate(self.survey.rxList):
+        for ii, rx in enumerate(self.survey.receiver_list):
             Ds[ii] = rx(f, self)
 
         return np.concatenate(Ds)
@@ -287,7 +287,7 @@ class RichardsSimulation(BaseTimeSimulation):
         nn = len(f)-1
         Asubs, Adiags, Bs = list(range(nn)), list(range(nn)), list(range(nn))
         for ii in range(nn):
-            dt = self.timeSteps[ii]
+            dt = self.time_steps[ii]
             bc = self.getBoundaryConditions(ii, f[ii])
             Asubs[ii], Adiags[ii], Bs[ii] = self.diagsJacobian(
                 m, f[ii], f[ii+1], dt, bc
@@ -320,7 +320,7 @@ class RichardsSimulation(BaseTimeSimulation):
         # This is done via forward substitution.
         bc = self.getBoundaryConditions(0, f[0])
         temp, Adiag, B = self.diagsJacobian(
-            m, f[0], f[1], self.timeSteps[0], bc
+            m, f[0], f[1], self.time_steps[0], bc
         )
         Adiaginv = self.Solver(Adiag, **self.solverOpts)
         JvC[0] = Adiaginv * (B*v)
@@ -328,7 +328,7 @@ class RichardsSimulation(BaseTimeSimulation):
         for ii in range(1, len(f)-1):
             bc = self.getBoundaryConditions(ii, f[ii])
             Asub, Adiag, B = self.diagsJacobian(
-                m, f[ii], f[ii+1], self.timeSteps[ii], bc
+                m, f[ii], f[ii+1], self.time_steps[ii], bc
             )
             Adiaginv = self.Solver(Adiag, **self.solverOpts)
             JvC[ii] = Adiaginv * (B*v - Asub*JvC[ii-1])
@@ -350,7 +350,7 @@ class RichardsSimulation(BaseTimeSimulation):
         for ii in range(len(f)-1, 0, -1):
             bc = self.getBoundaryConditions(ii-1, f[ii-1])
             Asub, Adiag, B = self.diagsJacobian(
-                m, f[ii-1], f[ii], self.timeSteps[ii-1], bc
+                m, f[ii-1], f[ii], self.time_steps[ii-1], bc
             )
             # select the correct part of v
             vpart = list(range((ii)*Adiag.shape[0], (ii+1)*Adiag.shape[0]))

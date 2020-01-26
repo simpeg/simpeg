@@ -1,7 +1,7 @@
 from __future__ import print_function
 import unittest
 
-import discretize
+from discretize import TensorMesh
 from SimPEG import utils
 import numpy as np
 from SimPEG.electromagnetics import resistivity as dc
@@ -23,7 +23,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         hx = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
         hy = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
         hz = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
-        mesh = discretize.TensorMesh([hx, hy, hz], x0="CCC")
+        mesh = TensorMesh([hx, hy, hz], x0="CCC")
         sigma = np.ones(mesh.nC)*1e-2
 
         # Set up survey parameters for numeric solution
@@ -35,9 +35,9 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         M = utils.ndgrid(x-25., y, np.r_[0.])
         N = utils.ndgrid(x+25., y, np.r_[0.])
 
-        rx = dc.Rx.Dipole(M, N)
-        src = dc.Src.Dipole([rx], Aloc, Bloc)
-        survey = dc.Survey([src])
+        rx = dc.receivers.Dipole(M, N)
+        src = dc.sources.Dipole([rx], Aloc, Bloc)
+        survey = dc.survey.Survey([src])
 
         # Create Dipole Obj for Analytic Solution
         edipole = fdem.ElectricDipoleWholeSpace(
@@ -95,15 +95,15 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
 
 
     def test_Problem3D_CC_Dirichlet(self, tolerance=0.1):
-        problem = dc.Problem3D_CC(
-            self.mesh, sigma=self.sigma, bc_type='Dirichlet'
+        simulation = dc.Problem3D_CC(
+            self.mesh, survey=self.survey, sigma=self.sigma, bc_type='Dirichlet'
             )
-        problem.Solver = Solver
-        problem.pair(self.survey)
+        simulation.Solver = Solver
 
-        f = problem.fields()
-        eNumeric = utils.mkvc(f[self.survey.srcList,'e'])
-        jNumeric = utils.mkvc(f[self.survey.srcList,'j'])
+#        f = simulation.fields()
+        f = simulation.fields(self.sigma).compute()
+        eNumeric = utils.mkvc(f[self.survey.source_list,'e'])
+        jNumeric = utils.mkvc(f[self.survey.source_list,'j'])
         errE = (
             np.linalg.norm(jNumeric[self.ROIfaceInds] - self.J_analytic[self.ROIfaceInds]) /
             np.linalg.norm(self.J_analytic[self.ROIfaceInds])
@@ -127,15 +127,14 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_Problem3D_CC_Mixed(self, tolerance=0.1):
-        problem = dc.Problem3D_CC(
-            self.mesh, sigma=self.sigma, bc_type='Mixed'
+        simulation = dc.simulation.Problem3D_CC(
+            self.mesh, survey=self.survey, sigma=self.sigma, bc_type='Mixed'
             )
-        problem.Solver = Solver
-        problem.pair(self.survey)
+        simulation.Solver = Solver
 
-        f = problem.fields()
-        eNumeric = utils.mkvc(f[self.survey.srcList,'e'])
-        jNumeric = utils.mkvc(f[self.survey.srcList,'j'])
+        f = simulation.fields(self.sigma).compute()
+        eNumeric = utils.mkvc(f[self.survey.source_list,'e'])
+        jNumeric = utils.mkvc(f[self.survey.source_list,'j'])
         errE = (
             np.linalg.norm(jNumeric[self.ROIfaceInds] - self.J_analytic[self.ROIfaceInds]) /
             np.linalg.norm(self.J_analytic[self.ROIfaceInds])
@@ -159,15 +158,14 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_Problem3D_CC_Neumann(self, tolerance=0.1):
-        problem = dc.Problem3D_CC(
-            self.mesh, sigma=self.sigma, bc_type='Neumann'
+        simulation = dc.Problem3D_CC(
+            self.mesh, survey=self.survey, sigma=self.sigma, bc_type='Neumann'
             )
-        problem.Solver = Solver
-        problem.pair(self.survey)
+        simulation.Solver = Solver
 
-        f = problem.fields()
-        eNumeric = utils.mkvc(f[self.survey.srcList,'e'])
-        jNumeric = utils.mkvc(f[self.survey.srcList,'j'])
+        f = simulation.fields(self.sigma).compute()
+        eNumeric = utils.mkvc(f[self.survey.source_list,'e'])
+        jNumeric = utils.mkvc(f[self.survey.source_list,'j'])
         errE = (
             np.linalg.norm(jNumeric[self.ROIfaceInds] - self.J_analytic[self.ROIfaceInds]) /
             np.linalg.norm(self.J_analytic[self.ROIfaceInds])
@@ -200,7 +198,7 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
         hx = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
         hy = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
         hz = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
-        mesh = discretize.TensorMesh([hx, hy, hz], x0="CCC")
+        mesh = TensorMesh([hx, hy, hz], x0="CCC")
         sigma = np.ones(mesh.nC)*1e-2
 
         # Set up survey parameters for numeric solution
@@ -212,9 +210,9 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
         M = utils.ndgrid(x-25., y, np.r_[0.])
         N = utils.ndgrid(x+25., y, np.r_[0.])
 
-        rx = dc.Rx.Dipole(M, N)
-        src = dc.Src.Dipole([rx], Aloc, Bloc)
-        survey = dc.Survey([src])
+        rx = dc.receivers.Dipole(M, N)
+        src = dc.sources.Dipole([rx], Aloc, Bloc)
+        survey = dc.survey.Survey([src])
 
         # Create Dipole Obj for Analytic Solution
         edipole = fdem.ElectricDipoleWholeSpace(
@@ -272,13 +270,12 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
 
 
     def test_Problem3D_N(self, tolerance=0.1):
-        problem = dc.Problem3D_N(self.mesh, sigma=self.sigma)
-        problem.Solver = Solver
-        problem.pair(self.survey)
+        simulation = dc.simulation.Problem3D_N(self.mesh, survey=self.survey, sigma=self.sigma)
+        simulation.Solver = Solver
 
-        f = problem.fields()
-        eNumeric = utils.mkvc(f[self.survey.srcList,'e'])
-        jNumeric = utils.mkvc(f[self.survey.srcList,'j'])
+        f = simulation.fields(self.sigma).compute()
+        eNumeric = utils.mkvc(f[self.survey.source_list,'e'])
+        jNumeric = utils.mkvc(f[self.survey.source_list,'j'])
         errE = (
             np.linalg.norm(jNumeric[self.ROIedgeInds] - self.J_analytic[self.ROIedgeInds]) /
             np.linalg.norm(self.J_analytic[self.ROIedgeInds])
