@@ -550,13 +550,14 @@ class LinearSimulation(BaseSimulation):
         required=True
     )
 
-    def __init__(self, mesh=None, **kwargs):
-        super(LinearSimulation, self).__init__(mesh=mesh, **kwargs)
-        self.survey = BaseSurvey()
+    survey = properties.Instance("a survey object", BaseSurvey)
 
-        # set the number of data
-        if getattr(self, 'G', None) is not None:
-            self.survey._vnD = np.r_[self.G.shape[0]]
+    # def __init__(self, mesh=None, **kwargs):
+    #     super(LinearSimulation, self).__init__(mesh=mesh, **kwargs)
+    #
+    #     # set the number of data
+    #     if getattr(self, 'G', None) is not None:
+    #         self.survey._vnD = np.r_[self.G.shape[0]]
 
     @property
     def G(self):
