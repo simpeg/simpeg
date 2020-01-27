@@ -28,10 +28,10 @@ except ImportError:
 
 class BasePFSimulation(LinearSimulation):
 
-    model, modelMap, modelMapDeriv = props.Invertible(
-        "Physical property",
-        default=1.
-    )
+    # model, modelMap, modelMapDeriv = props.Invertible(
+    #     "Physical property",
+    #     default=1.
+    # )
 
     store_sensitivity = properties.Bool(
         "Store the sensitivity to disk",
@@ -51,8 +51,8 @@ class BasePFSimulation(LinearSimulation):
 
     store_sensitivities = properties.StringChoice(
         "Compute and store G",
-        choices=['ssd', 'ram', 'forward_only'],
-        default='ssd'
+        choices=['disk', 'ram', 'forward_only'],
+        default='disk'
     )
 
     max_chunk_size = properties.Float(
@@ -72,13 +72,14 @@ class BasePFSimulation(LinearSimulation):
     )
 
     sensitivity_path = properties.String(
-        "Directory used to store the sensitivity matrix on SSD",
+        "Directory used to store the sensitivity matrix on disk",
         default="./Inversion/sensitivity.zarr"
     )
 
     def __init__(self, mesh, **kwargs):
 
         LinearSimulation.__init__(self, mesh, **kwargs)
+        self.modelMap = None
 
         # Find non-zero cells
         if getattr(self, 'active_cells', None) is not None:
@@ -120,7 +121,7 @@ class BasePFSimulation(LinearSimulation):
 
         n_data_comp = len(self.survey.components)
 
-        if self.store_sensitivities == 'ssd':
+        if self.store_sensitivities == 'disk':
 
             row = delayed(self.evaluate_integral, pure=True)
 
@@ -182,27 +183,17 @@ class BasePFSimulation(LinearSimulation):
                 print("Saving G to zarr: " + self.sensitivity_path)
                 G = array.to_zarr(stack, self.sensitivity_path, compute=True, return_stored=True, overwrite=True)
 
-        #  TODO
-        # else:
 
-            # BRING BACK MULTIPROCESSING FOR IN RAM CALCULATIONS
-            # result = []
-            # for ii in range(self.survey.nD):
-            #
-            #     if self.forward_only:
-            #         result += [
-            #                 np.c_[
-            #                     np.dot(
-            #                         self.calcTrow(self.receiver_locations[ii, :]),
-            #                         self.model
-            #                     )
-            #                 ]
-            #             ]
-            #     else:
-            #         result += [self.calcTrow(self.receiver_locations[ii, :])]
-            #     self.progress(ii, self.survey.nD)
-            #
-            # G = np.vstack(result)
+        else:
+            # TODO
+            # Process in parallel using multiprocessing
+            # pool = multiprocessing.Pool(self.n_cpu)
+            # G = pool.map(self.evaluate_integral, [receiver for receiver in self.survey.receiver_locations.tolist()])
+            # pool.close()
+            # pool.join()
+
+            # Single threaded
+            G = np.vstack([self.evaluate_integral(receiver) for receiver in self.survey.receiver_locations.tolist()])
 
         return G
 
