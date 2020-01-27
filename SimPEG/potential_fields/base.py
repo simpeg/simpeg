@@ -121,13 +121,24 @@ class BasePFSimulation(LinearSimulation):
 
         n_data_comp = len(self.survey.components)
 
+        components = np.array(list(self.survey.components.keys()))
+        active_components = np.hstack([np.c_[values] for values in self.survey.components.values()]).tolist()
+
+        # if self.parallelized:
+        #
+        #     row = dask.delayed(self.calcTrow, pure=True)
+        #     print(components)
+        #     makeRows = [row(self.receiver_locations[ii, :], np.array(components)[activeComponents[ii,:]].tolist()) for ii in range(self.nD)]
+
         if self.store_sensitivities == 'disk':
 
             row = delayed(self.evaluate_integral, pure=True)
 
             rows = [
-                array.from_delayed(row(receiver), dtype=np.float32, shape=(n_data_comp,  self.nC))
-                for receiver in self.survey.receiver_locations.tolist()
+                array.from_delayed(
+                    row(receiver_location, components[component]), dtype=np.float32, shape=(n_data_comp,  self.nC)
+                )
+                for receiver_location, component in zip(self.survey.receiver_locations.tolist(), active_components)
             ]
             stack = array.vstack(rows)
 
@@ -193,11 +204,14 @@ class BasePFSimulation(LinearSimulation):
             # pool.join()
 
             # Single threaded
-            G = np.vstack([self.evaluate_integral(receiver) for receiver in self.survey.receiver_locations.tolist()])
+            G = np.vstack([
+                self.evaluate_integral(receiver, components[component])
+                for receiver, component in zip(self.survey.receiver_locations.tolist(), active_components)
+            ])
 
         return G
 
-        def evaluate_integral(self, receiver_location):
+        def evaluate_integral(self, receiver_location, components):
             """
             evaluate_integral
 

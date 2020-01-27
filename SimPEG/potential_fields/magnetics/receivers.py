@@ -9,8 +9,8 @@ class point_receiver(survey.BaseRx):
 
     :param numpy.ndarray locs: receiver locations index (ie. :code:`np.c_[ind_1, ind_2, ...]`)
     :param string component: receiver component
-         "dbx_dx", "dbx_dy", "dbx_dz", "dby_dy",
-         "dby_dz", "dbz_dz", "bx", "by", "bz", "tmi" [default]
+         "bxx", "bxy", "bxz", "byy",
+         "byz", "bzz", "bx", "by", "bz", "tmi" [default]
     """
 
     def __init__(self, locations, components="tmi", **kwargs):
@@ -27,12 +27,12 @@ class point_receiver(survey.BaseRx):
             component_dict[component] = np.ones(n_locations, dtype='bool')
 
         assert np.all([component in [
-            "dbx_dx", "dbx_dy", "dbx_dz", "dby_dy",
-            "dby_dz", "dbz_dz", "bx", "by", "bz", "tmi"
+            "bxx", "bxy", "bxz", "byy",
+            "byz", "bzz", "bx", "by", "bz", "tmi"
              ] for component in list(component_dict.keys())]), (
                 "Components {0!s} not known. Components must be in "
-                "'dbx_dx', 'dbx_dy', 'dbx_dz', 'dby_dy',"
-                "'dby_dz', 'dbz_dz', 'bx', 'by', 'bz', 'tmi'. "
+                "'bxx', 'bxy', 'bxz', 'byy',"
+                "'byz', 'bzz', 'bx', 'by', 'bz', 'tmi'. "
                 "Arbitrary orientations have not yet been "
                 "implemented.".format(component)
             )

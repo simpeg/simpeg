@@ -338,7 +338,7 @@ class MagneticIntegralSimulation(BasePFSimulation):
 
         return (Bxyz.reshape((3, self.nD), order='F')*Bamp)
 
-    def evaluate_integral(self, receiver_location):
+    def evaluate_integral(self, receiver_location, components):
         """
             Load in the active nodes of a tensor mesh and computes the magnetic
             forward relation between a cuboid and a given observation
@@ -347,6 +347,10 @@ class MagneticIntegralSimulation(BasePFSimulation):
             INPUT:
             receiver_location:  [obsx, obsy, obsz] nC x 3 Array
 
+            components: list[str]
+                List of gravity components chosen from:
+                'bx', 'by', 'bz', 'bxx', 'bxy', 'bxz', 'byy', 'byz', 'bzz'
+
             OUTPUT:
             Tx = [Txx Txy Txz]
             Ty = [Tyx Tyy Tyz]
@@ -354,6 +358,9 @@ class MagneticIntegralSimulation(BasePFSimulation):
         """
 
         eps = 1e-8  # add a small value to the locations to avoid /0
+
+        rows = {component: np.zeros(3*self.Xn.shape[0]) for component in components}
+
         # number of cells in mesh
         nC = self.Xn.shape[0]
 
@@ -450,256 +457,234 @@ class MagneticIntegralSimulation(BasePFSimulation):
         arg39 = dy1 + r8
         arg40 = dz1 + r8
 
-        rows = []
-        dbx_dx, dby_dy = [], []
-        for component in self.survey.components.keys():
-            # m_x vector
-            if (component == "dbx_dx") or ("dbz_dz" in self.survey.components.keys()):
-                dbx_dx = np.zeros((1, 3 * nC))
+        if ("bxx" in components) or ("bzz" in components):
+            rows["bxx"] = np.zeros((1, 3 * nC))
 
-                dbx_dx[0, 0:nC] = (
-                    2 * (
-                        (
-                            (dx1**2 - r1 * arg1) /
-                            (r1 * arg1**2 + dx1**2 * r1 + eps)
-                        ) -
-                        (
-                            (dx2**2 - r2 * arg6) /
-                            (r2 * arg6**2 + dx2**2 * r2 + eps)
-                        ) +
-                        (
-                            (dx2**2 - r3 * arg11) /
-                            (r3 * arg11**2 + dx2**2 * r3 + eps)
-                        ) -
-                        (
-                            (dx1**2 - r4 * arg16) /
-                            (r4 * arg16**2 + dx1**2 * r4 + eps)
-                        ) +
-                        (
-                            (dx2**2 - r5 * arg21) /
-                            (r5 * arg21**2 + dx2**2 * r5 + eps)
-                        ) -
-                        (
-                            (dx1**2 - r6 * arg26) /
-                            (r6 * arg26**2 + dx1**2 * r6 + eps)
-                        ) +
-                        (
-                            (dx1**2 - r7 * arg31) /
-                            (r7 * arg31**2 + dx1**2 * r7 + eps)
-                        ) -
-                        (
-                            (dx2**2 - r8 * arg36) /
-                            (r8 * arg36**2 + dx2**2 * r8 + eps)
-                        )
+            rows["bxx"][0, 0:nC] = (
+                2 * (
+                    (
+                        (dx1**2 - r1 * arg1) /
+                        (r1 * arg1**2 + dx1**2 * r1 + eps)
+                    ) -
+                    (
+                        (dx2**2 - r2 * arg6) /
+                        (r2 * arg6**2 + dx2**2 * r2 + eps)
+                    ) +
+                    (
+                        (dx2**2 - r3 * arg11) /
+                        (r3 * arg11**2 + dx2**2 * r3 + eps)
+                    ) -
+                    (
+                        (dx1**2 - r4 * arg16) /
+                        (r4 * arg16**2 + dx1**2 * r4 + eps)
+                    ) +
+                    (
+                        (dx2**2 - r5 * arg21) /
+                        (r5 * arg21**2 + dx2**2 * r5 + eps)
+                    ) -
+                    (
+                        (dx1**2 - r6 * arg26) /
+                        (r6 * arg26**2 + dx1**2 * r6 + eps)
+                    ) +
+                    (
+                        (dx1**2 - r7 * arg31) /
+                        (r7 * arg31**2 + dx1**2 * r7 + eps)
+                    ) -
+                    (
+                        (dx2**2 - r8 * arg36) /
+                        (r8 * arg36**2 + dx2**2 * r8 + eps)
                     )
                 )
+            )
 
-                dbx_dx[0, nC:2*nC] = (
-                    dx2 / (r5 * arg25 + eps) - dx2 / (r2 * arg10 + eps) +
-                    dx2 / (r3 * arg15 + eps) - dx2 / (r8 * arg40 + eps) +
-                    dx1 / (r1 * arg5 + eps) - dx1 / (r6 * arg30 + eps) +
-                    dx1 / (r7 * arg35 + eps) - dx1 / (r4 * arg20 + eps)
-                )
+            rows["bxx"][0, nC:2*nC] = (
+                dx2 / (r5 * arg25 + eps) - dx2 / (r2 * arg10 + eps) +
+                dx2 / (r3 * arg15 + eps) - dx2 / (r8 * arg40 + eps) +
+                dx1 / (r1 * arg5 + eps) - dx1 / (r6 * arg30 + eps) +
+                dx1 / (r7 * arg35 + eps) - dx1 / (r4 * arg20 + eps)
+            )
 
-                dbx_dx[0, 2*nC:] = (
-                    dx1 / (r1 * arg4 + eps) - dx2 / (r2 * arg9 + eps) +
-                    dx2 / (r3 * arg14 + eps) - dx1 / (r4 * arg19 + eps) +
-                    dx2 / (r5 * arg24 + eps) - dx1 / (r6 * arg29 + eps) +
-                    dx1 / (r7 * arg34 + eps) - dx2 / (r8 * arg39 + eps)
-                )
+            rows["bxx"][0, 2*nC:] = (
+                dx1 / (r1 * arg4 + eps) - dx2 / (r2 * arg9 + eps) +
+                dx2 / (r3 * arg14 + eps) - dx1 / (r4 * arg19 + eps) +
+                dx2 / (r5 * arg24 + eps) - dx1 / (r6 * arg29 + eps) +
+                dx1 / (r7 * arg34 + eps) - dx2 / (r8 * arg39 + eps)
+            )
 
-                dbx_dx /= (4 * np.pi)
-                dbx_dx *= self.M
+            rows["bxx"] /= (4 * np.pi)
+            rows["bxx"] *= self.M
 
-            if (component == "dby_dy") or ("dbz_dz" in self.survey.components.keys()):
-                # dby_dy
-                dby_dy = np.zeros((1, 3 * nC))
+        if ("byy" in components) or ("bzz" in components):
 
-                dby_dy[0, 0:nC] = (dy2 / (r3 * arg15 + eps) - dy2 / (r2 * arg10 + eps) +
-                            dy1 / (r5 * arg25 + eps) - dy1 / (r8 * arg40 + eps) +
-                            dy2 / (r1 * arg5 + eps) - dy2 / (r4 * arg20 + eps) +
-                            dy1 / (r7 * arg35 + eps) - dy1 / (r6 * arg30 + eps))
-                dby_dy[0, nC:2*nC] = (2 * (((dy2**2 - r1 * arg2) / (r1 * arg2**2 + dy2**2 * r1 + eps)) -
-                           ((dy2**2 - r2 * arg7) / (r2 * arg7**2 + dy2**2 * r2 + eps)) +
-                           ((dy2**2 - r3 * arg12) / (r3 * arg12**2 + dy2**2 * r3 + eps)) -
-                           ((dy2**2 - r4 * arg17) / (r4 * arg17**2 + dy2**2 * r4 + eps)) +
-                           ((dy1**2 - r5 * arg22) / (r5 * arg22**2 + dy1**2 * r5 + eps)) -
-                           ((dy1**2 - r6 * arg27) / (r6 * arg27**2 + dy1**2 * r6 + eps)) +
-                           ((dy1**2 - r7 * arg32) / (r7 * arg32**2 + dy1**2 * r7 + eps)) -
-                           ((dy1**2 - r8 * arg37) / (r8 * arg37**2 + dy1**2 * r8 + eps))))
-                dby_dy[0, 2*nC:] = (dy2 / (r1 * arg3 + eps) - dy2 / (r2 * arg8 + eps) +
-                             dy2 / (r3 * arg13 + eps) - dy2 / (r4 * arg18 + eps) +
-                             dy1 / (r5 * arg23 + eps) - dy1 / (r6 * arg28 + eps) +
-                             dy1 / (r7 * arg33 + eps) - dy1 / (r8 * arg38 + eps))
+            rows["byy"] = np.zeros((1, 3 * nC))
 
-                dby_dy /= (4 * np.pi)
-                dby_dy *= self.M
+            rows["byy"][0, 0:nC] = (dy2 / (r3 * arg15 + eps) - dy2 / (r2 * arg10 + eps) +
+                        dy1 / (r5 * arg25 + eps) - dy1 / (r8 * arg40 + eps) +
+                        dy2 / (r1 * arg5 + eps) - dy2 / (r4 * arg20 + eps) +
+                        dy1 / (r7 * arg35 + eps) - dy1 / (r6 * arg30 + eps))
+            rows["byy"][0, nC:2*nC] = (2 * (((dy2**2 - r1 * arg2) / (r1 * arg2**2 + dy2**2 * r1 + eps)) -
+                       ((dy2**2 - r2 * arg7) / (r2 * arg7**2 + dy2**2 * r2 + eps)) +
+                       ((dy2**2 - r3 * arg12) / (r3 * arg12**2 + dy2**2 * r3 + eps)) -
+                       ((dy2**2 - r4 * arg17) / (r4 * arg17**2 + dy2**2 * r4 + eps)) +
+                       ((dy1**2 - r5 * arg22) / (r5 * arg22**2 + dy1**2 * r5 + eps)) -
+                       ((dy1**2 - r6 * arg27) / (r6 * arg27**2 + dy1**2 * r6 + eps)) +
+                       ((dy1**2 - r7 * arg32) / (r7 * arg32**2 + dy1**2 * r7 + eps)) -
+                       ((dy1**2 - r8 * arg37) / (r8 * arg37**2 + dy1**2 * r8 + eps))))
+            rows["byy"][0, 2*nC:] = (dy2 / (r1 * arg3 + eps) - dy2 / (r2 * arg8 + eps) +
+                         dy2 / (r3 * arg13 + eps) - dy2 / (r4 * arg18 + eps) +
+                         dy1 / (r5 * arg23 + eps) - dy1 / (r6 * arg28 + eps) +
+                         dy1 / (r7 * arg33 + eps) - dy1 / (r8 * arg38 + eps))
 
-            if component == "dby_dy":
+            rows["byy"] /= (4 * np.pi)
+            rows["byy"] *= self.M
 
-                rows += [dby_dy]
+        if "bzz" in components:
 
-            if component == "dbx_dx":
+            rows["bzz"] = -rows["bxx"] - rows["byy"]
 
-                rows += [dbx_dx]
+        if "bxy" in components:
+            rows["bxy"] = np.zeros((1, 3 * nC))
 
-            if component == "dbz_dz":
+            rows["bxy"][0, 0:nC] = (2 * (((dx1 * arg4) / (r1 * arg1**2 + (dx1**2) * r1 + eps)) -
+                        ((dx2 * arg9) / (r2 * arg6**2 + (dx2**2) * r2 + eps)) +
+                        ((dx2 * arg14) / (r3 * arg11**2 + (dx2**2) * r3 + eps)) -
+                        ((dx1 * arg19) / (r4 * arg16**2 + (dx1**2) * r4 + eps)) +
+                        ((dx2 * arg24) / (r5 * arg21**2 + (dx2**2) * r5 + eps)) -
+                        ((dx1 * arg29) / (r6 * arg26**2 + (dx1**2) * r6 + eps)) +
+                        ((dx1 * arg34) / (r7 * arg31**2 + (dx1**2) * r7 + eps)) -
+                        ((dx2 * arg39) / (r8 * arg36**2 + (dx2**2) * r8 + eps))))
+            rows["bxy"][0, nC:2*nC] = (dy2 / (r1 * arg5 + eps) - dy2 / (r2 * arg10 + eps) +
+                           dy2 / (r3 * arg15 + eps) - dy2 / (r4 * arg20 + eps) +
+                           dy1 / (r5 * arg25 + eps) - dy1 / (r6 * arg30 + eps) +
+                           dy1 / (r7 * arg35 + eps) - dy1 / (r8 * arg40 + eps))
+            rows["bxy"][0, 2*nC:] = (1 / r1 - 1 / r2 +
+                         1 / r3 - 1 / r4 +
+                         1 / r5 - 1 / r6 +
+                         1 / r7 - 1 / r8)
 
-                dbz_dz = -dbx_dx - dby_dy
-                rows += [dbz_dz]
+            rows["bxy"] /= (4 * np.pi)
 
-            if component == "dbx_dy":
-                dbx_dy = np.zeros((1, 3 * nC))
+            rows["bxy"] *= self.M
 
-                dbx_dy[0, 0:nC] = (2 * (((dx1 * arg4) / (r1 * arg1**2 + (dx1**2) * r1 + eps)) -
-                            ((dx2 * arg9) / (r2 * arg6**2 + (dx2**2) * r2 + eps)) +
-                            ((dx2 * arg14) / (r3 * arg11**2 + (dx2**2) * r3 + eps)) -
-                            ((dx1 * arg19) / (r4 * arg16**2 + (dx1**2) * r4 + eps)) +
-                            ((dx2 * arg24) / (r5 * arg21**2 + (dx2**2) * r5 + eps)) -
-                            ((dx1 * arg29) / (r6 * arg26**2 + (dx1**2) * r6 + eps)) +
-                            ((dx1 * arg34) / (r7 * arg31**2 + (dx1**2) * r7 + eps)) -
-                            ((dx2 * arg39) / (r8 * arg36**2 + (dx2**2) * r8 + eps))))
-                dbx_dy[0, nC:2*nC] = (dy2 / (r1 * arg5 + eps) - dy2 / (r2 * arg10 + eps) +
-                               dy2 / (r3 * arg15 + eps) - dy2 / (r4 * arg20 + eps) +
-                               dy1 / (r5 * arg25 + eps) - dy1 / (r6 * arg30 + eps) +
-                               dy1 / (r7 * arg35 + eps) - dy1 / (r8 * arg40 + eps))
-                dbx_dy[0, 2*nC:] = (1 / r1 - 1 / r2 +
-                             1 / r3 - 1 / r4 +
-                             1 / r5 - 1 / r6 +
-                             1 / r7 - 1 / r8)
+        if "bxz" in components:
+            rows["bxz"] = np.zeros((1, 3 * nC))
 
-                dbx_dy /= (4 * np.pi)
+            rows["bxz"][0, 0:nC] =(2 * (((dx1 * arg5) / (r1 * (arg1**2) + (dx1**2) * r1 + eps)) -
+                        ((dx2 * arg10) / (r2 * (arg6**2) + (dx2**2) * r2 + eps)) +
+                        ((dx2 * arg15) / (r3 * (arg11**2) + (dx2**2) * r3 + eps)) -
+                        ((dx1 * arg20) / (r4 * (arg16**2) + (dx1**2) * r4 + eps)) +
+                        ((dx2 * arg25) / (r5 * (arg21**2) + (dx2**2) * r5 + eps)) -
+                        ((dx1 * arg30) / (r6 * (arg26**2) + (dx1**2) * r6 + eps)) +
+                        ((dx1 * arg35) / (r7 * (arg31**2) + (dx1**2) * r7 + eps)) -
+                        ((dx2 * arg40) / (r8 * (arg36**2) + (dx2**2) * r8 + eps))))
+            rows["bxz"][0, nC:2*nC] = (1 / r1 - 1 / r2 +
+                           1 / r3 - 1 / r4 +
+                           1 / r5 - 1 / r6 +
+                           1 / r7 - 1 / r8)
+            rows["bxz"][0, 2*nC:] = (dz2 / (r1 * arg4 + eps) - dz2 / (r2 * arg9 + eps) +
+                         dz1 / (r3 * arg14 + eps) - dz1 / (r4 * arg19 + eps) +
+                         dz2 / (r5 * arg24 + eps) - dz2 / (r6 * arg29 + eps) +
+                         dz1 / (r7 * arg34 + eps) - dz1 / (r8 * arg39 + eps))
 
-                rows += [dbx_dy * self.M]
+            rows["bxz"] /= (4 * np.pi)
 
-            if component == "dbx_dz":
-                dbx_dz = np.zeros((1, 3 * nC))
+            rows["bxz"] *= self.M
 
-                dbx_dz[0, 0:nC] =(2 * (((dx1 * arg5) / (r1 * (arg1**2) + (dx1**2) * r1 + eps)) -
-                            ((dx2 * arg10) / (r2 * (arg6**2) + (dx2**2) * r2 + eps)) +
-                            ((dx2 * arg15) / (r3 * (arg11**2) + (dx2**2) * r3 + eps)) -
-                            ((dx1 * arg20) / (r4 * (arg16**2) + (dx1**2) * r4 + eps)) +
-                            ((dx2 * arg25) / (r5 * (arg21**2) + (dx2**2) * r5 + eps)) -
-                            ((dx1 * arg30) / (r6 * (arg26**2) + (dx1**2) * r6 + eps)) +
-                            ((dx1 * arg35) / (r7 * (arg31**2) + (dx1**2) * r7 + eps)) -
-                            ((dx2 * arg40) / (r8 * (arg36**2) + (dx2**2) * r8 + eps))))
-                dbx_dz[0, nC:2*nC] = (1 / r1 - 1 / r2 +
-                               1 / r3 - 1 / r4 +
-                               1 / r5 - 1 / r6 +
-                               1 / r7 - 1 / r8)
-                dbx_dz[0, 2*nC:] = (dz2 / (r1 * arg4 + eps) - dz2 / (r2 * arg9 + eps) +
-                             dz1 / (r3 * arg14 + eps) - dz1 / (r4 * arg19 + eps) +
-                             dz2 / (r5 * arg24 + eps) - dz2 / (r6 * arg29 + eps) +
-                             dz1 / (r7 * arg34 + eps) - dz1 / (r8 * arg39 + eps))
+        if "byz" in components:
+            rows["byz"] = np.zeros((1, 3 * nC))
 
-                dbx_dz /= (4 * np.pi)
+            rows["byz"][0, 0:nC] = (1 / r3 - 1 / r2 +
+                        1 / r5 - 1 / r8 +
+                        1 / r1 - 1 / r4 +
+                        1 / r7 - 1 / r6)
+            rows["byz"][0, nC:2*nC] = (2 * ((((dy2 * arg5) / (r1 * (arg2**2) + (dy2**2) * r1 + eps))) -
+                    (((dy2 * arg10) / (r2 * (arg7**2) + (dy2**2) * r2 + eps))) +
+                    (((dy2 * arg15) / (r3 * (arg12**2) + (dy2**2) * r3 + eps))) -
+                    (((dy2 * arg20) / (r4 * (arg17**2) + (dy2**2) * r4 + eps))) +
+                    (((dy1 * arg25) / (r5 * (arg22**2) + (dy1**2) * r5 + eps))) -
+                    (((dy1 * arg30) / (r6 * (arg27**2) + (dy1**2) * r6 + eps))) +
+                    (((dy1 * arg35) / (r7 * (arg32**2) + (dy1**2) * r7 + eps))) -
+                    (((dy1 * arg40) / (r8 * (arg37**2) + (dy1**2) * r8 + eps)))))
+            rows["byz"][0, 2*nC:] = (dz2 / (r1 * arg3  + eps) - dz2 / (r2 * arg8 + eps) +
+                     dz1 / (r3 * arg13 + eps) - dz1 / (r4 * arg18 + eps) +
+                     dz2 / (r5 * arg23 + eps) - dz2 / (r6 * arg28 + eps) +
+                     dz1 / (r7 * arg33 + eps) - dz1 / (r8 * arg38 + eps))
 
-                rows += [dbx_dz * self.M]
+            rows["byz"] /= (4 * np.pi)
 
-            if component == "dby_dz":
-                dby_dz = np.zeros((1, 3 * nC))
+            rows["byz"] *= self.M
 
-                dby_dz[0, 0:nC] = (1 / r3 - 1 / r2 +
-                            1 / r5 - 1 / r8 +
-                            1 / r1 - 1 / r4 +
-                            1 / r7 - 1 / r6)
-                dby_dz[0, nC:2*nC] = (2 * ((((dy2 * arg5) / (r1 * (arg2**2) + (dy2**2) * r1 + eps))) -
-                        (((dy2 * arg10) / (r2 * (arg7**2) + (dy2**2) * r2 + eps))) +
-                        (((dy2 * arg15) / (r3 * (arg12**2) + (dy2**2) * r3 + eps))) -
-                        (((dy2 * arg20) / (r4 * (arg17**2) + (dy2**2) * r4 + eps))) +
-                        (((dy1 * arg25) / (r5 * (arg22**2) + (dy1**2) * r5 + eps))) -
-                        (((dy1 * arg30) / (r6 * (arg27**2) + (dy1**2) * r6 + eps))) +
-                        (((dy1 * arg35) / (r7 * (arg32**2) + (dy1**2) * r7 + eps))) -
-                        (((dy1 * arg40) / (r8 * (arg37**2) + (dy1**2) * r8 + eps)))))
-                dby_dz[0, 2*nC:] = (dz2 / (r1 * arg3  + eps) - dz2 / (r2 * arg8 + eps) +
-                         dz1 / (r3 * arg13 + eps) - dz1 / (r4 * arg18 + eps) +
-                         dz2 / (r5 * arg23 + eps) - dz2 / (r6 * arg28 + eps) +
-                         dz1 / (r7 * arg33 + eps) - dz1 / (r8 * arg38 + eps))
+        if ("bx" in components) or ("tmi" in components):
+            rows["bx"] = np.zeros((1, 3 * nC))
 
-                dby_dz /= (4 * np.pi)
+            rows["bx"][0, 0:nC] = ((-2 * np.arctan2(dx1, arg1 + eps)) - (-2 * np.arctan2(dx2, arg6 + eps)) +
+                       (-2 * np.arctan2(dx2, arg11 + eps)) - (-2 * np.arctan2(dx1, arg16 + eps)) +
+                       (-2 * np.arctan2(dx2, arg21 + eps)) - (-2 * np.arctan2(dx1, arg26 + eps)) +
+                       (-2 * np.arctan2(dx1, arg31 + eps)) - (-2 * np.arctan2(dx2, arg36 + eps)))
+            rows["bx"][0, nC:2*nC] = (np.log(arg5) - np.log(arg10) +
+                          np.log(arg15) - np.log(arg20) +
+                          np.log(arg25) - np.log(arg30) +
+                          np.log(arg35) - np.log(arg40))
+            rows["bx"][0, 2*nC:] = ((np.log(arg4) - np.log(arg9)) +
+                        (np.log(arg14) - np.log(arg19)) +
+                        (np.log(arg24) - np.log(arg29)) +
+                        (np.log(arg34) - np.log(arg39)))
+            rows["bx"] /= (4 * np.pi)
 
-                rows += [dby_dz * self.M]
+            rows["bx"] *= self.M
 
-            if (component == "bx") or ("tmi" in self.survey.components.keys()):
-                bx = np.zeros((1, 3 * nC))
+        if ("by" in components) or ("tmi" in components):
+            rows["by"] = np.zeros((1, 3 * nC))
 
-                bx[0, 0:nC] = ((-2 * np.arctan2(dx1, arg1 + eps)) - (-2 * np.arctan2(dx2, arg6 + eps)) +
-                           (-2 * np.arctan2(dx2, arg11 + eps)) - (-2 * np.arctan2(dx1, arg16 + eps)) +
-                           (-2 * np.arctan2(dx2, arg21 + eps)) - (-2 * np.arctan2(dx1, arg26 + eps)) +
-                           (-2 * np.arctan2(dx1, arg31 + eps)) - (-2 * np.arctan2(dx2, arg36 + eps)))
-                bx[0, nC:2*nC] = (np.log(arg5) - np.log(arg10) +
-                              np.log(arg15) - np.log(arg20) +
-                              np.log(arg25) - np.log(arg30) +
-                              np.log(arg35) - np.log(arg40))
-                bx[0, 2*nC:] = ((np.log(arg4) - np.log(arg9)) +
-                            (np.log(arg14) - np.log(arg19)) +
-                            (np.log(arg24) - np.log(arg29)) +
-                            (np.log(arg34) - np.log(arg39)))
-                bx /= (4 * np.pi)
+            rows["by"][0, 0:nC] = (np.log(arg5) - np.log(arg10) +
+                       np.log(arg15) - np.log(arg20) +
+                       np.log(arg25) - np.log(arg30) +
+                       np.log(arg35) - np.log(arg40))
+            rows["by"][0, nC:2*nC] = ((-2 * np.arctan2(dy2, arg2 + eps)) - (-2 * np.arctan2(dy2, arg7 + eps)) +
+                              (-2 * np.arctan2(dy2, arg12 + eps)) - (-2 * np.arctan2(dy2, arg17 + eps)) +
+                              (-2 * np.arctan2(dy1, arg22 + eps)) - (-2 * np.arctan2(dy1, arg27 + eps)) +
+                              (-2 * np.arctan2(dy1, arg32 + eps)) - (-2 * np.arctan2(dy1, arg37 + eps)))
+            rows["by"][0, 2*nC:] = ((np.log(arg3) - np.log(arg8)) +
+                            (np.log(arg13) - np.log(arg18)) +
+                            (np.log(arg23) - np.log(arg28)) +
+                            (np.log(arg33) - np.log(arg38)))
 
-                # rows += [bx]
+            rows["by"] /= (-4 * np.pi)
 
-            if (component == "by") or ("tmi" in self.survey.components.keys()):
-                by = np.zeros((1, 3 * nC))
+            rows["by"] *= self.M
 
-                by[0, 0:nC] = (np.log(arg5) - np.log(arg10) +
-                           np.log(arg15) - np.log(arg20) +
-                           np.log(arg25) - np.log(arg30) +
-                           np.log(arg35) - np.log(arg40))
-                by[0, nC:2*nC] = ((-2 * np.arctan2(dy2, arg2 + eps)) - (-2 * np.arctan2(dy2, arg7 + eps)) +
-                                  (-2 * np.arctan2(dy2, arg12 + eps)) - (-2 * np.arctan2(dy2, arg17 + eps)) +
-                                  (-2 * np.arctan2(dy1, arg22 + eps)) - (-2 * np.arctan2(dy1, arg27 + eps)) +
-                                  (-2 * np.arctan2(dy1, arg32 + eps)) - (-2 * np.arctan2(dy1, arg37 + eps)))
-                by[0, 2*nC:] = ((np.log(arg3) - np.log(arg8)) +
-                                (np.log(arg13) - np.log(arg18)) +
-                                (np.log(arg23) - np.log(arg28)) +
-                                (np.log(arg33) - np.log(arg38)))
+        if ("bz" in components) or ("tmi" in components):
+            rows["bz"] = np.zeros((1, 3 * nC))
 
-                by /= (-4 * np.pi)
+            rows["bz"][0, 0:nC] = (np.log(arg4) - np.log(arg9) +
+                       np.log(arg14) - np.log(arg19) +
+                       np.log(arg24) - np.log(arg29) +
+                       np.log(arg34) - np.log(arg39))
+            rows["bz"][0, nC:2*nC] = ((np.log(arg3) - np.log(arg8)) +
+                              (np.log(arg13) - np.log(arg18)) +
+                              (np.log(arg23) - np.log(arg28)) +
+                              (np.log(arg33) - np.log(arg38)))
+            rows["bz"][0, 2*nC:] = ((-2 * np.arctan2(dz2, arg1_ + eps)) - (-2 * np.arctan2(dz2, arg6_ + eps)) +
+                            (-2 * np.arctan2(dz1, arg11_ + eps)) - (-2 * np.arctan2(dz1, arg16_ + eps)) +
+                            (-2 * np.arctan2(dz2, arg21_ + eps)) - (-2 * np.arctan2(dz2, arg26_ + eps)) +
+                            (-2 * np.arctan2(dz1, arg31_ + eps)) - (-2 * np.arctan2(dz1, arg36_ + eps)))
+            rows["bz"] /= (-4 * np.pi)
 
-                # rows += [by]
+            rows["bz"] *= self.M
 
-            if (component == "bz") or ("tmi" in self.survey.components.keys()):
-                bz = np.zeros((1, 3 * nC))
+        if "tmi" in components:
 
-                bz[0, 0:nC] = (np.log(arg4) - np.log(arg9) +
-                           np.log(arg14) - np.log(arg19) +
-                           np.log(arg24) - np.log(arg29) +
-                           np.log(arg34) - np.log(arg39))
-                bz[0, nC:2*nC] = ((np.log(arg3) - np.log(arg8)) +
-                                  (np.log(arg13) - np.log(arg18)) +
-                                  (np.log(arg23) - np.log(arg28)) +
-                                  (np.log(arg33) - np.log(arg38)))
-                bz[0, 2*nC:] = ((-2 * np.arctan2(dz2, arg1_ + eps)) - (-2 * np.arctan2(dz2, arg6_ + eps)) +
-                                (-2 * np.arctan2(dz1, arg11_ + eps)) - (-2 * np.arctan2(dz1, arg16_ + eps)) +
-                                (-2 * np.arctan2(dz2, arg21_ + eps)) - (-2 * np.arctan2(dz2, arg26_ + eps)) +
-                                (-2 * np.arctan2(dz1, arg31_ + eps)) - (-2 * np.arctan2(dz1, arg36_ + eps)))
-                bz /= (-4 * np.pi)
-
-            if component == "bx":
-
-                rows += [bx * self.M]
-
-            if component == "by":
-
-                rows += [by * self.M]
-
-            if component == "bz":
-
-                rows += [bz * self.M]
-
-            if component == "tmi":
-
-                rows += [np.dot(self.ProjTMI, np.r_[bx, by, bz]) * self.M]
+            rows["tmi"] = np.dot(self.ProjTMI, np.r_[rows["bx"], rows["by"], rows["bz"]])
 
         if self.store_sensitivities == "forward_only":
             return np.dot(
-                np.vstack(rows),
+                np.vstack([rows[component] for component in components]),
                 self.model
             )
         else:
 
-            return np.vstack(rows)
+            return np.vstack([rows[component] for component in components])
+
 
 class DifferentialEquationSimulation(BaseSimulation):
     """
