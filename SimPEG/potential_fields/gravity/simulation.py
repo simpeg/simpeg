@@ -15,13 +15,13 @@ from dask.diagnostics import ProgressBar
 import multiprocessing
 
 
-class GravityIntegralSimulation(BasePFSimulation):
+class IntegralSimulation(BasePFSimulation):
     """
     Gravity simulation in integral form.
 
     """
 
-    rho, rhoMap, rhoMapDeriv = props.Invertible(
+    rho, rhoMap, rhoDeriv = props.Invertible(
         "Physical property",
         default=1.
     )
@@ -33,7 +33,7 @@ class GravityIntegralSimulation(BasePFSimulation):
         self.modelMap = self.rhoMap
 
     def fields(self, m):
-        # self.model = self.rhoMap*m
+        self.model = self.rhoMap*m
 
         if self.store_sensitivities == 'forward_only':
             self.model = m
@@ -47,7 +47,7 @@ class GravityIntegralSimulation(BasePFSimulation):
             Return the diagonal of JtJ
         """
         self.model = m
-
+        print(self.rho)
         if self.gtg_diagonal is None:
 
             if W is None:
@@ -59,7 +59,7 @@ class GravityIntegralSimulation(BasePFSimulation):
 
         return mkvc(
             np.sum((
-                sdiag(mkvc(self.gtg_diagonal)**0.5) * self.rhoMap.deriv(m)
+                sdiag(mkvc(self.gtg_diagonal)**0.5) * self.rhoDeriv
             ).power(2.), axis=0)
         )
 
@@ -67,14 +67,14 @@ class GravityIntegralSimulation(BasePFSimulation):
         """
             Sensitivity matrix
         """
-        return da.dot(self.G, self.rhoMap.deriv(m))
+        return da.dot(self.G, self.rhoDeriv)
 
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector
         """
         dmu_dm_v = da.from_array(
-            self.rhoMap.deriv(m)*v, chunks=self.G.chunks[1]
+            self.rhoDeriv*v, chunks=self.G.chunks[1]
         )
 
         return da.dot(self.G, dmu_dm_v.astype(np.float32))
@@ -84,10 +84,10 @@ class GravityIntegralSimulation(BasePFSimulation):
         Sensitivity transposed times a vector
         """
         Jtvec = da.dot(v.astype(np.float32), self.G)
-        dmudm_v = dask.delayed(csr.dot)(Jtvec, self.rhoMap.deriv(m))
+        dmudm_v = dask.delayed(csr.dot)(Jtvec, self.rhoDeriv)
 
         return da.from_delayed(
-            dmudm_v, dtype=float, shape=[self.rhoMap.deriv(m).shape[1]]
+            dmudm_v, dtype=float, shape=[self.rhoDeriv.shape[1]]
         ).compute()
 
     @property

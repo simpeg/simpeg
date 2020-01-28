@@ -11,7 +11,7 @@ from ..simulation import LinearSimulation
 from scipy.sparse import csr_matrix as csr
 from SimPEG.utils import mkvc, sdiag
 from .. import props
-from dask import delayed, array
+from dask import delayed, array, config
 from dask.diagnostics import ProgressBar
 
 try:
@@ -28,17 +28,12 @@ except ImportError:
 
 class BasePFSimulation(LinearSimulation):
 
-    # model, modelMap, modelMapDeriv = props.Invertible(
-    #     "Physical property",
-    #     default=1.
-    # )
-
     store_sensitivity = properties.Bool(
         "Store the sensitivity to disk",
         default=True
     )
 
-    active_cells = properties.Array(
+    actInd = properties.Array(
         "Array of active cells (ground)",
         dtype=(bool, int),
         default=None
@@ -79,14 +74,13 @@ class BasePFSimulation(LinearSimulation):
     def __init__(self, mesh, **kwargs):
 
         LinearSimulation.__init__(self, mesh, **kwargs)
-        self.modelMap = None
 
         # Find non-zero cells
-        if getattr(self, 'active_cells', None) is not None:
-            if self.active_cells.dtype == 'bool':
-                indices = np.where(self.active_cells)[0]
+        if getattr(self, 'actInd', None) is not None:
+            if self.actInd.dtype == 'bool':
+                indices = np.where(self.actInd)[0]
             else:
-                indices = self.active_cells
+                indices = self.actInd
 
         else:
 
@@ -117,18 +111,12 @@ class BasePFSimulation(LinearSimulation):
 
     def linear_operator(self):
 
-        self.nC = self.modelMap.shape[0]
+        self.nC = self.modelMap.shape[1]
 
         n_data_comp = len(self.survey.components)
 
         components = np.array(list(self.survey.components.keys()))
         active_components = np.hstack([np.c_[values] for values in self.survey.components.values()]).tolist()
-
-        # if self.parallelized:
-        #
-        #     row = dask.delayed(self.calcTrow, pure=True)
-        #     print(components)
-        #     makeRows = [row(self.receiver_locations[ii, :], np.array(components)[activeComponents[ii,:]].tolist()) for ii in range(self.nD)]
 
         if self.store_sensitivities == 'disk':
 
@@ -143,8 +131,8 @@ class BasePFSimulation(LinearSimulation):
             stack = array.vstack(rows)
 
             # Chunking options
-            # To customise memory use set Dask config in calling scripts: config.set({'array.chunk-size': '128MiB'})
             if self.chunk_format == 'row':
+                config.set({'array.chunk-size': f'{self.max_chunk_size}MiB'})
                 # Autochunking by rows is faster and more memory efficient for
                 # very large problems sensitivty and forward calculations
                 stack = stack.rechunk({0: 'auto', 1: -1})
@@ -173,51 +161,54 @@ class BasePFSimulation(LinearSimulation):
                 stack = stack.rechunk((row_chunk, col_chunk))
             else:
                 # Auto chunking by columns is faster for Inversions
+                config.set({'array.chunk-size': f'{self.max_chunk_size}MiB'})
                 stack = stack.rechunk({0: -1, 1: 'auto'})
 
             if os.path.exists(self.sensitivity_path):
 
-                G = array.from_zarr(self.sensitivity_path)
+                kernel = array.from_zarr(self.sensitivity_path)
 
                 if np.all(np.r_[
-                        np.any(np.r_[G.chunks[0]] == stack.chunks[0]),
-                        np.any(np.r_[G.chunks[1]] == stack.chunks[1]),
-                        np.r_[G.shape] == np.r_[stack.shape]]):
-                    # Check that loaded G matches supplied data and mesh
+                        np.any(np.r_[kernel.chunks[0]] == stack.chunks[0]),
+                        np.any(np.r_[kernel.chunks[1]] == stack.chunks[1]),
+                        np.r_[kernel.shape] == np.r_[stack.shape]]):
+                    # Check that loaded kernel matches supplied data and mesh
                     print("Zarr file detected with same shape and chunksize ... re-loading")
 
-                    return G
+                    return kernel
                 else:
                     print("Zarr file detected with wrong shape and chunksize ... over-writing")
 
             with ProgressBar():
-                print("Saving G to zarr: " + self.sensitivity_path)
-                G = array.to_zarr(stack, self.sensitivity_path, compute=True, return_stored=True, overwrite=True)
-
+                print("Saving kernel to zarr: " + self.sensitivity_path)
+                kernel = array.to_zarr(stack, self.sensitivity_path, compute=True, return_stored=True, overwrite=True)
 
         else:
             # TODO
             # Process in parallel using multiprocessing
             # pool = multiprocessing.Pool(self.n_cpu)
-            # G = pool.map(self.evaluate_integral, [receiver for receiver in self.survey.receiver_locations.tolist()])
+            # kernel = pool.map(
+            #   self.evaluate_integral, [
+            #       receiver for receiver in self.survey.receiver_locations.tolist()
+            # ])
             # pool.close()
             # pool.join()
 
             # Single threaded
-            G = np.vstack([
+            kernel = np.vstack([
                 self.evaluate_integral(receiver, components[component])
                 for receiver, component in zip(self.survey.receiver_locations.tolist(), active_components)
             ])
 
-        return G
+        return kernel
 
-        def evaluate_integral(self, receiver_location, components):
-            """
-            evaluate_integral
+    def evaluate_integral(self):
+        """
+        evaluate_integral
 
-            Compute the forward linear relationship between the model and the physics at a point.
-            :param self:
-            :return:
-            """
+        Compute the forward linear relationship between the model and the physics at a point.
+        :param self:
+        :return:
+        """
 
-            raise RuntimeError(f"Integral calculations must implemented by the subclass {self}.")
+        raise RuntimeError(f"Integral calculations must implemented by the subclass {self}.")

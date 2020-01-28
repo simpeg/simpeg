@@ -9,20 +9,16 @@ from ...simulation import BaseSimulation
 from ..base import BasePFSimulation
 from SimPEG import Solver
 from SimPEG import props
-# from SimPEG import Mesh
-import multiprocessing
 import properties
 from SimPEG.utils import mkvc, matutils, sdiag
-# from . import BaseMag as MAG
 from .analytics import spheremodel, CongruousMagBC
 import dask
 import dask.array as da
-from dask.diagnostics import ProgressBar
 from scipy.sparse import csr_matrix as csr
 from dask.delayed import Delayed
-import os
 
-class MagneticIntegralSimulation(BasePFSimulation):
+
+class IntegralSimulation(BasePFSimulation):
     """
     magnetic simulation in integral form.
 
@@ -31,12 +27,6 @@ class MagneticIntegralSimulation(BasePFSimulation):
     chi, chiMap, chiDeriv = props.Invertible(
         "Magnetic Susceptibility (SI)",
         default=1.
-    )
-
-    coordinate_system = properties.StringChoice(
-        "Type of coordinate system we are regularizing in",
-        choices=['cartesian', 'spherical'],
-        default='cartesian'
     )
 
     modelType = properties.StringChoice(
@@ -52,8 +42,6 @@ class MagneticIntegralSimulation(BasePFSimulation):
         self._gtg_diagonal = None
         self.modelMap = self.chiMap
 
-    # if magType == 'H0':
-
     @property
     def M(self):
         """
@@ -62,61 +50,40 @@ class MagneticIntegralSimulation(BasePFSimulation):
         """
         if getattr(self, "_M", None) is None:
 
-            if self.modelType == 'susceptibility':
-                M = matutils.dip_azimuth2cartesian(np.ones(self.nC) * self.survey.source_field.parameters[1],
-                                          np.ones(self.nC) * self.survey.source_field.parameters[2])
-
-                Mx = sdiag(M[:, 0] * self.survey.source_field.parameters[0])
-                My = sdiag(M[:, 1] * self.survey.source_field.parameters[0])
-                Mz = sdiag(M[:, 2] * self.survey.source_field.parameters[0])
-
-                self._M = sp.vstack((Mx, My, Mz))
+            if self.modelType == 'vector':
+                self._M = sp.identity(self.nC) * self.survey.source_field.parameters[0]
 
             else:
+                mag = matutils.dip_azimuth2cartesian(
+                    np.ones(self.nC) * self.survey.source_field.parameters[1],
+                    np.ones(self.nC) * self.survey.source_field.parameters[2]
+                )
 
-                self._M = sp.identity(3*self.nC) * self.survey.source_field.parameters[0]
+                self._M = sp.vstack(
+                    (
+                        sdiag(mag[:, 0] * self.survey.source_field.parameters[0]),
+                        sdiag(mag[:, 1] * self.survey.source_field.parameters[0]),
+                        sdiag(mag[:, 2] * self.survey.source_field.parameters[0])
+                    )
+                )
 
         return self._M
 
-    def fields(self, m):
+    def fields(self, model):
 
-        if self.coordinate_system == 'cartesian':
-            m = self.chiMap*(m)
-        else:
-            m = self.chiMap*(matutils.spherical2cartesian(m.reshape((int(len(m)/3), 3), order='F')))
+        model = self.chiMap * model
 
         if self.store_sensitivities == 'forward_only':
-            self.model = m
-            # Compute the linear operation without forming the full dense G
+            self.model = model
             return mkvc(self.linear_operator())
 
-        # TO-DO: Delay the fields all the way to the objective function
-        if getattr(self, '_Mxyz', None) is not None:
-
-            vec = dask.delayed(csr.dot)(self.M, m)
-            M = da.from_delayed(vec, dtype=float, shape=[m.shape[0]])
-            fields = da.dot(self.G, M).compute()
-
-        else:
-
-            fields = da.dot(self.G, m.astype(np.float32)).compute()
+        # TODO: Delay the fields all the way to the objective function for block parallel
+        fields = da.dot(self.G, model.astype(np.float32)).compute()
 
         if self.modelType == 'amplitude':
-
-            fields = self.calcAmpData(fields)
+            fields = self.compute_amplitude(fields)
 
         return fields
-
-    def calcAmpData(self, Bxyz):
-        """
-            Compute amplitude of the field
-        """
-
-        amplitude = da.sum(
-            Bxyz.reshape((3, self.nD), order='F')**2., axis=0
-        )**0.5
-
-        return amplitude
 
     @property
     def G(self):
@@ -137,206 +104,110 @@ class MagneticIntegralSimulation(BasePFSimulation):
         return self._nD
 
     @property
-    def ProjTMI(self):
+    def tmi_projection(self):
 
-        if getattr(self, '_ProjTMI', None) is None:
+        if getattr(self, '_tmi_projection', None) is None:
 
-            # Convert Bdecination from north to cartesian
-            self._ProjTMI = matutils.dip_azimuth2cartesian(
+            # Convert from north to cartesian
+            self._tmi_projection = matutils.dip_azimuth2cartesian(
                 self.survey.source_field.parameters[1],
                 self.survey.source_field.parameters[2]
             )
 
-        return self._ProjTMI
+        return self._tmi_projection
 
     def getJtJdiag(self, m, W=None):
         """
             Return the diagonal of JtJ
         """
-        dmudm = self.chiMap.deriv(m)
-        self._dSdm = None
-        self._dfdm = None
+
         self.model = m
-        if (
-            getattr(self, "gtgdiag", None) is None and
-            self.modelType != 'amplitude'
-            ):
 
-            if W is None:
-                w = np.ones(self.G.shape[1])
-            else:
-                w = W.diagonal()
+        if getattr(self, "_gtg_diagonal", None) is None:
+            self._gtg_diagonal = np.array(da.sum(da.power(self.G, 2), axis=0))
 
-            self.gtgdiag = np.array(da.sum(da.power(self.G, 2), axis=0))
-
-        if self.coordinate_system == 'cartesian':
-            if self.modelType == 'amplitude':
-                return np.sum((W * self.dfdm * sdiag(mkvc(self.gtgdiag)**0.5) * dmudm).power(2.), axis=0)
-            else:
-                return mkvc(np.sum((sdiag(mkvc(self.gtgdiag)**0.5) * dmudm).power(2.), axis=0))
-
-        else:  # spherical
-            if self.modelType == 'amplitude':
-                return mkvc(np.sum(((W * self.dfdm) * sdiag(mkvc(self.gtgdiag)**0.5) * (self.dSdm * dmudm)).power(2.), axis=0))
-            else:
-
-                return mkvc(np.sum((sdiag(mkvc(self.gtgdiag)**0.5) * self.dSdm * dmudm).power(2), axis=0))
-
-    def getJ(self, m, f=None):
-        """
-            Sensitivity matrix
-        """
-
-        if self.coordinate_system == 'cartesian':
-            dmudm = self.chiMap.deriv(m)
-        else:  # spherical
-            dmudm = self.dSdm * self.chiMap.deriv(m)
+        if W is None:
+            W = sdiag(np.ones(self.G.shape[1]))
 
         if self.modelType == 'amplitude':
-            return self.dfdm * da.dot(self.G, dmudm)
+            return np.sum((W * self.fieldDeriv * sdiag(mkvc(self._gtg_diagonal)**0.5) * self.chiDeriv).power(2.), axis=0)
         else:
-
-            prod = dask.delayed(
-                csr.dot)(
-                    self.G, dmudm
-                )
-            return da.from_delayed(
-                prod, dtype=float,
-                shape=(self.G.shape[0], dmudm.shape[1])
-            )
+            return mkvc(np.sum((sdiag(mkvc(self._gtg_diagonal)**0.5) * self.chiDeriv).power(2.), axis=0))
 
     def Jvec(self, m, v, f=None):
 
-        if self.coordinate_system == 'cartesian':
-            dmudm = self.chiMap.deriv(m)
+        if isinstance(self.chiDeriv, Delayed):
+            dmu_dm_v = da.from_array(self.chiDeriv*v, chunks=self.G.chunks[1])
         else:
-            dmudm = self.dSdm * self.chiMap.deriv(m)
+            dmu_dm_v = self.chiDeriv * v
 
-
-
-        if getattr(self, '_Mxyz', None) is not None:
-
-            M_dmudm_v = da.from_array(self.M*(dmudm*v), chunks=self.G.chunks[1])
-
-            # TO-DO: Delay the fields all the way to the objective function
-            Jvec = da.dot(self.G, M_dmudm_v.astype(np.float32))
-
-        else:
-
-            if isinstance(dmudm, Delayed):
-                dmudm_v = da.from_array(dmudm*v, chunks=self.G.chunks[1])
-            else:
-                dmudm_v = dmudm * v
-
-            Jvec = da.dot(self.G, dmudm_v.astype(np.float32))
+        Jvec = da.dot(self.G, dmu_dm_v.astype(np.float32))
 
         if self.modelType == 'amplitude':
-            dfdm_Jvec = dask.delayed(csr.dot)(self.dfdm, Jvec)
+            fieldDeriv_Jvec = dask.delayed(csr.dot)(self.fieldDeriv, Jvec)
 
-            return da.from_delayed(dfdm_Jvec, dtype=float, shape=[self.dfdm.shape[0]])
+            return da.from_delayed(fieldDeriv_Jvec, dtype=float, shape=[self.fieldDeriv.shape[0]])
         else:
             return Jvec
 
     def Jtvec(self, m, v, f=None):
 
-        if self.coordinate_system == 'cartesian':
-            dmudm = self.chiMap.deriv(m)
-        else:
-            dmudm = self.dSdm * self.chiMap.deriv(m)
-
         if self.modelType == 'amplitude':
 
-            dfdm_v = dask.delayed(csr.dot)(v, self.dfdm)
+            fieldDeriv_v = dask.delayed(csr.dot)(v, self.fieldDeriv)
 
-            vec = da.from_delayed(dfdm_v, dtype=float, shape=[self.dfdm.shape[0]])
+            vec = da.from_delayed(fieldDeriv_v, dtype=float, shape=[self.fieldDeriv.shape[0]])
 
-            if getattr(self, '_Mxyz', None) is not None:
-
-                jtvec = da.dot(vec.astype(np.float32), self.G)
-
-                Jtvec = dask.delayed(csr.dot)(jtvec, self.M)
-
-            else:
-                Jtvec = da.dot(vec.astype(np.float32), self.G)
+            Jtvec = da.dot(vec.astype(np.float32), self.G)
 
         else:
 
             Jtvec = da.dot(v.astype(np.float32), self.G)
 
-        dmudm_v = dask.delayed(csr.dot)(Jtvec, dmudm)
+        dmu_dm_v = dask.delayed(csr.dot)(Jtvec, self.chiDeriv)
 
-        return da.from_delayed(dmudm_v, dtype=float, shape=[dmudm.shape[1]]).compute()
-
-    @property
-    def dSdm(self):
-
-        if getattr(self, '_dSdm', None) is None:
-
-            if self.model is None:
-                raise Exception('Requires a chi')
-
-            nC = int(len(self.model)/3)
-
-            m_xyz = self.chiMap * matutils.spherical2cartesian(self.model.reshape((nC, 3), order='F'))
-
-            nC = int(m_xyz.shape[0]/3.)
-            m_atp = matutils.cartesian2spherical(m_xyz.reshape((nC, 3), order='F'))
-
-            a = m_atp[:nC]
-            t = m_atp[nC:2*nC]
-            p = m_atp[2*nC:]
-
-            Sx = sp.hstack([sp.diags(np.cos(t)*np.cos(p), 0),
-                            sp.diags(-a*np.sin(t)*np.cos(p), 0),
-                            sp.diags(-a*np.cos(t)*np.sin(p), 0)])
-
-            Sy = sp.hstack([sp.diags(np.cos(t)*np.sin(p), 0),
-                            sp.diags(-a*np.sin(t)*np.sin(p), 0),
-                            sp.diags(a*np.cos(t)*np.cos(p), 0)])
-
-            Sz = sp.hstack([sp.diags(np.sin(t), 0),
-                            sp.diags(a*np.cos(t), 0),
-                            csr((nC, nC))])
-
-            self._dSdm = sp.vstack([Sx, Sy, Sz])
-
-        return self._dSdm
+        return da.from_delayed(dmu_dm_v, dtype=float, shape=[self.chiDeriv.shape[1]]).compute()
 
     @property
-    def dfdm(self):
+    def fieldDeriv(self):
 
-        if self.model is None:
+        if self.chi is None:
             self.model = np.zeros(self.G.shape[1])
 
-        if getattr(self, '_dfdm', None) is None:
+        if getattr(self, '_fieldDeriv', None) is None:
 
-            Bxyz = self.Bxyz_a(self.chiMap * self.model)
+            fields = da.dot(self.G, (self.chiMap * self.chi).astype(np.float32))
+            b_xyz = self.normalized_fields(fields)
 
             ii = np.kron(np.asarray(range(self.survey.nD), dtype='int'), np.ones(3))
             jj = np.asarray(range(3*self.survey.nD), dtype='int')
 
-            self._dfdm = csr((mkvc(Bxyz), (ii, jj)), shape=(self.survey.nD, 3*self.survey.nD))
+            self._fieldDeriv = csr((mkvc(b_xyz), (ii, jj)), shape=(self.survey.nD, 3*self.survey.nD))
 
-        return self._dfdm
+        return self._fieldDeriv
 
-    def Bxyz_a(self, m):
+    @classmethod
+    def normalized_fields(cls, fields):
         """
             Return the normalized B fields
         """
 
-        # Get field data
-        if self.coordinate_system == 'spherical':
-            m = matutils.spherical2cartesian(m)
+        # Get field amplitude
+        amp = cls.compute_amplitude(fields.astype(np.float64))
 
-        if getattr(self, '_Mxyz', None) is not None:
-            Bxyz = da.dot(self.G, (self.M*m).astype(np.float32))
-        else:
-            Bxyz = da.dot(self.G, m.astype(np.float32))
+        return fields.reshape((3, -1), order='F') * sp.diags(1./amp)
 
-        amp = self.calcAmpData(Bxyz.astype(np.float64))
-        Bamp = sp.spdiags(1./amp, 0, self.nD, self.nD)
+    @classmethod
+    def compute_amplitude(cls, b_xyz):
+        """
+            Compute amplitude of the magnetic field
+        """
 
-        return (Bxyz.reshape((3, self.nD), order='F')*Bamp)
+        amplitude = da.sum(
+            b_xyz.reshape((3, -1), order='F')**2., axis=0
+        )**0.5
+
+        return amplitude
 
     def evaluate_integral(self, receiver_location, components):
         """
@@ -356,7 +227,7 @@ class MagneticIntegralSimulation(BasePFSimulation):
             Ty = [Tyx Tyy Tyz]
             Tz = [Tzx Tzy Tzz]
         """
-
+        # TODO: This should probably be converted to C
         eps = 1e-8  # add a small value to the locations to avoid /0
 
         rows = {component: np.zeros(3*self.Xn.shape[0]) for component in components}
@@ -597,14 +468,18 @@ class MagneticIntegralSimulation(BasePFSimulation):
                         1 / r5 - 1 / r8 +
                         1 / r1 - 1 / r4 +
                         1 / r7 - 1 / r6)
-            rows["byz"][0, nC:2*nC] = (2 * ((((dy2 * arg5) / (r1 * (arg2**2) + (dy2**2) * r1 + eps))) -
-                    (((dy2 * arg10) / (r2 * (arg7**2) + (dy2**2) * r2 + eps))) +
-                    (((dy2 * arg15) / (r3 * (arg12**2) + (dy2**2) * r3 + eps))) -
-                    (((dy2 * arg20) / (r4 * (arg17**2) + (dy2**2) * r4 + eps))) +
-                    (((dy1 * arg25) / (r5 * (arg22**2) + (dy1**2) * r5 + eps))) -
-                    (((dy1 * arg30) / (r6 * (arg27**2) + (dy1**2) * r6 + eps))) +
-                    (((dy1 * arg35) / (r7 * (arg32**2) + (dy1**2) * r7 + eps))) -
-                    (((dy1 * arg40) / (r8 * (arg37**2) + (dy1**2) * r8 + eps)))))
+            rows["byz"][0, nC:2*nC] = (
+                    2 * (
+                        (((dy2 * arg5) / (r1 * (arg2**2) + (dy2**2) * r1 + eps))) -
+                        (((dy2 * arg10) / (r2 * (arg7**2) + (dy2**2) * r2 + eps))) +
+                        (((dy2 * arg15) / (r3 * (arg12**2) + (dy2**2) * r3 + eps))) -
+                        (((dy2 * arg20) / (r4 * (arg17**2) + (dy2**2) * r4 + eps))) +
+                        (((dy1 * arg25) / (r5 * (arg22**2) + (dy1**2) * r5 + eps))) -
+                        (((dy1 * arg30) / (r6 * (arg27**2) + (dy1**2) * r6 + eps))) +
+                        (((dy1 * arg35) / (r7 * (arg32**2) + (dy1**2) * r7 + eps))) -
+                        (((dy1 * arg40) / (r8 * (arg37**2) + (dy1**2) * r8 + eps)))
+                )
+            )
             rows["byz"][0, 2*nC:] = (dz2 / (r1 * arg3  + eps) - dz2 / (r2 * arg8 + eps) +
                      dz1 / (r3 * arg13 + eps) - dz1 / (r4 * arg18 + eps) +
                      dz2 / (r5 * arg23 + eps) - dz2 / (r6 * arg28 + eps) +
@@ -674,12 +549,12 @@ class MagneticIntegralSimulation(BasePFSimulation):
 
         if "tmi" in components:
 
-            rows["tmi"] = np.dot(self.ProjTMI, np.r_[rows["bx"], rows["by"], rows["bz"]])
+            rows["tmi"] = np.dot(self.tmi_projection, np.r_[rows["bx"], rows["by"], rows["bz"]])
 
         if self.store_sensitivities == "forward_only":
             return np.dot(
                 np.vstack([rows[component] for component in components]),
-                self.model
+                self.chi
             )
         else:
 
@@ -883,7 +758,7 @@ class DifferentialEquationSimulation(BaseSimulation):
 
         B, u = u['B'], u['u']
         mu = self.muMap * (m)
-        dmudm = self.muDeriv
+        dmu_dm = self.muDeriv
         # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
         vol = self.mesh.vol
@@ -902,14 +777,14 @@ class DifferentialEquationSimulation(BaseSimulation):
         # dudm = -(dCdu)^(-1)dCdm
 
         dCdu = self.getA(m)
-        dCdm_A = Div * (sdiag(Div.T * u) * dMfMuI * dmudm)
+        dCdm_A = Div * (sdiag(Div.T * u) * dMfMuI * dmu_dm)
         dCdm_RHS1 = Div * (sdiag(self.MfMu0 * B0) * dMfMuI)
         # temp1 = (Dface * (self._Pout.T * self.Bbc_const * self.Bbc))
         # dCdm_RHS2v = (sdiag(vol) * temp1) * \
-        #    np.inner(vol, dchidmu * dmudm * v)
+        #    np.inner(vol, dchidmu * dmu_dm * v)
 
-        # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
-        dCdm_RHSv = dCdm_RHS1 * (dmudm * v)
+        # dCdm_RHSv =  dCdm_RHS1*(dmu_dm*v) +  dCdm_RHS2v
+        dCdm_RHSv = dCdm_RHS1 * (dmu_dm * v)
         dCdm_v = dCdm_A * v - dCdm_RHSv
 
         m1 = sp.linalg.interface.aslinearoperator(
@@ -927,8 +802,8 @@ class DifferentialEquationSimulation(BaseSimulation):
 
         dudm = -sol
         dBdmv = (
-            sdiag(self.MfMu0 * B0) * (dMfMuI * (dmudm * v))
-            - sdiag(Div.T * u) * (dMfMuI * (dmudm * v))
+            sdiag(self.MfMu0 * B0) * (dMfMuI * (dmu_dm * v))
+            - sdiag(Div.T * u) * (dMfMuI * (dmu_dm * v))
             - self.MfMuI * (Div.T * (dudm))
         )
 
@@ -969,7 +844,7 @@ class DifferentialEquationSimulation(BaseSimulation):
 
         B, u = u['B'], u['u']
         mu = self.mapping * (m)
-        dmudm = self.mapping.deriv(m)
+        dmu_dm = self.mapping.deriv(m)
         # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
         vol = self.mesh.vol
@@ -1000,31 +875,31 @@ class DifferentialEquationSimulation(BaseSimulation):
             print("Iterative solver did not work well (Jtvec)")
             # raise Exception ("Iterative solver did not work well")
 
-        # dCdm_A = Div * ( sdiag( Div.T * u )* dMfMuI *dmudm  )
-        # dCdm_Atsol = ( dMfMuI.T*( sdiag( Div.T * u ) * (Div.T * dmudm)) ) * sol
-        dCdm_Atsol = (dmudm.T * dMfMuI.T *
+        # dCdm_A = Div * ( sdiag( Div.T * u )* dMfMuI *dmu_dm  )
+        # dCdm_Atsol = ( dMfMuI.T*( sdiag( Div.T * u ) * (Div.T * dmu_dm)) ) * sol
+        dCdm_Atsol = (dmu_dm.T * dMfMuI.T *
                       (sdiag(Div.T * u) * Div.T)) * sol
 
         # dCdm_RHS1 = Div * (sdiag( self.MfMu0*B0  ) * dMfMuI)
-        # dCdm_RHS1tsol = (dMfMuI.T*( sdiag( self.MfMu0*B0  ) ) * Div.T * dmudm) * sol
+        # dCdm_RHS1tsol = (dMfMuI.T*( sdiag( self.MfMu0*B0  ) ) * Div.T * dmu_dm) * sol
         dCdm_RHS1tsol = (
-            dmudm.T * dMfMuI.T *
+            dmu_dm.T * dMfMuI.T *
             (sdiag(self.MfMu0 * B0)) * Div.T
         ) * sol
 
         # temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
         # temp1sol = (Dface.T * (sdiag(vol) * sol))
         # temp2 = self.Bbc_const * (self._Pout.T * self.Bbc).T
-        # dCdm_RHS2v  = (sdiag(vol)*temp1)*np.inner(vol, dchidmu*dmudm*v)
-        # dCdm_RHS2tsol = (dmudm.T * dchidmu.T * vol) * np.inner(temp2, temp1sol)
+        # dCdm_RHS2v  = (sdiag(vol)*temp1)*np.inner(vol, dchidmu*dmu_dm*v)
+        # dCdm_RHS2tsol = (dmu_dm.T * dchidmu.T * vol) * np.inner(temp2, temp1sol)
 
-        # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
+        # dCdm_RHSv =  dCdm_RHS1*(dmu_dm*v) +  dCdm_RHS2v
 
         # temporary fix
         # dCdm_RHStsol = dCdm_RHS1tsol - dCdm_RHS2tsol
         dCdm_RHStsol = dCdm_RHS1tsol
 
-        # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
+        # dCdm_RHSv =  dCdm_RHS1*(dmu_dm*v) +  dCdm_RHS2v
         # dCdm_v = dCdm_A*v - dCdm_RHSv
 
         Ctv = dCdm_Atsol - dCdm_RHStsol
@@ -1033,8 +908,8 @@ class DifferentialEquationSimulation(BaseSimulation):
         # dBdm = d\mudm*dBd\mu
         # dPBdm^T*v = Atemp^T*P^T*v - Btemp^T*P^T*v - Ctv
 
-        Atemp = sdiag(self.MfMu0 * B0) * (dMfMuI * (dmudm))
-        Btemp = sdiag(Div.T * u) * (dMfMuI * (dmudm))
+        Atemp = sdiag(self.MfMu0 * B0) * (dMfMuI * (dmu_dm))
+        Btemp = sdiag(Div.T * u) * (dMfMuI * (dmu_dm))
         Jtv = Atemp.T * (P.T * v) - Btemp.T * (P.T * v) - Ctv
 
         return mkvc(Jtv)

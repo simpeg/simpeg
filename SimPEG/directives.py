@@ -7,6 +7,7 @@ import warnings
 import os
 from .data_misfit import BaseDataMisfit
 from .objective_function import ComboObjectiveFunction
+from .maps import SphericalSystem, ComboMap
 from .regularization import BaseComboRegularization, BaseRegularization
 from .utils import (
     mkvc, setKwargs, sdiag, diagEst, spherical2cartesian, cartesian2spherical
@@ -719,13 +720,6 @@ class Update_IRLS(InversionDirective):
         # Update the model used by the regularization
         for reg in self.reg.objfcts:
             reg.model = self.invProb.model
-
-        # Look for cases where the block models in to be scaled
-        for sim in self.simulation:
-
-            if getattr(sim, 'coordinate_system', None) is not None:
-                if sim.coordinate_system == 'spherical':
-                    self.sphericalDomain = True
 
         if self.sphericalDomain:
             self.angleScale()

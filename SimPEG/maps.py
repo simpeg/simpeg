@@ -15,12 +15,13 @@ from scipy.sparse.linalg import LinearOperator
 from scipy.interpolate import UnivariateSpline
 from scipy.constants import mu_0
 from scipy.spatial import cKDTree
+from scipy.sparse import csr_matrix as csr
 
 import properties
 from discretize.Tests import checkDerivative
 
 from .utils import (
-    setKwargs, mkvc, rotationMatrixFromNormals, Zero, Identity, sdiag
+    setKwargs, mkvc, rotationMatrixFromNormals, Zero, Identity, sdiag, matutils
 )
 
 
@@ -517,6 +518,91 @@ class SurjectUnits(IdentityMap):
         if v is not None:
             return self.P * v
         return self.P
+
+
+class SphericalSystem(IdentityMap):
+    """
+    A vector map to spherical parameters of amplitude, theta and phi
+    """
+
+    def __init__(self, nP=None, **kwargs):
+        super().__init__(nP, **kwargs)
+        self.model = None
+
+    def sphericalDeriv(self, model):
+
+        if getattr(self, "model", None) is None:
+            self.model = model
+
+        if getattr(self, '_sphericalDeriv', None) is None or not all(self.model == model):
+            self.model = model
+
+            # Do a double projection to make sure the parameters are bounded
+            m_xyz = matutils.spherical2cartesian(model.reshape((-1, 3), order='F'))
+            m_atp = matutils.cartesian2spherical(
+                m_xyz.reshape((-1, 3), order='F')
+            ).reshape((-1, 3), order='F')
+
+            nC = m_atp[:, 0].shape[0]
+
+            dm_dx = sp.hstack([
+                sp.diags(np.cos(m_atp[:, 1])*np.cos(m_atp[:, 2]), 0),
+                sp.diags(-m_atp[:, 0]*np.sin(m_atp[:, 1])*np.cos(m_atp[:, 2]), 0),
+                sp.diags(-m_atp[:, 0]*np.cos(m_atp[:, 1])*np.sin(m_atp[:, 2]), 0)
+            ])
+
+            dm_dy = sp.hstack([
+                sp.diags(np.cos(m_atp[:, 1])*np.sin(m_atp[:, 2]), 0),
+                sp.diags(-m_atp[:, 0]*np.sin(m_atp[:, 1])*np.sin(m_atp[:, 2]), 0),
+                sp.diags(m_atp[:, 0]*np.cos(m_atp[:, 1])*np.cos(m_atp[:, 2]), 0)
+            ])
+
+            dm_dz = sp.hstack([
+                sp.diags(np.sin(m_atp[:, 1]), 0),
+                sp.diags(m_atp[:, 0]*np.cos(m_atp[:, 1]), 0),
+                csr((nC, nC))
+            ])
+
+            self._sphericalDeriv = sp.vstack([dm_dx, dm_dy, dm_dz])
+
+        return self._sphericalDeriv
+
+    def _transform(self, model):
+        """
+
+        :param model:
+        :return:
+        """
+        return matutils.spherical2cartesian(model.reshape((-1, 3), order='F'))
+
+    def inverse(self, model):
+        """
+        Cartesian to spherical.
+
+        :param numpy.ndarray model: physical property in Cartesian
+        :return: model
+
+        """
+        return matutils.cartesian2spherical(model.reshape((-1, 3), order='F'))
+
+    @property
+    def shape(self):
+        """
+        Shape of the matrix operation (number of indices x nP)
+        """
+        # return self.n_block*len(self.indices[0]), self.n_block*len(self.indices)
+        return (self.nP, self.nP)
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.ndarray m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+        """
+
+        if v is not None:
+            return self.sphericalDeriv(m) * v
+        return self.sphericalDeriv(m)
 
 
 class Wires(object):
