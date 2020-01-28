@@ -118,7 +118,7 @@ class BasePFSimulation(LinearSimulation):
         components = np.array(list(self.survey.components.keys()))
         active_components = np.hstack([np.c_[values] for values in self.survey.components.values()]).tolist()
 
-        if self.store_sensitivities == 'disk':
+        if self.store_sensitivities != 'ram':
 
             row = delayed(self.evaluate_integral, pure=True)
 
@@ -131,7 +131,7 @@ class BasePFSimulation(LinearSimulation):
             stack = array.vstack(rows)
 
             # Chunking options
-            if self.chunk_format == 'row':
+            if self.chunk_format == 'row' or self.store_sensitivities == 'forward_only':
                 config.set({'array.chunk-size': f'{self.max_chunk_size}MiB'})
                 # Autochunking by rows is faster and more memory efficient for
                 # very large problems sensitivty and forward calculations
@@ -164,24 +164,33 @@ class BasePFSimulation(LinearSimulation):
                 config.set({'array.chunk-size': f'{self.max_chunk_size}MiB'})
                 stack = stack.rechunk({0: -1, 1: 'auto'})
 
-            if os.path.exists(self.sensitivity_path):
+            if self.store_sensitivities == 'forward_only':
 
-                kernel = array.from_zarr(self.sensitivity_path)
+                with ProgressBar():
+                    print("Forward calculation: ")
+                    pred = array.dot(stack, self.model).compute()
 
-                if np.all(np.r_[
-                        np.any(np.r_[kernel.chunks[0]] == stack.chunks[0]),
-                        np.any(np.r_[kernel.chunks[1]] == stack.chunks[1]),
-                        np.r_[kernel.shape] == np.r_[stack.shape]]):
-                    # Check that loaded kernel matches supplied data and mesh
-                    print("Zarr file detected with same shape and chunksize ... re-loading")
+                return pred
 
-                    return kernel
-                else:
-                    print("Zarr file detected with wrong shape and chunksize ... over-writing")
+            else:
+                if os.path.exists(self.sensitivity_path):
 
-            with ProgressBar():
-                print("Saving kernel to zarr: " + self.sensitivity_path)
-                kernel = array.to_zarr(stack, self.sensitivity_path, compute=True, return_stored=True, overwrite=True)
+                    kernel = array.from_zarr(self.sensitivity_path)
+
+                    if np.all(np.r_[
+                            np.any(np.r_[kernel.chunks[0]] == stack.chunks[0]),
+                            np.any(np.r_[kernel.chunks[1]] == stack.chunks[1]),
+                            np.r_[kernel.shape] == np.r_[stack.shape]]):
+                        # Check that loaded kernel matches supplied data and mesh
+                        print("Zarr file detected with same shape and chunksize ... re-loading")
+
+                        return kernel
+                    else:
+                        print("Zarr file detected with wrong shape and chunksize ... over-writing")
+
+                with ProgressBar():
+                    print("Saving kernel to zarr: " + self.sensitivity_path)
+                    kernel = array.to_zarr(stack, self.sensitivity_path, compute=True, return_stored=True, overwrite=True)
 
         else:
             # TODO

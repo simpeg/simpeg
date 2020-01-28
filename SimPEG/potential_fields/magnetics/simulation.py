@@ -10,7 +10,7 @@ from ..base import BasePFSimulation
 from SimPEG import Solver
 from SimPEG import props
 import properties
-from SimPEG.utils import mkvc, matutils, sdiag
+from SimPEG.utils import mkvc, matutils, sdiag, setKwargs
 from .analytics import spheremodel, CongruousMagBC
 import dask
 import dask.array as da
@@ -35,12 +35,14 @@ class IntegralSimulation(BasePFSimulation):
         default='susceptibility'
     )
 
+
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh, **kwargs)
         self._G = None
         self._M = None
         self._gtg_diagonal = None
         self.modelMap = self.chiMap
+        setKwargs(self, **kwargs)
 
     @property
     def M(self):
@@ -68,6 +70,25 @@ class IntegralSimulation(BasePFSimulation):
                 )
 
         return self._M
+
+    @M.setter
+    def M(self, M):
+        """
+        Create magnetization matrix from unit vector orientation
+        :parameter
+        M: array (3*nC,) or (nC, 3)
+        """
+        if self.modelType == 'vector':
+            self._M = sdiag(mkvc(M)*self.survey.source_field.parameters[0])
+        else:
+            M = M.reshape((-1, 3))
+            self._M = sp.vstack(
+                (
+                    sdiag(M[:, 0] * self.survey.source_field.parameters[0]),
+                    sdiag(M[:, 1] * self.survey.source_field.parameters[0]),
+                    sdiag(M[:, 2] * self.survey.source_field.parameters[0])
+                )
+            )
 
     def fields(self, model):
 
@@ -127,14 +148,26 @@ class IntegralSimulation(BasePFSimulation):
             self._gtg_diagonal = np.array(da.sum(da.power(self.G, 2), axis=0))
 
         if W is None:
-            W = sdiag(np.ones(self.G.shape[1]))
+            W = sdiag(np.ones(self.nD))
 
         if self.modelType == 'amplitude':
-            return np.sum((W * self.fieldDeriv * sdiag(mkvc(self._gtg_diagonal)**0.5) * self.chiDeriv).power(2.), axis=0)
+            return mkvc(da.sum(da.power(
+                da.from_delayed(
+                    dask.delayed(csr.dot)(
+                        da.from_delayed(
+                                dask.delayed(csr.dot)(self.fieldDeriv, self.G),
+                                shape=(self.nD, self.nC), dtype=float
+                            ),
+                        self.chiDeriv
+                    ),
+                    shape=(self.nD, self.chiDeriv.shape[1]), dtype=float
+                ), 2), axis=0).compute())
         else:
             return mkvc(np.sum((sdiag(mkvc(self._gtg_diagonal)**0.5) * self.chiDeriv).power(2.), axis=0))
 
     def Jvec(self, m, v, f=None):
+        if self.chi is None:
+            self.model = np.zeros(self.G.shape[1])
 
         if isinstance(self.chiDeriv, Delayed):
             dmu_dm_v = da.from_array(self.chiDeriv*v, chunks=self.G.chunks[1])
@@ -151,14 +184,17 @@ class IntegralSimulation(BasePFSimulation):
             return Jvec
 
     def Jtvec(self, m, v, f=None):
+        if self.chi is None:
+            self.model = np.zeros(self.G.shape[1])
 
         if self.modelType == 'amplitude':
 
-            fieldDeriv_v = dask.delayed(csr.dot)(v, self.fieldDeriv)
+            fieldDeriv_v = da.from_delayed(
+                dask.delayed(csr.dot)(v, self.fieldDeriv),
+                dtype=np.float32, shape=[self.fieldDeriv.shape[1]]
+            )
 
-            vec = da.from_delayed(fieldDeriv_v, dtype=float, shape=[self.fieldDeriv.shape[0]])
-
-            Jtvec = da.dot(vec.astype(np.float32), self.G)
+            Jtvec = da.dot(fieldDeriv_v, self.G)
 
         else:
 
@@ -176,13 +212,13 @@ class IntegralSimulation(BasePFSimulation):
 
         if getattr(self, '_fieldDeriv', None) is None:
 
-            fields = da.dot(self.G, (self.chiMap * self.chi).astype(np.float32))
+            fields = da.dot(self.G, (self.chiMap * self.chi).astype(np.float32)).compute()
             b_xyz = self.normalized_fields(fields)
 
-            ii = np.kron(np.asarray(range(self.survey.nD), dtype='int'), np.ones(3))
-            jj = np.asarray(range(3*self.survey.nD), dtype='int')
+            ii = np.kron(np.asarray(range(self.nD), dtype='int'), np.ones(3))
+            jj = np.asarray(range(3*self.nD), dtype='int')
 
-            self._fieldDeriv = csr((mkvc(b_xyz), (ii, jj)), shape=(self.survey.nD, 3*self.survey.nD))
+            self._fieldDeriv = csr((mkvc(b_xyz), (ii, jj)), shape=(self.nD, 3*self.nD))
 
         return self._fieldDeriv
 
@@ -203,7 +239,7 @@ class IntegralSimulation(BasePFSimulation):
             Compute amplitude of the magnetic field
         """
 
-        amplitude = da.sum(
+        amplitude = np.sum(
             b_xyz.reshape((3, -1), order='F')**2., axis=0
         )**0.5
 
@@ -551,14 +587,7 @@ class IntegralSimulation(BasePFSimulation):
 
             rows["tmi"] = np.dot(self.tmi_projection, np.r_[rows["bx"], rows["by"], rows["bz"]])
 
-        if self.store_sensitivities == "forward_only":
-            return np.dot(
-                np.vstack([rows[component] for component in components]),
-                self.chi
-            )
-        else:
-
-            return np.vstack([rows[component] for component in components])
+        return np.vstack([rows[component] for component in components])
 
 
 class DifferentialEquationSimulation(BaseSimulation):

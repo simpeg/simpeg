@@ -228,7 +228,7 @@ cbar.set_label(
 
 # Define the forward simulation. Set modelType to 'vector'. By setting the 'forward_only'
 # keyword argument to false, we avoid storing a large dense matrix.
-simulation = magnetics.simulation.MagneticIntegralSimulation(
+simulation = magnetics.simulation.IntegralSimulation(
     survey=survey, mesh=mesh, chiMap=model_map, actInd=ind_active,
     modelType='vector', forward_only=True
 )

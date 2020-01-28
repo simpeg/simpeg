@@ -252,13 +252,7 @@ class IntegralSimulation(BasePFSimulation):
         if 'guv' in components:
             rows['guv'] = -0.5*(gxx - gyy)
 
-        if self.store_sensitivities == "forward_only":
-            return np.dot(
-                np.vstack([constants.G * 1e+8 * rows[component] for component in components]),
-                self.model
-            )
-        else:
-            return np.vstack([constants.G * 1e+8 * rows[component] for component in components])
+        return np.vstack([constants.G * 1e+8 * rows[component] for component in components])
 
 
 class DifferentialEquationSimulation(BaseSimulation):

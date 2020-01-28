@@ -190,7 +190,7 @@ starting_model = background_density*np.ones(nC)
 # class.
 # 
 
-simulation = gravity.simulation.GravityIntegralSimulation(
+simulation = gravity.simulation.IntegralSimulation(
     survey=survey, mesh=mesh, rhoMap=model_map,
     actInd=ind_active, forward_only=False
 )
@@ -282,7 +282,7 @@ inv = inversion.BaseInversion(inv_prob, directives_list)
 recovered_model = inv.run(starting_model)
 
 # Remove directory storing sensitivities (optional)
-shutil.rmtree(".\\sensitivity.zarr")
+shutil.rmtree(simulation.sensitivity_path)
 
 
 ############################################################

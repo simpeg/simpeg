@@ -203,7 +203,7 @@ starting_model = background_susceptibility*np.ones(nC)
 # 
 
 # Define the problem. Define the cells below topography and the mapping
-simulation = magnetics.simulation.MagneticIntegralSimulation(
+simulation = magnetics.simulation.IntegralSimulation(
     survey=survey, mesh=mesh,
     modelType='susceptibility', chiMap=model_map,
     actInd=ind_active, forward_only=False
@@ -305,7 +305,7 @@ inv = inversion.BaseInversion(inv_prob, directives_list)
 recovered_model = inv.run(starting_model)
 
 # Remove directory storing sensitivities
-shutil.rmtree(".\\sensitivity.zarr")
+shutil.rmtree(simulation.sensitivity_path)
 
 ############################################################
 # Plotting True Model and Recovered Model

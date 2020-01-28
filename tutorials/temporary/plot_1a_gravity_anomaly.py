@@ -176,7 +176,7 @@ plt.show()
 
 # Define the forward simulation. By setting the 'forward_only' keyword argument
 # to false, we avoid storing a large dense matrix.
-simulation = gravity.simulation.GravityIntegralSimulation(
+simulation = gravity.simulation.IntegralSimulation(
     survey=survey, mesh=mesh, rhoMap=model_map,
     actInd=ind_active, forward_only=True
 )

@@ -171,7 +171,7 @@ plt.show()
 
 # Define the forward simluation. By setting the 'forward_only' keyword argument
 # to false, we avoid storing a large dense matrix.
-simulation = magnetics.simulation.MagneticIntegralSimulation(
+simulation = magnetics.simulation.IntegralSimulation(
     survey=survey, mesh=mesh,
     modelType='susceptibility', chiMap=model_map,
     actInd=ind_active, forward_only=True

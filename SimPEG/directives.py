@@ -761,11 +761,12 @@ class Update_IRLS(InversionDirective):
 
         phim_new = 0
         for reg in self.reg.objfcts:
-            for comp in reg.objfcts:
-                phim_new += np.sum(
-                    comp.f_m**2. /
-                    (comp.f_m**2. + comp.epsilon**2.)**(1 - comp.norm/2.)
-                )
+            for comp, multipier in zip(reg.objfcts, reg.multipliers):
+                if multipier > 0:
+                    phim_new += np.sum(
+                        comp.f_m**2. /
+                        (comp.f_m**2. + comp.epsilon**2.)**(1 - comp.norm/2.)
+                    )
 
         # Update the model used by the regularization
         phi_m_last = []
@@ -825,11 +826,6 @@ class Update_IRLS(InversionDirective):
                     dmis.stashedR = None
 
             # Compute new model objective function value
-
-            phi_m_new = []
-            for reg in self.reg.objfcts:
-                phi_m_new += [reg(self.invProb.model)]
-
             f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
 
             # Check if the function has changed enough

@@ -22,7 +22,6 @@ import numpy as np
 import shutil
 import matplotlib.pyplot as plt
 from scipy.interpolate import NearestNDInterpolator
-from discretize import TreeMesh
 from SimPEG import (
     data, data_misfit, directives, maps, inverse_problem, optimization,
     inversion, regularization
@@ -35,7 +34,7 @@ try:
 except:
     from SimPEG import Utils as utils
     from SimPEG.Utils import mkvc
-
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz
 # sphinx_gallery_thumbnail_number = 4
 
 ###############################################################################
@@ -103,73 +102,9 @@ plt.show()
 # Create a mesh
 h = [5, 5, 5]
 padDist = np.ones((3, 2)) * 100
-nCpad = [4, 4, 2]
 
-# Get extent of points
-limx = np.r_[topo[:, 0].max(), topo[:, 0].min()]
-limy = np.r_[topo[:, 1].max(), topo[:, 1].min()]
-limz = np.r_[topo[:, 2].max(), topo[:, 2].min()]
-
-# Get center of the mesh
-midX = np.mean(limx)
-midY = np.mean(limy)
-midZ = np.mean(limz)
-
-nCx = int(limx[0]-limx[1]) / h[0]
-nCy = int(limy[0]-limy[1]) / h[1]
-nCz = int(limz[0]-limz[1]+int(np.min(np.r_[nCx, nCy])/3)) / h[2]
-
-# Figure out full extent required from input
-extent = np.max(np.r_[nCx * h[0] + padDist[0, :].sum(),
-                      nCy * h[1] + padDist[1, :].sum(),
-                      nCz * h[2] + padDist[2, :].sum()])
-
-maxLevel = int(np.log2(extent/h[0]))+1
-
-# Number of cells at the small octree level
-# For now equal in 3D
-nCx, nCy, nCz = 2**(maxLevel), 2**(maxLevel), 2**(maxLevel)
-
-# Define the mesh and origin
-mesh = TreeMesh([np.ones(nCx)*h[0],
-                 np.ones(nCx)*h[1],
-                 np.ones(nCx)*h[2]])
-
-# Set origin
-mesh.x0 = np.r_[-nCx*h[0]/2.+midX, -nCy*h[1]/2.+midY, -nCz*h[2]/2.+midZ]
-
-# Refine the mesh around topography
-# Get extent of points
-F = NearestNDInterpolator(topo[:, :2], topo[:, 2])
-zOffset = 0
-# Cycle through the first 3 octree levels
-for ii in range(3):
-
-    dx = mesh.hx.min()*2**ii
-
-    nCx = int((limx[0]-limx[1]) / dx)
-    nCy = int((limy[0]-limy[1]) / dx)
-
-    # Create a grid at the octree level in xy
-    CCx, CCy = np.meshgrid(
-        np.linspace(limx[1], limx[0], nCx),
-        np.linspace(limy[1], limy[0], nCy)
-    )
-
-    z = F(mkvc(CCx), mkvc(CCy))
-
-    # level means number of layers in current OcTree level
-    for level in range(int(nCpad[ii])):
-
-        mesh.insert_cells(
-            np.c_[mkvc(CCx), mkvc(CCy), z-zOffset],
-            np.ones_like(z)*maxLevel-ii,
-            finalize=False
-        )
-
-        zOffset += dx
-
-mesh.finalize()
+mesh = mesh_builder_xyz(rxLoc, h, padding_distance=padDist, depth_core=100, mesh_type='tree')
+mesh = refine_tree_xyz(mesh, topo, method='surface', octree_levels=[4,4], finalize=True)
 
 # Define an active cells from topo
 actv = utils.surface2ind_topo(mesh, topo)
@@ -204,8 +139,9 @@ idenMap = maps.IdentityMap(nP=nC)
 
 # Create the forward model operator
 simulation = magnetics.simulation.IntegralSimulation(
-    survey=survey, mesh=mesh, M=M_xyz, chiMap=idenMap, actInd=actv, forward_only=True
+    survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv, store_sensitivities="forward_only"
 )
+simulation.M = M_xyz
 
 # Compute some data and add some random noise
 synthetic_data = simulation.dpred(model)
@@ -261,6 +197,7 @@ plt.show()
 # Get the active cells for equivalent source is the top only
 surf = utils.modelutils.surface_layer_index(mesh, topo)
 nC = np.count_nonzero(surf)  # Number of active cells
+mstart = np.ones(nC)*1e-4
 
 # Create active map to go from reduce set to full
 surfMap = maps.InjectActiveCells(mesh, surf, np.nan)
@@ -271,12 +208,17 @@ idenMap = maps.IdentityMap(nP=nC)
 # Create static map
 simulation = magnetics.simulation.IntegralSimulation(
         mesh=mesh, survey=survey, chiMap=idenMap, actInd=surf,
-#        parallelized=False, equiSourceLayer=True
-        )
+        store_sensitivities='ram'
+)
+
+wr = simulation.getJtJdiag(mstart)**0.5
+wr = (wr/np.max(np.abs(wr)))
 
 # Create a regularization function, in this case l2l2
 reg = regularization.Sparse(
-    mesh, indActive=surf, mapping=maps.IdentityMap(nP=nC), scaledIRLS=False
+    mesh, indActive=surf,
+    mapping=maps.IdentityMap(nP=nC),
+    alpha_z = 0
 )
 reg.mref = np.zeros(nC)
 
@@ -288,25 +230,24 @@ opt = optimization.ProjectedGNCG(
 
 # Define misfit function (obs-calc)
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
-dmis.W = 1./data_object.uncertainty
 
 # Create the default L2 inverse problem from the above objects
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Specify how the initial beta is found
-betaest = directives.BetaEstimate_ByEig()
+betaest = directives.BetaEstimate_ByEig(beta0_ratio=2)
 
 # Target misfit to stop the inversion,
 # try to fit as much as possible of the signal, we don't want to lose anything
 IRLS = directives.Update_IRLS(f_min_change=1e-3, minGNiter=1,
-                              beta_tol=1e-1)
+                              beta_tol=1e-1, 
+                              max_irls_iterations=1)
 update_Jacobi = directives.UpdatePreconditioner()
 # Put all the parts together
 inv = inversion.BaseInversion(invProb,
                               directiveList=[betaest, IRLS, update_Jacobi])
 
 # Run the equivalent source inversion
-mstart = np.ones(nC)*1e-4
 mrec = inv.run(mstart)
 
 ########################################################
@@ -323,16 +264,9 @@ surveyAmp = magnetics.survey.MagneticSurvey(srcField)
 
 simulation = magnetics.simulation.IntegralSimulation(
         mesh=mesh, survey=surveyAmp, chiMap=idenMap, actInd=surf, modelType='amplitude'
-        )
+)
 
-pred = simulation.fields(mrec)
-
-bx = pred[:nD]
-by = pred[nD:2*nD]
-bz = pred[2*nD:]
-
-bAmp = (bx**2. + by**2. + bz**2.)**0.5
-
+bAmp = simulation.fields(mrec)
 
 # Plot the layer model and data
 plt.figure(figsize=(8, 8))
@@ -374,7 +308,6 @@ plt.show()
 # susceptibility. This is a non-linear inversion.
 #
 
-
 # Create active map to go from reduce space to full
 actvMap = maps.InjectActiveCells(mesh, actv, -100)
 nC = int(actv.sum())
@@ -385,29 +318,26 @@ idenMap = maps.IdentityMap(nP=nC)
 mstart = np.ones(nC)*1e-4
 
 # Create the forward model operator
-#simulation = magnetics.simulation.IntegralSimulation(
-#    survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv,
-#    modelType='amplitude'
-#)
-
-# Change the survey to xyz components
-#surveyAmp = magnetics.survey.MagneticSurvey(survey.source_field)
+simulation = magnetics.simulation.IntegralSimulation(
+   survey=surveyAmp, mesh=mesh, chiMap=idenMap, actInd=actv,
+   modelType='amplitude'
+)
 
 # Create a regularization function, in this case l2l2
 wr = simulation.getJtJdiag(mstart)**0.5
 wr = (wr/np.max(np.abs(wr)))
 # Re-set the observations to |B|
 
-data_obj = data.Data(survey, dobs=bAmp, noise_Floor=wd)
+data_obj = data.Data(survey, dobs=bAmp, noise_floor=wd)
 
 # Create a sparse regularization
 reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
 reg.norms = np.c_[1, 0, 0, 0]
 reg.mref = np.zeros(nC)
 reg.cell_weights = wr
+
 # Data misfit function
-dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
-dmis.W = 1./data_object.uncertainty
+dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_obj)
 
 # Add directives to the inversion
 opt = optimization.ProjectedGNCG(maxIter=30, lower=0., upper=1.,
@@ -417,12 +347,12 @@ opt = optimization.ProjectedGNCG(maxIter=30, lower=0., upper=1.,
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Here is the list of directives
-betaest = directives.BetaEstimate_ByEig()
+betaest = directives.BetaEstimate_ByEig(beta0_ratio=1)
 
 # Specify the sparse norms
 IRLS = directives.Update_IRLS(f_min_change=1e-3,
                               minGNiter=1, coolingRate=1,
-                              betaSearch=False)
+                              beta_search=False)
 
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are update between each iteration.
@@ -461,7 +391,7 @@ plt.colorbar(im[0])
 ax.set_title('Predicted data.')
 plt.gca().set_aspect('equal', adjustable='box')
 
-# Plot the vector model
+# Plot the l2 model
 ax = plt.subplot(3, 1, 2)
 im = mesh.plotSlice(
     actvPlot*invProb.l2model, ax=ax, normal='Y', ind=66,
@@ -474,7 +404,7 @@ ax.set_xlabel('x')
 ax.set_ylabel('y')
 plt.gca().set_aspect('equal', adjustable='box')
 
-# Plot the amplitude model
+# Plot the lp model
 ax = plt.subplot(3, 1, 3)
 im = mesh.plotSlice(
     actvPlot*mrec_Amp, ax=ax, normal='Y', ind=66,
