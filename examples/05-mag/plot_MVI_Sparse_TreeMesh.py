@@ -299,9 +299,9 @@ actvMap = maps.InjectActiveCells(mesh, actv, np.nan)
 idenMap = maps.IdentityMap(nP=nC*3)
 
 # Create the simulation
-simulation = magnetics.simulation.MagneticIntegralSimulation(
+simulation = magnetics.simulation.IntegralSimulation(
     survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv, modelType='vector'
-    )
+)
 
 # Compute some data and add some random noise
 d = simulation.dpred(mkvc(model))
@@ -385,19 +385,19 @@ dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 dmis.W = 1./data_object.uncertainty
 
 # Add directives to the inversion
-opt = optimization.ProjectedGNCG(maxIter=30, lower=-10, upper=10.,
+opt = optimization.ProjectedGNCG(maxIter=10, lower=-10, upper=10.,
                                  maxIterLS=20, maxIterCG=20, tolCG=1e-4)
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # A list of directive to control the inverson
-betaest = directives.BetaEstimate_ByEig()
+betaest = directives.BetaEstimate_ByEig(beta0_ratio = 1e1)
 
 # Here is where the norms are applied
 # Use pick a treshold parameter empirically based on the distribution of
 #  model parameters
 IRLS = directives.Update_IRLS(
-    f_min_change=1e-3, max_irls_iterations=40, beta_tol=5e-1
+    f_min_change=1e-3, max_irls_iterations=2, beta_tol=5e-1
 )
 
 # Pre-conditioner
@@ -419,9 +419,10 @@ mrec_MVIC = inv.run(m0)
 #
 #
 
+spherical_map = maps.SphericalSystem()
 mstart = utils.matutils.cartesian2spherical(mrec_MVIC.reshape((nC, 3), order='F'))
 beta = invProb.beta
-dmis.simulation.coordinate_system = 'spherical'
+dmis.simulation.chiMap = spherical_map
 dmis.simulation.model = mstart
 
 # Create a block diagonal regularization
@@ -470,7 +471,8 @@ invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
 # Here is where the norms are applied
 IRLS = directives.Update_IRLS(f_min_change=1e-4, max_irls_iterations=20,
                               minGNiter=1, beta_tol=0.5,
-                              coolingRate=1, coolEps_q=True
+                              coolingRate=1, coolEps_q=True,
+                              sphericalDomain=True
                               )
 
 # Special directive specific to the mag amplitude problem. The sensitivity
@@ -488,7 +490,7 @@ inv = inversion.BaseInversion(
 
 mrec_MVI_S = inv.run(mstart)
 
-shutil.rmtree(".\\sensitivity.zarr")
+shutil.rmtree(simulation.sensitivity_path)
 
 #############################################################
 # Final Plot

@@ -23,10 +23,6 @@ except:
     from SimPEG import Utils as utils
     from SimPEG.Utils.Plotutils import plot2Ddata
 
-
-
-
-
 def run(plotIt=True):
 
     # Create a mesh
@@ -83,9 +79,9 @@ def run(plotIt=True):
     idenMap = maps.IdentityMap(nP=nC)
 
     # Create the forward simulation
-    simulation = gravity.simulation.GravityIntegralSimulation(
-        survey=survey, mesh=mesh, rhoMap=idenMap, actInd=actv
-        )
+    simulation = gravity.simulation.IntegralSimulation(
+    survey=survey, mesh=mesh, rhoMap=idenMap, actInd=actv
+    )
 
     # Compute linear forward operator and compute some data
     d = simulation.fields(model)
@@ -96,18 +92,18 @@ def run(plotIt=True):
     wd = np.ones(len(synthetic_data))*1e-3  # Assign flat uncertainties
 
     data_object = data.Data(
-        survey, dobs=synthetic_data, noise_floor=wd
-        )
-    
+    survey, dobs=synthetic_data, noise_floor=wd
+    )
+
     m0 = np.ones(nC)*1e-4  # Starting model
-    
+
     # Create sensitivity weights from our linear forward operator
     rxLoc = survey.source_field.receiver_list[0].locations
 
     # Create a regularization
     reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.norms = np.c_[0, 0, 0, 0]
-    
+
     wr = simulation.getJtJdiag(m0)**0.5
     wr = (wr/np.max(np.abs(wr)))
     reg.cell_weights = wr
@@ -118,8 +114,8 @@ def run(plotIt=True):
 
     # Add directives to the inversion
     opt = optimization.ProjectedGNCG(maxIter=100, lower=-1., upper=1.,
-                                     maxIterLS=20, maxIterCG=10,
-                                     tolCG=1e-3)
+                                 maxIterLS=20, maxIterCG=10,
+                                 tolCG=1e-3)
     invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 
@@ -127,20 +123,20 @@ def run(plotIt=True):
     # Use pick a threshold parameter empirically based on the distribution of
     # model parameters
     update_IRLS = directives.Update_IRLS(
-        f_min_change=1e-4, max_irls_iterations=30,
-        coolEpsFact=1.5, beta_tol=1e-2,
+    f_min_change=1e-4, max_irls_iterations=30,
+    coolEpsFact=1.5, beta_tol=1e-2,
     )
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = directives.UpdatePreconditioner()
     inv = inversion.BaseInversion(
-        invProb, directiveList=[update_IRLS, betaest, update_Jacobi, saveDict]
+    invProb, directiveList=[update_IRLS, betaest, update_Jacobi, saveDict]
     )
 
     # Run the inversion
-    
+
     mrec = inv.run(m0)
 
-    shutil.rmtree(".\\sensitivity.zarr")
+    shutil.rmtree(simulation.sensitivity_path)
 
     if plotIt:
         # Here is the recovered susceptibility model

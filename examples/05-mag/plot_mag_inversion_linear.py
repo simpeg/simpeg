@@ -8,7 +8,7 @@ with a compact norm
 """
 import matplotlib.pyplot as plt
 import numpy as np
-
+import shutil
 from discretize import TensorMesh
 from SimPEG.potential_fields import magnetics
 from SimPEG import utils
@@ -16,8 +16,6 @@ from SimPEG import (
     data, data_misfit, maps, regularization, optimization, inverse_problem,
     directives, inversion
     )
-
-
 
 def run(plotIt=True):
 
@@ -77,8 +75,8 @@ def run(plotIt=True):
     idenMap = maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
-    simulation = magnetics.simulation.MagneticIntegralSimulation(
-            survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv
+    simulation = magnetics.simulation.IntegralSimulation(
+            survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv,
             )
 
     # Compute linear forward operator and compute some data
@@ -88,7 +86,7 @@ def run(plotIt=True):
     # We add some random Gaussian noise (1nT)
     synthetic_data = d + np.random.randn(len(d))
     wd = np.ones(len(synthetic_data))*1.  # Assign flat uncertainties
-    
+
     data_object = data.Data(survey, dobs=synthetic_data, noise_floor=wd)
 
     # Create a regularization
@@ -96,7 +94,7 @@ def run(plotIt=True):
     reg.mref = np.zeros(nC)
     reg.norms = np.c_[0, 0, 0, 0]
     # reg.eps_p, reg.eps_q = 1e-0, 1e-0
-    
+
     # Create sensitivity weights from our linear forward operator
     rxLoc = survey.source_field.receiver_list[0].locations
     m0 = np.ones(nC)*1e-4  # Starting model
@@ -108,7 +106,7 @@ def run(plotIt=True):
     dmis.W = 1/wd
 
     # Add directives to the inversion
-    opt = optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
+    opt = optimization.ProjectedGNCG(maxIter=20, lower=0., upper=1.,
                                      maxIterLS=20, maxIterCG=20, tolCG=1e-3)
     invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
@@ -117,7 +115,7 @@ def run(plotIt=True):
     # Use pick a threshold parameter empirically based on the distribution of
     #  model parameters
     IRLS = directives.Update_IRLS(
-        f_min_change=1e-4, max_irls_iterations=40
+        f_min_change=1e-3, max_irls_iterations=40
     )
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = directives.UpdatePreconditioner()
@@ -126,10 +124,9 @@ def run(plotIt=True):
     )
 
     # Run the inversion
-    
     mrec = inv.run(m0)
 
-    shutil.rmtree(".\\sensitivity.zarr")
+    shutil.rmtree(simulation.sensitivity_path)
 
     if plotIt:
         # Here is the recovered susceptibility model
