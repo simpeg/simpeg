@@ -5,7 +5,7 @@ import scipy.sparse as sp
 import discretize
 
 from SimPEG import maps, utils
-from SimPEG import data_misfit, simulation
+from SimPEG import data_misfit, simulation, survey
 from SimPEG import Data
 
 np.random.seed(17)
@@ -16,8 +16,13 @@ class DataTest(unittest.TestCase):
         sigma = np.ones(mesh.nC)
         model = np.log(sigma)
 
+        receivers = survey.BaseRx(20*[[0.0]])
+        source = survey.BaseSrc([receivers])
+
         self.sim = simulation.ExponentialSinusoidSimulation(
-            mesh=mesh, model_map=maps.ExpMap(mesh)
+            mesh=mesh,
+            survey=survey.BaseSurvey([source]),
+            model_map=maps.ExpMap(mesh)
         )
 
         self.dobs = self.sim.dpred(model)
