@@ -69,7 +69,7 @@ class ValidationInInversion(unittest.TestCase):
         survey = mag.MagneticSurvey(srcField)
 
         # Create the forward model operator
-        sim = mag.MagneticIntegralSimulation(
+        sim = mag.IntegralSimulation(
             mesh, survey=survey, chiMap=maps.IdentityMap(mesh)
         )
 
@@ -131,7 +131,7 @@ class ValidationInInversion(unittest.TestCase):
 
     def tearDown(self):
         # Clean up the working directory
-        shutil.rmtree(self.sim.Jpath)
+        shutil.rmtree(self.sim.sensitivity_path)
 
 
 if __name__ == '__main__':
