@@ -2,7 +2,7 @@ from ...survey import BaseSurvey
 
 
 class GravitySurvey(BaseSurvey):
-    """Base Magnetics Survey"""
+    """Base Gravity Survey"""
 
     receiver_locations = None  #: receiver locations
     rxType = None  #: receiver type
@@ -74,18 +74,3 @@ class GravitySurvey(BaseSurvey):
 
         fields = {'gx': gfx, 'gy': gfy, 'gz': gfz}
         return fields
-
-
-# class BaseGravMap(Maps.IdentityMap):
-#     """BaseGravMap"""
-
-#     def __init__(self, mesh, **kwargs):
-#         Maps.IdentityMap.__init__(self, mesh)
-
-#     def _transform(self, m):
-
-#         return m
-
-#     def deriv(self, m):
-
-#         return sp.identity(self.nP)

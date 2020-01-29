@@ -1,23 +1,8 @@
 from __future__ import print_function
 from scipy.constants import mu_0
-from SimPEG import *
 from SimPEG import utils
 # from SimPEG import Mesh
 import numpy as np
-from SimPEG.utils import kron3, speye, sdiag
-import matplotlib.pyplot as plt
-
-
-def spheremodel(mesh, x0, y0, z0, r):
-    """
-        Generate model indicies for sphere
-        - (x0, y0, z0 ): is the center location of sphere
-        - r: is the radius of the sphere
-        - it returns logical indicies of cell-center model
-    """
-    ind = np.sqrt( (mesh.gridCC[:, 0]-x0)**2+(mesh.gridCC[:, 1]-y0)**2+(mesh.gridCC[:, 2]-z0)**2 ) < r
-    return ind
-
 
 def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag='total'):
     """
@@ -52,7 +37,7 @@ def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag='total'):
 
     # Inside of the sphere
     rf2 = 3*mu1/(mu2+2*mu1)
-    if flag is 'total' and any(ind):
+    if flag == 'total' and any(ind):
         Bx[ind] = mu2*H0*(rf2)
     elif (flag == 'secondary'):
         Bx[ind] = mu2*H0*(rf2)-mu1*H0
@@ -208,10 +193,11 @@ def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
         print("Specify same size of x, y, z")
         return
 
+
     x = utils.mkvc(x)
     y = utils.mkvc(y)
     z = utils.mkvc(z)
-
+    """
     nobs = len(x)
 
     Bot = np.sqrt(sum(Bo**2))
@@ -235,5 +221,39 @@ def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
     Bx = B[:, 0]
     By = B[:, 1]
     Bz = B[:, 2]
+    """
 
-    return Bx, By, Bz
+    rx = x - xc
+    ry = y - yc
+    rz = z - zc
+    rx2 = rx * rx
+    ry2 = ry * ry
+    rz2 = rz * rz
+
+    b_hat = Bo/np.linalg.norm(Bo)
+
+    unit_conv = 1/(4*np.pi)
+
+    r = np.sqrt(rx2 + ry2 + rz2)
+    bot = r*r*r*r*r
+
+    M = np.empty_like(x)  # create a vector of "Ms" if the point is outide
+    M[r >= R] = R**3 * 4./3. * np.pi * chi  # outside points
+    M[r < R] = r[r < R]**3 * 4./3. * np.pi * chi  # inside points
+
+    g = unit_conv * (1. / bot) * M
+
+    gxx = g * (2*rx2 - ry2 - rz2)
+    gyy = g * (2*ry2 - rx2 - rz2)
+    gzz = -gxx-gyy
+    gxy = g * (3*rx*ry)
+    gxz = g * (3*rx*rz)
+    gyz = g * (3*ry*rz)
+
+    Bx = gxx*Bo[0] + gxy*Bo[1] + gxz*Bo[2]
+    By = gxy*Bo[0] + gyy*Bo[1] + gyz*Bo[2]
+    Bz = gxz*Bo[0] + gyz*Bo[1] + gzz*Bo[2]
+
+    tmi = Bx*b_hat[0] + By*b_hat[1] + Bz*b_hat[2]
+
+    return Bx, By, Bz, tmi

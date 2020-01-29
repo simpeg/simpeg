@@ -252,7 +252,13 @@ class IntegralSimulation(BasePFSimulation):
         if 'guv' in components:
             rows['guv'] = -0.5*(gxx - gyy)
 
-        return np.vstack([constants.G * 1e+8 * rows[component] for component in components])
+        for component in components:
+            if len(component) == 3:
+                rows[component] *= constants.G*1E12  # conversion for Eotvos
+            else:
+                rows[component] *= constants.G*1E8  # conversion for mGal
+
+        return np.vstack([rows[component] for component in components])
 
 
 class DifferentialEquationSimulation(BaseSimulation):
