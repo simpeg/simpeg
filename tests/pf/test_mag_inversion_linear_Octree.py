@@ -1,13 +1,15 @@
 from __future__ import print_function
 import unittest
-from SimPEG import (Directives, Maps,
-                    InvProblem, Optimization, DataMisfit,
-                    Inversion, Utils, Regularization, Mesh)
+from SimPEG import (directives, maps,
+                    inverse_problem, optimization, data_misfit,
+                    inversion, utils, regularization)
 
-import SimPEG.PF as PF
+import discretize
+#import SimPEG.PF as PF
+from SimPEG.potential_fields import magnetics as mag
 import numpy as np
 from scipy.interpolate import NearestNDInterpolator
-from SimPEG.Utils import mkvc
+from SimPEG.utils import mkvc
 
 class MagInvLinProblemTest(unittest.TestCase):
 
@@ -40,7 +42,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         zz = A*np.exp(-0.5*((xx/b)**2. + (yy/b)**2.))
 
         # We would usually load a topofile
-        topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
+        topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
         # Create and array of observation points
         xr = np.linspace(-100., 100., 20)
@@ -49,10 +51,10 @@ class MagInvLinProblemTest(unittest.TestCase):
         Z = A*np.exp(-0.5*((X/b)**2. + (Y/b)**2.)) + 5
 
         # Create a MAGsurvey
-        xyzLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
-        rxLoc = PF.BaseMag.RxObs(xyzLoc)
-        srcField = PF.BaseMag.SrcField([rxLoc], param=H0)
-        survey = PF.BaseMag.LinearSurvey(srcField)
+        xyzLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
+        rxLoc = mag.point_receiver(xyzLoc)
+        srcField = mag.SourceField([rxLoc], parameters=H0)
+        survey = mag.MagneticSurvey(srcField)
 
         # Get extent of points
         limx = np.r_[topo[:, 0].max(), topo[:, 0].min()]
@@ -83,7 +85,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Define the mesh and origin
         # For now cubic cells
-        self.mesh = Mesh.TreeMesh([np.ones(nCx)*h[0],
+        self.mesh = discretize.TreeMesh([np.ones(nCx)*h[0],
                                   np.ones(nCx)*h[1],
                                   np.ones(nCx)*h[2]])
 
@@ -125,22 +127,23 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         self.mesh.finalize()
         # Define an active cells from topo
-        actv = Utils.surface2ind_topo(self.mesh, topo)
+        actv = utils.surface2ind_topo(self.mesh, topo)
         nC = int(actv.sum())
 
         # We can now create a susceptibility model and generate data
         # Lets start with a simple block in half-space
-        self.model = Utils.ModelBuilder.addBlock(
+        self.model = utils.ModelBuilder.addBlock(
             self.mesh.gridCC, np.zeros(self.mesh.nC),
             np.r_[-20, -20, -5], np.r_[20, 20, 30], 0.05
         )[actv]
 
         # Create active map to go from reduce set to full
-        self.actvMap = Maps.InjectActiveCells(self.mesh, actv, np.nan)
+        self.actvMap = maps.InjectActiveCells(self.mesh, actv, np.nan)
 
         # Creat reduced identity map
-        idenMap = Maps.IdentityMap(nP=nC)
+        idenMap = maps.IdentityMap(nP=nC)
 
+        """
         # Create the forward model operator
         prob = PF.Magnetics.MagneticIntegral(
             self.mesh, chiMap=idenMap, actInd=actv
@@ -148,7 +151,16 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Pair the survey and problem
         survey.pair(prob)
+        """
+        sim = mag.IntegralSimulation(
+            self.mesh,
+            survey=survey,
+            chiMap=idenMap,
+            actInd=actv,
+            store_sensitivities='disk'
+        )
 
+        """
         # Compute linear forward operator and compute some data
         data = prob.fields(self.model)
 
@@ -159,7 +171,10 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         survey.dobs = data
         survey.std = wd
+        """
+        data = sim.make_synthetic_data(self.model, noise_floor=1.0, add_noise=True)
 
+        """
         # Create sensitivity weights from our linear forward operator
         rxLoc = survey.srcField.rxList[0].locs
         wr = np.zeros(prob.G.shape[1])
@@ -168,38 +183,40 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # wr = (wr/np.max(wr))
         wr = wr**0.5
+        """
+        wr = sim.getJtJdiag(self.model)
+        wr = wr**0.5
 
         # Create a regularization
-        reg = Regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
+        reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
         reg.norms = np.c_[0, 0, 0, 0]
         reg.cell_weights = wr
 
         reg.mref = np.zeros(nC)
 
         # Data misfit function
-        dmis = DataMisfit.l2_DataMisfit(survey)
-        dmis.W = 1./survey.std
+        dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
 
         # Add directives to the inversion
-        opt = Optimization.ProjectedGNCG(
+        opt = optimization.ProjectedGNCG(
             maxIter=20, lower=0., upper=10.,
             maxIterLS=20, maxIterCG=20, tolCG=1e-4,
             stepOffBoundsFact=1e-4
         )
 
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e+4)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e+4)
 
         # Here is where the norms are applied
         # Use pick a treshold parameter empirically based on the distribution of
         #  model parameters
-        IRLS = Directives.Update_IRLS(
-            f_min_change=1e-3, maxIRLSiter=20, beta_tol=5e-1
+        IRLS = directives.Update_IRLS(
+            f_min_change=1e-3, max_irls_iterations=20, beta_tol=5e-1
         )
-        update_Jacobi = Directives.UpdatePreconditioner()
+        update_Jacobi = directives.UpdatePreconditioner()
 
-        # saveOuput = Directives.SaveOutputEveryIteration()
+        # saveOuput = directives.SaveOutputEveryIteration()
         # saveModel.fileName = work_dir + out_dir + 'ModelSus'
-        self.inv = Inversion.BaseInversion(
+        self.inv = inversion.BaseInversion(
             invProb,
             directiveList=[IRLS, update_Jacobi]
         )
@@ -228,7 +245,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # plt.show()
 
 
-        self.assertTrue(residual < 0.1)
+        self.assertLess(residual, 0.1)
         # self.assertTrue(residual < 0.05)
 
 

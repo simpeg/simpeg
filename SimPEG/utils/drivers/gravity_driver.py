@@ -175,11 +175,15 @@ class GravityDriver_Inv(object):
 
     @property
     def survey(self):
-        if getattr(self, '_survey', None) is None:
-            self._survey, self._dobs = utils.io_utils.readUBCgravityObservations(
+        return self.data.survey
+
+    @property
+    def data(self):
+        if getattr(self, '_data', None) is None:
+            self._data = utils.io_utils.readUBCgravityObservations(
                 self.basePath + self.obsfile
             )
-        return self._survey, self._dobs
+        return self._data
 
     @property
     def activeCells(self):

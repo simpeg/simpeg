@@ -1,5 +1,8 @@
 import unittest
-from SimPEG import Mesh, PF
+#from SimPEG import Mesh, PF
+import discretize
+from SimPEG.potential_fields import magnetics as mag
+from SimPEG.utils.ModelBuilder import getIndicesSphere
 import numpy as np
 from scipy.constants import mu_0
 
@@ -15,23 +18,23 @@ class TestBoundaryConditionAnalytics(unittest.TestCase):
         hyind = [(0, 25, 1.3), (21, 12.5), (0, 25, 1.3)]
         hzind = [(0, 25, 1.3), (20, 12.5), (0, 25, 1.3)]
         # hx, hy, hz = Utils.meshTensors(hxind, hyind, hzind)
-        M3 = Mesh.TensorMesh([hxind, hyind, hzind], "CCC")
+        M3 = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
         indxd, indxu, indyd, indyu, indzd, indzu = M3.faceBoundaryInd
         mu0 = 4*np.pi*1e-7
         chibkg = 0.
         chiblk = 0.01
         chi = np.ones(M3.nC)*chibkg
-        sph_ind = PF.MagAnalytics.spheremodel(M3, 0, 0, 0, 100)
+        sph_ind = getIndicesSphere([0, 0, 0], 100, M3.gridCC)
         chi[sph_ind] = chiblk
         mu = (1.+chi)*mu0
-        Bbc, const = PF.MagAnalytics.CongruousMagBC(M3, np.array([1., 0., 0.]), chi)
+        Bbc, const = mag.analytics.CongruousMagBC(M3, np.array([1., 0., 0.]), chi)
 
         flag = 'secondary'
         Box = 1.
         H0 = Box/mu_0
-        Bbcxx, Bbcxy, Bbcxz  = PF.MagAnalytics.MagSphereAnaFun(M3.gridFx[(indxd|indxu),0], M3.gridFx[(indxd|indxu),1], M3.gridFx[(indxd|indxu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
-        Bbcyx, Bbcyy, Bbcyz  = PF.MagAnalytics.MagSphereAnaFun(M3.gridFy[(indyd|indyu),0], M3.gridFy[(indyd|indyu),1], M3.gridFy[(indyd|indyu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
-        Bbczx, Bbczy, Bbczz  = PF.MagAnalytics.MagSphereAnaFun(M3.gridFz[(indzd|indzu),0], M3.gridFz[(indzd|indzu),1], M3.gridFz[(indzd|indzu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
+        Bbcxx, Bbcxy, Bbcxz  = mag.analytics.MagSphereAnaFun(M3.gridFx[(indxd|indxu),0], M3.gridFx[(indxd|indxu),1], M3.gridFx[(indxd|indxu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
+        Bbcyx, Bbcyy, Bbcyz  = mag.analytics.MagSphereAnaFun(M3.gridFy[(indyd|indyu),0], M3.gridFy[(indyd|indyu),1], M3.gridFy[(indyd|indyu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
+        Bbczx, Bbczy, Bbczz  = mag.analytics.MagSphereAnaFun(M3.gridFz[(indzd|indzu),0], M3.gridFz[(indzd|indzu),1], M3.gridFz[(indzd|indzu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
         Bbc_ana = np.r_[Bbcxx, Bbcyy, Bbczz]
 
         if plotIt:
