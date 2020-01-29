@@ -288,25 +288,19 @@ rxLoc = survey.source_field.receiver_list[0].locations
 # vector model
 wires = maps.Wires(('p', nC), ('s', nC), ('t', nC))
 
-# Create sensitivity weights from our linear forward operator
-# so that all cells get equal chance to contribute to the solution
+
 m0 = np.ones(3*nC) * 1e-4  # Starting model
-wr = simulation.getJtJdiag(m0)**0.5
-wr = (wr/np.max(np.abs(wr)))
 
 # Create three regularization for the different components
 # of magnetization
 reg_p = regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
 reg_p.mref = np.zeros(3*nC)
-reg_p.cell_weights = (wires.p * wr)
 
 reg_s = regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
 reg_s.mref = np.zeros(3*nC)
-reg_s.cell_weights = (wires.s * wr)
 
 reg_t = regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
 reg_t.mref = np.zeros(3*nC)
-reg_t.cell_weights = (wires.t * wr)
 
 reg = reg_p + reg_s + reg_t
 reg.mref = np.zeros(3*nC)
@@ -324,6 +318,9 @@ invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 # A list of directive to control the inverson
 betaest = directives.BetaEstimate_ByEig(beta0_ratio = 1e1)
 
+# Add sensitivity weights
+sensitivity_weights = directives.UpdateSensitivityWeights()
+
 # Here is where the norms are applied
 # Use pick a treshold parameter empirically based on the distribution of
 #  model parameters
@@ -335,7 +332,7 @@ IRLS = directives.Update_IRLS(
 update_Jacobi = directives.UpdatePreconditioner()
 
 inv = inversion.BaseInversion(invProb,
-                              directiveList=[IRLS, update_Jacobi, betaest])
+                              directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest])
 
 # Run the inversion
 
@@ -409,13 +406,13 @@ IRLS = directives.Update_IRLS(f_min_change=1e-4, max_irls_iterations=20,
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are update between each iteration.
 ProjSpherical = directives.ProjectSphericalBounds()
-update_SensWeight = directives.UpdateSensitivityWeights()
+sensitivity_weights = directives.UpdateSensitivityWeights()
 update_Jacobi = directives.UpdatePreconditioner()
 
 inv = inversion.BaseInversion(
     invProb,
     directiveList=[
-        ProjSpherical, IRLS, update_SensWeight, update_Jacobi
+        ProjSpherical, IRLS, sensitivity_weights, update_Jacobi
     ]
 )
 

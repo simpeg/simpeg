@@ -264,9 +264,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Pair the survey and problem
         surveyAmp.pair(prob)
-        # Create a regularization function, in this case l2l2
-        wr = np.sum(prob.G**2., axis=0)**0.5
-        wr = (wr/np.max(wr))
+
         # Re-set the observations to |B|
         surveyAmp.dobs = bAmp
         surveyAmp.std = wd
@@ -275,7 +273,7 @@ class AmpProblemTest(unittest.TestCase):
         reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
         reg.norms = np.c_[0, 0, 0, 0]
         reg.mref = np.zeros(nC)
-        reg.cell_weights = wr
+
         # Data misfit function
         dmis = DataMisfit.l2_DataMisfit(surveyAmp)
         dmis.W = 1./surveyAmp.std
@@ -302,7 +300,7 @@ class AmpProblemTest(unittest.TestCase):
         # Put all together
         self.inv = Inversion.BaseInversion(
             invProb, directiveList=[
-                betaest, IRLS, update_SensWeight, update_Jacobi
+                update_SensWeight, betaest, IRLS, update_Jacobi
                 ]
         )
 

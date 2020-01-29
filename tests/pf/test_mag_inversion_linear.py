@@ -89,13 +89,8 @@ class MagInvLinProblemTest(unittest.TestCase):
             standard_deviation=0.0, noise_floor=1.0, add_noise=True
         )
 
-        # Create sensitivity weights from our linear forward operator
-        wr = sim.getJtJdiag(self.model)**0.5
-        wr /= np.max(wr)
-
         # Create a regularization
         reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
-        reg.cell_weights = wr
         reg.norms = np.c_[0, 0, 0, 0]
         reg.gradientType = 'component'
         # reg.eps_p, reg.eps_q = 1e-3, 1e-3
@@ -115,8 +110,9 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=1)
         update_Jacobi = directives.UpdatePreconditioner()
+        sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
         self.inv = inversion.BaseInversion(invProb,
-                                           directiveList=[IRLS, betaest,
+                                           directiveList=[IRLS, sensitivity_weights, betaest,
                                                           update_Jacobi])
 
     def test_mag_inverse(self):

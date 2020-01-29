@@ -104,10 +104,6 @@ def run(plotIt=True):
     reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.norms = np.c_[0, 0, 0, 0]
 
-    wr = simulation.getJtJdiag(m0)**0.5
-    wr = (wr/np.max(np.abs(wr)))
-    reg.cell_weights = wr
-
     # Data misfit function
     dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
     dmis.W = utils.sdiag(1/wd)
@@ -128,8 +124,9 @@ def run(plotIt=True):
     )
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = directives.UpdatePreconditioner()
+    sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
     inv = inversion.BaseInversion(
-    invProb, directiveList=[update_IRLS, betaest, update_Jacobi, saveDict]
+    invProb, directiveList=[update_IRLS, sensitivity_weights, betaest, update_Jacobi, saveDict]
     )
 
     # Run the inversion

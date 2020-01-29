@@ -98,9 +98,7 @@ def run(plotIt=True):
     # Create sensitivity weights from our linear forward operator
     rxLoc = survey.source_field.receiver_list[0].locations
     m0 = np.ones(nC)*1e-4  # Starting model
-    wr = simulation.getJtJdiag(m0)**0.5
-    wr = (wr/np.max(np.abs(wr)))
-    reg.cell_weights = wr  # include in regularization
+
     # Data misfit function
     dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
     dmis.W = 1/wd
@@ -119,8 +117,11 @@ def run(plotIt=True):
     )
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = directives.UpdatePreconditioner()
+    # Add sensitivity weights
+    sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+
     inv = inversion.BaseInversion(
-        invProb, directiveList=[IRLS, betaest, update_Jacobi, saveDict]
+        invProb, directiveList=[sensitivity_weights, IRLS, betaest, update_Jacobi, saveDict]
     )
 
     # Run the inversion

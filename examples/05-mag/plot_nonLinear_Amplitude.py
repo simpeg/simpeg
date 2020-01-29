@@ -323,18 +323,12 @@ simulation = magnetics.simulation.IntegralSimulation(
    modelType='amplitude'
 )
 
-# Create a regularization function, in this case l2l2
-wr = simulation.getJtJdiag(mstart)**0.5
-wr = (wr/np.max(np.abs(wr)))
-# Re-set the observations to |B|
-
 data_obj = data.Data(survey, dobs=bAmp, noise_floor=wd)
 
 # Create a sparse regularization
 reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
 reg.norms = np.c_[1, 0, 0, 0]
 reg.mref = np.zeros(nC)
-reg.cell_weights = wr
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_obj)
@@ -367,7 +361,7 @@ update_Jacobi = directives.UpdatePreconditioner()
 # Put all together
 inv = inversion.BaseInversion(
     invProb, directiveList=[
-        betaest, IRLS, update_SensWeight, update_Jacobi
+        update_SensWeight, betaest, IRLS, update_Jacobi
         ]
 )
 

@@ -97,13 +97,9 @@ class MagInvLinProblemTest(unittest.TestCase):
             self.model, noise_floor=1.0, add_noise=True
         )
 
-        wr = sim.getJtJdiag(self.model)**0.5
-        wr /= np.max(wr)
-
         # Create a regularization
         reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
         reg.norms = np.c_[0, 0, 0, 0]
-        reg.cell_weights = wr
 
         reg.mref = np.zeros(nC)
 
@@ -126,12 +122,10 @@ class MagInvLinProblemTest(unittest.TestCase):
             f_min_change=1e-3, max_irls_iterations=20, beta_tol=1e-1, beta_search=False
         )
         update_Jacobi = directives.UpdatePreconditioner()
-
-        # saveOuput = directives.SaveOutputEveryIteration()
-        # saveModel.fileName = work_dir + out_dir + 'ModelSus'
+        sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
         self.inv = inversion.BaseInversion(
             invProb,
-            directiveList=[IRLS, update_Jacobi]
+            directiveList=[IRLS, sensitivity_weights, update_Jacobi]
         )
 
     def test_mag_inverse(self):

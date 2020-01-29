@@ -219,8 +219,8 @@ class MVIProblemTest(unittest.TestCase):
         )
 
         # Pre-conditioner
-        update_Jacobi = directives.UpdatePreconditioner()
-        sensitivity_weights = directives.UpdateSensitivityWeights()
+        update_Jacobi = directives.UpdatePreconditioner(everyIter=False)
+        sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
         inv = inversion.BaseInversion(invProb,
                                       directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest])
 
@@ -286,13 +286,13 @@ class MVIProblemTest(unittest.TestCase):
         # Special directive specific to the mag amplitude problem. The sensitivity
         # weights are update between each iteration.
         ProjSpherical = directives.ProjectSphericalBounds()
-        update_SensWeight = directives.UpdateSensitivityWeights()
+        sensitivity_weights = directives.UpdateSensitivityWeights()
         update_Jacobi = directives.UpdatePreconditioner()
 
         self.inv = inversion.BaseInversion(
             invProb,
             directiveList=[
-                ProjSpherical, IRLS, update_SensWeight, update_Jacobi
+                ProjSpherical, IRLS, sensitivity_weights, update_Jacobi
             ]
         )
 

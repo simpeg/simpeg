@@ -84,15 +84,8 @@ class GravInvLinProblemTest(unittest.TestCase):
             self.model, standard_deviation=0.0, noise_floor=0.001, add_noise=True
         )
 
-        # PF.Gravity.plot_obs_2D(survey.srcField.rxList[0].locs, d=data)
-
-        # Create sensitivity weights from our linear forward operator
-        wr = get_dist_wgt(self.mesh, locXYZ, actv, 2., 2.)
-        wr = wr**2.
-
         # Create a regularization
         reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
-        reg.cell_weights = wr
         reg.norms = np.c_[0, 0, 0, 0]
         reg.gradientType = 'component'
         # reg.eps_p, reg.eps_q = 5e-2, 1e-2
@@ -110,9 +103,9 @@ class GravInvLinProblemTest(unittest.TestCase):
         IRLS = directives.Update_IRLS(f_min_change=1e-4,
                                       minGNiter=1)
         update_Jacobi = directives.UpdatePreconditioner()
-
+        sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
         self.inv = inversion.BaseInversion(invProb,
-                                           directiveList=[IRLS,
+                                           directiveList=[IRLS, sensitivity_weights,
                                                           update_Jacobi])
         self.sim = sim
 

@@ -103,10 +103,6 @@ def run(plotIt=True, cleanAfterRun=True):
     
     reg.norms = np.c_[0., 1., 1., 1.]
     # reg.norms = driver.lpnorms
-    
-    wr = simulation.getJtJdiag(mstart)**0.5
-    wr = (wr/np.max(np.abs(wr)))
-    reg.cell_weights = wr
 
 
     # Specify how the optimization will proceed
@@ -134,10 +130,11 @@ def run(plotIt=True, cleanAfterRun=True):
 
     # Preconditioning refreshing for each IRLS iteration
     update_Jacobi = directives.UpdatePreconditioner()
+    sensitivity_weights = directives.UpdateSensitivityWeights()
 
     # Create combined the L2 and Lp problem
     inv = inversion.BaseInversion(invProb,
-        directiveList=[IRLS, update_Jacobi, betaest]
+        directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest]
         )
 
     # %%

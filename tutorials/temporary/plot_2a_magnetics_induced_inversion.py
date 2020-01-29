@@ -236,13 +236,6 @@ reg = regularization.Sparse(
 # Define sparse and blocky norms p, qx, qy, qz
 reg.norms = np.c_[0, 2, 2, 2] 
 
-# Create model weights based on sensitivity matrix (sensitivity weighting). This is
-# done when inverting potential field data to ensure structures are placed at the
-# appropriate depth.
-wr = simulation.getJtJdiag(starting_model)**0.5
-wr = (wr/np.max(np.abs(wr)))
-reg.cell_weights = wr  # include in regularization
-
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
 opt = optimization.ProjectedGNCG(
@@ -282,9 +275,12 @@ update_jacobi = directives.UpdatePreconditioner()
 # Setting a stopping criteria for the inversion.
 target_misfit = directives.TargetMisfit(chifact=1)
 
+# Add sensitivity weights
+sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+
 # The directives are defined as a list.
 directives_list = [
-    starting_beta, save_iteration, update_IRLS, update_jacobi,
+    sensitivity_weights, starting_beta, save_iteration, update_IRLS, update_jacobi,
     ]
 
 #####################################################################
