@@ -1,7 +1,6 @@
 import re
 import os
-from discretize import TensorMesh, TreeMesh
-from SimPEG.potential_fields import gravity
+from discretize import TensorMesh
 try:
     from SimPEG import utils
 except:
@@ -185,11 +184,15 @@ class MagneticsDriver_Inv(object):
 
     @property
     def survey(self):
-        if getattr(self, '_survey', None) is None:
-            self._survey, _ = utils.io_utils.readUBCmagneticsObservations(
+        return self.data.survey
+
+    @property
+    def data(self):
+        if getattr(self, '_data', None) is None:
+            self._data = utils.io_utils.readUBCmagneticsObservations(
                 self.basePath + self.obsfile
             )
-        return self._survey, self._dobs
+        return self._data
 
     @property
     def activeCells(self):
@@ -257,7 +260,7 @@ class MagneticsDriver_Inv(object):
             if isinstance(self.mstart, float):
                 self._m0 = np.ones(self.nC) * self.mstart
             else:
-                self._m0 = Mesh.TensorMesh.readModelUBC(
+                self._m0 = TensorMesh.readModelUBC(
                     self.mesh, self.basePath + self.mstart
                 )
 
@@ -269,7 +272,7 @@ class MagneticsDriver_Inv(object):
             if isinstance(self._mrefInput, float):
                 self._mref = np.ones(self.nC) * self._mrefInput
             else:
-                self._mref = Mesh.TensorMesh.readModelUBC(
+                self._mref = TensorMesh.readModelUBC(
                     self.mesh, self.basePath + self._mrefInput
                 )
 
@@ -283,7 +286,7 @@ class MagneticsDriver_Inv(object):
         if getattr(self, '_activeModel', None) is None:
             if self._staticInput == 'FILE':
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
-                self._activeModel = Mesh.TensorMesh.readModelUBC(
+                self._activeModel = TensorMesh.readModelUBC(
                     self.mesh, self.basePath + self._staticInput
                 )
 

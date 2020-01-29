@@ -1,13 +1,10 @@
 import unittest
-#from SimPEG import Mesh, Utils, PF
 import discretize
 from SimPEG import utils, maps
 from SimPEG.utils.ModelBuilder import getIndicesSphere
 from SimPEG.potential_fields import magnetics as mag
 import numpy as np
 from pymatsolver import Pardiso
-
-import matplotlib.pyplot as plt
 
 
 class MagFwdProblemTests(unittest.TestCase):
@@ -28,12 +25,13 @@ class MagFwdProblemTests(unittest.TestCase):
         M = discretize.TensorMesh([hxind, hyind, hzind], 'CCC')
 
         chibkg = 0.
-        chiblk = 0.01
+        self.chiblk = 0.01
         chi = np.ones(M.nC)*chibkg
 
-        rad = 150
-        sph_ind = getIndicesSphere([0., 0., 0.], rad, M.gridCC)
-        chi[sph_ind] = chiblk
+        self.rad = 100
+        self.sphere_center = [0., 0., 0.]
+        sph_ind = getIndicesSphere(self.sphere_center, self.rad, M.gridCC)
+        chi[sph_ind] = self.chiblk
 
         xr = np.linspace(-300, 300, 41)
         yr = np.linspace(-300, 300, 41)
@@ -48,8 +46,6 @@ class MagFwdProblemTests(unittest.TestCase):
 
         self.survey = mag.MagneticSurvey(srcField)
 
-        #model = PF.BaseMag.BaseMagMap(M)
-        #prob = PF.Magnetics.Problem3D_DiffSecondary(M, muMap=model)
         self.sim = mag.simulation.DifferentialEquationSimulation(
             M,
             survey=self.survey,
@@ -66,39 +62,18 @@ class MagFwdProblemTests(unittest.TestCase):
 
         bxa, bya, bza = mag.analytics.MagSphereAnaFunA(
             self.rxLoc[:, 0], self.rxLoc[:, 1], self.rxLoc[:, 2],
-            100., 0., 0., 0., 0.01, self.b0, 'secondary')
+            self.rad, *self.sphere_center, self.chiblk, self.b0, 'secondary')
 
         n_obs, n_comp = self.rxLoc.shape[0], len(self.survey.components)
         dx, dy, dz = dpred.reshape(n_comp, n_obs)
 
-        nx = len(self.xr)
-        ny = len(self.yr)
+        err_x = np.linalg.norm(dx-bxa)/np.linalg.norm(bxa)
+        err_y = np.linalg.norm(dy-bya)/np.linalg.norm(bya)
+        err_z = np.linalg.norm(dz-bza)/np.linalg.norm(bza)
 
-        plt.figure()
-        plt.subplot(1,3,1)
-        plt.pcolormesh(self.xr, self.yr, dx.reshape(nx, ny).T)
-        plt.colorbar()
-        plt.subplot(1,3,2)
-        plt.pcolormesh(self.xr, self.yr, dy.reshape(nx, ny).T)
-        plt.colorbar()
-        plt.subplot(1,3,3)
-        plt.pcolormesh(self.xr, self.yr, dz.reshape(nx, ny).T)
-        plt.colorbar()
-
-        plt.figure()
-        plt.subplot(1,3,1)
-        plt.pcolormesh(self.xr, self.yr, bxa.reshape(nx, ny).T)
-        plt.colorbar()
-        plt.subplot(1,3,2)
-        plt.pcolormesh(self.xr, self.yr, bya.reshape(nx, ny).T)
-        plt.colorbar()
-        plt.subplot(1,3,3)
-        plt.pcolormesh(self.xr, self.yr, bza.reshape(nx, ny).T)
-        plt.colorbar()
-
-        plt.show()
-        err = np.linalg.norm(dpred-np.r_[bxa, bya, bza])/np.linalg.norm(np.r_[bxa, bya, bza])
-        self.assertTrue(err < 0.08)
+        self.assertLess(err_x, 0.08)
+        self.assertLess(err_y, 0.08)
+        self.assertLess(err_z, 0.08)
 
 
 if __name__ == '__main__':

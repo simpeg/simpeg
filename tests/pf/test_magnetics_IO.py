@@ -1,9 +1,10 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-from SimPEG import Mesh, PF
-from SimPEG.Utils import io_utils
-from scipy.constants import mu_0
+#from SimPEG import Mesh, PF
+from SimPEG.utils.drivers import MagneticsDriver_Inv
+from SimPEG.utils import io_utils
+#from scipy.constants import mu_0
 import shutil
 import os
 
@@ -24,7 +25,7 @@ class MagSensProblemTests(unittest.TestCase):
 
         inp_file = os.path.sep.join([self.basePath, 'SimPEG_Mag_Input.inp'])
 
-        driver = PF.MagneticsDriver.MagneticsDriver_Inv(inp_file)
+        driver = MagneticsDriver_Inv(inp_file)
 
         print(driver.mesh)
         print(driver.survey)
@@ -43,17 +44,17 @@ class MagSensProblemTests(unittest.TestCase):
         # Write obs to file
         io_utils.writeUBCmagneticsObservations(
             os.path.sep.join([self.basePath, 'FWR_data.dat']),
-            driver.survey, driver.survey.dobs
+            driver.data
         )
 
         # Read it back
-        data, _ = io_utils.readUBCmagneticsObservations(
+        data = io_utils.readUBCmagneticsObservations(
                 os.path.sep.join(
                     [self.basePath, 'FWR_data.dat']
                 )
         )
         # Check similarity
-        passed = np.all(data.dobs == driver.survey.dobs)
+        passed = np.all(data.dobs == driver.data.dobs)
         self.assertTrue(passed, True)
 
         # Clean up the working directory

@@ -283,16 +283,17 @@ def readUBCmagneticsObservations(obs_file):
                     wd[ii] = temp[4]
             ii += 1
         line = fid.readline()
+    fid.close()
 
     rxLoc = magnetics.receivers.point_receiver(locXYZ)
-    srcField = magnetics.sources.SourceField([rxLoc], param=(B[2], B[0], B[1]))
+    srcField = magnetics.sources.SourceField([rxLoc], parameters=(B[2], B[0], B[1]))
     survey = magnetics.survey.MagneticSurvey(srcField)
     data_object = data.Data(survey, dobs=d, noise_floor=wd)
 
-    return survey, data_object
+    return data_object
 
 
-def writeUBCmagneticsObservations(filename, survey, data_object):
+def writeUBCmagneticsObservations(filename, data_object):
     """
     writeUBCobs(filename,B,M,rxLoc,d,wd)
 
@@ -310,10 +311,11 @@ def writeUBCmagneticsObservations(filename, survey, data_object):
 
     @author: dominiquef
     """
+    survey = data_object.survey
 
     B = survey.source_field.parameters
 
-    rxLoc = survey.source_field.receiver_list[0].locationss
+    rxLoc = survey.source_field.receiver_list[0].locations
 
     d = data_object.dobs
     wd = data_object.uncertainty

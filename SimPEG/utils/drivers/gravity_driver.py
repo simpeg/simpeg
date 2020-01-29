@@ -1,13 +1,12 @@
 import re
 import os
-from discretize import TensorMesh, TreeMesh
+from discretize import TensorMesh
 try:
     from SimPEG import utils
 except:
     from SimPEG import Utils as utils
 
 import numpy as np
-from SimPEG.potential_fields import gravity
 
 
 class GravityDriver_Inv(object):
