@@ -221,3 +221,118 @@ class BasePFSimulation(LinearSimulation):
         """
 
         raise RuntimeError(f"Integral calculations must implemented by the subclass {self}.")
+
+def progress(iter, prog, final):
+    """
+    progress(iter,prog,final)
+    Function measuring the progress of a process and print to screen the %.
+    Useful to estimate the remaining runtime of a large problem.
+    Created on Dec, 20th 2015
+    @author: dominiquef
+    """
+    arg = np.floor(float(iter)/float(final)*10.)
+
+    if arg > prog:
+
+        print("Done " + str(arg*10) + " %")
+        prog = arg
+
+    return prog
+
+def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
+    """
+    get_dist_wgt(xn,yn,zn,receiver_locations,R,R0)
+
+    Function creating a distance weighting function required for the magnetic
+    inverse problem.
+
+    INPUT
+    xn, yn, zn : Node location
+    receiver_locations       : Observation locations [obsx, obsy, obsz]
+    actv        : Active cell vector [0:air , 1: ground]
+    R           : Decay factor (mag=3, grav =2)
+    R0          : Small factor added (default=dx/4)
+
+    OUTPUT
+    wr       : [nC] Vector of distance weighting
+
+    Created on Dec, 20th 2015
+
+    @author: dominiquef
+    """
+
+    # Find non-zero cells
+    if actv.dtype == 'bool':
+        inds = np.asarray(
+            [
+                inds for inds, elem in enumerate(actv, 1) if elem
+            ],
+            dtype=int
+        ) - 1
+    else:
+        inds = actv
+
+    nC = len(inds)
+
+    # Create active cell projector
+    P = csr((np.ones(nC), (inds, range(nC))),
+                      shape=(mesh.nC, nC))
+
+    # Geometrical constant
+    p = 1 / np.sqrt(3)
+
+    # Create cell center location
+    Ym, Xm, Zm = np.meshgrid(mesh.vectorCCy, mesh.vectorCCx, mesh.vectorCCz)
+    hY, hX, hZ = np.meshgrid(mesh.hy, mesh.hx, mesh.hz)
+
+    # Remove air cells
+    Xm = P.T * mkvc(Xm)
+    Ym = P.T * mkvc(Ym)
+    Zm = P.T * mkvc(Zm)
+
+    hX = P.T * mkvc(hX)
+    hY = P.T * mkvc(hY)
+    hZ = P.T * mkvc(hZ)
+
+    V = P.T * mkvc(mesh.vol)
+    wr = np.zeros(nC)
+
+    ndata = receiver_locations.shape[0]
+    count = -1
+    print("Begin calculation of distance weighting for R= " + str(R))
+
+    for dd in range(ndata):
+
+        nx1 = (Xm - hX * p - receiver_locations[dd, 0])**2
+        nx2 = (Xm + hX * p - receiver_locations[dd, 0])**2
+
+        ny1 = (Ym - hY * p - receiver_locations[dd, 1])**2
+        ny2 = (Ym + hY * p - receiver_locations[dd, 1])**2
+
+        nz1 = (Zm - hZ * p - receiver_locations[dd, 2])**2
+        nz2 = (Zm + hZ * p - receiver_locations[dd, 2])**2
+
+        R1 = np.sqrt(nx1 + ny1 + nz1)
+        R2 = np.sqrt(nx1 + ny1 + nz2)
+        R3 = np.sqrt(nx2 + ny1 + nz1)
+        R4 = np.sqrt(nx2 + ny1 + nz2)
+        R5 = np.sqrt(nx1 + ny2 + nz1)
+        R6 = np.sqrt(nx1 + ny2 + nz2)
+        R7 = np.sqrt(nx2 + ny2 + nz1)
+        R8 = np.sqrt(nx2 + ny2 + nz2)
+
+        temp = (R1 + R0)**-R + (R2 + R0)**-R + (R3 + R0)**-R + \
+            (R4 + R0)**-R + (R5 + R0)**-R + (R6 + R0)**-R + \
+            (R7 + R0)**-R + (R8 + R0)**-R
+
+        wr = wr + (V * temp / 8.)**2.
+
+        count = progress(dd, count, ndata)
+
+    wr = np.sqrt(wr) / V
+    wr = mkvc(wr)
+    wr = np.sqrt(wr / (np.max(wr)))
+
+    print("Done 100% ...distance weighting completed!!\n")
+
+    return wr

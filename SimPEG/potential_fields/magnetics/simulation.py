@@ -7,11 +7,13 @@ from scipy.constants import mu_0
 from SimPEG import utils
 from ...simulation import BaseSimulation
 from ..base import BasePFSimulation
+from .survey import MagneticSurvey
+from .analytics import CongruousMagBC
+
 from SimPEG import Solver
 from SimPEG import props
 import properties
 from SimPEG.utils import mkvc, matutils, sdiag, setKwargs
-from .analytics import spheremodel, CongruousMagBC
 import dask
 import dask.array as da
 from scipy.sparse import csr_matrix as csr
@@ -609,8 +611,12 @@ class DifferentialEquationSimulation(BaseSimulation):
 
     props.Reciprocal(mu, mui)
 
+    survey = properties.Instance(
+            "a survey object", MagneticSurvey, required=True
+    )
+
     def __init__(self, mesh, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
 
         Pbc, Pin, self._Pout = \
             self.mesh.getBCProjWF('neumann', discretization='CC')
@@ -639,7 +645,7 @@ class DifferentialEquationSimulation(BaseSimulation):
 
     @utils.requires('survey')
     def getB0(self):
-        b0 = self.survey.B0
+        b0 = self.survey.source_field.b0
         B0 = np.r_[
             b0[0] * np.ones(self.mesh.nFx),
             b0[1] * np.ones(self.mesh.nFy),
@@ -656,14 +662,12 @@ class DifferentialEquationSimulation(BaseSimulation):
 
         """
         B0 = self.getB0()
-        Dface = self.mesh.faceDiv
-        # Mc = sdiag(self.mesh.vol)
 
         mu = self.muMap * m
         chi = mu / mu_0 - 1
 
         # Temporary fix
-        Bbc, Bbc_const = CongruousMagBC(self.mesh, self.survey.B0, chi)
+        Bbc, Bbc_const = CongruousMagBC(self.mesh, self.survey.source_field.b0, chi)
         self.Bbc = Bbc
         self.Bbc_const = Bbc_const
         # return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 +
@@ -699,12 +703,11 @@ class DifferentialEquationSimulation(BaseSimulation):
         self.makeMassMatrices(m)
         A = self.getA(m)
         rhs = self.getRHS(m)
-        m1 = sp.linalg.interface.aslinearoperator(
-            sdiag(1 / A.diagonal())
-        )
-        u, info = sp.linalg.bicgstab(A, rhs, tol=1e-6, maxiter=1000, M=m1)
+        Ainv = self.solver(A, **self.solver_opts)
+        u = Ainv * rhs
         B0 = self.getB0()
         B = self.MfMuI * self.MfMu0 * B0 - B0 - self.MfMuI * self._Div.T * u
+        Ainv.clean()
 
         return {'B': B, 'u': u}
 
@@ -792,7 +795,6 @@ class DifferentialEquationSimulation(BaseSimulation):
 
         vol = self.mesh.vol
         Div = self._Div
-        Dface = self.mesh.faceDiv
         P = self.survey.projectFieldsDeriv(B)  # Projection matrix
         B0 = self.getB0()
 
@@ -805,7 +807,7 @@ class DifferentialEquationSimulation(BaseSimulation):
         # C(m,u) = A*m-rhs
         # dudm = -(dCdu)^(-1)dCdm
 
-        dCdu = self.getA(m)
+        dCdu = self.getA(m)  # = A
         dCdm_A = Div * (sdiag(Div.T * u) * dMfMuI * dmu_dm)
         dCdm_RHS1 = Div * (sdiag(self.MfMu0 * B0) * dMfMuI)
         # temp1 = (Dface * (self._Pout.T * self.Bbc_const * self.Bbc))
@@ -816,18 +818,8 @@ class DifferentialEquationSimulation(BaseSimulation):
         dCdm_RHSv = dCdm_RHS1 * (dmu_dm * v)
         dCdm_v = dCdm_A * v - dCdm_RHSv
 
-        m1 = sp.linalg.interface.aslinearoperator(
-            sdiag(1 / dCdu.diagonal())
-        )
-        sol, info = sp.linalg.bicgstab(dCdu, dCdm_v,
-                                       tol=1e-6, maxiter=1000, M=m1)
-
-        if info > 0:
-            print("Iterative solver did not work well (Jvec)")
-            # raise Exception ("Iterative solver did not work well")
-
-        # B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*u
-        # dBdm = d\mudm*dBd\mu
+        Ainv = self.solver(dCdu, **self.solver_opts)
+        sol = Ainv * dCdm_v
 
         dudm = -sol
         dBdmv = (
@@ -835,6 +827,8 @@ class DifferentialEquationSimulation(BaseSimulation):
             - sdiag(Div.T * u) * (dMfMuI * (dmu_dm * v))
             - self.MfMuI * (Div.T * (dudm))
         )
+
+        Ainv.clean()
 
         return mkvc(P * dBdmv)
 
@@ -895,14 +889,10 @@ class DifferentialEquationSimulation(BaseSimulation):
         dCdu = self.getA(m)
         s = Div * (self.MfMuI.T * (P.T * v))
 
-        m1 = sp.linalg.interface.aslinearoperator(
-            sdiag(1 / (dCdu.T).diagonal())
-        )
-        sol, info = sp.linalg.bicgstab(dCdu.T, s, tol=1e-6, maxiter=1000, M=m1)
+        Ainv = self.solver(dCdu.T, **self.solver_opts)
+        sol = Ainv * s
 
-        if info > 0:
-            print("Iterative solver did not work well (Jtvec)")
-            # raise Exception ("Iterative solver did not work well")
+        Ainv.clean()
 
         # dCdm_A = Div * ( sdiag( Div.T * u )* dMfMuI *dmu_dm  )
         # dCdm_Atsol = ( dMfMuI.T*( sdiag( Div.T * u ) * (Div.T * dmu_dm)) ) * sol
@@ -943,6 +933,107 @@ class DifferentialEquationSimulation(BaseSimulation):
 
         return mkvc(Jtv)
 
+    @property
+    def Qfx(self):
+        if getattr(self, '_Qfx', None) is None:
+            self._Qfx = self.mesh.getInterpolationMat(
+                self.survey.receiver_locations, 'Fx'
+            )
+        return self._Qfx
+
+    @property
+    def Qfy(self):
+        if getattr(self, '_Qfy', None) is None:
+            self._Qfy = self.mesh.getInterpolationMat(
+                self.survey.receiver_locations, 'Fy'
+            )
+        return self._Qfy
+
+    @property
+    def Qfz(self):
+        if getattr(self, '_Qfz', None) is None:
+            self._Qfz = self.mesh.getInterpolationMat(
+                self.survey.receiver_locations, 'Fz'
+            )
+        return self._Qfz
+
+    def projectFields(self, u):
+        """
+            This function projects the fields onto the data space.
+            Especially, here for we use total magnetic intensity (TMI) data,
+            which is common in practice.
+            First we project our B on to data location
+            .. math::
+                \mathbf{B}_{rec} = \mathbf{P} \mathbf{B}
+            then we take the dot product between B and b_0
+            .. math ::
+                \\text{TMI} = \\vec{B}_s \cdot \hat{B}_0
+        """
+        # TODO: There can be some different tyes of data like |B| or B
+        components = self.survey.components
+
+        fields = {}
+        if 'bx' in components or 'tmi' in components:
+            fields['bx'] = self.Qfx * u['B']
+        if 'by' in components or 'tmi' in components:
+            fields['by'] = self.Qfy * u['B']
+        if 'bz' in components or 'tmi' in components:
+            fields['bz'] = self.Qfz * u['B']
+
+        if 'tmi' in components:
+            bx = fields['bx']
+            by = fields['by']
+            bz = fields['bz']
+            # Generate unit vector
+            B0 = self.survey.source_field.b0
+            Bot = np.sqrt(B0[0]**2 + B0[1]**2 + B0[2]**2)
+            box = B0[0] / Bot
+            boy = B0[1] / Bot
+            boz = B0[2] / Bot
+            fields['tmi'] = bx * box + by * boy + bz * boz
+
+        return np.concatenate([fields[comp] for comp in components])
+
+    @utils.count
+    def projectFieldsDeriv(self, B):
+        """
+            This function projects the fields onto the data space.
+            .. math::
+                \\frac{\partial d_\\text{pred}}{\partial \mathbf{B}} = \mathbf{P}
+            Especially, this function is for TMI data type
+        """
+
+        components = self.survey.components
+
+        fields = {}
+        if 'bx' in components or 'tmi' in components:
+            fields['bx'] = self.Qfx
+        if 'by' in components or 'tmi' in components:
+            fields['by'] = self.Qfy
+        if 'bz' in components or 'tmi' in components:
+            fields['bz'] = self.Qfz
+
+        if 'tmi' in components:
+            bx = fields['bx']
+            by = fields['by']
+            bz = fields['bz']
+            # Generate unit vector
+            B0 = self.survey.source_field.b0
+            Bot = np.sqrt(B0[0]**2 + B0[1]**2 + B0[2]**2)
+            box = B0[0] / Bot
+            boy = B0[1] / Bot
+            boz = B0[2] / Bot
+            fields['tmi'] = bx * box + by * boy + bz * boz
+
+        return sp.vstack([fields[comp] for comp in components])
+
+    def projectFieldsAsVector(self, B):
+
+        bfx = self.Qfx * B
+        bfy = self.Qfy * B
+        bfz = self.Qfz * B
+
+        return np.r_[bfx, bfy, bfz]
 
 def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     """
@@ -953,15 +1044,12 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
         Optimization, Regularization,
         Parameters, ObjFunction, Inversion
     )
-    prob = MagneticsDiffSecondary(mesh, model)
+    prob = DifferentialEquationSimulation(
+           mesh,
+           survey=data,
+           mu=model)
 
     miter = kwargs.get('maxIter', 10)
-
-    if prob.ispaired:
-        prob.unpair()
-    if data.ispaired:
-        data.unpair()
-    prob.pair(data)
 
     # Create an optimization program
     opt = Optimization.InexactGaussNewton(maxIter=miter)
@@ -970,107 +1058,8 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     reg = Regularization.Tikhonov(model)
     # Create an objective function
     beta = Parameters.BetaSchedule(beta0=1e0)
-    obj = ObjFunction.BaseObjFunction(data, reg, beta=beta)
+    obj = ObjFunction.BaseObjFunction(prob, reg, beta=beta)
     # Create an inversion object
     inv = Inversion.BaseInversion(obj, opt)
 
     return inv, reg
-
-
-def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
-    """
-    get_dist_wgt(xn,yn,zn,receiver_locations,R,R0)
-
-    Function creating a distance weighting function required for the magnetic
-    inverse problem.
-
-    INPUT
-    xn, yn, zn : Node location
-    receiver_locations       : Observation locations [obsx, obsy, obsz]
-    actv        : Active cell vector [0:air , 1: ground]
-    R           : Decay factor (mag=3, grav =2)
-    R0          : Small factor added (default=dx/4)
-
-    OUTPUT
-    wr       : [nC] Vector of distance weighting
-
-    Created on Dec, 20th 2015
-
-    @author: dominiquef
-    """
-
-    # Find non-zero cells
-    if actv.dtype == 'bool':
-        inds = np.asarray(
-            [
-                inds for inds, elem in enumerate(actv, 1) if elem
-            ],
-            dtype=int
-        ) - 1
-    else:
-        inds = actv
-
-    nC = len(inds)
-
-    # Create active cell projector
-    P = csr((np.ones(nC), (inds, range(nC))),
-                      shape=(mesh.nC, nC))
-
-    # Geometrical constant
-    p = 1 / np.sqrt(3)
-
-    # Create cell center location
-    Ym, Xm, Zm = np.meshgrid(mesh.vectorCCy, mesh.vectorCCx, mesh.vectorCCz)
-    hY, hX, hZ = np.meshgrid(mesh.hy, mesh.hx, mesh.hz)
-
-    # Remove air cells
-    Xm = P.T * mkvc(Xm)
-    Ym = P.T * mkvc(Ym)
-    Zm = P.T * mkvc(Zm)
-
-    hX = P.T * mkvc(hX)
-    hY = P.T * mkvc(hY)
-    hZ = P.T * mkvc(hZ)
-
-    V = P.T * mkvc(mesh.vol)
-    wr = np.zeros(nC)
-
-    ndata = receiver_locations.shape[0]
-    count = -1
-    print("Begin calculation of distance weighting for R= " + str(R))
-
-    for dd in range(ndata):
-
-        nx1 = (Xm - hX * p - receiver_locations[dd, 0])**2
-        nx2 = (Xm + hX * p - receiver_locations[dd, 0])**2
-
-        ny1 = (Ym - hY * p - receiver_locations[dd, 1])**2
-        ny2 = (Ym + hY * p - receiver_locations[dd, 1])**2
-
-        nz1 = (Zm - hZ * p - receiver_locations[dd, 2])**2
-        nz2 = (Zm + hZ * p - receiver_locations[dd, 2])**2
-
-        R1 = np.sqrt(nx1 + ny1 + nz1)
-        R2 = np.sqrt(nx1 + ny1 + nz2)
-        R3 = np.sqrt(nx2 + ny1 + nz1)
-        R4 = np.sqrt(nx2 + ny1 + nz2)
-        R5 = np.sqrt(nx1 + ny2 + nz1)
-        R6 = np.sqrt(nx1 + ny2 + nz2)
-        R7 = np.sqrt(nx2 + ny2 + nz1)
-        R8 = np.sqrt(nx2 + ny2 + nz2)
-
-        temp = (R1 + R0)**-R + (R2 + R0)**-R + (R3 + R0)**-R + \
-            (R4 + R0)**-R + (R5 + R0)**-R + (R6 + R0)**-R + \
-            (R7 + R0)**-R + (R8 + R0)**-R
-
-        wr = wr + (V * temp / 8.)**2.
-
-        count = progress(dd, count, ndata)
-
-    wr = np.sqrt(wr) / V
-    wr = mkvc(wr)
-    wr = np.sqrt(wr / (np.max(wr)))
-
-    print("Done 100% ...distance weighting completed!!\n")
-
-    return wr

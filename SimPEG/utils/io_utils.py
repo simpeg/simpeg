@@ -365,15 +365,16 @@ def readUBCgravityObservations(obs_file):
             wd[ii] = temp[4]
             ii += 1
         line = fid.readline()
+    fid.close()
 
     rxLoc = gravity.receivers.point_receiver(locXYZ)
     srcField = gravity.sources.SourceField([rxLoc])
     survey = gravity.survey.GravitySurvey(srcField)
     data_object = data.Data(survey, dobs=d, noise_floor=wd)
-    return survey, data_object
+    return data_object
 
 
-def writeUBCgravityObservations(filename, survey, data_object):
+def writeUBCgravityObservations(filename, data_object):
     """
         Write UBC grav file format
 
@@ -383,6 +384,7 @@ def writeUBCgravityObservations(filename, survey, data_object):
         :param: data array
 
     """
+    survey = data_object.survey
     rxLoc = survey.source_field.receiver_list[0].locations
 
     d = data_object.dobs

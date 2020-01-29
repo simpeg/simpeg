@@ -526,7 +526,7 @@ class SphericalSystem(IdentityMap):
     """
 
     def __init__(self, nP=None, **kwargs):
-        super().__init__(nP, **kwargs)
+        super().__init__(None, nP, **kwargs)
         self.model = None
 
     def sphericalDeriv(self, model):
