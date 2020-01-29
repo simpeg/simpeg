@@ -79,9 +79,6 @@ class ValidationInInversion(unittest.TestCase):
 
         reg = regularization.Sparse(mesh)
         reg.mref = np.zeros(mesh.nC)
-
-        wr = (np.sum(sim.G**2., axis=0)**0.5).compute()
-        reg.cell_weights = wr
         reg.norms = np.c_[0, 1, 1, 1]
         reg.eps_p, reg.eps_q = 1e-3, 1e-3
 
@@ -110,7 +107,7 @@ class ValidationInInversion(unittest.TestCase):
         )
 
         update_Jacobi = directives.UpdatePreconditioner()
-
+        sensitivity_weights = directives.UpdateSensitivityWeights()
         with self.assertRaises(AssertionError):
             # validation should happen and this will fail
             # (IRLS needs to be before update_Jacobi)
@@ -120,9 +117,16 @@ class ValidationInInversion(unittest.TestCase):
 
         with self.assertRaises(AssertionError):
             # validation should happen and this will fail
-            # (IRLS needs to be before update_Jacobi)
+            # (sensitivity_weights needs to be before betaest)
+            inv = inversion.BaseInversion(
+                self.invProb, directiveList=[betaest, sensitivity_weights]
+            )
+
+        with self.assertRaises(AssertionError):
+            # validation should happen and this will fail
+            # (sensitivity_weights needs to be before update_Jacobi)
             inv = inversion.BaseInversion(self.invProb)
-            inv.directiveList = [betaest, update_Jacobi, IRLS]
+            inv.directiveList = [update_Jacobi, sensitivity_weights]
 
 
     def tearDown(self):

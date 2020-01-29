@@ -1123,9 +1123,23 @@ class UpdateSensitivityWeights(InversionDirective):
             isinstance(d, BetaEstimate_ByEig) for d in dList
         ]
 
+        beta_estimator_ind = [
+            isinstance(d, BetaEstimate_ByEig) for d in dList
+        ]
+
+        lin_precond_ind = [
+            isinstance(d, UpdatePreconditioner) for d in dList
+        ]
+
         if any(beta_estimator_ind):
             assert(beta_estimator_ind.index(True) > self_ind), (
                 "The directive 'BetaEstimate_ByEig' must be after UpdateSensitivityWeights "
+                "in the directiveList"
+            )
+
+        if any(lin_precond_ind):
+            assert (lin_precond_ind.index(True) > self_ind), (
+                "The directive 'UpdatePreconditioner' must be after UpdateSensitivityWeights "
                 "in the directiveList"
             )
 
