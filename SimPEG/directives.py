@@ -952,26 +952,19 @@ class UpdatePreconditioner(InversionDirective):
             # Check if regularization has a projection
             regDiag += reg.deriv2(m).diagonal()
 
-        # Deal with the linear case
-        if getattr(self.opt, 'JtJdiag', None) is None:
+        JtJdiag = np.zeros_like(self.invProb.model)
+        for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
 
-            print("Approximated diag(JtJ) with linear operator")
+            if getattr(sim, 'getJtJdiag', None) is None:
+                assert getattr(sim, 'getJ', None) is not None, (
+                    "Problem does not have a getJ attribute." +
+                    "Cannot form the sensitivity explicitly"
+                )
+                JtJdiag += np.sum(np.power((dmisfit.W*sim.getJ(m)), 2), axis=0)
+            else:
+                JtJdiag += sim.getJtJdiag(m, W=dmisfit.W)
 
-            JtJdiag = np.zeros_like(self.invProb.model)
-            for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
-
-                    if getattr(sim, 'getJtJdiag', None) is None:
-                        assert getattr(sim, 'getJ', None) is not None, (
-                        "Problem does not have a getJ attribute." +
-                        "Cannot form the sensitivity explicitely"
-                        )
-                        JtJdiag += np.sum(np.power((dmisfit.W*sim.getJ(m)), 2), axis=0)
-                    else:
-                        JtJdiag += sim.getJtJdiag(m, W=dmisfit.W)
-
-            self.opt.JtJdiag = JtJdiag
-
-        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
+        diagA = JtJdiag + self.invProb.beta*regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.
         PC = sdiag((diagA))
 
@@ -989,8 +982,20 @@ class UpdatePreconditioner(InversionDirective):
         for reg in self.reg.objfcts:
             # Check if he has wire
             regDiag += reg.deriv2(m).diagonal()
-        # Assumes that opt.JtJdiag has been updated or static
-        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
+
+        JtJdiag = np.zeros_like(self.invProb.model)
+        for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
+
+            if getattr(sim, 'getJtJdiag', None) is None:
+                assert getattr(sim, 'getJ', None) is not None, (
+                    "Problem does not have a getJ attribute." +
+                    "Cannot form the sensitivity explicitly"
+                )
+                JtJdiag += np.sum(np.power((dmisfit.W*sim.getJ(m)), 2), axis=0)
+            else:
+                JtJdiag += sim.getJtJdiag(m, W=dmisfit.W)
+
+        diagA = JtJdiag + self.invProb.beta*regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.
         PC = sdiag((diagA))
         self.opt.approxHinv = PC
@@ -1055,16 +1060,13 @@ class UpdateSensitivityWeights(InversionDirective):
         # Compute normalized weights
         self.wr = self.getWr()
 
-        # Send a copy of JtJdiag for the preconditioner
-        self.updateOpt()
-
         # Update the regularization
         self.updateReg()
 
     def getJtJdiag(self):
         """
-            Compute explicitely the main diagonal of JtJ
-            Good for any problem where J is formed explicitely
+            Compute explicitly the main diagonal of JtJ
+            Good for any problem where J is formed explicitly
         """
         self.JtJdiag = []
         m = self.invProb.model
@@ -1077,7 +1079,7 @@ class UpdateSensitivityWeights(InversionDirective):
             if getattr(sim, 'getJtJdiag', None) is None:
                 assert getattr(sim, 'getJ', None) is not None, (
                     "Problem does not have a getJ attribute." +
-                    "Cannot form the sensitivity explicitely"
+                    "Cannot form the sensitivity explicitly"
                 )
 
                 self.JtJdiag += [mkvc(np.sum((dmisfit.W*sim.getJ(m))**(2.), axis=0))]
@@ -1113,19 +1115,21 @@ class UpdateSensitivityWeights(InversionDirective):
         for reg in self.reg.objfcts:
             reg.cell_weights = reg.mapping * (self.wr)
 
-    def updateOpt(self):
-        """
-            Update a copy of JtJdiag to optimization for preconditioner
-        """
-        # if self.ComboMisfitFun:
-        JtJdiag = np.zeros_like(self.invProb.model)
-        for sim, JtJ, dmisfit in zip(
-            self.simulation, self.JtJdiag, self.dmisfit.objfcts
-        ):
+    def validate(self, directiveList):
+        # check if a beta estimator is in the list after setting the weights
+        dList = directiveList.dList
+        self_ind = dList.index(self)
+        beta_estimator_ind = [
+            isinstance(d, BetaEstimate_ByEig) for d in dList
+        ]
 
-            JtJdiag += JtJ
+        if any(beta_estimator_ind):
+            assert(beta_estimator_ind.index(True) > self_ind), (
+                "The directive 'BetaEstimate_ByEig' must be after UpdateSensitivityWeights "
+                "in the directiveList"
+            )
 
-        self.opt.JtJdiag = JtJdiag
+        return True
 
 
 class ProjectSphericalBounds(InversionDirective):
