@@ -188,15 +188,12 @@ class MVIProblemTest(unittest.TestCase):
         # of magnetization
         reg_p = regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
         reg_p.mref = np.zeros(3*nC)
-        reg_p.cell_weights = (wires.p * wr)
 
         reg_s = regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
         reg_s.mref = np.zeros(3*nC)
-        reg_s.cell_weights = (wires.s * wr)
 
         reg_t = regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
         reg_t.mref = np.zeros(3*nC)
-        reg_t.cell_weights = (wires.t * wr)
 
         reg = reg_p + reg_s + reg_t
         reg.mref = np.zeros(3*nC)
@@ -223,9 +220,9 @@ class MVIProblemTest(unittest.TestCase):
 
         # Pre-conditioner
         update_Jacobi = directives.UpdatePreconditioner()
-
+        sensitivity_weights = directives.UpdateSensitivityWeights()
         inv = inversion.BaseInversion(invProb,
-                                      directiveList=[IRLS, update_Jacobi, betaest])
+                                      directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest])
 
         # Run the inversion
         m0 = np.ones(3*nC) * 1e-4  # Starting model
