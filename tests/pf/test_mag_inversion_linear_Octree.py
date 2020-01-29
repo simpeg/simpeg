@@ -8,8 +8,6 @@ from discretize.utils import meshutils
 #import SimPEG.PF as PF
 from SimPEG.potential_fields import magnetics as mag
 import numpy as np
-from scipy.interpolate import NearestNDInterpolator
-from SimPEG.utils import mkvc
 
 class MagInvLinProblemTest(unittest.TestCase):
 
@@ -92,9 +90,12 @@ class MagInvLinProblemTest(unittest.TestCase):
             survey=survey,
             chiMap=idenMap,
             actInd=actv,
-            store_sensitivities='disk'
+            store_sensitivities='ram'
         )
-        data = sim.make_synthetic_data(self.model, noise_floor=1.0, add_noise=True)
+        self.sim = sim
+        data = sim.make_synthetic_data(
+            self.model, noise_floor=1.0, add_noise=True
+        )
 
         wr = sim.getJtJdiag(self.model)**0.5
         wr /= np.max(wr)
@@ -159,6 +160,11 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         self.assertLess(residual, 0.5)
         # self.assertTrue(residual < 0.05)
+
+    def tearDown(self):
+        # Clean up the working directory
+        if self.sim.store_sensitivities == 'disk':
+            shutil.rmtree(self.sim.sensitivity_path)
 
 
 if __name__ == '__main__':

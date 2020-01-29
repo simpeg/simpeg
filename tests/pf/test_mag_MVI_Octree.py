@@ -1,13 +1,16 @@
 from __future__ import print_function
 import unittest
-from SimPEG import (Directives, Maps,
-                    InvProblem, Optimization, DataMisfit,
-                    Inversion, Utils, Regularization, Mesh)
+from SimPEG import (directives, maps,
+                    inverse_problem, optimization, data_misfit,
+                    inversion, utils, regularization)
 
-import SimPEG.PF as PF
+import discretize
 import numpy as np
+from SimPEG.potential_fields import magnetics as mag
 from scipy.interpolate import NearestNDInterpolator
-from SimPEG.Utils import mkvc
+
+from SimPEG.utils import mkvc
+import shutil
 
 
 class MVIProblemTest(unittest.TestCase):
@@ -32,7 +35,7 @@ class MVIProblemTest(unittest.TestCase):
         zz = A*np.exp(-0.5*((xx/b)**2. + (yy/b)**2.))
 
         # We would usually load a topofile
-        topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
+        topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
         # Create and array of observation points
         xr = np.linspace(-100., 100., 20)
@@ -41,10 +44,10 @@ class MVIProblemTest(unittest.TestCase):
         Z = A*np.exp(-0.5*((X/b)**2. + (Y/b)**2.)) + 5
 
         # Create a MAGsurvey
-        xyzLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
-        rxLoc = PF.BaseMag.RxObs(xyzLoc)
-        srcField = PF.BaseMag.SrcField([rxLoc], param=H0)
-        survey = PF.BaseMag.LinearSurvey(srcField)
+        xyzLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
+        rxLoc = mag.point_receiver(xyzLoc)
+        srcField = mag.SourceField([rxLoc], parameters=H0)
+        survey = mag.MagneticSurvey(srcField)
 
         # Create a mesh
         h = [5, 5, 5]
@@ -76,7 +79,7 @@ class MVIProblemTest(unittest.TestCase):
 
         # Define the mesh and origin
         # For now cubic cells
-        mesh = Mesh.TreeMesh([np.ones(nCx)*h[0],
+        mesh = discretize.TreeMesh([np.ones(nCx)*h[0],
                               np.ones(nCx)*h[1],
                               np.ones(nCx)*h[2]])
 
@@ -124,16 +127,16 @@ class MVIProblemTest(unittest.TestCase):
         mesh.finalize()
         self.mesh = mesh
         # Define an active cells from topo
-        actv = Utils.surface2ind_topo(mesh, topo)
+        actv = utils.surface2ind_topo(mesh, topo)
         nC = int(actv.sum())
 
         model = np.zeros((mesh.nC, 3))
 
         # Convert the inclination declination to vector in Cartesian
-        M_xyz = Utils.matutils.dip_azimuth2cartesian(M[0], M[1])
+        M_xyz = utils.matutils.dip_azimuth2cartesian(M[0], M[1])
 
         # Get the indicies of the magnetized block
-        ind = Utils.ModelBuilder.getIndicesBlock(
+        ind = utils.ModelBuilder.getIndicesBlock(
             np.r_[-20, -20, -10], np.r_[20, 20, 25],
             mesh.gridCC,
         )[0]
@@ -147,56 +150,51 @@ class MVIProblemTest(unittest.TestCase):
         self.model = model[actv, :]
 
         # Create active map to go from reduce set to full
-        self.actvMap = Maps.InjectActiveCells(mesh, actv, np.nan)
+        self.actvMap = maps.InjectActiveCells(mesh, actv, np.nan)
 
         # Creat reduced identity map
-        idenMap = Maps.IdentityMap(nP=nC*3)
+        idenMap = maps.IdentityMap(nP=nC*3)
 
         # Create the forward model operator
-        prob = PF.Magnetics.MagneticIntegral(
-            mesh, chiMap=idenMap, actInd=actv,
-            modelType='vector'
+        sim = mag.IntegralSimulation(
+            self.mesh,
+            survey=survey,
+            modelType='vector',
+            chiMap=idenMap,
+            actInd=actv,
+            store_sensitivities='ram'
         )
-
-        # Pair the survey and problem
-        survey.pair(prob)
+        self.sim = sim
 
         # Compute some data and add some random noise
-        data = prob.fields(Utils.mkvc(self.model))
-        std = 5  # nT
-        data += np.random.randn(len(data))*std
-        wd = np.ones(len(data))*std
-
-        # Assigne data and uncertainties to the survey
-        survey.dobs = data
-        survey.std = wd
+        data = sim.make_synthetic_data(
+            utils.mkvc(self.model),
+                standard_deviation=0.0, noise_floor=5.0, add_noise=True
+            )
 
         # Create an projection matrix for plotting later
-        actvPlot = Maps.InjectActiveCells(mesh, actv, np.nan)
-
-        # Create sensitivity weights from our linear forward operator
-        rxLoc = survey.srcField.rxList[0].locs
+        actvPlot = maps.InjectActiveCells(mesh, actv, np.nan)
 
         # This Mapping connects the regularizations for the three-component
         # vector model
-        wires = Maps.Wires(('p', nC), ('s', nC), ('t', nC))
+        wires = maps.Wires(('p', nC), ('s', nC), ('t', nC))
 
         # Create sensitivity weights from our linear forward operator
         # so that all cells get equal chance to contribute to the solution
-        wr = np.sum(prob.G**2., axis=0)**0.5
-        wr = (wr/np.max(wr))
+        wr = sim.getJtJdiag(utils.mkvc(self.model))**0.5
+        wr /= np.max(wr)
 
         # Create three regularization for the different components
         # of magnetization
-        reg_p = Regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
+        reg_p = regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
         reg_p.mref = np.zeros(3*nC)
         reg_p.cell_weights = (wires.p * wr)
 
-        reg_s = Regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
+        reg_s = regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
         reg_s.mref = np.zeros(3*nC)
         reg_s.cell_weights = (wires.s * wr)
 
-        reg_t = Regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
+        reg_t = regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
         reg_t.mref = np.zeros(3*nC)
         reg_t.cell_weights = (wires.t * wr)
 
@@ -204,59 +202,60 @@ class MVIProblemTest(unittest.TestCase):
         reg.mref = np.zeros(3*nC)
 
         # Data misfit function
-        dmis = DataMisfit.l2_DataMisfit(survey)
-        dmis.W = 1./survey.std
+        dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
+        #dmis.W = 1./survey.std
 
         # Add directives to the inversion
-        opt = Optimization.ProjectedGNCG(maxIter=30, lower=-10, upper=10.,
+        opt = optimization.ProjectedGNCG(maxIter=30, lower=-10, upper=10.,
                                          maxIterLS=20, maxIterCG=20, tolCG=1e-4)
 
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
         # A list of directive to control the inverson
-        betaest = Directives.BetaEstimate_ByEig()
+        betaest = directives.BetaEstimate_ByEig()
 
         # Here is where the norms are applied
         # Use pick a treshold parameter empirically based on the distribution of
         #  model parameters
-        IRLS = Directives.Update_IRLS(
-            f_min_change=1e-3, maxIRLSiter=0, beta_tol=5e-1
+        IRLS = directives.Update_IRLS(
+            f_min_change=1e-3, max_irls_iterations=0, beta_tol=5e-1
         )
 
         # Pre-conditioner
-        update_Jacobi = Directives.UpdatePreconditioner()
+        update_Jacobi = directives.UpdatePreconditioner()
 
-        inv = Inversion.BaseInversion(invProb,
+        inv = inversion.BaseInversion(invProb,
                                       directiveList=[IRLS, update_Jacobi, betaest])
 
         # Run the inversion
         m0 = np.ones(3*nC) * 1e-4  # Starting model
         mrec_MVIC = inv.run(m0)
 
-        self.mstart = Utils.matutils.cartesian2spherical(mrec_MVIC.reshape((nC, 3), order='F'))
+        sim.chiMap = maps.SphericalSystem(nP=nC*3)
+        self.mstart = sim.chiMap.inverse(mrec_MVIC)
+        dmis.simulation.model = self.mstart
         beta = invProb.beta
-        dmis.prob.coordinate_system = 'spherical'
-        dmis.prob.model = self.mstart
+
 
         # Create a block diagonal regularization
-        wires = Maps.Wires(('amp', nC), ('theta', nC), ('phi', nC))
+        wires = maps.Wires(('amp', nC), ('theta', nC), ('phi', nC))
 
         # Create a Combo Regularization
         # Regularize the amplitude of the vectors
-        reg_a = Regularization.Sparse(mesh, indActive=actv,
+        reg_a = regularization.Sparse(mesh, indActive=actv,
                                       mapping=wires.amp)
         reg_a.norms = np.c_[0., 0., 0., 0.]  # Sparse on the model and its gradients
         reg_a.mref = np.zeros(3*nC)
 
         # Regularize the vertical angle of the vectors
-        reg_t = Regularization.Sparse(mesh, indActive=actv,
+        reg_t = regularization.Sparse(mesh, indActive=actv,
                                       mapping=wires.theta)
         reg_t.alpha_s = 0.  # No reference angle
         reg_t.space = 'spherical'
         reg_t.norms = np.c_[2., 0., 0., 0.]  # Only norm on gradients used
 
         # Regularize the horizontal angle of the vectors
-        reg_p = Regularization.Sparse(mesh, indActive=actv,
+        reg_p = regularization.Sparse(mesh, indActive=actv,
                                       mapping=wires.phi)
         reg_p.alpha_s = 0.  # No reference angle
         reg_p.space = 'spherical'
@@ -269,7 +268,7 @@ class MVIProblemTest(unittest.TestCase):
         Ubound = np.kron(np.asarray([10, np.inf, np.inf]), np.ones(nC))
 
         # Add directives to the inversion
-        opt = Optimization.ProjectedGNCG(maxIter=20,
+        opt = optimization.ProjectedGNCG(maxIter=20,
                                          lower=Lbound,
                                          upper=Ubound,
                                          maxIterLS=20,
@@ -279,21 +278,21 @@ class MVIProblemTest(unittest.TestCase):
                                          )
         opt.approxHinv = None
 
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
 
         # Here is where the norms are applied
-        IRLS = Directives.Update_IRLS(f_min_change=1e-4, maxIRLSiter=20,
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, max_irls_iterations=20,
                                       minGNiter=1, beta_tol=0.5,
                                       coolingRate=1, coolEps_q=True,
-                                      betaSearch=False)
+                                      beta_search=False)
 
         # Special directive specific to the mag amplitude problem. The sensitivity
         # weights are update between each iteration.
-        ProjSpherical = Directives.ProjectSphericalBounds()
-        update_SensWeight = Directives.UpdateSensitivityWeights()
-        update_Jacobi = Directives.UpdatePreconditioner()
+        ProjSpherical = directives.ProjectSphericalBounds()
+        update_SensWeight = directives.UpdateSensitivityWeights()
+        update_Jacobi = directives.UpdatePreconditioner()
 
-        self.inv = Inversion.BaseInversion(
+        self.inv = inversion.BaseInversion(
             invProb,
             directiveList=[
                 ProjSpherical, IRLS, update_SensWeight, update_Jacobi
@@ -306,7 +305,7 @@ class MVIProblemTest(unittest.TestCase):
         mrec_MVI_S = self.inv.run(self.mstart)
 
         nC = int(mrec_MVI_S.shape[0]/3)
-        vec_xyz = Utils.matutils.spherical2cartesian(
+        vec_xyz = utils.matutils.spherical2cartesian(
                 mrec_MVI_S.reshape((nC, 3), order='F')).reshape((nC, 3), order='F')
 
         residual = np.linalg.norm(vec_xyz-self.model) / np.linalg.norm(self.model)
@@ -323,8 +322,13 @@ class MVIProblemTest(unittest.TestCase):
         # ax.set_ylim(self.mesh.gridCC[:, 2].min(), self.mesh.gridCC[:, 2].max())
 
         # plt.show()
-        self.assertTrue(residual < 0.25)
+        self.assertLess(residual, 0.25)
         # self.assertTrue(residual < 0.05)
+
+    def tearDown(self):
+        # Clean up the working directory
+        if self.sim.store_sensitivities == 'disk':
+            shutil.rmtree(self.sim.sensitivity_path)
 
 
 if __name__ == '__main__':

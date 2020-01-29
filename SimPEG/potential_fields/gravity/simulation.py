@@ -6,13 +6,11 @@ from ...simulation import BaseSimulation
 from ..base import BasePFSimulation
 import scipy as sp
 import scipy.constants as constants
-import os
 import numpy as np
 import dask
 import dask.array as da
 from scipy.sparse import csr_matrix as csr
-from dask.diagnostics import ProgressBar
-import multiprocessing
+from dask.delayed import Delayed
 
 
 class IntegralSimulation(BasePFSimulation):
@@ -47,7 +45,6 @@ class IntegralSimulation(BasePFSimulation):
             Return the diagonal of JtJ
         """
         self.model = m
-        print(self.rho)
         if self.gtg_diagonal is None:
 
             if W is None:
@@ -73,9 +70,10 @@ class IntegralSimulation(BasePFSimulation):
         """
         Sensitivity times a vector
         """
-        dmu_dm_v = da.from_array(
-            self.rhoDeriv*v, chunks=self.G.chunks[1]
-        )
+        if isinstance(self.rhoDeriv, Delayed):
+            dmu_dm_v = da.from_array(self.rhoDeriv*v, chunks=self.G.chunks[1])
+        else:
+            dmu_dm_v = self.rhoDeriv * v
 
         return da.dot(self.G, dmu_dm_v.astype(np.float32))
 
@@ -83,6 +81,7 @@ class IntegralSimulation(BasePFSimulation):
         """
         Sensitivity transposed times a vector
         """
+
         Jtvec = da.dot(v.astype(np.float32), self.G)
         dmudm_v = dask.delayed(csr.dot)(Jtvec, self.rhoDeriv)
 

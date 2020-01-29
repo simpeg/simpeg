@@ -76,21 +76,13 @@ class GravInvLinProblemTest(unittest.TestCase):
                 survey=survey,
                 rhoMap=idenMap,
                 actInd=actv,
-                store_sensitivities='disk'
+                store_sensitivities='ram'
         )
 
-        """
         # Compute linear forward operator and compute some data
-        d = sim.fields(self.model)
-
-        # Add noise and uncertainties (1nT)
-        data = d + np.random.randn(len(d))*0.001
-        wd = np.ones(len(data))*.001
-
-        survey.dobs = data
-        survey.std = wd
-        """
-        data = sim.make_synthetic_data(self.model, noise_floor=0.001, add_noise=True)
+        data = sim.make_synthetic_data(
+            self.model, standard_deviation=0.0, noise_floor=0.001, add_noise=True
+        )
 
         # PF.Gravity.plot_obs_2D(survey.srcField.rxList[0].locs, d=data)
 
@@ -146,10 +138,10 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         self.assertTrue(residual < 0.05)
 
-
     def tearDown(self):
         # Clean up the working directory
-        shutil.rmtree(self.sim.sensitivity_path)
+        if self.sim.store_sensitivities == 'disk':
+            shutil.rmtree(self.sim.sensitivity_path)
 
 if __name__ == '__main__':
     unittest.main()

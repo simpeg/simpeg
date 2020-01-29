@@ -4,6 +4,7 @@ from SimPEG import utils, maps
 from SimPEG.utils.ModelBuilder import getIndicesSphere
 from SimPEG.potential_fields import gravity
 import numpy as np
+import shutil
 
 nx = 5
 ny = 5
@@ -56,7 +57,7 @@ class GravFwdProblemTests(unittest.TestCase):
                 survey=self.survey,
                 rhoMap=idenMap,
                 actInd=sph_ind,
-                store_sensitivities='forward_only'
+                store_sensitivities='disk'
         )
 
     def test_ana_grav_forward(self):
@@ -82,6 +83,11 @@ class GravFwdProblemTests(unittest.TestCase):
         self.assertLess(err_x, 0.005)
         self.assertLess(err_y, 0.005)
         self.assertLess(err_z, 0.005)
+
+    def tearDown(self):
+        # Clean up the working directory
+        if self.sim.store_sensitivities == 'disk':
+            shutil.rmtree(self.sim.sensitivity_path)
 
 class GravityGradientFwdProblemTests(unittest.TestCase):
 
