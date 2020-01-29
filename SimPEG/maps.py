@@ -525,8 +525,8 @@ class SphericalSystem(IdentityMap):
     A vector map to spherical parameters of amplitude, theta and phi
     """
 
-    def __init__(self, nP=None, **kwargs):
-        super().__init__(None, nP, **kwargs)
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super().__init__(mesh, nP, **kwargs)
         self.model = None
 
     def sphericalDeriv(self, model):
