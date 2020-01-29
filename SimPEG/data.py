@@ -129,6 +129,9 @@ class Data(properties.HasProperties):
                 )
             self.uncertainty = uncertainty
 
+        if uncertainty is None and standard_deviation is None and noise_floor is None:
+            self.uncertainty = 0.0
+
     #######################
     # Properties
     #######################
