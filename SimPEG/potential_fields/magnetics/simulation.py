@@ -540,7 +540,7 @@ class IntegralSimulation(BasePFSimulation):
                         (np.log(arg14) - np.log(arg19)) +
                         (np.log(arg24) - np.log(arg29)) +
                         (np.log(arg34) - np.log(arg39)))
-            rows["bx"] /= (4 * np.pi)
+            rows["bx"] /= (-4 * np.pi)
 
             rows["bx"] *= self.M
 

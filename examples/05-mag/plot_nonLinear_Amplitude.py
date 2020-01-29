@@ -13,7 +13,7 @@ recover 3-component magnetic data. This data is then transformed to amplitude
 Secondly, we invert the non-linear inverse problem with
 :class:`SimPEG.directives.UpdateSensitivityWeights`. We also
 uses the :class:`SimPEG.Regularization.Sparse` to apply sparsity
-assumption in order to improve the recovery of a cube prism.
+assumption in order to improve the recovery of a compact prism.
 
 """
 
@@ -69,7 +69,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 xr = np.linspace(-100., 100., 20)
 yr = np.linspace(-100., 100., 20)
 X, Y = np.meshgrid(xr, yr)
-Z = A*np.exp(-0.5*((X/b)**2. + (Y/b)**2.)) + 5
+Z = A*np.exp(-0.5*((X/b)**2. + (Y/b)**2.)) + 10
 
 # Create a MAGsurvey
 rxLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
@@ -241,7 +241,7 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=2)
 # try to fit as much as possible of the signal, we don't want to lose anything
 IRLS = directives.Update_IRLS(f_min_change=1e-3, minGNiter=1,
                               beta_tol=1e-1, 
-                              max_irls_iterations=1)
+                              max_irls_iterations=5)
 update_Jacobi = directives.UpdatePreconditioner()
 # Put all the parts together
 inv = inversion.BaseInversion(invProb,
@@ -340,9 +340,11 @@ reg.cell_weights = wr
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_obj)
 
 # Add directives to the inversion
-opt = optimization.ProjectedGNCG(maxIter=30, lower=0., upper=1.,
-                                 maxIterLS=20, maxIterCG=20,
-                                 tolCG=1e-3)
+opt = optimization.ProjectedGNCG(
+    maxIter=30, lower=0., upper=1.,
+    maxIterLS=20, maxIterCG=20,
+    tolCG=1e-3
+)
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
@@ -350,9 +352,12 @@ invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=1)
 
 # Specify the sparse norms
-IRLS = directives.Update_IRLS(f_min_change=1e-3,
-                              minGNiter=1, coolingRate=1,
-                              beta_search=False)
+IRLS = directives.Update_IRLS(
+    max_irls_iterations=10,
+    f_min_change=1e-3,
+    minGNiter=1, coolingRate=1,
+    beta_search=False
+)
 
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are update between each iteration.
@@ -407,7 +412,7 @@ plt.gca().set_aspect('equal', adjustable='box')
 # Plot the lp model
 ax = plt.subplot(3, 1, 3)
 im = mesh.plotSlice(
-    actvPlot*mrec_Amp, ax=ax, normal='Y', ind=66,
+    actvPlot*invProb.model, ax=ax, normal='Y', ind=66,
     pcolorOpts={"vmin": 0., "vmax": 0.01}, grid=True
 )
 plt.colorbar(im[0])
