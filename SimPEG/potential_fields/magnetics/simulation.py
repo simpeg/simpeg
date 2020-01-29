@@ -146,11 +146,16 @@ class IntegralSimulation(BasePFSimulation):
 
         self.model = m
 
-        if getattr(self, "_gtg_diagonal", None) is None:
-            self._gtg_diagonal = np.array(da.sum(da.power(self.G, 2), axis=0))
-
         if W is None:
             W = sdiag(np.ones(self.nD))
+
+        if getattr(self, "_gtg_diagonal", None) is None:
+            self._gtg_diagonal = mkvc(da.sum(da.power(
+                            da.from_delayed(
+                                dask.delayed(csr.dot)(W, self.G),
+                                shape=self.G.shape, dtype=float
+                            ), 2), axis=0).compute()
+            )
 
         if self.modelType == 'amplitude':
             return mkvc(da.sum(da.power(

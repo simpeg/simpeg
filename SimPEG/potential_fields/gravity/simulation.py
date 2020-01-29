@@ -45,14 +45,16 @@ class IntegralSimulation(BasePFSimulation):
             Return the diagonal of JtJ
         """
         self.model = m
-        if self.gtg_diagonal is None:
+        if W is None:
+            W = sdiag(np.ones(self.nD))
 
-            if W is None:
-                w = np.ones(self.G.shape[1])
-            else:
-                w = W.diagonal()
-
-            self._gtg_diagonal = da.sum(self.G**2., 0).compute()
+        if getattr(self, "_gtg_diagonal", None) is None:
+            self._gtg_diagonal = mkvc(da.sum(da.power(
+                            da.from_delayed(
+                                dask.delayed(csr.dot)(W, self.G),
+                                shape=self.G.shape, dtype=float
+                            ), 2), axis=0).compute()
+            )
 
         return mkvc(
             np.sum((
