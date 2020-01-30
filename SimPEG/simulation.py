@@ -568,17 +568,30 @@ class LinearSimulation(BaseSimulation):
 
     survey = properties.Instance("a survey object", BaseSurvey)
 
-    # def __init__(self, mesh=None, **kwargs):
-    #     super(LinearSimulation, self).__init__(mesh=mesh, **kwargs)
-    #
-    #     # set the number of data
-    #     if getattr(self, 'G', None) is not None:
-    #         self.survey._vnD = np.r_[self.G.shape[0]]
+    def __init__(self, mesh=None, **kwargs):
+        super(LinearSimulation, self).__init__(mesh=mesh, **kwargs)
+
+        if self.survey is None:
+            # Give it an empty survey
+            self.survey = BaseSurvey()
+        if self.survey.nD == 0:
+            # try seting the number of data to G
+            if getattr(self, 'G', None) is not None:
+                self.survey._vnD = np.r_[self.G.shape[0]]
 
     @property
     def G(self):
-        warnings.warn("G has not been implemented for the simulation")
+        if getattr(self, '_G', None) is not None:
+            return self._G
+        else:
+            warnings.warn("G has not been implemented for the simulation")
         return None
+
+    @G.setter
+    def G(self, G):
+        # Allows setting G in a LinearSimulation
+        # TODO should be validated
+        self._G = G
 
     def fields(self, m):
         self.model = m
@@ -593,7 +606,9 @@ class LinearSimulation(BaseSimulation):
 
     def getJ(self, m, f=None):
         self.model = m
-        return self.G.dot(self.model_deriv)
+        # self.model_deriv is likely a sparse matrix
+        # and G is possibly dense, thus we need to do..
+        return (self.model_deriv.T.dot(self.G.T)).T
 
     def Jvec(self, m, v, f=None):
         self.model = m

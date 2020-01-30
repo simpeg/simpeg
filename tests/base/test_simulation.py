@@ -7,11 +7,8 @@ class TestLinearSimulation(unittest.TestCase):
 
     def setUp(self):
         mesh = discretize.TensorMesh([100])
-        receivers = survey.BaseRx(20*[[0.0]])
-        source = survey.BaseSrc([receivers])
         self.sim = simulation.ExponentialSinusoidSimulation(
             mesh=mesh,
-            survey=survey.BaseSurvey([source]),
             model_map=maps.IdentityMap(mesh),
         )
 

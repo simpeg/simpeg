@@ -5,6 +5,7 @@ from .utils import Counter, sdiag, timeIt
 from .data import Data
 from .simulation import BaseSimulation
 from .objective_function import L2ObjectiveFunction
+import warnings
 
 __all__ = ["L2DataMisfit"]
 

@@ -10,16 +10,17 @@ from __future__ import print_function
 import numpy as np
 import matplotlib.pyplot as plt
 
-from SimPEG import Mesh
-from SimPEG import Problem
-from SimPEG import Survey
-from SimPEG import DataMisfit
+import discretize
+#from SimPEG import Problem
+from SimPEG.simulation import LinearSimulation
+from SimPEG.data import Data
+from SimPEG import data_misfit
 from SimPEG import directives
-from SimPEG import Optimization
-from SimPEG import Regularization
-from SimPEG import InvProblem
-from SimPEG import Inversion
-from SimPEG import Maps
+from SimPEG import optimization
+from SimPEG import regularization
+from SimPEG import inverse_problem
+from SimPEG import inversion
+from SimPEG import maps
 
 
 def run(N=100, plotIt=True):
@@ -54,14 +55,13 @@ def run(N=100, plotIt=True):
     mtrue[mesh.vectorCCx > 0.45] = -0.5
     mtrue[mesh.vectorCCx > 0.6] = 0
 
-    prob = Problem.LinearProblem(mesh, G=G)
-    survey = Survey.LinearSurvey()
-    survey.pair(prob)
-    survey.dobs = prob.fields(mtrue) + std_noise * np.random.randn(nk)
+    prob = LinearSimulation(mesh, G=G, model_map=maps.IdentityMap(mesh))
+    data = prob.make_synthetic_data(mtrue,
+        standard_deviation=0.0,
+        noise_floor=std_noise,
+        add_noise=True)
 
-    wd = np.ones(nk) * std_noise
-    dmis = data_misfit.l2_DataMisfit(survey)
-    dmis.W = 1./wd
+    dmis = data_misfit.L2DataMisfit(simulation=prob, data=data)
 
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 
@@ -84,7 +84,7 @@ def run(N=100, plotIt=True):
     # Start with an l2-l2, then switch to lp-norms
 
     IRLS = directives.Update_IRLS(
-        maxIRLSiter=40, minGNiter=1, f_min_change=1e-4)
+        max_irls_iterations=40, minGNiter=1, f_min_change=1e-4)
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
 
@@ -139,7 +139,7 @@ def run(N=100, plotIt=True):
         axes[1, 0].axis('off')
         twin.set_ylabel('$\phi_m$', size=16, rotation=0)
 
-    return prob, survey, mesh, mrec
+    return prob, data, mesh, mrec
 
 
 if __name__ == '__main__':
