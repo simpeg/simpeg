@@ -100,7 +100,7 @@ def run(plotIt=True, cleanAfterRun=True):
     reg = regularization.Sparse(mesh, indActive=active,
                                 mapping=staticCells, gradientType='total')
     reg.mref = driver.mref[dynamic]
-    
+
     reg.norms = np.c_[0., 1., 1., 1.]
     # reg.norms = driver.lpnorms
 

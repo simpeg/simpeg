@@ -75,7 +75,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Lets start with a simple block in half-space
         self.model = utils.ModelBuilder.addBlock(
             self.mesh.gridCC, np.zeros(self.mesh.nC),
-            np.r_[-20, -20, -5], np.r_[20, 20, 30], 0.05
+            np.r_[-20, -20, -15], np.r_[20, 20, 20], 0.05
         )[actv]
 
         # Create active map to go from reduce set to full

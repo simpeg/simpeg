@@ -493,4 +493,3 @@ class RegularizationMesh(props.BaseSimPEG):
                 self.Pafz.T * self.mesh._cellGradzStencil * self.Pac
             )
         return self._cellDiffzStencil
-
