@@ -30,9 +30,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
     #     """
     #     Solve the forward problem without storing fields
 
-    #     :param numpy.array m: inversion model (nP,)
-    #     :rtype: numpy.array
-    #     :return numpy.array: numpy.array (nD,)
+    #     :param numpy.ndarray m: inversion model (nP,)
+    #     :rtype: numpy.ndarray
+    #     :return numpy.ndarray: numpy.ndarray (nD,)
 
     #     """
 
@@ -40,7 +40,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         """
         Solve the forward problem for the fields.
 
-        :param numpy.array m: inversion model (nP,)
+        :param numpy.ndarray m: inversion model (nP,)
         :rtype: SimPEG.EM.TDEM.FieldsTDEM
         :return f: fields object
         """
@@ -387,7 +387,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             ifields = np.zeros((self.mesh.nE, len(Srcs)))
 
         if self.verbose:
-            print ("Calculating Initial fields")
+            print("Calculating Initial fields")
 
         for i, src in enumerate(Srcs):
             ifields[:, i] = (
@@ -1044,6 +1044,24 @@ class Problem3D_h(BaseTDEMProblem):
         # assumes no source derivs
         return C.T * self.MfRhoDeriv(s_e, v, adjoint)
 
+    def getRHSDeriv(self, tInd, src, v, adjoint=False):
+        return Utils.Zero()  # assumes no derivs on sources
+
+    def getAdc(self):
+        D = Utils.sdiag(self.mesh.vol) * self.mesh.faceDiv
+        G = D.T
+        MfRhoI = self.MfRhoI
+        return D * MfRhoI * G
+
+    def getAdcDeriv(self, u, v, adjoint=False):
+        D = Utils.sdiag(self.mesh.vol) * self.mesh.faceDiv
+        G = D.T
+
+        if adjoint:
+            # This is the same as
+            #      self.MfRhoIDeriv(G * u, D.T * v, adjoint=True)
+            return self.MfRhoIDeriv(G * u, G * v, adjoint=True)
+        return D * self.MfRhoIDeriv(G * u, v)
 
 # ------------------------------- Problem3D_j ------------------------------- #
 
@@ -1141,5 +1159,15 @@ class Problem3D_j(BaseTDEMProblem):
         G = D.T
         MfRhoI = self.MfRhoI
         return D * MfRhoI * G
+
+    def getAdcDeriv(self, u, v, adjoint=False):
+        D = Utils.sdiag(self.mesh.vol) * self.mesh.faceDiv
+        G = D.T
+
+        if adjoint:
+            # This is the same as
+            #      self.MfRhoIDeriv(G * u, D.T * v, adjoint=True)
+            return self.MfRhoIDeriv(G * u, G * v, adjoint=True)
+        return D * self.MfRhoIDeriv(G * u, v)
 
 

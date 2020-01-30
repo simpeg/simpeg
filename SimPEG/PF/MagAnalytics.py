@@ -189,7 +189,7 @@ def IDTtoxyz(Inc, Dec, Btot):
     """
     Bx = Btot*np.cos(Inc/180.*np.pi)*np.sin(Dec/180.*np.pi)
     By = Btot*np.cos(Inc/180.*np.pi)*np.cos(Dec/180.*np.pi)
-    Bz = -Btot*np.sin(Inc/180.*np.pi)
+    Bz = Btot*np.sin(Inc/180.*np.pi)
 
     return np.r_[Bx, By, Bz]
 
@@ -224,7 +224,7 @@ def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
 
     rx = (x - xc)
     ry = (y - yc)
-    rz = (zc - z)
+    rz = (z - zc)
 
     rvec = np.c_[rx, ry, rz]
     r = np.sqrt((rx)**2+(ry)**2+(rz)**2)

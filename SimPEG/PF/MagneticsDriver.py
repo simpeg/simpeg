@@ -182,17 +182,19 @@ class MagneticsDriver_Inv(object):
     @property
     def survey(self):
         if getattr(self, '_survey', None) is None:
-            self._survey = self.readMagneticsObservations(
+            self._survey, _ = Utils.io_utils.readUBCmagneticsObservations(
                 self.basePath + self.obsfile
-        )
+            )
         return self._survey
 
     @property
     def activeCells(self):
         if getattr(self, '_activeCells', None) is None:
             if getattr(self, 'topofile', None) is not None:
-                topo = np.genfromtxt(self.basePath + self.topofile,
-                                     skip_header=1)
+                topo = np.genfromtxt(
+                    self.basePath + self.topofile, skip_header=1
+                )
+
                 # Find the active cells
                 active = Utils.surface2ind_topo(self.mesh, topo, 'N')
 
@@ -203,9 +205,7 @@ class MagneticsDriver_Inv(object):
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
                 active = self.activeModel != 0
 
-            inds = np.asarray([inds for inds,
-                               elem in enumerate(active, 1)
-                               if elem], dtype=int) - 1
+            inds = np.where(active)[0]
 
             self._activeCells = inds
 
@@ -222,9 +222,7 @@ class MagneticsDriver_Inv(object):
             # Cells with value 1 in active model are dynamic
             staticCells = self.activeModel[self.activeCells] == -1
 
-            inds = np.asarray([inds for inds,
-                               elem in enumerate(staticCells, 1)
-                               if elem], dtype=int) - 1
+            inds = np.where(staticCells)[0]
 
             self._staticCells = inds
 
@@ -237,9 +235,7 @@ class MagneticsDriver_Inv(object):
             # Cells with value 1 in active model are dynamic
             dynamicCells = self.activeModel[self.activeCells] == 1
 
-            inds = np.asarray([inds for inds,
-                               elem in enumerate(dynamicCells, 1)
-                               if elem], dtype=int) - 1
+            inds = np.where(dynamicCells)[0]
 
             self._dynamicCells = inds
 
@@ -257,9 +253,9 @@ class MagneticsDriver_Inv(object):
             if isinstance(self.mstart, float):
                 self._m0 = np.ones(self.nC) * self.mstart
             else:
-                self._m0 = Mesh.TensorMesh.readModelUBC(self.mesh,
-                                                        self.basePath +
-                                                        self.mstart)
+                self._m0 = Mesh.TensorMesh.readModelUBC(
+                    self.mesh, self.basePath + self.mstart
+                )
 
         return self._m0
 
@@ -269,9 +265,9 @@ class MagneticsDriver_Inv(object):
             if isinstance(self._mrefInput, float):
                 self._mref = np.ones(self.nC) * self._mrefInput
             else:
-                self._mref = Mesh.TensorMesh.readModelUBC(self.mesh,
-                                                          self.basePath +
-                                                          self._mrefInput)
+                self._mref = Mesh.TensorMesh.readModelUBC(
+                    self.mesh, self.basePath + self._mrefInput
+                )
 
                 # Reduce to active space
                 self._mref = self._mref[self.activeCells]
@@ -283,7 +279,9 @@ class MagneticsDriver_Inv(object):
         if getattr(self, '_activeModel', None) is None:
             if self._staticInput == 'FILE':
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
-                self._activeModel = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self._staticInput)
+                self._activeModel = Mesh.TensorMesh.readModelUBC(
+                    self.mesh, self.basePath + self._staticInput
+                )
 
             else:
                 self._activeModel = np.ones(self._mesh.nC)
@@ -298,10 +296,10 @@ class MagneticsDriver_Inv(object):
 
         if getattr(self, 'magfile', None) is None:
 
-            M = Magnetics.dipazm_2_xyz(np.ones(self.nC) *
-                                       self.survey.srcField.param[1],
-                                       np.ones(self.nC) *
-                                       self.survey.srcField.param[2])
+            M = Magnetics.dip_azimuth2cartesian(
+                np.ones(self.nC) * self.survey.srcField.param[1],
+                np.ones(self.nC) * self.survey.srcField.param[2]
+            )
 
         else:
 
@@ -319,9 +317,11 @@ class MagneticsDriver_Inv(object):
 
             # Cycle through three components and permute from UBC to SimPEG
             for ii in range(3):
-                m = np.reshape(M[:, ii],
-                               (self.mesh.nCz, self.mesh.nCx, self.mesh.nCy),
-                               order='F')
+                m = np.reshape(
+                    M[:, ii],
+                    (self.mesh.nCz, self.mesh.nCx, self.mesh.nCy),
+                    order='F'
+                )
 
                 m = m[::-1, :, :]
                 m = np.transpose(m, (1, 2, 0))
@@ -330,58 +330,3 @@ class MagneticsDriver_Inv(object):
         self._M = M
 
         return self._M
-
-    def readMagneticsObservations(self, obs_file):
-        """
-        Read and write UBC mag file format
-
-        INPUT:
-        :param fileName, path to the UBC obs mag file
-
-        OUTPUT:
-        :param survey
-        :param M, magnetization orentiaton (MI, MD)
-        """
-
-        fid = open(obs_file, 'r')
-
-        # First line has the inclination,declination and amplitude of B0
-        line = fid.readline()
-        B = np.array(line.split(), dtype=float)
-
-        # Second line has the magnetization orientation and a flag
-        line = fid.readline()
-        M = np.array(line.split(), dtype=float)
-
-        # Third line has the number of rows
-        line = fid.readline()
-        ndat = int(line.strip())
-
-        # Pre-allocate space for obsx, obsy, obsz, data, uncert
-        line = fid.readline()
-        temp = np.array(line.split(), dtype=float)
-
-        d = np.zeros(ndat, dtype=float)
-        wd = np.zeros(ndat, dtype=float)
-        locXYZ = np.zeros((ndat, 3), dtype=float)
-
-        for ii in range(ndat):
-
-            temp = np.array(line.split(), dtype=float)
-            if len(temp) > 0:
-                locXYZ[ii, :] = temp[:3]
-
-                if len(temp) > 3:
-                    d[ii] = temp[3]
-
-                    if len(temp) == 5:
-                        wd[ii] = temp[4]
-
-            line = fid.readline()
-
-        rxLoc = BaseMag.RxObs(locXYZ)
-        srcField = BaseMag.SrcField([rxLoc], param=(B[2], B[0], B[1]))
-        survey = BaseMag.LinearSurvey(srcField)
-        survey.dobs = d
-        survey.std = wd
-        return survey

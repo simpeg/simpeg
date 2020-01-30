@@ -4,11 +4,15 @@ import matplotlib
 import properties
 import warnings
 
+import discretize as Mesh
+from discretize.base import BaseMesh
+
 import SimPEG
-from SimPEG import Utils, Mesh
+from SimPEG import Utils
 from . import SrcDC as Src
 from . import RxDC as Rx
 from .SurveyDC import Survey_ky, Survey
+
 
 class IO(properties.HasProperties):
     """
@@ -160,7 +164,7 @@ class IO(properties.HasProperties):
 
     # Related to Physics and Discretization
     mesh = properties.Instance(
-        "Mesh for discretization", Mesh.BaseMesh, required=True
+        "Mesh for discretization", BaseMesh, required=True
     )
 
     dx = properties.Float(
@@ -506,7 +510,7 @@ class IO(properties.HasProperties):
                 )
             x0 = self.electrode_locations[:, 0].min()
             if topo is None:
-                locs = self.electrode_locations
+                locs = np.sort(self.electrode_locations, axis=0)
             else:
                 locs = np.vstack((topo, self.electrode_locations))
 
@@ -549,6 +553,7 @@ class IO(properties.HasProperties):
                     np.r_[x0, x0+lineLength],
                     np.r_[zmax-corezlength, zmax]
                 ))
+                fill_value = "extrapolate"
 
             # For 3D mesh
             else:
@@ -582,8 +587,9 @@ class IO(properties.HasProperties):
                     np.r_[ymin-dy*3, ymax+dy*3],
                     np.r_[zmax-corezlength, zmax]
                 ))
+                fill_value = np.nan
             mesh = Mesh.TensorMesh(h, x0=x0_for_mesh)
-            actind = Utils.surface2ind_topo(mesh, locs, method=method)
+            actind = Utils.surface2ind_topo(mesh, locs, method=method, fill_value=fill_value)
         else:
             raise NotImplementedError()
 
@@ -647,7 +653,7 @@ class IO(properties.HasProperties):
                 val = self.voltages_ip.copy()[inds] * 1e3
             label = "Secondary voltage. (mV)"
         else:
-            print (data_type)
+            print(data_type)
             raise NotImplementedError()
         if scale == "log":
             fmt = "10$^{%.1f}$"

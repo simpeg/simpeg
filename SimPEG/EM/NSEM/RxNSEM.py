@@ -421,7 +421,7 @@ class Point_impedance1D(SimPEG.Survey.BaseRx):
         :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
         :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param bool (optional) return_complex: Flag for return the complex evaluation
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: Evaluated data for the receiver
         '''
         # NOTE: Maybe set this as a property
@@ -444,7 +444,7 @@ class Point_impedance1D(SimPEG.Survey.BaseRx):
         :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
         :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param numpy.ndarray v: vector of size (nU,) (adjoint=False) and size (nD,) (adjoint=True)
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True) for both polarizations
         """
         self.src = src
@@ -492,7 +492,7 @@ class Point_impedance3D(BaseRxNSEM_Point):
         :param SrcNSEM src: The source of the fields to project
         :param discretize.TensorMesh mesh: topological mesh corresponding to the fields
         :param FieldsNSEM f: Natural source fields object to project
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: component of the impedance evaluation
         '''
         # NOTE: Maybe set this as a property
@@ -524,7 +524,7 @@ class Point_impedance3D(BaseRxNSEM_Point):
         :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
         :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param numpy.ndarray v: vector of size (nU,) (adjoint=False) and size (nD,) (adjoint=True)
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True) for both polarizations
         """
         self.src = src
@@ -654,7 +654,7 @@ class Point_tipper3D(BaseRxNSEM_Point):
         :param SrcNSEM src: The source of the fields to project
         :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
         :param FieldsNSEM f: Natural source fields object to project
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: Evaluated component of the impedance data
         '''
         # NOTE: Maybe set this as a property
@@ -681,7 +681,7 @@ class Point_tipper3D(BaseRxNSEM_Point):
         :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
         :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param numpy.ndarray v: Random vector of size
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True)
             for both polarizations
         """

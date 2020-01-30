@@ -1,11 +1,14 @@
 from __future__ import print_function
+
+from discretize.base import BaseMesh
+from discretize import TensorMesh
+
 from . import Utils
 from . import Survey
 from . import Models
 import numpy as np
 from . import Maps
 from .Fields import Fields, TimeFields
-from . import Mesh
 from . import Props
 import properties
 
@@ -46,7 +49,7 @@ class BaseProblem(Props.HasModel):
             )
 
         super(BaseProblem, self).__init__(**kwargs)
-        assert isinstance(mesh, Mesh.BaseMesh), (
+        assert isinstance(mesh, BaseMesh), (
             "mesh must be a discretize object."
         )
         self.mesh = mesh
@@ -162,10 +165,10 @@ class BaseProblem(Props.HasModel):
 
         Effect of J(m) on a vector v.
 
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: Jv
         """
         raise NotImplementedError('J is not yet implemented.')
@@ -176,10 +179,10 @@ class BaseProblem(Props.HasModel):
 
         Effect of transpose of J(m) on a vector v.
 
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: JTv
         """
         raise NotImplementedError('Jt is not yet implemented.')
@@ -190,10 +193,10 @@ class BaseProblem(Props.HasModel):
 
         Approximate effect of J(m) on a vector v
 
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: approxJv
         """
         return self.Jvec(m, v, f)
@@ -204,10 +207,10 @@ class BaseProblem(Props.HasModel):
 
         Approximate effect of transpose of J(m) on a vector v.
 
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: JTv
         """
         return self.Jtvec(m, v, f)
@@ -215,8 +218,8 @@ class BaseProblem(Props.HasModel):
     def fields(self, m):
         """The field given the model.
 
-        :param numpy.array m: model
-        :rtype: numpy.array
+        :param numpy.ndarray m: model
+        :rtype: numpy.ndarray
         :return: u, the fields
         """
         raise NotImplementedError('fields is not yet implemented.')
@@ -273,7 +276,7 @@ class BaseTimeProblem(BaseProblem):
     @property
     def timeMesh(self):
         if getattr(self, '_timeMesh', None) is None:
-            self._timeMesh = Mesh.TensorMesh([self.timeSteps], x0=[self.t0])
+            self._timeMesh = TensorMesh([self.timeSteps], x0=[self.t0])
         return self._timeMesh
 
     @timeMesh.deleter
@@ -284,13 +287,16 @@ class BaseTimeProblem(BaseProblem):
 
 class LinearProblem(BaseProblem):
 
-    # surveyPair = Survey.LinearSurvey
+    # model, modelMap, modelDeriv = Props.Invertible(
+    #     "Generic model parameters",
+    #     default=1.
+    # )
 
     G = None
 
     def __init__(self, mesh, **kwargs):
         BaseProblem.__init__(self, mesh, **kwargs)
-        # self.mapping = kwargs.pop('mapping', Maps.IdentityMap(mesh))
+        self.modelMap = kwargs.pop('modelMap', Maps.IdentityMap(mesh))
 
     @property
     def modelMap(self):
@@ -299,23 +305,14 @@ class LinearProblem(BaseProblem):
             self._modelMap = Maps.IdentityMap(self.mesh)
         return self._modelMap
 
+
     @modelMap.setter
     def modelMap(self, val):
         val._assertMatchesPair(self.mapPair)
         self._modelMap = val
 
     def fields(self, m):
-
-        # Check possible dtype for linear operator
-        # Important to avoid memory copies of dense matrix
-        if self.G.dtype is np.dtype('float32'):
-            y = np.dot(self.G, m.astype(np.float32))
-            y.astype(np.float64)
-
-        else:
-            y = np.dot(self.G, self.modelMap*m)
-
-        return y
+        return self.G.dot(self.modelMap * m)
 
     def getJ(self, m, f=None):
         """
@@ -329,29 +326,7 @@ class LinearProblem(BaseProblem):
             return self.G
 
     def Jvec(self, m, v, f=None):
-
-        # Check possible dtype for linear operator
-        # Important to avoid memory copies of dense matrix
-        if self.G.dtype is np.dtype('float32'):
-            y = np.dot(self.G, self.modelMap.deriv(m)*(v.astype(np.float32)))
-            y.astype(np.float64)
-
-        else:
-            y = np.dot(self.G, self.modelMap.deriv(m)*v)
-
-        return y
+        return self.G.dot(self.modelMap.deriv(m) * v)
 
     def Jtvec(self, m, v, f=None):
-
-        # Check possible dtype for linear operator
-        # Important to avoid memory copies of dense matrix
-        if self.G.dtype is np.dtype('float32'):
-
-            y = self.modelMap.deriv(m).T * np.dot(self.G.T, v.astype(np.float32))
-            y.astype(np.float64)
-
-        else:
-            y = self.modelMap.deriv(m).T * np.dot(self.G.T, v)
-
-        return y
-
+        return self.modelMap.deriv(m).T*self.G.T.dot(v)

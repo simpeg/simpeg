@@ -602,7 +602,8 @@ class Fields3D_j(FieldsTDEM):
                     'dbdt': ['jSolution', 'E', '_dbdt'],
                     'j': ['jSolution', 'F', '_j'],
                     'e': ['jSolution', 'F', '_e'],
-                    'charge': ['jSolution', 'CC', '_charge']
+                    'charge': ['jSolution', 'CC', '_charge'],
+                    'charge_density': ['jSolution', 'CC', '_charge_density'],
                   }
 
     def startup(self):
@@ -677,34 +678,37 @@ class Fields3D_j(FieldsTDEM):
 
     def _charge(self, jSolution, srcList, tInd):
         vol = sdiag(self.survey.prob.mesh.vol)
-        return epsilon_0*vol*(
+        return vol*self._charge_density(jSolution, srcList, tInd)
+
+    def _charge_density(self, jSolution, srcList, tInd):
+        return epsilon_0*(
             self.survey.prob.mesh.faceDiv*self._e(jSolution, srcList, tInd)
         )
 
     def _dbdt(self, jSolution, srcList, tInd):
         dhdt = Utils.mkvc(self._dhdt(jSolution, srcList, tInd))
-        return self.survey.prob.Me * (self.survey.prob.MeMuI * dhdt)
+        return self.survey.prob.MeI * (self.survey.prob.MeMu * dhdt)
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         # dhdt = Utils.mkvc(self[src, 'dhdt', tInd])
         if adjoint:
             return self._dhdtDeriv_u(
                 tInd, src,
-                self.survey.prob.MeMuI.T * (self.survey.prob.Me.T * dun_dm_v),
+                self.survey.prob.MeMu.T * (self.survey.prob.MeI.T * dun_dm_v),
                 adjoint
             )
-        return self.survey.prob.Me * (
-            self.survey.prob.MeMuI * self._dhdtDeriv_u(tInd, src, dun_dm_v)
+        return self.survey.prob.MeI * (
+            self.survey.prob.MeMu * self._dhdtDeriv_u(tInd, src, dun_dm_v)
         )
 
     def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
         if adjoint:
             return self._dhdtDeriv_m(
                 tInd, src,
-                self.survey.prob.MeMuI.T * (self.survey.prob.Me.T * v),
+                self.survey.prob.MeMu.T * (self.survey.prob.MeI.T * v),
                 adjoint
             )
-        return self.survey.prob.Me * (
-            self.survey.prob.MeMuI * self._dhdtDeriv_m(tInd, src, v)
+        return self.survey.prob.MeI * (
+            self.survey.prob.MeMu * self._dhdtDeriv_m(tInd, src, v)
         )
 

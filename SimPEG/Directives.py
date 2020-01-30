@@ -1,16 +1,20 @@
 from __future__ import print_function
+
+import properties
+import numpy as np
+import matplotlib.pyplot as plt
+import warnings
+import os
+import copy
+import scipy.sparse as sp
+
 from . import (
     Utils, Regularization,
     ObjectiveFunction, DataMisfit
 )
 
-import numpy as np
-import matplotlib.pyplot as plt
-import warnings
-import copy
-import scipy.sparse as sp
 
-class InversionDirective(object):
+class InversionDirective(properties.HasProperties):
     """InversionDirective"""
 
     debug = False    #: Print debugging information
@@ -294,16 +298,30 @@ class TargetMisfit(InversionDirective):
 
 
 class SaveEveryIteration(InversionDirective):
+    """SaveEveryIteration
 
-    @property
-    def name(self):
-        if getattr(self, '_name', None) is None:
-            self._name = 'InversionModel'
-        return self._name
+    This directive saves an array at each iteration. The default
+    direcroty is the current directoy and the models are saved as
+    `InversionModel-YYYY-MM-DD-HH-MM-iter.npy`
+    """
 
-    @name.setter
-    def name(self, value):
-        self._name = value
+    directory = properties.String(
+        "directory to save results in",
+        default = "."
+    )
+
+    name = properties.String(
+        "root of the filename to be saved",
+        default="InversionModel"
+    )
+
+    @properties.validator('directory')
+    def _ensure_abspath(self, change):
+        val = change['value']
+        fullpath = os.path.abspath(os.path.expanduser(val))
+
+        if not os.path.isdir(fullpath):
+            os.mkdir(fullpath)
 
     @property
     def fileName(self):
@@ -314,26 +332,33 @@ class SaveEveryIteration(InversionDirective):
             )
         return self._fileName
 
-    @fileName.setter
-    def fileName(self, value):
-        self._fileName = value
-
 
 class SaveModelEveryIteration(SaveEveryIteration):
-    """SaveModelEveryIteration"""
+    """SaveModelEveryIteration
+
+    This directive saves the model as a numpy array at each iteration. The
+    default direcroty is the current directoy and the models are saved as
+    `InversionModel-YYYY-MM-DD-HH-MM-iter.npy`
+    """
 
     def initialize(self):
         print(
-            "SimPEG.SaveModelEveryIteration will save your models as: '###-{0!s}.npy'".format(self.fileName))
+            "SimPEG.SaveModelEveryIteration will save your models as: "
+            "'{0!s}###-{1!s}.npy'".format(
+                self.directory + os.path.sep, self.fileName
+            )
+        )
 
     def endIter(self):
-        np.save('{0:03d}-{1!s}'.format(
-            self.opt.iter, self.fileName), self.opt.xc
+        np.save(
+            '{0!s}{1:03d}-{2!s}'.format(
+                self.directory + os.path.sep, self.opt.iter, self.fileName
+            ), self.opt.xc
         )
 
 
 class SaveOutputEveryIteration(SaveEveryIteration):
-    """SaveModelEveryIteration"""
+    """SaveOutputEveryIteration"""
 
     header = None
     save_txt = True
@@ -637,9 +662,9 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
         self.outDict[self.opt.iter] = iterDict
 
+
 class Update_IRLS(InversionDirective):
 
-    updateGamma = False
     f_old = 0
     f_min_change = 1e-2
     beta_tol = 1e-1
@@ -732,12 +757,12 @@ class Update_IRLS(InversionDirective):
                     self.sphericalDomain = True
 
         if self.sphericalDomain:
-            self._angleScale()
+            self.angleScale()
 
     def endIter(self):
 
         if self.sphericalDomain:
-            self._angleScale()
+            self.angleScale()
 
         # Check if misfit is within the tolerance, otherwise scale beta
         if np.all([
@@ -762,6 +787,7 @@ class Update_IRLS(InversionDirective):
                 # Re-use previous model and continue with new beta
                 self.invProb.model = self.reg.objfcts[0].model
                 self.opt.xc = self.reg.objfcts[0].model
+                self.opt.iter -= 1
                 return
 
         elif np.all([self.mode == 1, self.opt.iter % self.coolingRate == 0]):
@@ -812,10 +838,10 @@ class Update_IRLS(InversionDirective):
 
                 if reg.eps_p > self.floorEps_p and self.coolEps_p:
                     reg.eps_p /= self.coolEpsFact
-                    print('Eps_p: ' + str(reg.eps_p))
+                    # print('Eps_p: ' + str(reg.eps_p))
                 if reg.eps_q > self.floorEps_q and self.coolEps_q:
                     reg.eps_q /= self.coolEpsFact
-                    print('Eps_q: ' + str(reg.eps_q))
+                    # print('Eps_q: ' + str(reg.eps_q))
 
             # Remember the value of the norm from previous R matrices
             # self.f_old = self.reg(self.invProb.model)
@@ -852,27 +878,14 @@ class Update_IRLS(InversionDirective):
                 np.abs(1. - self.invProb.phi_d / self.target) < self.beta_tol
             ]):
 
-                print("Minimum decrease in regularization. End of IRLS")
+                print(
+                    "Minimum decrease in regularization." +
+                    "End of IRLS"
+                    )
                 self.opt.stopNextIteration = True
                 return
 
             self.f_old = phim_new
-
-            # Update gamma to scale the regularization between IRLS iterations
-            for reg, phim_old, phim_now in zip(self.reg.objfcts,
-                                               phi_m_last, phi_m_new
-                                               ):
-                # Now optional for extra care
-                if self.updateGamma:
-
-                    gamma = phim_old / phim_now
-
-                else:
-                    gamma = 1
-
-                # If comboObj, go down one more level
-                for comp in reg.objfcts:
-                    comp.gamma = gamma
 
             self.updateBeta = True
             self.invProb.phi_m_last = self.reg(self.invProb.model)
@@ -913,7 +926,6 @@ class Update_IRLS(InversionDirective):
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms in zip(self.reg.objfcts, self.norms):
-
             reg.norms = norms
 
         # Save l2-model
@@ -925,27 +937,24 @@ class Update_IRLS(InversionDirective):
                 print("eps_p: " + str(reg.eps_p) +
                       " eps_q: " + str(reg.eps_q))
 
-    @property
-    def _angleScale(self):
+    def angleScale(self):
         """
             Update the scales used by regularization for the
             different block of models
         """
-
         # Currently implemented for MVI-S only
         max_p = []
         for reg in self.reg.objfcts[0].objfcts:
             eps_p = reg.epsilon
-            norm_p = 2  # self.reg.objfcts[0].norms[0]
             f_m = abs(reg.f_m)
-            max_p += [np.max(eps_p**(1 - norm_p / 2.) * f_m /
-                             (f_m**2. + eps_p**2.)**(1 - norm_p / 2.))]
+            max_p += [np.max(f_m)]
 
-        max_p = np.asarray(max_p)
+        max_p = np.asarray(max_p).max()
 
         max_s = [np.pi, np.pi]
-        for obj, var in zip(self.reg.objfcts[1:], max_s):
-            obj.scale = max_p.max() / var
+
+        for obj, var in zip(self.reg.objfcts[1:3], max_s):
+            obj.scales = np.ones(obj.scales.shape)*max_p/var
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
@@ -974,20 +983,28 @@ class UpdatePreconditioner(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
     """
-    onlyOnStart = False
-    mapping = None
-    ComboObjFun = False
+
+    update_every_iteration = True  #: Update every iterations if False
 
     def initialize(self):
 
-        if getattr(self.opt, 'approxHinv', None) is None:
+        # Create the pre-conditioner
+        regDiag = np.zeros_like(self.invProb.model)
+        m = self.invProb.model
 
-            m = self.invProb.model
+        for reg in self.reg.objfcts:
+            # Check if regularization has a projection
+            rdg = reg.deriv2(m)
+            if  not isinstance(rdg, Utils.matutils.Zero):
+                regDiag += rdg.diagonal()
 
-            if getattr(self.opt, 'JtJdiag', None) is None:
+        # Deal with the linear case
+        if getattr(self.opt, 'JtJdiag', None) is None:
 
-                JtJdiag = np.zeros_like(self.invProb.model)
-                for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
+            print("Approximated diag(JtJ) with linear operator")
+
+            JtJdiag = np.zeros_like(self.invProb.model)
+            for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
 
                     if getattr(prob, 'getJtJdiag', None) is None:
                         assert getattr(prob, 'getJ', None) is not None, (
@@ -996,36 +1013,35 @@ class UpdatePreconditioner(InversionDirective):
                         )
                         JtJdiag += np.sum(np.power((dmisfit.W*prob.getJ(m)), 2), axis=0)
                     else:
-                        JtJdiag += prob.getJtJdiag(m)
+                        JtJdiag += prob.getJtJdiag(m, W=dmisfit.W)
 
-                self.opt.JtJdiag = JtJdiag
+            self.opt.JtJdiag = JtJdiag
 
-            # Update the pre-conditioner
-            reg_diag = np.zeros_like(self.invProb.model)
-            for reg in self.reg.objfcts:
-                W = reg.deriv2(m)
-                reg_diag += self.invProb.beta * W.diagonal()
-            Hdiag = self.opt.JtJdiag + reg_diag
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
+        diagA[diagA != 0] = diagA[diagA != 0] ** -1.
+        PC = Utils.sdiag((diagA))
 
-            PC = Utils.sdiag(Hdiag**-1.)
-            self.opt.approxHinv = PC
+        self.opt.approxHinv = PC
 
     def endIter(self):
         # Cool the threshold parameter
-        if self.onlyOnStart is True:
+        if self.update_every_iteration is False:
             return
 
-        if getattr(self.opt, 'approxHinv', None) is not None:
-            m = self.invProb.model
-            # Update the pre-conditioner
-            reg_diag = np.zeros_like(self.invProb.model)
-            for reg in self.reg.objfcts:
-                W = reg.deriv2(m)
-                reg_diag += self.invProb.beta * W.diagonal()
-            Hdiag = self.opt.JtJdiag + reg_diag
+        # Create the pre-conditioner
+        regDiag = np.zeros_like(self.invProb.model)
+        m = self.invProb.model
 
-            PC = Utils.sdiag(Hdiag**-1.)
-            self.opt.approxHinv = PC
+        for reg in self.reg.objfcts:
+            rdg = reg.deriv2(m)
+            if  not isinstance(rdg, Utils.matutils.Zero):
+                regDiag += rdg.diagonal()
+
+        # Assumes that opt.JtJdiag has been updated or static
+        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
+        diagA[diagA != 0] = diagA[diagA != 0] ** -1.
+        PC = Utils.sdiag((diagA))
+        self.opt.approxHinv = PC
 
 
 class Update_Wj(InversionDirective):
@@ -1065,13 +1081,14 @@ class GaussianMixtureUpdateModel(InversionDirective):
 
     coolingFactor = 1.
     coolingRate = 1
-    update_covariances = False
+    update_covariances = True
     verbose = False
     alphadir = None
     nu = None
     kappa = None
     fixed_membership = None
     keep_ref_fixed_in_Smooth = True
+    boreholeidx = None
 
     def initialize(self):
         if getattr(
@@ -1137,7 +1154,6 @@ class GaussianMixtureUpdateModel(InversionDirective):
         self.petroregularizer.GMmodel.weights_ = self.petroregularizer.GMmref.weights_
 
         clfupdate = Utils.GaussianMixtureWithPrior(
-            mesh=self.petroregularizer.regmesh,
             GMref=self.petroregularizer.GMmref,
             alphadir=self.alphadir,
             kappa=self.kappa,
@@ -1149,6 +1165,140 @@ class GaussianMixtureUpdateModel(InversionDirective):
             n_init=self.petroregularizer.GMmodel.n_init,
             reg_covar=self.petroregularizer.GMmodel.reg_covar,
             weights_init=self.petroregularizer.GMmodel.weights_,
+            means_init=self.petroregularizer.GMmodel.means_,
+            precisions_init=self.petroregularizer.GMmodel.precisions_,
+            random_state=self.petroregularizer.GMmodel.random_state,
+            tol=self.petroregularizer.GMmodel.tol,
+            verbose_interval=self.petroregularizer.GMmodel.verbose_interval,
+            warm_start=self.petroregularizer.GMmodel.warm_start,
+            fixed_membership=self.fixed_membership,
+            boreholeidx=self.boreholeidx,
+        )
+        clfupdate = clfupdate.fit(model)
+        #Utils.order_cluster(clfupdate, self.petroregularizer.GMmref)
+        self.petroregularizer.GMmodel = clfupdate
+        if self.fixed_membership is None:
+            membership = clfupdate.predict(model)
+            if self._regmode == 1:
+                self.invProb.reg.objfcts[self.petrosmallness].mref = Utils.mkvc(
+                    clfupdate.means_[membership])
+                self.invProb.reg.objfcts[
+                    self.petrosmallness]._r_second_deriv = None
+            else:
+                self.invProb.reg.mref = Utils.mkvc(
+                    clfupdate.means_[membership])
+                self.invProb.reg._r_second_deriv = None
+        else:
+            self.petroregularizer.mref = Utils.mkvc(
+                clfupdate.means_[self.fixed_membership])
+
+
+class GMMRFUpdateModel(InversionDirective):
+
+    coolingFactor = 1.
+    coolingRate = 1
+    update_covariances = True
+    verbose = False
+    alphadir = None
+    nu = None
+    kappa = None
+    fixed_membership = None
+    keep_ref_fixed_in_Smooth = True
+    neighbors = 8
+    temperature = 12.
+    boreholeidx = None
+    unit_anisotropy = None  # Dictionary with unit, anisotropy
+    index_anisotropy = None  # Dictionary with index, anisotropy, TODOs: to implement
+
+    def initialize(self):
+        if getattr(
+            self.invProb.reg.objfcts[0],
+            'objfcts',
+            None
+        ) is not None:
+            petrosmallness = np.where(np.r_[
+                [
+                    (
+                        isinstance(
+                            regpart,
+                            Regularization.SimplePetroRegularization
+                        ) or
+                        isinstance(
+                            regpart,
+                            Regularization.PetroRegularization
+                        ) or
+                        isinstance(
+                            regpart,
+                            Regularization.SimplePetroWithMappingRegularization
+                        )
+                    )
+                    for regpart in self.invProb.reg.objfcts
+                ]
+            ])[0][0]
+            self.petrosmallness = petrosmallness
+            if self.debug:
+                print(type(self.invProb.reg.objfcts[self.petrosmallness]))
+            self._regmode = 1
+        else:
+            self._regmode = 2
+
+    def endIter(self):
+
+        m = self.invProb.model
+        if self._regmode == 1:
+            self.petroregularizer = self.invProb.reg.objfcts[
+                self.petrosmallness]
+            modellist = self.invProb.reg.objfcts[
+                self.petrosmallness].wiresmap * m
+        else:
+            self.petroregularizer = self.invProb.reg
+            modellist = self.invProb.reg.wiresmap * m
+        model = np.c_[
+            [a * b for a, b in zip(self.petroregularizer.maplist, modellist)]].T
+
+        if (self.alphadir is None):
+            self.alphadir = (self.petroregularizer.gamma) * \
+                np.ones(self.petroregularizer.GMmref.n_components)
+        if (self.nu is None):
+            self.nu = self.petroregularizer.gamma * \
+                np.ones(self.petroregularizer.GMmref.n_components)
+        if (self.kappa is None):
+            self.kappa = self.petroregularizer.gamma * \
+                np.ones(self.petroregularizer.GMmref.n_components)
+
+        if self.petroregularizer.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
+            self.fixed_membership = self.petroregularizer.membership(
+                self.petroregularizer.mref)
+
+        # TEMPORARY FOR WEIGHTS ACCROSS THE MESH
+        # self.petroregularizer.GMmodel.weights_ = self.petroregularizer.GMmref.weights_
+        if self.unit_anisotropy is not None:
+            self.unit_anisotropy['index'] = []
+            for i, unit in enumerate(self.unit_anisotropy['unit']):
+                self.unit_anisotropy['index'].append(self.petroregularizer.membership(
+                self.petroregularizer.mref) == unit)
+
+        clfupdate = Utils.GaussianMixtureMarkovRandomField(
+            GMref=self.petroregularizer.GMmref,
+            kneighbors=self.neighbors,
+            kdtree=getattr(self.petroregularizer.GMmodel, "kdtree", None),
+            indexneighbors=getattr(self.petroregularizer.GMmodel, "indexneighbors", None),
+            index_anisotropy=self.unit_anisotropy,
+            index_kdtree=getattr(self.petroregularizer.GMmodel, "index_kdtree", None),
+            T=self.temperature,
+            alphadir=self.alphadir,
+            kappa=self.kappa,
+            nu=self.nu,
+            verbose=self.verbose,
+            prior_type='semi',
+            boreholeidx=self.boreholeidx,
+            update_covariances=self.update_covariances,
+            max_iter=self.petroregularizer.GMmodel.max_iter,
+            n_init=self.petroregularizer.GMmodel.n_init,
+            reg_covar=self.petroregularizer.GMmodel.reg_covar,
+            weights_init=self.petroregularizer.GMmodel.weights_*np.ones(
+                (len(model),self.petroregularizer.GMmref.n_components)
+            ),
             means_init=self.petroregularizer.GMmodel.means_,
             precisions_init=self.petroregularizer.GMmodel.precisions_,
             random_state=self.petroregularizer.GMmodel.random_state,
@@ -1174,8 +1324,6 @@ class GaussianMixtureUpdateModel(InversionDirective):
         else:
             self.petroregularizer.mref = Utils.mkvc(
                 clfupdate.means_[self.fixed_membership])
-
-
 
 
 class UpdateReference(InversionDirective):
@@ -1305,17 +1453,55 @@ class BoreholeLithologyConstraints(InversionDirective):
     borehole_index = None
     borehole_lithology = None
 
+    def initialize(self):
+        if getattr(
+            self.invProb.reg.objfcts[0],
+            'objfcts',
+            None
+        ) is not None:
+            petrosmallness = np.where(np.r_[
+                [
+                    (
+                        isinstance(
+                            regpart,
+                            Regularization.SimplePetroRegularization
+                        ) or
+                        isinstance(
+                            regpart,
+                            Regularization.PetroRegularization
+                        ) or
+                        isinstance(
+                            regpart,
+                            Regularization.SimplePetroWithMappingRegularization
+                        )
+                    )
+                    for regpart in self.invProb.reg.objfcts
+                ]
+            ])[0][0]
+            self.petrosmallness = petrosmallness
+            if self.debug:
+                print(type(self.invProb.reg.objfcts[self.petrosmallness]))
+            self._regmode = 1
+        else:
+            self._regmode = 2
+
+        if self._regmode == 1:
+            self.petroregularizer = self.invProb.reg.objfcts[
+                self.petrosmallness]
+        else:
+            self.petroregularizer = self.invProb.reg
+
     def endIter(self):
         Utils.order_cluster(
-            self.invProb.reg.GMmodel,
-            self.invProb.reg.GMmref
+            self.petroregularizer.GMmodel,
+            self.petroregularizer.GMmref
         )
-        membership = self.invProb.reg.membership(self.invProb.reg.mref)
-        for bidx, lth in zip(self.borehole_index,self.borehole_lithology):
+        membership = self.petroregularizer.membership(self.petroregularizer.mref)
+        for bidx, lth in zip(self.borehole_index, self.borehole_lithology):
             membership[bidx] = lth
 
-        self.invProb.reg.mref = Utils.mkvc(
-            self.invProb.reg.GMmodel.means_[membership]
+        self.petroregularizer.mref = Utils.mkvc(
+            self.petroregularizer.GMmodel.means_[membership]
         )
 
 
@@ -1491,7 +1677,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                             Small[0]].objfcts[Small[1]].deriv2(m, v=x0))
                         b = x0.dot(self.invProb.reg.objfcts[
                             idx[0]].objfcts[idx[1]].deriv2(m, v=x0))
-                        ratio.append(t / b)
+                        ratio.append(np.divide(t, b, out=np.zeros_like(t), where=b!=0))
 
                     self.alpha0[i] *= self.alpha0_ratio[i] * np.median(ratio)
                     mtype = self.invProb.reg.objfcts[
@@ -1504,6 +1690,53 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             if mode == 1:
                 for objf in self.invProb.reg.objfcts:
                     print('Alpha scales: ', objf.multipliers)
+
+
+class JointTargetMisfit(InversionDirective):
+
+    chifact = 1.
+    phi_d_star = None
+    verbose = False
+
+    @property
+    def DMtarget(self):
+        if getattr(self, '_DMtarget', None) is None:
+            # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+            if self.phi_d_star is None:
+                # Check if it is a ComboObjective
+                if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+                    self.phi_d_star = np.r_[
+                        [0.5 * survey.nD for survey in self.survey]]
+                else:
+                    self.phi_d_star = np.r_[
+                        [0.5 * self.invProb.dmisfit.survey.nD]]
+
+            self._DMtarget = self.chifact * self.phi_d_star
+        return self._DMtarget
+
+    @DMtarget.setter
+    def DMtarget(self, val):
+        self._DMtarget = val
+
+    def endIter(self):
+
+        self.DM = False
+
+        self.dmlist = np.r_[[dmis(self.invProb.model)
+                             for dmis in self.dmisfit.objfcts]]
+
+        self.targetlist = np.r_[
+            [dm < tgt for dm, tgt in zip(self.dmlist, self.DMtarget)]]
+
+        if np.all(self.targetlist):
+            self.DM = True
+
+        if self.verbose:
+            print(
+                'DM: ', self.dmlist, self.targetlist,
+            )
+        if self.DM:
+            self.opt.stopNextIteration = True
 
 
 class PetroTargetMisfit(InversionDirective):
@@ -1728,7 +1961,7 @@ class PetroTargetMisfit(InversionDirective):
 class ScalingEstimate_ByEig(InversionDirective):
     """BetaEstimate"""
 
-    Chi0 = None       #: The initial Beta (regularization parameter)
+    Chi0 = 1       #: The initial Beta (regularization parameter)
     Chi0_ratio = 1  #: estimateBeta0 is used with this ratio
     ninit = 1
     verbose = False
@@ -1744,21 +1977,25 @@ class ScalingEstimate_ByEig(InversionDirective):
         if len(self.dmisfit.objfcts) == 1:
             raise Exception('This Directives only applies ot joint inversion')
 
+        ndm = len(self.dmisfit.objfcts)
+        self.Chi0 = self.Chi0 *np.ones(ndm)
+
         m = self.invProb.model
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
-        ratio = []
+        ratio = np.zeros((self.ninit,ndm-1))
         for i in range(self.ninit):
             x0 = np.random.rand(*m.shape)
-            t, b = 0, 0
-            t = x0.dot(self.dmisfit.objfcts[0].deriv2(m, x0, f=f[0]))
-            b = x0.dot(self.dmisfit.objfcts[1].deriv2(m, x0, f=f[1]))
-            ratio.append(t / b)
+            t = np.zeros(ndm)
+
+            for j in range(ndm):
+                t[j] = x0.dot(self.dmisfit.objfcts[j].deriv2(m, x0, f=f[0]))
+
+            ratio[i] = t[0]/t[1:]
 
         self.ratio = ratio
-        self.Chi0 = self.Chi0_ratio * np.median(ratio)
-        self.dmisfit.multipliers[0] = 1.
-        self.dmisfit.multipliers[1] = self.Chi0
+        self.Chi0[1:] = self.Chi0[1:] * np.median(ratio, axis=0)
+        self.dmisfit.multipliers = self.Chi0
         self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
 
         if self.verbose:
@@ -1768,7 +2005,7 @@ class ScalingEstimate_ByEig(InversionDirective):
 class JointScalingSchedule(InversionDirective):
 
     verbose = False
-    tolerance = 0.02
+    tolerance = 0.
     progress = 0.02
     rateCooling = 1.
     rateWarming = 1.
@@ -1780,13 +2017,17 @@ class JointScalingSchedule(InversionDirective):
     def initialize(self):
 
         targetclass = np.r_[[isinstance(
-            dirpart, PetroTargetMisfit) for dirpart in self.inversion.directiveList.dList]]
+            dirpart, PetroTargetMisfit) or isinstance(
+            dirpart, JointTargetMisfit) for dirpart in self.inversion.directiveList.dList]]
         if ~np.any(targetclass):
             self.DMtarget = None
         else:
             self.targetclass = np.where(targetclass)[0][-1]
             self.DMtarget = self.inversion.directiveList.dList[
                 self.targetclass].DMtarget
+
+        if self.verbose:
+            print("initial data misfit scale: ", self.dmisfit.multipliers)
 
     def endIter(self):
 
@@ -1807,26 +2048,29 @@ class JointScalingSchedule(InversionDirective):
                     # Assume only 2 data misfit
                     indx = self.dmlist > self.DMtarget
                     if np.any(indx):
-                        self.dmisfit.multipliers[np.where(
-                            indx)[0][0]] *= self.rateWarming * (self.DMtarget[~indx] / self.dmlist[~indx])[0]
-                        self.dmisfit.multipliers = self.dmisfit.multipliers / \
-                            np.sum(self.dmisfit.multipliers)
+                        multipliers = self.rateWarming * np.median(
+                            self.DMtarget[~indx] / self.dmlist[~indx]
+                        )
+                        if np.sum(indx)==1:
+                            indx = np.where(indx)[0][0]
+                        self.dmisfit.multipliers[indx] *= multipliers
+                        self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
 
                         if self.verbose:
-                            print('update scaling for data misfit')
+                            print('update scaling for data misfit by ', multipliers)
                             print('new scale:', self.dmisfit.multipliers)
 
 
 class PetroBetaReWeighting(InversionDirective):
 
     verbose = False
-    tolerance = 0.02
+    tolerance = 0.
     progress = 0.02
     rateCooling = 2.
     rateWarming = 1.
     mode = 1
     mode2_iter = 0
-    betamax = 1e10
+    alphasmax = 1e10
     betamin = 1e-10
     UpdateRate = 1
     ratio_in_cooling = False
@@ -1925,7 +2169,8 @@ class PetroBetaReWeighting(InversionDirective):
             np.r_[self.dmisfit.multipliers] * self.inversion.directiveList.dList[self.targetclass].DMtarget)
         self.score = self.inversion.directiveList.dList[
             self.targetclass].phims()
-
+        self.targetlist = self.inversion.directiveList.dList[
+            self.targetclass].targetlist
         if self.DM:
             self.mode = 2
             self.mode2_iter += 1
@@ -1964,14 +2209,19 @@ class PetroBetaReWeighting(InversionDirective):
         if self.opt.iter > 0 and self.opt.iter % self.UpdateRate == 0:
             if self.verbose:
                 print('progress', self.dmlist, '><',
-                      (1. - self.progress) * self.previous_dmlist)
+                    np.maximum(
+                        (1. - self.progress) * self.previous_dmlist,
+                        (1. + self.tolerance) * self.DMtarget
+                    )
+                )
             if np.any(
                 [
                     np.all(
                         [
                             np.all(
-                                self.dmlist > (1. - self.progress) *
-                                self.previous_dmlist
+                                self.dmlist[~self.targetlist] > np.maximum(
+                                    (1. - self.progress) * self.previous_dmlist[~self.targetlist],
+                                    self.DMtarget[~self.targetlist])
                             ),
                             not self.DM,
                             self.mode == 1
@@ -1994,7 +2244,7 @@ class PetroBetaReWeighting(InversionDirective):
                     ratio = 1.
                     indx = self.dmlist > (1. + self.tolerance) * self.DMtarget
                     if np.any(indx) and self.ratio_in_cooling:
-                        ratio = np.max(
+                        ratio = np.median(
                             [self.dmlist[indx] / self.DMtarget[indx]])
                     self.invProb.beta /= (self.rateCooling * ratio)
                     #self.petroregularizer.alpha_s /= (self.rateCooling * ratio)
@@ -2006,9 +2256,9 @@ class PetroBetaReWeighting(InversionDirective):
             elif np.all([self.DM,
                          self.mode == 2]):
 
-                if np.all([self.invProb.beta < self.betamax]):
+                if np.all([self.petroregularizer.alpha_s < self.alphasmax]):
 
-                    ratio = np.min(self.DMtarget / self.dmlist)
+                    ratio = np.median(self.DMtarget / self.dmlist)
                     #self.invProb.beta = self.rateWarming * self.invProb.beta * ratio
                     self.petroregularizer.alpha_s *= self.rateWarming * ratio
 
@@ -2091,18 +2341,20 @@ class PetroBetaReWeighting(InversionDirective):
                             '\nkappa: ', self.updategaussianclass.kappa,
                             '\nalphadir: ', self.updategaussianclass.alphadir
                         )
-            elif np.all([not self.DM,
-                         self.mode == 2]):
+            elif np.all([
+                    np.any(self.dmlist > (1. + self.tolerance) * self.DMtarget),
+                         self.mode == 2
+                ]):
 
                 if np.all([self.invProb.beta > self.betamin]):
 
                     ratio = 1.
                     indx = self.dmlist > (1. + self.tolerance) * self.DMtarget
                     if np.any(indx) and self.ratio_in_cooling:
-                        ratio = np.max(
+                        ratio = np.median(
                             [self.dmlist[indx] / self.DMtarget[indx]])
                     self.invProb.beta /= (self.rateCooling * ratio)
-                    self.petroregularizer.alpha_s /= (self.rateCooling * ratio)
+                    # self.petroregularizer.alpha_s /= (self.rateCooling * ratio)
                     if self.verbose:
                         print('update beta for countering plateau')
 
@@ -2115,6 +2367,7 @@ class AddMrefInSmooth(InversionDirective):
 
     # Chi factor for Data Misfit
     chifact = 1.
+    tolerance_phid = 0.
     phi_d_target = None
     wait_till_stable = False
     tolerance = 0.
@@ -2224,6 +2477,9 @@ class AddMrefInSmooth(InversionDirective):
 
     def endIter(self):
         self.DM = self.inversion.directiveList.dList[self.targetclass].DM
+        self.dmlist = self.inversion.directiveList.dList[
+            self.targetclass].dmlist
+
         self.membership = self.petroregularizer.membership(
             self.petroregularizer.mref)
 
@@ -2239,7 +2495,7 @@ class AddMrefInSmooth(InversionDirective):
                 ),
                 ' places'
             )
-        if self.DM and (same_mref or not self.wait_till_stable or percent_diff<=self.tolerance):
+        if (self.DM or np.all(self.dmlist<(1+self.tolerance_phid)*self.DMtarget)) and (same_mref or not self.wait_till_stable or percent_diff<=self.tolerance):
             self.invProb.reg.mrefInSmooth = True
             self.petroregularizer.mrefInSmooth = True
 
@@ -2316,12 +2572,10 @@ class UpdateSensitivityWeights(InversionDirective):
             Good for any problem where J is formed explicitely
         """
         self.JtJdiag = []
-
         m = self.invProb.model
 
-        for prob, survey, dmisfit in zip(
+        for prob, dmisfit in zip(
             self.prob,
-            self.survey,
             self.dmisfit.objfcts
         ):
 
@@ -2330,10 +2584,9 @@ class UpdateSensitivityWeights(InversionDirective):
                     "Problem does not have a getJ attribute." +
                     "Cannot form the sensitivity explicitely"
                 )
-
                 self.JtJdiag += [Utils.mkvc(np.sum((dmisfit.W*prob.getJ(m))**(2.), axis=0))]
             else:
-                self.JtJdiag += [prob.getJtJdiag(m)]
+                self.JtJdiag += [prob.getJtJdiag(m, W=dmisfit.W)]
 
         return self.JtJdiag
 
@@ -2363,6 +2616,9 @@ class UpdateSensitivityWeights(InversionDirective):
 
         for reg in self.reg.objfcts:
             reg.cell_weights = reg.mapping * (self.wr)
+            if getattr(reg, "objfcts", None) is not None:
+                for obj in reg.objfcts:
+                    obj.cell_weights = obj.mapping * (self.wr)
 
     def updateOpt(self):
         """
@@ -2377,82 +2633,40 @@ class UpdateSensitivityWeights(InversionDirective):
         self.opt.JtJdiag = JtJdiag
 
 
-class Update_DC_Wr(InversionDirective):
+class ProjectSphericalBounds(InversionDirective):
     """
-        Update the sensitivity wegithing for the DC2D problem
+        Trick for spherical coordinate system.
+        Project \theta and \phi angles back to [-\pi,\pi] using
+        back and forth conversion.
+        spherical->cartesian->spherical
     """
-
-    wrType = 'sensitivityW'
-    changeMref = False
-    eps = 1e-8
-
     def initialize(self):
 
-        m = self.invProb.model
-        Jmat = self.prob[0].getJ(m, self.prob[0].fields(m))
+        x = self.invProb.dmisfit.prob.chiMap * self.invProb.model
+        m = self.invProb.dmisfit.prob.chiMap.inverse(x)
 
-        if self.wrType == 'sensitivityW':
-            wr = np.sum((Jmat)**2., axis=0)**0.5 + self.eps
-            wr = wr / wr.max()
-            # for reg in self.reg.objfcts:
-            self.reg.objfcts[0].cell_weights = self.reg.mapping * wr
+        self.invProb.model = m
 
-        # self.opt.approxHinv = None
-        JtJdiag = np.sum((self.dmisfit.W * Jmat)**2., axis=0)
+        for prob in self.prob:
+            prob.model = m
 
-        # Create the pre-conditioner
-        self.regDiag = np.zeros_like(self.invProb.model)
-
-        for reg in self.reg.objfcts:
-            # Check if he has wire
-            if getattr(reg.mapping, 'P', None) is None:
-                self.regDiag += (reg.W.T * reg.W).diagonal()
-            else:
-                # He is a snitch!
-                self.regDiag += reg.mapping.P.T * (reg.W.T * reg.W).diagonal()
-
-        diagA = JtJdiag + self.invProb.beta * self.regDiag
-
-        PC = Utils.sdiag((diagA)**-1.)
-        self.opt.approxHinv = PC
+        self.opt.xc = m
 
     def endIter(self):
 
-        m = self.invProb.model
-        Jmat = self.prob[0].getJ(m, self.prob[0].fields(m))
+        x = self.invProb.dmisfit.prob.chiMap * self.invProb.model
+        m = self.invProb.dmisfit.prob.chiMap.inverse(x)
 
-        wr = np.sum((Jmat)**2. + self.eps**2., axis=0)**0.5
-        wr = wr / wr.max()
-        if self.wrType == 'sensitivityW':
-            # for reg in self.reg.objfcts:
-            self.reg.objfcts[0].cell_weights = self.reg.mapping * wr
+        self.invProb.model = m
 
-        if self.changeMref:
-
-            # mref = np.median(m)
-            mref = np.sum(wr * m) / np.sum(wr)
-            # print(self.reg.objfcts[0].cell_weights.min())
-
-            print('Updating mref:' + str(np.exp(mref)) + 'S/m')
-
-            for reg in self.reg.objfcts:
-                reg.mref = np.ones_like(m) * mref
-
-        # self.opt.approxHinv = None
-        JtJdiag = np.sum((self.dmisfit.W * Jmat)**2., axis=0)
-
-        # Create the pre-conditioner
-        self.regDiag = np.zeros_like(self.invProb.model)
-
+        phi_m_last = []
         for reg in self.reg.objfcts:
-            # Check if he has wire
-            if getattr(reg.mapping, 'P', None) is None:
-                self.regDiag += (reg.W.T * reg.W).diagonal()
-            else:
-                # He is a snitch!
-                self.regDiag += reg.mapping.P.T * (reg.W.T * reg.W).diagonal()
+            reg.model = self.invProb.model
+            phi_m_last += [reg(self.invProb.model)]
 
-        diagA = JtJdiag + self.invProb.beta * self.regDiag
+        self.invProb.phi_m_last = phi_m_last
 
-        PC = Utils.sdiag((diagA)**-1.)
-        self.opt.approxHinv = PC
+        for prob in self.prob:
+            prob.model = m
+
+        self.opt.xc = m

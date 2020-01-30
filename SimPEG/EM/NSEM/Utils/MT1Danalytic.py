@@ -8,7 +8,7 @@ def getEHfields(m1d,sigma,freq,zd,scaleUD=True,scaleValue=1):
     '''Analytic solution for MT 1D layered earth. Returns E and H fields.
 
     :param SimPEG.mesh, object m1d: Mesh object with the 1D spatial information.
-    :param numpy.array, vector sigma: Physical property of conductivity corresponding with the mesh.
+    :param numpy.ndarray, vector sigma: Physical property of conductivity corresponding with the mesh.
     :param float, freq: Frequency to calculate data at.
     :param numpy array, vector zd: location to calculate EH fields at
     :param boolean, scaleUD: scales the output to be scaleValue at the top, increases numerical stability.
@@ -86,8 +86,8 @@ def getImpedance(m1d,sigma,freq):
     """Analytic solution for MT 1D layered earth. Returns the impedance at the surface.
 
     :param SimPEG.mesh, object m1d: Mesh object with the 1D spatial information.
-    :param numpy.array, vector sigma: Physical property corresponding with the mesh.
-    :param numpy.array, vector freq: Frequencies to calculate data at.
+    :param numpy.ndarray, vector sigma: Physical property corresponding with the mesh.
+    :param numpy.ndarray, vector freq: Frequencies to calculate data at.
 
 
     """

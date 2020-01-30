@@ -43,13 +43,9 @@ def run(plotIt=True):
     # We would usually load a topofile
     topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
 
-    # Go from topo to actv cells
+    # Go from topo to array of indices of active cells
     actv = Utils.surface2ind_topo(mesh, topo, 'N')
-    actv = np.asarray([inds for inds, elem in enumerate(actv, 1) if elem],
-                      dtype=int) - 1
-
-    # Create active map to go from reduce space to full
-    actvMap = Maps.InjectActiveCells(mesh, actv, -100)
+    actv = np.where(actv)[0]
     nC = len(actv)
 
     # Create and array of observation points
@@ -60,13 +56,13 @@ def run(plotIt=True):
     # Move the observation points 5m above the topo
     Z = -np.exp((X**2 + Y**2) / 75**2) + mesh.vectorNz[-1] + 0.1
 
-    # Create a MAGsurvey
+    # Create a GRAVsurvey
     rxLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
     rxLoc = PF.BaseGrav.RxObs(rxLoc)
     srcField = PF.BaseGrav.SrcField([rxLoc])
     survey = PF.BaseGrav.LinearSurvey(srcField)
 
-    # We can now create a susceptibility model and generate data
+    # We can now create a density model and generate data
     # Here a simple block in half-space
     model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
     model[(midx-5):(midx-1), (midy-2):(midy+2), -10:-6] = 0.75
@@ -106,7 +102,7 @@ def run(plotIt=True):
     # Create a regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.cell_weights = wr
-    reg.norms = np.c_[1, 0, 0, 0]
+    reg.norms = np.c_[0, 0, 0, 0]
 
     # Data misfit function
     dmis = DataMisfit.l2_DataMisfit(survey)
@@ -117,10 +113,10 @@ def run(plotIt=True):
                                      maxIterLS=20, maxIterCG=10,
                                      tolCG=1e-3)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    betaest = Directives.BetaEstimate_ByEig()
+    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 
     # Here is where the norms are applied
-    # Use pick a treshold parameter empirically based on the distribution of
+    # Use pick a threshold parameter empirically based on the distribution of
     # model parameters
     IRLS = Directives.Update_IRLS(
         f_min_change=1e-4, maxIRLSiter=30, coolEpsFact=1.5, beta_tol=1e-1,
@@ -151,7 +147,7 @@ def run(plotIt=True):
         vmin, vmax = mrec.min(), mrec.max()
 
         # Plot the data
-        PF.Gravity.plot_obs_2D(rxLoc, d=data)
+        Utils.PlotUtils.plot2Ddata(rxLoc, data)
 
         plt.figure()
 
@@ -167,7 +163,7 @@ def run(plotIt=True):
         ax.xaxis.set_visible(False)
         plt.gca().set_aspect('equal', adjustable='box')
 
-        # Vertica section
+        # Vertical section
         ax = plt.subplot(322)
         mesh.plotSlice(m_l2, ax=ax, normal='Y', ind=midx,
                        grid=True, clim=(vmin, vmax))

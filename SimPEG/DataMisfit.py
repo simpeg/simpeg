@@ -107,7 +107,6 @@ class l2_DataMisfit(BaseDataMisfit):
         """
 
         if getattr(self, '_W', None) is None:
-
             survey = self.survey
             self._W = Utils.sdiag(1/(abs(survey.dobs)*self.std+self.eps))
 

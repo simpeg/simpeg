@@ -17,6 +17,9 @@ class Survey(BaseEMSurvey):
     rxPair = Rx.BaseRx
     srcPair = Src.BaseSrc
     times = None
+    _pred = None
+    n_pulse = 2
+    T = 8.
 
     def __init__(self, srcList, **kwargs):
         self.srcList = srcList
@@ -30,6 +33,10 @@ class Survey(BaseEMSurvey):
                 time_rx.append(rx.times)
         self.times = np.unique(np.hstack(time_rx))
 
+    @property
+    def n_locations(self):
+        return int(self.nD/self.times.size)
+
     def dpred(self, m, f=None):
         """
             Predicted data.
@@ -37,7 +44,10 @@ class Survey(BaseEMSurvey):
             .. math::
                 d_\\text{pred} = Pf(m)
         """
-        return self.prob.forward(m, f=f)
+        if f is None:
+            f = self.prob.fields(m)
+        return self._pred
+        # return self.prob.forward(m, f=f)
 
 
 class Data(SimPEG.Survey.Data):
@@ -103,9 +113,10 @@ class Data(SimPEG.Survey.Data):
             'v must have the correct number of data.'
         )
         indBot, indTop = 0, 0
-        for src in self.survey.srcList:
-            for rx in src.rxList:
-                for t in rx.times:
+
+        for t in self.survey.times:
+            for src in self.survey.srcList:
+                for rx in src.rxList:
                     indTop += rx.nRx
                     self[src, rx, t] = v[indBot:indTop]
                     indBot += rx.nRx
@@ -139,7 +150,6 @@ def from_dc_to_sip_survey(survey_dc, times):
                 rxList_sip, src.loc[0], src.loc[1]
             )
         else:
-            print (src)
             raise NotImplementedError()
         srcList_sip.append(src_sip)
 

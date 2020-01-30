@@ -62,7 +62,7 @@ we setup a 3D :code:`BaseRectangularMesh` and assert that it has 3 dimensions.
 
     import unittest
     import sys
-    from SimPEG.Mesh.BaseMesh import BaseRectangularMesh
+    from SimPEG.Mesh.base import BaseRectangularMesh
     import numpy as np
 
     class TestBaseMesh(unittest.TestCase):
@@ -201,7 +201,7 @@ For example:
         Note if the key word argument `mrefInSmooth` is False, then mref is not
         included in the smoothness contribution.
 
-        :param BaseMesh mesh: SimPEG mesh
+        :param SimPEG.Mesh.base.BaseMesh mesh: SimPEG mesh
         :param IdentityMap mapping: regularization mapping, takes the model from model space to the thing you want to regularize
         :param numpy.ndarray indActive: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
         :param bool mrefInSmooth: (default = False) put mref in the smoothness component?

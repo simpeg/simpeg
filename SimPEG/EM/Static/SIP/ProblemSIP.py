@@ -59,46 +59,218 @@ class BaseSIPProblem(BaseEMProblem):
     storeJ = False
     _Jmatrix = None
     actMap = None
+    n_pulse = 1
 
-    def getPeta(self, t):
-        peta = self.eta*np.exp(-(self.taui*t)**self.c)
+    _eta_store = None
+    _taui_store = None
+    _c_store = None
+
+    @property
+    def etaDeriv_store(self):
+        if getattr(self, '_etaDeriv_store', None) is None:
+            self._etaDeriv_store = self.etaDeriv
+        return self._etaDeriv_store
+
+    @property
+    def tauiDeriv_store(self):
+        if getattr(self, '_tauiDeriv_store', None) is None:
+            self._tauiDeriv_store = self.tauiDeriv
+        return self._tauiDeriv_store
+
+    @property
+    def tauDeriv_store(self):
+        if getattr(self, '_tauDeriv_store', None) is None:
+            self._tauDeriv_store = self.tauDeriv
+        return self._tauDeriv_store
+
+    @property
+    def cDeriv_store(self):
+        if getattr(self, '_cDeriv_store', None) is None:
+            self._cDeriv_store = self.cDeriv
+        return self._cDeriv_store
+
+    def get_t_over_tau(self, t):
+        taui = self._taui_store
+        return (t*taui)
+
+    def get_exponent(self, t):
+        c = self._c_store
+        t_over_tau = self.get_t_over_tau(t)
+        return (t_over_tau)**c
+
+    def get_peta_step_off(self, exponent):
+        eta = self._eta_store
+        peta = eta*np.exp(-exponent)
         return peta
 
-    def PetaEtaDeriv(self, t, v, adjoint=False):
-        v = np.array(v, dtype=float)
-        taui_t_c = (self.taui*t)**self.c
-        dpetadeta = np.exp(-taui_t_c)
-        if adjoint:
-            return self.etaDeriv.T * (dpetadeta * v)
+    def get_peta_pulse_off(self, t):
+        """
+            Compute pseudo-chargeability from a single pulse waveform
+        """
+        T = self.survey.T
+        exponent_0 = self.get_exponent(t)
+        exponent_1 = self.get_exponent(t+T/4.)
+        peta = self.get_peta_step_off(exponent_0) - self.get_peta_step_off(exponent_1)
+        return peta
+
+    def get_multi_pulse_response(self, t, pulse_func):
+        n_pulse = self.survey.n_pulse
+        T = self.survey.T
+        peta = np.zeros(self._eta_store.shape[0], float, order='C')
+        for i_pulse in range (n_pulse):
+            factor = (-1)**i_pulse * (n_pulse-i_pulse)
+            peta += pulse_func(t+T/2*i_pulse) * factor
+        return peta/n_pulse
+
+    def get_peta(self, t):
+        n_pulse = self.survey.n_pulse
+        if n_pulse == 0:
+            exponent = self.get_exponent(t)
+            return self.get_peta_step_off(exponent)
         else:
-            return dpetadeta * (self.etaDeriv*v)
+            return self.get_multi_pulse_response(t, self.get_peta_pulse_off)
+
+    def get_peta_eta_deriv_step_off(self, exponent):
+        return np.exp(-exponent)
+
+    def get_peta_eta_deriv_pulse_off(self, t):
+        """
+            Compute derivative of pseudo-chargeability w.r.t eta from a single pulse waveform
+        """
+        T = self.survey.T
+        exponent_0 = self.get_exponent(t)
+        exponent_1 = self.get_exponent(t+T/4.)
+        peta_eta_deriv = (
+            self.get_peta_eta_deriv_step_off(exponent_0) -
+            self.get_peta_eta_deriv_step_off(exponent_1)
+        )
+        return peta_eta_deriv
+
+    def get_peta_eta_deriv(self, t):
+        n_pulse = self.survey.n_pulse
+        if n_pulse == 0:
+            exponent = self.get_exponent(t)
+            return self.get_peta_eta_deriv_step_off(exponent)
+        else:
+            return self.get_multi_pulse_response(
+                t, self.get_peta_eta_deriv_pulse_off
+            )
+
+    def PetaEtaDeriv(self, t, v, adjoint=False):
+
+        etaDeriv = self.etaDeriv_store
+
+        v = np.array(v, dtype=float)
+        dpetadeta = self.get_peta_eta_deriv(t)
+
+        if adjoint:
+            if v.ndim == 1:
+                return etaDeriv.T * (dpetadeta * v)
+            else:
+                return etaDeriv.T * (Utils.sdiag(dpetadeta) * v)
+        else:
+            return dpetadeta * (etaDeriv*v)
+
+    def get_peta_taui_deriv_step_off(self, exponent):
+        eta = self._eta_store
+        taui = self._taui_store
+        c = self._c_store
+        peta_taui_deriv = (
+            - c * eta / taui * exponent * np.exp(-exponent)
+        )
+        return peta_taui_deriv
+
+    def get_peta_taui_deriv_pulse_off(self, t):
+        """
+            Compute derivative of pseudo-chargeability w.r.t eta from a single pulse waveform
+        """
+        T = self.survey.T
+        exponent_0 = self.get_exponent(t)
+        exponent_1 = self.get_exponent(t+T/4.)
+        peta_taui_deriv = (
+            self.get_peta_taui_deriv_step_off(exponent_0) -
+            self.get_peta_taui_deriv_step_off(exponent_1)
+        )
+        return peta_taui_deriv
+
+    def get_peta_taui_deriv(self, t):
+        n_pulse = self.survey.n_pulse
+        if n_pulse == 0:
+            exponent = self.get_exponent(t)
+            return self.get_peta_taui_deriv_step_off(exponent)
+        else:
+            return self.get_multi_pulse_response(
+                t, self.get_peta_taui_deriv_pulse_off
+            )
 
     def PetaTauiDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
-        taui_t_c = (self.taui*t)**self.c
-        dpetadtaui = (
-            - self.c * self.eta / self.taui * taui_t_c * np.exp(-taui_t_c)
-            )
+        tauiDeriv = self.tauiDeriv_store
+        dpetadtaui = self.get_peta_taui_deriv(t)
+
         if adjoint:
-            return self.tauiDeriv.T * (dpetadtaui*v)
+            if v.ndim == 1:
+                return tauiDeriv.T * (dpetadtaui*v)
+            else:
+                return tauiDeriv.T * (Utils.sdiag(dpetadtaui)*v)
         else:
-            return dpetadtaui * (self.tauiDeriv*v)
+            return dpetadtaui * (tauiDeriv*v)
+
+    def get_peta_c_deriv_step_off(self, exponent, t_over_tau):
+        eta = self._eta_store
+        peta_c_deriv = (
+            - eta * (exponent)*np.exp(-exponent) * np.log(t_over_tau)
+        )
+        return peta_c_deriv
+
+    def get_peta_c_deriv_pulse_off(self, t):
+        """
+            Compute derivative of pseudo-chargeability w.r.t eta from a single pulse waveform
+        """
+        T = self.survey.T
+        exponent_0 = self.get_exponent(t)
+        exponent_1 = self.get_exponent(t+T/4.)
+        t_over_tau_0 = self.get_t_over_tau(t)
+        t_over_tau_1 = self.get_t_over_tau(t+T/4.)
+
+        peta_c_deriv = (
+            self.get_peta_c_deriv_step_off(exponent_0, t_over_tau_0) -
+            self.get_peta_c_deriv_step_off(exponent_1, t_over_tau_1)
+        )
+        return peta_c_deriv
+
+    def get_peta_c_deriv(self, t):
+        n_pulse = self.survey.n_pulse
+        if n_pulse == 0:
+            exponent = self.get_exponent(t)
+            t_over_tau = self.get_t_over_tau(t)
+            return self.get_peta_c_deriv_step_off(exponent, t_over_tau)
+        else:
+            return self.get_multi_pulse_response(
+                t, self.get_peta_c_deriv_pulse_off
+            )
 
     def PetaCDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
-        taui_t_c = (self.taui*t)**self.c
-        dpetadc = (
-            -self.eta * (taui_t_c)*np.exp(-taui_t_c) * np.log(self.taui*t)
-            )
+        cDeriv = self.cDeriv_store
+        dpetadc = self.get_peta_c_deriv(t)
         if adjoint:
-            return self.cDeriv.T * (dpetadc*v)
+            if v.ndim == 1:
+                return cDeriv.T * (dpetadc*v)
+            else:
+                return cDeriv.T * (Utils.sdiag(dpetadc)*v)
         else:
-            return dpetadc * (self.cDeriv*v)
+            return dpetadc * (cDeriv*v)
 
     def fields(self, m):
+
         if self.verbose:
-            print (">> Compute DC fields")
+            print(">> Compute DC fields")
         if self._f is None:
+
+            if self.verbose:
+                print (">> Compute DC fields")
+
             self._f = self.fieldsPair(self.mesh, self.survey)
             if self.Ainv is None:
                 A = self.getA()
@@ -107,20 +279,32 @@ class BaseSIPProblem(BaseEMProblem):
             u = self.Ainv * RHS
             Srcs = self.survey.srcList
             self._f[Srcs, self._solutionType] = u
+
+            # Compute DC voltage
+            if self.data_type == 'apparent_chargeability':
+                if self.verbose is True:
+                    print(">> Data type is apparaent chargeability")
+                for src in self.survey.srcList:
+                    for rx in src.rxList:
+                        rx._dc_voltage = rx.eval(src, self.mesh, self._f)
+                        rx.data_type = self.data_type
+                        rx._Ps = {}
+
+        self.survey._pred = self.forward(m, f=self._f)
+
         return self._f
 
+    # @profile
     def getJ(self, m, f=None):
         """
             Generate Full sensitivity matrix
         """
 
-        if self.verbose:
-            print("Calculating J and storing")
-
         if self._Jmatrix is not None:
             return self._Jmatrix
         else:
-
+            if self.verbose:
+                print("Calculating J and storing")
             if f is None:
                 f = self.fields(m)
 
@@ -144,31 +328,61 @@ class BaseSIPProblem(BaseEMProblem):
                     dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
                     iend = istrt + rx.nD
                     if rx.nD == 1:
-                        Jt[:, istrt] = dA_dmT
+                        Jt[:, istrt] = -dA_dmT
                     else:
-                        Jt[:, istrt:iend] = dA_dmT
+                        Jt[:, istrt:iend] = -dA_dmT
                     istrt += rx.nD
 
             self._Jmatrix = Jt.T
+            collected = gc.collect()
             if self.verbose:
                 collected = gc.collect()
-                print (
+                print(
                     "Garbage collector: collected %d objects." % (collected)
                 )
-
-            # Not sure why below has raise memory issue
-            # only for problem_cc, test_dataObj
-            # if self._f is not None:
-            #     del self._f
+            # clean field object
+            self._f = []
             # clean all factorization
             if self.Ainv is not None:
                 self.Ainv.clean()
 
             return self._Jmatrix
 
+    def getJtJdiag(self, m, Wd):
+        """
+        Compute JtJ using adjoint problem. Still we never form
+        JtJ
+        """
+        if self.verbose:
+            print (">> Compute trace(JtJ)")
+        ntime = len(self.survey.times)
+        JtJdiag = np.zeros_like(m)
+        J = self.getJ(m, f=None)
+        wd = (Wd.diagonal()).reshape(
+            (self.survey.n_locations, ntime), order='F'
+        )
+        for tind in range(ntime):
+            t = self.survey.times[tind]
+            Jtv = self.actMap.P*J.T*Utils.sdiag(wd[:, tind])
+            JtJdiag += (
+                (self.PetaEtaDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
+                (self.PetaTauiDeriv(t, Jtv, adjoint=True)**2).sum(axis=1) +
+                (self.PetaCDeriv(t, Jtv, adjoint=True)**2).sum(axis=1)
+            )
+        return JtJdiag
+
+    # @profile
     def forward(self, m, f=None):
 
+        if self.verbose:
+            print ('>> Compute predicted data')
+
         self.model = m
+
+        self._eta_store = self.eta
+        self._taui_store = self.taui
+        self._c_store = self.c
+
         Jv = []
 
         # When sensitivity matrix is stored
@@ -181,7 +395,7 @@ class BaseSIPProblem(BaseEMProblem):
             for tind in range(ntime):
                 Jv.append(
                     J.dot(
-                        self.actMap.P.T*self.getPeta(self.survey.times[tind]))
+                        self.actMap.P.T*self.get_peta(self.survey.times[tind]))
                     )
             return self.sign * np.hstack(Jv)
 
@@ -195,7 +409,7 @@ class BaseSIPProblem(BaseEMProblem):
             for tind in range(len(self.survey.times)):
                 # Pseudo-chareability
                 t = self.survey.times[tind]
-                v = self.getPeta(t)
+                v = self.get_peta(t)
                 for src in self.survey.srcList:
                     u_src = f[src, self._solutionType]  # solution vector
                     dA_dm_v = self.getADeriv(u_src, v)
@@ -215,6 +429,7 @@ class BaseSIPProblem(BaseEMProblem):
 
             return self.sign*np.hstack(Jv)
 
+    # @profile
     def Jvec(self, m, v, f=None):
 
         self.model = m
@@ -259,15 +474,13 @@ class BaseSIPProblem(BaseEMProblem):
                         )
 
                     for rx in src.rxList:
-                        timeindex = rx.getTimeP(self.survey.times)
-                        if timeindex[tind]:
-                            Jv_temp = (
-                                rx.evalDeriv(src, self.mesh, f, du_dm_v)
-                                )
-                            if rx.nD == 1:
-                                Jv_temp = Jv_temp.reshape([-1, 1])
-
-                            Jv.append(Jv_temp)
+                        # Assume same # of time
+                        # timeindex = rx.getTimeP(self.survey.times)
+                        # if timeindex[tind]:
+                        Jv_temp = (
+                            rx.evalDeriv(src, self.mesh, f, du_dm_v)
+                            )
+                        Jv.append(Jv_temp)
 
             return self.sign*np.hstack(Jv)
 
@@ -303,47 +516,60 @@ class BaseSIPProblem(BaseEMProblem):
             if not isinstance(v, self.dataPair):
                 v = self.dataPair(self.survey, v)
 
-            Jtv = np.zeros(m.size)
+            Jtv = np.zeros(m.size, dtype=float)
+            n_time = len(self.survey.times)
+            du_dmT = np.zeros((self.mesh.nC, n_time), dtype=float, order='F')
 
-            for tind in range(len(self.survey.times)):
+            for tind in range(n_time):
                 t = self.survey.times[tind]
+
                 for src in self.survey.srcList:
                     u_src = f[src, self._solutionType]
                     for rx in src.rxList:
-                        timeindex = rx.getTimeP(self.survey.times)
-                        if timeindex[tind]:
-                            # wrt f, need possibility wrt m
-                            PTv = rx.evalDeriv(
-                                src, self.mesh, f, v[src, rx, t], adjoint=True
-                            )
-                            df_duTFun = getattr(
-                                f, '_{0!s}Deriv'.format(rx.projField), None
-                            )
-                            df_duT, _ = df_duTFun(
-                                src, None, PTv, adjoint=True
-                            )
-                            ATinvdf_duT = self.Ainv * df_duT
-                            dA_dmT = self.getADeriv(
-                                u_src, ATinvdf_duT, adjoint=True
-                            )
-                            dRHS_dmT = self.getRHSDeriv(
-                                src, ATinvdf_duT, adjoint=True
-                            )
-                            du_dmT = -dA_dmT + dRHS_dmT
-                            Jtv += (
-                                self.PetaEtaDeriv(
-                                    self.survey.times[tind], du_dmT,
-                                    adjoint=True
-                                ) +
-                                self.PetaTauiDeriv(
-                                    self.survey.times[tind], du_dmT,
-                                    adjoint=True
-                                ) +
-                                self.PetaCDeriv(
-                                    self.survey.times[tind], du_dmT,
-                                    adjoint=True
-                                )
-                            )
+
+                        # Ignore case when each rx has different # of times
+
+                        # timeindex = rx.getTimeP(self.survey.times)
+                        # if timeindex[tind]:
+                        # wrt f, need possibility wrt m
+                        PTv = rx.evalDeriv(
+                            src, self.mesh, f, v[src, rx, t], adjoint=True
+                        )
+                        df_duTFun = getattr(
+                            f, '_{0!s}Deriv'.format(rx.projField), None
+                        )
+                        df_duT, _ = df_duTFun(
+                            src, None, PTv, adjoint=True
+                        )
+                        ATinvdf_duT = self.Ainv * df_duT
+                        dA_dmT = self.getADeriv(
+                            u_src, ATinvdf_duT, adjoint=True
+                        )
+                        # Unecessary at the moment
+
+                        # dRHS_dmT = self.getRHSDeriv(
+                        #     src, ATinvdf_duT, adjoint=True
+                        # )
+                        # du_dmT[:, tind] = -dA_dmT + dRHS_dmT
+
+                        du_dmT[:, tind] += -self.getADeriv(
+                            u_src, ATinvdf_duT, adjoint=True
+                        )
+
+                Jtv += (
+                    self.PetaEtaDeriv(
+                        self.survey.times[tind], du_dmT[:, tind],
+                        adjoint=True
+                    ) +
+                    self.PetaTauiDeriv(
+                        self.survey.times[tind], du_dmT[:, tind],
+                        adjoint=True
+                    ) +
+                    self.PetaCDeriv(
+                        self.survey.times[tind], du_dmT[:, tind],
+                        adjoint=True
+                    )
+                )
 
             return self.sign*Jtv
 
@@ -375,7 +601,10 @@ class BaseSIPProblem(BaseEMProblem):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = []
+        toDelete = [
+            '_etaDeriv_store', '_tauiDeriv_store', '_cDeriv_store',
+            '_tauDeriv_store'
+        ]
         return toDelete
 
     @property
@@ -473,7 +702,7 @@ class Problem3D_CC(BaseSIPProblem, BaseProblem3D_CC):
     def __init__(self, mesh, **kwargs):
         BaseSIPProblem.__init__(self, mesh, **kwargs)
         self.setBC()
-
+        self.n = self.mesh.nC
         if self.storeJ:
             if self.actinds is None:
                 print ("You did not put Active indices")
@@ -492,7 +721,7 @@ class Problem3D_N(BaseSIPProblem, BaseProblem3D_N):
 
     def __init__(self, mesh, **kwargs):
         BaseSIPProblem.__init__(self, mesh, **kwargs)
-
+        self.n = self.mesh.nN
         if self.storeJ:
             if self.actinds is None:
                 print ("You did not put Active indices")

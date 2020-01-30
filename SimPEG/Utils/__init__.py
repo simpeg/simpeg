@@ -7,7 +7,7 @@ from .matutils import (
     av_extrap, ndgrid, ind2sub, sub2ind, getSubArray,
     inv3X3BlockDiagonal, inv2X2BlockDiagonal, TensorType,
     makePropertyTensor, invPropertyTensor, diagEst, Zero,
-    Identity, uniqueRows
+    Identity, uniqueRows, coterminal
 )
 from .codeutils import (
     memProfileWrapper, hook, setKwargs,
@@ -31,8 +31,9 @@ from .petroutils import (
     order_clusters_GM_weight, order_cluster,
     computePrecision, computeCovariance, ComputeConstantTerm,
     _compute_precision_cholesky, GaussianMixture, WeightedGaussianMixture,
-    GaussianMixtureWithPrior, FuzzyGaussianMixtureWithPrior,
+    GaussianMixtureWithPrior, GaussianMixtureMarkovRandomField,
+    FuzzyGaussianMixtureWithPrior,
     GaussianMixtureWithMapping, GaussianMixtureWithMappingWithPrior,
     GibbsSampling_PottsDenoising, ICM_PottsDenoising
 )
-from .printinfo import versions
+from .printinfo import Versions

@@ -75,19 +75,19 @@ def MT_LayeredEarth(freq, thickness, sig, return_type='Res-Phase', chg=0., tau=0
     See also http://em.geosci.xyz/content/maxwell3_fdem/natural_sources/MT_N_layered_Earth.html
 
     :param freq: the frequency at which we take the measurements
-    :type freq: float or numpy.array
+    :type freq: float or numpy.ndarray
     :param thickness: thickness of the Earth layers in meters, size is len(sig)-1. The last one is already considered infinite. For 1-layer Earth, thickness = None or 0.
-    :type thickness: float or numpy.array
+    :type thickness: float or numpy.ndarray
     :param sig: electric conductivity of the Earth layers in S/m
-    :type sig: float or numpy.array
+    :type sig: float or numpy.ndarray
     :param str return_type: Output return_type. 'Res-Phase' returns apparent resisitivity and Phase. 'Impedance' returns the complex Impedance
-    :param numpy.array chg: Cole-Cole Parameters for chargeable layers: chargeability
-    :param numpy.array tau: Cole-Cole Parameters for chargeable layers: time decay constant
-    :param numpy.array c: Cole-Cole Parameters for chargeable layers: geometric factor
+    :param numpy.ndarray chg: Cole-Cole Parameters for chargeable layers: chargeability
+    :param numpy.ndarray tau: Cole-Cole Parameters for chargeable layers: time decay constant
+    :param numpy.ndarray c: Cole-Cole Parameters for chargeable layers: geometric factor
     :param mu_r: relative magnetic permeability
-    :type mu_r: float or numpy.array
+    :type mu_r: float or numpy.ndarray
     :param eps_r: relative dielectric permittivity
-    :type eps_r: float or numpy.array
+    :type eps_r: float or numpy.ndarray
     """
 
     if isinstance(freq, float):
