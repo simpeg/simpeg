@@ -47,8 +47,9 @@ a citation would be much appreciated!
 from __future__ import print_function
 import matplotlib.pylab as plt
 import numpy as np
-from SimPEG import Mesh, Maps, Utils
-from SimPEG.EM import FDEM
+import discretize
+from SimPEG import maps, utils
+from SimPEG.electromagnetics import frequency_domain as FDEM
 import time
 
 try:
@@ -231,10 +232,10 @@ def run(plotIt=True):
     survey = FDEM.Survey(sg_p + dg_p)
     problem = FDEM.Problem3D_h(
         mesh,
+        survey=survey,
         sigmaMap=maps.IdentityMap(mesh),
         Solver=Solver
     )
-    problem.pair(survey)
 
     # ------------- Solve ---------------------------
     t0 = time.time()

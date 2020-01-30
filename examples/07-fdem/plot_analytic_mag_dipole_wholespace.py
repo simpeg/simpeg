@@ -6,8 +6,8 @@ Here we plot the magnetic flux density from a harmonic dipole in a
 wholespace.
 """
 import numpy as np
-from SimPEG import Utils
-import SimPEG.EM as EM
+from SimPEG import utils
+import SimPEG.electromagnetics as EM
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
@@ -23,7 +23,7 @@ def run(XYZ=None, loc=np.r_[0., 0., 0.], sig=1.0, freq=1.0, orientation='Z',
         z = x
         XYZ = utils.ndgrid(x, y, z)
 
-    Bx, By, Bz = EM.Analytics.FDEM.MagneticDipoleWholeSpace(
+    Bx, By, Bz = EM.analytics.FDEM.MagneticDipoleWholeSpace(
         XYZ,
         loc,
         sig,

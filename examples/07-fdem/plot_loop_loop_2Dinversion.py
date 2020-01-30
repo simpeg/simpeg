@@ -17,13 +17,13 @@ import matplotlib.pyplot as plt
 import time
 from pymatsolver import Pardiso as Solver
 
+import discretize
 from SimPEG import (
-    Mesh, Maps, Optimization,
-    DataMisfit, Regularization, InvProblem,
-    Inversion, Directives, Versions
+    maps, optimization,
+    data_misfit, regularization, inverse_problem,
+    inversion, directives, Versions
 )
-from SimPEG.EM import FDEM
-from SimPEG.Utils import mkvc
+from SimPEG.electromagnetics import frequency_domain as FDEM
 
 ###############################################################################
 # Setup
@@ -184,7 +184,7 @@ for x in src_locations:
     )
 
     src = FDEM.Src.MagDipole(
-        rxList=[rx_real, rx_imag], loc=src_loc, orientation=orientation,
+        receiver_list=[rx_real, rx_imag], loc=src_loc, orientation=orientation,
         freq=freq
     )
 
@@ -192,18 +192,21 @@ for x in src_locations:
 
 # create the survey and problem objects for running the forward simulation
 survey = FDEM.Survey(srcList)
-prob = FDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=Solver)
-
-prob.pair(survey)
+prob = FDEM.Problem3D_b(mesh, survey=survey, sigmaMap=mapping, Solver=Solver)
 
 ###############################################################################
-# Data
+# Data and Set up data for inversion
 # ----
 #
-# Generate clean, synthetic data
+# Generate clean, synthetic data. Later we will invert the clean data, and
+# assign a standard deviation of 0.05, and a floor of 1e-11.
 
 t = time.time()
-dclean = survey.dpred(m_true)
+
+data = prob.make_synthetic_data(
+    m_true, standard_deviation=0.05, noise_floor=1E-11, add_noise=False)
+
+dclean = data.dclean
 print(
     "Done forward simulation. Elapsed time = {:1.2f} s".format(time.time() - t)
 )
@@ -241,17 +244,6 @@ def plot_data(data, ax=None, color="C0", label=""):
 ax = plot_data(dclean)
 
 ###############################################################################
-# Set up data for inversion
-# -------------------------
-#
-# We will invert the clean data, and assign a standard deviation of 0.05, and
-# a floor of 1e-11.
-
-survey.std = 0.05
-survey.eps = 1e-11
-survey.dobs = dclean
-
-###############################################################################
 # Set up the inversion
 # --------------------
 #
@@ -268,7 +260,7 @@ survey.dobs = dclean
 # the regularization. Here, we use a fixed beta, but could alternatively
 # employ a beta-cooling schedule using :class:`SimPEG.directives.BetaSchedule`
 
-dmisfit = data_misfit.l2_DataMisfit(survey)
+dmisfit = data_misfit.L2DataMisfit(simulation=prob, data=data)
 reg = regularization.Simple(inversion_mesh)
 opt = optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
 invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
