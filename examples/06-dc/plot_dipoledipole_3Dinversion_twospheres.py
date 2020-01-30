@@ -16,12 +16,13 @@ indicates transformation of our model to a different space:
 Following example will show you how user can implement a 3D DC inversion.
 """
 
+import discretize
 from SimPEG import (
-    Mesh, Maps, Utils,
-    DataMisfit, Regularization, Optimization,
-    InvProblem, Directives, Inversion
+    maps, utils,
+    data_misfit, regularization, optimization,
+    inverse_problem, directives, inversion
 )
-from SimPEG.EM.Static import DC, Utils as DCUtils
+from SimPEG.electromagnetics.static import resistivity as DC, utils as DCutils
 import numpy as np
 import matplotlib.pyplot as plt
 try:
@@ -129,20 +130,17 @@ survey3 = DCutils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
                                  a=3, b=3, n=8)
 
 # Concatenate lines
-survey = DC.Survey(survey1.srcList + survey2.srcList + survey3.srcList)
+survey = DC.Survey(survey1.source_list + survey2.source_list + survey3.source_list)
 
 # Setup Problem with exponential mapping and Active cells only in the core mesh
 expmap = maps.ExpMap(mesh)
 mapactive = maps.InjectActiveCells(mesh=mesh, indActive=actind,
                                    valInactive=-5.)
 mapping = expmap * mapactive
-problem = DC.Problem3D_CC(mesh, sigmaMap=mapping)
-problem.pair(survey)
-problem.Solver = Solver
+problem = DC.Problem3D_CC(
+    mesh, survey=survey, sigmaMap=mapping, solver=Solver, bc_type='Neumann')
 
-survey.dpred(mtrue[actind])
-survey.makeSyntheticData(mtrue[actind], std=0.05, force=True)
-
+data = problem.make_synthetic_data(mtrue[actind], standard_deviation=0.05, add_noise=True)
 
 # Tikhonov Inversion
 ####################
@@ -150,7 +148,7 @@ survey.makeSyntheticData(mtrue[actind], std=0.05, force=True)
 # Initial Model
 m0 = np.median(ln_sigback) * np.ones(mapping.nP)
 # Data Misfit
-dmis = data_misfit.l2_DataMisfit(survey)
+dmis = data_misfit.L2DataMisfit(simulation=problem, data=data)
 # Regularization
 regT = regularization.Simple(mesh, indActive=actind, alpha_s=1e-6,
                              alpha_x=1., alpha_y=1., alpha_z=1.)

@@ -786,7 +786,7 @@ class Update_IRLS(InversionDirective):
 
             if self.fix_Jmatrix:
                 print(">> Fix Jmatrix")
-                self.invProb.dmisfit.sim.fix_Jmatrix = True
+                self.invProb.dmisfit.simulation.fix_Jmatrix = True
             # Check for maximum number of IRLS cycles
             if self.irls_iteration == self.max_irls_iterations:
                 if not self.silent:

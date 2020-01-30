@@ -16,9 +16,10 @@ parameters:
 User is promoted to try different initial values of the parameterized model.
 """
 
-from SimPEG import DC, Mesh
-from SimPEG import (Maps, Utils, DataMisfit, Regularization,
-                    Optimization, Inversion, InvProblem, Directives)
+from SimPEG.electromagnetics.static import resistivity as DC, utils as DCutils
+import discretize
+from SimPEG import (maps, utils, data_misfit, regularization,
+                    optimization, inversion, inverse_problem, directives)
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
@@ -49,7 +50,7 @@ def run(
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey = DC.utils.gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
+    survey = DCutils.gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
                                      a=10, b=10, n=10)
     survey.getABMN_locations()
     survey = IO.from_ambn_locations_to_survey(
@@ -128,36 +129,30 @@ def run(
     # Generate 2.5D DC problem
     # "N" means potential is defined at nodes
     prb = DC.Problem2D_N(
-        mesh, rhoMap=mapping, storeJ=True,
-        Solver=Solver
+        mesh, survey=survey, rhoMap=mapping, storeJ=True,
+        solver=Solver
     )
-    # Pair problem with survey
-    try:
-        prb.pair(survey)
-    except:
-        survey.unpair()
-        prb.pair(survey)
 
     # Make synthetic DC data with 5% Gaussian noise
-    dtrue = survey.makeSyntheticData(mtrue, std=0.05, force=True)
+    data = prb.make_synthetic_data(mtrue, std=0.05, add_noise=True)
 
     # Show apparent resisitivty pseudo-section
     IO.plotPseudoSection(
-        data=survey.dobs/IO.G, data_type='apparent_resistivity'
+        data=data.dobs/IO.G, data_type='apparent_resistivity'
     )
 
     # Show apparent resisitivty histogram
     fig = plt.figure()
-    out = hist(survey.dobs/IO.G, bins=20)
+    out = hist(data.dobs/IO.G, bins=20)
     plt.show()
     # Set uncertainty
     # floor
     eps = 10**(-3.2)
     # percentage
     std = 0.05
-    dmisfit = data_misfit.l2_DataMisfit(survey)
-    uncert = abs(survey.dobs) * std + eps
-    dmisfit.W = 1./uncert
+    dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data)
+    uncert = abs(data.dobs) * std + eps
+    dmisfit.uncertainty = uncert
 
     # Map for a regularization
     mesh_1d = discretize.TensorMesh([parametric_block.nP])

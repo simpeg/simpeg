@@ -1316,8 +1316,6 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
                 )
 
     survey2D = dc.Survey(srcList2D)
-    survey2D.dobs = survey.dobs
-    survey2D.std = survey.std
 
     return survey2D
 
@@ -1934,4 +1932,3 @@ def plot_layer(rho, mesh, xscale='log', ax=None, showlayers=False, xlim=None, de
             for locz in z_grid:
                 ax.plot(np.linspace(rho_min, rho_max, 100), np.ones(100)*locz, 'b--', lw = 0.5)
         return ax.plot(resistivity, z, 'k-', **kwargs)
-

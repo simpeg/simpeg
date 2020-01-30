@@ -13,7 +13,8 @@ import pandas as pd
 import shutil
 import os
 import matplotlib.pyplot as plt
-from SimPEG import DC, Versions
+from SimPEG.electromagnetics.static import resistivity as DC
+from SimPEG import Versions
 from SimPEG.utils.io_utils import download
 
 ###############################################################################

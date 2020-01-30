@@ -20,16 +20,18 @@ Following example will show you how user can implement this set up with 1D DC
 inversion example. Note that we have 3D forward modeling mesh.
 """
 
+import discretize
 from SimPEG import (
-    Mesh, Maps, DataMisfit, Regularization, Optimization,
-    InvProblem, Directives, Inversion, Versions
+    maps, data_misfit, regularization, optimization,
+    inverse_problem, directives, inversion, Versions
 )
-from SimPEG.Utils import plotLayer
+from SimPEG.utils import plotLayer
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
-from SimPEG.EM.Static import DC
+#from SimPEG.EM.Static import DC
+from SimPEG.electromagnetics.static import resistivity as DC
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -78,6 +80,7 @@ ax[1].set_xlabel('Easting (m)', fontsize=25)
 ax[1].set_ylabel(' ', fontsize=25)
 ax[1].set_xlim(-1000., 1000.)
 ax[1].set_ylim(-500., 0.)
+plt.plot()
 
 ###############################################################################
 # Step 3
@@ -174,9 +177,15 @@ for i in range(ntx):
 # Set up problem and pair with survey
 
 survey = DC.Survey(srclist)
-problem = DC.Problem3D_CC(mesh, sigmaMap=mapping)
-problem.pair(survey)
-problem.Solver = Solver
+problem = DC.Problem3D_CC(
+    mesh,
+    survey=survey,
+    solver=Solver,
+    sigmaMap=mapping,
+    bc_type='Neumann'
+    )
+#problem.pair(survey)
+#problem.Solver = Solver
 
 ###############################################################################
 # Step 5
@@ -190,11 +199,10 @@ problem.Solver = Solver
 # To make synthetic example you can use survey.makeSyntheticData, which
 # generates related setups.
 
-data = survey.dpred(mtrue)
-survey.makeSyntheticData(mtrue, std=0.01, force=True)
+data = problem.make_synthetic_data(mtrue, standard_deviation=0.01, add_noise=True)
 
-appres = data*np.pi*b*(b+a)/a
-appres_obs = survey.dobs*np.pi*b*(b+a)/a
+appres = data.dclean*np.pi*b*(b+a)/a
+appres_obs = data.dobs*np.pi*b*(b+a)/a
 fig, ax = plt.subplots(1, 2, figsize=(16, 4))
 ax[1].semilogx(abhalf, appres, 'k.-')
 ax[1].set_xscale('log')
@@ -211,7 +219,6 @@ ax[0].set_xlabel('Easting (m)')
 ax[0].set_ylabel('Depth (m)')
 ax[0].set_xlim(-1000., 1000.)
 ax[0].set_ylim(-500., 0.)
-
 ###############################################################################
 # Step 6
 # ------
@@ -219,7 +226,7 @@ ax[0].set_ylim(-500., 0.)
 # Run inversion
 
 regmesh = discretize.TensorMesh([31])
-dmis = data_misfit.l2_DataMisfit(survey)
+dmis = data_misfit.L2DataMisfit(simulation=problem, data=data)
 reg = regularization.Tikhonov(regmesh)
 opt = optimization.InexactGaussNewton(maxIter=7, tolX=1e-15)
 opt.remember('xc')
@@ -238,8 +245,8 @@ mopt = inv.run(m0)
 # ------
 #
 # Plot the results
-appres = data*np.pi*b*(b+a)/a
-appres_obs = survey.dobs*np.pi*b*(b+a)/a
+appres = data.dclean*np.pi*b*(b+a)/a
+appres_obs = data.dobs*np.pi*b*(b+a)/a
 appres_pred = invProb.dpred*np.pi*b*(b+a)/a
 fig, ax = plt.subplots(1, 2, figsize=(17, 6))
 ax[0].plot(abhalf, appres_obs, 'k.-')

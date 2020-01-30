@@ -20,9 +20,10 @@ But if you want share edges of the model, you can try:
 
 """
 
-from SimPEG import DC
-from SimPEG import (Maps, Utils, DataMisfit, Regularization,
-                    Optimization, Inversion, InvProblem, Directives)
+from SimPEG.electromagnetics.static import resistivity as DC
+from SimPEG.electromagnetics.static.utils import gen_DCIPsurvey, genTopography
+from SimPEG import (maps, utils, data_misfit, regularization,
+                    optimization, inversion, inverse_problem, directives)
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
@@ -44,7 +45,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey = DC.utils.gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
+    survey = gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
                                      a=10, b=10, n=10)
     survey.getABMN_locations()
     survey = IO.from_ambn_locations_to_survey(
@@ -55,7 +56,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
 
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
-    topo, mesh1D = DC.utils.genTopography(mesh, -10, 0, its=100)
+    topo, mesh1D = genTopography(mesh, -10, 0, its=100)
     actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
     survey.drapeTopo(mesh, actind, option="top")
 
@@ -107,30 +108,24 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
     # Generate 2.5D DC problem
     # "N" means potential is defined at nodes
     prb = DC.Problem2D_N(
-        mesh, rhoMap=mapping, storeJ=True,
+        mesh, survey=survey, rhoMap=mapping, storeJ=True,
         Solver=Solver, verbose=True
     )
-    # Pair problem with survey
-    try:
-        prb.pair(survey)
-    except:
-        survey.unpair()
-        prb.pair(survey)
 
     # Make synthetic DC data with 5% Gaussian noise
-    dtrue = survey.makeSyntheticData(mtrue, std=0.05, force=True)
+    data = prb.make_synthetic_data(mtrue, standard_deviation=0.05, add_noise=True)
 
-    IO.data_dc = dtrue
+    IO.data_dc = data.dobs
     # Show apparent resisitivty pseudo-section
     if plotIt:
         IO.plotPseudoSection(
-            data=survey.dobs/IO.G, data_type='apparent_resistivity'
+            data=data.dobs/IO.G, data_type='apparent_resistivity'
         )
 
     # Show apparent resisitivty histogram
     if plotIt:
         fig = plt.figure()
-        out = hist(survey.dobs/IO.G, bins=20)
+        out = hist(data.dobs/IO.G, bins=20)
         plt.xlabel("Apparent Resisitivty ($\Omega$m)")
         plt.show()
 
@@ -142,9 +137,9 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
     eps = 10**(-3.2)
     # percentage
     std = 0.05
-    dmisfit = data_misfit.l2_DataMisfit(survey)
-    uncert = abs(survey.dobs) * std + eps
-    dmisfit.W = 1./uncert
+    dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data)
+    uncert = abs(data.dobs) * std + eps
+    dmisfit.uncertainty = uncert
 
     # Map for a regularization
     regmap = maps.IdentityMap(nP=int(actind.sum()))
@@ -157,8 +152,8 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
     #     gradientType = 'components'
     reg.norms = np.c_[p, qx, qz, 0.]
     IRLS = directives.Update_IRLS(
-        maxIRLSiter=20, minGNiter=1,
-        betaSearch=False, fix_Jmatrix=True
+        max_irls_iterations=20, minGNiter=1,
+        beta_search=False, fix_Jmatrix=True
     )
 
     opt = optimization.InexactGaussNewton(maxIter=40)
@@ -227,4 +222,3 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
 
 if __name__ == '__main__':
     run()
-

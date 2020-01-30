@@ -12,9 +12,10 @@ User is promoted to try different suvey_type such as 'pole-dipole',
 'dipole-pole', and 'pole-pole'.
 """
 
-from SimPEG import DC
-from SimPEG import (Maps, Utils, DataMisfit, Regularization,
-                    Optimization, Inversion, InvProblem, Directives)
+from SimPEG.electromagnetics.static import resistivity as DC
+from SimPEG.electromagnetics.static.utils import gen_DCIPsurvey, genTopography
+from SimPEG import (maps, utils, data_misfit, regularization,
+                    optimization, inversion, inverse_problem, directives)
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
@@ -36,7 +37,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey = DC.utils.gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
+    survey = gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
                                      a=10, b=10, n=10)
     survey.getABMN_locations()
     survey = IO.from_ambn_locations_to_survey(
@@ -47,7 +48,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
-    topo, mesh1D = DC.utils.genTopography(mesh, -10, 0, its=100)
+    topo, mesh1D = genTopography(mesh, -10, 0, its=100)
     actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
     survey.drapeTopo(mesh, actind, option="top")
 
@@ -99,15 +100,9 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # Generate 2.5D DC problem
     # "N" means potential is defined at nodes
     prb = DC.Problem2D_N(
-        mesh, rhoMap=mapping, storeJ=True,
-        Solver=Solver
+        mesh, survey=survey, rhoMap=mapping, storeJ=True,
+        Solver=Solver, verbose=True
     )
-    # Pair problem with survey
-    try:
-        prb.pair(survey)
-    except:
-        survey.unpair()
-        prb.pair(survey)
 
     geometric_factor = survey.set_geometric_factor(
         data_type="apparent_resistivity",
@@ -116,19 +111,19 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     )
 
     # Make synthetic DC data with 5% Gaussian noise
-    dtrue = survey.makeSyntheticData(mtrue, std=0.05, force=True)
+    data = prb.make_synthetic_data(mtrue, standard_deviation=0.05, add_noise=True)
 
-    IO.data_dc = dtrue
+    IO.data_dc = data.dobs
     # Show apparent resisitivty pseudo-section
     if plotIt:
         IO.plotPseudoSection(
-            data=survey.dobs, data_type='apparent_resistivity'
+            data=data.dobs, data_type='apparent_resistivity'
         )
 
     # Show apparent resisitivty histogram
     if plotIt:
         fig = plt.figure()
-        out = hist(survey.dobs, bins=20)
+        out = hist(data.dobs, bins=20)
         plt.xlabel("Apparent Resisitivty ($\Omega$m)")
         plt.show()
 
@@ -140,9 +135,9 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     eps = 1.
     # percentage
     std = 0.05
-    dmisfit = data_misfit.l2_DataMisfit(survey)
-    uncert = abs(survey.dobs) * std + eps
-    dmisfit.W = 1./uncert
+    dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data)
+    uncert = abs(data.dobs) * std + eps
+    dmisfit.uncertainty = uncert
 
     # Map for a regularization
     regmap = maps.IdentityMap(nP=int(actind.sum()))
@@ -158,7 +153,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     update_Jacobi = directives.UpdatePreconditioner()
     inv = inversion.BaseInversion(
         invProb, directiveList=[
-            beta, betaest, target, updateSensW, update_Jacobi
+            beta, target, updateSensW, betaest, update_Jacobi
         ]
         )
     prb.counter = opt.counter = utils.Counter()

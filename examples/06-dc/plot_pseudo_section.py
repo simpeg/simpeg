@@ -20,10 +20,12 @@ import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
 
-from SimPEG import Mesh, Utils
-from SimPEG.EM.Static.Utils import gen_DCIPsurvey
-from SimPEG.EM.Static.Utils import convertObs_DC3D_to_2D
-from SimPEG.EM.Static.Utils import plot_pseudoSection
+import discretize
+from SimPEG import utils
+from SimPEG.data import Data
+from SimPEG.electromagnetics.static.utils import gen_DCIPsurvey
+from SimPEG.electromagnetics.static.utils import convertObs_DC3D_to_2D
+from SimPEG.electromagnetics.static.utils import plot_pseudoSection
 
 
 def run(loc=None, sig=None, radi=None, param=None, survey_type='dipole-dipole',
@@ -97,12 +99,12 @@ def run(loc=None, sig=None, radi=None, param=None, survey_type='dipole-dipole',
         locs, dim=mesh.dim, survey_type=survey_type,
         a=param[0], b=param[1], n=param[2]
     )
-    Tx = survey.srcList
-    Rx = [src.rxList[0] for src in Tx]
+    Tx = survey.source_list
+    Rx = [src.receiver_list[0] for src in Tx]
     # Define some global geometry
     dl_len = np.sqrt(np.sum((locs[0, :] - locs[1, :])**2))
-    dl_x = (Tx[-1].loc[0][1] - Tx[0].loc[0][0]) / dl_len
-    dl_y = (Tx[-1].loc[1][1] - Tx[0].loc[1][0]) / dl_len
+    dl_x = (Tx[-1].location[0][1] - Tx[0].location[0][0]) / dl_len
+    dl_y = (Tx[-1].location[1][1] - Tx[0].location[1][0]) / dl_len
 
     # Set boundary conditions
     mesh.setCellGradBC('neumann')
@@ -137,13 +139,13 @@ def run(loc=None, sig=None, radi=None, param=None, survey_type='dipole-dipole',
         # print("Transmitter %i / %i\r" % (ii+1, len(Tx)))
 
         # Select dipole locations for receiver
-        rxloc_M = np.asarray(Rx[ii].locs[0])
-        rxloc_N = np.asarray(Rx[ii].locs[1])
+        rxloc_M = np.asarray(Rx[ii].locations[0])
+        rxloc_N = np.asarray(Rx[ii].locations[1])
 
         # For usual cases 'dipole-dipole' or "gradient"
         if survey_type == 'pole-dipole':
             # Create an "inifinity" pole
-            tx = np.squeeze(Tx[ii].loc[:, 0:1])
+            tx = np.squeeze(Tx[ii].location[:, 0:1])
             tinf = tx + np.array([dl_x, dl_y, 0])*dl_len*2
             inds = utils.closestPoints(mesh, np.c_[tx, tinf].T)
             RHS = (
@@ -151,9 +153,9 @@ def run(loc=None, sig=None, radi=None, param=None, survey_type='dipole-dipole',
                 ([-1] / mesh.vol[inds])
             )
         else:
-            inds = utils.closestPoints(mesh, np.asarray(Tx[ii].loc))
+            inds = utils.closestPoints(mesh, np.asarray(Tx[ii].location))
             RHS = (
-                mesh.getInterpolationMat(np.asarray(Tx[ii].loc), 'CC').T *
+                mesh.getInterpolationMat(np.asarray(Tx[ii].location), 'CC').T *
                 ([-1, 1] / mesh.vol[inds])
             )
 
@@ -172,15 +174,16 @@ def run(loc=None, sig=None, radi=None, param=None, survey_type='dipole-dipole',
 
         data.append(dtemp)
         print('\rTransmitter {0} of {1} -> Time:{2} sec'.format(
-            ii, len(Tx), time.time() - start_time)
+            ii+1, len(Tx), time.time() - start_time)
         )
 
-    print('Transmitter {0} of {1}'.format(ii, len(Tx)))
+    print('Transmitter {0} of {1}'.format(ii+1, len(Tx)))
     print('Forward completed')
 
     # Let's just convert the 3D format into 2D (distance along line) and plot
     survey2D = convertObs_DC3D_to_2D(survey, np.ones(survey.nSrc), 'Xloc')
-    survey2D.dobs = np.hstack(data)
+    data = Data(dobs=np.hstack(data), survey=survey2D)
+    #survey2D.dobs = np.hstack(data)
 
     if not plotIt:
         return
@@ -204,8 +207,8 @@ def run(loc=None, sig=None, radi=None, param=None, survey_type='dipole-dipole',
 
     ax.set_title('3-D model')
     plt.gca().set_aspect('equal', adjustable='box')
-    plt.scatter(Tx[0].loc[0][0], Tx[0].loc[0][2], s=40, c='g', marker='v')
-    plt.scatter(Rx[0].locs[0][:, 0], Rx[0].locs[0][:, 1], s=40, c='y')
+    plt.scatter(Tx[0].location[0][0], Tx[0].location[0][2], s=40, c='g', marker='v')
+    plt.scatter(Rx[0].locations[0][:, 0], Rx[0].locations[0][:, 1], s=40, c='y')
     plt.xlim([-xlim, xlim])
     plt.ylim([-zlim, mesh.vectorNz[-1]+dx])
 
@@ -242,7 +245,7 @@ def run(loc=None, sig=None, radi=None, param=None, survey_type='dipole-dipole',
 
     # Add the pseudo section
     dat = plot_pseudoSection(
-        survey2D, ax2, survey_type=survey_type, data_type=unitType
+        data, ax2, survey_type=survey_type, data_type=unitType
     )
     ax2.set_title('Apparent Conductivity data')
 

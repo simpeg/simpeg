@@ -15,13 +15,13 @@ indicates transformation of our model to a different space:
 
 Following example will show you how user can implement a 2D DC inversion.
 """
-
+import discretize
 from SimPEG import (
-    Mesh, Maps, Utils,
-    DataMisfit, Regularization, Optimization,
-    InvProblem, Directives, Inversion
+    maps, utils,
+    data_misfit, regularization, optimization,
+    inverse_problem, directives, inversion
 )
-from SimPEG.EM.Static import DC, Utils as DCUtils
+from SimPEG.electromagnetics.static import resistivity as DC, utils as DCutils
 import numpy as np
 import matplotlib.pyplot as plt
 try:
@@ -112,18 +112,16 @@ expmap = maps.ExpMap(mesh)
 mapactive = maps.InjectActiveCells(mesh=mesh, indActive=actind,
                                    valInactive=-5.)
 mapping = expmap * mapactive
-problem = DC.Problem3D_CC(mesh, sigmaMap=mapping)
-problem.pair(survey)
-problem.Solver = Solver
+problem = DC.Problem3D_CC(
+    mesh, survey=survey, sigmaMap=mapping, solver=Solver, bc_type='Neumann')
 
-survey.dpred(mtrue[actind])
-survey.makeSyntheticData(mtrue[actind], std=0.05, force=True)
+data = problem.make_synthetic_data(mtrue[actind], standard_deviation=0.05, add_noise=True)
 
 # Tikhonov Inversion
 ####################
 
 m0 = np.median(ln_sigback) * np.ones(mapping.nP)
-dmis = data_misfit.l2_DataMisfit(survey)
+dmis = data_misfit.L2DataMisfit(simulation=problem, data=data)
 regT = regularization.Simple(mesh, indActive=actind)
 
 # Personal preference for this solver with a Jacobi preconditioner
@@ -133,14 +131,14 @@ opt = optimization.ProjectedGNCG(maxIter=20, lower=-10, upper=10,
 opt.remember('xc')
 invProb = inverse_problem.BaseInvProblem(dmis, regT, opt)
 
-beta = directives.BetaEstimate_ByEig(beta0_ratio=1.)
+beta_est = directives.BetaEstimate_ByEig(beta0_ratio=1.)
 Target = directives.TargetMisfit()
 betaSched = directives.BetaSchedule(coolingFactor=5., coolingRate=2)
 updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3)
 update_Jacobi = directives.UpdatePreconditioner()
 
-inv = inversion.BaseInversion(invProb, directiveList=[beta, Target,
-                                                      betaSched, updateSensW,
+inv = inversion.BaseInversion(invProb, directiveList=[Target, betaSched,
+                                                      updateSensW, beta_est,
                                                       update_Jacobi])
 
 minv = inv.run(m0)
