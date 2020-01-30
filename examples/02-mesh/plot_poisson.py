@@ -4,7 +4,8 @@ Mesh: Basic Forward 2D DC Resistivity
 
 2D DC forward modeling example with Tensor and Curvilinear Meshes
 """
-from SimPEG import Mesh, Utils, SolverLU
+import discretize
+from SimPEG import utils, SolverLU
 import numpy as np
 import matplotlib.pyplot as plt
 

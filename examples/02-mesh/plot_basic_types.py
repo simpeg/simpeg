@@ -4,7 +4,8 @@ Mesh: Basic: Types
 
 Here we show SimPEG used to create three different types of meshes.
 """
-from SimPEG import Mesh, Utils
+import discretize
+from SimPEG import utils
 import numpy as np
 import matplotlib.pyplot as plt
 

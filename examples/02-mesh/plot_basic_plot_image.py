@@ -4,7 +4,8 @@ Mesh: Basic: PlotImage
 
 You can use M.PlotImage to plot images on all of the Meshes.
 """
-from SimPEG import Mesh, Utils
+import discretize
+from SimPEG import utils
 import matplotlib.pyplot as plt
 
 
@@ -14,7 +15,7 @@ def run(plotIt=True):
     v = utils.mkvc(v)
 
     O = discretize.TreeMesh([32, 32])
-    O.refine(1)
+    O.refine(1, finalize=False)
 
     def function(cell):
         if (

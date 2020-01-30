@@ -40,7 +40,9 @@ as the time increases.
 .. _FiPy: http://www.ctcms.nist.gov/fipy/examples/cahnHilliard/generated/examples.cahnHilliard.mesh2DCoupled.html
 """
 from __future__ import print_function
-from SimPEG import Mesh, Utils, Solver
+import discretize
+from SimPEG import utils
+from SimPEG import Solver
 import numpy as np
 import matplotlib.pyplot as plt
 

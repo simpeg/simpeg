@@ -20,7 +20,7 @@ notation::
     A 'N' will make the entire mesh negative, and a '0' (or a 0) will
     make the mesh start at zero.
 """
-from SimPEG import Mesh
+import discretize
 import matplotlib.pyplot as plt
 
 

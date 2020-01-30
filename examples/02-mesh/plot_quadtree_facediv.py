@@ -6,7 +6,7 @@ Showing the face divergence on the quadtree with numbering.
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from SimPEG import Mesh
+import discretize
 
 
 def run(plotIt=True, n=60):
