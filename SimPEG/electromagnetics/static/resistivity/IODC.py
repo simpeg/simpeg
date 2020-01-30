@@ -221,6 +221,11 @@ class IO(properties.HasProperties):
         default=4
     )
 
+    corezlength = properties.Float(
+        "Core depth (m)",
+        required=True,
+    )
+
     # For synthetic surveys
     x0 = None
     lineLength = None
@@ -562,6 +567,7 @@ class IO(properties.HasProperties):
             if corezlength is None:
                 dz_topo = locs[:,1].max()-locs[:,1].min()
                 corezlength = self.grids[:, z_ind].max() + dz_topo
+                self.corezlength = corezlength
 
             ncx = np.round(corexlength/dx)
             ncz = np.round(corezlength/dz)
