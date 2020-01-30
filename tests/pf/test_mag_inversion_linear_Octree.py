@@ -108,8 +108,8 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
-            maxIter=20, lower=0., upper=10.,
-            maxIterLS=20, maxIterCG=20, tolCG=1e-4,
+            maxIter=10, lower=0., upper=10.,
+            maxIterLS=5, maxIterCG=5, tolCG=1e-4,
             stepOffBoundsFact=1e-4
         )
 
@@ -122,7 +122,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             f_min_change=1e-3, max_irls_iterations=20, beta_tol=1e-1, beta_search=False
         )
         update_Jacobi = directives.UpdatePreconditioner()
-        sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+        sensitivity_weights = directives.UpdateSensitivityWeights()
         self.inv = inversion.BaseInversion(
             invProb,
             directiveList=[IRLS, sensitivity_weights, update_Jacobi]
@@ -152,7 +152,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # plt.show()
 
 
-        self.assertLess(residual, 0.5)
+        self.assertLess(residual, 1)
         # self.assertTrue(residual < 0.05)
 
     def tearDown(self):
