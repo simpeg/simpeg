@@ -1,16 +1,13 @@
 from __future__ import print_function
 import unittest
-from SimPEG import Mesh
-from SimPEG import Utils
-from SimPEG import Maps
-from SimPEG import Regularization
-from SimPEG import DataMisfit
-from SimPEG import Optimization
-from SimPEG import InvProblem
-from SimPEG import Directives
-from SimPEG import Inversion
+import discretize
+from SimPEG import (utils, maps, regularization, data_misfit,
+                    optimization, inverse_problem, directives,
+                    inversion)
 import numpy as np
-import SimPEG.PF as PF
+#import SimPEG.PF as PF
+from SimPEG.potential_fields import magnetics as mag
+import shutil
 import matplotlib.pyplot as plt
 
 
@@ -30,7 +27,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         hyind = [(dx, 5, -1.3), (dx, 5), (dx, 5, 1.3)]
         hzind = [(dx, 5, -1.3), (dx, 6)]
 
-        self.mesh = Mesh.TensorMesh([hxind, hyind, hzind], 'CCC')
+        self.mesh = discretize.TensorMesh([hxind, hyind, hzind], 'CCC')
 
         # Get index of the center
         midx = int(self.mesh.nCx/2)
@@ -41,12 +38,12 @@ class MagInvLinProblemTest(unittest.TestCase):
         zz = -np.exp((xx**2 + yy**2) / 75**2) + self.mesh.vectorNz[-1]
 
         # Go from topo to actv cells
-        topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
-        actv = Utils.surface2ind_topo(self.mesh, topo, 'N')
+        topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
+        actv = utils.surface2ind_topo(self.mesh, topo, 'N')
         actv = np.where(actv)[0]
 
         # Create active map to go from reduce space to full
-        self.actvMap = Maps.InjectActiveCells(self.mesh, actv, -100)
+        self.actvMap = maps.InjectActiveCells(self.mesh, actv, -100)
         nC = len(actv)
 
         # Create and array of observation points
@@ -58,69 +55,64 @@ class MagInvLinProblemTest(unittest.TestCase):
         Z = -np.exp((X**2 + Y**2) / 75**2) + self.mesh.vectorNz[-1] + 5.
 
         # Create a MAGsurvey
-        rxLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
-        rxLoc = PF.BaseMag.RxObs(rxLoc)
-        srcField = PF.BaseMag.SrcField([rxLoc], param=H0)
-        survey = PF.BaseMag.LinearSurvey(srcField)
+        rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
+        rxLoc = mag.point_receiver(rxLoc)
+        srcField = mag.SourceField([rxLoc], parameters=H0)
+        survey = mag.MagneticSurvey(srcField)
 
         # We can now create a susceptibility model and generate data
         # Here a simple block in half-space
         model = np.zeros((self.mesh.nCx, self.mesh.nCy, self.mesh.nCz))
         model[(midx-2):(midx+2), (midy-2):(midy+2), -6:-2] = 0.02
-        model = Utils.mkvc(model)
+        model = utils.mkvc(model)
         self.model = model[actv]
 
         # Create active map to go from reduce set to full
-        self.actvMap = Maps.InjectActiveCells(self.mesh, actv, -100)
+        self.actvMap = maps.InjectActiveCells(self.mesh, actv, -100)
 
         # Creat reduced identity map
-        idenMap = Maps.IdentityMap(nP=nC)
+        idenMap = maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        prob = PF.Magnetics.MagneticIntegral(self.mesh, chiMap=idenMap,
-                                             actInd=actv)
-
-        # Pair the survey and problem
-        survey.pair(prob)
+        sim = mag.IntegralSimulation(
+            self.mesh,
+            survey=survey,
+            chiMap=idenMap,
+            actInd=actv,
+            store_sensitivities='disk'
+        )
+        self.sim = sim
 
         # Compute linear forward operator and compute some data
-        d = prob.fields(self.model)
-
-        # Add noise and uncertainties (1nT)
-        data = d + np.random.randn(len(d))
-        wd = np.ones(len(data))*1.
-
-        survey.dobs = data
-        survey.std = wd
-
-        # Create sensitivity weights from our linear forward operator
-        wr = np.sum(prob.G**2., axis=0)**0.5
-        wr = (wr/np.max(wr))
+        data = sim.make_synthetic_data(
+            self.model,
+            standard_deviation=0.0, noise_floor=1.0, add_noise=True
+        )
 
         # Create a regularization
-        reg = Regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
-        reg.cell_weights = wr
+        reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
         reg.norms = np.c_[0, 0, 0, 0]
         reg.gradientType = 'component'
         # reg.eps_p, reg.eps_q = 1e-3, 1e-3
 
         # Data misfit function
-        dmis = DataMisfit.l2_DataMisfit(survey)
-        dmis.W = 1/wd
+        dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
+        #dmis.W = 1/wd
 
         # Add directives to the inversion
-        opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
+        opt = optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
                                          maxIterLS=20, maxIterCG=10,
                                          tolCG=1e-3)
 
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-        betaest = Directives.BetaEstimate_ByEig()
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
+        betaest = directives.BetaEstimate_ByEig()
 
         # Here is where the norms are applied
-        IRLS = Directives.Update_IRLS(f_min_change=1e-4, minGNiter=1)
-        update_Jacobi = Directives.UpdatePreconditioner()
-        self.inv = Inversion.BaseInversion(invProb,
-                                           directiveList=[IRLS, betaest,
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=1)
+        update_Jacobi = directives.UpdatePreconditioner()
+        sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+        self.inv = inversion.BaseInversion(invProb,
+                                           directiveList=[IRLS, sensitivity_weights, betaest,
                                                           update_Jacobi])
 
     def test_mag_inverse(self):
@@ -145,6 +137,11 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         self.assertTrue(residual < 0.05)
         # self.assertTrue(residual < 0.05)
+
+    def tearDown(self):
+        # Clean up the working directory
+        if self.sim.store_sensitivities == 'disk':
+            shutil.rmtree(self.sim.sensitivity_path)
 
 if __name__ == '__main__':
     unittest.main()

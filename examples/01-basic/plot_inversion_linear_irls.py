@@ -14,7 +14,7 @@ from SimPEG import Mesh
 from SimPEG import Problem
 from SimPEG import Survey
 from SimPEG import DataMisfit
-from SimPEG import Directives
+from SimPEG import directives
 from SimPEG import Optimization
 from SimPEG import Regularization
 from SimPEG import InvProblem
@@ -60,22 +60,16 @@ def run(N=100, plotIt=True):
     survey.dobs = prob.fields(mtrue) + std_noise * np.random.randn(nk)
 
     wd = np.ones(nk) * std_noise
-
-    # Distance weighting
-    wr = np.sum(prob.getJ(m0)**2., axis=0)**0.5
-    wr = wr/np.max(wr)
-
     dmis = DataMisfit.l2_DataMisfit(survey)
     dmis.W = 1./wd
 
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 
     # Creat reduced identity map
     idenMap = Maps.IdentityMap(nP=mesh.nC)
 
     reg = Regularization.Sparse(mesh, mapping=idenMap)
     reg.mref = mref
-    reg.cell_weights = wr
     reg.norms = np.c_[0., 0., 2., 2.]
     reg.mref = np.zeros(mesh.nC)
 
@@ -84,17 +78,19 @@ def run(N=100, plotIt=True):
         maxIterLS=20, maxIterCG=10, tolCG=1e-3
     )
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    update_Jacobi = Directives.UpdatePreconditioner()
+    update_Jacobi = directives.UpdatePreconditioner()
 
     # Set the IRLS directive, penalize the lowest 25 percentile of model values
     # Start with an l2-l2, then switch to lp-norms
 
-    IRLS = Directives.Update_IRLS(
+    IRLS = directives.Update_IRLS(
         maxIRLSiter=40, minGNiter=1, f_min_change=1e-4)
-    saveDict = Directives.SaveOutputEveryIteration(save_txt=False)
+    saveDict = directives.SaveOutputEveryIteration(save_txt=False)
+    sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+
     inv = Inversion.BaseInversion(
         invProb,
-        directiveList=[IRLS, betaest, update_Jacobi, saveDict]
+        directiveList=[sensitivity_weights, IRLS, betaest, update_Jacobi, saveDict]
     )
 
     # Run inversion

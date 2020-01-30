@@ -7,6 +7,7 @@ import warnings
 import os
 from .data_misfit import BaseDataMisfit
 from .objective_function import ComboObjectiveFunction
+from .maps import SphericalSystem, ComboMap
 from .regularization import BaseComboRegularization, BaseRegularization
 from .utils import (
     mkvc, setKwargs, sdiag, diagEst, spherical2cartesian, cartesian2spherical
@@ -652,15 +653,15 @@ class Update_IRLS(InversionDirective):
     chifact_target = 1.
 
     # Solving parameter for IRLS (mode:2)
-    IRLSiter = 0
+    irls_iteration = 0
     minGNiter = 1
-    maxIRLSiter = 20
+    max_irls_iterations = 20
     iterStart = 0
     sphericalDomain = False
 
     # Beta schedule
-    updateBeta = True
-    betaSearch = True
+    update_beta = True
+    beta_search = False
     coolingFactor = 2.
     coolingRate = 1
     ComboObjFun = False
@@ -720,19 +721,6 @@ class Update_IRLS(InversionDirective):
         for reg in self.reg.objfcts:
             reg.model = self.invProb.model
 
-        for reg in self.reg.objfcts:
-            for comp in reg.objfcts:
-                self.f_old += np.sum(comp.f_m**2. / (comp.f_m**2. + comp.epsilon**2.)**(1 - comp.norm/2.))
-
-        self.phi_dm = []
-        self.phi_dmx = []
-        # Look for cases where the block models in to be scaled
-        for sim in self.simulation:
-
-            if getattr(sim, 'coordinate_system', None) is not None:
-                if sim.coordinate_system == 'spherical':
-                    self.sphericalDomain = True
-
         if self.sphericalDomain:
             self.angleScale()
 
@@ -744,7 +732,7 @@ class Update_IRLS(InversionDirective):
         # Check if misfit is within the tolerance, otherwise scale beta
         if np.all([
                 np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol,
-                self.updateBeta,
+                self.update_beta,
                 self.mode != 1
         ]):
 
@@ -758,9 +746,9 @@ class Update_IRLS(InversionDirective):
 
             self.invProb.beta = self.invProb.beta * ratio
 
-            if np.all([self.mode != 1, self.betaSearch]):
+            if np.all([self.mode != 1, self.beta_search]):
                 print("Beta search step")
-                # self.updateBeta = False
+                # self.update_beta = False
                 # Re-use previous model and continue with new beta
                 self.invProb.model = self.reg.objfcts[0].model
                 self.opt.xc = self.reg.objfcts[0].model
@@ -773,11 +761,12 @@ class Update_IRLS(InversionDirective):
 
         phim_new = 0
         for reg in self.reg.objfcts:
-            for comp in reg.objfcts:
-                phim_new += np.sum(
-                    comp.f_m**2. /
-                    (comp.f_m**2. + comp.epsilon**2.)**(1 - comp.norm/2.)
-                )
+            for comp, multipier in zip(reg.objfcts, reg.multipliers):
+                if multipier > 0:
+                    phim_new += np.sum(
+                        comp.f_m**2. /
+                        (comp.f_m**2. + comp.epsilon**2.)**(1 - comp.norm/2.)
+                    )
 
         # Update the model used by the regularization
         phi_m_last = []
@@ -799,11 +788,11 @@ class Update_IRLS(InversionDirective):
                 print(">> Fix Jmatrix")
                 self.invProb.dmisfit.sim.fix_Jmatrix = True
             # Check for maximum number of IRLS cycles
-            if self.IRLSiter == self.maxIRLSiter:
+            if self.irls_iteration == self.max_irls_iterations:
                 if not self.silent:
                     print(
                         "Reach maximum number of IRLS cycles:" +
-                        " {0:d}".format(self.maxIRLSiter)
+                        " {0:d}".format(self.max_irls_iterations)
                     )
 
                 self.opt.stopNextIteration = True
@@ -822,7 +811,7 @@ class Update_IRLS(InversionDirective):
             # Remember the value of the norm from previous R matrices
             # self.f_old = self.reg(self.invProb.model)
 
-            self.IRLSiter += 1
+            self.irls_iteration += 1
 
             # Reset the regularization matrices so that it is
             # recalculated for current model. Do it to all levels of comboObj
@@ -837,20 +826,12 @@ class Update_IRLS(InversionDirective):
                     dmis.stashedR = None
 
             # Compute new model objective function value
-
-            phi_m_new = []
-            for reg in self.reg.objfcts:
-                phi_m_new += [reg(self.invProb.model)]
-
-            self.f_change = np.abs(self.f_old - phim_new) / self.f_old
-
-            if not self.silent:
-                print("delta phim: {0:6.3e}".format(self.f_change))
+            f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
 
             # Check if the function has changed enough
             if np.all([
-                self.f_change < self.f_min_change,
-                self.IRLSiter > 1,
+                f_change < self.f_min_change,
+                self.irls_iteration > 1,
                 np.abs(1. - self.invProb.phi_d / self.target) < self.beta_tol
             ]):
 
@@ -863,7 +844,7 @@ class Update_IRLS(InversionDirective):
 
             self.f_old = phim_new
 
-            self.updateBeta = True
+            self.update_beta = True
             self.invProb.phi_m_last = self.reg(self.invProb.model)
 
     def startIRLS(self):
@@ -971,26 +952,19 @@ class UpdatePreconditioner(InversionDirective):
             # Check if regularization has a projection
             regDiag += reg.deriv2(m).diagonal()
 
-        # Deal with the linear case
-        if getattr(self.opt, 'JtJdiag', None) is None:
+        JtJdiag = np.zeros_like(self.invProb.model)
+        for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
 
-            print("Approximated diag(JtJ) with linear operator")
+            if getattr(sim, 'getJtJdiag', None) is None:
+                assert getattr(sim, 'getJ', None) is not None, (
+                    "Problem does not have a getJ attribute." +
+                    "Cannot form the sensitivity explicitly"
+                )
+                JtJdiag += np.sum(np.power((dmisfit.W*sim.getJ(m)), 2), axis=0)
+            else:
+                JtJdiag += sim.getJtJdiag(m, W=dmisfit.W)
 
-            JtJdiag = np.zeros_like(self.invProb.model)
-            for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
-
-                    if getattr(sim, 'getJtJdiag', None) is None:
-                        assert getattr(sim, 'getJ', None) is not None, (
-                        "Problem does not have a getJ attribute." +
-                        "Cannot form the sensitivity explicitely"
-                        )
-                        JtJdiag += np.sum(np.power((dmisfit.W*sim.getJ(m)), 2), axis=0)
-                    else:
-                        JtJdiag += sim.getJtJdiag(m, W=dmisfit.W)
-
-            self.opt.JtJdiag = JtJdiag
-
-        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
+        diagA = JtJdiag + self.invProb.beta*regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.
         PC = sdiag((diagA))
 
@@ -1008,8 +982,20 @@ class UpdatePreconditioner(InversionDirective):
         for reg in self.reg.objfcts:
             # Check if he has wire
             regDiag += reg.deriv2(m).diagonal()
-        # Assumes that opt.JtJdiag has been updated or static
-        diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
+
+        JtJdiag = np.zeros_like(self.invProb.model)
+        for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
+
+            if getattr(sim, 'getJtJdiag', None) is None:
+                assert getattr(sim, 'getJ', None) is not None, (
+                    "Problem does not have a getJ attribute." +
+                    "Cannot form the sensitivity explicitly"
+                )
+                JtJdiag += np.sum(np.power((dmisfit.W*sim.getJ(m)), 2), axis=0)
+            else:
+                JtJdiag += sim.getJtJdiag(m, W=dmisfit.W)
+
+        diagA = JtJdiag + self.invProb.beta*regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.
         PC = sdiag((diagA))
         self.opt.approxHinv = PC
@@ -1074,16 +1060,13 @@ class UpdateSensitivityWeights(InversionDirective):
         # Compute normalized weights
         self.wr = self.getWr()
 
-        # Send a copy of JtJdiag for the preconditioner
-        self.updateOpt()
-
         # Update the regularization
         self.updateReg()
 
     def getJtJdiag(self):
         """
-            Compute explicitely the main diagonal of JtJ
-            Good for any problem where J is formed explicitely
+            Compute explicitly the main diagonal of JtJ
+            Good for any problem where J is formed explicitly
         """
         self.JtJdiag = []
         m = self.invProb.model
@@ -1096,7 +1079,7 @@ class UpdateSensitivityWeights(InversionDirective):
             if getattr(sim, 'getJtJdiag', None) is None:
                 assert getattr(sim, 'getJ', None) is not None, (
                     "Problem does not have a getJ attribute." +
-                    "Cannot form the sensitivity explicitely"
+                    "Cannot form the sensitivity explicitly"
                 )
 
                 self.JtJdiag += [mkvc(np.sum((dmisfit.W*sim.getJ(m))**(2.), axis=0))]
@@ -1132,19 +1115,35 @@ class UpdateSensitivityWeights(InversionDirective):
         for reg in self.reg.objfcts:
             reg.cell_weights = reg.mapping * (self.wr)
 
-    def updateOpt(self):
-        """
-            Update a copy of JtJdiag to optimization for preconditioner
-        """
-        # if self.ComboMisfitFun:
-        JtJdiag = np.zeros_like(self.invProb.model)
-        for sim, JtJ, dmisfit in zip(
-            self.simulation, self.JtJdiag, self.dmisfit.objfcts
-        ):
+    def validate(self, directiveList):
+        # check if a beta estimator is in the list after setting the weights
+        dList = directiveList.dList
+        self_ind = dList.index(self)
+        beta_estimator_ind = [
+            isinstance(d, BetaEstimate_ByEig) for d in dList
+        ]
 
-            JtJdiag += JtJ
+        beta_estimator_ind = [
+            isinstance(d, BetaEstimate_ByEig) for d in dList
+        ]
 
-        self.opt.JtJdiag = JtJdiag
+        lin_precond_ind = [
+            isinstance(d, UpdatePreconditioner) for d in dList
+        ]
+
+        if any(beta_estimator_ind):
+            assert(beta_estimator_ind.index(True) > self_ind), (
+                "The directive 'BetaEstimate_ByEig' must be after UpdateSensitivityWeights "
+                "in the directiveList"
+            )
+
+        if any(lin_precond_ind):
+            assert (lin_precond_ind.index(True) > self_ind), (
+                "The directive 'UpdatePreconditioner' must be after UpdateSensitivityWeights "
+                "in the directiveList"
+            )
+
+        return True
 
 
 class ProjectSphericalBounds(InversionDirective):

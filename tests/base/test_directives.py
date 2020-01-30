@@ -8,7 +8,8 @@ from SimPEG import (
     maps, directives, regularization, data_misfit, optimization,
     inversion, inverse_problem
 )
-from SimPEG import PF
+from SimPEG.potential_fields import magnetics as mag
+import shutil
 
 
 class directivesValidation(unittest.TestCase):
@@ -61,35 +62,29 @@ class ValidationInInversion(unittest.TestCase):
         B = [50000, 90, 0]
 
         # Create a MAGsurvey
-        rx = PF.BaseMag.RxObs(
+        rx = mag.point_receiver(
             np.vstack([[0.25, 0.25, 0.25], [-0.25, -0.25, 0.25]])
         )
-        srcField = PF.BaseMag.SrcField([rx], param=(B[0], B[1], B[2]))
-        survey = PF.BaseMag.LinearSurvey(srcField)
+        srcField = mag.SourceField([rx], parameters=(B[0], B[1], B[2]))
+        survey = mag.MagneticSurvey(srcField)
 
         # Create the forward model operator
-        prob = PF.Magnetics.MagneticIntegral(
-            mesh, chiMap=maps.IdentityMap(mesh)
+        sim = mag.IntegralSimulation(
+            mesh, survey=survey, chiMap=maps.IdentityMap(mesh)
         )
-
-        # Pair the survey and problem
-        survey.pair(prob)
 
         # Compute forward model some data
         m = np.random.rand(mesh.nC)
-        survey.makeSyntheticData(m)
+        data = sim.make_synthetic_data(m, add_noise=True)
 
         reg = regularization.Sparse(mesh)
         reg.mref = np.zeros(mesh.nC)
-
-        wr = np.sum(prob.G**2., axis=0)**0.5
-        reg.cell_weights = wr
         reg.norms = np.c_[0, 1, 1, 1]
         reg.eps_p, reg.eps_q = 1e-3, 1e-3
 
         # Data misfit function
-        dmis = data_misfit.l2_data_misfit(survey)
-        dmis.W = 1./survey.std
+        dmis = data_misfit.L2DataMisfit(data)
+        dmis.W = 1./data.standard_deviation
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
@@ -101,6 +96,7 @@ class ValidationInInversion(unittest.TestCase):
 
         self.mesh = mesh
         self.invProb = invProb
+        self.sim = sim
 
     def test_validation_in_inversion(self):
         betaest = directives.BetaEstimate_ByEig()
@@ -111,7 +107,7 @@ class ValidationInInversion(unittest.TestCase):
         )
 
         update_Jacobi = directives.UpdatePreconditioner()
-
+        sensitivity_weights = directives.UpdateSensitivityWeights()
         with self.assertRaises(AssertionError):
             # validation should happen and this will fail
             # (IRLS needs to be before update_Jacobi)
@@ -121,9 +117,21 @@ class ValidationInInversion(unittest.TestCase):
 
         with self.assertRaises(AssertionError):
             # validation should happen and this will fail
-            # (IRLS needs to be before update_Jacobi)
+            # (sensitivity_weights needs to be before betaest)
+            inv = inversion.BaseInversion(
+                self.invProb, directiveList=[betaest, sensitivity_weights]
+            )
+
+        with self.assertRaises(AssertionError):
+            # validation should happen and this will fail
+            # (sensitivity_weights needs to be before update_Jacobi)
             inv = inversion.BaseInversion(self.invProb)
-            inv.directiveList = [betaest, update_Jacobi, IRLS]
+            inv.directiveList = [update_Jacobi, sensitivity_weights]
+
+
+    def tearDown(self):
+        # Clean up the working directory
+        shutil.rmtree(self.sim.sensitivity_path)
 
 
 if __name__ == '__main__':

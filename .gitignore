@@ -41,6 +41,8 @@ docs/_build/
 docs/warnings.txt
 .DS_Store
 docs/content/examples/*
+docs/content/tutorials/*
+tutorials/temporary/sensitivity.zarr
 docs/modules/*
 examples/00_published/bookpurnong_inversion/*
 examples/00_published/*.tar.gz
