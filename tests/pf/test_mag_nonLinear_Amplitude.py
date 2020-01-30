@@ -70,7 +70,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Assign magnetization value, inducing field strength will
         # be applied in by the :class:`SimPEG.PF.Magnetics` problem
-        model = np.zeros(self.mesh.nC)
+        model = np.zeros(mesh.nC)
         model[ind] = chi_e
 
         # Remove air cells
@@ -93,7 +93,7 @@ class AmpProblemTest(unittest.TestCase):
         synthetic_data = simulation.dpred(model)
 
         # Split the data in components
-        nD = xyzLoc.shape[0]
+        nD = rxLoc.shape[0]
 
         std = 5  # nT
         synthetic_data += np.random.randn(nD)*std
