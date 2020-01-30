@@ -98,10 +98,10 @@ class IntegralSimulation(BasePFSimulation):
 
         if self.store_sensitivities == 'forward_only':
             self.model = model
-            return mkvc(self.linear_operator())
-
-        # TODO: Delay the fields all the way to the objective function for block parallel
-        fields = da.dot(self.G, model.astype(np.float32)).compute()
+            fields = mkvc(self.linear_operator())
+        else:
+            # TODO: Delay the fields all the way to the objective function for block parallel
+            fields = da.dot(self.G, model.astype(np.float32)).compute()
 
         if self.modelType == 'amplitude':
             fields = self.compute_amplitude(fields)
@@ -149,7 +149,7 @@ class IntegralSimulation(BasePFSimulation):
         if W is None:
             W = sdiag(np.ones(self.nD))
 
-        if getattr(self, "_gtg_diagonal", None) is None:
+        if getattr(self, "_gtg_diagonal", None) is None and self.modelType != 'amplitude':
             self._gtg_diagonal = mkvc(da.sum(da.power(
                             da.from_delayed(
                                 dask.delayed(csr.dot)(W, self.G),
@@ -162,7 +162,7 @@ class IntegralSimulation(BasePFSimulation):
                 da.from_delayed(
                     dask.delayed(csr.dot)(
                         da.from_delayed(
-                                dask.delayed(csr.dot)(self.fieldDeriv, self.G),
+                                dask.delayed(csr.dot)(W*self.fieldDeriv, self.G),
                                 shape=(self.nD, self.nC), dtype=float
                             ),
                         self.chiDeriv
