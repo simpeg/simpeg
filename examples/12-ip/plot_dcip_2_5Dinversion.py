@@ -2,7 +2,7 @@
 2.5D DC-IP inversion of Dipole Dipole array with Topography
 ===========================================================
 
-This is an example for 2.5D DC-IP Inversion.
+This is an example for 2.5D DC-IP inversion.
 For DC inversion, a resisistivity model (Ohm-m) is generated having conductive
 and resistive cylinders; they are respectively located right and left sides
 of the subsurface.
@@ -18,7 +18,7 @@ subsequent IP inversion to recover a chargeability model.
 """
 
 from SimPEG import DC, IP
-from SimPEG import Maps, Utils
+from SimPEG import Maps
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
@@ -40,7 +40,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey_dc = DC.Utils.gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
+    survey_dc = DC.utils.gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
                                      a=10, b=10, n=10)
     survey_dc.getABMN_locations()
     survey_dc = IO.from_ambn_locations_to_survey(
@@ -51,18 +51,18 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
-    topo, mesh1D = DC.Utils.genTopography(mesh, -10, 0, its=100)
-    actind = Utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
+    topo, mesh1D = DC.utils.genTopography(mesh, -10, 0, its=100)
+    actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
     survey_dc.drapeTopo(mesh, actind, option="top")
 
     # Build conductivity and chargeability model
-    blk_inds_c = Utils.ModelBuilder.getIndicesSphere(
+    blk_inds_c = utils.ModelBuilder.getIndicesSphere(
         np.r_[60., -25.], 12.5, mesh.gridCC
     )
-    blk_inds_r = Utils.ModelBuilder.getIndicesSphere(
+    blk_inds_r = utils.ModelBuilder.getIndicesSphere(
         np.r_[140., -25.], 12.5, mesh.gridCC
     )
-    blk_inds_charg = Utils.ModelBuilder.getIndicesSphere(
+    blk_inds_charg = utils.ModelBuilder.getIndicesSphere(
         np.r_[100., -25], 12.5, mesh.gridCC
     )
     sigma = np.ones(mesh.nC)*1./100.
@@ -107,10 +107,10 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         plt.show()
 
     # Use Exponential Map: m = log(rho)
-    actmap = Maps.InjectActiveCells(
+    actmap = maps.InjectActiveCells(
         mesh, indActive=actind, valInactive=np.log(1e8)
     )
-    mapping = Maps.ExpMap(mesh) * actmap
+    mapping = maps.ExpMap(mesh) * actmap
 
     # Generate mtrue_dc for resistivity
     mtrue_dc = np.log(rho[actind])

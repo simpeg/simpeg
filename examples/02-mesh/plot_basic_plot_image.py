@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
-    M = Mesh.TensorMesh([32, 32])
-    v = Utils.ModelBuilder.randomModel(M.vnC, seed=789)
-    v = Utils.mkvc(v)
+    M = discretize.TensorMesh([32, 32])
+    v = utils.ModelBuilder.randomModel(M.vnC, seed=789)
+    v = utils.mkvc(v)
 
-    O = Mesh.TreeMesh([32, 32])
+    O = discretize.TreeMesh([32, 32])
     O.refine(1)
 
     def function(cell):

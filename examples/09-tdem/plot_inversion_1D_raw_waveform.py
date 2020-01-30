@@ -24,12 +24,12 @@ def run(plotIt=True):
     cs, ncx, ncz, npad = 5., 25, 24, 15
     hx = [(cs, ncx),  (cs, npad, 1.3)]
     hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-    mesh = Mesh.CylMesh([hx, 1, hz], '00C')
+    mesh = discretize.CylMesh([hx, 1, hz], '00C')
 
     active = mesh.vectorCCz < 0.
     layer = (mesh.vectorCCz < -50.) & (mesh.vectorCCz >= -150.)
-    actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-    mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
     sig_half = 1e-3
     sig_air = 1e-8
     sig_layer = 1e-2
@@ -46,7 +46,7 @@ def run(plotIt=True):
     prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 5), (1e-4, 10), (5e-4, 10)]
 
     # Use VTEM waveform
-    out = EM.Utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
+    out = EM.utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
 
     # Forming function handle for waveform using 1D linear interpolation
     wavefun = interp1d(prb.times, out)
@@ -66,19 +66,19 @@ def run(plotIt=True):
     survey.std = std
     survey.eps = 1e-11
 
-    dmisfit = DataMisfit.l2_DataMisfit(survey)
-    regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = Regularization.Simple(regMesh)
-    opt = Optimization.InexactGaussNewton(maxIter=5, LSshorten=0.5)
-    invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
-    target = Directives.TargetMisfit()
+    dmisfit = data_misfit.l2_DataMisfit(survey)
+    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+    reg = regularization.Simple(regMesh)
+    opt = optimization.InexactGaussNewton(maxIter=5, LSshorten=0.5)
+    invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
+    target = directives.TargetMisfit()
     # Create an inversion object
-    beta = Directives.BetaSchedule(coolingFactor=1., coolingRate=2.)
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+    beta = directives.BetaSchedule(coolingFactor=1., coolingRate=2.)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
     invProb.beta = 1e2
-    inv = Inversion.BaseInversion(invProb, directiveList=[beta, target])
+    inv = inversion.BaseInversion(invProb, directiveList=[beta, target])
     m0 = np.log(np.ones(mtrue.size)*sig_half)
-    prb.counter = opt.counter = Utils.Counter()
+    prb.counter = opt.counter = utils.Counter()
     opt.remember('xc')
     mopt = inv.run(m0)
 

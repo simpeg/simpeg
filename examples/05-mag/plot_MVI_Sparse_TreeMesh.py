@@ -11,7 +11,7 @@ We invert the data twice, first for a smooth starting model using the
 Cartesian coordinate system, and second for a compact model using
 the Spherical formulation.
 
-The inverse problem uses the :class:'SimPEG.Regularization.Sparse'
+The inverse problem uses the :class:'SimPEG.regularization.Sparse'
 that
 
 """

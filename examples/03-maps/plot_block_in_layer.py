@@ -28,8 +28,8 @@ import matplotlib.pyplot as plt
 
 def run(plotIt=True):
 
-    mesh = Mesh.TensorMesh([50, 50], x0='CC')  # 2D Tensor Mesh
-    mapping = Maps.ParametricBlockInLayer(mesh)  # mapping
+    mesh = discretize.TensorMesh([50, 50], x0='CC')  # 2D Tensor Mesh
+    mapping = maps.ParametricBlockInLayer(mesh)  # mapping
 
     m = np.hstack(
         np.r_[

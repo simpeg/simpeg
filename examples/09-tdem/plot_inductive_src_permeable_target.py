@@ -162,11 +162,11 @@ src_list_ramp_on = [src_ramp_on]
 # equations
 
 prob_magnetostatic = TDEM.Problem3D_b(
-    mesh=mesh, sigmaMap=Maps.IdentityMap(mesh), timeSteps=ramp,
+    mesh=mesh, sigmaMap=maps.IdentityMap(mesh), timeSteps=ramp,
     Solver=Pardiso
 )
 prob_ramp_on = TDEM.Problem3D_b(
-    mesh=mesh, sigmaMap=Maps.IdentityMap(mesh), timeSteps=ramp,
+    mesh=mesh, sigmaMap=maps.IdentityMap(mesh), timeSteps=ramp,
     Solver=Pardiso
 )
 

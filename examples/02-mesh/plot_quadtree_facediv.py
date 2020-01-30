@@ -11,7 +11,7 @@ from SimPEG import Mesh
 
 def run(plotIt=True, n=60):
 
-    M = Mesh.TreeMesh([[(1, 16)], [(1, 16)]], levels=4)
+    M = discretize.TreeMesh([[(1, 16)], [(1, 16)]], levels=4)
 
     M.insert_cells(
             np.c_[5, 5], np.r_[3],

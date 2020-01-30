@@ -48,11 +48,11 @@ from SimPEG.FLOW import Richards
 
 def run(plotIt=True):
 
-    M = Mesh.TensorMesh([np.ones(40)])
+    M = discretize.TensorMesh([np.ones(40)])
     M.setCellGradBC('dirichlet')
     params = Richards.Empirical.HaverkampParams().celia1990
     k_fun, theta_fun = Richards.Empirical.haverkamp(M, **params)
-    k_fun.KsMap = Maps.IdentityMap(nP=M.nC)
+    k_fun.KsMap = maps.IdentityMap(nP=M.nC)
 
     bc = np.array([-61.5, -20.7])
     h = np.zeros(M.nC) + bc[0]

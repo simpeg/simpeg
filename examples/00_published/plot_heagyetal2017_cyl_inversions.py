@@ -37,7 +37,7 @@ def run(plotIt=True, saveFig=False):
     cs, ncx, ncz, npad = 10., 15, 25, 13  # padded cyl mesh
     hx = [(cs, ncx), (cs, npad, 1.3)]
     hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-    mesh = Mesh.CylMesh([hx, 1, hz], '00C')
+    mesh = discretize.CylMesh([hx, 1, hz], '00C')
 
     # Conductivity model
     layerz = np.r_[-200., -100.]
@@ -51,12 +51,12 @@ def run(plotIt=True, saveFig=False):
     sigma[layer] = sig_layer
 
     # Mapping
-    actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-    mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
     mtrue = np.log(sigma[active])
 
     # ----- FDEM problem & survey ----- #
-    rxlocs = Utils.ndgrid([np.r_[50.], np.r_[0], np.r_[0.]])
+    rxlocs = utils.ndgrid([np.r_[50.], np.r_[0], np.r_[0.]])
     bzr = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'real')
     bzi = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'imag')
 
@@ -82,23 +82,23 @@ def run(plotIt=True, saveFig=False):
 
     # FDEM inversion
     np.random.seed(1)
-    dmisfit = DataMisfit.l2_DataMisfit(surveyFD)
-    regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = Regularization.Simple(regMesh)
-    opt = Optimization.InexactGaussNewton(maxIterCG=10)
-    invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
+    dmisfit = data_misfit.l2_DataMisfit(surveyFD)
+    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+    reg = regularization.Simple(regMesh)
+    opt = optimization.InexactGaussNewton(maxIterCG=10)
+    invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # Inversion Directives
-    beta = Directives.BetaSchedule(coolingFactor=4, coolingRate=3)
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=2.)
-    target = Directives.TargetMisfit()
+    beta = directives.BetaSchedule(coolingFactor=4, coolingRate=3)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=2.)
+    target = directives.TargetMisfit()
     directiveList = [beta, betaest, target]
 
-    inv = Inversion.BaseInversion(invProb, directiveList=directiveList)
+    inv = inversion.BaseInversion(invProb, directiveList=directiveList)
     m0 = np.log(np.ones(mtrue.size)*sig_half)
     reg.alpha_s = 5e-1
     reg.alpha_x = 1.
-    prbFD.counter = opt.counter = Utils.Counter()
+    prbFD.counter = opt.counter = utils.Counter()
     opt.remember('xc')
     moptFD = inv.run(m0)
 
@@ -124,23 +124,23 @@ def run(plotIt=True, saveFig=False):
     surveyTD.eps = np.linalg.norm(surveyTD.dtrue)*1e-5
 
     # TDEM inversion
-    dmisfit = DataMisfit.l2_DataMisfit(surveyTD)
-    regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = Regularization.Simple(regMesh)
-    opt = Optimization.InexactGaussNewton(maxIterCG=10)
-    invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
+    dmisfit = data_misfit.l2_DataMisfit(surveyTD)
+    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+    reg = regularization.Simple(regMesh)
+    opt = optimization.InexactGaussNewton(maxIterCG=10)
+    invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # directives
-    beta = Directives.BetaSchedule(coolingFactor=4, coolingRate=3)
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=2.)
-    target = Directives.TargetMisfit()
+    beta = directives.BetaSchedule(coolingFactor=4, coolingRate=3)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=2.)
+    target = directives.TargetMisfit()
     directiveList = [beta, betaest, target]
 
-    inv = Inversion.BaseInversion(invProb, directiveList=directiveList)
+    inv = inversion.BaseInversion(invProb, directiveList=directiveList)
     m0 = np.log(np.ones(mtrue.size)*sig_half)
     reg.alpha_s = 5e-1
     reg.alpha_x = 1.
-    prbTD.counter = opt.counter = Utils.Counter()
+    prbTD.counter = opt.counter = utils.Counter()
     opt.remember('xc')
     moptTD = inv.run(m0)
 

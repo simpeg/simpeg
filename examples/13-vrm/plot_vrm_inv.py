@@ -35,7 +35,7 @@ cs, ncx, ncy, ncz, npad = 2., 35, 35, 20, 5
 hx = [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)]
 hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
 hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
+mesh = discretize.TensorMesh([hx, hy, hz], 'CCC')
 
 ##########################################################################
 # Defining the true model
@@ -162,17 +162,17 @@ survey_inv.std = 0.05*np.abs(fields_tot[survey_inv.t_active])
 survey_inv.eps = 1e-11
 
 # Setup and run inversion
-dmis = DataMisfit.l2_DataMisfit(survey_inv)
+dmis = data_misfit.l2_DataMisfit(survey_inv)
 w = mkvc((np.sum(np.array(problem_inv.A)**2, axis=0)))**0.5
 w = w/np.max(w)
-reg = Regularization.SimpleSmall(mesh=mesh, indActive=actCells,  cell_weights=w)
-opt = Optimization.ProjectedGNCG(maxIter=20, lower=0., upper=1e-2, maxIterLS=20, tolCG=1e-4)
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+reg = regularization.SimpleSmall(mesh=mesh, indActive=actCells,  cell_weights=w)
+opt = optimization.ProjectedGNCG(maxIter=20, lower=0., upper=1e-2, maxIterLS=20, tolCG=1e-4)
+invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 directives = [
-    Directives.BetaSchedule(coolingFactor=2, coolingRate=1),
-    Directives.TargetMisfit()
+    directives.BetaSchedule(coolingFactor=2, coolingRate=1),
+    directives.TargetMisfit()
 ]
-inv = Inversion.BaseInversion(invProb, directiveList=directives)
+inv = inversion.BaseInversion(invProb, directiveList=directives)
 
 xi_0 = 1e-3*np.ones(actCells.sum())
 xi_rec = inv.run(xi_0)
@@ -196,8 +196,8 @@ Fig = plt.figure(figsize=(10, 10))
 font_size = 12
 
 # Plot models
-invMap = Maps.InjectActiveCells(mesh, actCells, 0.)  # Maps to mesh
-topoMap = Maps.InjectActiveCells(mesh, topoCells, 0.)
+invMap = maps.InjectActiveCells(mesh, actCells, 0.)  # Maps to mesh
+topoMap = maps.InjectActiveCells(mesh, topoCells, 0.)
 max_val = np.max(np.r_[xi_true, xi_rec])
 ax1 = 3*[None]
 cplot1 = 2*[None]

@@ -20,14 +20,14 @@ cs = 25.
 hx = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
 hy = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
 hz = [(cs, 7, -1.3), (cs, 20)]
-mesh = Mesh.TensorMesh([hx, hy, hz], 'CCN')
+mesh = discretize.TensorMesh([hx, hy, hz], 'CCN')
 sighalf = 1e-2
 sigma = np.ones(mesh.nC)*sighalf
 xtemp = np.linspace(-150, 150, 21)
 ytemp = np.linspace(-150, 150, 21)
-xyz_rxP = Utils.ndgrid(xtemp-10., ytemp, np.r_[0.])
-xyz_rxN = Utils.ndgrid(xtemp+10., ytemp, np.r_[0.])
-xyz_rxM = Utils.ndgrid(xtemp, ytemp, np.r_[0.])
+xyz_rxP = utils.ndgrid(xtemp-10., ytemp, np.r_[0.])
+xyz_rxN = utils.ndgrid(xtemp+10., ytemp, np.r_[0.])
+xyz_rxM = utils.ndgrid(xtemp, ytemp, np.r_[0.])
 
 
 rx = DC.Rx.Dipole(xyz_rxP, xyz_rxN)

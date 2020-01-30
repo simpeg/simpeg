@@ -49,7 +49,7 @@ def run(
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey = DC.Utils.gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
+    survey = DC.utils.gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
                                      a=10, b=10, n=10)
     survey.getABMN_locations()
     survey = IO.from_ambn_locations_to_survey(
@@ -61,16 +61,16 @@ def run(
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
     # Flat topography
-    actind = Utils.surface2ind_topo(
+    actind = utils.surface2ind_topo(
         mesh, np.c_[mesh.vectorCCx, mesh.vectorCCx*0.]
     )
     survey.drapeTopo(mesh, actind, option="top")
     # Use Exponential Map: m = log(rho)
-    actmap = Maps.InjectActiveCells(
+    actmap = maps.InjectActiveCells(
         mesh, indActive=actind, valInactive=np.log(1e8)
     )
-    parametric_block = Maps.ParametricBlock(mesh, slopeFact=1e2)
-    mapping = Maps.ExpMap(mesh) * parametric_block
+    parametric_block = maps.ParametricBlock(mesh, slopeFact=1e2)
+    mapping = maps.ExpMap(mesh) * parametric_block
     # Set true model
     # val_background,val_block, block_x0, block_dx, block_y0, block_dy
     mtrue = np.r_[np.log(1e3), np.log(10), 100, 10, -20, 10]
@@ -155,28 +155,28 @@ def run(
     eps = 10**(-3.2)
     # percentage
     std = 0.05
-    dmisfit = DataMisfit.l2_DataMisfit(survey)
+    dmisfit = data_misfit.l2_DataMisfit(survey)
     uncert = abs(survey.dobs) * std + eps
     dmisfit.W = 1./uncert
 
     # Map for a regularization
-    mesh_1d = Mesh.TensorMesh([parametric_block.nP])
+    mesh_1d = discretize.TensorMesh([parametric_block.nP])
     # Related to inversion
-    reg = Regularization.Simple(mesh_1d, alpha_x=0.)
-    opt = Optimization.InexactGaussNewton(maxIter=10)
-    invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
-    beta = Directives.BetaSchedule(coolingFactor=5, coolingRate=2)
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e0)
-    target = Directives.TargetMisfit()
-    updateSensW = Directives.UpdateSensitivityWeights()
-    update_Jacobi = Directives.UpdatePreconditioner()
+    reg = regularization.Simple(mesh_1d, alpha_x=0.)
+    opt = optimization.InexactGaussNewton(maxIter=10)
+    invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
+    beta = directives.BetaSchedule(coolingFactor=5, coolingRate=2)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+    target = directives.TargetMisfit()
+    updateSensW = directives.UpdateSensitivityWeights()
+    update_Jacobi = directives.UpdatePreconditioner()
     invProb.beta = 0.
-    inv = Inversion.BaseInversion(
+    inv = inversion.BaseInversion(
         invProb, directiveList=[
             target
         ]
         )
-    prb.counter = opt.counter = Utils.Counter()
+    prb.counter = opt.counter = utils.Counter()
     opt.LSshorten = 0.5
     opt.remember('xc')
 

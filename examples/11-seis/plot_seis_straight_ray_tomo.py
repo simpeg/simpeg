@@ -36,7 +36,7 @@ def run(plotIt=False):
     print('length:', StraightRay.lengthInCell(O, D, x*2, y*2, plotIt=plotIt))
 
     nC = 20
-    M = Mesh.TensorMesh([nC, nC])
+    M = discretize.TensorMesh([nC, nC])
     y = np.linspace(0., 1., nC/2)
     rlocs = np.c_[y*0+M.vectorCCx[-1], y]
     rx = StraightRay.Rx(rlocs, None)
@@ -47,23 +47,23 @@ def run(plotIt=False):
     ]
 
     survey = StraightRay.Survey(srcList)
-    problem = StraightRay.Problem(M, slownessMap=Maps.IdentityMap(M))
+    problem = StraightRay.Problem(M, slownessMap=maps.IdentityMap(M))
     problem.pair(survey)
 
-    s = Utils.mkvc(Utils.ModelBuilder.randomModel(M.vnC)) + 1.
+    s = utils.mkvc(utils.ModelBuilder.randomModel(M.vnC)) + 1.
     survey.dobs = survey.dpred(s)
     survey.std = 0.01
 
     # Create an optimization program
 
-    reg = Regularization.Tikhonov(M)
-    dmis = DataMisfit.l2_DataMisfit(survey)
-    opt = Optimization.InexactGaussNewton(maxIter=40)
+    reg = regularization.Tikhonov(M)
+    dmis = data_misfit.l2_DataMisfit(survey)
+    opt = optimization.InexactGaussNewton(maxIter=40)
     opt.remember('xc')
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    beta = Directives.BetaSchedule()
-    betaest = Directives.BetaEstimate_ByEig()
-    inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaest])
+    invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
+    beta = directives.BetaSchedule()
+    betaest = directives.BetaEstimate_ByEig()
+    inv = inversion.BaseInversion(invProb, directiveList=[beta, betaest])
 
     # Start the inversion with a model of zeros, and run the inversion
     m0 = np.ones(M.nC)*1.5

@@ -28,7 +28,7 @@ def run(N=100, plotIt=True):
 
     std_noise = 1e-2
 
-    mesh = Mesh.TensorMesh([N])
+    mesh = discretize.TensorMesh([N])
 
     m0 = np.ones(mesh.nC) * 1e-4
     mref = np.zeros(mesh.nC)
@@ -60,24 +60,24 @@ def run(N=100, plotIt=True):
     survey.dobs = prob.fields(mtrue) + std_noise * np.random.randn(nk)
 
     wd = np.ones(nk) * std_noise
-    dmis = DataMisfit.l2_DataMisfit(survey)
+    dmis = data_misfit.l2_DataMisfit(survey)
     dmis.W = 1./wd
 
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 
     # Creat reduced identity map
-    idenMap = Maps.IdentityMap(nP=mesh.nC)
+    idenMap = maps.IdentityMap(nP=mesh.nC)
 
-    reg = Regularization.Sparse(mesh, mapping=idenMap)
+    reg = regularization.Sparse(mesh, mapping=idenMap)
     reg.mref = mref
     reg.norms = np.c_[0., 0., 2., 2.]
     reg.mref = np.zeros(mesh.nC)
 
-    opt = Optimization.ProjectedGNCG(
+    opt = optimization.ProjectedGNCG(
         maxIter=100, lower=-2., upper=2.,
         maxIterLS=20, maxIterCG=10, tolCG=1e-3
     )
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+    invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
     update_Jacobi = directives.UpdatePreconditioner()
 
     # Set the IRLS directive, penalize the lowest 25 percentile of model values
@@ -88,7 +88,7 @@ def run(N=100, plotIt=True):
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
 
-    inv = Inversion.BaseInversion(
+    inv = inversion.BaseInversion(
         invProb,
         directiveList=[sensitivity_weights, IRLS, betaest, update_Jacobi, saveDict]
     )

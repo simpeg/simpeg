@@ -10,14 +10,14 @@ import matplotlib.pyplot as plt
 
 def run(plotIt=True):
 
-    M = Mesh.TensorMesh([100, 100])
-    h1 = Utils.meshTensor([(6, 7, -1.5), (6, 10), (6, 7, 1.5)])
+    M = discretize.TensorMesh([100, 100])
+    h1 = utils.meshTensor([(6, 7, -1.5), (6, 10), (6, 7, 1.5)])
     h1 = h1/h1.sum()
-    M2 = Mesh.TensorMesh([h1, h1])
-    V = Utils.ModelBuilder.randomModel(M.vnC, seed=79, its=50)
-    v = Utils.mkvc(V)
-    modh = Maps.Mesh2Mesh([M, M2])
-    modH = Maps.Mesh2Mesh([M2, M])
+    M2 = discretize.TensorMesh([h1, h1])
+    V = utils.ModelBuilder.randomModel(M.vnC, seed=79, its=50)
+    v = utils.mkvc(V)
+    modh = maps.Mesh2Mesh([M, M2])
+    modH = maps.Mesh2Mesh([M2, M])
     H = modH * v
     h = modh * H
 

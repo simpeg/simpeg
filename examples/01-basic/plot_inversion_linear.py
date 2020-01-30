@@ -23,7 +23,7 @@ def run(N=100, plotIt=True):
 
     np.random.seed(1)
 
-    mesh = Mesh.TensorMesh([N])
+    mesh = discretize.TensorMesh([N])
 
     nk = 20
     jk = np.linspace(1., 60., nk)
@@ -53,15 +53,15 @@ def run(N=100, plotIt=True):
 
     M = prob.mesh
 
-    reg = Regularization.Tikhonov(mesh, alpha_s=1., alpha_x=1.)
-    dmis = DataMisfit.l2_DataMisfit(survey)
-    opt = Optimization.InexactGaussNewton(maxIter=60)
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+    reg = regularization.Tikhonov(mesh, alpha_s=1., alpha_x=1.)
+    dmis = data_misfit.l2_DataMisfit(survey)
+    opt = optimization.InexactGaussNewton(maxIter=60)
+    invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
     directives = [
-        Directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
-        Directives.TargetMisfit()
+        directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
+        directives.TargetMisfit()
     ]
-    inv = Inversion.BaseInversion(invProb, directiveList=directives)
+    inv = inversion.BaseInversion(invProb, directiveList=directives)
     m0 = np.zeros_like(survey.mtrue)
 
     mrec = inv.run(m0)

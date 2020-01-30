@@ -31,7 +31,7 @@ cs, ncx, ncy, ncz, npad = 2., 35, 35, 20, 5
 hx = [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)]
 hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
 hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
+mesh = discretize.TensorMesh([hx, hy, hz], 'CCC')
 
 ##########################################################################
 # Defining the model
@@ -144,7 +144,7 @@ fields_tem = c*fields_tem
 Fig = plt.figure(figsize=(10, 10))
 font_size = 12
 
-plotMap = Maps.InjectActiveCells(mesh, topoCells, 0.)  # Maps to mesh
+plotMap = maps.InjectActiveCells(mesh, topoCells, 0.)  # Maps to mesh
 ax1 = 4*[None]
 cplot1 = 3*[None]
 view_str = ['X', 'Y', 'Z']

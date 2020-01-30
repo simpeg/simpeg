@@ -14,7 +14,7 @@ import shutil
 import os
 import matplotlib.pyplot as plt
 from SimPEG import DC, Versions
-from SimPEG.Utils.io_utils import download
+from SimPEG.utils.io_utils import download
 
 ###############################################################################
 # Download an example DC data csv file

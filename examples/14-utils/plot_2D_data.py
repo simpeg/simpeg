@@ -21,7 +21,7 @@ def run(plotIt=True):
     y = np.linspace(-50, 50, 30)
     y += np.random.randn(x.size)*0.1*y
     z = np.r_[50.]
-    xyz = Utils.ndgrid(x, y, z)
+    xyz = utils.ndgrid(x, y, z)
     sig = 1.
     f = np.r_[1.]
     srcLoc = np.r_[0., 0., 0.]
@@ -36,7 +36,7 @@ def run(plotIt=True):
         ax1 = plt.subplot(121)
         ax2 = plt.subplot(122)
         # Plot Real Ex (scalar)
-        cont1, ax1, cont1l = Utils.plot2Ddata(
+        cont1, ax1, cont1l = utils.plot2Ddata(
             xyz, Ex.real, dataloc=True,
             ax=ax1, contourOpts={"cmap": "viridis"},
             ncontour=5, level=True,
@@ -49,7 +49,7 @@ def run(plotIt=True):
         # Make it as (ndata,2) matrix
         E = np.c_[Ex, Ey]
         # Plot Real E (vector)
-        cont2, ax2 = Utils.plot2Ddata(
+        cont2, ax2 = utils.plot2Ddata(
             xyz, E.real, vec=True,
             ax=ax2, contourOpts={"cmap": "viridis"},
             ncontour=5,

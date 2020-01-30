@@ -7,7 +7,7 @@ at 30kHz with 3 different coil separations [0.32m, 0.71m, 1.18m].
 We will use only Horizontal co-planar orientations (vertical magnetic dipole),
 and look at the real and imaginary parts of the secondary magnetic field.
 
-We use the :class:`SimPEG.Maps.Surject2Dto3D` mapping to invert for a 2D model
+We use the :class:`SimPEG.maps.Surject2Dto3D` mapping to invert for a 2D model
 and perform the forward modelling in 3D.
 
 """
@@ -95,7 +95,7 @@ ncx = int(np.diff(core_domain_x)/csx)
 ncz = int(np.diff(core_domain_z)/csz)
 
 # create a 3D tensor mesh
-mesh = Mesh.TensorMesh(
+mesh = discretize.TensorMesh(
     [
         [(csx, npadx, -pf), (csx, ncx), (csx, npadx, pf)],
         [(csx, npady, -pf), (csx, 1), (csx, npady, pf)],
@@ -117,7 +117,7 @@ mesh.plotGrid()
 # Here, we set up a 2D tensor mesh which we will represent the inversion model
 # on
 
-inversion_mesh = Mesh.TensorMesh([mesh.hx, mesh.hz[mesh.vectorCCz<=0]])
+inversion_mesh = discretize.TensorMesh([mesh.hx, mesh.hz[mesh.vectorCCz<=0]])
 inversion_mesh.x0 = [-inversion_mesh.hx.sum()/2., -inversion_mesh.hy.sum()]
 inversion_mesh.plotGrid()
 
@@ -130,14 +130,14 @@ inversion_mesh.plotGrid()
 # the surface, fixing the conductivity of the air cells to 1e-8 S/m
 
 # create a 2D mesh that includes air cells
-mesh2D = Mesh.TensorMesh([mesh.hx, mesh.hz], x0=mesh.x0[[0, 2]])
+mesh2D = discretize.TensorMesh([mesh.hx, mesh.hz], x0=mesh.x0[[0, 2]])
 active_inds = mesh2D.gridCC[:, 1] < 0  # active indices are below the surface
 
 
 mapping = (
-    Maps.Surject2Dto3D(mesh) *  # populates 3D space from a 2D model
-    Maps.InjectActiveCells(mesh2D, active_inds, sigma_air) *  # adds air cells
-    Maps.ExpMap(nP=inversion_mesh.nC)  # takes the exponential (log(sigma) --> sigma)
+    maps.Surject2Dto3D(mesh) *  # populates 3D space from a 2D model
+    maps.InjectActiveCells(mesh2D, active_inds, sigma_air) *  # adds air cells
+    maps.ExpMap(nP=inversion_mesh.nC)  # takes the exponential (log(sigma) --> sigma)
 )
 
 ###############################################################################
@@ -256,7 +256,7 @@ survey.dobs = dclean
 # --------------------
 #
 # We create the data misfit, simple regularization
-# (a Tikhonov-style regularization, :class:`SimPEG.Regularization.Simple`)
+# (a Tikhonov-style regularization, :class:`SimPEG.regularization.Simple`)
 # The smoothness and smallness contributions can be set by including
 # `alpha_s, alpha_x, alpha_y` as input arguments when the regularization is
 # created. The default reference model in the regularization is the starting
@@ -266,18 +266,18 @@ survey.dobs = dclean
 # We estimate the trade-off parameter, beta, between the data
 # misfit and regularization by the largest eigenvalue of the data misfit and
 # the regularization. Here, we use a fixed beta, but could alternatively
-# employ a beta-cooling schedule using :class:`SimPEG.Directives.BetaSchedule`
+# employ a beta-cooling schedule using :class:`SimPEG.directives.BetaSchedule`
 
-dmisfit = DataMisfit.l2_DataMisfit(survey)
-reg = Regularization.Simple(inversion_mesh)
-opt = Optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
-invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
+dmisfit = data_misfit.l2_DataMisfit(survey)
+reg = regularization.Simple(inversion_mesh)
+opt = optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
+invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
-betaest = Directives.BetaEstimate_ByEig(beta0_ratio=0.25)
-target = Directives.TargetMisfit()
+betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.25)
+target = directives.TargetMisfit()
 
 directiveList = [betaest, target]
-inv = Inversion.BaseInversion(invProb, directiveList=directiveList)
+inv = inversion.BaseInversion(invProb, directiveList=directiveList)
 
 print("The target misfit is {:1.2f}".format(target.target))
 

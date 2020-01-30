@@ -12,7 +12,7 @@ recover 3-component magnetic data. This data is then transformed to amplitude
 
 Secondly, we invert the non-linear inverse problem with
 :class:`SimPEG.directives.UpdateSensitivityWeights`. We also
-uses the :class:`SimPEG.Regularization.Sparse` to apply sparsity
+uses the :class:`SimPEG.regularization.Sparse` to apply sparsity
 assumption in order to improve the recovery of a compact prism.
 
 """

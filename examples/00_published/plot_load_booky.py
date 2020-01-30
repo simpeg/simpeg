@@ -35,7 +35,7 @@ def download_and_unzip_data(
     the directory where the data are
     """
     # download the data
-    downloads = Utils.download(url)
+    downloads = utils.download(url)
 
     # directory where the downloaded files are
     directory = downloads.split(".")[0]
@@ -132,12 +132,12 @@ def run(plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     ax1 = plt.subplot(121)
     ax2 = plt.subplot(122)
     axs = [ax1, ax2]
-    out_re = Utils.plot2Ddata(xyz_resolve[::nskip, :2], data_resolve[::nskip, 0], ncontour=100, contourOpts={"cmap":"viridis"}, ax=ax1)
+    out_re = utils.plot2Ddata(xyz_resolve[::nskip, :2], data_resolve[::nskip, 0], ncontour=100, contourOpts={"cmap":"viridis"}, ax=ax1)
     vmin, vmax = out_re[0].get_clim()
     cb_re = plt.colorbar(out_re[0], ticks=np.linspace(vmin, vmax, 3), ax=ax1, fraction=0.046, pad=0.04)
     temp_skytem = data_skytem[:, 5].copy()
     temp_skytem[data_skytem[:, 5] > 7e-10] = 7e-10
-    out_sky = Utils.plot2Ddata(xyz_skytem[:,:2], temp_skytem, ncontour=100, contourOpts={"cmap":"viridis", "vmax":7e-10}, ax=ax2)
+    out_sky = utils.plot2Ddata(xyz_skytem[:,:2], temp_skytem, ncontour=100, contourOpts={"cmap":"viridis", "vmax":7e-10}, ax=ax2)
     vmin, vmax = out_sky[0].get_clim()
     cb_sky = plt.colorbar(out_sky[0], ticks=np.linspace(vmin, vmax, 3), ax=ax2, format="%.1e", fraction=0.046, pad=0.04)
     cb_re.set_label("Bz (ppm)")
@@ -179,7 +179,7 @@ def run(plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     temp = np.logspace(np.log10(1.), np.log10(12.), 19)
     temp_pad = temp[-1] * 1.3 ** np.arange(npad)
     hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-    mesh = Mesh.CylMesh([hx, 1, hz], '00C')
+    mesh = discretize.CylMesh([hx, 1, hz], '00C')
     active = mesh.vectorCCz < 0.
 
     dobs_re = np.load(os.path.sep.join([directory, "dobs_re_final.npy"]))

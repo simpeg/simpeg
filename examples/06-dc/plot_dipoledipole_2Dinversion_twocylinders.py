@@ -2,7 +2,7 @@
 2D DC inversion of Dipole Dipole array
 ======================================
 
-This is an example for 2D DC Inversion. The model consists of 2 cylinders,
+This is an example for 2D DC inversion. The model consists of 2 cylinders,
 one conductive, the other one resistive compared to the background.
 
 We restrain the inversion to the Core Mesh through the use an Active Cells
@@ -45,7 +45,7 @@ npad = 12
 hx = [(csx, npad, -1.5), (csx, ncx), (csx, npad, 1.5)]
 hz = [(csz, npad, -1.5), (csz, ncz)]
 # Create mesh
-mesh = Mesh.TensorMesh([hx, hz], x0="CN")
+mesh = discretize.TensorMesh([hx, hz], x0="CN")
 mesh.x0[1] = mesh.x0[1] + csz / 2.
 
 # 2-cylinders Model Creation
@@ -70,11 +70,11 @@ rsph = (np.sqrt((mesh.gridCC[:, 1] - z1) **
                 2. + (mesh.gridCC[:, 0] - x1)**2.)) < r1
 mtrue[rsph] = ln_sigr * np.ones_like(mtrue[rsph])
 
-mtrue = Utils.mkvc(mtrue)
+mtrue = utils.mkvc(mtrue)
 xmin, xmax = -15., 15
 ymin, ymax = -15., 0.
 xyzlim = np.r_[[[xmin, xmax], [ymin, ymax]]]
-actind, meshCore = Utils.meshutils.ExtractCoreMesh(xyzlim, mesh)
+actind, meshCore = utils.meshutils.ExtractCoreMesh(xyzlim, mesh)
 
 
 # Function to plot cylinder border
@@ -104,12 +104,12 @@ xmin, xmax = -15., 15.
 ymin, ymax = 0., 0.
 zmin, zmax = mesh.vectorCCy[-1], mesh.vectorCCy[-1]
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey = DCUtils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
+survey = DCutils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
                                 a=1, b=1, n=10, d2flag='2D')
 
 # Setup Problem with exponential mapping and Active cells only in the core mesh
-expmap = Maps.ExpMap(mesh)
-mapactive = Maps.InjectActiveCells(mesh=mesh, indActive=actind,
+expmap = maps.ExpMap(mesh)
+mapactive = maps.InjectActiveCells(mesh=mesh, indActive=actind,
                                    valInactive=-5.)
 mapping = expmap * mapactive
 problem = DC.Problem3D_CC(mesh, sigmaMap=mapping)
@@ -123,23 +123,23 @@ survey.makeSyntheticData(mtrue[actind], std=0.05, force=True)
 ####################
 
 m0 = np.median(ln_sigback) * np.ones(mapping.nP)
-dmis = DataMisfit.l2_DataMisfit(survey)
-regT = Regularization.Simple(mesh, indActive=actind)
+dmis = data_misfit.l2_DataMisfit(survey)
+regT = regularization.Simple(mesh, indActive=actind)
 
 # Personal preference for this solver with a Jacobi preconditioner
-opt = Optimization.ProjectedGNCG(maxIter=20, lower=-10, upper=10,
+opt = optimization.ProjectedGNCG(maxIter=20, lower=-10, upper=10,
                                  maxIterLS=20, maxIterCG=30, tolCG=1e-4)
 
 opt.remember('xc')
-invProb = InvProblem.BaseInvProblem(dmis, regT, opt)
+invProb = inverse_problem.BaseInvProblem(dmis, regT, opt)
 
-beta = Directives.BetaEstimate_ByEig(beta0_ratio=1.)
-Target = Directives.TargetMisfit()
-betaSched = Directives.BetaSchedule(coolingFactor=5., coolingRate=2)
-updateSensW = Directives.UpdateSensitivityWeights(threshold=1e-3)
-update_Jacobi = Directives.UpdatePreconditioner()
+beta = directives.BetaEstimate_ByEig(beta0_ratio=1.)
+Target = directives.TargetMisfit()
+betaSched = directives.BetaSchedule(coolingFactor=5., coolingRate=2)
+updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3)
+update_Jacobi = directives.UpdatePreconditioner()
 
-inv = Inversion.BaseInversion(invProb, directiveList=[beta, Target,
+inv = inversion.BaseInversion(invProb, directiveList=[beta, Target,
                                                       betaSched, updateSensW,
                                                       update_Jacobi])
 
@@ -149,7 +149,7 @@ minv = inv.run(m0)
 ############
 
 fig, ax = plt.subplots(1, 2, figsize=(12, 5))
-ax = Utils.mkvc(ax)
+ax = utils.mkvc(ax)
 
 cyl0v = getCylinderPoints(x0, z0, r0)
 cyl1v = getCylinderPoints(x1, z1, r1)

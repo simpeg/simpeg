@@ -44,7 +44,7 @@ npad = 11
 hx = [(cs, npad, -1.3), (cs, 41), (cs, npad, 1.3)]
 hy = [(cs, npad, -1.3), (cs, 17), (cs, npad, 1.3)]
 hz = [(cs, npad, -1.3), (cs, 20)]
-mesh = Mesh.TensorMesh([hx, hy, hz], 'CCN')
+mesh = discretize.TensorMesh([hx, hy, hz], 'CCN')
 
 ###############################################################################
 # Step 2
@@ -52,7 +52,7 @@ mesh = Mesh.TensorMesh([hx, hy, hz], 'CCN')
 #
 # Generating model and mapping (1D to 3D)
 
-mapping = Maps.ExpMap(mesh)*Maps.SurjectVertical1D(mesh)
+mapping = maps.ExpMap(mesh)*maps.SurjectVertical1D(mesh)
 siglay1 = 1./(100.)
 siglay2 = 1./(500.)
 sighalf = 1./(100.)
@@ -218,15 +218,15 @@ ax[0].set_ylim(-500., 0.)
 #
 # Run inversion
 
-regmesh = Mesh.TensorMesh([31])
-dmis = DataMisfit.l2_DataMisfit(survey)
-reg = Regularization.Tikhonov(regmesh)
-opt = Optimization.InexactGaussNewton(maxIter=7, tolX=1e-15)
+regmesh = discretize.TensorMesh([31])
+dmis = data_misfit.l2_DataMisfit(survey)
+reg = regularization.Tikhonov(regmesh)
+opt = optimization.InexactGaussNewton(maxIter=7, tolX=1e-15)
 opt.remember('xc')
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e1)
-betaSched = Directives.BetaSchedule(coolingFactor=5, coolingRate=2)
-inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaSched])
+invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
+beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
+betaSched = directives.BetaSchedule(coolingFactor=5, coolingRate=2)
+inv = inversion.BaseInversion(invProb, directiveList=[beta, betaSched])
 
 # Choose an initial starting model of the background conductivity
 m0 = np.log(np.ones(mapping.nP)*sighalf)

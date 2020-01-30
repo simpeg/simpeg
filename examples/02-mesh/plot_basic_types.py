@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 
 def run(plotIt=True):
     sz = [16, 16]
-    tM = Mesh.TensorMesh(sz)
-    qM = Mesh.TreeMesh(sz)
+    tM = discretize.TensorMesh(sz)
+    qM = discretize.TreeMesh(sz)
 
     def refine(cell):
         if np.sqrt(((np.r_[cell.center]-0.5)**2).sum()) < 0.4:
@@ -20,7 +20,7 @@ def run(plotIt=True):
         return 3
 
     qM.refine(refine)
-    rM = Mesh.CurvilinearMesh(Utils.meshutils.exampleLrmGrid(sz, 'rotate'))
+    rM = discretize.CurvilinearMesh(utils.meshutils.exampleLrmGrid(sz, 'rotate'))
 
     if not plotIt:
         return

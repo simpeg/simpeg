@@ -29,7 +29,7 @@ def run(plotIt=True):
     """
 
     # Make a mesh
-    M = simpeg.Mesh.TensorMesh(
+    M = simpeg.discretize.TensorMesh(
         [
             [(100, 9, -1.5), (100., 13), (100, 9, 1.5)],
             [(100, 9, -1.5), (100., 13), (100, 9, 1.5)],
@@ -38,7 +38,7 @@ def run(plotIt=True):
     )
     # Setup the model
     conds = [1,1e-2]
-    sig = simpeg.Utils.ModelBuilder.defineBlock(
+    sig = simpeg.utils.ModelBuilder.defineBlock(
         M.gridCC, [-100, -100, -350], [100, 100, -150], conds
     )
     sig[M.gridCC[:, 2] > 0] = 1e-8
@@ -52,7 +52,7 @@ def run(plotIt=True):
     # Setup the the survey object
     # Receiver locations
     rx_x, rx_y = np.meshgrid(np.arange(-600, 601, 100), np.arange(-600, 601, 100))
-    rx_loc = np.hstack((simpeg.Utils.mkvc(rx_x, 2), simpeg.Utils.mkvc(rx_y, 2), np.zeros((np.prod(rx_x.shape), 1))))
+    rx_loc = np.hstack((simpeg.utils.mkvc(rx_x, 2), simpeg.utils.mkvc(rx_y, 2), np.zeros((np.prod(rx_x.shape), 1))))
 
     # Make a receiver list
     rxList = []

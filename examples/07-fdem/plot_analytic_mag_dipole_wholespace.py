@@ -21,7 +21,7 @@ def run(XYZ=None, loc=np.r_[0., 0., 0.], sig=1.0, freq=1.0, orientation='Z',
         x = np.arange(-100.5, 100.5, step=1.)
         y = np.r_[0]
         z = x
-        XYZ = Utils.ndgrid(x, y, z)
+        XYZ = utils.ndgrid(x, y, z)
 
     Bx, By, Bz = EM.Analytics.FDEM.MagneticDipoleWholeSpace(
         XYZ,

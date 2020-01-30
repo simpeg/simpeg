@@ -57,17 +57,17 @@ def run(loc=None, sig=None, radi=None, param=None, survey_type='dipole-dipole',
     hyind = [(dx, 15, -1.3), (dx, 10), (dx, 15, 1.3)]
     hzind = [(dx, 15, -1.3), (dx, 15)]
 
-    mesh = Mesh.TensorMesh([hxind, hyind, hzind], 'CCN')
+    mesh = discretize.TensorMesh([hxind, hyind, hzind], 'CCN')
 
     # Set background conductivity
     model = np.ones(mesh.nC) * sig[0]
 
     # First anomaly
-    ind = Utils.ModelBuilder.getIndicesSphere(loc[:, 0], radi[0], mesh.gridCC)
+    ind = utils.ModelBuilder.getIndicesSphere(loc[:, 0], radi[0], mesh.gridCC)
     model[ind] = sig[1]
 
     # Second anomaly
-    ind = Utils.ModelBuilder.getIndicesSphere(loc[:, 1], radi[1], mesh.gridCC)
+    ind = utils.ModelBuilder.getIndicesSphere(loc[:, 1], radi[1], mesh.gridCC)
     model[ind] = sig[2]
 
     # Get index of the center
@@ -84,7 +84,7 @@ def run(loc=None, sig=None, radi=None, param=None, survey_type='dipole-dipole',
     ends = np.c_[np.asarray(ends), np.ones(2).T*mesh.vectorNz[-1]]
 
     # Snap the endpoints to the grid. Easier to create 2D section.
-    indx = Utils.closestPoints(mesh, ends)
+    indx = utils.closestPoints(mesh, ends)
     locs = np.c_[
         mesh.gridCC[indx, 0],
         mesh.gridCC[indx, 1],
@@ -111,7 +111,7 @@ def run(loc=None, sig=None, radi=None, param=None, survey_type='dipole-dipole',
     # line source for simplicity.
     Div = mesh.faceDiv
     Grad = mesh.cellGrad
-    Msig = Utils.sdiag(1./(mesh.aveF2CC.T*(1./model)))
+    Msig = utils.sdiag(1./(mesh.aveF2CC.T*(1./model)))
 
     A = Div*Msig*Grad
 
@@ -145,13 +145,13 @@ def run(loc=None, sig=None, radi=None, param=None, survey_type='dipole-dipole',
             # Create an "inifinity" pole
             tx = np.squeeze(Tx[ii].loc[:, 0:1])
             tinf = tx + np.array([dl_x, dl_y, 0])*dl_len*2
-            inds = Utils.closestPoints(mesh, np.c_[tx, tinf].T)
+            inds = utils.closestPoints(mesh, np.c_[tx, tinf].T)
             RHS = (
                 mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T *
                 ([-1] / mesh.vol[inds])
             )
         else:
-            inds = Utils.closestPoints(mesh, np.asarray(Tx[ii].loc))
+            inds = utils.closestPoints(mesh, np.asarray(Tx[ii].loc))
             RHS = (
                 mesh.getInterpolationMat(np.asarray(Tx[ii].loc), 'CC').T *
                 ([-1, 1] / mesh.vol[inds])
@@ -161,7 +161,7 @@ def run(loc=None, sig=None, radi=None, param=None, survey_type='dipole-dipole',
         Ainvb = sp.linalg.bicgstab(P*A, P*RHS, tol=1e-5)
 
         # We now have the potential everywhere
-        phi = Utils.mkvc(Ainvb[0])
+        phi = utils.mkvc(Ainvb[0])
 
         # Solve for phi on pole locations
         P1 = mesh.getInterpolationMat(rxloc_M, 'CC')

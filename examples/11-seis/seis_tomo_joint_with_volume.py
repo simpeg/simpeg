@@ -58,7 +58,7 @@ class Volume(ObjectiveFunction.BaseObjectiveFunction):
 
     def deriv2(self, m, v=None):
         if v is not None:
-            return Utils.mkvc(self.mesh.vol * np.inner(self.mesh.vol, v))
+            return utils.mkvc(self.mesh.vol * np.inner(self.mesh.vol, v))
         else:
             # TODO: this is inefficent. It is a fully dense matrix
             return sp.csc_matrix(np.outer(self.mesh.vol, self.mesh.vol))
@@ -69,7 +69,7 @@ def run(plotIt=True):
     nC = 40
     de = 1.
     h = np.ones(nC)*de/nC
-    M = Mesh.TensorMesh([h, h])
+    M = discretize.TensorMesh([h, h])
 
     y = np.linspace(M.vectorCCy[0], M.vectorCCx[-1], int(np.floor(nC/4)))
     rlocs = np.c_[0*y+M.vectorCCx[-1], y]
@@ -82,7 +82,7 @@ def run(plotIt=True):
     # phi model
     phi0 = 0
     phi1 = 0.65
-    phitrue = Utils.ModelBuilder.defineBlock(
+    phitrue = utils.ModelBuilder.defineBlock(
         M.gridCC, [0.4, 0.6], [0.6, 0.4], [phi1, phi0]
     )
 
@@ -95,7 +95,7 @@ def run(plotIt=True):
 
     if plotIt:
         fig, ax = plt.subplots(1, 1)
-        sigmaMapTest = Maps.SelfConsistentEffectiveMedium(
+        sigmaMapTest = maps.SelfConsistentEffectiveMedium(
             nP=1000, sigma0=sigma0, sigma1=sigma1, rel_tol=1e-1, maxIter=150
         )
         testphis = np.linspace(0., 1., 1000)
@@ -106,12 +106,12 @@ def run(plotIt=True):
         ax.set_xlabel('$\\varphi$')
         ax.set_ylabel('$\sigma$')
 
-    sigmaMap = Maps.SelfConsistentEffectiveMedium(
+    sigmaMap = maps.SelfConsistentEffectiveMedium(
         M, sigma0=sigma0, sigma1=sigma1
     )
 
     # scale the slowness so it is on a ~linear scale
-    slownessMap = Maps.LogMap(M) * sigmaMap
+    slownessMap = maps.LogMap(M) * sigmaMap
 
     # set up the true sig model and log model dobs
     sigtrue = sigmaMap * phitrue
@@ -135,17 +135,17 @@ def run(plotIt=True):
     dpred = survey.dpred(np.zeros(M.nC))
 
     # objective function pieces
-    reg = Regularization.Tikhonov(M)
-    dmis = DataMisfit.l2_DataMisfit(survey)
+    reg = regularization.Tikhonov(M)
+    dmis = data_misfit.l2_DataMisfit(survey)
     dmisVol = Volume(mesh=M, knownVolume=knownVolume)
     beta = 0.25
     maxIter = 15
 
     # without the volume regularization
-    opt = Optimization.ProjectedGNCG(maxIter=maxIter, lower=0.0, upper=1.0)
+    opt = optimization.ProjectedGNCG(maxIter=maxIter, lower=0.0, upper=1.0)
     opt.remember('xc')
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=beta)
-    inv = Inversion.BaseInversion(invProb)
+    invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
+    inv = inversion.BaseInversion(invProb)
 
     mopt1 = inv.run(np.zeros(M.nC)+1e-16)
     print(
@@ -159,10 +159,10 @@ def run(plotIt=True):
     vol_multiplier = 9e4
     reg2 = reg
     dmis2 = dmis + vol_multiplier * dmisVol
-    opt2 = Optimization.ProjectedGNCG(maxIter=maxIter, lower=0.0, upper=1.0)
+    opt2 = optimization.ProjectedGNCG(maxIter=maxIter, lower=0.0, upper=1.0)
     opt2.remember('xc')
-    invProb2 = InvProblem.BaseInvProblem(dmis2, reg2, opt2, beta=beta)
-    inv2 = Inversion.BaseInversion(invProb2)
+    invProb2 = inverse_problem.BaseInvProblem(dmis2, reg2, opt2, beta=beta)
+    inv2 = inversion.BaseInversion(invProb2)
 
     mopt2 = inv2.run(np.zeros(M.nC)+1e-16)
     print(

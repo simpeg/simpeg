@@ -49,7 +49,7 @@ def download_and_unzip_data(
     the directory where the data are
     """
     # download the data
-    downloads = Utils.download(url)
+    downloads = utils.download(url)
 
     # directory where the downloaded files are
     directory = downloads.split(".")[0]
@@ -98,7 +98,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     ax1 = plt.subplot(121)
     ax2 = plt.subplot(122)
     axs = [ax1, ax2]
-    out_re = Utils.plot2Ddata(
+    out_re = utils.plot2Ddata(
         resolve["xy"], resolve["data"][:, 0], ncontour=100,
         contourOpts={"cmap": "viridis"}, ax=ax1
     )
@@ -109,7 +109,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     )
     temp_skytem = skytem["data"][:, 5].copy()
     temp_skytem[skytem["data"][:, 5] > 7e-10] = 7e-10
-    out_sky = Utils.plot2Ddata(
+    out_sky = utils.plot2Ddata(
         skytem["xy"][:, :2], temp_skytem, ncontour=100,
         contourOpts={"cmap": "viridis", "vmax": 7e-10}, ax=ax2
     )
@@ -159,7 +159,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     temp = np.logspace(np.log10(1.), np.log10(12.), 19)
     temp_pad = temp[-1] * 1.3 ** np.arange(npad)
     hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-    mesh = Mesh.CylMesh([hx, 1, hz], '00C')
+    mesh = discretize.CylMesh([hx, 1, hz], '00C')
     active = mesh.vectorCCz < 0.
 
     # Step2: Set a SurjectVertical1D mapping
@@ -167,8 +167,8 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     # below subsurface
 
     active = mesh.vectorCCz < 0.
-    actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-    mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
     sig_half = 1e-1
     sig_air = 1e-8
     sigma = np.ones(mesh.nCz)*sig_air
@@ -232,24 +232,24 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Data Misfit
     survey.dobs = dobs_re
-    dmisfit = DataMisfit.l2_DataMisfit(survey)
+    dmisfit = data_misfit.l2_DataMisfit(survey)
     dmisfit.W = 1./uncert
 
     # Regularization
-    regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = Regularization.Simple(regMesh, mapping=Maps.IdentityMap(regMesh))
+    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+    reg = regularization.Simple(regMesh, mapping=maps.IdentityMap(regMesh))
 
     # Optimization
-    opt = Optimization.InexactGaussNewton(maxIter=5)
+    opt = optimization.InexactGaussNewton(maxIter=5)
 
     # statement of the inverse problem
-    invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
+    invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # Inversion directives and parameters
-    target = Directives.TargetMisfit()  # stop when we hit target misfit
+    target = directives.TargetMisfit()  # stop when we hit target misfit
     invProb.beta = 2.
-    # betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e0)
-    inv = Inversion.BaseInversion(invProb, directiveList=[target])
+    # betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+    inv = inversion.BaseInversion(invProb, directiveList=[target])
     reg.alpha_s = 1e-3
     reg.alpha_x = 1.
     reg.mref = m0.copy()
@@ -344,25 +344,25 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Data Misfit
     survey.dobs = -dobs_sky
-    dmisfit = DataMisfit.l2_DataMisfit(survey)
+    dmisfit = data_misfit.l2_DataMisfit(survey)
     uncert = 0.12*abs(dobs_sky) + 7.5e-12
-    dmisfit.W = Utils.sdiag(1./uncert)
+    dmisfit.W = utils.sdiag(1./uncert)
 
     # Regularization
-    regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = Regularization.Simple(regMesh, mapping=Maps.IdentityMap(regMesh))
+    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+    reg = regularization.Simple(regMesh, mapping=maps.IdentityMap(regMesh))
 
     # Optimization
-    opt = Optimization.InexactGaussNewton(maxIter=5)
+    opt = optimization.InexactGaussNewton(maxIter=5)
 
     # statement of the inverse problem
-    invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
+    invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # Directives and Inversion Parameters
-    target = Directives.TargetMisfit()
-    # betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+    target = directives.TargetMisfit()
+    # betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
     invProb.beta = 20.
-    inv = Inversion.BaseInversion(invProb, directiveList=[target])
+    inv = inversion.BaseInversion(invProb, directiveList=[target])
     reg.alpha_s = 1e-1
     reg.alpha_x = 1.
     opt.LSshorten = 0.5

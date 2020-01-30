@@ -17,7 +17,7 @@ from SimPEG.FLOW import Richards
 
 
 def run(plotIt=True):
-    mesh = Mesh.TensorMesh([10])
+    mesh = discretize.TensorMesh([10])
     VGparams = Richards.Empirical.VanGenuchtenParams()
     leg = []
     for p in dir(VGparams):

@@ -5,7 +5,7 @@ Effective Medium Theory Mapping
 This example uses Self Consistent Effective Medium Theory to estimate the
 electrical conductivity of a mixture of two phases of materials. Given
 the electrical conductivity of each of the phases (:math:`\sigma_0`,
-:math:`\sigma_1`), the :class:`SimPEG.Maps.SelfConsistentEffectiveMedium`
+:math:`\sigma_1`), the :class:`SimPEG.maps.SelfConsistentEffectiveMedium`
 map takes the concentration of phase-1 (:math:`\phi_1`) and maps this to an
 electrical conductivity.
 
@@ -45,7 +45,7 @@ phi = np.linspace(0.0, 1, 1000) # vary the volume of particles
 # material and compute the effective conductivity
 #
 
-scemt = Maps.SelfConsistentEffectiveMedium(sigma0=sigma_fluid, sigma1=1)
+scemt = maps.SelfConsistentEffectiveMedium(sigma0=sigma_fluid, sigma1=1)
 
 ###############################################################################
 # Loop over a range of particle conductivities

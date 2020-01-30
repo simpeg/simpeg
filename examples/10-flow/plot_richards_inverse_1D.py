@@ -43,7 +43,7 @@ from SimPEG.FLOW import Richards
 
 def run(plotIt=True):
 
-    M = Mesh.TensorMesh([np.ones(40)], x0='N')
+    M = discretize.TensorMesh([np.ones(40)], x0='N')
     M.setCellGradBC('dirichlet')
     # We will use the haverkamp empirical model with parameters from Celia1990
     k_fun, theta_fun = Richards.Empirical.haverkamp(
@@ -53,7 +53,7 @@ def run(plotIt=True):
 
     # Here we are making saturated hydraulic conductivity
     # an exponential mapping to the model (defined below)
-    k_fun.KsMap = Maps.ExpMap(nP=M.nC)
+    k_fun.KsMap = maps.ExpMap(nP=M.nC)
 
     # Setup the boundary and initial conditions
     bc = np.array([-61.5, -20.7])
@@ -69,7 +69,7 @@ def run(plotIt=True):
 
     # Create the survey
     locs = -np.arange(2, 38, 4.)
-    times = np.arange(30, prob.timeMesh.vectorCCx[-1], 60)
+    times = np.arange(30, prob.timediscretize.vectorCCx[-1], 60)
     rxSat = Richards.SaturationRx(locs, times)
     survey = Richards.RichardsSurvey([rxSat])
     survey.pair(prob)
@@ -88,15 +88,15 @@ def run(plotIt=True):
     survey.makeSyntheticData(mtrue, std=stdev, f=Hs, force=True)
 
     # Setup a pretty standard inversion
-    reg = Regularization.Tikhonov(M, alpha_s=1e-1)
-    dmis = DataMisfit.l2_DataMisfit(survey)
-    opt = Optimization.InexactGaussNewton(maxIter=20, maxIterCG=10)
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    beta = Directives.BetaSchedule(coolingFactor=4)
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e2)
-    target = Directives.TargetMisfit()
+    reg = regularization.Tikhonov(M, alpha_s=1e-1)
+    dmis = data_misfit.l2_DataMisfit(survey)
+    opt = optimization.InexactGaussNewton(maxIter=20, maxIterCG=10)
+    invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
+    beta = directives.BetaSchedule(coolingFactor=4)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e2)
+    target = directives.TargetMisfit()
     dir_list = [beta, betaest, target]
-    inv = Inversion.BaseInversion(invProb, directiveList=dir_list)
+    inv = inversion.BaseInversion(invProb, directiveList=dir_list)
 
     mopt = inv.run(m0)
 
@@ -113,7 +113,7 @@ def run(plotIt=True):
         plt.legend(('$m_{rec}$', '$m_{true}$', 'Data locations'), loc=4)
 
         ax = plt.subplot(222)
-        mesh2d = Mesh.TensorMesh([prob.timeMesh.hx/60, prob.mesh.hx], '0N')
+        mesh2d = discretize.TensorMesh([prob.timediscretize.hx/60, prob.mesh.hx], '0N')
         sats = [theta_fun(_) for _ in Hs]
         clr = mesh2d.plotImage(np.c_[sats][1:, :], ax=ax)
         cmap0 = matplotlib.cm.RdYlBu_r
@@ -125,7 +125,7 @@ def run(plotIt=True):
         plt.title('True saturation over time')
 
         ax = plt.subplot(224)
-        mesh2d = Mesh.TensorMesh([prob.timeMesh.hx/60, prob.mesh.hx], '0N')
+        mesh2d = discretize.TensorMesh([prob.timediscretize.hx/60, prob.mesh.hx], '0N')
         sats = [theta_fun(_) for _ in Hs_opt]
         clr = mesh2d.plotImage(np.c_[sats][1:, :], ax=ax)
         cmap0 = matplotlib.cm.RdYlBu_r

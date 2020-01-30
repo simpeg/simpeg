@@ -45,7 +45,7 @@ def download_and_unzip_data(
     the directory where the data are
     """
     # download the data
-    downloads = Utils.download(url)
+    downloads = utils.download(url)
 
     # directory where the downloaded files are
     directory = downloads.split(".")[0]
@@ -72,7 +72,7 @@ def resolve_1Dinversions(
     :param numpy.array freqs: frequencies
     :param numpy.array m0: starting model
     :param numpy.array mref: reference model
-    :param Maps.IdentityMap mapping: mapping that maps the model to electrical conductivity
+    :param maps.IdentityMap mapping: mapping that maps the model to electrical conductivity
     :param float std: percent error used to construct the data misfit term
     :param float floor: noise floor used to construct the data misfit term
     :param float rxOffset: offset between source and receiver.
@@ -107,29 +107,29 @@ def resolve_1Dinversions(
     # ------------------- Inversion ------------------- #
     # data misfit term
     survey.dobs = dobs
-    dmisfit = DataMisfit.l2_DataMisfit(survey)
+    dmisfit = data_misfit.l2_DataMisfit(survey)
     uncert = abs(dobs) * std + floor
     dmisfit.W = 1./uncert
 
     # regularization
-    regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = Regularization.Simple(regMesh)
+    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+    reg = regularization.Simple(regMesh)
     reg.mref = mref
 
     # optimization
-    opt = Optimization.InexactGaussNewton(maxIter=10)
+    opt = optimization.InexactGaussNewton(maxIter=10)
 
     # statement of the inverse problem
-    invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
+    invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # Inversion directives and parameters
-    target = Directives.TargetMisfit()
-    inv = Inversion.BaseInversion(invProb, directiveList=[target])
+    target = directives.TargetMisfit()
+    inv = inversion.BaseInversion(invProb, directiveList=[target])
 
     invProb.beta = 2.   # Fix beta in the nonlinear iterations
     reg.alpha_s = 1e-3
     reg.alpha_x = 1.
-    prb.counter = opt.counter = Utils.Counter()
+    prb.counter = opt.counter = utils.Counter()
     opt.LSshorten = 0.5
     opt.remember('xc')
 
@@ -176,7 +176,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     temp = np.logspace(np.log10(1.), np.log10(12.), 19)
     temp_pad = temp[-1] * 1.3 ** np.arange(npad)
     hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-    mesh = Mesh.CylMesh([hx, 1, hz], '00C')
+    mesh = discretize.CylMesh([hx, 1, hz], '00C')
     active = mesh.vectorCCz < 0.
 
     # survey parameters
@@ -188,10 +188,10 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
 
         # set up the mappings - we are inverting for 1D log conductivity
         # below the earth's surface.
-        actMap = Maps.InjectActiveCells(
+        actMap = maps.InjectActiveCells(
             mesh, active, np.log(1e-8), nC=mesh.nCz
         )
-        mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
+        mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
         # build starting and reference model
         sig_half = 1e-1
@@ -283,10 +283,10 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
         list(zip(resolve["xy"][:, 0], resolve["xy"][:, 1])), k=20
     )
     w = 1. / (d+100.)**2.
-    w = Utils.sdiag(1./np.sum(w, axis=1)) * (w)
+    w = utils.sdiag(1./np.sum(w, axis=1)) * (w)
     xy = resolve["xy"]
     temp = (temp.flatten()[d_inds] * w).sum(axis=1)
-    Utils.plot2Ddata(
+    utils.plot2Ddata(
         xy, temp, ncontour=100, scale="log", dataloc=False,
         contourOpts={"cmap": cmap, "vmin": 1e-2, "vmax": 1e1}, ax=ax0
     )
@@ -306,7 +306,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     axs = [ax1, ax2]
     temp_dobs = dobs_re[:, freq_ind].copy()
     ax1.plot(river_path[:, 0], river_path[:, 1], 'k-', lw=0.5)
-    out = Utils.plot2Ddata(
+    out = utils.plot2Ddata(
         resolve["xy"][()], temp_dobs/abs(bp)*1e6, ncontour=100,
         scale="log", dataloc=False, ax=ax1, contourOpts={"cmap": "viridis"}
     )
@@ -316,7 +316,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     temp_dpred = dpred_re[:, freq_ind].copy()
     # temp_dpred[mask_:_data] = np.nan
     ax2.plot(river_path[:, 0], river_path[:, 1], 'k-', lw=0.5)
-    Utils.plot2Ddata(
+    utils.plot2Ddata(
         resolve["xy"][()], temp_dpred/abs(bp)*1e6, ncontour=100,
         scale="log", dataloc=False,
         contourOpts={"vmin": 10**vmin, "vmax": 10**vmax, "cmap": "viridis"}, ax=ax2

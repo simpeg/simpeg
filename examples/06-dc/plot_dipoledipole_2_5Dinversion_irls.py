@@ -44,7 +44,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey = DC.Utils.gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
+    survey = DC.utils.gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
                                      a=10, b=10, n=10)
     survey.getABMN_locations()
     survey = IO.from_ambn_locations_to_survey(
@@ -55,15 +55,15 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
 
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
-    topo, mesh1D = DC.Utils.genTopography(mesh, -10, 0, its=100)
-    actind = Utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
+    topo, mesh1D = DC.utils.genTopography(mesh, -10, 0, its=100)
+    actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
     survey.drapeTopo(mesh, actind, option="top")
 
     # Build a conductivity model
-    blk_inds_c = Utils.ModelBuilder.getIndicesSphere(
+    blk_inds_c = utils.ModelBuilder.getIndicesSphere(
         np.r_[60., -25.], 12.5, mesh.gridCC
     )
-    blk_inds_r = Utils.ModelBuilder.getIndicesSphere(
+    blk_inds_r = utils.ModelBuilder.getIndicesSphere(
         np.r_[140., -25.], 12.5, mesh.gridCC
     )
     layer_inds = mesh.gridCC[:, 1] > -5.
@@ -96,10 +96,10 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
         plt.show()
 
     # Use Exponential Map: m = log(rho)
-    actmap = Maps.InjectActiveCells(
+    actmap = maps.InjectActiveCells(
         mesh, indActive=actind, valInactive=np.log(1e8)
     )
-    mapping = Maps.ExpMap(mesh) * actmap
+    mapping = maps.ExpMap(mesh) * actmap
 
     # Generate mtrue
     mtrue = np.log(rho[actind])
@@ -142,37 +142,37 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
     eps = 10**(-3.2)
     # percentage
     std = 0.05
-    dmisfit = DataMisfit.l2_DataMisfit(survey)
+    dmisfit = data_misfit.l2_DataMisfit(survey)
     uncert = abs(survey.dobs) * std + eps
     dmisfit.W = 1./uncert
 
     # Map for a regularization
-    regmap = Maps.IdentityMap(nP=int(actind.sum()))
+    regmap = maps.IdentityMap(nP=int(actind.sum()))
 
     # Related to inversion
-    reg = Regularization.Sparse(
+    reg = regularization.Sparse(
         mesh, indActive=actind, mapping=regmap,
         gradientType='components'
     )
     #     gradientType = 'components'
     reg.norms = np.c_[p, qx, qz, 0.]
-    IRLS = Directives.Update_IRLS(
+    IRLS = directives.Update_IRLS(
         maxIRLSiter=20, minGNiter=1,
         betaSearch=False, fix_Jmatrix=True
     )
 
-    opt = Optimization.InexactGaussNewton(maxIter=40)
-    invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
-    beta = Directives.BetaSchedule(coolingFactor=5, coolingRate=2)
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e0)
-    target = Directives.TargetMisfit()
-    update_Jacobi = Directives.UpdatePreconditioner()
-    inv = Inversion.BaseInversion(
+    opt = optimization.InexactGaussNewton(maxIter=40)
+    invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
+    beta = directives.BetaSchedule(coolingFactor=5, coolingRate=2)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+    target = directives.TargetMisfit()
+    update_Jacobi = directives.UpdatePreconditioner()
+    inv = inversion.BaseInversion(
         invProb, directiveList=[
             betaest, IRLS
         ]
         )
-    prb.counter = opt.counter = Utils.Counter()
+    prb.counter = opt.counter = utils.Counter()
     opt.LSshorten = 0.5
     opt.remember('xc')
 
