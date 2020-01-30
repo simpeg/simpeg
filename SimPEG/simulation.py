@@ -391,16 +391,17 @@ class BaseSimulation(props.HasModel):
         return mkvc(self.dpred(m, f=f) - dobs)
 
     def make_synthetic_data(
-        self, m, standard_deviation=0.05, f=None, add_noise=False, **kwargs
+        self, m, standard_deviation=0.05, noise_floor=0.0, f=None, add_noise=False, **kwargs
     ):
         """
         Make synthetic data given a model, and a standard deviation.
         :param numpy.array m: geophysical model
         :param numpy.array standard_deviation: standard deviation
+        :param numpy.array noise_floor: noise floor
         :param numpy.array f: fields for the given model (if pre-calculated)
         """
 
-        std =  kwargs.pop('std', None)
+        std = kwargs.pop('std', None)
         if std is not None:
             standard_deviation = std
 
@@ -413,14 +414,15 @@ class BaseSimulation(props.HasModel):
         dclean = self.dpred(m, f=f)
 
         if add_noise is True:
-            noise = standard_deviation*abs(dclean)*np.random.randn(*dclean.shape)
+            std = (standard_deviation*abs(dclean) + noise_floor)
+            noise = std*np.random.randn(*dclean.shape)
             dobs = dclean + noise
         else:
             dobs = dclean
 
         return SyntheticData(
             survey=self.survey, dobs=dobs, dclean=dclean,
-            standard_deviation=standard_deviation,
+            standard_deviation=standard_deviation, noise_floor=noise_floor
         )
 
     def makeSyntheticData(self, m, standard_deviation=0.05, f=None):
@@ -564,13 +566,14 @@ class LinearSimulation(BaseSimulation):
         required=True
     )
 
-    def __init__(self, mesh=None, **kwargs):
-        super(LinearSimulation, self).__init__(mesh=mesh, **kwargs)
-        self.survey = BaseSurvey()
+    survey = properties.Instance("a survey object", BaseSurvey)
 
-        # set the number of data
-        if getattr(self, 'G', None) is not None:
-            self.survey._vnD = np.r_[self.G.shape[0]]
+    # def __init__(self, mesh=None, **kwargs):
+    #     super(LinearSimulation, self).__init__(mesh=mesh, **kwargs)
+    #
+    #     # set the number of data
+    #     if getattr(self, 'G', None) is not None:
+    #         self.survey._vnD = np.r_[self.G.shape[0]]
 
     @property
     def G(self):

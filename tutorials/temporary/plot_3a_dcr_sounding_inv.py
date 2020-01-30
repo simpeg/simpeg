@@ -200,13 +200,6 @@ reg = regularization.Simple(
     mesh, alpha_s=1., alpha_x=1., mref=starting_model
 )
 
-# Create model weights based on sensitivity matrix (sensitivity weighting). This is
-# done to counteract the inversion's desire to place structures only at regions
-# of very high sensitivity.
-wr = np.sum(simulation.getJ(starting_model)**2, axis=0)**0.5
-wr = (wr/np.max(np.abs(wr)))
-reg.cell_weights = wr  # include in regularization
-
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
 opt = optimization.InexactGaussNewton(
@@ -245,7 +238,7 @@ target_misfit = directives.TargetMisfit(chifact=1)
 
 # The directives are defined as a list.
 directives_list = [
-    starting_beta, beta_schedule, update_sensitivity_weights,
+    update_sensitivity_weights, starting_beta, beta_schedule,
     save_iteration, target_misfit
     ]
 

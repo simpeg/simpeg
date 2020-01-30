@@ -139,7 +139,7 @@ class Survey(BaseSurvey):
         self.m_locations = np.vstack(m_locations)
         self.n_locations = np.vstack(n_locations)
 
-    def drapeTopo(self, mesh, actind, option='top', topography=None):
+    def drapeTopo(self, mesh, actind, option='top', topography=None, force=False):
         if self.a_locations is None:
             self.getABMN_locations()
 
@@ -330,4 +330,3 @@ class Survey_ky(Survey):
     2.5D survey
     """
     # TODO: we should depreciate this and just use the above survey class as they are identical
-

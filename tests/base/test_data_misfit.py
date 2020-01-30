@@ -7,7 +7,7 @@ import scipy.sparse as sp
 import discretize
 
 from SimPEG import maps, utils
-from SimPEG import data_misfit, simulation
+from SimPEG import data_misfit, simulation, survey
 
 np.random.seed(17)
 
@@ -20,7 +20,13 @@ class DataMisfitTest(unittest.TestCase):
         model = np.log(sigma)
 
         # prob = DC.Problem3D_CC(mesh, rhoMap=Maps.ExpMap(mesh))
-        sim = simulation.ExponentialSinusoidSimulation(mesh=mesh, model_map=maps.ExpMap(mesh))
+
+        receivers = survey.BaseRx(20*[[0.0]])
+        source = survey.BaseSrc([receivers])
+        sim = simulation.ExponentialSinusoidSimulation(
+            mesh=mesh,
+            survey=survey.BaseSurvey([source]),
+            model_map=maps.ExpMap(mesh))
 
         synthetic_data = sim.make_synthetic_data(model)
         dobs = synthetic_data.dobs

@@ -16,7 +16,7 @@ class TomoTest(unittest.TestCase):
 
         nC = 20
         M = discretize.TensorMesh([nC, nC])
-        y = np.linspace(0., 1., nC/2)
+        y = np.linspace(0., 1., nC//2)
         rlocs = np.c_[y*0+M.vectorCCx[-1], y]
         rx = tomo.Rx(locations=rlocs)
 
@@ -42,6 +42,3 @@ class TomoTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-
-

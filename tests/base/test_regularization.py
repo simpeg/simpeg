@@ -39,7 +39,7 @@ class RegularizationTests(unittest.TestCase):
 
     if testReg:
         def test_regularization(self):
-            for R in regularization.__all__:
+            for R in dir(regularization):
                 r = getattr(regularization, R)
                 if not inspect.isclass(r):
                     continue
@@ -76,7 +76,7 @@ class RegularizationTests(unittest.TestCase):
                     self.assertTrue(passed)
 
         def test_regularization_ActiveCells(self):
-            for R in regularization.__all__:
+            for R in dir(regularization):
                 r = getattr(regularization, R)
                 if not inspect.isclass(r):
                     continue

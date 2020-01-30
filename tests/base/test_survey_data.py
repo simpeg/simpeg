@@ -32,7 +32,7 @@ class TestData(unittest.TestCase):
             for rx in src.receiver_list:
                 v = np.random.rand(rx.nD)
                 V += [v]
-                index = self.D.index_dict[src][rx]
+                index = self.D.index_dictionary[src][rx]
                 self.D.dobs[index] = v
         V = np.concatenate(V)
         self.assertTrue(np.all(V == self.D.dobs))
@@ -46,7 +46,7 @@ class TestData(unittest.TestCase):
             for rx in src.receiver_list:
                 v = np.random.rand(rx.nD)
                 V += [v]
-                index = self.D.index_dict[src][rx]
+                index = self.D.index_dictionary[src][rx]
                 self.D.standard_deviation[index] = v
                 self.assertTrue(np.all(v == self.D.standard_deviation[index]))
         V = np.concatenate(V)
@@ -58,7 +58,7 @@ class TestData(unittest.TestCase):
     def test_uniqueSrcs(self):
         srcs = self.D.survey.source_list
         srcs += [srcs[0]]
-        self.assertRaises(AssertionError, survey.BaseSurvey, source_list=srcs)
+        self.assertRaises(Exception, survey.BaseSurvey, source_list=srcs)
 
     def test_sourceIndex(self):
         mysurvey = self.D.survey
