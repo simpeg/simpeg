@@ -26,7 +26,8 @@ is that the derivatives also are made for you (if everything goes
 right). Just to be sure that the derivative is correct, you should
 always run the test on the mapping that you create.
 """
-from SimPEG import Mesh, Maps
+import discretize
+from SimPEG import maps
 import numpy as np
 import matplotlib.pyplot as plt
 

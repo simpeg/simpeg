@@ -4,7 +4,8 @@ Maps: Mesh2Mesh
 
 This mapping allows you to go from one mesh to another.
 """
-from SimPEG import Mesh, Maps, Utils
+import discretize
+from SimPEG import maps, utils
 import matplotlib.pyplot as plt
 
 

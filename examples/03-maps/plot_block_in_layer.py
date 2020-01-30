@@ -21,7 +21,8 @@ The model is given by
     ]
 
 """
-from SimPEG import Mesh, Maps
+import discretize
+from SimPEG import maps
 import numpy as np
 import matplotlib.pyplot as plt
 

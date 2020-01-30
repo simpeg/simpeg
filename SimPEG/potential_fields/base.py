@@ -111,7 +111,7 @@ class BasePFSimulation(LinearSimulation):
 
     def linear_operator(self):
 
-        self.nC = self.modelMap.shape[1]
+        self.nC = self.modelMap.shape[0]
 
         n_data_comp = len(self.survey.components)
 

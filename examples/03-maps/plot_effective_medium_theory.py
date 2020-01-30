@@ -20,7 +20,7 @@ subsurface injections.* University of British Columbia
 
 import numpy as np
 import matplotlib.pyplot as plt
-from SimPEG import Maps
+from SimPEG import maps
 from matplotlib import rcParams
 rcParams['font.size'] = 12
 
@@ -79,5 +79,3 @@ ax.set_xlabel("Volume fraction of proppant $\phi$")
 ax.set_ylabel("Effective conductivity (S/m)")
 
 plt.tight_layout()
-
-

@@ -17,7 +17,8 @@ The model is
         'layer thickness'
     ]
 """
-from SimPEG import Mesh, Maps
+import discretize
+from SimPEG import maps
 import numpy as np
 import matplotlib.pyplot as plt
 

@@ -12,11 +12,13 @@ model.
 
 
 """
+import discretize
 from SimPEG import (
-    Mesh, Utils, Maps, Regularization,
-    DataMisfit, Optimization, InvProblem,
-    Directives, Inversion, PF
+    utils, maps, regularization,
+    data_misfit, optimization, inverse_problem,
+    directives, inversion
 )
+from SimPEG.potential_fields import magnetics
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -55,9 +57,9 @@ def run(plotIt=True):
 
     # Create a MAGsurvey
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
-    rxLoc = PF.BaseMag.RxObs(rxLoc)
-    srcField = PF.BaseMag.SrcField([rxLoc], param=H0)
-    survey = PF.BaseMag.LinearSurvey(srcField)
+    rxLoc = magnetics.point_receiver(rxLoc)
+    srcField = magnetics.SourceField([rxLoc], parameters=H0)
+    survey = magnetics.MagneticSurvey(srcField)
 
     # We can now create a susceptibility model and generate data
     model = np.zeros(mesh.nC)
@@ -79,25 +81,16 @@ def run(plotIt=True):
     idenMap = maps.IdentityMap(nP=len(actv))
 
     # Create the forward model operator
-    prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap, actInd=actv)
-
-    # Pair the survey and problem
-    survey.pair(prob)
+    prob = magnetics.IntegralSimulation(
+        mesh,
+        survey=survey,
+        chiMap=idenMap,
+        actInd=actv,
+        store_sensitivities='forward_only')
 
     # Compute linear forward operator and compute some data
-    d = prob.fields(model)
-
-    # Add noise and uncertainties
-    # We add some random Gaussian noise (1nT)
-    data = d + np.random.randn(len(d))
-    wd = np.ones(len(data))*1.  # Assign flat uncertainties
-
-    survey.dobs = data
-    survey.std = wd
-    survey.mtrue = model
-
-    # Plot the data
-    rxLoc = survey.srcField.rxList[0].locs
+    data = prob.make_synthetic_data(
+        model, standard_deviation=0.0, noise_floor=1, add_noise=True)
 
     # Create a homogenous maps for the two domains
     domains = [mesh.gridCC[actv,0] < 0, mesh.gridCC[actv,0] >= 0]
@@ -110,21 +103,25 @@ def run(plotIt=True):
     sumMap = maps.SumMap([homogMap*wires.homo, wires.hetero])
 
     # Create the forward model operator
-    prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=sumMap, actInd=actv)
-
-    # Pair the survey and problem
-    survey.unpair()
-    survey.pair(prob)
+    prob = magnetics.IntegralSimulation(
+        mesh,
+        survey=survey,
+        chiMap=sumMap,
+        actInd=actv,
+        store_sensitivities='ram')
 
     # Make depth weighting
     wr = np.zeros(sumMap.shape[1])
+    print(prob.nC)
+    #print(prob.M.shape) # why does this reset nC
+    G = prob.G
 
     # Take the cell number out of the scaling.
     # Want to keep high sens for large volumes
     scale = utils.sdiag(np.r_[utils.mkvc(1./homogMap.P.sum(axis=0)),np.ones_like(actv)])
 
     for ii in range(survey.nD):
-        wr += ((prob.G[ii, :]*prob.chiMap.deriv(np.ones(sumMap.shape[1])*1e-4)*scale)/survey.std[ii])**2.
+        wr += ((prob.G[ii, :]*prob.chiMap.deriv(np.ones(sumMap.shape[1])*1e-4)*scale)/data.uncertainty[ii])**2.
 
     # Scale the model spaces independently
     wr[wires.homo.index] /= (np.max((wires.homo*wr)))
@@ -149,8 +146,7 @@ def run(plotIt=True):
     reg = reg_m1 + reg_m2
 
     # Data misfit function
-    dmis = data_misfit.l2_DataMisfit(survey)
-    dmis.W = 1/wd
+    dmis = data_misfit.L2DataMisfit(simulation=prob, data=data)
 
     # Add directives to the inversion
     opt = optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
