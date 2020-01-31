@@ -12,7 +12,10 @@ import warnings
 from ... import utils
 from ...simulation import BaseTimeSimulation
 from ... import optimization
-from ... import Solver
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from SimPEG import SolverLU as Solver
 
 from .survey import Survey
 from .empirical import BaseHydraulicConductivity
@@ -37,8 +40,7 @@ class RichardsSimulation(BaseTimeSimulation):
 
     debug = properties.Bool('Show all messages', default=False)
 
-    Solver = properties.Property('Numerical Solver', default=lambda: Solver)
-    solverOpts = {}
+    solver = Solver
 
     method = properties.StringChoice(
         'Formulation used, See notes in Celia et al., 1990',
@@ -111,7 +113,7 @@ class RichardsSimulation(BaseTimeSimulation):
                 doLS=self.do_newton,
                 maxIter=self.root_finder_max_iter,
                 tol=self.root_finder_tol,
-                Solver=self.Solver
+                Solver=self.solver
             )
         return self._root_finder
 
@@ -303,7 +305,7 @@ class RichardsSimulation(BaseTimeSimulation):
         A = As + Ad
         B = np.array(sp.vstack(Bs).todense())
 
-        Ainv = self.Solver(A, **self.solverOpts)
+        Ainv = self.solver(A, **self.solver_opts)
         AinvB = Ainv * B
         z = np.zeros((self.mesh.nC, B.shape[1]))
         du_dm = np.vstack((z, AinvB))
@@ -322,7 +324,7 @@ class RichardsSimulation(BaseTimeSimulation):
         temp, Adiag, B = self.diagsJacobian(
             m, f[0], f[1], self.time_steps[0], bc
         )
-        Adiaginv = self.Solver(Adiag, **self.solverOpts)
+        Adiaginv = self.solver(Adiag, **self.solver_opts)
         JvC[0] = Adiaginv * (B*v)
 
         for ii in range(1, len(f)-1):
@@ -330,7 +332,7 @@ class RichardsSimulation(BaseTimeSimulation):
             Asub, Adiag, B = self.diagsJacobian(
                 m, f[ii], f[ii+1], self.time_steps[ii], bc
             )
-            Adiaginv = self.Solver(Adiag, **self.solverOpts)
+            Adiaginv = self.solver(Adiag, **self.solver_opts)
             JvC[ii] = Adiaginv * (B*v - Asub*JvC[ii-1])
 
         du_dm_v = np.concatenate([np.zeros(self.mesh.nC)] + JvC)
@@ -354,7 +356,7 @@ class RichardsSimulation(BaseTimeSimulation):
             )
             # select the correct part of v
             vpart = list(range((ii)*Adiag.shape[0], (ii+1)*Adiag.shape[0]))
-            AdiaginvT = self.Solver(Adiag.T, **self.solverOpts)
+            AdiaginvT = self.solver(Adiag.T, **self.solver_opts)
             JTvC = AdiaginvT * (PTv[vpart] - minus)
             minus = Asub.T*JTvC  # this is now the super diagonal.
             BJtv = BJtv + B.T*JTvC

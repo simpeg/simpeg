@@ -42,8 +42,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-from SimPEG import Mesh, Maps
-from SimPEG.FLOW import Richards
+import discretize
+from SimPEG import maps
+from SimPEG.flow import richards
 
 
 def run(plotIt=True):
@@ -51,7 +52,7 @@ def run(plotIt=True):
     M = discretize.TensorMesh([np.ones(40)], x0='N')
     M.setCellGradBC('dirichlet')
     # We will use the haverkamp empirical model with parameters from Celia1990
-    k_fun, theta_fun = Richards.Empirical.haverkamp(
+    k_fun, theta_fun = richards.empirical.haverkamp(
         M, A=1.1750e+06, gamma=4.74, alpha=1.6110e+06,
         theta_s=0.287, theta_r=0.075, beta=3.96
     )
@@ -63,21 +64,21 @@ def run(plotIt=True):
     # Setup the boundary and initial conditions
     bc = np.array([-61.5, -20.7])
     h = np.zeros(M.nC) + bc[0]
-    prob = Richards.RichardsProblem(
+    prob = richards.RichardsSimulation(
         M,
         hydraulic_conductivity=k_fun,
         water_retention=theta_fun,
         boundary_conditions=bc, initial_conditions=h,
         do_newton=False, method='mixed', debug=False
     )
-    prob.timeSteps = [(5, 25, 1.1), (60, 40)]
+    prob.time_steps = [(5, 25, 1.1), (60, 40)]
 
     # Create the survey
-    locs = -np.arange(2, 38, 4.)
-    times = np.arange(30, prob.timediscretize.vectorCCx[-1], 60)
-    rxSat = Richards.SaturationRx(locs, times)
-    survey = Richards.RichardsSurvey([rxSat])
-    survey.pair(prob)
+    locs = -np.arange(2, 38, 4.).reshape(-1, 1)
+    times = np.arange(30, prob.time_mesh.vectorCCx[-1], 60)
+    rxSat = richards.receivers.Saturation(locs, times)
+    survey = richards.Survey([rxSat])
+    prob.survey = survey
 
     # Create a simple model for Ks
     Ks = 1e-3
@@ -88,7 +89,7 @@ def run(plotIt=True):
 
     # Create some synthetic data and fields
     Hs = prob.fields(mtrue)
-    data = survey.makeSyntheticData(mtrue, std=0, f=Hs, force=True)
+    data = prob.make_synthetic_data(mtrue, f=Hs)
 
     if plotIt:
         plt.figure(figsize=(14, 9))
@@ -102,13 +103,13 @@ def run(plotIt=True):
         plt.legend(('True model', 'Data locations'))
 
         plt.subplot(222)
-        plt.plot(times/60, data.reshape((-1, len(locs))))
+        plt.plot(times/60, data.dobs.reshape((-1, len(locs))))
         plt.title('(b) True data over time at all depths')
         plt.xlabel('Time, minutes')
         plt.ylabel('Saturation')
 
         ax = plt.subplot(212)
-        mesh2d = discretize.TensorMesh([prob.timediscretize.hx/60, prob.mesh.hx], '0N')
+        mesh2d = discretize.TensorMesh([prob.time_mesh.hx/60, prob.mesh.hx], '0N')
         sats = [theta_fun(_) for _ in Hs]
         clr = mesh2d.plotImage(np.c_[sats][1:, :], ax=ax)
         cmap0 = matplotlib.cm.RdYlBu_r
