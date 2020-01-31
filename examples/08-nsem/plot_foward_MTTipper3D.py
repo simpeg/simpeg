@@ -8,8 +8,9 @@ Test script to use SimPEG.NSEM platform to forward model
 impedance and tipper synthetic data.
 """
 
-import SimPEG as simpeg
-from SimPEG.EM import NSEM
+import discretize
+from SimPEG.electromagnetics import natural_source as NSEM
+from SimPEG import utils
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -29,7 +30,7 @@ def run(plotIt=True):
     """
 
     # Make a mesh
-    M = simpeg.discretize.TensorMesh(
+    M = discretize.TensorMesh(
         [
             [(100, 9, -1.5), (100., 13), (100, 9, 1.5)],
             [(100, 9, -1.5), (100., 13), (100, 9, 1.5)],
@@ -38,7 +39,7 @@ def run(plotIt=True):
     )
     # Setup the model
     conds = [1,1e-2]
-    sig = simpeg.utils.ModelBuilder.defineBlock(
+    sig = utils.ModelBuilder.defineBlock(
         M.gridCC, [-100, -100, -350], [100, 100, -150], conds
     )
     sig[M.gridCC[:, 2] > 0] = 1e-8
@@ -52,7 +53,7 @@ def run(plotIt=True):
     # Setup the the survey object
     # Receiver locations
     rx_x, rx_y = np.meshgrid(np.arange(-600, 601, 100), np.arange(-600, 601, 100))
-    rx_loc = np.hstack((simpeg.utils.mkvc(rx_x, 2), simpeg.utils.mkvc(rx_y, 2), np.zeros((np.prod(rx_x.shape), 1))))
+    rx_loc = np.hstack((utils.mkvc(rx_x, 2), utils.mkvc(rx_y, 2), np.zeros((np.prod(rx_x.shape), 1))))
 
     # Make a receiver list
     rxList = []
@@ -72,23 +73,18 @@ def run(plotIt=True):
     survey = NSEM.Survey(srcList)
 
     # Setup the problem object
-    problem = NSEM.Problem3D_ePrimSec(M, sigma=sig, sigmaPrimary=sigBG)
-
-    problem.pair(survey)
-    problem.Solver = Solver
+    problem = NSEM.Problem3D_ePrimSec(M,
+        survey=survey, solver=Solver,
+        sigma=sig, sigmaPrimary=sigBG)
 
     # Calculate the data
-    fields = problem.fields()
-    dataVec = survey.eval(fields)
-
+    # data = problem.make_synthetic_data(standard_deviation=0.1, add_noise=True)
+    data = NSEM.Data(
+        survey=survey, dobs=problem.dpred())
     # Add uncertainty to the data - 10% standard
     # devation and 0 floor
-    dataVec.standard_deviation.fromvec(
-        np.ones_like(simpeg.mkvc(dataVec)) * 0.1
-    )
-    dataVec.floor.fromvec(
-        np.zeros_like(simpeg.mkvc(dataVec))
-    )
+    data.standard_deviation = 0.1
+    data.noise_floor = 0.0
 
     # Add plots
     if plotIt:
@@ -106,13 +102,13 @@ def run(plotIt=True):
         ax_p.set_ylabel('Apparent phase')
         ax_p.set_xlabel('Frequency [Hz]')
         # Start plotting
-        ax_r = dataVec.plot_app_res(
+        ax_r = data.plot_app_res(
             np.array([-200, 0]),
             components=['xy', 'yx'], ax=ax_r, errorbars=True)
-        ax_r_on = dataVec.plot_app_res(
+        ax_r_on = data.plot_app_res(
             np.array([-200, 0]),
             components=['xx', 'yy'], ax=ax_r_on, errorbars=True)
-        ax_p = dataVec.plot_app_phs(
+        ax_p = data.plot_app_phs(
             np.array([-200, 0]),
             components=['xx', 'xy', 'yx', 'yy'], ax=ax_p, errorbars=True)
         ax_p.legend(bbox_to_anchor=(1.05, 1), loc=2)
@@ -125,5 +121,3 @@ if __name__ == '__main__':
     run(do_plots)
     if do_plots:
         plt.show()
-
-

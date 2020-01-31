@@ -804,10 +804,10 @@ def _extract_location_data(
             freq_list.append(src.freq)
             data_list.append(data[src, rx][ind_loc])
 
-
             if return_uncert:
-                std_list.append(data.standard_deviation[src, rx][ind_loc])
-                floor_list.append(data.floor[src, rx][ind_loc])
+                index = data.index_dictionary[src][rx]
+                std_list.append(data.standard_deviation[index][ind_loc])
+                floor_list.append(data.noise_floor[index][ind_loc])
     if return_uncert:
         return (np.array(freq_list), np.concatenate(data_list),
                 np.concatenate(std_list), np.concatenate(floor_list))
@@ -823,4 +823,3 @@ def _unique_rows(array):
     unique_array = np.unique(array.view([('', array.dtype)] * array.shape[1]))
     return unique_array.view(
         array.dtype).reshape((unique_array.shape[0], array.shape[1]))
-
