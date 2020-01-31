@@ -85,8 +85,8 @@ class StraightRayProblem(LinearSimulation):
         row = 0
         for src in self.survey.source_list:
             for rx in src.receiver_list:
-                for loc_i in range(rx.locs.shape[0]):
-                    inds, V = lineintegral(self.mesh, src.loc, rx.locs[loc_i, :])
+                for loc_i in range(rx.locations.shape[0]):
+                    inds, V = lineintegral(self.mesh, src.location, rx.locations[loc_i, :])
                     self._A[inds*0+row, inds] = V
                     row += 1
 

@@ -23,14 +23,15 @@ import scipy.sparse as sp
 import properties
 import matplotlib.pyplot as plt
 
-from SimPEG.SEIS import StraightRay
+from SimPEG.seismic import straight_ray_tomography as tomo
+import discretize
 from SimPEG import (
-    Mesh, Maps, Utils, Regularization, Optimization,
-    InvProblem, Inversion, DataMisfit, Directives, ObjectiveFunction
+    maps, utils, regularization, optimization,
+    inverse_problem, inversion, data_misfit, directives, objective_function
 )
 
 
-class Volume(ObjectiveFunction.BaseObjectiveFunction):
+class Volume(objective_function.BaseObjectiveFunction):
 
     """
     A regularization on the volume integral of the model
@@ -73,10 +74,10 @@ def run(plotIt=True):
 
     y = np.linspace(M.vectorCCy[0], M.vectorCCx[-1], int(np.floor(nC/4)))
     rlocs = np.c_[0*y+M.vectorCCx[-1], y]
-    rx = StraightRay.Rx(rlocs, None)
+    rx = tomo.Rx(rlocs)
 
     srcList = [
-        StraightRay.Src(loc=np.r_[M.vectorCCx[0], yi], rxList=[rx]) for yi in y
+        tomo.Src(location=np.r_[M.vectorCCx[0], yi], receiver_list=[rx]) for yi in y
     ]
 
     # phi model
@@ -120,9 +121,8 @@ def run(plotIt=True):
     slownesstrue = slownessMap * phitrue # true model (m = log(sigma))
 
     # set up the problem and survey
-    survey = StraightRay.Survey(srcList)
-    problem = StraightRay.Problem(M, slownessMap=slownessMap)
-    problem.pair(survey)
+    survey = tomo.Survey(srcList)
+    problem = tomo.Simulation(M, survey=survey, slownessMap=slownessMap)
 
     if plotIt:
         fig, ax = plt.subplots(1, 1)
@@ -131,12 +131,12 @@ def run(plotIt=True):
         cb.set_label('$\\varphi$')
 
     # get observed data
-    dobs = survey.makeSyntheticData(phitrue, std=0.03, force=True)
-    dpred = survey.dpred(np.zeros(M.nC))
+    data = problem.make_synthetic_data(phitrue, std=0.03, add_noise=True)
+    dpred = problem.dpred(np.zeros(M.nC))
 
     # objective function pieces
     reg = regularization.Tikhonov(M)
-    dmis = data_misfit.l2_DataMisfit(survey)
+    dmis = data_misfit.L2DataMisfit(simulation=problem, data=data)
     dmisVol = Volume(mesh=M, knownVolume=knownVolume)
     beta = 0.25
     maxIter = 15
@@ -176,10 +176,10 @@ def run(plotIt=True):
     if plotIt:
 
         fig, ax = plt.subplots(1, 1)
-        ax.plot(dobs)
+        ax.plot(data.dobs)
         ax.plot(dpred)
-        ax.plot(survey.dpred(mopt1), 'o')
-        ax.plot(survey.dpred(mopt2), 's')
+        ax.plot(problem.dpred(mopt1), 'o')
+        ax.plot(problem.dpred(mopt2), 's')
         ax.legend(['dobs', 'dpred0', 'dpred w/o Vol', 'dpred with Vol'])
 
         fig, ax = plt.subplots(1, 3, figsize=(16, 4))
