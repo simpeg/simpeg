@@ -7,8 +7,7 @@ from SimPEG import (
 
 
 def run_inversion(
-    m0, survey, actind, mesh,
-    std, eps,
+    m0, simulation, data, actind, mesh,
     maxIter=15, beta0_ratio=1e0,
     coolingFactor=5, coolingRate=2,
     upper=np.inf, lower=-np.inf,
@@ -21,9 +20,7 @@ def run_inversion(
     """
     Run DC inversion
     """
-    dmisfit = data_misfit.L2DataMisfit(survey)
-    uncert = abs(survey.dobs) * std + eps
-    dmisfit.W = 1./uncert
+    dmisfit = data_misfit.L2DataMisfit(simulation=simulation, data=data)
     # Map for a regularization
     regmap = maps.IdentityMap(nP=int(actind.sum()))
     # Related to inversion
@@ -52,11 +49,11 @@ def run_inversion(
     if use_sensitivity_weight:
         updateSensW = directives.UpdateSensitivityWeights()
         directiveList = [
-            beta, betaest, target, updateSensW, update_Jacobi
+            beta, target, updateSensW, update_Jacobi, betaest
         ]
     else:
         directiveList = [
-            beta, betaest, target, update_Jacobi
+            beta, target, update_Jacobi, betaest
         ]
     inv = inversion.BaseInversion(
         invProb, directiveList=directiveList
@@ -67,4 +64,3 @@ def run_inversion(
     # Run inversion
     mopt = inv.run(m0)
     return mopt, invProb.dpred
-
