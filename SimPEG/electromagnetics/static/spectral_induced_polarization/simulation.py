@@ -284,8 +284,8 @@ class BaseSIPSimulation(BaseEMSimulation):
             if self.data_type == 'apparent_chargeability':
                 if self.verbose is True:
                     print(">> Data type is apparaent chargeability")
-                for src in self.survey.srcList:
-                    for rx in src.rxList:
+                for src in self.survey.source_list:
+                    for rx in src.receiver_list:
                         rx._dc_voltage = rx.eval(src, self.mesh, self._f)
                         rx.data_type = self.data_type
                         rx._Ps = {}

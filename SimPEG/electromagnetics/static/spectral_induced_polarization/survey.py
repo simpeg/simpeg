@@ -40,12 +40,12 @@ def from_dc_to_sip_survey(survey_dc, times):
     """
     Generate sip survey from dc survey
     """
-    srcList = survey_dc.srcList
+    srcList = survey_dc.source_list
 
     srcList_sip = []
     for src in srcList:
         rxList_sip = []
-        for rx in src.rxList:
+        for rx in src.receiver_list:
             if isinstance(rx, dc.receivers.Pole_ky) or isinstance(rx, dc.receivers.Pole):
                 rx_sip = receivers.Pole(rx.locs, times=times)
             elif isinstance(rx, dc.receivers.Dipole_ky) or isinstance(rx, dc.receivers.Dipole):

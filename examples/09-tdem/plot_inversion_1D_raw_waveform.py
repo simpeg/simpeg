@@ -7,11 +7,12 @@ with VTEM waveform of which initial condition
 is zero, but have some on- and off-time.
 """
 import numpy as np
+import discretize
 from SimPEG import (
-    Mesh, Maps, SolverLU, DataMisfit, Regularization,
-    Optimization, InvProblem, Inversion, Directives, Utils
+    maps, data_misfit, regularization,
+    optimization, inverse_problem, inversion, directives, utils
 )
-import SimPEG.EM as EM
+from SimPEG.electromagnetics import time_domain as TDEM, utils as EMutils
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 try:
@@ -41,32 +42,26 @@ def run(plotIt=True):
     x = np.r_[30, 50, 70, 90]
     rxloc = np.c_[x, x*0., np.zeros_like(x)]
 
-    prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
-    prb.Solver = Solver
-    prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 5), (1e-4, 10), (5e-4, 10)]
-
+    prb = TDEM.Problem3D_b(mesh, sigmaMap=mapping, solver=Solver)
+    prb.time_steps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 5), (1e-4, 10), (5e-4, 10)]
     # Use VTEM waveform
-    out = EM.utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
+    out = EMutils.VTEMFun(prb.times, 0.00595, 0.006, 100)
 
     # Forming function handle for waveform using 1D linear interpolation
     wavefun = interp1d(prb.times, out)
     t0 = 0.006
-    waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
+    waveform = TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
 
-    rx = EM.TDEM.Rx.Point_dbdt(rxloc, np.logspace(-4, -2.5, 11)+t0, 'z')
-    src = EM.TDEM.Src.CircularLoop([rx], waveform=waveform,
+    rx = TDEM.Rx.Point_dbdt(rxloc, np.logspace(-4, -2.5, 11)+t0, 'z')
+    src = TDEM.Src.CircularLoop([rx], waveform=waveform,
                                    loc=np.array([0., 0., 0.]), radius=10.)
-    survey = EM.TDEM.Survey([src])
-    prb.pair(survey)
+    survey = TDEM.Survey([src])
+    prb.survey = survey
+
     # create observed data
-    std = 0.02
+    data = prb.make_synthetic_data(mtrue, standard_deviation=0.02, noise_floor=1e-11)
 
-    survey.dobs = survey.makeSyntheticData(mtrue, std)
-    # dobs = survey.dpred(mtrue)
-    survey.std = std
-    survey.eps = 1e-11
-
-    dmisfit = data_misfit.l2_DataMisfit(survey)
+    dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data)
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
     reg = regularization.Simple(regMesh)
     opt = optimization.InexactGaussNewton(maxIter=5, LSshorten=0.5)
@@ -84,7 +79,7 @@ def run(plotIt=True):
 
     if plotIt:
         fig, ax = plt.subplots(1, 2, figsize=(10, 6))
-        Dobs = survey.dobs.reshape((len(rx.times), len(x)))
+        Dobs = data.dobs.reshape((len(rx.times), len(x)))
         Dpred = invProb.dpred.reshape((len(rx.times), len(x)))
         for i in range (len(x)):
             ax[0].loglog(rx.times-t0, -Dobs[:,i].flatten(), 'k')

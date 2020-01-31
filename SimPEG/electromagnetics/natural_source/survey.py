@@ -28,7 +28,7 @@ from .utils.plotUtils import DataNSEMPlotMethods
 
 #     def __init__(self, srcList, **kwargs):
 #         # Sort these by frequency
-#         self.srcList = srcList
+#         self.source_list = srcList
 #         BaseSurvey.__init__(self, **kwargs)
 
 #         _freqDict = {}
@@ -64,9 +64,9 @@ from .utils.plotUtils import DataNSEMPlotMethods
 #         :return: NSEM Data object
 #         """
 #         data = Data(self)
-#         for src in self.srcList:
+#         for src in self.source_list:
 #             sys.stdout.flush()
-#             for rx in src.rxList:
+#             for rx in src.receiver_list:
 #                 data[src, rx] = rx.eval(src, self.mesh, f)
 #         return data
 
@@ -118,12 +118,12 @@ class Data(BaseData, DataNSEMPlotMethods):
             ('zyx', complex), ('zyy', complex),
             ('tzx', complex), ('tzy', complex)]
 
-        for src in self.survey.srcList:
+        for src in self.survey.source_list:
             # Temp array for all the receivers of the source.
             # Note: needs to be written more generally,
             # using diffterent rxTypes and not all the data at the locations
             # Assume the same locs for all RX
-            locs = src.rxList[0].locs
+            locs = src.receiver_list[0].locs
             if locs.shape[1] == 1:
                 locs = np.hstack((np.array([[0.0, 0.0]]), locs))
             elif locs.shape[1] == 2:
@@ -134,7 +134,7 @@ class Data(BaseData, DataNSEMPlotMethods):
             # Get the type and the value for the DataNSEM object as a list
             typeList = [
                 [rx.orientation, rx.component, self[src, rx]]
-                for rx in src.rxList]
+                for rx in src.receiver_list]
             # Insert the values to the temp array
             for nr, (k, c, val) in enumerate(typeList):
                 zt_type = 't' if 'z' in k else 'z'

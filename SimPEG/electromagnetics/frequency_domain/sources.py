@@ -687,7 +687,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         freq = self.frequency
 
         A = self.primarySimulation.getA(freq)
-        src = self.primarySurvey.srcList[0]
+        src = self.primarySurvey.source_list[0]
         u_src = mkvc(f[src, self.primarySimulation._solutionType])
 
         if adjoint is True:

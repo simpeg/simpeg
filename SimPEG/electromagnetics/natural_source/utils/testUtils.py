@@ -23,9 +23,9 @@ def getAppResPhs(NSEMdata, survey):
     NSEMdata = Data(dobs=NSEMdata, survey=survey)
     # Make impedance
     zList = []
-    for src in survey.srcList:
+    for src in survey.source_list:
         zc = [src.freq]
-        for rx in src.rxList:
+        for rx in src.receiver_list:
             if 'imag' in rx.component:
                 m = 1j
             else:

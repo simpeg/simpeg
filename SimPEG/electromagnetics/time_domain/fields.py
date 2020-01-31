@@ -155,7 +155,7 @@ class Fields3D_b(FieldsTDEM):
         self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
         self._edgeCurl = self.simulation.mesh.edgeCurl
         self._MfMui = self.simulation.MfMui
-        self._timeMesh = self.simulation.timeMesh
+        self._timeMesh = self.simulation.time_mesh
 
     def _TLoc(self, fieldType):
         return 'N'
@@ -369,7 +369,7 @@ class Fields3D_e(FieldsTDEM):
         """
         raise NotImplementedError('To obtain b-fields, please use Problem3D_b')
         # dbdt = self._dbdt(eSolution, source_list, tInd)
-        # dt = self.simulation.timeMesh.hx
+        # dt = self.simulation.time_mesh.hx
         # # assume widths of "ghost cells" same on either end
         # dtn = np.hstack([dt[0], 0.5*(dt[1:] + dt[:-1]), dt[-1]])
         # return dtn[tInd] * dbdt

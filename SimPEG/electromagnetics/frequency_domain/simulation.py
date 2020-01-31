@@ -120,7 +120,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
                 du_dm_v = Ainv * (- dA_dm_v + dRHS_dm_v)
 
-                for rx in src.rxList:
+                for rx in src.receiver_list:
                     Jv.append(
                         rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
                     )
@@ -156,7 +156,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
             for src in self.survey.get_sources_by_frequency(freq):
                 u_src = f[src, self._solutionType]
 
-                for rx in src.rxList:
+                for rx in src.receiver_list:
                     df_duT, df_dmT = rx.evalDeriv(
                         src, self.mesh, f, v=v[src, rx], adjoint=True
                     )

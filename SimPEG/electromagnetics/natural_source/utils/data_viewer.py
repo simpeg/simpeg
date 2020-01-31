@@ -63,7 +63,7 @@ class NSEM_data_viewer(properties.HasProperties):
         # Set up the plot containers
         self.station_figs = []
         unique_rx = np.unique(
-            np.array([rx.__class__ for src in self._data.survey.srcList for rx in src.rxList]))
+            np.array([rx.__class__ for src in self._data.survey.source_list for rx in src.receiver_list]))
         if rx.Point_impedance3D in unique_rx:
             self.station_figs.append(ApperentResPhsStationPlot())
         if rx.Point_tipper3D in unique_rx:

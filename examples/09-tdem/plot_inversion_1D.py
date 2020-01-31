@@ -5,7 +5,7 @@ EM: TDEM: 1D: Inversion
 Here we will create and run a TDEM 1D inversion.
 """
 import numpy as np
-from SimPEG.electromagnetics import frequency_domain, time_domain
+from SimPEG.electromagnetics import time_domain
 from SimPEG import (
     optimization, discretize, maps, data_misfit,
     regularization, inverse_problem,
@@ -56,7 +56,7 @@ def run(plotIt=True):
     data = simulation.make_synthetic_data(mtrue, standard_deviation=std)
 
 
-    dmisfit = data_misfit.L2DataMisfit(simulation, data)
+    dmisfit = data_misfit.L2DataMisfit(simulation=simulation, data=data)
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
     reg = regularization.Tikhonov(regMesh, alpha_s=1e-2, alpha_x=1.)
     opt = optimization.InexactGaussNewton(maxIter=5, LSshorten=0.5)

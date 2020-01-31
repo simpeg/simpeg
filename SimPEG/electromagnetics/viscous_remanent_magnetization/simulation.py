@@ -91,7 +91,7 @@ class Problem_BaseVRM(BaseSimulation):
 ..
         """
 
-        srcObj = self.survey.srcList[pp]
+        srcObj = self.survey.source_list[pp]
 
         h0 = srcObj.getH0(xyz)
 
@@ -123,7 +123,7 @@ class Problem_BaseVRM(BaseSimulation):
 
         """
 
-        srcObj = self.survey.srcList[pp]
+        srcObj = self.survey.source_list[pp]
 
         nC = np.shape(xyzc)[0]   # Number of cells
         nRx = srcObj.nRx          # Number of receiver in all rxList
@@ -142,9 +142,9 @@ class Problem_BaseVRM(BaseSimulation):
 
         COUNT = 0
 
-        for qq in range(0, len(srcObj.rxList)):
+        for qq in range(0, len(srcObj.receiver_list)):
 
-            rxObj = srcObj.rxList[qq]
+            rxObj = srcObj.receiver_list[qq]
             dComp = rxObj.fieldComp
             locs = rxObj.locs
             nLoc = np.shape(locs)[0]
@@ -662,7 +662,7 @@ class Problem_BaseVRM(BaseSimulation):
 
             if ref_factor > 0:
 
-                srcObj = self.survey.srcList[pp]
+                srcObj = self.survey.source_list[pp]
                 refFlag = srcObj._getRefineFlags(xyzc, ref_factor, ref_radius)
 
                 for qq in range(1, ref_factor+1):
@@ -808,13 +808,13 @@ class Problem_Linear(Problem_BaseVRM):
 
             print('CREATING T MATRIX')
 
-            srcList = self.survey.srcList
+            srcList = self.survey.source_list
             nSrc = len(srcList)
             T = []
 
             for pp in range(0, nSrc):
 
-                rxList = srcList[pp].rxList
+                rxList = srcList[pp].receiver_list
                 nRx = len(rxList)
                 waveObj = srcList[pp].waveform
 
@@ -969,13 +969,13 @@ class Problem_LogUniform(Problem_BaseVRM):
             AssertionError("A survey must be set to generate A matrix")
 
         # Fields from each source
-        srcList = self.survey.srcList
+        srcList = self.survey.source_list
         nSrc = len(srcList)
         f = []
 
         for pp in range(0, nSrc):
 
-            rxList = srcList[pp].rxList
+            rxList = srcList[pp].receiver_list
             nRx = len(rxList)
             waveObj = srcList[pp].waveform
 

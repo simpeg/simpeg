@@ -105,8 +105,8 @@ class BaseSIPSimulation_2D(BaseIPSimulation_2D, BaseSIPSimulation):
             dky = np.diff(self.kys)
             dky = np.r_[dky[0], dky]
             y = 0.
-            for src in self.survey.srcList:
-                for rx in src.rxList:
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
                     iend = istrt + rx.nD
                     Jtv_temp1 = np.zeros(
                         (self.actinds.sum(), rx.nD), dtype=float

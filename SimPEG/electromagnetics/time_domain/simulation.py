@@ -61,11 +61,11 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         # timestep to solve forward
         Ainv = None
-        for tInd, dt in enumerate(self.timeSteps):
+        for tInd, dt in enumerate(self.time_steps):
             # keep factors if dt is the same as previous step b/c A will be the
             # same
             if Ainv is not None and (
-                tInd > 0 and abs(dt-self.timeSteps[tInd - 1]) >
+                tInd > 0 and abs(dt-self.time_steps[tInd - 1]) >
                 self.dt_threshold
             ):
                 Ainv.clean()
@@ -139,12 +139,12 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         # elif self._fieldType is 'e' or self._fieldType is 'h':
         #     ifields = np.zeros((self.mesh.nE, len(Srcs)))
 
-        # for i, src in enumerate(self.survey.srcList):
+        # for i, src in enumerate(self.survey.source_list):
         dun_dm_v = np.hstack([
             mkvc(
                 self.getInitialFieldsDeriv(src, v, f=f), 2
             )
-            for src in self.survey.srcList
+            for src in self.survey.source_list
         ])
         # can over-write this at each timestep
         # store the field derivs we need to project to calc full deriv
@@ -152,11 +152,11 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         Adiaginv = None
 
-        for tInd, dt in zip(range(self.nT), self.timeSteps):
+        for tInd, dt in zip(range(self.nT), self.time_steps):
             # keep factors if dt is the same as previous step b/c A will be the
             # same
             if Adiaginv is not None and (tInd > 0 and dt !=
-                                         self.timeSteps[tInd - 1]):
+                                         self.time_steps[tInd - 1]):
                 Adiaginv.clean()
                 Adiaginv = None
 
@@ -166,10 +166,10 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
             Asubdiag = self.getAsubdiag(tInd)
 
-            for i, src in enumerate(self.survey.srcList):
+            for i, src in enumerate(self.survey.source_list):
 
                 # here, we are lagging by a timestep, so filling in as we go
-                for projField in set([rx.projField for rx in src.rxList]):
+                for projField in set([rx.projField for rx in src.receiver_list]):
                     df_dmFun = getattr(f, '_%sDeriv' % projField, None)
                     # df_dm_v is dense, but we only need the times at
                     # (rx.P.T * ones > 0)
@@ -193,16 +193,16 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 JRHS = dRHS_dm_v - dAsubdiag_dm_v - dA_dm_v
 
                 # step in time and overwrite
-                if tInd != len(self.timeSteps+1):
+                if tInd != len(self.time_steps+1):
                     dun_dm_v[:, i] = Adiaginv * (
                         JRHS - Asubdiag * dun_dm_v[:, i]
                     )
 
         Jv = []
-        for src in self.survey.srcList:
-            for rx in src.rxList:
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
                 Jv.append(
-                    rx.evalDeriv(src, self.mesh, self.timeMesh, f,   mkvc(
+                    rx.evalDeriv(src, self.mesh, self.time_mesh, f,   mkvc(
                             df_dm_v[src, '%sDeriv' % rx.projField, :]
                         )
                     )
@@ -247,8 +247,8 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         # same size as fields at a single timestep
         ATinv_df_duT_v = np.zeros(
             (
-                len(self.survey.srcList),
-                len(f[self.survey.srcList[0], ftype, 0])
+                len(self.survey.source_list),
+                len(f[self.survey.source_list[0], ftype, 0])
             ),
             dtype=float
         )
@@ -258,7 +258,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         # PT_v, df_duT_v, df_dmT_v
         # initialize storage for PT_v (don't need to preserve over sources)
         PT_v = self.Fields_Derivs(self)
-        for src in self.survey.srcList:
+        for src in self.survey.source_list:
             # Looping over initializing field class is appending memory!
             # PT_v = Fields_Derivs(self.mesh) # initialize storage
             # #for PT_v (don't need to preserve over sources)
@@ -267,14 +267,14 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 np.zeros_like(f[src, self._fieldType, :])
             )
 
-            for rx in src.rxList:
+            for rx in src.receiver_list:
                 PT_v[src, '{}Deriv'.format(rx.projField), :] = rx.evalDeriv(
-                    src, self.mesh, self.timeMesh, f, mkvc(v[src, rx]),
+                    src, self.mesh, self.time_mesh, f, mkvc(v[src, rx]),
                     adjoint=True
                 ) # this is +=
 
-                # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN,
-                # self.timeMesh.nN), order='F')
+                # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.time_mesh.nN,
+                # self.time_mesh.nN), order='F')
                 df_duTFun = getattr(f, '_{}Deriv'.format(rx.projField), None)
 
                 for tInd in range(self.nT+1):
@@ -297,13 +297,13 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         # Do the back-solve through time
         # if the previous timestep is the same: no need to refactor the matrix
-        # for tInd, dt in zip(range(self.nT), self.timeSteps):
+        # for tInd, dt in zip(range(self.nT), self.time_steps):
 
         for tInd in reversed(range(self.nT)):
             # tInd = tIndP - 1
             if AdiagTinv is not None and (
                 tInd <= self.nT and
-                self.timeSteps[tInd] != self.timeSteps[tInd+1]
+                self.time_steps[tInd] != self.time_steps[tInd+1]
             ):
                 AdiagTinv.clean()
                 AdiagTinv = None
@@ -316,7 +316,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             if tInd < self.nT - 1:
                 Asubdiag = self.getAsubdiag(tInd+1)
 
-            for isrc, src in enumerate(self.survey.srcList):
+            for isrc, src in enumerate(self.survey.source_list):
 
                 # solve against df_duT_v
                 if tInd >= self.nT-1:
@@ -363,7 +363,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         of the correct size
         """
 
-        Srcs = self.survey.srcList
+        Srcs = self.survey.source_list
 
         if self._formulation == 'EB':
             s_m = np.zeros((self.mesh.nF, len(Srcs)))
@@ -384,7 +384,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         Ask the sources for initial fields
         """
 
-        Srcs = self.survey.srcList
+        Srcs = self.survey.source_list
 
         if self._fieldType in ['b', 'j']:
             ifields = np.zeros((self.mesh.nF, len(Srcs)))
@@ -532,7 +532,7 @@ class Problem3D_b(BaseTDEMSimulation):
         """
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
         MfMui = self.MfMui
@@ -571,7 +571,7 @@ class Problem3D_b(BaseTDEMSimulation):
         Matrix below the diagonal
         """
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         MfMui = self.MfMui
         Asubdiag = - 1./dt * sp.eye(self.mesh.nF)
 
@@ -706,8 +706,8 @@ class Problem3D_e(BaseTDEMSimulation):
         # same size as fields at a single timestep
         ATinv_df_duT_v = np.zeros(
             (
-                len(self.survey.srcList),
-                len(f[self.survey.srcList[0], ftype, 0])
+                len(self.survey.source_list),
+                len(f[self.survey.source_list[0], ftype, 0])
             ),
             dtype=float
         )
@@ -717,7 +717,7 @@ class Problem3D_e(BaseTDEMSimulation):
         # PT_v, df_duT_v, df_dmT_v
         # initialize storage for PT_v (don't need to preserve over sources)
         PT_v = self.Fields_Derivs(self)
-        for src in self.survey.srcList:
+        for src in self.survey.source_list:
             # Looping over initializing field class is appending memory!
             # PT_v = Fields_Derivs(self.mesh) # initialize storage
             # #for PT_v (don't need to preserve over sources)
@@ -726,15 +726,15 @@ class Problem3D_e(BaseTDEMSimulation):
                 np.zeros_like(f[src, self._fieldType, :])
             )
 
-            for rx in src.rxList:
+            for rx in src.receiver_list:
                 PT_v[src, '{}Deriv'.format(rx.projField), :] = rx.evalDeriv(
-                    src, self.mesh, self.timeMesh, f, mkvc(v[src, rx]),
+                    src, self.mesh, self.time_mesh, f, mkvc(v[src, rx]),
                     adjoint=True
                 )
                 # this is +=
 
-                # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN,
-                # self.timeMesh.nN), order='F')
+                # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.time_mesh.nN,
+                # self.time_mesh.nN), order='F')
                 df_duTFun = getattr(f, '_{}Deriv'.format(rx.projField), None)
 
                 for tInd in range(self.nT+1):
@@ -758,13 +758,13 @@ class Problem3D_e(BaseTDEMSimulation):
 
         # Do the back-solve through time
         # if the previous timestep is the same: no need to refactor the matrix
-        # for tInd, dt in zip(range(self.nT), self.timeSteps):
+        # for tInd, dt in zip(range(self.nT), self.time_steps):
 
         for tInd in reversed(range(self.nT)):
             # tInd = tIndP - 1
             if AdiagTinv is not None and (
                 tInd <= self.nT and
-                self.timeSteps[tInd] != self.timeSteps[tInd+1]
+                self.time_steps[tInd] != self.time_steps[tInd+1]
             ):
                 AdiagTinv.clean()
                 AdiagTinv = None
@@ -777,7 +777,7 @@ class Problem3D_e(BaseTDEMSimulation):
             if tInd < self.nT - 1:
                 Asubdiag = self.getAsubdiag(tInd+1)
 
-            for isrc, src in enumerate(self.survey.srcList):
+            for isrc, src in enumerate(self.survey.source_list):
 
                 # solve against df_duT_v
                 if tInd >= self.nT-1:
@@ -813,7 +813,7 @@ class Problem3D_e(BaseTDEMSimulation):
         tInd = -1
         Grad = self.mesh.nodalGrad
 
-        for isrc, src in enumerate(self.survey.srcList):
+        for isrc, src in enumerate(self.survey.source_list):
             if src.srcType == "galvanic":
 
                 ATinv_df_duT_v[isrc, :] = Grad*(self.Adcinv*(Grad.T*(
@@ -851,7 +851,7 @@ class Problem3D_e(BaseTDEMSimulation):
         """
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
         MeSigma = self.MeSigma
@@ -864,7 +864,7 @@ class Problem3D_e(BaseTDEMSimulation):
         """
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         # MeSigmaDeriv = self.MeSigmaDeriv(u)
 
         if adjoint:
@@ -878,7 +878,7 @@ class Problem3D_e(BaseTDEMSimulation):
         """
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
 
         return - 1./dt * self.MeSigma
 
@@ -887,7 +887,7 @@ class Problem3D_e(BaseTDEMSimulation):
         Derivative of the matrix below the diagonal with respect to electrical
         conductivity
         """
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
 
         if adjoint:
             return - 1./dt * self.MeSigmaDeriv(u, v, adjoint)
@@ -899,10 +899,10 @@ class Problem3D_e(BaseTDEMSimulation):
         right hand side
         """
         # Omit this: Note input was tInd+1
-        # if tInd == len(self.timeSteps):
+        # if tInd == len(self.time_steps):
         #     tInd = tInd - 1
 
-        dt = self.timeSteps[tInd-1]
+        dt = self.time_steps[tInd-1]
         s_m, s_e = self.getSourceTerm(tInd)
         _, s_en1 = self.getSourceTerm(tInd-1)
 
@@ -987,7 +987,7 @@ class Problem3D_h(BaseTDEMSimulation):
         """
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         C = self.mesh.edgeCurl
         MfRho = self.MfRho
         MeMu = self.MeMu
@@ -997,7 +997,7 @@ class Problem3D_h(BaseTDEMSimulation):
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         C = self.mesh.edgeCurl
 
         if adjoint:
@@ -1008,7 +1008,7 @@ class Problem3D_h(BaseTDEMSimulation):
     def getAsubdiag(self, tInd):
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
 
         return - 1./dt * self.MeMu
 
@@ -1075,7 +1075,7 @@ class Problem3D_j(BaseTDEMSimulation):
         """
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         C = self.mesh.edgeCurl
         MfRho = self.MfRho
         MeMuI = self.MeMuI
@@ -1091,7 +1091,7 @@ class Problem3D_j(BaseTDEMSimulation):
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         assert tInd >= 0 and tInd < self.nT
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         C = self.mesh.edgeCurl
         MfRho = self.MfRho
         MeMuI = self.MeMuI
@@ -1110,7 +1110,7 @@ class Problem3D_j(BaseTDEMSimulation):
         assert tInd >= 0 and tInd < self.nT
         eye = sp.eye(self.mesh.nF)
 
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
 
         if self._makeASymmetric:
             return -1./dt * self.MfRho.T
@@ -1121,12 +1121,12 @@ class Problem3D_j(BaseTDEMSimulation):
 
     def getRHS(self, tInd):
 
-        if tInd == len(self.timeSteps):
+        if tInd == len(self.time_steps):
             tInd = tInd - 1
 
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI
-        dt = self.timeSteps[tInd]
+        dt = self.time_steps[tInd]
         s_m, s_e = self.getSourceTerm(tInd)
         _, s_en1 = self.getSourceTerm(tInd-1)
 

@@ -472,7 +472,7 @@ class BaseEMSimulation(BaseSimulation):
 
 #     def __init__(self, srcList, **kwargs):
 #         # Sort these by frequency
-#         self.srcList = srcList
+#         self.source_list = srcList
 #         super(BaseEMSurvey, self).__init__(**kwargs)
 
 #     def eval(self, f):
@@ -483,8 +483,8 @@ class BaseEMSimulation(BaseSimulation):
 #         :return: data
 #         """
 #         data = Survey.Data(self)
-#         for src in self.srcList:
-#             for rx in src.rxList:
+#         for src in self.source_list:
+#             for rx in src.receiver_list:
 #                 data[src, rx] = rx.eval(src, self.mesh, f)
 #         return data
 

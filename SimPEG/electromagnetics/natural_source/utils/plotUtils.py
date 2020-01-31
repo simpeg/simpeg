@@ -501,7 +501,7 @@ class DataNSEMPlotMethods(object):
                 plot_kwargs[key] = val
         # Get unique locations
         unique_locations = _unique_rows(np.concatenate(
-            [rx.locs for src in self.survey.srcList for rx in src.rxList])
+            [rx.locs for src in self.survey.source_list for rx in src.receiver_list])
         )
         # Make the figure and the axes
         if ax is None:
@@ -753,7 +753,7 @@ def _extract_frequency_data(
     """
 
     src = data.survey.getSrcByFreq(frequency)
-    rx_list = [rx for rx in src.rxList
+    rx_list = [rx for rx in src.receiver_list
                if rx.orientation == orientation and rx.component == component]
     # Check the number of the rx
     if len(rx_list) == 1:
@@ -788,8 +788,8 @@ def _extract_location_data(
     data_list = []
     std_list = []
     floor_list = []
-    for src in data.survey.srcList:
-        rx_list = [rx for rx in src.rxList
+    for src in data.survey.source_list:
+        rx_list = [rx for rx in src.receiver_list
               if rx.orientation == orientation and rx.component == component]
         if len(rx_list) == 0:
             if return_uncert:

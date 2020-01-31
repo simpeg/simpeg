@@ -1530,8 +1530,8 @@ def xy_2_lineID(dc_survey):
 
         if ii == 0:
 
-            A = dc_survey.srcList[ii].location[0]
-            B = dc_survey.srcList[ii].location[1]
+            A = dc_survey.source_list[ii].location[0]
+            B = dc_survey.source_list[ii].location[1]
 
             xout = np.mean([A[0:2], B[0:2]], axis=0)
 
@@ -1545,8 +1545,8 @@ def xy_2_lineID(dc_survey):
 
             continue
 
-        A = dc_survey.srcList[ii].location[0]
-        B = dc_survey.srcList[ii].location[1]
+        A = dc_survey.source_list[ii].location[0]
+        B = dc_survey.source_list[ii].location[1]
 
         xin = np.mean([A[0:2], B[0:2]], axis=0)
 
@@ -1857,7 +1857,7 @@ def gen_3d_survey_from_2d_lines(
             endl, survey_type, a, b, n_spacing, dim=3,
         )
 
-        srcList.append(survey_2d.srcList)
+        srcList.append(survey_2d.source_list)
         survey_2d.getABMN_locations()
         survey_2d = IO_2d.from_ambn_locations_to_survey(
             survey_2d.a_locations[:, [0, 2]], survey_2d.b_locations[:, [0, 2]],

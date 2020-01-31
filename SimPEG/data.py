@@ -42,8 +42,8 @@ class Data(properties.HasProperties):
 
         .. code:: python
             data = Data(survey)
-            for src in survey.srcList:
-                for rx in src.rxList:
+            for src in survey.source_list:
+                for rx in src.receiver_list:
                     data[src, rx] = datum
 
         """,
@@ -217,8 +217,8 @@ class Data(properties.HasProperties):
 
         .. code::
             data = Data(survey)
-            for src in survey.srcList:
-                for rx in src.rxList:
+            for src in survey.source_list:
+                for rx in src.receiver_list:
                     index = data.index_dictionary[src][rx]
                     data.dobs[index] = datum
 
@@ -314,8 +314,8 @@ class SyntheticData(Data):
 
         .. code:: python
             data = Data(survey)
-            for src in survey.srcList:
-                for rx in src.rxList:
+            for src in survey.source_list:
+                for rx in src.receiver_list:
                     index = data.index_dictionary(src, rx)
                     data.dclean[indices] = datum
 

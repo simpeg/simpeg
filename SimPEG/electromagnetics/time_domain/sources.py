@@ -445,7 +445,7 @@ class MagDipole(BaseTDEMSrc):
         if prob._formulation == 'EB':
             MfMui = prob.mesh.getFaceInnerProduct(1./self.mu)
 
-            if self.waveform.hasInitialFields is True and time < prob.timeSteps[1]:
+            if self.waveform.hasInitialFields is True and time < prob.time_steps[1]:
                 if prob._fieldType == 'b':
                     return Zero()
                 elif prob._fieldType == 'e':
@@ -458,7 +458,7 @@ class MagDipole(BaseTDEMSrc):
 
             h = 1./self.mu * b
 
-            if self.waveform.hasInitialFields is True and time < prob.timeSteps[1]:
+            if self.waveform.hasInitialFields is True and time < prob.time_steps[1]:
                 if prob._fieldType == 'h':
                     return Zero()
                 elif prob._fieldType == 'j':

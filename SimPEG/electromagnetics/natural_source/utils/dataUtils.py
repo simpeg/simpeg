@@ -63,8 +63,8 @@ def extract_data_info(NSEMdata):
     """
     dL, freqL, rxTL = [], [], []
 
-    for src in NSEMdata.survey.srcList:
-        for rx in src.rxList:
+    for src in NSEMdata.survey.source_list:
+        for rx in src.receiver_list:
             dL.append(NSEMdata[src, rx])
             freqL.append(np.ones(rx.nD) * src.freq)
             if isinstance(rx, Point_impedance3D):
@@ -134,10 +134,10 @@ def resample_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
                       'Can be \'All\' or a list')
 
     # Filter the data
-    for src in NSEMdata.survey.srcList:
+    for src in NSEMdata.survey.source_list:
         if src.freq in frequencies:
             new_rxList = []
-            for rx in src.rxList:
+            for rx in src.receiver_list:
                 if rx_comp is True or np.any(
                         [(isinstance(rx, ct) and rx.orientation in co)
                             for (ct, co) in rx_comp]):
