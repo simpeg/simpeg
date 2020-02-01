@@ -15,9 +15,10 @@ half-space is used to model the inductive response.
 # --------------
 #
 
-import SimPEG.VRM as VRM
+from SimPEG.electromagnetics import viscous_remanent_magnetization as VRM
 import numpy as np
-from SimPEG import mkvc, Mesh, Maps
+import discretize
+from SimPEG import mkvc, maps
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
@@ -74,7 +75,7 @@ xi_true += 1e-5
 # for the survey. Our example is similar to an EM-63 survey.
 #
 
-waveform = VRM.WaveformVRM.StepOff()
+waveform = VRM.waveforms.StepOff()
 
 times = np.logspace(-5, -2, 31)  # Observation times
 x, y = np.meshgrid(np.linspace(-30, 30, 21), np.linspace(-30, 30, 21))
@@ -86,7 +87,7 @@ src_list_vrm = []
 for pp in range(0, loc.shape[0]):
 
     loc_pp = np.reshape(loc[pp, :], (1, 3))
-    rx_list_vrm = [VRM.Rx.Point(loc_pp, times=times, fieldType='dbdt', fieldComp='z')]
+    rx_list_vrm = [VRM.Rx.Point(loc_pp, times=times, fieldType='dbdt', orientation='z')]
 
     src_list_vrm.append(
         VRM.Src.MagDipole(rx_list_vrm, mkvc(loc[pp, :]), [0., 0., 0.01], waveform)
@@ -105,9 +106,8 @@ survey_vrm = VRM.Survey(src_list_vrm)
 
 # Defining the problem
 problem_vrm = VRM.Problem_Linear(
-    mesh, indActive=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75]
+    mesh, survey=survey_vrm, indActive=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75]
 )
-problem_vrm.pair(survey_vrm)
 
 # Predict VRM response
 fields_vrm = problem_vrm.fields(xi_true)

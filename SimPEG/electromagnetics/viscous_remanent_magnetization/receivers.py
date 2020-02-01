@@ -47,7 +47,7 @@ class Point(BaseRx):
     @property
     def n_locations(self):
         """Number of locations."""
-        return self.locs.shape[0]
+        return self.locations.shape[0]
 
     @property
     def nLocs(self):

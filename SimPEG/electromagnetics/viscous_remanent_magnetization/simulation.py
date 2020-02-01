@@ -145,8 +145,8 @@ class Problem_BaseVRM(BaseSimulation):
         for qq in range(0, len(srcObj.receiver_list)):
 
             rxObj = srcObj.receiver_list[qq]
-            dComp = rxObj.fieldComp
-            locs = rxObj.locs
+            dComp = rxObj.orientation
+            locs = rxObj.locations
             nLoc = np.shape(locs)[0]
 
             if isinstance(rxObj, Point) and not isinstance(rxObj, SquareLoop):
@@ -821,7 +821,7 @@ class Problem_Linear(Problem_BaseVRM):
                 for qq in range(0, nRx):
 
                     times = rxList[qq].times
-                    nLoc = np.shape(rxList[qq].locs)[0]
+                    nLoc = np.shape(rxList[qq].locations)[0]
 
                     I = sp.diags(np.ones(nLoc))
                     eta = waveObj.getCharDecay(rxList[qq].fieldType, times)
@@ -898,17 +898,6 @@ class Problem_Linear(Problem_BaseVRM):
 
         # Must return an array
         return mkvc(dxidm.T*v)
-
-    def unpair(self):
-        """Unbind a survey from this problem instance."""
-        if not self.ispaired:
-            return
-        self.survey._prob = None
-        self._survey = None
-        self._A = None
-        self._T = None
-        self._AisSet = False
-        self._TisSet = False
 
 
 class Problem_LogUniform(Problem_BaseVRM):

@@ -25,12 +25,12 @@ class BaseSrcVRM(BaseSrc):
     @property
     def nRx(self):
         """Total number of receiver locations"""
-        return np.sum(np.array([np.shape(rx.locs)[0] for rx in self.receiver_list]))
+        return np.sum(np.array([np.shape(rx.locations)[0] for rx in self.receiver_list]))
 
     @property
     def vnRx(self):
         """Vector number of receiver locations"""
-        return np.array([np.shape(rx.locs)[0] for rx in self.receiver_list])
+        return np.array([np.shape(rx.locations)[0] for rx in self.receiver_list])
 
 
 #########################################
@@ -72,7 +72,7 @@ class MagDipole(BaseSrcVRM):
         """
 
         m = self.moment
-        r0 = self.loc
+        r0 = self.location
 
         r = np.sqrt((xyz[:, 0]-r0[0])**2 + (xyz[:, 1]-r0[1])**2 + (xyz[:, 2]-r0[2])**2)
         mdotr = m[0]*(xyz[:, 0]-r0[0]) + m[1]*(xyz[:, 1]-r0[1]) + m[2]*(xyz[:, 2]-r0[2])
@@ -105,9 +105,9 @@ class MagDipole(BaseSrcVRM):
         refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
 
         r = np.sqrt(
-            (xyzc[:, 0] - self.loc[0])**2 +
-            (xyzc[:, 1] - self.loc[1])**2 +
-            (xyzc[:, 2] - self.loc[2])**2
+            (xyzc[:, 0] - self.location[0])**2 +
+            (xyzc[:, 1] - self.location[1])**2 +
+            (xyzc[:, 2] - self.location[2])**2
         )
 
         for nn in range(0, ref_factor):
@@ -158,7 +158,7 @@ class CircLoop(BaseSrcVRM):
 
         """
 
-        r0 = self.loc
+        r0 = self.location
         theta = self.orientation[0]  # Azimuthal
         alpha = self.orientation[1]  # Declination
         a = self.radius
@@ -219,7 +219,7 @@ class CircLoop(BaseSrcVRM):
 
         refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
 
-        r0 = self.loc
+        r0 = self.location
         a = self.radius
         theta = self.orientation[0]  # Azimuthal
         alpha = self.orientation[1]  # Declination
@@ -295,7 +295,7 @@ class LineCurrent(BaseSrcVRM):
 
         # TRANSMITTER NODES
         I = self.Imax
-        tx_nodes = self.loc
+        tx_nodes = self.location
         x1tr = tx_nodes[:, 0]
         x2tr = tx_nodes[:, 1]
         x3tr = tx_nodes[:, 2]
@@ -374,13 +374,13 @@ class LineCurrent(BaseSrcVRM):
 
         ref_flag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
 
-        nSeg = np.shape(self.loc)[0] - 1
+        nSeg = np.shape(self.location)[0] - 1
 
         for tt in range(0, nSeg):
 
             ref_flag_tt = np.zeros(np.shape(xyzc)[0], dtype=np.int)
-            tx0 = self.loc[tt, :]
-            tx1 = self.loc[tt+1, :]
+            tx0 = self.location[tt, :]
+            tx1 = self.location[tt+1, :]
             a = (tx1[0] - tx0[0])**2 + (tx1[1] - tx0[1])**2 + (tx1[2] - tx0[2])**2
             b = (
                 2*(tx1[0] - tx0[0])*(tx0[0] - xyzc[:, 0]) +
