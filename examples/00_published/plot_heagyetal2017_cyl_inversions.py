@@ -16,13 +16,15 @@ This example is used in the paper
 This example is on figshare:
 https://doi.org/10.6084/m9.figshare.5035175
 
+This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capriotti
 """
+import discretize
 from SimPEG import (
-    Mesh, Maps, Utils, DataMisfit, Regularization,
-    Optimization, Inversion, InvProblem, Directives
+    maps, utils, data_misfit, regularization,
+    optimization, inversion, inverse_problem, directives
 )
 import numpy as np
-from SimPEG.EM import FDEM, TDEM, mu_0
+from SimPEG.electromagnetics import frequency_domain as FDEM, time_domain as TDEM, mu_0
 import matplotlib.pyplot as plt
 import matplotlib
 try:
@@ -74,15 +76,15 @@ def run(plotIt=True, saveFig=False):
     ]
 
     surveyFD = FDEM.Survey(srcList)
-    prbFD = FDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=Solver)
-    prbFD.pair(surveyFD)
+    prbFD = FDEM.Problem3D_b(
+        mesh, survey=surveyFD, sigmaMap=mapping, solver=Solver)
     std = 0.03
-    surveyFD.makeSyntheticData(mtrue, std)
-    surveyFD.eps = np.linalg.norm(surveyFD.dtrue)*1e-5
+    dataFD = prbFD.make_synthetic_data(mtrue, standard_deviation=std, add_noise=True)
+    dataFD.noise_floor = np.linalg.norm(dataFD.dclean)*1e-5
 
     # FDEM inversion
     np.random.seed(1)
-    dmisfit = data_misfit.l2_DataMisfit(surveyFD)
+    dmisfit = data_misfit.l2_DataMisfit(simulation=prbFD, data=dataFD)
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
     reg = regularization.Simple(regMesh)
     opt = optimization.InexactGaussNewton(maxIterCG=10)
@@ -114,17 +116,16 @@ def run(plotIt=True, saveFig=False):
     )
 
     surveyTD = TDEM.Survey([src])
-    prbTD = TDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=Solver)
-    prbTD.timeSteps = [(5e-5, 10), (1e-4, 10), (5e-4, 10)]
-    prbTD.pair(surveyTD)
+    prbTD = TDEM.Problem3D_b(
+        mesh, survey=surveyTD, sigmaMap=mapping, Solver=Solver)
+    prbTD.time_steps = [(5e-5, 10), (1e-4, 10), (5e-4, 10)]
 
     std = 0.03
-    surveyTD.makeSyntheticData(mtrue, std)
-    surveyTD.std = std
-    surveyTD.eps = np.linalg.norm(surveyTD.dtrue)*1e-5
+    dataTD = prbTD.make_synthetic_data(mtrue, standard_deviation=std, add_noise=True)
+    dataTD.noise_floor = np.linalg.norm(dataTD.dclean)*1e-5
 
     # TDEM inversion
-    dmisfit = data_misfit.l2_DataMisfit(surveyTD)
+    dmisfit = data_misfit.L2DataMisfit(simulation=prbTD, data=dataTD)
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
     reg = regularization.Simple(regMesh)
     opt = optimization.InexactGaussNewton(maxIterCG=10)
@@ -187,10 +188,10 @@ def run(plotIt=True, saveFig=False):
         # plot the data misfits - negative b/c we choose positive to be in the
         # direction of primary
 
-        ax1.plot(freqs, -surveyFD.dobs[::2], 'k-', lw=2, label="Obs (real)")
-        ax1.plot(freqs, -surveyFD.dobs[1::2], 'k--', lw=2, label="Obs (imag)")
+        ax1.plot(freqs, -dataFD.dobs[::2], 'k-', lw=2, label="Obs (real)")
+        ax1.plot(freqs, -dataFD.dobs[1::2], 'k--', lw=2, label="Obs (imag)")
 
-        dpredFD = surveyFD.dpred(moptTD)
+        dpredFD = prbFD.dpred(moptTD)
         ax1.loglog(
             freqs, -dpredFD[::2], 'bo', ms=6, markeredgecolor='k',
             markeredgewidth=0.5, label="Pred (real)"
@@ -200,9 +201,9 @@ def run(plotIt=True, saveFig=False):
             label="Pred (imag)"
         )
 
-        ax2.loglog(times, surveyTD.dobs, 'k-', lw=2, label='Obs')
+        ax2.loglog(times, dataTD.dobs, 'k-', lw=2, label='Obs')
         ax2.loglog(
-            times, surveyTD.dpred(moptTD), 'r*', ms=10, markeredgecolor='k',
+            times, prbTD.dpred(moptTD), 'r*', ms=10, markeredgecolor='k',
             markeredgewidth=0.5, label='Pred'
         )
         ax2.set_xlim(times.min() - 1e-5, times.max() + 1e-4)

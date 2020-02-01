@@ -28,10 +28,12 @@ This example is used in the paper
 This example is available on figshare:
 https://doi.org/10.6084/m9.figshare.5036123
 
+This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capriotti
 """
-from SimPEG import Mesh, Utils, Maps, Tests
-from SimPEG.EM import mu_0, FDEM, Analytics
-from SimPEG.EM.Utils import omega
+import discretize
+from SimPEG import utils, maps, tests
+from SimPEG.electromagnetics import mu_0, frequency_domain as FDEM, analytics
+from SimPEG.electromagnetics.utils import omega
 from SimPEG.utils.io_utils import download
 # try:
 #     from pymatsolver import MumpsSolver as Solver
@@ -347,7 +349,7 @@ class PrimSecCasingExample(object):
             )
             primaryProblem.mu = self.muModel
 
-            primaryProblem.Solver = Solver
+            primaryProblem.solver = Solver
             self._primaryProblem = primaryProblem
 
             print('... done building primary problem')
@@ -616,14 +618,12 @@ class PrimSecCasingExample(object):
 
     # -------------- SOLVE ---------------------------- #
     def solveSecondary(self, sec_problem, sec_survey, m, plotIt=False):
-
-        if not sec_problem.ispaired:
-            sec_problem.pair(sec_survey)
+        sec_problem.survey = sec_survey
 
         print('Solving Secondary')
         t0 = time.time()
         fields = sec_problem.fields(m)
-        dpred = sec_survey.dpred(m, f=fields)
+        dpred = sec_problem.dpred(m, f=fields)
         t1 = time.time()
         print(' ...done.   secondary time '), t1-t0
 
@@ -1145,7 +1145,7 @@ class PrimSecCasingExample(object):
             self.plotPrimaryProperties()  # plot mu, sigma
 
         # Primary Simulation
-        self.primaryProblem.pair(self.primarySurvey)
+        self.primaryProblem.survey = self.primarySurvey
         primfields = self.solvePrimary(self.primaryProblem, m=self.mtrue)
 
         if saveFields is True:
@@ -1161,7 +1161,7 @@ class PrimSecCasingExample(object):
         sec_survey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs
         )
-        sec_problem.pair(sec_survey)
+        sec_problem.survey = sec_survey
 
         # layered earth only (background)
         background_problem = self.setupSecondaryProblem(
@@ -1170,7 +1170,7 @@ class PrimSecCasingExample(object):
         background_survey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs
         )
-        background_problem.pair(background_survey)
+        background_problem.survey = background_survey
 
         # -------------- Test the sensitivity ----------------------------- #
         if runTests:
@@ -1179,10 +1179,10 @@ class PrimSecCasingExample(object):
             # Test Block Model
             def fun(x):
                 return [
-                    sec_survey.dpred(x),
+                    sec_problem.dpred(x),
                     lambda x: sec_problem.Jvec(self.mtrue, x)
                 ]
-            Tests.checkDerivative(fun, self.mtrue, num=2, plotIt=False)
+            tests.checkDerivative(fun, self.mtrue, num=2, plotIt=False)
 
         # -------------- Calculate Fields --------------------------------- #
         # Background
@@ -1288,10 +1288,8 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
 
         # Put the primary fields into a fields object
         self.primaryProblem.model = self.mtrue  # set the current model
-        self.primaryProblem.pair(self.primarySurvey)
-        primaryFields = self.primaryProblem.fieldsPair(
-            self.meshp, self.primarySurvey
-        )
+        self.primaryProblem.survey = self.primarySurvey
+        primaryFields = self.primaryProblem.fieldsPair(self.primaryProblem)
         primaryFields[self.primarySurvey.srcList[0], 'hSolution'] = results[
             'primfields'
         ]

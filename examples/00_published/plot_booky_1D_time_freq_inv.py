@@ -7,7 +7,7 @@ the RESOLVE and SkyTEM data sets. The original data can be downloaded from:
 `https://storage.googleapis.com/simpeg/bookpurnong/bookpurnong.tar.gz <https://storage.googleapis.com/simpeg/bookpurnong/bookpurnong.tar.gz>`_
 
 The forward simulation is performed on the cylindrically symmetric mesh using
-:code:`SimPEG.EM.FDEM`, and :code:`SimPEG.EM.TDEM`
+:code:`SimPEG.electromagnetics.frequency_domain`, and :code:`SimPEG.electromagnetics.time_domain`
 
 The RESOLVE data are inverted first. This recovered model is then used as a
 reference model for the SkyTEM inversion
@@ -22,6 +22,7 @@ This example is published in
 The script and figures are also on figshare:
 https://doi.org/10.6084/m9.figshare.5107711
 
+This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capriotti
 """
 
 import numpy as np
@@ -34,11 +35,12 @@ import matplotlib.pyplot as plt
 from scipy.constants import mu_0
 from pymatsolver import Pardiso as Solver
 
+import discretize
 from SimPEG import (
-    Mesh, Maps, Utils, DataMisfit, Regularization, Optimization, Inversion,
-    InvProblem, Directives
+    maps, utils, data_misfit, regularization, optimization, inversion,
+    inverse_problem, directives, data
 )
-import SimPEG.EM as EM
+from SimPEG.electromagnetics import frequency_domain as FDEM, time_domain as TDEM
 
 
 def download_and_unzip_data(
@@ -186,13 +188,13 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Set Rx (In-phase and Quadrature)
     rxOffset = 7.86
-    bzr = EM.FDEM.Rx.Point_bSecondary(
+    bzr = FDEM.Rx.Point_bSecondary(
         np.array([[rxOffset, 0., src_height_resolve]]),
         orientation='z',
         component='real'
     )
 
-    bzi = EM.FDEM.Rx.Point_b(
+    bzi = FDEM.Rx.Point_b(
         np.array([[rxOffset, 0., src_height_resolve]]),
         orientation='z',
         component='imag'
@@ -202,15 +204,15 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     frequency_cp = resolve["frequency_cp"].value
     freqs = frequency_cp.copy()
     srcLoc = np.array([0., 0., src_height_resolve])
-    srcList = [EM.FDEM.Src.MagDipole([bzr, bzi], freq, srcLoc, orientation='Z')
+    srcList = [FDEM.Src.MagDipole([bzr, bzi], freq, srcLoc, orientation='Z')
                for freq in freqs]
 
     # Set FDEM survey (In-phase and Quadrature)
-    survey = EM.FDEM.Survey(srcList)
-    prb = EM.FDEM.Problem3D_b(
+    survey = FDEM.Survey(srcList)
+    prb = FDEM.Problem3D_b(
         mesh, sigmaMap=mapping, Solver=Solver
     )
-    prb.pair(survey)
+    prb.survey = survey
 
     # ------------------ RESOLVE Inversion ------------------ #
 
@@ -231,9 +233,8 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     uncert = abs(dobs_re) * std + floor
 
     # Data Misfit
-    survey.dobs = dobs_re
-    dmisfit = data_misfit.l2_DataMisfit(survey)
-    dmisfit.W = 1./uncert
+    data_resolve = data.Data(dobs=dobs_re, survey=survey, uncertainty=uncert)
+    dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data_resolve)
 
     # Regularization
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
@@ -284,16 +285,16 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     peakTime = 1.0000000e-02
     a = 3.
 
-    dbdt_z = EM.TDEM.Rx.Point_dbdt(
-        locs=rxLoc, times=times_off[:-3]+offTime, orientation='z'
+    dbdt_z = TDEM.Rx.Point_dbdt(
+        locations=rxLoc, times=times_off[:-3]+offTime, orientation='z'
     )  # vertical db_dt
 
     rxList = [dbdt_z]  # list of receivers
     srcList = [
-        EM.TDEM.Src.CircularLoop(
+        TDEM.Src.CircularLoop(
             rxList, loc=srcLoc, radius=radius,
             orientation='z',
-            waveform=EM.TDEM.Src.VTEMWaveform(
+            waveform=TDEM.Src.VTEMWaveform(
                     offTime=offTime, peakTime=peakTime, a=3.
                 )
         )
@@ -303,19 +304,19 @@ def run(plotIt=True, saveFig=False, cleanup=True):
         (peakTime/5, 5), ((offTime-peakTime)/5, 5),
         (1e-5, 5), (5e-5, 5), (1e-4, 10), (5e-4, 15)
     ]
-    prob = EM.TDEM.Problem3D_e(
-        mesh, timeSteps=timeSteps, sigmaMap=mapping, Solver=Solver
+    prob = TDEM.Problem3D_e(
+        mesh, time_steps=timeSteps, sigmaMap=mapping, Solver=Solver
     )
-    survey = EM.TDEM.Survey(srcList)
-    prob.pair(survey)
+    survey = TDEM.Survey(srcList)
+    prob.survey = survey
 
     src = srcList[0]
-    rx = src.rxList[0]
+    rx = src.receiver_list[0]
     wave = []
     for time in prob.times:
         wave.append(src.waveform.eval(time))
     wave = np.hstack(wave)
-    out = survey.dpred(m0)
+    out = prob.dpred(m0)
 
     # plot the waveform
     fig = plt.figure(figsize=(5, 3))
@@ -343,10 +344,8 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     uncert = abs(dobs_sky) * std + floor
 
     # Data Misfit
-    survey.dobs = -dobs_sky
-    dmisfit = data_misfit.l2_DataMisfit(survey)
-    uncert = 0.12*abs(dobs_sky) + 7.5e-12
-    dmisfit.W = utils.sdiag(1./uncert)
+    data_sky = data.Data(dobs=-dobs_sky, survey=survey, uncertainty=uncert)
+    dmisfit = data_misfit.L2DataMisfit(simulation=prob, data=data_sky)
 
     # Regularization
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])

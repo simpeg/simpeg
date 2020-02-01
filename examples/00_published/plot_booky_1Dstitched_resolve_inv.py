@@ -7,7 +7,7 @@ data. The original data can be downloaded from:
 `https://storage.googleapis.com/simpeg/bookpurnong/bookpurnong.tar.gz <https://storage.googleapis.com/simpeg/bookpurnong/bookpurnong.tar.gz>`_
 
 The forward simulation is performed on the cylindrically symmetric mesh using
-:code:`SimPEG.EM.FDEM`.
+:code:`SimPEG.electromagnetics.frequency_domain`.
 
     Lindsey J. Heagy, Rowan Cockett, Seogi Kang, Gudni K. Rosenkjaer, Douglas
     W. Oldenburg, A framework for simulation and inversion in electromagnetics,
@@ -17,6 +17,7 @@ The forward simulation is performed on the cylindrically symmetric mesh using
 The script and figures are also on figshare:
 https://doi.org/10.6084/m9.figshare.5107711
 
+This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capriotti
 """
 
 import h5py
@@ -30,11 +31,12 @@ from pymatsolver import PardisoSolver
 from scipy.constants import mu_0
 from scipy.spatial import cKDTree
 
+import discretize
 from SimPEG import (
-    Mesh, Maps, Utils, DataMisfit, Regularization,
-    Optimization, Inversion, InvProblem, Directives
+    maps, utils, data_misfit, regularization,
+    optimization, inversion, inverse_problem, directives, data
 )
-import SimPEG.EM as EM
+from SimPEG.electromagnetics import frequency_domain as FDEM
 
 
 def download_and_unzip_data(
@@ -80,13 +82,13 @@ def resolve_1Dinversions(
 
     # ------------------- Forward Simulation ------------------- #
     # set up the receivers
-    bzr = EM.FDEM.Rx.Point_bSecondary(
+    bzr = FDEM.Rx.Point_bSecondary(
         np.array([[rxOffset, 0., src_height]]),
         orientation='z',
         component='real'
     )
 
-    bzi = EM.FDEM.Rx.Point_b(
+    bzi = FDEM.Rx.Point_b(
         np.array([[rxOffset, 0., src_height]]),
         orientation='z',
         component='imag'
@@ -95,21 +97,20 @@ def resolve_1Dinversions(
     # source location
     srcLoc = np.array([0., 0., src_height])
     srcList = [
-        EM.FDEM.Src.MagDipole([bzr, bzi], freq, srcLoc, orientation='Z')
+        FDEM.Src.MagDipole([bzr, bzi], freq, srcLoc, orientation='Z')
         for freq in freqs
     ]
 
     # construct a forward simulation
-    survey = EM.FDEM.Survey(srcList)
-    prb = EM.FDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=PardisoSolver)
-    prb.pair(survey)
+    survey = FDEM.Survey(srcList)
+    prb = FDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=PardisoSolver)
+    prb.survey = survey
 
     # ------------------- Inversion ------------------- #
     # data misfit term
-    survey.dobs = dobs
-    dmisfit = data_misfit.l2_DataMisfit(survey)
     uncert = abs(dobs) * std + floor
-    dmisfit.W = 1./uncert
+    data = data.Data(dobs=dobs, uncertainty=uncert)
+    dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data)
 
     # regularization
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
@@ -306,12 +307,15 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     axs = [ax1, ax2]
     temp_dobs = dobs_re[:, freq_ind].copy()
     ax1.plot(river_path[:, 0], river_path[:, 1], 'k-', lw=0.5)
+    inf = temp_dobs/abs(bp)*1e6
+    print(inf.min(), inf.max())
     out = utils.plot2Ddata(
         resolve["xy"][()], temp_dobs/abs(bp)*1e6, ncontour=100,
         scale="log", dataloc=False, ax=ax1, contourOpts={"cmap": "viridis"}
     )
     vmin, vmax = out[0].get_clim()
-    cb = plt.colorbar(out[0], ticks=np.linspace(vmin, vmax, 3), ax=ax1, format="%.1e", fraction=0.046, pad=0.04)
+    print(vmin, vmax)
+    cb = plt.colorbar(out[0], ticks=np.logspace(np.log10(vmin), np.log10(vmax), 3), ax=ax1, format="%.1e", fraction=0.046, pad=0.04)
     cb.set_label("Bz (ppm)")
     temp_dpred = dpred_re[:, freq_ind].copy()
     # temp_dpred[mask_:_data] = np.nan
@@ -319,10 +323,10 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     utils.plot2Ddata(
         resolve["xy"][()], temp_dpred/abs(bp)*1e6, ncontour=100,
         scale="log", dataloc=False,
-        contourOpts={"vmin": 10**vmin, "vmax": 10**vmax, "cmap": "viridis"}, ax=ax2
+        contourOpts={"vmin": vmin, "vmax": vmax, "cmap": "viridis"}, ax=ax2
     )
     cb = plt.colorbar(
-        out[0], ticks=np.linspace(vmin, vmax, 3), ax=ax2,
+        out[0], ticks=np.logspace(np.log10(vmin), np.log10(vmax), 3), ax=ax2,
         format="%.1e", fraction=0.046, pad=0.04
     )
     cb.set_label("Bz (ppm)")
