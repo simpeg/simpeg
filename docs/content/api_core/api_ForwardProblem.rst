@@ -1,11 +1,11 @@
 .. _api_ForwardProblem:
 
 
-Forward Problem
-***************
+Forward Simulation
+******************
 
-Problem Class
-=============
+Simulation Class
+================
 
 The problem is a partial differential equation of the form:
 
@@ -70,44 +70,51 @@ The API
 Problem
 -------
 
-.. autoclass:: SimPEG.Problem.BaseProblem
+.. autoclass:: SimPEG.simulation.BaseSimulation
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Problem.BaseTimeProblem
+.. autoclass:: SimPEG.simulation.BaseTimeSimulation
     :members:
     :undoc-members:
 
 Fields
 ------
 
-.. autoclass:: SimPEG.Fields.Fields
+.. autoclass:: SimPEG.fields.Fields
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Fields.TimeFields
+.. autoclass:: SimPEG.fields.TimeFields
     :members:
     :undoc-members:
 
 Survey
 ------
 
-.. autoclass:: SimPEG.Survey.BaseSurvey
+.. autoclass:: SimPEG.survey.BaseSurvey
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Survey.BaseSrc
+.. autoclass:: SimPEG.survey.BaseSrc
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Survey.BaseRx
+.. autoclass:: SimPEG.survey.BaseRx
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Survey.BaseTimeRx
+.. autoclass:: SimPEG.survey.BaseTimeRx
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Survey.Data
+Data
+----
+
+.. autoclass:: SimPEG.data.Data
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.data.SyntheticData
     :members:
     :undoc-members:
