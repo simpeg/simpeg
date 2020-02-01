@@ -23,7 +23,7 @@ from .utils.SolverUtils import (
     _checkAccuracy, SolverWrapD, SolverWrapI,
     Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
 )
-__version__   = '0.13.1'
+__version__   = '0.14.0b0'
 __author__    = 'SimPEG Team'
 __license__   = 'MIT'
 __copyright__ = '2013 - 2019, SimPEG Team, http://simpeg.xyz'
