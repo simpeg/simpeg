@@ -339,16 +339,8 @@ class DifferentialEquationSimulation(BaseSimulation):
         A = self.getA(m)
         RHS = self.getRHS(m)
 
-        if self.solver is None:
-            m1 = sp.linalg.interface.aslinearoperator(
-                utils.sdiag(1 / A.diagonal())
-            )
-            u, info = sp.linalg.bicgstab(A, RHS, tol=1e-6, maxiter=1000, M=m1)
-
-        else:
-            print("Solving with Paradiso")
-            Ainv = self.solver(A)
-            u = Ainv * RHS
+        Ainv = self.solver(A)
+        u = Ainv * RHS
 
         gField = 4. * np.pi * NewtG * 1e+8 * self._Div * u
 
