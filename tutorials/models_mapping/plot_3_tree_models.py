@@ -10,7 +10,7 @@ OcTree meshes. Some things we consider are:
     - Adding structures of various shape to the model
     - Parameterized models
     - Models with 2 or more physical properties
-    
+
 
 """
 
@@ -22,8 +22,8 @@ OcTree meshes. Some things we consider are:
 
 from discretize import TreeMesh
 from discretize.utils.meshutils import refine_tree_xyz
-from SimPEG.Utils import mkvc, ModelBuilder, surface2ind_topo
-from SimPEG import Maps
+from SimPEG.utils import mkvc, ModelBuilder, surface2ind_topo
+from SimPEG import maps
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -113,7 +113,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Find cells below topography and define mapping
 air_value = 0.
 ind_active = surface2ind_topo(mesh, topo)
-model_map = Maps.InjectActiveCells(mesh, ind_active, air_value)
+model_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define the model on subsurface cells
 model = background_value*np.ones(ind_active.sum())
@@ -163,7 +163,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Find cells below topography
 air_value = 0.
 ind_active = surface2ind_topo(mesh, topo)
-active_map = Maps.InjectActiveCells(mesh, ind_active, air_value)
+active_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define the model on subsurface cells
 model = background_value*np.ones(ind_active.sum())
@@ -177,9 +177,9 @@ ind_block = (
 model[ind_block] = block_value
 
 # Define a single mapping from model to mesh
-exponential_map = Maps.ExpMap()
-reciprocal_map = Maps.ReciprocalMap()
-model_map = Maps.ComboMap([active_map, reciprocal_map, exponential_map])
+exponential_map = maps.ExpMap()
+reciprocal_map = maps.ReciprocalMap()
+model_map = maps.ComboMap([active_map, reciprocal_map, exponential_map])
 
 # Plot
 fig = plt.figure(figsize=(5, 5))
@@ -217,7 +217,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Set active cells and define unit values
 air_value = 0.
 ind_active = surface2ind_topo(mesh, topo)
-model_map = Maps.InjectActiveCells(mesh, ind_active, air_value)
+model_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define model for cells under the surface topography
 model = background_value*np.ones(ind_active.sum())
@@ -275,14 +275,14 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Set active cells and define unit values
 air_value = 0.
 ind_active = surface2ind_topo(mesh, topo)
-active_map = Maps.InjectActiveCells(mesh, ind_active, air_value)
+active_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define the model on subsurface cells
 model = np.r_[background_value, block_value, xc, dx, yc, dy, zc, dz]
-parametric_map = Maps.ParametricBlock(mesh, indActive=ind_active, epsilon=1e-10, p=5.)
+parametric_map = maps.ParametricBlock(mesh, indActive=ind_active, epsilon=1e-10, p=5.)
 
 # Define a single mapping from model to mesh
-model_map = Maps.ComboMap([active_map, parametric_map])
+model_map = maps.ComboMap([active_map, parametric_map])
 
 # Plot
 fig = plt.figure(figsize=(5, 5))
@@ -327,7 +327,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Set active cells
 air_value = 0.
 ind_active = surface2ind_topo(mesh, topo)
-active_map = Maps.InjectActiveCells(mesh, ind_active, air_value)
+active_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define model for cells under the surface topography
 N = int(ind_active.sum())
@@ -351,11 +351,11 @@ model[ind_polygon, 0] = dyke_sigma_value
 
 # Create model vector and wires
 model = mkvc(model)
-wire_map = Maps.Wires(('log_sigma', N), ('mu', N))
+wire_map = maps.Wires(('log_sigma', N), ('mu', N))
 
 # Use combo maps to map from model to mesh
-sigma_map = Maps.ComboMap([active_map, Maps.ExpMap(), wire_map.log_sigma])
-mu_map = Maps.ComboMap([active_map, wire_map.mu])
+sigma_map = maps.ComboMap([active_map, maps.ExpMap(), wire_map.log_sigma])
+mu_map = maps.ComboMap([active_map, wire_map.mu])
 
 # Plot
 fig = plt.figure(figsize=(5, 5))

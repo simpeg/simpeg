@@ -9,19 +9,11 @@ The API
 Problem
 -------
 
-.. autoclass:: SimPEG.electromagnetics.base.BaseEMProblem
+.. autoclass:: SimPEG.electromagnetics.base.BaseEMSimulation
     :show-inheritance:
     :members:
     :undoc-members:
 
-
-Survey
-------
-
-.. autoclass:: SimPEG.electromagnetics.base.BaseEMSurvey
-    :show-inheritance:
-    :members:
-    :undoc-members:
 
 Sources
 -------

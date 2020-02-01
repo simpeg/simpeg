@@ -61,8 +61,10 @@ def run(plotIt=True, cleanAfterRun=True):
     # Now we need to create the survey and model information.
 
     # Access the mesh and survey information
-    mesh = driver.mesh
-    [survey, data_object] = driver.survey
+    mesh = driver.mesh#
+    survey = driver.survey
+    data_object = driver.data
+    #[survey, data_object] = driver.survey
 
     # define gravity survey locations
     rxLoc = survey.source_field.receiver_list[0].locations

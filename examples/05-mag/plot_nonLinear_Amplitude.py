@@ -240,7 +240,7 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=2)
 # Target misfit to stop the inversion,
 # try to fit as much as possible of the signal, we don't want to lose anything
 IRLS = directives.Update_IRLS(f_min_change=1e-3, minGNiter=1,
-                              beta_tol=1e-1, 
+                              beta_tol=1e-1,
                               max_irls_iterations=5)
 update_Jacobi = directives.UpdatePreconditioner()
 # Put all the parts together

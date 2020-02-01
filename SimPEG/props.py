@@ -18,7 +18,7 @@ class SphinxProp(object):
     def sphinx_class(self):
         return ':class:`{cls} <{ref}>`'.format(
             cls=self.__class__.__name__,
-            ref='SimPEG.Props.{}'.format(self.__class__.__name__)
+            ref='SimPEG.props.{}'.format(self.__class__.__name__)
         )
 
 

@@ -13,7 +13,7 @@ defined and mapped to cylindrical meshes. Some things we consider are:
     - Adding structures of various shape to the model
     - Parameterized models
     - Models with 2 or more physical properties
-    
+
 
 """
 
@@ -23,8 +23,8 @@ defined and mapped to cylindrical meshes. Some things we consider are:
 #
 
 from discretize import CylMesh
-from SimPEG.Utils import mkvc
-from SimPEG import Maps
+from SimPEG.utils import mkvc
+from SimPEG import maps
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -71,7 +71,7 @@ pipe_value = 40.
 # Find cells below topography and define mapping
 air_value = 0.
 ind_active = mesh.gridCC[:, 2] < 0.
-model_map = Maps.InjectActiveCells(mesh, ind_active, air_value)
+model_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define the model
 model = background_value*np.ones(ind_active.sum())
@@ -113,7 +113,7 @@ pipe_value = np.log(1./40.)
 # Find cells below topography and define mapping
 air_value = 0.
 ind_active = mesh.gridCC[:, 2] < 0.
-active_map = Maps.InjectActiveCells(mesh, ind_active, air_value)
+active_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define the model
 model = background_value*np.ones(ind_active.sum())
@@ -126,9 +126,9 @@ ind_pipe = (
 model[ind_pipe] = pipe_value
 
 # Define a single mapping from model to mesh
-exponential_map = Maps.ExpMap()
-reciprocal_map = Maps.ReciprocalMap()
-model_map = Maps.ComboMap([active_map, reciprocal_map, exponential_map])
+exponential_map = maps.ExpMap()
+reciprocal_map = maps.ReciprocalMap()
+model_map = maps.ComboMap([active_map, reciprocal_map, exponential_map])
 
 # Plotting
 fig = plt.figure(figsize=(5, 5))
@@ -157,14 +157,14 @@ dr, dz = 20., 50.              # dimensions in r, z
 # Find cells below topography and define mapping
 air_value = 0.
 ind_active = mesh.gridCC[:, 2] < 0.
-active_map = Maps.InjectActiveCells(mesh, ind_active, air_value)
+active_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define the model on subsurface cells
 model = np.r_[background_value, pipe_value, rc, dr, 0., 1., zc, dz]  # add dummy values for phi
-parametric_map = Maps.ParametricBlock(mesh, indActive=ind_active, epsilon=1e-10, p=8.)
+parametric_map = maps.ParametricBlock(mesh, indActive=ind_active, epsilon=1e-10, p=8.)
 
 # Define a single mapping from model to mesh
-model_map = Maps.ComboMap([active_map, parametric_map])
+model_map = maps.ComboMap([active_map, parametric_map])
 
 # Plotting
 fig = plt.figure(figsize=(5, 5))
@@ -199,7 +199,7 @@ pipe_mu = 5.
 # Find cells below topography and define mapping
 air_value = 0.
 ind_active = mesh.gridCC[:, 2] < 0.
-active_map = Maps.InjectActiveCells(mesh, ind_active, air_value)
+active_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define model for cells under the surface topography
 N = int(ind_active.sum())
@@ -219,11 +219,11 @@ model[ind_pipe] = np.c_[pipe_sigma, pipe_mu]
 
 # Create model vector and wires
 model = mkvc(model)
-wire_map = Maps.Wires(('log_sigma', N), ('mu', N))
+wire_map = maps.Wires(('log_sigma', N), ('mu', N))
 
 # Use combo maps to map from model to mesh
-sigma_map = Maps.ComboMap([active_map, Maps.ExpMap(), wire_map.log_sigma])
-mu_map = Maps.ComboMap([active_map, wire_map.mu])
+sigma_map = maps.ComboMap([active_map, maps.ExpMap(), wire_map.log_sigma])
+mu_map = maps.ComboMap([active_map, wire_map.mu])
 
 # Plotting
 fig = plt.figure(figsize=(5, 5))

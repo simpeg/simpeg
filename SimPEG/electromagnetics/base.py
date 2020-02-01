@@ -19,7 +19,7 @@ try:
 except ImportError:
     from SimPEG import SolverLU as Solver
 
-__all__ = ['BaseEMSimulation', 'BaseEMSurvey', 'BaseEMSrc']
+__all__ = ['BaseEMSimulation', 'BaseEMSrc']
 
 
 
@@ -458,38 +458,6 @@ class BaseEMSimulation(BaseSimulation):
             )
         else:
             return dMfRhoI_dI * self.MfRhoDeriv(u, v=v)
-
-
-###############################################################################
-#                                                                             #
-#                             Base EM Survey                                  #
-#                                                                             #
-###############################################################################
-
-# class BaseEMSurvey(BaseSurvey):
-
-#     source_list
-
-#     def __init__(self, srcList, **kwargs):
-#         # Sort these by frequency
-#         self.source_list = srcList
-#         super(BaseEMSurvey, self).__init__(**kwargs)
-
-#     def eval(self, f):
-#         """Project fields to receiver locations
-
-#         :param Fields u: fields object
-#         :rtype: numpy.ndarray
-#         :return: data
-#         """
-#         data = Survey.Data(self)
-#         for src in self.source_list:
-#             for rx in src.receiver_list:
-#                 data[src, rx] = rx.eval(src, self.mesh, f)
-#         return data
-
-#     def evalDeriv(self, f):
-#         raise Exception('Use Receivers to project fields deriv.')
 
 
 ###############################################################################

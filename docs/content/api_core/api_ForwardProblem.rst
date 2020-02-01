@@ -67,8 +67,8 @@ stored, as \\(J\\) is a large dense matrix.
 The API
 =======
 
-Problem
--------
+Simulation
+----------
 
 .. autoclass:: SimPEG.simulation.BaseSimulation
     :members:
@@ -77,6 +77,11 @@ Problem
 .. autoclass:: SimPEG.simulation.BaseTimeSimulation
     :members:
     :undoc-members:
+
+.. autoclass:: SimPEG.simulation.LinearSimulation
+    :members:
+    :undoc-members:
+
 
 Fields
 ------

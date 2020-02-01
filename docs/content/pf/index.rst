@@ -10,5 +10,6 @@ problems.
 .. toctree::
    :maxdepth: 2
 
+   api_base
    api_grav
    api_mag

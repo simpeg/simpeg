@@ -23,6 +23,8 @@ except:
     from SimPEG import Utils as utils
     from SimPEG.Utils.Plotutils import plot2Ddata
 
+import shutil
+
 def run(plotIt=True):
 
     # Create a mesh
