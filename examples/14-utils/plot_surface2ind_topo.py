@@ -6,9 +6,9 @@ Here we show how to use :code:`utils.surface2ind_topo` to identify
 cells below a topographic surface and compare the different options
 """
 import numpy as np
-from SimPEG import Mesh
-from SimPEG import Utils
-from SimPEG.Utils import surface2ind_topo, mkvc
+import discretize
+from SimPEG import utils
+from SimPEG.utils import surface2ind_topo, mkvc
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 

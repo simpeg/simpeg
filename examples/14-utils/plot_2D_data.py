@@ -8,7 +8,8 @@ amplitude of the vector. Following example use SimPEG's
 analytic function (electric dipole) to generate data
 at 2D plane.
 """
-from SimPEG import EM, Utils
+from SimPEG import electromagnetics as EM
+from SimPEG import utils
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -27,7 +28,7 @@ def run(plotIt=True):
     srcLoc = np.r_[0., 0., 0.]
 
     # Use analytic fuction to compute Ex, Ey, Ez
-    Ex, Ey, Ez = EM.Analytics.E_from_ElectricDipoleWholeSpace(
+    Ex, Ey, Ez = EM.analytics.E_from_ElectricDipoleWholeSpace(
         xyz, srcLoc, sig, f
     )
 
