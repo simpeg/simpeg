@@ -27,7 +27,7 @@ def electrode_separations(
     Input:
     :param SimPEG.electromagnetics.static.resistivity.survey.Survey dc_survey: DC survey object
     :param str survey_type: Either 'pole-dipole' | 'dipole-dipole'
-                                  | 'dipole-pole' | 'pole-pole
+                                  | 'dipole-pole' | 'pole-pole'
 
     Output:
     :return list ***: electrodes [A,B] separation distances
