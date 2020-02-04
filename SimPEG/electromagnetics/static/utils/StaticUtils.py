@@ -129,83 +129,54 @@ def electrode_separations(
     return elecSepDict
 
 
-def source_receiver_midpoints(dc_survey, survey_type='dipole-dipole', dim=2):
+def source_receiver_midpoints(survey):
     """
         Calculate source receiver midpoints.
 
         Input:
-        :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
-        :param str survey_type: Either 'pole-dipole' | 'dipole-dipole'
-                                      | 'dipole-pole' | 'pole-pole'
+        :param SimPEG.electromagnetics.static.resistivity.Survey survey: DC survey object
 
         Output:
         :return numpy.ndarray midx: midpoints x location
         :return numpy.ndarray midz: midpoints z location
     """
 
+    assert isinstance(survey, dc.Survey), (
+        "Input must be of type {}".format(dc.Survey)
+    )
+
     # Pre-allocate
-    midx = []
+    midxy = []
     midz = []
 
-    for ii in range(dc_survey.nSrc):
-        Tx = dc_survey.source_list[ii].location
-        Rx = dc_survey.source_list[ii].receiver_list[0].locations
+    for ii in range(survey.nSrc):
+        Tx = survey.source_list[ii].location
+        Rx = survey.source_list[ii].receiver_list[0].locations
 
-        # Get distances between each poles A-B-M-N
-        if survey_type.lower() == 'pole-dipole':
-            # Create mid-point location
-            Cmid = Tx[0]
-            Pmid = (Rx[0][:, 0] + Rx[1][:, 0])/2
-            if dim == 2:
-                zsrc = Tx[1]
-            elif dim == 3:
-                zsrc = Tx[2]
-            else:
-                raise Exception()
-
-        elif survey_type.lower() == 'dipole-dipole':
-            # Create mid-point location
-            Cmid = (Tx[0][0] + Tx[1][0])/2
-            Pmid = (Rx[0][:, 0] + Rx[1][:, 0])/2
-            if dim == 2:
-                zsrc = (Tx[0][1] + Tx[1][1])/2
-            elif dim == 3:
-                zsrc = (Tx[0][2] + Tx[1][2])/2
-            else:
-                raise Exception()
-
-        elif survey_type.lower() == 'pole-pole':
-            # Create mid-point location
-            Cmid = Tx[0]
-            Pmid = Rx[:, 0]
-            if dim == 2:
-                zsrc = Tx[1]
-            elif dim == 3:
-                zsrc = Tx[2]
-            else:
-                raise Exception()
-
-        elif survey_type.lower() == 'dipole-pole':
-            # Create mid-point location
-            Cmid = (Tx[0][0] + Tx[1][0])/2
-            Pmid = Rx[:, 0]
-            if dim == 2:
-                zsrc = (Tx[0][1] + Tx[1][1])/2
-            elif dim == 3:
-                zsrc = (Tx[0][2] + Tx[1][2])/2
-            else:
-                raise Exception()
+        if isinstance(Tx, list):
+            Cmid = (Tx[0][:-1] + Tx[1][:-1])/2
+            zsrc = (Tx[0][-1] + Tx[1][-1])/2
         else:
-            raise Exception(
-                """survey_type must be 'dipole-dipole' | 'pole-dipole' |
-                'dipole-pole' | 'pole-pole'"""
-                " not {}".format(survey_type)
-            )
+            Cmid = Tx[:-1]
+            zsrc = Tx[-1]
 
-        midx = np.hstack([midx, (Cmid + Pmid)/2])
-        midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc])
+        if isinstance(Rx, list):
+            Pmid = (Rx[0][:, :-1] + Rx[1][:, :-1])/2
+        else:
+            Pmid = Rx[:, :-1]
 
-    return midx, midz
+        midxy.append((Cmid + Pmid)/2)
+        midz.append(
+            -np.abs(
+                np.linalg.norm(
+                    np.kron(
+                        np.ones((Pmid.shape[0], 1)), Cmid
+                    ) - Pmid, axis=1
+                )
+            )/2 + zsrc
+        )
+
+    return np.vstack(midxy), np.hstack(midz)
 
 
 def geometric_factor(
@@ -354,10 +325,8 @@ def plot_pseudoSection(
     if dobs is None:
         dobs = data.dobs
 
-
-    midx, midz = source_receiver_midpoints(
-        data.survey, survey_type=survey_type, dim=dim
-    )
+    midx, midz = source_receiver_midpoints(data.survey)
+    midx = midx[:, 0]  # Only keep the along line
 
     if data_type in ['volt', 'appChargeability', 'misfitMap']:
         if scale == "linear":
