@@ -12,7 +12,7 @@ except ImportError:
     class ScoobyReport:
         def __init__(self, additional, core, optional, ncol, text_width, sort):
             print('\n  *ERROR*: `SimPEG.Report` requires `scooby`.'
-                  '\n           Install it via `pip install scooby` or')
+                  '\n           Install it via `pip install scooby` or'
                   '\n           `conda install -c conda-forge scooby`.\n')
 
 
