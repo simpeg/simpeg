@@ -462,6 +462,11 @@ class IO(properties.HasProperties):
             if dimension == 2:
                 z = abs(midABx-midMNx)*1./3.
                 x = (midABx+midMNx)*0.5
+                zmax = z.max()
+                a = abs(np.diff(np.sort(self.electrode_locations[:, 0]))).min()
+                # Consider the case of 1D types of array
+                if np.all(zmax < a):
+                    z = abs(self.a_locations[:, 0] - self.b_locations[:, 0])/3.
                 self.grids = np.c_[x, z]
 
             elif dimension == 3:
