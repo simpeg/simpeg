@@ -236,7 +236,7 @@ def geometric_factor(
 
 
 def apparent_resistivity(
-    data, survey_type='dipole-dipole', space_type='half-space', dobs=None,
+    data, space_type='half-space', dobs=None,
     eps=1e-10
 ):
     """
@@ -268,10 +268,9 @@ def apparent_resistivity(
     if dobs is None:
         dobs = data.dobs
 
-
     # Calculate Geometric Factor
     G = geometric_factor(
-        data.survey, survey_type=survey_type, space_type=space_type
+        data.survey, survey_type=data.survey.survey_type, space_type=space_type
     )
 
     # Calculate apparent resistivity
