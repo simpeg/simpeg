@@ -21,7 +21,9 @@ import properties
 from discretize.Tests import checkDerivative
 
 from .utils import (
-    setKwargs, mkvc, rotationMatrixFromNormals, Zero, Identity, sdiag, matutils
+    setKwargs, mkvc, speye,
+    rotationMatrixFromNormals, Zero, Identity, sdiag,
+    matutils
 )
 
 
@@ -3386,3 +3388,266 @@ class ParametricBlockInLayer(ParametricLayer):
             return sp.csr_matrix(self._deriv2d(m))
         elif self.mesh.dim == 3:
             return sp.csr_matrix(self._deriv3d(m))
+
+class Tile(IdentityMap):
+    """
+        Mapping for tiled inversion
+    """
+
+    nCell = 26  # Number of neighbors to use in averaging
+    tol = 1e-8  # Tolerance to avoid zero division
+    nBlock = 1
+
+    def __init__(self, *args, **kwargs):
+
+        assert len(args) == 2, ('Mapping requires a tuple' +
+                                '(MeshGlobal, ActiveGlobal),' +
+                                '(MeshLocal, ActiveLocal)')
+        super(Tile, self).__init__(**kwargs)
+        # check if tree in kwargs
+        if 'tree' in kwargs.keys():   # kwargs is a dict
+            tree = kwargs.pop('tree')
+
+            assert isinstance(tree, cKDTree), ('Tree input must be a cKDTRee')
+            self._tree = tree
+
+        self.meshGlobal = args[0][0]
+        self.actvGlobal = args[0][1]
+
+        if not isinstance(self.actvGlobal, bool):
+            temp = np.zeros(self.meshGlobal.nC, dtype='bool')
+            temp[self.actvGlobal] = True
+            self.actvGlobal = temp
+
+        self.meshLocal = args[1][0]
+        self.activeLocal = args[1][1]
+
+        # if not isinstance(self.activeLocal, bool):
+        #     temp = np.zeros(self.meshLocal.nC, dtype='bool')
+        #     temp[self.activeLocal] = True
+        #     self.activeLocal = temp
+
+        if self.nCell > self.meshGlobal.nC:
+            self.nCell = self.meshGlobal.nC
+
+        self.index = np.ones(self.actvGlobal.sum(), dtype='bool')
+        self.P
+
+    @property
+    def tree(self):
+        """
+            Create cKDTree structure for given global mesh
+        """
+        if getattr(self, '_tree', None) is None:
+
+            self._tree = cKDTree(self.meshGlobal.gridCC[self.actvGlobal, :])
+
+        return self._tree
+
+    @property
+    def activeLocal(self):
+        """
+        This is the activeLocal of the actvGlobal used in the global problem.
+        """
+        return getattr(self, '_activeLocal', None)
+
+    @activeLocal.setter
+    def activeLocal(self, activeLocal):
+
+        if not isinstance(activeLocal, bool):
+            temp = np.zeros(self.meshLocal.nC, dtype='bool')
+            temp[activeLocal] = True
+            activeLocal = temp
+
+        self._activeLocal = activeLocal
+
+    @property
+    def index(self):
+        """This is the index of the actvGlobal used in the global problem."""
+        return getattr(self, '_index', None)
+
+    @index.setter
+    def index(self, index):
+        if getattr(self, '_index', None) is not None:
+            self._S = None
+
+        if not isinstance(index, bool):
+            temp = np.zeros(self.actvGlobal.sum(), dtype='bool')
+            temp[index] = True
+            index = temp
+
+        self._nP = index.sum()
+        self._index = index
+
+    @property
+    def S(self):
+        """
+            Create sub-selection matrix in case where the global
+            mesh is not touched by all sub meshes
+        """
+        if getattr(self, '_S', None) is None:
+
+            nP = self.actvGlobal.sum()
+            nI = self.index.sum()
+            assert (nI <= nP), (
+                'maximum index must be less than {}'.format(nP))
+
+            # sparse projection matrix
+            S = sp.csr_matrix(
+                (np.ones(nI), (np.where(self.index)[0], range(nI))), shape=(nP, nI)
+            )
+
+            self._S = S
+        return self._S
+
+    @property
+    def P(self):
+        """
+            Set the projection matrix with partial volumes
+        """
+        if getattr(self, '_P', None) is None:
+
+            if self.meshLocal._meshType == "TREE":
+
+                actvIndGlobal = np.where(self.actvGlobal)[0].tolist()
+
+                Pac = speye(self.meshGlobal.nC)[:, self.actvGlobal]
+
+                indL = self.meshLocal._get_containing_cell_indexes(self.meshGlobal.gridCC)
+
+                full = np.c_[indL, np.arange(self.meshGlobal.nC)]
+
+            else:
+                # Needs to be improved to makes all cells are included
+                indx = self.getTreeIndex(self.tree, self.meshLocal, self.activeLocal)
+                local2Global = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.activeLocal.sum()))).astype('int'), mkvc(indx)]
+                Pac = speye(self.meshGlobal.nC)[:, self.actvGlobal]
+                tree = cKDTree(self.meshLocal.gridCC[self.activeLocal, :])
+                r, ind = tree.query(self.meshGlobal.gridCC[self.actvGlobal], k=self.nCell)
+                global2Local = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.actvGlobal.sum()))).astype('int'), mkvc(ind)]
+
+                full = np.unique(np.vstack([local2Global, global2Local[:, [1, 0]]]), axis=0)
+
+            # Free up memory
+            self._tree = None
+            tree = None
+
+            # Get the node coordinates (bottom-SW) and (top-NE) of cells
+            # in the global and local mesh
+            global_bsw, global_tne = self.getNodeExtent(self.meshGlobal,
+                                                        np.ones(self.meshGlobal.nC, dtype='bool'))
+
+            local_bsw, local_tne = self.getNodeExtent(self.meshLocal,
+                                                      np.ones(self.meshLocal.nC, dtype='bool'))
+
+            nactv = full.shape[0]
+
+            # Compute intersecting cell volumes
+            if self.meshLocal.dim == 1:
+
+                dV = np.max(
+                    [(np.min(
+                        [global_tne[full[:, 1]],
+                         local_tne[full[:, 0]]], axis=0
+                      ) -
+                      np.max(
+                        [global_bsw[full[:, 1]],
+                         local_bsw[full[:, 0]]], axis=0)
+                      ), np.zeros(nactv)
+                     ], axis=0
+                )
+
+            elif self.meshLocal.dim >= 2:
+
+                dV = np.max(
+                    [(np.min(
+                        [global_tne[full[:, 1], 0],
+                         local_tne[full[:, 0], 0]], axis=0
+                       ) -
+                      np.max(
+                        [global_bsw[full[:, 1], 0],
+                         local_bsw[full[:, 0], 0]], axis=0)
+                      ), np.zeros(nactv)], axis=0
+                    )
+
+                dV *= np.max([(np.min([global_tne[full[:, 1], 1], local_tne[full[:, 0], 1]],
+                                      axis=0) -
+                               np.max([global_bsw[full[:, 1], 1], local_bsw[full[:, 0], 1]],
+                                      axis=0)),
+                              np.zeros(nactv)], axis=0)
+
+            if self.meshLocal.dim == 3:
+
+                dV *= np.max([(np.min([global_tne[full[:, 1], 2], local_tne[full[:, 0], 2]],
+                                      axis=0) -
+                               np.max([global_bsw[full[:, 1], 2], local_bsw[full[:, 0], 2]],
+                                      axis=0)),
+                              np.zeros(nactv)], axis=0)
+
+            # Select only cells with non-zero intersecting volumes
+            nzV = dV > 0
+
+            self.V = dV[nzV]
+
+            P = sp.csr_matrix((self.V, (full[nzV, 0], full[nzV, 1])),
+                              shape=(self.meshLocal.nC, self.meshGlobal.nC))
+
+            P = P * Pac
+
+            self.activeLocal = mkvc(np.sum(P, axis=1) > 0)
+
+            P = P[self.activeLocal, :]
+
+            sumRow = mkvc(np.sum(P, axis=1) + self.tol)
+
+            self.P_deriv = sp.block_diag([
+                sdiag(1./self.meshLocal.vol[self.activeLocal]) * P * self.S
+                for ii in range(self.nBlock)])
+
+            self._P = sp.block_diag([
+                sdiag(1./sumRow) * P * self.S
+                for ii in range(self.nBlock)])
+
+            self._shape = int(self.activeLocal.sum()*self.nBlock), int(self.actvGlobal.sum()*self.nBlock)
+
+        return self._P
+
+    def getTreeIndex(self, tree, mesh, actvCell):
+        """
+            Querry the KDTree for nearest cells
+        """
+
+        d, indx = tree.query(mesh.gridCC[actvCell, :],
+                             k=self.nCell)
+
+        return indx
+
+    def getNodeExtent(self, mesh, actvCell):
+
+        bsw = mesh.gridCC - mesh.h_gridded/2.
+        tne = mesh.gridCC + mesh.h_gridded/2.
+
+        # Return only active set
+        return bsw[actvCell], tne[actvCell]
+
+    def _transform(self, m):
+        return self.P * m
+
+    @property
+    def shape(self):
+        """
+        Shape of the matrix operation (number of indices x nP)
+        """
+        return self.P.shape
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+        """
+
+        self.P
+        if v is not None:
+            return self.P_deriv * v
+        return self.P_deriv
