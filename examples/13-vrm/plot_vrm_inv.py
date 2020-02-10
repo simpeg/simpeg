@@ -165,7 +165,7 @@ survey_inv.eps = 1e-11
 dmis = DataMisfit.l2_DataMisfit(survey_inv)
 w = mkvc((np.sum(np.array(problem_inv.A)**2, axis=0)))**0.5
 w = w/np.max(w)
-reg = Regularization.Simple(mesh=mesh, indActive=actCells, alpha_s=0.25,  cell_weights=w)
+reg = Regularization.SimpleSmall(mesh=mesh, indActive=actCells,  cell_weights=w)
 opt = Optimization.ProjectedGNCG(maxIter=20, lower=0., upper=1e-2, maxIterLS=20, tolCG=1e-4)
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
 directives = [
@@ -222,7 +222,7 @@ for qq in range(0, 2):
 ax1[2] = Fig.add_axes([0.78, 0.7, 0.01, 0.25])
 norm = mpl.colors.Normalize(vmin=0., vmax=max_val)
 cbar14 = mpl.colorbar.ColorbarBase(
-    ax1[2], cmap='gist_heat_r', norm=norm, orientation='vertical'
+    ax1[2], cmap=mpl.cm.gist_heat_r, norm=norm, orientation='vertical'
 )
 cbar14.set_label(
     '$\Delta \chi /$ln$(\lambda_2 / \lambda_1 )$ [SI]',
@@ -298,6 +298,7 @@ for qq in range(0, 3):
 ax3[3] = Fig.add_axes([0.88, 0.05, 0.01, 0.24])
 norm = mpl.colors.Normalize(vmin=min_val, vmax=max_val)
 cbar34 = mpl.colorbar.ColorbarBase(
-    ax3[3], cmap='magma_r', norm=norm, orientation='vertical', format='%.1e'
+    ax3[3], cmap=mpl.cm.magma_r, norm=norm, orientation='vertical', format='%.1e'
 )
 cbar34.set_label('dBz/dt [T/s]', rotation=270, size=font_size, labelpad=15)
+plt.show()

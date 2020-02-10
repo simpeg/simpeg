@@ -123,7 +123,9 @@ def run(plotIt=True, cleanAfterRun=True):
     # IRLS sets up the Lp inversion problem
     # Set the eps parameter parameter in Line 11 of the
     # input file based on the distribution of model (DEFAULT = 95th %ile)
-    IRLS = Directives.Update_IRLS(f_min_change=1e-4, maxIRLSiter=40, beta_tol=5e-1)
+    IRLS = Directives.Update_IRLS(
+        f_min_change=1e-4, maxIRLSiter=40, beta_tol=5e-1,
+        betaSearch=False)
 
     # Preconditioning refreshing for each IRLS iteration
     update_Jacobi = Directives.UpdatePreconditioner()

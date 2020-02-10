@@ -71,6 +71,26 @@ class Survey(BaseEMSurvey, properties.HasProperties):
     def __init__(self, srcList, **kwargs):
         BaseEMSurvey.__init__(self, srcList, **kwargs)
 
+    def set_geometric_factor(
+        self,
+        data_type="volt",
+        survey_type='dipole-dipole',
+        space_type='half-space'
+    ):
+
+        geometric_factor = SimPEG.EM.Static.Utils.geometric_factor(
+            self,
+            survey_type=survey_type,
+            space_type=space_type
+        )
+
+        geometric_factor = SimPEG.Survey.Data(self, geometric_factor)
+        for src in self.srcList:
+            for rx in src.rxList:
+                rx._geometric_factor = geometric_factor[src, rx]
+                rx.data_type = data_type
+        return geometric_factor
+
     def getABMN_locations(self):
         a_locations = []
         b_locations = []
@@ -111,14 +131,14 @@ class Survey(BaseEMSurvey, properties.HasProperties):
         self.m_locations = np.vstack(m_locations)
         self.n_locations = np.vstack(n_locations)
 
-    def drapeTopo(self, mesh, actind, option='top'):
+    def drapeTopo(self, mesh, actind, option='top', topography=None, force=False):
         if self.a_locations is None:
             self.getABMN_locations()
 
         # 2D
         if mesh.dim == 2:
             if self.survey_geometry == "surface":
-                if self.electrodes_info is None:
+                if self.electrodes_info is None or force:
                     self.electrodes_info = SimPEG.Utils.uniqueRows(
                         np.hstack((
                             self.a_locations[:, 0],
@@ -208,7 +228,7 @@ class Survey(BaseEMSurvey, properties.HasProperties):
 
         if mesh.dim == 3:
             if self.survey_geometry == "surface":
-                if self.electrodes_info is None:
+                if self.electrodes_info is None or force:
                     self.electrodes_info = SimPEG.Utils.uniqueRows(
                         np.vstack((
                             self.a_locations[:, :2],
@@ -217,12 +237,13 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                             self.n_locations[:, :2],
                             ))
                         )
-                    self.electrode_locations = SimPEG.EM.Static.Utils.drapeTopotoLoc(
-                        mesh, self.electrodes_info[0], actind=actind
-                        )
+                self.electrode_locations = SimPEG.EM.Static.Utils.drapeTopotoLoc(
+                    mesh, self.electrodes_info[0],
+                    actind=actind, topo=topography
+                )
                 temp = (
                     self.electrode_locations[self.electrodes_info[2], 1]
-                    ).reshape((self.a_locations.shape[0], 4), order="F")
+                ).reshape((self.a_locations.shape[0], 4), order="F")
 
                 self.a_locations = np.c_[self.a_locations[:, :2], temp[:, 0]]
                 self.b_locations = np.c_[self.b_locations[:, :2], temp[:, 1]]
@@ -233,7 +254,7 @@ class Survey(BaseEMSurvey, properties.HasProperties):
                 self.topo_function = NearestNDInterpolator(
                     self.electrode_locations[:, :2],
                     self.electrode_locations[:, 2]
-                    )
+                )
                 # Loop over all Src and Rx locs and Drape topo
                 for src in self.srcList:
                     # Pole Src
@@ -301,6 +322,7 @@ class Survey_ky(Survey):
     """
     rxPair = Rx.BaseRx
     srcPair = Src.BaseSrc
+    _pred = None
 
     def __init__(self, srcList, **kwargs):
         BaseEMSurvey.__init__(self, srcList, **kwargs)

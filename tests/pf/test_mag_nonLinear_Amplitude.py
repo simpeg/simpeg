@@ -3,7 +3,7 @@ import unittest
 from SimPEG import (Directives, Maps,
                     InvProblem, Optimization, DataMisfit,
                     Inversion, Utils, Regularization, Mesh)
-
+from discretize.utils import meshutils
 import SimPEG.PF as PF
 import numpy as np
 from scipy.interpolate import NearestNDInterpolator
@@ -37,8 +37,8 @@ class AmpProblemTest(unittest.TestCase):
         Z = A*np.exp(-0.5*((X/b)**2. + (Y/b)**2.)) + 5
 
         # Create a MAGsurvey
-        rxLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
-        Rx = PF.BaseMag.RxObs(rxLoc)
+        xyzLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
+        Rx = PF.BaseMag.RxObs(xyzLoc)
         srcField = PF.BaseMag.SrcField([Rx], param=H0)
         survey = PF.BaseMag.LinearSurvey(srcField)
 
@@ -47,76 +47,19 @@ class AmpProblemTest(unittest.TestCase):
         padDist = np.ones((3, 2)) * 100
         nCpad = [4, 4, 2]
 
-        # Get extent of points
-        limx = np.r_[topo[:, 0].max(), topo[:, 0].min()]
-        limy = np.r_[topo[:, 1].max(), topo[:, 1].min()]
-        limz = np.r_[topo[:, 2].max(), topo[:, 2].min()]
+        self.mesh = meshutils.mesh_builder_xyz(
+            xyzLoc, h, padding_distance=padDist,
+            mesh_type='TREE',
+        )
 
-        # Get center of the mesh
-        midX = np.mean(limx)
-        midY = np.mean(limy)
-        midZ = np.mean(limz)
-
-        nCx = int(limx[0]-limx[1]) / h[0]
-        nCy = int(limy[0]-limy[1]) / h[1]
-        nCz = int(limz[0]-limz[1]+int(np.min(np.r_[nCx, nCy])/3)) / h[2]
-
-        # Figure out full extent required from input
-        extent = np.max(np.r_[nCx * h[0] + padDist[0, :].sum(),
-                              nCy * h[1] + padDist[1, :].sum(),
-                              nCz * h[2] + padDist[2, :].sum()])
-
-        maxLevel = int(np.log2(extent/h[0]))+1
-
-        # Number of cells at the small octree level
-        # For now equal in 3D
-        nCx, nCy, nCz = 2**(maxLevel), 2**(maxLevel), 2**(maxLevel)
-
-        # Define the mesh and origin
-        mesh = Mesh.TreeMesh([np.ones(nCx)*h[0],
-                              np.ones(nCx)*h[1],
-                              np.ones(nCx)*h[2]])
-
-        # Set origin
-        mesh.x0 = np.r_[
-            -nCx*h[0]/2.+midX, -nCy*h[1]/2.+midY, -nCz*h[2]/2.+midZ
-        ]
-
-        # Refine the mesh around topography
-        # Get extent of points
-        F = NearestNDInterpolator(topo[:, :2], topo[:, 2])
-        zOffset = 0
-        # Cycle through the first 3 octree levels
-        for ii in range(3):
-
-            dx = mesh.hx.min()*2**ii
-
-            nCx = int((limx[0]-limx[1]) / dx)
-            nCy = int((limy[0]-limy[1]) / dx)
-
-            # Create a grid at the octree level in xy
-            CCx, CCy = np.meshgrid(
-                np.linspace(limx[1], limx[0], nCx),
-                np.linspace(limy[1], limy[0], nCy)
-            )
-
-            z = F(mkvc(CCx), mkvc(CCy))
-
-            # level means number of layers in current OcTree level
-            for level in range(int(nCpad[ii])):
-
-                mesh.insert_cells(
-                    np.c_[mkvc(CCx), mkvc(CCy), z-zOffset],
-                    np.ones_like(z)*maxLevel-ii,
-                    finalize=False
-                )
-
-                zOffset += dx
-
-        mesh.finalize()
-
+        self.mesh = meshutils.refine_tree_xyz(
+            self.mesh, topo, method='surface',
+            octree_levels=nCpad,
+            octree_levels_padding=nCpad,
+            finalize=True,
+        )
         # Define an active cells from topo
-        actv = Utils.surface2ind_topo(mesh, topo)
+        actv = Utils.surface2ind_topo(self.mesh, topo)
         nC = int(actv.sum())
 
         # Convert the inclination declination to vector in Cartesian
@@ -124,27 +67,27 @@ class AmpProblemTest(unittest.TestCase):
 
         # Get the indicies of the magnetized block
         ind = Utils.ModelBuilder.getIndicesBlock(
-            np.r_[-20, -20, -10], np.r_[20, 20, 25],
-            mesh.gridCC,
+            np.r_[-20, -20, -15], np.r_[20, 20, 20],
+            self.mesh.gridCC,
         )[0]
 
         # Assign magnetization value, inducing field strength will
         # be applied in by the :class:`SimPEG.PF.Magnetics` problem
-        model = np.zeros(mesh.nC)
+        model = np.zeros(self.mesh.nC)
         model[ind] = chi_e
 
         # Remove air cells
         self.model = model[actv]
 
         # Create active map to go from reduce set to full
-        self.actvPlot = Maps.InjectActiveCells(mesh, actv, np.nan)
+        self.actvPlot = Maps.InjectActiveCells(self.mesh, actv, np.nan)
 
         # Creat reduced identity map
         idenMap = Maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
         prob = PF.Magnetics.MagneticIntegral(
-            mesh, M=M_xyz, chiMap=idenMap, actInd=actv
+            self.mesh, M=M_xyz, chiMap=idenMap, actInd=actv
         )
 
         # Pair the survey and problem
@@ -154,7 +97,7 @@ class AmpProblemTest(unittest.TestCase):
         data = prob.fields(self.model)
 
         # Split the data in components
-        nD = rxLoc.shape[0]
+        nD = xyzLoc.shape[0]
 
         std = 5  # nT
         data += np.random.randn(nD)*std
@@ -168,20 +111,20 @@ class AmpProblemTest(unittest.TestCase):
         # Equivalent Source
 
         # Get the active cells for equivalent source is the top only
-        surf = Utils.modelutils.surface_layer_index(mesh, topo)
+        surf = Utils.modelutils.surface_layer_index(self.mesh, topo)
 
         # Get the layer of cells directyl below topo
         nC = np.count_nonzero(surf)  # Number of active cells
 
         # Create active map to go from reduce set to full
-        surfMap = Maps.InjectActiveCells(mesh, surf, np.nan)
+        surfMap = Maps.InjectActiveCells(self.mesh, surf, np.nan)
 
         # Create identity map
         idenMap = Maps.IdentityMap(nP=nC)
 
         # Create static map
         prob = PF.Magnetics.MagneticIntegral(
-                mesh, chiMap=idenMap, actInd=surf,
+                self.mesh, chiMap=idenMap, actInd=surf,
                 parallelized=False, equiSourceLayer=True)
 
         prob.solverOpts['accuracyTol'] = 1e-4
@@ -193,7 +136,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Create a regularization function, in this case l2l2
         reg = Regularization.Sparse(
-            mesh, indActive=surf, mapping=Maps.IdentityMap(nP=nC),
+            self.mesh, indActive=surf, mapping=Maps.IdentityMap(nP=nC),
             scaledIRLS=False
         )
         reg.mref = np.zeros(nC)
@@ -245,7 +188,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # AMPLITUDE INVERSION
         # Create active map to go from reduce space to full
-        actvMap = Maps.InjectActiveCells(mesh, actv, -100)
+        actvMap = Maps.InjectActiveCells(self.mesh, actv, -100)
         nC = int(actv.sum())
 
         # Create identity map
@@ -255,7 +198,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Create the forward model operator
         prob = PF.Magnetics.MagneticIntegral(
-            mesh, chiMap=idenMap, actInd=actv,
+            self.mesh, chiMap=idenMap, actInd=actv,
             modelType='amplitude', rx_type='xyz'
         )
         prob.model = self.mstart
@@ -266,13 +209,13 @@ class AmpProblemTest(unittest.TestCase):
         surveyAmp.pair(prob)
         # Create a regularization function, in this case l2l2
         wr = np.sum(prob.G**2., axis=0)**0.5
-        wr = (wr/np.max(wr))
+        wr /= np.max(wr)
         # Re-set the observations to |B|
         surveyAmp.dobs = bAmp
         surveyAmp.std = wd
 
         # Create a sparse regularization
-        reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+        reg = Regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
         reg.norms = np.c_[0, 0, 0, 0]
         reg.mref = np.zeros(nC)
         reg.cell_weights = wr
@@ -306,7 +249,6 @@ class AmpProblemTest(unittest.TestCase):
                 ]
         )
 
-        self.mesh = mesh
 
     def test_mag_inverse(self):
 

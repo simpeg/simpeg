@@ -1,4 +1,4 @@
-sphinx==1.5.6
+sphinx
 sphinx_rtd_theme
 sphinx-gallery>=0.1.13
 nose
