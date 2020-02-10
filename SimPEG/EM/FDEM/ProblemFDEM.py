@@ -9,6 +9,8 @@ from SimPEG.EM.Utils import omega
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
+import time
+# from profilehooks import profile
 
 
 class BaseFDEMProblem(BaseEMProblem):
@@ -60,6 +62,8 @@ class BaseFDEMProblem(BaseEMProblem):
 
     Props.Reciprocal(mu, mui)
 
+
+    # @profile
     def fields(self, m=None):
         """
         Solve the forward problem for the fields.
@@ -72,18 +76,37 @@ class BaseFDEMProblem(BaseEMProblem):
         if m is not None:
             self.model = m
 
+        try:
+            self.Ainv
+        except AttributeError:
+            if self.verbose:
+                print('nFreq =', self.survey.nFreq)
+            self.Ainv = [None for i in range(self.survey.nFreq)]
+
+        if self.Ainv[0] is not None:
+            for i in range(self.survey.nFreq):
+                self.Ainv[i].clean()
+
+            if self.verbose:
+                print('Cleaning Ainv')
+
         f = self.fieldsPair(self.mesh, self.survey)
 
-        for freq in self.survey.freqs:
+        for nf, freq in enumerate(self.survey.freqs):
             A = self.getA(freq)
             rhs = self.getRHS(freq)
-            Ainv = self.Solver(A, **self.solverOpts)
-            u = Ainv * rhs
+
+            time0 = time.time()
+            self.Ainv[nf] = self.Solver(A, **self.solverOpts)
+            time1 = time.time()
+            if self.verbose:
+                print(freq, 'Ainv Factorization time:' + str(time1-time0))
+            u = self.Ainv[nf] * rhs
             Srcs = self.survey.getSrcByFreq(freq)
             f[Srcs, self._solutionType] = u
-            Ainv.clean()
         return f
 
+    # @profile
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector.
@@ -104,24 +127,25 @@ class BaseFDEMProblem(BaseEMProblem):
         # Jv = self.dataPair(self.survey)
         Jv = []
 
-        for freq in self.survey.freqs:
-            A = self.getA(freq)
-            # create the concept of Ainv (actually a solve)
-            Ainv = self.Solver(A, **self.solverOpts)
+        for nf, freq in enumerate(self.survey.freqs):
+            # A = self.getA(freq)
+            # # create the concept of Ainv (actually a solve)
+            # Ainv = self.Solver(A, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(freq, u_src, v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
-                du_dm_v = Ainv * (- dA_dm_v + dRHS_dm_v)
+                du_dm_v = self.Ainv[nf] * (- dA_dm_v + dRHS_dm_v)
 
                 for rx in src.rxList:
                     Jv.append(
                         rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
                     )
-            Ainv.clean()
+            # Ainv.clean()
         return np.hstack(Jv)
 
+    # @profile
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transpose times a vector
@@ -144,9 +168,10 @@ class BaseFDEMProblem(BaseEMProblem):
 
         Jtv = np.zeros(m.size)
 
-        for freq in self.survey.freqs:
-            AT = self.getA(freq).T
-            ATinv = self.Solver(AT, **self.solverOpts)
+        for nf, freq in enumerate(self.survey.freqs):
+            # AT = self.getA(freq).T
+            # ATinv = self.Solver(AT, **self.solverOpts)
+            # ATinv = self.Ainv[nf].T
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = f[src, self._solutionType]
@@ -156,7 +181,7 @@ class BaseFDEMProblem(BaseEMProblem):
                         src, self.mesh, f, v=v[src, rx], adjoint=True
                     )
 
-                    ATinvdf_duT = ATinv * df_duT
+                    ATinvdf_duT = self.Ainv[nf] * df_duT
 
                     dA_dmT = self.getADeriv(
                         freq, u_src, ATinvdf_duT, adjoint=True
@@ -176,10 +201,11 @@ class BaseFDEMProblem(BaseEMProblem):
                     else:
                         raise Exception('Must be real or imag')
 
-            ATinv.clean()
+            # ATinv.clean()
 
         return Utils.mkvc(Jtv)
 
+    # @profile
     def getSourceTerm(self, freq):
         """
         Evaluates the sources for a given frequency and puts them in matrix

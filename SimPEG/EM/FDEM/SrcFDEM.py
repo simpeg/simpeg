@@ -356,6 +356,7 @@ class MagDipole(BaseFDEMSrc):
 
         self.freq = freq
         self.loc = loc
+        self._bprim = None
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, '_dipole', None) is None:
@@ -364,6 +365,7 @@ class MagDipole(BaseFDEMSrc):
                 moment=self.moment
             )
         return self._dipole.vector_potential(obsLoc, coordinates=coordinates)
+
 
     def bPrimary(self, prob):
         """
@@ -376,39 +378,87 @@ class MagDipole(BaseFDEMSrc):
         formulation = prob._formulation
         coordinates = "cartesian"
 
-        if formulation == 'EB':
-            gridX = prob.mesh.gridEx
-            gridY = prob.mesh.gridEy
-            gridZ = prob.mesh.gridEz
-            C = prob.mesh.edgeCurl
+        if getattr(self, '_bPrimary', None) is None:
+            if formulation == 'EB':
+                gridX = prob.mesh.gridEx
+                gridY = prob.mesh.gridEy
+                gridZ = prob.mesh.gridEz
+                C = prob.mesh.edgeCurl
 
-        elif formulation == 'HJ':
-            gridX = prob.mesh.gridFx
-            gridY = prob.mesh.gridFy
-            gridZ = prob.mesh.gridFz
-            C = prob.mesh.edgeCurl.T
+            elif formulation == 'HJ':
+                gridX = prob.mesh.gridFx
+                gridY = prob.mesh.gridFy
+                gridZ = prob.mesh.gridFz
+                C = prob.mesh.edgeCurl.T
 
-        if prob.mesh._meshType == 'CYL':
-            coordinates = "cylindrical"
+            if prob.mesh._meshType == 'CYL':
+                coordinates = "cylindrical"
 
-            if prob.mesh.isSymmetric is True:
-                if not (
-                    np.linalg.norm(self.orientation - np.r_[0., 0., 1.]) < 1e-6
-                ):
-                    raise AssertionError(
-                        'for cylindrical symmetry, the dipole must be oriented'
-                        ' in the Z direction'
-                    )
-                a = self._srcFct(gridY)[:, 1]
+                if prob.mesh.isSymmetric is True:
+                    if not (
+                        np.linalg.norm(self.orientation - np.r_[0., 0., 1.]) < 1e-6
+                    ):
+                        raise AssertionError(
+                            'for cylindrical symmetry, the dipole must be oriented'
+                            ' in the Z direction'
+                        )
+                    a = self._srcFct(gridY)[:, 1]
 
-                return C*a
+            else:
 
-        ax = self._srcFct(gridX, coordinates)[:, 0]
-        ay = self._srcFct(gridY, coordinates)[:, 1]
-        az = self._srcFct(gridZ, coordinates)[:, 2]
-        a = np.concatenate((ax, ay, az))
+                ax = self._srcFct(gridX, coordinates)[:, 0]
+                ay = self._srcFct(gridY, coordinates)[:, 1]
+                az = self._srcFct(gridZ, coordinates)[:, 2]
+                a = np.concatenate((ax, ay, az))
 
-        return C*a
+            self._bPrimary = C*a
+
+        return self._bPrimary
+
+    # def bPrimary(self, prob):
+    #     """
+    #     The primary magnetic flux density from a magnetic vector potential
+
+    #     :param BaseFDEMProblem prob: FDEM problem
+    #     :rtype: numpy.ndarray
+    #     :return: primary magnetic field
+    #     """
+    #     formulation = prob._formulation
+    #     coordinates = "cartesian"
+
+    #     if formulation == 'EB':
+    #         gridX = prob.mesh.gridEx
+    #         gridY = prob.mesh.gridEy
+    #         gridZ = prob.mesh.gridEz
+    #         C = prob.mesh.edgeCurl
+
+    #     elif formulation == 'HJ':
+    #         gridX = prob.mesh.gridFx
+    #         gridY = prob.mesh.gridFy
+    #         gridZ = prob.mesh.gridFz
+    #         C = prob.mesh.edgeCurl.T
+
+    #     if prob.mesh._meshType == 'CYL':
+    #         coordinates = "cylindrical"
+
+    #         if prob.mesh.isSymmetric is True:
+    #             if not (
+    #                 np.linalg.norm(self.orientation - np.r_[0., 0., 1.]) < 1e-6
+    #             ):
+    #                 raise AssertionError(
+    #                     'for cylindrical symmetry, the dipole must be oriented'
+    #                     ' in the Z direction'
+    #                 )
+    #             a = self._srcFct(gridY)[:, 1]
+
+    #             return C*a
+
+    #     ax = self._srcFct(gridX, coordinates)[:, 0]
+    #     ay = self._srcFct(gridY, coordinates)[:, 1]
+    #     az = self._srcFct(gridZ, coordinates)[:, 2]
+    #     a = np.concatenate((ax, ay, az))
+
+    #     return C*a
 
     def hPrimary(self, prob):
         """
@@ -461,7 +511,8 @@ class MagDipole(BaseFDEMSrc):
             return -C.T * (MMui_s * self.bPrimary(prob))
 
     def s_eDeriv(self, prob, v, adjoint=False):
-        if not hasattr(prob, 'muMap') or not hasattr(prob, 'muiMap'):
+        if prob.muMap is None or prob.muiMap is None:
+        # if not hasattr(prob, 'muMap') or not hasattr(prob, 'muiMap'):
             return Zero()
         else:
             formulation = prob._formulation
