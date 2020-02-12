@@ -200,15 +200,13 @@ class MagneticIntegral(Problem.LinearProblem):
         if (self.gtgdiag is None) and (self.modelType != 'amplitude'):
 
             if W is None:
-                w = np.ones(self.G.shape[1])
-            else:
-                w = W.diagonal()
+                W = sdiag(np.ones(self.G.shape[1]))
 
             # self.gtgdiag = np.zeros(dmudm.shape[1])
 
             # for ii in range(self.G.shape[0]):
 
-            self.gtgdiag = da.sum(self.G**2., 0).compute()
+            self.gtgdiag = da.sum(da.from_delayed(dask.delayed(csr.dot)(W, self.G), dtype=float, shape=self.G.shape)**2., 0).compute()
 
             # self.gtgdiag = np.array(da.sum(da.power(self.G, 2), axis=0))
 
