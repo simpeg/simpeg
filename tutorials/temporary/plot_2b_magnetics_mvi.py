@@ -72,7 +72,7 @@ receiver_locations = np.c_[x, y, z]
 # Define the component(s) of the field we want to simulate as strings within
 # a list. Here we measure the x, y and z derivatives of the Bz anomaly at
 # each observation location.
-components = ["dbx_dz", "dby_dz", "dbz_dz"]
+components = ["bxz", "byz", "bzz"]
 
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
@@ -226,11 +226,11 @@ cbar.set_label(
 # in the case of remanent magnetization.
 #
 
-# Define the forward simulation. Set modelType to 'vector'. By setting the 'forward_only'
-# keyword argument to false, we avoid storing a large dense matrix.
+# Define the forward simulation. By setting the 'store_sensitivities' keyword
+# argument to "forward_only", we simulate the data without storing the sensitivities
 simulation = magnetics.simulation.IntegralSimulation(
     survey=survey, mesh=mesh, chiMap=model_map, actInd=ind_active,
-    modelType='vector', forward_only=True
+    modelType='vector', store_sensitivities="forward_only"
 )
 
 # Compute predicted data for some model

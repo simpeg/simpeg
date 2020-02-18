@@ -192,7 +192,7 @@ starting_model = background_density*np.ones(nC)
 
 simulation = gravity.simulation.IntegralSimulation(
     survey=survey, mesh=mesh, rhoMap=model_map,
-    actInd=ind_active, forward_only=False
+    actInd=ind_active
 )
 
 
@@ -354,7 +354,9 @@ ax2 = 3*[None]
 norm = 3*[None]
 cbar = 3*[None]
 cplot = 3*[None]
-v_lim = [np.max(np.abs(dobs)), np.max(np.abs(dobs)), 3]
+v_lim = [
+    np.max(np.abs(dobs)), np.max(np.abs(dobs)), np.max(np.abs(data_array[:, 2]))
+]
 
 for ii in range(0, 3):
     

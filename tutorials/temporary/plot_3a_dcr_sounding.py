@@ -26,7 +26,6 @@ electrical resistivity changes with depth.
 
 import os
 import numpy as np
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
@@ -86,34 +85,36 @@ survey = dc.Survey(source_list)
 
 
 ###############################################
-# Defining a 1D Layered Earth (1D Tensor Mesh)
-# --------------------------------------------
+# Defining a 1D Layered Earth Model
+# ---------------------------------
 #
-# Here, we define the layer thicknesses for our 1D simulation. To do this, we use
-# the TensorMesh class. The thickness of the n-th layer is just for show. 
-# We assume the bottom layer extends to infinity.
-#
-
-layer_thicknesses = np.r_[100., 100., 300.]
-mesh = TensorMesh([layer_thicknesses])
-
-print(mesh)
-
-###############################################################
-# Create Resistivity Model and Mapping
-# ------------------------------------
-#
-# Here we define the resistivity model that will be used to predict DC sounding data.
-# For each layer in our 1D Earth, we must provide a resistivity value. For a
-# 1D simulation, we assume the bottom layer extends to infinity.
+# Here, we define the layer thicknesses and electrical resistivities for our
+# 1D simulation. If we have N layers, we define N electrical resistivity
+# values and N-1 layer thicknesses. The lowest layer is assumed to extend to
+# infinity.
 #
 
-# Define model. A resistivity (Ohm meters) for each layer.
+# Define layer thicknesses.
+layer_thicknesses = np.r_[100., 100.]
+
+# Define layer resistivities.
 model = np.r_[1e3, 4e3, 2e2]
 
-# Define mapping from model to active cells. Here, all layers are use in the
-# forward simulation.
-model_map = maps.IdentityMap(mesh)
+# Define mapping from model to 1D layers.
+model_map = maps.IdentityMap(nP=len(model))
+
+###############################################################
+# Plot Resistivity Model
+# ----------------------
+#
+# Here we plot the 1D resistivity model.
+#
+
+# Define a 1D mesh for plotting. Provide a maximum depth for the plot.
+max_depth = 500
+mesh = TensorMesh(
+    [np.r_[layer_thicknesses, max_depth-layer_thicknesses.sum()]]
+    )
 
 # Plot the 1D model
 plot_layer(model_map*model, mesh)
@@ -128,7 +129,7 @@ plot_layer(model_map*model, mesh)
 #
 
 simulation = dc.simulation_1d.DCSimulation_1D(
-        mesh, survey=survey, rhoMap=model_map, t=layer_thicknesses,
+        survey=survey, rhoMap=model_map, thicknesses=layer_thicknesses,
         data_type="apparent_resistivity"
         )
 

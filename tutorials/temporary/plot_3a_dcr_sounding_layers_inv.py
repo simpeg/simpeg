@@ -25,7 +25,6 @@ a Wenner array. The end product is layered Earth model which explains the data.
 
 import os
 import numpy as np
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
@@ -141,19 +140,20 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 #
 
 # Define the resistivities and thicknesses for the starting model. The thickness
-# of the bottom layer is not used, as we assume it extends downward to infinity.
+# of the bottom layer is assumed to extend downward to infinity so we don't
+# need to define it.
 resistivities = np.r_[1e3, 1e3, 1e3]
-layer_thicknesses = np.r_[50., 50., 300.]
+layer_thicknesses = np.r_[50., 50.]
 
-# Define the layers as a mesh
-mesh = TensorMesh([layer_thicknesses], '0')
+# Define a mesh for plotting and regularization.
+mesh = TensorMesh([(np.r_[layer_thicknesses, layer_thicknesses[-1]])], '0')
 print(mesh)
 
 # Define model. We are inverting for the layer resistivities and layer thicknesses.
 # Since the bottom layer extends to infinity, it is not a model parameter for
 # which we need to invert. For a 3 layer model, there is a total of 5 parameters.
 # For stability, our model is the log-resistivity and log-thickness.
-starting_model = np.r_[np.log(resistivities), np.log(layer_thicknesses[:-1])]
+starting_model = np.r_[np.log(resistivities), np.log(layer_thicknesses)]
 
 # Since the model contains two different properties for each layer, we use
 # wire maps to distinguish the properties.
@@ -170,7 +170,7 @@ layer_map = maps.ExpMap(nP=mesh.nC-1) * wire_map.t
 #
 
 simulation = dc.simulation_1d.DCSimulation_1D(
-        mesh, survey=survey, rhoMap=resistivity_map, tMap=layer_map,
+        survey=survey, rhoMap=resistivity_map, thicknessesMap=layer_map,
         data_type="apparent_resistivity"
         )
 
@@ -227,6 +227,9 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 # criteria for the inversion and saving inversion results at each iteration.
 #
 
+# Apply and update sensitivity weighting as the model updates
+update_sensitivity_weights = directives.UpdateSensitivityWeights()
+
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
@@ -236,9 +239,6 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 # for each trade-off paramter value.
 beta_schedule = directives.BetaSchedule(coolingFactor=5., coolingRate=3.)
 
-# Apply and update sensitivity weighting as the model updates
-update_sensitivity_weights = directives.UpdateSensitivityWeights()
-
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
@@ -247,7 +247,7 @@ target_misfit = directives.TargetMisfit(chifact=1)
 
 # The directives are defined in a list
 directives_list = [
-        starting_beta, beta_schedule, update_sensitivity_weights, target_misfit
+        update_sensitivity_weights, starting_beta, beta_schedule, target_misfit
         ]
 
 #####################################################################

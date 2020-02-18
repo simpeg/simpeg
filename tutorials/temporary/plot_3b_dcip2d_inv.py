@@ -304,6 +304,9 @@ dc_inverse_problem = inverse_problem.BaseInvProblem(
 # criteria for the inversion and saving inversion results at each iteration.
 #
 
+# Apply and update sensitivity weighting as the model updates
+update_sensitivity_weighting = directives.UpdateSensitivityWeights()
+
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
@@ -313,9 +316,6 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 # for each trade-off paramter value.
 beta_schedule = directives.BetaSchedule(coolingFactor=5, coolingRate=2)
 
-# Apply and update sensitivity weighting as the model updates
-update_sensitivity_weighting = directives.UpdateSensitivityWeights()
-
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
@@ -323,8 +323,8 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 target_misfit = directives.TargetMisfit(chifact=1)
 
 directives_list = [
-        starting_beta, beta_schedule, save_iteration,
-        update_sensitivity_weighting, target_misfit
+        update_sensitivity_weighting, starting_beta, beta_schedule,
+        save_iteration, target_misfit
         ]
 
 #####################################################################
@@ -510,15 +510,15 @@ ip_inverse_problem = inverse_problem.BaseInvProblem(
 # Here we define the directives in the same manner as the DC inverse problem.
 #
 
+update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold=1e-3)
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e2)
 beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
-update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold=1e-3)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 target_misfit = directives.TargetMisfit(chifact=1.)
 
 directives_list = [
-        starting_beta, beta_schedule, save_iteration,
-        update_sensitivity_weighting, target_misfit
+        update_sensitivity_weighting, starting_beta, beta_schedule,
+        save_iteration, target_misfit
         ]
 
 #####################################################

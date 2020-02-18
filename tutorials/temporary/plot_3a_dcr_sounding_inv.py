@@ -138,9 +138,11 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 # the TensorMesh class.
 #
 
-#layer_thicknesses = 20.*np.ones((25))
-layer_thicknesses = 5*np.logspace(0,1,20)
-mesh = TensorMesh([layer_thicknesses], '0')
+# Define layer thicknesses
+layer_thicknesses = 5*np.logspace(0,1,21)
+
+# Define a mesh for plotting and regularization.
+mesh = TensorMesh([(np.r_[layer_thicknesses, layer_thicknesses[-1]])], '0')
 
 print(mesh)
 
@@ -159,10 +161,10 @@ print(mesh)
 # not converge.
 
 # Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
-starting_model = np.log(1e3*np.ones((len(layer_thicknesses))))
+starting_model = np.log(1e3*np.ones((len(layer_thicknesses)+1)))
 
 # Define mapping from model to active cells.
-model_map = maps.IdentityMap(mesh)*maps.ExpMap()
+model_map = maps.IdentityMap(nP=len(starting_model))*maps.ExpMap()
 
 #######################################################################
 # Define the Physics
@@ -172,7 +174,7 @@ model_map = maps.IdentityMap(mesh)*maps.ExpMap()
 #
 
 simulation = dc.simulation_1d.DCSimulation_1D(
-        mesh, survey=survey, rhoMap=model_map, t=layer_thicknesses,
+        survey=survey, rhoMap=model_map, thicknesses=layer_thicknesses,
         data_type="apparent_resistivity"
         )
 

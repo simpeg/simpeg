@@ -169,12 +169,12 @@ plt.show()
 # susceptibility model using the integral formulation.
 #
 
-# Define the forward simluation. By setting the 'forward_only' keyword argument
-# to false, we avoid storing a large dense matrix.
+# Define the forward simulation. By setting the 'store_sensitivities' keyword
+# argument to "forward_only", we simulate the data without storing the sensitivities
 simulation = magnetics.simulation.IntegralSimulation(
     survey=survey, mesh=mesh,
     modelType='susceptibility', chiMap=model_map,
-    actInd=ind_active, forward_only=True
+    actInd=ind_active, store_sensitivities="forward_only"
 )
 
 # Compute predicted data for a susceptibility model

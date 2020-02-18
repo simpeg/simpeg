@@ -206,7 +206,7 @@ starting_model = background_susceptibility*np.ones(nC)
 simulation = magnetics.simulation.IntegralSimulation(
     survey=survey, mesh=mesh,
     modelType='susceptibility', chiMap=model_map,
-    actInd=ind_active, forward_only=False
+    actInd=ind_active
 )
 
 
@@ -373,7 +373,9 @@ ax2 = 3*[None]
 norm = 3*[None]
 cbar = 3*[None]
 cplot = 3*[None]
-v_lim = [np.max(np.abs(dobs)), np.max(np.abs(dobs)), 2]
+v_lim = [
+    np.max(np.abs(dobs)), np.max(np.abs(dobs)), np.max(np.abs(data_array[:, 2]))
+]
 
 for ii in range(0, 3):
     
