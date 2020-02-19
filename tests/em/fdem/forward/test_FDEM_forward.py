@@ -3,8 +3,9 @@ import numpy as np
 import sys
 from scipy.constants import mu_0
 
-from SimPEG import EM
-from SimPEG.EM.Utils.testingUtils import getFDEMProblem, crossCheckTest
+from SimPEG.electromagnetics import frequency_domain as fdem
+from SimPEG.electromagnetics import time_domain as tdem
+from SimPEG.electromagnetics.utils.testingUtils import getFDEMProblem, crossCheckTest
 
 testEB = True
 testHJ = True
@@ -21,7 +22,7 @@ SrcList = ['RawVec', 'MagDipole_Bfield', 'MagDipole', 'CircularLoop']
 
 class SrcLocTest(unittest.TestCase):
     def test_src(self):
-        src = EM.FDEM.Src.MagDipole(
+        src = fdem.Src.MagDipole(
             [], loc=np.array([[1.5, 3., 5.]]),
             freq=10
         )
@@ -29,29 +30,29 @@ class SrcLocTest(unittest.TestCase):
         self.assertTrue(src.loc.shape==(3,))
 
         with self.assertRaises(Exception):
-            src = EM.FDEM.Src.MagDipole(
+            src = fdem.Src.MagDipole(
                 [], loc=np.array([[0., 0., 0., 1.]]),
                 freq=10
             )
 
         with self.assertRaises(Exception):
-            src = EM.FDEM.Src.MagDipole(
+            src = fdem.Src.MagDipole(
                 [], loc=np.r_[0., 0., 0., 1.],
                 freq=10
             )
 
-        src = EM.TDEM.Src.MagDipole(
+        src = tdem.Src.MagDipole(
             [], loc=np.array([[1.5, 3., 5.]]),
         )
         self.assertTrue(np.all(src.loc == np.r_[1.5, 3., 5.]))
 
         with self.assertRaises(Exception):
-            src = EM.TDEM.Src.MagDipole(
+            src = tdem.Src.MagDipole(
                 [], loc=np.array([[0., 0., 0., 1.]]),
             )
 
         with self.assertRaises(Exception):
-            src = EM.TDEM.Src.MagDipole(
+            src = tdem.Src.MagDipole(
                 [], loc=np.r_[0., 0., 0., 1.],
             )
 

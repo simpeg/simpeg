@@ -5,11 +5,12 @@ import unittest
 import numpy as np
 import scipy.sparse as sp
 
+import discretize
 from SimPEG import (
-    Mesh, DataMisfit, Maps, Utils, Regularization, InvProblem, Optimization,
-    Directives, Inversion
+    data_misfit, maps, utils, regularization, inverse_problem, optimization,
+    directives, inversion
 )
-from SimPEG.EM.Static import DC
+from SimPEG.electromagnetics import resistivity as DC
 
 np.random.seed(82)
 
@@ -17,18 +18,18 @@ np.random.seed(82)
 class DataMisfitTest(unittest.TestCase):
 
     def setUp(self):
-        mesh = Mesh.TensorMesh([30, 30], x0=[-0.5, -1.])
+        mesh = discretize.TensorMesh([30, 30], x0=[-0.5, -1.])
         sigma = np.random.rand(mesh.nC)
         model = np.log(sigma)
 
-        prob = DC.Problem3D_CC(mesh, rhoMap=Maps.ExpMap(mesh))
-        prob1 = DC.Problem3D_CC(mesh, rhoMap=Maps.ExpMap(mesh))
+        # prob = DC.Problem3D_CC(mesh, rhoMap=maps.ExpMap(mesh))
+        # prob1 = DC.Problem3D_CC(mesh, rhoMap=maps.ExpMap(mesh))
 
         rx = DC.Rx.Pole(
-            Utils.ndgrid([mesh.vectorCCx, np.r_[mesh.vectorCCy.max()]])
+            utils.ndgrid([mesh.vectorCCx, np.r_[mesh.vectorCCy.max()]])
         )
         rx1 = DC.Rx.Pole(
-            Utils.ndgrid([mesh.vectorCCx, np.r_[mesh.vectorCCy.min()]])
+            utils.ndgrid([mesh.vectorCCx, np.r_[mesh.vectorCCy.min()]])
         )
         src = DC.Src.Dipole(
             [rx], np.r_[-0.25, mesh.vectorCCy.max()],
@@ -39,25 +40,30 @@ class DataMisfitTest(unittest.TestCase):
             np.r_[0.25, mesh.vectorCCy.max()]
         )
         survey = DC.Survey([src])
-        prob.pair(survey)
+        simulation0 = DC.simulation.Problem3D_CC(
+            mesh=mesh, survey=survey, rhoMap=maps.ExpMap(mesh)
+        )
 
         survey1 = DC.Survey([src1])
-        prob1.pair(survey1)
+        simulation1 = DC.simulation.Problem3D_CC(
+            mesh=mesh, survey=survey1, rhoMap=maps.ExpMap(mesh)
+        )
 
-        dobs0 = survey.makeSyntheticData(model)
-        dobs1 = survey1.makeSyntheticData(model)
+        dobs0 = simulation0.make_synthetic_data(model)
+        dobs1 = simulation1.make_synthetic_data(model)
 
         self.mesh = mesh
         self.model = model
 
         self.survey0 = survey
-        self.prob0 = prob
+        self.sim0 = simulation0
 
         self.survey1 = survey1
-        self.prob1 = prob1
+        self.sim1 = simulation1
 
-        self.dmis0 = DataMisfit.l2_DataMisfit(self.survey0)
-        self.dmis1 = DataMisfit.l2_DataMisfit(self.survey1)
+        # self.dmis0 = data_misfit.L2DataMisfit(self.survey0)
+        self.dmis0 = data_misfit.L2DataMisfit(data=dobs0, simulation=simulation0)
+        self.dmis1 = data_misfit.L2DataMisfit(data=dobs1, simulation=simulation1)
 
         self.dmiscobmo = self.dmis0 + self.dmis1
 
@@ -67,27 +73,28 @@ class DataMisfitTest(unittest.TestCase):
         self.dmiscobmo.test(x=self.model)
 
     def test_inv(self):
-        reg = Regularization.Tikhonov(self.mesh)
-        opt = Optimization.InexactGaussNewton(maxIter=10)
-        invProb = InvProblem.BaseInvProblem(self.dmiscobmo, reg, opt)
-        directives = [
-            Directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
+        reg = regularization.Tikhonov(self.mesh)
+        opt = optimization.InexactGaussNewton(maxIter=10)
+        invProb = inverse_problem.BaseInvProblem(self.dmiscobmo, reg, opt)
+        directives_list = [
+            directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
         ]
-        inv = Inversion.BaseInversion(invProb, directiveList=directives)
+        print(len(directives_list))
+        inv = inversion.BaseInversion(invProb, directiveList=directives_list)
         m0 = self.model.mean() * np.ones_like(self.model)
 
         mrec = inv.run(m0)
 
     def test_inv_mref_setting(self):
-        reg1 = Regularization.Tikhonov(self.mesh)
-        reg2 = Regularization.Tikhonov(self.mesh)
+        reg1 = regularization.Tikhonov(self.mesh)
+        reg2 = regularization.Tikhonov(self.mesh)
         reg = reg1+reg2
-        opt = Optimization.InexactGaussNewton(maxIter=10)
-        invProb = InvProblem.BaseInvProblem(self.dmiscobmo, reg, opt)
-        directives = [
-            Directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
+        opt = optimization.InexactGaussNewton(maxIter=10)
+        invProb = inverse_problem.BaseInvProblem(self.dmiscobmo, reg, opt)
+        directives_list = [
+            directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
         ]
-        inv = Inversion.BaseInversion(invProb, directiveList=directives)
+        inv = inversion.BaseInversion(invProb, directiveList=directives_list)
         m0 = self.model.mean() * np.ones_like(self.model)
 
         mrec = inv.run(m0)

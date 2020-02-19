@@ -22,14 +22,16 @@ class Doc_Test(unittest.TestCase):
         self.assertTrue(response.returncode == 0)
         os.chdir(wd)
 
-    # def test_linkcheck(self):
-    #     wd = os.getcwd()
-    #     os.chdir(os.path.sep.join(self.path_to_docs))
+    def test_linkcheck(self):
+        wd = os.getcwd()
+        os.chdir(os.path.sep.join(self.path_to_docs))
 
-    #     response = subprocess.run(["make", "linkcheck"])
-    #     print(response.returncode)
-    #     self.assertTrue(response.returncode == 0)
-    #     os.chdir(wd)
+        response = subprocess.run(["make", "linkcheck"])
+        print(response.returncode)
+        self.assertTrue(response.returncode == 0)
+        os.chdir(wd)
+
 
 if __name__ == '__main__':
     unittest.main()
+

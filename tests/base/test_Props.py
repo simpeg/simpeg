@@ -8,108 +8,109 @@ import numpy as np
 import pickle
 import properties
 
-from SimPEG import Mesh
-from SimPEG import Maps
-from SimPEG import Utils
-from SimPEG import Props
+import discretize
+
+from SimPEG import maps
+from SimPEG import utils
+from SimPEG import props
 
 
-class SimpleExample(Props.HasModel):
+class SimpleExample(props.HasModel):
 
-    sigmaMap = Props.Mapping(
+    sigmaMap = props.Mapping(
         "Mapping to the inversion model."
     )
 
-    sigma = Props.PhysicalProperty(
+    sigma = props.PhysicalProperty(
         "Electrical conductivity (S/m)",
         mapping=sigmaMap
     )
 
-    sigmaDeriv = Props.Derivative(
+    sigmaDeriv = props.Derivative(
         "Derivative of sigma wrt the model.",
         physical_property=sigma
     )
 
 
-class ShortcutExample(Props.HasModel):
+class ShortcutExample(props.HasModel):
 
-    sigma, sigmaMap, sigmaDeriv = Props.Invertible(
+    sigma, sigmaMap, sigmaDeriv = props.Invertible(
         "Electrical conductivity (S/m)"
     )
 
 
-class ReciprocalMappingExample(Props.HasModel):
+class ReciprocalMappingExample(props.HasModel):
 
-    sigma, sigmaMap, sigmaDeriv = Props.Invertible(
+    sigma, sigmaMap, sigmaDeriv = props.Invertible(
         "Electrical conductivity (S/m)"
     )
 
-    rho, rhoMap, rhoDeriv = Props.Invertible(
+    rho, rhoMap, rhoDeriv = props.Invertible(
         "Electrical resistivity (Ohm m)"
     )
 
-    Props.Reciprocal(sigma, rho)
+    props.Reciprocal(sigma, rho)
 
 
-class ReciprocalExample(Props.HasModel):
+class ReciprocalExample(props.HasModel):
 
-    sigma, sigmaMap, sigmaDeriv = Props.Invertible(
+    sigma, sigmaMap, sigmaDeriv = props.Invertible(
         "Electrical conductivity (S/m)"
     )
 
-    rho = Props.PhysicalProperty(
+    rho = props.PhysicalProperty(
         "Electrical resistivity (Ohm m)"
     )
 
-    Props.Reciprocal(sigma, rho)
+    props.Reciprocal(sigma, rho)
 
 
-class ReciprocalPropExample(Props.HasModel):
+class ReciprocalPropExample(props.HasModel):
 
-    sigma = Props.PhysicalProperty(
+    sigma = props.PhysicalProperty(
         "Electrical conductivity (S/m)"
     )
 
-    rho = Props.PhysicalProperty(
+    rho = props.PhysicalProperty(
         "Electrical resistivity (Ohm m)"
     )
 
-    Props.Reciprocal(sigma, rho)
+    props.Reciprocal(sigma, rho)
 
 
-class ReciprocalPropExampleDefaults(Props.HasModel):
+class ReciprocalPropExampleDefaults(props.HasModel):
 
-    sigma = Props.PhysicalProperty(
+    sigma = props.PhysicalProperty(
         "Electrical conductivity (S/m)",
         default=np.r_[1., 2., 3.]
     )
 
-    rho = Props.PhysicalProperty(
+    rho = props.PhysicalProperty(
         "Electrical resistivity (Ohm m)"
     )
 
-    Props.Reciprocal(sigma, rho)
+    props.Reciprocal(sigma, rho)
 
 
-class ComplicatedInversion(Props.HasModel):
+class ComplicatedInversion(props.HasModel):
 
-    Ks, KsMap, KsDeriv = Props.Invertible(
+    Ks, KsMap, KsDeriv = props.Invertible(
         "Saturated hydraulic conductivity",
         default=24.96
     )
 
-    A, AMap, ADeriv = Props.Invertible(
+    A, AMap, ADeriv = props.Invertible(
         "fitting parameter",
         default=1.175e+06
     )
 
-    gamma, gammaMap, gammaDeriv = Props.Invertible(
+    gamma, gammaMap, gammaDeriv = props.Invertible(
         "fitting parameter",
         default=4.74
     )
 
 
-class NestedModels(Props.HasModel):
+class NestedModels(props.HasModel):
     complicated = properties.Instance(
         "Nested models",
         ComplicatedInversion
@@ -122,7 +123,7 @@ class TestPropMaps(unittest.TestCase):
         pass
 
     def test_basic(self):
-        expMap = Maps.ExpMap(Mesh.TensorMesh((3,)))
+        expMap = maps.ExpMap(discretize.TensorMesh((3,)))
         assert expMap.nP == 3
 
         for Example in [SimpleExample, ShortcutExample]:
@@ -137,11 +138,11 @@ class TestPropMaps(unittest.TestCase):
             PM.model = np.r_[1., 2., 3.]
             assert np.all(PM.sigma == np.exp(np.r_[1., 2., 3.]))
             # PM = pickle.loads(pickle.dumps(PM))
-            # PM = Maps.ExpMap.deserialize(PM.serialize())
+            # PM = maps.ExpMap.deserialize(PM.serialize())
 
             assert np.all(
                 PM.sigmaDeriv.todense() ==
-                Utils.sdiag(np.exp(np.r_[1., 2., 3.])).todense()
+                utils.sdiag(np.exp(np.r_[1., 2., 3.])).todense()
             )
 
             # If we set sigma, we should delete the mapping
@@ -156,7 +157,7 @@ class TestPropMaps(unittest.TestCase):
             assert np.all(PM.sigma == np.r_[1., 2., 3.])
 
     def test_reciprocal(self):
-        expMap = Maps.ExpMap(Mesh.TensorMesh((3,)))
+        expMap = maps.ExpMap(discretize.TensorMesh((3,)))
 
         PM = ReciprocalMappingExample()
 
@@ -187,7 +188,7 @@ class TestPropMaps(unittest.TestCase):
         assert isinstance(PM.sigmaDeriv.todense(), np.ndarray)
 
     def test_reciprocal_no_map(self):
-        expMap = Maps.ExpMap(Mesh.TensorMesh((3,)))
+        expMap = maps.ExpMap(discretize.TensorMesh((3,)))
 
         PM = ReciprocalExample()
         self.assertRaises(AttributeError, getattr, PM, 'sigma')
@@ -256,18 +257,18 @@ class TestPropMaps(unittest.TestCase):
             PM.model = np.ones(2)
             PM.summary()
             PM.validate()
-        PM.AMap = Maps.ExpMap(nP=3)
+        PM.AMap = maps.ExpMap(nP=3)
         with self.assertRaises(ValueError):
             PM.model = np.ones(2)
             PM.summary()
             PM.validate()
-        PM.gammaMap = Maps.ExpMap(nP=2)
+        PM.gammaMap = maps.ExpMap(nP=2)
         with self.assertRaises(ValueError):
             # maps are mismatching sizes
             PM.model = np.ones(2)
             PM.summary()
             PM.validate()
-        PM.AMap = Maps.ExpMap(nP=2)
+        PM.AMap = maps.ExpMap(nP=2)
         PM.model = np.ones(2)
         PM.summary()
         PM.validate()

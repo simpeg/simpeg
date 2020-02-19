@@ -2,7 +2,7 @@
 2.5D DC-IP inversion of Dipole Dipole array with Topography
 ===========================================================
 
-This is an example for 2.5D DC-IP Inversion.
+This is an example for 2.5D DC-IP inversion.
 For DC inversion, a resisistivity model (Ohm-m) is generated having conductive
 and resistive cylinders; they are respectively located right and left sides
 of the subsurface.
@@ -17,8 +17,10 @@ the obtained resistivity model, sensitivity function is formed and used for
 subsequent IP inversion to recover a chargeability model.
 """
 
-from SimPEG import DC, IP
-from SimPEG import Maps, Utils
+from SimPEG.electromagnetics.static import resistivity as DC
+from SimPEG.electromagnetics.static import induced_polarization as IP
+from SimPEG.electromagnetics.static.utils import gen_DCIPsurvey, genTopography
+from SimPEG import maps, utils
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
@@ -40,7 +42,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey_dc = DC.Utils.gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
+    survey_dc = gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
                                      a=10, b=10, n=10)
     survey_dc.getABMN_locations()
     survey_dc = IO.from_ambn_locations_to_survey(
@@ -51,18 +53,18 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # Obtain 2D TensorMesh
     mesh, actind = IO.set_mesh()
-    topo, mesh1D = DC.Utils.genTopography(mesh, -10, 0, its=100)
-    actind = Utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
+    topo, mesh1D = genTopography(mesh, -10, 0, its=100)
+    actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
     survey_dc.drapeTopo(mesh, actind, option="top")
 
     # Build conductivity and chargeability model
-    blk_inds_c = Utils.ModelBuilder.getIndicesSphere(
+    blk_inds_c = utils.ModelBuilder.getIndicesSphere(
         np.r_[60., -25.], 12.5, mesh.gridCC
     )
-    blk_inds_r = Utils.ModelBuilder.getIndicesSphere(
+    blk_inds_r = utils.ModelBuilder.getIndicesSphere(
         np.r_[140., -25.], 12.5, mesh.gridCC
     )
-    blk_inds_charg = Utils.ModelBuilder.getIndicesSphere(
+    blk_inds_charg = utils.ModelBuilder.getIndicesSphere(
         np.r_[100., -25], 12.5, mesh.gridCC
     )
     sigma = np.ones(mesh.nC)*1./100.
@@ -107,10 +109,10 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         plt.show()
 
     # Use Exponential Map: m = log(rho)
-    actmap = Maps.InjectActiveCells(
+    actmap = maps.InjectActiveCells(
         mesh, indActive=actind, valInactive=np.log(1e8)
     )
-    mapping = Maps.ExpMap(mesh) * actmap
+    mapping = maps.ExpMap(mesh) * actmap
 
     # Generate mtrue_dc for resistivity
     mtrue_dc = np.log(rho[actind])
@@ -118,33 +120,27 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # Generate 2.5D DC problem
     # "N" means potential is defined at nodes
     prb = DC.Problem2D_N(
-        mesh, rhoMap=mapping, storeJ=True,
-        Solver=Solver
+        mesh, survey=survey_dc, rhoMap=mapping, storeJ=True,
+        solver=Solver
     )
-    # Pair problem with survey
-    try:
-        prb.pair(survey_dc)
-    except:
-        survey_dc.unpair()
-        prb.pair(survey_dc)
 
     # Make synthetic DC data with 5% Gaussian noise
-    dtrue_dc = survey_dc.makeSyntheticData(mtrue_dc, std=0.05, force=True)
-    IO.data_dc = dtrue_dc
+    data_dc = prb.make_synthetic_data(mtrue_dc, std=0.05, add_noise=True)
+    IO.data_dc = data_dc.dobs
 
     # Generate mtrue_ip for chargability
     mtrue_ip = charg[actind]
     # Generate 2.5D DC problem
     # "N" means potential is defined at nodes
-    prb_ip = IP.Problem2D_N(
-        mesh, etaMap=actmap, storeJ=True, rho=rho,
-        Solver=Solver
-    )
     survey_ip = IP.from_dc_to_ip_survey(survey_dc, dim="2.5D")
-    prb_ip.pair(survey_ip)
-    dtrue_ip = survey_ip.makeSyntheticData(mtrue_ip, std=0.05)
+    prb_ip = IP.Problem2D_N(
+        mesh, survey=survey_ip, etaMap=actmap, storeJ=True, rho=rho,
+        solver=Solver
+    )
 
-    IO.data_ip = dtrue_ip
+    data_ip = prb_ip.make_synthetic_data(mtrue_ip, std=0.05, add_noise=True)
+
+    IO.data_ip = data_ip.dobs
 
     # Show apparent resisitivty pseudo-section
     if plotIt:
@@ -178,12 +174,12 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     m0_dc = np.ones(actmap.nP)*np.log(100.)
     # Set uncertainty
     # floor
-    eps_dc = 10**(-3.2)
+    data_dc.noise_floor = 10**(-3.2)
     # percentage
-    std_dc = 0.05
+    data_dc.standard_deviation = 0.05
 
     mopt_dc, pred_dc = DC.run_inversion(
-        m0_dc, survey_dc, actind, mesh, std_dc, eps_dc,
+        m0_dc, prb, data_dc, actind, mesh,
         beta0_ratio=1e0,
         use_sensitivity_weight=True
         )
@@ -243,15 +239,15 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     m0_ip = np.ones(actmap.nP)*1e-10
     # Set uncertainty
     # floor
-    eps_ip = 10**(-4)
+    data_ip.noise_floor = 10**(-4)
     # percentage
-    std_ip = 0.05
+    data_ip.standard_deviation = 0.05
     # Clean sensitivity function formed with true resistivity
     prb_ip._Jmatrix = None
     # Input obtained resistivity to form sensitivity
     prb_ip.rho = mapping*mopt_dc
     mopt_ip, _ = IP.run_inversion(
-        m0_ip, survey_ip, actind, mesh, std_ip, eps_ip,
+        m0_ip, prb_ip, data_ip, actind, mesh,
         upper=np.Inf, lower=0.,
         beta0_ratio=1e0,
         use_sensitivity_weight=True

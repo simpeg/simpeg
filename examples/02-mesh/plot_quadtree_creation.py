@@ -3,20 +3,20 @@ Mesh: QuadTree: Creation
 ========================
 
 You can give the refine method a function, which is evaluated on every
-cell of the TreeMesh.
+cell of the Treediscretize.
 
 Occasionally it is useful to initially refine to a constant level
 (e.g. 3 in this 32x32 mesh). This means the function is first evaluated
 on an 8x8 mesh (2^3).
 """
-from SimPEG import Mesh
+import discretize
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
-    M = Mesh.TreeMesh([32, 32])
-    M.refine(3)
+    M = discretize.TreeMesh([32, 32])
+    M.refine(3, finalize=False)
 
     def refine(cell):
         xyz = cell.center

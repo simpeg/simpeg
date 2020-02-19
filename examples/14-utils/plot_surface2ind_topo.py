@@ -2,13 +2,13 @@
 Utils: surface2ind_topo
 =======================
 
-Here we show how to use :code:`Utils.surface2ind_topo` to identify
+Here we show how to use :code:`utils.surface2ind_topo` to identify
 cells below a topographic surface and compare the different options
 """
 import numpy as np
-from SimPEG import Mesh
-from SimPEG import Utils
-from SimPEG.Utils import surface2ind_topo, mkvc
+import discretize
+from SimPEG import utils
+from SimPEG.utils import surface2ind_topo, mkvc
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
@@ -16,14 +16,14 @@ from scipy.interpolate import interp1d
 def run(plotIt=True, nx=5, ny=5):
 
     # 2D mesh
-    mesh = Mesh.TensorMesh([nx, ny], x0='CC')
+    mesh = discretize.TensorMesh([nx, ny], x0='CC')
     xtopo = mesh.vectorNx
 
     # define a topographic surface
     topo = 0.4*np.sin(xtopo*5)
 
     # make it an array
-    Topo = np.hstack([Utils.mkvc(xtopo, 2), Utils.mkvc(topo, 2)])
+    Topo = np.hstack([utils.mkvc(xtopo, 2), utils.mkvc(topo, 2)])
 
     # Compare the different options
     indtopoCC_near = surface2ind_topo(mesh, Topo, gridLoc='CC', method='nearest')

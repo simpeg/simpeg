@@ -1,7 +1,8 @@
 import unittest
-from SimPEG import Mesh, Solver, SolverDiag, SolverCG, SolverLU, Utils
+
+from SimPEG import Solver, SolverDiag, SolverCG, SolverLU
 from discretize import TensorMesh
-from SimPEG.Utils import sdiag
+from SimPEG.utils import sdiag
 import numpy as np
 import scipy.sparse as sparse
 
@@ -28,7 +29,7 @@ def dotest(MYSOLVER, multi=False, A=None, **solverOpts):
         A = D*Msig*G
         A[-1,-1] *= 1/M.vol[-1] # remove the constant null space from the matrix
     else:
-        M = Mesh.TensorMesh([A.shape[0]])
+        M = TensorMesh([A.shape[0]])
 
     Ainv = MYSOLVER(A, **solverOpts)
     if multi:
@@ -48,8 +49,8 @@ class TestSolver(unittest.TestCase):
     def test_direct_splu_1(self): self.assertLess(dotest(SolverLU, False),TOLD)
     def test_direct_splu_M(self): self.assertLess(dotest(SolverLU, True),TOLD)
 
-    def test_iterative_diag_1(self): self.assertLess(dotest(SolverDiag, False, A=Utils.sdiag(np.random.rand(10)+1.0)),TOLI)
-    def test_iterative_diag_M(self): self.assertLess(dotest(SolverDiag, True, A=Utils.sdiag(np.random.rand(10)+1.0)),TOLI)
+    def test_iterative_diag_1(self): self.assertLess(dotest(SolverDiag, False, A=sdiag(np.random.rand(10)+1.0)),TOLI)
+    def test_iterative_diag_M(self): self.assertLess(dotest(SolverDiag, True, A=sdiag(np.random.rand(10)+1.0)),TOLI)
 
     def test_iterative_cg_1(self): self.assertLess(dotest(SolverCG, False),TOLI)
     def test_iterative_cg_M(self): self.assertLess(dotest(SolverCG, True),TOLI)

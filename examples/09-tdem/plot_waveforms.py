@@ -8,8 +8,8 @@ to the `StepOffWaveform`
 
 import numpy as np
 import matplotlib.pyplot as plt
-from SimPEG.Utils import mkvc
-from SimPEG.EM import TDEM
+from SimPEG.utils import mkvc
+from SimPEG.electromagnetics import time_domain as TDEM
 
 nT = 1000
 max_t = 5e-3
@@ -46,4 +46,3 @@ for a, key in zip(ax, waveforms):
 
 plt.tight_layout()
 plt.show()
-

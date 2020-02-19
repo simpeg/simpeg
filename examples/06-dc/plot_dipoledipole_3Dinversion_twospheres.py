@@ -2,7 +2,7 @@
 3D DC inversion of Dipole Dipole array
 ======================================
 
-This is an example for 3D DC Inversion. The model consists of 2 spheres,
+This is an example for 3D DC inversion. The model consists of 2 spheres,
 one conductive, the other one resistive compared to the background.
 
 We restrain the inversion to the Core Mesh through the use an Active Cells
@@ -16,12 +16,13 @@ indicates transformation of our model to a different space:
 Following example will show you how user can implement a 3D DC inversion.
 """
 
+import discretize
 from SimPEG import (
-    Mesh, Maps, Utils,
-    DataMisfit, Regularization, Optimization,
-    InvProblem, Directives, Inversion
+    maps, utils,
+    data_misfit, regularization, optimization,
+    inverse_problem, directives, inversion
 )
-from SimPEG.EM.Static import DC, Utils as DCUtils
+from SimPEG.electromagnetics.static import resistivity as DC, utils as DCutils
 import numpy as np
 import matplotlib.pyplot as plt
 try:
@@ -45,7 +46,7 @@ hx = [(csx, npad, -1.5), (csx, ncx), (csx, npad, 1.5)]
 hy = [(csy, npad, -1.5), (csy, ncy), (csy, npad, 1.5)]
 hz = [(csz, npad, -1.5), (csz, ncz)]
 # Create mesh and center it
-mesh = Mesh.TensorMesh([hx, hy, hz], x0="CCN")
+mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
 
 # 2-spheres Model Creation
 ##########################
@@ -78,7 +79,7 @@ xmin, xmax = -20., 20.
 ymin, ymax = -15., 15.
 zmin, zmax = -10., 0.
 xyzlim = np.r_[[[xmin, xmax], [ymin, ymax], [zmin, zmax]]]
-actind, meshCore = Utils.meshutils.ExtractCoreMesh(xyzlim, mesh)
+actind, meshCore = utils.meshutils.ExtractCoreMesh(xyzlim, mesh)
 
 
 # Function to plot cylinder border
@@ -109,7 +110,7 @@ xmin, xmax = -15., 15.
 ymin, ymax = 0., 0.
 zmin, zmax = 0, 0
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey1 = DCUtils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
+survey1 = DCutils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
                                  a=3, b=3, n=8)
 
 # Line 2
@@ -117,7 +118,7 @@ xmin, xmax = -15., 15.
 ymin, ymax = 5., 5.
 zmin, zmax = 0, 0
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey2 = DCUtils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
+survey2 = DCutils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
                                  a=3, b=3, n=8)
 
 # Line 3
@@ -125,24 +126,21 @@ xmin, xmax = -15., 15.
 ymin, ymax = -5., -5.
 zmin, zmax = 0, 0
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey3 = DCUtils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
+survey3 = DCutils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
                                  a=3, b=3, n=8)
 
 # Concatenate lines
-survey = DC.Survey(survey1.srcList + survey2.srcList + survey3.srcList)
+survey = DC.Survey(survey1.source_list + survey2.source_list + survey3.source_list)
 
 # Setup Problem with exponential mapping and Active cells only in the core mesh
-expmap = Maps.ExpMap(mesh)
-mapactive = Maps.InjectActiveCells(mesh=mesh, indActive=actind,
+expmap = maps.ExpMap(mesh)
+mapactive = maps.InjectActiveCells(mesh=mesh, indActive=actind,
                                    valInactive=-5.)
 mapping = expmap * mapactive
-problem = DC.Problem3D_CC(mesh, sigmaMap=mapping)
-problem.pair(survey)
-problem.Solver = Solver
+problem = DC.Problem3D_CC(
+    mesh, survey=survey, sigmaMap=mapping, solver=Solver, bc_type='Neumann')
 
-survey.dpred(mtrue[actind])
-survey.makeSyntheticData(mtrue[actind], std=0.05, force=True)
-
+data = problem.make_synthetic_data(mtrue[actind], standard_deviation=0.05, add_noise=True)
 
 # Tikhonov Inversion
 ####################
@@ -150,24 +148,24 @@ survey.makeSyntheticData(mtrue[actind], std=0.05, force=True)
 # Initial Model
 m0 = np.median(ln_sigback) * np.ones(mapping.nP)
 # Data Misfit
-dmis = DataMisfit.l2_DataMisfit(survey)
+dmis = data_misfit.L2DataMisfit(simulation=problem, data=data)
 # Regularization
-regT = Regularization.Simple(mesh, indActive=actind, alpha_s=1e-6,
+regT = regularization.Simple(mesh, indActive=actind, alpha_s=1e-6,
                              alpha_x=1., alpha_y=1., alpha_z=1.)
 
 # Optimization Scheme
-opt = Optimization.InexactGaussNewton(maxIter=10)
+opt = optimization.InexactGaussNewton(maxIter=10)
 
 # Form the problem
 opt.remember('xc')
-invProb = InvProblem.BaseInvProblem(dmis, regT, opt)
+invProb = inverse_problem.BaseInvProblem(dmis, regT, opt)
 
 # Directives for Inversions
-beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e+1)
-Target = Directives.TargetMisfit()
-betaSched = Directives.BetaSchedule(coolingFactor=5., coolingRate=2)
+beta = directives.BetaEstimate_ByEig(beta0_ratio=1e+1)
+Target = directives.TargetMisfit()
+betaSched = directives.BetaSchedule(coolingFactor=5., coolingRate=2)
 
-inv = Inversion.BaseInversion(invProb, directiveList=[beta, Target,
+inv = inversion.BaseInversion(invProb, directiveList=[beta, Target,
                                                       betaSched])
 # Run Inversion
 minv = inv.run(m0)
@@ -176,7 +174,7 @@ minv = inv.run(m0)
 ############
 
 fig, ax = plt.subplots(2, 2, figsize=(12, 6))
-ax = Utils.mkvc(ax)
+ax = utils.mkvc(ax)
 
 cyl0v = getCylinderPoints(x0, z0, r0)
 cyl1v = getCylinderPoints(x1, z1, r1)

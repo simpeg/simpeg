@@ -3,11 +3,11 @@ import unittest
 
 import numpy as np
 
+import discretize
 from discretize.Tests import checkDerivative
 
-from SimPEG import Mesh
-from SimPEG import Maps
-from SimPEG.FLOW import Richards
+from SimPEG import maps
+from SimPEG.flow import richards
 
 TOL = 1E-8
 
@@ -17,8 +17,8 @@ np.random.seed(2)
 class TestModels(unittest.TestCase):
 
     def test_haverkamp_theta_u(self):
-        mesh = Mesh.TensorMesh([50])
-        hav = Richards.Empirical.Haverkamp_theta(mesh)
+        mesh = discretize.TensorMesh([50])
+        hav = richards.empirical.Haverkamp_theta(mesh)
         passed = checkDerivative(
             lambda u: (hav(u), hav.derivU(u)),
             np.random.randn(50),
@@ -27,8 +27,8 @@ class TestModels(unittest.TestCase):
         self.assertTrue(passed, True)
 
     def test_haverkamp_theta_m(self):
-        mesh = Mesh.TensorMesh([50])
-        idnmap = Maps.IdentityMap(nP=mesh.nC)
+        mesh = discretize.TensorMesh([50])
+        idnmap = maps.IdentityMap(nP=mesh.nC)
 
         seeds = {
             'theta_r': np.random.rand(mesh.nC),
@@ -51,7 +51,7 @@ class TestModels(unittest.TestCase):
         u = np.random.randn(mesh.nC)
 
         for name, opt, nM in opts:
-            van = Richards.Empirical.Haverkamp_theta(mesh, **opt)
+            van = richards.empirical.Haverkamp_theta(mesh, **opt)
 
             x0 = np.concatenate([seeds[n] for n in name.split('-')])
 
@@ -69,8 +69,8 @@ class TestModels(unittest.TestCase):
             self.assertTrue(passed, True)
 
     def test_vangenuchten_theta_u(self):
-        mesh = Mesh.TensorMesh([50])
-        van = Richards.Empirical.Vangenuchten_theta(mesh)
+        mesh = discretize.TensorMesh([50])
+        van = richards.empirical.Vangenuchten_theta(mesh)
         passed = checkDerivative(
             lambda u: (van(u), van.derivU(u)),
             np.random.randn(50),
@@ -79,8 +79,8 @@ class TestModels(unittest.TestCase):
         self.assertTrue(passed, True)
 
     def test_vangenuchten_theta_m(self):
-        mesh = Mesh.TensorMesh([50])
-        idnmap = Maps.IdentityMap(nP=mesh.nC)
+        mesh = discretize.TensorMesh([50])
+        idnmap = maps.IdentityMap(nP=mesh.nC)
 
         seeds = {
             'theta_r': np.random.rand(mesh.nC),
@@ -103,7 +103,7 @@ class TestModels(unittest.TestCase):
         u = np.random.randn(mesh.nC)
 
         for name, opt, nM in opts:
-            van = Richards.Empirical.Vangenuchten_theta(mesh, **opt)
+            van = richards.empirical.Vangenuchten_theta(mesh, **opt)
 
             x0 = np.concatenate([seeds[n] for n in name.split('-')])
 
@@ -122,9 +122,9 @@ class TestModels(unittest.TestCase):
 
     def test_haverkamp_k_u(self):
 
-        mesh = Mesh.TensorMesh([5])
+        mesh = discretize.TensorMesh([5])
 
-        hav = Richards.Empirical.Haverkamp_k(mesh)
+        hav = richards.empirical.Haverkamp_k(mesh)
         print('Haverkamp_k test u deriv')
         passed = checkDerivative(
             lambda u: (hav(u), hav.derivU(u)),
@@ -135,10 +135,10 @@ class TestModels(unittest.TestCase):
 
     def test_haverkamp_k_m(self):
 
-        mesh = Mesh.TensorMesh([5])
-        expmap = Maps.IdentityMap(nP=mesh.nC)
-        wires2 = Maps.Wires(('one', mesh.nC), ('two', mesh.nC))
-        wires3 = Maps.Wires(
+        mesh = discretize.TensorMesh([5])
+        expmap = maps.IdentityMap(nP=mesh.nC)
+        wires2 = maps.Wires(('one', mesh.nC), ('two', mesh.nC))
+        wires3 = maps.Wires(
             ('one', mesh.nC), ('two', mesh.nC), ('three', mesh.nC)
         )
 
@@ -165,7 +165,7 @@ class TestModels(unittest.TestCase):
 
         for name, opt, nM in opts:
             np.random.seed(2)
-            hav = Richards.Empirical.Haverkamp_k(mesh, **opt)
+            hav = richards.empirical.Haverkamp_k(mesh, **opt)
 
             def fun(m):
                 hav.model = m
@@ -181,9 +181,9 @@ class TestModels(unittest.TestCase):
             self.assertTrue(passed, True)
 
     def test_vangenuchten_k_u(self):
-        mesh = Mesh.TensorMesh([50])
+        mesh = discretize.TensorMesh([50])
 
-        van = Richards.Empirical.Vangenuchten_k(mesh)
+        van = richards.empirical.Vangenuchten_k(mesh)
 
         print('Vangenuchten_k test u deriv')
         passed = checkDerivative(
@@ -194,10 +194,10 @@ class TestModels(unittest.TestCase):
         self.assertTrue(passed, True)
 
     def test_vangenuchten_k_m(self):
-        mesh = Mesh.TensorMesh([50])
+        mesh = discretize.TensorMesh([50])
 
-        expmap = Maps.ExpMap(nP=mesh.nC)
-        idnmap = Maps.IdentityMap(nP=mesh.nC)
+        expmap = maps.ExpMap(nP=mesh.nC)
+        idnmap = maps.IdentityMap(nP=mesh.nC)
 
         seeds = {
             'Ks': np.random.triangular(
@@ -222,7 +222,7 @@ class TestModels(unittest.TestCase):
         u = np.random.randn(mesh.nC)
 
         for name, opt, nM in opts:
-            van = Richards.Empirical.Vangenuchten_k(mesh, **opt)
+            van = richards.empirical.Vangenuchten_k(mesh, **opt)
 
             x0 = np.concatenate([seeds[n] for n in name.split('-')])
 

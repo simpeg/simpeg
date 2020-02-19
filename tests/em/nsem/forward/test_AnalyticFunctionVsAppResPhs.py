@@ -1,7 +1,7 @@
 from __future__ import print_function
 import unittest
-from SimPEG.EM import NSEM
-from SimPEG import Mesh
+from SimPEG.electromagnetics import natural_source as nsem
+from SimPEG import discretize
 import numpy as np
 
 
@@ -11,7 +11,7 @@ TOL = 1e-6
 def appResNorm(sigmaHalf):
     nFreq = 26
 
-    m1d = Mesh.TensorMesh(
+    m1d = discretize.TensorMesh(
         [[(100, 5, 1.5), (100., 10), (100, 5, 1.5)]], x0=['C']
     )
     sigma = np.zeros(m1d.nC) + sigmaHalf
@@ -22,14 +22,14 @@ def appResNorm(sigmaHalf):
     Z = []
 
     for freq in freqs:
-        Ed, Eu, Hd, Hu = NSEM.Utils.getEHfields(
+        Ed, Eu, Hd, Hu = nsem.utils.getEHfields(
             m1d, sigma, freq, np.array([200])
         )
         Z.append((Ed + Eu)/(Hd + Hu))
 
     Zarr = np.concatenate(Z)
 
-    app_r, app_p = NSEM.Utils.appResPhs(freqs, Zarr)
+    app_r, app_p = nsem.utils.appResPhs(freqs, Zarr)
 
     return (
         np.linalg.norm(np.abs(app_r - np.ones(nFreq)/sigmaHalf)) /

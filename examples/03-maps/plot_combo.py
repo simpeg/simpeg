@@ -7,16 +7,16 @@ but we want to map this to a 2D discretization to do our forward
 modeling. We will also assume that we are working in log conductivity
 still, so after the transformation we map to conductivity space.
 To do this we will introduce the vertical 1D map
-(:class:`SimPEG.Maps.SurjectVertical1D`), which does the first part of
+(:class:`SimPEG.maps.SurjectVertical1D`), which does the first part of
 what we just described. The second part will be done by the
-:class:`SimPEG.Maps.ExpMap` described above.
+:class:`SimPEG.maps.ExpMap` described above.
 
 .. code-block:: python
     :linenos:
 
-    M = Mesh.TensorMesh([7,5])
-    v1dMap = Maps.SurjectVertical1D(M)
-    expMap = Maps.ExpMap(M)
+    M = discretize.TensorMesh([7,5])
+    v1dMap = maps.SurjectVertical1D(M)
+    expMap = maps.ExpMap(M)
     myMap = expMap * v1dMap
     m = np.r_[0.2,1,0.1,2,2.9] # only 5 model parameters!
     sig = myMap * m
@@ -26,16 +26,17 @@ is that the derivatives also are made for you (if everything goes
 right). Just to be sure that the derivative is correct, you should
 always run the test on the mapping that you create.
 """
-from SimPEG import Mesh, Maps
+import discretize
+from SimPEG import maps
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
 
-    M = Mesh.TensorMesh([7, 5])
-    v1dMap = Maps.SurjectVertical1D(M)
-    expMap = Maps.ExpMap(M)
+    M = discretize.TensorMesh([7, 5])
+    v1dMap = maps.SurjectVertical1D(M)
+    expMap = maps.ExpMap(M)
     myMap = expMap * v1dMap
     m = np.r_[0.2, 1, 0.1, 2, 2.9]  # only 5 model parameters!
     sig = myMap * m

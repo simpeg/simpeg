@@ -4,13 +4,13 @@ import numpy as np
 import scipy.sparse as sp
 import os
 import shutil
-from SimPEG.Utils import (
+from SimPEG.utils import (
     sdiag, sub2ind, ndgrid, mkvc, inv2X2BlockDiagonal,
     inv3X3BlockDiagonal, invPropertyTensor, makePropertyTensor, indexCube,
     ind2sub, asArray_N_x_Dim, TensorType, diagEst, count, timeIt, Counter,
     download, surface2ind_topo
 )
-from SimPEG import Mesh
+import discretize
 from discretize.Tests import checkDerivative
 
 
@@ -190,7 +190,7 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(np.linalg.norm(Z3.todense().ravel(), 2) < TOL)
 
     def test_invPropertyTensor2D(self):
-        M = Mesh.TensorMesh([6, 6])
+        M = discretize.TensorMesh([6, 6])
         a1 = np.random.rand(M.nC)
         a2 = np.random.rand(M.nC)
         a3 = np.random.rand(M.nC)
@@ -210,7 +210,7 @@ class TestSequenceFunctions(unittest.TestCase):
             self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
 
     def test_TensorType2D(self):
-        M = Mesh.TensorMesh([6, 6])
+        M = discretize.TensorMesh([6, 6])
         a1 = np.random.rand(M.nC)
         a2 = np.random.rand(M.nC)
         a3 = np.random.rand(M.nC)
@@ -225,7 +225,7 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(TensorType(M, None) == -1)
 
     def test_TensorType3D(self):
-        M = Mesh.TensorMesh([6, 6, 7])
+        M = discretize.TensorMesh([6, 6, 7])
         a1 = np.random.rand(M.nC)
         a2 = np.random.rand(M.nC)
         a3 = np.random.rand(M.nC)
@@ -243,7 +243,7 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(TensorType(M, None) == -1)
 
     def test_invPropertyTensor3D(self):
-        M = Mesh.TensorMesh([6, 6, 6])
+        M = discretize.TensorMesh([6, 6, 6])
         a1 = np.random.rand(M.nC)
         a2 = np.random.rand(M.nC)
         a3 = np.random.rand(M.nC)
@@ -291,7 +291,7 @@ class TestSequenceFunctions(unittest.TestCase):
         file_url = "https://storage.googleapis.com/simpeg/tests/utils/vancouver_topo.xyz"
         file2load = download(file_url)
         vancouver_topo = np.loadtxt(file2load)
-        mesh_topo = Mesh.TensorMesh([
+        mesh_topo = discretize.TensorMesh([
             [(500., 24)],
             [(500., 20)],
             [(10., 30)]

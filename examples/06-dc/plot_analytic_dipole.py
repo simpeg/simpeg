@@ -6,10 +6,11 @@ Comparison of the analytic and numerical solution for a direct current
 resistivity dipole in 3D.
 """
 from __future__ import print_function
-from SimPEG import Mesh, Utils
+import discretize
+from SimPEG import utils
 import numpy as np
 import matplotlib.pyplot as plt
-import SimPEG.EM.Static.DC as DC
+from SimPEG.electromagnetics.static import resistivity as DC
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
@@ -20,23 +21,27 @@ cs = 25.
 hx = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
 hy = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
 hz = [(cs, 7, -1.3), (cs, 20)]
-mesh = Mesh.TensorMesh([hx, hy, hz], 'CCN')
+mesh = discretize.TensorMesh([hx, hy, hz], 'CCN')
 sighalf = 1e-2
 sigma = np.ones(mesh.nC)*sighalf
 xtemp = np.linspace(-150, 150, 21)
 ytemp = np.linspace(-150, 150, 21)
-xyz_rxP = Utils.ndgrid(xtemp-10., ytemp, np.r_[0.])
-xyz_rxN = Utils.ndgrid(xtemp+10., ytemp, np.r_[0.])
-xyz_rxM = Utils.ndgrid(xtemp, ytemp, np.r_[0.])
+xyz_rxP = utils.ndgrid(xtemp-10., ytemp, np.r_[0.])
+xyz_rxN = utils.ndgrid(xtemp+10., ytemp, np.r_[0.])
+xyz_rxM = utils.ndgrid(xtemp, ytemp, np.r_[0.])
 
 
 rx = DC.Rx.Dipole(xyz_rxP, xyz_rxN)
 src = DC.Src.Dipole([rx], np.r_[-200, 0, -12.5], np.r_[+200, 0, -12.5])
 survey = DC.Survey([src])
-problem = DC.Problem3D_CC(mesh, Solver=Solver, sigma=sigma)
-problem.pair(survey)
+sim = DC.Problem3D_CC(
+    mesh,
+    survey=survey,
+    solver=Solver,
+    sigma=sigma,
+    bc_type='Neumann')
 
-data = survey.dpred()
+data = sim.dpred()
 
 
 def DChalf(srclocP, srclocN, rxloc, sigma, I=1.):
@@ -70,3 +75,4 @@ ax[0].set_title('Analytic')
 ax[1].set_title('Computed')
 
 print(np.linalg.norm(data-data_ana)/np.linalg.norm(data_ana))
+plt.show()

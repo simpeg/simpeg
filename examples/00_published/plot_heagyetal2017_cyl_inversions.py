@@ -16,13 +16,15 @@ This example is used in the paper
 This example is on figshare:
 https://doi.org/10.6084/m9.figshare.5035175
 
+This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capriotti
 """
+import discretize
 from SimPEG import (
-    Mesh, Maps, Utils, DataMisfit, Regularization,
-    Optimization, Inversion, InvProblem, Directives
+    maps, utils, data_misfit, regularization,
+    optimization, inversion, inverse_problem, directives
 )
 import numpy as np
-from SimPEG.EM import FDEM, TDEM, mu_0
+from SimPEG.electromagnetics import frequency_domain as FDEM, time_domain as TDEM, mu_0
 import matplotlib.pyplot as plt
 import matplotlib
 try:
@@ -37,7 +39,7 @@ def run(plotIt=True, saveFig=False):
     cs, ncx, ncz, npad = 10., 15, 25, 13  # padded cyl mesh
     hx = [(cs, ncx), (cs, npad, 1.3)]
     hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-    mesh = Mesh.CylMesh([hx, 1, hz], '00C')
+    mesh = discretize.CylMesh([hx, 1, hz], '00C')
 
     # Conductivity model
     layerz = np.r_[-200., -100.]
@@ -51,12 +53,12 @@ def run(plotIt=True, saveFig=False):
     sigma[layer] = sig_layer
 
     # Mapping
-    actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-    mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
+    actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
     mtrue = np.log(sigma[active])
 
     # ----- FDEM problem & survey ----- #
-    rxlocs = Utils.ndgrid([np.r_[50.], np.r_[0], np.r_[0.]])
+    rxlocs = utils.ndgrid([np.r_[50.], np.r_[0], np.r_[0.]])
     bzr = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'real')
     bzi = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'imag')
 
@@ -74,31 +76,31 @@ def run(plotIt=True, saveFig=False):
     ]
 
     surveyFD = FDEM.Survey(srcList)
-    prbFD = FDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=Solver)
-    prbFD.pair(surveyFD)
+    prbFD = FDEM.Problem3D_b(
+        mesh, survey=surveyFD, sigmaMap=mapping, solver=Solver)
     std = 0.03
-    surveyFD.makeSyntheticData(mtrue, std)
-    surveyFD.eps = np.linalg.norm(surveyFD.dtrue)*1e-5
+    dataFD = prbFD.make_synthetic_data(mtrue, standard_deviation=std, add_noise=True)
+    dataFD.noise_floor = np.linalg.norm(dataFD.dclean)*1e-5
 
     # FDEM inversion
     np.random.seed(1)
-    dmisfit = DataMisfit.l2_DataMisfit(surveyFD)
-    regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = Regularization.Simple(regMesh)
-    opt = Optimization.InexactGaussNewton(maxIterCG=10)
-    invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
+    dmisfit = data_misfit.l2_DataMisfit(simulation=prbFD, data=dataFD)
+    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+    reg = regularization.Simple(regMesh)
+    opt = optimization.InexactGaussNewton(maxIterCG=10)
+    invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # Inversion Directives
-    beta = Directives.BetaSchedule(coolingFactor=4, coolingRate=3)
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=2.)
-    target = Directives.TargetMisfit()
+    beta = directives.BetaSchedule(coolingFactor=4, coolingRate=3)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=2.)
+    target = directives.TargetMisfit()
     directiveList = [beta, betaest, target]
 
-    inv = Inversion.BaseInversion(invProb, directiveList=directiveList)
+    inv = inversion.BaseInversion(invProb, directiveList=directiveList)
     m0 = np.log(np.ones(mtrue.size)*sig_half)
     reg.alpha_s = 5e-1
     reg.alpha_x = 1.
-    prbFD.counter = opt.counter = Utils.Counter()
+    prbFD.counter = opt.counter = utils.Counter()
     opt.remember('xc')
     moptFD = inv.run(m0)
 
@@ -114,33 +116,32 @@ def run(plotIt=True, saveFig=False):
     )
 
     surveyTD = TDEM.Survey([src])
-    prbTD = TDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=Solver)
-    prbTD.timeSteps = [(5e-5, 10), (1e-4, 10), (5e-4, 10)]
-    prbTD.pair(surveyTD)
+    prbTD = TDEM.Problem3D_b(
+        mesh, survey=surveyTD, sigmaMap=mapping, Solver=Solver)
+    prbTD.time_steps = [(5e-5, 10), (1e-4, 10), (5e-4, 10)]
 
     std = 0.03
-    surveyTD.makeSyntheticData(mtrue, std)
-    surveyTD.std = std
-    surveyTD.eps = np.linalg.norm(surveyTD.dtrue)*1e-5
+    dataTD = prbTD.make_synthetic_data(mtrue, standard_deviation=std, add_noise=True)
+    dataTD.noise_floor = np.linalg.norm(dataTD.dclean)*1e-5
 
     # TDEM inversion
-    dmisfit = DataMisfit.l2_DataMisfit(surveyTD)
-    regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = Regularization.Simple(regMesh)
-    opt = Optimization.InexactGaussNewton(maxIterCG=10)
-    invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
+    dmisfit = data_misfit.L2DataMisfit(simulation=prbTD, data=dataTD)
+    regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+    reg = regularization.Simple(regMesh)
+    opt = optimization.InexactGaussNewton(maxIterCG=10)
+    invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # directives
-    beta = Directives.BetaSchedule(coolingFactor=4, coolingRate=3)
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=2.)
-    target = Directives.TargetMisfit()
+    beta = directives.BetaSchedule(coolingFactor=4, coolingRate=3)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=2.)
+    target = directives.TargetMisfit()
     directiveList = [beta, betaest, target]
 
-    inv = Inversion.BaseInversion(invProb, directiveList=directiveList)
+    inv = inversion.BaseInversion(invProb, directiveList=directiveList)
     m0 = np.log(np.ones(mtrue.size)*sig_half)
     reg.alpha_s = 5e-1
     reg.alpha_x = 1.
-    prbTD.counter = opt.counter = Utils.Counter()
+    prbTD.counter = opt.counter = utils.Counter()
     opt.remember('xc')
     moptTD = inv.run(m0)
 
@@ -187,10 +188,10 @@ def run(plotIt=True, saveFig=False):
         # plot the data misfits - negative b/c we choose positive to be in the
         # direction of primary
 
-        ax1.plot(freqs, -surveyFD.dobs[::2], 'k-', lw=2, label="Obs (real)")
-        ax1.plot(freqs, -surveyFD.dobs[1::2], 'k--', lw=2, label="Obs (imag)")
+        ax1.plot(freqs, -dataFD.dobs[::2], 'k-', lw=2, label="Obs (real)")
+        ax1.plot(freqs, -dataFD.dobs[1::2], 'k--', lw=2, label="Obs (imag)")
 
-        dpredFD = surveyFD.dpred(moptTD)
+        dpredFD = prbFD.dpred(moptTD)
         ax1.loglog(
             freqs, -dpredFD[::2], 'bo', ms=6, markeredgecolor='k',
             markeredgewidth=0.5, label="Pred (real)"
@@ -200,9 +201,9 @@ def run(plotIt=True, saveFig=False):
             label="Pred (imag)"
         )
 
-        ax2.loglog(times, surveyTD.dobs, 'k-', lw=2, label='Obs')
+        ax2.loglog(times, dataTD.dobs, 'k-', lw=2, label='Obs')
         ax2.loglog(
-            times, surveyTD.dpred(moptTD), 'r*', ms=10, markeredgecolor='k',
+            times, prbTD.dpred(moptTD), 'r*', ms=10, markeredgecolor='k',
             markeredgewidth=0.5, label='Pred'
         )
         ax2.set_xlim(times.min() - 1e-5, times.max() + 1e-4)

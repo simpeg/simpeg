@@ -12,7 +12,6 @@ A cylindrically symmetric mesh is employed and a circular loop source is used
 """
 
 import discretize
-from discretize import utils
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -20,8 +19,8 @@ from scipy.constants import mu_0
 from pymatsolver import Pardiso
 import time
 
-from SimPEG.EM import TDEM
-from SimPEG import Utils, Maps, Report
+from SimPEG.electromagnetics import time_domain as TDEM
+from SimPEG import utils, maps, Report
 
 ###############################################################################
 # Model Parameters
@@ -162,11 +161,11 @@ src_list_ramp_on = [src_ramp_on]
 # equations
 
 prob_magnetostatic = TDEM.Problem3D_b(
-    mesh=mesh, sigmaMap=Maps.IdentityMap(mesh), timeSteps=ramp,
+    mesh=mesh, sigmaMap=maps.IdentityMap(mesh), timeSteps=ramp,
     Solver=Pardiso
 )
 prob_ramp_on = TDEM.Problem3D_b(
-    mesh=mesh, sigmaMap=Maps.IdentityMap(mesh), timeSteps=ramp,
+    mesh=mesh, sigmaMap=maps.IdentityMap(mesh), timeSteps=ramp,
     Solver=Pardiso
 )
 
@@ -265,5 +264,6 @@ plt.tight_layout()
 # Print the version of SimPEG and dependencies
 # --------------------------------------------
 #
+plt.show()
 
 Report()

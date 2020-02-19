@@ -10,10 +10,10 @@ interpolated. In particular, you often want to ignore padding cells.
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.constants import mu_0
 
-from SimPEG import Mesh, Utils, Maps
-from SimPEG.EM import FDEM
+import discretize
+from SimPEG import utils, maps
+from SimPEG.electromagnetics import frequency_domain as FDEM
 
 # Try importing PardisoSolver from pymatsolver otherwise, use SimPEG.SolverLU
 try:
@@ -101,11 +101,11 @@ def run(plotIt=True):
     pf = 1.3
 
     # cell spacings in the x and z directions
-    hx = Utils.meshTensor([(csx, ncx), (csx, npadx, pf)])
-    hz = Utils.meshTensor([(csz, npadz, -pf), (csz, ncz), (csz, npadz, pf)])
+    hx = utils.meshTensor([(csx, ncx), (csx, npadx, pf)])
+    hz = utils.meshTensor([(csz, npadz, -pf), (csz, ncz), (csz, npadz, pf)])
 
     # define a SimPEG mesh
-    mesh = Mesh.CylMesh([hx, 1, hz], x0 = np.r_[0.,0., -hz.sum()/2.-boom_height])
+    mesh = discretize.CylMesh([hx, 1, hz], x0 = np.r_[0.,0., -hz.sum()/2.-boom_height])
 
 
     # ### Plot the mesh
@@ -217,15 +217,13 @@ def run(plotIt=True):
 
     # define a problem - the statement of which discrete pde system we want to
     # solve
-    prob = FDEM.Problem3D_e(mesh, sigmaMap=Maps.IdentityMap(mesh))
-    prob.solver = Solver
-
     survey = FDEM.Survey(srcList)
-
-    # tell the problem and survey about each other - so the RHS can be
-    # constructed for the problem and the
-    # resulting fields and fluxes can be sampled by the receiver.
-    prob.pair(survey)
+    prob = FDEM.Problem3D_e(
+        mesh,
+        survey=survey,
+        solver=Solver,
+        sigmaMap=maps.IdentityMap(mesh)
+    )
 
 
     # ### Solve the forward simulation

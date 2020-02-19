@@ -7,7 +7,7 @@ Maps
 That's not a map...?!
 =====================
 
-A SimPEG Map operates on a vector and transforms it to another space.
+A SimPEG map operates on a vector and transforms it to another space.
 We will use an example commonly applied in electromagnetics (EM) of the
 log-conductivity model.
 
@@ -22,7 +22,7 @@ we will call this map \\\(\\mathcal{M}\\\).
 
     \sigma = \mathcal{M}(m) = \exp(m)
 
-In SimPEG, we use a (:class:`SimPEG.Maps.ExpMap`) to describe how to map
+In SimPEG, we use a (:class:`SimPEG.maps.ExpMap`) to describe how to map
 back to conductivity. This is a relatively trivial example (we are just taking
 the exponential!) but by defining maps we can start to combine and manipulate
 exactly what we think about as our model, \\\(m\\\). In code, this looks like
@@ -47,9 +47,9 @@ We will use an example where we want a 1D layered earth as
 our model, but we want to map this to a 2D discretization to do our forward
 modeling. We will also assume that we are working in log conductivity still,
 so after the transformation we want to map to conductivity space.
-To do this we will introduce the vertical 1D map (:class:`SimPEG.Maps.SurjectVertical1D`),
+To do this we will introduce the vertical 1D map (:class:`SimPEG.maps.SurjectVertical1D`),
 which does the first part of what we just described. The second part will be
-done by the :class:`SimPEG.Maps.ExpMap` described above.
+done by the :class:`SimPEG.maps.ExpMap` described above.
 
 .. code-block:: python
     :linenos:
@@ -75,7 +75,7 @@ Taking Derivatives
 ==================
 
 Now that we have wrapped up the mapping, we can ensure that it is easy to take
-derivatives (or at least have access to them!). In the :class:`SimPEG.Maps.ExpMap`
+derivatives (or at least have access to them!). In the :class:`SimPEG.maps.ExpMap`
 there are no dependencies between model parameters, so it will be a diagonal matrix:
 
 .. math::
@@ -117,7 +117,7 @@ of log conductivity. This makes sense not only because it ensures all conductivi
 will be positive, but because this is fundamentally the space where conductivity
 lives (i.e. it varies logarithmically).
 
-.. autoclass:: SimPEG.Maps.ExpMap
+.. autoclass:: SimPEG.maps.ExpMap
     :members:
     :undoc-members:
 
@@ -125,7 +125,7 @@ lives (i.e. it varies logarithmically).
 Vertical 1D Map
 ---------------
 
-.. autoclass:: SimPEG.Maps.SurjectVertical1D
+.. autoclass:: SimPEG.maps.SurjectVertical1D
     :members:
     :undoc-members:
 
@@ -133,7 +133,7 @@ Vertical 1D Map
 Map 2D Cross-Section to 3D Model
 --------------------------------
 
-.. autoclass:: SimPEG.Maps.Surject2Dto3D
+.. autoclass:: SimPEG.maps.Surject2Dto3D
     :members:
     :undoc-members:
 
@@ -141,7 +141,7 @@ Map 2D Cross-Section to 3D Model
 Mesh to Mesh Map
 ----------------
 
-.. autoclass:: SimPEG.Maps.Mesh2Mesh
+.. autoclass:: SimPEG.maps.Mesh2Mesh
     :members:
     :undoc-members:
 
@@ -162,7 +162,7 @@ maps. It also uses the chain rule to create the derivative.
 Remember, any time that you make your own combination of mappings
 be sure to test that the derivative is correct.
 
-.. autoclass:: SimPEG.Maps.ComboMap
+.. autoclass:: SimPEG.maps.ComboMap
     :members:
     :undoc-members:
 
@@ -172,8 +172,7 @@ The API
 
 The :code:`IdentityMap` is the base class for all mappings, and it does absolutely nothing.
 
-.. automodule:: SimPEG.Maps
+.. automodule:: SimPEG.maps
     :show-inheritance:
     :members:
     :undoc-members:
-

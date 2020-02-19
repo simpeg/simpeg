@@ -7,7 +7,7 @@ Todo: docs for IP!
 API for IP codes
 ================
 
-.. automodule:: SimPEG.EM.Static.IP
+.. automodule:: SimPEG.electromagnetics.static.induced_polarization
     :show-inheritance:
     :members:
     :undoc-members:

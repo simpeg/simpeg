@@ -42,31 +42,32 @@ head-based formulation and the mixed-formulation.
 import matplotlib.pyplot as plt
 import numpy as np
 
-from SimPEG import Mesh, Maps
-from SimPEG.FLOW import Richards
+import discretize
+from SimPEG import maps
+from SimPEG.flow import richards
 
 
 def run(plotIt=True):
 
-    M = Mesh.TensorMesh([np.ones(40)])
+    M = discretize.TensorMesh([np.ones(40)])
     M.setCellGradBC('dirichlet')
-    params = Richards.Empirical.HaverkampParams().celia1990
-    k_fun, theta_fun = Richards.Empirical.haverkamp(M, **params)
-    k_fun.KsMap = Maps.IdentityMap(nP=M.nC)
+    params = richards.empirical.HaverkampParams().celia1990
+    k_fun, theta_fun = richards.empirical.haverkamp(M, **params)
+    k_fun.KsMap = maps.IdentityMap(nP=M.nC)
 
     bc = np.array([-61.5, -20.7])
     h = np.zeros(M.nC) + bc[0]
 
     def getFields(timeStep, method):
         timeSteps = np.ones(int(360/timeStep))*timeStep
-        prob = Richards.RichardsProblem(
+        prob = richards.RichardsSimulation(
             M,
             hydraulic_conductivity=k_fun,
             water_retention=theta_fun,
             boundary_conditions=bc, initial_conditions=h,
             do_newton=False, method=method
         )
-        prob.timeSteps = timeSteps
+        prob.time_steps = timeSteps
         return prob.fields(params['Ks'] * np.ones(M.nC))
 
     Hs_M010 = getFields(10, 'mixed')

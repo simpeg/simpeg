@@ -2,7 +2,7 @@
 Electromagnetics
 ================
 
-`SimPEG.EM` uses SimPEG as the framework for the forward and inverse
+`SimPEG.electromagnetics` uses SimPEG as the framework for the forward and inverse
 electromagnetics geophysical problems.
 
 To solve for predicted data, we follow the framework shown below. The model is
@@ -24,5 +24,3 @@ fields with receivers to give us predicted data.
    api_TDEM
    api_NSEM
    api_Utils
-
-

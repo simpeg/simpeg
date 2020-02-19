@@ -47,8 +47,9 @@ a citation would be much appreciated!
 from __future__ import print_function
 import matplotlib.pylab as plt
 import numpy as np
-from SimPEG import Mesh, Maps, Utils
-from SimPEG.EM import FDEM
+import discretize
+from SimPEG import maps, utils
+from SimPEG.electromagnetics import frequency_domain as FDEM
 import time
 
 try:
@@ -89,8 +90,8 @@ def run(plotIt=True):
 
     # pad nicely to second cell size
     npadx1 = np.floor(np.log(csx2/csx1) / np.log(pfx1))
-    hx1a = Utils.meshTensor([(csx1, ncx1)])
-    hx1b = Utils.meshTensor([(csx1, npadx1, pfx1)])
+    hx1a = utils.meshTensor([(csx1, ncx1)])
+    hx1b = utils.meshTensor([(csx1, npadx1, pfx1)])
     dx1 = sum(hx1a)+sum(hx1b)
     dx1 = np.floor(dx1/csx2)
     hx1b *= (dx1*csx2 - sum(hx1a))/sum(hx1b)
@@ -99,8 +100,8 @@ def run(plotIt=True):
     dx2 = 300.  # uniform mesh out to here
     ncx2 = np.ceil((dx2 - dx1)/csx2)
     npadx2 = 45
-    hx2a = Utils.meshTensor([(csx2, ncx2)])
-    hx2b = Utils.meshTensor([(csx2, npadx2, pfx2)])
+    hx2a = utils.meshTensor([(csx2, ncx2)])
+    hx2b = utils.meshTensor([(csx2, npadx2, pfx2)])
     hx = np.hstack([hx1a, hx1b, hx2a, hx2b])
 
     # z-direction
@@ -110,11 +111,11 @@ def run(plotIt=True):
     # x-direction
     ncz, npadzu, npadzd = np.int(np.ceil(np.diff(casing_z)[0]/csz))+10, 68, 68
     # vector of cell widths in the z-direction
-    hz = Utils.meshTensor([(csz, npadzd, -1.3), (csz, ncz),
+    hz = utils.meshTensor([(csz, npadzd, -1.3), (csz, ncz),
                           (csz, npadzu, 1.3)])
 
     # Mesh
-    mesh = Mesh.CylMesh([hx, 1., hz], [0., 0., -np.sum(hz[:npadzu+ncz-nza])])
+    mesh = discretize.CylMesh([hx, 1., hz], [0., 0., -np.sum(hz[:npadzu+ncz-nza])])
 
     print('Mesh Extent xmax: {0:f},: zmin: {1:f}, zmax: {2:f}'.format(
         mesh.vectorCCx.max(), mesh.vectorCCz.min(), mesh.vectorCCz.max()
@@ -231,10 +232,10 @@ def run(plotIt=True):
     survey = FDEM.Survey(sg_p + dg_p)
     problem = FDEM.Problem3D_h(
         mesh,
-        sigmaMap=Maps.IdentityMap(mesh),
+        survey=survey,
+        sigmaMap=maps.IdentityMap(mesh),
         Solver=Solver
     )
-    problem.pair(survey)
 
     # ------------- Solve ---------------------------
     t0 = time.time()

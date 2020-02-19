@@ -1,13 +1,13 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-from SimPEG import Tests
+from SimPEG import tests
 from scipy.constants import mu_0
-from SimPEG.EM.Utils.testingUtils import getFDEMProblem
+from SimPEG.electromagnetics.utils.testingUtils import getFDEMProblem
 
 testE = False
-testB = False
-testH = True
+testB = True
+testH = False
 testJ = False
 
 verbose = False
@@ -16,7 +16,7 @@ TOL = 1e-5
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
-freq = 1e-1
+freq = 3.16
 addrandoms = True
 
 SrcType = ['MagDipole', 'RawVec']  # or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'
@@ -38,8 +38,8 @@ def derivTest(fdemType, comp):
     survey = prb.survey
 
     def fun(x):
-        return survey.dpred(x), lambda x: prb.Jvec(x0, x)
-    return Tests.checkDerivative(fun, x0, num=2, plotIt=False, eps=FLR)
+        return prb.dpred(x), lambda x: prb.Jvec(x0, x)
+    return tests.checkDerivative(fun, x0, num=2, plotIt=False, eps=FLR)
 
 
 class FDEM_DerivTests(unittest.TestCase):

@@ -6,8 +6,8 @@ import numpy as np
 import unittest
 from scipy.constants import mu_0
 
-from SimPEG.EM import NSEM
-from SimPEG import Maps
+from SimPEG.electromagnetics import natural_source as nsem
+from SimPEG import maps
 
 
 TOL = 1e-4
@@ -18,11 +18,11 @@ MU = mu_0
 
 def JvecAdjointTest(sigmaHalf, formulation='PrimSec'):
     forType = 'PrimSec' not in formulation
-    survey, sigma, sigBG, m1d = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,tD=forType,structure=False)
+    survey, sigma, sigBG, m1d = nsem.utils.testUtils.setup1DSurvey(sigmaHalf,tD=forType,structure=False)
     print('Adjoint test of e formulation for {:s} comp \n'.format(formulation))
 
     if 'PrimSec' in formulation:
-        problem = NSEM.Problem1D_ePrimSec(m1d, sigmaPrimary=sigBG, sigmaMap=Maps.IdentityMap(m1d))
+        problem = nsem.Problem1D_ePrimSec(m1d, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(m1d))
     else:
         raise NotImplementedError('Only {} formulations are implemented.'.format(formulation))
     problem.pair(survey)

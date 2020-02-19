@@ -10,16 +10,17 @@ from __future__ import print_function
 import numpy as np
 import matplotlib.pyplot as plt
 
-from SimPEG import Mesh
-from SimPEG import Problem
-from SimPEG import Survey
-from SimPEG import DataMisfit
-from SimPEG import Directives
-from SimPEG import Optimization
-from SimPEG import Regularization
-from SimPEG import InvProblem
-from SimPEG import Inversion
-from SimPEG import Maps
+import discretize
+#from SimPEG import Problem
+from SimPEG.simulation import LinearSimulation
+from SimPEG.data import Data
+from SimPEG import data_misfit
+from SimPEG import directives
+from SimPEG import optimization
+from SimPEG import regularization
+from SimPEG import inverse_problem
+from SimPEG import inversion
+from SimPEG import maps
 
 
 def run(N=100, plotIt=True):
@@ -28,7 +29,7 @@ def run(N=100, plotIt=True):
 
     std_noise = 1e-2
 
-    mesh = Mesh.TensorMesh([N])
+    mesh = discretize.TensorMesh([N])
 
     m0 = np.ones(mesh.nC) * 1e-4
     mref = np.zeros(mesh.nC)
@@ -54,47 +55,42 @@ def run(N=100, plotIt=True):
     mtrue[mesh.vectorCCx > 0.45] = -0.5
     mtrue[mesh.vectorCCx > 0.6] = 0
 
-    prob = Problem.LinearProblem(mesh, G=G)
-    survey = Survey.LinearSurvey()
-    survey.pair(prob)
-    survey.dobs = prob.fields(mtrue) + std_noise * np.random.randn(nk)
+    prob = LinearSimulation(mesh, G=G, model_map=maps.IdentityMap(mesh))
+    data = prob.make_synthetic_data(mtrue,
+        standard_deviation=0.0,
+        noise_floor=std_noise,
+        add_noise=True)
 
-    wd = np.ones(nk) * std_noise
+    dmis = data_misfit.L2DataMisfit(simulation=prob, data=data)
 
-    # Distance weighting
-    wr = np.sum(prob.getJ(m0)**2., axis=0)**0.5
-    wr = wr/np.max(wr)
-
-    dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.W = 1./wd
-
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 
     # Creat reduced identity map
-    idenMap = Maps.IdentityMap(nP=mesh.nC)
+    idenMap = maps.IdentityMap(nP=mesh.nC)
 
-    reg = Regularization.Sparse(mesh, mapping=idenMap)
+    reg = regularization.Sparse(mesh, mapping=idenMap)
     reg.mref = mref
-    reg.cell_weights = wr
     reg.norms = np.c_[0., 0., 2., 2.]
     reg.mref = np.zeros(mesh.nC)
 
-    opt = Optimization.ProjectedGNCG(
+    opt = optimization.ProjectedGNCG(
         maxIter=100, lower=-2., upper=2.,
         maxIterLS=20, maxIterCG=10, tolCG=1e-3
     )
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    update_Jacobi = Directives.UpdatePreconditioner()
+    invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
+    update_Jacobi = directives.UpdatePreconditioner()
 
     # Set the IRLS directive, penalize the lowest 25 percentile of model values
     # Start with an l2-l2, then switch to lp-norms
 
-    IRLS = Directives.Update_IRLS(
-        maxIRLSiter=40, minGNiter=1, f_min_change=1e-4)
-    saveDict = Directives.SaveOutputEveryIteration(save_txt=False)
-    inv = Inversion.BaseInversion(
+    IRLS = directives.Update_IRLS(
+        max_irls_iterations=40, minGNiter=1, f_min_change=1e-4)
+    saveDict = directives.SaveOutputEveryIteration(save_txt=False)
+    sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+
+    inv = inversion.BaseInversion(
         invProb,
-        directiveList=[IRLS, betaest, update_Jacobi, saveDict]
+        directiveList=[sensitivity_weights, IRLS, betaest, update_Jacobi, saveDict]
     )
 
     # Run inversion
@@ -143,7 +139,7 @@ def run(N=100, plotIt=True):
         axes[1, 0].axis('off')
         twin.set_ylabel('$\phi_m$', size=16, rotation=0)
 
-    return prob, survey, mesh, mrec
+    return prob, data, mesh, mrec
 
 
 if __name__ == '__main__':

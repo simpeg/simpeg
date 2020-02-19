@@ -6,12 +6,12 @@ Showing the face divergence on the quadtree with numbering.
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from SimPEG import Mesh
+import discretize
 
 
 def run(plotIt=True, n=60):
 
-    M = Mesh.TreeMesh([[(1, 16)], [(1, 16)]], levels=4)
+    M = discretize.TreeMesh([[(1, 16)], [(1, 16)]], levels=4)
 
     M.insert_cells(
             np.c_[5, 5], np.r_[3],
