@@ -222,7 +222,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                     PTv = rx.evalDeriv(src, self.mesh, f, mkvc(v[src, rx]), adjoint=True) # wrt f, need possibility wrt m
                     # Get the
                     # dA_duIT = mkvc(ATinv * PTv) # Force (nU,) shape
-                    dA_duIT = mkvc(self.ATinv[nF] * PTv)  # Force (nU,) shape
+                    dA_duIT = mkvc(self.Ainv[nF] * PTv)  # Force (nU,) shape
                     dA_dmT = self.getADeriv(freq, u_src, dA_duIT, adjoint=True)
                     dRHS_dmT = self.getRHSDeriv(freq, dA_duIT, adjoint=True)
                     # Make du_dmT
@@ -608,7 +608,6 @@ class Problem3D_ePrimSec(BaseNSEMSimulation):
         except:
             pass
         self.Ainv = [None for i in range(self.survey.num_frequencies)]
-        self.ATinv = [None for i in range(self.survey.num_frequencies)]
 
         for nf, freq in enumerate(self.survey.frequencies):
             if self.verbose:
@@ -619,7 +618,6 @@ class Problem3D_ePrimSec(BaseNSEMSimulation):
             rhs = self.getRHS(freq)
             # Solve the system
             self.Ainv[nf] = self.Solver(A, **self.solver_opts)
-            self.ATinv[nf] = self.Solver(A.T, **self.solver_opts)
             e_s = self.Ainv[nf] * rhs
 
             # Store the fields
