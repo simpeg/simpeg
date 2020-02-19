@@ -18,7 +18,7 @@ MAPS_TO_EXCLUDE_2D = [
     "ParametricCasingAndLayer",
     "ParametricLayer", "ParametricBlockInLayer",
     "Projection", "SelfConsistentEffectiveMedium",
-    "SumMap", "SurjectUnits"
+    "SumMap", "SurjectUnits", "TileMap"
 ]
 MAPS_TO_EXCLUDE_3D = [
     "ComboMap", "ActiveCells", "InjectActiveCells",
@@ -29,7 +29,7 @@ MAPS_TO_EXCLUDE_3D = [
     "SplineMap", "ParametricCasingAndLayer",
     "ParametricLayer", "ParametricBlockInLayer",
     "Projection", "SelfConsistentEffectiveMedium",
-    "SumMap", "SurjectUnits"
+    "SumMap", "SurjectUnits", "TileMap"
 ]
 
 
