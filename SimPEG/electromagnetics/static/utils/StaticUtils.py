@@ -1691,11 +1691,11 @@ def gettopoCC(mesh, actind, option="top"):
         inds = mesh.get_boundary_cells(actind, direction='zu')[0]
 
         if option == "top":
-            dz = mesh.h_gridded[inds, 2] * 0.5
+            dz = mesh.h_gridded[inds, -1] * 0.5
         elif option == "center":
             dz = 0.
 
-        return mesh.gridCC[inds, :2], mesh.gridCC[inds, 2] + dz
+        return mesh.gridCC[inds, :-1], mesh.gridCC[inds, -1] + dz
 
 
 def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
