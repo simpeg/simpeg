@@ -135,7 +135,7 @@ def resample_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
 
     # Filter the data
     for src in NSEMdata.survey.source_list:
-        if src.freq in frequencies:
+        if src.frequency in frequencies:
             new_rxList = []
             for rx in src.receiver_list:
                 if rx_comp is True or np.any(

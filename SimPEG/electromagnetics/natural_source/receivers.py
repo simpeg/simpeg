@@ -60,17 +60,23 @@ class BaseRxNSEM_Point(BaseRx):
         self._f = value
 
     def _locs_e(self):
-        if self.locs.ndim == 3:
-            loc = self.locs[:, :, 0]
+        if self.locations.ndim == 3:
+            loc = self.locations[:, :, 0]
         else:
-            loc = self.locs
+            if self.locations.shape[1] == 6:
+                loc = self.locations[:, 3:]
+            else:
+                loc = self.locations
         return loc
 
     def _locs_b(self):
-        if self.locs.ndim == 3:
-            loc = self.locs[:, :, 1]
+        if self.locations.ndim == 3:
+            loc = self.locations[:, :, 1]
         else:
-            loc = self.locs
+            if self.locations.shape[1] == 6:
+                loc = self.locations[:, :3]
+            else:
+                loc = self.locations
         return loc
 
     # Location projection

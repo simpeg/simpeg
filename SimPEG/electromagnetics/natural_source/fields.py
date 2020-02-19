@@ -141,7 +141,7 @@ class Fields1D_ePrimSec(FieldsFDEM):
         C = self.mesh.nodalGrad
         b = (C * eSolution)
         for i, src in enumerate(source_list):
-            b[:, i] *= - 1./(1j*omega(src.freq))
+            b[:, i] *= - 1./(1j*omega(src.frequency))
         return b
 
     # def _b(self, eSolution, source_list):
@@ -186,9 +186,9 @@ class Fields1D_ePrimSec(FieldsFDEM):
         # bPrimary: no model depenency
         C = self.mesh.nodalGrad
         if adjoint:
-            bSecondaryDeriv_u = - 1./(1j*omega(src.freq)) * (C.T * du_dm_v)
+            bSecondaryDeriv_u = - 1./(1j*omega(src.frequency)) * (C.T * du_dm_v)
         else:
-            bSecondaryDeriv_u = - 1./(1j*omega(src.freq)) * (C * du_dm_v)
+            bSecondaryDeriv_u = - 1./(1j*omega(src.frequency)) * (C * du_dm_v)
         return bSecondaryDeriv_u
 
     def _bDeriv_m(self, src, v, adjoint=False):
@@ -365,7 +365,7 @@ class Fields3D_ePrimSec(Fields):
         C = self.mesh.edgeCurl
         b = (C * e_pxSolution)
         for i, src in enumerate(source_list):
-            b[:, i] *= - 1./(1j*omega(src.freq))
+            b[:, i] *= - 1./(1j*omega(src.frequency))
         return b
 
     def _b_pySecondary(self, e_pySolution, source_list):
@@ -380,7 +380,7 @@ class Fields3D_ePrimSec(Fields):
         C = self.mesh.edgeCurl
         b = (C * e_pySolution)
         for i, src in enumerate(source_list):
-            b[:, i] *= - 1./(1j*omega(src.freq))
+            b[:, i] *= - 1./(1j*omega(src.frequency))
         return b
 
     def _b_px(self, eSolution, source_list):
@@ -508,8 +508,8 @@ class Fields3D_ePrimSec(Fields):
         # Primary does not depend on u
         C = sp.hstack((self.mesh.edgeCurl,spzeros(self.mesh.nF, self.mesh.nE))) # This works for adjoint = None
         if adjoint:
-            return - 1./(1j*omega(src.freq)) * (C.T * du_dm_v)
-        return - 1./(1j*omega(src.freq)) * (C * du_dm_v)
+            return - 1./(1j*omega(src.frequency)) * (C.T * du_dm_v)
+        return - 1./(1j*omega(src.frequency)) * (C * du_dm_v)
 
     def _b_pyDeriv_u(self, src, du_dm_v, adjoint=False):
         """ Derivative of b_py with wrt u
@@ -523,8 +523,8 @@ class Fields3D_ePrimSec(Fields):
         # Primary does not depend on u
         C = sp.hstack((spzeros(self.mesh.nF, self.mesh.nE), self.mesh.edgeCurl)) # This works for adjoint = None
         if adjoint:
-            return - 1./(1j*omega(src.freq)) * (C.T * du_dm_v)
-        return - 1./(1j*omega(src.freq)) * (C * du_dm_v)
+            return - 1./(1j*omega(src.frequency)) * (C.T * du_dm_v)
+        return - 1./(1j*omega(src.frequency)) * (C * du_dm_v)
 
     def _b_pxDeriv_m(self, src, v, adjoint=False):
         """ Derivative of b_px wrt m """

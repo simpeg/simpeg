@@ -123,13 +123,13 @@ class Data(BaseData, DataNSEMPlotMethods):
             # Note: needs to be written more generally,
             # using diffterent rxTypes and not all the data at the locations
             # Assume the same locs for all RX
-            locs = src.receiver_list[0].locs
+            locs = src.receiver_list[0].locations
             if locs.shape[1] == 1:
                 locs = np.hstack((np.array([[0.0, 0.0]]), locs))
             elif locs.shape[1] == 2:
                 locs = np.hstack((np.array([[0.0]]), locs))
             tArrRec = np.concatenate((
-                src.freq * np.ones((locs.shape[0], 1)), locs,
+                src.frequency * np.ones((locs.shape[0], 1)), locs,
                 np.nan * np.ones((locs.shape[0], 12))), axis=1).view(dtRI)
             # Get the type and the value for the DataNSEM object as a list
             typeList = [
