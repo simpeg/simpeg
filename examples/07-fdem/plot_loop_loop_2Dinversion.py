@@ -21,7 +21,7 @@ import discretize
 from SimPEG import (
     maps, optimization,
     data_misfit, regularization, inverse_problem,
-    inversion, directives, Versions
+    inversion, directives, Report
 )
 from SimPEG.electromagnetics import frequency_domain as FDEM
 
@@ -333,7 +333,7 @@ plt.show()
 # --------------------------------------------
 #
 
-Versions()
+Report()
 
 ###############################################################################
 # Moving Forward

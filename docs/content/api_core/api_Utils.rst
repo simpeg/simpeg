@@ -5,13 +5,6 @@ Utils
     :members:
     :undoc-members:
 
-Version
-=======
-
-.. automodule:: SimPEG.utils.printinfo
-    :members:
-    :undoc-members:
-
 
 Matrix Utilities
 ================
