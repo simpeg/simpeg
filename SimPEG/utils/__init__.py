@@ -29,11 +29,9 @@ from .model_utils import surface2ind_topo
 from .model_utils import plot2Ddata, plotLayer
 from .io_utils import download
 
-
 """
-Deprecated
+Deprecated,
+don't think we can throw warning if a user accesses them from here...
 """
 SolverUtils = solver_utils
 ModelBuilder = model_builder
-from . import counter_utils as CounterUtils
-from . import model_utils as PlotUtils
