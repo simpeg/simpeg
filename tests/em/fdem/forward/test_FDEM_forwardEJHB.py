@@ -1,6 +1,6 @@
 import unittest
 from scipy.constants import mu_0
-from SimPEG.electromagnetics.utils.testingUtils import getFDEMProblem, crossCheckTest
+from SimPEG.electromagnetics.utils.testing_utils import getFDEMProblem, crossCheckTest
 
 testEJ = True
 testBH = True

@@ -2,7 +2,7 @@ from __future__ import print_function
 import unittest
 import numpy as np
 from scipy.constants import mu_0
-from SimPEG.electromagnetics.utils.testingUtils import getFDEMProblem
+from SimPEG.electromagnetics.utils.testing_utils import getFDEMProblem
 
 testJ = True
 testH = True
