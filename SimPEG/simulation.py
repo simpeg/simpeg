@@ -274,7 +274,7 @@ class BaseSimulation(props.HasModel):
         instead
         """
         warnings.warn(
-            "simulation.pair(survey) will be depreciated. Please use "
+            "simulation.pair(survey) will be deprecated. Please use "
             "simulation.survey = survey",
             DeprecationWarning
         )
@@ -427,7 +427,7 @@ class BaseSimulation(props.HasModel):
 
     def makeSyntheticData(self, m, standard_deviation=0.05, f=None):
         warnings.warn(
-            "makeSyntheticData will be depreciated in favor of "
+            "makeSyntheticData will be deprecated in favor of "
             "make_synthetic_data. Please update your code to use "
             "make_synthetic_data", DeprecationWarning
         )
@@ -492,7 +492,7 @@ class BaseTimeSimulation(BaseSimulation):
     @property
     def timeSteps(self):
         warnings.warn(
-            "timeSteps will be depreciated in favor of time_steps. "
+            "timeSteps will be deprecated in favor of time_steps. "
             "Please update your code accordingly"
         )
         return self.time_steps
@@ -500,7 +500,7 @@ class BaseTimeSimulation(BaseSimulation):
     @timeSteps.setter
     def timeSteps(self, value):
         warnings.warn(
-            "timeSteps will be depreciated in favor of time_steps. "
+            "timeSteps will be deprecated in favor of time_steps. "
             "Please update your code accordingly"
         )
         self.time_steps = value
@@ -508,7 +508,7 @@ class BaseTimeSimulation(BaseSimulation):
     @property
     def timeMesh(self):
         warnings.warn(
-            "timeMesh will be depreciated in favor of time_mesh. "
+            "timeMesh will be deprecated in favor of time_mesh. "
             "Please update your code accordingly"
         )
         return self.time_mesh

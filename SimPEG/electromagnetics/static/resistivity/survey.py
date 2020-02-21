@@ -329,4 +329,4 @@ class Survey_ky(Survey):
     """
     2.5D survey
     """
-    # TODO: we should depreciate this and just use the above survey class as they are identical
+    # TODO: we should deprecate this and just use the above survey class as they are identical

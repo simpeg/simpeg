@@ -9,7 +9,7 @@ from discretize.utils import (
 
 
 def avExtrap(**kwargs):
-    raise Exception("avExtrap has been depreciated. Use av_extrap instead.")
+    raise Exception("avExtrap has been deprecated. Use av_extrap instead.")
 
 
 def diagEst(matFun, n, k=None, approach='Probing'):

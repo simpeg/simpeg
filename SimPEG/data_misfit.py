@@ -83,7 +83,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
     @property
     def Wd(self):
         raise AttributeError(
-            'The `Wd` property been depreciated, please use: `W` instead'
+            'The `Wd` property been deprecated, please use: `W` instead'
         )
 
     @property
@@ -215,7 +215,7 @@ class l2_DataMisfit(L2DataMisfit):
     """
     def __init__(self, **kwargs):
         warnings.warn(
-            "l2_DataMisfit has been depreciated in favor of L2DataMisfit. Please "
+            "l2_DataMisfit has been deprecated in favor of L2DataMisfit. Please "
             "update your code to use 'L2DataMisfit'", DeprecationWarning
         )
         super(l2_DataMisfit, self).__init__(**kwargs)

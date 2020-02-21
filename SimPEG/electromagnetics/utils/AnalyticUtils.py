@@ -14,7 +14,7 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1.,
                                   orientation=np.r_[0., 0., 1.],
                                   mu=mu_0):
     """
-    This code has been depreciated after SimPEG 0.11.5. Please use geoana instead. "
+    This code has been deprecated after SimPEG 0.11.5. Please use geoana instead. "
 
     .. code::
 
@@ -23,7 +23,7 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1.,
     """
 
     raise Exception(
-        "This code has been depreciated after SimPEG 0.11.5. "
+        "This code has been deprecated after SimPEG 0.11.5. "
         "Please use geoana instead. "
         "\n >> pip install geoana "
         "\n >> from geoana.electromagnetics.static import MagneticDipoleWholeSpace"
@@ -34,7 +34,7 @@ def MagneticDipoleFields(
     srcLoc, obsLoc, component, orientation='Z', moment=1., mu=mu_0
 ):
     """
-    This code has been depreciated after SimPEG 0.11.5. Please use geoana instead. "
+    This code has been deprecated after SimPEG 0.11.5. Please use geoana instead. "
 
     .. code::
 
@@ -43,7 +43,7 @@ def MagneticDipoleFields(
     """
 
     raise Exception(
-        "This code has been depreciated after SimPEG 0.11.5. "
+        "This code has been deprecated after SimPEG 0.11.5. "
         "Please use geoana instead. "
         "\n >> pip install geoana "
         "\n >> from geoana.electromagnetics.static import MagneticDipoleWholeSpace"
@@ -53,7 +53,7 @@ def MagneticDipoleFields(
 
 def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, orientation='Z', mu=mu_0):
     """
-    This code has been depreciated after SimPEG 0.11.5. Please use geoana instead. "
+    This code has been deprecated after SimPEG 0.11.5. Please use geoana instead. "
 
     .. code::
 
@@ -62,7 +62,7 @@ def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, orientation='
     """
 
     raise Exception(
-        "This code has been depreciated after SimPEG 0.11.5. "
+        "This code has been deprecated after SimPEG 0.11.5. "
         "Please use geoana instead. "
         "\n >> pip install geoana "
         "\n >> from geoana.electromagnetics.static import CircularLoopWholeSpace"

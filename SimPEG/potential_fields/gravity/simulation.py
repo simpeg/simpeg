@@ -267,7 +267,7 @@ class DifferentialEquationSimulation(BaseSimulation):
         Gravity in differential equations!
     """
 
-    _depreciate_main_map = 'rhoMap'
+    _deprecate_main_map = 'rhoMap'
 
     rho, rhoMap, rhoDeriv = props.Invertible(
         "Specific density (g/cc)",
