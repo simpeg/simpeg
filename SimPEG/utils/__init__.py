@@ -26,7 +26,7 @@ from . import model_builder
 from . import solver_utils
 from .coord_utils import rotatePointsFromNormals, rotationMatrixFromNormals
 from .model_utils import surface2ind_topo
-from .model_utils import plot2Ddata, plotLayer
+from .plot_utils import plot2Ddata, plotLayer
 from .io_utils import download
 
 """
