@@ -24,10 +24,10 @@ class IPProblemTestsCC(unittest.TestCase):
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hz = [(cs, 0, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hz], x0="CN")
-        blkind0 = utils.modelbuilder.getIndicesSphere(
+        blkind0 = utils.model_builder.getIndicesSphere(
             np.r_[-100., -200.], 75., mesh.gridCC
         )
-        blkind1 = utils.modelbuilder.getIndicesSphere(
+        blkind1 = utils.model_builder.getIndicesSphere(
             np.r_[100., -200.], 75., mesh.gridCC
         )
 
@@ -122,10 +122,10 @@ class IPProblemTestsN(unittest.TestCase):
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hz = [(cs, 0, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hz], x0="CN")
-        blkind0 = utils.modelbuilder.getIndicesSphere(
+        blkind0 = utils.model_builder.getIndicesSphere(
             np.r_[-100., -200.], 75., mesh.gridCC
         )
-        blkind1 = utils.modelbuilder.getIndicesSphere(
+        blkind1 = utils.model_builder.getIndicesSphere(
             np.r_[100., -200.], 75., mesh.gridCC
         )
 
@@ -219,10 +219,10 @@ class IPProblemTestsN_air(unittest.TestCase):
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hz = [(cs, 0, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hz], x0="CN")
-        blkind0 = utils.modelbuilder.getIndicesSphere(
+        blkind0 = utils.model_builder.getIndicesSphere(
             np.r_[-100., -200.], 75., mesh.gridCC
         )
-        blkind1 = utils.modelbuilder.getIndicesSphere(
+        blkind1 = utils.model_builder.getIndicesSphere(
             np.r_[100., -200.], 75., mesh.gridCC
         )
 

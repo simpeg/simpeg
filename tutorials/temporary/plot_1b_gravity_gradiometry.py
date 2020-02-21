@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
-from SimPEG.utils import plot2Ddata, modelbuilder, surface2ind_topo
+from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo
 from SimPEG import maps
 from SimPEG.potential_fields import gravity
 
@@ -162,7 +162,7 @@ ind_block = (
 model[ind_block] = block_density
 
 # You can also use SimPEG utilities to add structures to the model more concisely
-ind_sphere = modelbuilder.getIndicesSphere(
+ind_sphere = model_builder.getIndicesSphere(
     np.r_[35., 0., -40.], 15., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]

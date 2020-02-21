@@ -114,10 +114,10 @@ nC = int(actv.sum())
 #
 
 # Convert the inclination declination to vector in Cartesian
-M_xyz = utils.matutils.dip_azimuth2cartesian(np.ones(nC)*M[0], np.ones(nC)*M[1])
+M_xyz = utils.mat_utils.dip_azimuth2cartesian(np.ones(nC)*M[0], np.ones(nC)*M[1])
 
 # Get the indicies of the magnetized block
-ind = utils.modelbuilder.getIndicesBlock(
+ind = utils.model_builder.getIndicesBlock(
     np.r_[-20, -20, -10], np.r_[20, 20, 25],
     mesh.gridCC,
 )[0]
@@ -156,7 +156,7 @@ data_object = data.Data(survey, dobs=synthetic_data, noise_floor=wd)
 # Plot the model and data
 plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 1, 1)
-im = utils.plotutils.plot2Ddata(
+im = utils.model_utils.plot2Ddata(
         rxLoc, synthetic_data, ax=ax, contourOpts={"cmap": "RdBu_r"}
 )
 plt.colorbar(im[0])
@@ -191,7 +191,7 @@ plt.show()
 #
 
 # Get the active cells for equivalent source is the top only
-surf = utils.modelutils.surface_layer_index(mesh, topo)
+surf = utils.model_utils.surface_layer_index(mesh, topo)
 nC = np.count_nonzero(surf)  # Number of active cells
 mstart = np.ones(nC)*1e-4
 
@@ -267,7 +267,7 @@ bAmp = simulation.fields(mrec)
 # Plot the layer model and data
 plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 2, 1)
-im = utils.plotutils.plot2Ddata(
+im = utils.model_utils.plot2Ddata(
         rxLoc, invProb.dpred, ax=ax, contourOpts={"cmap": "RdBu_r"}
 )
 plt.colorbar(im[0])
@@ -275,7 +275,7 @@ ax.set_title('Predicted data.')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(2, 2, 2)
-im = utils.plotutils.plot2Ddata(
+im = utils.model_utils.plot2Ddata(
         rxLoc, bAmp, ax=ax, contourOpts={"cmap": "RdBu_r"}
 )
 plt.colorbar(im[0])
@@ -379,7 +379,7 @@ mrec_Amp = inv.run(mstart)
 # Plot the layer model and data
 plt.figure(figsize=(12, 8))
 ax = plt.subplot(3, 1, 1)
-im = utils.plotutils.plot2Ddata(
+im = utils.model_utils.plot2Ddata(
         rxLoc, invProb.dpred, ax=ax, contourOpts={"cmap": "RdBu_r"}
  )
 plt.colorbar(im[0])

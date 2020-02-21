@@ -203,10 +203,10 @@ def plotVectorSectionsOctree(
 model = np.zeros((mesh.nC, 3))
 
 # Convert the inclination declination to vector in Cartesian
-M_xyz = utils.matutils.dip_azimuth2cartesian(M[0], M[1])
+M_xyz = utils.mat_utils.dip_azimuth2cartesian(M[0], M[1])
 
 # Get the indicies of the magnetized block
-ind = utils.modelbuilder.getIndicesBlock(
+ind = utils.model_builder.getIndicesBlock(
     np.r_[-20, -20, -10], np.r_[20, 20, 25],
     mesh.gridCC,
 )[0]
@@ -245,7 +245,7 @@ actvPlot = maps.InjectActiveCells(mesh, actv, np.nan)
 # Plot the model and data
 plt.figure()
 ax = plt.subplot(2, 1, 1)
-im = utils.plotutils.plot2Ddata(xyzLoc, synthetic_data, ax=ax)
+im = utils.model_utils.plot2Ddata(xyzLoc, synthetic_data, ax=ax)
 plt.colorbar(im[0])
 ax.set_title('Predicted data.')
 plt.gca().set_aspect('equal', adjustable='box')
@@ -344,7 +344,7 @@ mrec_MVIC = inv.run(m0)
 #
 
 spherical_map = maps.SphericalSystem()
-mstart = utils.matutils.cartesian2spherical(mrec_MVIC.reshape((nC, 3), order='F'))
+mstart = utils.mat_utils.cartesian2spherical(mrec_MVIC.reshape((nC, 3), order='F'))
 beta = invProb.beta
 dmis.simulation.chiMap = spherical_map
 dmis.simulation.model = mstart
@@ -440,7 +440,7 @@ ax.set_ylabel('y')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(2, 1, 2)
-vec_xyz = utils.matutils.spherical2cartesian(
+vec_xyz = utils.mat_utils.spherical2cartesian(
     invProb.model.reshape((nC, 3), order='F')).reshape((nC, 3), order='F')
 
 plotVectorSectionsOctree(
@@ -459,11 +459,11 @@ plt.show()
 # Plot the final predicted data and the residual
 plt.figure()
 ax = plt.subplot(1, 2, 1)
-utils.plotutils.plot2Ddata(xyzLoc, invProb.dpred, ax=ax)
+utils.model_utils.plot2Ddata(xyzLoc, invProb.dpred, ax=ax)
 ax.set_title('Predicted data.')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(1, 2, 2)
-utils.plotutils.plot2Ddata(xyzLoc, synthetic_data-invProb.dpred, ax=ax)
+utils.model_utils.plot2Ddata(xyzLoc, synthetic_data-invProb.dpred, ax=ax)
 ax.set_title('Data residual.')
 plt.gca().set_aspect('equal', adjustable='box')

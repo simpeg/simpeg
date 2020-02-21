@@ -142,7 +142,7 @@ class Problem_CC_Jstore(Problem_CC):
         self.model = m
 
         if self.coordinate_system == 'spherical':
-            m = Utils.matutils.atp2xyz(m)
+            m = Utils.mat_utils.atp2xyz(m)
 
         return self.G.dot(m)
 

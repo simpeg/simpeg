@@ -4,7 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 from six import string_types
 
-from .utils.solverutils import SolverWrapI, Solver
+from .utils.solver_utils import SolverWrapI, Solver
 from .utils import (
     callHooks, checkStoppers, count, setKwargs, timeIt, printTitles, printLine,
     printStoppers, printDone

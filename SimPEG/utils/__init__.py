@@ -2,7 +2,7 @@ from __future__ import print_function
 
 from discretize.utils.interputils import interpmat
 
-from .matutils import (
+from .mat_utils import (
     mkvc, sdiag, sdInv, speye, kron3, spzeros, ddx, av,
     av_extrap, ndgrid, ind2sub, sub2ind, getSubArray,
     inv3X3BlockDiagonal, inv2X2BlockDiagonal, TensorType,
@@ -10,30 +10,30 @@ from .matutils import (
     Identity, uniqueRows, cartesian2spherical, spherical2cartesian,
     coterminal
 )
-from .codeutils import (
+from .code_utils import (
     memProfileWrapper, hook, setKwargs,
     printTitles, printLine, checkStoppers, printStoppers, printDone,
     callHooks, dependentProperty,
     asArray_N_x_Dim, requires,
     Report
 )
-from .meshutils import (
+from .mesh_utils import (
     exampleLrmGrid, meshTensor, closestPoints, ExtractCoreMesh
 )
-from .curvutils import volTetra, faceInfo, indexCube
-from .counterutils import Counter, count, timeIt
-from . import modelbuilder
-from . import solverutils
-from .coordutils import rotatePointsFromNormals, rotationMatrixFromNormals
-from .modelutils import surface2ind_topo
-from .plotutils import plot2Ddata, plotLayer
+from .curv_utils import volTetra, faceInfo, indexCube
+from .counter_utils import Counter, count, timeIt
+from . import model_builder
+from . import solver_utils
+from .code_utils import rotatePointsFromNormals, rotationMatrixFromNormals
+from .model_utils import surface2ind_topo
+from .model_utils import plot2Ddata, plotLayer
 from .io_utils import download
+
 
 """
 Deprecated
 """
-
-SolverUtils = solverutils
-ModelBuilder = modelbuilder
-import .counterutils as CounterUtils
-import .plotutils as PlotUtils
+SolverUtils = solver_utils
+ModelBuilder = model_builder
+from . import counter_utils as CounterUtils
+from . import model_utils as PlotUtils

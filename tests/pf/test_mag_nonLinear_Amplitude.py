@@ -60,10 +60,10 @@ class AmpProblemTest(unittest.TestCase):
         nC = int(actv.sum())
 
         # Convert the inclination declination to vector in Cartesian
-        M_xyz = utils.matutils.dip_azimuth2cartesian(np.ones(nC)*M[0], np.ones(nC)*M[1])
+        M_xyz = utils.mat_utils.dip_azimuth2cartesian(np.ones(nC)*M[0], np.ones(nC)*M[1])
 
         # Get the indicies of the magnetized block
-        ind = utils.modelbuilder.getIndicesBlock(
+        ind = utils.model_builder.getIndicesBlock(
             np.r_[-20, -20, -10], np.r_[20, 20, 25],
             mesh.gridCC,
         )[0]
@@ -106,7 +106,7 @@ class AmpProblemTest(unittest.TestCase):
         # Equivalent Source
 
         # Get the active cells for equivalent source is the top only
-        surf = utils.modelutils.surface_layer_index(mesh, topo)
+        surf = utils.model_utils.surface_layer_index(mesh, topo)
         nC = np.count_nonzero(surf)  # Number of active cells
         mstart = np.ones(nC)*1e-4
 

@@ -65,11 +65,11 @@ def run(loc=None, sig=None, radi=None, param=None, survey_type='dipole-dipole',
     model = np.ones(mesh.nC) * sig[0]
 
     # First anomaly
-    ind = utils.modelbuilder.getIndicesSphere(loc[:, 0], radi[0], mesh.gridCC)
+    ind = utils.model_builder.getIndicesSphere(loc[:, 0], radi[0], mesh.gridCC)
     model[ind] = sig[1]
 
     # Second anomaly
-    ind = utils.modelbuilder.getIndicesSphere(loc[:, 1], radi[1], mesh.gridCC)
+    ind = utils.model_builder.getIndicesSphere(loc[:, 1], radi[1], mesh.gridCC)
     model[ind] = sig[2]
 
     # Get index of the center

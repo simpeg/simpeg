@@ -1,7 +1,7 @@
 from __future__ import print_function
 import numpy as np
 from scipy.sparse import linalg
-from .matutils import mkvc
+from .mat_utils import mkvc
 import warnings
 
 def _checkAccuracy(A, b, X, accuracyTol):
@@ -22,8 +22,8 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
     ::
 
         import scipy.sparse as sp
-        Solver   = solverutils.SolverWrapD(sp.linalg.spsolve, factorize=False)
-        SolverLU = solverutils.SolverWrapD(sp.linalg.splu, factorize=True)
+        Solver   = solver_utils.SolverWrapD(sp.linalg.spsolve, factorize=False)
+        SolverLU = solver_utils.SolverWrapD(sp.linalg.splu, factorize=True)
 
     """
 
@@ -86,7 +86,7 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
     ::
 
         import scipy.sparse as sp
-        SolverCG = solverutils.SolverWrapI(sp.linalg.cg)
+        SolverCG = solver_utils.SolverWrapI(sp.linalg.cg)
 
     """
 

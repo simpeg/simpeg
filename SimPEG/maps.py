@@ -21,7 +21,7 @@ import properties
 from discretize.Tests import checkDerivative
 
 from .utils import (
-    setKwargs, mkvc, rotationMatrixFromNormals, Zero, Identity, sdiag, matutils
+    setKwargs, mkvc, rotationMatrixFromNormals, Zero, Identity, sdiag, mat_utils
 )
 
 
@@ -538,8 +538,8 @@ class SphericalSystem(IdentityMap):
             self.model = model
 
             # Do a double projection to make sure the parameters are bounded
-            m_xyz = matutils.spherical2cartesian(model.reshape((-1, 3), order='F'))
-            m_atp = matutils.cartesian2spherical(
+            m_xyz = mat_utils.spherical2cartesian(model.reshape((-1, 3), order='F'))
+            m_atp = mat_utils.cartesian2spherical(
                 m_xyz.reshape((-1, 3), order='F')
             ).reshape((-1, 3), order='F')
 
@@ -573,7 +573,7 @@ class SphericalSystem(IdentityMap):
         :param model:
         :return:
         """
-        return matutils.spherical2cartesian(model.reshape((-1, 3), order='F'))
+        return mat_utils.spherical2cartesian(model.reshape((-1, 3), order='F'))
 
     def inverse(self, model):
         """
@@ -583,7 +583,7 @@ class SphericalSystem(IdentityMap):
         :return: model
 
         """
-        return matutils.cartesian2spherical(model.reshape((-1, 3), order='F'))
+        return mat_utils.cartesian2spherical(model.reshape((-1, 3), order='F'))
 
     @property
     def shape(self):

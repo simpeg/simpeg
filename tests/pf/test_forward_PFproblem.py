@@ -1,7 +1,7 @@
 import unittest
 import discretize
 from SimPEG import utils, maps
-from SimPEG.utils.modelbuilder import getIndicesSphere
+from SimPEG.utils.model_builder import getIndicesSphere
 from SimPEG.potential_fields import magnetics as mag
 import numpy as np
 from pymatsolver import Pardiso

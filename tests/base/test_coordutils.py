@@ -17,8 +17,8 @@ class coorUtilsTest(unittest.TestCase):
         v1 = np.random.rand(3)
         v1 *= 1./np.linalg.norm(v1)
 
-        Rf = utils.coordutils.rotationMatrixFromNormals(v0, v1)
-        Ri = utils.coordutils.rotationMatrixFromNormals(v1, v0)
+        Rf = utils.code_utils.rotationMatrixFromNormals(v0, v1)
+        Ri = utils.code_utils.rotationMatrixFromNormals(v1, v0)
 
         self.assertTrue(np.linalg.norm(utils.mkvc(Rf.dot(v0) - v1)) < tol)
         self.assertTrue(np.linalg.norm(utils.mkvc(Ri.dot(v1) - v0)) < tol)
@@ -33,7 +33,7 @@ class coorUtilsTest(unittest.TestCase):
         v1 *= 1./np.linalg.norm(v1)
 
         v2 = utils.mkvc(
-            utils.coordutils.rotatePointsFromNormals(
+            utils.code_utils.rotatePointsFromNormals(
                 utils.mkvc(v0, 2).T, v0, v1
             )
         )
@@ -54,7 +54,7 @@ class coorUtilsTest(unittest.TestCase):
         XYZ0 = scale * n0
         XYZ1 = scale * n1
 
-        XYZ2 = utils.coordutils.rotatePointsFromNormals(XYZ0, n0, n1)
+        XYZ2 = utils.code_utils.rotatePointsFromNormals(XYZ0, n0, n1)
         self.assertTrue(
             np.linalg.norm(utils.mkvc(XYZ1) - utils.mkvc(XYZ2)) /
             np.linalg.norm(utils.mkvc(XYZ1)) < tol

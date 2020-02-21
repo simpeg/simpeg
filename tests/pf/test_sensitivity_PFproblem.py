@@ -8,7 +8,7 @@
 # #import simpeg.PF as PF
 # from SimPEG import maps, utils
 # from SimPEG.potential_fields import magnetics as mag
-# from SimPEG.utils.modelbuilder import getIndicesSphere
+# from SimPEG.utils.model_builder import getIndicesSphere
 # from scipy.constants import mu_0
 #
 #

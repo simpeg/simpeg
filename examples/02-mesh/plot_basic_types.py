@@ -21,7 +21,7 @@ def run(plotIt=True):
         return 3
 
     qM.refine(refine)
-    rM = discretize.CurvilinearMesh(utils.meshutils.exampleLrmGrid(sz, 'rotate'))
+    rM = discretize.CurvilinearMesh(utils.mesh_utils.exampleLrmGrid(sz, 'rotate'))
 
     if not plotIt:
         return

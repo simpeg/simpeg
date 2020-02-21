@@ -187,7 +187,7 @@ def blockInhalfSpace(conds):
     ccM = M.gridCC
     # conds = [1e-2]
     groundInd = ccM[:,2] < elev
-    sig = utils.modelbuilder.defineBlock(M.gridCC,np.array([-1000,-1000,-1500]),np.array([1000,1000,-1000]),conds)
+    sig = utils.model_builder.defineBlock(M.gridCC,np.array([-1000,-1000,-1500]),np.array([1000,1000,-1000]),conds)
     sig[~groundInd] = 1e-8
     # Set the background, not the same as the model
     sigBG = np.zeros(M.nC) + 1e-8

@@ -53,10 +53,10 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     survey.drapeTopo(mesh, actind, option="top")
 
     # Build a conductivity model
-    blk_inds_c = utils.modelbuilder.getIndicesSphere(
+    blk_inds_c = utils.model_builder.getIndicesSphere(
         np.r_[60., -25.], 12.5, mesh.gridCC
     )
-    blk_inds_r = utils.modelbuilder.getIndicesSphere(
+    blk_inds_r = utils.model_builder.getIndicesSphere(
         np.r_[140., -25.], 12.5, mesh.gridCC
     )
     layer_inds = mesh.gridCC[:, 1] > -5.

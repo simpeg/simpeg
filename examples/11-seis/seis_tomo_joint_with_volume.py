@@ -83,7 +83,7 @@ def run(plotIt=True):
     # phi model
     phi0 = 0
     phi1 = 0.65
-    phitrue = utils.modelbuilder.defineBlock(
+    phitrue = utils.model_builder.defineBlock(
         M.gridCC, [0.4, 0.6], [0.6, 0.4], [phi1, phi0]
     )
 
