@@ -24,7 +24,7 @@ from .curv_utils import volTetra, faceInfo, indexCube
 from .counter_utils import Counter, count, timeIt
 from . import model_builder
 from . import solver_utils
-from .code_utils import rotatePointsFromNormals, rotationMatrixFromNormals
+from .coord_utils import rotatePointsFromNormals, rotationMatrixFromNormals
 from .model_utils import surface2ind_topo
 from .model_utils import plot2Ddata, plotLayer
 from .io_utils import download
