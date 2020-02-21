@@ -143,7 +143,7 @@ def run(plotIt=True):
         m_true[m_true == -100] = np.nan
 
         # Plot the data
-        utils.PlotUtils.plot2Ddata(rxLoc, d)
+        utils.plotutils.plot2Ddata(rxLoc, d)
 
         plt.figure()
 

@@ -156,7 +156,7 @@ data_object = data.Data(survey, dobs=synthetic_data, noise_floor=wd)
 # Plot the model and data
 plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 1, 1)
-im = utils.PlotUtils.plot2Ddata(
+im = utils.plotutils.plot2Ddata(
         rxLoc, synthetic_data, ax=ax, contourOpts={"cmap": "RdBu_r"}
 )
 plt.colorbar(im[0])
@@ -267,7 +267,7 @@ bAmp = simulation.fields(mrec)
 # Plot the layer model and data
 plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 2, 1)
-im = utils.PlotUtils.plot2Ddata(
+im = utils.plotutils.plot2Ddata(
         rxLoc, invProb.dpred, ax=ax, contourOpts={"cmap": "RdBu_r"}
 )
 plt.colorbar(im[0])
@@ -275,7 +275,7 @@ ax.set_title('Predicted data.')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(2, 2, 2)
-im = utils.PlotUtils.plot2Ddata(
+im = utils.plotutils.plot2Ddata(
         rxLoc, bAmp, ax=ax, contourOpts={"cmap": "RdBu_r"}
 )
 plt.colorbar(im[0])
@@ -379,7 +379,7 @@ mrec_Amp = inv.run(mstart)
 # Plot the layer model and data
 plt.figure(figsize=(12, 8))
 ax = plt.subplot(3, 1, 1)
-im = utils.PlotUtils.plot2Ddata(
+im = utils.plotutils.plot2Ddata(
         rxLoc, invProb.dpred, ax=ax, contourOpts={"cmap": "RdBu_r"}
  )
 plt.colorbar(im[0])
