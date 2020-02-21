@@ -127,7 +127,7 @@ class BaseSimulation(props.HasModel):
 
     survey = properties.Instance("a survey object", BaseSurvey)
 
-    counter = properties.Instance("A SimPEG.Utils.Counter object", Counter)
+    counter = properties.Instance("A SimPEG.utils.Counter object", Counter)
 
     # TODO: need to implement a serializer for this & setter
     solver = Class(

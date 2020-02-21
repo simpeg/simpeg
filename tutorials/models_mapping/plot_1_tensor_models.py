@@ -21,7 +21,7 @@ tensor meshes. Some things we consider are:
 #
 
 from discretize import TensorMesh
-from SimPEG.utils import mkvc, surface2ind_topo, ModelBuilder
+from SimPEG.utils import mkvc, surface2ind_topo, modelbuilder
 from SimPEG import maps
 import numpy as np
 import matplotlib.pyplot as plt
@@ -206,7 +206,7 @@ model_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 model = background_value*np.ones(ind_active.sum())
 
 # Add a sphere
-ind_sphere = ModelBuilder.getIndicesSphere(
+ind_sphere = modelbuilder.getIndicesSphere(
     np.r_[-25., 0., -15.], 20., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]  # So it's same size and order as model
@@ -217,7 +217,7 @@ xp = np.kron(np.ones((2)), [-10., 10., 45., 25.])
 yp = np.kron([-1000., 1000.], np.ones((4)))
 zp = np.kron(np.ones((2)), [-120., -120., 35., 35.])
 xyz_pts = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-ind_polygon = ModelBuilder.PolygonInd(mesh, xyz_pts)
+ind_polygon = modelbuilder.PolygonInd(mesh, xyz_pts)
 ind_polygon = ind_polygon[ind_active]  # So same size and order as model
 model[ind_polygon] = dyke_value
 
@@ -311,7 +311,7 @@ N = int(ind_active.sum())
 model = np.kron(np.ones((N, 1)), np.c_[background_sigma, background_myu])
 
 # Add a conductive and permeable sphere
-ind_sphere = ModelBuilder.getIndicesSphere(
+ind_sphere = modelbuilder.getIndicesSphere(
     np.r_[-25., 0., -15.], 20., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]  # So same size and order as model
@@ -322,7 +322,7 @@ xp = np.kron(np.ones((2)), [-10., 10., 45., 25.])
 yp = np.kron([-1000., 1000.], np.ones((4)))
 zp = np.kron(np.ones((2)), [-120., -120., 35., 35.])
 xyz_pts = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-ind_polygon = ModelBuilder.PolygonInd(mesh, xyz_pts)
+ind_polygon = modelbuilder.PolygonInd(mesh, xyz_pts)
 ind_polygon = ind_polygon[ind_active]  # So same size and order as model
 model[ind_polygon, 0] = dyke_sigma
 

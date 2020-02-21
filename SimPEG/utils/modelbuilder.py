@@ -290,7 +290,7 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
         .. plot::
 
             import matplotlib.pyplot as plt
-            import SimPEG.Utils.ModelBuilder as MB
+            import SimPEG.utils.modelbuilder as MB
             plt.colorbar(plt.imshow(MB.randomModel((50,50),bounds=[-4,0])))
             plt.title('A very cool, yet completely random model.')
             plt.show()
@@ -349,7 +349,7 @@ def PolygonInd(mesh, pts):
         .. plot::
 
             import matplotlib.pyplot as plt
-            import SimPEG.Utils.ModelBuilder as MB
+            import SimPEG.utils.modelbuilder as MB
             plt.colorbar(plt.imshow(MB.randomModel((50,50),bounds=[-4,0])))
             plt.title('A very cool, yet completely random model.')
             plt.show()

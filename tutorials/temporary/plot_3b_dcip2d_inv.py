@@ -35,7 +35,7 @@ import matplotlib.pyplot as plt
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
-from SimPEG.utils import ModelBuilder, surface2ind_topo
+from SimPEG.utils import modelbuilder, surface2ind_topo
 from SimPEG import (maps, data, data_misfit, regularization,
     optimization, inverse_problem, inversion, directives, utils
     )

@@ -410,7 +410,7 @@ class Fields3D_e(FieldsFDEM):
         :param SimPEG.electromagnetics.frequency_domain.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: SimPEG.Utils.Zero
+        :rtype: SimPEG.utils.Zero
         :return: product of the electric field derivative with respect to the
             inversion model with a vector
         """
@@ -732,7 +732,7 @@ class Fields3D_b(FieldsFDEM):
         :param SimPEG.electromagnetics.frequency_domain.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: SimPEG.Utils.Zero
+        :rtype: SimPEG.utils.Zero
         :return: product of the magnetic flux density derivative with respect
             to the inversion model with a vector
         """
@@ -1068,7 +1068,7 @@ class Fields3D_j(FieldsFDEM):
         :param SimPEG.electromagnetics.frequency_domain.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: SimPEG.Utils.Zero
+        :rtype: SimPEG.utils.Zero
         :return: product of the current density derivative with respect to the
             inversion model with a vector
         """
@@ -1399,7 +1399,7 @@ class Fields3D_h(FieldsFDEM):
         :param SimPEG.electromagnetics.frequency_domain.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: SimPEG.Utils.Zero
+        :rtype: SimPEG.utils.Zero
         :return: product of the magnetic field derivative with respect to the
             inversion model with a vector
         """
@@ -1589,5 +1589,3 @@ class Fields3D_h(FieldsFDEM):
             src.bPrimaryDeriv(self.simulation, v, adjoint) +
             self._bDeriv_mu(src, v, adjoint)
         )
-
-

@@ -14,7 +14,7 @@ from .... data import Data
 from .. import resistivity as dc
 from .... utils import (
     asArray_N_x_Dim, closestPoints, mkvc, surface2ind_topo, uniqueRows,
-    ModelBuilder
+    modelbuilder
 )
 
 
@@ -1742,14 +1742,14 @@ def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
         mesh2D = discretize.TensorMesh(
             [mesh.hx, mesh.hy], x0=[mesh.x0[0], mesh.x0[1]]
             )
-        out = ModelBuilder.randomModel(
+        out = modelbuilder.randomModel(
             mesh.vnC[:2], bounds=[zmin, zmax], its=its,
             seed=seed, anisotropy=anisotropy
             )
         return out, mesh2D
     elif mesh.dim == 2:
         mesh1D = discretize.TensorMesh([mesh.hx], x0=[mesh.x0[0]])
-        out = ModelBuilder.randomModel(
+        out = modelbuilder.randomModel(
             mesh.vnC[:1], bounds=[zmin, zmax], its=its,
             seed=seed, anisotropy=anisotropy
             )

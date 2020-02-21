@@ -20,7 +20,7 @@ class BaseInvProblem(BaseSimPEG):
     #: Print debugging information
     debug = False
 
-    #: Set this to a SimPEG.Utils.Counter() if you want to count things
+    #: Set this to a SimPEG.utils.Counter() if you want to count things
     counter = None
 
     #: DataMisfit

@@ -73,7 +73,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # We can now create a susceptibility model and generate data
         # Lets start with a simple block in half-space
-        self.model = utils.ModelBuilder.addBlock(
+        self.model = utils.modelbuilder.addBlock(
             self.mesh.gridCC, np.zeros(self.mesh.nC),
             np.r_[-20, -20, -15], np.r_[20, 20, 20], 0.05
         )[actv]

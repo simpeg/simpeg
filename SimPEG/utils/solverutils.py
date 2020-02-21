@@ -22,8 +22,8 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
     ::
 
         import scipy.sparse as sp
-        Solver   = SolverUtils.SolverWrapD(sp.linalg.spsolve, factorize=False)
-        SolverLU = SolverUtils.SolverWrapD(sp.linalg.splu, factorize=True)
+        Solver   = solverutils.SolverWrapD(sp.linalg.spsolve, factorize=False)
+        SolverLU = solverutils.SolverWrapD(sp.linalg.splu, factorize=True)
 
     """
 
@@ -86,7 +86,7 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
     ::
 
         import scipy.sparse as sp
-        SolverCG = SolverUtils.SolverWrapI(sp.linalg.cg)
+        SolverCG = solverutils.SolverWrapI(sp.linalg.cg)
 
     """
 

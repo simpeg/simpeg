@@ -22,12 +22,8 @@ from SimPEG import (
     inversion, regularization
     )
 
-try:
-    from SimPEG import utils
-    from SimPEG.utils import mkvc
-except:
-    from SimPEG import Utils as utils   
-    from SimPEG.Utils import mkvc
+from SimPEG import utils
+from SimPEG.utils import mkvc
 
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz
 from SimPEG.potential_fields import magnetics
@@ -210,7 +206,7 @@ model = np.zeros((mesh.nC, 3))
 M_xyz = utils.matutils.dip_azimuth2cartesian(M[0], M[1])
 
 # Get the indicies of the magnetized block
-ind = utils.ModelBuilder.getIndicesBlock(
+ind = utils.modelbuilder.getIndicesBlock(
     np.r_[-20, -20, -10], np.r_[20, 20, 25],
     mesh.gridCC,
 )[0]

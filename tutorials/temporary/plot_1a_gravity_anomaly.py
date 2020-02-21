@@ -29,7 +29,7 @@ import os
 from discretize import TensorMesh
 from discretize.utils import mkvc
 
-from SimPEG.utils import plot2Ddata, ModelBuilder, surface2ind_topo
+from SimPEG.utils import plot2Ddata, modelbuilder, surface2ind_topo
 from SimPEG import maps
 from SimPEG.potential_fields import gravity
 
@@ -136,7 +136,7 @@ ind_block = (
 model[ind_block] = block_density
 
 # You can also use SimPEG utilities to add structures to the model more concisely
-ind_sphere = ModelBuilder.getIndicesSphere(
+ind_sphere = modelbuilder.getIndicesSphere(
     np.r_[35., 0., -40.], 15., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]

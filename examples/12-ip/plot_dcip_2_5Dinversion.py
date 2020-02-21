@@ -58,13 +58,13 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     survey_dc.drapeTopo(mesh, actind, option="top")
 
     # Build conductivity and chargeability model
-    blk_inds_c = utils.ModelBuilder.getIndicesSphere(
+    blk_inds_c = utils.modelbuilder.getIndicesSphere(
         np.r_[60., -25.], 12.5, mesh.gridCC
     )
-    blk_inds_r = utils.ModelBuilder.getIndicesSphere(
+    blk_inds_r = utils.modelbuilder.getIndicesSphere(
         np.r_[140., -25.], 12.5, mesh.gridCC
     )
-    blk_inds_charg = utils.ModelBuilder.getIndicesSphere(
+    blk_inds_charg = utils.modelbuilder.getIndicesSphere(
         np.r_[100., -25], 12.5, mesh.gridCC
     )
     sigma = np.ones(mesh.nC)*1./100.

@@ -64,7 +64,7 @@ class MVIProblemTest(unittest.TestCase):
         M_xyz = utils.matutils.dip_azimuth2cartesian(M[0], M[1])
 
         # Get the indicies of the magnetized block
-        ind = utils.ModelBuilder.getIndicesBlock(
+        ind = utils.modelbuilder.getIndicesBlock(
             np.r_[-20, -20, -10], np.r_[20, 20, 25],
             mesh.gridCC,
         )[0]

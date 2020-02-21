@@ -17,7 +17,7 @@ Matrix Utilities
 Solver Utilities
 ================
 
-.. automodule:: SimPEG.utils.SolverUtils
+.. automodule:: SimPEG.utils.solverutils
     :members:
     :undoc-members:
 
@@ -38,7 +38,7 @@ Mesh Utilities
 Model Builder Utilities
 =======================
 
-.. automodule:: SimPEG.utils.ModelBuilder
+.. automodule:: SimPEG.utils.modelbuilder
     :members:
     :undoc-members:
 
@@ -87,6 +87,6 @@ Counter Utilities
 The API
 -------
 
-.. automodule:: SimPEG.utils.CounterUtils
+.. automodule:: SimPEG.utils.counterutils
     :members:
     :undoc-members:

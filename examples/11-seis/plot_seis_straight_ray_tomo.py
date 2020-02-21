@@ -48,7 +48,7 @@ def run(plotIt=False):
     problem = tomo.Simulation(
         M, survey=survey, slownessMap=maps.IdentityMap(M))
 
-    s = utils.mkvc(utils.ModelBuilder.randomModel(M.vnC)) + 1.
+    s = utils.mkvc(utils.modelbuilder.randomModel(M.vnC)) + 1.
     data = problem.make_synthetic_data(s, standard_deviation=0.01)
 
     # Create an optimization program

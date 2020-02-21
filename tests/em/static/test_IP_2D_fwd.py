@@ -41,7 +41,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         surveyDC = dc.Survey_ky([src0, src1])
 
         sigmaInf = np.ones(mesh.nC) * 1.
-        blkind = utils.ModelBuilder.getIndicesSphere(
+        blkind = utils.modelbuilder.getIndicesSphere(
             np.r_[0, -150], 40, mesh.gridCC)
 
         eta = np.zeros(mesh.nC)

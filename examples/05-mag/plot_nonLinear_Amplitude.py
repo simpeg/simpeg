@@ -28,12 +28,8 @@ from SimPEG import (
     )
 
 from SimPEG.potential_fields import magnetics
-try:
-    from SimPEG import utils
-    from SimPEG.utils import mkvc
-except:
-    from SimPEG import Utils as utils
-    from SimPEG.Utils import mkvc
+from SimPEG import utils
+from SimPEG.utils import mkvc
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz
 # sphinx_gallery_thumbnail_number = 4
 
@@ -121,7 +117,7 @@ nC = int(actv.sum())
 M_xyz = utils.matutils.dip_azimuth2cartesian(np.ones(nC)*M[0], np.ones(nC)*M[1])
 
 # Get the indicies of the magnetized block
-ind = utils.ModelBuilder.getIndicesBlock(
+ind = utils.modelbuilder.getIndicesBlock(
     np.r_[-20, -20, -10], np.r_[20, 20, 25],
     mesh.gridCC,
 )[0]

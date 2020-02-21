@@ -21,9 +21,9 @@ from .meshutils import (
     exampleLrmGrid, meshTensor, closestPoints, ExtractCoreMesh
 )
 from .curvutils import volTetra, faceInfo, indexCube
-from .CounterUtils import Counter, count, timeIt
-from . import ModelBuilder
-from . import SolverUtils
+from .counterutils import Counter, count, timeIt
+from . import modelbuilder
+from . import solverutils
 from .coordutils import rotatePointsFromNormals, rotationMatrixFromNormals
 from .modelutils import surface2ind_topo
 from .PlotUtils import plot2Ddata, plotLayer

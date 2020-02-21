@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
-from SimPEG.utils import plot2Ddata, ModelBuilder, surface2ind_topo, matutils
+from SimPEG.utils import plot2Ddata, modelbuilder, surface2ind_topo, matutils
 from SimPEG import maps
 from SimPEG.potential_fields import magnetics
 
@@ -168,7 +168,7 @@ model_map = maps.IdentityMap(nP=3*nC)  # model has 3 parameters for each cell
 
 # Define susceptibility for each cell
 susceptibility_model = background_susceptibility*np.ones(ind_active.sum())
-ind_sphere = ModelBuilder.getIndicesSphere(
+ind_sphere = modelbuilder.getIndicesSphere(
     np.r_[0.,  0., -45.], 15., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]

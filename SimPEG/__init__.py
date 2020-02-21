@@ -19,7 +19,7 @@ from . import simulation
 from . import utils
 from .utils import mkvc
 from .utils import Report
-from .utils.SolverUtils import (
+from .utils.solverutils import (
     _checkAccuracy, SolverWrapD, SolverWrapI,
     Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
 )

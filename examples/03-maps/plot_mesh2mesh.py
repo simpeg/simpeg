@@ -15,7 +15,7 @@ def run(plotIt=True):
     h1 = utils.meshTensor([(6, 7, -1.5), (6, 10), (6, 7, 1.5)])
     h1 = h1/h1.sum()
     M2 = discretize.TensorMesh([h1, h1])
-    V = utils.ModelBuilder.randomModel(M.vnC, seed=79, its=50)
+    V = utils.modelbuilder.randomModel(M.vnC, seed=79, its=50)
     v = utils.mkvc(V)
     modh = maps.Mesh2Mesh([M, M2])
     modH = maps.Mesh2Mesh([M2, M])
