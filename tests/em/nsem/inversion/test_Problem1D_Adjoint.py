@@ -18,7 +18,7 @@ MU = mu_0
 
 def JvecAdjointTest(sigmaHalf, formulation='PrimSec'):
     forType = 'PrimSec' not in formulation
-    survey, sigma, sigBG, m1d = nsem.utils.testUtils.setup1DSurvey(sigmaHalf,tD=forType,structure=False)
+    survey, sigma, sigBG, m1d = nsem.utils.test_utils.setup1DSurvey(sigmaHalf,tD=forType,structure=False)
     print('Adjoint test of e formulation for {:s} comp \n'.format(formulation))
 
     if 'PrimSec' in formulation:

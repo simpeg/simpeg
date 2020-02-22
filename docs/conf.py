@@ -358,7 +358,7 @@ nitpick_ignore = [
     ('py:class', 'Fields1D_eTotal'),
     ('py:class', 'Fields3D_ePrimSec'),
     ('py:class', 'BaseNSEMSrc'),
-    ('py:class', 'SimPEG.electromagnetics.natural_source.utils.plotUtils.DataNSEMPlotMethods'),
+    ('py:class', 'SimPEG.electromagnetics.natural_source.utils.plot_utils.DataNSEMPlotMethods'),
     ('py:class', 'DataNSEMPlotMethods'),
     ('py:class', 'RichardsMap'),
     ('py:class', 'SimPEG.props.HasModel'),

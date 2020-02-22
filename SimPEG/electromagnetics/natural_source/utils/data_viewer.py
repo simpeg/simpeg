@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from .. import receiver as rx
 import properties
 
-from plotUtils import ApperentResPhsStationPlot, TipperAmplitudeStationPlot
+from plot_utils import ApperentResPhsStationPlot, TipperAmplitudeStationPlot
 
 class NSEM_data_viewer(properties.HasProperties):
     """

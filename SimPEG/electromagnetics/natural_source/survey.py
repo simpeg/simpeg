@@ -7,7 +7,7 @@ from ...data import Data as BaseData
 from ...utils import mkvc
 from .sources import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
 from .receivers import Point_impedance3D, Point_tipper3D
-from .utils.plotUtils import DataNSEMPlotMethods
+from .utils.plot_utils import DataNSEMPlotMethods
 
 #########
 # Survey
