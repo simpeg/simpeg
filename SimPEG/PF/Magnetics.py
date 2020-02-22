@@ -206,9 +206,9 @@ class MagneticIntegral(Problem.LinearProblem):
 
             # for ii in range(self.G.shape[0]):
 
-            self.gtgdiag = da.sum(da.from_delayed(dask.delayed(csr.dot)(W, self.G), dtype=float, shape=self.G.shape)**2., 0).compute()
+            # self.gtgdiag = da.sum(da.from_delayed(dask.delayed(csr.dot)(W, self.G), dtype=float, shape=self.G.shape)**2., 0).compute()
 
-            # self.gtgdiag = np.array(da.sum(da.power(self.G, 2), axis=0))
+            self.gtgdiag = np.array(da.sum(da.power(self.G, 2), axis=0))
 
         if self.coordinate_system == 'cartesian':
             if self.modelType == 'amplitude':
