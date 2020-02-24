@@ -4,7 +4,7 @@ from SimPEG import (directives, maps,
                     inverse_problem, optimization, data_misfit,
                     inversion, utils, regularization)
 
-from discretize.utils import mesh_utils
+from discretize.utils import meshutils
 #import SimPEG.PF as PF
 from SimPEG.potential_fields import magnetics as mag
 import numpy as np
@@ -55,12 +55,12 @@ class MagInvLinProblemTest(unittest.TestCase):
         survey = mag.MagneticSurvey(srcField)
 
         # self.mesh.finalize()
-        self.mesh = mesh_utils.mesh_builder_xyz(
+        self.mesh = meshutils.mesh_builder_xyz(
             xyzLoc, h, padding_distance=padDist,
             mesh_type='TREE',
         )
 
-        self.mesh = mesh_utils.refine_tree_xyz(
+        self.mesh = meshutils.refine_tree_xyz(
             self.mesh, topo, method='surface',
             octree_levels=nCpad,
             octree_levels_padding=nCpad,
