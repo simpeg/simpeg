@@ -41,7 +41,7 @@ from SimPEG import (maps, data, data_misfit, regularization,
     )
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
-from SimPEG.electromagnetics.static.utils.StaticUtils import plot_pseudoSection
+from SimPEG.electromagnetics.static.utils.static_utils import plot_pseudoSection
 
 try:
     from pymatsolver import Pardiso as Solver

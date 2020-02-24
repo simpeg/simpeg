@@ -6,4 +6,4 @@ from . import sources
 from . import receivers
 from . import sources as Src
 from . import receivers as Rx
-from .Run import run_inversion, spectral_ip_mappings
+from .run import run_inversion, spectral_ip_mappings
