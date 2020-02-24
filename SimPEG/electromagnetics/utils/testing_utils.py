@@ -42,21 +42,21 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     Src = []
 
     for SrcType in SrcList:
-        if SrcType is 'MagDipole':
+        if SrcType == 'MagDipole':
             Src.append(fdem.Src.MagDipole([rx0], freq=freq, loc=np.r_[0.,0.,0.]))
-        elif SrcType is 'MagDipole_Bfield':
+        elif SrcType == 'MagDipole_Bfield':
             Src.append(fdem.Src.MagDipole_Bfield([rx0], freq=freq, loc=np.r_[0.,0.,0.]))
-        elif SrcType is 'CircularLoop':
+        elif SrcType == 'CircularLoop':
             Src.append(fdem.Src.CircularLoop([rx0], freq=freq, loc=np.r_[0.,0.,0.]))
-        elif SrcType is 'RawVec':
-            if fdemType is 'e' or fdemType is 'b':
+        elif SrcType == 'RawVec':
+            if fdemType == 'e' or fdemType == 'b':
                 S_m = np.zeros(mesh.nF)
                 S_e = np.zeros(mesh.nE)
                 S_m[utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1e-3
                 S_e[utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1e-3
                 Src.append(fdem.Src.RawVec([rx0], freq, S_m, mesh.getEdgeInnerProduct()*S_e))
 
-            elif fdemType is 'h' or fdemType is 'j':
+            elif fdemType == 'h' or fdemType == 'j':
                 S_m = np.zeros(mesh.nE)
                 S_e = np.zeros(mesh.nF)
                 S_m[utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1e-3

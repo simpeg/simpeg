@@ -97,7 +97,7 @@ def resample_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
     floor_list = []
 
     # Sort out input frequencies
-    if locs is 'All':
+    if locs == 'All':
         locations = NSEMdata._unique_locations()
     elif isinstance(locs, np.ndarray):
         locations = locs
@@ -105,7 +105,7 @@ def resample_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
         raise IOError('Incorrect input type for locs. \n' +
                       'Can be \'All\' or ndarray ')
     # Sort out input frequencies
-    if freqs is 'All':
+    if freqs == 'All':
         frequencies = NSEMdata.survey.freqs
     elif isinstance(freqs, np.ndarray):
         frequencies = freqs
@@ -115,7 +115,7 @@ def resample_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
         raise IOError('Incorrect input type for freqs. \n' +
                       'Can be \'All\'; ndarray or a list')
     # Sort out input rxs
-    if rxs is 'All':
+    if rxs == 'All':
         rx_comp = True
     elif isinstance(rxs, list):
         rx_comp = []

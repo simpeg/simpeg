@@ -174,9 +174,9 @@ class BaseFDEMSimulation(BaseEMSimulation):
                     df_dmT = df_dmT + du_dmT
 
                     # TODO: this should be taken care of by the reciever?
-                    if rx.component is 'real':
+                    if rx.component == 'real':
                         Jtv +=   np.array(df_dmT, dtype=complex).real
-                    elif rx.component is 'imag':
+                    elif rx.component == 'imag':
                         Jtv += - np.array(df_dmT, dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
@@ -195,10 +195,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
         :return: (s_m, s_e) (nE or nF, nSrc)
         """
         Srcs = self.survey.get_sources_by_frequency(freq)
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             s_m = np.zeros((self.mesh.nF, len(Srcs)), dtype=complex)
             s_e = np.zeros((self.mesh.nE, len(Srcs)), dtype=complex)
-        elif self._formulation is 'HJ':
+        elif self._formulation == 'HJ':
             s_m = np.zeros((self.mesh.nE, len(Srcs)), dtype=complex)
             s_e = np.zeros((self.mesh.nF, len(Srcs)), dtype=complex)
 
