@@ -42,7 +42,7 @@ def run(plotIt=True):
     x = np.r_[30, 50, 70, 90]
     rxloc = np.c_[x, x*0., np.zeros_like(x)]
 
-    prb = TDEM.Problem3D_b(mesh, sigmaMap=mapping, solver=Solver)
+    prb = TDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping, solver=Solver)
     prb.time_steps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 5), (1e-4, 10), (5e-4, 10)]
     # Use VTEM waveform
     out = EMutils.VTEMFun(prb.times, 0.00595, 0.006, 100)

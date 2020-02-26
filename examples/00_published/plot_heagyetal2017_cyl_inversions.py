@@ -76,7 +76,7 @@ def run(plotIt=True, saveFig=False):
     ]
 
     surveyFD = FDEM.Survey(srcList)
-    prbFD = FDEM.Problem3D_b(
+    prbFD = FDEM.Simulation3DMagneticFluxDensity(
         mesh, survey=surveyFD, sigmaMap=mapping, solver=Solver)
     std = 0.03
     dataFD = prbFD.make_synthetic_data(mtrue, standard_deviation=std, add_noise=True)
@@ -116,7 +116,7 @@ def run(plotIt=True, saveFig=False):
     )
 
     surveyTD = TDEM.Survey([src])
-    prbTD = TDEM.Problem3D_b(
+    prbTD = TDEM.Simulation3DMagneticFluxDensity(
         mesh, survey=surveyTD, sigmaMap=mapping, Solver=Solver)
     prbTD.time_steps = [(5e-5, 10), (1e-4, 10), (5e-4, 10)]
 

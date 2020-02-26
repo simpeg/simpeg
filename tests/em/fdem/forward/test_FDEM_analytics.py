@@ -59,7 +59,7 @@ class FDEM_analyticTests(unittest.TestCase):
         sigma = np.ones(mesh.nC)*sig
         sigma[mesh.gridCC[:, 2] > 0] = 1e-8
 
-        prb = fdem.Problem3D_b(mesh, sigma=sigma)
+        prb = fdem.Simulation3DMagneticFluxDensity(mesh, sigma=sigma)
         prb.pair(survey)
 
         try:

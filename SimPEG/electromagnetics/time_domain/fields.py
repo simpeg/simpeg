@@ -367,7 +367,7 @@ class Fields3D_e(FieldsTDEM):
         """
         Integrate _db_dt using rectangles
         """
-        raise NotImplementedError('To obtain b-fields, please use Problem3D_b')
+        raise NotImplementedError('To obtain b-fields, please use Simulation3DMagneticFluxDensity')
         # dbdt = self._dbdt(eSolution, source_list, tInd)
         # dt = self.simulation.time_mesh.hx
         # # assume widths of "ghost cells" same on either end

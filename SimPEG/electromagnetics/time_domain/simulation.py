@@ -450,9 +450,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 #                                                                             #
 ###############################################################################
 
-# ------------------------------- Problem3D_b ------------------------------- #
+# ------------------------------- Simulation3DMagneticFluxDensity ------------------------------- #
 
-class Problem3D_b(BaseTDEMSimulation):
+class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
     """
     Starting from the quasi-static E-B formulation of Maxwell's equations
     (semi-discretized)

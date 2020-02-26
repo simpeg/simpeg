@@ -636,7 +636,7 @@ class Fields3D_e(FieldsFDEM):
 
 class Fields3D_b(FieldsFDEM):
     """
-    Fields object for Problem3D_b.
+    Fields object for Simulation3DMagneticFluxDensity.
 
     :param discretize.base.BaseMesh mesh: mesh
     :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey

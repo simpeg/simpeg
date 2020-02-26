@@ -173,13 +173,13 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
                                        orientation=orientation))
 
         # primary
-        self.primarySimulation = fdem.Problem3D_b(meshp, sigmaMap=primaryMapping)
+        self.primarySimulation = fdem.Simulation3DMagneticFluxDensity(meshp, sigmaMap=primaryMapping)
         self.primarySimulation.solver = Solver
         primarySrc = fdem.Src.MagDipole(self.rxlist, freq=freq, loc=src_loc)
         self.primarySurvey = fdem.Survey([primarySrc])
 
         # Secondary Problem
-        self.secondarySimulation = fdem.Problem3D_b(meshs, sigmaMap=mapping)
+        self.secondarySimulation = fdem.Simulation3DMagneticFluxDensity(meshs, sigmaMap=mapping)
         self.secondarySimulation.Solver = Solver
         self.secondarySrc = fdem.Src.PrimSecMappedSigma(
                 self.rxlist, freq, self.primarySimulation,
@@ -188,7 +188,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
         self.secondarySimulation.pair(self.secondarySurvey)
 
         # Full 3D problem to compare with
-        self.simulation3D = fdem.Problem3D_b(meshs, sigmaMap=mapping)
+        self.simulation3D = fdem.Simulation3DMagneticFluxDensity(meshs, sigmaMap=mapping)
         self.simulation3D.Solver = Solver
         self.survey3D = fdem.Survey([primarySrc])
         self.simulation3D.pair(self.survey3D)

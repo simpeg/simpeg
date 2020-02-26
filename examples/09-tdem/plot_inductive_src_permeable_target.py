@@ -160,11 +160,11 @@ src_list_ramp_on = [src_ramp_on]
 # To simulate magnetic flux data, we use the b-formulation of Maxwell's
 # equations
 
-prob_magnetostatic = TDEM.Problem3D_b(
+prob_magnetostatic = TDEM.Simulation3DMagneticFluxDensity(
     mesh=mesh, sigmaMap=maps.IdentityMap(mesh), timeSteps=ramp,
     Solver=Pardiso
 )
-prob_ramp_on = TDEM.Problem3D_b(
+prob_ramp_on = TDEM.Simulation3DMagneticFluxDensity(
     mesh=mesh, sigmaMap=maps.IdentityMap(mesh), timeSteps=ramp,
     Solver=Pardiso
 )

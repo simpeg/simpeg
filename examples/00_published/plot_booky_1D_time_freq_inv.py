@@ -209,7 +209,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Set FDEM survey (In-phase and Quadrature)
     survey = FDEM.Survey(srcList)
-    prb = FDEM.Problem3D_b(
+    prb = FDEM.Simulation3DMagneticFluxDensity(
         mesh, sigmaMap=mapping, Solver=Solver
     )
     prb.survey = survey

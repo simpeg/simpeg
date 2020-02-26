@@ -27,7 +27,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
 
     if using the E-B formulation (:code:`Simulation3DElectricField`
-    or :code:`Problem3D_b`). Note that in this case,
+    or :code:`Simulation3DMagneticFluxDensity`). Note that in this case,
     :math:`\mathbf{s_e}` is an integrated quantity.
 
     If we write Maxwell's equations in terms of
@@ -360,7 +360,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         )
 
 
-class Problem3D_b(BaseFDEMSimulation):
+class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     """
     We eliminate :math:`\mathbf{e}` using
 
@@ -388,7 +388,7 @@ class Problem3D_b(BaseFDEMSimulation):
     fieldsPair = Fields3D_b
 
     def __init__(self, mesh, **kwargs):
-        super(Problem3D_b, self).__init__(mesh, **kwargs)
+        super(Simulation3DMagneticFluxDensity, self).__init__(mesh, **kwargs)
 
     def getA(self, freq):
         """

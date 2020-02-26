@@ -36,7 +36,7 @@ def halfSpaceProblemAnaDiff(
     actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
-    prb = tdem.Problem3D_b(mesh, sigmaMap=mapping)
+    prb = tdem.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
     prb.Solver = Solver
     prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
     out = utils.VTEMFun(prb.times, 0.00595, 0.006, 100)

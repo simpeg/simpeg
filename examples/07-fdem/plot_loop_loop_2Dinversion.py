@@ -192,7 +192,7 @@ for x in src_locations:
 
 # create the survey and problem objects for running the forward simulation
 survey = FDEM.Survey(srcList)
-prob = FDEM.Problem3D_b(mesh, survey=survey, sigmaMap=mapping, Solver=Solver)
+prob = FDEM.Simulation3DMagneticFluxDensity(mesh, survey=survey, sigmaMap=mapping, Solver=Solver)
 
 ###############################################################################
 # Data and Set up data for inversion

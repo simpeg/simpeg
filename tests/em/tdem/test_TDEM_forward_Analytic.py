@@ -50,7 +50,7 @@ def halfSpaceProblemAnaDiff(
         )
 
     survey = tdem.Survey([src])
-    prb = tdem.Problem3D_b(mesh, sigmaMap=mapping)
+    prb = tdem.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
     prb.Solver = Solver
 
     prb.timeSteps = [(1e-06, 40), (5e-06, 40), (1e-05, 40), (5e-05, 40),

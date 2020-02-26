@@ -72,7 +72,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
 
     elif fdemType == 'b':
         survey = fdem.Survey(Src)
-        prb = fdem.Problem3D_b(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
 
     elif fdemType == 'j':
         survey = fdem.Survey(Src)
