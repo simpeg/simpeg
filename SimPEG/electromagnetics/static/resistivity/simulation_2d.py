@@ -50,14 +50,14 @@ class BaseDCSimulation_2D(BaseEMSimulation):
             for i in range(self.nky):
                 self.Ainv[i].clean()
         f = self.fieldsPair(self)
-        Srcs = self.survey.source_list
+        #Srcs = self.survey.source_list
         for iky in range(self.nky):
             ky = self.kys[iky]
             A = self.getA(ky)
             self.Ainv[iky] = self.Solver(A, **self.solver_opts)
             RHS = self.getRHS(ky)
             u = self.Ainv[iky] * RHS
-            f[Srcs, self._solutionType, iky] = u
+            f[:, self._solutionType, iky] = u
         return f
 
     def fields_to_space(self, f, y=0.):
@@ -128,13 +128,18 @@ class BaseDCSimulation_2D(BaseEMSimulation):
 
         # TODO: This is not a good idea !! should change that as a list
         Jv = Data(self.survey)  # same size as the data
-        Jv0 = Data(self.survey)
 
         # Assume y=0.
         # This needs some thoughts to implement in general when src is dipole
-        dky = np.diff(self.kys)
-        dky = np.r_[dky[0], dky]
         y = 0.
+        dky = np.diff(self.kys)/2
+        trap_weights = np.r_[dky, 0]+np.r_[0, dky]
+        trap_weights *= np.cos(self.kys*y)  # *(1.0/np.pi)
+        # assume constant value at 0 frequency?
+        trap_weights[0] += self.kys[0]/2 * (1.0 + np.cos(self.kys[0]*y))
+        trap_weights /= np.pi
+
+        Jv.dobs[:] = 0.0  # initialize Jv object with zeros
 
         # TODO: this loop is pretty slow .. (Parellize)
         for iky in range(self.nky):
@@ -149,15 +154,8 @@ class BaseDCSimulation_2D(BaseEMSimulation):
                                        None)
                     df_dm_v = df_dmFun(iky, src, du_dm_v, v, adjoint=False)
                     # Trapezoidal intergration
-                    Jv1_temp = 1./np.pi*rx.evalDeriv(ky, src, self.mesh, f,
-                                                     df_dm_v)
-                    if iky == 0:
-                        # First assigment
-                        Jv[src, rx] = Jv1_temp*dky[iky]*np.cos(ky*y)
-                    else:
-                        Jv[src, rx] += Jv1_temp*dky[iky]/2.*np.cos(ky*y)
-                        Jv[src, rx] += Jv0[src, rx]*dky[iky]/2.*np.cos(ky*y)
-                    Jv0[src, rx] = Jv1_temp.copy()
+                    Jv1_temp = rx.evalDeriv(ky, src, self.mesh, f, df_dm_v)
+                    Jv[src, rx] += trap_weights[iky]*Jv1_temp
         return mkvc(Jv)
 
     def Jtvec(self, m, v, f=None):
@@ -182,73 +180,64 @@ class BaseDCSimulation_2D(BaseEMSimulation):
             Full J matrix can be computed by inputing v=None
         """
 
+        # Assume y=0.
+        # This needs some thoughts to implement in general when src is dipole
+        y = 0.
+        dky = np.diff(self.kys)/2
+        trap_weights = np.r_[dky, 0]+np.r_[0, dky]
+        trap_weights *= np.cos(self.kys*y)  # *(1.0/np.pi)
+        # assume constant value at 0 frequency?
+        trap_weights[0] += self.kys[0]/2 * (1.0 + np.cos(self.kys[0]*y))
+        trap_weights /= np.pi
+
         if v is not None:
             # Ensure v is a data object.
             if not isinstance(v, Data):
                 v = Data(self.survey, v)
             Jtv = np.zeros(m.size, dtype=float)
 
-            # Assume y=0.
-            dky = np.diff(self.kys)
-            dky = np.r_[dky[0], dky]
-            y = 0.
 
+        # TODO: this loop is pretty slow .. (Parellize)
+        for iky in range(self.nky):
+            ky = self.kys[iky]
             for src in self.survey.source_list:
+                u_src = f[src, self._solutionType, iky]
+                df_duT_sum = 0
+                df_dmT_sum = 0
                 for rx in src.receiver_list:
-                    Jtv_temp1 = np.zeros(m.size, dtype=float)
-                    Jtv_temp0 = np.zeros(m.size, dtype=float)
+                    # wrt f, need possibility wrt m
+                    PTv = rx.evalDeriv(ky, src, self.mesh, f, v[src, rx],
+                                       adjoint=True)
+                    df_duTFun = getattr(
+                        f, '_{0!s}Deriv'.format(rx.projField), None
+                    )
+                    df_duT, df_dmT = df_duTFun(iky, src, None, PTv,
+                                               adjoint=True)
+                    df_duT_sum += df_duT
+                    df_dmT_sum += df_dmT
 
-                    # TODO: this loop is pretty slow .. (Parellize)
-                    for iky in range(self.nky):
-                        u_src = f[src, self._solutionType, iky]
-                        ky = self.kys[iky]
-                        # wrt f, need possibility wrt m
-                        PTv = rx.evalDeriv(ky, src, self.mesh, f, v[src, rx],
-                                           adjoint=True)
-                        df_duTFun = getattr(
-                            f, '_{0!s}Deriv'.format(rx.projField), None
-                        )
-                        df_duT, df_dmT = df_duTFun(iky, src, None, PTv,
-                                                   adjoint=True)
+                ATinvdf_duT = self.Ainv[iky] * df_duT
+                dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT, adjoint=True)
+                dRHS_dmT = self.getRHSDeriv(ky, src, ATinvdf_duT, adjoint=True)
+                du_dmT = -dA_dmT + dRHS_dmT
 
-                        ATinvdf_duT = self.Ainv[iky] * df_duT
-
-                        dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT,
-                                                adjoint=True)
-                        dRHS_dmT = self.getRHSDeriv(ky, src, ATinvdf_duT,
-                                                    adjoint=True)
-                        du_dmT = -dA_dmT + dRHS_dmT
-                        Jtv_temp1 = 1./np.pi*(df_dmT + du_dmT).astype(float)
-                        # Trapezoidal intergration
-                        if iky == 0:
-                            # First assigment
-                            Jtv += Jtv_temp1*dky[iky]*np.cos(ky*y)
-                        else:
-                            Jtv += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
-                            Jtv += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
-                        Jtv_temp0 = Jtv_temp1.copy()
+                Jtv += trap_weights[0]*(df_dmT + du_dmT).astype(float)
             return mkvc(Jtv)
 
         # This is for forming full sensitivity
         else:
 
+
             # This is for forming full sensitivity matrix
             Jt = np.zeros((self.model.size, self.survey.nD), order='F')
-            istrt = int(0)
-            iend = int(0)
 
-            # Assume y=0.
-            dky = np.diff(self.kys)
-            dky = np.r_[dky[0], dky]
-            y = 0.
-            for src in self.survey.source_list:
-                for rx in src.receiver_list:
-                    iend = istrt + rx.nD
-                    Jtv_temp1 = np.zeros((m.size, rx.nD), dtype=float)
-                    Jtv_temp0 = np.zeros((m.size, rx.nD), dtype=float)
-                    # TODO: this loop is pretty slow .. (Parellize)
-                    for iky in range(self.nky):
-                        u_src = f[src, self._solutionType, iky]
+            # TODO: this loop is pretty slow .. (Parellize)
+            istrt = 0
+            for iky in range(self.nky):
+                for src in self.survey.source_list:
+                    u_src = f[src, self._solutionType, iky]
+                    for rx in src.receiver_list:
+                        iend = istrt + rx.nD
                         ky = self.kys[iky]
                         # wrt f, need possibility wrt m
                         P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
@@ -295,7 +284,7 @@ class BaseDCSimulation_2D(BaseEMSimulation):
         elif self._formulation == 'HJ':
             n = self.mesh.nC
 
-        q = np.zeros((n, len(Srcs)))
+        q = np.zeros((n, len(Srcs)), order='F')
 
         for i, src in enumerate(Srcs):
             q[:, i] = src.eval(self)
@@ -342,7 +331,6 @@ class BaseDCSimulation_2D(BaseEMSimulation):
             Derivative of MnSigma with respect to the model
         """
         if getattr(self, '_MnSigmaDerivMat', None) is None:
-            sigma = self.sigma
             vol = self.mesh.vol
             self._MnSigmaDerivMat = (
                 self.mesh.aveN2CC.T * sdiag(vol) * self.sigmaDeriv
@@ -361,7 +349,6 @@ class BaseDCSimulation_2D(BaseEMSimulation):
             else:
                 return u*(self.MnSigmaDerivMat * v)
         else:
-            sigma = self.sigma
             vol = self.mesh.vol
             if adjoint:
                 return self.sigmaDeriv.T * (
@@ -580,6 +567,10 @@ class Problem2D_N(BaseDCSimulation_2D):
     def __init__(self, mesh, **kwargs):
         BaseDCSimulation_2D.__init__(self, mesh, **kwargs)
         # self.setBC()
+        self._grad = self.mesh.nodalGrad
+        self._gradT = self._grad.T.tocsr()
+        self.solver_opts['is_symmetric'] = True
+        self.solver_opts['is_positive_definite'] = True
 
     def getA(self, ky):
         """
@@ -588,21 +579,12 @@ class Problem2D_N(BaseDCSimulation_2D):
         """
         MeSigma = self.MeSigma
         MnSigma = self.MnSigma
-        Grad = self.mesh.nodalGrad
-        # Get conductivity sigma
-        sigma = self.sigma
-        A = Grad.T * MeSigma * Grad + ky**2*MnSigma
-        # This seems not required for 2.5D problem
-        # Handling Null space of A
-        # A[0, 0] = A[0, 0] + 1.
+        A = self._gradT * MeSigma * self._grad + ky**2*MnSigma
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
 
-        MeSigma = self.MeSigma
         Grad = self.mesh.nodalGrad
-        sigma = self.sigma
-        vol = self.mesh.vol
 
         if adjoint:
             return (
