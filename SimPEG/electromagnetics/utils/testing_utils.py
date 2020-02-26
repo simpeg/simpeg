@@ -76,7 +76,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
 
     elif fdemType == 'j':
         survey = fdem.Survey(Src)
-        prb = fdem.Problem3D_j(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DCurrentDensity(mesh, sigmaMap=mapping)
 
     elif fdemType == 'h':
         survey = fdem.Survey(Src)

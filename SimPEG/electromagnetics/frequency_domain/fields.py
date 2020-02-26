@@ -959,7 +959,7 @@ class Fields3D_b(FieldsFDEM):
 
 class Fields3D_j(FieldsFDEM):
     """
-    Fields object for Problem3D_j.
+    Fields object for Simulation3DCurrentDensity.
 
     :param discretize.base.BaseMesh mesh: mesh
     :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey

@@ -1051,9 +1051,9 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
             return self.MfRhoIDeriv(G * u, G * v, adjoint=True)
         return D * self.MfRhoIDeriv(G * u, v)
 
-# ------------------------------- Problem3D_j ------------------------------- #
+# ------------------------------- Simulation3DCurrentDensity ------------------------------- #
 
-class Problem3D_j(BaseTDEMSimulation):
+class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
     """
     Solve the H-J formulation for current density

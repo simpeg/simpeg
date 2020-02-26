@@ -1,5 +1,5 @@
 from .simulation import (
-    Simulation3DMagneticFluxDensity, Simulation3DElectricField, Simulation3DMagneticField, Problem3D_j
+    Simulation3DMagneticFluxDensity, Simulation3DElectricField, Simulation3DMagneticField, Simulation3DCurrentDensity
 )
 from .fields import (
     Fields3D_b, Fields3D_e, Fields3D_h, Fields3D_j

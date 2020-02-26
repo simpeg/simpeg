@@ -232,7 +232,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
                                        orientation=orientation))
 
         # primary
-        self.primarySimulation = fdem.Problem3D_j(meshp, sigmaMap=primaryMapping)
+        self.primarySimulation = fdem.Simulation3DCurrentDensity(meshp, sigmaMap=primaryMapping)
         self.primarySimulation.solver = Solver
         s_e = np.zeros(meshp.nF)
         inds = meshp.nFx + utils.closestPoints(meshp, src_loc, gridLoc='Fz')

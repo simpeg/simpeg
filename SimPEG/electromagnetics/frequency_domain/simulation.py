@@ -39,7 +39,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
         \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
-    if using the H-J formulation (:code:`Problem3D_j` or
+    if using the H-J formulation (:code:`Simulation3DCurrentDensity` or
     :code:`Simulation3DMagneticField`). Note that here, :math:`\mathbf{s_m}` is an
     integrated quantity.
 
@@ -539,7 +539,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 ###############################################################################
 
 
-class Problem3D_j(BaseFDEMSimulation):
+class Simulation3DCurrentDensity(BaseFDEMSimulation):
     """
     We eliminate \\\(\\\mathbf{h}\\\) using
 
@@ -570,7 +570,7 @@ class Problem3D_j(BaseFDEMSimulation):
     fieldsPair    = Fields3D_j
 
     def __init__(self, mesh, **kwargs):
-        super(Problem3D_j, self).__init__(mesh, **kwargs)
+        super(Simulation3DCurrentDensity, self).__init__(mesh, **kwargs)
 
     def getA(self, freq):
         """
