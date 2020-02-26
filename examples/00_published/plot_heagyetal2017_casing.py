@@ -340,11 +340,11 @@ class PrimSecCasingExample(object):
             #     )
 
             # # set the problem's propmap
-            # FDEM.Problem3D_h.PropMap = CasingEMPropMap
+            # FDEM.Simulation3DMagneticField.PropMap = CasingEMPropMap
 
             # use H-J formulation for source with vertical current density and
             # cylindrical symmetry (h faster on cyl --> less edges than faces)
-            primaryProblem = FDEM.Problem3D_h(
+            primaryProblem = FDEM.Simulation3DMagneticField(
                 self.meshp, sigmaMap=self.primaryMapping
             )
             primaryProblem.mu = self.muModel

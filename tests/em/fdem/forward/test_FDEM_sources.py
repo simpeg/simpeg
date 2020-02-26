@@ -33,7 +33,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
         self.prob_e = fdem.Simulation3DElectricField(self.mesh, sigmaMap=mapping)
         self.prob_b = fdem.Simulation3DMagneticFluxDensity(self.mesh, sigmaMap=mapping)
-        self.prob_h = fdem.Problem3D_h(self.mesh, sigmaMap=mapping)
+        self.prob_h = fdem.Simulation3DMagneticField(self.mesh, sigmaMap=mapping)
         self.prob_j = fdem.Problem3D_j(self.mesh, sigmaMap=mapping)
 
         loc = np.r_[0., 0., 0.]

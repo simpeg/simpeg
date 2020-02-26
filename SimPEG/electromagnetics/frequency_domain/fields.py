@@ -1305,7 +1305,7 @@ class Fields3D_j(FieldsFDEM):
 
 class Fields3D_h(FieldsFDEM):
     """
-    Fields object for Problem3D_h.
+    Fields object for Simulation3DMagneticField.
 
     :param discretize.base.BaseMesh mesh: mesh
     :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey

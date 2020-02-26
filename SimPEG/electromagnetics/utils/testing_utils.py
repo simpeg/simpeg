@@ -80,7 +80,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
 
     elif fdemType == 'h':
         survey = fdem.Survey(Src)
-        prb = fdem.Problem3D_h(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DMagneticField(mesh, sigmaMap=mapping)
 
     else:
         raise NotImplementedError()

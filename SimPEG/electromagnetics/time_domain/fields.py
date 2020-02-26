@@ -627,7 +627,7 @@ class Fields3D_j(FieldsTDEM):
         return Zero()
 
     def _h(self, jSolution, source_list, tInd):
-        raise NotImplementedError('Please use Problem3D_h to get h-fields')
+        raise NotImplementedError('Please use Simulation3DMagneticField to get h-fields')
 
     def _dhdt(self, jSolution, source_list, tInd):
         C = self._edgeCurl

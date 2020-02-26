@@ -40,7 +40,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
     if using the H-J formulation (:code:`Problem3D_j` or
-    :code:`Problem3D_h`). Note that here, :math:`\mathbf{s_m}` is an
+    :code:`Simulation3DMagneticField`). Note that here, :math:`\mathbf{s_m}` is an
     integrated quantity.
 
     The problem performs the elimination so that we are solving the system
@@ -737,7 +737,7 @@ class Problem3D_j(BaseFDEMSimulation):
             return RHSDeriv
 
 
-class Problem3D_h(BaseFDEMSimulation):
+class Simulation3DMagneticField(BaseFDEMSimulation):
     """
     We eliminate \\\(\\\mathbf{j}\\\) using
 
@@ -761,7 +761,7 @@ class Problem3D_h(BaseFDEMSimulation):
     fieldsPair    = Fields3D_h
 
     def __init__(self, mesh, **kwargs):
-        super(Problem3D_h, self).__init__(mesh, **kwargs)
+        super(Simulation3DMagneticField, self).__init__(mesh, **kwargs)
 
     def getA(self, freq):
         """

@@ -230,7 +230,7 @@ def run(plotIt=True):
 
     # ------------ Problem and Survey ---------------
     survey = FDEM.Survey(sg_p + dg_p)
-    problem = FDEM.Problem3D_h(
+    problem = FDEM.Simulation3DMagneticField(
         mesh,
         survey=survey,
         sigmaMap=maps.IdentityMap(mesh),

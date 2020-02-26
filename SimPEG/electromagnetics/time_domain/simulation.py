@@ -944,9 +944,9 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 #                                                                             #
 ###############################################################################
 
-# ------------------------------- Problem3D_h ------------------------------- #
+# ------------------------------- Simulation3DMagneticField ------------------------------- #
 
-class Problem3D_h(BaseTDEMSimulation):
+class Simulation3DMagneticField(BaseTDEMSimulation):
     """
     Solve the H-J formulation of Maxwell's equations for the magnetic field h.
 
