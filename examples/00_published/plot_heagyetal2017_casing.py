@@ -582,7 +582,7 @@ class PrimSecCasingExample(object):
         print('Setting up Secondary Problem')
         if mapping is None:
             mapping = [('sigma', maps.IdentityMap(self.meshs))]
-        sec_problem = FDEM.Problem3D_e(self.meshs, sigmaMap=mapping)
+        sec_problem = FDEM.Simulation3DElectricField(self.meshs, sigmaMap=mapping)
         sec_problem.Solver = Solver
         print('... done setting up secondary problem')
         return sec_problem

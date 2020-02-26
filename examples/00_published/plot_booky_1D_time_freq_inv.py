@@ -304,7 +304,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
         (peakTime/5, 5), ((offTime-peakTime)/5, 5),
         (1e-5, 5), (5e-5, 5), (1e-4, 10), (5e-4, 15)
     ]
-    prob = TDEM.Problem3D_e(
+    prob = TDEM.Simulation3DElectricField(
         mesh, time_steps=timeSteps, sigmaMap=mapping, Solver=Solver
     )
     survey = TDEM.Survey(srcList)

@@ -26,7 +26,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         {\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
         \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
 
-    if using the E-B formulation (:code:`Problem3D_e`
+    if using the E-B formulation (:code:`Simulation3DElectricField`
     or :code:`Problem3D_b`). Note that in this case,
     :math:`\mathbf{s_e}` is an integrated quantity.
 
@@ -215,7 +215,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 #                               E-B Formulation                               #
 ###############################################################################
 
-class Problem3D_e(BaseFDEMSimulation):
+class Simulation3DElectricField(BaseFDEMSimulation):
     """
     By eliminating the magnetic flux density using
 
@@ -245,7 +245,7 @@ class Problem3D_e(BaseFDEMSimulation):
     fieldsPair    = Fields3D_e
 
     def __init__(self, mesh, **kwargs):
-        super(Problem3D_e, self).__init__(mesh, **kwargs)
+        super(Simulation3DElectricField, self).__init__(mesh, **kwargs)
 
     def getA(self, freq):
         """

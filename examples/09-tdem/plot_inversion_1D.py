@@ -42,7 +42,7 @@ def run(plotIt=True):
     src = time_domain.Src.MagDipole([rx], loc=np.array([0., 0., 80]))
     survey = time_domain.Survey([src])
     time_steps = [(1e-06, 20), (1e-05, 20), (0.0001, 20)]
-    simulation = time_domain.Problem3D_e(
+    simulation = time_domain.Simulation3DElectricField(
         mesh,
         sigmaMap=mapping,
         survey=survey,

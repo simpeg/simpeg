@@ -68,7 +68,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
 
     if fdemType == 'e':
         survey = fdem.Survey(Src)
-        prb = fdem.Problem3D_e(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DElectricField(mesh, sigmaMap=mapping)
 
     elif fdemType == 'b':
         survey = fdem.Survey(Src)

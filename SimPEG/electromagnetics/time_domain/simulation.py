@@ -642,8 +642,8 @@ class Problem3D_b(BaseTDEMSimulation):
         return RHSDeriv
 
 
-# ------------------------------- Problem3D_e ------------------------------- #
-class Problem3D_e(BaseTDEMSimulation):
+# ------------------------------- Simulation3DElectricField ------------------------------- #
+class Simulation3DElectricField(BaseTDEMSimulation):
     """
         Solve the EB-formulation of Maxwell's equations for the electric field, e.
 

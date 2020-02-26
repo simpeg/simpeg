@@ -218,7 +218,7 @@ def run(plotIt=True):
     # define a problem - the statement of which discrete pde system we want to
     # solve
     survey = FDEM.Survey(srcList)
-    prob = FDEM.Problem3D_e(
+    prob = FDEM.Simulation3DElectricField(
         mesh,
         survey=survey,
         solver=Solver,

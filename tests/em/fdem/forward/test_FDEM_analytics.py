@@ -158,7 +158,7 @@ class TestDipoles(unittest.TestCase):
         surveym = fdem.Survey(dm_p)
 
         prbe = fdem.Problem3D_h(mesh, sigma=sigmaback, mu=mur*mu_0)
-        prbm = fdem.Problem3D_e(mesh, sigma=sigmaback, mu=mur*mu_0)
+        prbm = fdem.Simulation3DElectricField(mesh, sigma=sigmaback, mu=mur*mu_0)
 
         # pair problem and survey
         prbe.pair(surveye)

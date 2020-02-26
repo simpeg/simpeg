@@ -243,7 +243,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.primarySurvey = fdem.Survey([primarySrc])
 
         # Secondary Problem
-        self.secondarySimulation = fdem.Problem3D_e(meshs, sigmaMap=mapping)
+        self.secondarySimulation = fdem.Simulation3DElectricField(meshs, sigmaMap=mapping)
         self.secondarySimulation.Solver = Solver
         self.secondarySrc = fdem.Src.PrimSecMappedSigma(
                 self.rxlist, freq, self.primarySimulation,
@@ -253,7 +253,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.secondarySimulation.pair(self.secondarySurvey)
 
         # Full 3D problem to compare with
-        self.simulation3D = fdem.Problem3D_e(meshs, sigmaMap=mapping)
+        self.simulation3D = fdem.Simulation3DElectricField(meshs, sigmaMap=mapping)
         self.simulation3D.Solver = Solver
         s_e3D = np.zeros(meshs.nE)
         inds = (meshs.nEx + meshs.nEy +

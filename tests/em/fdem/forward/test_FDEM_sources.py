@@ -31,7 +31,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
         self.frequency = 1.
 
-        self.prob_e = fdem.Problem3D_e(self.mesh, sigmaMap=mapping)
+        self.prob_e = fdem.Simulation3DElectricField(self.mesh, sigmaMap=mapping)
         self.prob_b = fdem.Problem3D_b(self.mesh, sigmaMap=mapping)
         self.prob_h = fdem.Problem3D_h(self.mesh, sigmaMap=mapping)
         self.prob_j = fdem.Problem3D_j(self.mesh, sigmaMap=mapping)
