@@ -190,7 +190,7 @@ starting_model = background_density*np.ones(nC)
 # class.
 # 
 
-simulation = gravity.simulation.IntegralSimulation(
+simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, rhoMap=model_map,
     actInd=ind_active, forward_only=False
 )

@@ -226,7 +226,7 @@ actvMap = maps.InjectActiveCells(mesh, actv, np.nan)
 idenMap = maps.IdentityMap(nP=nC*3)
 
 # Create the simulation
-simulation = magnetics.simulation.IntegralSimulation(
+simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv, modelType='vector'
 )
 

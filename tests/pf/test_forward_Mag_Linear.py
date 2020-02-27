@@ -53,7 +53,7 @@ class MagFwdProblemTests(unittest.TestCase):
         srcField = mag.SourceField([rxLoc], parameters=H0)
         self.survey = mag.MagneticSurvey(srcField)
 
-        self.sim = mag.IntegralSimulation(
+        self.sim = mag.Simulation3DIntegral(
             mesh,
             survey=self.survey,
             chiMap=idenMap,

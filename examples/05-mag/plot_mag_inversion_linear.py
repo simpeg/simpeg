@@ -75,7 +75,7 @@ def run(plotIt=True):
     idenMap = maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
-    simulation = magnetics.simulation.IntegralSimulation(
+    simulation = magnetics.simulation.Simulation3DIntegral(
             survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv,
             )
 

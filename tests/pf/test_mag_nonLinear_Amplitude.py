@@ -80,7 +80,7 @@ class AmpProblemTest(unittest.TestCase):
         idenMap = maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        simulation = magnetics.IntegralSimulation(
+        simulation = magnetics.Simulation3DIntegral(
             survey=survey,
             mesh=mesh,
             chiMap=idenMap,
@@ -117,7 +117,7 @@ class AmpProblemTest(unittest.TestCase):
         idenMap = maps.IdentityMap(nP=nC)
 
         # Create static map
-        simulation = magnetics.simulation.IntegralSimulation(
+        simulation = magnetics.simulation.Simulation3DIntegral(
                 mesh=mesh, survey=survey, chiMap=idenMap, actInd=surf,
                 store_sensitivities='ram'
         )
@@ -172,7 +172,7 @@ class AmpProblemTest(unittest.TestCase):
         srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
         surveyAmp = magnetics.survey.MagneticSurvey(srcField)
 
-        simulation = magnetics.simulation.IntegralSimulation(
+        simulation = magnetics.simulation.Simulation3DIntegral(
                 mesh=mesh, survey=surveyAmp, chiMap=idenMap,
                 actInd=surf, modelType='amplitude', store_sensitivities='forward_only'
         )
@@ -197,7 +197,7 @@ class AmpProblemTest(unittest.TestCase):
         mstart = np.ones(nC)*1e-4
 
         # Create the forward model operator
-        simulation = magnetics.simulation.IntegralSimulation(
+        simulation = magnetics.simulation.Simulation3DIntegral(
            survey=surveyAmp, mesh=mesh, chiMap=idenMap, actInd=actv,
            modelType='amplitude'
         )

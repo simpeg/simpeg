@@ -153,7 +153,7 @@ Mag Differential eq. approach
 Mag Integral eq. approach
 =========================
 
-.. autoclass:: SimPEG.potential_fields.magnetics.IntegralSimulation
+.. autoclass:: SimPEG.potential_fields.magnetics.Simulation3DIntegral
     :show-inheritance:
     :members:
     :undoc-members:

@@ -52,7 +52,7 @@ class GravFwdProblemTests(unittest.TestCase):
         sources = gravity.SourceField([receivers])
         self.survey = gravity.GravitySurvey(sources)
 
-        self.sim = gravity.IntegralSimulation(
+        self.sim = gravity.Simulation3DIntegral(
                 mesh,
                 survey=self.survey,
                 rhoMap=idenMap,
@@ -131,7 +131,7 @@ class GravityGradientFwdProblemTests(unittest.TestCase):
         sources = gravity.SourceField([receivers])
         self.survey = gravity.GravitySurvey(sources)
 
-        self.sim = gravity.IntegralSimulation(
+        self.sim = gravity.Simulation3DIntegral(
                 mesh,
                 survey=self.survey,
                 rhoMap=idenMap,

@@ -134,7 +134,7 @@ model = model[actv]
 idenMap = maps.IdentityMap(nP=nC)
 
 # Create the forward model operator
-simulation = magnetics.simulation.IntegralSimulation(
+simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv, store_sensitivities="forward_only"
 )
 simulation.M = M_xyz
@@ -202,7 +202,7 @@ surfMap = maps.InjectActiveCells(mesh, surf, np.nan)
 idenMap = maps.IdentityMap(nP=nC)
 
 # Create static map
-simulation = magnetics.simulation.IntegralSimulation(
+simulation = magnetics.simulation.Simulation3DIntegral(
         mesh=mesh, survey=survey, chiMap=idenMap, actInd=surf,
         store_sensitivities='ram'
 )
@@ -258,7 +258,7 @@ rxList = magnetics.receivers.point_receiver(rxLoc, components=['bx', 'by', 'bz']
 srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
 surveyAmp = magnetics.survey.MagneticSurvey(srcField)
 
-simulation = magnetics.simulation.IntegralSimulation(
+simulation = magnetics.simulation.Simulation3DIntegral(
         mesh=mesh, survey=surveyAmp, chiMap=idenMap, actInd=surf, modelType='amplitude'
 )
 
@@ -314,7 +314,7 @@ idenMap = maps.IdentityMap(nP=nC)
 mstart = np.ones(nC)*1e-4
 
 # Create the forward model operator
-simulation = magnetics.simulation.IntegralSimulation(
+simulation = magnetics.simulation.Simulation3DIntegral(
    survey=surveyAmp, mesh=mesh, chiMap=idenMap, actInd=actv,
    modelType='amplitude'
 )

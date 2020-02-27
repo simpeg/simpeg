@@ -13,7 +13,7 @@ from scipy.sparse import csr_matrix as csr
 from dask.delayed import Delayed
 
 
-class IntegralSimulation(BasePFSimulation):
+class Simulation3DIntegral(BasePFSimulation):
     """
     Gravity simulation in integral form.
 

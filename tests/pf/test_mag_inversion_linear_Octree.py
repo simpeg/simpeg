@@ -85,7 +85,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         idenMap = maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        sim = mag.IntegralSimulation(
+        sim = mag.Simulation3DIntegral(
             self.mesh,
             survey=survey,
             chiMap=idenMap,

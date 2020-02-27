@@ -203,7 +203,7 @@ starting_model = background_susceptibility*np.ones(nC)
 # 
 
 # Define the problem. Define the cells below topography and the mapping
-simulation = magnetics.simulation.IntegralSimulation(
+simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh,
     modelType='susceptibility', chiMap=model_map,
     actInd=ind_active, forward_only=False

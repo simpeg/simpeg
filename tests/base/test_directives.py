@@ -69,7 +69,7 @@ class ValidationInInversion(unittest.TestCase):
         survey = mag.MagneticSurvey(srcField)
 
         # Create the forward model operator
-        sim = mag.IntegralSimulation(
+        sim = mag.Simulation3DIntegral(
             mesh, survey=survey, chiMap=maps.IdentityMap(mesh)
         )
 

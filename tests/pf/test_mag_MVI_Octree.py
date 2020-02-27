@@ -84,7 +84,7 @@ class MVIProblemTest(unittest.TestCase):
         idenMap = maps.IdentityMap(nP=nC*3)
 
         # Create the forward model operator
-        sim = mag.IntegralSimulation(
+        sim = mag.Simulation3DIntegral(
             self.mesh,
             survey=survey,
             modelType='vector',

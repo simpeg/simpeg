@@ -77,7 +77,7 @@ def run(plotIt=True):
     idenMap = maps.IdentityMap(nP=nC)
 
     # Create the forward simulation
-    simulation = gravity.simulation.IntegralSimulation(
+    simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, rhoMap=idenMap, actInd=actv
     )
 

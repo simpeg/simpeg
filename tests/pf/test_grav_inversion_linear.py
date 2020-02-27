@@ -71,7 +71,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         idenMap = maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        sim = gravity.IntegralSimulation(
+        sim = gravity.Simulation3DIntegral(
                 self.mesh,
                 survey=survey,
                 rhoMap=idenMap,

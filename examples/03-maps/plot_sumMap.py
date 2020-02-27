@@ -81,7 +81,7 @@ def run(plotIt=True):
     idenMap = maps.IdentityMap(nP=len(actv))
 
     # Create the forward model operator
-    prob = magnetics.IntegralSimulation(
+    prob = magnetics.Simulation3DIntegral(
         mesh,
         survey=survey,
         chiMap=idenMap,
@@ -103,7 +103,7 @@ def run(plotIt=True):
     sumMap = maps.SumMap([homogMap*wires.homo, wires.hetero])
 
     # Create the forward model operator
-    prob = magnetics.IntegralSimulation(
+    prob = magnetics.Simulation3DIntegral(
         mesh,
         survey=survey,
         chiMap=sumMap,
