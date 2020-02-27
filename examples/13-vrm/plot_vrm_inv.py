@@ -110,7 +110,7 @@ survey_vrm = VRM.Survey(srcListVRM)
 #
 
 # Defining the problem
-problem_vrm = VRM.Problem_Linear(
+problem_vrm = VRM.Simulation3DLinear(
     mesh, survey=survey_vrm, indActive=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75]
 )
 
@@ -152,7 +152,7 @@ fields_tot = fields_tot + 0.05*np.abs(fields_tot)*np.random.normal(size=fields_t
 # Define problem
 #survey_inv = VRM.Survey(srcListVRM)
 actCells = (mesh.gridCC[:, 2] < 0.) & (mesh.gridCC[:, 2] > -2.)
-problem_inv = VRM.Problem_Linear(
+problem_inv = VRM.Simulation3DLinear(
     mesh, survey=survey_vrm, indActive=actCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75]
 )
 survey_vrm.set_active_interval(1e-3, 1e-2)

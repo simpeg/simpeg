@@ -105,7 +105,7 @@ survey_vrm = VRM.Survey(src_list_vrm)
 #
 
 # Defining the problem
-problem_vrm = VRM.Problem_Linear(
+problem_vrm = VRM.Simulation3DLinear(
     mesh, survey=survey_vrm, indActive=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75]
 )
 
