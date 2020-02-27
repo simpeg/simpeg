@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import properties
+import warnings
 
 from ...simulation import BaseSimulation
 from ... import props
@@ -978,3 +979,25 @@ class Simulation3DLogUniform(BaseVRMSimulation):
                 f.append(mkvc((self.A[qq] * np.matrix(eta)).T))
 
         return np.array(np.hstack(f))
+
+
+############
+# Deprecated
+############
+
+class Problem_Linear(Simulation3DLinear):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem_Linear has been deprecated, please use Simulation3DLinear',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)
+
+
+class Problem_LogUnifrom(Simulation3DLogUniform):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem_LogUnifrom has been deprecated, please use Simulation3DLogUniform',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)

@@ -15,3 +15,8 @@ from .fields import Fields1D_ePrimSec, Fields3D_ePrimSec
 from .simulation import Simulation1DPrimarySecondary, Simulation3DPrimarySecondary
 from . import sources
 from . import receivers
+
+############
+# Deprecated
+############
+from .simulation import Problem3D_ePrimSec, Problem1D_ePrimSec

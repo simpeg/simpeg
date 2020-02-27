@@ -12,3 +12,12 @@ from .boundary_utils import getxBCyBC_CC
 from . import utils
 from .IODC import IO
 from .run import run_inversion
+
+Simulation2DCellCentred = Simulation2DCellCentered
+Simulation3DCellCentred = Simulation2DCellCentered
+
+############
+# Deprecated
+############
+from .simulation import Problem3D_CC, Problem3D_N
+from .simulation_2d import Problem2D_CC, Problem2D_N

@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 
 from .... import props
 from ....data import Data
@@ -296,3 +297,25 @@ class Simulation2DNodal(BaseIPSimulation2D, BaseSimulation2DNodal):
             self.sigma = 1./rho
         else:
             raise Exception("Either sigma or rho should be provided")
+
+
+############
+# Deprecated
+############
+
+class Problem2D_N(Simulation2DNodal):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem2D_N has been deprecated, please use Simulation2DNodal',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)
+
+
+class Problem2D_CC(Simulation2DCellCentered):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem2D_CC has been deprecated, please use Simulation2DCellCentered',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)

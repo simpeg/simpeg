@@ -9,3 +9,8 @@ from .simulation import (
 )
 
 from .survey import SurveyVRM as Survey
+
+############
+# Deprecated
+############
+from .simulation import Problem_Linear, Problem_LogUnifrom

@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.special import kn
+import warnings
 import properties
 
 from .... import props
@@ -445,3 +446,25 @@ class Simulation2DNodal(BaseSIPSimulation2D, BaseSimulation2DNodal):
             self.actinds = np.ones(mesh.nC, dtype=bool)
 
         self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)
+
+
+############
+# Deprecated
+############
+
+class Problem2D_N(Simulation2DNodal):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem2D_N has been deprecated, please use Simulation2DNodal',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)
+
+
+class Problem2D_CC(Simulation2DCellCentered):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem2D_CC has been deprecated, please use Simulation2DCellCentered',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)

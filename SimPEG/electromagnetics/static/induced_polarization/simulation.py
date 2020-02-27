@@ -2,6 +2,7 @@ import numpy as np
 import dask
 import dask.array as da
 import multiprocessing
+import warnings
 import scipy.sparse as sp
 import sys
 import shutil
@@ -478,4 +479,23 @@ class Simulation3DNodal(BaseIPSimulation, BaseSimulation3DNodal):
         super(Simulation3DNodal, self).__init__(mesh, **kwargs)
 
 
+############
+# Deprecated
+############
 
+class Problem3D_N(Simulation3DNodal):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem3D_N has been deprecated, please use Simulation3DNodal',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)
+
+
+class Problem3D_CC(Simulation3DCellCentered):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem3D_CC has been deprecated, please use Simulation3DCellCentered',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)

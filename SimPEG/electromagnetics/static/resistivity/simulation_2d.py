@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.special import kn
 import properties
+import warnings
 
 from ....utils import mkvc, sdiag, Zero
 from ...base import BaseEMSimulation
@@ -634,3 +635,28 @@ class Simulation2DNodal(BaseDCSimulation2D):
         # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
         # return qDeriv
         return Zero()
+
+
+Simulation2DCellCentred = Simulation2DCellCentered  # UK and US
+
+
+############
+# Deprecated
+############
+
+class Problem2D_N(Simulation2DNodal):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem2D_N has been deprecated, please use Simulation2DNodal',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)
+
+
+class Problem2D_CC(Simulation2DCellCentered):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem2D_CC has been deprecated, please use Simulation2DCellCentered',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)

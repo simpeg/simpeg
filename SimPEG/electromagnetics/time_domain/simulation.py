@@ -3,6 +3,7 @@ import scipy.sparse as sp
 from scipy.constants import mu_0
 import time
 import properties
+import warnings
 
 from ...data import Data
 from ...simulation import BaseTimeSimulation
@@ -1155,3 +1156,41 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         return D * self.MfRhoIDeriv(G * u, v)
 
 
+############
+# Deprecated
+############
+
+class Problem3D_e(Simulation3DElectricField):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem3D_e has been deprecated, please use Simulation3DElectricField',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)
+
+
+class Problem3D_b(Simulation3DMagneticFluxDensity):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem3D_b has been deprecated, please use Simulation3DMagneticFluxDensity',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)
+
+
+class Problem3D_h(Simulation3DMagneticField):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem3D_h has been deprecated, please use Simulation3DMagneticField',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)
+
+
+class Problem3D_j(Simulation3DCurrentDensity):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem3D_j has been deprecated, please use Simulation3DCurrentDensity',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)
