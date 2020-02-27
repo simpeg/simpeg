@@ -70,7 +70,7 @@ def lineintegral(M, Tx, Rx):
     return inds, V
 
 
-class StraightRayProblem(LinearSimulation):
+class Simulation2DIntegral(LinearSimulation):
 
     slowness, slownessMap, slownessDeriv = props.Invertible(
         "Slowness model (1/v)"
