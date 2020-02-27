@@ -10,8 +10,8 @@ from ....utils import sdiag
 
 from ...base import BaseEMSimulation
 from ..resistivity.fields import FieldsDC, Fields_CC, Fields_N
-from ..induced_polarization import Problem3D_CC as BaseProblem3D_CC
-from ..induced_polarization import Problem3D_N as BaseProblem3D_N
+from ..induced_polarization import Simulation3DCellCentered as BaseSimulation3DCellCentered
+from ..induced_polarization import Simulation3DNodal as BaseSimulation3DNodal
 from .survey import Survey
 
 
@@ -700,7 +700,7 @@ class BaseSIPSimulation(BaseEMSimulation):
                 )
 
 
-class Problem3D_CC(BaseSIPSimulation, BaseProblem3D_CC):
+class Simulation3DCellCentered(BaseSIPSimulation, BaseSimulation3DCellCentered):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
@@ -721,7 +721,7 @@ class Problem3D_CC(BaseSIPSimulation, BaseProblem3D_CC):
             self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)
 
 
-class Problem3D_N(BaseSIPSimulation, BaseProblem3D_N):
+class Simulation3DNodal(BaseSIPSimulation, BaseSimulation3DNodal):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # N potentials means B is on faces

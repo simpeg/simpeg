@@ -34,7 +34,7 @@ xyz_rxM = utils.ndgrid(xtemp, ytemp, np.r_[0.])
 rx = DC.Rx.Dipole(xyz_rxP, xyz_rxN)
 src = DC.Src.Dipole([rx], np.r_[-200, 0, -12.5], np.r_[+200, 0, -12.5])
 survey = DC.Survey([src])
-sim = DC.Problem3D_CC(
+sim = DC.Simulation3DCellCentered(
     mesh,
     survey=survey,
     solver=Solver,

@@ -165,7 +165,7 @@ class BaseDCSimulation(BaseEMSimulation):
                     dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
 
                     dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
-                    
+
                     if n_col > 1:
                         du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
                                                  shape=(self.model.size, n_col),
@@ -342,7 +342,7 @@ class BaseDCSimulation(BaseEMSimulation):
         return toDelete
 
 
-class Problem3D_CC(BaseDCSimulation):
+class Simulation3DCellCentered(BaseDCSimulation):
     """
     3D cell centered DC problem
     """
@@ -649,7 +649,7 @@ class Problem3D_CC(BaseDCSimulation):
             self.Grad = self.Div.T - P_BC*sdiag(y_BC)*M
 
 
-class Problem3D_N(BaseDCSimulation):
+class Simulation3DNodal(BaseDCSimulation):
     """
     3D nodal DC problem
     """

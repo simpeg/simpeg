@@ -51,7 +51,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         src = sip.sources.Dipole([rx], Aloc, Bloc)
         survey = sip.Survey([src])
         wires = maps.Wires(('eta', mesh.nC), ('taui', mesh.nC))
-        problem = sip.Problem3D_CC(
+        problem = sip.Simulation3DCellCentered(
             mesh,
             rho=1./sigma,
             etaMap=wires.eta,
@@ -150,7 +150,7 @@ class SIPProblemTestsN(unittest.TestCase):
         src = sip.sources.Dipole([rx], Aloc, Bloc)
         survey = sip.Survey([src])
         wires = maps.Wires(('eta', mesh.nC), ('taui', mesh.nC))
-        problem = sip.Problem3D_N(
+        problem = sip.Simulation3DNodal(
             mesh,
             sigma=sigma,
             etaMap=wires.eta,
@@ -255,7 +255,7 @@ class IPProblemTestsN_air(unittest.TestCase):
         survey = sip.Survey([src])
 
         wires = maps.Wires(('eta', actmapeta.nP), ('taui', actmaptau.nP), ('c', actmapc.nP))
-        problem = sip.Problem3D_N(
+        problem = sip.Simulation3DNodal(
             mesh,
             sigma=sigma,
             etaMap=actmapeta*wires.eta,

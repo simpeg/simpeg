@@ -1,4 +1,4 @@
-from .simulation import Problem3D_CC, Problem3D_N
+from .simulation import Simulation3DCellCentered, Simulation3DNodal
 from .simulation_2d import Simulation2DCellCentered, Simulation2DNodal
 from .simulation_1d import Simulation1DLayers
 from .survey import Survey, Survey_ky

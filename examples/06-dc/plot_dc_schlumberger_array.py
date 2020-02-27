@@ -177,7 +177,7 @@ for i in range(ntx):
 # Set up problem and pair with survey
 
 survey = DC.Survey(srclist)
-problem = DC.Problem3D_CC(
+problem = DC.Simulation3DCellCentered(
     mesh,
     survey=survey,
     solver=Solver,

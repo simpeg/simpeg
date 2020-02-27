@@ -1,7 +1,7 @@
 from SimPEG import Problem, Utils, Maps, Mesh
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC
-from SimPEG.EM.Static.DC import Survey, BaseDCProblem, Problem3D_CC
+from SimPEG.EM.Static.DC import Survey, BaseDCProblem, Simulation3DCellCentered
 from SimPEG.Utils import sdiag
 import numpy as np
 import scipy.sparse as sp
@@ -58,7 +58,7 @@ class BaseSPProblem(BaseDCProblem):
         return self.Div*(Mf*(MfQviI*vel))
 
 
-class Problem_CC(BaseSPProblem, Problem3D_CC):
+class Problem_CC(BaseSPProblem, Simulation3DCellCentered):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces

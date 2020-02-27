@@ -19,7 +19,7 @@ class DataMisfitTest(unittest.TestCase):
         sigma = np.ones(mesh.nC)
         model = np.log(sigma)
 
-        # prob = DC.Problem3D_CC(mesh, rhoMap=Maps.ExpMap(mesh))
+        # prob = DC.Simulation3DCellCentered(mesh, rhoMap=Maps.ExpMap(mesh))
 
         receivers = survey.BaseRx(20*[[0.0]])
         source = survey.BaseSrc([receivers])

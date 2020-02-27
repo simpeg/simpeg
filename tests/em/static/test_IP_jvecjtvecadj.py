@@ -37,7 +37,7 @@ class IPProblemTestsCC(unittest.TestCase):
         source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
         survey = ip.survey.Survey(source_list)
         sigma = np.ones(mesh.nC)
-        simulation = ip.simulation.Problem3D_CC(
+        simulation = ip.simulation.Simulation3DCellCentered(
             mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh)
         )
         mSynth = np.ones(mesh.nC)*0.1
@@ -112,7 +112,7 @@ class IPProblemTestsN(unittest.TestCase):
         source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
         survey = ip.survey.Survey(source_list)
         sigma = np.ones(mesh.nC)
-        simulation = ip.simulation.Problem3D_N(
+        simulation = ip.simulation.Simulation3DNodal(
             mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh)
         )
         mSynth = np.ones(mesh.nC)*0.1
@@ -186,7 +186,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
         source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
         survey = ip.survey.Survey(source_list)
         sigma = np.ones(mesh.nC)
-        simulation = ip.Problem3D_CC(
+        simulation = ip.Simulation3DCellCentered(
             mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh), storeJ=True
         )
         mSynth = np.ones(mesh.nC)*0.1
@@ -264,7 +264,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
         source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
         survey = ip.survey.Survey(source_list)
         sigma = np.ones(mesh.nC)
-        simulation = ip.simulation.Problem3D_N(
+        simulation = ip.simulation.Simulation3DNodal(
             mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh), storeJ=True
         )
         mSynth = np.ones(mesh.nC)*0.1
