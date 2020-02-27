@@ -1,4 +1,4 @@
 from . import empirical
 from .survey import Survey
-from .simulation import RichardsSimulation
+from .simulation import SimulationNDCellCentered
 from . import receivers

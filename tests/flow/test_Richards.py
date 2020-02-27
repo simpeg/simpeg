@@ -30,7 +30,7 @@ class BaseRichardsTest(unittest.TestCase):
         self.setup_maps(mesh, k_fun, theta_fun)
         bc, h = self.get_conditions(mesh)
 
-        prob = richards.RichardsSimulation(
+        prob = richards.SimulationNDCellCentered(
             mesh,
             hydraulic_conductivity=k_fun,
             water_retention=theta_fun,

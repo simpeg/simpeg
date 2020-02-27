@@ -22,7 +22,7 @@ from .empirical import BaseHydraulicConductivity
 from .empirical import BaseWaterRetention
 
 
-class RichardsSimulation(BaseTimeSimulation):
+class SimulationNDCellCentered(BaseTimeSimulation):
     """Richards Simulation"""
 
     hydraulic_conductivity = properties.Instance(
