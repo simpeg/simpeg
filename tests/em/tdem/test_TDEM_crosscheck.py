@@ -17,7 +17,7 @@ FLR = 1e-20
 np.random.seed(25)
 
 
-def setUp_TDEM(prbtype='b', rxcomp='bz', waveform='stepoff'):
+def setUp_TDEM(prbtype='MagneticFluxDensity', rxcomp='bz', waveform='stepoff'):
     cs = 5.
     ncx = 8
     ncy = 8
@@ -37,7 +37,7 @@ def setUp_TDEM(prbtype='b', rxcomp='bz', waveform='stepoff'):
     activeMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
-    prb = getattr(tdem, 'Problem3D_{}'.format(prbtype))(mesh, sigmaMap=mapping)
+    prb = getattr(tdem, 'Simulation3D{}'.format(prbtype))(mesh, sigmaMap=mapping)
 
     rxtimes = np.logspace(-4, -3, 20)
 
@@ -76,7 +76,8 @@ def setUp_TDEM(prbtype='b', rxcomp='bz', waveform='stepoff'):
     return prb, m, mesh
 
 
-def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz', waveform='stepoff'):
+def CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
+        rxcomp='bz', waveform='stepoff'):
 
     prb1, m1, mesh1 = setUp_TDEM(prbtype1, rxcomp, waveform)
     prb2, _, mesh2 = setUp_TDEM(prbtype2, rxcomp, waveform)
@@ -104,47 +105,53 @@ def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz', waveform='stepoff'):
 
 class TDEM_cross_check_EB(unittest.TestCase):
     def test_EB_ey_stepoff(self):
-        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='ey', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
+            rxcomp='ey', waveform='stepoff')
 
     def test_EB_dbdtx_stepoff(self):
-        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbdtx', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
+            rxcomp='dbdtx', waveform='stepoff')
 
     def test_EB_dbdtz_stepoff(self):
-        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbdtz', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
+            rxcomp='dbdtz', waveform='stepoff')
 
     def test_HJ_j_stepoff(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='jy', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='jy', waveform='stepoff')
 
     def test_HJ_j_stepoff(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='jy', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='jy', waveform='stepoff')
 
     def test_HJ_dhdtx_stepoff(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='dhdtx', waveform='stepoff')
 
     def test_HJ_dhdtz_stepoff(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='dhdtx', waveform='stepoff')
 
 
     def test_EB_ey_vtem(self):
-        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='ey', waveform='vtem')
+        CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
+            rxcomp='ey', waveform='vtem')
 
     def test_EB_dbdtx_vtem(self):
-        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbdtx', waveform='vtem')
+        CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
+            rxcomp='dbdtx', waveform='vtem')
 
     def test_EB_dbdtz_vtem(self):
-        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbdtz', waveform='vtem')
+        CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
+            rxcomp='dbdtz', waveform='vtem')
 
     def test_HJ_j_vtem(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='jy', waveform='vtem')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='jy', waveform='vtem')
 
     def test_HJ_j_vtem(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='jy', waveform='vtem')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='jy', waveform='vtem')
 
     def test_HJ_dhdtx_vtem(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='vtem')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='dhdtx', waveform='vtem')
 
     def test_HJ_dhdtz_vtem(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='vtem')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='dhdtx', waveform='vtem')
 
 
     def test_MagDipoleSimpleFail(self):

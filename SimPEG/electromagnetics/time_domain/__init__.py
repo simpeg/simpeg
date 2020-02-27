@@ -14,4 +14,4 @@ from . import receivers as Rx
 ############
 # Deprecated
 ############
-from .simulation import Problem3D_e Problem3D_b, Problem3D_h, Problem3D_j
+from .simulation import Problem3D_e, Problem3D_b, Problem3D_h, Problem3D_j

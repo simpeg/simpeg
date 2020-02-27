@@ -362,3 +362,16 @@ class SimulationNDCellCentered(BaseTimeSimulation):
             BJtv = BJtv + B.T*JTvC
 
         return BJtv + PTdv
+
+
+############
+# Deprecated
+############
+
+class RichardsProblem(SimulationNDCellCentered):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'RichardsProblem has been deprecated, please use SimulationNDCellCentered',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)

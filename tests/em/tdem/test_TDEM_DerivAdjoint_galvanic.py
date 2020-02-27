@@ -16,7 +16,7 @@ TOL = 1e-4
 np.random.seed(10)
 
 
-def setUp_TDEM(prbtype='e', rxcomp='ex'):
+def setUp_TDEM(prbtype='ElectricField', rxcomp='ex'):
     cs = 5.
     ncx = 8
     ncy = 8
@@ -49,7 +49,7 @@ def setUp_TDEM(prbtype='e', rxcomp='ex'):
     src = tdem.Src.LineCurrent([rx], loc=srcloc, waveform = tdem.Src.StepOffWaveform())
     survey = tdem.Survey([src])
 
-    prb = getattr(tdem, 'Problem3D_{}'.format(prbtype))(mesh, sigmaMap=mapping)
+    prb = getattr(tdem, 'Simulation3D{}'.format(prbtype))(mesh, sigmaMap=mapping)
 
     prb.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
 
@@ -82,19 +82,19 @@ class TDEM_DerivTests(unittest.TestCase):
             tests.checkDerivative(derChk, m, plotIt=False, num=2, eps=1e-20)
 
         def test_Jvec_e_dbzdt(self):
-            self.JvecTest('e', 'dbdtz')
+            self.JvecTest('ElectricField', 'dbdtz')
 
         def test_Jvec_e_ex(self):
-            self.JvecTest('e', 'ex')
+            self.JvecTest('ElectricField', 'ex')
 
         def test_Jvec_e_ey(self):
-            self.JvecTest('e', 'ey')
+            self.JvecTest('ElectricField', 'ey')
 
 
 # ====== TEST Jtvec ========== #
 
     if testAdjoint:
-        def JvecVsJtvecTest(self, prbtype='b', rxcomp='bz'):
+        def JvecVsJtvecTest(self, prbtype='MagneticFluxDensity', rxcomp='bz'):
 
             print(
                 '\nAdjoint Testing Jvec, Jtvec prob {}, {}'.format(
@@ -119,13 +119,13 @@ class TDEM_DerivTests(unittest.TestCase):
             self.assertTrue(passed)
 
         def test_Jvec_adjoint_e_dbzdt(self):
-            self.JvecVsJtvecTest('e', 'dbdtz')
+            self.JvecVsJtvecTest('ElectricField', 'dbdtz')
 
         def test_Jvec_adjoint_e_ex(self):
-            self.JvecVsJtvecTest('e', 'ex')
+            self.JvecVsJtvecTest('ElectricField', 'ex')
 
         def test_Jvec_adjoint_e_ey(self):
-            self.JvecVsJtvecTest('e', 'ey')
+            self.JvecVsJtvecTest('ElectricField', 'ey')
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
+import warnings
 
 from ...simulation import LinearSimulation
 from ...utils import sub2ind
@@ -107,3 +108,16 @@ class Simulation2DIntegral(LinearSimulation):
         # mt = self.model.transformDeriv
         # return mt.T * ( self.A.T * v )
         return self.slownessDeriv.T * self.A.T * v
+
+
+############
+# Deprecated
+############
+
+class StraightRayProblem(Simulation2DIntegral):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'StraightRayProblem has been deprecated, please use Simulation2DIntegral',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)

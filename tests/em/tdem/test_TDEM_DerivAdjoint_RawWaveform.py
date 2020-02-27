@@ -42,7 +42,7 @@ def get_mapping(mesh):
 
 
 def get_prob(mesh, mapping, formulation):
-    prb = getattr(tdem, 'Problem3D_{}'.format(formulation))(
+    prb = getattr(tdem, 'Simulation3D{}'.format(formulation))(
         mesh, sigmaMap=mapping
     )
     prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
@@ -144,7 +144,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
 class DerivAdjoint_E(Base_DerivAdjoint_Test):
 
-    formulation = 'e'
+    formulation = 'ElectricField'
 
     if testDeriv:
         def test_Jvec_e_dbxdt(self):
@@ -169,7 +169,7 @@ class DerivAdjoint_E(Base_DerivAdjoint_Test):
 
 class DerivAdjoint_B(Base_DerivAdjoint_Test):
 
-    formulation = 'b'
+    formulation = 'MagneticFluxDensity'
 
     if testDeriv:
         def test_Jvec_b_bx(self):
@@ -206,7 +206,7 @@ class DerivAdjoint_B(Base_DerivAdjoint_Test):
 
 class DerivAdjoint_H(Base_DerivAdjoint_Test):
 
-    formulation = 'h'
+    formulation = 'MagneticField'
 
     if testDeriv:
         def test_Jvec_h_hx(self):
@@ -240,7 +240,7 @@ class DerivAdjoint_H(Base_DerivAdjoint_Test):
 
 class DerivAdjoint_J(Base_DerivAdjoint_Test):
 
-    formulation = 'j'
+    formulation = 'CurrentDensity'
 
     if testDeriv:
         def test_Jvec_j_jy(self):
@@ -270,9 +270,9 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 #     def AderivTest(self, prbtype):
 #         prb, m0, mesh = setUp_TDEM(prbtype)
 #         tInd = 2
-#         if prbtype == 'b':
+#         if prbtype == 'MagneticFluxDensity':
 #             nu = mesh.nF
-#         elif prbtype == 'e':
+#         elif prbtype == 'ElectricField':
 #             nu = mesh.nE
 #         v = np.random.rand(nu)
 
@@ -296,9 +296,9 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 
 #         print('\n Testing A_adjoint')
 #         m = np.random.rand(prb.sigmaMap.nP)
-#         if prbtype == 'b':
+#         if prbtype == 'MagneticFluxDensity':
 #             nu = prb.mesh.nF
-#         elif prbtype == 'e':
+#         elif prbtype == 'ElectricField':
 #             nu = prb.mesh.nE
 
 #         v = np.random.rand(nu)
@@ -317,16 +317,16 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 #         self.assertTrue(passed)
 
 #     def test_Aderiv_b(self):
-#         self.AderivTest(prbtype='b')
+#         self.AderivTest(prbtype='MagneticFluxDensity')
 
 #     def test_Aderiv_e(self):
-#         self.AderivTest(prbtype='e')
+#         self.AderivTest(prbtype='ElectricField')
 
 #     def test_Aadjoint_b(self):
-#         self.A_adjointTest(prbtype='b')
+#         self.A_adjointTest(prbtype='MagneticFluxDensity')
 
 #     def test_Aadjoint_e(self):
-#         self.A_adjointTest(prbtype='e')
+#         self.A_adjointTest(prbtype='ElectricField')
 
 # # ====== TEST Fields Deriv Pieces ========== #
 

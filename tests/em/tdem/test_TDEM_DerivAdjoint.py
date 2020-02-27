@@ -46,7 +46,7 @@ def get_mapping(mesh):
 
 
 def get_prob(mesh, mapping, formulation):
-    prb = getattr(tdem, 'Problem3D_{}'.format(formulation))(
+    prb = getattr(tdem, 'Simulation3D{}'.format(formulation))(
         mesh, sigmaMap=mapping
     )
     prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
@@ -144,7 +144,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
 class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
 
-    formulation = 'b'
+    formulation = 'MagneticFluxDensity'
 
     def test_eDeriv_m_adjoint(self):
         tInd = 0
@@ -184,7 +184,7 @@ class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
 
 class DerivAdjoint_E(Base_DerivAdjoint_Test):
 
-    formulation = 'e'
+    formulation = 'ElectricField'
 
     if testDeriv:
         def test_Jvec_e_dbxdt(self):
@@ -227,7 +227,7 @@ class DerivAdjoint_E(Base_DerivAdjoint_Test):
 
 class DerivAdjoint_B(Base_DerivAdjoint_Test):
 
-    formulation = 'b'
+    formulation = 'MagneticFluxDensity'
 
     if testDeriv:
         def test_Jvec_b_bx(self):
@@ -294,7 +294,7 @@ class DerivAdjoint_B(Base_DerivAdjoint_Test):
 
 class DerivAdjoint_H(Base_DerivAdjoint_Test):
 
-    formulation = 'h'
+    formulation = 'MagneticField'
 
     if testDeriv:
         def test_Jvec_h_hx(self):
@@ -361,7 +361,7 @@ class DerivAdjoint_H(Base_DerivAdjoint_Test):
 
 class DerivAdjoint_J(Base_DerivAdjoint_Test):
 
-    formulation = 'j'
+    formulation = 'CurrentDensity'
 
     if testDeriv:
         def test_Jvec_j_jy(self):

@@ -1,4 +1,5 @@
 from __future__ import print_function
+import warnings
 from SimPEG import utils
 from SimPEG.utils import mkvc, sdiag
 from SimPEG import props
@@ -345,3 +346,25 @@ class Simulation3DDifferential(BaseSimulation):
         gField = 4. * np.pi * NewtG * 1e+8 * self._Div * u
 
         return {'G': gField, 'u': u}
+
+
+############
+# Deprecated
+############
+
+class GravityIntegral(Simulation3DIntegral):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'GravityIntegral has been deprecated, please use Simulation3DIntegral',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)
+
+
+class Problem3D_Diff(Simulation3DDifferential):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem3D_Diff has been deprecated, please use Simulation3DDifferential',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)

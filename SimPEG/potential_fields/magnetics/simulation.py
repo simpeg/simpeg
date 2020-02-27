@@ -3,6 +3,7 @@ from __future__ import print_function
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
+import warnings
 
 from SimPEG import utils
 from ...simulation import BaseSimulation
@@ -1068,3 +1069,25 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     inv = Inversion.BaseInversion(obj, opt)
 
     return inv, reg
+
+
+############
+# Deprecated
+############
+
+class MagneticIntegral(Simulation3DIntegral):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'MagneticIntegral has been deprecated, please use Simulation3DIntegral',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)
+
+
+class Problem3D_Diff(Simulation3DDifferential):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'Problem3D_Diff has been deprecated, please use Simulation3DDifferential',
+            DeprecationWarning
+        )
+        super().__init__(*args, **kwargs)
