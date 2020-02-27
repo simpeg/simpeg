@@ -10,7 +10,7 @@ from ....utils import meshTensor
 from ..receivers import Point_impedance1D, Point_impedance3D, Point_tipper3D
 from ..survey import Survey
 from ..sources import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
-from ..simulation import Problem3D_ePrimSec
+from ..simulation import Simulation3DPrimarySecondary
 from .data_utils import appResPhs
 
 np.random.seed(1100)
@@ -114,11 +114,11 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp='Imp', singleFreq=False, expMap=Tr
     sigma1d = M.r(sigBG, 'CC', 'CC', 'M')[0, 0, :]
 
     if expMap:
-        problem = Problem3D_ePrimSec(M, sigmaPrimary=np.log(sigma1d))
+        problem = Simulation3DPrimarySecondary(M, sigmaPrimary=np.log(sigma1d))
         problem.sigmaMap = maps.ExpMap(problem.mesh)
         problem.model = np.log(sig)
     else:
-        problem = Problem3D_ePrimSec(M, sigmaPrimary=sigma1d)
+        problem = Simulation3DPrimarySecondary(M, sigmaPrimary=sigma1d)
         problem.sigmaMap = maps.IdentityMap(problem.mesh)
         problem.model = sig
     problem.pair(survey)

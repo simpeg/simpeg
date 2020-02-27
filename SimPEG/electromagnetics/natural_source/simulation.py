@@ -143,7 +143,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
 ###################################
 
 
-class Problem1D_ePrimSec(BaseNSEMSimulation):
+class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     """
     A NSEM problem soving a e formulation and primary/secondary fields decomposion.
 
@@ -312,7 +312,7 @@ class Problem1D_ePrimSec(BaseNSEMSimulation):
 ###################################
 # 3D problems
 ###################################
-class Problem3D_ePrimSec(BaseNSEMSimulation):
+class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     """
     A NSEM problem solving a e formulation and a primary/secondary fields decompostion.
 
@@ -344,7 +344,7 @@ class Problem3D_ePrimSec(BaseNSEMSimulation):
     _sigmaPrimary = None
 
     def __init__(self, mesh, **kwargs):
-        super(Problem3D_ePrimSec, self).__init__(mesh, **kwargs)
+        super(Simulation3DPrimarySecondary, self).__init__(mesh, **kwargs)
 
     @property
     def sigmaPrimary(self):
@@ -580,5 +580,3 @@ class Problem3D_ePrimSec(BaseNSEMSimulation):
             pool.join()
 
         return F
-
-

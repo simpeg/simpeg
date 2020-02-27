@@ -17,7 +17,7 @@ MU = mu_0
 def DerivJvecTest(halfspace_value, freq=False, expMap=True):
 
     survey, sig, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(halfspace_value,False,structure=True)
-    simulation = nsem.Problem1D_ePrimSec(mesh, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(mesh), survey=survey)
+    simulation = nsem.Simulation1DPrimarySecondary(mesh, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(mesh), survey=survey)
     print('Using {0} solver for the simulation'.format(simulation.Solver))
     print('Derivative test of Jvec for eForm primary/secondary for 1d comp from {0} to {1} Hz\n'.format(survey.freqs[0],survey.freqs[-1]))
     # simulation.mapping = maps.ExpMap(simulation.mesh)

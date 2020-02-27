@@ -73,7 +73,7 @@ def run(plotIt=True):
     survey = NSEM.Survey(srcList)
 
     # Setup the problem object
-    problem = NSEM.Problem3D_ePrimSec(M,
+    problem = NSEM.Simulation3DPrimarySecondary(M,
         survey=survey, solver=Solver,
         sigma=sig, sigmaPrimary=sigBG)
 
