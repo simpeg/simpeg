@@ -17,7 +17,7 @@ np.random.seed(41)
 
 class DCProblem_2DTestsCC(unittest.TestCase):
 
-    formulation = 'Problem2D_CC'
+    formulation = 'Simulation2DCellCentered'
     storeJ = False
     adjoint_tol = 1e-10
 
@@ -97,21 +97,21 @@ class DCProblem_2DTestsCC(unittest.TestCase):
 
 class DCProblemTestsN(DCProblem_2DTestsCC):
 
-    formulation = 'Problem2D_N'
+    formulation = 'Simulation2DNodal'
     storeJ = False
     adjoint_tol = 1e-8
 
 
 class DCProblem_2DTestsCC_storeJ(DCProblem_2DTestsCC):
 
-    formulation = 'Problem2D_CC'
+    formulation = 'Simulation2DCellCentered'
     storeJ = True
     adjoint_tol = 1e-10
 
 
 class DCProblemTestsN_storeJ(DCProblem_2DTestsCC):
 
-    formulation = 'Problem2D_N'
+    formulation = 'Simulation2DNodal'
     storeJ = True
     adjoint_tol = 1e-8
 

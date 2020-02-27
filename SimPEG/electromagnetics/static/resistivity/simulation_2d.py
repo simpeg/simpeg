@@ -12,7 +12,7 @@ from .fields import FieldsDC, Fields_CC, Fields_N
 from .boundary_utils import getxBCyBC_CC
 
 
-class BaseDCSimulation_2D(BaseEMSimulation):
+class BaseDCSimulation2D(BaseEMSimulation):
     """
     Base 2.5D DC problem
     """
@@ -303,7 +303,7 @@ class BaseDCSimulation_2D(BaseEMSimulation):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = super(BaseDCSimulation_2D, self).deleteTheseOnModelUpdate
+        toDelete = super(BaseDCSimulation2D, self).deleteTheseOnModelUpdate
         if self.sigmaMap is not None:
             toDelete += [
                 '_MnSigma', '_MnSigmaDerivMat',
@@ -425,7 +425,7 @@ class BaseDCSimulation_2D(BaseEMSimulation):
                 return (sdiag(u*vol*(-1./rho**2)))*(self.rhoDeriv * v)
 
 
-class Problem2D_CC(BaseDCSimulation_2D):
+class Simulation2DCellCentered(BaseDCSimulation2D):
     """
     2.5D cell centered DC problem
     """
@@ -437,7 +437,7 @@ class Problem2D_CC(BaseDCSimulation_2D):
     bc_type = 'Mixed'
 
     def __init__(self, mesh, **kwargs):
-        BaseDCSimulation_2D.__init__(self, mesh, **kwargs)
+        BaseDCSimulation2D.__init__(self, mesh, **kwargs)
 
     def getA(self, ky):
         """
@@ -567,7 +567,7 @@ class Problem2D_CC(BaseDCSimulation_2D):
         self.Grad = self.Div.T - P_BC*sdiag(y_BC)*M
 
 
-class Problem2D_N(BaseDCSimulation_2D):
+class Simulation2DNodal(BaseDCSimulation2D):
     """
     2.5D nodal DC problem
     """
@@ -578,7 +578,7 @@ class Problem2D_N(BaseDCSimulation_2D):
     fieldsPair_fwd = Fields_N
 
     def __init__(self, mesh, **kwargs):
-        BaseDCSimulation_2D.__init__(self, mesh, **kwargs)
+        BaseDCSimulation2D.__init__(self, mesh, **kwargs)
         # self.setBC()
 
     def getA(self, ky):

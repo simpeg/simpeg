@@ -169,7 +169,7 @@ layer_map = maps.ExpMap(nP=mesh.nC-1) * wire_map.t
 # resistivity values. This is defined here.
 #
 
-simulation = dc.simulation_1d.DCSimulation_1D(
+simulation = dc.simulation_1d.Simulation1DLayers(
         mesh, survey=survey, rhoMap=resistivity_map, tMap=layer_map,
         data_type="apparent_resistivity"
         )

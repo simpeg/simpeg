@@ -4,7 +4,7 @@ import properties
 from ....fields import TimeFields
 from ....utils import Identity, Zero
 
-# TODO: this should be the BaseDCSimulation_2D --> but circular imports at the
+# TODO: this should be the BaseDCSimulation2D --> but circular imports at the
 # moment, so we can settle for its base at the moment
 from ...base import BaseEMSimulation
 

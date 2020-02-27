@@ -43,7 +43,7 @@ class IPProblemTestsCC(unittest.TestCase):
         survey = ip.Survey([src0, src1])
 
         sigma = np.ones(mesh.nC) * 1.
-        problem = ip.Problem2D_CC(
+        problem = ip.Simulation2DCellCentered(
             mesh, sigma=sigma, etaMap=maps.IdentityMap(mesh),
             verbose=False
         )
@@ -126,7 +126,7 @@ class IPProblemTestsN(unittest.TestCase):
         survey = ip.Survey([src0, src1])
 
         sigma = np.ones(mesh.nC) * 1.
-        problem = ip.Problem2D_N(
+        problem = ip.Simulation2DNodal(
             mesh, rho=1./sigma, etaMap=maps.IdentityMap(mesh),
             verbose=False
         )

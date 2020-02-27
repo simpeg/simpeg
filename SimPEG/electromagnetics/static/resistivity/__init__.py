@@ -1,6 +1,6 @@
 from .simulation import Problem3D_CC, Problem3D_N
-from .simulation_2d import Problem2D_CC, Problem2D_N
-from .simulation_1d import DCSimulation_1D
+from .simulation_2d import Simulation2DCellCentered, Simulation2DNodal
+from .simulation_1d import Simulation1DLayers
 from .survey import Survey, Survey_ky
 from . import sources
 from . import receivers

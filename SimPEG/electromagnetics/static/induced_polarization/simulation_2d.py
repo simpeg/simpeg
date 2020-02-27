@@ -8,12 +8,12 @@ from ..resistivity.fields_2d import (
     Fields_ky, Fields_ky_CC, Fields_ky_N
 )
 
-from ..resistivity.simulation_2d import BaseDCSimulation_2D
-from ..resistivity import Problem2D_CC as BaseProblem2D_CC
-from ..resistivity import Problem2D_N as BaseProblem2D_N
+from ..resistivity.simulation_2d import BaseDCSimulation2D
+from ..resistivity import Simulation2DCellCentered as BaseSimulation2DCellCentered
+from ..resistivity import Simulation2DNodal as BaseSimulation2DNodal
 
 
-class BaseIPSimulation_2D(BaseDCSimulation_2D):
+class BaseIPSimulation_2D(BaseDCSimulation2D):
 
     sigma = props.PhysicalProperty(
         "Electrical conductivity (S/m)"
@@ -216,7 +216,7 @@ class BaseIPSimulation_2D(BaseDCSimulation_2D):
                 )
 
 
-class Problem2D_CC(BaseIPSimulation_2D, BaseProblem2D_CC):
+class Simulation2DCellCentered(BaseIPSimulation_2D, BaseSimulation2DCellCentered):
     """
     2.5D cell centered IP problem
     """
@@ -272,7 +272,7 @@ class Problem2D_CC(BaseIPSimulation_2D, BaseProblem2D_CC):
                 return dMfRhoI_dI * (dMf_drho * (drho_dlogrho*v))
 
 
-class Problem2D_N(BaseIPSimulation_2D, BaseProblem2D_N):
+class Simulation2DNodal(BaseIPSimulation_2D, BaseSimulation2DNodal):
     """
     2.5D nodal IP problem
     """

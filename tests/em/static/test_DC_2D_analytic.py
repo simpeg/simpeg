@@ -45,9 +45,9 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         except ImportError:
             self.Solver = SolverLU
 
-    def test_Problem2D_N(self, tolerance=0.05):
+    def test_Simulation2DNodal(self, tolerance=0.05):
 
-        simulation = dc.simulation_2d.Problem2D_N(
+        simulation = dc.simulation_2d.Simulation2DNodal(
                 self.mesh, survey=self.survey, sigma=self.sigma
                 )
         simulation.Solver = self.Solver
@@ -58,15 +58,15 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         )
         if err < tolerance:
             passed = True
-            print(">> DC analytic test for PDP Problem2D_N is passed")
+            print(">> DC analytic test for PDP Simulation2DNodal is passed")
         else:
             print(err)
             passed = False
-            print(">> DC analytic test for PDP Problem2D_N is failed")
+            print(">> DC analytic test for PDP Simulation2DNodal is failed")
         self.assertTrue(passed)
 
-    def test_Problem2D_CC(self, tolerance=0.05):
-        simulation = dc.simulation_2d.Problem2D_CC(
+    def test_Simulation2DCellCentered(self, tolerance=0.05):
+        simulation = dc.simulation_2d.Simulation2DCellCentered(
                 self.mesh, survey=self.survey, sigma=self.sigma
                 )
         simulation.Solver = self.Solver
@@ -77,11 +77,11 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         )
         if err < tolerance:
             passed = True
-            print(">> DC analytic test for PDP Problem2D_CC is passed")
+            print(">> DC analytic test for PDP Simulation2DCellCentered is passed")
         else:
             print(err)
             passed = False
-            print(">> DC analytic test for PDP Problem2D_CC is failed")
+            print(">> DC analytic test for PDP Simulation2DCellCentered is failed")
         self.assertTrue(passed)
 
 
@@ -121,9 +121,9 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         except ImportError:
             self.Solver = SolverLU
 
-    def test_Problem2D_N(self, tolerance=0.05):
+    def test_Simulation2DNodal(self, tolerance=0.05):
 
-        simulation = dc.simulation_2d.Problem2D_N(
+        simulation = dc.simulation_2d.Simulation2DNodal(
                 self.mesh, survey=self.survey, sigma=self.sigma)
         simulation.Solver = self.Solver
         simulation.pair(self.survey)
@@ -134,19 +134,19 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         )
         if err < tolerance:
             passed = True
-            print(">> DC analytic test for DPP Problem2D_N is passed")
+            print(">> DC analytic test for DPP Simulation2DNodal is passed")
             if self.plotIt:
                 plt.plot(self.data_ana)
                 plt.plot(data, 'k.')
                 plt.show()
         else:
             passed = False
-            print(">> DC analytic test for DPP Problem2D_N is failed")
+            print(">> DC analytic test for DPP Simulation2DNodal is failed")
             print(err)
         self.assertTrue(passed)
 
-    def test_Problem2D_CC(self, tolerance=0.05):
-        simulation = dc.simulation_2d.Problem2D_CC(
+    def test_Simulation2DCellCentered(self, tolerance=0.05):
+        simulation = dc.simulation_2d.Simulation2DCellCentered(
                 self.mesh, survey=self.survey, sigma=self.sigma
                 )
         simulation.Solver = self.Solver
@@ -157,10 +157,10 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         )
         if err < tolerance:
             passed = True
-            print(">> DC analytic test for DPP Problem2D_CC is passed")
+            print(">> DC analytic test for DPP Simulation2DCellCentered is passed")
         else:
             passed = False
-            print(">> DC analytic test for DPP Problem2D_CC is failed")
+            print(">> DC analytic test for DPP Simulation2DCellCentered is failed")
             print(err)
             if self.plotIt:
                 plt.plot(self.data_ana)
@@ -203,8 +203,8 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         except ImportError:
             self.Solver = SolverLU
 
-    def test_Problem2D_CC(self, tolerance=0.05):
-        simulation = dc.simulation_2d.Problem2D_CC(
+    def test_Simulation2DCellCentered(self, tolerance=0.05):
+        simulation = dc.simulation_2d.Simulation2DCellCentered(
                 self.mesh, survey=self.survey, sigma=self.sigma,
                 bc_type="Mixed")
         simulation.Solver = self.Solver
@@ -215,10 +215,10 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         )
         if err < tolerance:
             passed = True
-            print(">> DC analytic test for PP Problem2D_CC is passed")
+            print(">> DC analytic test for PP Simulation2DCellCentered is passed")
         else:
             passed = False
-            print(">> DC analytic test for PP Problem2D_CC is failed")
+            print(">> DC analytic test for PP Simulation2DCellCentered is failed")
             print(err)
         self.assertTrue(passed)
 

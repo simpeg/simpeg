@@ -10,8 +10,8 @@ from ..resistivity.fields_2d import (
     Fields_ky, Fields_ky_CC, Fields_ky_N
 )
 from ..induced_polarization.simulation_2d import BaseIPSimulation_2D
-from ..induced_polarization import Problem2D_N as BaseProblem2D_N
-from ..induced_polarization import Problem2D_CC as BaseProblem2D_CC
+from ..induced_polarization import Simulation2DNodal as BaseSimulation2DNodal
+from ..induced_polarization import Simulation2DCellCentered as BaseSimulation2DCellCentered
 from .survey import Survey
 from .simulation import BaseSIPSimulation
 
@@ -405,7 +405,7 @@ class BaseSIPSimulation_2D(BaseIPSimulation_2D, BaseSIPSimulation):
         ]
         return toDelete
 
-class Problem2D_CC(BaseSIPSimulation_2D, BaseProblem2D_CC):
+class Simulation2DCellCentered(BaseSIPSimulation_2D, BaseSimulation2DCellCentered):
     """
     2.5D cell centered Spectral IP problem
     """
@@ -426,7 +426,7 @@ class Problem2D_CC(BaseSIPSimulation_2D, BaseProblem2D_CC):
         self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)
 
 
-class Problem2D_N(BaseSIPSimulation_2D, BaseProblem2D_N):
+class Simulation2DNodal(BaseSIPSimulation_2D, BaseSimulation2DNodal):
     """
     2.5D nodal Spectral IP problem
     """
