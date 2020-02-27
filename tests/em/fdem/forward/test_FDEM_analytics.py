@@ -79,7 +79,7 @@ class FDEM_analyticTests(unittest.TestCase):
 
     def test_Transect(self, plotIt=plotIt):
 
-        for src in self.prb.survey.srcList:
+        for src in self.prb.survey.source_list:
             print(' --- testing {} --- '.format(src.__class__.__name__))
             x = np.linspace(-55, 55, 12)
             XYZ = utils.ndgrid(x, np.r_[0], np.r_[0])

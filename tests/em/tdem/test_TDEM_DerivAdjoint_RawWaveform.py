@@ -104,7 +104,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
 
         # append to srclists
         for srcList, rxlist in zip(
-            [self.survey.srcList, self.surveyfwd.srcList], [rx, rxfwd]
+            [self.survey.source_list, self.surveyfwd.source_list], [rx, rxfwd]
         ):
             for src in srcList:
                 src.receiver_list = rxlist
@@ -343,8 +343,8 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 
 #         m = np.random.rand(prb.sigmaMap.nP)
 #         e = np.random.randn(prb.mesh.nE)
-#         V1 = e.dot(f._eDeriv_m(1, prb.survey.srcList[0], m))
-#         V2 = m.dot(f._eDeriv_m(1, prb.survey.srcList[0], e, adjoint=True))
+#         V1 = e.dot(f._eDeriv_m(1, prb.survey.source_list[0], m))
+#         V2 = m.dot(f._eDeriv_m(1, prb.survey.source_list[0], e, adjoint=True))
 #         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
 #         passed = np.abs(V1-V2) < tol
 
@@ -360,8 +360,8 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 
 #         b = np.random.rand(prb.mesh.nF)
 #         e = np.random.randn(prb.mesh.nE)
-#         V1 = e.dot(f._eDeriv_u(1, prb.survey.srcList[0], b))
-#         V2 = b.dot(f._eDeriv_u(1, prb.survey.srcList[0], e, adjoint=True))
+#         V1 = e.dot(f._eDeriv_u(1, prb.survey.source_list[0], b))
+#         V2 = b.dot(f._eDeriv_u(1, prb.survey.source_list[0], e, adjoint=True))
 #         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
 #         passed = np.abs(V1-V2) < tol
 

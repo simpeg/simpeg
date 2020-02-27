@@ -684,7 +684,7 @@ class PrimSecCasingExample(object):
         secondarySurvey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs
         )
-        src = secondarySurvey.srcList[0]
+        src = secondarySurvey.source_list[0]
         s_e = src.s_e(secondaryProblem, f=primaryFields)
 
         # Mesh to interpolate onto for stream plots
@@ -799,7 +799,7 @@ class PrimSecCasingExample(object):
 
         sec_survey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs)
-        src = sec_survey.srcList[0]
+        src = sec_survey.source_list[0]
         rx0 = src.receiver_list[0]
 
         nx = int(np.sqrt(len(rx0.locations)))
@@ -1290,7 +1290,7 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         self.primaryProblem.model = self.mtrue  # set the current model
         self.primaryProblem.survey = self.primarySurvey
         primaryFields = self.primaryProblem.fieldsPair(self.primaryProblem)
-        primaryFields[self.primarySurvey.srcList[0], 'hSolution'] = results[
+        primaryFields[self.primarySurvey.source_list[0], 'hSolution'] = results[
             'primfields'
         ]
 

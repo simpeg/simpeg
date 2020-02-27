@@ -52,8 +52,8 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.mesh = mesh
         self.sigmaInf = sigmaInf
         self.sigma0 = sigma0
-        self.srcLists = srcLists
-        self.srcLists_ip = srcLists_ip
+        self.source_lists = srcLists
+        self.source_lists_ip = srcLists_ip
         self.eta = eta
 
     def test_Simulation2DNodal(self):
@@ -71,7 +71,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
             etaMap=maps.IdentityMap(self.mesh),
         )
         problemIP.Solver = Solver
-        surveyIP = ip.Survey(self.srcLists_ip)
+        surveyIP = ip.Survey(self.source_lists_ip)
         problemIP.pair(surveyIP)
         data_full = data0 - datainf
         data = problemIP.dpred(self.eta)
@@ -102,8 +102,8 @@ class IPProblemAnalyticTests(unittest.TestCase):
         )
         problemIP.Solver = Solver
         print("\n\n\n")
-        print(self.srcLists_ip)
-        surveyIP = ip.Survey(self.srcLists_ip)
+        print(self.source_lists_ip)
+        surveyIP = ip.Survey(self.source_lists_ip)
         problemIP.pair(surveyIP)
         data_full = data0 - datainf
         data = problemIP.dpred(self.eta)

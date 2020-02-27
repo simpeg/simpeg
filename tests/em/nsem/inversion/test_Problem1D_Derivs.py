@@ -43,7 +43,7 @@ def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
     print('Derivative test of data projection for eFormulation primary/secondary\n')
     # simulation.mapping = maps.ExpMap(simulation.mesh)
     # Initate things for the derivs Test
-    src = survey.srcList[0]
+    src = survey.source_list[0]
     np.random.seed(1983)
     u0x = np.random.randn(survey.mesh.nE)+np.random.randn(survey.mesh.nE)*1j
     u0y = np.random.randn(survey.mesh.nE)+np.random.randn(survey.mesh.nE)*1j
