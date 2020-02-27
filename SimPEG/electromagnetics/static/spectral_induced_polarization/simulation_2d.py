@@ -16,7 +16,7 @@ from .survey import Survey
 from .simulation import BaseSIPSimulation
 
 
-class BaseSIPSimulation_2D(BaseIPSimulation2D, BaseSIPSimulation):
+class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
 
 
     eta, etaMap, etaDeriv = props.Invertible(
@@ -405,7 +405,7 @@ class BaseSIPSimulation_2D(BaseIPSimulation2D, BaseSIPSimulation):
         ]
         return toDelete
 
-class Simulation2DCellCentered(BaseSIPSimulation_2D, BaseSimulation2DCellCentered):
+class Simulation2DCellCentered(BaseSIPSimulation2D, BaseSimulation2DCellCentered):
     """
     2.5D cell centered Spectral IP problem
     """
@@ -417,7 +417,7 @@ class Simulation2DCellCentered(BaseSIPSimulation_2D, BaseSimulation2DCellCentere
     bc_type = "Mixed"
 
     def __init__(self, mesh, **kwargs):
-        BaseSIPSimulation_2D.__init__(self, mesh, **kwargs)
+        BaseSIPSimulation2D.__init__(self, mesh, **kwargs)
         if self.actinds is None:
             print("You did not put Active indices")
             print("So, set actMap = IdentityMap(mesh)")
@@ -426,7 +426,7 @@ class Simulation2DCellCentered(BaseSIPSimulation_2D, BaseSimulation2DCellCentere
         self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)
 
 
-class Simulation2DNodal(BaseSIPSimulation_2D, BaseSimulation2DNodal):
+class Simulation2DNodal(BaseSIPSimulation2D, BaseSimulation2DNodal):
     """
     2.5D nodal Spectral IP problem
     """
@@ -437,7 +437,7 @@ class Simulation2DNodal(BaseSIPSimulation_2D, BaseSimulation2DNodal):
     sign = -1.
 
     def __init__(self, mesh, **kwargs):
-        BaseSIPSimulation_2D.__init__(self, mesh, **kwargs)
+        BaseSIPSimulation2D.__init__(self, mesh, **kwargs)
         # self.setBC()
         if self.actinds is None:
             print("You did not put Active indices")
