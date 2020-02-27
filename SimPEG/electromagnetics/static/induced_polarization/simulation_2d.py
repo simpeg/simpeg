@@ -13,7 +13,7 @@ from ..resistivity import Simulation2DCellCentered as BaseSimulation2DCellCenter
 from ..resistivity import Simulation2DNodal as BaseSimulation2DNodal
 
 
-class BaseIPSimulation_2D(BaseDCSimulation2D):
+class BaseIPSimulation2D(BaseDCSimulation2D):
 
     sigma = props.PhysicalProperty(
         "Electrical conductivity (S/m)"
@@ -216,7 +216,7 @@ class BaseIPSimulation_2D(BaseDCSimulation2D):
                 )
 
 
-class Simulation2DCellCentered(BaseIPSimulation_2D, BaseSimulation2DCellCentered):
+class Simulation2DCellCentered(BaseIPSimulation2D, BaseSimulation2DCellCentered):
     """
     2.5D cell centered IP problem
     """
@@ -228,7 +228,7 @@ class Simulation2DCellCentered(BaseIPSimulation_2D, BaseSimulation2DCellCentered
     sign = 1.
 
     def __init__(self, mesh, **kwargs):
-        BaseIPSimulation_2D.__init__(self, mesh, **kwargs)
+        BaseIPSimulation2D.__init__(self, mesh, **kwargs)
 
     def delete_these_for_sensitivity(self, sigma=None, rho=None):
         if self._Jmatrix is not None:
@@ -272,7 +272,7 @@ class Simulation2DCellCentered(BaseIPSimulation_2D, BaseSimulation2DCellCentered
                 return dMfRhoI_dI * (dMf_drho * (drho_dlogrho*v))
 
 
-class Simulation2DNodal(BaseIPSimulation_2D, BaseSimulation2DNodal):
+class Simulation2DNodal(BaseIPSimulation2D, BaseSimulation2DNodal):
     """
     2.5D nodal IP problem
     """
@@ -283,7 +283,7 @@ class Simulation2DNodal(BaseIPSimulation_2D, BaseSimulation2DNodal):
     sign = -1.
 
     def __init__(self, mesh, **kwargs):
-        BaseIPSimulation_2D.__init__(self, mesh, **kwargs)
+        BaseIPSimulation2D.__init__(self, mesh, **kwargs)
 
     def delete_these_for_sensitivity(self, sigma=None, rho=None):
         if self._Jmatrix is not None:

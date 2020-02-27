@@ -9,14 +9,14 @@ from ....utils import sdiag
 from ..resistivity.fields_2d import (
     Fields_ky, Fields_ky_CC, Fields_ky_N
 )
-from ..induced_polarization.simulation_2d import BaseIPSimulation_2D
+from ..induced_polarization.simulation_2d import BaseIPSimulation2D
 from ..induced_polarization import Simulation2DNodal as BaseSimulation2DNodal
 from ..induced_polarization import Simulation2DCellCentered as BaseSimulation2DCellCentered
 from .survey import Survey
 from .simulation import BaseSIPSimulation
 
 
-class BaseSIPSimulation_2D(BaseIPSimulation_2D, BaseSIPSimulation):
+class BaseSIPSimulation_2D(BaseIPSimulation2D, BaseSIPSimulation):
 
 
     eta, etaMap, etaDeriv = props.Invertible(
