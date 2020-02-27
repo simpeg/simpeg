@@ -143,7 +143,7 @@ Differential equation approach
 Mag Differential eq. approach
 =============================
 
-.. autoclass:: SimPEG.potential_fields.magnetics.DifferentialEquationSimulation
+.. autoclass:: SimPEG.potential_fields.magnetics.Simulation3DDifferential
     :show-inheritance:
     :members:
     :undoc-members:

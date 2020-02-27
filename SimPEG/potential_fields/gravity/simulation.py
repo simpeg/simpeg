@@ -262,7 +262,7 @@ class Simulation3DIntegral(BasePFSimulation):
         return np.vstack([rows[component] for component in components])
 
 
-class DifferentialEquationSimulation(BaseSimulation):
+class Simulation3DDifferential(BaseSimulation):
     """
         Gravity in differential equations!
     """

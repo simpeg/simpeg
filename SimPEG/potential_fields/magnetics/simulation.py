@@ -597,7 +597,7 @@ class Simulation3DIntegral(BasePFSimulation):
         return np.vstack([rows[component] for component in components])
 
 
-class DifferentialEquationSimulation(BaseSimulation):
+class Simulation3DDifferential(BaseSimulation):
     """
         Secondary field approach using differential equations!
     """
@@ -1049,7 +1049,7 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
         Optimization, Regularization,
         Parameters, ObjFunction, Inversion
     )
-    prob = DifferentialEquationSimulation(
+    prob = Simulation3DDifferential(
            mesh,
            survey=data,
            mu=model)

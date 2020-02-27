@@ -45,7 +45,7 @@
 #
 #         self.survey = mag.MagneticSurvey(srcField)
 #
-#         self.sim = mag.simulation.DifferentialEquationSimulation(
+#         self.sim = mag.simulation.Simulation3DDifferential(
 #             M,
 #             survey=self.survey,
 #             muMap=maps.ChiMap(M),
