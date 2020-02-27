@@ -26,8 +26,8 @@ class SrcLocTest(unittest.TestCase):
             [], loc=np.array([[1.5, 3., 5.]]),
             freq=10
         )
-        self.assertTrue(np.all(src.loc == np.r_[1.5, 3., 5.]))
-        self.assertTrue(src.loc.shape==(3,))
+        self.assertTrue(np.all(src.location == np.r_[1.5, 3., 5.]))
+        self.assertTrue(src.location.shape==(3,))
 
         with self.assertRaises(Exception):
             src = fdem.Src.MagDipole(
@@ -44,7 +44,7 @@ class SrcLocTest(unittest.TestCase):
         src = tdem.Src.MagDipole(
             [], loc=np.array([[1.5, 3., 5.]]),
         )
-        self.assertTrue(np.all(src.loc == np.r_[1.5, 3., 5.]))
+        self.assertTrue(np.all(src.location == np.r_[1.5, 3., 5.]))
 
         with self.assertRaises(Exception):
             src = tdem.Src.MagDipole(

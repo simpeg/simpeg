@@ -311,7 +311,7 @@ class MagDipole(BaseTDEMSrc):
     orientation = properties.Vector3(
         "orientation of the source", default='Z', length=1., required=True
     )
-    loc = LocationVector(
+    location = LocationVector(
         "location of the source", default=np.r_[0.,0.,0.],
         shape=(3,)
     )
@@ -511,7 +511,7 @@ class LineCurrent(BaseTDEMSrc):
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
 
-    loc = properties.Array("location of the source", shape=('*', 3))
+    location = properties.Array("location of the source", shape=('*', 3))
 
     def __init__(self, receiver_list=None, **kwargs):
         self.integrate = False
@@ -729,11 +729,3 @@ class RawVec_Grounded(BaseTDEMSrc):
         # if prob._fieldType == 'h':
         #     return prob.Mf * self._s_e * self.waveform.eval(time)
         return self._s_e * self.waveform.eval(time)
-
-
-
-
-
-
-
-
