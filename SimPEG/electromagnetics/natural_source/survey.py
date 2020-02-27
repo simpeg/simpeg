@@ -123,7 +123,7 @@ class Data(BaseData, DataNSEMPlotMethods):
             # Note: needs to be written more generally,
             # using diffterent rxTypes and not all the data at the locations
             # Assume the same locs for all RX
-            locs = src.receiver_list[0].locs
+            locs = src.receiver_list[0].locations
             if locs.shape[1] == 1:
                 locs = np.hstack((np.array([[0.0, 0.0]]), locs))
             elif locs.shape[1] == 2:

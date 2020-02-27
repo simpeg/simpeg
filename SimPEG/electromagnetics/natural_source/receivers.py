@@ -60,17 +60,17 @@ class BaseRxNSEM_Point(BaseRx):
         self._f = value
 
     def _locs_e(self):
-        if self.locs.ndim == 3:
-            loc = self.locs[:, :, 0]
+        if self.locations.ndim == 3:
+            loc = self.locations[:, :, 0]
         else:
-            loc = self.locs
+            loc = self.locations
         return loc
 
     def _locs_b(self):
-        if self.locs.ndim == 3:
-            loc = self.locs[:, :, 1]
+        if self.locations.ndim == 3:
+            loc = self.locations[:, :, 1]
         else:
-            loc = self.locs
+            loc = self.locations
         return loc
 
     # Location projection
@@ -377,13 +377,13 @@ class Point_impedance1D(BaseRx):
     @property
     def Pex(self):
         if getattr(self, '_Pex', None) is None:
-            self._Pex = self._mesh.getInterpolationMat(self.locs[:, -1], 'Fx')
+            self._Pex = self._mesh.getInterpolationMat(self.locations[:, -1], 'Fx')
         return self._Pex
 
     @property
     def Pbx(self):
         if getattr(self, '_Pbx', None) is None:
-            self._Pbx = self._mesh.getInterpolationMat(self.locs[:, -1], 'Ex')
+            self._Pbx = self._mesh.getInterpolationMat(self.locations[:, -1], 'Ex')
         return self._Pbx
 
     @property

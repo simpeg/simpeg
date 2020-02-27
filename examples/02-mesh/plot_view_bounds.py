@@ -178,10 +178,10 @@ def run(plotIt=True):
     # density as well as the imaginary magnetic flux density
 
     bz_r = FDEM.Rx.Point_bSecondary(
-        locs=rx_loc, orientation='z', component='real'
+        locations=rx_loc, orientation='z', component='real'
     )  # vertical real b-secondary
     bz_i = FDEM.Rx.Point_b(
-        locs=rx_loc, orientation='z', component='imag'
+        locations=rx_loc, orientation='z', component='imag'
     )  # vertical imag b (same as b-secondary)
 
     rxList = [bz_r, bz_i]  # list of receivers

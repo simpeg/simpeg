@@ -61,7 +61,7 @@ def halfSpaceProblemAnaDiff(
     sigma = np.log(sigma[active])
     prb.pair(survey)
     if srctype == "MagDipole":
-        bz_ana = mu_0*analytics.hzAnalyticDipoleT(rx.locs[0][0]+1e-3,
+        bz_ana = mu_0*analytics.hzAnalyticDipoleT(rx.locations[0][0]+1e-3,
                                                      rx.times, sig_half)
     elif srctype == "CircularLoop":
         bz_ana = mu_0*analytics.hzAnalyticDipoleT(13, rx.times, sig_half)

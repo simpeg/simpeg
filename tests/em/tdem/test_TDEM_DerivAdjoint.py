@@ -94,7 +94,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         rxlocs = np.array([[rxOffset, 0., -1e-2]])
         rxtimes = np.logspace(-4, -3, 20)
         return getattr(tdem.Rx, 'Point_{}'.format(rxcomp[:-1]))(
-            locs=rxlocs, times=rxtimes, orientation=rxcomp[-1]
+            locations=rxlocs, times=rxtimes, orientation=rxcomp[-1]
         )
 
     def set_rxList(self, rxcomp):

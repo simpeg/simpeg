@@ -101,8 +101,8 @@ class Dipole(BaseRx):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        P0 = mesh.getInterpolationMat(self.locs[0], Gloc)
-        P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
+        P0 = mesh.getInterpolationMat(self.locations[0], Gloc)
+        P1 = mesh.getInterpolationMat(self.locations[1], Gloc)
         P = P0 - P1
 
         if self.data_type == 'apparent_resistivity':
@@ -138,7 +138,7 @@ class Pole(BaseRx):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        P = mesh.getInterpolationMat(self.locs, Gloc)
+        P = mesh.getInterpolationMat(self.locations, Gloc)
 
         if self.data_type == 'apparent_resistivity':
             P = sdiag(1./self.geometric_factor) * P

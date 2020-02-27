@@ -141,20 +141,20 @@ def resample_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
                 if rx_comp is True or np.any(
                         [(isinstance(rx, ct) and rx.orientation in co)
                             for (ct, co) in rx_comp]):
-                    if len(rx.locs.shape) == 3:
+                    if len(rx.locations.shape) == 3:
                         ind_loc = np.sum(
                             np.concatenate(
-                                [(np.sqrt(np.sum((rx.locs[:, :, 0] - location) ** 2, axis=1)) < 0.1).reshape(-1, 1)
+                                [(np.sqrt(np.sum((rx.locations[:, :, 0] - location) ** 2, axis=1)) < 0.1).reshape(-1, 1)
                                  for location in locations],
                                 axis=1), axis=1, dtype=bool)
-                        new_locs = rx.locs[ind_loc,:,:]
+                        new_locs = rx.locations[ind_loc,:,:]
                     else:
                         ind_loc = np.sum(
                             np.concatenate(
-                                [(np.sqrt(np.sum((rx.locs[:, :] - location) ** 2, axis=1)) < 0.1).reshape(-1, 1)
+                                [(np.sqrt(np.sum((rx.locations[:, :] - location) ** 2, axis=1)) < 0.1).reshape(-1, 1)
                                  for location in locations],
                                 axis=1), axis=1, dtype=bool)
-                        new_locs = rx.locs[ind_loc, :]
+                        new_locs = rx.locations[ind_loc, :]
                     new_rx = type(rx)
                     new_rxList.append(
                         new_rx(new_locs, rx.orientation, rx.component))

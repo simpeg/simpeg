@@ -501,7 +501,7 @@ class DataNSEMPlotMethods(object):
                 plot_kwargs[key] = val
         # Get unique locations
         unique_locations = _unique_rows(np.concatenate(
-            [rx.locs for src in self.survey.source_list for rx in src.receiver_list])
+            [rx.locations for src in self.survey.source_list for rx in src.receiver_list])
         )
         # Make the figure and the axes
         if ax is None:
@@ -770,7 +770,7 @@ def _extract_frequency_data(
         raise Exception(
             'To many Receivers of the same type, orientation and component')
 
-    loc_arr = rx.locs
+    loc_arr = rx.locations
     data_arr = data[src, rx]
     if return_uncert:
         std_arr = data.standard_deviation[src, rx]
@@ -799,7 +799,7 @@ def _extract_location_data(
         else:
             rx = rx_list[0]
 
-        ind_loc = np.sqrt(np.sum((rx.locs[:, :2] - location) ** 2, axis=1)) < 0.1
+        ind_loc = np.sqrt(np.sum((rx.locations[:, :2] - location) ** 2, axis=1)) < 0.1
         if np.any(ind_loc):
             freq_list.append(src.freq)
             data_list.append(data[src, rx][ind_loc])

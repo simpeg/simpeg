@@ -40,13 +40,13 @@ def setUp_TDEM(prbtype='ElectricField', rxcomp='ex'):
     rxlocs = np.array([[20, 20., 0.]])
     rxtimes = np.logspace(-4, -3, 20)
     rx = getattr(tdem.Rx, 'Point_{}'.format(rxcomp[:-1]))(
-        locs=rxlocs, times=rxtimes, orientation=rxcomp[-1]
+        locations=rxlocs, times=rxtimes, orientation=rxcomp[-1]
     )
     Aloc = np.r_[-10., 0., 0.]
     Bloc = np.r_[10., 0., 0.]
     srcloc = np.vstack((Aloc, Bloc))
 
-    src = tdem.Src.LineCurrent([rx], loc=srcloc, waveform = tdem.Src.StepOffWaveform())
+    src = tdem.Src.LineCurrent([rx], location=srcloc, waveform = tdem.Src.StepOffWaveform())
     survey = tdem.Survey([src])
 
     prb = getattr(tdem, 'Simulation3D{}'.format(prbtype))(mesh, sigmaMap=mapping)

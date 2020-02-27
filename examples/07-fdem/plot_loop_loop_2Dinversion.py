@@ -177,10 +177,10 @@ for x in src_locations:
     rx_locs = src_loc - rx_offsets
 
     rx_real = FDEM.Rx.Point_bSecondary(
-        locs=rx_locs, orientation=orientation, component='real'
+        locations=rx_locs, orientation=orientation, component='real'
     )
     rx_imag = FDEM.Rx.Point_bSecondary(
-        locs=rx_locs, orientation=orientation, component='imag'
+        locations=rx_locs, orientation=orientation, component='imag'
     )
 
     src = FDEM.Src.MagDipole(

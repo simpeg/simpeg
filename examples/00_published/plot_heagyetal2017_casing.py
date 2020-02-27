@@ -802,7 +802,7 @@ class PrimSecCasingExample(object):
         src = sec_survey.srcList[0]
         rx0 = src.rxList[0]
 
-        nx = int(np.sqrt(len(rx0.locs)))
+        nx = int(np.sqrt(len(rx0.locations)))
         ny = nx
 
         def plotDataFun(ax, plotme, num=50, plotBlock=True, xlim=XLIM,
