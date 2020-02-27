@@ -107,7 +107,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
             [self.survey.srcList, self.surveyfwd.srcList], [rx, rxfwd]
         ):
             for src in srcList:
-                src.rxList = rxlist
+                src.receiver_list = rxlist
 
     def JvecTest(self, rxcomp):
         self.set_rxList(rxcomp)

@@ -17,7 +17,7 @@ def getAppResPhs(nsemdata):
     zList = []
     for src in nsemdata.survey.srcList:
         zc = [src.freq]
-        for rx in src.rxList:
+        for rx in src.receiver_list:
             if 'i' in rx.rxType:
                 m = 1j
             else:
@@ -34,7 +34,7 @@ def calculateAnalyticSolution(srcList, mesh, model):
     surveyAna = nsem.Survey(srcList)
     data1D = nsem.Data(surveyAna)
     for src in surveyAna.srcList:
-        elev = src.rxList[0].locations[0]
+        elev = src.receiver_list[0].locations[0]
         anaEd, anaEu, anaHd, anaHu = nsem.utils.analytic_1d.getEHfields(
             mesh, model, src.freq, elev
         )
@@ -44,7 +44,7 @@ def calculateAnalyticSolution(srcList, mesh, model):
         # anaE = (anaEtemp/anaEtemp[-1])#.conj()
         # anaH = (anaHtemp/anaEtemp[-1])#.conj()
         anaZ = anaE/anaH
-        for rx in src.rxList:
+        for rx in src.receiver_list:
             data1D[src, rx] = getattr(anaZ, rx.component)
     return data1D
 

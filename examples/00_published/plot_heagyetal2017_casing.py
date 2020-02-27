@@ -800,7 +800,7 @@ class PrimSecCasingExample(object):
         sec_survey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs)
         src = sec_survey.srcList[0]
-        rx0 = src.rxList[0]
+        rx0 = src.receiver_list[0]
 
         nx = int(np.sqrt(len(rx0.locations)))
         ny = nx

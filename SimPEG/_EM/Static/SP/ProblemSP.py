@@ -100,7 +100,7 @@ class Problem_CC_Jstore(Problem_CC):
             A = self.getA()
             self.Ainv = self.Solver(A, **self.solverOpts)
             src = self.survey.srcList[0]
-            rx = src.rxList[0]
+            rx = src.receiver_list[0]
             P = rx.getP(self.mesh, "CC").toarray()
             src = self.survey.srcList[0]
             self._G = (self.Ainv * P.T).T * src.evalDeriv(
