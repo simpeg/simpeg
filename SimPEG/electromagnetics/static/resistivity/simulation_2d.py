@@ -51,8 +51,7 @@ class BaseDCSimulation_2D(BaseEMSimulation):
                 self.Ainv[i].clean()
         f = self.fieldsPair(self)
         #Srcs = self.survey.source_list
-        for iky in range(self.nky):
-            ky = self.kys[iky]
+        for iky, ky in enumerate(self.kys):
             A = self.getA(ky)
             self.Ainv[iky] = self.Solver(A, **self.solver_opts)
             RHS = self.getRHS(ky)
@@ -63,16 +62,13 @@ class BaseDCSimulation_2D(BaseEMSimulation):
     def fields_to_space(self, f, y=0.):
         f_fwd = self.fieldsPair_fwd(self.mesh, self.survey)
         # Evaluating Integration using Trapezoidal rules
-        nky = self.kys.size
-        dky = np.diff(self.kys)
-        dky = np.r_[dky[0], dky]
-        phi0 = 1./np.pi*f[:, self._solutionType, 0]
-        phi = np.zeros_like(phi0)
-        for iky in range(nky):
-            phi1 = 1./np.pi*f[:, self._solutionType, iky]
-            phi += phi1*dky[iky]/2.*np.cos(self.kys[iky]*y)
-            phi += phi0*dky[iky]/2.*np.cos(self.kys[iky]*y)
-            phi0 = phi1.copy()
+        dky = np.diff(self.kys)/2
+        trap_weights = np.r_[dky, 0]+np.r_[0, dky]
+        trap_weights *= np.cos(self.kys*y)
+        # assume constant value at 0 frequency?
+        trap_weights[0] += self.kys[0]/2 * (1.0 + np.cos(self.kys[0]*y))
+        trap_weights /= np.pi
+        phi = f[:, self._solutionType, :-1].dot(trap_weights)
         f_fwd[:, self._solutionType] = phi
         return f_fwd
 
@@ -142,19 +138,19 @@ class BaseDCSimulation_2D(BaseEMSimulation):
         Jv.dobs[:] = 0.0  # initialize Jv object with zeros
 
         # TODO: this loop is pretty slow .. (Parellize)
-        for iky in range(self.nky):
-            ky = self.kys[iky]
-            for src in self.survey.source_list:
-                u_src = f[src, self._solutionType, iky]  # solution vector
+        for iky, ky in enumerate(self.kys):
+            u_ky = f[:, self._solutionType, iky]
+            for i_src, src in enumerate(self.survey.source_list):
+                u_src = u_ky[:, i_src]
                 dA_dm_v = self.getADeriv(ky, u_src, v, adjoint=False)
-                dRHS_dm_v = self.getRHSDeriv(ky, src, v)
-                du_dm_v = self.Ainv[iky] * (- dA_dm_v + dRHS_dm_v)
+                # dRHS_dm_v = self.getRHSDeriv(ky, src, v) = 0
+                du_dm_v = self.Ainv[iky] * (-dA_dm_v)  # + dRHS_dm_v)
                 for rx in src.receiver_list:
                     df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
                                        None)
                     df_dm_v = df_dmFun(iky, src, du_dm_v, v, adjoint=False)
-                    # Trapezoidal intergration
                     Jv1_temp = rx.evalDeriv(ky, src, self.mesh, f, df_dm_v)
+                    # Trapezoidal intergration
                     Jv[src, rx] += trap_weights[iky]*Jv1_temp
         return mkvc(Jv)
 
@@ -196,49 +192,44 @@ class BaseDCSimulation_2D(BaseEMSimulation):
                 v = Data(self.survey, v)
             Jtv = np.zeros(m.size, dtype=float)
 
+            # TODO: this loop is pretty slow .. (Parellize)
+            for iky, ky in enumerate(self.kys):
+                u_ky = f[:, self._solutionType, iky]
+                for i_src, src in enumerate(self.survey.source_list):
+                    u_src = u_ky[:, i_src]
+                    df_duT_sum = 0
+                    df_dmT_sum = 0
+                    for rx in src.receiver_list:
+                        # wrt f, need possibility wrt m
+                        PTv = rx.evalDeriv(ky, src, self.mesh, f, v[src, rx],
+                                           adjoint=True)
+                        df_duTFun = getattr(
+                            f, '_{0!s}Deriv'.format(rx.projField), None
+                        )
+                        df_duT, df_dmT = df_duTFun(iky, src, None, PTv,
+                                                   adjoint=True)
+                        df_duT_sum += df_duT
+                        df_dmT_sum += df_dmT
 
-        # TODO: this loop is pretty slow .. (Parellize)
-        for iky in range(self.nky):
-            ky = self.kys[iky]
-            for src in self.survey.source_list:
-                u_src = f[src, self._solutionType, iky]
-                df_duT_sum = 0
-                df_dmT_sum = 0
-                for rx in src.receiver_list:
-                    # wrt f, need possibility wrt m
-                    PTv = rx.evalDeriv(ky, src, self.mesh, f, v[src, rx],
-                                       adjoint=True)
-                    df_duTFun = getattr(
-                        f, '_{0!s}Deriv'.format(rx.projField), None
-                    )
-                    df_duT, df_dmT = df_duTFun(iky, src, None, PTv,
-                                               adjoint=True)
-                    df_duT_sum += df_duT
-                    df_dmT_sum += df_dmT
+                    ATinvdf_duT = self.Ainv[iky] * df_duT_sum
 
-                ATinvdf_duT = self.Ainv[iky] * df_duT
-                dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT, adjoint=True)
-                dRHS_dmT = self.getRHSDeriv(ky, src, ATinvdf_duT, adjoint=True)
-                du_dmT = -dA_dmT + dRHS_dmT
-
-                Jtv += trap_weights[0]*(df_dmT + du_dmT).astype(float)
+                    dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT,
+                                            adjoint=True)
+                    # dRHS_dmT = self.getRHSDeriv(ky, src, ATinvdf_duT,
+                    #                            adjoint=True)
+                    du_dmT = -dA_dmT  # + dRHS_dmT=0
+                    Jtv += trap_weights[iky]*(df_dmT + du_dmT).astype(float)
             return mkvc(Jtv)
 
-        # This is for forming full sensitivity
         else:
-
-
             # This is for forming full sensitivity matrix
             Jt = np.zeros((self.model.size, self.survey.nD), order='F')
-
-            # TODO: this loop is pretty slow .. (Parellize)
-            istrt = 0
-            for iky in range(self.nky):
-                for src in self.survey.source_list:
-                    u_src = f[src, self._solutionType, iky]
+            for iky, ky in enumerate(self.kys):
+                u_ky = f[:, self._solutionType, iky]
+                istrt = 0
+                for i_src, src in enumerate(self.survey.source_list):
+                    u_src = u_ky[:, i_src]
                     for rx in src.receiver_list:
-                        iend = istrt + rx.nD
-                        ky = self.kys[iky]
                         # wrt f, need possibility wrt m
                         P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
 
@@ -246,23 +237,13 @@ class BaseDCSimulation_2D(BaseEMSimulation):
 
                         dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT,
                                                 adjoint=True)
-                        Jtv_temp1 = 1./np.pi*(-dA_dmT)
-                        # Trapezoidal intergration
-                        if iky == 0:
-                            # First assigment
-                            if rx.nD == 1:
-                                Jt[:, istrt] += Jtv_temp1*dky[iky]*np.cos(ky*y)
-                            else:
-                                Jt[:, istrt:iend] += Jtv_temp1*dky[iky]*np.cos(ky*y)
+                        Jtv = -trap_weights[iky]*dA_dmT #RHS=0
+                        iend = istrt + rx.nD
+                        if rx.nD == 1:
+                            Jt[:, istrt] += Jtv
                         else:
-                            if rx.nD == 1:
-                                Jt[:, istrt] += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
-                                Jt[:, istrt] += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
-                            else:
-                                Jt[:, istrt:iend] += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
-                                Jt[:, istrt:iend] += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
-                        Jtv_temp0 = Jtv_temp1.copy()
-                    istrt += rx.nD
+                            Jt[:, istrt:iend] += Jtv
+                        istrt += rx.nD
             return Jt
 
     def getSourceTerm(self, ky):
@@ -321,7 +302,7 @@ class BaseDCSimulation_2D(BaseEMSimulation):
             sigma = self.sigma
             vol = self.mesh.vol
             self._MnSigma = sdiag(
-                self.mesh.aveN2CC.T*(sdiag(vol)*sigma)
+                self.mesh.aveN2CC.T*(vol*sigma)
             )
         return self._MnSigma
 
@@ -341,18 +322,20 @@ class BaseDCSimulation_2D(BaseEMSimulation):
         """
             Derivative of MnSigma with respect to the model times a vector (u)
         """
+        if v.ndim > 1:
+            u = u[:, None]
         if self.storeInnerProduct:
             if adjoint:
-                return self.MnSigmaDerivMat.T * (
-                    sdiag(u)*v
-                )
+                return self.MnSigmaDerivMat.T * (u * v)
             else:
                 return u*(self.MnSigmaDerivMat * v)
         else:
             vol = self.mesh.vol
+            if v.ndim > 1:
+                vol = vol[:, None]
             if adjoint:
                 return self.sigmaDeriv.T * (
-                    sdiag(vol) * (self.mesh.aveN2CC * (sdiag(u)*v))
+                    vol * (self.mesh.aveN2CC * (u * v))
                 )
             else:
                 dsig_dm_v = self.sigmaDeriv * v
@@ -450,7 +433,6 @@ class Problem2D_CC(BaseDCSimulation_2D):
 
         D = self.Div
         G = self.Grad
-        vol = self.mesh.vol
         if adjoint:
             return (
                 self.MfRhoIDeriv(G*u.flatten(), D.T*v, adjoint=adjoint) +
