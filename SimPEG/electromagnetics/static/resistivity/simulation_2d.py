@@ -546,12 +546,11 @@ class Problem2D_N(BaseDCSimulation_2D):
     _formulation = 'EB'  # CC potentials means J is on faces
     fieldsPair = Fields_ky_N
     fieldsPair_fwd = Fields_N
+    _gradT = None
 
     def __init__(self, mesh, **kwargs):
         BaseDCSimulation_2D.__init__(self, mesh, **kwargs)
         # self.setBC()
-        self._grad = self.mesh.nodalGrad
-        self._gradT = self._grad.T.tocsr()
         self.solver_opts['is_symmetric'] = True
         self.solver_opts['is_positive_definite'] = True
 
@@ -562,7 +561,11 @@ class Problem2D_N(BaseDCSimulation_2D):
         """
         MeSigma = self.MeSigma
         MnSigma = self.MnSigma
-        A = self._gradT * MeSigma * self._grad + ky**2*MnSigma
+        Grad = self.mesh.nodalGrad
+        if self._gradT is None:
+            self._gradT = Grad.T.tocsr()  # cache the .tocsr()
+        GradT = self._gradT
+        A = GradT * MeSigma * Grad + ky**2*MnSigma
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
