@@ -30,7 +30,8 @@ class BaseDCSimulation_2D(BaseEMSimulation):
     nky = 15
     kys = np.logspace(-4, 1, nky)
     Ainv = [None for i in range(nky)]
-    nT = nky  # Only for using TimeFields
+    nT = nky-1  # Only for using TimeFields
+    # there's actually nT+1 fields, so we don't need to store the last one
     _Jmatrix = None
     fix_Jmatrix = False
 
@@ -68,7 +69,7 @@ class BaseDCSimulation_2D(BaseEMSimulation):
         # assume constant value at 0 frequency?
         trap_weights[0] += self.kys[0]/2 * (1.0 + np.cos(self.kys[0]*y))
         trap_weights /= np.pi
-        phi = f[:, self._solutionType, :-1].dot(trap_weights)
+        phi = f[:, self._solutionType, :].dot(trap_weights)
         f_fwd[:, self._solutionType] = phi
         return f_fwd
 
