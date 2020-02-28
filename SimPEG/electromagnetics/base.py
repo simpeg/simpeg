@@ -357,8 +357,10 @@ class BaseEMSimulation(BaseSimulation):
                 np.ones(self.mesh.nC)
             )(np.ones(self.mesh.nE)) * self.sigmaDeriv
 
+        u = u.reshape(-1)  # flatten it down to ndim = 1
         if v is not None:
             if v.ndim > 1:
+                # promote u iff v is a matrix
                 u = u[:, None]  # Avoids constructing the sparse matrix
             if adjoint:
                 return self._MeSigmaDeriv.T * (u*v)
