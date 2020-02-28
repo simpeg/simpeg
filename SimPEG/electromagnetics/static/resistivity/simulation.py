@@ -59,9 +59,9 @@ class BaseDCSimulation(BaseEMSimulation):
 
         self.Ainv = self.Solver(A, **self.solver_opts)
         RHS = self.getRHS()
-        Srcs = self.survey.source_list
+        # Srcs = self.survey.source_list
 
-        f[Srcs, self._solutionType] = self.Ainv * RHS  #, num_cores=self.n_cpu).compute()
+        f[:, self._solutionType] = self.Ainv * RHS  # num_cores=self.n_cpu).compute()
 
         # if not self.storeJ:
         #     self.Ainv.clean()
@@ -77,9 +77,10 @@ class BaseDCSimulation(BaseEMSimulation):
 
             # Need to check if multiplying weights makes sense
             if W is None:
-                self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
+                self.gtgdiag = da.sum(self.getJ(m)**2, axis=0).compute()
             else:
-                self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
+                w = da.from_array(W.diagonal())[:, None]
+                self.gtgdiag = da.sum((w*self.getJ(m))**2, axis=0).compute()
             #     from dask.diagnostics import Profiler, ResourceProfiler, CacheProfiler
 
             #     with Profiler() as prof, ResourceProfiler(dt=0.25) as rprof, CacheProfiler() as cprof:
@@ -165,7 +166,7 @@ class BaseDCSimulation(BaseEMSimulation):
                     dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
 
                     dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
-                    
+
                     if n_col > 1:
                         du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
                                                  shape=(self.model.size, n_col),
@@ -328,7 +329,7 @@ class BaseDCSimulation(BaseEMSimulation):
         elif self._formulation == 'HJ':
             n = self.mesh.nC
 
-        q = np.zeros((n, len(Srcs)))
+        q = np.zeros((n, len(Srcs)), order='F')
 
         for i, source in enumerate(Srcs):
             q[:, i] = source.eval(self)
