@@ -1,6 +1,6 @@
 from SimPEG import Problem, Utils, Maps, Mesh
 from SimPEG.EM.Base import BaseEMProblem
-from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC
+from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields3DCellCentered
 from SimPEG.EM.Static.DC import Survey, BaseDCProblem, Simulation3DCellCentered
 from SimPEG.Utils import sdiag
 import numpy as np
@@ -62,7 +62,7 @@ class Problem_CC(BaseSPProblem, Simulation3DCellCentered):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_CC
+    fieldsPair = Fields3DCellCentered
     modelType = None
     bc_type = "Mixed"
     coordinate_system = properties.StringChoice(

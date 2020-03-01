@@ -11,8 +11,8 @@ from ...utils import mkvc, sdiag, speye, Zero
 from ..base import BaseEMSimulation
 from .survey import Survey
 from .fields import (
-    Fields3D_b, Fields3D_e, Fields3D_h, Fields3D_j,
-    Fields_Derivs_eb, Fields_Derivs_hj
+    Fields3DMagneticFluxDensity, Fields3DElectricField, Fields3DMagneticField, Fields3DCurrentDensity,
+    FieldsDerivativesEB, FieldsDerivativesHJ
 )
 
 
@@ -519,8 +519,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
     _fieldType = 'b'
     _formulation = 'EB'
-    fieldsPair = Fields3D_b  #: A SimPEG.EM.TDEM.Fields3D_b object
-    Fields_Derivs = Fields_Derivs_eb
+    fieldsPair = Fields3DMagneticFluxDensity  #: A SimPEG.EM.TDEM.Fields3DMagneticFluxDensity object
+    Fields_Derivs = FieldsDerivativesEB
 
     def getAdiag(self, tInd):
         """
@@ -682,8 +682,8 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
     _fieldType = 'e'
     _formulation = 'EB'
-    fieldsPair = Fields3D_e  #: A Fields3D_e
-    Fields_Derivs = Fields_Derivs_eb
+    fieldsPair = Fields3DElectricField  #: A Fields3DElectricField
+    Fields_Derivs = FieldsDerivativesEB
 
     # @profile
     def Jtvec(self, m, v, f=None):
@@ -978,8 +978,8 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
     _fieldType = 'h'
     _formulation = 'HJ'
-    fieldsPair = Fields3D_h  #: Fields object pair
-    Fields_Derivs = Fields_Derivs_hj
+    fieldsPair = Fields3DMagneticField  #: Fields object pair
+    Fields_Derivs = FieldsDerivativesHJ
 
     def getAdiag(self, tInd):
         """
@@ -1066,8 +1066,8 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
     _fieldType = 'j'
     _formulation = 'HJ'
-    fieldsPair = Fields3D_j  #: Fields object pair
-    Fields_Derivs = Fields_Derivs_hj
+    fieldsPair = Fields3DCurrentDensity  #: Fields object pair
+    Fields_Derivs = FieldsDerivativesHJ
 
     def getAdiag(self, tInd):
         """

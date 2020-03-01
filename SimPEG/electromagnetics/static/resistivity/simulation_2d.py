@@ -8,8 +8,8 @@ from ...base import BaseEMSimulation
 from ....data import Data
 
 from .survey import Survey
-from .fields_2d import Fields_ky, Fields_ky_CC, Fields_ky_N
-from .fields import FieldsDC, Fields_CC, Fields_N
+from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
+from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from .boundary_utils import getxBCyBC_CC
 
 
@@ -26,7 +26,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
         "store the sensitivity", default=False
     )
 
-    fieldsPair = Fields_ky  # SimPEG.EM.Static.Fields_2D
+    fieldsPair = Fields2D  # SimPEG.EM.Static.Fields_2D
     fieldsPair_fwd = FieldsDC
     nky = 15
     kys = np.logspace(-4, 1, nky)
@@ -433,8 +433,8 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_ky_CC
-    fieldsPair_fwd = Fields_CC
+    fieldsPair = Fields2DCellCentered
+    fieldsPair_fwd = Fields3DCellCentered
     bc_type = 'Mixed'
 
     def __init__(self, mesh, **kwargs):
@@ -575,8 +575,8 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # CC potentials means J is on faces
-    fieldsPair = Fields_ky_N
-    fieldsPair_fwd = Fields_N
+    fieldsPair = Fields2DNodal
+    fieldsPair_fwd = Fields3DNodal
 
     def __init__(self, mesh, **kwargs):
         BaseDCSimulation2D.__init__(self, mesh, **kwargs)

@@ -9,7 +9,7 @@ from ....utils import Identity, Zero
 from ...base import BaseEMSimulation
 
 
-class Fields_ky(TimeFields):
+class Fields2D(TimeFields):
 
     """
 
@@ -108,7 +108,7 @@ class Fields_ky(TimeFields):
     #     return self._bDeriv_u(tInd, src, dun_dm_v) + self._bDeriv_m(tInd, src, v)
 
 
-class Fields_ky_CC(Fields_ky):
+class Fields2DCellCentered(Fields2D):
     """
     Fancy Field Storage for a 2.5D cell centered code.
     """
@@ -146,7 +146,7 @@ class Fields_ky_CC(Fields_ky):
         raise NotImplementedError
 
 
-class Fields_ky_N(Fields_ky):
+class Fields2DNodal(Fields2D):
     """
     Fancy Field Storage for a 2.5D nodal code.
     """

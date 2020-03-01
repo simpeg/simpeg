@@ -9,7 +9,7 @@ from ....data import Data
 from ...base import BaseEMSimulation
 from .boundary_utils import getxBCyBC_CC
 from .survey import Survey
-from .fields import Fields_CC, Fields_N
+from .fields import Fields3DCellCentered, Fields3DNodal
 import dask
 import dask.array as da
 import multiprocessing
@@ -350,7 +350,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_CC
+    fieldsPair = Fields3DCellCentered
     bc_type = 'Dirichlet'
 
     def __init__(self, mesh, **kwargs):
@@ -657,7 +657,7 @@ class Simulation3DNodal(BaseDCSimulation):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # N potentials means B is on faces
-    fieldsPair = Fields_N
+    fieldsPair = Fields3DNodal
 
     def __init__(self, mesh, **kwargs):
         BaseDCSimulation.__init__(self, mesh, **kwargs)

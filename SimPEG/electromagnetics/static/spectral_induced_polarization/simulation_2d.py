@@ -8,7 +8,7 @@ from .... import maps
 from ....utils import sdiag
 
 from ..resistivity.fields_2d import (
-    Fields_ky, Fields_ky_CC, Fields_ky_N
+    Fields2D, Fields2DCellCentered, Fields2DNodal
 )
 from ..induced_polarization.simulation_2d import BaseIPSimulation2D
 from ..induced_polarization import Simulation2DNodal as BaseSimulation2DNodal
@@ -45,7 +45,7 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
     )
 
     # surveyPair = Survey
-    fieldsPair = Fields_ky
+    fieldsPair = Fields2D
     _f = None
     _Jmatrix = None
     actinds = None
@@ -413,7 +413,7 @@ class Simulation2DCellCentered(BaseSIPSimulation2D, BaseSimulation2DCellCentered
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_ky_CC
+    fieldsPair = Fields2DCellCentered
     sign = 1.
     bc_type = "Mixed"
 
@@ -434,7 +434,7 @@ class Simulation2DNodal(BaseSIPSimulation2D, BaseSimulation2DNodal):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # CC potentials means J is on faces
-    fieldsPair = Fields_ky_N
+    fieldsPair = Fields2DNodal
     sign = -1.
 
     def __init__(self, mesh, **kwargs):

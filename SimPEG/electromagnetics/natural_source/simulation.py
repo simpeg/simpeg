@@ -17,7 +17,7 @@ from ...utils import mkvc, setKwargs
 from ..frequency_domain.simulation import BaseFDEMSimulation
 from ..utils import omega
 from .survey import Survey, Data
-from .fields import Fields1D_ePrimSec, Fields3D_ePrimSec
+from .fields import Fields1DPrimarySecondary, Fields3DPrimarySecondary
 
 
 class BaseNSEMSimulation(BaseFDEMSimulation):
@@ -170,7 +170,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
     _solutionType = 'e_1dSolution'
     _formulation  = 'EF'
-    fieldsPair = Fields1D_ePrimSec
+    fieldsPair = Fields1DPrimarySecondary
 
     # Initiate properties
     _sigmaPrimary = None
@@ -280,7 +280,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
         Function to calculate all the fields for the model m.
 
         :param numpy.ndarray m: Conductivity model (nC,)
-        :rtype: SimPEG.EM.NSEM.FieldsNSEM.Fields1D_ePrimSec
+        :rtype: SimPEG.EM.NSEM.FieldsNSEM.Fields1DPrimarySecondary
         :return: NSEM fields object containing the solution
         """
         # Set the current model
@@ -339,7 +339,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
     _solutionType = ['e_pxSolution', 'e_pySolution']  # Forces order on the object
     _formulation  = 'EB'
-    fieldsPair = Fields3D_ePrimSec
+    fieldsPair = Fields3DPrimarySecondary
 
     # Initiate properties
     _sigmaPrimary = None

@@ -10,7 +10,7 @@ from .data import Data
 from ....utils import sdiag
 
 from ...base import BaseEMSimulation
-from ..resistivity.fields import FieldsDC, Fields_CC, Fields_N
+from ..resistivity.fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from ..induced_polarization import Simulation3DCellCentered as BaseSimulation3DCellCentered
 from ..induced_polarization import Simulation3DNodal as BaseSimulation3DNodal
 from .survey import Survey
@@ -705,7 +705,7 @@ class Simulation3DCellCentered(BaseSIPSimulation, BaseSimulation3DCellCentered):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_CC
+    fieldsPair = Fields3DCellCentered
     sign = 1.
     bc_type = 'Neumann'
 
@@ -726,7 +726,7 @@ class Simulation3DNodal(BaseSIPSimulation, BaseSimulation3DNodal):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # N potentials means B is on faces
-    fieldsPair = Fields_N
+    fieldsPair = Fields3DNodal
     sign = -1.
 
     def __init__(self, mesh, **kwargs):

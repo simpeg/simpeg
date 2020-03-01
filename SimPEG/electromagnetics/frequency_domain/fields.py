@@ -318,7 +318,7 @@ class FieldsFDEM(Fields):
         )
 
 
-class Fields3D_e(FieldsFDEM):
+class Fields3DElectricField(FieldsFDEM):
     """
     Fields object for Simulation3DElectricField.
 
@@ -634,7 +634,7 @@ class Fields3D_e(FieldsFDEM):
         ) + self._hDeriv_mui(src, v, adjoint=adjoint)
 
 
-class Fields3D_b(FieldsFDEM):
+class Fields3DMagneticFluxDensity(FieldsFDEM):
     """
     Fields object for Simulation3DMagneticFluxDensity.
 
@@ -957,7 +957,7 @@ class Fields3D_b(FieldsFDEM):
         )
 
 
-class Fields3D_j(FieldsFDEM):
+class Fields3DCurrentDensity(FieldsFDEM):
     """
     Fields object for Simulation3DCurrentDensity.
 
@@ -1303,7 +1303,7 @@ class Fields3D_j(FieldsFDEM):
         )
 
 
-class Fields3D_h(FieldsFDEM):
+class Fields3DMagneticField(FieldsFDEM):
     """
     Fields object for Simulation3DMagneticField.
 

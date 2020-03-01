@@ -6,7 +6,7 @@ from ....data import Data
 from ....utils import sdiag
 
 from ..resistivity.fields_2d import (
-    Fields_ky, Fields_ky_CC, Fields_ky_N
+    Fields2D, Fields2DCellCentered, Fields2DNodal
 )
 
 from ..resistivity.simulation_2d import BaseDCSimulation2D
@@ -30,7 +30,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
         "Electrical Chargeability (V/V)"
     )
 
-    fieldsPair = Fields_ky
+    fieldsPair = Fields2D
     _Jmatrix = None
     _f = None
     sign = None
@@ -224,7 +224,7 @@ class Simulation2DCellCentered(BaseIPSimulation2D, BaseSimulation2DCellCentered)
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_ky_CC
+    fieldsPair = Fields2DCellCentered
     bc_type = 'Mixed'
     sign = 1.
 
@@ -280,7 +280,7 @@ class Simulation2DNodal(BaseIPSimulation2D, BaseSimulation2DNodal):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # CC potentials means J is on faces
-    fieldsPair = Fields_ky_N
+    fieldsPair = Fields2DNodal
     sign = -1.
 
     def __init__(self, mesh, **kwargs):

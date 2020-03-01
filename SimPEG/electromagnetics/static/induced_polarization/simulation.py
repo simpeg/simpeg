@@ -12,7 +12,7 @@ from ....data import Data
 from ....utils import mkvc, sdiag, Zero
 from ...base import BaseEMSimulation
 
-from ..resistivity.fields import FieldsDC, Fields_CC, Fields_N
+from ..resistivity.fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from ..resistivity import Simulation3DCellCentered as BaseSimulation3DCellCentered
 from ..resistivity import Simulation3DNodal as BaseSimulation3DNodal
 import os
@@ -459,7 +459,7 @@ class Simulation3DCellCentered(BaseIPSimulation, BaseSimulation3DCellCentered):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_CC
+    fieldsPair = Fields3DCellCentered
     sign = 1.
     bc_type = 'Dirichlet'
 
@@ -472,7 +472,7 @@ class Simulation3DNodal(BaseIPSimulation, BaseSimulation3DNodal):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # N potentials means B is on faces
-    fieldsPair = Fields_N
+    fieldsPair = Fields3DNodal
     sign = -1.
 
     def __init__(self, mesh, **kwargs):

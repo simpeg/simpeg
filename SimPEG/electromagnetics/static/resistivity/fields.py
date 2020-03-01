@@ -62,7 +62,7 @@ class FieldsDC(Fields):
                          self._jDeriv_m(src, v, adjoint), dtype=float))
 
 
-class Fields_CC(FieldsDC):
+class Fields3DCellCentered(FieldsDC):
     knownFields = {'phiSolution': 'CC'}
     aliasFields = {
         'phi': ['phiSolution', 'CC', '_phi'],
@@ -175,7 +175,7 @@ class Fields_CC(FieldsDC):
         )
 
 
-class Fields_N(FieldsDC):
+class Fields3DNodal(FieldsDC):
     knownFields = {'phiSolution': 'N'}
     aliasFields = {
         'phi': ['phiSolution', 'N', '_phi'],

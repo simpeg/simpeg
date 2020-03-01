@@ -19,7 +19,7 @@ from ..utils import omega
 ###########
 # 1D Fields
 ###########
-class Fields1D_ePrimSec(FieldsFDEM):
+class Fields1DPrimarySecondary(FieldsFDEM):
     """
     Fields storage for the 1D NSEM solution.
 
@@ -36,7 +36,7 @@ class Fields1D_ePrimSec(FieldsFDEM):
     }
 
     # def __init__(self, mesh, survey, **kwargs):
-    #     super(Fields1D_ePrimSec, self).__init__(mesh, survey, **kwargs)
+    #     super(Fields1DPrimarySecondary, self).__init__(mesh, survey, **kwargs)
 
     def _ePrimary(self, eSolution, source_list):
         """
@@ -213,7 +213,7 @@ class Fields1D_ePrimSec(FieldsFDEM):
 ###########
 # 3D Fields
 ###########
-class Fields3D_ePrimSec(Fields):
+class Fields3DPrimarySecondary(Fields):
     """
     Fields storage for the 3D NSEM solution. Labels polarizations by px and py.
 

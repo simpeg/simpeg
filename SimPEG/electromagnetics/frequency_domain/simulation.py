@@ -11,7 +11,7 @@ from ..base import BaseEMSimulation
 from ..utils import omega
 from .survey import Survey
 from .fields import (
-    FieldsFDEM, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
+    FieldsFDEM, Fields3DElectricField, Fields3DMagneticFluxDensity, Fields3DMagneticField, Fields3DCurrentDensity
 )
 
 
@@ -243,7 +243,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
     _solutionType = 'eSolution'
     _formulation  = 'EB'
-    fieldsPair    = Fields3D_e
+    fieldsPair    = Fields3DElectricField
 
     def __init__(self, mesh, **kwargs):
         super(Simulation3DElectricField, self).__init__(mesh, **kwargs)
@@ -386,7 +386,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
     _solutionType = 'bSolution'
     _formulation = 'EB'
-    fieldsPair = Fields3D_b
+    fieldsPair = Fields3DMagneticFluxDensity
 
     def __init__(self, mesh, **kwargs):
         super(Simulation3DMagneticFluxDensity, self).__init__(mesh, **kwargs)
@@ -568,7 +568,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
     _solutionType = 'jSolution'
     _formulation  = 'HJ'
-    fieldsPair    = Fields3D_j
+    fieldsPair    = Fields3DCurrentDensity
 
     def __init__(self, mesh, **kwargs):
         super(Simulation3DCurrentDensity, self).__init__(mesh, **kwargs)
@@ -759,7 +759,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 
     _solutionType = 'hSolution'
     _formulation  = 'HJ'
-    fieldsPair    = Fields3D_h
+    fieldsPair    = Fields3DMagneticField
 
     def __init__(self, mesh, **kwargs):
         super(Simulation3DMagneticField, self).__init__(mesh, **kwargs)

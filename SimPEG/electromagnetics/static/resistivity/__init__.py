@@ -6,8 +6,8 @@ from . import sources
 from . import receivers
 from . import sources as Src
 from . import receivers as Rx
-from .fields import Fields_CC, Fields_N
-from .fields_2d import Fields_ky, Fields_ky_CC, Fields_ky_N
+from .fields import Fields3DCellCentered, Fields3DNodal
+from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
 from .boundary_utils import getxBCyBC_CC
 from . import utils
 from .IODC import IO

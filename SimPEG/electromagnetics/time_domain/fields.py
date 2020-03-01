@@ -107,9 +107,9 @@ class FieldsTDEM(TimeFields):
         )
 
 
-class Fields_Derivs_eb(FieldsTDEM):
+class FieldsDerivativesEB(FieldsTDEM):
     """
-    A fields object for satshing derivs in the EB formulatio
+    A fields object for satshing derivs in the EB formulation
     """
     knownFields = {
                     'bDeriv': 'F',
@@ -121,7 +121,7 @@ class Fields_Derivs_eb(FieldsTDEM):
                   }
 
 
-class Fields_Derivs_hj(FieldsTDEM):
+class FieldsDerivativesHJ(FieldsTDEM):
     """
     A fields object for satshing derivs in the HJ formulation
     """
@@ -135,7 +135,7 @@ class Fields_Derivs_hj(FieldsTDEM):
                   }
 
 
-class Fields3D_b(FieldsTDEM):
+class Fields3DMagneticFluxDensity(FieldsTDEM):
     """Field Storage for a TDEM simulation."""
     knownFields = {'bSolution': 'F'}
     aliasFields = {
@@ -310,7 +310,7 @@ class Fields3D_b(FieldsTDEM):
         )
 
 
-class Fields3D_e(FieldsTDEM):
+class Fields3DElectricField(FieldsTDEM):
     """Fancy Field Storage for a TDEM simulation."""
     knownFields = {'eSolution': 'E'}
     aliasFields = {
@@ -429,7 +429,7 @@ class Fields3D_e(FieldsTDEM):
         )
 
 
-class Fields3D_h(FieldsTDEM):
+class Fields3DMagneticField(FieldsTDEM):
     """Fancy Field Storage for a TDEM simulation."""
     knownFields = {'hSolution': 'E'}
     aliasFields = {
@@ -594,7 +594,7 @@ class Fields3D_h(FieldsTDEM):
         )
 
 
-class Fields3D_j(FieldsTDEM):
+class Fields3DCurrentDensity(FieldsTDEM):
     """Fancy Field Storage for a TDEM simulation."""
     knownFields = {'jSolution': 'F'}
     aliasFields = {
@@ -711,4 +711,3 @@ class Fields3D_j(FieldsTDEM):
         return self.simulation.MeI * (
             self.simulation.MeMu * self._dhdtDeriv_m(tInd, src, v)
         )
-
