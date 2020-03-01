@@ -176,10 +176,10 @@ for x in src_locations:
     src_loc = np.r_[x, 0., src_z]
     rx_locs = src_loc - rx_offsets
 
-    rx_real = FDEM.Rx.Point_bSecondary(
+    rx_real = FDEM.Rx.PointMagneticFluxDensitySecondary(
         locations=rx_locs, orientation=orientation, component='real'
     )
-    rx_imag = FDEM.Rx.Point_bSecondary(
+    rx_imag = FDEM.Rx.PointMagneticFluxDensitySecondary(
         locations=rx_locs, orientation=orientation, component='imag'
     )
 

@@ -119,7 +119,7 @@ uncertainties = 0.01*maximum_anomaly*np.ones(np.shape(dobs))
 
 # Define the receivers. The data consist of vertical gravity anomaly measurements.
 # The set of receivers must be defined as a list.
-receiver_list = gravity.receivers.point_receiver(
+receiver_list = gravity.receivers.Point(
         receiver_locations, components="gz"
         )
 

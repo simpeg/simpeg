@@ -58,7 +58,7 @@ def run(plotIt=True):
 
     # Create a GRAVsurvey
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
-    rxLoc = gravity.receivers.point_receiver(rxLoc)
+    rxLoc = gravity.receivers.Point(rxLoc)
     srcField = gravity.sources.SourceField([rxLoc])
     survey = gravity.survey.GravitySurvey(srcField)
 

@@ -7,7 +7,7 @@ from . import simulation
 from .simulation import Simulation3DIntegral, Simulation3DDifferential
 from .survey import GravitySurvey
 from .sources import SourceField
-from .receivers import point_receiver
+from .receivers import Point
 
 ############
 # Deprecated

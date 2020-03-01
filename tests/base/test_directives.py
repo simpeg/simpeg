@@ -62,7 +62,7 @@ class ValidationInInversion(unittest.TestCase):
         B = [50000, 90, 0]
 
         # Create a MAGsurvey
-        rx = mag.point_receiver(
+        rx = mag.Point(
             np.vstack([[0.25, 0.25, 0.25], [-0.25, -0.25, 0.25]])
         )
         srcField = mag.SourceField([rx], parameters=(B[0], B[1], B[2]))

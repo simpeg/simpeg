@@ -29,7 +29,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         B0loc = np.r_[-130, 0.]
         B1loc = np.r_[-110, 0.]
 
-        rx = dc.Rx.Dipole_ky(M, N)
+        rx = dc.Rx.Dipole2D(M, N)
         src0 = dc.Src.Dipole([rx], A0loc, B0loc)
         src1 = dc.Src.Dipole([rx], A1loc, B1loc)
 

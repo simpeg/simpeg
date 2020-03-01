@@ -188,13 +188,13 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Set Rx (In-phase and Quadrature)
     rxOffset = 7.86
-    bzr = FDEM.Rx.Point_bSecondary(
+    bzr = FDEM.Rx.PointMagneticFluxDensitySecondary(
         np.array([[rxOffset, 0., src_height_resolve]]),
         orientation='z',
         component='real'
     )
 
-    bzi = FDEM.Rx.Point_b(
+    bzi = FDEM.Rx.PointMagneticFluxDensity(
         np.array([[rxOffset, 0., src_height_resolve]]),
         orientation='z',
         component='imag'
@@ -285,7 +285,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     peakTime = 1.0000000e-02
     a = 3.
 
-    dbdt_z = TDEM.Rx.Point_dbdt(
+    dbdt_z = TDEM.Rx.PointMagneticFluxTimeDerivative(
         locations=rxLoc, times=times_off[:-3]+offTime, orientation='z'
     )  # vertical db_dt
 

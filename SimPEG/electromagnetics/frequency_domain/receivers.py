@@ -97,7 +97,7 @@ class BaseRx(survey.BaseRx):
             return df_duT, df_dmT
 
 
-class Point_e(BaseRx):
+class PointElectricField(BaseRx):
     """
     Electric field FDEM receiver
 
@@ -108,10 +108,10 @@ class Point_e(BaseRx):
 
     def __init__(self, locs, orientation=None, component=None):
         self.projField = 'e'
-        super(Point_e, self).__init__(locs, orientation, component)
+        super(PointElectricField, self).__init__(locs, orientation, component)
 
 
-class Point_b(BaseRx):
+class PointMagneticFluxDensity(BaseRx):
     """
     Magnetic flux FDEM receiver
 
@@ -122,10 +122,10 @@ class Point_b(BaseRx):
 
     def __init__(self, locs, orientation=None, component=None):
         self.projField = 'b'
-        super(Point_b, self).__init__(locs, orientation, component)
+        super(PointMagneticFluxDensity, self).__init__(locs, orientation, component)
 
 
-class Point_bSecondary(BaseRx):
+class PointMagneticFluxDensitySecondary(BaseRx):
     """
     Magnetic flux FDEM receiver
 
@@ -136,10 +136,10 @@ class Point_bSecondary(BaseRx):
 
     def __init__(self, locs, orientation=None, component=None):
         self.projField = 'bSecondary'
-        super(Point_bSecondary, self).__init__(locs, orientation, component)
+        super(PointMagneticFluxDensitySecondary, self).__init__(locs, orientation, component)
 
 
-class Point_h(BaseRx):
+class PointMagneticField(BaseRx):
     """
     Magnetic field FDEM receiver
 
@@ -150,10 +150,10 @@ class Point_h(BaseRx):
 
     def __init__(self, locs, orientation=None, component=None):
         self.projField = 'h'
-        super(Point_h, self).__init__(locs, orientation, component)
+        super(PointMagneticField, self).__init__(locs, orientation, component)
 
 
-class Point_j(BaseRx):
+class PointCurrentDensity(BaseRx):
     """
     Current density FDEM receiver
 
@@ -164,4 +164,4 @@ class Point_j(BaseRx):
 
     def __init__(self, locs, orientation=None, component=None):
         self.projField = 'j'
-        super(Point_j, self).__init__(locs, orientation, component)
+        super(PointCurrentDensity, self).__init__(locs, orientation, component)

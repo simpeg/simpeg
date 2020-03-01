@@ -29,7 +29,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
             np.r_[A0loc, 0.], rxloc, sighalf, earth_type="halfspace"
         )
 
-        rx = dc.receivers.Dipole_ky(M, N)
+        rx = dc.receivers.Dipole2D(M, N)
         src0 = dc.sources.Pole([rx], A0loc)
         survey = dc.Survey_ky([src0])
 
@@ -105,7 +105,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
                     [np.r_[A0loc, 0.], np.r_[A1loc, 0.]],
                     rxloc, sighalf, earth_type="halfspace")
 
-        rx = dc.receivers.Pole_ky(M)
+        rx = dc.receivers.Pole2D(M)
         src0 = dc.sources.Dipole([rx], A0loc, A1loc)
         survey = dc.survey.Survey_ky([src0])
 
@@ -188,7 +188,7 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
                     np.r_[A0loc, 0.],
                     rxloc, sighalf, earth_type="halfspace")
 
-        rx = dc.receivers.Pole_ky(M)
+        rx = dc.receivers.Pole2D(M)
         src0 = dc.sources.Pole([rx], A0loc)
         survey = dc.survey.Survey_ky([src0])
 

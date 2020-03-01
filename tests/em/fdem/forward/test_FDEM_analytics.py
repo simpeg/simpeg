@@ -37,7 +37,7 @@ class FDEM_analyticTests(unittest.TestCase):
 
         x = np.linspace(-10, 10, 5)
         XYZ = utils.ndgrid(x, np.r_[0], np.r_[0])
-        rxList = fdem.Rx.Point_e(XYZ, orientation='x', component='imag')
+        rxList = fdem.Rx.PointElectricField(XYZ, orientation='x', component='imag')
         SrcList = [
             fdem.Src.MagDipole(
                 [rxList], location=np.r_[0., 0., 0.],

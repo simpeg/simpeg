@@ -600,8 +600,8 @@ class PrimSecCasingExample(object):
         self.rx_x = self.rxlocs[:, 0].reshape(nx, ny, order='F')
         self.rx_y = self.rxlocs[:, 1].reshape(nx, ny, order='F')
 
-        rx_ex = FDEM.Rx.Point_e(self.rxlocs, orientation='x', component='real')
-        rx_ey = FDEM.Rx.Point_e(self.rxlocs, orientation='y', component='real')
+        rx_ex = FDEM.Rx.PointElectricField(self.rxlocs, orientation='x', component='real')
+        rx_ey = FDEM.Rx.PointElectricField(self.rxlocs, orientation='y', component='real')
 
         RxList = [rx_ex, rx_ey]
 

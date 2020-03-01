@@ -124,7 +124,7 @@ class BaseRx(BaseTimeRx):
             return P.T * v # np.reshape(dP_dF_T, newshape, order='F')
 
 
-class Point_e(BaseRx):
+class PointElectricField(BaseRx):
     """
     Electric field TDEM receiver
 
@@ -135,10 +135,10 @@ class Point_e(BaseRx):
 
     def __init__(self, locations=None, times=None, orientation=None, **kwargs):
         self.projField = 'e'
-        super(Point_e, self).__init__(locations, times, orientation, **kwargs)
+        super(PointElectricField, self).__init__(locations, times, orientation, **kwargs)
 
 
-class Point_b(BaseRx):
+class PointMagneticFluxDensity(BaseRx):
     """
     Magnetic flux TDEM receiver
 
@@ -149,10 +149,10 @@ class Point_b(BaseRx):
 
     def __init__(self, locations=None, times=None, orientation=None, **kwargs):
         self.projField = 'b'
-        super(Point_b, self).__init__(locations, times, orientation, **kwargs)
+        super(PointMagneticFluxDensity, self).__init__(locations, times, orientation, **kwargs)
 
 
-class Point_dbdt(BaseRx):
+class PointMagneticFluxTimeDerivative(BaseRx):
     """
     dbdt TDEM receiver
 
@@ -163,12 +163,12 @@ class Point_dbdt(BaseRx):
 
     def __init__(self, locations=None, times=None, orientation=None, **kwargs):
         self.projField = 'dbdt'
-        super(Point_dbdt, self).__init__(locations, times, orientation, **kwargs)
+        super(PointMagneticFluxTimeDerivative, self).__init__(locations, times, orientation, **kwargs)
 
     def eval(self, src, mesh, time_mesh, f):
 
         if self.projField in f.aliasFields:
-            return super(Point_dbdt, self).eval(src, mesh, time_mesh, f)
+            return super(PointMagneticFluxTimeDerivative, self).eval(src, mesh, time_mesh, f)
 
         P = self.getP(mesh, time_mesh, f)
         f_part = mkvc(f[src, 'b', :])
@@ -177,7 +177,7 @@ class Point_dbdt(BaseRx):
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
         if self.projField in f.aliasFields:
-            return super(Point_dbdt, self).projGLoc(f)
+            return super(PointMagneticFluxTimeDerivative, self).projGLoc(f)
         return f._GLoc(self.projField) + self.projComp
 
     def getTimeP(self, time_mesh, f):
@@ -189,14 +189,14 @@ class Point_dbdt(BaseRx):
                 This is not stored in memory, but is created on demand.
         """
         if self.projField in f.aliasFields:
-            return super(Point_dbdt, self).getTimeP(time_mesh, f)
+            return super(PointMagneticFluxTimeDerivative, self).getTimeP(time_mesh, f)
 
         return time_mesh.getInterpolationMat(
             self.times, 'CC'
         )*time_mesh.faceDiv
 
 
-class Point_h(BaseRx):
+class PointMagneticField(BaseRx):
     """
     Magnetic field TDEM receiver
 
@@ -207,10 +207,10 @@ class Point_h(BaseRx):
 
     def __init__(self, locations=None, times=None, orientation=None, **kwargs):
         self.projField = 'h'
-        super(Point_h, self).__init__(locations, times, orientation, **kwargs)
+        super(PointMagneticField, self).__init__(locations, times, orientation, **kwargs)
 
 
-class Point_j(BaseRx):
+class PointCurrentDensity(BaseRx):
     """
     Current density TDEM receiver
 
@@ -221,10 +221,10 @@ class Point_j(BaseRx):
 
     def __init__(self, locations=None, times=None, orientation=None, **kwargs):
         self.projField = 'j'
-        super(Point_j, self).__init__(locations, times, orientation, **kwargs)
+        super(PointCurrentDensity, self).__init__(locations, times, orientation, **kwargs)
 
-class Point_dhdt(BaseRx):
+class PointMagneticFieldTimeDerivative(BaseRx):
 
     def __init__(self, locations=None, times=None, orientation=None, **kwargs):
         self.projField = 'dhdt'
-        super(Point_dhdt, self).__init__(locations, times, orientation, **kwargs)
+        super(PointMagneticFieldTimeDerivative, self).__init__(locations, times, orientation, **kwargs)

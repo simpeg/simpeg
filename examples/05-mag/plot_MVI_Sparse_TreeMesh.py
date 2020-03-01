@@ -71,7 +71,7 @@ Z = A*np.exp(-0.5*((X/b)**2. + (Y/b)**2.)) + 5
 
 # Create a MAGsurvey
 xyzLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
-rxLoc = magnetics.receivers.point_receiver(xyzLoc)
+rxLoc = magnetics.receivers.Point(xyzLoc)
 srcField = magnetics.sources.SourceField(receiver_list=[rxLoc], parameters=H0)
 survey = magnetics.survey.MagneticSurvey(srcField)
 

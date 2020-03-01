@@ -34,7 +34,7 @@ def run(plotIt=True):
     mtrue = np.log(sigma[active])
 
     rxOffset = 1e-3
-    rx = time_domain.Rx.Point_dbdt(
+    rx = time_domain.Rx.PointMagneticFluxTimeDerivative(
         np.array([[rxOffset, 0., 30]]),
         np.logspace(-5, -3, 31),
         'z'

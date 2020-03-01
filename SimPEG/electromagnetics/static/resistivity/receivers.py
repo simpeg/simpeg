@@ -160,7 +160,7 @@ class Dipole(BaseRx):
         return P
 
 
-class Dipole_ky(Dipole):
+class Dipole2D(Dipole):
     """
     Dipole receiver for 2.5D simulations
     """
@@ -169,7 +169,7 @@ class Dipole_ky(Dipole):
         assert locationsM.shape == locationsN.shape, (
             'locationsM and locationsN need to be the same size'
         )
-        super(Dipole_ky, self).__init__(locationsM, locationsN, **kwargs)
+        super(Dipole2D, self).__init__(locationsM, locationsN, **kwargs)
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:
@@ -232,7 +232,7 @@ class Pole(BaseRx):
         return P
 
 
-class Pole_ky(BaseRx):
+class Pole2D(BaseRx):
     """
     Pole receiver for 2.5D simulations
     """

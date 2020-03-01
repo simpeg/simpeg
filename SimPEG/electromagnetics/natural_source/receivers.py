@@ -328,7 +328,7 @@ class BaseRxNSEM_Point(BaseRx):
         raise NotImplementedError('SimPEG.EM.NSEM receiver has to have an evalDeriv method')
 
 
-class Point_impedance1D(BaseRx):
+class Point1DImpedance(BaseRx):
     """
     Natural source 1D impedance receiver class
 
@@ -469,7 +469,7 @@ class Point_impedance1D(BaseRx):
         return rx_deriv_component
 
 
-class Point_impedance3D(BaseRxNSEM_Point):
+class Point3DImpedance(BaseRxNSEM_Point):
     """
     Natural source 3D impedance receiver class
 
@@ -629,7 +629,7 @@ class Point_impedance3D(BaseRxNSEM_Point):
         return rx_deriv_component
 
 
-class Point_tipper3D(BaseRxNSEM_Point):
+class Point3DTipper(BaseRxNSEM_Point):
     """
     Natural source 3D tipper receiver base class
 

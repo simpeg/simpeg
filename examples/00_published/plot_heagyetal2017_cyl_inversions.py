@@ -59,8 +59,8 @@ def run(plotIt=True, saveFig=False):
 
     # ----- FDEM problem & survey ----- #
     rxlocs = utils.ndgrid([np.r_[50.], np.r_[0], np.r_[0.]])
-    bzr = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'real')
-    bzi = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'imag')
+    bzr = FDEM.Rx.PointMagneticFluxDensitySecondary(rxlocs, 'z', 'real')
+    bzi = FDEM.Rx.PointMagneticFluxDensitySecondary(rxlocs, 'z', 'imag')
 
     freqs = np.logspace(2, 3, 5)
     srcLoc = np.array([0., 0., 0.])
@@ -108,7 +108,7 @@ def run(plotIt=True, saveFig=False):
     times = np.logspace(-4, np.log10(2e-3), 10)
     print('min diffusion distance ', 1.28*np.sqrt(times.min()/(sig_half*mu_0)),
           'max diffusion distance ', 1.28*np.sqrt(times.max()/(sig_half*mu_0)))
-    rx = TDEM.Rx.Point_b(rxlocs, times, 'z')
+    rx = TDEM.Rx.PointMagneticFluxDensity(rxlocs, times, 'z')
     src = TDEM.Src.MagDipole(
         [rx],
         waveform=TDEM.Src.StepOffWaveform(),

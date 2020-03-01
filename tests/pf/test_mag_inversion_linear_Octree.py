@@ -50,7 +50,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Create a MAGsurvey
         xyzLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
-        rxLoc = mag.point_receiver(xyzLoc)
+        rxLoc = mag.Point(xyzLoc)
         srcField = mag.SourceField([rxLoc], parameters=H0)
         survey = mag.MagneticSurvey(srcField)
 

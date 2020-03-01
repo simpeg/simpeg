@@ -52,7 +52,7 @@ def run(plotIt=True):
     t0 = 0.006
     waveform = TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
 
-    rx = TDEM.Rx.Point_dbdt(rxloc, np.logspace(-4, -2.5, 11)+t0, 'z')
+    rx = TDEM.Rx.PointMagneticFluxTimeDerivative(rxloc, np.logspace(-4, -2.5, 11)+t0, 'z')
     src = TDEM.Src.CircularLoop([rx], waveform=waveform,
                                    loc=np.array([0., 0., 0.]), radius=10.)
     survey = TDEM.Survey([src])

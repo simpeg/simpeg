@@ -6,7 +6,7 @@ from ..frequency_domain.survey import Survey
 from ...data import Data as BaseData
 from ...utils import mkvc
 from .sources import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
-from .receivers import Point_impedance3D, Point_tipper3D
+from .receivers import Point3DImpedance, Point3DTipper
 from .utils.plot_utils import DataNSEMPlotMethods
 
 #########
@@ -203,23 +203,23 @@ class Data(BaseData, DataNSEMPlotMethods):
                     locs = _rec_to_ndarr(dFreq[['x', 'y', 'z']][notNaNind].copy())
                     if dFreq[rxType].dtype.name in 'complex128':
                         if 't' in rxType:
-                            rxList.append(Point_tipper3D(locs,rxType[1:3],'real'))
+                            rxList.append(Point3DTipper(locs,rxType[1:3],'real'))
                             dataList.append(dFreq[rxType][notNaNind].real.copy())
-                            rxList.append(Point_tipper3D(locs,rxType[1:3],'imag'))
+                            rxList.append(Point3DTipper(locs,rxType[1:3],'imag'))
                             dataList.append(dFreq[rxType][notNaNind].imag.copy())
                         elif 'z' in rxType:
-                            rxList.append(Point_impedance3D(locs,rxType[1:3],'real'))
+                            rxList.append(Point3DImpedance(locs,rxType[1:3],'real'))
                             dataList.append(dFreq[rxType][notNaNind].real.copy())
-                            rxList.append(Point_impedance3D(locs,rxType[1:3],'imag'))
+                            rxList.append(Point3DImpedance(locs,rxType[1:3],'imag'))
                             dataList.append(dFreq[rxType][notNaNind].imag.copy())
                     else:
                         component = 'real' if 'r' in rxType else 'imag'
                         if 'z' in rxType:
                             rxList.append(
-                                Point_impedance3D(locs, rxType[1:3], component))
+                                Point3DImpedance(locs, rxType[1:3], component))
                             dataList.append(dFreq[rxType][notNaNind].copy())
                         if 't' in rxType:
-                            rxList.append(Point_tipper3D(locs, rxType[1:3], component))
+                            rxList.append(Point3DTipper(locs, rxType[1:3], component))
                             dataList.append(dFreq[rxType][notNaNind].copy())
 
             srcList.append(src(rxList, freq))

@@ -38,7 +38,7 @@ Gravity Source
 Gravity Source
 ================
 
-.. autoclass:: SimPEG.potential_fields.gravity.point_receiver
+.. autoclass:: SimPEG.potential_fields.gravity.Point
     :show-inheritance:
     :members:
     :undoc-members:

@@ -183,7 +183,7 @@ Magnetics Source
 Magnetics Source
 ================
 
-.. autoclass:: SimPEG.potential_fields.magnetics.point_receiver
+.. autoclass:: SimPEG.potential_fields.magnetics.Point
     :show-inheritance:
     :members:
     :undoc-members:

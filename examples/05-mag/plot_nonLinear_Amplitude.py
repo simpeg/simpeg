@@ -69,7 +69,7 @@ Z = A*np.exp(-0.5*((X/b)**2. + (Y/b)**2.)) + 10
 
 # Create a MAGsurvey
 rxLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
-rxList = magnetics.receivers.point_receiver(rxLoc)
+rxList = magnetics.receivers.Point(rxLoc)
 srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
 survey = magnetics.survey.MagneticSurvey(srcField)
 
@@ -254,7 +254,7 @@ mrec = inv.run(mstart)
 # components of the field and add them up: :math:`|B| = \sqrt{( Bx^2 + Bx^2 + Bx^2 )}`
 #
 
-rxList = magnetics.receivers.point_receiver(rxLoc, components=['bx', 'by', 'bz'])
+rxList = magnetics.receivers.Point(rxLoc, components=['bx', 'by', 'bz'])
 srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
 surveyAmp = magnetics.survey.MagneticSurvey(srcField)
 

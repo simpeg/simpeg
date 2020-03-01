@@ -75,7 +75,7 @@ components = ["tmi"]
 
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
-receiver_list = magnetics.receivers.point_receiver(
+receiver_list = magnetics.receivers.Point(
         receiver_locations, components=components
         )
 

@@ -7,7 +7,7 @@ import numpy as np
 import discretize
 from SimPEG import maps, mkvc, utils, Data
 from ....utils import meshTensor
-from ..receivers import Point_impedance1D, Point_impedance3D, Point_tipper3D
+from ..receivers import Point1DImpedance, Point3DImpedance, Point3DTipper
 from ..survey import Survey
 from ..sources import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
 from ..simulation import Simulation3DPrimarySecondary
@@ -62,8 +62,8 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
     rxList = []
     for rxType in ['z1d', 'z1d']:
-        rxList.append(Point_impedance1D(mkvc(np.array([0.0]), 2).T, 'real'))
-        rxList.append(Point_impedance1D(mkvc(np.array([0.0]), 2).T, 'imag'))
+        rxList.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, 'real'))
+        rxList.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, 'imag'))
     # Source list
     srcList = []
     if tD:
@@ -93,11 +93,11 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp='Imp', singleFreq=False, expMap=Tr
 
     for rx_type in rx_type_list:
         if rx_type in ['xx', 'xy', 'yx', 'yy']:
-            rxList.append(Point_impedance3D(rx_loc, rx_type, 'real'))
-            rxList.append(Point_impedance3D(rx_loc, rx_type, 'imag'))
+            rxList.append(Point3DImpedance(rx_loc, rx_type, 'real'))
+            rxList.append(Point3DImpedance(rx_loc, rx_type, 'imag'))
         if rx_type in ['zx', 'zy']:
-            rxList.append(Point_tipper3D(rx_loc, rx_type, 'real'))
-            rxList.append(Point_tipper3D(rx_loc, rx_type, 'imag'))
+            rxList.append(Point3DTipper(rx_loc, rx_type, 'real'))
+            rxList.append(Point3DTipper(rx_loc, rx_type, 'imag'))
 
     # Source list
     srcList = []

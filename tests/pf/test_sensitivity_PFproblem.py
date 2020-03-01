@@ -40,7 +40,7 @@
 #         rxLoc = np.c_[utils.mkvc(X), utils.mkvc(Y), utils.mkvc(Z)]
 #
 #         components = ['bx', 'by', 'bz']
-#         receivers = mag.point_receiver(rxLoc, components=components)
+#         receivers = mag.Point(rxLoc, components=components)
 #         srcField = mag.SourceField([receivers], parameters=H0)
 #
 #         self.survey = mag.MagneticSurvey(srcField)
