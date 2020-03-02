@@ -191,7 +191,7 @@ plt.show()
 #
 
 # Get the active cells for equivalent source is the top only
-surf = utils.plot_utils.surface_layer_index(mesh, topo)
+surf = utils.model_utils.surface_layer_index(mesh, topo)
 nC = np.count_nonzero(surf)  # Number of active cells
 mstart = np.ones(nC)*1e-4
 
