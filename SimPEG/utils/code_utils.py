@@ -317,5 +317,6 @@ def deprecate_class(removal_version=None):
             warnings.warn(message, DeprecationWarning)
             super(cls, self).__init__(*args, **kwargs)
         cls.__init__ = __init__
+        cls.__doc__ =  f""" This class has been deprecated, see `{parent_name}` for documentation"""
         return cls
     return decorator
