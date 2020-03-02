@@ -59,57 +59,57 @@ class SrcLocTest(unittest.TestCase):
 class FDEM_CrossCheck(unittest.TestCase):
     if testEB:
         def test_EB_CrossCheck_exr_Eform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', 'exr', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', ['ElectricField','x','r'], verbose=verbose))
         def test_EB_CrossCheck_eyr_Eform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', 'eyr', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', ['ElectricField','y','r'], verbose=verbose))
         def test_EB_CrossCheck_ezr_Eform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', 'ezr', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', ['ElectricField','z','r'], verbose=verbose))
         def test_EB_CrossCheck_exi_Eform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', 'exi', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', ['ElectricField','x','i'], verbose=verbose))
         def test_EB_CrossCheck_eyi_Eform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', 'eyi', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', ['ElectricField','y','i'], verbose=verbose))
         def test_EB_CrossCheck_ezi_Eform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', 'ezi', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', ['ElectricField','z','i'], verbose=verbose))
 
         def test_EB_CrossCheck_bxr_Eform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', 'bxr', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', ['MagneticFluxDensity','x','r'], verbose=verbose))
         def test_EB_CrossCheck_byr_Eform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', 'byr', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', ['MagneticFluxDensity','y','r'], verbose=verbose))
         def test_EB_CrossCheck_bzr_Eform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', 'bzr', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', ['MagneticFluxDensity','z','r'], verbose=verbose))
         def test_EB_CrossCheck_bxi_Eform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', 'bxi', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', ['MagneticFluxDensity','x','i'], verbose=verbose))
         def test_EB_CrossCheck_byi_Eform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', 'byi', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', ['MagneticFluxDensity','y','i'], verbose=verbose))
         def test_EB_CrossCheck_bzi_Eform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', 'bzi', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'e', 'b', ['MagneticFluxDensity','z','i'], verbose=verbose))
 
     if testHJ:
         def test_HJ_CrossCheck_jxr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', 'jxr', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', ['CurrentDensity','x','r'], verbose=verbose))
         def test_HJ_CrossCheck_jyr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', 'jyr', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', ['CurrentDensity','y','r'], verbose=verbose))
         def test_HJ_CrossCheck_jzr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', 'jzr', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', ['CurrentDensity','z','r'], verbose=verbose))
         def test_HJ_CrossCheck_jxi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', 'jxi', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', ['CurrentDensity','x','i'], verbose=verbose))
         def test_HJ_CrossCheck_jyi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', 'jyi', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', ['CurrentDensity','y','i'], verbose=verbose))
         def test_HJ_CrossCheck_jzi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', 'jzi', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', ['CurrentDensity','z','i'], verbose=verbose))
 
         def test_HJ_CrossCheck_hxr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', 'hxr', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', ['MagneticField','x','r'], verbose=verbose))
         def test_HJ_CrossCheck_hyr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', 'hyr', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', ['MagneticField','y','r'], verbose=verbose))
         def test_HJ_CrossCheck_hzr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', 'hzr', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', ['MagneticField','z','r'], verbose=verbose))
         def test_HJ_CrossCheck_hxi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', 'hxi', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', ['MagneticField','x','i'], verbose=verbose))
         def test_HJ_CrossCheck_hyi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', 'hyi', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', ['MagneticField','y','i'], verbose=verbose))
         def test_HJ_CrossCheck_hzi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', 'hzi', verbose=verbose))
+            self.assertTrue(crossCheckTest(SrcList, 'j', 'h', ['MagneticField','z','i'], verbose=verbose))
 
 if __name__ == '__main__':
     unittest.main()

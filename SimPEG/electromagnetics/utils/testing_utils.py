@@ -33,9 +33,9 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     x = np.array([np.linspace(-5.*cs,-2.*cs,3),np.linspace(5.*cs,2.*cs,3)]) + cs/4. #don't sample right by the source, slightly off alignment from either staggered grid
     XYZ = utils.ndgrid(x,x,np.linspace(-2.*cs,2.*cs,5))
     Rx0 = getattr(fdem.Rx, 'Point' + comp[0])
-    if comp[2] == 'r':
+    if comp[-1] == 'r':
         real_or_imag = 'real'
-    elif comp[2] == 'i':
+    elif comp[-1] == 'i':
         real_or_imag = 'imag'
     rx0 = Rx0(XYZ, comp[1], 'imag')
 
