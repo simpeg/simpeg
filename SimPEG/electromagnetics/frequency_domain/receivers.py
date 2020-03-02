@@ -1,4 +1,5 @@
 import properties
+from ...utils.code_utils import deprecate_class
 
 from ... import survey
 
@@ -165,3 +166,31 @@ class PointCurrentDensity(BaseRx):
     def __init__(self, locations, orientation=None, component=None):
         self.projField = 'j'
         super(PointCurrentDensity, self).__init__(locations, orientation, component)
+
+
+############
+# Deprecated
+############
+@deprecate_class(removal_version='0.15.0')
+class Point_e(PointElectricField):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Point_b(PointMagneticFluxDensity):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Point_bSecondary(PointMagneticFluxDensitySecondary):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Point_h(PointMagneticField):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Point_j(PointCurrentDensity):
+    pass

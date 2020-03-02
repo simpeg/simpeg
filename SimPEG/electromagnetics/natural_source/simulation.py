@@ -6,7 +6,7 @@ import dask
 import dask.array as da
 import multiprocessing
 from scipy.constants import mu_0
-import warnings
+from ...utils.code_utils import deprecate_class
 
 try:
     from pymatsolver import Pardiso as SimpegSolver
@@ -587,19 +587,11 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
 # Deprecated
 ############
 
+@deprecate_class(removal_version='0.15.0')
 class Problem3D_ePrimSec(Simulation3DPrimarySecondary):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'Problem3D_ePrimSec has been deprecated, please use Simulation3DPrimarySecondary',
-            DeprecationWarning
-        )
-        super().__init__(*args, **kwargs)
+    pass
 
 
+@deprecate_class(removal_version='0.15.0')
 class Problem1D_ePrimSec(Simulation1DPrimarySecondary):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'Problem1D_ePrimSec has been deprecated, please use Simulation1DPrimarySecondary',
-            DeprecationWarning
-        )
-        super().__init__(*args, **kwargs)
+    pass

@@ -80,7 +80,6 @@ class Point(BaseRx):
         self.orientation = value
 
 
-
 class SquareLoop(Point):
     """Square loop receiver
 

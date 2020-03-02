@@ -3,6 +3,7 @@
 Receivers for the NSEM problem
 
 """
+from ...utils.code_utils import deprecate_class
 
 import numpy as np
 from scipy.constants import mu_0
@@ -752,3 +753,22 @@ class Point3DTipper(BaseRxNSEM_Point):
             )
 
         return rx_deriv_component
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class Point_impedance1D(Point1DImpedance):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Point_impedance3D(Point3DImpedance):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Point_tipper3D(Point3DTipper):
+    pass

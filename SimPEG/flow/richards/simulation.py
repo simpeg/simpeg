@@ -7,6 +7,7 @@ import numpy as np
 import scipy.sparse as sp
 import time
 import properties
+from ...utils.code_utils import deprecate_class
 import warnings
 
 from ... import utils
@@ -364,14 +365,13 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         return BJtv + PTdv
 
 
+SimulationNDCellCentred = SimulationNDCellCentered
+
+
 ############
 # Deprecated
 ############
 
+@deprecate_class(removal_version='0.15.0')
 class RichardsProblem(SimulationNDCellCentered):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'RichardsProblem has been deprecated, please use SimulationNDCellCentered',
-            DeprecationWarning
-        )
-        super().__init__(*args, **kwargs)
+    pass

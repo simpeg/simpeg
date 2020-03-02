@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import properties
-import warnings
+from ...utils.code_utils import deprecate_class
 
 from ...simulation import BaseSimulation
 from ... import props
@@ -985,19 +985,11 @@ class Simulation3DLogUniform(BaseVRMSimulation):
 # Deprecated
 ############
 
+@deprecate_class(removal_version='0.15.0')
 class Problem_Linear(Simulation3DLinear):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'Problem_Linear has been deprecated, please use Simulation3DLinear',
-            DeprecationWarning
-        )
-        super().__init__(*args, **kwargs)
+    pass
 
 
+@deprecate_class(removal_version='0.15.0')
 class Problem_LogUnifrom(Simulation3DLogUniform):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'Problem_LogUnifrom has been deprecated, please use Simulation3DLogUniform',
-            DeprecationWarning
-        )
-        super().__init__(*args, **kwargs)
+    pass

@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
 import properties
-import warnings
+from ...utils.code_utils import deprecate_class
 
 from ... import props
 from ...data import Data
@@ -887,37 +887,21 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 # Deprecated
 ############
 
+@deprecate_class(removal_version='0.15.0')
 class Problem3D_e(Simulation3DElectricField):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'Problem3D_e has been deprecated, please use Simulation3DElectricField',
-            DeprecationWarning
-        )
-        super().__init__(*args, **kwargs)
+    pass
 
 
+@deprecate_class(removal_version='0.15.0')
 class Problem3D_b(Simulation3DMagneticFluxDensity):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'Problem3D_b has been deprecated, please use Simulation3DMagneticFluxDensity',
-            DeprecationWarning
-        )
-        super().__init__(*args, **kwargs)
+    pass
 
 
+@deprecate_class(removal_version='0.15.0')
 class Problem3D_h(Simulation3DMagneticField):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'Problem3D_h has been deprecated, please use Simulation3DMagneticField',
-            DeprecationWarning
-        )
-        super().__init__(*args, **kwargs)
+    pass
 
 
+@deprecate_class(removal_version='0.15.0')
 class Problem3D_j(Simulation3DCurrentDensity):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'Problem3D_j has been deprecated, please use Simulation3DCurrentDensity',
-            DeprecationWarning
-        )
-        super().__init__(*args, **kwargs)
+    pass

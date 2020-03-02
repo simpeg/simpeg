@@ -2,6 +2,7 @@ from __future__ import print_function, division
 import types
 import numpy as np
 from functools import wraps
+import warnings
 
 from discretize.utils import asArray_N_x_Dim
 
@@ -300,3 +301,21 @@ class Report(ScoobyReport):
 
         super().__init__(additional=add_pckg, core=core, optional=optional,
                          ncol=ncol, text_width=text_width, sort=sort)
+
+
+def deprecate_class(removal_version=None):
+    def decorator(cls):
+        my_name = cls.__name__
+        parent_name = cls.__bases__[0].__name__
+        message = f'{my_name} has been deprecated, please use {parent_name}.'
+        if removal_version is not None:
+            message += f' It will be removed in version {removal_version}.'
+        else:
+            message += ' It will be removed in a future version.'
+
+        def __init__(self, *args, **kwargs):
+            warnings.warn(message, DeprecationWarning)
+            super(cls, self).__init__(*args, **kwargs)
+        cls.__init__ = __init__
+        return cls
+    return decorator

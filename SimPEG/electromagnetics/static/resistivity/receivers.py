@@ -1,4 +1,5 @@
 import numpy as np
+from ....utils.code_utils import deprecate_class
 
 import properties
 import dask
@@ -274,3 +275,17 @@ class Pole2D(BaseRx):
             return P*v
         elif adjoint:
             return P.T*v
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class Dipole_ky(Dipole2D):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Pole_ky(Pole2D):
+    pass

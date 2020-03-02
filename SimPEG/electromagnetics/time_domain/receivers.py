@@ -1,4 +1,5 @@
 import scipy.sparse as sp
+from ...utils.code_utils import deprecate_class
 
 from ...utils import mkvc
 from ...survey import BaseTimeRx
@@ -228,3 +229,37 @@ class PointMagneticFieldTimeDerivative(BaseRx):
     def __init__(self, locations=None, times=None, orientation=None, **kwargs):
         self.projField = 'dhdt'
         super(PointMagneticFieldTimeDerivative, self).__init__(locations, times, orientation, **kwargs)
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class Point_e(PointElectricField):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Point_b(PointMagneticFluxDensity):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Point_h(PointMagneticField):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Point_j(PointCurrentDensity):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Point_dbdt(PointMagneticFluxTimeDerivative):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Point_dhdt(PointMagneticFieldTimeDerivative):
+    pass

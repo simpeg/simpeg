@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
-import warnings
+from ...utils.code_utils import deprecate_class
 
 from ...simulation import LinearSimulation
 from ...utils import sub2ind
@@ -114,10 +114,6 @@ class Simulation2DIntegral(LinearSimulation):
 # Deprecated
 ############
 
+@deprecate_class(removal_version='0.15.0')
 class StraightRayProblem(Simulation2DIntegral):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'StraightRayProblem has been deprecated, please use Simulation2DIntegral',
-            DeprecationWarning
-        )
-        super().__init__(*args, **kwargs)
+    pass

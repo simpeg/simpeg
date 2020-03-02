@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.special import kn
 import properties
-import warnings
+from ....utils.code_utils import deprecate_class
 
 from ....utils import mkvc, sdiag, Zero
 from ...base import BaseEMSimulation
@@ -644,19 +644,11 @@ Simulation2DCellCentred = Simulation2DCellCentered  # UK and US
 # Deprecated
 ############
 
+@deprecate_class(removal_version='0.15.0')
 class Problem2D_N(Simulation2DNodal):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'Problem2D_N has been deprecated, please use Simulation2DNodal',
-            DeprecationWarning
-        )
-        super().__init__(*args, **kwargs)
+    pass
 
 
+@deprecate_class(removal_version='0.15.0')
 class Problem2D_CC(Simulation2DCellCentered):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'Problem2D_CC has been deprecated, please use Simulation2DCellCentered',
-            DeprecationWarning
-        )
-        super().__init__(*args, **kwargs)
+    pass

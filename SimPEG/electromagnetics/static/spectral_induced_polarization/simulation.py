@@ -2,6 +2,7 @@ import numpy as np
 import sys
 import gc
 import warnings
+from ....utils.code_utils import deprecate_class
 import properties
 
 from .... import props
@@ -742,23 +743,18 @@ class Simulation3DNodal(BaseSIPSimulation, BaseSimulation3DNodal):
             self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)
 
 
+Simulation3DCellCentred = Simulation3DCellCentered
+
+
 ############
 # Deprecated
 ############
 
+@deprecate_class(removal_version='0.15.0')
 class Problem3D_N(Simulation3DNodal):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'Problem3D_N has been deprecated, please use Simulation3DNodal',
-            DeprecationWarning
-        )
-        super().__init__(*args, **kwargs)
+    pass
 
 
+@deprecate_class(removal_version='0.15.0')
 class Problem3D_CC(Simulation3DCellCentered):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'Problem3D_CC has been deprecated, please use Simulation3DCellCentered',
-            DeprecationWarning
-        )
-        super().__init__(*args, **kwargs)
+    pass
