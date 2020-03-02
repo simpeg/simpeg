@@ -7,7 +7,7 @@ class BaseRx(survey.BaseRx):
     """
     Frequency domain receiver base class
 
-    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     :param string component: real or imaginary component 'real' or 'imag'
     """
@@ -25,12 +25,12 @@ class BaseRx(survey.BaseRx):
 
     )
 
-    def __init__(self, locs, orientation=None, component=None, **kwargs):
+    def __init__(self, locations, orientation=None, component=None, **kwargs):
 
         self.projComp = orientation
         self.component = component
 
-        super(BaseRx, self).__init__(locs, **kwargs)
+        super(BaseRx, self).__init__(locations, **kwargs)
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
@@ -101,67 +101,67 @@ class PointElectricField(BaseRx):
     """
     Electric field FDEM receiver
 
-    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, locations, orientation=None, component=None):
         self.projField = 'e'
-        super(PointElectricField, self).__init__(locs, orientation, component)
+        super(PointElectricField, self).__init__(locations, orientation, component)
 
 
 class PointMagneticFluxDensity(BaseRx):
     """
     Magnetic flux FDEM receiver
 
-    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, locations, orientation=None, component=None):
         self.projField = 'b'
-        super(PointMagneticFluxDensity, self).__init__(locs, orientation, component)
+        super(PointMagneticFluxDensity, self).__init__(locations, orientation, component)
 
 
 class PointMagneticFluxDensitySecondary(BaseRx):
     """
     Magnetic flux FDEM receiver
 
-    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, locations, orientation=None, component=None):
         self.projField = 'bSecondary'
-        super(PointMagneticFluxDensitySecondary, self).__init__(locs, orientation, component)
+        super(PointMagneticFluxDensitySecondary, self).__init__(locations, orientation, component)
 
 
 class PointMagneticField(BaseRx):
     """
     Magnetic field FDEM receiver
 
-    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, locations, orientation=None, component=None):
         self.projField = 'h'
-        super(PointMagneticField, self).__init__(locs, orientation, component)
+        super(PointMagneticField, self).__init__(locations, orientation, component)
 
 
 class PointCurrentDensity(BaseRx):
     """
     Current density FDEM receiver
 
-    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, locations, orientation=None, component=None):
         self.projField = 'j'
-        super(PointCurrentDensity, self).__init__(locs, orientation, component)
+        super(PointCurrentDensity, self).__init__(locations, orientation, component)
