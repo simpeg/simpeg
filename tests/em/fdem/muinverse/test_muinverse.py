@@ -28,7 +28,7 @@ def setupMeshModel():
 
 
 def setupProblem(
-    mesh, muMod, sigmaMod, prbtype='e', invertMui=False,
+    mesh, muMod, sigmaMod, prbtype='ElectricField', invertMui=False,
     sigmaInInversion=False, freq=1.
 ):
     rxcomp = ['real', 'imag']
@@ -37,16 +37,16 @@ def setupProblem(
         [mesh.vectorCCx, np.r_[0.], mesh.vectorCCz]
     )
 
-    if prbtype in ['e', 'b']:
-        rxfields_y = ['e', 'j']
-        rxfields_xz = ['b', 'h']
+    if prbtype in ['ElectricField', 'MagneticFluxDensity']:
+        rxfields_y = ['ElectricField', 'CurrentDensity']
+        rxfields_xz = ['MagneticFluxDensity', 'MagneticField']
 
-    elif prbtype in ['h', 'j']:
-        rxfields_y = ['b', 'h']
-        rxfields_xz = ['e', 'j']
+    elif prbtype in ['MagneticField', 'CurrentDensity']:
+        rxfields_y = ['MagneticFluxDensity', 'MagneticField']
+        rxfields_xz = ['ElectricField', 'CurrentDensity']
 
     rxList_edge = [
-        getattr(fdem.Rx, 'Point_{f}'.format(f=f))(
+        getattr(fdem.Rx, 'Point{f}'.format(f=f))(
             loc, component=comp, orientation=orient
         )
         for f in rxfields_y
@@ -55,7 +55,7 @@ def setupProblem(
     ]
 
     rxList_face = [
-        getattr(fdem.Rx, 'Point_{f}'.format(f=f))(
+        getattr(fdem.Rx, 'Point{f}'.format(f=f))(
             loc, component=comp, orientation=orient
         )
         for f in rxfields_xz
@@ -67,12 +67,12 @@ def setupProblem(
 
     src_loc = np.r_[0., 0., 0.]
 
-    if prbtype in ['e', 'b']:
+    if prbtype in ['ElectricField', 'MagneticFluxDensity']:
         src = fdem.Src.MagDipole(
             rxList=rxList, loc=src_loc, freq=freq
         )
 
-    elif prbtype in ['h', 'j']:
+    elif prbtype in ['MagneticField', 'CurrentDensity']:
         ind = utils.closestPoints(mesh, src_loc, 'Fz') + mesh.vnF[0]
         vec = np.zeros(mesh.nF)
         vec[ind] = 1.
@@ -125,7 +125,7 @@ def setupProblem(
 
 class MuTests(unittest.TestCase):
 
-    def setUpProb(self, prbtype='e', sigmaInInversion=False, invertMui=False):
+    def setUpProb(self, prbtype='ElectricField', sigmaInInversion=False, invertMui=False):
         self.mesh, muMod, sigmaMod = setupMeshModel()
         self.m0, self.prob, self.survey = setupProblem(
             self.mesh, muMod, sigmaMod, prbtype=prbtype,
@@ -140,8 +140,8 @@ class MuTests(unittest.TestCase):
         MeMuI = self.prob.MeMuI
         MfMui = self.prob.MfMui
         MfMuiI = self.prob.MfMuiI
-        MeMuDeriv = self.prob.MeMuDeriv(u[:, 'e'])
-        MfMuiDeriv = self.prob.MfMuiDeriv(u[:, 'b'])
+        MeMuDeriv = self.prob.MeMuDeriv(u[:, 'ElectricField'])
+        MfMuiDeriv = self.prob.MfMuiDeriv(u[:, 'MagneticFluxDensity'])
 
         m1 = np.random.rand(self.mesh.nC)
         self.prob.model = m1
@@ -153,7 +153,7 @@ class MuTests(unittest.TestCase):
         self.assertTrue(getattr(self, '_MfMuiDeriv', None) is None)
         self.assertTrue(getattr(self, '_MeMuDeriv', None) is None)
 
-    def JvecTest(self, prbtype='e', sigmaInInversion=False, invertMui=False):
+    def JvecTest(self, prbtype='ElectricField', sigmaInInversion=False, invertMui=False):
         self.setUpProb(prbtype, sigmaInInversion, invertMui)
         print('Testing Jvec {}'.format(prbtype))
 
@@ -165,7 +165,7 @@ class MuTests(unittest.TestCase):
             fun, self.m0, num=2, plotIt=False, eps=EPS
         )
 
-    def JtvecTest(self, prbtype='e', sigmaInInversion=False, invertMui=False):
+    def JtvecTest(self, prbtype='ElectricField', sigmaInInversion=False, invertMui=False):
         self.setUpProb(prbtype, sigmaInInversion, invertMui)
         print('Testing Jvec {}'.format(prbtype))
 
@@ -188,134 +188,132 @@ class MuTests(unittest.TestCase):
         return passed
 
     def test_Jvec_e(self):
-        self.assertTrue(self.JvecTest('e', sigmaInInversion=False))
+        self.assertTrue(self.JvecTest('ElectricField', sigmaInInversion=False))
 
     def test_Jvec_b(self):
-        self.assertTrue(self.JvecTest('b', sigmaInInversion=False))
+        self.assertTrue(self.JvecTest('MagneticFluxDensity', sigmaInInversion=False))
 
     def test_Jvec_j(self):
-        self.assertTrue(self.JvecTest('j', sigmaInInversion=False))
+        self.assertTrue(self.JvecTest('CurrentDensity', sigmaInInversion=False))
 
     def test_Jvec_h(self):
-        self.assertTrue(self.JvecTest('h', sigmaInInversion=False))
+        self.assertTrue(self.JvecTest('MagneticField', sigmaInInversion=False))
 
     def test_Jtvec_e(self):
-        self.assertTrue(self.JtvecTest('e', sigmaInInversion=False))
+        self.assertTrue(self.JtvecTest('ElectricField', sigmaInInversion=False))
 
     def test_Jtvec_b(self):
-        self.assertTrue(self.JtvecTest('b', sigmaInInversion=False))
+        self.assertTrue(self.JtvecTest('MagneticFluxDensity', sigmaInInversion=False))
 
     def test_Jtvec_j(self):
-        self.assertTrue(self.JtvecTest('j', sigmaInInversion=False))
+        self.assertTrue(self.JtvecTest('CurrentDensity', sigmaInInversion=False))
 
     def test_Jtvec_h(self):
-        self.assertTrue(self.JtvecTest('h', sigmaInInversion=False))
+        self.assertTrue(self.JtvecTest('MagneticField', sigmaInInversion=False))
 
     def test_Jvec_musig_e(self):
-        self.assertTrue(self.JvecTest('e', sigmaInInversion=True))
+        self.assertTrue(self.JvecTest('ElectricField', sigmaInInversion=True))
 
     def test_Jvec_musig_b(self):
-        self.assertTrue(self.JvecTest('b', sigmaInInversion=True))
+        self.assertTrue(self.JvecTest('MagneticFluxDensity', sigmaInInversion=True))
 
     def test_Jvec_musig_j(self):
-        self.assertTrue(self.JvecTest('j', sigmaInInversion=True))
+        self.assertTrue(self.JvecTest('CurrentDensity', sigmaInInversion=True))
 
     def test_Jvec_musig_h(self):
-        self.assertTrue(self.JvecTest('h', sigmaInInversion=True))
+        self.assertTrue(self.JvecTest('MagneticField', sigmaInInversion=True))
 
     def test_Jtvec_musig_e(self):
-        self.assertTrue(self.JtvecTest('e', sigmaInInversion=True))
+        self.assertTrue(self.JtvecTest('ElectricField', sigmaInInversion=True))
 
     def test_Jtvec_musig_b(self):
-        self.assertTrue(self.JtvecTest('b', sigmaInInversion=True))
+        self.assertTrue(self.JtvecTest('MagneticFluxDensity', sigmaInInversion=True))
 
     def test_Jtvec_musig_j(self):
-        self.assertTrue(self.JtvecTest('j', sigmaInInversion=True))
+        self.assertTrue(self.JtvecTest('CurrentDensity', sigmaInInversion=True))
 
     def test_Jtvec_musig_h(self):
-        self.assertTrue(self.JtvecTest('h', sigmaInInversion=True))
+        self.assertTrue(self.JtvecTest('MagneticField', sigmaInInversion=True))
 
     def test_Jvec_e_mui(self):
         self.assertTrue(
-            self.JvecTest('e', sigmaInInversion=False, invertMui=True)
+            self.JvecTest('ElectricField', sigmaInInversion=False, invertMui=True)
         )
 
     def test_Jvec_b_mui(self):
         self.assertTrue(
-            self.JvecTest('b', sigmaInInversion=False, invertMui=True)
+            self.JvecTest('MagneticFluxDensity', sigmaInInversion=False, invertMui=True)
         )
 
     def test_Jvec_j_mui(self):
         self.assertTrue(
-            self.JvecTest('j', sigmaInInversion=False, invertMui=True)
+            self.JvecTest('CurrentDensity', sigmaInInversion=False, invertMui=True)
         )
 
     def test_Jvec_h_mui(self):
         self.assertTrue(
-            self.JvecTest('h', sigmaInInversion=False, invertMui=True)
+            self.JvecTest('MagneticField', sigmaInInversion=False, invertMui=True)
         )
 
     def test_Jtvec_e_mui(self):
         self.assertTrue(
-            self.JtvecTest('e', sigmaInInversion=False, invertMui=True)
+            self.JtvecTest('ElectricField', sigmaInInversion=False, invertMui=True)
         )
 
     def test_Jtvec_b_mui(self):
         self.assertTrue(
-            self.JtvecTest('b', sigmaInInversion=False, invertMui=True)
+            self.JtvecTest('MagneticFluxDensity', sigmaInInversion=False, invertMui=True)
         )
 
     def test_Jtvec_j_mui(self):
         self.assertTrue(
-            self.JtvecTest('j', sigmaInInversion=False, invertMui=True)
+            self.JtvecTest('CurrentDensity', sigmaInInversion=False, invertMui=True)
         )
 
     def test_Jtvec_h_mui(self):
         self.assertTrue(
-            self.JtvecTest('h', sigmaInInversion=False, invertMui=True)
+            self.JtvecTest('MagneticField', sigmaInInversion=False, invertMui=True)
         )
 
     def test_Jvec_musig_e_mui(self):
         self.assertTrue(
-            self.JvecTest('e', sigmaInInversion=True, invertMui=True)
+            self.JvecTest('ElectricField', sigmaInInversion=True, invertMui=True)
         )
 
     def test_Jvec_musig_b_mui(self):
         self.assertTrue(
-            self.JvecTest('b', sigmaInInversion=True, invertMui=True)
+            self.JvecTest('MagneticFluxDensity', sigmaInInversion=True, invertMui=True)
         )
 
     def test_Jvec_musig_j_mui(self):
         self.assertTrue(
-            self.JvecTest('j', sigmaInInversion=True, invertMui=True)
+            self.JvecTest('CurrentDensity', sigmaInInversion=True, invertMui=True)
         )
 
     def test_Jvec_musig_h_mui(self):
         self.assertTrue(
-            self.JvecTest('h', sigmaInInversion=True, invertMui=True)
+            self.JvecTest('MagneticField', sigmaInInversion=True, invertMui=True)
         )
 
     def test_Jtvec_musig_e_mui(self):
         self.assertTrue(
-            self.JtvecTest('e', sigmaInInversion=True, invertMui=True)
+            self.JtvecTest('ElectricField', sigmaInInversion=True, invertMui=True)
         )
 
     def test_Jtvec_musig_b_mui(self):
         self.assertTrue(
-            self.JtvecTest('b', sigmaInInversion=True, invertMui=True)
+            self.JtvecTest('MagneticFluxDensity', sigmaInInversion=True, invertMui=True)
         )
 
     def test_Jtvec_musig_j_mui(self):
         self.assertTrue(
-            self.JtvecTest('j', sigmaInInversion=True, invertMui=True)
+            self.JtvecTest('CurrentDensity', sigmaInInversion=True, invertMui=True)
         )
 
     def test_Jtvec_musig_h_mui(self):
         self.assertTrue(
-            self.JtvecTest('h', sigmaInInversion=True, invertMui=True)
+            self.JtvecTest('MagneticField', sigmaInInversion=True, invertMui=True)
         )
 
 if __name__ == '__main__':
     unittest.main()
-
-

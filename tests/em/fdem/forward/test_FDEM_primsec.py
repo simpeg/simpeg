@@ -165,8 +165,8 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
         print('\n------- Testing Primary Secondary Source EB -> EB --------\n')
         # receivers
         self.rxlist = []
-        for rxtype in ['b', 'e']:
-            rx = getattr(fdem.Rx, 'Point_{}'.format(rxtype))
+        for rxtype in ['MagneticFluxDensity', 'ElectricField']:
+            rx = getattr(fdem.Rx, 'Point{}'.format(rxtype))
             for orientation in ['x', 'y', 'z']:
                 for comp in ['real', 'imag']:
                     self.rxlist.append(rx(rx_locs, component=comp,
@@ -224,8 +224,8 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         print('\n------- Testing Primary Secondary Source HJ -> EB --------\n')
         # receivers
         self.rxlist = []
-        for rxtype in ['b', 'e']:
-            rx = getattr(fdem.Rx, 'Point_{}'.format(rxtype))
+        for rxtype in ['MagneticFluxDensity', 'ElectricField']:
+            rx = getattr(fdem.Rx, 'Point{}'.format(rxtype))
             for orientation in ['x', 'y', 'z']:
                 for comp in ['real', 'imag']:
                     self.rxlist.append(rx(rx_locs, component=comp,

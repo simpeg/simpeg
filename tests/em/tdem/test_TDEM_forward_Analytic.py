@@ -13,7 +13,7 @@ from pymatsolver import Pardiso as Solver
 def halfSpaceProblemAnaDiff(
     meshType, srctype="MagDipole",
     sig_half=1e-2, rxOffset=50., bounds=None,
-    plotIt=False, rxType='bz'
+    plotIt=False, rxType='MagneticFluxDensityz'
 ):
     if bounds is None:
         bounds = [1e-5, 1e-3]
@@ -34,7 +34,7 @@ def halfSpaceProblemAnaDiff(
     actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
-    rx = getattr(tdem.Rx, 'Point_{}'.format(rxType[:-1]))(
+    rx = getattr(tdem.Rx, 'Point{}'.format(rxType[:-1]))(
         np.array([[rxOffset, 0., 0.]]), np.logspace(-5, -4, 21), rxType[-1]
     )
 

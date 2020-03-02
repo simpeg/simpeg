@@ -16,7 +16,7 @@ TOL = 1e-4
 np.random.seed(10)
 
 
-def setUp_TDEM(prbtype='ElectricField', rxcomp='ex'):
+def setUp_TDEM(prbtype='ElectricField', rxcomp='ElectricFieldx'):
     cs = 5.
     ncx = 8
     ncy = 8
@@ -39,7 +39,7 @@ def setUp_TDEM(prbtype='ElectricField', rxcomp='ex'):
     rxOffset = 0.
     rxlocs = np.array([[20, 20., 0.]])
     rxtimes = np.logspace(-4, -3, 20)
-    rx = getattr(tdem.Rx, 'Point_{}'.format(rxcomp[:-1]))(
+    rx = getattr(tdem.Rx, 'Point{}'.format(rxcomp[:-1]))(
         locations=rxlocs, times=rxtimes, orientation=rxcomp[-1]
     )
     Aloc = np.r_[-10., 0., 0.]
@@ -82,13 +82,13 @@ class TDEM_DerivTests(unittest.TestCase):
             tests.checkDerivative(derChk, m, plotIt=False, num=2, eps=1e-20)
 
         def test_Jvec_e_dbzdt(self):
-            self.JvecTest('ElectricField', 'dbdtz')
+            self.JvecTest('ElectricField', 'MagneticFluxTimeDerivativez')
 
         def test_Jvec_e_ex(self):
-            self.JvecTest('ElectricField', 'ex')
+            self.JvecTest('ElectricField', 'ElectricFieldx')
 
         def test_Jvec_e_ey(self):
-            self.JvecTest('ElectricField', 'ey')
+            self.JvecTest('ElectricField', 'ElectricFieldy')
 
 
 # ====== TEST Jtvec ========== #
@@ -119,13 +119,13 @@ class TDEM_DerivTests(unittest.TestCase):
             self.assertTrue(passed)
 
         def test_Jvec_adjoint_e_dbzdt(self):
-            self.JvecVsJtvecTest('ElectricField', 'dbdtz')
+            self.JvecVsJtvecTest('ElectricField', 'MagneticFluxTimeDerivativez')
 
         def test_Jvec_adjoint_e_ex(self):
-            self.JvecVsJtvecTest('ElectricField', 'ex')
+            self.JvecVsJtvecTest('ElectricField', 'ElectricFieldx')
 
         def test_Jvec_adjoint_e_ey(self):
-            self.JvecVsJtvecTest('ElectricField', 'ey')
+            self.JvecVsJtvecTest('ElectricField', 'ElectricFieldy')
 
 if __name__ == '__main__':
     unittest.main()

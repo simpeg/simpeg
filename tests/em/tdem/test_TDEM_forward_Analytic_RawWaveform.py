@@ -14,7 +14,7 @@ from SimPEG.electromagnetics import analytics, utils
 
 def halfSpaceProblemAnaDiff(
     meshType, srctype="MagDipole", sig_half=1e-2, rxOffset=50., bounds=None,
-    plotIt=False, rxType='bz'
+    plotIt=False, rxType='MagneticFluxDensityz'
 ):
 
     if bounds is None:
@@ -44,7 +44,7 @@ def halfSpaceProblemAnaDiff(
     t0 = 0.006
     waveform = tdem.Src.RawWaveform(offTime=t0, waveFct=wavefun)
 
-    rx = getattr(tdem.Rx, 'Point_{}'.format(rxType[:-1]))(
+    rx = getattr(tdem.Rx, 'Point{}'.format(rxType[:-1]))(
         np.array([[rxOffset, 0., 0.]]), np.logspace(-4, -3, 31)+t0, rxType[-1]
     )
 

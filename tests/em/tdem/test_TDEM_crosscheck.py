@@ -54,7 +54,7 @@ def setUp_TDEM(prbtype='MagneticFluxDensity', rxcomp='bz', waveform='stepoff'):
         prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
 
     rxOffset = 10.
-    rx = getattr(tdem.Rx, 'Point_{}'.format(rxcomp[:-1]))(
+    rx = getattr(tdem.Rx, 'Point{}'.format(rxcomp[:-1]))(
         np.r_[rxOffset, 0., -1e-2], rxtimes, rxcomp[-1]
     )
     src = tdem.Src.MagDipole(
@@ -106,52 +106,60 @@ def CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
 class TDEM_cross_check_EB(unittest.TestCase):
     def test_EB_ey_stepoff(self):
         CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
-            rxcomp='ey', waveform='stepoff')
+            rxcomp='ElectricFieldy', waveform='stepoff')
 
     def test_EB_dbdtx_stepoff(self):
         CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
-            rxcomp='dbdtx', waveform='stepoff')
+            rxcomp='MagneticFluxTimeDerivativex', waveform='stepoff')
 
     def test_EB_dbdtz_stepoff(self):
         CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
-            rxcomp='dbdtz', waveform='stepoff')
+            rxcomp='MagneticFluxTimeDerivativez', waveform='stepoff')
 
     def test_HJ_j_stepoff(self):
-        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='jy', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='CurrentDensityy', waveform='stepoff')
 
     def test_HJ_j_stepoff(self):
-        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='jy', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='CurrentDensityy', waveform='stepoff')
 
     def test_HJ_dhdtx_stepoff(self):
-        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='dhdtx', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='MagneticFieldTimeDerivativex', waveform='stepoff')
 
     def test_HJ_dhdtz_stepoff(self):
-        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='dhdtx', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='MagneticFieldTimeDerivativex', waveform='stepoff')
 
 
     def test_EB_ey_vtem(self):
         CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
-            rxcomp='ey', waveform='vtem')
+            rxcomp='ElectricFieldy', waveform='vtem')
 
     def test_EB_dbdtx_vtem(self):
         CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
-            rxcomp='dbdtx', waveform='vtem')
+            rxcomp='MagneticFluxTimeDerivativex', waveform='vtem')
 
     def test_EB_dbdtz_vtem(self):
         CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
-            rxcomp='dbdtz', waveform='vtem')
+            rxcomp='MagneticFluxTimeDerivativez', waveform='vtem')
 
     def test_HJ_j_vtem(self):
-        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='jy', waveform='vtem')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='CurrentDensityy', waveform='vtem')
 
     def test_HJ_j_vtem(self):
-        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='jy', waveform='vtem')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='CurrentDensityy', waveform='vtem')
 
     def test_HJ_dhdtx_vtem(self):
-        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='dhdtx', waveform='vtem')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='MagneticFieldTimeDerivativex', waveform='vtem')
 
     def test_HJ_dhdtz_vtem(self):
-        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity', rxcomp='dhdtx', waveform='vtem')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='MagneticFieldTimeDerivativex', waveform='vtem')
 
 
     def test_MagDipoleSimpleFail(self):
