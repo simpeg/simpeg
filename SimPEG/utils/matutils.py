@@ -1,7 +1,4 @@
-import warnings
-warnings.warn(
-    'matutils has been deprecated, please use mat_utils',
-    DeprecationWarning
-)
+from .code_utils import deprecate_module
+deprecate_module('matutils', 'mat_utils', '0.15.0')
 
 from .mat_utils import *

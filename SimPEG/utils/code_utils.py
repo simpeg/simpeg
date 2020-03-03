@@ -320,3 +320,12 @@ def deprecate_class(removal_version=None):
         cls.__doc__ =  f""" This class has been deprecated, see `{parent_name}` for documentation"""
         return cls
     return decorator
+
+def deprecate_module(old_name, new_name, removal_version=None):
+    message = f'The {old_name} module has been deprecated, please use {new_name}.'
+    if removal_version is not None:
+        message += f' It will be removed in version {removal_version}'
+    else:
+        message += ' It will be removed in a futre version.'
+    message += ' Please update your code accordingly'.
+    warnings.warn(message, DeprecationWarning)
