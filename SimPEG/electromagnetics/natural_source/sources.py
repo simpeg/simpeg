@@ -5,7 +5,7 @@ from ... import maps
 from ...utils import mkvc
 from ..frequency_domain.sources import BaseFDEMSrc
 from ..utils import omega
-from .utils.sourceUtils import homo1DModelSource
+from .utils.source_utils import homo1DModelSource
 
 #################
 ###   Sources ###

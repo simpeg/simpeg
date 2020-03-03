@@ -32,7 +32,7 @@ from discretize import TensorMesh
 
 from SimPEG import maps
 from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.StaticUtils import plot_layer
+from SimPEG.electromagnetics.static.utils.static_utils import plot_layer
 
 # sphinx_gallery_thumbnail_number = 2
 

@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
-from SimPEG.utils import plot2Ddata, ModelBuilder, surface2ind_topo, matutils
+from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo, mat_utils
 from SimPEG import maps
 from SimPEG.potential_fields import magnetics
 
@@ -168,14 +168,14 @@ model_map = maps.IdentityMap(nP=3*nC)  # model has 3 parameters for each cell
 
 # Define susceptibility for each cell
 susceptibility_model = background_susceptibility*np.ones(ind_active.sum())
-ind_sphere = ModelBuilder.getIndicesSphere(
+ind_sphere = model_builder.getIndicesSphere(
     np.r_[0.,  0., -45.], 15., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]
 susceptibility_model[ind_sphere] = sphere_susceptibility
 
 # Compute the unit direction of the inducing field in Cartesian coordinates
-field_direction = matutils.dip_azimuth2cartesian(field_inclination, field_declination)
+field_direction = mat_utils.dip_azimuth2cartesian(field_inclination, field_declination)
 
 # Multiply susceptibility model to obtain the x, y, z components of the
 # effective susceptibility contribution from induced magnetization.
@@ -188,7 +188,7 @@ remanence_declination = 90.
 remanence_susceptibility = 0.01
 
 remanence_model = np.zeros(np.shape(susceptibility_model))
-effective_susceptibility_sphere = remanence_susceptibility*matutils.dip_azimuth2cartesian(
+effective_susceptibility_sphere = remanence_susceptibility*mat_utils.dip_azimuth2cartesian(
         remanence_inclination, remanence_declination
         )
 remanence_model[ind_sphere, :] = effective_susceptibility_sphere

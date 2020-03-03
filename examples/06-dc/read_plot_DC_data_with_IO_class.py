@@ -14,7 +14,7 @@ import shutil
 import os
 import matplotlib.pyplot as plt
 from SimPEG.electromagnetics.static import resistivity as DC
-from SimPEG import Versions
+from SimPEG import Report
 from SimPEG.utils.io_utils import download
 
 ###############################################################################
@@ -82,7 +82,7 @@ shutil.rmtree(os.path.expanduser('./test_url'))
 # --------------------------------------------
 #
 
-Versions()
+Report()
 
 ###############################################################################
 # Moving Forward

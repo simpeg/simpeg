@@ -4,7 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 from six import string_types
 
-from .utils.SolverUtils import SolverWrapI, Solver
+from .utils.solver_utils import SolverWrapI, Solver
 from .utils import (
     callHooks, checkStoppers, count, setKwargs, timeIt, printTitles, printLine,
     printStoppers, printDone
@@ -206,7 +206,7 @@ class Minimize(object):
     debugLS = False  #: Print debugging information for the line-search
 
     comment = ''  #: Used by some functions to indicate what is going on in the algorithm
-    counter = None  #: Set this to a SimPEG.Utils.Counter() if you want to count things
+    counter = None  #: Set this to a SimPEG.utils.Counter() if you want to count things
     parent = None  #: This is the parent of the optimization routine.
 
     print_type = None

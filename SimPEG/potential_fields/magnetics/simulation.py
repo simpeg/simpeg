@@ -13,7 +13,7 @@ from .analytics import CongruousMagBC
 from SimPEG import Solver
 from SimPEG import props
 import properties
-from SimPEG.utils import mkvc, matutils, sdiag, setKwargs
+from SimPEG.utils import mkvc, mat_utils, sdiag, setKwargs
 import dask
 import dask.array as da
 from scipy.sparse import csr_matrix as csr
@@ -58,7 +58,7 @@ class IntegralSimulation(BasePFSimulation):
                 self._M = sp.identity(self.nC) * self.survey.source_field.parameters[0]
 
             else:
-                mag = matutils.dip_azimuth2cartesian(
+                mag = mat_utils.dip_azimuth2cartesian(
                     np.ones(self.nC) * self.survey.source_field.parameters[1],
                     np.ones(self.nC) * self.survey.source_field.parameters[2]
                 )
@@ -132,7 +132,7 @@ class IntegralSimulation(BasePFSimulation):
         if getattr(self, '_tmi_projection', None) is None:
 
             # Convert from north to cartesian
-            self._tmi_projection = matutils.dip_azimuth2cartesian(
+            self._tmi_projection = mat_utils.dip_azimuth2cartesian(
                 self.survey.source_field.parameters[1],
                 self.survey.source_field.parameters[2]
             )

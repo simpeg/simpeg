@@ -39,7 +39,7 @@ class Point(BaseRx):
     @property
     def nTimes(self):
         warnings.warn(
-            "Point.nTimes will be depreciated in favour of "
+            "Point.nTimes will be deprecated in favour of "
             "Point.n_times. Please update your code accordingly"
         )
         return self.n_times
@@ -52,7 +52,7 @@ class Point(BaseRx):
     @property
     def nLocs(self):
         warnings.warn(
-            "Point.nLocs will be depreciated in favour of "
+            "Point.nLocs will be deprecated in favour of "
             "Point.n_times. Please update your code accordingly"
         )
         return self.n_times
@@ -66,7 +66,7 @@ class Point(BaseRx):
     @property
     def fieldComp(self):
         warnings.warn(
-            "Point.fieldComp will be depreciated in favour of "
+            "Point.fieldComp will be deprecated in favour of "
             "Point.orientation. Please update your code accordingly"
         )
         return self.orientation
@@ -74,7 +74,7 @@ class Point(BaseRx):
     @fieldComp.setter
     def fieldComp(self, value):
         warnings.warn(
-            "Point.fieldComp will be depreciated in favour of "
+            "Point.fieldComp will be deprecated in favour of "
             "Point.orientation. Please update your code accordingly"
         )
         self.orientation = value

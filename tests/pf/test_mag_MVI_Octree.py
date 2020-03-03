@@ -61,10 +61,10 @@ class MVIProblemTest(unittest.TestCase):
         model = np.zeros((mesh.nC, 3))
 
         # Convert the inclination declination to vector in Cartesian
-        M_xyz = utils.matutils.dip_azimuth2cartesian(M[0], M[1])
+        M_xyz = utils.mat_utils.dip_azimuth2cartesian(M[0], M[1])
 
         # Get the indicies of the magnetized block
-        ind = utils.ModelBuilder.getIndicesBlock(
+        ind = utils.model_builder.getIndicesBlock(
             np.r_[-20, -20, -10], np.r_[20, 20, 25],
             mesh.gridCC,
         )[0]
@@ -222,7 +222,7 @@ class MVIProblemTest(unittest.TestCase):
         mrec_MVI_S = self.inv.run(self.mstart)
 
         nC = int(mrec_MVI_S.shape[0]/3)
-        vec_xyz = utils.matutils.spherical2cartesian(
+        vec_xyz = utils.mat_utils.spherical2cartesian(
                 mrec_MVI_S.reshape((nC, 3), order='F')).reshape((nC, 3), order='F')
 
         residual = np.linalg.norm(vec_xyz-self.model) / np.linalg.norm(self.model)

@@ -272,7 +272,7 @@ class Data(properties.HasProperties):
     @property
     def std(self):
         warnings.warn(
-            "std has been depreciated in favor of standard_deviation. Please "
+            "std has been deprecated in favor of standard_deviation. Please "
             "update your code to use 'standard_deviation'"
         )
         return self.standard_deviation
@@ -280,7 +280,7 @@ class Data(properties.HasProperties):
     @std.setter
     def std(self, value):
         warnings.warn(
-            "std has been depreciated in favor of standard_deviation. Please "
+            "std has been deprecated in favor of standard_deviation. Please "
             "update your code to use 'standard_deviation'"
         )
         self.standard_deviation = value
@@ -288,7 +288,7 @@ class Data(properties.HasProperties):
     @property
     def eps(self):
         warnings.warn(
-            "eps has been depreciated in favor of noise_floor. Please "
+            "eps has been deprecated in favor of noise_floor. Please "
             "update your code to use 'noise_floor'"
         )
         return self.noise_floor
@@ -296,7 +296,7 @@ class Data(properties.HasProperties):
     @eps.setter
     def eps(self, value):
         warnings.warn(
-            "eps has been depreciated in favor of noise_floor. Please "
+            "eps has been deprecated in favor of noise_floor. Please "
             "update your code to use 'noise_floor'"
         )
         self.noise_floor = value

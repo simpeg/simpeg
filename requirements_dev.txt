@@ -17,3 +17,4 @@ toolz
 zarr
 sparse
 empymod
+scooby

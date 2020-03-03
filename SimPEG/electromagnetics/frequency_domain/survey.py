@@ -44,7 +44,7 @@ class Survey(BaseSurvey):
     def freqs(self):
         """Frequencies"""
         warnings.warn(
-            "survey.freqs will be depreciated in favor of survey.frequencies. "
+            "survey.freqs will be deprecated in favor of survey.frequencies. "
             "Please update your code accordingly."
         )
         return self.frequencies
@@ -58,7 +58,7 @@ class Survey(BaseSurvey):
     def nFreq(self):
         """Number of frequencies"""
         warnings.warn(
-            "survey.nFreq will be depreciated in favor of survey.num_frequencies. "
+            "survey.nFreq will be deprecated in favor of survey.num_frequencies. "
             "Please update your code accordingly."
         )
         return self.num_frequencies
@@ -76,7 +76,7 @@ class Survey(BaseSurvey):
     def nSrcByFreq(self):
         """Number of sources at each frequency"""
         warnings.warn(
-            "survey.nSrcByFreq will be depreciated in favor of survey.num_sources_by_frequency. "
+            "survey.nSrcByFreq will be deprecated in favor of survey.num_sources_by_frequency. "
             "Please update your code accordingly."
         )
         return self.num_sources_by_frequency
@@ -101,7 +101,7 @@ class Survey(BaseSurvey):
         :return: sources at the sepcified frequency
         """
         warnings.warn(
-            "survey.getSrcByFreq will be depreciated in favor of survey.get_sources_by_frequency. "
+            "survey.getSrcByFreq will be deprecated in favor of survey.get_sources_by_frequency. "
             "Please update your code accordingly."
         )
         return self.get_sources_by_frequency(frequency)

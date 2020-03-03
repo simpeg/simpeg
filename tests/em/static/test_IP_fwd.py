@@ -32,7 +32,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         N = utils.ndgrid(x+12.5, y, np.r_[0.])
         radius = 50.
         xc = np.r_[0., 0., -100]
-        blkind = utils.ModelBuilder.getIndicesSphere(xc, radius, mesh.gridCC)
+        blkind = utils.model_builder.getIndicesSphere(xc, radius, mesh.gridCC)
         sigmaInf = np.ones(mesh.nC)*1e-2
         eta = np.zeros(mesh.nC)
         eta[blkind] = 0.1

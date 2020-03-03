@@ -19,13 +19,8 @@ from SimPEG import (
     data, data_misfit, maps, regularization, optimization,
     inverse_problem, directives, inversion
 )
-try:
-    from SimPEG import utils
-    from SimPEG.utils import download, plot2Ddata
-except:
-    from SimPEG import Utils as utils
-    from SimPEG.Utils.io_utils import download
-    from SimPEG.Utils.Plotutils import plot2Ddata
+from SimPEG import utils
+from SimPEG.utils import download, plot2Ddata
 
 import matplotlib.pyplot as plt
 import numpy as np

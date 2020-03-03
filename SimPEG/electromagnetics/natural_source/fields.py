@@ -115,7 +115,7 @@ class Fields1D_ePrimSec(FieldsFDEM):
         :param SimPEG.electromagnetics.frequency_domain.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: SimPEG.Utils.Zero
+        :rtype: SimPEG.utils.Zero
         :return: product of the electric field derivative with respect to the inversion model with a vector
         """
 

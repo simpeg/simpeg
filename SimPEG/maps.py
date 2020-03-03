@@ -21,7 +21,7 @@ import properties
 from discretize.Tests import checkDerivative
 
 from .utils import (
-    setKwargs, mkvc, rotationMatrixFromNormals, Zero, Identity, sdiag, matutils
+    setKwargs, mkvc, rotationMatrixFromNormals, Zero, Identity, sdiag, mat_utils
 )
 
 
@@ -538,8 +538,8 @@ class SphericalSystem(IdentityMap):
             self.model = model
 
             # Do a double projection to make sure the parameters are bounded
-            m_xyz = matutils.spherical2cartesian(model.reshape((-1, 3), order='F'))
-            m_atp = matutils.cartesian2spherical(
+            m_xyz = mat_utils.spherical2cartesian(model.reshape((-1, 3), order='F'))
+            m_atp = mat_utils.cartesian2spherical(
                 m_xyz.reshape((-1, 3), order='F')
             ).reshape((-1, 3), order='F')
 
@@ -573,7 +573,7 @@ class SphericalSystem(IdentityMap):
         :param model:
         :return:
         """
-        return matutils.spherical2cartesian(model.reshape((-1, 3), order='F'))
+        return mat_utils.spherical2cartesian(model.reshape((-1, 3), order='F'))
 
     def inverse(self, model):
         """
@@ -583,7 +583,7 @@ class SphericalSystem(IdentityMap):
         :return: model
 
         """
-        return matutils.cartesian2spherical(model.reshape((-1, 3), order='F'))
+        return mat_utils.cartesian2spherical(model.reshape((-1, 3), order='F'))
 
     @property
     def shape(self):
@@ -1235,7 +1235,7 @@ class Weighting(IdentityMap):
 
         if 'nC' in kwargs:
             raise AttributeError(
-                '`nC` is depreciated. Use `nP` to set the number of model '
+                '`nC` is deprecated. Use `nP` to set the number of model '
                 'parameters'
             )
 
@@ -2029,7 +2029,7 @@ class ParametricSplineMap(IdentityMap):
 
 
 class FullMap(SurjectFull):
-    """FullMap is depreciated. Use SurjectVertical1DMap instead"""
+    """FullMap is deprecated. Use SurjectVertical1DMap instead"""
     def __init__(self, mesh, **kwargs):
         warnings.warn(
             "`FullMap` is deprecated and will be removed in future versions."
@@ -2039,7 +2039,7 @@ class FullMap(SurjectFull):
 
 
 class Vertical1DMap(SurjectVertical1D):
-    """Vertical1DMap is depreciated. Use SurjectVertical1D instead"""
+    """Vertical1DMap is deprecated. Use SurjectVertical1D instead"""
     def __init__(self, mesh, **kwargs):
         warnings.warn(
             "`Vertical1DMap` is deprecated and will be removed in future"
@@ -2049,7 +2049,7 @@ class Vertical1DMap(SurjectVertical1D):
 
 
 class Map2Dto3D(Surject2Dto3D):
-    """Map2Dto3D is depreciated. Use Surject2Dto3D instead"""
+    """Map2Dto3D is deprecated. Use Surject2Dto3D instead"""
 
     def __init__(self, mesh, **kwargs):
         warnings.warn(
@@ -2060,7 +2060,7 @@ class Map2Dto3D(Surject2Dto3D):
 
 
 class ActiveCells(InjectActiveCells):
-    """ActiveCells is depreciated. Use InjectActiveCells instead"""
+    """ActiveCells is deprecated. Use InjectActiveCells instead"""
 
     def __init__(self, mesh, indActive, valInactive, nC=None):
         warnings.warn(
@@ -2071,7 +2071,7 @@ class ActiveCells(InjectActiveCells):
 
 
 class CircleMap(ParametricCircleMap):
-    """CircleMap is depreciated. Use ParametricCircleMap instead"""
+    """CircleMap is deprecated. Use ParametricCircleMap instead"""
 
     def __init__(self, mesh, logSigma=True):
         warnings.warn(
@@ -2082,7 +2082,7 @@ class CircleMap(ParametricCircleMap):
 
 
 class PolyMap(ParametricPolyMap):
-    """PolyMap is depreciated. Use ParametricSplineMap instead"""
+    """PolyMap is deprecated. Use ParametricSplineMap instead"""
 
     def __init__(self, mesh, order, logSigma=True, normal='X', actInd=None):
         warnings.warn(
@@ -2094,7 +2094,7 @@ class PolyMap(ParametricPolyMap):
 
 
 class SplineMap(ParametricSplineMap):
-    """SplineMap is depreciated. Use ParametricSplineMap instead"""
+    """SplineMap is deprecated. Use ParametricSplineMap instead"""
 
     def __init__(self, mesh, pts, ptsv=None, order=3, logSigma=True,
                  normal='X'):

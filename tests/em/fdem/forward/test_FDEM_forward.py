@@ -5,7 +5,7 @@ from scipy.constants import mu_0
 
 from SimPEG.electromagnetics import frequency_domain as fdem
 from SimPEG.electromagnetics import time_domain as tdem
-from SimPEG.electromagnetics.utils.testingUtils import getFDEMProblem, crossCheckTest
+from SimPEG.electromagnetics.utils.testing_utils import getFDEMProblem, crossCheckTest
 
 testEB = True
 testHJ = True

@@ -20,7 +20,7 @@ from pymatsolver import Pardiso
 import time
 
 from SimPEG.electromagnetics import time_domain as TDEM
-from SimPEG import utils, maps, Versions
+from SimPEG import utils, maps, Report
 
 ###############################################################################
 # Model Parameters
@@ -266,4 +266,4 @@ plt.tight_layout()
 #
 plt.show()
 
-Versions()
+Report()

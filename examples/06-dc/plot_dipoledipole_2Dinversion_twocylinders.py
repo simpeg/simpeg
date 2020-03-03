@@ -74,7 +74,7 @@ mtrue = utils.mkvc(mtrue)
 xmin, xmax = -15., 15
 ymin, ymax = -15., 0.
 xyzlim = np.r_[[[xmin, xmax], [ymin, ymax]]]
-actind, meshCore = utils.meshutils.ExtractCoreMesh(xyzlim, mesh)
+actind, meshCore = utils.mesh_utils.ExtractCoreMesh(xyzlim, mesh)
 
 
 # Function to plot cylinder border

@@ -16,12 +16,8 @@ from SimPEG import (
     directives, inversion
     )
 
-try:
-    from SimPEG import utils
-    from SimPEG.utils import plot2Ddata
-except:
-    from SimPEG import Utils as utils
-    from SimPEG.Utils.Plotutils import plot2Ddata
+from SimPEG import utils
+from SimPEG.utils import plot2Ddata
 
 import shutil
 

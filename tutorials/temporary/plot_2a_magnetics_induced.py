@@ -28,7 +28,7 @@ import os
 
 from discretize import TensorMesh
 from discretize.utils import mkvc
-from SimPEG.utils import plot2Ddata, ModelBuilder, surface2ind_topo
+from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo
 from SimPEG import maps
 from SimPEG.potential_fields import magnetics
 
@@ -131,7 +131,7 @@ model_map = maps.IdentityMap(nP=nC)  # model is a vlue for each active cell
 
 # Define model. Models in SimPEG are vector arrays
 model = background_susceptibility*np.ones(ind_active.sum())
-ind_sphere = ModelBuilder.getIndicesSphere(
+ind_sphere = model_builder.getIndicesSphere(
     np.r_[0., 0., -45.], 15., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]

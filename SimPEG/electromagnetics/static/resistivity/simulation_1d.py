@@ -12,7 +12,7 @@ from .survey import Survey
 from empymod import filters
 from empymod.transform import dlf, get_spline_values
 from empymod.utils import check_hankel
-from ..utils import StaticUtils
+from ..utils import static_utils
 
 
 class DCSimulation_1D(BaseEMSimulation):
@@ -160,7 +160,7 @@ class DCSimulation_1D(BaseEMSimulation):
         """
         # TODO: only works isotropic sigma
         if getattr(self, '_electrode_separations', None) is None:
-            self._electrode_separations = StaticUtils.electrode_separations(self.survey)
+            self._electrode_separations = static_utils.electrode_separations(self.survey)
         return self._electrode_separations
 
     @property
