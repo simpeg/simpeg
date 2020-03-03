@@ -327,5 +327,5 @@ def deprecate_module(old_name, new_name, removal_version=None):
         message += f' It will be removed in version {removal_version}'
     else:
         message += ' It will be removed in a futre version.'
-    message += ' Please update your code accordingly'.
+    message += ' Please update your code accordingly.'
     warnings.warn(message, DeprecationWarning)
