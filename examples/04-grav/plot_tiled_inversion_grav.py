@@ -192,7 +192,7 @@ for ii, local_misfit in enumerate(local_misfits):
     ax = plt.subplot(2, 2, ii+1)
     local_mesh.plotSlice(inject_local * (local_map * model), normal='Y', ax=ax, grid=True)
     ax.set_aspect('equal')
-    ax.set_title(f"Mesh {ii+1}. Active cells {activeCells.sum()}")
+    ax.set_title(f"Mesh {ii+1}. Active cells {local_map.local_active.sum()}")
 
 
 # Create active map to go from reduce set to full
