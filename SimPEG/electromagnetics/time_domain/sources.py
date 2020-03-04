@@ -340,7 +340,7 @@ class MagDipole(BaseTDEMSrc):
             gridY = prob.mesh.gridFy
             gridZ = prob.mesh.gridFz
 
-        if prob.mesh._meshType is 'CYL':
+        if prob.mesh._meshType == 'CYL':
             coordinates = "cylindrical"
             if prob.mesh.isSymmetric:
                 return self._srcFct(gridY)[:, 1]

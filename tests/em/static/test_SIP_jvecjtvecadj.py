@@ -25,10 +25,10 @@ class SIPProblemTestsCC(unittest.TestCase):
         hy = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hz = [(cs, 0, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
-        blkind0 = utils.ModelBuilder.getIndicesSphere(
+        blkind0 = utils.model_builder.getIndicesSphere(
             np.r_[-100., -100., -200.], 75., mesh.gridCC
         )
-        blkind1 = utils.ModelBuilder.getIndicesSphere(
+        blkind1 = utils.model_builder.getIndicesSphere(
             np.r_[100., 100., -200.], 75., mesh.gridCC
         )
         sigma = np.ones(mesh.nC) * 1e-2
@@ -124,10 +124,10 @@ class SIPProblemTestsN(unittest.TestCase):
         hy = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hz = [(cs, 0, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
-        blkind0 = utils.ModelBuilder.getIndicesSphere(
+        blkind0 = utils.model_builder.getIndicesSphere(
             np.r_[-100., -100., -200.], 75., mesh.gridCC
         )
-        blkind1 = utils.ModelBuilder.getIndicesSphere(
+        blkind1 = utils.model_builder.getIndicesSphere(
             np.r_[100., 100., -200.], 75., mesh.gridCC
         )
         sigma = np.ones(mesh.nC)*1e-2
@@ -220,10 +220,10 @@ class IPProblemTestsN_air(unittest.TestCase):
         hy = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hz = [(cs, 0, -1.3), (cs, 20), (cs, 0, 1.3)]
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCC")
-        blkind0 = utils.ModelBuilder.getIndicesSphere(
+        blkind0 = utils.model_builder.getIndicesSphere(
             np.r_[-100., -100., -200.], 75., mesh.gridCC
         )
-        blkind1 = utils.ModelBuilder.getIndicesSphere(
+        blkind1 = utils.model_builder.getIndicesSphere(
             np.r_[100., 100., -200.], 75., mesh.gridCC
         )
         sigma = np.ones(mesh.nC)*1e-2

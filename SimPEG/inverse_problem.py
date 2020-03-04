@@ -20,7 +20,7 @@ class BaseInvProblem(BaseSimPEG):
     #: Print debugging information
     debug = False
 
-    #: Set this to a SimPEG.Utils.Counter() if you want to count things
+    #: Set this to a SimPEG.utils.Counter() if you want to count things
     counter = None
 
     #: DataMisfit
@@ -187,8 +187,14 @@ class BaseInvProblem(BaseSimPEG):
         phi_d = self.dmisfit(m, f=f)
         self.dpred = self.get_dpred(m, f=f)
 
-        # for reg in self.reg.objfcts:
+        phi_m = self.reg(m)
+
+        self.phi_d, self.phi_d_last = phi_d, self.phi_d
+        self.phi_m, self.phi_m_last = phi_m, self.phi_m
+
+        # Only works for Tikhonov
         if self.opt.print_type == 'ubc':
+
             self.phi_s = 0.
             self.phi_x = 0.
             self.phi_y = 0.
@@ -203,24 +209,20 @@ class BaseInvProblem(BaseSimPEG):
             for reg, mult in zip(regs, mults):
                 dim = reg.regmesh.dim
                 self.phi_s += (
-                    mult * reg.objfcts[0](self.model) * reg.alpha_s
+                    mult * reg.objfcts[0](m) * reg.alpha_s
                 )
                 self.phi_x += (
-                    mult * reg.objfcts[1](self.model) * reg.alpha_x
+                    mult * reg.objfcts[1](m) * reg.alpha_x
                 )
                 if dim > 1:
-                    self.phi_y += (
-                        mult * reg.objfcts[2](self.model) * reg.alpha_y
+                    self.phi_z += (
+                        mult * reg.objfcts[3](m) * reg.alpha_y
                     )
                 if dim > 2:
+                    self.phi_y = self.phi_z
                     self.phi_z += (
-                        mult * reg.objfcts[3](self.model) * reg.alpha_y
+                        mult * reg.objfcts[5](m) * reg.alpha_z
                     )
-
-        phi_m = self.reg(m)
-
-        self.phi_d, self.phi_d_last = phi_d, self.phi_d
-        self.phi_m, self.phi_m_last = phi_m, self.phi_m
 
         phi = phi_d + self.beta * phi_m
 

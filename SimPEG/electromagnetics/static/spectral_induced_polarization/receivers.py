@@ -95,7 +95,7 @@ class Dipole(BaseRx):
     def nRx(self):
         """Number of data in the receiver."""
         # return self.locations[0].shape[0]
-        raise Exception("nRx has depreciated. please use rx.nD instead")
+        raise Exception("nRx has deprecated. please use rx.nD instead")
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:
@@ -132,7 +132,7 @@ class Pole(BaseRx):
     @property
     def nRx(self):
         """Number of data in the receiver."""
-        raise Exception("nRx has depreciated. please use rx.nD instead")
+        raise Exception("nRx has deprecated. please use rx.nD instead")
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:

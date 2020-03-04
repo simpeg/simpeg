@@ -12,7 +12,7 @@ from ....survey import BaseSurvey
 from ..utils import drapeTopotoLoc
 from . import receivers as Rx
 from . import sources as Src
-from ..utils import StaticUtils
+from ..utils import static_utils
 from SimPEG import data
 
 
@@ -86,7 +86,7 @@ class Survey(BaseSurvey):
         space_type='half-space'
     ):
 
-        geometric_factor = StaticUtils.geometric_factor(
+        geometric_factor = static_utils.geometric_factor(
             self,
             survey_type=survey_type,
             space_type=space_type
@@ -329,4 +329,4 @@ class Survey_ky(Survey):
     """
     2.5D survey
     """
-    # TODO: we should depreciate this and just use the above survey class as they are identical
+    # TODO: we should deprecate this and just use the above survey class as they are identical

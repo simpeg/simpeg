@@ -1,7 +1,7 @@
 import unittest
 import discretize
 from SimPEG import utils, maps
-from SimPEG.utils.ModelBuilder import getIndicesSphere
+from SimPEG.utils.model_builder import getIndicesSphere
 from SimPEG.potential_fields import gravity
 import numpy as np
 import shutil

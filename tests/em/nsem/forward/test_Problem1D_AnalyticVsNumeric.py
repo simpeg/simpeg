@@ -35,7 +35,7 @@ def calculateAnalyticSolution(srcList, mesh, model):
     data1D = nsem.Data(surveyAna)
     for src in surveyAna.srcList:
         elev = src.rxList[0].locs[0]
-        anaEd, anaEu, anaHd, anaHu = nsem.utils.MT1Danalytic.getEHfields(
+        anaEd, anaEu, anaHd, anaHu = nsem.utils.analytic_1d.getEHfields(
             mesh, model, src.freq, elev
         )
         anaE = anaEd+anaEu
@@ -53,7 +53,7 @@ def dataMis_AnalyticPrimarySecondary(sigmaHalf):
 
     # Make the survey
     # Primary secondary
-    survey, sig, sigBG, mesh = nsem.utils.testUtils.setup1DSurvey(
+    survey, sig, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(
         sigmaHalf, False, structure=True
     )
     # Analytic data

@@ -1,1 +1,1 @@
-from .StaticUtils import *
+from .static_utils import *

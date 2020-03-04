@@ -33,7 +33,7 @@ class BaseFDEMSrc(BaseEMSrc):
     @property
     def freq(self):
         warnings.warn(
-            "The freq property will be depreciated in favor of frequency. "
+            "The freq property will be deprecated in favor of frequency. "
             "Please update your code accordingly"
         )
         return self.frequency
@@ -41,7 +41,7 @@ class BaseFDEMSrc(BaseEMSrc):
     @freq.setter
     def freq(self, value):
         warnings.warn(
-            "The freq property will be depreciated in favor of frequency. "
+            "The freq property will be deprecated in favor of frequency. "
             "Please update your code accordingly"
         )
         if value is not None:

@@ -30,7 +30,7 @@ background conductivity model to compute IP data.
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
-from SimPEG.utils import ModelBuilder, surface2ind_topo
+from SimPEG.utils import model_builder, surface2ind_topo
 from SimPEG import maps, data
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
@@ -167,13 +167,13 @@ conductivity_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 # Define model
 conductivity_model = background_conductivity*np.ones(nC)
 
-ind_conductor = ModelBuilder.getIndicesSphere(
+ind_conductor = model_builder.getIndicesSphere(
     np.r_[-120., -180.], 60., mesh.gridCC
 )
 ind_conductor = ind_conductor[ind_active]
 conductivity_model[ind_conductor] = conductor_conductivity
 
-ind_resistor = ModelBuilder.getIndicesSphere(
+ind_resistor = model_builder.getIndicesSphere(
     np.r_[120., -180.], 60., mesh.gridCC
 )
 ind_resistor = ind_resistor[ind_active]
@@ -308,7 +308,7 @@ chargeability_map = maps.InjectActiveCells(mesh, ind_active, air_chargeability)
 # Define chargeability model
 chargeability_model = background_chargeability*np.ones(nC)
 
-ind_chargeable = ModelBuilder.getIndicesSphere(
+ind_chargeable = model_builder.getIndicesSphere(
     np.r_[-120., -180.], 60., mesh.gridCC
 )
 ind_chargeable = ind_chargeable[ind_active]

@@ -14,7 +14,7 @@ from . import inversion as Inversion
 
 from .utils import mkvc
 from .utils import versions
-from .utils.SolverUtils import (
+from .utils.solver_utils import (
     _checkAccuracy, SolverWrapD, SolverWrapI,
     Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
 )

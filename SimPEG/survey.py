@@ -353,7 +353,7 @@ class BaseSurvey(properties.HasProperties):
         return len(self.source_list)
 
     #############
-    # Depreciated
+    # Deprecated
     #############
 
     def dpred(self, m=None, f=None):

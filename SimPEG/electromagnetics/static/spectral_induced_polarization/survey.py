@@ -26,7 +26,7 @@ class Survey(BaseTimeSurvey):
     @property
     def times(self):
         warnings.warn(
-            "survey.times will be depreciated in favor of survey.unique_times."
+            "survey.times will be deprecated in favor of survey.unique_times."
             " Please update your code accordingly"
         )
         return self.unique_times

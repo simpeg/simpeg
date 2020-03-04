@@ -23,7 +23,7 @@ inversion example. Note that we have 3D forward modeling mesh.
 import discretize
 from SimPEG import (
     maps, data_misfit, regularization, optimization,
-    inverse_problem, directives, inversion, Versions
+    inverse_problem, directives, inversion, Report
 )
 from SimPEG.utils import plotLayer
 try:
@@ -279,4 +279,4 @@ ax[1].set_title('(b)', fontsize=25)
 # --------------------------------------------
 #
 
-Versions()
+Report()

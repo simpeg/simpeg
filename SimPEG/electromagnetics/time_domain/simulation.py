@@ -134,9 +134,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         # this is a bit silly
 
-        # if self._fieldType is 'b' or self._fieldType is 'j':
+        # if self._fieldType == 'b' or self._fieldType == 'j':
         #     ifields = np.zeros((self.mesh.nF, len(Srcs)))
-        # elif self._fieldType is 'e' or self._fieldType is 'h':
+        # elif self._fieldType == 'e' or self._fieldType == 'h':
         #     ifields = np.zeros((self.mesh.nE, len(Srcs)))
 
         # for i, src in enumerate(self.survey.source_list):
