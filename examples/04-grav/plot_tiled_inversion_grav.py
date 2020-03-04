@@ -199,7 +199,7 @@ for ii, local_misfit in enumerate(local_misfits):
 inject_global = maps.InjectActiveCells(mesh, activeCells, np.nan)
 
 ax = plt.subplot(2, 1, 2)
-mesh.plotSlice(activeCells, normal='Y', ax=ax, grid=True)
+mesh.plotSlice(inject_global * model, normal='Y', ax=ax, grid=True)
 ax.set_title(f"Global Mesh. Active cells {activeCells.sum()}")
 ax.set_aspect('equal')
 plt.show()
