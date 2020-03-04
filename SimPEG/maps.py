@@ -21,7 +21,8 @@ import properties
 from discretize.Tests import checkDerivative
 
 from .utils import (
-    setKwargs, mkvc, rotationMatrixFromNormals, Zero, Identity, sdiag, mat_utils
+    setKwargs, mkvc, rotationMatrixFromNormals, Zero, Identity, sdiag,
+    mat_utils, speye
 )
 
 
@@ -3387,116 +3388,53 @@ class ParametricBlockInLayer(ParametricLayer):
         elif self.mesh.dim == 3:
             return sp.csr_matrix(self._deriv3d(m))
 
-class Tile(IdentityMap):
+
+class TileMap(IdentityMap):
     """
         Mapping for tiled inversion
     """
 
-    nCell = 26  # Number of neighbors to use in averaging
     tol = 1e-8  # Tolerance to avoid zero division
-    nBlock = 1
+    components = 1 # Number of components in the model. =3 for vector model
 
     def __init__(self, *args, **kwargs):
 
-        assert len(args) == 2, ('Mapping requires a tuple' +
-                                '(MeshGlobal, ActiveGlobal),' +
-                                '(MeshLocal, ActiveLocal)')
-        super(Tile, self).__init__(**kwargs)
-        # check if tree in kwargs
-        if 'tree' in kwargs.keys():   # kwargs is a dict
-            tree = kwargs.pop('tree')
+        assert len(args) == 3, ('Mapping requires a tuple' +
+                                '(global_mesh, global_active, local_mesh)')
 
-            assert isinstance(tree, cKDTree), ('Tree input must be a cKDTRee')
-            self._tree = tree
+        super(TileMap, self).__init__(**kwargs)
+        self.global_mesh = args[0]
+        self.global_active = args[1]
+        self.local_mesh = args[2]
 
-        self.meshGlobal = args[0][0]
-        self.actvGlobal = args[0][1]
+        assert np.all([
+            self.global_mesh._meshType == "TREE",
+            self.local_mesh._meshType == "TREE"
+            ]), "TileMap currently only available for TreeMesh."
 
-        if not isinstance(self.actvGlobal, bool):
-            temp = np.zeros(self.meshGlobal.nC, dtype='bool')
-            temp[self.actvGlobal] = True
-            self.actvGlobal = temp
+        if not isinstance(self.global_active, bool):
+            temp = np.zeros(self.global_mesh.nC, dtype='bool')
+            temp[self.global_active] = True
+            self.global_active = temp
 
-        self.meshLocal = args[1][0]
-        self.activeLocal = args[1][1]
-
-        # if not isinstance(self.activeLocal, bool):
-        #     temp = np.zeros(self.meshLocal.nC, dtype='bool')
-        #     temp[self.activeLocal] = True
-        #     self.activeLocal = temp
-
-        if self.nCell > self.meshGlobal.nC:
-            self.nCell = self.meshGlobal.nC
-
-        self.index = np.ones(self.actvGlobal.sum(), dtype='bool')
         self.P
 
     @property
-    def tree(self):
+    def local_active(self):
         """
-            Create cKDTree structure for given global mesh
+        This is the local_active of the global_active used in the global problem.
         """
-        if getattr(self, '_tree', None) is None:
+        return getattr(self, '_local_active', None)
 
-            self._tree = cKDTree(self.meshGlobal.gridCC[self.actvGlobal, :])
+    @local_active.setter
+    def local_active(self, local_active):
 
-        return self._tree
+        if not isinstance(local_active, bool):
+            temp = np.zeros(self.local_mesh.nC, dtype='bool')
+            temp[local_active] = True
+            local_active = temp
 
-    @property
-    def activeLocal(self):
-        """
-        This is the activeLocal of the actvGlobal used in the global problem.
-        """
-        return getattr(self, '_activeLocal', None)
-
-    @activeLocal.setter
-    def activeLocal(self, activeLocal):
-
-        if not isinstance(activeLocal, bool):
-            temp = np.zeros(self.meshLocal.nC, dtype='bool')
-            temp[activeLocal] = True
-            activeLocal = temp
-
-        self._activeLocal = activeLocal
-
-    @property
-    def index(self):
-        """This is the index of the actvGlobal used in the global problem."""
-        return getattr(self, '_index', None)
-
-    @index.setter
-    def index(self, index):
-        if getattr(self, '_index', None) is not None:
-            self._S = None
-
-        if not isinstance(index, bool):
-            temp = np.zeros(self.actvGlobal.sum(), dtype='bool')
-            temp[index] = True
-            index = temp
-
-        self._nP = index.sum()
-        self._index = index
-
-    @property
-    def S(self):
-        """
-            Create sub-selection matrix in case where the global
-            mesh is not touched by all sub meshes
-        """
-        if getattr(self, '_S', None) is None:
-
-            nP = self.actvGlobal.sum()
-            nI = self.index.sum()
-            assert (nI <= nP), (
-                'maximum index must be less than {}'.format(nP))
-
-            # sparse projection matrix
-            S = sp.csr_matrix(
-                (np.ones(nI), (np.where(self.index)[0], range(nI))), shape=(nP, nI)
-            )
-
-            self._S = S
-        return self._S
+        self._local_active = local_active
 
     @property
     def P(self):
@@ -3505,128 +3443,24 @@ class Tile(IdentityMap):
         """
         if getattr(self, '_P', None) is None:
 
-            if self.meshLocal._meshType == "TREE":
+            in_local = self.local_mesh._get_containing_cell_indexes(self.global_mesh.gridCC)
 
-                actvIndGlobal = np.where(self.actvGlobal)[0].tolist()
+            P = sp.csr_matrix(
+                (self.global_mesh.vol, (in_local, np.arange(self.global_mesh.nC))),
+                shape=(self.local_mesh.nC, self.global_mesh.nC)
+            ) * speye(self.global_mesh.nC)[:, self.global_active]
 
-                Pac = speye(self.meshGlobal.nC)[:, self.actvGlobal]
+            self.local_active = mkvc(np.sum(P, axis=1) > 0)
 
-                indL = self.meshLocal._get_containing_cell_indexes(self.meshGlobal.gridCC)
-
-                full = np.c_[indL, np.arange(self.meshGlobal.nC)]
-
-            else:
-                # Needs to be improved to makes all cells are included
-                indx = self.getTreeIndex(self.tree, self.meshLocal, self.activeLocal)
-                local2Global = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.activeLocal.sum()))).astype('int'), mkvc(indx)]
-                Pac = speye(self.meshGlobal.nC)[:, self.actvGlobal]
-                tree = cKDTree(self.meshLocal.gridCC[self.activeLocal, :])
-                r, ind = tree.query(self.meshGlobal.gridCC[self.actvGlobal], k=self.nCell)
-                global2Local = np.c_[np.kron(np.ones(self.nCell), np.asarray(range(self.actvGlobal.sum()))).astype('int'), mkvc(ind)]
-
-                full = np.unique(np.vstack([local2Global, global2Local[:, [1, 0]]]), axis=0)
-
-            # Free up memory
-            self._tree = None
-            tree = None
-
-            # Get the node coordinates (bottom-SW) and (top-NE) of cells
-            # in the global and local mesh
-            global_bsw, global_tne = self.getNodeExtent(self.meshGlobal,
-                                                        np.ones(self.meshGlobal.nC, dtype='bool'))
-
-            local_bsw, local_tne = self.getNodeExtent(self.meshLocal,
-                                                      np.ones(self.meshLocal.nC, dtype='bool'))
-
-            nactv = full.shape[0]
-
-            # Compute intersecting cell volumes
-            if self.meshLocal.dim == 1:
-
-                dV = np.max(
-                    [(np.min(
-                        [global_tne[full[:, 1]],
-                         local_tne[full[:, 0]]], axis=0
-                      ) -
-                      np.max(
-                        [global_bsw[full[:, 1]],
-                         local_bsw[full[:, 0]]], axis=0)
-                      ), np.zeros(nactv)
-                     ], axis=0
-                )
-
-            elif self.meshLocal.dim >= 2:
-
-                dV = np.max(
-                    [(np.min(
-                        [global_tne[full[:, 1], 0],
-                         local_tne[full[:, 0], 0]], axis=0
-                       ) -
-                      np.max(
-                        [global_bsw[full[:, 1], 0],
-                         local_bsw[full[:, 0], 0]], axis=0)
-                      ), np.zeros(nactv)], axis=0
-                    )
-
-                dV *= np.max([(np.min([global_tne[full[:, 1], 1], local_tne[full[:, 0], 1]],
-                                      axis=0) -
-                               np.max([global_bsw[full[:, 1], 1], local_bsw[full[:, 0], 1]],
-                                      axis=0)),
-                              np.zeros(nactv)], axis=0)
-
-            if self.meshLocal.dim == 3:
-
-                dV *= np.max([(np.min([global_tne[full[:, 1], 2], local_tne[full[:, 0], 2]],
-                                      axis=0) -
-                               np.max([global_bsw[full[:, 1], 2], local_bsw[full[:, 0], 2]],
-                                      axis=0)),
-                              np.zeros(nactv)], axis=0)
-
-            # Select only cells with non-zero intersecting volumes
-            nzV = dV > 0
-
-            self.V = dV[nzV]
-
-            P = sp.csr_matrix((self.V, (full[nzV, 0], full[nzV, 1])),
-                              shape=(self.meshLocal.nC, self.meshGlobal.nC))
-
-            P = P * Pac
-
-            self.activeLocal = mkvc(np.sum(P, axis=1) > 0)
-
-            P = P[self.activeLocal, :]
+            P = P[self.local_active, :]
 
             sumRow = mkvc(np.sum(P, axis=1) + self.tol)
 
-            self.P_deriv = sp.block_diag([
-                sdiag(1./self.meshLocal.vol[self.activeLocal]) * P * self.S
-                for ii in range(self.nBlock)])
-
             self._P = sp.block_diag([
-                sdiag(1./sumRow) * P * self.S
-                for ii in range(self.nBlock)])
-
-            self._shape = int(self.activeLocal.sum()*self.nBlock), int(self.actvGlobal.sum()*self.nBlock)
+                sdiag(1./self.local_mesh.vol[self.local_active]) * P
+                for ii in range(self.components)])
 
         return self._P
-
-    def getTreeIndex(self, tree, mesh, actvCell):
-        """
-            Querry the KDTree for nearest cells
-        """
-
-        d, indx = tree.query(mesh.gridCC[actvCell, :],
-                             k=self.nCell)
-
-        return indx
-
-    def getNodeExtent(self, mesh, actvCell):
-
-        bsw = mesh.gridCC - mesh.h_gridded/2.
-        tne = mesh.gridCC + mesh.h_gridded/2.
-
-        # Return only active set
-        return bsw[actvCell], tne[actvCell]
 
     def _transform(self, m):
         return self.P * m
@@ -3644,8 +3478,6 @@ class Tile(IdentityMap):
             :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
         """
-
-        self.P
         if v is not None:
-            return self.P_deriv * v
-        return self.P_deriv
+            return self.P * v
+        return self.P
