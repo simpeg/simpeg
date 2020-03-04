@@ -67,17 +67,18 @@ class DeprecateTest(unittest.TestCase):
                     Prob(mesh=mesh)
                 print('ok')
 
-    """
     def test_field_deprecations(self):
         for module in deprecated_fields:
             mod = import_module(module[0])
             for Field in module[1]:
                 field = getattr(mod, Field)
+                # Only testing for a deprecation warning so removing startup of Fields
+                field.startup = lambda self: None 
                 print(f'{module[0]}.{Field}...', end='')
                 with self.assertWarns(DeprecationWarning):
                     field(mesh)
                 print('ok')
-    """
+
 
 if __name__ == '__main__':
     unittest.main()
