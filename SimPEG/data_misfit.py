@@ -5,7 +5,7 @@ from .utils import Counter, sdiag, timeIt
 from .data import Data
 from .simulation import BaseSimulation
 from .objective_function import L2ObjectiveFunction
-import warnings
+from .utils.code_utils import deprecate_class, deprecate_property
 
 __all__ = ["L2DataMisfit"]
 
@@ -81,12 +81,6 @@ class BaseDataMisfit(L2ObjectiveFunction):
         return (self.nD, self.nP)
 
     @property
-    def Wd(self):
-        raise AttributeError(
-            'The `Wd` property been deprecated, please use: `W` instead'
-        )
-
-    @property
     def W(self):
         """W
             The data weighting matrix.
@@ -138,13 +132,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
             )
         return self.simulation.residual(m, self.data.dobs, f=f)
 
-    @property
-    def std(self):
-        raise Exception(
-            "L2DataMisfit no longer has the attribute 'std'. Please use "
-            "data.standard_deviation"
-        )
-
+    Wd = deprecate_property(W, 'Wd', removal_version='0.15.0')
 
 class L2DataMisfit(BaseDataMisfit):
     """
@@ -208,14 +196,19 @@ class L2DataMisfit(BaseDataMisfit):
             m, self.W * (self.W * self.simulation.Jvec_approx(m, v, f=f)), f=f
         )
 
+@deprecate_class(removal_version='0.15.0')
 class l2_DataMisfit(L2DataMisfit):
-    """
-    This class will be deprecated in the next release of SimPEG. Please use
-    `L2DataMisfit` instead.
-    """
-    def __init__(self, **kwargs):
-        warnings.warn(
-            "l2_DataMisfit has been deprecated in favor of L2DataMisfit. Please "
-            "update your code to use 'L2DataMisfit'", DeprecationWarning
-        )
-        super(l2_DataMisfit, self).__init__(**kwargs)
+    def __init__(self, survey):
+        if not survey.is_paired:
+            raise Exception('Survey must be paired to a problem')
+        # create a Data object...
+        Data(survey.data.dobs, 
+        # Get the survey's simulation that was paired to it....
+        # simulation = survey.simulation
+
+        super().__init__(simulation, data)
+
+    @property
+    def standard_deviation(self):
+        return self.data.standard_deviation
+    std = deprecate_property(standard_deviation, 'std', new_name='data.standard_deviation', removal_version='0.15.0')

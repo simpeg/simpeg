@@ -3,6 +3,7 @@ import types
 import numpy as np
 from functools import wraps
 import warnings
+import properties
 
 from discretize.utils import asArray_N_x_Dim
 
@@ -309,13 +310,16 @@ def deprecate_class(removal_version=None):
         parent_name = cls.__bases__[0].__name__
         message = f'{my_name} has been deprecated, please use {parent_name}.'
         if removal_version is not None:
-            message += f' It will be removed in version {removal_version}.'
+            message += f' It will be removed in version {removal_version} of SimPEG.'
         else:
-            message += ' It will be removed in a future version.'
+            message += ' It will be removed in a future version of SimPEG.'
+
+        # stash the original initialization of the class
+        cls._old__init__ = cls.__init__
 
         def __init__(self, *args, **kwargs):
             warnings.warn(message, DeprecationWarning)
-            super(cls, self).__init__(*args, **kwargs)
+            self._old__init__(*args, **kwargs)
         cls.__init__ = __init__
         cls.__doc__ =  f""" This class has been deprecated, see `{parent_name}` for documentation"""
         return cls
@@ -324,8 +328,53 @@ def deprecate_class(removal_version=None):
 def deprecate_module(old_name, new_name, removal_version=None):
     message = f'The {old_name} module has been deprecated, please use {new_name}.'
     if removal_version is not None:
-        message += f' It will be removed in version {removal_version}'
+        message += f' It will be removed in version {removal_version} of SimPEG'
     else:
-        message += ' It will be removed in a futre version.'
+        message += ' It will be removed in a future version of SimPEG.'
     message += ' Please update your code accordingly.'
     warnings.warn(message, DeprecationWarning)
+
+def deprecate_property(prop, old_name, new_name=None, removal_version=None):
+
+    if isinstance(prop, property):
+        if new_name is None: new_name = prop.fget.__qualname__
+        cls_name = new_name.split('.')[0]
+        old_name = f'{cls_name}.{old_name}'
+    elif isinstance(prop, properties.GettableProperty):
+        if new_name is None: new_name = prop.name
+        prop = prop.get_property()
+
+    message = f'{old_name} has been deprecated, please use {new_name}.'
+    if removal_version is not None:
+        message += f' It will be removed in version {removal_version} of SimPEG.'
+    else:
+        message += ' It will be removed in a future version of SimPEG.'
+    def get_dep(self):
+        warnings.warn(message, DeprecationWarning)
+        return prop.fget(self)
+    def set_dep(self, other):
+        warnings.warn(message, DeprecationWarning)
+        prop.fset(self, other)
+
+    doc = f"`{old_name}` has been deprecated. See `{new_name}` for documentation"
+
+    return property(get_dep, set_dep, prop.fdel, doc)
+
+def deprecate_method(method, old_name, removal_version=None):
+    print(method.__name__)
+    print(method.__doc__)
+    new_name = method.__qualname__
+    old_name = f'{new_name.split(".")[0]}.{old_name}'
+
+    message = f'{old_name} has been deprecated, please use {new_name}.'
+    if removal_version is not None:
+        message += f' It will be removed in version {removal_version} of SimPEG.'
+    else:
+        message += ' It will be removed in a future version of SimPEG.'
+    def new_method(*args, **kwargs):
+        warnings.warn(message, DeprecationWarning)
+        return method(*args, **kwargs)
+
+    doc = f"`{old_name}` has been deprecated. See `{new_name}` for documentation"
+    new_method.__doc__ = doc
+    return new_method

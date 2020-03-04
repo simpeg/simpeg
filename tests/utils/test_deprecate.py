@@ -70,6 +70,12 @@ deprecated_receivers = [
         ('Dipole_ky', 'Pole_ky')],
 ]
 
+
+deprcated_surveys = [
+    'SimPEG.electromagnetics.static.resistivity',
+        ('Survey_ky')
+]
+
 class DeprecateTest(unittest.TestCase):
 
     def test_module_deprecations(self):

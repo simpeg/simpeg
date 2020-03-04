@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 import numpy as np
 from scipy.interpolate import interp1d, NearestNDInterpolator
 import properties
+from ....utils.code_utils import deprecate_class
 
 from ....utils import uniqueRows
 from ....survey import BaseSurvey
@@ -324,9 +325,6 @@ class Survey(BaseSurvey):
                     "Input valid survey survey_geometry: surface or borehole"
                     )
 
-
+@deprecate_class(removal_version='0.15.0')
 class Survey_ky(Survey):
-    """
-    2.5D survey
-    """
-    # TODO: we should deprecate this and just use the above survey class as they are identical
+    pass

@@ -5,6 +5,7 @@ import warnings
 
 from .survey import BaseSurvey
 from .utils import mkvc
+from .utils.code_utils import deprecate_property
 
 __all__ = ['Data', 'SyntheticData']
 
@@ -267,39 +268,10 @@ class Data(properties.HasProperties):
         self.dobs = v
 
     ##########################
-    # Depreciated
+    # Deprecated
     ##########################
-    @property
-    def std(self):
-        warnings.warn(
-            "std has been deprecated in favor of standard_deviation. Please "
-            "update your code to use 'standard_deviation'"
-        )
-        return self.standard_deviation
-
-    @std.setter
-    def std(self, value):
-        warnings.warn(
-            "std has been deprecated in favor of standard_deviation. Please "
-            "update your code to use 'standard_deviation'"
-        )
-        self.standard_deviation = value
-
-    @property
-    def eps(self):
-        warnings.warn(
-            "eps has been deprecated in favor of noise_floor. Please "
-            "update your code to use 'noise_floor'"
-        )
-        return self.noise_floor
-
-    @eps.setter
-    def eps(self, value):
-        warnings.warn(
-            "eps has been deprecated in favor of noise_floor. Please "
-            "update your code to use 'noise_floor'"
-        )
-        self.noise_floor = value
+    std = deprecate_property(standard_deviation, 'std', removal_version='0.15.0')
+    eps = deprecate_property(noise_floor, 'eps', removal_version='0.15.0')
 
 
 class SyntheticData(Data):

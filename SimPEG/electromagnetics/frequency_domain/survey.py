@@ -1,5 +1,6 @@
 from scipy.constants import mu_0
 import properties
+from ...utils.code_utils import deprecate_property, deprecate_method
 
 from ...utils import Zero, Identity
 from ..utils import omega
@@ -40,28 +41,14 @@ class Survey(BaseSurvey):
         """
         return self._frequencies
 
-    @property
-    def freqs(self):
-        """Frequencies"""
-        warnings.warn(
-            "survey.freqs will be deprecated in favor of survey.frequencies. "
-            "Please update your code accordingly."
-        )
-        return self.frequencies
+    freqs = deprecate_property(frequencies, 'freq', removal_version='0.15.0')
 
     @property
     def num_frequencies(self):
         """Number of frequencies"""
         return len(self._frequency_dict)
 
-    @property
-    def nFreq(self):
-        """Number of frequencies"""
-        warnings.warn(
-            "survey.nFreq will be deprecated in favor of survey.num_frequencies. "
-            "Please update your code accordingly."
-        )
-        return self.num_frequencies
+    nFreq = deprecate_property(num_frequencies, 'nFreq', removal_version='0.15.0')
 
     @property
     def num_sources_by_frequency(self):
@@ -72,14 +59,7 @@ class Survey(BaseSurvey):
                 self._num_sources_by_frequency[freq] = len(self.getSrcByFreq(freq))
         return self._num_sources_by_frequency
 
-    @property
-    def nSrcByFreq(self):
-        """Number of sources at each frequency"""
-        warnings.warn(
-            "survey.nSrcByFreq will be deprecated in favor of survey.num_sources_by_frequency. "
-            "Please update your code accordingly."
-        )
-        return self.num_sources_by_frequency
+    nSrcByFreq = deprecate_property(num_sources_by_frequency, 'nSrcByFreq', '0.15.0')
 
     def get_sources_by_frequency(self, frequency):
         """
@@ -93,16 +73,4 @@ class Survey(BaseSurvey):
         )
         return self._frequency_dict[frequency]
 
-    def getSrcByFreq(self, frequency):
-        """
-        Returns the sources associated with a specific frequency.
-        :param float frequency: frequency for which we look up sources
-        :rtype: dictionary
-        :return: sources at the sepcified frequency
-        """
-        warnings.warn(
-            "survey.getSrcByFreq will be deprecated in favor of survey.get_sources_by_frequency. "
-            "Please update your code accordingly."
-        )
-        return self.get_sources_by_frequency(frequency)
-
+    getSrcByFreq = deprecate_method(get_sources_by_frequency, 'getSrcByFreq', '0.15.0')
