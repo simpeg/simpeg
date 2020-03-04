@@ -1,5 +1,6 @@
 import numpy as np
 import properties
+from ....utils.code_utils import deprecate_property
 
 from ....survey import BaseTimeRx, RxLocationArray
 
@@ -27,14 +28,17 @@ class BaseRx(BaseTimeRx):
         ]
     )
 
-
-    def __init__(self, locations=None, times=None, **kwargs):
-        super(BaseRx, self).__init__(locations, times, **kwargs)
-
     # @property
     # def projField(self):
     #     """Field Type projection (e.g. e b ...)"""
     #     return self.knownRxTypes[self.rxType][0]
+
+    @property
+    def nD(self):
+        """Number of data in the receiver."""
+        return self.locations[0].shape[0]
+
+    nRx = deprecate_property(nD, 'nRx', '0.15.0')
 
     @property
     def dc_voltage(self):
@@ -86,17 +90,6 @@ class Dipole(BaseRx):
         super(Dipole, self).__init__(times=times, **kwargs)
         self.locations = locations
 
-    @property
-    def nD(self):
-        """Number of data in the receiver."""
-        return self.locations[0].shape[0]
-
-    @property
-    def nRx(self):
-        """Number of data in the receiver."""
-        # return self.locations[0].shape[0]
-        raise Exception("nRx has deprecated. please use rx.nD instead")
-
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:
             return self._Ps[mesh]
@@ -120,19 +113,6 @@ class Pole(BaseRx):
     """
     Pole receiver
     """
-
-    def __init__(self, locations, times, **kwargs):
-        super(Pole, self).__init__(locations, times, **kwargs)
-
-    @property
-    def nD(self):
-        """Number of data in the receiver."""
-        return self.locations.shape[0]
-
-    @property
-    def nRx(self):
-        """Number of data in the receiver."""
-        raise Exception("nRx has deprecated. please use rx.nD instead")
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:

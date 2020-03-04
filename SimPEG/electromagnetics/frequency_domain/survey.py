@@ -7,8 +7,6 @@ from ..utils import omega
 from ...survey import BaseSurvey
 from .sources import BaseFDEMSrc
 
-import warnings
-
 
 class Survey(BaseSurvey):
     """

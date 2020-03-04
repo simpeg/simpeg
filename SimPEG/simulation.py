@@ -17,6 +17,7 @@ from . import props
 from .data import SyntheticData, Data
 from .survey import BaseSurvey
 from .utils import Counter, timeIt, count, mkvc
+from .utils.code_utils import deprecate_method, deprecate_property
 
 __all__ = ['LinearSimulation', 'ExponentialSinusoidSimulation']
 
@@ -425,15 +426,7 @@ class BaseSimulation(props.HasModel):
             standard_deviation=standard_deviation, noise_floor=noise_floor
         )
 
-    def makeSyntheticData(self, m, standard_deviation=0.05, f=None):
-        warnings.warn(
-            "makeSyntheticData will be deprecated in favor of "
-            "make_synthetic_data. Please update your code to use "
-            "make_synthetic_data", DeprecationWarning
-        )
-        return self.make_synthetic_data(
-            m, standard_deviation=standard_deviation, f=f
-        )
+    makeSyntheticData = deprecate_method(make_synthetic_data, 'makeSyntheticData', removal_version='0.15.0')
 
 
 class BaseTimeSimulation(BaseSimulation):
@@ -489,29 +482,9 @@ class BaseTimeSimulation(BaseSimulation):
         "Modeling times"
         return self.time_mesh.vectorNx
 
-    @property
-    def timeSteps(self):
-        warnings.warn(
-            "timeSteps will be deprecated in favor of time_steps. "
-            "Please update your code accordingly"
-        )
-        return self.time_steps
+    timeSteps = deprecate_property(time_steps, 'timeSteps', removal_version='0.15.0')
 
-    @timeSteps.setter
-    def timeSteps(self, value):
-        warnings.warn(
-            "timeSteps will be deprecated in favor of time_steps. "
-            "Please update your code accordingly"
-        )
-        self.time_steps = value
-
-    @property
-    def timeMesh(self):
-        warnings.warn(
-            "timeMesh will be deprecated in favor of time_mesh. "
-            "Please update your code accordingly"
-        )
-        return self.time_mesh
+    timeMesh = deprecate_property(time_mesh, 'timeMesh', removal_version='0.15.0')
 
     def dpred(self, m=None, f=None):
         """

@@ -361,10 +361,10 @@ def deprecate_property(prop, old_name, new_name=None, removal_version=None):
     return property(get_dep, set_dep, prop.fdel, doc)
 
 def deprecate_method(method, old_name, removal_version=None):
-    print(method.__name__)
-    print(method.__doc__)
     new_name = method.__qualname__
-    old_name = f'{new_name.split(".")[0]}.{old_name}'
+    split_name = new_name.split('.')
+    if len(split_name)>1:
+        old_name = f'{split_name[0]}.{old_name}'
 
     message = f'{old_name} has been deprecated, please use {new_name}.'
     if removal_version is not None:

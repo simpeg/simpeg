@@ -1,6 +1,6 @@
 import numpy as np
 import properties
-import warnings
+from ....utils.code_utils import deprecate_property
 
 from ....survey import BaseTimeSurvey
 from . import sources
@@ -23,13 +23,7 @@ class Survey(BaseTimeSurvey):
     def __init__(self, source_list=None, **kwargs):
         super(Survey, self).__init__(source_list, **kwargs)
 
-    @property
-    def times(self):
-        warnings.warn(
-            "survey.times will be deprecated in favor of survey.unique_times."
-            " Please update your code accordingly"
-        )
-        return self.unique_times
+    times = deprecate_property(unique_times, 'times', removal_version='0.15.0')
 
     @property
     def n_locations(self):
