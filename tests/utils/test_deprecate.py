@@ -21,6 +21,14 @@ deprecated_modules = [
     'SimPEG.electromagnetics.utils.CurrentUtils',
     'SimPEG.electromagnetics.utils.testingUtils',
     'SimPEG.electromagnetics.static.utils.StaticUtils',
+    'SimPEG.electromagnetics.natural_source.utils.dataUtils',
+    'SimPEG.electromagnetics.natural_source.utils.ediFilesUtils',
+    'SimPEG.electromagnetics.natural_source.utils.MT1Danalytic',
+    'SimPEG.electromagnetics.natural_source.utils.MT1Dsolutions',
+    'SimPEG.electromagnetics.natural_source.utils.plotDataTypes',
+    'SimPEG.electromagnetics.natural_source.utils.plotUtils',
+    'SimPEG.electromagnetics.natural_source.utils.sourceUtils',
+    'SimPEG.electromagnetics.natural_source.utils.testUtils',
 ]
 
 deprecated_problems = [

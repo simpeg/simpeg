@@ -1,7 +1,4 @@
-import warnings
-warnings.warn(
-    'plotUtils has been deprecated, please plot_utils',
-    DeprecationWarning
-)
+from ....utils.code_utils import deprecate_module
+deprecate_module('plotUtils', 'plot_utils', '0.15.0')
 
 from .plot_utils import *
