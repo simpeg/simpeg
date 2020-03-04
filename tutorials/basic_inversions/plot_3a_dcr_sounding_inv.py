@@ -24,6 +24,7 @@ a Wenner array. The end product is layered Earth model which explains the data.
 
 import os
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
@@ -95,14 +96,15 @@ survey.getABMN_locations()
 
 # Plot apparent resistivities on sounding curve as a function of Wenner separation
 # parameter.
-electrode_separations = np.sqrt(
-        np.sum((survey.m_locations - survey.n_locations)**2, axis=1)
+electrode_separations = 0.5*np.sqrt(
+        np.sum((survey.a_locations - survey.b_locations)**2, axis=1)
         )
 
 fig = plt.figure(figsize=(11, 5))
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+mpl.rcParams.update({'font.size': 14})
+ax1 = fig.add_axes([0.15, 0.1, 0.7, 0.85])
 ax1.semilogy(electrode_separations, dobs, 'b')
-ax1.set_xlabel("Wenner Array Separation Parameter (m)")
+ax1.set_xlabel("AB/2 (m)")
 ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
 plt.show()
 
@@ -113,10 +115,10 @@ plt.show()
 # Inversion with SimPEG requires that we define uncertainties on our data. The
 # uncertainty represents our estimate of the standard deviation of the noise on
 # our data. For DC sounding data, a percent uncertainty is applied to each datum.
-# For this tutorial, the uncertainty on each datum will be 2.5%.
+# For this tutorial, the uncertainty on each datum will be 2%.
 #
 
-uncertainties = 0.025*np.abs(dobs)
+uncertainties = 0.02*np.abs(dobs)
 
 
 ###############################################
@@ -139,7 +141,7 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 #
 
 # Define layer thicknesses
-layer_thicknesses = 5*np.logspace(0,1,21)
+layer_thicknesses = 5*np.logspace(0,1,25)
 
 # Define a mesh for plotting and regularization.
 mesh = TensorMesh([(np.r_[layer_thicknesses, layer_thicknesses[-1]])], '0')
@@ -161,7 +163,7 @@ print(mesh)
 # not converge.
 
 # Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
-starting_model = np.log(1e3*np.ones((len(layer_thicknesses)+1)))
+starting_model = np.log(2e2*np.ones((len(layer_thicknesses)+1)))
 
 # Define mapping from model to active cells.
 model_map = maps.IdentityMap(nP=len(starting_model))*maps.ExpMap()
@@ -269,11 +271,11 @@ true_layers = np.loadtxt(str(mesh_filename))
 true_layers = TensorMesh([true_layers], 'N')
 
 # Plot true model and recovered model
-fig = plt.figure(figsize=(5, 5))
+fig = plt.figure(figsize=(6, 4))
 x_min = np.min([np.min(model_map*recovered_model), np.min(true_model)])
 x_max = np.max([np.max(model_map*recovered_model), np.max(true_model)])
 
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.2, 0.15, 0.7, 0.7])
 plot_layer(true_model, true_layers, ax=ax1, depth_axis=False, color='b')
 plot_layer(model_map*recovered_model, mesh, ax=ax1, depth_axis=False, color='r')
 ax1.set_xlim(0.9*x_min, 1.1*x_max)
@@ -281,10 +283,10 @@ ax1.legend(['True Model','Recovered Model'])
 
 # Plot the true and apparent resistivities on a sounding curve
 fig = plt.figure(figsize=(11, 5))
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.2, 0.1, 0.6, 0.8])
 ax1.semilogy(electrode_separations, dobs, 'b')
 ax1.semilogy(electrode_separations, inv_prob.dpred, 'r')
-ax1.set_xlabel("Wenner Array Separation Parameter (m)")
+ax1.set_xlabel("AB/2 (m)")
 ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
 ax1.legend(['True Sounding Curve','Predicted Sounding Curve'])
 plt.show()

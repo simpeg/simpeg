@@ -34,6 +34,8 @@ from SimPEG import maps
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import plot_layer
 
+save_file = False
+
 # sphinx_gallery_thumbnail_number = 2
 
 
@@ -138,9 +140,9 @@ dpred = simulation.dpred(model)
 
 # Plot apparent resistivities on sounding curve
 fig = plt.figure(figsize=(11, 5))
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-ax1.semilogy(electrode_separations, dpred, 'b')
-ax1.set_xlabel("Wenner Array Separation Parameter (m)")
+ax1 = fig.add_axes([0.1, 0.1, 0.75, 0.85])
+ax1.semilogy(1.5*electrode_separations, dpred, 'b')
+ax1.set_xlabel("AB/2 (m)")
 ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
 plt.show()
 
@@ -150,30 +152,30 @@ plt.show()
 # ---------------------
 #
 
-# MAKE A WRITE TO UBC FORMAT HERE
+if save_file == True:
 
-survey.getABMN_locations()
+    survey.getABMN_locations()
 
-noise = 0.025*dpred*np.random.rand(len(dpred))
+    noise = 0.025*dpred*np.random.rand(len(dpred))
 
-data_array = np.c_[
-    survey.a_locations,
-    survey.b_locations,
-    survey.m_locations,
-    survey.n_locations,
-    dpred + noise
-    ]
+    data_array = np.c_[
+        survey.a_locations,
+        survey.b_locations,
+        survey.m_locations,
+        survey.n_locations,
+        dpred + noise
+        ]
 
-fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\app_res_1d_data.dobs'
-np.savetxt(fname, data_array, fmt='%.4e')
-
-
-fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\true_model.txt'
-np.savetxt(fname, model, fmt='%.4e')
+    fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\app_res_1d_data.dobs'
+    np.savetxt(fname, data_array, fmt='%.4e')
 
 
-fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\layers.txt'
-np.savetxt(fname, mesh.hx, fmt='%d')
+    fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\true_model.txt'
+    np.savetxt(fname, model, fmt='%.4e')
+
+
+    fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\layers.txt'
+    np.savetxt(fname, mesh.hx, fmt='%d')
 
 
 

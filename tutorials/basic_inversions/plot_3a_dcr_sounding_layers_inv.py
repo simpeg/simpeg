@@ -25,6 +25,7 @@ a Wenner array. The end product is layered Earth model which explains the data.
 
 import os
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
@@ -96,14 +97,15 @@ survey.getABMN_locations()
 
 # Plot apparent resistivities on sounding curve as a function of Wenner separation
 # parameter.
-electrode_separations = np.sqrt(
-        np.sum((survey.m_locations - survey.n_locations)**2, axis=1)
+electrode_separations = 0.5*np.sqrt(
+        np.sum((survey.a_locations - survey.b_locations)**2, axis=1)
         )
 
 fig = plt.figure(figsize=(11, 5))
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+mpl.rcParams.update({'font.size': 14})
+ax1 = fig.add_axes([0.15, 0.1, 0.7, 0.85])
 ax1.semilogy(electrode_separations, dobs, 'b')
-ax1.set_xlabel("Wenner Array Separation Parameter (m)")
+ax1.set_xlabel("AB/2 (m)")
 ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
 plt.show()
 
@@ -243,7 +245,7 @@ beta_schedule = directives.BetaSchedule(coolingFactor=5., coolingRate=3.)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Setting a stopping criteria for the inversion.
-target_misfit = directives.TargetMisfit(chifact=1)
+target_misfit = directives.TargetMisfit(chifact=0.1)
 
 # The directives are defined in a list
 directives_list = [
@@ -280,7 +282,7 @@ plotting_mesh = TensorMesh([np.r_[layer_map*recovered_model, layer_thicknesses[-
 x_min = np.min([np.min(resistivity_map*recovered_model), np.min(true_model)])
 x_max = np.max([np.max(resistivity_map*recovered_model), np.max(true_model)])
 
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.2, 0.15, 0.7, 0.7])
 plot_layer(true_model, true_layers, ax=ax1, depth_axis=False, color='b')
 plot_layer(resistivity_map*recovered_model, plotting_mesh, ax=ax1, depth_axis=False, color='r')
 ax1.set_xlim(0.9*x_min, 1.1*x_max)
@@ -288,10 +290,10 @@ ax1.legend(['True Model','Recovered Model'])
 
 # Plot the true and apparent resistivities on a sounding curve
 fig = plt.figure(figsize=(11, 5))
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.2, 0.05, 0.6, 0.8])
 ax1.semilogy(electrode_separations, dobs, 'b')
 ax1.semilogy(electrode_separations, inv_prob.dpred, 'r')
-ax1.set_xlabel("Wenner Array Separation Parameter (m)")
+ax1.set_xlabel("AB/2 (m)")
 ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
 ax1.legend(['True Sounding Curve','Predicted Sounding Curve'])
 plt.show()

@@ -29,7 +29,7 @@ from SimPEG import (
 
 from SimPEG.potential_fields import magnetics
 from SimPEG import utils
-from SimPEG.utils import mkvc
+from SimPEG.utils import mkvc, surface2ind_topo
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz
 # sphinx_gallery_thumbnail_number = 4
 
@@ -191,7 +191,8 @@ plt.show()
 #
 
 # Get the active cells for equivalent source is the top only
-surf = utils.plot_utils.surface_layer_index(mesh, topo)
+surf = surface2ind_topo(mesh, topo)
+#surf = utils.plot_utils.surface_layer_index(mesh, topo)
 nC = np.count_nonzero(surf)  # Number of active cells
 mstart = np.ones(nC)*1e-4
 

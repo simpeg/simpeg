@@ -202,15 +202,17 @@ fig = plt.figure(figsize=(9, 4))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 plotting_model = np.sqrt(np.sum(plotting_model, axis=1)**2)
-ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
+ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
 mesh.plotSlice(
     plotting_map*plotting_model, normal='Y', ax=ax1,
     ind=int(mesh.hy.size/2), grid=True,
     clim=(np.min(plotting_model), np.max(plotting_model))
 )
 ax1.set_title('MVI Model at y = 0 m')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('z (m)')
 
-ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
+ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
 norm = mpl.colors.Normalize(vmin=np.min(plotting_model), vmax=np.max(plotting_model))
 cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation='vertical')
 cbar.set_label(
@@ -241,32 +243,36 @@ n_data = len(dpred)
 fig = plt.figure(figsize=(13, 4))
 v_max = np.max(np.abs(dpred))
 
-ax1 = fig.add_axes([0.05, 0.05, 0.25, 0.9])
+ax1 = fig.add_axes([0.1, 0.15, 0.25, 0.78])
 plot2Ddata(
     receiver_list[0].locations, dpred[0:n_data:3], ax=ax1, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
 )
 ax1.set_title('$dBz/dx$')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('y (m)')
 
-ax2 = fig.add_axes([0.31, 0.05, 0.25, 0.9])
+ax2 = fig.add_axes([0.36, 0.15, 0.25, 0.78])
 cplot2 = plot2Ddata(
     receiver_list[0].locations, dpred[1:n_data:3], ax=ax2, ncontour=30,
     clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
 )
 cplot2[0].set_clim((-v_max, v_max))
 ax2.set_title('$dBz/dy$')
+ax2.set_xlabel('x (m)')
 ax2.set_yticks([])
 
-ax3 = fig.add_axes([0.57, 0.05, 0.25, 0.9])
+ax3 = fig.add_axes([0.62, 0.15, 0.25, 0.78])
 cplot3 = plot2Ddata(
     receiver_list[0].locations, dpred[2:n_data:3], ax=ax3, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
 )
 cplot3[0].set_clim((-v_max, v_max))
 ax3.set_title('$dBz/dz$')
+ax3.set_xlabel('x (m)')
 ax3.set_yticks([])
 
-ax4 = fig.add_axes([0.84, 0.08, 0.03, 0.83])
+ax4 = fig.add_axes([0.89, 0.13, 0.02, 0.79])
 norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
     ax4, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
