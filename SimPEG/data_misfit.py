@@ -198,15 +198,15 @@ class L2DataMisfit(BaseDataMisfit):
 
 @deprecate_class(removal_version='0.15.0')
 class l2_DataMisfit(L2DataMisfit):
-    def __init__(self, survey):
-        if not survey.is_paired:
-            raise Exception('Survey must be paired to a problem')
-        # create a Data object...
-        Data(survey.data.dobs, 
-        # Get the survey's simulation that was paired to it....
-        # simulation = survey.simulation
-
-        super().__init__(simulation, data)
+    # def __init__(self, survey):
+    #     if not survey.is_paired:
+    #         raise Exception('Survey must be paired to a problem')
+    #     # create a Data object...
+    #     Data(survey.data.dobs,
+    #     # Get the survey's simulation that was paired to it....
+    #     # simulation = survey.simulation
+    #
+    #     super().__init__(simulation, data)
 
     @property
     def standard_deviation(self):
