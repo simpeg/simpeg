@@ -512,7 +512,8 @@ class Simulation3DCellCentered(BaseDCSimulation):
 
     def setBC(self):
         if self.bc_type == 'Dirichlet':
-            print('Homogeneous Dirichlet is the natural BC for this CC discretization.')
+            if self.verbose:
+                print('Homogeneous Dirichlet is the natural BC for this CC discretization.')
             self.Div = sdiag(self.mesh.vol) * self.mesh.faceDiv
             self.Grad = self.Div.T
 

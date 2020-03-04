@@ -421,8 +421,9 @@ class Simulation2DCellCentered(BaseSIPSimulation2D, BaseSimulation2DCellCentered
     def __init__(self, mesh, **kwargs):
         BaseSIPSimulation2D.__init__(self, mesh, **kwargs)
         if self.actinds is None:
-            print("You did not put Active indices")
-            print("So, set actMap = IdentityMap(mesh)")
+            if self.verbose:
+                print("You did not put Active indices")
+                print("So, set actMap = IdentityMap(mesh)")
             self.actinds = np.ones(mesh.nC, dtype=bool)
 
         self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)
@@ -442,8 +443,9 @@ class Simulation2DNodal(BaseSIPSimulation2D, BaseSimulation2DNodal):
         BaseSIPSimulation2D.__init__(self, mesh, **kwargs)
         # self.setBC()
         if self.actinds is None:
-            print("You did not put Active indices")
-            print("So, set actMap = IdentityMap(mesh)")
+            if self.verbose:
+                print("You did not put Active indices")
+                print("So, set actMap = IdentityMap(mesh)")
             self.actinds = np.ones(mesh.nC, dtype=bool)
 
         self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)
