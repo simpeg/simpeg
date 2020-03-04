@@ -58,56 +58,32 @@ rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)+0.1]
 #
 #
 
-local_surveys = []
-local_meshes = []
-local_indices = []
-
+# Mesh parameters
 h = [5, 5, 5]
 padDist = np.ones((3, 2)) * 100
+octree_levels = [8, 4]
 
-# First tile
-local_indices.append(rxLoc[:, 0] <= 0)
-receivers = gravity.receivers.point_receiver(rxLoc[local_indices[0], :])
-srcField = gravity.sources.SourceField([receivers])
-local_surveys.append(gravity.survey.GravitySurvey(srcField))
+# Create tiles
+local_indices = [rxLoc[:, 0] <= 0, rxLoc[:, 0] > 0]
+local_surveys = []
+local_meshes = []
+for local_index in local_indices:
 
-# Create a local mesh that covers all points, but refined on the local survey
-local_meshes.append(
-    mesh_builder_xyz(
-        topo, h, padding_distance=padDist, depth_core=100, mesh_type='tree'
+    receivers = gravity.receivers.point_receiver(rxLoc[local_index, :])
+    srcField = gravity.sources.SourceField([receivers])
+    local_survey = gravity.survey.GravitySurvey(srcField)
+
+    # Create a local mesh that covers all points, but refined on the local survey
+    local_mesh = mesh_builder_xyz(
+            topo, h, padding_distance=padDist, depth_core=100, mesh_type='tree'
     )
-)
-local_meshes[0] = refine_tree_xyz(
-    local_meshes[0], local_surveys[0].receiver_locations,
-    method='surface', octree_levels=[8, 4], finalize=True
-)
-
-# Second tile
-local_indices.append(rxLoc[:, 0] > 0)
-receivers = gravity.receivers.point_receiver(rxLoc[local_indices[1], :])
-srcField = gravity.sources.SourceField([receivers])
-local_surveys.append(gravity.survey.GravitySurvey(srcField))
-
-# Create a local mesh that covers all points, but refined on the local survey
-local_meshes.append(
-    mesh_builder_xyz(
-        topo, h, padding_distance=padDist, depth_core=100, mesh_type='tree'
+    local_mesh = refine_tree_xyz(
+        local_mesh, local_survey.receiver_locations,
+        method='surface', octree_levels=octree_levels, finalize=True
     )
-)
-local_meshes[1] = refine_tree_xyz(
-    local_meshes[1], local_surveys[1].receiver_locations,
-    method='surface', octree_levels=[8, 4], finalize=True
-)
 
-fig = plt.figure(figsize=(12, 6))
-for ii, local_mesh in enumerate(local_meshes):
-
-    activeCells = utils.surface2ind_topo(local_mesh, topo)
-
-    ax = plt.subplot(2, 2, ii+1)
-    local_mesh.plotSlice(activeCells, normal='Y', ax=ax, grid=True)
-    ax.set_aspect('equal')
-    ax.set_title(f"Mesh {ii+1}. Active cells {activeCells.sum()}")
+    local_surveys.append(local_survey)
+    local_meshes.append(local_mesh)
 
 ###############################################################################
 # Global Mesh
@@ -131,12 +107,6 @@ mesh.finalize()
 # Define an active cells from topo
 activeCells = utils.surface2ind_topo(mesh, topo)
 nC = int(activeCells.sum())
-
-ax = plt.subplot(2, 1, 2)
-mesh.plotSlice(activeCells, normal='Y', ax=ax, grid=True)
-ax.set_title(f"Global Mesh. Active cells {activeCells.sum()}")
-ax.set_aspect('equal')
-plt.show()
 
 # We can now create a density model and generate data
 # Here a simple block in half-space
@@ -210,6 +180,40 @@ for ii, local_survey in enumerate(local_surveys):
 # Our global misfit
 global_misfit = local_misfits[0] + local_misfits[1]
 
+# Plot the model on different meshes
+fig = plt.figure(figsize=(12, 6))
+for ii, local_misfit in enumerate(local_misfits):
+
+    local_mesh = local_misfit.simulation.mesh
+    local_map = local_misfit.simulation.rhoMap
+
+    inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
+
+    ax = plt.subplot(2, 2, ii+1)
+    local_mesh.plotSlice(inject_local * (local_map * model), normal='Y', ax=ax, grid=True)
+    ax.set_aspect('equal')
+    ax.set_title(f"Mesh {ii+1}. Active cells {activeCells.sum()}")
+
+
+# Create active map to go from reduce set to full
+inject_global = maps.InjectActiveCells(mesh, activeCells, np.nan)
+
+ax = plt.subplot(2, 1, 2)
+mesh.plotSlice(activeCells, normal='Y', ax=ax, grid=True)
+ax.set_title(f"Global Mesh. Active cells {activeCells.sum()}")
+ax.set_aspect('equal')
+plt.show()
+
+
+
+#####################################################
+# Invert on the global mesh
+#
+#
+#
+#
+#
+
 # Create reduced identity map
 idenMap = maps.IdentityMap(nP=nC)
 
@@ -246,17 +250,15 @@ inv = inversion.BaseInversion(
 # Run the inversion
 mrec = inv.run(m0)
 
-# Create active map to go from reduce set to full
-activeCellsMap = maps.InjectActiveCells(mesh, activeCells, np.nan)
 
 # Plot the result
 ax = plt.subplot(1, 2, 1)
-mesh.plotSlice(activeCellsMap*model, normal='Y', ax=ax, grid=True)
+mesh.plotSlice(inject_global*model, normal='Y', ax=ax, grid=True)
 ax.set_title("True")
 ax.set_aspect('equal')
 
 ax = plt.subplot(1, 2, 2)
-mesh.plotSlice(activeCellsMap*mrec, normal='Y', ax=ax, grid=True)
+mesh.plotSlice(inject_global*mrec, normal='Y', ax=ax, grid=True)
 ax.set_title("Recovered")
 ax.set_aspect('equal')
 plt.show()
