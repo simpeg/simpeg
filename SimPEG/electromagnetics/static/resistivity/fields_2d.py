@@ -1,5 +1,6 @@
 import numpy as np
 import properties
+from ....utils.code_utils import deprecate_class
 
 from ....fields import TimeFields
 from ....utils import Identity, Zero
@@ -181,3 +182,24 @@ class Fields2DNodal(Fields2D):
 
     def _e(self, phiSolution, srcList):
         raise NotImplementedError
+
+
+Fields2DCellCentred = Fields2DCellCentered
+
+
+############
+# Deprecated
+############
+@deprecate_class(removal_version='0.15.0')
+class Fields_ky(Fields2D):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields_ky_CC(Fields2DCellCentered):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields_ky_N(Fields2DNodal):
+    pass

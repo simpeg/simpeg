@@ -37,6 +37,17 @@ deprecated_problems = [
         ('Problem_Linear', 'Problem_LogUnifrom')],
 ]
 
+deprecated_fields = [
+    ['SimPEG.electromagnetics.frequency_domain',
+        ('Fields3D_e', 'Fields3D_b', 'Fields3D_h', 'Fields3D_j')],
+    ['SimPEG.electromagnetics.time_domain',
+        ('Fields3D_e', 'Fields3D_b', 'Fields3D_h', 'Fields3D_j')],
+    ['SimPEG.electromagnetics.natural_source',
+        ('Fields1D_ePrimSec', 'Fields3D_ePrimSec')],
+    ['SimPEG.electromagnetics.static.resistivity',
+        ('Fields_CC', 'Fields_N', 'Fields_ky', 'Fields_ky_CC', 'Fields_ky_N')],
+]
+
 class DeprecateTest(unittest.TestCase):
 
     def test_module_deprecations(self):
@@ -55,6 +66,18 @@ class DeprecateTest(unittest.TestCase):
                 with self.assertWarns(DeprecationWarning):
                     Prob(mesh=mesh)
                 print('ok')
+
+    """
+    def test_field_deprecations(self):
+        for module in deprecated_fields:
+            mod = import_module(module[0])
+            for Field in module[1]:
+                field = getattr(mod, Field)
+                print(f'{module[0]}.{Field}...', end='')
+                with self.assertWarns(DeprecationWarning):
+                    field(mesh)
+                print('ok')
+    """
 
 if __name__ == '__main__':
     unittest.main()

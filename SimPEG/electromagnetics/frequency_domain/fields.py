@@ -3,6 +3,7 @@ import scipy.sparse as sp
 from ...fields import Fields
 from ...utils import mkvc, Zero, Identity, sdiag
 from ..utils import omega
+from ...utils.code_utils import deprecate_class
 
 class FieldsFDEM(Fields):
     """
@@ -1589,3 +1590,26 @@ class Fields3DMagneticField(FieldsFDEM):
             src.bPrimaryDeriv(self.simulation, v, adjoint) +
             self._bDeriv_mu(src, v, adjoint)
         )
+
+
+############
+# Deprecated
+############
+@deprecate_class(removal_version='0.15.0')
+class Fields3D_e(Fields3DElectricField):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields3D_b(Fields3DMagneticFluxDensity):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields3D_j(Fields3DCurrentDensity):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields3D_h(Fields3DMagneticField):
+    pass

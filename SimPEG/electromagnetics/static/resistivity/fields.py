@@ -3,6 +3,7 @@ from scipy.constants import epsilon_0
 
 from ....fields import Fields
 from ....utils import Identity, Zero
+from ....utils.code_utils import deprecate_class
 
 import dask
 import dask.array as da
@@ -236,3 +237,19 @@ class Fields3DNodal(FieldsDC):
 
     def _charge_density(self, phiSolution, source_list):
         return self._charge(phiSolution, source_list) / self.mesh.vol
+
+
+Fields3DCellCentred = Fields3DCellCentered
+
+
+############
+# Deprecated
+############
+@deprecate_class(removal_version='0.15.0')
+class Fields_CC(Fields3DCellCentered):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields_N(Fields3DNodal):
+    pass

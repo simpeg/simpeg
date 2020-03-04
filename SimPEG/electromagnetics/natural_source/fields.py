@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
+from ...utils.code_utils import deprecate_class
 
 from ...fields import Fields
 from ..frequency_domain.fields import FieldsFDEM
@@ -535,3 +536,16 @@ class Fields3DPrimarySecondary(Fields):
         """ Derivative of b_py wrt m """
         # b_py does not depend on the model
         return Zero()
+
+
+############
+# Deprecated
+############
+@deprecate_class(removal_version='0.15.0')
+class Fields1D_ePrimSec(Fields1DPrimarySecondary):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields3D_ePrimSec(Fields3DPrimarySecondary):
+    pass

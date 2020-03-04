@@ -20,3 +20,4 @@ from . import receivers
 # Deprecated
 ############
 from .simulation import Problem3D_ePrimSec, Problem1D_ePrimSec
+from .fields import Fields1D_ePrimSec, Fields3D_ePrimSec
