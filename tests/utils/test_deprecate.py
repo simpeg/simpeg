@@ -1,7 +1,10 @@
 import unittest
+import numpy as np
 from importlib import import_module
 from discretize import TensorMesh
+import properties
 mesh = TensorMesh([2,2,2])
+locs = np.array([[1.0, 2.0, 3.0]])
 
 deprecated_modules = [
     'SimPEG.utils.codeutils',
@@ -48,6 +51,17 @@ deprecated_fields = [
         ('Fields_CC', 'Fields_N', 'Fields_ky', 'Fields_ky_CC', 'Fields_ky_N')],
 ]
 
+deprecated_receivers = [
+    ['SimPEG.electromagnetics.frequency_domain.receivers',
+        ('Point_e', 'Point_b', 'Point_bSecondary', 'Point_h', 'Point_j')],
+    ['SimPEG.electromagnetics.time_domain.receivers',
+        ('Point_e', 'Point_b', 'Point_h', 'Point_j', 'Point_dbdt', 'Point_dhdt')],
+    ['SimPEG.electromagnetics.natural_source.receivers',
+        ('Point_impedance1D', 'Point_impedance3D', 'Point_tipper3D')],
+    ['SimPEG.electromagnetics.static.resistivity.receivers',
+        ('Dipole_ky', 'Pole_ky')],
+]
+
 class DeprecateTest(unittest.TestCase):
 
     def test_module_deprecations(self):
@@ -73,12 +87,24 @@ class DeprecateTest(unittest.TestCase):
             for Field in module[1]:
                 field = getattr(mod, Field)
                 # Only testing for a deprecation warning so removing startup of Fields
-                field.startup = lambda self: None 
+                field.startup = lambda self: None
                 print(f'{module[0]}.{Field}...', end='')
                 with self.assertWarns(DeprecationWarning):
                     field(mesh)
                 print('ok')
 
+    def test_receiver_deprecations(self):
+        for module in deprecated_receivers:
+            mod = import_module(module[0])
+            for receiver in module[1]:
+                Rx = getattr(mod, receiver)
+                print(f'{module[0]}.{Rx}...', end='')
+                with self.assertWarns(DeprecationWarning):
+                    try:
+                        Rx(locs)  # for "Pole like" receiver
+                    except TypeError:
+                        Rx(locs, locs)  # for either Dipole, or Time receivers
+                print('ok')
 
 if __name__ == '__main__':
     unittest.main()

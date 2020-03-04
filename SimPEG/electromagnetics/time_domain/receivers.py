@@ -1,5 +1,6 @@
 import scipy.sparse as sp
 from ...utils.code_utils import deprecate_class
+import properties
 
 from ...utils import mkvc
 from ...survey import BaseTimeRx
@@ -14,14 +15,15 @@ class BaseRx(BaseTimeRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
+    orientation = properties.StringChoice(
+        "orientation of the receiver. Must currently be 'x', 'y', 'z'",
+        ["x", "y", "z"]
+    )
+
     def __init__(self, locations, times, orientation=None, **kwargs):
-        assert(orientation in ['x', 'y', 'z']), (
-            "Orientation {0!s} not known. Orientation must be in "
-            "'x', 'y', 'z'. Arbitrary orientations have not yet been "
-            "implemented.".format(orientation)
-        )
+        self.orientation = orientation
         self.projComp = orientation
-        super(BaseTimeRx, self).__init__(locations=locations, times=times, **kwargs)
+        super().__init__(locations=locations, times=times, **kwargs)
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
@@ -134,7 +136,7 @@ class PointElectricField(BaseRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locations=None, times=None, orientation=None, **kwargs):
+    def __init__(self, locations=None, times=None, orientation='x', **kwargs):
         self.projField = 'e'
         super(PointElectricField, self).__init__(locations, times, orientation, **kwargs)
 
@@ -148,7 +150,7 @@ class PointMagneticFluxDensity(BaseRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locations=None, times=None, orientation=None, **kwargs):
+    def __init__(self, locations=None, times=None, orientation='x', **kwargs):
         self.projField = 'b'
         super(PointMagneticFluxDensity, self).__init__(locations, times, orientation, **kwargs)
 
@@ -162,7 +164,7 @@ class PointMagneticFluxTimeDerivative(BaseRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locations=None, times=None, orientation=None, **kwargs):
+    def __init__(self, locations=None, times=None, orientation='x', **kwargs):
         self.projField = 'dbdt'
         super(PointMagneticFluxTimeDerivative, self).__init__(locations, times, orientation, **kwargs)
 
@@ -206,7 +208,7 @@ class PointMagneticField(BaseRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locations=None, times=None, orientation=None, **kwargs):
+    def __init__(self, locations=None, times=None, orientation='x', **kwargs):
         self.projField = 'h'
         super(PointMagneticField, self).__init__(locations, times, orientation, **kwargs)
 
@@ -220,13 +222,13 @@ class PointCurrentDensity(BaseRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locations=None, times=None, orientation=None, **kwargs):
+    def __init__(self, locations=None, times=None, orientation='x', **kwargs):
         self.projField = 'j'
         super(PointCurrentDensity, self).__init__(locations, times, orientation, **kwargs)
 
 class PointMagneticFieldTimeDerivative(BaseRx):
 
-    def __init__(self, locations=None, times=None, orientation=None, **kwargs):
+    def __init__(self, locations=None, times=None, orientation='x', **kwargs):
         self.projField = 'dhdt'
         super(PointMagneticFieldTimeDerivative, self).__init__(locations, times, orientation, **kwargs)
 

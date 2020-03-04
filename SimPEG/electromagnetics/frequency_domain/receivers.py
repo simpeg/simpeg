@@ -23,13 +23,12 @@ class BaseRx(survey.BaseRx):
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"]
         }
-
     )
 
     def __init__(self, locations, orientation=None, component=None, **kwargs):
-
-        self.projComp = orientation
+        self.orientation = orientation
         self.component = component
+        self.projComp = orientation
 
         super(BaseRx, self).__init__(locations, **kwargs)
 
@@ -107,7 +106,7 @@ class PointElectricField(BaseRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locations, orientation=None, component=None):
+    def __init__(self, locations, orientation='x', component='real'):
         self.projField = 'e'
         super(PointElectricField, self).__init__(locations, orientation, component)
 
@@ -121,7 +120,7 @@ class PointMagneticFluxDensity(BaseRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locations, orientation=None, component=None):
+    def __init__(self, locations, orientation='x', component='real'):
         self.projField = 'b'
         super(PointMagneticFluxDensity, self).__init__(locations, orientation, component)
 
@@ -135,7 +134,7 @@ class PointMagneticFluxDensitySecondary(BaseRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locations, orientation=None, component=None):
+    def __init__(self, locations, orientation='x', component='real'):
         self.projField = 'bSecondary'
         super(PointMagneticFluxDensitySecondary, self).__init__(locations, orientation, component)
 
@@ -149,7 +148,7 @@ class PointMagneticField(BaseRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locations, orientation=None, component=None):
+    def __init__(self, locations, orientation='x', component='real'):
         self.projField = 'h'
         super(PointMagneticField, self).__init__(locations, orientation, component)
 
@@ -163,7 +162,7 @@ class PointCurrentDensity(BaseRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locations, orientation=None, component=None):
+    def __init__(self, locations, orientation='x', component='real'):
         self.projField = 'j'
         super(PointCurrentDensity, self).__init__(locations, orientation, component)
 

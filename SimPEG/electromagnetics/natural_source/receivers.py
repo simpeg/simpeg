@@ -7,6 +7,7 @@ from ...utils.code_utils import deprecate_class
 
 import numpy as np
 from scipy.constants import mu_0
+import properties
 
 from ...utils import sdiag, mkvc
 from ...survey import BaseRx
@@ -23,10 +24,14 @@ class BaseRxNSEM_Point(BaseRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
-        assert(orientation in ['xx', 'xy', 'yx', 'yy', 'zx', 'zy']), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'. Arbitrary orientations have not yet been implemented.".format(orientation)
-        assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not {0!s}".format(component)
+    component = properties.StringChoice(
+        "component of the field (real or imag)", {
+            "real": ["re", "in-phase", "in phase"],
+            "imag": ["imaginary", "im", "out-of-phase", "out of phase"]
+        }
+    )
 
+    def __init__(self, locs, orientation=None, component=None):
         self.orientation = orientation
         self.component = component
 
@@ -336,11 +341,16 @@ class Point1DImpedance(BaseRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
+    component = properties.StringChoice(
+        "component of the field (real or imag)", {
+            "real": ["re", "in-phase", "in phase"],
+            "imag": ["imaginary", "im", "out-of-phase", "out of phase"]
+        }
+    )
+
     orientation = 'yx'
 
-    def __init__(self, locs, component=None):
-        assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not {0!s}".format(component)
-
+    def __init__(self, locs, component='real'):
         self.component = component
         BaseRx.__init__(self, locs)
 
@@ -479,9 +489,14 @@ class Point3DImpedance(BaseRxNSEM_Point):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    orientation = properties.StringChoice(
+        "orientation of the receiver. Must currently be 'xx', 'xy', 'yx', 'yy'",
+        ["xx", "xy", "yx", "yy"]
+    )
 
-        BaseRxNSEM_Point.__init__(self, locs, orientation=orientation, component=component)
+    def __init__(self, locs, orientation='xy', component='real'):
+
+        super().__init__(locs, orientation=orientation, component=component)
 
     def eval(self, src, mesh, f, return_complex=False):
         '''
@@ -638,12 +653,14 @@ class Point3DTipper(BaseRxNSEM_Point):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     :param string component: real or imaginary component 'real' or 'imag'
     """
+    orientation = properties.StringChoice(
+        "orientation of the receiver. Must currently be 'zx', 'zy'",
+        ["zx", "zy"]
+    )
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, locs, orientation='zx', component='real'):
 
-        BaseRxNSEM_Point.__init__(
-            self, locs, orientation=orientation, component=component
-        )
+        super().__init__(locs, orientation=orientation, component=component)
 
     def eval(self, src, mesh, f, return_complex=False):
         '''
