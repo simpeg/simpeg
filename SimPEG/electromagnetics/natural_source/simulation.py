@@ -17,11 +17,7 @@ from ..frequency_domain.simulation import BaseFDEMSimulation
 from ..utils import omega
 from .survey import Survey, Data
 from .fields import Fields1D_ePrimSec, Fields3D_ePrimSec
-from pyMKL import mkl_set_num_threads, mkl_get_max_threads
-import dask
-import dask.array as da
-import multiprocessing
-
+from pyMKL import mkl_set_num_threads
 
 class BaseNSEMSimulation(BaseFDEMSimulation):
     """
@@ -79,8 +75,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                 # Calculate the projection derivatives
                 for rx in src.receiver_list:
                     # Calculate dP/du*du/dm*v
-                    Jv_ = da.asarray(rx.evalDeriv(src, self.mesh, f, mkvc(du_dm_v)))
-                    Jv.append(Jv_)
+                    Jv.append(da.asarray(rx.evalDeriv(src, self.mesh, f, mkvc(du_dm_v))))
             # when running full inversion clearing the fields creates error and inversion crashes
             # self.Ainv[nF].clean()
         # Return the vectorized sensitivities
