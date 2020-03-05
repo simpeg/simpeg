@@ -21,9 +21,7 @@ class Survey(BaseTimeSurvey):
     )
 
     def __init__(self, source_list=None, **kwargs):
-        super(Survey, self).__init__(source_list, **kwargs)
-
-    times = deprecate_property(unique_times, 'times', removal_version='0.15.0')
+        super().__init__(source_list, **kwargs)
 
     @property
     def n_locations(self):

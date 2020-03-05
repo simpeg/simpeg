@@ -404,6 +404,8 @@ class BaseTimeSurvey(BaseSurvey):
             self._unique_times = np.unique(np.hstack(rx_times))
         return self._unique_times
 
+    times = deprecate_property(unique_times, 'times', removal_version='0.15.0')
+
 
 ###############################################################################
 #
