@@ -4,6 +4,7 @@ from six import integer_types
 import warnings
 
 from .survey import BaseSurvey
+from . import survey
 from .utils import mkvc
 from .utils.code_utils import deprecate_property
 
@@ -311,3 +312,17 @@ class SyntheticData(Data):
     @properties.validator('dclean')
     def _dclean_validator(self, change):
         self._dobs_validator(change)
+
+
+# inject a new data class into the survey module
+class _Data(Data):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'The survey.Data class has been moved. To import the data class, '
+            'please use SimPEG.data.Data. This class will be removed in SimPEG 0.15.0',
+            DeprecationWarning)
+        super().__init__(*args, **kwargs)
+survey.Data = _Data
+survey.Data.__name__ = 'Data'
+survey.Data.__qualname__ = 'Data'
+survey.Data.__module__ = 'SimPEG.survey'
