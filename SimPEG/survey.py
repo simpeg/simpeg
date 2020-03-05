@@ -17,6 +17,7 @@ class RxLocationArray(properties.Array):
         value = np.atleast_2d(value)
         return super(RxLocationArray, self).validate(instance, value)
 
+
 class SourceLocationArray(properties.Array):
 
     class_info = "a 1D array denoting the source location"
@@ -122,7 +123,6 @@ class BaseRx(properties.HasProperties):
         raise NotImplementedError(
             "the evalDeriv method for {} has not been implemented".format(self)
         )
-
 
 
 class BaseTimeRx(BaseRx):

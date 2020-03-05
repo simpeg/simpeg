@@ -19,6 +19,11 @@ from .survey import BaseSurvey
 from .utils import Counter, timeIt, count, mkvc
 from .utils.code_utils import deprecate_method, deprecate_property
 
+try:
+    from pymatsolver import Pardiso as DefaultSolver
+except ImportError:
+    from SimPEG import SolverLU as DefaultSolver
+
 __all__ = ['LinearSimulation', 'ExponentialSinusoidSimulation']
 
 
@@ -102,8 +107,6 @@ class Class(properties.Property):
         prop_doc = super(properties.Property, self).sphinx()
         prop_doc = None
         return '{doc}{default}'.format(doc=prop_doc, default=default_str)
-
-
 
 
 ##############################################################################
@@ -211,7 +214,7 @@ class BaseSimulation(props.HasModel):
         # raise exception if user tries to set "mapping"
         if 'mapping' in kwargs.keys():
             raise Exception(
-                'Depreciated (in 0.4.0): use one of {}'.format(
+                'Deprecated (in 0.4.0): use one of {}'.format(
                     [p for p in self._props.keys() if 'Map' in p]
                 )
             )
@@ -222,9 +225,7 @@ class BaseSimulation(props.HasModel):
         super(BaseSimulation, self).__init__(**kwargs)
 
         if 'solver' not in kwargs.keys() and 'Solver' not in kwargs.keys():
-            self.solver = pymatsolver.Solver
-
-
+            self.solver = DefaultSolver
 
     ###########################################################################
     # Methods
