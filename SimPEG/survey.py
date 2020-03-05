@@ -3,6 +3,7 @@ import scipy.sparse as sp
 import uuid
 import properties
 import warnings
+from .utils.code_utils import deprecate_property, deprecate_class, deprecate_method
 
 from .utils import mkvc, Counter
 from .props import BaseSimPEG
@@ -355,6 +356,7 @@ class BaseSurvey(properties.HasProperties):
     #############
     # Deprecated
     #############
+    srcList = deprecate_property(source_list, 'srcList', removal_version='0.15.0')
 
     def dpred(self, m=None, f=None):
         raise Exception(
@@ -362,34 +364,40 @@ class BaseSurvey(properties.HasProperties):
             "simulation.dpred instead"
         )
 
-    @property
-    def srcList(self):
-        warnings.warn(
-            "srcList has been renamed to source_list. Please update your code "
-            "accordingly"
-        )
-        return self.source_list
-
-    @srcList.setter
-    def srcList(self, value):
-        warnings.warn(
-            "srcList has been renamed to source_list. Please update your code "
-            "accordingly"
-        )
-        self.source_list = value
-
-    def pair(self, simulation):
-        warnings.warn(
-            "survey.pair(simulation) will be depreciated. Please update your code "
-            "to instead use simulation.survey = survey"
-        )
-        simulation.survey = self
-
     def makeSyntheticData(self, m, std=None, f=None, force=False, **kwargs):
         raise Exception(
             "Survey no longer has the makeSyntheticData method. Please use "
             "simulation.make_synthetic_data instead."
         )
+
+    def pair(self, simulation):
+        warnings.warn(
+            "survey.pair(simulation) will be deprecated. Please update your code "
+            "to instead use simulation.survey = survey, or pass it upon intialization "
+            "of the simulation object. This will be removed in version"
+            "0.15.0 of SimPEG", DeprecationWarning
+        )
+        simulation.survey = self
+        self.simulation = simulation
+
+        def dep_dpred(m=None, f=None):
+            warnings.warn(
+                "The Survey.dpred method has been deprecated. Please use "
+                "simulation.dpred instead. This will be removed in version "
+                "0.15.0 of SimPEG", DeprecationWarning
+            )
+            return simulation.dpred(m=m, f=f)
+        self.dpred = dep_dpred
+
+        def dep_makeSyntheticData(m, std=None, f=None, **kwargs):
+            warnings.warn(
+                "The Survey.makeSyntheticData method has been deprecated. Please use "
+                "simulation.make_synthetic_data instead. This will be removed in version "
+                "0.15.0 of SimPEG", DeprecationWarning
+            )
+            return simulation.make_synthetic_data(
+                m, standard_deviation=std, f=f, add_noise=True)
+        self.makeSyntheticData = dep_makeSyntheticData
 
 
 class BaseTimeSurvey(BaseSurvey):
@@ -413,21 +421,14 @@ class BaseTimeSurvey(BaseSurvey):
 #
 ###############################################################################
 
-class LinearSurvey:
-    """
-    Survey for a linear problem
-    """
-    def __init__(self, source_list=None, **kwargs):
-        warnings.warn(
-            "LinearSurvey will be depreciated. Please use survey.BaseSurvey "
-            "instead", DeprecationWarning
-        )
-        BaseSurvey.__init__(self, source_list, **kwargs)
+@deprecate_class(removal_version='0.15.0')
+class LinearSurvey(BaseSurvey):
+    pass
 
-
-class Data:
-    def __init__(self, survey=None, data=None, **kwargs):
-        raise Exception(
-            "survey.Data has been depreciated. To access the data class. To "
-            "import the data class, please use SimPEG.data.Data"
-        )
+#  The data module will add this to survey when SimPEG is initialized.
+# class Data:
+#     def __init__(self, survey=None, data=None, **kwargs):
+#         raise Exception(
+#             "survey.Data has been moved. To import the data class"
+#             "please use SimPEG.data.Data"
+#         )

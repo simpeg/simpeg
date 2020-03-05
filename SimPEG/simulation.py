@@ -200,49 +200,9 @@ class BaseSimulation(props.HasModel):
                 getattr(self, mat).clean()  # clean factors
                 setattr(self, mat, None)  # set to none
 
-    @property
-    def Solver(self):
-        """
-        Deprecated solver property. Please use :code:`simulation.solver`
-        instead
-        """
-        warnings.warn(
-            "simulation.Solver will be deprecaited and replaced with "
-            "simulation.solver. Please update your code accordingly",
-            DeprecationWarning
-        )
-        return self.solver
+    Solver = deprecate_property(solver, 'Solver', removal_version='0.15.0')
 
-    @Solver.setter
-    def Solver(self, value):
-        warnings.warn(
-            "simulation.Solver will be deprecaited and replaced with "
-            "simulation.solver. Please update your code accordingly",
-            DeprecationWarning
-        )
-        self.solver = value
-
-    @property
-    def solverOpts(self):
-        """
-        Deprecated solver options. Please use :code:`simulation.solver_opts`
-        instead
-        """
-        warnings.warn(
-            "simulation.solverOpts will be deprecaited and replaced with "
-            "simulation.solver_opts. Please update your code accordingly",
-            DeprecationWarning
-        )
-        return self.solver
-
-    @solverOpts.setter
-    def solverOpts(self, value):
-        warnings.warn(
-            "simulation.solverOpts will be deprecaited and replaced with "
-            "simulation.solver_opts. Please update your code accordingly",
-            DeprecationWarning
-        )
-        self.solver_opts = value
+    solverOpts = deprecate_property(solver_opts, 'solverOpts', removal_version='0.15.0')
 
     ###########################################################################
     # Instantiation
@@ -268,18 +228,6 @@ class BaseSimulation(props.HasModel):
 
     ###########################################################################
     # Methods
-
-    def pair(self, survey):
-        """
-        Deprecated pairing method. Please use :code:`simulation.survey=survey`
-        instead
-        """
-        warnings.warn(
-            "simulation.pair(survey) will be deprecated. Please use "
-            "simulation.survey = survey",
-            DeprecationWarning
-        )
-        self.survey = survey
 
     def fields(self, m=None):
         """
@@ -425,6 +373,39 @@ class BaseSimulation(props.HasModel):
             survey=self.survey, dobs=dobs, dclean=dclean,
             standard_deviation=standard_deviation, noise_floor=noise_floor
         )
+
+    def pair(self, survey):
+        """
+        Deprecated pairing method. Please use :code:`simulation.survey=survey`
+        instead
+        """
+        warnings.warn(
+            "Simulation.pair(survey) will be deprecated. Please update your code "
+            "to instead use simulation.survey = survey, or pass it upon intialization "
+            "of the simulation object. This will be removed in version"
+            "0.15.0 of SimPEG", DeprecationWarning
+        )
+        self.survey = survey
+        survey.simulation = self
+
+        def dep_dpred(m=None, f=None):
+            warnings.warn(
+                "The Survey.dpred method has been deprecated. Please use "
+                "simulation.dpred instead. This will be removed in version "
+                "0.15.0 of SimPEG", DeprecationWarning
+            )
+            return self.dpred(m=m, f=f)
+        survey.dpred = dep_dpred
+
+        def dep_makeSyntheticData(m, std=None, f=None, **kwargs):
+            warnings.warn(
+                "The Survey.makeSyntheticData method has been deprecated. Please use "
+                "simulation.make_synthetic_data instead. This will be removed in version "
+                "0.15.0 of SimPEG", DeprecationWarning
+            )
+            return self.make_synthetic_data(
+                m, standard_deviation=std, f=f, add_noise=True)
+        survey.makeSyntheticData = dep_makeSyntheticData
 
     makeSyntheticData = deprecate_method(make_synthetic_data, 'makeSyntheticData', removal_version='0.15.0')
 
