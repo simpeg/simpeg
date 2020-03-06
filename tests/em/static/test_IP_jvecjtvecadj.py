@@ -41,7 +41,7 @@ class IPProblemTestsCC(unittest.TestCase):
             mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh)
         )
         mSynth = np.ones(mesh.nC)*0.1
-        dobs = simulation.makeSyntheticData(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.Tikhonov(mesh)

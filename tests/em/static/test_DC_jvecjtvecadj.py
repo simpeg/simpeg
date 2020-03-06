@@ -39,7 +39,7 @@ class DCProblemTestsCC(unittest.TestCase):
                 )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.makeSyntheticData(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
@@ -178,7 +178,7 @@ class DCProblemTestsN(unittest.TestCase):
                 )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.makeSyntheticData(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
@@ -255,7 +255,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.makeSyntheticData(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
@@ -335,7 +335,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
             )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.makeSyntheticData(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
