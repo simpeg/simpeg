@@ -62,7 +62,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         problem.pair(survey)
         mSynth = np.r_[eta, 1./tau]
         problem.model = mSynth
-        dobs = problem.make_synthetic_data(mSynth)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.Tikhonov(mesh)
@@ -160,7 +160,7 @@ class IPProblemTestsN(unittest.TestCase):
         problem.pair(survey)
         mSynth = np.r_[eta, 1./tau]
         problem.model = mSynth
-        dobs = problem.make_synthetic_data(mSynth)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.Tikhonov(mesh)
@@ -266,7 +266,7 @@ class IPProblemTestsN_air(unittest.TestCase):
         problem.Solver = Solver
         problem.pair(survey)
         mSynth = np.r_[eta[~airind], 1./tau[~airind], c[~airind]]
-        dobs = problem.make_synthetic_data(mSynth)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg_eta = regularization.Simple(mesh, mapping=wires.eta, indActive=~airind)

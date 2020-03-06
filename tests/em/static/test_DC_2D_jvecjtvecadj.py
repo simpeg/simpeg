@@ -42,7 +42,7 @@ class DCProblem_2DTestsCC(unittest.TestCase):
             solver=Solver, survey=survey
         )
         mSynth = np.ones(mesh.nC)*1.
-        data = simulation.make_synthetic_data(mSynth)
+        data = simulation.make_synthetic_data(mSynth, add_noise=True)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data)

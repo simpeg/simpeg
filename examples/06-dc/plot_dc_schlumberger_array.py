@@ -191,12 +191,12 @@ problem = DC.Simulation3DCellCentered(
 # Step 5
 # ------
 #
-# Run :code:`survey.dpred` to comnpute syntetic data
+# Run :code:`simulation.dpred` to comnpute syntetic data
 #
 # .. math::
 #   \rho_a = \frac{V}{I}\pi\frac{b(b+a)}{a}
 #
-# To make synthetic example you can use survey.makeSyntheticData, which
+# To make synthetic example you can use simulation.make_synthetic_data, which
 # generates related setups.
 
 data = problem.make_synthetic_data(mtrue, standard_deviation=0.01, add_noise=True)

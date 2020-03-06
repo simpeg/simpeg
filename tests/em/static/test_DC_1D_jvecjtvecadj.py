@@ -55,7 +55,7 @@ class DC1DSimulation(unittest.TestCase):
         simulation.dpred(np.log(rho))
 
         mSynth = np.log(rho)
-        dobs = simulation.make_synthetic_data(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)

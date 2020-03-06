@@ -50,7 +50,7 @@ class IPProblemTestsCC(unittest.TestCase):
         problem.pair(survey)
 
         mSynth = np.ones(mesh.nC)*0.1
-        dobs = problem.make_synthetic_data(mSynth)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.Tikhonov(mesh)
@@ -133,7 +133,7 @@ class IPProblemTestsN(unittest.TestCase):
         problem.pair(survey)
 
         mSynth = np.ones(mesh.nC)*0.1
-        dobs = problem.make_synthetic_data(mSynth)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.Tikhonov(mesh)
