@@ -1,6 +1,5 @@
 from __future__ import print_function
 import unittest
-import properties
 import discretize
 from SimPEG import (
     utils, maps, data_misfit, regularization, optimization, inversion,
@@ -48,8 +47,13 @@ class SIPProblemTestsCC(unittest.TestCase):
 
         times = np.arange(10)*1e-3 + 1e-3
         rx = sip.receivers.Dipole(M, N, times)
+        print(rx.nD)
+        print(rx.locations)
         src = sip.sources.Dipole([rx], Aloc, Bloc)
         survey = sip.Survey([src])
+        print(f'Survey ND = {survey.nD}')
+        print(f'Survey ND = {src.nD}')
+
         wires = maps.Wires(('eta', mesh.nC), ('taui', mesh.nC))
         problem = sip.Simulation3DCellCentered(
             mesh,
@@ -147,8 +151,11 @@ class SIPProblemTestsN(unittest.TestCase):
 
         times = np.arange(10)*1e-3 + 1e-3
         rx = sip.receivers.Pole(M, times)
+        print('nodal1', rx.nD)
+        print(rx.locations.shape)
         src = sip.sources.Dipole([rx], Aloc, Bloc)
         survey = sip.Survey([src])
+        print('nodal2', survey.nD)
         wires = maps.Wires(('eta', mesh.nC), ('taui', mesh.nC))
         problem = sip.Simulation3DNodal(
             mesh,
@@ -157,10 +164,13 @@ class SIPProblemTestsN(unittest.TestCase):
             tauiMap=wires.taui,
             storeJ = False,
         )
+        print(survey.nD)
         problem.Solver = Solver
         problem.pair(survey)
         mSynth = np.r_[eta, 1./tau]
+        print(survey.nD)
         dobs = problem.make_synthetic_data(mSynth)
+        print(survey.nD)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.Tikhonov(mesh)
@@ -211,7 +221,8 @@ class SIPProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
 
-class IPProblemTestsN_air(unittest.TestCase):
+
+class SIPProblemTestsN_air(unittest.TestCase):
 
     def setUp(self):
 
@@ -322,6 +333,7 @@ class IPProblemTestsN_air(unittest.TestCase):
             num=3
         )
         self.assertTrue(passed)
+
 
 if __name__ == '__main__':
     unittest.main()

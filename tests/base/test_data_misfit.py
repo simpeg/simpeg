@@ -49,10 +49,10 @@ class DataMisfitTest(unittest.TestCase):
         self.dmis = dmis
 
     def test_Wd_depreciation(self):
-        with self.assertRaises(Exception):
+        with self.assertWarns(DeprecationWarning):
             print(self.dmis.Wd)
 
-        with self.assertRaises(Exception):
+        with self.assertWarns(DeprecationWarning):
             self.dmis.Wd = utils.Identity()
 
     def test_DataMisfit_nP(self):

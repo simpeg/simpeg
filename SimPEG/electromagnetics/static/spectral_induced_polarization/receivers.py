@@ -34,13 +34,6 @@ class BaseRx(BaseTimeRx):
     #     return self.knownRxTypes[self.rxType][0]
 
     @property
-    def nD(self):
-        """Number of data in the receiver."""
-        return self.locations[0].shape[0]
-
-    nRx = deprecate_property(nD, 'nRx', '0.15.0')
-
-    @property
     def dc_voltage(self):
         #todo : this is sketchy
         return self._dc_voltage
@@ -90,6 +83,14 @@ class Dipole(BaseRx):
         super(Dipole, self).__init__(times=times, **kwargs)
         self.locations = locations
 
+    # this should probably be updated to n_receivers...
+    @property
+    def nD(self):
+        """Number of data in the receiver."""
+        return self.locations[0].shape[0]
+
+    nRx = deprecate_property(nD, 'nRx', '0.15.0')
+
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:
             return self._Ps[mesh]
@@ -113,6 +114,14 @@ class Pole(BaseRx):
     """
     Pole receiver
     """
+
+    # this should probably be updated to n_receivers...
+    @property
+    def nD(self):
+        """Number of data in the receiver."""
+        return self.locations.shape[0]
+
+    nRx = deprecate_property(nD, 'nRx', '0.15.0')
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:

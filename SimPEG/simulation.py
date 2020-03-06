@@ -203,7 +203,8 @@ class BaseSimulation(props.HasModel):
                 getattr(self, mat).clean()  # clean factors
                 setattr(self, mat, None)  # set to none
 
-    Solver = deprecate_property(solver, 'Solver', removal_version='0.15.0')
+    Solver = deprecate_property(solver, 'Solver',
+        new_name='simulation.solver', removal_version='0.15.0')
 
     solverOpts = deprecate_property(solver_opts, 'solverOpts', removal_version='0.15.0')
 
@@ -383,32 +384,10 @@ class BaseSimulation(props.HasModel):
         warnings.warn(
             "Simulation.pair(survey) will be deprecated. Please update your code "
             "to instead use simulation.survey = survey, or pass it upon intialization "
-            "of the simulation object. This will be removed in version"
+            "of the simulation object. This will be removed in version "
             "0.15.0 of SimPEG", DeprecationWarning
         )
-        self.survey = survey
-        survey.simulation = self
-
-        def dep_dpred(m=None, f=None):
-            warnings.warn(
-                "The Survey.dpred method has been deprecated. Please use "
-                "simulation.dpred instead. This will be removed in version "
-                "0.15.0 of SimPEG", DeprecationWarning
-            )
-            return self.dpred(m=m, f=f)
-        survey.dpred = dep_dpred
-
-        def dep_makeSyntheticData(m, std=None, f=None, **kwargs):
-            warnings.warn(
-                "The Survey.makeSyntheticData method has been deprecated. Please use "
-                "simulation.make_synthetic_data instead. This will be removed in version "
-                "0.15.0 of SimPEG", DeprecationWarning
-            )
-            return self.make_synthetic_data(
-                m, standard_deviation=std, f=f, add_noise=True)
-        survey.makeSyntheticData = dep_makeSyntheticData
-
-    makeSyntheticData = deprecate_method(make_synthetic_data, 'makeSyntheticData', removal_version='0.15.0')
+        survey.pair(self)
 
 
 class BaseTimeSimulation(BaseSimulation):

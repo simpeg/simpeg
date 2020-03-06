@@ -7,6 +7,7 @@ from .utils.code_utils import deprecate_property, deprecate_class, deprecate_met
 
 from .utils import mkvc, Counter
 from .props import BaseSimPEG
+import types
 
 
 class RxLocationArray(properties.Array):
@@ -74,21 +75,7 @@ class BaseRx(properties.HasProperties):
         if getattr(self, '_Ps', None) is None:
             self._Ps = {}
 
-    @property
-    def locs(self):
-        warnings.warn(
-            "BaseRx.locs will be deprecaited and replaced with "
-            "BaseRx.locations. Please update your code accordingly"
-        )
-        return self.locations
-
-    @locs.setter
-    def locs(self, value):
-        warnings.warn(
-            "BaseRx.locs will be deprecaited and replaced with "
-            "BaseRx.locations. Please update your code accordingly"
-        )
-        self.locations = value
+    locs = deprecate_property(locations, 'locs', removal_version='0.15.0')
 
     @property
     def nD(self):
@@ -143,7 +130,7 @@ class BaseTimeRx(BaseRx):
     def __init__(self, locations=None, times=None, **kwargs):
         super(BaseTimeRx, self).__init__(locations=locations, **kwargs)
         if times is not None:
-            self.times=times
+            self.times = times
 
     @property
     def nD(self):
@@ -204,37 +191,7 @@ class BaseSrc(BaseSimPEG):
         "unique identifier for the source"
     )
 
-    @property
-    def loc(self):
-        warnings.warn(
-            "BaseSrc.loc will be deprecaited and replaced with "
-            "BaseSrc.location. Please update your code accordingly"
-        )
-        return self.location
-
-    @loc.setter
-    def loc(self, value):
-        warnings.warn(
-            "BaseSrc.loc will be deprecaited and replaced with "
-            "BaseSrc.location. Please update your code accordingly"
-        )
-        self.location = value
-
-    @property
-    def rxList(self):
-        warnings.warn(
-            "source.rxList will be deprecaited and replaced with "
-            "source.receiver_list. Please update your code accordingly"
-        )
-        return self.receiver_list
-
-    @rxList.setter
-    def rxList(self, value):
-        warnings.warn(
-            "source.rxList will be deprecaited and replaced with "
-            "source.receiver_list. Please update your code accordingly"
-        )
-        self.receiver_list = value
+    loc = deprecate_property(location, 'loc', removal_version='0.15.0')
 
     @properties.validator('receiver_list')
     def _receiver_list_validator(self, change):
@@ -245,6 +202,8 @@ class BaseSrc(BaseSimPEG):
             self._rxOrder.setdefault(rx._uid, ii) for ii, rx in
             enumerate(value)
         ]
+
+    rxList = deprecate_property(receiver_list, 'rxList', removal_version='0.15.0')
 
     def getReceiverIndex(self, receiver):
         if type(receiver) is not list:
@@ -374,30 +333,58 @@ class BaseSurvey(properties.HasProperties):
         warnings.warn(
             "survey.pair(simulation) will be deprecated. Please update your code "
             "to instead use simulation.survey = survey, or pass it upon intialization "
-            "of the simulation object. This will be removed in version"
+            "of the simulation object. This will be removed in version "
             "0.15.0 of SimPEG", DeprecationWarning
         )
         simulation.survey = self
         self.simulation = simulation
 
-        def dep_dpred(m=None, f=None):
+        def dep_dpred(target, m=None, f=None):
             warnings.warn(
                 "The Survey.dpred method has been deprecated. Please use "
                 "simulation.dpred instead. This will be removed in version "
                 "0.15.0 of SimPEG", DeprecationWarning
             )
-            return simulation.dpred(m=m, f=f)
-        self.dpred = dep_dpred
+            return target.simulation.dpred(m=m, f=f)
+        self.dpred = types.MethodType(dep_dpred, self)
 
-        def dep_makeSyntheticData(m, std=None, f=None, **kwargs):
+        def dep_makeSyntheticData(target, m, std=None, f=None, **kwargs):
             warnings.warn(
                 "The Survey.makeSyntheticData method has been deprecated. Please use "
                 "simulation.make_synthetic_data instead. This will be removed in version "
                 "0.15.0 of SimPEG", DeprecationWarning
             )
-            return simulation.make_synthetic_data(
-                m, standard_deviation=std, f=f, add_noise=True)
-        self.makeSyntheticData = dep_makeSyntheticData
+            if std is None and getattr(target, 'std', None) is None:
+                stddev = 0.05
+                print(
+                        'SimPEG.Survey assigned default std '
+                        'of 5%'
+                    )
+            elif std is None:
+                stddev = target.std
+            else:
+                stddev = std
+                print(
+                        'SimPEG.Survey assigned new std '
+                        'of {:.2f}%'.format(100.*stddev)
+                    )
+
+            data = target.simulation.make_synthetic_data(
+                m, standard_deviation=stddev, f=f, add_noise=True)
+            target.dtrue = data.dclean
+            target.dobs = data.dobs
+            target.std = data.standard_deviation
+            return target.dobs
+        self.makeSyntheticData = types.MethodType(dep_makeSyntheticData, self)
+
+        def dep_residual(target, m, f=None):
+            warnings.warn(
+                "The Survey.residual method has been deprecated. Please use "
+                "L2DataMisfit.residual instead. This will be removed in version "
+                "0.15.0 of SimPEG", DeprecationWarning
+            )
+            return mkvc(target.dpred(m, f=f) - target.dobs)
+        self.residual = types.MethodType(dep_residual, self)
 
 
 class BaseTimeSurvey(BaseSurvey):

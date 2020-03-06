@@ -1,9 +1,9 @@
 import numpy as np
 import properties
-from ....utils.code_utils import deprecate_property
 
 from ....survey import BaseTimeSurvey
 from . import sources
+from . import receivers
 from .. import resistivity as dc
 
 

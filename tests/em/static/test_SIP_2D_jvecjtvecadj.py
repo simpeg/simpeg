@@ -16,7 +16,7 @@ except ImportError:
 np.random.seed(38)
 
 
-class IPProblemTestsCC(unittest.TestCase):
+class SIPProblemTestsCC(unittest.TestCase):
 
     def setUp(self):
 
