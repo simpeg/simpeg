@@ -55,8 +55,9 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         # Set current model
         self.model = m
         # Initiate the Jv list
-        Jv = []
-
+        # Jv = []
+        Jv = np.zeros((441, 24))
+        col = 0
         # Loop all the frequenies
         for nF, freq in enumerate(self.survey.frequencies):
             # Get the system
@@ -64,21 +65,19 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
             for src in self.survey.get_sources_by_frequency(freq):
                 # need fDeriv_m = df/du*du/dm + df/dm
                 # Construct du/dm, it requires a solve
-                u_src = f[src,:] # u should be a vector by definition. Need to fix this...
-                # dA_dm and dRHS_dm should be of size nE,2, so that we can multiply by Ainv.
-                # The 2 columns are each of the polarizations.
-                dA_dm_v = self.getADeriv(freq, u_src, v) # Size: nE,2 (u_px,u_py) in the columns.
-                dRHS_dm_v = self.getRHSDeriv(freq, v) # Size: nE,2 (u_px,u_py) in the columns.
+                u_src = f[src, :]
+                dA_dm_v = self.getADeriv(freq, u_src, v) 
+                dRHS_dm_v = self.getRHSDeriv(freq, v)
 
                 # Calculate du/dm*v
                 du_dm_v = self.Ainv[nF] * (-dA_dm_v + dRHS_dm_v)
                 # Calculate the projection derivatives
                 for rx in src.receiver_list:
                     # Calculate dP/du*du/dm*v
-                    Jv.append(da.asarray(rx.evalDeriv(src, self.mesh, f, mkvc(du_dm_v))))
+                    Jv[:, col] = rx.evalDeriv(src, self.mesh, f, mkvc(du_dm_v))
+                    col += 1
             # when running full inversion clearing the fields creates error and inversion crashes
             # self.Ainv[nF].clean()
-        # Return the vectorized sensitivities
         return da.hstack(Jv).compute()
 
     def Jtvec(self, m, v, f=None):
@@ -112,24 +111,17 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                 PTv = np.zeros((self.mesh.nE, 2), dtype=complex)
                 for rx in src.receiver_list:
                     # Get the adjoint evalDeriv
-                    # PTv needs to be nE,2
-                    PTv_ = rx.evalDeriv(src, self.mesh, f, mkvc(v[src, rx]), adjoint=True) # wrt f, need possibility wrt m
-                    # Get the
-                    # dA_duIT = mkvc(ATinv * PTv) # Force (nU,) shape
-                    # Select the correct component
-                    # du_dmT needs to be of size (nP,) number of model parameters
                     real_or_imag = rx.component
                     if real_or_imag == 'real':
-                        PTv += PTv_
+                        PTv += rx.evalDeriv(src, self.mesh, f, mkvc(v[src, rx]), adjoint=True) # wrt f, need possibility wrt m
                     elif real_or_imag == 'imag':
-                        PTv += -PTv_
+                        PTv += -rx.evalDeriv(src, self.mesh, f, mkvc(v[src, rx]), adjoint=True) # wrt f, need possibility wrt m
                     else:
                         raise Exception('Must be real or imag')
                 dA_duIT = mkvc(self.Ainv[nF] * PTv)  # Force (nU,) shape
                 dA_dmT = self.getADeriv(freq, u_src, dA_duIT, adjoint=True)
                 dRHS_dmT = self.getRHSDeriv(freq, dA_duIT, adjoint=True)
                 # Make du_dmT
-                # du_dmT = -dA_dmT + dRHS_dmT
                 Jtv += (-dA_dmT + dRHS_dmT).real
                 # when running full inversion clearing the fields creates error and inversion crashes
                 # self.ATinv[nF].clean()
