@@ -1,7 +1,4 @@
-import warnings
-warnings.warn(
-    'coordutils has been deprecated, please use coord_utils',
-    DeprecationWarning
-)
+from .code_utils import deprecate_module
+deprecate_module('coordutils', 'coord_utils', '0.15.0')
 
 from .coord_utils import *

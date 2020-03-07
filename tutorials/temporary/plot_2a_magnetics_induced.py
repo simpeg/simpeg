@@ -75,7 +75,7 @@ components = ["tmi"]
 
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
-receiver_list = magnetics.receivers.point_receiver(
+receiver_list = magnetics.receivers.Point(
         receiver_locations, components=components
         )
 
@@ -171,7 +171,7 @@ plt.show()
 
 # Define the forward simluation. By setting the 'forward_only' keyword argument
 # to false, we avoid storing a large dense matrix.
-simulation = magnetics.simulation.IntegralSimulation(
+simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh,
     modelType='susceptibility', chiMap=model_map,
     actInd=ind_active, forward_only=True

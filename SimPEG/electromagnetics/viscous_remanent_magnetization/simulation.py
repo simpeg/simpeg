@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import properties
+from ...utils.code_utils import deprecate_class
 
 from ...simulation import BaseSimulation
 from ... import props
@@ -16,7 +17,7 @@ from .receivers import Point, SquareLoop
 ############################################
 
 
-class Problem_BaseVRM(BaseSimulation):
+class BaseVRMSimulation(BaseSimulation):
     """
 
     """
@@ -35,7 +36,7 @@ class Problem_BaseVRM(BaseSimulation):
         if len(mesh.h) != 3:
             raise ValueError('Mesh must be 3D tensor or 3D tree. Current mesh is {}'.format(len(mesh.h)))
 
-        super(Problem_BaseVRM, self).__init__(mesh, **kwargs)
+        super(BaseVRMSimulation, self).__init__(mesh, **kwargs)
 
         if ref_factor is None and ref_radius is None:
             self.ref_factor = 3
@@ -732,7 +733,7 @@ class Problem_BaseVRM(BaseSimulation):
 #############################################################################
 
 
-class Problem_Linear(Problem_BaseVRM):
+class Simulation3DLinear(BaseVRMSimulation):
 
     """
 
@@ -752,7 +753,7 @@ class Problem_Linear(Problem_BaseVRM):
 
     def __init__(self, mesh, **kwargs):
 
-        super(Problem_Linear, self).__init__(mesh, **kwargs)
+        super(Simulation3DLinear, self).__init__(mesh, **kwargs)
 
         nAct = list(self.indActive).count(True)
         if self.xiMap is None:
@@ -900,7 +901,7 @@ class Problem_Linear(Problem_BaseVRM):
         return mkvc(dxidm.T*v)
 
 
-class Problem_LogUniform(Problem_BaseVRM):
+class Simulation3DLogUniform(BaseVRMSimulation):
 
     """
 
@@ -918,7 +919,7 @@ class Problem_LogUniform(Problem_BaseVRM):
 
     def __init__(self, mesh, **kwargs):
 
-        super(Problem_LogUniform, self).__init__(mesh, **kwargs)
+        super(Simulation3DLogUniform, self).__init__(mesh, **kwargs)
 
     @property
     def A(self):
@@ -978,3 +979,17 @@ class Problem_LogUniform(Problem_BaseVRM):
                 f.append(mkvc((self.A[qq] * np.matrix(eta)).T))
 
         return np.array(np.hstack(f))
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class Problem_Linear(Simulation3DLinear):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem_LogUnifrom(Simulation3DLogUniform):
+    pass

@@ -19,7 +19,7 @@ class DataMisfitTest(unittest.TestCase):
         sigma = np.ones(mesh.nC)
         model = np.log(sigma)
 
-        # prob = DC.Problem3D_CC(mesh, rhoMap=Maps.ExpMap(mesh))
+        # prob = DC.Simulation3DCellCentered(mesh, rhoMap=Maps.ExpMap(mesh))
 
         receivers = survey.BaseRx(20*[[0.0]])
         source = survey.BaseSrc([receivers])
@@ -49,10 +49,10 @@ class DataMisfitTest(unittest.TestCase):
         self.dmis = dmis
 
     def test_Wd_depreciation(self):
-        with self.assertRaises(Exception):
+        with self.assertWarns(DeprecationWarning):
             print(self.dmis.Wd)
 
-        with self.assertRaises(Exception):
+        with self.assertWarns(DeprecationWarning):
             self.dmis.Wd = utils.Identity()
 
     def test_DataMisfit_nP(self):

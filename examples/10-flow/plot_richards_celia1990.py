@@ -60,7 +60,7 @@ def run(plotIt=True):
 
     def getFields(timeStep, method):
         timeSteps = np.ones(int(360/timeStep))*timeStep
-        prob = richards.RichardsSimulation(
+        prob = richards.SimulationNDCellCentered(
             M,
             hydraulic_conductivity=k_fun,
             water_retention=theta_fun,

@@ -1,7 +1,4 @@
-import warnings
-warnings.warn(
-    'AnalyticUtils has been deprecated, please use analytic_utils',
-    DeprecationWarning
-)
+from ...utils.code_utils import deprecate_module
+deprecate_module('AnalyticUtils', 'analytic_utils', '0.15.0')
 
 from .analytic_utils import *

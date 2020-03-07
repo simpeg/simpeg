@@ -74,7 +74,7 @@ components = ["gz"]
 
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
-receiver_list = gravity.receivers.point_receiver(
+receiver_list = gravity.receivers.Point(
         receiver_locations, components=components
         )
 
@@ -176,7 +176,7 @@ plt.show()
 
 # Define the forward simulation. By setting the 'forward_only' keyword argument
 # to false, we avoid storing a large dense matrix.
-simulation = gravity.simulation.IntegralSimulation(
+simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, rhoMap=model_map,
     actInd=ind_active, forward_only=True
 )

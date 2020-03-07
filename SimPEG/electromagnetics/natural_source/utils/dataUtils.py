@@ -1,7 +1,4 @@
-import warnings
-warnings.warn(
-    'dataUtils has been deprecated, please data_utils',
-    DeprecationWarning
-)
+from ....utils.code_utils import deprecate_module
+deprecate_module('dataUtils', 'data_utils', '0.15.0')
 
 from .data_utils import *

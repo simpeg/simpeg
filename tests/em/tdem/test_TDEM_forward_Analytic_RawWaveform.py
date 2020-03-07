@@ -14,7 +14,7 @@ from SimPEG.electromagnetics import analytics, utils
 
 def halfSpaceProblemAnaDiff(
     meshType, srctype="MagDipole", sig_half=1e-2, rxOffset=50., bounds=None,
-    plotIt=False, rxType='bz'
+    plotIt=False, rxType='MagneticFluxDensityz'
 ):
 
     if bounds is None:
@@ -36,7 +36,7 @@ def halfSpaceProblemAnaDiff(
     actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
-    prb = tdem.Problem3D_b(mesh, sigmaMap=mapping)
+    prb = tdem.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
     prb.Solver = Solver
     prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
     out = utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
@@ -44,7 +44,7 @@ def halfSpaceProblemAnaDiff(
     t0 = 0.006
     waveform = tdem.Src.RawWaveform(offTime=t0, waveFct=wavefun)
 
-    rx = getattr(tdem.Rx, 'Point_{}'.format(rxType[:-1]))(
+    rx = getattr(tdem.Rx, 'Point{}'.format(rxType[:-1]))(
         np.array([[rxOffset, 0., 0.]]), np.logspace(-4, -3, 31)+t0, rxType[-1]
     )
 
@@ -65,7 +65,7 @@ def halfSpaceProblemAnaDiff(
     sigma = np.log(sigma[active])
 
     if srctype == "MagDipole":
-        bz_ana = mu_0*analytics.hzAnalyticDipoleT(rx.locs[0][0]+1e-3,
+        bz_ana = mu_0*analytics.hzAnalyticDipoleT(rx.locations[0][0]+1e-3,
                                                      rx.times-t0, sig_half)
     elif srctype == "CircularLoop":
         bz_ana = mu_0*analytics.hzAnalyticCentLoopT(13, rx.times-t0,

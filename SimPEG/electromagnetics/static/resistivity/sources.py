@@ -3,6 +3,7 @@ import properties
 
 from .... import survey
 from ....utils import Zero, closestPoints, mkvc
+from ....utils.code_utils import deprecate_property
 
 
 class BaseSrc(survey.BaseSrc):
@@ -33,6 +34,7 @@ class Dipole(BaseSrc):
         "location of the source electrodes",
         survey.SourceLocationArray("location of electrode")
     )
+    loc = deprecate_property(location, 'loc', removal_version='0.15.0')
 
     def __init__(self, receiver_list, locationA, locationB, **kwargs):
         if locationA.shape != locationB.shape:

@@ -566,12 +566,12 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
                 P2 = np.c_[stn_x+a*dl_x, np.ones(nstn).T*ztop]
                 if survey_type.lower() in['dipole-dipole', 'pole-dipole']:
                     if d2flag == '2.5D':
-                        rxClass = dc.Rx.Dipole_ky(P1, P2)
+                        rxClass = dc.Rx.Dipole2D(P1, P2)
                     elif d2flag == '2D':
                         rxClass = dc.Rx.Dipole(P1, P2)
                 elif survey_type.lower() in ['dipole-pole', 'pole-pole']:
                     if d2flag == '2.5D':
-                        rxClass = dc.Rx.Pole_ky(P1)
+                        rxClass = dc.Rx.Pole2D(P1)
                     elif d2flag == '2D':
                         rxClass = dc.Rx.Pole(P1)
 
@@ -629,7 +629,7 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
                 M = M[:, [0, 2]]
                 N = N[:, [0, 2]]
                 if d2flag == '2.5D':
-                    rxClass = DC.Rx.Dipole_ky(rx[:, [0, 2]], rx[:, [3, 5]])
+                    rxClass = DC.Rx.Dipole2D(rx[:, [0, 2]], rx[:, [3, 5]])
                 elif d2flag == '2D':
                     rxClass = DC.Rx.Dipole(rx[:, [0, 2]], rx[:, [3, 5]])
             srcClass = DC.Src.Dipole([rxClass], (endl[0, :]), (endl[1, :]))
@@ -765,11 +765,11 @@ def generate_dcip_survey_line(survey_type, data_type, endl, topo, ds, dh, n, dim
         # Create receivers
         if dim_flag == '2.5D':
             if survey_type.lower() in ['dipole-pole', 'pole-pole']:
-                rxClass = dc.receivers.Pole_ky(
+                rxClass = dc.receivers.Pole2D(
                 	P[ii+1:ii+nrec+1, :], data_type=data_type
                 	)
             elif survey_type.lower() in ['dipole-dipole', 'pole-dipole']:
-                rxClass = dc.receivers.Dipole_ky(
+                rxClass = dc.receivers.Dipole2D(
                 	DP1[ii+1:ii+nrec+1, :], DP2[ii+1:ii+nrec+1, :], data_type=data_type
                 	)
 
@@ -1376,7 +1376,7 @@ def readUBC_DC2Dpre(fileName):
 
         d.append(temp[-1])
 
-        Rx = dc.Rx.Dipole_ky(rx[:, :3], rx[:, 3:])
+        Rx = dc.Rx.Dipole2D(rx[:, :3], rx[:, 3:])
         srcLists.append(dc.Src.Dipole([Rx], tx[:3], tx[3:]))
 
     # Create survey class
